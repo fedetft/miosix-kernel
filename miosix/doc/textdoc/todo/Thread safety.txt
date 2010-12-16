@@ -1,0 +1,27 @@
+Thread safety issues:
+This is a (probably incomplete) list of parts of the C/C++ standard
+library that require locks or atomic ops for thread safety.
+
+- malloc, but newlib already provides __malloc_lock() and __malloc_unlock()
+  that take care of this issue.
+  FIXED
+
+- newlib/libc/stdlib/__atexit.c
+  Requres a mutex to access a global data structure.
+  TODO
+
+- libsupc++/guard.cc
+  Requres a thread safe implementation of code to call the constructor
+  of any static class declared inside a function.
+  TODO
+
+- libsupc++/eh_alloc.cc
+  Requires a mutex for allocation of memory in the emergency buffer.
+  TODO
+
+- libsupc++/eh_globals.cc
+  Requires a per-thread instance of some data structure.
+  TODO
+
+
+

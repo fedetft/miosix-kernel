@@ -1,0 +1,18 @@
+--- gcc-4.4.2/libstdc++-v3/libsupc++/eh_alloc.cc	2009-04-10 01:23:07.000000000 +0200
++++ gcc-4.4.2/libstdc++-v3/libsupc++/eh_alloc_patched.cc	2010-02-06 18:14:09.000000000 +0100
+@@ -73,6 +73,15 @@
+ # define EMERGENCY_OBJ_COUNT	4
+ #endif
+ 
++//begin TFT patch
++//RATIONALE: reduced emergency buffer for ARM microcontrollers, saves ~1.5K of RAM
++#undef EMERGENCY_OBJ_SIZE
++#undef EMERGENCY_OBJ_COUNT
++
++#define EMERGENCY_OBJ_SIZE  160
++#define EMERGENCY_OBJ_COUNT 4
++//end TFT patch
++
+ #if INT_MAX == 32767 || EMERGENCY_OBJ_COUNT <= 32
+ typedef unsigned int bitmask_type;
+ #else

@@ -1,0 +1,64 @@
+Note: performance depends on the uSD card.
+Also write performance and tends to get worse with time because of the way
+FLASH memory works (when the card has been formatted recently many sectors
+are pre-erased so that a write cycle does not require an erase cycle)
+
+Miosix 1.52, with SYNC_AFTER_WRITE, stm32 code running from internal FLASH
+Card: nobrand 128MB miroSD
+--------------------------------------------------------------------------
+Filesystem write benchmark
+Total write time = 21585ms (47KB/s)
+Max filesystem latency = 80ms
+Filesystem read test
+Total read time = 649ms (1577KB/s)
+Max filesystem latency = 1ms
+
+Miosix 1.52, with SYNC_AFTER_WRITE, stm32 code running from internal FLASH
+Card: Verbatim 2GB microSD
+--------------------------------------------------------------------------
+Filesystem write benchmark
+Total write time = 30393ms (33KB/s)
+Max filesystem latency = 242ms
+Filesystem read test
+Total read time = 1971ms (519KB/s)
+Max filesystem latency = 3ms
+
+Miosix 1.52, with SYNC_AFTER_WRITE, stm32 code running from external RAM
+Card: Verbatim 2GB microSD
+------------------------------------------------------------------------
+Filesystem write benchmark
+Total write time = 33463ms (30KB/s)
+Max filesystem latency = 442ms
+Filesystem read test
+Total read time = 4047ms (253KB/s)
+Max filesystem latency = 5ms
+
+Miosix 1.50, without SYNC_AFTER_WRITE, LPC2000
+Card: Verbatim 2GB microSD
+----------------------------------------------
+Filesystem write benchmark
+Total write time = 10440ms (98KB/s)
+Max filesystem latency = 240ms
+Filesystem read test
+Total read time = 5175ms (197KB/s)
+Max filesystem latency = 10ms
+
+Miosix 1.50, with SYNC_AFTER_WRITE, LPC2000
+Card: Verbatim 2GB microSD
+-------------------------------------------
+Filesystem write benchmark
+Total write time = 23560ms (43KB/s)
+Max filesystem latency = 460ms
+Filesystem read test
+Total read time = 5165ms (198KB/s)
+Max filesystem latency = 10ms
+
+Miosix 1.03
+Card: Verbatim 2GB microSD
+--------------------------
+Filesystem write benchmark
+Total write time = 10840ms (94KB/s)
+Max filesystem latency = 450ms
+Filesystem read test
+Total read time = 5155ms (198KB/s)
+Max filesystem latency = 10ms

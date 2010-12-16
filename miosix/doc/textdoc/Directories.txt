@@ -1,0 +1,53 @@
+Miosix 1.50+ directory tree
+
+[ ] //Root directory, contains main.cpp and in general the application code
+ |
+ +--[ ] miosix //Contains all Miosix OS code
+     |
+     +--[ ] config //Contains arch-independent configuration files
+     |
+     +--[ ] util //Contains utility code, architcture independent
+     |
+     +--[ ] kernel //Contains the architecture independent kernel part
+     |   |
+     |   +--[ ] filesystem //filesystem code
+     |   |
+     |   +--[ ] schedulers //Contains the various schedulers
+     |       |
+     |       +--[ ] priority
+     |       |
+     |       +--[ ] control_based
+     |       |
+     |       +--[ ] edf
+     |
+     +--[ ] doc //Kernel documentation (doxygen + pdf + txt)
+     |
+     +--[ ] interfaces //Contains interfaces between kernel and architecture
+     |                 //dependent code
+     |
+     +--[ ] arch //Contains architecture dependent code
+         |
+         +--[ ] arm7_lpc2000 //Name of folder is 'cpu model' + 'mcu family'
+         |   |
+         |   +--[ ] common //Common code for this architecture
+         |   |
+         |   +--[ ] lpc2138_miosix_board //Name is 'chip name'+'_'+'board name'
+         |       |
+         |       +--[ ] interfaces-impl //Implmentation of miosix/interfaces
+         |       |
+         |       +--[ ] drivers //Serial ports, board support package, etc.
+         |       |
+         |       +--[ ] core //Boot and exception handling code
+         |
+         +--[ ] cortexM3_stm32
+             |
+             +--[ ] common
+             |
+             +--[ ] stm32f103ze_stm3210e-eval
+                 |
+                 +--[ ] interfaces-impl
+                 |
+                 +--[ ] drivers
+                 |
+                 +--[ ] core
+      

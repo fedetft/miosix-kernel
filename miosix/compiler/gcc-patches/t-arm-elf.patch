@@ -1,0 +1,32 @@
+--- gcc-4.4.2/gcc/config/arm/t-arm-elf	2008-06-12 19:29:47.000000000 +0200
++++ gcc-4.4.2/gcc/config/arm/t-arm-elf_patched	2010-02-06 18:14:09.000000000 +0100
+@@ -18,15 +18,20 @@
+ MULTILIB_EXCEPTIONS  = 
+ MULTILIB_MATCHES     =
+ 
+-#MULTILIB_OPTIONS      += march=armv7
+-#MULTILIB_DIRNAMES     += thumb2
+-#MULTILIB_EXCEPTIONS   += march=armv7* marm/*march=armv7*
+-#MULTILIB_MATCHES      += march?armv7=march?armv7-a
+-#MULTILIB_MATCHES      += march?armv7=march?armv7-r
+-#MULTILIB_MATCHES      += march?armv7=march?armv7-m
+-#MULTILIB_MATCHES      += march?armv7=mcpu?cortex-a8
+-#MULTILIB_MATCHES      += march?armv7=mcpu?cortex-r4
+-#MULTILIB_MATCHES      += march?armv7=mcpu?cortex-m3
++# begin TFT patch
++# # RATIONALE: building also thumb2 multilibs allow supporting Cortex-M3 processors
++# # as well as ARM7 processors with the same compiler
++# # see http://gcc.gnu.org/ml/gcc-help/2009-02/msg00033.html
++MULTILIB_OPTIONS      += march=armv7
++MULTILIB_DIRNAMES     += thumb2
++MULTILIB_EXCEPTIONS   += march=armv7* marm/*march=armv7*
++MULTILIB_MATCHES      += march?armv7=march?armv7-a
++MULTILIB_MATCHES      += march?armv7=march?armv7-r
++MULTILIB_MATCHES      += march?armv7=march?armv7-m
++MULTILIB_MATCHES      += march?armv7=mcpu?cortex-a8
++MULTILIB_MATCHES      += march?armv7=mcpu?cortex-r4
++MULTILIB_MATCHES      += march?armv7=mcpu?cortex-m3
++# # end TFT patch
+ 
+ # MULTILIB_OPTIONS    += mcpu=ep9312
+ # MULTILIB_DIRNAMES   += ep9312

@@ -1,0 +1,21 @@
+When the Miosix kernel encounters an ARM data abort, or undefined instruction
+interrupt, it prints the address of the instructon that caused the error and
+reboots the system.
+This can be caused by a stack overflow, or dangling reference.
+To convert this address into the name of the function that caused the error, and
+the exact code line where the program stopped, use this command:
+
+arm-miosix-eabi-addr2line <ADDRESS> -e main.elf -f | arm-miosix-eabi-c++filt
+
+Example:
+
+arm-miosix-eabi-addr2line 0x0000d494 -e main.elf -f | arm-miosix-eabi-c++filt 
+miosix::Timer::interval() const
+miosix/kernel/sync.cpp:174
+
+This says that the function is Timer::interval() in file sync.cpp and that the
+program stopped at line 174
+
+Please note that for this operation to be reliablle compiler optimization must
+be turned off (using -O0 instead of -Os) at least for the file that caused the
+error.

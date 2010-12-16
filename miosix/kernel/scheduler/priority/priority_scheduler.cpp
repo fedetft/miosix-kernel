@@ -1,0 +1,230 @@
+/***************************************************************************
+ *   Copyright (C) 2010 by Terraneo Federico                               *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   As a special exception, if other files instantiate templates or use   *
+ *   macros or inline functions from this file, or you compile this file   *
+ *   and link it with other works to produce a work based on this file,    *
+ *   this file does not by itself cause the resulting work to be covered   *
+ *   by the GNU General Public License. However the source code for this   *
+ *   file must still be made available in accordance with the GNU General  *
+ *   Public License. This exception does not invalidate any other reasons  *
+ *   why a work based on this file might be covered by the GNU General     *
+ *   Public License.                                                       *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
+ ***************************************************************************/
+
+#include "priority_scheduler.h"
+#include "kernel/kernel.h"
+#include "kernel/error.h"
+
+#ifdef SCHED_TYPE_PRIORITY
+
+namespace miosix {
+
+//These are defined in kernel.cpp
+extern volatile Thread *cur;
+extern unsigned char kernel_running;
+
+void PriorityScheduler::PKaddThread(Thread *thread, short int priority)
+{
+    thread->schedData.priority=priority;
+    if(thread_list[priority]==NULL)
+    {
+        thread_list[priority]=thread;
+        thread->schedData.next=thread;//Circular list
+    } else {
+        thread->schedData.next=thread_list[priority]->schedData.next;
+        thread_list[priority]->schedData.next=thread;
+    }
+}
+
+bool PriorityScheduler::PKexists(Thread *thread)
+{
+    for(short int i=PRIORITY_MAX-1;i>=0;i--)
+    {
+        if(thread_list[i]==NULL) continue;
+        Thread *temp=thread_list[i];
+        for(;;)
+        {
+            if((temp==thread)&&(! (temp->flags.isDeleted())))
+            {
+                //Found
+                return true;
+            }
+            temp=temp->schedData.next;
+            if(temp==thread_list[i]) break;
+        }
+    }
+    return false;
+}
+
+void PriorityScheduler::PKremoveDeadThreads()
+{
+    for(short int i=PRIORITY_MAX-1;i>=0;i--)
+    {
+        if(thread_list[i]==NULL) continue;
+        bool first=false;//If false the tail of the list hasn't been calculated
+        Thread *tail=NULL;//Tail of the list
+        //Special case: removing first element in the list
+        while(thread_list[i]->flags.isDeleted())
+        {
+            if(thread_list[i]->schedData.next==thread_list[i])
+            {
+                //Only one element in the list
+                //Call destructor manually because of placement new
+                void *base=thread_list[i]->watermark;
+                thread_list[i]->~Thread();
+                free(base); //Delete ALL thread memory
+                thread_list[i]=NULL;
+                break;
+            }
+            //If it is the first time the tail of the list hasn't
+            //been calculated
+            if(first==false)
+            {
+                first=true;
+                tail=thread_list[i];
+                while(tail->schedData.next!=thread_list[i])
+                    tail=tail->schedData.next;
+            }
+            Thread *d=thread_list[i];//Save a pointer to the thread
+            thread_list[i]=thread_list[i]->schedData.next;//Remove from list
+            //Fix the tail of the circular list
+            tail->schedData.next=thread_list[i];
+            //Call destructor manually because of placement new
+            void *base=d->watermark;
+            d->~Thread();
+            free(base);//Delete ALL thread memory
+        }
+        if(thread_list[i]==NULL) continue;
+        //If it comes here, the first item is not NULL, and doesn't have
+        //to be deleted General case: removing items not at the first
+        //place
+        Thread *temp=thread_list[i];
+        for(;;)
+        {
+            if(temp->schedData.next==thread_list[i]) break;
+            if(temp->schedData.next->flags.isDeleted())
+            {
+                Thread *d=temp->schedData.next;//Save a pointer to the thread
+                temp->schedData.next=temp->schedData.next->schedData.next;//Remove from list
+                //Call destructor manually because of placement new
+                void *base=d->watermark;
+                d->~Thread();
+                free(base);//Delete ALL thread memory
+            } else temp=temp->schedData.next;
+        }
+    }
+}
+
+void PriorityScheduler::PKsetPriority(Thread *thread, short int newPriority)
+{
+    short int oldPriority=getPriority(thread);
+    //First set priority to the new value
+    thread->schedData.priority=newPriority;
+    //Then remove the thread from its old list
+    if(thread_list[oldPriority]==thread)
+    {
+        if(thread_list[oldPriority]->schedData.next==thread_list[oldPriority])
+        {
+            //Only one element in the list
+            thread_list[oldPriority]=NULL;
+        } else {
+            Thread *tail=thread_list[oldPriority];//Tail of the list
+            while(tail->schedData.next!=thread_list[oldPriority])
+                tail=tail->schedData.next;
+            thread_list[oldPriority]=thread_list[oldPriority]->schedData.next;//Remove
+            tail->schedData.next=thread_list[oldPriority];//Fix tail of the circular list
+        }
+    } else {
+        //If it comes here, the first item doesn't have to be removed
+        //General case: removing item not at the first place
+        Thread *temp=thread_list[oldPriority];
+        for(;;)
+        {
+            if(temp->schedData.next==thread_list[oldPriority])
+            {
+                //After walking all elements in the list the thread wasn't found
+                //This should never happen
+                errorHandler(UNEXPECTED);
+            }
+            if(temp->schedData.next==thread)
+            {
+                temp->schedData.next=temp->schedData.next->schedData.next;//Remove from list
+                break;
+            } else temp=temp->schedData.next;
+        }
+    }
+    //Last insert the thread in the new list
+    if(thread_list[newPriority]==NULL)
+    {
+        thread_list[newPriority]=thread;
+        thread->schedData.next=thread;//Circular list
+    } else {
+        thread->schedData.next=thread_list[newPriority]->schedData.next;
+        thread_list[newPriority]->schedData.next=thread;
+    }
+}
+
+short int PriorityScheduler::getPriority(Thread *thread)
+{
+    return thread->schedData.priority;
+}
+
+
+short int PriorityScheduler::IRQgetPriority(Thread *thread)
+{
+    return thread->schedData.priority;
+}
+
+void PriorityScheduler::IRQsetIdleThread(Thread *idleThread)
+{
+    idleThread->schedData.priority=-1;
+    idle=idleThread;
+}
+
+void PriorityScheduler::IRQfindNextThread()
+{
+    if(kernel_running!=0) return;//If kernel is paused, do nothing
+    for(short int i=PRIORITY_MAX-1;i>=0;i--)
+    {
+        if(thread_list[i]==NULL) continue;
+        Thread *temp=thread_list[i]->schedData.next;
+        for(;;)
+        {
+            if(temp->flags.isReady())
+            {
+                //Found a READY thread, so run this one
+                cur=temp;
+                ctxsave=temp->ctxsave;
+                //Rotate to next thread so that next time the list is walked
+                //a different thread, if available, will be chosen first
+                thread_list[i]=temp;
+                return;
+            } else temp=temp->schedData.next;
+            if(temp==thread_list[i]->schedData.next) break;
+        }
+    }
+    //No thread found, run the idle thread
+    cur=idle;
+    ctxsave=idle->ctxsave;
+}
+
+Thread *PriorityScheduler::thread_list[PRIORITY_MAX]={0};
+Thread *PriorityScheduler::idle=0;
+
+} //namespace miosix
+
+#endif //SCHED_TYPE_PRIORITY

@@ -1,0 +1,36 @@
+Calculations to minimize the emrgency buffer for throwing std::bad_alloc.
+
+All files in libsupc++ folder
+
+1) eh_alloc.cc
+
+Definition of emergency buffer, and its size.
+
+2) exception and eh_exception.cc files
+
+Definition/declaration of std::bad_alloc
+Its size is 4 bytes, just the vptr
+
+3) unwind_cxx.h
+
+Defintion of __cxa_exception, the exception header
+Looks like it's 12 pointers or ints, so 48bytes, but a comment in eh_alloc.cc
+Says it can be 13 pointers and 2 ints, so 60bytes
+
+4) it is recomended to leave some space just in case a different
+exception is thrown, like logic_error or runtime_error and there is no heap to
+allocate it. By seeing stdecept and stdexcept.cc these classes only
+contain a string object, and sizeof(logic_error) returns 8 bytes (4=vptr 4=string)
+
+5) An attempt at using 64bytes failed.
+
+6) Note Jul 5, 2010.
+A testcase started to fail, JTAG debugging found that a bad_alloc was allocated
+that required 132Bytes. Expanding EMERGENCY_OBJ_SIZE to 160 bytes (128+32) to leave
+some margin.
+
+-------------
+
+Conclusion:
+Looks like EMERGENCY_OBJ_SIZE can be shrinked from 512 to 160bytes, for 32bit systems.
+For EMRGENCY_OBJ_COUNT 4 is good for multithreading, 2 for single threads.

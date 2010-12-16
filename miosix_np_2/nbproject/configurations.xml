@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="69">
+  <logicalFolder name="root" displayName="root" projectFiles="true">
+    <df name="miosix_np_2" root="..">
+      <df name="miosix">
+        <df name="arch">
+          <df name="arm7_lpc2000">
+            <df name="common">
+              <in>arch_settings.h</in>
+            </df>
+            <df name="lpc2138_miosix_board">
+              <df name="core">
+                <in>interrupts.cpp</in>
+                <in>interrupts.h</in>
+              </df>
+              <df name="drivers">
+                <in>serial.cpp</in>
+                <in>serial.h</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console.cpp</in>
+                <in>delays.cpp</in>
+                <in>disk.cpp</in>
+                <in>gpio_impl.h</in>
+                <in>portability.cpp</in>
+                <in>portability_impl.h</in>
+              </df>
+              <in>LPC213x.h</in>
+              <in>board_settings.h</in>
+            </df>
+          </df>
+          <df name="cortexM3_stm32">
+            <df name="common">
+              <in>arch_settings.h</in>
+            </df>
+            <df name="stm32f103ze_stm3210e-eval">
+              <df name="CMSIS">
+                <in>core_cm3.c</in>
+                <in>core_cm3.h</in>
+                <in>stm32f10x.h</in>
+                <in>system_stm32f10x.c</in>
+                <in>system_stm32f10x.h</in>
+              </df>
+              <df name="core">
+                <in>interrupts.cpp</in>
+                <in>interrupts.h</in>
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="drivers">
+                <in>serial.cpp</in>
+                <in>serial.h</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console.cpp</in>
+                <in>delays.cpp</in>
+                <in>disk.cpp</in>
+                <in>gpio_impl.h</in>
+                <in>portability.cpp</in>
+                <in>portability_impl.h</in>
+              </df>
+              <in>board_settings.h</in>
+            </df>
+          </df>
+        </df>
+        <df name="config">
+          <df name="alt-configs">
+            <df name="minimum code size" kind="SOURCE_LOGICAL_FOLDER">
+              <in>miosix_settings.h</in>
+            </df>
+          </df>
+          <in>miosix_settings.h</in>
+        </df>
+        <df name="interfaces">
+          <in>arch_registers.h</in>
+          <in>bsp.h</in>
+          <in>console.h</in>
+          <in>delays.h</in>
+          <in>disk.h</in>
+          <in>gpio.h</in>
+          <in>portability.h</in>
+        </df>
+        <df name="kernel">
+          <df name="filesystem">
+            <in>diskio.cpp</in>
+            <in>diskio.h</in>
+            <in>ff.c</in>
+            <in>ff.h</in>
+            <in>filesystem.cpp</in>
+            <in>filesystem.h</in>
+            <in>integer.h</in>
+          </df>
+          <df name="scheduler">
+            <df name="control">
+              <in>control_scheduler.cpp</in>
+              <in>control_scheduler.h</in>
+            </df>
+            <df name="edf">
+            </df>
+            <df name="priority">
+              <in>priority_scheduler.cpp</in>
+              <in>priority_scheduler.h</in>
+            </df>
+            <in>scheduler.h</in>
+          </df>
+          <in>error.cpp</in>
+          <in>error.h</in>
+          <in>kernel.cpp</in>
+          <in>kernel.h</in>
+          <in>logging.h</in>
+          <in>priority_queue.h</in>
+          <in>pthread.cpp</in>
+          <in>stage_2_boot.cpp</in>
+          <in>sync.cpp</in>
+          <in>sync.h</in>
+          <in>syscalls.cpp</in>
+          <in>syscalls.h</in>
+          <in>unistd.cpp</in>
+        </df>
+        <df name="util">
+          <in>crc16.cpp</in>
+          <in>crc16.h</in>
+          <in>software_i2c.h</in>
+          <in>software_spi.h</in>
+          <in>util.cpp</in>
+          <in>util.h</in>
+          <in>version.cpp</in>
+          <in>version.h</in>
+        </df>
+        <in>miosix.h</in>
+      </df>
+      <df name="miosix_np_2">
+      </df>
+      <in>main.cpp</in>
+      <in>native_thread_example.cpp</in>
+      <in>pthread_example.cpp</in>
+      <in>testsuite.cpp</in>
+    </df>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false">
+      <itemPath>../makefile</itemPath>
+      <itemPath>miosix_np_2-Makefile.mk</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceFolderFilter>^(nbproject|build|test|bootloaders|compiler|doc|temp)$</sourceFolderFilter>
+  <sourceRootList>
+    <Elem>..</Elem>
+  </sourceRootList>
+  <projectmakefile>miosix_np_2-Makefile.mk</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
+        <platform>2</platform>
+      </toolsSet>
+      <makefileType>
+        <makeTool>
+          <buildCommandWorkingDir>..</buildCommandWorkingDir>
+          <buildCommand>${MAKE} -f Makefile</buildCommand>
+          <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
+          <executablePath></executablePath>
+          <cTool>
+            <incDir>
+              <pElem>..</pElem>
+              <pElem>../miosix</pElem>
+              <pElem>../miosix/arch/cortexM3_stm32/common</pElem>
+              <pElem>../miosix/arch/cortexM3_stm32/stm32f103ze_stm3210e-eval</pElem>
+              <pElem>../miosix/arch/arm7_lpc2000/common</pElem>
+              <pElem>../miosix/arch/arm7_lpc2000/lpc2138_miosix_board</pElem>
+            </incDir>
+            <preprocessorList>
+              <Elem>_MIOSIX</Elem>
+              <Elem>_POSIX_THREADS</Elem>
+            </preprocessorList>
+          </cTool>
+          <ccTool>
+            <incDir>
+              <pElem>..</pElem>
+              <pElem>../miosix</pElem>
+              <pElem>../miosix/arch/cortexM3_stm32/common</pElem>
+              <pElem>../miosix/arch/cortexM3_stm32/stm32f103ze_stm3210e-eval</pElem>
+              <pElem>../miosix/arch/arm7_lpc2000/common</pElem>
+              <pElem>../miosix/arch/arm7_lpc2000/lpc2138_miosix_board</pElem>
+            </incDir>
+            <preprocessorList>
+              <Elem>_MIOSIX</Elem>
+              <Elem>_POSIX_THREADS</Elem>
+            </preprocessorList>
+          </ccTool>
+        </makeTool>
+      </makefileType>
+    </conf>
+  </confs>
+</configurationDescriptor>

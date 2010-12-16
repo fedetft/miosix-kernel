@@ -1,0 +1,16 @@
+
+TODO: add Thread::trySleep()
+
+TODO: add ThreadInternals class to get rid of all the friends of Thread
+
+TODO: filesystem boot options
+1) synchronous filesystem initialization: filesystem is initialized before
+main() is called.
+2) asynchronous filesystem initialization: filesystem is initialized in a
+separate thread that is spawned and runs in parallel with main(). This
+provides faster boot, but only if main() does not use immediately the
+filesystem
+3) lazy filesystem initialization: filesystem is initialized when user code
+makes the first call to it. This implies the first call can take a long time.
+
+TODO: check hashtable in filesystem.cpp
