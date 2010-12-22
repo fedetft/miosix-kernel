@@ -21,4 +21,3 @@ arm-miosix-eabi-gdbtui     lpc21isp
 cd /opt
 
 sudo rm -rf arm-miosix-eabi/
-

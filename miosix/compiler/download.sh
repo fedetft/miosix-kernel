@@ -1,3 +1,4 @@
+#!/bin/bash
 
 # This simple script will download all the required source files
 # for compiling arm-miosix-eabi-gcc
