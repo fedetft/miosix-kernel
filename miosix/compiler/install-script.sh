@@ -8,9 +8,9 @@
 # reducing RAM footprint), but this will change in the future.
 #
 # This script will install arm-miosix-eabi-gcc in /opt, creating links to
-# binaries in /usr/local.
+# binaries in /usr/bin.
 # It should be run without root privileges, but it will ask for the root
-# password when installing files to /opt and /usr/local
+# password when installing files to /opt and /usr/bin
 
 function quit {
 	echo $1
@@ -46,7 +46,7 @@ make all 2>../b.txt						|| quit ":: Error compiling binutils"
 
 sudo make install 2>../c.txt			|| quit ":: Error installing binutils"
 
-sudo ln -s /opt/arm-miosix-eabi/bin/* /usr/local/bin
+sudo ln -s /opt/arm-miosix-eabi/bin/* /usr/bin
 
 cd ..
 
@@ -62,16 +62,13 @@ sudo make all-gcc 2>../e.txt			|| quit ":: Error compiling gcc-start"
 
 sudo make install-gcc 2>../f.txt		|| quit ":: Error installing gcc-start"
 
-sudo ln -s /opt/arm-miosix-eabi/bin/* /usr/local/bin
+sudo ln -s /opt/arm-miosix-eabi/bin/* /usr/bin
 
 cd ..
 
 #
 # Part 5: compile and install newlib
 #
-
-# Fix for installing on Fedora 14 where "sudo make install" for newlib fails not finding arm-miosix-eabi-ranlib
-sudo ln -s /opt/arm-miosix-eabi/bin/arm-miosix-eabi-ranlib /usr/bin/arm-miosix-eabi-ranlib
 
 mkdir newlib-obj
 cd newlib-obj
@@ -81,9 +78,6 @@ cd newlib-obj
 make 2>../h.txt							|| quit ":: Error compiling newlib"
 
 sudo make install 2>../i.txt			|| quit ":: Error installing newlib"
-
-# Removing this link since it was there only as a fix
-sudo rm /usr/bin/arm-miosix-eabi-ranlib
 
 cd ..
 
@@ -100,17 +94,50 @@ sudo make install 2>../k.txt			|| quit ":: Error installing gcc-end"
 cd ..
 
 #
-# Part 7: compile and install lpc21isp.c
+# Part 7: check that all multilibs have been built.
+# This check has been added after an attempt to build arm-miosix-eabi-gcc on Fedora
+# where newlib's multilibs were not built. Gcc produced binaries that failed on
+# Cortex M3 because the first call to a libc function was a blx into ARM instruction
+# set, but since Cortex M3 only has the thumb2 instruction set, the CPU locked.
+# By checking that all multilibs are correctly built, this error can be spotted
+# immediately instead of leaving a gcc that produces wrong code in the wild. 
+#
+
+function check_multilibs {
+	if [ ! -f $1/libc.a ]; then
+		quit "::Error, $1/libc.a not installed"
+	fi
+	if [ ! -f $1/libm.a ]; then
+		quit "::Error, $1/libm.a not installed"
+	fi
+	if [ ! -f $1/libg.a ]; then
+		quit "::Error, $1/libg.a not installed"
+	fi
+	if [ ! -f $1/libstdc++.a ]; then
+		quit "::Error, $1/libstdc++.a not installed"
+	fi
+	if [ ! -f $1/libsupc++.a ]; then
+		quit "::Error, $1/libsupc++.a not installed"
+	fi 
+}
+
+check_multilibs /opt/arm-miosix-eabi/arm-eabi/lib
+check_multilibs /opt/arm-miosix-eabi/arm-eabi/lib/thumb
+check_multilibs /opt/arm-miosix-eabi/arm-eabi/lib/thumb/thumb2
+echo "::All multilibs have been built. OK"
+
+#
+# Part 8: compile and install lpc21isp.c
 #
 
 gcc -o lpc21isp lpc21isp.c						|| quit ":: Error compiling lpc21isp"
 
 sudo mv lpc21isp /opt/arm-miosix-eabi/bin		|| quit ":: Error installing lpc21isp"
 
-sudo ln -s /opt/arm-miosix-eabi/bin/* /usr/local/bin
+sudo ln -s /opt/arm-miosix-eabi/bin/* /usr/bin
 
 #
-# Part 8: compile and install gdb
+# Part 9: compile and install gdb
 #
 
 cd gdb-7.0
@@ -121,12 +148,12 @@ make all 2>../m.txt						|| quit ":: Error compiling gdb"
 
 sudo make install 2>../n.txt			|| quit ":: Error installing gdb"
 
-sudo ln -s /opt/arm-miosix-eabi/bin/* /usr/local/bin
+sudo ln -s /opt/arm-miosix-eabi/bin/* /usr/bin
 
 cd ..
 
 # Last thing, remove this since its name is not arm-miosix-eabi-
-sudo rm /usr/local/bin/arm-eabi-gcc-4.4.2
+sudo rm /usr/bin/arm-eabi-gcc-4.4.2
 
 #
 # The end.

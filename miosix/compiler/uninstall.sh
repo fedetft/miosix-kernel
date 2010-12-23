@@ -2,22 +2,31 @@
 
 # Uninstall script: removes the arm-miosix-eabi-gcc compiler
 
-cd /usr/bin
+PREFIX="arm-miosix-eabi-"
+FILES="addr2line ar as c++ c++filt cpp g++ gcc gccbug gcov gdb gdbtui gprof ld nm objcopy objdump ranlib readelf run size strings strip"
 
-sudo rm -f                                          \
-arm-miosix-eabi-addr2line  arm-miosix-eabi-gprof    \
-arm-miosix-eabi-ar         arm-miosix-eabi-ld       \
-arm-miosix-eabi-as         arm-miosix-eabi-nm       \
-arm-miosix-eabi-c++        arm-miosix-eabi-objcopy  \
-arm-miosix-eabi-c++filt    arm-miosix-eabi-objdump  \
-arm-miosix-eabi-cpp        arm-miosix-eabi-ranlib   \
-arm-miosix-eabi-g++        arm-miosix-eabi-readelf  \
-arm-miosix-eabi-gcc        arm-miosix-eabi-run      \
-arm-miosix-eabi-gccbug     arm-miosix-eabi-size     \
-arm-miosix-eabi-gcov       arm-miosix-eabi-strings  \
-arm-miosix-eabi-gdb        arm-miosix-eabi-strip    \
-arm-miosix-eabi-gdbtui     lpc21isp
+# Remove symlinks to the compiler
+for i in $FILES; do
+	# New install-script.sh installs links in /usr/bin
+	# Using -h because the file must be a symlink
+	if [ -h "/usr/bin/$PREFIX$i" ]; then
+		sudo rm "/usr/bin/$PREFIX$i"
+	fi
+	# Old install-script.sh used to install links in /usr/local/bin,
+	# so remove also those links for backward compatibility
+	if [ -h "/usr/local/bin/$PREFIX$i" ]; then
+		sudo rm "/usr/local/bin/$PREFIX$i"
+	fi
+done
 
+# Remove lpc21isp
+if [ -h "/usr/bin/lpc21isp" ]; then
+	sudo rm "/usr/bin/lpc21isp"
+fi
+if [ -h "/usr/local/bin/lpc21isp" ]; then
+	sudo rm "/usr/local/bin/lpc21isp"
+fi
+
+# Remove the compiler
 cd /opt
-
 sudo rm -rf arm-miosix-eabi/

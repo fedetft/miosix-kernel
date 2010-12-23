@@ -21,6 +21,13 @@ gcc, g++, make, ncurses, byacc, flex, texinfo, patch, gmp, mpfr, tar, unzip
 For example, for Ubuntu/Kubuntu open a shell and type:
 sudo apt-get install gcc g++ make libncurses5-dev byacc flex texinfo patch libgmp3-dev libmpfr-dev tar unzip
 
+While on Fedora:
+sudo yum intall gcc gcc-c++ make ncurses-devel byacc flex texinfo patch gmp-devel mpfr-devel tar unzip
+
+Note: these scripts require "sudo". If you use a distro like Fedora where sudo
+is not enabled by default, use "visudo" to enable sudo for your account. You
+can find information to do so in the Internet.
+
 
 Step 3
 ------
@@ -64,10 +71,10 @@ for example on Ubuntu/Kubuntu you can install it with
 
 sudo apt-get install openocd
 
-Note: openocd scripts shipped with Miosix were tested against openocd v0.1.0
+Note: openocd scripts shipped with Miosix were tested against openocd v0.4.0
 and since the script syntax has the bad habit of changing incompatibly, they
 might non work with newer or older versions of openocd. Either fix the scripts
-or install version 0.1.0 if this happens.
+or install version 0.4.0 if this happens.
 
 
 Uninstalling the compiler
