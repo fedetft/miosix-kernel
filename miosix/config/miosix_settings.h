@@ -54,8 +54,8 @@ namespace miosix {
 /// Choose scheduler type
 /// Uncomment one #define only
 
-#define SCHED_TYPE_PRIORITY
-//#define SCHED_TYPE_CONTROL_BASED
+//#define SCHED_TYPE_PRIORITY
+#define SCHED_TYPE_CONTROL_BASED
 //#define SCHED_TYPE_EDF
 
 //
@@ -71,7 +71,7 @@ static const int bNominal=static_cast<int>(AUX_TIMER_CLOCK*0.004);// 4ms
 static const int bMin=static_cast<int>(AUX_TIMER_CLOCK*0.0002);// 200us
 
 ///maximum burst time (to avoid losing responsiveness/timer overflow)
-static const int bMax=static_cast<int>(AUX_TIMER_CLOCK*0.05);// 50ms
+static const int bMax=static_cast<int>(AUX_TIMER_CLOCK*0.02);// 20ms
 
 ///idle thread has a fixed burst length that can be modified here
 ///to increase responsiveness or low power operation

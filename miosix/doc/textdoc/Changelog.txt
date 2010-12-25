@@ -1,6 +1,14 @@
 Changelog for Miosix np embedded OS
 
 v1.56
+- Fixed bug in control scheduler: the outer regulator continued increasing
+  the burst correction even if the set point could not be attained because of
+  saturation of all inner integral regulators. This fix improves regulator
+  performance when many threads are blocked.
+- Updated openocd config files so that they work with newer releases of
+  openocd. Note that this drops compatibility with openocd v0.1.0
+- Fixed compiler scripts so that they work on Fedora too.
+- Transitioned to git.
 - Added the miosix/config/alt-configs directory to store some interesting
   alternative possible configurations.
 - Malloc always allocates 4KB sectors that are aligned to 4KB boundaries.

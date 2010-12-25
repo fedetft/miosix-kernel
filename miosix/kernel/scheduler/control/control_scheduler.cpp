@@ -125,19 +125,32 @@ void ControlScheduler::IRQfindNextThread()
     for(;;)
     {
         if(curInRound!=threadList.end()) ++curInRound;
-        if(curInRound==threadList.end())
+        if(curInRound==threadList.end()) //Note: do not replace with an else
         {
-            bool atLeastOneThreadReady=false;
+            //Check these two statements:
+            //- If all threads are not ready, the scheduling algorithm must be
+            //  paused and the idle thread is run instead
+            //- If the inner integral regulator of all ready threads saturated
+            //  then the integral regulator of the outer regulator must stop
+            //  increasing because the set point cannot be attained anyway.
+            bool allThreadNotReady=true;
+            bool allReadyThreadsSaturated=true;
             list<Thread *>::iterator it;
             for(it=threadList.begin();it!=threadList.end();++it)
             {
                 if((*it)->flags.isReady())
                 {
-                    atLeastOneThreadReady=true;
-                    break;
+                    allThreadNotReady=false;
+                    if((*it)->schedData.bo<bMax*4)
+                    {
+                        allReadyThreadsSaturated=false;
+                        //Found a counterexample for both statements,
+                        //no need to scan the list further.
+                        break;
+                    }
                 }
             }
-            if(atLeastOneThreadReady==false)
+            if(allThreadNotReady)
             {
                 //No thread is ready, run the idle thread
 
@@ -156,10 +169,16 @@ void ControlScheduler::IRQfindNextThread()
             int eTr=SP_Tr-Tr;
             const float krr=1.4f;
             const float zrr=0.88f;
-            bco=bco+static_cast<int>(krr*eTr-krr*zrr*eTro);
-            //NOTE: saturation of external regulator added!
+            int bc=bco+static_cast<int>(krr*eTr-krr*zrr*eTro);
+            if(allReadyThreadsSaturated)
+            {
+                //If all inner regulators reached upper saturation,
+                //allow only a decrease in the burst correction.
+                if(bc<bco) bco=bc;
+            } else bco=bc;
+
             bco=min(max(bco,-Tr),static_cast<int>(bMax*threadList.size()));
-            float nextRoundTime=(float)(Tr+bco);
+            float nextRoundTime=static_cast<float>(Tr+bco);
             eTro=eTr;
             Tr=0;//Reset round time
             for(it=threadList.begin();it!=threadList.end();++it)
@@ -204,7 +223,7 @@ void ControlScheduler::PKrecalculateAlfa()
     {
         sumPriority+=(*it)->schedData.priority+1;//Add one
     }
-    float base=1/((float)sumPriority);
+    float base=1.0f/((float)sumPriority);
     for(list<Thread *>::iterator it=threadList.begin();it!=threadList.end();++it)
     {
         (*it)->schedData.alfa=base*((float)((*it)->schedData.priority+1));
