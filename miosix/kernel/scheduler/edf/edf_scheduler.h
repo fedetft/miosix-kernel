@@ -25,34 +25,31 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef SCHEDULER_H
-#define	SCHEDULER_H
+#ifndef EDF_SCHEDULER_H
+#define	EDF_SCHEDULER_H
 
 #include "config/miosix_settings.h"
-#include "kernel/scheduler/priority/priority_scheduler.h"
-#include "kernel/scheduler/control/control_scheduler.h"
-#include "kernel/scheduler/edf/edf_scheduler.h"
+#include <list>
 
 namespace miosix {
 
 class Thread; //Forward declaration
 
-/**
- * \internal
- * This class is the common interface between the kernel and the scheduling
- * algorithms.
- * Dispatching of the calls to the implementation is done using templates
- * instead of inheritance and virtual functions beacause the scheduler
- * implementation is chosen at compile time.
- */
-template<typename T>
-class basic_scheduler
+class EDFSchedulerData
 {
 public:
+    EDFSchedulerData(): priority(0) {}
 
+    short int priority;//Thread priority.
+};
+
+class EDFScheduler
+{
+public:
     /**
      * \internal
      * Add a new thread to the scheduler.
+     * This is called when a thread is created.
      * \param thread a pointer to a valid thread instance.
      * The behaviour is undefined if a thread is added multiple timed to the
      * scheduler, or if thread is NULL.
@@ -60,10 +57,7 @@ public:
      * Priority must be a positive value.
      * Note that the meaning of priority is scheduler specific.
      */
-    static void PKaddThread(Thread *thread, short int priority)
-    {
-        T::PKaddThread(thread,priority);
-    }
+    static void PKaddThread(Thread *thread, short int priority);
 
     /**
      * \return true if thread exists, false if does not exist or has been
@@ -73,20 +67,14 @@ public:
      *
      * Can be called both with the kernel paused and with interrupts disabled.
      */
-    static bool PKexists(Thread *thread)
-    {
-        return T::PKexists(thread);
-    }
+    static bool PKexists(Thread *thread);
 
     /**
      * \internal
      * Called when there is at least one dead thread to be removed from the
      * scheduler
      */
-    static void PKremoveDeadThreads()
-    {
-        T::PKremoveDeadThreads();
-    }
+    static void PKremoveDeadThreads();
 
     /**
      * \internal
@@ -96,10 +84,7 @@ public:
      * \param newPriority new thread priority.
      * Priority must be a positive value.
      */
-    static void PKsetPriority(Thread *thread, short int newPriority)
-    {
-        T::PKsetPriority(thread,newPriority);
-    }
+    static void PKsetPriority(Thread *thread, short int newPriority);
 
     /**
      * \internal
@@ -108,20 +93,14 @@ public:
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
-    static short int getPriority(Thread *thread)
-    {
-        return T::getPriority(thread);
-    }
+    static short int getPriority(Thread *thread);
 
     /**
      * Same as getPriority, but meant to be called with interrupts disabled.
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
-    static short int IRQgetPriority(Thread *thread)
-    {
-        return T::IRQgetPriority(thread);
-    }
+    static short int IRQgetPriority(Thread *thread);
 
     /**
      * \internal
@@ -129,10 +108,7 @@ public:
      * thread is the idle thread, to be run all the times where no other thread
      * can run.
      */
-    static void IRQsetIdleThread(Thread *idleThread)
-    {
-        return T::IRQsetIdleThread(idleThread);
-    }
+    static void IRQsetIdleThread(Thread *idleThread);
 
     /**
      * This function is used to develop interrupt driven peripheral drivers.<br>
@@ -146,26 +122,12 @@ public:
      * It's behaviour is to modify the global variable miosix::cur which always
      * points to the currently running thread.
      */
-    static void IRQfindNextThread()
-    {
-        T::IRQfindNextThread();
-    }
+    static void IRQfindNextThread();
+
+private:
 
 };
 
-#ifdef SCHED_TYPE_PRIORITY
-typedef basic_scheduler<PriorityScheduler> Scheduler;
-typedef PrioritySchedulerData SchedulerData;
-#elif defined(SCHED_TYPE_CONTROL_BASED)
-typedef basic_scheduler<ControlScheduler> Scheduler;
-typedef ControlSchedulerData SchedulerData;
-#elif defined(SCHED_TYPE_EDF)
-typedef basic_scheduler<EDFScheduler> Scheduler;
-typedef EDFSchedulerData SchedulerData;
-#else
-#error No scheduler selected in config/miosix_settings.h
-#endif
-
 } //namespace miosix
 
-#endif	//SCHEDULER_H
+#endif //EDF_SCHEDULER_H

@@ -57,7 +57,7 @@ static volatile bool exist_deleted=false;
 
 static SleepData *sleeping_list=NULL;///<\internal list of sleeping threads
 
-static volatile unsigned long long tick=0;///<\internal Kernel tick
+static volatile long long tick=0;///<\internal Kernel tick
 
 ///\internal !=0 after pauseKernel(), ==0 after restartKernel()
 unsigned char kernel_running=0;
@@ -203,7 +203,7 @@ bool isKernelRunning()
     return (kernel_running==0) && kernel_started;
 }
 
-unsigned long long getTick()
+long long getTick()
 {
     /*
      * Reading a volatile 64bit integer on a 32bit platform with interrupts
@@ -214,8 +214,8 @@ unsigned long long getTick()
     long long a,b;
     for(;;)
     {
-        a=(unsigned long long)tick;
-        b=(unsigned long long)tick;
+        a=static_cast<long long>(tick);
+        b=static_cast<long long>(tick);
         if(a==b) return a;
     }
 }
@@ -367,6 +367,21 @@ void Thread::sleep(unsigned int ms)
         if(((ms*TICK_FREQ)/1000)>0) d.wakeup_time=getTick()+(ms*TICK_FREQ)/1000;
         //If tick resolution is too low, wait one tick
         else d.wakeup_time=getTick()+1;
+        IRQaddToSleepingList(&d);//Also sets SLEEP_FLAG
+    }
+    Thread::yield();
+}
+
+void Thread::sleepUntil(long long absoluteTime)
+{
+    //pauseKernel() here is not enough since even if the kernel is stopped
+    //the tick isr will wake threads, modifying the sleeping_list
+    {
+        InterruptDisableLock lock;
+        if(absoluteTime<=getTick()) return; //Wakeup time in the past, return
+        SleepData d;
+        d.p=const_cast<Thread*>(cur);
+        d.wakeup_time=absoluteTime;
         IRQaddToSleepingList(&d);//Also sets SLEEP_FLAG
     }
     Thread::yield();

@@ -335,6 +335,7 @@ static void test_2()
 /*
 tests:
 Thread::sleep()
+Thread::sleepUntil()
 getTick()
 also tests creation of multiple instances of the same thread
 */
@@ -346,7 +347,7 @@ static void t3_p1(void *argv)
     {
         if(Thread::testTerminate()) break;
         //Test that Thread::sleep sleeps the desired number of ticks
-        unsigned long long x=getTick();
+        long long x=getTick();
         Thread::sleep(SLEEP_TIME);
         if(abs(((SLEEP_TIME*TICK_FREQ)/1000)-(getTick()-x))>5)
             fail("Thread::sleep() or getTick()");
@@ -416,6 +417,20 @@ static void test_3()
     Thread::sleep(20);
     if(Thread::exists(p)) fail("multiple instances (3)");
     if(t3_deleted==false) fail("multiple instances (4)");
+    //Testing Thread::sleepUntil()
+    long long tick;
+    const int period=static_cast<int>(TICK_FREQ*0.01); //10ms
+    {
+        InterruptDisableLock lock; //Making these two operations atomic.
+        tick=getTick();
+        tick+=period;
+    }
+    for(int i=0;i<4;i++)
+    {
+        Thread::sleepUntil(tick);
+        if(tick!=getTick()) fail("Thread::sleepUntil()");
+        tick+=period;
+    }
     pass();
 }
 
@@ -458,7 +473,7 @@ static void test_4()
     if(p->IRQgetPriority()!=0) fail("IRQgetPriority");
     //Check that tick is not incremented and t4_v1 is not updated
     int i;
-    unsigned long long tick=getTick();
+    long long tick=getTick();
     t4_v1=false;
     for(i=0;i<4;i++)
     {
@@ -1129,7 +1144,7 @@ static void test_9()
     restartKernel();//1
     if(isKernelRunning()==false) fail("isKernelRunning() (5)");
     //Testing nesting of disableInterrupts()
-    unsigned long long i;
+    long long i;
     if(areInterruptsEnabled()==false) fail("areInterruptsEnabled() (1)");
     disableInterrupts();//Now interrupts should be disabled
     i=getTick();

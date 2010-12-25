@@ -292,7 +292,7 @@ bool isKernelRunning();
  * disabled and/or kernel paused.
  * \return current kernel tick
  */
-unsigned long long getTick();
+long long getTick();
 
 //Declaration of the struct, definition follows below
 struct SleepData;
@@ -400,12 +400,82 @@ public:
      * lower than the tick accuracy, the thread will be put to sleep for one
      * tick.<br>Maximum sleep time is (2^32-1) / TICK_FREQ. If a sleep time
      * higher than that value is specified, the behaviour is undefined.
-     * \param ms the number of millisecond. If it is ==0 this method will return
-     * immediately
+     * \param ms the number of millisecond. If it is ==0 this method will
+     * return immediately
      *
      * CANNOT be called when the kernel is paused.
      */
     static void sleep(unsigned int ms);
+    
+    /**
+     * Put the thread to sleep until the specified absolute time is reached.
+     * If the time is in the past, returns immediately.
+     * To make a periodic thread, this is the recomended way
+     * \code
+     * void periodicThread()
+     * {
+     *     //Run every 90 milliseconds
+     *     const int period=static_cast<int>(TICK_FREQ*0.09);
+     *     long long tick=getTick();
+     *     for(;;)
+     *     {
+     *         //Do work
+     *         tick+=period;
+     *         Thread::sleepUntil(tick+period);
+     *     }
+     * }
+     * \endcode
+     * \param absoluteTime when to wake up
+     *
+     * CANNOT be called when the kernel is paused.
+     */
+    static void sleepUntil(long long absoluteTime);
+
+    #ifdef SCHED_TYPE_EDF
+    /**
+     * This member function is only available when the EDF scheduler is
+     * selected. It allows to set the deadline for a thread.
+     * To make a periodic thread, this is the recomended way
+     * \code
+     * void periodicThread()
+     * {
+     *     //Run every 90 milliseconds
+     *     const int period=static_cast<int>(TICK_FREQ*0.09);
+     *     long long tick=getTick();
+     *     for(;;)
+     *     {
+     *         //Do work
+     *         tick+=period;
+     *         Thread::setDeadline(tick);
+     *     }
+     * }
+     * \endcode
+     * \param deadline the deadline time (absolute time)
+     * Note that the thread will forcefully sleep until the previously set
+     * deadline (if it has one). This is to avoid a runaway condition that would
+     * make periodic threads impossible to implement.
+     */
+    static void setDeadline(long long deadline);
+
+    /**
+     * This member function is only available when the EDF scheduler is
+     * selected. It is meant to allow an interrupt routine to wakeup a thread
+     * and set its deadline, but can also be used by a thread to wake another
+     * one provided it is called within an InterruptDisableLock block.
+     * \param deadline the new deadline of the thread.
+     */
+    void IRQsetDeadline(long long deadline);
+
+    /**
+     * This member function is only available when the EDF scheduler is
+     * selected. It is used to signal the scheduler that an event driven thread
+     * has finished its job.
+     * A call to this function means that the thread will not receive any cpu
+     * time until an interrupt handler or another thread call setDeadline() on
+     * it.
+     */
+    static void clearDeadline();
+    #endif //SCHED_TYPE_EDF
 
     /**
      * Return a pointer to the Thread class of the current thread.
@@ -793,6 +863,8 @@ private:
     friend class PriorityScheduler;
     //Needs access to flags, schedData
     friend class ControlScheduler;
+    //Needs access to flags, schedData
+    friend class EDFScheduler;
 };
 
 /**
@@ -827,7 +899,7 @@ struct SleepData
     
     ///\internal When this number becomes equal to the kernel tick,
     ///the thread will wake
-    unsigned long long wakeup_time;
+    long long wakeup_time;
     
     SleepData *next;///<\internal Next thread in the list
 };

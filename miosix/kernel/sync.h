@@ -430,8 +430,8 @@ private:
     //Timer data
     bool first;///< True if start has never been called
     bool running;///< True if timer is running
-    unsigned long long start_tick;///< The kernel tick when start was called.
-    unsigned long long tick_count;///< The tick count
+    long long start_tick;///< The kernel tick when start was called.
+    long long tick_count;///< The tick count
 };
 
 /**

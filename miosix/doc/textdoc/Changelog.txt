@@ -1,6 +1,13 @@
 Changelog for Miosix np embedded OS
 
 v1.56
+- Started implementing the EDF scheduler, defined three new member functions
+  of the Thread class to be able to manage thread deadlines.
+- Added Thread::sleepUntil() to make periodic sleeping more accurate.
+  Also added a test for it in the testsuite.
+- Changed data type for kernel tick from unsigned long long to long long.
+  This also required to change the return value of getTick()
+- Added files edf_scheduler.h and edf_scheduler.cpp
 - Fixed bug in control scheduler: the outer regulator continued increasing
   the burst correction even if the set point could not be attained because of
   saturation of all inner integral regulators. This fix improves regulator
