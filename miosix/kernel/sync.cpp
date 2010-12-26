@@ -153,7 +153,7 @@ void Mutex::PKunlock(PauseKernelLock& dLock)
         if(owner->savedPriority!=owner->getPriority())
             Scheduler::PKsetPriority(owner,owner->savedPriority);
     } else {
-        short int pr=owner->savedPriority;
+        Priority pr=owner->savedPriority;
         //Calculate new priority of thread, which is
         //max(savedPriority, inheritedPriority)
         Mutex *walk=owner->mutexLocked;

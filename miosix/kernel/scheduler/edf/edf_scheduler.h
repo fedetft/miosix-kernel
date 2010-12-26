@@ -38,9 +38,12 @@ class Thread; //Forward declaration
 class EDFSchedulerData
 {
 public:
-    EDFSchedulerData(): priority(0) {}
+    EDFSchedulerData(): priority(0), deadline(-1) {}
 
-    short int priority;//Thread priority.
+    //Thread priority. It is kept only for compatibility with other schedulers,
+    //but it is ignored in the EDFscheduler.
+    short int priority;
+    long long deadline;
 };
 
 class EDFScheduler

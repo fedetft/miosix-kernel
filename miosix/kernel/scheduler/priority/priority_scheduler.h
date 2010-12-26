@@ -34,6 +34,75 @@ namespace miosix {
 
 class Thread; //Forward declaration
 
+/**
+ * This class models the concept of priority for the priority scheduler.
+ * In this scheduler the priority is simply a short int with values ranging
+ * from 0 to PRIORITY_MAX-1, higher values mean higher priority, and the special
+ * value -1 reserved for the idle thread.
+ */
+class PrioritySchedulerPriority
+{
+public:
+    /**
+     * Constructor. Not explicit for backward compatibility.
+     * \param priority, the desired priority value.
+     */
+    PrioritySchedulerPriority(short int priority): priority(priority){}
+
+    /**
+     * Default constructor.
+     */
+    PrioritySchedulerPriority(): priority(MAIN_PRIORITY) {}
+
+    /**
+     * \return the priority value
+     */
+    short int get() const { return priority; }
+
+    /**
+     * \return true if this objects represents a valid priority.
+     */
+    bool validate() const;
+
+private:
+    short int priority;///< The priority value
+};
+
+inline bool operator <(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
+{
+    return a.get() < b.get();
+}
+
+inline bool operator <=(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
+{
+    return a.get() <= b.get();
+}
+
+inline bool operator >(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
+{
+    return a.get() > b.get();
+}
+
+inline bool operator >=(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
+{
+    return a.get() >= b.get();
+}
+
+inline bool operator ==(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
+{
+    return a.get() == b.get();
+}
+
+inline bool operator !=(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
+{
+    return a.get() != b.get();
+}
+
+/**
+ * \internal
+ * An instance of this class is embedded in every Thread class. It contains all
+ * the per-thread data required by the scheduler.
+ */
 class PrioritySchedulerData
 {
 public:
@@ -41,11 +110,14 @@ public:
     ///Note that to change the priority of a thread it is not enough to change
     ///this.<br>It is also necessary to move the thread from the old prority
     ///list to the new priority list.
-    short int priority;
+    PrioritySchedulerPriority priority;
     Thread *next;///<Pointer to next thread of the same priority. CIRCULAR list
-
 };
 
+/**
+ * \internal
+ * Priority scheduler.
+ */
 class PriorityScheduler
 {
 public:
@@ -60,9 +132,10 @@ public:
      * Priority must be a positive value.
      * Note that the meaning of priority is scheduler specific.
      */
-    static void PKaddThread(Thread *thread, short int priority);
+    static void PKaddThread(Thread *thread, PrioritySchedulerPriority priority);
 
     /**
+     * \internal
      * \return true if thread exists, false if does not exist or has been
      * deleted. A joinable thread is considered existing until it has been
      * joined, even if it returns from its entry point (unless it is detached
@@ -87,7 +160,8 @@ public:
      * \param newPriority new thread priority.
      * Priority must be a positive value.
      */
-    static void PKsetPriority(Thread *thread, short int newPriority);
+    static void PKsetPriority(Thread *thread,
+            PrioritySchedulerPriority newPriority);
 
     /**
      * \internal
@@ -96,14 +170,15 @@ public:
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
-    static short int getPriority(Thread *thread);
+    static PrioritySchedulerPriority getPriority(Thread *thread);
 
     /**
+     * \internal
      * Same as getPriority, but meant to be called with interrupts disabled.
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
-    static short int IRQgetPriority(Thread *thread);
+    static PrioritySchedulerPriority IRQgetPriority(Thread *thread);
 
     /**
      * \internal
@@ -114,6 +189,7 @@ public:
     static void IRQsetIdleThread(Thread *idleThread);
 
     /**
+     * \internal
      * This function is used to develop interrupt driven peripheral drivers.<br>
      * Can be used ONLY inside an IRQ (and not when interrupts are disabled) to
      * find next thread in READY status. If the kernel is paused, does nothing.

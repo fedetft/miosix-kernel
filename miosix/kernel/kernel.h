@@ -351,12 +351,12 @@ public:
      * kernel is started.
      */
     static Thread *create(void *(*startfunc)(void *), unsigned int stacksize,
-                            short int priority=1, void *argv=NULL,
+                            Priority priority=Priority(), void *argv=NULL,
                             unsigned short options=DEFAULT);
 
     /**
      * Same as create(void (*startfunc)(void *), unsigned int stacksize,
-     * short int priority=1, void *argv=NULL)
+     * Priority priority=1, void *argv=NULL)
      * but in this case the entry point of the thread returns a void*
      * \param startfunc the entry point function for the thread
      * \param stacksize size of thread stack, its minimum is the constant
@@ -372,7 +372,7 @@ public:
      * to delete it, or NULL in case of errors.
      */
     static Thread *create(void (*startfunc)(void *), unsigned int stacksize,
-                            short int priority=1, void *argv=NULL,
+                            Priority priority=Priority(), void *argv=NULL,
                             unsigned short options=DEFAULT);
 
     /**
@@ -505,7 +505,7 @@ public:
      *
      * Can be called when the kernel is paused.
      */
-    short int getPriority();
+    Priority getPriority();
 
     /**
      * Set the priority of this thread.<br>
@@ -518,7 +518,7 @@ public:
      *
      * Can be called when the kernel is paused.
      */
-    static void setPriority(short int pr);
+    static void setPriority(Priority pr);
 
     /**
      * Suggests a thread to terminate itself. Note that this method only makes
@@ -588,7 +588,7 @@ public:
      * Same as getPriority(), but meant to be used inside an IRQ, when
      * interrupts are disabled or when the kernel is paused.
      */
-    short int IRQgetPriority();
+    Priority IRQgetPriority();
 
     /**
      * Same as wait(), but is meant to be used only inside an IRQ or when
@@ -825,7 +825,7 @@ private:
     ///stores the value of priority that this thread will have when it unlocks
     ///all mutexes. This is because when a thread locks a mutex its priority
     ///can change due to priority inheritance.
-    short int savedPriority;
+    Priority savedPriority;
     ///List of mutextes locked by this thread
     Mutex *mutexLocked;
     unsigned int *watermark;///< pointer to watermark area

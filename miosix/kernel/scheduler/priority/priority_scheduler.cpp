@@ -33,26 +33,40 @@
 
 namespace miosix {
 
+//
+// class PrioritySchedulerPriority
+//
+
+bool PrioritySchedulerPriority::validate() const
+{
+    return this->priority>=0 && this->priority<PRIORITY_MAX;
+}
+
+//
+// class PrirorityScheduler
+//
+
 //These are defined in kernel.cpp
 extern volatile Thread *cur;
 extern unsigned char kernel_running;
 
-void PriorityScheduler::PKaddThread(Thread *thread, short int priority)
+void PriorityScheduler::PKaddThread(Thread *thread,
+        PrioritySchedulerPriority priority)
 {
     thread->schedData.priority=priority;
-    if(thread_list[priority]==NULL)
+    if(thread_list[priority.get()]==NULL)
     {
-        thread_list[priority]=thread;
+        thread_list[priority.get()]=thread;
         thread->schedData.next=thread;//Circular list
     } else {
-        thread->schedData.next=thread_list[priority]->schedData.next;
-        thread_list[priority]->schedData.next=thread;
+        thread->schedData.next=thread_list[priority.get()]->schedData.next;
+        thread_list[priority.get()]->schedData.next=thread;
     }
 }
 
 bool PriorityScheduler::PKexists(Thread *thread)
 {
-    for(short int i=PRIORITY_MAX-1;i>=0;i--)
+    for(int i=PRIORITY_MAX-1;i>=0;i--)
     {
         if(thread_list[i]==NULL) continue;
         Thread *temp=thread_list[i];
@@ -72,7 +86,7 @@ bool PriorityScheduler::PKexists(Thread *thread)
 
 void PriorityScheduler::PKremoveDeadThreads()
 {
-    for(short int i=PRIORITY_MAX-1;i>=0;i--)
+    for(int i=PRIORITY_MAX-1;i>=0;i--)
     {
         if(thread_list[i]==NULL) continue;
         bool first=false;//If false the tail of the list hasn't been calculated
@@ -119,7 +133,8 @@ void PriorityScheduler::PKremoveDeadThreads()
             if(temp->schedData.next->flags.isDeleted())
             {
                 Thread *d=temp->schedData.next;//Save a pointer to the thread
-                temp->schedData.next=temp->schedData.next->schedData.next;//Remove from list
+                //Remove from list
+                temp->schedData.next=temp->schedData.next->schedData.next;
                 //Call destructor manually because of placement new
                 void *base=d->watermark;
                 d->~Thread();
@@ -129,32 +144,37 @@ void PriorityScheduler::PKremoveDeadThreads()
     }
 }
 
-void PriorityScheduler::PKsetPriority(Thread *thread, short int newPriority)
+void PriorityScheduler::PKsetPriority(Thread *thread,
+        PrioritySchedulerPriority newPriority)
 {
-    short int oldPriority=getPriority(thread);
+    PrioritySchedulerPriority oldPriority=getPriority(thread);
     //First set priority to the new value
     thread->schedData.priority=newPriority;
     //Then remove the thread from its old list
-    if(thread_list[oldPriority]==thread)
+    if(thread_list[oldPriority.get()]==thread)
     {
-        if(thread_list[oldPriority]->schedData.next==thread_list[oldPriority])
+        if(thread_list[oldPriority.get()]->schedData.next==
+                thread_list[oldPriority.get()])
         {
             //Only one element in the list
-            thread_list[oldPriority]=NULL;
+            thread_list[oldPriority.get()]=NULL;
         } else {
-            Thread *tail=thread_list[oldPriority];//Tail of the list
-            while(tail->schedData.next!=thread_list[oldPriority])
+            Thread *tail=thread_list[oldPriority.get()];//Tail of the list
+            while(tail->schedData.next!=thread_list[oldPriority.get()])
                 tail=tail->schedData.next;
-            thread_list[oldPriority]=thread_list[oldPriority]->schedData.next;//Remove
-            tail->schedData.next=thread_list[oldPriority];//Fix tail of the circular list
+            //Remove
+            thread_list[oldPriority.get()]=
+                    thread_list[oldPriority.get()]->schedData.next;
+            //Fix tail of the circular list
+            tail->schedData.next=thread_list[oldPriority.get()];
         }
     } else {
         //If it comes here, the first item doesn't have to be removed
         //General case: removing item not at the first place
-        Thread *temp=thread_list[oldPriority];
+        Thread *temp=thread_list[oldPriority.get()];
         for(;;)
         {
-            if(temp->schedData.next==thread_list[oldPriority])
+            if(temp->schedData.next==thread_list[oldPriority.get()])
             {
                 //After walking all elements in the list the thread wasn't found
                 //This should never happen
@@ -162,43 +182,44 @@ void PriorityScheduler::PKsetPriority(Thread *thread, short int newPriority)
             }
             if(temp->schedData.next==thread)
             {
-                temp->schedData.next=temp->schedData.next->schedData.next;//Remove from list
+                //Remove from list
+                temp->schedData.next=temp->schedData.next->schedData.next;
                 break;
             } else temp=temp->schedData.next;
         }
     }
     //Last insert the thread in the new list
-    if(thread_list[newPriority]==NULL)
+    if(thread_list[newPriority.get()]==NULL)
     {
-        thread_list[newPriority]=thread;
+        thread_list[newPriority.get()]=thread;
         thread->schedData.next=thread;//Circular list
     } else {
-        thread->schedData.next=thread_list[newPriority]->schedData.next;
-        thread_list[newPriority]->schedData.next=thread;
+        thread->schedData.next=thread_list[newPriority.get()]->schedData.next;
+        thread_list[newPriority.get()]->schedData.next=thread;
     }
 }
 
-short int PriorityScheduler::getPriority(Thread *thread)
+PrioritySchedulerPriority PriorityScheduler::getPriority(Thread *thread)
 {
     return thread->schedData.priority;
 }
 
 
-short int PriorityScheduler::IRQgetPriority(Thread *thread)
+PrioritySchedulerPriority PriorityScheduler::IRQgetPriority(Thread *thread)
 {
     return thread->schedData.priority;
 }
 
 void PriorityScheduler::IRQsetIdleThread(Thread *idleThread)
 {
-    idleThread->schedData.priority=-1;
+    idleThread->schedData.priority=Priority(-1);
     idle=idleThread;
 }
 
 void PriorityScheduler::IRQfindNextThread()
 {
     if(kernel_running!=0) return;//If kernel is paused, do nothing
-    for(short int i=PRIORITY_MAX-1;i>=0;i--)
+    for(int i=PRIORITY_MAX-1;i>=0;i--)
     {
         if(thread_list[i]==NULL) continue;
         Thread *temp=thread_list[i]->schedData.next;

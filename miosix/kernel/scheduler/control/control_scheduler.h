@@ -35,6 +35,69 @@ namespace miosix {
 
 class Thread; //Forward declaration
 
+/**
+ * \internal
+ * This class models the concept of priority for the control scheduler.
+ * In this scheduler the priority is simply a short int with values ranging
+ * from 0 to PRIORITY_MAX-1, higher values mean higher priority, and the special
+ * value -1 reserved for the idle thread.
+ * Higher priority means a longer burst value.
+ */
+class ControlSchedulerPriority
+{
+public:
+    /**
+     * Constructor, non explicit to allow implicit conversion for backward
+     * cmpatibility.
+     * \param priority, the desired priority value.
+     */
+    ControlSchedulerPriority(short int priority): priority(priority) {}
+
+    /**
+     * Implicit conversion to short
+     * \return the priority value
+     */
+    operator short int () { return priority; }
+
+private:
+    short int priority;
+};
+
+inline bool operator < (ControlSchedulerPriority a, ControlSchedulerPriority b)
+{
+    return static_cast<short int>(a) < static_cast<short int>(b);
+}
+
+inline bool operator <= (ControlSchedulerPriority a, ControlSchedulerPriority b)
+{
+    return static_cast<short int>(a) <= static_cast<short int>(b);
+}
+
+inline bool operator > (ControlSchedulerPriority a, ControlSchedulerPriority b)
+{
+    return static_cast<short int>(a) > static_cast<short int>(b);
+}
+
+inline bool operator >= (ControlSchedulerPriority a, ControlSchedulerPriority b)
+{
+    return static_cast<short int>(a) >= static_cast<short int>(b);
+}
+
+inline bool operator == (ControlSchedulerPriority a, ControlSchedulerPriority b)
+{
+    return static_cast<short int>(a) == static_cast<short int>(b);
+}
+
+inline bool operator != (ControlSchedulerPriority a, ControlSchedulerPriority b)
+{
+    return static_cast<short int>(a) != static_cast<short int>(b);
+}
+
+/**
+ * \internal
+ * An instance of this class is embedded in every Thread class. It contains all
+ * the per-thread data required by the scheduler.
+ */
 class ControlSchedulerData
 {
 public:
@@ -49,6 +112,10 @@ public:
     int Tp;//Real processing time
 };
 
+/**
+ * \internal
+ * Control based scheduler.
+ */
 class ControlScheduler
 {
 public:
@@ -66,6 +133,7 @@ public:
     static void PKaddThread(Thread *thread, short int priority);
 
     /**
+     * \internal
      * \return true if thread exists, false if does not exist or has been
      * deleted. A joinable thread is considered existing until it has been
      * joined, even if it returns from its entry point (unless it is detached
@@ -102,6 +170,7 @@ public:
     static short int getPriority(Thread *thread);
 
     /**
+     * \internal
      * Same as getPriority, but meant to be called with interrupts disabled.
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
@@ -117,6 +186,7 @@ public:
     static void IRQsetIdleThread(Thread *idleThread);
 
     /**
+     * \internal
      * This function is used to develop interrupt driven peripheral drivers.<br>
      * Can be used ONLY inside an IRQ (and not when interrupts are disabled) to
      * find next thread in READY status. If the kernel is paused, does nothing.
@@ -133,6 +203,7 @@ public:
 private:
 
     /**
+     * \internal
      * When priorities are modified, this function recalculates alfa for each
      * thread. Must be called with kernel paused
      */

@@ -37,6 +37,16 @@ namespace miosix {
 
 class Thread; //Forward declaration
 
+#ifdef SCHED_TYPE_PRIORITY
+typedef PrioritySchedulerPriority Priority;
+#elif defined(SCHED_TYPE_CONTROL_BASED)
+typedef ControlSchedulerPriority Priority;
+#elif defined(SCHED_TYPE_EDF)
+typedef ControlSchedulerPriority Priority;
+#else
+#error No scheduler selected in config/miosix_settings.h
+#endif
+
 /**
  * \internal
  * This class is the common interface between the kernel and the scheduling
@@ -60,12 +70,13 @@ public:
      * Priority must be a positive value.
      * Note that the meaning of priority is scheduler specific.
      */
-    static void PKaddThread(Thread *thread, short int priority)
+    static void PKaddThread(Thread *thread, Priority priority)
     {
         T::PKaddThread(thread,priority);
     }
 
     /**
+     * \internal
      * \return true if thread exists, false if does not exist or has been
      * deleted. A joinable thread is considered existing until it has been
      * joined, even if it returns from its entry point (unless it is detached
@@ -96,7 +107,7 @@ public:
      * \param newPriority new thread priority.
      * Priority must be a positive value.
      */
-    static void PKsetPriority(Thread *thread, short int newPriority)
+    static void PKsetPriority(Thread *thread, Priority newPriority)
     {
         T::PKsetPriority(thread,newPriority);
     }
@@ -108,17 +119,18 @@ public:
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
-    static short int getPriority(Thread *thread)
+    static Priority getPriority(Thread *thread)
     {
         return T::getPriority(thread);
     }
 
     /**
+     * \internal
      * Same as getPriority, but meant to be called with interrupts disabled.
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
-    static short int IRQgetPriority(Thread *thread)
+    static Priority IRQgetPriority(Thread *thread)
     {
         return T::IRQgetPriority(thread);
     }

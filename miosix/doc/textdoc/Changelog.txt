@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
 v1.56
+- Added Priority class, so that different schedulers can redefine what priority
+  means. Changed public interface of Thread class accordingly.
 - Started implementing the EDF scheduler, defined three new member functions
   of the Thread class to be able to manage thread deadlines.
 - Added Thread::sleepUntil() to make periodic sleeping more accurate.

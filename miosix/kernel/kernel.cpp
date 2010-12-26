@@ -284,11 +284,11 @@ Memory layout for a thread
 	|------------------------|<-- base, watermark
 */
 
-Thread *Thread::create(void *(*startfunc)(void *),unsigned int stacksize,
-					short int priority,void *argv,unsigned short options)
+Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
+					Priority priority, void *argv, unsigned short options)
 {
     //Check to see if input parameters are valid
-    if(priority<0 || priority>=PRIORITY_MAX || stacksize<STACK_MIN)
+    if(priority.validate()==false || stacksize<STACK_MIN)
     {
         errorHandler(INVALID_PARAMETERS);
         return NULL;
@@ -336,8 +336,8 @@ Thread *Thread::create(void *(*startfunc)(void *),unsigned int stacksize,
     return thread;
 }
 
-Thread *Thread::create(void (*startfunc)(void *),unsigned int stacksize,
-					short int priority,void *argv,unsigned short options)
+Thread *Thread::create(void (*startfunc)(void *), unsigned int stacksize,
+					Priority priority, void *argv, unsigned short options)
 {
     //Just call the other version with a cast.
     return Thread::create(reinterpret_cast<void *(*)(void*)>(startfunc),
@@ -387,6 +387,24 @@ void Thread::sleepUntil(long long absoluteTime)
     Thread::yield();
 }
 
+#ifdef SCHED_TYPE_EDF
+void Thread::setDeadline(long long deadline)
+{
+    Thread::sleepUntil(Thread::getCurrentThread()->schedData.deadline);
+    
+}
+
+void Thread::IRQsetDeadline(long long deadline)
+{
+
+}
+
+void Thread::clearDeadline()
+{
+
+}
+#endif //SCHED_TYPE_EDF
+
 Thread *Thread::getCurrentThread()
 {
     Thread *result=const_cast<Thread*>(cur);
@@ -400,14 +418,14 @@ bool Thread::exists(Thread *p)
     return Scheduler::PKexists(p);
 }
 
-short int Thread::getPriority()
+Priority Thread::getPriority()
 {
     return Scheduler::getPriority(this);
 }
 
-void Thread::setPriority(short int pr)
+void Thread::setPriority(Priority pr)
 {
-    if((pr<0)||(pr>=PRIORITY_MAX)) errorHandler(INVALID_PARAMETERS);
+    if(pr.validate()==false) errorHandler(INVALID_PARAMETERS);
     PauseKernelLock lock;
 
     Thread *current=getCurrentThread();
@@ -529,7 +547,7 @@ Thread *Thread::IRQgetCurrentThread()
     return result;
 }
 
-short int Thread::IRQgetPriority()
+Priority Thread::IRQgetPriority()
 {
     //Implementation is the same as getPriority, but to keep a consistent
     //interface this method is duplicated
