@@ -38,11 +38,25 @@ using namespace std;
 
 namespace miosix {
 
+//
+// class ControlSchedulerPriority
+//
+
+bool ControlSchedulerPriority::validate() const
+{
+    return this->priority>=0 && this->priority<PRIORITY_MAX;
+}
+
+//
+// class ControlScheduler
+//
+
 //These are defined in kernel.cpp
 extern volatile Thread *cur;
 extern unsigned char kernel_running;
 
-void ControlScheduler::PKaddThread(Thread *thread, short int priority)
+void ControlScheduler::PKaddThread(Thread *thread,
+        ControlSchedulerPriority priority)
 {
     thread->schedData.priority=priority;
     threadList.push_front(thread);
@@ -76,19 +90,20 @@ void ControlScheduler::PKremoveDeadThreads()
     PKrecalculateAlfa();
 }
 
-void ControlScheduler::PKsetPriority(Thread *thread, short int newPriority)
+void ControlScheduler::PKsetPriority(Thread *thread,
+        ControlSchedulerPriority newPriority)
 {
     thread->schedData.priority=newPriority;
     PKrecalculateAlfa();
 }
 
-short int ControlScheduler::getPriority(Thread *thread)
+ControlSchedulerPriority ControlScheduler::getPriority(Thread *thread)
 {
     return thread->schedData.priority;
 }
 
 
-short int ControlScheduler::IRQgetPriority(Thread *thread)
+ControlSchedulerPriority ControlScheduler::IRQgetPriority(Thread *thread)
 {
     return thread->schedData.priority;
 }
@@ -101,6 +116,11 @@ void ControlScheduler::IRQsetIdleThread(Thread *idleThread)
     //IRQfindNextThread() is called the scheduling algorithm runs
     if(threadList.size()!=1) errorHandler(UNEXPECTED);
     curInRound=threadList.end();
+}
+
+Thread *ControlScheduler::IRQgetIdleThread()
+{
+    return idle;
 }
 
 void ControlScheduler::IRQfindNextThread()
@@ -221,12 +241,12 @@ void ControlScheduler::PKrecalculateAlfa()
     unsigned int sumPriority=0;
     for(list<Thread *>::iterator it=threadList.begin();it!=threadList.end();++it)
     {
-        sumPriority+=(*it)->schedData.priority+1;//Add one
+        sumPriority+=(*it)->schedData.priority.get()+1;//Add one
     }
     float base=1.0f/((float)sumPriority);
     for(list<Thread *>::iterator it=threadList.begin();it!=threadList.end();++it)
     {
-        (*it)->schedData.alfa=base*((float)((*it)->schedData.priority+1));
+        (*it)->schedData.alfa=base*((float)((*it)->schedData.priority.get()+1));
     }
 }
 

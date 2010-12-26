@@ -1,6 +1,11 @@
 Changelog for Miosix np embedded OS
 
 v1.56
+- Improved wakeup time in control based scheduler when waking from the idle
+  thread.
+- Added ControlScheduler::IRQgetIdleThread()
+- Changed IRQwakeThreads(). Now it returns a bool.
+- Modified control based scheduler for the introduction of the Priority class
 - Added Priority class, so that different schedulers can redefine what priority
   means. Changed public interface of Thread class accordingly.
 - Started implementing the EDF scheduler, defined three new member functions

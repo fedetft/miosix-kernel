@@ -61,6 +61,8 @@ public:
 
     /**
      * \return true if this objects represents a valid priority.
+     * Note that the value -1 is considered not valid, because it is reserved
+     * for the idle thread.
      */
     bool validate() const;
 

@@ -74,8 +74,9 @@ static const int bMin=static_cast<int>(AUX_TIMER_CLOCK*0.0002);// 200us
 static const int bMax=static_cast<int>(AUX_TIMER_CLOCK*0.02);// 20ms
 
 ///idle thread has a fixed burst length that can be modified here
-///to increase responsiveness or low power operation
-static const int bIdle=static_cast<int>(AUX_TIMER_CLOCK*0.005);// 5ms
+///it is recomended to leave it to a high value, but that does not cause
+///overflow of the auxiliary timer
+static const int bIdle=static_cast<int>(AUX_TIMER_CLOCK*0.5);// 500ms
 
 //
 // Filesystem options

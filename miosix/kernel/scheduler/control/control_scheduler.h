@@ -36,61 +36,71 @@ namespace miosix {
 class Thread; //Forward declaration
 
 /**
- * \internal
- * This class models the concept of priority for the control scheduler.
+ * This class models the concept of priority for the control based scheduler.
  * In this scheduler the priority is simply a short int with values ranging
  * from 0 to PRIORITY_MAX-1, higher values mean higher priority, and the special
  * value -1 reserved for the idle thread.
- * Higher priority means a longer burst value.
+ * Higher values of priority mean that the scheduler assigns a larger fraction
+ * of the round time to the thread.
  */
 class ControlSchedulerPriority
 {
 public:
     /**
-     * Constructor, non explicit to allow implicit conversion for backward
-     * cmpatibility.
+     * Constructor. Not explicit for backward compatibility.
      * \param priority, the desired priority value.
      */
-    ControlSchedulerPriority(short int priority): priority(priority) {}
+    ControlSchedulerPriority(short int priority): priority(priority){}
 
     /**
-     * Implicit conversion to short
+     * Default constructor.
+     */
+    ControlSchedulerPriority(): priority(MAIN_PRIORITY) {}
+
+    /**
      * \return the priority value
      */
-    operator short int () { return priority; }
+    short int get() const { return priority; }
+
+    /**
+     * \return true if this objects represents a valid priority.
+     * Note that the value -1 is considered not valid, because it is reserved
+     * for the idle thread.
+     */
+    bool validate() const;
 
 private:
-    short int priority;
+    short int priority;///< The priority value
 };
 
-inline bool operator < (ControlSchedulerPriority a, ControlSchedulerPriority b)
+inline bool operator <(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
-    return static_cast<short int>(a) < static_cast<short int>(b);
+    return a.get() < b.get();
 }
 
-inline bool operator <= (ControlSchedulerPriority a, ControlSchedulerPriority b)
+inline bool operator <=(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
-    return static_cast<short int>(a) <= static_cast<short int>(b);
+    return a.get() <= b.get();
 }
 
-inline bool operator > (ControlSchedulerPriority a, ControlSchedulerPriority b)
+inline bool operator >(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
-    return static_cast<short int>(a) > static_cast<short int>(b);
+    return a.get() > b.get();
 }
 
-inline bool operator >= (ControlSchedulerPriority a, ControlSchedulerPriority b)
+inline bool operator >=(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
-    return static_cast<short int>(a) >= static_cast<short int>(b);
+    return a.get() >= b.get();
 }
 
-inline bool operator == (ControlSchedulerPriority a, ControlSchedulerPriority b)
+inline bool operator ==(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
-    return static_cast<short int>(a) == static_cast<short int>(b);
+    return a.get() == b.get();
 }
 
-inline bool operator != (ControlSchedulerPriority a, ControlSchedulerPriority b)
+inline bool operator !=(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
-    return static_cast<short int>(a) != static_cast<short int>(b);
+    return a.get() != b.get();
 }
 
 /**
@@ -103,8 +113,9 @@ class ControlSchedulerData
 public:
     ControlSchedulerData(): priority(0), bo(bNominal*4), alfa(0.0f),
             SP_Tp(0), Tp(bNominal) {}
-    
-    short int priority;//Thread priority. Higher priority means longer burst
+
+    //Thread priority. Higher priority means longer burst
+    ControlSchedulerPriority priority;
     int bo;//Old burst time, is kept here multiplied by 4
     //Sum of all alfa=1-s.
     float alfa;
@@ -130,7 +141,7 @@ public:
      * Priority must be a positive value.
      * Note that the meaning of priority is scheduler specific.
      */
-    static void PKaddThread(Thread *thread, short int priority);
+    static void PKaddThread(Thread *thread, ControlSchedulerPriority priority);
 
     /**
      * \internal
@@ -158,7 +169,8 @@ public:
      * \param newPriority new thread priority.
      * Priority must be a positive value.
      */
-    static void PKsetPriority(Thread *thread, short int newPriority);
+    static void PKsetPriority(Thread *thread,
+            ControlSchedulerPriority newPriority);
 
     /**
      * \internal
@@ -167,7 +179,7 @@ public:
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
-    static short int getPriority(Thread *thread);
+    static ControlSchedulerPriority getPriority(Thread *thread);
 
     /**
      * \internal
@@ -175,7 +187,7 @@ public:
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
-    static short int IRQgetPriority(Thread *thread);
+    static ControlSchedulerPriority IRQgetPriority(Thread *thread);
 
     /**
      * \internal
@@ -184,6 +196,12 @@ public:
      * can run.
      */
     static void IRQsetIdleThread(Thread *idleThread);
+
+    /**
+     * \internal
+     * \return the idle thread.
+     */
+    static Thread *IRQgetIdleThread();
 
     /**
      * \internal

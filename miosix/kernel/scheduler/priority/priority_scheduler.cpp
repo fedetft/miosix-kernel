@@ -43,7 +43,7 @@ bool PrioritySchedulerPriority::validate() const
 }
 
 //
-// class PrirorityScheduler
+// class PriorityScheduler
 //
 
 //These are defined in kernel.cpp
@@ -212,7 +212,7 @@ PrioritySchedulerPriority PriorityScheduler::IRQgetPriority(Thread *thread)
 
 void PriorityScheduler::IRQsetIdleThread(Thread *idleThread)
 {
-    idleThread->schedData.priority=Priority(-1);
+    idleThread->schedData.priority=-1;
     idle=idleThread;
 }
 

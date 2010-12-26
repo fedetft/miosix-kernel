@@ -42,7 +42,7 @@ extern volatile bool tick_skew;
 extern volatile Thread *cur;
 
 //Used by ISR_preempt and ISR_yield
-extern void IRQwakeThreads();
+extern bool IRQwakeThreads();
 
 }; //namespace miosix
 
@@ -110,13 +110,21 @@ void ISR_preempt() __attribute__((noinline));
 void ISR_preempt()
 {
     IRQstackOverflowCheck();
-    miosix::IRQwakeThreads();//Increment tick and wake threads, if any
+    bool woken=miosix::IRQwakeThreads();//Increment tick and wake threads,if any
+    (void)woken; //Avoid unused variable warning.
 
     #ifndef SCHED_TYPE_CONTROL_BASED
     //With the control based scheduler preemption happens in the auxTimer
     //routine since burst length is variable
     miosix::Scheduler::IRQfindNextThread();//If the kernel is running, preempt
     if(miosix::kernel_running!=0) miosix::tick_skew=true;//The kernel is not running
+    #else //SCHED_TYPE_CONTROL_BASED
+    //Normally, with the control based scheduler, preemptions do not happen
+    //here, but in the auxiliary timer interrupt to take into account variable
+    //bursts. But there is one exception: when a thread wakes up from sleep
+    //and the idle thread is running.
+    if(woken && miosix::cur==miosix::ControlScheduler::IRQgetIdleThread())
+        miosix::Scheduler::IRQfindNextThread();
     #endif //SCHED_TYPE_CONTROL_BASED
 }
 

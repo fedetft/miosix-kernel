@@ -254,20 +254,24 @@ void IRQaddToSleepingList(SleepData *x)
 /**
  * \internal
  * Called @ every tick to check if it's time to wake some thread.
+ * Also increases the system tick.
  * Takes care of clearing SLEEP_FLAG.
  * It is used by the kernel, and should not be used by end users.
+ * \return true if some thread was woken.
  */
-void IRQwakeThreads()
+bool IRQwakeThreads()
 {
     tick++;//Increment tick
+    bool result=false;
     for(;;)
     {
-        if(sleeping_list==NULL) return;//If no item in list, return
+        if(sleeping_list==NULL) return result;//If no item in list, return
         //Since list is sorted, if we don't need to wake the first element
         //we don't need to wake the other too
-        if(tick != sleeping_list->wakeup_time) return;
+        if(tick != sleeping_list->wakeup_time) return result;
         sleeping_list->p->flags.IRQsetSleep(false);//Wake thread
         sleeping_list=sleeping_list->next;//Remove from list
+        result=true;
     }
 }
 
