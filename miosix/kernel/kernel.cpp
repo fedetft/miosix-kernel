@@ -394,8 +394,13 @@ void Thread::sleepUntil(long long absoluteTime)
 #ifdef SCHED_TYPE_EDF
 void Thread::setDeadline(long long deadline)
 {
-    Thread::sleepUntil(Thread::getCurrentThread()->schedData.deadline);
-    
+    Thread *current=const_cast<Thread*>(cur);
+    long long prevDeadline=Scheduler::getPriority(current).get();
+    {
+        PauseKernelLock lock;
+        Scheduler::PKsetPriority(current,Priority(deadline));
+    }
+    Thread::sleepUntil(prevDeadline);
 }
 
 void Thread::IRQsetDeadline(long long deadline)

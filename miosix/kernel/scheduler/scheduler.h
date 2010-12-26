@@ -42,7 +42,7 @@ typedef PrioritySchedulerPriority Priority;
 #elif defined(SCHED_TYPE_CONTROL_BASED)
 typedef ControlSchedulerPriority Priority;
 #elif defined(SCHED_TYPE_EDF)
-typedef ControlSchedulerPriority Priority;
+typedef EDFSchedulerPriority Priority;
 #else
 #error No scheduler selected in config/miosix_settings.h
 #endif

@@ -42,7 +42,20 @@ namespace miosix {
 extern volatile Thread *cur;
 extern unsigned char kernel_running;
 
-void EDFScheduler::PKaddThread(Thread *thread, short int priority)
+//
+// class EDFSchedulerPriority
+//
+
+bool EDFSchedulerPriority::validate() const
+{
+    return this->deadline>=0;
+}
+
+//
+// class EDFScheduler
+//
+
+void EDFScheduler::PKaddThread(Thread *thread, EDFSchedulerPriority priority)
 {
 
 }
@@ -57,20 +70,21 @@ void EDFScheduler::PKremoveDeadThreads()
 
 }
 
-void EDFScheduler::PKsetPriority(Thread *thread, short int newPriority)
+void EDFScheduler::PKsetPriority(Thread *thread,
+        EDFSchedulerPriority newPriority)
 {
 
 }
 
-short int EDFScheduler::getPriority(Thread *thread)
+EDFSchedulerPriority EDFScheduler::getPriority(Thread *thread)
 {
-    return thread->schedData.priority;
+    return thread->schedData.deadline;
 }
 
 
-short int EDFScheduler::IRQgetPriority(Thread *thread)
+EDFSchedulerPriority EDFScheduler::IRQgetPriority(Thread *thread)
 {
-    return thread->schedData.priority;
+    return thread->schedData.deadline;
 }
 
 void EDFScheduler::IRQsetIdleThread(Thread *idleThread)

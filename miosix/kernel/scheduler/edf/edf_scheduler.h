@@ -35,17 +35,95 @@ namespace miosix {
 
 class Thread; //Forward declaration
 
+/**
+ * This class models the concept of priority for the EDF scheduler.
+ * Therefore, it represents a deadline, which is the absolute time withi which
+ * the thread should have completed its computation.
+ */
+class EDFSchedulerPriority
+{
+public:
+    /**
+     * Constructor. Not explicit for backward compatibility.
+     * \param priority, the desired priority value.
+     */
+    EDFSchedulerPriority(long long deadline): deadline(deadline) {}
+
+    /**
+     * Default constructor.
+     */
+    EDFSchedulerPriority(): deadline(MAIN_PRIORITY) {}
+
+    /**
+     * \return the priority value
+     */
+    long long get() const { return deadline; }
+
+    /**
+     * \return true if this objects represents a valid deadline.
+     */
+    bool validate() const;
+
+private:
+    long long deadline;///< The deadline time
+};
+
+inline bool operator <(EDFSchedulerPriority a, EDFSchedulerPriority b)
+{
+    //Not that the comparison is reversed on purpose. In fact, the thread which
+    //has the lower deadline has higher priority
+    return a.get() > b.get();
+}
+
+inline bool operator <=(EDFSchedulerPriority a, EDFSchedulerPriority b)
+{
+    //Not that the comparison is reversed on purpose. In fact, the thread which
+    //has the lower deadline has higher priority
+    return a.get() >= b.get();
+}
+
+inline bool operator >(EDFSchedulerPriority a, EDFSchedulerPriority b)
+{
+    //Not that the comparison is reversed on purpose. In fact, the thread which
+    //has the lower deadline has higher priority
+    return a.get() < b.get();
+}
+
+inline bool operator >=(EDFSchedulerPriority a, EDFSchedulerPriority b)
+{
+    //Not that the comparison is reversed on purpose. In fact, the thread which
+    //has the lower deadline has higher priority
+    return a.get() <= b.get();
+}
+
+inline bool operator ==(EDFSchedulerPriority a, EDFSchedulerPriority b)
+{
+    return a.get() == b.get();
+}
+
+inline bool operator !=(EDFSchedulerPriority a, EDFSchedulerPriority b)
+{
+    return a.get() != b.get();
+}
+
+/**
+ * \internal
+ * An instance of this class is embedded in every Thread class. It contains all
+ * the per-thread data required by the scheduler.
+ */
 class EDFSchedulerData
 {
 public:
-    EDFSchedulerData(): priority(0), deadline(-1) {}
+    EDFSchedulerData(): deadline(), next(0) {}
 
-    //Thread priority. It is kept only for compatibility with other schedulers,
-    //but it is ignored in the EDFscheduler.
-    short int priority;
-    long long deadline;
+    EDFSchedulerPriority deadline; ///<\internal thread deadline
+    Thread *next; ///<\internal to make a list of threads, ordered by deadline
 };
 
+/**
+ * \internal
+ * EDF based scheduler.
+ */
 class EDFScheduler
 {
 public:
@@ -60,7 +138,7 @@ public:
      * Priority must be a positive value.
      * Note that the meaning of priority is scheduler specific.
      */
-    static void PKaddThread(Thread *thread, short int priority);
+    static void PKaddThread(Thread *thread, EDFSchedulerPriority priority);
 
     /**
      * \return true if thread exists, false if does not exist or has been
@@ -87,7 +165,7 @@ public:
      * \param newPriority new thread priority.
      * Priority must be a positive value.
      */
-    static void PKsetPriority(Thread *thread, short int newPriority);
+    static void PKsetPriority(Thread *thread, EDFSchedulerPriority newPriority);
 
     /**
      * \internal
@@ -96,14 +174,14 @@ public:
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
-    static short int getPriority(Thread *thread);
+    static EDFSchedulerPriority getPriority(Thread *thread);
 
     /**
      * Same as getPriority, but meant to be called with interrupts disabled.
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
-    static short int IRQgetPriority(Thread *thread);
+    static EDFSchedulerPriority IRQgetPriority(Thread *thread);
 
     /**
      * \internal
