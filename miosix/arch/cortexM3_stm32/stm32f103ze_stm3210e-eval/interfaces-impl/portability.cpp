@@ -31,20 +31,9 @@
 #include "kernel/error.h"
 #include "interfaces/bsp.h"
 #include "kernel/scheduler/scheduler.h"
+#include "kernel/scheduler/tick_interrupt.h"
 #include <algorithm>
 
-//These are defined in kernel.cpp
-namespace miosix {
-
-//Used by ISR_preempt
-extern unsigned char kernel_running;
-extern volatile bool tick_skew;
-extern volatile Thread *cur;
-
-//Used by ISR_preempt and ISR_yield
-extern bool IRQwakeThreads();
-
-}; //namespace miosix
 
 /**
  * \internal
@@ -110,22 +99,7 @@ void ISR_preempt() __attribute__((noinline));
 void ISR_preempt()
 {
     IRQstackOverflowCheck();
-    bool woken=miosix::IRQwakeThreads();//Increment tick and wake threads,if any
-    (void)woken; //Avoid unused variable warning.
-
-    #ifndef SCHED_TYPE_CONTROL_BASED
-    //With the control based scheduler preemption happens in the auxTimer
-    //routine since burst length is variable
-    miosix::Scheduler::IRQfindNextThread();//If the kernel is running, preempt
-    if(miosix::kernel_running!=0) miosix::tick_skew=true;//The kernel is not running
-    #else //SCHED_TYPE_CONTROL_BASED
-    //Normally, with the control based scheduler, preemptions do not happen
-    //here, but in the auxiliary timer interrupt to take into account variable
-    //bursts. But there is one exception: when a thread wakes up from sleep
-    //and the idle thread is running.
-    if(woken && miosix::cur==miosix::ControlScheduler::IRQgetIdleThread())
-        miosix::Scheduler::IRQfindNextThread();
-    #endif //SCHED_TYPE_CONTROL_BASED
+    miosix::IRQtickInterrupt();
 }
 
 /**
@@ -153,7 +127,7 @@ void ISR_auxTimer()
 {
     IRQstackOverflowCheck();
     miosix::Scheduler::IRQfindNextThread();//If the kernel is running, preempt
-    if(miosix::kernel_running!=0) miosix::tick_skew=true;//The kernel is not running
+    if(miosix::kernel_running!=0) miosix::tick_skew=true;
     TIM2->SR=0;
 }
 #endif //SCHED_TYPE_CONTROL_BASED

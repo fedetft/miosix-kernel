@@ -337,6 +337,9 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
         PauseKernelLock lock;
         Scheduler::PKaddThread(thread,priority);
     }
+    #ifdef SCHED_TYPE_EDF
+    if(isKernelRunning()) yield(); //The new thread might have a closer deadline
+    #endif //SCHED_TYPE_EDF
     return thread;
 }
 
@@ -459,6 +462,9 @@ void Thread::setPriority(Priority pr)
     //If old priority == desired priority, nothing to do.
     if(pr==current->getPriority()) return;
     Scheduler::PKsetPriority(current,pr);
+    #ifdef SCHED_TYPE_EDF
+    if(isKernelRunning()) yield(); //Another thread might have a closer deadline
+    #endif //SCHED_TYPE_EDF
 }
 
 void Thread::terminate()
@@ -483,8 +489,13 @@ void Thread::wait()
 void Thread::wakeup()
 {
     //pausing the kernel is not enough because of IRQwait and IRQwakeup
-    InterruptDisableLock lock;
-    this->flags.IRQsetWait(false);
+    {
+        InterruptDisableLock lock;
+        this->flags.IRQsetWait(false);
+    }
+    #ifdef SCHED_TYPE_EDF
+    if(isKernelRunning()) yield();//The other thread might have a closer deadline
+    #endif //SCHED_TYPE_EDF
 }
 
 void Thread::detach()

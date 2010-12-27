@@ -1,6 +1,11 @@
 Changelog for Miosix np embedded OS
 
 v1.56
+- Added preemption points in Thread::create(), Thread::setPriority() and
+  Thread::wakeup(), active if the EDF scheduler is selected.
+- Added file tick_interrupt.h with inline function IRQtickInterrupt() that
+  factorizes code for the tick interrupt that was repeated once per target
+  architecture.
 - Adapted EDF scheduler to use class Priority
 - Improved wakeup time in control based scheduler when waking from the idle
   thread.

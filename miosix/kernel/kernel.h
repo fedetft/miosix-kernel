@@ -421,7 +421,7 @@ public:
      *     {
      *         //Do work
      *         tick+=period;
-     *         Thread::sleepUntil(tick+period);
+     *         Thread::sleepUntil(tick);
      *     }
      * }
      * \endcode
