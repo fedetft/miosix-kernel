@@ -207,6 +207,19 @@ public:
 
 private:
 
+    /**
+     * Add a thread to the list of threads, keeping the list ordered by deadline
+     * \param thread thread to add
+     */
+    static void add(Thread *thread);
+
+    /**
+     * Remove a thread to the list of threads.
+     * \param thread thread to remove
+     */
+    static void remove(Thread *thread);
+
+    static Thread *head;///<\internal Head of threads list, ordered by deadline
 };
 
 } //namespace miosix

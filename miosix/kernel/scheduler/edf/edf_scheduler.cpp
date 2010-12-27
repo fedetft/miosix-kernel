@@ -31,6 +31,7 @@
 #include "interfaces-impl/bsp_impl.h"
 #include "interfaces/console.h"
 #include <algorithm>
+#include <limits>
 
 using namespace std;
 
@@ -48,7 +49,14 @@ extern unsigned char kernel_running;
 
 bool EDFSchedulerPriority::validate() const
 {
-    return this->deadline>=0;
+    // Deadlines must be positive, ant this is easy to understand.
+    // The reason why numeric_limits<long long>::max()-1 is not allowed, is
+    // because it is reserved for the idle thread.
+    // Note that numeric_limits<long long>::max() is instead allowed, and
+    // is used for thread that have no deadline assigned. In this way their
+    // deadline comes after the deadline of the idle thread, and they never run.
+    return this->deadline>=0 &&
+           this->deadline!=numeric_limits<long long>::max()-1;
 }
 
 //
@@ -57,23 +65,58 @@ bool EDFSchedulerPriority::validate() const
 
 void EDFScheduler::PKaddThread(Thread *thread, EDFSchedulerPriority priority)
 {
-
+    thread->schedData.deadline=priority;
+    add(thread);
 }
 
 bool EDFScheduler::PKexists(Thread *thread)
 {
-
+    Thread *walk=head;
+    while(walk!=0)
+    {
+        if(walk==thread) return true;
+        walk=walk->schedData.next;
+    }
+    return false;
 }
 
 void EDFScheduler::PKremoveDeadThreads()
 {
-
+    //Delete all threads at the beginning of the list
+    for(;;)
+    {
+        if(head==0) errorHandler(UNEXPECTED); //Empty list is wrong.
+        if(head->flags.isDeleted())
+        {
+            Thread *toBeDeleted=head;
+            head=head->schedData.next;
+            void *base=toBeDeleted->watermark;
+            toBeDeleted->~Thread();
+            free(base); //Delete ALL thread memory
+        }
+    }
+    //When we get here this->head is not null and does not need to be deleted
+    Thread *walk=head;
+    for(;;)
+    {
+        if(walk->schedData.next==0) break;
+        if(walk->schedData.next->flags.isDeleted())
+        {
+            Thread *toBeDeleted=walk->schedData.next;
+            walk->schedData.next=walk->schedData.next->schedData.next;
+            void *base=toBeDeleted->watermark;
+            toBeDeleted->~Thread();
+            free(base); //Delete ALL thread memory
+        }
+    }
 }
 
 void EDFScheduler::PKsetPriority(Thread *thread,
         EDFSchedulerPriority newPriority)
 {
-
+    remove(thread);
+    thread->schedData.deadline=newPriority;
+    add(thread);
 }
 
 EDFSchedulerPriority EDFScheduler::getPriority(Thread *thread)
@@ -89,13 +132,75 @@ EDFSchedulerPriority EDFScheduler::IRQgetPriority(Thread *thread)
 
 void EDFScheduler::IRQsetIdleThread(Thread *idleThread)
 {
-
+    idleThread->schedData.deadline=numeric_limits<long long>::max()-1;
+    add(idleThread);
 }
 
 void EDFScheduler::IRQfindNextThread()
 {
-
+    Thread *walk=head;
+    for(;;)
+    {
+        if(walk==0) errorHandler(UNEXPECTED);
+        if(walk->flags.isReady())
+        {
+            cur=walk;
+            ctxsave=cur->ctxsave;
+            return;
+        }
+        walk=walk->schedData.next;
+    }
 }
+
+void EDFScheduler::add(Thread *thread)
+{
+    long long newDeadline=thread->schedData.deadline.get();
+    if(head==0)
+    {
+        head=thread;
+        return;
+    }
+    if(newDeadline<=head->schedData.deadline.get())
+    {
+        thread->schedData.next=head;
+        head=thread;
+        return;
+    }
+    Thread *walk=head;
+    for(;;)
+    {
+        if(walk->schedData.next==0 || newDeadline<=
+           walk->schedData.next->schedData.deadline.get())
+        {
+            thread->schedData.next=walk->schedData.next;
+            walk->schedData.next=thread;
+            break;
+        }
+        walk=walk->schedData.next;
+    }
+}
+
+void EDFScheduler::remove(Thread *thread)
+{
+    if(head==0) errorHandler(UNEXPECTED);
+    if(head==thread)
+    {
+        head=head->schedData.next;
+        return;
+    }
+    Thread *walk=head;
+    for(;;)
+    {
+        if(walk->schedData.next==0) errorHandler(UNEXPECTED);
+        if(walk->schedData.next==thread)
+        {
+            walk->schedData.next=walk->schedData.next->schedData.next;
+            break;
+        }
+    }
+}
+
+Thread *EDFScheduler::head=0;
 
 } //namespace miosix
 
