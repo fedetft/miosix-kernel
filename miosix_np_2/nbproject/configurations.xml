@@ -101,12 +101,15 @@
               <in>control_scheduler.h</in>
             </df>
             <df name="edf">
+              <in>edf_scheduler.cpp</in>
+              <in>edf_scheduler.h</in>
             </df>
             <df name="priority">
               <in>priority_scheduler.cpp</in>
               <in>priority_scheduler.h</in>
             </df>
             <in>scheduler.h</in>
+            <in>tick_interrupt.h</in>
           </df>
           <in>error.cpp</in>
           <in>error.h</in>
