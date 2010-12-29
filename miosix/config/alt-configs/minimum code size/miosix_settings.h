@@ -74,8 +74,9 @@ static const int bMin=static_cast<int>(AUX_TIMER_CLOCK*0.0002);// 200us
 static const int bMax=static_cast<int>(AUX_TIMER_CLOCK*0.05);// 50ms
 
 ///idle thread has a fixed burst length that can be modified here
-///to increase responsiveness or low power operation
-static const int bIdle=static_cast<int>(AUX_TIMER_CLOCK*0.005);// 5ms
+///it is recomended to leave it to a high value, but that does not cause
+///overflow of the auxiliary timer
+static const int bIdle=static_cast<int>(AUX_TIMER_CLOCK*0.5);// 500ms
 
 //
 // Filesystem options
@@ -135,20 +136,6 @@ const unsigned char MAX_OPEN_FILES=8;
  * By default it is not defined (idle thread calls sleep).
  */
 //#define JTAG_DISABLE_SLEEP
-
-/**
- * \def EXIT_ON_HEAP_FULL
- * Customize behavior if heap is full. If it is #defined the system will reboot
- * in case the heap is full. Otherwise malloc will return NULL and operator
- * new will either throw std::bad alloc or return 0 depending on whether C++
- * exceptions are enabled or not.
- * Please note that not defining EXIT_ON_HEAP_FULL and disabling exceptions
- * will result in operator new returning 0 if memory allocation fails, and
- * this is dangerous since C++ code, including the standard library, does
- * not expect new to return 0. Use with great care.
- * By default it is not defined (no reboot on heap full)
- */
-#define EXIT_ON_HEAP_FULL
 
 /// Minimum stack size (MUST be divisible by 4)
 const unsigned int STACK_MIN=384;

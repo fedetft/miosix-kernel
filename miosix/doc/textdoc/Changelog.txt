@@ -1,6 +1,14 @@
 Changelog for Miosix np embedded OS
 
 v1.56
+- Removed configuration option EXIT_ON_HEAP_FULL because since STL containers
+  are used in the kernel, there is no more choice: if exceptions are enabled
+  on heap full malloc returns NULL and operator new throws bad_alloc, while
+  if exceptions are disabled on heap full a reboot is performed, to prevent
+  undefined behaviour in STL containers due to operator new not throwing.
+- Some code cleanup in the Mutex class.
+- Fixed a bug in the priority inheritance mechanism, fixed and added
+  a test in the testsuite.
 - Removed priority_queue.h and associated test in testsuite.
 - Modified Mutex class to use the max heap implementation of the STL.
 - Improved preemption points for EDF scheduler.

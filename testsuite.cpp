@@ -43,6 +43,7 @@
 #include "config/miosix_settings.h"
 #include "interfaces/console.h"
 #include "board_settings.h"
+#include "config/alt-configs/minimum code size/miosix_settings.h"
 
 using namespace miosix;
 
@@ -62,6 +63,7 @@ static void test_8();
 static void test_9();
 static void test_10();
 static void test_11();
+static void test_12();
 static void test_13();
 static void test_14();
 static void test_15();
@@ -109,6 +111,7 @@ int main()
                 test_9();
                 test_10();
                 test_11();
+                test_12();
                 test_13();
                 test_14();
                 test_15();
@@ -1275,6 +1278,54 @@ void test_11()
     t11_v1=MemoryProfiling::getCurrentFreeHeap();
     t->join(0);
     Thread::sleep(10); //Give time to the idle thread for deallocating resources
+    pass();
+}
+
+//
+// Test 12
+//
+/*
+Additional test for priority inheritance
+*/
+
+Mutex t12_m1;
+Mutex t12_m2;
+
+void t12_p1(void *argv)
+{
+    Lock l1(t12_m1);
+    Lock l2(t12_m2);
+}
+
+void t12_p2(void *argv)
+{
+    Lock l(t12_m1);
+}
+
+void test_12()
+{
+    test_name("Priority inheritance 2");
+    Thread *t1;
+    Thread *t2;
+    {
+        //First, we lock the second Mutex
+        Lock l(t12_m2);
+        //Then we create the first thread that will lock successfully the first
+        //mutex, but will block while locking the second
+        t1=Thread::create(t12_p1,STACK_MIN,0,0,Thread::JOINABLE);
+        Thread::sleep(5);
+        //Last, we create the third thread that will block at the first mutex,
+        //causing the priority of the first thread to be increased.
+        //But since the first thread is itself waiting, the priority increase
+        //should transitively pass to the thread who locked the second mutex,
+        //which is main.
+        t2=Thread::create(t12_p2,STACK_MIN,1,0,Thread::JOINABLE);
+        Thread::sleep(5);
+        if(Thread::getCurrentThread()->getPriority()!=1)
+            fail("Priority inheritance not transferred transitively");
+    }
+    t1->join();
+    t2->join();
     pass();
 }
 

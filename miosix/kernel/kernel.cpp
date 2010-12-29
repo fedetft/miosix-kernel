@@ -394,29 +394,6 @@ void Thread::sleepUntil(long long absoluteTime)
     Thread::yield();
 }
 
-#ifdef SCHED_TYPE_EDF
-void Thread::setDeadline(long long deadline)
-{
-    Thread *current=const_cast<Thread*>(cur);
-    long long prevDeadline=Scheduler::getPriority(current).get();
-    {
-        PauseKernelLock lock;
-        Scheduler::PKsetPriority(current,Priority(deadline));
-    }
-    Thread::sleepUntil(prevDeadline);
-}
-
-void Thread::IRQsetDeadline(long long deadline)
-{
-
-}
-
-void Thread::clearDeadline()
-{
-
-}
-#endif //SCHED_TYPE_EDF
-
 Thread *Thread::getCurrentThread()
 {
     Thread *result=const_cast<Thread*>(cur);
@@ -453,8 +430,8 @@ void Thread::setPriority(Priority pr)
         Mutex *walk=current->mutexLocked;
         while(walk!=0)
         {
-            if(walk->waiting.empty()==false && walk->waiting.front()->
-                    getPriority()>pr) pr=walk->waiting.front()->getPriority();
+            if(walk->waiting.empty()==false)
+                pr=std::max(pr,walk->waiting.front()->getPriority());
             walk=walk->next;
         }
     }

@@ -44,60 +44,58 @@ Mutex::Mutex(Options opt): owner(0), next(0), waiting(), mutexOptions(opt),
 
 void Mutex::PKlock(PauseKernelLock& dLock)
 {
-    if(owner==0)
+    if(PKtryLock(dLock)) return;
+
+    //This check is very important. Without this attempting to lock the same
+    //mutex twice won't cause a deadlock because the Thread::IRQwait() is
+    //enclosed in a while(owner!=p) which is immeditely false.
+    Thread* p=Thread::getCurrentThread();
+    if(owner==p)
     {
-        owner=Thread::getCurrentThread();
-        //Save original thread priority, if the thread has not yet locked
-        //another mutex
-        if(owner->mutexLocked==0) owner->savedPriority=owner->getPriority();
-        //Add this mutex to the list of mutexes locked by owner
-        this->next=owner->mutexLocked;
-        owner->mutexLocked=this;
-    } else {
-        Thread* p=Thread::getCurrentThread();
-
-        //This check is very important. Without this attempting to lock the same
-        //mutex twice won't cause a deadlock because the Thread::IRQwait() is
-        //enclosed in a while(owner!=p) which is immeditely false.
-        if(owner==p)
+        if(mutexOptions==RECURSIVE)
         {
-            if(mutexOptions==RECURSIVE)
-            {
-                recursiveDepth++;
-                return;
-            }
-            else {
-                //Bad, deadlock
-                errorHandler(MUTEX_DEADLOCK);
-            }
+            recursiveDepth++;
+            return;
+        } else errorHandler(MUTEX_DEADLOCK); //Bad, deadlock
+    }
+
+    //Add thread to mutex' waiting queue
+    waiting.push_back(p);
+    LowerPriority l;
+    push_heap(waiting.begin(),waiting.end(),l);
+
+    //Handle priority inheritance
+    if(p->mutexWaiting!=0) errorHandler(UNEXPECTED);
+    p->mutexWaiting=this;
+    if(p->getPriority()>owner->getPriority())
+    {
+        Thread *walk=owner;
+        for(;;)
+        {
+            Scheduler::PKsetPriority(walk,p->getPriority());
+            if(walk->mutexWaiting==0) break;
+            make_heap(walk->mutexWaiting->waiting.begin(),
+                      walk->mutexWaiting->waiting.end(),l);
+            walk=walk->mutexWaiting->owner;
         }
-        
-        //Add thread to mutex' waiting queue
-        waiting.push_back(p);
-        LowerPriority l;
-        push_heap(waiting.begin(),waiting.end(),l);
-        
-        //Handle priority inheritance
-        if(p->getPriority()>owner->getPriority())
-            Scheduler::PKsetPriority(owner,p->getPriority());
+    }
 
-        //The while is necessary because some other thread might call wakeup()
-        //on this thread. So the thread can wakeup also for other reasons not
-        //related to the mutex becoming free
-        while(owner!=p)
+    //The while is necessary because some other thread might call wakeup()
+    //on this thread. So the thread can wakeup also for other reasons not
+    //related to the mutex becoming free
+    while(owner!=p)
+    {
+        //Wait can only be called with kernel started, while IRQwait can
+        //only be called with interupts disabled, so that's why interrupts
+        //are disabled
         {
-            //Wait can only be called with kernel started, while IRQwait can
-            //only be called with interupts disabled, so that's why interrupts
-            //are disabled
-            {
-                InterruptDisableLock l;
-                Thread::IRQwait();//Return immediately
-            }
-            {
-                RestartKernelLock eLock(dLock);
-                //Now the IRQwait becomes effective
-                Thread::yield();
-            }
+            InterruptDisableLock l;
+            Thread::IRQwait();//Return immediately
+        }
+        {
+            RestartKernelLock eLock(dLock);
+            //Now the IRQwait becomes effective
+            Thread::yield();
         }
     }
 }
@@ -164,8 +162,8 @@ void Mutex::PKunlock(PauseKernelLock& dLock)
         Mutex *walk=owner->mutexLocked;
         while(walk!=0)
         {
-            if(walk->waiting.empty()==false && walk->waiting.front()->
-                    getPriority()>pr) pr=walk->waiting.front()->getPriority();
+            if(walk->waiting.empty()==false)
+                pr=max(pr,walk->waiting.front()->getPriority());
             walk=walk->next;
         }
         if(pr!=owner->getPriority()) Scheduler::PKsetPriority(owner,pr);
@@ -179,17 +177,17 @@ void Mutex::PKunlock(PauseKernelLock& dLock)
         LowerPriority l;
         pop_heap(waiting.begin(),waiting.end(),l);
         waiting.pop_back();
+        if(owner->mutexWaiting!=this) errorHandler(UNEXPECTED);
+        owner->mutexWaiting=0;
         owner->PKwakeup();
         if(owner->mutexLocked==0) owner->savedPriority=owner->getPriority();
         //Add this mutex to the list of mutexes locked by owner
         this->next=owner->mutexLocked;
         owner->mutexLocked=this;
         //Handle priority inheritance of new owner
-        if(waiting.empty()==false && waiting.front()->getPriority()>owner->
-                getPriority())
-        {
-            Scheduler::PKsetPriority(owner,waiting.front()->getPriority());
-        }
+        if(waiting.empty()==false &&
+           waiting.front()->getPriority()>owner->getPriority())
+                Scheduler::PKsetPriority(owner,waiting.front()->getPriority());
     } else owner=0; //No threads waiting
 }
 

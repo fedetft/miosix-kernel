@@ -431,52 +431,6 @@ public:
      */
     static void sleepUntil(long long absoluteTime);
 
-    #ifdef SCHED_TYPE_EDF
-    /**
-     * This member function is only available when the EDF scheduler is
-     * selected. It allows to set the deadline for a thread.
-     * To make a periodic thread, this is the recomended way
-     * \code
-     * void periodicThread()
-     * {
-     *     //Run every 90 milliseconds
-     *     const int period=static_cast<int>(TICK_FREQ*0.09);
-     *     long long tick=getTick();
-     *     for(;;)
-     *     {
-     *         //Do work
-     *         tick+=period;
-     *         Thread::setDeadline(tick);
-     *     }
-     * }
-     * \endcode
-     * \param deadline the deadline time (absolute time)
-     * Note that the thread will forcefully sleep until the previously set
-     * deadline (if it has one). This is to avoid a runaway condition that would
-     * make periodic threads impossible to implement.
-     */
-    static void setDeadline(long long deadline);
-
-    /**
-     * This member function is only available when the EDF scheduler is
-     * selected. It is meant to allow an interrupt routine to wakeup a thread
-     * and set its deadline, but can also be used by a thread to wake another
-     * one provided it is called within an InterruptDisableLock block.
-     * \param deadline the new deadline of the thread.
-     */
-    void IRQsetDeadline(long long deadline);
-
-    /**
-     * This member function is only available when the EDF scheduler is
-     * selected. It is used to signal the scheduler that an event driven thread
-     * has finished its job.
-     * A call to this function means that the thread will not receive any cpu
-     * time until an interrupt handler or another thread call setDeadline() on
-     * it.
-     */
-    static void clearDeadline();
-    #endif //SCHED_TYPE_EDF
-
     /**
      * Return a pointer to the Thread class of the current thread.
      * \return a pointer to the current thread.
@@ -805,7 +759,7 @@ private:
      * \param stacksize thread's stack size
      */
     Thread(unsigned int *watermark, unsigned int stacksize):
-        schedData(), flags(), savedPriority(0), mutexLocked(0),
+        schedData(), flags(), savedPriority(0), mutexLocked(0), mutexWaiting(0),
         watermark(watermark), ctxsave(), stacksize(stacksize)
     {
         joinData.waitingForJoin=NULL;
@@ -837,6 +791,8 @@ private:
     Priority savedPriority;
     ///List of mutextes locked by this thread
     Mutex *mutexLocked;
+    ///If the thread is waiting on a Mutex, mutexWaiting points to that Mutex
+    Mutex *mutexWaiting;
     unsigned int *watermark;///< pointer to watermark area
     unsigned int ctxsave[CTXSAVE_SIZE];///< Holds cpu registers during ctxswitch
     unsigned int stacksize;///< Contains stack size
@@ -885,7 +841,7 @@ public:
     /**
      * \param a first thread to compare
      * \param b second thread to compare
-     * \return true i a->getPriority() < b->getPriority()
+     * \return true if a->getPriority() < b->getPriority()
      *
      * Can be called when the kernel is paused.
      */

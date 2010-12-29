@@ -54,9 +54,9 @@ namespace miosix {
 /// Choose scheduler type
 /// Uncomment one #define only
 
-//#define SCHED_TYPE_PRIORITY
+#define SCHED_TYPE_PRIORITY
 //#define SCHED_TYPE_CONTROL_BASED
-#define SCHED_TYPE_EDF
+//#define SCHED_TYPE_EDF
 
 //
 //Options specific to the control scheduler
@@ -136,20 +136,6 @@ const unsigned char MAX_OPEN_FILES=8;
  * By default it is not defined (idle thread calls sleep).
  */
 //#define JTAG_DISABLE_SLEEP
-
-/**
- * \def EXIT_ON_HEAP_FULL
- * Customize behavior if heap is full. If it is #defined the system will reboot
- * in case the heap is full. Otherwise malloc will return NULL and operator
- * new will either throw std::bad alloc or return 0 depending on whether C++
- * exceptions are enabled or not.
- * Please note that not defining EXIT_ON_HEAP_FULL and disabling exceptions
- * will result in operator new returning 0 if memory allocation fails, and
- * this is dangerous since C++ code, including the standard library, does
- * not expect new to return 0. Use with great care.
- * By default it is not defined (no reboot on heap full)
- */
-//#define EXIT_ON_HEAP_FULL
 
 /// Minimum stack size (MUST be divisible by 4)
 const unsigned int STACK_MIN=384;

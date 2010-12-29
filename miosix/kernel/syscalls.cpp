@@ -165,12 +165,15 @@ void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr)
     if((cur_heap_end+incr)>&_heap_end)
     {
         //bad, heap overflow
-        #ifdef EXIT_ON_HEAP_FULL
+        #ifdef __NO_EXCEPTIONS
+        // When exceptions are disabled operator new would return 0, which would
+        // cause undefined behaviour. So When exceptions are disabled, a heap
+        // overflow causes a reboot.
         miosix::errorLog("\r\n***Heap overflow\r\n");
         _exit(1);
-        #else //EXIT_ON_HEAP_FULL
+        #else //__NO_EXCEPTIONS
         return reinterpret_cast<void*>(-1);
-        #endif //EXIT_ON_HEAP_FULL
+        #endif //__NO_EXCEPTIONS
     }
     cur_heap_end+=incr;
 

@@ -43,7 +43,6 @@ namespace miosix {
 
 //Forward declaration
 class ConditionVariable;
-class Unlock;
 
 /**
  * A mutex class with support for priority inheritance. If a thread tries to
@@ -120,13 +119,10 @@ private:
      * While this function can in theory be called with the kernel not paused,
      * it will cause race conditions because at any moment a preemption can
      * occur and the mutex can be locked. Calling it with the kernel paused is
-     * save since no preemption can occur.
+     * safe since no preemption can occur.
      * \return true if mutex is locked.
      */
-    bool PKisLocked()
-    {
-        return owner!=0;
-    }
+    bool PKisLocked() { return owner!=0; }
 
     /**
      * Lock mutex, can be called only with kernel paused one level deep
@@ -295,7 +291,7 @@ private:
  * A condition variable class for thread synchronization, available from
  * Miosix 1.53.<br>
  * One or more threads can wait on the condition variable, and the signal()
- * and broadcast() llow to wake ne or all the waiting threads.<br>
+ * and broadcast() allow to wake ne or all the waiting threads.<br>
  * This class is meant to be a static or global class. Dynamically creating a
  * ConditionVariable with new or on the stack must be done with care, to avoid
  * deleting a ConditionVariable while some threads are waiting, and to avoid
