@@ -40,7 +40,6 @@
 #include <errno.h>
 
 #include "miosix.h"
-#include "kernel/priority_queue.h"
 #include "config/miosix_settings.h"
 #include "interfaces/console.h"
 #include "board_settings.h"
@@ -63,7 +62,6 @@ static void test_8();
 static void test_9();
 static void test_10();
 static void test_11();
-static void test_12();
 static void test_13();
 static void test_14();
 static void test_15();
@@ -111,7 +109,6 @@ int main()
                 test_9();
                 test_10();
                 test_11();
-                test_12();
                 test_13();
                 test_14();
                 test_15();
@@ -1278,49 +1275,6 @@ void test_11()
     t11_v1=MemoryProfiling::getCurrentFreeHeap();
     t->join(0);
     Thread::sleep(10); //Give time to the idle thread for deallocating resources
-    pass();
-}
-
-//
-// Test 12
-//
-/*
-Test data structures:
- PriorityQueue
-*/
-
-void t12_f1(miosix::PriorityQueue<int>& queue)
-{
-    if(queue.empty()==false) fail("empty (1)");
-    if(queue.size()!=0) fail("size (1)");
-    const unsigned int size=128;
-    int data[size];
-    for(unsigned int i=0;i<size;i++)
-    {
-        data[i]=rand();
-        queue.push(data[i]);
-    }
-    std::sort(data,data+size);
-    if(queue.empty()) fail("empty (2)");
-    if(queue.size()!=size) fail("size (2)");
-    for(unsigned int i=0;i<size;i++)
-    {
-        if(data[i]!=queue.top())
-        {
-            iprintf("Error i=%d data[i]=%d top()=%d\n",i,data[i],queue.top());
-            fail("PriorityQueue");
-        }
-        queue.pop();
-    }
-    if(queue.empty()==false) fail("empty (3)");
-    if(queue.size()!=0) fail("size (3)");
-}
-
-void test_12()
-{
-    test_name("PriorityQueue");
-    miosix::PriorityQueue<int> queue;
-    for(int i=0;i<10;i++) t12_f1(queue);
     pass();
 }
 

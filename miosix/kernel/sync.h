@@ -30,7 +30,7 @@
 #define SYNC_H
 
 #include "kernel.h"
-#include "priority_queue.h"
+#include <vector>
 // pthread functions are friends of Mutex and ConditionVariable
 #include <pthread.h>
 
@@ -164,7 +164,7 @@ private:
     Mutex *next;
 
     /// Waiting thread are stored in this min-heap, sorted by priority
-    PriorityQueue<Thread*,GreaterPriority> waiting;
+    std::vector<Thread *> waiting;
 
     /// Default or recursive
     Options mutexOptions;

@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
 v1.56
+- Removed priority_queue.h and associated test in testsuite.
+- Modified Mutex class to use the max heap implementation of the STL.
 - Improved preemption points for EDF scheduler.
 - Modifed Thread::wakeup(). Now it can no longer be called with the kernel
   paused. Added Thread::PKwakeup() that can be called with the kernel paused.

@@ -453,8 +453,8 @@ void Thread::setPriority(Priority pr)
         Mutex *walk=current->mutexLocked;
         while(walk!=0)
         {
-            if(walk->waiting.empty()==false && walk->waiting.top()->
-                    getPriority()>pr) pr=walk->waiting.top()->getPriority();
+            if(walk->waiting.empty()==false && walk->waiting.front()->
+                    getPriority()>pr) pr=walk->waiting.front()->getPriority();
             walk=walk->next;
         }
     }

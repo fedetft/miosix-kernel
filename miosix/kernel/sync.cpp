@@ -29,6 +29,9 @@
 #include "sync.h"
 #include "kernel.h"
 #include "error.h"
+#include <algorithm>
+
+using namespace std;
 
 namespace miosix {
 
@@ -70,7 +73,9 @@ void Mutex::PKlock(PauseKernelLock& dLock)
         }
         
         //Add thread to mutex' waiting queue
-        waiting.push(p);
+        waiting.push_back(p);
+        LowerPriority l;
+        push_heap(waiting.begin(),waiting.end(),l);
         
         //Handle priority inheritance
         if(p->getPriority()>owner->getPriority())
@@ -159,8 +164,8 @@ void Mutex::PKunlock(PauseKernelLock& dLock)
         Mutex *walk=owner->mutexLocked;
         while(walk!=0)
         {
-            if(walk->waiting.empty()==false && walk->waiting.top()->
-                    getPriority()>pr) pr=walk->waiting.top()->getPriority();
+            if(walk->waiting.empty()==false && walk->waiting.front()->
+                    getPriority()>pr) pr=walk->waiting.front()->getPriority();
             walk=walk->next;
         }
         if(pr!=owner->getPriority()) Scheduler::PKsetPriority(owner,pr);
@@ -170,18 +175,20 @@ void Mutex::PKunlock(PauseKernelLock& dLock)
     if(waiting.empty()==false)
     {
         //There is at least another thread waiting
-        owner=waiting.top();
-        waiting.pop();
+        owner=waiting.front();
+        LowerPriority l;
+        pop_heap(waiting.begin(),waiting.end(),l);
+        waiting.pop_back();
         owner->PKwakeup();
         if(owner->mutexLocked==0) owner->savedPriority=owner->getPriority();
         //Add this mutex to the list of mutexes locked by owner
         this->next=owner->mutexLocked;
         owner->mutexLocked=this;
         //Handle priority inheritance of new owner
-        if(waiting.empty()==false && waiting.top()->getPriority()>owner->
+        if(waiting.empty()==false && waiting.front()->getPriority()>owner->
                 getPriority())
         {
-            Scheduler::PKsetPriority(owner,waiting.top()->getPriority());
+            Scheduler::PKsetPriority(owner,waiting.front()->getPriority());
         }
     } else owner=0; //No threads waiting
 }

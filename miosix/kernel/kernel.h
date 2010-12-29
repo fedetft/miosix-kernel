@@ -879,19 +879,19 @@ private:
 /**
  * Function object to compare the priority of two threads.
  */
-class GreaterPriority: public std::binary_function<Thread*,Thread*,bool>
+class LowerPriority: public std::binary_function<Thread*,Thread*,bool>
 {
 public:
     /**
      * \param a first thread to compare
      * \param b second thread to compare
-     * \return true i a->getPriority() > b->getPriority()
+     * \return true i a->getPriority() < b->getPriority()
      *
      * Can be called when the kernel is paused.
      */
     bool operator() (Thread* a, Thread *b)
     {
-        return a->getPriority() > b->getPriority();
+        return a->getPriority() < b->getPriority();
     }
 };
 
