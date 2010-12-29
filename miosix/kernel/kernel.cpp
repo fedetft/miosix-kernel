@@ -494,8 +494,15 @@ void Thread::wakeup()
         this->flags.IRQsetWait(false);
     }
     #ifdef SCHED_TYPE_EDF
-    if(isKernelRunning()) yield();//The other thread might have a closer deadline
+    yield();//The other thread might have a closer deadline
     #endif //SCHED_TYPE_EDF
+}
+
+void Thread::PKwakeup()
+{
+    //pausing the kernel is not enough because of IRQwait and IRQwakeup
+    InterruptDisableLock lock;
+    this->flags.IRQsetWait(false);
 }
 
 void Thread::detach()

@@ -172,7 +172,7 @@ void Mutex::PKunlock(PauseKernelLock& dLock)
         //There is at least another thread waiting
         owner=waiting.top();
         waiting.pop();
-        owner->wakeup();
+        owner->PKwakeup();
         if(owner->mutexLocked==0) owner->savedPriority=owner->getPriority();
         //Add this mutex to the list of mutexes locked by owner
         this->next=owner->mutexLocked;

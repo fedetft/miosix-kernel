@@ -1,6 +1,9 @@
 Changelog for Miosix np embedded OS
 
 v1.56
+- Improved preemption points for EDF scheduler.
+- Modifed Thread::wakeup(). Now it can no longer be called with the kernel
+  paused. Added Thread::PKwakeup() that can be called with the kernel paused.
 - Added preemption points in Thread::create(), Thread::setPriority() and
   Thread::wakeup(), active if the EDF scheduler is selected.
 - Added file tick_interrupt.h with inline function IRQtickInterrupt() that

@@ -501,6 +501,9 @@ public:
      * Returns the priority of a thread.<br>
      * To get the priority of the current thread use:
      * \code Thread::getCurrentThread()->getPriority(); \endcode
+     * If the thread is currently locking one or more mutexes, this member
+     * function returns the current priority, which can be higher than the
+     * original priority due to priority inheritance.
      * \return current priority of the thread
      *
      * Can be called when the kernel is paused.
@@ -542,9 +545,15 @@ public:
 
     /**
      * Wakeup a thread.
-     * <br>Can be called when the kernel is paused.
+     * <br>CANNOT be called when the kernel is paused.
      */
     void wakeup();
+
+    /**
+     * Wakeup a thread.
+     * <br>Can be called when the kernel is paused.
+     */
+    void PKwakeup();
 
     /**
      * Detach the thread if it was joinable, otherwise do nothing.<br>

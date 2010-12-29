@@ -101,8 +101,13 @@ public:
      */
     void unlock()
     {
-        PauseKernelLock dLock;
-        PKunlock(dLock);
+        {
+            PauseKernelLock dLock;
+            PKunlock(dLock);
+        }
+        #ifdef SCHED_TYPE_EDF
+        Thread::yield();//The other thread might have a closer deadline
+        #endif //SCHED_TYPE_EDF
     }
 	
 private:
