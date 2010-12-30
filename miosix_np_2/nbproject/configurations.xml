@@ -69,11 +69,6 @@
           </df>
         </df>
         <df name="config">
-          <df name="alt-configs">
-            <df name="minimum code size" kind="SOURCE_LOGICAL_FOLDER">
-              <in>miosix_settings.h</in>
-            </df>
-          </df>
           <in>miosix_settings.h</in>
         </df>
         <df name="interfaces">
@@ -150,7 +145,7 @@
       <itemPath>miosix_np_2-Makefile.mk</itemPath>
     </logicalFolder>
   </logicalFolder>
-  <sourceFolderFilter>^(nbproject|build|test|bootloaders|compiler|doc|temp)$</sourceFolderFilter>
+  <sourceFolderFilter>^(nbproject|build|test|bootloaders|compiler|doc|temp|alt-configs)$</sourceFolderFilter>
   <sourceRootList>
     <Elem>..</Elem>
   </sourceRootList>

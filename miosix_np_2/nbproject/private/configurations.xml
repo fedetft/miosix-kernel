@@ -5,6 +5,7 @@
   <confs>
     <conf name="Default" type="0">
       <gizmo_options version="3">
+        <configurationname>GizmoSimple</configurationname>
       </gizmo_options>
       <runprofile version="6">
         <args></args>

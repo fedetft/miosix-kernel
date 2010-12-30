@@ -43,7 +43,6 @@
 #include "config/miosix_settings.h"
 #include "interfaces/console.h"
 #include "board_settings.h"
-#include "config/alt-configs/minimum code size/miosix_settings.h"
 
 using namespace miosix;
 
