@@ -209,17 +209,10 @@ static void t1_p1(void *argv)
     {
         if(Thread::testTerminate()) break;
         t1_v1=true;
+        #ifdef SCHED_TYPE_EDF
+        Thread::sleep(5);
+        #endif //SCHED_TYPE_EDF
     }
-}
-
-static void t1_p2(void *argv)
-{
-    for(;;)
-    {
-        if(Thread::testTerminate()) break;
-        t1_v1=true;
-    }
-    //Leave entry point = terminate
 }
 
 static void t1_p3(void *argv)
@@ -241,19 +234,31 @@ static void t1_f1(Thread *p)
     {
         Thread::sleep(5);
         t1_v1=false;
+        #ifndef SCHED_TYPE_EDF
         Thread::yield();//run t1_p1
+        #else //SCHED_TYPE_EDF
+        Thread::sleep(15);
+        #endif //SCHED_TYPE_EDF
         if(t1_v1==false) fail("thread not created");
         if(Thread::exists(p)==false) fail("Thread::exists (1)");
     }
     p->terminate();
+    #ifndef SCHED_TYPE_EDF
     Thread::yield();//Give time to the second thread to terminate
+    #else //SCHED_TYPE_EDF
+    Thread::sleep(15);
+    #endif //SCHED_TYPE_EDF
     //If the thread doesn't exist, it can't modify t1_v1, and exist() must
     //return false
     for(int i=0;i<10;i++) //testing 10 times
     {
         t1_v1=false;
+        #ifndef SCHED_TYPE_EDF
         Thread::yield();//run t1_p1
         Thread::yield();//Double yield to be extra sure.
+        #else //SCHED_TYPE_EDF
+        Thread::sleep(15);
+        #endif //SCHED_TYPE_EDF
         if(t1_v1==true) fail("thread not deleted");
         if(Thread::exists(p)==true) fail("Thread::exists (2)");
     }
@@ -263,21 +268,18 @@ static void test_1()
 {
     test_name("thread creation/deletion");
     //Testing getStackBottom()
-    //const int *y=Thread::getStackBottom();
-    //if(*y!=(int)STACK_FILL) fail("getStackBottom() (1)");
-    //y--;//Now should point to last word of watermark
-    //if(*y!=(int)WATERMARK_FILL) fail("getStackBottom() (2)");
+    const unsigned int *y=Thread::getStackBottom();
+    if(*y!=STACK_FILL) fail("getStackBottom() (1)");
+    y--;//Now should point to last word of watermark
+    if(*y!=WATERMARK_FILL) fail("getStackBottom() (2)");
     //Testing thread termination
-    Thread *p;
-    p=Thread::create(t1_p1,STACK_MIN,0,NULL);
-    t1_f1(p);
-    //Testing thread termination by leaving entry point
-    p=Thread::create(t1_p2,STACK_MIN,0,NULL);
+    Thread *p=Thread::create(t1_p1,STACK_MIN,0,NULL);
     t1_f1(p);
     //Testing argv passing
     p=Thread::create(t1_p3,STACK_MIN,0,reinterpret_cast<void*>(0xdeadbeef));
     Thread::sleep(5);
     if(Thread::exists(p)) fail("thread not deleted (2)");
+    if(isKernelRunning()==false) fail("------------"); //FIXME: remove
     pass();
 }
 
@@ -296,12 +298,18 @@ static Thread *t2_p_v1;
 
 static void t2_p1(void *argv)
 {
+    //This is to fix a race condition: the immediately after the thread
+    //creation a yield occurs, t2_p_v1 is not yet assigned so the check fails
+    Thread::sleep(5);
     for(;;)
     {
         if(Thread::testTerminate()) break;
         if(Thread::getCurrentThread()!=t2_p_v1)
             fail("Thread::getCurrentThread()");
         t2_v1=true;
+        #ifdef SCHED_TYPE_EDF
+        Thread::sleep(5);
+        #endif //SCHED_TYPE_EDF
     }
 }
 
@@ -322,7 +330,11 @@ static void test_2()
     for(int i=0;i<10;i++)
     {
         t2_v1=false;
+        #ifndef SCHED_TYPE_EDF
         delayMs(20);
+        #else //SCHED_TYPE_EDF
+        Thread::sleep(15);
+        #endif //SCHED_TYPE_EDF
         if(t2_v1==false) fail("restartKernel");
     }
     t2_p_v1->terminate();
@@ -455,8 +467,29 @@ static void t4_p1(void *argv)
     {
         if(Thread::testTerminate()) break;
         t4_v1=true;
+        #ifdef SCHED_TYPE_EDF
+        Thread::sleep(5);
+        #endif //SCHED_TYPE_EDF
     }
 }
+
+#ifdef SCHED_TYPE_EDF
+//This takes .014/.03=47% of CPU time
+static void t4_p2(void *argv)
+{
+    const int period=static_cast<int>(TICK_FREQ*0.03);
+    long long tick=getTick();
+    for(int i=0;i<10;i++)
+    {
+        long long prevTick=tick;
+        tick+=period;
+        Thread::setPriority(Priority(tick)); //Change deadline
+        Thread::sleepUntil(prevTick); //Make sure the task is run periodically
+        delayMs(14);
+        if(getTick()>tick) fail("Deadline missed (A)\n");
+    }
+}
+#endif //SCHED_TYPE_EDF
 
 static void test_4()
 {
@@ -485,7 +518,11 @@ static void test_4()
         }
     }
     enableInterrupts();//
+    #ifndef SCHED_TYPE_EDF
     Thread::yield();
+    #else //SCHED_TYPE_EDF
+    Thread::sleep(15);
+    #endif //SCHED_TYPE_EDF
     //Should not happen, since already tested
     if(t4_v1==false) fail("variable not updated");
     //Checking get_priority
@@ -495,7 +532,7 @@ static void test_4()
     Thread::setPriority(1);
     if(Thread::getCurrentThread()->getPriority()!=1)
         fail("setPriority (0)");
-    #ifndef SCHED_TYPE_CONTROL_BASED
+    #if !defined(SCHED_TYPE_CONTROL_BASED) && !defined(SCHED_TYPE_EDF)
     //Since priority is higher, the other thread must not run
     //Of course this is not true for the control based scheduler
     t4_v1=false;
@@ -505,13 +542,28 @@ static void test_4()
         delayMs(100);
         if(t4_v1==true) fail("setPriority (1)");
     }
-
     #endif //SCHED_TYPE_CONTROL_BASED
     //Restoring original priority
     Thread::setPriority(0);
     if(Thread::getCurrentThread()->getPriority()!=0)
         fail("setPriority (2)");
     p->terminate();
+    Thread::sleep(10);
+    #ifdef SCHED_TYPE_EDF
+    Thread::create(t4_p2,STACK_MIN);
+    const int period=static_cast<int>(TICK_FREQ*0.05);
+    tick=getTick();
+    //This takes .024/.05=48% of CPU time
+    for(int i=0;i<10;i++)
+    {
+        long long prevTick=tick;
+        tick+=period;
+        Thread::setPriority(Priority(tick)); //Change deadline
+        Thread::sleepUntil(prevTick); //Make sure the task is run periodically
+        delayMs(24);
+        if(getTick()>tick) fail("Deadline missed (B)\n");
+    }
+    #endif //SCHED_TYPE_EDF
     pass();
 }
 
@@ -598,6 +650,18 @@ Mutex::tryLock
 Lock
 */
 
+Priority priorityAdapter(int x)
+{
+    #ifndef SCHED_TYPE_EDF
+    return Priority(x);
+    #else //SCHED_TYPE_EDF
+    //The EDF scheduler uses deadlines as priorities, so the ordering is
+    //reversed, smaller number = close deadline = higher priority
+    //the value of 5 is arbitrary, it should just avoid going below zero
+    return Priority(5-x);
+    #endif //SCHED_TYPE_EDF
+}
+
 class Sequence
 {
     public:
@@ -638,7 +702,7 @@ static void t6_p1(void *argv)
     Thread::sleep(100);
     //Testing priority inheritance. Priority is 2 because inherits priority
     //from t6_p3
-    if(Thread::getCurrentThread()->getPriority()!=2)
+    if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(2))
         fail("priority inheritance (1)");
     t6_m1.unlock();
 }
@@ -649,7 +713,7 @@ static void t6_p2(void *argv)
     seq.add('2');
     Thread::sleep(100);
     //Testing priority inheritance. Priority is 1 because enters after t6_p3
-    if(Thread::getCurrentThread()->getPriority()!=1)
+    if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(1))
         fail("priority inheritance (2)");
     t6_m1.unlock();
 }
@@ -660,7 +724,7 @@ static void t6_p3(void *argv)
     seq.add('3');
     Thread::sleep(100);
     //Testing priority inheritance. Original priority 2 must not change
-    if(Thread::getCurrentThread()->getPriority()!=2)
+    if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(2))
         fail("priority inheritance (3)");
     t6_m1.unlock();
 }
@@ -675,7 +739,11 @@ static void t6_p4(void *argv)
             t6_m1.unlock();
             break;
         }
+        #ifndef SCHED_TYPE_EDF
         Thread::yield();
+        #else //SCHED_TYPE_EDF
+        Thread::sleep(5);
+        #endif //SCHED_TYPE_EDF
     }
 }
 
@@ -714,15 +782,18 @@ static Mutex t6_m5(Mutex::RECURSIVE);
 static void test_6()
 {
     test_name("Mutex class");
+    #ifdef SCHED_TYPE_EDF
+    Thread::setPriority(priorityAdapter(0));
+    #endif //SCHED_TYPE_EDF
     seq.clear();
     //Create first thread
-    Thread::create(t6_p1,STACK_MIN,0,NULL);
+    Thread::create(t6_p1,STACK_MIN,priorityAdapter(0),NULL);
     Thread::sleep(20);
     //Create second thread
-    Thread::create(t6_p2,STACK_MIN,1,NULL);
+    Thread::create(t6_p2,STACK_MIN,priorityAdapter(1),NULL);
     Thread::sleep(20);
     //Create third thread
-    Thread::create(t6_p3,STACK_MIN,2,NULL);
+    Thread::create(t6_p3,STACK_MIN,priorityAdapter(2),NULL);
     Thread::sleep(20);
     t6_m1.lock();
     /*
@@ -735,7 +806,7 @@ static void test_6()
     last the fourth.
     */
     //Testing priority inheritance. Original priority 0 must not change
-    if(Thread::getCurrentThread()->getPriority()!=0)
+    if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(0))
         fail("priority inheritance (4)");
     if(strcmp(seq.read(),"132")!=0)
     {
@@ -756,8 +827,12 @@ static void test_6()
     Thread::sleep(10);
     if(t6_m1.tryLock()==true) fail("Mutex::tryLock() (2)");
     t->terminate();
+    #ifndef SCHED_TYPE_EDF
     Thread::yield();
     Thread::yield();//Ensuring the other thread is deleted
+    #else //SCHED_TYPE_EDF
+    Thread::sleep(15);
+    #endif //SCHED_TYPE_EDF
     if(t6_m1.tryLock()==false) fail("Mutex::tryLock() (3)");
     t6_m1.unlock();
     t6_v1=false;
@@ -784,54 +859,54 @@ static void test_6()
         {
             Lock l2(t6_m4);
             //Check initial priority
-            if(Thread::getCurrentThread()->getPriority()!=0)
+            if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(0))
                 fail("priority inheritance (5)");
             //This thread will increase priority to 1
-            t=Thread::create(t6_p6,STACK_MIN,1,reinterpret_cast<void*>(
-                    &t6_m4),Thread::JOINABLE);
+            t=Thread::create(t6_p6,STACK_MIN,priorityAdapter(1),
+                    reinterpret_cast<void*>(&t6_m4),Thread::JOINABLE);
             Thread::sleep(10);
-            if(Thread::getCurrentThread()->getPriority()!=1)
+            if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(1))
                 fail("priority inheritance (6)");
             //This thread will do nothing
-            t2=Thread::create(t6_p6,STACK_MIN,1,reinterpret_cast<void*>(
-                    &t6_m3),Thread::JOINABLE);
+            t2=Thread::create(t6_p6,STACK_MIN,priorityAdapter(1),
+                    reinterpret_cast<void*>(&t6_m3),Thread::JOINABLE);
             Thread::sleep(10);
-            if(Thread::getCurrentThread()->getPriority()!=1)
+            if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(1))
                 fail("priority inheritance (7)");
             //This thread will increase priority to 2
-            t3=Thread::create(t6_p6,STACK_MIN,2,reinterpret_cast<void*>(
-                    &t6_m4),Thread::JOINABLE);
+            t3=Thread::create(t6_p6,STACK_MIN,priorityAdapter(2),
+                    reinterpret_cast<void*>(&t6_m4),Thread::JOINABLE);
             Thread::sleep(10);
-            if(Thread::getCurrentThread()->getPriority()!=2)
+            if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(2))
                 fail("priority inheritance (8)");
             //This will do nothing
-            Thread::setPriority(1);
-            if(Thread::getCurrentThread()->getPriority()!=2)
+            Thread::setPriority(priorityAdapter(1));
+            if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(2))
                 fail("priority inheritance (9)");
             //This will increase priority
-            Thread::setPriority(3);
-            if(Thread::getCurrentThread()->getPriority()!=3)
+            Thread::setPriority(priorityAdapter(3));
+            if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(3))
                 fail("priority inheritance (10)");
             //This will reduce priority to 2, not 0
-            Thread::setPriority(0);
-            if(Thread::getCurrentThread()->getPriority()!=2)
+            Thread::setPriority(priorityAdapter(0));
+            if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(2))
                 fail("priority inheritance (11)");
         }
         //Unlocking t6_m4, only the thread waiting on t6_m3 will cause
         //priority inheritance, which is only t2 which has priority 1
-        if(Thread::getCurrentThread()->getPriority()!=1)
+        if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(1))
                 fail("priority inheritance (12)");
         //This will make the priority of 1 hold even when unlocking the mutex
-        Thread::setPriority(1);
+        Thread::setPriority(priorityAdapter(1));
         //This thread will increase priority to 2
-        t4=Thread::create(t6_p6,STACK_MIN,2,reinterpret_cast<void*>(
-                &t6_m3),Thread::JOINABLE);
+        t4=Thread::create(t6_p6,STACK_MIN,priorityAdapter(2),
+                reinterpret_cast<void*>(&t6_m3),Thread::JOINABLE);
         Thread::sleep(10);
-        if(Thread::getCurrentThread()->getPriority()!=2)
+        if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(2))
             fail("priority inheritance (13)");
 
     }
-    if(Thread::getCurrentThread()->getPriority()!=1)
+    if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(1))
         fail("priority inheritance (14)");
     //Restore original priority
     Thread::setPriority(0);
@@ -1305,6 +1380,7 @@ void t12_p2(void *argv)
 void test_12()
 {
     test_name("Priority inheritance 2");
+    Thread::setPriority(priorityAdapter(0)); //For EDF
     Thread *t1;
     Thread *t2;
     {
@@ -1312,20 +1388,23 @@ void test_12()
         Lock l(t12_m2);
         //Then we create the first thread that will lock successfully the first
         //mutex, but will block while locking the second
-        t1=Thread::create(t12_p1,STACK_MIN,0,0,Thread::JOINABLE);
+        t1=Thread::create(t12_p1,STACK_MIN,priorityAdapter(0),0,
+                Thread::JOINABLE);
         Thread::sleep(5);
         //Last, we create the third thread that will block at the first mutex,
         //causing the priority of the first thread to be increased.
         //But since the first thread is itself waiting, the priority increase
         //should transitively pass to the thread who locked the second mutex,
         //which is main.
-        t2=Thread::create(t12_p2,STACK_MIN,1,0,Thread::JOINABLE);
+        t2=Thread::create(t12_p2,STACK_MIN,priorityAdapter(1),0,
+                Thread::JOINABLE);
         Thread::sleep(5);
-        if(Thread::getCurrentThread()->getPriority()!=1)
+        if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(1))
             fail("Priority inheritance not transferred transitively");
     }
     t1->join();
     t2->join();
+    Thread::setPriority(0);
     pass();
 }
 
@@ -1363,7 +1442,11 @@ void *t14_p1(void *argv)
     for(;;)
     {
         if(Thread::testTerminate()) break;
+        #ifndef SCHED_TYPE_EDF
         Thread::yield();
+        #else //SCHED_TYPE_EDF
+        Thread::sleep(5);
+        #endif //SCHED_TYPE_EDF
     }
     return argv;
 }
@@ -2249,6 +2332,7 @@ static int b2_f1()
 
 static void benchmark_2()
 {
+    #ifndef SCHED_TYPE_EDF
     //Test context switch time at maximum priority
     Thread::setPriority(3);//Using max priority
     Thread *p=Thread::create(b2_p1,STACK_MIN,3,NULL);
@@ -2262,6 +2346,9 @@ static void benchmark_2()
     p->terminate();
     iprintf("%d context switch per second (min priority)\n",i);
     Thread::sleep(10);
+    #else //SCHED_TYPE_EDF
+    iprintf("Context switch benchmark not possible with edf\n");
+    #endif //SCHED_TYPE_EDF
 }
 
 //

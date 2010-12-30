@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
 v1.56
+- Fixed some bugs in EDF scheduler, found by testsuite.
+- Adapted testsuite to work with EDF scheduler.
 - Removed configuration option EXIT_ON_HEAP_FULL because since STL containers
   are used in the kernel, there is no more choice: if exceptions are enabled
   on heap full malloc returns NULL and operator new throws bad_alloc, while

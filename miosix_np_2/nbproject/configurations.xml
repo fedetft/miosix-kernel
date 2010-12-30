@@ -116,7 +116,6 @@
           <in>kernel.cpp</in>
           <in>kernel.h</in>
           <in>logging.h</in>
-          <in>priority_queue.h</in>
           <in>pthread.cpp</in>
           <in>stage_2_boot.cpp</in>
           <in>sync.cpp</in>

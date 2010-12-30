@@ -1,4 +1,7 @@
 
+TODO: EDF scheduler needs a way for a thread to set the priority (tht is, the
+deadline) of another thread, necessary for non periodic tasks.
+
 TODO: add Thread::trySleep()
 
 TODO: add ThreadInternals class to get rid of all the friends of Thread

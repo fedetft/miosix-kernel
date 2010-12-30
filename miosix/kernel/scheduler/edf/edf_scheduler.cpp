@@ -74,7 +74,7 @@ bool EDFScheduler::PKexists(Thread *thread)
     Thread *walk=head;
     while(walk!=0)
     {
-        if(walk==thread) return true;
+        if(walk==thread && (! (walk->flags.isDeleted()))) return true;
         walk=walk->schedData.next;
     }
     return false;
@@ -86,14 +86,12 @@ void EDFScheduler::PKremoveDeadThreads()
     for(;;)
     {
         if(head==0) errorHandler(UNEXPECTED); //Empty list is wrong.
-        if(head->flags.isDeleted())
-        {
-            Thread *toBeDeleted=head;
-            head=head->schedData.next;
-            void *base=toBeDeleted->watermark;
-            toBeDeleted->~Thread();
-            free(base); //Delete ALL thread memory
-        }
+        if(head->flags.isDeleted()==false) break;
+        Thread *toBeDeleted=head;
+        head=head->schedData.next;
+        void *base=toBeDeleted->watermark;
+        toBeDeleted->~Thread();
+        free(base); //Delete ALL thread memory
     }
     //When we get here this->head is not null and does not need to be deleted
     Thread *walk=head;
@@ -107,7 +105,7 @@ void EDFScheduler::PKremoveDeadThreads()
             void *base=toBeDeleted->watermark;
             toBeDeleted->~Thread();
             free(base); //Delete ALL thread memory
-        }
+        } else walk=walk->schedData.next;
     }
 }
 
@@ -138,6 +136,8 @@ void EDFScheduler::IRQsetIdleThread(Thread *idleThread)
 
 void EDFScheduler::IRQfindNextThread()
 {
+    if(kernel_running!=0) return;//If kernel is paused, do nothing
+    
     Thread *walk=head;
     for(;;)
     {
@@ -197,6 +197,7 @@ void EDFScheduler::remove(Thread *thread)
             walk->schedData.next=walk->schedData.next->schedData.next;
             break;
         }
+        walk=walk->schedData.next;
     }
 }
 
