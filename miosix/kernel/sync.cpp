@@ -188,7 +188,10 @@ void Mutex::PKunlock(PauseKernelLock& dLock)
         if(waiting.empty()==false &&
            waiting.front()->getPriority()>owner->getPriority())
                 Scheduler::PKsetPriority(owner,waiting.front()->getPriority());
-    } else owner=0; //No threads waiting
+    } else {
+        owner=0; //No threads waiting
+        std::vector<Thread *>().swap(waiting); //Save some RAM
+    }
 }
 
 //

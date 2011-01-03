@@ -4,6 +4,8 @@
 
 #include "interfaces/gpio.h"
 
+namespace miosix {
+
 /**
  * Software implementation of the SPI protocol (CPOL=0, CPHA=0 mode)
  * \param SI an instance of the Gpio class indicating the SPI input pin
@@ -100,5 +102,7 @@ unsigned short SoftwareSPI<SI,SO,SCK,CE,numNops>::
     }
     return result;
 }
+
+} //namespace miosix
 
 #endif  //SOFTWARE_SPI_H
