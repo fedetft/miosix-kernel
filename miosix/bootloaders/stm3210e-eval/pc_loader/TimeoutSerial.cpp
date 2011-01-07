@@ -4,6 +4,8 @@
  * Distributed under the Boost Software License, Version 1.0.
  * Created on September 12, 2009, 3:47 PM
  *
+ * v1.04: Fixed bug with timeout set to zero
+ *
  * v1.03: Fix for Mac OS X, now fully working on Mac.
  *
  * v1.02: Code cleanup, speed improvements, bug fixes.
@@ -23,10 +25,7 @@ using namespace std;
 using namespace boost;
 
 TimeoutSerial::TimeoutSerial(): io(), port(io), timer(io),
-        timeout(posix_time::seconds(0))
-{
-    
-}
+        timeout(posix_time::seconds(0)) {}
 
 TimeoutSerial::TimeoutSerial(const std::string& devname, unsigned int baud_rate,
         asio::serial_port_base::parity opt_parity,
@@ -99,12 +98,13 @@ void TimeoutSerial::read(char *data, size_t size)
     setupParameters=ReadSetupParameters(data,size);
     performReadSetup(setupParameters);
 
-    if(timeout!=posix_time::seconds(0)) //If timeout is set, start timer
-    {
-        timer.expires_from_now(timeout);
-        timer.async_wait(boost::bind(&TimeoutSerial::timeoutExpired,this,
+    //For this code to work, there should always be a timeout, so the
+    //request for no timeout is translated into a very long timeout
+    if(timeout!=posix_time::seconds(0)) timer.expires_from_now(timeout);
+    else timer.expires_from_now(posix_time::hours(100000));
+    
+    timer.async_wait(boost::bind(&TimeoutSerial::timeoutExpired,this,
                 asio::placeholders::error));
-    }
     
     result=resultInProgress;
     bytesTransferred=0;
@@ -151,12 +151,14 @@ std::string TimeoutSerial::readStringUntil(const std::string& delim)
     setupParameters=ReadSetupParameters(delim);
     performReadSetup(setupParameters);
 
-    if(timeout!=posix_time::seconds(0)) //If timeout is set, start timer
-    {
-        timer.expires_from_now(timeout);
-        timer.async_wait(boost::bind(&TimeoutSerial::timeoutExpired,this,
+    //For this code to work, there should always be a timeout, so the
+    //request for no timeout is translated into a very long timeout
+    if(timeout!=posix_time::seconds(0)) timer.expires_from_now(timeout);
+    else timer.expires_from_now(posix_time::hours(100000));
+
+    timer.async_wait(boost::bind(&TimeoutSerial::timeoutExpired,this,
                 asio::placeholders::error));
-    }
+
     result=resultInProgress;
     bytesTransferred=0;
     for(;;)
@@ -187,10 +189,7 @@ std::string TimeoutSerial::readStringUntil(const std::string& delim)
     }
 }
 
-TimeoutSerial::~TimeoutSerial()
-{
-
-}
+TimeoutSerial::~TimeoutSerial() {}
 
 void TimeoutSerial::performReadSetup(const ReadSetupParameters& param)
 {
@@ -208,34 +207,28 @@ void TimeoutSerial::performReadSetup(const ReadSetupParameters& param)
 
 void TimeoutSerial::timeoutExpired(const boost::system::error_code& error)
 {
-    if(result!=resultInProgress) return;
-    if(error!=asio::error::operation_aborted)
-    {
-        result=resultTimeoutExpired;
-    }
+     if(!error && result==resultInProgress) result=resultTimeoutExpired;
 }
 
 void TimeoutSerial::readCompleted(const boost::system::error_code& error,
         const size_t bytesTransferred)
 {
-    if(error)
+    if(!error)
     {
-        if(error!=asio::error::operation_aborted)
-        {
-            #ifdef __APPLE__
-            if(error.value()==45)
-            {
-                //Bug on OS X, it might be necessary to repeat the setup
-                //http://osdir.com/ml/lib.boost.asio.user/2008-08/msg00004.html
-                performReadSetup(setupParameters);
-                return;
-            }
-            #endif //__APPLE__
-            result=resultError;
-        }
-    } else {
-        if(result!=resultInProgress) return;
         result=resultSuccess;
         this->bytesTransferred=bytesTransferred;
+        return;
     }
+
+    #ifdef __APPLE__
+    if(error.value()==45)
+    {
+        //Bug on OS X, it might be necessary to repeat the setup
+        //http://osdir.com/ml/lib.boost.asio.user/2008-08/msg00004.html
+        performReadSetup(setupParameters);
+        return;
+    }
+    #endif //__APPLE__
+
+    result=resultError;
 }
