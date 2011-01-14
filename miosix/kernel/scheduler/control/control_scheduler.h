@@ -29,6 +29,7 @@
 #define	CONTROL_SCHEDULER_H
 
 #include "config/miosix_settings.h"
+#include "parameters.h"
 #include <list>
 
 namespace miosix {
@@ -111,12 +112,12 @@ inline bool operator !=(ControlSchedulerPriority a, ControlSchedulerPriority b)
 class ControlSchedulerData
 {
 public:
-    ControlSchedulerData(): priority(0), bo(bNominal*4), alfa(0.0f),
+    ControlSchedulerData(): priority(0), bo(bNominal*multFactor), alfa(0.0f),
             SP_Tp(0), Tp(bNominal) {}
 
     //Thread priority. Higher priority means longer burst
     ControlSchedulerPriority priority;
-    int bo;//Old burst time, is kept here multiplied by 4
+    int bo;//Old burst time, is kept here multiplied by multFactor
     //Sum of all alfa=1-s.
     float alfa;
     int SP_Tp;//Processing time set point

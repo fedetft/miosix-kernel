@@ -170,7 +170,7 @@ void ControlScheduler::IRQfindNextThread()
                 if((*it)->flags.isReady())
                 {
                     allThreadNotReady=false;
-                    if((*it)->schedData.bo<bMax*4)
+                    if((*it)->schedData.bo<bMax*multFactor)
                     {
                         allReadyThreadsSaturated=false;
                         //Found a counterexample for both statements,
@@ -196,8 +196,6 @@ void ControlScheduler::IRQfindNextThread()
             //End of round reached, run scheduling algorithm
             curInRound=threadList.begin();
             int eTr=SP_Tr-Tr;
-            const float krr=1.4f;
-            const float zrr=0.88f;
             int bc=bco+static_cast<int>(krr*eTr-krr*zrr*eTro);
             if(allReadyThreadsSaturated)
             {
@@ -218,10 +216,11 @@ void ControlScheduler::IRQfindNextThread()
 
                 //Run each thread internal regulator
                 int eTp=(*it)->schedData.SP_Tp - (*it)->schedData.Tp;
-                //note: since b and bo contain the real value multiplied by 4,
-                //this equals b=bo+0.25*eTp. kpi=0.25 hardcoded
+                //note: since b and bo contain the real value multiplied by
+                //multFactor, this equals b=bo+eTp/multFactor.
                 int b=(*it)->schedData.bo + eTp;
-                (*it)->schedData.bo=min(max(b,bMin*4),bMax*4); //saturation
+                //saturation
+                (*it)->schedData.bo=min(max(b,bMin*multFactor),bMax*multFactor);
             }
         }
 
@@ -231,7 +230,7 @@ void ControlScheduler::IRQfindNextThread()
             cur=*curInRound;
             ctxsave=cur->ctxsave;
             miosix_private::AuxiliaryTimer::IRQsetValue(
-                    (*curInRound)->schedData.bo/4);
+                    (*curInRound)->schedData.bo/multFactor);
             return;
         } else {
             //If we get here we have a non ready thread that cannot run,

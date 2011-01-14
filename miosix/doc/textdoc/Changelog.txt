@@ -1,6 +1,7 @@
 Changelog for Miosix np embedded OS
 
 v1.57
+- Added parameters.h with all control based parameters.
 
 v1.56
 - Fixed some bugs in EDF scheduler, found by testsuite.
