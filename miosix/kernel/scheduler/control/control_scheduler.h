@@ -218,6 +218,9 @@ public:
      */
     static void IRQfindNextThread();
 
+    //TODO: better way
+    static void IRQfeedForwardHook();
+
 private:
 
     /**
@@ -225,7 +228,7 @@ private:
      * When priorities are modified, this function recalculates alfa for each
      * thread. Must be called with kernel paused
      */
-    static void PKrecalculateAlfa();
+    static void IRQrecalculateAlfa();
 
     ///\internal Threads (except idle thread) are stored here
     static std::list<Thread *> threadList;

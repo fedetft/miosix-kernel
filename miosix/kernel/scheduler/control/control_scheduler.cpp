@@ -61,7 +61,10 @@ void ControlScheduler::PKaddThread(Thread *thread,
     thread->schedData.priority=priority;
     threadList.push_front(thread);
     SP_Tr+=bNominal; //One thread more, increase round time
-    PKrecalculateAlfa();
+    {
+        InterruptDisableLock dLock; //TODO: preformance
+        IRQrecalculateAlfa();
+    }
 }
 
 bool ControlScheduler::PKexists(Thread *thread)
@@ -87,14 +90,20 @@ void ControlScheduler::PKremoveDeadThreads()
         }
     }
     threadList.remove(0); //Remove NULLs
-    PKrecalculateAlfa();
+    {
+        InterruptDisableLock dLock; //TODO: preformance
+        IRQrecalculateAlfa();
+    }
 }
 
 void ControlScheduler::PKsetPriority(Thread *thread,
         ControlSchedulerPriority newPriority)
 {
     thread->schedData.priority=newPriority;
-    PKrecalculateAlfa();
+    {
+        InterruptDisableLock dLock; //TODO: preformance
+        IRQrecalculateAlfa();
+    }
 }
 
 ControlSchedulerPriority ControlScheduler::getPriority(Thread *thread)
@@ -233,7 +242,12 @@ void ControlScheduler::IRQfindNextThread()
     }
 }
 
-void ControlScheduler::PKrecalculateAlfa()
+void ControlScheduler::IRQfeedForwardHook()
+{
+    IRQrecalculateAlfa();
+}
+
+void ControlScheduler::IRQrecalculateAlfa()
 {
     //Sum of all priorities of all threads
     //Note that since priority goes from 0 to PRIORITY_MAX-1
@@ -241,12 +255,18 @@ void ControlScheduler::PKrecalculateAlfa()
     unsigned int sumPriority=0;
     for(list<Thread *>::iterator it=threadList.begin();it!=threadList.end();++it)
     {
-        sumPriority+=(*it)->schedData.priority.get()+1;//Add one
+        if((*it)->flags.isReady())
+            sumPriority+=(*it)->schedData.priority.get()+1;//Add one
     }
     float base=1.0f/((float)sumPriority);
     for(list<Thread *>::iterator it=threadList.begin();it!=threadList.end();++it)
     {
-        (*it)->schedData.alfa=base*((float)((*it)->schedData.priority.get()+1));
+        if((*it)->flags.isReady())
+        {
+            (*it)->schedData.alfa=base*((float)((*it)->schedData.priority.get()+1));
+        } else {
+            (*it)->schedData.alfa=0;
+        }
     }
 }
 

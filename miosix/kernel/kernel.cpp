@@ -249,6 +249,10 @@ void IRQaddToSleepingList(SleepData *x)
            cur=cur->next;
        }
     }
+
+    #ifdef SCHED_TYPE_CONTROL_BASED
+    ControlScheduler::IRQfeedForwardHook();
+    #endif //SCHED_TYPE_CONTROL_BASED
 }
 
 /**
@@ -265,14 +269,20 @@ bool IRQwakeThreads()
     bool result=false;
     for(;;)
     {
-        if(sleeping_list==NULL) return result;//If no item in list, return
+        if(sleeping_list==NULL) break;//If no item in list, return
         //Since list is sorted, if we don't need to wake the first element
         //we don't need to wake the other too
-        if(tick != sleeping_list->wakeup_time) return result;
+        if(tick != sleeping_list->wakeup_time) break;
         sleeping_list->p->flags.IRQsetSleep(false);//Wake thread
         sleeping_list=sleeping_list->next;//Remove from list
         result=true;
     }
+
+    #ifdef SCHED_TYPE_CONTROL_BASED
+    //Recalculate alfa ONLY if there's need to
+    if(result) ControlScheduler::IRQfeedForwardHook();
+    #endif //SCHED_TYPE_CONTROL_BASED
+    return result;
 }
 
 /*
@@ -458,6 +468,9 @@ void Thread::wait()
     {
         InterruptDisableLock lock;
         const_cast<Thread*>(cur)->flags.IRQsetWait(true);
+        #ifdef SCHED_TYPE_CONTROL_BASED
+        ControlScheduler::IRQfeedForwardHook();
+        #endif //SCHED_TYPE_CONTROL_BASED
     }
     Thread::yield();
     //Return here after wakeup
@@ -469,6 +482,9 @@ void Thread::wakeup()
     {
         InterruptDisableLock lock;
         this->flags.IRQsetWait(false);
+        #ifdef SCHED_TYPE_CONTROL_BASED
+        ControlScheduler::IRQfeedForwardHook();
+        #endif //SCHED_TYPE_CONTROL_BASED
     }
     #ifdef SCHED_TYPE_EDF
     yield();//The other thread might have a closer deadline
@@ -561,11 +577,17 @@ Priority Thread::IRQgetPriority()
 void Thread::IRQwait()
 {
     const_cast<Thread*>(cur)->flags.IRQsetWait(true);
+    #ifdef SCHED_TYPE_CONTROL_BASED
+    ControlScheduler::IRQfeedForwardHook();
+    #endif //SCHED_TYPE_CONTROL_BASED
 }
 
 void Thread::IRQwakeup()
 {
     this->flags.IRQsetWait(false);
+    #ifdef SCHED_TYPE_CONTROL_BASED
+    ControlScheduler::IRQfeedForwardHook();
+    #endif //SCHED_TYPE_CONTROL_BASED
 }
 
 bool Thread::IRQexists(Thread* p)

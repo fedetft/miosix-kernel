@@ -54,8 +54,8 @@ namespace miosix {
 /// Choose scheduler type
 /// Uncomment one #define only
 
-#define SCHED_TYPE_PRIORITY
-//#define SCHED_TYPE_CONTROL_BASED
+//#define SCHED_TYPE_PRIORITY
+#define SCHED_TYPE_CONTROL_BASED
 //#define SCHED_TYPE_EDF
 
 //
