@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010 by Terraneo Federico                   *
+ *   Copyright (C) 2008, 2009, 2010, 2011 by Terraneo Federico             *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -32,6 +32,7 @@
 #include "logging.h"
 #include "arch_settings.h"
 #include "sync.h"
+#include "kernel/scheduler/scheduler.h"
 #include <stdexcept>
 #include <algorithm>
 
@@ -249,10 +250,6 @@ void IRQaddToSleepingList(SleepData *x)
            cur=cur->next;
        }
     }
-
-    #ifdef SCHED_TYPE_CONTROL_BASED
-    ControlScheduler::IRQfeedForwardHook();
-    #endif //SCHED_TYPE_CONTROL_BASED
 }
 
 /**
@@ -277,11 +274,6 @@ bool IRQwakeThreads()
         sleeping_list=sleeping_list->next;//Remove from list
         result=true;
     }
-
-    #ifdef SCHED_TYPE_CONTROL_BASED
-    //Recalculate alfa ONLY if there's need to
-    if(result) ControlScheduler::IRQfeedForwardHook();
-    #endif //SCHED_TYPE_CONTROL_BASED
     return result;
 }
 
@@ -468,9 +460,6 @@ void Thread::wait()
     {
         InterruptDisableLock lock;
         const_cast<Thread*>(cur)->flags.IRQsetWait(true);
-        #ifdef SCHED_TYPE_CONTROL_BASED
-        ControlScheduler::IRQfeedForwardHook();
-        #endif //SCHED_TYPE_CONTROL_BASED
     }
     Thread::yield();
     //Return here after wakeup
@@ -482,9 +471,6 @@ void Thread::wakeup()
     {
         InterruptDisableLock lock;
         this->flags.IRQsetWait(false);
-        #ifdef SCHED_TYPE_CONTROL_BASED
-        ControlScheduler::IRQfeedForwardHook();
-        #endif //SCHED_TYPE_CONTROL_BASED
     }
     #ifdef SCHED_TYPE_EDF
     yield();//The other thread might have a closer deadline
@@ -577,17 +563,11 @@ Priority Thread::IRQgetPriority()
 void Thread::IRQwait()
 {
     const_cast<Thread*>(cur)->flags.IRQsetWait(true);
-    #ifdef SCHED_TYPE_CONTROL_BASED
-    ControlScheduler::IRQfeedForwardHook();
-    #endif //SCHED_TYPE_CONTROL_BASED
 }
 
 void Thread::IRQwakeup()
 {
     this->flags.IRQsetWait(false);
-    #ifdef SCHED_TYPE_CONTROL_BASED
-    ControlScheduler::IRQfeedForwardHook();
-    #endif //SCHED_TYPE_CONTROL_BASED
 }
 
 bool Thread::IRQexists(Thread* p)
@@ -652,6 +632,40 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
     //Will never reach here
     errorHandler(UNEXPECTED);
     
+}
+
+//
+// class ThreadFlags
+//
+
+void Thread::ThreadFlags::IRQsetWait(bool waiting)
+{
+    if(waiting) flags |= WAIT; else flags &= ~WAIT;
+    Scheduler::IRQwaitStatusHook();
+}
+
+void Thread::ThreadFlags::IRQsetJoinWait(bool waiting)
+{
+    if(waiting) flags |= WAIT_JOIN; else flags &= ~WAIT_JOIN;
+    Scheduler::IRQwaitStatusHook();
+}
+
+void Thread::ThreadFlags::IRQsetCondWait(bool waiting)
+{
+    if(waiting) flags |= WAIT_COND; else flags &= ~WAIT_COND;
+    Scheduler::IRQwaitStatusHook();
+}
+
+void Thread::ThreadFlags::IRQsetSleep(bool sleeping)
+{
+    if(sleeping) flags |= SLEEP; else flags &= ~SLEEP;
+    Scheduler::IRQwaitStatusHook();
+}
+
+void Thread::ThreadFlags::IRQsetDeleted()
+{
+    flags |= DELETED;
+    Scheduler::IRQwaitStatusHook();
 }
 
 }; //namespace miosix

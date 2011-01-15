@@ -28,6 +28,7 @@
 
 #include "sync.h"
 #include "kernel.h"
+#include "kernel/scheduler/scheduler.h"
 #include "error.h"
 #include <algorithm>
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010, 2011 by Terraneo Federico                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -29,96 +29,13 @@
 #define	EDF_SCHEDULER_H
 
 #include "config/miosix_settings.h"
+#include "edf_scheduler_types.h"
+#include "kernel/kernel.h"
 #include <list>
 
+#ifdef SCHED_TYPE_EDF
+
 namespace miosix {
-
-class Thread; //Forward declaration
-
-/**
- * This class models the concept of priority for the EDF scheduler.
- * Therefore, it represents a deadline, which is the absolute time withi which
- * the thread should have completed its computation.
- */
-class EDFSchedulerPriority
-{
-public:
-    /**
-     * Constructor. Not explicit for backward compatibility.
-     * \param priority, the desired priority value.
-     */
-    EDFSchedulerPriority(long long deadline): deadline(deadline) {}
-
-    /**
-     * Default constructor.
-     */
-    EDFSchedulerPriority(): deadline(MAIN_PRIORITY) {}
-
-    /**
-     * \return the priority value
-     */
-    long long get() const { return deadline; }
-
-    /**
-     * \return true if this objects represents a valid deadline.
-     */
-    bool validate() const;
-
-private:
-    long long deadline;///< The deadline time
-};
-
-inline bool operator <(EDFSchedulerPriority a, EDFSchedulerPriority b)
-{
-    //Not that the comparison is reversed on purpose. In fact, the thread which
-    //has the lower deadline has higher priority
-    return a.get() > b.get();
-}
-
-inline bool operator <=(EDFSchedulerPriority a, EDFSchedulerPriority b)
-{
-    //Not that the comparison is reversed on purpose. In fact, the thread which
-    //has the lower deadline has higher priority
-    return a.get() >= b.get();
-}
-
-inline bool operator >(EDFSchedulerPriority a, EDFSchedulerPriority b)
-{
-    //Not that the comparison is reversed on purpose. In fact, the thread which
-    //has the lower deadline has higher priority
-    return a.get() < b.get();
-}
-
-inline bool operator >=(EDFSchedulerPriority a, EDFSchedulerPriority b)
-{
-    //Not that the comparison is reversed on purpose. In fact, the thread which
-    //has the lower deadline has higher priority
-    return a.get() <= b.get();
-}
-
-inline bool operator ==(EDFSchedulerPriority a, EDFSchedulerPriority b)
-{
-    return a.get() == b.get();
-}
-
-inline bool operator !=(EDFSchedulerPriority a, EDFSchedulerPriority b)
-{
-    return a.get() != b.get();
-}
-
-/**
- * \internal
- * An instance of this class is embedded in every Thread class. It contains all
- * the per-thread data required by the scheduler.
- */
-class EDFSchedulerData
-{
-public:
-    EDFSchedulerData(): deadline(), next(0) {}
-
-    EDFSchedulerPriority deadline; ///<\internal thread deadline
-    Thread *next; ///<\internal to make a list of threads, ordered by deadline
-};
 
 /**
  * \internal
@@ -174,14 +91,20 @@ public:
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
-    static EDFSchedulerPriority getPriority(Thread *thread);
+    static EDFSchedulerPriority getPriority(Thread *thread)
+    {
+        return thread->schedData.deadline;
+    }
 
     /**
      * Same as getPriority, but meant to be called with interrupts disabled.
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
-    static EDFSchedulerPriority IRQgetPriority(Thread *thread);
+    static EDFSchedulerPriority IRQgetPriority(Thread *thread)
+    {
+        return thread->schedData.deadline;
+    }
 
     /**
      * \internal
@@ -190,6 +113,14 @@ public:
      * can run.
      */
     static void IRQsetIdleThread(Thread *idleThread);
+
+    /**
+     * \internal
+     * This member function is called by the kernel every time a thread changes
+     * its running status. For example when a thread become sleeping, waiting,
+     * deleted or if it exits the sleeping or waiting status
+     */
+    static void IRQwaitStatusHook() {}
 
     /**
      * This function is used to develop interrupt driven peripheral drivers.<br>
@@ -223,5 +154,7 @@ private:
 };
 
 } //namespace miosix
+
+#endif //SCHED_TYPE_EDF
 
 #endif //EDF_SCHEDULER_H

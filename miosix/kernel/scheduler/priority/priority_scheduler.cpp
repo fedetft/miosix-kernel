@@ -26,29 +26,19 @@
  ***************************************************************************/
 
 #include "priority_scheduler.h"
-#include "kernel/kernel.h"
 #include "kernel/error.h"
 
 #ifdef SCHED_TYPE_PRIORITY
 
 namespace miosix {
 
-//
-// class PrioritySchedulerPriority
-//
-
-bool PrioritySchedulerPriority::validate() const
-{
-    return this->priority>=0 && this->priority<PRIORITY_MAX;
-}
+//These are defined in kernel.cpp
+extern volatile Thread *cur;
+extern unsigned char kernel_running;
 
 //
 // class PriorityScheduler
 //
-
-//These are defined in kernel.cpp
-extern volatile Thread *cur;
-extern unsigned char kernel_running;
 
 void PriorityScheduler::PKaddThread(Thread *thread,
         PrioritySchedulerPriority priority)
@@ -197,17 +187,6 @@ void PriorityScheduler::PKsetPriority(Thread *thread,
         thread->schedData.next=thread_list[newPriority.get()]->schedData.next;
         thread_list[newPriority.get()]->schedData.next=thread;
     }
-}
-
-PrioritySchedulerPriority PriorityScheduler::getPriority(Thread *thread)
-{
-    return thread->schedData.priority;
-}
-
-
-PrioritySchedulerPriority PriorityScheduler::IRQgetPriority(Thread *thread)
-{
-    return thread->schedData.priority;
 }
 
 void PriorityScheduler::IRQsetIdleThread(Thread *idleThread)

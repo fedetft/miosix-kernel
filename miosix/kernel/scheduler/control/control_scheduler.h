@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010, 2011 by Terraneo Federico                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -29,100 +29,14 @@
 #define	CONTROL_SCHEDULER_H
 
 #include "config/miosix_settings.h"
+#include "control_scheduler_types.h"
 #include "parameters.h"
+#include "kernel/kernel.h"
 #include <list>
 
+#ifdef SCHED_TYPE_CONTROL_BASED
+
 namespace miosix {
-
-class Thread; //Forward declaration
-
-/**
- * This class models the concept of priority for the control based scheduler.
- * In this scheduler the priority is simply a short int with values ranging
- * from 0 to PRIORITY_MAX-1, higher values mean higher priority, and the special
- * value -1 reserved for the idle thread.
- * Higher values of priority mean that the scheduler assigns a larger fraction
- * of the round time to the thread.
- */
-class ControlSchedulerPriority
-{
-public:
-    /**
-     * Constructor. Not explicit for backward compatibility.
-     * \param priority, the desired priority value.
-     */
-    ControlSchedulerPriority(short int priority): priority(priority){}
-
-    /**
-     * Default constructor.
-     */
-    ControlSchedulerPriority(): priority(MAIN_PRIORITY) {}
-
-    /**
-     * \return the priority value
-     */
-    short int get() const { return priority; }
-
-    /**
-     * \return true if this objects represents a valid priority.
-     * Note that the value -1 is considered not valid, because it is reserved
-     * for the idle thread.
-     */
-    bool validate() const;
-
-private:
-    short int priority;///< The priority value
-};
-
-inline bool operator <(ControlSchedulerPriority a, ControlSchedulerPriority b)
-{
-    return a.get() < b.get();
-}
-
-inline bool operator <=(ControlSchedulerPriority a, ControlSchedulerPriority b)
-{
-    return a.get() <= b.get();
-}
-
-inline bool operator >(ControlSchedulerPriority a, ControlSchedulerPriority b)
-{
-    return a.get() > b.get();
-}
-
-inline bool operator >=(ControlSchedulerPriority a, ControlSchedulerPriority b)
-{
-    return a.get() >= b.get();
-}
-
-inline bool operator ==(ControlSchedulerPriority a, ControlSchedulerPriority b)
-{
-    return a.get() == b.get();
-}
-
-inline bool operator !=(ControlSchedulerPriority a, ControlSchedulerPriority b)
-{
-    return a.get() != b.get();
-}
-
-/**
- * \internal
- * An instance of this class is embedded in every Thread class. It contains all
- * the per-thread data required by the scheduler.
- */
-class ControlSchedulerData
-{
-public:
-    ControlSchedulerData(): priority(0), bo(bNominal*multFactor), alfa(0.0f),
-            SP_Tp(0), Tp(bNominal) {}
-
-    //Thread priority. Higher priority means longer burst
-    ControlSchedulerPriority priority;
-    int bo;//Old burst time, is kept here multiplied by multFactor
-    //Sum of all alfa=1-s.
-    float alfa;
-    int SP_Tp;//Processing time set point
-    int Tp;//Real processing time
-};
 
 /**
  * \internal
@@ -180,7 +94,10 @@ public:
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
-    static ControlSchedulerPriority getPriority(Thread *thread);
+    static ControlSchedulerPriority getPriority(Thread *thread)
+    {
+        return thread->schedData.priority;
+    }
 
     /**
      * \internal
@@ -188,7 +105,10 @@ public:
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
-    static ControlSchedulerPriority IRQgetPriority(Thread *thread);
+    static ControlSchedulerPriority IRQgetPriority(Thread *thread)
+    {
+        return thread->schedData.priority;
+    }
 
     /**
      * \internal
@@ -206,6 +126,19 @@ public:
 
     /**
      * \internal
+     * This member function is called by the kernel every time a thread changes
+     * its running status. For example when a thread become sleeping, waiting,
+     * deleted or if it exits the sleeping or waiting status
+     */
+    static void IRQwaitStatusHook()
+    {
+        #ifdef ENABLE_FEEDFORWARD
+        IRQrecalculateAlfa();
+        #endif //ENABLE_FEEDFORWARD
+    }
+
+    /**
+     * \internal
      * This function is used to develop interrupt driven peripheral drivers.<br>
      * Can be used ONLY inside an IRQ (and not when interrupts are disabled) to
      * find next thread in READY status. If the kernel is paused, does nothing.
@@ -218,9 +151,6 @@ public:
      * points to the currently running thread.
      */
     static void IRQfindNextThread();
-
-    //TODO: better way
-    static void IRQfeedForwardHook();
 
 private:
 
@@ -255,5 +185,7 @@ private:
 };
 
 } //namespace miosix
+
+#endif //SCHED_TYPE_CONTROL_BASED
 
 #endif //CONTROL_SCHEDULER_H

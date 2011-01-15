@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010, 2011 by Terraneo Federico                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -29,92 +29,12 @@
 #define	PRIORITY_SCHEDULER_H
 
 #include "config/miosix_settings.h"
+#include "priority_scheduler_types.h"
+#include "kernel/kernel.h"
+
+#ifdef SCHED_TYPE_PRIORITY
 
 namespace miosix {
-
-class Thread; //Forward declaration
-
-/**
- * This class models the concept of priority for the priority scheduler.
- * In this scheduler the priority is simply a short int with values ranging
- * from 0 to PRIORITY_MAX-1, higher values mean higher priority, and the special
- * value -1 reserved for the idle thread.
- */
-class PrioritySchedulerPriority
-{
-public:
-    /**
-     * Constructor. Not explicit for backward compatibility.
-     * \param priority, the desired priority value.
-     */
-    PrioritySchedulerPriority(short int priority): priority(priority){}
-
-    /**
-     * Default constructor.
-     */
-    PrioritySchedulerPriority(): priority(MAIN_PRIORITY) {}
-
-    /**
-     * \return the priority value
-     */
-    short int get() const { return priority; }
-
-    /**
-     * \return true if this objects represents a valid priority.
-     * Note that the value -1 is considered not valid, because it is reserved
-     * for the idle thread.
-     */
-    bool validate() const;
-
-private:
-    short int priority;///< The priority value
-};
-
-inline bool operator <(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
-{
-    return a.get() < b.get();
-}
-
-inline bool operator <=(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
-{
-    return a.get() <= b.get();
-}
-
-inline bool operator >(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
-{
-    return a.get() > b.get();
-}
-
-inline bool operator >=(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
-{
-    return a.get() >= b.get();
-}
-
-inline bool operator ==(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
-{
-    return a.get() == b.get();
-}
-
-inline bool operator !=(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
-{
-    return a.get() != b.get();
-}
-
-/**
- * \internal
- * An instance of this class is embedded in every Thread class. It contains all
- * the per-thread data required by the scheduler.
- */
-class PrioritySchedulerData
-{
-public:
-    ///Thread priority. Used to speed up the implementation of getPriority.<br>
-    ///Note that to change the priority of a thread it is not enough to change
-    ///this.<br>It is also necessary to move the thread from the old prority
-    ///list to the new priority list.
-    PrioritySchedulerPriority priority;
-    Thread *next;///<Pointer to next thread of the same priority. CIRCULAR list
-};
 
 /**
  * \internal
@@ -172,7 +92,10 @@ public:
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
-    static PrioritySchedulerPriority getPriority(Thread *thread);
+    static PrioritySchedulerPriority getPriority(Thread *thread)
+    {
+        return thread->schedData.priority;
+    }
 
     /**
      * \internal
@@ -180,7 +103,10 @@ public:
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
-    static PrioritySchedulerPriority IRQgetPriority(Thread *thread);
+    static PrioritySchedulerPriority IRQgetPriority(Thread *thread)
+    {
+        return thread->schedData.priority;
+    }
 
     /**
      * \internal
@@ -189,6 +115,14 @@ public:
      * can run.
      */
     static void IRQsetIdleThread(Thread *idleThread);
+
+    /**
+     * \internal
+     * This member function is called by the kernel every time a thread changes
+     * its running status. For example when a thread become sleeping, waiting,
+     * deleted or if it exits the sleeping or waiting status
+     */
+    static void IRQwaitStatusHook() {}
 
     /**
      * \internal
@@ -217,5 +151,7 @@ private:
 };
 
 } //namespace miosix
+
+#endif //SCHED_TYPE_PRIORITY
 
 #endif //PRIORITY_SCHEDULER_H

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010 by Terraneo Federico                   *
+ *   Copyright (C) 2008, 2009, 2010, 2011 by Terraneo Federico             *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -32,7 +32,7 @@
 //Include settings.
 #include "config/miosix_settings.h"
 #include "interfaces/portability.h"
-#include "kernel/scheduler/scheduler.h"
+#include "kernel/scheduler/sched_types.h"
 #include <cstdlib>
 #include <new>
 #include <functional>
@@ -616,49 +616,34 @@ private:
          * Can only be called with interrupts enabled or within an interrupt.
          * \param waiting if true the flag will be set, otherwise cleared
          */
-        void IRQsetWait(bool waiting)
-        {
-            if(waiting) flags |= WAIT; else flags &= ~WAIT;
-        }
+        void IRQsetWait(bool waiting);
 
         /**
          * Set the wait_join flag of the thread.
          * Can only be called with interrupts enabled or within an interrupt.
          * \param waiting if true the flag will be set, otherwise cleared
          */
-        void IRQsetJoinWait(bool waiting)
-        {
-            if(waiting) flags |= WAIT_JOIN; else flags &= ~WAIT_JOIN;
-        }
+        void IRQsetJoinWait(bool waiting);
 
         /**
          * Set wait_cond flag of the thread.
          * Can only be called with interrupts enabled or within an interrupt.
          * \param waiting if true the flag will be set, otherwise cleared
          */
-        void IRQsetCondWait(bool waiting)
-        {
-            if(waiting) flags |= WAIT_COND; else flags &= ~WAIT_COND;
-        }
+        void IRQsetCondWait(bool waiting);
 
         /**
          * Set the sleep flag of the thread.
          * Can only be called with interrupts enabled or within an interrupt.
          * \param sleeping if true the flag will be set, otherwise cleared
          */
-        void IRQsetSleep(bool sleeping)
-        {
-            if(sleeping) flags |= SLEEP; else flags &= ~SLEEP;
-        }
+        void IRQsetSleep(bool sleeping);
 
         /**
          * Set the deleted flag of the thread. This flag can't be cleared.
          * Can only be called with interrupts enabled or within an interrupt.
          */
-        void IRQsetDeleted()
-        {
-            flags |= DELETED;
-        }
+        void IRQsetDeleted();
 
         /**
          * Set the sleep flag of the thread. This flag can't be cleared.

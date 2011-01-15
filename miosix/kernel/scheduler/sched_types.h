@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011 by Terraneo Federico                         *
+ *   Copyright (C) 2011 by Terraneo Federico                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,45 +25,29 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef PARAMETERS_H
-#define	PARAMETERS_H
+#include "config/miosix_settings.h"
+#include "kernel/scheduler/priority/priority_scheduler_types.h"
+#include "kernel/scheduler/control/control_scheduler_types.h"
+#include "kernel/scheduler/edf/edf_scheduler_types.h"
+
+#ifndef SCHED_TYPES_H
+#define	SCHED_TYPES_H
 
 namespace miosix {
 
-//
-// Parameters for the control based scheduler
-//
+#ifdef SCHED_TYPE_PRIORITY
+typedef PrioritySchedulerPriority Priority;
+typedef PrioritySchedulerData SchedulerData;
+#elif defined(SCHED_TYPE_CONTROL_BASED)
+typedef ControlSchedulerPriority Priority;
+typedef ControlSchedulerData SchedulerData;
+#elif defined(SCHED_TYPE_EDF)
+typedef EDFSchedulerPriority Priority;
+typedef EDFSchedulerData SchedulerData;
+#else
+#error No scheduler selected in config/miosix_settings.h
+#endif
 
-///Enabe feedforward in the control scheduler. Feedforward means that every
-///thread blocking (due to a sleep, wait, or termination) cause the update of
-///the set point (alfa). If it is disabled the scheduler reacts to blocking
-///using feedback only in the external PI regulator.
-#define ENABLE_FEEDFORWARD
+} //namespace miosix
 
-const float kpi=0.5;
-const float krr=0.9;//1.4f;
-const float zrr=0.88f;
-
-///Implementation detail resulting from a fixed point implementation of the
-///inner integral regulators. Never change this, change kpi instead.
-const int multFactor=static_cast<int>(1.0f/kpi);
-
-///Instead of fixing a round time the current policy is to have
-///roundTime=bNominal * numThreads, where bNominal is the nominal thread burst
-static const int bNominal=static_cast<int>(AUX_TIMER_CLOCK*0.004);// 4ms
-
-///minimum burst time (to avoid inefficiency caused by context switch
-///time longer than burst time)
-static const int bMin=static_cast<int>(AUX_TIMER_CLOCK*0.0002);// 200us
-
-///maximum burst time (to avoid losing responsiveness/timer overflow)
-static const int bMax=static_cast<int>(AUX_TIMER_CLOCK*0.02);// 20ms
-
-///idle thread has a fixed burst length that can be modified here
-///it is recomended to leave it to a high value, but that does not cause
-///overflow of the auxiliary timer
-static const int bIdle=static_cast<int>(AUX_TIMER_CLOCK*0.5);// 500ms
-
-}
-
-#endif //PARAMETERS_H
+#endif //SCHED_TYPES_H

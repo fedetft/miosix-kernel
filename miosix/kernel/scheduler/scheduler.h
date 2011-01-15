@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010, 2011 by Terraneo Federico                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -36,16 +36,6 @@
 namespace miosix {
 
 class Thread; //Forward declaration
-
-#ifdef SCHED_TYPE_PRIORITY
-typedef PrioritySchedulerPriority Priority;
-#elif defined(SCHED_TYPE_CONTROL_BASED)
-typedef ControlSchedulerPriority Priority;
-#elif defined(SCHED_TYPE_EDF)
-typedef EDFSchedulerPriority Priority;
-#else
-#error No scheduler selected in config/miosix_settings.h
-#endif
 
 /**
  * \internal
@@ -147,6 +137,17 @@ public:
     }
 
     /**
+     * \internal
+     * This member function is called by the kernel every time a thread changes
+     * its running status. For example when a thread become sleeping, waiting,
+     * deleted or if it exits the sleeping or waiting status
+     */
+    static void IRQwaitStatusHook()
+    {
+        T::IRQwaitStatusHook();
+    }
+
+    /**
      * This function is used to develop interrupt driven peripheral drivers.<br>
      * Can be used ONLY inside an IRQ (and not when interrupts are disabled) to
      * find next thread in READY status. If the kernel is paused, does nothing.
@@ -167,13 +168,10 @@ public:
 
 #ifdef SCHED_TYPE_PRIORITY
 typedef basic_scheduler<PriorityScheduler> Scheduler;
-typedef PrioritySchedulerData SchedulerData;
 #elif defined(SCHED_TYPE_CONTROL_BASED)
 typedef basic_scheduler<ControlScheduler> Scheduler;
-typedef ControlSchedulerData SchedulerData;
 #elif defined(SCHED_TYPE_EDF)
 typedef basic_scheduler<EDFScheduler> Scheduler;
-typedef EDFSchedulerData SchedulerData;
 #else
 #error No scheduler selected in config/miosix_settings.h
 #endif

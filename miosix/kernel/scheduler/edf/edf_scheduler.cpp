@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010, 2011 by Terraneo Federico                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -26,12 +26,8 @@
  ***************************************************************************/
 
 #include "edf_scheduler.h"
-#include "kernel/kernel.h"
 #include "kernel/error.h"
-#include "interfaces-impl/bsp_impl.h"
-#include "interfaces/console.h"
 #include <algorithm>
-#include <limits>
 
 using namespace std;
 
@@ -42,22 +38,6 @@ namespace miosix {
 //These are defined in kernel.cpp
 extern volatile Thread *cur;
 extern unsigned char kernel_running;
-
-//
-// class EDFSchedulerPriority
-//
-
-bool EDFSchedulerPriority::validate() const
-{
-    // Deadlines must be positive, ant this is easy to understand.
-    // The reason why numeric_limits<long long>::max()-1 is not allowed, is
-    // because it is reserved for the idle thread.
-    // Note that numeric_limits<long long>::max() is instead allowed, and
-    // is used for thread that have no deadline assigned. In this way their
-    // deadline comes after the deadline of the idle thread, and they never run.
-    return this->deadline>=0 &&
-           this->deadline!=numeric_limits<long long>::max()-1;
-}
 
 //
 // class EDFScheduler
@@ -115,17 +95,6 @@ void EDFScheduler::PKsetPriority(Thread *thread,
     remove(thread);
     thread->schedData.deadline=newPriority;
     add(thread);
-}
-
-EDFSchedulerPriority EDFScheduler::getPriority(Thread *thread)
-{
-    return thread->schedData.deadline;
-}
-
-
-EDFSchedulerPriority EDFScheduler::IRQgetPriority(Thread *thread)
-{
-    return thread->schedData.deadline;
 }
 
 void EDFScheduler::IRQsetIdleThread(Thread *idleThread)

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010, 2011 by Terraneo Federico                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -26,10 +26,7 @@
  ***************************************************************************/
 
 #include "control_scheduler.h"
-#include "kernel/kernel.h"
 #include "kernel/error.h"
-#include "interfaces-impl/bsp_impl.h"
-#include "interfaces/console.h"
 #include <algorithm>
 
 using namespace std;
@@ -38,22 +35,13 @@ using namespace std;
 
 namespace miosix {
 
-//
-// class ControlSchedulerPriority
-//
-
-bool ControlSchedulerPriority::validate() const
-{
-    return this->priority>=0 && this->priority<PRIORITY_MAX;
-}
+//These are defined in kernel.cpp
+extern volatile Thread *cur;
+extern unsigned char kernel_running;
 
 //
 // class ControlScheduler
 //
-
-//These are defined in kernel.cpp
-extern volatile Thread *cur;
-extern unsigned char kernel_running;
 
 void ControlScheduler::PKaddThread(Thread *thread,
         ControlSchedulerPriority priority)
@@ -62,7 +50,7 @@ void ControlScheduler::PKaddThread(Thread *thread,
     threadList.push_front(thread);
     SP_Tr+=bNominal; //One thread more, increase round time
     {
-        InterruptDisableLock dLock; //TODO: preformance
+        InterruptDisableLock dLock;
         IRQrecalculateAlfa();
     }
 }
@@ -91,7 +79,7 @@ void ControlScheduler::PKremoveDeadThreads()
     }
     threadList.remove(0); //Remove NULLs
     {
-        InterruptDisableLock dLock; //TODO: preformance
+        InterruptDisableLock dLock;
         IRQrecalculateAlfa();
     }
 }
@@ -101,20 +89,9 @@ void ControlScheduler::PKsetPriority(Thread *thread,
 {
     thread->schedData.priority=newPriority;
     {
-        InterruptDisableLock dLock; //TODO: preformance
+        InterruptDisableLock dLock;
         IRQrecalculateAlfa();
     }
-}
-
-ControlSchedulerPriority ControlScheduler::getPriority(Thread *thread)
-{
-    return thread->schedData.priority;
-}
-
-
-ControlSchedulerPriority ControlScheduler::IRQgetPriority(Thread *thread)
-{
-    return thread->schedData.priority;
 }
 
 void ControlScheduler::IRQsetIdleThread(Thread *idleThread)
@@ -241,11 +218,6 @@ void ControlScheduler::IRQfindNextThread()
     }
 }
 
-void ControlScheduler::IRQfeedForwardHook()
-{
-    IRQrecalculateAlfa();
-}
-
 void ControlScheduler::IRQrecalculateAlfa()
 {
     //Sum of all priorities of all threads
@@ -254,18 +226,30 @@ void ControlScheduler::IRQrecalculateAlfa()
     unsigned int sumPriority=0;
     for(list<Thread *>::iterator it=threadList.begin();it!=threadList.end();++it)
     {
+        #ifdef ENABLE_FEEDFORWARD
+        //Count only ready threads
         if((*it)->flags.isReady())
             sumPriority+=(*it)->schedData.priority.get()+1;//Add one
+        #else //ENABLE_FEEDFORWARD
+        //Count all threads
+        sumPriority+=(*it)->schedData.priority.get()+1;//Add one
+        #endif //ENABLE_FEEDFORWARD
     }
     float base=1.0f/((float)sumPriority);
     for(list<Thread *>::iterator it=threadList.begin();it!=threadList.end();++it)
     {
+        #ifdef ENABLE_FEEDFORWARD
+        //Assign zero bursts to blocked threads
         if((*it)->flags.isReady())
         {
             (*it)->schedData.alfa=base*((float)((*it)->schedData.priority.get()+1));
         } else {
             (*it)->schedData.alfa=0;
         }
+        #else //ENABLE_FEEDFORWARD
+        //Assign bursts irrespective of thread blocking status
+        (*it)->schedData.alfa=base*((float)((*it)->schedData.priority.get()+1));
+        #endif //ENABLE_FEEDFORWARD
     }
 }
 

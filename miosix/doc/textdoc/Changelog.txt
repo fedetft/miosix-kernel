@@ -1,6 +1,12 @@
 Changelog for Miosix np embedded OS
 
 v1.57
+- Added optional feedforward to control scheduler, defaults to active
+  for faster dynamic performance with thread blocking
+- Added Scheduler::IRQwaitStatusHook() to inform the scheduler of thread
+  blocking
+- Added sched_types.h, and separated each *_scheduler.h with an header files
+  containing the definition of the SchedData and Priority classes
 - Added parameters.h with all control based parameters.
 
 v1.56

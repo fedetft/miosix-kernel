@@ -29,6 +29,7 @@
 #include "serial.h"
 #include "LPC213x.h"
 #include "kernel/sync.h"
+#include "kernel/scheduler/scheduler.h"
 #include "interfaces/portability.h"
 
 namespace miosix {
