@@ -34,7 +34,6 @@
 #include "kernel/scheduler/tick_interrupt.h"
 #include <algorithm>
 
-
 /**
  * \internal
  * timer interrupt routine.
@@ -221,6 +220,9 @@ void AuxiliaryTimer::IRQinit()
     NVIC_SetPriority(TIM2_IRQn,3);//High priority for TIM2 (Max=0, min=15)
     NVIC_EnableIRQ(TIM2_IRQn);
     TIM2->CR1=TIM_CR1_CEN; //Start timer
+    //This is very important: without this the prescaler shadow register may
+    //not be updated
+    TIM2->EGR=TIM_EGR_UG;
 }
 
 int AuxiliaryTimer::IRQgetValue()

@@ -1,6 +1,12 @@
 Changelog for Miosix np embedded OS
 
 v1.57
+- Fixed a tricky bug in the AuxiliaryTimer implementation for the stm32 arch.
+  The prescaler of that timer has a shadow register, and under some timing
+  conditions the new prescaler value never made it through the real prescaler,
+  resulting in burst values ~700 times less than the value computed by the
+  control scheduler. Fixed by forced flush of the prescaler to the shadow
+  register.
 - Added optional feedforward to control scheduler, defaults to active
   for faster dynamic performance with thread blocking
 - Added Scheduler::IRQwaitStatusHook() to inform the scheduler of thread
