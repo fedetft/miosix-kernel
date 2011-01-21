@@ -33,6 +33,7 @@
 #include "parameters.h"
 #include "kernel/kernel.h"
 #include <list>
+#include <algorithm>
 
 #ifdef SCHED_TYPE_CONTROL_BASED
 
@@ -161,6 +162,63 @@ private:
      */
     static void IRQrecalculateAlfa();
 
+    /**
+     * Called by IRQfindNextThread(), this function is where the control based
+     * scheduling algorithm is run. It is called once per round.
+     */
+    static void IRQrunRegulator(bool allReadyThreadsSaturated)
+    {
+        using namespace std;
+        if(reinitRegulator==false)
+        {
+            int eTr=SP_Tr-Tr;
+            int bc=bco+static_cast<int>(krr*eTr-krr*zrr*eTro);
+            if(allReadyThreadsSaturated)
+            {
+                //If all inner regulators reached upper saturation,
+                //allow only a decrease in the burst correction.
+                if(bc<bco) bco=bc;
+            } else bco=bc;
+
+            bco=min(max(bco,-Tr),static_cast<int>(bMax*threadList.size()));
+            float nextRoundTime=static_cast<float>(Tr+bco);
+            eTro=eTr;
+            Tr=0;//Reset round time
+            list<Thread *>::iterator it;
+            for(it=threadList.begin();it!=threadList.end();++it)
+            {
+                //Recalculate per thread set point
+                (*it)->schedData.SP_Tp=static_cast<int>(
+                        (*it)->schedData.alfa*nextRoundTime);
+
+                //Run each thread internal regulator
+                int eTp=(*it)->schedData.SP_Tp - (*it)->schedData.Tp;
+                //note: since b and bo contain the real value multiplied by
+                //multFactor, this equals b=bo+eTp/multFactor.
+                int b=(*it)->schedData.bo + eTp;
+                //saturation
+                (*it)->schedData.bo=min(max(b,bMin*multFactor),bMax*multFactor);
+            }
+        } else {
+            reinitRegulator=false;
+            Tr=0;//Reset round time
+            //Reset state of the external regulator
+            eTro=0;
+            bco=0;
+
+            list<Thread *>::iterator it;
+            for(it=threadList.begin();it!=threadList.end();++it)
+            {
+                //Recalculate per thread set point
+                (*it)->schedData.SP_Tp=static_cast<int>(
+                        (*it)->schedData.alfa*SP_Tr);
+
+                int b=(*it)->schedData.SP_Tp*multFactor;
+                (*it)->schedData.bo=min(max(b,bMin*multFactor),bMax*multFactor);
+            }
+        }
+    }
+
     ///\internal Threads (except idle thread) are stored here
     static std::list<Thread *> threadList;
 
@@ -182,6 +240,10 @@ private:
 
     ///\internal old round tome error
     static int eTro;
+
+    ///\internal set to true by IRQrecalculateAlfa() to signal that
+    ///due to a change in alfa the regulator needs to be reinitialized
+    static bool reinitRegulator;
 };
 
 } //namespace miosix

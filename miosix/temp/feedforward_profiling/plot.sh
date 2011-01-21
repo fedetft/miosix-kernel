@@ -7,8 +7,10 @@ function extract_etr {
 
 extract_etr ff_off.txt off.txt
 extract_etr ff_on.txt on.txt
+extract_etr ff_reinit.txt reinit.txt
 
 scilab -f plot.sci
 
 rm off.txt
 rm on.txt
+rm reinit.txt

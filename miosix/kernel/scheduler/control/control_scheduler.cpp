@@ -27,7 +27,6 @@
 
 #include "control_scheduler.h"
 #include "kernel/error.h"
-#include <algorithm>
 
 using namespace std;
 
@@ -172,33 +171,7 @@ void ControlScheduler::IRQfindNextThread()
 
             //End of round reached, run scheduling algorithm
             curInRound=threadList.begin();
-            int eTr=SP_Tr-Tr;
-            int bc=bco+static_cast<int>(krr*eTr-krr*zrr*eTro);
-            if(allReadyThreadsSaturated)
-            {
-                //If all inner regulators reached upper saturation,
-                //allow only a decrease in the burst correction.
-                if(bc<bco) bco=bc;
-            } else bco=bc;
-
-            bco=min(max(bco,-Tr),static_cast<int>(bMax*threadList.size()));
-            float nextRoundTime=static_cast<float>(Tr+bco);
-            eTro=eTr;
-            Tr=0;//Reset round time
-            for(it=threadList.begin();it!=threadList.end();++it)
-            {
-                //Recalculate per thread set point
-                (*it)->schedData.SP_Tp=static_cast<int>(
-                        (*it)->schedData.alfa*nextRoundTime);
-
-                //Run each thread internal regulator
-                int eTp=(*it)->schedData.SP_Tp - (*it)->schedData.Tp;
-                //note: since b and bo contain the real value multiplied by
-                //multFactor, this equals b=bo+eTp/multFactor.
-                int b=(*it)->schedData.bo + eTp;
-                //saturation
-                (*it)->schedData.bo=min(max(b,bMin*multFactor),bMax*multFactor);
-            }
+            IRQrunRegulator(allReadyThreadsSaturated);
         }
 
         if((*curInRound)->flags.isReady())
@@ -251,6 +224,7 @@ void ControlScheduler::IRQrecalculateAlfa()
         (*it)->schedData.alfa=base*((float)((*it)->schedData.priority.get()+1));
         #endif //ENABLE_FEEDFORWARD
     }
+    reinitRegulator=true;
 }
 
 std::list<Thread *> ControlScheduler::threadList;
@@ -260,6 +234,7 @@ int ControlScheduler::SP_Tr=0;
 int ControlScheduler::Tr=bNominal;
 int ControlScheduler::bco=0;
 int ControlScheduler::eTro=0;
+bool ControlScheduler::reinitRegulator=false;
 
 } //namespace miosix
 
