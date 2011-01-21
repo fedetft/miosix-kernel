@@ -1,0 +1,1501 @@
+
+6: status = false
+5: b->schedData = {priority = {priority = 0}, bo = 1901,   alfa = 1.20651798e-42, SP_Tp = 873, Tp = 885}
+4: a->schedData = {priority = {priority = 0}, bo = 1901,   alfa = 1.20651798e-42, SP_Tp = 873, Tp = 885}
+3: eTr = -2
+2: SP_Tr = 400
+1: Tr = 402
+6: status = false
+5: b->schedData = {priority = {priority = 0}, bo = 1901,   alfa = 1.20651798e-42, SP_Tp = 873, Tp = 885}
+4: a->schedData = {priority = {priority = 0}, bo = 1901,   alfa = 1.20651798e-42, SP_Tp = 873, Tp = 885}
+3: eTr = -20
+2: SP_Tr = 400
+1: Tr = 420
+6: status = false
+5: b->schedData = {priority = {priority = 0}, bo = 1901,   alfa = 1.20651798e-42, SP_Tp = 873, Tp = 885}
+4: a->schedData = {priority = {priority = 0}, bo = 1901,   alfa = 1.20651798e-42, SP_Tp = 873, Tp = 885}
+3: eTr = 8
+2: SP_Tr = 400
+1: Tr = 392
+6: status = false
+5: b->schedData = {priority = {priority = 0}, bo = 1901,   alfa = 1.20651798e-42, SP_Tp = 873, Tp = 885}
+4: a->schedData = {priority = {priority = 0}, bo = 1901,   alfa = 1.20651798e-42, SP_Tp = 873, Tp = 885}
+3: eTr = -1
+2: SP_Tr = 400
+1: Tr = 401
+6: status = false
+5: b->schedData = {priority = {priority = 0}, bo = 1901,   alfa = 1.20651798e-42, SP_Tp = 873, Tp = 885}
+4: a->schedData = {priority = {priority = 0}, bo = 1901,   alfa = 1.20651798e-42, SP_Tp = 873, Tp = 885}
+3: eTr = 6
+2: SP_Tr = 400
+1: Tr = 394
+6: status = false
+5: b->schedData = {priority = {priority = 0}, bo = 1901,   alfa = 1.20651798e-42, SP_Tp = 873, Tp = 885}
+4: a->schedData = {priority = {priority = 0}, bo = 1901,   alfa = 1.20651798e-42, SP_Tp = 873, Tp = 885}
+3: eTr = 4
+2: SP_Tr = 400
+1: Tr = 396
+6: status = false
+5: b->schedData = {priority = {priority = 0}, bo = 1901,   alfa = 1.20651798e-42, SP_Tp = 873, Tp = 885}
+4: a->schedData = {priority = {priority = 0}, bo = 1901,   alfa = 1.20651798e-42, SP_Tp = 873, Tp = 885}
+3: eTr = 3
+2: SP_Tr = 400
+1: Tr = 397
+6: status = false
+5: b->schedData = {priority = {priority = 0}, bo = 1901,   alfa = 1.20651798e-42, SP_Tp = 873, Tp = 885}
+4: a->schedData = {priority = {priority = 0}, bo = 1901,   alfa = 1.20651798e-42, SP_Tp = 873, Tp = 885}
+3: eTr = 1
+2: SP_Tr = 400
+1: Tr = 399
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1600, alfa = 1,   SP_Tp = 800, Tp = 804}
+3: eTr = -4
+2: SP_Tr = 800
+1: Tr = 804
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1597, alfa = 1,   SP_Tp = 801, Tp = 802}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1595, alfa = 1,   SP_Tp = 800, Tp = 801}
+3: eTr = -1
+2: SP_Tr = 800
+1: Tr = 801
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1593, alfa = 1,   SP_Tp = 799, Tp = 800}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 798, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1589, alfa = 1,   SP_Tp = 797, Tp = 798}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1588, alfa = 1,   SP_Tp = 797, Tp = 798}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 800}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1585, alfa = 1,   SP_Tp = 798, Tp = 796}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1586, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 798, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1588, alfa = 1,   SP_Tp = 798, Tp = 798}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1589, alfa = 1,   SP_Tp = 799, Tp = 798}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1590, alfa = 1,   SP_Tp = 799, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 800, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1592, alfa = 1,   SP_Tp = 800, Tp = 800}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1593, alfa = 1,   SP_Tp = 801, Tp = 800}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1594, alfa = 1,   SP_Tp = 801, Tp = 801}
+3: eTr = -1
+2: SP_Tr = 800
+1: Tr = 801
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1595, alfa = 1,   SP_Tp = 802, Tp = 801}
+3: eTr = -1
+2: SP_Tr = 800
+1: Tr = 801
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1596, alfa = 1,   SP_Tp = 802, Tp = 802}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1596, alfa = 1,   SP_Tp = 802, Tp = 802}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1596, alfa = 1,   SP_Tp = 802, Tp = 806}
+3: eTr = -6
+2: SP_Tr = 800
+1: Tr = 806
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1593, alfa = 1,   SP_Tp = 803, Tp = 800}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 800, alfa = 0.5,   SP_Tp = 400, Tp = 404}
+4: a->schedData = {priority = {priority = 1}, bo = 800, alfa = 0.5,   SP_Tp = 400, Tp = 404}
+3: eTr = -8
+2: SP_Tr = 800
+1: Tr = 808
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 796, alfa = 0.5,   SP_Tp = 400, Tp = 402}
+4: a->schedData = {priority = {priority = 1}, bo = 796, alfa = 0.5,   SP_Tp = 400, Tp = 402}
+3: eTr = -4
+2: SP_Tr = 800
+1: Tr = 804
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 399, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 399, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 399, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 399, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 791, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 791, alfa = 0.5,   SP_Tp = 399, Tp = 404}
+3: eTr = -3
+2: SP_Tr = 800
+1: Tr = 803
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 791, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 786, alfa = 0.5,   SP_Tp = 399, Tp = 397}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 398, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 787, alfa = 0.5,   SP_Tp = 398, Tp = 397}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 788, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 788, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 788, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 788, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 788, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 788, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 788, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 788, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 788, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 788, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 788, alfa = 0.5,   SP_Tp = 398, Tp = 400}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 787, alfa = 0.5,   SP_Tp = 399, Tp = 397}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 399, Tp = 398}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 791, alfa = 0.5,   SP_Tp = 400, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 791, alfa = 0.5,   SP_Tp = 400, Tp = 399}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 404}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = -4
+2: SP_Tr = 800
+1: Tr = 804
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 401, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 401, Tp = 400}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 791, alfa = 0.5,   SP_Tp = 400, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 401, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -1
+2: SP_Tr = 800
+1: Tr = 801
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 402}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -3
+2: SP_Tr = 800
+1: Tr = 803
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1600, alfa = 1,   SP_Tp = 800, Tp = 804}
+3: eTr = -4
+2: SP_Tr = 800
+1: Tr = 804
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1597, alfa = 1,   SP_Tp = 801, Tp = 802}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1595, alfa = 1,   SP_Tp = 800, Tp = 801}
+3: eTr = -1
+2: SP_Tr = 800
+1: Tr = 801
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1593, alfa = 1,   SP_Tp = 799, Tp = 800}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 798, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1589, alfa = 1,   SP_Tp = 797, Tp = 798}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1588, alfa = 1,   SP_Tp = 797, Tp = 798}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 797, Tp = 802}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1583, alfa = 1,   SP_Tp = 798, Tp = 795}
+3: eTr = 5
+2: SP_Tr = 800
+1: Tr = 795
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1585, alfa = 1,   SP_Tp = 797, Tp = 796}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1587, alfa = 1,   SP_Tp = 798, Tp = 797}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1589, alfa = 1,   SP_Tp = 799, Tp = 798}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 800, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1593, alfa = 1,   SP_Tp = 801, Tp = 800}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1595, alfa = 1,   SP_Tp = 802, Tp = 801}
+3: eTr = -1
+2: SP_Tr = 800
+1: Tr = 801
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1597, alfa = 1,   SP_Tp = 803, Tp = 802}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1598, alfa = 1,   SP_Tp = 803, Tp = 803}
+3: eTr = -3
+2: SP_Tr = 800
+1: Tr = 803
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 800, alfa = 0.5,   SP_Tp = 400, Tp = 404}
+4: a->schedData = {priority = {priority = 1}, bo = 800, alfa = 0.5,   SP_Tp = 400, Tp = 404}
+3: eTr = -8
+2: SP_Tr = 800
+1: Tr = 808
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 796, alfa = 0.5,   SP_Tp = 400, Tp = 402}
+4: a->schedData = {priority = {priority = 1}, bo = 796, alfa = 0.5,   SP_Tp = 400, Tp = 402}
+3: eTr = -4
+2: SP_Tr = 800
+1: Tr = 804
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 399, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 399, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 399, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 399, Tp = 404}
+3: eTr = -4
+2: SP_Tr = 800
+1: Tr = 804
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 791, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 787, alfa = 0.5,   SP_Tp = 399, Tp = 397}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 398, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 788, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 399, Tp = 398}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 402}
+3: eTr = -1
+2: SP_Tr = 800
+1: Tr = 801
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 791, alfa = 0.5,   SP_Tp = 400, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 788, alfa = 0.5,   SP_Tp = 400, Tp = 398}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 791, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 399, Tp = 398}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 791, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 791, alfa = 0.5,   SP_Tp = 400, Tp = 399}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 401, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 401, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 402}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -3
+2: SP_Tr = 800
+1: Tr = 803
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 401, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -1
+2: SP_Tr = 800
+1: Tr = 801
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 403}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -4
+2: SP_Tr = 800
+1: Tr = 804
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 401, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -1
+2: SP_Tr = 800
+1: Tr = 801
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 402}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 400, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 791, alfa = 0.5,   SP_Tp = 400, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1600, alfa = 1,   SP_Tp = 800, Tp = 804}
+3: eTr = -4
+2: SP_Tr = 800
+1: Tr = 804
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1597, alfa = 1,   SP_Tp = 801, Tp = 802}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1595, alfa = 1,   SP_Tp = 800, Tp = 805}
+3: eTr = -5
+2: SP_Tr = 800
+1: Tr = 805
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 801, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 799, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 799, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 799, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 799, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 799, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 799, Tp = 800}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 800, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 799, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 799, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 799, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 799, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 799, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 799, Tp = 803}
+3: eTr = -3
+2: SP_Tr = 800
+1: Tr = 803
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1588, alfa = 1,   SP_Tp = 800, Tp = 798}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1589, alfa = 1,   SP_Tp = 799, Tp = 798}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1590, alfa = 1,   SP_Tp = 799, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1591, alfa = 1,   SP_Tp = 800, Tp = 799}
+3: eTr = 1
+2: SP_Tr = 800
+1: Tr = 799
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1592, alfa = 1,   SP_Tp = 800, Tp = 800}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1593, alfa = 1,   SP_Tp = 801, Tp = 800}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1594, alfa = 1,   SP_Tp = 801, Tp = 803}
+3: eTr = -3
+2: SP_Tr = 800
+1: Tr = 803
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1593, alfa = 1,   SP_Tp = 802, Tp = 800}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1594, alfa = 1,   SP_Tp = 801, Tp = 801}
+3: eTr = -1
+2: SP_Tr = 800
+1: Tr = 801
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1595, alfa = 1,   SP_Tp = 802, Tp = 801}
+3: eTr = -1
+2: SP_Tr = 800
+1: Tr = 801
+6: status = true
+5: b->schedData = {priority = {priority = 1}, bo = 40, alfa = 0, SP_Tp = 0,   Tp = 0}
+4: a->schedData = {priority = {priority = 1}, bo = 1596, alfa = 1,   SP_Tp = 802, Tp = 802}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 800, alfa = 0.5,   SP_Tp = 400, Tp = 404}
+4: a->schedData = {priority = {priority = 1}, bo = 800, alfa = 0.5,   SP_Tp = 400, Tp = 404}
+3: eTr = -8
+2: SP_Tr = 800
+1: Tr = 808
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 796, alfa = 0.5,   SP_Tp = 400, Tp = 402}
+4: a->schedData = {priority = {priority = 1}, bo = 796, alfa = 0.5,   SP_Tp = 400, Tp = 402}
+3: eTr = -4
+2: SP_Tr = 800
+1: Tr = 804
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 399, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 399, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 399, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 399, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 791, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 791, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 398, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 398, Tp = 399}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 398}
+4: a->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 398, Tp = 404}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 784, alfa = 0.5,   SP_Tp = 399, Tp = 396}
+3: eTr = 5
+2: SP_Tr = 800
+1: Tr = 795
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 787, alfa = 0.5,   SP_Tp = 399, Tp = 397}
+3: eTr = 4
+2: SP_Tr = 800
+1: Tr = 796
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 790, alfa = 0.5,   SP_Tp = 399, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 789, alfa = 0.5,   SP_Tp = 399, Tp = 398}
+3: eTr = 3
+2: SP_Tr = 800
+1: Tr = 797
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 791, alfa = 0.5,   SP_Tp = 400, Tp = 399}
+4: a->schedData = {priority = {priority = 1}, bo = 791, alfa = 0.5,   SP_Tp = 400, Tp = 399}
+3: eTr = 2
+2: SP_Tr = 800
+1: Tr = 798
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 400, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 401, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 401, Tp = 400}
+3: eTr = 0
+2: SP_Tr = 800
+1: Tr = 800
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -2
+2: SP_Tr = 800
+1: Tr = 802
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 404}
+4: a->schedData = {priority = {priority = 1}, bo = 794, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -5
+2: SP_Tr = 800
+1: Tr = 805
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 792, alfa = 0.5,   SP_Tp = 402, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 795, alfa = 0.5,   SP_Tp = 402, Tp = 401}
+3: eTr = -1
+2: SP_Tr = 800
+1: Tr = 801
+6: status = false
+5: b->schedData = {priority = {priority = 1}, bo = 793, alfa = 0.5,   SP_Tp = 401, Tp = 400}
+4: a->schedData = {priority = {priority = 1}, bo = 795, alfa = 0.5,   SP_Tp = 401, Tp = 401}
+3: eTr = -1
+2: SP_Tr = 800
+1: Tr = 801
