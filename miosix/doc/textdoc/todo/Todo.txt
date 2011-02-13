@@ -4,6 +4,12 @@ deadline) of another thread, necessary for non periodic tasks.
 
 TODO: add Thread::trySleep()
 
+TODO: evaluate if it is possible to make a strong separation between public and
+private headers, and use pImpl in public headers and implementation classes
+defined in private headers, as with the mxusb library. That would both get rid
+of friends and finally make it clear what headers are usable by client code and
+which one are private
+
 TODO: add ThreadInternals class to get rid of all the friends of Thread
 
 TODO: filesystem boot options

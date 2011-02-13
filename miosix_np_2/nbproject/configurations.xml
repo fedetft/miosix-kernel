@@ -94,15 +94,20 @@
             <df name="control">
               <in>control_scheduler.cpp</in>
               <in>control_scheduler.h</in>
+              <in>control_scheduler_types.h</in>
+              <in>parameters.h</in>
             </df>
             <df name="edf">
               <in>edf_scheduler.cpp</in>
               <in>edf_scheduler.h</in>
+              <in>edf_scheduler_types.h</in>
             </df>
             <df name="priority">
               <in>priority_scheduler.cpp</in>
               <in>priority_scheduler.h</in>
+              <in>priority_scheduler_types.h</in>
             </df>
+            <in>sched_types.h</in>
             <in>scheduler.h</in>
             <in>tick_interrupt.h</in>
           </df>

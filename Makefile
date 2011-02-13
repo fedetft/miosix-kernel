@@ -15,6 +15,11 @@ SUBDIRS := miosix
 SRC :=                                  \
 testsuite.cpp
 
+##
+## List here additional static libraries with relative path
+##
+LIBS :=
+
 ##############################################################################
 ## You should not need to modify anything below                             ##
 ##############################################################################
@@ -30,8 +35,8 @@ CFLAGS    := $(CFLAGS_BASE) -I./miosix -I./miosix/$(ARCH_INC) \
 AFLAGS    := $(AFLAGS_BASE)
 LFLAGS    := $(LFLAGS_BASE)
 
-LINK_LIBS :=  -L./miosix -lmiosix -Wl,--start-group -lstdc++ -lc -lm -lg \
-    -lgcc -Wl,--end-group
+LINK_LIBS := $(LIBS) -L./miosix -lmiosix -Wl,--start-group -lstdc++ -lc -lm \
+    -lg -lgcc -Wl,--end-group
 
 all: all-recursive main
 
