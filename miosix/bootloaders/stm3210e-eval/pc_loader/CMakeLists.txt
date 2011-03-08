@@ -2,6 +2,8 @@
 cmake_minimum_required(VERSION 2.6)
 project(PC_LOADER)
 
+set(CMAKE_BUILD_TYPE Release)
+
 ## Target
 set(LOADER_SRCS main.cpp TimeoutSerial.cpp)
 add_executable(pc_loader ${LOADER_SRCS})

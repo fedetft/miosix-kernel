@@ -5,6 +5,9 @@
  * Developed by TFT: Terraneo Federico Technologies
  */
 
+//Want to keep assert enabled also in release builds
+#undef NDEBUG
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -157,8 +160,8 @@ int main(int argc, char *argv[])
 	}
 	ptime t_end(microsec_clock::local_time());
 	cout<<"Done (Time "<<t_end-t_start<<
-			 ", Speed "<<(static_cast<double>(size)/1024.0)/
-			 (t_end-t_start).total_seconds()<<"KB/s)."<<endl;
+			 ", Speed "<<(static_cast<double>(size)/1.024)/
+			 (t_end-t_start).total_milliseconds()<<"KB/s)."<<endl;
 
 	cout<<"Checking CRC... ";
 	cout.flush();
