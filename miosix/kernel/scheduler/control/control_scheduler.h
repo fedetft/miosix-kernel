@@ -169,8 +169,10 @@ private:
     static void IRQrunRegulator(bool allReadyThreadsSaturated)
     {
         using namespace std;
+        #ifdef ENABLE_REGULATOR_REINIT
         if(reinitRegulator==false)
         {
+        #endif //ENABLE_REGULATOR_REINIT
             int eTr=SP_Tr-Tr;
             int bc=bco+static_cast<int>(krr*eTr-krr*zrr*eTro);
             if(allReadyThreadsSaturated)
@@ -199,6 +201,7 @@ private:
                 //saturation
                 (*it)->schedData.bo=min(max(b,bMin*multFactor),bMax*multFactor);
             }
+        #ifdef ENABLE_REGULATOR_REINIT
         } else {
             reinitRegulator=false;
             Tr=0;//Reset round time
@@ -217,6 +220,7 @@ private:
                 (*it)->schedData.bo=min(max(b,bMin*multFactor),bMax*multFactor);
             }
         }
+        #endif //ENABLE_REGULATOR_REINIT
     }
 
     ///\internal Threads (except idle thread) are stored here

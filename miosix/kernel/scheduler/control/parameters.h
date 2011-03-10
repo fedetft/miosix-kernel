@@ -40,6 +40,16 @@ namespace miosix {
 ///using feedback only in the external PI regulator.
 #define ENABLE_FEEDFORWARD
 
+///Enable regulator reinitialization. This works in combination with
+///ENABLE_FEEDFORWARD to avoid spikes when thread blocking/unblocking occurs.
+///Essentially, every time the regulator set point changes, the state of the
+///integral regulators is reset to its default value.
+#define ENABLE_REGULATOR_REINIT
+
+#if defined(ENABLE_REGULATOR_REINIT) && !defined(ENABLE_FEEDFORWARD)
+#error "ENABLE_REGULATOR_REINIT requires ENABLE_FEEDFORWARD"
+#endif
+
 const float kpi=0.5;
 const float krr=0.9;//1.4f;
 const float zrr=0.88f;

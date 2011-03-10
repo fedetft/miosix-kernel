@@ -12,7 +12,7 @@ load
 # Breakpoint must be put on line that sets Tr to zero,
 # so after external regulator has run but before internal
 # regulator has run
-break control_scheduler.h:186
+break control_scheduler.h:188
 c
 
 # Select variables to watch
