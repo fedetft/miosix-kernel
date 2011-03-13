@@ -67,7 +67,7 @@ public:
      */
     bool validate() const
     {
-        return this->priority>=0 && this->priority<PRIORITY_MAX;
+        return this->priority>=0; //Any positive number is accepted
     }
 
 private:
