@@ -52,8 +52,10 @@ const unsigned int TICK_FREQ=200;
 /// \internal Clock frequency of hardware timer, hardware specific data
 const unsigned int TIMER_CLOCK=14745600;
 
-const unsigned int AUX_TIMER_CLOCK=1000000; ///\internal Aux timer run @ 1MHz
-const unsigned int AUX_TIMER_MAX=0xffffffff; ///\internal Aux timer is 32 bits
+const unsigned int AUX_TIMER_CLOCK=100000; ///\internal Aux timer run @ 100KHz
+///\internal Aux timer is 32 bits, but due to the fixed point scheduler and for
+///consistency with the stm32 we treat it as it was a 16bit timer
+const unsigned int AUX_TIMER_MAX=0xffff;
 
 /// \def WITH_RTC
 /// Uncomment to enable support for RTC. Time-related functions depend on it.

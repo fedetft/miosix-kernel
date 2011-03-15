@@ -34,6 +34,7 @@
 #include "portability_impl.h"
 #include "kernel/scheduler/scheduler.h"
 #include "kernel/scheduler/tick_interrupt.h"
+#include "board_settings.h"
 #include <algorithm>
 
 using namespace std;
@@ -267,8 +268,7 @@ void AuxiliaryTimer::IRQinit()
 
 int AuxiliaryTimer::IRQgetValue()
 {
-    //Returned value cannot be greater than 0x1fffffff
-    return static_cast<int>(min(static_cast<unsigned int>(T1TC),0x1fffffffu));
+    return static_cast<int>(min<unsigned int>(T1TC,miosix::AUX_TIMER_MAX));
 }
 
 void AuxiliaryTimer::IRQsetValue(int x)

@@ -169,12 +169,24 @@ private:
     static void IRQrunRegulator(bool allReadyThreadsSaturated)
     {
         using namespace std;
+        #ifdef SCHED_CONTROL_FIXED_POINT
+        //The fixed point scheduler may overflow if Tr is higher than this
+        Tr=min(Tr,524287);
+        #endif //FIXED_POINT_MATH
         #ifdef ENABLE_REGULATOR_REINIT
         if(reinitRegulator==false)
         {
         #endif //ENABLE_REGULATOR_REINIT
             int eTr=SP_Tr-Tr;
+            #ifndef SCHED_CONTROL_FIXED_POINT
             int bc=bco+static_cast<int>(krr*eTr-krr*zrr*eTro);
+            #else //FIXED_POINT_MATH
+            //Tr is clamped to 524287, so eTr uses at most 19bits. Considering
+            //the 31bits of a signed int, we have 12bits free.
+            const int fixedKrr=static_cast<int>(krr*2048);
+            const int fixedKrrZrr=static_cast<int>(krr*zrr*1024);
+            int bc=bco+(fixedKrr*eTr)/2048-(fixedKrrZrr*eTro)/1024;
+            #endif //FIXED_POINT_MATH
             if(allReadyThreadsSaturated)
             {
                 //If all inner regulators reached upper saturation,
@@ -182,16 +194,27 @@ private:
                 if(bc<bco) bco=bc;
             } else bco=bc;
 
-            bco=min(max(bco,-Tr),static_cast<int>(bMax*threadList.size()));
+            bco=min<int>(max(bco,-Tr),bMax*threadList.size());
+            #ifndef SCHED_CONTROL_FIXED_POINT
             float nextRoundTime=static_cast<float>(Tr+bco);
+            #else //FIXED_POINT_MATH
+            unsigned int nextRoundTime=Tr+bco; //Bounded to 20bits
+            #endif //FIXED_POINT_MATH
             eTro=eTr;
             Tr=0;//Reset round time
             list<Thread *>::iterator it;
             for(it=threadList.begin();it!=threadList.end();++it)
             {
                 //Recalculate per thread set point
+                #ifndef SCHED_CONTROL_FIXED_POINT
                 (*it)->schedData.SP_Tp=static_cast<int>(
                         (*it)->schedData.alfa*nextRoundTime);
+                #else //FIXED_POINT_MATH
+                //nextRoundTime is bounded to 20bits, alfa to 12bits,
+                //so the multiplication fits in 32bits
+                (*it)->schedData.SP_Tp=
+                        ((*it)->schedData.alfa*nextRoundTime)/4096;
+                #endif //FIXED_POINT_MATH
 
                 //Run each thread internal regulator
                 int eTp=(*it)->schedData.SP_Tp - (*it)->schedData.Tp;
@@ -213,8 +236,14 @@ private:
             for(it=threadList.begin();it!=threadList.end();++it)
             {
                 //Recalculate per thread set point
+                #ifndef SCHED_CONTROL_FIXED_POINT
                 (*it)->schedData.SP_Tp=static_cast<int>(
                         (*it)->schedData.alfa*SP_Tr);
+                #else //FIXED_POINT_MATH
+                //SP_Tr is bounded to 20bits, alfa to 12bits,
+                //so the multiplication fits in 32bits
+                (*it)->schedData.SP_Tp=((*it)->schedData.alfa*SP_Tr)/4096;
+                #endif //FIXED_POINT_MATH
 
                 int b=(*it)->schedData.SP_Tp*multFactor;
                 (*it)->schedData.bo=min(max(b,bMin*multFactor),bMax*multFactor);

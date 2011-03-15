@@ -27,6 +27,7 @@
 
 #include "control_scheduler.h"
 #include "kernel/error.h"
+#include <limits>
 
 using namespace std;
 
@@ -208,6 +209,9 @@ void ControlScheduler::IRQrecalculateAlfa()
         sumPriority+=(*it)->schedData.priority.get()+1;//Add one
         #endif //ENABLE_FEEDFORWARD
     }
+    //This can happen when ENABLE_FEEDFORWARD is set and no thread is ready
+    if(sumPriority==0) return;
+    #ifndef SCHED_CONTROL_FIXED_POINT
     float base=1.0f/((float)sumPriority);
     for(list<Thread *>::iterator it=threadList.begin();it!=threadList.end();++it)
     {
@@ -224,6 +228,25 @@ void ControlScheduler::IRQrecalculateAlfa()
         (*it)->schedData.alfa=base*((float)((*it)->schedData.priority.get()+1));
         #endif //ENABLE_FEEDFORWARD
     }
+    #else //FIXED_POINT_MATH
+    //Sum of all alfa is maximum value for an unsigned short
+    unsigned int base=4096/sumPriority;
+    for(list<Thread *>::iterator it=threadList.begin();it!=threadList.end();++it)
+    {
+        #ifdef ENABLE_FEEDFORWARD
+        //Assign zero bursts to blocked threads
+        if((*it)->flags.isReady())
+        {
+            (*it)->schedData.alfa=base*((*it)->schedData.priority.get()+1);
+        } else {
+            (*it)->schedData.alfa=0;
+        }
+        #else //ENABLE_FEEDFORWARD
+        //Assign bursts irrespective of thread blocking status
+        (*it)->schedData.alfa=base*((*it)->schedData.priority.get()+1);
+        #endif //ENABLE_FEEDFORWARD
+    }
+    #endif //FIXED_POINT_MATH
     reinitRegulator=true;
 }
 

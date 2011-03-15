@@ -46,6 +46,21 @@ namespace miosix {
 ///integral regulators is reset to its default value.
 #define ENABLE_REGULATOR_REINIT
 
+///Run the scheduler using fixed point math only. Faster but less precise.
+///Note that the inner integral regulators are always fixed point, this affects
+///round partitioning and the external PI regulator.
+///Also note this imposes a number of limits:
+///- the number of threads has a maximum of 64
+///- the max "priority" is limited to 63 (this constraint is enforced by
+///  priority valdation, as usual)
+///- both krr and zrr must be less than 1.99f (this constraint is not enforced,
+///  if a wrong value is set strange things may happen)
+///- the maximum average burst must be less than 8192. Individual bursts may
+///  exceed this, but the su of all bursts in the Tr variable can't exceed
+///  64 (max # threads) * 8191 = ~524287 (this constraint is enforced by
+///  clamping Tr to that value)
+//#define SCHED_CONTROL_FIXED_POINT
+
 #if defined(ENABLE_REGULATOR_REINIT) && !defined(ENABLE_FEEDFORWARD)
 #error "ENABLE_REGULATOR_REINIT requires ENABLE_FEEDFORWARD"
 #endif

@@ -133,7 +133,16 @@ const unsigned int STACK_DEFAULT_FOR_PTHREAD=2048+512;
 /// PRIORITY_MAX-1 is the highest priority, 0 is the lowest. -1 is reserved as
 /// the priority of the idle thread.
 /// The meaning of a thread's priority depends on the chosen scheduler.
+#ifdef SCHED_TYPE_PRIORITY
+//Can be modified, but a high value makes context switches more expensive
 const short int PRIORITY_MAX=4;
+#elif defined(SCHED_TYPE_CONTROL_BASED)
+//Don't touch, the limit is due to the fixed point implementation
+//It's not needed for if floating point is selected, but kept for consistency
+const short int PRIORITY_MAX=64;
+#else //SCHED_TYPE_EDF
+//Doesn't exist for this kind of scheduler
+#endif
 
 /// Priority of main()
 /// The meaning of a thread's priority depends on the chosen scheduler.

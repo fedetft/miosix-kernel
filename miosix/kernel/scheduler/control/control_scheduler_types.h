@@ -67,7 +67,7 @@ public:
      */
     bool validate() const
     {
-        return this->priority>=0; //Any positive number is accepted
+        return this->priority>=0 && this->priority<PRIORITY_MAX;
     }
 
 private:
@@ -112,14 +112,18 @@ inline bool operator !=(ControlSchedulerPriority a, ControlSchedulerPriority b)
 class ControlSchedulerData
 {
 public:
-    ControlSchedulerData(): priority(0), bo(bNominal*multFactor), alfa(0.0f),
+    ControlSchedulerData(): priority(0), bo(bNominal*multFactor), alfa(0),
             SP_Tp(0), Tp(bNominal) {}
 
     //Thread priority. Higher priority means longer burst
     ControlSchedulerPriority priority;
     int bo;//Old burst time, is kept here multiplied by multFactor
-    //Sum of all alfa=1-s.
-    float alfa;
+    #ifndef SCHED_CONTROL_FIXED_POINT
+    float alfa; //Sum of all alfa=1
+    #else //FIXED_POINT_MATH
+    //Sum of all alfa is 4096 except for some rounding error
+    unsigned short alfa;
+    #endif //FIXED_POINT_MATH
     int SP_Tp;//Processing time set point
     int Tp;//Real processing time
 };
