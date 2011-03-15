@@ -14,6 +14,7 @@
 ##
 #OPT_BOARD := lpc2138_miosix_board
 OPT_BOARD := stm32f103ze_stm3210e-eval
+#OPT_BOARD := stm32f103ve_mp3v2
 
 ##
 ## Optimization flags, choose one.
@@ -63,9 +64,9 @@ ifeq ($(OPT_BOARD),stm32f103ze_stm3210e-eval)
     ## Warning! enable external ram if you use a linker script that requires it
     ## (see the XRAM flag below)
     LINKER_SCRIPT_PATH := arch/cortexM3_stm32/stm32f103ze_stm3210e-eval/
-    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_rom.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_rom.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_xram.ld
-    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_all_in_xram.ld
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_all_in_xram.ld
 
     ## Enable/disable initialization of external RAM at boot. Three options:
     ## __ENABLE_XRAM : If you want the heap in xram (with an appropriate linker
@@ -75,7 +76,7 @@ ifeq ($(OPT_BOARD),stm32f103ze_stm3210e-eval)
     ## none selected : don't use xram (with an appropriate linker script
     ## selected above)
     #XRAM := -D__ENABLE_XRAM
-    #XRAM := -D__ENABLE_XRAM -D__CODE_IN_XRAM
+    XRAM := -D__ENABLE_XRAM -D__CODE_IN_XRAM
 
     ## Select clock frequency
     ## Not defining any of these results in the internal 8MHz clock to be used
@@ -83,6 +84,24 @@ ifeq ($(OPT_BOARD),stm32f103ze_stm3210e-eval)
     #CLOCK_FREQ := -DSYSCLK_FREQ_36MHz=36000000
     #CLOCK_FREQ := -DSYSCLK_FREQ_48MHz=48000000
     #CLOCK_FREQ := -DSYSCLK_FREQ_56MHz=56000000
+    CLOCK_FREQ := -DSYSCLK_FREQ_72MHz=72000000
+
+endif
+
+##---------------------------------------------------------------------------
+## stm32f103ve_mp3v2
+##
+ifeq ($(OPT_BOARD),stm32f103ve_mp3v2)
+
+    ## Linker script type, there are two options
+    ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
+    ## 2) Code + stack + heap in internal RAM (file *_ram.ld)
+    ## Note: this board relies on a bootloader for interrupt forwarding in ram
+    LINKER_SCRIPT_PATH := arch/cortexM3_stm32/stm32f103ve_mp3v2/
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_rom.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_ram.ld
+
+    ## Select clock frequency. Board is designed to run @ 72MHz, no options
     CLOCK_FREQ := -DSYSCLK_FREQ_72MHz=72000000
 
 endif
@@ -99,6 +118,8 @@ endif
 ifeq ($(OPT_BOARD),lpc2138_miosix_board)
     ARCH := arm7_lpc2000
 else ifeq ($(OPT_BOARD),stm32f103ze_stm3210e-eval)
+    ARCH := cortexM3_stm32
+else ifeq ($(OPT_BOARD),stm32f103ve_mp3v2)
     ARCH := cortexM3_stm32
 else
     $(error Error: no board specified in miosix/config/Makefile.inc)
@@ -179,12 +200,12 @@ ifeq ($(ARCH),arm7_lpc2000)
     LFLAGS_BASE   := -mcpu=arm7tdmi -Wl,--gc-sections,-Map,main.map          \
                      -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT) -nostdlib
 
+    ## Base directory with header files for this board
+    ARCH_INC := arch/arm7_lpc2000/common
+
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     #ARCH_SRC += Nothing to add
-
-    ## Base directory with header files for this board
-    ARCH_INC := arch/arm7_lpc2000/common
 
     ## Select programmer command line
     ## This is the program that is invoked when the user types 'make program'
@@ -213,19 +234,37 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/core/interrupts.cpp             \
-        $(BOARD_INC)/drivers/serial.cpp              \
-        $(BOARD_INC)/interfaces-impl/portability.cpp \
         $(BOARD_INC)/interfaces-impl/console.cpp     \
         $(BOARD_INC)/interfaces-impl/disk.cpp        \
-        $(BOARD_INC)/interfaces-impl/delays.cpp      \
-        $(BOARD_INC)/interfaces-impl/bsp.cpp         \
-        $(BOARD_INC)/CMSIS/core_cm3.c                \
-        $(BOARD_INC)/CMSIS/system_stm32f10x.c
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM3210E_EVAL
         CXXFLAGS_BASE += -D_BOARD_STM3210E_EVAL
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f103ve_mp3v2
+    ##
+    else ifeq ($(OPT_BOARD),stm32f103ve_mp3v2)
+
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_stm32/stm32f103ve_mp3v2
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        #LINKER_SCRIPT := already selected in board options
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/console.cpp     \
+        $(BOARD_INC)/interfaces-impl/disk.cpp        \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_MP3V2
+        CXXFLAGS_BASE += -D_BOARD_MP3V2
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -258,12 +297,18 @@ else ifeq ($(ARCH),cortexM3_stm32)
                      -Wl,--gc-sections,-Map,main.map                         \
                      -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT) -nostdlib
 
-    ## Select architecture specific files
-    ## These are the files in arch/<arch name>/common
-    #ARCH_SRC += Nothing to add
-
     ## Base directory with header files for this board
     ARCH_INC := arch/cortexM3_stm32/common
+
+    ## Select architecture specific files
+    ## These are the files in arch/<arch name>/common
+    ARCH_SRC +=                                  \
+    $(ARCH_INC)/core/interrupts.cpp              \
+    $(ARCH_INC)/drivers/serial.cpp               \
+    $(ARCH_INC)/interfaces-impl/portability.cpp  \
+    $(ARCH_INC)/interfaces-impl/delays.cpp       \
+    $(ARCH_INC)/CMSIS/core_cm3.c                 \
+    $(ARCH_INC)/CMSIS/system_stm32f10x.c
 
     ## Select programmer command line
     ## This is the program that is invoked when the user types 'make program'
