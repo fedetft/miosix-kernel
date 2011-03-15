@@ -337,7 +337,14 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
     {
         //Handling the list of threads, critical section is required
         PauseKernelLock lock;
-        Scheduler::PKaddThread(thread,priority);
+        if(Scheduler::PKaddThread(thread,priority)==false)
+        {
+            //Reached limit on number of threads
+            base=thread->watermark;
+            thread->~Thread();
+            free(base); //Delete ALL thread memory
+            return NULL;
+        }
     }
     #ifdef SCHED_TYPE_EDF
     if(isKernelRunning()) yield(); //The new thread might have a closer deadline

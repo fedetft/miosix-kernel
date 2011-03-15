@@ -50,7 +50,8 @@ namespace miosix {
 ///Note that the inner integral regulators are always fixed point, this affects
 ///round partitioning and the external PI regulator.
 ///Also note this imposes a number of limits:
-///- the number of threads has a maximum of 64
+///- the number of threads has a maximum of 64 (this constrain is enforced in
+///  PKaddThread()
 ///- the max "priority" is limited to 63 (this constraint is enforced by
 ///  priority valdation, as usual)
 ///- both krr and zrr must be less than 1.99f (this constraint is not enforced,
@@ -59,7 +60,7 @@ namespace miosix {
 ///  exceed this, but the su of all bursts in the Tr variable can't exceed
 ///  64 (max # threads) * 8191 = ~524287 (this constraint is enforced by
 ///  clamping Tr to that value)
-//#define SCHED_CONTROL_FIXED_POINT
+#define SCHED_CONTROL_FIXED_POINT
 
 #if defined(ENABLE_REGULATOR_REINIT) && !defined(ENABLE_FEEDFORWARD)
 #error "ENABLE_REGULATOR_REINIT requires ENABLE_FEEDFORWARD"

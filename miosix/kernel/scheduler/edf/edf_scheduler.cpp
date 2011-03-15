@@ -43,10 +43,11 @@ extern unsigned char kernel_running;
 // class EDFScheduler
 //
 
-void EDFScheduler::PKaddThread(Thread *thread, EDFSchedulerPriority priority)
+bool EDFScheduler::PKaddThread(Thread *thread, EDFSchedulerPriority priority)
 {
     thread->schedData.deadline=priority;
     add(thread);
+    return true;
 }
 
 bool EDFScheduler::PKexists(Thread *thread)

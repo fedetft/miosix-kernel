@@ -31,6 +31,8 @@
 #ifndef CONTROL_SCHEDULER_TYPES_H
 #define	CONTROL_SCHEDULER_TYPES_H
 
+#ifdef SCHED_TYPE_CONTROL_BASED
+
 namespace miosix {
 
 /**
@@ -129,5 +131,7 @@ public:
 };
 
 } //namespace miosix
+
+#endif //SCHED_TYPE_CONTROL_BASED
 
 #endif //CONTROL_SCHEDULER_TYPES_H

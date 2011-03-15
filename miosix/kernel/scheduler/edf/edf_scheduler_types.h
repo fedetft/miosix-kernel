@@ -31,6 +31,8 @@
 #ifndef EDF_SCHEDULER_TYPES_H
 #define	EDF_SCHEDULER_TYPES_H
 
+#ifdef SCHED_TYPE_EDF
+
 namespace miosix {
 
 class Thread; //Forward declaration
@@ -132,5 +134,7 @@ public:
 };
 
 } //namespace miosix
+
+#endif //SCHED_TYPE_EDF
 
 #endif //EDF_SCHEDULER_TYPES_H

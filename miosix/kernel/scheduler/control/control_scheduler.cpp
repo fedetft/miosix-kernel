@@ -43,9 +43,12 @@ extern unsigned char kernel_running;
 // class ControlScheduler
 //
 
-void ControlScheduler::PKaddThread(Thread *thread,
+bool ControlScheduler::PKaddThread(Thread *thread,
         ControlSchedulerPriority priority)
 {
+    #ifdef SCHED_CONTROL_FIXED_POINT
+    if(threadList.size()>=64) return false;
+    #endif //SCHED_CONTROL_FIXED_POINT
     thread->schedData.priority=priority;
     threadList.push_front(thread);
     SP_Tr+=bNominal; //One thread more, increase round time
@@ -53,6 +56,7 @@ void ControlScheduler::PKaddThread(Thread *thread,
         InterruptDisableLock dLock;
         IRQrecalculateAlfa();
     }
+    return true;
 }
 
 bool ControlScheduler::PKexists(Thread *thread)

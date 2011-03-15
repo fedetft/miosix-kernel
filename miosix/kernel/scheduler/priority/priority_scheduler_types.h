@@ -30,6 +30,8 @@
 #ifndef PRIORITY_SCHEDULER_TYPES_H
 #define	PRIORITY_SCHEDULER_TYPES_H
 
+#ifdef SCHED_TYPE_PRIORITY
+
 namespace miosix {
 
 class Thread; //Forward declaration
@@ -120,5 +122,7 @@ public:
 };
 
 } //namespace miosix
+
+#endif //SCHED_TYPE_PRIORITY
 
 #endif //PRIORITY_SCHEDULER_TYPES_H

@@ -59,10 +59,12 @@ public:
      * \param priority the priority of the new thread.
      * Priority must be a positive value.
      * Note that the meaning of priority is scheduler specific.
+     * \return false if an error occurred and the thread could not be added to
+     * the scheduler
      */
-    static void PKaddThread(Thread *thread, Priority priority)
+    static bool PKaddThread(Thread *thread, Priority priority)
     {
-        T::PKaddThread(thread,priority);
+        return T::PKaddThread(thread,priority);
     }
 
     /**

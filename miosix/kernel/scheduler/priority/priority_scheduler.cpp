@@ -40,7 +40,7 @@ extern unsigned char kernel_running;
 // class PriorityScheduler
 //
 
-void PriorityScheduler::PKaddThread(Thread *thread,
+bool PriorityScheduler::PKaddThread(Thread *thread,
         PrioritySchedulerPriority priority)
 {
     thread->schedData.priority=priority;
@@ -52,6 +52,7 @@ void PriorityScheduler::PKaddThread(Thread *thread,
         thread->schedData.next=thread_list[priority.get()]->schedData.next;
         thread_list[priority.get()]->schedData.next=thread;
     }
+    return true;
 }
 
 bool PriorityScheduler::PKexists(Thread *thread)

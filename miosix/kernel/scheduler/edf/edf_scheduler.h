@@ -55,7 +55,7 @@ public:
      * Priority must be a positive value.
      * Note that the meaning of priority is scheduler specific.
      */
-    static void PKaddThread(Thread *thread, EDFSchedulerPriority priority);
+    static bool PKaddThread(Thread *thread, EDFSchedulerPriority priority);
 
     /**
      * \return true if thread exists, false if does not exist or has been

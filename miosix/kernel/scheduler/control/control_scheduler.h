@@ -57,7 +57,7 @@ public:
      * Priority must be a positive value.
      * Note that the meaning of priority is scheduler specific.
      */
-    static void PKaddThread(Thread *thread, ControlSchedulerPriority priority);
+    static bool PKaddThread(Thread *thread, ControlSchedulerPriority priority);
 
     /**
      * \internal
