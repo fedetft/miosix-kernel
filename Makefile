@@ -33,9 +33,9 @@ INCLUDE_DIRS :=
 OBJ := $(addsuffix .o, $(basename $(SRC)))
 
 ## Includes the miosix base directory for C/C++
-CXXFLAGS  := $(CXXFLAGS_BASE) -I./miosix -I./miosix/$(ARCH_INC) \
+CXXFLAGS  := $(CXXFLAGS_BASE) -I. -I./miosix -I./miosix/$(ARCH_INC) \
              -I./miosix/$(BOARD_INC) $(INCLUDE_DIRS)
-CFLAGS    := $(CFLAGS_BASE) -I./miosix -I./miosix/$(ARCH_INC) \
+CFLAGS    := $(CFLAGS_BASE)   -I. -I./miosix -I./miosix/$(ARCH_INC) \
              -I./miosix/$(BOARD_INC) $(INCLUDE_DIRS)
 AFLAGS    := $(AFLAGS_BASE)
 LFLAGS    := $(LFLAGS_BASE)

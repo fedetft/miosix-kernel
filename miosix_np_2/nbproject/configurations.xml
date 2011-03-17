@@ -34,10 +34,9 @@
           </df>
           <df name="cortexM3_stm32">
             <df name="common">
-              <in>arch_settings.h</in>
-            </df>
-            <df name="stm32f103ze_stm3210e-eval">
               <df name="CMSIS">
+                <in>CMSIS_Core.htm</in>
+                <in>Makefile</in>
                 <in>core_cm3.c</in>
                 <in>core_cm3.h</in>
                 <in>stm32f10x.h</in>
@@ -47,7 +46,6 @@
               <df name="core">
                 <in>interrupts.cpp</in>
                 <in>interrupts.h</in>
-                <in>stage_1_boot.cpp</in>
               </df>
               <df name="drivers">
                 <in>serial.cpp</in>
@@ -55,14 +53,36 @@
               </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
-                <in>bsp.cpp</in>
-                <in>bsp_impl.h</in>
-                <in>console.cpp</in>
                 <in>delays.cpp</in>
-                <in>disk.cpp</in>
                 <in>gpio_impl.h</in>
                 <in>portability.cpp</in>
                 <in>portability_impl.h</in>
+              </df>
+              <in>arch_settings.h</in>
+            </df>
+            <df name="stm32f103ve_mp3v2">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console.cpp</in>
+                <in>disk.cpp</in>
+              </df>
+              <in>board_settings.h</in>
+              <in>stm32_512k+64k_ram.ld</in>
+              <in>stm32_512k+64k_rom.ld</in>
+            </df>
+            <df name="stm32f103ze_stm3210e-eval">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console.cpp</in>
+                <in>disk.cpp</in>
               </df>
               <in>board_settings.h</in>
             </df>
