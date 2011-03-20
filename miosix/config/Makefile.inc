@@ -242,6 +242,15 @@ else ifeq ($(ARCH),cortexM3_stm32)
         CFLAGS_BASE   += -D_BOARD_STM3210E_EVAL
         CXXFLAGS_BASE += -D_BOARD_STM3210E_EVAL
 
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := miosix/bootloaders/stm3210e-eval/pc_loader/pc_loader \
+        /dev/ttyUSB0 main.bin
+
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f103ve_mp3v2
     ##
@@ -265,6 +274,18 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_MP3V2
         CXXFLAGS_BASE += -D_BOARD_MP3V2
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_512k+64k_ram.ld)
+        PROGRAM_CMDLINE := sudo mp3v2_bootloader --ram main.bin
+        else
+        PROGRAM_CMDLINE := sudo mp3v2_bootloader --code main.bin
+        endif
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -309,13 +330,6 @@ else ifeq ($(ARCH),cortexM3_stm32)
     $(ARCH_INC)/interfaces-impl/delays.cpp       \
     $(ARCH_INC)/CMSIS/core_cm3.c                 \
     $(ARCH_INC)/CMSIS/system_stm32f10x.c
-
-    ## Select programmer command line
-    ## This is the program that is invoked when the user types 'make program'
-    ## The command must provide a way to program the board, or print an error
-    ## message saying that 'make program' is not supported for that board.
-    PROGRAM_CMDLINE := miosix/bootloaders/stm3210e-eval/pc_loader/pc_loader \
-        /dev/ttyUSB0 main.bin
 
 ##-----------------------------------------------------------------------------
 ## end of architecture list
