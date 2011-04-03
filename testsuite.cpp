@@ -77,6 +77,7 @@ static void fs_test_3();
 static void benchmark_1();
 static void benchmark_2();
 static void benchmark_3();
+static void benchmark_4();
 
 //main(), calls all tests
 int main()
@@ -139,6 +140,7 @@ int main()
                 benchmark_1();
                 benchmark_2();
                 benchmark_3();
+                benchmark_4();
 
                 ledOff();
                 Thread::sleep(500);//Ensure all threads are deleted.
@@ -2426,4 +2428,41 @@ static void benchmark_3()
     iprintf("Total read time = %dms (%dKB/s)\n",readTime,readSpeed);
     iprintf("Max filesystem latency = %dms\n",(max*1000)/TICK_FREQ);
     delete[] buf;
+}
+
+//
+// Benchmark 4
+//
+/*
+tests:
+Mutex lonk/unlock time
+*/
+
+volatile bool b4_end=false;
+
+void b4_t1(void *argv)
+{
+    (void)argv;
+    Thread::sleep(1000);
+    b4_end=true;
+}
+
+static void benchmark_4()
+{
+    Mutex m;
+    b4_end=false;
+    #ifndef SCHED_TYPE_EDF
+    Thread::create(b4_t1,STACK_MIN);
+    #else
+    Thread::create(b4_t1,STACK_MIN,0);
+    #endif
+    Thread::yield();
+    int i=0;
+    while(b4_end==false)
+    {
+        m.lock();
+        m.unlock();
+        i++;
+    }
+    iprintf("%d lock/unlock pairs per second\n",i);
 }
