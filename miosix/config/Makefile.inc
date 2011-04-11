@@ -198,7 +198,8 @@ ifeq ($(ARCH),arm7_lpc2000)
     CXXFLAGS_BASE += -D_ARCH_ARM7_LPC2000 -mcpu=arm7tdmi $(OPT_OPTIMIZATION) \
                      -ffunction-sections $(OPT_EXCEPT) -Wall -g -c
     LFLAGS_BASE   := -mcpu=arm7tdmi -Wl,--gc-sections,-Map,main.map          \
-                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT) -nostdlib
+                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Base directory with header files for this board
     ARCH_INC := arch/arm7_lpc2000/common
@@ -316,7 +317,8 @@ else ifeq ($(ARCH),cortexM3_stm32)
                      -ffunction-sections -Wall -g -c
     LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
                      -Wl,--gc-sections,-Map,main.map                         \
-                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT) -nostdlib
+                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+                     $(OPT_OPTIMIZATION) -nostdlib
 
     ## Base directory with header files for this board
     ARCH_INC := arch/cortexM3_stm32/common

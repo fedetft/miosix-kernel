@@ -2273,9 +2273,10 @@ static void benchmark_1()
 {
     Timer t;
     t.start();
-    extern char _data asm("_data");
+    extern unsigned long _data asm("_data");
+    char *data=reinterpret_cast<char*>(&_data);
     #ifdef _ARCH_CORTEXM3_STM32
-    memDump(&_data,2048);
+    memDump(data,2048);
     t.stop();
     //every line dumps 16 bytes, and is 81 char long (considering \r\n)
     //so (2048/16)*81=10368
@@ -2284,7 +2285,7 @@ static void benchmark_1()
     unsigned int baudrate=10368*10000/((t.interval()*1000)/TICK_FREQ);
     iprintf("Effective baud rate =%u\n",baudrate);
     #else //_ARCH_CORTEXM3_STM32
-    memDump(&_data,32768);
+    memDump(data,32768);
     t.stop();
     //every line dumps 16 bytes, and is 81 char long (considering \r\n)
     //so (32768/16)*81=165888
