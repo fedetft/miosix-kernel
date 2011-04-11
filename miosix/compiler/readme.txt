@@ -9,20 +9,20 @@ Step 1
 ------
 Copy this folder in a path without spaces, or compiling will fail.
 Example:
-/home/foo/temp 		                    OK
-/home/foo/directory with spaces/temp 	NO!!
+/home/foo/temp                          OK
+/home/foo/directory with spaces/temp    NO!!
 
 
 Step 2
 ------
 Install the following dependencies:
-gcc, g++, make, ncurses, byacc, flex, texinfo, patch, gmp, mpfr, tar, unzip
+gcc, g++, make, ncurses, byacc, flex, texinfo, patch, gmp, mpfr, mpc, tar, unzip, libelf
 
 For example, for Ubuntu/Kubuntu open a shell and type:
-sudo apt-get install gcc g++ make libncurses5-dev byacc flex texinfo patch libgmp3-dev libmpfr-dev tar unzip
+sudo apt-get install gcc g++ make libncurses5-dev byacc flex texinfo patch libgmp3-dev libmpfr-dev libmpc-dev tar unzip libelf-dev
 
 While on Fedora:
-sudo yum intall gcc gcc-c++ make ncurses-devel byacc flex texinfo patch gmp-devel mpfr-devel tar unzip
+sudo yum intall gcc gcc-c++ make ncurses-devel byacc flex texinfo patch gmp-devel mpfr-devel libmpc-devel tar unzip elfutils-libelf-devel
 
 Note: these scripts require "sudo". If you use a distro like Fedora where sudo
 is not enabled by default, use "visudo" to enable sudo for your account. You

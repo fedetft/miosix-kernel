@@ -1,9 +1,27 @@
-LIB1ASMSRC = arm/lib1funcs.asm
+# Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
+# 2008 Free Software Foundation, Inc.
+#
+# This file is part of GCC.
+#
+# GCC is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3, or (at your option)
+# any later version.
+#
+# GCC is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
+
 # For most CPUs we have an assembly soft-float implementations.
 # However this is not true for ARMv6M.  Here we want to use the soft-fp C
 # implementation.  The soft-fp code is only build for ARMv6M.  This pulls
 # in the asm implementation for other CPUs.
-LIB1ASMFUNCS = _udivsi3 _divsi3 _umodsi3 _modsi3 _dvmd_tls _bb_init_func \
+LIB1ASMFUNCS += _udivsi3 _divsi3 _umodsi3 _modsi3 _dvmd_tls _bb_init_func \
 	_call_via_rX _interwork_call_via_rX \
 	_lshrdi3 _ashrdi3 _ashldi3 \
 	_arm_negdf2 _arm_addsubdf3 _arm_muldivdf3 _arm_cmpdf2 _arm_unorddf2 \
@@ -11,7 +29,7 @@ LIB1ASMFUNCS = _udivsi3 _divsi3 _umodsi3 _modsi3 _dvmd_tls _bb_init_func \
 	_arm_truncdfsf2 _arm_negsf2 _arm_addsubsf3 _arm_muldivsf3 \
 	_arm_cmpsf2 _arm_unordsf2 _arm_fixsfsi _arm_fixunssfsi \
 	_arm_floatdidf _arm_floatdisf _arm_floatundidf _arm_floatundisf \
-	_clzsi2 _clzdi2
+	_clzsi2 _clzdi2 
 
 MULTILIB_OPTIONS     = marm/mthumb
 MULTILIB_DIRNAMES    = arm thumb
@@ -27,6 +45,13 @@ MULTILIB_MATCHES     =
 #MULTILIB_MATCHES      += march?armv7=mcpu?cortex-a8
 #MULTILIB_MATCHES      += march?armv7=mcpu?cortex-r4
 #MULTILIB_MATCHES      += march?armv7=mcpu?cortex-m3
+
+# Not quite true.  We can support hard-vfp calling in Thumb2, but how do we
+# express that here?  Also, we really need architecture v5e or later
+# (mcrr etc).
+MULTILIB_OPTIONS       += mfloat-abi=hard
+MULTILIB_DIRNAMES      += fpu
+MULTILIB_EXCEPTIONS    += *mthumb/*mfloat-abi=hard*
 
 # MULTILIB_OPTIONS    += mcpu=ep9312
 # MULTILIB_DIRNAMES   += ep9312

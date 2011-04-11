@@ -3,7 +3,7 @@
 # Uninstall script: removes the arm-miosix-eabi-gcc compiler
 
 PREFIX="arm-miosix-eabi-"
-FILES="addr2line ar as c++ c++filt cpp g++ gcc gccbug gcov gdb gdbtui gprof ld nm objcopy objdump ranlib readelf run size strings strip"
+FILES="addr2line ar as c++ c++filt cpp elfedit g++ gcc gccbug gcov gdb gdbtui gprof ld ld.bfd nm objcopy objdump ranlib readelf run size strings strip"
 
 # Remove symlinks to the compiler
 for i in $FILES; do

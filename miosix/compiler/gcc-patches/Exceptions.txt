@@ -33,4 +33,4 @@ some margin.
 
 Conclusion:
 Looks like EMERGENCY_OBJ_SIZE can be shrinked from 512 to 160bytes, for 32bit systems.
-For EMRGENCY_OBJ_COUNT 4 is good for multithreading, 2 for single threads.
+For EMRGENCY_OBJ_COUNT, 2 is good.
