@@ -1,5 +1,5 @@
 --- gcc-4.5.2/libstdc++-v3/libsupc++/eh_alloc.cc	2009-04-09 17:00:19.000000000 +0200
-+++ gcc-4.5.2/libstdc++-v3/libsupc++/eh_alloc_patched.cc	2011-04-10 20:18:36.676682465 +0200
++++ gcc-4.5.2/libstdc++-v3/libsupc++/eh_alloc_patched.cc	2011-04-12 12:15:21.374776807 +0200
 @@ -73,6 +73,15 @@
  # define EMERGENCY_OBJ_COUNT	4
  #endif

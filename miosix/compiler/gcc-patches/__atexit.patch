@@ -1,0 +1,85 @@
+--- newlib-1.19.0/newlib/libc/stdlib/__atexit.c	2010-04-06 22:20:36.000000000 +0200
++++ newlib-1.19.0/newlib/libc/stdlib/__atexit_patched.c	2011-04-12 12:15:21.377776807 +0200
+@@ -24,76 +24,11 @@
+ 	void *arg _AND
+ 	void *d)
+ {
+-  struct _on_exit_args * args;
+-  register struct _atexit *p;
+-
+-#ifndef __SINGLE_THREAD__
+-  __lock_acquire_recursive(__atexit_lock);
+-#endif
+-
+-  p = _GLOBAL_REENT->_atexit;
+-  if (p == NULL)
+-    _GLOBAL_REENT->_atexit = p = &_GLOBAL_REENT->_atexit0;
+-  if (p->_ind >= _ATEXIT_SIZE)
+-    {
+-#ifndef _ATEXIT_DYNAMIC_ALLOC
+-      return -1;
+-#else
+-      /* Don't dynamically allocate the atexit array if malloc is not
+-	 available.  */
+-      if (!malloc)
+-	return -1;
+-
+-      p = (struct _atexit *) malloc (sizeof *p);
+-      if (p == NULL)
+-	{
+-#ifndef __SINGLE_THREAD__
+-	  __lock_release_recursive(__atexit_lock);
+-#endif
+-	  return -1;
+-	}
+-      p->_ind = 0;
+-      p->_next = _GLOBAL_REENT->_atexit;
+-      _GLOBAL_REENT->_atexit = p;
+-#ifndef _REENT_SMALL
+-      p->_on_exit_args._fntypes = 0;
+-      p->_on_exit_args._is_cxa = 0;
+-#endif
+-#endif
+-    }
+-
+-  if (type != __et_atexit)
+-    {
+-#ifdef _REENT_SMALL
+-      args = p->_on_exit_args_ptr;
+-      if (args == NULL)
+-	{
+-	  if (malloc)
+-	    args = malloc (sizeof * p->_on_exit_args_ptr);
+-
+-	  if (args == NULL)
+-	    {
+-#ifndef __SINGLE_THREAD__
+-	      __lock_release(lock);
+-#endif
+-	      return -1;
+-	    }
+-	  args->_fntypes = 0;
+-	  args->_is_cxa = 0;
+-	  p->_on_exit_args_ptr = args;
+-	}
+-#else
+-      args = &p->_on_exit_args;
+-#endif
+-      args->_fnargs[p->_ind] = arg;
+-      args->_fntypes |= (1 << p->_ind);
+-      args->_dso_handle[p->_ind] = d;
+-      if (type == __et_cxa)
+-	args->_is_cxa |= (1 << p->_ind);
+-    }
+-  p->_fns[p->_ind++] = fn;
+-#ifndef __SINGLE_THREAD__
+-  __lock_release_recursive(__atexit_lock);
+-#endif
++	// Miosix is designed for microcontrollers, and in microcontrollers
++	// main() usually never returns. Therefore, there's no reason to
++	// take up memory storing finalizers registered with atexit(), 
++	// onexit() and cxa_atexit().
++	
++	// Return zero as-if we did something
+   return 0;
+ }

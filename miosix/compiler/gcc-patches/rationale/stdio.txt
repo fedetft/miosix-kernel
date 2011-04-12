@@ -1,0 +1,9 @@
+Rationale for stdio.patch
+-------------------------
+
+BUFSIZ is used as buffer size in many parts of libc, including
+- as a stack allocated buffer in _vfprintf_r
+- as default file buffer for any file, including stdin and stdout
+
+The default value og 1KB is simply too big for a small microcontroller,
+so it was reduced to 512Bytes

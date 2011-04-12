@@ -1,0 +1,13 @@
+Rationale for __atexit.patch
+----------------------------
+
+Miosix has never called the finalizers registered with atexit(),
+onexit() and cxa_atexit() when main returned, and this because
+in a microcontroller system main() is not expected to return. 
+
+However, the finalizers and their parameters in the
+cxa_atexit case (which is automatically called by gcc on every
+global C++ object), were still allocated taking up RAM
+
+This patch does not make Miosix call the finalizers, it avoids
+storing tham so that no memory is wasted for a broken feature.

@@ -1,0 +1,12 @@
+--- newlib-1.19.0/newlib/libc/include/stdio.h	2010-02-26 10:41:43.000000000 +0100
++++ newlib-1.19.0/newlib/libc/include/stdio_patched.h	2011-04-12 12:15:21.379776807 +0200
+@@ -105,7 +105,8 @@
+ #ifdef __BUFSIZ__
+ #define	BUFSIZ		__BUFSIZ__
+ #else
+-#define	BUFSIZ		1024
++// By TFT: 1024 is too big for small microcontrollers, so changed to 512
++#define	BUFSIZ		512
+ #endif
+ 
+ #ifdef __FOPEN_MAX__

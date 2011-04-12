@@ -13,11 +13,11 @@
 # password when installing files to /opt and /usr/bin
 
 # Uncomment if installing globally on the system
-INSTALL_DIR=/opt
-SUDO=sudo
+#INSTALL_DIR=/opt
+#SUDO=sudo
 # Uncomment if installing locally, sudo isn't necessary
-#INSTALL_DIR=`pwd`/gcc 
-#SUDO=
+INSTALL_DIR=`pwd`/gcc 
+SUDO=
 
 # Program versions
 BINUTILS=binutils-2.21.51
@@ -51,13 +51,22 @@ mkdir log
 patch -p0 < gcc-patches/eh_alloc.patch	|| quit ":: Failed patching eh_alloc.cc"
 patch -p0 < gcc-patches/t-arm-elf.patch || quit ":: Failed patching t-arm-elf"
 patch -p0 < gcc-patches/svc.patch		|| quit ":: Failed patching binutils"
+patch -p0 < gcc-patches/__atexit.patch	|| quit ":: Failed patching __atexit"
+patch -p0 < gcc-patches/stdio.patch		|| quit ":: Failed patching stdio"
 
 #
 # Part 3: compile and install binutils
 #
 
 cd $BINUTILS
-./configure --target=arm-eabi --prefix=$INSTALL_DIR/arm-miosix-eabi --program-prefix=arm-miosix-eabi- --enable-interwork --enable-multilib --with-float=soft --disable-werror 2>../log/a.txt || quit ":: Error configuring binutils"
+./configure \
+	--target=arm-eabi \
+	--prefix=$INSTALL_DIR/arm-miosix-eabi \
+	--program-prefix=arm-miosix-eabi- \
+	--enable-interwork \
+	--enable-multilib \
+	--with-float=soft \
+	--disable-werror 2>../log/a.txt || quit ":: Error configuring binutils"
 
 make all 2>../log/b.txt					|| quit ":: Error compiling binutils"
 
@@ -71,7 +80,25 @@ cd ..
 
 mkdir objdir
 cd objdir
-$SUDO ../$GCC/configure --target=arm-eabi --prefix=$INSTALL_DIR/arm-miosix-eabi --program-prefix=arm-miosix-eabi- --disable-shared --disable-libmudflap --disable-libssp --disable-nls --disable-libgomp --disable-libstdcxx-pch --with-float=soft --enable-threads --enable-languages="c,c++" --enable-lto --disable-wchar_t --with-newlib --with-headers=../$NEWLIB/newlib/libc/include 2>../log/d.txt || quit ":: Error configuring gcc-start"
+# Note: despite --enable-lto, lto does not yet work. We'll wait for 4.6.x 
+$SUDO ../$GCC/configure \
+	--target=arm-eabi \
+	--prefix=$INSTALL_DIR/arm-miosix-eabi \
+	--program-prefix=arm-miosix-eabi- \
+	--disable-shared \
+	--disable-libmudflap \
+	--disable-libssp \
+	--disable-nls \
+	--disable-libgomp \
+	--disable-libstdcxx-pch \
+	--with-float=soft \
+	--enable-threads \
+	--enable-languages="c,c++" \
+	--enable-lto \
+	--disable-wchar_t \
+	--with-newlib \
+	--with-headers=../$NEWLIB/newlib/libc/include \
+	2>../log/d.txt || quit ":: Error configuring gcc-start"
 
 $SUDO make all-gcc 2>../log/e.txt			|| quit ":: Error compiling gcc-start"
 
@@ -86,7 +113,47 @@ cd ..
 mkdir newlib-obj
 cd newlib-obj
 
-../$NEWLIB/configure --target=arm-eabi --prefix=$INSTALL_DIR/arm-miosix-eabi --enable-interwork --enable-multilib --with-float=soft --disable-newlib-io-pos-args --disable-newlib-mb --enable-newlib-multithread CC_FOR_TARGET=arm-miosix-eabi-gcc CXX_FOR_TARGET=arm-miosix-eabi-g++ GCC_FOR_TARGET=arm-miosix-eabi-gcc AR_FOR_TARGET=arm-miosix-eabi-ar AS_FOR_TARGET=arm-miosix-eabi-as LD_FOR_TARGET=arm-miosix-eabi-ld NM_FOR_TARGET=arm-miosix-eabi-nm RANLIB_FOR_TARGET=arm-miosix-eabi-ranlib 2>../log/g.txt || quit ":: Error configuring newlib"
+../$NEWLIB/configure \
+	--target=arm-eabi \
+	--prefix=$INSTALL_DIR/arm-miosix-eabi \
+	--enable-interwork \
+	--enable-multilib \
+	--with-float=soft \
+	--enable-newlib-reent-small \
+	--enable-newlib-multithread \
+	--enable-newlib-io-long-long \
+	--disable-newlib-io-c99-formats \
+	--disable-newlib-io-long-double \
+	--disable-newlib-io-pos-args \
+	--disable-newlib-mb \
+	--disable-newlib-iconv \
+	CC_FOR_TARGET=arm-miosix-eabi-gcc \
+	CXX_FOR_TARGET=arm-miosix-eabi-g++ \
+	GCC_FOR_TARGET=arm-miosix-eabi-gcc \
+	AR_FOR_TARGET=arm-miosix-eabi-ar \
+	AS_FOR_TARGET=arm-miosix-eabi-as \
+	LD_FOR_TARGET=arm-miosix-eabi-ld \
+	NM_FOR_TARGET=arm-miosix-eabi-nm \
+	RANLIB_FOR_TARGET=arm-miosix-eabi-ranlib \
+	2>../log/g.txt || quit ":: Error configuring newlib"
+# ../$NEWLIB/configure \
+# 	--target=arm-eabi \
+# 	--prefix=$INSTALL_DIR/arm-miosix-eabi \
+# 	--enable-interwork \
+# 	--enable-multilib \
+# 	--with-float=soft \
+# 	--disable-newlib-io-pos-args \
+# 	--disable-newlib-mb \
+# 	--enable-newlib-multithread \
+# 	CC_FOR_TARGET=arm-miosix-eabi-gcc \
+# 	CXX_FOR_TARGET=arm-miosix-eabi-g++ \
+# 	GCC_FOR_TARGET=arm-miosix-eabi-gcc \
+# 	AR_FOR_TARGET=arm-miosix-eabi-ar \
+# 	AS_FOR_TARGET=arm-miosix-eabi-as \
+# 	LD_FOR_TARGET=arm-miosix-eabi-ld \
+# 	NM_FOR_TARGET=arm-miosix-eabi-nm \
+# 	RANLIB_FOR_TARGET=arm-miosix-eabi-ranlib \
+# 	2>../log/g.txt || quit ":: Error configuring newlib"
 
 make 2>../log/h.txt							|| quit ":: Error compiling newlib"
 
@@ -153,7 +220,13 @@ $SUDO mv lpc21isp $INSTALL_DIR/arm-miosix-eabi/bin	|| quit ":: Error installing 
 
 cd $GDB
 
-./configure --target=arm-eabi --prefix=$INSTALL_DIR/arm-miosix-eabi --program-prefix=arm-miosix-eabi- --enable-interwork --enable-multilib --disable-werror 2>../log/l.txt || quit ":: Error configuring gdb"
+./configure \
+	--target=arm-eabi \
+	--prefix=$INSTALL_DIR/arm-miosix-eabi \
+	--program-prefix=arm-miosix-eabi- \
+	--enable-interwork \
+	--enable-multilib \
+	--disable-werror 2>../log/l.txt || quit ":: Error configuring gdb"
 
 make all 2>../log/m.txt						|| quit ":: Error compiling gdb"
 
