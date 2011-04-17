@@ -208,7 +208,7 @@ void serialWrite(const char *str, unsigned int len)
         tx_queue.put(0);
 
         {
-            InterruptDisableLock lock;
+            FastInterruptDisableLock lock;
             //What if somebody disales serial port while we are transmitting
             if(!serial_enabled) return;
 
@@ -238,7 +238,7 @@ void IRQserialWriteString(const char *str)
     // We can reach here also with only kernel paused, so make sure interrupts
     // are disabled.
     bool interrupts=areInterruptsEnabled();
-    if(interrupts) disableInterrupts();
+    if(interrupts) fastDisableInterrupts();
 
     while(!IRQserialTxFifoEmpty()) ; //Wait before disabling serial port
     USART1->CR1 &= ~USART_CR1_TE;
@@ -255,7 +255,7 @@ void IRQserialWriteString(const char *str)
     USART1->CR3 = USART_CR3_DMAT; //Re enable DMA
     USART1->CR1 |= USART_CR1_TE;
 
-    if(interrupts) enableInterrupts();
+    if(interrupts) fastEnableInterrupts();
 }
 
 #else //__ENABLE_XRAM

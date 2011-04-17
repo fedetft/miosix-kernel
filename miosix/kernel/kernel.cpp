@@ -98,32 +98,43 @@ void *idleThread(void *argv)
 
 void disableInterrupts()
 {
-    if(kernel_started==false) return;
+    //Before the kernel is started interrupts are disabled, so disabling them
+    //again won't hurt
     miosix_private::doDisableInterrupts();
-    //Now taht interrupts are disabled there's no more need to worry about
-    //increment not being an atomic operation
     if(interruptDisableNesting==0xff) errorHandler(NESTING_OVERFLOW);
     interruptDisableNesting++;
 }
 
 void enableInterrupts()
 {
-    if(kernel_started==false) return;
     if(interruptDisableNesting==0)
     {
         //Bad, enableInterrupts was called one time more than disableInterrupts
         errorHandler(DISABLE_INTERRUPTS_NESTING);
     }
     interruptDisableNesting--;
-    if(interruptDisableNesting==0)
+    if(interruptDisableNesting==0 && kernel_started==true)
     {
         miosix_private::doEnableInterrupts();
     }
 }
 
+void fastDisableInterrupts()
+{
+    //Before the kernel is started interrupts are disabled, so disabling them
+    //again won't hurt
+    miosix_private::doDisableInterrupts();
+}
+
+void fastEnableInterrupts()
+{
+    //This is required to avoid enabling interrupts before the kernel is started
+    if(kernel_started==true) miosix_private::doEnableInterrupts();
+}
+
 void pauseKernel()
 {
-    InterruptDisableLock lock;
+    FastInterruptDisableLock lock;
     if(kernel_running==0xff) errorHandler(NESTING_OVERFLOW);
     kernel_running++;
 }
@@ -131,7 +142,7 @@ void pauseKernel()
 void restartKernel()
 {
     {
-        InterruptDisableLock lock;
+        FastInterruptDisableLock lock;
         if(kernel_running==0)
         {
             //Bad, restartKernel was called one time more than pauseKernel
@@ -377,7 +388,7 @@ void Thread::sleep(unsigned int ms)
     //pauseKernel() here is not enough since even if the kernel is stopped
     //the tick isr will wake threads, modifying the sleeping_list
     {
-        InterruptDisableLock lock;
+        FastInterruptDisableLock lock;
         SleepData d;
         d.p=const_cast<Thread*>(cur);
         if(((ms*TICK_FREQ)/1000)>0) d.wakeup_time=getTick()+(ms*TICK_FREQ)/1000;
@@ -393,7 +404,7 @@ void Thread::sleepUntil(long long absoluteTime)
     //pauseKernel() here is not enough since even if the kernel is stopped
     //the tick isr will wake threads, modifying the sleeping_list
     {
-        InterruptDisableLock lock;
+        FastInterruptDisableLock lock;
         if(absoluteTime<=getTick()) return; //Wakeup time in the past, return
         SleepData d;
         d.p=const_cast<Thread*>(cur);
@@ -457,7 +468,7 @@ void Thread::terminate()
 {
     //doing a read-modify-write operation on this->status, so pauseKernel is
     //not enough, we need to disable interrupts
-    InterruptDisableLock lock;
+    FastInterruptDisableLock lock;
     this->flags.IRQsetDeleting();
 }
 
@@ -465,7 +476,7 @@ void Thread::wait()
 {
     //pausing the kernel is not enough because of IRQwait and IRQwakeup
     {
-        InterruptDisableLock lock;
+        FastInterruptDisableLock lock;
         const_cast<Thread*>(cur)->flags.IRQsetWait(true);
     }
     Thread::yield();
@@ -476,7 +487,7 @@ void Thread::wakeup()
 {
     //pausing the kernel is not enough because of IRQwait and IRQwakeup
     {
-        InterruptDisableLock lock;
+        FastInterruptDisableLock lock;
         this->flags.IRQsetWait(false);
     }
     #ifdef SCHED_TYPE_EDF
@@ -487,13 +498,13 @@ void Thread::wakeup()
 void Thread::PKwakeup()
 {
     //pausing the kernel is not enough because of IRQwait and IRQwakeup
-    InterruptDisableLock lock;
+    FastInterruptDisableLock lock;
     this->flags.IRQsetWait(false);
 }
 
 void Thread::detach()
 {
-    InterruptDisableLock lock;
+    FastInterruptDisableLock lock;
     this->flags.IRQsetDetached();
     
     //we detached a terminated thread, so its memory needs to be deallocated
@@ -520,7 +531,7 @@ bool Thread::isDetached() const
 
 bool Thread::join(void** result)
 {
-    InterruptDisableLock dLock;
+    FastInterruptDisableLock dLock;
     if(this==Thread::IRQgetCurrentThread()) return false;
     if(Thread::IRQexists(this)==false) return false;
     if(this->flags.isDetached()) return false;
@@ -535,7 +546,7 @@ bool Thread::join(void** result)
             //Wait
             Thread::IRQgetCurrentThread()->flags.IRQsetJoinWait(true);
             {
-                InterruptEnableLock eLock(dLock);
+                FastInterruptEnableLock eLock(dLock);
                 Thread::yield();
             }
             if(Thread::IRQexists(this)==false) return false;
@@ -617,7 +628,7 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
     //Since the thread is running, it cannot be in the sleeping_list, so no need
     //to remove it from the list
     {
-        InterruptDisableLock lock;
+        FastInterruptDisableLock lock;
         const_cast<Thread*>(cur)->flags.IRQsetDeleted();
 
         if(const_cast<Thread*>(cur)->flags.isDetached()==false)

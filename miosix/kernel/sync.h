@@ -482,14 +482,14 @@ public:
      */
     void waitUntilNotEmpty()
     {
-        InterruptDisableLock dLock;
+        FastInterruptDisableLock dLock;
         IRQwakeWaitingThread();
         while((put_pos==get_pos)&&(num_elem==0))//while queue empty
         {
             waiting=Thread::IRQgetCurrentThread();
             Thread::IRQwait();
             {
-                InterruptEnableLock eLock(dLock);
+                FastInterruptEnableLock eLock(dLock);
                 Thread::yield();
             }
             IRQwakeWaitingThread();
@@ -501,14 +501,14 @@ public:
      */
     void waitUntilNotFull()
     {
-        InterruptDisableLock dLock;
+        FastInterruptDisableLock dLock;
         IRQwakeWaitingThread();
         while((put_pos==get_pos)&&(num_elem!=0))//while queue full
         {
             waiting=Thread::IRQgetCurrentThread();
             Thread::IRQwait();
             {
-                InterruptEnableLock eLock(dLock);
+                FastInterruptEnableLock eLock(dLock);
                 Thread::yield();
             }
             IRQwakeWaitingThread();
@@ -522,14 +522,14 @@ public:
      */
     void get(T& elem)
     {
-        InterruptDisableLock dLock;
+        FastInterruptDisableLock dLock;
         IRQwakeWaitingThread();
         while((put_pos==get_pos)&&(num_elem==0))//while queue empty
         {
             waiting=Thread::IRQgetCurrentThread();
             Thread::IRQwait();
             {
-                InterruptEnableLock eLock(dLock);
+                FastInterruptEnableLock eLock(dLock);
                 Thread::yield();
             }
             IRQwakeWaitingThread();
@@ -546,14 +546,14 @@ public:
      */
     void put(T elem)
     {
-        InterruptDisableLock dLock;
+        FastInterruptDisableLock dLock;
         IRQwakeWaitingThread();
         while((put_pos==get_pos)&&(num_elem!=0))//while queue full
         {
             waiting=Thread::IRQgetCurrentThread();
             Thread::IRQwait();
             {
-                InterruptEnableLock eLock(dLock);
+                FastInterruptEnableLock eLock(dLock);
                 Thread::yield();
             }
             IRQwakeWaitingThread();
@@ -661,7 +661,7 @@ public:
      */
     void reset()
     {
-        InterruptDisableLock lock;
+        FastInterruptDisableLock lock;
         IRQwakeWaitingThread();
         put_pos=get_pos=num_elem=0;
     }

@@ -2466,4 +2466,52 @@ static void benchmark_4()
         i++;
     }
     iprintf("%d lock/unlock pairs per second\n",i);
+
+    b4_end=false;
+    #ifndef SCHED_TYPE_EDF
+    Thread::create(b4_t1,STACK_MIN);
+    #else
+    Thread::create(b4_t1,STACK_MIN,0);
+    #endif
+    Thread::yield();
+    i=0;
+    while(b4_end==false)
+    {
+        pauseKernel();
+        restartKernel();
+        i++;
+    }
+    iprintf("%d pause/restart kernel pairs per second\n",i);
+
+    b4_end=false;
+    #ifndef SCHED_TYPE_EDF
+    Thread::create(b4_t1,STACK_MIN);
+    #else
+    Thread::create(b4_t1,STACK_MIN,0);
+    #endif
+    Thread::yield();
+    i=0;
+    while(b4_end==false)
+    {
+        disableInterrupts();
+        enableInterrupts();
+        i++;
+    }
+    iprintf("%d disable/enable interrupts pairs per second\n",i);
+
+    b4_end=false;
+    #ifndef SCHED_TYPE_EDF
+    Thread::create(b4_t1,STACK_MIN);
+    #else
+    Thread::create(b4_t1,STACK_MIN,0);
+    #endif
+    Thread::yield();
+    i=0;
+    while(b4_end==false)
+    {
+        fastDisableInterrupts();
+        fastEnableInterrupts();
+        i++;
+    }
+    iprintf("%d fast disable/enable interrupts pairs per second\n",i);
 }

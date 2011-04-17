@@ -163,7 +163,7 @@ void serialWrite(const char *str, unsigned int len)
     int i;
     Lock l(tx_mutex);
     {
-        InterruptDisableLock dLock;
+        FastInterruptDisableLock dLock;
         while(len>0)
         {
             //If somebody disables serial port while we are transmitting
@@ -185,7 +185,7 @@ void serialWrite(const char *str, unsigned int len)
                     str++;
                     len--;
                 } else {
-                    InterruptEnableLock eLock(dLock);
+                    FastInterruptEnableLock eLock(dLock);
                     tx_queue.waitUntilNotFull();
                 }
             }

@@ -1,6 +1,10 @@
 Changelog for Miosix np embedded OS
 
 v1.57
+- Added new fastDisableInterrupts(), fastEnableInterrupts() functions and
+  FastInterruptDisableLock, FastInterruptEnableLock classes to disable
+  interrupts in a fast but not recursive way. Optimized pause and restart
+  kernel code, used these new features where appropriate throughout the kernel.
 - Fixed a tricky bug in the AuxiliaryTimer implementation for the stm32 arch.
   The prescaler of that timer has a shadow register, and under some timing
   conditions the new prescaler value never made it through the real prescaler,

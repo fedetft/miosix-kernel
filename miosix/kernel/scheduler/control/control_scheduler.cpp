@@ -53,7 +53,7 @@ bool ControlScheduler::PKaddThread(Thread *thread,
     threadList.push_front(thread);
     SP_Tr+=bNominal; //One thread more, increase round time
     {
-        InterruptDisableLock dLock;
+        FastInterruptDisableLock dLock;
         IRQrecalculateAlfa();
     }
     return true;
@@ -83,7 +83,7 @@ void ControlScheduler::PKremoveDeadThreads()
     }
     threadList.remove(0); //Remove NULLs
     {
-        InterruptDisableLock dLock;
+        FastInterruptDisableLock dLock;
         IRQrecalculateAlfa();
     }
 }
@@ -93,7 +93,7 @@ void ControlScheduler::PKsetPriority(Thread *thread,
 {
     thread->schedData.priority=newPriority;
     {
-        InterruptDisableLock dLock;
+        FastInterruptDisableLock dLock;
         IRQrecalculateAlfa();
     }
 }
