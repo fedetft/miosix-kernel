@@ -943,7 +943,7 @@ static bool singleBlockRead(unsigned char *buffer, unsigned int lba)
     {
         // Since we read with polling, a context switch or interrupt here
         // would cause a fifo overrun, so we disable interrupts.
-        InterruptDisableLock dLock;
+        FastInterruptDisableLock dLock;
 
         SDIO->DTIMER=1048576;
         SDIO->DLEN=512;
@@ -962,7 +962,7 @@ static bool singleBlockRead(unsigned char *buffer, unsigned int lba)
                 if(ClockController::IRQreduceClockSpeed())
                 {
                     //Disabling interrupts for too long is bad
-                    InterruptEnableLock eLock(dLock);
+                    FastInterruptEnableLock eLock(dLock);
                     //After an error during data xfer the card might be a little
                     //confused. So send STOP_TRANSMISSION command to reassure it
                     cr=Command::send(Command::CMD12,0);
@@ -1010,7 +1010,7 @@ static bool singleBlockWrite(const unsigned char *buffer, unsigned int lba)
     {
         // Since we write with polling, a context switch or interrupt here
         // would cause a fifo overrun, so we disable interrupts.
-        InterruptDisableLock dLock;
+        FastInterruptDisableLock dLock;
 
         cr=Command::IRQsend(Command::CMD24,lba);
         if(cr.IRQvalidateR1Response())
@@ -1029,7 +1029,7 @@ static bool singleBlockWrite(const unsigned char *buffer, unsigned int lba)
                 if(ClockController::IRQreduceClockSpeed())
                 {
                     //Disabling interrupts for too long is bad
-                    InterruptEnableLock eLock(dLock);
+                    FastInterruptEnableLock eLock(dLock);
                     //After an error during data xfer the card might be a little
                     //confused. So send STOP_TRANSMISSION command to reassure it
                     cr=Command::send(Command::CMD12,0);
@@ -1119,7 +1119,7 @@ static void initSDIOPeripheral()
 {
     {
         //Doing read-modify-write on RCC->APBENR2 and gpios, better be safe
-        InterruptDisableLock lock;
+        FastInterruptDisableLock lock;
         RCC->APB2ENR |= RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN;
         RCC->AHBENR |= RCC_AHBENR_SDIOEN;
         sdD0::mode(Mode::ALTERNATE);

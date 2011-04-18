@@ -45,7 +45,17 @@ Mutex::Mutex(Options opt): owner(0), next(0), waiting(), mutexOptions(opt),
 
 void Mutex::PKlock(PauseKernelLock& dLock)
 {
-    if(PKtryLock(dLock)) return;
+    if(owner==0)
+    {
+        owner=Thread::getCurrentThread();
+        //Save original thread priority, if the thread has not yet locked
+        //another mutex
+        if(owner->mutexLocked==0) owner->savedPriority=owner->getPriority();
+        //Add this mutex to the list of mutexes locked by owner
+        this->next=owner->mutexLocked;
+        owner->mutexLocked=this;
+        return;
+    }
 
     //This check is very important. Without this attempting to lock the same
     //mutex twice won't cause a deadlock because the Thread::IRQwait() is
@@ -90,7 +100,7 @@ void Mutex::PKlock(PauseKernelLock& dLock)
         //only be called with interupts disabled, so that's why interrupts
         //are disabled
         {
-            InterruptDisableLock l;
+            FastInterruptDisableLock l;
             Thread::IRQwait();//Return immediately
         }
         {
@@ -217,7 +227,7 @@ void ConditionVariable::PKwait(Mutex& m, PauseKernelLock& dLock)
     }
     //Unlock mutex and wait
     {
-        InterruptDisableLock l;
+        FastInterruptDisableLock l;
         w.p->flags.IRQsetCondWait(true);
     }
 
@@ -236,7 +246,7 @@ void ConditionVariable::signal()
         //Using interruptDisableLock because we need to call IRQsetCondWait
         //that can only be called with irq disabled, othrwise we would use
         //PauseKernelLock
-        InterruptDisableLock lock;
+        FastInterruptDisableLock lock;
         if(first==0) return;
         //Wakeup
         first->p->flags.IRQsetCondWait(false);
@@ -257,7 +267,7 @@ void ConditionVariable::broadcast()
         //Using interruptDisableLock because we need to call IRQsetCondWait
         //that can only be called with irq disabled, othrwise we would use
         //PauseKernelLock
-        InterruptDisableLock lock;
+        FastInterruptDisableLock lock;
         while(first!=0)
         {
             //Wakeup

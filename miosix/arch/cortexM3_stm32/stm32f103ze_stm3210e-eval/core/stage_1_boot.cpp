@@ -45,10 +45,8 @@ static void call_constructors(unsigned long *start, unsigned long *end)
 void program_startup() __attribute__((noreturn));
 void program_startup()
 {
-    //Cortex M3 core appears to get out of reset with interrupts already
-    //enabled.
+    //Cortex M3 core appears to get out of reset with interrupts already enabled
     __disable_irq();
-    __disable_fault_irq();
 
     #ifdef __ENABLE_XRAM
     //Initialize the FSMC to use external SRAM

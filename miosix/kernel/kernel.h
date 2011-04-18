@@ -76,6 +76,18 @@ void disableInterrupts();
 void enableInterrupts();
 
 /**
+ * Fast, version of disableInterrupts().
+ * As opposed to disableInterrupts(), can't be nested
+ */
+void fastDisableInterrupts();
+
+/**
+ * Fast, version of enableInterrupts().
+ * As opposed to enableInterrupts(), can't be nested
+ */
+void fastEnableInterrupts();
+
+/**
  * This class is a RAII lock for disabling interrupts. This call avoids
  * the error of not reenabling interrupts since it is done automatically.
  */
@@ -155,6 +167,70 @@ private:
     //Unwanted methods
     InterruptEnableLock(const InterruptEnableLock& l);
     InterruptEnableLock& operator= (const InterruptEnableLock& l);
+};
+
+/**
+ * This class is a RAII lock for disabling interrupts. This call avoids
+ * the error of not reenabling interrupts since it is done automatically.
+ * As opposed to InterruptDisableLock, this version doesn't support nesting
+ */
+class FastInterruptDisableLock
+{
+public:
+    /**
+     * Constructor, disables interrupts.
+     */
+    FastInterruptDisableLock()
+    {
+        fastDisableInterrupts();
+    }
+
+    /**
+     * Destructor, reenables interrupts
+     */
+    ~FastInterruptDisableLock()
+    {
+        fastEnableInterrupts();
+    }
+
+private:
+    //Unwanted methods
+    FastInterruptDisableLock(const FastInterruptDisableLock& l);
+    FastInterruptDisableLock& operator= (const FastInterruptDisableLock& l);
+};
+
+/**
+ * This class allows to temporarily re enable interrpts in a scope where
+ * they are disabled with an FastInterruptDisableLock.
+ */
+class FastInterruptEnableLock
+{
+public:
+    /**
+     * Constructor, enables back interrupts.
+     * \param l the InteruptDisableLock that disabled interrupts. Note that
+     * this parameter is not used internally. It is only required to prevent
+     * erroneous use of this class by making an instance of it without an
+     * active InterruptEnabeLock
+     */
+    FastInterruptEnableLock(FastInterruptDisableLock& l)
+    {
+        fastEnableInterrupts();
+    }
+
+    /**
+     * Destructor.
+     * Disable back interrupts.
+     */
+    ~FastInterruptEnableLock()
+    {
+        fastDisableInterrupts();
+    }
+
+private:
+    //Unwanted methods
+    FastInterruptEnableLock(const FastInterruptEnableLock& l);
+    FastInterruptEnableLock& operator= (const FastInterruptEnableLock& l);
 };
 
 /**

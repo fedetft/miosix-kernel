@@ -109,13 +109,14 @@ inline void doYield()
 
 inline void doDisableInterrupts()
 {
+    // Documentation says __disable_irq() disables all interrupts with
+    // configurable priority, so also SysTick and SVC.
+    // No need to disable faults with __disable_fault_irq()
     __disable_irq();
-    __disable_fault_irq();
 }
 
 inline void doEnableInterrupts()
 {
-    __enable_fault_irq();
     __enable_irq();
 }
 
