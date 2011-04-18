@@ -1,6 +1,7 @@
 Changelog for Miosix np embedded OS
 
 v1.57
+- Added testsuite tests for new functions/classes
 - Added new fastDisableInterrupts(), fastEnableInterrupts() functions and
   FastInterruptDisableLock, FastInterruptEnableLock classes to disable
   interrupts in a fast but not recursive way. Optimized pause and restart

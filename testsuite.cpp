@@ -280,7 +280,6 @@ static void test_1()
     p=Thread::create(t1_p3,STACK_MIN,0,reinterpret_cast<void*>(0xdeadbeef));
     Thread::sleep(5);
     if(Thread::exists(p)) fail("thread not deleted (2)");
-    if(isKernelRunning()==false) fail("------------"); //FIXME: remove
     pass();
 }
 
@@ -454,6 +453,8 @@ static void test_3()
 tests:
 disableInterrupts
 enableInterrupts
+fastDisableInterrupts
+fastEnableInterrupts
 Thread::getPriority
 Thread::setPriority
 Thread::IRQgetCurrentThread
@@ -506,10 +507,9 @@ static void test_4()
     //Check IRQgetPriority
     if(p->IRQgetPriority()!=0) fail("IRQgetPriority");
     //Check that tick is not incremented and t4_v1 is not updated
-    int i;
     long long tick=getTick();
     t4_v1=false;
-    for(i=0;i<4;i++)
+    for(int i=0;i<4;i++)
     {
         delayMs(100);
         if((t4_v1==true)||(tick!=getTick()))
@@ -526,6 +526,29 @@ static void test_4()
     #endif //SCHED_TYPE_EDF
     //Should not happen, since already tested
     if(t4_v1==false) fail("variable not updated");
+
+    fastDisableInterrupts();//
+    //Check that tick is not incremented and t4_v1 is not updated
+    tick=getTick();
+    t4_v1=false;
+    for(int i=0;i<4;i++)
+    {
+        delayMs(100);
+        if((t4_v1==true)||(tick!=getTick()))
+        {
+            fastEnableInterrupts();//
+            fail("disableInterrupts");
+        }
+    }
+    fastEnableInterrupts();//
+    #ifndef SCHED_TYPE_EDF
+    Thread::yield();
+    #else //SCHED_TYPE_EDF
+    Thread::sleep(15);
+    #endif //SCHED_TYPE_EDF
+    //Should not happen, since already tested
+    if(t4_v1==false) fail("variable not updated");
+
     //Checking get_priority
     if(Thread::getCurrentThread()->getPriority()!=0)
         fail("getPriority (1)");
@@ -537,7 +560,7 @@ static void test_4()
     //Since priority is higher, the other thread must not run
     //Of course this is not true for the control based scheduler
     t4_v1=false;
-    for(i=0;i<4;i++)
+    for(int i=0;i<4;i++)
     {
         Thread::yield();//must return immediately
         delayMs(100);
@@ -2451,6 +2474,7 @@ void b4_t1(void *argv)
 static void benchmark_4()
 {
     Mutex m;
+    pthread_mutex_t m1=PTHREAD_MUTEX_INITIALIZER;
     b4_end=false;
     #ifndef SCHED_TYPE_EDF
     Thread::create(b4_t1,STACK_MIN);
@@ -2465,7 +2489,23 @@ static void benchmark_4()
         m.unlock();
         i++;
     }
-    iprintf("%d lock/unlock pairs per second\n",i);
+    iprintf("%d Mutex lock/unlock pairs per second\n",i);
+
+    b4_end=false;
+    #ifndef SCHED_TYPE_EDF
+    Thread::create(b4_t1,STACK_MIN);
+    #else
+    Thread::create(b4_t1,STACK_MIN,0);
+    #endif
+    Thread::yield();
+    i=0;
+    while(b4_end==false)
+    {
+        pthread_mutex_lock(&m1);
+        pthread_mutex_unlock(&m1);
+        i++;
+    }
+    iprintf("%d pthread_mutex lock/unlock pairs per second\n",i);
 
     b4_end=false;
     #ifndef SCHED_TYPE_EDF
