@@ -1,6 +1,9 @@
 Changelog for Miosix np embedded OS
 
 v1.57
+- Added memory barriers to miosix_private::doDisableInterrupts() and
+  doEnableInterrupts(), and made fastDisableInterrupts() and
+  fastEnableInterrupts() inline, for speed reasons.
 - Fixed a bug in Mutex::tryLock(): it would return false in case it was called
   on a recursive mutex locked by the same thread
 - Added testsuite tests for new functions/classes
