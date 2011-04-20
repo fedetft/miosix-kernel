@@ -76,20 +76,28 @@ void disableInterrupts();
 void enableInterrupts();
 
 /**
- * Fast, version of disableInterrupts().
- * As opposed to disableInterrupts(), can't be nested.
- * Note that since nesting of fastDisableInterrupts() blocks is not supported
- * you must be careful not to call functions that might disable interrupts from
- * within a code block where interrupts are disabled with
- * fastDisableInterrupts().
+ * Fast version of disableInterrupts().<br>
+ * Despite faster, it has a couple of preconditions:
+ * - calls to fastDisableInterrupts() can't be nested
+ * - it can't be used in code that is called before the kernel is started
  */
-void fastDisableInterrupts();
+inline void fastDisableInterrupts()
+{
+    miosix_private::doDisableInterrupts();
+}
 
 /**
- * Fast, version of enableInterrupts().
- * As opposed to enableInterrupts(), can't be nested
+ * Fast version of enableInterrupts().<br>
+ * Despite faster, it has a couple of preconditions:
+ * - calls to fastDisableInterrupts() can't be nested
+ * - it can't be used in code that is called before the kernel is started,
+ * because it will (incorreclty) lead to interrupts being enabled before the
+ * kernel is started
  */
-void fastEnableInterrupts();
+inline void fastEnableInterrupts()
+{
+    miosix_private::doEnableInterrupts();
+}
 
 /**
  * This class is a RAII lock for disabling interrupts. This call avoids

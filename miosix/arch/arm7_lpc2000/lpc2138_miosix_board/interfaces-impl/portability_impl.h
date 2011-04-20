@@ -190,6 +190,9 @@ inline void doDisableInterrupts()
                  "mrs r0, cpsr          \n\t"
                  "orr r0, r0, #I_BIT    \n\t"
                  "msr cpsr_c, r0        \n\t":::"r0");
+    //The new fastDisableInterrupts/fastEnableInterrupts are inline, so there's
+    //the need for a memory barrier to avoid aggressive reordering
+    asm volatile("":::"memory");
 }
 
 inline void doEnableInterrupts()
@@ -198,6 +201,9 @@ inline void doEnableInterrupts()
                      "mrs r0, cpsr          \n\t"
                      "and r0, r0, #~(I_BIT) \n\t"
                      "msr cpsr_c, r0        \n\t":::"r0");
+    //The new fastDisableInterrupts/fastEnableInterrupts are inline, so there's
+    //the need for a memory barrier to avoid aggressive reordering
+    asm volatile("":::"memory");
 }
 
 inline bool checkAreInterruptsEnabled()

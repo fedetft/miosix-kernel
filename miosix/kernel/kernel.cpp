@@ -98,8 +98,8 @@ void *idleThread(void *argv)
 
 void disableInterrupts()
 {
-    //Before the kernel is started interrupts are disabled, so disabling them
-    //again won't hurt
+    //Before the kernel is started interrupts are disabled,
+    //so disabling them again won't hurt
     miosix_private::doDisableInterrupts();
     if(interruptDisableNesting==0xff) errorHandler(NESTING_OVERFLOW);
     interruptDisableNesting++;
@@ -119,39 +119,27 @@ void enableInterrupts()
     }
 }
 
-void fastDisableInterrupts()
-{
-    //Before the kernel is started interrupts are disabled, so disabling them
-    //again won't hurt
-    miosix_private::doDisableInterrupts();
-}
-
-void fastEnableInterrupts()
-{
-    //This is required to avoid enabling interrupts before the kernel is started
-    if(kernel_started==true) miosix_private::doEnableInterrupts();
-}
-
 void pauseKernel()
 {
-    FastInterruptDisableLock lock;
+    miosix_private::doDisableInterrupts();
     if(kernel_running==0xff) errorHandler(NESTING_OVERFLOW);
     kernel_running++;
+    if(kernel_started==true) miosix_private::doEnableInterrupts();
 }
 
 void restartKernel()
 {
+    miosix_private::doDisableInterrupts();
+    if(kernel_running==0)
     {
-        FastInterruptDisableLock lock;
-        if(kernel_running==0)
-        {
-            //Bad, restartKernel was called one time more than pauseKernel
-            errorHandler(PAUSE_KERNEL_NESTING);
-        }
-        kernel_running--;
+        //Bad, restartKernel was called one time more than pauseKernel
+        errorHandler(PAUSE_KERNEL_NESTING);
     }
+    kernel_running--;
+    if(kernel_started==true) miosix_private::doEnableInterrupts();
+    
     if((kernel_running==0)&&tick_skew)//If we missed some tick yield immediately
-    {
+    { 
         tick_skew=false;
         Thread::yield();
     }

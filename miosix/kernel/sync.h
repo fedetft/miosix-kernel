@@ -48,15 +48,15 @@ namespace miosix {
 
 struct MutexWaitingList
 {
-    Thread *thread;
+    void *thread; //Actually, a Thread * but C doesn't know about C++ classes
     MutexWaitingList *next;
 };
 
 struct MutexImpl
 {
-    Thread *owner;
+    void *owner; //Actually, a Thread * but C doesn't know about C++ classes
     MutexWaitingList *head;
-    int recursive;
+    int recursive; // -1 = special value for non recursive
 };
 
 void fixmeInit(MutexImpl *mutex, bool recursive);

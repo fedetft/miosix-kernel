@@ -40,7 +40,6 @@ namespace miosix {
 
 void fixmeInit(MutexImpl *mutex, bool recursive)
 {
-    FastInterruptDisableLock dLock;
     mutex->owner=0;
     mutex->head=0;
     mutex->recursive= recursive ? 0 : -1;
@@ -53,22 +52,22 @@ void fixmeDestroy(MutexImpl *mutex)
 
 void fixmeLock(MutexImpl *mutex)
 {
-//    FastInterruptDisableLock dLock;
-    miosix_private::doDisableInterrupts();
+    FastInterruptDisableLock dLock;
+    void *p=reinterpret_cast<void*>(Thread::IRQgetCurrentThread());
     if(mutex->owner==0)
     {
-        mutex->owner=Thread::IRQgetCurrentThread();
-        miosix_private::doEnableInterrupts();
+        mutex->owner=p;
         return;
     }
 
-    Thread *p=Thread::IRQgetCurrentThread();
+    //This check is very important. Without this attempting to lock the same
+    //mutex twice won't cause a deadlock because the Thread::IRQwait() is
+    //enclosed in a while(owner!=p) which is immeditely false.
     if(mutex->owner==p)
     {
         if(mutex->recursive>=0)
         {
             mutex->recursive++;
-            miosix_private::doEnableInterrupts();
             return;
         } else errorHandler(MUTEX_DEADLOCK); //Bad, deadlock
     }
@@ -86,43 +85,38 @@ void fixmeLock(MutexImpl *mutex)
     //The while is necessary because some other thread might call wakeup()
     //on this thread. So the thread can wakeup also for other reasons not
     //related to the mutex becoming free
-    do {
+    while(mutex->owner!=p)
+    {
         Thread::IRQwait();//Returns immediately
         {
-//            FastInterruptEnableLock eLock(dLock);
-            miosix_private::doEnableInterrupts();
+            FastInterruptEnableLock eLock(dLock);
             Thread::yield(); //Now the IRQwait becomes effective
-            miosix_private::doDisableInterrupts();
         }
-    } while(mutex->owner!=p);
-    miosix_private::doEnableInterrupts();
+    }
 }
 
 bool fixmeTryLock(MutexImpl *mutex)
 {
     FastInterruptDisableLock dLock;
+    void *p=reinterpret_cast<void*>(Thread::IRQgetCurrentThread());
     if(mutex->owner==0)
     {
-        mutex->owner=Thread::IRQgetCurrentThread();
-        miosix_private::doEnableInterrupts();
+        mutex->owner=p;
         return true;
     }
-    if(mutex->owner==Thread::IRQgetCurrentThread() && mutex->recursive>=0)
+    if(mutex->owner==p && mutex->recursive>=0)
     {
         mutex->recursive++;
-        miosix_private::doEnableInterrupts();
         return true;
     }
-    miosix_private::doEnableInterrupts();
     return false;
 }
 
 void fixmeUnlock(MutexImpl *mutex)
 {
-//    FastInterruptDisableLock dLock;
-    miosix_private::doDisableInterrupts();
+    FastInterruptDisableLock dLock;
 //    Safety check removed for speed reasons
-//    if(mutex->owner!=Thread::IRQgetCurrentThread())
+//    if(mutex->owner!=reinterpret_cast<void*>(Thread::IRQgetCurrentThread()))
 //    {
 //        errorHandler(MUTEX_UNLOCK_NOT_OWNER);
 //        return;
@@ -135,7 +129,7 @@ void fixmeUnlock(MutexImpl *mutex)
     if(mutex->head!=0)
     {
         mutex->owner=mutex->head->thread;
-        mutex->head->thread->IRQwakeup();
+        reinterpret_cast<Thread*>(mutex->head->thread)->IRQwakeup();
         mutex->head=mutex->head->next;
     } else mutex->owner=0;
 }
@@ -151,9 +145,10 @@ Mutex::Mutex(Options opt): owner(0), next(0), waiting(), mutexOptions(opt),
 
 void Mutex::PKlock(PauseKernelLock& dLock)
 {
+    Thread *p=Thread::getCurrentThread();
     if(owner==0)
     {
-        owner=Thread::getCurrentThread();
+        owner=p;
         //Save original thread priority, if the thread has not yet locked
         //another mutex
         if(owner->mutexLocked==0) owner->savedPriority=owner->getPriority();
@@ -166,7 +161,6 @@ void Mutex::PKlock(PauseKernelLock& dLock)
     //This check is very important. Without this attempting to lock the same
     //mutex twice won't cause a deadlock because the Thread::IRQwait() is
     //enclosed in a while(owner!=p) which is immeditely false.
-    Thread* p=Thread::getCurrentThread();
     if(owner==p)
     {
         if(mutexOptions==RECURSIVE)
@@ -219,9 +213,10 @@ void Mutex::PKlock(PauseKernelLock& dLock)
 
 bool Mutex::PKtryLock(PauseKernelLock& dLock)
 {
+    Thread *p=Thread::getCurrentThread();
     if(owner==0)
     {
-        owner=Thread::getCurrentThread();
+        owner=p;
         //Save original thread priority, if the thread has not yet locked
         //another mutex
         if(owner->mutexLocked==0) owner->savedPriority=owner->getPriority();
@@ -230,7 +225,7 @@ bool Mutex::PKtryLock(PauseKernelLock& dLock)
         owner->mutexLocked=this;
         return true;
     }
-    if(owner==Thread::getCurrentThread() && mutexOptions==RECURSIVE)
+    if(owner==p && mutexOptions==RECURSIVE)
     {
         recursiveDepth++;
         return true;
@@ -240,7 +235,8 @@ bool Mutex::PKtryLock(PauseKernelLock& dLock)
 
 void Mutex::PKunlock(PauseKernelLock& dLock)
 {
-    if(Thread::getCurrentThread()!=owner)
+    Thread *p=Thread::getCurrentThread();
+    if(owner!=p)
     {
         errorHandler(MUTEX_UNLOCK_NOT_OWNER);
         return;

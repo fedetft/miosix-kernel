@@ -113,11 +113,17 @@ inline void doDisableInterrupts()
     // configurable priority, so also SysTick and SVC.
     // No need to disable faults with __disable_fault_irq()
     __disable_irq();
+    //The new fastDisableInterrupts/fastEnableInterrupts are inline, so there's
+    //the need for a memory barrier to avoid aggressive reordering
+    asm volatile("":::"memory");
 }
 
 inline void doEnableInterrupts()
 {
     __enable_irq();
+    //The new fastDisableInterrupts/fastEnableInterrupts are inline, so there's
+    //the need for a memory barrier to avoid aggressive reordering
+    asm volatile("":::"memory");
 }
 
 inline bool checkAreInterruptsEnabled()
