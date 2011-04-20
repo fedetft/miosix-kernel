@@ -77,7 +77,11 @@ void enableInterrupts();
 
 /**
  * Fast, version of disableInterrupts().
- * As opposed to disableInterrupts(), can't be nested
+ * As opposed to disableInterrupts(), can't be nested.
+ * Note that since nesting of fastDisableInterrupts() blocks is not supported
+ * you must be careful not to call functions that might disable interrupts from
+ * within a code block where interrupts are disabled with
+ * fastDisableInterrupts().
  */
 void fastDisableInterrupts();
 

@@ -41,6 +41,100 @@ namespace miosix {
  * \{
  */
 
+// FIXME: begin
+
+#define FIXME_MUTEX_INITIALIZER {0,0,-1}
+#define FIXME_MUTEX_INITIALIZER_RECURSIVE {0,0,0}
+
+struct MutexWaitingList
+{
+    Thread *thread;
+    MutexWaitingList *next;
+};
+
+struct MutexImpl
+{
+    Thread *owner;
+    MutexWaitingList *head;
+    int recursive;
+};
+
+void fixmeInit(MutexImpl *mutex, bool recursive);
+void fixmeDestroy(MutexImpl *mutex);
+void fixmeLock(MutexImpl *mutex);
+bool fixmeTryLock(MutexImpl *mutex);
+void fixmeUnlock(MutexImpl *mutex);
+
+/**
+ * Fast mutex without support for priority inheritance
+ */
+class FastMutex
+{
+public:
+    /**
+     * Mutex options, passed to the constructor to set additional options.<br>
+     * The DEFAULT option indicates the default Mutex type.
+     */
+    enum Options
+    {
+        DEFAULT,    ///< Default mutex
+        RECURSIVE   ///< Mutex is recursive
+    };
+
+    /**
+     * Constructor, initializes the mutex.
+     */
+    FastMutex(Options opt=DEFAULT)
+    {
+        if(opt==DEFAULT) fixmeInit(&impl,false);
+        else fixmeInit(&impl,true);
+    }
+
+    /**
+     * Locks the critical section. If the critical section is already locked,
+     * the thread will be queued in a wait list.
+     */
+    void lock()
+    {
+        fixmeLock(&impl);
+    }
+
+    /**
+     * Acquires the lock only if the critical section is not already locked by
+     * other threads. Attempting to lock again a recursive mutex will fail, and
+     * the mutex' lock count will not be incremented.
+     * \return true if the lock was acquired
+     */
+    bool tryLock()
+    {
+        return fixmeTryLock(&impl);
+    }
+
+    /**
+     * Unlocks the critical section.
+     */
+    void unlock()
+    {
+        fixmeUnlock(&impl);
+    }
+
+    /**
+     * Destructor
+     */
+    ~FastMutex()
+    {
+        fixmeDestroy(&impl);
+    }
+
+private:
+    FastMutex(const FastMutex&);
+    FastMutex& operator= (const FastMutex&);
+
+    MutexImpl impl;
+};
+
+// FIXME : end
+
 //Forward declaration
 class ConditionVariable;
 

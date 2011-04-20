@@ -36,6 +36,112 @@ using namespace std;
 
 namespace miosix {
 
+// FIXME : begin
+
+void fixmeInit(MutexImpl *mutex, bool recursive)
+{
+    FastInterruptDisableLock dLock;
+    mutex->owner=0;
+    mutex->head=0;
+    mutex->recursive= recursive ? 0 : -1;
+}
+
+void fixmeDestroy(MutexImpl *mutex)
+{
+    //Do nothing
+}
+
+void fixmeLock(MutexImpl *mutex)
+{
+//    FastInterruptDisableLock dLock;
+    miosix_private::doDisableInterrupts();
+    if(mutex->owner==0)
+    {
+        mutex->owner=Thread::IRQgetCurrentThread();
+        miosix_private::doEnableInterrupts();
+        return;
+    }
+
+    Thread *p=Thread::IRQgetCurrentThread();
+    if(mutex->owner==p)
+    {
+        if(mutex->recursive>=0)
+        {
+            mutex->recursive++;
+            miosix_private::doEnableInterrupts();
+            return;
+        } else errorHandler(MUTEX_DEADLOCK); //Bad, deadlock
+    }
+
+    MutexWaitingList waiting; //Element of a linked list on stack
+    waiting.thread=p;
+    waiting.next=0; //Putting this thread last on the list (lifo policy)
+    if(mutex->head!=0)
+    {
+        MutexWaitingList *walk;
+        for(walk=mutex->head;walk->next!=0;walk=walk->next);
+        walk->next=&waiting;
+    } else mutex->head=&waiting;
+
+    //The while is necessary because some other thread might call wakeup()
+    //on this thread. So the thread can wakeup also for other reasons not
+    //related to the mutex becoming free
+    do {
+        Thread::IRQwait();//Returns immediately
+        {
+//            FastInterruptEnableLock eLock(dLock);
+            miosix_private::doEnableInterrupts();
+            Thread::yield(); //Now the IRQwait becomes effective
+            miosix_private::doDisableInterrupts();
+        }
+    } while(mutex->owner!=p);
+    miosix_private::doEnableInterrupts();
+}
+
+bool fixmeTryLock(MutexImpl *mutex)
+{
+    FastInterruptDisableLock dLock;
+    if(mutex->owner==0)
+    {
+        mutex->owner=Thread::IRQgetCurrentThread();
+        miosix_private::doEnableInterrupts();
+        return true;
+    }
+    if(mutex->owner==Thread::IRQgetCurrentThread() && mutex->recursive>=0)
+    {
+        mutex->recursive++;
+        miosix_private::doEnableInterrupts();
+        return true;
+    }
+    miosix_private::doEnableInterrupts();
+    return false;
+}
+
+void fixmeUnlock(MutexImpl *mutex)
+{
+//    FastInterruptDisableLock dLock;
+    miosix_private::doDisableInterrupts();
+//    Safety check removed for speed reasons
+//    if(mutex->owner!=Thread::IRQgetCurrentThread())
+//    {
+//        errorHandler(MUTEX_UNLOCK_NOT_OWNER);
+//        return;
+//    }
+    if(mutex->recursive>0)
+    {
+        mutex->recursive--;
+        return;
+    }
+    if(mutex->head!=0)
+    {
+        mutex->owner=mutex->head->thread;
+        mutex->head->thread->IRQwakeup();
+        mutex->head=mutex->head->next;
+    } else mutex->owner=0;
+}
+
+// FIXME : end
+
 //
 // class Mutex
 //
@@ -122,6 +228,11 @@ bool Mutex::PKtryLock(PauseKernelLock& dLock)
         //Add this mutex to the list of mutexes locked by owner
         this->next=owner->mutexLocked;
         owner->mutexLocked=this;
+        return true;
+    }
+    if(owner==Thread::getCurrentThread() && mutexOptions==RECURSIVE)
+    {
+        recursiveDepth++;
         return true;
     }
     return false;

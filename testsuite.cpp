@@ -803,6 +803,21 @@ static void t6_p6(void *argv)
 
 static Mutex t6_m5(Mutex::RECURSIVE);
 
+static void *t6_p7(void *argv)
+{
+    if(t6_m5.tryLock()==false) return reinterpret_cast<void*>(1); // 1 = locked
+    t6_m5.unlock();
+    return reinterpret_cast<void*>(0); // 0 = unlocked
+}
+
+bool checkIft6_m5IsLocked()
+{
+    Thread *t=Thread::create(t6_p7,STACK_MIN,0,0,Thread::JOINABLE);
+    void *result;
+    t->join(&result);
+    return reinterpret_cast<int>(result)==0 ? false : true;
+}
+
 static void test_6()
 {
     test_name("Mutex class");
@@ -969,6 +984,27 @@ static void test_6()
     Thread::sleep(10);
     //If thread exists the mutex was not unlocked
     if(Thread::exists(t)==true) fail("recursive mutex (4)");
+
+    //Checking if tryLock on recursive mutex returns true when called by the
+    //thread that already owns the lock
+    {
+        Lock l(t6_m5);
+        {
+            if(t6_m5.tryLock()==false) fail("Mutex::tryLock (4)");
+            if(checkIft6_m5IsLocked()==false) fail("unexpected");
+            t6_m5.unlock();
+        }
+        if(checkIft6_m5IsLocked()==false) fail("unexpected");
+    }
+    if(checkIft6_m5IsLocked()==true) fail("unexpected");
+
+    if(t6_m5.tryLock()==false) fail("Mutex::tryLock (5)");
+    if(t6_m5.tryLock()==false) fail("Mutex::tryLock (6)");
+    if(checkIft6_m5IsLocked()==false) fail("unexpected");
+    t6_m5.unlock();
+    if(checkIft6_m5IsLocked()==false) fail("unexpected");
+    t6_m5.unlock();
+    if(checkIft6_m5IsLocked()==true) fail("unexpected");
     
     pass();
 }
@@ -2490,6 +2526,23 @@ static void benchmark_4()
         i++;
     }
     iprintf("%d Mutex lock/unlock pairs per second\n",i);
+
+    MutexImpl mm=FIXME_MUTEX_INITIALIZER;
+    b4_end=false;
+    #ifndef SCHED_TYPE_EDF
+    Thread::create(b4_t1,STACK_MIN);
+    #else
+    Thread::create(b4_t1,STACK_MIN,0);
+    #endif
+    Thread::yield();
+    i=0;
+    while(b4_end==false)
+    {
+        fixmeLock(&mm);
+        fixmeUnlock(&mm);
+        i++;
+    }
+    iprintf("%d FastMutexlock/unlock pairs per second\n",i);
 
     b4_end=false;
     #ifndef SCHED_TYPE_EDF

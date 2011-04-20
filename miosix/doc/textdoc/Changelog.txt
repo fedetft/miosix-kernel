@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
 v1.57
+- Fixed a bug in Mutex::tryLock(): it would return false in case it was called
+  on a recursive mutex locked by the same thread
 - Added testsuite tests for new functions/classes
 - Added new fastDisableInterrupts(), fastEnableInterrupts() functions and
   FastInterruptDisableLock, FastInterruptEnableLock classes to disable
