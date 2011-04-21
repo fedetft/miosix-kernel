@@ -2538,8 +2538,8 @@ static void benchmark_4()
     i=0;
     while(b4_end==false)
     {
-        fixmeLock(&mm);
-        fixmeUnlock(&mm);
+        fixmeMutexLock(&mm);
+        fixmeMutexUnlock(&mm);
         i++;
     }
     iprintf("%d FastMutexlock/unlock pairs per second\n",i);

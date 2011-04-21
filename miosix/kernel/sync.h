@@ -43,27 +43,41 @@ namespace miosix {
 
 // FIXME: begin
 
-#define FIXME_MUTEX_INITIALIZER {0,0,-1}
-#define FIXME_MUTEX_INITIALIZER_RECURSIVE {0,0,0}
+#define FIXME_MUTEX_INITIALIZER {0,0,0,-1}
+#define FIXME_MUTEX_INITIALIZER_RECURSIVE {0,0,0,0}
+#define FIXME_COND_INITIALIZER {0,0}
 
-struct MutexWaitingList
+struct WaitingList
 {
     void *thread; //Actually, a Thread * but C doesn't know about C++ classes
-    MutexWaitingList *next;
+    WaitingList *next;
 };
 
 struct MutexImpl
 {
     void *owner; //Actually, a Thread * but C doesn't know about C++ classes
-    MutexWaitingList *head;
+    WaitingList *first;
+    WaitingList *last;
     int recursive; // -1 = special value for non recursive
 };
 
-void fixmeInit(MutexImpl *mutex, bool recursive);
-void fixmeDestroy(MutexImpl *mutex);
-void fixmeLock(MutexImpl *mutex);
-bool fixmeTryLock(MutexImpl *mutex);
-void fixmeUnlock(MutexImpl *mutex);
+struct CondvarImpl
+{
+    WaitingList *first;
+    WaitingList *last;
+};
+
+void fixmeMutexInit(MutexImpl *mutex, bool recursive);
+void fixmeMutexDestroy(MutexImpl *mutex);
+void fixmeMutexLock(MutexImpl *mutex);
+bool fixmeMutexTryLock(MutexImpl *mutex);
+void fixmeMutexUnlock(MutexImpl *mutex);
+
+void fixmeCondInit(CondvarImpl *cond);
+void fixmeCondDestroy(CondvarImpl *cond);
+void fixmeCondWait(CondvarImpl *cond, MutexImpl *mutex);
+void fixmeCondSignal(CondvarImpl *cond);
+void fixmeCondBroadcast(CondvarImpl *cond);
 
 /**
  * Fast mutex without support for priority inheritance
@@ -86,8 +100,8 @@ public:
      */
     FastMutex(Options opt=DEFAULT)
     {
-        if(opt==DEFAULT) fixmeInit(&impl,false);
-        else fixmeInit(&impl,true);
+        if(opt==DEFAULT) fixmeMutexInit(&impl,false);
+        else fixmeMutexInit(&impl,true);
     }
 
     /**
@@ -96,7 +110,7 @@ public:
      */
     void lock()
     {
-        fixmeLock(&impl);
+        fixmeMutexLock(&impl);
     }
 
     /**
@@ -107,7 +121,7 @@ public:
      */
     bool tryLock()
     {
-        return fixmeTryLock(&impl);
+        return fixmeMutexTryLock(&impl);
     }
 
     /**
@@ -115,7 +129,7 @@ public:
      */
     void unlock()
     {
-        fixmeUnlock(&impl);
+        fixmeMutexUnlock(&impl);
     }
 
     /**
@@ -123,7 +137,7 @@ public:
      */
     ~FastMutex()
     {
-        fixmeDestroy(&impl);
+        fixmeMutexDestroy(&impl);
     }
 
 private:

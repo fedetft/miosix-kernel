@@ -1,5 +1,9 @@
 Changelog for Miosix np embedded OS
 
+v1.58
+- Bumped to version 1.58 because from now on the new compiler gcc-4.5.2, and
+  especially the new newlib patches become necessary
+
 v1.57
 - Added memory barriers to miosix_private::doDisableInterrupts() and
   doEnableInterrupts(), and made fastDisableInterrupts() and
