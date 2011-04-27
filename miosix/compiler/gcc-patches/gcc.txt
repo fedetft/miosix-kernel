@@ -1,3 +1,18 @@
+Rationale for gcc patch
+-----------------------
+
+This patch does the following:
+
+1) It enables multilibs for the thumb2 instruction set which are disabled
+   by default. This is required to build code for Cortex M3.
+
+2) It reduces the size of the emergency buffer, which is used for allocating
+   the std::bad_alloc exception that operator new should throw when the heap is
+   full. By default it is set to a conservative value that is too large when
+   compared with the RAM size of microcontrollers.
+
+-------------------------------------------------------------------------------
+
 Calculations to minimize the emrgency buffer for throwing std::bad_alloc.
 
 All files in libsupc++ folder
@@ -33,4 +48,4 @@ some margin.
 
 Conclusion:
 Looks like EMERGENCY_OBJ_SIZE can be shrinked from 512 to 160bytes, for 32bit systems.
-For EMRGENCY_OBJ_COUNT, 2 is good.
+For EMRGENCY_OBJ_COUNT, 3 is good.

@@ -1,0 +1,31 @@
+Rationale for newlib patches
+----------------------------
+
+This patch does the following:
+
+1) Change the value of BUFSIZ from 1KB to 512 Bytes. This constant is used:
+   - as a stack allocated buffer in _vfprintf_r
+   - as default file buffer for any file, including stdin and stdout
+   The default value of 1KB is simply too big for a small microcontroller.
+
+2) Remove memory used by atexit() stuff
+   Miosix has never called the finalizers registered with atexit(),
+   onexit() and cxa_atexit() when main returned, and this because
+   in a microcontroller system main() is not expected to return. 
+   However, the finalizers and their parameters in the
+   cxa_atexit case (which is automatically called by gcc on every
+   global C++ object), were still allocated taking up RAM, with
+   sizeof(int)*3*32= 384 Bytes of wasted RAM
+   This patch does not make Miosix call the finalizers, it avoids
+   storing them so that no memory is wasted for a broken feature.
+
+3) Change the definition of pthread_mutex_t and pthread_cond_t,
+   plus the respective PTHREAD_MUTEX_INITIALIZER and PTHREAD_COND_INIT.
+   This makes it possible for Miosix to increase the performance of
+   pthread mutex and condition variables.
+
+4) Add support for pthread_mutex_setattr() and pthread_mutex_getattr()
+   to have posix recursive mutexes.
+
+5) Turn the dummy default locks for stdio files into real pthread mutexes,
+   to make concurrent access to stdio files threadsafe as required by posix.

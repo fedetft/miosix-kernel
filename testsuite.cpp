@@ -2527,23 +2527,6 @@ static void benchmark_4()
     }
     iprintf("%d Mutex lock/unlock pairs per second\n",i);
 
-    MutexImpl mm=FIXME_MUTEX_INITIALIZER;
-    b4_end=false;
-    #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_MIN);
-    #else
-    Thread::create(b4_t1,STACK_MIN,0);
-    #endif
-    Thread::yield();
-    i=0;
-    while(b4_end==false)
-    {
-        fixmeMutexLock(&mm);
-        fixmeMutexUnlock(&mm);
-        i++;
-    }
-    iprintf("%d FastMutexlock/unlock pairs per second\n",i);
-
     b4_end=false;
     #ifndef SCHED_TYPE_EDF
     Thread::create(b4_t1,STACK_MIN);

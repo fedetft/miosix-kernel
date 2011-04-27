@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010, 2011 by Terraneo Federico                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -34,13 +34,15 @@
 #include <errno.h>
 #include <stdexcept>
 #include "kernel.h"
-#include "sync.h"
+#include "error.h"
+
+using namespace miosix;
 
 //
-// Newlib ships with many pthread.h, one "default", one for linux, etc.
-// And all pthread types such as pthread_mutex_t change accordingly.
-// We need the default pthread.h, the one in newlib/libc/include/pthread.h
-// So if compiling this file fails, check if pthread.h is correct
+// Newlib's pthread.h has been patched since Miosix 1.68 to contain a definition
+// for pthread_mutex_t and pthread_cond_t that allows a fast implementation
+// of mutexes and condition variables. This *requires* to use gcc 4.5.2 with
+// Miosix specific patches.
 //
 
 //These functions needs to be callable from C
@@ -53,15 +55,15 @@ extern "C" {
 int pthread_create(pthread_t *pthread, const pthread_attr_t *attr,
     void *(*start)(void *), void *arg)
 {
-    miosix::Thread::Options opt=miosix::Thread::JOINABLE;
-    unsigned int stacksize=miosix::STACK_DEFAULT_FOR_PTHREAD;
+    Thread::Options opt=Thread::JOINABLE;
+    unsigned int stacksize=STACK_DEFAULT_FOR_PTHREAD;
     if(attr!=NULL)
     {
         if(attr->detachstate==PTHREAD_CREATE_DETACHED)
-            opt=miosix::Thread::DEFAULT;
+            opt=Thread::DEFAULT;
         stacksize=attr->stacksize;
     }
-    miosix::Thread *result=miosix::Thread::create(start,stacksize,1,arg,opt);
+    Thread *result=Thread::create(start,stacksize,1,arg,opt);
     if(result==0) return EAGAIN;
     *pthread=reinterpret_cast<pthread_t>(result);
     return 0;
@@ -69,24 +71,24 @@ int pthread_create(pthread_t *pthread, const pthread_attr_t *attr,
 
 int pthread_join(pthread_t pthread, void **value_ptr)
 {
-    miosix::Thread *t=reinterpret_cast<miosix::Thread*>(pthread);
-    if(miosix::Thread::exists(t)==false) return ESRCH;
-    if(t==miosix::Thread::getCurrentThread()) return EDEADLK;
+    Thread *t=reinterpret_cast<Thread*>(pthread);
+    if(Thread::exists(t)==false) return ESRCH;
+    if(t==Thread::getCurrentThread()) return EDEADLK;
     if(t->join(value_ptr)==false) return EINVAL;
     return 0;
 }
 
 int pthread_detach(pthread_t pthread)
 {
-    miosix::Thread *t=reinterpret_cast<miosix::Thread*>(pthread);
-    if(miosix::Thread::exists(t)==false) return ESRCH;
+    Thread *t=reinterpret_cast<Thread*>(pthread);
+    if(Thread::exists(t)==false) return ESRCH;
     t->detach();
     return 0;
 }
 
 pthread_t pthread_self()
 {
-    return reinterpret_cast<pthread_t>(miosix::Thread::getCurrentThread());
+    return reinterpret_cast<pthread_t>(Thread::getCurrentThread());
 }
 
 int pthread_equal(pthread_t t1, pthread_t t2)
@@ -96,17 +98,15 @@ int pthread_equal(pthread_t t1, pthread_t t2)
 
 int pthread_attr_init(pthread_attr_t *attr)
 {
-    //We only use these two fields of pthread_attr_t so onle these
-    //are initialized
+    //We only use two fields of pthread_attr_t so initialize only these two
     attr->detachstate=PTHREAD_CREATE_JOINABLE;
-    attr->stacksize=miosix::STACK_DEFAULT_FOR_PTHREAD;
+    attr->stacksize=STACK_DEFAULT_FOR_PTHREAD;
     return 0;
 }
 
 int pthread_attr_destroy(pthread_attr_t *attr)
 {
-    //That was easy
-    return 0;
+    return 0; //That was easy
 }
 
 int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate)
@@ -118,7 +118,7 @@ int pthread_attr_getdetachstate(const pthread_attr_t *attr, int *detachstate)
 int pthread_attr_setdetachstate(pthread_attr_t *attr, int detachstate)
 {
     if(detachstate!=PTHREAD_CREATE_JOINABLE &&
-            detachstate!=PTHREAD_CREATE_DETACHED) return EINVAL;
+       detachstate!=PTHREAD_CREATE_DETACHED) return EINVAL;
     attr->detachstate=detachstate;
     return 0;
 }
@@ -131,7 +131,7 @@ int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize)
 
 int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
 {
-    if(stacksize<miosix::STACK_MIN) return EINVAL;
+    if(stacksize<STACK_MIN) return EINVAL;
     if((stacksize % 4) !=0) return EINVAL; //Stack size must be divisible by 4
     attr->stacksize=stacksize;
     return 0;
@@ -141,88 +141,181 @@ int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
 // Mutex API
 //
 
+/**
+ * Implementation code to lock a mutex. Must be called with interrupts disabled
+ * \param mutex mutex to be locked
+ * \param d The instance of FastInterruptDisableLock used to disable interrupts
+ */
+static inline void IRQdoMutexLock(pthread_mutex_t *mutex,
+        FastInterruptDisableLock& d)
+{
+    void *p=reinterpret_cast<void*>(Thread::IRQgetCurrentThread());
+    if(mutex->owner==0)
+    {
+        mutex->owner=p;
+        return;
+    }
+
+    //This check is very important. Without this attempting to lock the same
+    //mutex twice won't cause a deadlock because the Thread::IRQwait() is
+    //enclosed in a while(owner!=p) which is immeditely false.
+    if(mutex->owner==p)
+    {
+        if(mutex->recursive>=0)
+        {
+            mutex->recursive++;
+            return;
+        } else errorHandler(MUTEX_DEADLOCK); //Bad, deadlock
+    }
+
+    WaitingList waiting; //Element of a linked list on stack
+    waiting.thread=p;
+    waiting.next=0; //Putting this thread last on the list (lifo policy)
+    if(mutex->first==0)
+    {
+        mutex->first=&waiting;
+        mutex->last=&waiting;
+    } else {
+        mutex->last->next=&waiting;
+        mutex->last=&waiting;
+    }
+
+    //The while is necessary because some other thread might call wakeup()
+    //on this thread. So the thread can wakeup also for other reasons not
+    //related to the mutex becoming free
+    while(mutex->owner!=p)
+    {
+        Thread::IRQwait();//Returns immediately
+        {
+            FastInterruptEnableLock eLock(d);
+            Thread::yield(); //Now the IRQwait becomes effective
+        }
+    }
+}
+
+/**
+ * Implementation code to unlock a mutex.
+ * Must be called with interrupts disabled
+ * \param mutex mutex to unlock
+ * \return true if a higher priority thread was woken,
+ * only if EDF scheduler is selected, otherwise it always returns false
+ */
+static inline bool IRQdoMutexUnlock(pthread_mutex_t *mutex)
+{
+//    Safety check removed for speed reasons
+//    if(mutex->owner!=reinterpret_cast<void*>(Thread::IRQgetCurrentThread()))
+//    {
+//        errorHandler(MUTEX_UNLOCK_NOT_OWNER);
+//        return false;
+//    }
+    if(mutex->recursive>0)
+    {
+        mutex->recursive--;
+        return false;
+    }
+    if(mutex->first!=0)
+    {
+        Thread *t=reinterpret_cast<Thread*>(mutex->first->thread);
+        t->IRQwakeup();
+        mutex->owner=mutex->first->thread;
+        mutex->first=mutex->first->next;
+
+        #ifndef SCHED_TYPE_EDF
+        if(t->IRQgetPriority() >Thread::IRQgetCurrentThread()->IRQgetPriority())
+            return true;
+        #endif //SCHED_TYPE_EDF
+        return false;
+    }
+    mutex->owner=0;
+    return false;
+}
+
+int	pthread_mutexattr_init(pthread_mutexattr_t *attr)
+{
+    attr->recursive=PTHREAD_MUTEX_DEFAULT;
+    return 0;
+}
+
+int	pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
+{
+    return 0; //Do nothing
+}
+
+int pthread_mutexattr_gettype(const pthread_mutexattr_t *attr, int *kind)
+{
+    *kind=attr->recursive;
+    return 0;
+}
+
+int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int kind)
+{
+    switch(kind)
+    {
+        case PTHREAD_MUTEX_DEFAULT:
+            attr->recursive=PTHREAD_MUTEX_DEFAULT;
+            return 0;
+        case PTHREAD_MUTEX_RECURSIVE:
+            return 0;
+        default:
+            return EINVAL;
+    }
+}
+
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
 {
-    //attr is currently not considered
-    miosix::PauseKernelLock lock;
-    miosix::Mutex *m=0;
-    #ifdef __NO_EXCEPTIONS
-    m=new miosix::Mutex;
-    #else //__NO_EXCEPTIONS
-    try {
-        m=new miosix::Mutex;
-    } catch(std::bad_alloc&)
+    mutex->owner=0;
+    mutex->first=0;
+    //No need to initialize mutex->last
+    if(attr!=0)
     {
-        m=0;
-    }
-    #endif //__NO_EXCEPTIONS
-    if(m==0) return ENOMEM;
-    *mutex=reinterpret_cast<pthread_mutex_t>(m);
+        mutex->recursive= attr->recursive==PTHREAD_MUTEX_RECURSIVE ? 0 : -1;
+    } else mutex->recursive=-1;
     return 0;
 }
 
 int pthread_mutex_destroy(pthread_mutex_t *mutex)
 {
-    miosix::PauseKernelLock lock;
-    miosix::Mutex *m=reinterpret_cast<miosix::Mutex*>(*mutex);
-    if(m->PKisLocked()) return EBUSY;
-    delete m;
+    if(mutex->owner!=0) return EBUSY;
     return 0;
-}
-
-/*
- * Can only be called with kernel paused, to avoid race conditions.
- * \return a Miosix mutex from a pthread mutex. If the pthread mutex value is
- * PTHREAD_MUTEX_INITIALIZER, allocates a new mutex.
- * If the memory allocation fails, return zero however.
- */
-static inline miosix::Mutex *PKgetMutex(pthread_mutex_t *mutex)
-{
-    if(*mutex!=PTHREAD_MUTEX_INITIALIZER)
-    {
-        return reinterpret_cast<miosix::Mutex*>(*mutex);
-    } else {
-        miosix::Mutex *m=0;
-        #ifdef __NO_EXCEPTIONS
-        m=new miosix::Mutex;
-        #else //__NO_EXCEPTIONS
-        try {
-            m=new miosix::Mutex;
-        } catch(std::bad_alloc&)
-        {
-            m=0;
-        }
-        #endif //__NO_EXCEPTIONS
-        //Assign the correct id to the mutex
-        if(m!=0) *mutex=reinterpret_cast<pthread_mutex_t>(m);
-        return m;
-    }
 }
 
 int pthread_mutex_lock(pthread_mutex_t *mutex)
 {
-    miosix::PauseKernelLock lock;
-    miosix::Mutex *m=PKgetMutex(mutex);
-    if(m==0) return EINVAL;
-    m->PKlock(lock);
+    FastInterruptDisableLock dLock;
+    IRQdoMutexLock(mutex,dLock);
     return 0;
 }
 
 int pthread_mutex_trylock(pthread_mutex_t *mutex)
 {
-    miosix::PauseKernelLock lock;
-    miosix::Mutex *m=PKgetMutex(mutex);
-    if(m==0) return EINVAL;
-    if(m->PKtryLock(lock)==false) return EBUSY;
-    return 0;
+    FastInterruptDisableLock dLock;
+    void *p=reinterpret_cast<void*>(Thread::IRQgetCurrentThread());
+    if(mutex->owner==0)
+    {
+        mutex->owner=p;
+        return 0;
+    }
+    if(mutex->owner==p && mutex->recursive>=0)
+    {
+        mutex->recursive++;
+        return 0;
+    }
+    return EBUSY;
 }
 
 int pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
-    miosix::PauseKernelLock lock;
-    miosix::Mutex *m=PKgetMutex(mutex);
-    if(m==0) return EINVAL;
-    m->PKunlock(lock);
+    #ifndef SCHED_TYPE_EDF
+    FastInterruptDisableLock dLock;
+    IRQdoMutexUnlock(mutex);
+    #else //SCHED_TYPE_EDF
+    bool hppw;
+    {
+        FastInterruptDisableLock dLock;
+        hppw=IRQdoMutexUnlock(mutex);
+    }
+    if(hppw) Thread::yield(); //If the woken thread has higher priority, yield
+    #endif //SCHED_TYPE_EDF
     return 0;
 }
 
@@ -233,107 +326,91 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
 int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
 {
     //attr is currently not considered
-    miosix::PauseKernelLock lock;
-    miosix::ConditionVariable *c=0;
-    #ifdef __NO_EXCEPTIONS
-    c=new miosix::ConditionVariable;
-    #else //__NO_EXCEPTIONS
-    try {
-        c=new miosix::ConditionVariable;
-    } catch(std::bad_alloc&)
-    {
-        c=0;
-    }
-    #endif //__NO_EXCEPTIONS
-    if(c==0) return ENOMEM;
-    *cond=reinterpret_cast<pthread_cond_t>(c);
+    cond->first=0;
+    //No need to initialize cond->last
     return 0;
 }
 
 int pthread_cond_destroy(pthread_cond_t *cond)
 {
-    miosix::PauseKernelLock lock;
-    miosix::ConditionVariable *c=
-            reinterpret_cast<miosix::ConditionVariable*>(*cond);
-    if(c->PKisEmpty()==false) return EBUSY;
-    delete c;
+    if(cond->first!=0) return EBUSY;
     return 0;
-}
-
-/*
- * Can only be called with kernel paused, to avoid race conditions.
- * \return a Miosix condition variable from a pthread condition variable.
- * If the pthread mutex value is PTHREAD_MUTEX_INITIALIZER, allocates a new
- * mutex. If the memory allocation fails, return zero however.
- */
-static inline miosix::ConditionVariable *PKgetCondVar(pthread_cond_t *cond)
-{
-    if(*cond!=PTHREAD_COND_INITIALIZER)
-    {
-        return reinterpret_cast<miosix::ConditionVariable*>(*cond);
-    } else {
-        miosix::ConditionVariable *c=0;
-        #ifdef __NO_EXCEPTIONS
-        c=new miosix::ConditionVariable;
-        #else //__NO_EXCEPTIONS
-        try {
-            c=new miosix::ConditionVariable;
-        } catch(std::bad_alloc&)
-        {
-            c=0;
-        }
-        #endif //__NO_EXCEPTIONS
-        //Assign the correct id to the condition variable
-        if(c!=0) *cond=reinterpret_cast<pthread_mutex_t>(c);
-        return c;
-    }
 }
 
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
-    miosix::PauseKernelLock lock;
-    miosix::ConditionVariable *c=PKgetCondVar(cond);
-    if(c==0) return EINVAL;
-    if(*mutex==PTHREAD_MUTEX_INITIALIZER)
+    FastInterruptDisableLock dLock;
+    Thread *p=Thread::IRQgetCurrentThread();
+    WaitingList waiting; //Element of a linked list on stack
+    waiting.thread=reinterpret_cast<void*>(p);
+    waiting.next=0; //Putting this thread last on the list (lifo policy)
+    if(cond->first==0)
     {
-        //This is an error, since the mutex is supposed to be locked
-        //prior to waiting on a condition variable
-        return EINVAL;
+        cond->first=&waiting;
+        cond->last=&waiting;
+    } else {
+        cond->last->next=&waiting;
+        cond->last=&waiting;
     }
-    miosix::Mutex *m=reinterpret_cast<miosix::Mutex*>(*mutex);
-    c->PKwait(*m,lock);
+    p->flags.IRQsetCondWait(true);
+
+    IRQdoMutexUnlock(mutex);
+    {
+        FastInterruptEnableLock eLock(dLock);
+        Thread::yield(); //Here the wait becomes effective
+    }
+    IRQdoMutexLock(mutex,dLock);
     return 0;
 }
 
 int pthread_cond_signal(pthread_cond_t *cond)
 {
-    //We call PKgetCondVar with kernel paused to avoid the race condition
-    //of doubly initializing the condition variable if its value is
-    //PTHREAD_COND_INITIALIZER
-    miosix::ConditionVariable *c=0;
+    #ifdef SCHED_TYPE_EDF
+    bool hppw=false;
+    #endif //SCHED_TYPE_EDF
     {
-        miosix::PauseKernelLock lock;
-        c=PKgetCondVar(cond);
+        FastInterruptDisableLock dLock;
+        if(cond->first==0) return 0;
+
+        Thread *t=reinterpret_cast<Thread*>(cond->first->thread);
+        t->flags.IRQsetCondWait(false);
+        cond->first=cond->first->next;
+
+        #ifdef SCHED_TYPE_EDF
+        if(t->IRQgetPriority() >Thread::IRQgetCurrentThread()->IRQgetPriority())
+            hppw=true;
+        #endif //SCHED_TYPE_EDF
     }
-    if(c==0) return EINVAL;
-    //signal is instead called without kernel paused, since it might yield
-    c->signal();
+    #ifdef SCHED_TYPE_EDF
+    //If the woken thread has higher priority, yield
+    if(hppw) Thread::yield();
+    #endif //SCHED_TYPE_EDF
     return 0;
 }
 
 int pthread_cond_broadcast(pthread_cond_t *cond)
 {
-    //We call PKgetCondVar with kernel paused to avoid the race condition
-    //of doubly initializing the condition variable if its value is
-    //PTHREAD_COND_INITIALIZER
-    miosix::ConditionVariable *c=0;
+    #ifdef SCHED_TYPE_EDF
+    bool hppw=false;
+    #endif //SCHED_TYPE_EDF
     {
-        miosix::PauseKernelLock lock;
-        c=PKgetCondVar(cond);
+        FastInterruptDisableLock lock;
+        while(cond->first!=0)
+        {
+            Thread *t=reinterpret_cast<Thread*>(cond->first->thread);
+            t->flags.IRQsetCondWait(false);
+            cond->first=cond->first->next;
+
+            #ifdef SCHED_TYPE_EDF
+            if(t->IRQgetPriority() >
+                    Thread::IRQgetCurrentThread()->IRQgetPriority()) hppw=true;
+            #endif //SCHED_TYPE_EDF
+        }
     }
-    if(c==0) return EINVAL;
-    //broadcast is instead called without kernel paused, since it might yield
-    c->broadcast();
+    #ifdef SCHED_TYPE_EDF
+    //If at least one of the woken thread has higher, yield
+    if(hppw) Thread::yield();
+    #endif //SCHED_TYPE_EDF
     return 0;
 }
 

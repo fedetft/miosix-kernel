@@ -1,0 +1,9 @@
+Rationale for svc.patch
+-----------------------
+ 
+Binutils 2.21.51 fail to accept the "svc" instruction on cortex-m3.
+http://sourceware.org/bugzilla/show_bug.cgi?id=12296
+This instruction is ofcourse required by Miosix.
+
+Note: this is a temporary patch. It is expected that in the new
+binutils release this issue will be fixed upstream.

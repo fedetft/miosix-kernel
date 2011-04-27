@@ -26,7 +26,7 @@ sudo yum intall gcc gcc-c++ make ncurses-devel byacc flex texinfo patch gmp-deve
 
 Note: these scripts require "sudo". If you use a distro like Fedora where sudo
 is not enabled by default, use "visudo" to enable sudo for your account. You
-can find information to do so in the Internet.
+can find information to do so on the Internet.
 
 
 Step 3

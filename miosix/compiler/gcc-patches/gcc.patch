@@ -1,5 +1,6 @@
---- gcc-4.5.2/gcc/config/arm/t-arm-elf	2009-08-06 16:27:45.000000000 +0200
-+++ gcc-4.5.2/gcc/config/arm/t-arm-elf_patched	2011-04-12 12:15:21.376776807 +0200
+diff -ruN gcc-4.5.2-original/gcc/config/arm/t-arm-elf gcc-4.5.2/gcc/config/arm/t-arm-elf
+--- gcc-4.5.2-original/gcc/config/arm/t-arm-elf	2011-04-22 19:31:04.705582998 +0200
++++ gcc-4.5.2/gcc/config/arm/t-arm-elf	2011-04-26 14:35:11.899936422 +0200
 @@ -36,15 +36,20 @@
  MULTILIB_EXCEPTIONS  = 
  MULTILIB_MATCHES     =
@@ -30,3 +31,22 @@
  
  # Not quite true.  We can support hard-vfp calling in Thumb2, but how do we
  # express that here?  Also, we really need architecture v5e or later
+diff -ruN gcc-4.5.2-original/libstdc++-v3/libsupc++/eh_alloc.cc gcc-4.5.2/libstdc++-v3/libsupc++/eh_alloc.cc
+--- gcc-4.5.2-original/libstdc++-v3/libsupc++/eh_alloc.cc	2011-04-22 19:31:05.995583002 +0200
++++ gcc-4.5.2/libstdc++-v3/libsupc++/eh_alloc.cc	2011-04-26 14:35:11.894936422 +0200
+@@ -73,6 +73,15 @@
+ # define EMERGENCY_OBJ_COUNT	4
+ #endif
+ 
++//begin TFT patch
++//RATIONALE: reduced emergency buffer for ARM microcontrollers, saves ~1.5K of RAM
++#undef EMERGENCY_OBJ_SIZE
++#undef EMERGENCY_OBJ_COUNT
++
++#define EMERGENCY_OBJ_SIZE  160
++#define EMERGENCY_OBJ_COUNT 3
++//end TFT patch
++
+ #if INT_MAX == 32767 || EMERGENCY_OBJ_COUNT <= 32
+ typedef unsigned int bitmask_type;
+ #else

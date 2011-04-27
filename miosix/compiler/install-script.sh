@@ -4,8 +4,9 @@
 #
 # Building Miosix is officially supported only through the gcc compiler built
 # with this script. This is because this script patches the compiler.
-# Currently the patches are simple and not essential (even if they help
-# reducing RAM footprint), but this will change in the future.
+# Starting form Miosix 1.58 the use of the arm-miosix-eabi-gcc compiler built
+# by this script has become mandatory due to patches related to posix threads
+# in newlib. The kernel *won't* compile unless the correct compiler is used.
 #
 # This script will install arm-miosix-eabi-gcc in /opt, creating links to
 # binaries in /usr/bin.
@@ -13,11 +14,11 @@
 # password when installing files to /opt and /usr/bin
 
 # Uncomment if installing globally on the system
-#INSTALL_DIR=/opt
-#SUDO=sudo
+INSTALL_DIR=/opt
+SUDO=sudo
 # Uncomment if installing locally, sudo isn't necessary
-INSTALL_DIR=`pwd`/gcc 
-SUDO=
+#INSTALL_DIR=`pwd`/gcc 
+#SUDO=
 
 # Program versions
 BINUTILS=binutils-2.21.51
@@ -45,14 +46,12 @@ unzip lpc21isp_148_src.zip	|| quit ":: Error extracting lpc21isp"
 mkdir log
 
 #
-# Part 2: patching gcc
+# Part 2: applying patches
 #
 
-patch -p0 < gcc-patches/eh_alloc.patch	|| quit ":: Failed patching eh_alloc.cc"
-patch -p0 < gcc-patches/t-arm-elf.patch || quit ":: Failed patching t-arm-elf"
 patch -p0 < gcc-patches/svc.patch		|| quit ":: Failed patching binutils"
-patch -p0 < gcc-patches/__atexit.patch	|| quit ":: Failed patching __atexit"
-patch -p0 < gcc-patches/stdio.patch		|| quit ":: Failed patching stdio"
+patch -p0 < gcc-patches/gcc.patch		|| quit ":: Failed patching gcc"
+patch -p0 < gcc-patches/newlib.patch	|| quit ":: Failed patching newlib"
 
 #
 # Part 3: compile and install binutils
@@ -136,24 +135,6 @@ cd newlib-obj
 	NM_FOR_TARGET=arm-miosix-eabi-nm \
 	RANLIB_FOR_TARGET=arm-miosix-eabi-ranlib \
 	2>../log/g.txt || quit ":: Error configuring newlib"
-# ../$NEWLIB/configure \
-# 	--target=arm-eabi \
-# 	--prefix=$INSTALL_DIR/arm-miosix-eabi \
-# 	--enable-interwork \
-# 	--enable-multilib \
-# 	--with-float=soft \
-# 	--disable-newlib-io-pos-args \
-# 	--disable-newlib-mb \
-# 	--enable-newlib-multithread \
-# 	CC_FOR_TARGET=arm-miosix-eabi-gcc \
-# 	CXX_FOR_TARGET=arm-miosix-eabi-g++ \
-# 	GCC_FOR_TARGET=arm-miosix-eabi-gcc \
-# 	AR_FOR_TARGET=arm-miosix-eabi-ar \
-# 	AS_FOR_TARGET=arm-miosix-eabi-as \
-# 	LD_FOR_TARGET=arm-miosix-eabi-ld \
-# 	NM_FOR_TARGET=arm-miosix-eabi-nm \
-# 	RANLIB_FOR_TARGET=arm-miosix-eabi-ranlib \
-# 	2>../log/g.txt || quit ":: Error configuring newlib"
 
 make 2>../log/h.txt							|| quit ":: Error compiling newlib"
 

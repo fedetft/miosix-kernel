@@ -37,6 +37,9 @@
 #include <new>
 #include <functional>
 
+// some pthread functions are friends of Thread
+#include <pthread.h>
+
 /**
  * \namespace miosix
  * All user available kernel functions, classes are inside this namespace.
@@ -903,6 +906,12 @@ private:
     friend class ControlScheduler;
     //Needs access to flags, schedData
     friend class EDFScheduler;
+    //Needs access to flags
+    friend int ::pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+    //Needs access to flags
+    friend int ::pthread_cond_signal(pthread_cond_t *cond);
+    //Needs access to flags
+    friend int ::pthread_cond_broadcast(pthread_cond_t *cond);
 };
 
 /**

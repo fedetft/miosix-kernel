@@ -1,6 +1,13 @@
 Changelog for Miosix np embedded OS
 
 v1.58
+- Thanks to the patched version of newlib, rewritten pthread mutex and
+  condition variable code in a faster way.
+- Added new compiler build scripts for gcc-4.5.2, with significantly more
+  patching in the newlib area. This is required to implement pthread mutexes
+  and condition variables efficiently, as well as to reduce memory footprint.
+  As a drawback, the use of the new patched compiler has become mandatory to
+  build Miosix.
 - Bumped to version 1.58 because from now on the new compiler gcc-4.5.2, and
   especially the new newlib patches become necessary
 

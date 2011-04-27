@@ -1,5 +1,0 @@
-Rationale for svc.patch
------------------------
- 
-Binutils 2.21.51 fail to accept the "svc" instruction on cortex-m3.
-http://sourceware.org/bugzilla/show_bug.cgi?id=12296

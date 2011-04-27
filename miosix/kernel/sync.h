@@ -31,8 +31,6 @@
 
 #include "kernel.h"
 #include <vector>
-// pthread functions are friends of Mutex and ConditionVariable
-#include <pthread.h>
 
 namespace miosix {
 
@@ -40,44 +38,6 @@ namespace miosix {
  * \addtogroup Sync
  * \{
  */
-
-// FIXME: begin
-
-#define FIXME_MUTEX_INITIALIZER {0,0,0,-1}
-#define FIXME_MUTEX_INITIALIZER_RECURSIVE {0,0,0,0}
-#define FIXME_COND_INITIALIZER {0,0}
-
-struct WaitingList
-{
-    void *thread; //Actually, a Thread * but C doesn't know about C++ classes
-    WaitingList *next;
-};
-
-struct MutexImpl
-{
-    void *owner; //Actually, a Thread * but C doesn't know about C++ classes
-    WaitingList *first;
-    WaitingList *last;
-    int recursive; // -1 = special value for non recursive
-};
-
-struct CondvarImpl
-{
-    WaitingList *first;
-    WaitingList *last;
-};
-
-void fixmeMutexInit(MutexImpl *mutex, bool recursive);
-void fixmeMutexDestroy(MutexImpl *mutex);
-void fixmeMutexLock(MutexImpl *mutex);
-bool fixmeMutexTryLock(MutexImpl *mutex);
-void fixmeMutexUnlock(MutexImpl *mutex);
-
-void fixmeCondInit(CondvarImpl *cond);
-void fixmeCondDestroy(CondvarImpl *cond);
-void fixmeCondWait(CondvarImpl *cond, MutexImpl *mutex);
-void fixmeCondSignal(CondvarImpl *cond);
-void fixmeCondBroadcast(CondvarImpl *cond);
 
 /**
  * Fast mutex without support for priority inheritance
@@ -100,8 +60,14 @@ public:
      */
     FastMutex(Options opt=DEFAULT)
     {
-        if(opt==DEFAULT) fixmeMutexInit(&impl,false);
-        else fixmeMutexInit(&impl,true);
+        if(opt==RECURSIVE)
+        {
+            pthread_mutexattr_t temp;
+            pthread_mutexattr_init(&temp);
+            pthread_mutexattr_settype(&temp,PTHREAD_MUTEX_RECURSIVE);
+            pthread_mutex_init(&impl,&temp);
+            pthread_mutexattr_destroy(&temp);
+        } else pthread_mutex_init(&impl,NULL);
     }
 
     /**
@@ -110,7 +76,7 @@ public:
      */
     void lock()
     {
-        fixmeMutexLock(&impl);
+        pthread_mutex_lock(&impl);
     }
 
     /**
@@ -121,7 +87,7 @@ public:
      */
     bool tryLock()
     {
-        return fixmeMutexTryLock(&impl);
+        return pthread_mutex_trylock(&impl)==0;
     }
 
     /**
@@ -129,7 +95,7 @@ public:
      */
     void unlock()
     {
-        fixmeMutexUnlock(&impl);
+        pthread_mutex_unlock(&impl);
     }
 
     /**
@@ -137,17 +103,15 @@ public:
      */
     ~FastMutex()
     {
-        fixmeMutexDestroy(&impl);
+        pthread_mutex_destroy(&impl);
     }
 
 private:
     FastMutex(const FastMutex&);
     FastMutex& operator= (const FastMutex&);
 
-    MutexImpl impl;
+    pthread_mutex_t impl;
 };
-
-// FIXME : end
 
 //Forward declaration
 class ConditionVariable;
@@ -279,10 +243,6 @@ private:
     //Friends
     friend class ConditionVariable;
     friend class Thread;
-    friend int ::pthread_mutex_destroy(pthread_mutex_t *mutex);
-    friend int ::pthread_mutex_lock(pthread_mutex_t *mutex);
-    friend int ::pthread_mutex_trylock(pthread_mutex_t *mutex);
-    friend int ::pthread_mutex_unlock(pthread_mutex_t *mutex);
 };
 
 /**
@@ -483,10 +443,6 @@ private:
 
     WaitingData *first;///<Pointer to first element of waiting fifo
     WaitingData *last;///<Pointer to last element of waiting fifo
-
-    //friends
-    friend int ::pthread_cond_destroy(pthread_cond_t *cond);
-    friend int ::pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
 };
 
 /**
