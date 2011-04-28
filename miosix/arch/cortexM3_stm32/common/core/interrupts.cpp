@@ -43,6 +43,7 @@ static const char hexdigits[]="0123456789abcdef";
  * this function.
  * \param x number to print
  */
+#ifdef WITH_ERRLOG
 static void printUnsignedInt(unsigned int x)
 {
     char result[]="0x........\r\n";
@@ -53,6 +54,7 @@ static void printUnsignedInt(unsigned int x)
     }
     IRQerrorLog(result);
 }
+#endif// WITH_ERRLOG
 
 /**
  * \internal

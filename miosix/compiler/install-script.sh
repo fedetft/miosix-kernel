@@ -14,11 +14,11 @@
 # password when installing files to /opt and /usr/bin
 
 # Uncomment if installing globally on the system
-INSTALL_DIR=/opt
-SUDO=sudo
+#INSTALL_DIR=/opt
+#SUDO=sudo
 # Uncomment if installing locally, sudo isn't necessary
-#INSTALL_DIR=`pwd`/gcc 
-#SUDO=
+INSTALL_DIR=`pwd`/gcc 
+SUDO=
 
 # Program versions
 BINUTILS=binutils-2.21.51
