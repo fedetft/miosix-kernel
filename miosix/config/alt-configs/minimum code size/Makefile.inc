@@ -130,8 +130,8 @@ endif
 ## Then, initialize C/C++ flags with -D_MIOSIX so that application code can
 ## know if the OS is MIOSIX
 ##
-CFLAGS_BASE   := -D_MIOSIX -D_POSIX_THREADS
-CXXFLAGS_BASE := -D_MIOSIX -D_POSIX_THREADS
+CFLAGS_BASE   := -D_MIOSIX -D_POSIX_THREADS -D_REENT_SMALL
+CXXFLAGS_BASE := -D_MIOSIX -D_POSIX_THREADS -D_REENT_SMALL
 
 ##
 ## Now two big switch-like constructs nested. The first lists all possible

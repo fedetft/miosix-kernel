@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
 v1.58
+- Added -D_REENT_SMALL flag to CFLAGS_BASE and CXXFLAGS_BASE, otherwise
+  #including <reent.h> picks up the wrong version of struct _reent
 - Thanks to the patched version of newlib, rewritten pthread mutex and
   condition variable code in a faster way.
 - Added new compiler build scripts for gcc-4.5.2, with significantly more

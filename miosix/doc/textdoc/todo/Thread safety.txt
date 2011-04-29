@@ -13,7 +13,7 @@ library that require locks or atomic ops for thread safety.
 
 - newlib stdio library, seems to require locks here and there for files.
   It also looks there's a mutex in every FILE struct.
-  TODO
+  FIXED
 
 - libsupc++/guard.cc
   Requres a thread safe implementation of code to call the constructor
