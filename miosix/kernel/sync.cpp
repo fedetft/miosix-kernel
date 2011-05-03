@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010 by Terraneo Federico                   *
+ *   Copyright (C) 2008, 2009, 2010, 2011 by Terraneo Federico             *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -30,6 +30,7 @@
 #include "kernel.h"
 #include "kernel/scheduler/scheduler.h"
 #include "error.h"
+#include "pthread_private.h"
 #include <algorithm>
 
 using namespace std;
@@ -40,8 +41,10 @@ namespace miosix {
 // class Mutex
 //
 
-Mutex::Mutex(Options opt): owner(0), next(0), waiting(), mutexOptions(opt),
-        recursiveDepth(0) {}
+Mutex::Mutex(Options opt): owner(0), next(0), waiting()
+{
+    recursiveDepth= opt==RECURSIVE ? 0 : -1;
+}
 
 void Mutex::PKlock(PauseKernelLock& dLock)
 {
@@ -63,7 +66,7 @@ void Mutex::PKlock(PauseKernelLock& dLock)
     //enclosed in a while(owner!=p) which is immeditely false.
     if(owner==p)
     {
-        if(mutexOptions==RECURSIVE)
+        if(recursiveDepth>=0)
         {
             recursiveDepth++;
             return;
@@ -125,7 +128,7 @@ bool Mutex::PKtryLock(PauseKernelLock& dLock)
         owner->mutexLocked=this;
         return true;
     }
-    if(owner==p && mutexOptions==RECURSIVE)
+    if(owner==p && recursiveDepth>=0)
     {
         recursiveDepth++;
         return true;
@@ -133,19 +136,19 @@ bool Mutex::PKtryLock(PauseKernelLock& dLock)
     return false;
 }
 
-void Mutex::PKunlock(PauseKernelLock& dLock)
+bool Mutex::PKunlock(PauseKernelLock& dLock)
 {
     Thread *p=Thread::getCurrentThread();
     if(owner!=p)
     {
         errorHandler(MUTEX_UNLOCK_NOT_OWNER);
-        return;
+        return false;
     }
 
-    if(mutexOptions==RECURSIVE && recursiveDepth>0)
+    if(recursiveDepth>0)
     {
         recursiveDepth--;
-        return;
+        return false;
     }
 
     //Remove this mutex from the list of mutexes locked by the owner
@@ -206,9 +209,11 @@ void Mutex::PKunlock(PauseKernelLock& dLock)
         if(waiting.empty()==false &&
            waiting.front()->getPriority()>owner->getPriority())
                 Scheduler::PKsetPriority(owner,waiting.front()->getPriority());
+        return owner->getPriority() > p->getPriority();
     } else {
         owner=0; //No threads waiting
         std::vector<Thread *>().swap(waiting); //Save some RAM
+        return false;
     }
 }
 
@@ -218,9 +223,10 @@ void Mutex::PKunlock(PauseKernelLock& dLock)
 
 ConditionVariable::ConditionVariable(): first(0), last(0) {}
 
-void ConditionVariable::PKwait(Mutex& m, PauseKernelLock& dLock)
+void ConditionVariable::wait(Mutex& m)
 {
-    //Add to list
+    PauseKernelLock dLock;
+    
     WaitingData w;
     w.p=Thread::getCurrentThread();
     w.next=0; 
@@ -244,6 +250,32 @@ void ConditionVariable::PKwait(Mutex& m, PauseKernelLock& dLock)
         Thread::yield(); //Here the wait becomes effective
     }
     m.PKlock(dLock);
+}
+
+void ConditionVariable::wait(FastMutex& m)
+{
+    FastInterruptDisableLock dLock;
+    
+    WaitingData w;
+    w.p=Thread::getCurrentThread();
+    w.next=0;
+    //Add entry to tail of list
+    if(first==0)
+    {
+        first=last=&w;
+    } else {
+       last->next=&w;
+       last=&w;
+    }
+    //Unlock mutex and wait
+    w.p->flags.IRQsetCondWait(true);
+
+    IRQdoMutexUnlock(m.get());
+    {
+        FastInterruptEnableLock eLock(dLock);
+        Thread::yield(); //Here the wait becomes effective
+    }
+    IRQdoMutexLock(m.get(),dLock);
 }
 
 void ConditionVariable::signal()

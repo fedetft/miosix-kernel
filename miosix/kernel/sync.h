@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010 by Terraneo Federico                   *
+ *   Copyright (C) 2008, 2009, 2010, 2011 by Terraneo Federico             *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -114,6 +114,12 @@ public:
     }
 
     /**
+     * \internal
+     * \return the FastMutex implemntation defined mutex type
+     */
+    pthread_mutex_t *get();
+
+    /**
      * Destructor
      */
     ~FastMutex()
@@ -187,12 +193,13 @@ public:
      */
     void unlock()
     {
+        bool hppw;
         {
             PauseKernelLock dLock;
-            PKunlock(dLock);
+            hppw=PKunlock(dLock);
         }
         #ifdef SCHED_TYPE_EDF
-        Thread::yield();//The other thread might have a closer deadline
+        if(hppw) Thread::yield();//The other thread might have a closer deadline
         #endif //SCHED_TYPE_EDF
     }
 	
@@ -201,15 +208,6 @@ private:
     Mutex(const Mutex& s);///< No public copy constructor
     Mutex& operator = (const Mutex& s);///< No publc operator =
     //Uses default destructor
-
-    /**
-     * While this function can in theory be called with the kernel not paused,
-     * it will cause race conditions because at any moment a preemption can
-     * occur and the mutex can be locked. Calling it with the kernel paused is
-     * safe since no preemption can occur.
-     * \return true if mutex is locked.
-     */
-    bool PKisLocked() { return owner!=0; }
 
     /**
      * Lock mutex, can be called only with kernel paused one level deep
@@ -235,8 +233,9 @@ private:
      * Lock mutex, can be called only with kernel paused one level deep
      * (pauseKernel calls can be nested).<br>
      * \param dLock the PauseKernelLock instance that paused the kernel.
+     * \return true if a higher priority thread was woken
      */
-    void PKunlock(PauseKernelLock& dLock);
+    bool PKunlock(PauseKernelLock& dLock);
 
     /// Thread currently inside critical section, if NULL the critical section
     /// is free
@@ -249,11 +248,8 @@ private:
     /// Waiting thread are stored in this min-heap, sorted by priority
     std::vector<Thread *> waiting;
 
-    /// Default or recursive
-    Options mutexOptions;
-    
-    /// Used to hold nesting depth for recursive mutexes
-    unsigned short recursiveDepth;
+    /// Used to hold nesting depth for recursive mutexes, -1 if not recursive
+    int recursiveDepth;
 
     //Friends
     friend class ConditionVariable;
@@ -264,6 +260,7 @@ private:
  * Very simple RAII style class to lock a mutex in an exception-safe way.
  * Mutex is acquired by the constructor and released by the destructor.
  */
+template<typename T>
 class Lock
 {
 public:
@@ -271,7 +268,7 @@ public:
      * Constructor: locks the mutex
      * \param m mutex to lock
      */
-    Lock(Mutex& m): mutex(m)
+    explicit Lock(T& m): mutex(m)
     {
         mutex.lock();
     }
@@ -287,7 +284,7 @@ public:
     /**
      * \return the locked mutex
      */
-    Mutex& get()
+    T& get()
     {
         return mutex;
     }
@@ -297,7 +294,7 @@ private:
     Lock(const Lock& l);///< No public copy constructor
     Lock& operator = (const Lock& l);///< No publc operator =
 
-    Mutex& mutex;///< Reference to locked mutex
+    T& mutex;///< Reference to locked mutex
 };
 
 /**
@@ -324,6 +321,7 @@ private:
  * //Finally mutex unlocked
  * \endcode
  */
+template<typename T>
 class Unlock
 {
 public:
@@ -331,7 +329,7 @@ public:
      * Constructor, unlock mutex.
      * \param l the Lock that locked the mutex.
      */
-    Unlock(Lock& l): mutex(l.get())
+    explicit Unlock(Lock<T>& l): mutex(l.get())
     {
         mutex.unlock();
     }
@@ -340,7 +338,7 @@ public:
      * Constructor, unlock mutex.
      * \param m a locked mutex.
      */
-    Unlock(Mutex& m): mutex(m)
+    Unlock(T& m): mutex(m)
     {
         mutex.unlock();
     }
@@ -357,7 +355,7 @@ public:
     /**
      * \return the unlocked mutex
      */
-    Mutex& get()
+    T& get()
     {
         return mutex;
     }
@@ -367,7 +365,7 @@ private:
     Unlock(const Unlock& l);
     Unlock& operator= (const Unlock& l);
 
-    Mutex& mutex;///< Reference to locked mutex
+    T& mutex;///< Reference to locked mutex
 };
 
 /**
@@ -394,22 +392,27 @@ public:
      * otherwise the behaviour is undefined.
      * \param l A Lock instance that locked a Mutex
      */
-    void wait(Lock& l)
+    template<typename T>
+    void wait(Lock<T>& l)
     {
         wait(l.get());
     }
 
     /**
-     * Unlock the mutex and wait.
+     * Unlock the Mutex and wait.
      * If more threads call wait() they must do so specifying the same mutex,
      * otherwise the behaviour is undefined.
-     * \param m A locked Mutex
+     * \param m a locked Mutex
      */
-    void wait(Mutex& m)
-    {
-        PauseKernelLock dLock;
-        PKwait(m,dLock);
-    }
+    void wait(Mutex& m);
+
+    /**
+     * Unlock the FastMutex and wait.
+     * If more threads call wait() they must do so specifying the same mutex,
+     * otherwise the behaviour is undefined.
+     * \param m a locked Mutex
+     */
+    void wait(FastMutex& m);
 
     /**
      * Wakeup one waiting thread.
@@ -426,24 +429,6 @@ private:
     //Unwanted methods
     ConditionVariable(const ConditionVariable& );
     ConditionVariable& operator= (const ConditionVariable& );
-
-    /**
-     * While this function can in theory be called with the kernel not paused,
-     * it will cause race conditions because at any moment a preemption can
-     * occur a thread might wait on this condition variable. Calling it with
-     * the kernel paused is save since no preemption can occur.
-     * \return true if no thread is waiting on this condition variable
-     */
-    bool PKisEmpty()
-    {
-        return first==0;
-    }
-
-    /**
-     * Wait on a condition variable. Can only be called with the kernel paused
-     * one level deep.
-     */
-    void PKwait(Mutex& m, PauseKernelLock& dLock);
 
     /**
      * \internal

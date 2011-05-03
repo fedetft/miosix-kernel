@@ -35,6 +35,7 @@
 #include <stdexcept>
 #include "kernel.h"
 #include "error.h"
+#include "pthread_private.h"
 
 using namespace miosix;
 
@@ -140,95 +141,6 @@ int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
 //
 // Mutex API
 //
-
-/**
- * Implementation code to lock a mutex. Must be called with interrupts disabled
- * \param mutex mutex to be locked
- * \param d The instance of FastInterruptDisableLock used to disable interrupts
- */
-static inline void IRQdoMutexLock(pthread_mutex_t *mutex,
-        FastInterruptDisableLock& d)
-{
-    void *p=reinterpret_cast<void*>(Thread::IRQgetCurrentThread());
-    if(mutex->owner==0)
-    {
-        mutex->owner=p;
-        return;
-    }
-
-    //This check is very important. Without this attempting to lock the same
-    //mutex twice won't cause a deadlock because the Thread::IRQwait() is
-    //enclosed in a while(owner!=p) which is immeditely false.
-    if(mutex->owner==p)
-    {
-        if(mutex->recursive>=0)
-        {
-            mutex->recursive++;
-            return;
-        } else errorHandler(MUTEX_DEADLOCK); //Bad, deadlock
-    }
-
-    WaitingList waiting; //Element of a linked list on stack
-    waiting.thread=p;
-    waiting.next=0; //Putting this thread last on the list (lifo policy)
-    if(mutex->first==0)
-    {
-        mutex->first=&waiting;
-        mutex->last=&waiting;
-    } else {
-        mutex->last->next=&waiting;
-        mutex->last=&waiting;
-    }
-
-    //The while is necessary because some other thread might call wakeup()
-    //on this thread. So the thread can wakeup also for other reasons not
-    //related to the mutex becoming free
-    while(mutex->owner!=p)
-    {
-        Thread::IRQwait();//Returns immediately
-        {
-            FastInterruptEnableLock eLock(d);
-            Thread::yield(); //Now the IRQwait becomes effective
-        }
-    }
-}
-
-/**
- * Implementation code to unlock a mutex.
- * Must be called with interrupts disabled
- * \param mutex mutex to unlock
- * \return true if a higher priority thread was woken,
- * only if EDF scheduler is selected, otherwise it always returns false
- */
-static inline bool IRQdoMutexUnlock(pthread_mutex_t *mutex)
-{
-//    Safety check removed for speed reasons
-//    if(mutex->owner!=reinterpret_cast<void*>(Thread::IRQgetCurrentThread()))
-//    {
-//        errorHandler(MUTEX_UNLOCK_NOT_OWNER);
-//        return false;
-//    }
-    if(mutex->recursive>0)
-    {
-        mutex->recursive--;
-        return false;
-    }
-    if(mutex->first!=0)
-    {
-        Thread *t=reinterpret_cast<Thread*>(mutex->first->thread);
-        t->IRQwakeup();
-        mutex->owner=mutex->first->thread;
-        mutex->first=mutex->first->next;
-
-        #ifndef SCHED_TYPE_EDF
-        if(t->IRQgetPriority() >Thread::IRQgetCurrentThread()->IRQgetPriority())
-            return true;
-        #endif //SCHED_TYPE_EDF
-        return false;
-    }
-    mutex->owner=0;
-    return false;
-}
 
 int	pthread_mutexattr_init(pthread_mutexattr_t *attr)
 {

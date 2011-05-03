@@ -1,6 +1,12 @@
 Changelog for Miosix np embedded OS
 
 v1.58
+- Refactored code in Mutex and CondotionVariable
+- Implement ConditionVariable support for FastMutex
+- Breaking change: the Lock and Unlock classes have been templatized to
+  work both with Mutex and FastMutex. Existing code Needs to be upgraded
+  specifying the template parameter. For example, Lock l(m); becomes
+  Lock<Mutex> l(m); or Lock<FastMutex> l(m);
 - Added -D_REENT_SMALL flag to CFLAGS_BASE and CXXFLAGS_BASE, otherwise
   #including <reent.h> picks up the wrong version of struct _reent
 - Thanks to the patched version of newlib, rewritten pthread mutex and

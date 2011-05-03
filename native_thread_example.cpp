@@ -16,7 +16,7 @@ char c=0;
 
 void threadfunc(void *argv)
 {
-    Lock lock(mutex);
+    Lock<Mutex> lock(mutex);
     for(int i=0;i<(int)argv;i++)
     {
         ack.signal();
@@ -32,7 +32,7 @@ int main()
     Thread *thread;
     thread=Thread::create(threadfunc,2048,1,(void*)strlen(str),Thread::JOINABLE);
     {
-        Lock lock(mutex);
+        Lock<Mutex> lock(mutex);
         for(int i=0;i<strlen(str);i++)
         {
             c=str[i];

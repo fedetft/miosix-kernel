@@ -98,7 +98,7 @@ int main()
         switch(c)
         {
             case 't':
-                //for(;;){ //Testing
+                for(;;){ //Testing
                 ledOn();
                 test_1();
                 test_2();
@@ -120,7 +120,7 @@ int main()
                 ledOff();
                 Thread::sleep(500);//Ensure all threads are deleted.
                 iprintf("\n*** All tests were successful\n\n");
-                //} //Testing
+                } //Testing
                 break;
             case 'f':
                 ledOn();
@@ -781,7 +781,7 @@ static void t6_p5(void *argv)
         if(Thread::testTerminate()) break;
 
         {
-            Lock l(t6_m2);
+            Lock<Mutex> l(t6_m2);
             t6_v1=true;
         }
 
@@ -796,7 +796,7 @@ static void t6_p6(void *argv)
 {
     Mutex *m=reinterpret_cast<Mutex*>(argv);
     {
-        Lock l(*m);
+        Lock<Mutex> l(*m);
         Thread::sleep(1);
     }
 }
@@ -879,7 +879,7 @@ static void test_6()
     Thread::sleep(30);
     if(t6_v1==false) fail("Thread not created");
     {
-        Lock l(t6_m2);
+        Lock<Mutex> l(t6_m2);
         t6_v1=false;
         Thread::sleep(30);
         if(t6_v1==true) fail("Lock (1)");
@@ -894,9 +894,9 @@ static void test_6()
     Thread *t3;
     Thread *t4;
     {
-        Lock l1(t6_m3);
+        Lock<Mutex> l1(t6_m3);
         {
-            Lock l2(t6_m4);
+            Lock<Mutex> l2(t6_m4);
             //Check initial priority
             if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(0))
                 fail("priority inheritance (5)");
@@ -961,11 +961,11 @@ static void test_6()
     // Testing recursive mutexes
     //
     {
-        Lock l(t6_m5);
+        Lock<Mutex> l(t6_m5);
         {
-            Lock l(t6_m5);
+            Lock<Mutex> l(t6_m5);
             {
-                Lock l(t6_m5);
+                Lock<Mutex> l(t6_m5);
                 t=Thread::create(t6_p6,STACK_MIN,0,reinterpret_cast<void*>(
                     &t6_m5));
                 Thread::sleep(10);
@@ -988,7 +988,7 @@ static void test_6()
     //Checking if tryLock on recursive mutex returns true when called by the
     //thread that already owns the lock
     {
-        Lock l(t6_m5);
+        Lock<Mutex> l(t6_m5);
         {
             if(t6_m5.tryLock()==false) fail("Mutex::tryLock (4)");
             if(checkIft6_m5IsLocked()==false) fail("unexpected");
@@ -1428,13 +1428,13 @@ Mutex t12_m2;
 
 void t12_p1(void *argv)
 {
-    Lock l1(t12_m1);
-    Lock l2(t12_m2);
+    Lock<Mutex> l1(t12_m1);
+    Lock<Mutex> l2(t12_m2);
 }
 
 void t12_p2(void *argv)
 {
-    Lock l(t12_m1);
+    Lock<Mutex> l(t12_m1);
 }
 
 void test_12()
@@ -1445,7 +1445,7 @@ void test_12()
     Thread *t2;
     {
         //First, we lock the second Mutex
-        Lock l(t12_m2);
+        Lock<Mutex> l(t12_m2);
         //Then we create the first thread that will lock successfully the first
         //mutex, but will block while locking the second
         t1=Thread::create(t12_p1,STACK_MIN,priorityAdapter(0),0,
@@ -1638,7 +1638,7 @@ void t15_p1(void *argv)
 {
     for(int i=0;i<10;i++)
     {
-        Lock l(t15_m1);
+        Lock<Mutex> l(t15_m1);
         t15_c1.wait(l);
         t15_v1=true;
         t15_v3++;
@@ -1649,7 +1649,7 @@ void t15_p2(void *argv)
 {
     for(int i=0;i<10;i++)
     {
-        Lock l(t15_m1);
+        Lock<Mutex> l(t15_m1);
         t15_c1.wait(l);
         t15_v2=true;
         t15_v3++;
@@ -1672,7 +1672,7 @@ static void test_15()
         t15_c1.signal();
         Thread::sleep(10);
         {
-            Lock l(t15_m1);
+            Lock<Mutex> l(t15_m1);
             if(t15_v1 && t15_v2) fail("Both threads wake up");
             if(t15_v3!=i+1) fail("Mutple wakeup (1)");
         }
@@ -1694,7 +1694,7 @@ static void test_15()
         t15_c1.broadcast();
         Thread::sleep(10);
         {
-            Lock l(t15_m1);
+            Lock<Mutex> l(t15_m1);
             if((t15_v1 && t15_v2)==false) fail("Not all thread woken up");
             if(t15_v3!=2*(i+1)) fail("Mutple wakeup (2)");
         }

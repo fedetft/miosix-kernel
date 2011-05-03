@@ -198,7 +198,7 @@ void IRQserialDisable()
 void serialWrite(const char *str, unsigned int len)
 {
     if(!serial_enabled) return;
-    Lock l(tx_mutex);
+    Lock<Mutex> l(tx_mutex);
     for(;len>0;)
     {
         // This will block if the buffer is currently being handled by the dma.
@@ -306,7 +306,7 @@ void serialWrite(const char *str, unsigned int len)
 {
     if(!serial_enabled) return;
     {
-        Lock l(tx_mutex);
+        Lock<Mutex> l(tx_mutex);
         for(unsigned int i=0;i<len;i++)
         {
             while((USART1->SR & USART_SR_TXE)==0)
@@ -345,7 +345,7 @@ bool serialTxComplete()
 
 char serialReadChar()
 {
-    Lock l(rx_mutex);
+    Lock<Mutex> l(rx_mutex);
     char result;
     rx_queue.get(result);
     return result;
@@ -353,7 +353,7 @@ char serialReadChar()
 
 bool serialReadCharNonblocking(char& c)
 {
-    Lock l(rx_mutex);
+    Lock<Mutex> l(rx_mutex);
     if(rx_queue.isEmpty()==false)
     {
         rx_queue.get(c);

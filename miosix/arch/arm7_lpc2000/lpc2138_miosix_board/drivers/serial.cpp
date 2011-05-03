@@ -161,7 +161,7 @@ void serialWrite(const char *str, unsigned int len)
 {
     if(!serial_enabled) return;
     int i;
-    Lock l(tx_mutex);
+    Lock<Mutex> l(tx_mutex);
     {
         FastInterruptDisableLock dLock;
         while(len>0)
