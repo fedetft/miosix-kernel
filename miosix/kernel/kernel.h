@@ -925,7 +925,7 @@ public:
      * \param b second thread to compare
      * \return true if a->getPriority() < b->getPriority()
      *
-     * Can be called when the kernel is paused.
+     * Can be called when the kernel is paused. or with interrupts disabled
      */
     bool operator() (Thread* a, Thread *b)
     {

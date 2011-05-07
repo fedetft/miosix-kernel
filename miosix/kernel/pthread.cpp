@@ -167,6 +167,7 @@ int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int kind)
             attr->recursive=PTHREAD_MUTEX_DEFAULT;
             return 0;
         case PTHREAD_MUTEX_RECURSIVE:
+            attr->recursive=PTHREAD_MUTEX_RECURSIVE;
             return 0;
         default:
             return EINVAL;

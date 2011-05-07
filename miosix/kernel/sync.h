@@ -306,12 +306,12 @@ private:
  *
  * //Mutex unlocked
  * {
- *     Lock dLock(m);
+ *     Lock<Mutex> dLock(m);
  *
  *     //Now mutex locked
  *
  *     {
- *         Unlock eLock(dLock);
+ *         Unlock<Mutex> eLock(dLock);
  *
  *         //Now mutex back unlocked
  *     }

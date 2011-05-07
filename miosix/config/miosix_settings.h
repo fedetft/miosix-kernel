@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010 by Terraneo Federico                   *
+ *   Copyright (C) 2008, 2009, 2010, 2011 by Terraneo Federico             *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -118,7 +118,7 @@ const unsigned char MAX_OPEN_FILES=8;
 //#define JTAG_DISABLE_SLEEP
 
 /// Minimum stack size (MUST be divisible by 4)
-const unsigned int STACK_MIN=384;
+const unsigned int STACK_MIN=256;
 
 /// \internal Size of idle thread stack.
 /// Should be >=STACK_MIN (MUST be divisible by 4)
@@ -127,7 +127,7 @@ const unsigned int STACK_IDLE=256;
 /// Default stack size for pthread_create.
 /// The chosen value is enough to call C standard library functions
 /// such as printf/fopen which are stack-heavy
-const unsigned int STACK_DEFAULT_FOR_PTHREAD=2048+512;
+const unsigned int STACK_DEFAULT_FOR_PTHREAD=2048;
 
 /// Number of priorities (MUST be >1)
 /// PRIORITY_MAX-1 is the highest priority, 0 is the lowest. -1 is reserved as

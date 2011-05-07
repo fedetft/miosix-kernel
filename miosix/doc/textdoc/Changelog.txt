@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
 v1.58
+- Reduced STACK_DEFAULT_FOR_PTHREAD to 2048 bytes, and STACK_MIN to 256 bytes.
+- Added tests in testsuite for FastMutex, helped catch one bug
 - Refactored code in Mutex and CondotionVariable
 - Implement ConditionVariable support for FastMutex
 - Breaking change: the Lock and Unlock classes have been templatized to
