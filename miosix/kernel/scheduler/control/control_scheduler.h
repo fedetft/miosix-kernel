@@ -32,7 +32,6 @@
 #include "control_scheduler_types.h"
 #include "parameters.h"
 #include "kernel/kernel.h"
-#include <list>
 #include <algorithm>
 
 #ifdef SCHED_TYPE_CONTROL_BASED
@@ -194,7 +193,7 @@ private:
                 if(bc<bco) bco=bc;
             } else bco=bc;
 
-            bco=min<int>(max(bco,-Tr),bMax*threadList.size());
+            bco=min<int>(max(bco,-Tr),bMax*threadListSize);
             #ifndef SCHED_CONTROL_FIXED_POINT
             float nextRoundTime=static_cast<float>(Tr+bco);
             #else //FIXED_POINT_MATH
@@ -202,27 +201,25 @@ private:
             #endif //FIXED_POINT_MATH
             eTro=eTr;
             Tr=0;//Reset round time
-            list<Thread *>::iterator it;
-            for(it=threadList.begin();it!=threadList.end();++it)
+            for(Thread *it=threadList;it!=0;it=it->schedData.next)
             {
                 //Recalculate per thread set point
                 #ifndef SCHED_CONTROL_FIXED_POINT
-                (*it)->schedData.SP_Tp=static_cast<int>(
-                        (*it)->schedData.alfa*nextRoundTime);
+                it->schedData.SP_Tp=static_cast<int>(
+                        it->schedData.alfa*nextRoundTime);
                 #else //FIXED_POINT_MATH
                 //nextRoundTime is bounded to 20bits, alfa to 12bits,
                 //so the multiplication fits in 32bits
-                (*it)->schedData.SP_Tp=
-                        ((*it)->schedData.alfa*nextRoundTime)/4096;
+                it->schedData.SP_Tp=(it->schedData.alfa*nextRoundTime)/4096;
                 #endif //FIXED_POINT_MATH
 
                 //Run each thread internal regulator
-                int eTp=(*it)->schedData.SP_Tp - (*it)->schedData.Tp;
+                int eTp=it->schedData.SP_Tp - it->schedData.Tp;
                 //note: since b and bo contain the real value multiplied by
                 //multFactor, this equals b=bo+eTp/multFactor.
-                int b=(*it)->schedData.bo + eTp;
+                int b=it->schedData.bo + eTp;
                 //saturation
-                (*it)->schedData.bo=min(max(b,bMin*multFactor),bMax*multFactor);
+                it->schedData.bo=min(max(b,bMin*multFactor),bMax*multFactor);
             }
         #ifdef ENABLE_REGULATOR_REINIT
         } else {
@@ -232,31 +229,30 @@ private:
             eTro=0;
             bco=0;
 
-            list<Thread *>::iterator it;
-            for(it=threadList.begin();it!=threadList.end();++it)
+            for(Thread *it=threadList;it!=0;it=it->schedData.next)
             {
                 //Recalculate per thread set point
                 #ifndef SCHED_CONTROL_FIXED_POINT
-                (*it)->schedData.SP_Tp=static_cast<int>(
-                        (*it)->schedData.alfa*SP_Tr);
+                it->schedData.SP_Tp=static_cast<int>(it->schedData.alfa*SP_Tr);
                 #else //FIXED_POINT_MATH
                 //SP_Tr is bounded to 20bits, alfa to 12bits,
                 //so the multiplication fits in 32bits
-                (*it)->schedData.SP_Tp=((*it)->schedData.alfa*SP_Tr)/4096;
+                it->schedData.SP_Tp=(it->schedData.alfa*SP_Tr)/4096;
                 #endif //FIXED_POINT_MATH
 
-                int b=(*it)->schedData.SP_Tp*multFactor;
-                (*it)->schedData.bo=min(max(b,bMin*multFactor),bMax*multFactor);
+                int b=it->schedData.SP_Tp*multFactor;
+                it->schedData.bo=min(max(b,bMin*multFactor),bMax*multFactor);
             }
         }
         #endif //ENABLE_REGULATOR_REINIT
     }
 
     ///\internal Threads (except idle thread) are stored here
-    static std::list<Thread *> threadList;
+    static Thread *threadList;
+    static unsigned int threadListSize;
 
     ///\internal current thread in the round
-    static std::list<Thread *>::iterator curInRound;
+    static Thread *curInRound;
 
     ///\internal idle thread
     static Thread *idle;

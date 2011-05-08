@@ -35,6 +35,8 @@
 
 namespace miosix {
 
+class Thread; //Forward declaration
+
 /**
  * This class models the concept of priority for the control based scheduler.
  * In this scheduler the priority is simply a short int with values ranging
@@ -115,7 +117,7 @@ class ControlSchedulerData
 {
 public:
     ControlSchedulerData(): priority(0), bo(bNominal*multFactor), alfa(0),
-            SP_Tp(0), Tp(bNominal) {}
+            SP_Tp(0), Tp(bNominal), next(0) {}
 
     //Thread priority. Higher priority means longer burst
     ControlSchedulerPriority priority;
@@ -128,6 +130,7 @@ public:
     #endif //FIXED_POINT_MATH
     int SP_Tp;//Processing time set point
     int Tp;//Real processing time
+    Thread *next;//Next thread in list
 };
 
 } //namespace miosix

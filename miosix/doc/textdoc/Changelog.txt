@@ -1,6 +1,7 @@
 Changelog for Miosix np embedded OS
 
 v1.58
+- Fixed a bug in the control based scheduler that caused sporadic crashes
 - Reduced STACK_DEFAULT_FOR_PTHREAD to 2048 bytes, and STACK_MIN to 256 bytes.
 - Added tests in testsuite for FastMutex, helped catch one bug
 - Refactored code in Mutex and CondotionVariable
