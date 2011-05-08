@@ -53,7 +53,11 @@ bool ControlScheduler::PKaddThread(Thread *thread,
     threadList.push_front(thread);
     SP_Tr+=bNominal; //One thread more, increase round time
     {
-        FastInterruptDisableLock dLock;
+        //Note: can't use FastInterruptDisableLock here since this code is
+        //also called *before* the kernel is started.
+        //Using FastInterruptDisableLock would enable interrupts prematurely
+        //and cause all sorts of misterious crashes
+        InterruptDisableLock dLock;
         IRQrecalculateAlfa();
     }
     return true;

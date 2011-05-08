@@ -61,6 +61,9 @@ public:
      * Note that the meaning of priority is scheduler specific.
      * \return false if an error occurred and the thread could not be added to
      * the scheduler
+     *
+     * Note: this member function is called also before the kernel is started
+     * to add the main and idle thread.
      */
     static bool PKaddThread(Thread *thread, Priority priority)
     {

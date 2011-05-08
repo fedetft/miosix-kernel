@@ -60,7 +60,7 @@ namespace miosix {
 ///  exceed this, but the su of all bursts in the Tr variable can't exceed
 ///  64 (max # threads) * 8191 = ~524287 (this constraint is enforced by
 ///  clamping Tr to that value)
-#define SCHED_CONTROL_FIXED_POINT
+//#define SCHED_CONTROL_FIXED_POINT
 
 #if defined(ENABLE_REGULATOR_REINIT) && !defined(ENABLE_FEEDFORWARD)
 #error "ENABLE_REGULATOR_REINIT requires ENABLE_FEEDFORWARD"

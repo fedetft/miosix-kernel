@@ -58,7 +58,7 @@ namespace miosix {
  * Performs the part of initialization that must be done after the kernel is
  * started, and finally calls main()
  */
-static void _mainLoader(void *argv)
+static void mainLoader(void *argv)
 {
     //If reaches here kernel is started, print Ok
     bootlog("Ok\r\n");
@@ -127,13 +127,13 @@ static void _mainLoader(void *argv)
 extern "C" void _init()
 {
     using namespace miosix;
+    if(areInterruptsEnabled()) errorHandler(INTERRUPTS_ENABLED_AT_BOOT);
     IRQbspInit();
     //After IRQbspInit() serial port is initialized, so we can use BOOTLOG
-    if(areInterruptsEnabled()) errorHandler(INTERRUPTS_ENABLED_AT_BOOT);
     IRQbootlog(getMiosixVersion());
     IRQbootlog("\r\nStarting Kernel... ");
     //Create the first thread, and start the scheduler.
-    Thread::create(_mainLoader,MAIN_STACK_SIZE,MAIN_PRIORITY,NULL);
+    Thread::create(mainLoader,MAIN_STACK_SIZE,MAIN_PRIORITY,NULL);
     startKernel();
     //Never reach here
 }
