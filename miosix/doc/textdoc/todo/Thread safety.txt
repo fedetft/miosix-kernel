@@ -18,7 +18,7 @@ library that require locks or atomic ops for thread safety.
 - libsupc++/guard.cc
   Requres a thread safe implementation of code to call the constructor
   of any static class declared inside a function.
-  TODO
+  FIXED
 
 - libsupc++/eh_alloc.cc
   Requires a mutex for allocation of memory in the emergency buffer.

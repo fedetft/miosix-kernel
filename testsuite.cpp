@@ -1940,6 +1940,7 @@ posix threads API
  pthread_cond_wait
  pthread_cond_signal
  pthread_cond_broadcast
+ pthread_once
 */
 
 inline Thread *toThread(pthread_t t)
@@ -1994,6 +1995,15 @@ void *t16_p4(void *argv)
     if(pthread_mutex_unlock(&t16_m1)!=0) fail("cond mutex unlock (2)"); //<---
     return NULL;
 }
+
+int a=0;
+
+void t16_f1()
+{
+    a++;
+}
+
+pthread_once_t t16_o1=PTHREAD_ONCE_INIT;
 
 static void test_16()
 {
@@ -2158,6 +2168,18 @@ static void test_16()
     pthread_join(thread,NULL);
     Thread::sleep(10);
     if(pthread_cond_destroy(&t16_c2)!=0) fail("cond destroy");
+    //
+    // Testing pthread_once
+    //
+    //Note: implementation detail since otherwise by the very nature of
+    //pthread_once, it wouldn't be possible to run the test more than once ;)
+    if(t16_o1.init_executed==1) t16_o1.init_executed=0;
+    a=0;
+    if(pthread_once(&t16_o1,t16_f1)!=0) fail("pthread_once 1");
+    if(a!=1) fail("pthread_once 2");
+    if(pthread_once(&t16_o1,t16_f1)!=0) fail("pthread_once 2");
+    if(a!=1) fail("pthread_once 3");
+    if(sizeof(pthread_once_t)!=2) fail("pthread_once 4");
     pass();
 }
 

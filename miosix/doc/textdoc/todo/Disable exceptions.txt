@@ -1,3 +1,7 @@
+
+Note: this is no longer a TODO, since essentially everything has been done as
+of Miosix 1.58. Only kept for historic reasons.
+
 While using certain C++ features exception support and its code size overhead
 might be linked with the application code even if -fno-exceptions was passed to
 gcc. The easy solution is to compile gcc/libstdc++ by explicitly disabling
@@ -20,8 +24,7 @@ that throw exceptions.
 - guard.cc
   extern "C" void cxa_guard_acquire(__guard *g) : throws
       __gnu_cxx::recursive_init_error
-  This seems hard to fix, leaving it as-is for now. If user code does not
-  have static classes inside a function then this code is not linked.
+  FIXED
 
 - eh_aux_runtime.cc
   extern "C" void __cxa_bad_cast() : throws std::bad_cast

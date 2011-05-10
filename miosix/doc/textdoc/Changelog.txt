@@ -1,6 +1,13 @@
 Changelog for Miosix np embedded OS
 
 v1.58
+- Added support for pthread_once, also added new patch to newlib to reduce the
+  size of pthread_once_t from 8 bytes to 2 bytes
+- Added __cxa_guard_acquire(), __cxa_guard_release() and __cxa_guard_abort()
+  to syscalls.cpp. These override the default ones in libstdc++ and provide
+  a miosix-aware implementation that can guarantee thread safe initialization
+  of static objects. Also, they don't pull in exception support unlike those
+  in libstdc++
 - Fixed a bug in the control based scheduler that caused sporadic crashes
 - Reduced STACK_DEFAULT_FOR_PTHREAD to 2048 bytes, and STACK_MIN to 256 bytes.
 - Added tests in testsuite for FastMutex, helped catch one bug

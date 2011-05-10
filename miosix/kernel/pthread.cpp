@@ -327,4 +327,24 @@ int pthread_cond_broadcast(pthread_cond_t *cond)
     return 0;
 }
 
+//
+// Once API
+//
+
+int	pthread_once(pthread_once_t *once, void (*func)())
+{
+    if(once==0 || func==0 || once->is_initialized!=1) return EINVAL;
+    bool shouldWeRunFunc=false;
+    {
+        FastInterruptDisableLock dLock;
+        if(once->init_executed==0)
+        {
+            once->init_executed=1;
+            shouldWeRunFunc=true;
+        }
+        if(shouldWeRunFunc) func();
+    }
+    return 0;
+}
+
 } //extern "C"

@@ -37,6 +37,7 @@
 #include <sys/stat.h>
 #include <sys/fcntl.h>
 #include <unistd.h>
+#include <cxxabi.h>
 // Settings
 #include "config/miosix_settings.h"
 // Filesystem
@@ -111,6 +112,85 @@ void __verbose_terminate_handler()
 }
 
 }//namespace __gnu_cxx
+
+//MUST be 8 bytes in size, because that's the size of __guard
+struct MiosixGuard
+{
+	char initialized;
+    char padding[3];
+	miosix::Thread *owner;
+};
+
+namespace __cxxabiv1
+{
+/**
+ * Used to initialize static objects only once, in a threadsafe way
+ * \param g guard struct, 8 bytes in size
+ * \return 0 if object already initialized, 1 if this thread has to initialize
+ * it, or lock if another thread has already started initializing it
+ */
+extern "C" int __cxa_guard_acquire(__guard *g)
+{
+    volatile MiosixGuard *guard=reinterpret_cast<volatile MiosixGuard*>(g);
+    for(;;)
+    {
+        miosix::disableInterrupts();
+        //Object already initialized, good
+        if(guard->initialized)
+        {
+            miosix::enableInterrupts();
+            return 0;
+        }
+        //Object uninitialized, and no other thread trying to initialize it
+        if(guard->owner==0)
+        {
+            guard->owner=miosix::Thread::IRQgetCurrentThread();
+            miosix::enableInterrupts();
+            return 1;
+        }
+        //If we get here, the object is being initialized by another thread
+        if(guard->owner==miosix::Thread::IRQgetCurrentThread())
+        {
+            //Wait, WTF the other thread initializing the object is
+            //this thread?!? We have a recursive initialization error
+            //Not throwing an exception to avoid pulling in exception
+            //support even when -fno-exception selected
+            miosix::Console::IRQwrite("Recursive initialization\r\n");
+            miosix::enableInterrupts();
+            _exit(1);
+        }
+        miosix::enableInterrupts();
+        miosix::Thread::yield(); //Sort of a spinlock, a "yieldlock"...
+    }
+}
+
+/**
+ * Called after the thread has successfully initialized the object
+ * \param g guard struct, 8 bytes in size
+ */
+extern "C" void __cxa_guard_release(__guard *g)
+{
+    volatile MiosixGuard *guard=reinterpret_cast<volatile MiosixGuard*>(g);
+    miosix::disableInterrupts();
+    guard->initialized=_GLIBCXX_GUARD_BIT;
+    guard->owner=0;
+    miosix::enableInterrupts();
+}
+
+/**
+ * Called if an exception was thrown while the object was being initialized
+ * \param g guard struct, 8 bytes in size
+ */
+extern "C" void __cxa_guard_abort(__guard *g)
+{
+    volatile MiosixGuard *guard=reinterpret_cast<volatile MiosixGuard*>(g);
+    miosix::disableInterrupts();
+    //Leaving initialized @ 0
+    guard->owner=0;
+    miosix::enableInterrupts();
+}
+
+} //namespace __cxxabiv1
 
 #ifdef __cplusplus
 extern "C" {

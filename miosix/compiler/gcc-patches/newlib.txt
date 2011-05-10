@@ -19,8 +19,8 @@ This patch does the following:
    This patch does not make Miosix call the finalizers, it avoids
    storing them so that no memory is wasted for a broken feature.
 
-3) Change the definition of pthread_mutex_t and pthread_cond_t,
-   plus the respective PTHREAD_MUTEX_INITIALIZER and PTHREAD_COND_INIT.
+3) Change the definition of pthread_mutex_t, pthread_cond_t, pthread_once_t,
+   plus the respective PTHREAD_MUTEX_INITIALIZER and PTHREAD_COND_INITIALIZER.
    This makes it possible for Miosix to increase the performance of
    pthread mutex and condition variables.
 

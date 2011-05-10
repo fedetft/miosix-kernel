@@ -1,6 +1,6 @@
 diff -ruN newlib-1.19.0-original/newlib/libc/include/pthread.h newlib-1.19.0/newlib/libc/include/pthread.h
 --- newlib-1.19.0-original/newlib/libc/include/pthread.h	2011-04-22 19:32:40.267583001 +0200
-+++ newlib-1.19.0/newlib/libc/include/pthread.h	2011-04-27 14:47:35.757203112 +0200
++++ newlib-1.19.0/newlib/libc/include/pthread.h	2011-05-10 19:57:54.170439591 +0200
 @@ -46,7 +46,11 @@
  int	_EXFUN(pthread_mutexattr_setpshared,
  		(pthread_mutexattr_t *__attr, int __pshared));
@@ -52,7 +52,7 @@ diff -ruN newlib-1.19.0-original/newlib/libc/include/pthread.h newlib-1.19.0/new
   
 diff -ruN newlib-1.19.0-original/newlib/libc/include/stdio.h newlib-1.19.0/newlib/libc/include/stdio.h
 --- newlib-1.19.0-original/newlib/libc/include/stdio.h	2011-04-22 19:32:40.238583002 +0200
-+++ newlib-1.19.0/newlib/libc/include/stdio.h	2011-04-27 14:47:35.758203105 +0200
++++ newlib-1.19.0/newlib/libc/include/stdio.h	2011-05-10 19:57:54.171439589 +0200
 @@ -104,8 +104,10 @@
  
  #ifdef __BUFSIZ__
@@ -67,7 +67,7 @@ diff -ruN newlib-1.19.0-original/newlib/libc/include/stdio.h newlib-1.19.0/newli
  #ifdef __FOPEN_MAX__
 diff -ruN newlib-1.19.0-original/newlib/libc/include/sys/lock.h newlib-1.19.0/newlib/libc/include/sys/lock.h
 --- newlib-1.19.0-original/newlib/libc/include/sys/lock.h	2011-04-22 19:32:40.259583001 +0200
-+++ newlib-1.19.0/newlib/libc/include/sys/lock.h	2011-04-27 14:47:35.758203105 +0200
++++ newlib-1.19.0/newlib/libc/include/sys/lock.h	2011-05-10 19:57:54.171439589 +0200
 @@ -1,24 +1,57 @@
  #ifndef __SYS_LOCK_H__
  #define __SYS_LOCK_H__
@@ -145,7 +145,7 @@ diff -ruN newlib-1.19.0-original/newlib/libc/include/sys/lock.h newlib-1.19.0/ne
  #endif /* __SYS_LOCK_H__ */
 diff -ruN newlib-1.19.0-original/newlib/libc/include/sys/reent.h newlib-1.19.0/newlib/libc/include/sys/reent.h
 --- newlib-1.19.0-original/newlib/libc/include/sys/reent.h	2011-04-22 19:32:40.255583001 +0200
-+++ newlib-1.19.0/newlib/libc/include/sys/reent.h	2011-04-27 15:17:00.925203366 +0200
++++ newlib-1.19.0/newlib/libc/include/sys/reent.h	2011-05-10 19:57:54.172439590 +0200
 @@ -393,8 +393,12 @@
    void (**(_sig_func))(int);
  
@@ -191,7 +191,7 @@ diff -ruN newlib-1.19.0-original/newlib/libc/include/sys/reent.h newlib-1.19.0/n
      (var)->__sglue._iobs = _NULL; \
 diff -ruN newlib-1.19.0-original/newlib/libc/include/sys/types.h newlib-1.19.0/newlib/libc/include/sys/types.h
 --- newlib-1.19.0-original/newlib/libc/include/sys/types.h	2011-04-22 19:32:40.251583004 +0200
-+++ newlib-1.19.0/newlib/libc/include/sys/types.h	2011-04-27 14:47:35.759203102 +0200
++++ newlib-1.19.0/newlib/libc/include/sys/types.h	2011-05-10 21:09:54.006439594 +0200
 @@ -300,7 +300,11 @@
  #define PTHREAD_CREATE_DETACHED 0
  #define PTHREAD_CREATE_JOINABLE  1
@@ -261,9 +261,24 @@ diff -ruN newlib-1.19.0-original/newlib/libc/include/sys/types.h newlib-1.19.0/n
  
  typedef struct {
    int   is_initialized;
+@@ -438,10 +469,12 @@
+ 
+ typedef __uint32_t pthread_key_t;        /* thread-specific data keys */
+ 
++/* begin TFT patch: changing int with char, just to save a couple of bytes in RAM */
+ typedef struct {
+-  int   is_initialized;  /* is this structure initialized? */
+-  int   init_executed;   /* has the initialization routine been run? */
++  char   is_initialized;  /* is this structure initialized? */
++  char   init_executed;   /* has the initialization routine been run? */
+ } pthread_once_t;       /* dynamic package initialization */
++/* end TFT patch */
+ #else
+ #if defined (__CYGWIN__)
+ #include <cygwin/types.h>
 diff -ruN newlib-1.19.0-original/newlib/libc/reent/reent.c newlib-1.19.0/newlib/libc/reent/reent.c
 --- newlib-1.19.0-original/newlib/libc/reent/reent.c	2011-04-22 19:32:39.673583001 +0200
-+++ newlib-1.19.0/newlib/libc/reent/reent.c	2011-04-27 14:47:35.760203104 +0200
++++ newlib-1.19.0/newlib/libc/reent/reent.c	2011-05-10 19:57:54.172439590 +0200
 @@ -87,8 +87,11 @@
  	_free_r (ptr, ptr->_localtime_buf);
        if (ptr->_asctime_buf)
@@ -322,7 +337,7 @@ diff -ruN newlib-1.19.0-original/newlib/libc/reent/reent.c newlib-1.19.0/newlib/
  
 diff -ruN newlib-1.19.0-original/newlib/libc/stdlib/__atexit.c newlib-1.19.0/newlib/libc/stdlib/__atexit.c
 --- newlib-1.19.0-original/newlib/libc/stdlib/__atexit.c	2011-04-22 19:32:44.697583002 +0200
-+++ newlib-1.19.0/newlib/libc/stdlib/__atexit.c	2011-04-27 14:47:35.760203104 +0200
++++ newlib-1.19.0/newlib/libc/stdlib/__atexit.c	2011-05-10 19:57:54.173439593 +0200
 @@ -8,10 +8,6 @@
  #include <sys/lock.h>
  #include "atexit.h"
@@ -420,7 +435,7 @@ diff -ruN newlib-1.19.0-original/newlib/libc/stdlib/__atexit.c newlib-1.19.0/new
  }
 diff -ruN newlib-1.19.0-original/newlib/libc/stdlib/__call_atexit.c newlib-1.19.0/newlib/libc/stdlib/__call_atexit.c
 --- newlib-1.19.0-original/newlib/libc/stdlib/__call_atexit.c	2011-04-22 19:32:44.827582998 +0200
-+++ newlib-1.19.0/newlib/libc/stdlib/__call_atexit.c	2011-04-27 14:47:35.760203104 +0200
++++ newlib-1.19.0/newlib/libc/stdlib/__call_atexit.c	2011-05-10 19:57:54.173439593 +0200
 @@ -11,10 +11,6 @@
  /* Make this a weak reference to avoid pulling in free.  */
  void free(void *) _ATTRIBUTE((__weak__));
