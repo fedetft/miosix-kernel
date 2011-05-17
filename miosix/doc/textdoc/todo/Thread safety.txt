@@ -8,8 +8,6 @@ library that require locks or atomic ops for thread safety.
 
 - newlib/libc/stdlib/__atexit.c
   FIXED
-  As per new newlib patch, atexit has become a no-op and therefore locking
-  is no longer required.
 
 - newlib stdio library, seems to require locks here and there for files.
   It also looks there's a mutex in every FILE struct.

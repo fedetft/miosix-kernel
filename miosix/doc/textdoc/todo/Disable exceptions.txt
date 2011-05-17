@@ -1,6 +1,7 @@
 
 Note: this is no longer a TODO, since essentially everything has been done as
 of Miosix 1.58. Only kept for historic reasons.
+=============================================================================
 
 While using certain C++ features exception support and its code size overhead
 might be linked with the application code even if -fno-exceptions was passed to

@@ -1,4 +1,7 @@
 
+TODO: implement code to make atexit() stuff functional. Stubs are already in
+syscalls.cpp
+
 TODO: EDF scheduler needs a way for a thread to set the priority (tht is, the
 deadline) of another thread, necessary for non periodic tasks.
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010 by Terraneo Federico                   *
+ *   Copyright (C) 2008, 2009, 2010, 2011 by Terraneo Federico             *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -51,13 +51,16 @@
 
 using namespace std;
 
-//If not using exceptions, ovverrde the default new, delete with
+
+
+
+//
+// C++ exception support, mainly code size optimizations
+// =====================================================
+
+//If not using exceptions, ovverride the default new, delete with
 //an implementation that does not throw
 #ifdef __NO_EXCEPTIONS
-/**
- * \internal
- * new operator. Redefined not to throw exceptions.
- */
 void *operator new(size_t size) throw()
 {
     return malloc(size);
@@ -68,10 +71,6 @@ void *operator new[](size_t size) throw()
     return malloc(size);
 }
 
-/**
- * \internal
- * delete operator. Redefined not to throw exceptions.
- */
 void operator delete(void *p) throw()
 {
     free(p);
@@ -112,6 +111,13 @@ void __verbose_terminate_handler()
 }
 
 }//namespace __gnu_cxx
+
+
+
+
+//
+// C++ static constructors support, to achieve thread safety
+// =========================================================
 
 //MUST be 8 bytes in size, because that's the size of __guard
 struct MiosixGuard
@@ -172,7 +178,7 @@ extern "C" void __cxa_guard_release(__guard *g)
 {
     volatile MiosixGuard *guard=reinterpret_cast<volatile MiosixGuard*>(g);
     miosix::disableInterrupts();
-    guard->initialized=_GLIBCXX_GUARD_BIT;
+    guard->initialized=1;
     guard->owner=0;
     miosix::enableInterrupts();
 }
@@ -192,13 +198,53 @@ extern "C" void __cxa_guard_abort(__guard *g)
 
 } //namespace __cxxabiv1
 
+
+
+
+//
+// C atexit support, for thread safety and code size optimizations
+// ===============================================================
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define STDIN_FILENO 0
-#define STDOUT_FILENO 1
-#define STDERR_FILENO 2
+// Prior to Miosix 1.58 atexit was effectively unimplemented, but its partial
+// support in newlib used ~384bytes of RAM. Currently it is still unimplemented
+// but newlib has been patched so that no RAM is wasted. In future, by
+// implementing those function below it would be possible with a #define in
+// miosix_settings.h to configure Miosix to enable atexit
+// (and pay for the RAM usage), or leave it disabled.
+
+/**
+ * Function called by atexit(), on_exit() and __cxa_atexit() to register
+ * C functions/C++ destructors to be run at program termintion.
+ * It is called in this way:
+ * atexit():       __register_exitproc(__et_atexit, fn, 0,   0)
+ * on_exit():      __register_exitproc(__et_onexit, fn, arg, 0)
+ * __cxa_atexit(): __register_exitproc(__et_cxa,    fn, arg, d)
+ * \param type to understand if the function was called by atexit, on_exit, ...
+ * \param fn pointer to function to be called
+ * \param arg 0 in case of atexit, function argument in case of on_exit,
+ * "this" parameter for C++ destructors registered with __cxa_atexit
+ * \param d __dso_handle used to selectively call C++ destructors of a shared
+ * library loaded dynamically, unused since Miosix does not support shared libs
+ * \return 0 on success
+ */
+int __register_exitproc(int type, void (*fn)(void), void *arg, void *d)
+{
+    return 0;
+}
+
+/**
+ * Called by exit() to call functions registered through atexit()
+ * \param code the exit code, for example with exit(1), code==1
+ * \param d __dso_handle, see __register_exitproc
+ */
+void __call_exitprocs(int code, void *d)
+{
+
+}
 
 /**
  * \internal
@@ -206,6 +252,17 @@ extern "C" {
  * See http://lists.debian.org/debian-gcc/2003/07/msg00057.html
  */
 void *__dso_handle=(void*) &__dso_handle;
+
+
+
+
+//
+// C/C++ system calls, to support malloc, printf, fopen, etc.
+// ==========================================================
+
+#define STDIN_FILENO 0
+#define STDOUT_FILENO 1
+#define STDERR_FILENO 2
 
 /**
  * \internal
@@ -583,7 +640,7 @@ int _link_r(struct _reent *ptr, const char *f_old, const char *f_new)
  */
 int _kill(int pid, int sig)
 {
-    if(pid==1) _exit(1); //pid=1 meams the only running process
+    if(pid==1) _exit(1); //pid=1 means the only running process
     else return -1;
 }
 

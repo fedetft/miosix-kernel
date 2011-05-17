@@ -1,6 +1,6 @@
 diff -ruN newlib-1.19.0-original/newlib/libc/include/pthread.h newlib-1.19.0/newlib/libc/include/pthread.h
 --- newlib-1.19.0-original/newlib/libc/include/pthread.h	2011-04-22 19:32:40.267583001 +0200
-+++ newlib-1.19.0/newlib/libc/include/pthread.h	2011-05-10 19:57:54.170439591 +0200
++++ newlib-1.19.0/newlib/libc/include/pthread.h	2011-05-17 00:12:14.497813740 +0200
 @@ -46,7 +46,11 @@
  int	_EXFUN(pthread_mutexattr_setpshared,
  		(pthread_mutexattr_t *__attr, int __pshared));
@@ -52,7 +52,7 @@ diff -ruN newlib-1.19.0-original/newlib/libc/include/pthread.h newlib-1.19.0/new
   
 diff -ruN newlib-1.19.0-original/newlib/libc/include/stdio.h newlib-1.19.0/newlib/libc/include/stdio.h
 --- newlib-1.19.0-original/newlib/libc/include/stdio.h	2011-04-22 19:32:40.238583002 +0200
-+++ newlib-1.19.0/newlib/libc/include/stdio.h	2011-05-10 19:57:54.171439589 +0200
++++ newlib-1.19.0/newlib/libc/include/stdio.h	2011-05-17 00:12:14.498813740 +0200
 @@ -104,8 +104,10 @@
  
  #ifdef __BUFSIZ__
@@ -67,7 +67,7 @@ diff -ruN newlib-1.19.0-original/newlib/libc/include/stdio.h newlib-1.19.0/newli
  #ifdef __FOPEN_MAX__
 diff -ruN newlib-1.19.0-original/newlib/libc/include/sys/lock.h newlib-1.19.0/newlib/libc/include/sys/lock.h
 --- newlib-1.19.0-original/newlib/libc/include/sys/lock.h	2011-04-22 19:32:40.259583001 +0200
-+++ newlib-1.19.0/newlib/libc/include/sys/lock.h	2011-05-10 19:57:54.171439589 +0200
++++ newlib-1.19.0/newlib/libc/include/sys/lock.h	2011-05-17 00:12:14.498813740 +0200
 @@ -1,24 +1,57 @@
  #ifndef __SYS_LOCK_H__
  #define __SYS_LOCK_H__
@@ -145,7 +145,7 @@ diff -ruN newlib-1.19.0-original/newlib/libc/include/sys/lock.h newlib-1.19.0/ne
  #endif /* __SYS_LOCK_H__ */
 diff -ruN newlib-1.19.0-original/newlib/libc/include/sys/reent.h newlib-1.19.0/newlib/libc/include/sys/reent.h
 --- newlib-1.19.0-original/newlib/libc/include/sys/reent.h	2011-04-22 19:32:40.255583001 +0200
-+++ newlib-1.19.0/newlib/libc/include/sys/reent.h	2011-05-10 19:57:54.172439590 +0200
++++ newlib-1.19.0/newlib/libc/include/sys/reent.h	2011-05-17 00:13:41.552813742 +0200
 @@ -393,8 +393,12 @@
    void (**(_sig_func))(int);
  
@@ -153,7 +153,7 @@ diff -ruN newlib-1.19.0-original/newlib/libc/include/sys/reent.h newlib-1.19.0/n
 -  struct _atexit *_atexit;
 -  struct _atexit _atexit0;
 +  /*
-+   * begin TFT patch: atexit no longer exists
++   * begin TFT patch: atexit moved out of reentrancy structure
 +   * struct _atexit *_atexit;
 +   * struct _atexit _atexit0;
 +   * end TFT patch
@@ -191,7 +191,7 @@ diff -ruN newlib-1.19.0-original/newlib/libc/include/sys/reent.h newlib-1.19.0/n
      (var)->__sglue._iobs = _NULL; \
 diff -ruN newlib-1.19.0-original/newlib/libc/include/sys/types.h newlib-1.19.0/newlib/libc/include/sys/types.h
 --- newlib-1.19.0-original/newlib/libc/include/sys/types.h	2011-04-22 19:32:40.251583004 +0200
-+++ newlib-1.19.0/newlib/libc/include/sys/types.h	2011-05-10 21:09:54.006439594 +0200
++++ newlib-1.19.0/newlib/libc/include/sys/types.h	2011-05-17 00:12:14.499813740 +0200
 @@ -300,7 +300,11 @@
  #define PTHREAD_CREATE_DETACHED 0
  #define PTHREAD_CREATE_JOINABLE  1
@@ -278,14 +278,14 @@ diff -ruN newlib-1.19.0-original/newlib/libc/include/sys/types.h newlib-1.19.0/n
  #include <cygwin/types.h>
 diff -ruN newlib-1.19.0-original/newlib/libc/reent/reent.c newlib-1.19.0/newlib/libc/reent/reent.c
 --- newlib-1.19.0-original/newlib/libc/reent/reent.c	2011-04-22 19:32:39.673583001 +0200
-+++ newlib-1.19.0/newlib/libc/reent/reent.c	2011-05-10 19:57:54.172439590 +0200
++++ newlib-1.19.0/newlib/libc/reent/reent.c	2011-05-17 00:16:16.545813741 +0200
 @@ -87,8 +87,11 @@
  	_free_r (ptr, ptr->_localtime_buf);
        if (ptr->_asctime_buf)
  	_free_r (ptr, ptr->_asctime_buf);
 -      if (ptr->_atexit && ptr->_atexit->_on_exit_args_ptr)
 -	_free_r (ptr, ptr->_atexit->_on_exit_args_ptr);
-+	/* begin TFT patch: atexit no longer exists
++	/* begin TFT patch: atexit moved out of reentrancy structure
 +     * if (ptr->_atexit && ptr->_atexit->_on_exit_args_ptr)
 +	 * _free_r (ptr, ptr->_atexit->_on_exit_args_ptr);
 +	 * end TFT patch
@@ -314,7 +314,7 @@ diff -ruN newlib-1.19.0-original/newlib/libc/reent/reent.c newlib-1.19.0/newlib/
 -  if (ptr->__cleanup)
 -    (*ptr->__cleanup) (ptr);
 +/*
-+ * begin TFT patch:  atexit no longer exists
++ * begin TFT patch: atexit moved out of reentrancy structure
 + *  register struct _atexit *p;
 + * register int n;
 + *
@@ -337,8 +337,8 @@ diff -ruN newlib-1.19.0-original/newlib/libc/reent/reent.c newlib-1.19.0/newlib/
  
 diff -ruN newlib-1.19.0-original/newlib/libc/stdlib/__atexit.c newlib-1.19.0/newlib/libc/stdlib/__atexit.c
 --- newlib-1.19.0-original/newlib/libc/stdlib/__atexit.c	2011-04-22 19:32:44.697583002 +0200
-+++ newlib-1.19.0/newlib/libc/stdlib/__atexit.c	2011-05-10 19:57:54.173439593 +0200
-@@ -8,10 +8,6 @@
++++ newlib-1.19.0/newlib/libc/stdlib/__atexit.c	2011-05-17 00:18:34.296813742 +0200
+@@ -8,92 +8,10 @@
  #include <sys/lock.h>
  #include "atexit.h"
  
@@ -349,10 +349,15 @@ diff -ruN newlib-1.19.0-original/newlib/libc/stdlib/__atexit.c newlib-1.19.0/new
  /*
   * Register a function to be performed at exit or on shared library unload.
   */
-@@ -24,76 +20,12 @@
- 	void *arg _AND
- 	void *d)
- {
+ 
+-int
+-_DEFUN (__register_exitproc,
+-	(type, fn, arg, d),
+-	int type _AND
+-	void (*fn) (void) _AND
+-	void *arg _AND
+-	void *d)
+-{
 -  struct _on_exit_args * args;
 -  register struct _atexit *p;
 -
@@ -424,18 +429,14 @@ diff -ruN newlib-1.19.0-original/newlib/libc/stdlib/__atexit.c newlib-1.19.0/new
 -#ifndef __SINGLE_THREAD__
 -  __lock_release_recursive(__atexit_lock);
 -#endif
-+	/*
-+	 * Miosix is designed for microcontrollers, and in microcontrollers
-+	 * main() usually never returns. Therefore, there's no reason to
-+	 * take up memory storing finalizers registered with atexit(), 
-+	 * onexit() and cxa_atexit().
-+	 * Return zero as-if we did something
-+	 */
-   return 0;
- }
+-  return 0;
+-}
++// TFT patch: function __register_exitproc is now a Miosix syscall
++// to make it possible to compile the kernel both with and without
++// atexit support
 diff -ruN newlib-1.19.0-original/newlib/libc/stdlib/__call_atexit.c newlib-1.19.0/newlib/libc/stdlib/__call_atexit.c
 --- newlib-1.19.0-original/newlib/libc/stdlib/__call_atexit.c	2011-04-22 19:32:44.827582998 +0200
-+++ newlib-1.19.0/newlib/libc/stdlib/__call_atexit.c	2011-05-10 19:57:54.173439593 +0200
++++ newlib-1.19.0/newlib/libc/stdlib/__call_atexit.c	2011-05-17 00:21:26.996813742 +0200
 @@ -11,10 +11,6 @@
  /* Make this a weak reference to avoid pulling in free.  */
  void free(void *) _ATTRIBUTE((__weak__));
@@ -447,10 +448,14 @@ diff -ruN newlib-1.19.0-original/newlib/libc/stdlib/__call_atexit.c newlib-1.19.
  #ifdef _WANT_REGISTER_FINI
  
  /* If "__libc_fini" is defined, finalizers (either
-@@ -64,98 +60,10 @@
- _DEFUN (__call_exitprocs, (code, d),
- 	int code _AND _PTR d)
- {
+@@ -60,102 +56,6 @@
+  * otherwise only the handlers from that DSO are called.
+  */
+ 
+-void 
+-_DEFUN (__call_exitprocs, (code, d),
+-	int code _AND _PTR d)
+-{
 -  register struct _atexit *p;
 -  struct _atexit **lastp;
 -  register struct _on_exit_args * args;
@@ -545,10 +550,7 @@ diff -ruN newlib-1.19.0-original/newlib/libc/stdlib/__call_atexit.c newlib-1.19.
 -  __lock_release_recursive(__atexit_lock);
 -#endif
 -
-+	/*
-+	 * Miosix is designed for microcontrollers, and in microcontrollers
-+	 * main() usually never returns. Therefore, there's no reason to
-+	 * take up memory storing finalizers registered with atexit(), 
-+	 * onexit() and cxa_atexit().
-+	 */
- }
+-}
++// TFT patch: function __call_exitprocs is now a Miosix syscall
++// to make it possible to compile the kernel both with and without
++// atexit support
