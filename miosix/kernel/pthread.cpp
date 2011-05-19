@@ -342,8 +342,8 @@ int	pthread_once(pthread_once_t *once, void (*func)())
             once->init_executed=1;
             shouldWeRunFunc=true;
         }
-        if(shouldWeRunFunc) func();
     }
+    if(shouldWeRunFunc) func();
     return 0;
 }
 

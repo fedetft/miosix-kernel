@@ -1,6 +1,7 @@
 Changelog for Miosix np embedded OS
 
 v1.58
+- Fixed a bug in pthread_once(), optimized __cxa_guard_* code.
 - Made __register_exitproc() and __call_exitprocs() two new syscalls, to allow
   a future implementation of atexit support.
 - Added support for pthread_once, also added new patch to newlib to reduce the
