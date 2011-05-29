@@ -28,6 +28,8 @@
 #ifndef SYSCALLS_H
 #define	SYSCALLS_H
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif //__cplusplus

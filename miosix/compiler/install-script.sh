@@ -14,11 +14,11 @@
 # password when installing files to /opt and /usr/bin
 
 # Uncomment if installing globally on the system
-#INSTALL_DIR=/opt
-#SUDO=sudo
+INSTALL_DIR=/opt
+SUDO=sudo
 # Uncomment if installing locally, sudo isn't necessary
-INSTALL_DIR=`pwd`/gcc 
-SUDO=
+#INSTALL_DIR=`pwd`/gcc 
+#SUDO=
 
 # Program versions
 BINUTILS=binutils-2.21.51
@@ -91,7 +91,7 @@ $SUDO ../$GCC/configure \
 	--disable-libgomp \
 	--disable-libstdcxx-pch \
 	--with-float=soft \
-	--enable-threads \
+	--enable-threads=miosix \
 	--enable-languages="c,c++" \
 	--enable-lto \
 	--disable-wchar_t \
@@ -102,6 +102,22 @@ $SUDO ../$GCC/configure \
 $SUDO make all-gcc 2>../log/e.txt			|| quit ":: Error compiling gcc-start"
 
 $SUDO make install-gcc 2>../log/f.txt		|| quit ":: Error installing gcc-start"
+
+# Remove the sys-include directory
+# There are two reasons why to remove it: first because it is unnecessary,
+# second because it is harmful. Apparently GCC needs the C headers of the target
+# to build the compiler itself, therefore when configured --with-newlib and
+# --with-headers=[...] it copies those headers in the sys-include folder.
+# After gcc is compiled, the installation of newlib places the headers in the
+# include dirctory and at that point the sys-include headers aren't necessary anymore
+# Now, to see why the're harmful, consider the header newlib.h It is initially
+# empty and is filled in by the newlib's ./configure with the appropriate options
+# Now, since the configure process happens after, the newlib.h in sys-include
+# is the wrong (empty) one, while the one in include is the correct one.
+# This causes troubles because newlib.h contains the _WANT_REENT_SMALL used to
+# select the appropriate _Reent struct. This error is visible to user code since
+# GCC seems to take the wrong newlib.h and user code gets the wrong _Reent struct
+$SUDO rm -rf $INSTALL_DIR/arm-miosix-eabi/arm-eabi/sys-include
 
 cd ..
 

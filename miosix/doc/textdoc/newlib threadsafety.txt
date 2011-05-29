@@ -1,0 +1,18 @@
+Note: this is no longer a TODO, since essentially everything has been done as
+of Miosix 1.58. Only kept for historic reasons.
+=============================================================================
+
+Thread safety issues:
+This is a (probably incomplete) list of parts of newlib that require
+locks or atomic ops for thread safety.
+
+- malloc, but newlib already provides __malloc_lock() and __malloc_unlock()
+  that take care of this issue.
+  FIXED
+
+- newlib/libc/stdlib/__atexit.c
+  FIXED
+
+- newlib stdio library, seems to require locks here and there for files.
+  It also looks there's a mutex in every FILE struct.
+  FIXED

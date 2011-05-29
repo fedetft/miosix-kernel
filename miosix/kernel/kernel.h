@@ -33,6 +33,7 @@
 #include "config/miosix_settings.h"
 #include "interfaces/portability.h"
 #include "kernel/scheduler/sched_types.h"
+#include "kernel/syscalls_types.h"
 #include <cstdlib>
 #include <new>
 #include <functional>
@@ -881,6 +882,10 @@ private:
         Thread *waitingForJoin;///<Thread waiting to join this
         void *result;          ///<Result returned by entry point
     } joinData;
+    #ifndef __NO_EXCEPTIONS
+    /// Per-thread instance of data to make C++ exception handling thread safe.
+    ExceptionHandlingData exData;
+    #endif //__NO_EXCEPTIONS
     
     //friend functions
     //Needs access to watermark, ctxsave
@@ -912,6 +917,10 @@ private:
     friend int ::pthread_cond_signal(pthread_cond_t *cond);
     //Needs access to flags
     friend int ::pthread_cond_broadcast(pthread_cond_t *cond);
+    #ifndef __NO_EXCEPTIONS
+    //Needs access to exData
+    friend class ExceptionHandlingAccessor;
+    #endif //__NO_EXCEPTIONS
 };
 
 /**

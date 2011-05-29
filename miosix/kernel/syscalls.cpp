@@ -30,6 +30,9 @@
  * of the functions reqired to interface newlib and libstdc++ with an OS
  */
 
+#include "syscalls.h"
+#include "syscalls_types.h"
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -54,13 +57,16 @@ using namespace std;
 
 
 
-//
-// C++ exception support, mainly code size optimizations
-// =====================================================
 
-//If not using exceptions, ovverride the default new, delete with
-//an implementation that does not throw
+//
+// C++ exception support
+// =====================
+
 #ifdef __NO_EXCEPTIONS
+/*
+ * If not using exceptions, ovverride the default new, delete with
+ * an implementation that does not throw, to minimze code size
+ */
 void *operator new(size_t size) throw()
 {
     return malloc(size);
@@ -94,6 +100,70 @@ extern "C" void __cxa_pure_virtual(void)
     miosix::errorLog("\r\n***Pure virtual method called\r\n");
     _exit(1);//Not calling abort() since it pulls in malloc.
 }
+
+#else //__NO_EXCEPTIONS
+
+/*
+ * If compiling with exception support, make it thread safe
+ */
+
+namespace miosix {
+
+class ExceptionHandlingAccessor
+{
+public:
+    static __cxxabiv1::__cxa_eh_globals *getEhGlobals()
+    {
+        return &miosix::Thread::getCurrentThread()->exData.eh_globals;
+    }
+
+    #ifndef __ARM_EABI__
+    static void *getSjljPtr()
+    {
+        return miosix::Thread::getCurrentThread()->exData.sjlj_ptr;
+    }
+
+    static void setSjljPtr(void *ptr)
+    {
+        miosix::Thread::getCurrentThread()->exData.sjlj_ptr=ptr;
+    }
+    #endif //__ARM_EABI__
+};
+
+} //namespace miosix
+
+/*
+ * If exception support enabled, ensure it is thread safe.
+ * The functions __cxa_get_globals_fast() and __cxa_get_globals() need to
+ * return a per-thread data structure. Given that thread local storage isn't
+ * implemented in Miosix, libstdc++ was patched to make these functions syscalls
+ */
+namespace __cxxabiv1
+{
+
+extern "C" __cxa_eh_globals* __cxa_get_globals_fast()
+{
+    return miosix::ExceptionHandlingAccessor::getEhGlobals();
+}
+
+extern "C" __cxa_eh_globals* __cxa_get_globals()
+{
+    return miosix::ExceptionHandlingAccessor::getEhGlobals();
+}
+
+#ifndef __ARM_EABI__
+extern "C" void _Miosix_set_sjlj_ptr(void* ptr)
+{
+    miosix::ExceptionHandlingAccessor::setSjljPtr(ptr);
+}
+
+extern "C" void *_Miosix_get_sjlj_ptr()
+{
+    return miosix::ExceptionHandlingAccessor::getSjljPtr();
+}
+#endif //__ARM_EABI__
+
+} //namespace __cxxabiv1
 #endif //__NO_EXCEPTIONS
 
 namespace __gnu_cxx {
@@ -688,3 +758,21 @@ int _wait_r(struct _reent *ptr, int *status)
 #ifdef __cplusplus
 }
 #endif
+
+
+
+//
+// Check that newlib has been configured correctly
+// ===============================================
+
+#ifndef _WANT_REENT_SMALL
+#warning "_WANT_REENT_SMALL not defined"
+#endif //_WANT_REENT_SMALL
+
+#ifndef _REENT_SMALL
+#error "_REENT_SMALL not defined"
+#endif //_REENT_SMALL
+
+#ifndef _POSIX_THREADS
+#error "_POSIX_THREADS not defined"
+#endif //_POSIX_THREADS
