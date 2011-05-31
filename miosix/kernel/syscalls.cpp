@@ -98,14 +98,34 @@ void operator delete[](void *p) throw()
 extern "C" void __cxa_pure_virtual(void)
 {
     miosix::errorLog("\r\n***Pure virtual method called\r\n");
-    _exit(1);//Not calling abort() since it pulls in malloc.
+    _exit(1);
 }
 
-#else //__NO_EXCEPTIONS
-
 /*
- * If compiling with exception support, make it thread safe
+ * If not using exceptions, ovverride these functions with
+ * an implementation that does not throw, to minimze code size
  */
+namespace std {
+void __throw_bad_exception() { _exit(1); }
+void __throw_bad_alloc()  { _exit(1); }
+void __throw_bad_cast() { _exit(1); }
+void __throw_bad_typeid()  { _exit(1); }
+void __throw_logic_error(const char*) { _exit(1); }
+void __throw_domain_error(const char*) { _exit(1); }
+void __throw_invalid_argument(const char*) { _exit(1); }
+void __throw_length_error(const char*) { _exit(1); }
+void __throw_out_of_range(const char*) { _exit(1); }
+void __throw_runtime_error(const char*) { _exit(1); }
+void __throw_range_error(const char*) { _exit(1); }
+void __throw_overflow_error(const char*) { _exit(1); }
+void __throw_underflow_error(const char*) { _exit(1); }
+void __throw_ios_failure(const char*) { _exit(1); }
+void __throw_system_error(int) { _exit(1); }
+void __throw_future_error(int) { _exit(1); }
+void __throw_bad_function_call() { _exit(1); }
+} //namespace std
+
+#endif //__NO_EXCEPTIONS
 
 namespace miosix {
 
@@ -164,7 +184,6 @@ extern "C" void *_Miosix_get_sjlj_ptr()
 #endif //__ARM_EABI__
 
 } //namespace __cxxabiv1
-#endif //__NO_EXCEPTIONS
 
 namespace __gnu_cxx {
 
@@ -306,10 +325,7 @@ int __register_exitproc(int type, void (*fn)(void), void *arg, void *d)
  * \param code the exit code, for example with exit(1), code==1
  * \param d __dso_handle, see __register_exitproc
  */
-void __call_exitprocs(int code, void *d)
-{
-
-}
+void __call_exitprocs(int code, void *d) {}
 
 /**
  * \internal

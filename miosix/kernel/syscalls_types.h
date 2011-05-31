@@ -28,9 +28,6 @@
 #ifndef SYSCALLS_TYPES_H
 #define	SYSCALLS_TYPES_H
 
-// This code only required when C++ exception support is required
-#ifndef __NO_EXCEPTIONS
-
 #include "error.h"
 
 namespace __cxxabiv1
@@ -90,7 +87,7 @@ public:
     }
 
 private:
-    /// With the arm eabi unwinder, this is the only data structure reuired
+    /// With the arm eabi unwinder, this is the only data structure required
     /// to make C++ exceptions threadsafe.
     __cxxabiv1::__cxa_eh_globals eh_globals;
     #ifndef __ARM_EABI__
@@ -103,7 +100,5 @@ private:
 };
 
 } //namespace miosix
-
-#endif //__NO_EXCEPTIONS
 
 #endif //SYSCALLS_TYPES_H

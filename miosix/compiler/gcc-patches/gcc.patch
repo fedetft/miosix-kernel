@@ -1,6 +1,6 @@
 diff -ruN gcc-4.5.2-original/gcc/config/arm/t-arm-elf gcc-4.5.2/gcc/config/arm/t-arm-elf
 --- gcc-4.5.2-original/gcc/config/arm/t-arm-elf	2009-08-06 16:27:45.000000000 +0200
-+++ gcc-4.5.2/gcc/config/arm/t-arm-elf	2011-05-28 12:03:39.955995002 +0200
++++ gcc-4.5.2/gcc/config/arm/t-arm-elf	2011-05-30 10:35:06.110193855 +0200
 @@ -36,15 +36,20 @@
  MULTILIB_EXCEPTIONS  = 
  MULTILIB_MATCHES     =
@@ -33,7 +33,7 @@ diff -ruN gcc-4.5.2-original/gcc/config/arm/t-arm-elf gcc-4.5.2/gcc/config/arm/t
  # express that here?  Also, we really need architecture v5e or later
 diff -ruN gcc-4.5.2-original/gcc/config.gcc gcc-4.5.2/gcc/config.gcc
 --- gcc-4.5.2-original/gcc/config.gcc	2010-10-09 11:35:53.000000000 +0200
-+++ gcc-4.5.2/gcc/config.gcc	2011-05-28 12:03:39.956995002 +0200
++++ gcc-4.5.2/gcc/config.gcc	2011-05-30 10:35:06.435193861 +0200
 @@ -3512,6 +3512,10 @@
  		;;
  esac
@@ -47,7 +47,7 @@ diff -ruN gcc-4.5.2-original/gcc/config.gcc gcc-4.5.2/gcc/config.gcc
  for option in $all_defaults
 diff -ruN gcc-4.5.2-original/gcc/configure gcc-4.5.2/gcc/configure
 --- gcc-4.5.2-original/gcc/configure	2010-12-03 13:35:37.000000000 +0100
-+++ gcc-4.5.2/gcc/configure	2011-05-28 12:03:39.965995002 +0200
++++ gcc-4.5.2/gcc/configure	2011-05-30 10:35:06.444193873 +0200
 @@ -10421,7 +10421,7 @@
      target_thread_file='single'
      ;;
@@ -59,7 +59,7 @@ diff -ruN gcc-4.5.2-original/gcc/configure gcc-4.5.2/gcc/configure
    *)
 diff -ruN gcc-4.5.2-original/gcc/configure.ac gcc-4.5.2/gcc/configure.ac
 --- gcc-4.5.2-original/gcc/configure.ac	2010-12-03 13:35:37.000000000 +0100
-+++ gcc-4.5.2/gcc/configure.ac	2011-05-28 12:03:39.981995001 +0200
++++ gcc-4.5.2/gcc/configure.ac	2011-05-30 10:35:06.616194078 +0200
 @@ -1373,7 +1373,7 @@
      target_thread_file='single'
      ;;
@@ -71,7 +71,7 @@ diff -ruN gcc-4.5.2-original/gcc/configure.ac gcc-4.5.2/gcc/configure.ac
    *)
 diff -ruN gcc-4.5.2-original/gcc/gthr.h gcc-4.5.2/gcc/gthr.h
 --- gcc-4.5.2-original/gcc/gthr.h	2009-11-25 11:55:54.000000000 +0100
-+++ gcc-4.5.2/gcc/gthr.h	2011-05-28 12:03:39.981995001 +0200
++++ gcc-4.5.2/gcc/gthr.h	2011-05-30 10:35:06.617194051 +0200
 @@ -140,31 +140,35 @@
  
  */
@@ -135,7 +135,7 @@ diff -ruN gcc-4.5.2-original/gcc/gthr.h gcc-4.5.2/gcc/gthr.h
  #pragma GCC visibility pop
 diff -ruN gcc-4.5.2-original/gcc/gthr-miosix.h gcc-4.5.2/gcc/gthr-miosix.h
 --- gcc-4.5.2-original/gcc/gthr-miosix.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.5.2/gcc/gthr-miosix.h	2011-05-28 18:54:48.998992957 +0200
++++ gcc-4.5.2/gcc/gthr-miosix.h	2011-05-30 10:35:06.617194051 +0200
 @@ -0,0 +1,53 @@
 +
 +#ifndef GCC_GHTR_MIOSIX_H
@@ -192,7 +192,7 @@ diff -ruN gcc-4.5.2-original/gcc/gthr-miosix.h gcc-4.5.2/gcc/gthr-miosix.h
 +#endif //GCC_GHTR_MIOSIX_H
 diff -ruN gcc-4.5.2-original/gcc/unwind-sjlj.c gcc-4.5.2/gcc/unwind-sjlj.c
 --- gcc-4.5.2-original/gcc/unwind-sjlj.c	2009-04-09 17:00:19.000000000 +0200
-+++ gcc-4.5.2/gcc/unwind-sjlj.c	2011-05-28 20:07:33.204992957 +0200
++++ gcc-4.5.2/gcc/unwind-sjlj.c	2011-05-30 10:35:06.618194025 +0200
 @@ -94,74 +94,29 @@
  
  /* Manage the chain of registered function contexts.  */
@@ -278,7 +278,7 @@ diff -ruN gcc-4.5.2-original/gcc/unwind-sjlj.c gcc-4.5.2/gcc/unwind-sjlj.c
  _Unwind_SjLj_Unregister (struct SjLj_Function_Context *fc)
 diff -ruN gcc-4.5.2-original/libstdc++-v3/config/cpu/arm/atomicity.h gcc-4.5.2/libstdc++-v3/config/cpu/arm/atomicity.h
 --- gcc-4.5.2-original/libstdc++-v3/config/cpu/arm/atomicity.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.5.2/libstdc++-v3/config/cpu/arm/atomicity.h	2011-05-28 12:03:39.982995001 +0200
++++ gcc-4.5.2/libstdc++-v3/config/cpu/arm/atomicity.h	2011-05-30 10:35:06.618194025 +0200
 @@ -0,0 +1,36 @@
 +//Begin TFT patch
 +//Support _Atomic_word operations on arm-miosix-eabi
@@ -318,7 +318,7 @@ diff -ruN gcc-4.5.2-original/libstdc++-v3/config/cpu/arm/atomicity.h gcc-4.5.2/l
 +//End TFT patch
 diff -ruN gcc-4.5.2-original/libstdc++-v3/config/cpu/arm/atomic_word.h gcc-4.5.2/libstdc++-v3/config/cpu/arm/atomic_word.h
 --- gcc-4.5.2-original/libstdc++-v3/config/cpu/arm/atomic_word.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.5.2/libstdc++-v3/config/cpu/arm/atomic_word.h	2011-05-28 12:03:39.982995001 +0200
++++ gcc-4.5.2/libstdc++-v3/config/cpu/arm/atomic_word.h	2011-05-30 10:35:06.618194025 +0200
 @@ -0,0 +1,12 @@
 +//begin TFT patch
 +//Support _Atomic_word operations on arm-miosix-eabi
@@ -333,23 +333,9 @@ diff -ruN gcc-4.5.2-original/libstdc++-v3/config/cpu/arm/atomic_word.h gcc-4.5.2
 +#endif 
 +//end TFT patch
 \ No newline at end of file
-diff -ruN gcc-4.5.2-original/libstdc++-v3/include/ext/concurrence.h gcc-4.5.2/libstdc++-v3/include/ext/concurrence.h
---- gcc-4.5.2-original/libstdc++-v3/include/ext/concurrence.h	2009-04-09 17:00:19.000000000 +0200
-+++ gcc-4.5.2/libstdc++-v3/include/ext/concurrence.h	2011-05-28 20:11:21.223992957 +0200
-@@ -35,6 +35,10 @@
- #include <bits/gthr.h> 
- #include <bits/functexcept.h>
- 
-+//Begin TFT patch: avoid pulling in exceptions
-+#undef __EXCEPTIONS
-+//End TFT patch
-+
- _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
- 
-   // Available locking policies:
 diff -ruN gcc-4.5.2-original/libstdc++-v3/include/Makefile.am gcc-4.5.2/libstdc++-v3/include/Makefile.am
 --- gcc-4.5.2-original/libstdc++-v3/include/Makefile.am	2010-02-10 20:14:33.000000000 +0100
-+++ gcc-4.5.2/libstdc++-v3/include/Makefile.am	2011-05-28 12:03:39.983995001 +0200
++++ gcc-4.5.2/libstdc++-v3/include/Makefile.am	2011-05-30 10:35:06.619194002 +0200
 @@ -864,7 +864,8 @@
  	${host_builddir}/gthr-single.h \
  	${host_builddir}/gthr-posix.h \
@@ -377,7 +363,7 @@ diff -ruN gcc-4.5.2-original/libstdc++-v3/include/Makefile.am gcc-4.5.2/libstdc+
  	-mkdir -p ${pch1_output_builddir}
 diff -ruN gcc-4.5.2-original/libstdc++-v3/include/Makefile.in gcc-4.5.2/libstdc++-v3/include/Makefile.in
 --- gcc-4.5.2-original/libstdc++-v3/include/Makefile.in	2010-04-02 20:18:06.000000000 +0200
-+++ gcc-4.5.2/libstdc++-v3/include/Makefile.in	2011-05-28 12:03:39.984995001 +0200
++++ gcc-4.5.2/libstdc++-v3/include/Makefile.in	2011-05-30 10:35:06.620193984 +0200
 @@ -1093,7 +1093,8 @@
  	${host_builddir}/gthr-single.h \
  	${host_builddir}/gthr-posix.h \
@@ -405,7 +391,7 @@ diff -ruN gcc-4.5.2-original/libstdc++-v3/include/Makefile.in gcc-4.5.2/libstdc+
  	-mkdir -p ${pch1_output_builddir}
 diff -ruN gcc-4.5.2-original/libstdc++-v3/libsupc++/eh_alloc.cc gcc-4.5.2/libstdc++-v3/libsupc++/eh_alloc.cc
 --- gcc-4.5.2-original/libstdc++-v3/libsupc++/eh_alloc.cc	2009-04-09 17:00:19.000000000 +0200
-+++ gcc-4.5.2/libstdc++-v3/libsupc++/eh_alloc.cc	2011-05-28 12:03:39.984995001 +0200
++++ gcc-4.5.2/libstdc++-v3/libsupc++/eh_alloc.cc	2011-05-30 10:35:06.620193984 +0200
 @@ -73,6 +73,15 @@
  # define EMERGENCY_OBJ_COUNT	4
  #endif
@@ -424,7 +410,7 @@ diff -ruN gcc-4.5.2-original/libstdc++-v3/libsupc++/eh_alloc.cc gcc-4.5.2/libstd
  #else
 diff -ruN gcc-4.5.2-original/libstdc++-v3/libsupc++/eh_globals.cc gcc-4.5.2/libstdc++-v3/libsupc++/eh_globals.cc
 --- gcc-4.5.2-original/libstdc++-v3/libsupc++/eh_globals.cc	2009-04-09 17:00:19.000000000 +0200
-+++ gcc-4.5.2/libstdc++-v3/libsupc++/eh_globals.cc	2011-05-28 12:03:39.985995001 +0200
++++ gcc-4.5.2/libstdc++-v3/libsupc++/eh_globals.cc	2011-05-30 10:35:06.621193968 +0200
 @@ -42,119 +42,6 @@
  
  using namespace __cxxabiv1;
@@ -550,7 +536,7 @@ diff -ruN gcc-4.5.2-original/libstdc++-v3/libsupc++/eh_globals.cc gcc-4.5.2/libs
 +//to be provided on a per-thread basis
 diff -ruN gcc-4.5.2-original/libstdc++-v3/libsupc++/guard.cc gcc-4.5.2/libstdc++-v3/libsupc++/guard.cc
 --- gcc-4.5.2-original/libstdc++-v3/libsupc++/guard.cc	2009-11-09 23:09:30.000000000 +0100
-+++ gcc-4.5.2/libstdc++-v3/libsupc++/guard.cc	2011-05-28 19:46:56.554992958 +0200
++++ gcc-4.5.2/libstdc++-v3/libsupc++/guard.cc	2011-05-30 10:35:06.621193968 +0200
 @@ -182,216 +182,5 @@
  //  | _GLIBCXX_GUARD_WAITING_BIT) and some other threads are waiting until
  //				  it is initialized.
@@ -769,3 +755,128 @@ diff -ruN gcc-4.5.2-original/libstdc++-v3/libsupc++/guard.cc gcc-4.5.2/libstdc++
 -  }
 -}
 +//Patched by TFT: __cxa_guard_[acquire|release|abort] made Miosix syscalls
+diff -ruN gcc-4.5.2-original/libstdc++-v3/libsupc++/pure.cc gcc-4.5.2/libstdc++-v3/libsupc++/pure.cc
+--- gcc-4.5.2-original/libstdc++-v3/libsupc++/pure.cc	2009-04-09 17:00:19.000000000 +0200
++++ gcc-4.5.2/libstdc++-v3/libsupc++/pure.cc	2011-05-31 14:44:00.957837835 +0200
+@@ -43,8 +43,9 @@
+ # define writestr(str) /* Empty */
+ #endif
+ 
++//Patch by TFT: added __attribute__((weak))
+ extern "C" void
+-__cxxabiv1::__cxa_pure_virtual (void)
++__attribute__((weak)) __cxxabiv1::__cxa_pure_virtual (void)
+ {
+   writestr ("pure virtual method called\n");
+   std::terminate ();
+diff -ruN gcc-4.5.2-original/libstdc++-v3/libsupc++/vterminate.cc gcc-4.5.2/libstdc++-v3/libsupc++/vterminate.cc
+--- gcc-4.5.2-original/libstdc++-v3/libsupc++/vterminate.cc	2009-09-29 02:15:30.000000000 +0200
++++ gcc-4.5.2/libstdc++-v3/libsupc++/vterminate.cc	2011-05-31 14:41:27.143837834 +0200
+@@ -39,7 +39,9 @@
+   // A replacement for the standard terminate_handler which prints
+   // more information about the terminating exception (if any) on
+   // stderr.
+-  void __verbose_terminate_handler()
++
++  //Patch by TFT: add __attribute__((weak)) to make it overridable
++  void __attribute__((weak)) __verbose_terminate_handler()
+   {
+     static bool terminating;
+     if (terminating)
+diff -ruN gcc-4.5.2-original/libstdc++-v3/src/functexcept.cc gcc-4.5.2/libstdc++-v3/src/functexcept.cc
+--- gcc-4.5.2-original/libstdc++-v3/src/functexcept.cc	2010-01-21 01:01:47.000000000 +0100
++++ gcc-4.5.2/libstdc++-v3/src/functexcept.cc	2011-05-31 14:46:55.800837835 +0200
+@@ -40,72 +40,76 @@
+ 
+ _GLIBCXX_BEGIN_NAMESPACE(std)
+ 
++//Patch by TFT: added __attribute__((weak)) to all these functions.
++//This to allow redefining them if compiling without exceptions to
++//avoid pulling in exception support (code size minimization)
++
+ #if __EXCEPTIONS
+-  void
++  void __attribute__((weak))
+   __throw_bad_exception(void)
+   { throw bad_exception(); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_bad_alloc(void)
+   { throw bad_alloc(); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_bad_cast(void)
+   { throw bad_cast(); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_bad_typeid(void)
+   { throw bad_typeid(); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_logic_error(const char* __s)
+   { throw logic_error(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_domain_error(const char* __s)
+   { throw domain_error(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_invalid_argument(const char* __s)
+   { throw invalid_argument(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_length_error(const char* __s)
+   { throw length_error(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_out_of_range(const char* __s)
+   { throw out_of_range(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_runtime_error(const char* __s)
+   { throw runtime_error(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_range_error(const char* __s)
+   { throw range_error(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_overflow_error(const char* __s)
+   { throw overflow_error(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_underflow_error(const char* __s)
+   { throw underflow_error(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_ios_failure(const char* __s)
+   { throw ios_base::failure(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_system_error(int __i)
+   { throw system_error(error_code(__i, generic_category())); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_future_error(int __i)
+   { throw future_error(make_error_code(future_errc(__i))); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_bad_function_call()
+   { throw bad_function_call(); }
+ #else

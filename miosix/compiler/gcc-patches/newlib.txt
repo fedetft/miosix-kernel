@@ -33,3 +33,6 @@ This patch does the following:
    This patch moves atexit support from newlib to Miosix, by making
    __register_exitproc() and __call_exitprocs() Miosix system calls, and by
    removing the memory used to handle atexit form the reentrancy structure.
+
+7) Small change to abort(): avoid pulling in raise() since signals aren't
+   supported anyway

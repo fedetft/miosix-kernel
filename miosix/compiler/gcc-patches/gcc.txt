@@ -43,10 +43,9 @@ This patch does the following:
    full. By default it is set to a conservative value that is too large when
    compared with the RAM size of microcontrollers.
 
-9) POSIX mutexes and condition variables are wrapped in C++ classes __mutex
-   and __cond within libstdc++ but these classes pull in exception support,
-   even when -fno-exception is selected. To fix this, #undef __EXCEPTIONS was
-   added.
+9) It adds __attribute__((weak)) to some functions that pull in exception
+   support to make them overridable by miosix when compiling without exceptions
+   to minimize code size
 
 -------------------------------------------------------------------------------
 
