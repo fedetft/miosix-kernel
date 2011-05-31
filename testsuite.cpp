@@ -107,7 +107,7 @@ int main()
         switch(c)
         {
             case 't':
-                for(;;){ //Testing
+                //for(;;){ //Testing
                 ledOn();
                 test_1();
                 test_2();
@@ -129,7 +129,7 @@ int main()
                 ledOff();
                 Thread::sleep(500);//Ensure all threads are deleted.
                 iprintf("\n*** All tests were successful\n\n");
-                } //Testing
+                //} //Testing
                 break;
             case 'f':
                 ledOn();

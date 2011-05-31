@@ -18,7 +18,7 @@ This patch does the following:
    telling the compiler that threadsafe code is required and pointing it to
    the routines it needs to do so (standard posix routines). Also gcc/gthr.h
    has been modified to include gthr-miosix.h, and libstdc++/include/Makefile.in
-   and libstdc++/include/Makefile.am hav been modified accordingly to support
+   and libstdc++/include/Makefile.am have been modified accordingly to support
    the new gthr-miosix.h file.
 
 5) Given that Miosix does not have a thread local storage API, but it is
