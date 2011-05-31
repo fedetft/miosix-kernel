@@ -35,6 +35,7 @@
 #include <string.h>
 #include <stdexcept>
 #include <algorithm>
+#include <vector>
 #include <sys/stat.h>
 #include <pthread.h>
 #include <errno.h>
@@ -84,6 +85,8 @@ static void benchmark_1();
 static void benchmark_2();
 static void benchmark_3();
 static void benchmark_4();
+//Exception thread safety test
+static void exception_test();
 
 //main(), calls all tests
 int main()
@@ -93,8 +96,8 @@ int main()
     Thread::setPriority(0);
     for(;;)
     {
-        iprintf("Type 't' for kernel test, 'f' for filesystem test or 'b' for"
-        " benchmarks or 's' for shutdown\n");
+        iprintf("Type 't' for kernel test, 'f' for filesystem test, 'x' for "
+        "exception test, 'b' for benchmarks or 's' for shutdown\n");
         char c;
         for(;;)
         {
@@ -140,6 +143,9 @@ int main()
                 ledOff();
                 Thread::sleep(500);//Ensure all threads are deleted.
                 iprintf("\n*** All tests were successful\n\n");
+                break;
+            case 'x':
+                exception_test();
                 break;
             case 'b':
                 ledOn();
@@ -2548,6 +2554,64 @@ static void fs_test_3()
     pass();
 }
 #endif //WITH_FILESYSTEM
+
+//
+// C++ exceptions thread safety test
+//
+
+const int nThreads=8;
+bool flags[nThreads];
+
+static int throwable(std::vector<int>& v) __attribute__((noinline));
+static int throwable(std::vector<int>& v)
+{
+	return v.at(10);
+}
+
+static void test(void *argv)
+{
+	const int n=reinterpret_cast<int>(argv);
+	for(;;)
+	{
+		try {
+			std::vector<int> v;
+			v.push_back(10);
+			throwable(v);
+            fail("Exception not thrown");
+		} catch(std::out_of_range& e)
+		{
+			flags[n]=true;
+		}
+	}
+}
+
+static void exception_test()
+{
+    test_name("C++ exception thread safety");
+    iprintf("Note: test never ends. Reset the board when you are satisfied\n");
+	for(int i=0;i<nThreads;i++)
+        Thread::create(test,1024+512,0,reinterpret_cast<void*>(i));
+	bool toggle=false;
+	for(int j=0;;j++)
+	{
+		Thread::sleep(200);
+		if(toggle) ledOn(); else ledOff();
+		toggle^=1;
+		bool failed=false;
+		{
+			PauseKernelLock dLock;
+			for(int i=0;i<nThreads;i++)
+			{
+				if(flags[i]==false) failed=true;
+				flags[i]=false;
+			}
+		}
+        if(failed) fail("Test failed");
+		int heap=MemoryProfiling::getHeapSize()-
+                 MemoryProfiling::getCurrentFreeHeap();
+		iprintf("iteration=%d heap_used=%d\n",j,heap);
+	}
+}
 
 //
 // Benchmark 1

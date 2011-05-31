@@ -1,10 +1,12 @@
 Changelog for Miosix np embedded OS
 
 v1.58
+- Added exception thread safety test to testsuite.
 - Added class ExceptionHandlingData that keeps a per-thread data structure
   used to make C++ exceptions thead safe.
 - Updated gcc patches, newlib patches and gcc build scripts. Now as far as
   I know, every bit of gcc, newlib and libstdc++ is fully threadsafe, finally!
+  (Except the _Reent struct that will be fixed later)
 - Fixed a bug in pthread_once(), optimized __cxa_guard_* code.
 - Made __register_exitproc() and __call_exitprocs() two new syscalls, to allow
   a future implementation of atexit support.
