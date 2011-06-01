@@ -119,7 +119,7 @@ void MemManage_Handler()
     if(cfsr & SCB_CFSR_DACCVIOL)
         IRQerrorLog("Fault was caused by invalid PC\r\n");
     if(cfsr & SCB_CFSR_IACCVIOL)
-        IRQerrorLog("Fault was caused by attemted execution from XN area\r\n");
+        IRQerrorLog("Fault was caused by attempted execution from XN area\r\n");
     #endif //WITH_ERRLOG
     waitConsoleAndReboot();
 }
