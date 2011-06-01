@@ -119,6 +119,12 @@ $SUDO make install-gcc 2>../log/f.txt		|| quit ":: Error installing gcc-start"
 # GCC seems to take the wrong newlib.h and user code gets the wrong _Reent struct
 $SUDO rm -rf $INSTALL_DIR/arm-miosix-eabi/arm-eabi/sys-include
 
+# Another fix, looks like export PATH isn't enough for newlib, it fails
+# running arm-miosix-eabi-runlib when installing
+if [ $SUDO ]; then
+	$SUDO ln -s $INSTALL_DIR/arm-miosix-eabi/bin/* /usr/bin
+fi
+
 cd ..
 
 #
