@@ -21,7 +21,7 @@ SUDO=sudo
 #SUDO=
 
 # Program versions
-BINUTILS=binutils-2.21.51
+BINUTILS=binutils-2.21
 GCC=gcc-4.5.2
 NEWLIB=newlib-1.19.0
 GDB=gdb-7.0
