@@ -307,7 +307,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd
+    AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
     CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32 -DSTM32F10X_HD $(CLOCK_FREQ)     \
                      $(XRAM) -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd    \
                      $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c 

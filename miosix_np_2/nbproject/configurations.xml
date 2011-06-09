@@ -35,8 +35,6 @@
           <df name="cortexM3_stm32">
             <df name="common">
               <df name="CMSIS">
-                <in>CMSIS_Core.htm</in>
-                <in>Makefile</in>
                 <in>core_cm3.c</in>
                 <in>core_cm3.h</in>
                 <in>stm32f10x.h</in>
@@ -71,8 +69,6 @@
                 <in>disk.cpp</in>
               </df>
               <in>board_settings.h</in>
-              <in>stm32_512k+64k_ram.ld</in>
-              <in>stm32_512k+64k_rom.ld</in>
             </df>
             <df name="stm32f103ze_stm3210e-eval">
               <df name="core">
@@ -137,11 +133,13 @@
           <in>kernel.h</in>
           <in>logging.h</in>
           <in>pthread.cpp</in>
+          <in>pthread_private.h</in>
           <in>stage_2_boot.cpp</in>
           <in>sync.cpp</in>
           <in>sync.h</in>
           <in>syscalls.cpp</in>
           <in>syscalls.h</in>
+          <in>syscalls_types.h</in>
           <in>unistd.cpp</in>
         </df>
         <df name="util">
