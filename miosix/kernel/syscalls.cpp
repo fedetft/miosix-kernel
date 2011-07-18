@@ -37,6 +37,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <reent.h>
+#include <sys/times.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
 #include <unistd.h>
@@ -51,6 +52,7 @@
 // kernel interface
 #include "kernel.h"
 #include "interfaces/bsp.h"
+#include "board_settings.h"
 
 using namespace std;
 
@@ -701,6 +703,28 @@ int _unlink_r(struct _reent *ptr, const char *file)
     #else //WITH_FILESYSTEM
     return -1;
     #endif //WITH_FILESYSTEM
+}
+
+/**
+ * \internal
+ * _times_r, return elapsed time
+ */
+clock_t _times_r(struct _reent *ptr, struct tms *tim)
+{
+    long long t=miosix::getTick();
+    t*=CLOCKS_PER_SEC;
+    t/=miosix::TICK_FREQ;
+    t&=0xffffffffull;
+    tim->tms_utime=t;
+    tim->tms_stime=0;  //Miosix doesn't separate user/system time
+    tim->tms_cutime=0; //child processes simply don't exist
+    tim->tms_cstime=0;
+    //Actually, we should return tim.utime or -1 on failure, but clock_t is
+    //unsigned, so if we return tim.utime and someone calls _times_r in an
+    //unlucky moment where tim.utime is 0xffffffff it would be interpreted as -1
+    //IMHO, the specifications are wrong since returning an unsigned leaves
+    //no value left to return in case of errors, so I return zero, period.
+    return 0;
 }
 
 /**
