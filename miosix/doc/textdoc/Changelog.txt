@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
 v1.58
+- Changing linker scripts to be compatble with the way GCC handles
+  .bss with C programs
 - Added _times_r in syscalls.cpp to make clock() in time.h work
 - Added exception thread safety test to testsuite.
 - Added class ExceptionHandlingData that keeps a per-thread data structure

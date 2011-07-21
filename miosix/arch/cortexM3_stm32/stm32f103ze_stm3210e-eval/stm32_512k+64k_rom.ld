@@ -151,15 +151,15 @@ SECTIONS
     } > ram AT > flash
 
     /* .bss section: uninitialized global variables go to ram */
+    _bss_start = .;
     .bss :
     {
-        _bss_start = .;
         *(.bss)
         *(.bss.*)
         *(.gnu.linkonce.b.*)
         . = ALIGN(8);
-        _bss_end = .;
     } > ram
+    _bss_end = .;
 
     _end = .;
     PROVIDE(end = .);
