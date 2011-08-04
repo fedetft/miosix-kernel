@@ -35,6 +35,7 @@
 
 #include "config/miosix_settings.h"
 #include "interfaces/gpio.h"
+#include "hwmapping.h"
 
 namespace miosix {
 
