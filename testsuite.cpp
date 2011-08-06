@@ -74,6 +74,7 @@ static void test_13();
 static void test_14();
 static void test_15();
 static void test_16();
+static void test_17();
 //Filesystem test functions
 #ifdef WITH_FILESYSTEM
 static void fs_test_1();
@@ -125,6 +126,7 @@ int main()
                 test_14();
                 test_15();
                 test_16();
+                test_17();
                 
                 ledOff();
                 Thread::sleep(500);//Ensure all threads are deleted.
@@ -2186,6 +2188,44 @@ static void test_16()
     if(pthread_once(&t16_o1,t16_f1)!=0) fail("pthread_once 2");
     if(a!=1) fail("pthread_once 3");
     if(sizeof(pthread_once_t)!=2) fail("pthread_once 4");
+    pass();
+}
+
+//
+// Test 17
+//
+/*
+tests:
+C++ static constructors
+*/
+
+class TestStaticConstructor
+{
+public:
+    TestStaticConstructor(): a(0x1234567), b(0x89abcdef) {}
+
+    bool isOk()
+    {
+        return a==0x1234567 && b==0x89abcdef;
+    }
+
+    unsigned int a,b;
+};
+
+static TestStaticConstructor& instance()
+{
+    static TestStaticConstructor singleton;
+    return singleton;
+}
+
+static void test_17()
+{
+    test_name("static constructors");
+    if(instance().isOk()==false)
+    {
+        iprintf("a=0x%x, b=0x%x\n",instance().a, instance().b);
+        fail("constructor fail");
+    }
     pass();
 }
 

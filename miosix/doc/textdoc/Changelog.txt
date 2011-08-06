@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
 v1.58
+- Fixed a bug in the syscall code to handle static constructors. Despite the
+  gcc documentation said that a __guard was 8 bytes, it is actually only 4
 - Changing linker scripts to be compatble with the way GCC handles
   .bss with C programs
 - Added _times_r in syscalls.cpp to make clock() in time.h work

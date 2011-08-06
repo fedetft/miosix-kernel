@@ -210,19 +210,19 @@ void __verbose_terminate_handler()
 // C++ static constructors support, to achieve thread safety
 // =========================================================
 
-//MUST be 8 bytes in size, because that's the size of __guard
-struct MiosixGuard
+//This is weird, despite almost everywhere in GCC's documentation it is said
+//that __guard is 8 bytes, it is actually only four.
+union MiosixGuard
 {
-	char initialized;
-    char padding[3];
-	miosix::Thread *owner;
+    miosix::Thread *owner;
+    unsigned int flag;
 };
 
 namespace __cxxabiv1
 {
 /**
  * Used to initialize static objects only once, in a threadsafe way
- * \param g guard struct, 8 bytes in size
+ * \param g guard struct
  * \return 0 if object already initialized, 1 if this thread has to initialize
  * it, or lock if another thread has already started initializing it
  */
@@ -232,12 +232,20 @@ extern "C" int __cxa_guard_acquire(__guard *g)
     volatile MiosixGuard *guard=reinterpret_cast<volatile MiosixGuard*>(g);
     for(;;)
     {
-        if(guard->initialized) return 0; //Object already initialized, good
+        if(guard->flag==1) return 0; //Object already initialized, good
         
-        if(guard->owner==0)
+        if(guard->flag==0)
         {
             //Object uninitialized, and no other thread trying to initialize it
             guard->owner=miosix::Thread::IRQgetCurrentThread();
+
+            //guard->owner serves the double task of being the thread id of
+            //the thread initializing the object, and being the flag to signal
+            //that the object is initialized or not. If bit #0 of guard->owner
+            //is @ 1 the object is initialized. All this works on the assumption
+            //that Thread* pointers never have bit #0 @ 1, and this assetion
+            //checks that this condition really holds
+            if(guard->flag & 1) miosix::errorHandler(miosix::UNEXPECTED);
             return 1;
         }
 
@@ -260,26 +268,24 @@ extern "C" int __cxa_guard_acquire(__guard *g)
 
 /**
  * Called after the thread has successfully initialized the object
- * \param g guard struct, 8 bytes in size
+ * \param g guard struct
  */
 extern "C" void __cxa_guard_release(__guard *g)
 {
     miosix::InterruptDisableLock dLock;
     MiosixGuard *guard=reinterpret_cast<MiosixGuard*>(g);
-    guard->initialized=1;
-    guard->owner=0;
+    guard->flag=1;
 }
 
 /**
  * Called if an exception was thrown while the object was being initialized
- * \param g guard struct, 8 bytes in size
+ * \param g guard struct
  */
 extern "C" void __cxa_guard_abort(__guard *g)
 {
     miosix::InterruptDisableLock dLock;
     MiosixGuard *guard=reinterpret_cast<MiosixGuard*>(g);
-    //Leaving guard->initialized @ 0
-    guard->owner=0;
+    guard->flag=0;
 }
 
 } //namespace __cxxabiv1
