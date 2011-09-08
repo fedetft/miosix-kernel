@@ -2,16 +2,14 @@
 cmake_minimum_required(VERSION 2.6)
 project(PC_LOADER)
 
-set(CMAKE_BUILD_TYPE Release)
-
 ## Target
-set(LOADER_SRCS main.cpp TimeoutSerial.cpp)
+set(LOADER_SRCS main.cpp serialstream.cpp)
 add_executable(pc_loader ${LOADER_SRCS})
 
 ## Compiler flags
 if(CMAKE_COMPILER_IS_GNUCXX)
-	list(APPEND CMAKE_CXX_FLAGS -O2)        ## Optimize
-	list(APPEND CMAKE_EXE_LINKER_FLAGS -s)	## Strip binary
+	set(CMAKE_CXX_FLAGS -O2)       ## Optimize
+	set(CMAKE_EXE_LINKER_FLAGS -s) ## Strip binary
 endif()
 
 ## Link libraries

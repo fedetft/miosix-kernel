@@ -12,20 +12,14 @@
 #include <fstream>
 #include <string>
 #include <algorithm>
-#include <sstream>
-#include <boost/thread.hpp>
 #include <boost/crc.hpp>
 #include <boost/shared_array.hpp>
 #include <boost/date_time.hpp>
-#include "TimeoutSerial.h"
+#include "serialstream.h"
 
 using namespace std;
 using namespace boost;
 using namespace boost::posix_time;
-
-//To fix a bug in the ftdi_sio in the Linux kernel
-//that occurs if sending large amount of data through serial port
-#define WITH_FTDI_FIX
 
 union IntChar
 {
@@ -47,15 +41,6 @@ void encoder_5x4(unsigned int in, unsigned char out[5])
 	}
 }
 
-unsigned int endianness_swap(unsigned int x)
-{
-	IntChar cast;
-	cast.intVal=x;
-	swap(cast.charVal[0],cast.charVal[3]);
-	swap(cast.charVal[1],cast.charVal[2]);
-	return cast.intVal;
-}
-
 int main(int argc, char *argv[])
 {
 	if(argc!=3)
@@ -64,8 +49,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	cout<<"Loading file... ";
-	cout.flush();
+	cout<<"Loading file... "<<flush;
 	ifstream file(argv[2],std::ios::binary);
 	if(!file)
 	{
@@ -86,8 +70,7 @@ int main(int argc, char *argv[])
 	file.read(buffer.get(),size);
 	cout<<"Done (size "<<size/1024<<"KB)."<<endl;
 
-	cout<<"Calculating CRC... ";
-	cout.flush();
+	cout<<"Calculating CRC... "<<flush;
 	//This is the same CRC as the stm32 hardware CRC unit.
 	crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0x0, false, false> crc;
 	for(int i=0;i<size;i+=4)
@@ -102,19 +85,20 @@ int main(int argc, char *argv[])
 	unsigned int checksum=crc.checksum();
 	cout<<" Done (0x"<<hex<<checksum<<")."<<endl;
 
-	cout<<"Opening serial port... ";
-	cout.flush();
-	TimeoutSerial serial(argv[1],115200);
-	serial.setTimeout(boost::posix_time::seconds(2));
+	cout<<"Opening serial port... "<<flush;
+	SerialOptions options(argv[1],115200,seconds(2));
+	SerialStream serial(options);
+	serial.exceptions(ios::badbit | ios::failbit);
 	cout<<"Done."<<endl;
 
 	cout<<"Checking bootloader version..."<<endl;
-	serial.writeString("D");//Reset
-	serial.writeString("@");//Status read
+	serial<<"D"<<flush;//Reset
+	serial<<"@"<<flush;//Status read
 	for(int i=0;i<20;i++) //Maximum 20 description lines
 	{
-		string line=serial.readStringUntil("\r\n");
-		if(line.size()==0) break;
+		string line;
+		getline(serial,line);
+		if(line.size()<=1) break;
 		cout<<"  "<<line<<endl;
 		switch(i)
 		{
@@ -126,7 +110,7 @@ int main(int argc, char *argv[])
 				}
 				break;
 			case 1:
-				if(line!="Device: stm32f103ze")
+				if(line.substr(0,19)!="Device: stm32f103ze")
 				{
 					cerr<<"Bootloader error"<<endl;
 					return 1;
@@ -135,13 +119,9 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	cout<<"Sending data... ";
-	cout.flush();
+	cout<<"Sending data... "<<flush;
 	ptime t_start(microsec_clock::local_time());
-	serial.writeString("A");//Start sending data
-	#ifdef WITH_FTDI_FIX
-	int fix_count=0;
-	#endif //WITH_FTDI_FIX
+	serial<<"A"<<flush;//Start sending data
 	for(int i=0;i<size;i+=4)
 	{
 		IntChar temp;
@@ -149,33 +129,21 @@ int main(int argc, char *argv[])
 		unsigned char bytes[5];
 		encoder_5x4(temp.intVal,bytes);
 		serial.write(reinterpret_cast<char *>(bytes),5);
-		#ifdef WITH_FTDI_FIX
-		if(++fix_count==20)
-		{
-			fix_count=0;
-			//To avoid Linux ftdi_sio bug
-			this_thread::sleep(posix_time::milliseconds(1));
-		}
-		#endif //WITH_FTDI_FIX
 	}
 	ptime t_end(microsec_clock::local_time());
 	cout<<"Done (Time "<<t_end-t_start<<
 			 ", Speed "<<(static_cast<double>(size)/1.024)/
 			 (t_end-t_start).total_milliseconds()<<"KB/s)."<<endl;
 
-	cout<<"Checking CRC... ";
-	cout.flush();
-	serial.writeString("C");//CRC check
-	stringstream ss;
-	ss<<hex<<serial.readStringUntil("\r\n");
+	cout<<"Checking CRC... "<<flush;
+	serial<<"C"<<flush;//CRC check
 	unsigned int received_checksum;
-	ss>>received_checksum;
+	serial>>hex>>received_checksum;
 	if(checksum!=received_checksum)
 	{
 		cout<<"Failed (Received CRC 0x"<<hex<<received_checksum<<")."<<endl;
 	} else {
 		cout<<"CRC ok."<<endl<<"Running program."<<endl;
-		serial.writeString("B");//Run
+		serial<<"B"<<flush;//Run
 	}
 }
-
