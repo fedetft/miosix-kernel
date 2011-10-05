@@ -178,7 +178,7 @@ void IRQportableStartKernel()
     NVIC_SetPriorityGrouping(7);//This should disable interrupt nesting
     NVIC_SetPriority(SVCall_IRQn,3);//High priority for SVC (Max=0, min=15)
     NVIC_SetPriority(SysTick_IRQn,3);//High priority for SysTick (Max=0, min=15)
-    SysTick->LOAD=SystemFrequency/miosix::TICK_FREQ;
+    SysTick->LOAD=SystemCoreClock/miosix::TICK_FREQ;
     //Start SysTick, set to generate interrupts
     SysTick->CTRL=SysTick_CTRL_ENABLE | SysTick_CTRL_TICKINT |
             SysTick_CTRL_CLKSOURCE;
@@ -213,7 +213,7 @@ void AuxiliaryTimer::IRQinit()
     TIM2->CR2=0; //No special options
     TIM2->SMCR=0; //No external trigger
     TIM2->CNT=0; //Clear timer
-    TIM2->PSC=(SystemFrequency/miosix::AUX_TIMER_CLOCK)-1;
+    TIM2->PSC=(SystemCoreClock/miosix::AUX_TIMER_CLOCK)-1;
     TIM2->ARR=0xffff; //Count from zero to 0xffff
     TIM2->DIER=TIM_DIER_CC1IE; //Enable interrupt on compare
     TIM2->CCR1=0xffff; //This will be initialized later with setValue

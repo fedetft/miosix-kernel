@@ -15,9 +15,6 @@
 //stage_2_boot.cpp
 extern "C" void _init();
 
-//Called to enable external SRAM, if required
-extern "C" void SystemInit_ExtMemCtl();
-
 /**
  * Calls C++ global constructors
  * \param start first function pointer to call
@@ -48,10 +45,17 @@ void program_startup()
     //Cortex M3 core appears to get out of reset with interrupts already enabled
     __disable_irq();
 
-    #ifdef __ENABLE_XRAM
-    //Initialize the FSMC to use external SRAM
-    SystemInit_ExtMemCtl();
-	#endif //__ENABLE_XRAM
+	//SystemInit() is called *before* initializing .data and zeroing .bss
+	//Despite all startup files provided by ST do the opposite, there are three
+	//good reasons to do so:
+	//First, the CMSIS specifications say that SystemInit() must not access
+	//global variables, so it is actually possible to call it before
+	//Second, when running Miosix with the xram linker scripts .data and .bss
+	//are placed in the external RAM, so we *must* call SystemInit(), which
+	//enables xram, before touching .data and .bss
+	//Third, this is a performance improvement since the loops that initialize
+	//.data and zeros .bss now run with the CPU at full speed instead of 8MHz
+    SystemInit();
 
 	//These are defined in the linker script
 	extern unsigned long _etext asm("_etext");

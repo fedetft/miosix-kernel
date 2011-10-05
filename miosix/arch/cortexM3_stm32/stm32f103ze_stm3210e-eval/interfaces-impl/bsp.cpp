@@ -55,7 +55,6 @@ namespace miosix {
 
 void IRQbspInit()
 {
-    SystemInit(); //This will setup the PLL as specified in makefile.inc
     //Enable all gpios
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_IOPBEN |
                     RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN |
