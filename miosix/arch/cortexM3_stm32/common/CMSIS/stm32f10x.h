@@ -1,3 +1,8 @@
+
+//
+// This file has been modified by TFT!!! Changes are highlighted with "By TFT:"
+//
+
 /**
   ******************************************************************************
   * @file    stm32f10x.h
@@ -15,15 +20,15 @@
   *          is using in the C source code, usually in main.c. This file contains:
   *           - Configuration section that allows to select:
   *              - The device used in the target application
-  *              - To use or not the peripheral’s drivers in application code(i.e. 
-  *                code will be based on direct access to peripheral’s registers 
+  *              - To use or not the peripheralï¿½s drivers in application code(i.e. 
+  *                code will be based on direct access to peripheralï¿½s registers 
   *                rather than drivers API), this option is controlled by 
   *                "#define USE_STDPERIPH_DRIVER"
   *              - To change few application-specific parameters such as the HSE 
   *                crystal frequency
   *           - Data structures and the address mapping for all peripherals
   *           - Peripheral's registers declarations and bits definition
-  *           - Macros to access peripheral’s registers hardware
+  *           - Macros to access peripheralï¿½s registers hardware
   *
   ******************************************************************************
   * @attention
@@ -93,7 +98,8 @@
   */
 
 #if !defined (STM32F10X_LD) && !defined (STM32F10X_LD_VL) && !defined (STM32F10X_MD) && !defined (STM32F10X_MD_VL) && !defined (STM32F10X_HD) && !defined (STM32F10X_HD_VL) && !defined (STM32F10X_XL) && !defined (STM32F10X_CL)
- #error "Please select first the target STM32F10x device used in your application (in stm32f10x.h file)"
+// By TFT: This #error causes issues with the Netbeans IDE
+// #error "Please select first the target STM32F10x device used in your application (in stm32f10x.h file)"
 #endif
 
 #if !defined  USE_STDPERIPH_DRIVER
