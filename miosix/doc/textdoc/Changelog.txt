@@ -1,6 +1,9 @@
 Changelog for Miosix np embedded OS
 
+v1.59
+
 v1.58
+- Added new board stm32vldiscovery
 - Fixed a bug in the syscall code to handle static constructors. Despite the
   gcc documentation said that a __guard was 8 bytes, it is actually only 4
 - Changing linker scripts to be compatble with the way GCC handles
