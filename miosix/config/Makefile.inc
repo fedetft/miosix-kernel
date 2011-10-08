@@ -15,6 +15,7 @@
 #OPT_BOARD := lpc2138_miosix_board
 OPT_BOARD := stm32f103ze_stm3210e-eval
 #OPT_BOARD := stm32f103ve_mp3v2
+#OPT_BOARD := stm32f100rb_stm32vldiscovery
 
 ##
 ## Optimization flags, choose one.
@@ -101,9 +102,6 @@ ifeq ($(OPT_BOARD),stm32f103ve_mp3v2)
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_rom.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_ram.ld
 
-    ## Select clock frequency. Board is designed to run @ 72MHz, no options
-    CLOCK_FREQ := -DSYSCLK_FREQ_72MHz=72000000
-
 endif
 
 ############################################################################
@@ -120,6 +118,8 @@ ifeq ($(OPT_BOARD),lpc2138_miosix_board)
 else ifeq ($(OPT_BOARD),stm32f103ze_stm3210e-eval)
     ARCH := cortexM3_stm32
 else ifeq ($(OPT_BOARD),stm32f103ve_mp3v2)
+    ARCH := cortexM3_stm32
+else ifeq ($(OPT_BOARD),stm32f100rb_stm32vldiscovery)
     ARCH := cortexM3_stm32
 else
     $(error Error: no board specified in miosix/config/Makefile.inc)
@@ -240,8 +240,8 @@ else ifeq ($(ARCH),cortexM3_stm32)
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_STM3210E_EVAL
-        CXXFLAGS_BASE += -D_BOARD_STM3210E_EVAL
+        CFLAGS_BASE   += -D_BOARD_STM3210E_EVAL -DSTM32F10X_HD
+        CXXFLAGS_BASE += -D_BOARD_STM3210E_EVAL -DSTM32F10X_HD
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -273,8 +273,11 @@ else ifeq ($(ARCH),cortexM3_stm32)
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_MP3V2
-        CXXFLAGS_BASE += -D_BOARD_MP3V2
+        CFLAGS_BASE   += -D_BOARD_MP3V2 -DSTM32F10X_HD
+        CXXFLAGS_BASE += -D_BOARD_MP3V2 -DSTM32F10X_HD
+
+        ## Clock frequency
+        CLOCK_FREQ := -DSYSCLK_FREQ_72MHz=72000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -287,6 +290,40 @@ else ifeq ($(ARCH),cortexM3_stm32)
         else
         PROGRAM_CMDLINE := sudo mp3v2_bootloader --code main.bin
         endif
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f100rb_stm32vldiscovery
+    ##
+    else ifeq ($(OPT_BOARD),stm32f100rb_stm32vldiscovery)
+
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_128k+8k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/console.cpp     \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32VLDISCOVERY -DSTM32F10X_MD_VL 
+        CXXFLAGS_BASE += -D_BOARD_STM32VLDISCOVERY -DSTM32F10X_MD_VL
+
+        ## Clock frequency
+        CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := echo 'No programmer support'
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -308,11 +345,11 @@ else ifeq ($(ARCH),cortexM3_stm32)
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
-    CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32 -DSTM32F10X_HD $(CLOCK_FREQ)     \
-                     $(XRAM) -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd    \
+    CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32 $(CLOCK_FREQ) $(XRAM)            \
+                     -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
                      $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c 
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32 -DSTM32F10X_HD $(CLOCK_FREQ)     \
-                     $(XRAM) $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb           \
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32 $(CLOCK_FREQ) $(XRAM)            \
+                     $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
                      -mfix-cortex-m3-ldrd $(OPT_OPTIMIZATION)                \
                      -ffunction-sections -Wall -g -c
     LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \

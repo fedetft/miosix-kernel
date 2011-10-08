@@ -67,7 +67,9 @@ static void test_6();
 static void test_7();
 static void test_8();
 static void test_9();
+#ifndef __NO_EXCEPTIONS
 static void test_10();
+#endif //__NO_EXCEPTIONS
 static void test_11();
 static void test_12();
 static void test_13();
@@ -87,7 +89,9 @@ static void benchmark_2();
 static void benchmark_3();
 static void benchmark_4();
 //Exception thread safety test
+#ifndef __NO_EXCEPTIONS
 static void exception_test();
+#endif //__NO_EXCEPTIONS
 
 //main(), calls all tests
 int main()
@@ -119,7 +123,9 @@ int main()
                 test_7();
                 test_8();
                 test_9();
+                #ifndef __NO_EXCEPTIONS
                 test_10();
+                #endif //__NO_EXCEPTIONS
                 test_11();
                 test_12();
                 test_13();
@@ -147,7 +153,11 @@ int main()
                 iprintf("\n*** All tests were successful\n\n");
                 break;
             case 'x':
+                #ifndef __NO_EXCEPTIONS
                 exception_test();
+                #else //__NO_EXCEPTIONS
+                iprintf("Error, exception support is disabled\n");
+                #endif //__NO_EXCEPTIONS
                 break;
             case 'b':
                 ledOn();
@@ -1552,6 +1562,7 @@ static void test_9()
 tests exception propagation throug entry point of a thread
 */
 
+#ifndef __NO_EXCEPTIONS
 void t10_f1()
 {
     throw(std::logic_error("Ok, exception test worked"));
@@ -1583,6 +1594,7 @@ void test_10()
     if(Thread::exists(t)) fail("Thread not deleted");
     pass();
 }
+#endif //__NO_EXCEPTIONS
 
 //
 // Test 11
@@ -2599,6 +2611,7 @@ static void fs_test_3()
 // C++ exceptions thread safety test
 //
 
+#ifndef __NO_EXCEPTIONS
 const int nThreads=8;
 bool flags[nThreads];
 
@@ -2652,6 +2665,7 @@ static void exception_test()
 		iprintf("iteration=%d heap_used=%d\n",j,heap);
 	}
 }
+#endif //__NO_EXCEPTIONS
 
 //
 // Benchmark 1
