@@ -323,7 +323,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := echo 'No programmer support'
+        PROGRAM_CMDLINE := sudo vsprog -cstm32_vl -ms -I main.hex -oe -owf -ovf
 
     ##-------------------------------------------------------------------------
     ## End of board list

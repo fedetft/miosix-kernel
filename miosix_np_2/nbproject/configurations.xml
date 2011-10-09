@@ -58,6 +58,17 @@
               </df>
               <in>arch_settings.h</in>
             </df>
+            <df name="stm32f100rb_stm32vldiscovery">
+              <df name="core" kind="SOURCE_LOGICAL_FOLDER">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl" kind="SOURCE_LOGICAL_FOLDER">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console.cpp</in>
+              </df>
+              <in>board_settings.h</in>
+            </df>
             <df name="stm32f103ve_mp3v2">
               <df name="core">
                 <in>stage_1_boot.cpp</in>
@@ -67,6 +78,7 @@
                 <in>bsp_impl.h</in>
                 <in>console.cpp</in>
                 <in>disk.cpp</in>
+                <in>hwmapping.h</in>
               </df>
               <in>board_settings.h</in>
             </df>
