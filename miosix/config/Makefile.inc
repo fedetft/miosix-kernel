@@ -365,6 +365,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     ARCH_SRC +=                                  \
     $(ARCH_INC)/core/interrupts.cpp              \
     $(ARCH_INC)/drivers/serial.cpp               \
+    $(ARCH_INC)/drivers/dcc.cpp                  \
     $(ARCH_INC)/interfaces-impl/portability.cpp  \
     $(ARCH_INC)/interfaces-impl/delays.cpp       \
     $(ARCH_INC)/CMSIS/core_cm3.c                 \

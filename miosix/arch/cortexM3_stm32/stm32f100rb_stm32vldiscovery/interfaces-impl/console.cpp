@@ -26,10 +26,15 @@
  ***************************************************************************/
 
 #include "interfaces/console.h"
+#include "board_settings.h"
 #include "drivers/serial.h"
+#include "drivers/dcc.h"
+#include "kernel/logging.h"
 #include <cstring>
 
 namespace miosix {
+
+#ifndef STDOUT_REDIRECTED_TO_DCC
 
 void Console::write(const char *str)
 {
@@ -65,5 +70,46 @@ bool Console::readCharNonBlocking(char& c)
 {
     return serialReadCharNonblocking(c);
 }
+
+#else //STDOUT_REDIRECTED_TO_DCC
+
+void Console::write(const char *str)
+{
+    debugWrite(str,std::strlen(str));
+}
+
+void Console::write(const char *data, int length)
+{
+    debugWrite(data,length);
+}
+
+bool Console::txComplete()
+{
+    return true;
+}
+
+void Console::IRQwrite(const char *str)
+{
+    IRQdebugWrite(str);
+}
+
+bool Console::IRQtxComplete()
+{
+    return true;
+}
+
+char Console::readChar()
+{
+    errorLog("***stdin is not available in DCC");
+    for(;;) ;
+    return 0; //Only to avoid a compiler warning
+}
+
+bool Console::readCharNonBlocking(char& c)
+{
+    return false;
+}
+
+#endif //STDOUT_REDIRECTED_TO_DCC
 
 } //namespace miosix

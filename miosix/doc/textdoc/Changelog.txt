@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
 v1.59
+- Added DCC support for the stm32vldiscovery board, to be able to redirect
+  printf through SWD. This has also become the default option for that board.
 
 v1.58
 - Added new board stm32vldiscovery

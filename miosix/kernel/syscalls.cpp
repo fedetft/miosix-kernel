@@ -255,7 +255,7 @@ extern "C" int __cxa_guard_acquire(__guard *g)
             //Wait, the other thread initializing the object is this thread?!?
             //We have a recursive initialization error. Not throwing an
             //exception to avoid pulling in exceptions even with -fno-exception
-            miosix::Console::IRQwrite("Recursive initialization\r\n");
+            miosix::IRQerrorLog("Recursive initialization\r\n");
             _exit(1);
         }
 
@@ -348,10 +348,6 @@ void *__dso_handle=(void*) &__dso_handle;
 //
 // C/C++ system calls, to support malloc, printf, fopen, etc.
 // ==========================================================
-
-#define STDIN_FILENO 0
-#define STDOUT_FILENO 1
-#define STDERR_FILENO 2
 
 /**
  * \internal

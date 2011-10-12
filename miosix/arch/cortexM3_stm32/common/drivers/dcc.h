@@ -1,4 +1,4 @@
-/***************************************************************************
+ /***************************************************************************
  *   Copyright (C) 2011 by Terraneo Federico                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -24,46 +24,23 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
+ 
+#ifndef DCC_H
+#define DCC_H
+ 
+ /**
+  * Write debugging data. If a OpenOCD is connected via JTAG or SWD,
+  * data will be printed on the console
+  * \param str string, can also be not null terminated
+  * \param len string length
+  */
+void debugWrite(const char *str, unsigned int len);
+ 
+ /**
+  * Write debugging data from within an interrupt or with interrupts disabled.
+  * If a OpenOCD is connected via JTAG or SWD, data will be printed on the console
+  * \param str string, needs to be null terminated
+  */
+void IRQdebugWrite(const char *str);
 
-#ifndef BOARD_SETTINGS_H
-#define	BOARD_SETTINGS_H
-
-namespace miosix {
-
-/**
- * \addtogroup Settings
- * \{
- */
-
-/// Size of stack for main().
-/// The C standard library is stack-heavy (iprintf requires 1KB) but the
-/// STM32F100RB only has 8KB of RAM so the stack is only 1.5KB.
-const unsigned int MAIN_STACK_SIZE=1024+512;
-
-/// Frequency of tick (in Hz). The frequency of the STM32F100RB timer in the
-/// stm32vldiscovery board can be divided by 1000. This allows to use a 1KHz
-/// tick and the minimun Thread::sleep value is 1ms
-/// For the priority scheduler this is also the context switch frequency
-const unsigned int TICK_FREQ=1000;
-
-///\internal Aux timer run @ 100KHz
-///Note that since the timer is only 16 bits this imposes a limit on the
-///burst measurement of 655ms. If due to a pause_kernel() or
-///disable_interrupts() section a thread runs for more than that time, a wrong
-///burst value will be measured
-const unsigned int AUX_TIMER_CLOCK=100000;
-const unsigned int AUX_TIMER_MAX=0xffff; ///<\internal Aux timer is 16 bits
-
-///\def STDOUT_REDIRECTED_TO_DCC
-///If defined, stdout is redirected to the debug communication channel, and
-///will be printed if OpenOCD is connected. If not defined, stdout will be
-///redirected throug USART1, as usual.
-#define STDOUT_REDIRECTED_TO_DCC
-
-/**
- * \}
- */
-
-} //namespace miosix
-
-#endif	/* BOARD_SETTINGS_H */
+#endif //DCC_H
