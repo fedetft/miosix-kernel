@@ -57,12 +57,15 @@ void IRQbspInit()
 {
     //Enable all gpios
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_IOPBEN |
-                    RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN;
+                    RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN |
+                    RCC_APB2ENR_AFIOEN;
     led::mode(Mode::OUTPUT_2MHz);
     ledOn();
     delayMs(100);
     ledOff();
+    #ifndef STDOUT_REDIRECTED_TO_DCC
     miosix::IRQserialInit();
+    #endif //STDOUT_REDIRECTED_TO_DCC
 }
 
 void bspInit2()
@@ -96,10 +99,19 @@ void shutdown()
     #endif //WITH_FILESYSTEM
     //Disable interrupts
     disableInterrupts();
+    #ifndef STDOUT_REDIRECTED_TO_DCC
     if(IRQisSerialEnabled()) IRQserialDisable();
+    #endif //STDOUT_REDIRECTED_TO_DCC
 
+    RCC->APB1ENR |= RCC_APB1ENR_PWREN; //Fuckin' clock gating...  
+    PWR->CR |= PWR_CR_PDDS; //Select standby mode
+    PWR->CR |= PWR_CR_CWUF;
+    PWR->CSR |= PWR_CSR_EWUP; //Enable PA.0 as wakeup source
+    
+    SCB->SCR |= SCB_SCR_SLEEPDEEP;
+    __WFE();
     NVIC_SystemReset();
-	for(;;) ; //Never reach here
+    for(;;) ; //Never reach here
 }
 
 void reboot()
@@ -111,7 +123,9 @@ void reboot()
     Filesystem::instance().umount();
     #endif //WITH_FILESYSTEM
     disableInterrupts();
+    #ifndef STDOUT_REDIRECTED_TO_DCC
     if(IRQisSerialEnabled()) IRQserialDisable();
+    #endif //STDOUT_REDIRECTED_TO_DCC
     miosix_private::IRQsystemReboot();
 }
 
