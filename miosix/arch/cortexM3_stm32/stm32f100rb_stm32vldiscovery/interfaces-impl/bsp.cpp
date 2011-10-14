@@ -103,6 +103,8 @@ void shutdown()
     if(IRQisSerialEnabled()) IRQserialDisable();
     #endif //STDOUT_REDIRECTED_TO_DCC
 
+    /*
+    Removed because low power mode causes issues with SWD programming
     RCC->APB1ENR |= RCC_APB1ENR_PWREN; //Fuckin' clock gating...  
     PWR->CR |= PWR_CR_PDDS; //Select standby mode
     PWR->CR |= PWR_CR_CWUF;
@@ -111,7 +113,8 @@ void shutdown()
     SCB->SCR |= SCB_SCR_SLEEPDEEP;
     __WFE();
     NVIC_SystemReset();
-    for(;;) ; //Never reach here
+    */
+    for(;;) ;
 }
 
 void reboot()
