@@ -1,6 +1,9 @@
 Changelog for Miosix np embedded OS
 
 v1.59
+- The files binutils-2.21.tar.bz2 and gdb-7.0.tar.bz2 no longer exist on the
+  ftp.gnu.org and mirrors.kernel.org, and this broke the compiler installation
+  script. Fixed by downloading binutils-2.21.1 and gdb-7.0.1a.
 - Added DCC support for the stm32vldiscovery board, to be able to redirect
   printf through SWD. This has also become the default option for that board.
 
