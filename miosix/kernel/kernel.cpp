@@ -35,6 +35,7 @@
 #include "kernel/scheduler/scheduler.h"
 #include <stdexcept>
 #include <algorithm>
+#include <string.h>
 
 /*
 Used by assembler context switch macros
@@ -166,19 +167,12 @@ void startKernel()
     void *threadClass=base+((STACK_IDLE+CTXSAVE_ON_STACK+WATERMARK_LEN)/
             sizeof(unsigned int));
     Thread *idle=new (threadClass) Thread(base,STACK_IDLE);
-    //Fill watermark
-    for(unsigned int i=0;i<(WATERMARK_LEN/sizeof(unsigned int));i++)
-    {
-        *base=WATERMARK_FILL;
-        base++;
-    }
-    //Fill stack
-    for(unsigned int i=0;
-            i<((STACK_IDLE+CTXSAVE_ON_STACK)/sizeof(unsigned int));i++)
-    {
-        *base=STACK_FILL;
-        base++;
-    }
+
+    //Fill watermark and stack
+    memset(base, WATERMARK_FILL, WATERMARK_LEN);
+    base+=WATERMARK_LEN/sizeof(unsigned int);
+    memset(base, STACK_FILL, STACK_IDLE);
+
     //On some architectures some registers are saved on the stack, therefore
     //initCtxsave *must* be called after filling the stack.
     miosix_private::initCtxsave(idle->ctxsave,idleThread,
@@ -312,19 +306,12 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
     void *threadClass=base+((stacksize+WATERMARK_LEN+CTXSAVE_ON_STACK)/
             sizeof(unsigned int));
     Thread *thread=new (threadClass) Thread(base,stacksize);
-    //Fill watermark
-    for(unsigned int i=0;i<(WATERMARK_LEN/sizeof(unsigned int));i++)
-    {
-        *base=WATERMARK_FILL;
-        base++;
-    }
-    //Fill stack
-    for(unsigned int i=0;
-            i<((stacksize+CTXSAVE_ON_STACK)/sizeof(unsigned int));i++)
-    {
-        *base=STACK_FILL;
-        base++;
-    }
+
+    //Fill watermark and stack
+    memset(base, WATERMARK_FILL, WATERMARK_LEN);
+    base+=WATERMARK_LEN/sizeof(unsigned int);
+    memset(base, STACK_FILL, stacksize);
+
     //On some architectures some registers are saved on the stack, therefore
     //initCtxsave *must* be called after filling the stack.
     miosix_private::initCtxsave(thread->ctxsave,startfunc,

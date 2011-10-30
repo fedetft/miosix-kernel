@@ -38,7 +38,11 @@ namespace miosix {
 /**
  * Allows to know the version of the kernel at runtime.
  * \return a string with the kernel version.
- * The format is "Miosix vX.XX" where X.XX is the version number
+ * The format is "Miosix vX.XX (board, builddate, compiler)" where
+ * vX.XX is the kernel version number, like "v1.59"
+ * board is the board name, like "stm32f103ze_stm3210e-eval"
+ * builddate is the date the kernel was built, like "Oct 30 2011 00:58:10"
+ * compiler is the compiler version, like "gcc 4.5.2"
  */
 const char *getMiosixVersion();
 
