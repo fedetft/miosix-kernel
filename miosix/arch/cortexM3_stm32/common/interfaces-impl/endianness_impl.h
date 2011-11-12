@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011 by Terraneo Federico                         *
+ *   Copyright (C) 2011 by Terraneo Federico                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,31 +25,68 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef VERSION_H
-#define	VERSION_H
+#ifndef ENDIANNESS_IMPL_H
+#define	ENDIANNESS_IMPL_H
 
-namespace miosix {
+//This target is little endian
+#define MIOSIX_LITTLE_ENDIAN
 
-/**
- * \addtogroup Util
- * \{
- */
+#ifdef __cplusplus
+#define __MIOSIX_INLINE inline
+#else //__cplusplus
+#define __MIOSIX_INLINE static inline
+#endif //__cplusplus
 
-/**
- * Allows to know the version of the kernel at runtime.
- * \return a string with the kernel version.
- * The format is "Miosix vX.XX (board, builddate, compiler)" where
- * vX.XX is the kernel version number, like "v1.59"
- * board is the board name, like "stm32f103ze_stm3210e-eval"
- * builddate is the date the kernel was built, like "Oct 30 2011 00:58:10"
- * compiler is the compiler version, like "gcc 4.5.2"
- */
-const char *getMiosixVersion();
+__MIOSIX_INLINE unsigned short swapBytes16(unsigned short x)
+{
+    //It's kind of a shame that GCC can't automatically make use of
+    //instructions like rev and rev16 to do byte swapping.
+    //Moreover, while for 32 and 64 bit integers it has builtins, for 16 bit
+    //we're forced to use inline asm.
+    #ifdef __GNUC__
+    if(!__builtin_constant_p(x))
+    {
+        unsigned short y;
+        asm("rev16 %0, %1":"=r"(y):"r"(x));
+        return y;
+    } else {
+        //It gets worse: if value is constant inlining assembler disables
+        //contant folding, wtf...
+        return (x>>8) | (x<<8);
+    }
+    #else
+    return (x>>8) | (x<<8);
+    #endif
+}
 
-/**
- * \}
- */
+__MIOSIX_INLINE unsigned int swapBytes32(unsigned int x)
+{
+    #ifdef __GNUC__
+    return __builtin_bswap32(x);
+    #else
+    return ( x>>24)               |
+           ((x<< 8) & 0x00ff0000) |
+           ((x>> 8) & 0x0000ff00) |
+           ( x<<24);
+    #endif
+}
 
-} //namespace miosix
+__MIOSIX_INLINE unsigned long long swapBytes64(unsigned long long x)
+{
+    #ifdef __GNUC__
+    return __builtin_bswap64(x);
+    #else
+    return ( x>>56)                          |
+           ((x<<40) & 0x00ff000000000000ull) |
+           ((x<<24) & 0x0000ff0000000000ull) |
+           ((x<< 8) & 0x000000ff00000000ull) |
+           ((x>> 8) & 0x00000000ff000000ull) |
+           ((x>>24) & 0x0000000000ff0000ull) |
+           ((x>>40) & 0x000000000000ff00ull) |
+           ( x<<56);
+    #endif
+}
 
-#endif	/* VERSION_H */
+#undef __MIOSIX_INLINE
+
+#endif //ENDIANNESS_IMPL_H

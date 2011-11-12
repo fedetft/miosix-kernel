@@ -6,6 +6,9 @@
         <df name="arch">
           <df name="arm7_lpc2000">
             <df name="common">
+              <df name="interfaces-impl">
+                <in>endianness_impl.h</in>
+              </df>
               <in>arch_settings.h</in>
             </df>
             <df name="lpc2138_miosix_board">
@@ -46,12 +49,15 @@
                 <in>interrupts.h</in>
               </df>
               <df name="drivers">
+                <in>dcc.cpp</in>
+                <in>dcc.h</in>
                 <in>serial.cpp</in>
                 <in>serial.h</in>
               </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
                 <in>delays.cpp</in>
+                <in>endianness_impl.h</in>
                 <in>gpio_impl.h</in>
                 <in>portability.cpp</in>
                 <in>portability_impl.h</in>
@@ -105,6 +111,7 @@
           <in>console.h</in>
           <in>delays.h</in>
           <in>disk.h</in>
+          <in>endianness.h</in>
           <in>gpio.h</in>
           <in>portability.h</in>
         </df>

@@ -1,6 +1,9 @@
 Changelog for Miosix np embedded OS
 
 v1.59
+- Added tests to testsuite for endianness.h
+- Added interfaces/endianness.h with optimized functions to convert to/from
+  lille/big endian, as well as byte swapping.
 - Improved boot speed by replacing for loops to initialize .data, .bss and
   to initialize the stack of threads with memset/memcpy.
 - Improved getMiosixVersion(), new format contains more information, including
