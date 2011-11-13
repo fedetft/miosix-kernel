@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
 v1.59
+- Improved Thread::join(): when joining a thread, deallocate all its resources
+  immeadiately.
 - Added tests to testsuite for endianness.h
 - Added interfaces/endianness.h with optimized functions to convert to/from
   lille/big endian, as well as byte swapping.

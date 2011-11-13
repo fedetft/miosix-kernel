@@ -506,35 +506,42 @@ bool Thread::isDetached() const
 
 bool Thread::join(void** result)
 {
-    FastInterruptDisableLock dLock;
-    if(this==Thread::IRQgetCurrentThread()) return false;
-    if(Thread::IRQexists(this)==false) return false;
-    if(this->flags.isDetached()) return false;
-    if(this->flags.isDeletedJoin()==false)
     {
-        //Another thread already called join on toJoin
-        if(this->joinData.waitingForJoin!=NULL) return false;
-        
-        this->joinData.waitingForJoin=Thread::IRQgetCurrentThread();
-        for(;;)
+        FastInterruptDisableLock dLock;
+        if(this==Thread::IRQgetCurrentThread()) return false;
+        if(Thread::IRQexists(this)==false) return false;
+        if(this->flags.isDetached()) return false;
+        if(this->flags.isDeletedJoin()==false)
         {
-            //Wait
-            Thread::IRQgetCurrentThread()->flags.IRQsetJoinWait(true);
+            //Another thread already called join on toJoin
+            if(this->joinData.waitingForJoin!=NULL) return false;
+
+            this->joinData.waitingForJoin=Thread::IRQgetCurrentThread();
+            for(;;)
             {
-                FastInterruptEnableLock eLock(dLock);
-                Thread::yield();
+                //Wait
+                Thread::IRQgetCurrentThread()->flags.IRQsetJoinWait(true);
+                {
+                    FastInterruptEnableLock eLock(dLock);
+                    Thread::yield();
+                }
+                if(Thread::IRQexists(this)==false) return false;
+                if(this->flags.isDetached()) return false;
+                if(this->flags.isDeletedJoin()) break;
             }
-            if(Thread::IRQexists(this)==false) return false;
-            if(this->flags.isDetached()) return false;
-            if(this->flags.isDeletedJoin()) break;
         }
+        //Thread deleted, complete join procedure
+        //Setting detached flag will make isDeleted() return true,
+        //so its memory can be deallocated
+        this->flags.IRQsetDetached();
+        if(result!=NULL) *result=this->joinData.result;
     }
-    //Thread deleted, complete join procedure
-    //Setting detached flag will make isDeleted() return true, so its memory
-    //can be deallocated
-    this->flags.IRQsetDetached();
-    exist_deleted=true;
-    if(result!=NULL) *result=this->joinData.result;
+    {
+        PauseKernelLock lock;
+        //Since there is surely one dead thread, deallocate it immediately
+        //to free its memory as soon as possible
+        Scheduler::PKremoveDeadThreads();
+    }
     return true;
 }
 
