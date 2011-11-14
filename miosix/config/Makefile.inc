@@ -35,7 +35,7 @@ OPT_OPTIMIZATION := -O2
 ## implicitly uses it) uncomment this option.
 ## the -D__NO_EXCEPTIONS is used by Miosix to know if exceptions are used.
 ##
-#OPT_EXCEPT := -fno-exceptions -fno-rtti -D__NO_EXCEPTIONS
+OPT_EXCEPT := -fno-exceptions -fno-rtti -D__NO_EXCEPTIONS
 
 #############################################################################
 ## Board specific options

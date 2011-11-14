@@ -55,7 +55,37 @@ namespace miosix {
 
 void IRQbspInit()
 {
-    //On this board this part of the initialization is done by the bootloader
+	//Enable clocks to all ports
+	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_IOPBEN |
+					RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN |
+					RCC_APB2ENR_IOPEEN;
+    //Set ports
+    led::mode(Mode::OUTPUT);
+
+	disp::reset::mode(Mode::OUTPUT);
+	disp::ncpEn::mode(Mode::OUTPUT);
+
+	disp::d0::mode(Mode::ALTERNATE);
+	disp::d1::mode(Mode::ALTERNATE);
+	disp::d2::mode(Mode::ALTERNATE);
+	disp::d3::mode(Mode::ALTERNATE);
+	disp::d4::mode(Mode::ALTERNATE);
+	disp::d5::mode(Mode::ALTERNATE);
+	disp::d6::mode(Mode::ALTERNATE);
+	disp::d7::mode(Mode::ALTERNATE);
+	disp::d8::mode(Mode::ALTERNATE);
+	disp::d9::mode(Mode::ALTERNATE);
+	disp::d10::mode(Mode::ALTERNATE);
+	disp::d11::mode(Mode::ALTERNATE);
+	disp::d12::mode(Mode::ALTERNATE);
+	disp::d13::mode(Mode::ALTERNATE);
+	disp::d14::mode(Mode::ALTERNATE);
+	disp::d15::mode(Mode::ALTERNATE);
+	disp::rd::mode(Mode::ALTERNATE);
+	disp::wr::mode(Mode::ALTERNATE);
+	disp::cs::mode(Mode::ALTERNATE);
+	disp::rs::mode(Mode::ALTERNATE);
+
     ledOn();
     delayMs(100);
     ledOff();
