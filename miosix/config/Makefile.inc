@@ -13,9 +13,10 @@
 ## architecture
 ##
 #OPT_BOARD := lpc2138_miosix_board
-OPT_BOARD := stm32f103ze_stm3210e-eval
+#OPT_BOARD := stm32f103ze_stm3210e-eval
 #OPT_BOARD := stm32f103ve_mp3v2
 #OPT_BOARD := stm32f100rb_stm32vldiscovery
+OPT_BOARD := stm32f103ve_strive_mini
 
 ##
 ## Optimization flags, choose one.
@@ -104,6 +105,14 @@ ifeq ($(OPT_BOARD),stm32f103ve_mp3v2)
 
 endif
 
+##---------------------------------------------------------------------------
+## stm32f103ve_strive_mini
+##
+ifeq ($(OPT_BOARD),stm32f103ve_strive_mini)
+    LINKER_SCRIPT_PATH := arch/cortexM3_stm32/stm32f103ve_strive_mini/
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_rom.ld
+endif
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -120,6 +129,8 @@ else ifeq ($(OPT_BOARD),stm32f103ze_stm3210e-eval)
 else ifeq ($(OPT_BOARD),stm32f103ve_mp3v2)
     ARCH := cortexM3_stm32
 else ifeq ($(OPT_BOARD),stm32f100rb_stm32vldiscovery)
+    ARCH := cortexM3_stm32
+else ifeq ($(OPT_BOARD),stm32f103ve_strive_mini)
     ARCH := cortexM3_stm32
 else
     $(error Error: no board specified in miosix/config/Makefile.inc)
@@ -325,6 +336,41 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## board.
         PROGRAM_CMDLINE := sudo vsprog -cstm32_vl -ms -I main.hex -oe -owf -ovf
 
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f103ve_strive_mini
+    ##
+    else ifeq ($(OPT_BOARD),stm32f103ve_strive_mini)
+
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_stm32/stm32f103ve_strive_mini
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        #LINKER_SCRIPT := already selected in board options
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/console.cpp     \
+        $(BOARD_INC)/interfaces-impl/disk.cpp        \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STRIVE_MINI -DSTM32F10X_HD
+        CXXFLAGS_BASE += -D_BOARD_STRIVE_MINI -DSTM32F10X_HD -D_POSIX_THREADS
+
+        ## Clock frequency
+        CLOCK_FREQ := -DSYSCLK_FREQ_72MHz=72000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := "c:/Program Files/STMicroelectronics/STM32 ST-LINK Utility/ST-LINK Utility/ST-LINK_CLI.exe" \
+        -c JTAG -Rst -P main.hex 0x08000000 -Run
     ##-------------------------------------------------------------------------
     ## End of board list
     ##
