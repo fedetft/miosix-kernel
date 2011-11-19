@@ -104,8 +104,17 @@ namespace usb {
 typedef Gpio<GPIOA_BASE,11> dm;     //Handled by hardware (USB) D-
 typedef Gpio<GPIOA_BASE,12> dp;     //Handled by hardware (USB) D+
 typedef Gpio<GPIOC_BASE,13> detect; //1K pullup connected to 3.3V via bipolar PNP.
-                                    //Pull this pin down to enable detection.
+                                    //Pull this pin down to enable detection!!!
 }
+
+namespace spi1 {
+typedef Gpio<GPIOA_BASE,5> sck;
+typedef Gpio<GPIOA_BASE,6> miso;
+typedef Gpio<GPIOA_BASE,7> mosi;
+typedef Gpio<GPIOA_BASE,4> nflashss;   //used only to select serial flash
+typedef Gpio<GPIOB_BASE,7> ntouchss;  //used to select touch screen controller
+typedef Gpio<GPIOB_BASE,6> touchint; //touchscreen controller interrupt
+};
 
 //Debug/bootloader serial port
 namespace boot {

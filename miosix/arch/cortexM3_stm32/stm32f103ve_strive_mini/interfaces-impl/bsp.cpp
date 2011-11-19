@@ -58,7 +58,7 @@ void IRQbspInit()
 	//Enable clocks to all ports
 	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_IOPBEN |
 					RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN |
-					RCC_APB2ENR_IOPEEN;
+					RCC_APB2ENR_IOPEEN | RCC_APB2ENR_AFIOEN;
     //Set ports
     led::mode(Mode::OUTPUT);
 
@@ -85,6 +85,10 @@ void IRQbspInit()
 	disp::wr::mode(Mode::ALTERNATE);
 	disp::cs::mode(Mode::ALTERNATE);
 	disp::rs::mode(Mode::ALTERNATE);
+
+    //Chip select to serial flash: setting it to 1
+    spi1::nflashss::high();
+    spi1::nflashss::mode(Mode::OUTPUT);
 
     ledOn();
     delayMs(100);
