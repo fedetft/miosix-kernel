@@ -73,7 +73,7 @@ namespace miosix {
 /// (unless power failure happens exactly between the write and the sync)
 /// Unfortunately write latency and throughput becomes twice as worse
 /// By default it is defined (slow but safe)
-//#define SYNC_AFTER_WRITE
+#define SYNC_AFTER_WRITE
 
 /// Maximum number of open files. Trying to open more will fail.
 const unsigned char MAX_OPEN_FILES=8;

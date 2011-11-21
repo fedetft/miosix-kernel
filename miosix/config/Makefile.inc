@@ -13,10 +13,10 @@
 ## architecture
 ##
 #OPT_BOARD := lpc2138_miosix_board
-#OPT_BOARD := stm32f103ze_stm3210e-eval
+OPT_BOARD := stm32f103ze_stm3210e-eval
 #OPT_BOARD := stm32f103ve_mp3v2
 #OPT_BOARD := stm32f100rb_stm32vldiscovery
-OPT_BOARD := stm32f103ve_strive_mini
+#OPT_BOARD := stm32f103ve_strive_mini
 
 ##
 ## Optimization flags, choose one.
@@ -35,7 +35,7 @@ OPT_OPTIMIZATION := -O2
 ## implicitly uses it) uncomment this option.
 ## the -D__NO_EXCEPTIONS is used by Miosix to know if exceptions are used.
 ##
-OPT_EXCEPT := -fno-exceptions -fno-rtti -D__NO_EXCEPTIONS
+#OPT_EXCEPT := -fno-exceptions -fno-rtti -D__NO_EXCEPTIONS
 
 #############################################################################
 ## Board specific options
@@ -108,10 +108,8 @@ endif
 ##---------------------------------------------------------------------------
 ## stm32f103ve_strive_mini
 ##
-ifeq ($(OPT_BOARD),stm32f103ve_strive_mini)
-    LINKER_SCRIPT_PATH := arch/cortexM3_stm32/stm32f103ve_strive_mini/
-    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_rom.ld
-endif
+
+# No options
 
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
@@ -347,7 +345,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
         BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
-        #LINKER_SCRIPT := already selected in board options
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_512k+64k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
