@@ -1,4 +1,3 @@
-
 /***************************************************************************
  *   Copyright (C) 2011 by Terraneo Federico                               *
  *                                                                         *
@@ -24,34 +23,12 @@
  *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
- ***************************************************************************
- *
- * *****************
- * Version 1.01 beta
- * 01/03/2011
- * *****************
- */
+ ***************************************************************************/
 
 #ifndef HWMAPPING_H
 #define HWMAPPING_H
 
-#ifdef _MIOSIX
 #include "interfaces/gpio.h"
-#else //_MIOSIX
-#include "gpio.h"
-
-//These two functions are only available from the bootloader
-/**
- * Enable +3v3b and +1v8 domains, etc...
- */
-void powerOn();
-
-/**
- * Disable +3v3b and +1v8 domains, etc...
- */
-void powerOff();
-
-#endif //_MIOSIX
 
 //
 // All GPIOs are mapped here
