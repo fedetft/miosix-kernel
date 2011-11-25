@@ -46,6 +46,8 @@
                 <in>interrupts.h</in>
               </df>
               <df name="drivers">
+                <in>dcc.cpp</in>
+                <in>dcc.h</in>
                 <in>serial.cpp</in>
                 <in>serial.h</in>
               </df>
@@ -74,6 +76,19 @@
                 <in>stage_1_boot.cpp</in>
               </df>
               <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console.cpp</in>
+                <in>disk.cpp</in>
+                <in>hwmapping.h</in>
+              </df>
+              <in>board_settings.h</in>
+            </df>
+            <df name="stm32f103ve_strive_mini">
+              <df name="core" kind="SOURCE_LOGICAL_FOLDER">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl" kind="SOURCE_LOGICAL_FOLDER">
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
                 <in>console.cpp</in>
