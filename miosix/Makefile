@@ -22,7 +22,8 @@ kernel/filesystem/filesystem.cpp                                           \
 kernel/filesystem/ff.c                                                     \
 kernel/filesystem/diskio.cpp                                               \
 util/util.cpp                                                              \
-util/version.cpp
+util/version.cpp                                                           \
+util/crc16.cpp
 
 ## Add the architecture dependand sources to the list of files to build.
 ## ARCH_SRC will contain different source files depending on which
