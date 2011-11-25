@@ -1,6 +1,15 @@
 Changelog for Miosix np embedded OS
 
 v1.59
+- Improved Thread::join(): when joining a thread, deallocate all its resources
+  immeadiately.
+- Added tests to testsuite for endianness.h
+- Added interfaces/endianness.h with optimized functions to convert to/from
+  lille/big endian, as well as byte swapping.
+- Improved boot speed by replacing for loops to initialize .data, .bss and
+  to initialize the stack of threads with memset/memcpy.
+- Improved getMiosixVersion(), new format contains more information, including
+  board name, build date and compiler version.
 - The files binutils-2.21.tar.bz2 and gdb-7.0.tar.bz2 no longer exist on the
   ftp.gnu.org and mirrors.kernel.org, and this broke the compiler installation
   script. Fixed by downloading binutils-2.21.1 and gdb-7.0.1a.

@@ -47,9 +47,9 @@ class PrioritySchedulerPriority
 public:
     /**
      * Constructor. Not explicit for backward compatibility.
-     * \param priority, the desired priority value.
+     * \param priority the desired priority value.
      */
-    PrioritySchedulerPriority(short int priority): priority(priority){}
+    PrioritySchedulerPriority(short int priority): priority(priority) {}
 
     /**
      * Default constructor.

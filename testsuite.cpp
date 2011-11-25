@@ -44,6 +44,7 @@
 #include "config/miosix_settings.h"
 #include "interfaces/console.h"
 #include "board_settings.h"
+#include "interfaces/endianness.h"
 
 using namespace miosix;
 
@@ -77,6 +78,7 @@ static void test_14();
 static void test_15();
 static void test_16();
 static void test_17();
+static void test_18();
 //Filesystem test functions
 #ifdef WITH_FILESYSTEM
 static void fs_test_1();
@@ -133,6 +135,7 @@ int main()
                 test_15();
                 test_16();
                 test_17();
+                test_18();
                 
                 ledOff();
                 Thread::sleep(500);//Ensure all threads are deleted.
@@ -2237,6 +2240,92 @@ static void test_17()
     {
         iprintf("a=0x%x, b=0x%x\n",instance().a, instance().b);
         fail("constructor fail");
+    }
+    pass();
+}
+
+//
+// Test 18
+//
+/*
+tests:
+endianness API
+*/
+
+void __attribute__((noinline)) check16(unsigned short a, unsigned short b)
+{
+    if(swapBytes16(a)!=b) fail("swapBytes16");
+}
+
+void __attribute__((noinline)) check32(unsigned int a, unsigned int b)
+{
+    if(swapBytes32(a)!=b) fail("swapBytes32");
+}
+
+void __attribute__((noinline)) check64(unsigned long long a,
+        unsigned long long b)
+{
+    if(swapBytes64(a)!=b) fail("swapBytes64");
+}
+
+static void test_18()
+{
+    test_name("endianness");
+    if(swapBytes16(0x1234)!=0x3412 ||
+       swapBytes16(0x55aa)!=0xaa55) fail("swapBytes16");
+    if(swapBytes32(0x12345678)!=0x78563412 ||
+       swapBytes32(0x55aa00ff)!=0xff00aa55) fail("swapBytes32");
+    if(swapBytes64(0x0123456789abcdefull)!=0xefcdab8967452301ull ||
+       swapBytes64(0x55aa00ffcc33ab56ull)!=0x56ab33ccff00aa55ull)
+        fail("swapBytes64");
+    check16(0x1234,0x3412);
+    check16(0x55aa,0xaa55);
+    check32(0x12345678,0x78563412);
+    check32(0x55aa00ff,0xff00aa55);
+    check64(0x0123456789abcdefull,0xefcdab8967452301ull);
+    check64(0x55aa00ffcc33ab56ull,0x56ab33ccff00aa55ull);
+    union {
+        short a;
+        unsigned char b[2];
+    } test;
+    test.a=0x1234;
+    if(test.b[0]==0x12)
+    {
+        //Runtime check says our CPU is big endian
+        if(toBigEndian16(0x0123)!=0x0123 ||
+           toBigEndian32(0x01234567)!=0x01234567 ||
+           toBigEndian64(0x0123456789abcdef)!=0x0123456789abcdef)
+            fail("toBigEndian");
+        if(fromBigEndian16(0x0123)!=0x0123 ||
+           fromBigEndian32(0x01234567)!=0x01234567 ||
+           fromBigEndian64(0x0123456789abcdef)!=0x0123456789abcdef)
+            fail("fromBigEndian");
+        if(toLittleEndian16(0x0123)!=0x2301 ||
+           toLittleEndian32(0x01234567)!=0x67452301 ||
+           toLittleEndian64(0x0123456789abcdef)!=0xefcdab8967452301)
+            fail("toLittleEndian");
+        if(fromLittleEndian16(0x0123)!=0x2301 ||
+           fromLittleEndian32(0x01234567)!=0x67452301 ||
+           fromLittleEndian64(0x0123456789abcdef)!=0xefcdab8967452301)
+            fail("fromLittleEndian");
+    } else {
+        //Runtime check says our CPU is little endian
+        if(toLittleEndian16(0x0123)!=0x0123 ||
+           toLittleEndian32(0x01234567)!=0x01234567 ||
+           toLittleEndian64(0x0123456789abcdef)!=0x0123456789abcdef)
+            fail("toLittleEndian");
+        if(fromLittleEndian16(0x0123)!=0x0123 ||
+           fromLittleEndian32(0x01234567)!=0x01234567 ||
+           fromLittleEndian64(0x0123456789abcdef)!=0x0123456789abcdef)
+            fail("fromLittleEndian");
+        if(toBigEndian16(0x0123)!=0x2301 ||
+           toBigEndian32(0x01234567)!=0x67452301 ||
+           toBigEndian64(0x0123456789abcdef)!=0xefcdab8967452301)
+            fail("toBigEndian");
+        if(fromBigEndian16(0x0123)!=0x2301 ||
+           fromBigEndian32(0x01234567)!=0x67452301 ||
+           fromBigEndian64(0x0123456789abcdef)!=0xefcdab8967452301)
+            fail("fromBigEndian");
     }
     pass();
 }

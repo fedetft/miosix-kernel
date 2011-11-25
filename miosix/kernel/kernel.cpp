@@ -35,6 +35,7 @@
 #include "kernel/scheduler/scheduler.h"
 #include <stdexcept>
 #include <algorithm>
+#include <string.h>
 
 /*
 Used by assembler context switch macros
@@ -166,19 +167,12 @@ void startKernel()
     void *threadClass=base+((STACK_IDLE+CTXSAVE_ON_STACK+WATERMARK_LEN)/
             sizeof(unsigned int));
     Thread *idle=new (threadClass) Thread(base,STACK_IDLE);
-    //Fill watermark
-    for(unsigned int i=0;i<(WATERMARK_LEN/sizeof(unsigned int));i++)
-    {
-        *base=WATERMARK_FILL;
-        base++;
-    }
-    //Fill stack
-    for(unsigned int i=0;
-            i<((STACK_IDLE+CTXSAVE_ON_STACK)/sizeof(unsigned int));i++)
-    {
-        *base=STACK_FILL;
-        base++;
-    }
+
+    //Fill watermark and stack
+    memset(base, WATERMARK_FILL, WATERMARK_LEN);
+    base+=WATERMARK_LEN/sizeof(unsigned int);
+    memset(base, STACK_FILL, STACK_IDLE);
+
     //On some architectures some registers are saved on the stack, therefore
     //initCtxsave *must* be called after filling the stack.
     miosix_private::initCtxsave(idle->ctxsave,idleThread,
@@ -312,19 +306,12 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
     void *threadClass=base+((stacksize+WATERMARK_LEN+CTXSAVE_ON_STACK)/
             sizeof(unsigned int));
     Thread *thread=new (threadClass) Thread(base,stacksize);
-    //Fill watermark
-    for(unsigned int i=0;i<(WATERMARK_LEN/sizeof(unsigned int));i++)
-    {
-        *base=WATERMARK_FILL;
-        base++;
-    }
-    //Fill stack
-    for(unsigned int i=0;
-            i<((stacksize+CTXSAVE_ON_STACK)/sizeof(unsigned int));i++)
-    {
-        *base=STACK_FILL;
-        base++;
-    }
+
+    //Fill watermark and stack
+    memset(base, WATERMARK_FILL, WATERMARK_LEN);
+    base+=WATERMARK_LEN/sizeof(unsigned int);
+    memset(base, STACK_FILL, stacksize);
+
     //On some architectures some registers are saved on the stack, therefore
     //initCtxsave *must* be called after filling the stack.
     miosix_private::initCtxsave(thread->ctxsave,startfunc,
@@ -519,35 +506,42 @@ bool Thread::isDetached() const
 
 bool Thread::join(void** result)
 {
-    FastInterruptDisableLock dLock;
-    if(this==Thread::IRQgetCurrentThread()) return false;
-    if(Thread::IRQexists(this)==false) return false;
-    if(this->flags.isDetached()) return false;
-    if(this->flags.isDeletedJoin()==false)
     {
-        //Another thread already called join on toJoin
-        if(this->joinData.waitingForJoin!=NULL) return false;
-        
-        this->joinData.waitingForJoin=Thread::IRQgetCurrentThread();
-        for(;;)
+        FastInterruptDisableLock dLock;
+        if(this==Thread::IRQgetCurrentThread()) return false;
+        if(Thread::IRQexists(this)==false) return false;
+        if(this->flags.isDetached()) return false;
+        if(this->flags.isDeletedJoin()==false)
         {
-            //Wait
-            Thread::IRQgetCurrentThread()->flags.IRQsetJoinWait(true);
+            //Another thread already called join on toJoin
+            if(this->joinData.waitingForJoin!=NULL) return false;
+
+            this->joinData.waitingForJoin=Thread::IRQgetCurrentThread();
+            for(;;)
             {
-                FastInterruptEnableLock eLock(dLock);
-                Thread::yield();
+                //Wait
+                Thread::IRQgetCurrentThread()->flags.IRQsetJoinWait(true);
+                {
+                    FastInterruptEnableLock eLock(dLock);
+                    Thread::yield();
+                }
+                if(Thread::IRQexists(this)==false) return false;
+                if(this->flags.isDetached()) return false;
+                if(this->flags.isDeletedJoin()) break;
             }
-            if(Thread::IRQexists(this)==false) return false;
-            if(this->flags.isDetached()) return false;
-            if(this->flags.isDeletedJoin()) break;
         }
+        //Thread deleted, complete join procedure
+        //Setting detached flag will make isDeleted() return true,
+        //so its memory can be deallocated
+        this->flags.IRQsetDetached();
+        if(result!=NULL) *result=this->joinData.result;
     }
-    //Thread deleted, complete join procedure
-    //Setting detached flag will make isDeleted() return true, so its memory
-    //can be deallocated
-    this->flags.IRQsetDetached();
-    exist_deleted=true;
-    if(result!=NULL) *result=this->joinData.result;
+    {
+        PauseKernelLock lock;
+        //Since there is surely one dead thread, deallocate it immediately
+        //to free its memory as soon as possible
+        Scheduler::PKremoveDeadThreads();
+    }
     return true;
 }
 

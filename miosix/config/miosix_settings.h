@@ -50,9 +50,13 @@ namespace miosix {
 // Scheduler options
 //
 
-/// \def SCHED_TYPE_*
-/// Choose scheduler type
-/// Uncomment one #define only
+/// \def SCHED_TYPE_PRIORITY
+/// If uncommented selects the priority scheduler
+/// \def SCHED_TYPE_CONTROL_BASED
+/// If uncommented selects the control based scheduler
+/// \def SCHED_TYPE_EDF
+///If uncommented selects the EDF scheduler
+//Uncomment only *one* of those
 
 #define SCHED_TYPE_PRIORITY
 //#define SCHED_TYPE_CONTROL_BASED

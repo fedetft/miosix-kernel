@@ -47,7 +47,7 @@ class EDFSchedulerPriority
 public:
     /**
      * Constructor. Not explicit for backward compatibility.
-     * \param priority, the desired priority value.
+     * \param deadline the thread deadline.
      */
     EDFSchedulerPriority(long long deadline): deadline(deadline) {}
 

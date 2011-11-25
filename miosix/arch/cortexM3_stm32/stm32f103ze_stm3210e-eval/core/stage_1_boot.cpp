@@ -1,6 +1,7 @@
 
 #include "CMSIS/stm32f10x.h"
 #include "core/interrupts.h" //For the unexpected interrupt call
+#include <string.h>
 
 /*
  * startup.cpp
@@ -21,16 +22,13 @@ extern "C" void _init();
  * \param end one past the last function pointer to call
  * Declared "noinline" to optimize code size
  */
-static void call_constructors(unsigned long *start, unsigned long *end)
-		__attribute__((noinline));
+static void call_constructors(unsigned long *start, unsigned long *end) __attribute__((noinline));
 static void call_constructors(unsigned long *start, unsigned long *end)
 {
-	unsigned long *i;
-	void (*funcptr)();
-
-	for(i=start; i<end; i++)
+	for(unsigned long *i=start; i<end; i++)
 	{
-		funcptr=reinterpret_cast<void (*)()>(*i);
+		void (*funcptr)();
+        funcptr=reinterpret_cast<void (*)()>(*i);
 		funcptr();
 	}
 }
@@ -58,11 +56,11 @@ void program_startup()
     SystemInit();
 
 	//These are defined in the linker script
-	extern unsigned long _etext asm("_etext");
-	extern unsigned long _data asm("_data");
-	extern unsigned long _edata asm("_edata");
-	extern unsigned long _bss_start asm("_bss_start");
-	extern unsigned long _bss_end asm("_bss_end");
+	extern unsigned char _etext asm("_etext");
+	extern unsigned char _data asm("_data");
+	extern unsigned char _edata asm("_edata");
+	extern unsigned char _bss_start asm("_bss_start");
+	extern unsigned char _bss_end asm("_bss_end");
 	extern unsigned long __preinit_array_start asm("__preinit_array_start");
 	extern unsigned long __preinit_array_end asm("__preinit_array_end");
 	extern unsigned long __init_array_start asm("__init_array_start");
@@ -70,18 +68,20 @@ void program_startup()
 	extern unsigned long _ctor_start asm("_ctor_start");
 	extern unsigned long _ctor_end asm("_ctor_end");
 
-	unsigned long *src, *dest;
-
-	//Initialize .data section
-	for(src=&_etext, dest=&_data; dest<&_edata; src++, dest++)
-	{
-		*dest=*src;
-	}
-	//Clear .bss section
-	for(dest=&_bss_start; dest<&_bss_end; dest++)
-	{
-		*dest=0;
-	}
+	//Initialize .data section, clear .bss section
+    unsigned char *etext=&_etext;
+    unsigned char *data=&_data;
+    unsigned char *edata=&_edata;
+    unsigned char *bss_start=&_bss_start;
+    unsigned char *bss_end=&_bss_end;
+    #ifndef __CODE_IN_XRAM
+    memcpy(data, etext, edata-data);
+    #else //__CODE_IN_XRAM
+    (void)etext; //Avoid unused variable warning
+    (void)data;
+    (void)edata;
+    #endif //__CODE_IN_XRAM
+    memset(bss_start, 0, bss_end-bss_start);
 
 	//Initialize C++ global constructors
 	call_constructors(&__preinit_array_start, &__preinit_array_end);

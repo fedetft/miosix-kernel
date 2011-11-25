@@ -111,8 +111,7 @@ SECTIONS
     . = ALIGN(8);
     _etext = .;
 
-	/* .data section: global variables go to ram, but also store a copy to
-       flash to initialize them */
+    /* .data section: global variables go to ram */
     .data : ALIGN(8)
     {
         _data = .;
