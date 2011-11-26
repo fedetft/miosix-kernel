@@ -45,7 +45,7 @@ namespace miosix {
  * \internal
  * used by memDump
  */
-static void memPrint(char *start, char len)
+static void memPrint(const char *start, char len)
 {
     iprintf("0x%08x | ",(int)start);
     int i;
@@ -60,7 +60,7 @@ static void memPrint(char *start, char len)
     iprintf("\n");
 }
 
-void memDump(char *start, int len)
+void memDump(const char *start, int len)
 {
     while(len>16)
     {

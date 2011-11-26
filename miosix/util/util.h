@@ -107,7 +107,7 @@ private:
  * \param start pointer to beginning of memory block to dump
  * \param len length of memory block to dump
  */
-void memDump(char *start, int len);
+void memDump(const char *start, int len);
 
 /**
  * \}

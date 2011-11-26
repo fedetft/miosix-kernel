@@ -1,6 +1,7 @@
 Changelog for Miosix np embedded OS
 
 v1.59
+- Some const-ness fixes in util
 - Extended boot improvements to strive mini board
 - Forgot to add util/crc16.cpp to the makefile buid rules
 - New target board: Strive. Thanks to Yury Kuchura for contributing the code.
