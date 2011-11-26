@@ -93,7 +93,7 @@ template<typename SI, typename SO, typename SCK, typename CE, unsigned numNops>
 unsigned char SoftwareSPI<SI,SO,SCK,CE,numNops>::
         sendRecvChar(unsigned char data)
 {
-    unsigned char result;
+    unsigned char result=0;
     for(int i=0;i<8;i++)
     {
         if(data & 0x80) SO::high();
@@ -113,7 +113,7 @@ template<typename SI, typename SO, typename SCK, typename CE, unsigned numNops>
 unsigned short SoftwareSPI<SI,SO,SCK,CE,numNops>::
         sendRecvShort(unsigned short data)
 {
-    unsigned short result;
+    unsigned short result=0;
     for(int i=0;i<16;i++)
     {
         if(data & 0x8000) SO::high();
@@ -133,7 +133,7 @@ template<typename SI, typename SO, typename SCK, typename CE, unsigned numNops>
 unsigned int SoftwareSPI<SI,SO,SCK,CE,numNops>::
         sendRecvLong(unsigned int data)
 {
-    unsigned int result;
+    unsigned int result=0;
     for(int i=0;i<32;i++)
     {
         if(data & 0x80000000) SO::high();
