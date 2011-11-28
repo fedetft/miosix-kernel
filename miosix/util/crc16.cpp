@@ -20,7 +20,7 @@ static inline void crc16Update(unsigned short& crc, unsigned char data)
 unsigned short crc16(const unsigned char *message, unsigned int length)
 {
     unsigned short result=0xffff;
-    for(int i=0;i<length;i++) crc16Update(result,message[i]);
+    for(unsigned int i=0;i<length;i++) crc16Update(result,message[i]);
     return result;
 }
 

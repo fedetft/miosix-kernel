@@ -139,8 +139,8 @@ endif
 ## Then, initialize C/C++ flags with -D_MIOSIX so that application code can
 ## know if the OS is MIOSIX
 ##
-CFLAGS_BASE   := -D_MIOSIX="\"$(OPT_BOARD)\""
-CXXFLAGS_BASE := -D_MIOSIX="\"$(OPT_BOARD)\""
+CFLAGS_BASE   := -D_MIOSIX=\"$(OPT_BOARD)\"
+CXXFLAGS_BASE := -D_MIOSIX=\"$(OPT_BOARD)\"
 
 ##
 ## Now two big switch-like constructs nested. The first lists all possible
