@@ -1,7 +1,5 @@
 
 #include <cstdio>
-#include <cstdlib>
-#include <vector>
 #include "miosix.h"
 
 using namespace std;

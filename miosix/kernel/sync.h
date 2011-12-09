@@ -510,7 +510,7 @@ private:
  * queue with a waiting thread, and to avoid situations where a thread tries to
  * access a deleted queue.
  * \tparam T the type of elements in the queue
- * \tparam len the length of the Queue
+ * \tparam len the length of the Queue. Value 0 is forbidden
  */
 template <typename T, unsigned int len>
 class Queue
@@ -519,27 +519,20 @@ public:
     /**
      * Constructor, create a new empty queue.
      */
-    Queue()
-    {
-        put_pos=get_pos=num_elem=0;
-        waiting=NULL;
-    }
+    Queue() : waiting(0), num_elem(0), put_pos(0), get_pos(0) {}
+
+    ///Size of the queue
+    static const unsigned int queueSize=len;
 
     /**
      * \return true if the queue is empty
      */
-    bool isEmpty() const
-    {
-        return (put_pos==get_pos)&&(num_elem==0);
-    }
+    bool isEmpty() const { return num_elem==0; }
 
     /**
      * \return true if the queue is full
      */
-    bool isFull() const
-    {
-        return (put_pos==get_pos)&&(num_elem!=0);
-    }
+    bool isFull() const { return num_elem==len; }
 	
     /**
      * If a queue is empty, waits until the queue is not empty.
@@ -765,6 +758,10 @@ private:
     volatile unsigned int put_pos;///< index of buffer where to get next element
     volatile unsigned int get_pos; ///< index of buffer where to put next element
 };
+
+//This partial specialization is meant to to produce compiler errors in case an
+//attempt is made to instantiate a Queue with zero size, as it is forbidden
+template<typename T> class Queue<T,0> {};
 
 /**
  * \}

@@ -1,6 +1,12 @@
 Changelog for Miosix np embedded OS
 
 v1.59
+- Added test to testsuite for BufferQueue
+- Refactored top level directory, now the testsuite and examples have
+  been moved in their directories within the miosix directory
+- Improved Queue class
+- Added class BufferQueue to simplify the development of double buffered
+  data transfers between threads and interrupt routines
 - Some const-ness fixes in util
 - Extended boot improvements to strive mini board
 - Forgot to add util/crc16.cpp to the makefile buid rules
