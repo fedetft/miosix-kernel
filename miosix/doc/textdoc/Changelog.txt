@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
 v1.59
+- Added a couple of examples, including one using BufferQueue to synchronize
+  between a thread and a DMA.
 - Added test to testsuite for BufferQueue
 - Refactored top level directory, now the testsuite and examples have
   been moved in their directories within the miosix directory
