@@ -100,4 +100,7 @@ typedef Gpio<GPIOA_BASE,9>  tx;     //Handled by hardware (USART1)
 typedef Gpio<GPIOA_BASE,10> rx;     //Handled by hardware (USART1)
 }
 
+namespace buttons {
+    typedef Gpio<GPIOB_BASE,15> button1;
+}
 #endif //HWMAPPING_H

@@ -101,6 +101,20 @@
               </df>
               <in>board_settings.h</in>
             </df>
+            <df name="stm32f103ze_redbull_v2">
+              <df name="core" kind="SOURCE_LOGICAL_FOLDER">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl" kind="SOURCE_LOGICAL_FOLDER">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console.cpp</in>
+                <in>disk.cpp</in>
+                <in>hwmapping.h</in>
+              </df>
+              <in>board_settings.h</in>
+              <in>stm32_512k+64k_rom.ld</in>
+            </df>
             <df name="stm32f103ze_stm3210e-eval">
               <df name="core">
                 <in>stage_1_boot.cpp</in>
@@ -117,6 +131,33 @@
         </df>
         <df name="config">
           <in>miosix_settings.h</in>
+        </df>
+        <df name="examples">
+          <df name="asm">
+            <in>Readme.txt</in>
+            <in>main.s</in>
+          </df>
+          <df name="sad_trombone">
+            <in>Makefile</in>
+            <in>Readme.txt</in>
+            <in>adpcm.c</in>
+            <in>adpcm.h</in>
+            <in>circuit.jpeg</in>
+            <in>convert.cpp</in>
+            <in>main.cpp</in>
+            <in>player.cpp</in>
+            <in>player.h</in>
+            <in>sad_trombone.h</in>
+            <in>sad_trombone.wav</in>
+          </df>
+          <df name="thread_native" kind="SOURCE_LOGICAL_FOLDER">
+            <in>Readme.txt</in>
+            <in>native_thread_example.cpp</in>
+          </df>
+          <df name="thread_pthread" kind="SOURCE_LOGICAL_FOLDER">
+            <in>Readme.txt</in>
+            <in>pthread_example.cpp</in>
+          </df>
         </df>
         <df name="interfaces">
           <in>arch_registers.h</in>
@@ -159,6 +200,7 @@
             <in>scheduler.h</in>
             <in>tick_interrupt.h</in>
           </df>
+          <in>buffer_queue.h</in>
           <in>error.cpp</in>
           <in>error.h</in>
           <in>kernel.cpp</in>
@@ -173,6 +215,10 @@
           <in>syscalls.h</in>
           <in>syscalls_types.h</in>
           <in>unistd.cpp</in>
+        </df>
+        <df name="testsuite">
+          <in>Readme.txt</in>
+          <in>testsuite.cpp</in>
         </df>
         <df name="util">
           <in>crc16.cpp</in>
@@ -189,9 +235,6 @@
       <df name="miosix_np_2">
       </df>
       <in>main.cpp</in>
-      <in>native_thread_example.cpp</in>
-      <in>pthread_example.cpp</in>
-      <in>testsuite.cpp</in>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
