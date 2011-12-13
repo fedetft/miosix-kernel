@@ -38,7 +38,7 @@ typedef Gpio<GPIOA_BASE,4> dacPin; //DAC1 out on the stm32f100rb is PA4
 static const int bufferSize=256; //Buffer RAM is 4*bufferSize bytes
 static Thread *waiting;
 static BufferQueue<unsigned short,bufferSize> bq;
-bool enobuf=true;
+static bool enobuf=true;
 
 /**
  * Configure the DMA to do another transfer
@@ -108,7 +108,7 @@ void __attribute__((used)) DACdmaHandlerImpl()
  * \param value the value that will cause this function to return.
  */
 template<typename T>
-void atomicTestAndWaitUntil(volatile T& variable, T value)
+static void atomicTestAndWaitUntil(volatile T& variable, T value)
 {
 	FastInterruptDisableLock dLock;
 	while(variable!=value)
@@ -193,9 +193,13 @@ void Player::play(Sound& sound)
 	//Configure GPIOs
 	dacPin::mode(Mode::INPUT_ANALOG);
 
-	//Enable peripherals clock gating
-	RCC->AHBENR |= RCC_AHBENR_DMA1EN;
-	RCC->APB1ENR |= RCC_APB1ENR_DACEN | RCC_APB1ENR_TIM6EN;
+	{
+		FastInterruptDisableLock dLock;
+		//Enable peripherals clock gating, other threads might be concurretly
+		//using these registers, so modify them in a critical section
+		RCC->AHBENR |= RCC_AHBENR_DMA1EN;
+		RCC->APB1ENR |= RCC_APB1ENR_DACEN | RCC_APB1ENR_TIM6EN;
+	}
 
 	//Configure DAC
 	DAC->CR=DAC_CR_DMAEN1 | DAC_CR_TEN1 | DAC_CR_EN1;
