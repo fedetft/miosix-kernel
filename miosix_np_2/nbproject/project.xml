@@ -14,7 +14,10 @@
                 <sourceRootElem>..</sourceRootElem>
             </sourceRootList>
             <confList>
-                <confElem>Default</confElem>
+                <confElem>
+                    <name>Default</name>
+                    <type>0</type>
+                </confElem>
             </confList>
         </data>
     </configuration>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configurationDescriptor version="69">
-  <logicalFolder name="root" displayName="root" projectFiles="true">
+<configurationDescriptor version="79">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df name="miosix_np_2" root="..">
       <df name="miosix">
         <df name="arch">
@@ -15,6 +15,7 @@
               <df name="core">
                 <in>interrupts.cpp</in>
                 <in>interrupts.h</in>
+                <in>stage_1_boot.s</in>
               </df>
               <df name="drivers">
                 <in>serial.cpp</in>
@@ -65,10 +66,10 @@
               <in>arch_settings.h</in>
             </df>
             <df name="stm32f100rb_stm32vldiscovery">
-              <df name="core" kind="SOURCE_LOGICAL_FOLDER">
+              <df name="core">
                 <in>stage_1_boot.cpp</in>
               </df>
-              <df name="interfaces-impl" kind="SOURCE_LOGICAL_FOLDER">
+              <df name="interfaces-impl">
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
                 <in>console.cpp</in>
@@ -89,10 +90,10 @@
               <in>board_settings.h</in>
             </df>
             <df name="stm32f103ve_strive_mini">
-              <df name="core" kind="SOURCE_LOGICAL_FOLDER">
+              <df name="core">
                 <in>stage_1_boot.cpp</in>
               </df>
-              <df name="interfaces-impl" kind="SOURCE_LOGICAL_FOLDER">
+              <df name="interfaces-impl">
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
                 <in>console.cpp</in>
@@ -102,10 +103,10 @@
               <in>board_settings.h</in>
             </df>
             <df name="stm32f103ze_redbull_v2">
-              <df name="core" kind="SOURCE_LOGICAL_FOLDER">
+              <df name="core">
                 <in>stage_1_boot.cpp</in>
               </df>
-              <df name="interfaces-impl" kind="SOURCE_LOGICAL_FOLDER">
+              <df name="interfaces-impl">
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
                 <in>console.cpp</in>
@@ -113,7 +114,6 @@
                 <in>hwmapping.h</in>
               </df>
               <in>board_settings.h</in>
-              <in>stm32_512k+64k_rom.ld</in>
             </df>
             <df name="stm32f103ze_stm3210e-eval">
               <df name="core">
@@ -128,34 +128,72 @@
               <in>board_settings.h</in>
             </df>
           </df>
+          <df name="cortexM4_stm32">
+            <df name="common">
+              <df name="CMSIS">
+                <df name="Documentation">
+                </df>
+                <in>core_cm4.h</in>
+                <in>core_cm4_simd.h</in>
+                <in>core_cmFunc.h</in>
+                <in>core_cmInstr.h</in>
+                <in>stm32f4xx.h</in>
+                <in>system_stm32f4xx.c</in>
+                <in>system_stm32f4xx.h</in>
+              </df>
+              <df name="core">
+                <in>interrupts.cpp</in>
+                <in>interrupts.h</in>
+              </df>
+              <df name="drivers">
+                <in>dcc.cpp</in>
+                <in>dcc.h</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
+                <in>delays.cpp</in>
+                <in>endianness_impl.h</in>
+                <in>gpio_impl.cpp</in>
+                <in>gpio_impl.h</in>
+                <in>portability.cpp</in>
+                <in>portability_impl.h</in>
+              </df>
+              <in>arch_settings.h</in>
+            </df>
+            <df name="stm32f407vg_stm32f4discovery">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console-impl.h</in>
+                <in>console.cpp</in>
+              </df>
+              <in>board_settings.h</in>
+            </df>
+          </df>
         </df>
         <df name="config">
           <in>miosix_settings.h</in>
         </df>
         <df name="examples">
           <df name="asm">
-            <in>Readme.txt</in>
             <in>main.s</in>
           </df>
           <df name="sad_trombone">
-            <in>Makefile</in>
-            <in>Readme.txt</in>
             <in>adpcm.c</in>
             <in>adpcm.h</in>
-            <in>circuit.jpeg</in>
             <in>convert.cpp</in>
             <in>main.cpp</in>
             <in>player.cpp</in>
             <in>player.h</in>
             <in>sad_trombone.h</in>
-            <in>sad_trombone.wav</in>
           </df>
-          <df name="thread_native" kind="SOURCE_LOGICAL_FOLDER">
-            <in>Readme.txt</in>
+          <df name="thread_native">
             <in>native_thread_example.cpp</in>
           </df>
-          <df name="thread_pthread" kind="SOURCE_LOGICAL_FOLDER">
-            <in>Readme.txt</in>
+          <df name="thread_pthread">
             <in>pthread_example.cpp</in>
           </df>
         </df>
@@ -217,7 +255,6 @@
           <in>unistd.cpp</in>
         </df>
         <df name="testsuite">
-          <in>Readme.txt</in>
           <in>testsuite.cpp</in>
         </df>
         <df name="util">
@@ -235,6 +272,7 @@
       <df name="miosix_np_2">
       </df>
       <in>main.cpp</in>
+      <in>testsuite.cpp</in>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -251,9 +289,8 @@
   <confs>
     <conf name="Default" type="0">
       <toolsSet>
-        <developmentServer>localhost</developmentServer>
+        <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
-        <platform>2</platform>
       </toolsSet>
       <makefileType>
         <makeTool>

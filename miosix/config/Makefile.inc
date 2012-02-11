@@ -13,11 +13,12 @@
 ## architecture
 ##
 #OPT_BOARD := lpc2138_miosix_board
-OPT_BOARD := stm32f103ze_stm3210e-eval
+#OPT_BOARD := stm32f103ze_stm3210e-eval
 #OPT_BOARD := stm32f103ve_mp3v2
 #OPT_BOARD := stm32f100rb_stm32vldiscovery
 #OPT_BOARD := stm32f103ve_strive_mini
 #OPT_BOARD := stm32f103ze_redbull_v2
+OPT_BOARD := stm32f407vg_stm32f4discovery
 
 ##
 ## Optimization flags, choose one.
@@ -118,6 +119,24 @@ endif
 
 # No options
 
+##---------------------------------------------------------------------------
+## stm32f407vg_stm32f4discovery
+##
+ifeq ($(OPT_BOARD),stm32f407vg_stm32f4discovery)
+
+    ## Linker script type, there are two options
+    ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
+    ## 2) Code + stack + heap in internal RAM (file *_ram.ld)
+    LINKER_SCRIPT_PATH := arch/cortexM4_stm32/stm32f407vg_stm32f4discovery/
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+192k_rom.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+192k_ram.ld
+
+    ## This causes the interrupt vector table to be relocated in SRAM, must be
+    ## uncommented when using the ram linker script
+    #SRAM_BOOT := -DVECT_TAB_SRAM
+
+endif
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -139,6 +158,8 @@ else ifeq ($(OPT_BOARD),stm32f103ve_strive_mini)
     ARCH := cortexM3_stm32
 else ifeq ($(OPT_BOARD),stm32f103ze_redbull_v2)
     ARCH := cortexM3_stm32
+else ifeq ($(OPT_BOARD),stm32f407vg_stm32f4discovery)
+    ARCH := cortexM4_stm32
 else
     $(error Error: no board specified in miosix/config/Makefile.inc)
 endif
@@ -461,6 +482,90 @@ else ifeq ($(ARCH),cortexM3_stm32)
     $(ARCH_INC)/interfaces-impl/delays.cpp       \
     $(ARCH_INC)/CMSIS/core_cm3.c                 \
     $(ARCH_INC)/CMSIS/system_stm32f10x.c
+
+##-----------------------------------------------------------------------------
+## ARCHITECTURE: cortexM4_stm32
+##
+else ifeq ($(ARCH),cortexM4_stm32)
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f4discovery
+    ##
+    ifeq ($(OPT_BOARD),stm32f407vg_stm32f4discovery)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM4_stm32/stm32f407vg_stm32f4discovery
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        #LINKER_SCRIPT := already selected in board options
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/console.cpp     \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32F4DISCOVERY 
+        CXXFLAGS_BASE += -D_BOARD_STM32F4DISCOVERY
+
+        ## Clock frequency
+        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+
+    ##-------------------------------------------------------------------------
+    ## End of board list
+    ##
+    endif
+
+    ## Select compiler
+    PREFIX=arm-miosix-eabi-
+
+    ## From compiler prefix form the name of the compiler and other tools
+    CC  := $(PREFIX)gcc
+    CXX := $(PREFIX)g++
+    LD  := $(PREFIX)ld
+    AR  := $(PREFIX)ar
+    AS  := $(PREFIX)as
+    CP  := $(PREFIX)objcopy
+    OD  := $(PREFIX)objdump
+    SZ  := $(PREFIX)size
+
+    ## Select appropriate compiler flags for both ASM/C/C++/linker
+    #FIXME: Replace -mcpu=cortex-m3 with -mcpu=cortex-m4 after upgrading GCC
+    AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
+    CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32 $(CLOCK_FREQ) $(SRAM_BOOT)       \
+                     -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
+                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32 $(CLOCK_FREQ) $(SRAM_BOOT)       \
+                     $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
+                     -mfix-cortex-m3-ldrd $(OPT_OPTIMIZATION)                \
+                     -ffunction-sections -Wall -g -c
+    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
+                     -Wl,--gc-sections,-Map,main.map                         \
+                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+                     $(OPT_OPTIMIZATION) -nostdlib
+
+    ## Base directory with else header files for this board
+    ARCH_INC := arch/cortexM4_stm32/common
+
+    ## Select architecture specific files
+    ## These are the files in arch/<arch name>/common
+    ARCH_SRC +=                                              \
+    $(ARCH_INC)/core/interrupts.cpp                          \
+    $(ARCH_INC)/drivers/dcc.cpp                              \
+    $(ARCH_INC)/interfaces-impl/portability.cpp              \
+    $(ARCH_INC)/interfaces-impl/delays.cpp                   \
+    $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
+    $(ARCH_INC)/CMSIS/system_stm32f4xx.c
 
 ##-----------------------------------------------------------------------------
 ## end of architecture list

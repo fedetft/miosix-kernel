@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Terraneo Federico                               *
+ *   Copyright (C) 2008, 2009, 2010, 2012 by Terraneo Federico             *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -43,15 +43,15 @@ const int HARDWARE_TX_QUEUE_LENGTH=16;
 const int HARDWARE_RX_QUEUE_LENGTH=8;
 
 //Static (local) variables
-static Mutex tx_mutex;///<\internal Mutex used to guard the tx queue
-static Mutex rx_mutex;///<\internal Mutex used to guard the rx queue
+static Mutex txMutex;///<\internal Mutex used to guard the tx queue
+static Mutex rxMutex;///<\internal Mutex used to guard the rx queue
 
 static Queue<char,SOFTWARE_TX_QUEUE> tx_queue;///<\internal Tx software queue
-static Queue<char,SOFTWARE_RX_QUEUE> rx_queue;///<\internal Rx software queue
+static Queue<char,SOFTWARE_RX_QUEUE> rxQueue;///<\internal Rx software queue
 
 ///\internal True if a rx character found the queue full
-static volatile bool rx_lost_flag=false;
-static bool serial_enabled=false;///<\internal True if serial port is enabled 
+static volatile bool rxLostFlag=false;
+static bool serialEnabled=false;///<\internal True if serial port is enabled 
 
 /**
  * \internal
@@ -75,12 +75,12 @@ void serial_irq_impl()
         case 0x4: //RDA
             for(i=0;i<HARDWARE_RX_QUEUE_LENGTH;i++)
             {
-                if(rx_queue.IRQput(U0RBR,hppw)==false) rx_lost_flag=true;
+                if(rxQueue.IRQput(U0RBR,hppw)==false) rxLostFlag=true;
             }
         case 0xc: //CTI
             while(U0LSR & (1<<0))
             {
-                if(rx_queue.IRQput(U0RBR,hppw)==false) rx_lost_flag=true;
+                if(rxQueue.IRQput(U0RBR,hppw)==false) rxLostFlag=true;
             }
             break;
         case 0x2: //THRE
@@ -116,7 +116,7 @@ void serial_IRQ_Routine()
 void IRQserialInit(unsigned int div)
 {
     tx_queue.IRQreset();
-    rx_queue.IRQreset();
+    rxQueue.IRQreset();
     PCONP|=(1<<3);//Enable UART0 peripheral
     U0LCR=0x3;//DLAB disabled
     //0x07= fifo enabled, reset tx and rx hardware fifos
@@ -136,12 +136,12 @@ void IRQserialInit(unsigned int div)
     //Changed to slot 2 since slot 1 is used by auxiliary timer.
     VICVectCntl2=0x20 | 0x6;//Slot 2 of VIC used by uart0
     VICVectAddr2=(unsigned long)&serial_IRQ_Routine;
-    serial_enabled=true;
+    serialEnabled=true;
 }
 
 void IRQserialDisable()
 {
-    serial_enabled=false;
+    serialEnabled=false;
     while(!(tx_queue.isEmpty() && IRQserialTxFifoEmpty())) ; //wait
     //Disable VIC
     VICIntEnClr=(1<<6);
@@ -154,20 +154,20 @@ void IRQserialDisable()
 
 bool IRQisSerialEnabled()
 {
-    return serial_enabled;
+    return serialEnabled;
 }
 
 void serialWrite(const char *str, unsigned int len)
 {
-    if(!serial_enabled) return;
+    if(!serialEnabled) return;
     int i;
-    Lock<Mutex> l(tx_mutex);
+    Lock<Mutex> l(txMutex);
     {
         FastInterruptDisableLock dLock;
         while(len>0)
         {
             //If somebody disables serial port while we are transmitting
-            if(!serial_enabled) break;
+            if(!serialEnabled) break;
             //If no data in software and hardware queue
             if((U0LSR & (1<<5))&&(tx_queue.isEmpty()))
             {
@@ -202,40 +202,40 @@ bool serialTxComplete()
 char serialReadChar()
 {
     char result;
-    rx_mutex.lock();
-    rx_queue.get(result);
-    rx_mutex.unlock();
+    rxMutex.lock();
+    rxQueue.get(result);
+    rxMutex.unlock();
     return result;
 }
 
 bool serialReadCharNonblocking(char& c)
 {
     bool result=false;
-    rx_mutex.lock();
-    if(rx_queue.isEmpty()==false)
+    rxMutex.lock();
+    if(rxQueue.isEmpty()==false)
     {
-        rx_queue.get(c);
+        rxQueue.get(c);
         result=true;
     }
-    rx_mutex.unlock();
+    rxMutex.unlock();
     return result;
 }
 
 bool serialRxLost()
 {
-    bool temp=(bool)rx_lost_flag;
-    rx_lost_flag=false;
+    bool temp=(bool)rxLostFlag;
+    rxLostFlag=false;
     return temp;
 }
 
 void serialRxFlush()
 {
-    rx_queue.reset();
+    rxQueue.reset();
 }
 
 void IRQserialWriteString(const char *str)
 {
-    if(!serial_enabled) return;
+    if(!serialEnabled) return;
     while((*str)!='\0')
     {
         //Wait until the hardware fifo is ready to accept one char

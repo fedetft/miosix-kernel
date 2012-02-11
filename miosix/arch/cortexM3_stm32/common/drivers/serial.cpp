@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -83,13 +83,13 @@ void DMA1_Channel4_IRQHandler()
 
 namespace miosix {
 
-static Mutex rx_mutex;///<\internal Mutex used to guard the rx queue
+static Mutex rxMutex;///<\internal Mutex used to guard the rx queue
 const unsigned int SOFTWARE_RX_QUEUE=32;///<\internal Size of rx software queue
-static Queue<char,SOFTWARE_RX_QUEUE> rx_queue;///<\internal Rx software queue
+static Queue<char,SOFTWARE_RX_QUEUE> rxQueue;///<\internal Rx software queue
 
 ///\internal True if a rx character found the queue full
-static volatile bool rx_lost_flag=false;
-static bool serial_enabled=false;///<\internal True if serial port is enabled
+static volatile bool rxLostFlag=false;
+static bool serialEnabled=false;///<\internal True if serial port is enabled
 
 /**
  * \internal
@@ -105,22 +105,22 @@ void serial_irq_impl()
     unsigned int status=USART1->SR;
     if(status & USART_SR_ORE) //Receiver overrun
     {
-        rx_lost_flag=true;
+        rxLostFlag=true;
         char c=USART1->DR; //Always read data, since this clears interrupt flags
         if((status & USART_SR_RXNE) && ((status & 0x7)==0))
-            rx_queue.IRQput(c,hppw);
+            rxQueue.IRQput(c,hppw);
     } else if(status & USART_SR_RXNE) //Receiver data available
     {
         char c=USART1->DR; //Always read data, since this clears interrupt flags
         if((status & 0x7)==0) //If no noise nor framing nor parity error
         {
-            if(rx_queue.IRQput(c,hppw)==false) rx_lost_flag=true;
+            if(rxQueue.IRQput(c,hppw)==false) rxLostFlag=true;
         }
     }
     if(hppw) Scheduler::IRQfindNextThread();
 }
 
-static Mutex tx_mutex;///<\internal Mutex used to guard the tx queue
+static Mutex txMutex;///<\internal Mutex used to guard the tx queue
 
 #ifndef __ENABLE_XRAM
 const unsigned int SOFTWARE_TX_QUEUE=32;///<\internal Size of tx software queue
@@ -149,7 +149,7 @@ void serial_dma_impl()
 void IRQserialInit()
 {
     tx_queue.IRQreset();
-    rx_queue.IRQreset();
+    rxQueue.IRQreset();
     //Enable clock to GPIOA, AFIO and USART1
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_AFIOEN |
             RCC_APB2ENR_USART1EN;
@@ -184,12 +184,12 @@ void IRQserialInit()
     NVIC_EnableIRQ(USART1_IRQn);
     NVIC_SetPriority(DMA1_Channel4_IRQn,10);
     NVIC_EnableIRQ(DMA1_Channel4_IRQn);
-    serial_enabled=true;
+    serialEnabled=true;
 }
 
 void IRQserialDisable()
 {
-    serial_enabled=false;
+    serialEnabled=false;
     while(!IRQserialTxFifoEmpty()) ; //wait
     USART1->CR1=0;
     tx_queue.IRQreset(); //Wake eventual thread waiting
@@ -197,8 +197,8 @@ void IRQserialDisable()
 
 void serialWrite(const char *str, unsigned int len)
 {
-    if(!serial_enabled) return;
-    Lock<Mutex> l(tx_mutex);
+    if(!serialEnabled) return;
+    Lock<Mutex> l(txMutex);
     for(;len>0;)
     {
         // This will block if the buffer is currently being handled by the dma.
@@ -210,7 +210,7 @@ void serialWrite(const char *str, unsigned int len)
         {
             FastInterruptDisableLock lock;
             //What if somebody disales serial port while we are transmitting
-            if(!serial_enabled) return;
+            if(!serialEnabled) return;
 
             // If we get here, the dma buffer is ready
             unsigned int transferSize=std::min(len,SOFTWARE_TX_QUEUE);
@@ -233,7 +233,7 @@ void IRQserialWriteString(const char *str)
     // interrupt, and therefore the interrupt that signals the end of dma xfer
     // could be missed. Instead, we temporarily disable the dma, send our data
     // and re-enable it after
-    if(!serial_enabled) return;
+    if(!serialEnabled) return;
 
     // We can reach here also with only kernel paused, so make sure interrupts
     // are disabled.
@@ -262,7 +262,7 @@ void IRQserialWriteString(const char *str)
 
 void IRQserialInit()
 {
-    rx_queue.IRQreset();
+    rxQueue.IRQreset();
     //Enable clock to GPIOA, AFIO and USART1
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_AFIOEN |
             RCC_APB2ENR_USART1EN;
@@ -292,28 +292,28 @@ void IRQserialInit()
     USART1->CR1 |= USART_CR1_TE | USART_CR1_RE;//Finally enable tx and rx
     NVIC_SetPriority(USART1_IRQn,10);//Low priority for serial. (Max=0, min=15)
     NVIC_EnableIRQ(USART1_IRQn);
-    serial_enabled=true;
+    serialEnabled=true;
 }
 
 void IRQserialDisable()
 {
-    serial_enabled=false;
+    serialEnabled=false;
     while(!IRQserialTxFifoEmpty()) ; //wait
     USART1->CR1=0;
 }
 
 void serialWrite(const char *str, unsigned int len)
 {
-    if(!serial_enabled) return;
+    if(!serialEnabled) return;
     {
-        Lock<Mutex> l(tx_mutex);
+        Lock<Mutex> l(txMutex);
         for(unsigned int i=0;i<len;i++)
         {
             while((USART1->SR & USART_SR_TXE)==0)
             {
                 //Wait till we can transmit, but while waiting check if
                 //someboby disables the serial port while we are transmitting
-                if(!serial_enabled) return;
+                if(!serialEnabled) return;
             }
             USART1->DR=*str++;
         }
@@ -322,7 +322,7 @@ void serialWrite(const char *str, unsigned int len)
 
 void IRQserialWriteString(const char *str)
 {
-    if(!serial_enabled) return;
+    if(!serialEnabled) return;
     while((*str)!='\0')
     {
         //Wait until the hardware fifo is ready to accept one char
@@ -335,7 +335,7 @@ void IRQserialWriteString(const char *str)
 
 bool IRQisSerialEnabled()
 {
-    return serial_enabled;
+    return serialEnabled;
 }
 
 bool serialTxComplete()
@@ -345,18 +345,18 @@ bool serialTxComplete()
 
 char serialReadChar()
 {
-    Lock<Mutex> l(rx_mutex);
+    Lock<Mutex> l(rxMutex);
     char result;
-    rx_queue.get(result);
+    rxQueue.get(result);
     return result;
 }
 
 bool serialReadCharNonblocking(char& c)
 {
-    Lock<Mutex> l(rx_mutex);
-    if(rx_queue.isEmpty()==false)
+    Lock<Mutex> l(rxMutex);
+    if(rxQueue.isEmpty()==false)
     {
-        rx_queue.get(c);
+        rxQueue.get(c);
         return true;
     }
     return false;
@@ -364,14 +364,14 @@ bool serialReadCharNonblocking(char& c)
 
 bool serialRxLost()
 {
-    bool temp=(bool)rx_lost_flag;
-    rx_lost_flag=false;
+    bool temp=(bool)rxLostFlag;
+    rxLostFlag=false;
     return temp;
 }
 
 void serialRxFlush()
 {
-    rx_queue.reset();
+    rxQueue.reset();
 }
 
 bool IRQserialTxFifoEmpty()
