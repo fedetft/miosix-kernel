@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011 by Terraneo Federico                         *
+ *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -37,7 +37,7 @@ namespace miosix {
 #define AU
 #endif
 
-const char AU ver[]="Miosix v1.59 (" _MIOSIX ", " __DATE__ " " __TIME__ CV ")";
+const char AU ver[]="Miosix v1.60 (" _MIOSIX ", " __DATE__ " " __TIME__ CV ")";
 
 const char *getMiosixVersion()
 {

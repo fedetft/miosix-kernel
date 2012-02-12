@@ -1,6 +1,14 @@
 Changelog for Miosix np embedded OS
 
+v1.60
+- Refactored the arch/ directory to avoid code duplication
+- Breaking change in the Makefiles
 v1.59
+- Added arch/cortexM4_stm32 architecture. The current GCC used to build Miosix
+  does not yet support the M4 but since the instruction set is backward
+  compatible the kernel is currently compiled with -mcpu=cortex-m3. This
+  means that floating point operations are still emulated in software, and will
+  be fixed when the compiler is upgraded.
 - Added a couple of examples, including one using BufferQueue to synchronize
   between a thread and a DMA.
 - Added test to testsuite for BufferQueue

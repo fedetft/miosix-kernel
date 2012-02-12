@@ -36,6 +36,12 @@
               <in>board_settings.h</in>
             </df>
           </df>
+          <df name="common">
+            <df name="drivers">
+              <in>dcc.cpp</in>
+              <in>dcc.h</in>
+            </df>
+          </df>
           <df name="cortexM3_stm32">
             <df name="common">
               <df name="CMSIS">
@@ -50,14 +56,13 @@
                 <in>interrupts.h</in>
               </df>
               <df name="drivers">
-                <in>dcc.cpp</in>
-                <in>dcc.h</in>
                 <in>serial.cpp</in>
                 <in>serial.h</in>
               </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
                 <in>delays.cpp</in>
+                <in>disk.cpp</in>
                 <in>endianness_impl.h</in>
                 <in>gpio_impl.h</in>
                 <in>portability.cpp</in>
@@ -84,7 +89,6 @@
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
                 <in>console.cpp</in>
-                <in>disk.cpp</in>
                 <in>hwmapping.h</in>
               </df>
               <in>board_settings.h</in>
@@ -97,7 +101,6 @@
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
                 <in>console.cpp</in>
-                <in>disk.cpp</in>
                 <in>hwmapping.h</in>
               </df>
               <in>board_settings.h</in>
@@ -110,7 +113,6 @@
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
                 <in>console.cpp</in>
-                <in>disk.cpp</in>
                 <in>hwmapping.h</in>
               </df>
               <in>board_settings.h</in>
@@ -123,7 +125,6 @@
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
                 <in>console.cpp</in>
-                <in>disk.cpp</in>
               </df>
               <in>board_settings.h</in>
             </df>
@@ -132,11 +133,19 @@
             <df name="common">
               <df name="CMSIS">
                 <df name="Documentation">
+                  <in>CMSIS-SVD_Schema_1_0.xsd</in>
+                  <in>CMSIS_CM4_SIMD.htm</in>
+                  <in>CMSIS_Core.htm</in>
+                  <in>CMSIS_DebugSupport.htm</in>
+                  <in>CMSIS_History.htm</in>
+                  <in>CMSIS_Logo_Final.jpg</in>
+                  <in>CMSIS_System_View_Description.htm</in>
                 </df>
                 <in>core_cm4.h</in>
                 <in>core_cm4_simd.h</in>
                 <in>core_cmFunc.h</in>
                 <in>core_cmInstr.h</in>
+                <in>index.htm</in>
                 <in>stm32f4xx.h</in>
                 <in>system_stm32f4xx.c</in>
                 <in>system_stm32f4xx.h</in>
@@ -146,8 +155,6 @@
                 <in>interrupts.h</in>
               </df>
               <df name="drivers">
-                <in>dcc.cpp</in>
-                <in>dcc.h</in>
               </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
@@ -171,6 +178,9 @@
                 <in>console.cpp</in>
               </df>
               <in>board_settings.h</in>
+              <in>stm32_1m+192k_ram.ld</in>
+              <in>stm32_1m+192k_rom.ld</in>
+              <in>stm32f4discovery.cfg</in>
             </df>
           </df>
         </df>
@@ -272,7 +282,6 @@
       <df name="miosix_np_2">
       </df>
       <in>main.cpp</in>
-      <in>testsuite.cpp</in>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -302,8 +311,11 @@
             <incDir>
               <pElem>..</pElem>
               <pElem>../miosix</pElem>
+              <pElem>../miosix/arch/common</pElem>
               <pElem>../miosix/arch/cortexM3_stm32/common</pElem>
               <pElem>../miosix/arch/cortexM3_stm32/stm32f103ze_stm3210e-eval</pElem>
+              <pElem>../miosix/arch/cortexM4_stm32/common</pElem>
+              <pElem>../miosix/arch/cortexM4_stm32/stm32f407vg_stm32f4discovery</pElem>
               <pElem>../miosix/arch/arm7_lpc2000/common</pElem>
               <pElem>../miosix/arch/arm7_lpc2000/lpc2138_miosix_board</pElem>
             </incDir>
@@ -316,8 +328,11 @@
             <incDir>
               <pElem>..</pElem>
               <pElem>../miosix</pElem>
+              <pElem>../miosix/arch/common</pElem>
               <pElem>../miosix/arch/cortexM3_stm32/common</pElem>
               <pElem>../miosix/arch/cortexM3_stm32/stm32f103ze_stm3210e-eval</pElem>
+              <pElem>../miosix/arch/cortexM4_stm32/common</pElem>
+              <pElem>../miosix/arch/cortexM4_stm32/stm32f407vg_stm32f4discovery</pElem>
               <pElem>../miosix/arch/arm7_lpc2000/common</pElem>
               <pElem>../miosix/arch/arm7_lpc2000/lpc2138_miosix_board</pElem>
             </incDir>

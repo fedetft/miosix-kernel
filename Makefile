@@ -2,6 +2,7 @@
 ## Makefile for Miosix np embedded OS
 ## TFT:Terraneo Federico Technlogies
 ##
+MAKEFILE_VERSION := 1.01
 include miosix/config/Makefile.inc
 
 ##
@@ -33,15 +34,15 @@ INCLUDE_DIRS :=
 OBJ := $(addsuffix .o, $(basename $(SRC)))
 
 ## Includes the miosix base directory for C/C++
-CXXFLAGS  := $(CXXFLAGS_BASE) -I. -I./miosix -I./miosix/$(ARCH_INC) \
-             -I./miosix/$(BOARD_INC) $(INCLUDE_DIRS)
-CFLAGS    := $(CFLAGS_BASE)   -I. -I./miosix -I./miosix/$(ARCH_INC) \
-             -I./miosix/$(BOARD_INC) $(INCLUDE_DIRS)
+CXXFLAGS  := $(CXXFLAGS_BASE) -I. -Imiosix -Imiosix/arch/common \
+             -Imiosix/$(ARCH_INC) -Imiosix/$(BOARD_INC) $(INCLUDE_DIRS)
+CFLAGS    := $(CFLAGS_BASE)   -I. -Imiosix -Imiosix/arch/common \
+             -Imiosix/$(ARCH_INC) -Imiosix/$(BOARD_INC) $(INCLUDE_DIRS)
 AFLAGS    := $(AFLAGS_BASE)
 LFLAGS    := $(LFLAGS_BASE)
 
-LINK_LIBS := $(LIBS) -Wl,--start-group -L./miosix -lmiosix -lstdc++ -lc -lm \
-    -lg -lgcc -Wl,--end-group
+LINK_LIBS := $(LIBS) -L./miosix -Wl,--start-group -lmiosix -lstdc++ -lc -lm \
+    -lgcc -Wl,--end-group
 
 all: all-recursive main
 
@@ -70,8 +71,7 @@ main: main.elf
 
 main.elf: $(OBJ) miosix/libmiosix.a
 	@ echo "linking"
-	$(CXX) $(LFLAGS) -o main.elf $(OBJ) miosix/$(BOOT_FILE) \
-	miosix/kernel/syscalls.o $(LINK_LIBS)
+	$(CXX) $(LFLAGS) -o main.elf $(OBJ) miosix/$(BOOT_FILE) $(LINK_LIBS)
 
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@

@@ -18,7 +18,7 @@ OPT_BOARD := stm32f103ze_stm3210e-eval
 #OPT_BOARD := stm32f100rb_stm32vldiscovery
 #OPT_BOARD := stm32f103ve_strive_mini
 #OPT_BOARD := stm32f103ze_redbull_v2
-àOPT_BOARD := stm32f407vg_stm32f4discovery
+#OPT_BOARD := stm32f407vg_stm32f4discovery
 
 ##
 ## Optimization flags, choose one.
@@ -143,6 +143,11 @@ endif
 ## a new board or porting Miosix to a new architecture                    ##
 ############################################################################
 
+ifneq ($(MAKEFILE_VERSION),1.01)
+    $(error You are using an incompatible makefile. Make sure it matches \
+      the one distributed with the current version of the kernel)
+endif
+
 ##
 ## First, auto guess architecture name from board name
 ##
@@ -183,6 +188,8 @@ CXXFLAGS_BASE := -D_MIOSIX=\"$(OPT_BOARD)\"
 ## ARCHITECTURE: arm7_lpc2000
 ##
 ifeq ($(ARCH),arm7_lpc2000)
+    ## Base directory with header files for this board
+    ARCH_INC := arch/arm7_lpc2000/common
 
     ##-------------------------------------------------------------------------
     ## BOARD: lpc2138_miosix_board
@@ -240,9 +247,6 @@ ifeq ($(ARCH),arm7_lpc2000)
                      -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                       $(OPT_OPTIMIZATION) -nostdlib
 
-    ## Base directory with header files for this board
-    ARCH_INC := arch/arm7_lpc2000/common
-
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     #ARCH_SRC += Nothing to add
@@ -257,6 +261,8 @@ ifeq ($(ARCH),arm7_lpc2000)
 ## ARCHITECTURE: cortexM3_stm32
 ##
 else ifeq ($(ARCH),cortexM3_stm32)
+    ## Base directory with header files for this board
+    ARCH_INC := arch/cortexM3_stm32/common
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f103ze_stm3210e-eval
@@ -275,7 +281,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
         $(BOARD_INC)/interfaces-impl/console.cpp     \
-        $(BOARD_INC)/interfaces-impl/disk.cpp        \
+        $(ARCH_INC)/interfaces-impl/disk.cpp         \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -308,7 +314,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
         $(BOARD_INC)/interfaces-impl/console.cpp     \
-        $(BOARD_INC)/interfaces-impl/disk.cpp        \
+        $(ARCH_INC)/interfaces-impl/disk.cpp         \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -381,7 +387,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
         $(BOARD_INC)/interfaces-impl/console.cpp     \
-        $(BOARD_INC)/interfaces-impl/disk.cpp        \
+        $(ARCH_INC)/interfaces-impl/disk.cpp         \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -416,7 +422,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
         $(BOARD_INC)/interfaces-impl/console.cpp     \
-        $(BOARD_INC)/interfaces-impl/disk.cpp        \
+        $(ARCH_INC)/interfaces-impl/disk.cpp         \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -469,15 +475,12 @@ else ifeq ($(ARCH),cortexM3_stm32)
                      -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                      $(OPT_OPTIMIZATION) -nostdlib
 
-    ## Base directory with header files for this board
-    ARCH_INC := arch/cortexM3_stm32/common
-
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                  \
+    arch/common/drivers/dcc.cpp                  \
     $(ARCH_INC)/core/interrupts.cpp              \
     $(ARCH_INC)/drivers/serial.cpp               \
-    $(ARCH_INC)/drivers/dcc.cpp                  \
     $(ARCH_INC)/interfaces-impl/portability.cpp  \
     $(ARCH_INC)/interfaces-impl/delays.cpp       \
     $(ARCH_INC)/CMSIS/core_cm3.c                 \
@@ -487,6 +490,8 @@ else ifeq ($(ARCH),cortexM3_stm32)
 ## ARCHITECTURE: cortexM4_stm32
 ##
 else ifeq ($(ARCH),cortexM4_stm32)
+    ## Base directory with else header files for this board
+    ARCH_INC := arch/cortexM4_stm32/common
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f4discovery
@@ -554,14 +559,11 @@ else ifeq ($(ARCH),cortexM4_stm32)
                      -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                      $(OPT_OPTIMIZATION) -nostdlib
 
-    ## Base directory with else header files for this board
-    ARCH_INC := arch/cortexM4_stm32/common
-
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
+    arch/common/drivers/dcc.cpp                              \
     $(ARCH_INC)/core/interrupts.cpp                          \
-    $(ARCH_INC)/drivers/dcc.cpp                              \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \

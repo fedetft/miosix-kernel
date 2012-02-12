@@ -60,13 +60,13 @@ inline void ledOff()
 }
 
 ///\internal Pin connected to SD card detect
-//TODO: no filesystem typedef Gpio<GPIOA_BASE,8> sdCardDetect;
+//no filesystem typedef Gpio<GPIOA_BASE,8> sdCardDetect;
 
 /**
  * Polls the SD card sense GPIO
  * \return true if there is an uSD card in the socket.
  */
-/*TODO: no filesystem
+/*no filesystem
 inline bool sdCardSense()
 {
     return sdCardDetect::value()==0;

@@ -3,6 +3,7 @@
 ## TFT:Terraneo Federico Technlogies
 ## This makefile builds the whole kernel
 ##
+MAKEFILE_VERSION := 1.01
 include config/Makefile.inc
 
 ## List of all Miosix OS source files that have no special requirements
@@ -15,6 +16,7 @@ kernel/error.cpp                                                           \
 kernel/pthread.cpp                                                         \
 kernel/unistd.cpp                                                          \
 kernel/stage_2_boot.cpp                                                    \
+kernel/syscalls.cpp                                                        \
 kernel/scheduler/priority/priority_scheduler.cpp                           \
 kernel/scheduler/control/control_scheduler.cpp                             \
 kernel/scheduler/edf/edf_scheduler.cpp                                     \
@@ -34,18 +36,18 @@ SRC += $(ARCH_SRC)
 OBJ := $(addsuffix .o, $(basename $(SRC)))
 
 ## Includes the miosix base directory for C/C++
-CXXFLAGS := $(CXXFLAGS_BASE) -I. -I./$(ARCH_INC) -I./$(BOARD_INC)
-CFLAGS   :=  $(CFLAGS_BASE)  -I. -I./$(ARCH_INC) -I./$(BOARD_INC)
+CXXFLAGS := $(CXXFLAGS_BASE) -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC)
+CFLAGS   :=  $(CFLAGS_BASE)  -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC)
 AFLAGS   :=  $(AFLAGS_BASE)
 
-## Build libmiosix.a, syscalls.o and stage_1_boot.o (whose path is in BOOT_FILE)
-## The files syscalls.o and stage_1_boot.o are compiled separately because
-## they must not end up in libmiosix.a
-all: $(OBJ) $(BOOT_FILE) kernel/syscalls.o
+## Build libmiosix.a and stage_1_boot.o (whose path is in BOOT_FILE)
+## The file stage_1_boot.o is compiled separately because
+## it must not end up in libmiosix.a
+all: $(OBJ) $(BOOT_FILE)
 	$(AR) rcs libmiosix.a $(OBJ)
 
 clean:
-	rm $(OBJ) $(BOOT_FILE) kernel/syscalls.o libmiosix.a
+	rm $(OBJ) $(BOOT_FILE) libmiosix.a
 
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@
