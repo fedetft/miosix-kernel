@@ -133,19 +133,11 @@
             <df name="common">
               <df name="CMSIS">
                 <df name="Documentation">
-                  <in>CMSIS-SVD_Schema_1_0.xsd</in>
-                  <in>CMSIS_CM4_SIMD.htm</in>
-                  <in>CMSIS_Core.htm</in>
-                  <in>CMSIS_DebugSupport.htm</in>
-                  <in>CMSIS_History.htm</in>
-                  <in>CMSIS_Logo_Final.jpg</in>
-                  <in>CMSIS_System_View_Description.htm</in>
                 </df>
                 <in>core_cm4.h</in>
                 <in>core_cm4_simd.h</in>
                 <in>core_cmFunc.h</in>
                 <in>core_cmInstr.h</in>
-                <in>index.htm</in>
                 <in>stm32f4xx.h</in>
                 <in>system_stm32f4xx.c</in>
                 <in>system_stm32f4xx.h</in>
@@ -153,8 +145,6 @@
               <df name="core">
                 <in>interrupts.cpp</in>
                 <in>interrupts.h</in>
-              </df>
-              <df name="drivers">
               </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
@@ -178,9 +168,6 @@
                 <in>console.cpp</in>
               </df>
               <in>board_settings.h</in>
-              <in>stm32_1m+192k_ram.ld</in>
-              <in>stm32_1m+192k_rom.ld</in>
-              <in>stm32f4discovery.cfg</in>
             </df>
           </df>
         </df>
