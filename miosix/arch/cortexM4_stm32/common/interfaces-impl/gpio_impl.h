@@ -39,7 +39,7 @@
 #ifndef GPIO_IMPL_H
 #define	GPIO_IMPL_H
 
-#include "CMSIS/stm32f4xx.h"
+#include "interfaces/arch_registers.h"
 
 namespace miosix {
 

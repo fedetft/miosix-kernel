@@ -28,9 +28,9 @@
 #include <cstring>
 #include <algorithm>
 #include "serial.h"
-#include "CMSIS/stm32f10x.h"
 #include "kernel/sync.h"
 #include "kernel/scheduler/scheduler.h"
+#include "interfaces/arch_registers.h"
 #include "interfaces/portability.h"
 #include "interfaces/delays.h"
 #include "interfaces/gpio.h"

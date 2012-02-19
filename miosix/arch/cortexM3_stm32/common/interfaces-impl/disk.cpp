@@ -26,9 +26,8 @@
  ***************************************************************************/
 
 #include "interfaces/disk.h"
-#include "CMSIS/stm32f10x.h"
-#include "CMSIS/core_cm3.h"
 #include "interfaces/bsp.h"
+#include "interfaces/arch_registers.h"
 #include "interfaces/delays.h"
 #include "kernel/kernel.h"
 #include <cstdio>

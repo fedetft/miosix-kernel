@@ -41,11 +41,10 @@
 #include "kernel/sync.h"
 #include "interfaces/delays.h"
 #include "interfaces/portability.h"
+#include "interfaces/arch_registers.h"
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
 #include "console-impl.h"
-#include "CMSIS/stm32f4xx.h"
-#include "CMSIS/system_stm32f4xx.h"
 
 namespace miosix {
 

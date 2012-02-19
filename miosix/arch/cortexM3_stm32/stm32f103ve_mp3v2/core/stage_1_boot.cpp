@@ -1,5 +1,5 @@
 
-#include "CMSIS/stm32f10x.h"
+#include "interfaces/arch_registers.h"
 #include "core/interrupts.h" //For the unexpected interrupt call
 #include <string.h>
 

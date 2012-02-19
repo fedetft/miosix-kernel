@@ -35,9 +35,9 @@
 
 #include "interfaces/console.h"
 #include "console-impl.h"
-#include "CMSIS/stm32f4xx.h"
 #include "kernel/sync.h"
 #include "kernel/scheduler/scheduler.h"
+#include "interfaces/arch_registers.h"
 #include "interfaces/portability.h"
 #include "interfaces/gpio.h"
 #include "board_settings.h"

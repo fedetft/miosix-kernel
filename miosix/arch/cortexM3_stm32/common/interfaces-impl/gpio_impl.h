@@ -38,7 +38,7 @@
 #ifndef GPIO_IMPL_H
 #define	GPIO_IMPL_H
 
-#include "CMSIS/stm32f10x.h"
+#include "interfaces/arch_registers.h"
 
 /**
  * This class just encapsulates the Mode_ enum so that the enum names don't

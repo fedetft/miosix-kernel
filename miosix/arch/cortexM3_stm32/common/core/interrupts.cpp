@@ -27,9 +27,9 @@
 
 #include "kernel/logging.h"
 #include "interfaces/portability.h"
+#include "interfaces/arch_registers.h"
 #include "config/miosix_settings.h"
 #include "interrupts.h"
-#include "CMSIS/stm32f10x.h"
 
 using namespace miosix;
 

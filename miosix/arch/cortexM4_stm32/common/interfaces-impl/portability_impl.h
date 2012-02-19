@@ -29,9 +29,7 @@
 #ifndef PORTABILITY_IMPL_H
 #define PORTABILITY_IMPL_H
 
-#include "CMSIS/stm32f4xx.h"
-#include "CMSIS/core_cm4.h"
-#include "CMSIS/system_stm32f4xx.h"
+#include "interfaces/arch_registers.h"
 #include "config/miosix_settings.h"
 
 /**
