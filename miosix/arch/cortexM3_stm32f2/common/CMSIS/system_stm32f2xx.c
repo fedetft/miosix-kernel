@@ -142,7 +142,11 @@
 
 
 /* PLL_VCO = (HSE_VALUE or HSI_VALUE / PLL_M) * PLL_N */
-#define PLL_M      25
+
+//By TFT: 25 is only good if the xtal is 25MHz,
+//#define PLL_M      25
+#define PLL_M (HSE_VALUE/1000000)
+
 #define PLL_N      240
 
 /* SYSCLK = PLL_VCO / PLL_P */
