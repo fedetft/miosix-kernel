@@ -37,6 +37,7 @@
 #include "console-impl.h"
 #include "kernel/sync.h"
 #include "kernel/scheduler/scheduler.h"
+#include "kernel/logging.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces/portability.h"
 #include "interfaces/gpio.h"

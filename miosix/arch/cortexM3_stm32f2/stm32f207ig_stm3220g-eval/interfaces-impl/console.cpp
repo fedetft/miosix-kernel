@@ -28,12 +28,16 @@
 /**
  * The stm3220g-eval unfortunately does not break out USART1 as the default
  * serial port. This (simple) driver falls back to using USART3.
+ * And it's even worse than what it seems, as the USART3 GPIOs are shared
+ * with the SDIO ones, so it's not possible to use the serial port and the
+ * SDIO at the same time...
  */
 
 #include "interfaces/console.h"
 #include "console-impl.h"
 #include "kernel/sync.h"
 #include "kernel/scheduler/scheduler.h"
+#include "kernel/logging.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces/portability.h"
 #include "interfaces/gpio.h"
