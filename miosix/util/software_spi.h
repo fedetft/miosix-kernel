@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011 by Terraneo Federico                               *
+ *   Copyright (C) 2011, 2012 by Terraneo Federico                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -33,7 +33,7 @@
 namespace miosix {
 
 /**
- * Software implementation of the SPI protocol (CPOL=0, CPHA=0 mode)
+ * Software implementation of the SPI protocol mode 0 (CPOL=0, CPHA=0 mode)
  * \param SI an instance of the Gpio class indicating the SPI input pin
  * \param SO an instance of the Gpio class indicating the SPI output pin
  * \param SCK an instance of the Gpio class indicating the SPI clock pin
@@ -87,6 +87,12 @@ public:
      * Pull CE high, indicating transmission end.
      */
     static void ceHigh() { CE::high(); }
+    
+private:
+    /**
+     * Loop used to slow down the SPI as needed
+     */
+    static void delayLoop();    
 };
 
 template<typename SI, typename SO, typename SCK, typename CE, unsigned numNops>
@@ -96,15 +102,14 @@ unsigned char SoftwareSPI<SI,SO,SCK,CE,numNops>::
     unsigned char result=0;
     for(int i=0;i<8;i++)
     {
-        if(data & 0x80) SO::high();
-        SCK::high();
+        if(data & 0x80) SO::high(); else SO::low();
         data<<=1;
-        if(SI::value()) result |= 0x1;
+        delayLoop();
+        SCK::high();
         result<<=1;
-        for(int j=0;j<numNops;j++) asm volatile("nop");
-        SCK::low();
-        for(int j=0;j<numNops;j++) asm volatile("nop");
-        SO::low();
+        if(SI::value()) result |= 0x1;
+        delayLoop();
+        SCK::low();     
     }
     return result;
 }
@@ -116,15 +121,14 @@ unsigned short SoftwareSPI<SI,SO,SCK,CE,numNops>::
     unsigned short result=0;
     for(int i=0;i<16;i++)
     {
-        if(data & 0x8000) SO::high();
-        SCK::high();
+        if(data & 0x8000) SO::high(); else SO::low();
         data<<=1;
-		result<<=1;
+        delayLoop();
+		SCK::high();
+        result<<=1;
         if(SI::value()) result |= 0x1;
-        for(int j=0;j<numNops;j++) asm volatile("nop");
+        delayLoop();
         SCK::low();
-        for(int j=0;j<numNops;j++) asm volatile("nop");
-        SO::low();
     }
     return result;
 }
@@ -136,17 +140,22 @@ unsigned int SoftwareSPI<SI,SO,SCK,CE,numNops>::
     unsigned int result=0;
     for(int i=0;i<32;i++)
     {
-        if(data & 0x80000000) SO::high();
-        SCK::high();
+        if(data & 0x80000000) SO::high(); else SO::low();
         data<<=1;
+        delayLoop();
+        SCK::high();
 		result<<=1;
         if(SI::value()) result |= 0x1;
-        for(int j=0;j<numNops;j++) asm volatile("nop");
+        delayLoop();
         SCK::low();
-        for(int j=0;j<numNops;j++) asm volatile("nop");
-        SO::low();
     }
     return result;
+}
+
+template<typename SI, typename SO, typename SCK, typename CE, unsigned numNops>
+void SoftwareSPI<SI,SO,SCK,CE,numNops>::delayLoop()
+{
+    for(int j=0;j<numNops;j++) asm volatile("nop");    
 }
 
 } //namespace miosix

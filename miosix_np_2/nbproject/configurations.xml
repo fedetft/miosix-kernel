@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configurationDescriptor version="79">
+<configurationDescriptor version="80">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df name="miosix_np_2" root="..">
       <df name="miosix">
@@ -129,7 +129,45 @@
               <in>board_settings.h</in>
             </df>
           </df>
-          <df name="cortexM4_stm32">
+          <df name="cortexM3_stm32f2">
+            <df name="common">
+              <df name="CMSIS">
+                <in>core_cm3.c</in>
+                <in>core_cm3.h</in>
+                <in>stm32f2xx.h</in>
+                <in>system_stm32f2xx.c</in>
+                <in>system_stm32f2xx.h</in>
+              </df>
+              <df name="core">
+                <in>interrupts.cpp</in>
+                <in>interrupts.h</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
+                <in>delays.cpp</in>
+                <in>disk.cpp</in>
+                <in>endianness_impl.h</in>
+                <in>gpio_impl.cpp</in>
+                <in>gpio_impl.h</in>
+                <in>portability.cpp</in>
+                <in>portability_impl.h</in>
+              </df>
+              <in>arch_settings.h</in>
+            </df>
+            <df name="stm32f207ig_stm3220g-eval">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console-impl.h</in>
+                <in>console.cpp</in>
+              </df>
+              <in>board_settings.h</in>
+            </df>
+          </df>
+          <df name="cortexM4_stm32f4">
             <df name="common">
               <df name="CMSIS">
                 <df name="Documentation">
@@ -330,6 +368,38 @@
           </ccTool>
         </makeTool>
       </makefileType>
+      <item path="../miosix/arch/cortexM3_stm32/common/CMSIS/core_cm3.c"
+            ex="false"
+            tool="0"
+            flavor="0">
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/common/CMSIS/system_stm32f10x.c"
+            ex="false"
+            tool="0"
+            flavor="0">
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32f2/common/CMSIS/core_cm3.c"
+            ex="false"
+            tool="0"
+            flavor="0">
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32f2/common/CMSIS/system_stm32f2xx.c"
+            ex="false"
+            tool="0"
+            flavor="0">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/common/CMSIS/system_stm32f4xx.c"
+            ex="false"
+            tool="0"
+            flavor="0">
+      </item>
+      <item path="../miosix/examples/sad_trombone/adpcm.c"
+            ex="false"
+            tool="0"
+            flavor="0">
+      </item>
+      <item path="../miosix/kernel/filesystem/ff.c" ex="false" tool="0" flavor="0">
+      </item>
     </conf>
   </confs>
 </configurationDescriptor>

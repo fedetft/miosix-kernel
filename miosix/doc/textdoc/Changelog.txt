@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
 v1.60
+- Fixed a bug in SoftwareSPI::sendRecvChar(), improved overall SoftwareSPI
+  code
 - Added support for stm32f2 and stm3220g-eval
 - Renamed arch/cortexM4_stm32 to arch/cortexM4_stm32f4 for consistency
 - Refactored the arch/ directory to avoid code duplication
