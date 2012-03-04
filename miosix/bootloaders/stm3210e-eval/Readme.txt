@@ -1,1 +1,0 @@
-see miosix/doc/textdoc/stm32-bootloader.txt

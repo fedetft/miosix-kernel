@@ -141,8 +141,37 @@ endif
 ##---------------------------------------------------------------------------
 ## stm32f207ig_stm3220g-eval
 ##
+ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
 
-# No options
+    ## Linker script type, there are three options
+    ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
+    ##    the most common choice, available for all microcontrollers
+    ## 2) Code in FLASH stack in internal RAM heap in external RAM (file
+    ##    *_xram.ld) useful for hardware like STM3220G-EVAL when big heap is
+    ##    needed. The microcontroller must have an external memory interface.
+    ## 3) Code + stack + heap in external RAM, (file *_all_in_xram.ld)
+    ##    useful for debugging code in hardware like STM3220G-EVAL. Code runs
+    ##    *very* slow compared to FLASH. Works only with a booloader that
+    ##    forwards interrrupts @ 0x64000000 (see miosix/bootloaders for one).
+    ##    The microcontroller must have an external memory interface.
+    ## Warning! enable external ram if you use a linker script that requires it
+    ## (see the XRAM flag below)
+    LINKER_SCRIPT_PATH := arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram.ld
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld
+
+    ## Enable/disable initialization of external RAM at boot. Three options:
+    ## __ENABLE_XRAM : If you want the heap in xram (with an appropriate linker
+    ## script selected above)
+    ## __ENABLE_XRAM and __CODE_IN_XRAM : Debug mode with code + stack + heap
+    ## in xram (with an appropriate linker script selected above)
+    ## none selected : don't use xram (with an appropriate linker script
+    ## selected above)
+    #XRAM := -D__ENABLE_XRAM
+    XRAM := -D__ENABLE_XRAM -D__CODE_IN_XRAM
+
+endif
 
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
@@ -303,8 +332,12 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := miosix/bootloaders/stm3210e-eval/pc_loader/pc_loader \
+        ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_512k+64k_all_in_xram.ld)
+        PROGRAM_CMDLINE := miosix/bootloaders/stm32/pc_loader/pc_loader \
         /dev/ttyUSB0 main.bin
+        else
+        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB0
+        endif
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f103ve_mp3v2
@@ -595,7 +628,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
         BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
-        LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+128k_rom.ld
+        #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
@@ -617,7 +650,12 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
+        ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld)
+        PROGRAM_CMDLINE := miosix/bootloaders/stm32/pc_loader/pc_loader \
+        /dev/ttyUSB0 main.bin
+        else
         PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+        endif
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -639,10 +677,10 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
-    CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32F2 $(CLOCK_FREQ) $(SRAM_BOOT)     \
+    CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32F2 $(CLOCK_FREQ) $(XRAM)          \
                      -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
                      $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32F2 $(CLOCK_FREQ) $(SRAM_BOOT)     \
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32F2 $(CLOCK_FREQ) $(XRAM)          \
                      $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
                      -mfix-cortex-m3-ldrd $(OPT_OPTIMIZATION)                \
                      -ffunction-sections -Wall -g -c

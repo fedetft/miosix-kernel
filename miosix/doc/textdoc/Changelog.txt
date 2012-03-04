@@ -1,6 +1,14 @@
 Changelog for Miosix np embedded OS
 
 v1.60
+- Added support to stm3220g-eval to miosix/bootloaders/stm32, and renamed
+  folder (before it was miosix/bootloaders/stm3210e-eval)
+- Added linker scripts that support external ram to stm3220g-eval
+- Added external RAM support to stm3220g-eval
+- Added make program support to flash the stm3210e-eval using the stm32flash
+  utility
+- Fixed a bug in the stm3210e-eval related to the xram linker script:
+  the stack pointer was set to the external RAM before that ram was enabled
 - Fixed a bug in SoftwareSPI::sendRecvChar(), improved overall SoftwareSPI
   code
 - Added support for stm32f2 and stm3220g-eval

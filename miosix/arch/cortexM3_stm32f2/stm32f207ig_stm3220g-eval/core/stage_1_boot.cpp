@@ -44,18 +44,6 @@ void program_startup()
     //Cortex M3 core appears to get out of reset with interrupts already enabled
     __disable_irq();
 
-	//SystemInit() is called *before* initializing .data and zeroing .bss
-	//Despite all startup files provided by ST do the opposite, there are three
-	//good reasons to do so:
-	//First, the CMSIS specifications say that SystemInit() must not access
-	//global variables, so it is actually possible to call it before
-	//Second, when running Miosix with the xram linker scripts .data and .bss
-	//are placed in the external RAM, so we *must* call SystemInit(), which
-	//enables xram, before touching .data and .bss
-	//Third, this is a performance improvement since the loops that initialize
-	//.data and zeros .bss now run with the CPU at full speed instead of 8MHz
-    SystemInit();
-
 	//These are defined in the linker script
 	extern unsigned char _etext asm("_etext");
 	extern unsigned char _data asm("_data");
@@ -75,7 +63,13 @@ void program_startup()
     unsigned char *edata=&_edata;
     unsigned char *bss_start=&_bss_start;
     unsigned char *bss_end=&_bss_end;
+    #ifndef __CODE_IN_XRAM
     memcpy(data, etext, edata-data);
+    #else //__CODE_IN_XRAM
+    (void)etext; //Avoid unused variable warning
+    (void)data;
+    (void)edata;
+    #endif //__CODE_IN_XRAM
     memset(bss_start, 0, bss_end-bss_start);
 
 	//Initialize C++ global constructors
@@ -97,6 +91,47 @@ void program_startup()
 void Reset_Handler() __attribute__((__interrupt__, noreturn));
 void Reset_Handler()
 {
+   #ifdef __CODE_IN_XRAM
+    /**
+     * Before calling the initalization code, set the stack pointer to the
+     * required value. At first it might seem redundant setting the stack
+     * pointer since the hardware should take care of this, but there is a
+     * corner case in which it is not set properly:
+     * 1) A debugger like openocd is used to run the code
+     * 2) Debugged code is run from external RAM
+     * In this case, in FLASH starting from 0x00000000 there is a bootloader
+     * that forwards interrupt vectors to their address in external RAM
+     * at address 0x64000000. The bootloader can also be used to load the code
+     * but this is uninteresting here. The problem is that the bootloader uses
+     * the internal RAM for its stack, so @ 0x00000000 there is the value
+     * 0x20000000 (top of internal RAM). When a debugger like openocd loads the
+     * debuged code in external RAM starting from 0x64000000 it mimics the
+     * harware behaviour of setting the stack pointer. But it loads the value at
+     * 0x00000000, not the value at 0x64000000. Therefore the stack pointer
+     * is set to the stak used by the bootloader (top of INTERNAL RAM) instead
+     * of the stack of the debugged code (top of EXTERNAL RAM).
+     * Since this quirk happens only when running code from external RAM, the
+     * fix is enclosed in an #ifdef __CODE_IN_XRAM
+     */
+    asm volatile("ldr sp, =_main_stack_top\n\t");
+    #endif //__CODE_IN_XRAM
+
+	/*
+	 * SystemInit() is called *before* initializing .data and zeroing .bss
+	 * Despite all startup files provided by ST do the opposite, there are three
+	 * good reasons to do so:
+	 * First, the CMSIS specifications say that SystemInit() must not access
+	 * global variables, so it is actually possible to call it before
+	 * Second, when running Miosix with the xram linker scripts .data and .bss
+	 * are placed in the external RAM, so we *must* call SystemInit(), which
+	 * enables xram, before touching .data and .bss
+	 * Third, this is a performance improvement since the loops that initialize
+	 * .data and zeros .bss now run with the CPU at full speed instead of 16MHz
+	 * Note that it is called before switching stacks because the memory
+	 * at _heap_end can be unavailable until the external RAM is initialized.
+	 */
+    SystemInit();
+
     /*
      * Initialize process stack and switch to it.
      * This is required for booting Miosix, a small portion of the top of the

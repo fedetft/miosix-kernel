@@ -368,38 +368,6 @@
           </ccTool>
         </makeTool>
       </makefileType>
-      <item path="../miosix/arch/cortexM3_stm32/common/CMSIS/core_cm3.c"
-            ex="false"
-            tool="0"
-            flavor="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/CMSIS/system_stm32f10x.c"
-            ex="false"
-            tool="0"
-            flavor="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/CMSIS/core_cm3.c"
-            ex="false"
-            tool="0"
-            flavor="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/CMSIS/system_stm32f2xx.c"
-            ex="false"
-            tool="0"
-            flavor="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/CMSIS/system_stm32f4xx.c"
-            ex="false"
-            tool="0"
-            flavor="0">
-      </item>
-      <item path="../miosix/examples/sad_trombone/adpcm.c"
-            ex="false"
-            tool="0"
-            flavor="0">
-      </item>
-      <item path="../miosix/kernel/filesystem/ff.c" ex="false" tool="0" flavor="0">
-      </item>
     </conf>
   </confs>
 </configurationDescriptor>

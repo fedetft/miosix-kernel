@@ -43,18 +43,6 @@ void program_startup()
     //Cortex M3 core appears to get out of reset with interrupts already enabled
     __disable_irq();
 
-	//SystemInit() is called *before* initializing .data and zeroing .bss
-	//Despite all startup files provided by ST do the opposite, there are three
-	//good reasons to do so:
-	//First, the CMSIS specifications say that SystemInit() must not access
-	//global variables, so it is actually possible to call it before
-	//Second, when running Miosix with the xram linker scripts .data and .bss
-	//are placed in the external RAM, so we *must* call SystemInit(), which
-	//enables xram, before touching .data and .bss
-	//Third, this is a performance improvement since the loops that initialize
-	//.data and zeros .bss now run with the CPU at full speed instead of 8MHz
-    SystemInit();
-
 	//These are defined in the linker script
 	extern unsigned char _etext asm("_etext");
 	extern unsigned char _data asm("_data");
@@ -126,6 +114,22 @@ void Reset_Handler()
      */
     asm volatile("ldr sp, =_main_stack_top\n\t");
     #endif //__CODE_IN_XRAM
+
+	/*
+	 * SystemInit() is called *before* initializing .data and zeroing .bss
+	 * Despite all startup files provided by ST do the opposite, there are three
+	 * good reasons to do so:
+	 * First, the CMSIS specifications say that SystemInit() must not access
+	 * global variables, so it is actually possible to call it before
+	 * Second, when running Miosix with the xram linker scripts .data and .bss
+	 * are placed in the external RAM, so we *must* call SystemInit(), which
+	 * enables xram, before touching .data and .bss
+	 * Third, this is a performance improvement since the loops that initialize
+	 * .data and zeros .bss now run with the CPU at full speed instead of 8MHz
+	 * Note that it is called before switching stacks because the memory
+	 * at _heap_end can be unavailable until the external RAM is initialized.
+	 */
+    SystemInit();
 
     /*
      * Initialize process stack and switch to it.
