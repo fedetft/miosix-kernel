@@ -156,17 +156,21 @@ void startKernel()
     //
     //Create the idle thread
     //
-    unsigned int *base=static_cast<unsigned int*>(malloc(sizeof(Thread)+
-            STACK_IDLE+CTXSAVE_ON_STACK+WATERMARK_LEN));
-    if(base==NULL)
+    unsigned int *base;
+    Thread *idle;
+    #ifdef __NO_EXCEPTIONS
+    base=new int[(STACK_IDLE+CTXSAVE_ON_STACK+WATERMARK_LEN)/4];
+    idle=new Thread(base,STACK_IDLE);
+    #else //__NO_EXCEPTIONS
+    try {
+        base=new unsigned int[(STACK_IDLE+CTXSAVE_ON_STACK+WATERMARK_LEN)/4];
+        idle=new Thread(base,STACK_IDLE);
+    } catch(std::bad_alloc&)
     {
         errorHandler(OUT_OF_MEMORY);
         return;//Error
     }
-    //At the top of thread memory allocate the Thread class with placement new
-    void *threadClass=base+((STACK_IDLE+CTXSAVE_ON_STACK+WATERMARK_LEN)/
-            sizeof(unsigned int));
-    Thread *idle=new (threadClass) Thread(base,STACK_IDLE);
+    #endif //__NO_EXCEPTIONS
 
     //Fill watermark and stack
     memset(base, WATERMARK_FILL, WATERMARK_LEN);
@@ -175,8 +179,9 @@ void startKernel()
 
     //On some architectures some registers are saved on the stack, therefore
     //initCtxsave *must* be called after filling the stack.
-    miosix_private::initCtxsave(idle->ctxsave,idleThread,
-            reinterpret_cast<unsigned int*>(idle),NULL);
+    unsigned int *topOfStack=
+        idle->watermark+(STACK_IDLE+CTXSAVE_ON_STACK+WATERMARK_LEN)/4;
+    miosix_private::initCtxsave(idle->ctxsave,idleThread,topOfStack,NULL);
     idle->flags.IRQsetDetached();
     Scheduler::IRQsetIdleThread(idle);
     kernel_started=true;//Now kernel is started
@@ -272,9 +277,13 @@ bool IRQwakeThreads()
 
 /*
 Memory layout for a thread
+(now creating a thread requires two distinct memory allocations)
 	|------------------------|
 	|     class Thread       |
-	|------------------------|<-- proc, this
+	|------------------------|<-- thread, this
+
+
+    |------------------------|
 	|         stack          |
 	|           |            |
 	|           V            |
@@ -294,18 +303,30 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
     }
     //If stacksize is not divisible by 4, round it to a number divisible by 4
     stacksize &= ~0x3;
+    
     //Allocate memory for the thread, return if fail
-    unsigned int *base=static_cast<unsigned int*>(malloc(sizeof(Thread)+
-            stacksize+WATERMARK_LEN+CTXSAVE_ON_STACK));
-    if(base==NULL)
+    unsigned int *base;
+    Thread *thread;
+    #ifdef __NO_EXCEPTIONS
+    base=new int[(stacksize+WATERMARK_LEN+CTXSAVE_ON_STACK)/4];
+    thread=new Thread(base,stacksize);
+    #else //__NO_EXCEPTIONS
+    try {
+        base=new unsigned int[(stacksize+WATERMARK_LEN+CTXSAVE_ON_STACK)/4];
+    } catch(std::bad_alloc&)
     {
         errorHandler(OUT_OF_MEMORY);
         return NULL;//Error
     }
-    //At the top of thread memory allocate the Thread class with placement new
-    void *threadClass=base+((stacksize+WATERMARK_LEN+CTXSAVE_ON_STACK)/
-            sizeof(unsigned int));
-    Thread *thread=new (threadClass) Thread(base,stacksize);
+    try {
+        thread=new Thread(base,stacksize);
+    } catch(std::bad_alloc&)
+    {
+        delete[] base;
+        errorHandler(OUT_OF_MEMORY);
+        return NULL;//Error
+    }
+    #endif //__NO_EXCEPTIONS
 
     //Fill watermark and stack
     memset(base, WATERMARK_FILL, WATERMARK_LEN);
@@ -314,8 +335,9 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
 
     //On some architectures some registers are saved on the stack, therefore
     //initCtxsave *must* be called after filling the stack.
-    miosix_private::initCtxsave(thread->ctxsave,startfunc,
-            reinterpret_cast<unsigned int*>(thread),argv);
+    unsigned int *topOfStack=
+        thread->watermark+(stacksize+WATERMARK_LEN+CTXSAVE_ON_STACK)/4;
+    miosix_private::initCtxsave(thread->ctxsave,startfunc,topOfStack,argv);
 
     if((options & JOINABLE)==0) thread->flags.IRQsetDetached();
     
@@ -326,9 +348,7 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
         if(Scheduler::PKaddThread(thread,priority)==false)
         {
             //Reached limit on number of threads
-            base=thread->watermark;
-            thread->~Thread();
-            free(base); //Delete ALL thread memory
+            delete thread;
             return NULL;
         }
     }
@@ -631,7 +651,11 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
     Thread::yield();//Since the thread is now deleted, yield immediately.
     //Will never reach here
     errorHandler(UNEXPECTED);
-    
+}
+
+Thread::~Thread()
+{
+    if(flags.hasExternStack()==false) delete[] watermark;
 }
 
 //

@@ -70,9 +70,7 @@ void EDFScheduler::PKremoveDeadThreads()
         if(head->flags.isDeleted()==false) break;
         Thread *toBeDeleted=head;
         head=head->schedData.next;
-        void *base=toBeDeleted->watermark;
-        toBeDeleted->~Thread();
-        free(base); //Delete ALL thread memory
+        delete toBeDeleted;
     }
     //When we get here this->head is not null and does not need to be deleted
     Thread *walk=head;
@@ -83,9 +81,7 @@ void EDFScheduler::PKremoveDeadThreads()
         {
             Thread *toBeDeleted=walk->schedData.next;
             walk->schedData.next=walk->schedData.next->schedData.next;
-            void *base=toBeDeleted->watermark;
-            toBeDeleted->~Thread();
-            free(base); //Delete ALL thread memory
+            delete toBeDeleted;
         } else walk=walk->schedData.next;
     }
 }

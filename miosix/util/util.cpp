@@ -47,12 +47,11 @@ namespace miosix {
  */
 static void memPrint(const char *start, char len)
 {
-    iprintf("0x%08x | ",(int)start);
-    int i;
-    for(i=0;i<len;i++) iprintf("%02x ",start[i]);
-    for(i=0;i<(16-len);i++) iprintf("   ");
+    iprintf("0x%08x | ",reinterpret_cast<unsigned int>(start));
+    for(int i=0;i<len;i++) iprintf("%02x ",start[i]);
+    for(int i=0;i<(16-len);i++) iprintf("   ");
     iprintf("| ");
-    for(i=0;i<len;i++)
+    for(int i=0;i<len;i++)
     {
         if((start[i]>32)&&(start[i]<128)) iprintf("%c",start[i]);
         else iprintf(".");
@@ -105,23 +104,20 @@ unsigned int MemoryProfiling::getStackSize()
 
 unsigned int MemoryProfiling::getAbsoluteFreeStack()
 {
-    unsigned int count=0;
     const unsigned int *walk=miosix::Thread::getStackBottom();
-    for(;;)
+    const unsigned int stackSize=miosix::Thread::getStackSize();
+    unsigned int count=0;
+    while(count<stackSize && *walk==miosix::STACK_FILL)
     {
-        //Count unused stack
-        if(*walk!=miosix::STACK_FILL)
-        {
-            //This takes in account CTXSAVE_ON_STACK. It might underestimate
-            //the absolute free stack (by a maximum of CTXSAVE_ON_STACK) but
-            //it will never overestimate it, which is important since this
-            //member function can be used to select stack sizes.
-            if(count<=(int)CTXSAVE_ON_STACK) return 0;
-            return count-CTXSAVE_ON_STACK;
-        }
         walk++;
         count+=4;
     }
+    //This takes in account CTXSAVE_ON_STACK. It might underestimate
+    //the absolute free stack (by a maximum of CTXSAVE_ON_STACK) but
+    //it will never overestimate it, which is important since this
+    //member function can be used to select stack sizes.
+    if(count<=CTXSAVE_ON_STACK) return 0;
+    return count-CTXSAVE_ON_STACK;
 }
 
 unsigned int MemoryProfiling::getCurrentFreeStack()

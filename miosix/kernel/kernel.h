@@ -701,7 +701,8 @@ private:
         /**
          * Constructor, sets flags to default.
          */
-        ThreadFlags(): flags(0) {}
+        ThreadFlags(bool externStack=false) :
+                flags(externStack ? EXTERN_STACK : 0) {}
 
         /**
          * Set the wait flag of the thread.
@@ -800,6 +801,11 @@ private:
          * \return true if the thread is waiting on a condition variable
          */
         bool isWaitingCond() const { return flags & WAIT_COND; }
+        
+        /**
+         * \return true if stack is handled separately and must not be deleted 
+         */
+        bool hasExternStack() const { return flags & EXTERN_STACK; }
 
     private:
         ///\internal Thread is in the wait status. A call to wakeup will change
@@ -825,6 +831,10 @@ private:
 
         ///\internal Thread is waiting on a condition variable
         static const unsigned int WAIT_COND=1<<6;
+        
+        ///\internal Thread stack is handled separately and must not be freed
+        ///at thread termination
+        static const unsigned int EXTERN_STACK=1<<7;
 
         unsigned short flags;///<\internal flags are stored here
     };
@@ -843,9 +853,9 @@ private:
     }
 
     /**
-     * Destructor, does nothing.
+     * Destructor
      */
-    ~Thread() {}
+    ~Thread();
 
     /**
      * Thread launcher, all threads start from this member function, which calls
