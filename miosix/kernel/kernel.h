@@ -689,6 +689,16 @@ public:
      * \return the size of the stack of the current thread.
      */
     static const int getStackSize();
+    
+    #ifdef WITH_PROCESSES
+    /**
+     * \return the syscall parameters
+     */
+    miosix_private::SyscallParameters& getSyscallParameters()
+    {
+        return syscallParameters;
+    }
+    #endif //WITH_PROCESSES
 	
 private:
     //Unwanted methods
@@ -894,6 +904,9 @@ private:
     } joinData;
     /// Per-thread instance of data to make C++ exception handling thread safe.
     ExceptionHandlingData exData;
+    #ifdef WITH_PROCESSES
+    miosix_private::SyscallParameters syscallParameters;
+    #endif //WITH_PROCESSES
     
     //friend functions
     //Needs access to watermark, ctxsave
@@ -906,6 +919,8 @@ private:
     friend void *idleThread(void *argv);
     //Needs to create the idle thread
     friend void startKernel();
+    //Needs ctxsave, syscallParameters
+    friend void miosix_private::ISR_yield();
     //Needs threadLauncher
     friend void miosix_private::initCtxsave(unsigned int *ctxsave,
             void *(*pc)(void *), unsigned int *sp, void *argv);

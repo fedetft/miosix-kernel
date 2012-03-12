@@ -85,6 +85,9 @@ void TIM3_IRQHandler()
 }
 #endif //SCHED_TYPE_CONTROL_BASED
 
+extern miosix::Thread *svcHandler;
+extern miosix::Thread *blocked;
+
 namespace miosix_private {
 
 /**
@@ -98,7 +101,7 @@ void ISR_preempt() __attribute__((noinline));
 void ISR_preempt()
 {
     IRQstackOverflowCheck();
-    miosix::IRQtickInterrupt();
+    miosix::IRQtickInterrupt();  
 }
 
 /**
@@ -112,6 +115,25 @@ void ISR_yield() __attribute__((noinline));
 void ISR_yield()
 {
     IRQstackOverflowCheck();
+    
+    #ifdef WITH_PROCESSES
+    //If processes are enabled, check the content of r3. If zero then it
+    //it is a simple yield, otherwise pause the thread and wake the svcHandler
+    unsigned int threadSp=miosix::cur->ctxsave[0];
+    unsigned int *processStack=reinterpret_cast<unsigned int*>(threadSp);
+    if(processStack[3]!=0)
+    {
+        blocked=const_cast<miosix::Thread*>(miosix::cur);
+        blocked->IRQwait();
+        blocked->syscallParameters.registers=processStack;
+        blocked->syscallParameters.valid=true;
+        if(svcHandler==0) miosix::errorHandler(miosix::UNEXPECTED);
+        svcHandler->IRQwakeup();
+    }
+    #endif //WITH_PROCESSES
+
+    //Note: this still has to be called even when r3!=0, since without this
+    //call the blocked->IRQwait() would not become effective
     miosix::Scheduler::IRQfindNextThread();
 }
 

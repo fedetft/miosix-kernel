@@ -61,6 +61,13 @@ namespace miosix {
 #define SCHED_TYPE_PRIORITY
 //#define SCHED_TYPE_CONTROL_BASED
 //#define SCHED_TYPE_EDF
+    
+/// \def WITH_PROCESSES
+/// If uncommented enables support for processes as well as threads.
+/// This enables the dynamic loader to load elf programs, the extended system
+/// call service and, if the hardware supports it, the MPU to provide memory
+/// isolation of processes
+#define WITH_PROCESSES
 
 //
 // Filesystem options

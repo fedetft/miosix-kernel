@@ -307,6 +307,7 @@
       <df name="miosix_np_2">
       </df>
       <in>main.cpp</in>
+      <in>svc.s</in>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

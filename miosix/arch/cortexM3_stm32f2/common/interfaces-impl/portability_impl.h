@@ -102,7 +102,9 @@ namespace miosix_private {
 
 inline void doYield()
 {
-    asm volatile("svc 0");
+    asm volatile("movs r3, #0\n\t"
+                 "svc  0"
+                 :::"r1");
 }
 
 inline void doDisableInterrupts()
@@ -131,6 +133,68 @@ inline bool checkAreInterruptsEnabled()
     if(i!=0) return false;
     return true;
 }
+
+#ifdef WITH_PROCESSES
+
+void ISR_yield(); //FIXME: make private again
+
+/**
+ * This class allows to access the parameters that a process passed to
+ * the operating system as part of a system call
+ */
+class SyscallParameters
+{
+public:
+    /**
+     * Default constructor, generates an invalid syscall
+     */
+    SyscallParameters() : valid(false) {}
+    
+    /**
+     * \return true if this object represent an actual pending syscall,
+     * false if it represent a special state in which no syscall is pending
+     * and therefore the value returned by all the other member functions of
+     * this class are invalid
+     */
+    bool isValid() const { return valid; }
+    
+    /**
+     * \return the syscall id, used to identify individual system calls
+     */
+    int getSyscallId() const { return registers[3]; }
+    
+    /**
+     * \return the first syscall parameter. The returned result is meaningful
+     * only if the syscall (identified throug its id) has one or more parameters
+     */
+    unsigned int getFirstParameter() const { return registers[0]; }
+    
+    /**
+     * \return the first syscall parameter. The returned result is meaningful
+     * only if the syscall (identified throug its id) has two or more parameters
+     */
+    unsigned int getSecondParameter() const { return registers[1]; }
+    
+    /**
+     * \return the first syscall parameter. The returned result is meaningful
+     * only if the syscall (identified throug its id) has three parameters
+     */
+    unsigned int getThirdParameter() const { return registers[2]; }
+    
+    /**
+     * Invalidate the object. Meant to be called after the syscall has been
+     * serviced
+     */
+    void invalidate() { valid=false; }
+    
+private:
+    unsigned int *registers;
+    bool valid;
+    
+    friend void ISR_yield();
+};
+
+#endif //WITH_PROCESSES
 
 /**
  * \}
