@@ -20,7 +20,7 @@ public:
      * elf in RAM
      * \param size size of the content of the elf file
      */
-    ElfProgram(const unsigned int *elf, int size);
+    ElfProgram(const unsigned int *elf, unsigned int size);
     
     /**
      * \return the a pointer to the elf header
@@ -57,8 +57,24 @@ public:
     }
     
 private:
+    /**
+     * \param size elf file size
+     * \return false if the file is not valid
+     * \throws runtime_error for selected specific types of errors 
+     */
+    bool validateHeader(unsigned int size);
+    
+    /**
+     * \param dynamic pointer to dynamic segment
+     * \param size elf file size
+     * \param dataSegmentSize size of data segment in memory
+     * \return false if the dynamic segment is not valid
+     * \throws runtime_error for selected specific types of errors 
+     */
+    bool validateDynamicSegment(const Elf32_Phdr *dynamic, unsigned int size,
+            unsigned int dataSegmentSize);
+    
     const unsigned int * const elf; //Pointer to the content of the elf file
-    const int size;                 //Size of the content of the elf file
 };
 
 /**
@@ -78,6 +94,16 @@ public:
      * relocations
      */
     void load(ElfProgram& program);
+    
+    /**
+     * \return the size of the process image, or zero if it is not valid 
+     */
+    unsigned int getProcessImageSize() const { return size; }
+    
+    /**
+     * \return true if this is a valid process image 
+     */
+    bool isValid() const { return image!=0; }
     
     /**
      * Destructor. Deletes the process image memory.

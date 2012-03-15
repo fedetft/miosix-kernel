@@ -8,10 +8,13 @@ int mystrlen(const char *s)
 	return result;
 }
 
+int youShouldNotSeeThisInTheElfFile=0;
+int *youShouldNotSeeThisInTheElfFile2=&youShouldNotSeeThisInTheElfFile;
+
 int main()
 {
 	//FIXME: without static code fails!!
 	static const char str[]="Hello world\n";
-	write(1,str,mystrlen(str));
-	return 0;
+	youShouldNotSeeThisInTheElfFile=write(1,str,mystrlen(str));
+	return *youShouldNotSeeThisInTheElfFile2;
 }

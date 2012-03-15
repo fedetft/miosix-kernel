@@ -19,7 +19,6 @@ SECTIONS
         *(.gnu.linkonce.t.*)
     }
 
-    .dynamic  : { *(.dynamic) }
     .rel.data : { *(.rel.data .rel.data.* .rel.gnu.linkonce.d.*) }
     .rel.got  : { *(.rel.got) }
 
@@ -27,6 +26,9 @@ SECTIONS
     . = 0x10000000;
 
     .got      : { *(.got.plt) *(.igot.plt) *(.got) *(.igot) }
+
+    /* FIXME: If this is put in the other segment, it makes it writable */
+    .dynamic  : { *(.dynamic) }
 
     /* FIXME: The compiler insists in addressing rodata relative to r9 */
     .rodata : ALIGN(8)
