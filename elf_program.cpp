@@ -1,3 +1,29 @@
+/***************************************************************************
+ *   Copyright (C) 2012 by Terraneo Federico                               *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   As a special exception, if other files instantiate templates or use   *
+ *   macros or inline functions from this file, or you compile this file   *
+ *   and link it with other works to produce a work based on this file,    *
+ *   this file does not by itself cause the resulting work to be covered   *
+ *   by the GNU General Public License. However the source code for this   *
+ *   file must still be made available in accordance with the GNU General  *
+ *   Public License. This exception does not invalidate any other reasons  *
+ *   why a work based on this file might be covered by the GNU General     *
+ *   Public License.                                                       *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
+ ***************************************************************************/
 
 #include "elf_program.h"
 #include <stdexcept>
@@ -21,7 +47,8 @@ ElfProgram::ElfProgram(const unsigned int *elf, unsigned int size) : elf(elf)
 {
     //Trying to follow the "full recognition before processing" approach,
     //(http://www.cs.dartmouth.edu/~sergey/langsec/occupy/FullRecognition.jpg)
-    //all of the elf fields that will later be used are checked in advance
+    //all of the elf fields that will later be used are checked in advance.
+    //Unused fields are unchecked, so when using new fields, add new checks
     if(validateHeader(size)==false) throw runtime_error("Bad file");
 }
 
@@ -30,9 +57,10 @@ bool ElfProgram::validateHeader(unsigned int size)
     //Validate ELF header
     //Note: this code assumes a little endian elf and a little endian ARM CPU
     if(size<sizeof(Elf32_Ehdr)) return false;
-    static const char magic[EI_NIDENT]={0x7f,'E','L','F',1,1,1};
-    if(memcmp(elf,magic,EI_NIDENT)) throw runtime_error("Unrecognized format");
     const Elf32_Ehdr *ehdr=getElfHeader();
+    static const char magic[EI_NIDENT]={0x7f,'E','L','F',1,1,1};
+    if(memcmp(ehdr->e_ident,magic,EI_NIDENT))
+        throw runtime_error("Unrecognized format");
     if(ehdr->e_type!=ET_EXEC) throw runtime_error("Not an executable");
     if(ehdr->e_machine!=EM_ARM) throw runtime_error("Wrong CPU arch");
     if(ehdr->e_version!=EV_CURRENT) return false;
@@ -50,8 +78,8 @@ bool ElfProgram::validateHeader(unsigned int size)
     bool codeSegmentPresent=false;
     bool dataSegmentPresent=false;
     bool dynamicSegmentPresent=false;
-    const Elf32_Phdr *phdr=getProgramHeaderTable();
     int dataSegmentSize;
+    const Elf32_Phdr *phdr=getProgramHeaderTable();
     for(int i=0;i<getNumOfProgramHeaderEntries();i++,phdr++)
     {
         //The third condition does not imply the other due to 32bit wraparound
@@ -63,14 +91,6 @@ bool ElfProgram::validateHeader(unsigned int size)
         
         switch(phdr->p_type)
         {
-            case PT_DYNAMIC:
-                if(dynamicSegmentPresent) return false; //Two dynamic segments?
-                dynamicSegmentPresent=true;
-                //DYNAMIC segment *must* come after data segment
-                if(dataSegmentPresent==false) return false;
-                if(validateDynamicSegment(phdr,size,dataSegmentSize)==false)
-                    return false;
-                break;
             case PT_LOAD:
                 if(phdr->p_flags & ~(PF_R | PF_W | PF_X)) return false;
                 if(!(phdr->p_flags & PF_R)) return false;
@@ -78,21 +98,30 @@ bool ElfProgram::validateHeader(unsigned int size)
                     throw runtime_error("File violates W^X");
                 if(phdr->p_flags & PF_X)
                 {
-                    if(codeSegmentPresent) return false; //Two code segments?
+                    if(codeSegmentPresent) return false; //Can't apper twice
                     codeSegmentPresent=true;
                     if(ehdr->e_entry<phdr->p_offset ||
                        ehdr->e_entry>phdr->p_offset+phdr->p_filesz ||
                        phdr->p_filesz!=phdr->p_memsz) return false;
                 }
-                if(phdr->p_flags & PF_W)
+                if((phdr->p_flags & PF_W) && !(phdr->p_flags & PF_X))
                 {
                     if(dataSegmentPresent) return false; //Two data segments?
                     dataSegmentPresent=true;
+                    if(phdr->p_memsz<phdr->p_filesz) return false;
                     int maxSize=MAX_PROCESS_IMAGE_SIZE-MIN_PROCESS_STACK_SIZE;
                     if(phdr->p_memsz>=maxSize)
                         throw runtime_error("Data segment too big");
                     dataSegmentSize=phdr->p_memsz;
                 }
+                break;
+            case PT_DYNAMIC:
+                if(dynamicSegmentPresent) return false; //Two dynamic segments?
+                dynamicSegmentPresent=true;
+                //DYNAMIC segment *must* come after data segment
+                if(dataSegmentPresent==false) return false;
+                if(validateDynamicSegment(phdr,size,dataSegmentSize)==false)
+                    return false;
                 break;
             default:
                 //Ignoring other segments
@@ -106,9 +135,9 @@ bool ElfProgram::validateHeader(unsigned int size)
 bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
         unsigned int size, unsigned int dataSegmentSize)
 {
-    unsigned int base=reinterpret_cast<unsigned int>(elf);
+    unsigned int base=getElfBase();
     const Elf32_Dyn *dyn=
-        reinterpret_cast<const Elf32_Dyn*>(base+dynamic->p_offset);
+        reinterpret_cast<const Elf32_Dyn*>(getElfBase()+dynamic->p_offset);
     const int dynSize=dynamic->p_memsz/sizeof(Elf32_Dyn);
     Elf32_Addr dtRel;
     Elf32_Word dtRelsz;
@@ -158,6 +187,7 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
                 case R_ARM_RELATIVE:
                     if(rel->r_offset<DATA_START) return false;
                     if(rel->r_offset>DATA_START+dataSegmentSize-4) return false;
+                    if(rel->r_offset & 0x3) return false;
                     break;
                 default:
                     throw runtime_error("Unexpected relocation type");
@@ -175,7 +205,76 @@ void ProcessImage::load(ElfProgram& program)
 {
     if(image) delete[] image;
     
-    
+    //TODO: add in elf file a field with the true image size
+    image=new unsigned int[MAX_PROCESS_IMAGE_SIZE/4];
+    const unsigned int base=program.getElfBase();
+    const Elf32_Phdr *phdr=program.getProgramHeaderTable();
+    Elf32_Addr dtRel;
+    Elf32_Word dtRelsz;
+    bool hasRelocs=false;
+    for(int i=0;i<program.getNumOfProgramHeaderEntries();i++,phdr++)
+    {
+        switch(phdr->p_type)
+        {
+            case PT_LOAD:
+                if((phdr->p_flags & PF_W) && !(phdr->p_flags & PF_X))
+                {
+                    const char *dataSegmentInFile=
+                        reinterpret_cast<const char*>(base+phdr->p_offset);
+                    char *dataSegmentInMem=reinterpret_cast<char*>(image);
+                    memcpy(dataSegmentInMem,dataSegmentInFile,phdr->p_filesz);
+                    dataSegmentInMem+=phdr->p_filesz;
+                    memset(dataSegmentInMem,0,phdr->p_memsz-phdr->p_filesz);
+                }
+                break;
+            case PT_DYNAMIC:
+            {
+                const Elf32_Dyn *dyn=reinterpret_cast<const Elf32_Dyn*>
+                    (base+phdr->p_offset);
+                const int dynSize=phdr->p_memsz/sizeof(Elf32_Dyn);
+                for(int i=0;i<dynSize;i++,dyn++)
+                {
+                    switch(dyn->d_tag)
+                    {
+                        case DT_REL:
+                            hasRelocs=true;
+                            dtRel=dyn->d_un.d_ptr;
+                            break;
+                        case DT_RELSZ:
+                            hasRelocs=true;
+                            dtRelsz=dyn->d_un.d_val;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                break;
+            }
+            default:
+                //Ignoring other segments
+                break;
+        }
+    }
+    if(hasRelocs)
+    {
+        const Elf32_Rel *rel=reinterpret_cast<const Elf32_Rel*>(base+dtRel);
+        const int relSize=dtRelsz/sizeof(Elf32_Rel);
+        for(int i=0;i<relSize;i++,rel++)
+        {
+            switch(ELF32_R_TYPE(rel->r_info))
+            {
+                case R_ARM_ABS32:
+                case R_ARM_RELATIVE:
+                {
+                    unsigned int offset=(rel->r_offset-DATA_START)/4;
+                    image[offset]+=reinterpret_cast<unsigned int>(image);
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+    }
 }
 
 ProcessImage::~ProcessImage()

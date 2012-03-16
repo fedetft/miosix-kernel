@@ -194,6 +194,9 @@ private:
     friend void ISR_yield();
 };
 
+void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
+        void *argv, unsigned int gotBase);
+
 #endif //WITH_PROCESSES
 
 /**

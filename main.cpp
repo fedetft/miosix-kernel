@@ -2,8 +2,8 @@
 #include <cstdio>
 #include <cassert>
 #include "miosix.h"
-#include "elf_types.h"
-#include "prog1.h"
+#include "elf_program.h"
+#include "prog2.h"
 
 using namespace std;
 using namespace miosix;
@@ -68,34 +68,6 @@ void ledThread(void *)
     }
 }
 
-void loadPhdr(const Elf32_Ehdr *elf)
-{
-    assert(elf->e_phentsize==sizeof(Elf32_Phdr));
-    unsigned int base=reinterpret_cast<unsigned int>(elf);
-    const Elf32_Phdr *hdr=reinterpret_cast<const Elf32_Phdr*>(base+elf->e_phoff);
-    for(int i=0;i<elf->e_phnum;i++,hdr++)
-    {
-        switch(hdr->p_type)
-        {
-            case PT_DYNAMIC:
-                printf("Entry %d is dynamic\n",i);
-                break;
-            case PT_LOAD:
-                printf("Entry %d is load\n",i);
-                break;
-            default:
-                printf("Unexpected\n");
-        }
-        printf("Offset in file=%d\n",hdr->p_offset);
-        printf("Virtual address=%d\n",hdr->p_vaddr);
-        printf("Physical address=%d\n",hdr->p_paddr);
-        printf("Size in file=%d\n",hdr->p_filesz);
-        printf("Size in memory=%d\n",hdr->p_memsz);
-        printf("Flags=%d\n",hdr->p_flags);
-        printf("Align=%d\n",hdr->p_align);
-    }
-}
-
 int main()
 {
     Thread::create(ledThread,STACK_MIN);
@@ -103,15 +75,15 @@ int main()
     
     getchar();
     
-    const Elf32_Ehdr *elf=reinterpret_cast<const Elf32_Ehdr*>(main_elf);
-    loadPhdr(elf);
-    unsigned int base=reinterpret_cast<unsigned int>(main_elf);
-    base+=elf->e_entry;
-    void (*elfentry)(void*)=reinterpret_cast<void (*)(void*)>(base);
-    iprintf("elf base address = %p\n",main_elf);
-    iprintf("elf entry is = %p\n",elf->e_entry);
-    iprintf("elf entry (absolute) is = %p\n",elfentry);
-            
-    Thread::create(elfentry,2048);
+    ElfProgram prog(reinterpret_cast<const unsigned int*>(main_elf),main_elf_len);
+    ProcessImage pi;
+    pi.load(prog);
+
+    void *(*entry)(void*)=reinterpret_cast<void *(*)(void*)>(prog.getEntryPoint());
+    iprintf("elf base address = 0x%x\n",prog.getElfBase());
+    iprintf("elf entry (rebased) = 0x%x\n",prog.getEntryPoint());
+    iprintf("base pointer = %p\n",pi.getProcessBasePointer());
+    
+    Thread::createWithGotBase(entry,2048,1,0,0,pi.getProcessBasePointer());
     for(;;) Thread::sleep(1000);
 }

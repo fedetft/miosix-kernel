@@ -21,4 +21,6 @@ int main()
         <<"base address = "<<elfFileData<<endl
         <<"entry (file relative) = "<<program.getElfHeader()->e_entry<<endl
         <<"entry (relocated) = "<<program.getEntryPoint()<<endl;
+    ProcessImage pi;
+    pi.load(program);
 }

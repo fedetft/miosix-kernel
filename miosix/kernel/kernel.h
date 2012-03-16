@@ -466,6 +466,11 @@ public:
     static Thread *create(void (*startfunc)(void *), unsigned int stacksize,
                             Priority priority=Priority(), void *argv=NULL,
                             unsigned short options=DEFAULT);
+    
+    static Thread *createWithGotBase(void *(*startfunc)(void *),
+                            unsigned int stacksize,
+                            Priority priority, void *argv,
+                            unsigned short options,unsigned int *gotBase);
 
     /**
      * When called, suggests the kernel to pause the current thread, and run
@@ -924,6 +929,9 @@ private:
     //Needs threadLauncher
     friend void miosix_private::initCtxsave(unsigned int *ctxsave,
             void *(*pc)(void *), unsigned int *sp, void *argv);
+    //Needs threadLauncher
+    friend void miosix_private::initCtxsave(unsigned int *ctxsave,
+            void *(*pc)(void *), unsigned int *sp, void *argv,unsigned int gotBase);
     //Needs access to priority, savedPriority, mutexLocked and flags.
     friend class Mutex;
     //Needs access to flags

@@ -14,7 +14,7 @@ SUBDIRS := miosix
 ## List here your source files (both .s, .c and .cpp)
 ##
 SRC :=                                  \
-main.cpp svc.s
+main.cpp elf_program.cpp svc.s
 
 ##
 ## List here additional static libraries with relative path

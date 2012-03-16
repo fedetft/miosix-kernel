@@ -366,6 +366,75 @@ Thread *Thread::create(void (*startfunc)(void *), unsigned int stacksize,
             stacksize,priority,argv,options);
 }
 
+Thread *Thread::createWithGotBase(void *(*startfunc)(void *),
+                            unsigned int stacksize,
+                            Priority priority, void *argv,
+                            unsigned short options,unsigned int *gotBase)
+{
+        //Check to see if input parameters are valid
+    if(priority.validate()==false || stacksize<STACK_MIN)
+    {
+        errorHandler(INVALID_PARAMETERS);
+        return NULL;
+    }
+    //If stacksize is not divisible by 4, round it to a number divisible by 4
+    stacksize &= ~0x3;
+    
+    //Allocate memory for the thread, return if fail
+    unsigned int *base;
+    Thread *thread;
+    #ifdef __NO_EXCEPTIONS
+    base=new int[(stacksize+WATERMARK_LEN+CTXSAVE_ON_STACK)/4];
+    thread=new Thread(base,stacksize);
+    #else //__NO_EXCEPTIONS
+    try {
+        base=new unsigned int[(stacksize+WATERMARK_LEN+CTXSAVE_ON_STACK)/4];
+    } catch(std::bad_alloc&)
+    {
+        errorHandler(OUT_OF_MEMORY);
+        return NULL;//Error
+    }
+    try {
+        thread=new Thread(base,stacksize);
+    } catch(std::bad_alloc&)
+    {
+        delete[] base;
+        errorHandler(OUT_OF_MEMORY);
+        return NULL;//Error
+    }
+    #endif //__NO_EXCEPTIONS
+
+    //Fill watermark and stack
+    memset(base, WATERMARK_FILL, WATERMARK_LEN);
+    base+=WATERMARK_LEN/sizeof(unsigned int);
+    memset(base, STACK_FILL, stacksize);
+
+    //On some architectures some registers are saved on the stack, therefore
+    //initCtxsave *must* be called after filling the stack.
+    unsigned int *topOfStack=
+        thread->watermark+(stacksize+WATERMARK_LEN+CTXSAVE_ON_STACK)/4;
+    miosix_private::initCtxsave(thread->ctxsave,startfunc,topOfStack,argv,
+            (unsigned int)gotBase);
+
+    if((options & JOINABLE)==0) thread->flags.IRQsetDetached();
+    
+    //Add thread to thread list
+    {
+        //Handling the list of threads, critical section is required
+        PauseKernelLock lock;
+        if(Scheduler::PKaddThread(thread,priority)==false)
+        {
+            //Reached limit on number of threads
+            delete thread;
+            return NULL;
+        }
+    }
+    #ifdef SCHED_TYPE_EDF
+    if(isKernelRunning()) yield(); //The new thread might have a closer deadline
+    #endif //SCHED_TYPE_EDF
+    return thread;
+}
+
 void Thread::yield()
 {
     miosix_private::doYield();

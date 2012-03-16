@@ -1,23 +1,48 @@
-/* 
- * File:   ELF.h
- * Author: lr
- *
- * Created on March 3, 2012, 3:31 PM
- */
+/***************************************************************************
+ *   Copyright (C) 2012 by Luigi Rucco and Terraneo Federico               *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   As a special exception, if other files instantiate templates or use   *
+ *   macros or inline functions from this file, or you compile this file   *
+ *   and link it with other works to produce a work based on this file,    *
+ *   this file does not by itself cause the resulting work to be covered   *
+ *   by the GNU General Public License. However the source code for this   *
+ *   file must still be made available in accordance with the GNU General  *
+ *   Public License. This exception does not invalidate any other reasons  *
+ *   why a work based on this file might be covered by the GNU General     *
+ *   Public License.                                                       *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
+ ***************************************************************************/
 
 #include <inttypes.h>
 
 #ifndef ELF_TYPES_H
 #define	ELF_TYPES_H
 
+// elf-specific types
 typedef uint32_t Elf32_Word;
 typedef int32_t  Elf32_Sword;
 typedef uint16_t Elf32_Half;
 typedef uint32_t Elf32_Off;
 typedef uint32_t Elf32_Addr;
 
+// Size of e_ident in the elf header
 static const int EI_NIDENT=16;
 
+/*
+ * Elf header
+ */
 struct Elf32_Ehdr
 {
     unsigned char e_ident[EI_NIDENT]; // Ident bytes
@@ -53,6 +78,9 @@ static const int EM_ARM  = 0x28;
 static const int EF_ARM_EABI_MASK = 0x05000000;
 static const int EF_HAS_ENTRY_POINT = 2;
 
+/*
+ * Elf program header
+ */
 struct Elf32_Phdr
 {
     Elf32_Word p_type;   // Program header type, any of the PH_* constants
@@ -77,12 +105,15 @@ static const int PF_X = 0x1; // Execute
 static const int PF_W = 0x2; // Write
 static const int PF_R = 0x4; // Read
 
+/*
+ * Entries of the DYNAMIC segment
+ */
 struct Elf32_Dyn
 {
-    Elf32_Sword d_tag;
+    Elf32_Sword d_tag;    // Type of entry
     union {
-        Elf32_Word d_val;
-        Elf32_Addr d_ptr;
+        Elf32_Word d_val; // Value of entry, if number
+        Elf32_Addr d_ptr; // Value of entry, if offset into the file
     } d_un;
 } __attribute__((packed));
 
@@ -113,6 +144,9 @@ static const int DT_TEXTREL  = 22;
 static const int DT_JMPREL   = 23;
 static const int DT_BINDNOW  = 24;
 
+/*
+ * Relocation entries
+ */
 struct Elf32_Rel
 {
     Elf32_Addr r_offset;
