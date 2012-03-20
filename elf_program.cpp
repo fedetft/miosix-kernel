@@ -36,6 +36,10 @@ using namespace std;
 static const int MAX_PROCESS_IMAGE_SIZE=20*1024;
 static const int MIN_PROCESS_STACK_SIZE=2*1024;
 
+///\internal Enable/disable debugging
+#define DBG iprintf
+//#define DBG(x,...) ;
+
 ///By convention, in an elf file for Miosix, the data segment starts @ this addr
 static const unsigned int DATA_START=0x10000000;
 
@@ -78,7 +82,7 @@ bool ElfProgram::validateHeader(unsigned int size)
     bool codeSegmentPresent=false;
     bool dataSegmentPresent=false;
     bool dynamicSegmentPresent=false;
-    int dataSegmentSize;
+    int dataSegmentSize=0;
     const Elf32_Phdr *phdr=getProgramHeaderTable();
     for(int i=0;i<getNumOfProgramHeaderEntries();i++,phdr++)
     {
@@ -109,7 +113,8 @@ bool ElfProgram::validateHeader(unsigned int size)
                     if(dataSegmentPresent) return false; //Two data segments?
                     dataSegmentPresent=true;
                     if(phdr->p_memsz<phdr->p_filesz) return false;
-                    int maxSize=MAX_PROCESS_IMAGE_SIZE-MIN_PROCESS_STACK_SIZE;
+                    unsigned int maxSize=MAX_PROCESS_IMAGE_SIZE-
+                        MIN_PROCESS_STACK_SIZE;
                     if(phdr->p_memsz>=maxSize)
                         throw runtime_error("Data segment too big");
                     dataSegmentSize=phdr->p_memsz;
@@ -139,8 +144,8 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
     const Elf32_Dyn *dyn=
         reinterpret_cast<const Elf32_Dyn*>(getElfBase()+dynamic->p_offset);
     const int dynSize=dynamic->p_memsz/sizeof(Elf32_Dyn);
-    Elf32_Addr dtRel;
-    Elf32_Word dtRelsz;
+    Elf32_Addr dtRel=0;
+    Elf32_Word dtRelsz=0;
     unsigned int hasRelocs=0;
     for(int i=0;i<dynSize;i++,dyn++)
     {
@@ -209,8 +214,8 @@ void ProcessImage::load(ElfProgram& program)
     image=new unsigned int[MAX_PROCESS_IMAGE_SIZE/4];
     const unsigned int base=program.getElfBase();
     const Elf32_Phdr *phdr=program.getProgramHeaderTable();
-    Elf32_Addr dtRel;
-    Elf32_Word dtRelsz;
+    Elf32_Addr dtRel=0;
+    Elf32_Word dtRelsz=0;
     bool hasRelocs=false;
     for(int i=0;i<program.getNumOfProgramHeaderEntries();i++,phdr++)
     {
@@ -259,21 +264,28 @@ void ProcessImage::load(ElfProgram& program)
     {
         const Elf32_Rel *rel=reinterpret_cast<const Elf32_Rel*>(base+dtRel);
         const int relSize=dtRelsz/sizeof(Elf32_Rel);
+        const unsigned int base=reinterpret_cast<unsigned int>(image);
+        DBG("Relocations -- start (process RAM image @ 0x%x)\n",base);
         for(int i=0;i<relSize;i++,rel++)
         {
+            unsigned int offset=(rel->r_offset-DATA_START)/4;
             switch(ELF32_R_TYPE(rel->r_info))
             {
                 case R_ARM_ABS32:
-                case R_ARM_RELATIVE:
-                {
-                    unsigned int offset=(rel->r_offset-DATA_START)/4;
-                    image[offset]+=reinterpret_cast<unsigned int>(image);
+                    DBG("R_ARM_ABS32 offset 0x%x from 0x%x to 0x%x\n",
+                        offset*4,image[offset],image[offset]+base);
+                    image[offset]+=base;
                     break;
-                }
+                case R_ARM_RELATIVE:
+                    DBG("R_ARM_RELATIVE offset 0x%x from 0x%x to 0x%x\n",
+                        offset*4,image[offset],image[offset]+base-DATA_START);
+                    image[offset]+=base-DATA_START;
+                    break;
                 default:
                     break;
             }
         }
+        DBG("Relocations -- end\n");
     }
 }
 

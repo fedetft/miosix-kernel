@@ -62,21 +62,21 @@ struct Elf32_Ehdr
 } __attribute__((packed));
 
 // Values for e_type
-static const int ET_NONE = 0; // Unknown type
-static const int ET_REL  = 1; // Relocatable
-static const int ET_EXEC = 2; // Executable
-static const int ET_DYN  = 3; // Shared object
-static const int ET_CORE = 4; // Core file
+static const Elf32_Half ET_NONE = 0; // Unknown type
+static const Elf32_Half ET_REL  = 1; // Relocatable
+static const Elf32_Half ET_EXEC = 2; // Executable
+static const Elf32_Half ET_DYN  = 3; // Shared object
+static const Elf32_Half ET_CORE = 4; // Core file
 
 // Values for e_version
-static const int EV_CURRENT = 1;
+static const Elf32_Word EV_CURRENT = 1;
 
 // Values for e_machine
-static const int EM_ARM  = 0x28;
+static const Elf32_Half EM_ARM  = 0x28;
 
 // Values for e_flags
-static const int EF_ARM_EABI_MASK = 0x05000000;
-static const int EF_HAS_ENTRY_POINT = 2;
+static const Elf32_Word EF_ARM_EABI_MASK = 0x05000000;
+static const Elf32_Word EF_HAS_ENTRY_POINT = 2;
 
 /*
  * Elf program header
@@ -94,16 +94,16 @@ struct Elf32_Phdr
 } __attribute__((packed));
 
 // Values for p_type
-static const int PT_NULL    = 0; // Unused array entry
-static const int PT_LOAD    = 1; // Loadable segment
-static const int PT_DYNAMIC = 2; // Segment is the dynamic section with relocs
-static const int PT_INTERP  = 3; // Shared library interpreter
-static const int PT_NOTE    = 4; // Auxiliary information
+static const Elf32_Word PT_NULL    = 0; // Unused array entry
+static const Elf32_Word PT_LOAD    = 1; // Loadable segment
+static const Elf32_Word PT_DYNAMIC = 2; // Segment is the dynamic section
+static const Elf32_Word PT_INTERP  = 3; // Shared library interpreter
+static const Elf32_Word PT_NOTE    = 4; // Auxiliary information
 
 // Values for p_flags
-static const int PF_X = 0x1; // Execute
-static const int PF_W = 0x2; // Write
-static const int PF_R = 0x4; // Read
+static const Elf32_Word PF_X = 0x1; // Execute
+static const Elf32_Word PF_W = 0x2; // Write
+static const Elf32_Word PF_R = 0x4; // Read
 
 /*
  * Entries of the DYNAMIC segment
@@ -159,8 +159,8 @@ struct Elf32_Rel
 
 
 // Possible values for ELF32_R_TYPE(r_info)
-static const int R_ARM_NONE     = 0;
-static const int R_ARM_ABS32    = 2;
-static const int R_ARM_RELATIVE = 23;
+static const unsigned char R_ARM_NONE     = 0;
+static const unsigned char R_ARM_ABS32    = 2;
+static const unsigned char R_ARM_RELATIVE = 23;
 
 #endif //ELF_TYPES_H

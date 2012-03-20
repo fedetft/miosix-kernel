@@ -3,12 +3,10 @@
 #include <cassert>
 #include "miosix.h"
 #include "elf_program.h"
-#include "prog2.h"
+#include "app_template/prog3.h"
 
 using namespace std;
 using namespace miosix;
-
-extern "C" void syscallSupercazzola(int a, int b, int c);
 
 Thread *svcHandler=0;
 Thread *blocked=0;
@@ -40,13 +38,13 @@ void svcHandlerThread(void *)
                     iprintf("Exit %d\n",sp.getFirstParameter());
                     break;
                 case 2:
-                    iprintf("Write called %d %x %d\n",
-                            sp.getFirstParameter(),
-                            sp.getSecondParameter(),
-                            sp.getThirdParameter());
-                    write(sp.getFirstParameter(),
+//                    iprintf("Write called %d %x %d\n",
+//                            sp.getFirstParameter(),
+//                            sp.getSecondParameter(),
+//                            sp.getThirdParameter());
+                    sp.setReturnValue(write(sp.getFirstParameter(),
                           (const char*)sp.getSecondParameter(),
-                          sp.getThirdParameter());
+                          sp.getThirdParameter()));
                     blocked->wakeup();
                     break;
             }
@@ -78,12 +76,8 @@ int main()
     ElfProgram prog(reinterpret_cast<const unsigned int*>(main_elf),main_elf_len);
     ProcessImage pi;
     pi.load(prog);
-
     void *(*entry)(void*)=reinterpret_cast<void *(*)(void*)>(prog.getEntryPoint());
-    iprintf("elf base address = 0x%x\n",prog.getElfBase());
-    iprintf("elf entry (rebased) = 0x%x\n",prog.getEntryPoint());
-    iprintf("base pointer = %p\n",pi.getProcessBasePointer());
-    
     Thread::createWithGotBase(entry,2048,1,0,0,pi.getProcessBasePointer());
+    
     for(;;) Thread::sleep(1000);
 }

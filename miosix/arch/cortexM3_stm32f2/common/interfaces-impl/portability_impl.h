@@ -182,6 +182,14 @@ public:
     unsigned int getThirdParameter() const { return registers[2]; }
     
     /**
+     * Set the value that will be returned by the syscall. Invalidates
+     * parameters so must be called only after the syscall parameteres have
+     * been read.
+     * \param ret value that will be returned by the syscall.
+     */
+    void setReturnValue(unsigned int ret) { registers[0]=ret; }
+    
+    /**
      * Invalidate the object. Meant to be called after the syscall has been
      * serviced
      */

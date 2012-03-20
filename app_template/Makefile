@@ -27,6 +27,7 @@ all: $(OBJ) crt0.o
 	$(CXX) $(LFLAGS) -o main.elf $(OBJ) crt0.o $(LINK_LIBS)
 	$(SZ)  main.elf
 	@perl finalstage.pl main.elf --strip-sectheader
+	@xxd -i main.elf | sed 's/unsigned char/const unsigned char __attribute__((aligned(8)))/' > prog3.h
 
 clean:
 	-rm $(OBJ) crt0.o main.elf main.map
