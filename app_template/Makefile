@@ -15,10 +15,10 @@ CXX := arm-miosix-eabi-g++
 SZ  := arm-miosix-eabi-size
 
 AFLAGS   := -mcpu=cortex-m3 -mthumb
-CFLAGS   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd -fpic -msingle-pic-base \
+CFLAGS   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd -fpie -msingle-pic-base \
             -ffunction-sections -O2 -Wall -c
 CXXFLAGS := $(CFLAGS)
-LFLAGS   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd -fpic -msingle-pic-base \
+LFLAGS   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd -fpie -msingle-pic-base \
             -Wl,--gc-sections,-Map,main.map,-T./miosix.ld,-n,-pie -O2 -nostdlib
 
 LINK_LIBS := -Wl,--start-group -lstdc++ -lc -lm -lgcc -Wl,--end-group
@@ -26,11 +26,12 @@ LINK_LIBS := -Wl,--start-group -lstdc++ -lc -lm -lgcc -Wl,--end-group
 all: $(OBJ) crt0.o
 	$(CXX) $(LFLAGS) -o main.elf $(OBJ) crt0.o $(LINK_LIBS)
 	$(SZ)  main.elf
+	@arm-miosix-eabi-objdump -Dslx main.elf > main.txt
 	@perl finalstage.pl main.elf --strip-sectheader
 	@xxd -i main.elf | sed 's/unsigned char/const unsigned char __attribute__((aligned(8)))/' > prog3.h
 
 clean:
-	-rm $(OBJ) crt0.o main.elf main.map
+	-rm $(OBJ) crt0.o main.elf main.map main.txt
 
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@

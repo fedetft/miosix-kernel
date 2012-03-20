@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <cassert>
 #include "miosix.h"
-#include "elf_program.h"
+#include "kernel/elf_program.h"
 #include "app_template/prog3.h"
 
 using namespace std;

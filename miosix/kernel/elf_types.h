@@ -25,10 +25,15 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include <inttypes.h>
-
 #ifndef ELF_TYPES_H
 #define	ELF_TYPES_H
+
+#include <inttypes.h>
+#include "config/miosix_settings.h"
+
+#ifdef WITH_PROCESSES
+
+namespace miosix {
 
 // elf-specific types
 typedef uint32_t Elf32_Word;
@@ -162,5 +167,9 @@ struct Elf32_Rel
 static const unsigned char R_ARM_NONE     = 0;
 static const unsigned char R_ARM_ABS32    = 2;
 static const unsigned char R_ARM_RELATIVE = 23;
+
+} //namespace miosix
+
+#endif //WITH_PROCESSES
 
 #endif //ELF_TYPES_H

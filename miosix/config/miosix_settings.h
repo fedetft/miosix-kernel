@@ -69,6 +69,14 @@ namespace miosix {
 /// isolation of processes
 #define WITH_PROCESSES
 
+/// Maximum size of the RAM image of a process. If a program requires more
+/// the kernel will not run it
+const int MAX_PROCESS_IMAGE_SIZE=20*1024;
+
+/// Minimum size of the stack for a process. If a program specifies a lower
+/// size the kernel will not run it
+const int MIN_PROCESS_STACK_SIZE=2*1024;
+
 //
 // Filesystem options
 //

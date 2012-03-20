@@ -32,11 +32,11 @@
 
 using namespace std;
 
-//FIXME: move in miosix_config.h
-static const int MAX_PROCESS_IMAGE_SIZE=20*1024;
-static const int MIN_PROCESS_STACK_SIZE=2*1024;
+#ifdef WITH_PROCESSES
 
-///\internal Enable/disable debugging
+namespace miosix {
+
+///\internal Enable/disable debugging of program loading
 #define DBG iprintf
 //#define DBG(x,...) ;
 
@@ -294,3 +294,6 @@ ProcessImage::~ProcessImage()
     if(image) delete[] image;
 }
 
+} //namespace miosix
+
+#endif //WITH_PROCESSES

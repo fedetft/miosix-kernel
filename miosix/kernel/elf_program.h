@@ -25,11 +25,16 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include <utility>
-#include "elf_types.h"
-
 #ifndef ELF_PROGRAM_H
 #define	ELF_PROGRAM_H
+
+#include <utility>
+#include "elf_types.h"
+#include "config/miosix_settings.h"
+
+#ifdef WITH_PROCESSES
+
+namespace miosix {
 
 /**
  * This class represents an elf file.
@@ -156,5 +161,9 @@ private:
     unsigned int *image; //Pointer to the process image in RAM
     unsigned int size;   //Size of the process image
 };
+
+} //namespace miosix
+
+#endif //WITH_PROCESSES
 
 #endif //ELF_PROGRAM_H
