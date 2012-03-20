@@ -119,14 +119,12 @@ void ISR_yield()
     #ifdef WITH_PROCESSES
     //If processes are enabled, check the content of r3. If zero then it
     //it is a simple yield, otherwise pause the thread and wake the svcHandler
-    unsigned int threadSp=miosix::cur->ctxsave[0];
+    unsigned int threadSp=ctxsave[0];
     unsigned int *processStack=reinterpret_cast<unsigned int*>(threadSp);
     if(processStack[3]!=0)
     {
         blocked=const_cast<miosix::Thread*>(miosix::cur);
         blocked->IRQwait();
-        blocked->syscallParameters.registers=processStack;
-        blocked->syscallParameters.valid=true;
         if(svcHandler==0) miosix::errorHandler(miosix::UNEXPECTED);
         svcHandler->IRQwakeup();
     }

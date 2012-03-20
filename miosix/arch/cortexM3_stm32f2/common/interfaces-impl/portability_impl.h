@@ -136,8 +136,6 @@ inline bool checkAreInterruptsEnabled()
 
 #ifdef WITH_PROCESSES
 
-void ISR_yield(); //FIXME: make private again
-
 /**
  * This class allows to access the parameters that a process passed to
  * the operating system as part of a system call
@@ -148,7 +146,9 @@ public:
     /**
      * Default constructor, generates an invalid syscall
      */
-    SyscallParameters() : valid(false) {}
+    SyscallParameters(unsigned int *context) :
+            registers(reinterpret_cast<unsigned int*>(context[0])), valid(true)
+            {}
     
     /**
      * \return true if this object represent an actual pending syscall,
@@ -198,8 +198,6 @@ public:
 private:
     unsigned int *registers;
     bool valid;
-    
-    friend void ISR_yield();
 };
 
 void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,

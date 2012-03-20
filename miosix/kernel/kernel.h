@@ -699,9 +699,9 @@ public:
     /**
      * \return the syscall parameters
      */
-    miosix_private::SyscallParameters& getSyscallParameters()
+    miosix_private::SyscallParameters getSyscallParameters()
     {
-        return syscallParameters;
+        return miosix_private::SyscallParameters(ctxsave);
     }
     #endif //WITH_PROCESSES
 	
@@ -910,7 +910,13 @@ private:
     /// Per-thread instance of data to make C++ exception handling thread safe.
     ExceptionHandlingData exData;
     #ifdef WITH_PROCESSES
-    miosix_private::SyscallParameters syscallParameters;
+    ///Id of the process to which this thread belongs. Zero if a kernel thread.
+    ///More threads can have the same pid if they run in the same process
+    int pid;
+    ///Pointer to the set of saved registers for when the thread is running in
+    ///user mode. For kernel threads (i.e, threads whose pid is zero) this
+    ///pointer is null
+    unsigned int *userCtxsave;
     #endif //WITH_PROCESSES
     
     //friend functions
@@ -924,8 +930,6 @@ private:
     friend void *idleThread(void *argv);
     //Needs to create the idle thread
     friend void startKernel();
-    //Needs ctxsave, syscallParameters
-    friend void miosix_private::ISR_yield();
     //Needs threadLauncher
     friend void miosix_private::initCtxsave(unsigned int *ctxsave,
             void *(*pc)(void *), unsigned int *sp, void *argv);
