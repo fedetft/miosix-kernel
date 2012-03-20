@@ -188,7 +188,6 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
             {
                 case R_ARM_NONE:
                     break;
-                case R_ARM_ABS32:
                 case R_ARM_RELATIVE:
                     if(rel->r_offset<DATA_START) return false;
                     if(rel->r_offset>DATA_START+dataSegmentSize-4) return false;
@@ -271,11 +270,6 @@ void ProcessImage::load(ElfProgram& program)
             unsigned int offset=(rel->r_offset-DATA_START)/4;
             switch(ELF32_R_TYPE(rel->r_info))
             {
-                case R_ARM_ABS32:
-                    DBG("R_ARM_ABS32 offset 0x%x from 0x%x to 0x%x\n",
-                        offset*4,image[offset],image[offset]+base);
-                    image[offset]+=base;
-                    break;
                 case R_ARM_RELATIVE:
                     DBG("R_ARM_RELATIVE offset 0x%x from 0x%x to 0x%x\n",
                         offset*4,image[offset],image[offset]+base-DATA_START);
