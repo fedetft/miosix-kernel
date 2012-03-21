@@ -47,6 +47,8 @@ public:
     
 private:
     
+    Process();
+    
     static void *start(void *argv);
     
     static pid_t PKgetNewPid();

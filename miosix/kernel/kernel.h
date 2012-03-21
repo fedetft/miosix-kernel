@@ -867,7 +867,7 @@ private:
      * \param gotBase
      * \return 
      */
-    static Thread *createWithGotBase(void *(*startfunc)(void *),
+    static Thread *PKcreate(void *(*startfunc)(void *),
                         unsigned int stacksize,
                         Priority priority, void *argv,
                         unsigned short options,unsigned int *gotBase,

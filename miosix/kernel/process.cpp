@@ -40,35 +40,35 @@ namespace miosix {
 
 Process *Process::create(const ElfProgram& program)
 {
+    //Loading the process outside the PKlock as relocation take time
     Process *proc=new Process;
-    pid_t pid;
     proc->image.load(program);
     {
         PauseKernelLock dLock;
-        pid=PKgetNewPid();
-        processes[pid]=proc;
-    }
-    
-    Thread *thr=Thread::create(Process::start,
-        SYSTEM_MODE_PROCESS_STACK_SIZE,MAIN_PRIORITY,0,Thread::JOINABLE,pid,
-        program.getEntryPoint(),proc->image.getProcessBasePointer());
-    if(thr==0)
-    {
-        {
-            PauseKernelLock dLock;
-            processes.erase(pid);
+        pid_t pid=PKgetNewPid();
+        try {
+            processes[pid]=proc;
+        } catch(...) {
+            delete proc;
+            throw;
         }
-        throw runtime_error("Thread creation failed");
-    }
-    try {
+        Thread *thr=Thread::PKcreate(Process::start,
+            SYSTEM_MODE_PROCESS_STACK_SIZE,MAIN_PRIORITY,0,Thread::JOINABLE,pid,
+            program.getEntryPoint(),proc->image.getProcessBasePointer());
+        if(thr==0) throw runtime_error("Thread creation failed");
+        //Cannot throw bad_alloc due to the reserve in Process's constructor.
+        //This ensures we will never be in the uncomfortable situation where a
+        //thread has already been created but there's no memory to list it
+        //among the threads of a process
         proc->threads.push_back(thr);
-    } catch(...) {
-        {
-            PauseKernelLock dLock;
-            processes.erase(pid);
-        }
-        throw;
     }
+}
+
+Process::Process()
+{
+    //This is required so that bad_alloc can never be thrown when the first
+    //thread of the process will be stored in this vector
+    threads.reserve(1);
 }
 
 void *Process::start(void *argv)

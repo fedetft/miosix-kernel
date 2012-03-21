@@ -19,7 +19,8 @@ CFLAGS   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd -fpie -msingle-pic-base
             -ffunction-sections -O2 -Wall -c
 CXXFLAGS := $(CFLAGS)
 LFLAGS   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd -fpie -msingle-pic-base \
-            -Wl,--gc-sections,-Map,main.map,-T./miosix.ld,-n,-pie -O2 -nostdlib
+            -Wl,--gc-sections,-Map,main.map,-T./miosix.ld,-n,-pie,--spare-dynamic-tags,3 \
+            -O2 -nostdlib
 
 LINK_LIBS := -Wl,--start-group -lstdc++ -lc -lm -lgcc -Wl,--end-group
 
@@ -27,7 +28,7 @@ all: $(OBJ) crt0.o
 	$(CXX) $(LFLAGS) -o main.elf $(OBJ) crt0.o $(LINK_LIBS)
 	$(SZ)  main.elf
 	@arm-miosix-eabi-objdump -Dslx main.elf > main.txt
-	@perl finalstage.pl main.elf --strip-sectheader
+	@mx-strip main.elf --ramsize=20480 --stacksize=2048 --strip-sectheader
 	@xxd -i main.elf | sed 's/unsigned char/const unsigned char __attribute__((aligned(8)))/' > prog3.h
 
 clean:
