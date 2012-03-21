@@ -150,7 +150,7 @@ void IRQsystemReboot()
 }
 
 void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
-        void *argv)
+        void *argv, unsigned int gotBase)
 {
     unsigned int *stackPtr=sp;
     stackPtr--; //Stack is full descending, so decrement first
@@ -165,7 +165,8 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     *stackPtr=reinterpret_cast<unsigned long >(pc);                   //--> r0
 
     ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
-    //leaving the content of r4-r11 uninitialized
+    ctxsave[6]=gotBase;                                               //--> r9
+    //leaving the content of r4-r8,r10-r11 uninitialized
 }
 
 void IRQportableStartKernel()

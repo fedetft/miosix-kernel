@@ -28,6 +28,11 @@
 #ifndef PROCESS_H
 #define	PROCESS_H
 
+#include <vector>
+#include <map>
+#include <sys/types.h>
+#include "kernel.h"
+#include "elf_program.h"
 #include "config/miosix_settings.h"
 
 #ifdef WITH_PROCESSES
@@ -38,12 +43,28 @@ class Process
 {
 public:
     
+    static Process *create(const ElfProgram& program);
+    
 private:
-
+    
+    static void *start(void *argv);
+    
+    static pid_t PKgetNewPid();
+    
+    Process(const Process&);
+    Process& operator= (const Process&);
+    
+    ProcessImage image; ///<The RAM image of a process
+    std::vector<Thread *> threads; ///<Threads that belong to the process
+    
+    ///Maps the pid to the Process instance
+    static std::map<pid_t,Process *> processes;
+    ///Used to assign a new pid to a process
+    static pid_t pidCounter;
 };
 
 } //namespace miosix
 
-#endif WITH_PROCESSES
+#endif //WITH_PROCESSES
 
 #endif //PROCESS_H

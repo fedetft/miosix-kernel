@@ -5,6 +5,7 @@
       <df name="app_template">
         <in>crt0.s</in>
         <in>main.c</in>
+        <in>prog3.h</in>
       </df>
       <df name="miosix">
         <df name="arch">
@@ -278,11 +279,16 @@
             <in>tick_interrupt.h</in>
           </df>
           <in>buffer_queue.h</in>
+          <in>elf_program.cpp</in>
+          <in>elf_program.h</in>
+          <in>elf_types.h</in>
           <in>error.cpp</in>
           <in>error.h</in>
           <in>kernel.cpp</in>
           <in>kernel.h</in>
           <in>logging.h</in>
+          <in>process.cpp</in>
+          <in>process.h</in>
           <in>pthread.cpp</in>
           <in>pthread_private.h</in>
           <in>stage_2_boot.cpp</in>
@@ -310,13 +316,7 @@
       </df>
       <df name="miosix_np_2">
       </df>
-      <in>elf_program.cpp</in>
-      <in>elf_program.h</in>
-      <in>elf_types.h</in>
       <in>main.cpp</in>
-      <in>prog1.h</in>
-      <in>svc.s</in>
-      <in>test_driver.cpp</in>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

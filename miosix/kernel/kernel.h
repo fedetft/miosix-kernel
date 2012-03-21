@@ -37,6 +37,7 @@
 #include <cstdlib>
 #include <new>
 #include <functional>
+#include <sys/types.h>
 
 // some pthread functions are friends of Thread
 #include <pthread.h>
@@ -393,6 +394,7 @@ struct SleepData;
 class MemoryProfiling;
 class Mutex;
 class ConditionVariable;
+class Process;
 
 /**
  * This class represents a thread. It has methods for creating, deleting and
@@ -466,11 +468,6 @@ public:
     static Thread *create(void (*startfunc)(void *), unsigned int stacksize,
                             Priority priority=Priority(), void *argv=NULL,
                             unsigned short options=DEFAULT);
-    
-    static Thread *createWithGotBase(void *(*startfunc)(void *),
-                            unsigned int stacksize,
-                            Priority priority, void *argv,
-                            unsigned short options,unsigned int *gotBase);
 
     /**
      * When called, suggests the kernel to pause the current thread, and run
@@ -699,10 +696,7 @@ public:
     /**
      * \return the syscall parameters
      */
-    miosix_private::SyscallParameters getSyscallParameters()
-    {
-        return miosix_private::SyscallParameters(ctxsave);
-    }
+    static miosix_private::SyscallParameters getSyscallParameters();
     #endif //WITH_PROCESSES
 	
 private:
@@ -821,6 +815,12 @@ private:
          * \return true if stack is handled separately and must not be deleted 
          */
         bool hasExternStack() const { return flags & EXTERN_STACK; }
+        
+        /**
+         * \return true if the thread is running unprivileged inside a process.
+         * Only threads whose pid is not zero can run in userspace 
+         */
+        bool isInUserspace() const { return flags & USERSPACE; }
 
     private:
         ///\internal Thread is in the wait status. A call to wakeup will change
@@ -850,9 +850,28 @@ private:
         ///\internal Thread stack is handled separately and must not be freed
         ///at thread termination
         static const unsigned int EXTERN_STACK=1<<7;
+        
+        ///\internal Thread is running in userspace
+        static const unsigned int USERSPACE=1<<7;
 
         unsigned short flags;///<\internal flags are stored here
     };
+    
+    /**
+     * 
+     * \param startfunc
+     * \param stacksize
+     * \param priority
+     * \param argv
+     * \param options
+     * \param gotBase
+     * \return 
+     */
+    static Thread *createWithGotBase(void *(*startfunc)(void *),
+                        unsigned int stacksize,
+                        Priority priority, void *argv,
+                        unsigned short options,unsigned int *gotBase,
+                        pid_t pid, unsigned int entry, unsigned int *base);
 
     /**
      * Constructor, initializes thread data.
@@ -912,7 +931,7 @@ private:
     #ifdef WITH_PROCESSES
     ///Id of the process to which this thread belongs. Zero if a kernel thread.
     ///More threads can have the same pid if they run in the same process
-    int pid;
+    pid_t pid;
     ///Pointer to the set of saved registers for when the thread is running in
     ///user mode. For kernel threads (i.e, threads whose pid is zero) this
     ///pointer is null
@@ -932,10 +951,8 @@ private:
     friend void startKernel();
     //Needs threadLauncher
     friend void miosix_private::initCtxsave(unsigned int *ctxsave,
-            void *(*pc)(void *), unsigned int *sp, void *argv);
-    //Needs threadLauncher
-    friend void miosix_private::initCtxsave(unsigned int *ctxsave,
-            void *(*pc)(void *), unsigned int *sp, void *argv,unsigned int gotBase);
+            void *(*pc)(void *), unsigned int *sp, void *argv,
+            unsigned int gotBase);
     //Needs access to priority, savedPriority, mutexLocked and flags.
     friend class Mutex;
     //Needs access to flags
@@ -954,6 +971,8 @@ private:
     friend int ::pthread_cond_broadcast(pthread_cond_t *cond);
     //Needs access to exData
     friend class ExceptionHandlingAccessor;
+    //Needs access to initializeUserspaceContext()
+    friend class Process;
 };
 
 /**

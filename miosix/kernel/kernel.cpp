@@ -675,6 +675,14 @@ const int Thread::getStackSize()
     return cur->stacksize;
 }
 
+miosix_private::SyscallParameters Thread::getSyscallParameters()
+{
+    unsigned int *context=const_cast<unsigned int*>(cur->ctxsave);
+    miosix_private::SyscallParameters result(context);
+    if(cur->pid==0) result.invalidate();
+    return result;
+}
+
 void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
 {
     void *result=0;

@@ -95,9 +95,11 @@ inline void doYield();
  * ctxsave
  * \param argv starting data passed to newly created thread, used to initialize
  * ctxsave
+ * \param gotBase base address of the global offset table, for userspace
+ * processes
  */
 void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
-        void *argv);
+        void *argv, unsigned int gotBase=0);
 
 /**
  * \internal

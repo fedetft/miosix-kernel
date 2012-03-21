@@ -43,7 +43,7 @@
  * context switch. It requires C linkage to be used inside asm statement.
  * Registers are saved in the following order:
  * *ctxsave+32 --> r11
- * *ctxsave+28 --> r10
+ * *ctxsave+28 --> r10        
  * *ctxsave+24 --> r9
  * *ctxsave+20 --> r8
  * *ctxsave+16 --> r7
@@ -182,12 +182,16 @@ public:
     unsigned int getThirdParameter() const { return registers[2]; }
     
     /**
-     * Set the value that will be returned by the syscall. Invalidates
-     * parameters so must be called only after the syscall parameteres have
-     * been read.
+     * Set the value that will be returned by the syscall.
+     * Invalidates parameters so must be called only after the syscall
+     * parameteres have been read.
      * \param ret value that will be returned by the syscall.
      */
-    void setReturnValue(unsigned int ret) { registers[0]=ret; }
+    void setReturnValue(unsigned int ret)
+    {
+        if(valid) registers[0]=ret;
+        valid=false;
+    }
     
     /**
      * Invalidate the object. Meant to be called after the syscall has been
@@ -199,9 +203,6 @@ private:
     unsigned int *registers;
     bool valid;
 };
-
-void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
-        void *argv, unsigned int gotBase);
 
 #endif //WITH_PROCESSES
 

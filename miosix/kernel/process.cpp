@@ -25,12 +25,70 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include <stdexcept>
 #include "process.h"
+
+using namespace std;
 
 #ifdef WITH_PROCESSES
 
 namespace miosix {
+
+//
+// class Process
+//
+
+Process *Process::create(const ElfProgram& program)
+{
+    Process *proc=new Process;
+    pid_t pid;
+    proc->image.load(program);
+    {
+        PauseKernelLock dLock;
+        pid=PKgetNewPid();
+        processes[pid]=proc;
+    }
     
+    Thread *thr=Thread::create(Process::start,
+        SYSTEM_MODE_PROCESS_STACK_SIZE,MAIN_PRIORITY,0,Thread::JOINABLE,pid,
+        program.getEntryPoint(),proc->image.getProcessBasePointer());
+    if(thr==0)
+    {
+        {
+            PauseKernelLock dLock;
+            processes.erase(pid);
+        }
+        throw runtime_error("Thread creation failed");
+    }
+    try {
+        proc->threads.push_back(thr);
+    } catch(...) {
+        {
+            PauseKernelLock dLock;
+            processes.erase(pid);
+        }
+        throw;
+    }
+}
+
+void *Process::start(void *argv)
+{
+    //TODO
+}
+
+pid_t Process::PKgetNewPid()
+{
+    for(;;pidCounter++)
+    {
+        if(pidCounter==0) continue; //Zero is not a valid pid
+        map<pid_t,Process *>::iterator it=processes.find(pidCounter);
+        if(it!=processes.end()) continue; //Pid number already used
+        return pidCounter++;
+    }
+}
+
+map<pid_t,Process *> Process::processes;
+pid_t Process::pidCounter=1;
     
 } //namespace miosix
 

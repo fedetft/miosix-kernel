@@ -29,7 +29,7 @@ void svcHandlerThread(void *)
             }
         }
         
-        miosix_private::SyscallParameters sp=blocked->getSyscallParameters();
+        todo miosix_private::SyscallParameters sp=blocked->getSyscallParameters();
         if(sp.isValid())
         {
             switch(sp.getSyscallId())

@@ -167,7 +167,7 @@ void IRQsystemReboot()
 }
 
 void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
-            void *argv)
+            void *argv, unsigned int gotBase)
 {
     ctxsave[0]=(unsigned int)pc;// First function arg is passed in r0
     ctxsave[1]=(unsigned int)argv;
@@ -178,7 +178,7 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     ctxsave[6]=0;
     ctxsave[7]=0;
     ctxsave[8]=0;
-    ctxsave[9]=0;
+    ctxsave[9]=gotBase;
     ctxsave[10]=0;
     ctxsave[11]=0;
     ctxsave[12]=0;
