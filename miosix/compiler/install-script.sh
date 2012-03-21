@@ -237,6 +237,14 @@ $SUDO make install 2>../log/n.txt			|| quit ":: Error installing gdb"
 
 cd ..
 
+#
+# Part 10: install the postlinker
+#
+cd mx-postlink
+make
+$SUDO make install INSTALL_DIR=$INSTALL_DIR
+cd ..
+
 # Last thing, remove this since its name is not arm-miosix-eabi-
 $SUDO rm $INSTALL_DIR/arm-miosix-eabi/bin/arm-eabi-$GCC
 

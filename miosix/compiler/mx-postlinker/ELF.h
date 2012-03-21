@@ -11,16 +11,6 @@
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
  *   GNU General Public License for more details.                          *
  *                                                                         *
- *   As a special exception, if other files instantiate templates or use   *
- *   macros or inline functions from this file, or you compile this file   *
- *   and link it with other works to produce a work based on this file,    *
- *   this file does not by itself cause the resulting work to be covered   *
- *   by the GNU General Public License. However the source code for this   *
- *   file must still be made available in accordance with the GNU General  *
- *   Public License. This exception does not invalidate any other reasons  *
- *   why a work based on this file might be covered by the GNU General     *
- *   Public License.                                                       *
- *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
@@ -29,7 +19,6 @@
 #define	ELF_TYPES_H
 
 #include <inttypes.h>
-
 
 // elf-specific types
 typedef uint32_t Elf32_Word;
@@ -148,6 +137,7 @@ const int DT_MX_RAMSIZE   = 0x10000000; //Miosix specific, RAM size
 const int DT_MX_STACKSIZE = 0x10000001; //Miosix specific, STACK size
 const int DT_MX_ABI       = 0x736f694d; //Miosix specific, ABI version
 const int DV_MX_ABI_V0    = 0x00007869; //Miosix specific, ABI version 0
+
 /*
  * Relocation entries
  */
@@ -161,25 +151,26 @@ struct Elf32_Rel
 #define ELF32_R_SYM(i) ((i)>>8)
 #define ELF32_R_TYPE(i) ((unsigned char)(i))
 
-
 // Possible values for ELF32_R_TYPE(r_info)
 const unsigned char R_ARM_NONE     = 0;
 const unsigned char R_ARM_ABS32    = 2;
 const unsigned char R_ARM_RELATIVE = 23;
 
-
-struct Elf32_Shdr 
+/*
+ * Elf Section header
+ */
+struct Elf32_Shdr
 {  
-  Elf32_Word sh_name; 		
-  Elf32_Word sh_type; 		
-  Elf32_Word sh_flags; 	        
-  Elf32_Addr sh_addr; 		
-  Elf32_Off  sh_offset; 	        
-  Elf32_Word sh_size; 		
-  Elf32_Word sh_link; 		
-  Elf32_Word sh_info; 		
-  Elf32_Word sh_addralign; 	
-  Elf32_Word sh_entsize; 	
+  Elf32_Word sh_name;
+  Elf32_Word sh_type;
+  Elf32_Word sh_flags;
+  Elf32_Addr sh_addr;
+  Elf32_Off  sh_offset;
+  Elf32_Word sh_size;
+  Elf32_Word sh_link;
+  Elf32_Word sh_info;
+  Elf32_Word sh_addralign;
+  Elf32_Word sh_entsize;
 };
 
 // sh_type 
