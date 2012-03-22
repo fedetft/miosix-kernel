@@ -85,9 +85,6 @@ void TIM3_IRQHandler()
 }
 #endif //SCHED_TYPE_CONTROL_BASED
 
-extern miosix::Thread *svcHandler;
-extern miosix::Thread *blocked;
-
 namespace miosix_private {
 
 /**
@@ -121,18 +118,11 @@ void ISR_yield()
     //it is a simple yield, otherwise pause the thread and wake the svcHandler
     unsigned int threadSp=ctxsave[0];
     unsigned int *processStack=reinterpret_cast<unsigned int*>(threadSp);
-    if(processStack[3]!=0)
-    {
-        blocked=const_cast<miosix::Thread*>(miosix::cur);
-        blocked->IRQwait();
-        if(svcHandler==0) miosix::errorHandler(miosix::UNEXPECTED);
-        svcHandler->IRQwakeup();
-    }
-    #endif //WITH_PROCESSES
-
-    //Note: this still has to be called even when r3!=0, since without this
-    //call the blocked->IRQwait() would not become effective
+    if(processStack[3]!=0) miosix::Thread::IRQswitchToKernelspace();
+    else miosix::Scheduler::IRQfindNextThread();
+    #else //WITH_PROCESSES
     miosix::Scheduler::IRQfindNextThread();
+    #endif //WITH_PROCESSES
 }
 
 #ifdef SCHED_TYPE_CONTROL_BASED
@@ -153,6 +143,8 @@ void ISR_auxTimer()
 
 void IRQstackOverflowCheck()
 {
+    //TODO: stack checking for userspace
+    if(const_cast<miosix::Thread*>(miosix::cur)->flags.isInUserspace()) return;
     const unsigned int watermarkSize=miosix::WATERMARK_LEN/sizeof(unsigned int);
     for(unsigned int i=0;i<watermarkSize;i++)
     {
@@ -170,7 +162,7 @@ void IRQsystemReboot()
 }
 
 void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
-        void *argv, unsigned int gotBase)
+        void *argv)
 {
     unsigned int *stackPtr=sp;
     stackPtr--; //Stack is full descending, so decrement first
@@ -185,9 +177,31 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     *stackPtr=reinterpret_cast<unsigned long >(pc);                   //--> r0
 
     ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
-    ctxsave[6]=gotBase;                                               //--> r9
+    //leaving the content of r4-r11 uninitialized
+}
+
+#ifdef WITH_PROCESSES
+
+void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
+        void *argv, unsigned int *gotBase)
+{
+    unsigned int *stackPtr=sp;
+    stackPtr--; //Stack is full descending, so decrement first
+    *stackPtr=0x01000000; stackPtr--;                                 //--> xPSR
+    *stackPtr=reinterpret_cast<unsigned long>(pc); stackPtr--;        //--> pc
+    *stackPtr=0xffffffff; stackPtr--;                                 //--> lr
+    *stackPtr=0; stackPtr--;                                          //--> r12
+    *stackPtr=0; stackPtr--;                                          //--> r3
+    *stackPtr=0; stackPtr--;                                          //--> r2
+    *stackPtr=0; stackPtr--;                                          //--> r1
+    *stackPtr=reinterpret_cast<unsigned long >(argv);                 //--> r0
+
+    ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
+    ctxsave[6]=reinterpret_cast<unsigned long>(gotBase);              //--> r9                                               //--> r9
     //leaving the content of r4-r8,r10-r11 uninitialized
 }
+
+#endif //WITH_PROCESSES
 
 void IRQportableStartKernel()
 {

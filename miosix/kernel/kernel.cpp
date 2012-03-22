@@ -366,75 +366,6 @@ Thread *Thread::create(void (*startfunc)(void *), unsigned int stacksize,
             stacksize,priority,argv,options);
 }
 
-Thread *Thread::createWithGotBase(void *(*startfunc)(void *),
-                            unsigned int stacksize,
-                            Priority priority, void *argv,
-                            unsigned short options,unsigned int *gotBase)
-{
-        //Check to see if input parameters are valid
-    if(priority.validate()==false || stacksize<STACK_MIN)
-    {
-        errorHandler(INVALID_PARAMETERS);
-        return NULL;
-    }
-    //If stacksize is not divisible by 4, round it to a number divisible by 4
-    stacksize &= ~0x3;
-    
-    //Allocate memory for the thread, return if fail
-    unsigned int *base;
-    Thread *thread;
-    #ifdef __NO_EXCEPTIONS
-    base=new int[(stacksize+WATERMARK_LEN+CTXSAVE_ON_STACK)/4];
-    thread=new Thread(base,stacksize);
-    #else //__NO_EXCEPTIONS
-    try {
-        base=new unsigned int[(stacksize+WATERMARK_LEN+CTXSAVE_ON_STACK)/4];
-    } catch(std::bad_alloc&)
-    {
-        errorHandler(OUT_OF_MEMORY);
-        return NULL;//Error
-    }
-    try {
-        thread=new Thread(base,stacksize);
-    } catch(std::bad_alloc&)
-    {
-        delete[] base;
-        errorHandler(OUT_OF_MEMORY);
-        return NULL;//Error
-    }
-    #endif //__NO_EXCEPTIONS
-
-    //Fill watermark and stack
-    memset(base, WATERMARK_FILL, WATERMARK_LEN);
-    base+=WATERMARK_LEN/sizeof(unsigned int);
-    memset(base, STACK_FILL, stacksize);
-
-    //On some architectures some registers are saved on the stack, therefore
-    //initCtxsave *must* be called after filling the stack.
-    unsigned int *topOfStack=
-        thread->watermark+(stacksize+WATERMARK_LEN+CTXSAVE_ON_STACK)/4;
-    miosix_private::initCtxsave(thread->ctxsave,startfunc,topOfStack,argv,
-            (unsigned int)gotBase);
-
-    if((options & JOINABLE)==0) thread->flags.IRQsetDetached();
-    
-    //Add thread to thread list
-    {
-        //Handling the list of threads, critical section is required
-        PauseKernelLock lock;
-        if(Scheduler::PKaddThread(thread,priority)==false)
-        {
-            //Reached limit on number of threads
-            delete thread;
-            return NULL;
-        }
-    }
-    #ifdef SCHED_TYPE_EDF
-    if(isKernelRunning()) yield(); //The new thread might have a closer deadline
-    #endif //SCHED_TYPE_EDF
-    return thread;
-}
-
 void Thread::yield()
 {
     miosix_private::doYield();
@@ -675,13 +606,15 @@ const int Thread::getStackSize()
     return cur->stacksize;
 }
 
-miosix_private::SyscallParameters Thread::getSyscallParameters()
+#ifdef WITH_PROCESSES
+
+void Thread::IRQswitchToKernelspace()
 {
-    unsigned int *context=const_cast<unsigned int*>(cur->ctxsave);
-    miosix_private::SyscallParameters result(context);
-    if(cur->pid==0) result.invalidate();
-    return result;
+    const_cast<Thread*>(cur)->flags.IRQsetUserspace(false);
+    ::ctxsave=cur->ctxsave;
 }
+
+#endif //WITH_PROCESSES
 
 void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
 {
@@ -730,9 +663,95 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
     errorHandler(UNEXPECTED);
 }
 
+#ifdef WITH_PROCESSES
+
+Thread *Thread::PKcreateUserspace(void *(*startfunc)(void *), void *argv,
+                    unsigned short options, pid_t pid)
+{
+    //Allocate memory for the thread, return if fail
+    unsigned int *base;
+    Thread *thread;
+    const int stackAlloc=(SYSTEM_MODE_PROCESS_STACK_SIZE+WATERMARK_LEN+
+        CTXSAVE_ON_STACK)/4;
+    //TODO: move to RAII
+    try {
+        base=new unsigned int[stackAlloc];
+    } catch(std::bad_alloc&)
+    {
+        errorHandler(OUT_OF_MEMORY);
+        return NULL;//Error
+    }
+    try {
+        thread=new Thread(base,SYSTEM_MODE_PROCESS_STACK_SIZE);
+    } catch(std::bad_alloc&)
+    {
+        delete[] base;
+        errorHandler(OUT_OF_MEMORY);
+        return NULL;//Error
+    }
+    try {
+        thread->userCtxsave=new unsigned int[CTXSAVE_SIZE];
+    } catch(std::bad_alloc&)
+    {
+        delete[] thread;
+        delete[] base;
+        errorHandler(OUT_OF_MEMORY);
+        return NULL;//Error
+    }
+
+    //Fill watermark and stack
+    memset(base, WATERMARK_FILL, WATERMARK_LEN);
+    base+=WATERMARK_LEN/sizeof(unsigned int);
+    memset(base, STACK_FILL, SYSTEM_MODE_PROCESS_STACK_SIZE);
+
+    //On some architectures some registers are saved on the stack, therefore
+    //initCtxsave *must* be called after filling the stack.
+    unsigned int *topOfStack=thread->watermark+stackAlloc;
+    miosix_private::initCtxsave(thread->ctxsave,startfunc,topOfStack,argv);
+    
+    thread->pid=pid;
+    if((options & JOINABLE)==0) thread->flags.IRQsetDetached();
+    
+    //Add thread to thread list
+    if(Scheduler::PKaddThread(thread,MAIN_PRIORITY)==false)
+    {
+        //Reached limit on number of threads
+        delete thread;
+        return NULL;
+    }
+    
+    return thread;
+}
+
+void Thread::setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
+    unsigned int *stackTop)
+{
+    void *(*startfunc)(void*)=reinterpret_cast<void *(*)(void*)>(entry);
+    miosix_private::initCtxsave(cur->userCtxsave,startfunc,stackTop,0,gotBase);
+}
+
+miosix_private::SyscallParameters Thread::switchToUserspace()
+{
+    {
+        FastInterruptDisableLock dLock;
+        const_cast<Thread*>(cur)->flags.IRQsetUserspace(true);
+    }
+    Thread::yield(); //TODO: use a syscall to perform the continuation
+    if(const_cast<Thread*>(cur)->flags.isInUserspace()==true)
+        errorHandler(UNEXPECTED);
+    miosix_private::SyscallParameters result(cur->userCtxsave);
+    if(cur->pid==0) result.invalidate();
+    return result;
+}
+
+#endif //WITH_PROCESSES
+
 Thread::~Thread()
 {
-    if(flags.hasExternStack()==false) delete[] watermark;
+    delete[] watermark;
+    #ifdef WITH_PROCESSES
+    if(userCtxsave) delete[] userCtxsave;
+    #endif //WITH_PROCESSES
 }
 
 //

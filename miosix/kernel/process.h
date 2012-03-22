@@ -39,23 +39,46 @@
 
 namespace miosix {
 
+/**
+ * Process class, allows to create and handle processes
+ */
 class Process
 {
 public:
-    
+    /**
+     * Create a new process
+     * \param program Program that the process will execute
+     * \return a pointer to the newly created process
+     * \throws std::exception or a subclass in case of errors, including
+     * not emough memory to spawn the process
+     */
     static Process *create(const ElfProgram& program);
     
 private:
-    
-    Process();
-    
-    static void *start(void *argv);
-    
-    static pid_t PKgetNewPid();
-    
     Process(const Process&);
     Process& operator= (const Process&);
     
+    /**
+     * Constructor
+     * \param program program that will be executed by the process
+     */
+    Process(const ElfProgram& program);
+    
+    /**
+     * Contains the process' main loop. 
+     * \param argv ignored parameter
+     * \return null
+     */
+    static void *start(void *argv);
+    
+    /**
+     * \return an unique pid that is not zero and is not already in use in the
+     * system, used to assign a pid to a new process.<br>
+     * Must be called when the kernel is paused to avoid race conditions.
+     */
+    static pid_t PKgetNewPid();
+    
+    ElfProgram program; ///<The program that is running inside the process
     ProcessImage image; ///<The RAM image of a process
     std::vector<Thread *> threads; ///<Threads that belong to the process
     

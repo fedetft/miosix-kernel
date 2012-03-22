@@ -95,11 +95,32 @@ inline void doYield();
  * ctxsave
  * \param argv starting data passed to newly created thread, used to initialize
  * ctxsave
+ */
+void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
+        void *argv);
+
+#ifdef WITH_PROCESSES
+
+/**
+ * \internal
+ * Initializes a ctxsave array when a thread is created.
+ * This version is to initialize the userspace context of processes.
+ * It is used by the kernel, and should not be used by end users.
+ * \param ctxsave a pointer to a field ctxsave inside a Thread class that need
+ * to be filled
+ * \param pc starting program counter of newly created thread, used to
+ * initialize ctxsave
+ * \param sp starting stack pointer of newly created thread, used to initialize
+ * ctxsave
+ * \param argv starting data passed to newly created thread, used to initialize
+ * ctxsave
  * \param gotBase base address of the global offset table, for userspace
  * processes
  */
 void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
-        void *argv, unsigned int gotBase=0);
+        void *argv, unsigned int *gotBase);
+
+#endif //WITH_PROCESSES
 
 /**
  * \internal

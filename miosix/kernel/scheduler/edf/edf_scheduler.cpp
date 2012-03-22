@@ -111,7 +111,13 @@ void EDFScheduler::IRQfindNextThread()
         if(walk->flags.isReady())
         {
             cur=walk;
-            ctxsave=cur->ctxsave;
+            #ifdef WITH_PROCESSES
+            if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
+                ctxsave=temp->ctxsave;
+            else ctxsave=temp->userCtxsave;
+            #else //WITH_PROCESSES
+            ctxsave=temp->ctxsave;
+            #endif //WITH_PROCESSES
             return;
         }
         walk=walk->schedData.next;

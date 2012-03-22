@@ -26,6 +26,8 @@
  ***************************************************************************/
 
 #include <stdexcept>
+#include <memory>
+#include <cstdio>
 #include "process.h"
 
 using namespace std;
@@ -40,54 +42,95 @@ namespace miosix {
 
 Process *Process::create(const ElfProgram& program)
 {
-    //Loading the process outside the PKlock as relocation take time
-    Process *proc=new Process;
-    proc->image.load(program);
+    //Loading the process outside the PKlock as relocation takes time
+    auto_ptr<Process> proc(new Process(program));
     {
         PauseKernelLock dLock;
         pid_t pid=PKgetNewPid();
-        try {
-            processes[pid]=proc;
-        } catch(...) {
-            delete proc;
-            throw;
+        processes[pid]=proc.get();
+        Thread *thr=Thread::PKcreateUserspace(Process::start,0,
+            Thread::JOINABLE,pid);
+        if(thr==0)
+        {
+            processes.erase(pid);
+            throw runtime_error("Thread creation failed");
         }
-        Thread *thr=Thread::PKcreate(Process::start,
-            SYSTEM_MODE_PROCESS_STACK_SIZE,MAIN_PRIORITY,0,Thread::JOINABLE,pid,
-            program.getEntryPoint(),proc->image.getProcessBasePointer());
-        if(thr==0) throw runtime_error("Thread creation failed");
         //Cannot throw bad_alloc due to the reserve in Process's constructor.
         //This ensures we will never be in the uncomfortable situation where a
         //thread has already been created but there's no memory to list it
         //among the threads of a process
         proc->threads.push_back(thr);
     }
+    #ifdef SCHED_TYPE_EDF
+    //The new thread might have a closer deadline
+    if(isKernelRunning()) Thread::yield();
+    #endif //SCHED_TYPE_EDF
+    return proc.release(); //Do not delete the pointer
 }
 
-Process::Process()
+Process::Process(const ElfProgram& program) : program(program)
 {
     //This is required so that bad_alloc can never be thrown when the first
     //thread of the process will be stored in this vector
     threads.reserve(1);
+    //Done here so if not enough memory the new process is not even created
+    image.load(program);
 }
 
 void *Process::start(void *argv)
 {
-    //TODO
+    Thread *thr=Thread::getCurrentThread();
+    map<pid_t,Process*>::iterator it=processes.find(thr->pid);
+    if(it==processes.end()) errorHandler(UNEXPECTED);
+    Process *proc=it->second;
+    Thread::setupUserspaceContext(
+        proc->program.getEntryPoint(),proc->image.getProcessBasePointer(),
+        proc->image.getProcessBasePointer()+proc->image.getProcessImageSize());
+    bool running=true;
+    do {
+        miosix_private::SyscallParameters sp=Thread::switchToUserspace();
+        if(sp.isValid())
+        {
+            switch(sp.getSyscallId())
+            {
+                case 1:
+                    iprintf("Exit %d\n",sp.getFirstParameter());
+                    running=false;
+                    break;
+                case 2:
+                    //FIXME: check that the pointer belongs to the process
+                    sp.setReturnValue(write(sp.getFirstParameter(),
+                        reinterpret_cast<const char*>(sp.getSecondParameter()),
+                        sp.getThirdParameter()));
+                    break;
+                default:
+                    iprintf("Unexpected invalid syscall\n");
+                    running=false;
+                    break;
+            }
+        }
+        if(Thread::testTerminate())
+        {
+            running=false;
+        }
+    } while(running);
+    //TODO: handle process termination
+    return 0;
 }
 
 pid_t Process::PKgetNewPid()
 {
     for(;;pidCounter++)
     {
+        if(pidCounter<0) pidCounter=1;
         if(pidCounter==0) continue; //Zero is not a valid pid
-        map<pid_t,Process *>::iterator it=processes.find(pidCounter);
+        map<pid_t,Process*>::iterator it=processes.find(pidCounter);
         if(it!=processes.end()) continue; //Pid number already used
         return pidCounter++;
     }
 }
 
-map<pid_t,Process *> Process::processes;
+map<pid_t,Process*> Process::processes;
 pid_t Process::pidCounter=1;
     
 } //namespace miosix

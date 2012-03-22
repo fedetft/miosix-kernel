@@ -205,12 +205,13 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
 // class ProcessImage
 //
 
-void ProcessImage::load(ElfProgram& program)
+void ProcessImage::load(const ElfProgram& program)
 {
     if(image) delete[] image;
     
     //TODO: add in elf file a field with the true image size
     image=new unsigned int[MAX_PROCESS_IMAGE_SIZE/4];
+    size=MAX_PROCESS_IMAGE_SIZE;
     const unsigned int base=program.getElfBase();
     const Elf32_Phdr *phdr=program.getProgramHeaderTable();
     Elf32_Addr dtRel=0;

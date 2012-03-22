@@ -200,7 +200,13 @@ void PriorityScheduler::IRQfindNextThread()
             {
                 //Found a READY thread, so run this one
                 cur=temp;
+                #ifdef WITH_PROCESSES
+                if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
+                    ctxsave=temp->ctxsave;
+                else ctxsave=temp->userCtxsave;
+                #else //WITH_PROCESSES
                 ctxsave=temp->ctxsave;
+                #endif //WITH_PROCESSES
                 //Rotate to next thread so that next time the list is walked
                 //a different thread, if available, will be chosen first
                 thread_list[i]=temp;

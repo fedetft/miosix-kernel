@@ -181,7 +181,9 @@ namespace miosix_private {
 
 inline void doYield()
 {
-    asm volatile("swi 0");
+    asm volatile("movs  r3, #0\n\t"
+                 "swi   0"
+                 :::"r3");
 }
 
 inline void doDisableInterrupts()

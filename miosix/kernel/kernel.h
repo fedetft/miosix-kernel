@@ -693,10 +693,14 @@ public:
     static const int getStackSize();
     
     #ifdef WITH_PROCESSES
+
     /**
-     * \return the syscall parameters
+     * TODO: make private!
+     * Can only be called inside an IRQ, its use is to switch a userspace thread
+     * to kernelspace to perform a system call.
      */
-    static miosix_private::SyscallParameters getSyscallParameters();
+    static void IRQswitchToKernelspace();
+    
     #endif //WITH_PROCESSES
 	
 private:
@@ -710,46 +714,45 @@ private:
         /**
          * Constructor, sets flags to default.
          */
-        ThreadFlags(bool externStack=false) :
-                flags(externStack ? EXTERN_STACK : 0) {}
+        ThreadFlags() : flags(0) {}
 
         /**
          * Set the wait flag of the thread.
-         * Can only be called with interrupts enabled or within an interrupt.
+         * Can only be called with interrupts disabled or within an interrupt.
          * \param waiting if true the flag will be set, otherwise cleared
          */
         void IRQsetWait(bool waiting);
 
         /**
          * Set the wait_join flag of the thread.
-         * Can only be called with interrupts enabled or within an interrupt.
+         * Can only be called with interrupts disabled or within an interrupt.
          * \param waiting if true the flag will be set, otherwise cleared
          */
         void IRQsetJoinWait(bool waiting);
 
         /**
          * Set wait_cond flag of the thread.
-         * Can only be called with interrupts enabled or within an interrupt.
+         * Can only be called with interrupts disabled or within an interrupt.
          * \param waiting if true the flag will be set, otherwise cleared
          */
         void IRQsetCondWait(bool waiting);
 
         /**
          * Set the sleep flag of the thread.
-         * Can only be called with interrupts enabled or within an interrupt.
+         * Can only be called with interrupts disabled or within an interrupt.
          * \param sleeping if true the flag will be set, otherwise cleared
          */
         void IRQsetSleep(bool sleeping);
 
         /**
          * Set the deleted flag of the thread. This flag can't be cleared.
-         * Can only be called with interrupts enabled or within an interrupt.
+         * Can only be called with interrupts disabled or within an interrupt.
          */
         void IRQsetDeleted();
 
         /**
          * Set the sleep flag of the thread. This flag can't be cleared.
-         * Can only be called with interrupts enabled or within an interrupt.
+         * Can only be called with interrupts disabled or within an interrupt.
          */
         void IRQsetDeleting()
         {
@@ -758,11 +761,21 @@ private:
 
         /**
          * Set the detached flag. This flag can't be cleared.
-         * Can only be called with interrupts enabled or within an interrupt.
+         * Can only be called with interrupts disabled or within an interrupt.
          */
         void IRQsetDetached()
         {
             flags |= DETACHED;
+        }
+        
+        /**
+         * Set the userspace flag of the thread.
+         * Can only be called with interrupts disabled or within an interrupt.
+         * \param sleeping if true the flag will be set, otherwise cleared
+         */
+        void IRQsetUserspace(bool userspace)
+        {
+            if(userspace) flags |= USERSPACE; else flags &= ~USERSPACE;
         }
 
         /**
@@ -812,11 +825,6 @@ private:
         bool isWaitingCond() const { return flags & WAIT_COND; }
         
         /**
-         * \return true if stack is handled separately and must not be deleted 
-         */
-        bool hasExternStack() const { return flags & EXTERN_STACK; }
-        
-        /**
          * \return true if the thread is running unprivileged inside a process.
          * Only threads whose pid is not zero can run in userspace 
          */
@@ -847,31 +855,43 @@ private:
         ///\internal Thread is waiting on a condition variable
         static const unsigned int WAIT_COND=1<<6;
         
-        ///\internal Thread stack is handled separately and must not be freed
-        ///at thread termination
-        static const unsigned int EXTERN_STACK=1<<7;
-        
         ///\internal Thread is running in userspace
         static const unsigned int USERSPACE=1<<7;
 
         unsigned short flags;///<\internal flags are stored here
     };
     
+    #ifdef WITH_PROCESSES
+
     /**
-     * 
-     * \param startfunc
-     * \param stacksize
-     * \param priority
-     * \param argv
-     * \param options
-     * \param gotBase
-     * \return 
+     * Create a thread to be used inside a process.
+     * Can only be called when the kernel is paused
+     * \param startfunc entry point
+     * \param argv parameter to be passed to the entry point
+     * \param options thread options
+     * \param pid process' pid
      */
-    static Thread *PKcreate(void *(*startfunc)(void *),
-                        unsigned int stacksize,
-                        Priority priority, void *argv,
-                        unsigned short options,unsigned int *gotBase,
-                        pid_t pid, unsigned int entry, unsigned int *base);
+    static Thread *PKcreateUserspace(void *(*startfunc)(void *),
+        void *argv, unsigned short options, pid_t pid);
+    
+    /**
+     * Setup the userspace context of the thread, so that it can be later
+     * switched to userspace. Must be called only once for each thread instance
+     * Can only be called when the kernel is paused
+     * \param entry userspace entry point
+     * \param gotBase base address of the GOT, also corresponding to the start
+     * of the RAM image of the process
+     * \param stackTop top of userspace stack
+     */
+    static void setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
+        unsigned int *stackTop);
+    
+    /**
+     * \return the syscall parameters
+     */
+    static miosix_private::SyscallParameters switchToUserspace();
+    
+    #endif //WITH_PROCESSES
 
     /**
      * Constructor, initializes thread data.
@@ -884,6 +904,10 @@ private:
         watermark(watermark), ctxsave(), stacksize(stacksize)
     {
         joinData.waitingForJoin=NULL;
+        #ifdef WITH_PROCESSES
+        pid=0;
+        userCtxsave=0;
+        #endif //WITH_PROCESSES
     }
 
     /**
@@ -951,8 +975,7 @@ private:
     friend void startKernel();
     //Needs threadLauncher
     friend void miosix_private::initCtxsave(unsigned int *ctxsave,
-            void *(*pc)(void *), unsigned int *sp, void *argv,
-            unsigned int gotBase);
+            void *(*pc)(void *), unsigned int *sp, void *argv);
     //Needs access to priority, savedPriority, mutexLocked and flags.
     friend class Mutex;
     //Needs access to flags

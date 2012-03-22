@@ -209,7 +209,13 @@ void ControlScheduler::IRQfindNextThread()
         {
             //Found a READY thread, so run this one
             cur=curInRound;
-            ctxsave=cur->ctxsave;
+            #ifdef WITH_PROCESSES
+            if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
+                ctxsave=temp->ctxsave;
+            else ctxsave=temp->userCtxsave;
+            #else //WITH_PROCESSES
+            ctxsave=temp->ctxsave;
+            #endif //WITH_PROCESSES
             miosix_private::AuxiliaryTimer::IRQsetValue(
                     curInRound->schedData.bo/multFactor);
             return;

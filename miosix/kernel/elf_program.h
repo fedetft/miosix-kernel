@@ -132,7 +132,7 @@ public:
      * the process, including copying .data, zeroing .bss and performing
      * relocations
      */
-    void load(ElfProgram& program);
+    void load(const ElfProgram& program);
     
     /**
      * \return a pointer to the base of the program image
