@@ -93,15 +93,24 @@ void *Process::start(void *argv)
         {
             switch(sp.getSyscallId())
             {
-                case 1:
+                case 2:
                     iprintf("Exit %d\n",sp.getFirstParameter());
                     running=false;
                     break;
-                case 2:
+                case 3:
                     //FIXME: check that the pointer belongs to the process
                     sp.setReturnValue(write(sp.getFirstParameter(),
                         reinterpret_cast<const char*>(sp.getSecondParameter()),
                         sp.getThirdParameter()));
+                    break;
+                case 4:
+                    //FIXME: check that the pointer belongs to the process
+                    sp.setReturnValue(read(sp.getFirstParameter(),
+                        reinterpret_cast<char*>(sp.getSecondParameter()),
+                        sp.getThirdParameter()));
+                    break;
+                case 5: 
+                    sp.setReturnValue(usleep(sp.getFirstParameter()));
                     break;
                 default:
                     iprintf("Unexpected invalid syscall\n");

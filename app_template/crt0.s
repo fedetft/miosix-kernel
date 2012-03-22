@@ -22,13 +22,13 @@ _start:
 
 /**
  * _exit, terminate process
- * \param r0 exit value 
+ * \param v exit value 
  */
 .section .text._exit
 .global _exit
 .type _exit, %function
 _exit:
-	movs r3, #1
+	movs r3, #2
 	svc  0
 
 /**
@@ -42,7 +42,35 @@ _exit:
 .global	write
 .type	write, %function
 write:
-    movs r3, #2
+    movs r3, #3
+    svc  0
+    bx   lr
+
+/**
+ * read, read from file
+ * \param fd file descriptor
+ * \param buf data to be read
+ * \param len buffer length
+ * \return number of read bytes or -1 if errors
+ */
+.section .text.read
+.global	read
+.type	read, %function
+read:
+    movs r3, #4
+    svc  0
+    bx   lr
+
+/**
+ * usleep, sleep a specified number of microseconds
+ * \param us number of microseconds to sleep
+ * \return 0 on success or -1 if errors
+ */
+.section .text.usleep
+.global	usleep
+.type	usleep, %function
+usleep:
+    movs r3, #5
     svc  0
     bx   lr
 
