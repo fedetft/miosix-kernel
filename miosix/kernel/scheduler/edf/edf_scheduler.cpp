@@ -113,10 +113,10 @@ void EDFScheduler::IRQfindNextThread()
             cur=walk;
             #ifdef WITH_PROCESSES
             if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
-                ctxsave=temp->ctxsave;
-            else ctxsave=temp->userCtxsave;
+                ctxsave=cur->ctxsave;
+            else ctxsave=cur->userCtxsave;
             #else //WITH_PROCESSES
-            ctxsave=temp->ctxsave;
+            ctxsave=cur->ctxsave;
             #endif //WITH_PROCESSES
             return;
         }
