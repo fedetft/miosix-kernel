@@ -204,6 +204,13 @@ private:
     bool valid;
 };
 
+inline void portableSwitchToUserspace()
+{
+    asm volatile("movs r3, #1\n\t"
+                 "svc  0"
+                 :::"r3");
+}
+
 #endif //WITH_PROCESSES
 
 /**

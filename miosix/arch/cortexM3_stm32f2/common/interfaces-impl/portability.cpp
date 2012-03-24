@@ -115,10 +115,12 @@ void ISR_yield()
     
     #ifdef WITH_PROCESSES
     //If processes are enabled, check the content of r3. If zero then it
-    //it is a simple yield, otherwise pause the thread and wake the svcHandler
+    //it is a simple yield, otherwise handle the syscall
+    //Note that it is required to use ctxsave and not cur->ctxsave because
+    //at this time we do not know if the active context is user or kernel
     unsigned int threadSp=ctxsave[0];
     unsigned int *processStack=reinterpret_cast<unsigned int*>(threadSp);
-    if(processStack[3]!=0) miosix::Thread::IRQswitchToKernelspace();
+    if(processStack[3]!=0) miosix::Thread::IRQhandleSvc(processStack[3]);
     else miosix::Scheduler::IRQfindNextThread();
     #else //WITH_PROCESSES
     miosix::Scheduler::IRQfindNextThread();
@@ -143,8 +145,6 @@ void ISR_auxTimer()
 
 void IRQstackOverflowCheck()
 {
-    //TODO: stack checking for userspace
-    if(const_cast<miosix::Thread*>(miosix::cur)->flags.isInUserspace()) return;
     const unsigned int watermarkSize=miosix::WATERMARK_LEN/sizeof(unsigned int);
     for(unsigned int i=0;i<watermarkSize;i++)
     {

@@ -691,17 +691,6 @@ public:
      * \return the size of the stack of the current thread.
      */
     static const int getStackSize();
-    
-    #ifdef WITH_PROCESSES
-
-    /**
-     * TODO: make private!
-     * Can only be called inside an IRQ, its use is to switch a userspace thread
-     * to kernelspace to perform a system call.
-     */
-    static void IRQswitchToKernelspace();
-    
-    #endif //WITH_PROCESSES
 	
 private:
     //Unwanted methods
@@ -891,6 +880,12 @@ private:
      */
     static miosix_private::SyscallParameters switchToUserspace();
     
+    /**
+     * Can only be called inside an IRQ, its use is to switch a thread between
+     * userspace/kernelspace and back to perform context switches
+     */
+    static void IRQhandleSvc(unsigned int svcNumber);
+    
     #endif //WITH_PROCESSES
 
     /**
@@ -994,8 +989,12 @@ private:
     friend int ::pthread_cond_broadcast(pthread_cond_t *cond);
     //Needs access to exData
     friend class ExceptionHandlingAccessor;
-    //Needs access to initializeUserspaceContext()
+    #ifdef WITH_PROCESSES
+    //Needs PKcreateUserspace(), setupUserspaceContext(), switchToUserspace()
     friend class Process;
+    //Needs access to IRQswitchToKernelspace()
+    friend void miosix_private::ISR_yield();
+    #endif //WITH_PROCESSES
 };
 
 /**

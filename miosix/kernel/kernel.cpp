@@ -606,16 +606,6 @@ const int Thread::getStackSize()
     return cur->stacksize;
 }
 
-#ifdef WITH_PROCESSES
-
-void Thread::IRQswitchToKernelspace()
-{
-    const_cast<Thread*>(cur)->flags.IRQsetUserspace(false);
-    ::ctxsave=cur->ctxsave;
-}
-
-#endif //WITH_PROCESSES
-
 void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
 {
     void *result=0;
@@ -736,12 +726,22 @@ miosix_private::SyscallParameters Thread::switchToUserspace()
         FastInterruptDisableLock dLock;
         const_cast<Thread*>(cur)->flags.IRQsetUserspace(true);
     }
-    Thread::yield(); //TODO: use a syscall to perform the continuation
-    if(const_cast<Thread*>(cur)->flags.isInUserspace()==true)
-        errorHandler(UNEXPECTED);
+    miosix_private::portableSwitchToUserspace();
     miosix_private::SyscallParameters result(cur->userCtxsave);
-    if(cur->pid==0) result.invalidate();
     return result;
+}
+
+void Thread::IRQhandleSvc(unsigned int svcNumber)
+{
+    if(cur->pid==0) errorHandler(UNEXPECTED);
+    if(svcNumber==1)
+    {
+        const_cast<Thread*>(cur)->flags.IRQsetUserspace(true);
+        ::ctxsave=cur->userCtxsave;
+    } else {
+        const_cast<Thread*>(cur)->flags.IRQsetUserspace(false);
+        ::ctxsave=cur->ctxsave;
+    }
 }
 
 #endif //WITH_PROCESSES

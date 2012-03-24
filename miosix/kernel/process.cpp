@@ -113,11 +113,11 @@ void *Process::start(void *argv)
                     sp.setReturnValue(usleep(sp.getFirstParameter()));
                     break;
                 default:
-                    iprintf("Unexpected invalid syscall\n");
+                    iprintf("Unexpected syscall number %d\n",sp.getSyscallId());
                     running=false;
                     break;
             }
-        }
+        } else iprintf("Unexpected invalid syscall\n");
         if(Thread::testTerminate())
         {
             running=false;
