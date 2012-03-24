@@ -49,7 +49,7 @@ Process *Process::create(const ElfProgram& program)
         pid_t pid=PKgetNewPid();
         processes[pid]=proc.get();
         Thread *thr=Thread::PKcreateUserspace(Process::start,0,
-            Thread::JOINABLE,pid);
+            Thread::JOINABLE,proc.get());
         if(thr==0)
         {
             processes.erase(pid);
@@ -80,9 +80,8 @@ Process::Process(const ElfProgram& program) : program(program)
 void *Process::start(void *argv)
 {
     Thread *thr=Thread::getCurrentThread();
-    map<pid_t,Process*>::iterator it=processes.find(thr->pid);
-    if(it==processes.end()) errorHandler(UNEXPECTED);
-    Process *proc=it->second;
+    Process *proc=thr->proc;
+    if(proc==0) errorHandler(UNEXPECTED);
     Thread::setupUserspaceContext(
         proc->program.getEntryPoint(),proc->image.getProcessBasePointer(),
         proc->image.getProcessBasePointer()+proc->image.getProcessImageSize());

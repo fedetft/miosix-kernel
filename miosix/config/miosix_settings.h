@@ -74,17 +74,17 @@ namespace miosix {
 #endif //defined(WITH_PROCESSES) && defined(__NO_EXCEPTIONS)
 
 /// Maximum size of the RAM image of a process. If a program requires more
-/// the kernel will not run it
+/// the kernel will not run it (MUST be divisible by 4)
 const int MAX_PROCESS_IMAGE_SIZE=20*1024;
 
 /// Minimum size of the stack for a process. If a program specifies a lower
-/// size the kernel will not run it
+/// size the kernel will not run it (MUST be divisible by 4)
 const int MIN_PROCESS_STACK_SIZE=2*1024;
 
 /// Every userspace thread has two stacks, one for when it is running in
 /// userspace and one for when it is running in kernelspace (that is, while it
 /// is executing system calls). This is the size of the stack for when the
-/// thread is running in kernelspace
+/// thread is running in kernelspace (MUST be divisible by 4)
 const int SYSTEM_MODE_PROCESS_STACK_SIZE=2*1024;
 
 //

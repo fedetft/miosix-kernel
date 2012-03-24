@@ -37,7 +37,6 @@
 #include <cstdlib>
 #include <new>
 #include <functional>
-#include <sys/types.h>
 
 // some pthread functions are friends of Thread
 #include <pthread.h>
@@ -815,7 +814,7 @@ private:
         
         /**
          * \return true if the thread is running unprivileged inside a process.
-         * Only threads whose pid is not zero can run in userspace 
+         * Only threads with proc!=null can run in userspace 
          */
         bool isInUserspace() const { return flags & USERSPACE; }
 
@@ -858,10 +857,10 @@ private:
      * \param startfunc entry point
      * \param argv parameter to be passed to the entry point
      * \param options thread options
-     * \param pid process' pid
+     * \param proc process to which this thread belongs
      */
     static Thread *PKcreateUserspace(void *(*startfunc)(void *),
-        void *argv, unsigned short options, pid_t pid);
+        void *argv, unsigned short options, Process *proc);
     
     /**
      * Setup the userspace context of the thread, so that it can be later
@@ -900,7 +899,7 @@ private:
     {
         joinData.waitingForJoin=NULL;
         #ifdef WITH_PROCESSES
-        pid=0;
+        proc=0;
         userCtxsave=0;
         #endif //WITH_PROCESSES
     }
@@ -948,11 +947,10 @@ private:
     /// Per-thread instance of data to make C++ exception handling thread safe.
     ExceptionHandlingData exData;
     #ifdef WITH_PROCESSES
-    ///Id of the process to which this thread belongs. Zero if a kernel thread.
-    ///More threads can have the same pid if they run in the same process
-    pid_t pid;
+    ///Process to which this thread belongs. Null if it is a kernel thread.
+    Process *proc;
     ///Pointer to the set of saved registers for when the thread is running in
-    ///user mode. For kernel threads (i.e, threads whose pid is zero) this
+    ///user mode. For kernel threads (i.e, threads where proc==null) this
     ///pointer is null
     unsigned int *userCtxsave;
     #endif //WITH_PROCESSES

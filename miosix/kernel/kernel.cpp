@@ -637,7 +637,7 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
 #ifdef WITH_PROCESSES
 
 Thread *Thread::PKcreateUserspace(void *(*startfunc)(void *), void *argv,
-                    unsigned short options, pid_t pid)
+                    unsigned short options, Process *proc)
 {   
     //Allocate memory for the thread, return if fail
     unsigned int *base=static_cast<unsigned int*>(malloc(sizeof(Thread)+
@@ -671,7 +671,7 @@ Thread *Thread::PKcreateUserspace(void *(*startfunc)(void *), void *argv,
     miosix_private::initCtxsave(thread->ctxsave,startfunc,
             reinterpret_cast<unsigned int*>(thread),argv);
     
-    thread->pid=pid;
+    thread->proc=proc;
     if((options & JOINABLE)==0) thread->flags.IRQsetDetached();
     
     //Add thread to thread list
@@ -707,7 +707,7 @@ miosix_private::SyscallParameters Thread::switchToUserspace()
 
 void Thread::IRQhandleSvc(unsigned int svcNumber)
 {
-    if(cur->pid==0) errorHandler(UNEXPECTED);
+    if(cur->proc==0 || cur->userCtxsave==0) errorHandler(UNEXPECTED);
     if(svcNumber==1)
     {
         const_cast<Thread*>(cur)->flags.IRQsetUserspace(true);
