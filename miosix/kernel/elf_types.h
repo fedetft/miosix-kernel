@@ -151,7 +151,7 @@ const int DT_BINDNOW      = 24;
 const int DT_MX_RAMSIZE   = 0x10000000; //Miosix specific, RAM size
 const int DT_MX_STACKSIZE = 0x10000001; //Miosix specific, STACK size
 const int DT_MX_ABI       = 0x736f694d; //Miosix specific, ABI version
-const int DV_MX_ABI_V0    = 0x00007869; //Miosix specific, ABI version 0
+const unsigned int DV_MX_ABI_V0 = 0x00007869; //Miosix specific, ABI version 0
 
 /*
  * Relocation entries

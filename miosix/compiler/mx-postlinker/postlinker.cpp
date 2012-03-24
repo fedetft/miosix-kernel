@@ -49,6 +49,10 @@ void PostLinker::removeSectionHeaders()
 
 void PostLinker::setMxTags(int stackSize, int ramSize)
 {
+    if(stackSize & 0x3)
+        throw runtime_error("stack size not four word aligned");
+    if(ramSize & 0x3)
+        throw runtime_error("ram size not four word aligned");
     if(getSizeOfDataAndBss()+stackSize>ramSize)
         throw runtime_error(".data + .bss + stack exceeds ramsize");
     getElfHeader()->e_type=ET_EXEC; //Force ET_EXEC

@@ -147,6 +147,9 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
     Elf32_Addr dtRel=0;
     Elf32_Word dtRelsz=0;
     unsigned int hasRelocs=0;
+    bool miosixTagFound=false;
+    unsigned int ramSize=0;
+    unsigned int stackSize=0;
     for(int i=0;i<dynSize;i++,dyn++)
     {
         switch(dyn->d_tag)
@@ -162,7 +165,16 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
             case DT_RELENT:
                 hasRelocs |= 0x4;
                 if(dyn->d_un.d_val!=sizeof(Elf32_Rel)) return false;
-                break;    
+                break;  
+            case DT_MX_ABI:
+                if(dyn->d_un.d_val==DV_MX_ABI_V0) miosixTagFound=true;
+                break;
+            case DT_MX_RAMSIZE:
+                ramSize=dyn->d_un.d_val;
+                break;
+            case DT_MX_STACKSIZE:
+                stackSize=dyn->d_un.d_val;
+                break;
             case DT_RELA:
             case DT_RELASZ:
             case DT_RELAENT:
@@ -172,6 +184,15 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
                 break;
         }
     }
+    if(miosixTagFound==false) throw runtime_error("Not a Miosix executable");
+    if(stackSize<MIN_PROCESS_STACK_SIZE)
+        throw runtime_error("Requested stack is too small");
+    if(ramSize>MAX_PROCESS_IMAGE_SIZE)
+        throw runtime_error("Requested image size is too large");
+    if((stackSize & 0x3) || (ramSize & 0x3) ||
+       (stackSize>MAX_PROCESS_IMAGE_SIZE) || (dataSegmentSize+stackSize>ramSize))
+        throw runtime_error("Invalid stack or RAM size");
+    
     if(hasRelocs!=0 && hasRelocs!=0x7) return false;
     if(hasRelocs)
     {
@@ -208,12 +229,10 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
 void ProcessImage::load(const ElfProgram& program)
 {
     if(image) delete[] image;
-    
-    //TODO: add in elf file a field with the true image size
-    image=new unsigned int[MAX_PROCESS_IMAGE_SIZE/4];
     size=MAX_PROCESS_IMAGE_SIZE;
     const unsigned int base=program.getElfBase();
     const Elf32_Phdr *phdr=program.getProgramHeaderTable();
+    const Elf32_Phdr *dataSegment=0;
     Elf32_Addr dtRel=0;
     Elf32_Word dtRelsz=0;
     bool hasRelocs=false;
@@ -223,14 +242,7 @@ void ProcessImage::load(const ElfProgram& program)
         {
             case PT_LOAD:
                 if((phdr->p_flags & PF_W) && !(phdr->p_flags & PF_X))
-                {
-                    const char *dataSegmentInFile=
-                        reinterpret_cast<const char*>(base+phdr->p_offset);
-                    char *dataSegmentInMem=reinterpret_cast<char*>(image);
-                    memcpy(dataSegmentInMem,dataSegmentInFile,phdr->p_filesz);
-                    dataSegmentInMem+=phdr->p_filesz;
-                    memset(dataSegmentInMem,0,phdr->p_memsz-phdr->p_filesz);
-                }
+                    dataSegment=phdr;
                 break;
             case PT_DYNAMIC:
             {
@@ -249,6 +261,8 @@ void ProcessImage::load(const ElfProgram& program)
                             hasRelocs=true;
                             dtRelsz=dyn->d_un.d_val;
                             break;
+                        case DT_MX_RAMSIZE:
+                            image=new unsigned int[dyn->d_un.d_val/4];
                         default:
                             break;
                     }
@@ -260,6 +274,12 @@ void ProcessImage::load(const ElfProgram& program)
                 break;
         }
     }
+    const char *dataSegmentInFile=
+        reinterpret_cast<const char*>(base+dataSegment->p_offset);
+    char *dataSegmentInMem=reinterpret_cast<char*>(image);
+    memcpy(dataSegmentInMem,dataSegmentInFile,dataSegment->p_filesz);
+    dataSegmentInMem+=dataSegment->p_filesz;
+    memset(dataSegmentInMem,0,dataSegment->p_memsz-dataSegment->p_filesz);
     if(hasRelocs)
     {
         const Elf32_Rel *rel=reinterpret_cast<const Elf32_Rel*>(base+dtRel);
