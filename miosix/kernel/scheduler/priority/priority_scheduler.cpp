@@ -88,7 +88,10 @@ void PriorityScheduler::PKremoveDeadThreads()
             if(thread_list[i]->schedData.next==thread_list[i])
             {
                 //Only one element in the list
-                delete thread_list[i];
+                //Call destructor manually because of placement new
+                void *base=thread_list[i]->watermark;
+                thread_list[i]->~Thread();
+                free(base); //Delete ALL thread memory
                 thread_list[i]=NULL;
                 break;
             }
@@ -105,7 +108,10 @@ void PriorityScheduler::PKremoveDeadThreads()
             thread_list[i]=thread_list[i]->schedData.next;//Remove from list
             //Fix the tail of the circular list
             tail->schedData.next=thread_list[i];
-            delete d;
+            //Call destructor manually because of placement new
+            void *base=d->watermark;
+            d->~Thread();
+            free(base);//Delete ALL thread memory
         }
         if(thread_list[i]==NULL) continue;
         //If it comes here, the first item is not NULL, and doesn't have
@@ -120,7 +126,10 @@ void PriorityScheduler::PKremoveDeadThreads()
                 Thread *d=temp->schedData.next;//Save a pointer to the thread
                 //Remove from list
                 temp->schedData.next=temp->schedData.next->schedData.next;
-                delete d;
+                //Call destructor manually because of placement new
+                void *base=d->watermark;
+                d->~Thread();
+                free(base);//Delete ALL thread memory
             } else temp=temp->schedData.next;
         }
     }

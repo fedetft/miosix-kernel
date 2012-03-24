@@ -91,7 +91,9 @@ void ControlScheduler::PKremoveDeadThreads()
             threadListSize--;
             SP_Tr-=bNominal; //One thread less, reduce round time
         }
-        delete toBeDeleted;
+        void *base=toBeDeleted->watermark;
+        toBeDeleted->~Thread();
+        free(base); //Delete ALL thread memory
     }
     if(threadList!=0)
     {
@@ -106,7 +108,9 @@ void ControlScheduler::PKremoveDeadThreads()
                 threadListSize--;
                 SP_Tr-=bNominal; //One thread less, reduce round time
             }
-            delete toBeDeleted;
+            void *base=toBeDeleted->watermark;
+            toBeDeleted->~Thread();
+            free(base); //Delete ALL thread memory
         }
     }
     {

@@ -70,7 +70,7 @@ namespace miosix {
 #define WITH_PROCESSES
 
 #if defined(WITH_PROCESSES) && defined(__NO_EXCEPTIONS)
-#error Processes required C++ exception support
+#error Processes require C++ exception support
 #endif //defined(WITH_PROCESSES) && defined(__NO_EXCEPTIONS)
 
 /// Maximum size of the RAM image of a process. If a program requires more

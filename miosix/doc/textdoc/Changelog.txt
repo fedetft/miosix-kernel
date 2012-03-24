@@ -1,9 +1,6 @@
 Changelog for Miosix np embedded OS
 
 v1.60
-- Changed the way memory for a thread is allocated. Before only one large
-  memory area was allocated with both the thread class and thread stack,
-  now the two are allocated separately
 - Added support to stm3220g-eval to miosix/bootloaders/stm32, and renamed
   folder (before it was miosix/bootloaders/stm3210e-eval)
 - Added linker scripts that support external ram to stm3220g-eval
