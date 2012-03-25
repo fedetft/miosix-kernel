@@ -852,14 +852,14 @@ private:
     #ifdef WITH_PROCESSES
 
     /**
-     * Create a thread to be used inside a process.
-     * Can only be called when the kernel is paused
+     * Create a thread to be used inside a process. The thread is created in
+     * WAIT status, a wakeup() on it is required to actually start it.
      * \param startfunc entry point
      * \param argv parameter to be passed to the entry point
      * \param options thread options
      * \param proc process to which this thread belongs
      */
-    static Thread *PKcreateUserspace(void *(*startfunc)(void *),
+    static Thread *createUserspace(void *(*startfunc)(void *),
         void *argv, unsigned short options, Process *proc);
     
     /**

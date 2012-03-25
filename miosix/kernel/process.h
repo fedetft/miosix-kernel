@@ -54,6 +54,37 @@ public:
      */
     static Process *create(const ElfProgram& program);
     
+    /**
+     * \return the pid of the created process 
+     */
+    pid_t getpid() const { return pid; }
+    
+    /**
+     * \return the pid of the parent process, or zero if the process was created
+     * by the kernel directly 
+     */
+    pid_t getppid() const { return ppid; }
+    
+    /**
+     * Wait for child process termination
+     * \param exit the process exit code will be returned here, if the pointer
+     * is not null
+     * \return the pid of the terminated process, or -1 in case of errors
+     */
+    pid_t wait(int *exit);
+    
+    /**
+     * Wait for a specific child process to terminate
+     * \param pid pid of the process, or -1 to wait for any child process
+     * \param exit the process exit code will be returned here, if the pointer
+     * is not null
+     * \param options only 0 and WNOHANG are supported
+     * \return the pid of the terminated process, or -1 in case of errors. In
+     * case WNOHANG  is specified and the specified process has not terminated,
+     * 0 is returned
+     */
+    pid_t waitpid(pid_t pid, int *exit, int options);
+    
 private:
     Process(const Process&);
     Process& operator= (const Process&);
@@ -74,18 +105,33 @@ private:
     /**
      * \return an unique pid that is not zero and is not already in use in the
      * system, used to assign a pid to a new process.<br>
-     * Must be called when the kernel is paused to avoid race conditions.
      */
-    static pid_t PKgetNewPid();
+    static pid_t getNewPid();
     
     ElfProgram program; ///<The program that is running inside the process
     ProcessImage image; ///<The RAM image of a process
     std::vector<Thread *> threads; ///<Threads that belong to the process
     
+    pid_t pid;  ///<The pid of this process
+    pid_t ppid; ///<The parent pid of this process
+    ///This union is used to join threads. When the thread to join has not yet
+    ///terminated and no other thread called join it contains (Thread *)NULL,
+    ///when a thread calls join on this thread it contains the thread waiting
+    ///for the join, and when the thread terminated it contains (void *)result
+    union
+    {
+        Thread *waitingForJoin;///<Thread waiting to join this
+        int exitCode;          ///<Process exit code
+    } joinData;
+    
     ///Maps the pid to the Process instance
     static std::map<pid_t,Process *> processes;
     ///Used to assign a new pid to a process
     static pid_t pidCounter;
+    ///Uset to guard access to processes and pidCounter
+    static Mutex procMutex;
+    ///Used to wait on process termination
+    static ConditionVariable waiting;
 };
 
 } //namespace miosix

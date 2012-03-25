@@ -28,11 +28,39 @@
 #include <stdexcept>
 #include <memory>
 #include <cstdio>
+#include "sync.h"
 #include "process.h"
 
 using namespace std;
 
 #ifdef WITH_PROCESSES
+
+/*
+ * List of implemented supervisor calls
+ * ------------------------------------
+ * 
+ * 0 : Yield. Can be called both by kernel threads and process threads both in
+ *     userspace and kernelspace mode. It causes the scheduler to switch to
+ *     another thread. It is the only SVC that is available also when processes
+ *     are disabled in miosix_config.h. No parameters, no return value.
+ * 1 : Back to userspace. It is used by process threads running in kernelspace
+ *     mode to return to userspace mode after completing a supervisor call.
+ *     If called by a process thread already in userspace mode it does nothing.
+ *     Use of this SVC is by kernel threads is forbidden. No parameters, no
+ *     return value.
+ * 2 : Exit. Terminates the current process. One parameter, the exit code.
+ *     Never returns. Use of this SVC is by kernel threads is forbidden.
+ * 3 : Write. Writes to stdout or a file. Three parameters, file descriptor,
+ *     pointer to data to be written, size of data. Returns the number of
+ *     written data or -1 on error. Use of this SVC is by kernel threads is
+ *     forbidden.
+ * 4 : Read. Reads from stdin or a file. Three parameters, file descriptor,
+ *     pointer to data buffer, size of buffer. Returns the number of
+ *     read data or -1 on error. Use of this SVC is by kernel threads is
+ *     forbidden.
+ * 5 : Usleep. One parameter, number of microseconds to sleep. Returns 0 on
+ *     success, -1 on failure. Use of this SVC is by kernel threads isforbidden.
+ */
 
 namespace miosix {
 
@@ -42,29 +70,29 @@ namespace miosix {
 
 Process *Process::create(const ElfProgram& program)
 {
-    //Loading the process outside the PKlock as relocation takes time
     auto_ptr<Process> proc(new Process(program));
-    {
-        PauseKernelLock dLock;
-        pid_t pid=PKgetNewPid();
-        processes[pid]=proc.get();
-        Thread *thr=Thread::PKcreateUserspace(Process::start,0,
-            Thread::JOINABLE,proc.get());
-        if(thr==0)
-        {
-            processes.erase(pid);
-            throw runtime_error("Thread creation failed");
-        }
-        //Cannot throw bad_alloc due to the reserve in Process's constructor.
-        //This ensures we will never be in the uncomfortable situation where a
-        //thread has already been created but there's no memory to list it
-        //among the threads of a process
-        proc->threads.push_back(thr);
+    {   
+        Lock<Mutex> l(procMutex);
+        proc->pid=getNewPid();
+        if(Thread::getCurrentThread()->proc!=0)
+            proc->ppid=Thread::getCurrentThread()->proc->pid;
+        else proc->ppid=0;
+        processes[proc->pid]=proc.get();
     }
-    #ifdef SCHED_TYPE_EDF
-    //The new thread might have a closer deadline
-    if(isKernelRunning()) Thread::yield();
-    #endif //SCHED_TYPE_EDF
+    Thread *thr=Thread::createUserspace(Process::start,0,Thread::DEFAULT,
+        proc.get());
+    if(thr==0)
+    {
+        Lock<Mutex> l(procMutex);
+        processes.erase(proc->pid);
+        throw runtime_error("Thread creation failed");
+    }
+    //Cannot throw bad_alloc due to the reserve in Process's constructor.
+    //This ensures we will never be in the uncomfortable situation where a
+    //thread has already been created but there's no memory to list it
+    //among the threads of a process
+    proc->threads.push_back(thr);
+    thr->wakeup(); //Actually start the thread, now that everything is set up
     return proc.release(); //Do not delete the pointer
 }
 
@@ -126,7 +154,7 @@ void *Process::start(void *argv)
     return 0;
 }
 
-pid_t Process::PKgetNewPid()
+pid_t Process::getNewPid()
 {
     for(;;pidCounter++)
     {
@@ -140,6 +168,7 @@ pid_t Process::PKgetNewPid()
 
 map<pid_t,Process*> Process::processes;
 pid_t Process::pidCounter=1;
+Mutex Process::procMutex;
     
 } //namespace miosix
 

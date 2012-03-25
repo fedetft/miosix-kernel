@@ -636,7 +636,7 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
 
 #ifdef WITH_PROCESSES
 
-Thread *Thread::PKcreateUserspace(void *(*startfunc)(void *), void *argv,
+Thread *Thread::createUserspace(void *(*startfunc)(void *), void *argv,
                     unsigned short options, Process *proc)
 {   
     //Allocate memory for the thread, return if fail
@@ -673,17 +673,22 @@ Thread *Thread::PKcreateUserspace(void *(*startfunc)(void *), void *argv,
     
     thread->proc=proc;
     if((options & JOINABLE)==0) thread->flags.IRQsetDetached();
+    thread->flags.IRQsetWait(true); //Thread is not yet ready
     
     //Add thread to thread list
-    if(Scheduler::PKaddThread(thread,MAIN_PRIORITY)==false)
     {
-        //Reached limit on number of threads
-        base=thread->watermark;
-        thread->~Thread();
-        free(base); //Delete ALL thread memory
-        return NULL;
+        //Handling the list of threads, critical section is required
+        PauseKernelLock lock;
+        if(Scheduler::PKaddThread(thread,MAIN_PRIORITY)==false)
+        {
+            //Reached limit on number of threads
+            base=thread->watermark;
+            thread->~Thread();
+            free(base); //Delete ALL thread memory
+            return NULL;
+        }
     }
-    
+
     return thread;
 }
 
@@ -696,10 +701,6 @@ void Thread::setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
 
 miosix_private::SyscallParameters Thread::switchToUserspace()
 {
-    {
-        FastInterruptDisableLock dLock;
-        const_cast<Thread*>(cur)->flags.IRQsetUserspace(true);
-    }
     miosix_private::portableSwitchToUserspace();
     miosix_private::SyscallParameters result(cur->userCtxsave);
     return result;
