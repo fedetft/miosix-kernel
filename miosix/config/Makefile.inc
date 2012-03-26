@@ -13,13 +13,14 @@
 ## architecture
 ##
 #OPT_BOARD := lpc2138_miosix_board
-OPT_BOARD := stm32f103ze_stm3210e-eval
+#OPT_BOARD := stm32f103ze_stm3210e-eval
 #OPT_BOARD := stm32f103ve_mp3v2
 #OPT_BOARD := stm32f100rb_stm32vldiscovery
 #OPT_BOARD := stm32f103ve_strive_mini
 #OPT_BOARD := stm32f103ze_redbull_v2
 #OPT_BOARD := stm32f407vg_stm32f4discovery
 #OPT_BOARD := stm32f207ig_stm3220g-eval
+OPT_BOARD := stm32f207zg_ethboard_v2
 
 ##
 ## Optimization flags, choose one.
@@ -173,6 +174,29 @@ ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
 
 endif
 
+##---------------------------------------------------------------------------
+## stm32f207zg_ethboard_v2
+##
+ifeq ($(OPT_BOARD),stm32f207zg_ethboard_v2)
+
+    ## Linker script type, there are three options
+    ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
+    ##    the most common choice, available for all microcontrollers
+    LINKER_SCRIPT_PATH := arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom.ld
+
+    ## Enable/disable initialization of external RAM at boot. Three options:
+    ## __ENABLE_XRAM : If you want the heap in xram (with an appropriate linker
+    ## script selected above)
+    ## __ENABLE_XRAM and __CODE_IN_XRAM : Debug mode with code + stack + heap
+    ## in xram (with an appropriate linker script selected above)
+    ## none selected : don't use xram (with an appropriate linker script
+    ## selected above)
+    XRAM := -D__ENABLE_XRAM
+    #XRAM := -D__ENABLE_XRAM -D__CODE_IN_XRAM
+
+endif
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -202,6 +226,8 @@ else ifeq ($(OPT_BOARD),stm32f103ze_redbull_v2)
 else ifeq ($(OPT_BOARD),stm32f407vg_stm32f4discovery)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
+    ARCH := cortexM3_stm32f2
+else ifeq ($(OPT_BOARD),stm32f207zg_ethboard_v2)
     ARCH := cortexM3_stm32f2
 else
     $(error Error: no board specified in miosix/config/Makefile.inc)
@@ -619,7 +645,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     ARCH_INC := arch/cortexM3_stm32f2/common
 
     ##-------------------------------------------------------------------------
-    ## BOARD: stm32f4discovery
+    ## BOARD: stm32f207ig_stm3220g-eval
     ##
     ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
         ## Base directory with header files for this board
@@ -655,6 +681,45 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         /dev/ttyUSB0 main.bin
         else
         PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+        endif
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f207zg_ethboard_v2
+    ##
+    else ifeq ($(OPT_BOARD),stm32f207zg_ethboard_v2)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        #LINKER_SCRIPT := already selected in board options
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(ARCH_INC)/interfaces-impl/disk.cpp         \
+        $(BOARD_INC)/interfaces-impl/console.cpp     \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_ETHBOARDV2
+        CXXFLAGS_BASE += -D_BOARD_ETHBOARDV2
+
+        ## Clock frequency
+        CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_120MHz=120000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld)
+        PROGRAM_CMDLINE := miosix/bootloaders/stm32/pc_loader/pc_loader \
+        /dev/ttyUSB0 main.bin
+        else
+        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
         endif
 
     ##-------------------------------------------------------------------------
