@@ -58,17 +58,111 @@ void IRQbspInit()
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOBEN |
                     RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN |
                     RCC_AHB1ENR_GPIOEEN | RCC_AHB1ENR_GPIOFEN |
-                    RCC_AHB1ENR_GPIOGEN | RCC_AHB1ENR_GPIOHEN |
-                    RCC_AHB1ENR_GPIOIEN;
+                    RCC_AHB1ENR_GPIOGEN;
+    //Pins used for FSMC (SRAM):
+    //PD 0,1,4,5,7,8,9,10,11,12,14,15
+    //PE 0,1,7,8,9,10,11,12,13,14,15
+    //PF 0,1,2,3,4,5,12,13,14,15
+    //PG 0,1,2,3,4,5
     GPIOA->OSPEEDR=0xaaaaaaaa; //Default to 50MHz speed for all GPIOS
-    GPIOB->OSPEEDR=0xaaaaaaaa;
+    GPIOB->OSPEEDR=0xaaaaaaaa; //Except SRAM GPIOs that run @ 100MHz
     GPIOC->OSPEEDR=0xaaaaaaaa;
-    GPIOD->OSPEEDR=0xf3ff0f0f | 0xaaaaaaaa; //GPIOD,E,F,G are used by the FSMC
-    GPIOE->OSPEEDR=0xffffc00f | 0xaaaaaaaa; //configure those pins as 100MHz
-    GPIOF->OSPEEDR=0xff000fff | 0xaaaaaaaa; //(constants taken from
-    GPIOG->OSPEEDR=0x000c0fff | 0xaaaaaaaa; // SystemInit_ExtMemCtl)
-    GPIOH->OSPEEDR=0xaaaaaaaa;
-    GPIOI->OSPEEDR=0xaaaaaaaa;
+    GPIOD->OSPEEDR=0xfbffefaf;
+    GPIOE->OSPEEDR=0xffffeaaf;
+    GPIOF->OSPEEDR=0xffaaafff;
+    GPIOG->OSPEEDR=0xaaaaafff;
+
+	//Port config (H=high, L=low, PU=pullup, PD=pulldown)
+	//  |  PORTA  |  PORTB  |  PORTC  |  PORTD  |  PORTE  |  PORTF  |  PORTG  |
+	//--+---------+---------+---------+---------+---------+---------+---------+
+	// 0| AF11    | AF11    | IN      | AF12    |         |         |         |
+	// 1| AF11    | AF11    | AF11    | AF12    |         |         |         |
+	// 2| AF11    | IN PD   | AF11    | AF12    |         |         |         |
+	// 3| AF11    | AF0     | AF11    | IN PD   |         |         |         |
+	// 4| OUT H   | AF0     | AF11    | AF12    |         |         |         |
+	// 5| AF5     | AF5     | AF11    | AF12    |         |         |         |
+	// 6| AF5     | IN PD   | OUT L   | IN PD   |         |         |         |
+	// 7| AF11    | IN PD   | IN PD   | AF12    |         |         |         |
+	// 8| AF0     | AF11    | AF12    | AF12    |         |         |         |
+	// 9| AF7     | IN PD   | AF12    | AF12    |         |         |         |
+	//10| AF7     | AF11    | AF12    | AF12    |         |         |         |
+	//11| AF10    | AF11    | AF12    | AF12    |         |         |         |
+	//12| AF10    | AF11    | AF12    | AF12    |         |         |         |
+	//13| AF0     | AF11    | IN PU   | IN PD   |         |         |         |
+	//14| AF0     | AF12    | IN PD   | AF12    |         |         |         |
+	//15| AF0     | AF12    | IN PD   | AF12    |         |         |         |
+	//TODO: PC0==mii_irq, requires sw pullup?
+	//PC13==sdio_cd, requires sw pu?
+    GPIOA->PUPDR=0xaaaaaaaa;
+    GPIOB->PUPDR=0xaaaaaaaa;
+    GPIOC->PUPDR=0xaaaaaaaa;
+    GPIOD->PUPDR=0xaaaaaaaa;
+    GPIOE->PUPDR=0xaaaaaaaa;
+    GPIOF->PUPDR=0xaaaaaaaa;
+    GPIOG->PUPDR=0xaaaaaaaa;
+
+	//FIXME -- begin
+	  /* Connect PDx pins to FSMC Alternate function */
+  GPIOD->AFR[0]  = 0x00cc00cc;
+  GPIOD->AFR[1]  = 0xcc0ccccc;
+  /* Configure PDx pins in Alternate function mode */
+  GPIOD->MODER   = 0xa2aa0a0a;
+  /* Configure PDx pins speed to 100 MHz */
+  GPIOD->OSPEEDR = 0xf3ff0f0f;
+  /* Configure PDx pins Output type to push-pull */
+  GPIOD->OTYPER  = 0x00000000;
+  /* No pull-up, pull-down for PDx pins */
+  GPIOD->PUPDR   = 0x00000000;
+
+  /* Connect PEx pins to FSMC Alternate function */
+  GPIOE->AFR[0]  = 0xc00000cc;
+  GPIOE->AFR[1]  = 0xcccccccc;
+  /* Configure PEx pins in Alternate function mode */
+  GPIOE->MODER   = 0xaaaa800a;
+  /* Configure PEx pins speed to 100 MHz */
+  GPIOE->OSPEEDR = 0xffffc00f;
+  /* Configure PEx pins Output type to push-pull */
+  GPIOE->OTYPER  = 0x00000000;
+  /* No pull-up, pull-down for PEx pins */
+  GPIOE->PUPDR   = 0x00000000;
+
+  /* Connect PFx pins to FSMC Alternate function */
+  GPIOF->AFR[0]  = 0x00cccccc;
+  GPIOF->AFR[1]  = 0xcccc0000;
+  /* Configure PFx pins in Alternate function mode */
+  GPIOF->MODER   = 0xaa000aaa;
+  /* Configure PFx pins speed to 100 MHz */
+  GPIOF->OSPEEDR = 0xff000fff;
+  /* Configure PFx pins Output type to push-pull */
+  GPIOF->OTYPER  = 0x00000000;
+  /* No pull-up, pull-down for PFx pins */
+  GPIOF->PUPDR   = 0x00000000;
+
+  /* Connect PGx pins to FSMC Alternate function */
+  GPIOG->AFR[0]  = 0x00cccccc;
+  GPIOG->AFR[1]  = 0x000000c0;
+  /* Configure PGx pins in Alternate function mode */
+  GPIOG->MODER   = 0x00080aaa;
+  /* Configure PGx pins speed to 100 MHz */
+  GPIOG->OSPEEDR = 0x000c0fff;
+  /* Configure PGx pins Output type to push-pull */
+  GPIOG->OTYPER  = 0x00000000;
+  /* No pull-up, pull-down for PGx pins */
+  GPIOG->PUPDR   = 0x00000000;
+
+/*-- FSMC Configuration ------------------------------------------------------*/
+  /* Enable the FSMC interface clock */
+  RCC->AHB3ENR         = 0x00000001;
+
+  /* Configure and enable Bank1_SRAM2 */
+  FSMC_Bank1->BTCR[2]  = 0x00001015;
+  FSMC_Bank1->BTCR[3]  = 0x00010400;
+  FSMC_Bank1E->BWTR[2] = 0x0fffffff;
+	//FIXME -- end
+    
+    sram::cs1::mode(Mode::OUTPUT);
+    sram::cs1::high();
+    
     led::mode(Mode::OUTPUT);
     sdCardDetect::mode(Mode::INPUT_PULL_UP);
     ledOn();

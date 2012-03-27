@@ -133,7 +133,9 @@
 /*!< Uncomment the following line if you need to use external SRAM mounted
      on STM322xG_EVAL board as data memory  */
 //By TFT: Miosix uses the __ENABLE_XRAM macro to tell the startup code it wants XRAM
-#ifdef __ENABLE_XRAM
+//additionally, other boards may have the RAM connected in other ways, so
+//use this code only for the STM3220G_EVAL
+#if defined(__ENABLE_XRAM) && defined(_BOARD_STM3220G_EVAL)
 #define DATA_IN_ExtSRAM
 #endif //__ENABLE_XRAM
 

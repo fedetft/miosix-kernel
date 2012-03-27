@@ -37,6 +37,7 @@
 
 #ifdef _MIOSIX
 #include "interfaces/gpio.h"
+namespace miosix {
 #else //_MIOSIX
 #include "gpio.h"
 
@@ -182,5 +183,9 @@ typedef Gpio<GPIOD_BASE,12> pd12;
 typedef Gpio<GPIOD_BASE,13> pd13;
 typedef Gpio<GPIOE_BASE,6>  pe6;
 typedef Gpio<GPIOB_BASE,8>  pb8; //used to be Charger::en
+
+#ifdef _MIOSIX
+} //namespace miosix
+#else //_MIOSIX
 
 #endif //HWMAPPING_H

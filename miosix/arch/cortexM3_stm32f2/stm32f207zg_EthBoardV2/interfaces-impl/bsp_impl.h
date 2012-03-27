@@ -34,7 +34,7 @@
 #define BSP_IMPL_H
 
 #include "config/miosix_settings.h"
-#include "interfaces/gpio.h"
+#include "hwmapping.h"
 
 namespace miosix {
 
@@ -47,7 +47,6 @@ namespace miosix {
  * \internal
  * used by the ledOn() and ledOff() implementation
  */
-typedef Gpio<GPIOI_BASE,9> led;
 
 inline void ledOn()
 {
@@ -60,7 +59,7 @@ inline void ledOff()
 }
 
 ///\internal Pin connected to SD card detect
-typedef Gpio<GPIOH_BASE,13> sdCardDetect;
+typedef sdio::cd sdCardDetect;
 
 /**
  * Polls the SD card sense GPIO

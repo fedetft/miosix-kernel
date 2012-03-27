@@ -35,6 +35,7 @@
 #include "interfaces/gpio.h"
 #include "board_settings.h"
 #include "drivers/dcc.h"
+#include "hwmapping.h"
 #include <cstring>
 
 #ifndef STDOUT_REDIRECTED_TO_DCC
@@ -101,8 +102,8 @@ void IRQstm32f2serialPortInit()
     USART1->CR3 = 0;//Disable irda and smartcard mode
     
     #ifdef SYSCLK_FREQ_120MHz
-    //USART1 is connected to APB1 @ 30MHz
-    const unsigned int brr = (97<<4) | (10<<0); //BRR=97.625 0.032% Error
+    //USART1 is connected to APB2 @ 60MHz
+    const unsigned int brr = (195<<4) | (5<<0); //BRR=195.3125 0% Error
     #else
     #warning "No serial baudrate for this clock frequency"
     #endif
@@ -110,10 +111,10 @@ void IRQstm32f2serialPortInit()
     USART1->BRR=brr;
     
     //Now that serial port is active, configure I/Os
-    Gpio<GPIOA_BASE,9>::alternateFunction(7);
-    Gpio<GPIOA_BASE,9>::mode(Mode::ALTERNATE); //PA.9 = USART1 tx
-    Gpio<GPIOA_BASE,10>::alternateFunction(7);
-    Gpio<GPIOA_BASE,10>::mode(Mode::ALTERNATE); //PA.10 = USART1 rx
+    serial::tx::alternateFunction(7);
+    serial::tx::mode(Mode::ALTERNATE);
+    serial::rx::alternateFunction(7);
+    serial::rx::mode(Mode::ALTERNATE);
     USART1->CR1 |= USART_CR1_TE | USART_CR1_RE;//Finally enable tx and rx
     NVIC_SetPriority(USART1_IRQn,10);//Low priority for serial. (Max=0, min=15)
     NVIC_EnableIRQ(USART1_IRQn);
