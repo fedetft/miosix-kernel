@@ -102,6 +102,82 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
 #ifdef WITH_PROCESSES
 
 /**
+ * This class allows to access the parameters that a process passed to
+ * the operating system as part of a system call
+ */
+class SyscallParameters
+{
+public:
+    /**
+     * Constructor, initialize the class starting from the thread's userspace
+     * context
+     */
+    SyscallParameters(unsigned int *context);
+    
+    /**
+     * \return the syscall id, used to identify individual system calls
+     */
+    int getSyscallId() const;
+    
+    /**
+     * \return the first syscall parameter. The returned result is meaningful
+     * only if the syscall (identified throug its id) has one or more parameters
+     */
+    unsigned int getFirstParameter() const;
+    
+    /**
+     * \return the first syscall parameter. The returned result is meaningful
+     * only if the syscall (identified throug its id) has two or more parameters
+     */
+    unsigned int getSecondParameter() const;
+    
+    /**
+     * \return the first syscall parameter. The returned result is meaningful
+     * only if the syscall (identified throug its id) has three parameters
+     */
+    unsigned int getThirdParameter() const;
+    
+    /**
+     * Set the value that will be returned by the syscall.
+     * Invalidates parameters so must be called only after the syscall
+     * parameteres have been read.
+     * \param ret value that will be returned by the syscall.
+     */
+    void setReturnValue(unsigned int ret);
+    
+private:
+    unsigned int *registers;
+};
+
+/**
+ * This class contains information about whether a fault occurred in a process.
+ * It is used to terminate processes that fault.
+ */
+class FaultData
+{
+public:
+    /**
+     * Constructor, initializes the object
+     */
+    FaultData() : id(0) {}
+    
+    /**
+     * \return true if a fault happened within a process
+     */
+    bool faultHappened() const { return id!=0; }
+    
+    /**
+     * Print information about the occurred fault
+     */
+    void print() const;
+    
+private:
+    int id; ///< Id of the fault or zero if no faults
+    int pc; ///< Program counter value at the time of the fault
+    int arg;///< Eventual additional argument, valid only for some id values
+};
+
+/**
  * \internal
  * Initializes a ctxsave array when a thread is created.
  * This version is to initialize the userspace context of processes.

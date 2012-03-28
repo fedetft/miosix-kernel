@@ -116,13 +116,18 @@ void *Process::start(void *argv)
     bool running=true;
     do {
         miosix_private::SyscallParameters sp=Thread::switchToUserspace();
-        if(sp.isValid())
+        if(proc->fault.faultHappened())
         {
+            running=false;
+            #ifdef WITH_ERRLOG
+            proc->fault.print();
+            #endif //WITH_ERRLOG
+        } else {
             switch(sp.getSyscallId())
             {
                 case 2:
-                    iprintf("Exit %d\n",sp.getFirstParameter());
                     running=false;
+                    iprintf("Exit %d\n",sp.getFirstParameter()); //FIXME: remove
                     break;
                 case 3:
                     //FIXME: check that the pointer belongs to the process
@@ -140,15 +145,14 @@ void *Process::start(void *argv)
                     sp.setReturnValue(usleep(sp.getFirstParameter()));
                     break;
                 default:
-                    iprintf("Unexpected syscall number %d\n",sp.getSyscallId());
                     running=false;
+                    #ifdef WITH_ERRLOG
+                    iprintf("Unexpected syscall number %d\n",sp.getSyscallId());
+                    #endif //WITH_ERRLOG
                     break;
             }
-        } else iprintf("Unexpected invalid syscall\n");
-        if(Thread::testTerminate())
-        {
-            running=false;
         }
+        if(Thread::testTerminate()) running=false;
     } while(running);
     //TODO: handle process termination
     return 0;

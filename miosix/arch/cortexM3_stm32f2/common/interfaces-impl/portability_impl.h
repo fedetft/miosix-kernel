@@ -136,73 +136,37 @@ inline bool checkAreInterruptsEnabled()
 
 #ifdef WITH_PROCESSES
 
-/**
- * This class allows to access the parameters that a process passed to
- * the operating system as part of a system call
- */
-class SyscallParameters
+//
+// class SyscallParameters
+//
+
+inline SyscallParameters::SyscallParameters(unsigned int *context) :
+        registers(reinterpret_cast<unsigned int*>(context[0])) {}
+
+inline int SyscallParameters::getSyscallId() const
 {
-public:
-    /**
-     * Default constructor, generates an invalid syscall
-     */
-    SyscallParameters(unsigned int *context) :
-            registers(reinterpret_cast<unsigned int*>(context[0])), valid(true)
-            {}
-    
-    /**
-     * \return true if this object represent an actual pending syscall,
-     * false if it represent a special state in which no syscall is pending
-     * and therefore the value returned by all the other member functions of
-     * this class are invalid
-     */
-    bool isValid() const { return valid; }
-    
-    /**
-     * \return the syscall id, used to identify individual system calls
-     */
-    int getSyscallId() const { return registers[3]; }
-    
-    /**
-     * \return the first syscall parameter. The returned result is meaningful
-     * only if the syscall (identified throug its id) has one or more parameters
-     */
-    unsigned int getFirstParameter() const { return registers[0]; }
-    
-    /**
-     * \return the first syscall parameter. The returned result is meaningful
-     * only if the syscall (identified throug its id) has two or more parameters
-     */
-    unsigned int getSecondParameter() const { return registers[1]; }
-    
-    /**
-     * \return the first syscall parameter. The returned result is meaningful
-     * only if the syscall (identified throug its id) has three parameters
-     */
-    unsigned int getThirdParameter() const { return registers[2]; }
-    
-    /**
-     * Set the value that will be returned by the syscall.
-     * Invalidates parameters so must be called only after the syscall
-     * parameteres have been read.
-     * \param ret value that will be returned by the syscall.
-     */
-    void setReturnValue(unsigned int ret)
-    {
-        if(valid) registers[0]=ret;
-        valid=false;
-    }
-    
-    /**
-     * Invalidate the object. Meant to be called after the syscall has been
-     * serviced
-     */
-    void invalidate() { valid=false; }
-    
-private:
-    unsigned int *registers;
-    bool valid;
-};
+    return registers[3];
+}
+
+inline unsigned int SyscallParameters::getFirstParameter() const
+{
+    return registers[0];
+}
+
+inline unsigned int SyscallParameters::getSecondParameter() const
+{
+    return registers[1];
+}
+
+inline unsigned int SyscallParameters::getThirdParameter() const
+{
+    return registers[2];
+}
+
+inline void SyscallParameters::setReturnValue(unsigned int ret)
+{
+    registers[0]=ret;
+}
 
 inline void portableSwitchToUserspace()
 {

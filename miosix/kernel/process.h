@@ -110,6 +110,7 @@ private:
     
     ElfProgram program; ///<The program that is running inside the process
     ProcessImage image; ///<The RAM image of a process
+    miosix_private::FaultData fault; ///< Contains information about faults
     std::vector<Thread *> threads; ///<Threads that belong to the process
     
     pid_t pid;  ///<The pid of this process

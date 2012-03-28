@@ -34,4 +34,23 @@
  */
 void unexpectedInterrupt();
 
+/**
+ * Possible kind of faults that the Cortex-M3 can report.
+ * They are used to print debug information if a process causes a fault
+ */
+enum FaultType
+{
+    MEMMANAGE= 0x10000, //The process attempted access outside its memory
+    USAGEFAULT=0x20000, //If the process does bad things such as divide by zero
+    DEBUGMON=  0x30000  //If the process contains BKPT instructions
+};
+
+/**
+ * A finer grained categorization of faults
+ */
+enum FaultSubType
+{
+    
+};
+
 #endif	//INTERRUPTS_H

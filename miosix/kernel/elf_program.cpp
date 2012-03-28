@@ -37,8 +37,8 @@ using namespace std;
 namespace miosix {
 
 ///\internal Enable/disable debugging of program loading
-#define DBG iprintf
-//#define DBG(x,...) ;
+//#define DBG iprintf
+#define DBG(x,...) ;
 
 ///By convention, in an elf file for Miosix, the data segment starts @ this addr
 static const unsigned int DATA_START=0x10000000;

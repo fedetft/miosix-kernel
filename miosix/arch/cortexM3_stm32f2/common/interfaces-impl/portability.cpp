@@ -182,6 +182,15 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
 
 #ifdef WITH_PROCESSES
 
+//
+// class FaultData
+//
+
+void FaultData::print() const
+{
+    
+}
+
 void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
         void *argv, unsigned int *gotBase)
 {
