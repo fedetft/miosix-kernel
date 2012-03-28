@@ -587,6 +587,30 @@ const int Thread::getStackSize()
     return cur->stacksize;
 }
 
+#ifdef WITH_PROCESSES
+
+miosix_private::SyscallParameters Thread::switchToUserspace()
+{
+    miosix_private::portableSwitchToUserspace();
+    miosix_private::SyscallParameters result(cur->userCtxsave);
+    return result;
+}
+
+void Thread::IRQhandleSvc(unsigned int svcNumber)
+{
+    if(cur->proc==0 || cur->userCtxsave==0) errorHandler(UNEXPECTED);
+    if(svcNumber==1)
+    {
+        const_cast<Thread*>(cur)->flags.IRQsetUserspace(true);
+        ::ctxsave=cur->userCtxsave;
+    } else {
+        const_cast<Thread*>(cur)->flags.IRQsetUserspace(false);
+        ::ctxsave=cur->ctxsave;
+    }
+}
+
+#endif //WITH_PROCESSES
+
 void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
 {
     void *result=0;
@@ -697,26 +721,6 @@ void Thread::setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
 {
     void *(*startfunc)(void*)=reinterpret_cast<void *(*)(void*)>(entry);
     miosix_private::initCtxsave(cur->userCtxsave,startfunc,stackTop,0,gotBase);
-}
-
-miosix_private::SyscallParameters Thread::switchToUserspace()
-{
-    miosix_private::portableSwitchToUserspace();
-    miosix_private::SyscallParameters result(cur->userCtxsave);
-    return result;
-}
-
-void Thread::IRQhandleSvc(unsigned int svcNumber)
-{
-    if(cur->proc==0 || cur->userCtxsave==0) errorHandler(UNEXPECTED);
-    if(svcNumber==1)
-    {
-        const_cast<Thread*>(cur)->flags.IRQsetUserspace(true);
-        ::ctxsave=cur->userCtxsave;
-    } else {
-        const_cast<Thread*>(cur)->flags.IRQsetUserspace(false);
-        ::ctxsave=cur->ctxsave;
-    }
 }
 
 #endif //WITH_PROCESSES

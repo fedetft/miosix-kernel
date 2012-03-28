@@ -690,6 +690,21 @@ public:
      * \return the size of the stack of the current thread.
      */
     static const int getStackSize();
+    
+    #ifdef WITH_PROCESSES
+    
+    /**
+     * \return the syscall parameters
+     */
+    static miosix_private::SyscallParameters switchToUserspace();
+    
+    /**
+     * Can only be called inside an IRQ, its use is to switch a thread between
+     * userspace/kernelspace and back to perform context switches
+     */
+    static void IRQhandleSvc(unsigned int svcNumber);
+    
+    #endif //WITH_PROCESSES
 	
 private:
     //Unwanted methods
@@ -873,17 +888,6 @@ private:
      */
     static void setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
         unsigned int *stackTop);
-    
-    /**
-     * \return the syscall parameters
-     */
-    static miosix_private::SyscallParameters switchToUserspace();
-    
-    /**
-     * Can only be called inside an IRQ, its use is to switch a thread between
-     * userspace/kernelspace and back to perform context switches
-     */
-    static void IRQhandleSvc(unsigned int svcNumber);
     
     #endif //WITH_PROCESSES
 
