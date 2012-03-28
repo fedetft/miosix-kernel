@@ -259,7 +259,7 @@ private:
  * kernel is paused will cause deadlock. Therefore, if possible, it is better to
  * use a Mutex instead of pausing the kernel<br>This function is safe to be
  * called even before the kernel is started. In this case it has no effect.
-*/
+ */
 void pauseKernel();
 
 /**
@@ -704,6 +704,15 @@ public:
      */
     static void IRQhandleSvc(unsigned int svcNumber);
     
+    /**
+     * Can only be called inside an IRQ, its use is to report a fault so that
+     * in case the fault has occurred within a process while it was executing
+     * in userspace, the process can be terminated.
+     * \param fault data about the occurred fault
+     * \return true if the fault was caused by a process, false otherwise.
+     */
+    static bool IRQreportFault(const miosix_private::FaultData& fault);
+    
     #endif //WITH_PROCESSES
 	
 private:
@@ -994,8 +1003,6 @@ private:
     #ifdef WITH_PROCESSES
     //Needs PKcreateUserspace(), setupUserspaceContext(), switchToUserspace()
     friend class Process;
-    //Needs access to IRQswitchToKernelspace()
-    friend void miosix_private::ISR_yield();
     #endif //WITH_PROCESSES
 };
 

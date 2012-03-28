@@ -32,6 +32,7 @@
 #include "logging.h"
 #include "arch_settings.h"
 #include "sync.h"
+#include "process.h"
 #include "kernel/scheduler/scheduler.h"
 #include <stdexcept>
 #include <algorithm>
@@ -598,7 +599,7 @@ miosix_private::SyscallParameters Thread::switchToUserspace()
 
 void Thread::IRQhandleSvc(unsigned int svcNumber)
 {
-    if(cur->proc==0 || cur->userCtxsave==0) errorHandler(UNEXPECTED);
+    if(cur->proc==0) errorHandler(UNEXPECTED);
     if(svcNumber==1)
     {
         const_cast<Thread*>(cur)->flags.IRQsetUserspace(true);
@@ -607,6 +608,15 @@ void Thread::IRQhandleSvc(unsigned int svcNumber)
         const_cast<Thread*>(cur)->flags.IRQsetUserspace(false);
         ::ctxsave=cur->ctxsave;
     }
+}
+
+bool Thread::IRQreportFault(const miosix_private::FaultData& fault)
+{
+    if(cur->proc==0 || const_cast<Thread*>(cur)->flags.isInUserspace()==false)
+        return false;
+    cur->proc->fault=fault;
+    const_cast<Thread*>(cur)->flags.IRQsetUserspace(false);
+    return true;
 }
 
 #endif //WITH_PROCESSES

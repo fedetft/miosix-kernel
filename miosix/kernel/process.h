@@ -133,6 +133,9 @@ private:
     static Mutex procMutex;
     ///Used to wait on process termination
     static ConditionVariable waiting;
+    
+    //Needs access to fault
+    friend class Thread;
 };
 
 } //namespace miosix

@@ -120,6 +120,11 @@ void *Process::start(void *argv)
         {
             running=false;
             #ifdef WITH_ERRLOG
+            iprintf("Process %d terminated due to a fault\n"
+                    "* Code base address was 0x%x\n"
+                    "* Data base address was %p\n",proc->pid,
+                    proc->program.getElfBase(),
+                    proc->image.getProcessBasePointer());
             proc->fault.print();
             #endif //WITH_ERRLOG
         } else {

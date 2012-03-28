@@ -32,7 +32,9 @@
 #include "interfaces/bsp.h"
 #include "kernel/scheduler/scheduler.h"
 #include "kernel/scheduler/tick_interrupt.h"
+#include "core/interrupts.h"
 #include <algorithm>
+#include <cstdio>
 
 /**
  * \internal
@@ -188,7 +190,39 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
 
 void FaultData::print() const
 {
-    
+    switch(id)
+    {
+        case MP:
+            iprintf("* Attempted data access @ 0x%x (PC was 0x%x)\n",arg,pc);
+            break;
+        case MP_NOADDR:
+            iprintf("* Invalid data access (PC was 0x%x)\n",pc);
+            break;
+        case MP_XN:
+            iprintf("* Attempted instruction fetch @ 0x%x\n",pc);
+            break;
+        case UF_DIVZERO:
+            iprintf("* Dvide by zero (PC was 0x%x)\n",pc);
+            break;
+        case UF_UNALIGNED:
+            iprintf("* Unaligned memory access (PC was 0x%x)\n",pc);
+            break;
+        case UF_COPROC:
+            iprintf("* Attempted coprocessor access (PC was 0x%x)\n",pc);
+            break;
+        case UF_EXCRET:
+            iprintf("* Invalid exception return sequence (PC was 0x%x)\n",pc);
+            break;
+        case UF_EPSR:
+            iprintf("* Attempted access to the EPSR (PC was 0x%x)\n",pc);
+            break;
+        case UF_UNDEF:
+            iprintf("* Undefined instruction (PC was 0x%x)\n",pc);
+            break;
+        case DEBUGMON:
+            iprintf("* BKPT instruction executed (PC was 0x%x)\n",pc);
+            break;
+    }
 }
 
 void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,

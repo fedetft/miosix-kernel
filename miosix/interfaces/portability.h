@@ -198,14 +198,6 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
 
 /**
  * \internal
- * It is used by the kernel, and should not be used by end users.
- * This is the implementation of the interrupt routine that is called when a
- * supervisor call is made.
- */
-void ISR_yield();
-
-/**
- * \internal
  * Cause a supervisor call that will switch the thread back to kernelspace
  * It is used by the kernel, and should not be used by end users.
  */
