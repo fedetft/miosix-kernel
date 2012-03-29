@@ -43,12 +43,13 @@ enum FaultType
     MP=1,          //Process attempted data access outside its memory
     MP_NOADDR=2,   //Process attempted data access outside its memory (missing addr)
     MP_XN=3,       //Process attempted code access outside its memory
-    UF_DIVZERO=5,  //Process attempted to divide by zero
-    UF_UNALIGNED=6,//Process attempted unaligned memory access
-    UF_COPROC=7,   //Process attempted a coprocessor access
-    UF_EXCRET=8,   //Process attempted an exception return
-    UF_EPSR=9,     //Process attempted to access the EPSR
-    UF_UNDEF=10,   //Process attempted to execute an invalid instruction
+    UF_DIVZERO=4,  //Process attempted to divide by zero
+    UF_UNALIGNED=5,//Process attempted unaligned memory access
+    UF_COPROC=6,   //Process attempted a coprocessor access
+    UF_EXCRET=7,   //Process attempted an exception return
+    UF_EPSR=8,     //Process attempted to access the EPSR
+    UF_UNDEF=9,    //Process attempted to execute an invalid instruction
+    UF_UNEXP=10,   //Unexpected usage fault
     DEBUGMON=11    //Process executed a BKPT instruction
 };
 

@@ -162,6 +162,15 @@ public:
     FaultData() : id(0) {}
     
     /**
+     * Constructor, initializes a FaultData object
+     * \param id id of the fault
+     * \param pc program counter at the moment of the fault
+     * \param arg eventual additional argument, depending on the fault id
+     */
+    FaultData(int id, unsigned int pc, unsigned int arg=0)
+            : id(id), pc(pc), arg(arg) {}
+    
+    /**
      * \return true if a fault happened within a process
      */
     bool faultHappened() const { return id!=0; }
@@ -173,8 +182,8 @@ public:
     
 private:
     int id; ///< Id of the fault or zero if no faults
-    int pc; ///< Program counter value at the time of the fault
-    int arg;///< Eventual additional argument, valid only for some id values
+    unsigned int pc; ///< Program counter value at the time of the fault
+    unsigned int arg;///< Eventual argument, valid only for some id values
 };
 
 /**
