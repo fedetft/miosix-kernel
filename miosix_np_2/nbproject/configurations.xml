@@ -175,7 +175,9 @@
                 <in>bsp_impl.h</in>
                 <in>console-impl.h</in>
                 <in>console.cpp</in>
+                <in>hwmapping.h</in>
               </df>
+              <in>EthBoardV2.cfg</in>
               <in>board_settings.h</in>
               <in>stm32_1m+128k_rom.ld</in>
             </df>

@@ -140,6 +140,9 @@ void IRQbspInit()
     ledOn();
     delayMs(100);
     ledOff();
+    
+    mii::res::high();
+    
     #ifndef STDOUT_REDIRECTED_TO_DCC
     IRQstm32f2serialPortInit();
     #endif //STDOUT_REDIRECTED_TO_DCC
