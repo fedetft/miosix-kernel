@@ -88,8 +88,20 @@ void NMI_Handler()
     waitConsoleAndReboot();
 }
 
-void HardFault_Handler()
+void __attribute__((naked)) HardFault_Handler()
 {
+    saveContext();
+    //Call HardFault_impl(). Name is a C++ mangled name.
+    asm volatile("bl _Z14HardFault_implv");
+    restoreContext();
+}
+
+void __attribute__((noinline)) HardFault_impl()
+{
+    #ifdef WITH_PROCESSES
+    if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
+        HARDFAULT,getProgramCounter()))) return;
+    #endif //WITH_PROCESSES
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected HardFault @ ");
     printUnsignedInt(getProgramCounter());
@@ -119,7 +131,11 @@ void __attribute__((noinline)) MemManage_impl()
     else if(cfsr & 0x00000080) { id=MP; arg=SCB->MMFAR; }
     else id=MP_NOADDR;
     if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
-        id,getProgramCounter(),arg))) return;
+        id,getProgramCounter(),arg)))
+    {
+        SCB->SHCSR &= ~(1<<13); //Clear MEMFAULTPENDED bit
+        return;
+    }
     #endif //WITH_PROCESSES
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected MemManage @ ");
@@ -187,7 +203,11 @@ void __attribute__((noinline)) UsageFault_impl()
     else if(cfsr & 0x00010000) id=UF_UNDEF;
     else id=UF_UNEXP;
     if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
-        id,getProgramCounter()))) return;
+        id,getProgramCounter())))
+    {
+        SCB->SHCSR &= ~(1<<12); //Clear USGFAULTPENDED bit
+        return;
+    }
     #endif //WITH_PROCESSES
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected UsageFault @ ");
@@ -204,18 +224,6 @@ void __attribute__((noinline)) UsageFault_impl()
 
 void __attribute__((naked)) DebugMon_Handler()
 {
-    saveContext();
-    //Call DebugMon_impl(). Name is a C++ mangled name.
-    asm volatile("bl _Z13DebugMon_implv");
-    restoreContext();
-}
-
-void __attribute__((noinline)) DebugMon_impl()
-{
-    #ifdef WITH_PROCESSES
-    if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
-        DEBUGMON,getProgramCounter()))) return;
-    #endif //WITH_PROCESSES
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected DebugMon @ ");
     printUnsignedInt(getProgramCounter());

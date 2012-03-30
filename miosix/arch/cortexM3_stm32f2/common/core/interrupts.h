@@ -50,7 +50,7 @@ enum FaultType
     UF_EPSR=8,     //Process attempted to access the EPSR
     UF_UNDEF=9,    //Process attempted to execute an invalid instruction
     UF_UNEXP=10,   //Unexpected usage fault
-    DEBUGMON=11    //Process executed a BKPT instruction
+    HARDFAULT=11   //Hardfault (for example process executed a BKPT instruction)
 };
 
 #endif	//INTERRUPTS_H

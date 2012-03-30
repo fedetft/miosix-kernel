@@ -222,8 +222,8 @@ void FaultData::print() const
         case UF_UNEXP:
             iprintf("* Unexpected usage fault (PC was 0x%x)\n",pc);
             break;
-        case DEBUGMON:
-            iprintf("* BKPT instruction executed (PC was 0x%x)\n",pc);
+        case HARDFAULT:
+            iprintf("* Hardfault (PC was 0x%x)\n",pc);
             break;
     }
 }

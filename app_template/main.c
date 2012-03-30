@@ -10,7 +10,7 @@ int mystrlen(const char *s)
 
 int main()
 {
-	static const char str[]="1=sleep 5s, 2=exit\n";
+	static const char str[]="0=divzero 1=sleep 5s, 2=exit 3=bkpt 4=dangling\n";
 	static const char str2[]="Unexpected command\n";
 	for(;;)
 	{
@@ -18,13 +18,24 @@ int main()
 		write(1,str,mystrlen(str));
 		int len=read(0,result,sizeof(result));
 		if(len<1) continue;
+		int i=10/(int)(result[0]-'0');
+		unsigned int *p=(unsigned int *)0xc0000000;
 		switch(result[0])
 		{
+			case '0':
+				usleep(i);
+				break;
 			case '1':
 				usleep(5000000);
 				break;
 			case '2':
 				return 0;
+			case '3':
+				asm volatile("bkpt");
+				break;
+			case '4':
+				usleep(*p);
+				break;
 			default:
 				write(1,str2,mystrlen(str2));
 		}
