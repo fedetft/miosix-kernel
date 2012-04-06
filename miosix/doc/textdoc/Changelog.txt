@@ -1,6 +1,7 @@
 Changelog for Miosix np embedded OS
 
 v1.60
+- Added EthBoardV2 board to the list of supported boards
 - Added configurations support to the Netbeans project. There is now one
   configuration for each supported board. This improves code completion for
   architecture and board specific symbols. Note that selecting a board from the

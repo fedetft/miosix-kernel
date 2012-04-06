@@ -177,9 +177,7 @@
                 <in>console.cpp</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>EthBoardV2.cfg</in>
               <in>board_settings.h</in>
-              <in>stm32_1m+128k_rom.ld</in>
             </df>
           </df>
           <df name="cortexM4_stm32f4">
@@ -739,6 +737,50 @@
             <preprocessorList>
               <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
               <Elem>_BOARD_STM3220G_EVAL</Elem>
+              <Elem>_MIOSIX</Elem>
+              <Elem>_POSIX_THREADS</Elem>
+            </preprocessorList>
+          </ccTool>
+        </makeTool>
+      </makefileType>
+    </conf>
+    <conf name="stm32f207zg_ethboard_v2" type="0">
+      <toolsSet>
+        <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
+        <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
+      </toolsSet>
+      <makefileType>
+        <makeTool>
+          <buildCommandWorkingDir>..</buildCommandWorkingDir>
+          <buildCommand>${MAKE} -f Makefile</buildCommand>
+          <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
+          <executablePath></executablePath>
+          <cTool>
+            <incDir>
+              <pElem>..</pElem>
+              <pElem>../miosix</pElem>
+              <pElem>../miosix/arch/common</pElem>
+              <pElem>../miosix/arch/cortexM3_stm32f2/common</pElem>
+              <pElem>../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2</pElem>
+            </incDir>
+            <preprocessorList>
+              <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
+              <Elem>_BOARD_ETHBOARDV2</Elem>
+              <Elem>_MIOSIX</Elem>
+              <Elem>_POSIX_THREADS</Elem>
+            </preprocessorList>
+          </cTool>
+          <ccTool>
+            <incDir>
+              <pElem>..</pElem>
+              <pElem>../miosix</pElem>
+              <pElem>../miosix/arch/common</pElem>
+              <pElem>../miosix/arch/cortexM3_stm32f2/common</pElem>
+              <pElem>../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2</pElem>
+            </incDir>
+            <preprocessorList>
+              <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
+              <Elem>_BOARD_ETHBOARDV2</Elem>
               <Elem>_MIOSIX</Elem>
               <Elem>_POSIX_THREADS</Elem>
             </preprocessorList>
