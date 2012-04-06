@@ -1,10 +1,21 @@
 
 This example shows how to synchronize between a thread and a DMA peripheral.
-
 To run this example, copy the content of this directory into the top level
 directory.
-Since the code is designed to run with an stm32vldiscovery, follow the kernel
-configuration procedure for this board here:
+
+This example supports the following two boards:
+
+1) stm32f4discovery
+===================
+
+This board has a builting I2S audio DAC, just configure the kernel for
+this board (OPT_BOARD := stm32f407vg_stm32f4discovery in Makefile.inc),
+make; make program and plug headphone jack to the board's connector.
+
+2) stm32vldiscovery
+===================
+
+Follow the kernel configuration procedure for this board here:
 
 http://www.webalice.it/fede.tft/miosix/boards/stm32vldiscovery-config.html
 
