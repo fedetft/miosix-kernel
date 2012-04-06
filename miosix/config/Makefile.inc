@@ -434,7 +434,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STRIVE_MINI -DSTM32F10X_HD
-        CXXFLAGS_BASE += -D_BOARD_STRIVE_MINI -DSTM32F10X_HD -D_POSIX_THREADS
+        CXXFLAGS_BASE += -D_BOARD_STRIVE_MINI -DSTM32F10X_HD
 
         ## Clock frequency
         CLOCK_FREQ := -DSYSCLK_FREQ_72MHz=72000000
@@ -469,7 +469,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_REDBULL_V2 -DSTM32F10X_HD
-        CXXFLAGS_BASE += -D_BOARD_REDBULL_V2 -DSTM32F10X_HD -D_POSIX_THREADS
+        CXXFLAGS_BASE += -D_BOARD_REDBULL_V2 -DSTM32F10X_HD
 
         ## Clock frequency
         CLOCK_FREQ := -DSYSCLK_FREQ_72MHz=72000000

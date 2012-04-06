@@ -1,6 +1,11 @@
 Changelog for Miosix np embedded OS
 
 v1.60
+- Added configurations support to the Netbeans project. There is now one
+  configuration for each supported board. This improves code completion for
+  architecture and board specific symbols. Note that selecting a board from the
+  IDE does not replace the need to edit miosix/config/Makefile.inc
+- Adapted sad_trombone example to also support the stm32f4discovery board
 - Added support to stm3220g-eval to miosix/bootloaders/stm32, and renamed
   folder (before it was miosix/bootloaders/stm3210e-eval)
 - Added linker scripts that support external ram to stm3220g-eval

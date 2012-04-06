@@ -18,6 +18,38 @@
                     <name>Default</name>
                     <type>0</type>
                 </confElem>
+                <confElem>
+                    <name>lpc2138_miosix_board</name>
+                    <type>0</type>
+                </confElem>
+                <confElem>
+                    <name>stm32f103ze_stm3210e-eval</name>
+                    <type>0</type>
+                </confElem>
+                <confElem>
+                    <name>stm32f103ve_mp3v2</name>
+                    <type>0</type>
+                </confElem>
+                <confElem>
+                    <name>stm32f100rb_stm32vldiscovery</name>
+                    <type>0</type>
+                </confElem>
+                <confElem>
+                    <name>stm32f103ve_strive_mini</name>
+                    <type>0</type>
+                </confElem>
+                <confElem>
+                    <name>stm32f103ze_redbull_v2</name>
+                    <type>0</type>
+                </confElem>
+                <confElem>
+                    <name>stm32f407vg_stm32f4discovery</name>
+                    <type>0</type>
+                </confElem>
+                <confElem>
+                    <name>stm32f207ig_stm3220g-eval</name>
+                    <type>0</type>
+                </confElem>
             </confList>
         </data>
     </configuration>
