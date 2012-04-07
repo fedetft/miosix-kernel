@@ -182,18 +182,20 @@ ifeq ($(OPT_BOARD),stm32f207zg_ethboard_v2)
     ## Linker script type, there are three options
     ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
     ##    the most common choice, available for all microcontrollers
+    ## 2) Code in external RAM, stack + heap in internal RAM
+    ##    (file *_code_in_xram.ld) useful for debugging. Code runs
+    ##    *very* slow compared to FLASH. Works only with a booloader that
+    ##    forwards interrrupts @ 0x60000000 (see miosix/bootloaders for one).
+    ##    You must -D__CODE_IN_XRAM below.
     LINKER_SCRIPT_PATH := arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/
-    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom.ld
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_code_in_xram.ld
 
-    ## Enable/disable initialization of external RAM at boot. Three options:
-    ## __ENABLE_XRAM : If you want the heap in xram (with an appropriate linker
-    ## script selected above)
-    ## __ENABLE_XRAM and __CODE_IN_XRAM : Debug mode with code + stack + heap
-    ## in xram (with an appropriate linker script selected above)
-    ## none selected : don't use xram (with an appropriate linker script
-    ## selected above)
-    XRAM := -D__ENABLE_XRAM
-    #XRAM := -D__ENABLE_XRAM -D__CODE_IN_XRAM
+    ## XRAM is always enabled on this board, even if the _rom linker script
+    ## does not make explicit use of it.
+    ## Uncommenting __CODE_IN_XRAM (with an appropriate linker script selected
+    ## above) allows to run code from external RAM, useful for debugging
+    XRAM := -D__CODE_IN_XRAM
 
 endif
 
@@ -661,6 +663,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ARCH_SRC :=                                  \
         $(ARCH_INC)/interfaces-impl/disk.cpp         \
         $(BOARD_INC)/interfaces-impl/console.cpp     \
+        $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -700,6 +703,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ARCH_SRC :=                                  \
         $(ARCH_INC)/interfaces-impl/disk.cpp         \
         $(BOARD_INC)/interfaces-impl/console.cpp     \
+        $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -709,15 +713,18 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## Clock frequency
         CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_120MHz=120000000
 
+        ## XRAM is always enabled in this board
+        XRAM += -D__ENABLE_XRAM
+
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld)
+        ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_1m+128k_code_in_xram.ld)
         PROGRAM_CMDLINE := miosix/bootloaders/stm32/pc_loader/pc_loader \
-        /dev/ttyUSB0 main.bin
+        /dev/ttyUSB1 main.bin
         else
         PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
         endif
@@ -760,7 +767,6 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     arch/common/drivers/dcc.cpp                              \
     $(ARCH_INC)/core/interrupts.cpp                          \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
-    $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
     $(ARCH_INC)/CMSIS/core_cm3.c                             \
     $(ARCH_INC)/CMSIS/system_stm32f2xx.c

@@ -132,7 +132,7 @@ void IRQbspInit()
     volatile uint32_t& BCR1=FSMC_Bank1->BTCR[0];
     volatile uint32_t& BTR1=FSMC_Bank1->BTCR[1];
     BCR1=0x00001011; //16bit width, write enabled, SRAM mode
-    BTR1=0x00000200; //DATAST=2 FIXME: optimize!
+    BTR1=0x00000200; //DATAST=2
 
     //Configure MCO to output 25MHz clock
     RCC->CFGR |= RCC_CFGR_MCO1_1;
