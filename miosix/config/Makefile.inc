@@ -137,6 +137,10 @@ ifeq ($(OPT_BOARD),stm32f407vg_stm32f4discovery)
     ## uncommented when using the ram linker script
     #SRAM_BOOT := -DVECT_TAB_SRAM
 
+    ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
+    CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
+    #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_84MHz=84000000
+
 endif
 
 ##---------------------------------------------------------------------------
@@ -584,9 +588,6 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32F4DISCOVERY 
         CXXFLAGS_BASE += -D_BOARD_STM32F4DISCOVERY
-
-        ## Clock frequency
-        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
