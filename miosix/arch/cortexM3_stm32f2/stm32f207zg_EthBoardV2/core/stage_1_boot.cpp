@@ -63,13 +63,11 @@ void program_startup()
     unsigned char *edata=&_edata;
     unsigned char *bss_start=&_bss_start;
     unsigned char *bss_end=&_bss_end;
-//    #ifndef __CODE_IN_XRAM
+    //The memcpy is usually enclosed in an #ifndef __ENABLE_XRAM, in other
+    //boards but in this case it is not, since the *_code_in_xram.ld linker
+    //script puts code in XRAM, but data in the internal one, so there's still
+    //the need to copy it in its final place
     memcpy(data, etext, edata-data);
-//    #else //__CODE_IN_XRAM
-//    (void)etext; //Avoid unused variable warning
-//    (void)data;
-//    (void)edata;
-//    #endif //__CODE_IN_XRAM
     memset(bss_start, 0, bss_end-bss_start);
 
 	//Initialize C++ global constructors

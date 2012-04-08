@@ -144,7 +144,6 @@
               </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
-                <in>delays.cpp</in>
                 <in>disk.cpp</in>
                 <in>endianness_impl.h</in>
                 <in>gpio_impl.cpp</in>
@@ -163,6 +162,7 @@
                 <in>bsp_impl.h</in>
                 <in>console-impl.h</in>
                 <in>console.cpp</in>
+                <in>delays.cpp</in>
               </df>
               <in>board_settings.h</in>
             </df>
@@ -175,6 +175,7 @@
                 <in>bsp_impl.h</in>
                 <in>console-impl.h</in>
                 <in>console.cpp</in>
+                <in>delays.cpp</in>
                 <in>hwmapping.h</in>
               </df>
               <in>board_settings.h</in>

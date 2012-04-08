@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
 v1.60
+- Fixed the stm32 SDIO driver to prevent a glitch on the CMD pin from creating
+  isues with the card initialization.
 - Added EthBoardV2 board to the list of supported boards
 - Added configurations support to the Netbeans project. There is now one
   configuration for each supported board. This improves code completion for

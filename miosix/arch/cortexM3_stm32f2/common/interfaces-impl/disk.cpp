@@ -656,9 +656,8 @@ public:
         clockReductionAvailable=0;
         // No hardware flow control, SDIO_CK generated on rising edge, 1bit bus
         // width, no clock bypass, no powersave.
-        // Set low clock speed 400KHz, 72MHz/400KHz-2=178
-        SDIO->CLKCR=CLOCK_400KHz;
-        SDIO->CLKCR |= SDIO_CLKCR_CLKEN;
+        // Set low clock speed 400KHz
+        SDIO->CLKCR=CLOCK_400KHz | SDIO_CLKCR_CLKEN;
     }
 
     /**
@@ -701,17 +700,9 @@ public:
 
 private:
     
-    /**
-     * \internal
-     * Value of SDIO->CLKCR that will give a 400KHz clock, depending on cpu
-     * clock speed.
-     */
-    #ifdef SYSCLK_FREQ_120MHz
-    //SDIO is on APB2 @ 60MHz
-    static const unsigned int CLOCK_400KHz=148;
-    #else
-    #warning "SDIO configuration not available for this clock frequency"
-    #endif
+    //On stm32f2 SDIOCLK is always 48MHz
+    static const unsigned int CLOCK_400KHz=118; //48MHz/(118+2)=400KHz
+    static const unsigned int CLOCK_MAX=0;      //48MHz/(0+2)  =24MHz
 
     ///\internal Clock enabled, bus width 4bit, clock powersave enabled.
     static const unsigned int CLKCR_FLAGS=SDIO_CLKCR_CLKEN |
@@ -738,28 +729,25 @@ void ClockController::calibrateClockSpeed()
 
     DBG("Automatic speed calibration\n");
     unsigned int buffer[512/sizeof(unsigned int)];
-    unsigned int minFreq=CLOCK_400KHz; //400KHz, independent of CPU clock
-    unsigned int maxFreq=1;            //24MHz  with CPU running @ 72MHz
+    unsigned int minFreq=CLOCK_400KHz;
+    unsigned int maxFreq=CLOCK_MAX;
     unsigned int selected;
     while(minFreq-maxFreq>1)
     {
         selected=(minFreq+maxFreq)/2;
         DBG("Trying CLKCR=%d\n",selected);
-        SDIO->CLKCR=selected;
-        SDIO->CLKCR |= CLKCR_FLAGS;
+        SDIO->CLKCR=selected | CLKCR_FLAGS;
         if(Disk::read(reinterpret_cast<unsigned char*>(buffer),0,1))
             minFreq=selected;
         else maxFreq=selected;
     }
     //Last round of algorithm
-    SDIO->CLKCR=maxFreq;
-    SDIO->CLKCR |= CLKCR_FLAGS;
+    SDIO->CLKCR=maxFreq | CLKCR_FLAGS;
     if(Disk::read(reinterpret_cast<unsigned char*>(buffer),0,1))
     {
         DBG("Optimal CLKCR=%d\n",maxFreq);
     } else {
-        SDIO->CLKCR=minFreq;
-        SDIO->CLKCR |= CLKCR_FLAGS;
+        SDIO->CLKCR=minFreq | CLKCR_FLAGS;
         DBG("Optimal CLKCR=%d\n",minFreq);
     }
 
@@ -782,8 +770,7 @@ bool ClockController::IRQreduceClockSpeed()
     if(currentClkcr<10) currentClkcr++;
     else currentClkcr+=2;
 
-    SDIO->CLKCR=currentClkcr;
-    SDIO->CLKCR |= CLKCR_FLAGS;
+    SDIO->CLKCR=currentClkcr | CLKCR_FLAGS;
     return true;
 }
 
@@ -1094,16 +1081,6 @@ private:
 
 /**
  * \internal
- * Datasheet says that there must be at least seven clock cycles between
- * two accesses to SDIO->POWER, and this ensures this constraint.
- */
-static inline void sevenNop()
-{
-    __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP();
-}
-
-/**
- * \internal
  * Initialzes the SDIO peripheral in the STM32
  */
 static void initSDIOPeripheral()
@@ -1128,14 +1105,20 @@ static void initSDIOPeripheral()
     }
 
     SDIO->POWER=0; //Power off state
+    delayUs(1);
     SDIO->CLKCR=0;
     SDIO->CMD=0;
     SDIO->DCTRL=0;
     SDIO->ICR=0xc007ff;
-    sevenNop();
     SDIO->POWER=SDIO_POWER_PWRCTRL_1 | SDIO_POWER_PWRCTRL_0; //Power on state
+    //This delay is particularly important: when setting the POWER register a
+    //glitch on the CMD pin happens. This glitch has a fast fall time and a slow
+    //rise time resembling an RC charge with a ~6us rise time. If the clock is
+    //started too soon, the card sees a clock pulse while CMD is low, and
+    //interprets it as a start bit. No, setting POWER to powerup does not
+    //eliminate the glitch.
+    delayUs(10);
     ClockController::setLowSpeedClock();
-    sevenNop();
 }
 
 /**
@@ -1242,9 +1225,6 @@ bool Disk::isAvailable()
 
 void Disk::init()
 {
-    //When remounting the filesystem reset the card also before reducing clock
-    if(diskInitialized) Command::send(Command::CMD0,0);
-
     initSDIOPeripheral();
 
     // This is more important than it seems, since CMD55 requires the card's RCA
