@@ -557,6 +557,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     $(ARCH_INC)/drivers/serial.cpp               \
     $(ARCH_INC)/interfaces-impl/portability.cpp  \
     $(ARCH_INC)/interfaces-impl/delays.cpp       \
+    $(ARCH_INC)/interfaces-impl/gpio_impl.cpp    \
     $(ARCH_INC)/CMSIS/core_cm3.c                 \
     $(ARCH_INC)/CMSIS/system_stm32f10x.c
 

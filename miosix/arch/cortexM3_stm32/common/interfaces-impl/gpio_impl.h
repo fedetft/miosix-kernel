@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2009, 2010 by Terraneo Federico                         *
+ *   Copyright (C) 2009, 2010, 2011, 2012 by Terraneo Federico             *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -33,12 +33,15 @@
  * 1.2 Fixed a bug
  * 1.3 Applied patch by Lee Richmond (http://pastebin.com/f7ae1a65f). Now
  *     mode() is inlined too.
+ * 1.4 Added GpioPin for easily passing a Gpio as a parameter to a function
  */
 
 #ifndef GPIO_IMPL_H
 #define	GPIO_IMPL_H
 
 #include "interfaces/arch_registers.h"
+
+namespace miosix {
 
 /**
  * This class just encapsulates the Mode_ enum so that the enum names don't
@@ -91,6 +94,75 @@ struct GpioMode<P, N, false>
         reinterpret_cast<GPIO_TypeDef*>(P)->CRL &= ~(0xf<<(N*4));
         reinterpret_cast<GPIO_TypeDef*>(P)->CRL |= m<<(N*4);
     }
+};
+
+/**
+ * This class allows to easiliy pass a Gpio as a parameter to a function.
+ * Accessing a GPIO through this class is slower than with just the Gpio,
+ * but is a convenient alternative in some cases. Also, an instance of this
+ * class occupies a few bytes of memory, unlike the Gpio class.
+ */
+class GpioPin
+{
+public:
+    /**
+     * Constructor
+     * \param p GPIOA_BASE, GPIOB_BASE, ... as #define'd in stm32f10x.h
+     * \param n which pin (0 to 15)
+     */
+    GpioPin(unsigned int p, unsigned char n)
+        : p(reinterpret_cast<GPIO_TypeDef*>(p)), n(n) {}
+        
+    /**
+     * Set the GPIO to the desired mode (INPUT, OUTPUT, ...)
+     * \param m enum Mode_
+     */
+    void mode(Mode::Mode_ m);
+
+    /**
+     * Set the pin to 1, if it is an output
+     */
+    void high()
+    {
+        p->BSRR= 1<<n;
+    }
+
+    /**
+     * Set the pin to 0, if it is an output
+     */
+    void low()
+    {
+        p->BRR= 1<<n;
+    }
+
+    /**
+     * Allows to read the pin status
+     * \return 0 or 1
+     */
+    int value()
+    {
+        return (p->IDR & 1<<n) ? 1 : 0;
+    }
+
+    /**
+     * Set pullup on pin, if its mode is Mode::INPUT_PULL_UP_DOWN
+     */
+    void pullup()
+    {
+        high();//When in input pullup/pulldown mode ODR=choose pullup/pulldown
+    }
+
+    /**
+     * Set pulldown on pin, if its mode is Mode::INPUT_PULL_UP_DOWN
+     */
+    void pulldown()
+    {
+        low();//When in input pullup/pulldown mode ODR=choose pullup/pulldown
+    }
+
+private:
+    GPIO_TypeDef *p; //Pointer to the port
+    unsigned char n; //Number of the GPIO within the port
 };
 
 /**
@@ -157,9 +229,19 @@ public:
     {
         low();//When in input pullup/pulldown mode ODR=choose pullup/pulldown
     }
+    
+    /**
+     * \return this Gpio converted as a GpioPin class 
+     */
+    static GpioPin getPin()
+    {
+        return GpioPin(P,N);
+    }
 
 private:
     Gpio();//Only static member functions, disallow creating instances
 };
+
+} //namespace miosix
 
 #endif	//GPIO_IMPL_H

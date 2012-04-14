@@ -1,6 +1,11 @@
 Changelog for Miosix np embedded OS
 
 v1.60
+- Added util/lcd44780.h and util/lcd44780.cpp with support for the common
+  HD44780 LCD displays
+- Added Gpio::getPin() to convert from a Gpio to a GpioPin class
+- Added GpioPin class to make it easier to pass a Gpio as a parameter to a
+  function
 - Fixed the stm32 SDIO driver to prevent a glitch on the CMD pin from creating
   isues with the card initialization.
 - Added EthBoardV2 board to the list of supported boards
