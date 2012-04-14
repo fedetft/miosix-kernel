@@ -64,7 +64,7 @@ void IRQbspInit()
     GPIOD->OSPEEDR=0xaaaaaaaa;
     GPIOE->OSPEEDR=0xaaaaaaaa;
     GPIOH->OSPEEDR=0xaaaaaaaa;
-    led::mode(Mode::OUTPUT);
+    _led::mode(Mode::OUTPUT);
     ledOn();
     delayMs(100);
     ledOff();
