@@ -616,6 +616,7 @@ bool Thread::IRQreportFault(const miosix_private::FaultData& fault)
         return false;
     cur->proc->fault=fault;
     const_cast<Thread*>(cur)->flags.IRQsetUserspace(false);
+    ::ctxsave=cur->ctxsave;
     return true;
 }
 
