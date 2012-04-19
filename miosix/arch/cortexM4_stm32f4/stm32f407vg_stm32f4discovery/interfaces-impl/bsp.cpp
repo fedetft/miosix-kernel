@@ -57,7 +57,7 @@ void IRQbspInit()
     //Enable all gpios
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOBEN |
                     RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN |
-                    RCC_AHB1ENR_GPIOHEN;
+                    RCC_AHB1ENR_GPIOEEN | RCC_AHB1ENR_GPIOHEN;
     GPIOA->OSPEEDR=0xaaaaaaaa; //Default to 50MHz speed for all GPIOS
     GPIOB->OSPEEDR=0xaaaaaaaa;
     GPIOC->OSPEEDR=0xaaaaaaaa;
