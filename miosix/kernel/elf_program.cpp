@@ -49,9 +49,9 @@ ProcessPool& getProcessPool()
     //These are defined in the linker script
 	extern unsigned int _process_pool_start asm("_process_pool_start");
 	extern unsigned int _process_pool_end asm("_process_pool_end");
-    static ProcessPool pool(
-        reinterpret_cast<unsigned int*>(_process_pool_start),
-        _process_pool_end-_process_pool_start);
+    static ProcessPool pool(&_process_pool_start,
+        reinterpret_cast<unsigned int>(&_process_pool_end)-
+        reinterpret_cast<unsigned int>(&_process_pool_start));
     return pool;
 }
 
@@ -241,6 +241,7 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
 void ProcessImage::load(const ElfProgram& program)
 {
     if(image) getProcessPool().deallocate(image);
+//    if(image) delete[] image;
     size=MAX_PROCESS_IMAGE_SIZE;
     const unsigned int base=program.getElfBase();
     const Elf32_Phdr *phdr=program.getProgramHeaderTable();
@@ -275,6 +276,7 @@ void ProcessImage::load(const ElfProgram& program)
                             break;
                         case DT_MX_RAMSIZE:
                             image=getProcessPool().allocate(dyn->d_un.d_val);
+//                            image=new unsigned int[dyn->d_un.d_val/4];
                         default:
                             break;
                     }
@@ -318,7 +320,9 @@ void ProcessImage::load(const ElfProgram& program)
 
 ProcessImage::~ProcessImage()
 {
+    iprintf("%p\n",image);
     if(image) getProcessPool().deallocate(image);
+//    if(image) delete[] image;
 }
 
 } //namespace miosix

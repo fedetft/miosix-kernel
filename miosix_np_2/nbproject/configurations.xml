@@ -3,8 +3,10 @@
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df name="miosix_np_2" root="..">
       <df name="app_template">
+        <in>Makefile</in>
         <in>crt0.s</in>
         <in>main.c</in>
+        <in>miosix.ld</in>
         <in>prog3.h</in>
       </df>
       <df name="miosix">
@@ -289,6 +291,8 @@
           <in>logging.h</in>
           <in>process.cpp</in>
           <in>process.h</in>
+          <in>process_pool.cpp</in>
+          <in>process_pool.h</in>
           <in>pthread.cpp</in>
           <in>pthread_private.h</in>
           <in>stage_2_boot.cpp</in>

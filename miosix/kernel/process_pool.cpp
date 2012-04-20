@@ -40,7 +40,7 @@ unsigned int *ProcessPool::allocate(unsigned int size)
         if(notEmpty) continue;
         
         for(unsigned int j=0;j<sizeBit;j++) setBit(i+j);
-        unsigned int *result=poolBase+i*blockSize/4;
+        unsigned int *result=poolBase+i*blockSize/sizeof(unsigned int);
         allocatedBlocks[result]=size;
         return result;
     }
