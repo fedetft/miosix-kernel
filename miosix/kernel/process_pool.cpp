@@ -13,7 +13,7 @@ ProcessPool::ProcessPool(unsigned int *poolBase, unsigned int poolSize)
     memset(bitmap,0,numBytes);
 }
     
-unsigned int *ProcessPool::allocate(int size)
+unsigned int *ProcessPool::allocate(unsigned int size)
 {
     #ifndef TEST_ALLOC
     miosix::Lock<miosix::FastMutex> l(mutex);
@@ -25,21 +25,21 @@ unsigned int *ProcessPool::allocate(int size)
     unsigned int offset=0;
     if(reinterpret_cast<unsigned int>(poolBase) % size)
         offset=size-(reinterpret_cast<unsigned int>(poolBase) % size);
-    int startBit=offset/blockSize;
-    int sizeBit=size/blockSize;
+    unsigned int startBit=offset/blockSize;
+    unsigned int sizeBit=size/blockSize;
 
-    for(int i=startBit;i<=poolSize/blockSize;i+=sizeBit)
+    for(unsigned int i=startBit;i<=poolSize/blockSize;i+=sizeBit)
     {
         bool notEmpty=false;
-        for(int j=0;j<sizeBit;j++)
+        for(unsigned int j=0;j<sizeBit;j++)
         {
-            if(testBit(i+j)==0)continue;
+            if(testBit(i+j)==0) continue;
             notEmpty=true;
             break;
         }
         if(notEmpty) continue;
         
-        for(int j=0;j<sizeBit;j++) setBit(i+j);
+        for(unsigned int j=0;j<sizeBit;j++) setBit(i+j);
         unsigned int *result=poolBase+i*blockSize/4;
         allocatedBlocks[result]=size;
         return result;
@@ -57,7 +57,7 @@ void ProcessPool::deallocate(unsigned int *ptr)
     unsigned int size =(it->second)/blockSize;
     unsigned int firstBit=(reinterpret_cast<unsigned int>(ptr)-
                            reinterpret_cast<unsigned int>(poolBase))/blockSize;
-    for(int i=firstBit;i<firstBit+size;i++) clearBit(i);
+    for(unsigned int i=firstBit;i<firstBit+size;i++) clearBit(i);
     allocatedBlocks.erase(it);
 }
 

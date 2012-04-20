@@ -26,6 +26,7 @@
  ***************************************************************************/
 
 #include "elf_program.h"
+#include "process_pool.h"
 #include <stdexcept>
 #include <cstring>
 #include <cstdio>
@@ -42,6 +43,17 @@ namespace miosix {
 
 ///By convention, in an elf file for Miosix, the data segment starts @ this addr
 static const unsigned int DATA_START=0x10000000;
+
+ProcessPool& getProcessPool()
+{
+    //These are defined in the linker script
+	extern unsigned int _process_pool_start asm("_process_pool_start");
+	extern unsigned int _process_pool_end asm("_process_pool_end");
+    static ProcessPool pool(
+        reinterpret_cast<unsigned int*>(_process_pool_start),
+        _process_pool_end-_process_pool_start);
+    return pool;
+}
 
 //
 // class ElfProgram
@@ -228,7 +240,7 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
 
 void ProcessImage::load(const ElfProgram& program)
 {
-    if(image) delete[] image;
+    if(image) getProcessPool().deallocate(image);
     size=MAX_PROCESS_IMAGE_SIZE;
     const unsigned int base=program.getElfBase();
     const Elf32_Phdr *phdr=program.getProgramHeaderTable();
@@ -262,7 +274,7 @@ void ProcessImage::load(const ElfProgram& program)
                             dtRelsz=dyn->d_un.d_val;
                             break;
                         case DT_MX_RAMSIZE:
-                            image=new unsigned int[dyn->d_un.d_val/4];
+                            image=getProcessPool().allocate(dyn->d_un.d_val);
                         default:
                             break;
                     }
@@ -306,7 +318,7 @@ void ProcessImage::load(const ElfProgram& program)
 
 ProcessImage::~ProcessImage()
 {
-    if(image) delete[] image;
+    if(image) getProcessPool().deallocate(image);
 }
 
 } //namespace miosix

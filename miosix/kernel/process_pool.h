@@ -37,7 +37,7 @@ public:
      * \throws runtime_error in case the requested allocation is invalid,
      * or bad_alloc if out of memory
      */
-    unsigned int *allocate(int size);
+    unsigned int *allocate(unsigned int size);
     
     /**
      * Deallocate a memory block.
@@ -85,9 +85,9 @@ public:
     
     ///This constant specifies the size of the minimum allocatable block,
     ///in bits. So for example 10 is 1KB.
-    static const int blockBits=10;
+    static const unsigned int blockBits=10;
     ///This constant is the the size of the minimum allocatable block, in bytes.
-    static const int blockSize=1<<blockBits;
+    static const unsigned int blockSize=1<<blockBits;
     
 private:
     ProcessPool(const ProcessPool&);
@@ -97,7 +97,7 @@ private:
      * \param bit bit to test, from 0 to poolSize/blockSize
      * \return true if the bit is set
      */
-    bool testBit(int bit)
+    bool testBit(unsigned int bit)
     {
         return (bitmap[bit/(sizeof(unsigned int)*8)] &
             1<<(bit % (sizeof(unsigned int)*8))) ? true : false;
@@ -106,7 +106,7 @@ private:
     /**
      * \param bit bit to set, from 0 to poolSize/blockSize
      */
-    void setBit(int bit)
+    void setBit(unsigned int bit)
     {
         bitmap[(bit/(sizeof(unsigned int)*8))] |= 
             1<<(bit % (sizeof(unsigned int)*8));
@@ -115,7 +115,7 @@ private:
     /**
      * \param bit bit to clear, from 0 to poolSize/blockSize
      */
-    void clearBit(int bit)
+    void clearBit(unsigned int bit)
     {
         bitmap[bit/(sizeof(unsigned int)*8)] &= 
             ~(1<<(bit % (sizeof(unsigned int)*8)));
