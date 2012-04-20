@@ -1,11 +1,11 @@
 
-#include "pool_allocator.h"
+#include "process_pool.h"
 #include <stdexcept>
 #include <cstring>
 
 using namespace std;
 
-PoolAllocator::PoolAllocator(unsigned int *poolBase, unsigned int poolSize)
+ProcessPool::ProcessPool(unsigned int *poolBase, unsigned int poolSize)
     : poolBase(poolBase), poolSize(poolSize)
 {
     int numBytes=poolSize/blockSize/8;
@@ -13,7 +13,7 @@ PoolAllocator::PoolAllocator(unsigned int *poolBase, unsigned int poolSize)
     memset(bitmap,0,numBytes);
 }
     
-unsigned int *PoolAllocator::allocate(int size)
+unsigned int *ProcessPool::allocate(int size)
 {
     #ifndef TEST_ALLOC
     miosix::Lock<miosix::FastMutex> l(mutex);
@@ -47,13 +47,13 @@ unsigned int *PoolAllocator::allocate(int size)
     throw bad_alloc();
 }
 
-void PoolAllocator::deallocate(unsigned int *ptr)
+void ProcessPool::deallocate(unsigned int *ptr)
 {
     #ifndef TEST_ALLOC
     miosix::Lock<miosix::FastMutex> l(mutex);
     #endif //TEST_ALLOC
     map<unsigned int*, unsigned int>::iterator it= allocatedBlocks.find(ptr);
-    if(it==allocatedBlocks.end())throw bad_alloc();
+    if(it==allocatedBlocks.end())throw runtime_error("");
     unsigned int size =(it->second)/blockSize;
     unsigned int firstBit=(reinterpret_cast<unsigned int>(ptr)-
                            reinterpret_cast<unsigned int>(poolBase))/blockSize;
@@ -61,7 +61,7 @@ void PoolAllocator::deallocate(unsigned int *ptr)
     allocatedBlocks.erase(it);
 }
 
-PoolAllocator::~PoolAllocator()
+ProcessPool::~ProcessPool()
 {
     delete[] bitmap;
 }
@@ -69,7 +69,7 @@ PoolAllocator::~PoolAllocator()
 #ifdef TEST_ALLOC
 int main()
 {
-    PoolAllocator pool(reinterpret_cast<unsigned int*>(0x20008000),96*1024);
+    ProcessPool pool(reinterpret_cast<unsigned int*>(0x20008000),96*1024);
     while(1)
     {
         cout<<"a<size(exponent)>|d<addr>"<<endl;
