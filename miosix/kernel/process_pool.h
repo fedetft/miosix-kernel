@@ -1,4 +1,7 @@
 
+#ifndef PROCESS_POOL
+#define PROCESS_POOL
+
 #include <map>
 
 #ifndef TEST_ALLOC
@@ -9,8 +12,9 @@
 #include <sstream>
 #endif //TEST_ALLOC
 
-#ifndef PROCESS_POOL
-#define PROCESS_POOL
+#ifdef WITH_PROCESSES
+
+namespace miosix {
 
 /**
  * This class allows to handle a memory area reserved for the allocation of
@@ -130,5 +134,9 @@ private:
     miosix::FastMutex mutex; ///< Mutex to guard concurrent access
     #endif //TEST_ALLOC
 };
+
+} //namespace miosix
+
+#endif //WITH_PROCESSES
 
 #endif //PROCESS_POOL

@@ -8,7 +8,7 @@ using namespace std;
 using namespace miosix;
 
 int main()
-{
+{    
     getchar();
     
     ElfProgram prog(reinterpret_cast<const unsigned int*>(main_elf),main_elf_len);

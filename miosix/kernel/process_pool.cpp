@@ -5,6 +5,10 @@
 
 using namespace std;
 
+#ifdef WITH_PROCESSES
+
+namespace miosix {
+
 ProcessPool::ProcessPool(unsigned int *poolBase, unsigned int poolSize)
     : poolBase(poolBase), poolSize(poolSize)
 {
@@ -106,3 +110,7 @@ int main()
     }
 }
 #endif //TEST_ALLOC
+
+} //namespace miosix
+
+#endif //WITH_PROCESSES

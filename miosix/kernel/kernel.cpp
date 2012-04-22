@@ -590,13 +590,6 @@ const int Thread::getStackSize()
 
 #ifdef WITH_PROCESSES
 
-miosix_private::SyscallParameters Thread::switchToUserspace()
-{
-    miosix_private::portableSwitchToUserspace();
-    miosix_private::SyscallParameters result(cur->userCtxsave);
-    return result;
-}
-
 void Thread::IRQhandleSvc(unsigned int svcNumber)
 {
     if(cur->proc==0) errorHandler(UNEXPECTED);
@@ -671,6 +664,13 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
 
 #ifdef WITH_PROCESSES
 
+miosix_private::SyscallParameters Thread::switchToUserspace()
+{
+    miosix_private::portableSwitchToUserspace();
+    miosix_private::SyscallParameters result(cur->userCtxsave);
+    return result;
+}
+
 Thread *Thread::createUserspace(void *(*startfunc)(void *), void *argv,
                     unsigned short options, Process *proc)
 {   
@@ -728,10 +728,11 @@ Thread *Thread::createUserspace(void *(*startfunc)(void *), void *argv,
 }
 
 void Thread::setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
-    unsigned int *stackTop)
+    unsigned int ramImageSize)
 {
     void *(*startfunc)(void*)=reinterpret_cast<void *(*)(void*)>(entry);
-    miosix_private::initCtxsave(cur->userCtxsave,startfunc,stackTop,0,gotBase);
+    unsigned int *ep=gotBase+ramImageSize/4;
+    miosix_private::initCtxsave(cur->userCtxsave,startfunc,ep,0,gotBase);
 }
 
 #endif //WITH_PROCESSES

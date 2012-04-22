@@ -67,7 +67,7 @@ namespace miosix {
 /// This enables the dynamic loader to load elf programs, the extended system
 /// call service and, if the hardware supports it, the MPU to provide memory
 /// isolation of processes
-#define WITH_PROCESSES
+//#define WITH_PROCESSES
 
 #if defined(WITH_PROCESSES) && defined(__NO_EXCEPTIONS)
 #error Processes require C++ exception support
@@ -146,7 +146,7 @@ const unsigned int STACK_DEFAULT_FOR_PTHREAD=2048;
 
 /// Maximum size of the RAM image of a process. If a program requires more
 /// the kernel will not run it (MUST be divisible by 4)
-const unsigned int MAX_PROCESS_IMAGE_SIZE=20*1024;
+const unsigned int MAX_PROCESS_IMAGE_SIZE=64*1024;
 
 /// Minimum size of the stack for a process. If a program specifies a lower
 /// size the kernel will not run it (MUST be divisible by 4)

@@ -694,17 +694,14 @@ public:
     #ifdef WITH_PROCESSES
     
     /**
-     * \return the syscall parameters
-     */
-    static miosix_private::SyscallParameters switchToUserspace();
-    
-    /**
+     * \internal
      * Can only be called inside an IRQ, its use is to switch a thread between
      * userspace/kernelspace and back to perform context switches
      */
     static void IRQhandleSvc(unsigned int svcNumber);
     
     /**
+     * \internal
      * Can only be called inside an IRQ, its use is to report a fault so that
      * in case the fault has occurred within a process while it was executing
      * in userspace, the process can be terminated.
@@ -876,6 +873,15 @@ private:
     #ifdef WITH_PROCESSES
 
     /**
+     * \internal
+     * Causes a thread belonging to a process to switch to userspace, and
+     * execute userspace code. This function returns when the process performs
+     * a syscall or faults.
+     * \return the syscall parameters used to serve the system call.
+     */
+    static miosix_private::SyscallParameters switchToUserspace();
+
+    /**
      * Create a thread to be used inside a process. The thread is created in
      * WAIT status, a wakeup() on it is required to actually start it.
      * \param startfunc entry point
@@ -889,14 +895,13 @@ private:
     /**
      * Setup the userspace context of the thread, so that it can be later
      * switched to userspace. Must be called only once for each thread instance
-     * Can only be called when the kernel is paused
      * \param entry userspace entry point
      * \param gotBase base address of the GOT, also corresponding to the start
      * of the RAM image of the process
-     * \param stackTop top of userspace stack
+     * \param ramImageSize size of the process ram image
      */
     static void setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
-        unsigned int *stackTop);
+        unsigned int ramImageSize);
     
     #endif //WITH_PROCESSES
 

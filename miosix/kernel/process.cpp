@@ -107,12 +107,11 @@ Process::Process(const ElfProgram& program) : program(program)
 
 void *Process::start(void *argv)
 {
-    Thread *thr=Thread::getCurrentThread();
-    Process *proc=thr->proc;
+    Process *proc=Thread::getCurrentThread()->proc;
     if(proc==0) errorHandler(UNEXPECTED);
     Thread::setupUserspaceContext(
         proc->program.getEntryPoint(),proc->image.getProcessBasePointer(),
-        proc->image.getProcessBasePointer()+proc->image.getProcessImageSize());
+        proc->image.getProcessImageSize());
     bool running=true;
     do {
         miosix_private::SyscallParameters sp=Thread::switchToUserspace();
@@ -132,7 +131,9 @@ void *Process::start(void *argv)
             {
                 case 2:
                     running=false;
+                    #ifdef WITH_ERRLOG
                     iprintf("Exit %d\n",sp.getFirstParameter()); //FIXME: remove
+                    #endif //WITH_ERRLOG
                     break;
                 case 3:
                     //FIXME: check that the pointer belongs to the process

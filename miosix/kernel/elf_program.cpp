@@ -201,8 +201,12 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
         throw runtime_error("Requested stack is too small");
     if(ramSize>MAX_PROCESS_IMAGE_SIZE)
         throw runtime_error("Requested image size is too large");
-    if((stackSize & 0x3) || (ramSize & 0x3) ||
-       (stackSize>MAX_PROCESS_IMAGE_SIZE) || (dataSegmentSize+stackSize>ramSize))
+    if((stackSize & 0x3) ||
+       (ramSize & 0x3) ||
+       (ramSize < ProcessPool::blockSize) ||
+       (stackSize>MAX_PROCESS_IMAGE_SIZE) ||
+       (dataSegmentSize>MAX_PROCESS_IMAGE_SIZE) ||
+       (dataSegmentSize+stackSize>ramSize))
         throw runtime_error("Invalid stack or RAM size");
     
     if(hasRelocs!=0 && hasRelocs!=0x7) return false;
@@ -242,7 +246,6 @@ void ProcessImage::load(const ElfProgram& program)
 {
     if(image) getProcessPool().deallocate(image);
 //    if(image) delete[] image;
-    size=MAX_PROCESS_IMAGE_SIZE;
     const unsigned int base=program.getElfBase();
     const Elf32_Phdr *phdr=program.getProgramHeaderTable();
     const Elf32_Phdr *dataSegment=0;
@@ -275,6 +278,7 @@ void ProcessImage::load(const ElfProgram& program)
                             dtRelsz=dyn->d_un.d_val;
                             break;
                         case DT_MX_RAMSIZE:
+                            size=dyn->d_un.d_val;
                             image=getProcessPool().allocate(dyn->d_un.d_val);
 //                            image=new unsigned int[dyn->d_un.d_val/4];
                         default:
@@ -320,7 +324,6 @@ void ProcessImage::load(const ElfProgram& program)
 
 ProcessImage::~ProcessImage()
 {
-    iprintf("%p\n",image);
     if(image) getProcessPool().deallocate(image);
 //    if(image) delete[] image;
 }
