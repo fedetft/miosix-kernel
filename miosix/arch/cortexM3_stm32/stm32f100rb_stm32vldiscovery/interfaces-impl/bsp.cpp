@@ -58,7 +58,7 @@ void IRQbspInit()
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_IOPBEN |
                     RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN |
                     RCC_APB2ENR_AFIOEN;
-    led::mode(Mode::OUTPUT_2MHz);
+    _led::mode(Mode::OUTPUT_2MHz);
     ledOn();
     delayMs(100);
     ledOff();

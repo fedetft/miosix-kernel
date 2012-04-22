@@ -1,6 +1,22 @@
 Changelog for Miosix np embedded OS
 
 v1.60
+- Fixed a bug in ST code for the stm3220g-eval board: despite having a 2MB RAM,
+  A18, A19 and A20 were left as GPIOs, resulting in issues when accessing the
+  upper part of the RAM.
+- Added util/lcd44780.h and util/lcd44780.cpp with support for the common
+  HD44780 LCD displays
+- Added Gpio::getPin() to convert from a Gpio to a GpioPin class
+- Added GpioPin class to make it easier to pass a Gpio as a parameter to a
+  function
+- Fixed the stm32 SDIO driver to prevent a glitch on the CMD pin from creating
+  isues with the card initialization.
+- Added EthBoardV2 board to the list of supported boards
+- Added configurations support to the Netbeans project. There is now one
+  configuration for each supported board. This improves code completion for
+  architecture and board specific symbols. Note that selecting a board from the
+  IDE does not replace the need to edit miosix/config/Makefile.inc
+- Adapted sad_trombone example to also support the stm32f4discovery board
 - Added support to stm3220g-eval to miosix/bootloaders/stm32, and renamed
   folder (before it was miosix/bootloaders/stm3210e-eval)
 - Added linker scripts that support external ram to stm3220g-eval

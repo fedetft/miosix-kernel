@@ -155,7 +155,11 @@
 #define PLL_N      336
 
 /* SYSCLK = PLL_VCO / PLL_P */
+#ifdef SYSCLK_FREQ_168MHz
 #define PLL_P      2
+#elif SYSCLK_FREQ_84MHz
+#define PLL_P      4
+#endif
 
 /* USB OTG FS, SDIO and RNG Clock =  PLL_VCO / PLLQ */
 #define PLL_Q      7

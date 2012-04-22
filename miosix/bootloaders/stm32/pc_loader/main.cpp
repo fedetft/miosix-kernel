@@ -111,6 +111,7 @@ int main(int argc, char *argv[])
 				break;
 			case 1:
 				if(line.substr(0,19)!="Device: stm32f103ze" &&
+				   line.substr(0,19)!="Device: stm32f207zg" &&
 				   line.substr(0,19)!="Device: stm32f207ig")
 				{
 					cerr<<"Bootloader error"<<endl;

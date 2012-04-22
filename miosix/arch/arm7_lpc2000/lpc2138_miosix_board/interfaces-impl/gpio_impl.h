@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2009, 2010 by Terraneo Federico                         *
+ *   Copyright (C) 2009, 2010, 2011, 2012 by Terraneo Federico             *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -41,6 +41,8 @@
 
 #include "LPC213x.h"
 
+namespace miosix {
+
 /**
  * This class just encapsulates the Mode_ enum so that the enum names don't
  * clobber the global namespace.
@@ -75,6 +77,67 @@ struct GpioMemoryLayout
 
 const unsigned int GPIO0_BASE=0xe0028000;///<\internal Base address of GPIO0 registers
 const unsigned int GPIO1_BASE=0xe0028010;///<\internal Base address of GPIO1 registers
+
+/**
+ * This class allows to easiliy pass a Gpio as a parameter to a function.
+ * Accessing a GPIO through this class is slower than with just the Gpio,
+ * but is a convenient alternative in some cases. Also, an instance of this
+ * class occupies a few bytes of memory, unlike the Gpio class.
+ */
+class GpioPin
+{
+public:
+    /**
+     * Constructor
+     * \param p GPIO0_BASE or GPIO1_BASE. Select which port
+     * \param n which pin (0 to 15)
+     */
+    GpioPin(unsigned int p, unsigned char n)
+        : p(reinterpret_cast<GpioMemoryLayout*>(p)), n(n) {}
+        
+    /**
+     * Set the GPIO to the desired mode (INPUT, OUTPUT)
+     * \param m enum Mode_
+     */
+    void mode(Mode::Mode_ m)
+    {
+        if(m==Mode::INPUT)
+        {
+            p->IODIR &= ~(1<<n);
+        } else {
+            p->IODIR |= (1<<n);
+        }
+    }
+
+    /**
+     * Set the pin to 1, if it is an output
+     */
+    void high()
+    {
+        p->IOSET= 1<<n;
+    }
+
+    /**
+     * Set the pin to 0, if it is an output
+     */
+    void low()
+    {
+        p->IOCLR= 1<<n;
+    }
+
+    /**
+     * Allows to read the pin status
+     * \return 0 or 1
+     */
+    int value()
+    {
+        return (p->IOPIN & 1<<n) ? 1 : 0;
+    }
+
+private:
+    GpioMemoryLayout *p; //Pointer to the port
+    unsigned char n;     //Number of the GPIO within the port
+};
 
 /**
  * Gpio template class
@@ -129,9 +192,19 @@ public:
     {
         return ((reinterpret_cast<GpioMemoryLayout*>(P)->IOPIN & 1<<N)? 1 : 0);
     }
+    
+    /**
+     * \return this Gpio converted as a GpioPin class 
+     */
+    static GpioPin getPin()
+    {
+        return GpioPin(P,N);
+    }
 
 private:
     Gpio();//Only static member functions, disallow creating instances
 };
+
+} //namespace miosix
 
 #endif	//GPIO_IMPL_H

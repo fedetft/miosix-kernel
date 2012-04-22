@@ -34,6 +34,7 @@
  * 1.3 Applied patch by Lee Richmond (http://pastebin.com/f7ae1a65f). Now
  *     mode() is inlined too.
  * 1.4 Adapted to stm32f4
+ * 1.5 Added GpioPin for easily passing a Gpio as a parameter to a function
  */
 
 #ifndef GPIO_IMPL_H
@@ -103,6 +104,82 @@ protected:
 };
 
 /**
+ * This class allows to easiliy pass a Gpio as a parameter to a function.
+ * Accessing a GPIO through this class is slower than with just the Gpio,
+ * but is a convenient alternative in some cases. Also, an instance of this
+ * class occupies a few bytes of memory, unlike the Gpio class.
+ */
+class GpioPin : private GpioBase
+{
+public:
+    /**
+     * Constructor
+     * \param p GPIOA_BASE, GPIOB_BASE, ... as #define'd in stm32f4xx.h
+     * \param n which pin (0 to 15)
+     */
+    GpioPin(unsigned int p, unsigned char n)
+        : p(reinterpret_cast<GPIO_TypeDef*>(p)), n(n) {}
+    
+    /**
+     * Set the GPIO to the desired mode (INPUT, OUTPUT, ...)
+     * \param m enum Mode_
+     */
+    void mode(Mode::Mode_ m)
+    {
+        modeImpl(reinterpret_cast<unsigned int>(p),n,m);
+    }
+    
+    /**
+     * Set the GPIO speed
+     * \param s speed value
+     */
+    void speed(Speed::Speed_ s)
+    {
+        p->OSPEEDR &= ~(3<<(n*2));
+        p->OSPEEDR |= s<<(n*2);
+    }
+    
+    /**
+     * Select which of the many alternate functions is to be connected with the
+     * GPIO pin.
+     * \param af alternate function number, from 0 to 15
+     */
+    void alternateFunction(unsigned char af)
+    {
+        afImpl(reinterpret_cast<unsigned int>(p),n,af);
+    }
+
+    /**
+     * Set the pin to 1, if it is an output
+     */
+    void high()
+    {
+        p->BSRRL= 1<<n;
+    }
+
+    /**
+     * Set the pin to 0, if it is an output
+     */
+    void low()
+    {
+        p->BSRRH=1<<n;
+    }
+
+    /**
+     * Allows to read the pin status
+     * \return 0 or 1
+     */
+    int value()
+    {
+        return (p->IDR & (1<<n)) ? 1 : 0;
+    }
+    
+private:
+    GPIO_TypeDef *p; //Pointer to the port
+    unsigned char n; //Number of the GPIO within the port
+};
+
+/**
  * Gpio template class
  * \param P GPIOA_BASE, GPIOB_BASE, ... as #define'd in stm32f4xx.h
  * \param N which pin (0 to 15)
@@ -169,6 +246,14 @@ public:
     static int value()
     {
         return ((reinterpret_cast<GPIO_TypeDef*>(P)->IDR & 1<<N)? 1 : 0);
+    }
+    
+    /**
+     * \return this Gpio converted as a GpioPin class 
+     */
+    static GpioPin getPin()
+    {
+        return GpioPin(P,N);
     }
 
 private:

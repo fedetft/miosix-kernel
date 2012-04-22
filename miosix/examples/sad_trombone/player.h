@@ -40,11 +40,23 @@ public:
 	 * Fill a buffer with audio samples
 	 * \param buffer a buffer where audio samples (16bit unsigned, 44100Hz)
 	 * are to be stored. If there is not enough data to fill the entire buffer
-	 * the remaining part must be filled with 0x8000
-	 * \param length buffer length
+	 * the remaining part must be filled with 0
+	 * \param length buffer length, must be divisible by two
 	 * \return true if this is the last valif buffer (eof encountered)
 	 */
-	virtual bool fillBuffer(unsigned short *buffer, int length)=0;
+	virtual bool fillMonoBuffer(unsigned short *buffer, int length)=0;
+    
+    /**
+	 * Fill a stereo buffer with audio samples
+	 * \param buffer a buffer where audio samples (16bit unsigned, 44100Hz)
+	 * are to be stored. If there is not enough data to fill the entire buffer.
+     * The buffer format is alternating left-right samples, so buffer[0] is left
+     * buffer[1] is right, buffer[2] is again left...
+	 * the remaining part must be filled with 0
+	 * \param length buffer length, must be divisible by four
+	 * \return true if this is the last valif buffer (eof encountered)
+	 */
+	virtual bool fillStereoBuffer(unsigned short *buffer, int length)=0;
 
 	/**
 	 * Rewind the internal sound pointer so that succesive calls to
@@ -76,14 +88,26 @@ public:
 			: soundData(data), soundSize(size), index(0) {}
 
 	/**
-	 * 	 * Fill a buffer with audio samples
+	 * Fill a buffer with audio samples
 	 * \param buffer a buffer where audio samples (16bit unsigned, 44100Hz)
 	 * are to be stored. If there is not enough data to fill the entire buffer
-	 * the remaining part must be filled with 0x8000
-	 * \param length buffer length
+	 * the remaining part must be filled with 0
+	 * \param length buffer length, must be divisible by two
 	 * \return true if this is the last valif buffer (eof encountered)
 	 */
-	virtual bool fillBuffer(unsigned short *buffer, int size);
+	virtual bool fillMonoBuffer(unsigned short *buffer, int size);
+    
+    /**
+	 * Fill a stereo buffer with audio samples
+	 * \param buffer a buffer where audio samples (16bit unsigned, 44100Hz)
+	 * are to be stored. If there is not enough data to fill the entire buffer.
+     * The buffer format is alternating left-right samples, so buffer[0] is left
+     * buffer[1] is right, buffer[2] is again left...
+	 * the remaining part must be filled with 0
+	 * \param length buffer length, must be divisible by four
+	 * \return true if this is the last valif buffer (eof encountered)
+	 */
+	virtual bool fillStereoBuffer(unsigned short *buffer, int length);
 
 	/**
 	 * Rewind the internal sound pointer so that succesive calls to

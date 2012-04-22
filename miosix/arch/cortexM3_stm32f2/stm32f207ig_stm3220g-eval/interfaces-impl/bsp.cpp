@@ -69,7 +69,7 @@ void IRQbspInit()
     GPIOG->OSPEEDR=0x000c0fff | 0xaaaaaaaa; // SystemInit_ExtMemCtl)
     GPIOH->OSPEEDR=0xaaaaaaaa;
     GPIOI->OSPEEDR=0xaaaaaaaa;
-    led::mode(Mode::OUTPUT);
+    _led::mode(Mode::OUTPUT);
     sdCardDetect::mode(Mode::INPUT_PULL_UP);
     ledOn();
     delayMs(100);

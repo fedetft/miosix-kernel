@@ -111,6 +111,9 @@ void IRQstm32f4serialPortInit()
     #ifdef SYSCLK_FREQ_168MHz
     //USART2 is connected to APB1 @ 42MHz
     const unsigned int brr = (136<<4) | (11<<0); //BRR=136.6875 0.023% Error
+    #elif SYSCLK_FREQ_84MHz
+    //USART2 is connected to APB1 @ 21MHz
+    const unsigned int brr = (68<<4) | (6<<0); //BRR=68.375 0.023% Error
     #else
     #warning "No serial baudrate for this clock frequency"
     #endif

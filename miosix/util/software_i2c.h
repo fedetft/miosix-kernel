@@ -87,8 +87,6 @@ void SoftwareI2C<SDA, SCL>::init()
     SCL::mode(Mode::OPEN_DRAIN);
     SDA::high();
     SCL::high();
-    sendStart();//Send dummy start-stop to initialize the bus
-    sendStop();
 }
 
 template <typename SDA, typename SCL>
