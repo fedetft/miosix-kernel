@@ -445,23 +445,29 @@ void SystemInit_ExtMemCtl(void)
   
   /* Connect PDx pins to FSMC Alternate function */
   GPIOD->AFR[0]  = 0x00cc00cc;
-  GPIOD->AFR[1]  = 0xcc0ccccc;
+  //GPIOD->AFR[1]  = 0xcc0ccccc;
+  GPIOD->AFR[1]  = 0xcccccccc; //By TFT: enable PD13 as A18
   /* Configure PDx pins in Alternate function mode */  
-  GPIOD->MODER   = 0xa2aa0a0a;
+  //GPIOD->MODER   = 0xa2aa0a0a;
+  GPIOD->MODER   = 0xaaaa0a0a; //By TFT: enable PD13 as A18
   /* Configure PDx pins speed to 100 MHz */  
-  GPIOD->OSPEEDR = 0xf3ff0f0f;
+  //GPIOD->OSPEEDR = 0xf3ff0f0f;
+  GPIOD->OSPEEDR = 0xffff0f0f; //By TFT: enable PD13 as A18
   /* Configure PDx pins Output type to push-pull */  
   GPIOD->OTYPER  = 0x00000000;
   /* No pull-up, pull-down for PDx pins */ 
   GPIOD->PUPDR   = 0x00000000;
 
   /* Connect PEx pins to FSMC Alternate function */
-  GPIOE->AFR[0]  = 0xc00000cc;
+  //GPIOE->AFR[0]  = 0xc00000cc;
+  GPIOE->AFR[0]  = 0xc00cc0cc; //By TFT: enable PE3,PE4 as A19,A20
   GPIOE->AFR[1]  = 0xcccccccc;
   /* Configure PEx pins in Alternate function mode */ 
-  GPIOE->MODER   = 0xaaaa800a;
+  //GPIOE->MODER   = 0xaaaa800a;
+  GPIOE->MODER   = 0xaaaa828a; //By TFT: enable PE3,PE4 as A19,A20
   /* Configure PEx pins speed to 100 MHz */ 
-  GPIOE->OSPEEDR = 0xffffc00f;
+  //GPIOE->OSPEEDR = 0xffffc00f;
+  GPIOE->OSPEEDR = 0xffffc3cf; //By TFT: enable PE3,PE4 as A19,A20
   /* Configure PEx pins Output type to push-pull */  
   GPIOE->OTYPER  = 0x00000000;
   /* No pull-up, pull-down for PEx pins */ 
@@ -526,7 +532,7 @@ void SystemInit_ExtMemCtl(void)
   FSMC_NORSRAMInitStructure.FSMC_ReadWriteTimingStruct = &p;
   FSMC_NORSRAMInitStructure.FSMC_WriteTimingStruct = &p;
 */
-  
+   
 }
 #endif /* DATA_IN_ExtSRAM */
 
