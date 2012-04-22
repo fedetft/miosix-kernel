@@ -245,7 +245,6 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
 void ProcessImage::load(const ElfProgram& program)
 {
     if(image) getProcessPool().deallocate(image);
-//    if(image) delete[] image;
     const unsigned int base=program.getElfBase();
     const Elf32_Phdr *phdr=program.getProgramHeaderTable();
     const Elf32_Phdr *dataSegment=0;
@@ -280,7 +279,6 @@ void ProcessImage::load(const ElfProgram& program)
                         case DT_MX_RAMSIZE:
                             size=dyn->d_un.d_val;
                             image=getProcessPool().allocate(dyn->d_un.d_val);
-//                            image=new unsigned int[dyn->d_un.d_val/4];
                         default:
                             break;
                     }
@@ -325,7 +323,6 @@ void ProcessImage::load(const ElfProgram& program)
 ProcessImage::~ProcessImage()
 {
     if(image) getProcessPool().deallocate(image);
-//    if(image) delete[] image;
 }
 
 } //namespace miosix

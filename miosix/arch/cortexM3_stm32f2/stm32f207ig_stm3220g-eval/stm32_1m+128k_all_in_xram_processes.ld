@@ -5,7 +5,10 @@
 
 /*
  * This linker script puts:
- * - all (code, .data, .bss, stacks, heap) in the external ram.
+ * - all (code, .data, .bss, stacks, heap) in the external ram, using only
+ *   half of it (1MB).
+ * - the rest of the RAM (upper 1MB) is used as the process pool for allocating
+ *   processes.
  * It is most useful for debugging, since powercycling the board will erase code
  */
 
