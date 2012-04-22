@@ -69,6 +69,7 @@
                 <in>delays.cpp</in>
                 <in>disk.cpp</in>
                 <in>endianness_impl.h</in>
+                <in>gpio_impl.cpp</in>
                 <in>gpio_impl.h</in>
                 <in>portability.cpp</in>
                 <in>portability_impl.h</in>
@@ -321,6 +322,8 @@
         <df name="util">
           <in>crc16.cpp</in>
           <in>crc16.h</in>
+          <in>lcd44780.cpp</in>
+          <in>lcd44780.h</in>
           <in>software_i2c.h</in>
           <in>software_spi.h</in>
           <in>util.cpp</in>
