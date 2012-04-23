@@ -35,6 +35,7 @@
 #include "core/interrupts.h"
 #include <algorithm>
 #include <cstdio>
+#include <cstring>
 
 /**
  * \internal
@@ -247,6 +248,43 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     //leaving the content of r4-r8,r10-r11 uninitialized
 }
 
+//
+// class MPUConfiguration
+//
+
+MPUConfiguration::MPUConfiguration(unsigned int elfBase, unsigned int elfSize,
+        unsigned int imageBase, unsigned int imageSize)
+{
+    regValues[0]=(elfBase & (~0x1f)) | MPU_RBAR_VALID_Msk | 0;   //Region 0
+    regValues[2]=(imageBase & (~0x1f)) | MPU_RBAR_VALID_Msk | 1; //Region 1
+    #ifndef __CODE_IN_XRAM
+    regValues[1]=2<<MPU_RASR_AP_Pos
+               | MPU_RASR_C_Msk
+               | MPU_RASR_ENABLE_Msk
+               | (ffs(elfSize)-1)<<1;
+    regValues[3]=3<<MPU_RASR_AP_Pos
+               | MPU_RASR_XN_Msk
+               | MPU_RASR_C_Msk
+               | MPU_RASR_S_Msk
+               | MPU_RASR_ENABLE_Msk
+               | (ffs(imageSize)-1)<<1;
+    #else //__CODE_IN_XRAM
+    regValues[1]=2<<MPU_RASR_AP_Pos
+               | MPU_RASR_C_Msk
+               | MPU_RASR_B_Msk
+               | MPU_RASR_S_Msk
+               | MPU_RASR_ENABLE_Msk
+               | (ffs(elfSize)-1)<<1;
+    regValues[3]=3<<MPU_RASR_AP_Pos
+               | MPU_RASR_XN_Msk
+               | MPU_RASR_C_Msk
+               | MPU_RASR_B_Msk
+               | MPU_RASR_S_Msk
+               | MPU_RASR_ENABLE_Msk
+               | (ffs(imageSize)-1)<<1;
+    #endif //__CODE_IN_XRAM 
+}
+
 #endif //WITH_PROCESSES
 
 void IRQportableStartKernel()
@@ -264,6 +302,10 @@ void IRQportableStartKernel()
     SysTick->CTRL=SysTick_CTRL_ENABLE_Msk | SysTick_CTRL_TICKINT_Msk |
             SysTick_CTRL_CLKSOURCE_Msk;
 
+    #ifdef WITH_PROCESSES
+    //Enable MPU
+    MPU->CTRL=MPU_CTRL_PRIVDEFENA_Msk | MPU_CTRL_ENABLE_Msk;
+    #endif //WITH_PROCESSES
     #ifdef SCHED_TYPE_CONTROL_BASED
     AuxiliaryTimer::IRQinit();
     #endif //SCHED_TYPE_CONTROL_BASED

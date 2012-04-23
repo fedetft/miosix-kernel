@@ -1,3 +1,29 @@
+/***************************************************************************
+ *   Copyright (C) 2012 by Terraneo Federico and Luigi Rucco               *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   As a special exception, if other files instantiate templates or use   *
+ *   macros or inline functions from this file, or you compile this file   *
+ *   and link it with other works to produce a work based on this file,    *
+ *   this file does not by itself cause the resulting work to be covered   *
+ *   by the GNU General Public License. However the source code for this   *
+ *   file must still be made available in accordance with the GNU General  *
+ *   Public License. This exception does not invalidate any other reasons  *
+ *   why a work based on this file might be covered by the GNU General     *
+ *   Public License.                                                       *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
+ ***************************************************************************/ 
 
 #include "process_pool.h"
 #include <stdexcept>
@@ -9,12 +35,20 @@ using namespace std;
 
 namespace miosix {
 
-ProcessPool::ProcessPool(unsigned int *poolBase, unsigned int poolSize)
-    : poolBase(poolBase), poolSize(poolSize)
+ProcessPool& ProcessPool::instance()
 {
-    int numBytes=poolSize/blockSize/8;
-    bitmap=new unsigned int[numBytes/sizeof(unsigned int)];
-    memset(bitmap,0,numBytes);
+    #ifndef TEST_ALLOC
+    //These are defined in the linker script
+	extern unsigned int _process_pool_start asm("_process_pool_start");
+	extern unsigned int _process_pool_end asm("_process_pool_end");
+    static ProcessPool pool(&_process_pool_start,
+        reinterpret_cast<unsigned int>(&_process_pool_end)-
+        reinterpret_cast<unsigned int>(&_process_pool_start));
+    return pool;
+    #else //TEST_ALLOC
+    static ProcessPool pool(reinterpret_cast<unsigned int*>(0x20008000),96*1024);
+    return pool;
+    #endif //TEST_ALLOC
 }
     
 unsigned int *ProcessPool::allocate(unsigned int size)
@@ -65,6 +99,14 @@ void ProcessPool::deallocate(unsigned int *ptr)
     allocatedBlocks.erase(it);
 }
 
+ProcessPool::ProcessPool(unsigned int *poolBase, unsigned int poolSize)
+    : poolBase(poolBase), poolSize(poolSize)
+{
+    int numBytes=poolSize/blockSize/8;
+    bitmap=new unsigned int[numBytes/sizeof(unsigned int)];
+    memset(bitmap,0,numBytes);
+}
+
 ProcessPool::~ProcessPool()
 {
     delete[] bitmap;
@@ -73,7 +115,7 @@ ProcessPool::~ProcessPool()
 #ifdef TEST_ALLOC
 int main()
 {
-    ProcessPool pool(reinterpret_cast<unsigned int*>(0x20008000),96*1024);
+    ProcessPool& pool=ProcessPool::instance();
     while(1)
     {
         cout<<"a<size(exponent)>|d<addr>"<<endl;

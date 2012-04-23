@@ -95,13 +95,21 @@ public:
         return reinterpret_cast<unsigned int>(elf);
     }
     
+    /**
+     * \return the size of the elf file, as passed in the class' constructor
+     */
+    unsigned int getElfSize() const
+    {
+        return size;
+    }
+    
 private:
     /**
      * \param size elf file size
      * \return false if the file is not valid
      * \throws runtime_error for selected specific types of errors 
      */
-    bool validateHeader(unsigned int size);
+    bool validateHeader();
     
     /**
      * \param dynamic pointer to dynamic segment
@@ -110,10 +118,11 @@ private:
      * \return false if the dynamic segment is not valid
      * \throws runtime_error for selected specific types of errors 
      */
-    bool validateDynamicSegment(const Elf32_Phdr *dynamic, unsigned int size,
+    bool validateDynamicSegment(const Elf32_Phdr *dynamic,
             unsigned int dataSegmentSize);
     
-    const unsigned int * const elf; //Pointer to the content of the elf file
+    const unsigned int * const elf; ///<Pointer to the content of the elf file
+    unsigned int size; ///< Size of the elf file
 };
 
 /**

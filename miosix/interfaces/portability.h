@@ -212,6 +212,45 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
  */
 inline void portableSwitchToUserspace();
 
+/**
+ * \internal
+ * This class is used to manage the MemoryProtectionUnit
+ */
+
+class MPUConfiguration
+{
+ public:
+     /**
+      * Default constructor, leaves the MPU regions unconfigured
+      */
+     MPUConfiguration() {}
+     
+     /**
+      * \internal
+      * \param elfBase base address of the ELF file
+      * \param elfSize size of the ELF file
+      * \param imageBase base address of the Process RAM image
+      * \param imageSize size of the Process RAM image
+      */
+     MPUConfiguration(unsigned int elfBase, unsigned int elfSize,
+             unsigned int imageBase, unsigned int imageSize);
+     
+     /**
+      * \internal
+      * This method is used to configure the Memoy Protection region for a 
+      * Process during a context-switch.
+      * Can only be called inside an IRQ, not even with interrupts disabled
+      */
+     void IRQdoConfigure();
+ 
+     //Uses default copy constructor and operator=
+private:
+     ///These value are copied into the MPU registers to configure them
+     unsigned int regValues[4]; 
+};
+
+
+
 #endif //WITH_PROCESSES
 
 /**

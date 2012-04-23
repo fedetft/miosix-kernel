@@ -175,6 +175,27 @@ inline void portableSwitchToUserspace()
                  :::"r3");
 }
 
+inline void IRQreconfigureMPU()
+{
+    if(miosix::Thread::IRQisInUserspace())
+    {
+        miosix::Thread::getProcess()->mpu.IRQdoConfigure();
+        __set_CONTROL(3);
+    } else __set_CONTROL(2);
+}
+
+//
+// class MPU
+//
+
+inline void MPUConfiguration::IRQdoConfigure()
+{
+    MPU->RBAR=regValues[0];
+    MPU->RASR=regValues[1];
+    MPU->RBAR=regValues[2];
+    MPU->RASR=regValues[3];
+}
+
 #endif //WITH_PROCESSES
 
 /**

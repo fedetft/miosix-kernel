@@ -40,35 +40,25 @@ namespace miosix {
 ///\internal Enable/disable debugging of program loading
 //#define DBG iprintf
 #define DBG(x,...) ;
-
+    
 ///By convention, in an elf file for Miosix, the data segment starts @ this addr
 static const unsigned int DATA_START=0x10000000;
-
-ProcessPool& getProcessPool()
-{
-    //These are defined in the linker script
-	extern unsigned int _process_pool_start asm("_process_pool_start");
-	extern unsigned int _process_pool_end asm("_process_pool_end");
-    static ProcessPool pool(&_process_pool_start,
-        reinterpret_cast<unsigned int>(&_process_pool_end)-
-        reinterpret_cast<unsigned int>(&_process_pool_start));
-    return pool;
-}
 
 //
 // class ElfProgram
 //
 
-ElfProgram::ElfProgram(const unsigned int *elf, unsigned int size) : elf(elf)
+ElfProgram::ElfProgram(const unsigned int *elf, unsigned int size)
+    : elf(elf), size(size)
 {
     //Trying to follow the "full recognition before processing" approach,
     //(http://www.cs.dartmouth.edu/~sergey/langsec/occupy/FullRecognition.jpg)
     //all of the elf fields that will later be used are checked in advance.
     //Unused fields are unchecked, so when using new fields, add new checks
-    if(validateHeader(size)==false) throw runtime_error("Bad file");
+    if(validateHeader()==false) throw runtime_error("Bad file");
 }
 
-bool ElfProgram::validateHeader(unsigned int size)
+bool ElfProgram::validateHeader()
 {
     //Validate ELF header
     //Note: this code assumes a little endian elf and a little endian ARM CPU
@@ -137,7 +127,7 @@ bool ElfProgram::validateHeader(unsigned int size)
                 dynamicSegmentPresent=true;
                 //DYNAMIC segment *must* come after data segment
                 if(dataSegmentPresent==false) return false;
-                if(validateDynamicSegment(phdr,size,dataSegmentSize)==false)
+                if(validateDynamicSegment(phdr,dataSegmentSize)==false)
                     return false;
                 break;
             default:
@@ -150,7 +140,7 @@ bool ElfProgram::validateHeader(unsigned int size)
 }
 
 bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
-        unsigned int size, unsigned int dataSegmentSize)
+        unsigned int dataSegmentSize)
 {
     unsigned int base=getElfBase();
     const Elf32_Dyn *dyn=
@@ -244,7 +234,7 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
 
 void ProcessImage::load(const ElfProgram& program)
 {
-    if(image) getProcessPool().deallocate(image);
+    if(image) ProcessPool::instance().deallocate(image);
     const unsigned int base=program.getElfBase();
     const Elf32_Phdr *phdr=program.getProgramHeaderTable();
     const Elf32_Phdr *dataSegment=0;
@@ -278,7 +268,8 @@ void ProcessImage::load(const ElfProgram& program)
                             break;
                         case DT_MX_RAMSIZE:
                             size=dyn->d_un.d_val;
-                            image=getProcessPool().allocate(dyn->d_un.d_val);
+                            image=ProcessPool::instance()
+                                    .allocate(dyn->d_un.d_val);
                         default:
                             break;
                     }
@@ -322,7 +313,7 @@ void ProcessImage::load(const ElfProgram& program)
 
 ProcessImage::~ProcessImage()
 {
-    if(image) getProcessPool().deallocate(image);
+    if(image) ProcessPool::instance().deallocate(image);
 }
 
 } //namespace miosix

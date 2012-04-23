@@ -28,7 +28,9 @@
 #include <stdexcept>
 #include <memory>
 #include <cstdio>
+#include <cstring>
 #include "sync.h"
+#include "process_pool.h"
 #include "process.h"
 
 using namespace std;
@@ -103,14 +105,33 @@ Process::Process(const ElfProgram& program) : program(program)
     threads.reserve(1);
     //Done here so if not enough memory the new process is not even created
     image.load(program);
+    unsigned int elfSize=program.getElfSize();
+    unsigned int roundedSize=elfSize;
+    //Allocatable blocks must be greater than ProcessPool::blockSize, and must
+    //be a power of two due to MPU limitations
+    if(elfSize<ProcessPool::blockSize) roundedSize=ProcessPool::blockSize;
+    else if(elfSize & (elfSize-1)) roundedSize=1<<(1+ffs(elfSize));
+    #ifndef __CODE_IN_XRAM
+    mpu=miosix_private::MPUConfiguration(program.getElfBase(),roundedSize,
+            image.getProcessBasePointer(),image.getProcessImageSize());
+    #else //__CODE_IN_XRAM
+    loadedProgram=ProcessPool::instance().allocate(roundedSize);
+    memcpy(loadedProgram,reinterpret_cast<char*>(program.getElfBase()),elfSize);
+    mpu=miosix_private::MPUConfiguration(loadedProgram,roundedSize,
+            image.getProcessBasePointer(),image.getProcessImageSize());
+    #endif //__CODE_IN_XRAM
 }
 
 void *Process::start(void *argv)
 {
     Process *proc=Thread::getCurrentThread()->proc;
     if(proc==0) errorHandler(UNEXPECTED);
-    Thread::setupUserspaceContext(
-        proc->program.getEntryPoint(),proc->image.getProcessBasePointer(),
+    unsigned int entry=proc->program.getEntryPoint();
+    #ifdef __CODE_IN_XRAM
+    entry=entry-proc->program.getElfBase()+
+        reinterpret_cast<unsigned int>(proc->loadedProgram);
+    #endif //__CODE_IN_XRAM
+    Thread::setupUserspaceContext(entry,proc->image.getProcessBasePointer(),
         proc->image.getProcessImageSize());
     bool running=true;
     do {

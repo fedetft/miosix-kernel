@@ -613,6 +613,16 @@ bool Thread::IRQreportFault(const miosix_private::FaultData& fault)
     return true;
 }
 
+Process *Thread::getProcess()
+{
+    return cur->proc;
+}
+
+bool Thread::IRQisInUserspace()
+{
+    return const_cast<Thread*>(cur)->flags.isInUserspace();
+}
+
 #endif //WITH_PROCESSES
 
 void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
