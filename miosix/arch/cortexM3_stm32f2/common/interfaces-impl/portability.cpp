@@ -28,6 +28,7 @@
 
 #include "interfaces/portability.h"
 #include "kernel/kernel.h"
+#include "kernel/process.h"
 #include "kernel/error.h"
 #include "interfaces/bsp.h"
 #include "kernel/scheduler/scheduler.h"
@@ -248,39 +249,47 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     //leaving the content of r4-r8,r10-r11 uninitialized
 }
 
+void IRQenableMPU(miosix::Process *proc)
+{
+    proc->mpu.IRQdoConfigure();
+    __set_CONTROL(3); 
+}
+
 //
 // class MPUConfiguration
 //
 
-MPUConfiguration::MPUConfiguration(unsigned int elfBase, unsigned int elfSize,
-        unsigned int imageBase, unsigned int imageSize)
+MPUConfiguration::MPUConfiguration(unsigned int *elfBase, unsigned int elfSize,
+        unsigned int *imageBase, unsigned int imageSize)
 {
-    regValues[0]=(elfBase & (~0x1f)) | MPU_RBAR_VALID_Msk | 0;   //Region 0
-    regValues[2]=(imageBase & (~0x1f)) | MPU_RBAR_VALID_Msk | 1; //Region 1
+    regValues[0]=(reinterpret_cast<unsigned int>(elfBase) & (~0x1f))
+               | MPU_RBAR_VALID_Msk | 0;   //Region 0
+    regValues[2]=(reinterpret_cast<unsigned int>(imageBase) & (~0x1f))
+               | MPU_RBAR_VALID_Msk | 1; //Region 1
     #ifndef __CODE_IN_XRAM
     regValues[1]=2<<MPU_RASR_AP_Pos
                | MPU_RASR_C_Msk
-               | MPU_RASR_ENABLE_Msk
+               | MPU_RASR_ENA_Msk
                | (ffs(elfSize)-1)<<1;
     regValues[3]=3<<MPU_RASR_AP_Pos
                | MPU_RASR_XN_Msk
                | MPU_RASR_C_Msk
                | MPU_RASR_S_Msk
-               | MPU_RASR_ENABLE_Msk
+               | MPU_RASR_ENA_Msk
                | (ffs(imageSize)-1)<<1;
     #else //__CODE_IN_XRAM
     regValues[1]=2<<MPU_RASR_AP_Pos
                | MPU_RASR_C_Msk
                | MPU_RASR_B_Msk
                | MPU_RASR_S_Msk
-               | MPU_RASR_ENABLE_Msk
+               | MPU_RASR_ENA_Msk
                | (ffs(elfSize)-1)<<1;
     regValues[3]=3<<MPU_RASR_AP_Pos
                | MPU_RASR_XN_Msk
                | MPU_RASR_C_Msk
                | MPU_RASR_B_Msk
                | MPU_RASR_S_Msk
-               | MPU_RASR_ENABLE_Msk
+               | MPU_RASR_ENA_Msk
                | (ffs(imageSize)-1)<<1;
     #endif //__CODE_IN_XRAM 
 }

@@ -49,6 +49,12 @@
  * This file should contain the implementation of those inline functions.
  */
 
+namespace miosix {
+
+class Process; //Forward decl
+
+} //namespace miosix
+
 /**
  * \}
  */
@@ -232,8 +238,8 @@ class MPUConfiguration
       * \param imageBase base address of the Process RAM image
       * \param imageSize size of the Process RAM image
       */
-     MPUConfiguration(unsigned int elfBase, unsigned int elfSize,
-             unsigned int imageBase, unsigned int imageSize);
+     MPUConfiguration(unsigned int *elfBase, unsigned int elfSize,
+             unsigned int *imageBase, unsigned int imageSize);
      
      /**
       * \internal
@@ -249,7 +255,22 @@ private:
      unsigned int regValues[4]; 
 };
 
+/**
+ * \internal
+ * Enables the MPU. Meant to be called by the scheduler just before returning
+ * to an userspace process. Can only be called from an IRQ, not even with
+ * interrupts disabled.
+ * \param proc process where to return
+ */
+void IRQenableMPU(miosix::Process *proc);
 
+/**
+ * \internal
+ * Disables the MPU. Meant to be called by the scheduler just before returning
+ * to an kernel thread. Can only be called from an IRQ, not even with
+ * interrupts disabled.
+ */
+void IRQdisableMPU();
 
 #endif //WITH_PROCESSES
 

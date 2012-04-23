@@ -143,7 +143,8 @@ private:
     
     //Needs access to fault
     friend class Thread;
-    friend void miosix_private::IRQreconfigureMPU();
+    //Needs access to mpu
+    friend void miosix_private::IRQenableMPU(Process *);
 };
 
 } //namespace miosix

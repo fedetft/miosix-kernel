@@ -30,6 +30,7 @@
 #define PORTABILITY_IMPL_H
 
 #include "interfaces/arch_registers.h"
+#include "interfaces/portability.h"
 #include "config/miosix_settings.h"
 
 /**
@@ -175,13 +176,9 @@ inline void portableSwitchToUserspace()
                  :::"r3");
 }
 
-inline void IRQreconfigureMPU()
+inline void IRQdisableMPU()
 {
-    if(miosix::Thread::IRQisInUserspace())
-    {
-        miosix::Thread::getProcess()->mpu.IRQdoConfigure();
-        __set_CONTROL(3);
-    } else __set_CONTROL(2);
+    __set_CONTROL(2);
 }
 
 //

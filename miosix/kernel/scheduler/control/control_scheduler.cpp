@@ -200,6 +200,9 @@ void ControlScheduler::IRQfindNextThread()
                 curInRound=0;
                 cur=idle;
                 ctxsave=cur->ctxsave;
+                #ifdef WITH_PROCESSES
+                miosix_private::IRQdisableMPU();
+                #endif
                 miosix_private::AuxiliaryTimer::IRQsetValue(bIdle);
                 return;
             }
@@ -215,8 +218,13 @@ void ControlScheduler::IRQfindNextThread()
             cur=curInRound;
             #ifdef WITH_PROCESSES
             if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
+            {
                 ctxsave=cur->ctxsave;
-            else ctxsave=cur->userCtxsave;
+                miosix_private::IRQdisableMPU();
+            } else {
+                ctxsave=cur->userCtxsave;
+                miosix_private::IRQenableMPU(cur->proc);
+            }
             #else //WITH_PROCESSES
             ctxsave=cur->ctxsave;
             #endif //WITH_PROCESSES

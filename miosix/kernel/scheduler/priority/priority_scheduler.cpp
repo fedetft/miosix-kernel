@@ -211,8 +211,13 @@ void PriorityScheduler::IRQfindNextThread()
                 cur=temp;
                 #ifdef WITH_PROCESSES
                 if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
-                    ctxsave=temp->ctxsave;
-                else ctxsave=temp->userCtxsave;
+                {
+                    ctxsave=cur->ctxsave;
+                    miosix_private::IRQdisableMPU();
+                } else {
+                    ctxsave=cur->userCtxsave;
+                    miosix_private::IRQenableMPU(cur->proc);
+                }
                 #else //WITH_PROCESSES
                 ctxsave=temp->ctxsave;
                 #endif //WITH_PROCESSES
@@ -227,6 +232,9 @@ void PriorityScheduler::IRQfindNextThread()
     //No thread found, run the idle thread
     cur=idle;
     ctxsave=idle->ctxsave;
+    #ifdef WITH_PROCESSES
+    miosix_private::IRQdisableMPU();
+    #endif //WITH_PROCESSES
 }
 
 Thread *PriorityScheduler::thread_list[PRIORITY_MAX]={0};

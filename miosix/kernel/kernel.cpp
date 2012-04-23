@@ -597,9 +597,11 @@ void Thread::IRQhandleSvc(unsigned int svcNumber)
     {
         const_cast<Thread*>(cur)->flags.IRQsetUserspace(true);
         ::ctxsave=cur->userCtxsave;
+        miosix_private::IRQenableMPU(cur->proc);
     } else {
         const_cast<Thread*>(cur)->flags.IRQsetUserspace(false);
         ::ctxsave=cur->ctxsave;
+        miosix_private::IRQdisableMPU();
     }
 }
 
@@ -610,17 +612,8 @@ bool Thread::IRQreportFault(const miosix_private::FaultData& fault)
     cur->proc->fault=fault;
     const_cast<Thread*>(cur)->flags.IRQsetUserspace(false);
     ::ctxsave=cur->ctxsave;
+    miosix_private::IRQdisableMPU();
     return true;
-}
-
-Process *Thread::getProcess()
-{
-    return cur->proc;
-}
-
-bool Thread::IRQisInUserspace()
-{
-    return const_cast<Thread*>(cur)->flags.isInUserspace();
 }
 
 #endif //WITH_PROCESSES

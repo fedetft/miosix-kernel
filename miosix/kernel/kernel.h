@@ -710,20 +710,6 @@ public:
      */
     static bool IRQreportFault(const miosix_private::FaultData& fault);
     
-    /**
-     * \internal
-     * \return the process associated to a thread, or zero if a kernel thread 
-     */
-    static Process *getProcess();
-    
-    /**
-     * \internal
-     * \return true if the thread belongs to a process and is about to execute
-     * userspace code. Can only be called with interrupts disabled, or within
-     * an IRQ
-     */
-    static bool IRQisInUserspace();
-    
     #endif //WITH_PROCESSES
 	
 private:

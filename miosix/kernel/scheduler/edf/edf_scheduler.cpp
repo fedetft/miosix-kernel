@@ -117,8 +117,13 @@ void EDFScheduler::IRQfindNextThread()
             cur=walk;
             #ifdef WITH_PROCESSES
             if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
+            {
                 ctxsave=cur->ctxsave;
-            else ctxsave=cur->userCtxsave;
+                miosix_private::IRQdisableMPU();
+            } else {
+                ctxsave=cur->userCtxsave;
+                miosix_private::IRQenableMPU(cur->proc);
+            }
             #else //WITH_PROCESSES
             ctxsave=cur->ctxsave;
             #endif //WITH_PROCESSES
