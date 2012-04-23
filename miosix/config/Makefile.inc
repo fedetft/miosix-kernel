@@ -13,7 +13,7 @@
 ## architecture
 ##
 #OPT_BOARD := lpc2138_miosix_board
-OPT_BOARD := stm32f103ze_stm3210e-eval
+#OPT_BOARD := stm32f103ze_stm3210e-eval
 #OPT_BOARD := stm32f103ve_mp3v2
 #OPT_BOARD := stm32f100rb_stm32vldiscovery
 #OPT_BOARD := stm32f103ve_strive_mini
@@ -21,6 +21,7 @@ OPT_BOARD := stm32f103ze_stm3210e-eval
 #OPT_BOARD := stm32f407vg_stm32f4discovery
 #OPT_BOARD := stm32f207ig_stm3220g-eval
 #OPT_BOARD := stm32f207zg_ethboard_v2
+OPT_BOARD := stm32f207ze_camboard
 
 ##
 ## Optimization flags, choose one.
@@ -234,6 +235,8 @@ else ifeq ($(OPT_BOARD),stm32f407vg_stm32f4discovery)
 else ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
     ARCH := cortexM3_stm32f2
 else ifeq ($(OPT_BOARD),stm32f207zg_ethboard_v2)
+    ARCH := cortexM3_stm32f2
+else ifeq ($(OPT_BOARD),stm32f207ze_camboard)
     ARCH := cortexM3_stm32f2
 else
     $(error Error: no board specified in miosix/config/Makefile.inc)
@@ -730,6 +733,43 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         else
         PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
         endif
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f207ze_camboard
+    ##
+    else ifeq ($(OPT_BOARD),stm32f207ze_camboard)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_stm32f2/stm32f207ze_camboard
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+128k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/console.cpp     \
+        $(BOARD_INC)/interfaces-impl/delays.cpp      \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_CAMBOARD
+        CXXFLAGS_BASE += -D_BOARD_CAMBOARD
+
+        ## Clock frequency
+        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_120MHz=120000000
+
+        ## XRAM is always enabled in this board
+        XRAM += -D__ENABLE_XRAM
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
 
     ##-------------------------------------------------------------------------
     ## End of board list
