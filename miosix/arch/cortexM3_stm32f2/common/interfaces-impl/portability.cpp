@@ -28,7 +28,6 @@
 
 #include "interfaces/portability.h"
 #include "kernel/kernel.h"
-#include "kernel/process.h"
 #include "kernel/error.h"
 #include "interfaces/bsp.h"
 #include "kernel/scheduler/scheduler.h"
@@ -247,12 +246,6 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
     ctxsave[6]=reinterpret_cast<unsigned long>(gotBase);              //--> r9                                               //--> r9
     //leaving the content of r4-r8,r10-r11 uninitialized
-}
-
-void IRQenableMPU(miosix::Process *proc)
-{
-    proc->mpu.IRQdoConfigure();
-    __set_CONTROL(3); 
 }
 
 //

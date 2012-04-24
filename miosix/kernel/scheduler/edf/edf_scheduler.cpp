@@ -27,6 +27,7 @@
 
 #include "edf_scheduler.h"
 #include "kernel/error.h"
+#include "kernel/process.h"
 #include <algorithm>
 
 using namespace std;
@@ -119,10 +120,10 @@ void EDFScheduler::IRQfindNextThread()
             if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
             {
                 ctxsave=cur->ctxsave;
-                miosix_private::IRQdisableMPU();
+                miosix_private::MPUConfiguration::IRQdisable();
             } else {
                 ctxsave=cur->userCtxsave;
-                miosix_private::IRQenableMPU(cur->proc);
+                cur->proc->mpu.IRQenable();
             }
             #else //WITH_PROCESSES
             ctxsave=cur->ctxsave;

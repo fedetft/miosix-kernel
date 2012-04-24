@@ -34,7 +34,6 @@
 #include "kernel.h"
 #include "elf_program.h"
 #include "config/miosix_settings.h"
-#include "interfaces/portability.h"
 
 #ifdef WITH_PROCESSES
 
@@ -141,10 +140,14 @@ private:
     ///Used to wait on process termination
     static ConditionVariable waiting;
     
-    //Needs access to fault
+    //Needs access to fault,mpu
     friend class Thread;
     //Needs access to mpu
-    friend void miosix_private::IRQenableMPU(Process *);
+    friend class PriorityScheduler;
+    //Needs access to mpu
+    friend class ControlScheduler;
+    //Needs access to mpu
+    friend class EDFScheduler;
 };
 
 } //namespace miosix

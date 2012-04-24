@@ -27,6 +27,7 @@
 
 #include "control_scheduler.h"
 #include "kernel/error.h"
+#include "kernel/process.h"
 #include <limits>
 
 using namespace std;
@@ -201,7 +202,7 @@ void ControlScheduler::IRQfindNextThread()
                 cur=idle;
                 ctxsave=cur->ctxsave;
                 #ifdef WITH_PROCESSES
-                miosix_private::IRQdisableMPU();
+                miosix_private::MPUConfiguration::IRQdisable();
                 #endif
                 miosix_private::AuxiliaryTimer::IRQsetValue(bIdle);
                 return;
@@ -220,10 +221,10 @@ void ControlScheduler::IRQfindNextThread()
             if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
             {
                 ctxsave=cur->ctxsave;
-                miosix_private::IRQdisableMPU();
+                miosix_private::MPUConfiguration::IRQdisable();
             } else {
                 ctxsave=cur->userCtxsave;
-                miosix_private::IRQenableMPU(cur->proc);
+                cur->proc->mpu.IRQenable();
             }
             #else //WITH_PROCESSES
             ctxsave=cur->ctxsave;

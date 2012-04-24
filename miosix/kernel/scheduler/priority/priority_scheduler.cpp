@@ -27,6 +27,7 @@
 
 #include "priority_scheduler.h"
 #include "kernel/error.h"
+#include "kernel/process.h"
 
 #ifdef SCHED_TYPE_PRIORITY
 
@@ -213,10 +214,10 @@ void PriorityScheduler::IRQfindNextThread()
                 if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
                 {
                     ctxsave=cur->ctxsave;
-                    miosix_private::IRQdisableMPU();
+                    miosix_private::MPUConfiguration::IRQdisable();
                 } else {
                     ctxsave=cur->userCtxsave;
-                    miosix_private::IRQenableMPU(cur->proc);
+                    cur->proc->mpu.IRQenable();
                 }
                 #else //WITH_PROCESSES
                 ctxsave=temp->ctxsave;
@@ -233,7 +234,7 @@ void PriorityScheduler::IRQfindNextThread()
     cur=idle;
     ctxsave=idle->ctxsave;
     #ifdef WITH_PROCESSES
-    miosix_private::IRQdisableMPU();
+    miosix_private::MPUConfiguration::IRQdisable();
     #endif //WITH_PROCESSES
 }
 

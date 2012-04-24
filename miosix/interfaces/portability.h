@@ -244,10 +244,18 @@ class MPUConfiguration
      /**
       * \internal
       * This method is used to configure the Memoy Protection region for a 
-      * Process during a context-switch.
+      * Process during a context-switch to a userspace thread.
       * Can only be called inside an IRQ, not even with interrupts disabled
       */
-     void IRQdoConfigure();
+     void IRQenable();
+     
+     /**
+      * \internal
+      * This method is used to disable the MPU during a context-switch to a
+      * kernelspace thread.
+      * Can only be called inside an IRQ, not even with interrupts disabled
+      */
+     static void IRQdisable();
      
      /**
       * Print the MPU configuration for debugging purposes
@@ -259,23 +267,6 @@ private:
      ///These value are copied into the MPU registers to configure them
      unsigned int regValues[4]; 
 };
-
-/**
- * \internal
- * Enables the MPU. Meant to be called by the scheduler just before returning
- * to an userspace process. Can only be called from an IRQ, not even with
- * interrupts disabled.
- * \param proc process where to return
- */
-void IRQenableMPU(miosix::Process *proc);
-
-/**
- * \internal
- * Disables the MPU. Meant to be called by the scheduler just before returning
- * to an kernel thread. Can only be called from an IRQ, not even with
- * interrupts disabled.
- */
-void IRQdisableMPU();
 
 #endif //WITH_PROCESSES
 
