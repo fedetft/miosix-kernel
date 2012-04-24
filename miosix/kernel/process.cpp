@@ -110,7 +110,7 @@ Process::Process(const ElfProgram& program) : program(program)
     //Allocatable blocks must be greater than ProcessPool::blockSize, and must
     //be a power of two due to MPU limitations
     if(elfSize<ProcessPool::blockSize) roundedSize=ProcessPool::blockSize;
-    else if(elfSize & (elfSize-1)) roundedSize=1<<(1+ffs(elfSize));
+    else if(elfSize & (elfSize-1)) roundedSize=1<<ffs(elfSize);
     #ifndef __CODE_IN_XRAM
     mpu=miosix_private::MPUConfiguration(program.getElfBase(),roundedSize,
             image.getProcessBasePointer(),image.getProcessImageSize());
@@ -143,8 +143,13 @@ void *Process::start(void *argv)
             iprintf("Process %d terminated due to a fault\n"
                     "* Code base address was 0x%x\n"
                     "* Data base address was %p\n",proc->pid,
+                    #ifndef __CODE_IN_XRAM
                     proc->program.getElfBase(),
+                    #else //__CODE_IN_XRAM
+                    reinterpret_cast<unsigned int>(proc->loadedProgram),
+                    #endif //__CODE_IN_XRAM
                     proc->image.getProcessBasePointer());
+            proc->mpu.dumpConfiguration();
             proc->fault.print();
             #endif //WITH_ERRLOG
         } else {

@@ -263,35 +263,47 @@ MPUConfiguration::MPUConfiguration(unsigned int *elfBase, unsigned int elfSize,
         unsigned int *imageBase, unsigned int imageSize)
 {
     regValues[0]=(reinterpret_cast<unsigned int>(elfBase) & (~0x1f))
-               | MPU_RBAR_VALID_Msk | 0;   //Region 0
+               | MPU_RBAR_VALID_Msk | 0; //Region 0
     regValues[2]=(reinterpret_cast<unsigned int>(imageBase) & (~0x1f))
                | MPU_RBAR_VALID_Msk | 1; //Region 1
     #ifndef __CODE_IN_XRAM
     regValues[1]=2<<MPU_RASR_AP_Pos
                | MPU_RASR_C_Msk
-               | MPU_RASR_ENA_Msk
-               | (ffs(elfSize)-1)<<1;
+               | 1 //Enable bit
+               | ((ffs(elfSize)-2)<<1);
     regValues[3]=3<<MPU_RASR_AP_Pos
                | MPU_RASR_XN_Msk
                | MPU_RASR_C_Msk
                | MPU_RASR_S_Msk
-               | MPU_RASR_ENA_Msk
-               | (ffs(imageSize)-1)<<1;
+               | 1 //Enable bit
+               | ((ffs(imageSize)-2)<<1);
     #else //__CODE_IN_XRAM
     regValues[1]=2<<MPU_RASR_AP_Pos
                | MPU_RASR_C_Msk
                | MPU_RASR_B_Msk
                | MPU_RASR_S_Msk
-               | MPU_RASR_ENA_Msk
-               | (ffs(elfSize)-1)<<1;
+               | 1 //Enable bit
+               | ((ffs(elfSize)-2)<<1);
     regValues[3]=3<<MPU_RASR_AP_Pos
                | MPU_RASR_XN_Msk
                | MPU_RASR_C_Msk
                | MPU_RASR_B_Msk
                | MPU_RASR_S_Msk
-               | MPU_RASR_ENA_Msk
-               | (ffs(imageSize)-1)<<1;
-    #endif //__CODE_IN_XRAM 
+               | 1 //Enable bit
+               | ((ffs(imageSize)-2)<<1);
+    #endif //__CODE_IN_XRAM
+}
+
+void MPUConfiguration::dumpConfiguration()
+{
+    for(int i=0;i<2;i++)
+    {
+        unsigned int base=regValues[2*i] & (~0x1f);
+        unsigned int end=base+(1<<(((regValues[2*i+1]>>1) & 31)+1));
+        char w=regValues[2*i+1] & (1<<MPU_RASR_AP_Pos) ? 'w' : '-';
+        char x=regValues[2*i+1] & MPU_RASR_XN_Msk ? '-' : 'x';
+        iprintf("* MPU region %d 0x%x-0x%x r%c%c\n",i,base,end,w,x);
+    }
 }
 
 #endif //WITH_PROCESSES

@@ -248,6 +248,11 @@ class MPUConfiguration
       * Can only be called inside an IRQ, not even with interrupts disabled
       */
      void IRQdoConfigure();
+     
+     /**
+      * Print the MPU configuration for debugging purposes
+      */
+     void dumpConfiguration();
  
      //Uses default copy constructor and operator=
 private:
