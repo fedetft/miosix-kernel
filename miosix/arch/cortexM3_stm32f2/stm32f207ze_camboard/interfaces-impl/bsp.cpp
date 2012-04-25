@@ -124,12 +124,23 @@ void IRQbspInit()
     GPIOG->AFR[0]=12 | 12<<4 | 12<<8 | 12<<12 | 12<<16 | 12<<20 |  0<<24 |  0<<28;
     GPIOG->AFR[1]= 0 |  7<<4 |  7<<8 | 10<<12 | 10<<16 |  0<<20 |  0<<24 |  0<<28;
 
-//    //Configure FSMC
-//    RCC->AHB3ENR=RCC_AHB3ENR_FSMCEN;
-//    volatile uint32_t& BCR1=FSMC_Bank1->BTCR[0];
-//    volatile uint32_t& BTR1=FSMC_Bank1->BTCR[1];
-//    BCR1=0x00001011; //16bit width, write enabled, SRAM mode
-//    BTR1=0x00000200; //DATAST=2
+    //Configure FSMC for IS62WC51216BLL-55
+    RCC->AHB3ENR=RCC_AHB3ENR_FSMCEN;
+    volatile uint32_t& BCR1=FSMC_Bank1->BTCR[0];
+    volatile uint32_t& BTR1=FSMC_Bank1->BTCR[1];
+    volatile uint32_t& BWTR1=FSMC_Bank1E->BWTR[0];
+    BCR1= FSMC_BCR1_EXTMOD //Extended mode
+        | FSMC_BCR1_WREN   //Write enabled
+        | FSMC_BCR1_MWID_0 //16 bit bus
+        | FSMC_BCR1_MBKEN; //Bank enabled
+    BTR1= FSMC_BTR1_DATAST_2  //DATAST=4
+        | FSMC_BTR1_ADDSET_0  //ADDSET=3
+        | FSMC_BTR1_ADDSET_1;
+    //Read takes 7 + 2 (min time CS high) = 9 cycles
+    BWTR1=FSMC_BWTR1_DATAST_2
+        | FSMC_BWTR1_DATAST_0 //DATAST=5
+        | FSMC_BWTR1_ADDSET_0;//ADDSET=1
+    //Write takes 6 + 1 (WE high to CS high) + 1 (min time CS high) = 8 cycles 
     
     #ifndef STDOUT_REDIRECTED_TO_DCC
     IRQstm32f2serialPortInit();

@@ -180,7 +180,6 @@
                 <in>hwmapping.h</in>
               </df>
               <in>board_settings.h</in>
-              <in>stm32_1m+128k_rom.ld</in>
             </df>
             <df name="stm32f207zg_EthBoardV2">
               <df name="core">
@@ -339,6 +338,8 @@
       <df name="miosix_np_2">
       </df>
       <in>main.cpp</in>
+      <in>sha1.cpp</in>
+      <in>sha1.h</in>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
