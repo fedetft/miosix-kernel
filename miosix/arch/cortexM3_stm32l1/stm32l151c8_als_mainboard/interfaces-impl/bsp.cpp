@@ -99,7 +99,17 @@ void IRQbspInit()
     GPIOB->AFR[1]= 0 |  0<<4 |  0<<8 |  0<<12 |  0<<16 |  0<<20 |  0<<24 |  0<<28;
     GPIOC->AFR[0]= 0 |  0<<4 |  0<<8 |  0<<12 |  0<<16 |  0<<20 |  0<<24 |  0<<28;
     GPIOC->AFR[1]= 0 |  0<<4 |  0<<8 |  0<<12 |  0<<16 |  0<<20 |  0<<24 |  0<<28;
-       
+    
+    RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+    PWR->CR |= PWR_CR_DBP     //Enable access to RTC registers
+             | PWR_CR_PLS_1   //Select 2.3V trigger point for low battery
+             | PWR_CR_PVDE    //Enable low battery detection
+             | PWR_CR_LPSDSR; //Put regulator in low power when entering stop
+    RCC->CSR |= RCC_CSR_LSEON
+              | RCC_CSR_RTCEN
+              | RCC_CSR_RTCSEL_0;
+    while((RCC->CSR & RCC_CSR_LSERDY)==0) ; //Wait
+    
     ledOn();
     delayMs(100);
     ledOff();
@@ -121,7 +131,21 @@ void bspInit2()
 void shutdown()
 {
     disableInterrupts();
-    for(;;) ;
+    led::low();
+    hpled::high();
+    sen::low();
+    cam::en::low();
+    cam::cs::mode(Mode::INPUT_PULL_DOWN);
+    cam::sck::mode(Mode::INPUT_PULL_DOWN);
+    cam::miso::mode(Mode::INPUT_PULL_DOWN);
+    cam::mosi::mode(Mode::INPUT_PULL_DOWN);
+    //TODO: make sure nrf is in low power mode
+    
+    EXTI->PR=0x7fffff;                 //Clear eventual pending request
+    SCB->SCR |= SCB_SCR_SLEEPDEEP;     //Select stop mode
+    __WFI(); //And it goes to sleep till a reset
+    //Should never reach here
+	miosix_private::IRQsystemReboot();
 }
 
 void reboot()
