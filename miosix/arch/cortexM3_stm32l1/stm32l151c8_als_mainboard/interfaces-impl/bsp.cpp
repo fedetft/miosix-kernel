@@ -61,7 +61,7 @@ void IRQbspInit()
 	//  |  PORTA       |  PORTB      |  PORTC  |  PORTH  |
 	//--+--------------+-------------+---------+---------+
 	// 0| IN           | IN PD       | -       | IN PD   |
-	// 1| IN PD        | IN PD       | -       | IN PD   |
+	// 1| IN PU        | IN PD       | -       | IN PD   |
 	// 2| IN           | IN PD       | -       | -       |
 	// 3| IN PD        | IN PD       | -       | -       |
 	// 4| OUT H  10MHz | IN PD       | -       | -       |
@@ -85,7 +85,7 @@ void IRQbspInit()
     GPIOC->MODER=0xa0000000;
     GPIOH->MODER=0x00000000;
     
-    GPIOA->PUPDR=0x02900088;
+    GPIOA->PUPDR=0x02900084;
     GPIOB->PUPDR=0x002aaaaa;
     GPIOC->PUPDR=0x08000000;
     GPIOH->PUPDR=0x0000000a;
@@ -105,11 +105,16 @@ void IRQbspInit()
              | PWR_CR_PLS_1   //Select 2.3V trigger point for low battery
              | PWR_CR_PVDE    //Enable low battery detection
              | PWR_CR_LPSDSR; //Put regulator in low power when entering stop
-    RCC->CSR |= RCC_CSR_LSEON
-              | RCC_CSR_RTCEN
-              | RCC_CSR_RTCSEL_0;
+    RCC->CSR |= RCC_CSR_LSEON     //External 32KHz oscillator enabled
+              | RCC_CSR_RTCEN     //RTC enabled
+              | RCC_CSR_RTCSEL_0; //Select LSE as clock source for RTC
     while((RCC->CSR & RCC_CSR_LSERDY)==0) ; //Wait
-    
+    RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
+    SPI1->CR1=SPI_CR1_SSM  //handle CS in software
+           | SPI_CR1_SSI   //internal CS tied high
+           | SPI_CR1_SPE   //SPI enabled (speed 8MHz)
+           | SPI_CR1_MSTR; //Master mode
+
     ledOn();
     delayMs(100);
     ledOff();
@@ -124,22 +129,43 @@ void bspInit2()
     //Nothing to do
 }
 
+static void spi1send(unsigned char data)
+{
+    SPI1->DR=data;
+    while((SPI1->SR & SPI_SR_RXNE)==0) ; //Wait
+}
+
 //
 // Shutdown and reboot
 //
 
 void shutdown()
 {
+    while(!Console::txComplete()) ;
     disableInterrupts();
+    
+    //Put outputs in low power mode
     led::low();
     hpled::high();
     sen::low();
+    
+    //Put cam in low power mode
     cam::en::low();
     cam::cs::mode(Mode::INPUT_PULL_DOWN);
     cam::sck::mode(Mode::INPUT_PULL_DOWN);
     cam::miso::mode(Mode::INPUT_PULL_DOWN);
     cam::mosi::mode(Mode::INPUT_PULL_DOWN);
-    //TODO: make sure nrf is in low power mode
+    
+    //Put nrf in low power mode
+    nrf::ce::low();
+    nrf::cs::low();
+    spi1send(0x20 | 0); //Write to reg 0
+    spi1send(0x8);      //PWR_UP=0
+    nrf::cs::high();
+    nrf::miso::mode(Mode::INPUT_PULL_DOWN); //nrf miso goes tristate if cs high
+    
+    //Put serial in low power mode
+    serial::rx::mode(Mode::INPUT_PULL_UP);
     
     EXTI->PR=0x7fffff;                 //Clear eventual pending request
     SCB->SCR |= SCB_SCR_SLEEPDEEP;     //Select stop mode
