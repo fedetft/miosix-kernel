@@ -32,6 +32,7 @@
 #include <map>
 #include <sys/types.h>
 #include "kernel.h"
+#include "sync.h"
 #include "elf_program.h"
 #include "config/miosix_settings.h"
 
@@ -48,22 +49,19 @@ public:
     /**
      * Create a new process
      * \param program Program that the process will execute
-     * \return a pointer to the newly created process
+     * \return the pid of the newly created process
      * \throws std::exception or a subclass in case of errors, including
      * not emough memory to spawn the process
      */
-    static Process *create(const ElfProgram& program);
+    static pid_t create(const ElfProgram& program);
     
     /**
-     * \return the pid of the created process 
-     */
-    pid_t getpid() const { return pid; }
-    
-    /**
+     * Given a process, returns the pid of its parent.
+     * \param proc the pid of a process
      * \return the pid of the parent process, or zero if the process was created
-     * by the kernel directly 
+     * by the kernel directly, or -1 if proc is not a valid process
      */
-    pid_t getppid() const { return ppid; }
+    static pid_t getppid(pid_t proc);
     
     /**
      * Wait for child process termination
@@ -71,7 +69,7 @@ public:
      * is not null
      * \return the pid of the terminated process, or -1 in case of errors
      */
-    pid_t wait(int *exit);
+    static pid_t wait(int *exit) { return waitpid(-1,exit,0); }
     
     /**
      * Wait for a specific child process to terminate
@@ -83,7 +81,12 @@ public:
      * case WNOHANG  is specified and the specified process has not terminated,
      * 0 is returned
      */
-    pid_t waitpid(pid_t pid, int *exit, int options);
+    static pid_t waitpid(pid_t pid, int *exit, int options);
+    
+    /**
+     * Destructor
+     */
+    ~Process();
     
 private:
     Process(const Process&);
@@ -116,29 +119,29 @@ private:
     #endif //__CODE_IN_XRAM
     ProcessImage image; ///<The RAM image of a process
     miosix_private::FaultData fault; ///< Contains information about faults
-    std::vector<Thread *> threads; ///<Threads that belong to the process
     miosix_private::MPUConfiguration mpu; ///<Memory protection data
     
+    std::vector<Thread *> threads; ///<Threads that belong to the process
     pid_t pid;  ///<The pid of this process
     pid_t ppid; ///<The parent pid of this process
-    ///This union is used to join threads. When the thread to join has not yet
-    ///terminated and no other thread called join it contains (Thread *)NULL,
-    ///when a thread calls join on this thread it contains the thread waiting
-    ///for the join, and when the thread terminated it contains (void *)result
-    union
-    {
-        Thread *waitingForJoin;///<Thread waiting to join this
-        int exitCode;          ///<Process exit code
-    } joinData;
+    ///Contains the count of active wait calls which specifically requested
+    ///to wait on this process
+    int waitCount;
+    ///Active wait calls which specifically requested to wait on this process
+    ///wait on this condition variable
+    ConditionVariable waiting;
+    int exitCode; ///< Contains -1 if process is running, or the exit code
     
-    ///Maps the pid to the Process instance
+    ///Maps the pid to the Process instance. Includes zombie processes
     static std::map<pid_t,Process *> processes;
+    ///Terminated but not joined processes, the key is the parent's pid
+    static std::multimap<pid_t,Process *> zombies;
     ///Used to assign a new pid to a process
     static pid_t pidCounter;
     ///Uset to guard access to processes and pidCounter
     static Mutex procMutex;
     ///Used to wait on process termination
-    static ConditionVariable waiting;
+    static ConditionVariable genericWaiting;
     
     //Needs access to fault,mpu
     friend class Thread;
