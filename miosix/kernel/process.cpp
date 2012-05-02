@@ -29,6 +29,8 @@
 #include <memory>
 #include <cstdio>
 #include <cstring>
+#include <sys/wait.h>
+#include <signal.h>
 #include "sync.h"
 #include "process_pool.h"
 #include "process.h"
@@ -70,7 +72,7 @@ namespace miosix {
 // class Process
 //
 
-Process *Process::create(const ElfProgram& program)
+pid_t Process::create(const ElfProgram& program)
 {
     auto_ptr<Process> proc(new Process(program));
     {   
@@ -95,10 +97,87 @@ Process *Process::create(const ElfProgram& program)
     //among the threads of a process
     proc->threads.push_back(thr);
     thr->wakeup(); //Actually start the thread, now that everything is set up
-    return proc.release(); //Do not delete the pointer
+    pid_t result=proc->pid;
+    proc.release(); //Do not delete the pointer
+    return result;
 }
 
-Process::Process(const ElfProgram& program) : program(program)
+pid_t Process::getppid(pid_t proc)
+{
+    Lock<Mutex> l(procMutex);
+    map<pid_t,Process *>::iterator it=processes.find(proc);
+    if(it==processes.end()) return -1;
+    return it->second->ppid;
+}
+
+pid_t Process::waitpid(pid_t pid, int* exit, int options)
+{
+    Lock<Mutex> l(procMutex);
+    pid_t result=-1;
+    if(pid<=0)
+    {
+        //Wait for a generic child process
+        Process *self=Thread::getCurrentThread()->proc;
+        pid_t ppid=self==0 ? 0 : self->pid;
+        multimap<pid_t,Process *>::iterator it=zombies.find(ppid);
+        if((options & WNOHANG) && it==zombies.end()) return 0;
+        while(it==zombies.end())
+        {
+            genericWaiting.wait(l);
+            it=zombies.find(ppid);
+        }
+        Process *joined=it->second;
+        if(joined->waitCount!=0) errorHandler(UNEXPECTED);
+        result=joined->pid;
+        if(exit!=0) *exit=joined->exitCode;
+        zombies.erase(it);
+        processes.erase(result);
+        delete joined;
+    } else {
+        //Wait on a specific process
+        map<pid_t,Process *>::iterator it=processes.find(pid);
+        if(it!=processes.end())
+        {
+            Process *joined=it->second;
+            if(joined->exitCode==-1)
+            {
+                //Process hasn't terminated yet
+                if(options & WNOHANG) return 0;
+                joined->waitCount++;
+                joined->waiting.wait(l);
+                joined->waitCount--;
+                if(joined->waitCount<0 || joined->exitCode==-1)
+                    errorHandler(UNEXPECTED);
+            }
+            result=joined->pid;
+            if(exit!=0) *exit=joined->exitCode;
+            if(joined->waitCount==0)
+            {
+                typedef typename multimap<pid_t,Process *>::iterator iterator;
+                pair<iterator,iterator> p=zombies.equal_range(joined->ppid);
+                for(iterator it=p.first;it!=p.second;++it)
+                {
+                    if(it->second!=joined) continue;
+                    zombies.erase(it);
+                    break;
+                }
+                processes.erase(result);
+                delete joined;
+            }
+        }
+    }
+    return result;
+}
+
+Process::~Process()
+{
+    #ifdef __CODE_IN_XRAM
+    ProcessPool::instance().deallocate(loadedProgram);
+    #endif //__CODE_IN_XRAM
+}
+
+Process::Process(const ElfProgram& program) : program(program), waitCount(0),
+        exitCode(-1)
 {
     //This is required so that bad_alloc can never be thrown when the first
     //thread of the process will be stored in this vector
@@ -112,8 +191,18 @@ Process::Process(const ElfProgram& program) : program(program)
     if(elfSize<ProcessPool::blockSize) roundedSize=ProcessPool::blockSize;
     else if(elfSize & (elfSize-1)) roundedSize=1<<ffs(elfSize);
     #ifndef __CODE_IN_XRAM
-    mpu=miosix_private::MPUConfiguration(program.getElfBase(),roundedSize,
+    //FIXME -- begin
+    //Till a flash file system that ensures proper alignment of the programs
+    //loaded in flash is implemented, make the whole flash visible as a big MPU
+    //region
+    extern unsigned char _end asm("_end");
+    unsigned int flashEnd=reinterpret_cast<unsigned int>(&_end);
+    if(flashEnd & (flashEnd-1)) flashEnd=1<<ffs(flashEnd);
+    mpu=miosix_private::MPUConfiguration(0,flashEnd,
             image.getProcessBasePointer(),image.getProcessImageSize());
+//    mpu=miosix_private::MPUConfiguration(program.getElfBase(),roundedSize,
+//            image.getProcessBasePointer(),image.getProcessImageSize());
+    //FIXME -- end
     #else //__CODE_IN_XRAM
     loadedProgram=ProcessPool::instance().allocate(roundedSize);
     memcpy(loadedProgram,reinterpret_cast<char*>(program.getElfBase()),elfSize);
@@ -133,12 +222,14 @@ void *Process::start(void *argv)
     #endif //__CODE_IN_XRAM
     Thread::setupUserspaceContext(entry,proc->image.getProcessBasePointer(),
         proc->image.getProcessImageSize());
+    int returnValue=0;
     bool running=true;
     do {
         miosix_private::SyscallParameters sp=Thread::switchToUserspace();
         if(proc->fault.faultHappened())
         {
             running=false;
+            returnValue=SIGSEGV; //Segfault
             #ifdef WITH_ERRLOG
             iprintf("Process %d terminated due to a fault\n"
                     "* Code base address was 0x%x\n"
@@ -157,9 +248,7 @@ void *Process::start(void *argv)
             {
                 case 2:
                     running=false;
-                    #ifdef WITH_ERRLOG
-                    iprintf("Exit %d\n",sp.getFirstParameter()); //FIXME: remove
-                    #endif //WITH_ERRLOG
+                    returnValue=(sp.getFirstParameter() & 0xff)<<8;
                     break;
                 case 3:
                     //FIXME: check that the pointer belongs to the process
@@ -178,6 +267,7 @@ void *Process::start(void *argv)
                     break;
                 default:
                     running=false;
+                    returnValue=SIGSYS; //Bad syscall
                     #ifdef WITH_ERRLOG
                     iprintf("Unexpected syscall number %d\n",sp.getSyscallId());
                     #endif //WITH_ERRLOG
@@ -186,7 +276,15 @@ void *Process::start(void *argv)
         }
         if(Thread::testTerminate()) running=false;
     } while(running);
-    //TODO: handle process termination
+    {
+        Lock<Mutex> l(procMutex);
+        proc->exitCode=returnValue;
+        if(proc->waitCount>0) proc->waiting.broadcast();
+        else {
+            zombies.insert(make_pair(proc->ppid,proc));
+            genericWaiting.broadcast();
+        }
+    }
     return 0;
 }
 
@@ -203,8 +301,10 @@ pid_t Process::getNewPid()
 }
 
 map<pid_t,Process*> Process::processes;
+multimap<pid_t,Process *> Process::zombies;
 pid_t Process::pidCounter=1;
 Mutex Process::procMutex;
+ConditionVariable Process::genericWaiting;
     
 } //namespace miosix
 
