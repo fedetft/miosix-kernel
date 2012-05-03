@@ -30,6 +30,7 @@
 
 #include <vector>
 #include <map>
+#include <list>
 #include <sys/types.h>
 #include "kernel.h"
 #include "sync.h"
@@ -122,6 +123,8 @@ private:
     miosix_private::MPUConfiguration mpu; ///<Memory protection data
     
     std::vector<Thread *> threads; ///<Threads that belong to the process
+    std::list<Process *> childs;   ///<Living child processes are stored here
+    std::list<Process *> zombies;  ///<Dead child processes are stored here
     pid_t pid;  ///<The pid of this process
     pid_t ppid; ///<The parent pid of this process
     ///Contains the count of active wait calls which specifically requested
@@ -130,12 +133,13 @@ private:
     ///Active wait calls which specifically requested to wait on this process
     ///wait on this condition variable
     ConditionVariable waiting;
-    int exitCode; ///< Contains -1 if process is running, or the exit code
+    bool zombie; ///< True for terminated not yet joined processes
+    short int exitCode; ///< Contains the exit code
     
     ///Maps the pid to the Process instance. Includes zombie processes
     static std::map<pid_t,Process *> processes;
-    ///Terminated but not joined processes, the key is the parent's pid
-    static std::multimap<pid_t,Process *> zombies;
+    static std::list<Process *> kernelChilds;
+    static std::list<Process *> kernelZombies;
     ///Used to assign a new pid to a process
     static pid_t pidCounter;
     ///Uset to guard access to processes and pidCounter

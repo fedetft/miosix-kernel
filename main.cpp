@@ -25,12 +25,14 @@ int main()
     Thread::create(ledThread,STACK_MIN);
     
     ElfProgram prog(reinterpret_cast<const unsigned int*>(main_elf),main_elf_len);
-    for(;;)
+    for(int i=0;;i++)
     {
         getchar();
-        Process::create(prog);
+        pid_t child=Process::create(prog);
         int ec;
-        pid_t pid=Process::wait(&ec);
+        pid_t pid;
+        if(i%2==0) pid=Process::wait(&ec);
+        else pid=Process::waitpid(child,&ec,0);
         iprintf("Process %d terminated\n",pid);
         if(WIFEXITED(ec))
         {

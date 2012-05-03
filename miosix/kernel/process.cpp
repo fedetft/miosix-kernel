@@ -79,8 +79,13 @@ pid_t Process::create(const ElfProgram& program)
         Lock<Mutex> l(procMutex);
         proc->pid=getNewPid();
         if(Thread::getCurrentThread()->proc!=0)
+        {
             proc->ppid=Thread::getCurrentThread()->proc->pid;
-        else proc->ppid=0;
+            Thread::getCurrentThread()->proc->childs.push_back(proc.get());
+        } else {
+            proc->ppid=0;
+            kernelChilds.push_back(proc.get());
+        }
         processes[proc->pid]=proc.get();
     }
     Thread *thr=Thread::createUserspace(Process::start,0,Thread::DEFAULT,
@@ -89,6 +94,10 @@ pid_t Process::create(const ElfProgram& program)
     {
         Lock<Mutex> l(procMutex);
         processes.erase(proc->pid);
+        if(Thread::getCurrentThread()->proc!=0)
+        {
+            Thread::getCurrentThread()->proc->childs.remove(proc.get());
+        } else kernelChilds.remove(proc.get());
         throw runtime_error("Thread creation failed");
     }
     //Cannot throw bad_alloc due to the reserve in Process's constructor.
@@ -113,60 +122,102 @@ pid_t Process::getppid(pid_t proc)
 pid_t Process::waitpid(pid_t pid, int* exit, int options)
 {
     Lock<Mutex> l(procMutex);
-    pid_t result=-1;
-    if(pid<=0)
+    Process *self=Thread::getCurrentThread()->proc;
+    if(self==0)
     {
-        //Wait for a generic child process
-        Process *self=Thread::getCurrentThread()->proc;
-        pid_t ppid=self==0 ? 0 : self->pid;
-        multimap<pid_t,Process *>::iterator it=zombies.find(ppid);
-        if((options & WNOHANG) && it==zombies.end()) return 0;
-        while(it==zombies.end())
+        //The wait is performed by the kernel
+        if(pid<=0)
         {
-            genericWaiting.wait(l);
-            it=zombies.find(ppid);
-        }
-        Process *joined=it->second;
-        if(joined->waitCount!=0) errorHandler(UNEXPECTED);
-        result=joined->pid;
-        if(exit!=0) *exit=joined->exitCode;
-        zombies.erase(it);
-        processes.erase(result);
-        delete joined;
-    } else {
-        //Wait on a specific process
-        map<pid_t,Process *>::iterator it=processes.find(pid);
-        if(it!=processes.end())
-        {
+            //Wait for a generic child process
+            if(kernelZombies.empty() && (options & WNOHANG)) return 0;
+            while(kernelZombies.empty())
+            {
+                if(kernelChilds.empty()) return -1;
+                genericWaiting.wait(l);
+            }
+            Process *joined=kernelZombies.front();
+            kernelZombies.pop_front();
+            processes.erase(joined->pid);
+            if(joined->waitCount!=0) errorHandler(UNEXPECTED);
+            if(exit!=0) *exit=joined->exitCode;
+            pid_t result=joined->pid;
+            delete joined;
+            return result;
+        } else {
+            //Wait on a specific child process
+            map<pid_t,Process *>::iterator it=processes.find(pid);
+            if(it==processes.end() || it->second->ppid!=0) return -1;
             Process *joined=it->second;
-            if(joined->exitCode==-1)
+            if(joined->zombie==false)
             {
                 //Process hasn't terminated yet
                 if(options & WNOHANG) return 0;
                 joined->waitCount++;
                 joined->waiting.wait(l);
                 joined->waitCount--;
-                if(joined->waitCount<0 || joined->exitCode==-1)
+                if(joined->waitCount<0 || joined->zombie==false)
                     errorHandler(UNEXPECTED);
             }
-            result=joined->pid;
-            if(exit!=0) *exit=joined->exitCode;
+            //If multiple threads call waitpid on the same child, the last
+            //gets the return value, the other -1
+            pid_t result=-1;
             if(joined->waitCount==0)
             {
-                typedef typename multimap<pid_t,Process *>::iterator iterator;
-                pair<iterator,iterator> p=zombies.equal_range(joined->ppid);
-                for(iterator it=p.first;it!=p.second;++it)
-                {
-                    if(it->second!=joined) continue;
-                    zombies.erase(it);
-                    break;
-                }
-                processes.erase(result);
+                if(exit!=0) *exit=joined->exitCode;
+                result=joined->pid;
+                kernelZombies.remove(joined);
+                processes.erase(joined->pid);
                 delete joined;
             }
+            return result;
+        }
+    } else {
+        //The wait is performed by a process
+        if(pid<=0)
+        {
+            //Wait for a generic child process
+            if(self->zombies.empty() && (options & WNOHANG)) return 0;
+            while(self->zombies.empty())
+            {
+                if(self->childs.empty()) return -1;
+                genericWaiting.wait(l);
+            }
+            Process *joined=self->zombies.front();
+            self->zombies.pop_front();
+            processes.erase(joined->pid);
+            if(joined->waitCount!=0) errorHandler(UNEXPECTED);
+            if(exit!=0) *exit=joined->exitCode;
+            pid_t result=joined->pid;
+            delete joined;
+            return result;
+        } else {
+            //Wait on a specific child process
+            map<pid_t,Process *>::iterator it=processes.find(pid);
+            if(it==processes.end() || it->second->ppid!=self->pid
+                    || pid==self->pid) return -1;
+            Process *joined=it->second;
+            if(joined->zombie==false)
+            {
+                //Process hasn't terminated yet
+                if(options & WNOHANG) return 0;
+                joined->waitCount++;
+                joined->waiting.wait(l);
+                joined->waitCount--;
+                if(joined->waitCount<0 || joined->zombie==false)
+                    errorHandler(UNEXPECTED);
+            }
+            pid_t result=-1;
+            if(joined->waitCount==0)
+            {
+                result=joined->pid;
+                if(exit!=0) *exit=joined->exitCode;
+                self->zombies.remove(joined);
+                processes.erase(joined->pid);
+                delete joined;
+            }
+            return result;
         }
     }
-    return result;
 }
 
 Process::~Process()
@@ -177,7 +228,7 @@ Process::~Process()
 }
 
 Process::Process(const ElfProgram& program) : program(program), waitCount(0),
-        exitCode(-1)
+        zombie(false)
 {
     //This is required so that bad_alloc can never be thrown when the first
     //thread of the process will be stored in this vector
@@ -222,14 +273,13 @@ void *Process::start(void *argv)
     #endif //__CODE_IN_XRAM
     Thread::setupUserspaceContext(entry,proc->image.getProcessBasePointer(),
         proc->image.getProcessImageSize());
-    int returnValue=0;
     bool running=true;
     do {
         miosix_private::SyscallParameters sp=Thread::switchToUserspace();
         if(proc->fault.faultHappened())
         {
             running=false;
-            returnValue=SIGSEGV; //Segfault
+            proc->exitCode=SIGSEGV; //Segfault
             #ifdef WITH_ERRLOG
             iprintf("Process %d terminated due to a fault\n"
                     "* Code base address was 0x%x\n"
@@ -248,7 +298,7 @@ void *Process::start(void *argv)
             {
                 case 2:
                     running=false;
-                    returnValue=(sp.getFirstParameter() & 0xff)<<8;
+                    proc->exitCode=(sp.getFirstParameter() & 0xff)<<8;
                     break;
                 case 3:
                     //FIXME: check that the pointer belongs to the process
@@ -267,7 +317,7 @@ void *Process::start(void *argv)
                     break;
                 default:
                     running=false;
-                    returnValue=SIGSYS; //Bad syscall
+                    proc->exitCode=SIGSYS; //Bad syscall
                     #ifdef WITH_ERRLOG
                     iprintf("Unexpected syscall number %d\n",sp.getSyscallId());
                     #endif //WITH_ERRLOG
@@ -278,11 +328,29 @@ void *Process::start(void *argv)
     } while(running);
     {
         Lock<Mutex> l(procMutex);
-        proc->exitCode=returnValue;
-        if(proc->waitCount>0) proc->waiting.broadcast();
-        else {
-            zombies.insert(make_pair(proc->ppid,proc));
-            genericWaiting.broadcast();
+        proc->zombie=true;
+        list<Process*>::iterator it;
+        for(it=proc->childs.begin();it!=proc->childs.end();++it) (*it)->ppid=0;
+        for(it=proc->zombies.begin();it!=proc->zombies.end();++it) (*it)->ppid=0;
+        kernelChilds.splice(kernelChilds.begin(),proc->childs);
+        kernelZombies.splice(kernelZombies.begin(),proc->zombies);
+        if(proc->ppid!=0)
+        {
+            map<pid_t,Process *>::iterator it=processes.find(proc->ppid);
+            if(it==processes.end()) errorHandler(UNEXPECTED);
+            it->second->childs.remove(proc);
+            if(proc->waitCount>0) proc->waiting.broadcast();
+            else {
+                it->second->zombies.push_back(proc);
+                genericWaiting.broadcast();
+            }
+        } else {
+            kernelChilds.remove(proc);
+            if(proc->waitCount>0) proc->waiting.broadcast();
+            else {
+                kernelZombies.push_back(proc);
+                genericWaiting.broadcast();
+            }
         }
     }
     return 0;
@@ -301,7 +369,8 @@ pid_t Process::getNewPid()
 }
 
 map<pid_t,Process*> Process::processes;
-multimap<pid_t,Process *> Process::zombies;
+std::list<Process *> Process::kernelChilds;
+std::list<Process *> Process::kernelZombies;
 pid_t Process::pidCounter=1;
 Mutex Process::procMutex;
 ConditionVariable Process::genericWaiting;
