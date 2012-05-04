@@ -69,9 +69,9 @@ public:
     /**
      * /return the base address of the process status backup area 
      */
-    void* getProcessesBackupAreaBase()
+    ProcessStatus* getProcessesBackupAreaBase()
     {
-        return    reinterpret_cast<void*>(
+        return    reinterpret_cast<struct ProcessStatus*>(
                                 reinterpret_cast<unsigned int>(backupSramBase)+
                                 getAllocatorSramAreaSize()+ 
                                 getBackupAllocatorSramAreaSize());
@@ -80,7 +80,7 @@ public:
     /**
      * /return the ptr to allocate the next process status in the backup area 
      */
-    void* getProcessesBackupAreaPtr();
+    ProcessStatus* getProcessesBackupAreaPtr();
     
     /**
      * Reset to zero the number of serialized processes

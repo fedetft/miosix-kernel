@@ -220,6 +220,30 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
     }
 }
 
+void Process::serializeSave(ProcessStatus* ptr, int interruptionId)
+{
+    ptr->pid=pid;
+    ptr->ppid=getppid();
+    //FIXME: todo initialize image and program base and size, once implemented
+    //ptr->processImageBase = imageBase;
+    //ptr->processImageSize = imageSize;
+    //ptr->programBase=programBase;
+    //ptr->programSize=programSize;
+    ptr->exitCode=exitCode;
+    memcpy(reinterpret_cast<void*>(ptr->MPUregValues), 
+           reinterpret_cast<void*>(mpu.getRegValuesPtr()),
+           mpu.getNumRegisters()*sizeof(int));
+    ptr->status|=1;
+    
+    //FIXME: as soos as a way to copy the processes' system stacks will be found
+    //initializeInterruptionPoint(int interruptionId);
+}
+
+void Process::serializeLoad(ProcessStatus* ptr)
+{
+
+}
+
 Process::~Process()
 {
     #ifdef __CODE_IN_XRAM
@@ -254,7 +278,7 @@ Process::Process(const ElfProgram& program) : program(program), waitCount(0),
 //    mpu=miosix_private::MPUConfiguration(program.getElfBase(),roundedSize,
 //            image.getProcessBasePointer(),image.getProcessImageSize());
     //FIXME -- end
-    #else //__CODE_IN_XRAM
+    #else //__CODE_IN_XRAMallocate
     loadedProgram=ProcessPool::instance().allocate(roundedSize);
     memcpy(loadedProgram,reinterpret_cast<char*>(program.getElfBase()),elfSize);
     mpu=miosix_private::MPUConfiguration(loadedProgram,roundedSize,

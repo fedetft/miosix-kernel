@@ -262,6 +262,22 @@ class MPUConfiguration
       */
      void dumpConfiguration();
      
+     /**
+      * \return the number of registers
+      */
+     int getNumRegisters()
+     {
+         return numRegisters;
+     }
+     
+     /**
+      * \return the pointer to the register array, used to configure the MPU
+      */
+     unsigned int* getRegValuesPtr()
+     {
+         return regValues;
+     }
+     
      static const int numRegisters=4;
      
      //Uses default copy constructor and operator=

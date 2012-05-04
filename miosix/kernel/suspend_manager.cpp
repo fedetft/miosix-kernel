@@ -39,17 +39,15 @@ SuspendManager::~SuspendManager()
 
 }
 
-void* SuspendManager:: getProcessesBackupAreaPtr()
+ProcessStatus* SuspendManager:: getProcessesBackupAreaPtr()
 {
-    struct ProcessStatus* processesBackupBase= 
+    ProcessStatus* processesBackupBase= 
                                 reinterpret_cast<struct ProcessStatus*>(
                                 getProcessesBackupAreaBase());
     
-    unsigned int currentBase=processesBackupBase+
-                             numSerializedProcesses*
-                             sizeof(struct ProcessStatus);
+    ProcessStatus* currentBase=processesBackupBase+numSerializedProcesses;
     numSerializedProcesses++;
-    return reinterpret_cast<void*>(currentBase);
+    return currentBase;
 }
 
 void SuspendManager::setInvalidBitToSerializedProcess(int pid)
@@ -95,7 +93,7 @@ int SuspendManager::findFirstInvalidInSerializedProcess()
      if((processesBackupBase->status &(1<<1)!=0) &&
         visited <= numSerializedProcesses)
      {
-         return processesBackupBase->pid;
+         return visited;
     }else{
          return -1;
     }

@@ -85,6 +85,19 @@ public:
     static pid_t waitpid(pid_t pid, int *exit, int options);
     
     /**
+     * Save the state of the allocator 
+     * \param ptr pointer to a memory area of type ProcessStatus
+     */
+    void serializeSave(ProcessStatus* ptr, int interruptionId);
+    
+    /**
+     * Load the state of the allocator
+     * \param ptr pointer to a memory area of type ProcessStatus
+     */
+    void serializeLoad(ProcessStatus* ptr);
+    
+    
+    /**
      * Destructor
      */
     ~Process();

@@ -115,18 +115,6 @@ public:
         return (sizeof(unsigned int)+sizeof(unsigned int*)+poolSize);
     }
     
-    /**
-     * Save the state of the allocator 
-     * \param ptr pointer to a memory area of size getSerializableSize
-     */
-    void serializeSave(unsigned int* ptr);
-    
-    /**
-     * Load the state of the allocator
-     * \param ptr pointer to a memory area of size getSerializableSize
-     */
-    void serializeLoad(unsigned int* ptr);
-    
     ///This constant specifies the size of the minimum allocatable block,
     ///in bits. So for example 10 is 1KB.
     static const unsigned int blockBits=10;
