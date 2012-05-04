@@ -68,10 +68,19 @@ namespace miosix {
 /// call service and, if the hardware supports it, the MPU to provide memory
 /// isolation of processes
 #define WITH_PROCESSES
+    
+/// \def WITH_HIBERNATION
+/// Enable process hibernation, allowing to save the state of processes and
+/// put the system in low power mode
+#define WITH_HIBERNATION
 
 #if defined(WITH_PROCESSES) && defined(__NO_EXCEPTIONS)
 #error Processes require C++ exception support
 #endif //defined(WITH_PROCESSES) && defined(__NO_EXCEPTIONS)
+    
+#if defined(WITH_HIBERNATION) && !defined(WITH_PROCESSES)
+#error Hibernation requires processes
+#endif //defined(WITH_HIBERNATION) && !defined(WITH_PROCESSES)
 
 //
 // Filesystem options
@@ -92,6 +101,9 @@ namespace miosix {
 
 /// Maximum number of open files. Trying to open more will fail.
 const unsigned char MAX_OPEN_FILES=8;
+
+/// Maximum number of threads a process can spawn
+const unsigned char MAX_THREADS_PER_PROCESS=2;
 
 //
 // C/C++ standard library I/O (stdin, stdout and stderr related)

@@ -156,6 +156,8 @@
                 <in>gpio_impl.h</in>
                 <in>portability.cpp</in>
                 <in>portability_impl.h</in>
+                <in>suspend_support_impl.cpp</in>
+                <in>suspend_support_impl.h</in>
               </df>
               <in>arch_settings.h</in>
             </df>
@@ -261,6 +263,7 @@
           <in>endianness.h</in>
           <in>gpio.h</in>
           <in>portability.h</in>
+          <in>suspend_support.h</in>
         </df>
         <df name="kernel">
           <df name="filesystem">
@@ -309,6 +312,8 @@
           <in>pthread.cpp</in>
           <in>pthread_private.h</in>
           <in>stage_2_boot.cpp</in>
+          <in>suspend_manager.cpp</in>
+          <in>suspend_manager.h</in>
           <in>sync.cpp</in>
           <in>sync.h</in>
           <in>syscalls.cpp</in>

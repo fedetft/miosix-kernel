@@ -106,11 +106,33 @@ public:
     }
     #endif //TEST_ALLOC
     
+    /**
+     * \return the dimension of the data to be serialized at the
+     * moment of the hibernation 
+     */
+    int getSerializableSize()
+    {
+        return (sizeof(unsigned int)+sizeof(unsigned int*)+poolSize);
+    }
+    
+    /**
+     * Save the state of the allocator 
+     * \param ptr pointer to a memory area of size getSerializableSize
+     */
+    void serializeSave(unsigned int* ptr);
+    
+    /**
+     * Load the state of the allocator
+     * \param ptr pointer to a memory area of size getSerializableSize
+     */
+    void serializeLoad(unsigned int* ptr);
+    
     ///This constant specifies the size of the minimum allocatable block,
     ///in bits. So for example 10 is 1KB.
     static const unsigned int blockBits=10;
     ///This constant is the the size of the minimum allocatable block, in bytes.
     static const unsigned int blockSize=1<<blockBits;
+    
     
 private:
     ProcessPool(const ProcessPool&);

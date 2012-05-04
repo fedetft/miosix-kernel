@@ -261,11 +261,13 @@ class MPUConfiguration
       * Print the MPU configuration for debugging purposes
       */
      void dumpConfiguration();
- 
+     
+     static const int numRegisters=4;
+     
      //Uses default copy constructor and operator=
 private:
      ///These value are copied into the MPU registers to configure them
-     unsigned int regValues[4]; 
+     unsigned int regValues[numRegisters]; 
 };
 
 #endif //WITH_PROCESSES

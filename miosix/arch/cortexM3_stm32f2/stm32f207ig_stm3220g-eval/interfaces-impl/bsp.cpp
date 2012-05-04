@@ -45,6 +45,7 @@
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
 #include "console-impl.h"
+#include "interfaces/suspend_support.h"
 
 namespace miosix {
 
@@ -77,6 +78,7 @@ void IRQbspInit()
     #ifndef STDOUT_REDIRECTED_TO_DCC
     IRQstm32f2serialPortInit();
     #endif //STDOUT_REDIRECTED_TO_DCC
+    initializeBackupSram();
 }
 
 void bspInit2()
