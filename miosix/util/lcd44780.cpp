@@ -39,6 +39,7 @@ int Lcd44780::printf(const char* fmt, ...)
     int len=vsnprintf(line,sizeof(line),fmt,arg);
     va_end(arg);
     for(int i=0;i<len;i++) data(line[i]);
+    return len;
 }
 
 void Lcd44780::clear()
