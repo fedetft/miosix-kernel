@@ -19,17 +19,19 @@ kernel/stage_2_boot.cpp                                                    \
 kernel/syscalls.cpp                                                        \
 kernel/elf_program.cpp                                                     \
 kernel/process.cpp                                                         \
-kernel/process_pool.cpp                                                    \
+kernel/process_pool.cpp													   \
+kernel/suspend_manager.cpp                                                 \
 kernel/scheduler/priority/priority_scheduler.cpp                           \
 kernel/scheduler/control/control_scheduler.cpp                             \
 kernel/scheduler/edf/edf_scheduler.cpp                                     \
 kernel/filesystem/filesystem.cpp                                           \
 kernel/filesystem/ff.c                                                     \
-kernel/filesystem/diskio.cpp                                               \
+kernel/filesystem/diskio.cpp                                               \												   \
 util/util.cpp                                                              \
 util/version.cpp                                                           \
 util/crc16.cpp                                                             \
-util/lcd44780.cpp
+util/lcd44780.cpp							   
+
 
 ## Add the architecture dependand sources to the list of files to build.
 ## ARCH_SRC will contain different source files depending on which

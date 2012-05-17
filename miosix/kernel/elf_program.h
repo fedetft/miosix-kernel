@@ -31,6 +31,7 @@
 #include <utility>
 #include "elf_types.h"
 #include "config/miosix_settings.h"
+#include "suspend_manager.h"
 
 #ifdef WITH_PROCESSES
 
@@ -123,6 +124,7 @@ private:
     
     const unsigned int * const elf; ///<Pointer to the content of the elf file
     unsigned int size; ///< Size of the elf file
+    
 };
 
 /**
@@ -142,6 +144,13 @@ public:
      * relocations
      */
     void load(const ElfProgram& program);
+    
+    /**
+     * Resume the image of a process in RAM after and hibernation
+     * including copying .data, zeroing .bss and performing
+     * relocations
+     */
+    void resume(ProcessStatus* status);
     
     /**
      * \return a pointer to the base of the program image

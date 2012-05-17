@@ -78,7 +78,10 @@ void IRQbspInit()
     #ifndef STDOUT_REDIRECTED_TO_DCC
     IRQstm32f2serialPortInit();
     #endif //STDOUT_REDIRECTED_TO_DCC
+    
+    #ifdef WITH_PROCESSES    
     initializeBackupSram();
+    #endif WITH_PROCESSES
 }
 
 void bspInit2()

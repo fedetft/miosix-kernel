@@ -311,6 +311,12 @@ void ProcessImage::load(const ElfProgram& program)
     }
 }
 
+void ProcessImage:: resume(ProcessStatus* status)
+{
+    image=status->processImageBase;
+    size=status->processImageSize;
+}
+
 ProcessImage::~ProcessImage()
 {
     if(image) ProcessPool::instance().deallocate(image);

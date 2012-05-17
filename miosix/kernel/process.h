@@ -36,6 +36,7 @@
 #include "sync.h"
 #include "elf_program.h"
 #include "config/miosix_settings.h"
+#include "suspend_manager.h"
 
 #ifdef WITH_PROCESSES
 
@@ -49,12 +50,22 @@ class Process
 public:
     /**
      * Create a new process
-     * \param program Program that the process will execute
+     * \param program Program that the process will execute 
      * \return the pid of the newly created process
      * \throws std::exception or a subclass in case of errors, including
      * not emough memory to spawn the process
      */
     static pid_t create(const ElfProgram& program);
+    
+    /**
+     * Recreate a process after the hibernation, exactly as it was before
+     * \param program Program that the process will execute 
+     * \param ptr to the serialized status of the process in the backup RAM
+     * \return the pid of the newly created process
+     * \throws std::exception or a subclass in case of errors, including
+     * not emough memory to spawn the process
+     */
+    pid_t resume(const ElfProgram& program, ProcessStatus* status);
     
     /**
      * Given a process, returns the pid of its parent.
@@ -88,13 +99,8 @@ public:
      * Save the state of the allocator 
      * \param ptr pointer to a memory area of type ProcessStatus
      */
-    void serializeSave(ProcessStatus* ptr, int interruptionId);
+    void serialize(ProcessStatus* ptr, int interruptionId);
     
-    /**
-     * Load the state of the allocator
-     * \param ptr pointer to a memory area of type ProcessStatus
-     */
-    void serializeLoad(ProcessStatus* ptr);
     
     
     /**
@@ -113,11 +119,19 @@ private:
     Process(const ElfProgram& program);
     
     /**
+     * Constructor to recreate a process after hibernation as it was before
+     * \param program program that will be executed by the process
+     * \param serialized status of the process in the backup SRAM
+     */
+    Process(const ElfProgram& program, ProcessStatus* status);
+    
+    /**
      * Contains the process' main loop. 
      * \param argv ignored parameter
      * \return null
      */
     static void *start(void *argv);
+    
     
     /**
      * \return an unique pid that is not zero and is not already in use in the
@@ -134,7 +148,6 @@ private:
     ProcessImage image; ///<The RAM image of a process
     miosix_private::FaultData fault; ///< Contains information about faults
     miosix_private::MPUConfiguration mpu; ///<Memory protection data
-    
     std::vector<Thread *> threads; ///<Threads that belong to the process
     std::list<Process *> childs;   ///<Living child processes are stored here
     std::list<Process *> zombies;  ///<Dead child processes are stored here
@@ -159,6 +172,9 @@ private:
     static Mutex procMutex;
     ///Used to wait on process termination
     static ConditionVariable genericWaiting;
+    //Used to take account of the ELF size opportunely rounded to suit for MPU 
+    unsigned int roundedSize;
+    
     
     //Needs access to fault,mpu
     friend class Thread;
@@ -168,6 +184,8 @@ private:
     friend class ControlScheduler;
     //Needs access to mpu
     friend class EDFScheduler;
+    //Nedds access interruption point and resume methods, to handle hibernation
+    friend class SuspendManager;
 };
 
 } //namespace miosix

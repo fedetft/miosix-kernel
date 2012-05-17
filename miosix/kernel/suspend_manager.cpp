@@ -26,11 +26,16 @@
  ***************************************************************************/
 
 #include "suspend_manager.h"
+#include <stdexcept>
+
+#ifdef WITH_PROCESSES
+
+using namespace std;
+
 namespace miosix{
 
 SuspendManager::SuspendManager() 
 {
-    backupSramBase=getBackupSramBase();
     numSerializedProcesses=0;
 }
 
@@ -83,14 +88,14 @@ int SuspendManager::findFirstInvalidInSerializedProcess()
                                 reinterpret_cast<struct ProcessStatus*>(
                                 getProcessesBackupAreaBase());
     
-    while((processesBackupBase->status &(1<<1)==0) && 
-          visited <= numSerializedProcesses)
+    while((processesBackupBase->status &((1<<1)==0) && 
+          visited <= numSerializedProcesses))
     {
         processesBackupBase++;
         visited++;
     }
     
-     if((processesBackupBase->status &(1<<1)!=0) &&
+     if((processesBackupBase->status & ((1<<1)!=0)) &&
         visited <= numSerializedProcesses)
      {
          return visited;
@@ -100,4 +105,12 @@ int SuspendManager::findFirstInvalidInSerializedProcess()
     
 }
 
+int SuspendManager::resume()
+{
+    
+    return 0;
+}
+
 }//namespace miosix
+
+#endif //WITH_PROCESSES

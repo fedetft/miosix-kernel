@@ -29,14 +29,21 @@
 #define	SUSPENDMANAGER_H
 #include "interfaces/portability.h"
 #include "interfaces/suspend_support.h"
-
+#ifdef WITH_PROCESSES
 namespace miosix{
 
 ///This struct is used to serialize the interrupion point status for processes
 ///and threads spawned by that process
-struct InterruptionPointStatus{
-    int interruptionPointID;
-    int status[8];
+struct IntPointStatus{
+    int intPointID; //ID of the syscall which caused the interruption
+    int file_id; //file eventually opened by the syscall, -1 if no file opened
+    long long absSyscallTime; //absolute time taken by the syscall to resume
+    unsigned int* backupQueue; //ptr to the process queue in the backupe SRAM
+    int queueSize; //size of the queue associated to the process
+    char wakeNow;//set to one if the process or thread has to wake up now
+    char sizeofSample; //size of the data sampled in the hibernation period
+    int sampNum; //number of the samples eventually performed by smart driver
+    unsigned int *targetSampleMem; //process memory pointer to copy the queue
 }__attribute__((packed));
     
     
@@ -52,9 +59,8 @@ struct ProcessStatus
     int processImageSize;
     unsigned int* programBase;
     int programSize;
-    unsigned int MPUregValues[miosix_private::MPUConfiguration::numRegisters];
     int fileDescriptors[MAX_OPEN_FILES];
-    struct InterruptionPointStatus InterruptionPoints[1+MAX_THREADS_PER_PROCESS];
+    struct IntPointStatus InterruptionPoints[1+MAX_THREADS_PER_PROCESS];
 } __attribute__((packed));
 
 
@@ -101,12 +107,23 @@ public:
      * are found
      */
     int findFirstInvalidInSerializedProcess();
+    
+    /**
+     * Find the the serialized processes with invalid bit set,
+     * which must be serialzied again. Return -1 if no dirty processes status
+     * are found
+     */
+    int resume();
 
 private:
-    unsigned int* backupSramBase;
     int numSerializedProcesses;
+
+    //Needs access to process table, serialization/loading methods
+    friend class Process;
+    
 };
 
 }//namespace miosix
+#endif //WITH_PROCESSES
 #endif	/* SUSPENDMANAGER_H */
 

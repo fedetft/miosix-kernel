@@ -321,6 +321,10 @@
           <in>syscalls_types.h</in>
           <in>unistd.cpp</in>
         </df>
+        <df name="mram_driver">
+          <in>mram.cpp</in>
+          <in>mram.h</in>
+        </df>
         <df name="testsuite">
           <in>testsuite.cpp</in>
         </df>

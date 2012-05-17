@@ -28,9 +28,12 @@
 #ifndef BACKUP_SRAM_IMPL_H
 #define	BACKUP_SRAM_IMPL_H
 #include "kernel/process_pool.h"
+
+#ifdef WITH_PROCESSES
+
 namespace miosix {
 
-const unsigned int* backupSramBase = 
+unsigned int* const backupSramBase = 
                                 reinterpret_cast<unsigned int*>(0x40024000);
 const int backupSramSize=4096;
 
@@ -47,6 +50,11 @@ inline int getBackupSramSize()
 inline int getAllocatorSramAreaSize()
 {
     return ProcessPool::instance().getSerializableSize();
+}
+
+inline int getBackupAllocatorSramAreaSize()
+{
+    return sizeof(unsigned int*)*4 ;
 }
 
 inline int getProcessesSramAreaSize()
@@ -71,5 +79,6 @@ inline int getSmartDriversQueueSramAreaSize()
 
 } //namespace miosix
 
+#endif  //WITH_PROCESSES
 #endif	/* BACKUP_SRAM_IMPL_H */
 

@@ -29,6 +29,8 @@
 #include "miosix.h"
 #include "arch_registers.h"
 
+#ifdef WITH_PROCESSES
+
 namespace miosix {
     
 void initializeBackupSram()
@@ -47,5 +49,8 @@ void initializeRTC()
     RCC->BDCR |= RCC_BDCR_LSEON;
     while((RCC->BDCR & RCC_BDCR_LSERDY)==0) ; //wait
     RCC->BDCR |= RCC_BDCR_RTCSEL_0 | RCC_BDCR_RTCEN;
+}
 
 } //namespace miosix
+
+#endif //WITH_PROCESS

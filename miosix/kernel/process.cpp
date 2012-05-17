@@ -111,6 +111,50 @@ pid_t Process::create(const ElfProgram& program)
     return result;
 }
 
+pid_t Process::resume(const ElfProgram& program, ProcessStatus* status)
+{
+    auto_ptr<Process> proc(new Process(program, status));
+    map<pid_t,Process*>:: iterator findProc;
+    {   
+        Lock<Mutex> l(procMutex);
+        proc->pid=status->pid;
+        proc->ppid=status->ppid;
+        
+        if(proc->ppid!=0)
+        {   
+            findProc=processes.find(proc->ppid);
+            if(findProc!=processes.end()) //check if the parent is resumed
+                findProc->second->childs.push_back(proc.get());
+        } else {
+            kernelChilds.push_back(proc.get());
+        }
+        processes[proc->pid]=proc.get();
+    }
+    Thread *thr=Thread::createUserspace(Process::start,0,Thread::DEFAULT,
+        proc.get());
+    if(thr==0)
+    {
+        Lock<Mutex> l(procMutex);
+        processes.erase(proc->pid);
+        if(proc->ppid!=0)
+        {
+            findProc=processes.find(ppid);
+            if(findProc!=processes.end()) //check if the parent is resumed
+                findProc->second->childs.remove(proc.get());
+        } else kernelChilds.remove(proc.get());
+        throw runtime_error("Thread creation failed");
+    }
+    //Cannot throw bad_alloc due to the reserve in Process's constructor.
+    //This ensures we will never be in the uncomfortable situation where a
+    //thread has already been created but there's no memory to list it
+    //among the threads of a process
+    proc->threads.push_back(thr);
+    thr->wakeup(); //Actually start the thread, now that everything is set up
+    pid_t result=proc->pid;
+    proc.release(); //Do not delete the pointer
+    return result;
+}
+
 pid_t Process::getppid(pid_t proc)
 {
     Lock<Mutex> l(procMutex);
@@ -220,29 +264,25 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
     }
 }
 
-void Process::serializeSave(ProcessStatus* ptr, int interruptionId)
+void Process::serialize(ProcessStatus* ptr, int interruptionId)
 {
     ptr->pid=pid;
-    ptr->ppid=getppid();
-    //FIXME: todo initialize image and program base and size, once implemented
-    //ptr->processImageBase = imageBase;
-    //ptr->processImageSize = imageSize;
-    //ptr->programBase=programBase;
-    //ptr->programSize=programSize;
-    ptr->exitCode=exitCode;
-    memcpy(reinterpret_cast<void*>(ptr->MPUregValues), 
-           reinterpret_cast<void*>(mpu.getRegValuesPtr()),
-           mpu.getNumRegisters()*sizeof(int));
-    ptr->status|=1;
+    ptr->ppid=ppid;
+    ptr->processImageBase = image.getProcessBasePointer();
+    ptr->processImageSize = image.getProcessImageSize();
     
-    //FIXME: as soos as a way to copy the processes' system stacks will be found
-    //initializeInterruptionPoint(int interruptionId);
+    #ifndef __CODE_IN_XRAM
+    ptr->programBase=program.getElfBase();
+    ptr->programSize=program.getElfSize();
+    #else //__CODE_IN_XRAM
+    ptr->programBase=loadedProgram;
+    ptr->programBase=reinterpret_cast<unsigned int*>(roundedSize);
+    #endif //__CODE_IN_XRAM
+
+    ptr->exitCode=exitCode;
+    ptr->status|=1;
 }
 
-void Process::serializeLoad(ProcessStatus* ptr)
-{
-
-}
 
 Process::~Process()
 {
@@ -260,7 +300,42 @@ Process::Process(const ElfProgram& program) : program(program), waitCount(0),
     //Done here so if not enough memory the new process is not even created
     image.load(program);
     unsigned int elfSize=program.getElfSize();
-    unsigned int roundedSize=elfSize;
+    roundedSize=elfSize;
+    //Allocatable blocks must be greater than ProcessPool::blockSize, and must
+    //be a power of two due to MPU limitations
+    if(elfSize<ProcessPool::blockSize) roundedSize=ProcessPool::blockSize;
+    else if(elfSize & (elfSize-1)) roundedSize=1<<ffs(elfSize);
+    #ifndef __CODE_IN_XRAM
+    //FIXME -- begin
+    //Till a flash file system that ensures proper alignment of the programs
+    //loaded in flash is implemented, make the whole flash visible as a big MPU
+    //region
+    extern unsigned char _end asm("_end");
+    unsigned int flashEnd=reinterpret_cast<unsigned int>(&_end);
+    if(flashEnd & (flashEnd-1)) flashEnd=1<<ffs(flashEnd);
+    mpu=miosix_private::MPUConfiguration(0,flashEnd,
+            image.getProcessBasePointer(),image.getProcessImageSize());
+//    mpu=miosix_private::MPUConfiguration(program.getElfBase(),roundedSize,
+//            image.getProcessBasePointer(),image.getProcessImageSize());
+    //FIXME -- end
+    #else //__CODE_IN_XRAMallocate
+    loadedProgram=ProcessPool::instance().allocate(roundedSize);
+    memcpy(loadedProgram,reinterpret_cast<char*>(program.getElfBase()),elfSize);
+    mpu=miosix_private::MPUConfiguration(loadedProgram,roundedSize,
+            image.getProcessBasePointer(),image.getProcessImageSize());
+    #endif //__CODE_IN_XRAM
+}
+
+Process::Process(const ElfProgram& program, ProcessStatus* status) : 
+                program(program), waitCount(0), zombie(false)
+{
+    //This is required so that bad_alloc can never be thrown when the first
+    //thread of the process will be stored in this vector
+    threads.reserve(1);
+    //Done here so if not enough memory the new process is not even created
+    image.resume(status);
+    unsigned int elfSize=program.getElfSize();
+    roundedSize=elfSize;
     //Allocatable blocks must be greater than ProcessPool::blockSize, and must
     //be a power of two due to MPU limitations
     if(elfSize<ProcessPool::blockSize) roundedSize=ProcessPool::blockSize;
@@ -326,12 +401,14 @@ void *Process::start(void *argv)
                     break;
                 case 3:
                     //FIXME: check that the pointer belongs to the process
+                    
                     sp.setReturnValue(write(sp.getFirstParameter(),
                         reinterpret_cast<const char*>(sp.getSecondParameter()),
                         sp.getThirdParameter()));
                     break;
                 case 4:
                     //FIXME: check that the pointer belongs to the process
+             
                     sp.setReturnValue(read(sp.getFirstParameter(),
                         reinterpret_cast<char*>(sp.getSecondParameter()),
                         sp.getThirdParameter()));
@@ -391,6 +468,7 @@ pid_t Process::getNewPid()
         return pidCounter++;
     }
 }
+
 
 map<pid_t,Process*> Process::processes;
 std::list<Process *> Process::kernelChilds;

@@ -27,6 +27,8 @@
 #ifndef BACKUP_SRAM_H
 #define	BACKUP_SRAM_H
 
+#ifdef WITH_PROCESSES
+
 namespace miosix {
 
 inline unsigned int *getBackupSramBase();
@@ -41,7 +43,8 @@ inline int getAllocatorSramAreaSize();
 
 /**
  * \return size of the backup SRAM for the backup allocator status
- *  
+ *  this includes four pointer, i.e. the base pointers to the four 
+ * region of the backup memory
  */
 inline int getBackupAllocatorSramAreaSize();
 
@@ -71,5 +74,6 @@ inline int getSmartDriversQueueSramAreaSize();
 // This contains the macros and the implementation of inline functions
 #include "interfaces-impl/suspend_support_impl.h"
 
-#endif	/* BACKUP_SRAM_H */
+#endif  //WITH_PROCESSES
+#endif	// BACKUP_SRAM_H 
 
