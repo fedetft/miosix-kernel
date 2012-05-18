@@ -119,6 +119,10 @@ pid_t Process::resume(const ElfProgram& program, ProcessStatus* status)
         Lock<Mutex> l(procMutex);
         proc->pid=status->pid;
         proc->ppid=status->ppid;
+        if(status->status & 1)
+            proc->zombie=true;
+        else
+            proc->zombie=false;
         
         if(proc->ppid!=0)
         {   
@@ -129,6 +133,20 @@ pid_t Process::resume(const ElfProgram& program, ProcessStatus* status)
             kernelChilds.push_back(proc.get());
         }
         processes[proc->pid]=proc.get();
+        
+        //the following cycle is needed when a process is resumed after some
+        //other processes have been resumed to check if any of them is a child
+        for(findProc=processes.begin();
+            findProc!= processes.end();
+            findProc++)
+        {
+            if(proc->pid==findProc->second->ppid)
+                if(findProc->second->zombie==false)
+                    proc->childs.push_back(findProc->second);
+                else
+                    proc->zombies.push_back(findProc->second);
+                
+        }
     }
     Thread *thr=Thread::createUserspace(Process::start,0,Thread::DEFAULT,
         proc.get());
@@ -327,7 +345,7 @@ Process::Process(const ElfProgram& program) : program(program), waitCount(0),
 }
 
 Process::Process(const ElfProgram& program, ProcessStatus* status) : 
-                program(program), waitCount(0), zombie(false)
+                program(program)
 {
     //This is required so that bad_alloc can never be thrown when the first
     //thread of the process will be stored in this vector

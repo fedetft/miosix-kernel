@@ -81,7 +81,7 @@ void IRQbspInit()
     
     #ifdef WITH_PROCESSES    
     initializeBackupSram();
-    #endif WITH_PROCESSES
+    #endif //WITH_PROCESSES
 }
 
 void bspInit2()

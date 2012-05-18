@@ -29,6 +29,7 @@
 #define	SUSPENDMANAGER_H
 #include "interfaces/portability.h"
 #include "interfaces/suspend_support.h"
+#include <list>
 #ifdef WITH_PROCESSES
 namespace miosix{
 
@@ -63,8 +64,14 @@ struct ProcessStatus
     struct IntPointStatus InterruptionPoints[1+MAX_THREADS_PER_PROCESS];
 } __attribute__((packed));
 
-
-
+//this struct is used to keep track of the resume time after a syscall for each
+//process and for each thread in a process
+struct syscallResumeTime
+{
+    int pid;
+    short int threadNum;
+    long long resumeTime;
+}__attribute__((packed));
 
 class SuspendManager 
 {
@@ -117,7 +124,7 @@ public:
 
 private:
     int numSerializedProcesses;
-
+    static std::list<syscallResumeTime> syscallTime;
     //Needs access to process table, serialization/loading methods
     friend class Process;
     

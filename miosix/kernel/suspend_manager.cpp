@@ -105,10 +105,44 @@ int SuspendManager::findFirstInvalidInSerializedProcess()
     
 }
 
+/*
+ *The following functions is used to sort the list of resuming time
+ */
+bool compareResumeTime(syscallResumeTime first, syscallResumeTime second )
+{
+    if(first.resumeTime>=second.resumeTime)
+        return true;
+    else
+        return false;
+}
+
 int SuspendManager::resume()
 {
+    ProcessStatus* proc=getProcessesBackupAreaBase();
     
-    return 0;
+    
+    
+    //in the following block we populate the list of return time
+    {
+        syscallResumeTime retTime;
+
+        while(proc<=getProcessesBackupAreaPtr()||
+                reinterpret_cast<unsigned int>(proc)<=
+                reinterpret_cast<unsigned int>(getProcessesBackupAreaBase())+
+                getProcessesSramAreaSize())
+        {    
+            for(int i=0;i<proc->numThreads;i++)
+            {
+                retTime.pid=proc->pid;
+                retTime.threadNum=i;
+                retTime.resumeTime=proc->InterruptionPoints[i].absSyscallTime;
+                syscallTime.push_back(retTime);
+            }        
+        }//end while
+        syscallTime.sort(compareResumeTime);
+    }//end of the block of code that populates the list of resuming time
+    
+    
 }
 
 }//namespace miosix

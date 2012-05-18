@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico  and Luigi Rucco  *
+ *   Copyright (C) 2012 by Terraneo Federico                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,32 +25,71 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "interfaces/suspend_support.h"
-#include "miosix.h"
-#include "interfaces/arch_registers.h"
+#include <pthread.h>
 
-#ifdef WITH_PROCESSES
+#ifndef MRAM_H
+#define	MRAM_H
 
-namespace miosix {
+/**
+ * Class to access the mram memory
+ */
+class Mram
+{
+public:
+    /**
+     * Singleton
+     * \return an instance of the Mram class 
+     */
+    static Mram& instance();
     
-void initializeBackupSram()
-{
-    FastInterruptDisableLock dLock;
-    RCC->APB1ENR |= RCC_APB1ENR_PWREN;
-    PWR-> CR |= PWR_CR_DBP;
-    RCC->AHB1ENR |= RCC_AHB1ENR_BKPSRAMEN;
-}
+    /**
+     * \return the MRAM's size in bytes 
+     */
+    unsigned int size() const;
+    
+    /**
+     * Write a block of data into the mram
+     * \param addr start address into the mram where the data block will be
+     * written
+     * \param data data block
+     * \param size data block size
+     * \return true on success, false on failure
+     */
+    bool write(unsigned int addr, const void *data, int size);
+    
+    /**
+     * Read a block of data from the mram
+     * \param addr start address into the mram where the data block will be read
+     * \param data data block
+     * \param size data block size
+     * \return true on success, false on failure
+     */
+    bool read(unsigned int addr, void *data, int size);
+    
+    /**
+     * This member function needs to be called before accessing the mram
+     */
+    void exitSleepMode();
+    
+    /**
+     * This member function can be called after performing operations on the
+     * mram to put it back in sleep mode
+     */
+    void enterSleepMode();
+    
+    /**
+     * \return true if the mram is in sleep mode 
+     */
+    bool isSleeping() const { return sleepMode; }
+    
+private:
+    Mram();
+    
+    Mram(const Mram&);
+    Mram& operator= (const Mram&);
+    
+    pthread_mutex_t mutex; ///Mutex to protect concurrent access to the hardware
+    bool sleepMode;
+};
 
-void initializeRTC()
-{
-    FastInterruptDisableLock dLock;
-    RCC->APB1ENR |= RCC_APB1ENR_PWREN;
-    PWR-> CR |= PWR_CR_DBP;
-    RCC->BDCR |= RCC_BDCR_LSEON;
-    while((RCC->BDCR & RCC_BDCR_LSERDY)==0) ; //wait
-    RCC->BDCR |= RCC_BDCR_RTCSEL_0 | RCC_BDCR_RTCEN;
-}
-
-} //namespace miosix
-
-#endif //WITH_PROCESS
+#endif //MRAM_H
