@@ -108,7 +108,7 @@ namespace comm {
 typedef Gpio<GPIOC_BASE,10> sck;
 typedef Gpio<GPIOC_BASE,11> miso;
 typedef Gpio<GPIOC_BASE,12> mosi;
-typedef Gpio<GPIOC_BASE,13> cs;
+typedef Gpio<GPIOA_BASE,15> cs;
 typedef Gpio<GPIOD_BASE,2>  irq;
 }
 
@@ -136,7 +136,7 @@ typedef Gpio<GPIOA_BASE,11> u7;
 typedef Gpio<GPIOA_BASE,12> u8;
 typedef Gpio<GPIOA_BASE,13> u9;  //Actually swdio
 typedef Gpio<GPIOA_BASE,14> u10; //Actually swclk
-typedef Gpio<GPIOA_BASE,15> u11;
+typedef Gpio<GPIOC_BASE,13> u11; //Connected to comm::cs as a bug
 typedef Gpio<GPIOB_BASE,0>  u12;
 typedef Gpio<GPIOB_BASE,1>  u13;
 typedef Gpio<GPIOB_BASE,2>  u14; //Connected to GND as it is BOOT1
@@ -151,7 +151,7 @@ typedef Gpio<GPIOC_BASE,5>  u22;
 typedef Gpio<GPIOC_BASE,14> u23;
 typedef Gpio<GPIOC_BASE,15> u24;
 typedef Gpio<GPIOD_BASE,3>  u25;
-typedef Gpio<GPIOD_BASE,6>  u26; //Connecte to comm::cs to simplify PCB routing
+typedef Gpio<GPIOD_BASE,6>  u26; //Connected to comm::cs to simplify PCB routing
 typedef Gpio<GPIOE_BASE,2>  u27;
 typedef Gpio<GPIOE_BASE,3>  u28;
 typedef Gpio<GPIOF_BASE,6>  u29;

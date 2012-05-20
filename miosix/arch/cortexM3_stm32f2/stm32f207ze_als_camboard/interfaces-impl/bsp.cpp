@@ -73,9 +73,9 @@ void IRQbspInit()
 	//10| AF7     | IN PD   | AF6     | AF12    | AF12    | IN PD   | IN PD   |
 	//11| IN PD   | IN PD   | AF6     | AF12    | AF12    | IN PD   | IN PD   |
 	//12| IN PD   | IN PD   | AF6     | AF12    | AF12    | AF12    | IN PD   |
-	//13| AF0 PU  | IN PD   | OUT H   | AF12    | AF12    | AF12    | IN PD   |
+	//13| AF0 PU  | IN PD   | IN      | AF12    | AF12    | AF12    | IN PD   |
 	//14| AF0 PD  | IN PD   | IN PD   | AF12    | AF12    | AF12    | IN PD   |
-	//15| IN PD   | IN PD   | IN PD   | AF12    | AF12    | AF12    | IN PD   |
+	//15| AF6 PU  | IN PD   | IN PD   | AF12    | AF12    | AF12    | IN PD   |
     
     GPIOA->OSPEEDR=0xaaaaaaaa; //Default to 50MHz speed for all GPIOS
     GPIOB->OSPEEDR=0xaaaaaaaa; //Except SRAM GPIOs that run @ 100MHz
@@ -85,15 +85,15 @@ void IRQbspInit()
     GPIOF->OSPEEDR=0xffaaafff;
     GPIOG->OSPEEDR=0xaaaaafff;
     
-    GPIOA->MODER=0x282a2200;
+    GPIOA->MODER=0xa82a2200;
     GPIOB->MODER=0x0001aa80;
-    GPIOC->MODER=0x06aaa001;
+    GPIOC->MODER=0x02aaa001;
     GPIOD->MODER=0xaaaa8a0a;
     GPIOE->MODER=0xaaaaaa0a;
     GPIOF->MODER=0xaa000aaa;
     GPIOG->MODER=0x00000aaa;
     
-    GPIOA->PUPDR=0xa68088aa;
+    GPIOA->PUPDR=0x668088aa;
     GPIOB->PUPDR=0xaaa8000a;
     GPIOC->PUPDR=0xa0000a80;
     GPIOD->PUPDR=0x000000a0;
@@ -110,7 +110,7 @@ void IRQbspInit()
     GPIOG->ODR=0x00000000;
     
     GPIOA->AFR[0]= 0 |  0<<4 |  0<<8 |  0<<12 | 13<<16 |  0<<20 | 13<<24 |  0<<28;
-    GPIOA->AFR[1]= 0 |  7<<4 |  7<<8 |  0<<12 |  0<<16 |  0<<20 |  0<<24 |  0<<28;
+    GPIOA->AFR[1]= 0 |  7<<4 |  7<<8 |  0<<12 |  0<<16 |  0<<20 |  0<<24 |  6<<28;
     GPIOB->AFR[0]= 0 |  0<<4 |  0<<8 |  5<<12 |  5<<16 |  5<<20 | 13<<24 | 13<<28;
     GPIOB->AFR[1]= 0 |  0<<4 |  0<<8 |  0<<12 |  0<<16 |  0<<20 |  0<<24 |  0<<28;
     GPIOC->AFR[0]= 0 |  0<<4 |  0<<8 |  0<<12 |  0<<16 |  0<<20 | 13<<24 | 13<<28;
@@ -159,7 +159,7 @@ void bspInit2()
 void shutdown()
 {
     disableInterrupts();
-    for(;;) ;
+    for(;;) __WFI();
 }
 
 void reboot()
