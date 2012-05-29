@@ -44,6 +44,7 @@ struct IntPointStatus{
     char wakeNow;//set to one if the process or thread has to wake up now
     char sizeofSample; //size of the data sampled in the hibernation period
     int sampNum; //number of the samples eventually performed by smart driver
+    unsigned int registers[CTXSAVE_SIZE];
     unsigned int *targetSampleMem; //process memory pointer to copy the queue
 }__attribute__((packed));
     
@@ -61,7 +62,7 @@ struct ProcessStatus
     unsigned int* programBase;
     int programSize;
     int fileDescriptors[MAX_OPEN_FILES];
-    struct IntPointStatus InterruptionPoints[1+MAX_THREADS_PER_PROCESS];
+    struct IntPointStatus interruptionPoints[1+MAX_THREADS_PER_PROCESS];
 } __attribute__((packed));
 
 //this struct is used to keep track of the resume time after a syscall for each
@@ -71,6 +72,7 @@ struct syscallResumeTime
     int pid;
     short int threadNum;
     long long resumeTime;
+    ProcessStatus* status;
 }__attribute__((packed));
 
 class SuspendManager 
@@ -114,7 +116,7 @@ public:
      * are found
      */
     int findFirstInvalidInSerializedProcess();
-    
+   
     /**
      * Find the the serialized processes with invalid bit set,
      * which must be serialzied again. Return -1 if no dirty processes status
@@ -123,8 +125,11 @@ public:
     int resume();
 
 private:
+    static void wakeupDaemon(void*);
+    
     int numSerializedProcesses;
-    static std::list<syscallResumeTime> syscallTime;
+    static std::list<syscallResumeTime> syscallReturnTime;
+    
     //Needs access to process table, serialization/loading methods
     friend class Process;
     

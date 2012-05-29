@@ -871,7 +871,7 @@ private:
     };
     
     #ifdef WITH_PROCESSES
-
+    
     /**
      * \internal
      * Causes a thread belonging to a process to switch to userspace, and
@@ -902,6 +902,24 @@ private:
      */
     static void setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
         unsigned int ramImageSize);
+    
+    #ifdef WITH_HIBERNATION
+    
+    /**
+     * Serialize the userspace registers of a thread.Can only be called on
+     * a thread that is not running in userpsace
+     * \param registers are the saved registers during hibernation
+     */
+    void serializeUserspaceContext(unsigned int registers[CTXSAVE_SIZE]);
+    
+    /**
+     * Resume the userspace context of the thread, so that it can be later
+     * switched to userspace. Must be called only once for each thread instance
+     * \param registers are the saved registers during hibernation
+     */
+    static void resumeUserspaceContext(unsigned int registers[CTXSAVE_SIZE]);
+    
+    #endif //WITH_HIBERNATION
     
     #endif //WITH_PROCESSES
 

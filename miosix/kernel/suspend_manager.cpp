@@ -26,6 +26,9 @@
  ***************************************************************************/
 
 #include "suspend_manager.h"
+#include "elf_program.h"
+#include "process.h"
+#include <string.h>
 #include <stdexcept>
 
 #ifdef WITH_PROCESSES
@@ -50,8 +53,10 @@ ProcessStatus* SuspendManager:: getProcessesBackupAreaPtr()
                                 reinterpret_cast<struct ProcessStatus*>(
                                 getProcessesBackupAreaBase());
     
-    ProcessStatus* currentBase=processesBackupBase+numSerializedProcesses;
+    ProcessStatus* currentBase=
+            processesBackupBase+numSerializedProcesses*sizeof(ProcessStatus);
     numSerializedProcesses++;
+    //FIXME remember to store this information in the backup RAM
     return currentBase;
 }
 
@@ -79,7 +84,7 @@ void SuspendManager::setInvalidBitToSerializedProcess(int pid)
     
     
 }
-
+//FIXME to be removed???
 int SuspendManager::findFirstInvalidInSerializedProcess()
 {
 
@@ -110,39 +115,78 @@ int SuspendManager::findFirstInvalidInSerializedProcess()
  */
 bool compareResumeTime(syscallResumeTime first, syscallResumeTime second )
 {
-    if(first.resumeTime>=second.resumeTime)
+    if(first.resumeTime<second.resumeTime)
         return true;
     else
         return false;
+}
+
+/*
+ *The following thread create the threds of processes at the time they myust be
+ * resumed
+ */
+void SuspendManager::wakeupDaemon(void*)
+{
+    //the thread must be awaken few seconds before the resume of the next thread
+    //in the list, from this comes the next attribute deltaResume
+    const int deltaResume=10;
+    list<syscallResumeTime>::iterator it;
+    map<pid_t,Process*>:: iterator findProc;
+    while(1)
+    {
+        for(it=syscallReturnTime.begin();it!=syscallReturnTime.end();it++)
+        {
+            if(it->resumeTime<=time(NULL))
+            {
+                findProc=Process::processes.find(it->pid);
+                //check if the process is already alive...it could happen that
+                //the main thread has already been spawned and is also terminated
+                //so other threads waiting to be resumed must be not be created.
+                //In any case, at the end of the cycle, the process must be 
+                //erased from the syscallReturnTime list
+                if(findProc!=Process::processes.end())
+                    Process::create(it->status,it->threadNum);
+                syscallReturnTime.erase(it);
+                
+            }
+                
+        }//end for
+        if(!syscallReturnTime.empty())
+                sleep(syscallReturnTime.begin()->resumeTime
+                        -time(NULL)-deltaResume);
+        else
+            break; //the wakeup daemon terminates if no more threads should
+                   //be awaken
+    }
 }
 
 int SuspendManager::resume()
 {
     ProcessStatus* proc=getProcessesBackupAreaBase();
     
-    
-    
-    //in the following block we populate the list of return time
+    //in the following block the processes map and 
+    //the list syscallReturnTime are populated
     {
         syscallResumeTime retTime;
 
-        while(proc<=getProcessesBackupAreaPtr()||
-                reinterpret_cast<unsigned int>(proc)<=
-                reinterpret_cast<unsigned int>(getProcessesBackupAreaBase())+
-                getProcessesSramAreaSize())
-        {    
+        for(int i=0;i<=numSerializedProcesses;i++)
+        {   
+            
+            Process::resume(ElfProgram(proc->programBase,proc->programSize),proc);
             for(int i=0;i<proc->numThreads;i++)
             {
                 retTime.pid=proc->pid;
                 retTime.threadNum=i;
-                retTime.resumeTime=proc->InterruptionPoints[i].absSyscallTime;
-                syscallTime.push_back(retTime);
-            }        
-        }//end while
-        syscallTime.sort(compareResumeTime);
+                retTime.resumeTime=proc->interruptionPoints[i].absSyscallTime;
+                retTime.status=proc;
+                syscallReturnTime.push_back(retTime);
+            }
+            proc++;
+        }//end for
+        syscallReturnTime.sort(compareResumeTime);
     }//end of the block of code that populates the list of resuming time
-    
-    
+
+    Thread::create(wakeupDaemon,2048);
 }
 
 }//namespace miosix

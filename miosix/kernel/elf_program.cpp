@@ -30,6 +30,9 @@
 #include <stdexcept>
 #include <cstring>
 #include <cstdio>
+#ifdef WITH_HIBERNATION
+#include "mram_driver/mram.h"
+#endif
 
 using namespace std;
 
@@ -315,6 +318,13 @@ void ProcessImage:: resume(ProcessStatus* status)
 {
     image=status->processImageBase;
     size=status->processImageSize;
+    //FIXME: check if true with Fede
+    Mram::instance().exitSleepMode();
+    //reload the image from MRAM to the  main RAM
+    Mram::instance().read(reinterpret_cast<unsigned int>(image),
+            image,size);
+    //FIXME: check if true with Fede
+    Mram::instance().enterSleepMode();
 }
 
 ProcessImage::~ProcessImage()

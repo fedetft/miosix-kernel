@@ -58,6 +58,17 @@ public:
     static pid_t create(const ElfProgram& program);
     
     /**
+     * Overloaded version that recreate a process after hibernation
+     * \param status is the serialized status of the process
+     * \param threadID is the number of the thread to be resumed
+     * \return the same pid of the original process
+     * \throws std::exception or a subclass in case of errors, including
+     * not emough memory to spawn the process
+     */
+    static pid_t create(ProcessStatus* status, int threadId);
+    
+    
+    /**
      * Recreate a process after the hibernation, exactly as it was before
      * \param program Program that the process will execute 
      * \param ptr to the serialized status of the process in the backup RAM
@@ -65,7 +76,7 @@ public:
      * \throws std::exception or a subclass in case of errors, including
      * not emough memory to spawn the process
      */
-    pid_t resume(const ElfProgram& program, ProcessStatus* status);
+    static pid_t resume(const ElfProgram& program, ProcessStatus* status);
     
     /**
      * Given a process, returns the pid of its parent.
@@ -98,8 +109,15 @@ public:
     /**
      * Save the state of the allocator 
      * \param ptr pointer to a memory area of type ProcessStatus
+     * \param interruptionId id of the syscal that caused the interruption
+     * \param fileID file opened by the syscall
+     * \param sleepTime time to sleep for the syscall, actual or estimed,
+     * the latter case accounts for all the syscalls that are not sleep()
+     * \param sampleBuf pointer to the area of memore where the results of
+     * the syscall will be copied. Usefuls in case of smart drivers 
      */
-    void serialize(ProcessStatus* ptr, int interruptionId);
+    void serialize(ProcessStatus* ptr, int interruptionId, int fileID,
+        long long sleepTime, void* sampleBuf);
     
     
     
@@ -112,18 +130,15 @@ private:
     Process(const Process&);
     Process& operator= (const Process&);
     
+    Process() {}
+    
     /**
      * Constructor
      * \param program program that will be executed by the process
      */
     Process(const ElfProgram& program);
     
-    /**
-     * Constructor to recreate a process after hibernation as it was before
-     * \param program program that will be executed by the process
-     * \param serialized status of the process in the backup SRAM
-     */
-    Process(const ElfProgram& program, ProcessStatus* status);
+
     
     /**
      * Contains the process' main loop. 
@@ -139,7 +154,7 @@ private:
      */
     static pid_t getNewPid();
     
-    ElfProgram program; ///<The program that is running inside the process
+    ElfProgram* program; ///<The program that is running inside the process
     #ifdef __CODE_IN_XRAM
     /// When __CODE_IN_XRAM is defined, the programs are loaded in the process
     /// pool so the memory is aligned and the MPU works
@@ -160,7 +175,9 @@ private:
     ///wait on this condition variable
     ConditionVariable waiting;
     bool zombie; ///< True for terminated not yet joined processes
+    bool suspended;
     short int exitCode; ///< Contains the exit code
+    int fileTable[MAX_OPEN_FILES];///table of files opened by the process 
     
     ///Maps the pid to the Process instance. Includes zombie processes
     static std::map<pid_t,Process *> processes;

@@ -111,56 +111,30 @@ pid_t Process::create(const ElfProgram& program)
     return result;
 }
 
-pid_t Process::resume(const ElfProgram& program, ProcessStatus* status)
+pid_t Process::create(ProcessStatus* status, int threadId)
 {
-    auto_ptr<Process> proc(new Process(program, status));
     map<pid_t,Process*>:: iterator findProc;
-    {   
-        Lock<Mutex> l(procMutex);
-        proc->pid=status->pid;
-        proc->ppid=status->ppid;
-        if(status->status & 1)
-            proc->zombie=true;
-        else
-            proc->zombie=false;
-        
-        if(proc->ppid!=0)
-        {   
-            findProc=processes.find(proc->ppid);
-            if(findProc!=processes.end()) //check if the parent is resumed
-                findProc->second->childs.push_back(proc.get());
-        } else {
-            kernelChilds.push_back(proc.get());
-        }
-        processes[proc->pid]=proc.get();
-        
-        //the following cycle is needed when a process is resumed after some
-        //other processes have been resumed to check if any of them is a child
-        for(findProc=processes.begin();
-            findProc!= processes.end();
-            findProc++)
-        {
-            if(proc->pid==findProc->second->ppid)
-                if(findProc->second->zombie==false)
-                    proc->childs.push_back(findProc->second);
-                else
-                    proc->zombies.push_back(findProc->second);
-                
-        }
-    }
-    Thread *thr=Thread::createUserspace(Process::start,0,Thread::DEFAULT,
-        proc.get());
+    findProc=processes.find(status->pid);
+    
+    if(findProc==processes.end())
+        throw runtime_error("Unable to recreate the process after hibernation");
+    Process* proc=findProc->second;
+    
+    proc->image.resume(status);
+    Thread *thr=Thread::createUserspace(Process::start,
+            status->interruptionPoints[threadId].registers,
+            Thread::DEFAULT,proc);
+    
     if(thr==0)
     {
         Lock<Mutex> l(procMutex);
         processes.erase(proc->pid);
-        if(proc->ppid!=0)
+        if(Thread::getCurrentThread()->proc!=0)
         {
-            findProc=processes.find(ppid);
-            if(findProc!=processes.end()) //check if the parent is resumed
-                findProc->second->childs.remove(proc.get());
-        } else kernelChilds.remove(proc.get());
-        throw runtime_error("Thread creation failed");
+            Thread::getCurrentThread()->proc->childs.remove(proc);
+        } else kernelChilds.remove(proc);
+        delete proc;
+        throw runtime_error("Thread recreation failed");
     }
     //Cannot throw bad_alloc due to the reserve in Process's constructor.
     //This ensures we will never be in the uncomfortable situation where a
@@ -169,8 +143,58 @@ pid_t Process::resume(const ElfProgram& program, ProcessStatus* status)
     proc->threads.push_back(thr);
     thr->wakeup(); //Actually start the thread, now that everything is set up
     pid_t result=proc->pid;
-    proc.release(); //Do not delete the pointer
     return result;
+}
+
+pid_t Process::resume(const ElfProgram& program, ProcessStatus* status)
+{
+    auto_ptr<Process> proc(new Process());
+    proc->suspended=true;
+    proc->pid=status->pid;
+    proc->ppid=status->ppid;
+    if(status->status & 1)
+            proc->zombie=true;
+        else
+            proc->zombie=false;
+    proc->exitCode=status->exitCode;
+    
+    map<pid_t,Process*>:: iterator findProc;
+    {   
+        Lock<Mutex> l(procMutex);
+        if(proc->ppid!=0)
+        {   
+            findProc=processes.find(proc->ppid);
+            //now we check if the parent is resumed and eventually become part
+            //of its childs list
+            if(findProc!=processes.end()) 
+                if(proc->zombie==false)
+                    findProc->second->childs.push_back(proc.get());
+                else
+                    findProc->second->zombies.push_back(proc.get());
+        } else {
+            kernelChilds.push_back(proc.get());
+        }
+        
+        //since there is not a sequential resume schedule, we need to check if
+        //we are parent of children already resumed and eventually add them to
+        //the parent childs list. The following "for" cycle pursues this goal
+        for(findProc=processes.begin(); findProc!=processes.end(); findProc++)
+        {
+            if(findProc->second->ppid==proc->pid)
+            {
+                if(findProc->second->zombie==false)
+                    proc->childs.push_back(findProc->second);
+                else
+                    proc->zombies.push_back(findProc->second);
+                        
+            }
+        }
+        
+        processes[proc->pid]=proc.get();
+    }
+    
+    proc.release(); //Do not delete the pointer
+    return proc->pid;
 }
 
 pid_t Process::getppid(pid_t proc)
@@ -282,36 +306,64 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
     }
 }
 
-void Process::serialize(ProcessStatus* ptr, int interruptionId)
+void Process::serialize(ProcessStatus* ptr, int interruptionId, int fileID,
+                        long long sleepTime, void* sampleBuf)
 {
-    ptr->pid=pid;
-    ptr->ppid=ppid;
-    ptr->processImageBase = image.getProcessBasePointer();
-    ptr->processImageSize = image.getProcessImageSize();
-    
+    ptr->pid=this->pid;
+    ptr->ppid=this->ppid;
+    ptr->processImageBase = this->image.getProcessBasePointer();
+    ptr->processImageSize = this->image.getProcessImageSize();
+    memcpy(ptr->fileDescriptors,this->fileTable,MAX_OPEN_FILES*sizeof(int));
     #ifndef __CODE_IN_XRAM
-    ptr->programBase=program.getElfBase();
-    ptr->programSize=program.getElfSize();
+    ptr->programBase=this->program->getElfBase();
+    ptr->programSize=this->program->getElfSize();
     #else //__CODE_IN_XRAM
-    ptr->programBase=loadedProgram;
-    ptr->programBase=reinterpret_cast<unsigned int*>(roundedSize);
+    ptr->programBase=this->loadedProgram;
+    ptr->programBase=reinterpret_cast<unsigned int*>(this->roundedSize);
     #endif //__CODE_IN_XRAM
 
-    ptr->exitCode=exitCode;
-    ptr->status|=1;
+    ptr->exitCode=this->exitCode;
+    ptr->numThreads=this->threads.size();
+            
+    if(this->zombie)
+        ptr->status=1;
+    else
+        ptr->status=0;
+    
+    //in this cycle the interruptionPoint structure is serialized
+    for(unsigned int i=0;i<this->threads.size();i++)
+    {
+        ptr->interruptionPoints[i].absSyscallTime=sleepTime;
+        ptr->interruptionPoints[i].intPointID=interruptionId;
+        ptr->interruptionPoints[i].file_id=fileID;
+        ptr->interruptionPoints[i].wakeNow=0;
+        //FIXME
+        //ptr->interruptionPoints[i].backupQueue=getBackupQueueBase(this->pid, i);
+        //ptr->interruptionPoints[i].queueSize=getBackupQueueSize(this->pid, i);
+        ptr->interruptionPoints[i].targetSampleMem=
+                reinterpret_cast<unsigned int*>(sampleBuf);
+        ptr->interruptionPoints[i].sizeofSample=0;
+        ptr->interruptionPoints[i].sampNum=0;
+        this->threads[i]->serializeUserspaceContext(ptr->interruptionPoints[i].registers);
+    }
+    
 }
 
 
 Process::~Process()
 {
+    if(program)
+        delete program;
     #ifdef __CODE_IN_XRAM
     ProcessPool::instance().deallocate(loadedProgram);
     #endif //__CODE_IN_XRAM
 }
 
-Process::Process(const ElfProgram& program) : program(program), waitCount(0),
-        zombie(false)
+
+Process::Process(const ElfProgram& program) : waitCount(0),zombie(false),
+        suspended(false)
 {
+    this->program =new ElfProgram(program);
     //This is required so that bad_alloc can never be thrown when the first
     //thread of the process will be stored in this vector
     threads.reserve(1);
@@ -344,52 +396,28 @@ Process::Process(const ElfProgram& program) : program(program), waitCount(0),
     #endif //__CODE_IN_XRAM
 }
 
-Process::Process(const ElfProgram& program, ProcessStatus* status) : 
-                program(program)
-{
-    //This is required so that bad_alloc can never be thrown when the first
-    //thread of the process will be stored in this vector
-    threads.reserve(1);
-    //Done here so if not enough memory the new process is not even created
-    image.resume(status);
-    unsigned int elfSize=program.getElfSize();
-    roundedSize=elfSize;
-    //Allocatable blocks must be greater than ProcessPool::blockSize, and must
-    //be a power of two due to MPU limitations
-    if(elfSize<ProcessPool::blockSize) roundedSize=ProcessPool::blockSize;
-    else if(elfSize & (elfSize-1)) roundedSize=1<<ffs(elfSize);
-    #ifndef __CODE_IN_XRAM
-    //FIXME -- begin
-    //Till a flash file system that ensures proper alignment of the programs
-    //loaded in flash is implemented, make the whole flash visible as a big MPU
-    //region
-    extern unsigned char _end asm("_end");
-    unsigned int flashEnd=reinterpret_cast<unsigned int>(&_end);
-    if(flashEnd & (flashEnd-1)) flashEnd=1<<ffs(flashEnd);
-    mpu=miosix_private::MPUConfiguration(0,flashEnd,
-            image.getProcessBasePointer(),image.getProcessImageSize());
-//    mpu=miosix_private::MPUConfiguration(program.getElfBase(),roundedSize,
-//            image.getProcessBasePointer(),image.getProcessImageSize());
-    //FIXME -- end
-    #else //__CODE_IN_XRAMallocate
-    loadedProgram=ProcessPool::instance().allocate(roundedSize);
-    memcpy(loadedProgram,reinterpret_cast<char*>(program.getElfBase()),elfSize);
-    mpu=miosix_private::MPUConfiguration(loadedProgram,roundedSize,
-            image.getProcessBasePointer(),image.getProcessImageSize());
-    #endif //__CODE_IN_XRAM
-}
+
 
 void *Process::start(void *argv)
 {
     Process *proc=Thread::getCurrentThread()->proc;
     if(proc==0) errorHandler(UNEXPECTED);
-    unsigned int entry=proc->program.getEntryPoint();
+    unsigned int entry=proc->program->getEntryPoint();
     #ifdef __CODE_IN_XRAM
-    entry=entry-proc->program.getElfBase()+
+    entry=entry-proc->program->getElfBase()+
         reinterpret_cast<unsigned int>(proc->loadedProgram);
     #endif //__CODE_IN_XRAM
-    Thread::setupUserspaceContext(entry,proc->image.getProcessBasePointer(),
-        proc->image.getProcessImageSize());
+    if(proc->suspended==false)
+        Thread::setupUserspaceContext(entry,proc->image.getProcessBasePointer(),
+            proc->image.getProcessImageSize());
+    else
+    {
+        if(argv)
+            Thread::resumeUserspaceContext(reinterpret_cast<unsigned int*>(argv));
+        else
+            errorHandler(UNEXPECTED);
+        proc->suspended=false;
+    }
     bool running=true;
     do {
         miosix_private::SyscallParameters sp=Thread::switchToUserspace();

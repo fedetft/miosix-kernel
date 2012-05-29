@@ -34,6 +34,8 @@
 #include "sync.h"
 #include "process.h"
 #include "kernel/scheduler/scheduler.h"
+#include "arch/cortexM4_stm32f4/common/arch_settings.h"
+#include "arch/arm7_lpc2000/common/arch_settings.h"
 #include <stdexcept>
 #include <algorithm>
 #include <string.h>
@@ -736,6 +738,16 @@ void Thread::setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
     void *(*startfunc)(void*)=reinterpret_cast<void *(*)(void*)>(entry);
     unsigned int *ep=gotBase+ramImageSize/4;
     miosix_private::initCtxsave(cur->userCtxsave,startfunc,ep,0,gotBase);
+}
+
+void Thread::serializeUserspaceContext(unsigned int registers[CTXSAVE_SIZE])
+{
+    memcpy(registers,cur->userCtxsave,CTXSAVE_SIZE*sizeof(unsigned int));
+}
+
+void Thread::resumeUserspaceContext(unsigned int registers[CTXSAVE_SIZE])
+{
+    memcpy(cur->userCtxsave,registers,CTXSAVE_SIZE*sizeof(unsigned int));
 }
 
 #endif //WITH_PROCESSES
