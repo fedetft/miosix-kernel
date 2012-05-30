@@ -39,7 +39,6 @@ namespace miosix{
 
 SuspendManager::SuspendManager() 
 {
-    numSerializedProcesses=0;
 }
 
 SuspendManager::~SuspendManager() 
@@ -60,56 +59,6 @@ ProcessStatus* SuspendManager:: getProcessesBackupAreaPtr()
     return currentBase;
 }
 
-void SuspendManager::setInvalidBitToSerializedProcess(int pid)
-{
-    int visited=0;
-    struct ProcessStatus* processesBackupBase= 
-                                reinterpret_cast<struct ProcessStatus*>(
-                                getProcessesBackupAreaBase());
-    
-    while(processesBackupBase->pid!=pid && visited <= numSerializedProcesses)
-    {
-        processesBackupBase++;
-        visited++;
-    }
-        
-    
-    if(processesBackupBase->pid==pid && visited <= numSerializedProcesses)
-    {
-        processesBackupBase->status|=1<<1;
-    }else{
-       throw runtime_error("Error: no serialized process found in backup SRAM");
-    }
-        
-    
-    
-}
-//FIXME to be removed???
-int SuspendManager::findFirstInvalidInSerializedProcess()
-{
-
-    int visited=0;
-    struct ProcessStatus* processesBackupBase= 
-                                reinterpret_cast<struct ProcessStatus*>(
-                                getProcessesBackupAreaBase());
-    
-    while((processesBackupBase->status &((1<<1)==0) && 
-          visited <= numSerializedProcesses))
-    {
-        processesBackupBase++;
-        visited++;
-    }
-    
-     if((processesBackupBase->status & ((1<<1)!=0)) &&
-        visited <= numSerializedProcesses)
-     {
-         return visited;
-    }else{
-         return -1;
-    }
-    
-}
-
 /*
  *The following functions is used to sort the list of resuming time
  */
@@ -120,6 +69,21 @@ bool compareResumeTime(syscallResumeTime first, syscallResumeTime second )
     else
         return false;
 }
+
+/*
+ *The following function is called each time a thread enter in a system call
+ * in order to update the status of the thread, and eventually of the process, 
+ * from 'suspended=false' to 'suspended=true', possibly. Moreover, if all the
+ * processes are suspended, this function signal the hibernation thread (through
+ * the condition variable), which will decide whether to hibernate or not the
+ * system.
+ */
+void SuspendManager::enterInterruptionPoint(pid_t pid, int threadID, long long resumeTime)
+{
+// if(suspendedProcesses.size()==processes.size())
+      //      hibernWaiting.broadcast()
+}
+
 
 /*
  *The following thread create the threds of processes at the time they myust be
@@ -160,6 +124,15 @@ void SuspendManager::wakeupDaemon(void*)
     }
 }
 
+/*
+ *The following thread function wait for all the processes to be suspended and
+ * then decide whether to hibernate or not..
+ */
+void SuspendManager::hibernateDaemon(void*)
+{
+    
+}
+
 int SuspendManager::resume()
 {
     ProcessStatus* proc=getProcessesBackupAreaBase();
@@ -188,6 +161,12 @@ int SuspendManager::resume()
 
     Thread::create(wakeupDaemon,2048);
 }
+
+std::list<syscallResumeTime> SuspendManager::syscallReturnTime;
+Mutex SuspendManager::suspMutex;
+ConditionVariable SuspendManager::hibernWaiting;
+std::list<Process *> SuspendManager::suspendedProcesses;
+
 
 }//namespace miosix
 

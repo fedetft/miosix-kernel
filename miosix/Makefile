@@ -19,7 +19,7 @@ kernel/stage_2_boot.cpp                                                    \
 kernel/syscalls.cpp                                                        \
 kernel/elf_program.cpp                                                     \
 kernel/process.cpp                                                         \
-kernel/process_pool.cpp													   \
+kernel/process_pool.cpp							   \
 kernel/suspend_manager.cpp                                                 \
 kernel/scheduler/priority/priority_scheduler.cpp                           \
 kernel/scheduler/control/control_scheduler.cpp                             \

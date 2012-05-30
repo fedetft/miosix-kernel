@@ -30,9 +30,12 @@
 #include "interfaces/portability.h"
 #include "interfaces/suspend_support.h"
 #include <list>
+#include <miosix.h>
+
 #ifdef WITH_PROCESSES
 namespace miosix{
 
+    
 ///This struct is used to serialize the interrupion point status for processes
 ///and threads spawned by that process
 struct IntPointStatus{
@@ -75,11 +78,12 @@ struct syscallResumeTime
     ProcessStatus* status;
 }__attribute__((packed));
 
+
 class SuspendManager 
 {
 public:
     SuspendManager();
-    virtual ~SuspendManager();
+    ~SuspendManager();
     
     /**
      * /return the base address of the process status backup area 
@@ -97,25 +101,7 @@ public:
      */
     ProcessStatus* getProcessesBackupAreaPtr();
     
-    /**
-     * Reset to zero the number of serialized processes
-     */
-    void resetNumSerializedProcesses()
-    {
-        numSerializedProcesses=0;
-    }
     
-    /**
-     * Set the dirty bit for a process that must be serialized again
-     */
-    void setInvalidBitToSerializedProcess(int pid);
-    
-    /**
-     * Find the the serialized processes with invalid bit set,
-     * which must be serialzied again. Return -1 if no dirty processes status
-     * are found
-     */
-    int findFirstInvalidInSerializedProcess();
    
     /**
      * Find the the serialized processes with invalid bit set,
@@ -126,9 +112,27 @@ public:
 
 private:
     static void wakeupDaemon(void*);
+    static void hibernateDaemon(void*);
+    /**
+     * @param pid pid of the process in which the syscall has benn called
+     * @param threadID id of the thread which called the system call
+     * @param resumeTime is the time at which the thread will be resumed after
+     * the suspension due to the system call
+     */
+    static void enterInterruptionPoint(pid_t pid, int threadID, long long resumeTime);
     
     int numSerializedProcesses;
     static std::list<syscallResumeTime> syscallReturnTime;
+    ///Uset to guard access to the number of suspended processes
+    static Mutex suspMutex;
+    ///Used to wait on the condition that all process must be suspended to
+    ///decide if to hibernate or not the system. The suspension of all processes
+    ///is a necessary condition for hibernationm, but not sufficient. The final
+    ///decision is taken according to the hibernation policy.
+    static ConditionVariable hibernWaiting;
+    ///this map lists the suspended processes
+    static std::list<Process *> suspendedProcesses;
+    
     
     //Needs access to process table, serialization/loading methods
     friend class Process;

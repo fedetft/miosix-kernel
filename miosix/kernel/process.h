@@ -168,6 +168,8 @@ private:
     std::list<Process *> zombies;  ///<Dead child processes are stored here
     pid_t pid;  ///<The pid of this process
     pid_t ppid; ///<The parent pid of this process
+    ///number of the threads active, i.e. not suspended, in the process
+    int numActiveThreads; 
     ///Contains the count of active wait calls which specifically requested
     ///to wait on this process
     int waitCount;
@@ -177,7 +179,7 @@ private:
     bool zombie; ///< True for terminated not yet joined processes
     bool suspended;
     short int exitCode; ///< Contains the exit code
-    int fileTable[MAX_OPEN_FILES];///table of files opened by the process 
+    int fileTable[MAX_OPEN_FILES];///table of files opened by the process
     
     ///Maps the pid to the Process instance. Includes zombie processes
     static std::map<pid_t,Process *> processes;
@@ -191,6 +193,7 @@ private:
     static ConditionVariable genericWaiting;
     //Used to take account of the ELF size opportunely rounded to suit for MPU 
     unsigned int roundedSize;
+    
     
     
     //Needs access to fault,mpu

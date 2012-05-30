@@ -31,6 +31,7 @@
 #include <cstring>
 #include <sys/wait.h>
 #include <signal.h>
+#include "suspend_manager.h"
 #include "sync.h"
 #include "process_pool.h"
 #include "process.h"
@@ -105,6 +106,7 @@ pid_t Process::create(const ElfProgram& program)
     //thread has already been created but there's no memory to list it
     //among the threads of a process
     proc->threads.push_back(thr);
+    proc->numActiveThreads++;
     thr->wakeup(); //Actually start the thread, now that everything is set up
     pid_t result=proc->pid;
     proc.release(); //Do not delete the pointer
@@ -141,6 +143,7 @@ pid_t Process::create(ProcessStatus* status, int threadId)
     //thread has already been created but there's no memory to list it
     //among the threads of a process
     proc->threads.push_back(thr);
+    proc->numActiveThreads++;
     thr->wakeup(); //Actually start the thread, now that everything is set up
     pid_t result=proc->pid;
     return result;
@@ -149,7 +152,12 @@ pid_t Process::create(ProcessStatus* status, int threadId)
 pid_t Process::resume(const ElfProgram& program, ProcessStatus* status)
 {
     auto_ptr<Process> proc(new Process());
-    proc->suspended=true;
+    //in this block we set the number of 
+    {
+        Lock<Mutex> l(SuspendManager::suspMutex);
+        proc->suspended=true;
+        SuspendManager::suspendedProcesses.push_back(proc.get());
+    }
     proc->pid=status->pid;
     proc->ppid=status->ppid;
     if(status->status & 1)
@@ -166,11 +174,17 @@ pid_t Process::resume(const ElfProgram& program, ProcessStatus* status)
             findProc=processes.find(proc->ppid);
             //now we check if the parent is resumed and eventually become part
             //of its childs list
-            if(findProc!=processes.end()) 
+            if(findProc!=processes.end())
+            {
                 if(proc->zombie==false)
+                {
                     findProc->second->childs.push_back(proc.get());
+                }
                 else
+                {
                     findProc->second->zombies.push_back(proc.get());
+                }
+            }
         } else {
             kernelChilds.push_back(proc.get());
         }
@@ -360,8 +374,8 @@ Process::~Process()
 }
 
 
-Process::Process(const ElfProgram& program) : waitCount(0),zombie(false),
-        suspended(false)
+Process::Process(const ElfProgram& program) : numActiveThreads(0), waitCount(0),
+        zombie(false), suspended(false)
 {
     this->program =new ElfProgram(program);
     //This is required so that bad_alloc can never be thrown when the first
@@ -416,7 +430,13 @@ void *Process::start(void *argv)
             Thread::resumeUserspaceContext(reinterpret_cast<unsigned int*>(argv));
         else
             errorHandler(UNEXPECTED);
-        proc->suspended=false;
+        //in the following block the process is removed from the list of the
+        //suspended processes, after hibernation
+        {
+            Lock<Mutex> l(SuspendManager::suspMutex);
+            proc->suspended=false;
+            SuspendManager::suspendedProcesses.remove(proc);    
+        }
     }
     bool running=true;
     do {
@@ -439,6 +459,16 @@ void *Process::start(void *argv)
             proc->fault.print();
             #endif //WITH_ERRLOG
         } else {
+            int threadID=-1;
+         
+            for(unsigned int i=0;i<proc->threads.size();i++)
+            {
+                if(proc->threads[i]==Thread::getCurrentThread())
+                    threadID=i;
+            }
+            if(threadID==-1)
+                errorHandler(UNEXPECTED);
+            
             switch(sp.getSyscallId())
             {
                 case 2:
@@ -459,7 +489,7 @@ void *Process::start(void *argv)
                         reinterpret_cast<char*>(sp.getSecondParameter()),
                         sp.getThirdParameter()));
                     break;
-                case 5: 
+                case 5:
                     sp.setReturnValue(usleep(sp.getFirstParameter()));
                     break;
                 default:
@@ -522,7 +552,7 @@ std::list<Process *> Process::kernelZombies;
 pid_t Process::pidCounter=1;
 Mutex Process::procMutex;
 ConditionVariable Process::genericWaiting;
-    
+
 } //namespace miosix
 
 #endif //WITH_PROCESSES
