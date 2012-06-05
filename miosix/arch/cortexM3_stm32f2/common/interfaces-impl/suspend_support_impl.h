@@ -25,9 +25,8 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef BACKUP_SRAM_IMPL_H
-#define	BACKUP_SRAM_IMPL_H
-#include "kernel/process_pool.h"
+#ifndef SUSPEND_SUPPORT_IMPL_H
+#define	SUSPEND_SUPPORT_IMPL_H
 
 #ifdef WITH_PROCESSES
 
@@ -37,6 +36,8 @@ unsigned int* const backupSramBase =
                                 reinterpret_cast<unsigned int*>(0x40024000);
 const int backupSramSize=4096;
 
+int getAllocatorSramAreaSize();
+
 inline unsigned int *getBackupSramBase()
 {
     return backupSramBase;
@@ -45,11 +46,6 @@ inline unsigned int *getBackupSramBase()
 inline int getBackupSramSize()
 {
     return backupSramSize;
-}
-
-inline int getAllocatorSramAreaSize()
-{
-    return ProcessPool::instance().getSerializableSize();
 }
 
 inline int getBackupAllocatorSramAreaSize()
@@ -77,8 +73,9 @@ inline int getSmartDriversQueueSramAreaSize()
 
 
 
+
 } //namespace miosix
 
 #endif  //WITH_PROCESSES
-#endif	/* BACKUP_SRAM_IMPL_H */
+#endif	//SUSPEND_SUPPORT_IMPL_H
 

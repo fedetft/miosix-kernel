@@ -24,8 +24,8 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
-#ifndef BACKUP_SRAM_H
-#define	BACKUP_SRAM_H
+#ifndef SUSPEND_SUPPORT_H
+#define	SUSPEND_SUPPORT_H
 
 #ifdef WITH_PROCESSES
 
@@ -39,11 +39,11 @@ void initializeRTC();
  * \return size of the backup SRAM for the allocator status
  *  
  */
-inline int getAllocatorSramAreaSize();
+int getAllocatorSramAreaSize();
 
 /**
  * \return size of the backup SRAM for the backup allocator status
- *  this includes four pointer, i.e. the base pointers to the four 
+ *  this includes four pointers, i.e. the base pointers to the four 
  * region of the backup memory
  */
 inline int getBackupAllocatorSramAreaSize();
@@ -75,5 +75,5 @@ inline int getSmartDriversQueueSramAreaSize();
 #include "interfaces-impl/suspend_support_impl.h"
 
 #endif  //WITH_PROCESSES
-#endif	// BACKUP_SRAM_H 
+#endif	// SUSPEND_SUPPORT_H
 

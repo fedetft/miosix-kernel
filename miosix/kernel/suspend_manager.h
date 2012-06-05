@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico  and Luigi Rucco  *
+ *   Copyright (C) 2010, 2011, 2012 by Luigi Rucco and  Terraneo Federico  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,10 +25,9 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef SUSPENDMANAGER_H
-#define	SUSPENDMANAGER_H
+#ifndef SUSPEND_MANAGER_H
+#define	SUSPEND_MANAGER_H
 #include "interfaces/portability.h"
-#include "interfaces/suspend_support.h"
 #include <list>
 #include <miosix.h>
 
@@ -40,15 +39,15 @@ namespace miosix{
 ///and threads spawned by that process
 struct IntPointStatus{
     int intPointID; //ID of the syscall which caused the interruption
-    int file_id; //file eventually opened by the syscall, -1 if no file opened
+    int fileID; //file eventually opened by the syscall, -1 if no file opened
     long long absSyscallTime; //absolute time taken by the syscall to resume
     unsigned int* backupQueue; //ptr to the process queue in the backupe SRAM
     int queueSize; //size of the queue associated to the process
     char wakeNow;//set to one if the process or thread has to wake up now
-    char sizeofSample; //size of the data sampled in the hibernation period
+    char sizeOfSample; //size of the data sampled in the hibernation period
     int sampNum; //number of the samples eventually performed by smart driver
     unsigned int registers[CTXSAVE_SIZE];
-    unsigned int *targetSampleMem; //process memory pointer to copy the queue
+    unsigned int* targetSampleMem; //process memory pointer to copy the queue
 }__attribute__((packed));
     
     
@@ -75,6 +74,8 @@ struct syscallResumeTime
     int pid;
     short int threadNum;
     long long resumeTime;
+    int intPointID;
+    int fileID;
     ProcessStatus* status;
 }__attribute__((packed));
 
@@ -88,13 +89,7 @@ public:
     /**
      * /return the base address of the process status backup area 
      */
-    ProcessStatus* getProcessesBackupAreaBase()
-    {
-        return    reinterpret_cast<struct ProcessStatus*>(
-                                reinterpret_cast<unsigned int>(backupSramBase)+
-                                getAllocatorSramAreaSize()+ 
-                                getBackupAllocatorSramAreaSize());
-    }
+    static ProcessStatus* getProcessesBackupAreaBase();
     
     /**
      * /return the ptr to allocate the next process status in the backup area 
@@ -119,11 +114,12 @@ private:
      * @param resumeTime is the time at which the thread will be resumed after
      * the suspension due to the system call
      */
-    static void enterInterruptionPoint(pid_t pid, int threadID, long long resumeTime);
+    static void enterInterruptionPoint(Process* proc, int threadID, 
+    long long resumeTime, int syscallID, int fileID);
     
     int numSerializedProcesses;
     static std::list<syscallResumeTime> syscallReturnTime;
-    ///Uset to guard access to the number of suspended processes
+    ///Used to guard access to the number of suspended processes
     static Mutex suspMutex;
     ///Used to wait on the condition that all process must be suspended to
     ///decide if to hibernate or not the system. The suspension of all processes
@@ -133,6 +129,15 @@ private:
     ///this map lists the suspended processes
     static std::list<Process *> suspendedProcesses;
     
+    //this constant refers to the upper bound for the resume time (referred to
+    //the first process to be resumed) that makes always convenient to hibernate
+    //the system
+    static const int upperResumeBound=100;
+    
+    //this constant refers to the lower bound for the resume time (referred to
+    //the first process to be resumed) that makes always not convenient to hibernate
+    //the system
+    static const int lowerResumeBound=10;
     
     //Needs access to process table, serialization/loading methods
     friend class Process;
@@ -141,5 +146,5 @@ private:
 
 }//namespace miosix
 #endif //WITH_PROCESSES
-#endif	/* SUSPENDMANAGER_H */
+#endif	/* SUSPEND_MANAGER_H */
 

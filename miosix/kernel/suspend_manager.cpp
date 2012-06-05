@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico  and Luigi Rucco  *
+ *   Copyright (C) 2010, 2011, 2012 by Luigi Rucco and  Terraneo Federico  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -26,8 +26,11 @@
  ***************************************************************************/
 
 #include "suspend_manager.h"
+#include "interfaces/suspend_support.h"
 #include "elf_program.h"
 #include "process.h"
+#include "mram_driver/mram.h"
+#include "process_pool.h"
 #include <string.h>
 #include <stdexcept>
 
@@ -46,17 +49,12 @@ SuspendManager::~SuspendManager()
 
 }
 
-ProcessStatus* SuspendManager:: getProcessesBackupAreaPtr()
+ProcessStatus* SuspendManager::getProcessesBackupAreaBase()
 {
-    ProcessStatus* processesBackupBase= 
-                                reinterpret_cast<struct ProcessStatus*>(
-                                getProcessesBackupAreaBase());
-    
-    ProcessStatus* currentBase=
-            processesBackupBase+numSerializedProcesses*sizeof(ProcessStatus);
-    numSerializedProcesses++;
-    //FIXME remember to store this information in the backup RAM
-    return currentBase;
+    return reinterpret_cast<struct ProcessStatus*>(
+                            reinterpret_cast<unsigned int>(backupSramBase)+
+                            getAllocatorSramAreaSize()+ 
+                            getBackupAllocatorSramAreaSize());
 }
 
 /*
@@ -78,10 +76,30 @@ bool compareResumeTime(syscallResumeTime first, syscallResumeTime second )
  * the condition variable), which will decide whether to hibernate or not the
  * system.
  */
-void SuspendManager::enterInterruptionPoint(pid_t pid, int threadID, long long resumeTime)
+void SuspendManager::enterInterruptionPoint(Process* proc, int threadID,
+        long long resumeTime, int intPointID, int fileID)
 {
-// if(suspendedProcesses.size()==processes.size())
-      //      hibernWaiting.broadcast()
+    syscallResumeTime newSuspThread;
+    newSuspThread.status=NULL;
+    newSuspThread.pid=proc->pid;
+    newSuspThread.resumeTime=resumeTime;
+    newSuspThread.threadNum=threadID;
+    newSuspThread.intPointID=intPointID;
+    newSuspThread.fileID=fileID; 
+    
+    {
+        Lock<Mutex> l(suspMutex);
+        proc->numActiveThreads--;
+        syscallReturnTime.push_back(newSuspThread);
+        if(proc->numActiveThreads==0)
+        {
+            proc->suspended=true;
+            suspendedProcesses.push_back(proc);
+        }
+        if(suspendedProcesses.size()==Process::processes.size())
+            hibernWaiting.broadcast();
+    }
+    
 }
 
 
@@ -96,11 +114,14 @@ void SuspendManager::wakeupDaemon(void*)
     const int deltaResume=10;
     list<syscallResumeTime>::iterator it;
     map<pid_t,Process*>:: iterator findProc;
+    Lock<Mutex> l(suspMutex);
     while(1)
     {
+
+            
         for(it=syscallReturnTime.begin();it!=syscallReturnTime.end();it++)
         {
-            if(it->resumeTime<=time(NULL))
+            if(it->resumeTime<=getTick()/1000)
             {
                 findProc=Process::processes.find(it->pid);
                 //check if the process is already alive...it could happen that
@@ -111,13 +132,19 @@ void SuspendManager::wakeupDaemon(void*)
                 if(findProc!=Process::processes.end())
                     Process::create(it->status,it->threadNum);
                 syscallReturnTime.erase(it);
-                
+
             }
-                
+
         }//end for
+
         if(!syscallReturnTime.empty())
-                sleep(syscallReturnTime.begin()->resumeTime
-                        -time(NULL)-deltaResume);
+        {
+            long long resumeTime=syscallReturnTime.begin()->resumeTime;
+            {    
+                Unlock<Mutex> u(l);
+                sleep(resumeTime-getTick()/1000-deltaResume);
+            }
+        }
         else
             break; //the wakeup daemon terminates if no more threads should
                    //be awaken
@@ -130,24 +157,74 @@ void SuspendManager::wakeupDaemon(void*)
  */
 void SuspendManager::hibernateDaemon(void*)
 {
-    
+    while(1)
+    {   
+        Lock<Mutex>l(suspMutex);
+        hibernWaiting.wait(l);
+        syscallReturnTime.sort(compareResumeTime);
+        list<syscallResumeTime>::iterator it;
+        it=syscallReturnTime.begin();
+        //NOTE: the following if, as well as the upper and lower bunds,
+        //will be replaced by the policy, once refined 
+        if(it->resumeTime<=lowerResumeBound)
+            continue;
+        else if(it->resumeTime>=upperResumeBound)
+        {
+            ProcessStatus* proc=getProcessesBackupAreaBase();
+            list<Process*>:: iterator findProc;
+            for(findProc=suspendedProcesses.begin();
+                    findProc!=suspendedProcesses.end();findProc++)
+            {
+                (*findProc)->serialize(proc);
+                
+                if((*findProc)->toBeSwappedOut)
+                {
+                    //FIXME: check if true with Fede
+                    Mram::instance().exitSleepMode();
+                    //reload the image from MRAM to the  main RAM
+                    Mram::instance().write(
+                    reinterpret_cast<unsigned int>(
+                            (*findProc)->image.getProcessBasePointer()),
+                            (*findProc)->image.getProcessBasePointer(),
+                            (*findProc)->image.getProcessImageSize());
+                    //FIXME: check if true with Fede
+                    Mram::instance().enterSleepMode();
+                    //Now serialize the state of the SRAM allocator
+                    ProcessPool::instance().serialize(getBackupSramBase());
+                            
+                    //Now serialize the state of the backup SRAM allocator
+                    (*(getBackupSramBase()+ 
+                            getAllocatorSramAreaSize()/sizeof(int)))=
+                            suspendedProcesses.size();
+                }
+                proc++;
+            }
+            
+        }
+     
+            
+        
+    }
 }
 
 int SuspendManager::resume()
 {
     ProcessStatus* proc=getProcessesBackupAreaBase();
     
+    ProcessPool::instance().resume(getBackupSramBase(),
+            getProcessesBackupAreaBase(),
+            *(getBackupSramBase()+(getAllocatorSramAreaSize()/sizeof(int))));
     //in the following block the processes map and 
     //the list syscallReturnTime are populated
     {
+        Lock<Mutex>l(SuspendManager::suspMutex);
         syscallResumeTime retTime;
-
         for(int i=0;i<=numSerializedProcesses;i++)
         {   
             
             Process::resume(ElfProgram(proc->programBase,proc->programSize),proc);
             for(int i=0;i<proc->numThreads;i++)
-            {
+            {   
                 retTime.pid=proc->pid;
                 retTime.threadNum=i;
                 retTime.resumeTime=proc->interruptionPoints[i].absSyscallTime;
@@ -160,13 +237,13 @@ int SuspendManager::resume()
     }//end of the block of code that populates the list of resuming time
 
     Thread::create(wakeupDaemon,2048);
+    return proc->pid;
 }
 
 std::list<syscallResumeTime> SuspendManager::syscallReturnTime;
 Mutex SuspendManager::suspMutex;
 ConditionVariable SuspendManager::hibernWaiting;
 std::list<Process *> SuspendManager::suspendedProcesses;
-
 
 }//namespace miosix
 

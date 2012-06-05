@@ -25,7 +25,9 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+
 #include "interfaces/suspend_support.h"
+#include "kernel/process_pool.h"
 #include "miosix.h"
 #include "interfaces/arch_registers.h"
 
@@ -49,6 +51,11 @@ void initializeRTC()
     RCC->BDCR |= RCC_BDCR_LSEON;
     while((RCC->BDCR & RCC_BDCR_LSERDY)==0) ; //wait
     RCC->BDCR |= RCC_BDCR_RTCSEL_0 | RCC_BDCR_RTCEN;
+}
+
+int getAllocatorSramAreaSize()
+{
+    return ProcessPool::instance().getSerializableSize();
 }
 
 } //namespace miosix

@@ -116,8 +116,7 @@ public:
      * \param sampleBuf pointer to the area of memore where the results of
      * the syscall will be copied. Usefuls in case of smart drivers 
      */
-    void serialize(ProcessStatus* ptr, int interruptionId, int fileID,
-        long long sleepTime, void* sampleBuf);
+    void serialize(ProcessStatus* ptr);
     
     
     
@@ -178,6 +177,8 @@ private:
     ConditionVariable waiting;
     bool zombie; ///< True for terminated not yet joined processes
     bool suspended;
+    bool toBeSwappedOut;///This is set true only if a processs need to be
+                        ///swapped out when hibernating
     short int exitCode; ///< Contains the exit code
     int fileTable[MAX_OPEN_FILES];///table of files opened by the process
     
@@ -193,6 +194,12 @@ private:
     static ConditionVariable genericWaiting;
     //Used to take account of the ELF size opportunely rounded to suit for MPU 
     unsigned int roundedSize;
+    //FIXME: the following two must be implemented in future (smart drivers)
+    ///The following buffer has to be initialized in the constructor to store samples
+    void* sampleBuf;
+    ///the following will store the size of a sample to be retrieved from sensors
+    ///it should be initialized in the constructor too
+    int sizeOfSample;
     
     
     

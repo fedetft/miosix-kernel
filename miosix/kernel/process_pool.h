@@ -25,13 +25,18 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/ 
 
-#ifndef PROCESS_POOL
-#define PROCESS_POOL
+#ifndef PROCESS_POOL_H
+#define PROCESS_POOL_H
 
 #include <map>
 
 #ifndef TEST_ALLOC
 #include <miosix.h>
+#include <cstring>
+#ifdef WITH_HIBERNATION
+#include "suspend_manager.h"
+#endif
+
 #else //TEST_ALLOC
 #include <iostream>
 #include <typeinfo>
@@ -106,22 +111,45 @@ public:
     }
     #endif //TEST_ALLOC
     
-    /**
-     * \return the dimension of the data to be serialized at the
-     * moment of the hibernation 
-     */
-    int getSerializableSize()
-    {
-        return (sizeof(unsigned int)+sizeof(unsigned int*)+poolSize);
-    }
     
     ///This constant specifies the size of the minimum allocatable block,
     ///in bits. So for example 10 is 1KB.
     static const unsigned int blockBits=10;
     ///This constant is the the size of the minimum allocatable block, in bytes.
     static const unsigned int blockSize=1<<blockBits;
+
+    #ifdef WITH_HIBERNATION
+    /**
+     * \return the dimension of the data to be serialized at the
+     * moment of the hibernation 
+     */
+    int getSerializableSize()
+    {
+        return (sizeof(unsigned int)+poolSize/blockSize/8);
+    }
     
-    
+    void serialize(unsigned int* ptr)
+    {
+        *ptr=poolSize;
+        ptr++;
+        memcpy(ptr, bitmap,poolSize/blockSize/8);
+    }
+
+    void resume(unsigned int* ptrAlloc, ProcessStatus* backupPtr, int numProc)
+    {
+        poolSize=*ptrAlloc;
+        ptrAlloc++;
+        memcpy(bitmap,ptrAlloc,poolSize/blockSize/8);
+        for(int i=0;i<numProc;i++)
+        {
+            allocatedBlocks[backupPtr->processImageBase]=backupPtr->processImageSize;
+            #ifdef __CODE_IN_XRAM
+            allocatedBlocks[backupPtr->programBase]=backupPtr->programSize;
+            #endif
+        }
+    }
+    #endif
+   
 private:
     ProcessPool(const ProcessPool&);
     ProcessPool& operator= (const ProcessPool&);
@@ -180,4 +208,4 @@ private:
 
 #endif //WITH_PROCESSES
 
-#endif //PROCESS_POOL
+#endif //PROCESS_POOL_H

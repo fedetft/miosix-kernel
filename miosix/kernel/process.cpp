@@ -74,7 +74,8 @@ namespace miosix {
 //
 
 pid_t Process::create(const ElfProgram& program)
-{
+{   
+    Lock<Mutex> l(SuspendManager::suspMutex);
     auto_ptr<Process> proc(new Process(program));
     {   
         Lock<Mutex> l(procMutex);
@@ -106,7 +107,7 @@ pid_t Process::create(const ElfProgram& program)
     //thread has already been created but there's no memory to list it
     //among the threads of a process
     proc->threads.push_back(thr);
-    proc->numActiveThreads++;
+    proc->numActiveThreads++;    
     thr->wakeup(); //Actually start the thread, now that everything is set up
     pid_t result=proc->pid;
     proc.release(); //Do not delete the pointer
@@ -115,6 +116,7 @@ pid_t Process::create(const ElfProgram& program)
 
 pid_t Process::create(ProcessStatus* status, int threadId)
 {
+    Lock<Mutex> l(SuspendManager::suspMutex);
     map<pid_t,Process*>:: iterator findProc;
     findProc=processes.find(status->pid);
     
@@ -126,6 +128,7 @@ pid_t Process::create(ProcessStatus* status, int threadId)
     Thread *thr=Thread::createUserspace(Process::start,
             status->interruptionPoints[threadId].registers,
             Thread::DEFAULT,proc);
+    proc->toBeSwappedOut=true;
     
     if(thr==0)
     {
@@ -165,6 +168,7 @@ pid_t Process::resume(const ElfProgram& program, ProcessStatus* status)
         else
             proc->zombie=false;
     proc->exitCode=status->exitCode;
+    proc->toBeSwappedOut=false;
     
     map<pid_t,Process*>:: iterator findProc;
     {   
@@ -320,8 +324,7 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
     }
 }
 
-void Process::serialize(ProcessStatus* ptr, int interruptionId, int fileID,
-                        long long sleepTime, void* sampleBuf)
+void Process::serialize(ProcessStatus* ptr)
 {
     ptr->pid=this->pid;
     ptr->ppid=this->ppid;
@@ -347,18 +350,30 @@ void Process::serialize(ProcessStatus* ptr, int interruptionId, int fileID,
     //in this cycle the interruptionPoint structure is serialized
     for(unsigned int i=0;i<this->threads.size();i++)
     {
-        ptr->interruptionPoints[i].absSyscallTime=sleepTime;
-        ptr->interruptionPoints[i].intPointID=interruptionId;
-        ptr->interruptionPoints[i].file_id=fileID;
-        ptr->interruptionPoints[i].wakeNow=0;
-        //FIXME
-        //ptr->interruptionPoints[i].backupQueue=getBackupQueueBase(this->pid, i);
-        //ptr->interruptionPoints[i].queueSize=getBackupQueueSize(this->pid, i);
-        ptr->interruptionPoints[i].targetSampleMem=
-                reinterpret_cast<unsigned int*>(sampleBuf);
-        ptr->interruptionPoints[i].sizeofSample=0;
-        ptr->interruptionPoints[i].sampNum=0;
-        this->threads[i]->serializeUserspaceContext(ptr->interruptionPoints[i].registers);
+        list<syscallResumeTime>::iterator it;
+        for(it=SuspendManager::syscallReturnTime.begin();
+                it!=SuspendManager::syscallReturnTime.end();
+                it++)
+        {
+            if(this->pid==it->pid && i==it->threadNum)
+            {
+                ptr->interruptionPoints[i].absSyscallTime=it->resumeTime;
+                ptr->interruptionPoints[i].intPointID=it->intPointID;
+                ptr->interruptionPoints[i].fileID=it->fileID;
+                ptr->interruptionPoints[i].wakeNow=0;
+                //FIXME: the following two will become similar to those commented
+                ptr->interruptionPoints[i].backupQueue=NULL;
+                ptr->interruptionPoints[i].queueSize=0;
+                //ptr->interruptionPoints[i].backupQueue=getBackupQueueBase(this->pid, i);
+                //ptr->interruptionPoints[i].queueSize=getBackupQueueSize(this->pid, i);
+                ptr->interruptionPoints[i].targetSampleMem=
+                        reinterpret_cast<unsigned int*>(this->sampleBuf);
+                ptr->interruptionPoints[i].sizeOfSample=this->sizeOfSample;
+                ptr->interruptionPoints[i].sampNum=0; //must be filled by smart driver
+                this->threads[i]->serializeUserspaceContext(
+                        ptr->interruptionPoints[i].registers);
+            }
+        }
     }
     
 }
@@ -375,7 +390,7 @@ Process::~Process()
 
 
 Process::Process(const ElfProgram& program) : numActiveThreads(0), waitCount(0),
-        zombie(false), suspended(false)
+        zombie(false), suspended(false), toBeSwappedOut(true)
 {
     this->program =new ElfProgram(program);
     //This is required so that bad_alloc can never be thrown when the first
@@ -490,6 +505,8 @@ void *Process::start(void *argv)
                         sp.getThirdParameter()));
                     break;
                 case 5:
+                    SuspendManager::enterInterruptionPoint(proc,threadID,
+                            sp.getFirstParameter()/1000000,5,-1);
                     sp.setReturnValue(usleep(sp.getFirstParameter()));
                     break;
                 default:
