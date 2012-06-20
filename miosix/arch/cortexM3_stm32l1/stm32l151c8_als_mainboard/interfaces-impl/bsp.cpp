@@ -108,6 +108,9 @@ void IRQbspInit()
     RCC->CSR |= RCC_CSR_LSEON     //External 32KHz oscillator enabled
               | RCC_CSR_RTCEN     //RTC enabled
               | RCC_CSR_RTCSEL_0; //Select LSE as clock source for RTC
+    //These two values enable RTC write access
+    RTC->WPR=0xca;
+    RTC->WPR=0x53;
     while((RCC->CSR & RCC_CSR_LSERDY)==0) ; //Wait
     RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
     SPI1->CR1=SPI_CR1_SSM  //handle CS in software

@@ -182,6 +182,20 @@ static void SetSysClock(void);
 void SystemInit (void)
 {
     #ifdef _BOARD_ALS_MAINBOARD
+
+    FLASH->ACR |= FLASH_ACR_ACC64;
+    FLASH->ACR |= FLASH_ACR_PRFTEN;
+    
+    RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+  
+    /* Select the Voltage Range 1 (1.8 V) */
+    PWR->CR = PWR_CR_VOS_0;
+  
+    /* Wait Until the Voltage Regulator is ready */
+    while((PWR->CSR & PWR_CSR_VOSF) != RESET)
+    {
+    }
+    
     //For low power reasons, this board runs off of the HSI 16MHz oscillator
     RCC->CR |= RCC_CR_HSION;
     //We should wait at least 6us for the HSI to stabilize. Therefore we wait
