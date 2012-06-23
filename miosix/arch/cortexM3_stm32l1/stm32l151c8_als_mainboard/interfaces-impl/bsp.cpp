@@ -26,9 +26,9 @@
  ***************************************************************************/ 
 
 /***********************************************************************
-* bsp.cpp Part of the Miosix Embedded OS.
-* Board support package, this file initializes hardware.
-************************************************************************/
+ * bsp.cpp Part of the Miosix Embedded OS.
+ * Board support package, this file initializes hardware.
+ ************************************************************************/
 
 
 #include <cstdlib>
@@ -77,6 +77,11 @@ void IRQbspInit()
 	//14| OUT H 400KHz | OUT L 10MHz | AF0     | -       |
 	//15| OUT L 400KHz | OUT L 10MHz | AF0     | -       |
     
+    //Quirk: If the write to RCC->AHBENR to enable gpio clock gating is
+    //immediately followed to a write to a GPIO register (in this case
+    //GPIOA->OSPEEDR), garbage is written into that register!
+    delayUs(1);
+    
     GPIOA->OSPEEDR=0x0002aa00;
     GPIOB->OSPEEDR=0xaa800000;
     
@@ -99,6 +104,7 @@ void IRQbspInit()
     GPIOB->AFR[1]= 0 |  0<<4 |  0<<8 |  0<<12 |  0<<16 |  0<<20 |  0<<24 |  0<<28;
     GPIOC->AFR[0]= 0 |  0<<4 |  0<<8 |  0<<12 |  0<<16 |  0<<20 |  0<<24 |  0<<28;
     GPIOC->AFR[1]= 0 |  0<<4 |  0<<8 |  0<<12 |  0<<16 |  0<<20 |  0<<24 |  0<<28;
+
     
     RCC->APB1ENR |= RCC_APB1ENR_PWREN;
     PWR->CR |= PWR_CR_DBP     //Enable access to RTC registers
@@ -167,9 +173,7 @@ void shutdown()
     nrf::cs::high();
     nrf::miso::mode(Mode::INPUT_PULL_DOWN); //nrf miso goes tristate if cs high
     
-    //Put serial in low power mode
-    serial::rx::mode(Mode::INPUT_PULL_UP);
-    
+    EXTI->IMR=0;                       //All IRQs masked
     EXTI->PR=0x7fffff;                 //Clear eventual pending request
     SCB->SCR |= SCB_SCR_SLEEPDEEP;     //Select stop mode
     __WFI(); //And it goes to sleep till a reset

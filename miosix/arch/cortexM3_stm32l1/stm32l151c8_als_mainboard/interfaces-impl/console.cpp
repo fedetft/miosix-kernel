@@ -93,8 +93,7 @@ void serialIrqImpl()
 void IRQstm32f2serialPortInit()
 {
     rxQueue.IRQreset();
-    //Enable clock to GPIOA and USART1
-    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
+    //Enable clock to USART1
     RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
     //Enabled, 8 data bit, no parity, interrupt on character rx
     USART1->CR1 = USART_CR1_UE | USART_CR1_RXNEIE;
@@ -110,11 +109,7 @@ void IRQstm32f2serialPortInit()
     //baudrate=19200
     USART1->BRR=brr;
     
-    //Now that serial port is active, configure I/Os
-    serial::tx::alternateFunction(7);
-    serial::tx::mode(Mode::ALTERNATE);
-    serial::rx::alternateFunction(7);
-    serial::rx::mode(Mode::ALTERNATE);
+    //GPIOs already configured as part of the bsp
     USART1->CR1 |= USART_CR1_TE | USART_CR1_RE;//Finally enable tx and rx
     NVIC_SetPriority(USART1_IRQn,10);//Low priority for serial. (Max=0, min=15)
     NVIC_EnableIRQ(USART1_IRQn);
