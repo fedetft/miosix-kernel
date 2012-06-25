@@ -342,7 +342,7 @@
         </df>
         <in>miosix.h</in>
       </df>
-      <df name="miosix_np_2">
+      <df name="miosix_np_processes">
       </df>
       <in>main.cpp</in>
     </df>
