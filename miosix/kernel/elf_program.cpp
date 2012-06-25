@@ -314,7 +314,7 @@ void ProcessImage::load(const ElfProgram& program)
     }
 }
 
-void ProcessImage:: resume(ProcessStatus* status)
+void ProcessImage::resume(ProcessStatus* status)
 {
     image=status->processImageBase;
     size=status->processImageSize;

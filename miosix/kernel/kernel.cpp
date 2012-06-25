@@ -34,8 +34,6 @@
 #include "sync.h"
 #include "process.h"
 #include "kernel/scheduler/scheduler.h"
-#include "arch/cortexM4_stm32f4/common/arch_settings.h"
-#include "arch/arm7_lpc2000/common/arch_settings.h"
 #include <stdexcept>
 #include <algorithm>
 #include <string.h>

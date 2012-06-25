@@ -71,11 +71,7 @@ inline int getSmartDriversQueueSramAreaSize()
            getSmartDriversQueueSramAreaSize();
 }
 
-
-
-
 } //namespace miosix
 
 #endif  //WITH_PROCESSES
 #endif	//SUSPEND_SUPPORT_IMPL_H
-

@@ -124,7 +124,6 @@ private:
     
     const unsigned int * const elf; ///<Pointer to the content of the elf file
     unsigned int size; ///< Size of the elf file
-    
 };
 
 /**

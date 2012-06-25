@@ -417,7 +417,7 @@ Process::Process(const ElfProgram& program) : numActiveThreads(0), waitCount(0),
 //    mpu=miosix_private::MPUConfiguration(program.getElfBase(),roundedSize,
 //            image.getProcessBasePointer(),image.getProcessImageSize());
     //FIXME -- end
-    #else //__CODE_IN_XRAMallocate
+    #else //__CODE_IN_XRAM
     loadedProgram=ProcessPool::instance().allocate(roundedSize);
     memcpy(loadedProgram,reinterpret_cast<char*>(program.getElfBase()),elfSize);
     mpu=miosix_private::MPUConfiguration(loadedProgram,roundedSize,

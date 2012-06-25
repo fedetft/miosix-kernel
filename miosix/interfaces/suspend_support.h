@@ -35,6 +35,7 @@ inline unsigned int *getBackupSramBase();
 inline int getBackupSramSize();
 void initializeBackupSram();
 void initializeRTC();
+
 /**
  * \return size of the backup SRAM for the allocator status
  *  
@@ -48,26 +49,20 @@ int getAllocatorSramAreaSize();
  */
 inline int getBackupAllocatorSramAreaSize();
 
-
 /**
- * \return size of the backup SRAM for the Processes status serialization
- *  
+ * \return size of the backup SRAM for the Processes status serialization 
  */
 inline int getProcessesSramAreaSize();
 
-
 /**
- * \return size of the backup SRAM for network topology information
- *  
+ * \return size of the backup SRAM for network topology information 
  */
 inline int getRoutingTableSramAreaSize();
 
 /**
  * \return size of the backup SRAM for the queue of the smart drivers
- *  
  */
 inline int getSmartDriversQueueSramAreaSize();
-
 
 } //namespace miosix
 
@@ -76,4 +71,3 @@ inline int getSmartDriversQueueSramAreaSize();
 
 #endif  //WITH_PROCESSES
 #endif	// SUSPEND_SUPPORT_H
-
