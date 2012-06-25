@@ -31,15 +31,16 @@ void Lcd44780::go(int x, int y)
     comd(0x80 | ((y & 1) ? 0x40 : 0) | x); //Move cursor
 }
 
-//int Lcd44780::printf(const char* fmt, ...)
-//{
-//    va_list arg;
-//    char line[40];
-//    va_start(arg,fmt);
-//    int len=vsnprintf(line,sizeof(line),fmt,arg);
-//    va_end(arg);
-//    for(int i=0;i<len;i++) data(line[i]);
-//}
+int Lcd44780::printf(const char* fmt, ...)
+{
+    va_list arg;
+    char line[40];
+    va_start(arg,fmt);
+    int len=vsnprintf(line,sizeof(line),fmt,arg);
+    va_end(arg);
+    for(int i=0;i<len;i++) data(line[i]);
+    return len;
+}
 
 void Lcd44780::clear()
 {
