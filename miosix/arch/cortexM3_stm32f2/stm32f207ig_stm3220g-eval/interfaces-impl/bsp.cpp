@@ -81,6 +81,7 @@ void IRQbspInit()
     
     #ifdef WITH_PROCESSES    
     initializeBackupSram();
+    initializeRTC();
     #endif //WITH_PROCESSES
 }
 

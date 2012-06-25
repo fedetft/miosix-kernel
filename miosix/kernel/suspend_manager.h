@@ -117,7 +117,6 @@ private:
     static void enterInterruptionPoint(Process* proc, int threadID, 
     long long resumeTime, int syscallID, int fileID);
     
-    int numSerializedProcesses;
     static std::list<syscallResumeTime> syscallReturnTime;
     ///Used to guard access to the number of suspended processes
     static Mutex suspMutex;

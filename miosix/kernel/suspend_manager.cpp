@@ -219,7 +219,7 @@ int SuspendManager::resume()
     {
         Lock<Mutex>l(SuspendManager::suspMutex);
         syscallResumeTime retTime;
-        for(int i=0;i<=numSerializedProcesses;i++)
+        for(int i=0;i<=*(getBackupSramBase()+(getAllocatorSramAreaSize()/sizeof(int)));i++)
         {   
             
             Process::resume(ElfProgram(proc->programBase,proc->programSize),proc);
