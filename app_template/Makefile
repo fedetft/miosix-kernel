@@ -4,7 +4,7 @@
 ##
 
 SRC := \
-main.cpp
+main.c
 
 ## Replaces both "foo.cpp"-->"foo.o" and "foo.c"-->"foo.o"
 OBJ := $(addsuffix .o, $(basename $(SRC)))
