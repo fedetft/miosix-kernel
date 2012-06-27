@@ -145,9 +145,9 @@ bool ElfProgram::validateHeader()
 bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
         unsigned int dataSegmentSize)
 {
-    unsigned int base=getElfBase();
+    const unsigned int base=reinterpret_cast<unsigned int>(getElfBase());
     const Elf32_Dyn *dyn=
-        reinterpret_cast<const Elf32_Dyn*>(getElfBase()+dynamic->p_offset);
+        reinterpret_cast<const Elf32_Dyn*>(base+dynamic->p_offset);
     const int dynSize=dynamic->p_memsz/sizeof(Elf32_Dyn);
     Elf32_Addr dtRel=0;
     Elf32_Word dtRelsz=0;
@@ -238,7 +238,7 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
 void ProcessImage::load(const ElfProgram& program)
 {
     if(image) ProcessPool::instance().deallocate(image);
-    const unsigned int base=program.getElfBase();
+    const unsigned int base=reinterpret_cast<unsigned int>(program.getElfBase());
     const Elf32_Phdr *phdr=program.getProgramHeaderTable();
     const Elf32_Phdr *dataSegment=0;
     Elf32_Addr dtRel=0;

@@ -52,7 +52,7 @@ SuspendManager::~SuspendManager()
 ProcessStatus* SuspendManager::getProcessesBackupAreaBase()
 {
     return reinterpret_cast<struct ProcessStatus*>(
-                            reinterpret_cast<unsigned int>(backupSramBase)+
+                            reinterpret_cast<unsigned int>(getBackupSramBase())+
                             getAllocatorSramAreaSize()+ 
                             getBackupAllocatorSramAreaSize());
 }

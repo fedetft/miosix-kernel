@@ -89,11 +89,11 @@ public:
     }
     
     /**
-     * \return a number representing the elf base address in memory
+     * \return the elf base address in memory
      */
-    unsigned int getElfBase() const
+    const unsigned int *getElfBase() const
     {
-        return reinterpret_cast<unsigned int>(elf);
+        return elf;
     }
     
     /**

@@ -167,6 +167,7 @@ ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom_processes.ld
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram_processes.ld
 
     ## Enable/disable initialization of external RAM at boot. Three options:

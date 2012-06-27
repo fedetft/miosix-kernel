@@ -28,29 +28,23 @@
 #ifndef SUSPEND_SUPPORT_IMPL_H
 #define	SUSPEND_SUPPORT_IMPL_H
 
-#ifdef WITH_PROCESSES
+#ifdef WITH_HIBERNATION
 
 namespace miosix {
 
-unsigned int* const backupSramBase = 
-                                reinterpret_cast<unsigned int*>(0x40024000);
-const int backupSramSize=4096;
-
-int getAllocatorSramAreaSize();
-
 inline unsigned int *getBackupSramBase()
 {
-    return backupSramBase;
+    return reinterpret_cast<unsigned int*>(0x40024000);
 }
 
 inline int getBackupSramSize()
 {
-    return backupSramSize;
+    return 4096;
 }
 
 inline int getBackupAllocatorSramAreaSize()
 {
-    return sizeof(unsigned int*)*4 ;
+    return sizeof(unsigned int*)*4;
 }
 
 inline int getProcessesSramAreaSize()
@@ -73,5 +67,5 @@ inline int getSmartDriversQueueSramAreaSize()
 
 } //namespace miosix
 
-#endif  //WITH_PROCESSES
+#endif  //WITH_HIBERNATION
 #endif	//SUSPEND_SUPPORT_IMPL_H

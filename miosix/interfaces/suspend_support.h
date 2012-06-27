@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico  and Luigi Rucco  *
+ *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico and Luigi Rucco   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -27,14 +27,40 @@
 #ifndef SUSPEND_SUPPORT_H
 #define	SUSPEND_SUPPORT_H
 
-#ifdef WITH_PROCESSES
+#ifdef WITH_HIBERNATION
 
 namespace miosix {
 
+/**
+ * \return a pointer to the beginning of the backup SRAM area, that preserves
+ * its content through hibernation
+ */
 inline unsigned int *getBackupSramBase();
+
+/**
+ * \return the size of the backup SRAM
+ */
 inline int getBackupSramSize();
-void initializeBackupSram();
-void initializeRTC();
+
+/**
+ * Needs to be called from IRQbspInit() if hibernation support is enabled.
+ * None of the functions in this haeder can be called prior to this, as they
+ * might access uninitialized resources
+ */
+void IRQinitializeSuspendSupport();
+
+/**
+ * Enter hibernation mode for the specified number of seconds
+ * \param seconds after how much time the system will reboot
+ */
+void doSuspend(unsigned int seconds);
+
+/**
+ * \return true if this is the first boot, i.e. a boot caused by a reset
+ * assertion or power on. If returns false, this is a boot caused by an RTC
+ * wakeup, and in this case swapped processes need to be reloaded.
+ */
+bool firstBoot();
 
 /**
  * \return size of the backup SRAM for the allocator status
@@ -69,5 +95,5 @@ inline int getSmartDriversQueueSramAreaSize();
 // This contains the macros and the implementation of inline functions
 #include "interfaces-impl/suspend_support_impl.h"
 
-#endif  //WITH_PROCESSES
-#endif	// SUSPEND_SUPPORT_H
+#endif  //WITH_HIBERNATION
+#endif	//SUSPEND_SUPPORT_H

@@ -419,7 +419,7 @@ Process::Process(const ElfProgram& program) : numActiveThreads(0), waitCount(0),
     //FIXME -- end
     #else //__CODE_IN_XRAM
     loadedProgram=ProcessPool::instance().allocate(roundedSize);
-    memcpy(loadedProgram,reinterpret_cast<char*>(program.getElfBase()),elfSize);
+    memcpy(loadedProgram,program.getElfBase(),elfSize);
     mpu=miosix_private::MPUConfiguration(loadedProgram,roundedSize,
             image.getProcessBasePointer(),image.getProcessImageSize());
     #endif //__CODE_IN_XRAM
@@ -433,7 +433,7 @@ void *Process::start(void *argv)
     if(proc==0) errorHandler(UNEXPECTED);
     unsigned int entry=proc->program->getEntryPoint();
     #ifdef __CODE_IN_XRAM
-    entry=entry-proc->program->getElfBase()+
+    entry=entry-reinterpret_cast<unsigned int>(proc->program->getElfBase())+
         reinterpret_cast<unsigned int>(proc->loadedProgram);
     #endif //__CODE_IN_XRAM
     if(proc->suspended==false)
@@ -462,12 +462,12 @@ void *Process::start(void *argv)
             proc->exitCode=SIGSEGV; //Segfault
             #ifdef WITH_ERRLOG
             iprintf("Process %d terminated due to a fault\n"
-                    "* Code base address was 0x%x\n"
+                    "* Code base address was %p\n"
                     "* Data base address was %p\n",proc->pid,
                     #ifndef __CODE_IN_XRAM
                     proc->program.getElfBase(),
                     #else //__CODE_IN_XRAM
-                    reinterpret_cast<unsigned int>(proc->loadedProgram),
+                    proc->loadedProgram,
                     #endif //__CODE_IN_XRAM
                     proc->image.getProcessBasePointer());
             proc->mpu.dumpConfiguration();

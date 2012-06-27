@@ -79,10 +79,9 @@ void IRQbspInit()
     IRQstm32f2serialPortInit();
     #endif //STDOUT_REDIRECTED_TO_DCC
     
-    #ifdef WITH_PROCESSES    
-    initializeBackupSram();
-    initializeRTC();
-    #endif //WITH_PROCESSES
+    #ifdef WITH_HIBERNATION    
+    IRQinitializeSuspendSupport();
+    #endif //WITH_HIBERNATION
 }
 
 void bspInit2()
