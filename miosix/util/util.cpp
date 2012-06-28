@@ -163,4 +163,12 @@ unsigned int MemoryProfiling::getCurrentFreeHeap()
     return (unsigned int)&_heap_end - (unsigned int)highWatermark;
 }
 
+int fhbs(unsigned int x)
+{
+    //TODO: Optimize!
+    int result=0;
+    while(x) { x>>=1; result++; }
+    return result;
+}
+
 } //namespace miosix

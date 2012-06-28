@@ -61,7 +61,7 @@ struct ProcessStatus
     int exitCode;
     unsigned int* processImageBase;
     int processImageSize;
-    unsigned int* programBase;
+    const unsigned int* programBase;
     int programSize;
     int fileDescriptors[MAX_OPEN_FILES];
     struct IntPointStatus interruptionPoints[1+MAX_THREADS_PER_PROCESS];

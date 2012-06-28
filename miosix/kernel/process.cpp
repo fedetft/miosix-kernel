@@ -403,15 +403,15 @@ Process::Process(const ElfProgram& program) : numActiveThreads(0), waitCount(0),
     //Allocatable blocks must be greater than ProcessPool::blockSize, and must
     //be a power of two due to MPU limitations
     if(elfSize<ProcessPool::blockSize) roundedSize=ProcessPool::blockSize;
-    else if(elfSize & (elfSize-1)) roundedSize=1<<ffs(elfSize);
+    else if(elfSize & (elfSize-1)) roundedSize=1<<fhbs(elfSize);
     #ifndef __CODE_IN_XRAM
     //FIXME -- begin
     //Till a flash file system that ensures proper alignment of the programs
     //loaded in flash is implemented, make the whole flash visible as a big MPU
     //region
-    extern unsigned char _end asm("_end");
-    unsigned int flashEnd=reinterpret_cast<unsigned int>(&_end);
-    if(flashEnd & (flashEnd-1)) flashEnd=1<<ffs(flashEnd);
+    extern unsigned int _etext asm("_etext");
+    unsigned int flashEnd=reinterpret_cast<unsigned int>(&_etext);
+    if(flashEnd & (flashEnd-1)) flashEnd=1<<fhbs(flashEnd);
     mpu=miosix_private::MPUConfiguration(0,flashEnd,
             image.getProcessBasePointer(),image.getProcessImageSize());
 //    mpu=miosix_private::MPUConfiguration(program.getElfBase(),roundedSize,
@@ -465,7 +465,7 @@ void *Process::start(void *argv)
                     "* Code base address was %p\n"
                     "* Data base address was %p\n",proc->pid,
                     #ifndef __CODE_IN_XRAM
-                    proc->program.getElfBase(),
+                    proc->program->getElfBase(),
                     #else //__CODE_IN_XRAM
                     proc->loadedProgram,
                     #endif //__CODE_IN_XRAM

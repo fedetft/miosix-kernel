@@ -29,6 +29,7 @@
 #include "interfaces/portability.h"
 #include "kernel/kernel.h"
 #include "kernel/error.h"
+#include "util/util.h"
 #include "interfaces/bsp.h"
 #include "kernel/scheduler/scheduler.h"
 #include "kernel/scheduler/tick_interrupt.h"
@@ -263,27 +264,27 @@ MPUConfiguration::MPUConfiguration(unsigned int *elfBase, unsigned int elfSize,
     regValues[1]=2<<MPU_RASR_AP_Pos
                | MPU_RASR_C_Msk
                | 1 //Enable bit
-               | ((ffs(elfSize)-2)<<1);
+               | ((miosix::fhbs(elfSize)-2)<<1);
     regValues[3]=3<<MPU_RASR_AP_Pos
                | MPU_RASR_XN_Msk
                | MPU_RASR_C_Msk
                | MPU_RASR_S_Msk
                | 1 //Enable bit
-               | ((ffs(imageSize)-2)<<1);
+               | ((miosix::fhbs(imageSize)-2)<<1);
     #else //__CODE_IN_XRAM
     regValues[1]=2<<MPU_RASR_AP_Pos
                | MPU_RASR_C_Msk
                | MPU_RASR_B_Msk
                | MPU_RASR_S_Msk
                | 1 //Enable bit
-               | ((ffs(elfSize)-2)<<1);
+               | ((miosix::fhbs(elfSize)-2)<<1);
     regValues[3]=3<<MPU_RASR_AP_Pos
                | MPU_RASR_XN_Msk
                | MPU_RASR_C_Msk
                | MPU_RASR_B_Msk
                | MPU_RASR_S_Msk
                | 1 //Enable bit
-               | ((ffs(imageSize)-2)<<1);
+               | ((miosix::fhbs(imageSize)-2)<<1);
     #endif //__CODE_IN_XRAM
 }
 

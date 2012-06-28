@@ -110,6 +110,15 @@ private:
 void memDump(const char *start, int len);
 
 /**
+ * Find highest bit set
+ * \param x a 32bit number
+ * \return 0 if the number is zero, or the position of the highest bit
+ * FIXME: Put this function in a more appropriate place, away from the
+ * interfaces/arch
+ */
+int fhbs(unsigned int x);
+
+/**
  * \}
  */
 

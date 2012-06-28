@@ -44,8 +44,8 @@ ASSERT(_main_stack_size   % 8 == 0, "MAIN stack size error");
 
 /* end of the heap (32KB) */
 _heap_end = 0x20008000;                            /* end of available ram  */
-_process_pool_start=_heap_end;                     /* from 32KB to 128KB    */
-_process_pool_end=0x20020000;
+_process_pool_start = _heap_end;                   /* from 32KB to 128KB    */
+_process_pool_end = 0x20020000;
 
 /* identify the Entry Point  */
 ENTRY(_Z13Reset_Handlerv)

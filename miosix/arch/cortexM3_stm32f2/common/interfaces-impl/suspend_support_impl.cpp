@@ -25,6 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include <stdio.h>
 #include "interfaces/suspend_support.h"
 #include "kernel/process_pool.h"
 #include "miosix.h"
@@ -36,46 +37,49 @@ namespace miosix {
     
 void IRQinitializeSuspendSupport()
 {
-    RCC->APB1ENR |= RCC_APB1ENR_PWREN; //This is to to enable access to PWR...
-    PWR-> CR |= PWR_CR_DBP; //This is to enable access to the BRE bit below...
-    PWR-> CSR |= PWR_CSR_BRE; //This is to enable the SRAM in standby mode...
-    while((PWR->CSR & PWR_CSR_BRR)==0) ; //Wait till the change becomes effective
-    RCC->AHB1ENR |= RCC_AHB1ENR_BKPSRAMEN; //This is to enable SW access...
-    
-    PWR->CR |= PWR_CR_CWUF;
-    
+    RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+    PWR->CR |= PWR_CR_DBP;
+    PWR->CSR |= PWR_CSR_BRE;
+    while((PWR->CSR & PWR_CSR_BRR)==0) ;
+    RCC->AHB1ENR |= RCC_AHB1ENR_BKPSRAMEN;
+
     RCC->BDCR |= RCC_BDCR_LSEON;
     while((RCC->BDCR & RCC_BDCR_LSERDY)==0) ; //wait
     RCC->BDCR |= RCC_BDCR_RTCSEL_0 | RCC_BDCR_RTCEN;
     RTC->WPR=0xca;
     RTC->WPR=0x53;
-    
-    RTC->CR |= RTC_CR_WUTE | RTC_CR_WUTIE;
 }
 
 void doSuspend(unsigned int seconds)
 {
     if(seconds==0) return;
     if(seconds>31) seconds=31;
-    {
-        InterruptDisableLock dLock;
-        while(Console::IRQtxComplete()==false) ;
+  
+    while(Console::txComplete()==false) ;
 
+    {
+        FastInterruptDisableLock dLock;
+ 
         RCC->CSR |= RCC_CSR_RMVF; //This makes firstBoot() return false next time
-        
-        EXTI->PR = 1<<22; //The EXTI_PR_PR22 constant does not exist??
-        EXTI->IMR |= 1<<22; //The EXTI_IMR_MR22 constant does not exist??
-        EXTI->RTSR |= 1<<22; //The EXTI_RTSR_TR22 constant does not exist??
-        
         RTC->CR &= ~RTC_CR_WUTE;
         while((RTC->ISR & RTC_ISR_WUTWF)==0) ; //Wait
-        RTC->WUTR=seconds*2048;
-        RTC->CR |= RTC_CR_WUTE;
+        RTC->WUTR=seconds*2048; //10s
+        RTC->CR |= RTC_CR_WUTE | RTC_CR_WUTIE;
+    
         RTC->ISR= ~RTC_ISR_WUTF;
-       
+        EXTI->EMR |= 1<<22;
+        EXTI->RTSR |= 1<<22;
+
+        PWR->CR |= PWR_CR_PDDS | PWR_CR_CWUF;
         SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
-        PWR->CR |= PWR_CR_PDDS;
-        for(;;) __WFI();
+        //Using WFE instead of WFI because if while we are with interrupts
+        //disabled an interrupt (such as the tick interrupt) occurs, it
+        //remains pending and the WFI becomes a nop, and the device never goes
+        //in sleep mode. WFE events are not latched in a pending register so
+        //this does not happen
+        __WFE();
+        //Should never reach here
+        NVIC_SystemReset();
     }
 }
 
