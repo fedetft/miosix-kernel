@@ -28,9 +28,14 @@
 #ifndef PROCESS_POOL_H
 #define PROCESS_POOL_H
 
+#include "config/miosix_settings.h"
+
+#ifdef WITH_PROCESSES
+
 #include <map>
 
 #ifndef TEST_ALLOC
+
 #include <miosix.h>
 #include <cstring>
 #ifdef WITH_HIBERNATION
@@ -38,12 +43,12 @@
 #endif
 
 #else //TEST_ALLOC
+
 #include <iostream>
 #include <typeinfo>
 #include <sstream>
-#endif //TEST_ALLOC
 
-#ifdef WITH_PROCESSES
+#endif //TEST_ALLOC
 
 namespace miosix {
 
