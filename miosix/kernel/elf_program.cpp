@@ -31,7 +31,7 @@
 #include <cstring>
 #include <cstdio>
 #ifdef WITH_HIBERNATION
-#include "mram_driver/mram.h"
+#include "interfaces/suspend_support.h"
 #endif
 
 using namespace std;

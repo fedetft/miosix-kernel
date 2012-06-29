@@ -90,7 +90,7 @@ void ProcessPool::deallocate(unsigned int *ptr)
     #ifndef TEST_ALLOC
     miosix::Lock<miosix::FastMutex> l(mutex);
     #endif //TEST_ALLOC
-    map<unsigned int*, unsigned int>::iterator it= allocatedBlocks.find(ptr);
+    map<const unsigned int*, unsigned int>::iterator it= allocatedBlocks.find(ptr);
     if(it==allocatedBlocks.end())throw runtime_error("");
     unsigned int size =(it->second)/blockSize;
     unsigned int firstBit=(reinterpret_cast<unsigned int>(ptr)-

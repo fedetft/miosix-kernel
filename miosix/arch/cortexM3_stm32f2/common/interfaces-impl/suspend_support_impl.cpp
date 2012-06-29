@@ -75,8 +75,8 @@ void doSuspend(unsigned int seconds)
         //Using WFE instead of WFI because if while we are with interrupts
         //disabled an interrupt (such as the tick interrupt) occurs, it
         //remains pending and the WFI becomes a nop, and the device never goes
-        //in sleep mode. WFE events are not latched in a pending register so
-        //this does not happen
+        //in sleep mode. WFE events are latched in a separate pending register
+        //so interrupts do not interfere with them
         __WFE();
         //Should never reach here
         NVIC_SystemReset();

@@ -124,13 +124,9 @@ bool Mram::write(unsigned int addr, const void *data, int size)
     // 4.5  us fixed time (context switch and peripheral register cleanup)
     // 2    us fixed time (mutex unlock)
     
-    if(addr>=this->size() || addr+size>=this->size()) return false;
+    if(addr>=this->size() || addr+size>this->size()) return false;
     pthread_mutex_lock(&mutex);
-    if(sleepMode)
-    {
-        pthread_mutex_unlock(&mutex);
-        return false;
-    }
+    if(sleepMode) { pthread_mutex_unlock(&mutex); return false; }
     cs::low();
     spi2sendRecv(0x02); //Write command
     spi2sendRecv((addr>>16) & 0xff);
@@ -138,38 +134,39 @@ bool Mram::write(unsigned int addr, const void *data, int size)
     spi2sendRecv(addr & 0xff);
     
     //DMA1 stream 4 channel 0 = SPI2_TX
+    
+    error=false;
+
+    //Wait until the SPI is busy, required otherwise the last byte is not
+    //fully sent
+    while((SPI2->SR & SPI_SR_TXE)==0) ;
+    while(SPI2->SR & SPI_SR_BSY) ;
+    SPI2->CR1=0;
+    SPI2->CR2=SPI_CR2_TXDMAEN;
+    SPI2->CR1=SPI_CR1_SSM
+            | SPI_CR1_SSI
+            | SPI_CR1_MSTR
+            | SPI_CR1_SPE;
+
+    waiting=Thread::getCurrentThread();
+    NVIC_ClearPendingIRQ(DMA1_Stream4_IRQn);
+    NVIC_SetPriority(DMA1_Stream4_IRQn,10);//Low priority for DMA
+    NVIC_EnableIRQ(DMA1_Stream4_IRQn);
+
+    DMA1_Stream4->CR=0;
+    DMA1_Stream4->PAR=reinterpret_cast<unsigned int>(&SPI2->DR);
+    DMA1_Stream4->M0AR=reinterpret_cast<unsigned int>(data);
+    DMA1_Stream4->NDTR=size;
+    DMA1_Stream4->CR=DMA_SxCR_PL_1 //High priority because fifo disabled
+                | DMA_SxCR_MINC    //Increment memory pointer
+                | DMA_SxCR_DIR_0   //Memory to peripheral
+                | DMA_SxCR_TCIE    //Interrupt on transfer complete
+                | DMA_SxCR_TEIE    //Interrupt on transfer error
+                | DMA_SxCR_DMEIE   //Interrupt on direct mode error
+                | DMA_SxCR_EN;     //Start DMA
+    
     {
         FastInterruptDisableLock dLock;
-        error=false;
-        
-        //Wait until the SPI is busy, required otherwise the last byte is not
-        //fully sent
-        while((SPI2->SR & SPI_SR_TXE)==0) ;
-        while(SPI2->SR & SPI_SR_BSY) ;
-        SPI2->CR1=0;
-        SPI2->CR2=SPI_CR2_TXDMAEN;
-        SPI2->CR1=SPI_CR1_SSM
-                | SPI_CR1_SSI
-                | SPI_CR1_MSTR
-                | SPI_CR1_SPE;
-        
-        waiting=Thread::getCurrentThread();
-        NVIC_ClearPendingIRQ(DMA1_Stream4_IRQn);
-        NVIC_SetPriority(DMA1_Stream4_IRQn,10);//Low priority for DMA
-        NVIC_EnableIRQ(DMA1_Stream4_IRQn);
-        
-        DMA1_Stream4->CR=0;
-        DMA1_Stream4->PAR=reinterpret_cast<unsigned int>(&SPI2->DR);
-        DMA1_Stream4->M0AR=reinterpret_cast<unsigned int>(data);
-        DMA1_Stream4->NDTR=size;
-        DMA1_Stream4->CR=DMA_SxCR_PL_1 //High priority because fifo disabled
-                    | DMA_SxCR_MINC    //Increment memory pointer
-                    | DMA_SxCR_DIR_0   //Memory to peripheral
-                    | DMA_SxCR_TCIE    //Interrupt on transfer complete
-                    | DMA_SxCR_TEIE    //Interrupt on transfer error
-                    | DMA_SxCR_DMEIE   //Interrupt on direct mode error
-                    | DMA_SxCR_EN;     //Start DMA
-        
         while(waiting!=0)
         {
             waiting->IRQwait();
@@ -178,18 +175,24 @@ bool Mram::write(unsigned int addr, const void *data, int size)
                 Thread::yield();
             }
         }
-        NVIC_DisableIRQ(DMA1_Stream4_IRQn);
-        
-        //Wait for last byte to be sent
-        while((SPI2->SR & SPI_SR_TXE)==0) ;
-        while(SPI2->SR & SPI_SR_BSY) ;
-        SPI2->CR1=0;
-        SPI2->CR2=0;
-        SPI2->CR1=SPI_CR1_SSM
-                | SPI_CR1_SSI
-                | SPI_CR1_MSTR
-                | SPI_CR1_SPE;
     }
+                
+    NVIC_DisableIRQ(DMA1_Stream4_IRQn);
+
+    //Wait for last byte to be sent
+    while((SPI2->SR & SPI_SR_TXE)==0) ;
+    while(SPI2->SR & SPI_SR_BSY) ;
+    SPI2->CR1=0;
+    SPI2->CR2=0;
+    SPI2->CR1=SPI_CR1_SSM
+            | SPI_CR1_SSI
+            | SPI_CR1_MSTR
+            | SPI_CR1_SPE;
+    
+    //Quirk: reset RXNE by reading DR, or a byte remains in the input buffer
+    volatile short temp=SPI1->DR;
+    (void)temp;
+    
     cs::high();
     bool result=!error;
     pthread_mutex_unlock(&mutex);
@@ -204,7 +207,7 @@ bool Mram::read(unsigned int addr, void *data, int size)
     // 0.533us per byte transferred in DMA mode
     // 4.5  us fixed time (context switch and peripheral register cleanup)
     // 2    us fixed time (mutex unlock)
-    if(addr>=this->size() || addr+size>=this->size()) return false;
+    if(addr>=this->size() || addr+size>this->size()) return false;
     pthread_mutex_lock(&mutex);
     if(sleepMode) { pthread_mutex_unlock(&mutex); return false; }
     cs::low();
@@ -214,45 +217,46 @@ bool Mram::read(unsigned int addr, void *data, int size)
     spi2sendRecv(addr & 0xff);
     
     //DMA1 stream 3 channel 0 = SPI2_RX
+
+    error=false;
+
+    //Wait until the SPI is busy, required otherwise the last byte is not
+    //fully sent
+    while((SPI2->SR & SPI_SR_TXE)==0) ;
+    while(SPI2->SR & SPI_SR_BSY) ;
+    //Quirk: reset RXNE by reading DR before starting the DMA, or the first
+    //byte in the DMA buffer is garbage
+    volatile short temp=SPI2->DR;
+    (void)temp;
+    SPI2->CR1=0;
+    SPI2->CR2=SPI_CR2_RXDMAEN;
+
+    waiting=Thread::getCurrentThread();
+    NVIC_ClearPendingIRQ(DMA1_Stream3_IRQn);
+    NVIC_SetPriority(DMA1_Stream3_IRQn,10);//Low priority for DMA
+    NVIC_EnableIRQ(DMA1_Stream3_IRQn);
+
+    DMA1_Stream3->CR=0;
+    DMA1_Stream3->PAR=reinterpret_cast<unsigned int>(&SPI2->DR);
+    DMA1_Stream3->M0AR=reinterpret_cast<unsigned int>(data);
+    DMA1_Stream3->NDTR=size;
+    DMA1_Stream3->CR=DMA_SxCR_PL_1 //High priority because fifo disabled
+                | DMA_SxCR_MINC    //Increment memory pointer
+                | DMA_SxCR_TCIE    //Interrupt on transfer complete
+                | DMA_SxCR_TEIE    //Interrupt on transfer error
+                | DMA_SxCR_DMEIE   //Interrupt on direct mode error
+                | DMA_SxCR_EN;     //Start DMA
+
+    //Quirk: start the SPI in RXONLY mode only *after* the DMA has been
+    //setup or the SPI doesn't wait for the DMA and the first bytes are lost
+    SPI2->CR1=SPI_CR1_RXONLY
+            | SPI_CR1_SSM
+            | SPI_CR1_SSI
+            | SPI_CR1_MSTR
+            | SPI_CR1_SPE;
+        
     {
         FastInterruptDisableLock dLock;
-        error=false;
-        
-        //Wait until the SPI is busy, required otherwise the last byte is not
-        //fully sent
-        while((SPI2->SR & SPI_SR_TXE)==0) ;
-        while(SPI2->SR & SPI_SR_BSY) ;
-        //Quirk: reset RXNE by reading DR before starting the DMA, or the first
-        //byte in the DMA buffer is garbage
-        volatile short temp=SPI2->DR;
-        (void)temp;
-        SPI2->CR1=0;
-        SPI2->CR2=SPI_CR2_RXDMAEN;
-        
-        waiting=Thread::getCurrentThread();
-        NVIC_ClearPendingIRQ(DMA1_Stream3_IRQn);
-        NVIC_SetPriority(DMA1_Stream3_IRQn,10);//Low priority for DMA
-        NVIC_EnableIRQ(DMA1_Stream3_IRQn);
-        
-        DMA1_Stream3->CR=0;
-        DMA1_Stream3->PAR=reinterpret_cast<unsigned int>(&SPI2->DR);
-        DMA1_Stream3->M0AR=reinterpret_cast<unsigned int>(data);
-        DMA1_Stream3->NDTR=size;
-        DMA1_Stream3->CR=DMA_SxCR_PL_1 //High priority because fifo disabled
-                    | DMA_SxCR_MINC    //Increment memory pointer
-                    | DMA_SxCR_TCIE    //Interrupt on transfer complete
-                    | DMA_SxCR_TEIE    //Interrupt on transfer error
-                    | DMA_SxCR_DMEIE   //Interrupt on direct mode error
-                    | DMA_SxCR_EN;     //Start DMA
-        
-        //Quirk: start the SPI in RXONLY mode only *after* the DMA has been
-        //setup or the SPI doesn't wait for the DMA and the first bytes are lost
-        SPI2->CR1=SPI_CR1_RXONLY
-                | SPI_CR1_SSM
-                | SPI_CR1_SSI
-                | SPI_CR1_MSTR
-                | SPI_CR1_SPE;
-        
         while(waiting!=0)
         {
             waiting->IRQwait();
@@ -261,14 +265,22 @@ bool Mram::read(unsigned int addr, void *data, int size)
                 Thread::yield();
             }
         }
-        NVIC_DisableIRQ(DMA1_Stream3_IRQn);
-        SPI2->CR1=0;
-        SPI2->CR2=0;
-        SPI2->CR1=SPI_CR1_SSM
-                | SPI_CR1_SSI
-                | SPI_CR1_MSTR
-                | SPI_CR1_SPE;
     }
+
+    NVIC_DisableIRQ(DMA1_Stream3_IRQn);
+    SPI2->CR1=0;
+    
+    //Quirk, disabling the SPI in RXONLY mode is difficult
+    while(SPI2->SR & SPI_SR_RXNE) temp=SPI2->DR;
+    delayUs(1); //The last transfer may still be in progress
+    while(SPI2->SR & SPI_SR_RXNE) temp=SPI2->DR;
+    
+    SPI2->CR2=0;
+    SPI2->CR1=SPI_CR1_SSM
+            | SPI_CR1_SSI
+            | SPI_CR1_MSTR
+            | SPI_CR1_SPE;
+
     cs::high();
     bool result=!error;
     pthread_mutex_unlock(&mutex);

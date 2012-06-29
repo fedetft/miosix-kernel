@@ -29,7 +29,7 @@
 #include "interfaces/suspend_support.h"
 #include "elf_program.h"
 #include "process.h"
-#include "mram_driver/mram.h"
+#include "interfaces/suspend_support.h"
 #include "process_pool.h"
 #include <string.h>
 #include <stdexcept>

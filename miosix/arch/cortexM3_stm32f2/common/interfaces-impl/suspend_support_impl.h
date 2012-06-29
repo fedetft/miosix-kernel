@@ -30,6 +30,8 @@
 
 #ifdef WITH_HIBERNATION
 
+#include "drivers/mram.h"
+
 namespace miosix {
 
 inline unsigned int *getBackupSramBase()

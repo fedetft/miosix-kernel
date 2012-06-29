@@ -198,7 +198,7 @@ private:
     unsigned int *poolBase; ///< Base address of the entire pool
     unsigned int poolSize;  ///< Size of the pool, in bytes
     ///Lists all allocated blocks, allows to retrieve their sizes
-    std::map<unsigned int*,unsigned int> allocatedBlocks;
+    std::map<const unsigned int*,unsigned int> allocatedBlocks;
     #ifndef TEST_ALLOC
     miosix::FastMutex mutex; ///< Mutex to guard concurrent access
     #endif //TEST_ALLOC

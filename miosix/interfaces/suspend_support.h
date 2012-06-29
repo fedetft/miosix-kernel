@@ -27,6 +27,8 @@
 #ifndef SUSPEND_SUPPORT_H
 #define	SUSPEND_SUPPORT_H
 
+#include "config/miosix_settings.h"
+
 #ifdef WITH_HIBERNATION
 
 namespace miosix {
