@@ -110,8 +110,7 @@ public:
         }  
     }
     #endif //TEST_ALLOC
-    
-    
+     
     ///This constant specifies the size of the minimum allocatable block,
     ///in bits. So for example 10 is 1KB.
     static const unsigned int blockBits=10;
@@ -130,7 +129,7 @@ public:
     
     void serialize(unsigned int* ptr)
     {
-        *ptr=poolSize;
+        *ptr=poolSize; //TODO: this does not need to be serialized
         ptr++;
         memcpy(ptr, bitmap,poolSize/blockSize/8);
     }
