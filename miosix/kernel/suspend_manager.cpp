@@ -232,6 +232,11 @@ int SuspendManager::resume()
     return proc->pid;
 }
 
+void SuspendManager::startHibernationDaemon()
+{
+    Thread::create(hibernateDaemon,2048);
+}
+
 std::list<SyscallResumeTime> SuspendManager::syscallReturnTime;
 Mutex SuspendManager::suspMutex;
 ConditionVariable SuspendManager::hibernWaiting;

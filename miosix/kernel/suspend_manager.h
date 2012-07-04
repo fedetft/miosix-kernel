@@ -99,6 +99,11 @@ public:
      * are found
      */
     int resume();
+    
+    /**
+     * Enables the hibernation support
+     */
+    static void startHibernationDaemon();
 
 private:
     static void wakeupDaemon(void*);

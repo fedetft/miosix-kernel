@@ -24,6 +24,7 @@ void ledThread(void *)
 int main()
 {
     Thread::create(ledThread,STACK_MIN);
+    SuspendManager::startHibernationDaemon();
 
 //    for(;;)
 //    {
