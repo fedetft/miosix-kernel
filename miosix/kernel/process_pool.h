@@ -150,6 +150,7 @@ public:
             #ifdef __CODE_IN_XRAM
             allocatedBlocks[backupPtr->programBase]=backupPtr->programSize;
             #endif //__CODE_IN_XRAM
+            backupPtr++;
         }
     }
     #endif //WITH_HIBERNATION
