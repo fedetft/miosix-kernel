@@ -60,7 +60,7 @@ ProcessStatus* SuspendManager::getProcessesBackupAreaBase()
 /*
  *The following functions is used to sort the list of resuming time
  */
-bool compareResumeTime(syscallResumeTime first, syscallResumeTime second )
+bool compareResumeTime(SyscallResumeTime first, SyscallResumeTime second )
 {
     if(first.resumeTime<second.resumeTime)
         return true;
@@ -79,7 +79,7 @@ bool compareResumeTime(syscallResumeTime first, syscallResumeTime second )
 void SuspendManager::enterInterruptionPoint(Process* proc, int threadID,
         long long resumeTime, int intPointID, int fileID)
 {
-    syscallResumeTime newSuspThread;
+    SyscallResumeTime newSuspThread;
     newSuspThread.status=NULL;
     newSuspThread.pid=proc->pid;
     newSuspThread.resumeTime=resumeTime;
@@ -112,7 +112,7 @@ void SuspendManager::wakeupDaemon(void*)
     //the thread must be awaken few seconds before the resume of the next thread
     //in the list, from this comes the next attribute deltaResume
     const int deltaResume=10;
-    list<syscallResumeTime>::iterator it;
+    list<SyscallResumeTime>::iterator it;
     map<pid_t,Process*>:: iterator findProc;
     Lock<Mutex> l(suspMutex);
     while(1)
@@ -162,7 +162,7 @@ void SuspendManager::hibernateDaemon(void*)
         Lock<Mutex>l(suspMutex);
         hibernWaiting.wait(l);
         syscallReturnTime.sort(compareResumeTime);
-        list<syscallResumeTime>::iterator it;
+        list<SyscallResumeTime>::iterator it;
         it=syscallReturnTime.begin();
         //NOTE: the following if, as well as the upper and lower bunds,
         //will be replaced by the policy, once refined 
@@ -218,7 +218,7 @@ int SuspendManager::resume()
     //the list syscallReturnTime are populated
     {
         Lock<Mutex>l(SuspendManager::suspMutex);
-        syscallResumeTime retTime;
+        SyscallResumeTime retTime;
         for(int i=0;i<=*(getBackupSramBase()+(getAllocatorSramAreaSize()/sizeof(int)));i++)
         {   
             
@@ -240,7 +240,7 @@ int SuspendManager::resume()
     return proc->pid;
 }
 
-std::list<syscallResumeTime> SuspendManager::syscallReturnTime;
+std::list<SyscallResumeTime> SuspendManager::syscallReturnTime;
 Mutex SuspendManager::suspMutex;
 ConditionVariable SuspendManager::hibernWaiting;
 std::list<Process *> SuspendManager::suspendedProcesses;

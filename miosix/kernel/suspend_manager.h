@@ -71,7 +71,7 @@ struct ProcessStatus
 
 //this struct is used to keep track of the resume time after a syscall for each
 //process and for each thread in a process
-struct syscallResumeTime
+struct SyscallResumeTime
 {
     int pid;
     short int threadNum;
@@ -117,9 +117,9 @@ private:
      * the suspension due to the system call
      */
     static void enterInterruptionPoint(Process* proc, int threadID, 
-    long long resumeTime, int syscallID, int fileID);
+        long long resumeTime, int syscallID, int fileID);
     
-    static std::list<syscallResumeTime> syscallReturnTime;
+    static std::list<SyscallResumeTime> syscallReturnTime;
     ///Used to guard access to the number of suspended processes
     static Mutex suspMutex;
     ///Used to wait on the condition that all process must be suspended to

@@ -350,7 +350,7 @@ void Process::serialize(ProcessStatus* ptr)
     //in this cycle the interruptionPoint structure is serialized
     for(unsigned int i=0;i<this->threads.size();i++)
     {
-        list<syscallResumeTime>::iterator it;
+        list<SyscallResumeTime>::iterator it;
         for(it=SuspendManager::syscallReturnTime.begin();
                 it!=SuspendManager::syscallReturnTime.end();
                 it++)
