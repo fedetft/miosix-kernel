@@ -82,7 +82,7 @@ void SuspendManager::enterInterruptionPoint(Process* proc, int threadID,
     SyscallResumeTime newSuspThread;
     newSuspThread.status=NULL;
     newSuspThread.pid=proc->pid;
-    newSuspThread.resumeTime=resumeTime;
+    newSuspThread.resumeTime=resumeTime+getTick()/1000;
     newSuspThread.threadNum=threadID;
     newSuspThread.intPointID=intPointID;
     newSuspThread.fileID=fileID; 
@@ -115,27 +115,20 @@ void SuspendManager::wakeupDaemon(void*)
     list<SyscallResumeTime>::iterator it;
     map<pid_t,Process*>:: iterator findProc;
     Lock<Mutex> l(suspMutex);
-    while(1)
+    for(;;)
     {
-
-            
-        for(it=syscallReturnTime.begin();it!=syscallReturnTime.end();it++)
+        while(syscallReturnTime.begin()->resumeTime>=getTick()/1000)
         {
-            if(it->resumeTime<=getTick()/1000)
-            {
-                findProc=Process::processes.find(it->pid);
-                //check if the process is already alive...it could happen that
-                //the main thread has already been spawned and is also terminated
-                //so other threads waiting to be resumed must be not be created.
-                //In any case, at the end of the cycle, the process must be 
-                //erased from the syscallReturnTime list
-                if(findProc!=Process::processes.end())
-                    Process::create(it->status,it->threadNum);
-                syscallReturnTime.erase(it);
-
-            }
-
-        }//end for
+            findProc=Process::processes.find(syscallReturnTime.begin()->pid);
+            //check if the process is already alive...it could happen that
+            //the main thread has already been spawned and is also terminated
+            //so other threads waiting to be resumed must be not be created.
+            //In any case, at the end of the cycle, the process must be 
+            //erased from the syscallReturnTime list
+            if(findProc!=Process::processes.end())
+                Process::create(it->status,it->threadNum);
+            syscallReturnTime.pop_front();
+        }
 
         if(!syscallReturnTime.empty())
         {
@@ -158,7 +151,7 @@ void SuspendManager::wakeupDaemon(void*)
 void SuspendManager::hibernateDaemon(void*)
 {
     Lock<Mutex>l(suspMutex);
-    while(1)
+    for(;;)
     { 
         hibernWaiting.wait(l);
         syscallReturnTime.sort(compareResumeTime);
