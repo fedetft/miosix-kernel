@@ -130,15 +130,8 @@ private:
     ///this map lists the suspended processes
     static std::list<Process *> suspendedProcesses;
     
-    //this constant refers to the upper bound for the resume time (referred to
-    //the first process to be resumed) that makes always convenient to hibernate
-    //the system
-    static const int upperResumeBound=100;
-    
-    //this constant refers to the lower bound for the resume time (referred to
-    //the first process to be resumed) that makes always not convenient to hibernate
-    //the system
-    static const int lowerResumeBound=10;
+    //Sleep time below which hibernation will not occur (in seconds)
+    static const int hibernationThreshold=1;
     
     //Needs access to process table, serialization/loading methods
     friend class Process;

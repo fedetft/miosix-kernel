@@ -28,8 +28,8 @@ OPT_BOARD := stm32f207ig_stm3220g-eval
 ## -O2 is recomended otherwise, as it provides a good balance between code
 ## size and speed
 ##
-#OPT_OPTIMIZATION := -O0
-OPT_OPTIMIZATION := -O2
+OPT_OPTIMIZATION := -O0
+#OPT_OPTIMIZATION := -O2
 #OPT_OPTIMIZATION := -O3
 #OPT_OPTIMIZATION := -Os
 
@@ -167,8 +167,8 @@ ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld
-    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom_processes.ld
-    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram_processes.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom_processes.ld
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram_processes.ld
 
     ## Enable/disable initialization of external RAM at boot. Three options:
     ## __ENABLE_XRAM : If you want the heap in xram (with an appropriate linker
@@ -178,7 +178,7 @@ ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
     ## none selected : don't use xram (with an appropriate linker script
     ## selected above)
     #XRAM := -D__ENABLE_XRAM
-    #XRAM := -D__ENABLE_XRAM -D__CODE_IN_XRAM
+    XRAM := -D__ENABLE_XRAM -D__CODE_IN_XRAM
 
 endif
 

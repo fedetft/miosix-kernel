@@ -157,53 +157,45 @@ void SuspendManager::wakeupDaemon(void*)
  */
 void SuspendManager::hibernateDaemon(void*)
 {
+    Lock<Mutex>l(suspMutex);
     while(1)
-    {   
-        Lock<Mutex>l(suspMutex);
+    { 
         hibernWaiting.wait(l);
         syscallReturnTime.sort(compareResumeTime);
         list<SyscallResumeTime>::iterator it;
         it=syscallReturnTime.begin();
         //NOTE: the following if, as well as the upper and lower bunds,
         //will be replaced by the policy, once refined 
-        if(it->resumeTime<=lowerResumeBound)
-            continue;
-        else if(it->resumeTime>=upperResumeBound)
+        if((it->resumeTime-getTick()/1000)<=hibernationThreshold) continue;
+        ProcessStatus* proc=getProcessesBackupAreaBase();
+        list<Process*>::iterator findProc;
+        for(findProc=suspendedProcesses.begin();
+                findProc!=suspendedProcesses.end();findProc++)
         {
-            ProcessStatus* proc=getProcessesBackupAreaBase();
-            list<Process*>:: iterator findProc;
-            for(findProc=suspendedProcesses.begin();
-                    findProc!=suspendedProcesses.end();findProc++)
+            (*findProc)->serialize(proc);
+
+            if((*findProc)->toBeSwappedOut)
             {
-                (*findProc)->serialize(proc);
-                
-                if((*findProc)->toBeSwappedOut)
-                {
-                    //FIXME: check if true with Fede
-                    Mram::instance().exitSleepMode();
-                    //reload the image from MRAM to the  main RAM
-                    Mram::instance().write(
-                    reinterpret_cast<unsigned int>(
-                            (*findProc)->image.getProcessBasePointer()),
-                            (*findProc)->image.getProcessBasePointer(),
-                            (*findProc)->image.getProcessImageSize());
-                    //FIXME: check if true with Fede
-                    Mram::instance().enterSleepMode();
-                    //Now serialize the state of the SRAM allocator
-                    ProcessPool::instance().serialize(getBackupSramBase());
-                            
-                    //Now serialize the state of the backup SRAM allocator
-                    (*(getBackupSramBase()+ 
-                            getAllocatorSramAreaSize()/sizeof(int)))=
-                            suspendedProcesses.size();
-                }
-                proc++;
+                //FIXME: check if true with Fede
+                Mram::instance().exitSleepMode();
+                //reload the image from MRAM to the  main RAM
+                Mram::instance().write(
+                reinterpret_cast<unsigned int>(
+                        (*findProc)->image.getProcessBasePointer()),
+                        (*findProc)->image.getProcessBasePointer(),
+                        (*findProc)->image.getProcessImageSize());
+                //FIXME: check if true with Fede
+                Mram::instance().enterSleepMode();
+                //Now serialize the state of the SRAM allocator
+                ProcessPool::instance().serialize(getBackupSramBase());
+
+                //Now serialize the state of the backup SRAM allocator
+                (*(getBackupSramBase()+ 
+                        getAllocatorSramAreaSize()/sizeof(int)))=
+                        suspendedProcesses.size();
             }
-            
-        }
-     
-            
-        
+            proc++;
+        }        
     }
 }
 
