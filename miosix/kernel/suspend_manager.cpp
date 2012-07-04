@@ -34,11 +34,11 @@
 #include <string.h>
 #include <stdexcept>
 
-#ifdef WITH_PROCESSES
+#ifdef WITH_HIBERNATION
 
 using namespace std;
 
-namespace miosix{
+namespace miosix {
 
 SuspendManager::SuspendManager() 
 {
@@ -247,4 +247,4 @@ std::list<Process *> SuspendManager::suspendedProcesses;
 
 }//namespace miosix
 
-#endif //WITH_PROCESSES
+#endif //WITH_HIBERNATION

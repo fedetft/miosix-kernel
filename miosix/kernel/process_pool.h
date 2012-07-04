@@ -40,7 +40,7 @@
 #include <cstring>
 #ifdef WITH_HIBERNATION
 #include "suspend_manager.h"
-#endif
+#endif //WITH_HIBERNATION
 
 #else //TEST_ALLOC
 
@@ -149,10 +149,10 @@ public:
             allocatedBlocks[backupPtr->processImageBase]=backupPtr->processImageSize;
             #ifdef __CODE_IN_XRAM
             allocatedBlocks[backupPtr->programBase]=backupPtr->programSize;
-            #endif
+            #endif //__CODE_IN_XRAM
         }
     }
-    #endif
+    #endif //WITH_HIBERNATION
    
 private:
     ProcessPool(const ProcessPool&);

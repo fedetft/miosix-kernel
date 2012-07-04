@@ -27,13 +27,15 @@
 
 #ifndef SUSPEND_MANAGER_H
 #define	SUSPEND_MANAGER_H
-#include "interfaces/portability.h"
+
 #include <list>
 #include <miosix.h>
+#include "interfaces/portability.h"
+#include "config/miosix_settings.h"
 
-#ifdef WITH_PROCESSES
-namespace miosix{
+#ifdef WITH_HIBERNATION
 
+namespace miosix {
     
 ///This struct is used to serialize the interrupion point status for processes
 ///and threads spawned by that process
@@ -144,6 +146,7 @@ private:
 };
 
 }//namespace miosix
-#endif //WITH_PROCESSES
-#endif	/* SUSPEND_MANAGER_H */
 
+#endif //WITH_HIBERNATION
+
+#endif //SUSPEND_MANAGER_H

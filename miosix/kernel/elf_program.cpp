@@ -314,6 +314,7 @@ void ProcessImage::load(const ElfProgram& program)
     }
 }
 
+#ifdef WITH_HIBERNATION
 void ProcessImage::resume(ProcessStatus* status)
 {
     image=status->processImageBase;
@@ -326,6 +327,7 @@ void ProcessImage::resume(ProcessStatus* status)
     //FIXME: check if true with Fede
     Mram::instance().enterSleepMode();
 }
+#endif //WITH_HIBERNATION
 
 ProcessImage::~ProcessImage()
 {

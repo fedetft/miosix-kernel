@@ -144,12 +144,14 @@ public:
      */
     void load(const ElfProgram& program);
     
+    #ifdef WITH_HIBERNATION
     /**
      * Resume the image of a process in RAM after and hibernation
      * including copying .data, zeroing .bss and performing
      * relocations
      */
     void resume(ProcessStatus* status);
+    #endif //WITH_HIBERNATION
     
     /**
      * \return a pointer to the base of the program image

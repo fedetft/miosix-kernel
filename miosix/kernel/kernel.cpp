@@ -738,6 +738,7 @@ void Thread::setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
     miosix_private::initCtxsave(cur->userCtxsave,startfunc,ep,0,gotBase);
 }
 
+#ifdef WITH_HIBERNATION
 void Thread::serializeUserspaceContext(unsigned int registers[CTXSAVE_SIZE])
 {
     memcpy(registers,cur->userCtxsave,CTXSAVE_SIZE*sizeof(unsigned int));
@@ -747,6 +748,7 @@ void Thread::resumeUserspaceContext(unsigned int registers[CTXSAVE_SIZE])
 {
     memcpy(cur->userCtxsave,registers,CTXSAVE_SIZE*sizeof(unsigned int));
 }
+#endif //WITH_HIBERNATION
 
 #endif //WITH_PROCESSES
 
