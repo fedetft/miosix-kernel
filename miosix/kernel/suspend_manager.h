@@ -94,13 +94,6 @@ public:
     static ProcessStatus* getProcessesBackupAreaBase();
     
     /**
-     * /return the ptr to allocate the next process status in the backup area 
-     */
-    ProcessStatus* getProcessesBackupAreaPtr();
-    
-    
-   
-    /**
      * Find the the serialized processes with invalid bit set,
      * which must be serialzied again. Return -1 if no dirty processes status
      * are found
