@@ -117,7 +117,7 @@ pid_t Process::create(const ElfProgram& program)
 pid_t Process::create(ProcessStatus* status, int threadId)
 {
     Lock<Mutex> l(SuspendManager::suspMutex);
-    map<pid_t,Process*>:: iterator findProc;
+    map<pid_t,Process*>::iterator findProc;
     findProc=processes.find(status->pid);
     
     if(findProc==processes.end())
@@ -161,6 +161,9 @@ pid_t Process::resume(const ElfProgram& program, ProcessStatus* status)
         proc->suspended=true;
         SuspendManager::suspendedProcesses.push_back(proc.get());
     }
+    //TODO: evaulate the possibilty to use the Process constructor taking
+    //an ElfProgram as argument
+    proc->program=new ElfProgram(program);
     proc->pid=status->pid;
     proc->ppid=status->ppid;
     if(status->status & 1)
@@ -170,7 +173,7 @@ pid_t Process::resume(const ElfProgram& program, ProcessStatus* status)
     proc->exitCode=status->exitCode;
     proc->toBeSwappedOut=false;
     
-    map<pid_t,Process*>:: iterator findProc;
+    map<pid_t,Process*>::iterator findProc;
     {   
         Lock<Mutex> l(procMutex);
         if(proc->ppid!=0)

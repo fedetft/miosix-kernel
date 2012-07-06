@@ -101,8 +101,7 @@ void SuspendManager::enterInterruptionPoint(Process* proc, int threadID,
  */
 void SuspendManager::wakeupDaemon(void*)
 {
-    list<SyscallResumeTime>::iterator it;
-    map<pid_t,Process*>:: iterator findProc;
+    map<pid_t,Process*>::iterator findProc;
     Lock<Mutex> l(suspMutex);
     while(syscallReturnTime.empty()==false)
     {
@@ -115,7 +114,7 @@ void SuspendManager::wakeupDaemon(void*)
             //In any case, at the end of the cycle, the process must be 
             //erased from the syscallReturnTime list
             if(findProc!=Process::processes.end())
-                Process::create(it->status,it->threadNum);
+                Process::create(syscallReturnTime.begin()->status,syscallReturnTime.begin()->threadNum);
             syscallReturnTime.pop_front();
         }
 
