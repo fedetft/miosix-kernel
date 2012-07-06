@@ -31,7 +31,8 @@
 #include "process.h"
 #include "interfaces/suspend_support.h"
 #include "process_pool.h"
-#include <string.h>
+#include <cstring>
+#include <cstdio>
 #include <stdexcept>
 
 #ifdef WITH_HIBERNATION
@@ -39,15 +40,6 @@
 using namespace std;
 
 namespace miosix {
-
-SuspendManager::SuspendManager() 
-{
-}
-
-SuspendManager::~SuspendManager() 
-{
-
-}
 
 ProcessStatus* SuspendManager::getProcessesBackupAreaBase()
 {
@@ -62,10 +54,7 @@ ProcessStatus* SuspendManager::getProcessesBackupAreaBase()
  */
 bool compareResumeTime(SyscallResumeTime first, SyscallResumeTime second )
 {
-    if(first.resumeTime<second.resumeTime)
-        return true;
-    else
-        return false;
+    return first.resumeTime<second.resumeTime;
 }
 
 /*
@@ -90,6 +79,9 @@ void SuspendManager::enterInterruptionPoint(Process* proc, int threadID,
     {
         Lock<Mutex> l(suspMutex);
         proc->numActiveThreads--;
+        //FIXME: what if the system does not go in hibernation for a long time
+        //because the threshold is never met? this thing continues to push data
+        //in this list, causing a memory leak that will crash the whole OS!!
         syscallReturnTime.push_back(newSuspThread);
         if(proc->numActiveThreads==0)
         {
@@ -109,13 +101,10 @@ void SuspendManager::enterInterruptionPoint(Process* proc, int threadID,
  */
 void SuspendManager::wakeupDaemon(void*)
 {
-    //the thread must be awaken few seconds before the resume of the next thread
-    //in the list, from this comes the next attribute deltaResume
-    const int deltaResume=10;
     list<SyscallResumeTime>::iterator it;
     map<pid_t,Process*>:: iterator findProc;
     Lock<Mutex> l(suspMutex);
-    for(;;)
+    while(syscallReturnTime.empty()==false)
     {
         while(syscallReturnTime.begin()->resumeTime>=getTick()/1000)
         {
@@ -135,12 +124,9 @@ void SuspendManager::wakeupDaemon(void*)
             long long resumeTime=syscallReturnTime.begin()->resumeTime;
             {    
                 Unlock<Mutex> u(l);
-                sleep(resumeTime-getTick()/1000-deltaResume);
+                sleep(resumeTime-getTick()/1000);
             }
         }
-        else
-            break; //the wakeup daemon terminates if no more threads should
-                   //be awaken
     }
 }
 
@@ -161,6 +147,7 @@ void SuspendManager::hibernateDaemon(void*)
         //will be replaced by the policy, once refined 
         if((it->resumeTime-getTick()/1000)<=hibernationThreshold) continue;
         ProcessStatus* proc=getProcessesBackupAreaBase();
+        iprintf("Swapping %d processes\n",suspendedProcesses.size());
         list<Process*>::iterator findProc;
         for(findProc=suspendedProcesses.begin();
                 findProc!=suspendedProcesses.end();findProc++)
@@ -169,16 +156,16 @@ void SuspendManager::hibernateDaemon(void*)
 
             if((*findProc)->toBeSwappedOut)
             {
-                //FIXME: check if true with Fede
-                Mram::instance().exitSleepMode();
-                //reload the image from MRAM to the  main RAM
-                Mram::instance().write(
-                reinterpret_cast<unsigned int>(
-                        (*findProc)->image.getProcessBasePointer()),
+                //TODO: optimize
+                Mram& mram=Mram::instance();
+                mram.exitSleepMode();
+                //Copy the process image from RAM to MRAM
+                mram.write(reinterpret_cast<unsigned int>(
+                        (*findProc)->image.getProcessBasePointer())-
+                        ProcessPool::instance().getBaseAddress(),
                         (*findProc)->image.getProcessBasePointer(),
                         (*findProc)->image.getProcessImageSize());
-                //FIXME: check if true with Fede
-                Mram::instance().enterSleepMode();
+                mram.enterSleepMode();
                 //Now serialize the state of the SRAM allocator
                 ProcessPool::instance().serialize(getBackupSramBase());
 
@@ -188,7 +175,24 @@ void SuspendManager::hibernateDaemon(void*)
                         suspendedProcesses.size();
             }
             proc++;
-        }        
+        }
+        
+//        iprintf("Backup SRAM\n");
+//        memDump((char*)getBackupSramBase(),getBackupSramSize());
+//        Mram& mram=Mram::instance();
+//        mram.exitSleepMode();
+//        char *buf=new char[131072];
+//        mram.read(0,buf,32768);
+//        mram.read(32768,buf+32768,32768);
+//        mram.read(2*32768,buf+2*32768,32768);
+//        mram.read(3*32768,buf+3*32768,32768);
+//        mram.enterSleepMode();
+//        iprintf("MRAM\n");
+//        memDump(buf,131072);
+//        delete[] buf;
+        
+        getBackupSramBase()[1023]=getTick()/1000; //FIXME: hack
+        doSuspend(syscallReturnTime.begin()->resumeTime-getTick()/1000);
     }
 }
 
@@ -204,9 +208,11 @@ int SuspendManager::resume()
     {
         Lock<Mutex>l(SuspendManager::suspMutex);
         SyscallResumeTime retTime;
-        for(int i=0;i<=*(getBackupSramBase()+(getAllocatorSramAreaSize()/sizeof(int)));i++)
+        int numProc=*(getBackupSramBase()+(getAllocatorSramAreaSize()/sizeof(int)));
+        iprintf("Reloading %d processes\n",numProc);
+        for(int i=0;i<numProc;i++)
         {   
-            
+            iprintf("reload base=%p size=%d\n",proc->programBase,proc->programSize);
             Process::resume(ElfProgram(proc->programBase,proc->programSize),proc);
             for(int i=0;i<proc->numThreads;i++)
             {   
@@ -231,7 +237,7 @@ void SuspendManager::startHibernationDaemon()
 }
 
 std::list<SyscallResumeTime> SuspendManager::syscallReturnTime;
-Mutex SuspendManager::suspMutex;
+Mutex SuspendManager::suspMutex(Mutex::RECURSIVE);
 ConditionVariable SuspendManager::hibernWaiting;
 std::list<Process *> SuspendManager::suspendedProcesses;
 

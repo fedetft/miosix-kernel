@@ -124,6 +124,13 @@ public:
 
     #ifdef WITH_HIBERNATION
     /**
+     * \return a pointer to the base address of the memory pool
+     */
+    const unsigned int getBaseAddress() const
+    {
+        return reinterpret_cast<unsigned int>(poolBase);
+    }
+    /**
      * \return the dimension of the data to be serialized at the
      * moment of the hibernation 
      */

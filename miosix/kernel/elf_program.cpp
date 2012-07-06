@@ -319,13 +319,14 @@ void ProcessImage::resume(ProcessStatus* status)
 {
     image=status->processImageBase;
     size=status->processImageSize;
-    //FIXME: check if true with Fede
-    Mram::instance().exitSleepMode();
-    //reload the image from MRAM to the  main RAM
-    Mram::instance().read(reinterpret_cast<unsigned int>(image),
+    //TODO: optimize
+    Mram& mram=Mram::instance();
+    mram.exitSleepMode();
+    //reload the image from MRAM to the main RAM
+    mram.read(reinterpret_cast<unsigned int>(image)-
+            ProcessPool::instance().getBaseAddress(),
             image,size);
-    //FIXME: check if true with Fede
-    Mram::instance().enterSleepMode();
+    mram.enterSleepMode();
 }
 #endif //WITH_HIBERNATION
 

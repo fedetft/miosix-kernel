@@ -334,6 +334,7 @@ void Process::serialize(ProcessStatus* ptr)
     #ifndef __CODE_IN_XRAM
     ptr->programBase=this->program->getElfBase();
     ptr->programSize=this->program->getElfSize();
+    iprintf("save base=%p size=%d\n",ptr->programBase,ptr->programSize);
     #else //__CODE_IN_XRAM
     ptr->programBase=this->loadedProgram;
     ptr->programBase=reinterpret_cast<unsigned int*>(this->roundedSize);
@@ -392,7 +393,7 @@ Process::~Process()
 Process::Process(const ElfProgram& program) : numActiveThreads(0), waitCount(0),
         zombie(false), suspended(false), toBeSwappedOut(true)
 {
-    this->program =new ElfProgram(program);
+    this->program=new ElfProgram(program);
     //This is required so that bad_alloc can never be thrown when the first
     //thread of the process will be stored in this vector
     threads.reserve(1);

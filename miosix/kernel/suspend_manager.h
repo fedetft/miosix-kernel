@@ -84,10 +84,7 @@ struct SyscallResumeTime
 
 class SuspendManager 
 {
-public:
-    SuspendManager();
-    ~SuspendManager();
-    
+public:    
     /**
      * /return the base address of the process status backup area 
      */
@@ -98,7 +95,7 @@ public:
      * which must be serialzied again. Return -1 if no dirty processes status
      * are found
      */
-    int resume();
+    static int resume();
     
     /**
      * Enables the hibernation support

@@ -48,6 +48,9 @@ void IRQinitializeSuspendSupport()
     RCC->BDCR |= RCC_BDCR_RTCSEL_0 | RCC_BDCR_RTCEN;
     RTC->WPR=0xca;
     RTC->WPR=0x53;
+    
+    //FIXME: hack
+    if(firstBoot()==false) IRQsetTick(getBackupSramBase()[1023]*1000);
 }
 
 void doSuspend(unsigned int seconds)

@@ -386,6 +386,16 @@ bool isKernelRunning();
  */
 long long getTick();
 
+#ifdef WITH_HIBERNATION
+/**
+ * \internal
+ * Used when resuming from hibernation to make sure the absolute time does not
+ * restart from zero. Note that calling this function everywhere but in
+ * IRQbspInit will result in undefined behaviour
+ */
+void IRQsetTick(long long newTick);
+#endif //WITH_HIBERNATION
+
 //Declaration of the struct, definition follows below
 struct SleepData;
 

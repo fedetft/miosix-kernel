@@ -215,6 +215,13 @@ long long getTick()
     }
 }
 
+#ifdef WITH_HIBERNATION
+void IRQsetTick(long long newTick)
+{
+    tick=newTick;
+}
+#endif //WITH_HIBERNATION
+
 /**
  * \internal
  * Used by Thread::sleep() to add a thread to sleeping list. The list is sorted
