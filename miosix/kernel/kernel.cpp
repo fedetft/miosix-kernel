@@ -34,6 +34,7 @@
 #include "sync.h"
 #include "process.h"
 #include "kernel/scheduler/scheduler.h"
+#include "arch/cortexM4_stm32f4/common/arch_settings.h"
 #include <stdexcept>
 #include <algorithm>
 #include <string.h>
@@ -748,7 +749,7 @@ void Thread::setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
 #ifdef WITH_HIBERNATION
 void Thread::serializeUserspaceContext(unsigned int registers[CTXSAVE_SIZE])
 {
-    memcpy(registers,cur->userCtxsave,CTXSAVE_SIZE*sizeof(unsigned int));
+    memcpy(registers,this->userCtxsave,CTXSAVE_SIZE*sizeof(unsigned int));
 }
 
 void Thread::resumeUserspaceContext(unsigned int registers[CTXSAVE_SIZE])

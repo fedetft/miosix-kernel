@@ -190,8 +190,13 @@ void SuspendManager::hibernateDaemon(void*)
 //        memDump(buf,131072);
 //        delete[] buf;
         
-        getBackupSramBase()[1023]=getTick()/1000; //FIXME: hack
-        doSuspend(syscallReturnTime.begin()->resumeTime-getTick()/1000);
+        long long prev=getTick();
+        int sleepTime=syscallReturnTime.begin()->resumeTime-prev/1000;
+        iprintf("about to suspend, tick=%lld\n",prev);
+        getBackupSramBase()[1021]=prev & 0xffffffff; //FIXME: hack
+        getBackupSramBase()[1022]=prev>>32;
+        getBackupSramBase()[1023]=sleepTime;
+        doSuspend(sleepTime);
     }
 }
 
@@ -222,9 +227,9 @@ int SuspendManager::resume()
                 syscallReturnTime.push_back(retTime);
             }
             proc++;
-        }//end for
+        }
         syscallReturnTime.sort(compareResumeTime);
-    }//end of the block of code that populates the list of resuming time
+    }
 
     Thread::create(wakeupDaemon,2048);
     return proc->pid;

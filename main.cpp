@@ -7,6 +7,7 @@
 #include "kernel/process.h"
 #include "interfaces/suspend_support.h"
 #include "app_template/prog3.h"
+#include <vector>
 
 using namespace std;
 using namespace miosix;
@@ -26,7 +27,7 @@ int main()
 {
     Thread::create(ledThread,STACK_MIN);
     SuspendManager::startHibernationDaemon();
-    iprintf("tick=%ull\n",getTick());
+    iprintf("tick=%llu\n",getTick());
     if(firstBoot())
     {
         puts("First boot");

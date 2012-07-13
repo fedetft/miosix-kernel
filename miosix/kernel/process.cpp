@@ -74,7 +74,7 @@ namespace miosix {
 //
 
 pid_t Process::create(const ElfProgram& program)
-{   
+{
     Lock<Mutex> l(SuspendManager::suspMutex);
     auto_ptr<Process> proc(new Process(program));
     {   
@@ -125,6 +125,30 @@ pid_t Process::create(ProcessStatus* status, int threadId)
     Process* proc=findProc->second;
     
     proc->image.resume(status);
+    
+    //TODO: look at it -- begin
+    #ifndef __CODE_IN_XRAM
+    //FIXME -- begin
+    //Till a flash file system that ensures proper alignment of the programs
+    //loaded in flash is implemented, make the whole flash visible as a big MPU
+    //region
+    extern unsigned int _etext asm("_etext");
+    unsigned int flashEnd=reinterpret_cast<unsigned int>(&_etext);
+    if(flashEnd & (flashEnd-1)) flashEnd=1<<fhbs(flashEnd);
+    proc->mpu=miosix_private::MPUConfiguration(0,flashEnd,
+            proc->image.getProcessBasePointer(),proc->image.getProcessImageSize());
+//    mpu=miosix_private::MPUConfiguration(program.getElfBase(),roundedSize,
+//            image.getProcessBasePointer(),image.getProcessImageSize());
+    //FIXME -- end
+    #else //__CODE_IN_XRAM
+    loadedProgram=ProcessPool::instance().allocate(roundedSize);
+    memcpy(loadedProgram,program.getElfBase(),elfSize);
+    mpu=miosix_private::MPUConfiguration(loadedProgram,roundedSize,
+            image.getProcessBasePointer(),image.getProcessImageSize());
+    #endif //__CODE_IN_XRAM
+    //TODO: look at it -- end
+    
+    
     Thread *thr=Thread::createUserspace(Process::start,
             status->interruptionPoints[threadId].registers,
             Thread::DEFAULT,proc);
@@ -154,22 +178,17 @@ pid_t Process::create(ProcessStatus* status, int threadId)
 
 pid_t Process::resume(const ElfProgram& program, ProcessStatus* status)
 {
-    auto_ptr<Process> proc(new Process());
+    auto_ptr<Process> proc(new Process(program,true));
     //in this block we set the number of 
     {
         Lock<Mutex> l(SuspendManager::suspMutex);
         proc->suspended=true;
         SuspendManager::suspendedProcesses.push_back(proc.get());
     }
-    //TODO: evaulate the possibilty to use the Process constructor taking
-    //an ElfProgram as argument
-    proc->program=new ElfProgram(program);
     proc->pid=status->pid;
     proc->ppid=status->ppid;
-    if(status->status & 1)
-            proc->zombie=true;
-        else
-            proc->zombie=false;
+    if(status->status & 1) proc->zombie=true;
+    else proc->zombie=false;
     proc->exitCode=status->exitCode;
     proc->toBeSwappedOut=false;
     
@@ -186,9 +205,7 @@ pid_t Process::resume(const ElfProgram& program, ProcessStatus* status)
                 if(proc->zombie==false)
                 {
                     findProc->second->childs.push_back(proc.get());
-                }
-                else
-                {
+                } else {
                     findProc->second->zombies.push_back(proc.get());
                 }
             }
@@ -393,21 +410,23 @@ Process::~Process()
 }
 
 
-Process::Process(const ElfProgram& program) : numActiveThreads(0), waitCount(0),
-        zombie(false), suspended(false), toBeSwappedOut(true)
+Process::Process(const ElfProgram& program, bool resuming)
+        : numActiveThreads(0), waitCount(0), zombie(false), suspended(false),
+          toBeSwappedOut(true)
 {
     this->program=new ElfProgram(program);
     //This is required so that bad_alloc can never be thrown when the first
     //thread of the process will be stored in this vector
     threads.reserve(1);
-    //Done here so if not enough memory the new process is not even created
-    image.load(program);
     unsigned int elfSize=program.getElfSize();
     roundedSize=elfSize;
     //Allocatable blocks must be greater than ProcessPool::blockSize, and must
     //be a power of two due to MPU limitations
     if(elfSize<ProcessPool::blockSize) roundedSize=ProcessPool::blockSize;
     else if(elfSize & (elfSize-1)) roundedSize=1<<fhbs(elfSize);
+    if(resuming) return;
+    //Done here so if not enough memory the new process is not even created
+    image.load(program);
     #ifndef __CODE_IN_XRAM
     //FIXME -- begin
     //Till a flash file system that ensures proper alignment of the programs
@@ -509,7 +528,8 @@ void *Process::start(void *argv)
                         sp.getThirdParameter()));
                     break;
                 case 5:
-                    SuspendManager::enterInterruptionPoint(proc,threadID,
+                    if(sp.getFirstParameter()>=1000000)
+                        SuspendManager::enterInterruptionPoint(proc,threadID,
                             sp.getFirstParameter()/1000000,5,-1);
                     sp.setReturnValue(usleep(sp.getFirstParameter()));
                     break;

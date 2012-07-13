@@ -50,7 +50,13 @@ void IRQinitializeSuspendSupport()
     RTC->WPR=0x53;
     
     //FIXME: hack
-    if(firstBoot()==false) IRQsetTick(getBackupSramBase()[1023]*1000);
+    if(firstBoot()==false)
+    {
+        long long tick=static_cast<long long>(getBackupSramBase()[1022])<<32
+                     | static_cast<long long>(getBackupSramBase()[1021]);
+        tick+=getBackupSramBase()[1023]*1000;
+        IRQsetTick(tick);
+    }
 }
 
 void doSuspend(unsigned int seconds)

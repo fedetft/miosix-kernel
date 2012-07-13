@@ -50,7 +50,7 @@ class Process
 public:
     /**
      * Create a new process
-     * \param program Program that the process will execute 
+     * \param program Program that the process will execute
      * \return the pid of the newly created process
      * \throws std::exception or a subclass in case of errors, including
      * not emough memory to spawn the process
@@ -129,13 +129,12 @@ private:
     Process(const Process&);
     Process& operator= (const Process&);
     
-    Process() {}
-    
     /**
      * Constructor
      * \param program program that will be executed by the process
+     * \param resuming true if resuming from hibernation
      */
-    Process(const ElfProgram& program);
+    Process(const ElfProgram& program, bool resuming=false);
     
 
     
