@@ -105,22 +105,20 @@ void SuspendManager::wakeupDaemon(void*)
     Lock<Mutex> l(suspMutex);
     while(syscallReturnTime.empty()==false)
     {
-        while(syscallReturnTime.begin()->resumeTime>=getTick()/1000)
+        SyscallResumeTime ret=syscallReturnTime.front();
+        if(ret.resumeTime>=getTick()/1000)
         {
-            findProc=Process::processes.find(syscallReturnTime.begin()->pid);
+            findProc=Process::processes.find(ret.pid);
             //check if the process is already alive...it could happen that
             //the main thread has already been spawned and is also terminated
             //so other threads waiting to be resumed must be not be created.
             //In any case, at the end of the cycle, the process must be 
             //erased from the syscallReturnTime list
             if(findProc!=Process::processes.end())
-                Process::create(syscallReturnTime.begin()->status,syscallReturnTime.begin()->threadNum);
+                Process::create(ret.status,ret.threadNum);
             syscallReturnTime.pop_front();
-        }
-
-        if(!syscallReturnTime.empty())
-        {
-            long long resumeTime=syscallReturnTime.begin()->resumeTime;
+        } else {
+            long long resumeTime=ret.resumeTime;
             {    
                 Unlock<Mutex> u(l);
                 sleep(resumeTime-getTick()/1000);
