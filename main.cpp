@@ -7,7 +7,6 @@
 #include "kernel/process.h"
 #include "interfaces/suspend_support.h"
 #include "app_template/prog3.h"
-#include <vector>
 
 using namespace std;
 using namespace miosix;
@@ -31,16 +30,16 @@ int main()
     if(firstBoot())
     {
         puts("First boot");
-        //Watermarking
-        memset(getBackupSramBase(),0xff,getBackupSramSize());
-        char *buf=new char[1024];
-        memset(buf,0xff,1024);
-        Mram& mram=Mram::instance();
-        mram.exitSleepMode();
-        for(int i=0,j=0;i<mram.size()/1024;i++,j+=1024)
-            mram.write(j,buf,1024);
-        mram.enterSleepMode();
-        delete[] buf;
+//        //Watermarking
+//        memset(getBackupSramBase(),0xff,getBackupSramSize());
+//        char *buf=new char[1024];
+//        memset(buf,0xff,1024);
+//        Mram& mram=Mram::instance();
+//        mram.exitSleepMode();
+//        for(int i=0,j=0;i<mram.size()/1024;i++,j+=1024)
+//            mram.write(j,buf,1024);
+//        mram.enterSleepMode();
+//        delete[] buf;
     } else {
         puts("RTC boot");
         SuspendManager::resume();

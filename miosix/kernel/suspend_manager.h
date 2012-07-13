@@ -47,6 +47,7 @@ struct IntPointStatus{
     int queueSize; //size of the queue associated to the process
     char wakeNow;//set to one if the process or thread has to wake up now
     char sizeOfSample; //size of the data sampled in the hibernation period
+    char padding1[2];
     int sampNum; //number of the samples eventually performed by smart driver
     unsigned int registers[CTXSAVE_SIZE];
     unsigned int* targetSampleMem; //process memory pointer to copy the queue
