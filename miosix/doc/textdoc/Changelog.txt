@@ -1,6 +1,7 @@
 Changelog for Miosix np embedded OS
 
 v1.60
+- Fixed a bug in FastMutex::get(): the member function was unimplemented.
 - Fixed a bug in ST code for the stm3220g-eval board: despite having a 2MB RAM,
   A18, A19 and A20 were left as GPIOs, resulting in issues when accessing the
   upper part of the RAM.
