@@ -115,9 +115,12 @@ public:
 
     /**
      * \internal
-     * \return the FastMutex implemntation defined mutex type
+     * \return the FastMutex implementation defined mutex type
      */
-    pthread_mutex_t *get();
+    pthread_mutex_t *get()
+    {
+        return &impl;
+    }
 
     /**
      * Destructor
