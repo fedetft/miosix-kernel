@@ -64,6 +64,7 @@
                 <in>delays.cpp</in>
                 <in>disk.cpp</in>
                 <in>endianness_impl.h</in>
+                <in>gpio_impl.cpp</in>
                 <in>gpio_impl.h</in>
                 <in>portability.cpp</in>
                 <in>portability_impl.h</in>
@@ -209,6 +210,19 @@
               </df>
               <in>arch_settings.h</in>
             </df>
+            <df name="stm32f407vg_bitsboard">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console-impl.h</in>
+                <in>console.cpp</in>
+              </df>
+              <in>board_settings.h</in>
+              <in>stm32_1m+192k_rom.ld</in>
+            </df>
             <df name="stm32f407vg_stm32f4discovery">
               <df name="core">
                 <in>stage_1_boot.cpp</in>
@@ -309,6 +323,8 @@
         <df name="util">
           <in>crc16.cpp</in>
           <in>crc16.h</in>
+          <in>lcd44780.cpp</in>
+          <in>lcd44780.h</in>
           <in>software_i2c.h</in>
           <in>software_spi.h</in>
           <in>util.cpp</in>
@@ -782,6 +798,50 @@
             <preprocessorList>
               <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
               <Elem>_BOARD_ETHBOARDV2</Elem>
+              <Elem>_MIOSIX</Elem>
+              <Elem>_POSIX_THREADS</Elem>
+            </preprocessorList>
+          </ccTool>
+        </makeTool>
+      </makefileType>
+    </conf>
+    <conf name="stm32f407vg_bitsboard" type="0">
+      <toolsSet>
+        <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
+        <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
+      </toolsSet>
+      <makefileType>
+        <makeTool>
+          <buildCommandWorkingDir>..</buildCommandWorkingDir>
+          <buildCommand>${MAKE} -f Makefile</buildCommand>
+          <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
+          <executablePath></executablePath>
+          <cTool>
+            <incDir>
+              <pElem>..</pElem>
+              <pElem>../miosix</pElem>
+              <pElem>../miosix/arch/common</pElem>
+              <pElem>../miosix/arch/cortexM4_stm32f4/common</pElem>
+              <pElem>../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery</pElem>
+            </incDir>
+            <preprocessorList>
+              <Elem>_ARCH_CORTEXM4_STM32F4</Elem>
+              <Elem>_BOARD_BITSBOARD</Elem>
+              <Elem>_MIOSIX</Elem>
+              <Elem>_POSIX_THREADS</Elem>
+            </preprocessorList>
+          </cTool>
+          <ccTool>
+            <incDir>
+              <pElem>..</pElem>
+              <pElem>../miosix</pElem>
+              <pElem>../miosix/arch/common</pElem>
+              <pElem>../miosix/arch/cortexM4_stm32f4/common</pElem>
+              <pElem>../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery</pElem>
+            </incDir>
+            <preprocessorList>
+              <Elem>_ARCH_CORTEXM4_STM32F4</Elem>
+              <Elem>_BOARD_BITSBOARD</Elem>
               <Elem>_MIOSIX</Elem>
               <Elem>_POSIX_THREADS</Elem>
             </preprocessorList>

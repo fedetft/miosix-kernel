@@ -21,6 +21,7 @@ OPT_BOARD := stm32f103ze_stm3210e-eval
 #OPT_BOARD := stm32f407vg_stm32f4discovery
 #OPT_BOARD := stm32f207ig_stm3220g-eval
 #OPT_BOARD := stm32f207zg_ethboard_v2
+#OPT_BOARD := stm32f407vg_bitsboard
 
 ##
 ## Optimization flags, choose one.
@@ -203,6 +204,12 @@ ifeq ($(OPT_BOARD),stm32f207zg_ethboard_v2)
 
 endif
 
+##---------------------------------------------------------------------------
+## stm32f407vg_bitsboard
+##
+
+# No options
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -235,6 +242,8 @@ else ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
     ARCH := cortexM3_stm32f2
 else ifeq ($(OPT_BOARD),stm32f207zg_ethboard_v2)
     ARCH := cortexM3_stm32f2
+else ifeq ($(OPT_BOARD),stm32f407vg_bitsboard)
+    ARCH := cortexM4_stm32f4
 else
     $(error Error: no board specified in miosix/config/Makefile.inc)
 endif
@@ -597,6 +606,40 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## error message saying that 'make program' is not supported for that
         ## board.
         PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f4discovery
+    ##
+    else ifeq ($(OPT_BOARD),stm32f407vg_bitsboard)
+
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM4_stm32f4/stm32f407vg_bitsboard
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+192k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/console.cpp     \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_BITSBOARD
+        CXXFLAGS_BASE += -D_BOARD_BITSBOARD
+
+        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
+        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := stm32flash -w ./main.bin -v /dev/ttyUSB1
 
     ##-------------------------------------------------------------------------
     ## End of board list
