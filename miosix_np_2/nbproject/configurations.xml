@@ -276,7 +276,6 @@
                 <in>console.cpp</in>
               </df>
               <in>board_settings.h</in>
-              <in>stm32_1m+192k_rom.ld</in>
             </df>
             <df name="stm32f407vg_stm32f4discovery">
               <df name="core">
@@ -861,7 +860,7 @@
       </makefileType>
     </conf>
     <conf name="stm32f207ze_als_camboard" type="0">
-    <toolsSet>
+      <toolsSet>
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
