@@ -21,6 +21,8 @@ OPT_BOARD := stm32f103ze_stm3210e-eval
 #OPT_BOARD := stm32f407vg_stm32f4discovery
 #OPT_BOARD := stm32f207ig_stm3220g-eval
 #OPT_BOARD := stm32f207zg_ethboard_v2
+#OPT_BOARD := stm32f207ze_als_camboard
+#OPT_BOARD := stm32l151_als_mainboard
 #OPT_BOARD := stm32f407vg_bitsboard
 
 ##
@@ -242,6 +244,10 @@ else ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
     ARCH := cortexM3_stm32f2
 else ifeq ($(OPT_BOARD),stm32f207zg_ethboard_v2)
     ARCH := cortexM3_stm32f2
+else ifeq ($(OPT_BOARD),stm32f207ze_als_camboard)
+    ARCH := cortexM3_stm32f2
+else ifeq ($(OPT_BOARD),stm32l151_als_mainboard)
+    ARCH := cortexM3_stm32l1
 else ifeq ($(OPT_BOARD),stm32f407vg_bitsboard)
     ARCH := cortexM4_stm32f4
 else
@@ -775,6 +781,43 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         endif
 
     ##-------------------------------------------------------------------------
+    ## BOARD: stm32f207ze_als_camboard
+    ##
+    else ifeq ($(OPT_BOARD),stm32f207ze_als_camboard)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_stm32f2/stm32f207ze_als_camboard
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+128k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/console.cpp     \
+        $(BOARD_INC)/interfaces-impl/delays.cpp      \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_ALS_CAMBOARD
+        CXXFLAGS_BASE += -D_BOARD_ALS_CAMBOARD
+
+        ## Clock frequency
+        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_120MHz=120000000
+
+        ## XRAM is always enabled in this board
+        XRAM += -D__ENABLE_XRAM
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
+
+    ##-------------------------------------------------------------------------
     ## End of board list
     ##
     endif
@@ -815,6 +858,88 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
     $(ARCH_INC)/CMSIS/core_cm3.c                             \
     $(ARCH_INC)/CMSIS/system_stm32f2xx.c
+
+##-----------------------------------------------------------------------------
+## ARCHITECTURE: cortexM3_stm32l1
+##
+else ifeq ($(ARCH),cortexM3_stm32l1)
+    ## Base directory with else header files for this board
+    ARCH_INC := arch/cortexM3_stm32l1/common
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32l151c8_als_mainboard
+    ##
+    ifeq ($(OPT_BOARD),stm32l151_als_mainboard)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_stm32l1/stm32l151c8_als_mainboard
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+10k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/console.cpp     \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_ALS_MAINBOARD
+        CXXFLAGS_BASE += -D_BOARD_ALS_MAINBOARD
+
+        ## Clock frequency
+        CLOCK_FREQ := -DSYSCLK_FREQ_16MHz=16000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := stm32flash -w main.bin -v /dev/ttyUSB1
+
+    ##-------------------------------------------------------------------------
+    ## End of board list
+    ##
+    endif
+
+    ## Select compiler
+    PREFIX=arm-miosix-eabi-
+
+    ## From compiler prefix form the name of the compiler and other tools
+    CC  := $(PREFIX)gcc
+    CXX := $(PREFIX)g++
+    LD  := $(PREFIX)ld
+    AR  := $(PREFIX)ar
+    AS  := $(PREFIX)as
+    CP  := $(PREFIX)objcopy
+    OD  := $(PREFIX)objdump
+    SZ  := $(PREFIX)size
+
+    ## Select appropriate compiler flags for both ASM/C/C++/linker
+    AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
+    CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32L1 $(CLOCK_FREQ) $(XRAM)          \
+                     -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
+                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32L1 $(CLOCK_FREQ) $(XRAM)          \
+                     $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
+                     -mfix-cortex-m3-ldrd $(OPT_OPTIMIZATION)                \
+                     -ffunction-sections -Wall -g -c
+    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
+                     -Wl,--gc-sections,-Map,main.map                         \
+                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+                     $(OPT_OPTIMIZATION) -nostdlib
+
+    ## Select architecture specific files
+    ## These are the files in arch/<arch name>/common
+    ARCH_SRC +=                                              \
+    arch/common/drivers/dcc.cpp                              \
+    $(ARCH_INC)/core/interrupts.cpp                          \
+    $(ARCH_INC)/interfaces-impl/portability.cpp              \
+    $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
+    $(ARCH_INC)/interfaces-impl/delays.cpp                   \
+    $(ARCH_INC)/CMSIS/system_stm32l1xx.c
 
 ##-----------------------------------------------------------------------------
 ## end of architecture list

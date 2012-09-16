@@ -55,6 +55,14 @@
                     <type>0</type>
                 </confElem>
                 <confElem>
+                    <name>stm32f207ze_als_camboard</name>
+                    <type>0</type>
+                </confElem>
+                <confElem>
+                    <name>stm32l151c8_als_mainboard</name>
+                    <type>0</type>
+                </confElem>
+                <confElem>
                     <name>stm32f407vg_bitsboard</name>
                     <type>0</type>
                 </confElem>
