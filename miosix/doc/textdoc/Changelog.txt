@@ -1,5 +1,11 @@
 Changelog for Miosix np embedded OS
 
+v1.61
+- Modified the implementation of pauseKernel() and restartKernel() so as to
+  be able to call them safely within an InterruptDisableLock block. This allows
+  allocating memory with malloc/new when interrupts are disabled in an
+  InterruptDisableLock (but not in a FastInterruptDisableLock). This change
+  only relaxes a constraint, so it does not break existing code.
 v1.60
 - Added new board: bitsboard. This is effectively an stm32f4discovery tweaked
   be used in the bits project: bits.poul.org

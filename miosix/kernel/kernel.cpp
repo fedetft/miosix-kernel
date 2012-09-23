@@ -125,7 +125,11 @@ void pauseKernel()
     miosix_private::doDisableInterrupts();
     if(kernel_running==0xff) errorHandler(NESTING_OVERFLOW);
     kernel_running++;
-    if(kernel_started==true) miosix_private::doEnableInterrupts();
+    
+    //Check interruptDisableNesting to allow pauseKernel() while interrupts
+    //are disabled with an InterruptDisableLock
+    if(interruptDisableNesting==0 && kernel_started==true)
+        miosix_private::doEnableInterrupts();
 }
 
 void restartKernel()
@@ -137,12 +141,18 @@ void restartKernel()
         errorHandler(PAUSE_KERNEL_NESTING);
     }
     kernel_running--;
-    if(kernel_started==true) miosix_private::doEnableInterrupts();
     
-    if((kernel_running==0)&&tick_skew)//If we missed some tick yield immediately
-    { 
-        tick_skew=false;
-        Thread::yield();
+    //Check interruptDisableNesting to allow pauseKernel() while interrupts
+    //are disabled with an InterruptDisableLock
+    if(interruptDisableNesting==0)
+    {
+        if(kernel_started==true) miosix_private::doEnableInterrupts();
+    
+        if((kernel_running==0)&&tick_skew)//If we missed some tick yield immediately
+        { 
+            tick_skew=false;
+            Thread::yield();
+        }
     }
 }
 
