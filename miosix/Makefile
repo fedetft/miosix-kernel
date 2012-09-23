@@ -23,6 +23,7 @@ kernel/scheduler/edf/edf_scheduler.cpp                                     \
 kernel/filesystem/filesystem.cpp                                           \
 kernel/filesystem/ff.c                                                     \
 kernel/filesystem/diskio.cpp                                               \
+e20/e20.cpp                                                                \
 util/util.cpp                                                              \
 util/version.cpp                                                           \
 util/crc16.cpp                                                             \

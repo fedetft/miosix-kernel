@@ -1,6 +1,10 @@
 Changelog for Miosix np embedded OS
 
 v1.61
+- Added prliminary version of the event API to allow asynchronous programming.
+  It is located in the miosix/e20 directory, and provides event loops where
+  function calls can be injected by other threads as well as by interrupt
+  handlers.
 - Modified the implementation of pauseKernel() and restartKernel() so as to
   be able to call them safely within an InterruptDisableLock block. This allows
   allocating memory with malloc/new when interrupts are disabled in an

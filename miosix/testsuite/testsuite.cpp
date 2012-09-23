@@ -39,6 +39,7 @@
 #include <sys/stat.h>
 #include <pthread.h>
 #include <errno.h>
+#include <tr1/functional>
 
 #include "miosix.h"
 #include "miosix/kernel/buffer_queue.h"
@@ -46,7 +47,9 @@
 #include "interfaces/console.h"
 #include "board_settings.h"
 #include "interfaces/endianness.h"
+#include "miosix/e20/e20.h"
 
+using namespace std::tr1;
 using namespace miosix;
 
 // A reasonably small stack value for spawning threads during the test.
@@ -81,6 +84,7 @@ static void test_16();
 static void test_17();
 static void test_18();
 static void test_19();
+static void test_20();
 //Filesystem test functions
 #ifdef WITH_FILESYSTEM
 static void fs_test_1();
@@ -139,6 +143,7 @@ int main()
                 test_17();
                 test_18();
                 test_19();
+                test_20();
                 
                 ledOff();
                 Thread::sleep(500);//Ensure all threads are deleted.
@@ -2520,6 +2525,229 @@ static void test_19()
     bq.IRQreset();
     if(bq.IRQisEmpty()==false) fail("IRQisEmpty");
     if(bq.IRQisFull()==true) fail("IRQisFull");
+    pass();
+}
+
+//
+// Test 20
+//
+/*
+tests:
+class Callback
+class EventQueue
+class FixedEventQueue
+*/
+
+int t20_v1;
+
+void t20_f1()
+{
+    t20_v1=1234;
+}
+
+void t20_f2(int a, int b)
+{
+    t20_v1=a+b;
+}
+
+class T20_c1
+{
+public:
+    T20_c1() : x(0) {}
+    
+	void h()
+    {
+        x=4321;
+    }
+	
+    void k(int a, int b)
+    {
+        x=a*b;
+    }
+    
+    int get() const { return x; }
+private:
+    int x;
+};
+
+#ifndef __NO_EXCEPTIONS
+
+void thrower()
+{
+    throw 5;
+}
+
+void t20_t1(void* arg)
+{
+    EventQueue *eq=reinterpret_cast<EventQueue*>(arg);
+    t20_v1=0;
+    eq->post(t20_f1);
+    Thread::sleep(10);
+    if(t20_v1!=1234) fail("Not called");
+    
+    t20_v1=0;
+    eq->post(t20_f1);
+    eq->post(bind(t20_f2,5,5)); //Checking event ordering
+    Thread::sleep(10);
+    if(t20_v1!=10) fail("Not called");
+    
+    eq->post(thrower);
+}
+
+void t20_t2(void* arg)
+{
+    FixedEventQueue<2> *eq=reinterpret_cast<FixedEventQueue<2>*>(arg);
+    t20_v1=0;
+    eq->post(t20_f1);
+    eq->post(t20_f1);
+    unsigned long long t1=getTick();
+    eq->post(bind(t20_f2,10,4)); //This should block
+    unsigned long long t2=getTick();
+    //The other thread sleep for 50ms before calling run()
+    if((t2-t1)<static_cast<unsigned long long>(TICK_FREQ*0.04))
+        fail("Not blocked");
+    Thread::sleep(10);
+    if(t20_v1!=14) fail("Not called");
+    
+    Thread::sleep(10);
+    eq->post(thrower);
+}
+#endif //__NO_EXCEPTIONS
+
+static void test_20()
+{
+    test_name("Event system");
+    //
+    // Testing Callback
+    //
+    Callback<20> cb;
+
+    t20_v1=0;
+	cb=t20_f1; //4 bytes
+	Callback<20> cb2(cb);
+	cb2();
+    if(t20_v1!=1234) fail("Callback");
+
+	cb=bind(t20_f2,12,2); //12 bytes
+	cb2=cb;
+	cb2();
+    if(t20_v1!=14) fail("Callback");
+    
+	T20_c1 c;
+	cb=bind(&T20_c1::h,&c); //12 bytes
+	cb2=cb;
+	cb2();
+    if(c.get()!=4321) fail("Callback");
+
+	cb=bind(&T20_c1::k,&c,10,15); //20 bytes
+	cb2=cb;
+	cb2();
+    if(c.get()!=150) fail("Callback");
+
+	cb=bind(&T20_c1::k,ref(c),12,12); //20 bytes
+	cb2=cb;
+	cb2();
+    if(c.get()!=144) fail("Callback");
+
+	cb.clear();
+	cb2=cb;
+	if(cb2) fail("Empty callback");
+    
+    //
+    // Testing EventQueue
+    //
+    EventQueue eq;
+    if(eq.empty()==false || eq.size()!=0) fail("Empty EventQueue");
+    
+    eq.runOne(); //This tests that runOne() does not block
+    
+    t20_v1=0;
+    eq.post(t20_f1);
+    if(t20_v1!=0) fail("Too early");
+    if(eq.empty() || eq.size()!=1) fail("Not empty EventQueue");
+    eq.runOne();
+    if(t20_v1!=1234) fail("Not called");
+    if(eq.empty()==false || eq.size()!=0) fail("Empty EventQueue");
+    
+    t20_v1=0;
+    eq.post(t20_f1);
+    eq.post(bind(t20_f2,2,3));
+    if(t20_v1!=0) fail("Too early");
+    if(eq.empty() || eq.size()!=2) fail("Not empty EventQueue");
+    eq.runOne();
+    if(t20_v1!=1234) fail("Not called");
+    if(eq.empty() || eq.size()!=1) fail("Not empty EventQueue");
+    eq.runOne();
+    if(t20_v1!=5) fail("Not called");
+    if(eq.empty()==false || eq.size()!=0) fail("Empty EventQueue");
+    
+    #ifndef __NO_EXCEPTIONS
+    Thread *t=Thread::create(t20_t1,STACK_SMALL,0,&eq,Thread::JOINABLE);
+    try {
+        eq.run();
+        fail("run() returned");
+    } catch(int i) {
+        if(i!=5) fail("Wrong");
+    }
+    t->join();
+    if(eq.empty()==false || eq.size()!=0) fail("Empty EventQueue");
+    #endif //__NO_EXCEPTIONS
+    
+    //
+    // Testing EventQueue
+    //
+    FixedEventQueue<2> feq;
+    if(feq.empty()==false || feq.size()!=0) fail("Empty EventQueue");
+    
+    feq.runOne(); //This tests that runOne() does not block
+    
+    t20_v1=0;
+    feq.post(t20_f1);
+    if(t20_v1!=0) fail("Too early");
+    if(feq.empty() || feq.size()!=1) fail("Not empty EventQueue");
+    feq.runOne();
+    if(t20_v1!=1234) fail("Not called");
+    if(feq.empty()==false || feq.size()!=0) fail("Empty EventQueue");
+    
+    t20_v1=0;
+    feq.post(t20_f1);
+    feq.post(bind(t20_f2,2,3));
+    if(t20_v1!=0) fail("Too early");
+    if(feq.empty() || feq.size()!=2) fail("Not empty EventQueue");
+    feq.runOne();
+    if(t20_v1!=1234) fail("Not called");
+    if(feq.empty() || feq.size()!=1) fail("Not empty EventQueue");
+    feq.runOne();
+    if(t20_v1!=5) fail("Not called");
+    if(feq.empty()==false || feq.size()!=0) fail("Empty EventQueue");
+    
+    t20_v1=0;
+    feq.post(t20_f1);
+    if(feq.postNonBlocking(bind(t20_f2,2,3))==false) fail("PostNonBlocking 1");
+    if(feq.postNonBlocking(t20_f1)==true) fail("PostNonBlocking 2");
+    if(t20_v1!=0) fail("Too early");
+    if(feq.empty() || feq.size()!=2) fail("Not empty EventQueue");
+    feq.runOne();
+    if(t20_v1!=1234) fail("Not called");
+    if(feq.empty() || feq.size()!=1) fail("Not empty EventQueue");
+    feq.runOne();
+    if(t20_v1!=5) fail("Not called");
+    if(feq.empty()==false || feq.size()!=0) fail("Empty EventQueue");
+    
+    #ifndef __NO_EXCEPTIONS
+    t=Thread::create(t20_t2,STACK_SMALL,0,&feq,Thread::JOINABLE);
+    Thread::sleep(50);
+    try {
+        feq.run();
+        fail("run() returned");
+    } catch(int i) {
+        if(i!=5) fail("Wrong");
+    }
+    t->join();
+    if(feq.empty()==false || feq.size()!=0) fail("Empty EventQueue");
+    #endif //__NO_EXCEPTIONS
+    
+    
     pass();
 }
 
