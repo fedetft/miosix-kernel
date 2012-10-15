@@ -294,6 +294,11 @@
         <df name="config">
           <in>miosix_settings.h</in>
         </df>
+        <df name="e20">
+          <in>callback.h</in>
+          <in>e20.cpp</in>
+          <in>e20.h</in>
+        </df>
         <df name="examples">
           <df name="asm">
             <in>main.s</in>
