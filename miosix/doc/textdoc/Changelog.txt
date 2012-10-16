@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
 v1.61
+- Improved Lcd44780 driver
+- Improved bitsboard driver
 - Added prliminary version of the event API to allow asynchronous programming.
   It is located in the miosix/e20 directory, and provides event loops where
   function calls can be injected by other threads as well as by interrupt

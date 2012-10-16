@@ -98,6 +98,11 @@ minimize power consumption all unused GPIO must not be left floating.
 void shutdown()
 {
     pauseKernel();
+
+	//The display could be damaged if left on but without refreshing it
+	typedef Gpio<GPIOB_BASE,8>  dispoff;//DISPOFF signal to display
+	dispoff::high();
+
     #ifdef WITH_FILESYSTEM
     Filesystem& fs=Filesystem::instance();
     if(fs.isMounted()) fs.umount();

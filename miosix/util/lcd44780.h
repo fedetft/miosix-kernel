@@ -60,9 +60,9 @@ private:
     
     void half(unsigned char byte);
 
-	void data(unsigned char byte);
+    void data(unsigned char byte);
 
-	void comd(unsigned char byte);
+    void comd(unsigned char byte);
     
     GpioPin rs;
     GpioPin e;

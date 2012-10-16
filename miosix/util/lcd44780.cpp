@@ -21,8 +21,7 @@ Lcd44780::Lcd44780(miosix::GpioPin rs, miosix::GpioPin e, miosix::GpioPin d4,
     e.low();
     Thread::sleep(50); //Powerup delay
     init();
-    init(); //VFD dispays require double init
-	clear();
+    clear();
 }
 
 void Lcd44780::go(int x, int y)
@@ -51,7 +50,7 @@ void Lcd44780::clear()
 void Lcd44780::init()
 {
     rs.low();
-	half(2);
+	half(0x20);
     rs.high();
 	delayUs(50);
 	if(row==1) comd(32); else comd(40);
