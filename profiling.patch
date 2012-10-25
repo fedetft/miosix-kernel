@@ -1,0 +1,175 @@
+diff --git a/main.cpp b/main.cpp
+index b991f7f..8486f3b 100644
+--- a/main.cpp
++++ b/main.cpp
+@@ -26,10 +26,11 @@ int main()
+ {
+     Thread::create(ledThread,STACK_MIN);
+     SuspendManager::startHibernationDaemon();
+-    iprintf("tick=%llu\n",getTick());
++//    iprintf("tick=%llu\n",getTick());
+     if(firstBoot())
+     {
+-        puts("First boot");
++        Gpio<GPIOC_BASE,7>::low(); //FIXME: remove
++//        puts("First boot");
+ //        //Watermarking
+ //        memset(getBackupSramBase(),0xff,getBackupSramSize());
+ //        char *buf=new char[1024];
+@@ -41,7 +42,7 @@ int main()
+ //        mram.enterSleepMode();
+ //        delete[] buf;
+     } else {
+-        puts("RTC boot");
++//        puts("RTC boot");
+         SuspendManager::resume();
+         
+         int ec;
+diff --git a/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/suspend_support_impl.cpp b/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/suspend_support_impl.cpp
+index dda8f03..688d725 100644
+--- a/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/suspend_support_impl.cpp
++++ b/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/suspend_support_impl.cpp
+@@ -30,6 +30,7 @@
+ #include "kernel/process_pool.h"
+ #include "miosix.h"
+ #include "interfaces/arch_registers.h"
++#include "interfaces/gpio.h" //FIXME: remove
+ 
+ #ifdef WITH_HIBERNATION
+ 
+@@ -81,6 +82,9 @@ void doSuspend(unsigned int seconds)
+ 
+         PWR->CR |= PWR_CR_PDDS | PWR_CR_CWUF;
+         SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
++        
++        Gpio<GPIOC_BASE,7>::low(); //FIXME: remove
++        
+         //Using WFE instead of WFI because if while we are with interrupts
+         //disabled an interrupt (such as the tick interrupt) occurs, it
+         //remains pending and the WFI becomes a nop, and the device never goes
+diff --git a/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/core/stage_1_boot.cpp b/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/core/stage_1_boot.cpp
+index 18663fb..cfe8e6f 100644
+--- a/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/core/stage_1_boot.cpp
++++ b/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/core/stage_1_boot.cpp
+@@ -2,6 +2,7 @@
+ #include "interfaces/arch_registers.h"
+ #include "core/interrupts.h" //For the unexpected interrupt call
+ #include <string.h>
++#include "interfaces/gpio.h" //FIXME: remove
+ 
+ /*
+  * startup.cpp
+@@ -116,6 +117,10 @@ void Reset_Handler()
+     asm volatile("ldr sp, =_main_stack_top\n\t");
+     #endif //__CODE_IN_XRAM
+ 
++    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN; //FIXME: remove
++    miosix::Gpio<GPIOC_BASE,7>::mode(miosix::Mode::OUTPUT);
++    miosix::Gpio<GPIOC_BASE,7>::high();
++
+ 	/*
+ 	 * SystemInit() is called *before* initializing .data and zeroing .bss
+ 	 * Despite all startup files provided by ST do the opposite, there are three
+diff --git a/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/bsp.cpp b/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/bsp.cpp
+index cd41faa..d8bb6de 100644
+--- a/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/bsp.cpp
++++ b/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/bsp.cpp
+@@ -72,9 +72,9 @@ void IRQbspInit()
+     GPIOI->OSPEEDR=0xaaaaaaaa;
+     _led::mode(Mode::OUTPUT);
+     sdCardDetect::mode(Mode::INPUT_PULL_UP);
+-    ledOn();
+-    delayMs(100);
+-    ledOff();
++//    ledOn();
++//    delayMs(100);
++//    ledOff();
+     #ifndef STDOUT_REDIRECTED_TO_DCC
+     IRQstm32f2serialPortInit();
+     #endif //STDOUT_REDIRECTED_TO_DCC
+diff --git a/miosix/config/miosix_settings.h b/miosix/config/miosix_settings.h
+index 648c3c4..a26da30 100644
+--- a/miosix/config/miosix_settings.h
++++ b/miosix/config/miosix_settings.h
+@@ -123,7 +123,7 @@ const unsigned char MAX_THREADS_PER_PROCESS=2;
+ /// \def WITH_BOOTLOG
+ /// Uncomment to print bootlogs on stdout.
+ /// By default it is defined (bootlogs are printed)
+-#define WITH_BOOTLOG
++//#define WITH_BOOTLOG
+ 
+ /// \def WITH_ERRLOG
+ /// Uncomment for debug information on stdout.
+@@ -142,7 +142,7 @@ const unsigned char MAX_THREADS_PER_PROCESS=2;
+  * mode, so to use debugging it is necessary to disble sleep in the idle thread.
+  * By default it is not defined (idle thread calls sleep).
+  */
+-#define JTAG_DISABLE_SLEEP
++//#define JTAG_DISABLE_SLEEP
+ 
+ /// Minimum stack size (MUST be divisible by 4)
+ const unsigned int STACK_MIN=256;
+diff --git a/miosix/kernel/process.cpp b/miosix/kernel/process.cpp
+index 06d7e55..16f88d7 100644
+--- a/miosix/kernel/process.cpp
++++ b/miosix/kernel/process.cpp
+@@ -354,7 +354,7 @@ void Process::serialize(ProcessStatus* ptr)
+     #ifndef __CODE_IN_XRAM
+     ptr->programBase=this->program->getElfBase();
+     ptr->programSize=this->program->getElfSize();
+-    iprintf("save base=%p size=%d\n",ptr->programBase,ptr->programSize);
++//    iprintf("save base=%p size=%d\n",ptr->programBase,ptr->programSize);
+     #else //__CODE_IN_XRAM
+     ptr->programBase=this->loadedProgram;
+     ptr->programBase=reinterpret_cast<unsigned int*>(this->roundedSize);
+diff --git a/miosix/kernel/suspend_manager.cpp b/miosix/kernel/suspend_manager.cpp
+index fb11ee3..bc2cf7b 100644
+--- a/miosix/kernel/suspend_manager.cpp
++++ b/miosix/kernel/suspend_manager.cpp
+@@ -68,6 +68,7 @@ bool compareResumeTime(SyscallResumeTime first, SyscallResumeTime second )
+ void SuspendManager::enterInterruptionPoint(Process* proc, int threadID,
+         long long resumeTime, int intPointID, int fileID)
+ {
++    Gpio<GPIOC_BASE,7>::high(); //FIXME: remove
+     SyscallResumeTime newSuspThread;
+     newSuspThread.status=NULL;
+     newSuspThread.pid=proc->pid;
+@@ -125,6 +126,7 @@ void SuspendManager::wakeupDaemon(void*)
+             }
+         }
+     }
++    Gpio<GPIOC_BASE,7>::low(); //FIXME: remove
+ }
+ 
+ /*
+@@ -144,7 +146,7 @@ void SuspendManager::hibernateDaemon(void*)
+         //will be replaced by the policy, once refined 
+         if((it->resumeTime-getTick()/1000)<=hibernationThreshold) continue;
+         ProcessStatus* proc=getProcessesBackupAreaBase();
+-        iprintf("Swapping %d processes\n",suspendedProcesses.size());
++//        iprintf("Swapping %d processes\n",suspendedProcesses.size());
+         list<Process*>::iterator findProc;
+         for(findProc=suspendedProcesses.begin();
+                 findProc!=suspendedProcesses.end();findProc++)
+@@ -190,7 +192,7 @@ void SuspendManager::hibernateDaemon(void*)
+         
+         long long prev=getTick();
+         int sleepTime=syscallReturnTime.begin()->resumeTime-prev/1000;
+-        iprintf("about to suspend, tick=%lld\n",prev);
++//        iprintf("about to suspend, tick=%lld\n",prev);
+         getBackupSramBase()[1021]=prev & 0xffffffff; //FIXME: hack
+         getBackupSramBase()[1022]=prev>>32;
+         getBackupSramBase()[1023]=sleepTime;
+@@ -211,10 +213,10 @@ int SuspendManager::resume()
+         Lock<Mutex>l(SuspendManager::suspMutex);
+         SyscallResumeTime retTime;
+         int numProc=*(getBackupSramBase()+(getAllocatorSramAreaSize()/sizeof(int)));
+-        iprintf("Reloading %d processes\n",numProc);
++//        iprintf("Reloading %d processes\n",numProc);
+         for(int i=0;i<numProc;i++)
+         {   
+-            iprintf("reload base=%p size=%d\n",proc->programBase,proc->programSize);
++//            iprintf("reload base=%p size=%d\n",proc->programBase,proc->programSize);
+             Process::resume(ElfProgram(proc->programBase,proc->programSize),proc);
+             for(int i=0;i<proc->numThreads;i++)
+             {   

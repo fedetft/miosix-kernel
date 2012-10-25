@@ -1,0 +1,21 @@
+OS cold boot 450us
+
+Process with 32K of RAM
+swapout= 18.2ms (+/-0.5ms)
+swapin=  18.9ms
+
+Process with 16K of RAM
+swapout=  9.5ms (+/-0.5ms)
+swapin=  10.2ms
+
+Process with  8K of RAM
+swapout=  4.7ms (+/-0.5ms)
+swapin=   5.8ms
+
+Process with  4K of RAM
+swapout=  2.5ms (+/-0.5ms)
+swapin=   3.6ms
+
+Process with  2K of RAM
+swapout=  1.7ms (+/-0.5ms)
+swapin=   2.5ms 

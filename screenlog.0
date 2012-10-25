@@ -1,0 +1,52 @@
+Miosix v1.60 (stm32f207ig_stm3220g-eval, Jul 13 2012 12:46:00, gcc 4.5.2)
+Starting Kernel... Ok
+Starting Filesystem... No disk
+Available heap 24576 out of 29868 Bytes
+tick=40
+First boot
+
+0=divzero 1=sleep 5s, 2=exit 3=bkpt 4=dangling
+1
+Swapping 1 processes
+save base=0x1c3a8 size=468
+about to suspend, tick=3576
+Miosix v1.60 (stm32f207ig_stm3220g-eval, Jul 13 2012 12:46:00, gcc 4.5.2)
+Starting Kernel... Ok
+Starting Filesystem... No disk
+Available heap 24576 out of 29868 Bytes
+tick=8616
+RTC boot
+Reloading 1 processes
+reload base=0x1c3a8 size=468
+0=divzero 1=sleep 5s, 2=exit 3=bkpt 4=dangling
+2
+Process terminated
+Exit code is 0
+
+0=divzero 1=sleep 5s, 2=exit 3=bkpt 4=dangling
+1
+Swapping 1 processes
+save base=0x1c3a8 size=468
+about to suspend, tick=30342
+Miosix v1.60 (stm32f207ig_stm3220g-eval, Jul 13 2012 12:46:00, gcc 4.5.2)
+Starting Kernel... Ok
+Starting Filesystem... No disk
+Available heap 24576 out of 29868 Bytes
+tick=35382
+RTC boot
+Reloading 1 processes
+reload base=0x1c3a8 size=468
+0=divzero 1=sleep 5s, 2=exit 3=bkpt 4=dangling
+1
+Swapping 1 processes
+save base=0x1c3a8 size=468
+about to suspend, tick=38120
+Miosix v1.60 (stm32f207ig_stm3220g-eval, Jul 13 2012 12:46:00, gcc 4.5.2)
+Starting Kernel... Ok
+Starting Filesystem... No disk
+Available heap 24576 out of 29868 Bytes
+tick=43160
+RTC boot
+Reloading 1 processes
+reload base=0x1c3a8 size=468
+0=divzero 1=sleep 5s, 2=exit 3=bkpt 4=dangling
