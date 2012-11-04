@@ -7,6 +7,12 @@
         <in>main.c</in>
         <in>prog3.h</in>
       </df>
+      <df name="app_template_withlibs">
+        <in>crt0.s</in>
+        <in>main.c</in>
+        <in>prog3.h</in>
+        <in>syscallfuffa.c</in>
+      </df>
       <df name="miosix">
         <df name="arch">
           <df name="arm7_lpc2000">
@@ -333,7 +339,7 @@
         </df>
         <in>miosix.h</in>
       </df>
-      <df name="miosix_np_2">
+      <df name="miosix_np_processes">
       </df>
       <in>main.cpp</in>
     </df>
