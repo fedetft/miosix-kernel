@@ -55,7 +55,7 @@ MEMORY
      * Note, the ram starts at 0x20000000 but it is necessary to add the size
      * of the main stack, so it is 0x20000200.
      */
-    ram(wx)     : ORIGIN = 0x20000200, LENGTH =  10K-0x200
+    ram(wx)     : ORIGIN = 0x20000200, LENGTH =  8K-0x200 /* upper 2k used for buffering */
 }
 
 /* now define the output sections  */
