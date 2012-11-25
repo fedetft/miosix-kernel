@@ -21,6 +21,7 @@ kernel/elf_program.cpp                                                     \
 kernel/process.cpp                                                         \
 kernel/process_pool.cpp                                                    \
 kernel/suspend_manager.cpp                                                 \
+kernel/smart_sensing.h                                                     \
 kernel/scheduler/priority/priority_scheduler.cpp                           \
 kernel/scheduler/control/control_scheduler.cpp                             \
 kernel/scheduler/edf/edf_scheduler.cpp                                     \
