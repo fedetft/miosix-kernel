@@ -132,6 +132,11 @@ private:
     //Needs access to process table, serialization/loading methods
     friend class Process;
     
+    static void suspend(unsigned long long resumeTime);
+    
+    template <unsigned int N, unsigned int Q>
+    friend class SmartSensing; 
+    
 };
 
 }//namespace miosix

@@ -29,6 +29,7 @@
 #include "interfaces/suspend_support.h"
 #include "elf_program.h"
 #include "process.h"
+#include "smart_sensing.h"
 #include "interfaces/suspend_support.h"
 #include "process_pool.h"
 #include <cstring>
@@ -188,15 +189,21 @@ void SuspendManager::hibernateDaemon(void*)
 //        memDump(buf,131072);
 //        delete[] buf;
         
-        long long prev=getTick();
-        int sleepTime=syscallReturnTime.begin()->resumeTime-prev/1000;
-        iprintf("about to suspend, tick=%lld\n",prev);
-        getBackupSramBase()[1021]=prev & 0xffffffff; //FIXME: hack
-        getBackupSramBase()[1022]=prev>>32;
-        getBackupSramBase()[1023]=sleepTime;
-        doSuspend(sleepTime);
+        getSmartSensingDriver().onSuspend(syscallReturnTime.begin()->resumeTime);
+        
+        
     }
 }
+
+    void SuspendManager::suspend(unsigned long long resumeTime) {
+        long long prev = getTick();
+        int sleepTime = resumeTime - prev / 1000;
+        //iprintf("about to suspend, tick=%lld\n", prev);
+        getBackupSramBase()[1021] = prev & 0xffffffff; //FIXME: hack
+        getBackupSramBase()[1022] = prev >> 32;
+        getBackupSramBase()[1023] = sleepTime;
+        doSuspend(sleepTime);
+    }
 
 int SuspendManager::resume()
 {
