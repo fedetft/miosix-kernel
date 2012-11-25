@@ -93,7 +93,7 @@ pair<Elf32_Dyn *,Elf32_Word> PostLinker::getDynamic()
     {
         Elf32_Phdr* phdr=getElfSegment(i);
         if(phdr->p_type!=PT_DYNAMIC) continue;
-        unsigned int base=reinterpret_cast<unsigned int>(elf);
+        uint8_t* base=(uint8_t*)elf;
         return make_pair(reinterpret_cast<Elf32_Dyn*>(base+phdr->p_offset),
                 phdr->p_memsz/sizeof(Elf32_Dyn));
     }

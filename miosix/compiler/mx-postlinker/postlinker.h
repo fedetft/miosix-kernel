@@ -84,7 +84,7 @@ private:
      */
     Elf32_Shdr* getElfSection(int index)
     {
-        unsigned int base=reinterpret_cast<unsigned int>(elf);
+        uint8_t* base=(uint8_t*)elf;
         return reinterpret_cast<Elf32_Shdr*>(base+getElfHeader()->
                 e_shoff+index*sizeof(Elf32_Shdr));
     }
@@ -96,7 +96,7 @@ private:
      */
     Elf32_Phdr *getElfSegment(int index)
     {
-        unsigned int base=reinterpret_cast<unsigned int>(elf);
+        uint8_t* base=(uint8_t*)elf;	
         return reinterpret_cast<Elf32_Phdr*>(base+getElfHeader()->e_phoff+
                 index*sizeof(Elf32_Phdr));
     }
