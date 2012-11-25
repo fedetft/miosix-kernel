@@ -7,6 +7,7 @@
 #include "kernel/process.h"
 #include "interfaces/suspend_support.h"
 #include "app_template/prog3.h"
+#include "interfaces/adc_driver.h"
 
 using namespace std;
 using namespace miosix;
@@ -22,9 +23,23 @@ void ledThread(void *)
     }
 }
 
+void* adcThread(void *)
+{
+    iprintf("Begin\n");
+    for(;;)
+    {
+        iprintf("read %x\n",AdcDriver::read(POTENTIOMETER_ID));
+        Thread::sleep(500);
+    }
+    return 0;
+
+}
+
 int main()
 {
     Thread::create(ledThread,STACK_MIN);
+    pthread_t threadTest;
+    pthread_create(&threadTest,0,adcThread,0);    
     SuspendManager::startHibernationDaemon();
     iprintf("tick=%llu\n",getTick());
     if(firstBoot())
