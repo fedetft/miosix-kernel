@@ -97,7 +97,7 @@ void SuspendManager::enterInterruptionPoint(Process* proc, int threadID,
 
 
 /*
- *The following thread create the threds of processes at the time they myust be
+ *The following thread create the threds of processes at the time they must be
  * resumed
  */
 void SuspendManager::wakeupDaemon(void*)
@@ -106,8 +106,8 @@ void SuspendManager::wakeupDaemon(void*)
     Lock<Mutex> l(suspMutex);
     while(syscallReturnTime.empty()==false)
     {
-        SyscallResumeTime ret=syscallReturnTime.front();
-        if(ret.resumeTime>=getTick()/1000)
+        SyscallResumeTime ret=syscallReturnTime.front();        
+        if(ret.resumeTime<=getTick()/1000)
         {
             findProc=Process::processes.find(ret.pid);
             //check if the process is already alive...it could happen that
@@ -118,11 +118,15 @@ void SuspendManager::wakeupDaemon(void*)
             if(findProc!=Process::processes.end())
                 Process::create(ret.status,ret.threadNum);
             syscallReturnTime.pop_front();
-        } else {
+        } else {            
             long long resumeTime=ret.resumeTime;
+            
             {    
                 Unlock<Mutex> u(l);
-                sleep(resumeTime-getTick()/1000);
+                int currentTime=resumeTime-getTick()/1000;                 
+                if(currentTime>0){
+                        sleep(currentTime);
+                }
             }
         }
     }
