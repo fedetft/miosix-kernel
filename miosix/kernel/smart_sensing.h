@@ -39,14 +39,16 @@ namespace miosix {
 
         SmartSensing(){
             status = (SmartSensingStatus*) getSmartSensingAreaBase();
-            queue = (SSQueue<unsigned short, N>*)(getSmartSensingAreaBase() + sizeof (SmartSensingStatus));           
+            queue = (SSQueue<unsigned short, N>*)(getSmartSensingAreaBase() + sizeof (SmartSensingStatus));          
+            signalOn = false;
         }
 
         static unsigned int getSmartSensingAreaBase() {
             return reinterpret_cast<unsigned int> (getBackupSramBase()) + 1020 * 4 - SmartSensing<N, Q>::getMemorySize() - sizeof (SmartSensingStatus);
         }
 
-        int setQueue(uint32_t deviceId, unsigned int size, unsigned int period) {            
+        int setQueue(uint32_t deviceId, unsigned int size, unsigned int period) {  
+            Lock<Mutex> lock(sharedData);
             if ((size == 0) || (size > N)) {
                 return -1;
             } else if (period < 1000) {
@@ -57,10 +59,14 @@ namespace miosix {
                 return -3;
             }                     
             initQueue((unsigned int) index, deviceId, size, period);            
+            if(signalOn){
+                newQueue.signal();
+            }
             return 0;
         }
 
-        int readQueue(int i, unsigned short* data, unsigned int size) {           
+        int readQueue(int i, unsigned short* data, unsigned int size) {  
+            Lock<Mutex> lock(sharedData);
             unsigned int availableData = queue[i].size - queue[i].remaining;
             unsigned int writingSize = std::min(size, availableData);
             for (unsigned int j = 0; j < writingSize; j++) {
@@ -107,7 +113,8 @@ namespace miosix {
             }
         }
 
-        void onSuspend(unsigned long long resumeTime) {        	
+        void onSuspend(unsigned long long resumeTime) {  
+            Lock<Mutex> lock(sharedData);
             status->nextSystemRestart = resumeTime;
             unsigned long long currentTime=getTick();
             updateQueue(currentTime+500);//No problem
@@ -120,6 +127,11 @@ namespace miosix {
          */
         static unsigned int getMemorySize() {
             return sizeof (SmartSensingStatus) + sizeof (SSQueue<unsigned short, N>) * Q;
+        }
+        
+        //IF KON
+        void startKernelDaemon(){
+             Thread::create(daemon,768,Priority(),this);             
         }
         
     private:
@@ -201,8 +213,36 @@ namespace miosix {
             queue[i].period = period;
         }
         
+        //IF KON        
+        static void daemon(void* data){
+            SmartSensing<N,Q>& ss=*((SmartSensing<N,Q>*)data);
+            ss.signalOn=false;
+            for(;;){
+                ss.sharedData.lock();
+//                
+                ss.updateQueue(getTick());
+                if(ss.getNextEvent(getTick(),0)==0){
+                    ss.signalOn=true;
+                    ss.newQueue.wait(ss.sharedData);
+                    ss.signalOn=false;
+                }
+                long long nextRead = (long long)ss.getNextEvent(getTick(),0);
+                long long currentTime = getTick();
+                if(nextRead && (nextRead-currentTime>0)){
+                    ss.sharedData.unlock();
+                    Thread::sleep(nextRead-currentTime);        
+                    ss.sharedData.lock();                                        
+                }            
+                ss.sharedData.unlock();
+            }
+                      
+        }
+        
         SmartSensingStatus* status;
         SSQueue<unsigned short, N>* queue;
+        Mutex sharedData;
+        bool signalOn;
+        ConditionVariable newQueue; 
                 
     };
     
