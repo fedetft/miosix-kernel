@@ -5,6 +5,7 @@
 #include <string.h>
 #include "miosix.h"
 #include "kernel/process.h"
+#include "kernel/smart_sensing.h"
 #include "interfaces/suspend_support.h"
 #include "app_template/prog3.h"
 #include "interfaces/adc_driver.h"
@@ -56,6 +57,7 @@ int main()
 //        mram.enterSleepMode();
 //        delete[] buf;
     } else {
+        getSmartSensingDriver().startKernelDaemon();
         puts("RTC boot");
         SuspendManager::resume();
         
