@@ -200,13 +200,14 @@ namespace miosix {
             queue[i].nextTime = getTick() + period;
             queue[i].period = period;
         }
-	
+        
         SmartSensingStatus* status;
         SSQueue<unsigned short, N>* queue;
                 
-    };   
-
-
+    };
+    
+    typedef SmartSensing<10,4> SMART_SENSING;
+    SMART_SENSING& getSmartSensingDriver();
 
 }
 #endif	/* SMARTSENSING_H */
