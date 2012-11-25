@@ -41,6 +41,7 @@ start the kernel and filesystem.
 #include "filesystem/filesystem.h"
 #include "error.h"
 #include "logging.h"
+#include "smart_sensing.h"
 /* settings for miosix */
 #include "config/miosix_settings.h"
 #include "util/util.h"
@@ -130,6 +131,7 @@ extern "C" void _init()
     if(areInterruptsEnabled()) errorHandler(INTERRUPTS_ENABLED_AT_BOOT);
     IRQbspInit();
     //After IRQbspInit() serial port is initialized, so we can use BOOTLOG
+    getSmartSensingDriver().onBoot();
     IRQbootlog(getMiosixVersion());
     IRQbootlog("\r\nStarting Kernel... ");
     //Create the first thread, and start the scheduler.
