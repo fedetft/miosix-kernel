@@ -67,7 +67,7 @@ void doSuspend(unsigned int seconds)
     while(Console::txComplete()==false) ;
 
     {
-        FastInterruptDisableLock dLock;
+        InterruptDisableLock dLock;
  
         RCC->CSR |= RCC_CSR_RMVF; //This makes firstBoot() return false next time
         RTC->CR &= ~RTC_CR_WUTE;
