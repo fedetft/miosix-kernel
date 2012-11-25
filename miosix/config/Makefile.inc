@@ -672,7 +672,8 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         $(BOARD_INC)/interfaces-impl/delays.cpp              \
         $(ARCH_INC)/interfaces-impl/suspend_support_impl.cpp \
         $(BOARD_INC)/interfaces-impl/bsp.cpp                 \
-        $(BOARD_INC)/drivers/mram.cpp
+        $(BOARD_INC)/drivers/mram.cpp                        \
+        $(ARCH_INC)/interfaces-impl/adc_driver.cpp
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM3220G_EVAL
