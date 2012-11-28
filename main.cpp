@@ -39,8 +39,8 @@ void* adcThread(void *)
 int main()
 {
     Thread::create(ledThread,STACK_MIN);
-    pthread_t threadTest;
-    pthread_create(&threadTest,0,adcThread,0);    
+    //pthread_t threadTest;
+    //pthread_create(&threadTest,0,adcThread,0);    
     SuspendManager::startHibernationDaemon();
     iprintf("tick=%llu\n",getTick());
     if(firstBoot())
@@ -57,10 +57,10 @@ int main()
 //        mram.enterSleepMode();
 //        delete[] buf;
     } else {
-        getSmartSensingDriver().startKernelDaemon();
+
         puts("RTC boot");
         SuspendManager::resume();
-        
+        getSmartSensingDriver().startKernelDaemon();
         int ec;
         Process::wait(&ec);
         iprintf("Process terminated\n");
