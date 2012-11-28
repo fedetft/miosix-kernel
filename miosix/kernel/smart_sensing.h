@@ -156,6 +156,12 @@ namespace miosix {
         static SmartSensing<N,Q>* getSmartSensingInstance(){
             return &smartSensingInstance;
         }
+
+        //IF KON
+        void cleanUp(pid_t processId){
+            Lock<Mutex> lock(sharedData);
+            while(resetQueue(getQueueFromProcessId(processId)));
+        }
         
     private:
 
@@ -224,8 +230,7 @@ namespace miosix {
         //PB
         void init() {
             for (unsigned int i = 0; i < Q; i++) {
-                queue[i].size = 0;
-                queue[i].remaining = 0;
+                resetQueue(i);
             }
             status->nextSystemRestart = 0;
             status->signature=1337713;
@@ -238,6 +243,16 @@ namespace miosix {
                     SuspendManager::wakeUpProcess(queue[i].processId);
                 }
             }
+        }
+
+        //PB & KON
+        bool resetQueue(unsigned int i){
+            if((i<0)||(i>=Q)){
+                return false;
+            }
+            queue[i].size = 0;
+            queue[i].remaining = 0;
+            return true;
         }
         
         //KON
