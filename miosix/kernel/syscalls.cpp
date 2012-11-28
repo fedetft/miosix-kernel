@@ -468,11 +468,6 @@ int _close_r(struct _reent *ptr, int fd)
  */
 int _write(int fd, const void *buf, size_t cnt)
 {
-    ///STUB: ONLY FOR TESTING
-    if(fd==4){
-        miosix::getSmartSensingDriver().setQueue(POTENTIOMETER_ID,6,1000);
-        return 0;        
-    }    
     switch(fd)
     {
         case STDOUT_FILENO:
@@ -527,10 +522,6 @@ int _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
  */
 int _read(int fd, void *buf, size_t cnt)
 {
-    ///STUB: ONLY FOR TESTING
-    if(fd==4){
-        return miosix::getSmartSensingDriver().readQueue(0,(short unsigned int*)buf,cnt/2);               
-    }    
     switch(fd)
     {
         case STDIN_FILENO:
