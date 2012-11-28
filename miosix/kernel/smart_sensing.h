@@ -240,7 +240,12 @@ namespace miosix {
         void wakeCompletedProcess(){
             for(unsigned int i=0;i<Q;i++){
                 if((queue[i].size>0)&&(queue[i].remaining==0)){
-                    SuspendManager::wakeUpProcess(queue[i].processId);
+                    if(threadId[i]!=NULL){
+                        threadId[i]->wakeup();
+                    }
+                    else{
+                        SuspendManager::wakeUpProcess(queue[i].processId);
+                    }
                 }
             }
         }
