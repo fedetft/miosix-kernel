@@ -240,11 +240,20 @@ namespace miosix {
         
         SmartSensingStatus* status;
         SSQueue<unsigned short, N>* queue;
-        Mutex sharedData;
-        bool signalOn;
-        ConditionVariable newQueue; 
+        static Mutex sharedData;
+        static bool signalOn;
+        static ConditionVariable newQueue; 
                 
     };
+
+    template <unsigned int N,unsigned int Q>
+    bool SmartSensing<N,Q>::signalOn = false;
+
+    template <unsigned int N,unsigned int Q>
+    Mutex SmartSensing<N,Q>::sharedData;
+
+    template <unsigned int N,unsigned int Q>
+    ConditionVariable SmartSensing<N,Q>::newQueue;
     
     typedef SmartSensing<10,4> SMART_SENSING;
     SMART_SENSING& getSmartSensingDriver();
