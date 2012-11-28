@@ -60,11 +60,4 @@ namespace miosix {
         IRQbootlog("\r\n");
     }
 
-    
-    static SMART_SENSING smartSensing;   
-
-    SMART_SENSING& getSmartSensingDriver() {
-        return smartSensing;
-    }
-
 }

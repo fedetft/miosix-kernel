@@ -40,11 +40,11 @@ namespace miosix {
 
         SmartSensing(){
             status = (SmartSensingStatus*) getSmartSensingAreaBase();
-            queue = (SSQueue<unsigned short, N>*)(getSmartSensingAreaBase() + sizeof (SmartSensingStatus));          
-            signalOn = false;
+            queue = (SSQueue<unsigned short, N>*)(getSmartSensingAreaBase() + sizeof (SmartSensingStatus));                      
             for(unsigned int i=0;i<Q;i++){
                 threadId[i]=NULL;//RESET THE THREADID
             }
+            smartSensingThread=NULL;
         }
 
         static unsigned int getSmartSensingAreaBase() {
@@ -67,8 +67,9 @@ namespace miosix {
                 return -3;
             }                     
             initQueue((unsigned int) index, processId,threadId, deviceId, size, period);
-            if(signalOn){
-                newQueue.signal();
+            if(smartSensingThread!=NULL){
+                smartSensingThread->wakeup();
+                smartSensingThread=NULL;
             }
             return 0;
         }
@@ -147,9 +148,13 @@ namespace miosix {
         }
         
         //IF KON
-        void startKernelDaemon(){
-             wakeCompletedProcess();
-             Thread::create(daemon,1536,Priority(),this);
+        static void startKernelDaemon(){
+             getSmartSensingInstance()->wakeCompletedProcess();
+             Thread::create(daemonThread,1536);
+        }
+
+        static SmartSensing<N,Q>* getSmartSensingInstance(){
+            return &smartSensingInstance;
         }
         
     private:
@@ -246,7 +251,8 @@ namespace miosix {
             this->threadId[i]=threadId;
         }
 
-        int getQueueFromProcessId(pid_t processId){
+        //PB & KON
+        int getQueueFromProcessId(pid_t processId) const{
             for(unsigned int i=0;i<Q;i++){
                 if ((queue[i].size>0) && (queue[i].processId==processId)) {
                     return (int)i;
@@ -254,54 +260,65 @@ namespace miosix {
             }
             return -1;
         }
+
+        //KON
+        unsigned int getDaemonSleepTime() const{
+            long long nextRead = (long long)getNextEvent(getTick(),0);
+            long long currentTime = getTick();
+            if(nextRead && (nextRead-currentTime>0)){
+                return nextRead-currentTime;
+            }
+            return 0;
+        }
+
+        //KON
+        void innerThread(){
+            Lock<Mutex> lock(sharedData);
+            for(;;){
+                updateQueue(getTick());
+                wakeCompletedProcess();
+                if(getNextEvent(getTick(),0)==0){
+                    smartSensingThread=Thread::getCurrentThread();
+                    {
+                        Unlock<Mutex> unlock(sharedData);
+                        Thread::wait();
+                    }
+                }
+                unsigned int sleepTime=getDaemonSleepTime();
+                if(sleepTime>0){
+                        Unlock<Mutex> unlock(sharedData);
+                        Thread::sleep(sleepTime);
+                }
+            }
+
+        }
         
         //IF KON        
-        static void daemon(void* data){
-            SmartSensing<N,Q>& ss=*((SmartSensing<N,Q>*)data);
-            ss.signalOn=false;
-            for(;;){
-                ss.sharedData.lock();
-//                
-                ss.updateQueue(getTick());
-                ss.wakeCompletedProcess();
-                if(ss.getNextEvent(getTick(),0)==0){
-                    ss.signalOn=true;
-                    ss.newQueue.wait(ss.sharedData);
-                    ss.signalOn=false;
-                }
-                long long nextRead = (long long)ss.getNextEvent(getTick(),0);
-                long long currentTime = getTick();
-                if(nextRead && (nextRead-currentTime>0)){
-                    ss.sharedData.unlock();
-                    Thread::sleep(nextRead-currentTime);        
-                    ss.sharedData.lock();                                        
-                }            
-                ss.sharedData.unlock();
-            }
-                      
+        static void daemonThread(void* data){
+            getSmartSensingInstance()->innerThread();
         }
         
         SmartSensingStatus* status;
+
         SSQueue<unsigned short, N>* queue;
+
         Thread* threadId[Q];
-        static Mutex sharedData;
-        static bool signalOn;
-        static ConditionVariable newQueue; 
+
+        Thread* smartSensingThread;
+
+        Mutex sharedData;
+
         bool completedTask;
 
-    };
+        static SmartSensing smartSensingInstance;
+
+    };    
 
     template <unsigned int N,unsigned int Q>
-    bool SmartSensing<N,Q>::signalOn = false;
+    SmartSensing<N,Q> SmartSensing<N,Q>::smartSensingInstance;
 
-    template <unsigned int N,unsigned int Q>
-    Mutex SmartSensing<N,Q>::sharedData;
-
-    template <unsigned int N,unsigned int Q>
-    ConditionVariable SmartSensing<N,Q>::newQueue;
-    
     typedef SmartSensing<10,4> SMART_SENSING;
-    SMART_SENSING& getSmartSensingDriver();
+
 
 }
 #endif	/* SMARTSENSING_H */
