@@ -569,6 +569,7 @@ void *Process::start(void *argv)
     } while(running);
     {
         Lock<Mutex> l(procMutex);
+        SMART_SENSING::getSmartSensingInstance()->cleanUp(proc->pid);
         proc->zombie=true;
         list<Process*>::iterator it;
         for(it=proc->childs.begin();it!=proc->childs.end();++it) (*it)->ppid=0;
