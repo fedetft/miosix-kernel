@@ -88,7 +88,7 @@ namespace miosix {
                 init();
             } else {
                 //debugInt(status->signature);
-                //updateQueue(getTick());                
+                updateQueue(getTick());
                 IRQbootlog("In Coda:\r\n");
                 debugInt(getTick());
                 debugInt(getNextSecond(getTick(),status->nextSystemRestart*1000));
