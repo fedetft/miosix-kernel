@@ -7,7 +7,8 @@
 #include "kernel/process.h"
 #include "kernel/smart_sensing.h"
 #include "interfaces/suspend_support.h"
-#include "app_template/prog3.h"
+#include "test_smartsensing/test1.h"
+#include "test_smartsensing/test2.h"
 #include "interfaces/adc_driver.h"
 
 using namespace std;
@@ -72,11 +73,13 @@ int main()
         }
     }
     
-    ElfProgram prog(reinterpret_cast<const unsigned int*>(main_elf),main_elf_len);
+    ElfProgram prog1(reinterpret_cast<const unsigned int*>(test1_elf),test1_elf_len);
+    ElfProgram prog2(reinterpret_cast<const unsigned int*>(test2_elf),test2_elf_len);
     for(int i=0;;i++)
     {
         getchar();
-        pid_t child=Process::create(prog);
+        pid_t child=Process::create(prog1);
+        Process::create(prog2);
         int ec;
         pid_t pid;
         if(i%2==0) pid=Process::wait(&ec);
