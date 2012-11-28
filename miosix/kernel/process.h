@@ -61,17 +61,18 @@ public:
      * Overloaded version that recreate a process after hibernation
      * \param status is the serialized status of the process
      * \param threadID is the number of the thread to be resumed
+     * \param pendingOperation true if the process must complete a syscall
      * \return the same pid of the original process
      * \throws std::exception or a subclass in case of errors, including
      * not emough memory to spawn the process
      */
-    static pid_t create(ProcessStatus* status, int threadId);
+    static pid_t create(ProcessStatus* status, int threadId, bool pendingOperation=false);
     
     
     /**
      * Recreate a process after the hibernation, exactly as it was before
      * \param program Program that the process will execute 
-     * \param ptr to the serialized status of the process in the backup RAM
+     * \param ptr to the serialized status of the process in the backup RAM     
      * \return the pid of the newly created process
      * \throws std::exception or a subclass in case of errors, including
      * not emough memory to spawn the process
@@ -151,6 +152,8 @@ private:
      * system, used to assign a pid to a new process.<br>
      */
     static pid_t getNewPid();
+
+    void completeSmartSensingOperation(miosix_private::SyscallParameters& sp);
     
     ElfProgram* program; ///<The program that is running inside the process
     #ifdef __CODE_IN_XRAM
@@ -199,7 +202,7 @@ private:
     ///the following will store the size of a sample to be retrieved from sensors
     ///it should be initialized in the constructor too
     int sizeOfSample;
-    
+    bool pendingOperation;
     
     
     //Needs access to fault,mpu

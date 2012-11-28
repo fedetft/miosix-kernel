@@ -35,6 +35,9 @@
 #include "sync.h"
 #include "process_pool.h"
 #include "process.h"
+#include "smart_sensing.h"
+
+#define BIG_TIME 1000000
 
 using namespace std;
 
@@ -114,7 +117,7 @@ pid_t Process::create(const ElfProgram& program)
     return result;
 }
 
-pid_t Process::create(ProcessStatus* status, int threadId)
+pid_t Process::create(ProcessStatus* status, int threadId, bool pendingOperation)
 {
     Lock<Mutex> l(SuspendManager::suspMutex);
     map<pid_t,Process*>::iterator findProc;
@@ -123,7 +126,9 @@ pid_t Process::create(ProcessStatus* status, int threadId)
     if(findProc==processes.end())
         throw runtime_error("Unable to recreate the process after hibernation");
     Process* proc=findProc->second;
-    
+
+    proc->pendingOperation = pendingOperation;
+
     proc->image.resume(status);
     
     //TODO: look at it -- begin
@@ -212,7 +217,7 @@ pid_t Process::resume(const ElfProgram& program, ProcessStatus* status)
         } else {
             kernelChilds.push_back(proc.get());
         }
-        
+
         //since there is not a sequential resume schedule, we need to check if
         //we are parent of children already resumed and eventually add them to
         //the parent childs list. The following "for" cycle pursues this goal
@@ -448,6 +453,10 @@ Process::Process(const ElfProgram& program, bool resuming)
     #endif //__CODE_IN_XRAM
 }
 
+void Process::completeSmartSensingOperation(miosix_private::SyscallParameters &sp){
+    sp.setReturnValue(miosix::getSmartSensingDriver().readQueue(pid,
+        reinterpret_cast<short unsigned int*>(sp.getSecondParameter()),sp.getThirdParameter()));
+}
 
 
 void *Process::start(void *argv)
@@ -464,8 +473,14 @@ void *Process::start(void *argv)
             proc->image.getProcessImageSize());
     else
     {
-        if(argv)
+        if(argv){
+            if(proc->pendingOperation){
+                iprintf("RESTART\n");
+                miosix_private::SyscallParameters sp(reinterpret_cast<unsigned int*>(argv));
+                proc->completeSmartSensingOperation(sp);
+            }
             Thread::resumeUserspaceContext(reinterpret_cast<unsigned int*>(argv));
+        }
         else
             errorHandler(UNEXPECTED);
         //in the following block the process is removed from the list of the
@@ -513,14 +528,22 @@ void *Process::start(void *argv)
                     running=false;
                     proc->exitCode=(sp.getFirstParameter() & 0xff)<<8;
                     break;
-                case 3:
-                    //FIXME: check that the pointer belongs to the process
-                    
+                case 3:                   
                     sp.setReturnValue(write(sp.getFirstParameter(),
                         reinterpret_cast<const char*>(sp.getSecondParameter()),
                         sp.getThirdParameter()));
+
                     break;
                 case 4:
+                    ///STUB: ONLY FOR TESTING
+                    if(sp.getFirstParameter()==4){
+                        miosix::getSmartSensingDriver().setQueue(proc->pid,Thread::getCurrentThread(),POTENTIOMETER_ID,6,1000);
+                        SuspendManager::enterInterruptionPoint(proc,threadID,BIG_TIME,5,-1);
+                        Thread::getCurrentThread()->wait();
+                        proc->completeSmartSensingOperation(sp);
+                        break;                       
+                    }
+
                     //FIXME: check that the pointer belongs to the process
              
                     sp.setReturnValue(read(sp.getFirstParameter(),
