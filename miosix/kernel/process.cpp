@@ -454,7 +454,7 @@ Process::Process(const ElfProgram& program, bool resuming)
 }
 
 void Process::completeSmartSensingOperation(miosix_private::SyscallParameters &sp){
-    sp.setReturnValue(miosix::getSmartSensingDriver().readQueue(pid,
+    sp.setReturnValue(miosix::SMART_SENSING::getSmartSensingInstance()->readQueue(pid,
         reinterpret_cast<short unsigned int*>(sp.getSecondParameter()),sp.getThirdParameter()));
 }
 
@@ -537,7 +537,7 @@ void *Process::start(void *argv)
                 case 4:
                     ///STUB: ONLY FOR TESTING
                     if(sp.getFirstParameter()==4){
-                        miosix::getSmartSensingDriver().setQueue(proc->pid,Thread::getCurrentThread(),POTENTIOMETER_ID,6,1000);
+                        miosix::SMART_SENSING::getSmartSensingInstance()->setQueue(proc->pid,Thread::getCurrentThread(),POTENTIOMETER_ID,6,1000);
                         SuspendManager::enterInterruptionPoint(proc,threadID,BIG_TIME,5,-1);
                         Thread::getCurrentThread()->wait();
                         proc->completeSmartSensingOperation(sp);

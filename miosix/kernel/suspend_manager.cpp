@@ -207,7 +207,7 @@ void SuspendManager::hibernateDaemon(void*)
 //        memDump(buf,131072);
 //        delete[] buf;
         
-        getSmartSensingDriver().onSuspend(syscallReturnTime.begin()->resumeTime);
+        SMART_SENSING::getSmartSensingInstance()->onSuspend(syscallReturnTime.begin()->resumeTime);
         
         
     }

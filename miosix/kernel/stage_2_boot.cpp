@@ -131,7 +131,7 @@ extern "C" void _init()
     if(areInterruptsEnabled()) errorHandler(INTERRUPTS_ENABLED_AT_BOOT);
     IRQbspInit();
     //After IRQbspInit() serial port is initialized, so we can use BOOTLOG
-    getSmartSensingDriver().onBoot();
+    SMART_SENSING::getSmartSensingInstance()->onBoot();
     IRQbootlog(getMiosixVersion());
     IRQbootlog("\r\nStarting Kernel... ");
     //Create the first thread, and start the scheduler.

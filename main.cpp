@@ -60,7 +60,7 @@ int main()
 
         puts("RTC boot");
         SuspendManager::resume();
-        getSmartSensingDriver().startKernelDaemon();
+        SMART_SENSING::getSmartSensingInstance()->startKernelDaemon();
         int ec;
         Process::wait(&ec);
         iprintf("Process terminated\n");
