@@ -36,7 +36,6 @@ namespace miosix {
 
     template <unsigned int N, unsigned int Q>
     class SmartSensing {
-    public:
 
         SmartSensing(){
             status = (SmartSensingStatus*) getSmartSensingAreaBase();
@@ -46,6 +45,7 @@ namespace miosix {
             }
             smartSensingThread=NULL;
         }
+    public:
 
         static unsigned int getSmartSensingAreaBase() {
             return reinterpret_cast<unsigned int> (getBackupSramBase()) + 1020 * 4 - SmartSensing<N, Q>::getMemorySize() - sizeof (SmartSensingStatus);
