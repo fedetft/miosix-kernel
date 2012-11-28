@@ -133,6 +133,8 @@ private:
     friend class Process;
     
     static void suspend(unsigned long long resumeTime);
+
+    static void wakeUpProcess(pid_t processId);
     
     template <unsigned int N, unsigned int Q>
     friend class SmartSensing; 

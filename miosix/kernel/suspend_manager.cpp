@@ -30,7 +30,6 @@
 #include "elf_program.h"
 #include "process.h"
 #include "smart_sensing.h"
-#include "interfaces/suspend_support.h"
 #include "process_pool.h"
 #include <cstring>
 #include <cstdio>
@@ -76,7 +75,7 @@ void SuspendManager::enterInterruptionPoint(Process* proc, int threadID,
     newSuspThread.threadNum=threadID;
     newSuspThread.intPointID=intPointID;
     newSuspThread.fileID=fileID; 
-    
+
     {
         Lock<Mutex> l(suspMutex);
         proc->numActiveThreads--;
@@ -93,6 +92,21 @@ void SuspendManager::enterInterruptionPoint(Process* proc, int threadID,
             hibernWaiting.broadcast();
     }
     
+}
+
+void SuspendManager::wakeUpProcess(pid_t processId){
+    map<pid_t,Process*>::iterator findProc;
+    Lock<Mutex> l(suspMutex);
+    for(list<SyscallResumeTime>::iterator i=syscallReturnTime.begin();i!=syscallReturnTime.end();i++){
+        if(i->pid==processId){
+            findProc=Process::processes.find(processId);
+            if(findProc!=Process::processes.end()){
+                Process::create(i->status,i->threadNum,true);
+            }
+            syscallReturnTime.erase(i);
+            return;
+        }
+    }
 }
 
 
