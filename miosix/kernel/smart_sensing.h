@@ -131,7 +131,7 @@ namespace miosix {
         
         //IF KON
         void startKernelDaemon(){
-             Thread::create(daemon,768,Priority(),this);             
+             Thread::create(daemon,1536,Priority(),this);
         }
         
     private:
