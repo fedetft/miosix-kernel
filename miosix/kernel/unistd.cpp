@@ -54,7 +54,7 @@ unsigned int sleep(unsigned int __seconds)
  */
 int usleep(useconds_t __useconds)
 {
-    if(__useconds>1000) Thread::sleep(__useconds / 1000);
+    if(__useconds>=1000) Thread::sleep(__useconds / 1000);
     delayUs(__useconds % 1000);
     return 0;
 }

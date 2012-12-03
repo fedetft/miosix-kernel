@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
 v1.61
+- Added .gitignore
+- Fixed a bug in usleep() occurring when its argument assumes the 1000 value
 - Improved Lcd44780 driver
 - Improved bitsboard driver
 - Added prliminary version of the event API to allow asynchronous programming.
