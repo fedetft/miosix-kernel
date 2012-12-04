@@ -29,7 +29,7 @@ namespace miosix {
         unsigned int size;
         unsigned int remaining;
         unsigned long long int nextTime;//nextTime in milliseconds
-        unsigned int period;//period in seconds
+        unsigned int period;//period in milliseconds
         uint32_t deviceId;
         pid_t processId;
     };
@@ -47,10 +47,24 @@ namespace miosix {
         }
     public:
 
+        /**
+         * Retrive the start address of the queue structure in backup ram
+         * @brief getSmartSensingAreaBase
+         * @return location in backup ram of the structure used by the class
+         */
         static unsigned int getSmartSensingAreaBase() {
             return reinterpret_cast<unsigned int> (getBackupSramBase()) + 1020 * 4 - SmartSensing<N, Q>::getMemorySize() - sizeof (SmartSensingStatus);
         }
 
+        /**
+         * Initialize a new queue
+         * @param processId id of the process which own the queue
+         * @param threadId id of the thread which invoke the method
+         * @param deviceId id of the selected source
+         * @param size number of sample to be captured
+         * @param sampling interval in millisecond
+         * @return 0 if the work is scheduled, a negative integer if an error occourred
+         */
         int setQueue(pid_t processId,Thread* threadId,uint32_t deviceId, unsigned int size, unsigned int period) {
             Lock<Mutex> lock(sharedData);            
 
@@ -74,6 +88,13 @@ namespace miosix {
             return 0;
         }
 
+        /**
+         * Retrive data from a completed read
+         * @param processId id of the process which own the queue
+         * @param data pointer to the place where the reads will be stored
+         * @param size number of samples that can be saved
+         * @return -1 if an error occourred, number of sample written otherwise
+         */
         int readQueue(pid_t processId, unsigned short* data, unsigned int size) {
             Lock<Mutex> lock(sharedData);
             int i=getQueueFromProcessId(processId);
@@ -96,6 +117,9 @@ namespace miosix {
             return writingSize;
         }
 
+        /**
+         * Hook of the boot process
+         */
         void onBoot() {
             if (firstBoot()) {
                 init();
@@ -128,6 +152,10 @@ namespace miosix {
             }
         }
 
+        /**
+         * Hook of the suspension process
+         * @param resumeTime time in seconds to be suspended
+         */
         void onSuspend(unsigned long long resumeTime) {  
             Lock<Mutex> lock(sharedData);
             status->nextSystemRestart = resumeTime;
@@ -147,16 +175,27 @@ namespace miosix {
             return sizeof (SmartSensingStatus) + sizeof (SSQueue<unsigned short, N>) * Q;
         }
         
+        /**
+         * Starts the deamon which perform reads when the kernel is active
+         */
         //IF KON
         static void startKernelDaemon(){
              getSmartSensingInstance()->wakeCompletedProcess();
              Thread::create(daemonThread,1536);
         }
 
+        /**
+         * Return a pointer to the instance of the class
+         * @return poiter to the instance of the class
+         */
         static SmartSensing<N,Q>* getSmartSensingInstance(){
             return &smartSensingInstance;
         }
 
+        /**
+         * Removes all the queues which belongs to the given process
+         * @param processId id of the process
+         */
         //IF KON
         void cleanUp(pid_t processId){
             Lock<Mutex> lock(sharedData);
