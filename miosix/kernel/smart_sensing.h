@@ -14,12 +14,17 @@
 #include "suspend_manager.h"
 #include "interfaces/adc_driver.h"
 
+#define CANARY 0x55AA55AA
+#define CHECK_CANARY
+
 namespace miosix {    
     
     void debugInt(unsigned int i);    
 
     struct SmartSensingStatus {
-        unsigned long int signature;
+#ifdef CHECK_CANARY
+        unsigned long int canary;
+#endif
         unsigned long long nextSystemRestart;
     };
 
@@ -124,6 +129,11 @@ namespace miosix {
             if (firstBoot()) {
                 init();
             } else {
+#ifdef CHECK_CANARY
+                if(status->canary!=CANARY){
+                    errorHandler(UNEXPECTED);
+                }
+#endif
                 //debugInt(status->signature);
                 updateQueue(getTick());
                 IRQbootlog("In Coda:\r\n");
@@ -272,7 +282,9 @@ namespace miosix {
                 resetQueue(i);
             }
             status->nextSystemRestart = 0;
-            status->signature=1337713;
+#ifdef CHECK_CANARY
+            status->canary=CANARY;
+#endif
         }
 
         //KON
