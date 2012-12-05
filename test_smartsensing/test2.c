@@ -8,6 +8,19 @@ int mystrlen(const char *s)
 	return result;
 }
 
+void debugHex(unsigned int x)
+{
+    static const char hexdigits[]="0123456789abcdef";
+    char result[]="0x........\n";
+    int i;
+    for(i=9;i>=2;i--)
+    {
+        result[i]=hexdigits[x & 0xf];
+        x>>=4;
+    }
+    write(1,result,mystrlen(result));
+}
+/*
 void debugHex(unsigned int i) {
 
     unsigned int m;
@@ -81,7 +94,7 @@ void debugHex(unsigned int i) {
 
     write(1, "\r\n", 2);
 }
-
+*/
 
 
 

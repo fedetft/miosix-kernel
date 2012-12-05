@@ -8,7 +8,35 @@ int mystrlen(const char *s)
 	return result;
 }
 
-void debugHex(unsigned int i) {
+void debugHex(unsigned int x)
+{
+    static const char hexdigits[]="0123456789abcdef";
+    char result[]="0x........\n";
+    int i;
+    for(i=9;i>=2;i--)
+    {
+        result[i]=hexdigits[x & 0xf];
+        x>>=4;
+    }
+    write(1,result,mystrlen(result));
+}
+
+void __attribute__((noinline)) wait1(){
+
+register const unsigned int count=29999;
+
+
+    // This delay has been calibrated to take 1 millisecond
+    // It is written in assembler to be independent on compiler optimization
+    asm volatile("           mov   r1, #0     \n"
+                 "___loop_m: cmp   r1, %0     \n"
+                 "           itt   lo         \n"
+                 "           addlo r1, r1, #1 \n"
+                 "           blo   ___loop_m  \n"::"r"(count):"r1");
+
+}
+
+/*void debugHex(unsigned int i) {
 
     unsigned int m;
     unsigned int r;
@@ -16,7 +44,7 @@ void debugHex(unsigned int i) {
     int j = 0;
     r = i;
     if(i==0){
-        write(1, "0\r\n", 3);
+        write(1, "0\n", 3);
         return;
     }
     while (r > 0) {
@@ -32,7 +60,7 @@ void debugHex(unsigned int i) {
                 write(1, "0", 1);
                 break;
             case 1:
-                write(1, "0", 1);
+                write(1, "1", 1);
                 break;
             case 2:
                 write(1, "2", 1);
@@ -79,8 +107,8 @@ void debugHex(unsigned int i) {
         }
     }
 
-    write(1, "\r\n", 2);
-}
+    write(1, "\n", 2);
+}*/
 
 
 
@@ -111,9 +139,14 @@ int main()
 
         write(1,str,mystrlen(str));
         int l=read(4,data,200);
+
         char text[]={"Test 1\n"};
         write(1,text,mystrlen(text));
         printData(data,l);
+        int i;
+        for(i=0;i<3000;i++){
+            wait1();
+        }
 
     }
 }
