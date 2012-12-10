@@ -75,6 +75,7 @@ void SuspendManager::enterInterruptionPoint(Process* proc, int threadID,
     newSuspThread.threadNum=threadID;
     newSuspThread.intPointID=intPointID;
     newSuspThread.fileID=fileID; 
+    iprintf("Added PID %i\r\n",newSuspThread.pid);
 
     {
         Lock<Mutex> l(suspMutex);
@@ -98,6 +99,7 @@ void SuspendManager::wakeUpProcess(pid_t processId){
     map<pid_t,Process*>::iterator findProc;
     Lock<Mutex> l(suspMutex);
     for(list<SyscallResumeTime>::iterator i=syscallReturnTime.begin();i!=syscallReturnTime.end();i++){
+        iprintf("Look PID %i\r\n",i->pid);
         if(i->pid==processId){
             findProc=Process::processes.find(processId);
             if(findProc!=Process::processes.end()){
@@ -248,6 +250,7 @@ int SuspendManager::resume()
                 retTime.resumeTime=proc->interruptionPoints[i].absSyscallTime;
                 retTime.status=proc;
                 syscallReturnTime.push_back(retTime);
+                iprintf("Reloaded PID %i\r\n",retTime.pid);
             }
             proc++;
         }
