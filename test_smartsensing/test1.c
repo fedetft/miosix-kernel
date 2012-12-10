@@ -138,7 +138,7 @@ int main()
         //if(len<1) continue;
 
         write(1,str,mystrlen(str));
-        int l=read(4,data,200);
+        int l=read(4,data,10);
 
         char text[]={"Test 1\n"};
         write(1,text,mystrlen(text));
