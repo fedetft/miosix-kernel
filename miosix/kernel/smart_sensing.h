@@ -23,18 +23,37 @@ namespace miosix {
 
     struct SmartSensingStatus {
 #ifdef CHECK_CANARY
+        /**
+         * @brief canary
+         * Canary to check if the backup ram area of the class has been corrupted
+         */
         unsigned long int canary;
 #endif
+        /**
+         * @brief nextSystemRestart
+         * Time in seconds of the next system restart
+         */
         unsigned long long nextSystemRestart;
     };
 
+
     template <typename T, unsigned int N>
+    /**
+     * @brief The SSQueue struct
+     * Structure which holds a queue
+     */
     struct SSQueue {
         T data[N];
         unsigned int size;
         unsigned int remaining;
-        unsigned long long int nextTime;//nextTime in milliseconds
-        unsigned int period;//period in milliseconds
+        /**
+         * @brief nextTime next time in milliseconds
+         */
+        unsigned long long int nextTime;
+        /**
+         * @brief period period in milliseconds
+         */
+        unsigned int period;
         uint32_t deviceId;
         pid_t processId;
     };
@@ -42,6 +61,11 @@ namespace miosix {
     template <unsigned int N, unsigned int Q>
     class SmartSensing {
 
+        /**
+         * @brief SmartSensing
+         *  Constructor of the class which initialize the temporary variables (the ones which don't persist)
+         *  It's private in order to prevent instantiations from the outside
+         */
         SmartSensing(){
             status = (SmartSensingStatus*) getSmartSensingAreaBase();
             queue = (SSQueue<unsigned short, N>*)(getSmartSensingAreaBase() + sizeof (SmartSensingStatus));                      
@@ -53,8 +77,8 @@ namespace miosix {
     public:
 
         /**
-         * Retrive the start address of the queue structure in backup ram
          * @brief getSmartSensingAreaBase
+         * Retrive the start address of the queue structure in backup ram
          * @return location in backup ram of the structure used by the class
          */
         static unsigned int getSmartSensingAreaBase() {
@@ -62,6 +86,7 @@ namespace miosix {
         }
 
         /**
+         * @brief setQueue
          * Initialize a new queue
          * @param processId id of the process which own the queue
          * @param threadId id of the thread which invoke the method
@@ -94,10 +119,14 @@ namespace miosix {
         }
 
         /**
+         * @brief readQueue
          * Retrive data from a completed read
          * @param processId id of the process which own the queue
          * @param data pointer to the place where the reads will be stored
          * @return -1 if an error occourred, number of sample written otherwise
+         *  the error can occour if the process hasn't a queue or if the queue
+         *  hasn't been completely filled yet.
+         *  In every case the process queue is resetted.
          */
         int readQueue(pid_t processId, unsigned short* data) {
             Lock<Mutex> lock(sharedData);
@@ -118,6 +147,7 @@ namespace miosix {
         }
 
         /**
+         * @brief onBoot
          * Hook of the boot process
          */
         void onBoot() {
@@ -156,6 +186,7 @@ namespace miosix {
         }
 
         /**
+         * @brief onSuspend
          * Hook of the suspension process
          * @param resumeTime time in seconds to be suspended
          */
@@ -171,23 +202,25 @@ namespace miosix {
         }
 
         /**
-         * Restituisce la memoria necessaria per le code (che andra sulla SRAM)
-         * @return
+         * @brief getMemorySize
+         * Calculate the required memory to permit hte hibernation of the class
+         * @return size in bytes of the required backup SRAM memory
          */
         static unsigned int getMemorySize() {
             return sizeof (SmartSensingStatus) + sizeof (SSQueue<unsigned short, N>) * Q;
         }
         
         /**
+         * @brief startKernelDaemon
          * Starts the deamon which perform reads when the kernel is active
          */
-        //IF KON
         static void startKernelDaemon(){
              getSmartSensingInstance()->wakeCompletedProcess();
              Thread::create(daemonThread,1536);
         }
 
         /**
+         * @brief getSmartSensingInstance
          * Return a pointer to the instance of the class
          * @return poiter to the instance of the class
          */
@@ -196,10 +229,10 @@ namespace miosix {
         }
 
         /**
+         * @brief cleanUp
          * Removes all the queues which belongs to the given process
          * @param processId id of the process
          */
-        //IF KON
         void cleanUp(pid_t processId){
             Lock<Mutex> lock(sharedData);
             while(resetQueue(getQueueFromProcessId(processId)));
@@ -207,7 +240,13 @@ namespace miosix {
         
     private:
 
-        //PB & KON
+        /**
+         * @brief updateQueue
+         * Update all the initialized queues
+         * Can be invoked either during boot phase or when the kernel is active
+         * @param time time in milliseconds. All the reads which are before it
+         * will be performed.
+         */
         void updateQueue(unsigned long long time) {
             completedTask=false;
             //IRQbootlog("Updated!\r\n");            
@@ -230,7 +269,14 @@ namespace miosix {
             }
         }
         
-        //PB & KON
+        /**
+         * @brief getNextSecond
+         * Retrive next time in seconds in which the next event will happen
+         * Can be invoked either during boot phase or when the kernel is active
+         * @param currentTime time in millisecond to be considered as current time
+         * @param minTime if different from 0 it counts as an additional event time in milliseconds
+         * @return next event time in seconds
+         */
         unsigned int getNextSecond(unsigned long long currentTime, unsigned long long minTime) const{
             unsigned int nextEvent=getNextEvent(currentTime,minTime);
             if((currentTime%1000)>(nextEvent%1000)){
@@ -239,7 +285,14 @@ namespace miosix {
             return (nextEvent+999)/1000;
         }
 
-        //PB & KON
+        /**
+         * @brief getNextEvent
+         * Retrive next time in milliseconds in which the next event will happen
+         * Can be invoked either during boot phase or when the kernel is active
+         * @param currentTime time in millisecond to be considered as current time
+         * @param minTime if different from 0 it counts as an additional event time in milliseconds
+         * @return next event time in milliseconds
+         */
         unsigned long long getNextEvent(unsigned long long currentTime,unsigned long long minTime) const{                                  
             for (unsigned int i = 0; i < Q; i++) {
                 if ((queue[i].size > 0) && (queue[i].remaining > 0) && (queue[i].nextTime>currentTime)) {
@@ -251,7 +304,12 @@ namespace miosix {
             return minTime;
         }
         
-        //KON
+        /**
+         * @brief getFirstFreeQueue
+         * Retrive the first queue available
+         * It's supposed to be invoked only if the kernel is active
+         * @return index of the first queue, -1 if none available
+         */
         int getFirstFreeQueue() const{
             for (unsigned int i = 0; i < Q; i++) {
                 if (queue[i].size == 0) {
@@ -261,15 +319,23 @@ namespace miosix {
             return -1;
         }
         
-        //PB & KON
+        /**
+         * @brief readQueue
+         * Performs a read on the selected queue
+         * Can be invoked either during boot phase or when the kernel is active
+         * No checks are performed either on the index or if the queue is full
+         * @param i index of the selected queue
+         */
         void readQueue(int i) {
-            //TODO Check
-            //remaining>0
             queue[i].data[queue[i].size - queue[i].remaining] = AdcDriver::read(queue[i].deviceId);
             queue[i].remaining--;
         }
         
-        //PB
+        /**
+         * @brief init
+         * Initialize the persistent variables of the class
+         * Must be called only on the first boot
+         */
         void init() {
             for (unsigned int i = 0; i < Q; i++) {
                 resetQueue(i);
@@ -280,7 +346,11 @@ namespace miosix {
 #endif
         }
 
-        //KON
+        /**
+         * @brief wakeCompletedProcess
+         * Wake up all the processes whose tasks have been terminated
+         * Can be invoked only when the kernel is active
+         */
         void wakeCompletedProcess(){
             for(unsigned int i=0;i<Q;i++){
                 if((queue[i].size>0)&&(queue[i].remaining==0)){
@@ -294,7 +364,13 @@ namespace miosix {
             }
         }
 
-        //PB & KON
+        /**
+         * @brief resetQueue
+         * Set a given queue as available
+         * Can be invoked either during boot phase or when the kernel is active
+         * @param i index of the queue
+         * @return false if the given index is invalid, true otherwise
+         */
         bool resetQueue(unsigned int i){
             if((i<0)||(i>=Q)){
                 return false;
@@ -304,7 +380,17 @@ namespace miosix {
             return true;
         }
         
-        //KON
+        /**
+         * @brief initQueue
+         * Initialize a queue
+         * It's supposed to be invoked only if the kernel is active
+         * @param i index of a free queue
+         * @param processId id of the process which owns the corresponding task
+         * @param threadId id of the thread which owns the corresponding task
+         * @param deviceId id which carries the information on the input source of the reads
+         * @param size number of reads to be performed
+         * @param period time in milliseconds between two reads
+         */
         void initQueue(unsigned int i, pid_t processId, Thread* threadId, uint32_t deviceId, unsigned int size, unsigned int period) {
             queue[i].deviceId = deviceId;
             queue[i].size = size;
@@ -315,7 +401,13 @@ namespace miosix {
             this->threadId[i]=threadId;
         }
 
-        //PB & KON
+        /**
+         * @brief getQueueFromProcessId
+         * Retrive the queue associated to a given process
+         * Can be invoked either during boot phase or when the kernel is active
+         * @param processId id of the process which owns the queue
+         * @return index of the requested queue, -1 if no queue correspond the the given process
+         */
         int getQueueFromProcessId(pid_t processId) const{
             for(unsigned int i=0;i<Q;i++){
                 if ((queue[i].size>0) && (queue[i].processId==processId)) {
@@ -325,7 +417,12 @@ namespace miosix {
             return -1;
         }
 
-        //KON
+        /**
+         * @brief getDaemonSleepTime
+         * Retrive the time the kernel daemon must wait before performing a read
+         * It's supposed to be invoked only if the kernel is active
+         * @return time in milliseconds before the next read
+         */
         unsigned int getDaemonSleepTime() const{
             long long nextRead = (long long)getNextEvent(getTick(),0);
             long long currentTime = getTick();
@@ -335,7 +432,11 @@ namespace miosix {
             return 0;
         }
 
-        //KON
+        /**
+         * @brief innerThread
+         * This method implements the kernel daemon loop
+         * It's supposed to be invoked only if the kernel is active
+         */
         void innerThread(){
             Lock<Mutex> lock(sharedData);
             for(;;){
@@ -357,23 +458,57 @@ namespace miosix {
 
         }
         
-        //IF KON        
+        /**
+         * @brief daemonThread
+         * Entry point of the kernel daemon
+         * It's supposed to be invoked only if the kernel is active
+         * @param data unused
+         */
         static void daemonThread(void* data){
             getSmartSensingInstance()->innerThread();
         }
-        
+
+        /**
+         * @brief status
+         * Additional persistent information: a canary and next system restart time
+         */
         SmartSensingStatus* status;
 
+        /**
+         * @brief queue
+         * Persistent information of the queues
+         */
         SSQueue<unsigned short, N>* queue;
 
+        /**
+         * @brief threadId
+         * Temporary information of the thread id associated to each queue
+         */
         Thread* threadId[Q];
 
+        /**
+         * @brief smartSensingThread
+         * Thread of the kernel daemon
+         */
         Thread* smartSensingThread;
 
+        /**
+         * @brief sharedData
+         * Mutex which controls the access to the class data
+         */
         Mutex sharedData;
 
+        /**
+         * @brief completedTask
+         * True if there are some processes which are waiting to be woken up
+         * Useful to decide if continue the kernel boot or suspend again
+         */
         bool completedTask;
 
+        /**
+         * @brief smartSensingInstance
+         * Singleton instance of the class
+         */
         static SmartSensing smartSensingInstance;
 
     };    
