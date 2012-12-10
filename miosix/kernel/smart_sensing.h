@@ -97,28 +97,23 @@ namespace miosix {
          * Retrive data from a completed read
          * @param processId id of the process which own the queue
          * @param data pointer to the place where the reads will be stored
-         * @param size number of samples that can be saved
          * @return -1 if an error occourred, number of sample written otherwise
          */
-        int readQueue(pid_t processId, unsigned short* data, unsigned int size) {
+        int readQueue(pid_t processId, unsigned short* data) {
             Lock<Mutex> lock(sharedData);
             int i=getQueueFromProcessId(processId);
             if(i<0){
                 return -1;
             }
-            unsigned int availableData = queue[i].size - queue[i].remaining;
-            unsigned int writingSize = std::min(size, availableData);
+            if(queue[i].remaining!=0){
+                resetQueue(i);
+                return -1;
+            }
+            unsigned int writingSize = queue[i].size;
             for (unsigned int j = 0; j < writingSize; j++) {
-                data[j] = queue[i].data[j];                
+                data[j] = queue[i].data[j];
             }
-            //queue[i].remaining += writingSize;
-            queue[i].size-=writingSize;            
-            if (writingSize == availableData) {//CHECK                
-                return writingSize;
-            }
-            for (unsigned int j = 0; j < size - writingSize; j++) {
-                queue[i].data[j] = queue[i].data[j + writingSize];
-            }            
+            resetQueue(i);
             return writingSize;
         }
 
