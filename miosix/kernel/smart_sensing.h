@@ -147,9 +147,7 @@ namespace miosix {
                     return;
                 }
                 else if (getNextEvent(getTick(),status->nextSystemRestart*1000) == 0) {
-                    IRQbootlog("SS: What???\r\n");
-                    //SuspendManager::suspend(status->nextSystemRestart);
-                    return;
+                    errorHandler(UNEXPECTED);
                 }                
                 else {                    
                     updateQueue(getTick()+500);//No problem
