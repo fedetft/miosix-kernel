@@ -203,6 +203,7 @@ void SystemInit (void)
     //This is a dirty trick to call a C++ function from C, use the mangled name
     _ZN6miosix7delayUsEj(8*2/16);
     RCC->CFGR = 0x00000001; //Select HSI
+    while((RCC->CFGR & 0xc)!=0x4) ;
     RCC->CR &= ~RCC_CR_MSION;
     /*!< Disable all interrupts */
     RCC->CIR = 0x00000000;
