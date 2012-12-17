@@ -407,8 +407,7 @@ void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr)
 
 /**
  * \internal
- * __malloc_lock, called by malloc to ensure no context switch happens during
- * memory allocation (the heap is global and shared between the threads, so
+ * __malloc_lock, called by malloc t_memory allocation (the heap is global and shared between the threads, so
  * memory allocation should not be interrupted by a context switch)
  *
  *	WARNING:
@@ -460,6 +459,7 @@ int _close_r(struct _reent *ptr, int fd)
     return -1;
     #endif //WITH_FILESYSTEM
 }
+
 
 /**
  * \internal

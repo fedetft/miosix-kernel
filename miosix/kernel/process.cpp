@@ -34,6 +34,7 @@
 #include "sync.h"
 #include "process_pool.h"
 #include "process.h"
+#include "SystemMap.h"
 
 using namespace std;
 
@@ -225,6 +226,10 @@ Process::~Process()
     #ifdef __CODE_IN_XRAM
     ProcessPool::instance().deallocate(loadedProgram);
     #endif //__CODE_IN_XRAM
+	
+	//close alla opened files
+	for(set<int>::iterator it = mFiles.begin(); it != mFiles.end(); ++it)
+		close(*it);
 }
 
 Process::Process(const ElfProgram& program) : program(program), waitCount(0),
@@ -312,9 +317,63 @@ void *Process::start(void *argv)
                         reinterpret_cast<char*>(sp.getSecondParameter()),
                         sp.getThirdParameter()));
                     break;
-                case 5: 
-                    sp.setReturnValue(usleep(sp.getFirstParameter()));
+                case 5:
+					sp.setReturnValue(usleep(sp.getFirstParameter()));
                     break;
+				case 6:
+					//open
+				{
+					int fp = open(reinterpret_cast<const char*>(sp.getFirstParameter()),	//filename
+								  sp.getSecondParameter(),									//flags
+								  sp.getThirdParameter());									//permission, used?
+					if (fp != -1)
+						proc->mFiles.insert(fp);
+						
+					sp.setReturnValue(fp);
+				}
+                    break;
+				case 7:
+					//close
+					if(proc->mFiles.find(sp.getFirstParameter()) != proc->mFiles.end()){
+						int ret = close(sp.getFirstParameter());
+						
+						if(ret == 0)
+							proc->mFiles.erase(sp.getFirstParameter());
+						
+						sp.setReturnValue(ret);
+					} else 
+						sp.setReturnValue(-1);
+					break;
+				case 8:
+					//lseek
+					if(proc->mFiles.find(sp.getFirstParameter()) != proc->mFiles.end())
+						sp.setReturnValue(Filesystem::instance().lseekFile(sp.getFirstParameter(),
+																		   sp.getSecondParameter(),
+																		   sp.getThirdParameter()));
+					else
+						sp.setReturnValue(-1);
+					
+					break;
+				case 9:
+					//system, NOT TESTED YET!!!
+				{				
+					std::pair<const unsigned int*, unsigned int> res = SystemMap::instance().getElfProgram(reinterpret_cast<const char*>(sp.getFirstParameter()));
+							
+					if(res.first == 0 || res.second == 0){
+						iprintf("Program not found.\n");
+						sp.setReturnValue(-1);
+						break;
+					}
+								
+					ElfProgram program(res.first, res.second);
+					int ret = 0;
+					
+					pid_t child = Process::create(program);
+					Process::waitpid(child, &ret, 0);
+					
+					sp.setReturnValue(ret);
+				}
+					break;
                 default:
                     running=false;
                     proc->exitCode=SIGSYS; //Bad syscall

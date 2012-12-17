@@ -4,7 +4,11 @@
 #include <signal.h>
 #include "miosix.h"
 #include "kernel/process.h"
+#include "kernel/SystemMap.h"
+
 #include "app_template/prog3.h"
+
+#include "system_app_test/prog3.h"
 
 using namespace std;
 using namespace miosix;
@@ -23,6 +27,12 @@ void ledThread(void *)
 int main()
 {
     Thread::create(ledThread,STACK_MIN);
+	
+	SystemMap::instance().addElfProgram("test", reinterpret_cast<const unsigned int*>(test_elf), test_elf_len);
+	
+	iprintf("SystemMap::size: %d\n", SystemMap::instance().getElfCount());
+	std::pair<const unsigned int*, unsigned int> res = SystemMap::instance().getElfProgram("test");
+	iprintf("SystemMap test entry size: %X %d\n", res.first, res.second);
     
     ElfProgram prog(reinterpret_cast<const unsigned int*>(main_elf),main_elf_len);
     for(int i=0;;i++)

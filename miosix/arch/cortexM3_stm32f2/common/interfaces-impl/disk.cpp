@@ -70,9 +70,9 @@ static CardType cardType=Invalid;
 
 //SD card GPIOs
 typedef Gpio<GPIOC_BASE,8>  sdD0;
-typedef Gpio<GPIOC_BASE,9>  sdD1;
-typedef Gpio<GPIOC_BASE,10> sdD2;
-typedef Gpio<GPIOC_BASE,11> sdD3;
+//typedef Gpio<GPIOC_BASE,9>  sdD1; //QUIRK: use serial port and SD
+//typedef Gpio<GPIOC_BASE,10> sdD2;
+//typedef Gpio<GPIOC_BASE,11> sdD3;
 typedef Gpio<GPIOC_BASE,12> sdCLK;
 typedef Gpio<GPIOD_BASE,2>  sdCMD;
 
@@ -705,8 +705,9 @@ private:
     static const unsigned int CLOCK_MAX=0;      //48MHz/(0+2)  =24MHz
 
     ///\internal Clock enabled, bus width 4bit, clock powersave enabled.
-    static const unsigned int CLKCR_FLAGS=SDIO_CLKCR_CLKEN |
-        SDIO_CLKCR_WIDBUS_0 | SDIO_CLKCR_PWRSAV;
+    //static const unsigned int CLKCR_FLAGS=SDIO_CLKCR_CLKEN |
+    //    SDIO_CLKCR_WIDBUS_0 | SDIO_CLKCR_PWRSAV;
+    static const unsigned int CLKCR_FLAGS=SDIO_CLKCR_CLKEN; //QUIRK: use serial port and SD
 
     ///\internal Maximum number of calls to IRQreduceClockSpeed() allowed
     static const unsigned char MAX_ALLOWED_REDUCTIONS=5;
@@ -1092,12 +1093,12 @@ static void initSDIOPeripheral()
         RCC->APB2ENR |= RCC_APB2ENR_SDIOEN;
         sdD0::mode(Mode::ALTERNATE);
         sdD0::alternateFunction(12);
-        sdD1::mode(Mode::ALTERNATE);
-        sdD1::alternateFunction(12);
-        sdD2::mode(Mode::ALTERNATE);
-        sdD2::alternateFunction(12);
-        sdD3::mode(Mode::ALTERNATE);
-        sdD3::alternateFunction(12);
+//        sdD1::mode(Mode::ALTERNATE); //QUIRK: use serial port and SD
+//        sdD1::alternateFunction(12);
+//        sdD2::mode(Mode::ALTERNATE);
+//        sdD2::alternateFunction(12);
+//        sdD3::mode(Mode::ALTERNATE);
+//        sdD3::alternateFunction(12);
         sdCLK::mode(Mode::ALTERNATE);
         sdCLK::alternateFunction(12);
         sdCMD::mode(Mode::ALTERNATE);
@@ -1273,8 +1274,8 @@ void Disk::init()
             return;
         }
 
-        r=Command::send(Command::ACMD6,2);   //Set 4 bit bus width
-        if(r.validateR1Response()==false) return;
+        //r=Command::send(Command::ACMD6,2);   //Set 4 bit bus width
+        //if(r.validateR1Response()==false) return; //QUIRK: use serial port and SD
 
         if(cardType!=SDHC)
         {

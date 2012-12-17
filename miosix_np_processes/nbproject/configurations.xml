@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configurationDescriptor version="80">
+<configurationDescriptor version="84">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
-    <df name="miosix_np_2" root="..">
+    <df name="miosix-kernel" root="..">
       <df name="app_template">
         <in>crt0.s</in>
         <in>main.c</in>
@@ -299,6 +299,8 @@
             <in>scheduler.h</in>
             <in>tick_interrupt.h</in>
           </df>
+          <in>SystemMap.cpp</in>
+          <in>SystemMap.h</in>
           <in>buffer_queue.h</in>
           <in>elf_program.cpp</in>
           <in>elf_program.h</in>
@@ -341,11 +343,17 @@
       </df>
       <df name="miosix_np_processes">
       </df>
+      <df name="system_app_test">
+        <in>crt0.s</in>
+        <in>main.c</in>
+        <in>prog3.h</in>
+      </df>
       <in>main.cpp</in>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
-                   projectFiles="false">
+                   projectFiles="false"
+                   root="..">
       <itemPath>../makefile</itemPath>
       <itemPath>miosix_np_2-Makefile.mk</itemPath>
     </logicalFolder>
@@ -361,6 +369,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -409,6 +419,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -453,6 +465,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -499,6 +513,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -545,6 +561,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -591,6 +609,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -637,6 +657,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -683,6 +705,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -727,6 +751,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -736,8 +762,8 @@
           <cTool>
             <incDir>
               <pElem>..</pElem>
-              <pElem>../miosix</pElem>
               <pElem>../miosix/arch/common</pElem>
+              <pElem>../miosix</pElem>
               <pElem>../miosix/arch/cortexM3_stm32f2/common</pElem>
               <pElem>../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval</pElem>
             </incDir>
@@ -751,8 +777,8 @@
           <ccTool>
             <incDir>
               <pElem>..</pElem>
-              <pElem>../miosix</pElem>
               <pElem>../miosix/arch/common</pElem>
+              <pElem>../miosix</pElem>
               <pElem>../miosix/arch/cortexM3_stm32f2/common</pElem>
               <pElem>../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval</pElem>
             </incDir>
@@ -765,12 +791,545 @@
           </ccTool>
         </makeTool>
       </makefileType>
+      <item path="../app_template/main.c" ex="false" tool="0" flavor2="2">
+        <cTool>
+        </cTool>
+      </item>
+      <item path="../app_template_withlibs/main.c" ex="false" tool="0" flavor2="2">
+        <cTool>
+        </cTool>
+      </item>
+      <item path="../app_template_withlibs/syscallfuffa.c"
+            ex="false"
+            tool="0"
+            flavor2="2">
+        <cTool>
+        </cTool>
+      </item>
+      <item path="../main.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/console.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/delays.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/disk.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/portability.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/common/drivers/dcc.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/common/CMSIS/core_cm3.c"
+            ex="false"
+            tool="0"
+            flavor2="2">
+        <cTool>
+        </cTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/common/CMSIS/system_stm32f10x.c"
+            ex="false"
+            tool="0"
+            flavor2="2">
+        <cTool>
+        </cTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/common/drivers/serial.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/common/interfaces-impl/delays.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/common/interfaces-impl/disk.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/common/interfaces-impl/gpio_impl.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/common/interfaces-impl/portability.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery/core/stage_1_boot.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery/interfaces-impl/bsp.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery/interfaces-impl/console.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_mp3v2/core/stage_1_boot.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_mp3v2/interfaces-impl/bsp.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_mp3v2/interfaces-impl/console.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_strive_mini/core/stage_1_boot.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_strive_mini/interfaces-impl/bsp.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_strive_mini/interfaces-impl/console.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_redbull_v2/core/stage_1_boot.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_redbull_v2/interfaces-impl/bsp.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_redbull_v2/interfaces-impl/console.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_stm3210e-eval/core/stage_1_boot.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_stm3210e-eval/interfaces-impl/bsp.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_stm3210e-eval/interfaces-impl/console.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32f2/common/CMSIS/core_cm3.c"
+            ex="false"
+            tool="0"
+            flavor2="2">
+        <cTool>
+        </cTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32f2/common/CMSIS/system_stm32f2xx.c"
+            ex="false"
+            tool="0"
+            flavor2="2">
+        <cTool>
+        </cTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/disk.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/gpio_impl.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/portability.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/core/stage_1_boot.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/bsp.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/console.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/delays.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/core/stage_1_boot.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/interfaces-impl/bsp.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/interfaces-impl/console.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/interfaces-impl/delays.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/common/CMSIS/system_stm32f4xx.c"
+            ex="false"
+            tool="0"
+            flavor2="2">
+        <cTool>
+        </cTool>
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/delays.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/gpio_impl.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/portability.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/core/stage_1_boot.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/interfaces-impl/bsp.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/interfaces-impl/console.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/examples/sad_trombone/adpcm.c"
+            ex="false"
+            tool="0"
+            flavor2="2">
+        <cTool>
+        </cTool>
+      </item>
+      <item path="../miosix/examples/sad_trombone/convert.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/examples/sad_trombone/main.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/examples/sad_trombone/player.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/examples/thread_native/native_thread_example.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/examples/thread_pthread/pthread_example.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/kernel/elf_program.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/kernel/error.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/kernel/filesystem/diskio.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/kernel/filesystem/ff.c" ex="false" tool="0" flavor2="2">
+        <cTool>
+        </cTool>
+      </item>
+      <item path="../miosix/kernel/filesystem/filesystem.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/kernel/kernel.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/kernel/process.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/kernel/process_pool.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/kernel/pthread.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/kernel/scheduler/control/control_scheduler.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/kernel/scheduler/edf/edf_scheduler.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/kernel/scheduler/priority/priority_scheduler.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/kernel/stage_2_boot.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/kernel/sync.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/kernel/syscalls.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/kernel/unistd.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/testsuite/testsuite.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/util/crc16.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/util/lcd44780.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/util/util.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../miosix/util/version.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
     </conf>
     <conf name="stm32f207zg_ethboard_v2" type="0">
       <toolsSet>
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>

@@ -824,10 +824,9 @@ FRESULT f_open (
 	BYTE *dir;
 	char fn[8+3+1];
 
-
 	fp->fs = NULL;		/* Clear file object */
 #if !_FS_READONLY
-	mode &= (FA_READ|FA_WRITE|FA_CREATE_ALWAYS|FA_OPEN_ALWAYS|FA_CREATE_NEW);
+	mode &= (FA_READ|FA_WRITE|FA_CREATE_ALWAYS|FA_CREATE_NEW|FA_OPEN_ALWAYS);
 	res = auto_mount(&path, &dj.fs, (BYTE)(mode & (FA_WRITE|FA_CREATE_ALWAYS|FA_OPEN_ALWAYS|FA_CREATE_NEW)));
 #else
 	mode &= FA_READ;

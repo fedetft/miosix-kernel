@@ -1,5 +1,5 @@
-CXX:= g++
-CXXFLAGS:= -O2 -c
+CXX:= g++ -m32
+CXXFLAGS:= -O2 -c -m32
 OBJS:= postlinker.o main.o
 
 #create program target

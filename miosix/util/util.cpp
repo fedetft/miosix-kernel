@@ -41,6 +41,13 @@ using namespace std;
 
 namespace miosix {
 
+int fhbs(unsigned int x){
+    //TODO: Optimize!
+    int result=0;
+    while(x) { x>>=1; result++; }
+    return result;
+}
+
 /**
  * \internal
  * used by memDump

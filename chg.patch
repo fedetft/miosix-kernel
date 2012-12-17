@@ -1,0 +1,3313 @@
+diff --git a/Time results.txt b/Time results.txt
+new file mode 100644
+index 0000000..e0d36a9
+--- /dev/null
++++ b/Time results.txt	
+@@ -0,0 +1,21 @@
++OS cold boot 450us
++
++Process with 32K of RAM
++swapout= 18.2ms (+/-0.5ms)
++swapin=  18.9ms
++
++Process with 16K of RAM
++swapout=  9.5ms (+/-0.5ms)
++swapin=  10.2ms
++
++Process with  8K of RAM
++swapout=  4.7ms (+/-0.5ms)
++swapin=   5.8ms
++
++Process with  4K of RAM
++swapout=  2.5ms (+/-0.5ms)
++swapin=   3.6ms
++
++Process with  2K of RAM
++swapout=  1.7ms (+/-0.5ms)
++swapin=   2.5ms 
+diff --git a/app_template_withlibs/Makefile b/app_template_withlibs/Makefile
+deleted file mode 100644
+index 81a35d4..0000000
+--- a/app_template_withlibs/Makefile
++++ /dev/null
+@@ -1,47 +0,0 @@
+-##
+-## Makefile for writing PROGRAMS for the Miosix embedded OS
+-## TFT:Terraneo Federico Technlogies
+-##
+-
+-SRC := \
+-main.c \
+-syscallfuffa.c
+-
+-## Replaces both "foo.cpp"-->"foo.o" and "foo.c"-->"foo.o"
+-OBJ := $(addsuffix .o, $(basename $(SRC)))
+-
+-AS  := arm-miosix-eabi-as
+-CC  := arm-miosix-eabi-gcc
+-CXX := arm-miosix-eabi-g++
+-SZ  := arm-miosix-eabi-size
+-
+-AFLAGS   := -mcpu=cortex-m3 -mthumb
+-CFLAGS   := -mcpu=cortex-m3 -mthumb -fpie -msingle-pic-base \
+-            -ffunction-sections -O2 -Wall -c
+-CXXFLAGS := $(CFLAGS)
+-LFLAGS   := -mcpu=cortex-m3 -mthumb -fpie -msingle-pic-base \
+-            -Wl,--gc-sections,-Map,main.map,-T./miosix.ld,-n,-pie,--spare-dynamic-tags,3 \
+-            -O2 -nostdlib
+-# LFLAGS   := -mcpu=cortex-m3 -mthumb -fpie -msingle-pic-base \
+-#             -Wl,--gc-sections,-Map,main.map,-T./miosix.ld,-n,-pie,--spare-dynamic-tags,3 \
+-#             -O2 -nostdlib
+-
+-LINK_LIBS := -Wl,--start-group -lstdc++ -lc -lm -lgcc -Wl,--end-group
+-
+-all: $(OBJ) crt0.o
+-	$(CXX) $(LFLAGS) -o main.elf $(OBJ) crt0.o $(LINK_LIBS)
+-	$(SZ)  main.elf
+-	@mx-postlinker main.elf --ramsize=16384 --stacksize=2048 --strip-sectheader
+-	@xxd -i main.elf | sed 's/unsigned char/const unsigned char __attribute__((aligned(8)))/' > prog3.h
+-
+-clean:
+-	-rm $(OBJ) crt0.o main.elf main.map
+-
+-%.o: %.s
+-	$(AS) $(AFLAGS) $< -o $@
+-
+-%.o : %.c
+-	$(CC) $(CFLAGS) $< -o $@
+-
+-%.o : %.cpp
+-	$(CXX) $(CXXFLAGS) $< -o $@
+diff --git a/app_template_withlibs/crt0.s b/app_template_withlibs/crt0.s
+deleted file mode 100644
+index 2eba4bf..0000000
+--- a/app_template_withlibs/crt0.s
++++ /dev/null
+@@ -1,77 +0,0 @@
+-/*
+- * Startup script for writing PROGRAMS for the Miosix embedded OS
+- * TFT:Terraneo Federico Technlogies
+- */
+-
+-.syntax unified
+-.cpu cortex-m3
+-.thumb
+-
+-.section .text
+-
+-/**
+- * _start, program entry point
+- */
+-.global _start
+-.type _start, %function
+-_start:
+-	/* TODO: .ctor */
+-	bl   main
+-	/* TODO: .dtor */
+-	bl   _exit
+-
+-/**
+- * _exit, terminate process
+- * \param v exit value 
+- */
+-.section .text._exit
+-.global _exit
+-.type _exit, %function
+-_exit:
+-	movs r3, #2
+-	svc  0
+-
+-/**
+- * write, write to file
+- * \param fd file descriptor
+- * \param buf data to be written
+- * \param len buffer length
+- * \return number of written bytes or -1 if errors
+- */
+-.section .text.write
+-.global	write
+-.type	write, %function
+-write:
+-    movs r3, #3
+-    svc  0
+-    bx   lr
+-
+-/**
+- * read, read from file
+- * \param fd file descriptor
+- * \param buf data to be read
+- * \param len buffer length
+- * \return number of read bytes or -1 if errors
+- */
+-.section .text.read
+-.global	read
+-.type	read, %function
+-read:
+-    movs r3, #4
+-    svc  0
+-    bx   lr
+-
+-/**
+- * usleep, sleep a specified number of microseconds
+- * \param us number of microseconds to sleep
+- * \return 0 on success or -1 if errors
+- */
+-.section .text.usleep
+-.global	usleep
+-.type	usleep, %function
+-usleep:
+-    movs r3, #5
+-    svc  0
+-    bx   lr
+-
+-.end
+diff --git a/app_template_withlibs/main.c b/app_template_withlibs/main.c
+deleted file mode 100644
+index 57197b7..0000000
+--- a/app_template_withlibs/main.c
++++ /dev/null
+@@ -1,39 +0,0 @@
+-
+-#include <unistd.h>
+-#include <string.h>
+-#include <stdio.h>
+-
+-int main()
+-{
+-	printf("hello world %d\n",25);
+-	static const char str[]="0=divzero 1=sleep 5s, 2=exit 3=bkpt 4=dangling\n";
+-	static const char str2[]="Unexpected command\n";
+-	for(;;)
+-	{
+-		char result[100];
+-		write(1,str,strlen(str));
+-		int len=read(0,result,sizeof(result));
+-		if(len<1) continue;
+-		int i=10/(int)(result[0]-'0');
+-		unsigned int *p=(unsigned int *)0xc0000000;
+-		switch(result[0])
+-		{
+-			case '0':
+-				usleep(i);
+-				break;
+-			case '1':
+-				usleep(5000000);
+-				break;
+-			case '2':
+-				return 0;
+-			case '3':
+-				asm volatile("bkpt");
+-				break;
+-			case '4':
+-				usleep(*p);
+-				break;
+-			default:
+-				write(1,str2,strlen(str2));
+-		}
+-	}
+-}
+diff --git a/app_template_withlibs/miosix.ld b/app_template_withlibs/miosix.ld
+deleted file mode 100644
+index 0b86aaf..0000000
+--- a/app_template_withlibs/miosix.ld
++++ /dev/null
+@@ -1,77 +0,0 @@
+-/*
+- * Linker script for writing PROGRAMS for the Miosix embedded OS
+- * TFT:Terraneo Federico Technlogies
+- */
+-
+-OUTPUT_FORMAT("elf32-littlearm")
+-OUTPUT_ARCH(arm)
+-ENTRY(_start)
+-
+-SECTIONS
+-{
+-    /* Here starts the first elf segment, that stays in flash */
+-    . = 0 + SIZEOF_HEADERS;
+-
+-    .text : ALIGN(8)
+-    {
+-        *(.text)
+-        *(.text.*)
+-        *(.gnu.linkonce.t.*)
+-    }
+-
+-    .rel.data : { *(.rel.data .rel.data.* .rel.gnu.linkonce.d.*) }
+-    .rel.got  : { *(.rel.got) }
+-
+-    __exidx_start = .;
+-    .ARM.exidx :
+-    {
+-        *(.ARM.exidx* .gnu.linkonce.armexidx.*)
+-    }
+-    __exidx_end = .;
+-
+-    _end = .;
+-    PROVIDE(end = .);
+-
+-    /* Here starts the second segment, that is copied in RAM and relocated */
+-    . = 0x10000000;
+-
+-    .got      : { *(.got.plt) *(.igot.plt) *(.got) *(.igot) }
+-
+-    /* FIXME: If this is put in the other segment, it makes it writable */
+-    .dynamic  : { *(.dynamic) }
+-
+-    /* FIXME: The compiler insists in addressing rodata relative to r9 */
+-    .rodata : ALIGN(8)
+-    {
+-        *(.rodata)
+-        *(.rodata.*)
+-        *(.gnu.linkonce.r.*)
+-    }
+-
+-    .data : ALIGN(8)
+-    {
+-        *(.data)
+-        *(.data.*)
+-        *(.gnu.linkonce.d.*)
+-    }
+-
+-    .bss : ALIGN(8)
+-    {
+-        *(.bss)
+-        *(.bss.*)
+-        *(.gnu.linkonce.b.*)
+-        *(COMMON)
+-    }
+-
+-    /* These are removed since are unused and increase binary size */
+-    /DISCARD/ :
+-    {
+-        *(.interp)
+-        *(.dynsym)
+-        *(.dynstr)
+-        *(.hash)
+-        *(.comment)
+-        *(.ARM.attributes)
+-        *(.debug*)
+-    }
+-}
+diff --git a/app_template_withlibs/prog3.h b/app_template_withlibs/prog3.h
+deleted file mode 100644
+index 8855c4f..0000000
+--- a/app_template_withlibs/prog3.h
++++ /dev/null
+@@ -1,40 +0,0 @@
+-const unsigned char __attribute__((aligned(8))) main_elf[] = {
+-  0x7f, 0x45, 0x4c, 0x46, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+-  0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x28, 0x00, 0x01, 0x00, 0x00, 0x00,
+-  0x99, 0x00, 0x00, 0x00, 0x34, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+-  0x02, 0x00, 0x00, 0x05, 0x34, 0x00, 0x20, 0x00, 0x03, 0x00, 0x00, 0x00,
+-  0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x98, 0x00, 0x00, 0x00,
+-  0x98, 0x00, 0x00, 0x00, 0x98, 0x00, 0x00, 0x00, 0x9e, 0x00, 0x00, 0x00,
+-  0x9e, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00,
+-  0x01, 0x00, 0x00, 0x00, 0x38, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,
+-  0x00, 0x00, 0x00, 0x10, 0x7c, 0x00, 0x00, 0x00, 0x7c, 0x00, 0x00, 0x00,
+-  0x06, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+-  0x44, 0x01, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x10, 0x0c, 0x00, 0x00, 0x10,
+-  0x28, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00,
+-  0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x02, 0xf8,
+-  0x00, 0xf0, 0x40, 0xf8, 0x70, 0xb5, 0x1d, 0x4e, 0x1d, 0x4c, 0x7e, 0x44,
+-  0x9a, 0xb0, 0x7c, 0x44, 0x30, 0x36, 0x4f, 0xf0, 0x40, 0x45, 0x2f, 0x22,
+-  0x21, 0x46, 0x01, 0x20, 0x00, 0xf0, 0x34, 0xf8, 0x64, 0x22, 0x00, 0x20,
+-  0x01, 0xa9, 0x00, 0xf0, 0x32, 0xf8, 0x00, 0x28, 0xf3, 0xdd, 0x9d, 0xf8,
+-  0x04, 0x30, 0x30, 0x3b, 0x04, 0x2b, 0x1b, 0xd8, 0xdf, 0xe8, 0x03, 0xf0,
+-  0x13, 0x0c, 0x09, 0x07, 0x03, 0x00, 0x28, 0x68, 0x00, 0xf0, 0x26, 0xf8,
+-  0xe5, 0xe7, 0x00, 0xbe, 0xe3, 0xe7, 0x00, 0x20, 0x1a, 0xb0, 0x70, 0xbd,
+-  0x44, 0xf6, 0x40, 0x30, 0xc0, 0xf2, 0x4c, 0x00, 0x00, 0xf0, 0x1a, 0xf8,
+-  0xd9, 0xe7, 0x00, 0x23, 0x0a, 0x20, 0x90, 0xfb, 0xf3, 0xf0, 0x00, 0xf0,
+-  0x13, 0xf8, 0xd2, 0xe7, 0x01, 0x20, 0x31, 0x46, 0x13, 0x22, 0x00, 0xf0,
+-  0x07, 0xf8, 0xcc, 0xe7, 0x8e, 0xff, 0xff, 0x0f, 0x8a, 0xff, 0xff, 0x0f,
+-  0x02, 0x23, 0x00, 0xdf, 0x03, 0x23, 0x00, 0xdf, 0x70, 0x47, 0x04, 0x23,
+-  0x00, 0xdf, 0x70, 0x47, 0x05, 0x23, 0x00, 0xdf, 0x70, 0x47, 0x00, 0x00,
+-  0x0c, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+-  0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,
+-  0x00, 0x40, 0x00, 0x00, 0x01, 0x00, 0x00, 0x10, 0x00, 0x08, 0x00, 0x00,
+-  0x4d, 0x69, 0x6f, 0x73, 0x69, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x3d, 0x64, 0x69,
+-  0x76, 0x7a, 0x65, 0x72, 0x6f, 0x20, 0x31, 0x3d, 0x73, 0x6c, 0x65, 0x65,
+-  0x70, 0x20, 0x35, 0x73, 0x2c, 0x20, 0x32, 0x3d, 0x65, 0x78, 0x69, 0x74,
+-  0x20, 0x33, 0x3d, 0x62, 0x6b, 0x70, 0x74, 0x20, 0x34, 0x3d, 0x64, 0x61,
+-  0x6e, 0x67, 0x6c, 0x69, 0x6e, 0x67, 0x0a, 0x00, 0x55, 0x6e, 0x65, 0x78,
+-  0x70, 0x65, 0x63, 0x74, 0x65, 0x64, 0x20, 0x63, 0x6f, 0x6d, 0x6d, 0x61,
+-  0x6e, 0x64, 0x0a, 0x00
+-};
+-unsigned int main_elf_len = 436;
+diff --git a/app_template_withlibs/syscallfuffa.c b/app_template_withlibs/syscallfuffa.c
+deleted file mode 100644
+index 3c12251..0000000
+--- a/app_template_withlibs/syscallfuffa.c
++++ /dev/null
+@@ -1,62 +0,0 @@
+-
+-#include <stdio.h>
+-#include <stdlib.h>
+-#include <string.h>
+-#include <reent.h>
+-#include <sys/times.h>
+-#include <sys/stat.h>
+-#include <sys/fcntl.h>
+-#include <unistd.h>
+-
+-void pthread_mutex_unlock() {}
+-void pthread_mutex_lock() {}
+-void pthread_mutex_destroy() {}
+-
+-int __register_exitproc(int type, void (*fn)(void), void *arg, void *d) { return 0; }
+-void __call_exitprocs(int code, void *d) {}
+-
+-void *__dso_handle=(void*) &__dso_handle;
+-
+-void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr) { return (void*)-1; }
+-void __malloc_lock() {}
+-void __malloc_unlock() {}
+-int _open_r(struct _reent *ptr, const char *name, int flags, int mode) { return -1; }
+-int _close_r(struct _reent *ptr, int fd) { return -1; }
+-
+-int _write(int fd, const void *buf, size_t cnt)
+-{
+-    return write(fd,buf,cnt);
+-}
+-
+-int _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
+-{
+-    return write(fd,buf,cnt);
+-}
+-
+-int _read(int fd, void *buf, size_t cnt)
+-{
+-    return read(fd,buf,cnt);
+-}
+-
+-int _read_r(struct _reent *ptr, int fd, void *buf, size_t cnt)
+-{
+-    return read(fd,buf,cnt);
+-}
+-
+-off_t _lseek(int fd, off_t pos, int whence) { return -1; }
+-off_t _lseek_r(struct _reent *ptr, int fd, off_t pos, int whence) { return -1; }
+-int _fstat(int fd, struct stat *pstat) { return -1; }
+-int _fstat_r(struct _reent *ptr, int fd, struct stat *pstat) { return -1; }
+-int _stat_r(struct _reent *ptr, const char *file, struct stat *pstat) { return -1; }
+-int isatty(int fd) { return -1; }
+-int _isatty(int fd) { return -1; }
+-int mkdir(const char *path, mode_t mode) { return -1; }
+-int _unlink_r(struct _reent *ptr, const char *file) { return -1; }
+-clock_t _times_r(struct _reent *ptr, struct tms *tim) { return -1; }
+-int _link_r(struct _reent *ptr, const char *f_old, const char *f_new) { return -1; }
+-int _kill(int pid, int sig) { return -1; }
+-int _kill_r(struct _reent* ptr, int pid, int sig) { return -1; }
+-int _getpid() { return 1; }
+-int _getpid_r(struct _reent* ptr) { return 1; }
+-int _fork_r(struct _reent *ptr) { return -1; }
+-int _wait_r(struct _reent *ptr, int *status) { return -1; }
+diff --git a/fail.txt b/fail.txt
+new file mode 100644
+index 0000000..d9887fa
+--- /dev/null
++++ b/fail.txt
+@@ -0,0 +1,37 @@
++Miosix v1.60 (stm32f207ig_stm3220g-eval, Jul 12 2012 17:34:40, gcc 4.5.2)
++Starting Kernel... Ok
++Starting Filesystem... No disk
++Available heap 24576 out of 29868 Bytes
++tick=40
++First boot
++
++0=divzero 1=sleep 5s, 2=exit 3=bkpt 4=dangling
++1
++0x200039b0 | 58 bf 00 20 00 00 00 00 38 80 00 20 7c bf 00 20 | X.......8...|...
++0x200039c0 | 00 00 00 c0 00 00 00 00 00 80 00 20 0a 00 00 00 | ................
++0x200039d0 | bb bb bb bb                                     | ....
++Swapping 1 processes
++save base=0x1c578 size=468
++0x00000000 | 00 02 00 20 79 56 00 00 01 66 01 00 19 66 01 00 | ....yV...f...f..
++0x00000010 | cd 66 01 00 31 68 01 00 09 69 01 00 00 00 00 00 | .f..1h...i......
++0x00000020 | 00 00 00 00                                     | ....
++about to suspend, tick=2724
++Miosix v1.60 (stm32f207ig_stm3220g-eval, Jul 12 2012 17:34:40, gcc 4.5.2)
++Starting Kernel... Ok
++Starting Filesystem... No disk
++Available heap 24576 out of 29868 Bytes
++tick=7764
++RTC boot
++Reloading 1 processes
++reload base=0x1c578 size=468
++0x4002407e | 00 02 00 20 79 56 00 00 01 66 01 00 19 66 01 00 | ....yV...f...f..
++0x4002408e | cd 66 01 00 31 68 01 00 09 69 01 00 00 00 00 00 | .f..1h...i......
++0x4002409e | 00 00 00 00                                     | ....
++Process 1 terminated due to a fault
++* Code base address was 0x1c578
++* Data base address was 0x20008000
++* MPU region 0 0x0-0x20000 r-x
++* MPU region 1 0x20008000-0x2000c000 rw-
++* Invalid data access (PC was 0x4030201)
++Process terminated
++Process segfaulted
+diff --git a/main.cpp b/main.cpp
+index 75f70ce..b991f7f 100644
+--- a/main.cpp
++++ b/main.cpp
+@@ -2,8 +2,10 @@
+ #include <cstdio>
+ #include <sys/wait.h>
+ #include <signal.h>
++#include <string.h>
+ #include "miosix.h"
+ #include "kernel/process.h"
++#include "interfaces/suspend_support.h"
+ #include "app_template/prog3.h"
+ 
+ using namespace std;
+@@ -23,6 +25,35 @@ void ledThread(void *)
+ int main()
+ {
+     Thread::create(ledThread,STACK_MIN);
++    SuspendManager::startHibernationDaemon();
++    iprintf("tick=%llu\n",getTick());
++    if(firstBoot())
++    {
++        puts("First boot");
++//        //Watermarking
++//        memset(getBackupSramBase(),0xff,getBackupSramSize());
++//        char *buf=new char[1024];
++//        memset(buf,0xff,1024);
++//        Mram& mram=Mram::instance();
++//        mram.exitSleepMode();
++//        for(int i=0,j=0;i<mram.size()/1024;i++,j+=1024)
++//            mram.write(j,buf,1024);
++//        mram.enterSleepMode();
++//        delete[] buf;
++    } else {
++        puts("RTC boot");
++        SuspendManager::resume();
++        
++        int ec;
++        Process::wait(&ec);
++        iprintf("Process terminated\n");
++        if(WIFEXITED(ec))
++        {
++            iprintf("Exit code is %d\n",WEXITSTATUS(ec));
++        } else if(WIFSIGNALED(ec)) {
++            if(WTERMSIG(ec)==SIGSEGV) iprintf("Process segfaulted\n");
++        }
++    }
+     
+     ElfProgram prog(reinterpret_cast<const unsigned int*>(main_elf),main_elf_len);
+     for(int i=0;;i++)
+diff --git a/miosix/Makefile b/miosix/Makefile
+index e601cfc..483c893 100644
+--- a/miosix/Makefile
++++ b/miosix/Makefile
+@@ -20,6 +20,7 @@ kernel/syscalls.cpp                                                        \
+ kernel/elf_program.cpp                                                     \
+ kernel/process.cpp                                                         \
+ kernel/process_pool.cpp                                                    \
++kernel/suspend_manager.cpp                                                 \
+ kernel/scheduler/priority/priority_scheduler.cpp                           \
+ kernel/scheduler/control/control_scheduler.cpp                             \
+ kernel/scheduler/edf/edf_scheduler.cpp                                     \
+diff --git a/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/portability.cpp b/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/portability.cpp
+index 47fe617..c309f92 100644
+--- a/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/portability.cpp
++++ b/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/portability.cpp
+@@ -29,6 +29,7 @@
+ #include "interfaces/portability.h"
+ #include "kernel/kernel.h"
+ #include "kernel/error.h"
++#include "util/util.h"
+ #include "interfaces/bsp.h"
+ #include "kernel/scheduler/scheduler.h"
+ #include "kernel/scheduler/tick_interrupt.h"
+@@ -263,27 +264,27 @@ MPUConfiguration::MPUConfiguration(unsigned int *elfBase, unsigned int elfSize,
+     regValues[1]=2<<MPU_RASR_AP_Pos
+                | MPU_RASR_C_Msk
+                | 1 //Enable bit
+-               | ((ffs(elfSize)-2)<<1);
++               | ((miosix::fhbs(elfSize)-2)<<1);
+     regValues[3]=3<<MPU_RASR_AP_Pos
+                | MPU_RASR_XN_Msk
+                | MPU_RASR_C_Msk
+                | MPU_RASR_S_Msk
+                | 1 //Enable bit
+-               | ((ffs(imageSize)-2)<<1);
++               | ((miosix::fhbs(imageSize)-2)<<1);
+     #else //__CODE_IN_XRAM
+     regValues[1]=2<<MPU_RASR_AP_Pos
+                | MPU_RASR_C_Msk
+                | MPU_RASR_B_Msk
+                | MPU_RASR_S_Msk
+                | 1 //Enable bit
+-               | ((ffs(elfSize)-2)<<1);
++               | ((miosix::fhbs(elfSize)-2)<<1);
+     regValues[3]=3<<MPU_RASR_AP_Pos
+                | MPU_RASR_XN_Msk
+                | MPU_RASR_C_Msk
+                | MPU_RASR_B_Msk
+                | MPU_RASR_S_Msk
+                | 1 //Enable bit
+-               | ((ffs(imageSize)-2)<<1);
++               | ((miosix::fhbs(imageSize)-2)<<1);
+     #endif //__CODE_IN_XRAM
+ }
+ 
+diff --git a/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/suspend_support_impl.cpp b/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/suspend_support_impl.cpp
+new file mode 100644
+index 0000000..dda8f03
+--- /dev/null
++++ b/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/suspend_support_impl.cpp
+@@ -0,0 +1,115 @@
++/***************************************************************************
++ *   Copyright (C) 2012 by Terraneo Federico and Luigi Rucco               *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   As a special exception, if other files instantiate templates or use   *
++ *   macros or inline functions from this file, or you compile this file   *
++ *   and link it with other works to produce a work based on this file,    *
++ *   this file does not by itself cause the resulting work to be covered   *
++ *   by the GNU General Public License. However the source code for this   *
++ *   file must still be made available in accordance with the GNU General  *
++ *   Public License. This exception does not invalidate any other reasons  *
++ *   why a work based on this file might be covered by the GNU General     *
++ *   Public License.                                                       *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
++ ***************************************************************************/
++
++#include <stdio.h>
++#include "interfaces/suspend_support.h"
++#include "kernel/process_pool.h"
++#include "miosix.h"
++#include "interfaces/arch_registers.h"
++
++#ifdef WITH_HIBERNATION
++
++namespace miosix {
++    
++void IRQinitializeSuspendSupport()
++{
++    RCC->APB1ENR |= RCC_APB1ENR_PWREN;
++    PWR->CR |= PWR_CR_DBP;
++    PWR->CSR |= PWR_CSR_BRE;
++    while((PWR->CSR & PWR_CSR_BRR)==0) ;
++    RCC->AHB1ENR |= RCC_AHB1ENR_BKPSRAMEN;
++
++    RCC->BDCR |= RCC_BDCR_LSEON;
++    while((RCC->BDCR & RCC_BDCR_LSERDY)==0) ; //wait
++    RCC->BDCR |= RCC_BDCR_RTCSEL_0 | RCC_BDCR_RTCEN;
++    RTC->WPR=0xca;
++    RTC->WPR=0x53;
++    
++    //FIXME: hack
++    if(firstBoot()==false)
++    {
++        long long tick=static_cast<long long>(getBackupSramBase()[1022])<<32
++                     | static_cast<long long>(getBackupSramBase()[1021]);
++        tick+=getBackupSramBase()[1023]*1000;
++        IRQsetTick(tick);
++    }
++}
++
++void doSuspend(unsigned int seconds)
++{
++    if(seconds==0) return;
++    if(seconds>31) seconds=31;
++  
++    while(Console::txComplete()==false) ;
++
++    {
++        FastInterruptDisableLock dLock;
++ 
++        RCC->CSR |= RCC_CSR_RMVF; //This makes firstBoot() return false next time
++        RTC->CR &= ~RTC_CR_WUTE;
++        while((RTC->ISR & RTC_ISR_WUTWF)==0) ; //Wait
++        RTC->WUTR=seconds*2048; //10s
++        RTC->CR |= RTC_CR_WUTE | RTC_CR_WUTIE;
++    
++        RTC->ISR= ~RTC_ISR_WUTF;
++        EXTI->EMR |= 1<<22;
++        EXTI->RTSR |= 1<<22;
++
++        PWR->CR |= PWR_CR_PDDS | PWR_CR_CWUF;
++        SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
++        //Using WFE instead of WFI because if while we are with interrupts
++        //disabled an interrupt (such as the tick interrupt) occurs, it
++        //remains pending and the WFI becomes a nop, and the device never goes
++        //in sleep mode. WFE events are latched in a separate pending register
++        //so interrupts do not interfere with them
++        __WFE();
++        //Should never reach here
++        NVIC_SystemReset();
++    }
++}
++
++bool firstBoot()
++{
++    static const unsigned int firstBootMask=
++        RCC_CSR_LPWRRSTF
++      | RCC_CSR_WWDGRSTF
++      | RCC_CSR_WDGRSTF
++      | RCC_CSR_SFTRSTF
++      | RCC_CSR_PORRSTF
++      | RCC_CSR_PADRSTF
++      | RCC_CSR_BORRSTF;
++    return (RCC->CSR & firstBootMask) ? true : false;
++}
++
++int getAllocatorSramAreaSize()
++{
++    return ProcessPool::instance().getSerializableSize();
++}
++
++} //namespace miosix
++
++#endif //WITH_HIBERNATION
+\ No newline at end of file
+diff --git a/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/suspend_support_impl.h b/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/suspend_support_impl.h
+new file mode 100644
+index 0000000..2783f1e
+--- /dev/null
++++ b/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/suspend_support_impl.h
+@@ -0,0 +1,73 @@
++/***************************************************************************
++ *   Copyright (C) 2012 by Terraneo Federico and Luigi Rucco               *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   As a special exception, if other files instantiate templates or use   *
++ *   macros or inline functions from this file, or you compile this file   *
++ *   and link it with other works to produce a work based on this file,    *
++ *   this file does not by itself cause the resulting work to be covered   *
++ *   by the GNU General Public License. However the source code for this   *
++ *   file must still be made available in accordance with the GNU General  *
++ *   Public License. This exception does not invalidate any other reasons  *
++ *   why a work based on this file might be covered by the GNU General     *
++ *   Public License.                                                       *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
++ ***************************************************************************/
++
++#ifndef SUSPEND_SUPPORT_IMPL_H
++#define	SUSPEND_SUPPORT_IMPL_H
++
++#ifdef WITH_HIBERNATION
++
++#include "drivers/mram.h"
++
++namespace miosix {
++
++inline unsigned int *getBackupSramBase()
++{
++    return reinterpret_cast<unsigned int*>(0x40024000);
++}
++
++inline int getBackupSramSize()
++{
++    return 4096;
++}
++
++inline int getBackupAllocatorSramAreaSize()
++{
++    return sizeof(unsigned int*)*4;
++}
++
++inline int getProcessesSramAreaSize()
++{
++    return 1024;
++}
++
++inline int getRoutingTableSramAreaSize()
++{
++    return 1024;
++}
++
++inline int getSmartDriversQueueSramAreaSize()
++{
++    return getBackupSramSize()-
++           getAllocatorSramAreaSize() -
++           getProcessesSramAreaSize() -
++           getSmartDriversQueueSramAreaSize();
++}
++
++} //namespace miosix
++
++#endif  //WITH_HIBERNATION
++#endif	//SUSPEND_SUPPORT_IMPL_H
+diff --git a/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/drivers/mram.cpp b/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/drivers/mram.cpp
+new file mode 100644
+index 0000000..ff7fa91
+--- /dev/null
++++ b/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/drivers/mram.cpp
+@@ -0,0 +1,340 @@
++/***************************************************************************
++ *   Copyright (C) 2012 by Terraneo Federico                               *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   As a special exception, if other files instantiate templates or use   *
++ *   macros or inline functions from this file, or you compile this file   *
++ *   and link it with other works to produce a work based on this file,    *
++ *   this file does not by itself cause the resulting work to be covered   *
++ *   by the GNU General Public License. However the source code for this   *
++ *   file must still be made available in accordance with the GNU General  *
++ *   Public License. This exception does not invalidate any other reasons  *
++ *   why a work based on this file might be covered by the GNU General     *
++ *   Public License.                                                       *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
++ ***************************************************************************/
++
++#include "mram.h"
++#include <miosix.h>
++#include <kernel/scheduler/scheduler.h>
++#include <interfaces/delays.h>
++
++using namespace miosix;
++
++//Gpio mapping
++typedef Gpio<GPIOI_BASE,2> miso;
++typedef Gpio<GPIOI_BASE,3> mosi;
++typedef Gpio<GPIOI_BASE,1> sck;
++typedef Gpio<GPIOI_BASE,0> cs;
++
++/**
++ * DMA RX end of transfer
++ */
++void __attribute__((naked)) DMA1_Stream3_IRQHandler()
++{
++    saveContext();
++    asm volatile("bl _Z20SPI2rxDmaHandlerImplv");
++    restoreContext();
++}
++
++/**
++ * DMA TX end of transfer
++ */
++void __attribute__((naked)) DMA1_Stream4_IRQHandler()
++{
++    saveContext();
++    asm volatile("bl _Z20SPI2txDmaHandlerImplv");
++    restoreContext();
++}
++
++static Thread *waiting;
++static bool error;
++
++/**
++ * DMA RX end of transfer actual implementation
++ */
++void __attribute__((used)) SPI2rxDmaHandlerImpl()
++{
++    if(DMA1->LISR & (DMA_LISR_TEIF3 | DMA_LISR_DMEIF3)) error=true;
++    DMA1->LIFCR=DMA_LIFCR_CTCIF3
++              | DMA_LIFCR_CTEIF3
++              | DMA_LIFCR_CDMEIF3;
++    waiting->IRQwakeup();
++    if(waiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
++        Scheduler::IRQfindNextThread();
++    waiting=0;
++}
++
++/**
++ * DMA TX end of transfer actual implementation
++ */
++void __attribute__((used)) SPI2txDmaHandlerImpl()
++{
++    if(DMA1->HISR & (DMA_HISR_TEIF4 | DMA_HISR_DMEIF4)) error=true;
++    DMA1->HIFCR=DMA_HIFCR_CTCIF4
++              | DMA_HIFCR_CTEIF4
++              | DMA_HIFCR_CDMEIF4;
++    waiting->IRQwakeup();
++    if(waiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
++        Scheduler::IRQfindNextThread();
++    waiting=0;
++}
++
++/**
++ * Transfer a byte through SPI2 where the mram is connected
++ * \param data byte to send
++ * \return byte received
++ */
++static unsigned char spi2sendRecv(unsigned char data=0)
++{
++    SPI2->DR=data;
++    while((SPI2->SR & SPI_SR_RXNE)==0) ;
++    return SPI2->DR;
++}
++
++//
++// class Mram
++//
++
++Mram& Mram::instance()
++{
++    static Mram singleton;
++    return singleton;
++}
++    
++unsigned int Mram::size() const { return 128*1024; }
++
++bool Mram::write(unsigned int addr, const void *data, int size)
++{
++    // Write time, with CPU @ 120MHz and SPI2 @ 15MHz, is
++    // 2    us fixed time (mutex locking)
++    // 3.5  us fixed time (sending the address an peripheral register setup)
++    // 0.533us per byte transferred in DMA mode
++    // 4.5  us fixed time (context switch and peripheral register cleanup)
++    // 2    us fixed time (mutex unlock)
++    
++    if(addr>=this->size() || addr+size>this->size()) return false;
++    pthread_mutex_lock(&mutex);
++    if(sleepMode) { pthread_mutex_unlock(&mutex); return false; }
++    cs::low();
++    spi2sendRecv(0x02); //Write command
++    spi2sendRecv((addr>>16) & 0xff);
++    spi2sendRecv((addr>>8) & 0xff);
++    spi2sendRecv(addr & 0xff);
++    
++    //DMA1 stream 4 channel 0 = SPI2_TX
++    
++    error=false;
++
++    //Wait until the SPI is busy, required otherwise the last byte is not
++    //fully sent
++    while((SPI2->SR & SPI_SR_TXE)==0) ;
++    while(SPI2->SR & SPI_SR_BSY) ;
++    SPI2->CR1=0;
++    SPI2->CR2=SPI_CR2_TXDMAEN;
++    SPI2->CR1=SPI_CR1_SSM
++            | SPI_CR1_SSI
++            | SPI_CR1_MSTR
++            | SPI_CR1_SPE;
++
++    waiting=Thread::getCurrentThread();
++    NVIC_ClearPendingIRQ(DMA1_Stream4_IRQn);
++    NVIC_SetPriority(DMA1_Stream4_IRQn,10);//Low priority for DMA
++    NVIC_EnableIRQ(DMA1_Stream4_IRQn);
++
++    DMA1_Stream4->CR=0;
++    DMA1_Stream4->PAR=reinterpret_cast<unsigned int>(&SPI2->DR);
++    DMA1_Stream4->M0AR=reinterpret_cast<unsigned int>(data);
++    DMA1_Stream4->NDTR=size;
++    DMA1_Stream4->CR=DMA_SxCR_PL_1 //High priority because fifo disabled
++                | DMA_SxCR_MINC    //Increment memory pointer
++                | DMA_SxCR_DIR_0   //Memory to peripheral
++                | DMA_SxCR_TCIE    //Interrupt on transfer complete
++                | DMA_SxCR_TEIE    //Interrupt on transfer error
++                | DMA_SxCR_DMEIE   //Interrupt on direct mode error
++                | DMA_SxCR_EN;     //Start DMA
++    
++    {
++        FastInterruptDisableLock dLock;
++        while(waiting!=0)
++        {
++            waiting->IRQwait();
++            {
++                FastInterruptEnableLock eLock(dLock);
++                Thread::yield();
++            }
++        }
++    }
++                
++    NVIC_DisableIRQ(DMA1_Stream4_IRQn);
++
++    //Wait for last byte to be sent
++    while((SPI2->SR & SPI_SR_TXE)==0) ;
++    while(SPI2->SR & SPI_SR_BSY) ;
++    SPI2->CR1=0;
++    SPI2->CR2=0;
++    SPI2->CR1=SPI_CR1_SSM
++            | SPI_CR1_SSI
++            | SPI_CR1_MSTR
++            | SPI_CR1_SPE;
++    
++    //Quirk: reset RXNE by reading DR, or a byte remains in the input buffer
++    volatile short temp=SPI1->DR;
++    (void)temp;
++    
++    cs::high();
++    bool result=!error;
++    pthread_mutex_unlock(&mutex);
++    return result;
++}
++
++bool Mram::read(unsigned int addr, void *data, int size)
++{
++    // Read time, with CPU @ 120MHz and SPI2 @ 15MHz, is
++    // 2    us fixed time (mutex locking)
++    // 3.5  us fixed time (sending the address an peripheral register setup)
++    // 0.533us per byte transferred in DMA mode
++    // 4.5  us fixed time (context switch and peripheral register cleanup)
++    // 2    us fixed time (mutex unlock)
++    if(addr>=this->size() || addr+size>this->size()) return false;
++    pthread_mutex_lock(&mutex);
++    if(sleepMode) { pthread_mutex_unlock(&mutex); return false; }
++    cs::low();
++    spi2sendRecv(0x03); //Read command
++    spi2sendRecv((addr>>16) & 0xff);
++    spi2sendRecv((addr>>8) & 0xff);
++    spi2sendRecv(addr & 0xff);
++    
++    //DMA1 stream 3 channel 0 = SPI2_RX
++
++    error=false;
++
++    //Wait until the SPI is busy, required otherwise the last byte is not
++    //fully sent
++    while((SPI2->SR & SPI_SR_TXE)==0) ;
++    while(SPI2->SR & SPI_SR_BSY) ;
++    //Quirk: reset RXNE by reading DR before starting the DMA, or the first
++    //byte in the DMA buffer is garbage
++    volatile short temp=SPI2->DR;
++    (void)temp;
++    SPI2->CR1=0;
++    SPI2->CR2=SPI_CR2_RXDMAEN;
++
++    waiting=Thread::getCurrentThread();
++    NVIC_ClearPendingIRQ(DMA1_Stream3_IRQn);
++    NVIC_SetPriority(DMA1_Stream3_IRQn,10);//Low priority for DMA
++    NVIC_EnableIRQ(DMA1_Stream3_IRQn);
++
++    DMA1_Stream3->CR=0;
++    DMA1_Stream3->PAR=reinterpret_cast<unsigned int>(&SPI2->DR);
++    DMA1_Stream3->M0AR=reinterpret_cast<unsigned int>(data);
++    DMA1_Stream3->NDTR=size;
++    DMA1_Stream3->CR=DMA_SxCR_PL_1 //High priority because fifo disabled
++                | DMA_SxCR_MINC    //Increment memory pointer
++                | DMA_SxCR_TCIE    //Interrupt on transfer complete
++                | DMA_SxCR_TEIE    //Interrupt on transfer error
++                | DMA_SxCR_DMEIE   //Interrupt on direct mode error
++                | DMA_SxCR_EN;     //Start DMA
++
++    //Quirk: start the SPI in RXONLY mode only *after* the DMA has been
++    //setup or the SPI doesn't wait for the DMA and the first bytes are lost
++    SPI2->CR1=SPI_CR1_RXONLY
++            | SPI_CR1_SSM
++            | SPI_CR1_SSI
++            | SPI_CR1_MSTR
++            | SPI_CR1_SPE;
++        
++    {
++        FastInterruptDisableLock dLock;
++        while(waiting!=0)
++        {
++            waiting->IRQwait();
++            {
++                FastInterruptEnableLock eLock(dLock);
++                Thread::yield();
++            }
++        }
++    }
++
++    NVIC_DisableIRQ(DMA1_Stream3_IRQn);
++    SPI2->CR1=0;
++    
++    //Quirk, disabling the SPI in RXONLY mode is difficult
++    while(SPI2->SR & SPI_SR_RXNE) temp=SPI2->DR;
++    delayUs(1); //The last transfer may still be in progress
++    while(SPI2->SR & SPI_SR_RXNE) temp=SPI2->DR;
++    
++    SPI2->CR2=0;
++    SPI2->CR1=SPI_CR1_SSM
++            | SPI_CR1_SSI
++            | SPI_CR1_MSTR
++            | SPI_CR1_SPE;
++
++    cs::high();
++    bool result=!error;
++    pthread_mutex_unlock(&mutex);
++    return result;
++}
++
++void Mram::exitSleepMode()
++{
++    pthread_mutex_lock(&mutex);
++    cs::low();
++    spi2sendRecv(0xab); //Exit sleep mode command
++    cs::high();
++    Thread::sleep(1);   //It needs at least 400us to go out of sleep mode
++    cs::low();
++    spi2sendRecv(0x06); //Write enable command
++    cs::high();
++    sleepMode=false;
++    pthread_mutex_unlock(&mutex);
++}
++
++void Mram::enterSleepMode()
++{
++    pthread_mutex_lock(&mutex);
++    cs::low();
++    spi2sendRecv(0x04); //Write disable command
++    cs::high();
++    for(int i=0;i<5;i++) __NOP(); //To meet 40ns CS high time between commands
++    cs::low();
++    spi2sendRecv(0xb9); //Entr sleep mode command
++    cs::high();
++    delayUs(3);         //It needs at least 3us to enter sleep mode
++    sleepMode=true;
++    pthread_mutex_unlock(&mutex);
++}
++
++Mram::Mram() : sleepMode(true)
++{
++    pthread_mutex_init(&mutex,0);
++    {
++        FastInterruptDisableLock dLock;
++        mosi::mode(Mode::ALTERNATE);
++        mosi::alternateFunction(5);
++        miso::mode(Mode::ALTERNATE);
++        miso::alternateFunction(5);
++        sck::mode(Mode::ALTERNATE);
++        sck::alternateFunction(5);
++        cs::mode(Mode::OUTPUT);
++        cs::high();
++        RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN;
++        RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;
++        SPI2->CR2=0;
++        SPI2->CR1=SPI_CR1_SSM  //Software cs
++                | SPI_CR1_SSI  //Hardware cs internally tied high
++                | SPI_CR1_MSTR //Master mode
++                | SPI_CR1_SPE; //SPI enabled
++    }
++}
+diff --git a/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/drivers/mram.h b/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/drivers/mram.h
+new file mode 100644
+index 0000000..34f2c95
+--- /dev/null
++++ b/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/drivers/mram.h
+@@ -0,0 +1,95 @@
++/***************************************************************************
++ *   Copyright (C) 2012 by Terraneo Federico                               *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   As a special exception, if other files instantiate templates or use   *
++ *   macros or inline functions from this file, or you compile this file   *
++ *   and link it with other works to produce a work based on this file,    *
++ *   this file does not by itself cause the resulting work to be covered   *
++ *   by the GNU General Public License. However the source code for this   *
++ *   file must still be made available in accordance with the GNU General  *
++ *   Public License. This exception does not invalidate any other reasons  *
++ *   why a work based on this file might be covered by the GNU General     *
++ *   Public License.                                                       *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
++ ***************************************************************************/
++
++#include <pthread.h>
++
++#ifndef MRAM_H
++#define	MRAM_H
++
++/**
++ * Class to access the mram memory
++ */
++class Mram
++{
++public:
++    /**
++     * Singleton
++     * \return an instance of the Mram class 
++     */
++    static Mram& instance();
++    
++    /**
++     * \return the MRAM's size in bytes 
++     */
++    unsigned int size() const;
++    
++    /**
++     * Write a block of data into the mram
++     * \param addr start address into the mram where the data block will be
++     * written
++     * \param data data block
++     * \param size data block size
++     * \return true on success, false on failure
++     */
++    bool write(unsigned int addr, const void *data, int size);
++    
++    /**
++     * Read a block of data from the mram
++     * \param addr start address into the mram where the data block will be read
++     * \param data data block
++     * \param size data block size
++     * \return true on success, false on failure
++     */
++    bool read(unsigned int addr, void *data, int size);
++    
++    /**
++     * This member function needs to be called before accessing the mram
++     */
++    void exitSleepMode();
++    
++    /**
++     * This member function can be called after performing operations on the
++     * mram to put it back in sleep mode
++     */
++    void enterSleepMode();
++    
++    /**
++     * \return true if the mram is in sleep mode 
++     */
++    bool isSleeping() const { return sleepMode; }
++    
++private:
++    Mram();
++    
++    Mram(const Mram&);
++    Mram& operator= (const Mram&);
++    
++    pthread_mutex_t mutex; ///Mutex to protect concurrent access to the hardware
++    bool sleepMode;
++};
++
++#endif //MRAM_H
+diff --git a/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/bsp.cpp b/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/bsp.cpp
+index 0950086..cd41faa 100644
+--- a/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/bsp.cpp
++++ b/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/bsp.cpp
+@@ -45,6 +45,7 @@
+ #include "config/miosix_settings.h"
+ #include "kernel/logging.h"
+ #include "console-impl.h"
++#include "interfaces/suspend_support.h"
+ 
+ namespace miosix {
+ 
+@@ -77,6 +78,10 @@ void IRQbspInit()
+     #ifndef STDOUT_REDIRECTED_TO_DCC
+     IRQstm32f2serialPortInit();
+     #endif //STDOUT_REDIRECTED_TO_DCC
++    
++    #ifdef WITH_HIBERNATION    
++    IRQinitializeSuspendSupport();
++    #endif //WITH_HIBERNATION
+ }
+ 
+ void bspInit2()
+diff --git a/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/stm32_1m+128k_rom_processes.ld b/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/stm32_1m+128k_rom_processes.ld
+new file mode 100644
+index 0000000..6dc5b31
+--- /dev/null
++++ b/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/stm32_1m+128k_rom_processes.ld
+@@ -0,0 +1,170 @@
++/*
++ * C++ enabled linker script for stm32 (1M FLASH, 128K RAM)
++ * Developed by TFT: Terraneo Federico Technologies
++ * Optimized for use with the Miosix kernel
++ */
++
++/*
++ * This linker script puts:
++ * - read only data and code (.text, .rodata, .eh_*) in flash
++ * - stacks, heap and sections .data and .bss in the first 32KB of the internal ram
++ * - leaves the rest of the RAM (upper 96KB) is used as the process pool for
++ *   allocating processes.
++ * - the external ram (if available) is not used.
++ */
++
++/*
++ * The main stack is used for interrupt handling by the kernel.
++ *
++ * *** Readme ***
++ * This linker script places the main stack (used by the kernel for interrupts)
++ * at the bottom of the ram, instead of the top. This is done for two reasons:
++ *
++ * - as an optimization for microcontrollers with little ram memory. In fact
++ *   the implementation of malloc from newlib requests memory to the OS in 4KB
++ *   block (except the first block that can be smaller). This is probably done
++ *   for compatibility with OSes with an MMU and paged memory. To see why this
++ *   is bad, consider a microcontroller with 8KB of ram: when malloc finishes
++ *   up the first 4KB it will call _sbrk_r asking for a 4KB block, but this will
++ *   fail because the top part of the ram is used by the main stack. As a
++ *   result, the top part of the memory will not be used by malloc, even if
++ *   available (and it is nearly *half* the ram on an 8KB mcu). By placing the
++ *   main stack at the bottom of the ram, the upper 4KB block will be entirely
++ *   free and available as heap space.
++ *
++ * - In case of main stack overflow the cpu will fault because access to memory
++ *   before the beginning of the ram faults. Instead with the default stack
++ *   placement the main stack will silently collide with the heap.
++ * Note: if increasing the main stack size also increase the ORIGIN value in
++ * the MEMORY definitions below accordingly.
++ */
++_main_stack_size = 0x00000200;                     /* main stack = 512Bytes */
++_main_stack_top  = 0x20000000 + _main_stack_size;
++ASSERT(_main_stack_size   % 8 == 0, "MAIN stack size error");
++
++/* end of the heap (32KB) */
++_heap_end = 0x20008000;                            /* end of available ram  */
++_process_pool_start = _heap_end;                   /* from 32KB to 128KB    */
++_process_pool_end = 0x20020000;
++
++/* identify the Entry Point  */
++ENTRY(_Z13Reset_Handlerv)
++
++/* specify the memory areas  */
++MEMORY
++{
++    flash(rx)   : ORIGIN = 0,          LENGTH = 1M
++
++    /*
++     * Note, the ram starts at 0x20000000 but it is necessary to add the size
++     * of the main stack, so it is 0x20000200.
++     */
++    ram(wx)     : ORIGIN = 0x20000200, LENGTH =  32K-0x200
++}
++
++/* now define the output sections  */
++SECTIONS
++{
++    . = 0;
++    
++    /* .text section: code goes to flash */
++    .text :
++    {
++        /* Startup code must go at address 0 */
++        KEEP(*(.isr_vector))
++        
++        *(.text)
++        *(.text.*)
++        *(.gnu.linkonce.t.*)
++        /* these sections for thumb interwork? */
++        *(.glue_7)
++        *(.glue_7t)
++        /* these sections for C++? */
++        *(.gcc_except_table)
++        *(.gcc_except_table.*)
++        *(.ARM.extab*)
++        *(.gnu.linkonce.armextab.*)
++
++        . = ALIGN(4);
++        /* .rodata: constant data */
++        *(.rodata)
++        *(.rodata.*)
++        *(.gnu.linkonce.r.*)
++
++        /* C++ Static constructors/destructors (eabi) */
++        . = ALIGN(4);
++        KEEP(*(.init))
++
++        . = ALIGN(4);
++        __preinit_array_start = .;
++        KEEP (*(.preinit_array))
++        __preinit_array_end = .;
++
++        . = ALIGN(4);
++        __init_array_start = .;
++        KEEP (*(SORT(.init_array.*)))
++        KEEP (*(.init_array))
++        __init_array_end = .;
++
++        . = ALIGN(4);
++        KEEP(*(.fini))
++
++        . = ALIGN(4);
++        __fini_array_start = .;
++        KEEP (*(.fini_array))
++        KEEP (*(SORT(.fini_array.*)))
++        __fini_array_end = .;
++
++        /* C++ Static constructors/destructors (elf)  */
++        . = ALIGN(4);
++        _ctor_start = .;
++        KEEP (*crtbegin.o(.ctors))
++        KEEP (*(EXCLUDE_FILE (*crtend.o) .ctors))
++        KEEP (*(SORT(.ctors.*)))
++        KEEP (*crtend.o(.ctors))
++       _ctor_end = .;
++
++        . = ALIGN(4);
++        KEEP (*crtbegin.o(.dtors))
++        KEEP (*(EXCLUDE_FILE (*crtend.o) .dtors))
++        KEEP (*(SORT(.dtors.*)))
++        KEEP (*crtend.o(.dtors))
++    } > flash
++
++    /* .ARM.exidx is sorted, so has to go in its own output section.  */
++    __exidx_start = .;
++    .ARM.exidx :
++    {
++        *(.ARM.exidx* .gnu.linkonce.armexidx.*)
++    } > flash
++    __exidx_end = .;
++
++    . = ALIGN(8);
++    _etext = .;
++
++	/* .data section: global variables go to ram, but also store a copy to
++       flash to initialize them */
++    .data : ALIGN(8)
++    {
++        _data = .;
++        *(.data)
++        *(.data.*)
++        *(.gnu.linkonce.d.*)
++        . = ALIGN(8);
++        _edata = .;
++    } > ram AT > flash
++
++    /* .bss section: uninitialized global variables go to ram */
++    _bss_start = .;
++    .bss :
++    {
++        *(.bss)
++        *(.bss.*)
++        *(.gnu.linkonce.b.*)
++        . = ALIGN(8);
++    } > ram
++    _bss_end = .;
++
++    _end = .;
++    PROVIDE(end = .);
++}
+diff --git a/miosix/config/Makefile.inc b/miosix/config/Makefile.inc
+index 940be46..5e8a726 100644
+--- a/miosix/config/Makefile.inc
++++ b/miosix/config/Makefile.inc
+@@ -28,8 +28,8 @@ OPT_BOARD := stm32f207ig_stm3220g-eval
+ ## -O2 is recomended otherwise, as it provides a good balance between code
+ ## size and speed
+ ##
+-OPT_OPTIMIZATION := -O0
+-#OPT_OPTIMIZATION := -O2
++#OPT_OPTIMIZATION := -O0
++OPT_OPTIMIZATION := -O2
+ #OPT_OPTIMIZATION := -O3
+ #OPT_OPTIMIZATION := -Os
+ 
+@@ -167,7 +167,8 @@ ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
+     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom.ld
+     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram.ld
+     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld
+-    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram_processes.ld
++    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom_processes.ld
++    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram_processes.ld
+ 
+     ## Enable/disable initialization of external RAM at boot. Three options:
+     ## __ENABLE_XRAM : If you want the heap in xram (with an appropriate linker
+@@ -177,7 +178,7 @@ ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
+     ## none selected : don't use xram (with an appropriate linker script
+     ## selected above)
+     #XRAM := -D__ENABLE_XRAM
+-    XRAM := -D__ENABLE_XRAM -D__CODE_IN_XRAM
++    #XRAM := -D__ENABLE_XRAM -D__CODE_IN_XRAM
+ 
+ endif
+ 
+@@ -665,11 +666,13 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
+ 
+         ## Select architecture specific files
+         ## These are the files in arch/<arch name>/<board name>
+-        ARCH_SRC :=                                  \
+-        $(ARCH_INC)/interfaces-impl/disk.cpp         \
+-        $(BOARD_INC)/interfaces-impl/console.cpp     \
+-        $(BOARD_INC)/interfaces-impl/delays.cpp      \
+-        $(BOARD_INC)/interfaces-impl/bsp.cpp
++        ARCH_SRC :=                                          \
++        $(ARCH_INC)/interfaces-impl/disk.cpp                 \
++        $(BOARD_INC)/interfaces-impl/console.cpp             \
++        $(BOARD_INC)/interfaces-impl/delays.cpp              \
++        $(ARCH_INC)/interfaces-impl/suspend_support_impl.cpp \
++        $(BOARD_INC)/interfaces-impl/bsp.cpp                 \
++        $(BOARD_INC)/drivers/mram.cpp
+ 
+         ## Add a #define to allow querying board name
+         CFLAGS_BASE   += -D_BOARD_STM3220G_EVAL
+diff --git a/miosix/config/miosix_settings.h b/miosix/config/miosix_settings.h
+index e0952f6..648c3c4 100644
+--- a/miosix/config/miosix_settings.h
++++ b/miosix/config/miosix_settings.h
+@@ -68,10 +68,19 @@ namespace miosix {
+ /// call service and, if the hardware supports it, the MPU to provide memory
+ /// isolation of processes
+ #define WITH_PROCESSES
++    
++/// \def WITH_HIBERNATION
++/// Enable process hibernation, allowing to save the state of processes and
++/// put the system in low power mode
++#define WITH_HIBERNATION
+ 
+ #if defined(WITH_PROCESSES) && defined(__NO_EXCEPTIONS)
+ #error Processes require C++ exception support
+ #endif //defined(WITH_PROCESSES) && defined(__NO_EXCEPTIONS)
++    
++#if defined(WITH_HIBERNATION) && !defined(WITH_PROCESSES)
++#error Hibernation requires processes
++#endif //defined(WITH_HIBERNATION) && !defined(WITH_PROCESSES)
+ 
+ //
+ // Filesystem options
+@@ -93,6 +102,9 @@ namespace miosix {
+ /// Maximum number of open files. Trying to open more will fail.
+ const unsigned char MAX_OPEN_FILES=8;
+ 
++/// Maximum number of threads a process can spawn
++const unsigned char MAX_THREADS_PER_PROCESS=2;
++
+ //
+ // C/C++ standard library I/O (stdin, stdout and stderr related)
+ //
+diff --git a/miosix/doc/textdoc/Changelog.txt b/miosix/doc/textdoc/Changelog.txt
+index 0965bd7..e04e3ab 100644
+--- a/miosix/doc/textdoc/Changelog.txt
++++ b/miosix/doc/textdoc/Changelog.txt
+@@ -1,7 +1,6 @@
+ Changelog for Miosix np embedded OS
+ 
+ v1.60
+-- Fixed a bug in FastMutex::get(): the member function was unimplemented.
+ - Fixed a bug in ST code for the stm3220g-eval board: despite having a 2MB RAM,
+   A18, A19 and A20 were left as GPIOs, resulting in issues when accessing the
+   upper part of the RAM.
+diff --git a/miosix/interfaces/portability.h b/miosix/interfaces/portability.h
+index 6d30928..89feb7b 100644
+--- a/miosix/interfaces/portability.h
++++ b/miosix/interfaces/portability.h
+@@ -261,11 +261,29 @@ class MPUConfiguration
+       * Print the MPU configuration for debugging purposes
+       */
+      void dumpConfiguration();
+- 
++     
++     /**
++      * \return the number of registers
++      */
++     int getNumRegisters()
++     {
++         return numRegisters;
++     }
++     
++     /**
++      * \return the pointer to the register array, used to configure the MPU
++      */
++     unsigned int* getRegValuesPtr()
++     {
++         return regValues;
++     }
++     
++     static const int numRegisters=4;
++     
+      //Uses default copy constructor and operator=
+ private:
+      ///These value are copied into the MPU registers to configure them
+-     unsigned int regValues[4]; 
++     unsigned int regValues[numRegisters]; 
+ };
+ 
+ #endif //WITH_PROCESSES
+diff --git a/miosix/interfaces/suspend_support.h b/miosix/interfaces/suspend_support.h
+new file mode 100644
+index 0000000..96d69cd
+--- /dev/null
++++ b/miosix/interfaces/suspend_support.h
+@@ -0,0 +1,101 @@
++/***************************************************************************
++ *   Copyright (C) 2012 by Terraneo Federico and Luigi Rucco               *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   As a special exception, if other files instantiate templates or use   *
++ *   macros or inline functions from this file, or you compile this file   *
++ *   and link it with other works to produce a work based on this file,    *
++ *   this file does not by itself cause the resulting work to be covered   *
++ *   by the GNU General Public License. However the source code for this   *
++ *   file must still be made available in accordance with the GNU General  *
++ *   Public License. This exception does not invalidate any other reasons  *
++ *   why a work based on this file might be covered by the GNU General     *
++ *   Public License.                                                       *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
++ ***************************************************************************/
++#ifndef SUSPEND_SUPPORT_H
++#define	SUSPEND_SUPPORT_H
++
++#include "config/miosix_settings.h"
++
++#ifdef WITH_HIBERNATION
++
++namespace miosix {
++
++/**
++ * \return a pointer to the beginning of the backup SRAM area, that preserves
++ * its content through hibernation
++ */
++inline unsigned int *getBackupSramBase();
++
++/**
++ * \return the size of the backup SRAM
++ */
++inline int getBackupSramSize();
++
++/**
++ * Needs to be called from IRQbspInit() if hibernation support is enabled.
++ * None of the functions in this haeder can be called prior to this, as they
++ * might access uninitialized resources
++ */
++void IRQinitializeSuspendSupport();
++
++/**
++ * Enter hibernation mode for the specified number of seconds
++ * \param seconds after how much time the system will reboot
++ */
++void doSuspend(unsigned int seconds);
++
++/**
++ * \return true if this is the first boot, i.e. a boot caused by a reset
++ * assertion or power on. If returns false, this is a boot caused by an RTC
++ * wakeup, and in this case swapped processes need to be reloaded.
++ */
++bool firstBoot();
++
++/**
++ * \return size of the backup SRAM for the allocator status
++ *  
++ */
++int getAllocatorSramAreaSize();
++
++/**
++ * \return size of the backup SRAM for the backup allocator status
++ *  this includes four pointers, i.e. the base pointers to the four 
++ * region of the backup memory
++ */
++inline int getBackupAllocatorSramAreaSize();
++
++/**
++ * \return size of the backup SRAM for the Processes status serialization 
++ */
++inline int getProcessesSramAreaSize();
++
++/**
++ * \return size of the backup SRAM for network topology information 
++ */
++inline int getRoutingTableSramAreaSize();
++
++/**
++ * \return size of the backup SRAM for the queue of the smart drivers
++ */
++inline int getSmartDriversQueueSramAreaSize();
++
++} //namespace miosix
++
++// This contains the macros and the implementation of inline functions
++#include "interfaces-impl/suspend_support_impl.h"
++
++#endif  //WITH_HIBERNATION
++#endif	//SUSPEND_SUPPORT_H
+diff --git a/miosix/kernel/elf_program.cpp b/miosix/kernel/elf_program.cpp
+index bab4dea..98edc3f 100644
+--- a/miosix/kernel/elf_program.cpp
++++ b/miosix/kernel/elf_program.cpp
+@@ -30,6 +30,9 @@
+ #include <stdexcept>
+ #include <cstring>
+ #include <cstdio>
++#ifdef WITH_HIBERNATION
++#include "interfaces/suspend_support.h"
++#endif
+ 
+ using namespace std;
+ 
+@@ -142,9 +145,9 @@ bool ElfProgram::validateHeader()
+ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
+         unsigned int dataSegmentSize)
+ {
+-    unsigned int base=getElfBase();
++    const unsigned int base=reinterpret_cast<unsigned int>(getElfBase());
+     const Elf32_Dyn *dyn=
+-        reinterpret_cast<const Elf32_Dyn*>(getElfBase()+dynamic->p_offset);
++        reinterpret_cast<const Elf32_Dyn*>(base+dynamic->p_offset);
+     const int dynSize=dynamic->p_memsz/sizeof(Elf32_Dyn);
+     Elf32_Addr dtRel=0;
+     Elf32_Word dtRelsz=0;
+@@ -235,7 +238,7 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
+ void ProcessImage::load(const ElfProgram& program)
+ {
+     if(image) ProcessPool::instance().deallocate(image);
+-    const unsigned int base=program.getElfBase();
++    const unsigned int base=reinterpret_cast<unsigned int>(program.getElfBase());
+     const Elf32_Phdr *phdr=program.getProgramHeaderTable();
+     const Elf32_Phdr *dataSegment=0;
+     Elf32_Addr dtRel=0;
+@@ -311,6 +314,22 @@ void ProcessImage::load(const ElfProgram& program)
+     }
+ }
+ 
++#ifdef WITH_HIBERNATION
++void ProcessImage::resume(ProcessStatus* status)
++{
++    image=status->processImageBase;
++    size=status->processImageSize;
++    //TODO: optimize
++    Mram& mram=Mram::instance();
++    mram.exitSleepMode();
++    //reload the image from MRAM to the main RAM
++    mram.read(reinterpret_cast<unsigned int>(image)-
++            ProcessPool::instance().getBaseAddress(),
++            image,size);
++    mram.enterSleepMode();
++}
++#endif //WITH_HIBERNATION
++
+ ProcessImage::~ProcessImage()
+ {
+     if(image) ProcessPool::instance().deallocate(image);
+diff --git a/miosix/kernel/elf_program.h b/miosix/kernel/elf_program.h
+index 5d5abed..08b09f3 100644
+--- a/miosix/kernel/elf_program.h
++++ b/miosix/kernel/elf_program.h
+@@ -31,6 +31,7 @@
+ #include <utility>
+ #include "elf_types.h"
+ #include "config/miosix_settings.h"
++#include "suspend_manager.h"
+ 
+ #ifdef WITH_PROCESSES
+ 
+@@ -88,11 +89,11 @@ public:
+     }
+     
+     /**
+-     * \return a number representing the elf base address in memory
++     * \return the elf base address in memory
+      */
+-    unsigned int getElfBase() const
++    const unsigned int *getElfBase() const
+     {
+-        return reinterpret_cast<unsigned int>(elf);
++        return elf;
+     }
+     
+     /**
+@@ -143,6 +144,15 @@ public:
+      */
+     void load(const ElfProgram& program);
+     
++    #ifdef WITH_HIBERNATION
++    /**
++     * Resume the image of a process in RAM after and hibernation
++     * including copying .data, zeroing .bss and performing
++     * relocations
++     */
++    void resume(ProcessStatus* status);
++    #endif //WITH_HIBERNATION
++    
+     /**
+      * \return a pointer to the base of the program image
+      */
+diff --git a/miosix/kernel/kernel.cpp b/miosix/kernel/kernel.cpp
+index 8bae046..0d7f8d5 100644
+--- a/miosix/kernel/kernel.cpp
++++ b/miosix/kernel/kernel.cpp
+@@ -34,6 +34,7 @@
+ #include "sync.h"
+ #include "process.h"
+ #include "kernel/scheduler/scheduler.h"
++#include "arch/cortexM4_stm32f4/common/arch_settings.h"
+ #include <stdexcept>
+ #include <algorithm>
+ #include <string.h>
+@@ -215,6 +216,13 @@ long long getTick()
+     }
+ }
+ 
++#ifdef WITH_HIBERNATION
++void IRQsetTick(long long newTick)
++{
++    tick=newTick;
++}
++#endif //WITH_HIBERNATION
++
+ /**
+  * \internal
+  * Used by Thread::sleep() to add a thread to sleeping list. The list is sorted
+@@ -738,6 +746,18 @@ void Thread::setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
+     miosix_private::initCtxsave(cur->userCtxsave,startfunc,ep,0,gotBase);
+ }
+ 
++#ifdef WITH_HIBERNATION
++void Thread::serializeUserspaceContext(unsigned int registers[CTXSAVE_SIZE])
++{
++    memcpy(registers,this->userCtxsave,CTXSAVE_SIZE*sizeof(unsigned int));
++}
++
++void Thread::resumeUserspaceContext(unsigned int registers[CTXSAVE_SIZE])
++{
++    memcpy(cur->userCtxsave,registers,CTXSAVE_SIZE*sizeof(unsigned int));
++}
++#endif //WITH_HIBERNATION
++
+ #endif //WITH_PROCESSES
+ 
+ Thread::~Thread()
+diff --git a/miosix/kernel/kernel.h b/miosix/kernel/kernel.h
+index c2abb0d..3128a37 100644
+--- a/miosix/kernel/kernel.h
++++ b/miosix/kernel/kernel.h
+@@ -386,6 +386,16 @@ bool isKernelRunning();
+  */
+ long long getTick();
+ 
++#ifdef WITH_HIBERNATION
++/**
++ * \internal
++ * Used when resuming from hibernation to make sure the absolute time does not
++ * restart from zero. Note that calling this function everywhere but in
++ * IRQbspInit will result in undefined behaviour
++ */
++void IRQsetTick(long long newTick);
++#endif //WITH_HIBERNATION
++
+ //Declaration of the struct, definition follows below
+ struct SleepData;
+ 
+@@ -871,7 +881,7 @@ private:
+     };
+     
+     #ifdef WITH_PROCESSES
+-
++    
+     /**
+      * \internal
+      * Causes a thread belonging to a process to switch to userspace, and
+@@ -903,6 +913,24 @@ private:
+     static void setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
+         unsigned int ramImageSize);
+     
++    #ifdef WITH_HIBERNATION
++    
++    /**
++     * Serialize the userspace registers of a thread.Can only be called on
++     * a thread that is not running in userpsace
++     * \param registers are the saved registers during hibernation
++     */
++    void serializeUserspaceContext(unsigned int registers[CTXSAVE_SIZE]);
++    
++    /**
++     * Resume the userspace context of the thread, so that it can be later
++     * switched to userspace. Must be called only once for each thread instance
++     * \param registers are the saved registers during hibernation
++     */
++    static void resumeUserspaceContext(unsigned int registers[CTXSAVE_SIZE]);
++    
++    #endif //WITH_HIBERNATION
++    
+     #endif //WITH_PROCESSES
+ 
+     /**
+diff --git a/miosix/kernel/process.cpp b/miosix/kernel/process.cpp
+index 9ac56c2..06d7e55 100644
+--- a/miosix/kernel/process.cpp
++++ b/miosix/kernel/process.cpp
+@@ -31,6 +31,7 @@
+ #include <cstring>
+ #include <sys/wait.h>
+ #include <signal.h>
++#include "suspend_manager.h"
+ #include "sync.h"
+ #include "process_pool.h"
+ #include "process.h"
+@@ -74,6 +75,7 @@ namespace miosix {
+ 
+ pid_t Process::create(const ElfProgram& program)
+ {
++    Lock<Mutex> l(SuspendManager::suspMutex);
+     auto_ptr<Process> proc(new Process(program));
+     {   
+         Lock<Mutex> l(procMutex);
+@@ -105,12 +107,134 @@ pid_t Process::create(const ElfProgram& program)
+     //thread has already been created but there's no memory to list it
+     //among the threads of a process
+     proc->threads.push_back(thr);
++    proc->numActiveThreads++;    
+     thr->wakeup(); //Actually start the thread, now that everything is set up
+     pid_t result=proc->pid;
+     proc.release(); //Do not delete the pointer
+     return result;
+ }
+ 
++pid_t Process::create(ProcessStatus* status, int threadId)
++{
++    Lock<Mutex> l(SuspendManager::suspMutex);
++    map<pid_t,Process*>::iterator findProc;
++    findProc=processes.find(status->pid);
++    
++    if(findProc==processes.end())
++        throw runtime_error("Unable to recreate the process after hibernation");
++    Process* proc=findProc->second;
++    
++    proc->image.resume(status);
++    
++    //TODO: look at it -- begin
++    #ifndef __CODE_IN_XRAM
++    //FIXME -- begin
++    //Till a flash file system that ensures proper alignment of the programs
++    //loaded in flash is implemented, make the whole flash visible as a big MPU
++    //region
++    extern unsigned int _etext asm("_etext");
++    unsigned int flashEnd=reinterpret_cast<unsigned int>(&_etext);
++    if(flashEnd & (flashEnd-1)) flashEnd=1<<fhbs(flashEnd);
++    proc->mpu=miosix_private::MPUConfiguration(0,flashEnd,
++            proc->image.getProcessBasePointer(),proc->image.getProcessImageSize());
++//    mpu=miosix_private::MPUConfiguration(program.getElfBase(),roundedSize,
++//            image.getProcessBasePointer(),image.getProcessImageSize());
++    //FIXME -- end
++    #else //__CODE_IN_XRAM
++    loadedProgram=ProcessPool::instance().allocate(roundedSize);
++    memcpy(loadedProgram,program.getElfBase(),elfSize);
++    mpu=miosix_private::MPUConfiguration(loadedProgram,roundedSize,
++            image.getProcessBasePointer(),image.getProcessImageSize());
++    #endif //__CODE_IN_XRAM
++    //TODO: look at it -- end
++    
++    
++    Thread *thr=Thread::createUserspace(Process::start,
++            status->interruptionPoints[threadId].registers,
++            Thread::DEFAULT,proc);
++    proc->toBeSwappedOut=true;
++    
++    if(thr==0)
++    {
++        Lock<Mutex> l(procMutex);
++        processes.erase(proc->pid);
++        if(Thread::getCurrentThread()->proc!=0)
++        {
++            Thread::getCurrentThread()->proc->childs.remove(proc);
++        } else kernelChilds.remove(proc);
++        delete proc;
++        throw runtime_error("Thread recreation failed");
++    }
++    //Cannot throw bad_alloc due to the reserve in Process's constructor.
++    //This ensures we will never be in the uncomfortable situation where a
++    //thread has already been created but there's no memory to list it
++    //among the threads of a process
++    proc->threads.push_back(thr);
++    proc->numActiveThreads++;
++    thr->wakeup(); //Actually start the thread, now that everything is set up
++    pid_t result=proc->pid;
++    return result;
++}
++
++pid_t Process::resume(const ElfProgram& program, ProcessStatus* status)
++{
++    auto_ptr<Process> proc(new Process(program,true));
++    //in this block we set the number of 
++    {
++        Lock<Mutex> l(SuspendManager::suspMutex);
++        proc->suspended=true;
++        SuspendManager::suspendedProcesses.push_back(proc.get());
++    }
++    proc->pid=status->pid;
++    proc->ppid=status->ppid;
++    if(status->status & 1) proc->zombie=true;
++    else proc->zombie=false;
++    proc->exitCode=status->exitCode;
++    proc->toBeSwappedOut=false;
++    
++    map<pid_t,Process*>::iterator findProc;
++    {   
++        Lock<Mutex> l(procMutex);
++        if(proc->ppid!=0)
++        {   
++            findProc=processes.find(proc->ppid);
++            //now we check if the parent is resumed and eventually become part
++            //of its childs list
++            if(findProc!=processes.end())
++            {
++                if(proc->zombie==false)
++                {
++                    findProc->second->childs.push_back(proc.get());
++                } else {
++                    findProc->second->zombies.push_back(proc.get());
++                }
++            }
++        } else {
++            kernelChilds.push_back(proc.get());
++        }
++        
++        //since there is not a sequential resume schedule, we need to check if
++        //we are parent of children already resumed and eventually add them to
++        //the parent childs list. The following "for" cycle pursues this goal
++        for(findProc=processes.begin(); findProc!=processes.end(); findProc++)
++        {
++            if(findProc->second->ppid==proc->pid)
++            {
++                if(findProc->second->zombie==false)
++                    proc->childs.push_back(findProc->second);
++                else
++                    proc->zombies.push_back(findProc->second);
++                        
++            }
++        }
++        
++        processes[proc->pid]=proc.get();
++    }
++    
++    proc.release(); //Do not delete the pointer
++    return proc->pid;
++}
++
+ pid_t Process::getppid(pid_t proc)
+ {
+     Lock<Mutex> l(procMutex);
+@@ -220,35 +344,97 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
+     }
+ }
+ 
++void Process::serialize(ProcessStatus* ptr)
++{
++    ptr->pid=this->pid;
++    ptr->ppid=this->ppid;
++    ptr->processImageBase = this->image.getProcessBasePointer();
++    ptr->processImageSize = this->image.getProcessImageSize();
++    memcpy(ptr->fileDescriptors,this->fileTable,MAX_OPEN_FILES*sizeof(int));
++    #ifndef __CODE_IN_XRAM
++    ptr->programBase=this->program->getElfBase();
++    ptr->programSize=this->program->getElfSize();
++    iprintf("save base=%p size=%d\n",ptr->programBase,ptr->programSize);
++    #else //__CODE_IN_XRAM
++    ptr->programBase=this->loadedProgram;
++    ptr->programBase=reinterpret_cast<unsigned int*>(this->roundedSize);
++    #endif //__CODE_IN_XRAM
++
++    ptr->exitCode=this->exitCode;
++    ptr->numThreads=this->threads.size();
++            
++    if(this->zombie)
++        ptr->status=1;
++    else
++        ptr->status=0;
++    
++    //in this cycle the interruptionPoint structure is serialized
++    for(unsigned int i=0;i<this->threads.size();i++)
++    {
++        list<SyscallResumeTime>::iterator it;
++        for(it=SuspendManager::syscallReturnTime.begin();
++                it!=SuspendManager::syscallReturnTime.end();
++                it++)
++        {
++            if(this->pid==it->pid && i==it->threadNum)
++            {
++                ptr->interruptionPoints[i].absSyscallTime=it->resumeTime;
++                ptr->interruptionPoints[i].intPointID=it->intPointID;
++                ptr->interruptionPoints[i].fileID=it->fileID;
++                ptr->interruptionPoints[i].wakeNow=0;
++                //FIXME: the following two will become similar to those commented
++                ptr->interruptionPoints[i].backupQueue=NULL;
++                ptr->interruptionPoints[i].queueSize=0;
++                //ptr->interruptionPoints[i].backupQueue=getBackupQueueBase(this->pid, i);
++                //ptr->interruptionPoints[i].queueSize=getBackupQueueSize(this->pid, i);
++                ptr->interruptionPoints[i].targetSampleMem=
++                        reinterpret_cast<unsigned int*>(this->sampleBuf);
++                ptr->interruptionPoints[i].sizeOfSample=this->sizeOfSample;
++                ptr->interruptionPoints[i].sampNum=0; //must be filled by smart driver
++                this->threads[i]->serializeUserspaceContext(
++                        ptr->interruptionPoints[i].registers);
++            }
++        }
++    }
++    
++}
++
++
+ Process::~Process()
+ {
++    if(program)
++        delete program;
+     #ifdef __CODE_IN_XRAM
+     ProcessPool::instance().deallocate(loadedProgram);
+     #endif //__CODE_IN_XRAM
+ }
+ 
+-Process::Process(const ElfProgram& program) : program(program), waitCount(0),
+-        zombie(false)
++
++Process::Process(const ElfProgram& program, bool resuming)
++        : numActiveThreads(0), waitCount(0), zombie(false), suspended(false),
++          toBeSwappedOut(true)
+ {
++    this->program=new ElfProgram(program);
+     //This is required so that bad_alloc can never be thrown when the first
+     //thread of the process will be stored in this vector
+     threads.reserve(1);
+-    //Done here so if not enough memory the new process is not even created
+-    image.load(program);
+     unsigned int elfSize=program.getElfSize();
+-    unsigned int roundedSize=elfSize;
++    roundedSize=elfSize;
+     //Allocatable blocks must be greater than ProcessPool::blockSize, and must
+     //be a power of two due to MPU limitations
+     if(elfSize<ProcessPool::blockSize) roundedSize=ProcessPool::blockSize;
+-    else if(elfSize & (elfSize-1)) roundedSize=1<<ffs(elfSize);
++    else if(elfSize & (elfSize-1)) roundedSize=1<<fhbs(elfSize);
++    if(resuming) return;
++    //Done here so if not enough memory the new process is not even created
++    image.load(program);
+     #ifndef __CODE_IN_XRAM
+     //FIXME -- begin
+     //Till a flash file system that ensures proper alignment of the programs
+     //loaded in flash is implemented, make the whole flash visible as a big MPU
+     //region
+-    extern unsigned char _end asm("_end");
+-    unsigned int flashEnd=reinterpret_cast<unsigned int>(&_end);
+-    if(flashEnd & (flashEnd-1)) flashEnd=1<<ffs(flashEnd);
++    extern unsigned int _etext asm("_etext");
++    unsigned int flashEnd=reinterpret_cast<unsigned int>(&_etext);
++    if(flashEnd & (flashEnd-1)) flashEnd=1<<fhbs(flashEnd);
+     mpu=miosix_private::MPUConfiguration(0,flashEnd,
+             image.getProcessBasePointer(),image.getProcessImageSize());
+ //    mpu=miosix_private::MPUConfiguration(program.getElfBase(),roundedSize,
+@@ -256,23 +442,40 @@ Process::Process(const ElfProgram& program) : program(program), waitCount(0),
+     //FIXME -- end
+     #else //__CODE_IN_XRAM
+     loadedProgram=ProcessPool::instance().allocate(roundedSize);
+-    memcpy(loadedProgram,reinterpret_cast<char*>(program.getElfBase()),elfSize);
++    memcpy(loadedProgram,program.getElfBase(),elfSize);
+     mpu=miosix_private::MPUConfiguration(loadedProgram,roundedSize,
+             image.getProcessBasePointer(),image.getProcessImageSize());
+     #endif //__CODE_IN_XRAM
+ }
+ 
++
++
+ void *Process::start(void *argv)
+ {
+     Process *proc=Thread::getCurrentThread()->proc;
+     if(proc==0) errorHandler(UNEXPECTED);
+-    unsigned int entry=proc->program.getEntryPoint();
++    unsigned int entry=proc->program->getEntryPoint();
+     #ifdef __CODE_IN_XRAM
+-    entry=entry-proc->program.getElfBase()+
++    entry=entry-reinterpret_cast<unsigned int>(proc->program->getElfBase())+
+         reinterpret_cast<unsigned int>(proc->loadedProgram);
+     #endif //__CODE_IN_XRAM
+-    Thread::setupUserspaceContext(entry,proc->image.getProcessBasePointer(),
+-        proc->image.getProcessImageSize());
++    if(proc->suspended==false)
++        Thread::setupUserspaceContext(entry,proc->image.getProcessBasePointer(),
++            proc->image.getProcessImageSize());
++    else
++    {
++        if(argv)
++            Thread::resumeUserspaceContext(reinterpret_cast<unsigned int*>(argv));
++        else
++            errorHandler(UNEXPECTED);
++        //in the following block the process is removed from the list of the
++        //suspended processes, after hibernation
++        {
++            Lock<Mutex> l(SuspendManager::suspMutex);
++            proc->suspended=false;
++            SuspendManager::suspendedProcesses.remove(proc);    
++        }
++    }
+     bool running=true;
+     do {
+         miosix_private::SyscallParameters sp=Thread::switchToUserspace();
+@@ -282,18 +485,28 @@ void *Process::start(void *argv)
+             proc->exitCode=SIGSEGV; //Segfault
+             #ifdef WITH_ERRLOG
+             iprintf("Process %d terminated due to a fault\n"
+-                    "* Code base address was 0x%x\n"
++                    "* Code base address was %p\n"
+                     "* Data base address was %p\n",proc->pid,
+                     #ifndef __CODE_IN_XRAM
+-                    proc->program.getElfBase(),
++                    proc->program->getElfBase(),
+                     #else //__CODE_IN_XRAM
+-                    reinterpret_cast<unsigned int>(proc->loadedProgram),
++                    proc->loadedProgram,
+                     #endif //__CODE_IN_XRAM
+                     proc->image.getProcessBasePointer());
+             proc->mpu.dumpConfiguration();
+             proc->fault.print();
+             #endif //WITH_ERRLOG
+         } else {
++            int threadID=-1;
++         
++            for(unsigned int i=0;i<proc->threads.size();i++)
++            {
++                if(proc->threads[i]==Thread::getCurrentThread())
++                    threadID=i;
++            }
++            if(threadID==-1)
++                errorHandler(UNEXPECTED);
++            
+             switch(sp.getSyscallId())
+             {
+                 case 2:
+@@ -302,17 +515,22 @@ void *Process::start(void *argv)
+                     break;
+                 case 3:
+                     //FIXME: check that the pointer belongs to the process
++                    
+                     sp.setReturnValue(write(sp.getFirstParameter(),
+                         reinterpret_cast<const char*>(sp.getSecondParameter()),
+                         sp.getThirdParameter()));
+                     break;
+                 case 4:
+                     //FIXME: check that the pointer belongs to the process
++             
+                     sp.setReturnValue(read(sp.getFirstParameter(),
+                         reinterpret_cast<char*>(sp.getSecondParameter()),
+                         sp.getThirdParameter()));
+                     break;
+-                case 5: 
++                case 5:
++                    if(sp.getFirstParameter()>=1000000)
++                        SuspendManager::enterInterruptionPoint(proc,threadID,
++                            sp.getFirstParameter()/1000000,5,-1);
+                     sp.setReturnValue(usleep(sp.getFirstParameter()));
+                     break;
+                 default:
+@@ -368,13 +586,14 @@ pid_t Process::getNewPid()
+     }
+ }
+ 
++
+ map<pid_t,Process*> Process::processes;
+ std::list<Process *> Process::kernelChilds;
+ std::list<Process *> Process::kernelZombies;
+ pid_t Process::pidCounter=1;
+ Mutex Process::procMutex;
+ ConditionVariable Process::genericWaiting;
+-    
++
+ } //namespace miosix
+ 
+ #endif //WITH_PROCESSES
+diff --git a/miosix/kernel/process.h b/miosix/kernel/process.h
+index dc54e1a..cf83b5f 100644
+--- a/miosix/kernel/process.h
++++ b/miosix/kernel/process.h
+@@ -36,6 +36,7 @@
+ #include "sync.h"
+ #include "elf_program.h"
+ #include "config/miosix_settings.h"
++#include "suspend_manager.h"
+ 
+ #ifdef WITH_PROCESSES
+ 
+@@ -57,6 +58,27 @@ public:
+     static pid_t create(const ElfProgram& program);
+     
+     /**
++     * Overloaded version that recreate a process after hibernation
++     * \param status is the serialized status of the process
++     * \param threadID is the number of the thread to be resumed
++     * \return the same pid of the original process
++     * \throws std::exception or a subclass in case of errors, including
++     * not emough memory to spawn the process
++     */
++    static pid_t create(ProcessStatus* status, int threadId);
++    
++    
++    /**
++     * Recreate a process after the hibernation, exactly as it was before
++     * \param program Program that the process will execute 
++     * \param ptr to the serialized status of the process in the backup RAM
++     * \return the pid of the newly created process
++     * \throws std::exception or a subclass in case of errors, including
++     * not emough memory to spawn the process
++     */
++    static pid_t resume(const ElfProgram& program, ProcessStatus* status);
++    
++    /**
+      * Given a process, returns the pid of its parent.
+      * \param proc the pid of a process
+      * \return the pid of the parent process, or zero if the process was created
+@@ -85,6 +107,20 @@ public:
+     static pid_t waitpid(pid_t pid, int *exit, int options);
+     
+     /**
++     * Save the state of the allocator 
++     * \param ptr pointer to a memory area of type ProcessStatus
++     * \param interruptionId id of the syscal that caused the interruption
++     * \param fileID file opened by the syscall
++     * \param sleepTime time to sleep for the syscall, actual or estimed,
++     * the latter case accounts for all the syscalls that are not sleep()
++     * \param sampleBuf pointer to the area of memore where the results of
++     * the syscall will be copied. Usefuls in case of smart drivers 
++     */
++    void serialize(ProcessStatus* ptr);
++    
++    
++    
++    /**
+      * Destructor
+      */
+     ~Process();
+@@ -96,8 +132,11 @@ private:
+     /**
+      * Constructor
+      * \param program program that will be executed by the process
++     * \param resuming true if resuming from hibernation
+      */
+-    Process(const ElfProgram& program);
++    Process(const ElfProgram& program, bool resuming=false);
++    
++
+     
+     /**
+      * Contains the process' main loop. 
+@@ -106,13 +145,14 @@ private:
+      */
+     static void *start(void *argv);
+     
++    
+     /**
+      * \return an unique pid that is not zero and is not already in use in the
+      * system, used to assign a pid to a new process.<br>
+      */
+     static pid_t getNewPid();
+     
+-    ElfProgram program; ///<The program that is running inside the process
++    ElfProgram* program; ///<The program that is running inside the process
+     #ifdef __CODE_IN_XRAM
+     /// When __CODE_IN_XRAM is defined, the programs are loaded in the process
+     /// pool so the memory is aligned and the MPU works
+@@ -121,12 +161,13 @@ private:
+     ProcessImage image; ///<The RAM image of a process
+     miosix_private::FaultData fault; ///< Contains information about faults
+     miosix_private::MPUConfiguration mpu; ///<Memory protection data
+-    
+     std::vector<Thread *> threads; ///<Threads that belong to the process
+     std::list<Process *> childs;   ///<Living child processes are stored here
+     std::list<Process *> zombies;  ///<Dead child processes are stored here
+     pid_t pid;  ///<The pid of this process
+     pid_t ppid; ///<The parent pid of this process
++    ///number of the threads active, i.e. not suspended, in the process
++    int numActiveThreads; 
+     ///Contains the count of active wait calls which specifically requested
+     ///to wait on this process
+     int waitCount;
+@@ -134,7 +175,11 @@ private:
+     ///wait on this condition variable
+     ConditionVariable waiting;
+     bool zombie; ///< True for terminated not yet joined processes
++    bool suspended;
++    bool toBeSwappedOut;///This is set true only if a processs need to be
++                        ///swapped out when hibernating
+     short int exitCode; ///< Contains the exit code
++    int fileTable[MAX_OPEN_FILES];///table of files opened by the process
+     
+     ///Maps the pid to the Process instance. Includes zombie processes
+     static std::map<pid_t,Process *> processes;
+@@ -146,6 +191,16 @@ private:
+     static Mutex procMutex;
+     ///Used to wait on process termination
+     static ConditionVariable genericWaiting;
++    //Used to take account of the ELF size opportunely rounded to suit for MPU 
++    unsigned int roundedSize;
++    //FIXME: the following two must be implemented in future (smart drivers)
++    ///The following buffer has to be initialized in the constructor to store samples
++    void* sampleBuf;
++    ///the following will store the size of a sample to be retrieved from sensors
++    ///it should be initialized in the constructor too
++    int sizeOfSample;
++    
++    
+     
+     //Needs access to fault,mpu
+     friend class Thread;
+@@ -155,6 +210,8 @@ private:
+     friend class ControlScheduler;
+     //Needs access to mpu
+     friend class EDFScheduler;
++    //Nedds access interruption point and resume methods, to handle hibernation
++    friend class SuspendManager;
+ };
+ 
+ } //namespace miosix
+diff --git a/miosix/kernel/process_pool.cpp b/miosix/kernel/process_pool.cpp
+index a3401f4..8d53fbe 100644
+--- a/miosix/kernel/process_pool.cpp
++++ b/miosix/kernel/process_pool.cpp
+@@ -90,7 +90,7 @@ void ProcessPool::deallocate(unsigned int *ptr)
+     #ifndef TEST_ALLOC
+     miosix::Lock<miosix::FastMutex> l(mutex);
+     #endif //TEST_ALLOC
+-    map<unsigned int*, unsigned int>::iterator it= allocatedBlocks.find(ptr);
++    map<const unsigned int*, unsigned int>::iterator it= allocatedBlocks.find(ptr);
+     if(it==allocatedBlocks.end())throw runtime_error("");
+     unsigned int size =(it->second)/blockSize;
+     unsigned int firstBit=(reinterpret_cast<unsigned int>(ptr)-
+diff --git a/miosix/kernel/process_pool.h b/miosix/kernel/process_pool.h
+index 26f5d15..c9b6064 100644
+--- a/miosix/kernel/process_pool.h
++++ b/miosix/kernel/process_pool.h
+@@ -25,20 +25,30 @@
+  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
+  ***************************************************************************/ 
+ 
+-#ifndef PROCESS_POOL
+-#define PROCESS_POOL
++#ifndef PROCESS_POOL_H
++#define PROCESS_POOL_H
++
++#include "config/miosix_settings.h"
++
++#ifdef WITH_PROCESSES
+ 
+ #include <map>
+ 
+ #ifndef TEST_ALLOC
++
+ #include <miosix.h>
++#include <cstring>
++#ifdef WITH_HIBERNATION
++#include "suspend_manager.h"
++#endif //WITH_HIBERNATION
++
+ #else //TEST_ALLOC
++
+ #include <iostream>
+ #include <typeinfo>
+ #include <sstream>
+-#endif //TEST_ALLOC
+ 
+-#ifdef WITH_PROCESSES
++#endif //TEST_ALLOC
+ 
+ namespace miosix {
+ 
+@@ -105,13 +115,53 @@ public:
+         }  
+     }
+     #endif //TEST_ALLOC
+-    
++     
+     ///This constant specifies the size of the minimum allocatable block,
+     ///in bits. So for example 10 is 1KB.
+     static const unsigned int blockBits=10;
+     ///This constant is the the size of the minimum allocatable block, in bytes.
+     static const unsigned int blockSize=1<<blockBits;
++
++    #ifdef WITH_HIBERNATION
++    /**
++     * \return a pointer to the base address of the memory pool
++     */
++    const unsigned int getBaseAddress() const
++    {
++        return reinterpret_cast<unsigned int>(poolBase);
++    }
++    /**
++     * \return the dimension of the data to be serialized at the
++     * moment of the hibernation 
++     */
++    int getSerializableSize()
++    {
++        return (sizeof(unsigned int)+poolSize/blockSize/8);
++    }
+     
++    void serialize(unsigned int* ptr)
++    {
++        *ptr=poolSize; //TODO: this does not need to be serialized
++        ptr++;
++        memcpy(ptr, bitmap,poolSize/blockSize/8);
++    }
++
++    void resume(unsigned int* ptrAlloc, ProcessStatus* backupPtr, int numProc)
++    {
++        poolSize=*ptrAlloc;
++        ptrAlloc++;
++        memcpy(bitmap,ptrAlloc,poolSize/blockSize/8);
++        for(int i=0;i<numProc;i++)
++        {
++            allocatedBlocks[backupPtr->processImageBase]=backupPtr->processImageSize;
++            #ifdef __CODE_IN_XRAM
++            allocatedBlocks[backupPtr->programBase]=backupPtr->programSize;
++            #endif //__CODE_IN_XRAM
++            backupPtr++;
++        }
++    }
++    #endif //WITH_HIBERNATION
++   
+ private:
+     ProcessPool(const ProcessPool&);
+     ProcessPool& operator= (const ProcessPool&);
+@@ -160,7 +210,7 @@ private:
+     unsigned int *poolBase; ///< Base address of the entire pool
+     unsigned int poolSize;  ///< Size of the pool, in bytes
+     ///Lists all allocated blocks, allows to retrieve their sizes
+-    std::map<unsigned int*,unsigned int> allocatedBlocks;
++    std::map<const unsigned int*,unsigned int> allocatedBlocks;
+     #ifndef TEST_ALLOC
+     miosix::FastMutex mutex; ///< Mutex to guard concurrent access
+     #endif //TEST_ALLOC
+@@ -170,4 +220,4 @@ private:
+ 
+ #endif //WITH_PROCESSES
+ 
+-#endif //PROCESS_POOL
++#endif //PROCESS_POOL_H
+diff --git a/miosix/kernel/suspend_manager.cpp b/miosix/kernel/suspend_manager.cpp
+new file mode 100644
+index 0000000..fb11ee3
+--- /dev/null
++++ b/miosix/kernel/suspend_manager.cpp
+@@ -0,0 +1,248 @@
++/***************************************************************************
++ *   Copyright (C) 2012 by Luigi Rucco and Terraneo Federico               *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   As a special exception, if other files instantiate templates or use   *
++ *   macros or inline functions from this file, or you compile this file   *
++ *   and link it with other works to produce a work based on this file,    *
++ *   this file does not by itself cause the resulting work to be covered   *
++ *   by the GNU General Public License. However the source code for this   *
++ *   file must still be made available in accordance with the GNU General  *
++ *   Public License. This exception does not invalidate any other reasons  *
++ *   why a work based on this file might be covered by the GNU General     *
++ *   Public License.                                                       *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
++ ***************************************************************************/
++
++#include "suspend_manager.h"
++#include "interfaces/suspend_support.h"
++#include "elf_program.h"
++#include "process.h"
++#include "interfaces/suspend_support.h"
++#include "process_pool.h"
++#include <cstring>
++#include <cstdio>
++#include <stdexcept>
++
++#ifdef WITH_HIBERNATION
++
++using namespace std;
++
++namespace miosix {
++
++ProcessStatus* SuspendManager::getProcessesBackupAreaBase()
++{
++    return reinterpret_cast<struct ProcessStatus*>(
++                            reinterpret_cast<unsigned int>(getBackupSramBase())+
++                            getAllocatorSramAreaSize()+ 
++                            getBackupAllocatorSramAreaSize());
++}
++
++/*
++ *The following functions is used to sort the list of resuming time
++ */
++bool compareResumeTime(SyscallResumeTime first, SyscallResumeTime second )
++{
++    return first.resumeTime<second.resumeTime;
++}
++
++/*
++ *The following function is called each time a thread enter in a system call
++ * in order to update the status of the thread, and eventually of the process, 
++ * from 'suspended=false' to 'suspended=true', possibly. Moreover, if all the
++ * processes are suspended, this function signal the hibernation thread (through
++ * the condition variable), which will decide whether to hibernate or not the
++ * system.
++ */
++void SuspendManager::enterInterruptionPoint(Process* proc, int threadID,
++        long long resumeTime, int intPointID, int fileID)
++{
++    SyscallResumeTime newSuspThread;
++    newSuspThread.status=NULL;
++    newSuspThread.pid=proc->pid;
++    newSuspThread.resumeTime=resumeTime+getTick()/1000;
++    newSuspThread.threadNum=threadID;
++    newSuspThread.intPointID=intPointID;
++    newSuspThread.fileID=fileID; 
++    
++    {
++        Lock<Mutex> l(suspMutex);
++        proc->numActiveThreads--;
++        //FIXME: what if the system does not go in hibernation for a long time
++        //because the threshold is never met? this thing continues to push data
++        //in this list, causing a memory leak that will crash the whole OS!!
++        syscallReturnTime.push_back(newSuspThread);
++        if(proc->numActiveThreads==0)
++        {
++            proc->suspended=true;
++            suspendedProcesses.push_back(proc);
++        }
++        if(suspendedProcesses.size()==Process::processes.size())
++            hibernWaiting.broadcast();
++    }
++    
++}
++
++
++/*
++ *The following thread create the threds of processes at the time they myust be
++ * resumed
++ */
++void SuspendManager::wakeupDaemon(void*)
++{
++    map<pid_t,Process*>::iterator findProc;
++    Lock<Mutex> l(suspMutex);
++    while(syscallReturnTime.empty()==false)
++    {
++        SyscallResumeTime ret=syscallReturnTime.front();
++        if(ret.resumeTime>=getTick()/1000)
++        {
++            findProc=Process::processes.find(ret.pid);
++            //check if the process is already alive...it could happen that
++            //the main thread has already been spawned and is also terminated
++            //so other threads waiting to be resumed must be not be created.
++            //In any case, at the end of the cycle, the process must be 
++            //erased from the syscallReturnTime list
++            if(findProc!=Process::processes.end())
++                Process::create(ret.status,ret.threadNum);
++            syscallReturnTime.pop_front();
++        } else {
++            long long resumeTime=ret.resumeTime;
++            {    
++                Unlock<Mutex> u(l);
++                sleep(resumeTime-getTick()/1000);
++            }
++        }
++    }
++}
++
++/*
++ *The following thread function wait for all the processes to be suspended and
++ * then decide whether to hibernate or not..
++ */
++void SuspendManager::hibernateDaemon(void*)
++{
++    Lock<Mutex>l(suspMutex);
++    for(;;)
++    { 
++        hibernWaiting.wait(l);
++        syscallReturnTime.sort(compareResumeTime);
++        list<SyscallResumeTime>::iterator it;
++        it=syscallReturnTime.begin();
++        //NOTE: the following if, as well as the upper and lower bunds,
++        //will be replaced by the policy, once refined 
++        if((it->resumeTime-getTick()/1000)<=hibernationThreshold) continue;
++        ProcessStatus* proc=getProcessesBackupAreaBase();
++        iprintf("Swapping %d processes\n",suspendedProcesses.size());
++        list<Process*>::iterator findProc;
++        for(findProc=suspendedProcesses.begin();
++                findProc!=suspendedProcesses.end();findProc++)
++        {
++            (*findProc)->serialize(proc);
++
++            if((*findProc)->toBeSwappedOut)
++            {
++                //TODO: optimize
++                Mram& mram=Mram::instance();
++                mram.exitSleepMode();
++                //Copy the process image from RAM to MRAM
++                mram.write(reinterpret_cast<unsigned int>(
++                        (*findProc)->image.getProcessBasePointer())-
++                        ProcessPool::instance().getBaseAddress(),
++                        (*findProc)->image.getProcessBasePointer(),
++                        (*findProc)->image.getProcessImageSize());
++                mram.enterSleepMode();
++                //Now serialize the state of the SRAM allocator
++                ProcessPool::instance().serialize(getBackupSramBase());
++
++                //Now serialize the state of the backup SRAM allocator
++                (*(getBackupSramBase()+ 
++                        getAllocatorSramAreaSize()/sizeof(int)))=
++                        suspendedProcesses.size();
++            }
++            proc++;
++        }
++        
++//        iprintf("Backup SRAM\n");
++//        memDump((char*)getBackupSramBase(),getBackupSramSize());
++//        Mram& mram=Mram::instance();
++//        mram.exitSleepMode();
++//        char *buf=new char[131072];
++//        mram.read(0,buf,32768);
++//        mram.read(32768,buf+32768,32768);
++//        mram.read(2*32768,buf+2*32768,32768);
++//        mram.read(3*32768,buf+3*32768,32768);
++//        mram.enterSleepMode();
++//        iprintf("MRAM\n");
++//        memDump(buf,131072);
++//        delete[] buf;
++        
++        long long prev=getTick();
++        int sleepTime=syscallReturnTime.begin()->resumeTime-prev/1000;
++        iprintf("about to suspend, tick=%lld\n",prev);
++        getBackupSramBase()[1021]=prev & 0xffffffff; //FIXME: hack
++        getBackupSramBase()[1022]=prev>>32;
++        getBackupSramBase()[1023]=sleepTime;
++        doSuspend(sleepTime);
++    }
++}
++
++int SuspendManager::resume()
++{
++    ProcessStatus* proc=getProcessesBackupAreaBase();
++    
++    ProcessPool::instance().resume(getBackupSramBase(),
++            getProcessesBackupAreaBase(),
++            *(getBackupSramBase()+(getAllocatorSramAreaSize()/sizeof(int))));
++    //in the following block the processes map and 
++    //the list syscallReturnTime are populated
++    {
++        Lock<Mutex>l(SuspendManager::suspMutex);
++        SyscallResumeTime retTime;
++        int numProc=*(getBackupSramBase()+(getAllocatorSramAreaSize()/sizeof(int)));
++        iprintf("Reloading %d processes\n",numProc);
++        for(int i=0;i<numProc;i++)
++        {   
++            iprintf("reload base=%p size=%d\n",proc->programBase,proc->programSize);
++            Process::resume(ElfProgram(proc->programBase,proc->programSize),proc);
++            for(int i=0;i<proc->numThreads;i++)
++            {   
++                retTime.pid=proc->pid;
++                retTime.threadNum=i;
++                retTime.resumeTime=proc->interruptionPoints[i].absSyscallTime;
++                retTime.status=proc;
++                syscallReturnTime.push_back(retTime);
++            }
++            proc++;
++        }
++        syscallReturnTime.sort(compareResumeTime);
++    }
++
++    Thread::create(wakeupDaemon,2048);
++    return proc->pid;
++}
++
++void SuspendManager::startHibernationDaemon()
++{
++    Thread::create(hibernateDaemon,2048);
++}
++
++std::list<SyscallResumeTime> SuspendManager::syscallReturnTime;
++Mutex SuspendManager::suspMutex(Mutex::RECURSIVE);
++ConditionVariable SuspendManager::hibernWaiting;
++std::list<Process *> SuspendManager::suspendedProcesses;
++
++}//namespace miosix
++
++#endif //WITH_HIBERNATION
+diff --git a/miosix/kernel/suspend_manager.h b/miosix/kernel/suspend_manager.h
+new file mode 100644
+index 0000000..1c48e4f
+--- /dev/null
++++ b/miosix/kernel/suspend_manager.h
+@@ -0,0 +1,141 @@
++/***************************************************************************
++ *   Copyright (C) 2012 by Luigi Rucco and Terraneo Federico               *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   As a special exception, if other files instantiate templates or use   *
++ *   macros or inline functions from this file, or you compile this file   *
++ *   and link it with other works to produce a work based on this file,    *
++ *   this file does not by itself cause the resulting work to be covered   *
++ *   by the GNU General Public License. However the source code for this   *
++ *   file must still be made available in accordance with the GNU General  *
++ *   Public License. This exception does not invalidate any other reasons  *
++ *   why a work based on this file might be covered by the GNU General     *
++ *   Public License.                                                       *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
++ ***************************************************************************/
++
++#ifndef SUSPEND_MANAGER_H
++#define	SUSPEND_MANAGER_H
++
++#include <list>
++#include <miosix.h>
++#include "interfaces/portability.h"
++#include "config/miosix_settings.h"
++
++#ifdef WITH_HIBERNATION
++
++namespace miosix {
++    
++///This struct is used to serialize the interrupion point status for processes
++///and threads spawned by that process
++struct IntPointStatus{
++    int intPointID; //ID of the syscall which caused the interruption
++    int fileID; //file eventually opened by the syscall, -1 if no file opened
++    long long absSyscallTime; //absolute time taken by the syscall to resume
++    unsigned int* backupQueue; //ptr to the process queue in the backupe SRAM
++    int queueSize; //size of the queue associated to the process
++    char wakeNow;//set to one if the process or thread has to wake up now
++    char sizeOfSample; //size of the data sampled in the hibernation period
++    char padding1[2];
++    int sampNum; //number of the samples eventually performed by smart driver
++    unsigned int registers[CTXSAVE_SIZE];
++    unsigned int* targetSampleMem; //process memory pointer to copy the queue
++}__attribute__((packed));
++    
++    
++///This struct is used to serialize the process status in the backup SRAM 
++struct ProcessStatus 
++{
++    int pid;
++    int ppid;
++    short int status;
++    short int numThreads;
++    int exitCode;
++    unsigned int* processImageBase;
++    int processImageSize;
++    const unsigned int* programBase;
++    int programSize;
++    int fileDescriptors[MAX_OPEN_FILES];
++    struct IntPointStatus interruptionPoints[1+MAX_THREADS_PER_PROCESS];
++} __attribute__((packed));
++
++//this struct is used to keep track of the resume time after a syscall for each
++//process and for each thread in a process
++struct SyscallResumeTime
++{
++    int pid;
++    short int threadNum;
++    long long resumeTime;
++    int intPointID;
++    int fileID;
++    ProcessStatus* status;
++}__attribute__((packed));
++
++
++class SuspendManager 
++{
++public:    
++    /**
++     * /return the base address of the process status backup area 
++     */
++    static ProcessStatus* getProcessesBackupAreaBase();
++    
++    /**
++     * Find the the serialized processes with invalid bit set,
++     * which must be serialzied again. Return -1 if no dirty processes status
++     * are found
++     */
++    static int resume();
++    
++    /**
++     * Enables the hibernation support
++     */
++    static void startHibernationDaemon();
++
++private:
++    static void wakeupDaemon(void*);
++    static void hibernateDaemon(void*);
++    /**
++     * @param pid pid of the process in which the syscall has benn called
++     * @param threadID id of the thread which called the system call
++     * @param resumeTime is the time at which the thread will be resumed after
++     * the suspension due to the system call
++     */
++    static void enterInterruptionPoint(Process* proc, int threadID, 
++        long long resumeTime, int syscallID, int fileID);
++    
++    static std::list<SyscallResumeTime> syscallReturnTime;
++    ///Used to guard access to the number of suspended processes
++    static Mutex suspMutex;
++    ///Used to wait on the condition that all process must be suspended to
++    ///decide if to hibernate or not the system. The suspension of all processes
++    ///is a necessary condition for hibernationm, but not sufficient. The final
++    ///decision is taken according to the hibernation policy.
++    static ConditionVariable hibernWaiting;
++    ///this map lists the suspended processes
++    static std::list<Process *> suspendedProcesses;
++    
++    //Sleep time below which hibernation will not occur (in seconds)
++    static const int hibernationThreshold=1;
++    
++    //Needs access to process table, serialization/loading methods
++    friend class Process;
++    
++};
++
++}//namespace miosix
++
++#endif //WITH_HIBERNATION
++
++#endif //SUSPEND_MANAGER_H
+diff --git a/miosix/kernel/sync.h b/miosix/kernel/sync.h
+index 26339a5..1f484c1 100644
+--- a/miosix/kernel/sync.h
++++ b/miosix/kernel/sync.h
+@@ -115,12 +115,9 @@ public:
+ 
+     /**
+      * \internal
+-     * \return the FastMutex implementation defined mutex type
++     * \return the FastMutex implemntation defined mutex type
+      */
+-    pthread_mutex_t *get()
+-    {
+-        return &impl;
+-    }
++    pthread_mutex_t *get();
+ 
+     /**
+      * Destructor
+diff --git a/miosix/temp/ram_test/mram_test.cpp b/miosix/temp/ram_test/mram_test.cpp
+new file mode 100644
+index 0000000..3c8133a
+--- /dev/null
++++ b/miosix/temp/ram_test/mram_test.cpp
+@@ -0,0 +1,67 @@
++
++// To test the MRAM for hibernation
++
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include "sha1.h"
++#include <interfaces/suspend_support.h>
++
++using namespace std;
++
++bool shaCmp(unsigned int a[5], unsigned int b[5])
++{
++    if(memcmp(a,b,20)==0) return false;
++    iprintf("Mismatch\n");
++    for(int i=0;i<5;i++) iprintf("%04x",a[i]); iprintf("\n");
++    for(int i=0;i<5;i++) iprintf("%04x",b[i]); iprintf("\n");
++    return true;
++}
++
++bool mramTest(int writeSize, int readSize)
++{
++    char *writeBuffer=new char[writeSize];
++    char *readBuffer=new char[readSize];
++    Mram& mram=Mram::instance();
++    mram.exitSleepMode();
++    
++    SHA1 sha;
++    sha.Reset();
++    //Just to shuffle initialization between tests
++    srand(0x7ad3c099+0xad45fce0*writeSize+0x658da2fb*readSize);
++    for(unsigned int i=0;i<mram.size();i+=writeSize)
++    {
++        for(int j=0;j<writeSize;j++) writeBuffer[j]=rand() & 0xff;
++        mram.write(i,writeBuffer,writeSize);
++        sha.Input(writeBuffer,writeSize);
++    }
++    unsigned int a[5];
++    sha.Result(a);
++    
++    sha.Reset();
++    for(unsigned int i=0;i<mram.size();i+=readSize)
++    {
++        mram.read(i,readBuffer,readSize);
++        sha.Input(readBuffer,readSize);
++    }
++    unsigned int b[5];
++    sha.Result(b);
++    
++    delete[] writeBuffer;
++    delete[] readBuffer;
++    
++    return shaCmp(a,b);
++}
++
++int main()
++{  
++    getchar();
++    puts("MRAM test");
++    puts("Testing w=1024, r=1024");
++    if(mramTest(1024,1024)) return 1;
++    puts("Testing w=512, r=1024");
++    if(mramTest(512,1024)) return 1;
++    puts("Testing w=1024, r=512");
++    if(mramTest(1024,512)) return 1;
++    puts("Ok");
++}
+diff --git a/miosix/util/util.cpp b/miosix/util/util.cpp
+index 6f1ca57..242b64a 100644
+--- a/miosix/util/util.cpp
++++ b/miosix/util/util.cpp
+@@ -163,4 +163,12 @@ unsigned int MemoryProfiling::getCurrentFreeHeap()
+     return (unsigned int)&_heap_end - (unsigned int)highWatermark;
+ }
+ 
++int fhbs(unsigned int x)
++{
++    //TODO: Optimize!
++    int result=0;
++    while(x) { x>>=1; result++; }
++    return result;
++}
++
+ } //namespace miosix
+diff --git a/miosix/util/util.h b/miosix/util/util.h
+index 09a8af4..c0c433b 100644
+--- a/miosix/util/util.h
++++ b/miosix/util/util.h
+@@ -110,6 +110,15 @@ private:
+ void memDump(const char *start, int len);
+ 
+ /**
++ * Find highest bit set
++ * \param x a 32bit number
++ * \return 0 if the number is zero, or the position of the highest bit
++ * FIXME: Put this function in a more appropriate place, away from the
++ * interfaces/arch
++ */
++int fhbs(unsigned int x);
++
++/**
+  * \}
+  */
+ 
+diff --git a/miosix_np_processes/nbproject/configurations.xml b/miosix_np_processes/nbproject/configurations.xml
+index f048ef9..d1eaa78 100644
+--- a/miosix_np_processes/nbproject/configurations.xml
++++ b/miosix_np_processes/nbproject/configurations.xml
+@@ -7,12 +7,6 @@
+         <in>main.c</in>
+         <in>prog3.h</in>
+       </df>
+-      <df name="app_template_withlibs">
+-        <in>crt0.s</in>
+-        <in>main.c</in>
+-        <in>prog3.h</in>
+-        <in>syscallfuffa.c</in>
+-      </df>
+       <df name="miosix">
+         <df name="arch">
+           <df name="arm7_lpc2000">
+@@ -162,6 +156,8 @@
+                 <in>gpio_impl.h</in>
+                 <in>portability.cpp</in>
+                 <in>portability_impl.h</in>
++                <in>suspend_support_impl.cpp</in>
++                <in>suspend_support_impl.h</in>
+               </df>
+               <in>arch_settings.h</in>
+             </df>
+@@ -169,6 +165,10 @@
+               <df name="core">
+                 <in>stage_1_boot.cpp</in>
+               </df>
++              <df name="drivers">
++                <in>mram.cpp</in>
++                <in>mram.h</in>
++              </df>
+               <df name="interfaces-impl">
+                 <in>bsp.cpp</in>
+                 <in>bsp_impl.h</in>
+@@ -267,6 +267,7 @@
+           <in>endianness.h</in>
+           <in>gpio.h</in>
+           <in>portability.h</in>
++          <in>suspend_support.h</in>
+         </df>
+         <df name="kernel">
+           <df name="filesystem">
+@@ -315,6 +316,8 @@
+           <in>pthread.cpp</in>
+           <in>pthread_private.h</in>
+           <in>stage_2_boot.cpp</in>
++          <in>suspend_manager.cpp</in>
++          <in>suspend_manager.h</in>
+           <in>sync.cpp</in>
+           <in>sync.h</in>
+           <in>syscalls.cpp</in>
+diff --git a/profiling.patch b/profiling.patch
+new file mode 100644
+index 0000000..32295a7
+--- /dev/null
++++ b/profiling.patch
+@@ -0,0 +1,175 @@
++diff --git a/main.cpp b/main.cpp
++index b991f7f..8486f3b 100644
++--- a/main.cpp
+++++ b/main.cpp
++@@ -26,10 +26,11 @@ int main()
++ {
++     Thread::create(ledThread,STACK_MIN);
++     SuspendManager::startHibernationDaemon();
++-    iprintf("tick=%llu\n",getTick());
+++//    iprintf("tick=%llu\n",getTick());
++     if(firstBoot())
++     {
++-        puts("First boot");
+++        Gpio<GPIOC_BASE,7>::low(); //FIXME: remove
+++//        puts("First boot");
++ //        //Watermarking
++ //        memset(getBackupSramBase(),0xff,getBackupSramSize());
++ //        char *buf=new char[1024];
++@@ -41,7 +42,7 @@ int main()
++ //        mram.enterSleepMode();
++ //        delete[] buf;
++     } else {
++-        puts("RTC boot");
+++//        puts("RTC boot");
++         SuspendManager::resume();
++         
++         int ec;
++diff --git a/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/suspend_support_impl.cpp b/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/suspend_support_impl.cpp
++index dda8f03..688d725 100644
++--- a/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/suspend_support_impl.cpp
+++++ b/miosix/arch/cortexM3_stm32f2/common/interfaces-impl/suspend_support_impl.cpp
++@@ -30,6 +30,7 @@
++ #include "kernel/process_pool.h"
++ #include "miosix.h"
++ #include "interfaces/arch_registers.h"
+++#include "interfaces/gpio.h" //FIXME: remove
++ 
++ #ifdef WITH_HIBERNATION
++ 
++@@ -81,6 +82,9 @@ void doSuspend(unsigned int seconds)
++ 
++         PWR->CR |= PWR_CR_PDDS | PWR_CR_CWUF;
++         SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+++        
+++        Gpio<GPIOC_BASE,7>::low(); //FIXME: remove
+++        
++         //Using WFE instead of WFI because if while we are with interrupts
++         //disabled an interrupt (such as the tick interrupt) occurs, it
++         //remains pending and the WFI becomes a nop, and the device never goes
++diff --git a/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/core/stage_1_boot.cpp b/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/core/stage_1_boot.cpp
++index 18663fb..cfe8e6f 100644
++--- a/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/core/stage_1_boot.cpp
+++++ b/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/core/stage_1_boot.cpp
++@@ -2,6 +2,7 @@
++ #include "interfaces/arch_registers.h"
++ #include "core/interrupts.h" //For the unexpected interrupt call
++ #include <string.h>
+++#include "interfaces/gpio.h" //FIXME: remove
++ 
++ /*
++  * startup.cpp
++@@ -116,6 +117,10 @@ void Reset_Handler()
++     asm volatile("ldr sp, =_main_stack_top\n\t");
++     #endif //__CODE_IN_XRAM
++ 
+++    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN; //FIXME: remove
+++    miosix::Gpio<GPIOC_BASE,7>::mode(miosix::Mode::OUTPUT);
+++    miosix::Gpio<GPIOC_BASE,7>::high();
+++
++ 	/*
++ 	 * SystemInit() is called *before* initializing .data and zeroing .bss
++ 	 * Despite all startup files provided by ST do the opposite, there are three
++diff --git a/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/bsp.cpp b/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/bsp.cpp
++index cd41faa..d8bb6de 100644
++--- a/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/bsp.cpp
+++++ b/miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/bsp.cpp
++@@ -72,9 +72,9 @@ void IRQbspInit()
++     GPIOI->OSPEEDR=0xaaaaaaaa;
++     _led::mode(Mode::OUTPUT);
++     sdCardDetect::mode(Mode::INPUT_PULL_UP);
++-    ledOn();
++-    delayMs(100);
++-    ledOff();
+++//    ledOn();
+++//    delayMs(100);
+++//    ledOff();
++     #ifndef STDOUT_REDIRECTED_TO_DCC
++     IRQstm32f2serialPortInit();
++     #endif //STDOUT_REDIRECTED_TO_DCC
++diff --git a/miosix/config/miosix_settings.h b/miosix/config/miosix_settings.h
++index 648c3c4..a26da30 100644
++--- a/miosix/config/miosix_settings.h
+++++ b/miosix/config/miosix_settings.h
++@@ -123,7 +123,7 @@ const unsigned char MAX_THREADS_PER_PROCESS=2;
++ /// \def WITH_BOOTLOG
++ /// Uncomment to print bootlogs on stdout.
++ /// By default it is defined (bootlogs are printed)
++-#define WITH_BOOTLOG
+++//#define WITH_BOOTLOG
++ 
++ /// \def WITH_ERRLOG
++ /// Uncomment for debug information on stdout.
++@@ -142,7 +142,7 @@ const unsigned char MAX_THREADS_PER_PROCESS=2;
++  * mode, so to use debugging it is necessary to disble sleep in the idle thread.
++  * By default it is not defined (idle thread calls sleep).
++  */
++-#define JTAG_DISABLE_SLEEP
+++//#define JTAG_DISABLE_SLEEP
++ 
++ /// Minimum stack size (MUST be divisible by 4)
++ const unsigned int STACK_MIN=256;
++diff --git a/miosix/kernel/process.cpp b/miosix/kernel/process.cpp
++index 06d7e55..16f88d7 100644
++--- a/miosix/kernel/process.cpp
+++++ b/miosix/kernel/process.cpp
++@@ -354,7 +354,7 @@ void Process::serialize(ProcessStatus* ptr)
++     #ifndef __CODE_IN_XRAM
++     ptr->programBase=this->program->getElfBase();
++     ptr->programSize=this->program->getElfSize();
++-    iprintf("save base=%p size=%d\n",ptr->programBase,ptr->programSize);
+++//    iprintf("save base=%p size=%d\n",ptr->programBase,ptr->programSize);
++     #else //__CODE_IN_XRAM
++     ptr->programBase=this->loadedProgram;
++     ptr->programBase=reinterpret_cast<unsigned int*>(this->roundedSize);
++diff --git a/miosix/kernel/suspend_manager.cpp b/miosix/kernel/suspend_manager.cpp
++index fb11ee3..bc2cf7b 100644
++--- a/miosix/kernel/suspend_manager.cpp
+++++ b/miosix/kernel/suspend_manager.cpp
++@@ -68,6 +68,7 @@ bool compareResumeTime(SyscallResumeTime first, SyscallResumeTime second )
++ void SuspendManager::enterInterruptionPoint(Process* proc, int threadID,
++         long long resumeTime, int intPointID, int fileID)
++ {
+++    Gpio<GPIOC_BASE,7>::high(); //FIXME: remove
++     SyscallResumeTime newSuspThread;
++     newSuspThread.status=NULL;
++     newSuspThread.pid=proc->pid;
++@@ -125,6 +126,7 @@ void SuspendManager::wakeupDaemon(void*)
++             }
++         }
++     }
+++    Gpio<GPIOC_BASE,7>::low(); //FIXME: remove
++ }
++ 
++ /*
++@@ -144,7 +146,7 @@ void SuspendManager::hibernateDaemon(void*)
++         //will be replaced by the policy, once refined 
++         if((it->resumeTime-getTick()/1000)<=hibernationThreshold) continue;
++         ProcessStatus* proc=getProcessesBackupAreaBase();
++-        iprintf("Swapping %d processes\n",suspendedProcesses.size());
+++//        iprintf("Swapping %d processes\n",suspendedProcesses.size());
++         list<Process*>::iterator findProc;
++         for(findProc=suspendedProcesses.begin();
++                 findProc!=suspendedProcesses.end();findProc++)
++@@ -190,7 +192,7 @@ void SuspendManager::hibernateDaemon(void*)
++         
++         long long prev=getTick();
++         int sleepTime=syscallReturnTime.begin()->resumeTime-prev/1000;
++-        iprintf("about to suspend, tick=%lld\n",prev);
+++//        iprintf("about to suspend, tick=%lld\n",prev);
++         getBackupSramBase()[1021]=prev & 0xffffffff; //FIXME: hack
++         getBackupSramBase()[1022]=prev>>32;
++         getBackupSramBase()[1023]=sleepTime;
++@@ -211,10 +213,10 @@ int SuspendManager::resume()
++         Lock<Mutex>l(SuspendManager::suspMutex);
++         SyscallResumeTime retTime;
++         int numProc=*(getBackupSramBase()+(getAllocatorSramAreaSize()/sizeof(int)));
++-        iprintf("Reloading %d processes\n",numProc);
+++//        iprintf("Reloading %d processes\n",numProc);
++         for(int i=0;i<numProc;i++)
++         {   
++-            iprintf("reload base=%p size=%d\n",proc->programBase,proc->programSize);
+++//            iprintf("reload base=%p size=%d\n",proc->programBase,proc->programSize);
++             Process::resume(ElfProgram(proc->programBase,proc->programSize),proc);
++             for(int i=0;i<proc->numThreads;i++)
++             {   
+diff --git a/screenlog.0 b/screenlog.0
+new file mode 100644
+index 0000000..f9b725a
+--- /dev/null
++++ b/screenlog.0
+@@ -0,0 +1,52 @@
++Miosix v1.60 (stm32f207ig_stm3220g-eval, Jul 13 2012 12:46:00, gcc 4.5.2)
++Starting Kernel... Ok
++Starting Filesystem... No disk
++Available heap 24576 out of 29868 Bytes
++tick=40
++First boot
++
++0=divzero 1=sleep 5s, 2=exit 3=bkpt 4=dangling
++1
++Swapping 1 processes
++save base=0x1c3a8 size=468
++about to suspend, tick=3576
++Miosix v1.60 (stm32f207ig_stm3220g-eval, Jul 13 2012 12:46:00, gcc 4.5.2)
++Starting Kernel... Ok
++Starting Filesystem... No disk
++Available heap 24576 out of 29868 Bytes
++tick=8616
++RTC boot
++Reloading 1 processes
++reload base=0x1c3a8 size=468
++0=divzero 1=sleep 5s, 2=exit 3=bkpt 4=dangling
++2
++Process terminated
++Exit code is 0
++
++0=divzero 1=sleep 5s, 2=exit 3=bkpt 4=dangling
++1
++Swapping 1 processes
++save base=0x1c3a8 size=468
++about to suspend, tick=30342
++Miosix v1.60 (stm32f207ig_stm3220g-eval, Jul 13 2012 12:46:00, gcc 4.5.2)
++Starting Kernel... Ok
++Starting Filesystem... No disk
++Available heap 24576 out of 29868 Bytes
++tick=35382
++RTC boot
++Reloading 1 processes
++reload base=0x1c3a8 size=468
++0=divzero 1=sleep 5s, 2=exit 3=bkpt 4=dangling
++1
++Swapping 1 processes
++save base=0x1c3a8 size=468
++about to suspend, tick=38120
++Miosix v1.60 (stm32f207ig_stm3220g-eval, Jul 13 2012 12:46:00, gcc 4.5.2)
++Starting Kernel... Ok
++Starting Filesystem... No disk
++Available heap 24576 out of 29868 Bytes
++tick=43160
++RTC boot
++Reloading 1 processes
++reload base=0x1c3a8 size=468
++0=divzero 1=sleep 5s, 2=exit 3=bkpt 4=dangling

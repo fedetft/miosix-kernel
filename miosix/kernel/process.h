@@ -31,6 +31,7 @@
 #include <vector>
 #include <map>
 #include <list>
+#include <set>
 #include <sys/types.h>
 #include "kernel.h"
 #include "sync.h"
@@ -125,6 +126,7 @@ private:
     std::vector<Thread *> threads; ///<Threads that belong to the process
     std::list<Process *> childs;   ///<Living child processes are stored here
     std::list<Process *> zombies;  ///<Dead child processes are stored here
+    std::set<int> mFiles;		   ///<Files openend by this process
     pid_t pid;  ///<The pid of this process
     pid_t ppid; ///<The parent pid of this process
     ///Contains the count of active wait calls which specifically requested

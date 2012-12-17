@@ -59,19 +59,19 @@ close:
 	bx lr
 
 /**
- * seek
+ * lseek
  * \param fd file descriptor
  * \param pos moving offset
  * \param start position, SEEK_SET, SEEK_CUR or SEEK_END
-*/
-.section .text.seek
-.global seek
-.type seek, %function
-seek:
+ 
+.section .text.lseek
+.global lseek
+.type lseek, %function
+	
 	movs r3, #8
 	svc 0
 	bx lr
-
+*/
 
 /**
  * system, fork and execture a program, blocking

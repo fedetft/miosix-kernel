@@ -1,0 +1,10 @@
+*/nbproject/
+*.bz2
+*.gz
+*.o
+*.a
+*.elf
+*.map
+*.hex
+*.bin
+*~

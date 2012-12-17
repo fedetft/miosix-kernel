@@ -104,11 +104,18 @@ int Filesystem::openFile(const char *name, int flags, int mode)
         
         //Set file flags
         BYTE openflags=0;
-        if(flags & _FREAD)  openflags|=FA_READ;
-        if(flags & _FWRITE) openflags|=FA_WRITE;
-        if(flags & _FTRUNC) openflags|=FA_CREATE_ALWAYS;//Truncate
-        else if(flags & _FAPPEND) openflags|=FA_OPEN_ALWAYS;//If not exists create
-        else openflags|=FA_OPEN_EXISTING;//If not exists fail
+        if(flags & _FREAD)
+			openflags|=FA_READ;
+		
+        if(flags & _FWRITE)
+			openflags|=FA_WRITE;
+		
+        if(flags & _FTRUNC)
+			openflags|=FA_CREATE_ALWAYS;//Truncate
+        else if(flags & _FAPPEND)
+			openflags|=FA_OPEN_ALWAYS;//If not exists create
+        else 
+			openflags|=FA_OPEN_EXISTING;//If not exists fail
 
         //Allocate the FatFs file data structure
         #ifdef __NO_EXCEPTIONS
