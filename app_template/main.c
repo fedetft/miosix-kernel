@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int mystrlen(const char *s)
 {
@@ -20,19 +21,22 @@ int main()
 	static const char str2[]="Unexpected command\n";
 	static const char okMsg[] = "Everything's shiny, Cap'n\n";
 	
-	/*
-	char strTest[500] = {'a'};
+	
+	char strTest[1500] = {'a'};
 	
 	strTest[0] = 0;
+	
+	//void *ptr = malloc(10000);
 	
 	int c = (int)strTest[0];
 	
 	unsigned int *p = &i;
 	
-	p -= 567;
+	p -= 10;
 	
 	*p = 0x00;
-	*/
+	
+	//return 0;
 	
 	for(;;)
 	{

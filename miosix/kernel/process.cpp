@@ -323,13 +323,13 @@ void *Process::start(void *argv)
 				case 6:
 					//open
 				{
-					int fp = open(reinterpret_cast<const char*>(sp.getFirstParameter()),	//filename
+					int fd = open(reinterpret_cast<const char*>(sp.getFirstParameter()),	//filename
 								  sp.getSecondParameter(),									//flags
 								  sp.getThirdParameter());									//permission, used?
-					if (fp != -1)
-						proc->mFiles.insert(fp);
+					if (fd != -1)
+						proc->mFiles.insert(fd);
 						
-					sp.setReturnValue(fp);
+					sp.setReturnValue(fd);
 				}
                     break;
 				case 7:
@@ -345,7 +345,7 @@ void *Process::start(void *argv)
 						sp.setReturnValue(-1);
 					break;
 				case 8:
-					//lseek
+					//seek
 					if(proc->mFiles.find(sp.getFirstParameter()) != proc->mFiles.end())
 						sp.setReturnValue(Filesystem::instance().lseekFile(sp.getFirstParameter(),
 																		   sp.getSecondParameter(),
@@ -355,7 +355,7 @@ void *Process::start(void *argv)
 					
 					break;
 				case 9:
-					//system, NOT TESTED YET!!!
+					//system
 				{				
 					std::pair<const unsigned int*, unsigned int> res = SystemMap::instance().getElfProgram(reinterpret_cast<const char*>(sp.getFirstParameter()));
 							

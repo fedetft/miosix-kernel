@@ -1,6 +1,0 @@
-Archive member included because of file (symbol)
-
-/opt/arm-miosix-eabi/lib/gcc/arm-eabi/4.5.2/../../../../arm-eabi/lib/thumb/thumb2/libc.a(lib_a-printf.o)
-                              main.o (printf)
-/opt/arm-miosix-eabi/lib/gcc/arm-eabi/4.5.2/../../../../arm-eabi/lib/thumb/thumb2/libc.a(lib_a-vfprintf.o)
-                              /opt/arm-miosix-eabi/lib/gcc/arm-eabi/4.5.2/../../../../arm-eabi/lib/thumb/thumb2/libc.a(lib_a-printf.o) (_vfprintf_r)

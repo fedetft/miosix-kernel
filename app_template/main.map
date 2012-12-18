@@ -23,53 +23,53 @@ Linker script and memory map
 
                 0x0000000000000094                . = (0x0 + SIZEOF_HEADERS)
 
-.text           0x0000000000000098      0x1f2
+.text           0x0000000000000098      0x202
  *(.text)
  .text          0x0000000000000098        0x8 crt0.o
                 0x0000000000000098                _start
  *(.text.*)
- .text.main     0x00000000000000a0      0x1bc main.o
+ .text.main     0x00000000000000a0      0x1cc main.o
                 0x00000000000000a0                main
- .text._exit    0x000000000000025c        0x4 crt0.o
-                0x000000000000025c                _exit
- .text.open     0x0000000000000260        0x6 crt0.o
-                0x0000000000000260                open
- .text.close    0x0000000000000266        0x6 crt0.o
-                0x0000000000000266                close
- .text.seek     0x000000000000026c        0x6 crt0.o
-                0x000000000000026c                seek
- .text.system   0x0000000000000272        0x6 crt0.o
-                0x0000000000000272                system
- .text.write    0x0000000000000278        0x6 crt0.o
-                0x0000000000000278                write
- .text.read     0x000000000000027e        0x6 crt0.o
-                0x000000000000027e                read
- .text.usleep   0x0000000000000284        0x6 crt0.o
-                0x0000000000000284                usleep
+ .text._exit    0x000000000000026c        0x4 crt0.o
+                0x000000000000026c                _exit
+ .text.open     0x0000000000000270        0x6 crt0.o
+                0x0000000000000270                open
+ .text.close    0x0000000000000276        0x6 crt0.o
+                0x0000000000000276                close
+ .text.seek     0x000000000000027c        0x6 crt0.o
+                0x000000000000027c                seek
+ .text.system   0x0000000000000282        0x6 crt0.o
+                0x0000000000000282                system
+ .text.write    0x0000000000000288        0x6 crt0.o
+                0x0000000000000288                write
+ .text.read     0x000000000000028e        0x6 crt0.o
+                0x000000000000028e                read
+ .text.usleep   0x0000000000000294        0x6 crt0.o
+                0x0000000000000294                usleep
  *(.gnu.linkonce.t.*)
 
-.glue_7         0x000000000000028c        0x0
+.glue_7         0x000000000000029c        0x0
  .glue_7        0x0000000000000000        0x0 linker stubs
 
-.glue_7t        0x000000000000028c        0x0
+.glue_7t        0x000000000000029c        0x0
  .glue_7t       0x0000000000000000        0x0 linker stubs
 
-.vfp11_veneer   0x000000000000028c        0x0
+.vfp11_veneer   0x000000000000029c        0x0
  .vfp11_veneer  0x0000000000000000        0x0 linker stubs
 
-.v4_bx          0x000000000000028c        0x0
+.v4_bx          0x000000000000029c        0x0
  .v4_bx         0x0000000000000000        0x0 linker stubs
 
-.plt            0x000000000000028c        0x0
+.plt            0x000000000000029c        0x0
  .plt           0x0000000000000000        0x0 main.o
 
-.rel.dyn        0x000000000000028c        0x0
+.rel.dyn        0x000000000000029c        0x0
  .rel.plt       0x0000000000000000        0x0 main.o
 
 .rel.data
  *(.rel.data .rel.data.* .rel.gnu.linkonce.d.*)
 
-.rel.got        0x000000000000028c        0x0
+.rel.got        0x000000000000029c        0x0
  *(.rel.got)
  .rel.got       0x0000000000000000        0x0 main.o
                 0x0000000010000000                . = 0x10000000
