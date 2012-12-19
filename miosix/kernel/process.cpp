@@ -374,6 +374,20 @@ void Process::serialize(ProcessStatus* ptr)
         ptr->status=0;
     
     //in this cycle the interruptionPoint structure is serialized
+    if(this->threads.size()==0){
+        list<SyscallResumeTime>::iterator it;
+        for(it=SuspendManager::syscallReturnTime.begin();
+                it!=SuspendManager::syscallReturnTime.end();
+                it++)
+        {
+            if(it->pid==this->pid){
+                memcpy(ptr,it->status,sizeof(ProcessStatus));
+                return;
+            }
+
+        }
+
+    }
     for(unsigned int i=0;i<this->threads.size();i++)
     {
         list<SyscallResumeTime>::iterator it;
@@ -381,8 +395,10 @@ void Process::serialize(ProcessStatus* ptr)
                 it!=SuspendManager::syscallReturnTime.end();
                 it++)
         {
-            if(this->pid==it->pid && i==it->threadNum)
+            if(this->pid==it->pid && i==(unsigned int)it->threadNum)
             {
+                //i=it->threadNum;
+                //ptr->numThreads++;
                 ptr->interruptionPoints[i].absSyscallTime=it->resumeTime;
                 ptr->interruptionPoints[i].intPointID=it->intPointID;
                 ptr->interruptionPoints[i].fileID=it->fileID;
@@ -396,8 +412,14 @@ void Process::serialize(ProcessStatus* ptr)
                         reinterpret_cast<unsigned int*>(this->sampleBuf);
                 ptr->interruptionPoints[i].sizeOfSample=this->sizeOfSample;
                 ptr->interruptionPoints[i].sampNum=0; //must be filled by smart driver
-                this->threads[i]->serializeUserspaceContext(
-                        ptr->interruptionPoints[i].registers);
+                //if(i<threads.size()){
+                    this->threads[i]->serializeUserspaceContext(
+                            ptr->interruptionPoints[i].registers);
+                //}
+               // else{
+                //    memcpy(ptr->interruptionPoints[i].registers,it->status->interruptionPoints[i].registers,sizeof(ptr->interruptionPoints[i].registers));
+                //}
+
             }
         }
     }

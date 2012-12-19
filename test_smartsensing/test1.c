@@ -147,6 +147,7 @@ int main()
         for(i=0;i<3000;i++){
             wait1();
         }
+        usleep(4000000);
 
     }
 }

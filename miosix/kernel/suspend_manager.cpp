@@ -75,7 +75,9 @@ void SuspendManager::enterInterruptionPoint(Process* proc, int threadID,
     newSuspThread.threadNum=threadID;
     newSuspThread.intPointID=intPointID;
     newSuspThread.fileID=fileID; 
-    iprintf("Added PID %i\r\n",newSuspThread.pid);
+    //iprintf("Added PID %i\r\n",newSuspThread.pid);
+    iprintf("T: %5lli PID: %4i BLOCKING\r\n",getTick(),newSuspThread.pid);
+
 
     {
         Lock<Mutex> l(suspMutex);
@@ -99,11 +101,13 @@ void SuspendManager::wakeUpProcess(pid_t processId){
     map<pid_t,Process*>::iterator findProc;
     Lock<Mutex> l(suspMutex);
     for(list<SyscallResumeTime>::iterator i=syscallReturnTime.begin();i!=syscallReturnTime.end();i++){
-        iprintf("Look PID %i\r\n",i->pid);
+        //iprintf("Look PID %i\r\n",i->pid);
         if(i->pid==processId){
             findProc=Process::processes.find(processId);
             if(findProc!=Process::processes.end()){
-                Process::create(i->status,i->threadNum,true);
+                iprintf("*) PID %i %i\n",processId,i->status->pid);
+                iprintf("T: %5lli PID: %4i RESTART SS\n",getTick(),processId);
+                Process::create(i->status,i->threadNum,true);                
             }
             syscallReturnTime.erase(i);
             return;
@@ -131,8 +135,14 @@ void SuspendManager::wakeupDaemon(void*)
             //so other threads waiting to be resumed must be not be created.
             //In any case, at the end of the cycle, the process must be 
             //erased from the syscallReturnTime list
-            if(findProc!=Process::processes.end())
+            if(findProc!=Process::processes.end()){
+
+
+                //FIXME: This causes exception
+                iprintf("T: %5lli PID: %4i RESTART GENERIC\r\n",getTick(),ret.pid);
                 Process::create(ret.status,ret.threadNum);
+
+            }
             syscallReturnTime.pop_front();
         } else {            
             long long resumeTime=ret.resumeTime;
@@ -164,9 +174,22 @@ void SuspendManager::hibernateDaemon(void*)
         //NOTE: the following if, as well as the upper and lower bunds,
         //will be replaced by the policy, once refined 
         if((it->resumeTime-getTick()/1000)<=hibernationThreshold) continue;
+
+        list<ProcessStatus*> backupProc;
+        for(it=syscallReturnTime.begin();it!=syscallReturnTime.end();it++){
+            map<pid_t,Process*>::iterator proc=Process::processes.find(it->pid);
+            ProcessStatus* procStatus;
+            if((proc!=Process::processes.end())&&(proc->second->numActiveThreads==0)){
+                procStatus=new ProcessStatus(*(it->status));
+                backupProc.push_back(procStatus);
+                it->status=procStatus;
+            }
+        }
+
         ProcessStatus* proc=getProcessesBackupAreaBase();
         iprintf("Swapping %d processes\n",suspendedProcesses.size());
         list<Process*>::iterator findProc;
+
         for(findProc=suspendedProcesses.begin();
                 findProc!=suspendedProcesses.end();findProc++)
         {
@@ -193,6 +216,9 @@ void SuspendManager::hibernateDaemon(void*)
                         suspendedProcesses.size();
             }
             proc++;
+        }
+        for(list<ProcessStatus*>::iterator it=backupProc.begin();it!=backupProc.end();it++){
+            delete *it;
         }
         
 //        iprintf("Backup SRAM\n");

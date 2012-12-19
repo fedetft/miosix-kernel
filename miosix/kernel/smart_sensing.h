@@ -13,6 +13,7 @@
 #include "interfaces/suspend_support.h"
 #include "suspend_manager.h"
 #include "interfaces/adc_driver.h"
+#include <cstdio>
 
 #define CANARY 0x55AA55AA
 #define CHECK_CANARY
@@ -161,10 +162,10 @@ namespace miosix {
 #endif
                 //debugInt(status->signature);
                 updateQueue(getTick());
-                IRQbootlog("In Coda:\r\n");
-                debugInt(getTick());
+                //IRQbootlog("In Coda:\r\n");
+                //debugInt(getTick());
                 debugInt(getNextSecond(getTick(),status->nextSystemRestart*1000));
-                debugInt(status->nextSystemRestart*1000);
+                //debugInt(status->nextSystemRestart*1000);
 
                 if ((completedTask)||(status->nextSystemRestart*1000 <= (unsigned long long)getTick())) {
                     status->nextSystemRestart=0;
@@ -216,7 +217,7 @@ namespace miosix {
          */
         static void startKernelDaemon(){
              getSmartSensingInstance()->wakeCompletedProcess();
-             Thread::create(daemonThread,1536);
+             Thread::create(daemonThread,2048);
         }
 
         /**
@@ -248,16 +249,16 @@ namespace miosix {
          * will be performed.
          */
         void updateQueue(unsigned long long time) {
-            completedTask=false;
-            //IRQbootlog("Updated!\r\n");            
+            completedTask=false;                
             for (unsigned int i = 0; i < Q; i++) {
                 if ((queue[i].remaining > 0) && (queue[i].nextTime <= time)) {                    
                     readQueue(i);
-                    debugInt(queue[i].nextTime);                    
+
+                    //debugInt(queue[i].nextTime);
+
                     queue[i].nextTime += queue[i].period;
                     if(queue[i].nextTime <= time){
-                       // IRQbootlog("Emergency!\r\n");
-                        queue[i].nextTime = time + queue[i].period;
+                      queue[i].nextTime = time + queue[i].period;
                     }
                     if(queue[i].remaining==0){
                         completedTask=true;
@@ -327,7 +328,17 @@ namespace miosix {
          * @param i index of the selected queue
          */
         void readQueue(int i) {
-            queue[i].data[queue[i].size - queue[i].remaining] = AdcDriver::read(queue[i].deviceId);
+            unsigned short value = AdcDriver::read(queue[i].deviceId);
+            queue[i].data[queue[i].size - queue[i].remaining] = value;
+            char debug[200];
+            sprintf(debug,"T: %5lli PID: %4i SS: %4x",getTick(),queue[i].processId,value);
+            if(isKernelRunning()){
+                puts(debug);
+            }
+            else{
+                IRQbootlog(debug);
+                IRQbootlog("\r\n");
+            }
             queue[i].remaining--;
         }
         
