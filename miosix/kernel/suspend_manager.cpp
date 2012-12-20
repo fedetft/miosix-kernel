@@ -173,7 +173,12 @@ void SuspendManager::hibernateDaemon(void*)
         it=syscallReturnTime.begin();
         //NOTE: the following if, as well as the upper and lower bunds,
         //will be replaced by the policy, once refined 
-        if((it->resumeTime-getTick()/1000)<=hibernationThreshold) continue;
+        long long time=getTick();
+        if((it->resumeTime*1000-time)<=hibernationThreshold) continue;
+        long long nextSmartSensing=static_cast<long long>(
+            SMART_SENSING::getSmartSensingInstance()->getNextSecond(time,0)*1000);
+        if((nextSmartSensing-time)<=SShibernationThreshold) continue;
+        iprintf("YYY t=%lli nss=%lli\n",time,nextSmartSensing);
 
         list<ProcessStatus*> backupProc;
         for(it=syscallReturnTime.begin();it!=syscallReturnTime.end();it++){
@@ -241,15 +246,16 @@ void SuspendManager::hibernateDaemon(void*)
     }
 }
 
-    void SuspendManager::suspend(unsigned long long resumeTime) {
-        long long prev = getTick();
-        int sleepTime = resumeTime - prev / 1000;
-        //iprintf("about to suspend, tick=%lld\n", prev);
-        getBackupSramBase()[1021] = prev & 0xffffffff; //FIXME: hack
-        getBackupSramBase()[1022] = prev >> 32;
-        getBackupSramBase()[1023] = sleepTime;
-        doSuspend(sleepTime);
-    }
+void SuspendManager::suspend(unsigned long long resumeTime)
+{
+    long long prev = getTick();
+    int sleepTime = resumeTime - prev / 1000;
+    //iprintf("about to suspend, tick=%lld\n", prev);
+    getBackupSramBase()[1021] = prev & 0xffffffff; //FIXME: hack
+    getBackupSramBase()[1022] = prev >> 32;
+    getBackupSramBase()[1023] = sleepTime;
+    doSuspend(sleepTime);
+}
 
 int SuspendManager::resume()
 {

@@ -197,6 +197,7 @@ namespace miosix {
             unsigned long long currentTime=getTick();
             updateQueue(currentTime+500);//No problem
             if(completedTask){
+                puts("XXX");
                 return;
             }
             SuspendManager::suspend(getNextSecond(currentTime,status->nextSystemRestart*1000));                        
@@ -239,6 +240,41 @@ namespace miosix {
             while(resetQueue(getQueueFromProcessId(processId)));
         }
         
+        /**
+         * @brief getNextEvent
+         * Retrive next time in milliseconds in which the next event will happen
+         * Can be invoked either during boot phase or when the kernel is active
+         * @param currentTime time in millisecond to be considered as current time
+         * @param minTime if different from 0 it counts as an additional event time in milliseconds
+         * @return next event time in milliseconds
+         */
+        unsigned long long getNextEvent(unsigned long long currentTime,unsigned long long minTime) const{                                  
+            for (unsigned int i = 0; i < Q; i++) {
+                if ((queue[i].size > 0) && (queue[i].remaining > 0) && (queue[i].nextTime>currentTime)) {
+                    if ((minTime == 0) || ((minTime > queue[i].nextTime))) {                        
+                        minTime = queue[i].nextTime;
+                    }
+                }
+            }
+            return minTime;
+        }
+        
+        /**
+         * @brief getNextSecond
+         * Retrive next time in seconds in which the next event will happen
+         * Can be invoked either during boot phase or when the kernel is active
+         * @param currentTime time in millisecond to be considered as current time
+         * @param minTime if different from 0 it counts as an additional event time in milliseconds
+         * @return next event time in seconds
+         */
+        unsigned int getNextSecond(unsigned long long currentTime, unsigned long long minTime) const{
+            unsigned int nextEvent=getNextEvent(currentTime,minTime);
+            if((currentTime%1000)>(nextEvent%1000)){
+                return nextEvent/1000;
+            }
+            return (nextEvent+999)/1000;
+        }
+        
     private:
 
         /**
@@ -270,40 +306,7 @@ namespace miosix {
             }
         }
         
-        /**
-         * @brief getNextSecond
-         * Retrive next time in seconds in which the next event will happen
-         * Can be invoked either during boot phase or when the kernel is active
-         * @param currentTime time in millisecond to be considered as current time
-         * @param minTime if different from 0 it counts as an additional event time in milliseconds
-         * @return next event time in seconds
-         */
-        unsigned int getNextSecond(unsigned long long currentTime, unsigned long long minTime) const{
-            unsigned int nextEvent=getNextEvent(currentTime,minTime);
-            if((currentTime%1000)>(nextEvent%1000)){
-                return nextEvent/1000;
-            }
-            return (nextEvent+999)/1000;
-        }
 
-        /**
-         * @brief getNextEvent
-         * Retrive next time in milliseconds in which the next event will happen
-         * Can be invoked either during boot phase or when the kernel is active
-         * @param currentTime time in millisecond to be considered as current time
-         * @param minTime if different from 0 it counts as an additional event time in milliseconds
-         * @return next event time in milliseconds
-         */
-        unsigned long long getNextEvent(unsigned long long currentTime,unsigned long long minTime) const{                                  
-            for (unsigned int i = 0; i < Q; i++) {
-                if ((queue[i].size > 0) && (queue[i].remaining > 0) && (queue[i].nextTime>currentTime)) {
-                    if ((minTime == 0) || ((minTime > queue[i].nextTime))) {                        
-                        minTime = queue[i].nextTime;
-                    }
-                }
-            }
-            return minTime;
-        }
         
         /**
          * @brief getFirstFreeQueue

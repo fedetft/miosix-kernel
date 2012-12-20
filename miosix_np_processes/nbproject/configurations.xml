@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configurationDescriptor version="80">
+<configurationDescriptor version="84">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
-    <df name="miosix_np_2" root="..">
+    <df name="miosix-kernel" root="..">
       <df name="app_template">
         <in>crt0.s</in>
         <in>main.c</in>
@@ -149,6 +149,8 @@
                 <in>interrupts.h</in>
               </df>
               <df name="interfaces-impl">
+                <in>adc_driver.cpp</in>
+                <in>adc_driver.h</in>
                 <in>arch_registers_impl.h</in>
                 <in>disk.cpp</in>
                 <in>endianness_impl.h</in>
@@ -259,6 +261,7 @@
           </df>
         </df>
         <df name="interfaces">
+          <in>adc_driver.h</in>
           <in>arch_registers.h</in>
           <in>bsp.h</in>
           <in>console.h</in>
@@ -315,6 +318,8 @@
           <in>process_pool.h</in>
           <in>pthread.cpp</in>
           <in>pthread_private.h</in>
+          <in>smart_sensing.cpp</in>
+          <in>smart_sensing.h</in>
           <in>stage_2_boot.cpp</in>
           <in>suspend_manager.cpp</in>
           <in>suspend_manager.h</in>
@@ -344,6 +349,13 @@
       </df>
       <df name="miosix_np_processes">
       </df>
+      <df name="test_smartsensing">
+        <in>crt0.s</in>
+        <in>test1.c</in>
+        <in>test1.h</in>
+        <in>test2.c</in>
+        <in>test2.h</in>
+      </df>
       <in>main.cpp</in>
     </df>
     <logicalFolder name="ExternalFiles"
@@ -364,6 +376,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -412,6 +426,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -456,6 +472,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -502,6 +520,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -548,6 +568,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -594,6 +616,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -640,6 +664,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -686,6 +712,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -730,6 +758,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>
@@ -774,6 +804,8 @@
         <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
         <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
       </toolsSet>
+      <codeAssistance>
+      </codeAssistance>
       <makefileType>
         <makeTool>
           <buildCommandWorkingDir>..</buildCommandWorkingDir>

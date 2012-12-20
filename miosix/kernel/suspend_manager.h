@@ -126,8 +126,10 @@ private:
     ///this map lists the suspended processes
     static std::list<Process *> suspendedProcesses;
     
-    //Sleep time below which hibernation will not occur (in seconds)
-    static const int hibernationThreshold=1;
+    //Sleep time below which hibernation will not occur (in milliseconds)
+    static const int hibernationThreshold=1000;
+    //Sleep time for smart sensing below which hibernation will not occur (in milliseconds)
+    static const int SShibernationThreshold=300;
     
     //Needs access to process table, serialization/loading methods
     friend class Process;
