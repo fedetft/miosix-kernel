@@ -1,5 +1,5 @@
 # Exclude doxygen
-miosix/doc/doxygen/*
+miosix/doc/doxygen/html/*
 
 # Exclude temporary files
 main.elf

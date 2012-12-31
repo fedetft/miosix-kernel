@@ -1,0 +1,132 @@
+
+/**
+\mainpage Miosix embedded OS
+\author Terraneo Federico
+
+This is the documentation of Miosix, a kernel designed for embedded systems.
+*/
+
+/**
+\defgroup Kernel Kernel
+Miosix kernel API
+
+The most useful part of this API is the Thread class that allows to create and
+manage threads.
+
+A note on IRQ functions/methods:<br>
+Functions and methods that do not begin with IRQ cannot be called inside IRQ or
+when interrupts are disabled.<br>
+Functions and methods that begin with IRQ cannot be called outside IRQ or when
+interrupts are enabled.<br>
+When the kernel is paused, you must read the comment of the function to see if
+it can be called since there is no general rule.<br>
+Only recently (starting from Miosix 1.53) some of the functions designed to be
+called with kernel paused are marked with the PK prefix.
+*/
+
+/**
+\defgroup Sync Syncronization
+Miosix syncronization API
+
+Miosix provides the Mutex class to guard critical sections,<br>
+the ConditionVariable class for thread synchronization,<br>
+the Queue class to transfer data between threads,<br>
+and the Timer class to measure time intervals.
+*/
+
+/**
+\defgroup Interfaces Interfaces
+Interfaces between kernel and architecture specific code.
+
+Starting from Miosix 1.53 all calls from kernel to architecture specific code
+is done through a set of functions, classes and macros grouped in a set of
+header files in the miosix/interfaces folder.
+There are multiple implementations of these functions/classes, one for each
+architecture supported by Miosix. This eases portability since adding a new
+architecture is done by implementing a well defined set of interfaces.
+
+Some of these functions are not designed to be accessed by user code, for
+example the functions in portability.h are used by the kernel to create
+threads and perform context switching, while the Disk class in disk.h is used
+by the filesystem module to read and write from disk.
+Such functions are marked as \\internal and therefore are not visible by default
+in this doxygen documentation, because are useless for application developers.
+If there is the need to port Miosix to another platform it is always possible
+to build the doxygen documentation manually including \\internal functions.
+Using functions which are marked as \\internal in user code might lead to
+undefined behaviour.
+*/
+
+/**
+\defgroup Hardware Hardware
+Hardware related functions
+
+Starting from Miosix 1.50 the kernel can be run on multiple platforms.
+It provides some facilities to access common features such as GPIOs in a
+platform independent way, and leaves the rest of the underlying hardware
+available for direct use.
+Including miosix.h in a source file will automaticaly include the header
+files with the register definitions of the selected microcontroller, so that
+it is possible to write code that makes use of its peripherals.
+
+Some hardware resources, however, are used by the kernel, and must not be used
+by user code, to avoid conflicts This usually include a serial port, used for
+redirecting printf, an SPI or SD card hardware controller, for filesystem access,
+one or more hardware timers, used for preemption, and some interrupt handlers
+used for context switching.
+*/
+
+/**
+\defgroup Filesystem Filesystem
+Filesystem related functions
+
+File handling will not be described here since it is done using the C or C++
+standard library (fopen, fprintf, istream, remove, mkdir, ...).<br>
+All file related function of the C and C++ standard library should work, except
+rename() and link() which are not implemented.<br>
+The maximum number of files that can be opened at the same time is defined
+in the constant MAX_OPEN_FILES in miosix/config/miosix_settings.h,
+All files are opened in binary mode. Therefore there is no differnce between
+fopen("file.txt","r") and fopen("file.txt","rb").
+For filesystem write access, the SYNC_AFTER_WRITE option in miosix_settings.h
+allows to choose a faster or safer implementation.
+
+Directory listing is not done using the standard opendir() and readdir()
+functions, but using the Directory class.
+
+Mounting and unmounting the filesystem is done through the Filesystem class.
+Note that the filesystem is mounted automatically at boot time, except in
+case of errors (like no uSD card in the socket).
+*/
+
+/**
+\defgroup Drivers Drivers
+Miosix drivers API
+
+Contains functions and macros that can be used to write drivers for hardware
+peripherals. These functions, plus the IRQ methods of the Queue class provide a
+way to transfer data between an interrupt routine and user code, and a way to
+cause preemption inside an interrupt routine to wake a higher priority Thread
+waiting on some hardware peripheral.
+
+Also contains the default drivers for each architecture.
+*/
+
+/**
+\defgroup Util Utilities
+Some utilities functions.
+
+The most notable ones are the utilities for memory profiling, grouped in the
+MemoryProfiling class.
+*/
+
+/**
+\defgroup Settings Settings
+If your application requires it, you can change the default settings for kernel
+and drivers.
+
+Kernel settings are in miosix/kernel/kernel_settings.h,<br>
+while all other settings are in miosix/miosix_settings.h<br>
+
+Don't forget to rebuild the kernel if you make modifications to these settings.
+*/
