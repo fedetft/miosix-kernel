@@ -91,15 +91,21 @@ void operator delete[](void *p) throw()
 
 /**
  * \internal
- * The default version of this function provided with libstdc++ requires
+ * The default version of these functions provided with libstdc++ require
  * exception support. This means that a program using pure virtual functions
  * incurs in the code size penalty of exception support even when compiling
- * without exceptions. By replacing the default implementation with this one the
- * problem is fixed.
+ * without exceptions. By replacing the default implementations with these one
+ * the problem is fixed.
  */
-extern "C" void __cxa_pure_virtual(void)
+extern "C" void __cxxabiv1::__cxa_pure_virtual(void)
 {
     miosix::errorLog("\r\n***Pure virtual method called\r\n");
+    _exit(1);
+}
+
+extern "C" void __cxxabiv1::__cxa_deleted_virtual(void)
+{
+    miosix::errorLog("\r\n***Deleted virtual method called\r\n");
     _exit(1);
 }
 
@@ -405,6 +411,11 @@ void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr)
     return reinterpret_cast<void*>(prev_heap_end);
 }
 
+void *sbrk(ptrdiff_t incr)
+{
+    return _sbrk_r(_impure_ptr,incr);
+}
+
 /**
  * \internal
  * __malloc_lock, called by malloc to ensure no context switch happens during
@@ -433,7 +444,7 @@ void __malloc_unlock()
 
 /**
  * \internal
- * _open_r, Open a file
+ * _open_r, open a file
  */
 int _open_r(struct _reent *ptr, const char *name, int flags, int mode)
 {
@@ -446,9 +457,14 @@ int _open_r(struct _reent *ptr, const char *name, int flags, int mode)
     #endif //WITH_FILESYSTEM
 }
 
+int open(const char *name, int flags, ...)
+{
+    return _open_r(_impure_ptr,name,flags,0); //TODO: retrieve file mode
+}
+
 /**
  * \internal
- * _close_r, Close a file
+ * _close_r, close a file
  */
 int _close_r(struct _reent *ptr, int fd)
 {
@@ -461,11 +477,16 @@ int _close_r(struct _reent *ptr, int fd)
     #endif //WITH_FILESYSTEM
 }
 
+int close(int fd)
+{
+    return _close_r(_impure_ptr,fd);
+}
+
 /**
  * \internal
- * _write (for C++ library)
+ * _write_r, write to a file
  */
-int _write(int fd, const void *buf, size_t cnt)
+int _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
 { 
     switch(fd)
     {
@@ -506,20 +527,21 @@ int _write(int fd, const void *buf, size_t cnt)
     }
 }
 
-/**
- * \internal
- * _write_r, write data to files, or the standard output/ standard error
- */
-int _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
+int _write(int fd, const void *buf, size_t cnt)
 {
-    return _write(fd,buf,cnt);
+    return _write_r(_impure_ptr,fd,buf,cnt);
+}
+
+int write(int fd, const void *buf, size_t cnt)
+{
+    return _write_r(_impure_ptr,fd,buf,cnt);
 }
 
 /**
  * \internal
- * _read (for C++ library)
+ * _read_r, read from a file
  */
-int _read(int fd, void *buf, size_t cnt)
+int _read_r(struct _reent *ptr, int fd, void *buf, size_t cnt)
 {
     switch(fd)
     {
@@ -579,20 +601,21 @@ int _read(int fd, void *buf, size_t cnt)
     }
 }
 
-/**
- * \internal
- * _read_r, read data from files or the standard input
- */
-int _read_r(struct _reent *ptr, int fd, void *buf, size_t cnt)
+int _read(int fd, void *buf, size_t cnt)
 {
-    return _read(fd,buf,cnt);
+    return _read_r(_impure_ptr,fd,buf,cnt);
+}
+
+int read(int fd, void *buf, size_t cnt)
+{
+    return _read_r(_impure_ptr,fd,buf,cnt);
 }
 
 /**
  * \internal
- * _lseek (for C++ library)
+ * _lseek_r, move file pointer
  */
-off_t _lseek(int fd, off_t pos, int whence)
+off_t _lseek_r(struct _reent *ptr, int fd, off_t pos, int whence)
 {
     #ifdef WITH_FILESYSTEM
     return miosix::Filesystem::instance().lseekFile(fd,pos,whence);
@@ -602,20 +625,21 @@ off_t _lseek(int fd, off_t pos, int whence)
     #endif //WITH_FILESYSTEM
 }
 
-/**
- * \internal
- * _lseek_r, seek trough a file
- */
-off_t _lseek_r(struct _reent *ptr, int fd, off_t pos, int whence)
+off_t _lseek(int fd, off_t pos, int whence)
 {
-    return _lseek(fd,pos,whence);
+    return _lseek_r(_impure_ptr,fd,pos,whence);
+}
+
+off_t lseek(int fd, off_t pos, int whence)
+{
+    return _lseek_r(_impure_ptr,fd,pos,whence);
 }
 
 /**
  * \internal
- * _fstat (for C++ library)
+ * _fstat_r, return file info
  */
-int _fstat(int fd, struct stat *pstat)
+int _fstat_r(struct _reent *ptr, int fd, struct stat *pstat)
 {
     if(fd<0) return -1;
     if(fd<3)
@@ -633,13 +657,14 @@ int _fstat(int fd, struct stat *pstat)
     }
 }
 
-/**
- * \internal
- * _fstat_r, collect data about a file
- */
-int _fstat_r(struct _reent *ptr, int fd, struct stat *pstat)
+int _fstat(int fd, struct stat *pstat)
 {
-    return _fstat(fd,pstat);
+    return _fstat_r(_impure_ptr,fd,pstat);
+}
+
+int fstat(int fd, struct stat *pstat)
+{
+    return _fstat_r(_impure_ptr,fd,pstat);
 }
 
 /**
@@ -653,6 +678,16 @@ int _stat_r(struct _reent *ptr, const char *file, struct stat *pstat)
     #else //WITH_FILESYSTEM
     return -1;
     #endif //WITH_FILESYSTEM
+}
+
+int _stat(const char *file, struct stat *pstat)
+{
+    return _stat_r(_impure_ptr,file,pstat);
+}
+
+int stat(const char *file, struct stat *pstat)
+{
+    return _stat_r(_impure_ptr,file,pstat);
 }
 
 /**
@@ -797,6 +832,15 @@ int _wait_r(struct _reent *ptr, int *status)
     return -1;
 }
 
+/**
+ * \internal
+ * abort calls raise and then exit. Currently signals aren't supported. 
+ */
+int raise(int sig)
+{
+    return -1;
+}
+
 #ifdef __cplusplus
 }
 #endif
@@ -807,9 +851,6 @@ int _wait_r(struct _reent *ptr, int *status)
 // Check that newlib has been configured correctly
 // ===============================================
 
-#ifndef _WANT_REENT_SMALL
-#warning "_WANT_REENT_SMALL not defined"
-#endif //_WANT_REENT_SMALL
 
 #ifndef _REENT_SMALL
 #error "_REENT_SMALL not defined"

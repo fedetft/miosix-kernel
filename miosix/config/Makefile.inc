@@ -13,12 +13,12 @@
 ## architecture
 ##
 #OPT_BOARD := lpc2138_miosix_board
-OPT_BOARD := stm32f103ze_stm3210e-eval
+#OPT_BOARD := stm32f103ze_stm3210e-eval
 #OPT_BOARD := stm32f103ve_mp3v2
 #OPT_BOARD := stm32f100rb_stm32vldiscovery
 #OPT_BOARD := stm32f103ve_strive_mini
 #OPT_BOARD := stm32f103ze_redbull_v2
-#OPT_BOARD := stm32f407vg_stm32f4discovery
+OPT_BOARD := stm32f407vg_stm32f4discovery
 #OPT_BOARD := stm32f207ig_stm3220g-eval
 #OPT_BOARD := stm32f207zg_ethboard_v2
 #OPT_BOARD := stm32f207ze_als_camboard
@@ -31,8 +31,8 @@ OPT_BOARD := stm32f103ze_stm3210e-eval
 ## -O2 is recomended otherwise, as it provides a good balance between code
 ## size and speed
 ##
-#OPT_OPTIMIZATION := -O0
-OPT_OPTIMIZATION := -O2
+OPT_OPTIMIZATION := -O0
+#OPT_OPTIMIZATION := -O2
 #OPT_OPTIMIZATION := -O3
 #OPT_OPTIMIZATION := -Os
 
@@ -259,8 +259,8 @@ endif
 ## Then, initialize C/C++ flags with -D_MIOSIX so that application code can
 ## know if the OS is MIOSIX
 ##
-CFLAGS_BASE   := -D_MIOSIX=\"$(OPT_BOARD)\"
-CXXFLAGS_BASE := -D_MIOSIX=\"$(OPT_BOARD)\"
+CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\"
+CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\"
 
 ##
 ## Now two big switch-like constructs nested. The first lists all possible
@@ -538,7 +538,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     endif
 
     ## Select compiler
-    PREFIX=arm-miosix-eabi-
+    PREFIX := arm-miosix-eabi-
 
     ## From compiler prefix form the name of the compiler and other tools
     CC  := $(PREFIX)gcc
@@ -553,14 +553,12 @@ else ifeq ($(ARCH),cortexM3_stm32)
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
     CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32 $(CLOCK_FREQ) $(XRAM)            \
-                     -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
-                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c 
+                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION)             \
+                     -ffunction-sections -Wall -g -c 
     CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32 $(CLOCK_FREQ) $(XRAM)            \
                      $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
-                     -mfix-cortex-m3-ldrd $(OPT_OPTIMIZATION)                \
-                     -ffunction-sections -Wall -g -c
-    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
-                     -Wl,--gc-sections,-Map,main.map                         \
+                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
                      -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                      $(OPT_OPTIMIZATION) -nostdlib
 
@@ -614,7 +612,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
 
     ##-------------------------------------------------------------------------
-    ## BOARD: stm32f4discovery
+    ## BOARD: stm32f4bitsboard
     ##
     else ifeq ($(OPT_BOARD),stm32f407vg_bitsboard)
 
@@ -653,7 +651,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     endif
 
     ## Select compiler
-    PREFIX=arm-miosix-eabi-
+    PREFIX := arm-miosix-eabi-
 
     ## From compiler prefix form the name of the compiler and other tools
     CC  := $(PREFIX)gcc
@@ -666,18 +664,17 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    #FIXME: Replace -mcpu=cortex-m3 with -mcpu=cortex-m4 after upgrading GCC
-    AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
-    CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(SRAM_BOOT)     \
-                     -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
+    AFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+    CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(SRAM_BOOT)        \
+                     -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
                      $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(SRAM_BOOT)     \
-                     $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
-                     -mfix-cortex-m3-ldrd $(OPT_OPTIMIZATION)                \
-                     -ffunction-sections -Wall -g -c
-    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
-                     -Wl,--gc-sections,-Map,main.map                         \
-                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(SRAM_BOOT)        \
+                     -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
+                     $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -ffunction-sections      \
+                     -Wall -g -c
+    LFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
+                     -Wl,--gc-sections,-Map,main.map                            \
+                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)              \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -840,14 +837,12 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
     CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32F2 $(CLOCK_FREQ) $(XRAM)          \
-                     -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
-                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION)             \
+                     -ffunction-sections -Wall -g -c
     CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32F2 $(CLOCK_FREQ) $(XRAM)          \
                      $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
-                     -mfix-cortex-m3-ldrd $(OPT_OPTIMIZATION)                \
-                     -ffunction-sections -Wall -g -c
-    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
-                     -Wl,--gc-sections,-Map,main.map                         \
+                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
                      -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                      $(OPT_OPTIMIZATION) -nostdlib
 
@@ -923,14 +918,12 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
     CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32L1 $(CLOCK_FREQ) $(XRAM)          \
-                     -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
-                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION)             \
+                     -ffunction-sections -Wall -g -c
     CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32L1 $(CLOCK_FREQ) $(XRAM)          \
                      $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
-                     -mfix-cortex-m3-ldrd $(OPT_OPTIMIZATION)                \
-                     -ffunction-sections -Wall -g -c
-    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
-                     -Wl,--gc-sections,-Map,main.map                         \
+                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
                      -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                      $(OPT_OPTIMIZATION) -nostdlib
 

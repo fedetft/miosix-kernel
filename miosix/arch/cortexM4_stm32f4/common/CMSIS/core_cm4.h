@@ -132,7 +132,7 @@
       #define __FPU_USED       0
     #endif
   #else
-    #define __FPU_USED         0
+    #define __FPU_USED         1 /* by TFT: enable FPU */
   #endif
 
 #elif defined ( __TASKING__ )

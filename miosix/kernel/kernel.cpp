@@ -181,7 +181,7 @@ void startKernel()
     //Fill watermark and stack
     memset(base, WATERMARK_FILL, WATERMARK_LEN);
     base+=WATERMARK_LEN/sizeof(unsigned int);
-    memset(base, STACK_FILL, STACK_IDLE);
+    memset(base, STACK_FILL, STACK_IDLE+CTXSAVE_ON_STACK);
 
     //On some architectures some registers are saved on the stack, therefore
     //initCtxsave *must* be called after filling the stack.
@@ -320,7 +320,10 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
     //Fill watermark and stack
     memset(base, WATERMARK_FILL, WATERMARK_LEN);
     base+=WATERMARK_LEN/sizeof(unsigned int);
-    memset(base, STACK_FILL, stacksize);
+    //Note: cortex-M4 has two layouts for ctxsave-on-stack, depending on
+    //whether fp regs are used, and they differ in size, so fill the entire
+    //stack or memory profiling may fail
+    memset(base, STACK_FILL, stacksize+CTXSAVE_ON_STACK);
 
     //On some architectures some registers are saved on the stack, therefore
     //initCtxsave *must* be called after filling the stack.

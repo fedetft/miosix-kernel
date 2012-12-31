@@ -166,6 +166,8 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
 
     ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
     //leaving the content of r4-r11 uninitialized
+    //leaving the content of s16-s31 uninitialized
+    ctxsave[25]=0xfffffffd; //EXC_RETURN=thread mode, use psp, no floating ops
 }
 
 void IRQportableStartKernel()
@@ -174,7 +176,7 @@ void IRQportableStartKernel()
     SCB->SHCSR |= SCB_SHCSR_USGFAULTENA_Msk | SCB_SHCSR_BUSFAULTENA_Msk
             | SCB_SHCSR_MEMFAULTENA_Msk;
     //Enable traps for unaligned memory access and division by zero
-    SCB->CCR |= SCB_CCR_DIV_0_TRP_Msk | SCB_CCR_UNALIGN_TRP_Msk;
+    SCB->CCR |= SCB_CCR_DIV_0_TRP_Msk;
     NVIC_SetPriorityGrouping(7);//This should disable interrupt nesting
     NVIC_SetPriority(SVCall_IRQn,3);//High priority for SVC (Max=0, min=15)
     NVIC_SetPriority(SysTick_IRQn,3);//High priority for SysTick (Max=0, min=15)

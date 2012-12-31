@@ -35,17 +35,22 @@ namespace miosix {
  * \{
  */
 
-/// \internal Size of vector to store registers during ctx switch (9*4=36Bytes)
-/// Only sp and r4-r11 are saved here, since r0-r3,r12,lr,pc,xPSR and
-/// old sp are saved by hardware on the process stack on Cortex M3 CPUs.
-const unsigned char CTXSAVE_SIZE=9;
+/// \internal Size of vector to store registers during ctx switch
+/// ((9+16+1)*4=104Bytes). Only sp, r4-r11 and s16-s31 are saved here, since
+/// r0-r3,r12,lr,pc,xPSR, old sp and s0-s15,fpscr are saved by hardware on the
+/// process stack on Cortex M4 CPUs. The +1 is to save the exception lr, that
+/// is, EXC_RETURN, as it is necessary to know if the thread has used fp regs
+const unsigned char CTXSAVE_SIZE=9+16+1;
 
 /// \internal some architectures save part of the context on their stack.
 /// This constant is used to increase the stack size by the size of context
 /// save frame. If zero, this architecture does not save anything on stack
 /// during context save. Size is in bytes, not words.
+///  8 registers=r0-r3,r12,lr,pc,xPSR
+/// 17 registers=s0-s15,fpscr
 /// MUST be divisible by 4.
-const unsigned int CTXSAVE_ON_STACK=32;
+// FIXME: +1 because of alignment of the cortex m3!!
+const unsigned int CTXSAVE_ON_STACK=(8+17+1)*4;
 
 /**
  * \}

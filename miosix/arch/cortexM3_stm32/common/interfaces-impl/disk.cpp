@@ -721,7 +721,7 @@ private:
 
     ///\internal Clock enabled, bus width 4bit, clock powersave enabled.
     static const unsigned int CLKCR_FLAGS=SDIO_CLKCR_CLKEN |
-        SDIO_CLKCR_WIDBUS_0 | SDIO_CLKCR_PWRSAV;
+        SDIO_CLKCR_WIDBUS_0 | SDIO_CLKCR_PWRSAV | SDIO_CLKCR_HWFC_EN;
 
     ///\internal Maximum number of calls to IRQreduceClockSpeed() allowed
     static const unsigned char MAX_ALLOWED_REDUCTIONS=5;

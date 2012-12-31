@@ -42,6 +42,9 @@
  * this is a pointer to a location where to store the thread's registers during
  * context switch. It requires C linkage to be used inside asm statement.
  * Registers are saved in the following order:
+ * *ctxsave+96 --> s31
+ * ...
+ * *ctxsave+36 --> s16
  * *ctxsave+32 --> r11
  * *ctxsave+28 --> r10
  * *ctxsave+24 --> r9
@@ -63,14 +66,15 @@ extern volatile unsigned int *ctxsave;
  * Must be the first line of an IRQ where a context switch can happen.
  * The IRQ must be "naked" to prevent the compiler from generating context save.
  */
-#define saveContext()                                                        \
-{                                                                             \
-    asm volatile("stmdb sp!, {lr}        \n\t" /*save lr on MAIN stack*/      \
-                 "mrs   r1,  psp         \n\t" /*get PROCESS stack pointer*/  \
-                 "ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
-                 "ldr   r0,  [r0]        \n\t"                                \
-                 "stmia r0,  {r1,r4-r11} \n\t" /*save PROCESS sp + r4-r11*/   \
-                 );                                                           \
+#define saveContext()                                                         \
+{                                                                              \
+    asm volatile("mrs     r1,  psp         \n\t" /*get PROCESS stack pointer*/ \
+                 "ldr     r0,  =ctxsave    \n\t" /*get current context*/       \
+                 "ldr     r0, [r0]         \n\t"                               \
+                 "stmia   r0!, {r1,r4-r11} \n\t" /*save PROCESS sp + r4-r11*/  \
+                 "vstmia.32 r0!, {s16-s31} \n\t" /*save s16-s31*/              \
+                 "str     lr, [r0]         \n\t"                               \
+                 );                                                            \
 }
 
 /**
@@ -79,14 +83,15 @@ extern volatile unsigned int *ctxsave;
  * of an IRQ where a context switch can happen. The IRQ must be "naked" to
  * prevent the compiler from generating context restore.
  */
-#define restoreContext()                                                     \
-{                                                                             \
-    asm volatile("ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
-                 "ldr   r0,  [r0]        \n\t"                                \
-                 "ldmia r0,  {r1,r4-r11} \n\t" /*restore r4-r11 + r1=psp*/    \
-                 "msr   psp, r1          \n\t" /*restore PROCESS sp*/         \
-                 "ldmia sp!, {pc}        \n\t" /*return*/                     \
-                 );                                                           \
+#define restoreContext()                                                      \
+{                                                                              \
+    asm volatile("ldr     r0,  =ctxsave    \n\t" /*get current context*/       \
+                 "ldr     r0,  [r0]        \n\t"                               \
+                 "ldmia   r0!, {r1,r4-r11} \n\t" /*restore r4-r11 + r1=psp*/   \
+                 "vldmia.32 r0!, {s16-s31} \n\t" /*restore s16-s31*/           \
+                 "msr     psp, r1          \n\t" /*restore PROCESS sp*/        \
+                 "ldmia   r0, {pc}         \n\t" /*return*/                    \
+                 );                                                            \
 }
 
 /**
