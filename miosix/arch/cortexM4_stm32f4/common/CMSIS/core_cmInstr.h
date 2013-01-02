@@ -463,11 +463,11 @@ __attribute__( ( always_inline ) ) static __INLINE uint32_t __LDREXW(volatile ui
  */
 __attribute__( ( always_inline ) ) static __INLINE uint32_t __STREXB(uint8_t value, volatile uint8_t *addr)
 {
-   //Fix by TFT: the compiler generates an invalid instruction without forcing r2
-   //(http://old.nabble.com/-Bug-gas-13215--New%3A-ARM-Cortex-M3-strexh-strexb-instructions-with-same-registers-generates-error-td32516436.html)
-   register uint32_t result asm("r2");
+   register uint32_t result;
   
-   __ASM volatile ("strexb %0, %2, [%1]" : "=r" (result) : "r" (addr), "r" (value) );
+   //Fix by TFT: the compiler gcc may generate an invalid instruction, add &
+   //(http://old.nabble.com/-Bug-gas-13215--New%3A-ARM-Cortex-M3-strexh-strexb-instructions-with-same-registers-generates-error-td32516436.html)
+   __ASM volatile ("strexb %0, %2, [%1]" : "=&r" (result) : "r" (addr), "r" (value) );
    return(result);
 }
 
@@ -483,11 +483,11 @@ __attribute__( ( always_inline ) ) static __INLINE uint32_t __STREXB(uint8_t val
  */
 __attribute__( ( always_inline ) ) static __INLINE uint32_t __STREXH(uint16_t value, volatile uint16_t *addr)
 {
-   //Fix by TFT: the compiler generates an invalid instruction without forcing r2
-   //(http://old.nabble.com/-Bug-gas-13215--New%3A-ARM-Cortex-M3-strexh-strexb-instructions-with-same-registers-generates-error-td32516436.html)
-   register uint32_t result asm("r2");
+   register uint32_t result;
   
-   __ASM volatile ("strexh %0, %2, [%1]" : "=r" (result) : "r" (addr), "r" (value) );
+   //Fix by TFT: the compiler gcc may generate an invalid instruction, add &
+   //(http://old.nabble.com/-Bug-gas-13215--New%3A-ARM-Cortex-M3-strexh-strexb-instructions-with-same-registers-generates-error-td32516436.html)
+   __ASM volatile ("strexh %0, %2, [%1]" : "=&r" (result) : "r" (addr), "r" (value) );
    return(result);
 }
 
@@ -503,11 +503,11 @@ __attribute__( ( always_inline ) ) static __INLINE uint32_t __STREXH(uint16_t va
  */
 __attribute__( ( always_inline ) ) static __INLINE uint32_t __STREXW(uint32_t value, volatile uint32_t *addr)
 {
-   //Fix by TFT: the compiler generates an invalid instruction without forcing r2
-   //(http://old.nabble.com/-Bug-gas-13215--New%3A-ARM-Cortex-M3-strexh-strexb-instructions-with-same-registers-generates-error-td32516436.html)
-   register uint32_t result asm("r2");
+   register uint32_t result;
   
-   __ASM volatile ("strex %0, %2, [%1]" : "=r" (result) : "r" (addr), "r" (value) );
+   //Fix by TFT: the compiler gcc may generate an invalid instruction, add &
+    //(http://old.nabble.com/-Bug-gas-13215--New%3A-ARM-Cortex-M3-strexh-strexb-instructions-with-same-registers-generates-error-td32516436.html)
+   __ASM volatile ("strex %0, %2, [%1]" : "=&r" (result) : "r" (addr), "r" (value) );
    return(result);
 }
 

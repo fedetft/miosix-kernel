@@ -1,5 +1,25 @@
 Changelog for Miosix np embedded OS
 
+- Fixed the CMSIS of all Cortex ports so as to prevent gcc from using the same
+  register as the first and second argument of strex, strexh, strexb
+- Modified sync.h so as to make mandatory the new gcc 4.7.2 compiler. Not
+  that removing the #error in that file would make the kernel compilable
+  with the previous compiler anyway, this just produces a meaningful error
+  message.
+- The build scripts of Miosix used to defile the _MIOSIX macro as a string with
+  the name of the board. This has now changed. The _MIOSIX macro is still
+  defined but as a compiler intrinsic as part of the gcc patches for 4.7.2.
+  As such, it has no string value, and can only be used for #ifdef _MIOSIX or
+  other similar constructs. The _MIOSIX_BOARDNAME variable has been added with
+  similar semantics as the previous one.
+- A change in the board support packages enables the FPU on Cortex-M4
+  processors, as gcc 4.7 has support for -mcpu=cortex-m4 
+- The kernel now no longer traps unaligned memory accesses when compiled for
+  Cortex-M3 and Cortex-M4. This has been made necessary as gcc starting from
+  4.7 generates unaligned instructions by default. This does not break existing
+  code as is only a relaxation of a constraint.
+  (https://www.gnu.org/software/gcc/gcc-4.7/changes.html)
+- Started porting to gcc 4.7.2
 v1.61
 - Added .gitignore
 - Fixed a bug in usleep() occurring when its argument assumes the 1000 value

@@ -46,6 +46,17 @@
 #warning "You upgraded to gcc 4.5.2 and mandatory newlib patches, did you?"
 #warning "If not, see http://www.webalice.it/fede.tft/miosix/gcc-4.5.2.html"
 #endif
+#ifndef _MIOSIX
+/*
+ * Same small dirty trick.
+ * Starting from Miosix 2.00 the kernel can only be compiled with the new
+ * gcc 4.7.2 and the miosix-specific patches. See miosix/compiler/readme.txt
+ * for more infos. This works as in Miosix before 2.00 the _MIOSIX macro
+ * was defined by the Makefile, now it became a gcc intrinsic.
+ */
+#error "You upgraded to gcc 4.7.2, did you?"
+#error "If not, see http://www.webalice.it/fede.tft/miosix/gcc-4.7.2.html"
+#endif
 
 namespace miosix {
 
