@@ -46,6 +46,9 @@ const unsigned int CTXSAVE_SIZE=17;
 /// MUST be divisible by 4.
 const unsigned int CTXSAVE_ON_STACK=0;
 
+/// \internal stack alignment for this specific architecture
+const unsigned int CTXSAVE_STACK_ALIGNMENT=4;
+
 /**
  * \}
  */

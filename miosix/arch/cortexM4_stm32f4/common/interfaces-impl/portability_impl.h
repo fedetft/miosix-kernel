@@ -42,18 +42,19 @@
  * this is a pointer to a location where to store the thread's registers during
  * context switch. It requires C linkage to be used inside asm statement.
  * Registers are saved in the following order:
- * *ctxsave+96 --> s31
+ * *ctxsave+100 --> s31
  * ...
- * *ctxsave+36 --> s16
- * *ctxsave+32 --> r11
- * *ctxsave+28 --> r10
- * *ctxsave+24 --> r9
- * *ctxsave+20 --> r8
- * *ctxsave+16 --> r7
- * *ctxsave+12 --> r6
- * *ctxsave+8  --> r5
- * *ctxsave+4  --> r4
- * *ctxsave+0  --> psp
+ * *ctxsave+40  --> s16
+ * *ctxsave+36  --> lr (contains EXC_RETURN whose bit #4 tells if fpu is used)
+ * *ctxsave+32  --> r11
+ * *ctxsave+28  --> r10
+ * *ctxsave+24  --> r9
+ * *ctxsave+20  --> r8
+ * *ctxsave+16  --> r7
+ * *ctxsave+12  --> r6
+ * *ctxsave+8   --> r5
+ * *ctxsave+4   --> r4
+ * *ctxsave+0   --> psp
  */
 extern "C" {
 extern volatile unsigned int *ctxsave;
@@ -68,12 +69,14 @@ extern volatile unsigned int *ctxsave;
  */
 #define saveContext()                                                         \
 {                                                                              \
-    asm volatile("mrs     r1,  psp         \n\t" /*get PROCESS stack pointer*/ \
-                 "ldr     r0,  =ctxsave    \n\t" /*get current context*/       \
-                 "ldr     r0, [r0]         \n\t"                               \
-                 "stmia   r0!, {r1,r4-r11} \n\t" /*save PROCESS sp + r4-r11*/  \
-                 "vstmia.32 r0!, {s16-s31} \n\t" /*save s16-s31*/              \
-                 "str     lr, [r0]         \n\t"                               \
+    asm volatile("   mrs    r1,  psp            \n"/*get PROCESS stack ptr  */ \
+                 "   ldr    r0,  =ctxsave       \n"/*get current context    */ \
+                 "   ldr    r0,  [r0]           \n"                            \
+                 "   stmia  r0!, {r1,r4-r11,lr} \n"/*save r1(psp),r4-r11,lr */ \
+                 "   lsls   r2,  lr,  #27       \n"/*check if bit #4 is set */ \
+                 "   bmi    0f                  \n"                            \
+                 "   vstmia.32 r0, {s16-s31}    \n"/*save s16-s31 if we need*/ \
+                 "0:                            \n"                            \
                  );                                                            \
 }
 
@@ -85,12 +88,14 @@ extern volatile unsigned int *ctxsave;
  */
 #define restoreContext()                                                      \
 {                                                                              \
-    asm volatile("ldr     r0,  =ctxsave    \n\t" /*get current context*/       \
-                 "ldr     r0,  [r0]        \n\t"                               \
-                 "ldmia   r0!, {r1,r4-r11} \n\t" /*restore r4-r11 + r1=psp*/   \
-                 "vldmia.32 r0!, {s16-s31} \n\t" /*restore s16-s31*/           \
-                 "msr     psp, r1          \n\t" /*restore PROCESS sp*/        \
-                 "ldmia   r0, {pc}         \n\t" /*return*/                    \
+    asm volatile("   ldr    r0,  =ctxsave       \n"/*get current context    */ \
+                 "   ldr    r0,  [r0]           \n"                            \
+                 "   ldmia  r0!, {r1,r4-r11,lr} \n"/*load r1(psp),r4-r11,lr */ \
+                 "   lsls   r2,  lr,  #27       \n"/*check if bit #4 is set */ \
+                 "   bmi    0f                  \n"                            \
+                 "   vldmia.32 r0, {s16-s31}    \n"/*restore s16-s31 if need*/ \
+                 "0: msr    psp, r1             \n"/*restore PROCESS sp*/      \
+                 "   bx     lr                  \n"/*return*/                  \
                  );                                                            \
 }
 

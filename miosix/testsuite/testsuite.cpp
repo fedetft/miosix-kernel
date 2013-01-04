@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <stdexcept>
 #include <algorithm>
 #include <vector>
@@ -40,6 +41,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <tr1/functional>
+#include <ext/atomicity.h>
 
 #include "miosix.h"
 #include "miosix/kernel/buffer_queue.h"
@@ -85,6 +87,8 @@ static void test_17();
 static void test_18();
 static void test_19();
 static void test_20();
+static void test_21();
+static void test_22();
 //Filesystem test functions
 #ifdef WITH_FILESYSTEM
 static void fs_test_1();
@@ -144,6 +148,8 @@ int main()
                 test_18();
                 test_19();
                 test_20();
+                test_21();
+                test_22();
                 
                 ledOff();
                 Thread::sleep(500);//Ensure all threads are deleted.
@@ -2748,6 +2754,95 @@ static void test_20()
     #endif //__NO_EXCEPTIONS
     
     
+    pass();
+}
+
+//
+// Test 21
+//
+/*
+tests:
+floating point access from multiple threads (mostly of interest for
+architectures with hardware floating point whose state has to be preserved
+among context switches) 
+*/
+
+static float t21_f1()
+{
+    static volatile float f1=3.0f; //Volatile to prevent compiler optimizations
+    float result=f1;
+    for(int i=0;i<10000;i++) result=(result+f1/result)/2.0f;
+    return result;
+}
+
+static float t21_f2()
+{
+    static volatile float f2=2.0f; //Volatile to prevent compiler optimizations
+    float result=f2;
+    for(int i=0;i<10000;i++) result=(result+f2/result)/2.0f;
+    return result;
+}
+
+void *t21_t1(void*)
+{
+    for(int i=0;i<5;i++)
+    {
+        volatile float value=t21_f1();
+        if(fabsf(value-sqrt(3.0f))>0.00001f) fail("thread1");
+    }
+}
+
+static void test_21()
+{
+    test_name("Floating point");
+    pthread_t t;
+    pthread_create(&t,0,t21_t1,0);
+    for(int i=0;i<5;i++)
+    {
+        volatile float value=t21_f2();
+        if(fabsf(value-sqrt(2.0f))>0.00001f) fail("main");
+    }
+    pthread_join(t,0);
+    pass();
+}
+
+//
+// Test 22
+//
+/*
+tests:
+__atomic_add()
+__exchange_and_add()
+These are not actually in the kernel but in the patches to gcc 
+*/
+
+int t22_v1;
+int t22_v2;
+
+void *t22_t1(void*)
+{
+	for(int i=0;i<100000;i++)
+	{
+		__gnu_cxx::__atomic_add(&t22_v1,1);
+		__gnu_cxx::__exchange_and_add(&t22_v2,-1);
+	}
+	return 0;
+}
+
+static void test_22()
+{
+    test_name("Atomics in gcc");
+    t22_v1=0;
+    t22_v2=0;
+    pthread_t t;
+    pthread_create(&t,0,t22_t1,0);
+    for(int i=0;i<100000;i++)
+    {
+        __gnu_cxx::__atomic_add(&t22_v1,-1);
+        __gnu_cxx::__exchange_and_add(&t22_v2,1);
+    }
+    pthread_join(t,0);
+    if(t22_v1!=0 || t22_v2!=0) fail("not thread safe");
     pass();
 }
 

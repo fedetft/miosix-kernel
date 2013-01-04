@@ -1,5 +1,12 @@
 Changelog for Miosix np embedded OS
 
+- Added test to testsuite to verify the implementation of atomic operations
+  as part of the GCC patches.
+- Added stack alignment requirement to all arch ports, as different arch
+  do have different requirements.
+- Modified context switch code for the Cortex-M4 architecture to preserve
+  floating point registers. Code use lazy stacking to save fpu registers only
+  for threads that do actually use the fpu. Added test to testsuite for this.
 - Fixed the CMSIS of all Cortex ports so as to prevent gcc from using the same
   register as the first and second argument of strex, strexh, strexb
 - Modified sync.h so as to make mandatory the new gcc 4.7.2 compiler. Not

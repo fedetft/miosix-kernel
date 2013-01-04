@@ -43,8 +43,8 @@
  * Now, since the new patches make the #define PTHREAD_MUTEX_RECURSIVE
  * available we can use it to check which compiler is being used.
  */
-#warning "You upgraded to gcc 4.5.2 and mandatory newlib patches, did you?"
-#warning "If not, see http://www.webalice.it/fede.tft/miosix/gcc-4.5.2.html"
+#warning "You upgraded to gcc 4.7.2 and mandatory newlib patches, did you?"
+#warning "If not, see http://www.webalice.it/fede.tft/miosix/gcc-4.7.2.html"
 #endif
 #ifndef _MIOSIX
 /*

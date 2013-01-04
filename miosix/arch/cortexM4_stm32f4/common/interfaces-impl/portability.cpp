@@ -166,8 +166,8 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
 
     ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
     //leaving the content of r4-r11 uninitialized
+    ctxsave[9]=0xfffffffd; //EXC_RETURN=thread mode, use psp, no floating ops
     //leaving the content of s16-s31 uninitialized
-    ctxsave[25]=0xfffffffd; //EXC_RETURN=thread mode, use psp, no floating ops
 }
 
 void IRQportableStartKernel()

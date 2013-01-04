@@ -166,22 +166,28 @@ void startKernel()
     //
     //Create the idle thread
     //
+    unsigned int fullStackSize=WATERMARK_LEN+CTXSAVE_ON_STACK+STACK_IDLE;
+    
+    //Align fullStackSize to the platform required stack alignment
+    fullStackSize+=CTXSAVE_STACK_ALIGNMENT-1;
+    fullStackSize/=CTXSAVE_STACK_ALIGNMENT;
+    fullStackSize*=CTXSAVE_STACK_ALIGNMENT;
+    
     unsigned int *base=static_cast<unsigned int*>(malloc(sizeof(Thread)+
-            STACK_IDLE+CTXSAVE_ON_STACK+WATERMARK_LEN));
+            fullStackSize));
     if(base==NULL)
     {
         errorHandler(OUT_OF_MEMORY);
         return;//Error
     }
     //At the top of thread memory allocate the Thread class with placement new
-    void *threadClass=base+((STACK_IDLE+CTXSAVE_ON_STACK+WATERMARK_LEN)/
-            sizeof(unsigned int));
+    void *threadClass=base+(fullStackSize/sizeof(unsigned int));
     Thread *idle=new (threadClass) Thread(base,STACK_IDLE);
 
     //Fill watermark and stack
     memset(base, WATERMARK_FILL, WATERMARK_LEN);
     base+=WATERMARK_LEN/sizeof(unsigned int);
-    memset(base, STACK_FILL, STACK_IDLE+CTXSAVE_ON_STACK);
+    memset(base, STACK_FILL, fullStackSize-WATERMARK_LEN);
 
     //On some architectures some registers are saved on the stack, therefore
     //initCtxsave *must* be called after filling the stack.
@@ -302,28 +308,30 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
         errorHandler(INVALID_PARAMETERS);
         return NULL;
     }
-    //If stacksize is not divisible by 4, round it to a number divisible by 4
-    stacksize &= ~0x3;
+    
+    unsigned int fullStackSize=WATERMARK_LEN+CTXSAVE_ON_STACK+stacksize;
+    
+    //Align fullStackSize to the platform required stack alignment
+    fullStackSize+=CTXSAVE_STACK_ALIGNMENT-1;
+    fullStackSize/=CTXSAVE_STACK_ALIGNMENT;
+    fullStackSize*=CTXSAVE_STACK_ALIGNMENT;
+    
     //Allocate memory for the thread, return if fail
     unsigned int *base=static_cast<unsigned int*>(malloc(sizeof(Thread)+
-            stacksize+WATERMARK_LEN+CTXSAVE_ON_STACK));
+            fullStackSize));
     if(base==NULL)
     {
         errorHandler(OUT_OF_MEMORY);
         return NULL;//Error
     }
     //At the top of thread memory allocate the Thread class with placement new
-    void *threadClass=base+((stacksize+WATERMARK_LEN+CTXSAVE_ON_STACK)/
-            sizeof(unsigned int));
+    void *threadClass=base+(fullStackSize/sizeof(unsigned int));
     Thread *thread=new (threadClass) Thread(base,stacksize);
 
     //Fill watermark and stack
     memset(base, WATERMARK_FILL, WATERMARK_LEN);
     base+=WATERMARK_LEN/sizeof(unsigned int);
-    //Note: cortex-M4 has two layouts for ctxsave-on-stack, depending on
-    //whether fp regs are used, and they differ in size, so fill the entire
-    //stack or memory profiling may fail
-    memset(base, STACK_FILL, stacksize+CTXSAVE_ON_STACK);
+    memset(base, STACK_FILL, fullStackSize-WATERMARK_LEN);
 
     //On some architectures some registers are saved on the stack, therefore
     //initCtxsave *must* be called after filling the stack.
