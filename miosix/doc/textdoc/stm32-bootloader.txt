@@ -82,7 +82,7 @@ and in another shell type:
 
 arm-eabi-gdb main.elf
 target remote :3333
-monitor soft_reset_halt
+monitor reset halt
 load
 c
 

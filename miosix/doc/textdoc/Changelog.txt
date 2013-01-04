@@ -1,5 +1,8 @@
 Changelog for Miosix np embedded OS
 
+- Changed references to "monitor soft_reset_halt" into "monitor reset halt"
+  as openocd changed in version 0.6.1
+- Added scripts to build the new GCC 4.7.2
 - Fixed a bug causing a deadlock if a wait on a condition variable is done
   on recursive mutex locked more than once.
 - Added test to testsuite to verify the implementation of atomic operations

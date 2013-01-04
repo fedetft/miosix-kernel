@@ -1,10 +1,13 @@
 #!/bin/bash
 
 # Script to build the gcc compiler required for Miosix.
+# Usage: ./install-script -j2
+# The first parameter is used to speed up compiling for multicore processors,
+# use -j2 for a dual core, -j4 for a quad core, ...
 #
 # Building Miosix is officially supported only through the gcc compiler built
 # with this script. This is because this script patches the compiler.
-# Starting form Miosix 1.58 the use of the arm-miosix-eabi-gcc compiler built
+# Starting from Miosix 1.58 the use of the arm-miosix-eabi-gcc compiler built
 # by this script has become mandatory due to patches related to posix threads
 # in newlib. The kernel *won't* compile unless the correct compiler is used.
 #
@@ -21,14 +24,20 @@ SUDO=sudo
 #SUDO=
 
 # Program versions
-BINUTILS=binutils-2.21.1
-GCC=gcc-4.5.2
-NEWLIB=newlib-1.19.0
-GDB=gdb-7.0.1
+BINUTILS=binutils-2.23.1
+GCC=gcc-4.7.2
+NEWLIB=newlib-2.0.0
+GDB=gdb-7.5
 
 export PATH=$INSTALL_DIR/arm-miosix-eabi/bin:$PATH
 
-function quit {
+if [ "x$1" = "x" ]; then
+	PARALLEL="-j1"
+else
+	PARALLEL=$1;
+fi
+
+quit() {
 	echo $1
 	exit 1
 }
@@ -49,26 +58,27 @@ mkdir log
 # Part 2: applying patches
 #
 
-patch -p0 < gcc-patches/svc.patch		|| quit ":: Failed patching binutils"
-patch -p0 < gcc-patches/gcc.patch		|| quit ":: Failed patching gcc"
-patch -p0 < gcc-patches/newlib.patch	|| quit ":: Failed patching newlib"
+patch -p0 < patches/gcc.patch			|| quit ":: Failed patching gcc"
+patch -p0 < patches/newlib.patch		|| quit ":: Failed patching newlib"
 patch -p0 < gcc-patches/gcc-doc.patch   || quit ":: Failed patching gcc texinfo files"
 
 #
 # Part 3: compile and install binutils
 #
 
+#To enable gold (currently does not work) instead of ld, add
+#	--enable-gold=yes \
+#	--enable-ld=no \
 cd $BINUTILS
 ./configure \
-	--target=arm-eabi \
+	--target=arm-miosix-eabi \
 	--prefix=$INSTALL_DIR/arm-miosix-eabi \
-	--program-prefix=arm-miosix-eabi- \
 	--enable-interwork \
 	--enable-multilib \
-	--with-float=soft \
+	--enable-lto \
 	--disable-werror 2>../log/a.txt || quit ":: Error configuring binutils"
 
-make all 2>../log/b.txt					|| quit ":: Error compiling binutils"
+make all $PARALLEL 2>../log/b.txt		|| quit ":: Error compiling binutils"
 
 $SUDO make install 2>../log/c.txt		|| quit ":: Error installing binutils"
 
@@ -80,18 +90,15 @@ cd ..
 
 mkdir objdir
 cd objdir
-# Note: despite --enable-lto, lto does not yet work. We'll wait for 4.6.x 
 $SUDO ../$GCC/configure \
-	--target=arm-eabi \
+	--target=arm-miosix-eabi \
 	--prefix=$INSTALL_DIR/arm-miosix-eabi \
-	--program-prefix=arm-miosix-eabi- \
 	--disable-shared \
 	--disable-libmudflap \
 	--disable-libssp \
 	--disable-nls \
 	--disable-libgomp \
 	--disable-libstdcxx-pch \
-	--with-float=soft \
 	--enable-threads=miosix \
 	--enable-languages="c,c++" \
 	--enable-lto \
@@ -100,7 +107,7 @@ $SUDO ../$GCC/configure \
 	--with-headers=../$NEWLIB/newlib/libc/include \
 	2>../log/d.txt || quit ":: Error configuring gcc-start"
 
-$SUDO make all-gcc 2>../log/e.txt			|| quit ":: Error compiling gcc-start"
+$SUDO make all-gcc $PARALLEL 2>../log/e.txt	|| quit ":: Error compiling gcc-start"
 
 $SUDO make install-gcc 2>../log/f.txt		|| quit ":: Error installing gcc-start"
 
@@ -118,10 +125,10 @@ $SUDO make install-gcc 2>../log/f.txt		|| quit ":: Error installing gcc-start"
 # This causes troubles because newlib.h contains the _WANT_REENT_SMALL used to
 # select the appropriate _Reent struct. This error is visible to user code since
 # GCC seems to take the wrong newlib.h and user code gets the wrong _Reent struct
-$SUDO rm -rf $INSTALL_DIR/arm-miosix-eabi/arm-eabi/sys-include
+$SUDO rm -rf $INSTALL_DIR/arm-miosix-eabi/arm-miosix-eabi/sys-include
 
 # Another fix, looks like export PATH isn't enough for newlib, it fails
-# running arm-miosix-eabi-runlib when installing
+# running arm-miosix-eabi-ranlib when installing
 if [ $SUDO ]; then
 	$SUDO ln -s $INSTALL_DIR/arm-miosix-eabi/bin/* /usr/bin
 fi
@@ -136,11 +143,10 @@ mkdir newlib-obj
 cd newlib-obj
 
 ../$NEWLIB/configure \
-	--target=arm-eabi \
+	--target=arm-miosix-eabi \
 	--prefix=$INSTALL_DIR/arm-miosix-eabi \
 	--enable-interwork \
 	--enable-multilib \
-	--with-float=soft \
 	--enable-newlib-reent-small \
 	--enable-newlib-multithread \
 	--enable-newlib-io-long-long \
@@ -149,17 +155,10 @@ cd newlib-obj
 	--disable-newlib-io-pos-args \
 	--disable-newlib-mb \
 	--disable-newlib-iconv \
-	CC_FOR_TARGET=arm-miosix-eabi-gcc \
-	CXX_FOR_TARGET=arm-miosix-eabi-g++ \
-	GCC_FOR_TARGET=arm-miosix-eabi-gcc \
-	AR_FOR_TARGET=arm-miosix-eabi-ar \
-	AS_FOR_TARGET=arm-miosix-eabi-as \
-	LD_FOR_TARGET=arm-miosix-eabi-ld \
-	NM_FOR_TARGET=arm-miosix-eabi-nm \
-	RANLIB_FOR_TARGET=arm-miosix-eabi-ranlib \
+	--disable-newlib-supplied-syscalls \
 	2>../log/g.txt || quit ":: Error configuring newlib"
 
-make 2>../log/h.txt							|| quit ":: Error compiling newlib"
+make $PARALLEL 2>../log/h.txt				|| quit ":: Error compiling newlib"
 
 $SUDO make install 2>../log/i.txt			|| quit ":: Error installing newlib"
 
@@ -171,7 +170,7 @@ cd ..
 
 cd objdir
 
-$SUDO make all 2>../log/j.txt				|| quit ":: Error compiling gcc-end"
+$SUDO make all $PARALLEL 2>../log/j.txt		|| quit ":: Error compiling gcc-end"
 
 $SUDO make install 2>../log/k.txt			|| quit ":: Error installing gcc-end"
 
@@ -185,9 +184,8 @@ cd ..
 # set, but since Cortex M3 only has the thumb2 instruction set, the CPU locked.
 # By checking that all multilibs are correctly built, this error can be spotted
 # immediately instead of leaving a gcc that produces wrong code in the wild. 
-#
 
-function check_multilibs {
+check_multilibs() {
 	if [ ! -f $1/libc.a ]; then
 		quit "::Error, $1/libc.a not installed"
 	fi
@@ -205,9 +203,12 @@ function check_multilibs {
 	fi 
 }
 
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-eabi/lib
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-eabi/lib/thumb
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-eabi/lib/thumb/thumb2
+check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-miosix-eabi/lib
+check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-miosix-eabi/lib/thumb/cm3
+check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-miosix-eabi/lib/thumb/cm4/hardfp/fpv4
+check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-miosix-eabi/lib/pie/single-pic-base
+check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-miosix-eabi/lib/thumb/cm3/pie/single-pic-base
+check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-miosix-eabi/lib/thumb/cm4/hardfp/fpv4/pie/single-pic-base
 echo "::All multilibs have been built. OK"
 
 #
@@ -225,21 +226,20 @@ $SUDO mv lpc21isp $INSTALL_DIR/arm-miosix-eabi/bin	|| quit ":: Error installing 
 cd $GDB
 
 ./configure \
-	--target=arm-eabi \
+	--target=arm-miosix-eabi \
 	--prefix=$INSTALL_DIR/arm-miosix-eabi \
-	--program-prefix=arm-miosix-eabi- \
 	--enable-interwork \
 	--enable-multilib \
 	--disable-werror 2>../log/l.txt || quit ":: Error configuring gdb"
 
-make all 2>../log/m.txt						|| quit ":: Error compiling gdb"
+make all $PARALLEL 2>../log/m.txt			|| quit ":: Error compiling gdb"
 
 $SUDO make install 2>../log/n.txt			|| quit ":: Error installing gdb"
 
 cd ..
 
-# Last thing, remove this since its name is not arm-miosix-eabi-
-$SUDO rm $INSTALL_DIR/arm-miosix-eabi/bin/arm-eabi-$GCC
+# Last thing, remove this since it's not necessary
+$SUDO rm $INSTALL_DIR/arm-miosix-eabi/bin/arm-miosix-eabi-$GCC
 
 # If sudo not an empty variable, make symlinks to /usr/bin
 # else make a script to override PATH
