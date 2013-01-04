@@ -231,6 +231,20 @@ private:
      * \param dLock the PauseKernelLock instance that paused the kernel.
      */
     void PKlock(PauseKernelLock& dLock);
+    
+    /**
+     * Lock mutex to a given depth, can be called only with kernel paused one
+     * level deep (pauseKernel calls can be nested). If another thread holds the
+     * mutex, this call will restart the kernel and wait (that's why the kernel
+     * must be paused one level deep).<br>
+     * If the mutex is not recursive the mutex is locked only one level deep
+     * regardless of the depth value.
+     * \param dLock the PauseKernelLock instance that paused the kernel.
+     * \param depth recursive depth at which the mutex will be locked. Zero
+     * means the mutex is locked one level deep (as if lock() was called once),
+     * one means two levels deep, etc. 
+     */
+    void PKlockToDepth(PauseKernelLock& dLock, unsigned int depth);
 
     /**
      * Acquires the lock only if the critical section is not already locked by
@@ -244,12 +258,22 @@ private:
     bool PKtryLock(PauseKernelLock& dLock);
 
     /**
-     * Lock mutex, can be called only with kernel paused one level deep
+     * Unlock mutex, can be called only with kernel paused one level deep
      * (pauseKernel calls can be nested).<br>
      * \param dLock the PauseKernelLock instance that paused the kernel.
      * \return true if a higher priority thread was woken
      */
     bool PKunlock(PauseKernelLock& dLock);
+    
+    /**
+     * Unlock mutex all levels of a recursive mutex, can be called only with
+     * kernel paused one level deep (pauseKernel calls can be nested).<br>
+     * \param dLock the PauseKernelLock instance that paused the kernel.
+     * \return the mutex recursive depth (how many times it was locked by the
+     * owner). Zero means the mutex is locked one level deep (lock() was called
+     * once), one means two levels deep, etc. 
+     */
+    unsigned int PKunlockAllDepthLevels(PauseKernelLock& dLock);
 
     /// Thread currently inside critical section, if NULL the critical section
     /// is free

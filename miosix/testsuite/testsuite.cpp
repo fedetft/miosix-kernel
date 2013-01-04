@@ -89,6 +89,7 @@ static void test_19();
 static void test_20();
 static void test_21();
 static void test_22();
+static void test_23();
 //Filesystem test functions
 #ifdef WITH_FILESYSTEM
 static void fs_test_1();
@@ -150,6 +151,7 @@ int main()
                 test_20();
                 test_21();
                 test_22();
+                test_23();
                 
                 ledOff();
                 Thread::sleep(500);//Ensure all threads are deleted.
@@ -2783,7 +2785,7 @@ static float t21_f2()
     return result;
 }
 
-void *t21_t1(void*)
+static void *t21_t1(void*)
 {
     for(int i=0;i<5;i++)
     {
@@ -2816,10 +2818,10 @@ __exchange_and_add()
 These are not actually in the kernel but in the patches to gcc 
 */
 
-int t22_v1;
-int t22_v2;
+static int t22_v1;
+static int t22_v2;
 
-void *t22_t1(void*)
+static void *t22_t1(void*)
 {
 	for(int i=0;i<100000;i++)
 	{
@@ -2843,6 +2845,71 @@ static void test_22()
     }
     pthread_join(t,0);
     if(t22_v1!=0 || t22_v2!=0) fail("not thread safe");
+    pass();
+}
+
+//
+// Test 23
+//
+
+/*
+tests:
+interaction between condition variables and recursive mutexes
+*/
+static Mutex t23_m1(Mutex::RECURSIVE);
+static ConditionVariable t23_c1;
+
+static FastMutex t23_m2(FastMutex::RECURSIVE);
+static ConditionVariable t23_c2;
+
+static pthread_mutex_t t23_m3=PTHREAD_MUTEX_RECURSIVE_INITIALIZER_NP;
+static pthread_cond_t t23_c3=PTHREAD_COND_INITIALIZER;
+
+static void t23_f1(void*)
+{
+    Lock<Mutex> l(t23_m1);
+    t23_c1.signal();
+}
+
+static void t23_f2(void*)
+{
+    Lock<FastMutex> l(t23_m2);
+    t23_c2.signal();
+}
+
+static void t23_f3(void*)
+{
+    pthread_mutex_lock(&t23_m3);
+    pthread_cond_signal(&t23_c3);
+    pthread_mutex_unlock(&t23_m3);
+}
+
+static void test_23()
+{
+    test_name("Condition variable and recursive mutexes");
+    
+    {
+        Lock<Mutex> l(t23_m1);
+        Lock<Mutex> l2(t23_m1);
+        Thread *t=Thread::create(t23_f1,2*STACK_MIN,1,0,Thread::JOINABLE);
+        t23_c1.wait(l2);
+        t->join();
+    }
+    {
+        Lock<FastMutex> l(t23_m2);
+        Lock<FastMutex> l2(t23_m2);
+        Thread *t=Thread::create(t23_f2,2*STACK_MIN,1,0,Thread::JOINABLE);
+        t23_c2.wait(l2);
+        t->join();
+    }
+    pthread_mutex_lock(&t23_m3);
+    pthread_mutex_lock(&t23_m3);
+    Thread *t=Thread::create(t23_f3,2*STACK_MIN,1,0,Thread::JOINABLE);
+    pthread_cond_wait(&t23_c3,&t23_m3);
+    t->join();
+    pthread_mutex_unlock(&t23_m3);
+    pthread_mutex_unlock(&t23_m3);
+    
     pass();
 }
 

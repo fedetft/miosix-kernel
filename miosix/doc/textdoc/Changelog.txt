@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Fixed a bug causing a deadlock if a wait on a condition variable is done
+  on recursive mutex locked more than once.
 - Added test to testsuite to verify the implementation of atomic operations
   as part of the GCC patches.
 - Added stack alignment requirement to all arch ports, as different arch

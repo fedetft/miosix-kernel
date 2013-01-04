@@ -267,12 +267,12 @@ int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
     }
     p->flags.IRQsetCondWait(true);
 
-    IRQdoMutexUnlock(mutex);
+    unsigned int depth=IRQdoMutexUnlockAllDepthLevels(mutex);
     {
         FastInterruptEnableLock eLock(dLock);
         Thread::yield(); //Here the wait becomes effective
     }
-    IRQdoMutexLock(mutex,dLock);
+    IRQdoMutexLockToDepth(mutex,dLock,depth);
     return 0;
 }
 
