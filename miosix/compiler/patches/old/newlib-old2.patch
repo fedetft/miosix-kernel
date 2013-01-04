@@ -1,0 +1,403 @@
+diff -ruN newlib-2.0.0-old/newlib/configure.host newlib-2.0.0/newlib/configure.host
+--- newlib-2.0.0-old/newlib/configure.host	2012-12-04 22:43:20.000000000 +0100
++++ newlib-2.0.0/newlib/configure.host	2012-12-26 15:08:48.332004287 +0100
+@@ -537,6 +537,11 @@
+ 	newlib_cflags="${newlib_cflags} -DHAVE_OPENDIR -DHAVE_RENAME -DSIGNAL_PROVIDED -D_COMPILING_NEWLIB -DHAVE_BLKSIZE -DHAVE_FCNTL -DMALLOC_PROVIDED"
+ 	syscall_dir=syscalls
+ 	;;
++  *-miosix-*)
++# Miosix has its own definition of types like pthread_mutex_t
++# and requires a couple of other tweaks that are #ifdef'd
++	newlib_cflags="${newlib_cflags} -DSIGNAL_PROVIDED"
++	;;
+ # RTEMS supplies its own versions of some routines:
+ #       malloc()            (reentrant version)
+ #       exit()              RTEMS has a "global" reent to flush
+diff -ruN newlib-2.0.0-old/newlib/libc/include/pthread.h newlib-2.0.0/newlib/libc/include/pthread.h
+--- newlib-2.0.0-old/newlib/libc/include/pthread.h	2010-12-08 15:44:06.000000000 +0100
++++ newlib-2.0.0/newlib/libc/include/pthread.h	2012-12-26 16:59:46.268002270 +0100
+@@ -68,7 +68,12 @@
+     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+  */
+ 
++#ifndef _MIOSIX
+ #define PTHREAD_MUTEX_INITIALIZER  ((pthread_mutex_t) 0xFFFFFFFF)
++#else /* _MIOSIX */
++#define PTHREAD_MUTEX_INITIALIZER {0,0,0,-1}
++#define PTHREAD_MUTEX_RECURSIVE_INITIALIZER_NP {0,0,0,0}
++#endif /* _MIOSIX */
+ 
+ /*  Locking and Unlocking a Mutex, P1003.1c/Draft 10, p. 93
+     NOTE: P1003.4b/D8 adds pthread_mutex_timedlock(), p. 29 */
+@@ -104,7 +109,11 @@
+     pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+  */
+  
++#ifndef _MIOSIX
+ #define PTHREAD_COND_INITIALIZER  ((pthread_mutex_t) 0xFFFFFFFF)
++#else /* _MIOSIX */
++#define PTHREAD_COND_INITIALIZER {0,0}
++#endif /* _MIOSIX */
+  
+ /* Broadcasting and Signaling a Condition, P1003.1c/Draft 10, p. 101 */
+  
+diff -ruN newlib-2.0.0-old/newlib/libc/include/sys/config.h newlib-2.0.0/newlib/libc/include/sys/config.h
+--- newlib-2.0.0-old/newlib/libc/include/sys/config.h	2012-09-26 22:06:47.000000000 +0200
++++ newlib-2.0.0/newlib/libc/include/sys/config.h	2012-12-26 13:10:43.900002667 +0100
+@@ -214,6 +214,11 @@
+ #endif
+ #endif
+ 
++#ifdef _MIOSIX
++#define __BUFSIZ__ 512 /* Because Miosix threads often have small (<2KB) stacks */
++#define _REENT_SMALL   /* To save RAM */
++#endif /* _MIOSIX */
++
+ #if defined(__rtems__)
+ #define __FILENAME_MAX__ 255
+ #define _READ_WRITE_RETURN_TYPE _ssize_t
+diff -ruN newlib-2.0.0-old/newlib/libc/include/sys/features.h newlib-2.0.0/newlib/libc/include/sys/features.h
+--- newlib-2.0.0-old/newlib/libc/include/sys/features.h	2012-10-16 20:45:23.000000000 +0200
++++ newlib-2.0.0/newlib/libc/include/sys/features.h	2012-12-26 13:09:36.224002435 +0100
+@@ -35,6 +35,11 @@
+ # endif
+ #endif /* __GNUC_PREREQ */
+ 
++#ifdef _MIOSIX
++#define _POSIX_THREADS 1                  /* Miosix provides pthread support   */
++#define _UNIX98_THREAD_MUTEX_ATTRIBUTES 1 /* Miosix provides recursive mutexes */
++#endif /* _MIOSIX */
++
+ /* RTEMS adheres to POSIX -- 1003.1b with some features from annexes.  */
+ 
+ #ifdef __rtems__
+diff -ruN newlib-2.0.0-old/newlib/libc/include/sys/lock.h newlib-2.0.0/newlib/libc/include/sys/lock.h
+--- newlib-2.0.0-old/newlib/libc/include/sys/lock.h	2008-12-11 18:27:55.000000000 +0100
++++ newlib-2.0.0/newlib/libc/include/sys/lock.h	2012-12-26 16:56:20.316002042 +0100
+@@ -1,12 +1,14 @@
+ #ifndef __SYS_LOCK_H__
+ #define __SYS_LOCK_H__
+ 
++#include <_ansi.h>
++
++#ifndef _MIOSIX
++
+ /* dummy lock routines for single-threaded aps */
+ 
+ typedef int _LOCK_T;
+ typedef int _LOCK_RECURSIVE_T;
+- 
+-#include <_ansi.h>
+ 
+ #define __LOCK_INIT(class,lock) static int lock = 0;
+ #define __LOCK_INIT_RECURSIVE(class,lock) static int lock = 0;
+@@ -21,4 +23,56 @@
+ #define __lock_release(lock) (_CAST_VOID 0)
+ #define __lock_release_recursive(lock) (_CAST_VOID 0)
+ 
++#else /* _MIOSIX */
++
++/*
++ * The type of pthread_mutex_t, has been moved here from sys/types.h, because
++ * sys/types.h #includes sys/_types.h which in turn #includes sys/lock.h,
++ * and sys/lock.h actually needs to know the type of pthread_mutex_t.
++ * Unfortunately simply adding an #include sys/types.h into sys/lock.h didn't
++ * work because it caused a cyclic dependency between headers
++ */
++
++struct WaitingList
++{
++    void *thread; /* Actually, a Thread * but C doesn't know about C++ classes */
++    struct WaitingList *next;
++};
++
++typedef struct
++{
++    void *owner;  /* Actually, a Thread * but C doesn't know about C++ classes */
++    struct WaitingList *first;
++    struct WaitingList *last;
++    int recursive; /* -1 = special value for non recursive */
++} pthread_mutex_t;
++
++/*
++ * Finished declaring pthread stuff, now starting real content of lock.h
++ */
++
++typedef pthread_mutex_t _LOCK_T;
++typedef pthread_mutex_t _LOCK_RECURSIVE_T;
++
++#define __LOCK_INIT(clazz,lock) clazz pthread_mutex_t lock = {0,0,0,-1}
++#define __LOCK_INIT_RECURSIVE(clazz,lock) clazz pthread_mutex_t lock = {0,0,0,0}
++#define __lock_init(lock) pthread_mutex_init(&lock,NULL) 
++#define __lock_init_recursive(lock) \
++do { \
++    lock.owner=0; \
++    lock.first=0; \
++    lock.last=0; \
++    lock.recursive=0; \
++} while(0)
++#define __lock_close(lock) pthread_mutex_destroy(&lock)
++#define __lock_close_recursive(lock) pthread_mutex_destroy(&lock)
++#define __lock_acquire(lock) pthread_mutex_lock(&lock)
++#define __lock_acquire_recursive(lock) pthread_mutex_lock(&lock)
++#define __lock_try_acquire(lock) pthread_mutex_trylock(&lock)
++#define __lock_try_acquire_recursive(lock) pthread_mutex_trylock(&lock)
++#define __lock_release(lock) pthread_mutex_unlock(&lock)
++#define __lock_release_recursive(lock) pthread_mutex_unlock(&lock)
++
++#endif /* _MIOSIX */
++
+ #endif /* __SYS_LOCK_H__ */
+diff -ruN newlib-2.0.0-old/newlib/libc/include/sys/reent.h newlib-2.0.0/newlib/libc/include/sys/reent.h
+--- newlib-2.0.0-old/newlib/libc/include/sys/reent.h	2012-11-29 17:28:30.000000000 +0100
++++ newlib-2.0.0/newlib/libc/include/sys/reent.h	2012-12-26 16:50:35.236001309 +0100
+@@ -393,9 +393,11 @@
+   void (**(_sig_func))(int);
+ 
+   /* atexit stuff */
++  #ifndef _MIOSIX /* in Miosix atexit was moved out of reentrancy structure */
+   struct _atexit *_atexit;
+   struct _atexit _atexit0;
+-
++   #endif /* _MIOSIX */
++  
+   struct _glue __sglue;			/* root of glue chain */
+   __FILE *__sf;			        /* file descriptors */
+   struct _misc_reent *_misc;            /* strtok, multibyte states */
+@@ -406,6 +408,7 @@
+ extern const struct __sFILE_fake __sf_fake_stdout;
+ extern const struct __sFILE_fake __sf_fake_stderr;
+ 
++#ifndef _MIOSIX
+ # define _REENT_INIT(var) \
+   { 0, \
+     (__FILE *)&__sf_fake_stdin, \
+@@ -432,7 +435,7 @@
+     _NULL, \
+     _NULL \
+   }
+-
++  
+ #define _REENT_INIT_PTR(var) \
+   { (var)->_stdin = (__FILE *)&__sf_fake_stdin; \
+     (var)->_stdout = (__FILE *)&__sf_fake_stdout; \
+@@ -465,6 +468,68 @@
+     (var)->_signal_buf = _NULL; \
+   }
+ 
++#else /* _MIOSIX */
++/* Same as above but with the _atexit and _atexit0 fields removed */
++# define _REENT_INIT(var) \
++  { 0, \
++    (__FILE *)&__sf_fake_stdin, \
++    (__FILE *)&__sf_fake_stdout, \
++    (__FILE *)&__sf_fake_stderr, \
++    0, \
++    _NULL, \
++    0, \
++    0, \
++    "C", \
++    _NULL, \
++    _NULL, \
++    0, \
++    0, \
++    _NULL, \
++    _NULL, \
++    _NULL, \
++    _NULL, \
++    _NULL, \
++    /*_NULL,*/ \
++    /*{_NULL, 0, {_NULL}, _NULL},*/ \
++    {_NULL, 0, _NULL}, \
++    _NULL, \
++    _NULL, \
++    _NULL \
++  }
++
++#define _REENT_INIT_PTR(var) \
++  { (var)->_stdin = (__FILE *)&__sf_fake_stdin; \
++    (var)->_stdout = (__FILE *)&__sf_fake_stdout; \
++    (var)->_stderr = (__FILE *)&__sf_fake_stderr; \
++    (var)->_errno = 0; \
++    (var)->_inc = 0; \
++    (var)->_emergency = _NULL; \
++    (var)->__sdidinit = 0; \
++    (var)->_current_category = 0; \
++    (var)->_current_locale = "C"; \
++    (var)->_mp = _NULL; \
++    (var)->__cleanup = _NULL; \
++    (var)->_gamma_signgam = 0; \
++    (var)->_cvtlen = 0; \
++    (var)->_cvtbuf = _NULL; \
++    (var)->_r48 = _NULL; \
++    (var)->_localtime_buf = _NULL; \
++    (var)->_asctime_buf = _NULL; \
++    (var)->_sig_func = _NULL; \
++    /*(var)->_atexit = _NULL;*/ \
++    /*(var)->_atexit0._next = _NULL;*/ \
++    /*(var)->_atexit0._ind = 0;*/ \
++    /*(var)->_atexit0._fns[0] = _NULL;*/ \
++    /*(var)->_atexit0._on_exit_args_ptr = _NULL;*/ \
++    (var)->__sglue._next = _NULL; \
++    (var)->__sglue._niobs = 0; \
++    (var)->__sglue._iobs = _NULL; \
++    (var)->__sf = 0; \
++    (var)->_misc = _NULL; \
++    (var)->_signal_buf = _NULL; \
++  }
++#endif /* _MIOSIX */
++
+ /* Only built the assert() calls if we are built with debugging.  */
+ #if DEBUG
+ #include <assert.h>
+diff -ruN newlib-2.0.0-old/newlib/libc/include/sys/types.h newlib-2.0.0/newlib/libc/include/sys/types.h
+--- newlib-2.0.0-old/newlib/libc/include/sys/types.h	2012-07-06 12:41:21.000000000 +0200
++++ newlib-2.0.0/newlib/libc/include/sys/types.h	2012-12-26 16:05:58.972001365 +0100
+@@ -412,7 +412,23 @@
+   int type;
+ } pthread_mutexattr_t;
+ 
+-#else /* !defined(__XMK__) */
++#elif defined(_MIOSIX)
++
++/*
++ * The definition of pthread_mutex_t:
++ * - has been changed from a simple int to a struct containing the actual mutex
++ *   implementation for speed reasons.
++ * - has been moved to sys/lock.h because leaving it here and #including sys/types.h
++ *   in sys/lock.h would have caused a cycle of #includes
++ */
++
++typedef struct {
++  int is_initialized;
++  int type;
++  int recursive;
++} pthread_mutexattr_t;
++
++#else
+ typedef __uint32_t pthread_mutex_t;      /* identify a mutex */
+ 
+ typedef struct {
+@@ -429,11 +445,27 @@
+ #endif
+   int   recursive;
+ } pthread_mutexattr_t;
+-#endif /* !defined(__XMK__) */
++#endif
+ 
+ /* Condition Variables */
+ 
++#ifndef _MIOSIX
+ typedef __uint32_t pthread_cond_t;       /* identify a condition variable */
++#else /* _MIOSIX */
++/*
++ * The definition of pthread_cond_t has been changed from an int to a struct
++ * containing the actual condition variable implementation for speed reasons.
++ * Note: the definition of struct WaitingList is in sys/lock.h
++ * typedef __uint32_t pthread_cond_t;
++ */
++struct WaitingList;
++
++typedef struct
++{
++    struct WaitingList *first;
++    struct WaitingList *last;
++} pthread_cond_t;
++#endif /* _MIOSIX */
+ 
+ typedef struct {
+   int   is_initialized;
+@@ -447,8 +479,13 @@
+ typedef __uint32_t pthread_key_t;        /* thread-specific data keys */
+ 
+ typedef struct {
++#ifndef _MIOSIX
+   int   is_initialized;  /* is this structure initialized? */
+   int   init_executed;   /* has the initialization routine been run? */
++#else /* _MIOSIX */
++  char  is_initialized;  /* char is enough for a 0/1 value, and saves RAM */
++  char  init_executed;
++#endif /* _MIOSIX */
+ } pthread_once_t;       /* dynamic package initialization */
+ #else
+ #if defined (__CYGWIN__)
+diff -ruN newlib-2.0.0-old/newlib/libc/reent/reent.c newlib-2.0.0/newlib/libc/reent/reent.c
+--- newlib-2.0.0-old/newlib/libc/reent/reent.c	2009-11-23 18:02:20.000000000 +0100
++++ newlib-2.0.0/newlib/libc/reent/reent.c	2012-12-26 15:36:01.048006112 +0100
+@@ -87,8 +87,10 @@
+ 	_free_r (ptr, ptr->_localtime_buf);
+       if (ptr->_asctime_buf)
+ 	_free_r (ptr, ptr->_asctime_buf);
++#ifndef _MIOSIX /* on Miosix atexit stuff has been moved out of the reent struct */
+       if (ptr->_atexit && ptr->_atexit->_on_exit_args_ptr)
+ 	_free_r (ptr, ptr->_atexit->_on_exit_args_ptr);
++#endif /* _MIOSIX */
+ #else
+       /* atexit stuff */
+       if ((ptr->_atexit) && (ptr->_atexit != &ptr->_atexit0))
+@@ -121,6 +123,7 @@
+     }
+ }
+ 
++#ifndef _MIOSIX /* on Miosix atexit stuff has been moved out of the reent struct */
+ /*
+  *  Do atexit() processing and cleanup
+  *
+@@ -148,4 +151,4 @@
+   if (ptr->__cleanup)
+     (*ptr->__cleanup) (ptr);
+ }
+-
++#endif /* _MIOSIX */
+diff -ruN newlib-2.0.0-old/newlib/libc/stdlib/__atexit.c newlib-2.0.0/newlib/libc/stdlib/__atexit.c
+--- newlib-2.0.0-old/newlib/libc/stdlib/__atexit.c	2012-01-03 20:13:57.000000000 +0100
++++ newlib-2.0.0/newlib/libc/stdlib/__atexit.c	2012-12-26 15:21:51.548005168 +0100
+@@ -8,6 +8,12 @@
+ #include <sys/lock.h>
+ #include "atexit.h"
+ 
++/*
++ * Miosix makes __register_exitproc a syscall to make it possible to compile
++ * the kernel both with and without atexit support, without rebuilding newlib
++ */
++#ifndef _MIOSIX
++
+ /* Make this a weak reference to avoid pulling in malloc.  */
+ void * malloc(size_t) _ATTRIBUTE((__weak__));
+ __LOCK_INIT_RECURSIVE(, __atexit_lock);
+@@ -97,3 +103,5 @@
+ #endif
+   return 0;
+ }
++
++#endif /* _MIOSIX */
+diff -ruN newlib-2.0.0-old/newlib/libc/stdlib/__call_atexit.c newlib-2.0.0/newlib/libc/stdlib/__call_atexit.c
+--- newlib-2.0.0-old/newlib/libc/stdlib/__call_atexit.c	2010-06-08 20:44:14.000000000 +0200
++++ newlib-2.0.0/newlib/libc/stdlib/__call_atexit.c	2012-12-26 17:07:31.404002876 +0100
+@@ -11,7 +11,7 @@
+ /* Make this a weak reference to avoid pulling in free.  */
+ void free(void *) _ATTRIBUTE((__weak__));
+ 
+-#ifndef __SINGLE_THREAD__
++#if !defined(__SINGLE_THREAD__) && !defined(_MIOSIX)
+ extern _LOCK_RECURSIVE_T __atexit_lock;
+ #endif
+ 
+@@ -56,6 +56,12 @@
+ #endif /* _WANT_REGISTER_FINI  */
+ 
+ /*
++ * Miosix makes __call_exitprocs a syscall to make it possible to compile
++ * the kernel both with and without atexit support, without rebuilding newlib
++ */
++#ifndef _MIOSIX
++
++/*
+  * Call registered exit handlers.  If D is null then all handlers are called,
+  * otherwise only the handlers from that DSO are called.
+  */
+@@ -159,3 +165,4 @@
+ #endif
+ 
+ }
++#endif /* _MIOSIX */
