@@ -1,5 +1,0 @@
-arm-miosix-eabi-g++ -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd -fpie -msingle-pic-base -Wl,--gc-sections,-Map,main.map,-T./miosix.ld,-n,-pie,--spare-dynamic-tags,3 -O2 -nostdlib -fPIC -o main.elf main.o crt0.o -Wl,--start-group -lstdc++ -lc -lm -lgcc -Wl,--end-group
-/opt/arm-miosix-eabi/lib/gcc/arm-eabi/4.5.2/../../../../arm-eabi/bin/ld: /opt/arm-miosix-eabi/lib/gcc/arm-eabi/4.5.2/../../../../arm-eabi/lib/thumb/thumb2/libc.a(lib_a-syslseek.o): relocation R_ARM_THM_MOVW_ABS_NC against `_impure_ptr' can not be used when making a shared object; recompile with -fPIC
-/opt/arm-miosix-eabi/lib/gcc/arm-eabi/4.5.2/../../../../arm-eabi/lib/thumb/thumb2/libc.a: could not read symbols: Bad value
-collect2: ld returned 1 exit status
-make: *** [all] Error 1

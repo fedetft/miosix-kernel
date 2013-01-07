@@ -30,10 +30,10 @@ all: $(OBJ) crt0.o
 	$(SZ)  test.elf
 	@arm-miosix-eabi-objdump -Dslx test.elf > test.txt
 	@mx-postlinker test.elf --ramsize=16384 --stacksize=2048 --strip-sectheader
-	@xxd -i test.elf | sed 's/unsigned char/const unsigned char __attribute__((aligned(8)))/' > prog3.h
+	@xxd -i test.elf | sed 's/unsigned char/const unsigned char __attribute__((aligned(8)))/' > mpuTest.h
 
 clean:
-	-rm $(OBJ) crt0.o test.elf test.map test.txt *.d
+	-rm $(OBJ) crt0.o test.elf test.map test.txt mpuTest.h *.d
 
 #pull in dependecy info for existing .o files
 -include $(OBJ:.o=.d)
