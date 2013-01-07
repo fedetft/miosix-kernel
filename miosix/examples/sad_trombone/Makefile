@@ -40,6 +40,7 @@ CFLAGS    := $(CFLAGS_BASE)   -I. -Imiosix -Imiosix/arch/common \
              -Imiosix/$(ARCH_INC) -Imiosix/$(BOARD_INC) $(INCLUDE_DIRS)
 AFLAGS    := $(AFLAGS_BASE)
 LFLAGS    := $(LFLAGS_BASE)
+DFLAGS    := -MM
 
 LINK_LIBS := $(LIBS) -L./miosix -Wl,--start-group -lmiosix -lstdc++ -lc -lm \
     -lgcc -Wl,--end-group
@@ -62,7 +63,7 @@ clean-recursive:
 	done
 
 clean-topdir:
-	-rm $(OBJ) main.elf main.hex main.bin main.map
+	-rm $(OBJ) main.elf main.hex main.bin main.map *.d
 
 main: main.elf
 	$(CP) -O ihex   main.elf main.hex
@@ -73,11 +74,17 @@ main.elf: $(OBJ) miosix/libmiosix.a
 	@ echo "linking"
 	$(CXX) $(LFLAGS) -o main.elf $(OBJ) miosix/$(BOOT_FILE) $(LINK_LIBS)
 
+#pull in dependecy info for existing .o files
+-include $(OBJ:.o=.d)
+
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@
 
 %.o : %.c
 	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(DFLAGS) $(CFLAGS) $*.c > $*.d
 
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) $< -o $@
+	$(CXX) $(DFLAGS) $(CXXFLAGS) $*.cpp > $*.d
+

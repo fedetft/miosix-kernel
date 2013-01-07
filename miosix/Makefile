@@ -44,6 +44,7 @@ OBJ := $(addsuffix .o, $(basename $(SRC)))
 CXXFLAGS := $(CXXFLAGS_BASE) -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC)
 CFLAGS   :=  $(CFLAGS_BASE)  -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC)
 AFLAGS   :=  $(AFLAGS_BASE)
+DFLAGS    := -MM
 
 ## Build libmiosix.a and stage_1_boot.o (whose path is in BOOT_FILE)
 ## The file stage_1_boot.o is compiled separately because
@@ -52,13 +53,18 @@ all: $(OBJ) $(BOOT_FILE)
 	$(AR) rcs libmiosix.a $(OBJ)
 
 clean:
-	rm $(OBJ) $(BOOT_FILE) libmiosix.a
+	rm $(OBJ) $(BOOT_FILE) libmiosix.a *.d
+
+#pull in dependecy info for existing .o files
+-include $(OBJ:.o=.cpp.d)
 
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@
 
 %.o : %.c
 	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(DFLAGS) $(CFLAGS) $*.c > $*.d
 
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) $< -o $@
+	$(CXX) $(DFLAGS) $(CXXFLAGS) $*.cpp > $*.d

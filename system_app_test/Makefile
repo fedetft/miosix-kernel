@@ -21,6 +21,7 @@ CXXFLAGS := $(CFLAGS)
 LFLAGS   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd -fpie -msingle-pic-base \
             -Wl,--gc-sections,-Map,test.map,-T./miosix.ld,-n,-pie,--spare-dynamic-tags,3 \
             -O2 -nostdlib
+DFLAGS    := -MM
 
 LINK_LIBS := -Wl,--start-group -lstdc++ -lc -lm -lgcc -Wl,--end-group
 
@@ -32,13 +33,18 @@ all: $(OBJ) crt0.o
 	@xxd -i test.elf | sed 's/unsigned char/const unsigned char __attribute__((aligned(8)))/' > prog3.h
 
 clean:
-	-rm $(OBJ) crt0.o test.elf test.map test.txt
+	-rm $(OBJ) crt0.o test.elf test.map test.txt *.d
+
+#pull in dependecy info for existing .o files
+-include $(OBJ:.o=.d)
 
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@
 
 %.o : %.c
 	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(DFLAGS) $(CFLAGS) $*.c > $*.d
 
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) $< -o $@
+	$(CXX) $(DFLAGS) $(CXXFLAGS) $*.cpp > $*.d
