@@ -37,7 +37,6 @@
 namespace miosix {
 
 static Mutex fsMutex;///\internal This Mutex is used to guard access to the fs.
-static Mutex initMutex;//To guard initialization of the singleton
 
 //
 // class Filesystem
@@ -45,12 +44,8 @@ static Mutex initMutex;//To guard initialization of the singleton
 
 Filesystem& Filesystem::instance()
 {
-    static Filesystem *singleton=0;
-    {
-        Lock<Mutex> l(initMutex);
-        if(singleton==0) singleton=new Filesystem;
-    }
-    return *singleton;
+    static Filesystem singleton;
+    return singleton;
 }
 
 char Filesystem::mount()
