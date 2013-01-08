@@ -6,8 +6,6 @@
 SRC := \
 main.c
 
-INSTALL_DIR=/opt
-
 ## Replaces both "foo.cpp"-->"foo.o" and "foo.c"-->"foo.o"
 OBJ := $(addsuffix .o, $(basename $(SRC)))
 
@@ -31,7 +29,7 @@ all: $(OBJ) crt0.o
 	$(CXX) $(LFLAGS) -o main.elf $(OBJ) crt0.o $(LINK_LIBS)
 	$(SZ)  main.elf
 	@arm-miosix-eabi-objdump -Dslx main.elf > main.txt
-	@$(INSTALL_DIR)/mx-postlinker main.elf --ramsize=16384 --stacksize=2048 --strip-sectheader
+	@mx-postlinker main.elf --ramsize=16384 --stacksize=2048 --strip-sectheader
 	@xxd -i main.elf | sed 's/unsigned char/const unsigned char __attribute__((aligned(8)))/' > prog3.h
 
 clean:

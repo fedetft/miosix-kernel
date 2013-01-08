@@ -12,7 +12,7 @@ install: mx-postlinker
 	cp mx-postlinker $(INSTALL_DIR)
 
 clean:
-	rm mx-postlinker *.o *.d
+	-rm mx-postlinker *.o *.d
 
 #pull in dependecy info for existing .o files
 -include $(OBJ:.o=.d)
