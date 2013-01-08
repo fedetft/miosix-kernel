@@ -8,7 +8,7 @@ for i in *;
 do
 	if test -d $i; then
 		cd $i && make clean && make && cp mpuTest.h "../$i.h" && cd ..
-		echo "#include \"app_mpu_test/$i.h\"" >> includes.h
+		echo "#include \"mpu_testsuite/mpu_apps/$i.h\"" >> includes.h
 		sed "s/test_elf/$i\_elf/" $i.h -i
 	fi;
 done;
