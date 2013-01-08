@@ -240,7 +240,7 @@ cd ..
 #
 # Part 10: install the postlinker
 #
-cd mx-postlink
+cd mx-postlinker
 make
 $SUDO make install INSTALL_DIR=$INSTALL_DIR
 cd ..
