@@ -53,7 +53,7 @@ all: $(OBJ) $(BOOT_FILE)
 	$(AR) rcs libmiosix.a $(OBJ)
 
 clean:
-	rm $(OBJ) $(BOOT_FILE) libmiosix.a *.d
+	-rm $(OBJ) $(BOOT_FILE) libmiosix.a *.d
 
 #pull in dependecy info for existing .o files
 -include $(OBJ:.o=.cpp.d)
