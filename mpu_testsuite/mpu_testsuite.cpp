@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include "miosix.h"
 #include "kernel/process.h"
+#include "kernel/process_pool.h"
 
 //Include the test programs
 #include "mpu_testsuite/altered_elfs/includes.h"
@@ -14,9 +15,12 @@ using namespace miosix;
 
 void runElfTest(const char *name, const unsigned char *filename, unsigned int file_length);
 void runMpuTest(const char *name, const unsigned char *filename, unsigned int file_length);
+void allocationTest();
 
 int main()
 {
+	allocationTest();
+
 	// Altered elfs tests
 	iprintf("\nExecuting ELF tests.\n");
 	iprintf("--------------------\n");
@@ -80,8 +84,8 @@ int main()
 	// Direct mpu tests
 	iprintf("\n\nExecuting MPU tests.\n");
 	iprintf("---------------------\n");
-	runMpuTest("Test7", test1_elf, test1_elf_len);
-	runMpuTest("Test8", test2_elf, test2_elf_len);
+	runMpuTest("Test7", test2_elf, test2_elf_len);
+	runMpuTest("Test8", test3_elf, test3_elf_len);
 }
 
 void runElfTest(const char *name, const unsigned char *filename, unsigned int file_length)
@@ -99,6 +103,26 @@ void runMpuTest(const char *name, const unsigned char *filename, unsigned int fi
 	pid_t pid;
 	pid=Process::waitpid(child,&ec,0);
 	//iprintf("Process %d terminated\n",pid);
+	if(WIFEXITED(ec))
+	{
+		iprintf("not passed! (Exit status %d)\n", WEXITSTATUS(ec));
+	}
+	else if(WIFSIGNALED(ec))
+	{
+		if(WTERMSIG(ec)==SIGSEGV) iprintf("passed!\n");
+	}
+}
+
+void allocationTest()
+{
+	iprintf("Executing Allocation test...\n");
+	unsigned int *size = ProcessPool::instance().allocate(2048);
+	iprintf("Allocated mem pointer: %p\n", size);
+	ElfProgram prog(reinterpret_cast<const unsigned int*>(test1_elf),test1_elf_len);
+	pid_t child=Process::create(prog);
+	int ec;
+	pid_t pid;
+	pid=Process::waitpid(child,&ec,0);
 	if(WIFEXITED(ec))
 	{
 		iprintf("not passed! (Exit status %d)\n", WEXITSTATUS(ec));
