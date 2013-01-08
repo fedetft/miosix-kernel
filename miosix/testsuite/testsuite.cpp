@@ -47,6 +47,12 @@
 #include "board_settings.h"
 #include "interfaces/endianness.h"
 
+#include "miosix/kernel/elf_program.h"
+#include "miosix/kernel/process.h"
+
+#include "testsuite_syscall.h"
+#include "testsuite_simple.h"
+
 using namespace miosix;
 
 // A reasonably small stack value for spawning threads during the test.
@@ -97,6 +103,9 @@ static void benchmark_4();
 static void exception_test();
 #endif //__NO_EXCEPTIONS
 
+#ifdef WITH_PROCESSES
+void syscall_test_1();
+#endif
 //main(), calls all tests
 int main()
 {
@@ -106,7 +115,7 @@ int main()
     for(;;)
     {
         iprintf("Type 't' for kernel test, 'f' for filesystem test, 'x' for "
-        "exception test, 'b' for benchmarks or 's' for shutdown\n");
+        "exception test, 'b' for benchmarks, 'p' for process test, 'y' for syscall test or 's' for shutdown\n");
         char c;
         for(;;)
         {
@@ -179,6 +188,15 @@ int main()
                 iprintf("Shutting down\n");
                 while(!Console::txComplete()) ;
                 shutdown();
+			case 'y':
+				#ifdef WITH_PROCESSES
+				ledOn();
+				syscall_test_1();
+				ledOff();
+				#else
+				fail("Process not supported");
+				#endif
+				break;
             default:
                 iprintf("Unrecognized option\n");
         }
@@ -215,6 +233,59 @@ static void fail(const char *cause)
     Console::write("\r\n");
     while(!Console::txComplete()) /*wait*/;
     reboot();
+}
+
+void syscall_test_1(){
+	test_name("System Call: open, read, write, seek, close, sytem");
+	
+	char msg[256] = {0};
+	
+	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_syscall_elf),testsuite_syscall_len);
+	int ret = 0;
+	
+	remove("/testsuite.bin");
+	
+	pid_t child = Process::create(prog);
+	Process::waitpid(child, &ret, 0);
+	
+	switch(ret){
+		case 0:
+			pass();
+			break;
+		case 1:
+			fail("open with O_RDWR should have failed, the file doesn't exist");
+			break;
+		case 2:
+			fail("cannot craete new file");
+			break;
+		case 3:
+			fail("file descriptor not valid");
+			break;
+		case 4:
+			fail("write has written the wrong amount of data");
+			break;
+		case 5:
+			fail("read has read the wrong amount of data");
+			break;
+		case 6:
+			fail("readed data doesn't match the written one");
+			break;
+		case 7:
+			fail("close hasn't returned 0");
+			break;
+		case 8:
+			fail("open with O_RDWR failed, but the file exists");
+			break;
+		case 9:
+			fail("read has return the wrogn amount of data");
+			break;
+		case 10:
+			fail("readed data doesn't match the written one");
+			break;
+		case 11:
+			fail("close hasn't returned 0");
+			break;
+	}
 }
 
 //

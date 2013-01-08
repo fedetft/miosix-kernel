@@ -18,50 +18,52 @@ int main(){
 	for(i = 0; i < SIZE; i++)
 		buffer[i] = i;
 	
-	int fd = open("/testsuit.bin", O_RDWR, 0);
+	int fd = open("/testsuite.bin", O_RDWR, 0);
 	
 	if(fd != -1)
-		return error(0);
-	
-	fd = open("/testsuit.bin", O_RDWR|O_TRUNC, 0);
-	
-	if(fd == -1)
 		return error(1);
 	
-	if(fd >= 0 && fd <= 2)
+	close(fd);
+	
+	fd = open("/testsuite.bin", O_RDWR|O_TRUNC, 0);
+	
+	if(fd == -1)
 		return error(2);
 	
-	if(write(fd, buffer, SIZE) != SIZE)
+	if(fd >= 0 && fd <= 2)
 		return error(3);
+	
+	if(write(fd, buffer, SIZE) != SIZE)
+		return error(4);
 		
 	seek(fd, SEEK_SET, 0);
 		
 	if(read(fd, buffer2, SIZE) != SIZE)
-		return error(4);
+		return error(5);
 		
 	for(i = 0; i < SIZE; i++){
 		if(buffer[i] != buffer2[i])
-			return error(5);
+			return error(6);
 	}		
 		
 	if(close(fd) != 0)
-		return error(6);
+		return error(7);
 	
-	fd = open("/testsuit.bin", O_RDWR);
+	fd = open("/testsuite.bin", O_RDWR);
 	
 	if(fd < 2)
-		return error(7);
+		return error(8);
 		
 	if(read(fd, buffer2, SIZE) != SIZE)
-		return error(8);
+		return error(9);
 			
 	for(i = 0; i < SIZE; i++){
 		if(buffer[i] != buffer2[i])
-			return error(9);
+			return error(10);
 	}
 	
 	if(close(fd))
-		return error(10);
+		return error(11);
 	
 	return 0;
 }
