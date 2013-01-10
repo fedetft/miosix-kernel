@@ -12,7 +12,7 @@ for i in $1_*/; do
 		
 		cd $i &&
 		make clean &&
-		make &&
+		make $2 "NAME=$name" &&
 		cp prog3.h "../$name.h" &&
 		cd ..
 	fi

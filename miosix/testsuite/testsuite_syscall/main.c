@@ -10,6 +10,16 @@
 
 #define SIZE 1024
 
+int mystrlen(const char *s){
+	int result=0;
+	while(*s++) result++;
+	return result;
+}
+
+void print(const char *s){
+	write(1, s, mystrlen(s));
+}
+
 int main(){
 	unsigned char buffer[SIZE],
 				  buffer2[SIZE];
@@ -23,8 +33,7 @@ int main(){
 	if(fd != -1)
 		return error(1);
 	
-	close(fd);
-	
+	print("'Open' of non existing file: PASSED\n");
 	fd = open("/testsuite.bin", O_RDWR|O_TRUNC, 0);
 	
 	if(fd == -1)
@@ -33,8 +42,12 @@ int main(){
 	if(fd >= 0 && fd <= 2)
 		return error(3);
 	
+	print("Open file: PASSED\n");
+	
 	if(write(fd, buffer, SIZE) != SIZE)
 		return error(4);
+	
+	print("Write file: PASSED\n");
 		
 	seek(fd, SEEK_SET, 0);
 		
@@ -44,15 +57,21 @@ int main(){
 	for(i = 0; i < SIZE; i++){
 		if(buffer[i] != buffer2[i])
 			return error(6);
-	}		
+	}
+	
+	print("Read: PASSED\n");
 		
 	if(close(fd) != 0)
 		return error(7);
+	
+	print("close: PASSED\n");
 	
 	fd = open("/testsuite.bin", O_RDWR);
 	
 	if(fd < 2)
 		return error(8);
+	
+	print("Open of an existing file: PASSED\n");
 		
 	if(read(fd, buffer2, SIZE) != SIZE)
 		return error(9);
@@ -62,8 +81,12 @@ int main(){
 			return error(10);
 	}
 	
+	print("Read data corectness: PASSED\n");
+	
 	if(close(fd))
 		return error(11);
+	
+	print("close: passed\n");
 	
 	return 0;
 }

@@ -52,6 +52,7 @@
 
 #include "testsuite_syscall.h"
 #include "testsuite_simple.h"
+#include "testsuite_sleep.h"
 
 using namespace miosix;
 
@@ -104,7 +105,8 @@ static void exception_test();
 #endif //__NO_EXCEPTIONS
 
 #ifdef WITH_PROCESSES
-void syscall_test_1();
+void syscall_test_files();
+void syscall_test_sleep();
 #endif
 //main(), calls all tests
 int main()
@@ -191,7 +193,8 @@ int main()
 			case 'y':
 				#ifdef WITH_PROCESSES
 				ledOn();
-				syscall_test_1();
+				syscall_test_files();
+				syscall_test_sleep();
 				ledOff();
 				#else
 				fail("Process not supported");
@@ -235,7 +238,13 @@ static void fail(const char *cause)
     reboot();
 }
 
-void syscall_test_1(){
+void syscall_test_sleep(){
+	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_sleep_elf),testsuite_sleep_len);
+	
+	long long time = getTick();
+}
+
+void syscall_test_files(){
 	test_name("System Call: open, read, write, seek, close, sytem");
 	
 	char msg[256] = {0};

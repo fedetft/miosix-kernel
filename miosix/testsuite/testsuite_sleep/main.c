@@ -7,5 +7,5 @@
 #include <stdio.h>
 
 int main(){
-	return RETURN_VALUE;
+	usleep(5000000);
 }
