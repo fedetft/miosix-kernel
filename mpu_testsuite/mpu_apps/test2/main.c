@@ -8,5 +8,7 @@
 
 int main()
 {
-	return 0;
+	volatile unsigned int *pointer = 0x64100200;
+        volatile unsigned int c = *pointer;
+	return 124;
 }

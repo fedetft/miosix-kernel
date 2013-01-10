@@ -1,8 +1,8 @@
 #!/bin/bash
 
 echo > includes.h
-echo "#ifndef _APP_MPU_TESTS_" >> includes.h
-echo "#define _APP_MPU_TESTS_" >> includes.h
+echo "#ifndef _APP_MPU_TESTS_1_" >> includes.h
+echo "#define _APP_MPU_TESTS_1_" >> includes.h
 
 for i in *;
 do
@@ -13,4 +13,4 @@ do
 	fi;
 done;
 
-echo "#endif //_APP_MPU_TESTS_" >> includes.h
+echo "#endif //_APP_MPU_TESTS_1_" >> includes.h
