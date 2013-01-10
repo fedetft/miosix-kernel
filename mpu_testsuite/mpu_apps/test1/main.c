@@ -6,7 +6,8 @@
 #include <string.h>
 #include <stdio.h>
 
-int main(){
+int main()
+{
 	volatile unsigned int *pointer = 0x64100400;
 	*pointer = 456;
 	return 123;
