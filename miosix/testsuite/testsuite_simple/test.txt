@@ -39,7 +39,7 @@ SYMBOL TABLE:
 
 
 Contents of section .text:
- 0098 00f002f8 00f002f8 02207047 022300df  ......... pG.#..
+ 0098 00f002f8 00f002f8 2a207047 022300df  ........* pG.#..
 Contents of section .got:
  10000000 0c000010 00000000 00000000           ............    
 Contents of section .dynamic:
@@ -56,7 +56,7 @@ _start():
 
 000000a0 <main>:
 main():
-  a0:	2002      	movs	r0, #2
+  a0:	202a      	movs	r0, #42	; 0x2a
   a2:	4770      	bx	lr
 
 000000a4 <_exit>:

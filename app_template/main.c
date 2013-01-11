@@ -51,7 +51,7 @@ int main()
 			case '5':
 				fp = open("/test.txt", O_RDWR|O_TRUNC, 0);
 				
-				if(fp != 0){
+				if(fp != -1){
 					write(1, "File opened\n", 12);
 					int check = 0;
 					
