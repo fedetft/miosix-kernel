@@ -50,9 +50,15 @@
 #include "miosix/kernel/elf_program.h"
 #include "miosix/kernel/process.h"
 
-#include "testsuite_syscall.h"
-#include "testsuite_simple.h"
-#include "testsuite_sleep.h"
+#ifdef WITH_PROCESSES
+	#include "testsuite_syscall.h"
+	#include "testsuite_simple.h"
+	#include "testsuite_sleep.h"
+	#include "testsuite_file1.h"
+	#include "testsuite_file2.h"
+#endif
+
+#define WEXITSTATUS(x)	(((x) & 0xFF00) >> 8)
 
 using namespace miosix;
 
@@ -107,6 +113,8 @@ static void exception_test();
 #ifdef WITH_PROCESSES
 void syscall_test_files();
 void syscall_test_sleep();
+void syscall_test_process_ret();
+void syscall_test_file_concurrency();
 #endif
 //main(), calls all tests
 int main()
@@ -191,13 +199,26 @@ int main()
                 while(!Console::txComplete()) ;
                 shutdown();
 			case 'y':
+				ledOn();
+				#ifdef WITH_PROCESSES				
+					#ifdef WITH_FILESYSTEM
+						syscall_test_files();
+					#else
+						iprintf("Error, filesystem support is disabled\n");
+					#endif
+						
+					syscall_test_sleep();
+				#else
+					iprintf("Error, process support is disabled\n");
+				#endif
+					ledOff();
+				break;
+			case 'p':
 				#ifdef WITH_PROCESSES
 				ledOn();
-				syscall_test_files();
-				syscall_test_sleep();
+				syscall_test_process_ret();
+				syscall_test_file_concurrency();
 				ledOff();
-				#else
-				fail("Process not supported");
 				#endif
 				break;
             default:
@@ -238,34 +259,130 @@ static void fail(const char *cause)
     reboot();
 }
 
-void syscall_test_sleep(){
-	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_sleep_elf),testsuite_sleep_len);
+void syscall_test_file_concurrency(){
+	test_name("Process file concurrency");
 	
+	remove("/file1.bin");
+	remove("/file2.bin");
+	
+	ElfProgram prog1(reinterpret_cast<const unsigned int*>(testsuite_file1_elf), testsuite_file1_elf_len);
+	ElfProgram prog2(reinterpret_cast<const unsigned int*>(testsuite_file2_elf), testsuite_file2_elf_len);
+	
+	pid_t p1 = Process::create(prog1);
+	pid_t p2 = Process::create(prog2);
+	
+	int res1 = 0,
+		res2 = 0;
+	
+	Process::waitpid(p1, &res1, 0);
+	Process::waitpid(p2, &res2, 0);
+	
+	FILE *f1 = fopen("/file1.bin", "rb");
+	FILE *f2 = fopen("/file2.bin", "rb");
+	
+	if(!f1)
+		fail("Unable to open first file");
+	
+	if(!f2)
+		fail("Unable to open second file");
+	
+	char buffer1[1024] = {0};
+	char buffer2[1024] = {0};
+	
+	int len1 = fread(buffer1, 1, 1024, f1);
+	int len2 = fread(buffer2, 1, 1024, f2);
+	
+	iprintf("File 1: %s, len = %d\n", buffer1, len1);
+;	iprintf("File 2: %s, len = %d\n", buffer2, len2);
+	
+	if(len1 != 9){
+		fclose(f1);
+		fclose(f2);
+		
+		fail("Wrong data size read from file 1");
+	}
+	
+	if(len2 != 9){
+		fclose(f1);
+		fclose(f2);
+	
+		fail("Wrong data size read from file 2");
+	}
+	
+	if(strncmp(buffer1, "file1.bin", len1) != 0){
+		fclose(f1);
+		fclose(f2);
+		
+		fail("Wrong data from file 1");
+	}
+	
+	if(strncmp(buffer2, "file2.bin", len2) != 0){
+		fclose(f1);
+		fclose(f2);
+		
+		fail("Wrong data from file 2");
+	}
+	
+	fclose(f1);
+	fclose(f2);
+		
+	pass();
+}
+
+void syscall_test_process_ret(){
+	test_name("Process return value");
+	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_simple_elf),testsuite_simple_elf_len);
+	
+	int ret = 0;
+	pid_t p = Process::create(prog);
+	Process::waitpid(p, &ret, 0);
+	iprintf("Returned value is %d\n", WEXITSTATUS(ret));
+	if(WEXITSTATUS(ret) == 42)
+		pass();
+	else
+		fail("Wrong returned value");
+}
+
+void syscall_test_sleep(){
+	test_name("System Call: sleep");
+	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_sleep_elf),testsuite_sleep_elf_len);
+	
+	iprintf("diff was: %d\n", (unsigned int)getTick());
+	
+	int ret = 0;
 	long long time = getTick();
+	pid_t p = Process::create(prog);
+	Process::waitpid(p, &ret, 0);
+	
+	long long diff = abs((getTick() - time));
+	
+	if (diff > 10)
+		fail("sleep");
+	
+	pass();
 }
 
 void syscall_test_files(){
 	test_name("System Call: open, read, write, seek, close, sytem");
 	
-	char msg[256] = {0};
-	
-	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_syscall_elf),testsuite_syscall_len);
+	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_syscall_elf),testsuite_syscall_elf_len);
 	int ret = 0;
 	
-	remove("/testsuite.bin");
+	remove("/foo.bin");
 	
 	pid_t child = Process::create(prog);
 	Process::waitpid(child, &ret, 0);
 	
-	switch(ret){
+	iprintf("Returned value %d\n", WEXITSTATUS(ret));
+	switch(WEXITSTATUS(ret)){
 		case 0:
 			pass();
 			break;
 		case 1:
-			fail("open with O_RDWR should have failed, the file doesn't exist");
+			fail("Open with O_RDWR should have failed, the file doesn't exist");
 			break;
 		case 2:
-			fail("cannot craete new file");
+			fail("Cannot craete new file");
 			break;
 		case 3:
 			fail("file descriptor not valid");
