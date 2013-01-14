@@ -127,19 +127,19 @@ public:
     
     /**
      * \return the first syscall parameter. The returned result is meaningful
-     * only if the syscall (identified throug its id) has one or more parameters
+     * only if the syscall (identified through its id) has one or more parameters
      */
     unsigned int getFirstParameter() const;
     
     /**
-     * \return the first syscall parameter. The returned result is meaningful
-     * only if the syscall (identified throug its id) has two or more parameters
+     * \return the second syscall parameter. The returned result is meaningful
+     * only if the syscall (identified through its id) has two or more parameters
      */
     unsigned int getSecondParameter() const;
     
     /**
-     * \return the first syscall parameter. The returned result is meaningful
-     * only if the syscall (identified throug its id) has three parameters
+     * \return the third syscall parameter. The returned result is meaningful
+     * only if the syscall (identified through its id) has three parameters
      */
     unsigned int getThirdParameter() const;
     
