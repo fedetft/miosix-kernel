@@ -261,6 +261,19 @@ class MPUConfiguration
       * Print the MPU configuration for debugging purposes
       */
      void dumpConfiguration();
+	 
+	 /**
+	  * Check if the address is within the data segment
+      * @param ptr the addresso of the pointer
+      * @return  true if the pointer points within the data segment, false otherwise.
+      */
+	 bool within(const unsigned int ptr) const;
+	 
+	 /**
+	  * \internal
+	  */
+	 unsigned int getBaseDataAddress() const;
+	 unsigned int getDataSize() const;
  
      //Uses default copy constructor and operator=
 private:

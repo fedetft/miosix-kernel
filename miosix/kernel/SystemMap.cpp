@@ -27,15 +27,22 @@ SystemMap &SystemMap::instance(){
 	return *pSingleton;
 }
 
-void SystemMap::addElfProgram(const char* name, const unsigned int *elf, unsigned int size){
-	unsigned int hash = hashString(name);
+void SystemMap::addElfProgram(const char* name, const unsigned int *elf, unsigned int size){	
+	string sName(name);
+	if(mPrograms.find(sName) == mPrograms.end())
+		mPrograms.insert(make_pair(sName, make_pair(elf, size)));
+}
+
+void SystemMap::removeElfProgram(const char* name){
+	string sName(name);
+	ProgramsMap::iterator it = mPrograms.find(sName);
 	
-	if(mPrograms.find(hash) == mPrograms.end())
-		mPrograms.insert(make_pair(hash, make_pair(elf, size)));
+	if(it != mPrograms.end())
+		mPrograms.erase(it);
 }
 
 pair<const unsigned int*, unsigned int>  SystemMap::getElfProgram(const char* name) const {
-	ProgramsMap::const_iterator it = mPrograms.find(hashString(name));
+	ProgramsMap::const_iterator it = mPrograms.find(string(name));
 	
 	if(it == mPrograms.end())
 		return make_pair<const unsigned int*, unsigned int>(0, 0);
@@ -47,7 +54,7 @@ unsigned int SystemMap::getElfCount() const{
 	return mPrograms.size();
 }
 
-unsigned int SystemMap::hashString(const char* pStr) const {
+/*unsigned int SystemMap::hashString(const char* pStr) const {
 	unsigned int hash = 0;
         
 	for(; *pStr != '\0'; ++pStr){
@@ -62,5 +69,6 @@ unsigned int SystemMap::hashString(const char* pStr) const {
 
 	return hash;
 }
+*/
 
 }

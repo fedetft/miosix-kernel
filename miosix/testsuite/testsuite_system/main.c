@@ -8,5 +8,5 @@
 #include <stdlib.h>
 
 int main(){
-	return RETURN_VALUE;
+	return system("test");
 }

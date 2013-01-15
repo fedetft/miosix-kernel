@@ -5,8 +5,11 @@
 #include <fcntl.h>
 #include <string.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 int main(){
-	return RETURN_VALUE;
+	int fd = open("/rdtest.txt", O_RDWR|O_TRUNC, 0);
+	
+	read(fd, 0x00, 10);
+	return 0;
 }
+

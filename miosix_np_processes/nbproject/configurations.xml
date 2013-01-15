@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configurationDescriptor version="84">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
-    <df name="miosix-kernel" root="..">
+    <df name="embeddedmiosix" root="..">
       <df name="app_template">
         <in>crt0.s</in>
         <in>main.c</in>
@@ -325,7 +325,77 @@
           <in>unistd.cpp</in>
         </df>
         <df name="testsuite">
+          <df name="testsuite_file1">
+            <in>crt0.s</in>
+            <in>main.c</in>
+            <in>prog3.h</in>
+          </df>
+          <df name="testsuite_file2">
+            <in>crt0.s</in>
+            <in>main.c</in>
+            <in>prog3.h</in>
+          </df>
+          <df name="testsuite_simple">
+            <in>crt0.s</in>
+            <in>main.c</in>
+            <in>prog3.h</in>
+          </df>
+          <df name="testsuite_sleep">
+            <in>crt0.s</in>
+            <in>main.c</in>
+            <in>prog3.h</in>
+          </df>
+          <df name="testsuite_syscall">
+            <in>crt0.s</in>
+            <in>main.c</in>
+            <in>prog3.h</in>
+          </df>
+          <df name="testsuite_syscall_mpu_open">
+            <in>Makefile</in>
+            <in>crt0.s</in>
+            <in>main.c</in>
+            <in>miosix.ld</in>
+            <in>prog3.h</in>
+            <in>test.map</in>
+            <in>test.txt</in>
+            <in>testsuite_syscall_mpu.elf</in>
+          </df>
+          <df name="testsuite_syscall_mpu_read">
+            <in>Makefile</in>
+            <in>crt0.s</in>
+            <in>main.c</in>
+            <in>miosix.ld</in>
+            <in>prog3.h</in>
+            <in>test.map</in>
+            <in>test.txt</in>
+            <in>testsuite_syscall_mpu.elf</in>
+          </df>
+          <df name="testsuite_syscall_mpu_write">
+            <in>Makefile</in>
+            <in>crt0.s</in>
+            <in>main.c</in>
+            <in>miosix.ld</in>
+            <in>prog3.h</in>
+            <in>test.map</in>
+            <in>test.txt</in>
+            <in>testsuite_syscall_mpu.elf</in>
+          </df>
+          <df name="testsuite_system">
+            <in>crt0.s</in>
+            <in>main.c</in>
+            <in>prog3.h</in>
+          </df>
           <in>testsuite.cpp</in>
+          <in>testsuite_file1.h</in>
+          <in>testsuite_file2.h</in>
+          <in>testsuite_simple.h</in>
+          <in>testsuite_sleep.h</in>
+          <in>testsuite_syscall.h</in>
+          <in>testsuite_syscall_mpu.h</in>
+          <in>testsuite_syscall_mpu_open.h</in>
+          <in>testsuite_syscall_mpu_read.h</in>
+          <in>testsuite_syscall_mpu_write.h</in>
+          <in>testsuite_system.h</in>
         </df>
         <df name="util">
           <in>crc16.cpp</in>
@@ -343,10 +413,32 @@
       </df>
       <df name="miosix_np_processes">
       </df>
-      <df name="system_app_test">
-        <in>crt0.s</in>
-        <in>main.c</in>
-        <in>prog3.h</in>
+      <df name="mpu_testsuite">
+        <df name="altered_elfs">
+          <in>aelf1.h</in>
+          <in>aelf2.h</in>
+          <in>aelf3.h</in>
+          <in>aelf4.h</in>
+          <in>aelf5.h</in>
+          <in>aelf6.h</in>
+          <in>aelf7.h</in>
+          <in>includes.h</in>
+        </df>
+        <df name="mpu_apps">
+          <df name="test1">
+            <in>crt0.s</in>
+            <in>main.c</in>
+          </df>
+          <df name="test2">
+            <in>crt0.s</in>
+            <in>main.c</in>
+          </df>
+          <df name="test3">
+            <in>crt0.s</in>
+            <in>main.c</in>
+          </df>
+        </df>
+        <in>mpu_testsuite.cpp</in>
       </df>
       <in>main.cpp</in>
     </df>

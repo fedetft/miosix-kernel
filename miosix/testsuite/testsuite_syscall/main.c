@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 
+
 #define error(x)	(x)
 
 #define SIZE 1024
@@ -24,7 +25,7 @@ void print(const char *s){
 
 int main(){
 	unsigned char buffer[SIZE],
-		      buffer2[SIZE];
+	buffer2[SIZE];
 	
 	int i = 0;
 	int fd = 0;
@@ -55,19 +56,19 @@ int main(){
 		return error(4);
 	
 	print("Write file: Passed\n");
-		
+	
 	seek(fd, SEEK_SET, 0);
-		
+	
 	if(read(fd, buffer2, SIZE) != SIZE)
 		return error(5);
-		
+	
 	for(i = 0; i < SIZE; i++){
 		if(buffer[i] != buffer2[i])
 			return error(6);
 	}
 	
 	print("Read: Passed\n");
-		
+	
 	if(close(fd) != 0)
 		return error(7);
 	
@@ -79,10 +80,10 @@ int main(){
 		return error(8);
 	
 	print("Open of an existing file: Passed\n");
-		
+	
 	if(read(fd, buffer2, SIZE) != SIZE)
 		return error(9);
-			
+	
 	for(i = 0; i < SIZE; i++){
 		if(buffer[i] != buffer2[i])
 			return error(10);

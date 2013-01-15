@@ -9,7 +9,6 @@ main.c
 ## Replaces both "foo.cpp"-->"foo.o" and "foo.c"-->"foo.o"
 OBJ := $(addsuffix .o, $(basename $(SRC)))
 ELF := $(addsuffix .elf, $(NAME))
-OUT_FILE := $(addsuffix .bin, $(NAME))
 
 AS  := arm-miosix-eabi-as
 CC  := arm-miosix-eabi-gcc
@@ -18,7 +17,7 @@ SZ  := arm-miosix-eabi-size
 
 AFLAGS   := -mcpu=cortex-m3 -mthumb
 CFLAGS   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd -fpie -msingle-pic-base \
-            -ffunction-sections -O2 -Wall -c -DTEST_STRING='$(TEST_STRING)' -DTEST_FILE='"$(OUT_FILE)"'
+            -ffunction-sections -O2 -Wall -c
 CXXFLAGS := $(CFLAGS)
 LFLAGS   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd -fpie -msingle-pic-base \
             -Wl,--gc-sections,-Map,test.map,-T./miosix.ld,-n,-pie,--spare-dynamic-tags,3 \

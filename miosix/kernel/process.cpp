@@ -29,8 +29,11 @@
 #include <memory>
 #include <cstdio>
 #include <cstring>
+#include <algorithm>
 #include <sys/wait.h>
 #include <signal.h>
+#include <limits.h>
+
 #include "sync.h"
 #include "process_pool.h"
 #include "process.h"
@@ -307,15 +310,43 @@ void *Process::start(void *argv)
                     break;
                 case 3:
                     //FIXME: check that the pointer belongs to the process
-                    sp.setReturnValue(write(sp.getFirstParameter(),
-                        reinterpret_cast<const char*>(sp.getSecondParameter()),
-                        sp.getThirdParameter()));
+					
+					if((sp.getFirstParameter() >= 0 && sp.getFirstParameter() < 3) ||		//stdio
+						proc->mFiles.find(sp.getFirstParameter()) != proc->mFiles.end()){	//only on my files
+						
+						//check if pointer and pointer + size is within the mpu data region
+						if(!proc->mpu.within(sp.getSecondParameter()) ||
+						   !proc->mpu.within(sp.getSecondParameter() + sp.getThirdParameter())){
+							running = false;
+							proc->exitCode = SIGSYS;
+							break;
+						}
+						
+						sp.setReturnValue(write(sp.getFirstParameter(),
+												reinterpret_cast<const char*>(sp.getSecondParameter()),
+												sp.getThirdParameter()));
+					} else 
+						sp.setReturnValue(-1);
+					
                     break;
-                case 4:
-                    //FIXME: check that the pointer belongs to the process
-                    sp.setReturnValue(read(sp.getFirstParameter(),
-                        reinterpret_cast<char*>(sp.getSecondParameter()),
-                        sp.getThirdParameter()));
+                case 4:					
+					if((sp.getFirstParameter() >= 0 && sp.getFirstParameter() < 3) ||		//stdio
+						proc->mFiles.find(sp.getFirstParameter())!= proc->mFiles.end()){	//only on my files
+                    
+						//check if pointer and pointer + size is within the mpu data region
+						if(!proc->mpu.within(sp.getSecondParameter()) ||
+						   !proc->mpu.within(sp.getSecondParameter() + sp.getThirdParameter())){
+							running = false;
+							proc->exitCode = SIGSYS;
+							break;
+						}
+							
+						sp.setReturnValue(read(sp.getFirstParameter(),
+											   reinterpret_cast<char*>(sp.getSecondParameter()),
+											   sp.getThirdParameter()));
+					} else
+						sp.setReturnValue(-1);
+					
                     break;
                 case 5:
 					sp.setReturnValue(usleep(sp.getFirstParameter()));
@@ -323,6 +354,22 @@ void *Process::start(void *argv)
 				case 6:
 					//open
 				{
+					unsigned int base = proc->mpu.getBaseDataAddress();
+					unsigned int size = proc->mpu.getDataSize();
+					
+					unsigned int maxLen = min(base + size - sp.getFirstParameter(), (unsigned int)PATH_MAX);
+					size_t filenameLen = strnlen(reinterpret_cast<const char*>(sp.getFirstParameter()), maxLen);
+					
+					if(!proc->mpu.within(sp.getFirstParameter()) ||
+					   !proc->mpu.within(sp.getFirstParameter() + filenameLen)){
+						
+						proc->mpu.dumpConfiguration();	
+						
+						running = false;
+						proc->exitCode = SIGSYS;
+						break;
+					}
+
 					int fd = open(reinterpret_cast<const char*>(sp.getFirstParameter()),	//filename
 								  sp.getSecondParameter(),									//flags
 								  sp.getThirdParameter());									//permission, used?
@@ -371,7 +418,7 @@ void *Process::start(void *argv)
 					pid_t child = Process::create(program);
 					Process::waitpid(child, &ret, 0);
 					
-					sp.setReturnValue(ret);
+					sp.setReturnValue(WEXITSTATUS(ret));
 				}
 					break;
                 default:

@@ -51,14 +51,24 @@
 #include "miosix/kernel/process.h"
 
 #ifdef WITH_PROCESSES
+	#include "kernel/SystemMap.h"
+
 	#include "testsuite_syscall.h"
 	#include "testsuite_simple.h"
 	#include "testsuite_sleep.h"
-	#include "testsuite_file1.h"
-	#include "testsuite_file2.h"
+	#include "testsuite_system.h"
+
+	#ifdef WITH_FILESYSTEM
+		#include "testsuite_file1.h"
+		#include "testsuite_file2.h"
+		#include "testsuite_syscall_mpu_open.h"
+		#include "testsuite_syscall_mpu_read.h"
+		#include "testsuite_syscall_mpu_write.h"
+	#endif
 #endif
 
-#define WEXITSTATUS(x)	(((x) & 0xFF00) >> 8)
+#include <sys/wait.h>
+#include <signal.h>
 
 using namespace miosix;
 
@@ -111,11 +121,20 @@ static void exception_test();
 #endif //__NO_EXCEPTIONS
 
 #ifdef WITH_PROCESSES
-void syscall_test_files();
-void syscall_test_sleep();
-void syscall_test_process_ret();
-void syscall_test_file_concurrency();
+	void syscall_test_sleep();
+	void process_test_process_ret();
+	void syscall_test_system();
+		
+	#ifdef WITH_FILESYSTEM
+		void syscall_test_files();
+		void process_test_file_concurrency();
+		void syscall_test_mpu_open();
+		void syscall_test_mpu_read();
+		void syscall_test_mpu_write();
+	#endif
 #endif
+
+
 //main(), calls all tests
 int main()
 {
@@ -203,11 +222,15 @@ int main()
 				#ifdef WITH_PROCESSES				
 					#ifdef WITH_FILESYSTEM
 						syscall_test_files();
+						syscall_test_mpu_open();
+						syscall_test_mpu_read();
+						syscall_test_mpu_write();
 					#else
 						iprintf("Error, filesystem support is disabled\n");
 					#endif
 						
 					syscall_test_sleep();
+					syscall_test_system();
 				#else
 					iprintf("Error, process support is disabled\n");
 				#endif
@@ -216,8 +239,8 @@ int main()
 			case 'p':
 				#ifdef WITH_PROCESSES
 				ledOn();
-				syscall_test_process_ret();
-				syscall_test_file_concurrency();
+				process_test_process_ret();
+				process_test_file_concurrency();
 				ledOff();
 				#endif
 				break;
@@ -259,7 +282,7 @@ static void fail(const char *cause)
     reboot();
 }
 
-void syscall_test_file_concurrency(){
+void process_test_file_concurrency(){
 	test_name("Process file concurrency");
 	
 	remove("/file1.bin");
@@ -286,41 +309,50 @@ void syscall_test_file_concurrency(){
 	if(!f2)
 		fail("Unable to open second file");
 	
-	char buffer1[1024] = {0};
+	/*char buffer1[1024] = {0};
 	char buffer2[1024] = {0};
 	
 	int len1 = fread(buffer1, 1, 1024, f1);
 	int len2 = fread(buffer2, 1, 1024, f2);
 	
-	iprintf("File 1: %s, len = %d\n", buffer1, len1);
-;	iprintf("File 2: %s, len = %d\n", buffer2, len2);
+	iprintf("File 1 len = %d\n", len1);
+	iprintf("File 2 len = %d\n", len2);
 	
-	if(len1 != 9){
+	if(len1 != 900){
 		fclose(f1);
 		fclose(f2);
 		
 		fail("Wrong data size read from file 1");
 	}
 	
-	if(len2 != 9){
+	if(len2 != 900){
 		fclose(f1);
 		fclose(f2);
 	
 		fail("Wrong data size read from file 2");
-	}
+	}*/
 	
-	if(strncmp(buffer1, "file1.bin", len1) != 0){
-		fclose(f1);
-		fclose(f2);
-		
-		fail("Wrong data from file 1");
-	}
+	char buffer1[100] = {0},
+		 buffer2[100] = {0};
 	
-	if(strncmp(buffer2, "file2.bin", len2) != 0){
-		fclose(f1);
-		fclose(f2);
+	for(int i = 0; i < 1000; i++){
+		fread(buffer1, 1, 9, f1);
+		if(strncmp(buffer1, "file1.bin", 9) != 0){
+			fclose(f1);
+			fclose(f2);
 		
-		fail("Wrong data from file 2");
+			fail("Wrong data from file 1");
+		}
+	}
+
+	for(int i = 0; i < 1000; i++){
+		fread(buffer2, 1, 9, f2);
+		if(strncmp(buffer2, "file2.bin", 9) != 0){
+			fclose(f1);
+			fclose(f2);
+
+			fail("Wrong data from file 2");
+		}
 	}
 	
 	fclose(f1);
@@ -329,7 +361,7 @@ void syscall_test_file_concurrency(){
 	pass();
 }
 
-void syscall_test_process_ret(){
+void process_test_process_ret(){
 	test_name("Process return value");
 	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_simple_elf),testsuite_simple_elf_len);
 	
@@ -343,27 +375,122 @@ void syscall_test_process_ret(){
 		fail("Wrong returned value");
 }
 
+void syscall_test_mpu_open(){
+	test_name("open and MPU");
+	
+	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_syscall_mpu_open_elf), testsuite_syscall_mpu_open_elf_len);
+	
+	int ret = 0;
+	pid_t p = Process::create(prog);
+	Process::waitpid(p, &ret, 0);
+	
+	iprintf("Returned value is %d\n", ret);
+	
+	if((ret & 0xFF) == SIGSYS)
+		iprintf("The invalid pointer to filename has been handled correctly.\n");
+	else
+		fail("0x00000000 is not a valid address!");
+	
+	pass();
+}
+
+void syscall_test_mpu_read(){
+	test_name("read calls and MPU");
+	
+	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_syscall_mpu_read_elf), testsuite_syscall_mpu_read_elf_len);
+	
+	int ret = 0;
+	pid_t p = Process::create(prog);
+	Process::waitpid(p, &ret, 0);
+	
+	iprintf("Returned value is %d\n", ret);
+	
+	if((ret & 0xFF) == SIGSYS)
+		iprintf("The invalid buffer pointer been handled correctly.\n");
+	else
+		fail("0x00000000 is not a valid address!");
+	
+	pass();
+}
+
+void syscall_test_mpu_write(){
+	test_name("write and MPU");
+	
+	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_syscall_mpu_write_elf), testsuite_syscall_mpu_write_elf_len);
+	
+	int ret = 0;
+	pid_t p = Process::create(prog);
+	Process::waitpid(p, &ret, 0);
+	
+	iprintf("Returned value is %d\n", ret);
+	
+	if((ret & 0xFF) == SIGSYS)
+		iprintf("The invalid pointer to filename has been handled correctly.\n");
+	else
+		fail("0x00000000 is not a valid address!");
+	
+	pass();
+}
+
+void syscall_test_system(){
+	
+	if(SystemMap::instance().getElfCount() != 0)
+		fail("The system lookup table should be empty");
+	else
+		iprintf("The system lookup table is empty. Correct.\n");
+	
+	SystemMap::instance().addElfProgram("test", reinterpret_cast<const unsigned int*>(testsuite_simple_elf), testsuite_simple_elf_len);
+	
+	if(SystemMap::instance().getElfCount() != 1)
+		fail("Now the system lookup table should contain 1 program");
+	else
+		iprintf("The system lookup table contain one program. Correct.\n");
+	
+	std::pair<const unsigned int*, unsigned int> sysret = SystemMap::instance().getElfProgram("test");
+	
+	if(sysret.first == 0 || sysret.second == 0)
+		fail("The system lookup table has returned an invalid process size or an invalid elf pointer for the process");
+	
+	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_system_elf), testsuite_system_elf_len);
+	
+	int ret = 0;
+	pid_t p = Process::create(prog);
+	Process::waitpid(p, &ret, 0);
+	
+	if(WEXITSTATUS(ret) != 42){
+		iprintf("Host process returned: %d\n", WEXITSTATUS(ret));
+		fail("The system inside a process has failed");
+	}
+
+	SystemMap::instance().removeElfProgram("test");
+	
+	if(SystemMap::instance().getElfCount() != 0)
+		fail("The system lookup table now should be empty.\n");
+	
+	pass();	
+}
+
 void syscall_test_sleep(){
 	test_name("System Call: sleep");
 	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_sleep_elf),testsuite_sleep_elf_len);
 	
-	iprintf("diff was: %d\n", (unsigned int)getTick());
+//	iprintf("diff was: %d\n", (unsigned int)getTick());
 	
 	int ret = 0;
 	long long time = getTick();
 	pid_t p = Process::create(prog);
 	Process::waitpid(p, &ret, 0);
 	
-	long long diff = abs((getTick() - time));
+	long long diff = llabs((getTick() - time));
 	
-	if (diff > 10)
-		fail("sleep");
+	if (llabs(diff - 5*TICK_FREQ) > static_cast<long long>(TICK_FREQ * 0.02))
+		fail("The sleep should have only a little more than 5 seconds.");
 	
 	pass();
 }
 
 void syscall_test_files(){
-	test_name("System Call: open, read, write, seek, close, sytem");
+	test_name("System Call: open, read, write, seek, close, system");
 	
 	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_syscall_elf),testsuite_syscall_elf_len);
 	int ret = 0;
