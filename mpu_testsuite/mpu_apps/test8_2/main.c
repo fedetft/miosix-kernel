@@ -8,9 +8,9 @@
 
 int main()
 {
-	// 'address' points to a memory location inside the code
-	// segment of the program. The program tries to write the location.
-	volatile unsigned int *address = 0x64101000;
+	// 'address' points to a memory location of the program 8.1.
+	// The program tries to write the location.
+	volatile int *address = 0x64104004;
 	*address = 0xbbbbbbbb;
 	return 0;
 }

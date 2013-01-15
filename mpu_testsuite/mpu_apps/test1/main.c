@@ -12,5 +12,5 @@ int main()
 	// and owned by the kernel. The program tries to write the location.
 	volatile unsigned int *address = 0x64100000;
 	*address = 0xbbbbbbbb;
-	return 123;
+	return 0;
 }

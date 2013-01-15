@@ -14,8 +14,7 @@ SUBDIRS := miosix
 ## List here your source files (both .s, .c and .cpp)
 ##
 SRC :=                                  \
-miosix/testsuite/testsuite.cpp
-#main.cpp
+main.cpp
 
 
 ##

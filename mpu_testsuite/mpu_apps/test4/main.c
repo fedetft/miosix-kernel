@@ -12,5 +12,5 @@ int main()
 	// the available memory and writes to it;
 	volatile unsigned char array[16 * 1024 + 1];
 	array[0] = 0;
-	return 126;
+	return 0;
 }
