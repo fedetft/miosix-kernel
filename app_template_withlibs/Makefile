@@ -22,7 +22,7 @@ CXXFLAGS := $(CFLAGS)
 LFLAGS   := -mcpu=cortex-m3 -mthumb -fpie -msingle-pic-base \
             -Wl,--gc-sections,-Map,main.map,-T./miosix.ld,-n,-pie,--spare-dynamic-tags,3 \
             -O2 -nostdlib
-DFLAGS    := -MM
+DFLAGS    := -MMD -MP
 
 # LFLAGS   := -mcpu=cortex-m3 -mthumb -fpie -msingle-pic-base \
 #             -Wl,--gc-sections,-Map,main.map,-T./miosix.ld,-n,-pie,--spare-dynamic-tags,3 \
@@ -37,18 +37,19 @@ all: $(OBJ) crt0.o
 	@xxd -i main.elf | sed 's/unsigned char/const unsigned char __attribute__((aligned(8)))/' > prog3.h
 
 clean:
-	-rm $(OBJ) crt0.o main.elf main.map *.d
-
-#pull in dependecy info for existing .o files
--include $(OBJ:.o=.d)
+	-rm $(OBJ) crt0.o main.elf main.map $(OBJ:.o=.d)
 
 %.o: %.s
+	@echo "========Compiling $<========"
 	$(AS) $(AFLAGS) $< -o $@
 
 %.o : %.c
-	$(CC) $(CFLAGS) $< -o $@
-	$(CC) $(DFLAGS) $(CFLAGS) $*.c > $*.d
+	@echo "========Compiling $<========"
+	$(CC) $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
-	$(CXX) $(CXXFLAGS) $< -o $@
-	$(CXX) $(DFLAGS) $(CXXFLAGS) $*.cpp > $*.d
+	@echo "========Compiling $<========"
+	$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
+
+#pull in dependecy info for existing .o files
+-include $(OBJ:.o=.d)

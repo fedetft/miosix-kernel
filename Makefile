@@ -40,7 +40,7 @@ CFLAGS    := $(CFLAGS_BASE)   -I. -Imiosix -Imiosix/arch/common \
              -Imiosix/$(ARCH_INC) -Imiosix/$(BOARD_INC) $(INCLUDE_DIRS)
 AFLAGS    := $(AFLAGS_BASE)
 LFLAGS    := $(LFLAGS_BASE)
-DFLAGS    := -MM
+DFLAGS    := -MMD -MP
 
 LINK_LIBS := $(LIBS) -L./miosix -Wl,--start-group -lmiosix -lstdc++ -lc -lm \
     -lgcc -Wl,--end-group
@@ -63,7 +63,7 @@ clean-recursive:
 	done
 
 clean-topdir:
-	-rm $(OBJ) main.elf main.hex main.bin main.map *.d
+	-rm $(OBJ) main.elf main.hex main.bin main.map $(OBJ:.o=.d)
 
 main: main.elf
 	$(CP) -O ihex   main.elf main.hex
@@ -71,19 +71,20 @@ main: main.elf
 	$(SZ) main.elf
 
 main.elf: $(OBJ) miosix/libmiosix.a
-	@ echo "linking"
+	@ echo "========Linking========"
 	$(CXX) $(LFLAGS) -o main.elf $(OBJ) miosix/$(BOOT_FILE) $(LINK_LIBS)
 
-#pull in dependecy info for existing .o files
--include $(OBJ:.o=.d)
-
 %.o: %.s
+	@echo "========Compiling $<========"
 	$(AS) $(AFLAGS) $< -o $@
 
 %.o : %.c
-	$(CC) $(CFLAGS) $< -o $@
-	$(CC) $(DFLAGS) $(CFLAGS) $*.c > $*.d
+	@echo "========Compiling $<========"
+	$(CC) $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
-	$(CXX) $(CXXFLAGS) $< -o $@	
-	$(CXX) $(DFLAGS) $(CXXFLAGS) $*.cpp > $*.d
+	@echo "========Compiling $<========"
+	$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@	
+
+#pull in dependecy info for existing .o files
+-include $(OBJ:.o=.d)
