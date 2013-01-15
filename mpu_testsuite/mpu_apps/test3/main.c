@@ -8,7 +8,9 @@
 
 int main()
 {
-	volatile unsigned int *pointer = 0x63F00000 + 0xFFFF;
-	*pointer = 456;
+	// 'address' points to a memory location allocated and owned by
+	// the kernel. The program tries to write the location.
+	volatile unsigned int *address = 0x63F0FFFF;
+	*address = 0xbbbbbbbb;
 	return 125;
 }
