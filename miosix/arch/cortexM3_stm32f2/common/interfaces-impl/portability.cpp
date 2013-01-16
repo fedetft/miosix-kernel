@@ -115,6 +115,7 @@ void ISR_preempt()
 void ISR_yield() __attribute__((noinline));
 void ISR_yield()
 {
+    #ifdef WITH_PROCESSES
     // WARNING: Temporary fix. Rationale:
     // This fix is intended to avoid kernel or process faulting due to
     // another process actions. Consider the case in which a process statically
@@ -141,6 +142,7 @@ void ISR_yield()
             return;
         }
     }
+    #endif // WITH_PROCESSES
     IRQstackOverflowCheck();
     
     #ifdef WITH_PROCESSES
