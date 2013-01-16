@@ -115,6 +115,32 @@ void ISR_preempt()
 void ISR_yield() __attribute__((noinline));
 void ISR_yield()
 {
+    // WARNING: Temporary fix. Rationale:
+    // This fix is intended to avoid kernel or process faulting due to
+    // another process actions. Consider the case in which a process statically
+    // allocates a big array such that there is no space left for saving
+    // context data. If the process issues a system call, in the following
+    // interrupt the context is saved, but since there is no memory available
+    // for all the context data, a mem manage interrupt is set to 'pending'. Then,
+    // a fake syscall is issued, based on the value read on the stack (which
+    // the process hasn't set due to the memory fault and is likely to be 0);
+    // this syscall is usually a yield (due to the value of 0 above),
+    // which can cause the scheduling of the kernel thread. At this point,
+    // the pending mem fault is issued from the kernel thread, causing the
+    //kernel fault and reboot. This is caused by the mem fault interrupt
+    // having less priority of the other interrupts.
+    // This fix checks if there is a mem fault interrupt pending, and, if so,
+    // it clears it and returns before calling the previously mentioned fake
+    // syscall.
+    if(SCB->SHCSR & (1<<13))
+    {
+        if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
+            MP,0,0)))
+        {
+            SCB->SHCSR &= ~(1<<13); //Clear MEMFAULTPENDED bit
+            return;
+        }
+    }
     IRQstackOverflowCheck();
     
     #ifdef WITH_PROCESSES
@@ -328,6 +354,7 @@ void IRQportableStartKernel()
     NVIC_SetPriorityGrouping(7);//This should disable interrupt nesting
     NVIC_SetPriority(SVCall_IRQn,3);//High priority for SVC (Max=0, min=15)
     NVIC_SetPriority(SysTick_IRQn,3);//High priority for SysTick (Max=0, min=15)
+    NVIC_SetPriority(MemoryManagement_IRQn,2);//Higher priority for MemoryManagement (Max=0, min=15)
     SysTick->LOAD=SystemCoreClock/miosix::TICK_FREQ;
     //Start SysTick, set to generate interrupts
     SysTick->CTRL=SysTick_CTRL_ENABLE_Msk | SysTick_CTRL_TICKINT_Msk |

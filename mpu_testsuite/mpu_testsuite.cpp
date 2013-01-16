@@ -49,7 +49,7 @@ int main()
 	// Code region : 0x64101800 - 0x64101c00
 	// Data region : 0x6410c000 - 0x64110000
 
-	// Altered elfs tests
+	//Altered elfs tests
 	iprintf("\nExecuting ELF tests.\n");
 	iprintf("--------------------\n");
 	runElfTest("Elf Test1", aelf1, aelf1_len);
@@ -60,7 +60,7 @@ int main()
 	runElfTest("Elf Test6", aelf6, aelf6_len);
 	runElfTest("Elf Test7", aelf7, aelf7_len);
 
-	 //Mpu tests
+	//Mpu tests
 	iprintf("\n\nExecuting MPU tests.\n");
 	iprintf("---------------------\n");
 	allocatedMem = memAllocation(4096);
@@ -70,9 +70,9 @@ int main()
 	mpuTest4();
 	mpuTest5();
 	mpuTest6();
+	mpuTest7();
 	mpuTest8();
 	mpuTest9();
-	mpuTest7();
 }
 
 unsigned int* memAllocation(unsigned int size)
@@ -244,16 +244,10 @@ void mpuTest6()
 void mpuTest7()
 {
 	int ec;
-	unsigned int memSize = 16384;
-	unsigned int *addr = (unsigned int*) 0x64108000;
-	iprintf("Executing MPU Test 7...\n");	
+	iprintf("Executing MPU Test 7...\n");
 	ElfProgram prog(reinterpret_cast<const unsigned int*>(test7_elf), test7_elf_len);
 	pid_t child=Process::create(prog);
-
-	unsigned int *p = ProcessPool::instance().allocate(memSize);
-	memset(p, WATERMARK_FILL, memSize);
-	iprintf("Allocated %d bytes. Base: %p. Size: 0x%x.\n\n", memSize, p, memSize);
-	
+	delayMs(1000);
 	Process::waitpid(child, &ec, 0);
 
 	if(isSignaled(ec))
@@ -264,11 +258,6 @@ void mpuTest7()
 	{
 		iprintf("...not passed! Process exited normally.\n\n");
 	}
-
-	if(memCheck(p, memSize) == true)
-		iprintf("...memory sane!.\n\n");
-	else
-		iprintf("...memory NOT sane!.\n\n");
 }
 
 void mpuTest8()
@@ -317,7 +306,7 @@ void mpuTest9()
 			break;
 		}
 	}
-	iprintf("Allocated %d processes before system memory ran out.\n", pids.size());
+	iprintf("Allocated %d processes before system ran out of memory.\n", pids.size());
 	for(unsigned int i = 0; i < pids.size(); i++)
 	{
 		Process::waitpid(pids[i], &ec, 0);
