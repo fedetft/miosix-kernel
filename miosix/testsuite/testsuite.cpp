@@ -141,6 +141,7 @@ static void exception_test();
     void mpuTest7();
     void mpuTest8();
     void mpuTest9();
+    void mpuTest10();
 #endif
 
 
@@ -152,8 +153,9 @@ int main()
     Thread::setPriority(0);
     for(;;)
     {
-        iprintf("Type 't' for kernel test, 'f' for filesystem test, 'x' for "
-        "exception test, 'b' for benchmarks, 'p' for process test, 'y' for syscall test or 's' for shutdown\n");
+        iprintf("Type:\n 't' for kernel test\n 'f' for filesystem test\n 'x' for "
+        "exception test\n 'b' for benchmarks\n 'p' for process tes\n 'y' for syscall test\n"
+	" 'm' for memory test\n \'s' for shutdown\n");
         char c;
         for(;;)
         {
@@ -295,6 +297,7 @@ int main()
                     mpuTest7();
                     mpuTest8();
                     mpuTest9();
+		    mpuTest10();
 				#else
 					iprintf("Error, process support is disabled\n");
 				#endif
@@ -3840,7 +3843,31 @@ void mpuTest9()
 		Process::waitpid(pids[i], &ec, 0);
 		//iprintf("Process %d has terminated with return code: %d\n", pids[i], ec);
 	}
-	iprintf("Test passed\n\n");
+	iprintf("...passed!.\n\n");
 }
 
+void mpuTest10()
+{
+	// The first process is allocated and sent to sleep. The second process statically
+	// allocates a big array and calls a syscall, which will try to write in the memory
+	// chunk owned by the first process.
+	// The first process should end properly, the second process should fault.
+	int ec1, ec2;
+	iprintf("Executing MPU Test 10...\n");
+	ElfProgram prog1(reinterpret_cast<const unsigned int*>(test10_1_elf), test10_1_elf_len);
+	ElfProgram prog2(reinterpret_cast<const unsigned int*>(test10_2_elf), test10_2_elf_len);
+	pid_t child1=Process::create(prog1);
+	pid_t child2=Process::create(prog2);
+	Process::waitpid(child1, &ec1, 0);
+	Process::waitpid(child2, &ec2, 0);
+
+	if(!isSignaled(ec1) && isSignaled(ec2))
+	{
+		iprintf("...passed!.\n\n");
+	}
+	else
+	{
+		iprintf("...not passed!\n\n");
+	}
+}
 #endif //WITH_PROCESSES
