@@ -155,7 +155,7 @@ int main()
     {
         iprintf("Type:\n 't' for kernel test\n 'f' for filesystem test\n 'x' for "
         "exception test\n 'b' for benchmarks\n 'p' for process tes\n 'y' for syscall test\n"
-	" 'm' for memory test\n \'s' for shutdown\n");
+	" 'm' for elf and mpu test\n 's' for shutdown\n");
         char c;
         for(;;)
         {
@@ -228,37 +228,39 @@ int main()
                 iprintf("Shutting down\n");
                 while(!Console::txComplete()) ;
                 shutdown();
-			case 'y':
-				ledOn();
-				#ifdef WITH_PROCESSES				
-					#ifdef WITH_FILESYSTEM
-						syscall_test_files();
-						syscall_test_mpu_open();
-						syscall_test_mpu_read();
-						syscall_test_mpu_write();
-					#else
-						iprintf("Error, filesystem support is disabled\n");
-					#endif
-						
-					syscall_test_sleep();
-					syscall_test_system();
-				#else
-					iprintf("Error, process support is disabled\n");
-				#endif
-					ledOff();
-				break;
-			case 'p':
-				#ifdef WITH_PROCESSES
-				ledOn();
-				process_test_process_ret();
-				process_test_file_concurrency();
-				ledOff();
-				#endif
-				break;
+            case 'y':
+                ledOn();
+                #ifdef WITH_PROCESSES				
+                        #ifdef WITH_FILESYSTEM
+                                syscall_test_files();
+                                syscall_test_mpu_open();
+                                syscall_test_mpu_read();
+                                syscall_test_mpu_write();
+                        #else
+                                iprintf("Error, filesystem support is disabled\n");
+                        #endif
+
+                        syscall_test_sleep();
+                        syscall_test_system();
+                #else
+                        iprintf("Error, process support is disabled\n");
+                #endif
+                        ledOff();
+                break;
+            case 'p':
+                #ifdef WITH_PROCESSES
+                ledOn();
+                process_test_process_ret();
+                process_test_file_concurrency();
+                ledOff();
+                #endif
+                break;
             case 'm':
-				ledOn();
-				#ifdef WITH_PROCESSES				
-					// ProcessPool allocates 4096 bytes starting from address 0x64100000
+                //The priority of the test thread must be 1
+                Thread::setPriority(1);
+                ledOn();
+                #ifdef WITH_PROCESSES				
+                    // ProcessPool allocates 4096 bytes starting from address 0x64100000
                     // Range : 0x64100000 - 0x64101000
 
                     // First process memory layout
@@ -297,12 +299,13 @@ int main()
                     mpuTest7();
                     mpuTest8();
                     mpuTest9();
-		    mpuTest10();
-				#else
-					iprintf("Error, process support is disabled\n");
-				#endif
-					ledOff();
-				break;
+                    mpuTest10();
+		#else
+			iprintf("Error, process support is disabled\n");
+		#endif
+		ledOff();
+                Thread::setPriority(0);
+		break;
             default:
                 iprintf("Unrecognized option\n");
         }
@@ -3775,15 +3778,22 @@ void mpuTest6()
 void mpuTest7()
 {
 	int ec;
-	iprintf("Executing MPU Test 7...\n");
+        unsigned int memSize = 8192;
+        
+        iprintf("Executing MPU Test 7...\n");
+        unsigned int *p = ProcessPool::instance().allocate(memSize);
+        memset(p, WATERMARK_FILL, memSize);
 	ElfProgram prog(reinterpret_cast<const unsigned int*>(test7_elf), test7_elf_len);
 	pid_t child=Process::create(prog);
 	delayMs(1000);
 	Process::waitpid(child, &ec, 0);
 
 	if(isSignaled(ec))
-	{
-		iprintf("...passed!.\n\n");
+	{       
+                if(memCheck(p, memSize) == true)
+                    iprintf("...passed!.\n\n");
+                else
+                    iprintf("...not passed! Memory NOT sane!");
 	}
 	else
 	{

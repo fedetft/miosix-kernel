@@ -8,8 +8,10 @@
 
 int main()
 {
-	// This process goes to sleep for 2 seconds, while the second
-	// process tries to  access the data region of this process.
-	usleep(2000000);
-	return 0;
+        // This process goes to sleep for 2 seconds, while the second
+        // process tries to  access the data region of this process.
+        unsigned int x = 5000000;
+        unsigned int i;
+        for(int i=0; i<x; i++)
+        return 0;
 }
