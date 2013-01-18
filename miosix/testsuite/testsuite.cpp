@@ -162,6 +162,8 @@ int main()
             c=getchar();
             if(c!='\n') break;
         }
+        //For testing mpu
+        unsigned int *m;
         switch(c)
         {
             case 't':
@@ -289,7 +291,7 @@ int main()
                     //Mpu tests
                     iprintf("\n\nExecuting MPU tests.\n");
                     iprintf("---------------------\n");
-                    memAllocation(4096);
+                    m = memAllocation(4096);
                     mpuTest1();
                     mpuTest2();
                     mpuTest3();
@@ -300,6 +302,7 @@ int main()
                     mpuTest8();
                     mpuTest9();
                     mpuTest10();
+                    ProcessPool::instance().deallocate(m);
 		#else
 			iprintf("Error, process support is disabled\n");
 		#endif
@@ -3787,17 +3790,18 @@ void mpuTest7()
 	pid_t child=Process::create(prog);
 	delayMs(1000);
 	Process::waitpid(child, &ec, 0);
-
 	if(isSignaled(ec))
 	{       
                 if(memCheck(p, memSize) == true)
                     iprintf("...passed!.\n\n");
                 else
                     iprintf("...not passed! Memory NOT sane!");
+                ProcessPool::instance().deallocate(p);
 	}
 	else
 	{
 		iprintf("...not passed! Process exited normally.\n\n");
+                ProcessPool::instance().deallocate(p);
 	}
 }
 
