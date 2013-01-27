@@ -106,10 +106,6 @@ static void benchmark_4();
 static void exception_test();
 #endif //__NO_EXCEPTIONS
 
-namespace miosix {
-void fixmeTestFs();
-}
-
 //main(), calls all tests
 int main()
 {
@@ -128,7 +124,6 @@ int main()
         }
         switch(c)
         {
-            case '0': fixmeTestFs(); break;
             case 't':
                 //for(;;){ //Testing
                 ledOn();

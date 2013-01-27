@@ -14,7 +14,7 @@ SUBDIRS := miosix
 ## List here your source files (both .s, .c and .cpp)
 ##
 SRC :=                                  \
-miosix/testsuite/testsuite.cpp
+main.cpp
 
 ##
 ## List here additional static libraries with relative path

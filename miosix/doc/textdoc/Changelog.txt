@@ -1,5 +1,6 @@
 Changelog for Miosix np embedded OS
 
+- Actually, monitor_soft_reset_halt seems to work in JTAG mode but not with SWD
 - Changed references to "monitor soft_reset_halt" into "monitor reset halt"
   as openocd changed in version 0.6.1
 - Added scripts to build the new GCC 4.7.2

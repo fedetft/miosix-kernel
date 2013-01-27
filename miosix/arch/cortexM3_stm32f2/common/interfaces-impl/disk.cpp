@@ -33,8 +33,6 @@
 #include "kernel/kernel.h"
 #include <cstdio>
 #include <cstring>
-#include <utility>
-#include <miosix.h> //FIXME: remove
 
 //Note: enabling debugging might cause deadlock when using sleep() or reboot()
 //The bug won't be fixed because debugging is only useful for driver development
@@ -42,8 +40,8 @@
 //#define DBG iprintf
 #define DBG(x,...) ;
 ///\internal Debug macro, for errors only
-#define DBGERR iprintf
-//#define DBGERR(x,...) ;
+//#define DBGERR iprintf
+#define DBGERR(x,...) ;
 
 /**
  * \internal
@@ -121,8 +119,8 @@ void __attribute__((used)) SDIOirqImpl()
  * work at this voltage. Range *must* be within 28..36
  * Example 33=3.3v
  */
-const unsigned char VOLTAGE=33;
-const unsigned int VOLTAGE_MASK=1<<(VOLTAGE-13); //See OCR register in SD spec
+static const unsigned char VOLTAGE=33;
+static const unsigned int VOLTAGE_MASK=1<<(VOLTAGE-13); //See OCR reg in SD spec
 
 /**
  * \internal
@@ -147,134 +145,6 @@ typedef Gpio<GPIOC_BASE,10> sdD2;
 typedef Gpio<GPIOC_BASE,11> sdD3;
 typedef Gpio<GPIOC_BASE,12> sdCLK;
 typedef Gpio<GPIOD_BASE,2>  sdCMD;
-
-//
-// Class BufferConverter
-//
-
-/**
- * \internal
- * Convert a single buffer of *fixed* and predetermined size to and from
- * word-aligned. To do so, if the buffer is already word aligned a cast is made,
- * otherwise a new buffer is allocated.
- * Note that this class allocates at most ONE buffer at any given time.
- * Therefore any call to toWordAligned(), toWordAlignedWithoutCopy(),
- * toOriginalBuffer() or deallocateBuffer() invalidates the buffer previousy
- * returned by toWordAligned() and toWordAlignedWithoutCopy()
- */
-class BufferConverter
-{
-public:
-    /**
-     * \internal
-     * The buffer will be of this size only.
-     */
-    static const int BUFFER_SIZE=512;
-
-    /**
-     * \internal
-     * \return true if the pointer is word aligned
-     */
-    static bool isWordAligned(const unsigned char *x)
-    {
-        return (reinterpret_cast<const unsigned int>(x) & 0x3)==0;
-    }
-
-    /**
-     * \internal
-     * Convert from a constunsigned char* buffer of size BUFFER_SIZE to a
-     * const unsigned int* word aligned buffer.
-     * If the original buffer is already word aligned it only does a cast,
-     * otherwise it copies the data on the original buffer to a word aligned
-     * buffer. Useful if subseqent code will read from the buffer.
-     * \param a buffer of size BUFFER_SIZE. Can be word aligned or not.
-     * \return a word aligned buffer with the same data of the given buffer
-     */
-    static const unsigned int *toWordAligned(const unsigned char *buffer);
-
-    /**
-     * \internal
-     * Convert from an unsigned char* buffer of size BUFFER_SIZE to an
-     * unsigned int* word aligned buffer.
-     * If the original buffer is already word aligned it only does a cast,
-     * otherwise it returns a new buffer which *does not* contain the data
-     * on the original buffer. Useful if subseqent code will write to the
-     * buffer. To move the written data to the original buffer, use
-     * toOriginalBuffer()
-     * \param a buffer of size BUFFER_SIZE. Can be word aligned or not.
-     * \return a word aligned buffer with undefined content.
-     */
-    static unsigned int *toWordAlignedWithoutCopy(unsigned char *buffer);
-
-    /**
-     * \internal
-     * Convert the buffer got through toWordAlignedWithoutCopy() to the
-     * original buffer. If the original buffer was word aligned, nothing
-     * happens, otherwise a memcpy is done.
-     * Note that this function does not work on buffers got through
-     * toWordAligned().
-     */
-    static void toOriginalBuffer();
-
-    /**
-     * \internal
-     * Can be called to deallocate the buffer
-     */
-    static void deallocateBuffer();
-
-private:
-    static unsigned char *originalBuffer;
-    static unsigned int *wordAlignedBuffer;
-};
-
-const unsigned int *BufferConverter::toWordAligned(const unsigned char *buffer)
-{
-    originalBuffer=0; //Tell toOriginalBuffer() that there's nothing to do
-    if(isWordAligned(buffer))
-    {
-        return reinterpret_cast<const unsigned int*>(buffer);
-    } else {
-        if(wordAlignedBuffer==0)
-            wordAlignedBuffer=new unsigned int[BUFFER_SIZE/sizeof(unsigned int)];
-        std::memcpy(wordAlignedBuffer,buffer,BUFFER_SIZE);
-        return wordAlignedBuffer;
-    }
-}
-
-unsigned int *BufferConverter::toWordAlignedWithoutCopy(
-    unsigned char *buffer)
-{
-    if(isWordAligned(buffer))
-    {
-        originalBuffer=0; //Tell toOriginalBuffer() that there's nothing to do
-        return reinterpret_cast<unsigned int*>(buffer);
-    } else {
-        originalBuffer=buffer; //Save original pointer for toOriginalBuffer()
-        if(wordAlignedBuffer==0)
-            wordAlignedBuffer=new unsigned int[BUFFER_SIZE/sizeof(unsigned int)];
-        return wordAlignedBuffer;
-    }
-}
-
-void BufferConverter::toOriginalBuffer()
-{
-    if(originalBuffer==0) return;
-    std::memcpy(originalBuffer,wordAlignedBuffer,BUFFER_SIZE);
-    originalBuffer=0;
-}
-
-void BufferConverter::deallocateBuffer()
-{
-    originalBuffer=0; //Invalidate also original buffer
-    if(wordAlignedBuffer!=0)
-    {
-        delete[] wordAlignedBuffer;
-        wordAlignedBuffer=0;
-    }
-}
-
-unsigned char *BufferConverter::originalBuffer=0;
-unsigned int *BufferConverter::wordAlignedBuffer=0;
 
 //
 // Class CmdResult
@@ -515,26 +385,7 @@ public:
      * \param arg the 32 bit argument to the command
      * \return a CmdResult object
      */
-    static CmdResult send(CommandType cmd, unsigned int arg)
-    {
-        if(static_cast<unsigned char>(cmd) & 0x80)
-        {
-            DBG("ACMD%d\n",static_cast<unsigned char>(cmd) & 0x3f);
-        } else {
-            DBG("CMD%d\n",static_cast<unsigned char>(cmd) & 0x3f);
-        }
-        return IRQsend(cmd,arg);
-    }
-
-    /**
-     * \internal
-     * Send a command. Can be called with interrupts disabled as it does not
-     * print any debug information.
-     * \param cmd command index (CMD0..CMD63) or ACMDxx command
-     * \param arg the 32 bit argument to the command
-     * \return a CmdResult object
-     */
-    static CmdResult IRQsend(CommandType cmd, unsigned int arg);
+    static CmdResult send(CommandType cmd, unsigned int arg);
 
     /**
      * \internal
@@ -553,19 +404,20 @@ private:
     static unsigned short rca;///<\internal Card's relative address
 };
 
-CmdResult Command::IRQsend(CommandType cmd, unsigned int arg)
+CmdResult Command::send(CommandType cmd, unsigned int arg)
 {
     unsigned char cc=static_cast<unsigned char>(cmd);
     //Handle ACMDxx as CMD55, CMDxx
     if(cc & 0x80)
     {
-        CmdResult r=IRQsend(CMD55,(static_cast<unsigned int>(rca))<<16);
-        if(r.IRQvalidateR1Response()==false)
+        DBG("ACMD%d\n",cc & 0x3f);
+        CmdResult r=send(CMD55,(static_cast<unsigned int>(rca))<<16);
+        if(r.validateR1Response()==false)
             return CmdResult(cc & 0x3f,CmdResult::ACMDFail);
         //Bit 5 @ 1 = next command will be interpreted as ACMD
         if((r.getResponse() & (1<<5))==0)
             return CmdResult(cc & 0x3f,CmdResult::ACMDFail);
-    }
+    } else DBG("CMD%d\n",cc & 0x3f);
 
     //Send command
     cc &= 0x3f;
@@ -617,102 +469,15 @@ CmdResult Command::IRQsend(CommandType cmd, unsigned int arg)
 unsigned short Command::rca=0;
 
 //
-// Class DataResult
-//
-
-/**
- * \internal
- * Contains the result of sending/receiving a data block
- */
-class DataResult
-{
-public:
-
-    /**
-     * \internal
-     * Possible outcomes of sending or receiving data
-     */
-    enum Error
-    {
-        Ok=0,
-        Timeout,
-        CRCFail,
-        RXOverrun,
-        TXUnderrun,
-        StartBitFail
-    };
-
-    /**
-     * \internal
-     * Default constructor
-     */
-    DataResult(): error(Ok) {}
-
-    /**
-     * \internal
-     * Constructor,  set the result.
-     * \param error error type
-     */
-    DataResult(Error error): error(error) {}
-
-    /**
-     * \internal
-     * \return the error flags
-     */
-    Error getError() { return error; }
-
-    /**
-     * \internal
-     * Checks if errors occurred while sending/receiving data.
-     * \return true if no errors, false otherwise
-     */
-    bool validateError();
-    
-private:
-    Error error;
-};
-
-
-bool DataResult::validateError()
-{
-    switch(error)
-    {
-        case Ok:
-            return true;
-        case Timeout:
-            DBGERR("Data Timeout\n");
-            break;
-        case CRCFail:
-            DBGERR("Data CRC Fail\n");
-            break;
-        case RXOverrun:
-            DBGERR("Data overrun\n");
-            break;
-        case TXUnderrun:
-            DBGERR("Data underrun\n");
-            break;
-        case StartBitFail:
-            DBGERR("Data start bit Fail\n");
-            break;
-    }
-    return false;
-}
-
-//
 // Class ClockController
 //
 
 /**
  * \internal
- * This class controls the clock speed of the SDIO peripheral. The SDIO
- * peripheral, when used in polled mode, requires two timing critical pieces of
- * code: the one to send and the one to receive a data block. This because
- * the peripheral has a 128 byte fifo while the block size is 512 byte, and
- * if fifo underrun/overrun occurs the peripheral does not pause communcation,
- * instead it simply aborts the data transfer. Since the speed of the code to
- * read/write a data block depends on too many factors, such as compiler
- * optimizations, code running from internal flash or external ram, and the
- * cpu clock speed, a dynamic clocking approach was chosen.
+ * This class controls the clock speed of the SDIO peripheral. It originated
+ * from a previous version of this driver, where the SDIO was used in polled
+ * mode instead of DMA mode, but has been retained to improve the robustness
+ * of the driver.
  */
 class ClockController
 {
@@ -734,12 +499,9 @@ public:
 
     /**
      * \internal
-     * Automatically select the data speed.
-     * Since the maximum speed depends on many factors, such as code running in
-     * internal or external RAM, compiler optimizations etc. this routine
-     * selects the highest sustainable data transfer speed.
-     * This is done by binary search until the highest clock speed that causes
-     * no errors is found.
+     * Automatically select the data speed. This routine selects the highest
+     * sustainable data transfer speed. This is done by binary search until
+     * the highest clock speed that causes no errors is found.
      * This function as a side effect enables 4bit bus width, and clock
      * powersave.
      */
@@ -747,7 +509,7 @@ public:
 
     /**
      * \internal
-     * Since clock speed is set dynamically by bynary search at runtime, a
+     * Since clock speed is set dynamically by binary search at runtime, a
      * corner case might be that of a clock speed which results in unreliable
      * data transfer, that sometimes succeeds, and sometimes fail.
      * For maximum robustness, this function is provided to reduce the clock
@@ -756,10 +518,9 @@ public:
      * clock issues, this function can be called only MAX_ALLOWED_REDUCTIONS
      * times after clock calibration, subsequent calls will fail. This will
      * avoid other issues causing an ever decreasing clock speed.
-     * Can be called with interrupts disabled.
      * \return true on success, false on failure
      */
-    static bool IRQreduceClockSpeed();
+    static bool reduceClockSpeed();
 
     /**
      * \internal
@@ -776,12 +537,19 @@ private:
     static const unsigned int CLOCK_400KHz=118; //48MHz/(118+2)=400KHz
     static const unsigned int CLOCK_MAX=0;      //48MHz/(0+2)  =24MHz
 
+    #ifndef _BOARD_STM3220G_EVAL
     ///\internal Clock enabled, bus width 4bit, clock powersave enabled.
     static const unsigned int CLKCR_FLAGS=SDIO_CLKCR_CLKEN |
         SDIO_CLKCR_WIDBUS_0 | SDIO_CLKCR_PWRSAV;
+    #else //_BOARD_STM3220G_EVAL
+    //Quirk: in the stm3220g-eval the serial port shares some pin with the
+    //SDIO data bus, so use 1 bit mode, even if it's slower
+    ///\internal Clock enabled, bus width 1bit, clock powersave enabled.
+    static const unsigned int CLKCR_FLAGS=SDIO_CLKCR_CLKEN | SDIO_CLKCR_PWRSAV;
+    #endif //_BOARD_STM3220G_EVAL
 
     ///\internal Maximum number of calls to IRQreduceClockSpeed() allowed
-    static const unsigned char MAX_ALLOWED_REDUCTIONS=5;
+    static const unsigned char MAX_ALLOWED_REDUCTIONS=1;
 
     ///\internl value returned by getRetryCount() while *not* calibrating clock.
     static const unsigned char MAX_RETRY=3;
@@ -789,6 +557,7 @@ private:
     ///\internal Used to allow only one call to reduceClockSpeed()
     static unsigned char clockReductionAvailable;
 
+    ///\internal value returned by getRetryCount()
     static unsigned char retries;
 };
 
@@ -828,9 +597,10 @@ void ClockController::calibrateClockSpeed()
     retries=MAX_RETRY;
 }
 
-bool ClockController::IRQreduceClockSpeed()
+bool ClockController::reduceClockSpeed()
 {
-    //Ensure this function can be called only twice per calibration
+    DBGERR("clok speed reduction requested\n");
+    //Ensure this function can be called only a few times
     if(clockReductionAvailable==0) return false;
     clockReductionAvailable--;
 
@@ -859,15 +629,17 @@ unsigned char ClockController::retries=ClockController::MAX_RETRY;
  * Can be called independently of the card being selected.
  * \return true on success, false on failure
  */
-bool waitForCardReady()
+static bool waitForCardReady()
 {
-    for(int i=0;i<300;i++) //Timeout 1.5 second
+    const int timeout=1500; //Timeout 1.5 second
+    const int sleepTime=2;
+    for(int i=0;i<timeout/sleepTime;i++) 
     {
         CmdResult cr=Command::send(Command::CMD13,Command::getRca()<<16);
         if(cr.validateR1Response()==false) return false;
         //Bit 8 in R1 response means ready for data.
         if(cr.getResponse() & (1<<8)) return true;
-        Thread::sleep(5);
+        Thread::sleep(sleepTime);
     }
     DBGERR("Timeout waiting card ready\n");
     return false;
@@ -875,238 +647,9 @@ bool waitForCardReady()
 
 /**
  * \internal
- * Receive a data block. The end of the data block must be told to the SDIO
- * peripheral in SDIO->DLEN and must match the size parameter given to this
- * function.
- * \param buffer buffer where to store received data. Its size must be >=size
- * \param buffer size, which *must* be multiple of 8 words (32bytes)
- * Note that the size parameter must be expressed in word (4bytes), while
- * the value in SDIO->DLEN is expressed in bytes.
- * \return a DataResult object
- */
-static DataResult IRQreceiveDataBlock(unsigned int *buffer, unsigned int size)
-{
-    // A note on speed.
-    // Due to the auto calibration of SDIO clock speed being done with
-    // IRQreceiveDataBlock(), the speed of this function must be comparable
-    // with the speed of IRQsendDataBlock(), otherwise IRQsendDataBlock()
-    // will fail because of data underrun.
-    const unsigned int *bufend=buffer+size;
-    unsigned int status;
-    for(;;)
-    {
-        status=SDIO->STA;
-        if(status & (SDIO_STA_RXOVERR | SDIO_STA_DCRCFAIL |
-            SDIO_STA_DTIMEOUT | SDIO_STA_STBITERR | SDIO_STA_DBCKEND)) break;
-        if((status & SDIO_STA_RXFIFOHF) && (buffer!=bufend))
-        {
-            //Read 8 words from the fifo, loop entirely unrolled for speed
-            *buffer=SDIO->FIFO; buffer++;
-            *buffer=SDIO->FIFO; buffer++;
-            *buffer=SDIO->FIFO; buffer++;
-            *buffer=SDIO->FIFO; buffer++;
-            *buffer=SDIO->FIFO; buffer++;
-            *buffer=SDIO->FIFO; buffer++;
-            *buffer=SDIO->FIFO; buffer++;
-            *buffer=SDIO->FIFO; buffer++;
-        }
-    }
-    SDIO->ICR=0x7ff;//Clear flags
-    if(status & SDIO_STA_RXOVERR) return DataResult(DataResult::RXOverrun);
-    if(status & SDIO_STA_DCRCFAIL) return DataResult(DataResult::CRCFail);
-    if(status & SDIO_STA_DTIMEOUT) return DataResult(DataResult::Timeout);
-    if(status & SDIO_STA_STBITERR) return DataResult(DataResult::StartBitFail);
-    //Read eventual data left in the FIFO
-    for(;;)
-    {
-        if((SDIO->STA & SDIO_STA_RXDAVL)==0) break;
-        *buffer=SDIO->FIFO; buffer++;
-    }
-    return DataResult(DataResult::Ok);
-}
-
-/**
- * \internal
- * Send a data block. The end of the data block must be told to the SDIO
- * peripheral in SDIO->DLEN and must match the size parameter given to this
- * function.
- * \param buffer buffer where to store received data. Its size must be >=size
- * \param buffer size, which *must* be multiple of 8 words (32bytes).
- * Note that the size parameter must be expressed in word (4bytes), while
- * the value in SDIO->DLEN is expressed in bytes.
- * \return a DataResult object
- */
-static DataResult IRQsendDataBlock(const unsigned int *buffer, unsigned int size)
-{
-    // A note on speed.
-    // Due to the auto calibration of SDIO clock speed being done with
-    // IRQreceiveDataBlock(), the speed of this function must be comparable
-    // with the speed of IRQreceiveDataBlock(), otherwise this function
-    // will fail because of data underrun.
-    const unsigned int *bufend=buffer+size;
-    unsigned int status;
-    for(;;)
-    {
-        status=SDIO->STA;
-        if(status & (SDIO_STA_TXUNDERR | SDIO_STA_DCRCFAIL |
-            SDIO_STA_DTIMEOUT | SDIO_STA_STBITERR | SDIO_STA_DBCKEND)) break;
-        if((status & SDIO_STA_TXFIFOHE) && (buffer!=bufend))
-        {
-            //Write 8 words to the fifo, loop entirely unrolled for speed
-            SDIO->FIFO=*buffer; buffer++;
-            SDIO->FIFO=*buffer; buffer++;
-            SDIO->FIFO=*buffer; buffer++;
-            SDIO->FIFO=*buffer; buffer++;
-            SDIO->FIFO=*buffer; buffer++;
-            SDIO->FIFO=*buffer; buffer++;
-            SDIO->FIFO=*buffer; buffer++;
-            SDIO->FIFO=*buffer; buffer++;
-        }
-    }
-    SDIO->ICR=0x7ff;//Clear flags
-    if(status & SDIO_STA_TXUNDERR) return DataResult(DataResult::TXUnderrun);
-    if(status & SDIO_STA_DCRCFAIL) return DataResult(DataResult::CRCFail);
-    if(status & SDIO_STA_DTIMEOUT) return DataResult(DataResult::Timeout);
-    if(status & SDIO_STA_STBITERR) return DataResult(DataResult::StartBitFail);
-    return DataResult(DataResult::Ok);
-}
-
-/**
- * \internal
- * Read a single block of 512 bytes from an SD/MMC card.
- * Card must be selected prior to caling this function.
- * \param buffer, a buffer whose size is >=512 bytes
- * \param lba logical block address of the block to read.
- */
-static bool singleBlockRead(unsigned char *buffer, unsigned int lba)
-{
-    if(cardType!=SDHC) lba*=512; // Convert to byte address if not SDHC
-
-    if(waitForCardReady()==false) return false;
-
-    // Single block read
-    unsigned int* newBuf=BufferConverter::toWordAlignedWithoutCopy(buffer);
-    CmdResult cr;
-    DataResult dr;
-    bool failed=true;
-    for(;;)
-    {
-        // Since we read with polling, a context switch or interrupt here
-        // would cause a fifo overrun, so we disable interrupts.
-        FastInterruptDisableLock dLock;
-
-        SDIO->DLEN=512;
-        //Block size 512 bytes, block data xfer, from card to controller
-        SDIO->DCTRL=(9<<4) | SDIO_DCTRL_DTDIR | SDIO_DCTRL_DTEN;
-
-        cr=Command::IRQsend(Command::CMD17,lba);
-        if(cr.IRQvalidateR1Response())
-        {
-            dr=IRQreceiveDataBlock(newBuf,512/sizeof(unsigned int));
-            SDIO->DCTRL=0; //Disable data path state machine
-            
-            //If failed because too slow check if it is possible to reduce speed
-            if(dr.getError()==DataResult::RXOverrun)
-            {
-                if(ClockController::IRQreduceClockSpeed())
-                {
-                    //Disabling interrupts for too long is bad
-                    FastInterruptEnableLock eLock(dLock);
-                    //After an error during data xfer the card might be a little
-                    //confused. So send STOP_TRANSMISSION command to reassure it
-                    cr=Command::send(Command::CMD12,0);
-                    if(cr.validateR1Response()) continue;
-                }
-            }
-
-            if(dr.getError()==DataResult::Ok) failed=false;
-        }
-        break;
-    }
-    if(failed)
-    {
-        cr.validateR1Response();
-        dr.validateError();
-        //After an error during data xfer the card might be a little
-        //confused. So send STOP_TRANSMISSION command to reassure it
-        cr=Command::send(Command::CMD12,0);
-        cr.validateR1Response();
-        return false;
-    }
-    BufferConverter::toOriginalBuffer();
-    return true;
-}
-
-/**
- * \internal
- * Write a single block of 512 bytes to an SD/MMC card
- * Card must be selected prior to caling this function.
- * \param buffer, a buffer whose size is >=512 bytes
- * \param lba logical block address of the block to write.
- */
-static bool singleBlockWrite(const unsigned char *buffer, unsigned int lba)
-{
-    if(cardType!=SDHC) lba*=512; // Convert to byte address if not SDHC
-
-    if(waitForCardReady()==false) return false;
-
-    // Single block write
-    const unsigned int* newBuf=BufferConverter::toWordAligned(buffer);
-    bool failed=true;
-    CmdResult cr;
-    DataResult dr;
-    for(;;)
-    {
-        // Since we write with polling, a context switch or interrupt here
-        // would cause a fifo overrun, so we disable interrupts.
-        FastInterruptDisableLock dLock;
-
-        cr=Command::IRQsend(Command::CMD24,lba);
-        if(cr.IRQvalidateR1Response())
-        {
-            SDIO->DLEN=512;
-            //Block size 512 bytes, block data xfer, from controller to card
-            SDIO->DCTRL=(9<<4) | SDIO_DCTRL_DTEN;
-
-            dr=IRQsendDataBlock(newBuf,512/sizeof(unsigned int));
-            SDIO->DCTRL=0; //Disable data path state machine
-
-            //If failed because too slow check if it is possible to reduce speed
-            if(dr.getError()==DataResult::TXUnderrun)
-            {
-                if(ClockController::IRQreduceClockSpeed())
-                {
-                    //Disabling interrupts for too long is bad
-                    FastInterruptEnableLock eLock(dLock);
-                    //After an error during data xfer the card might be a little
-                    //confused. So send STOP_TRANSMISSION command to reassure it
-                    cr=Command::send(Command::CMD12,0);
-                    if(cr.validateR1Response()) continue;
-                }
-            }
-
-            if(dr.getError()==DataResult::Ok) failed=false;
-        }
-        break;
-    }
-    if(failed)
-    {
-        cr.validateR1Response();
-        dr.validateError();
-        //After an error during data xfer the card might be a little
-        //confused. So send STOP_TRANSMISSION command to reassure it
-        cr=Command::send(Command::CMD12,0);
-        cr.validateR1Response();
-        return false;
-    }
-    return true;
-}
-
-/**
- * \internal
  * Prints the errors that may occur during a DMA transfer
  */
-void displayBlockTransferError()
+static void displayBlockTransferError()
 {
     DBGERR("Block transfer error\n");
     if(dmaFlags & DMA_LISR_TEIF3)     DBGERR("* DMA Transfer error\n");
@@ -1126,7 +669,7 @@ void displayBlockTransferError()
  * memory transfer size based on buffer alignment
  * \return the best DMA transfer size for a given buffer alignment 
  */
-unsigned int dmaTransferCommonSetup(const unsigned char *buffer)
+static unsigned int dmaTransferCommonSetup(const unsigned char *buffer)
 {
     //Clear both SDIO and DMA interrupt flags
     SDIO->ICR=0x7ff;
@@ -1158,9 +701,14 @@ unsigned int dmaTransferCommonSetup(const unsigned char *buffer)
  * Due to hardware limitations must be between 0 and 32767.
  * \param lba logical block address of the first block to read.
  */
-static bool multipleBlockRead(unsigned char *buffer, int nblk, unsigned int lba)
+static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
+    unsigned int lba)
 {
-    if(nblk<0 || nblk>32767) return false;
+    if(nblk>32767)
+    {
+        DBGERR("nblk too large\n");
+        return false;
+    }
     if(waitForCardReady()==false) return false;
     
     if(cardType!=SDHC) lba*=512; // Convert to byte address if not SDHC
@@ -1224,7 +772,7 @@ static bool multipleBlockRead(unsigned char *buffer, int nblk, unsigned int lba)
     if(transferError || cr.validateR1Response()==false)
     {
         displayBlockTransferError();
-//        ClockController::IRQreduceClockSpeed();
+        ClockController::reduceClockSpeed();
         return false;
     }
     return true;
@@ -1239,10 +787,14 @@ static bool multipleBlockRead(unsigned char *buffer, int nblk, unsigned int lba)
  * Due to hardware limitations must be between 0 and 32767.
  * \param lba logical block address of the first block to write.
  */
-static bool multipleBlockWrite(const unsigned char *buffer, int nblk,
+static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
     unsigned int lba)
 {
-    if(nblk<0 || nblk>32767) return false;
+    if(nblk>32767)
+    {
+        DBGERR("nblk too large\n");
+        return false;
+    }
     if(waitForCardReady()==false) return false;
     
     if(cardType!=SDHC) lba*=512; // Convert to byte address if not SDHC
@@ -1261,8 +813,10 @@ static bool multipleBlockWrite(const unsigned char *buffer, int nblk,
 	DMA2_Stream3->PAR=reinterpret_cast<unsigned int>(&SDIO->FIFO);
 	DMA2_Stream3->M0AR=reinterpret_cast<unsigned int>(buffer);
 	//Note: DMA2_Stream3->NDTR is don't care in peripheral flow control mode
-    DMA2_Stream3->FCR=/*DMA_SxFCR_FEIE    |*/ //Interrupt on fifo error
-                      DMA_SxFCR_DMDIS   | //Fifo enabled
+    //Quirk: not enabling DMA_SxFCR_FEIE because the SDIO seems to generate
+    //a spurious fifo error. The code was tested and the transfer completes
+    //successfully even in the presence of this fifo error
+    DMA2_Stream3->FCR=DMA_SxFCR_DMDIS   | //Fifo enabled
                       DMA_SxFCR_FTH_1   | //Take action if fifo full
                       DMA_SxFCR_FTH_0;
 	DMA2_Stream3->CR=DMA_SxCR_CHSEL_2   | //Channel 4 (SDIO)
@@ -1307,7 +861,7 @@ static bool multipleBlockWrite(const unsigned char *buffer, int nblk,
     if(transferError || cr.validateR1Response()==false)
     {
         displayBlockTransferError();
-//        ClockController::IRQreduceClockSpeed();
+        ClockController::reduceClockSpeed();
         return false;
     }
     return true;
@@ -1356,47 +910,6 @@ private:
     bool success;
 };
 
-void fixmeTestFs()
-{
-    puts("----------");
-    const unsigned int sec=3250585;
-    unsigned char *b0=new unsigned char[4096];
-    unsigned char *b1=new unsigned char[4096];
-    unsigned char *b2=new unsigned char[4096];
-    memset(b1,'a',4096);
-    memset(b2,'b',4096);
-    int al=2;
-    int nb=7;
-    srand(getTick());
-    for(int i=0;i<512*nb;i++) b0[i+al]=rand() & 0xff;
-    
-    {
-        CardSelector selector;
-        if(selector.succeded()==false) puts("card select failed!");
-        if(multipleBlockWrite(b0+al,nb,sec)==false) puts("Fsbw failed!");
-        for(int i=0;i<nb;i++)
-            if(singleBlockRead(b1+512*i+al,sec+i)==false) puts("sbr failed!");
-        if(multipleBlockRead(b2+al,nb,sec)==false) puts("Fsbr failed!");
-        if(multipleBlockRead(b2+al,nb,sec)==false) puts("Fsbr failed!");
-    }
-    if(memcmp(b0+al,b1+al,512*nb)) puts("write wailed (buffers don't match)!");
-    if(memcmp(b1+al,b2+al,512*nb)) puts("buffer do not match!");
-    puts("Dump?");
-    char ans[16];
-    fgets(ans,16,stdin);
-    fgets(ans,16,stdin);
-    if(ans[0]=='y')
-    {
-        puts("------ b1 ------");
-        memDump((char*)b1+al,512*nb);
-        puts("------ b2 ------");
-        memDump((char*)b2+al,512*nb);
-    }
-    delete[] b0;
-    delete[] b1;
-    delete[] b2;
-}
-
 //
 // Initialization helper functions
 //
@@ -1416,12 +929,16 @@ static void initSDIOPeripheral()
         RCC->APB2ENR |= RCC_APB2ENR_SDIOEN;
         sdD0::mode(Mode::ALTERNATE);
         sdD0::alternateFunction(12);
+        #ifndef _BOARD_STM3220G_EVAL
+        //Quirk: in the stm3220g-eval the serial port shares some pin with the
+        //SDIO data bus, so use 1 bit mode, even if it's slower
         sdD1::mode(Mode::ALTERNATE);
         sdD1::alternateFunction(12);
         sdD2::mode(Mode::ALTERNATE);
         sdD2::alternateFunction(12);
         sdD3::mode(Mode::ALTERNATE);
         sdD3::alternateFunction(12);
+        #endif //_BOARD_STM3220G_EVAL
         sdCLK::mode(Mode::ALTERNATE);
         sdCLK::alternateFunction(12);
         sdCMD::mode(Mode::ALTERNATE);
@@ -1436,8 +953,8 @@ static void initSDIOPeripheral()
     SDIO->CMD=0;
     SDIO->DCTRL=0;
     SDIO->ICR=0xc007ff;
-    SDIO->POWER=SDIO_POWER_PWRCTRL_1 | SDIO_POWER_PWRCTRL_0; //Power on state
     SDIO->DTIMER=1048576;
+    SDIO->POWER=SDIO_POWER_PWRCTRL_1 | SDIO_POWER_PWRCTRL_0; //Power on state
     //This delay is particularly important: when setting the POWER register a
     //glitch on the CMD pin happens. This glitch has a fast fall time and a slow
     //rise time resembling an RC charge with a ~6us rise time. If the clock is
@@ -1600,8 +1117,12 @@ void Disk::init()
             return;
         }
 
+        #ifndef _BOARD_STM3220G_EVAL
+        //Quirk: in the stm3220g-eval the serial port shares some pin with the
+        //SDIO data bus, so use 1 bit mode, even if it's slower
         r=Command::send(Command::ACMD6,2);   //Set 4 bit bus width
         if(r.validateR1Response()==false) return;
+        #endif //_BOARD_STM3220G_EVAL
 
         if(cardType!=SDHC)
         {
@@ -1622,29 +1143,11 @@ bool Disk::read(unsigned char *buffer, unsigned int lba,
         unsigned char nSectors)
 {
     DBG("Disk::read(): nSectors=%d\n",nSectors);
-    if(!BufferConverter::isWordAligned(buffer)) DBG("Buffer misaligned\n");
-
     for(int i=0;i<ClockController::getRetryCount();i++)
     {
-        //Select card
         CardSelector selector;
         if(selector.succeded()==false) continue;
-
-        if(nSectors==1)
-        {
-            if(singleBlockRead(buffer,lba)==false) continue;
-        } else {
-            // Multiple block read
-            // Currently implemented with N calls to single block read
-            unsigned char *tempBuffer=buffer;
-            unsigned int tempLba=lba;
-            for(unsigned int i=0;i<nSectors;i++)
-            {
-                if(singleBlockRead(tempBuffer,tempLba)==false) continue;
-                tempBuffer+=512;
-                tempLba++;
-            }
-        }
+        if(multipleBlockRead(buffer,nSectors,lba)==false) continue;
         if(i>0) DBGERR("Read: required %d retries\n",i);
         return true;
     }
@@ -1655,29 +1158,11 @@ bool Disk::write(const unsigned char *buffer, unsigned int lba,
         unsigned char nSectors)
 {
     DBG("Disk::write(): nSectors=%d\n",nSectors);
-    if(!BufferConverter::isWordAligned(buffer)) DBG("Buffer misaligned\n");
-
     for(int i=0;i<ClockController::getRetryCount();i++)
     {
-        //Select card
         CardSelector selector;
         if(selector.succeded()==false) continue;
-
-        if(nSectors==1)
-        {
-            if(singleBlockWrite(buffer,lba)==false) continue;
-        } else {
-            // Multiple block write
-            // Currently implemented with N calls to single block write
-            const unsigned char *tempBuffer=buffer;
-            unsigned int tempLba=lba;
-            for(unsigned int i=0;i<nSectors;i++)
-            {
-                if(singleBlockWrite(tempBuffer,tempLba)==false) continue;
-                tempBuffer+=512;
-                tempLba++;
-            }
-        }
+        if(multipleBlockWrite(buffer,nSectors,lba)==false) continue;
         if(i>0) DBGERR("Write: required %d retries\n",i);
         return true;
     }
