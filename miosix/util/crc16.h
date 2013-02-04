@@ -10,7 +10,7 @@ namespace miosix {
  * \param length message length
  * \return the crc16
  */
-unsigned short crc16(const unsigned char *message, unsigned int length);
+unsigned short crc16(const void *message, unsigned int length);
 
 } //namespace miosix
 

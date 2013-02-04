@@ -50,6 +50,7 @@
 #include "board_settings.h"
 #include "interfaces/endianness.h"
 #include "miosix/e20/e20.h"
+#include "util/crc16.h"
 
 using namespace std::tr1;
 using namespace miosix;
@@ -95,6 +96,7 @@ static void test_23();
 static void fs_test_1();
 static void fs_test_2();
 static void fs_test_3();
+static void fs_test_last();
 #endif //WITH_FILESYSTEM
 //Benchmark functions
 static void benchmark_1();
@@ -164,6 +166,7 @@ int main()
                 fs_test_1();
                 fs_test_2();
                 fs_test_3();
+                fs_test_last();
                 #else //WITH_FILESYSTEM
                 iprintf("Error, filesystem support is disabled\n");
                 #endif //WITH_FILESYSTEM
@@ -2792,6 +2795,7 @@ static void *t21_t1(void*)
         volatile float value=t21_f1();
         if(fabsf(value-sqrt(3.0f))>0.00001f) fail("thread1");
     }
+    return 0;
 }
 
 static void test_21()
@@ -3184,18 +3188,92 @@ static void fs_test_1()
 //
 /*
 tests:
+is_mounted()
+mount_filesystem()
+umount_filesystem()
+*/
+
+static void fs_test_2()
+{
+    test_name("Filesystem mount/umount");
+    //When starting, filesystem should be mounted
+    Filesystem& fs=Filesystem::instance();
+    if(fs.isMounted()==false) fail("is_mounted() (1)");
+    fs.umount();
+    if(fs.isMounted()==true) fail("umount_filesystem() (1)");
+    if(fs.mount()!=0) fail("mount_filesystem() (1)");
+    if(fs.isMounted()==false) fail("is_mounted() (2)");
+    //Filesystem already mounted, try mounting again, should report error
+    if(fs.mount()!=3) fail("mount_filesystem() (2)");
+    pass();
+}
+
+//
+// Filesystem test 3
+//
+/*
+tests:
+correctness of write/read on large files
+*/
+
+static void fs_test_3()
+{
+    test_name("Large file check");
+    iprintf("Please wait (long test)\n");
+    
+    const char name[]="/testdir/file_5.dat";
+    const unsigned int size=1024;
+    const unsigned int numBlocks=2048;
+    
+    FILE *f;
+    if((f=fopen(name,"w"))==NULL) fail("open 1");
+    setbuf(f,NULL);
+    char *buf=new char[size];
+    unsigned short checksum=0;
+    for(unsigned int i=0;i<numBlocks;i++)
+    {
+        for(unsigned int j=0;j<size;j++) buf[j]=rand() & 0xff;
+        checksum^=crc16(buf,size);
+        if(fwrite(buf,1,size,f)!=size) fail("write");
+    }
+    if(fclose(f)!=0) fail("close 1");
+
+    if((f=fopen(name,"r"))==NULL) fail("open 2");
+    setbuf(f,NULL);
+    unsigned short outChecksum=0;
+    for(unsigned int i=0;i<numBlocks;i++)
+    {
+        memset(buf,0,size);
+        if(fread(buf,1,size,f)!=size) fail("read");
+        outChecksum^=crc16(buf,size);
+    }
+    delete[] buf;
+    
+    if(checksum!=outChecksum) fail("checksum");
+    pass();
+}
+
+//
+// Filesystem test last
+//
+/*
+tests:
 Directory::open()
 Directtory::next()
 Directory::exists()
+
+Note: this test has to be the last one as it checks for all files in the testdir
+directory. Also, if tests are added that create new files, this test needs to
+be upgraded.
 */
 
-struct fs_2_file
+struct fs_last_file
 {
     char filename[Directory::FILENAME_LEN];
     bool found;
 };
 
-static fs_2_file fs_2_names[4];
+static fs_last_file fs_last_names[5];
 
 static void ls_check_valid(Directory& d, bool last)
 {
@@ -3209,15 +3287,15 @@ static void ls_check_valid(Directory& d, bool last)
         if(d.next(line,len,a)==false) fail("next() (1)");
         if(len==0) fail("next() (2)");
         int i;
-        for(i=0;i<4;i++)
+        for(i=0;i<5;i++)
         {
-            if(!strcmp(line,fs_2_names[i].filename))
+            if(!strcmp(line,fs_last_names[i].filename))
             {
-                if(fs_2_names[i].found==true)
+                if(fs_last_names[i].found==true)
                 {
                     fail("next() (2)");
                 } else {
-                    fs_2_names[i].found=true;
+                    fs_last_names[i].found=true;
                     return;
                 }
             }
@@ -3226,7 +3304,7 @@ static void ls_check_valid(Directory& d, bool last)
     }
 }
 
-static void fs_test_2()
+static void fs_test_last()
 {
     test_name("Directory class");
     //Testing exists()
@@ -3236,45 +3314,23 @@ static void fs_test_2()
     Directory d;
     //Testing Directory::open()
     if(d.open("/testdir")!=0) fail("open() (1)");
-    strcpy(fs_2_names[0].filename,"file_1.txt");
-    fs_2_names[0].found=false;
-    strcpy(fs_2_names[1].filename,"file_2.txt");
-    fs_2_names[1].found=false;
-    strcpy(fs_2_names[2].filename,"file_3.txt");
-    fs_2_names[2].found=false;
-    strcpy(fs_2_names[3].filename,"file_4.txt");
-    fs_2_names[3].found=false;
+    strcpy(fs_last_names[0].filename,"file_1.txt");
+    fs_last_names[0].found=false;
+    strcpy(fs_last_names[1].filename,"file_2.txt");
+    fs_last_names[1].found=false;
+    strcpy(fs_last_names[2].filename,"file_3.txt");
+    fs_last_names[2].found=false;
+    strcpy(fs_last_names[3].filename,"file_4.txt");
+    fs_last_names[3].found=false;
+    strcpy(fs_last_names[4].filename,"file_5.dat");
+    fs_last_names[4].found=false;
     //Testing Directory::next()
     ls_check_valid(d,false);
     ls_check_valid(d,false);
     ls_check_valid(d,false);
     ls_check_valid(d,false);
+    ls_check_valid(d,false);
     ls_check_valid(d,true);
-    pass();
-}
-
-//
-// Filesystem test 3
-//
-/*
-tests:
-is_mounted()
-mount_filesystem()
-umount_filesystem()
-*/
-
-static void fs_test_3()
-{
-    test_name("Filesystem mount/umount");
-    //When starting, filesystem should be mounted
-    Filesystem& fs=Filesystem::instance();
-    if(fs.isMounted()==false) fail("is_mounted() (1)");
-    fs.umount();
-    if(fs.isMounted()==true) fail("umount_filesystem() (1)");
-    if(fs.mount()!=0) fail("mount_filesystem() (1)");
-    if(fs.isMounted()==false) fail("is_mounted() (2)");
-    //Filesystem already mounted, try mounting again, should report error
-    if(fs.mount()!=3) fail("mount_filesystem() (2)");
     pass();
 }
 #endif //WITH_FILESYSTEM
@@ -3444,7 +3500,7 @@ static void benchmark_3()
 {
     //Write benchmark
     const char FILENAME[]="/speed.txt";
-    const int BUFSIZE=1024;
+    const unsigned int BUFSIZE=1024;
     char *buf=new char[BUFSIZE];
     memset ((void*)buf,'0',BUFSIZE);
     FILE *f;
@@ -3461,7 +3517,11 @@ static void benchmark_3()
     for(i=0;i<1024;i++)
     {
         part.start();
-        fwrite(buf,BUFSIZE,1,f);
+        if(fwrite(buf,1,BUFSIZE,f)!=BUFSIZE)
+        {
+            iprintf("Write error\n");
+            break;
+        }
         part.stop();
         if(part.interval()>max) max=part.interval();
         part.clear();
@@ -3486,15 +3546,19 @@ static void benchmark_3()
     total.start();
     for(i=0;i<1024;i++)
     {
+        memset(buf,0,BUFSIZE);
         part.start();
-        fread(buf,BUFSIZE,1,f);
+        if(fread(buf,1,BUFSIZE,f)!=BUFSIZE)
+        {
+            iprintf("Read error 1\n");
+            break;
+        }
         part.stop();
         if(part.interval()>max) max=part.interval();
         part.clear();
-        int j;
-        for(j=0;j<BUFSIZE;j++) if(buf[j]!='0')
+        for(unsigned j=0;j<BUFSIZE;j++) if(buf[j]!='0')
         {
-            iprintf("Read error\n");
+            iprintf("Read error 2\n");
             goto quit;
         }
     }

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
+ *   Copyright (C) 2010, 2011, 2012, 2013 by Terraneo Federico             *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -552,7 +552,7 @@ private:
     static const unsigned char MAX_ALLOWED_REDUCTIONS=1;
 
     ///\internl value returned by getRetryCount() while *not* calibrating clock.
-    static const unsigned char MAX_RETRY=3;
+    static const unsigned char MAX_RETRY=10;
 
     ///\internal Used to allow only one call to reduceClockSpeed()
     static unsigned char clockReductionAvailable;
@@ -599,7 +599,7 @@ void ClockController::calibrateClockSpeed()
 
 bool ClockController::reduceClockSpeed()
 {
-    DBGERR("clok speed reduction requested\n");
+    DBGERR("clock speed reduction requested\n");
     //Ensure this function can be called only a few times
     if(clockReductionAvailable==0) return false;
     clockReductionAvailable--;
@@ -688,7 +688,7 @@ static unsigned int dmaTransferCommonSetup(const unsigned char *buffer)
     {
         case 0:  return DMA_SxCR_MSIZE_1; //DMA reads 32bit at a time
         case 2:  return DMA_SxCR_MSIZE_0; //DMA reads 16bit at a time
-        default: return 0; break;         //DMA reads  8bit at a time
+        default: return 0;                //DMA reads  8bit at a time
     }
 }
 
@@ -698,16 +698,18 @@ static unsigned int dmaTransferCommonSetup(const unsigned char *buffer)
  * Card must be selected prior to calling this function.
  * \param buffer, a buffer whose size is 512*nblk bytes
  * \param nblk number of blocks to read.
- * Due to hardware limitations must be between 0 and 32767.
  * \param lba logical block address of the first block to read.
  */
 static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
     unsigned int lba)
 {
-    if(nblk>32767)
+    if(nblk==0) return true;
+    while(nblk>32767)
     {
-        DBGERR("nblk too large\n");
-        return false;
+        if(multipleBlockRead(buffer,32767,lba)==false) return false;
+        buffer+=32767*512;
+        nblk-=32767;
+        lba+=32767;
     }
     if(waitForCardReady()==false) return false;
     
@@ -748,7 +750,7 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
         DBGERR("Premature wakeup\n");
         transferError=true;
     }
-    CmdResult cr=Command::send(Command::CMD18,lba);
+    CmdResult cr=Command::send(nblk>1 ? Command::CMD18 : Command::CMD17,lba);
     if(cr.validateR1Response())
     {
         //Block size 512 bytes, block data xfer, from card to controller
@@ -768,7 +770,9 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
     SDIO->DCTRL=0; //Disable data path state machine
     SDIO->MASK=0;
 
-    cr=Command::send(Command::CMD12,0);
+    // CMD12 is sent to end CMD18 (multiple block read), or to abort an
+    // unfinished read in case of errors
+    if(nblk>1 || transferError) cr=Command::send(Command::CMD12,0);
     if(transferError || cr.validateR1Response()==false)
     {
         displayBlockTransferError();
@@ -784,16 +788,18 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
  * Card must be selected prior to calling this function.
  * \param buffer, a buffer whose size is 512*nblk bytes
  * \param nblk number of blocks to write.
- * Due to hardware limitations must be between 0 and 32767.
  * \param lba logical block address of the first block to write.
  */
 static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
     unsigned int lba)
 {
-    if(nblk>32767)
+    if(nblk==0) return true;
+    while(nblk>32767)
     {
-        DBGERR("nblk too large\n");
-        return false;
+        if(multipleBlockWrite(buffer,32767,lba)==false) return false;
+        buffer+=32767*512;
+        nblk-=32767;
+        lba+=32767;
     }
     if(waitForCardReady()==false) return false;
     
@@ -837,7 +843,7 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
         DBGERR("Premature wakeup\n");
         transferError=true;
     }
-    CmdResult cr=Command::send(Command::CMD25,lba);
+    CmdResult cr=Command::send(nblk>1 ? Command::CMD25 : Command::CMD24,lba);
     if(cr.validateR1Response())
     {
         //Block size 512 bytes, block data xfer, from card to controller
@@ -857,7 +863,9 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
     SDIO->DCTRL=0; //Disable data path state machine
     SDIO->MASK=0;
 
-    cr=Command::send(Command::CMD12,0);
+    // CMD12 is sent to end CMD25 (multiple block write), or to abort an
+    // unfinished write in case of errors
+    if(nblk>1 || transferError) cr=Command::send(Command::CMD12,0);
     if(transferError || cr.validateR1Response()==false)
     {
         displayBlockTransferError();
@@ -944,7 +952,9 @@ static void initSDIOPeripheral()
         sdCMD::mode(Mode::ALTERNATE);
         sdCMD::alternateFunction(12);
     }
+    NVIC_SetPriority(DMA2_Stream3_IRQn,15);//Low priority for DMA
     NVIC_EnableIRQ(DMA2_Stream3_IRQn);
+    NVIC_SetPriority(SDIO_IRQn,15);//Low priority for SDIO
     NVIC_EnableIRQ(SDIO_IRQn);
     
     SDIO->POWER=0; //Power off state
@@ -1069,6 +1079,7 @@ bool Disk::isAvailable()
 
 void Disk::init()
 {
+    diskInitialized=false;
     initSDIOPeripheral();
 
     // This is more important than it seems, since CMD55 requires the card's RCA

@@ -257,6 +257,7 @@
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
                 <in>delays.cpp</in>
+                <in>disk.cpp</in>
                 <in>endianness_impl.h</in>
                 <in>gpio_impl.cpp</in>
                 <in>gpio_impl.h</in>

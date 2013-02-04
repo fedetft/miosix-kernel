@@ -1,5 +1,13 @@
 Changelog for Miosix np embedded OS
 
+- Added stm32f4 sdio driver, tested on stm32f4discovery.
+- Improved the SDIO drivers for both stm32f1 and stm32f2. It now uses
+  DMA transfers whenever possible. In the stm32f2 it is always possible,
+  while in the stm32f1 it is done if the FSMC is not used for data storage.
+- Added a test in the testsuite to check writing and reading large files
+  from disk, with checksum of the written data.
+- Modified the signature of crc16 to accept a void* instead of a char*,
+  to avoid casting issues.
 - Actually, monitor_soft_reset_halt seems to work in JTAG mode but not with SWD
 - Changed references to "monitor soft_reset_halt" into "monitor reset halt"
   as openocd changed in version 0.6.1

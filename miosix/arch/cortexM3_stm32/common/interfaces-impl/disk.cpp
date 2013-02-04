@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
+ *   Copyright (C) 2010, 2011, 2012, 2013 by Terraneo Federico             *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -30,8 +30,28 @@
 #include "interfaces/arch_registers.h"
 #include "interfaces/delays.h"
 #include "kernel/kernel.h"
+#include "kernel/scheduler/scheduler.h"
 #include <cstdio>
 #include <cstring>
+
+/*
+ * This driver is quite a bit complicated, due to a silicon errata in the
+ * STM32F1 microcontrollers, that prevents concurrent access to the FSMC
+ * (i.e., the external memory controller) by both the CPU and DMA.
+ * Therefore, if __ENABLE_XRAM is defined, the SDIO peripheral is used in
+ * polled mode, otherwise in DMA mode. The use in polled mode is further
+ * complicated by the fact that the SDIO peripheral does not halt the clock
+ * to the SD card if its internal fifo is full. Therefore, when using the
+ * SDIO in polled mode the only solution is to disable interrupts during
+ * the data transfer. To optimize reading and writing speed this code
+ * automatically chooses the best transfer speed using a binary search during
+ * card initialization. Also, other sources of mess are the requirement for
+ * word alignment of pointers when doing DMA transfers or writing to the SDIO
+ * peripheral. Because of that, tryng to fwrite() large bloks of data is faster
+ * if they are word aligned. An easy way to do so is to allocate them on the
+ * heap (and not doing any pointer arithmetic on the value returned by
+ * malloc/new)
+ */
 
 //Note: enabling debugging might cause deadlock when using sleep() or reboot()
 //The bug won't be fixed because debugging is only useful for driver development
@@ -42,7 +62,76 @@
 //#define DBGERR iprintf
 #define DBGERR(x,...) ;
 
+#ifndef __ENABLE_XRAM
+/**
+ * \internal
+ * DMA2 Channel4 interrupt handler
+ */
+void __attribute__((naked)) DMA2_Channel4_5_IRQHandler()
+{
+    saveContext();
+    asm volatile("bl _ZN6miosix19DMA2channel4irqImplEv");
+    restoreContext();
+}
+
+/**
+ * \internal
+ * SDIO interrupt handler
+ */
+void __attribute__((naked)) SDIO_IRQHandler()
+{
+    saveContext();
+    asm volatile("bl _ZN6miosix11SDIOirqImplEv");
+    restoreContext();
+}
+#endif //__ENABLE_XRAM
+
 namespace miosix {
+
+#ifndef __ENABLE_XRAM
+static volatile bool transferError; ///< \internal DMA or SDIO transfer error
+static Thread *waiting;             ///< \internal Thread waiting for transfer
+static unsigned int dmaFlags;       ///< \internal DMA status flags
+static unsigned int sdioFlags;      ///< \internal SDIO status flags
+
+/**
+ * \internal
+ * DMA2 Channel4 interrupt handler actual implementation
+ */
+void __attribute__((used)) DMA2channel4irqImpl()
+{
+    dmaFlags=DMA2->ISR;
+    if(dmaFlags & DMA_ISR_TEIF4) transferError=true;
+    
+    DMA2->IFCR=DMA_IFCR_CGIF4;
+    
+    if(!waiting) return;
+    waiting->IRQwakeup();
+	if(waiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+		Scheduler::IRQfindNextThread();
+    waiting=0;
+}
+
+/**
+ * \internal
+ * DMA2 Channel4 interrupt handler actual implementation
+ */
+void __attribute__((used)) SDIOirqImpl()
+{
+    sdioFlags=SDIO->STA;
+    if(sdioFlags & (SDIO_STA_STBITERR | SDIO_STA_RXOVERR  |
+                    SDIO_STA_TXUNDERR | SDIO_STA_DTIMEOUT | SDIO_STA_DCRCFAIL))
+        transferError=true;
+    
+    SDIO->ICR=0x7ff;//Clear flags
+    
+    if(!waiting) return;
+    waiting->IRQwakeup();
+	if(waiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+		Scheduler::IRQfindNextThread();
+    waiting=0;
+}
+#endif //__ENABLE_XRAM
 
 /*
  * Operating voltage of device. It is sent to the SD card to check if it can
@@ -672,7 +761,7 @@ public:
      * powersave.
      */
     static void calibrateClockSpeed();
-
+    
     /**
      * \internal
      * Since clock speed is set dynamically by bynary search at runtime, a
@@ -684,8 +773,14 @@ public:
      * clock issues, this function can be called only MAX_ALLOWED_REDUCTIONS
      * times after clock calibration, subsequent calls will fail. This will
      * avoid other issues causing an ever decreasing clock speed.
-     * Can be called with interrupts disabled.
      * \return true on success, false on failure
+     */
+    static bool reduceClockSpeed() { return IRQreduceClockSpeed(); }
+
+    /**
+     * \internal
+     * Same as reduceClockSpeed(), can be called with interrupts disabled.
+     * \return true on success, false on failure 
      */
     static bool IRQreduceClockSpeed();
 
@@ -721,13 +816,17 @@ private:
 
     ///\internal Clock enabled, bus width 4bit, clock powersave enabled.
     static const unsigned int CLKCR_FLAGS=SDIO_CLKCR_CLKEN |
-        SDIO_CLKCR_WIDBUS_0 | SDIO_CLKCR_PWRSAV | SDIO_CLKCR_HWFC_EN;
-
+        SDIO_CLKCR_WIDBUS_0 | SDIO_CLKCR_PWRSAV;
+    
     ///\internal Maximum number of calls to IRQreduceClockSpeed() allowed
-    static const unsigned char MAX_ALLOWED_REDUCTIONS=5;
+    ///When using polled mode this is a critical parameter, if SDIO driver
+    ///starts to fail, it might be a good idea to increase this
+    static const unsigned char MAX_ALLOWED_REDUCTIONS=7;
 
     ///\internl value returned by getRetryCount() while *not* calibrating clock.
-    static const unsigned char MAX_RETRY=3;
+    ///When using polled mode this is a critical parameter, if SDIO driver
+    ///starts to fail, it might be a good idea to increase this
+    static const unsigned char MAX_RETRY=10;
 
     ///\internal Used to allow only one call to reduceClockSpeed()
     static unsigned char clockReductionAvailable;
@@ -784,7 +883,7 @@ bool ClockController::IRQreduceClockSpeed()
     //frequency changes a lot, otherwise increase by 2.
     if(currentClkcr<10) currentClkcr++;
     else currentClkcr+=2;
-
+    
     SDIO->CLKCR=currentClkcr | CLKCR_FLAGS;
     return true;
 }
@@ -795,6 +894,30 @@ unsigned char ClockController::retries=ClockController::MAX_RETRY;
 //
 // Data send/receive functions
 //
+
+/**
+ * \internal
+ * Wait until the card is ready for data transfer.
+ * Can be called independently of the card being selected.
+ * \return true on success, false on failure
+ */
+static bool waitForCardReady()
+{
+    const int timeout=1500; //Timeout 1.5 second
+    const int sleepTime=2;
+    for(int i=0;i<timeout/sleepTime;i++) 
+    {
+        CmdResult cr=Command::send(Command::CMD13,Command::getRca()<<16);
+        if(cr.validateR1Response()==false) return false;
+        //Bit 8 in R1 response means ready for data.
+        if(cr.getResponse() & (1<<8)) return true;
+        Thread::sleep(sleepTime);
+    }
+    DBGERR("Timeout waiting card ready\n");
+    return false;
+}
+
+#ifdef __ENABLE_XRAM
 
 /**
  * \internal
@@ -896,39 +1019,17 @@ static DataResult IRQsendDataBlock(const unsigned int *buffer, unsigned int size
 
 /**
  * \internal
- * Wait until the card is ready for data transfer.
- * Can be called independently of the card being selected.
- * \return true on success, false on failure
- */
-bool waitForCardReady()
-{
-    for(int i=0;i<300;i++) //Timeout 1.5 second
-    {
-        CmdResult cr=Command::send(Command::CMD13,Command::getRca()<<16);
-        if(cr.validateR1Response()==false) return false;
-        //Bit 8 in R1 response means ready for data.
-        if(cr.getResponse() & (1<<8)) return true;
-        Thread::sleep(5);
-    }
-    DBGERR("Timeout waiting card ready\n");
-    return false;
-}
-
-/**
- * \internal
  * Read a single block of 512 bytes from an SD/MMC card.
  * Card must be selected prior to caling this function.
- * \param buffer, a buffer whose size is >=512 bytes
+ * \param buffer, a buffer whose size is >=512 bytes, word aligned
  * \param lba logical block address of the block to read.
  */
-static bool singleBlockRead(unsigned char *buffer, unsigned int lba)
+static bool singleBlockRead(unsigned int *buffer, unsigned int lba)
 {
     if(cardType!=SDHC) lba*=512; // Convert to byte address if not SDHC
 
     if(waitForCardReady()==false) return false;
 
-    // Single block read
-    unsigned int* newBuf=BufferConverter::toWordAlignedWithoutCopy(buffer);
     CmdResult cr;
     DataResult dr;
     bool failed=true;
@@ -938,7 +1039,6 @@ static bool singleBlockRead(unsigned char *buffer, unsigned int lba)
         // would cause a fifo overrun, so we disable interrupts.
         FastInterruptDisableLock dLock;
 
-        SDIO->DTIMER=1048576;
         SDIO->DLEN=512;
         //Block size 512 bytes, block data xfer, from card to controller
         SDIO->DCTRL=(9<<4) | SDIO_DCTRL_DTDIR | SDIO_DCTRL_DTEN;
@@ -946,7 +1046,7 @@ static bool singleBlockRead(unsigned char *buffer, unsigned int lba)
         cr=Command::IRQsend(Command::CMD17,lba);
         if(cr.IRQvalidateR1Response())
         {
-            dr=IRQreceiveDataBlock(newBuf,512/sizeof(unsigned int));
+            dr=IRQreceiveDataBlock(buffer,512/sizeof(unsigned int));
             SDIO->DCTRL=0; //Disable data path state machine
             
             //If failed because too slow check if it is possible to reduce speed
@@ -977,7 +1077,6 @@ static bool singleBlockRead(unsigned char *buffer, unsigned int lba)
         cr.validateR1Response();
         return false;
     }
-    BufferConverter::toOriginalBuffer();
     return true;
 }
 
@@ -988,14 +1087,12 @@ static bool singleBlockRead(unsigned char *buffer, unsigned int lba)
  * \param buffer, a buffer whose size is >=512 bytes
  * \param lba logical block address of the block to write.
  */
-static bool singleBlockWrite(const unsigned char *buffer, unsigned int lba)
+static bool singleBlockWrite(const unsigned int *buffer, unsigned int lba)
 {
     if(cardType!=SDHC) lba*=512; // Convert to byte address if not SDHC
 
     if(waitForCardReady()==false) return false;
 
-    // Single block write
-    const unsigned int* newBuf=BufferConverter::toWordAligned(buffer);
     bool failed=true;
     CmdResult cr;
     DataResult dr;
@@ -1008,12 +1105,11 @@ static bool singleBlockWrite(const unsigned char *buffer, unsigned int lba)
         cr=Command::IRQsend(Command::CMD24,lba);
         if(cr.IRQvalidateR1Response())
         {
-            SDIO->DTIMER=1048576;
             SDIO->DLEN=512;
             //Block size 512 bytes, block data xfer, from controller to card
             SDIO->DCTRL=(9<<4) | SDIO_DCTRL_DTEN;
 
-            dr=IRQsendDataBlock(newBuf,512/sizeof(unsigned int));
+            dr=IRQsendDataBlock(buffer,512/sizeof(unsigned int));
             SDIO->DCTRL=0; //Disable data path state machine
 
             //If failed because too slow check if it is possible to reduce speed
@@ -1046,6 +1142,202 @@ static bool singleBlockWrite(const unsigned char *buffer, unsigned int lba)
     }
     return true;
 }
+
+#else //__ENABLE_XRAM
+
+/**
+ * \internal
+ * Prints the errors that may occur during a DMA transfer
+ */
+static void displayBlockTransferError()
+{
+    DBGERR("Block transfer error\n");
+    if(dmaFlags & DMA_ISR_TEIF4)      DBGERR("* DMA Transfer error\n");
+    if(sdioFlags & SDIO_STA_STBITERR) DBGERR("* SDIO Start bit error\n");
+    if(sdioFlags & SDIO_STA_RXOVERR)  DBGERR("* SDIO RX Overrun\n");
+    if(sdioFlags & SDIO_STA_TXUNDERR) DBGERR("* SDIO TX Underrun error\n");
+    if(sdioFlags & SDIO_STA_DCRCFAIL) DBGERR("* SDIO Data CRC fail\n");
+    if(sdioFlags & SDIO_STA_DTIMEOUT) DBGERR("* SDIO Data timeout\n");
+}
+
+/**
+ * \internal
+ * Read a given number of contiguous 512 byte blocks from an SD/MMC card.
+ * Card must be selected prior to calling this function.
+ * \param buffer, a buffer whose size is 512*nblk bytes, word aligned
+ * \param nblk number of blocks to read.
+ * \param lba logical block address of the first block to read.
+ */
+static bool multipleBlockRead(unsigned int *buffer, unsigned int nblk,
+    unsigned int lba)
+{
+    if(nblk==0) return true;
+    while(nblk>511)
+    {
+        if(multipleBlockRead(buffer,511,lba)==false) return false;
+        buffer+=511*512;
+        nblk-=511;
+        lba+=511;
+    }
+    if(waitForCardReady()==false) return false;
+    
+    if(cardType!=SDHC) lba*=512; // Convert to byte address if not SDHC
+    
+    //Clear both SDIO and DMA interrupt flags
+    SDIO->ICR=0x7ff;
+    DMA2->IFCR=DMA_IFCR_CGIF4;
+    
+    transferError=false;
+    dmaFlags=sdioFlags=0;
+    waiting=Thread::getCurrentThread();
+    
+    //Data transfer is considered complete once the DMA transfer complete
+    //interrupt occurs, that happens when the last data was written in the
+    //buffer. Both SDIO and DMA error interrupts are active to catch errors
+    SDIO->MASK=SDIO_MASK_STBITERRIE | //Interrupt on start bit error
+               SDIO_MASK_RXOVERRIE  | //Interrupt on rx underrun
+               SDIO_MASK_TXUNDERRIE | //Interrupt on tx underrun
+               SDIO_MASK_DCRCFAILIE | //Interrupt on data CRC fail
+               SDIO_MASK_DTIMEOUTIE;  //Interrupt on data timeout
+    DMA2_Channel4->CPAR=reinterpret_cast<unsigned int>(&SDIO->FIFO);
+    DMA2_Channel4->CMAR=reinterpret_cast<unsigned int>(buffer);
+	DMA2_Channel4->CNDTR=nblk*512/sizeof(unsigned int);
+    DMA2_Channel4->CCR=DMA_CCR4_PL_1      | //High priority DMA stream
+                       DMA_CCR4_MSIZE_1   | //Write 32bit at a time to RAM
+					   DMA_CCR4_PSIZE_1   | //Read 32bit at a time from SDIO
+				       DMA_CCR4_MINC      | //Increment RAM pointer
+			           0                  | //Peripheral to memory direction
+			           DMA_CCR4_TCIE      | //Interrupt on transfer complete
+                       DMA_CCR4_TEIE      | //Interrupt on transfer error
+			  	       DMA_CCR4_EN;         //Start the DMA
+    
+    SDIO->DLEN=nblk*512;
+    if(waiting==0)
+    {
+        DBGERR("Premature wakeup\n");
+        transferError=true;
+    }
+    CmdResult cr=Command::send(nblk>1 ? Command::CMD18 : Command::CMD17,lba);
+    if(cr.validateR1Response())
+    {
+        //Block size 512 bytes, block data xfer, from card to controller
+        SDIO->DCTRL=(9<<4) | SDIO_DCTRL_DMAEN | SDIO_DCTRL_DTDIR | SDIO_DCTRL_DTEN;
+        FastInterruptDisableLock dLock;
+        while(waiting)
+        {
+            Thread::IRQwait();
+            {
+                FastInterruptEnableLock eLock(dLock);
+                Thread::yield();
+            }
+        }
+    } else transferError=true;
+    DMA2_Channel4->CCR=0;
+    while(DMA2_Channel4->CCR & DMA_CCR4_EN) ; //DMA may take time to stop
+    SDIO->DCTRL=0; //Disable data path state machine
+    SDIO->MASK=0;
+
+    // CMD12 is sent to end CMD18 (multiple block read), or to abort an
+    // unfinished read in case of errors
+    if(nblk>1 || transferError) cr=Command::send(Command::CMD12,0);
+    if(transferError || cr.validateR1Response()==false)
+    {
+        displayBlockTransferError();
+        ClockController::reduceClockSpeed();
+        return false;
+    }
+    return true;
+}
+
+/**
+ * \internal
+ * Write a given number of contiguous 512 byte blocks to an SD/MMC card.
+ * Card must be selected prior to calling this function.
+ * \param buffer, a buffer whose size is 512*nblk bytes, word aligned
+ * \param nblk number of blocks to write.
+ * \param lba logical block address of the first block to write.
+ */
+static bool multipleBlockWrite(const unsigned int *buffer, unsigned int nblk,
+    unsigned int lba)
+{
+    if(nblk==0) return true;
+    while(nblk>511)
+    {
+        if(multipleBlockWrite(buffer,511,lba)==false) return false;
+        buffer+=511*512;
+        nblk-=511;
+        lba+=511;
+    }
+    if(waitForCardReady()==false) return false;
+    
+    if(cardType!=SDHC) lba*=512; // Convert to byte address if not SDHC
+    
+    //Clear both SDIO and DMA interrupt flags
+    SDIO->ICR=0x7ff;
+    DMA2->IFCR=DMA_IFCR_CGIF4;
+    
+    transferError=false;
+    dmaFlags=sdioFlags=0;
+    waiting=Thread::getCurrentThread();
+    
+    //Data transfer is considered complete once the SDIO transfer complete
+    //interrupt occurs, that happens when the last data was written to the SDIO
+    //Both SDIO and DMA error interrupts are active to catch errors
+    SDIO->MASK=SDIO_MASK_DATAENDIE  | //Interrupt on data end
+               SDIO_MASK_STBITERRIE | //Interrupt on start bit error
+               SDIO_MASK_RXOVERRIE  | //Interrupt on rx underrun
+               SDIO_MASK_TXUNDERRIE | //Interrupt on tx underrun
+               SDIO_MASK_DCRCFAILIE | //Interrupt on data CRC fail
+               SDIO_MASK_DTIMEOUTIE;  //Interrupt on data timeout
+	DMA2_Channel4->CPAR=reinterpret_cast<unsigned int>(&SDIO->FIFO);
+	DMA2_Channel4->CMAR=reinterpret_cast<unsigned int>(buffer);
+	DMA2_Channel4->CNDTR=nblk*512/sizeof(unsigned int);
+	DMA2_Channel4->CCR=DMA_CCR4_PL_1      | //High priority DMA stream
+                       DMA_CCR4_MSIZE_1   | //Read 32bit at a time from RAM
+					   DMA_CCR4_PSIZE_1   | //Write 32bit at a time to SDIO
+				       DMA_CCR4_MINC      | //Increment RAM pointer
+			           DMA_CCR4_DIR       | //Memory to peripheral direction
+                       DMA_CCR4_TEIE      | //Interrupt on transfer error
+                       DMA_CCR4_EN;         //Start the DMA
+    
+    SDIO->DLEN=nblk*512;
+    if(waiting==0)
+    {
+        DBGERR("Premature wakeup\n");
+        transferError=true;
+    }
+    CmdResult cr=Command::send(nblk>1 ? Command::CMD25 : Command::CMD24,lba);
+    if(cr.validateR1Response())
+    {
+        //Block size 512 bytes, block data xfer, from card to controller
+        SDIO->DCTRL=(9<<4) | SDIO_DCTRL_DMAEN | SDIO_DCTRL_DTEN;
+        FastInterruptDisableLock dLock;
+        while(waiting)
+        {
+            Thread::IRQwait();
+            {
+                FastInterruptEnableLock eLock(dLock);
+                Thread::yield();
+            }
+        }
+    } else transferError=true;
+    DMA2_Channel4->CCR=0;
+    while(DMA2_Channel4->CCR & DMA_CCR4_EN) ; //DMA may take time to stop
+    SDIO->DCTRL=0; //Disable data path state machine
+    SDIO->MASK=0;
+
+    // CMD12 is sent to end CMD25 (multiple block write), or to abort an
+    // unfinished write in case of errors
+    if(nblk>1 || transferError) cr=Command::send(Command::CMD12,0);
+    if(transferError || cr.validateR1Response()==false)
+    {
+        displayBlockTransferError();
+        ClockController::reduceClockSpeed();
+        return false;
+    }
+    return true;
+}
+#endif //__ENABLE_XRAM
 
 //
 // Class CardSelector
@@ -1104,7 +1396,11 @@ static void initSDIOPeripheral()
         //Doing read-modify-write on RCC->APBENR2 and gpios, better be safe
         FastInterruptDisableLock lock;
         RCC->APB2ENR |= RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN;
+        #ifdef __ENABLE_XRAM
         RCC->AHBENR |= RCC_AHBENR_SDIOEN;
+        #else //__ENABLE_XRAM
+        RCC->AHBENR |= RCC_AHBENR_SDIOEN | RCC_AHBENR_DMA2EN;
+        #endif //__ENABLE_XRAM
         sdD0::mode(Mode::ALTERNATE);
         sdD1::mode(Mode::ALTERNATE);
         sdD2::mode(Mode::ALTERNATE);
@@ -1112,6 +1408,12 @@ static void initSDIOPeripheral()
         sdCLK::mode(Mode::ALTERNATE);
         sdCMD::mode(Mode::ALTERNATE);
     }
+    #ifndef __ENABLE_XRAM
+    NVIC_SetPriority(DMA2_Channel4_5_IRQn,15);//Low priority for DMA
+    NVIC_EnableIRQ(DMA2_Channel4_5_IRQn);
+    NVIC_SetPriority(SDIO_IRQn,15);//Low priority for SDIO
+    NVIC_EnableIRQ(SDIO_IRQn);
+    #endif //__ENABLE_XRAM
 
     SDIO->POWER=0; //Power off state
     delayUs(1);
@@ -1119,6 +1421,7 @@ static void initSDIOPeripheral()
     SDIO->CMD=0;
     SDIO->DCTRL=0;
     SDIO->ICR=0xc007ff;
+    SDIO->DTIMER=1048576;
     SDIO->POWER=SDIO_POWER_PWRCTRL_1 | SDIO_POWER_PWRCTRL_0; //Power on state
     //This delay is particularly important: when setting the POWER register a
     //glitch on the CMD pin happens. This glitch has a fast fall time and a slow
@@ -1234,6 +1537,7 @@ bool Disk::isAvailable()
 
 void Disk::init()
 {
+    diskInitialized=false;
     initSDIOPeripheral();
 
     // This is more important than it seems, since CMD55 requires the card's RCA
@@ -1300,35 +1604,67 @@ void Disk::init()
     diskInitialized=true;
 }
 
-bool Disk::read(unsigned char *buffer, unsigned int lba,
-        unsigned char nSectors)
+bool Disk::read(unsigned char *buffer, unsigned int lba, unsigned char nSectors)
 {
     DBG("Disk::read(): nSectors=%d\n",nSectors);
-    if(!BufferConverter::isWordAligned(buffer)) DBG("Buffer misaligned\n");
+    bool aligned=BufferConverter::isWordAligned(buffer);
+    if(aligned==false) DBG("Buffer misaligned\n");
 
     for(int i=0;i<ClockController::getRetryCount();i++)
     {
         //Select card
         CardSelector selector;
         if(selector.succeded()==false) continue;
-
-        if(nSectors==1)
+        bool error=false;
+        
+        #ifdef __ENABLE_XRAM
+        // In the XRAM fallback code multiple sector read is implemented as
+        // a sequence of single block read operations
+        unsigned char *tempBuffer=buffer;
+        unsigned int tempLba=lba;
+        for(unsigned int j=0;j<nSectors;j++)
         {
-            if(singleBlockRead(buffer,lba)==false) continue;
+            unsigned int* b=BufferConverter::toWordAlignedWithoutCopy(tempBuffer);
+            if(singleBlockRead(b,tempLba)==false)
+            {
+                error=true;
+                break;
+            }
+            BufferConverter::toOriginalBuffer();
+            tempBuffer+=512;
+            tempLba++;
+        }
+        #else //__ENABLE_XRAM
+        // If XRAM is not enabled, then check pointer alignment, and if it is
+        // aligned use a single multipleBlockRead(), else use the buffer
+        // converter and read a sector at a time
+        if(aligned)
+        {
+            if(multipleBlockRead(reinterpret_cast<unsigned int*>(buffer),
+                nSectors,lba)==false) error=true;
         } else {
-            // Multiple block read
-            // Currently implemented with N calls to single block read
             unsigned char *tempBuffer=buffer;
             unsigned int tempLba=lba;
-            for(unsigned int i=0;i<nSectors;i++)
+            for(unsigned int j=0;j<nSectors;j++)
             {
-                if(singleBlockRead(tempBuffer,tempLba)==false) continue;
+                unsigned int* b=BufferConverter::toWordAlignedWithoutCopy(tempBuffer);
+                if(multipleBlockRead(b,1,tempLba)==false)
+                {
+                    error=true;
+                    break;
+                }
+                BufferConverter::toOriginalBuffer();
                 tempBuffer+=512;
                 tempLba++;
             }
         }
-        if(i>0) DBGERR("Read: required %d retries\n",i);
-        return true;
+        #endif //__ENABLE_XRAM
+
+        if(error==false)
+        {
+            if(i>0) DBGERR("Read: required %d retries\n",i);
+            return true;
+        }
     }
     return false;
 }
@@ -1337,31 +1673,62 @@ bool Disk::write(const unsigned char *buffer, unsigned int lba,
         unsigned char nSectors)
 {
     DBG("Disk::write(): nSectors=%d\n",nSectors);
-    if(!BufferConverter::isWordAligned(buffer)) DBG("Buffer misaligned\n");
+    bool aligned=BufferConverter::isWordAligned(buffer);
+    if(aligned==false) DBG("Buffer misaligned\n");
 
     for(int i=0;i<ClockController::getRetryCount();i++)
     {
         //Select card
         CardSelector selector;
         if(selector.succeded()==false) continue;
+        bool error=false;
 
-        if(nSectors==1)
+        #ifdef __ENABLE_XRAM
+        // In the XRAM fallback code multiple sector write is implemented as
+        // a sequence of single block write operations
+        const unsigned char *tempBuffer=buffer;
+        unsigned int tempLba=lba;
+        for(unsigned int j=0;j<nSectors;j++)
         {
-            if(singleBlockWrite(buffer,lba)==false) continue;
+            const unsigned int* b=BufferConverter::toWordAligned(tempBuffer);
+            if(singleBlockWrite(b,tempLba)==false)
+            {
+                error=true;
+                break;
+            }
+            tempBuffer+=512;
+            tempLba++;
+        }
+        #else //__ENABLE_XRAM
+        // If XRAM is not enabled, then check pointer alignment, and if it is
+        // aligned use a single multipleBlockWrite(), else use the buffer
+        // converter and write a sector at a time
+        if(aligned)
+        {
+            if(multipleBlockWrite(reinterpret_cast<const unsigned int*>(buffer),
+                nSectors,lba)==false) error=true;
         } else {
-            // Multiple block write
-            // Currently implemented with N calls to single block write
             const unsigned char *tempBuffer=buffer;
             unsigned int tempLba=lba;
-            for(unsigned int i=0;i<nSectors;i++)
+            for(unsigned int j=0;j<nSectors;j++)
             {
-                if(singleBlockWrite(tempBuffer,tempLba)==false) continue;
+                const unsigned int* b=BufferConverter::toWordAligned(tempBuffer);
+                if(multipleBlockWrite(b,1,tempLba)==false)
+                {
+                    error=true;
+                    break;
+                }
                 tempBuffer+=512;
                 tempLba++;
             }
         }
-        if(i>0) DBGERR("Write: required %d retries\n",i);
-        return true;
+        #endif //__ENABLE_XRAM
+        
+        if(error==false)
+        {
+            if(i>0) DBGERR("Write: required %d retries\n",i);
+            return true;
+        }
     }
     return false;
 }
