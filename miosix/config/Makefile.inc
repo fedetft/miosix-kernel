@@ -688,6 +688,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
+    $(ARCH_INC)/interfaces-impl/disk.cpp                     \
     $(ARCH_INC)/CMSIS/system_stm32f4xx.c
 
 ##-----------------------------------------------------------------------------
