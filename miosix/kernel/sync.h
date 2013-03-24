@@ -44,7 +44,7 @@
  * available we can use it to check which compiler is being used.
  */
 #warning "You upgraded to gcc 4.7.2 and mandatory newlib patches, did you?"
-#warning "If not, see http://www.webalice.it/fede.tft/miosix/gcc-4.7.2.html"
+#warning "If not, see http://miosix.org/gcc-4.7.2.html"
 #endif
 #ifndef _MIOSIX
 /*
@@ -55,7 +55,7 @@
  * was defined by the Makefile, now it became a gcc intrinsic.
  */
 #error "You upgraded to gcc 4.7.2, did you?"
-#error "If not, see http://www.webalice.it/fede.tft/miosix/gcc-4.7.2.html"
+#error "If not, see http://miosix.org/gcc-4.7.2.html"
 #endif
 
 namespace miosix {

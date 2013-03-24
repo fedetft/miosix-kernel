@@ -17,7 +17,7 @@ make; make program and plug headphone jack to the board's connector.
 
 Follow the kernel configuration procedure for this board here:
 
-http://www.webalice.it/fede.tft/miosix/boards/stm32vldiscovery-config.html
+http://miosix.org/boards/stm32vldiscovery-config.html
 
 To be able to hear the audio file, build one of the two circuits found in
 the circuit.jpeg file. The top one is a speaker amplifier, the bottom one
