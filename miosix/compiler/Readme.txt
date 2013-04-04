@@ -19,10 +19,10 @@ Install the following dependencies:
 gcc, g++, make, ncurses, byacc, flex, texinfo, patch, gmp, mpfr, mpc, tar, unzip, libelf
 
 For example, for Ubuntu/Kubuntu open a shell and type:
-sudo apt-get install gcc g++ make libncurses5-dev byacc flex texinfo patch libgmp3-dev libmpfr-dev libmpc-dev tar unzip libelf-dev
+sudo apt-get install gcc g++ make libncurses5-dev byacc flex texinfo patch libgmp3-dev libmpfr-dev libmpc-dev tar unzip libelf-dev perl
 
 While on Fedora:
-sudo yum intall gcc gcc-c++ make ncurses-devel byacc flex texinfo patch gmp-devel mpfr-devel libmpc-devel tar unzip elfutils-libelf-devel
+sudo yum intall gcc gcc-c++ make ncurses-devel byacc flex texinfo patch gmp-devel mpfr-devel libmpc-devel tar unzip elfutils-libelf-devel perl
 
 Note: these scripts require "sudo". If you use a distro like Fedora where sudo
 is not enabled by default, use "visudo" to enable sudo for your account. You

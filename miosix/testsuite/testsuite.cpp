@@ -2233,6 +2233,8 @@ tests:
 C++ static constructors
 */
 
+static unsigned char t17_v1=0;
+
 class TestStaticConstructor
 {
 public:
@@ -2252,6 +2254,14 @@ static TestStaticConstructor& instance()
     return singleton;
 }
 
+class TestOneCallToStaticConstructor
+{
+public:
+    TestOneCallToStaticConstructor() { t17_v1++; }
+};
+
+TestOneCallToStaticConstructor t17_v2;
+
 static void test_17()
 {
     test_name("static constructors");
@@ -2260,6 +2270,8 @@ static void test_17()
         iprintf("a=0x%x, b=0x%x\n",instance().a, instance().b);
         fail("constructor fail");
     }
+    // Fails both if never called or if called multiple times 
+    if(t17_v1!=1) fail("Constructor error");
     pass();
 }
 

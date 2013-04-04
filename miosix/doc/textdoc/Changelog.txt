@@ -1,5 +1,21 @@
 Changelog for Miosix np embedded OS
 
+- Changed version number from v1.61 to v20.alpha1 in version.cpp.
+- Added -Wno-unused-but-set-variable to Makefile.
+- Added testsuite check for global objects support outside of the kernel.
+- Removed the use of global objects in the serial port drivers.
+- Breaking change regarding constructors of global objects. Up to Miosix v1.61
+  they were called during stage_1_boot, therefore before the kernel was
+  started. They are now called in stage_2_boot, right before calling main.
+  This results in a more intuitive behaviour, as it is now possible to
+  write on stdout, access the filesystem, create threads, etc. within
+  constructors of global objects. On the downside it is no longer possible to
+  instantiate global objects withing the kernel itself, as this would cause
+  the risk of accessing objects before their constructor has run. The lack of
+  global objects is actively check by check_global_objects.pl at compile time
+  to prevent errors.
+- Changed stm32vldiscovery default stdio redirection from the DCC to the
+  serial port.
 - Added stm32f4 sdio driver, tested on stm32f4discovery.
 - Improved the SDIO drivers for both stm32f1 and stm32f2. It now uses
   DMA transfers whenever possible. In the stm32f2 it is always possible,

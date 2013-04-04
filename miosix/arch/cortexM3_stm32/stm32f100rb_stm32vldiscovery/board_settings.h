@@ -58,7 +58,7 @@ const unsigned int AUX_TIMER_MAX=0xffff; ///<\internal Aux timer is 16 bits
 ///If defined, stdout is redirected to the debug communication channel, and
 ///will be printed if OpenOCD is connected. If not defined, stdout will be
 ///redirected throug USART1, as usual.
-#define STDOUT_REDIRECTED_TO_DCC
+//#define STDOUT_REDIRECTED_TO_DCC
 
 /**
  * \}

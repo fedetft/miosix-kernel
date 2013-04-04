@@ -81,11 +81,38 @@ void DMA1_Channel4_IRQHandler()
 }
 #endif //__ENABLE_XRAM
 
-namespace miosix {
+namespace miosix { 
 
-static Mutex rxMutex;///<\internal Mutex used to guard the rx queue
-const unsigned int SOFTWARE_RX_QUEUE=32;///<\internal Size of rx software queue
-static Queue<char,SOFTWARE_RX_QUEUE> rxQueue;///<\internal Rx software queue
+/**
+ * Groups objects used by the serial driver
+ */
+class SerialData
+{
+public:
+    /**
+     * \return an instance of this class (singleton) 
+     */
+    static SerialData& instance()
+    {
+        static SerialData s;
+        return s;
+    }
+    
+    Mutex rxMutex;///<\internal Mutex used to guard the rx queue
+    Mutex txMutex;///<\internal Mutex used to guard the tx queue
+    static const unsigned int SOFTWARE_RX_QUEUE=32;///<\internal Size of rx queue
+    Queue<char,SOFTWARE_RX_QUEUE> rxQueue;///<\internal Rx software queue
+    #ifndef __ENABLE_XRAM
+    static const unsigned int SOFTWARE_TX_QUEUE=32;///<\internal Size of tx queue
+    char tx_dma_buffer[SOFTWARE_TX_QUEUE];///<\internal Tx dma buffer
+    Queue<char,1> tx_queue;///<\internal Tx queue. Size is 1 because of dma
+    #endif //__ENABLE_XRAM
+
+private:
+    SerialData() {}
+    SerialData(const SerialData&);
+    SerialData& operator= (const SerialData&);
+};
 
 ///\internal True if a rx character found the queue full
 static volatile bool rxLostFlag=false;
@@ -101,6 +128,7 @@ static bool serialEnabled=false;///<\internal True if serial port is enabled
 void serial_irq_impl() __attribute__((noinline));
 void serial_irq_impl()
 {
+    SerialData& s=SerialData::instance();
     bool hppw=false;
     unsigned int status=USART1->SR;
     if(status & USART_SR_ORE) //Receiver overrun
@@ -108,24 +136,19 @@ void serial_irq_impl()
         rxLostFlag=true;
         char c=USART1->DR; //Always read data, since this clears interrupt flags
         if((status & USART_SR_RXNE) && ((status & 0x7)==0))
-            rxQueue.IRQput(c,hppw);
+            s.rxQueue.IRQput(c,hppw);
     } else if(status & USART_SR_RXNE) //Receiver data available
     {
         char c=USART1->DR; //Always read data, since this clears interrupt flags
         if((status & 0x7)==0) //If no noise nor framing nor parity error
         {
-            if(rxQueue.IRQput(c,hppw)==false) rxLostFlag=true;
+            if(s.rxQueue.IRQput(c,hppw)==false) rxLostFlag=true;
         }
     }
     if(hppw) Scheduler::IRQfindNextThread();
 }
 
-static Mutex txMutex;///<\internal Mutex used to guard the tx queue
-
 #ifndef __ENABLE_XRAM
-const unsigned int SOFTWARE_TX_QUEUE=32;///<\internal Size of tx software queue
-static char tx_dma_buffer[SOFTWARE_TX_QUEUE];///<\internal Tx dma buffer
-static Queue<char,1> tx_queue;///<\internal Tx queue. Size is 1 because of dma
 
 /**
  * \internal
@@ -142,14 +165,15 @@ void serial_dma_impl()
     //Wake eventual waiting thread, and do context switch if priority is higher
     char useless;
     bool hppw=false;
-    tx_queue.IRQget(useless,hppw);
+    SerialData::instance().tx_queue.IRQget(useless,hppw);
     if(hppw) Scheduler::IRQfindNextThread();
 }
 
 void IRQserialInit()
 {
-    tx_queue.IRQreset();
-    rxQueue.IRQreset();
+    SerialData& s=SerialData::instance();
+    s.tx_queue.IRQreset();
+    s.rxQueue.IRQreset();
     //Enable clock to GPIOA, AFIO and USART1
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_AFIOEN |
             RCC_APB2ENR_USART1EN;
@@ -192,20 +216,21 @@ void IRQserialDisable()
     serialEnabled=false;
     while(!IRQserialTxFifoEmpty()) ; //wait
     USART1->CR1=0;
-    tx_queue.IRQreset(); //Wake eventual thread waiting
+    SerialData::instance().tx_queue.IRQreset(); //Wake eventual thread waiting
 }
 
 void serialWrite(const char *str, unsigned int len)
 {
     if(!serialEnabled) return;
-    Lock<Mutex> l(txMutex);
+    SerialData& s=SerialData::instance();
+    Lock<Mutex> l(s.txMutex);
     for(;len>0;)
     {
         // This will block if the buffer is currently being handled by the dma.
         // The advantage of using a queue is that if the dma tranfer ends while
         // a thread with lower priority than the one that is waiting, a context
         // switch will happen.
-        tx_queue.put(0);
+        s.tx_queue.put(0);
 
         {
             FastInterruptDisableLock lock;
@@ -213,11 +238,11 @@ void serialWrite(const char *str, unsigned int len)
             if(!serialEnabled) return;
 
             // If we get here, the dma buffer is ready
-            unsigned int transferSize=std::min(len,SOFTWARE_TX_QUEUE);
-            memcpy(tx_dma_buffer,str,transferSize);
+            unsigned int transferSize=std::min(len,SerialData::SOFTWARE_TX_QUEUE);
+            memcpy(s.tx_dma_buffer,str,transferSize);
             // Setup DMA xfer
             DMA1_Channel4->CPAR=reinterpret_cast<unsigned int>(&USART1->DR);
-            DMA1_Channel4->CMAR=reinterpret_cast<unsigned int>(tx_dma_buffer);
+            DMA1_Channel4->CMAR=reinterpret_cast<unsigned int>(s.tx_dma_buffer);
             DMA1_Channel4->CNDTR=transferSize;
             DMA1_Channel4->CCR=DMA_CCR4_MINC | DMA_CCR4_DIR | DMA_CCR4_TEIE |
                     DMA_CCR4_TCIE | DMA_CCR4_EN;
@@ -262,7 +287,7 @@ void IRQserialWriteString(const char *str)
 
 void IRQserialInit()
 {
-    rxQueue.IRQreset();
+    SerialData::instance().rxQueue.IRQreset();
     //Enable clock to GPIOA, AFIO and USART1
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_AFIOEN |
             RCC_APB2ENR_USART1EN;
@@ -306,7 +331,7 @@ void serialWrite(const char *str, unsigned int len)
 {
     if(!serialEnabled) return;
     {
-        Lock<Mutex> l(txMutex);
+        Lock<Mutex> l(SerialData::instance().txMutex);
         for(unsigned int i=0;i<len;i++)
         {
             while((USART1->SR & USART_SR_TXE)==0)
@@ -345,18 +370,20 @@ bool serialTxComplete()
 
 char serialReadChar()
 {
-    Lock<Mutex> l(rxMutex);
+    SerialData& s=SerialData::instance();
+    Lock<Mutex> l(s.rxMutex);
     char result;
-    rxQueue.get(result);
+    s.rxQueue.get(result);
     return result;
 }
 
 bool serialReadCharNonblocking(char& c)
 {
-    Lock<Mutex> l(rxMutex);
-    if(rxQueue.isEmpty()==false)
+    SerialData& s=SerialData::instance();
+    Lock<Mutex> l(s.rxMutex);
+    if(s.rxQueue.isEmpty()==false)
     {
-        rxQueue.get(c);
+        s.rxQueue.get(c);
         return true;
     }
     return false;
@@ -371,7 +398,7 @@ bool serialRxLost()
 
 void serialRxFlush()
 {
-    rxQueue.reset();
+    SerialData::instance().rxQueue.reset();
 }
 
 bool IRQserialTxFifoEmpty()

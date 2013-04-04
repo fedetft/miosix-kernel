@@ -54,6 +54,21 @@ extern int main(int argc, char *argv[]);
 namespace miosix {
 
 /**
+ * Calls C++ global constructors
+ * \param start first function pointer to call
+ * \param end one past the last function pointer to call
+ */
+static void call_constructors(unsigned long *start, unsigned long *end)
+{
+	for(unsigned long *i=start; i<end; i++)
+	{
+		void (*funcptr)();
+        funcptr=reinterpret_cast<void (*)()>(*i);
+		funcptr();
+	}
+}
+
+/**
  * \internal
  * Performs the part of initialization that must be done after the kernel is
  * started, and finally calls main()
@@ -96,6 +111,17 @@ static void mainLoader(void *argv)
             MemoryProfiling::getHeapSize());
     #endif
 
+    //Initialize C++ global constructors
+    extern unsigned long __preinit_array_start asm("__preinit_array_start");
+	extern unsigned long __preinit_array_end asm("__preinit_array_end");
+	extern unsigned long __init_array_start asm("__init_array_start");
+	extern unsigned long __init_array_end asm("__init_array_end");
+	extern unsigned long _ctor_start asm("_ctor_start");
+	extern unsigned long _ctor_end asm("_ctor_end");
+	call_constructors(&__preinit_array_start, &__preinit_array_end);
+	call_constructors(&__init_array_start, &__init_array_end);
+	call_constructors(&_ctor_start, &_ctor_end);
+    
     //Run application code
     #ifdef __NO_EXCEPTIONS
     main(0,NULL);

@@ -46,6 +46,7 @@ AFLAGS   :=  $(AFLAGS_BASE)
 ## The file stage_1_boot.o is compiled separately because
 ## it must not end up in libmiosix.a
 all: $(OBJ) $(BOOT_FILE)
+	perl check_global_objects.pl $(OBJ)
 	$(AR) rcs libmiosix.a $(OBJ)
 
 clean:

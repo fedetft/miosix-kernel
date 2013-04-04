@@ -36,7 +36,16 @@
 
 namespace miosix {
 
-static Mutex fsMutex;///\internal This Mutex is used to guard access to the fs.
+/**
+ * \internal
+ * \return the Mutex that is used to guard access to the fs.
+ */
+Mutex& getFsMutex()
+{
+    static Mutex fsMutex;
+    return fsMutex;
+}
+
 
 //
 // class Filesystem
@@ -54,7 +63,7 @@ char Filesystem::mount()
     if(mounted==true) return 3; //If filesystem already mounted, return error
     char result=0;
     {
-        Lock<Mutex> l(fsMutex);
+        Lock<Mutex> l(getFsMutex());
         //Mount filesystem
         if(f_mount(0,&filesystem)!=FR_OK) result=1;
         //Fatfs will delay actual filesystem mount until the first request is
@@ -68,7 +77,7 @@ char Filesystem::mount()
 
 void Filesystem::umount()
 {
-    Lock<Mutex> l(fsMutex);
+    Lock<Mutex> l(getFsMutex());
     if(mounted==false) return;
     mounted=false;
 
@@ -92,7 +101,7 @@ int Filesystem::openFile(const char *name, int flags, int mode)
     if(isMounted()==false) return -1;
 
     {
-        Lock<Mutex> l(fsMutex);
+        Lock<Mutex> l(getFsMutex());
         
         int index=findAndFillEmptySlot();//Also fills in the file descriptor
         if(index==-1) return -1;
@@ -160,7 +169,7 @@ int Filesystem::readFile(int fd, void *buffer, int bufSize)
     if(isMounted()==false) return -1;
 
     {
-        Lock<Mutex> l(fsMutex);
+        Lock<Mutex> l(getFsMutex());
 
         //Find file from descriptor
         int index=findSlot(fd);
@@ -179,7 +188,7 @@ int Filesystem::writeFile(int fd, const void *buffer, int bufSize)
     if(isMounted()==false) return -1;
 
     {
-        Lock<Mutex> l(fsMutex);
+        Lock<Mutex> l(getFsMutex());
 
         //Find file from descriptor
         int index=findSlot(fd);
@@ -203,7 +212,7 @@ int Filesystem::lseekFile(int fd, int pos, int whence)
     if(isMounted()==false) return -1;
 
     {
-        Lock<Mutex> l(fsMutex);
+        Lock<Mutex> l(getFsMutex());
 
         //Find file from descriptor
         int index=findSlot(fd);
@@ -236,7 +245,7 @@ int Filesystem::fstatFile(int fd, struct stat *pstat)
     if(isMounted()==false) return -1;
 
     {
-        Lock<Mutex> l(fsMutex);
+        Lock<Mutex> l(getFsMutex());
 
         //Find file from descriptor
         int index=findSlot(fd);
@@ -256,7 +265,7 @@ int Filesystem::statFile(const char *file, struct stat *pstat)
     if(isMounted()==false) return -1;
     FILINFO info;
     {
-        Lock<Mutex> l(fsMutex);
+        Lock<Mutex> l(getFsMutex());
         if(f_stat(file,&info)!=FR_OK) return -1;
     }
     memset(pstat,0,sizeof(struct stat));
@@ -272,7 +281,7 @@ int Filesystem::closeFile(int fd)
     if(isMounted()==false) return -1;
 
     {
-        Lock<Mutex> l(fsMutex);
+        Lock<Mutex> l(getFsMutex());
 
         //Find file from descriptor
         int index=findSlot(fd);
@@ -297,7 +306,7 @@ int Filesystem::mkdir(const char *path, int mode)
     if(isMounted()==false) return -1;
     
     {
-        Lock<Mutex> l(fsMutex);
+        Lock<Mutex> l(getFsMutex());
         switch(f_mkdir(path))
         {
             case FR_OK:
@@ -315,7 +324,7 @@ int Filesystem::unlink(const char *path)
     if(isMounted()==false) return -1;
 
     {
-        Lock<Mutex> l(fsMutex);
+        Lock<Mutex> l(getFsMutex());
         if(f_unlink(path)!=FR_OK) return -1;
         return 0;
     }
@@ -416,7 +425,7 @@ char Directory::open(const char *name)
     if(Filesystem::instance().isMounted()==false) return 3;
     
     {
-        Lock<Mutex> l(fsMutex);
+        Lock<Mutex> l(getFsMutex());
         if(f_opendir(&d,name)!=FR_OK) return 1;
         return 0;
     }
@@ -426,7 +435,7 @@ bool Directory::next(char *name, unsigned int& size, unsigned char& attrib)
 {
     FILINFO fi;
     {
-        Lock<Mutex> l(fsMutex);
+        Lock<Mutex> l(getFsMutex());
         if(f_readdir(&d,&fi)!=FR_OK) return false;
     }
     

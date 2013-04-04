@@ -34,20 +34,35 @@
 
 namespace miosix {
 
-//Configure the software queue here
-const int SOFTWARE_TX_QUEUE=32;///<\internal Size of tx software queue
-const int SOFTWARE_RX_QUEUE=32;///<\internal Size of rx software queue
+class SerialData
+{
+public:
+    static SerialData& instance()
+    {
+        static SerialData s;
+        return s;
+    }
+    
+    //Configure the software queue here
+    static const int SOFTWARE_TX_QUEUE=32;///<\internal Size of tx software queue
+    static const int SOFTWARE_RX_QUEUE=32;///<\internal Size of rx software queue
 
-//The hardware queues cannot be modified, since their length is hardware-specific
-const int HARDWARE_TX_QUEUE_LENGTH=16;
-const int HARDWARE_RX_QUEUE_LENGTH=8;
+    //The hardware queues cannot be modified, since their length is hardware-specific
+    static const int HARDWARE_TX_QUEUE_LENGTH=16;
+    static const int HARDWARE_RX_QUEUE_LENGTH=8;
 
-//Static (local) variables
-static Mutex txMutex;///<\internal Mutex used to guard the tx queue
-static Mutex rxMutex;///<\internal Mutex used to guard the rx queue
+    //Static (local) variables
+    Mutex txMutex;///<\internal Mutex used to guard the tx queue
+    Mutex rxMutex;///<\internal Mutex used to guard the rx queue
 
-static Queue<char,SOFTWARE_TX_QUEUE> tx_queue;///<\internal Tx software queue
-static Queue<char,SOFTWARE_RX_QUEUE> rxQueue;///<\internal Rx software queue
+    Queue<char,SOFTWARE_TX_QUEUE> txQueue;///<\internal Tx software queue
+    Queue<char,SOFTWARE_RX_QUEUE> rxQueue;///<\internal Rx software queue
+    
+private:
+    SerialData() {}
+    SerialData(const SerialData&);
+    SerialData& operator= (const SerialData&);
+};
 
 ///\internal True if a rx character found the queue full
 static volatile bool rxLostFlag=false;
@@ -63,6 +78,7 @@ static bool serialEnabled=false;///<\internal True if serial port is enabled
 void serial_irq_impl() __attribute__((noinline));
 void serial_irq_impl()
 {
+    SerialData& s=SerialData::instance();
     char c;
     int i;
     bool hppw=false;
@@ -73,21 +89,21 @@ void serial_irq_impl()
             c=U0RBR;//Read U0RBR to discard char that caused error
             break;
         case 0x4: //RDA
-            for(i=0;i<HARDWARE_RX_QUEUE_LENGTH;i++)
+            for(i=0;i<SerialData::HARDWARE_RX_QUEUE_LENGTH;i++)
             {
-                if(rxQueue.IRQput(U0RBR,hppw)==false) rxLostFlag=true;
+                if(s.rxQueue.IRQput(U0RBR,hppw)==false) rxLostFlag=true;
             }
         case 0xc: //CTI
             while(U0LSR & (1<<0))
             {
-                if(rxQueue.IRQput(U0RBR,hppw)==false) rxLostFlag=true;
+                if(s.rxQueue.IRQput(U0RBR,hppw)==false) rxLostFlag=true;
             }
             break;
         case 0x2: //THRE
-            for(i=0;i<HARDWARE_TX_QUEUE_LENGTH;i++)
+            for(i=0;i<SerialData::HARDWARE_TX_QUEUE_LENGTH;i++)
             {
                 //If software queue empty, stop
-                if(tx_queue.IRQget(c,hppw)==false) break;
+                if(s.txQueue.IRQget(c,hppw)==false) break;
                 U0THR=c;
             }
             break;
@@ -115,8 +131,9 @@ void serial_IRQ_Routine()
 
 void IRQserialInit(unsigned int div)
 {
-    tx_queue.IRQreset();
-    rxQueue.IRQreset();
+    SerialData& s=SerialData::instance();
+    s.txQueue.IRQreset();
+    s.rxQueue.IRQreset();
     PCONP|=(1<<3);//Enable UART0 peripheral
     U0LCR=0x3;//DLAB disabled
     //0x07= fifo enabled, reset tx and rx hardware fifos
@@ -141,8 +158,9 @@ void IRQserialInit(unsigned int div)
 
 void IRQserialDisable()
 {
+    SerialData& s=SerialData::instance();
     serialEnabled=false;
-    while(!(tx_queue.isEmpty() && IRQserialTxFifoEmpty())) ; //wait
+    while(!(s.txQueue.isEmpty() && IRQserialTxFifoEmpty())) ; //wait
     //Disable VIC
     VICIntEnClr=(1<<6);
     //Disable UART0
@@ -159,9 +177,10 @@ bool IRQisSerialEnabled()
 
 void serialWrite(const char *str, unsigned int len)
 {
+    SerialData& s=SerialData::instance();
     if(!serialEnabled) return;
     int i;
-    Lock<Mutex> l(txMutex);
+    Lock<Mutex> l(s.txMutex);
     {
         FastInterruptDisableLock dLock;
         while(len>0)
@@ -169,10 +188,10 @@ void serialWrite(const char *str, unsigned int len)
             //If somebody disables serial port while we are transmitting
             if(!serialEnabled) break;
             //If no data in software and hardware queue
-            if((U0LSR & (1<<5))&&(tx_queue.isEmpty()))
+            if((U0LSR & (1<<5))&&(s.txQueue.isEmpty()))
             {
                 //Fill hardware queue first
-                for(i=0;i<HARDWARE_TX_QUEUE_LENGTH;i++)
+                for(i=0;i<SerialData::HARDWARE_TX_QUEUE_LENGTH;i++)
                 {
                     U0THR=*str;
                     str++;
@@ -180,13 +199,13 @@ void serialWrite(const char *str, unsigned int len)
                     if(len==0) break;
                 }
             } else {
-                if(tx_queue.IRQput(*str)==true)
+                if(s.txQueue.IRQput(*str)==true)
                 {
                     str++;
                     len--;
                 } else {
                     FastInterruptEnableLock eLock(dLock);
-                    tx_queue.waitUntilNotFull();
+                    s.txQueue.waitUntilNotFull();
                 }
             }
         }
@@ -196,28 +215,30 @@ void serialWrite(const char *str, unsigned int len)
 bool serialTxComplete()
 {
     //If both hardware and software queue are empty, tx is complete.
-    return tx_queue.isEmpty() && IRQserialTxFifoEmpty();
+    return SerialData::instance().txQueue.isEmpty() && IRQserialTxFifoEmpty();
 }
 
 char serialReadChar()
 {
     char result;
-    rxMutex.lock();
-    rxQueue.get(result);
-    rxMutex.unlock();
+    SerialData& s=SerialData::instance();
+    s.rxMutex.lock();
+    s.rxQueue.get(result);
+    s.rxMutex.unlock();
     return result;
 }
 
 bool serialReadCharNonblocking(char& c)
 {
     bool result=false;
-    rxMutex.lock();
-    if(rxQueue.isEmpty()==false)
+    SerialData& s=SerialData::instance();
+    s.rxMutex.lock();
+    if(s.rxQueue.isEmpty()==false)
     {
-        rxQueue.get(c);
+        s.rxQueue.get(c);
         result=true;
     }
-    rxMutex.unlock();
+    s.rxMutex.unlock();
     return result;
 }
 
@@ -230,7 +251,7 @@ bool serialRxLost()
 
 void serialRxFlush()
 {
-    rxQueue.reset();
+    SerialData::instance().rxQueue.reset();
 }
 
 void IRQserialWriteString(const char *str)

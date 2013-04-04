@@ -57,10 +57,25 @@ void USART1_IRQHandler()
 
 namespace miosix {
 
-static Mutex rxMutex;///<\internal Mutex used to guard the rx queue
-static Mutex txMutex;///<\internal Mutex used to guard the tx queue
-const unsigned int SOFTWARE_RX_QUEUE=32;///<\internal Size of rx software queue
-static Queue<char,SOFTWARE_RX_QUEUE> rxQueue;///<\internal Rx software queue
+class SerialData
+{
+public:
+    static SerialData& instance()
+    {
+        static SerialData s;
+        return s;
+    }
+    
+    Mutex rxMutex;///<\internal Mutex used to guard the rx queue
+    Mutex txMutex;///<\internal Mutex used to guard the tx queue
+    static const unsigned int SOFTWARE_RX_QUEUE=32;///<\internal Size of rx queue
+    Queue<char,SOFTWARE_RX_QUEUE> rxQueue;///<\internal Rx software queue
+    
+private:
+    SerialData() {}
+    SerialData(const SerialData&);
+    SerialData& operator= (const SerialData&);
+};
 
 /**
  * \internal
@@ -72,19 +87,20 @@ static Queue<char,SOFTWARE_RX_QUEUE> rxQueue;///<\internal Rx software queue
 void serialIrqImpl() __attribute__((noinline));
 void serialIrqImpl()
 {
+    SerialData& s=SerialData::instance();
     bool hppw=false;
     unsigned int status=USART1->SR;
     if(status & USART_SR_ORE) //Receiver overrun
     {
         char c=USART1->DR; //Always read data, since this clears interrupt flags
         if((status & USART_SR_RXNE) && ((status & 0x7)==0))
-            rxQueue.IRQput(c,hppw);
+            s.rxQueue.IRQput(c,hppw);
     } else if(status & USART_SR_RXNE) //Receiver data available
     {
         char c=USART1->DR; //Always read data, since this clears interrupt flags
         if((status & 0x7)==0) //If no noise nor framing nor parity error
         {
-            rxQueue.IRQput(c,hppw);
+            s.rxQueue.IRQput(c,hppw);
         }
     }
     if(hppw) Scheduler::IRQfindNextThread();
@@ -92,7 +108,7 @@ void serialIrqImpl()
 
 void IRQstm32f2serialPortInit()
 {
-    rxQueue.IRQreset();
+    SerialData::instance().rxQueue.IRQreset();
     //Enable clock to GPIOA and USART1
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
     RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
@@ -123,7 +139,7 @@ void IRQstm32f2serialPortInit()
 static void serialWriteImpl(const char *str, unsigned int len)
 {
     {
-        Lock<Mutex> l(txMutex);
+        Lock<Mutex> l(SerialData::instance().txMutex);
         for(unsigned int i=0;i<len;i++)
         {
             while((USART1->SR & USART_SR_TXE)==0) ;
@@ -164,18 +180,20 @@ bool Console::IRQtxComplete()
 
 char Console::readChar()
 {
-    Lock<Mutex> l(rxMutex);
+    SerialData& s=SerialData::instance();
+    Lock<Mutex> l(s.rxMutex);
     char result;
-    rxQueue.get(result);
+    s.rxQueue.get(result);
     return result;
 }
 
 bool Console::readCharNonBlocking(char& c)
 {
-    Lock<Mutex> l(rxMutex);
-    if(rxQueue.isEmpty()==false)
+    SerialData& s=SerialData::instance();
+    Lock<Mutex> l(s.rxMutex);
+    if(s.rxQueue.isEmpty()==false)
     {
-        rxQueue.get(c);
+        s.rxQueue.get(c);
         return true;
     }
     return false;

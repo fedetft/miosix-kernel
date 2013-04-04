@@ -30,6 +30,8 @@
 
 #include "interfaces/gpio.h"
 
+namespace miosix {
+
 //
 // All GPIOs are mapped here
 //
@@ -134,5 +136,7 @@ namespace buttons {
     typedef Gpio<GPIOA_BASE,8> user1;
     typedef Gpio<GPIOD_BASE,3> user2;
 }
+
+} //namespace miosix
 
 #endif //HWMAPPING_H

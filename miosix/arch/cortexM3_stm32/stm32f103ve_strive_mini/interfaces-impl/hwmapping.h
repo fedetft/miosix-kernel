@@ -29,6 +29,7 @@
 #define HWMAPPING_H
 
 #include "interfaces/gpio.h"
+namespace miosix {
 
 //
 // All GPIOs are mapped here
@@ -103,4 +104,7 @@ typedef Gpio<GPIOA_BASE,10> rx;     //Handled by hardware (USART1)
 namespace buttons {
     typedef Gpio<GPIOB_BASE,15> button1;
 }
+
+} //namespace miosix
+
 #endif //HWMAPPING_H
