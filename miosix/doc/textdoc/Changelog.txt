@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Added a set of atomic operations too all the cortex ports. These functions
+  are available by #including "interfaces/atomic_ops.h"
 - Backported implementation of __REV(), __REV16(), __REVSH(), __RBIT(),
   __LDREXB(), __LDREXH(), __LDREXW(), __STREXB(), __STREXH(), __STREXW(),
   from the newer CMSIS to the CMSIS of the stm32f1 and stm32f2 ports.
