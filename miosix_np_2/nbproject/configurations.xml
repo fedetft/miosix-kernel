@@ -336,6 +336,8 @@
             <in>diskio.h</in>
             <in>ff.c</in>
             <in>ff.h</in>
+            <in>file.cpp</in>
+            <in>file.h</in>
             <in>filesystem.cpp</in>
             <in>filesystem.h</in>
             <in>integer.h</in>
@@ -362,8 +364,11 @@
             <in>tick_interrupt.h</in>
           </df>
           <in>buffer_queue.h</in>
+          <in>default_console.cpp</in>
+          <in>default_console.h</in>
           <in>error.cpp</in>
           <in>error.h</in>
+          <in>intrusive.h</in>
           <in>kernel.cpp</in>
           <in>kernel.h</in>
           <in>logging.h</in>

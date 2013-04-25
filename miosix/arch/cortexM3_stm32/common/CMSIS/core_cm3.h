@@ -1328,6 +1328,14 @@ extern uint32_t __get_CONTROL(void);
  */
 extern void __set_CONTROL(uint32_t control);
 
+/*
+ * By TFT: these functions definitions have been replaced in the later versions
+ * of the CMSIS by inline functions for greater performance.
+ * This change has been backported here be commenting out the previous version,
+ * and copy-pasting the inline ones from the new CMSIS 
+ */
+#if 0
+
 /**
  * @brief  Reverse byte order in integer value
  *
@@ -1430,6 +1438,180 @@ extern uint32_t __STREXH(uint16_t value, uint16_t *addr);
  * Exclusive STR command for 32 bit values
  */
 extern uint32_t __STREXW(uint32_t value, uint32_t *addr);
+
+#endif //By TFT: end of commented out part, start of new functions declaration
+
+/** \brief  Reverse byte order (32 bit)
+
+    This function reverses the byte order in integer value.
+
+    \param [in]    value  Value to reverse
+    \return               Reversed value
+ */
+__attribute__( ( always_inline ) ) static __INLINE uint32_t __REV(uint32_t value)
+{
+  uint32_t result;
+  
+  __ASM volatile ("rev %0, %1" : "=r" (result) : "r" (value) );
+  return(result);
+}
+
+
+/** \brief  Reverse byte order (16 bit)
+
+    This function reverses the byte order in two unsigned short values.
+
+    \param [in]    value  Value to reverse
+    \return               Reversed value
+ */
+__attribute__( ( always_inline ) ) static __INLINE uint32_t __REV16(uint32_t value)
+{
+  uint32_t result;
+  
+  __ASM volatile ("rev16 %0, %1" : "=r" (result) : "r" (value) );
+  return(result);
+}
+
+
+/** \brief  Reverse byte order in signed short value
+
+    This function reverses the byte order in a signed short value with sign extension to integer.
+
+    \param [in]    value  Value to reverse
+    \return               Reversed value
+ */
+__attribute__( ( always_inline ) ) static __INLINE int32_t __REVSH(int32_t value)
+{
+  uint32_t result;
+  
+  __ASM volatile ("revsh %0, %1" : "=r" (result) : "r" (value) );
+  return(result);
+}
+
+/** \brief  Reverse bit order of value
+
+    This function reverses the bit order of the given value.
+
+    \param [in]    value  Value to reverse
+    \return               Reversed value
+ */
+__attribute__( ( always_inline ) ) static __INLINE uint32_t __RBIT(uint32_t value)
+{
+  uint32_t result;
+  
+   __ASM volatile ("rbit %0, %1" : "=r" (result) : "r" (value) );
+   return(result);
+}
+
+
+/** \brief  LDR Exclusive (8 bit)
+
+    This function performs a exclusive LDR command for 8 bit value.
+
+    \param [in]    ptr  Pointer to data
+    \return             value of type uint8_t at (*ptr)
+ */
+__attribute__( ( always_inline ) ) static __INLINE uint8_t __LDREXB(volatile uint8_t *addr)
+{
+    uint8_t result;
+  
+   __ASM volatile ("ldrexb %0, [%1]" : "=r" (result) : "r" (addr) );
+   return(result);
+}
+
+
+/** \brief  LDR Exclusive (16 bit)
+
+    This function performs a exclusive LDR command for 16 bit values.
+
+    \param [in]    ptr  Pointer to data
+    \return        value of type uint16_t at (*ptr)
+ */
+__attribute__( ( always_inline ) ) static __INLINE uint16_t __LDREXH(volatile uint16_t *addr)
+{
+    uint16_t result;
+  
+   __ASM volatile ("ldrexh %0, [%1]" : "=r" (result) : "r" (addr) );
+   return(result);
+}
+
+
+/** \brief  LDR Exclusive (32 bit)
+
+    This function performs a exclusive LDR command for 32 bit values.
+
+    \param [in]    ptr  Pointer to data
+    \return        value of type uint32_t at (*ptr)
+ */
+__attribute__( ( always_inline ) ) static __INLINE uint32_t __LDREXW(volatile uint32_t *addr)
+{
+    uint32_t result;
+  
+   __ASM volatile ("ldrex %0, [%1]" : "=r" (result) : "r" (addr) );
+   return(result);
+}
+
+
+/** \brief  STR Exclusive (8 bit)
+
+    This function performs a exclusive STR command for 8 bit values.
+
+    \param [in]  value  Value to store
+    \param [in]    ptr  Pointer to location
+    \return          0  Function succeeded
+    \return          1  Function failed
+ */
+__attribute__( ( always_inline ) ) static __INLINE uint32_t __STREXB(uint8_t value, volatile uint8_t *addr)
+{
+   register uint32_t result;
+  
+   //Fix by TFT: the compiler gcc may generate an invalid instruction, add &
+   //(http://old.nabble.com/-Bug-gas-13215--New%3A-ARM-Cortex-M3-strexh-strexb-instructions-with-same-registers-generates-error-td32516436.html)
+   __ASM volatile ("strexb %0, %2, [%1]" : "=&r" (result) : "r" (addr), "r" (value) );
+   return(result);
+}
+
+
+/** \brief  STR Exclusive (16 bit)
+
+    This function performs a exclusive STR command for 16 bit values.
+
+    \param [in]  value  Value to store
+    \param [in]    ptr  Pointer to location
+    \return          0  Function succeeded
+    \return          1  Function failed
+ */
+__attribute__( ( always_inline ) ) static __INLINE uint32_t __STREXH(uint16_t value, volatile uint16_t *addr)
+{
+   register uint32_t result;
+  
+   //Fix by TFT: the compiler gcc may generate an invalid instruction, add &
+   //(http://old.nabble.com/-Bug-gas-13215--New%3A-ARM-Cortex-M3-strexh-strexb-instructions-with-same-registers-generates-error-td32516436.html)
+   __ASM volatile ("strexh %0, %2, [%1]" : "=&r" (result) : "r" (addr), "r" (value) );
+   return(result);
+}
+
+
+/** \brief  STR Exclusive (32 bit)
+
+    This function performs a exclusive STR command for 32 bit values.
+
+    \param [in]  value  Value to store
+    \param [in]    ptr  Pointer to location
+    \return          0  Function succeeded
+    \return          1  Function failed
+ */
+__attribute__( ( always_inline ) ) static __INLINE uint32_t __STREXW(uint32_t value, volatile uint32_t *addr)
+{
+   register uint32_t result;
+  
+   //Fix by TFT: the compiler gcc may generate an invalid instruction, add &
+    //(http://old.nabble.com/-Bug-gas-13215--New%3A-ARM-Cortex-M3-strexh-strexb-instructions-with-same-registers-generates-error-td32516436.html)
+   __ASM volatile ("strex %0, %2, [%1]" : "=&r" (result) : "r" (addr), "r" (value) );
+   return(result);
+}
+
+//By TFT: end of new functions declaration
 
 
 #elif (defined (__TASKING__)) /*------------------ TASKING Compiler ---------------------*/

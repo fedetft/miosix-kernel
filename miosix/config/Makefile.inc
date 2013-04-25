@@ -259,8 +259,10 @@ endif
 ## Then, initialize C/C++ flags with -D_MIOSIX so that application code can
 ## know if the OS is MIOSIX
 ##
-CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -Wno-unused-but-set-variable
-CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -Wno-unused-but-set-variable
+CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" \
+                 -Wno-unused-but-set-variable -Wno-unused-variable
+CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" \
+                 -Wno-unused-but-set-variable -Wno-unused-variable
 
 ##
 ## Now two big switch-like constructs nested. The first lists all possible

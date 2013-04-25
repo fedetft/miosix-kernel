@@ -17,9 +17,11 @@ kernel/pthread.cpp                                                         \
 kernel/unistd.cpp                                                          \
 kernel/stage_2_boot.cpp                                                    \
 kernel/syscalls.cpp                                                        \
+kernel/default_console.cpp                                                 \
 kernel/scheduler/priority/priority_scheduler.cpp                           \
 kernel/scheduler/control/control_scheduler.cpp                             \
 kernel/scheduler/edf/edf_scheduler.cpp                                     \
+kernel/filesystem/file.cpp                                                 \
 kernel/filesystem/filesystem.cpp                                           \
 kernel/filesystem/ff.c                                                     \
 kernel/filesystem/diskio.cpp                                               \

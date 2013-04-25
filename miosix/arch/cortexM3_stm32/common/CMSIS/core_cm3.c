@@ -607,6 +607,13 @@ void __set_CONTROL(uint32_t control)
   __ASM volatile ("MSR control, %0" : : "r" (control) );
 }
 
+/*
+ * By TFT: these functions definitions have been replaced in the later versions
+ * of the CMSIS by inline functions for greater performance.
+ * This change has been backported here be commenting out the previous version,
+ * and copy-pasting the inline ones from the new CMSIS 
+ */
+#if 0
 
 /**
  * @brief  Reverse byte order in integer value
@@ -776,6 +783,8 @@ uint32_t __STREXW(uint32_t value, uint32_t *addr)
    __ASM volatile ("strex %0, %2, [%1]" : "=&r" (result) : "r" (addr), "r" (value) );
    return(result);
 }
+
+#endif //By TFT: end of commented out part
 
 
 #elif (defined (__TASKING__)) /*------------------ TASKING Compiler ---------------------*/

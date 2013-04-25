@@ -1,5 +1,12 @@
 Changelog for Miosix np embedded OS
 
+- Backported implementation of __REV(), __REV16(), __REVSH(), __RBIT(),
+  __LDREXB(), __LDREXH(), __LDREXW(), __STREXB(), __STREXH(), __STREXW(),
+  from the newer CMSIS to the CMSIS of the stm32f1 and stm32f2 ports.
+  This results in a performance increase as those functions are now inline.
+  Also, for what concerns the LDREX and STREX family of functions, now the
+  pointer parameter is volatile in all ports, which helps writing code
+  that calls these functions and works consistently across all ports.
 - Changed version number from v1.61 to v20.alpha1 in version.cpp.
 - Added -Wno-unused-but-set-variable to Makefile.
 - Added testsuite check for global objects support outside of the kernel.
