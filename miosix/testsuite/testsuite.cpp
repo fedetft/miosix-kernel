@@ -37,6 +37,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <vector>
+#include <cassert>
 #include <sys/stat.h>
 #include <pthread.h>
 #include <errno.h>
@@ -50,6 +51,7 @@
 #include "board_settings.h"
 #include "interfaces/endianness.h"
 #include "miosix/e20/e20.h"
+#include "kernel/intrusive.h"
 #include "util/crc16.h"
 
 using namespace std::tr1;
@@ -91,6 +93,7 @@ static void test_20();
 static void test_21();
 static void test_22();
 static void test_23();
+static void test_24();
 //Filesystem test functions
 #ifdef WITH_FILESYSTEM
 static void fs_test_1();
@@ -154,6 +157,7 @@ int main()
                 test_21();
                 test_22();
                 test_23();
+                test_24();
                 
                 ledOff();
                 Thread::sleep(500);//Ensure all threads are deleted.
@@ -2925,6 +2929,344 @@ static void test_23()
     t->join();
     pthread_mutex_unlock(&t23_m3);
     pthread_mutex_unlock(&t23_m3);
+    
+    pass();
+}
+
+//
+// Test 24
+//
+
+/*
+tests:
+intrusive_ref_ptr
+*/
+
+static bool dtorCalled; // Set to true by class destructors
+
+class Base1
+{
+public:
+    Base1() : a(0) {}
+    virtual void check() { assert(a==0); }
+    virtual ~Base1() { dtorCalled=true; a=-1; }
+private:
+    int a;
+};
+
+class Middle1 : public Base1, public IntrusiveRefCounted
+{
+public:
+    Middle1() : b(0) {}
+    virtual void check() { Base1::check(); assert(b==0); }
+    virtual ~Middle1() { b=-1; }
+private:
+    int b;
+};
+
+class Other
+{
+public:
+    Other() : c(0) {}
+    virtual void check() { assert(c==0); }
+    virtual ~Other() { c=-1; }
+private:
+    int c;
+};
+
+class Derived1 : public Middle1, public Other
+{
+public:
+    Derived1() : d(0) {}
+    virtual void check() { Middle1::check(); Other::check(); assert(d==0); }
+    virtual ~Derived1() { d=-1; }
+private:
+    int d;
+};
+
+class Derived2 : public Other, public Middle1
+{
+public:
+    Derived2() : e(0) {}
+    virtual void check() { Other::check(); Middle1::check(); assert(e==0); }
+    virtual ~Derived2() { e=-1; }
+private:
+    int e;
+};
+
+class Base0 : public IntrusiveRefCounted
+{
+public:
+    Base0() : f(0) {}
+    virtual void check() { assert(f==0); }
+    virtual ~Base0() { dtorCalled=true; f=-1; }
+private:
+    int f;
+};
+
+class Derived0 : public Base0
+{
+public:
+    Derived0() : g(0) {}
+    virtual void check() { Base0::check(); assert(g==0); }
+    virtual ~Derived0() { g=-1; }
+private:
+    int g;
+};
+
+template<typename T, typename U>
+void checkAtomicOps()
+{
+    dtorCalled=false;
+    {
+        intrusive_ref_ptr<T> ptr1(new U);
+        intrusive_ref_ptr<T> ptr2;
+        
+        // Check atomic_load()
+        ptr2=atomic_load(&ptr1);
+        ptr2->check();
+        assert(ptr1==ptr2);
+        assert(dtorCalled==false);
+        
+        // Check atomic_store() on an empty intrusive_ref_ptr
+        ptr1.reset();
+        atomic_store(&ptr1,ptr2);
+        ptr1->check();
+        assert(ptr1==ptr2);
+        assert(dtorCalled==false);
+    }
+    assert(dtorCalled);
+    
+    // Check atomic_store() on an intrusive_ref_ptr containing an object
+    dtorCalled=false;
+    {
+        intrusive_ref_ptr<T> ptr1(new U);
+        intrusive_ref_ptr<T> ptr2(new U);
+        atomic_store(&ptr1,ptr2);
+        assert(dtorCalled);
+        dtorCalled=false;
+        ptr1->check();
+        assert(ptr1==ptr2);
+    }
+    assert(dtorCalled);
+}
+
+static intrusive_ref_ptr<Base0> threadShared; // Shared among threads
+
+static void *thread(void*)
+{
+    for(;;)
+    {
+        intrusive_ref_ptr<Base0> empty;
+        atomic_store(&threadShared,empty);
+        
+        intrusive_ref_ptr<Base0> result;
+        result=atomic_load(&threadShared);
+        if(result) result->check();
+        
+        intrusive_ref_ptr<Base0> full(new Base0);
+        atomic_store(&threadShared,full);
+        
+        result=atomic_load(&threadShared);
+        if(result) result->check();
+    }
+}
+
+static void test_24()
+{
+    test_name("intrusive_ref_ptr");
+    
+    // Default constructor
+    dtorCalled=false;
+    {
+        intrusive_ref_ptr<Base0> ptr1;
+        assert(ptr1==0);
+    }
+    assert(dtorCalled==false);
+    
+    // Simple use
+    dtorCalled=false;
+    {
+        intrusive_ref_ptr<Base0> ptr1(new Base0);
+        ptr1->check();
+        
+        Base0 *p=ptr1.get();
+        p->check();
+        
+        Base0& r=*ptr1;
+        r.check();
+    }
+    assert(dtorCalled);
+    
+    // Copy construction, nested
+    dtorCalled=false;
+    {
+        intrusive_ref_ptr<Base0> ptr1(new Base0);
+        {
+            intrusive_ref_ptr<Base0> ptr2(ptr1);
+            ptr2->check();
+        }
+        assert(dtorCalled==false);
+    }
+    assert(dtorCalled);
+    
+    // Copy construction, interleaved
+    dtorCalled=false;
+    {
+        intrusive_ref_ptr<Base0> *ptr1=new intrusive_ref_ptr<Base0>(new Base0);
+        intrusive_ref_ptr<Base0> *ptr2=new intrusive_ref_ptr<Base0>(*ptr1);
+        (*ptr2)->check();
+        delete ptr1;
+        assert(dtorCalled==false);
+        delete ptr2;
+    }
+    assert(dtorCalled);
+    
+    // Operator=
+    dtorCalled=false;
+    {
+        intrusive_ref_ptr<Base0> ptr1(new Base0);
+        {
+            intrusive_ref_ptr<Base0> ptr2(new Base0);
+            ptr2=ptr1; // Replaces the instance, deletes it
+            assert(dtorCalled);
+            dtorCalled=false;
+            ptr2->check();
+        }
+        assert(dtorCalled==false);
+    }
+    assert(dtorCalled);
+    
+    // Operator=, with raw pointer
+    dtorCalled=false;
+    {
+        intrusive_ref_ptr<Base0> ptr1(new Base0);
+        ptr1=new Base0; // Replaces the instance, deletes it
+        assert(dtorCalled);
+        dtorCalled=false;
+        ptr1->check();
+    }
+    assert(dtorCalled);
+    
+    // Upcasting, with copy constructor
+    dtorCalled=false;
+    {
+        intrusive_ref_ptr<Derived0> ptr1(new Derived0);
+        {
+            intrusive_ref_ptr<Base0> ptr2(ptr1);
+            ptr2->check();
+        }
+        assert(dtorCalled==false);
+    }
+    assert(dtorCalled);
+    
+    // Upcasting, with operator=
+    dtorCalled=false;
+    {
+        intrusive_ref_ptr<Derived0> ptr1(new Derived0);
+        {
+            intrusive_ref_ptr<Base0> ptr2(new Base0);
+            ptr2=ptr1; // Replaces the instance, deletes it
+            assert(dtorCalled);
+            dtorCalled=false;
+            ptr2->check();
+        }
+        assert(dtorCalled==false);
+    }
+    assert(dtorCalled);
+    
+    // Successful downcasting
+    dtorCalled=false;
+    {
+        intrusive_ref_ptr<Middle1> ptr1(new Derived1);
+        ptr1->check();
+        {
+            intrusive_ref_ptr<Derived1> ptr2=
+                dynamic_pointer_cast<Derived1>(ptr1);
+            assert(ptr2);
+            ptr2->check();
+        }
+        assert(dtorCalled==false);
+    }
+    assert(dtorCalled);
+    
+    // Failed downcasting
+    dtorCalled=false;
+    {
+        intrusive_ref_ptr<Middle1> ptr1(new Derived2);
+        {
+            intrusive_ref_ptr<Derived1> ptr2=
+                dynamic_pointer_cast<Derived1>(ptr1);
+            assert(ptr2==0);
+        }
+        assert(dtorCalled==false);
+    }
+    assert(dtorCalled);
+    
+    // Swap
+    dtorCalled=false;
+    {
+        intrusive_ref_ptr<Base0> ptr1(new Base0);
+        {
+            intrusive_ref_ptr<Base0> ptr2(new Derived0);
+            ptr1.swap(ptr2);
+            assert(dtorCalled==false);
+            ptr1->check();
+            ptr2->check();
+        }
+        assert(dtorCalled);
+        dtorCalled=false;
+        assert(dynamic_pointer_cast<Derived0>(ptr1));
+    }
+    assert(dtorCalled);
+    
+    // Reset, on an unshared pointer
+    dtorCalled=false;
+    {
+        intrusive_ref_ptr<Base0> ptr1(new Base0);
+        ptr1.reset();
+        assert(dtorCalled);
+        assert(ptr1==0);
+    }
+    
+    // Reset, on a shared pointer
+    dtorCalled=false;
+    {
+        intrusive_ref_ptr<Base0> ptr1(new Base0);
+        {
+            intrusive_ref_ptr<Base0> ptr2(ptr1);
+            ptr1.reset();
+            assert(ptr1==0);
+            assert(ptr2!=0);
+            ptr2->check();
+        }
+        assert(dtorCalled);
+    }
+    
+    // atomic_load(), atomic_store(), directly derived from intrusive_ref_ptr
+    checkAtomicOps<Middle1,Middle1>();
+    checkAtomicOps<Base0,Base0>();
+    
+    // atomic_load(), atomic_store(), indirectly derived from intrusive_ref_ptr
+    checkAtomicOps<Derived0,Derived0>();
+    checkAtomicOps<Derived1,Derived1>();
+    checkAtomicOps<Derived2,Derived2>();
+    
+    // atomic_load(), atomic_store(), with polimorphism
+    checkAtomicOps<Base0,Derived0>();
+    checkAtomicOps<Middle1,Derived1>();
+    checkAtomicOps<Middle1,Derived2>();
+    
+    // Thread safety of atomic_load() and atomic_store()
+    // Actually, this test never ends, and to adequately stress the
+    // synchronizations on a single core machine a delay needs to be inserted
+    // between the ldrex and strex into the implementation of
+    // interfaces/atomic_ops.h. This is why this part of the test is not done
+//    pthread_t t1,t2,t3;
+//    pthread_create(&t1,NULL,thread,NULL);
+//    pthread_create(&t2,NULL,thread,NULL);
+//    pthread_create(&t3,NULL,okThread,NULL);
+//    pthread_join(t1,NULL);
     
     pass();
 }

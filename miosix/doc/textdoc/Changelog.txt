@@ -1,7 +1,8 @@
 Changelog for Miosix np embedded OS
 
 - Added an intrusive, lock free, reference counting smart pointer.
-  To use it, #include "kernel/intrusive.h"
+  To use it, #include "kernel/intrusive.h". Also added tests to the
+  testsuite for intrusive_ref_ptr.
 - Added a set of atomic operations too all the cortex ports. These functions
   are available by #including "interfaces/atomic_ops.h"
 - Backported implementation of __REV(), __REV16(), __REVSH(), __RBIT(),

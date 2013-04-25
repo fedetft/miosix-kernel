@@ -61,6 +61,7 @@
               </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
+                <in>atomic_ops_impl.h</in>
                 <in>delays.cpp</in>
                 <in>disk.cpp</in>
                 <in>endianness_impl.h</in>
@@ -145,6 +146,7 @@
               </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
+                <in>atomic_ops_impl.h</in>
                 <in>disk.cpp</in>
                 <in>endianness_impl.h</in>
                 <in>gpio_impl.cpp</in>
@@ -214,6 +216,7 @@
               </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
+                <in>atomic_ops_impl.h</in>
                 <in>delays.cpp</in>
                 <in>endianness_impl.h</in>
                 <in>gpio_impl.cpp</in>
@@ -256,6 +259,7 @@
               </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
+                <in>atomic_ops_impl.h</in>
                 <in>delays.cpp</in>
                 <in>disk.cpp</in>
                 <in>endianness_impl.h</in>
@@ -322,6 +326,7 @@
         </df>
         <df name="interfaces">
           <in>arch_registers.h</in>
+          <in>atomic_ops.h</in>
           <in>bsp.h</in>
           <in>console.h</in>
           <in>delays.h</in>
