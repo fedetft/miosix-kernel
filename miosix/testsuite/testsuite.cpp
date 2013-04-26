@@ -3053,24 +3053,25 @@ void checkAtomicOps()
 
 static intrusive_ref_ptr<Base0> threadShared; // Shared among threads
 
-static void *thread(void*)
-{
-    for(;;)
-    {
-        intrusive_ref_ptr<Base0> empty;
-        atomic_store(&threadShared,empty);
-        
-        intrusive_ref_ptr<Base0> result;
-        result=atomic_load(&threadShared);
-        if(result) result->check();
-        
-        intrusive_ref_ptr<Base0> full(new Base0);
-        atomic_store(&threadShared,full);
-        
-        result=atomic_load(&threadShared);
-        if(result) result->check();
-    }
-}
+//static void *thread(void*)
+//{
+//    for(;;)
+//    {
+//        intrusive_ref_ptr<Base0> empty;
+//        atomic_store(&threadShared,empty);
+//        
+//        intrusive_ref_ptr<Base0> result;
+//        result=atomic_load(&threadShared);
+//        if(result) result->check();
+//        
+//        intrusive_ref_ptr<Base0> full(new Base0);
+//        atomic_store(&threadShared,full);
+//        
+//        result=atomic_load(&threadShared);
+//        if(result) result->check();
+//    }
+//    return 0;
+//}
 
 static void test_24()
 {

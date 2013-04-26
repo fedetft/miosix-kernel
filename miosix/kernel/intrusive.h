@@ -88,6 +88,7 @@ protected:
         // but that's wrong, as we have two distinct object (i.e, chunks of
         // memory to be managed), and their reference counts need to stay
         // separate, so do nothing in operator=
+        return *this;
     }
     
     // No destructor

@@ -146,7 +146,8 @@ inline int atomicCompareAndSwap(volatile int *p, int prev, int next);
  * \param incr value to be added to **p+offset*sizeof(int) 
  * \return *p
  */
-void *atomicFetchAndIncrement(void * const volatile * p, int offset, int incr);
+inline void *atomicFetchAndIncrement(void * const volatile * p, int offset,
+        int incr);
 
 } //namespace miosix
 

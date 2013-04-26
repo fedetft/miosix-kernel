@@ -231,15 +231,6 @@ void sleepCpu()
     PCON|=IDL;
 }
 
-int atomicSwap(int newval, int *var)
-{
-    //ARM calling conventions say the 1st function arg is in r0, the second in r1
-    //and the return value is in r0
-    register int retval asm("r0");
-    asm volatile(	"swp	r0, r0, [r1]	");
-    return retval;
-}
-
 #ifdef SCHED_TYPE_CONTROL_BASED
 void AuxiliaryTimer::IRQinit()
 {

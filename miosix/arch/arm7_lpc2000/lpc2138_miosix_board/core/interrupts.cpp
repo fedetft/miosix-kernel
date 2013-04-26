@@ -99,8 +99,8 @@ extern "C" void UNDEF_Routine()
     //These two instructions MUST be the first two instructions of the interrupt
     //routine. They store in return_address the pc of the instruction that
     //caused the interrupt.
-    volatile register int returnAddress asm("r5");
-    asm volatile("mov	r5, lr");
+    register int returnAddress;
+    asm volatile("mov	%0, lr" : "=r"(returnAddress));
 
     IRQerrorLog("\r\n***Unexpected UNDEF @ ");
     printUnsignedInt(returnAddress);
@@ -124,8 +124,8 @@ extern "C" void DABT_Routine()
     //These two instructions MUST be the first two instructions of the interrupt
     //routine. They store in return_address the pc of the instruction that
     //caused the interrupt. (lr has an offset of 8 during a data abort)
-    volatile register int returnAddress asm("r5");
-    asm volatile("sub	r5, lr, #8");
+    register int returnAddress;
+    asm volatile("sub	%0, lr, #8" : "=r"(returnAddress));
 
     IRQerrorLog("\r\n***Unexpected data abort @ ");
     printUnsignedInt(returnAddress);
@@ -149,8 +149,8 @@ extern "C" void PABT_Routine()
     //These two instructions MUST be the first two instructions of the interrupt
     //routine. They store in return_address the pc of the instruction that
     //caused the interrupt. (lr has an offset of 4 during a data abort)
-    volatile register int returnAddress asm("r5");
-    asm volatile("sub	r5, lr, #4");
+    register int returnAddress;
+    asm volatile("sub	%0, lr, #4" : "=r"(returnAddress));
 
     IRQerrorLog("\r\n***Unexpected prefetch abort @ ");
     printUnsignedInt(returnAddress);

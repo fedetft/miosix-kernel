@@ -215,17 +215,6 @@ inline bool checkAreInterruptsEnabled()
 }
 
 /**
- * Atomic swap, may be used to implement critical sections efficiently. If the
- * cpu supports it implemented using the cpu assembler intruction, else emulated
- * by disabling the kernel. The implementation on the ARM7 cpu uses the
- * dedicated assembler instruction.
- * \param newval new value to be written to var
- * \param var pointer to a variable
- * \return old value stored in var
- */
-int atomicSwap(int newval, int *var);
-
-/**
  * \}
  */
 

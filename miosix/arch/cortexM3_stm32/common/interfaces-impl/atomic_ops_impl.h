@@ -80,7 +80,8 @@ inline int atomicCompareAndSwap(volatile int *p, int prev, int next)
     return result;
 }
 
-void *atomicFetchAndIncrement(void * const volatile * p, int offset, int incr)
+inline void *atomicFetchAndIncrement(void * const volatile * p, int offset,
+        int incr)
 {
     void *result;
     volatile uint32_t *rcp;
