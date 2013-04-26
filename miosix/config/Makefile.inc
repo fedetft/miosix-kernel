@@ -260,9 +260,9 @@ endif
 ## know if the OS is MIOSIX
 ##
 CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" \
-                 -Wno-unused-but-set-variable -Wno-unused-variable
+                 -Wno-unused-but-set-variable
 CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" \
-                 -Wno-unused-but-set-variable -Wno-unused-variable
+                 -Wno-unused-but-set-variable
 
 ##
 ## Now two big switch-like constructs nested. The first lists all possible

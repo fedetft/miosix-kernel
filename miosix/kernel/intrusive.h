@@ -143,9 +143,10 @@ public:
         // This is a static_assert to disallow polimorphic upcasting
         // of non polimorphic classes, as this will lead to bugs
         #if __cplusplus > 199711L
-        char check[std::has_virtual_destructor<T>() ? 1 : -1];
+        typedef char check[std::has_virtual_destructor<T>() ? 1 : -1];
         #else // c++11
-        char check[__has_virtual_destructor(T) ? 1 : -1]; // GCC/clang specific
+        // GCC/clang specific
+        typedef char check[__has_virtual_destructor(T) ? 1 : -1];
         #endif // c++11
     }
     
@@ -171,9 +172,10 @@ public:
         // This is a static_assert to disallow polimorphic upcasting
         // of non polimorphic classes, as this will lead to bugs
         #if __cplusplus > 199711L
-        char check[std::has_virtual_destructor<T>() ? 1 : -1];
+        typedef char check[std::has_virtual_destructor<T>() ? 1 : -1];
         #else // c++11
-        char check[__has_virtual_destructor(T) ? 1 : -1]; // GCC/clang specific
+        // GCC/clang specific
+        typedef char check[__has_virtual_destructor(T) ? 1 : -1];
         #endif // c++11
     }
     
@@ -316,9 +318,10 @@ intrusive_ref_ptr<T>& intrusive_ref_ptr<T>::operator=
     // This is a static_assert to disallow polimorphic upcasting
     // of non polimorphic classes, as this will lead to bugs
     #if __cplusplus > 199711L
-    char check[std::has_virtual_destructor<T>() ? 1 : -1];
+    typedef char check[std::has_virtual_destructor<T>() ? 1 : -1];
     #else // c++11
-    char check[__has_virtual_destructor(T) ? 1 : -1]; // GCC/clang specific
+    // GCC/clang specific
+    typedef char check[__has_virtual_destructor(T) ? 1 : -1];
     #endif // c++11
     
     return *this;
@@ -356,7 +359,7 @@ intrusive_ref_ptr<T> intrusive_ref_ptr<T>::atomic_load() const
     
     // This is a static assert to check that referenceCount is
     // properly aligned for the following code to work
-    char check[(offsetBytes % sizeof(int))==0 ? 1 : -1];
+    typedef char check[(offsetBytes % sizeof(int))==0 ? 1 : -1];
     
     const int offsetInt=offsetBytes/sizeof(int);
     void * const volatile * objectPtrAddr=
@@ -378,7 +381,7 @@ intrusive_ref_ptr<T> intrusive_ref_ptr<T>::atomic_exchange(
     // This is a static assert to check that the following reinterpret_casts
     // will work as intended. This also means that this code won't work on
     // 64bit machines but for Miosix this isn't a problem for now.
-    char check[sizeof(void*)==sizeof(int) ? 1 : -1];
+    typedef char check[sizeof(void*)==sizeof(int) ? 1 : -1];
     
     int tempInt=reinterpret_cast<int>(temp);
     volatile int *objectAddrInt=reinterpret_cast<volatile int*>(&object);
