@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011 by Terraneo Federico             *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 by Terraneo Federico *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -48,6 +48,7 @@
 #include "miosix/kernel/buffer_queue.h"
 #include "config/miosix_settings.h"
 #include "interfaces/console.h"
+#include "interfaces/atomic_ops.h"
 #include "board_settings.h"
 #include "interfaces/endianness.h"
 #include "miosix/e20/e20.h"
@@ -2835,11 +2836,31 @@ static void test_21()
 tests:
 __atomic_add()
 __exchange_and_add()
-These are not actually in the kernel but in the patches to gcc 
+These are not actually in the kernel but in the patches to gcc
+also tests atomic operations provided by miosix (interfaces/atomic_ops.h)
 */
 
 static int t22_v1;
 static int t22_v2;
+static int t22_v3;
+static int t22_v4;
+
+static bool t22_v5;
+
+struct t22_s1
+{
+    int a;
+    int b;
+};
+
+static void t22_t2(void *argv)
+{
+    while(Thread::testTerminate()==false)
+    {
+        t22_v5=true;
+        Thread::yield();
+    }
+}
 
 static void *t22_t1(void*)
 {
@@ -2847,24 +2868,116 @@ static void *t22_t1(void*)
 	{
 		__gnu_cxx::__atomic_add(&t22_v1,1);
 		__gnu_cxx::__exchange_and_add(&t22_v2,-1);
+        atomicAdd(&t22_v3,1);
+        atomicAddExchange(&t22_v4,1);
 	}
 	return 0;
 }
 
 static void test_22()
 {
-    test_name("Atomics in gcc");
-    t22_v1=0;
-    t22_v2=0;
+    test_name("Atomic ops");
+    
+    //Check thread safety for atomic ops (both GCC provided and the miosix ones)
+    t22_v1=t22_v2=t22_v3=t22_v4=0;
     pthread_t t;
     pthread_create(&t,0,t22_t1,0);
     for(int i=0;i<100000;i++)
     {
         __gnu_cxx::__atomic_add(&t22_v1,-1);
         __gnu_cxx::__exchange_and_add(&t22_v2,1);
+        atomicAdd(&t22_v3,-1);
+        atomicAddExchange(&t22_v4,-1);
     }
     pthread_join(t,0);
-    if(t22_v1!=0 || t22_v2!=0) fail("not thread safe");
+    if(t22_v1!=0 || t22_v2!=0 || t22_v3!=0 || t22_v4!=0)
+        fail("not thread safe");
+    
+    //Functional test for miosix atomic ops
+    int x=10;
+    if(atomicSwap(&x,20)!=10) fail("atomicSwap 1");
+    if(x!=20) fail("atomicSwap 2");
+    
+    x=10;
+    atomicAdd(&x,-5);
+    if(x!=5) fail("atomicAdd");
+    
+    x=10;
+    if(atomicAddExchange(&x,5)!=10) fail("atomicAddExchange 1");
+    if(x!=15) fail("atomicAddExchange 2");
+    
+    x=10;
+    if(atomicCompareAndSwap(&x,11,12)!=10) fail("atomicCompareAndSwap 1");
+    if(x!=10) fail("atomicCompareAndSwap 2");
+    if(atomicCompareAndSwap(&x,10,13)!=10) fail("atomicCompareAndSwap 3");
+    if(x!=13) fail("atomicCompareAndSwap 4");
+    
+    t22_s1 data;
+    t22_s1 *dataPtr=&data;
+    void * const volatile *ptr=
+        reinterpret_cast<void * const volatile *>(&dataPtr);
+    data.a=0;
+    data.b=10;
+    
+    if(atomicFetchAndIncrement(ptr,0,2)!=dataPtr)
+        fail("atomicFetchAndIncrement 1");
+    if(data.a!=2) fail("atomicFetchAndIncrement 2");
+    if(atomicFetchAndIncrement(ptr,1,-2)!=dataPtr)
+        fail("atomicFetchAndIncrement 3");
+    if(data.b!=8) fail("atomicFetchAndIncrement 4");
+    
+    //Check that the implementation works with interrupts disabled too
+    bool error=false;
+    Thread *t2=Thread::create(t22_t2,STACK_MIN,0,0,Thread::JOINABLE);
+    {
+        FastInterruptDisableLock dLock;
+        t22_v5=false;
+        
+        int x=10;
+        if(atomicSwap(&x,20)!=10) error=true;
+        if(x!=20) error=true;
+        
+        delayMs(5); //Wait to check that interrupts are disabled
+
+        x=10;
+        atomicAdd(&x,-5);
+        if(x!=5) error=true;
+        
+        delayMs(5); //Wait to check that interrupts are disabled
+
+        x=10;
+        if(atomicAddExchange(&x,5)!=10) error=true;
+        if(x!=15) error=true;
+        
+        delayMs(5); //Wait to check that interrupts are disabled
+
+        x=10;
+        if(atomicCompareAndSwap(&x,11,12)!=10) error=true;
+        if(x!=10) error=true;
+        if(atomicCompareAndSwap(&x,10,13)!=10) error=true;
+        if(x!=13) error=true;
+        
+        delayMs(5); //Wait to check that interrupts are disabled
+
+        t22_s1 data;
+        t22_s1 *dataPtr=&data;
+        void * const volatile *ptr=
+            reinterpret_cast<void * const volatile *>(&dataPtr);
+        data.a=0;
+        data.b=10;
+        if(atomicFetchAndIncrement(ptr,0,2)!=dataPtr) error=true;
+        if(data.a!=2) error=true;
+        if(atomicFetchAndIncrement(ptr,1,-2)!=dataPtr) error=true;
+        if(data.b!=8) error=true;
+        
+        delayMs(5); //Wait to check that interrupts are disabled
+        if(t22_v5) error=true;
+    }
+    if(error) fail("Interrupt test not passed");
+    
+    t2->terminate();
+    t2->join();
+    
     pass();
 }
 

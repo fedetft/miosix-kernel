@@ -1,5 +1,6 @@
 Changelog for Miosix np embedded OS
 
+- Added tests to testsuite for atomic operations
 - Added atomic ops emulation for ARM7 port
 - Added an intrusive, lock free, reference counting smart pointer.
   To use it, #include "kernel/intrusive.h". Also added tests to the
