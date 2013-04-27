@@ -52,6 +52,7 @@ mkdir log
 patch -p0 < gcc-patches/svc.patch		|| quit ":: Failed patching binutils"
 patch -p0 < gcc-patches/gcc.patch		|| quit ":: Failed patching gcc"
 patch -p0 < gcc-patches/newlib.patch	|| quit ":: Failed patching newlib"
+patch -p0 < gcc-patches/gcc-doc.patch   || quit ":: Failed patching gcc texinfo files"
 
 #
 # Part 3: compile and install binutils
