@@ -1,5 +1,9 @@
 Changelog for Miosix np embedded OS
 
+- Improved pauseKernel() and restartKernel() implementation using atomic
+  operations. Tests show a +20% to +40% performance improvement for
+  pauseKernel() and restartKernel(), and a +15% performance improvement
+  for Mutex operations
 - Added tests to testsuite for atomic operations
 - Added atomic ops emulation for ARM7 port
 - Added an intrusive, lock free, reference counting smart pointer.

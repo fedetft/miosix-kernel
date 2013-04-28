@@ -28,6 +28,7 @@
 
 #include "kernel.h"
 #include "interfaces/portability.h"
+#include "interfaces/atomic_ops.h"
 #include "error.h"
 #include "logging.h"
 #include "arch_settings.h"
@@ -62,7 +63,7 @@ static SleepData *sleeping_list=NULL;///<\internal list of sleeping threads
 static volatile long long tick=0;///<\internal Kernel tick
 
 ///\internal !=0 after pauseKernel(), ==0 after restartKernel()
-unsigned char kernel_running=0;
+volatile int kernel_running=0;
 
 ///\internal true if a tick occurs while the kernel is paused
 volatile bool tick_skew=false;
@@ -122,33 +123,20 @@ void enableInterrupts()
 
 void pauseKernel()
 {
-    miosix_private::doDisableInterrupts();
-    if(kernel_running==0xff) errorHandler(NESTING_OVERFLOW);
-    kernel_running++;
-    
-    //Check interruptDisableNesting to allow pauseKernel() while interrupts
-    //are disabled with an InterruptDisableLock
-    if(interruptDisableNesting==0 && kernel_started==true)
-        miosix_private::doEnableInterrupts();
+    int old=atomicAddExchange(&kernel_running,1);
+    if(old>=0xff) errorHandler(NESTING_OVERFLOW);
 }
 
 void restartKernel()
 {
-    miosix_private::doDisableInterrupts();
-    if(kernel_running==0)
-    {
-        //Bad, restartKernel was called one time more than pauseKernel
-        errorHandler(PAUSE_KERNEL_NESTING);
-    }
-    kernel_running--;
+    int old=atomicAddExchange(&kernel_running,-1);
+    if(old<=0) errorHandler(PAUSE_KERNEL_NESTING);
     
     //Check interruptDisableNesting to allow pauseKernel() while interrupts
     //are disabled with an InterruptDisableLock
     if(interruptDisableNesting==0)
     {
-        if(kernel_started==true) miosix_private::doEnableInterrupts();
-    
-        if((kernel_running==0)&&tick_skew)//If we missed some tick yield immediately
+        if(old==0 && tick_skew) //If we missed some tick yield immediately
         { 
             tick_skew=false;
             Thread::yield();

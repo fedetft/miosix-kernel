@@ -7,6 +7,7 @@
           <df name="arm7_lpc2000">
             <df name="common">
               <df name="interfaces-impl">
+                <in>atomic_ops_impl.h</in>
                 <in>endianness_impl.h</in>
               </df>
               <in>arch_settings.h</in>
