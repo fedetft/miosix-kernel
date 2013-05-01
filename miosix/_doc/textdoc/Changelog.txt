@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
-- Moved the bootloaders, compiler and testsuite directories inside miosix/_tools
+- Moved filesystem directory from miosix/kernel/filesystem to miosix/filesystem
+- Moved the bootloaders, compiler and testsuite directories inside
+  miosix/_tools.
 - Reorganized directory structure, all subdirectories of the miosix directory
   that do not contain code that is compiled into the Miosix kernel now start
   with an underscore, to be easily recognizable. These are: the _doc directory

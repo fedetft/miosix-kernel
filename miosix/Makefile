@@ -21,10 +21,10 @@ kernel/default_console.cpp                                                 \
 kernel/scheduler/priority/priority_scheduler.cpp                           \
 kernel/scheduler/control/control_scheduler.cpp                             \
 kernel/scheduler/edf/edf_scheduler.cpp                                     \
-kernel/filesystem/file.cpp                                                 \
-kernel/filesystem/filesystem.cpp                                           \
-kernel/filesystem/ff.c                                                     \
-kernel/filesystem/diskio.cpp                                               \
+filesystem/file.cpp                                                        \
+filesystem/filesystem.cpp                                                  \
+filesystem/ff.c                                                            \
+filesystem/diskio.cpp                                                      \
 e20/e20.cpp                                                                \
 util/util.cpp                                                              \
 util/version.cpp                                                           \
@@ -48,7 +48,7 @@ AFLAGS   :=  $(AFLAGS_BASE)
 ## The file stage_1_boot.o is compiled separately because
 ## it must not end up in libmiosix.a
 all: $(OBJ) $(BOOT_FILE)
-	perl tools/check_global_objects.pl $(OBJ)
+	perl _tools/check_global_objects.pl $(OBJ)
 	$(AR) rcs libmiosix.a $(OBJ)
 
 clean:

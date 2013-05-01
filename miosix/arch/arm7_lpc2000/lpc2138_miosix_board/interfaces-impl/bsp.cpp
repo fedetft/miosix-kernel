@@ -30,7 +30,6 @@
 * Board support package, this file initializes hardware.
 ************************************************************************/
 
-
 #include <cstdlib>
 #include <inttypes.h>
 #include "interfaces/bsp.h"
@@ -38,7 +37,7 @@
 #include "interfaces/delays.h"
 #include "drivers/serial.h"
 #ifdef WITH_FILESYSTEM
-#include "kernel/filesystem/filesystem.h"
+#include "filesystem/filesystem.h"
 #endif //WITH_FILESYSTEM
 #include "kernel/kernel.h"
 #include "kernel/sync.h"

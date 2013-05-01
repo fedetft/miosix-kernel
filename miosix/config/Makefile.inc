@@ -68,7 +68,8 @@ ifeq ($(OPT_BOARD),stm32f103ze_stm3210e-eval)
     ## 3) Code + stack + heap in external RAM, (file *_all_in_xram.ld)
     ##    useful for debugging code in hardware like STM3210E-EVAL. Code runs
     ##    *very* slow compared to FLASH. Works only with a booloader that
-    ##    forwards interrrupts @ 0x68000000 (see miosix/bootloaders for one).
+    ##    forwards interrrupts @ 0x68000000 (see miosix/_tools/bootloaders for
+    ##    one).
     ##    The microcontroller must have an external memory interface.
     ## Warning! enable external ram if you use a linker script that requires it
     ## (see the XRAM flag below)
@@ -160,7 +161,8 @@ ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
     ## 3) Code + stack + heap in external RAM, (file *_all_in_xram.ld)
     ##    useful for debugging code in hardware like STM3220G-EVAL. Code runs
     ##    *very* slow compared to FLASH. Works only with a booloader that
-    ##    forwards interrrupts @ 0x64000000 (see miosix/bootloaders for one).
+    ##    forwards interrrupts @ 0x64000000 (see miosix/_tools/bootloaders for
+    ##    one).
     ##    The microcontroller must have an external memory interface.
     ## Warning! enable external ram if you use a linker script that requires it
     ## (see the XRAM flag below)
@@ -192,7 +194,8 @@ ifeq ($(OPT_BOARD),stm32f207zg_ethboard_v2)
     ## 2) Code in external RAM, stack + heap in internal RAM
     ##    (file *_code_in_xram.ld) useful for debugging. Code runs
     ##    *very* slow compared to FLASH. Works only with a booloader that
-    ##    forwards interrrupts @ 0x60000000 (see miosix/bootloaders for one).
+    ##    forwards interrrupts @ 0x60000000 (see miosix/_tools/bootloaders for
+    ##    one).
     ##    You must -D__CODE_IN_XRAM below.
     LINKER_SCRIPT_PATH := arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom.ld
@@ -382,7 +385,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## error message saying that 'make program' is not supported for that
         ## board.
         ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_512k+64k_all_in_xram.ld)
-        PROGRAM_CMDLINE := miosix/bootloaders/stm32/pc_loader/pc_loader \
+        PROGRAM_CMDLINE := miosix/_tools/bootloaders/stm32/pc_loader/pc_loader \
         /dev/ttyUSB0 main.bin
         else
         PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB0
@@ -732,7 +735,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## error message saying that 'make program' is not supported for that
         ## board.
         ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld)
-        PROGRAM_CMDLINE := miosix/bootloaders/stm32/pc_loader/pc_loader \
+        PROGRAM_CMDLINE := miosix/_tools/bootloaders/stm32/pc_loader/pc_loader \
         /dev/ttyUSB0 main.bin
         else
         PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
@@ -775,7 +778,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## error message saying that 'make program' is not supported for that
         ## board.
         ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_1m+128k_code_in_xram.ld)
-        PROGRAM_CMDLINE := miosix/bootloaders/stm32/pc_loader/pc_loader \
+        PROGRAM_CMDLINE := miosix/_tools/bootloaders/stm32/pc_loader/pc_loader \
         /dev/ttyUSB1 main.bin
         else
         PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1

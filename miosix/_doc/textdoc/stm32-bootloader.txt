@@ -17,7 +17,7 @@ You'll need gcc (and g++), CMake and the boost libraries installed.
 Windows build was not tested but should work. Linux and Mac OSX were tested.
 
 run these commands with a shell opened in the
-miosix/booltloaders/stm3210e-eval/pc_loader
+miosix/_tools/booltloaders/stm32/pc_loader/pc_loader
 directory
 
 mkdir build
@@ -57,7 +57,7 @@ make
 the expected device name for the serial port is /dev/ttyUSB0,
 if not modify the line
 
-PROGRAM_CMDLINE := miosix/bootloaders/stm3210e-eval/pc_loader/pc_loader \
+PROGRAM_CMDLINE := miosix/_tools/bootloaders/pc_loader/pc_loader \
         /dev/ttyUSB0 main.bin
 
 in miosix/config/Makefile.inc
