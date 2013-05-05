@@ -52,7 +52,7 @@ protected:
     union
     {
         int referenceCount; ///< Used in IntrusiveRefCounted
-        //Intrusive *next;    ///< Used by the cleanup list
+        //Intrusive *next;    ///< Used by the cleanup list, if it will be done
     } intrusive;
     //virtual ~Intrusive() {} ///< To allow deleting from the cleanup list
 };
@@ -246,6 +246,16 @@ public:
         // Object needs to be set to 0 regardless
         // of whether the object is deleted
         object=0;
+    }
+    
+    /**
+     * \return the number of intrusive_ref_ptr that point to the managed object.
+     * If return 0, than this points to nullptr 
+     */
+    int use_count() const
+    {
+        if(!object) return 0;
+        return object->intrusive.referenceCount;
     }
     
     /**

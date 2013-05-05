@@ -25,16 +25,75 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef DEFAULT_CONSOLE_H
-#define	DEFAULT_CONSOLE_H
+#ifndef INTERRUPT_OUTPUT_DEVICE_H
+#define	INTERRUPT_OUTPUT_DEVICE_H
+
+#include "intrusive.h"
 
 namespace miosix {
 
 /**
  * Used by the kernel to write debug information before the kernel is started,
  * or in case of serious errors, right before rebooting.
+ * Classes of this type are reference counted, must be allocated on the heap
+ * and managed through intrusive_ref_ptr<FileBase>
  */
-class InterruptOutputDevice
+class InterruptOutputDevice : public IntrusiveRefCounted
+{
+public:
+    /**
+     * Constructor
+     */
+    InterruptOutputDevice() {}
+    
+    /**
+     * Write a string to the Console.
+     * Can ONLY be called when the kernel is not yet started, paused or within
+     * an interrupt.
+     * \param str the string to write. The string must be NUL terminated.
+     */
+    virtual void IRQwrite(const char *str)=0;
+    
+    /**
+     * Can ONLY be called when the kernel is not yet started, paused or within
+     * an interrupt.
+     * Since the implementation of the Console class can use buffering, this
+     * memeber function is provided to know if all data has been sent, for
+     * example to wait until all data has been sent before performing a reboot.
+     * \return true if all write buffers are empty.
+     */
+    virtual bool IRQtxComplete()=0;
+    
+    /**
+     * Destructor
+     */
+    virtual ~InterruptOutputDevice();
+    
+    /**
+     * \return an instance of the currently installed output device
+     */
+    static intrusive_ref_ptr<InterruptOutputDevice> IRQget();
+    
+    /**
+     * Install a new output device
+     * \param device new device
+     */
+    static void setDevice(intrusive_ref_ptr<InterruptOutputDevice> device);
+
+private:
+    InterruptOutputDevice(const InterruptOutputDevice&);
+    InterruptOutputDevice& operator= (const InterruptOutputDevice&);
+    
+    /**
+     * \return a pointer to the currently installed output device
+     */
+    static intrusive_ref_ptr<InterruptOutputDevice> *getDevice();
+};
+
+/**
+ * Dummy device that ignores all writes
+ */
+class NullInterruptOutputDevice
 {
 public:
     /**
@@ -56,8 +115,6 @@ public:
     virtual bool IRQtxComplete()=0;
 };
 
-
-
 } //namespace miosix
 
-#endif //DEFAULT_CONSOLE_H
+#endif //INTERRUPT_OUTPUT_DEVICE_H

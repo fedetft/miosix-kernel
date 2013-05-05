@@ -27,6 +27,7 @@
 
 #include <cstring>
 #include <cstddef>
+#include <errno.h>
 #include <sys/stat.h>
 #include "kernel/intrusive.h"
 
@@ -34,6 +35,9 @@
 #define	FILE_H
 
 namespace miosix {
+
+// Forward decls
+class FilesystemBase;
 
 /**
  * The unix file abstraction. Also some device drivers are seen as files.
@@ -46,7 +50,7 @@ public:
     /**
      * Construcotr
      */
-    FileBase() {}
+    FileBase(FilesystemBase *parent) : parent(parent) {}
     
     /**
      * Write data to the file, if the file supports writing.
@@ -97,6 +101,11 @@ public:
     virtual int sync()=0;
     
     /**
+     * \return a pointer to the parent filesystem
+     */
+    const FilesystemBase *getParent() const { return parent; }
+    
+    /**
      * File destructor
      */
     virtual ~FileBase();
@@ -104,6 +113,8 @@ public:
 private:
     FileBase(const FileBase&);
     FileBase& operator=(const FileBase&);
+    
+    FilesystemBase *parent; ///< All files must have a parent filesystem
 };
 
 /**
@@ -298,23 +309,23 @@ public:
      * Enables or disables echo of commands on the terminal
      * \param echo true to enable echo, false to disable it
      */
-    void setEcho(bool echoMode);
+    void setEcho(bool echoMode) { echo=echoMode; }
     
     /**
      * \return true if echo is enabled 
      */
-    bool isEchoEnabled() const;
+    bool isEchoEnabled() const { return echo; }
     
     /**
      * Selects whether the terminal sholud be transparent to non ASCII data
      * \param rawMode true if raw mode is required
      */
-    void setBinary(bool binaryMode);
+    void setBinary(bool binaryMode) { binary=binaryMode; }
     
     /**
      * \return true if the terminal allows binary data 
      */
-    bool isBinary() const;
+    bool isBinary() const { return binary; }
     
 private:
     intrusive_ref_ptr<FileBase> device;

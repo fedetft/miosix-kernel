@@ -305,25 +305,20 @@
           <in>e20.cpp</in>
           <in>e20.h</in>
         </df>
-        <df name="examples">
-          <df name="asm">
-            <in>main.s</in>
+        <df name="filesystem">
+          <df name="fat32">
+            <in>diskio.cpp</in>
+            <in>diskio.h</in>
+            <in>ff.c</in>
+            <in>ff.h</in>
+            <in>integer.h</in>
           </df>
-          <df name="sad_trombone">
-            <in>adpcm.c</in>
-            <in>adpcm.h</in>
-            <in>convert.cpp</in>
-            <in>main.cpp</in>
-            <in>player.cpp</in>
-            <in>player.h</in>
-            <in>sad_trombone.h</in>
-          </df>
-          <df name="thread_native">
-            <in>native_thread_example.cpp</in>
-          </df>
-          <df name="thread_pthread">
-            <in>pthread_example.cpp</in>
-          </df>
+          <in>file.cpp</in>
+          <in>file.h</in>
+          <in>file_access.cpp</in>
+          <in>file_access.h</in>
+          <in>filesystem.cpp</in>
+          <in>filesystem.h</in>
         </df>
         <df name="interfaces">
           <in>arch_registers.h</in>
@@ -337,17 +332,6 @@
           <in>portability.h</in>
         </df>
         <df name="kernel">
-          <df name="filesystem">
-            <in>diskio.cpp</in>
-            <in>diskio.h</in>
-            <in>ff.c</in>
-            <in>ff.h</in>
-            <in>file.cpp</in>
-            <in>file.h</in>
-            <in>filesystem.cpp</in>
-            <in>filesystem.h</in>
-            <in>integer.h</in>
-          </df>
           <df name="scheduler">
             <df name="control">
               <in>control_scheduler.cpp</in>
@@ -370,10 +354,10 @@
             <in>tick_interrupt.h</in>
           </df>
           <in>buffer_queue.h</in>
-          <in>default_console.cpp</in>
-          <in>default_console.h</in>
           <in>error.cpp</in>
           <in>error.h</in>
+          <in>interrupt_output_device.cpp</in>
+          <in>interrupt_output_device.h</in>
           <in>intrusive.h</in>
           <in>kernel.cpp</in>
           <in>kernel.h</in>
@@ -387,9 +371,6 @@
           <in>syscalls.h</in>
           <in>syscalls_types.h</in>
           <in>unistd.cpp</in>
-        </df>
-        <df name="testsuite">
-          <in>testsuite.cpp</in>
         </df>
         <df name="util">
           <in>crc16.cpp</in>
@@ -416,7 +397,7 @@
       <itemPath>miosix_np_2-Makefile.mk</itemPath>
     </logicalFolder>
   </logicalFolder>
-  <sourceFolderFilter>^(nbproject|build|test|bootloaders|compiler|doc|temp)$</sourceFolderFilter>
+  <sourceFolderFilter>^(nbproject|build|_doc|_examples|_tools)$</sourceFolderFilter>
   <sourceRootList>
     <Elem>..</Elem>
   </sourceRootList>

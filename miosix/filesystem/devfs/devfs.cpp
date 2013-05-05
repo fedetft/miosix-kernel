@@ -25,7 +25,43 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "devfs.h"
+
+using namespace std;
+
 namespace miosix {
 
+//
+// class DevFs
+//
+
+int DevFs::open(intrusive_ref_ptr<FileBase>& file, std::string name, int flags,
+        int mode)
+{
+    
+}
+
+int DevFs::waitUntilNoOpenFiles()
+{
+    const int timeout=100; //In milliseconds
+    for(int i=0;i<timeout;i++)
+    {
+        {
+            Lock l(mutex);
+            map<string,intrusive_ref_ptr<FileBase> >::iterator it;
+            bool ok=true;
+            for(it=files.begin();it!=files.end();++it)
+            {
+                if(it->use_count()==1) continue;
+                ok=false;
+                break;
+            }
+            if(ok) return 0;//All files have no other references outside the map
+        }
+        Thread::sleep(1);
+    }
+    //This may happen, as operations on devfs may be blocking
+    return -EBUSY;
+}
 
 } //namespace miosix

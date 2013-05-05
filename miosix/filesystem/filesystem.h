@@ -42,7 +42,7 @@
 #include <sys/stat.h>
 #include <sys/fcntl.h>
 #include <unistd.h>
-#include "ff.h"
+#include "fat32/ff.h"
 #include "kernel/sync.h"
 
 

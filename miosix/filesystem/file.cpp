@@ -26,8 +26,8 @@
  ***************************************************************************/
 
 #include "file.h"
-#include "stdio.h"
-#include "errno.h"
+#include <stdio.h>
+#include "file_access.h"
 
 namespace miosix {
 
@@ -35,7 +35,10 @@ namespace miosix {
 // class File
 //
 
-FileBase::~FileBase() {}
+FileBase::~FileBase()
+{
+    if(parent) parent->fileCloseHook();
+}
 
 //
 // class NullFile
@@ -222,13 +225,5 @@ int TerminalDevice::fstat(struct stat *pstat) const
 int TerminalDevice::isatty() const { return device->isatty(); }
 
 int TerminalDevice::sync() { return device->sync(); }
-
-void TerminalDevice::setEcho(bool echoMode) { echo=echoMode; }
-
-bool TerminalDevice::isEchoEnabled() const { return echo; }
-
-void TerminalDevice::setBinary(bool binaryMode) { binary=binaryMode; }
-
-bool TerminalDevice::isBinary() const { return binary; }
 
 } //namespace miosix
