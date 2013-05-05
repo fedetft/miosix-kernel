@@ -167,7 +167,7 @@ int FilesystemManager::umount(const char* path)
 pair<FilesystemBase*,string> FilesystemManager::resolvePath(
         const std::string& path)
 {
-    
+    //see man 2 path_resolution
 }
 
 } //namespace miosix

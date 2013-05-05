@@ -63,12 +63,13 @@ public:
             int flags, int mode)=0;
     
     /**
-     * Obtain information on a file, identified by a path name
+     * Obtain information on a file, identified by a path name. Does not follow
+     * symlinks
      * \param name path name
      * \param pstat file information is stored here
      * \return 0 on success, or a negative number on failure
      */
-    virtual int stat(std::string& name, struct stat *pstat)=0;
+    virtual int lstat(std::string& name, struct stat *pstat)=0;
     
     /**
      * \return true if all files belonging to this filesystem are closed 
