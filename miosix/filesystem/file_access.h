@@ -36,8 +36,8 @@
 #include <cstddef>
 #include <errno.h>
 #include <sys/stat.h>
-#include "kernel/intrusive.h"
 #include "kernel/sync.h"
+#include "kernel/intrusive.h"
 #include "config/miosix_settings.h"
 
 namespace miosix {
@@ -48,6 +48,8 @@ namespace miosix {
 class FilesystemBase
 {
 public:
+    FilesystemBase() : openFileCount(0) {}
+    
     /**
      * Open a file
      * \param file the file object will be stored here, if the call succeeds
@@ -55,68 +57,48 @@ public:
      * filesystem
      * \param flags file flags (open for reading, writing, ...)
      * \param mode file permissions
+     * \return 0 on success, or a negative number on failure
      */
-    virtual int open(intrusive_ref_ptr<FileBase>& file, std::string name,
+    virtual int open(intrusive_ref_ptr<FileBase>& file, const std::string& name,
             int flags, int mode)=0;
     
     /**
-     * Used to forcedly umount the filesystem
-     * Wait until all files related to this filesystem have been closed
-     * \return 0 on success, a negative number on failure
+     * Obtain information on a file, identified by a path name
+     * \param name path name
+     * \param pstat file information is stored here
+     * \return 0 on success, or a negative number on failure
      */
-    virtual int waitUntilNoOpenFiles()=0;
+    virtual int stat(std::string& name, struct stat *pstat)=0;
     
     /**
-     * Called every time a file object is destroyed
+     * \return true if all files belonging to this filesystem are closed 
      */
-    virtual void fileCloseHook();
+    virtual bool areAllFilesClosed();
+    
+    /**
+     * \internal
+     * Called by file destructors whenever a file belonging to this
+     * filesystem is closed. Never call this function from user code.
+     */
+    void fileCloseHook();
             
     /**
      * Destructor
      */
     virtual ~FilesystemBase();
     
-private:
-    FilesystemBase(const FilesystemBase&);
-    FilesystemBase& operator= (const FilesystemBase&);
-};
-
-/**
- * This class implements the default version of the waitUntilNoOpenFiles()
- * required to safely umount the filesystem. Most filesystems will want to
- * derive from this class rather than FilesystemBase.
- */
-class Filesystem : public FilesystemBase
-{
-public:
+protected:
     /**
-     * Constructor 
-     */
-    Filesystem() : openFilesCount(0) {}
-    
-    /**
-     * Used to forcedly umount the filesystem
-     * Wait until all files related to this filesystem have been closed
-     * \return 0 on success, a negative number on failure
-     */
-    virtual int waitUntilNoOpenFiles();
-    
-    /**
-     * Called every time a file object is destroyed
-     */
-    virtual void fileCloseHook();
-    
-protected:  
-    /**
-     * Must be called every time a new file is created, so as to keep the
-     * count of open files updated
+     * Must be called every time a new file is successfully opened, to update
+     * the open files count
      */
     void newFileOpened();
     
 private:
-    Mutex mutex;
-    ConditionVariable cond;
-    int openFilesCount; ///< Counter of open files
+    FilesystemBase(const FilesystemBase&);
+    FilesystemBase& operator= (const FilesystemBase&);
+    
+    volatile int openFileCount;
 };
 
 /**
@@ -129,7 +111,7 @@ public:
     /**
      * Constructor
      */
-    FileDescriptorTable() {}
+    FileDescriptorTable() : mutex(Mutex::RECURSIVE), cwd("/") {}
     
     /**
      * Copy constructor
@@ -169,6 +151,7 @@ public:
      */
     ssize_t write(int fd, const void *data, size_t len)
     {
+        if(data==0) return -EFAULT;
         intrusive_ref_ptr<FileBase> file=getFile(fd);
         if(!file) return -EBADF;
         return file->write(data,len);
@@ -183,6 +166,7 @@ public:
      */
     ssize_t read(int fd, void *data, size_t len)
     {
+        if(data==0) return -EFAULT;
         intrusive_ref_ptr<FileBase> file=getFile(fd);
         if(!file) return -EBADF;
         return file->read(data,len);
@@ -210,6 +194,7 @@ public:
      */
     int fstat(int fd, struct stat *pstat) const
     {
+        if(stat==0) return -EFAULT;
         intrusive_ref_ptr<FileBase> file=getFile(fd);
         if(!file) return -EBADF;
         return file->fstat(pstat);
@@ -228,6 +213,14 @@ public:
     }
     
     /**
+     * Return file information.
+     * \param path file to stat
+     * \param pstat pointer to stat struct
+     * \return 0 on success, or a negative number on failure
+     */
+    int stat(const char *path, struct stat *pstat);
+    
+    /**
      * Wait until all I/O operations have completed on this file.
      * \return 0 on success, or a negative number in case of errors
      */
@@ -239,18 +232,12 @@ public:
     }
     
     /**
-     * Used by umount, removes all file entries belonging to a filesystem
-     * that will soon be umounted
-     * \param fs filesystem that will be umounted
+     * Change current directory
+     * \param path new current directory
+     * \return 0 on success, or a negative number on failure
      */
-    void removeIfFromThisFilesystem(const FilesystemBase *fs);
+    int chdir(const char *path);
     
-    /**
-     * Destructor
-     */
-    ~FileDescriptorTable();
-    
-private:
     /**
      * Retrieves an entry in the file descriptor table
      * \param fd file descriptor, index into the table
@@ -264,7 +251,21 @@ private:
         return atomic_load(files+fd);
     }
     
-    Mutex mutex; ///< Locks on writes to files, not on accesses
+    //Using default destructor as there's no need to lock the mutex while
+    //closing files eventually left open, because if there are other threads
+    //accessing this while we are being deleted we have bigger problems anyway
+    
+private:
+    /**
+     * Append cwd to path if it is not an absolute path
+     * \param path an absolute or relative path, must not be null
+     * \return an absolute path
+     */
+    std::string absolutePath(const char *path);
+    
+    Mutex mutex; ///< Locks on writes to file object pointers, not on accesses
+    
+    std::string cwd; ///< Current working directory
     
     /// Holds the mapping between fd and file objects
     intrusive_ref_ptr<FileBase> files[MAX_OPEN_FILES];
@@ -282,9 +283,15 @@ public:
     static FilesystemManager& instance();
     
     /**
-     * 
+     * Low level mount operation, meant to be used only inside the kernel,
+     * and board support packages. It allows to mount a filesystem without
+     * a preexisting directory used a mount point. It is the only mount
+     * operation that can mount the root filesystem.
+     * \param path path where to mount the filesystem
+     * \param fs filesystem to mount
+     * \return 0 on success, a negative number on failure
      */
-    int mount();
+    int kmount(const char *path, FilesystemBase *fs);
     
     /**
      * Unmounts a filesystem
@@ -295,17 +302,17 @@ public:
     
     /**
      * Resolve a path to identify the filesystem it belongs
-     * \param path a path name
+     * \param path an absolute path name, that must start with '/'
      * \return a pair with the pointer to the filesystem it belongs, and the
      * path without the prefix that leads to the filesystem
      */
-    std::pair<FilesystemBase*,std::string> resolvePath(const char *path);
+    std::pair<FilesystemBase*,std::string> resolvePath(const std::string& path);
     
 private:
     /**
      * Constructor, private as it is a singleton
      */
-    FilesystemManager();
+    FilesystemManager() {}
     
     FilesystemManager(const FilesystemManager&);
     FilesystemManager& operator=(const FilesystemManager&);

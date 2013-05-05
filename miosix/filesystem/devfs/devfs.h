@@ -50,11 +50,9 @@ public:
             int flags, int mode);
     
     /**
-     * Used to umount the filesystem
-     * Wait until all files related to this filesystem have been closed
-     * \return 0 on success, a negative number on failure
+     * \return true if all files belonging to this filesystem are closed 
      */
-    virtual int waitUntilNoOpenFiles();
+    virtual bool areAllFilesClosed();
     
 private:
     Mutex mutex;

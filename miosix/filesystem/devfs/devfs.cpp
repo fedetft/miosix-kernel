@@ -41,27 +41,20 @@ int DevFs::open(intrusive_ref_ptr<FileBase>& file, std::string name, int flags,
     
 }
 
-int DevFs::waitUntilNoOpenFiles()
+/**
+ * \return true if all files belonging to this filesystem are closed 
+ */
+bool DevFs::areAllFilesClosed()
 {
-    const int timeout=100; //In milliseconds
-    for(int i=0;i<timeout;i++)
-    {
-        {
-            Lock l(mutex);
-            map<string,intrusive_ref_ptr<FileBase> >::iterator it;
-            bool ok=true;
-            for(it=files.begin();it!=files.end();++it)
-            {
-                if(it->use_count()==1) continue;
-                ok=false;
-                break;
-            }
-            if(ok) return 0;//All files have no other references outside the map
-        }
-        Thread::sleep(1);
-    }
-    //This may happen, as operations on devfs may be blocking
-    return -EBUSY;
+    //Can't use openFileCount in devFS, as one instance of each file is stored
+    //in the map. Rather, check the reference count value. No need to use
+    //atomic ops to make a copy of the file before calling use_count() as
+    //the existence of at least one reference in the map guarantees the file
+    //won't be deleted
+    map<string,intrusive_ref_ptr<FileBase> >::iterator it;
+    for(it=files.begin();it!=files.end();++it)
+        if(it->second.use_count()>1) return false;
+    return true;
 }
 
 } //namespace miosix
