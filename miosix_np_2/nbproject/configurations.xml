@@ -306,6 +306,10 @@
           <in>e20.h</in>
         </df>
         <df name="filesystem">
+          <df name="devfs">
+            <in>devfs.cpp</in>
+            <in>devfs.h</in>
+          </df>
           <df name="fat32">
             <in>diskio.cpp</in>
             <in>diskio.h</in>
@@ -389,6 +393,7 @@
       <df name="miosix_np_2">
       </df>
       <in>main.cpp</in>
+      <in>xstat.c</in>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

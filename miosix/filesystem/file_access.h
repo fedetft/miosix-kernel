@@ -34,13 +34,19 @@
 #include <utility>
 #include <cstring>
 #include <cstddef>
+#include <cassert>
 #include <errno.h>
 #include <sys/stat.h>
 #include "kernel/sync.h"
 #include "kernel/intrusive.h"
 #include "config/miosix_settings.h"
+#include "file.h"
 
 namespace miosix {
+
+//Forward decls
+class ResolvedPath;
+class StringPart;
 
 /**
  * All filesystems derive from this class
@@ -48,6 +54,9 @@ namespace miosix {
 class FilesystemBase
 {
 public:
+    /**
+     * Constructor
+     */
     FilesystemBase() : openFileCount(0) {}
     
     /**
@@ -59,19 +68,36 @@ public:
      * \param mode file permissions
      * \return 0 on success, or a negative number on failure
      */
-    virtual int open(intrusive_ref_ptr<FileBase>& file, const std::string& name,
+    virtual int open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
             int flags, int mode)=0;
     
     /**
      * Obtain information on a file, identified by a path name. Does not follow
      * symlinks
-     * \param name path name
+     * \param name path name, relative to the local filesystem
      * \param pstat file information is stored here
      * \return 0 on success, or a negative number on failure
      */
-    virtual int lstat(std::string& name, struct stat *pstat)=0;
+    virtual int lstat(StringPart& name, struct stat *pstat)=0;
     
     /**
+     * Follows a symbolic link
+     * \param path path identifying a symlink, relative to the local filesystem
+     * \param target the link target is returned here if the call succeeds.
+     * Note that the returned path is not relative to this filesystem, and can
+     * be either relative or absolute.
+     * \return 0 on success, a negative number on failure
+     */
+    virtual int readlink(StringPart& name, std::string& target);
+    
+    /**
+     * \return true if the filesystem supports symbolic links.
+     * In this case, the filesystem should override readlink
+     */
+    virtual bool supportsSymlinks() const=0;
+    
+    /**
+     * \internal
      * \return true if all files belonging to this filesystem are closed 
      */
     virtual bool areAllFilesClosed();
@@ -99,7 +125,7 @@ private:
     FilesystemBase(const FilesystemBase&);
     FilesystemBase& operator= (const FilesystemBase&);
     
-    volatile int openFileCount;
+    volatile int openFileCount; ///< Number of open files
 };
 
 /**
@@ -195,7 +221,7 @@ public:
      */
     int fstat(int fd, struct stat *pstat) const
     {
-        if(stat==0) return -EFAULT;
+        if(pstat==0) return -EFAULT;
         intrusive_ref_ptr<FileBase> file=getFile(fd);
         if(!file) return -EBADF;
         return file->fstat(pstat);
@@ -214,12 +240,26 @@ public:
     }
     
     /**
-     * Return file information.
+     * Return file information, follows last symlink
      * \param path file to stat
      * \param pstat pointer to stat struct
      * \return 0 on success, or a negative number on failure
      */
-    int stat(const char *path, struct stat *pstat);
+    int stat(const char *name, struct stat *pstat)
+    {
+        return statImpl(name,pstat,true);
+    }
+    
+    /**
+     * Return file information, does not follow last symlink
+     * \param path file to stat
+     * \param pstat pointer to stat struct
+     * \return 0 on success, or a negative number on failure
+     */
+    int lstat(const char *name, struct stat *pstat)
+    {
+        return statImpl(name,pstat,false);
+    }
     
     /**
      * Wait until all I/O operations have completed on this file.
@@ -237,7 +277,7 @@ public:
      * \param path new current directory
      * \return 0 on success, or a negative number on failure
      */
-    int chdir(const char *path);
+    int chdir(const char *name);
     
     /**
      * Retrieves an entry in the file descriptor table
@@ -246,7 +286,7 @@ public:
      * (which may be empty), or an empty refcounted pointer if the index is
      * out of bounds 
      */
-    intrusive_ref_ptr<FileBase> getFile(int fd)
+    intrusive_ref_ptr<FileBase> getFile(int fd) const
     {
         if(fd<0 || fd>=MAX_OPEN_FILES) return intrusive_ref_ptr<FileBase>();
         return atomic_load(files+fd);
@@ -260,9 +300,20 @@ private:
     /**
      * Append cwd to path if it is not an absolute path
      * \param path an absolute or relative path, must not be null
-     * \return an absolute path
+     * \return an absolute path, or an empty string if the path would exceed
+     * PATH_MAX
      */
     std::string absolutePath(const char *path);
+    
+    /**
+     * Return file information (implements both stat and lstat)
+     * \param path file to stat
+     * \param pstat pointer to stat struct
+     * \param f true to follow last synlink (stat),
+     * false to not follow it (lstat)
+     * \return 0 on success, or a negative number on failure
+     */
+    int statImpl(const char *name, struct stat *pstat, bool f);
     
     Mutex mutex; ///< Locks on writes to file object pointers, not on accesses
     
@@ -270,6 +321,165 @@ private:
     
     /// Holds the mapping between fd and file objects
     intrusive_ref_ptr<FileBase> files[MAX_OPEN_FILES];
+};
+
+/**
+ * \internal
+ * This class is used to take a substring of a string containing a file path
+ * without creating a substring, and therefore requiring additional memory
+ * allocation.
+ * 
+ * When parsing a path like "/home/test/directory/file" it is often necessary
+ * to create substrings at the path component boundaries, such as "/home/test".
+ * In this case, it is possible to temporarily make a substring by replacing a
+ * '/' with a '\0'. The std::string will not 'forget' its orginal size, and
+ * when the '\0' will be converted back to a '/', the string will look identical
+ * to the previous one.
+ * 
+ * This is an optimization made for filesystem mountpoint lookups, and is not
+ * believed to be useful outside of that purpose. Given that in Miosix, the
+ * mountpoints are stored in a map, this class supports operator< to correctly
+ * lookup mountpoints in the map.
+ */
+class StringPart
+{
+public:
+    /**
+     * Default constructor
+     */
+    StringPart() : cstr(&saved), index(0), offset(0), saved('\0'),
+            owner(false), type(CSTR)
+    {
+        //We need an empty C string, that is, a pointer to a char that is \0,
+        //so we make cstr point to saved, and set saved to \0.
+    }
+    
+    /**
+     * Constructor from C++ string
+     * \param str original string. A pointer to the string is taken, the string
+     * is NOT copied. Therefore, the caller is responsible to guarantee the
+     * string won't be deallocated while this class is alive. Note that the
+     * original string is modified by inserting a '\0' at the index position,
+     * if index is given. The string will be restored to the exact original
+     * content only when this class is destroyed.
+     * \param idx if this parameter is given, this class becomes an in-place
+     * substring of the original string. Otherwise, this class will store the
+     * entire string passed. In this case, the original string will not be
+     * modified.
+     * \param off if this parameter is given, the first off characters of the
+     * string are skipped. Note that idx calculations take place <b>before</b>
+     * offset computation, so idx is relative to the original string.
+     */
+    explicit StringPart(std::string& str, unsigned int idx=std::string::npos,
+               unsigned int off=0);
+    
+    /**
+     * Constructor from C string
+     * \param s original string. A pointer to the string is taken, the string
+     * is NOT copied. Therefore, the caller is responsible to guarantee the
+     * string won't be deallocated while this class is alive. Note that the
+     * original string is modified by inserting a '\0' at the index position,
+     * if index is given. The string will be restored to the exact original
+     * content only when this class is destroyed.
+     * \param idx if this parameter is given, this class becomes an in-place
+     * substring of the original string. Otherwise, this class will store the
+     * entire string passed. In this case, the original string will not be
+     * modified.
+     * \param off if this parameter is given, the first off characters of the
+     * string are skipped. Note that idx calculations take place <b>before</b>
+     * offset computation, so idx is relative to the original string.
+     */
+    explicit StringPart(char *s, unsigned int idx=std::string::npos,
+            unsigned int off=0);
+    
+    /**
+     * Substring constructor. Given a StringPart, produce another StringPart
+     * holding a substring of the original StringPart. Unlike the normal copy
+     * constructor that does deep copy, this one does shallow copy, and
+     * therefore the newly created object will share the same string pointer
+     * as rhs. Useful for making substrings of a substring without memory
+     * allocation.
+     * \param rhs a StringPart
+     */
+    StringPart(StringPart& rhs, unsigned int idx, unsigned int off);
+    
+    /**
+     * Copy constructor. Note that deep copying is used, so that the newly
+     * created StringPart is a self-contained string. It has been done like
+     * that to be able to store the paths of mounted filesystems in an std::map
+     * \param rhs a StringPart
+     */
+    StringPart(const StringPart& rhs);
+    
+    /**
+     * Operator = Note that deep copying is used, so that the assigned
+     * StringPart becomes a self-contained string. It has been done like
+     * that to be able to store the paths of mounted filesystems in an std::map
+     * \param rhs a StringPart
+     */
+    StringPart& operator= (const StringPart& rhs);
+    
+    /**
+     * Compare two StringParts for inequality
+     * \param rhs second StringPart to compare to
+     * \return true if *this < rhs
+     */
+    bool operator<(const StringPart& rhs) const
+    {
+        return strcmp(this->c_str(),rhs.c_str())<0;
+    }
+    
+    /**
+     * \param rhs a StringPart
+     * \return true if this starts with rhs
+     */
+    bool startsWith(const StringPart& rhs) const;
+    
+    /**
+     * \return the StringPart length, which is the same as strlen(this->c_str())
+     */
+    unsigned int length() const { return index-offset; }
+    
+    /**
+     * \return the StringPart as a C string 
+     */
+    const char *c_str() const
+    {
+        return type==CSTR ? cstr+offset : str->c_str()+offset;
+    }
+    
+    /**
+     * \return true if the string is empty
+     */
+    bool empty() const { return length()==0; }
+    
+    /**
+     * Make this an empty string
+     */
+    void clear();
+    
+    /**
+     * Destructor
+     */
+    ~StringPart() { clear(); }
+    
+private:
+    /**
+     * To implement copy constructor and operator=. *this must be empty.
+     * \param rhs other StringPart that is assigned to *this.
+     */
+    void assign(const StringPart& rhs);
+    
+    union {
+        std::string *str; ///< Pointer to underlying C++ string
+        char *cstr;       ///< Pointer to underlying C string
+    };
+    unsigned int index;  ///< Index into the character substituted by '\0'
+    unsigned int offset; ///< Offset to skip the first part of a string
+    char saved;          ///< Char that was replaced by '\0'
+    bool owner;          ///< True if this class owns str
+    char type;           ///< either CPPSTR or CSTR. Using char to reduce size
+    enum { CPPSTR, CSTR }; ///< Possible values fot type
 };
 
 /**
@@ -285,9 +495,8 @@ public:
     
     /**
      * Low level mount operation, meant to be used only inside the kernel,
-     * and board support packages. It allows to mount a filesystem without
-     * a preexisting directory used a mount point. It is the only mount
-     * operation that can mount the root filesystem.
+     * and board support packages. It is the only mount operation that can
+     * mount the root filesystem.
      * \param path path where to mount the filesystem
      * \param fs filesystem to mount
      * \return 0 on success, a negative number on failure
@@ -303,11 +512,21 @@ public:
     
     /**
      * Resolve a path to identify the filesystem it belongs
-     * \param path an absolute path name, that must start with '/'
-     * \return a pair with the pointer to the filesystem it belongs, and the
-     * path without the prefix that leads to the filesystem
+     * \param path an absolute path name, that must start with '/'. Note that
+     * this is an inout parameter, the string is modified so as to return the
+     * full resolved path. In particular, the returned string differs from the
+     * passed one by not containing useless path components, such as "/./" and
+     * "//", by not containing back path componenets ("/../"), and may be
+     * entirely different from the passed one if a symlink was encountered
+     * during name resolution. The use of an inout parameter is to minimize
+     * the number of copies of the path string, optimizing for speed and size
+     * in the common case, but also means that a copy of the original string
+     * needs to be made if the original has to be used later.
+     * \param followLastSymlink true if the symlink in the last path component
+     *(the one that does not end with a /, if it exists, has to be followed)
+     * \return the resolved path
      */
-    std::pair<FilesystemBase*,std::string> resolvePath(const std::string& path);
+    ResolvedPath resolvePath(std::string& path, bool followLastSymlink=true);
     
 private:
     /**
@@ -319,7 +538,7 @@ private:
     FilesystemManager& operator=(const FilesystemManager&);
     
     Mutex mutex; ///< To protect against concurrent access
-    std::map<std::string,FilesystemBase*> filesystems; ///< Mounted filesystem
+    std::map<StringPart,FilesystemBase*> filesystems; ///< Mounted filesystem
 //    #ifdef WITH_PROCESSES
     std::list<FileDescriptorTable*> fileTables; ///< Process file tables
 //    #else //WITH_PROCESSES
