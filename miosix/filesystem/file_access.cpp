@@ -31,7 +31,41 @@ namespace miosix {
  * the heap, increasing the RAM footprint to resolve a path. To this end,
  * the StringPart class was introduced, to create fast in-place substring
  * of a string.
- */ 
+ */
+
+/**
+ * The result of resolvePath(). This class is not in file_Access.h as
+ * resolvePath() is not meant to be called outside of this file.
+ */
+class ResolvedPath
+{
+public:
+    /**
+     * Constructor
+     */
+    ResolvedPath() : result(-EINVAL), fs(0), off(0) {}
+    
+    /**
+     * Constructor
+     * \param result error code
+     */
+    explicit ResolvedPath(int result) : result(result), fs(0), off(0) {}
+    
+    /**
+     * Constructor
+     * \param fs filesystem
+     * \param off offset into path where the subpath relative to the current
+     * filesystem starts
+     */
+    ResolvedPath(FilesystemBase *fs, int offset)
+            : result(0), fs(fs), off(offset) {}
+    
+    int result;         ///< 0 on success, a negative number on failure
+    FilesystemBase *fs; ///< pointer to the filesystem to which the file belongs
+    /// path.c_str()+off is a string containing the relative path into the
+    /// filesystem for the looked up file
+    int off;
+};
 
 //
 // class FilesystemBase
@@ -82,8 +116,8 @@ int FileDescriptorTable::open(const char* name, int flags, int mode)
         if(path.empty()) return -ENAMETOOLONG;
         ResolvedPath openData=FilesystemManager::instance().resolvePath(path);
         if(openData.result<0) return openData.result;
-        int result=openData.fs->open(files[i],
-            StringPart(path,string::npos,openData.off),flags,mode);
+        StringPart sp(path,string::npos,openData.off);
+        int result=openData.fs->open(files[i],sp,flags,mode);
         if(result==0) return i; //The file descriptor
         else return result; //The error code
     }
@@ -122,7 +156,8 @@ int FileDescriptorTable::chdir(const char* name)
 
     if(openData.result<0) return openData.result;
     struct stat st;
-    openData.fs->lstat(StringPart(newCwd,string::npos,openData.off),&st);
+    StringPart sp(newCwd,string::npos,openData.off);
+    openData.fs->lstat(sp,&st);
     if(!S_ISDIR(st.st_mode)) return -ENOTDIR;
     cwd=newCwd;
     return 0;
@@ -135,7 +170,8 @@ int FileDescriptorTable::statImpl(const char* name, struct stat* pstat, bool f)
     if(path.empty()) return -ENAMETOOLONG;
     ResolvedPath openData=FilesystemManager::instance().resolvePath(path,f);
     if(openData.result<0) return openData.result;
-    return openData.fs->lstat(StringPart(path,string::npos,openData.off),pstat);
+    StringPart sp(path,string::npos,openData.off);
+    return openData.fs->lstat(sp,pstat);
 }
 
 string FileDescriptorTable::absolutePath(const char* path)
@@ -169,7 +205,7 @@ StringPart::StringPart(char* s, unsigned int idx, unsigned int off)
           type(CSTR)
 {
     assert(cstr); //Passed pointer can't be null
-    int len=strlen(cstr);
+    unsigned int len=strlen(cstr);
     if(index==string::npos || index>=len) index=len;
     else {
         saved=cstr[index];
@@ -246,40 +282,6 @@ void StringPart::assign(const StringPart& rhs)
     offset=0;
     owner=true;
 }
-
-/**
- * The result of resolvePath(). This class is not in file_Access.h as
- * resolvePath() is not meant to be called outside of this file.
- */
-class ResolvedPath
-{
-public:
-    /**
-     * Constructor
-     */
-    ResolvedPath() : result(-EINVAL), fs(0), off(0) {}
-    
-    /**
-     * Constructor
-     * \param result error code
-     */
-    explicit ResolvedPath(int result) : result(result), fs(0), off(0) {}
-    
-    /**
-     * Constructor
-     * \param fs filesystem
-     * \param off offset into path where the subpath relative to the current
-     * filesystem starts
-     */
-    ResolvedPath(FilesystemBase *fs, int offset)
-            : result(0), fs(fs), off(offset) {}
-    
-    int result;         ///< 0 on success, a negative number on failure
-    FilesystemBase *fs; ///< pointer to the filesystem to which the file belongs
-    /// path.c_str()+off is a string containing the relative path into the
-    /// filesystem for the looked up file
-    int off;
-};
 
 /**
  * This class implements the path resolution logic
@@ -652,7 +654,7 @@ ResolvedPath FilesystemManager::resolvePath(string& path, bool followLastSymlink
 
     Lock<Mutex> l(mutex);
     PathResolution pr(filesystems);
-    return pr.resolvePath(path);
+    return pr.resolvePath(path,followLastSymlink);
 }
 
 } //namespace miosix

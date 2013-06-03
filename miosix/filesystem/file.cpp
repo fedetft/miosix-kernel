@@ -129,8 +129,9 @@ int ZeroFile::sync()
 // class TerminalDevice
 //
 
+//TODO FileBase(0): should we override getPartent() to return device->getParent()?
 TerminalDevice::TerminalDevice(intrusive_ref_ptr<FileBase> device)
-        : device(device), echo(false), binary(false), skipNewline(false) {}
+        : FileBase(0), device(device), echo(false), binary(false), skipNewline(false) {}
 
 void TerminalDevice::changeDevice(intrusive_ref_ptr<FileBase> newDevice)
 {

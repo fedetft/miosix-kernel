@@ -24,7 +24,7 @@ kernel/scheduler/edf/edf_scheduler.cpp                                     \
 filesystem/filesystem.cpp                                                  \
 filesystem/file_access.cpp                                                 \
 filesystem/file.cpp                                                        \
-filesystem/devfs.cpp                                                       \
+filesystem/devfs/devfs.cpp                                                 \
 filesystem/fat32/ff.c                                                      \
 filesystem/fat32/diskio.cpp                                                \
 e20/e20.cpp                                                                \
