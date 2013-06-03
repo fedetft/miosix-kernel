@@ -527,11 +527,6 @@ int _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
     }
 }
 
-int _write(int fd, const void *buf, size_t cnt)
-{
-    return _write_r(_impure_ptr,fd,buf,cnt);
-}
-
 int write(int fd, const void *buf, size_t cnt)
 {
     return _write_r(_impure_ptr,fd,buf,cnt);
@@ -601,11 +596,6 @@ int _read_r(struct _reent *ptr, int fd, void *buf, size_t cnt)
     }
 }
 
-int _read(int fd, void *buf, size_t cnt)
-{
-    return _read_r(_impure_ptr,fd,buf,cnt);
-}
-
 int read(int fd, void *buf, size_t cnt)
 {
     return _read_r(_impure_ptr,fd,buf,cnt);
@@ -623,11 +613,6 @@ off_t _lseek_r(struct _reent *ptr, int fd, off_t pos, int whence)
     miosix::errorLog("\r\n***Kernel compiled without filesystem support\r\n");
     return -1;
     #endif //WITH_FILESYSTEM
-}
-
-off_t _lseek(int fd, off_t pos, int whence)
-{
-    return _lseek_r(_impure_ptr,fd,pos,whence);
 }
 
 off_t lseek(int fd, off_t pos, int whence)
@@ -657,11 +642,6 @@ int _fstat_r(struct _reent *ptr, int fd, struct stat *pstat)
     }
 }
 
-int _fstat(int fd, struct stat *pstat)
-{
-    return _fstat_r(_impure_ptr,fd,pstat);
-}
-
 int fstat(int fd, struct stat *pstat)
 {
     return _fstat_r(_impure_ptr,fd,pstat);
@@ -678,11 +658,6 @@ int _stat_r(struct _reent *ptr, const char *file, struct stat *pstat)
     #else //WITH_FILESYSTEM
     return -1;
     #endif //WITH_FILESYSTEM
-}
-
-int _stat(const char *file, struct stat *pstat)
-{
-    return _stat_r(_impure_ptr,file,pstat);
 }
 
 int stat(const char *file, struct stat *pstat)
@@ -828,15 +803,6 @@ int _fork_r(struct _reent *ptr)
  * _wait_r, unimpemented because processes are not supported in Miosix
  */
 int _wait_r(struct _reent *ptr, int *status)
-{
-    return -1;
-}
-
-/**
- * \internal
- * abort calls raise and then exit. Currently signals aren't supported. 
- */
-int raise(int sig)
 {
     return -1;
 }
