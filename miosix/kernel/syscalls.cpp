@@ -669,7 +669,7 @@ int stat(const char *file, struct stat *pstat)
  * \internal
  * isatty, returns 1 if fd is associated with a terminal
  */
-int isatty(int fd)
+int _isatty_r(struct _reent *ptr, int fd)
 {
     switch(fd)
     {
@@ -682,13 +682,9 @@ int isatty(int fd)
     }
 }
 
-/**
- * \internal
- * _isatty, required by codesourcery gcc
- */
-int _isatty(int fd)
+int isatty(int fd)
 {
-    return isatty(fd);
+    return _isatty_r(_impure_ptr,fd);
 }
 
 /**

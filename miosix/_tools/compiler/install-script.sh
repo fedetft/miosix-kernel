@@ -145,7 +145,6 @@ cd newlib-obj
 ../$NEWLIB/configure \
 	--target=arm-miosix-eabi \
 	--prefix=$INSTALL_DIR/arm-miosix-eabi \
-	--enable-interwork \
 	--enable-multilib \
 	--enable-newlib-reent-small \
 	--enable-newlib-multithread \
@@ -154,7 +153,6 @@ cd newlib-obj
 	--disable-newlib-io-long-double \
 	--disable-newlib-io-pos-args \
 	--disable-newlib-mb \
-	--disable-newlib-iconv \
 	--disable-newlib-supplied-syscalls \
 	2>../log/g.txt || quit ":: Error configuring newlib"
 
