@@ -684,6 +684,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
     arch/common/drivers/dcc.cpp                              \
+    arch/common/drivers/stm32_hardware_rng.cpp               \
     $(ARCH_INC)/core/interrupts.cpp                          \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
@@ -854,6 +855,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
     arch/common/drivers/dcc.cpp                              \
+    arch/common/drivers/stm32_hardware_rng.cpp               \
     $(ARCH_INC)/core/interrupts.cpp                          \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \

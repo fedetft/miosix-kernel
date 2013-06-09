@@ -35,6 +35,7 @@
 
 #include "config/miosix_settings.h"
 #include "hwmapping.h"
+#include "drivers/stm32_hardware_rng.h"
 
 namespace miosix {
 
