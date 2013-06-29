@@ -254,7 +254,8 @@ int Filesystem::fstatFile(int fd, struct stat *pstat)
         memset(pstat,0,sizeof(struct stat));
         pstat->st_mode=S_IFREG;//Regular file
         pstat->st_nlink=1;//No hardlinks in Fat32, only 1 way to access the file
-        pstat->st_blksize=0;//Want an unbuffered file, to save ram
+        //Read an entire disk sector at a time, good compromise between speed and RAM
+        pstat->st_blksize=512;
         pstat->st_size=(int)files[index].fptr->fsize;//File size
         return 0;
     }

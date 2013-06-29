@@ -86,17 +86,6 @@ const unsigned char MAX_OPEN_FILES=8;
 // C/C++ standard library I/O (stdin, stdout and stderr related)
 //
 
-/// \def WITH_STDIN_BUFFER
-/// If defined, incoming data fron the serial port
-/// will be buffered prior to being delivered to stdin related functions
-/// (scanf, fgets, cin...). Buffer is flushed on newline or when full.
-/// This has a behaviour more similar to desktop operating systems but
-/// requires 1KB of RAM for the buffer.
-/// Despite counterintuitive, if you never use stdin related functions
-/// defining WITH_STDIN_BUFFER will reduce code size.
-/// By default it is defined (stdin is buffered)
-#define WITH_STDIN_BUFFER
-
 /// \def WITH_BOOTLOG
 /// Uncomment to print bootlogs on stdout.
 /// By default it is defined (bootlogs are printed)

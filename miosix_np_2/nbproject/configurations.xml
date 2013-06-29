@@ -41,6 +41,8 @@
             <df name="drivers">
               <in>dcc.cpp</in>
               <in>dcc.h</in>
+              <in>stm32_hardware_rng.cpp</in>
+              <in>stm32_hardware_rng.h</in>
             </df>
           </df>
           <df name="cortexM3_stm32">
@@ -393,7 +395,6 @@
       <df name="miosix_np_2">
       </df>
       <in>main.cpp</in>
-      <in>xstat.c</in>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"

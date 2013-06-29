@@ -347,4 +347,6 @@ int	pthread_once(pthread_once_t *once, void (*func)())
     return 0;
 }
 
+int pthread_setcancelstate(int state, int *oldstate) { return 0; } //Stub
+
 } //extern "C"

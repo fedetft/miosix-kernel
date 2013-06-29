@@ -631,7 +631,7 @@ int _fstat_r(struct _reent *ptr, int fd, struct stat *pstat)
     {
         memset(pstat,0,sizeof(struct stat));
         pstat->st_mode=S_IFCHR;//Character device
-        pstat->st_blksize=1024;
+        pstat->st_blksize=0; //This makes the defualt file buffer equal to BUFSIZ
         return 0;
     } else {
         #ifdef WITH_FILESYSTEM

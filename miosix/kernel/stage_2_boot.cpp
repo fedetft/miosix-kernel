@@ -100,11 +100,6 @@ static void mainLoader(void *argv)
     //Starting part of bsp that must be started after kernel
     bspInit2();
 
-    #ifndef WITH_STDIN_BUFFER
-    //Make stdin unbuffered to save some ram
-    setbuf(stdin,NULL);
-    #endif //WITH_STDIN_BUFFER
-
     #ifdef WITH_BOOTLOG
     iprintf("Available heap %d out of %d Bytes\n",
             MemoryProfiling::getCurrentFreeHeap(),
