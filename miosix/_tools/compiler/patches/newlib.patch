@@ -1,6 +1,6 @@
 diff -ruN newlib-2.0.0-old/newlib/configure.host newlib-2.0.0/newlib/configure.host
 --- newlib-2.0.0-old/newlib/configure.host	2012-12-04 22:43:20.000000000 +0100
-+++ newlib-2.0.0/newlib/configure.host	2013-06-19 09:33:01.000000000 +0200
++++ newlib-2.0.0/newlib/configure.host	2013-06-29 22:31:01.806658374 +0200
 @@ -356,6 +356,10 @@
  	stdio64_dir=stdio64
  	xdr_dir=xdr
@@ -12,7 +12,7 @@ diff -ruN newlib-2.0.0-old/newlib/configure.host newlib-2.0.0/newlib/configure.h
    *-*-netware*)
  	signal_dir=
  	sys_dir=netware
-@@ -537,6 +541,20 @@
+@@ -537,6 +541,21 @@
  	newlib_cflags="${newlib_cflags} -DHAVE_OPENDIR -DHAVE_RENAME -DSIGNAL_PROVIDED -D_COMPILING_NEWLIB -DHAVE_BLKSIZE -DHAVE_FCNTL -DMALLOC_PROVIDED"
  	syscall_dir=syscalls
  	;;
@@ -27,7 +27,8 @@ diff -ruN newlib-2.0.0-old/newlib/configure.host newlib-2.0.0/newlib/configure.h
 +# _NO_POPEN: no popen() support in Miosix (missing fork())
 +# _NO_WORDEXP: no wordexp() support in Miosix (missing fork())
 +# _SMALL_HEXDIG: save 256 byte of RAM in stdlib/gdtoa-gethex.c
-+	newlib_cflags="${newlib_cflags} -DREENTRANT_SYSCALLS_PROVIDED -DHAVE_BLKSIZE -DHAVE_FCNTL -D_NO_POPEN -D_NO_WORDEXP -D_SMALL_HEXDIG"
++# SIGNAL_PROVIDED: disable the implementation of signals in newlib
++	newlib_cflags="${newlib_cflags} -DREENTRANT_SYSCALLS_PROVIDED -DHAVE_BLKSIZE -DHAVE_FCNTL -D_NO_POPEN -D_NO_WORDEXP -D_SMALL_HEXDIG -DSIGNAL_PROVIDED"
 +	newlib_cflags="${newlib_cflags} -Wall"
 +	;;
  # RTEMS supplies its own versions of some routines:
@@ -183,7 +184,7 @@ diff -ruN newlib-2.0.0-old/newlib/libc/include/sys/features.h newlib-2.0.0/newli
  #ifdef __rtems__
 diff -ruN newlib-2.0.0-old/newlib/libc/include/sys/reent.h newlib-2.0.0/newlib/libc/include/sys/reent.h
 --- newlib-2.0.0-old/newlib/libc/include/sys/reent.h	2012-11-29 17:28:30.000000000 +0100
-+++ newlib-2.0.0/newlib/libc/include/sys/reent.h	2013-06-28 00:51:39.970454553 +0200
++++ newlib-2.0.0/newlib/libc/include/sys/reent.h	2013-06-29 22:38:32.478665617 +0200
 @@ -372,9 +372,11 @@
  
    int __sdidinit;		/* 1 means stdio has been init'd */
@@ -197,11 +198,15 @@ diff -ruN newlib-2.0.0-old/newlib/libc/include/sys/reent.h newlib-2.0.0/newlib/l
    struct _mprec *_mp;
  
    void _EXFNPTR(__cleanup, (struct _reent *));
-@@ -393,11 +395,15 @@
+@@ -389,15 +391,19 @@
+   struct __tm *_localtime_buf;
+   char *_asctime_buf;
+ 
++  #ifndef _MIOSIX
+   /* signal info */
    void (**(_sig_func))(int);
  
    /* atexit stuff */
-+  #ifndef _MIOSIX /* in Miosix atexit was moved out of reentrancy structure */
    struct _atexit *_atexit;
    struct _atexit _atexit0;
 -
@@ -250,7 +255,7 @@ diff -ruN newlib-2.0.0-old/newlib/libc/include/sys/reent.h newlib-2.0.0/newlib/l
 +    _NULL, \
 +    _NULL, \
 +    _NULL, \
-+    _NULL, \
++    /*_NULL,*/ \
 +    /*_NULL,*/ \
 +    /*{_NULL, 0, {_NULL}, _NULL},*/ \
 +    {_NULL, 0, _NULL}, \
@@ -699,6 +704,25 @@ diff -ruN newlib-2.0.0-old/newlib/libc/posix/telldir.c newlib-2.0.0/newlib/libc/
  		prevlp = &dd_hash[LOCHASH(loc)];
  		lp = *prevlp;
  		while (lp != NULL) {
+diff -ruN newlib-2.0.0-old/newlib/libc/reent/getreent.c newlib-2.0.0/newlib/libc/reent/getreent.c
+--- newlib-2.0.0-old/newlib/libc/reent/getreent.c	2007-09-07 02:45:55.000000000 +0200
++++ newlib-2.0.0/newlib/libc/reent/getreent.c	2013-06-29 20:42:13.306553840 +0200
+@@ -7,8 +7,15 @@
+ #undef __getreent
+ #endif
+ 
++/*
++ * Miosix provides its own __getreent()
++ */
++#ifndef _MIOSIX
++
+ struct _reent *
+ _DEFUN_VOID(__getreent)
+ {
+   return _impure_ptr;
+ }
++
++#endif /* _MIOSIX */
 diff -ruN newlib-2.0.0-old/newlib/libc/reent/reent.c newlib-2.0.0/newlib/libc/reent/reent.c
 --- newlib-2.0.0-old/newlib/libc/reent/reent.c	2009-11-23 18:02:20.000000000 +0100
 +++ newlib-2.0.0/newlib/libc/reent/reent.c	2013-06-28 00:46:19.054451588 +0200

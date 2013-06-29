@@ -442,6 +442,12 @@ void __malloc_unlock()
     miosix::restartKernel();
 }
 
+struct _reent *__getreent()
+{
+    //FIXME: this is just a stub
+    return _impure_ptr;
+}
+
 /**
  * \internal
  * _open_r, open a file
