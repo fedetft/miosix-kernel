@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011 by Terraneo Federico                               *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 by Terraneo Federico *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,80 +25,80 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef SYSCALLS_TYPES_H
-#define	SYSCALLS_TYPES_H
+#ifndef LIBC_INTEGRATION_H
+#define	LIBC_INTEGRATION_H
 
-#include "error.h"
+#include <reent.h>
+#include <cstdlib>
+#include <cstring>
 
-namespace __cxxabiv1
-{
-struct __cxa_exception; //A forward declaration of this one is enough
-
-/*
- * This struct was taken from libsupc++/unwind-cxx.h Unfortunately that file
- * is not deployed in the gcc installation so we can't just #include it.
- * It is required on a per-thread basis to make C++ exceptions thread safe.
- */
-struct __cxa_eh_globals
-{
-    __cxa_exception *caughtExceptions;
-    unsigned int uncaughtExceptions;
-    //Should be __ARM_EABI_UNWINDER__ but that's only usable inside gcc
-    #ifdef __ARM_EABI__
-    __cxa_exception* propagatingExceptions;
-    #endif //__ARM_EABI__
-};
-
-} //namespace __cxxabiv1
+//Can't yet make this header private, as it's included by kernel.h
+//#ifndef COMPILING_MIOSIX
+//#error "This is header is private, it can't be used outside Miosix itself."
+//#error "If your code depends on a private header, it IS broken."
+//#endif //COMPILING_MIOSIX
 
 namespace miosix {
 
-//Forward declaration of a class to hide accessors to ExceptionHandlingData
-class ExceptionHandlingAccessor;
+/**
+ * \internal
+ * \return the heap high watermark. Note that the returned value is a memory
+ * address and not a size in bytes. This is just an implementation detail, what
+ * you'd want to call is most likely MemoryProfiling::getAbsoluteFreeHeap().
+ */
+unsigned int getMaxHeap();
+
+//Forward declaration of a class to hide accessors to CReentrancyData
+class CReentrancyAccessor;
 
 /**
+ * \internal
  * This is a wrapper class that contains all per-thread data required to make
- * C++ exceptions thread safe, irrespective of the ABI.
+ * the C standard library thread safe.
  */
-class ExceptionHandlingData
+class CReentrancyData
 {
 public:
     /**
-     * Constructor, initializes the exception related data to their default
-     * value
+     * Constructor, creates a new newlib reentrancy structure and initializes it
      */
-    ExceptionHandlingData()
+    CReentrancyData(bool useDefault=false)
     {
-        eh_globals.caughtExceptions=0;
-        eh_globals.uncaughtExceptions=0;
-        #ifdef __ARM_EABI__
-        eh_globals.propagatingExceptions=0;
-        #else //__ARM_EABI__
-        sjlj_ptr=0;
-        #endif //__ARM_EABI__
+        if(useDefault==false)
+        {
+            threadReent=(struct _reent*)malloc(sizeof(_reent));
+            if(threadReent) _REENT_INIT_PTR(threadReent);
+        } else threadReent=_GLOBAL_REENT;
     }
+    
+    /**
+     * \return true if the C reentrancy data was initialized successfully 
+     */
+    bool isInitialized() const { return threadReent!=0; }
 
     /**
-     * Destructor, checks that no memory is leaked (should never happen)
+     * Destructor, reclaims the reentrancy structure
      */
-    ~ExceptionHandlingData()
+    ~CReentrancyData()
     {
-        if(eh_globals.caughtExceptions!=0) errorHandler(UNEXPECTED);
+        _reclaim_reent(threadReent);
+        if(threadReent && threadReent!=_GLOBAL_REENT) free(threadReent);
     }
 
 private:
-    /// With the arm eabi unwinder, this is the only data structure required
-    /// to make C++ exceptions threadsafe.
-    __cxxabiv1::__cxa_eh_globals eh_globals;
-    #ifndef __ARM_EABI__
-    /// On other no arm architectures, it looks like gcc requires also this
-    /// pointer to make the unwinder thread safe
-    void *sjlj_ptr;
-    #endif //__ARM_EABI__
+    CReentrancyData(const CReentrancyData&);
+    CReentrancyData& operator=(const CReentrancyData&);
 
-    friend class ExceptionHandlingAccessor;
+    struct _reent *threadReent; ///< Pointer to the reentrancy structure
+    
+    /**
+     * \return the reentrancy structure 
+     */
+    struct _reent *getReent() const { return threadReent; } 
+
+    friend class CReentrancyAccessor;
 };
 
 } //namespace miosix
 
-#endif //SYSCALLS_TYPES_H
+#endif //LIBC_INTEGRATION_H

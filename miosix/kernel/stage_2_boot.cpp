@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010 by Terraneo Federico                   *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 by Terraneo Federico *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -34,14 +34,14 @@ start the kernel and filesystem.
 
 #include <cstdio>
 #include <stdexcept>
-/* Low level hardware functionalities */
+// Low level hardware functionalities
 #include "interfaces/bsp.h"
-/* Miosix kernel */
+// Miosix kernel
 #include "kernel.h"
 #include "filesystem/filesystem.h"
 #include "error.h"
 #include "logging.h"
-/* settings for miosix */
+// settings for miosix
 #include "config/miosix_settings.h"
 #include "util/util.h"
 #include "util/version.h"
@@ -49,7 +49,7 @@ start the kernel and filesystem.
 using namespace std;
 
 ///<\internal Entry point for application code.
-extern int main(int argc, char *argv[]);
+int main(int argc, char *argv[]);
 
 namespace miosix {
 
@@ -73,7 +73,7 @@ static void call_constructors(unsigned long *start, unsigned long *end)
  * Performs the part of initialization that must be done after the kernel is
  * started, and finally calls main()
  */
-static void mainLoader(void *argv)
+void *mainLoader(void *argv)
 {
     //If reaches here kernel is started, print Ok
     bootlog("Ok\r\n");
@@ -147,16 +147,13 @@ static void mainLoader(void *argv)
  */
 extern "C" void _init()
 {
-    using namespace miosix;
     if(areInterruptsEnabled()) errorHandler(INTERRUPTS_ENABLED_AT_BOOT);
     IRQbspInit();
     //After IRQbspInit() serial port is initialized, so we can use BOOTLOG
     IRQbootlog(getMiosixVersion());
     IRQbootlog("\r\nStarting Kernel... ");
-    //Create the first thread, and start the scheduler.
-    Thread::create(mainLoader,MAIN_STACK_SIZE,MAIN_PRIORITY,NULL);
     startKernel();
-    //Never reach here
+    //Never reach here (unless startKernel fails)
 }
 
 } //namespace miosix

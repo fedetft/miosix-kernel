@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011, 2012 by Terraneo Federico       *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 by Terraneo Federico *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -150,7 +150,7 @@ const unsigned char MAIN_PRIORITY=1;
 /// \internal Length of wartermark (in bytes) to check stack overflow.
 /// MUST be divisible by 4 and can also be zero.
 /// A high value increases context switch time.
-const unsigned char WATERMARK_LEN=16;
+const unsigned int WATERMARK_LEN=16;
 
 /// \internal Used to fill watermark
 const unsigned int WATERMARK_FILL=0xaaaaaaaa;

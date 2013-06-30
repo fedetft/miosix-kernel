@@ -1,5 +1,29 @@
 Changelog for Miosix np embedded OS
 
+- Added -DCOMPILING_MIOSIX to CFLAGS and CXXFLAGS, to allow the introduction
+  of private headers.
+- getMaxHeap() in libc_integration.h is now in the miosix namespace
+- Changed the boot process. Before _init() created the first thread
+  (mainLoader, whose task is to start main()) and then called startKernel().
+  Now mainLoader is started directly by startKernel(). Added stage_2_boot.h.
+- Added Thread::doCreate() to factorize common code used in Thread::create
+  and startKernel(). Takes a bool defaultReent as an addition to let main
+  and the idle thread use the global reentrancy structure.
+- Added cReent to Thread class.
+- Renamed ExceptionHandlingData and ExceptionHandlingAccessor into
+  CppReentrancyData and CppReentrancyAccessor for consistency.
+- Added classes CReentrancyData and CReentrancyAccessor, to handle newlib
+  reentrancy.
+- Removed kernel/syscalls.cpp, and moved its content in two files within
+  stdlib_integration: libc_integration.h/cpp and libstdcpp_integration.h/cpp
+- Added miosix/stdlib_integration directory
+- Changed parameter type of memDump() from const char * to const void *
+- Improved MemoryProfiling::getCurrentFreeHeap(). It now uses mallinfo()
+  instead of returning the high watermark of the heap. Considering that
+  malloc returns memory to the OS using sbrk only when there is a block
+  of at least 128K, the old implementation could overestimate heap usage by
+  as much as 128K. The current implementation is more precise.
+- WATERMARK_LEN is now an unsigned int (was an unsigned char)
 - Changed return value of Filesystem::fstatFile(). It used to set a st_blksize
   of 0, but now this field is really taken into account for buffer sizing, so
   better use the filesystem block size.

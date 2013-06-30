@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011 by Terraneo Federico             *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 by Terraneo Federico *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -33,6 +33,7 @@
 #include "logging.h"
 #include "arch_settings.h"
 #include "sync.h"
+#include "stage_2_boot.h"
 #include "kernel/scheduler/scheduler.h"
 #include <stdexcept>
 #include <algorithm>
@@ -151,48 +152,31 @@ bool areInterruptsEnabled()
 
 void startKernel()
 {
-    //
-    //Create the idle thread
-    //
-    unsigned int fullStackSize=WATERMARK_LEN+CTXSAVE_ON_STACK+STACK_IDLE;
-    
-    //Align fullStackSize to the platform required stack alignment
-    fullStackSize+=CTXSAVE_STACK_ALIGNMENT-1;
-    fullStackSize/=CTXSAVE_STACK_ALIGNMENT;
-    fullStackSize*=CTXSAVE_STACK_ALIGNMENT;
-    
-    unsigned int *base=static_cast<unsigned int*>(malloc(sizeof(Thread)+
-            fullStackSize));
-    if(base==NULL)
+    // Create the idle and main thread
+    Thread *idle, *main;
+    idle=Thread::doCreate(idleThread,STACK_IDLE,NULL,Thread::DEFAULT,true);
+    main=Thread::doCreate(mainLoader,MAIN_STACK_SIZE,NULL,Thread::DEFAULT,true);
+    if(idle==NULL || main==NULL)
     {
         errorHandler(OUT_OF_MEMORY);
-        return;//Error
+        return;
     }
-    //At the top of thread memory allocate the Thread class with placement new
-    void *threadClass=base+(fullStackSize/sizeof(unsigned int));
-    Thread *idle=new (threadClass) Thread(base,STACK_IDLE);
-
-    //Fill watermark and stack
-    memset(base, WATERMARK_FILL, WATERMARK_LEN);
-    base+=WATERMARK_LEN/sizeof(unsigned int);
-    memset(base, STACK_FILL, fullStackSize-WATERMARK_LEN);
-
-    //On some architectures some registers are saved on the stack, therefore
-    //initCtxsave *must* be called after filling the stack.
-    miosix_private::initCtxsave(idle->ctxsave,idleThread,
-            reinterpret_cast<unsigned int*>(idle),NULL);
-    idle->flags.IRQsetDetached();
+    
+    // Add them to the scheduler
     Scheduler::IRQsetIdleThread(idle);
-    kernel_started=true;//Now kernel is started
+    if(Scheduler::PKaddThread(main,MAIN_PRIORITY)==false)
+    {
+        errorHandler(UNEXPECTED);
+        return;
+    }
+    
+    //Now kernel is started
+    kernel_started=true;
 
-    //Now that the tick timer is running, start first thread
-    //cur must point to a valid thread, but now, since the kernel isn't started
-    //there's no current thread. So we make it point to the the idle thread.
+    // cur must point to a valid thread, so we make it point to the the idle one
     cur=idle;
     
-    //
     //Dispatch the task to the architecture-specific function
-    //
     miosix_private::IRQportableStartKernel();
 }
 
@@ -297,36 +281,7 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
         return NULL;
     }
     
-    unsigned int fullStackSize=WATERMARK_LEN+CTXSAVE_ON_STACK+stacksize;
-    
-    //Align fullStackSize to the platform required stack alignment
-    fullStackSize+=CTXSAVE_STACK_ALIGNMENT-1;
-    fullStackSize/=CTXSAVE_STACK_ALIGNMENT;
-    fullStackSize*=CTXSAVE_STACK_ALIGNMENT;
-    
-    //Allocate memory for the thread, return if fail
-    unsigned int *base=static_cast<unsigned int*>(malloc(sizeof(Thread)+
-            fullStackSize));
-    if(base==NULL)
-    {
-        errorHandler(OUT_OF_MEMORY);
-        return NULL;//Error
-    }
-    //At the top of thread memory allocate the Thread class with placement new
-    void *threadClass=base+(fullStackSize/sizeof(unsigned int));
-    Thread *thread=new (threadClass) Thread(base,stacksize);
-
-    //Fill watermark and stack
-    memset(base, WATERMARK_FILL, WATERMARK_LEN);
-    base+=WATERMARK_LEN/sizeof(unsigned int);
-    memset(base, STACK_FILL, fullStackSize-WATERMARK_LEN);
-
-    //On some architectures some registers are saved on the stack, therefore
-    //initCtxsave *must* be called after filling the stack.
-    miosix_private::initCtxsave(thread->ctxsave,startfunc,
-            reinterpret_cast<unsigned int*>(thread),argv);
-
-    if((options & JOINABLE)==0) thread->flags.IRQsetDetached();
+    Thread *thread=doCreate(startfunc,stacksize,argv,options,false);
     
     //Add thread to thread list
     {
@@ -335,7 +290,7 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
         if(Scheduler::PKaddThread(thread,priority)==false)
         {
             //Reached limit on number of threads
-            base=thread->watermark;
+            unsigned int *base=thread->watermark;
             thread->~Thread();
             free(base); //Delete ALL thread memory
             return NULL;
@@ -593,6 +548,50 @@ const unsigned int *Thread::getStackBottom()
 const int Thread::getStackSize()
 {
     return cur->stacksize;
+}
+
+Thread *Thread::doCreate(void*(*startfunc)(void*) , unsigned int stacksize,
+                      void* argv, unsigned short options, bool defaultReent)
+{
+    unsigned int fullStackSize=WATERMARK_LEN+CTXSAVE_ON_STACK+stacksize;
+    
+    //Align fullStackSize to the platform required stack alignment
+    fullStackSize+=CTXSAVE_STACK_ALIGNMENT-1;
+    fullStackSize/=CTXSAVE_STACK_ALIGNMENT;
+    fullStackSize*=CTXSAVE_STACK_ALIGNMENT;
+    
+    //Allocate memory for the thread, return if fail
+    unsigned int *base=static_cast<unsigned int*>(malloc(sizeof(Thread)+
+            fullStackSize));
+    if(base==NULL)
+    {
+        errorHandler(OUT_OF_MEMORY);
+        return NULL;
+    }
+    //At the top of thread memory allocate the Thread class with placement new
+    void *threadClass=base+(fullStackSize/sizeof(unsigned int));
+    Thread *thread=new (threadClass) Thread(base,stacksize,defaultReent);
+    
+    if(thread->cReent.isInitialized()==false ||
+       thread->cppReent.isInitialized()==false)
+    {
+         thread->~Thread();
+         free(base); //Delete ALL thread memory
+         return NULL;
+    }
+
+    //Fill watermark and stack
+    memset(base, WATERMARK_FILL, WATERMARK_LEN);
+    base+=WATERMARK_LEN/sizeof(unsigned int);
+    memset(base, STACK_FILL, fullStackSize-WATERMARK_LEN);
+    
+    //On some architectures some registers are saved on the stack, therefore
+    //initCtxsave *must* be called after filling the stack.
+    miosix_private::initCtxsave(thread->ctxsave,startfunc,
+            reinterpret_cast<unsigned int*>(thread),argv);
+
+    if((options & JOINABLE)==0) thread->flags.IRQsetDetached();
+    return thread;
 }
 
 void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)

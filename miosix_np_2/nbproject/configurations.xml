@@ -373,10 +373,13 @@
           <in>stage_2_boot.cpp</in>
           <in>sync.cpp</in>
           <in>sync.h</in>
-          <in>syscalls.cpp</in>
-          <in>syscalls.h</in>
-          <in>syscalls_types.h</in>
           <in>unistd.cpp</in>
+        </df>
+        <df name="stdlib_integration">
+          <in>libstdcpp_integration.cpp</in>
+          <in>libstdcpp_integration.h</in>
+          <in>newlib_integration.cpp</in>
+          <in>newlib_integration.h</in>
         </df>
         <df name="util">
           <in>crc16.cpp</in>
@@ -433,6 +436,7 @@
               <pElem>../miosix/arch/arm7_lpc2000/lpc2138_miosix_board</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>_MIOSIX</Elem>
               <Elem>_POSIX_THREADS</Elem>
             </preprocessorList>
@@ -450,6 +454,7 @@
               <pElem>../miosix/arch/arm7_lpc2000/lpc2138_miosix_board</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>_MIOSIX</Elem>
               <Elem>_POSIX_THREADS</Elem>
             </preprocessorList>
@@ -477,6 +482,7 @@
               <pElem>../miosix/arch/arm7_lpc2000/lpc2138_miosix_board</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>_ARCH_ARM7_LPC2000</Elem>
               <Elem>_BOARD_MIOSIX_BOARD</Elem>
               <Elem>_MIOSIX</Elem>
@@ -492,6 +498,7 @@
               <pElem>../miosix/arch/arm7_lpc2000/lpc2138_miosix_board</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>_ARCH_ARM7_LPC2000</Elem>
               <Elem>_BOARD_MIOSIX_BOARD</Elem>
               <Elem>_MIOSIX</Elem>
@@ -521,6 +528,7 @@
               <pElem>../miosix/arch/cortexM3_stm32/stm32f103ze_stm3210e-eval</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>STM32F10X_HD</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_STM3210E_EVAL</Elem>
@@ -537,6 +545,7 @@
               <pElem>../miosix/arch/cortexM3_stm32/stm32f103ze_stm3210e-eval</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>STM32F10X_HD</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_STM3210E_EVAL</Elem>
@@ -567,6 +576,7 @@
               <pElem>../miosix/arch/cortexM3_stm32/stm32f103ve_mp3v2</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>STM32F10X_HD</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_MP3V2</Elem>
@@ -583,6 +593,7 @@
               <pElem>../miosix/arch/cortexM3_stm32/stm32f103ve_mp3v2</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>STM32F10X_HD</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_MP3V2</Elem>
@@ -613,6 +624,7 @@
               <pElem>../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>STM32F10X_MD_VL</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_STM32VLDISCOVERY</Elem>
@@ -629,6 +641,7 @@
               <pElem>../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>STM32F10X_MD_VL</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_STM32VLDISCOVERY</Elem>
@@ -659,6 +672,7 @@
               <pElem>../miosix/arch/cortexM3_stm32/stm32f103ve_strive_mini</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>STM32F10X_HD</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_STRIVE_MINI</Elem>
@@ -675,6 +689,7 @@
               <pElem>../miosix/arch/cortexM3_stm32/stm32f103ve_strive_mini</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>STM32F10X_HD</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_STRIVE_MINI</Elem>
@@ -705,6 +720,7 @@
               <pElem>../miosix/arch/cortexM3_stm32/stm32f103ze_redbull_v2</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>STM32F10X_HD</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_REDBULL_V2</Elem>
@@ -721,6 +737,7 @@
               <pElem>../miosix/arch/cortexM3_stm32/stm32f103ze_redbull_v2</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>STM32F10X_HD</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_REDBULL_V2</Elem>
@@ -751,6 +768,7 @@
               <pElem>../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>_ARCH_CORTEXM4_STM32F4</Elem>
               <Elem>_BOARD_STM32F4DISCOVERY</Elem>
               <Elem>_MIOSIX</Elem>
@@ -766,6 +784,7 @@
               <pElem>../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>_ARCH_CORTEXM4_STM32F4</Elem>
               <Elem>_BOARD_STM32F4DISCOVERY</Elem>
               <Elem>_MIOSIX</Elem>
@@ -795,6 +814,7 @@
               <pElem>../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
               <Elem>_BOARD_STM3220G_EVAL</Elem>
               <Elem>_MIOSIX</Elem>
@@ -810,6 +830,7 @@
               <pElem>../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
               <Elem>_BOARD_STM3220G_EVAL</Elem>
               <Elem>_MIOSIX</Elem>
@@ -839,6 +860,7 @@
               <pElem>../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
               <Elem>_BOARD_ETHBOARDV2</Elem>
               <Elem>_MIOSIX</Elem>
@@ -854,6 +876,7 @@
               <pElem>../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
               <Elem>_BOARD_ETHBOARDV2</Elem>
               <Elem>_MIOSIX</Elem>
@@ -883,6 +906,7 @@
               <pElem>../miosix/arch/cortexM3_stm32f2/stm32f207ze_als_camboard </pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
               <Elem>_BOARD_ALS_CAMBOARD</Elem>
               <Elem>_MIOSIX</Elem>
@@ -898,6 +922,7 @@
               <pElem>../miosix/arch/cortexM3_stm32f2/stm32f207ze_als_camboard </pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
               <Elem>_BOARD_ALS_CAMBOARD</Elem>
               <Elem>_MIOSIX</Elem>
@@ -927,6 +952,7 @@
               <pElem>../miosix/arch/cortexM3_stm32l1/stm32l151c8_als_mainboard </pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>_ARCH_CORTEXM3_STM32L1</Elem>
               <Elem>_BOARD_ALS_MAINBOARD</Elem>
               <Elem>_MIOSIX</Elem>
@@ -942,6 +968,7 @@
               <pElem>../miosix/arch/cortexM3_stm32l1/stm32l151c8_als_mainboard </pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>_ARCH_CORTEXM3_STM32L1</Elem>
               <Elem>_BOARD_ALS_MAINBOARD</Elem>
               <Elem>_MIOSIX</Elem>
@@ -971,6 +998,7 @@
               <pElem>../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>_ARCH_CORTEXM4_STM32F4</Elem>
               <Elem>_BOARD_BITSBOARD</Elem>
               <Elem>_MIOSIX</Elem>
@@ -986,6 +1014,7 @@
               <pElem>../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery</pElem>
             </incDir>
             <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
               <Elem>_ARCH_CORTEXM4_STM32F4</Elem>
               <Elem>_BOARD_BITSBOARD</Elem>
               <Elem>_MIOSIX</Elem>

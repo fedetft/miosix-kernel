@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011 by Terraneo Federico             *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 by Terraneo Federico *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -33,7 +33,8 @@
 #include "config/miosix_settings.h"
 #include "interfaces/portability.h"
 #include "kernel/scheduler/sched_types.h"
-#include "kernel/syscalls_types.h"
+#include "stdlib_integration/libc_integration.h"
+#include "stdlib_integration/libstdcpp_integration.h"
 #include <cstdlib>
 #include <new>
 #include <functional>
@@ -360,8 +361,7 @@ private:
 
 /**
  * \internal
- * Start the kernel.<br>You must create at least one thread using Thread::create
- * before starting the kernel. There is no way to stop the kernel once it is
+ * Start the kernel.<br> There is no way to stop the kernel once it is
  * started, except a (software or hardware) system reset.<br>
  * Calls errorHandler(OUT_OF_MEMORY) if there is no heap to create the idle
  * thread. If the function succeds in starting the kernel, it never returns;
@@ -439,8 +439,6 @@ public:
      * Calls errorHandler(INVALID_PARAMETERS) if stacksize or priority are
      * invalid, and errorHandler(OUT_OF_MEMORY) if the heap is full.
      * Can be called when the kernel is paused.
-     * Note: this is the only method of this class that can be called BEFORE the
-     * kernel is started.
      */
     static Thread *create(void *(*startfunc)(void *), unsigned int stacksize,
                             Priority priority=Priority(), void *argv=NULL,
@@ -835,9 +833,10 @@ private:
      * \param watermark pointer to watermark area
      * \param stacksize thread's stack size
      */
-    Thread(unsigned int *watermark, unsigned int stacksize):
+    Thread(unsigned int *watermark, unsigned int stacksize, bool defaultReent):
         schedData(), flags(), savedPriority(0), mutexLocked(0), mutexWaiting(0),
-        watermark(watermark), ctxsave(), stacksize(stacksize)
+        watermark(watermark), ctxsave(), stacksize(stacksize),
+        cReent(defaultReent), cppReent()
     {
         joinData.waitingForJoin=NULL;
     }
@@ -846,6 +845,19 @@ private:
      * Destructor, does nothing.
      */
     ~Thread() {}
+    
+    /**
+     * Helper function to initialize a Thread
+     * \param startfunc entry point function
+     * \param stacksize stack size for the thread
+     * \param argv argument passed to the thread entry point
+     * \param options thread options
+     * \param defaultReent true if the default C reentrancy data should be used
+     * \return a pointer to a thread, or NULL in case there are not enough
+     * resources to create one.
+     */
+    static Thread *doCreate(void *(*startfunc)(void *), unsigned int stacksize,
+					void *argv, unsigned short options, bool defaultReent);
 
     /**
      * Thread launcher, all threads start from this member function, which calls
@@ -882,8 +894,9 @@ private:
         Thread *waitingForJoin;///<Thread waiting to join this
         void *result;          ///<Result returned by entry point
     } joinData;
-    /// Per-thread instance of data to make C++ exception handling thread safe.
-    ExceptionHandlingData exData;
+    /// Per-thread instance of data to make the C and C++ libraries thread safe.
+    CReentrancyData  cReent;
+    CppReentrancyData cppReent;
     
     //friend functions
     //Needs access to watermark, ctxsave
@@ -915,8 +928,10 @@ private:
     friend int ::pthread_cond_signal(pthread_cond_t *cond);
     //Needs access to flags
     friend int ::pthread_cond_broadcast(pthread_cond_t *cond);
-    //Needs access to exData
-    friend class ExceptionHandlingAccessor;
+    //Needs access to cReent
+    friend class CReentrancyAccessor;
+    //Needs access to cppReent
+    friend class CppReentrancyAccessor;
 };
 
 /**

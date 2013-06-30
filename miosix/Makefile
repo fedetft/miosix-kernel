@@ -16,7 +16,6 @@ kernel/error.cpp                                                           \
 kernel/pthread.cpp                                                         \
 kernel/unistd.cpp                                                          \
 kernel/stage_2_boot.cpp                                                    \
-kernel/syscalls.cpp                                                        \
 kernel/interrupt_output_device.cpp                                         \
 kernel/scheduler/priority/priority_scheduler.cpp                           \
 kernel/scheduler/control/control_scheduler.cpp                             \
@@ -27,6 +26,8 @@ filesystem/file.cpp                                                        \
 filesystem/devfs/devfs.cpp                                                 \
 filesystem/fat32/ff.c                                                      \
 filesystem/fat32/diskio.cpp                                                \
+stdlib_integration/libc_integration.cpp                                    \
+stdlib_integration/libstdcpp_integration.cpp                               \
 e20/e20.cpp                                                                \
 util/util.cpp                                                              \
 util/version.cpp                                                           \
@@ -42,9 +43,11 @@ SRC += $(ARCH_SRC)
 OBJ := $(addsuffix .o, $(basename $(SRC)))
 
 ## Includes the miosix base directory for C/C++
-CXXFLAGS := $(CXXFLAGS_BASE) -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC)
-CFLAGS   :=  $(CFLAGS_BASE)  -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC)
-AFLAGS   :=  $(AFLAGS_BASE)
+CXXFLAGS := $(CXXFLAGS_BASE) -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC) \
+	    -DCOMPILING_MIOSIX
+CFLAGS   := $(CFLAGS_BASE)   -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC) \
+	    -DCOMPILING_MIOSIX
+AFLAGS   := $(AFLAGS_BASE)
 
 ## Build libmiosix.a and stage_1_boot.o (whose path is in BOOT_FILE)
 ## The file stage_1_boot.o is compiled separately because

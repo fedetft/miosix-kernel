@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010 by Terraneo Federico                   *
+ *   Copyright (C) 2013 by Terraneo Federico                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,34 +25,23 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef SYSCALLS_H
-#define	SYSCALLS_H
+#ifndef STAGE_2_BOOT_H
+#define	STAGE_2_BOOT_H
 
-#include <stddef.h>
+#ifndef COMPILING_MIOSIX
+#error "This is header is private, it can't be used outside Miosix itself."
+#error "If your code depends on a private header, it IS broken."
+#endif //COMPILING_MIOSIX
 
-#ifdef __cplusplus
-extern "C" {
-#endif //__cplusplus
-
-/**
- * \internal
- * This function has nothing to do with syscalls, it is used by system.cpp
- * to implement heap usege statistics.
- * FIXME: If this function is called when _sbrk_r has never been called it will
- * return a wrong value (0)
- */
-unsigned int getMaxHeap();
+namespace miosix {
 
 /**
- * \internal
- * _sbrk_r, malloc calls it to increase the heap size
- * Note Jul 4, 2010: incr can also be a negative value, indicating a request to
- * decrease heap space
+ * This function will perform the part of system initialization that must be
+ * done after the kernel is started. At the end, it will call main()
+ * \param argv ignored parameter
  */
-void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr);
+void *mainLoader(void *argv);
 
-#ifdef __cplusplus
-}
-#endif //__cplusplus
+} //namespace miosix
 
-#endif	//SYSCALLS_H
+#endif //STAGE_2_BOOT_H
