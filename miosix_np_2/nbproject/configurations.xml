@@ -371,15 +371,16 @@
           <in>pthread.cpp</in>
           <in>pthread_private.h</in>
           <in>stage_2_boot.cpp</in>
+          <in>stage_2_boot.h</in>
           <in>sync.cpp</in>
           <in>sync.h</in>
           <in>unistd.cpp</in>
         </df>
         <df name="stdlib_integration">
+          <in>libc_integration.cpp</in>
+          <in>libc_integration.h</in>
           <in>libstdcpp_integration.cpp</in>
           <in>libstdcpp_integration.h</in>
-          <in>newlib_integration.cpp</in>
-          <in>newlib_integration.h</in>
         </df>
         <df name="util">
           <in>crc16.cpp</in>
