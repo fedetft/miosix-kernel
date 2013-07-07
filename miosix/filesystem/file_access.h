@@ -49,9 +49,11 @@ class ResolvedPath;
 class StringPart;
 
 /**
- * All filesystems derive from this class
+ * All filesystems derive from this class. Classes of this type are reference
+ * counted, must be allocated on the heap and managed through
+ * intrusive_ref_ptr<FilesystemBase>
  */
-class FilesystemBase
+class FilesystemBase : public IntrusiveRefCounted
 {
 public:
     /**
@@ -94,7 +96,7 @@ public:
      * \return true if the filesystem supports symbolic links.
      * In this case, the filesystem should override readlink
      */
-    virtual bool supportsSymlinks() const=0;
+    virtual bool supportsSymlinks() const;
     
     /**
      * \internal
@@ -503,14 +505,15 @@ public:
      * to the FilesystemManager class
      * \return 0 on success, a negative number on failure
      */
-    int kmount(const char *path, FilesystemBase *fs);
+    int kmount(const char *path, intrusive_ref_ptr<FilesystemBase> fs);
     
     /**
      * Unmounts a filesystem
      * \param path path to a filesytem
+     * \param force true to umount the filesystem even if busy
      * \return 0 on success, or a negative number on error
      */
-    int umount(const char *path);
+    int umount(const char *path, bool force=false);
     
     /**
      * Resolve a path to identify the filesystem it belongs
@@ -562,7 +565,10 @@ private:
     FilesystemManager& operator=(const FilesystemManager&);
     
     Mutex mutex; ///< To protect against concurrent access
-    std::map<StringPart,FilesystemBase*> filesystems; ///< Mounted filesystem
+    
+    /// Mounted filesystem
+    std::map<StringPart,intrusive_ref_ptr<FilesystemBase> > filesystems;
+    
 //    #ifdef WITH_PROCESSES
     std::list<FileDescriptorTable*> fileTables; ///< Process file tables
 //    #else //WITH_PROCESSES

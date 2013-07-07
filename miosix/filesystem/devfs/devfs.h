@@ -35,6 +35,31 @@
 
 namespace miosix {
 
+/**
+ * DevFs is a special filesystem meant to access devices as they were files.
+ * For this reason, it is a little different from other filesystems. Normal
+ * filesystems create FileBase objects ondemand, to answer an open() call. Such
+ * files have a parent pointer that points to the filesystem. On the contrary,
+ * DevFs is a collection of device files. Each device file is a different
+ * subclass of FileBase that overrides some of its member functions to access
+ * the handled device. These FileBase subclasses do not have a parent pointer
+ * into DevFs, instead, DevFs holds a map of device names and pointers into
+ * these derived FileBase objects, which always exist, even if they are not
+ * opened anywere. Opening the same file name multiple times returns the same
+ * instance of the file object.
+ * 
+ * The reason why device files can't have the parent pointer that points into
+ * DevFs is that DevFs already has a pointer into those files, and since they're
+ * both refcounted pointers that would be a cycle of refcounted pointer that
+ * would cause problem if DevFs is ever umounted.
+ * 
+ * Also a note on the behaviour when umounting DevFs: since the files don't
+ * have a parent pointer into DevFs umounting DevFs will immediately delete
+ * the filesystem, while the individual files won't be deleted until the
+ * processes that have them opened close them. This isn't an unreasonable
+ * behaviour, and also it must be considered that umounting DevFs shouldn't
+ * happen in most practical cases.
+ */
 class DevFs : public FilesystemBase
 {
 public:
@@ -65,22 +90,6 @@ public:
     virtual int lstat(StringPart& name, struct stat *pstat);
     
     /**
-     * Follows a symbolic link
-     * \param path path identifying a symlink, relative to the local filesystem
-     * \param target the link target is returned here if the call succeeds.
-     * Note that the returned path is not relative to this filesystem, and can
-     * be either relative or absolute.
-     * \return 0 on success, a negative number on failure
-     */
-    virtual int readlink(StringPart& name, std::string& target);
-    
-    /**
-     * \return true if the filesystem supports symbolic links.
-     * In this case, the filesystem should override readlink
-     */
-    virtual bool supportsSymlinks() const;
-    
-    /**
      * \internal
      * \return true if all files belonging to this filesystem are closed 
      */
@@ -88,7 +97,7 @@ public:
     
 private:
     Mutex mutex;
-    std::map<std::string,intrusive_ref_ptr<FileBase> > files;
+    std::map<StringPart,intrusive_ref_ptr<FileBase> > files;
 };
 
 } //namespace miosix

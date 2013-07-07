@@ -51,7 +51,7 @@ public:
      * Constructor
      * \param parent the filesystem to which this file belongs
      */
-    FileBase(FilesystemBase *parent) : parent(parent) {}
+    FileBase(intrusive_ref_ptr<FilesystemBase> parent) : parent(parent) {}
     
     /**
      * Write data to the file, if the file supports writing.
@@ -104,7 +104,7 @@ public:
     /**
      * \return a pointer to the parent filesystem
      */
-    const FilesystemBase *getParent() const { return parent; }
+    const intrusive_ref_ptr<FilesystemBase> getParent() const { return parent; }
     
     /**
      * File destructor
@@ -115,7 +115,7 @@ private:
     FileBase(const FileBase&);
     FileBase& operator=(const FileBase&);
     
-    FilesystemBase *parent; ///< All files must have a parent filesystem
+    intrusive_ref_ptr<FilesystemBase> parent; ///< Files may have a parent fs
 };
 
 /**
@@ -128,7 +128,7 @@ public:
      * Constructor
      * \param parent the filesystem to which this file belongs
      */
-    NullFile(FilesystemBase *parent) : FileBase(parent) {}
+    NullFile() : FileBase(intrusive_ref_ptr<FilesystemBase>()) {}
     
     /**
      * Write data to the file, if the file supports writing.
@@ -189,7 +189,7 @@ public:
      * Constructor
      * \param parent the filesystem to which this file belongs
      */
-    ZeroFile(FilesystemBase *parent) : FileBase(parent) {}
+    ZeroFile() : FileBase(intrusive_ref_ptr<FilesystemBase>()) {}
     
     /**
      * Write data to the file, if the file supports writing.
@@ -252,12 +252,6 @@ public:
      * \param device proxed device.
      */
     TerminalDevice(intrusive_ref_ptr<FileBase> device);
-    
-    /**
-     * Change the proxed object
-     * \param newDevice new proxed device
-     */
-    void changeDevice(intrusive_ref_ptr<FileBase> newDevice);
     
     /**
      * Convenience function to write a text string, terminated with \0.

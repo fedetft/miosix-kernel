@@ -57,11 +57,11 @@ public:
      * \param off offset into path where the subpath relative to the current
      * filesystem starts
      */
-    ResolvedPath(FilesystemBase *fs, int offset)
+    ResolvedPath(intrusive_ref_ptr<FilesystemBase> fs, int offset)
             : result(0), fs(fs), off(offset) {}
     
-    int result;         ///< 0 on success, a negative number on failure
-    FilesystemBase *fs; ///< pointer to the filesystem to which the file belongs
+    int result; ///< 0 on success, a negative number on failure
+    intrusive_ref_ptr<FilesystemBase> fs; ///< pointer to the filesystem to which the file belongs
     /// path.c_str()+off is a string containing the relative path into the
     /// filesystem for the looked up file
     int off;
@@ -75,6 +75,8 @@ int FilesystemBase::readlink(StringPart& name, string& target)
 {
     return -EINVAL; //Default implementation, for filesystems without symlinks
 }
+
+bool FilesystemBase::supportsSymlinks() const { return false; }
 
 bool FilesystemBase::areAllFilesClosed() { return openFileCount==0; }
 
@@ -308,7 +310,7 @@ public:
      * Constructor
      * \param fs map of all mounted filesystems
      */
-    PathResolution(const map<StringPart,FilesystemBase*>& fs)
+    PathResolution(const map<StringPart,intrusive_ref_ptr<FilesystemBase> >& fs)
             : filesystems(fs) {}
     
     /**
@@ -362,13 +364,13 @@ private:
     bool checkLastComponent(string& path);
     
     /// Mounted filesystems
-    const map<StringPart,FilesystemBase*>& filesystems;
+    const map<StringPart,intrusive_ref_ptr<FilesystemBase> >& filesystems;
     
     /// Pointer to root filesystem
-    FilesystemBase *root;
+    intrusive_ref_ptr<FilesystemBase> root;
     
     /// Current filesystem while looking up path
-    FilesystemBase *fs;
+    intrusive_ref_ptr<FilesystemBase> fs;
     
     /// True if current filesystem supports symlinks
     bool syms;
@@ -393,7 +395,7 @@ private:
 ResolvedPath PathResolution::resolvePath(string& path, bool followLastSymlink)
 {
     char rootPath[2]; rootPath[0]='/'; rootPath[1]='\0';//A non-const "/" string 
-    map<StringPart,FilesystemBase*>::const_iterator it;
+    map<StringPart,intrusive_ref_ptr<FilesystemBase> >::const_iterator it;
     it=filesystems.find(StringPart(rootPath));
     if(it==filesystems.end()) return ResolvedPath(-ENOENT); //should not happen
     root=fs=it->second;
@@ -458,7 +460,7 @@ int PathResolution::normalPathComponent(string& path, bool followIfSymlink)
         //NOTE: index<path.length() is necessary as for example /dev and
         // /dev/ should resolve to the directory in the root filesystem, not
         //to the root directory of the /dev filesystem
-        map<StringPart,FilesystemBase*>::const_iterator it;
+        map<StringPart,intrusive_ref_ptr<FilesystemBase> >::const_iterator it;
         it=filesystems.find(StringPart(path,index-1));
         if(it!=filesystems.end())
         {
@@ -550,7 +552,7 @@ int PathResolution::recursiveFindFs(string& path)
             indexIntoFs=0;
             break;
         }
-        map<StringPart,FilesystemBase*>::const_iterator it;
+        map<StringPart,intrusive_ref_ptr<FilesystemBase> >::const_iterator it;
         it=filesystems.find(StringPart(path,backIndex));
         if(it!=filesystems.end())
         {
@@ -582,7 +584,7 @@ FilesystemManager& FilesystemManager::instance()
     return instance;
 }
 
-int FilesystemManager::kmount(const char* path, FilesystemBase* fs)
+int FilesystemManager::kmount(const char* path, intrusive_ref_ptr<FilesystemBase> fs)
 {
     if(path==0 || path[0]=='\0' || fs==0) return -EFAULT;
     Lock<Mutex> l(mutex);
@@ -592,28 +594,29 @@ int FilesystemManager::kmount(const char* path, FilesystemBase* fs)
     if(len>PATH_MAX) return -ENAMETOOLONG;
     string temp(path);
     if(filesystems.insert(make_pair(StringPart(temp),fs)).second==false)
-        return -EBUSY;
+        return -EBUSY; //Means already mounted
     else
         return 0;
 }
 
-int FilesystemManager::umount(const char* path)
+int FilesystemManager::umount(const char* path, bool force)
 {
+    typedef
+    typename map<StringPart,intrusive_ref_ptr<FilesystemBase> >::iterator fsIt;
+    
     if(path==0 || path[0]=='\0') return -ENOENT;
     int len=strlen(path);
     if(len>PATH_MAX) return -ENAMETOOLONG;
     string pathStr(path);
     Lock<Mutex> l(mutex); //A reader-writer lock would be better
-    map<StringPart,FilesystemBase*>::iterator it;
-    it=filesystems.find(StringPart(pathStr));
+    fsIt it=filesystems.find(StringPart(pathStr));
     if(it==filesystems.end()) return -EINVAL;
     
     //This finds all the filesystems that have to be recursively umounted
     //to umount the required filesystem. For example, if /path and /path/path2
     //are filesystems, umounting /path must umount also /path/path2
-    vector<map<StringPart,FilesystemBase*>::iterator> fsToUmount;
-    map<StringPart,FilesystemBase*>::iterator it2;
-    for(it2=filesystems.begin();it2!=filesystems.end();++it2)
+    vector<fsIt> fsToUmount;
+    for(fsIt it2=filesystems.begin();it2!=filesystems.end();++it2)
         if(it2->first.startsWith(it->first)==0) fsToUmount.push_back(it2);
     
     //Now look into all file descriptor tables if there are open files in the
@@ -630,11 +633,12 @@ int FilesystemManager::umount(const char* path)
         {
             intrusive_ref_ptr<FileBase> file=(*it3)->getFile(i);
             if(!file) continue;
-            vector<map<StringPart,FilesystemBase*>::iterator>::iterator it4;
+            vector<fsIt>::iterator it4;
             for(it4=fsToUmount.begin();it4!=fsToUmount.end();++it4)
             {
                 if(file->getParent()!=(*it4)->second) continue;
-                return -EBUSY;
+                if(force==false) return -EBUSY;
+                (*it3)->close(i); //If forced umount, close the file
             }
         }
     }
@@ -643,20 +647,30 @@ int FilesystemManager::umount(const char* path)
     //but check if it is really so, as there is a possible race condition
     //which is the read/close,umount where one thread performs a read (or write)
     //operation on a file descriptor, it gets preempted and another thread does
-    //a close on that descriptor and an umount of the filesystem.
-    //In such a case there is no entry in the descriptor table (as close was
-    //called) but the operation is still ongoing.
-    vector<map<StringPart,FilesystemBase*>::iterator>::iterator it5;
-    for(it5=fsToUmount.begin();it5!=fsToUmount.end();++it5)
-        if((*it5)->second->areAllFilesClosed()==false) return -EBUSY;
+    //a close on that descriptor and an umount of the filesystem. Also, this may
+    //happen in case of a forced umount. In such a case there is no entry in
+    //the descriptor table (as close was called) but the operation is still
+    //ongoing.
+    vector<fsIt>::iterator it5;
+    const int maxRetry=3; //Retry up to three times
+    for(int i=0;i<maxRetry;i++)
+    { 
+        bool failed=false;
+        for(it5=fsToUmount.begin();it5!=fsToUmount.end();++it5)
+        {
+            if((*it5)->second->areAllFilesClosed()) continue;
+            if(force==false) return -EBUSY;
+            failed=true;
+            break;
+        }
+        if(!failed) break;
+        if(i==maxRetry-1) return -EBUSY; //Failed to umount even if forced
+        Thread::sleep(1000); //Wait to see if the filesystem operation completes
+    }
     
     //It is now safe to umount all filesystems
     for(it5=fsToUmount.begin();it5!=fsToUmount.end();++it5)
-    {
-        FilesystemBase *toUmount=(*it5)->second;
         filesystems.erase(*it5);
-        delete toUmount;
-    }
     return 0;
 }
 
