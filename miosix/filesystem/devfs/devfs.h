@@ -39,17 +39,49 @@ class DevFs : public FilesystemBase
 {
 public:
     /**
+     * Constructor
+     */
+    DevFs();
+    
+    /**
      * Open a file
      * \param file the file object will be stored here, if the call succeeds
      * \param name the name of the file to open, relative to the local
      * filesystem
      * \param flags file flags (open for reading, writing, ...)
      * \param mode file permissions
+     * \return 0 on success, or a negative number on failure
      */
-    virtual int open(intrusive_ref_ptr<FileBase>& file, std::string name,
+    virtual int open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
             int flags, int mode);
     
+        /**
+     * Obtain information on a file, identified by a path name. Does not follow
+     * symlinks
+     * \param name path name, relative to the local filesystem
+     * \param pstat file information is stored here
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int lstat(StringPart& name, struct stat *pstat);
+    
     /**
+     * Follows a symbolic link
+     * \param path path identifying a symlink, relative to the local filesystem
+     * \param target the link target is returned here if the call succeeds.
+     * Note that the returned path is not relative to this filesystem, and can
+     * be either relative or absolute.
+     * \return 0 on success, a negative number on failure
+     */
+    virtual int readlink(StringPart& name, std::string& target);
+    
+    /**
+     * \return true if the filesystem supports symbolic links.
+     * In this case, the filesystem should override readlink
+     */
+    virtual bool supportsSymlinks() const;
+    
+    /**
+     * \internal
      * \return true if all files belonging to this filesystem are closed 
      */
     virtual bool areAllFilesClosed();

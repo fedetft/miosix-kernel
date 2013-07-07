@@ -138,7 +138,7 @@ public:
     /**
      * Constructor
      */
-    FileDescriptorTable() : mutex(Mutex::RECURSIVE), cwd("/") {}
+    FileDescriptorTable();
     
     /**
      * Copy constructor
@@ -292,9 +292,10 @@ public:
         return atomic_load(files+fd);
     }
     
-    //Using default destructor as there's no need to lock the mutex while
-    //closing files eventually left open, because if there are other threads
-    //accessing this while we are being deleted we have bigger problems anyway
+    /**
+     * Destructor
+     */
+    ~FileDescriptorTable();
     
 private:
     /**
@@ -498,7 +499,8 @@ public:
      * and board support packages. It is the only mount operation that can
      * mount the root filesystem.
      * \param path path where to mount the filesystem
-     * \param fs filesystem to mount
+     * \param fs filesystem to mount. Ownership of the pointer is transferred
+     * to the FilesystemManager class
      * \return 0 on success, a negative number on failure
      */
     int kmount(const char *path, FilesystemBase *fs);
@@ -527,6 +529,28 @@ public:
      * \return the resolved path
      */
     ResolvedPath resolvePath(std::string& path, bool followLastSymlink=true);
+    
+    /**
+     * \internal
+     * Called by FileDescriptorTable's constructor. Never call this function
+     * from user code.
+     */
+    void addFileDescriptorTable(FileDescriptorTable *fdt)
+    {
+        Lock<Mutex> l(mutex);
+        fileTables.push_back(fdt);
+    }
+    
+    /**
+     * \internal
+     * Called by FileDescriptorTable's constructor. Never call this function
+     * from user code.
+     */
+    void removeFileDescriptorTable(FileDescriptorTable *fdt)
+    {
+        Lock<Mutex> l(mutex);
+        fileTables.remove(fdt);
+    }
     
 private:
     /**

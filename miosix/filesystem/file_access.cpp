@@ -88,11 +88,18 @@ FilesystemBase::~FilesystemBase() {}
 // class FileDescriptorTable
 //
 
+FileDescriptorTable::FileDescriptorTable() : mutex(Mutex::RECURSIVE), cwd("/")
+{
+    FilesystemManager::instance().addFileDescriptorTable(this);
+}
+
 FileDescriptorTable::FileDescriptorTable(const FileDescriptorTable& rhs)
+    : mutex(Mutex::RECURSIVE), cwd(rhs.cwd)
 {
     //No need to lock the mutex since we are in a constructor and there can't
     //be pointers to this in other threads yet
     for(int i=0;i<MAX_OPEN_FILES;i++) this->files[i]=atomic_load(&rhs.files[i]);
+    FilesystemManager::instance().addFileDescriptorTable(this);
 }
 
 FileDescriptorTable& FileDescriptorTable::operator=(
@@ -172,6 +179,14 @@ int FileDescriptorTable::statImpl(const char* name, struct stat* pstat, bool f)
     if(openData.result<0) return openData.result;
     StringPart sp(path,string::npos,openData.off);
     return openData.fs->lstat(sp,pstat);
+}
+
+FileDescriptorTable::~FileDescriptorTable()
+{
+    FilesystemManager::instance().removeFileDescriptorTable(this);
+    //There's no need to lock the mutex and explicitly close files eventually
+    //left open, because if there are other threads accessing this while we are
+    //being deleted we have bigger problems anyway
 }
 
 string FileDescriptorTable::absolutePath(const char* path)

@@ -35,22 +35,40 @@ namespace miosix {
 // class DevFs
 //
 
-int DevFs::open(intrusive_ref_ptr<FileBase>& file, std::string name, int flags,
-        int mode)
+DevFs::DevFs()
 {
-    
+    files["null"]=intrusive_ref_ptr<FileBase>(new NullFile(this));
+    files["zero"]=intrusive_ref_ptr<FileBase>(new ZeroFile(this));
 }
 
-/**
- * \return true if all files belonging to this filesystem are closed 
- */
+int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name, int flags,
+        int mode)
+{
+    return -1; //FIXME
+}
+
+int DevFs::lstat(StringPart& name, struct stat *pstat)
+{
+    return -1; //FIXME
+}
+
+int DevFs::readlink(StringPart& name, std::string& target)
+{
+    return -1; //FIXME
+}
+
+bool DevFs::supportsSymlinks() const { return false; }
+
 bool DevFs::areAllFilesClosed()
 {
+    //Lock the mutex just in case we'll want to support dynamically removing
+    //device files at runtime
+    Lock<Mutex> l(mutex);
     //Can't use openFileCount in devFS, as one instance of each file is stored
     //in the map. Rather, check the reference count value. No need to use
-    //atomic ops to make a copy of the file before calling use_count() as
-    //the existence of at least one reference in the map guarantees the file
-    //won't be deleted
+    //atomic ops to make a copy of the file before calling use_count() as the
+    //existence of at least one reference in the map guarantees the file won't
+    //be deleted.
     map<string,intrusive_ref_ptr<FileBase> >::iterator it;
     for(it=files.begin();it!=files.end();++it)
         if(it->second.use_count()>1) return false;

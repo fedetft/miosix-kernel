@@ -48,7 +48,8 @@ class FileBase : public IntrusiveRefCounted
 {
 public:
     /**
-     * Construcotr
+     * Constructor
+     * \param parent the filesystem to which this file belongs
      */
     FileBase(FilesystemBase *parent) : parent(parent) {}
     
@@ -124,6 +125,12 @@ class NullFile : public FileBase
 {
 public:
     /**
+     * Constructor
+     * \param parent the filesystem to which this file belongs
+     */
+    NullFile(FilesystemBase *parent) : FileBase(parent) {}
+    
+    /**
      * Write data to the file, if the file supports writing.
      * \param data the data to write
      * \param len the number of bytes to write
@@ -178,6 +185,12 @@ public:
 class ZeroFile : public FileBase
 {
 public:
+    /**
+     * Constructor
+     * \param parent the filesystem to which this file belongs
+     */
+    ZeroFile(FilesystemBase *parent) : FileBase(parent) {}
+    
     /**
      * Write data to the file, if the file supports writing.
      * \param data the data to write
