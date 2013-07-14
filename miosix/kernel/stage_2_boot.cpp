@@ -38,6 +38,7 @@ start the kernel and filesystem.
 #include "interfaces/bsp.h"
 // Miosix kernel
 #include "kernel.h"
+#include "filesystem/file_access.h"
 #include "filesystem/filesystem.h"
 #include "error.h"
 #include "logging.h"
@@ -137,6 +138,7 @@ void *mainLoader(void *argv)
     
     //If main returns, shutdown
     shutdown();
+    return 0;
 }
 
 /**
@@ -148,6 +150,8 @@ void *mainLoader(void *argv)
 extern "C" void _init()
 {
     if(areInterruptsEnabled()) errorHandler(INTERRUPTS_ENABLED_AT_BOOT);
+    ConsoleDevice::instance().IRQset(intrusive_ref_ptr<FileBase>(new TerminalDevice(
+        intrusive_ref_ptr<FileBase>(new ConsoleAdapter)))); //FIXME: remove!
     IRQbspInit();
     //After IRQbspInit() serial port is initialized, so we can use BOOTLOG
     IRQbootlog(getMiosixVersion());

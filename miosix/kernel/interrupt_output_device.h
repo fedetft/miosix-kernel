@@ -102,7 +102,7 @@ public:
      * an interrupt.
      * \param str the string to write. The string must be NUL terminated.
      */
-    virtual void IRQwrite(const char *str)=0;
+    virtual void IRQwrite(const char *str);
     
     /**
      * Can ONLY be called when the kernel is not yet started, paused or within
@@ -112,7 +112,7 @@ public:
      * example to wait until all data has been sent before performing a reboot.
      * \return true if all write buffers are empty.
      */
-    virtual bool IRQtxComplete()=0;
+    virtual bool IRQtxComplete();
 };
 
 } //namespace miosix

@@ -68,7 +68,7 @@ char Filesystem::mount()
         if(f_mount(0,&filesystem)!=FR_OK) result=1;
         //Fatfs will delay actual filesystem mount until the first request is
         //made. So let's force it to mount the filesystem.
-        DIR d;
+        _DIR_ d;
         if(f_opendir(&d,"/")!=FR_OK) result=1;
     }
     if(result==0) mounted=true;

@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "devfs.h"
+#include "mountpointfs.h"
 
 using namespace std;
 
@@ -35,57 +35,35 @@ namespace miosix {
 // class DevFs
 //
 
-DevFs::DevFs()
+int MountpointFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
+        int flags, int mode)
 {
-    string null="/null";
-    string zero="/zero";
-    string console="/console";
-    
-    files[StringPart(null)]=intrusive_ref_ptr<FileBase>(new NullFile);
-    files[StringPart(zero)]=intrusive_ref_ptr<FileBase>(new ZeroFile);
-    
-    intrusive_ref_ptr<FileBase> consoleDev=ConsoleDevice::instance().get();
-    if(consoleDev) files[StringPart(console)]=consoleDev;
-    else files[StringPart(console)]=files[StringPart(null)];
+    return -EACCES; //MountpointFs does not support files, only directories
 }
 
-int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name, int flags,
-        int mode)
+int MountpointFs::lstat(StringPart& name, struct stat *pstat)
 {
-    //TODO: mode & flags
     Lock<Mutex> l(mutex);
-    map<StringPart,intrusive_ref_ptr<FileBase> >::iterator it=files.find(name);
-    if(it==files.end()) return -ENOENT;
-    file=it->second;
+    map<StringPart,int>::iterator it=dirs.find(name);
+    if(it==dirs.end()) return -ENOENT;
+    memset(pstat,0,sizeof(struct stat));
+    pstat->st_ino=it->second;
+    pstat->st_mode=S_IFDIR | 0755; //drwxr-xr-x
+    pstat->st_nlink=1;
+    pstat->st_blksize=512;
     return 0;
 }
 
-int DevFs::lstat(StringPart& name, struct stat *pstat)
+int MountpointFs::mkdir(StringPart& name, int mode)
 {
+    //TODO: start from 0 when name will not contain /
+    for(unsigned int i=1;i<name.length();i++)
+        if(name[i]=='/')
+            return -EACCES; //MountpointFs does not support subdirectories
     Lock<Mutex> l(mutex);
-    map<StringPart,intrusive_ref_ptr<FileBase> >::iterator it=files.find(name);
-    if(it==files.end()) return -ENOENT;
-    it->second->fstat(pstat);
+    if(dirs.insert(make_pair(name,inodeCount)).second==false) return -EEXIST;
+    inodeCount++;
     return 0;
-}
-
-int DevFs::mkdir(StringPart& name, int mode)
-{
-    return -EACCES; // No directories support in DevFs yet
-}
-
-bool DevFs::areAllFilesClosed()
-{
-    Lock<Mutex> l(mutex);
-    //Can't use openFileCount in devFS, as one instance of each file is stored
-    //in the map. Rather, check the reference count value. No need to use
-    //atomic ops to make a copy of the file before calling use_count() as the
-    //existence of at least one reference in the map guarantees the file won't
-    //be deleted.
-    map<StringPart,intrusive_ref_ptr<FileBase> >::iterator it;
-    for(it=files.begin();it!=files.end();++it)
-        if(it->second.use_count()>1) return false;
-    return true;
 }
 
 } //namespace miosix

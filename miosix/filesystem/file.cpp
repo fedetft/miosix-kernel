@@ -27,6 +27,7 @@
 
 #include "file.h"
 #include <stdio.h>
+#include <interfaces/console.h> //FIXME: remove
 #include "file_access.h"
 
 namespace miosix {
@@ -221,5 +222,29 @@ int TerminalDevice::fstat(struct stat *pstat) const
 int TerminalDevice::isatty() const { return device->isatty(); }
 
 int TerminalDevice::sync() { return device->sync(); }
+
+// FIXME temporary -- begin
+ssize_t ConsoleAdapter::write(const void *data, size_t len)
+{
+    Console::write(reinterpret_cast<const char*>(data),len);
+    return len;
+}
+ssize_t ConsoleAdapter::read(void *data, size_t len)
+{
+    char *d=reinterpret_cast<char*>(data);
+    for(size_t i=0;i<len;i++) *d++=Console::readChar();
+    return len;
+}
+off_t ConsoleAdapter::lseek(off_t pos, int whence) { return -EBADF; }
+int ConsoleAdapter::fstat(struct stat *pstat) const
+{
+    memset(pstat,0,sizeof(struct stat));
+    pstat->st_mode=S_IFCHR;//Character device
+    pstat->st_blksize=0; //Defualt file buffer equals to BUFSIZ
+    return 0;
+}
+int ConsoleAdapter::isatty() const { return true; }
+int ConsoleAdapter::sync() { return 0; }
+// FIXME temporary -- end
 
 } //namespace miosix

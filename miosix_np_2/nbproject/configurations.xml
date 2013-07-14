@@ -319,6 +319,10 @@
             <in>ff.h</in>
             <in>integer.h</in>
           </df>
+          <df name="mountpointfs">
+            <in>mountpointfs.cpp</in>
+            <in>mountpointfs.h</in>
+          </df>
           <in>file.cpp</in>
           <in>file.h</in>
           <in>file_access.cpp</in>

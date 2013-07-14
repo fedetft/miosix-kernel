@@ -29,7 +29,6 @@
 #define	DEVFS_H
 
 #include <map>
-#include <string>
 #include "filesystem/file.h"
 #include "filesystem/file_access.h"
 
@@ -80,7 +79,7 @@ public:
     virtual int open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
             int flags, int mode);
     
-        /**
+    /**
      * Obtain information on a file, identified by a path name. Does not follow
      * symlinks
      * \param name path name, relative to the local filesystem
@@ -88,6 +87,14 @@ public:
      * \return 0 on success, or a negative number on failure
      */
     virtual int lstat(StringPart& name, struct stat *pstat);
+     
+    /**
+     * Create a directory
+     * \param name directory name
+     * \param mode directory permissions
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int mkdir(StringPart& name, int mode);
     
     /**
      * \internal

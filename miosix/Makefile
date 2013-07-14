@@ -23,6 +23,7 @@ kernel/scheduler/edf/edf_scheduler.cpp                                     \
 filesystem/filesystem.cpp                                                  \
 filesystem/file_access.cpp                                                 \
 filesystem/file.cpp                                                        \
+filesystem/mountpointfs/mountpointfs.cpp                                   \
 filesystem/devfs/devfs.cpp                                                 \
 filesystem/fat32/ff.c                                                      \
 filesystem/fat32/diskio.cpp                                                \

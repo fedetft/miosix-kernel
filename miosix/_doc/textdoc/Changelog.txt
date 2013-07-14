@@ -1,5 +1,27 @@
 Changelog for Miosix np embedded OS
 
+- File abstraction layer now handles stdin/stdout/stderr and passes the
+  testsuite, still does not handle fat32 and echo on console is not working.
+- File abstraction layer: added MountpointFs as the default root filesystem
+  to allow mounting other filesystems.
+- Added operator[] to StringPart.
+- File abstraction layer: added pure virtual mkdir() to FilesystemBase.
+- Renamed DIR struct in FatFs code into _DIR_ to avoid conflicts with
+  struct DIR in dirent.h
+- File abstraction layer: added ConsoleDevice class to store the default
+  console device passed by the board support package.
+- File abstraction layer: added ConsoleAdapter class to map the old
+  Console class into the new file abstraction. Will be removed when all
+  bsp will upgrade to the new model.
+- File abstraction layer: correctly handling the one FiledescriptorTable
+  model when WITH_PROCESSES is undefined (processes branch not merged yet).
+- File abstraction layer: now FileDescriptorTable's constructor opens
+  /dev/console as file descriptors 0, 1 and 2 (stdin, stdout and stderr).
+- Now all non reentrant syscalls use CReentrancyAccessor::getReent() to set
+  the errno variable of the thread they're called in.
+- Added option in libc_integration to route the filesystem-related syscalls
+  to the old one filesystem model, or the new file abstraction layer allowing
+  multiple mountpoint model. The new model will gradually replace the old one. 
 - Added -DCOMPILING_MIOSIX to CFLAGS and CXXFLAGS, to allow the introduction
   of private headers.
 - getMaxHeap() in libc_integration.h is now in the miosix namespace

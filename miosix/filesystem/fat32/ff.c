@@ -354,7 +354,7 @@ DWORD clust2sect (	/* !=0: sector number, 0: failed - invalid cluster# */
 
 static
 BOOL next_dir_entry (	/* TRUE: successful, FALSE: could not move next */
-	DIR *dj				/* Pointer to directory object */
+	_DIR_ *dj				/* Pointer to directory object */
 )
 {
 	DWORD clust;
@@ -498,7 +498,7 @@ char make_dirfile (		/* 1: error - detected an invalid format, '\0'or'/': next c
 
 static
 FRESULT trace_path (	/* FR_OK(0): successful, !=0: error code */
-	DIR *dj,			/* Pointer to directory object to return last directory */
+	_DIR_ *dj,			/* Pointer to directory object to return last directory */
 	char *fn,			/* Pointer to last segment name to return {file(8),ext(3),attr(1)} */
 	const char *path,	/* Full-path string to trace a file or directory */
 	BYTE **dir			/* Pointer to pointer to found entry to retutn */
@@ -558,7 +558,7 @@ FRESULT trace_path (	/* FR_OK(0): successful, !=0: error code */
 #if !_FS_READONLY
 static
 FRESULT reserve_direntry (	/* FR_OK: successful, FR_DENIED: no free entry, FR_RW_ERROR: a disk error occured */
-	DIR *dj,				/* Target directory to create new entry */
+	_DIR_ *dj,				/* Target directory to create new entry */
 	BYTE **dir				/* Pointer to pointer to created entry to retutn */
 )
 {
@@ -820,7 +820,7 @@ FRESULT f_open (
 )
 {
 	FRESULT res;
-	DIR dj;
+	_DIR_ dj;
 	BYTE *dir;
 	char fn[8+3+1];
 
@@ -1230,7 +1230,7 @@ fk_error:	/* Abort this file due to an unrecoverable error */
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_opendir (
-	DIR *dj,			/* Pointer to directory object to create */
+	_DIR_ *dj,			/* Pointer to directory object to create */
 	const char *path	/* Pointer to the directory path */
 )
 {
@@ -1267,7 +1267,7 @@ FRESULT f_opendir (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_readdir (
-	DIR *dj,			/* Pointer to the directory object */
+	_DIR_ *dj,			/* Pointer to the directory object */
 	FILINFO *finfo		/* Pointer to file information to return */
 )
 {
@@ -1307,7 +1307,7 @@ FRESULT f_stat (
 )
 {
 	FRESULT res;
-	DIR dj;
+	_DIR_ dj;
 	BYTE *dir;
 	char fn[8+3+1];
 
@@ -1444,7 +1444,7 @@ FRESULT f_unlink (
 )
 {
 	FRESULT res;
-	DIR dj;
+	_DIR_ dj;
 	BYTE *dir, *sdir;
 	DWORD dclust, dsect;
 	char fn[8+3+1];
@@ -1492,7 +1492,7 @@ FRESULT f_mkdir (
 )
 {
 	FRESULT res;
-	DIR dj;
+	_DIR_ dj;
 	BYTE *dir, *fw, n;
 	char fn[8+3+1];
 	DWORD sect, dsect, dclust, pclust, tim;
@@ -1559,7 +1559,7 @@ FRESULT f_chmod (
 )
 {
 	FRESULT res;
-	DIR dj;
+	_DIR_ dj;
 	BYTE *dir;
 	char fn[8+3+1];
 
@@ -1593,7 +1593,7 @@ FRESULT f_utime (
 )
 {
 	FRESULT res;
-	DIR dj;
+	_DIR_ dj;
 	BYTE *dir;
 	char fn[8+3+1];
 
@@ -1627,7 +1627,7 @@ FRESULT f_rename (
 )
 {
 	FRESULT res;
-	DIR dj;
+	_DIR_ dj;
 	DWORD sect_old;
 	BYTE *dir_old, *dir_new, direntry[32-11];
 	char fn[8+3+1];

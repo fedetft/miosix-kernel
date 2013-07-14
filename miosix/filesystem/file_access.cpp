@@ -2,6 +2,8 @@
 #include <vector>
 #include <climits>
 #include "file_access.h"
+#include "devfs/devfs.h"
+#include "mountpointfs/mountpointfs.h"
 
 using namespace std;
 
@@ -93,6 +95,10 @@ FilesystemBase::~FilesystemBase() {}
 FileDescriptorTable::FileDescriptorTable() : mutex(Mutex::RECURSIVE), cwd("/")
 {
     FilesystemManager::instance().addFileDescriptorTable(this);
+    //We need to open stdin, stdout, stderr.
+    //We're relying on open to choose the lowest numbered files slot
+    open("/dev/console",0,0); //FIXME: flags is wrong
+    files[1]=files[2]=files[0];
 }
 
 FileDescriptorTable::FileDescriptorTable(const FileDescriptorTable& rhs)
@@ -626,6 +632,7 @@ int FilesystemManager::umount(const char* path, bool force)
     //descriptor table (4 bytes), and because umount happens infrequently.
     //Note that since we are locking the same mutex used by resolvePath(),
     //other threads can't open new files concurrently while we check
+    #ifdef WITH_PROCESSES
     list<FileDescriptorTable*>::iterator it3;
     for(it3=fileTables.begin();it3!=fileTables.end();++it3)
     {
@@ -642,6 +649,20 @@ int FilesystemManager::umount(const char* path, bool force)
             }
         }
     }
+    #else //WITH_PROCESSES
+    for(int i=0;i<MAX_OPEN_FILES;i++)
+    {
+        intrusive_ref_ptr<FileBase> file=getFileDescriptorTable().getFile(i);
+        if(!file) continue;
+        vector<fsIt>::iterator it4;
+        for(it4=fsToUmount.begin();it4!=fsToUmount.end();++it4)
+        {
+            if(file->getParent()!=(*it4)->second) continue;
+            if(force==false) return -EBUSY;
+            getFileDescriptorTable().close(i);//If forced umount, close the file
+        }
+    }
+    #endif //WITH_PROCESSES
     
     //Now there should be no more files belonging to the filesystems to umount,
     //but check if it is really so, as there is a possible race condition
@@ -684,6 +705,38 @@ ResolvedPath FilesystemManager::resolvePath(string& path, bool followLastSymlink
     Lock<Mutex> l(mutex);
     PathResolution pr(filesystems);
     return pr.resolvePath(path,followLastSymlink);
+}
+
+FilesystemManager::FilesystemManager()
+{
+    //TODO: move to BSPs
+    intrusive_ref_ptr<FilesystemBase> rootFs(new MountpointFs);
+    string dev="/dev";
+    StringPart sp(dev);
+    rootFs->mkdir(sp,0755);
+    kmount("/",rootFs);
+    kmount("/dev",intrusive_ref_ptr<FilesystemBase>(new DevFs));
+}
+
+//
+// class ConsoleDevice
+//
+
+ConsoleDevice& ConsoleDevice::instance()
+{
+    static ConsoleDevice singleton;
+    return singleton;
+}
+
+FileDescriptorTable& getFileDescriptorTable()
+{
+    #ifdef WITH_PROCESSES
+    //Something like
+    return Thread::getCurrentThread()->getProcess()->getFileTable();
+    #else //WITH_PROCESSES
+    static FileDescriptorTable fileTable; ///< The only file table
+    return fileTable;
+    #endif //WITH_PROCESSES
 }
 
 } //namespace miosix

@@ -28,15 +28,17 @@
 #include "libc_integration.h"
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <dirent.h>
 #include <reent.h>
 #include <sys/times.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
-#include <unistd.h>
 //// Settings
 #include "config/miosix_settings.h"
 //// Filesystem
 #include "filesystem/filesystem.h"
+#include "filesystem/file_access.h"
 //// Console
 #include "kernel/logging.h"
 #include "interfaces/console.h"
@@ -138,6 +140,10 @@ void _exit(int n)
     for(;;) ; //Required to avoid a warning about noreturn functions
 }
 
+/**
+ * \internal
+ * _sbrk_r, allocates memory dynamically
+ */
 void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr)
 {
     //This is the absolute start of the heap
@@ -176,7 +182,7 @@ void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr)
 
 void *sbrk(ptrdiff_t incr)
 {
-    return _sbrk_r(_impure_ptr,incr);
+    return _sbrk_r(miosix::CReentrancyAccessor::getReent(),incr);
 }
 
 /**
@@ -205,11 +211,21 @@ void __malloc_unlock()
     miosix::restartKernel();
 }
 
+/**
+ * \internal
+ * __getreent(), return the reentrancy structure of the current thread.
+ * Used by newlib to make the C standard library thread safe
+ */
 struct _reent *__getreent()
 {
     return miosix::CReentrancyAccessor::getReent();
 }
 
+
+
+
+#define TEST_NEW_FS
+#ifndef TEST_NEW_FS
 /**
  * \internal
  * _open_r, open a file
@@ -227,7 +243,8 @@ int _open_r(struct _reent *ptr, const char *name, int flags, int mode)
 
 int open(const char *name, int flags, ...)
 {
-    return _open_r(_impure_ptr,name,flags,0); //TODO: retrieve file mode
+    //TODO: retrieve file mode
+    return _open_r(miosix::CReentrancyAccessor::getReent(),name,flags,0);
 }
 
 /**
@@ -247,7 +264,7 @@ int _close_r(struct _reent *ptr, int fd)
 
 int close(int fd)
 {
-    return _close_r(_impure_ptr,fd);
+    return _close_r(miosix::CReentrancyAccessor::getReent(),fd);
 }
 
 /**
@@ -297,7 +314,7 @@ int _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
 
 int write(int fd, const void *buf, size_t cnt)
 {
-    return _write_r(_impure_ptr,fd,buf,cnt);
+    return _write_r(miosix::CReentrancyAccessor::getReent(),fd,buf,cnt);
 }
 
 /**
@@ -366,7 +383,7 @@ int _read_r(struct _reent *ptr, int fd, void *buf, size_t cnt)
 
 int read(int fd, void *buf, size_t cnt)
 {
-    return _read_r(_impure_ptr,fd,buf,cnt);
+    return _read_r(miosix::CReentrancyAccessor::getReent(),fd,buf,cnt);
 }
 
 /**
@@ -385,7 +402,7 @@ off_t _lseek_r(struct _reent *ptr, int fd, off_t pos, int whence)
 
 off_t lseek(int fd, off_t pos, int whence)
 {
-    return _lseek_r(_impure_ptr,fd,pos,whence);
+    return _lseek_r(miosix::CReentrancyAccessor::getReent(),fd,pos,whence);
 }
 
 /**
@@ -412,7 +429,7 @@ int _fstat_r(struct _reent *ptr, int fd, struct stat *pstat)
 
 int fstat(int fd, struct stat *pstat)
 {
-    return _fstat_r(_impure_ptr,fd,pstat);
+    return _fstat_r(miosix::CReentrancyAccessor::getReent(),fd,pstat);
 }
 
 /**
@@ -430,7 +447,7 @@ int _stat_r(struct _reent *ptr, const char *file, struct stat *pstat)
 
 int stat(const char *file, struct stat *pstat)
 {
-    return _stat_r(_impure_ptr,file,pstat);
+    return _stat_r(miosix::CReentrancyAccessor::getReent(),file,pstat);
 }
 
 /**
@@ -452,20 +469,54 @@ int _isatty_r(struct _reent *ptr, int fd)
 
 int isatty(int fd)
 {
-    return _isatty_r(_impure_ptr,fd);
+    return _isatty_r(miosix::CReentrancyAccessor::getReent(),fd);
 }
 
 /**
  * \internal
- * mkdir, create a directory
+ * _fntl_r, TODO: implement it
  */
-int mkdir(const char *path, mode_t mode)
+int _fcntl_r(struct _reent *, int fd, int cmd, int opt)
+{
+    return -1;
+}
+
+int fcntl(int fd, int cmd, ...)
+{
+    return -1;
+}
+
+/**
+ * \internal
+ * _mkdir_r, create a directory
+ */
+int _mkdir_r(struct _reent *ptr, const char *path, int mode)
 {
     #ifdef WITH_FILESYSTEM
     return miosix::Filesystem::instance().mkdir(path,mode);
     #else //WITH_FILESYSTEM
     return -1;
     #endif //WITH_FILESYSTEM
+}
+
+int mkdir(const char *path, mode_t mode)
+{
+    return _mkdir_r(miosix::CReentrancyAccessor::getReent(),path,mode);
+}
+
+/**
+ * \internal
+ * _link_r
+ * FIXME: implement me
+ */
+int _link_r(struct _reent *ptr, const char *f_old, const char *f_new)
+{
+    return -1;
+}
+
+int link(const char *f_old, const char *f_new)
+{
+    return _link_r(miosix::CReentrancyAccessor::getReent(),f_old,f_new);
 }
 
 /**
@@ -480,6 +531,339 @@ int _unlink_r(struct _reent *ptr, const char *file)
     return -1;
     #endif //WITH_FILESYSTEM
 }
+
+int unlink(const char *file)
+{
+    return _unlink_r(miosix::CReentrancyAccessor::getReent(),file);
+}
+
+/**
+ * \internal
+ * _rename_r
+ * FIXME: implement me
+ */
+int _rename_r(struct _reent *ptr, const char *f_old, const char *f_new)
+{
+    return -1;
+}
+
+int rename(const char *f_old, const char *f_new)
+{
+    return _rename_r(miosix::CReentrancyAccessor::getReent(),f_old,f_new);
+}
+
+/**
+ * \internal
+ * getdents, FIXME: implement me
+ */
+int getdents(unsigned int fd, struct dirent *dirp, unsigned int count)
+{
+    return -1;
+}
+
+#else //TEST_NEW_FS
+/**
+ * \internal
+ * _open_r, open a file
+ */
+int _open_r(struct _reent *ptr, const char *name, int flags, int mode)
+{
+    #ifdef WITH_FILESYSTEM
+    int result=miosix::getFileDescriptorTable().open(name,flags,mode);
+    if(result>=0) return result;
+    ptr->_errno=-result;
+    return -1;
+    #else //WITH_FILESYSTEM
+    ptr->_errno=ENFILE;
+    return -1;
+    #endif //WITH_FILESYSTEM
+}
+
+int open(const char *name, int flags, ...)
+{
+    //TODO: retrieve file mode
+    return _open_r(miosix::CReentrancyAccessor::getReent(),name,flags,0);
+}
+
+/**
+ * \internal
+ * _close_r, close a file
+ */
+int _close_r(struct _reent *ptr, int fd)
+{
+    #ifdef WITH_FILESYSTEM
+    int result=miosix::getFileDescriptorTable().close(fd);
+    if(result>=0) return result;
+    ptr->_errno=-result;
+    return -1;
+    #else //WITH_FILESYSTEM
+    ptr->_errno=EBADF;
+    return -1;
+    #endif //WITH_FILESYSTEM
+}
+
+int close(int fd)
+{
+    return _close_r(miosix::CReentrancyAccessor::getReent(),fd);
+}
+
+/**
+ * \internal
+ * _write_r, write to a file
+ */
+int _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
+{ 
+    #ifdef WITH_FILESYSTEM
+    int result=miosix::getFileDescriptorTable().write(fd,buf,cnt);
+    if(result>=0) return result;
+    ptr->_errno=-result;
+    return -1;
+    #else //WITH_FILESYSTEM
+    if(fd==STDOUT_FILENO || fd==STDERR_FILENO)
+    {
+        int result=miosix::ConsoleDevice::instance().get()->write(buf,cnt);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    } else {
+        ptr->_errno=EBADF;
+        return -1;
+    }
+    #endif //WITH_FILESYSTEM
+}
+
+int write(int fd, const void *buf, size_t cnt)
+{
+    return _write_r(miosix::CReentrancyAccessor::getReent(),fd,buf,cnt);
+}
+
+/**
+ * \internal
+ * _read_r, read from a file
+ */
+int _read_r(struct _reent *ptr, int fd, void *buf, size_t cnt)
+{
+    #ifdef WITH_FILESYSTEM
+    int result=miosix::getFileDescriptorTable().read(fd,buf,cnt);
+    if(result>=0) return result;
+    ptr->_errno=-result;
+    return -1;
+    #else //WITH_FILESYSTEM
+    if(fd==STDIN_FILENO)
+    {
+        int result=miosix::ConsoleDevice::instance().get()->read(buf,cnt);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    } else {
+        ptr->_errno=EBADF;
+        return -1;
+    }
+    #endif //WITH_FILESYSTEM
+}
+
+int read(int fd, void *buf, size_t cnt)
+{
+    return _read_r(miosix::CReentrancyAccessor::getReent(),fd,buf,cnt);
+}
+
+/**
+ * \internal
+ * _lseek_r, move file pointer
+ */
+off_t _lseek_r(struct _reent *ptr, int fd, off_t pos, int whence)
+{
+    #ifdef WITH_FILESYSTEM
+    off_t result=miosix::getFileDescriptorTable().lseek(fd,pos,whence);
+    if(result>=0) return result;
+    ptr->_errno=-result;
+    return -1;
+    #else //WITH_FILESYSTEM
+    ptr->_errno=EBADF;
+    return -1;
+    #endif //WITH_FILESYSTEM
+}
+
+off_t lseek(int fd, off_t pos, int whence)
+{
+    return _lseek_r(miosix::CReentrancyAccessor::getReent(),fd,pos,whence);
+}
+
+/**
+ * \internal
+ * _fstat_r, return file info
+ */
+int _fstat_r(struct _reent *ptr, int fd, struct stat *pstat)
+{
+    #ifdef WITH_FILESYSTEM
+    int result=miosix::getFileDescriptorTable().fstat(fd,pstat);
+    if(result>=0) return result;
+    ptr->_errno=-result;
+    return -1;
+    #else //WITH_FILESYSTEM
+    switch(fd)
+    {
+        case STDIN_FILENO:
+        case STDOUT_FILENO:
+        case STDERR_FILENO:
+            memset(pstat,0,sizeof(struct stat));
+            pstat->st_mode=S_IFCHR;//Character device
+            pstat->st_blksize=0; //Defualt file buffer equals to BUFSIZ
+            return 0;
+        default:
+            ptr->_errno=EBADF;
+            return -1;
+    }
+    #endif //WITH_FILESYSTEM
+}
+
+int fstat(int fd, struct stat *pstat)
+{
+    return _fstat_r(miosix::CReentrancyAccessor::getReent(),fd,pstat);
+}
+
+/**
+ * \internal
+ * _stat_r, collect data about a file
+ */
+int _stat_r(struct _reent *ptr, const char *file, struct stat *pstat)
+{
+    #ifdef WITH_FILESYSTEM
+    int result=miosix::getFileDescriptorTable().stat(file,pstat);
+    if(result>=0) return result;
+    ptr->_errno=-result;
+    return -1;
+    #else //WITH_FILESYSTEM
+    ptr->_errno=ENOENT;
+    return -1;
+    #endif //WITH_FILESYSTEM
+}
+
+int stat(const char *file, struct stat *pstat)
+{
+    return _stat_r(miosix::CReentrancyAccessor::getReent(),file,pstat);
+}
+
+/**
+ * \internal
+ * isatty, returns 1 if fd is associated with a terminal
+ */
+int _isatty_r(struct _reent *ptr, int fd)
+{
+    #ifdef WITH_FILESYSTEM
+    int result=miosix::getFileDescriptorTable().isatty(fd);
+    if(result>=0) return result;
+    ptr->_errno=-result;
+    return -1;
+    #else //WITH_FILESYSTEM
+    switch(fd)
+    {
+        case STDIN_FILENO:
+        case STDOUT_FILENO:
+        case STDERR_FILENO:
+            return 1;
+        default:
+            return 0;
+    }
+    #endif //WITH_FILESYSTEM
+}
+
+int isatty(int fd)
+{
+    return _isatty_r(miosix::CReentrancyAccessor::getReent(),fd);
+}
+
+/**
+ * \internal
+ * _fntl_r, TODO: implement it
+ */
+int _fcntl_r(struct _reent *, int fd, int cmd, int opt)
+{
+    return -1;
+}
+
+int fcntl(int fd, int cmd, ...)
+{
+    return -1;
+}
+
+/**
+ * \internal
+ * _mkdir_r, create a directory
+ */
+int _mkdir_r(struct _reent *ptr, const char *path, int mode)
+{
+    #ifdef WITH_FILESYSTEM
+    return miosix::Filesystem::instance().mkdir(path,mode);
+    #else //WITH_FILESYSTEM
+    return -1;
+    #endif //WITH_FILESYSTEM
+}
+
+int mkdir(const char *path, mode_t mode)
+{
+    return _mkdir_r(miosix::CReentrancyAccessor::getReent(),path,mode);
+}
+
+/**
+ * \internal
+ * _link_r
+ * FIXME: implement me
+ */
+int _link_r(struct _reent *ptr, const char *f_old, const char *f_new)
+{
+    return -1;
+}
+
+int link(const char *f_old, const char *f_new)
+{
+    return _link_r(miosix::CReentrancyAccessor::getReent(),f_old,f_new);
+}
+
+/**
+ * \internal
+ * _unlink_r, remove a file
+ */
+int _unlink_r(struct _reent *ptr, const char *file)
+{
+    #ifdef WITH_FILESYSTEM
+    return miosix::Filesystem::instance().unlink(file);
+    #else //WITH_FILESYSTEM
+    return -1;
+    #endif //WITH_FILESYSTEM
+}
+
+int unlink(const char *file)
+{
+    return _unlink_r(miosix::CReentrancyAccessor::getReent(),file);
+}
+
+/**
+ * \internal
+ * _rename_r
+ * FIXME: implement me
+ */
+int _rename_r(struct _reent *ptr, const char *f_old, const char *f_new)
+{
+    return -1;
+}
+
+int rename(const char *f_old, const char *f_new)
+{
+    return _rename_r(miosix::CReentrancyAccessor::getReent(),f_old,f_new);
+}
+
+/**
+ * \internal
+ * getdents, FIXME: implement me
+ */
+int getdents(unsigned int fd, struct dirent *dirp, unsigned int count)
+{
+    return -1;
+}
+#endif //TEST_NEW_FS
+
+
 
 /**
  * \internal
@@ -503,27 +887,36 @@ clock_t _times_r(struct _reent *ptr, struct tms *tim)
     return 0;
 }
 
+clock_t times(struct tms *tim)
+{
+    return _times_r(miosix::CReentrancyAccessor::getReent(),tim);
+}
+
 /**
  * \internal
- * _link_r, used by the C standard library function rename().
- * rename(old,new) calls link(old,new) and if link returns 0 it calls
- * unlink(old)
- * FIXME: implement me
+ * _gettimeofday_r, FIXME: implement me
  */
-int _link_r(struct _reent *ptr, const char *f_old, const char *f_new)
+int _gettimeofday_r(struct _reent *ptr, struct timeval *tv, void *tz)
 {
     return -1;
 }
 
-/**
- * _kill, it looks like abort() calls _kill instead of exit, this implementation
- * calls _exit() so that calling abort() really terminates the program
- */
-int _kill(int pid, int sig)
+int gettimeofday(struct timeval *tv, void *tz)
 {
-    if(pid==1) _exit(1); //pid=1 means the only running process
-    else return -1;
+    return _gettimeofday_r(miosix::CReentrancyAccessor::getReent(),tv,tz);
 }
+
+/**
+ * \internal
+ * nanosleep, FIXME: implement me
+ */
+int nanosleep(const struct timespec *req, struct timespec *rem)
+{
+    return -1;
+}
+
+
+
 
 /**
  * \internal
@@ -532,16 +925,13 @@ int _kill(int pid, int sig)
  */
 int _kill_r(struct _reent* ptr, int pid, int sig)
 {
-    return _kill(pid,sig);
+    if(pid==0) _exit(1); //pid=1 means the only running process
+    else return -1;
 }
 
-/**
- * \internal
- * _getpid, there is only one process in Miosix (but multiple threads)
- */
-int _getpid()
+int kill(int pid, int sig)
 {
-    return 1;
+    return _kill_r(miosix::CReentrancyAccessor::getReent(),pid,sig);
 }
 
 /**
@@ -550,16 +940,16 @@ int _getpid()
  */
 int _getpid_r(struct _reent* ptr)
 {
-    return _getpid();
+    return 0;
 }
 
 /**
  * \internal
- * _fork_r, unimplemented because processes are not supported in Miosix
+ * getpid, there is only one process in Miosix (but multiple threads)
  */
-int _fork_r(struct _reent *ptr)
+int getpid()
 {
-    return -1;
+    return _getpid_r(miosix::CReentrancyAccessor::getReent());
 }
 
 /**
@@ -571,9 +961,45 @@ int _wait_r(struct _reent *ptr, int *status)
     return -1;
 }
 
+int wait(int *status)
+{
+    return _wait_r(miosix::CReentrancyAccessor::getReent(),status);
+}
+
+/**
+ * \internal
+ * _execve_r, unimpemented because processes are not supported in Miosix
+ */
+int _execve_r(struct _reent *ptr, const char *path, char *const argv[],
+        char *const env[])
+{
+    return -1;
+}
+
+int execve(const char *path, char *const argv[], char *const env[])
+{
+    return _execve_r(miosix::CReentrancyAccessor::getReent(),path,argv,env);
+}
+
+/**
+ * \internal
+ * _forkexecve_r, reserved for future use
+ */
+pid_t _forkexecve_r(struct _reent *ptr, const char *path, char *const argv[],
+        char *const env[])
+{
+    return -1;
+}
+
+pid_t forkexecve(const char *path, char *const argv[], char *const env[])
+{
+    return _forkexecve_r(miosix::CReentrancyAccessor::getReent(),path,argv,env);
+}
+
 #ifdef __cplusplus
 }
 #endif
+
 
 
 

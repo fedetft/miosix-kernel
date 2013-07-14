@@ -121,7 +121,7 @@ typedef struct _DIR {
 	DWORD	sclust;		/* Start cluster */
 	DWORD	clust;		/* Current cluster */
 	DWORD	sect;		/* Current sector */
-} DIR;
+} _DIR_;
 
 
 /* File object structure */
@@ -205,8 +205,8 @@ FRESULT f_read (FIL*, void*, UINT, UINT*);			/* Read data from a file */
 FRESULT f_write (FIL*, const void*, UINT, UINT*);	/* Write data to a file */
 FRESULT f_lseek (FIL*, DWORD);						/* Move file pointer of a file object */
 FRESULT f_close (FIL*);								/* Close an open file object */
-FRESULT f_opendir (DIR*, const char*);				/* Open an existing directory */
-FRESULT f_readdir (DIR*, FILINFO*);					/* Read a directory item */
+FRESULT f_opendir (_DIR_*, const char*);				/* Open an existing directory */
+FRESULT f_readdir (_DIR_*, FILINFO*);					/* Read a directory item */
 FRESULT f_stat (const char*, FILINFO*);				/* Get file status */
 FRESULT f_getfree (const char*, DWORD*, FATFS**);	/* Get number of free clusters on the drive */
 FRESULT f_truncate (FIL*);							/* Truncate file */

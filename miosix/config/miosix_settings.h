@@ -80,6 +80,7 @@ namespace miosix {
 #define SYNC_AFTER_WRITE
 
 /// Maximum number of open files. Trying to open more will fail.
+/// Cannot be lower than 3, as the first three are stdin, stdout, stderr
 const unsigned char MAX_OPEN_FILES=8;
 
 //

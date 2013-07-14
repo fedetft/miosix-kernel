@@ -382,7 +382,7 @@ private:
     Directory(const Directory& d);///< No copy constructor
     Directory& operator= (const Directory& d);///< No operator =
     //Data
-    DIR d;///< FatFs directory variable
+    _DIR_ d;///< FatFs directory variable
 };
 
 /**

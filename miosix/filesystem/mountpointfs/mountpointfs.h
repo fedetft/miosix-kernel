@@ -25,67 +25,62 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "devfs.h"
+#ifndef MOUNTPOINTFS_H
+#define	MOUNTPOINTFS_H
 
-using namespace std;
+#include <map>
+#include "filesystem/file.h"
+#include "filesystem/file_access.h"
 
 namespace miosix {
 
-//
-// class DevFs
-//
-
-DevFs::DevFs()
+/**
+ * MountpointFs is a special filesystem whose purpose is to create directories
+ * to be used as mountpoints for other filesystems.
+ */
+class MountpointFs : public FilesystemBase
 {
-    string null="/null";
-    string zero="/zero";
-    string console="/console";
+public:
+    /**
+     * Constructor
+     */
+    MountpointFs() : inodeCount(1) {}
     
-    files[StringPart(null)]=intrusive_ref_ptr<FileBase>(new NullFile);
-    files[StringPart(zero)]=intrusive_ref_ptr<FileBase>(new ZeroFile);
+    /**
+     * Open a file
+     * \param file the file object will be stored here, if the call succeeds
+     * \param name the name of the file to open, relative to the local
+     * filesystem
+     * \param flags file flags (open for reading, writing, ...)
+     * \param mode file permissions
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
+            int flags, int mode);
     
-    intrusive_ref_ptr<FileBase> consoleDev=ConsoleDevice::instance().get();
-    if(consoleDev) files[StringPart(console)]=consoleDev;
-    else files[StringPart(console)]=files[StringPart(null)];
-}
-
-int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name, int flags,
-        int mode)
-{
-    //TODO: mode & flags
-    Lock<Mutex> l(mutex);
-    map<StringPart,intrusive_ref_ptr<FileBase> >::iterator it=files.find(name);
-    if(it==files.end()) return -ENOENT;
-    file=it->second;
-    return 0;
-}
-
-int DevFs::lstat(StringPart& name, struct stat *pstat)
-{
-    Lock<Mutex> l(mutex);
-    map<StringPart,intrusive_ref_ptr<FileBase> >::iterator it=files.find(name);
-    if(it==files.end()) return -ENOENT;
-    it->second->fstat(pstat);
-    return 0;
-}
-
-int DevFs::mkdir(StringPart& name, int mode)
-{
-    return -EACCES; // No directories support in DevFs yet
-}
-
-bool DevFs::areAllFilesClosed()
-{
-    Lock<Mutex> l(mutex);
-    //Can't use openFileCount in devFS, as one instance of each file is stored
-    //in the map. Rather, check the reference count value. No need to use
-    //atomic ops to make a copy of the file before calling use_count() as the
-    //existence of at least one reference in the map guarantees the file won't
-    //be deleted.
-    map<StringPart,intrusive_ref_ptr<FileBase> >::iterator it;
-    for(it=files.begin();it!=files.end();++it)
-        if(it->second.use_count()>1) return false;
-    return true;
-}
+    /**
+     * Obtain information on a file, identified by a path name. Does not follow
+     * symlinks
+     * \param name path name, relative to the local filesystem
+     * \param pstat file information is stored here
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int lstat(StringPart& name, struct stat *pstat);
+         
+    /**
+     * Create a directory
+     * \param name directory name
+     * \param mode directory permissions
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int mkdir(StringPart& name, int mode);
+    
+private:
+    Mutex mutex;
+    std::map<StringPart,int> dirs;
+    int inodeCount;
+};
 
 } //namespace miosix
+
+#endif //MOUNTPOINTFS_H

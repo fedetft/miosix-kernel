@@ -341,6 +341,21 @@ private:
     bool skipNewline;
 };
 
+/**
+ * FIXME remove this when removing Console interface!
+ */
+class ConsoleAdapter : public FileBase
+{
+public:
+    ConsoleAdapter() : FileBase(intrusive_ref_ptr<FilesystemBase>()) {}
+    virtual ssize_t write(const void *data, size_t len);
+    virtual ssize_t read(void *data, size_t len);
+    virtual off_t lseek(off_t pos, int whence);
+    virtual int fstat(struct stat *pstat) const;
+    virtual int isatty() const;
+    virtual int sync();
+};
+
 } //namespace miosix
 
 #endif //FILE_H
