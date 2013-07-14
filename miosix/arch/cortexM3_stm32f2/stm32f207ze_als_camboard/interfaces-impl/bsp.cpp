@@ -43,6 +43,7 @@
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
 #include "console-impl.h"
+#include "filesystem/file_access.h"
 #include "filesystem/devfs/console_device.h"
 
 namespace miosix {
@@ -153,7 +154,9 @@ void IRQbspInit()
 
 void bspInit2()
 {
-    //Nothing to do
+    #ifdef WITH_FILESYSTEM
+    basicFilesystemSetup();
+    #endif //WITH_FILESYSTEM
 }
 
 //

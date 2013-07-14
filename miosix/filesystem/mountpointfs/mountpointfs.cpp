@@ -56,7 +56,6 @@ int MountpointFs::lstat(StringPart& name, struct stat *pstat)
 
 int MountpointFs::mkdir(StringPart& name, int mode)
 {
-    //TODO: start from 0 when name will not contain /
     for(unsigned int i=1;i<name.length();i++)
         if(name[i]=='/')
             return -EACCES; //MountpointFs does not support subdirectories

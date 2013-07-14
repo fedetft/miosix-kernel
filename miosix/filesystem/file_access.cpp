@@ -4,6 +4,7 @@
 #include "file_access.h"
 #include "devfs/devfs.h"
 #include "mountpointfs/mountpointfs.h"
+#include "kernel/logging.h"
 
 using namespace std;
 
@@ -595,11 +596,19 @@ int FilesystemManager::kmount(const char* path, intrusive_ref_ptr<FilesystemBase
 {
     if(path==0 || path[0]=='\0' || fs==0) return -EFAULT;
     Lock<FastMutex> l(mutex);
-    //TODO: make sure path exists and mount point is a directory,
-    //otherwise mounted fs is inaccessible
     int len=strlen(path);
     if(len>PATH_MAX) return -ENAMETOOLONG;
     string temp(path);
+    if(!(temp=="/" && filesystems.empty())) //Skip check when mounting /
+    {
+        ResolvedPath rp=resolvePath(temp);
+        if(rp.result<0) return rp.result;
+        StringPart sp(temp,string::npos,rp.off);
+        struct stat st;
+        int statres=rp.fs->lstat(sp,&st);
+        if(statres<0) return statres;
+        if(!S_ISDIR(st.st_mode)) return -ENOTDIR;
+    }
     if(filesystems.insert(make_pair(StringPart(temp),fs)).second==false)
         return -EBUSY; //Means already mounted
     else
@@ -708,15 +717,19 @@ ResolvedPath FilesystemManager::resolvePath(string& path, bool followLastSymlink
     return pr.resolvePath(path,followLastSymlink);
 }
 
-FilesystemManager::FilesystemManager()
+void basicFilesystemSetup()
 {
-    //TODO: move to BSPs
+    bootlog("Mounting MountpointFs as / ... ");
+    FilesystemManager& fsm=FilesystemManager::instance();
     intrusive_ref_ptr<FilesystemBase> rootFs(new MountpointFs);
+    bootlog(fsm.kmount("/",rootFs)==0 ? "Ok\r\n" : "Failed\r\n");
+    
+    bootlog("Mounting DevFs as /dev ... ");
     string dev="/dev";
     StringPart sp(dev);
-    rootFs->mkdir(sp,0755);
-    kmount("/",rootFs);
-    kmount("/dev",intrusive_ref_ptr<FilesystemBase>(new DevFs));
+    int r1=rootFs->mkdir(sp,0755);
+    int r2=fsm.kmount("/dev",intrusive_ref_ptr<FilesystemBase>(new DevFs));
+    bootlog((r1==0 && r2==0) ? "Ok\r\n" : "Failed\r\n");
 }
 
 FileDescriptorTable& getFileDescriptorTable()

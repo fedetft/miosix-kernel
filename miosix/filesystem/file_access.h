@@ -576,7 +576,7 @@ private:
     /**
      * Constructor, private as it is a singleton
      */
-    FilesystemManager();
+    FilesystemManager() : mutex(FastMutex::RECURSIVE) {}
     
     FilesystemManager(const FilesystemManager&);
     FilesystemManager& operator=(const FilesystemManager&);
@@ -592,9 +592,22 @@ private:
 };
 
 /**
+ * This is a simplified function to mount the root and /dev filesystems,
+ * meant to be called from bspInit2(). It mounts a MountpointFs as root, then
+ * creates a /dev directory, and mounts /dev there. After this call it's
+ * possible to mount other filesystems, such as a fat32 one, in a subdirectory
+ * of /, such as /mnt. In case the bsp needs another filesystem setup, such as
+ * having a fat32 filesystem as /, this function can't be used, but instead
+ * the bsp needs to mount the filesystems manually.
+ */
+void basicFilesystemSetup();
+
+/**
  * \return a pointer to the file descriptor table associated with the
  * current process. Note: make sure you don't call this function before
- * IRQsetConsole(), otherwise stdin/stdout/stderr won't be set up properly
+ * /dev/console exists (which implies that / and /dev are mounted, which is
+ * usually done with basicFilesystemSetup()), otherwise stdin/stdout/stderr
+ * won't be set up properly
  */
 FileDescriptorTable& getFileDescriptorTable();
 

@@ -137,6 +137,12 @@ public:
      * Called by the board support package, in particular IRQbspInit(), to pass
      * to the kernel the console device. This device file is used as the default
      * one for stdin/stdout/stderr.
+     * Notes: this has to be called in IRQbspInit(), since if it's called too
+     * late the console gets initialized with a NullConsoleDevice.
+     * Also, calling this a second time to dynamically change the console device
+     * is probably a bad idea, as the device is cached around in the filesystem
+     * code and will result in some processes using the old device and some
+     * other the new one.
      * \param console device file handling console I/O. Can only be called with
      * interrupts disabled. 
      */

@@ -78,25 +78,6 @@ void *mainLoader(void *argv)
 {
     //If reaches here kernel is started, print Ok
     bootlog("Ok\r\n");
-
-    #ifdef WITH_FILESYSTEM
-    bootlog("Starting Filesystem... ");
-    switch(Filesystem::instance().mount())
-    {
-        case 0:
-            bootlog("Ok\r\n");
-            break;
-        case 1:
-            bootlog("Failed\r\n");
-            break;
-        case 2:
-            bootlog("No disk\r\n");
-            break;
-        case 3:
-            bootlog("Error\r\n");
-            break;
-    }
-    #endif //WITH_FILESYSTEM
     
     //Starting part of bsp that must be started after kernel
     bspInit2();

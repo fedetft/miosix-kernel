@@ -1,5 +1,8 @@
 Changelog for Miosix np embedded OS
 
+- Removed old filesystem mount code in mainLoader(), replaced with
+  a call to basicFilesystemSetup() in all BSPs.
+- File abstraction layer: added basicFilesystemSetup() to file_access.h
 - interfaces/console.h is no longer #included in miosix.h
 - Removed the need to call IRQtxComplete() after IRQwrite() in the new
   ConsoleDevice interface, as it simplifies code. Starting getting rid of
