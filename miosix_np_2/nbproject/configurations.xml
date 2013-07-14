@@ -309,6 +309,8 @@
         </df>
         <df name="filesystem">
           <df name="devfs">
+            <in>console_device.cpp</in>
+            <in>console_device.h</in>
             <in>devfs.cpp</in>
             <in>devfs.h</in>
           </df>
@@ -366,8 +368,6 @@
           <in>buffer_queue.h</in>
           <in>error.cpp</in>
           <in>error.h</in>
-          <in>interrupt_output_device.cpp</in>
-          <in>interrupt_output_device.h</in>
           <in>intrusive.h</in>
           <in>kernel.cpp</in>
           <in>kernel.h</in>
