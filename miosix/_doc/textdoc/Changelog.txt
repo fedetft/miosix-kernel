@@ -1,5 +1,13 @@
 Changelog for Miosix np embedded OS
 
+- isatty() and sync() are no longer pure virtual in FileBase, added default
+  implementation as in many cases it's enough.
+- Removed temporary Console initialization code from _init() and added it
+  to individual BSPs. However, we're still using the deprecated Console
+  interface and ConsoleAdapter class.
+- Joined the InterruptOutputDevice and ConsoleDevice concepts.
+  Renamed ConsoleDevice into DefaultConsole, and moved it in a file within
+  devfs directory.
 - Added code to prevent C++ exceptions from propagating through C syscalls.
 - Removed support for old single filesystem support in libc_integration.
 - File abstraction layer: Enabled echo by default in TerminalDevice, added

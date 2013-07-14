@@ -719,16 +719,6 @@ FilesystemManager::FilesystemManager()
     kmount("/dev",intrusive_ref_ptr<FilesystemBase>(new DevFs));
 }
 
-//
-// class ConsoleDevice
-//
-
-ConsoleDevice& ConsoleDevice::instance()
-{
-    static ConsoleDevice singleton;
-    return singleton;
-}
-
 FileDescriptorTable& getFileDescriptorTable()
 {
     #ifdef WITH_PROCESSES

@@ -26,6 +26,7 @@
  ***************************************************************************/
 
 #include "devfs.h"
+#include "console_device.h"
 
 using namespace std;
 
@@ -44,7 +45,7 @@ DevFs::DevFs()
     files[StringPart(null)]=intrusive_ref_ptr<FileBase>(new NullFile);
     files[StringPart(zero)]=intrusive_ref_ptr<FileBase>(new ZeroFile);
     
-    intrusive_ref_ptr<FileBase> consoleDev=ConsoleDevice::instance().get();
+    intrusive_ref_ptr<FileBase> consoleDev=DefaultConsole::instance().get();
     if(consoleDev) files[StringPart(console)]=consoleDev;
     else files[StringPart(console)]=files[StringPart(null)];
 }

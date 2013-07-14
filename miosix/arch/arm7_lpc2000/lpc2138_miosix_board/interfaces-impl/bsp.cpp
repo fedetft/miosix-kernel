@@ -44,6 +44,7 @@
 #include "interfaces/portability.h"
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
+#include "filesystem/devfs/console_device.h"
 
 /**
 \internal
@@ -181,6 +182,8 @@ void IRQbspInit()
     //Init serial port
     //(peripheral clock)/(16*baudrate)
     miosix::IRQserialInit(TIMER_CLOCK/16/SERIAL_PORT_SPEED);
+    DefaultConsole::instance().IRQset(
+        intrusive_ref_ptr<ConsoleDevice>(new ConsoleAdapter));
 }
 
 void bspInit2()

@@ -16,7 +16,6 @@ kernel/error.cpp                                                           \
 kernel/pthread.cpp                                                         \
 kernel/unistd.cpp                                                          \
 kernel/stage_2_boot.cpp                                                    \
-kernel/interrupt_output_device.cpp                                         \
 kernel/scheduler/priority/priority_scheduler.cpp                           \
 kernel/scheduler/control/control_scheduler.cpp                             \
 kernel/scheduler/edf/edf_scheduler.cpp                                     \
@@ -25,6 +24,7 @@ filesystem/file_access.cpp                                                 \
 filesystem/file.cpp                                                        \
 filesystem/mountpointfs/mountpointfs.cpp                                   \
 filesystem/devfs/devfs.cpp                                                 \
+filesystem/devfs/console_device.cpp                                        \
 filesystem/fat32/ff.c                                                      \
 filesystem/fat32/diskio.cpp                                                \
 stdlib_integration/libc_integration.cpp                                    \

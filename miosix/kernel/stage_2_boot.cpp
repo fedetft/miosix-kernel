@@ -150,8 +150,6 @@ void *mainLoader(void *argv)
 extern "C" void _init()
 {
     if(areInterruptsEnabled()) errorHandler(INTERRUPTS_ENABLED_AT_BOOT);
-    ConsoleDevice::instance().IRQset(intrusive_ref_ptr<FileBase>(new TerminalDevice(
-        intrusive_ref_ptr<FileBase>(new ConsoleAdapter)))); //FIXME: remove!
     IRQbspInit();
     //After IRQbspInit() serial port is initialized, so we can use BOOTLOG
     IRQbootlog(getMiosixVersion());

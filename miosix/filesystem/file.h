@@ -94,13 +94,13 @@ public:
      * \return 1 if it is a terminal, 0 if it is not, or a negative number in
      * case of errors
      */
-    virtual int isatty() const=0;
+    virtual int isatty() const;
     
     /**
      * Wait until all I/O operations have completed on this file.
      * \return 0 on success, or a negative number in case of errors
      */
-    virtual int sync()=0;
+    virtual int sync();
     
     /**
      * \return a pointer to the parent filesystem
@@ -165,19 +165,6 @@ public:
      * \return 0 on success, or a negative number on failure
      */
     virtual int fstat(struct stat *pstat) const;
-    
-    /**
-     * Check whether the file refers to a terminal.
-     * \return 1 if it is a terminal, 0 if it is not, or a negative number in
-     * case of errors
-     */
-    virtual int isatty() const;
-    
-    /**
-     * Wait until all I/O operations have completed on this file.
-     * \return 0 on success, or a negative number in case of errors
-     */
-    virtual int sync();
 };
 
 /**
@@ -226,19 +213,6 @@ public:
      * \return 0 on success, or a negative number on failure
      */
     virtual int fstat(struct stat *pstat) const;
-    
-    /**
-     * Check whether the file refers to a terminal.
-     * \return 1 if it is a terminal, 0 if it is not, or a negative number in
-     * case of errors
-     */
-    virtual int isatty() const;
-    
-    /**
-     * Wait until all I/O operations have completed on this file.
-     * \return 0 on success, or a negative number in case of errors
-     */
-    virtual int sync();
 };
 
 /**
@@ -341,21 +315,6 @@ private:
     bool echo;
     bool binary;
     bool skipNewline;
-};
-
-/**
- * FIXME remove this when removing Console interface!
- */
-class ConsoleAdapter : public FileBase
-{
-public:
-    ConsoleAdapter() : FileBase(intrusive_ref_ptr<FilesystemBase>()) {}
-    virtual ssize_t write(const void *data, size_t len);
-    virtual ssize_t read(void *data, size_t len);
-    virtual off_t lseek(off_t pos, int whence);
-    virtual int fstat(struct stat *pstat) const;
-    virtual int isatty() const;
-    virtual int sync();
 };
 
 } //namespace miosix

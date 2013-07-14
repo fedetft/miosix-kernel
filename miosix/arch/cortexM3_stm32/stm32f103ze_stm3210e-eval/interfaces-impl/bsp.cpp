@@ -44,6 +44,7 @@
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
 #include "drivers/serial.h"
+#include "filesystem/devfs/console_device.h"
 
 namespace miosix {
 
@@ -65,6 +66,8 @@ void IRQbspInit()
     delayMs(100);
     ledOff();
     miosix::IRQserialInit();
+    DefaultConsole::instance().IRQset(
+        intrusive_ref_ptr<ConsoleDevice>(new ConsoleAdapter));
 }
 
 void bspInit2()

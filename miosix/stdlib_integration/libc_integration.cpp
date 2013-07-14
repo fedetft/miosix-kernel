@@ -317,7 +317,7 @@ int _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
     #else //WITH_FILESYSTEM
     if(fd==STDOUT_FILENO || fd==STDERR_FILENO)
     {
-        int result=miosix::ConsoleDevice::instance().get()->write(buf,cnt);
+        int result=miosix::DefaultConsole::instance().get()->write(buf,cnt);
         if(result>=0) return result;
         ptr->_errno=-result;
         return -1;
@@ -358,7 +358,7 @@ int _read_r(struct _reent *ptr, int fd, void *buf, size_t cnt)
     #else //WITH_FILESYSTEM
     if(fd==STDIN_FILENO)
     {
-        int result=miosix::ConsoleDevice::instance().get()->read(buf,cnt);
+        int result=miosix::DefaultConsole::instance().get()->read(buf,cnt);
         if(result>=0) return result;
         ptr->_errno=-result;
         return -1;

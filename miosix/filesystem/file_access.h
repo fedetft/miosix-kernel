@@ -592,44 +592,6 @@ private:
 };
 
 /**
- * This class holds the file object related to the console, that is set by
- * the board support package, and used to populate /dev/console in DevFs
- */
-class ConsoleDevice
-{
-public:
-    /**
-     * \return an instance of this class (singleton) 
-     */
-    static ConsoleDevice& instance();
-    
-    /**
-     * Called by the board support package, in particular IRQbspInit(), to pass
-     * to the kernel the console device. This device file is used as the default
-     * one for stdin/stdout/stderr.
-     * \param console device file handling console I/O. Can only be called with
-     * interrupts disabled. 
-     */
-    void IRQset(intrusive_ref_ptr<FileBase> console) { this->console=console; }
-    
-    /**
-     * \return the currently installed console device 
-     */
-    intrusive_ref_ptr<FileBase> get() const { return console; }
-    
-private:
-    /**
-     * Constructor, private as it is a singleton
-     */
-    ConsoleDevice() {}
-    
-    ConsoleDevice(const ConsoleDevice&);
-    ConsoleDevice& operator= (const ConsoleDevice&);
-    
-    intrusive_ref_ptr<FileBase> console; ///< The console device
-};
-
-/**
  * \return a pointer to the file descriptor table associated with the
  * current process. Note: make sure you don't call this function before
  * IRQsetConsole(), otherwise stdin/stdout/stderr won't be set up properly
