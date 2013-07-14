@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Added code to prevent C++ exceptions from propagating through C syscalls.
+- Removed support for old single filesystem support in libc_integration.
 - File abstraction layer: Enabled echo by default in TerminalDevice, added
   mutex to serialize reads, and added support for handling the backspace
   character as an usability enhancement.

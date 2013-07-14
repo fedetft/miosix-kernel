@@ -26,6 +26,7 @@
  ***************************************************************************/
 
 #include "libc_integration.h"
+#include <stdexcept>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -224,8 +225,6 @@ struct _reent *__getreent()
 
 
 
-#define TEST_NEW_FS
-#ifndef TEST_NEW_FS
 /**
  * \internal
  * _open_r, open a file
@@ -233,346 +232,21 @@ struct _reent *__getreent()
 int _open_r(struct _reent *ptr, const char *name, int flags, int mode)
 {
     #ifdef WITH_FILESYSTEM
-    flags++;//Increment to allow checking read/write mode, see fcntl.h
-    return miosix::Filesystem::instance().openFile(name,flags,mode);
-    #else //WITH_FILESYSTEM
-    miosix::errorLog("\r\n***Kernel compiled without filesystem support\r\n");
-    return -1;
-    #endif //WITH_FILESYSTEM
-}
 
-int open(const char *name, int flags, ...)
-{
-    //TODO: retrieve file mode
-    return _open_r(miosix::CReentrancyAccessor::getReent(),name,flags,0);
-}
-
-/**
- * \internal
- * _close_r, close a file
- */
-int _close_r(struct _reent *ptr, int fd)
-{
-    #ifdef WITH_FILESYSTEM
-    if(fd<3) return -1; //Can't close stdin, stdout and stderr
-    return miosix::Filesystem::instance().closeFile(fd);
-    #else //WITH_FILESYSTEM
-    miosix::errorLog("\r\n***Kernel compiled without filesystem support\r\n");
-    return -1;
-    #endif //WITH_FILESYSTEM
-}
-
-int close(int fd)
-{
-    return _close_r(miosix::CReentrancyAccessor::getReent(),fd);
-}
-
-/**
- * \internal
- * _write_r, write to a file
- */
-int _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
-{ 
-    switch(fd)
-    {
-        case STDOUT_FILENO:
-        case STDERR_FILENO:
-        {
-            const char *buffer=static_cast<const char*>(buf);
-            const char *chunkstart=buffer;
-            //Writing to standard output/error is redirected to the Console
-            unsigned int i;
-            //Try to write data in chunks, stop at every \n to replace with \r\n
-            for(i=0;i<cnt;i++)
-            {
-                if(buffer[i]=='\n')
-                {
-                    if(chunkstart!=&buffer[i])
-                       miosix::Console::write(chunkstart,&buffer[i]-chunkstart);
-                    miosix::Console::write("\r\n",2);//Add \r\n
-                    chunkstart=&buffer[i]+1;
-                }
-            }
-            if(chunkstart!=&buffer[i])
-                miosix::Console::write(chunkstart,&buffer[i]-chunkstart);
-            return cnt;
-        }
-        case STDIN_FILENO:
-            miosix::errorLog("\r\n***Attempting to write to stdin\r\n");
-            return -1;
-        default:
-            //Writing to files
-            #ifdef WITH_FILESYSTEM
-            return miosix::Filesystem::instance().writeFile(fd,buf,cnt);
-            #else //WITH_FILESYSTEM
-            miosix::errorLog(
-                    "\r\n***Kernel compiled without filesystem support\r\n");
-            return -1;
-            #endif //WITH_FILESYSTEM   
-    }
-}
-
-int write(int fd, const void *buf, size_t cnt)
-{
-    return _write_r(miosix::CReentrancyAccessor::getReent(),fd,buf,cnt);
-}
-
-/**
- * \internal
- * _read_r, read from a file
- */
-int _read_r(struct _reent *ptr, int fd, void *buf, size_t cnt)
-{
-    switch(fd)
-    {
-        case STDIN_FILENO:
-        {
-            //iprintf("read: buf %d\r\n",(int)cnt);//To check read buffer size
-            char *buffer=(char*)buf;
-            //Trying to be compatible with terminals that output \r, \n or \r\n
-            //When receiving \r skip_terminate is set to true so we skip the \n
-            //if it comes right after the \r
-            static bool skip_terminate=false;
-            int i;
-            for(i=0;i<(int)cnt;i++)
-            {
-                buffer[i]=miosix::Console::readChar();
-                switch(buffer[i])
-                {
-                    case '\r':
-                        buffer[i]='\n';
-                        miosix::Console::write("\r\n");//Echo
-                        skip_terminate=true;
-                        return i+1;
-                        break;    
-                    case '\n':
-                        if(skip_terminate)
-                        {
-                            skip_terminate=false;
-                            //Discard the \n because comes right after \r
-                            //Note that i may become -1, but it is acceptable.
-                            i--;
-                        } else {
-                            miosix::Console::write("\r\n");//Echo
-                            return i+1;
-                        }
-                        break;
-                    default:
-                        skip_terminate=false;
-                        //Echo
-                        miosix::Console::write((const char *)&buffer[i],1);
-                }
-            }
-            return cnt;
-        }
-        case STDOUT_FILENO:
-        case STDERR_FILENO:
-            miosix::errorLog("\r\n***Attempting to read from stdout\r\n");
-            return -1;
-        default:
-            //Reading from files
-            #ifdef WITH_FILESYSTEM
-            return miosix::Filesystem::instance().readFile(fd,buf,cnt);
-            #else //WITH_FILESYSTEM
-            miosix::errorLog(
-                    "\r\n***Kernel compiled without filesystem support\r\n");
-            return -1;
-            #endif //WITH_FILESYSTEM
-    }
-}
-
-int read(int fd, void *buf, size_t cnt)
-{
-    return _read_r(miosix::CReentrancyAccessor::getReent(),fd,buf,cnt);
-}
-
-/**
- * \internal
- * _lseek_r, move file pointer
- */
-off_t _lseek_r(struct _reent *ptr, int fd, off_t pos, int whence)
-{
-    #ifdef WITH_FILESYSTEM
-    return miosix::Filesystem::instance().lseekFile(fd,pos,whence);
-    #else //WITH_FILESYSTEM
-    miosix::errorLog("\r\n***Kernel compiled without filesystem support\r\n");
-    return -1;
-    #endif //WITH_FILESYSTEM
-}
-
-off_t lseek(int fd, off_t pos, int whence)
-{
-    return _lseek_r(miosix::CReentrancyAccessor::getReent(),fd,pos,whence);
-}
-
-/**
- * \internal
- * _fstat_r, return file info
- */
-int _fstat_r(struct _reent *ptr, int fd, struct stat *pstat)
-{
-    if(fd<0) return -1;
-    if(fd<3)
-    {
-        memset(pstat,0,sizeof(struct stat));
-        pstat->st_mode=S_IFCHR;//Character device
-        pstat->st_blksize=0; //This makes the defualt file buffer equal to BUFSIZ
-        return 0;
-    } else {
-        #ifdef WITH_FILESYSTEM
-        return miosix::Filesystem::instance().fstatFile(fd,pstat);
-        #else //WITH_FILESYSTEM
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().open(name,flags,mode);
+        if(result>=0) return result;
+        ptr->_errno=-result;
         return -1;
-        #endif //WITH_FILESYSTEM
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
     }
-}
+    #endif //__NO_EXCEPTIONS
 
-int fstat(int fd, struct stat *pstat)
-{
-    return _fstat_r(miosix::CReentrancyAccessor::getReent(),fd,pstat);
-}
-
-/**
- * \internal
- * _stat_r, collect data about a file
- */
-int _stat_r(struct _reent *ptr, const char *file, struct stat *pstat)
-{
-    #ifdef WITH_FILESYSTEM
-    return miosix::Filesystem::instance().statFile(file,pstat);
-    #else //WITH_FILESYSTEM
-    return -1;
-    #endif //WITH_FILESYSTEM
-}
-
-int stat(const char *file, struct stat *pstat)
-{
-    return _stat_r(miosix::CReentrancyAccessor::getReent(),file,pstat);
-}
-
-/**
- * \internal
- * isatty, returns 1 if fd is associated with a terminal
- */
-int _isatty_r(struct _reent *ptr, int fd)
-{
-    switch(fd)
-    {
-        case STDIN_FILENO:
-        case STDOUT_FILENO:
-        case STDERR_FILENO:
-            return 1;
-        default:
-            return 0;
-    }
-}
-
-int isatty(int fd)
-{
-    return _isatty_r(miosix::CReentrancyAccessor::getReent(),fd);
-}
-
-/**
- * \internal
- * _fntl_r, TODO: implement it
- */
-int _fcntl_r(struct _reent *, int fd, int cmd, int opt)
-{
-    return -1;
-}
-
-int fcntl(int fd, int cmd, ...)
-{
-    return -1;
-}
-
-/**
- * \internal
- * _mkdir_r, create a directory
- */
-int _mkdir_r(struct _reent *ptr, const char *path, int mode)
-{
-    #ifdef WITH_FILESYSTEM
-    return miosix::Filesystem::instance().mkdir(path,mode);
-    #else //WITH_FILESYSTEM
-    return -1;
-    #endif //WITH_FILESYSTEM
-}
-
-int mkdir(const char *path, mode_t mode)
-{
-    return _mkdir_r(miosix::CReentrancyAccessor::getReent(),path,mode);
-}
-
-/**
- * \internal
- * _link_r
- * FIXME: implement me
- */
-int _link_r(struct _reent *ptr, const char *f_old, const char *f_new)
-{
-    return -1;
-}
-
-int link(const char *f_old, const char *f_new)
-{
-    return _link_r(miosix::CReentrancyAccessor::getReent(),f_old,f_new);
-}
-
-/**
- * \internal
- * _unlink_r, remove a file
- */
-int _unlink_r(struct _reent *ptr, const char *file)
-{
-    #ifdef WITH_FILESYSTEM
-    return miosix::Filesystem::instance().unlink(file);
-    #else //WITH_FILESYSTEM
-    return -1;
-    #endif //WITH_FILESYSTEM
-}
-
-int unlink(const char *file)
-{
-    return _unlink_r(miosix::CReentrancyAccessor::getReent(),file);
-}
-
-/**
- * \internal
- * _rename_r
- * FIXME: implement me
- */
-int _rename_r(struct _reent *ptr, const char *f_old, const char *f_new)
-{
-    return -1;
-}
-
-int rename(const char *f_old, const char *f_new)
-{
-    return _rename_r(miosix::CReentrancyAccessor::getReent(),f_old,f_new);
-}
-
-/**
- * \internal
- * getdents, FIXME: implement me
- */
-int getdents(unsigned int fd, struct dirent *dirp, unsigned int count)
-{
-    return -1;
-}
-
-#else //TEST_NEW_FS
-/**
- * \internal
- * _open_r, open a file
- */
-int _open_r(struct _reent *ptr, const char *name, int flags, int mode)
-{
-    #ifdef WITH_FILESYSTEM
-    int result=miosix::getFileDescriptorTable().open(name,flags,mode);
-    if(result>=0) return result;
-    ptr->_errno=-result;
-    return -1;
     #else //WITH_FILESYSTEM
     ptr->_errno=ENFILE;
     return -1;
@@ -592,10 +266,21 @@ int open(const char *name, int flags, ...)
 int _close_r(struct _reent *ptr, int fd)
 {
     #ifdef WITH_FILESYSTEM
-    int result=miosix::getFileDescriptorTable().close(fd);
-    if(result>=0) return result;
-    ptr->_errno=-result;
-    return -1;
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().close(fd);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
     #else //WITH_FILESYSTEM
     ptr->_errno=EBADF;
     return -1;
@@ -612,12 +297,23 @@ int close(int fd)
  * _write_r, write to a file
  */
 int _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
-{ 
+{    
     #ifdef WITH_FILESYSTEM
-    int result=miosix::getFileDescriptorTable().write(fd,buf,cnt);
-    if(result>=0) return result;
-    ptr->_errno=-result;
-    return -1;
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().write(fd,buf,cnt);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+    
     #else //WITH_FILESYSTEM
     if(fd==STDOUT_FILENO || fd==STDERR_FILENO)
     {
@@ -644,10 +340,21 @@ int write(int fd, const void *buf, size_t cnt)
 int _read_r(struct _reent *ptr, int fd, void *buf, size_t cnt)
 {
     #ifdef WITH_FILESYSTEM
-    int result=miosix::getFileDescriptorTable().read(fd,buf,cnt);
-    if(result>=0) return result;
-    ptr->_errno=-result;
-    return -1;
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().read(fd,buf,cnt);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+    
     #else //WITH_FILESYSTEM
     if(fd==STDIN_FILENO)
     {
@@ -674,10 +381,21 @@ int read(int fd, void *buf, size_t cnt)
 off_t _lseek_r(struct _reent *ptr, int fd, off_t pos, int whence)
 {
     #ifdef WITH_FILESYSTEM
-    off_t result=miosix::getFileDescriptorTable().lseek(fd,pos,whence);
-    if(result>=0) return result;
-    ptr->_errno=-result;
-    return -1;
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        off_t result=miosix::getFileDescriptorTable().lseek(fd,pos,whence);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+    
     #else //WITH_FILESYSTEM
     ptr->_errno=EBADF;
     return -1;
@@ -696,10 +414,21 @@ off_t lseek(int fd, off_t pos, int whence)
 int _fstat_r(struct _reent *ptr, int fd, struct stat *pstat)
 {
     #ifdef WITH_FILESYSTEM
-    int result=miosix::getFileDescriptorTable().fstat(fd,pstat);
-    if(result>=0) return result;
-    ptr->_errno=-result;
-    return -1;
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().fstat(fd,pstat);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+    
     #else //WITH_FILESYSTEM
     switch(fd)
     {
@@ -729,10 +458,21 @@ int fstat(int fd, struct stat *pstat)
 int _stat_r(struct _reent *ptr, const char *file, struct stat *pstat)
 {
     #ifdef WITH_FILESYSTEM
-    int result=miosix::getFileDescriptorTable().stat(file,pstat);
-    if(result>=0) return result;
-    ptr->_errno=-result;
-    return -1;
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().stat(file,pstat);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+    
     #else //WITH_FILESYSTEM
     ptr->_errno=ENOENT;
     return -1;
@@ -751,10 +491,21 @@ int stat(const char *file, struct stat *pstat)
 int _isatty_r(struct _reent *ptr, int fd)
 {
     #ifdef WITH_FILESYSTEM
-    int result=miosix::getFileDescriptorTable().isatty(fd);
-    if(result>=0) return result;
-    ptr->_errno=-result;
-    return -1;
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().isatty(fd);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+    
     #else //WITH_FILESYSTEM
     switch(fd)
     {
@@ -861,7 +612,6 @@ int getdents(unsigned int fd, struct dirent *dirp, unsigned int count)
 {
     return -1;
 }
-#endif //TEST_NEW_FS
 
 
 
