@@ -86,12 +86,7 @@ void errorHandler(Error e)
         default:
             break;
     }
-    if(isUnrecoverable)
-    {
-        while(!Console::IRQtxComplete()) ;//Wait until all data sent
-        miosix_private::IRQsystemReboot();
-    }
-
+    if(isUnrecoverable) miosix_private::IRQsystemReboot();
     if(interrupts) enableInterrupts();
 }
 

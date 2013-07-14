@@ -42,7 +42,6 @@
 #include "filesystem/file_access.h"
 //// Console
 #include "kernel/logging.h"
-#include "interfaces/console.h"
 //// kernel interface
 #include "kernel/kernel.h"
 #include "interfaces/bsp.h"

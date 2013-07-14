@@ -8,7 +8,6 @@
 #include "interfaces/arch_registers.h"
 #include "interfaces/gpio.h"
 #include "interfaces/delays.h"
-#include "interfaces/console.h"
 #include "interfaces/bsp.h"
 /* Miosix kernel */
 #include "kernel/kernel.h"

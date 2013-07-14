@@ -47,12 +47,12 @@
 #include "miosix.h"
 #include "miosix/kernel/buffer_queue.h"
 #include "config/miosix_settings.h"
-#include "interfaces/console.h"
 #include "interfaces/atomic_ops.h"
 #include "board_settings.h"
 #include "interfaces/endianness.h"
 #include "miosix/e20/e20.h"
 #include "kernel/intrusive.h"
+#include "filesystem/devfs/console_device.h"
 #include "util/crc16.h"
 
 using namespace std::tr1;
@@ -198,7 +198,6 @@ int main()
                 break;
             case 's':
                 iprintf("Shutting down\n");
-                while(!Console::txComplete()) ;
                 shutdown();
             default:
                 iprintf("Unrecognized option\n");
@@ -231,10 +230,10 @@ static void fail(const char *cause)
 {
     //Can't use iprintf here because fail() may be used in threads
     //with 256 bytes of stack, and iprintf may cause stack overflow
-    Console::write("Failed:\r\n");
-    Console::write(cause);
-    Console::write("\r\n");
-    while(!Console::txComplete()) /*wait*/;
+    intrusive_ref_ptr<FileBase> console=DefaultConsole::instance().get();
+    console->write("Failed:\r\n",9);
+    console->write(cause,strlen(cause));
+    console->write("\r\n",2);
     reboot();
 }
 

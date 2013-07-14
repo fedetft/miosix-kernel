@@ -71,20 +71,10 @@ static void printProgramCounter()
 
 #endif //WITH_ERRLOG
 
-/**
- * \internal
- * Wait until all data is sent to the console and reboot
- */
-static void waitConsoleAndReboot()
-{
-    while(!Console::IRQtxComplete()) ; //Wait until all data sent
-    miosix_private::IRQsystemReboot();
-}
-
 void NMI_Handler()
 {
     IRQerrorLog("\r\n***Unexpected NMI\r\n");
-    waitConsoleAndReboot();
+    miosix_private::IRQsystemReboot();
 }
 
 void HardFault_Handler()
@@ -98,7 +88,7 @@ void HardFault_Handler()
     if(hfsr & SCB_HFSR_VECTTBL_Msk)
         IRQerrorLog("A BusFault occurred during a vector table read\r\n");
     #endif //WITH_ERRLOG
-    waitConsoleAndReboot();
+    miosix_private::IRQsystemReboot();
 }
 
 void MemManage_Handler()
@@ -121,7 +111,7 @@ void MemManage_Handler()
     if(cfsr & 0x00000001)
         IRQerrorLog("Fault was caused by attempted execution from XN area\r\n");
     #endif //WITH_ERRLOG
-    waitConsoleAndReboot();
+    miosix_private::IRQsystemReboot();
 }
 
 void BusFault_Handler()
@@ -146,7 +136,7 @@ void BusFault_Handler()
     if(cfsr & 0x00000100)
         IRQerrorLog("Fault happened during instruction fetch\r\n");
     #endif //WITH_ERRLOG
-    waitConsoleAndReboot();
+    miosix_private::IRQsystemReboot();
 }
 
 void UsageFault_Handler()
@@ -162,7 +152,7 @@ void UsageFault_Handler()
     if(cfsr & 0x00020000) IRQerrorLog("Invalid EPSR usage\r\n");
     if(cfsr & 0x00010000) IRQerrorLog("Undefined instruction\r\n");
     #endif //WITH_ERRLOG
-    waitConsoleAndReboot();
+    miosix_private::IRQsystemReboot();
 }
 
 void DebugMon_Handler()
@@ -171,7 +161,7 @@ void DebugMon_Handler()
     IRQerrorLog("\r\n***Unexpected DebugMon @ ");
     printProgramCounter();
     #endif //WITH_ERRLOG
-    waitConsoleAndReboot();
+    miosix_private::IRQsystemReboot();
 }
 
 void PendSV_Handler()
@@ -180,11 +170,11 @@ void PendSV_Handler()
     IRQerrorLog("\r\n***Unexpected PendSV @ ");
     printProgramCounter();
     #endif //WITH_ERRLOG
-    waitConsoleAndReboot();
+    miosix_private::IRQsystemReboot();
 }
 
 void unexpectedInterrupt()
 {
     IRQerrorLog("\r\n***Unexpected Peripheral interrupt\r\n");
-    waitConsoleAndReboot();
+    miosix_private::IRQsystemReboot();
 }

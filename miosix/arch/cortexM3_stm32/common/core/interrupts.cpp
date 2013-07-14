@@ -73,19 +73,10 @@ static void printProgramCounter()
     #endif //WITH_ERRLOG
 }
 
-/**
- * Wait until all data is sent to the console and reboot
- */
-static void waitConsoleAndReboot()
-{
-    while(!Console::IRQtxComplete()) ; //Wait until all data sent
-    miosix_private::IRQsystemReboot();
-}
-
 void NMI_Handler()
 {
     IRQerrorLog("\r\n***Unexpected NMI\r\n");
-    waitConsoleAndReboot();
+    miosix_private::IRQsystemReboot();
 }
 
 void HardFault_Handler()
@@ -98,7 +89,7 @@ void HardFault_Handler()
     if(hfsr & SCB_HFSR_VECTTBL)
         IRQerrorLog("A BusFault occurred during a vector table read\r\n");
     #endif //WITH_ERRLOG
-    waitConsoleAndReboot();
+    miosix_private::IRQsystemReboot();
 }
 
 void MemManage_Handler()
@@ -121,7 +112,7 @@ void MemManage_Handler()
     if(cfsr & SCB_CFSR_IACCVIOL)
         IRQerrorLog("Fault was caused by attempted execution from XN area\r\n");
     #endif //WITH_ERRLOG
-    waitConsoleAndReboot();
+    miosix_private::IRQsystemReboot();
 }
 
 void BusFault_Handler()
@@ -144,7 +135,7 @@ void BusFault_Handler()
     if(cfsr & SCB_CFSR_IBUSERR)
         IRQerrorLog("Fault happened during instruction fetch\r\n");
     #endif //WITH_ERRLOG
-    waitConsoleAndReboot();
+    miosix_private::IRQsystemReboot();
 }
 
 void UsageFault_Handler()
@@ -160,25 +151,25 @@ void UsageFault_Handler()
     if(cfsr & SCB_CFSR_INVSTATE) IRQerrorLog("Invalid EPSR usage\r\n");
     if(cfsr & SCB_CFSR_UNDEFINSTR) IRQerrorLog("Undefined instruction\r\n");
     #endif //WITH_ERRLOG
-    waitConsoleAndReboot();
+    miosix_private::IRQsystemReboot();
 }
 
 void DebugMon_Handler()
 {
     IRQerrorLog("\r\n***Unexpected DebugMon @ ");
     printProgramCounter();
-    waitConsoleAndReboot();
+    miosix_private::IRQsystemReboot();
 }
 
 void PendSV_Handler()
 {
     IRQerrorLog("\r\n***Unexpected PendSV @ ");
     printProgramCounter();
-    waitConsoleAndReboot();
+    miosix_private::IRQsystemReboot();
 }
 
 void unexpectedInterrupt()
 {
     IRQerrorLog("\r\n***Unexpected Peripheral interrupt\r\n");
-    waitConsoleAndReboot();
+    miosix_private::IRQsystemReboot();
 }

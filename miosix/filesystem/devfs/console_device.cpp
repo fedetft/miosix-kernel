@@ -64,11 +64,6 @@ int NullConsoleDevice::fstat(struct stat *pstat) const
 
 void NullConsoleDevice::IRQwrite(const char* str) {}
 
-bool NullConsoleDevice::IRQtxComplete()
-{
-    return true;
-}
-
 //
 // class ConsoleAdapter
 //
@@ -94,8 +89,11 @@ int ConsoleAdapter::fstat(struct stat *pstat) const
     return 0;
 }
 int ConsoleAdapter::isatty() const { return 1; }
-void ConsoleAdapter::IRQwrite(const char* str) { Console::IRQwrite(str); }
-bool ConsoleAdapter::IRQtxComplete() { return Console::IRQtxComplete(); }
+void ConsoleAdapter::IRQwrite(const char* str)
+{
+    Console::IRQwrite(str);
+    while(!Console::IRQtxComplete()) ;
+}
 // FIXME temporary -- end
 
 //

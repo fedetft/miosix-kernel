@@ -1,5 +1,9 @@
 Changelog for Miosix np embedded OS
 
+- interfaces/console.h is no longer #included in miosix.h
+- Removed the need to call IRQtxComplete() after IRQwrite() in the new
+  ConsoleDevice interface, as it simplifies code. Starting getting rid of
+  the old console interfaces in many places.
 - isatty() and sync() are no longer pure virtual in FileBase, added default
   implementation as in many cases it's enough.
 - Removed temporary Console initialization code from _init() and added it

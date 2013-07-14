@@ -29,7 +29,8 @@
 #define	LOGGING_H
 
 #include "config/miosix_settings.h"
-#include "interfaces/console.h"
+#include "filesystem/devfs/console_device.h"
+#include <cstring>
 
 namespace miosix {
 
@@ -41,7 +42,7 @@ namespace miosix {
 inline void bootlog(const char *string)
 {
     #ifdef WITH_BOOTLOG
-    Console::write(string);
+    DefaultConsole::instance().get()->write(string,std::strlen(string));
     #endif //WITH_BOOTLOG
 }
 
@@ -53,7 +54,7 @@ inline void bootlog(const char *string)
 inline void IRQbootlog(const char *string)
 {
     #ifdef WITH_BOOTLOG
-    Console::IRQwrite(string);
+    DefaultConsole::instance().IRQget()->IRQwrite(string);
     #endif //WITH_BOOTLOG
 }
 
@@ -65,7 +66,7 @@ inline void IRQbootlog(const char *string)
 inline void errorLog(const char *string)
 {
     #ifdef WITH_ERRLOG
-    Console::write(string);
+    DefaultConsole::instance().get()->write(string,std::strlen(string));
     #endif //WITH_ERRLOG
 }
 
@@ -77,7 +78,7 @@ inline void errorLog(const char *string)
 inline void IRQerrorLog(const char *string)
 {
     #ifdef WITH_ERRLOG
-    Console::IRQwrite(string);
+    DefaultConsole::instance().IRQget()->IRQwrite(string);
     #endif //WITH_ERRLOG
 }
 

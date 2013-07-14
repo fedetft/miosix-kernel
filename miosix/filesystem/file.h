@@ -229,17 +229,6 @@ public:
     TerminalDevice(intrusive_ref_ptr<FileBase> device);
     
     /**
-     * Convenience function to write a text string, terminated with \0.
-     * \param str the string to write.
-     * \return the number of written characters, or a negative number in case
-     * of errors
-     */
-    int write(const char *str)
-    {
-        return write(str,std::strlen(str));
-    }
-    
-    /**
      * Write data to the file, if the file supports writing.
      * \param data the data to write
      * \param len the number of bytes to write

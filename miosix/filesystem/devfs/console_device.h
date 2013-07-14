@@ -34,8 +34,8 @@
 namespace miosix {
 
 /**
- * An extension to the FileBase interface that adds two new member functions,
- * which are used by the kernel to write debug information before the kernel is
+ * An extension to the FileBase interface that adds a new member function,
+ * which is used by the kernel to write debug information before the kernel is
  * started or in case of serious errors, right before rebooting.
  * Classes of this type are reference counted, must be allocated on the heap
  * and managed through intrusive_ref_ptr<FileBase>
@@ -55,16 +55,6 @@ public:
      * \param str the string to write. The string must be NUL terminated.
      */
     virtual void IRQwrite(const char *str)=0;
-    
-    /**
-     * Can ONLY be called when the kernel is not yet started, paused or within
-     * an interrupt.
-     * Since the implementation of the Console class can use buffering, this
-     * memeber function is provided to know if all data has been sent, for
-     * example to wait until all data has been sent before performing a reboot.
-     * \return true if all write buffers are empty.
-     */
-    virtual bool IRQtxComplete()=0;
 };
 
 /**
@@ -115,16 +105,6 @@ public:
      * \param str the string to write. The string must be NUL terminated.
      */
     virtual void IRQwrite(const char *str);
-    
-    /**
-     * Can ONLY be called when the kernel is not yet started, paused or within
-     * an interrupt.
-     * Since the implementation of the Console class can use buffering, this
-     * memeber function is provided to know if all data has been sent, for
-     * example to wait until all data has been sent before performing a reboot.
-     * \return true if all write buffers are empty.
-     */
-    virtual bool IRQtxComplete();
 };
 
 /**
@@ -139,7 +119,6 @@ public:
     virtual int fstat(struct stat *pstat) const;
     virtual int isatty() const;
     virtual void IRQwrite(const char *str);
-    virtual bool IRQtxComplete();
 };
 
 /**
