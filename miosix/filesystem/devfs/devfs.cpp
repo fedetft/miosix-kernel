@@ -53,7 +53,7 @@ int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name, int flags,
         int mode)
 {
     //TODO: mode & flags
-    Lock<Mutex> l(mutex);
+    Lock<FastMutex> l(mutex);
     map<StringPart,intrusive_ref_ptr<FileBase> >::iterator it=files.find(name);
     if(it==files.end()) return -ENOENT;
     file=it->second;
@@ -62,7 +62,7 @@ int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name, int flags,
 
 int DevFs::lstat(StringPart& name, struct stat *pstat)
 {
-    Lock<Mutex> l(mutex);
+    Lock<FastMutex> l(mutex);
     map<StringPart,intrusive_ref_ptr<FileBase> >::iterator it=files.find(name);
     if(it==files.end()) return -ENOENT;
     it->second->fstat(pstat);
@@ -76,7 +76,7 @@ int DevFs::mkdir(StringPart& name, int mode)
 
 bool DevFs::areAllFilesClosed()
 {
-    Lock<Mutex> l(mutex);
+    Lock<FastMutex> l(mutex);
     //Can't use openFileCount in devFS, as one instance of each file is stored
     //in the map. Rather, check the reference count value. No need to use
     //atomic ops to make a copy of the file before calling use_count() as the

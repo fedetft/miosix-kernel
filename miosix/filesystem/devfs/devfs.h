@@ -103,7 +103,7 @@ public:
     virtual bool areAllFilesClosed();
     
 private:
-    Mutex mutex;
+    FastMutex mutex;
     std::map<StringPart,intrusive_ref_ptr<FileBase> > files;
 };
 

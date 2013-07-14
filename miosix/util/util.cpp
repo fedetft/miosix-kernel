@@ -146,7 +146,7 @@ static void memPrint(const char *data, char len)
     iprintf("| ");
     for(int i=0;i<len;i++)
     {
-        if((data[i]>32)&&(data[i]<128)) iprintf("%c",data[i]);
+        if((data[i]>=32)&&(data[i]<127)) iprintf("%c",data[i]);
         else iprintf(".");
     }
     iprintf("\n");

@@ -29,6 +29,7 @@
 #include <cstddef>
 #include <errno.h>
 #include <sys/stat.h>
+#include "kernel/sync.h"
 #include "kernel/intrusive.h"
 
 #ifndef FILE_H
@@ -336,6 +337,7 @@ public:
     
 private:
     intrusive_ref_ptr<FileBase> device;
+    FastMutex mutex;
     bool echo;
     bool binary;
     bool skipNewline;

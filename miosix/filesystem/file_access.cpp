@@ -92,7 +92,8 @@ FilesystemBase::~FilesystemBase() {}
 // class FileDescriptorTable
 //
 
-FileDescriptorTable::FileDescriptorTable() : mutex(Mutex::RECURSIVE), cwd("/")
+FileDescriptorTable::FileDescriptorTable()
+    : mutex(FastMutex::RECURSIVE), cwd("/")
 {
     FilesystemManager::instance().addFileDescriptorTable(this);
     //We need to open stdin, stdout, stderr.
@@ -102,7 +103,7 @@ FileDescriptorTable::FileDescriptorTable() : mutex(Mutex::RECURSIVE), cwd("/")
 }
 
 FileDescriptorTable::FileDescriptorTable(const FileDescriptorTable& rhs)
-    : mutex(Mutex::RECURSIVE), cwd(rhs.cwd)
+    : mutex(FastMutex::RECURSIVE), cwd(rhs.cwd)
 {
     //No need to lock the mutex since we are in a constructor and there can't
     //be pointers to this in other threads yet
@@ -113,7 +114,7 @@ FileDescriptorTable::FileDescriptorTable(const FileDescriptorTable& rhs)
 FileDescriptorTable& FileDescriptorTable::operator=(
         const FileDescriptorTable& rhs)
 {
-    Lock<Mutex> l(mutex);
+    Lock<FastMutex> l(mutex);
     for(int i=0;i<MAX_OPEN_FILES;i++)
         atomic_store(&this->files[i],atomic_load(&rhs.files[i]));
     return *this;
@@ -122,7 +123,7 @@ FileDescriptorTable& FileDescriptorTable::operator=(
 int FileDescriptorTable::open(const char* name, int flags, int mode)
 {
     if(name==0 || name[0]=='\0') return -EFAULT;
-    Lock<Mutex> l(mutex);
+    Lock<FastMutex> l(mutex);
     for(int i=0;i<MAX_OPEN_FILES;i++)
     {
         if(files[i]) continue;
@@ -154,7 +155,7 @@ int FileDescriptorTable::chdir(const char* name)
     if(name==0 || name[0]=='\0') return -EFAULT;   
     int len=strlen(name);
     if(name[len-1]!='/') len++; //Reserve room for trailing slash
-    Lock<Mutex> l(mutex);
+    Lock<FastMutex> l(mutex);
     if(name[0]!='/') len+=cwd.length();
     if(len>PATH_MAX) return -ENAMETOOLONG;
     
@@ -202,7 +203,7 @@ string FileDescriptorTable::absolutePath(const char* path)
     int len=strlen(path);
     if(len>PATH_MAX) return "";
     if(path[0]=='/') return path;
-    Lock<Mutex> l(mutex);
+    Lock<FastMutex> l(mutex);
     if(len+cwd.length()>PATH_MAX) return "";
     return cwd+path;
 }
@@ -593,7 +594,7 @@ FilesystemManager& FilesystemManager::instance()
 int FilesystemManager::kmount(const char* path, intrusive_ref_ptr<FilesystemBase> fs)
 {
     if(path==0 || path[0]=='\0' || fs==0) return -EFAULT;
-    Lock<Mutex> l(mutex);
+    Lock<FastMutex> l(mutex);
     //TODO: make sure path exists and mount point is a directory,
     //otherwise mounted fs is inaccessible
     int len=strlen(path);
@@ -614,7 +615,7 @@ int FilesystemManager::umount(const char* path, bool force)
     int len=strlen(path);
     if(len>PATH_MAX) return -ENAMETOOLONG;
     string pathStr(path);
-    Lock<Mutex> l(mutex); //A reader-writer lock would be better
+    Lock<FastMutex> l(mutex); //A reader-writer lock would be better
     fsIt it=filesystems.find(StringPart(pathStr));
     if(it==filesystems.end()) return -EINVAL;
     
@@ -702,7 +703,7 @@ ResolvedPath FilesystemManager::resolvePath(string& path, bool followLastSymlink
     if(path.length()>PATH_MAX) return ResolvedPath(-ENAMETOOLONG);
     if(path.empty() || path[0]!='/') return ResolvedPath(-ENOENT);
 
-    Lock<Mutex> l(mutex);
+    Lock<FastMutex> l(mutex);
     PathResolution pr(filesystems);
     return pr.resolvePath(path,followLastSymlink);
 }

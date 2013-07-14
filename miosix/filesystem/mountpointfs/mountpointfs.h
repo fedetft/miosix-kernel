@@ -76,7 +76,7 @@ public:
     virtual int mkdir(StringPart& name, int mode);
     
 private:
-    Mutex mutex;
+    FastMutex mutex;
     std::map<StringPart,int> dirs;
     int inodeCount;
 };

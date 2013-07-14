@@ -326,7 +326,7 @@ private:
      */
     int statImpl(const char *name, struct stat *pstat, bool f);
     
-    Mutex mutex; ///< Locks on writes to file object pointers, not on accesses
+    FastMutex mutex; ///< Locks on writes to file object pointers, not on accesses
     
     std::string cwd; ///< Current working directory
     
@@ -554,7 +554,7 @@ public:
     void addFileDescriptorTable(FileDescriptorTable *fdt)
     {
         #ifdef WITH_PROCESSES
-        Lock<Mutex> l(mutex);
+        Lock<FastMutex> l(mutex);
         fileTables.push_back(fdt);
         #endif //WITH_PROCESSES
     }
@@ -567,7 +567,7 @@ public:
     void removeFileDescriptorTable(FileDescriptorTable *fdt)
     {
         #ifdef WITH_PROCESSES
-        Lock<Mutex> l(mutex);
+        Lock<FastMutex> l(mutex);
         fileTables.remove(fdt);
         #endif //WITH_PROCESSES
     }
@@ -581,7 +581,7 @@ private:
     FilesystemManager(const FilesystemManager&);
     FilesystemManager& operator=(const FilesystemManager&);
     
-    Mutex mutex; ///< To protect against concurrent access
+    FastMutex mutex; ///< To protect against concurrent access
     
     /// Mounted filesystem
     std::map<StringPart,intrusive_ref_ptr<FilesystemBase> > filesystems;

@@ -131,12 +131,13 @@ int ZeroFile::sync()
 //
 
 TerminalDevice::TerminalDevice(intrusive_ref_ptr<FileBase> device)
-        : FileBase(device->getParent()), device(device), echo(false),
+        : FileBase(device->getParent()), device(device), mutex(), echo(true),
           binary(false), skipNewline(false) {}
 
 ssize_t TerminalDevice::write(const void *data, size_t len)
 {
     if(binary) return device->write(data,len);
+    //No mutex here to avoid blocking writes while reads are in progress
     const char *dataStart=static_cast<const char*>(data);
     const char *buffer=dataStart;
     const char *chunkstart=dataStart;
@@ -172,12 +173,13 @@ ssize_t TerminalDevice::read(void *data, size_t len)
         if(echo && result>0) device->write(data,result); //Ignore write errors
         return result;
     }
+    Lock<FastMutex> l(mutex); //Reads are serialized
     char *dataStart=static_cast<char*>(data);
     char *buffer=dataStart;
     //Trying to be compatible with terminals that output \r, \n or \r\n
     //When receiving \r skipNewline is set to true so we skip the \n
     //if it comes right after the \r
-    for(size_t i=0;i<len;i++,buffer++)
+    for(int i=0;i<static_cast<int>(len);i++,buffer++)
     {
         ssize_t r=device->read(buffer,1);
         if(r<=0) return buffer==dataStart ? r : buffer-dataStart;
@@ -193,14 +195,22 @@ ssize_t TerminalDevice::read(void *data, size_t len)
                 {
                     skipNewline=false;
                     //Discard the \n because comes right after \r
-                    //Note that i may become -1, but it is acceptable.
-                    i--;
+                    i--; //Note that i may become -1, but it is acceptable.
                     buffer--;
                 } else {
                     if(echo) device->write("\r\n",2);
                     return i+1;
                 }
                 break;
+            case 0x7f: //Unix backspace
+            case 0x08: //DOS backspace
+            {
+                int backward= i==0 ? 1 : 2;
+                i-=backward; //Note that i may become -1, but it is acceptable.
+                buffer-=backward;
+                if(echo) device->write("\033[1D \033[1D",9);
+                break;
+            }
             default:
                 skipNewline=false;
                 if(echo) device->write(buffer,1);

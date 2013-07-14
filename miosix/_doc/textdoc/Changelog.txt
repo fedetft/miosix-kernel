@@ -1,5 +1,10 @@
 Changelog for Miosix np embedded OS
 
+- File abstraction layer: Enabled echo by default in TerminalDevice, added
+  mutex to serialize reads, and added support for handling the backspace
+  character as an usability enhancement.
+- File abstraction layer: switched from Mutex to FastMutex for performance.
+- Fixed range of printable characters in memDump.
 - File abstraction layer now handles stdin/stdout/stderr and passes the
   testsuite, still does not handle fat32 and echo on console is not working.
 - File abstraction layer: added MountpointFs as the default root filesystem

@@ -43,7 +43,7 @@ int MountpointFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
 
 int MountpointFs::lstat(StringPart& name, struct stat *pstat)
 {
-    Lock<Mutex> l(mutex);
+    Lock<FastMutex> l(mutex);
     map<StringPart,int>::iterator it=dirs.find(name);
     if(it==dirs.end()) return -ENOENT;
     memset(pstat,0,sizeof(struct stat));
@@ -60,7 +60,7 @@ int MountpointFs::mkdir(StringPart& name, int mode)
     for(unsigned int i=1;i<name.length();i++)
         if(name[i]=='/')
             return -EACCES; //MountpointFs does not support subdirectories
-    Lock<Mutex> l(mutex);
+    Lock<FastMutex> l(mutex);
     if(dirs.insert(make_pair(name,inodeCount)).second==false) return -EEXIST;
     inodeCount++;
     return 0;
