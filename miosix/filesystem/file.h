@@ -25,11 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include <cstring>
-#include <cstddef>
-#include <errno.h>
 #include <sys/stat.h>
-#include "kernel/sync.h"
 #include "kernel/intrusive.h"
 
 #ifndef FILE_H
@@ -39,6 +35,7 @@ namespace miosix {
 
 // Forward decls
 class FilesystemBase;
+class StringPart;
 
 /**
  * The unix file abstraction. Also some device drivers are seen as files.
@@ -120,190 +117,95 @@ private:
 };
 
 /**
- * A file where write operations do nothing at all
+ * All filesystems derive from this class. Classes of this type are reference
+ * counted, must be allocated on the heap and managed through
+ * intrusive_ref_ptr<FilesystemBase>
  */
-class NullFile : public FileBase
+class FilesystemBase : public IntrusiveRefCounted
 {
 public:
     /**
      * Constructor
-     * \param parent the filesystem to which this file belongs
      */
-    NullFile() : FileBase(intrusive_ref_ptr<FilesystemBase>()) {}
+    FilesystemBase();
     
     /**
-     * Write data to the file, if the file supports writing.
-     * \param data the data to write
-     * \param len the number of bytes to write
-     * \return the number of written characters, or a negative number in case
-     * of errors
-     */
-    virtual ssize_t write(const void *data, size_t len);
-    
-    /**
-     * Read data from the file, if the file supports reading.
-     * \param data buffer to store read data
-     * \param len the number of bytes to read
-     * \return the number of read characters, or a negative number in case
-     * of errors
-     */
-    virtual ssize_t read(void *data, size_t len);
-    
-    /**
-     * Move file pointer, if the file supports random-access.
-     * \param pos offset to sum to the beginning of the file, current position
-     * or end of file, depending on whence
-     * \param whence SEEK_SET, SEEK_CUR or SEEK_END
-     * \return the offset from the beginning of the file if the operation
-     * completed, or a negative number in case of errors
-     */
-    virtual off_t lseek(off_t pos, int whence);
-    
-    /**
-     * Return file information.
-     * \param pstat pointer to stat struct
+     * Open a file
+     * \param file the file object will be stored here, if the call succeeds
+     * \param name the name of the file to open, relative to the local
+     * filesystem
+     * \param flags file flags (open for reading, writing, ...)
+     * \param mode file permissions
      * \return 0 on success, or a negative number on failure
      */
-    virtual int fstat(struct stat *pstat) const;
-};
-
-/**
- * A file where read operations return zeroed out memory
- */
-class ZeroFile : public FileBase
-{
-public:
-    /**
-     * Constructor
-     * \param parent the filesystem to which this file belongs
-     */
-    ZeroFile() : FileBase(intrusive_ref_ptr<FilesystemBase>()) {}
+    virtual int open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
+            int flags, int mode)=0;
     
     /**
-     * Write data to the file, if the file supports writing.
-     * \param data the data to write
-     * \param len the number of bytes to write
-     * \return the number of written characters, or a negative number in case
-     * of errors
-     */
-    virtual ssize_t write(const void *data, size_t len);
-    
-    /**
-     * Read data from the file, if the file supports reading.
-     * \param data buffer to store read data
-     * \param len the number of bytes to read
-     * \return the number of read characters, or a negative number in case
-     * of errors
-     */
-    virtual ssize_t read(void *data, size_t len);
-    
-    /**
-     * Move file pointer, if the file supports random-access.
-     * \param pos offset to sum to the beginning of the file, current position
-     * or end of file, depending on whence
-     * \param whence SEEK_SET, SEEK_CUR or SEEK_END
-     * \return the offset from the beginning of the file if the operation
-     * completed, or a negative number in case of errors
-     */
-    virtual off_t lseek(off_t pos, int whence);
-    
-    /**
-     * Return file information.
-     * \param pstat pointer to stat struct
+     * Obtain information on a file, identified by a path name. Does not follow
+     * symlinks
+     * \param name path name, relative to the local filesystem
+     * \param pstat file information is stored here
      * \return 0 on success, or a negative number on failure
      */
-    virtual int fstat(struct stat *pstat) const;
-};
-
-/**
- * Teriminal device, proxy object supporting additional terminal-specific
- * features
- */
-class TerminalDevice : public FileBase
-{
-public:
-    /**
-     * Constructor
-     * \param device proxed device.
-     */
-    TerminalDevice(intrusive_ref_ptr<FileBase> device);
+    virtual int lstat(StringPart& name, struct stat *pstat)=0;
     
     /**
-     * Write data to the file, if the file supports writing.
-     * \param data the data to write
-     * \param len the number of bytes to write
-     * \return the number of written characters, or a negative number in case
-     * of errors
-     */
-    virtual ssize_t write(const void *data, size_t len);
-    
-    /**
-     * Read data from the file, if the file supports reading.
-     * \param data buffer to store read data
-     * \param len the number of bytes to read
-     * \return the number of read characters, or a negative number in case
-     * of errors
-     */
-    virtual ssize_t read(void *data, size_t len);
-    
-    /**
-     * Move file pointer, if the file supports random-access.
-     * \param pos offset to sum to the beginning of the file, current position
-     * or end of file, depending on whence
-     * \param whence SEEK_SET, SEEK_CUR or SEEK_END
-     * \return the offset from the beginning of the file if the operation
-     * completed, or a negative number in case of errors
-     */
-    virtual off_t lseek(off_t pos, int whence);
-    
-    /**
-     * Return file information.
-     * \param pstat pointer to stat struct
+     * Create a directory
+     * \param name directory name
+     * \param mode directory permissions
      * \return 0 on success, or a negative number on failure
      */
-    virtual int fstat(struct stat *pstat) const;
+    virtual int mkdir(StringPart& name, int mode)=0;
     
     /**
-     * Check whether the file refers to a terminal.
-     * \return 1 if it is a terminal, 0 if it is not, or a negative number in
-     * case of errors
+     * Follows a symbolic link
+     * \param path path identifying a symlink, relative to the local filesystem
+     * \param target the link target is returned here if the call succeeds.
+     * Note that the returned path is not relative to this filesystem, and can
+     * be either relative or absolute.
+     * \return 0 on success, a negative number on failure
      */
-    virtual int isatty() const;
+    virtual int readlink(StringPart& name, std::string& target);
     
     /**
-     * Wait until all I/O operations have completed on this file.
-     * \return 0 on success, or a negative number in case of errors
+     * \return true if the filesystem supports symbolic links.
+     * In this case, the filesystem should override readlink
      */
-    virtual int sync();
+    virtual bool supportsSymlinks() const;
     
     /**
-     * Enables or disables echo of commands on the terminal
-     * \param echo true to enable echo, false to disable it
+     * \internal
+     * \return true if all files belonging to this filesystem are closed 
      */
-    void setEcho(bool echoMode) { echo=echoMode; }
+    virtual bool areAllFilesClosed();
     
     /**
-     * \return true if echo is enabled 
+     * \internal
+     * Called by file destructors whenever a file belonging to this
+     * filesystem is closed. Never call this function from user code.
      */
-    bool isEchoEnabled() const { return echo; }
-    
+    void fileCloseHook();
+            
     /**
-     * Selects whether the terminal sholud be transparent to non ASCII data
-     * \param rawMode true if raw mode is required
+     * Destructor
      */
-    void setBinary(bool binaryMode) { binary=binaryMode; }
+    virtual ~FilesystemBase();
     
+protected:
     /**
-     * \return true if the terminal allows binary data 
+     * Must be called every time a new file is successfully opened, to update
+     * the open files count
      */
-    bool isBinary() const { return binary; }
+    void newFileOpened();
+    
+    const short int filesystemId; ///< The unique filesystem id, used by lstat
     
 private:
-    intrusive_ref_ptr<FileBase> device;
-    FastMutex mutex;
-    bool echo;
-    bool binary;
-    bool skipNewline;
+    FilesystemBase(const FilesystemBase&);
+    FilesystemBase& operator= (const FilesystemBase&);
+    
+    volatile int openFileCount; ///< Number of open files
 };
 
 } //namespace miosix

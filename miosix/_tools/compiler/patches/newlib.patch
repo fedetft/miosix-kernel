@@ -299,7 +299,16 @@ diff -ruN newlib-2.0.0-old/newlib/libc/include/sys/reent.h newlib-2.0.0/newlib/l
  #ifdef __cplusplus
 diff -ruN newlib-2.0.0-old/newlib/libc/include/sys/types.h newlib-2.0.0/newlib/libc/include/sys/types.h
 --- newlib-2.0.0-old/newlib/libc/include/sys/types.h	2012-07-06 12:41:21.000000000 +0200
-+++ newlib-2.0.0/newlib/libc/include/sys/types.h	2013-06-03 22:37:33.000000000 +0200
++++ newlib-2.0.0/newlib/libc/include/sys/types.h	2013-07-16 00:40:52.391847612 +0200
+@@ -131,7 +131,7 @@
+ 
+ #ifndef __CYGWIN__
+ #if defined(__MS_types__) || defined(__rtems__) || \
+-    defined(__sparc__) || defined(__SPU__)
++    defined(__sparc__) || defined(__SPU__) || defined(_MIOSIX)
+ typedef	unsigned long	ino_t;
+ #else
+ typedef	unsigned short	ino_t;
 @@ -412,7 +412,23 @@
    int type;
  } pthread_mutexattr_t;

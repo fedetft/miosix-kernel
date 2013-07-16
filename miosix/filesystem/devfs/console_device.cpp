@@ -26,12 +26,13 @@
  ***************************************************************************/
 
 #include "console_device.h"
+#include <errno.h>
 #include <interfaces/console.h> //FIXME: remove
 
 namespace miosix {
 
 //
-// class NullInterruptOutputDevice
+// class NullConsoleDevice
 //
 
 ssize_t NullConsoleDevice::write(const void *data, size_t len)
@@ -95,6 +96,113 @@ void ConsoleAdapter::IRQwrite(const char* str)
     while(!Console::IRQtxComplete()) ;
 }
 // FIXME temporary -- end
+
+//
+// class TerminalDevice
+//
+
+TerminalDevice::TerminalDevice(intrusive_ref_ptr<FileBase> device)
+        : device(device), mutex(), echo(true),
+          binary(false), skipNewline(false) {}
+
+ssize_t TerminalDevice::write(const void *data, size_t len)
+{
+    if(binary) return device->write(data,len);
+    //No mutex here to avoid blocking writes while reads are in progress
+    const char *dataStart=static_cast<const char*>(data);
+    const char *buffer=dataStart;
+    const char *chunkstart=dataStart;
+    //Try to write data in chunks, stop at every \n to replace with \r\n
+    for(size_t i=0;i<len;i++,buffer++)
+    {
+        if(*buffer=='\n')
+        {
+            size_t chunklen=buffer-chunkstart;
+            if(chunklen>0)
+            {
+                ssize_t r=device->write(chunkstart,chunklen);
+                if(r<=0) return chunkstart==dataStart ? r : chunkstart-dataStart;
+            }
+            ssize_t r=device->write("\r\n",2);//Add \r\n
+            if(r<=0) return chunkstart==dataStart ? r : chunkstart-dataStart;
+            chunkstart=buffer+1;
+        }
+    }
+    if(chunkstart!=buffer)
+    {
+        ssize_t r=device->write(chunkstart,buffer-chunkstart);
+        if(r<=0) return chunkstart==dataStart ? r : chunkstart-dataStart;
+    }
+    return len;
+}
+
+ssize_t TerminalDevice::read(void *data, size_t len)
+{
+    if(binary)
+    {
+        ssize_t result=device->read(data,len);
+        if(echo && result>0) device->write(data,result); //Ignore write errors
+        return result;
+    }
+    Lock<FastMutex> l(mutex); //Reads are serialized
+    char *dataStart=static_cast<char*>(data);
+    char *buffer=dataStart;
+    //Trying to be compatible with terminals that output \r, \n or \r\n
+    //When receiving \r skipNewline is set to true so we skip the \n
+    //if it comes right after the \r
+    for(int i=0;i<static_cast<int>(len);i++,buffer++)
+    {
+        ssize_t r=device->read(buffer,1);
+        if(r<=0) return buffer==dataStart ? r : buffer-dataStart;
+        switch(*buffer)
+        {
+            case '\r':
+                *buffer='\n';
+                if(echo) device->write("\r\n",2);
+                skipNewline=true;
+                return i+1;    
+            case '\n':
+                if(skipNewline)
+                {
+                    skipNewline=false;
+                    //Discard the \n because comes right after \r
+                    i--; //Note that i may become -1, but it is acceptable.
+                    buffer--;
+                } else {
+                    if(echo) device->write("\r\n",2);
+                    return i+1;
+                }
+                break;
+            case 0x7f: //Unix backspace
+            case 0x08: //DOS backspace
+            {
+                int backward= i==0 ? 1 : 2;
+                i-=backward; //Note that i may become -1, but it is acceptable.
+                buffer-=backward;
+                if(echo) device->write("\033[1D \033[1D",9);
+                break;
+            }
+            default:
+                skipNewline=false;
+                if(echo) device->write(buffer,1);
+        }
+    }
+    return len;
+}
+
+off_t TerminalDevice::lseek(off_t pos, int whence)
+{
+    return device->lseek(pos,whence);
+}
+
+int TerminalDevice::fstat(struct stat *pstat) const
+{
+    return device->fstat(pstat);
+}
+
+int TerminalDevice::isatty() const { return device->isatty(); }
+
+int TerminalDevice::sync() { return device->sync(); }
 
 //
 // class DefaultConsole 

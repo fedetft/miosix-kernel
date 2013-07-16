@@ -26,7 +26,11 @@
  ***************************************************************************/
 
 #include "devfs.h"
+#include <string>
+#include <errno.h>
+#include "base_files.h"
 #include "console_device.h"
+#include "filesystem/stringpart.h"
 
 using namespace std;
 
@@ -42,20 +46,20 @@ DevFs::DevFs()
     string zero="/zero";
     string console="/console";
     
-    files[StringPart(null)]=intrusive_ref_ptr<FileBase>(new NullFile);
-    files[StringPart(zero)]=intrusive_ref_ptr<FileBase>(new ZeroFile);
+    files[StringPart(null)]=intrusive_ref_ptr<DeviceFile>(new NullFile);
+    files[StringPart(zero)]=intrusive_ref_ptr<DeviceFile>(new ZeroFile);
     
-    intrusive_ref_ptr<FileBase> consoleDev=DefaultConsole::instance().get();
+    intrusive_ref_ptr<DeviceFile> consoleDev=DefaultConsole::instance().get();
     if(consoleDev) files[StringPart(console)]=consoleDev;
     else files[StringPart(console)]=files[StringPart(null)];
 }
 
-int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name, int flags,
-        int mode)
+int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
+        int flags, int mode)
 {
     //TODO: mode & flags
     Lock<FastMutex> l(mutex);
-    map<StringPart,intrusive_ref_ptr<FileBase> >::iterator it=files.find(name);
+    map<StringPart,intrusive_ref_ptr<DeviceFile> >::iterator it=files.find(name);
     if(it==files.end()) return -ENOENT;
     file=it->second;
     return 0;
@@ -64,7 +68,7 @@ int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name, int flags,
 int DevFs::lstat(StringPart& name, struct stat *pstat)
 {
     Lock<FastMutex> l(mutex);
-    map<StringPart,intrusive_ref_ptr<FileBase> >::iterator it=files.find(name);
+    map<StringPart,intrusive_ref_ptr<DeviceFile> >::iterator it=files.find(name);
     if(it==files.end()) return -ENOENT;
     it->second->fstat(pstat);
     return 0;
@@ -83,7 +87,7 @@ bool DevFs::areAllFilesClosed()
     //atomic ops to make a copy of the file before calling use_count() as the
     //existence of at least one reference in the map guarantees the file won't
     //be deleted.
-    map<StringPart,intrusive_ref_ptr<FileBase> >::iterator it;
+    map<StringPart,intrusive_ref_ptr<DeviceFile> >::iterator it;
     for(it=files.begin();it!=files.end();++it)
         if(it->second.use_count()>1) return false;
     return true;

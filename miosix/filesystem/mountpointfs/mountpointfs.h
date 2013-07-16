@@ -30,7 +30,7 @@
 
 #include <map>
 #include "filesystem/file.h"
-#include "filesystem/file_access.h"
+#include "kernel/sync.h"
 
 namespace miosix {
 

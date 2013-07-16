@@ -1,7 +1,7 @@
 
+#include "file_access.h"
 #include <vector>
 #include <climits>
-#include "file_access.h"
 #include "devfs/devfs.h"
 #include "mountpointfs/mountpointfs.h"
 #include "kernel/logging.h"
@@ -69,25 +69,6 @@ public:
     /// filesystem for the looked up file
     int off;
 };
-
-//
-// class FilesystemBase
-//
-
-int FilesystemBase::readlink(StringPart& name, string& target)
-{
-    return -EINVAL; //Default implementation, for filesystems without symlinks
-}
-
-bool FilesystemBase::supportsSymlinks() const { return false; }
-
-bool FilesystemBase::areAllFilesClosed() { return openFileCount==0; }
-
-void FilesystemBase::fileCloseHook() { atomicAdd(&openFileCount,-1); }
-
-void FilesystemBase::newFileOpened() { atomicAdd(&openFileCount,1); }
-
-FilesystemBase::~FilesystemBase() {}
 
 //
 // class FileDescriptorTable
@@ -207,105 +188,6 @@ string FileDescriptorTable::absolutePath(const char* path)
     Lock<FastMutex> l(mutex);
     if(len+cwd.length()>PATH_MAX) return "";
     return cwd+path;
-}
-
-//
-// class StringPart
-//
-
-StringPart::StringPart(string& str, unsigned int idx, unsigned int off)
-        : str(&str), index(idx), offset(off), saved('\0'), owner(false),
-          type(CPPSTR)
-{
-    if(index==string::npos || index>=str.length()) index=str.length();
-    else {
-        saved=str[index];
-        str[index]='\0';
-    }
-    offset=min(offset,index);
-}
-
-StringPart::StringPart(char* s, unsigned int idx, unsigned int off)
-        : cstr(s), index(idx), offset(off), saved('\0'), owner(false),
-          type(CSTR)
-{
-    assert(cstr); //Passed pointer can't be null
-    unsigned int len=strlen(cstr);
-    if(index==string::npos || index>=len) index=len;
-    else {
-        saved=cstr[index];
-        cstr[index]='\0';
-    }
-    offset=min(offset,index);
-}
-
-StringPart::StringPart(StringPart& rhs, unsigned int idx, unsigned int off)
-        : saved('\0'), owner(false), type(rhs.type)
-{
-    if(type==CSTR) this->cstr=rhs.cstr;
-    else this->str=rhs.str;
-    if(idx!=string::npos && idx<rhs.length())
-    {
-        index=rhs.offset+idx;//Make index relative to beginning of original str
-        if(type==CPPSTR)
-        {
-            saved=(*str)[index];
-            (*str)[index]='\0';
-        } else {
-            saved=cstr[index];
-            cstr[index]='\0';
-        }
-    } else index=rhs.index;
-    offset=min(rhs.offset+off,index);
-}
-
-StringPart::StringPart(const StringPart& rhs)
-        : cstr(&saved), index(0), offset(0), saved('\0'), owner(false),
-          type(CSTR)
-{
-    if(rhs.empty()==false) assign(rhs);
-}
-
-StringPart& StringPart::operator= (const StringPart& rhs)
-{
-    if(this==&rhs) return *this; //Self assignment
-    //Don't forget that we may own a pointer to someone else's string,
-    //so always clear() to detach from a string on assignment!
-    clear();
-    if(rhs.empty()==false) assign(rhs);
-    return *this;
-}
-
-bool StringPart::startsWith(const StringPart& rhs) const
-{
-    if(this->length()<rhs.length()) return false;
-    return memcmp(this->c_str(),rhs.c_str(),rhs.length())==0;
-}
-
-void StringPart::clear()
-{
-    if(type==CSTR)
-    {
-        cstr[index]=saved;//Worst case we'll overwrite terminating \0 with an \0
-        if(owner) delete[] cstr;
-    } else {
-        if(index!=str->length()) (*str)[index]=saved;
-        if(owner) delete str;
-    }
-    cstr=&saved; //Reusing saved as an empty string
-    saved='\0';
-    index=offset=0;
-    owner=false;
-    type=CSTR;
-}
-
-void StringPart::assign(const StringPart& rhs)
-{
-    cstr=new char[rhs.length()+1];
-    strcpy(cstr,rhs.c_str());
-    index=rhs.length();
-    offset=0;
-    owner=true;
 }
 
 /**
@@ -716,6 +598,13 @@ ResolvedPath FilesystemManager::resolvePath(string& path, bool followLastSymlink
     PathResolution pr(filesystems);
     return pr.resolvePath(path,followLastSymlink);
 }
+
+short int FilesystemManager::getFilesystemId()
+{
+    return atomicAddExchange(&devCount,1);
+}
+
+int FilesystemManager::devCount=1;
 
 void basicFilesystemSetup()
 {

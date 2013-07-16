@@ -26,6 +26,8 @@
  ***************************************************************************/
 
 #include "mountpointfs.h"
+#include <errno.h>
+#include "filesystem/stringpart.h"
 
 using namespace std;
 
@@ -47,6 +49,7 @@ int MountpointFs::lstat(StringPart& name, struct stat *pstat)
     map<StringPart,int>::iterator it=dirs.find(name);
     if(it==dirs.end()) return -ENOENT;
     memset(pstat,0,sizeof(struct stat));
+    pstat->st_dev=filesystemId;
     pstat->st_ino=it->second;
     pstat->st_mode=S_IFDIR | 0755; //drwxr-xr-x
     pstat->st_nlink=1;

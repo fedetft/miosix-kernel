@@ -28,8 +28,7 @@
 #ifndef CONSOLE_DEVICE_H
 #define	CONSOLE_DEVICE_H
 
-#include "filesystem/file.h"
-#include "filesystem/file_access.h"
+#include "devfs.h"
 
 namespace miosix {
 
@@ -38,15 +37,15 @@ namespace miosix {
  * which is used by the kernel to write debug information before the kernel is
  * started or in case of serious errors, right before rebooting.
  * Classes of this type are reference counted, must be allocated on the heap
- * and managed through intrusive_ref_ptr<FileBase>
+ * and managed through intrusive_ref_ptr<DeviceFile>
  */
-class ConsoleDevice : public FileBase
+class ConsoleDevice : public DeviceFile
 {
 public:
     /**
      * Constructor
      */
-    ConsoleDevice() : FileBase(intrusive_ref_ptr<FilesystemBase>()) {}
+    ConsoleDevice() {}
     
     /**
      * Write a string to the Console.
@@ -122,6 +121,97 @@ public:
 };
 
 /**
+ * Teriminal device, proxy object supporting additional terminal-specific
+ * features
+ */
+class TerminalDevice : public DeviceFile
+{
+public:
+    /**
+     * Constructor
+     * \param device proxed device.
+     */
+    TerminalDevice(intrusive_ref_ptr<FileBase> device);
+    
+    /**
+     * Write data to the file, if the file supports writing.
+     * \param data the data to write
+     * \param len the number of bytes to write
+     * \return the number of written characters, or a negative number in case
+     * of errors
+     */
+    virtual ssize_t write(const void *data, size_t len);
+    
+    /**
+     * Read data from the file, if the file supports reading.
+     * \param data buffer to store read data
+     * \param len the number of bytes to read
+     * \return the number of read characters, or a negative number in case
+     * of errors
+     */
+    virtual ssize_t read(void *data, size_t len);
+    
+    /**
+     * Move file pointer, if the file supports random-access.
+     * \param pos offset to sum to the beginning of the file, current position
+     * or end of file, depending on whence
+     * \param whence SEEK_SET, SEEK_CUR or SEEK_END
+     * \return the offset from the beginning of the file if the operation
+     * completed, or a negative number in case of errors
+     */
+    virtual off_t lseek(off_t pos, int whence);
+    
+    /**
+     * Return file information.
+     * \param pstat pointer to stat struct
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int fstat(struct stat *pstat) const;
+    
+    /**
+     * Check whether the file refers to a terminal.
+     * \return 1 if it is a terminal, 0 if it is not, or a negative number in
+     * case of errors
+     */
+    virtual int isatty() const;
+    
+    /**
+     * Wait until all I/O operations have completed on this file.
+     * \return 0 on success, or a negative number in case of errors
+     */
+    virtual int sync();
+    
+    /**
+     * Enables or disables echo of commands on the terminal
+     * \param echo true to enable echo, false to disable it
+     */
+    void setEcho(bool echoMode) { echo=echoMode; }
+    
+    /**
+     * \return true if echo is enabled 
+     */
+    bool isEchoEnabled() const { return echo; }
+    
+    /**
+     * Selects whether the terminal sholud be transparent to non ASCII data
+     * \param rawMode true if raw mode is required
+     */
+    void setBinary(bool binaryMode) { binary=binaryMode; }
+    
+    /**
+     * \return true if the terminal allows binary data 
+     */
+    bool isBinary() const { return binary; }
+    
+private:
+    intrusive_ref_ptr<FileBase> device;
+    FastMutex mutex;
+    bool echo;
+    bool binary;
+    bool skipNewline;
+};
+
+/**
  * This class holds the file object related to the console, that is set by
  * the board support package, and used to populate /dev/console in DevFs
  */
@@ -149,7 +239,8 @@ public:
     void IRQset(intrusive_ref_ptr<ConsoleDevice> console);
     
     /**
-     * \return the currently installed console device, wrapped in a TerminalDevice
+     * \return the currently installed console device, wrapped in a
+     * TerminalDevice
      */
     intrusive_ref_ptr<TerminalDevice> get()
     {

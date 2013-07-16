@@ -30,9 +30,37 @@
 
 #include <map>
 #include "filesystem/file.h"
-#include "filesystem/file_access.h"
+#include "kernel/sync.h"
 
 namespace miosix {
+
+/**
+ * All device files that are meant to be attached to DevFs must derive from this
+ * class.
+ */
+class DeviceFile : public FileBase
+{
+public:
+    /**
+     * Constructor
+     */
+    DeviceFile() : FileBase(intrusive_ref_ptr<FilesystemBase>()),
+        st_ino(0), st_dev(0) {}
+    
+    /**
+     * \internal
+     * Called be DevFs to assign a device and inode to the file
+     */
+    void setFileInfo(unsigned int st_ino, short st_dev)
+    {
+        this->st_ino=st_ino;
+        this->st_dev=st_dev;
+    }
+    
+private:
+    unsigned int st_ino; ///< inode of device file
+    short st_dev; ///< device (unique id of the filesystem) of device file
+};
 
 /**
  * DevFs is a special filesystem meant to access devices as they were files.
@@ -104,7 +132,7 @@ public:
     
 private:
     FastMutex mutex;
-    std::map<StringPart,intrusive_ref_ptr<FileBase> > files;
+    std::map<StringPart,intrusive_ref_ptr<DeviceFile> > files;
 };
 
 } //namespace miosix

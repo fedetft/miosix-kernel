@@ -1,5 +1,15 @@
 Changelog for Miosix np embedded OS
 
+- File abstraction layer: added class DeviceFile from which all files meant
+  to be attached to a DevFs should derive. Contains the code to assign an
+  unique inode to each of them.
+- File abstraction layer: added FilesystemManager::getFilesystemId() to
+  have a different st_dev field when stat-ing files from different filesystems.
+- File abstraction layer: added stringpart.cpp/.h and devfs/base_files.cpp/.h
+  to better modularize code in files. file.h now contains only FileBase and
+  FilesystemBase.
+- Modified again the newlib patch, to make ino_t an unsigned long, as the
+  default was an unsigned short. This change requires recompiling GCC!
 - Removed old filesystem mount code in mainLoader(), replaced with
   a call to basicFilesystemSetup() in all BSPs.
 - File abstraction layer: added basicFilesystemSetup() to file_access.h
