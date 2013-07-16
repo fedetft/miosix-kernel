@@ -29,13 +29,14 @@
 #define	BASE_FILES_H
 
 #include "devfs.h"
+#include "console_device.h"
 
 namespace miosix {
 
 /**
  * A file where write operations do nothing at all
  */
-class NullFile : public DeviceFile
+class NullFile : public ConsoleDevice
 {
 public:
     /**
@@ -63,21 +64,12 @@ public:
     virtual ssize_t read(void *data, size_t len);
     
     /**
-     * Move file pointer, if the file supports random-access.
-     * \param pos offset to sum to the beginning of the file, current position
-     * or end of file, depending on whence
-     * \param whence SEEK_SET, SEEK_CUR or SEEK_END
-     * \return the offset from the beginning of the file if the operation
-     * completed, or a negative number in case of errors
+     * Write a string to the Console.
+     * Can ONLY be called when the kernel is not yet started, paused or within
+     * an interrupt.
+     * \param str the string to write. The string must be NUL terminated.
      */
-    virtual off_t lseek(off_t pos, int whence);
-    
-    /**
-     * Return file information.
-     * \param pstat pointer to stat struct
-     * \return 0 on success, or a negative number on failure
-     */
-    virtual int fstat(struct stat *pstat) const;
+    virtual void IRQwrite(const char *str);
 };
 
 /**
@@ -109,23 +101,6 @@ public:
      * of errors
      */
     virtual ssize_t read(void *data, size_t len);
-    
-    /**
-     * Move file pointer, if the file supports random-access.
-     * \param pos offset to sum to the beginning of the file, current position
-     * or end of file, depending on whence
-     * \param whence SEEK_SET, SEEK_CUR or SEEK_END
-     * \return the offset from the beginning of the file if the operation
-     * completed, or a negative number in case of errors
-     */
-    virtual off_t lseek(off_t pos, int whence);
-    
-    /**
-     * Return file information.
-     * \param pstat pointer to stat struct
-     * \return 0 on success, or a negative number on failure
-     */
-    virtual int fstat(struct stat *pstat) const;
 };
 
 } //namespace miosix

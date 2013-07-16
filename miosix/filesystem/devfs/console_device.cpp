@@ -27,43 +27,10 @@
 
 #include "console_device.h"
 #include <errno.h>
+#include "base_files.h"
 #include <interfaces/console.h> //FIXME: remove
 
 namespace miosix {
-
-//
-// class NullConsoleDevice
-//
-
-ssize_t NullConsoleDevice::write(const void *data, size_t len)
-{
-    return len;
-}
-
-ssize_t NullConsoleDevice::read(void *data, size_t len)
-{
-    return -EBADF;
-}
-
-off_t NullConsoleDevice::lseek(off_t pos, int whence)
-{
-    switch(whence)
-    {
-        case SEEK_SET:
-        case SEEK_CUR:
-        case SEEK_END:
-            return -EBADF;
-        default:
-            return -EINVAL;
-    }
-}
-
-int NullConsoleDevice::fstat(struct stat *pstat) const
-{
-    return -EBADF; //TODO
-}
-
-void NullConsoleDevice::IRQwrite(const char* str) {}
 
 //
 // class ConsoleAdapter
@@ -80,14 +47,6 @@ ssize_t ConsoleAdapter::read(void *data, size_t len)
     char *d=reinterpret_cast<char*>(data);
     for(size_t i=0;i<len;i++) *d++=Console::readChar();
     return len;
-}
-off_t ConsoleAdapter::lseek(off_t pos, int whence) { return -EBADF; }
-int ConsoleAdapter::fstat(struct stat *pstat) const
-{
-    memset(pstat,0,sizeof(struct stat));
-    pstat->st_mode=S_IFCHR;//Character device
-    pstat->st_blksize=0; //Defualt file buffer equals to BUFSIZ
-    return 0;
 }
 int ConsoleAdapter::isatty() const { return 1; }
 void ConsoleAdapter::IRQwrite(const char* str)
@@ -224,7 +183,7 @@ void DefaultConsole::IRQset(intrusive_ref_ptr<ConsoleDevice> console)
 void DefaultConsole::checkInit()
 {
     if(!rawConsole)
-        IRQset(intrusive_ref_ptr<ConsoleDevice>(new NullConsoleDevice));
+        IRQset(intrusive_ref_ptr<ConsoleDevice>(new NullFile));
 }
 
 } //namespace miosix

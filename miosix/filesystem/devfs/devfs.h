@@ -48,6 +48,23 @@ public:
         st_ino(0), st_dev(0) {}
     
     /**
+     * Move file pointer, if the file supports random-access.
+     * \param pos offset to sum to the beginning of the file, current position
+     * or end of file, depending on whence
+     * \param whence SEEK_SET, SEEK_CUR or SEEK_END
+     * \return the offset from the beginning of the file if the operation
+     * completed, or a negative number in case of errors
+     */
+    virtual off_t lseek(off_t pos, int whence);
+    
+    /**
+     * Return file information.
+     * \param pstat pointer to stat struct
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int fstat(struct stat *pstat) const;
+    
+    /**
      * \internal
      * Called be DevFs to assign a device and inode to the file
      */
@@ -57,7 +74,7 @@ public:
         this->st_dev=st_dev;
     }
     
-private:
+protected:
     unsigned int st_ino; ///< inode of device file
     short st_dev; ///< device (unique id of the filesystem) of device file
 };

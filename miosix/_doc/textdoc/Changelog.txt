@@ -1,5 +1,8 @@
 Changelog for Miosix np embedded OS
 
+- File abstraction layer: Merged NullFile and NullConsoleDevice classes.
+- File abstraction layer: DeviceFile now implements a default version of
+  lseek and fstat, to factorize common code from individual device files.
 - File abstraction layer: added class DeviceFile from which all files meant
   to be attached to a DevFs should derive. Contains the code to assign an
   unique inode to each of them.

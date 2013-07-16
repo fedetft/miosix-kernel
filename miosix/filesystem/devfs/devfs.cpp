@@ -37,6 +37,34 @@ using namespace std;
 namespace miosix {
 
 //
+// class DeviceFile
+//
+
+off_t DeviceFile::lseek(off_t pos, int whence)
+{
+    switch(whence)
+    {
+        case SEEK_SET:
+        case SEEK_CUR:
+        case SEEK_END:
+            return -EBADF;
+        default:
+            return -EINVAL;
+    }
+}
+
+int DeviceFile::fstat(struct stat* pstat) const
+{
+    memset(pstat,0,sizeof(struct stat));
+    pstat->st_dev=this->st_dev;
+    pstat->st_ino=this->st_ino;
+    pstat->st_mode=S_IFCHR | 0755;//crwxr-xr-x Character device
+    pstat->st_nlink=1;
+    pstat->st_blksize=0; //Defualt file buffer equals to BUFSIZ
+    return 0;
+}
+
+//
 // class DevFs
 //
 

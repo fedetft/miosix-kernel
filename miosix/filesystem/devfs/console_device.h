@@ -57,56 +57,6 @@ public:
 };
 
 /**
- * Dummy device that ignores all writes an reads
- */
-class NullConsoleDevice : public ConsoleDevice
-{
-public:
-    /**
-     * Write data to the file, if the file supports writing.
-     * \param data the data to write
-     * \param len the number of bytes to write
-     * \return the number of written characters, or a negative number in case
-     * of errors
-     */
-    virtual ssize_t write(const void *data, size_t len);
-    
-    /**
-     * Read data from the file, if the file supports reading.
-     * \param data buffer to store read data
-     * \param len the number of bytes to read
-     * \return the number of read characters, or a negative number in case
-     * of errors
-     */
-    virtual ssize_t read(void *data, size_t len);
-    
-    /**
-     * Move file pointer, if the file supports random-access.
-     * \param pos offset to sum to the beginning of the file, current position
-     * or end of file, depending on whence
-     * \param whence SEEK_SET, SEEK_CUR or SEEK_END
-     * \return the offset from the beginning of the file if the operation
-     * completed, or a negative number in case of errors
-     */
-    virtual off_t lseek(off_t pos, int whence);
-    
-    /**
-     * Return file information.
-     * \param pstat pointer to stat struct
-     * \return 0 on success, or a negative number on failure
-     */
-    virtual int fstat(struct stat *pstat) const;
-    
-    /**
-     * Write a string to the Console.
-     * Can ONLY be called when the kernel is not yet started, paused or within
-     * an interrupt.
-     * \param str the string to write. The string must be NUL terminated.
-     */
-    virtual void IRQwrite(const char *str);
-};
-
-/**
  * FIXME remove this when removing Console interface!
  */
 class ConsoleAdapter : public ConsoleDevice
@@ -114,8 +64,6 @@ class ConsoleAdapter : public ConsoleDevice
 public:
     virtual ssize_t write(const void *data, size_t len);
     virtual ssize_t read(void *data, size_t len);
-    virtual off_t lseek(off_t pos, int whence);
-    virtual int fstat(struct stat *pstat) const;
     virtual int isatty() const;
     virtual void IRQwrite(const char *str);
 };
@@ -228,7 +176,7 @@ public:
      * to the kernel the console device. This device file is used as the default
      * one for stdin/stdout/stderr.
      * Notes: this has to be called in IRQbspInit(), since if it's called too
-     * late the console gets initialized with a NullConsoleDevice.
+     * late the console gets initialized with a NullFile.
      * Also, calling this a second time to dynamically change the console device
      * is probably a bad idea, as the device is cached around in the filesystem
      * code and will result in some processes using the old device and some

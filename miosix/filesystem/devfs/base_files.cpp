@@ -45,23 +45,7 @@ ssize_t NullFile::read(void *data, size_t len)
     return -EBADF;
 }
 
-off_t NullFile::lseek(off_t pos, int whence)
-{
-    switch(whence)
-    {
-        case SEEK_SET:
-        case SEEK_CUR:
-        case SEEK_END:
-            return -EBADF;
-        default:
-            return -EINVAL;
-    }
-}
-
-int NullFile::fstat(struct stat *pstat) const
-{
-    return -EBADF; //TODO
-}
+void NullFile::IRQwrite(const char* str) {}
 
 //
 // class ZeroFile
@@ -76,24 +60,6 @@ ssize_t ZeroFile::read(void *data, size_t len)
 {
     memset(data,0,len);
     return len;
-}
-
-off_t ZeroFile::lseek(off_t pos, int whence)
-{
-    switch(whence)
-    {
-        case SEEK_SET:
-        case SEEK_CUR:
-        case SEEK_END:
-            return -EBADF;
-        default:
-            return -EINVAL;
-    }
-}
-
-int ZeroFile::fstat(struct stat *pstat) const
-{
-    return -EBADF; //TODO
 }
 
 } //namespace miosix
