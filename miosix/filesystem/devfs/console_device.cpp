@@ -175,6 +175,8 @@ DefaultConsole& DefaultConsole::instance()
 
 void DefaultConsole::IRQset(intrusive_ref_ptr<ConsoleDevice> console)
 {
+    //Note: should be safe to be called also outside of IRQ as it's used by
+    //checkInit
     atomic_store(&rawConsole,console);
     atomic_store(&terminal,
         intrusive_ref_ptr<TerminalDevice>(new TerminalDevice(rawConsole)));

@@ -284,9 +284,8 @@ private:
 
 ResolvedPath PathResolution::resolvePath(string& path, bool followLastSymlink)
 {
-    char rootPath[2]; rootPath[0]='/'; rootPath[1]='\0';//A non-const "/" string 
     map<StringPart,intrusive_ref_ptr<FilesystemBase> >::const_iterator it;
-    it=filesystems.find(StringPart(rootPath));
+    it=filesystems.find(StringPart("/"));
     if(it==filesystems.end()) return ResolvedPath(-ENOENT); //should not happen
     root=fs=it->second;
     syms=fs->supportsSymlinks();
@@ -505,9 +504,8 @@ int FilesystemManager::umount(const char* path, bool force)
     if(path==0 || path[0]=='\0') return -ENOENT;
     int len=strlen(path);
     if(len>PATH_MAX) return -ENAMETOOLONG;
-    string pathStr(path);
     Lock<FastMutex> l(mutex); //A reader-writer lock would be better
-    fsIt it=filesystems.find(StringPart(pathStr));
+    fsIt it=filesystems.find(StringPart(path));
     if(it==filesystems.end()) return -EINVAL;
     
     //This finds all the filesystems that have to be recursively umounted

@@ -36,7 +36,7 @@ namespace miosix {
 /**
  * \internal
  * This class is used to take a substring of a string containing a file path
- * without creating a substring, and therefore requiring additional memory
+ * without creating a copy, and therefore requiring additional memory
  * allocation.
  * 
  * When parsing a path like "/home/test/directory/file" it is often necessary
@@ -103,6 +103,16 @@ public:
             unsigned int off=0);
     
     /**
+     * Constructor from const C string
+     * \param s original string. A pointer to the string is taken, the string
+     * is NOT copied. Therefore, the caller is responsible to guarantee the
+     * string won't be deallocated while this class is alive. Note that this
+     * constructor misses the idx and off parameters as it's not possible to
+     * make an in-place substring of a string if it's const.
+     */
+    explicit StringPart(const char *s);
+    
+    /**
      * Substring constructor. Given a StringPart, produce another StringPart
      * holding a substring of the original StringPart. Unlike the normal copy
      * constructor that does deep copy, this one does shallow copy, and
@@ -153,15 +163,13 @@ public:
     /**
      * \return the StringPart as a C string 
      */
-    const char *c_str() const
-    {
-        return type==CSTR ? cstr+offset : str->c_str()+offset;
-    }
+    const char *c_str() const;
     
-    char operator[] (unsigned int index) const
-    {
-        return type==CSTR ? cstr[offset+index] : (*str)[offset+index];
-    }
+    /**
+     * \param index index into the string
+     * \return the equivalent of this->c_str()[index]
+     */
+    char operator[] (unsigned int index) const;
     
     /**
      * \return true if the string is empty
@@ -186,15 +194,16 @@ private:
     void assign(const StringPart& rhs);
     
     union {
-        std::string *str; ///< Pointer to underlying C++ string
-        char *cstr;       ///< Pointer to underlying C string
+        std::string *str;  ///< Pointer to underlying C++ string
+        char *cstr;        ///< Pointer to underlying C string
+        const char *ccstr; ///< Pointer to underlying const C string
     };
     unsigned int index;  ///< Index into the character substituted by '\0'
     unsigned int offset; ///< Offset to skip the first part of a string
     char saved;          ///< Char that was replaced by '\0'
     bool owner;          ///< True if this class owns str
     char type;           ///< either CPPSTR or CSTR. Using char to reduce size
-    enum { CPPSTR, CSTR }; ///< Possible values fot type
+    enum { CPPSTR, CSTR, CCSTR }; ///< Possible values fot type
 };
 
 } //namespace miosix

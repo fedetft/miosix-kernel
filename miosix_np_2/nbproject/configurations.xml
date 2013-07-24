@@ -309,6 +309,8 @@
         </df>
         <df name="filesystem">
           <df name="devfs">
+            <in>base_files.cpp</in>
+            <in>base_files.h</in>
             <in>console_device.cpp</in>
             <in>console_device.h</in>
             <in>devfs.cpp</in>
@@ -331,6 +333,8 @@
           <in>file_access.h</in>
           <in>filesystem.cpp</in>
           <in>filesystem.h</in>
+          <in>stringpart.cpp</in>
+          <in>stringpart.h</in>
         </df>
         <df name="interfaces">
           <in>arch_registers.h</in>

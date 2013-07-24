@@ -113,6 +113,24 @@ public:
     DevFs();
     
     /**
+     * Add a device file to DevFs
+     * \param name File name, must start with a slash.
+     * \param file file to add
+     * \return true if the file was successfully added
+     */
+    bool addDeviceFile(const char *name, intrusive_ref_ptr<DeviceFile> file);
+    
+    /**
+     * Remove a device file. This prevents the file from being opened again,
+     * but if at the time this member function is called the file is already
+     * opened, it won't be deallocated till the application closes it, thanks
+     * to the reference counting scheme.
+     * \param name name of file to remove
+     * \return true if the file was successfully removed
+     */
+    bool removeDeviceFile(const char *name);
+    
+    /**
      * Open a file
      * \param file the file object will be stored here, if the call succeeds
      * \param name the name of the file to open, relative to the local
@@ -148,8 +166,11 @@ public:
     virtual bool areAllFilesClosed();
     
 private:
+    void assignInode(intrusive_ref_ptr<DeviceFile> file);
+    
     FastMutex mutex;
     std::map<StringPart,intrusive_ref_ptr<DeviceFile> > files;
+    int inodeCount;
 };
 
 } //namespace miosix

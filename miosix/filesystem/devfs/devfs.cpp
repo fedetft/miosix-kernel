@@ -68,18 +68,29 @@ int DeviceFile::fstat(struct stat* pstat) const
 // class DevFs
 //
 
-DevFs::DevFs()
+DevFs::DevFs() : inodeCount(1)
 {
-    string null="/null";
-    string zero="/zero";
-    string console="/console";
-    
-    files[StringPart(null)]=intrusive_ref_ptr<DeviceFile>(new NullFile);
-    files[StringPart(zero)]=intrusive_ref_ptr<DeviceFile>(new ZeroFile);
-    
-    intrusive_ref_ptr<DeviceFile> consoleDev=DefaultConsole::instance().get();
-    if(consoleDev) files[StringPart(console)]=consoleDev;
-    else files[StringPart(console)]=files[StringPart(null)];
+    addDeviceFile("/null",intrusive_ref_ptr<DeviceFile>(new NullFile));
+    addDeviceFile("/zero",intrusive_ref_ptr<DeviceFile>(new ZeroFile));
+    addDeviceFile("/console",DefaultConsole::instance().get());
+}
+
+bool DevFs::addDeviceFile(const char* name, intrusive_ref_ptr<DeviceFile> file)
+{
+    if(name==0 || name[0]!='/' || name[1]=='\0') return false;
+    int len=strlen(name);
+    for(int i=1;i<len;i++) if(name[i]=='/') return false;
+    Lock<FastMutex> l(mutex);
+    bool result=files.insert(make_pair(StringPart(name),file)).second;
+    if(result) assignInode(file);
+    return result;
+}
+
+bool DevFs::removeDeviceFile(const char* name)
+{
+    if(name==0 || name[0]!='/' || name[1]=='\0') return false;
+    Lock<FastMutex> l(mutex);
+    return files.erase(StringPart(name))==1;
 }
 
 int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
@@ -119,6 +130,11 @@ bool DevFs::areAllFilesClosed()
     for(it=files.begin();it!=files.end();++it)
         if(it->second.use_count()>1) return false;
     return true;
+}
+
+void DevFs::assignInode(intrusive_ref_ptr<DeviceFile> file)
+{
+    file->setFileInfo(atomicAddExchange(&inodeCount,1),filesystemId);
 }
 
 } //namespace miosix

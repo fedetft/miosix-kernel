@@ -62,11 +62,29 @@ StringPart::StringPart(char* s, unsigned int idx, unsigned int off)
     offset=min(offset,index);
 }
 
+StringPart::StringPart(const char* s)
+        : ccstr(s), offset(0), saved('\0'), owner(false), type(CCSTR)
+{
+    assert(ccstr); //Passed pointer can't be null
+    index=strlen(s);
+}
+
 StringPart::StringPart(StringPart& rhs, unsigned int idx, unsigned int off)
         : saved('\0'), owner(false), type(rhs.type)
 {
-    if(type==CSTR) this->cstr=rhs.cstr;
-    else this->str=rhs.str;
+    switch(type)
+    {
+        case CSTR:
+            this->cstr=rhs.cstr;
+            break;
+        case CCSTR:
+            type=CSTR; //To make a substring of a CCSTR we need to make a copy
+            if(rhs.empty()==false) assign(rhs); else cstr=&saved;
+            break;
+        case CPPSTR:
+            this->str=rhs.str;
+            break;
+    }
     if(idx!=string::npos && idx<rhs.length())
     {
         index=rhs.offset+idx;//Make index relative to beginning of original str
@@ -79,7 +97,7 @@ StringPart::StringPart(StringPart& rhs, unsigned int idx, unsigned int off)
             cstr[index]='\0';
         }
     } else index=rhs.index;
-    offset=min(rhs.offset+off,index);
+    offset=min(rhs.offset+off,index); //Works for CCSTR as offset is always zero
 }
 
 StringPart::StringPart(const StringPart& rhs)
@@ -105,16 +123,36 @@ bool StringPart::startsWith(const StringPart& rhs) const
     return memcmp(this->c_str(),rhs.c_str(),rhs.length())==0;
 }
 
+const char *StringPart::c_str() const
+{
+    switch(type)
+    {
+        case CSTR: return cstr+offset;
+        case CCSTR: return ccstr; //Offset always 0
+        default: return str->c_str()+offset;
+    }
+}
+
+char StringPart::operator[] (unsigned int index) const
+{
+    switch(type)
+    {
+        case CSTR: return cstr[offset+index];
+        case CCSTR: return ccstr[index]; //Offset always 0
+        default: return (*str)[offset+index];
+    }
+}
+
 void StringPart::clear()
 {
     if(type==CSTR)
     {
         cstr[index]=saved;//Worst case we'll overwrite terminating \0 with an \0
         if(owner) delete[] cstr;
-    } else {
+    } else if(type==CPPSTR) {
         if(index!=str->length()) (*str)[index]=saved;
         if(owner) delete str;
-    }
+    } //For CCSTR there's nothing to do
     cstr=&saved; //Reusing saved as an empty string
     saved='\0';
     index=offset=0;
