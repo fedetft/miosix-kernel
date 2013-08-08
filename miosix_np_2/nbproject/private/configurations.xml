@@ -1,5 +1,414 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configurationDescriptor version="80">
+<configurationDescriptor version="89">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root=".." name="miosix_np_2">
+      <df name="miosix">
+        <df name="arch">
+          <df name="arm7_lpc2000">
+            <df name="common">
+              <df name="interfaces-impl">
+                <in>atomic_ops_impl.h</in>
+                <in>endianness_impl.h</in>
+              </df>
+              <in>arch_settings.h</in>
+            </df>
+            <df name="lpc2138_miosix_board">
+              <df name="core">
+                <in>interrupts.cpp</in>
+                <in>interrupts.h</in>
+                <in>stage_1_boot.s</in>
+              </df>
+              <df name="drivers">
+                <in>serial.cpp</in>
+                <in>serial.h</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console.cpp</in>
+                <in>delays.cpp</in>
+                <in>disk.cpp</in>
+                <in>gpio_impl.h</in>
+                <in>portability.cpp</in>
+                <in>portability_impl.h</in>
+              </df>
+              <in>LPC213x.h</in>
+              <in>board_settings.h</in>
+            </df>
+          </df>
+          <df name="common">
+            <df name="drivers">
+              <in>dcc.cpp</in>
+              <in>dcc.h</in>
+              <in>stm32_hardware_rng.cpp</in>
+              <in>stm32_hardware_rng.h</in>
+            </df>
+          </df>
+          <df name="cortexM3_stm32">
+            <df name="common">
+              <df name="CMSIS">
+                <in>core_cm3.c</in>
+                <in>core_cm3.h</in>
+                <in>stm32f10x.h</in>
+                <in>system_stm32f10x.c</in>
+                <in>system_stm32f10x.h</in>
+              </df>
+              <df name="core">
+                <in>interrupts.cpp</in>
+                <in>interrupts.h</in>
+              </df>
+              <df name="drivers">
+                <in>serial.cpp</in>
+                <in>serial.h</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
+                <in>atomic_ops_impl.h</in>
+                <in>delays.cpp</in>
+                <in>disk.cpp</in>
+                <in>endianness_impl.h</in>
+                <in>gpio_impl.cpp</in>
+                <in>gpio_impl.h</in>
+                <in>portability.cpp</in>
+                <in>portability_impl.h</in>
+              </df>
+              <in>arch_settings.h</in>
+            </df>
+            <df name="stm32f100rb_stm32vldiscovery">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console.cpp</in>
+              </df>
+              <in>board_settings.h</in>
+            </df>
+            <df name="stm32f103ve_mp3v2">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console.cpp</in>
+                <in>hwmapping.h</in>
+              </df>
+              <in>board_settings.h</in>
+            </df>
+            <df name="stm32f103ve_strive_mini">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console.cpp</in>
+                <in>hwmapping.h</in>
+              </df>
+              <in>board_settings.h</in>
+            </df>
+            <df name="stm32f103ze_redbull_v2">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console.cpp</in>
+                <in>hwmapping.h</in>
+              </df>
+              <in>board_settings.h</in>
+            </df>
+            <df name="stm32f103ze_stm3210e-eval">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console.cpp</in>
+              </df>
+              <in>board_settings.h</in>
+            </df>
+          </df>
+          <df name="cortexM3_stm32f2">
+            <df name="common">
+              <df name="CMSIS">
+                <in>core_cm3.c</in>
+                <in>core_cm3.h</in>
+                <in>stm32f2xx.h</in>
+                <in>system_stm32f2xx.c</in>
+                <in>system_stm32f2xx.h</in>
+              </df>
+              <df name="core">
+                <in>interrupts.cpp</in>
+                <in>interrupts.h</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
+                <in>atomic_ops_impl.h</in>
+                <in>disk.cpp</in>
+                <in>endianness_impl.h</in>
+                <in>gpio_impl.cpp</in>
+                <in>gpio_impl.h</in>
+                <in>portability.cpp</in>
+                <in>portability_impl.h</in>
+              </df>
+              <in>arch_settings.h</in>
+            </df>
+            <df name="stm32f207ig_stm3220g-eval">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console-impl.h</in>
+                <in>console.cpp</in>
+                <in>delays.cpp</in>
+              </df>
+              <in>board_settings.h</in>
+            </df>
+            <df name="stm32f207ze_als_camboard">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console-impl.h</in>
+                <in>console.cpp</in>
+                <in>delays.cpp</in>
+                <in>hwmapping.h</in>
+              </df>
+              <in>board_settings.h</in>
+            </df>
+            <df name="stm32f207zg_EthBoardV2">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console-impl.h</in>
+                <in>console.cpp</in>
+                <in>delays.cpp</in>
+                <in>hwmapping.h</in>
+              </df>
+              <in>board_settings.h</in>
+            </df>
+          </df>
+          <df name="cortexM3_stm32l1">
+            <df name="common">
+              <df name="CMSIS">
+                <df name="Documentation">
+                </df>
+                <in>core_cm3.h</in>
+                <in>core_cmFunc.h</in>
+                <in>core_cmInstr.h</in>
+                <in>stm32l1xx.h</in>
+                <in>system_stm32l1xx.c</in>
+                <in>system_stm32l1xx.h</in>
+              </df>
+              <df name="core">
+                <in>interrupts.cpp</in>
+                <in>interrupts.h</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
+                <in>atomic_ops_impl.h</in>
+                <in>delays.cpp</in>
+                <in>endianness_impl.h</in>
+                <in>gpio_impl.cpp</in>
+                <in>gpio_impl.h</in>
+                <in>portability.cpp</in>
+                <in>portability_impl.h</in>
+              </df>
+              <in>arch_settings.h</in>
+            </df>
+            <df name="stm32l151c8_als_mainboard">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console-impl.h</in>
+                <in>console.cpp</in>
+                <in>hwmapping.h</in>
+              </df>
+              <in>board_settings.h</in>
+            </df>
+          </df>
+          <df name="cortexM4_stm32f4">
+            <df name="common">
+              <df name="CMSIS">
+                <df name="Documentation">
+                </df>
+                <in>core_cm4.h</in>
+                <in>core_cm4_simd.h</in>
+                <in>core_cmFunc.h</in>
+                <in>core_cmInstr.h</in>
+                <in>stm32f4xx.h</in>
+                <in>system_stm32f4xx.c</in>
+                <in>system_stm32f4xx.h</in>
+              </df>
+              <df name="core">
+                <in>interrupts.cpp</in>
+                <in>interrupts.h</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
+                <in>atomic_ops_impl.h</in>
+                <in>delays.cpp</in>
+                <in>disk.cpp</in>
+                <in>endianness_impl.h</in>
+                <in>gpio_impl.cpp</in>
+                <in>gpio_impl.h</in>
+                <in>portability.cpp</in>
+                <in>portability_impl.h</in>
+              </df>
+              <in>arch_settings.h</in>
+            </df>
+            <df name="stm32f407vg_bitsboard">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console-impl.h</in>
+                <in>console.cpp</in>
+              </df>
+              <in>board_settings.h</in>
+            </df>
+            <df name="stm32f407vg_stm32f4discovery">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>console-impl.h</in>
+                <in>console.cpp</in>
+              </df>
+              <in>board_settings.h</in>
+            </df>
+          </df>
+        </df>
+        <df name="config">
+          <in>miosix_settings.h</in>
+        </df>
+        <df name="e20">
+          <in>callback.h</in>
+          <in>e20.cpp</in>
+          <in>e20.h</in>
+        </df>
+        <df name="filesystem">
+          <df name="devfs">
+            <in>base_files.cpp</in>
+            <in>base_files.h</in>
+            <in>console_device.cpp</in>
+            <in>console_device.h</in>
+            <in>devfs.cpp</in>
+            <in>devfs.h</in>
+          </df>
+          <df name="fat32">
+            <in>diskio.cpp</in>
+            <in>diskio.h</in>
+            <in>ff.c</in>
+            <in>ff.h</in>
+            <in>integer.h</in>
+          </df>
+          <df name="mountpointfs">
+            <in>mountpointfs.cpp</in>
+            <in>mountpointfs.h</in>
+          </df>
+          <in>file.cpp</in>
+          <in>file.h</in>
+          <in>file_access.cpp</in>
+          <in>file_access.h</in>
+          <in>filesystem.cpp</in>
+          <in>filesystem.h</in>
+          <in>stringpart.cpp</in>
+          <in>stringpart.h</in>
+        </df>
+        <df name="interfaces">
+          <in>arch_registers.h</in>
+          <in>atomic_ops.h</in>
+          <in>bsp.h</in>
+          <in>console.h</in>
+          <in>delays.h</in>
+          <in>disk.h</in>
+          <in>endianness.h</in>
+          <in>gpio.h</in>
+          <in>portability.h</in>
+        </df>
+        <df name="kernel">
+          <df name="scheduler">
+            <df name="control">
+              <in>control_scheduler.cpp</in>
+              <in>control_scheduler.h</in>
+              <in>control_scheduler_types.h</in>
+              <in>parameters.h</in>
+            </df>
+            <df name="edf">
+              <in>edf_scheduler.cpp</in>
+              <in>edf_scheduler.h</in>
+              <in>edf_scheduler_types.h</in>
+            </df>
+            <df name="priority">
+              <in>priority_scheduler.cpp</in>
+              <in>priority_scheduler.h</in>
+              <in>priority_scheduler_types.h</in>
+            </df>
+            <in>sched_types.h</in>
+            <in>scheduler.h</in>
+            <in>tick_interrupt.h</in>
+          </df>
+          <in>buffer_queue.h</in>
+          <in>error.cpp</in>
+          <in>error.h</in>
+          <in>intrusive.h</in>
+          <in>kernel.cpp</in>
+          <in>kernel.h</in>
+          <in>logging.h</in>
+          <in>pthread.cpp</in>
+          <in>pthread_private.h</in>
+          <in>stage_2_boot.cpp</in>
+          <in>stage_2_boot.h</in>
+          <in>sync.cpp</in>
+          <in>sync.h</in>
+          <in>unistd.cpp</in>
+        </df>
+        <df name="stdlib_integration">
+          <in>libc_integration.cpp</in>
+          <in>libc_integration.h</in>
+          <in>libstdcpp_integration.cpp</in>
+          <in>libstdcpp_integration.h</in>
+        </df>
+        <df name="util">
+          <in>crc16.cpp</in>
+          <in>crc16.h</in>
+          <in>lcd44780.cpp</in>
+          <in>lcd44780.h</in>
+          <in>software_i2c.h</in>
+          <in>software_spi.h</in>
+          <in>util.cpp</in>
+          <in>util.h</in>
+          <in>version.cpp</in>
+          <in>version.h</in>
+        </df>
+        <in>miosix.h</in>
+      </df>
+      <df name="miosix_np_2">
+      </df>
+      <in>main.cpp</in>
+    </df>
+  </logicalFolder>
   <projectmakefile>miosix_np_2-Makefile.mk</projectmakefile>
   <confs>
     <conf name="Default" type="0">
@@ -7,6 +416,18 @@
         <developmentServer>localhost</developmentServer>
         <platform>2</platform>
       </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
       <dbx_gdbdebugger version="1">
         <gdb_pathmaps>
         </gdb_pathmaps>
@@ -40,6 +461,18 @@
         <developmentServer>localhost</developmentServer>
         <platform>2</platform>
       </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
       <dbx_gdbdebugger version="1">
         <gdb_pathmaps>
         </gdb_pathmaps>
@@ -73,6 +506,18 @@
         <developmentServer>localhost</developmentServer>
         <platform>2</platform>
       </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
       <dbx_gdbdebugger version="1">
         <gdb_pathmaps>
         </gdb_pathmaps>
@@ -106,6 +551,18 @@
         <developmentServer>localhost</developmentServer>
         <platform>2</platform>
       </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
       <dbx_gdbdebugger version="1">
         <gdb_pathmaps>
         </gdb_pathmaps>
@@ -139,6 +596,18 @@
         <developmentServer>localhost</developmentServer>
         <platform>2</platform>
       </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
       <dbx_gdbdebugger version="1">
         <gdb_pathmaps>
         </gdb_pathmaps>
@@ -172,6 +641,18 @@
         <developmentServer>localhost</developmentServer>
         <platform>2</platform>
       </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
       <dbx_gdbdebugger version="1">
         <gdb_pathmaps>
         </gdb_pathmaps>
@@ -205,6 +686,18 @@
         <developmentServer>localhost</developmentServer>
         <platform>2</platform>
       </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
       <dbx_gdbdebugger version="1">
         <gdb_pathmaps>
         </gdb_pathmaps>
@@ -238,6 +731,18 @@
         <developmentServer>localhost</developmentServer>
         <platform>2</platform>
       </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
       <dbx_gdbdebugger version="1">
         <gdb_pathmaps>
         </gdb_pathmaps>
@@ -271,6 +776,18 @@
         <developmentServer>localhost</developmentServer>
         <platform>2</platform>
       </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
       <dbx_gdbdebugger version="1">
         <gdb_pathmaps>
         </gdb_pathmaps>
@@ -304,6 +821,18 @@
         <developmentServer>localhost</developmentServer>
         <platform>2</platform>
       </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
       <dbx_gdbdebugger version="1">
         <gdb_pathmaps>
         </gdb_pathmaps>
@@ -337,6 +866,18 @@
         <developmentServer>localhost</developmentServer>
         <platform>2</platform>
       </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
       <dbx_gdbdebugger version="1">
         <gdb_pathmaps>
         </gdb_pathmaps>
@@ -370,6 +911,18 @@
         <developmentServer>localhost</developmentServer>
         <platform>2</platform>
       </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
       <dbx_gdbdebugger version="1">
         <gdb_pathmaps>
         </gdb_pathmaps>
@@ -403,6 +956,18 @@
         <developmentServer>localhost</developmentServer>
         <platform>2</platform>
       </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
       <dbx_gdbdebugger version="1">
         <gdb_pathmaps>
         </gdb_pathmaps>
