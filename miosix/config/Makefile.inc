@@ -24,6 +24,7 @@ OPT_BOARD := stm32f103ze_stm3210e-eval
 #OPT_BOARD := stm32f207ze_als_camboard
 #OPT_BOARD := stm32l151_als_mainboard
 #OPT_BOARD := stm32f407vg_bitsboard
+#OPT_BOARD := stm32f205rg_sony-newman
 
 ##
 ## Optimization flags, choose one.
@@ -207,6 +208,12 @@ ifeq ($(OPT_BOARD),stm32f207zg_ethboard_v2)
 endif
 
 ##---------------------------------------------------------------------------
+## stm32f205rg_sony-newman
+##
+
+# No options
+
+##---------------------------------------------------------------------------
 ## stm32f407vg_bitsboard
 ##
 
@@ -245,6 +252,8 @@ else ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
 else ifeq ($(OPT_BOARD),stm32f207zg_ethboard_v2)
     ARCH := cortexM3_stm32f2
 else ifeq ($(OPT_BOARD),stm32f207ze_als_camboard)
+    ARCH := cortexM3_stm32f2
+else ifeq ($(OPT_BOARD),stm32f205rg_sony-newman)
     ARCH := cortexM3_stm32f2
 else ifeq ($(OPT_BOARD),stm32l151_als_mainboard)
     ARCH := cortexM3_stm32l1
@@ -818,6 +827,44 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## error message saying that 'make program' is not supported for that
         ## board.
         PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f205rg_sony-newman
+    ##
+    else ifeq ($(OPT_BOARD),stm32f205rg_sony-newman)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_stm32f2/stm32f205rg_sony-newman
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_1M+128k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/console.cpp     \
+        $(BOARD_INC)/interfaces-impl/delays.cpp      \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_SONY_NEWMAN
+        CXXFLAGS_BASE += -D_BOARD_SONY_NEWMAN
+
+        ## Clock frequency
+        CLOCK_FREQ := -DHSE_VALUE=26000000 -DSYSCLK_FREQ_120MHz=120000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        ## The magic.bin is somewhat used by the bootloader to detect a good fw
+        PROGRAM_CMDLINE := perl -e 'print "\xe7\x91\x11\xc0"' > magic.bin; \
+            dfu-util -d 0fce:f0fa -a 0 -i 0 -s 0x08040000 -D main.bin;     \
+            dfu-util -d 0fce:f0fa -a 0 -i 0 -s 0x080ffffc -D magic.bin;    \
+            rm magic.bin
 
     ##-------------------------------------------------------------------------
     ## End of board list

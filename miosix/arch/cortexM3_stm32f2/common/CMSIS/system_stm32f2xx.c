@@ -365,6 +365,17 @@ static void SetSysClock(void)
 
   if (HSEStatus == (uint32_t)0x01)
   {
+    #ifdef _BOARD_SONY_NEWMAN
+    //By TFT: We don't know how the clock is configured by the bootloader,
+    //so better switch to the HSE and disable the PLL.
+    unsigned int temp=RCC->CFGR;
+    temp &= ~RCC_CFGR_SW;  /* Clear SW[1:0] bits */
+    temp |= RCC_CFGR_SW_0; /* Enable HSE as system clock */
+    RCC->CFGR=temp;
+    while((RCC->CFGR & RCC_CFGR_SWS)!=RCC_CFGR_SWS_0) ;
+    RCC->CR &= ~ RCC_CR_PLLON;
+    #endif //_BOARD_SONY_NEWMAN
+      
     /* HCLK = SYSCLK / 1*/
     RCC->CFGR |= RCC_CFGR_HPRE_DIV1;
       

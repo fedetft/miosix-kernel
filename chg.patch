@@ -1,0 +1,2858 @@
+diff --git a/chg.patch b/chg.patch
+new file mode 100644
+index 0000000..e69de29
+diff --git a/miosix/arch/cortexM3_stm32f2/common/CMSIS/stm32f2xx.h b/miosix/arch/cortexM3_stm32f2/common/CMSIS/stm32f2xx.h
+index d203a85..8e3966b 100644
+--- a/miosix/arch/cortexM3_stm32f2/common/CMSIS/stm32f2xx.h
++++ b/miosix/arch/cortexM3_stm32f2/common/CMSIS/stm32f2xx.h
+@@ -12,15 +12,15 @@
+   *          is using in the C source code, usually in main.c. This file contains:
+   *           - Configuration section that allows to select:
+   *              - The device used in the target application
+-  *              - To use or not the peripheral’s drivers in application code(i.e. 
+-  *                code will be based on direct access to peripheral’s registers 
++  *              - To use or not the peripheral's drivers in application code(i.e. 
++  *                code will be based on direct access to peripheral's registers 
+   *                rather than drivers API), this option is controlled by 
+   *                "#define USE_STDPERIPH_DRIVER"
+   *              - To change few application-specific parameters such as the HSE 
+   *                crystal frequency
+   *           - Data structures and the address mapping for all peripherals
+   *           - Peripheral's registers declarations and bits definition
+-  *           - Macros to access peripheral’s registers hardware
++  *           - Macros to access peripheral's registers hardware
+   *  
+   ******************************************************************************
+   * @attention
+@@ -991,7 +991,11 @@ typedef struct
+   * @{
+   */
+ 
++#ifndef _BOARD_SONY_NEWMAN //By TFT: the smartwatch has a bootloader
+ #define FLASH_BASE            ((uint32_t)0x08000000) /*!< FLASH base address in the alias region */
++#else //_BOARD_SONY_NEWMAN
++#define FLASH_BASE            ((uint32_t)0x08040000)
++#endif //_BOARD_SONY_NEWMAN
+ #define SRAM_BASE             ((uint32_t)0x20000000) /*!< SRAM base address in the alias region */
+ #define PERIPH_BASE           ((uint32_t)0x40000000) /*!< Peripheral base address in the alias region */
+ 
+diff --git a/miosix/arch/cortexM3_stm32f2/common/CMSIS/system_stm32f2xx.c b/miosix/arch/cortexM3_stm32f2/common/CMSIS/system_stm32f2xx.c
+index 17aca42..fc37053 100644
+--- a/miosix/arch/cortexM3_stm32f2/common/CMSIS/system_stm32f2xx.c
++++ b/miosix/arch/cortexM3_stm32f2/common/CMSIS/system_stm32f2xx.c
+@@ -365,6 +365,17 @@ static void SetSysClock(void)
+ 
+   if (HSEStatus == (uint32_t)0x01)
+   {
++    #ifdef _BOARD_SONY_NEWMAN
++    //By TFT: We don't know how the clock is configured by the bootloader,
++    //so better switch to the HSE and disable the PLL.
++    unsigned int temp=RCC->CFGR;
++    temp &= ~RCC_CFGR_SW;  /* Clear SW[1:0] bits */
++    temp |= RCC_CFGR_SW_0; /* Enable HSE as system clock */
++    RCC->CFGR=temp;
++    while((RCC->CFGR & RCC_CFGR_SWS)!=RCC_CFGR_SWS_0) ;
++    RCC->CR &= ~ RCC_CR_PLLON;
++    #endif //_BOARD_SONY_NEWMAN
++      
+     /* HCLK = SYSCLK / 1*/
+     RCC->CFGR |= RCC_CFGR_HPRE_DIV1;
+       
+diff --git a/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/board_settings.h b/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/board_settings.h
+new file mode 100644
+index 0000000..d97f651
+--- /dev/null
++++ b/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/board_settings.h
+@@ -0,0 +1,63 @@
++/***************************************************************************
++ *   Copyright (C) 2013 by Terraneo Federico                               *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   As a special exception, if other files instantiate templates or use   *
++ *   macros or inline functions from this file, or you compile this file   *
++ *   and link it with other works to produce a work based on this file,    *
++ *   this file does not by itself cause the resulting work to be covered   *
++ *   by the GNU General Public License. However the source code for this   *
++ *   file must still be made available in accordance with the GNU General  *
++ *   Public License. This exception does not invalidate any other reasons  *
++ *   why a work based on this file might be covered by the GNU General     *
++ *   Public License.                                                       *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
++ ***************************************************************************/
++
++#ifndef BOARD_SETTINGS_H
++#define	BOARD_SETTINGS_H
++
++namespace miosix {
++
++/**
++ * \addtogroup Settings
++ * \{
++ */
++
++/// Size of stack for main().
++/// The C standard library is stack-heavy (iprintf requires 1.5KB) and the
++/// STM32F207ZG has 128KB of RAM so there is room for a big 4K stack.
++const unsigned int MAIN_STACK_SIZE=4*1024;
++
++/// Frequency of tick (in Hz). The frequency of the STM32F207ZG timer in the
++/// Miosix board can be divided by 1000. This allows to use a 1KHz tick and
++/// the minimun Thread::sleep value is 1ms
++/// For the priority scheduler this is also the context switch frequency
++const unsigned int TICK_FREQ=1000;
++
++///\internal Aux timer run @ 100KHz
++///Note that since the timer is only 16 bits this imposes a limit on the
++///burst measurement of 655ms. If due to a pause_kernel() or
++///disable_interrupts() section a thread runs for more than that time, a wrong
++///burst value will be measured
++const unsigned int AUX_TIMER_CLOCK=100000;
++const unsigned int AUX_TIMER_MAX=0xffff; ///<\internal Aux timer is 16 bits
++
++/**
++ * \}
++ */
++
++} //namespace miosix
++
++#endif	/* BOARD_SETTINGS_H */
+diff --git a/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/core/stage_1_boot.cpp b/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/core/stage_1_boot.cpp
+new file mode 100644
+index 0000000..669c52a
+--- /dev/null
++++ b/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/core/stage_1_boot.cpp
+@@ -0,0 +1,416 @@
++
++#include "interfaces/arch_registers.h"
++#include "core/interrupts.h" //For the unexpected interrupt call
++#include <string.h>
++
++/*
++ * startup.cpp
++ * STM32 C++ startup.
++ * NOTE: for stm32f2 devices ONLY.
++ * - supports interrupt handlers in C++ without extern "C"
++ * - global constructors are correctly called before main()
++ * Developed by Terraneo Federico, based on ST startup code.
++ * Additionally modified to boot Miosix.
++ */
++
++//Will be called at the end of stage 1 of boot, function is implemented in
++//stage_2_boot.cpp
++extern "C" void _init();
++
++/**
++ * Calls C++ global constructors
++ * \param start first function pointer to call
++ * \param end one past the last function pointer to call
++ * Declared "noinline" to optimize code size
++ */
++static void call_constructors(unsigned long *start, unsigned long *end) __attribute__((noinline));
++static void call_constructors(unsigned long *start, unsigned long *end)
++{
++	for(unsigned long *i=start; i<end; i++)
++	{
++		void (*funcptr)();
++        funcptr=reinterpret_cast<void (*)()>(*i);
++		funcptr();
++	}
++}
++
++/**
++ * Called by Reset_Handler, performs initialization and calls main.
++ * Never returns.
++ */
++void program_startup() __attribute__((noreturn));
++void program_startup()
++{
++    //Cortex M3 core appears to get out of reset with interrupts already enabled
++    __disable_irq();
++
++	//These are defined in the linker script
++	extern unsigned char _etext asm("_etext");
++	extern unsigned char _data asm("_data");
++	extern unsigned char _edata asm("_edata");
++	extern unsigned char _bss_start asm("_bss_start");
++	extern unsigned char _bss_end asm("_bss_end");
++	extern unsigned long __preinit_array_start asm("__preinit_array_start");
++	extern unsigned long __preinit_array_end asm("__preinit_array_end");
++	extern unsigned long __init_array_start asm("__init_array_start");
++	extern unsigned long __init_array_end asm("__init_array_end");
++	extern unsigned long _ctor_start asm("_ctor_start");
++	extern unsigned long _ctor_end asm("_ctor_end");
++
++    //Initialize .data section, clear .bss section
++    unsigned char *etext=&_etext;
++    unsigned char *data=&_data;
++    unsigned char *edata=&_edata;
++    unsigned char *bss_start=&_bss_start;
++    unsigned char *bss_end=&_bss_end;
++    //The memcpy is usually enclosed in an #ifndef __ENABLE_XRAM, in other
++    //boards but in this case it is not, since the *_code_in_xram.ld linker
++    //script puts code in XRAM, but data in the internal one, so there's still
++    //the need to copy it in its final place
++    memcpy(data, etext, edata-data);
++    memset(bss_start, 0, bss_end-bss_start);
++
++	//Initialize C++ global constructors
++	call_constructors(&__preinit_array_start, &__preinit_array_end);
++	call_constructors(&__init_array_start, &__init_array_end);
++	call_constructors(&_ctor_start, &_ctor_end);
++
++	//Move on to stage 2
++	_init();
++
++	//If main returns, reboot
++	NVIC_SystemReset();
++    for(;;) ;
++}
++
++/**
++ * Reset handler, called by hardware immediately after reset
++ */
++void Reset_Handler() __attribute__((__interrupt__, noreturn));
++void Reset_Handler()
++{
++	/*
++	 * SystemInit() is called *before* initializing .data and zeroing .bss
++	 * Despite all startup files provided by ST do the opposite, there are three
++	 * good reasons to do so:
++	 * First, the CMSIS specifications say that SystemInit() must not access
++	 * global variables, so it is actually possible to call it before
++	 * Second, when running Miosix with the xram linker scripts .data and .bss
++	 * are placed in the external RAM, so we *must* call SystemInit(), which
++	 * enables xram, before touching .data and .bss
++	 * Third, this is a performance improvement since the loops that initialize
++	 * .data and zeros .bss now run with the CPU at full speed instead of 16MHz
++	 * Note that it is called before switching stacks because the memory
++	 * at _heap_end can be unavailable until the external RAM is initialized.
++	 */
++    SystemInit();
++
++    /*
++     * Initialize process stack and switch to it.
++     * This is required for booting Miosix, a small portion of the top of the
++     * heap area will be used as stack until the first thread starts. After,
++     * this stack will be abandoned and the process stack will point to the
++     * current thread's stack.
++     */
++    asm volatile("ldr r0,  =_heap_end          \n\t"
++                 "msr psp, r0                  \n\t"
++                 "movw r0, #2                  \n\n" //Privileged, process stack
++                 "msr control, r0              \n\t"
++                 "isb                          \n\t":::"r0");
++
++    program_startup();
++}
++
++/**
++ * All unused interrupts call this function.
++ */
++extern "C" void Default_Handler() 
++{
++    unexpectedInterrupt();
++}
++
++//System handlers
++void /*__attribute__((weak))*/ Reset_Handler();     //These interrupts are not
++void /*__attribute__((weak))*/ NMI_Handler();       //weak because they are
++void /*__attribute__((weak))*/ HardFault_Handler(); //surely defined by Miosix
++void /*__attribute__((weak))*/ MemManage_Handler();
++void /*__attribute__((weak))*/ BusFault_Handler();
++void /*__attribute__((weak))*/ UsageFault_Handler();
++void /*__attribute__((weak))*/ SVC_Handler();
++void /*__attribute__((weak))*/ DebugMon_Handler();
++void /*__attribute__((weak))*/ PendSV_Handler();
++void /*__attribute__((weak))*/ SysTick_Handler();
++
++//Interrupt handlers
++void __attribute__((weak)) WWDG_IRQHandler();
++void __attribute__((weak)) PVD_IRQHandler();
++void __attribute__((weak)) TAMP_STAMP_IRQHandler();
++void __attribute__((weak)) RTC_WKUP_IRQHandler();
++void __attribute__((weak)) FLASH_IRQHandler();
++void __attribute__((weak)) RCC_IRQHandler();
++void __attribute__((weak)) EXTI0_IRQHandler();
++void __attribute__((weak)) EXTI1_IRQHandler();
++void __attribute__((weak)) EXTI2_IRQHandler();
++void __attribute__((weak)) EXTI3_IRQHandler();
++void __attribute__((weak)) EXTI4_IRQHandler();
++void __attribute__((weak)) DMA1_Stream0_IRQHandler();
++void __attribute__((weak)) DMA1_Stream1_IRQHandler();
++void __attribute__((weak)) DMA1_Stream2_IRQHandler();
++void __attribute__((weak)) DMA1_Stream3_IRQHandler();
++void __attribute__((weak)) DMA1_Stream4_IRQHandler();
++void __attribute__((weak)) DMA1_Stream5_IRQHandler();
++void __attribute__((weak)) DMA1_Stream6_IRQHandler();
++void __attribute__((weak)) ADC_IRQHandler();
++void __attribute__((weak)) CAN1_TX_IRQHandler();
++void __attribute__((weak)) CAN1_RX0_IRQHandler();
++void __attribute__((weak)) CAN1_RX1_IRQHandler();
++void __attribute__((weak)) CAN1_SCE_IRQHandler();
++void __attribute__((weak)) EXTI9_5_IRQHandler();
++void __attribute__((weak)) TIM1_BRK_TIM9_IRQHandler();
++void __attribute__((weak)) TIM1_UP_TIM10_IRQHandler();
++void __attribute__((weak)) TIM1_TRG_COM_TIM11_IRQHandler();
++void __attribute__((weak)) TIM1_CC_IRQHandler();
++void __attribute__((weak)) TIM2_IRQHandler();
++void __attribute__((weak)) TIM3_IRQHandler();
++void __attribute__((weak)) TIM4_IRQHandler();
++void __attribute__((weak)) I2C1_EV_IRQHandler();
++void __attribute__((weak)) I2C1_ER_IRQHandler();
++void __attribute__((weak)) I2C2_EV_IRQHandler();
++void __attribute__((weak)) I2C2_ER_IRQHandler();
++void __attribute__((weak)) SPI1_IRQHandler();
++void __attribute__((weak)) SPI2_IRQHandler();
++void __attribute__((weak)) USART1_IRQHandler();
++void __attribute__((weak)) USART2_IRQHandler();
++void __attribute__((weak)) USART3_IRQHandler();
++void __attribute__((weak)) EXTI15_10_IRQHandler();
++void __attribute__((weak)) RTC_Alarm_IRQHandler();
++void __attribute__((weak)) OTG_FS_WKUP_IRQHandler();
++void __attribute__((weak)) TIM8_BRK_TIM12_IRQHandler();
++void __attribute__((weak)) TIM8_UP_TIM13_IRQHandler();
++void __attribute__((weak)) TIM8_TRG_COM_TIM14_IRQHandler();
++void __attribute__((weak)) TIM8_CC_IRQHandler();
++void __attribute__((weak)) DMA1_Stream7_IRQHandler();
++void __attribute__((weak)) FSMC_IRQHandler();
++void __attribute__((weak)) SDIO_IRQHandler();
++void __attribute__((weak)) TIM5_IRQHandler();
++void __attribute__((weak)) SPI3_IRQHandler();
++void __attribute__((weak)) UART4_IRQHandler();
++void __attribute__((weak)) UART5_IRQHandler();
++void __attribute__((weak)) TIM6_DAC_IRQHandler();
++void __attribute__((weak)) TIM7_IRQHandler();
++void __attribute__((weak)) DMA2_Stream0_IRQHandler();
++void __attribute__((weak)) DMA2_Stream1_IRQHandler();
++void __attribute__((weak)) DMA2_Stream2_IRQHandler();
++void __attribute__((weak)) DMA2_Stream3_IRQHandler();
++void __attribute__((weak)) DMA2_Stream4_IRQHandler();
++void __attribute__((weak)) ETH_IRQHandler();
++void __attribute__((weak)) ETH_WKUP_IRQHandler();
++void __attribute__((weak)) CAN2_TX_IRQHandler();
++void __attribute__((weak)) CAN2_RX0_IRQHandler();
++void __attribute__((weak)) CAN2_RX1_IRQHandler();
++void __attribute__((weak)) CAN2_SCE_IRQHandler();
++void __attribute__((weak)) OTG_FS_IRQHandler();
++void __attribute__((weak)) DMA2_Stream5_IRQHandler();
++void __attribute__((weak)) DMA2_Stream6_IRQHandler();
++void __attribute__((weak)) DMA2_Stream7_IRQHandler();
++void __attribute__((weak)) USART6_IRQHandler();
++void __attribute__((weak)) I2C3_EV_IRQHandler();
++void __attribute__((weak)) I2C3_ER_IRQHandler();
++void __attribute__((weak)) OTG_HS_EP1_OUT_IRQHandler();
++void __attribute__((weak)) OTG_HS_EP1_IN_IRQHandler();
++void __attribute__((weak)) OTG_HS_WKUP_IRQHandler();
++void __attribute__((weak)) OTG_HS_IRQHandler();
++void __attribute__((weak)) DCMI_IRQHandler();
++void __attribute__((weak)) CRYP_IRQHandler();
++void __attribute__((weak)) HASH_RNG_IRQHandler();
++
++//Stack top, defined in the linker script
++extern char _main_stack_top asm("_main_stack_top");
++
++//Interrupt vectors, must be placed @ address 0x00000000
++//The extern declaration is required otherwise g++ optimizes it out
++extern void (* const __Vectors[])();
++void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
++{
++    reinterpret_cast<void (*)()>(&_main_stack_top),/* Stack pointer*/
++    Reset_Handler,              /* Reset Handler */
++    NMI_Handler,                /* NMI Handler */
++    HardFault_Handler,          /* Hard Fault Handler */
++    MemManage_Handler,          /* MPU Fault Handler */
++    BusFault_Handler,           /* Bus Fault Handler */
++    UsageFault_Handler,         /* Usage Fault Handler */
++    0,                          /* Reserved */
++    0,                          /* Reserved */
++    0,                          /* Reserved */
++    0,                          /* Reserved */
++    SVC_Handler,                /* SVCall Handler */
++    DebugMon_Handler,           /* Debug Monitor Handler */
++    0,                          /* Reserved */
++    PendSV_Handler,             /* PendSV Handler */
++    SysTick_Handler,            /* SysTick Handler */
++
++    /* External Interrupts */
++	WWDG_IRQHandler,
++	PVD_IRQHandler,
++	TAMP_STAMP_IRQHandler,
++	RTC_WKUP_IRQHandler,
++	FLASH_IRQHandler,
++	RCC_IRQHandler,
++	EXTI0_IRQHandler,
++	EXTI1_IRQHandler,
++	EXTI2_IRQHandler,
++	EXTI3_IRQHandler,
++	EXTI4_IRQHandler,
++	DMA1_Stream0_IRQHandler,
++	DMA1_Stream1_IRQHandler,
++	DMA1_Stream2_IRQHandler,
++	DMA1_Stream3_IRQHandler,
++	DMA1_Stream4_IRQHandler,
++	DMA1_Stream5_IRQHandler,
++	DMA1_Stream6_IRQHandler,
++	ADC_IRQHandler,
++	CAN1_TX_IRQHandler,
++	CAN1_RX0_IRQHandler,
++	CAN1_RX1_IRQHandler,
++	CAN1_SCE_IRQHandler,
++	EXTI9_5_IRQHandler,
++	TIM1_BRK_TIM9_IRQHandler,
++	TIM1_UP_TIM10_IRQHandler,
++	TIM1_TRG_COM_TIM11_IRQHandler,
++	TIM1_CC_IRQHandler,
++	TIM2_IRQHandler,
++	TIM3_IRQHandler,
++	TIM4_IRQHandler,
++	I2C1_EV_IRQHandler,
++	I2C1_ER_IRQHandler,
++	I2C2_EV_IRQHandler,
++	I2C2_ER_IRQHandler,
++	SPI1_IRQHandler,
++	SPI2_IRQHandler,
++	USART1_IRQHandler,
++	USART2_IRQHandler,
++	USART3_IRQHandler,
++	EXTI15_10_IRQHandler,
++	RTC_Alarm_IRQHandler,
++	OTG_FS_WKUP_IRQHandler,
++	TIM8_BRK_TIM12_IRQHandler,
++	TIM8_UP_TIM13_IRQHandler,
++	TIM8_TRG_COM_TIM14_IRQHandler,
++	TIM8_CC_IRQHandler,
++	DMA1_Stream7_IRQHandler,
++	FSMC_IRQHandler,
++	SDIO_IRQHandler,
++	TIM5_IRQHandler,
++	SPI3_IRQHandler,
++	UART4_IRQHandler,
++	UART5_IRQHandler,
++	TIM6_DAC_IRQHandler,
++	TIM7_IRQHandler,
++	DMA2_Stream0_IRQHandler,
++	DMA2_Stream1_IRQHandler,
++	DMA2_Stream2_IRQHandler,
++	DMA2_Stream3_IRQHandler,
++	DMA2_Stream4_IRQHandler,
++	ETH_IRQHandler,
++	ETH_WKUP_IRQHandler,
++	CAN2_TX_IRQHandler,
++	CAN2_RX0_IRQHandler,
++	CAN2_RX1_IRQHandler,
++	CAN2_SCE_IRQHandler,
++	OTG_FS_IRQHandler,
++	DMA2_Stream5_IRQHandler,
++	DMA2_Stream6_IRQHandler,
++	DMA2_Stream7_IRQHandler,
++	USART6_IRQHandler,
++	I2C3_EV_IRQHandler,
++	I2C3_ER_IRQHandler,
++	OTG_HS_EP1_OUT_IRQHandler,
++	OTG_HS_EP1_IN_IRQHandler,
++	OTG_HS_WKUP_IRQHandler,
++	OTG_HS_IRQHandler,
++	DCMI_IRQHandler,
++	CRYP_IRQHandler,
++	HASH_RNG_IRQHandler,
++};
++
++#pragma weak WWDG_IRQHandler = Default_Handler
++#pragma weak PVD_IRQHandler = Default_Handler
++#pragma weak TAMP_STAMP_IRQHandler = Default_Handler
++#pragma weak RTC_WKUP_IRQHandler = Default_Handler
++#pragma weak FLASH_IRQHandler = Default_Handler
++#pragma weak RCC_IRQHandler = Default_Handler
++#pragma weak EXTI0_IRQHandler = Default_Handler
++#pragma weak EXTI1_IRQHandler = Default_Handler
++#pragma weak EXTI2_IRQHandler = Default_Handler
++#pragma weak EXTI3_IRQHandler = Default_Handler
++#pragma weak EXTI4_IRQHandler = Default_Handler
++#pragma weak DMA1_Stream0_IRQHandler = Default_Handler
++#pragma weak DMA1_Stream1_IRQHandler = Default_Handler
++#pragma weak DMA1_Stream2_IRQHandler = Default_Handler
++#pragma weak DMA1_Stream3_IRQHandler = Default_Handler
++#pragma weak DMA1_Stream4_IRQHandler = Default_Handler
++#pragma weak DMA1_Stream5_IRQHandler = Default_Handler
++#pragma weak DMA1_Stream6_IRQHandler = Default_Handler
++#pragma weak ADC_IRQHandler = Default_Handler
++#pragma weak CAN1_TX_IRQHandler = Default_Handler
++#pragma weak CAN1_RX0_IRQHandler = Default_Handler
++#pragma weak CAN1_RX1_IRQHandler = Default_Handler
++#pragma weak CAN1_SCE_IRQHandler = Default_Handler
++#pragma weak EXTI9_5_IRQHandler = Default_Handler
++#pragma weak TIM1_BRK_TIM9_IRQHandler = Default_Handler
++#pragma weak TIM1_UP_TIM10_IRQHandler = Default_Handler
++#pragma weak TIM1_TRG_COM_TIM11_IRQHandler = Default_Handler
++#pragma weak TIM1_CC_IRQHandler = Default_Handler
++#pragma weak TIM2_IRQHandler = Default_Handler
++#pragma weak TIM3_IRQHandler = Default_Handler
++#pragma weak TIM4_IRQHandler = Default_Handler
++#pragma weak I2C1_EV_IRQHandler = Default_Handler
++#pragma weak I2C1_ER_IRQHandler = Default_Handler
++#pragma weak I2C2_EV_IRQHandler = Default_Handler
++#pragma weak I2C2_ER_IRQHandler = Default_Handler
++#pragma weak SPI1_IRQHandler = Default_Handler
++#pragma weak SPI2_IRQHandler = Default_Handler
++#pragma weak USART1_IRQHandler = Default_Handler
++#pragma weak USART2_IRQHandler = Default_Handler
++#pragma weak USART3_IRQHandler = Default_Handler
++#pragma weak EXTI15_10_IRQHandler = Default_Handler
++#pragma weak RTC_Alarm_IRQHandler = Default_Handler
++#pragma weak OTG_FS_WKUP_IRQHandler = Default_Handler
++#pragma weak TIM8_BRK_TIM12_IRQHandler = Default_Handler
++#pragma weak TIM8_UP_TIM13_IRQHandler = Default_Handler
++#pragma weak TIM8_TRG_COM_TIM14_IRQHandler = Default_Handler
++#pragma weak TIM8_CC_IRQHandler = Default_Handler
++#pragma weak DMA1_Stream7_IRQHandler = Default_Handler
++#pragma weak FSMC_IRQHandler = Default_Handler
++#pragma weak SDIO_IRQHandler = Default_Handler
++#pragma weak TIM5_IRQHandler = Default_Handler
++#pragma weak SPI3_IRQHandler = Default_Handler
++#pragma weak UART4_IRQHandler = Default_Handler
++#pragma weak UART5_IRQHandler = Default_Handler
++#pragma weak TIM6_DAC_IRQHandler = Default_Handler
++#pragma weak TIM7_IRQHandler = Default_Handler
++#pragma weak DMA2_Stream0_IRQHandler = Default_Handler
++#pragma weak DMA2_Stream1_IRQHandler = Default_Handler
++#pragma weak DMA2_Stream2_IRQHandler = Default_Handler
++#pragma weak DMA2_Stream3_IRQHandler = Default_Handler
++#pragma weak DMA2_Stream4_IRQHandler = Default_Handler
++#pragma weak ETH_IRQHandler = Default_Handler
++#pragma weak ETH_WKUP_IRQHandler = Default_Handler
++#pragma weak CAN2_TX_IRQHandler = Default_Handler
++#pragma weak CAN2_RX0_IRQHandler = Default_Handler
++#pragma weak CAN2_RX1_IRQHandler = Default_Handler
++#pragma weak CAN2_SCE_IRQHandler = Default_Handler
++#pragma weak OTG_FS_IRQHandler = Default_Handler
++#pragma weak DMA2_Stream5_IRQHandler = Default_Handler
++#pragma weak DMA2_Stream6_IRQHandler = Default_Handler
++#pragma weak DMA2_Stream7_IRQHandler = Default_Handler
++#pragma weak USART6_IRQHandler = Default_Handler
++#pragma weak I2C3_EV_IRQHandler = Default_Handler
++#pragma weak I2C3_ER_IRQHandler = Default_Handler
++#pragma weak OTG_HS_EP1_OUT_IRQHandler = Default_Handler
++#pragma weak OTG_HS_EP1_IN_IRQHandler = Default_Handler
++#pragma weak OTG_HS_WKUP_IRQHandler = Default_Handler
++#pragma weak OTG_HS_IRQHandler = Default_Handler
++#pragma weak DCMI_IRQHandler = Default_Handler
++#pragma weak CRYP_IRQHandler = Default_Handler
++#pragma weak HASH_RNG_IRQHandler = Default_Handler
+diff --git a/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/bsp.cpp b/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/bsp.cpp
+new file mode 100644
+index 0000000..8e1132f
+--- /dev/null
++++ b/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/bsp.cpp
+@@ -0,0 +1,204 @@
++/***************************************************************************
++ *   Copyright (C) 2013 by Terraneo Federico                               *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   As a special exception, if other files instantiate templates or use   *
++ *   macros or inline functions from this file, or you compile this file   *
++ *   and link it with other works to produce a work based on this file,    *
++ *   this file does not by itself cause the resulting work to be covered   *
++ *   by the GNU General Public License. However the source code for this   *
++ *   file must still be made available in accordance with the GNU General  *
++ *   Public License. This exception does not invalidate any other reasons  *
++ *   why a work based on this file might be covered by the GNU General     *
++ *   Public License.                                                       *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
++ ***************************************************************************/ 
++
++/***********************************************************************
++* bsp.cpp Part of the Miosix Embedded OS.
++* Board support package, this file initializes hardware.
++************************************************************************/
++
++#include <cstdlib>
++#include "interfaces/bsp.h"
++#include "kernel/kernel.h"
++#include "interfaces/delays.h"
++#include "interfaces/portability.h"
++#include "interfaces/arch_registers.h"
++#include "config/miosix_settings.h"
++
++namespace miosix {
++
++//
++// Initialization
++//
++
++void IRQbspInit()
++{
++    //Enable all gpios
++    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN
++                  | RCC_AHB1ENR_GPIOBEN
++                  | RCC_AHB1ENR_GPIOCEN;
++
++    using namespace oled;
++    OLED_nSS_Pin::mode(Mode::OUTPUT);
++    OLED_nSS_Pin::high();
++    OLED_nSS_Pin::speed(Speed::_100MHz); //Without changing the default speed
++    OLED_SCK_Pin::mode(Mode::ALTERNATE); //OLED does not work!
++    OLED_SCK_Pin::alternateFunction(5);
++    OLED_SCK_Pin::speed(Speed::_100MHz);
++    OLED_MOSI_Pin::mode(Mode::ALTERNATE);
++    OLED_MOSI_Pin::alternateFunction(5);
++    OLED_MOSI_Pin::speed(Speed::_100MHz);
++    OLED_A0_Pin::mode(Mode::OUTPUT);
++    OLED_A0_Pin::low();
++    OLED_A0_Pin::speed(Speed::_100MHz);
++    OLED_Reset_Pin::mode(Mode::OUTPUT);
++    OLED_Reset_Pin::low();
++    OLED_Reset_Pin::speed(Speed::_50MHz);
++    OLED_V_ENABLE_Pin::mode(Mode::OUTPUT);
++    OLED_V_ENABLE_Pin::low();
++    OLED_V_ENABLE_Pin::speed(Speed::_50MHz);
++    
++    using namespace touch;
++    Touch_Reset_Pin::mode(Mode::OUTPUT);
++    Touch_Reset_Pin::low();
++    Touch_Reset_Pin::speed(Speed::_50MHz);
++    TOUCH_WKUP_INT_Pin::mode(Mode::INPUT);
++    
++    using namespace power;
++    BATT_V_ON_Pin::mode(Mode::OUTPUT);
++    BATT_V_ON_Pin::low();
++    BATT_V_ON_Pin::speed(Speed::_50MHz);
++    BAT_V_Pin::mode(Mode::INPUT_ANALOG);
++    ENABLE_LIGHT_SENSOR_Pin::mode(Mode::OUTPUT);
++    ENABLE_LIGHT_SENSOR_Pin::low();
++    ENABLE_LIGHT_SENSOR_Pin::speed(Speed::_50MHz);
++    LIGHT_SENSOR_ANALOG_OUT_Pin::mode(Mode::INPUT_ANALOG);
++    ENABLE_2V8_Pin::mode(Mode::OUTPUT);
++    ENABLE_2V8_Pin::low();
++    ENABLE_2V8_Pin::speed(Speed::_50MHz);
++    HoldPower_Pin::mode(Mode::OPEN_DRAIN);
++    HoldPower_Pin::high();
++    HoldPower_Pin::speed(Speed::_50MHz);
++    
++    ACCELEROMETER_INT_Pin::mode(Mode::INPUT_PULL_DOWN);
++    
++    using namespace i2c;
++    I2C_SCL_Pin::mode(Mode::ALTERNATE);
++    I2C_SCL_Pin::alternateFunction(4);
++    I2C_SCL_Pin::speed(Speed::_50MHz);
++    I2C_SDA_Pin::mode(Mode::ALTERNATE);
++    I2C_SDA_Pin::alternateFunction(4);
++    I2C_SDA_Pin::speed(Speed::_50MHz);
++    
++    BUZER_PWM_Pin::mode(Mode::OUTPUT);
++    BUZER_PWM_Pin::low();
++    BUZER_PWM_Pin::speed(Speed::_50MHz);
++    
++    POWER_BTN_PRESS_Pin::mode(Mode::INPUT);
++    
++    using namespace usb;
++    USB5V_Detected_Pin::mode(Mode::INPUT_PULL_DOWN);
++    USB_DM_Pin::mode(Mode::INPUT);
++    USB_DP_Pin::mode(Mode::INPUT);
++    
++    using namespace bluetooth;
++    Reset_BT_Pin::mode(Mode::OPEN_DRAIN);
++    Reset_BT_Pin::low();
++    Reset_BT_Pin::speed(Speed::_50MHz);
++    BT_CLK_REQ_Pin::mode(Mode::INPUT);
++    HOST_WAKE_UP_Pin::mode(Mode::INPUT);
++    Enable_1V8_BT_Power_Pin::mode(Mode::OPEN_DRAIN);
++    Enable_1V8_BT_Power_Pin::high();
++    Enable_1V8_BT_Power_Pin::speed(Speed::_50MHz);
++    BT_nSS_Pin::mode(Mode::OUTPUT);
++    BT_nSS_Pin::low();
++    BT_nSS_Pin::speed(Speed::_50MHz);
++    BT_SCK_Pin::mode(Mode::OUTPUT);
++    BT_SCK_Pin::low();
++    BT_SCK_Pin::speed(Speed::_50MHz);
++    BT_MISO_Pin::mode(Mode::INPUT_PULL_DOWN);
++    BT_MOSI_Pin::mode(Mode::OUTPUT);
++    BT_MOSI_Pin::low();
++    BT_MOSI_Pin::speed(Speed::_50MHz);
++    
++    using namespace unknown;
++    WKUP_Pin::mode(Mode::INPUT);
++    MCO1_Pin::mode(Mode::ALTERNATE);
++    MCO1_Pin::alternateFunction(0);
++    MCO1_Pin::speed(Speed::_100MHz);
++    Connect_USB_Pin::mode(Mode::OPEN_DRAIN);
++    Connect_USB_Pin::low();
++    Connect_USB_Pin::speed(Speed::_50MHz);
++    POWER_3V3_ON_1V8_OFF_Pin::mode(Mode::OUTPUT);
++    POWER_3V3_ON_1V8_OFF_Pin::low();
++    POWER_3V3_ON_1V8_OFF_Pin::speed(Speed::_50MHz);
++    SPI2_nSS_Pin::mode(Mode::OUTPUT);
++    SPI2_nSS_Pin::high();
++    SPI2_nSS_Pin::speed(Speed::_50MHz);
++    SPI2_SCK_Pin::mode(Mode::OUTPUT);
++    SPI2_SCK_Pin::low();
++    SPI2_SCK_Pin::speed(Speed::_50MHz);
++    SPI2_MISO_Pin::mode(Mode::INPUT_PULL_DOWN);
++    SPI2_MOSI_Pin::mode(Mode::OUTPUT);
++    SPI2_MOSI_Pin::low();
++    SPI2_MOSI_Pin::speed(Speed::_50MHz);
++    
++    // Taken from underverk's SmartWatch_Toolchain/src/system.c:
++    // Prevents hard-faults when booting from USB
++    delayMs(50);
++
++    USB_DP_Pin::mode(Mode::INPUT_PULL_UP); //Never leave GPIOs floating
++    USB_DM_Pin::mode(Mode::INPUT_PULL_DOWN);
++}
++
++void bspInit2()
++{
++    BUZER_PWM_Pin::high();
++    Thread::sleep(200);
++    BUZER_PWM_Pin::low();
++    //Wait for user to release the button
++    while(POWER_BTN_PRESS_Pin::value()) Thread::sleep(20);
++}
++
++//
++// Shutdown and reboot
++//
++
++void shutdown()
++{
++    // Taken from underverk's SmartWatch_Toolchain/src/Arduino/Arduino.cpp
++    disableInterrupts();
++    BUZER_PWM_Pin::high();
++    delayMs(200);
++    BUZER_PWM_Pin::low();
++    while(POWER_BTN_PRESS_Pin::value()) ;
++    //This is likely wired to the PMU. If the USB cable is not connected, this
++    //cuts off the power to the microcontroller. But if USB is connected, this
++    //does nothing. In this case we can only spin waiting for the user to turn
++    //the device on again
++    power::HoldPower_Pin::low();
++    delayMs(500);
++    while(POWER_BTN_PRESS_Pin::value()==0) ;
++    reboot();
++}
++
++void reboot()
++{
++    disableInterrupts();
++    miosix_private::IRQsystemReboot();
++}
++
++};//namespace miosix
+diff --git a/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/bsp_impl.h b/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/bsp_impl.h
+new file mode 100644
+index 0000000..ee06b0d
+--- /dev/null
++++ b/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/bsp_impl.h
+@@ -0,0 +1,48 @@
++/***************************************************************************
++ *   Copyright (C) 2013 by Terraneo Federico                               *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   As a special exception, if other files instantiate templates or use   *
++ *   macros or inline functions from this file, or you compile this file   *
++ *   and link it with other works to produce a work based on this file,    *
++ *   this file does not by itself cause the resulting work to be covered   *
++ *   by the GNU General Public License. However the source code for this   *
++ *   file must still be made available in accordance with the GNU General  *
++ *   Public License. This exception does not invalidate any other reasons  *
++ *   why a work based on this file might be covered by the GNU General     *
++ *   Public License.                                                       *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
++ ***************************************************************************/ 
++
++/***********************************************************************
++* bsp_impl.h Part of the Miosix Embedded OS.
++* Board support package, this file initializes hardware.
++************************************************************************/
++
++#ifndef BSP_IMPL_H
++#define BSP_IMPL_H
++
++#include "config/miosix_settings.h"
++#include "hwmapping.h"
++#include "drivers/stm32_hardware_rng.h"
++
++namespace miosix {
++
++//No LEDs in this board
++inline void ledOn()  {}
++inline void ledOff() {}
++
++}
++
++#endif //BSP_IMPL_H
+diff --git a/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/console.cpp b/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/console.cpp
+new file mode 100644
+index 0000000..50b2eef
+--- /dev/null
++++ b/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/console.cpp
+@@ -0,0 +1,51 @@
++/***************************************************************************
++ *   Copyright (C) 2013 by Terraneo Federico                               *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   As a special exception, if other files instantiate templates or use   *
++ *   macros or inline functions from this file, or you compile this file   *
++ *   and link it with other works to produce a work based on this file,    *
++ *   this file does not by itself cause the resulting work to be covered   *
++ *   by the GNU General Public License. However the source code for this   *
++ *   file must still be made available in accordance with the GNU General  *
++ *   Public License. This exception does not invalidate any other reasons  *
++ *   why a work based on this file might be covered by the GNU General     *
++ *   Public License.                                                       *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
++ ***************************************************************************/
++
++#include "interfaces/console.h"
++
++namespace miosix {
++
++/*
++ * The watch has no serial port, so this implementation does nothing
++ * TODO: redirecting IRQwrite() to the display can be an idea
++ */
++
++void Console::write(const char *str) {}
++
++void Console::write(const char *data, int length) {}
++
++bool Console::txComplete() { return true; }
++
++void Console::IRQwrite(const char *str) {}
++
++bool Console::IRQtxComplete() { return true; }
++
++char Console::readChar() { return 0; }
++
++bool Console::readCharNonBlocking(char& c) { return false; }
++
++} //namespace miosix
+diff --git a/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/delays.cpp b/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/delays.cpp
+new file mode 100644
+index 0000000..ae3ca6f
+--- /dev/null
++++ b/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/delays.cpp
+@@ -0,0 +1,79 @@
++/***************************************************************************
++ *   Copyright (C) 2013 by Terraneo Federico                               *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   As a special exception, if other files instantiate templates or use   *
++ *   macros or inline functions from this file, or you compile this file   *
++ *   and link it with other works to produce a work based on this file,    *
++ *   this file does not by itself cause the resulting work to be covered   *
++ *   by the GNU General Public License. However the source code for this   *
++ *   file must still be made available in accordance with the GNU General  *
++ *   Public License. This exception does not invalidate any other reasons  *
++ *   why a work based on this file might be covered by the GNU General     *
++ *   Public License.                                                       *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
++ ***************************************************************************/
++
++#include "interfaces/delays.h"
++
++namespace miosix {
++
++//FIXME: delays!
++
++void delayMs(unsigned int mseconds)
++{
++    #ifndef __CODE_IN_XRAM
++
++    #ifdef SYSCLK_FREQ_120MHz
++    register const unsigned int count=29999;
++    #else
++    #warning "Delays are uncalibrated for this clock frequency"    
++    #endif
++    
++    for(unsigned int i=0;i<mseconds;i++)
++    {
++        // This delay has been calibrated to take 1 millisecond
++        // It is written in assembler to be independent on compiler optimization
++        asm volatile("           mov   r1, #0     \n"
++                     "___loop_m: cmp   r1, %0     \n"
++                     "           itt   lo         \n"
++                     "           addlo r1, r1, #1 \n"
++                     "           blo   ___loop_m  \n"::"r"(count):"r1");
++    }
++
++    #else //__CODE_IN_XRAM
++    #error "No delays"
++    #endif //__CODE_IN_XRAM
++}
++
++void delayUs(unsigned int useconds)
++{
++    #ifndef __CODE_IN_XRAM
++
++    // This delay has been calibrated to take x microseconds
++    // It is written in assembler to be independent on compiler optimization
++    asm volatile("           mov   r1, #30    \n"
++                 "           mul   r2, %0, r1 \n"
++                 "           mov   r1, #0     \n"
++                 "___loop_u: cmp   r1, r2     \n"
++                 "           itt   lo         \n"
++                 "           addlo r1, r1, #1 \n"
++                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
++
++    #else //__CODE_IN_XRAM
++    #error "No delays"
++    #endif //__CODE_IN_XRAM
++}
++
++} //namespace miosix
+diff --git a/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/hwmapping.h b/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/hwmapping.h
+new file mode 100644
+index 0000000..e9d6fa2
+--- /dev/null
++++ b/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/hwmapping.h
+@@ -0,0 +1,129 @@
++/***************************************************************************
++ *   Copyright (C) 2013 by Terraneo Federico                               *
++ *                                                                         *
++ *   This program is free software; you can redistribute it and/or modify  *
++ *   it under the terms of the GNU General Public License as published by  *
++ *   the Free Software Foundation; either version 2 of the License, or     *
++ *   (at your option) any later version.                                   *
++ *                                                                         *
++ *   This program is distributed in the hope that it will be useful,       *
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
++ *   GNU General Public License for more details.                          *
++ *                                                                         *
++ *   As a special exception, if other files instantiate templates or use   *
++ *   macros or inline functions from this file, or you compile this file   *
++ *   and link it with other works to produce a work based on this file,    *
++ *   this file does not by itself cause the resulting work to be covered   *
++ *   by the GNU General Public License. However the source code for this   *
++ *   file must still be made available in accordance with the GNU General  *
++ *   Public License. This exception does not invalidate any other reasons  *
++ *   why a work based on this file might be covered by the GNU General     *
++ *   Public License.                                                       *
++ *                                                                         *
++ *   You should have received a copy of the GNU General Public License     *
++ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
++ ***************************************************************************/
++
++#ifndef HWMAPPING_H
++#define	HWMAPPING_H
++
++#include "interfaces/gpio.h"
++
++namespace miosix {
++
++/*
++ * The pin names were taken from underverk's SmartWatch_Toolchain/src/system.c
++ * They were put in a comment saying "Sony's name". Probably the one who wrote
++ * that file got access to much more documentation that the one that's publicly
++ * available.
++ */
++
++// The OLED display is an LD7131 and has its own dedicated SPI bus
++namespace oled {
++typedef Gpio<GPIOA_BASE, 4> OLED_nSS_Pin;  //Sony calls it SPI1_nSS_Pin
++typedef Gpio<GPIOA_BASE, 5> OLED_SCK_Pin;  //Sony calls it SPI1_SCK_Pin
++typedef Gpio<GPIOA_BASE, 7> OLED_MOSI_Pin; //Sony calls it SPI1_MOSI_Pin
++typedef Gpio<GPIOC_BASE, 0> OLED_A0_Pin;
++typedef Gpio<GPIOB_BASE, 5> OLED_Reset_Pin;
++typedef Gpio<GPIOC_BASE, 1> OLED_V_ENABLE_Pin; //Enables OLED panel 16V supply
++}
++
++// The touch controller is a CY8C20236 is connected to the I2C bus, address 0x0a
++namespace touch {
++typedef Gpio<GPIOB_BASE, 0> Touch_Reset_Pin;
++typedef Gpio<GPIOC_BASE, 6> TOUCH_WKUP_INT_Pin;
++}
++
++// There is a PMU chip, unknown part, connected to the I2C bus, address 0x90
++namespace power {
++typedef Gpio<GPIOA_BASE, 1> BATT_V_ON_Pin; //Enables battery voltage sensor
++typedef Gpio<GPIOA_BASE, 2> BAT_V_Pin;     //Analog input
++typedef Gpio<GPIOB_BASE, 4> ENABLE_LIGHT_SENSOR_Pin;     //Enables light sensor
++typedef Gpio<GPIOC_BASE, 4> LIGHT_SENSOR_ANALOG_OUT_Pin; //Analog input
++typedef Gpio<GPIOB_BASE, 3> ENABLE_2V8_Pin; //Is in some way releted to the OLED
++//Looks connected to the PMU, the most likely scenario is this: asserting it low
++//when the USB is not connected disables the PMU voltage regulator feeding the
++//microcontroller, therefore shutting down the watch.
++typedef Gpio<GPIOC_BASE, 3> HoldPower_Pin;
++}
++
++// The accelerometer is an LIS3DH, connected to the I2C bus, address 0x30
++typedef Gpio<GPIOB_BASE, 9> ACCELEROMETER_INT_Pin;
++
++// The Touch controller, PMU and accelerometer are connected to the I2C bus
++namespace i2c {
++typedef Gpio<GPIOB_BASE, 6> I2C_SCL_Pin;
++typedef Gpio<GPIOB_BASE, 7> I2C_SDA_Pin;
++}
++
++// Vibrator motor
++typedef Gpio<GPIOB_BASE, 8> BUZER_PWM_Pin;
++
++// The power button. Someone on stackoverflow mantions that if you push it for
++// 10 seconds when the USB cable is disconnected, the watch shutdowns no matter
++// what the software does (so, even if it is locked up). This means it's
++// probably connected to the PMU as well.
++typedef Gpio<GPIOB_BASE,11> POWER_BTN_PRESS_Pin; //Goes high when pressed FIXME: check
++
++// USB connections
++namespace usb {
++typedef Gpio<GPIOA_BASE, 9> USB5V_Detected_Pin; //Goes high when USB connected FIXME: check
++typedef Gpio<GPIOA_BASE,11> USB_DM_Pin;
++typedef Gpio<GPIOA_BASE,12> USB_DP_Pin;
++}
++
++// Other than that it's an STLC2690, little is known about the bluetooth chip
++namespace bluetooth {
++//FIXME: which one is the right one?
++typedef Gpio<GPIOA_BASE, 6> Reset_BT2_Pin; //According to sony's website
++typedef Gpio<GPIOA_BASE,15> Reset_BT_Pin;  //According to underverk's SmartWatch_Toolchain
++
++typedef Gpio<GPIOB_BASE,10> BT_CLK_REQ_Pin;
++typedef Gpio<GPIOC_BASE,13> HOST_WAKE_UP_Pin;
++typedef Gpio<GPIOC_BASE, 7> Enable_1V8_BT_Power_Pin;
++typedef Gpio<GPIOC_BASE, 9> BT_nSS_Pin;  //Sony calls it SPI3_nSS_Pin
++typedef Gpio<GPIOC_BASE,10> BT_SCK_Pin;  //Sony calls it SPI3_SCK_Pin
++typedef Gpio<GPIOC_BASE,11> BT_MISO_Pin; //Sony calls it SPI3_MISO_Pin
++typedef Gpio<GPIOC_BASE,12> BT_MOSI_Pin; //Sony calls it SPI3_MOSI_Pin
++}
++
++// The mistery pins mentioned in system.c, but never used
++namespace unknown {
++typedef Gpio<GPIOA_BASE, 0> WKUP_Pin;
++//Stands for main clock out, a feature of the STM32 to output an internal clock
++//(either the crystal one, or the PLL one). Ususally is used to clock some
++//other chip saving a clock crystal in the BOM. Maybe it goes to the touchscreen
++//controller? Who knows...
++typedef Gpio<GPIOA_BASE, 8> MCO1_Pin;
++typedef Gpio<GPIOB_BASE, 1> Connect_USB_Pin;
++typedef Gpio<GPIOB_BASE, 2> POWER_3V3_ON_1V8_OFF_Pin;
++typedef Gpio<GPIOB_BASE,12> SPI2_nSS_Pin; //Is there yet another mistery chip
++typedef Gpio<GPIOB_BASE,13> SPI2_SCK_Pin; //connected to this SPI? I don't know
++typedef Gpio<GPIOB_BASE,14> SPI2_MISO_Pin;
++typedef Gpio<GPIOB_BASE,15> SPI2_MOSI_Pin;
++}
++
++} //namespace miosix
++
++#endif //HWMAPPING_H
+diff --git a/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/stm32_1M+128k_rom.ld b/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/stm32_1M+128k_rom.ld
+new file mode 100644
+index 0000000..5e92715
+--- /dev/null
++++ b/miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/stm32_1M+128k_rom.ld
+@@ -0,0 +1,198 @@
++/*
++ * C++ enabled linker script for Sony smartwatch
++ * Developed by Terraneo Federico
++ */
++
++/*
++ * This linker script puts:
++ * - read only data and code (.text, .rodata, .eh_*) in flash
++ * - stacks, heap and sections .data and .bss in the internal ram
++ * - the external ram (if available) is not used.
++ */
++
++/*
++ * The main stack is used for interrupt handling by the kernel.
++ *
++ * *** Readme ***
++ * This linker script places the main stack (used by the kernel for interrupts)
++ * at the bottom of the ram, instead of the top. This is done for two reasons:
++ *
++ * - as an optimization for microcontrollers with little ram memory. In fact
++ *   the implementation of malloc from newlib requests memory to the OS in 4KB
++ *   block (except the first block that can be smaller). This is probably done
++ *   for compatibility with OSes with an MMU and paged memory. To see why this
++ *   is bad, consider a microcontroller with 8KB of ram: when malloc finishes
++ *   up the first 4KB it will call _sbrk_r asking for a 4KB block, but this will
++ *   fail because the top part of the ram is used by the main stack. As a
++ *   result, the top part of the memory will not be used by malloc, even if
++ *   available (and it is nearly *half* the ram on an 8KB mcu). By placing the
++ *   main stack at the bottom of the ram, the upper 4KB block will be entirely
++ *   free and available as heap space.
++ *
++ * - In case of main stack overflow the cpu will fault because access to memory
++ *   before the beginning of the ram faults. Instead with the default stack
++ *   placement the main stack will silently collide with the heap.
++ * Note: if increasing the main stack size also increase the ORIGIN value in
++ * the MEMORY definitions below accordingly.
++ */
++
++/*
++ * Taken from underverk's SmartWatch_Toolchain. Doesn't explain why the first
++ * 3K of RAM can't be used. TODO: try to start from 0x20000000 and see what
++ * happens.
++ */
++_ram_base = 0x20000c00;
++
++_main_stack_size = 0x00000200;                     /* main stack = 512Bytes */
++_main_stack_top  = _ram_base + _main_stack_size;
++ASSERT(_main_stack_size % 8 == 0, "MAIN stack size error");
++
++/*
++ * End of the heap. Taken from underverk's SmartWatch_Toolchain. Doesn't explain
++ * why the last 2K of RAM can't be used. TODO: try 0x20020000 and see what
++ * happens.
++ */
++_heap_end = 0x2001f800;                            /* end of available ram  */
++
++/* identify the Entry Point  */
++ENTRY(_Z13Reset_Handlerv)
++
++/* specify the memory areas  */
++MEMORY
++{
++    /*
++     * Taken from underverk's SmartWatch_Toolchain. The DFU bootloader sits
++     * between 0x08000000 and 0x0800c000, that's 48K. Don't know why the code
++     * can't be placed directly @ 0x0800c000, but by unpacking the original
++     * firmware SmartWatch.dfu resulted in five different binary images:
++     *  Base addr  | size    |
++     * ------------+---------+--------------------------------------------------
++     *  0x0800c000 | 0x5f00  | Seems the bluetooth driver, no interrupt table,
++     *             |         | and funnily first 16K are zeros, probably
++     *             |         | compiled as non-PIC code at 64K from flash base.
++     *  0x08020000 | 0x1b578 | Is a firmware as it starts with an interrupt
++     *             |         | table, don't know what it does.
++     *  0x0803fffc | 0x188   | Discarding the first 4 bytes, the rest starts
++     *             |         | @ 0x08040000 and is an interrupt table.
++     *             |         | Bootloader jumps at this address. The interrupt
++     *             |         | points to the next firmware image.
++     *  0x08040200 | 0xb02b8 | First part is just pictures data, but there's
++     *             |         | code at the end, and the lone interrupt table
++     *             |         | points into it.
++     *  0x080ffffc | 0x4     | Some magic number of some sort.
++     */
++    flash(rx)   : ORIGIN = 0x08040000, LENGTH = 768K
++
++    /*
++     * Note, the ram starts at _ram_base but it is necessary to add the size
++     * of the main stack.
++     */
++    ram(wx)     : ORIGIN = 0x20000e00, LENGTH = 123K-0x200
++}
++
++/* now define the output sections  */
++SECTIONS
++{
++    . = 0;
++    
++    /* .text section: code goes to flash */
++    .text :
++    {
++        /* Startup code must go at address 0 */
++        KEEP(*(.isr_vector))
++        
++        *(.text)
++        *(.text.*)
++        *(.gnu.linkonce.t.*)
++        /* these sections for thumb interwork? */
++        *(.glue_7)
++        *(.glue_7t)
++        /* these sections for C++? */
++        *(.gcc_except_table)
++        *(.gcc_except_table.*)
++        *(.ARM.extab*)
++        *(.gnu.linkonce.armextab.*)
++
++        . = ALIGN(4);
++        /* .rodata: constant data */
++        *(.rodata)
++        *(.rodata.*)
++        *(.gnu.linkonce.r.*)
++
++        /* C++ Static constructors/destructors (eabi) */
++        . = ALIGN(4);
++        KEEP(*(.init))
++
++        . = ALIGN(4);
++        __preinit_array_start = .;
++        KEEP (*(.preinit_array))
++        __preinit_array_end = .;
++
++        . = ALIGN(4);
++        __init_array_start = .;
++        KEEP (*(SORT(.init_array.*)))
++        KEEP (*(.init_array))
++        __init_array_end = .;
++
++        . = ALIGN(4);
++        KEEP(*(.fini))
++
++        . = ALIGN(4);
++        __fini_array_start = .;
++        KEEP (*(.fini_array))
++        KEEP (*(SORT(.fini_array.*)))
++        __fini_array_end = .;
++
++        /* C++ Static constructors/destructors (elf)  */
++        . = ALIGN(4);
++        _ctor_start = .;
++        KEEP (*crtbegin.o(.ctors))
++        KEEP (*(EXCLUDE_FILE (*crtend.o) .ctors))
++        KEEP (*(SORT(.ctors.*)))
++        KEEP (*crtend.o(.ctors))
++       _ctor_end = .;
++
++        . = ALIGN(4);
++        KEEP (*crtbegin.o(.dtors))
++        KEEP (*(EXCLUDE_FILE (*crtend.o) .dtors))
++        KEEP (*(SORT(.dtors.*)))
++        KEEP (*crtend.o(.dtors))
++    } > flash
++
++    /* .ARM.exidx is sorted, so has to go in its own output section.  */
++    __exidx_start = .;
++    .ARM.exidx :
++    {
++        *(.ARM.exidx* .gnu.linkonce.armexidx.*)
++    } > flash
++    __exidx_end = .;
++
++    . = ALIGN(8);
++    _etext = .;
++
++	/* .data section: global variables go to ram, but also store a copy to
++       flash to initialize them */
++    .data : ALIGN(8)
++    {
++        _data = .;
++        *(.data)
++        *(.data.*)
++        *(.gnu.linkonce.d.*)
++        . = ALIGN(8);
++        _edata = .;
++    } > ram AT > flash
++
++    /* .bss section: uninitialized global variables go to ram */
++    _bss_start = .;
++    .bss :
++    {
++        *(.bss)
++        *(.bss.*)
++        *(.gnu.linkonce.b.*)
++        . = ALIGN(8);
++    } > ram
++    _bss_end = .;
++
++    _end = .;
++    PROVIDE(end = .);
++}
+diff --git a/miosix/config/Makefile.inc b/miosix/config/Makefile.inc
+index becb278..699f5b3 100644
+--- a/miosix/config/Makefile.inc
++++ b/miosix/config/Makefile.inc
+@@ -24,6 +24,7 @@ OPT_BOARD := stm32f103ze_stm3210e-eval
+ #OPT_BOARD := stm32f207ze_als_camboard
+ #OPT_BOARD := stm32l151_als_mainboard
+ #OPT_BOARD := stm32f407vg_bitsboard
++#OPT_BOARD := stm32f205rg_sony-newman
+ 
+ ##
+ ## Optimization flags, choose one.
+@@ -207,6 +208,12 @@ ifeq ($(OPT_BOARD),stm32f207zg_ethboard_v2)
+ endif
+ 
+ ##---------------------------------------------------------------------------
++## stm32f205rg_sony-newman
++##
++
++# No options
++
++##---------------------------------------------------------------------------
+ ## stm32f407vg_bitsboard
+ ##
+ 
+@@ -246,6 +253,8 @@ else ifeq ($(OPT_BOARD),stm32f207zg_ethboard_v2)
+     ARCH := cortexM3_stm32f2
+ else ifeq ($(OPT_BOARD),stm32f207ze_als_camboard)
+     ARCH := cortexM3_stm32f2
++else ifeq ($(OPT_BOARD),stm32f205rg_sony-newman)
++    ARCH := cortexM3_stm32f2
+ else ifeq ($(OPT_BOARD),stm32l151_als_mainboard)
+     ARCH := cortexM3_stm32l1
+ else ifeq ($(OPT_BOARD),stm32f407vg_bitsboard)
+@@ -820,6 +829,44 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
+         PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
+ 
+     ##-------------------------------------------------------------------------
++    ## BOARD: stm32f205rg_sony-newman
++    ##
++    else ifeq ($(OPT_BOARD),stm32f205rg_sony-newman)
++        ## Base directory with header files for this board
++        BOARD_INC := arch/cortexM3_stm32f2/stm32f205rg_sony-newman
++
++        ## Select linker script and boot file
++        ## Their path must be relative to the miosix directory.
++        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
++        LINKER_SCRIPT := $(BOARD_INC)/stm32_1M+128k_rom.ld
++
++        ## Select architecture specific files
++        ## These are the files in arch/<arch name>/<board name>
++        ARCH_SRC :=                                  \
++        $(BOARD_INC)/interfaces-impl/console.cpp     \
++        $(BOARD_INC)/interfaces-impl/delays.cpp      \
++        $(BOARD_INC)/interfaces-impl/bsp.cpp
++
++        ## Add a #define to allow querying board name
++        CFLAGS_BASE   += -D_BOARD_SONY_NEWMAN
++        CXXFLAGS_BASE += -D_BOARD_SONY_NEWMAN
++
++        ## Clock frequency
++        CLOCK_FREQ := -DHSE_VALUE=26000000 -DSYSCLK_FREQ_120MHz=120000000
++
++        ## Select programmer command line
++        ## This is the program that is invoked when the user types
++        ## 'make program'
++        ## The command must provide a way to program the board, or print an
++        ## error message saying that 'make program' is not supported for that
++        ## board.
++        ## The magic.bin is somewhat used by the bootloader to detect a good fw
++        PROGRAM_CMDLINE := perl -e 'print "\xe7\x91\x11\xc0"' > magic.bin; \
++            dfu-util -d 0fce:f0fa -a 0 -i 0 -s 0x08040000 -D main.bin;     \
++            dfu-util -d 0fce:f0fa -a 0 -i 0 -s 0x080ffffc -D magic.bin;    \
++            rm magic.bin
++
++    ##-------------------------------------------------------------------------
+     ## End of board list
+     ##
+     endif
+diff --git a/miosix/temp/udev-rules/49-sony-newman-dfu.rules b/miosix/temp/udev-rules/49-sony-newman-dfu.rules
+new file mode 100644
+index 0000000..361fad0
+--- /dev/null
++++ b/miosix/temp/udev-rules/49-sony-newman-dfu.rules
+@@ -0,0 +1,7 @@
++# Allows to run the dfu-util as non-root user to program the sony smart watch.
++# Copy in /etc/udev/rules.d
++
++SUBSYSTEMS=="usb", ATTRS{idVendor}=="0fce", ATTRS{idProduct}=="f0fa", \
++    MODE:="0666", \
++    SYMLINK+="newman_%n"
++
+diff --git a/miosix_np_2/nbproject/configurations.xml b/miosix_np_2/nbproject/configurations.xml
+index e5c66ec..1d41c78 100644
+--- a/miosix_np_2/nbproject/configurations.xml
++++ b/miosix_np_2/nbproject/configurations.xml
+@@ -156,6 +156,16 @@
+               </df>
+               <in>arch_settings.h</in>
+             </df>
++            <df name="stm32f205rg_sony-newman">
++              <df name="interfaces-impl">
++                <in>bsp.cpp</in>
++                <in>bsp_impl.h</in>
++                <in>console.cpp</in>
++                <in>delays.cpp</in>
++                <in>hwmapping.h</in>
++              </df>
++              <in>board_settings.h</in>
++            </df>
+             <df name="stm32f207ig_stm3220g-eval">
+               <df name="core">
+                 <in>stage_1_boot.cpp</in>
+@@ -11608,6 +11618,36 @@
+             tool="3"
+             flavor2="0">
+       </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/board_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/bsp.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/bsp_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/console.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/delays.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/hwmapping.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
+       <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/board_settings.h"
+             ex="false"
+             tool="3"
+@@ -14360,5 +14400,1107 @@
+       <item path="../miosix/util/version.h" ex="false" tool="3" flavor2="0">
+       </item>
+     </conf>
++    <conf name="stm32f205rg_sony-newman" type="0">
++      <toolsSet>
++        <remote-sources-mode>LOCAL_SOURCES</remote-sources-mode>
++        <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
++        <dependencyChecking>false</dependencyChecking>
++        <rebuildPropChanged>false</rebuildPropChanged>
++      </toolsSet>
++      <codeAssistance>
++      </codeAssistance>
++      <makefileType>
++        <makeTool>
++          <buildCommandWorkingDir>..</buildCommandWorkingDir>
++          <buildCommand>${MAKE} -f Makefile</buildCommand>
++          <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
++          <executablePath></executablePath>
++          <cTool>
++            <incDir>
++              <pElem>..</pElem>
++              <pElem>../miosix</pElem>
++              <pElem>../miosix/arch/common</pElem>
++              <pElem>../miosix/arch/cortexM3_stm32f2/common</pElem>
++              <pElem>../miosix/arch/cortexM3_stm32f2/stm32f207ze_als_camboard </pElem>
++            </incDir>
++            <preprocessorList>
++              <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
++              <Elem>_BOARD_SONY_NEWMAN</Elem>
++              <Elem>_MIOSIX</Elem>
++              <Elem>_POSIX_THREADS</Elem>
++            </preprocessorList>
++          </cTool>
++          <ccTool>
++            <incDir>
++              <pElem>..</pElem>
++              <pElem>../miosix</pElem>
++              <pElem>../miosix/arch/common</pElem>
++              <pElem>../miosix/arch/cortexM3_stm32f2/common</pElem>
++              <pElem>../miosix/arch/cortexM3_stm32f2/stm32f207ze_als_camboard </pElem>
++            </incDir>
++            <preprocessorList>
++              <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
++              <Elem>_BOARD_SONY_NEWMAN</Elem>
++              <Elem>_MIOSIX</Elem>
++              <Elem>_POSIX_THREADS</Elem>
++            </preprocessorList>
++          </ccTool>
++        </makeTool>
++      </makefileType>
++      <item path="../main.cpp" ex="false" tool="1" flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/common/arch_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/common/interfaces-impl/endianness_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/LPC213x.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/board_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/stage_1_boot.s"
++            ex="false"
++            tool="4"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/arch_registers_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/console.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/delays.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/disk.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/gpio_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/portability.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/portability_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/common/drivers/dcc.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/common/drivers/dcc.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/common/drivers/stm32_hardware_rng.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/common/drivers/stm32_hardware_rng.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/CMSIS/core_cm3.c"
++            ex="false"
++            tool="0"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/CMSIS/core_cm3.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/CMSIS/stm32f10x.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/CMSIS/system_stm32f10x.c"
++            ex="false"
++            tool="0"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/CMSIS/system_stm32f10x.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/arch_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/drivers/serial.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/drivers/serial.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/interfaces-impl/arch_registers_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/interfaces-impl/delays.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/interfaces-impl/disk.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/interfaces-impl/endianness_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/interfaces-impl/gpio_impl.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/interfaces-impl/gpio_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/interfaces-impl/portability.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/common/interfaces-impl/portability_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery/board_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery/core/stage_1_boot.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery/interfaces-impl/bsp.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery/interfaces-impl/bsp_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery/interfaces-impl/console.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_mp3v2/board_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_mp3v2/core/stage_1_boot.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_mp3v2/interfaces-impl/bsp.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_mp3v2/interfaces-impl/bsp_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_mp3v2/interfaces-impl/console.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_mp3v2/interfaces-impl/hwmapping.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_strive_mini/board_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_strive_mini/core/stage_1_boot.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_strive_mini/interfaces-impl/bsp.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_strive_mini/interfaces-impl/bsp_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_strive_mini/interfaces-impl/console.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_strive_mini/interfaces-impl/hwmapping.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_redbull_v2/board_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_redbull_v2/core/stage_1_boot.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_redbull_v2/interfaces-impl/bsp.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_redbull_v2/interfaces-impl/bsp_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_redbull_v2/interfaces-impl/console.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_redbull_v2/interfaces-impl/hwmapping.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_stm3210e-eval/board_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_stm3210e-eval/core/stage_1_boot.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_stm3210e-eval/interfaces-impl/bsp.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_stm3210e-eval/interfaces-impl/bsp_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_stm3210e-eval/interfaces-impl/console.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/common/CMSIS/core_cm3.c"
++            ex="false"
++            tool="0"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/common/CMSIS/core_cm3.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/common/CMSIS/stm32f2xx.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/common/CMSIS/system_stm32f2xx.c"
++            ex="false"
++            tool="0"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/common/CMSIS/system_stm32f2xx.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/common/arch_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/arch_registers_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/disk.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/endianness_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/gpio_impl.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/gpio_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/portability.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/portability_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/board_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/bsp.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/bsp_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/console.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/delays.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f205rg_sony-newman/interfaces-impl/hwmapping.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/board_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/core/stage_1_boot.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/bsp.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/bsp_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/console-impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/console.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/delays.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ze_als_camboard/board_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ze_als_camboard/core/stage_1_boot.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ze_als_camboard/interfaces-impl/bsp.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ze_als_camboard/interfaces-impl/bsp_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ze_als_camboard/interfaces-impl/console-impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ze_als_camboard/interfaces-impl/console.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ze_als_camboard/interfaces-impl/delays.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ze_als_camboard/interfaces-impl/hwmapping.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/board_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/core/stage_1_boot.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/interfaces-impl/bsp.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/interfaces-impl/bsp_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/interfaces-impl/console-impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/interfaces-impl/console.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/interfaces-impl/delays.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/interfaces-impl/hwmapping.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/common/CMSIS/core_cm3.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/common/CMSIS/core_cmFunc.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/common/CMSIS/core_cmInstr.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/common/CMSIS/stm32l1xx.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/common/CMSIS/system_stm32l1xx.c"
++            ex="false"
++            tool="0"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/common/CMSIS/system_stm32l1xx.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/common/arch_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/arch_registers_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/delays.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/endianness_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/gpio_impl.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/gpio_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/portability.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/portability_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/stm32l151c8_als_mainboard/board_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/stm32l151c8_als_mainboard/core/stage_1_boot.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/stm32l151c8_als_mainboard/interfaces-impl/bsp.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/stm32l151c8_als_mainboard/interfaces-impl/bsp_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/stm32l151c8_als_mainboard/interfaces-impl/console-impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/stm32l151c8_als_mainboard/interfaces-impl/console.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM3_stm32l1/stm32l151c8_als_mainboard/interfaces-impl/hwmapping.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/CMSIS/core_cm4.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/CMSIS/core_cm4_simd.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/CMSIS/core_cmFunc.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/CMSIS/core_cmInstr.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/CMSIS/stm32f4xx.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/CMSIS/system_stm32f4xx.c"
++            ex="false"
++            tool="0"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/CMSIS/system_stm32f4xx.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/arch_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/arch_registers_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/delays.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/disk.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/endianness_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/gpio_impl.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/gpio_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/portability.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/portability_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_bitsboard/board_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_bitsboard/core/stage_1_boot.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_bitsboard/interfaces-impl/bsp.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_bitsboard/interfaces-impl/bsp_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_bitsboard/interfaces-impl/console-impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_bitsboard/interfaces-impl/console.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/board_settings.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/core/stage_1_boot.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/interfaces-impl/bsp.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/interfaces-impl/bsp_impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/interfaces-impl/console-impl.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/interfaces-impl/console.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/config/miosix_settings.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/e20/callback.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/e20/e20.cpp" ex="false" tool="1" flavor2="0">
++      </item>
++      <item path="../miosix/e20/e20.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/examples/asm/main.s" ex="false" tool="4" flavor2="0">
++      </item>
++      <item path="../miosix/examples/blinking_led/simple.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/examples/sad_trombone/adpcm.c"
++            ex="false"
++            tool="0"
++            flavor2="0">
++      </item>
++      <item path="../miosix/examples/sad_trombone/adpcm.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/examples/sad_trombone/convert.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/examples/sad_trombone/main.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/examples/sad_trombone/player.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/examples/sad_trombone/player.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/examples/sad_trombone/sad_trombone.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/examples/thread_native/native_thread_example.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/examples/thread_pthread/pthread_example.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/interfaces/arch_registers.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/interfaces/bsp.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/interfaces/console.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/interfaces/delays.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/interfaces/disk.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/interfaces/endianness.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/interfaces/gpio.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/interfaces/portability.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/buffer_queue.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/error.cpp" ex="false" tool="1" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/error.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/filesystem/diskio.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/filesystem/diskio.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/filesystem/ff.c" ex="false" tool="0" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/filesystem/ff.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/filesystem/filesystem.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/filesystem/filesystem.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/filesystem/integer.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/kernel.cpp" ex="false" tool="1" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/kernel.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/logging.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/pthread.cpp" ex="false" tool="1" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/pthread_private.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/scheduler/control/control_scheduler.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/scheduler/control/control_scheduler.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/scheduler/control/control_scheduler_types.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/scheduler/control/parameters.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/scheduler/edf/edf_scheduler.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/scheduler/edf/edf_scheduler.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/scheduler/edf/edf_scheduler_types.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/scheduler/priority/priority_scheduler.cpp"
++            ex="false"
++            tool="1"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/scheduler/priority/priority_scheduler.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/scheduler/priority/priority_scheduler_types.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/scheduler/sched_types.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/scheduler/scheduler.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/scheduler/tick_interrupt.h"
++            ex="false"
++            tool="3"
++            flavor2="0">
++      </item>
++      <item path="../miosix/kernel/stage_2_boot.cpp" ex="false" tool="1" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/sync.cpp" ex="false" tool="1" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/sync.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/syscalls.cpp" ex="false" tool="1" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/syscalls.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/syscalls_types.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/kernel/unistd.cpp" ex="false" tool="1" flavor2="0">
++      </item>
++      <item path="../miosix/miosix.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/testsuite/testsuite.cpp" ex="false" tool="1" flavor2="0">
++      </item>
++      <item path="../miosix/util/crc16.cpp" ex="false" tool="1" flavor2="0">
++      </item>
++      <item path="../miosix/util/crc16.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/util/lcd44780.cpp" ex="false" tool="1" flavor2="0">
++      </item>
++      <item path="../miosix/util/lcd44780.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/util/software_i2c.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/util/software_spi.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/util/util.cpp" ex="false" tool="1" flavor2="0">
++      </item>
++      <item path="../miosix/util/util.h" ex="false" tool="3" flavor2="0">
++      </item>
++      <item path="../miosix/util/version.cpp" ex="false" tool="1" flavor2="0">
++      </item>
++      <item path="../miosix/util/version.h" ex="false" tool="3" flavor2="0">
++      </item>
++    </conf>
+   </confs>
+ </configurationDescriptor>
+diff --git a/miosix_np_2/nbproject/private/configurations.xml b/miosix_np_2/nbproject/private/configurations.xml
+index 6cb1d04..3701528 100644
+--- a/miosix_np_2/nbproject/private/configurations.xml
++++ b/miosix_np_2/nbproject/private/configurations.xml
+@@ -156,6 +156,19 @@
+               </df>
+               <in>arch_settings.h</in>
+             </df>
++            <df name="stm32f205rg_sony-newman">
++              <df name="core">
++                <in>stage_1_boot.cpp</in>
++              </df>
++              <df name="interfaces-impl">
++                <in>bsp.cpp</in>
++                <in>bsp_impl.h</in>
++                <in>console.cpp</in>
++                <in>delays.cpp</in>
++                <in>hwmapping.h</in>
++              </df>
++              <in>board_settings.h</in>
++            </df>
+             <df name="stm32f207ig_stm3220g-eval">
+               <df name="core">
+                 <in>stage_1_boot.cpp</in>
+@@ -415,13 +428,13 @@
+       </toolsSet>
+       <compile>
+         <compiledirpicklist>
+-          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+           <compiledirpicklistitem>.</compiledirpicklistitem>
++          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+         </compiledirpicklist>
+         <compiledir>${AUTO_FOLDER}</compiledir>
+         <compilecommandpicklist>
+-          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+           <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
++          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+         </compilecommandpicklist>
+         <compilecommand>${AUTO_COMPILE}</compilecommand>
+       </compile>
+@@ -460,13 +473,13 @@
+       </toolsSet>
+       <compile>
+         <compiledirpicklist>
+-          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+           <compiledirpicklistitem>.</compiledirpicklistitem>
++          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+         </compiledirpicklist>
+         <compiledir>${AUTO_FOLDER}</compiledir>
+         <compilecommandpicklist>
+-          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+           <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
++          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+         </compilecommandpicklist>
+         <compilecommand>${AUTO_COMPILE}</compilecommand>
+       </compile>
+@@ -505,13 +518,13 @@
+       </toolsSet>
+       <compile>
+         <compiledirpicklist>
+-          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+           <compiledirpicklistitem>.</compiledirpicklistitem>
++          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+         </compiledirpicklist>
+         <compiledir>${AUTO_FOLDER}</compiledir>
+         <compilecommandpicklist>
+-          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+           <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
++          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+         </compilecommandpicklist>
+         <compilecommand>${AUTO_COMPILE}</compilecommand>
+       </compile>
+@@ -550,13 +563,13 @@
+       </toolsSet>
+       <compile>
+         <compiledirpicklist>
+-          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+           <compiledirpicklistitem>.</compiledirpicklistitem>
++          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+         </compiledirpicklist>
+         <compiledir>${AUTO_FOLDER}</compiledir>
+         <compilecommandpicklist>
+-          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+           <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
++          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+         </compilecommandpicklist>
+         <compilecommand>${AUTO_COMPILE}</compilecommand>
+       </compile>
+@@ -595,13 +608,13 @@
+       </toolsSet>
+       <compile>
+         <compiledirpicklist>
+-          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+           <compiledirpicklistitem>.</compiledirpicklistitem>
++          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+         </compiledirpicklist>
+         <compiledir>${AUTO_FOLDER}</compiledir>
+         <compilecommandpicklist>
+-          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+           <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
++          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+         </compilecommandpicklist>
+         <compilecommand>${AUTO_COMPILE}</compilecommand>
+       </compile>
+@@ -640,13 +653,13 @@
+       </toolsSet>
+       <compile>
+         <compiledirpicklist>
+-          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+           <compiledirpicklistitem>.</compiledirpicklistitem>
++          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+         </compiledirpicklist>
+         <compiledir>${AUTO_FOLDER}</compiledir>
+         <compilecommandpicklist>
+-          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+           <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
++          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+         </compilecommandpicklist>
+         <compilecommand>${AUTO_COMPILE}</compilecommand>
+       </compile>
+@@ -685,13 +698,13 @@
+       </toolsSet>
+       <compile>
+         <compiledirpicklist>
+-          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+           <compiledirpicklistitem>.</compiledirpicklistitem>
++          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+         </compiledirpicklist>
+         <compiledir>${AUTO_FOLDER}</compiledir>
+         <compilecommandpicklist>
+-          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+           <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
++          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+         </compilecommandpicklist>
+         <compilecommand>${AUTO_COMPILE}</compilecommand>
+       </compile>
+@@ -730,13 +743,13 @@
+       </toolsSet>
+       <compile>
+         <compiledirpicklist>
+-          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+           <compiledirpicklistitem>.</compiledirpicklistitem>
++          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+         </compiledirpicklist>
+         <compiledir>${AUTO_FOLDER}</compiledir>
+         <compilecommandpicklist>
+-          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+           <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
++          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+         </compilecommandpicklist>
+         <compilecommand>${AUTO_COMPILE}</compilecommand>
+       </compile>
+@@ -775,13 +788,13 @@
+       </toolsSet>
+       <compile>
+         <compiledirpicklist>
+-          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+           <compiledirpicklistitem>.</compiledirpicklistitem>
++          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+         </compiledirpicklist>
+         <compiledir>${AUTO_FOLDER}</compiledir>
+         <compilecommandpicklist>
+-          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+           <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
++          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+         </compilecommandpicklist>
+         <compilecommand>${AUTO_COMPILE}</compilecommand>
+       </compile>
+@@ -820,13 +833,13 @@
+       </toolsSet>
+       <compile>
+         <compiledirpicklist>
+-          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+           <compiledirpicklistitem>.</compiledirpicklistitem>
++          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+         </compiledirpicklist>
+         <compiledir>${AUTO_FOLDER}</compiledir>
+         <compilecommandpicklist>
+-          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+           <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
++          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+         </compilecommandpicklist>
+         <compilecommand>${AUTO_COMPILE}</compilecommand>
+       </compile>
+@@ -865,13 +878,13 @@
+       </toolsSet>
+       <compile>
+         <compiledirpicklist>
+-          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+           <compiledirpicklistitem>.</compiledirpicklistitem>
++          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+         </compiledirpicklist>
+         <compiledir>${AUTO_FOLDER}</compiledir>
+         <compilecommandpicklist>
+-          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+           <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
++          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+         </compilecommandpicklist>
+         <compilecommand>${AUTO_COMPILE}</compilecommand>
+       </compile>
+@@ -910,13 +923,13 @@
+       </toolsSet>
+       <compile>
+         <compiledirpicklist>
+-          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+           <compiledirpicklistitem>.</compiledirpicklistitem>
++          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+         </compiledirpicklist>
+         <compiledir>${AUTO_FOLDER}</compiledir>
+         <compilecommandpicklist>
+-          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+           <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
++          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+         </compilecommandpicklist>
+         <compilecommand>${AUTO_COMPILE}</compilecommand>
+       </compile>
+@@ -955,13 +968,58 @@
+       </toolsSet>
+       <compile>
+         <compiledirpicklist>
+-          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+           <compiledirpicklistitem>.</compiledirpicklistitem>
++          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+         </compiledirpicklist>
+         <compiledir>${AUTO_FOLDER}</compiledir>
+         <compilecommandpicklist>
++          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+           <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
++        </compilecommandpicklist>
++        <compilecommand>${AUTO_COMPILE}</compilecommand>
++      </compile>
++      <dbx_gdbdebugger version="1">
++        <gdb_pathmaps>
++        </gdb_pathmaps>
++        <gdb_interceptlist>
++          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
++        </gdb_interceptlist>
++        <gdb_options>
++          <DebugOptions>
++          </DebugOptions>
++        </gdb_options>
++        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
++      </dbx_gdbdebugger>
++      <nativedebugger version="1">
++        <engine>gdb</engine>
++      </nativedebugger>
++      <runprofile version="9">
++        <runcommandpicklist>
++          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
++        </runcommandpicklist>
++        <runcommand>"${OUTPUT_PATH}"</runcommand>
++        <rundir></rundir>
++        <buildfirst>true</buildfirst>
++        <terminal-type>0</terminal-type>
++        <remove-instrumentation>0</remove-instrumentation>
++        <environment>
++        </environment>
++      </runprofile>
++    </conf>
++    <conf name="stm32f205rg_sony-newman" type="0">
++      <toolsSet>
++        <developmentServer>localhost</developmentServer>
++        <platform>2</platform>
++      </toolsSet>
++      <compile>
++        <compiledirpicklist>
++          <compiledirpicklistitem>.</compiledirpicklistitem>
++          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
++        </compiledirpicklist>
++        <compiledir>${AUTO_FOLDER}</compiledir>
++        <compilecommandpicklist>
+           <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
++          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+         </compilecommandpicklist>
+         <compilecommand>${AUTO_COMPILE}</compilecommand>
+       </compile>
+diff --git a/miosix_np_2/nbproject/private/private.xml b/miosix_np_2/nbproject/private/private.xml
+index 0d841f0..5348947 100644
+--- a/miosix_np_2/nbproject/private/private.xml
++++ b/miosix_np_2/nbproject/private/private.xml
+@@ -5,7 +5,7 @@
+     </code-assistance-data>
+     <data xmlns="http://www.netbeans.org/ns/make-project-private/1">
+         <activeConfTypeElem>0</activeConfTypeElem>
+-        <activeConfIndexElem>10</activeConfIndexElem>
++        <activeConfIndexElem>2</activeConfIndexElem>
+     </data>
+     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/1"/>
+     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
+diff --git a/miosix_np_2/nbproject/project.xml b/miosix_np_2/nbproject/project.xml
+index 84a0765..cceeaa7 100644
+--- a/miosix_np_2/nbproject/project.xml
++++ b/miosix_np_2/nbproject/project.xml
+@@ -66,6 +66,10 @@
+                     <name>stm32f407vg_bitsboard</name>
+                     <type>0</type>
+                 </confElem>
++                <confElem>
++                    <name>stm32f205rg_sony-newman</name>
++                    <type>0</type>
++                </confElem>
+             </confList>
+         </data>
+     </configuration>
