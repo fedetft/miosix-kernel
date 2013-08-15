@@ -429,9 +429,9 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## error message saying that 'make program' is not supported for that
         ## board.
         ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_512k+64k_ram.ld)
-        PROGRAM_CMDLINE := sudo mp3v2_bootloader --ram main.bin
+        PROGRAM_CMDLINE := mp3v2_bootloader --ram main.bin
         else
-        PROGRAM_CMDLINE := sudo mp3v2_bootloader --code main.bin
+        PROGRAM_CMDLINE := mp3v2_bootloader --code main.bin
         endif
 
     ##-------------------------------------------------------------------------

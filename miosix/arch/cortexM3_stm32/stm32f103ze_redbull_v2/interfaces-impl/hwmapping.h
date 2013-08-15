@@ -37,6 +37,8 @@
 //LED
 //typedef Gpio<GPIOB_BASE,5> hwled; //Active high
 
+namespace miosix {
+
 //Display interface
 namespace disp {
 typedef Gpio<GPIOA_BASE, 1> backlight;
@@ -134,5 +136,7 @@ namespace buttons {
     typedef Gpio<GPIOA_BASE,8> user1;
     typedef Gpio<GPIOD_BASE,3> user2;
 }
+
+} //namespace miosix
 
 #endif //HWMAPPING_H

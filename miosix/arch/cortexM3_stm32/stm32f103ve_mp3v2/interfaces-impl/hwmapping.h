@@ -186,6 +186,6 @@ typedef Gpio<GPIOB_BASE,8>  pb8; //used to be Charger::en
 
 #ifdef _MIOSIX
 } //namespace miosix
-#else //_MIOSIX
+#endif //_MIOSIX
 
 #endif //HWMAPPING_H
