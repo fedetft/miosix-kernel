@@ -843,6 +843,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        arch/common/drivers/stm32f2_f4_i2c.cpp       \
         $(BOARD_INC)/interfaces-impl/console.cpp     \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp

@@ -31,6 +31,8 @@
 #include "interfaces/arch_registers.h"
 #include "kernel/sync.h"
 
+namespace miosix {
+
 /**
  * Class to access the hardware random number generator in Miosix
  * Works with the hardware RNG in stm32f2 and stm32f4
@@ -58,6 +60,9 @@ public:
     void get(void *buf, unsigned int size);
     
 private:
+    HardwareRng(const HardwareRng&);
+    HardwareRng& operator=(const HardwareRng&);
+    
     /**
      * Constructor
      */
@@ -86,5 +91,7 @@ private:
     miosix::FastMutex mutex; ///< To protect against concurrent access
     unsigned int old; ///< Previously read value
 };
+
+} //namespace miosix
 
 #endif //RNG_H

@@ -42,6 +42,8 @@
               <in>dcc.h</in>
               <in>stm32_hardware_rng.cpp</in>
               <in>stm32_hardware_rng.h</in>
+              <in>stm32f2_f4_i2c.cpp</in>
+              <in>stm32f2_f4_i2c.h</in>
             </df>
           </df>
           <df name="cortexM3_stm32">
