@@ -38,6 +38,8 @@
 #include "drivers/stm32_hardware_rng.h"
 #include "drivers/stm32f2_f4_i2c.h"
 #include "kernel/sync.h"
+#include <list>
+#include <tr1/functional>
 
 namespace miosix {
 
@@ -84,6 +86,11 @@ bool i2cReadReg(miosix::I2C1Driver& i2c, unsigned char dev, unsigned char reg,
         unsigned char& data);
 
 /**
+ * Vibrates the motor for x times, to allow to identify an error
+ */
+void errorMarker(int x);
+
+/**
  * This class contains all what regards power management on the watch.
  * The class can be safely used by multiple threads concurrently.
  */
@@ -119,6 +126,105 @@ public:
      */
     int getBatteryVoltage();
     
+    /**
+     * Possible values for the core frequency, to save power
+     */
+    enum CoreFrequency
+    {
+        FREQ_120MHz=120, ///< Default value is 120MHz
+        FREQ_26MHz=26    ///< 26MHz, to save power
+    };
+    
+    /**
+     * Allows to change the core frequency to reduce power consumption.
+     * Miosix by default boots at the highest frequency (120MHz).
+     * According to the datasheet, the microcontroller current consumption is
+     * this: (the difference between minimum and maximum depend on the number
+     * of peripherals that are emabled)
+     *        | Run mode    | Sleep mode  |
+     *        | min  | max  | min  | max  |
+     * 120MHz | 21mA | 49mA |  8mA | 38mA |
+     * 26MHz  |  5mA | 11mA |  3mA |  8mA |
+     * 
+     * For greater power savings consider entering deep sleep as well.
+     * 
+     * Note that changing the frequency takes a significant amount of time, and
+     * that if you are designing a multithreaded application, you have to make
+     * sure all your threads are in an interruptible point. For example, if
+     * you call this function while a thread is transfering data through I2C,
+     * it may cause problems.
+     */
+    void setCoreFrequency(CoreFrequency cf);
+    
+    /**
+     * \return the current core frequency 
+     */
+    CoreFrequency getCoreFrequency() const { return coreFreq; }
+    
+    /**
+     * Enters deep sleep. ST calls this mode "Stop". It completely turns off the
+     * microcontroller and its peripherals, minus the RTC. Power gating is not
+     * applied, so the CPU registers, RAM and peripheral contents are preserved.
+     * The current consumption goes down to 300uA, and with the 110mAh battery
+     * in the sony watch, it would last 366 hours in this state. The packaging
+     * of the watch says that the standby time is 330 hours, so this is clearly
+     * how they did it.
+     * 
+     * There are a few words of warning for using this mode, though
+     * - Entering/exiting deep sleep may take a significant time, so the sleep
+     *   time may not be precise down to the last millisecond.
+     * - You have to turn off all other stuff external to the microcontroller
+     *   that draw power to actually reduce the consumption to 300uA. If you
+     *   leave the display ON, or the accelerometer, the consumption will be
+     *   higher. The Driver for the battery voltage measurement and light sensor
+     *   already turn off the enable pin so don't worry.
+     * - If you are designing a multithreaded application, you have to make
+     *   sure all your threads are in an interruptible point. For example, if
+     *   you call this function while a thread is transfering data through I2C,
+     *   it may cause problems.
+     * - Also, the BSP needs to be optimized for low power, and this is a TODO.
+     *   Even leaving a single GPIO floating can significantly increase the
+     *   power consumption. Normally, I would do that using a multimeter to
+     *   measure current and an oscilloscope to probe around, but I don't want
+     *   to open my watch, and there is no schematic, which makes things harder.
+     *   For this reason, I can't guarantee that the current will be as low as
+     *   300uA.
+     * - Also, for now I've implemented only timed wakeup. What will be
+     *   interesting is to also have event wakeup. For example, wake up on
+     *   accelerometer tapping detected, or on RTC alarms that can be set at a
+     *   given date and time.
+     * 
+     * \param ms number of milliseconds to stay in deep sleep. Maximum is 30s
+     */
+    void goDeepSleep(int ms);
+    
+    /**
+     * Locking the power management allows to access hardware operation without
+     * the risk of a frequency change in the middle, or entering deep sleep.
+     * Since the power management exposes the lock() and unlock() member
+     * functions (i.e, the lockable concept), it can be treated as a mutex:
+     * \code
+     * {
+     *     Lock<PowerManagement> l(PowerManagement::instance());
+     *     //Do something without the risk of being interrupted by a frequency
+     *     //change
+     * }
+     * Note that you should eventually release the mutex, or calls to
+     * setCoreFrequency() and goDeepSleep() will never return. Also, if
+     * you are going to lock both the power management and the i2c mutex, make
+     * sure to always lock ithe i2c mutex <b>after</b> the power management, or
+     * a deadlock may occur.
+     * 
+     * \endcode
+     */
+    void lock() { powerManagementMutex.lock(); }
+    
+    /**
+     * Unlock the power management, allowing frequency changes and entering deep
+     * sleep again
+     */
+    void unlock() { powerManagementMutex.lock(); }
+    
 private:
     PowerManagement(const PowerManagement&);
     PowerManagement& operator=(const PowerManagement&);
@@ -128,13 +234,32 @@ private:
      */
     PowerManagement();
     
+    /**
+     * Reconfigure the system clock after the microcontroller has been in deep
+     * sleep. Can only be called with interrupts disabled.
+     */
+    void IRQsetSystemClock();
+    
+    /**
+     * Set clock prescalers based on clock frequency.
+     *  Can only be called with interrupts disabled.
+     */
+    void IRQsetPrescalers();
+    
+    /**
+     *  Set core frequency. Can only be called with interrupts disabled.
+     */
+    void IRQsetCoreFreq();
+    
     I2C1Driver &i2c;
     bool chargingAllowed;
-    FastMutex batteryMutex;
+    CoreFrequency coreFreq;
+    FastMutex powerManagementMutex;
+//    std::list<std::tr1::function<void (bool)> > notifier;
 };
 
 /**
- * This allows to retrieve the light value
+ * This class allows to retrieve the light value
  * The class can be safely used by multiple threads concurrently.
  */
 class LightSensor
@@ -146,7 +271,8 @@ public:
     static LightSensor& instance();
     
     /**
-     * \return the light value. The reading takes ~5ms 
+     * \return the light value. The reading takes ~5ms. Minimum is 0,
+     * maximum is TBD 
      */
     int read();
     
@@ -158,11 +284,44 @@ private:
      * Constructor
      */
     LightSensor();
-    
-    FastMutex lightMutex;
 };
 
+/**
+ * This class allows to retrieve the time
+ * The class can be safely used by multiple threads concurrently.
+ */
+class Rtc
+{
+public:
+    /**
+     * \return an instance of the power management class (singleton) 
+     */
+    static Rtc& instance();
 
+    /**
+     * \return the current time
+     */
+    struct tm getTime();
+    
+    /**
+     * \param time new time
+     */
+    void setTime(struct tm time);
+    
+    /**
+     * \return true if the time hasn't been set yet 
+     */
+    bool notSetYet() const;
+    
+private:
+    Rtc(const Rtc&);
+    Rtc& operator=(const Rtc&);
+    
+    /**
+     * Constructor
+     */
+    Rtc();
+};
 
 } //namespace miosix
 

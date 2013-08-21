@@ -43,31 +43,17 @@ using namespace std;
 
 namespace miosix {
 
-FastMutex i2cMutex;
-
-bool i2cWriteReg(miosix::I2C1Driver& i2c, unsigned char dev, unsigned char reg,
-        unsigned char data)
-{
-    const unsigned char buffer[]={reg,data};
-    return i2c.send(dev,buffer,sizeof(buffer));
-}
-
-bool i2cReadReg(miosix::I2C1Driver& i2c, unsigned char dev, unsigned char reg,
-        unsigned char& data)
-{
-    if(i2c.send(dev,&reg,1)==false) return false;
-    unsigned char temp;
-    if(i2c.recv(dev,&temp,1)==false) return false;
-    data=temp;
-    return true;
-}
-
 //
 // Initialization
 //
 
 void IRQbspInit()
 {
+    //Disable all interrupts that the bootloader 
+    NVIC->ICER[0]=0xffffffff;
+    NVIC->ICER[1]=0xffffffff;
+    NVIC->ICER[2]=0xffffffff;
+    NVIC->ICER[3]=0xffffffff;
     //Enable all gpios
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN
                   | RCC_AHB1ENR_GPIOBEN
@@ -224,6 +210,41 @@ void reboot()
     miosix_private::IRQsystemReboot();
 }
 
+//
+// Other board specific stuff
+//
+
+FastMutex i2cMutex;
+
+bool i2cWriteReg(miosix::I2C1Driver& i2c, unsigned char dev, unsigned char reg,
+        unsigned char data)
+{
+    const unsigned char buffer[]={reg,data};
+    return i2c.send(dev,buffer,sizeof(buffer));
+}
+
+bool i2cReadReg(miosix::I2C1Driver& i2c, unsigned char dev, unsigned char reg,
+        unsigned char& data)
+{
+    if(i2c.send(dev,&reg,1)==false) return false;
+    unsigned char temp;
+    if(i2c.recv(dev,&temp,1)==false) return false;
+    data=temp;
+    return true;
+}
+
+void errorMarker(int x)
+{
+    Thread::sleep(400);
+    for(int i=0;i<x;i++)
+    {
+        BUZER_PWM_Pin::high();
+        Thread::sleep(100);
+        BUZER_PWM_Pin::low();
+        Thread::sleep(400);
+    }
+}
+
 //As usual, since the PMU datasheet is unavailable (we don't even know what
 //chip it is), these are taken from underverk's code
 #define CHGSTATUS               0x01
@@ -316,7 +337,7 @@ int PowerManagement::getBatteryStatus()
 
 int PowerManagement::getBatteryVoltage()
 {
-    Lock<FastMutex> l(batteryMutex);
+    Lock<FastMutex> l(powerManagementMutex);
     power::BATT_V_ON_Pin::high(); //Enable battry measure circuitry
     ADC1->CR2=ADC_CR2_ADON; //Turn ADC ON
     Thread::sleep(5); //Wait for voltage to stabilize
@@ -324,12 +345,112 @@ int PowerManagement::getBatteryVoltage()
     while((ADC1->SR & ADC_SR_EOC)==0) ; //Wait for conversion
     int result=ADC1->DR; //Read result
     ADC1->CR2=0; //Turn ADC OFF
-    power::BATT_V_ON_Pin::low(); //Disable battery measure circuitry
+    power::BATT_V_ON_Pin::low(); //Disable battery measurement circuitry
     return result*4440/4095;
 }
 
+void PowerManagement::setCoreFrequency(CoreFrequency cf)
+{
+    if(cf==coreFreq) return;
+    
+    Lock<FastMutex> l(powerManagementMutex);
+    //We need to reconfigure I2C for the new frequency 
+    Lock<FastMutex> l2(i2cMutex);
+    
+    {
+        FastInterruptDisableLock dLock;
+        CoreFrequency oldCoreFreq=coreFreq;
+        coreFreq=cf; //Need to change this *before* setting prescalers/core freq
+        if(coreFreq>oldCoreFreq)
+        {
+            //We're increasing the frequency, so change prescalers first
+            IRQsetPrescalers();
+            IRQsetCoreFreq();
+        } else {
+            //We're decreasing the frequency, so change frequency first
+            IRQsetCoreFreq();
+            IRQsetPrescalers();
+        }
+        
+        //Changing frequency requires to change many things that depend on
+        //said frequency:
+        
+        //Miosix's preemption tick
+        SystemCoreClockUpdate();
+        SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;
+        SysTick->LOAD=SystemCoreClock/miosix::TICK_FREQ;
+        SysTick->CTRL |= SysTick_CTRL_ENABLE_Msk;
+        
+        //Miosix's auxiliary timer (if required)
+        #ifdef SCHED_TYPE_CONTROL_BASED
+        int timerClock=SystemCoreClock;
+        int apb1prescaler=(RCC->CFGR>>10) & 7;
+        if(apb1prescaler>4) timerClock>>=(apb1prescaler-4);
+        TIM3->CR1 &= ~TIM_CR1_CEN; //Stop timer
+        TIM3->PSC=(timerClock/miosix::AUX_TIMER_CLOCK)-1;
+        TIM3->CR1 |= TIM_CR1_CEN; //Start timer
+        #endif //SCHED_TYPE_CONTROL_BASED
+    }
+    
+    //And also reconfigure the I2C (can't change this with IRQ disabled)
+    i2c.init(); //Reinitialize after the frequency change
+}
+
+void PowerManagement::goDeepSleep(int ms)
+{
+    ms=min(30000,ms);
+    /*
+     * Going in deep sleep would interfere with USB communication. Also,
+     * there's no need for such an aggressive power optimization while we are
+     * connected to USB.
+     */
+    if(isUsbConnected())
+    {
+        Thread::sleep(ms);
+        return;
+    }
+    
+    Lock<FastMutex> l(powerManagementMutex);
+    //We don't use I2C, but we don't want other thread to mess with
+    //the hardware while the microcontroller is going in deep sleep
+    Lock<FastMutex> l2(i2cMutex);
+    
+    {
+        FastInterruptDisableLock dLock;
+        //Enable event 22 (RTC WKUP)
+        EXTI->EMR |= 1<<22;
+        EXTI->RTSR |= 1<<22;
+        
+        //These two values enable RTC write access
+        RTC->WPR=0xca;
+        RTC->WPR=0x53;
+        //Set wakeup time
+        RTC->CR &= ~RTC_CR_WUTE;
+        while((RTC->ISR & RTC_ISR_WUTWF)==0) ;
+        RTC->CR &= ~ RTC_CR_WUCKSEL; //timebase=32768/16=1024
+        RTC->WUTR=ms*2048/1000;
+        RTC->CR |= RTC_CR_WUTE | RTC_CR_WUTIE;
+        
+        //Enter stop mode by issuing a WFE
+        PWR->CR |= PWR_CR_FPDS  //Flash in power down while in stop
+                 | PWR_CR_LPDS; //Regulator in low power mode while in stop
+        SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk; //Select stop mode
+        __WFE();
+        SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk; //Unselect stop mode
+        
+        //Disable wakeup timer
+        RTC->CR &= ~(RTC_CR_WUTE | RTC_CR_WUTIE);
+        RTC->ISR &= ~RTC_ISR_WUTF; //~because these flags are cleared writing 0
+        
+        //After stop mode the microcontroller clock settings are lost, we are
+        //running with the HSI oscillator, so restart the PLL
+        IRQsetSystemClock();
+    }
+}
+
 PowerManagement::PowerManagement() : i2c(I2C1Driver::instance()),
-        chargingAllowed(true)
+        chargingAllowed(true), coreFreq(FREQ_120MHz),
+        powerManagementMutex(FastMutex::RECURSIVE)
 {
     {
         FastInterruptDisableLock dLock;
@@ -364,14 +485,74 @@ PowerManagement::PowerManagement() : i2c(I2C1Driver::instance()),
     if(i2cWriteReg(i2c,PMU_I2C_ADDRESS,CHGCONFIG1,config1)==false) error=true;
     if(i2cWriteReg(i2c,PMU_I2C_ADDRESS,CHGCONFIG2,config2)==false) error=true;
     if(i2cWriteReg(i2c,PMU_I2C_ADDRESS,DEFDCDC,defdcdc)==false) error=true;
-    if(!error) return;
-    //Should never happen
-    for(int i=0;i<10;i++)
+    if(error) errorMarker(10); //Should never happen
+    Rtc::instance(); //Sleep stuff depends on RTC, so it must be initialized
+}
+
+void PowerManagement::IRQsetSystemClock()
+{
+    //Turn on HSE and wait for it to stabilize
+    RCC->CR |= RCC_CR_HSEON;
+    while((RCC->CR & RCC_CR_HSERDY)==0) ;
+
+    //Configure PLL and turn it on
+    const int m=HSE_VALUE/1000000;
+    const int n=240;
+    const int p=2;
+    const int q=5;
+    RCC->PLLCFGR=m | (n<<6) | (((p/2)-1)<<16) | RCC_PLLCFGR_PLLSRC_HSE | (q<<24);
+    RCC->CR |= RCC_CR_PLLON;
+    while((RCC->CR & RCC_CR_PLLRDY)==0) ;
+    
+    IRQsetPrescalers();
+    IRQsetCoreFreq();
+}
+
+void PowerManagement::IRQsetPrescalers()
+{
+    RCC->CFGR &= ~(RCC_CFGR_HPRE | RCC_CFGR_PPRE1 | RCC_CFGR_PPRE2);
+    FLASH->ACR &= ~FLASH_ACR_LATENCY;
+    switch(coreFreq)
     {
-        BUZER_PWM_Pin::high();
-        Thread::sleep(200);
-        BUZER_PWM_Pin::low();
-        Thread::sleep(200);
+        case FREQ_120MHz:
+            RCC->CFGR |= RCC_CFGR_HPRE_DIV1;  //HCLK=SYSCLK
+            RCC->CFGR |= RCC_CFGR_PPRE2_DIV2; //PCLK2=HCLK/2
+            RCC->CFGR |= RCC_CFGR_PPRE1_DIV4; //PCLK1=HCLK/4
+            //Configure flash wait states
+            FLASH->ACR=FLASH_ACR_PRFTEN
+                     | FLASH_ACR_ICEN
+                     | FLASH_ACR_DCEN
+                     | FLASH_ACR_LATENCY_3WS;
+            break;
+        case FREQ_26MHz:
+            RCC->CFGR |= RCC_CFGR_HPRE_DIV1;  //HCLK=SYSCLK
+            RCC->CFGR |= RCC_CFGR_PPRE2_DIV1; //PCLK2=HCLK
+            RCC->CFGR |= RCC_CFGR_PPRE1_DIV1; //PCLK1=HCLK
+            //Configure flash wait states
+            FLASH->ACR=FLASH_ACR_PRFTEN
+                     | FLASH_ACR_ICEN
+                     | FLASH_ACR_DCEN
+                     | FLASH_ACR_LATENCY_0WS;
+            break;
+    }
+}
+
+void PowerManagement::IRQsetCoreFreq()
+{
+    //Note that we don't turn OFF the PLL when going to 26MHz. It's true, it
+    //draws power, but the USB and RNG use it so for now we'll be on the safe
+    //side and keep in active
+    RCC->CFGR &= ~(RCC_CFGR_SW);
+    switch(coreFreq)
+    {
+        case FREQ_120MHz:
+            RCC->CFGR |= RCC_CFGR_SW_PLL;
+            while((RCC->CFGR & RCC_CFGR_SWS)!=RCC_CFGR_SWS_PLL) ;
+            break;
+        case FREQ_26MHz:
+            RCC->CFGR |= RCC_CFGR_SW_HSE;
+            while((RCC->CFGR & RCC_CFGR_SWS)!=RCC_CFGR_SWS_HSE) ;
+            break;
     }
 }
 
@@ -387,7 +568,9 @@ LightSensor& LightSensor::instance()
 
 int LightSensor::read()
 {
-    Lock<FastMutex> l(lightMutex);
+    //Prevent frequency changes/entering deep sleep while reading light sensor
+    Lock<PowerManagement> l(PowerManagement::instance());
+    
     power::ENABLE_LIGHT_SENSOR_Pin::high(); //Enable battry measure circuitry
     ADC2->CR2=ADC_CR2_ADON; //Turn ADC ON
     Thread::sleep(5); //Wait for voltage to stabilize
@@ -411,6 +594,106 @@ LightSensor::LightSensor()
     ADC2->SQR1=0; //Do only one conversion
     ADC2->SQR2=0;
     ADC2->SQR3=14; //Convert channel 14 (light sensor)
+}
+
+//
+// class Rtc
+//
+
+Rtc& Rtc::instance()
+{
+    static Rtc singleton;
+    return singleton;
+}
+
+struct tm Rtc::getTime()
+{
+    while((RTC->ISR & RTC_ISR_RSF)==0) ; //Wait for registers to sync
+    unsigned int t,d;
+    for(;;)
+    {
+        t=RTC->TR;
+        d=RTC->DR;
+        if(t==RTC->TR) break;
+        //Otherwise the registers were updated while reading and may not
+        //reflect the same time instant, so retry
+    }
+    struct tm result;
+    #define BCD(x,y,z) (((x)>>(y)) & 0xf) + (((x)>>((y)+4)) & (z))*10
+    result.tm_sec=BCD(t,0,0x7);
+    result.tm_min=BCD(t,8,0x7);
+    result.tm_hour=BCD(t,16,0x7);
+    result.tm_mday=BCD(d,0,0x7);
+    result.tm_mon=BCD(d,8,0x1);
+    result.tm_year=BCD(d,16,0xf)+2000; //RTC has only two digits for year
+    int wdu=(d>>13) & 0x7;
+    result.tm_wday= (wdu>6) ? 0 : wdu; //Sunday is 0 for struct tm, 7 for RTC
+    result.tm_yday=0; //TODO
+    result.tm_isdst=0; //TODO
+    #undef BCD
+    return result;
+}
+
+void Rtc::setTime(tm time)
+{
+    time.tm_sec=min(59,time.tm_sec);
+    time.tm_min=min(59,time.tm_min);
+    time.tm_hour=min(23,time.tm_hour);
+    time.tm_mday=max(1,min(31,time.tm_mday));
+    time.tm_mon=max(1,min(12,time.tm_mon));
+    time.tm_wday=min(6,time.tm_wday);
+    int wdu= (time.tm_wday==0) ? 7 : time.tm_wday; //Sunday is 0 for struct tm, 7 for RTC
+    unsigned int t,d;
+    #define BCD(x,y,v) (x)|=(((v) % 10)<<(y) | ((v)/10)<<((y)+4)) 
+    t=0;
+    BCD(t,0,time.tm_sec);
+    BCD(t,8,time.tm_min);
+    BCD(t,16,time.tm_hour);
+    d=0;
+    BCD(d,0,time.tm_mday);
+    BCD(d,8,time.tm_mon);
+    BCD(d,16,time.tm_year-2000);
+    d|=wdu<<13;
+    #undef BCD
+    
+    //Prevent frequency changes/entering deep sleep while setting time
+    Lock<PowerManagement> l(PowerManagement::instance());
+    
+    //These two values enable RTC write access
+    RTC->WPR=0xca;
+    RTC->WPR=0x53;
+    RTC->ISR |= RTC_ISR_INIT;
+    while((RTC->ISR & RTC_ISR_INITF)==0) ; //Wait to enter writable mode
+    RTC->TR=t;
+    RTC->DR=d;
+    RTC->ISR &= ~RTC_ISR_INIT;
+}
+
+bool Rtc::notSetYet() const
+{
+    return (RTC->ISR & RTC_ISR_INITS)==0;
+}
+
+Rtc::Rtc()
+{
+    {
+        FastInterruptDisableLock dLock;
+        RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+        PWR->CR |= PWR_CR_DBP;         //Enable access to RTC registers
+        
+        //Without this reset, the LSEON bit is ignored, and code hangs at while
+        //However, this resets the RTC time. An alternative is to write many
+        //times the LSEON, RTCEN and RTCSEL_0 bits until they're set, but sadly
+        //RTC time is still not kept. TODO: fix this is possible
+        RCC->BDCR=RCC_BDCR_BDRST;
+        RCC->BDCR=0;
+        
+        RCC->BDCR=RCC_BDCR_LSEON       //External 32KHz oscillator enabled
+                | RCC_BDCR_RTCEN       //RTC enabled
+                | RCC_BDCR_RTCSEL_0;   //Select LSE as clock source for RTC
+    }
+    
+    while((RCC->BDCR & RCC_BDCR_LSERDY)==0) ; //Wait
 }
 
 } //namespace miosix
