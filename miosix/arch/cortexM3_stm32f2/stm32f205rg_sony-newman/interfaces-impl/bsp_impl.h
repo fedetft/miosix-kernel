@@ -91,6 +91,12 @@ bool i2cReadReg(miosix::I2C1Driver& i2c, unsigned char dev, unsigned char reg,
 void errorMarker(int x);
 
 /**
+ * Vibrates the motor for x times, to allow to identify an error,
+ * can be called with interrupts disabled
+ */
+void IRQerrorMarker(int x);
+
+/**
  * This class contains all what regards power management on the watch.
  * The class can be safely used by multiple threads concurrently.
  */

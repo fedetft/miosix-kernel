@@ -398,8 +398,13 @@ static void SetSysClock(void)
     }
    
     /* Configure Flash prefetch, Instruction cache, Data cache and wait state */
+#ifndef _BOARD_SONY_NEWMAN
     FLASH->ACR = FLASH_ACR_PRFTEN | FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_LATENCY_3WS;
-
+#else //_BOARD_SONY_NEWMAN
+    //By TFT: Three wait states seem to make it unstable (crashing) when CPU load is high
+    FLASH->ACR = FLASH_ACR_PRFTEN | FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_LATENCY_4WS;
+#endif //_BOARD_SONY_NEWMAN
+    
     /* Select the main PLL as system clock source */
     RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));
     RCC->CFGR |= RCC_CFGR_SW_PLL;

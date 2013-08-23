@@ -245,6 +245,18 @@ void errorMarker(int x)
     }
 }
 
+void IRQerrorMarker(int x)
+{
+    delayMs(400);
+    for(int i=0;i<x;i++)
+    {
+        BUZER_PWM_Pin::high();
+        delayMs(100);
+        BUZER_PWM_Pin::low();
+        delayMs(400);
+    }
+}
+
 //As usual, since the PMU datasheet is unavailable (we don't even know what
 //chip it is), these are taken from underverk's code
 #define CHGSTATUS               0x01
@@ -320,6 +332,7 @@ bool PowerManagement::isUsbConnected() const
 
 bool PowerManagement::isCharging()
 {
+    if(isUsbConnected()==false) return false;
     Lock<FastMutex> l(i2cMutex);
     unsigned char chgstatus;
     //During testing the i2c command never failed. If it does, we lie and say
@@ -519,10 +532,11 @@ void PowerManagement::IRQsetPrescalers()
             RCC->CFGR |= RCC_CFGR_PPRE2_DIV2; //PCLK2=HCLK/2
             RCC->CFGR |= RCC_CFGR_PPRE1_DIV4; //PCLK1=HCLK/4
             //Configure flash wait states
+            //Three wait states seem to make it unstable (crashing) when CPU load is high
             FLASH->ACR=FLASH_ACR_PRFTEN
                      | FLASH_ACR_ICEN
                      | FLASH_ACR_DCEN
-                     | FLASH_ACR_LATENCY_3WS;
+                     | FLASH_ACR_LATENCY_4WS;
             break;
         case FREQ_26MHz:
             RCC->CFGR |= RCC_CFGR_HPRE_DIV1;  //HCLK=SYSCLK

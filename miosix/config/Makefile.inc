@@ -853,7 +853,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         CXXFLAGS_BASE += -D_BOARD_SONY_NEWMAN
 
         ## Clock frequency
-        CLOCK_FREQ := -DHSE_VALUE=26000000 -DSYSCLK_FREQ_120MHz=120000000
+        CLOCK_FREQ := -DHSE_VALUE=26000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
