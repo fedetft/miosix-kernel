@@ -32,10 +32,6 @@ namespace miosix {
 
 void delayMs(unsigned int mseconds)
 {
-    #ifndef SYSCLK_FREQ_120MHz
-    #warning "Delays are uncalibrated for this clock frequency"    
-    #endif
-
     //This platform supports dynamic frequency scaling, two values: 120/26MHz
     //Note: delays were never tested agains an oscilloscope when the frequency
     //is 26MHz, so may not be accurate!
