@@ -229,7 +229,7 @@ public:
      * Unlock the power management, allowing frequency changes and entering deep
      * sleep again
      */
-    void unlock() { powerManagementMutex.lock(); }
+    void unlock() { powerManagementMutex.unlock(); }
     
 private:
     PowerManagement(const PowerManagement&);
