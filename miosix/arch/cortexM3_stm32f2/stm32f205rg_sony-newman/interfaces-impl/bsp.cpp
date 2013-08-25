@@ -638,7 +638,7 @@ struct tm Rtc::getTime()
     result.tm_min=BCD(t,8,0x7);
     result.tm_hour=BCD(t,16,0x7);
     result.tm_mday=BCD(d,0,0x7);
-    result.tm_mon=BCD(d,8,0x1);
+    result.tm_mon=BCD(d,8,0x1)-1; //-1 as tm_mon's range is 0..11
     //RTC has only two digits for year, and struct tm counts year from 1900
     result.tm_year=BCD(d,16,0xf)+100;
     int wdu=(d>>13) & 0x7;
@@ -666,7 +666,7 @@ void Rtc::setTime(tm time)
     BCD(t,16,time.tm_hour);
     d=0;
     BCD(d,0,time.tm_mday);
-    BCD(d,8,time.tm_mon);
+    BCD(d,8,time.tm_mon+1); //+1 as tm_mon's range is 0..11
     //RTC has only two digits for year, and struct tm counts year from 1900
     BCD(d,16,time.tm_year-100);
     d|=wdu<<13;
