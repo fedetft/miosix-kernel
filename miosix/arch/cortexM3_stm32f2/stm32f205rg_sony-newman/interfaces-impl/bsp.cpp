@@ -419,7 +419,18 @@ void PowerManagement::goDeepSleep(int ms)
      */
     if(isUsbConnected())
     {
-        Thread::sleep(ms);
+        if(wakeOnButton)
+        {
+            bool oldState=POWER_BTN_PRESS_Pin::value();
+            for(int i=0;i<ms;i++)
+            {
+                Thread::sleep(1);
+                bool newState=POWER_BTN_PRESS_Pin::value();
+                //Imitate edge detection, as the EXTI line would do
+                if(newState && !oldState) return;
+                oldState=newState;
+            }
+        } else Thread::sleep(ms);
         return;
     }
     
@@ -431,6 +442,14 @@ void PowerManagement::goDeepSleep(int ms)
     {
         FastInterruptDisableLock dLock;
         //Enable event 22 (RTC WKUP)
+        if(wakeOnButton)
+        {
+            EXTI->EMR |= 1<<11;
+            EXTI->RTSR |= 1<<11;
+        } else {
+            EXTI->EMR &= ~(1<<11);
+            EXTI->RTSR &= ~(1<<11);
+        }
         EXTI->EMR |= 1<<22;
         EXTI->RTSR |= 1<<22;
         
@@ -462,12 +481,17 @@ void PowerManagement::goDeepSleep(int ms)
 }
 
 PowerManagement::PowerManagement() : i2c(I2C1Driver::instance()),
-        chargingAllowed(true), coreFreq(FREQ_120MHz),
+        chargingAllowed(true), wakeOnButton(false), coreFreq(FREQ_120MHz),
         powerManagementMutex(FastMutex::RECURSIVE)
 {
     {
         FastInterruptDisableLock dLock;
-        RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
+        RCC->APB2ENR |= RCC_APB2ENR_ADC1EN | RCC_APB2ENR_SYSCFGEN;
+        //Configure PB1 (POWER_BUTTON) as EXTI input
+        SYSCFG->EXTICR[2] &= ~(0xf<<12);
+        SYSCFG->EXTICR[2] |= 1<<12;
+        //Then disable SYYSCFG access, as we don't need it anymore
+        RCC->APB2ENR &= ~RCC_APB2ENR_SYSCFGEN;
     }
     ADC1->CR1=0;
     ADC1->CR2=0; //Keep the ADC OFF to save power

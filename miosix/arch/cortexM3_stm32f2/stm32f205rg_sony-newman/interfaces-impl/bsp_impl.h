@@ -205,6 +205,19 @@ public:
     void goDeepSleep(int ms);
     
     /**
+     * Allows to configure if we should exit the deep sleep earlier than the
+     * timeout if the button is pressed (default is false)
+     * \param wake if true, pushing the button will make goDeepSleep() return
+     * before its timeout
+     */
+    void setWakeOnButton(bool wake) { wakeOnButton=wake; }
+    
+    /**
+     * \return true if wake on button is set 
+     */
+    bool getWakeOnButton() const { return wakeOnButton; }
+    
+    /**
      * Locking the power management allows to access hardware operation without
      * the risk of a frequency change in the middle, or entering deep sleep.
      * Since the power management exposes the lock() and unlock() member
@@ -259,6 +272,7 @@ private:
     
     I2C1Driver &i2c;
     bool chargingAllowed;
+    bool wakeOnButton;
     CoreFrequency coreFreq;
     FastMutex powerManagementMutex;
 //    std::list<std::tr1::function<void (bool)> > notifier;
