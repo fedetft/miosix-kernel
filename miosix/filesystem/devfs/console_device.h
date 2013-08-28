@@ -187,6 +187,13 @@ public:
     void IRQset(intrusive_ref_ptr<ConsoleDevice> console);
     
     /**
+     * Same as IRQset(), but can be called with interrupts enabled
+     * \param console device file handling console I/O. Can only be called with
+     * interrupts disabled. 
+     */
+    void set(intrusive_ref_ptr<ConsoleDevice> console) { IRQset(console); }
+    
+    /**
      * \return the currently installed console device, wrapped in a
      * TerminalDevice
      */

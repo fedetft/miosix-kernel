@@ -37,7 +37,7 @@ namespace miosix {
  */
 
 /**
- * The result of resolvePath(). This class is not in file_Access.h as
+ * The result of resolvePath(). This class is not in file_access.h as
  * resolvePath() is not meant to be called outside of this file.
  */
 class ResolvedPath
