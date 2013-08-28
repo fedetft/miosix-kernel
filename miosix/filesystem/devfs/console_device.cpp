@@ -177,14 +177,17 @@ void DefaultConsole::IRQset(intrusive_ref_ptr<ConsoleDevice> console)
 {
     //Note: should be safe to be called also outside of IRQ as set() calls
     //IRQset()
-    atomic_store(&rawConsole,console);
+    atomic_store(&this->console,console);
+    #ifndef WITH_FILESYSTEM
     atomic_store(&terminal,
-        intrusive_ref_ptr<TerminalDevice>(new TerminalDevice(rawConsole)));
+        intrusive_ref_ptr<TerminalDevice>(new TerminalDevice(console)));
+    #endif //WITH_FILESYSTEM
 }
 
-void DefaultConsole::checkInit()
-{
-    if(!rawConsole) set(intrusive_ref_ptr<ConsoleDevice>(new NullFile));
-}
+DefaultConsole::DefaultConsole() : console(new NullFile)
+#ifndef WITH_FILESYSTEM
+, terminal(console)
+#endif //WITH_FILESYSTEM      
+{}
 
 } //namespace miosix

@@ -1,5 +1,6 @@
 Changelog for Miosix np embedded OS
 
+- File abstraction layer: TerminalDevice is now instantiated in the FDT
 - File abstraction layer: Merged NullFile and NullConsoleDevice classes.
 - File abstraction layer: DeviceFile now implements a default version of
   lseek and fstat, to factorize common code from individual device files.

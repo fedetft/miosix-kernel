@@ -35,6 +35,7 @@
 #include <sys/stat.h>
 #include "file.h"
 #include "stringpart.h"
+#include "devfs/devfs.h"
 #include "kernel/sync.h"
 #include "kernel/intrusive.h"
 #include "config/miosix_settings.h"
@@ -351,8 +352,9 @@ private:
  * of /, such as /mnt. In case the bsp needs another filesystem setup, such as
  * having a fat32 filesystem as /, this function can't be used, but instead
  * the bsp needs to mount the filesystems manually.
+ * \return a pointer to the DevFs, so as to be able to add other device files
  */
-void basicFilesystemSetup();
+intrusive_ref_ptr<DevFs> basicFilesystemSetup();
 
 /**
  * \return a pointer to the file descriptor table associated with the

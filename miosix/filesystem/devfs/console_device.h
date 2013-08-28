@@ -197,38 +197,36 @@ public:
      * \return the currently installed console device, wrapped in a
      * TerminalDevice
      */
-    intrusive_ref_ptr<TerminalDevice> get()
-    {
-        checkInit();
-        return terminal;
-    }
+    intrusive_ref_ptr<ConsoleDevice> get() { return console; }
     
     /**
      * \return the currently installed console device.
      * Can be called with interrupts disabled or within an interrupt routine.
      */
-    intrusive_ref_ptr<ConsoleDevice> IRQget()
-    {
-        checkInit();
-        return rawConsole;
-    }
+    intrusive_ref_ptr<ConsoleDevice> IRQget() { return console; }
+    
+    #ifndef WITH_FILESYSTEM
+    /**
+     * \return the terminal device, when filesystem support is disabled.
+     * If filesystem is enabled, the terminal device can be found in the
+     * FileDescriptorTable
+     */
+    intrusive_ref_ptr<TerminalDevice> getTerminal() { return terminal; }
+    #endif //WITH_FILESYSTEM
     
 private:    
     /**
      * Constructor, private as it is a singleton
      */
-    DefaultConsole() {}
-    
-    /**
-     * Check if the console has been set
-     */
-    void checkInit();
+    DefaultConsole();
     
     DefaultConsole(const DefaultConsole&);
     DefaultConsole& operator= (const DefaultConsole&);
     
-    intrusive_ref_ptr<ConsoleDevice> rawConsole; ///< The raw console device
-    intrusive_ref_ptr<TerminalDevice> terminal;  ///< The wrapped console device
+    intrusive_ref_ptr<ConsoleDevice>  console;  ///< The raw console device
+    #ifndef WITH_FILESYSTEM
+    intrusive_ref_ptr<TerminalDevice> terminal; ///< The wrapped console device
+    #endif //WITH_FILESYSTEM
 };
 
 } //namespace miosix

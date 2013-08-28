@@ -2,7 +2,6 @@
 #include "file_access.h"
 #include <vector>
 #include <climits>
-#include "devfs/devfs.h"
 #include "mountpointfs/mountpointfs.h"
 #include "kernel/logging.h"
 
@@ -81,7 +80,8 @@ FileDescriptorTable::FileDescriptorTable()
     //We need to open stdin, stdout, stderr.
     //We're relying on open to choose the lowest numbered files slot
     open("/dev/console",0,0); //FIXME: flags is wrong
-    files[1]=files[2]=files[0];
+    files[0]=files[1]=files[2]=
+        intrusive_ref_ptr<FileBase>(new TerminalDevice(files[0]));
 }
 
 FileDescriptorTable::FileDescriptorTable(const FileDescriptorTable& rhs)
@@ -604,7 +604,7 @@ short int FilesystemManager::getFilesystemId()
 
 int FilesystemManager::devCount=1;
 
-void basicFilesystemSetup()
+intrusive_ref_ptr<DevFs> basicFilesystemSetup()
 {
     bootlog("Mounting MountpointFs as / ... ");
     FilesystemManager& fsm=FilesystemManager::instance();
@@ -615,8 +615,10 @@ void basicFilesystemSetup()
     string dev="/dev";
     StringPart sp(dev);
     int r1=rootFs->mkdir(sp,0755);
-    int r2=fsm.kmount("/dev",intrusive_ref_ptr<FilesystemBase>(new DevFs));
+    intrusive_ref_ptr<DevFs> result(new DevFs);
+    int r2=fsm.kmount("/dev",result);
     bootlog((r1==0 && r2==0) ? "Ok\r\n" : "Failed\r\n");
+    return result;
 }
 
 FileDescriptorTable& getFileDescriptorTable()
