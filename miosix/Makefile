@@ -23,10 +23,10 @@ filesystem/filesystem.cpp                                                  \
 filesystem/file_access.cpp                                                 \
 filesystem/file.cpp                                                        \
 filesystem/stringpart.cpp                                                  \
+filesystem/console/console_device.cpp                                      \
 filesystem/mountpointfs/mountpointfs.cpp                                   \
 filesystem/devfs/devfs.cpp                                                 \
 filesystem/devfs/base_files.cpp                                            \
-filesystem/devfs/console_device.cpp                                        \
 filesystem/fat32/ff.c                                                      \
 filesystem/fat32/diskio.cpp                                                \
 stdlib_integration/libc_integration.cpp                                    \

@@ -52,7 +52,7 @@
 #include "interfaces/endianness.h"
 #include "miosix/e20/e20.h"
 #include "kernel/intrusive.h"
-#include "filesystem/devfs/console_device.h"
+#include "filesystem/console/console_device.h"
 #include "util/crc16.h"
 
 using namespace std::tr1;

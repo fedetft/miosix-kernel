@@ -45,8 +45,6 @@ ssize_t NullFile::read(void *data, size_t len)
     return -EBADF;
 }
 
-void NullFile::IRQwrite(const char* str) {}
-
 //
 // class ZeroFile
 //

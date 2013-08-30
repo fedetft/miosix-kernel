@@ -45,7 +45,7 @@
 #include "kernel/logging.h"
 #include "drivers/serial.h"
 #include "filesystem/file_access.h"
-#include "filesystem/devfs/console_device.h"
+#include "filesystem/console/console_device.h"
 
 namespace miosix {
 

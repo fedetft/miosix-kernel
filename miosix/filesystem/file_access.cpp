@@ -2,6 +2,7 @@
 #include "file_access.h"
 #include <vector>
 #include <climits>
+#include "console/console_device.h"
 #include "mountpointfs/mountpointfs.h"
 #include "kernel/logging.h"
 
@@ -77,11 +78,8 @@ FileDescriptorTable::FileDescriptorTable()
     : mutex(FastMutex::RECURSIVE), cwd("/")
 {
     FilesystemManager::instance().addFileDescriptorTable(this);
-    //We need to open stdin, stdout, stderr.
-    //We're relying on open to choose the lowest numbered files slot
-    open("/dev/console",0,0); //FIXME: flags is wrong
-    files[0]=files[1]=files[2]=
-        intrusive_ref_ptr<FileBase>(new TerminalDevice(files[0]));
+    files[0]=files[1]=files[2]=intrusive_ref_ptr<FileBase>(
+        new TerminalDevice(DefaultConsole::instance().get()));
 }
 
 FileDescriptorTable::FileDescriptorTable(const FileDescriptorTable& rhs)

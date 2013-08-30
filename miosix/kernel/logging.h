@@ -29,7 +29,7 @@
 #define	LOGGING_H
 
 #include "config/miosix_settings.h"
-#include "filesystem/devfs/console_device.h"
+#include "filesystem/console/console_device.h"
 #include <cstring>
 
 namespace miosix {

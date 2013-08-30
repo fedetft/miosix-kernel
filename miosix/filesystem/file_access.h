@@ -358,10 +358,7 @@ intrusive_ref_ptr<DevFs> basicFilesystemSetup();
 
 /**
  * \return a pointer to the file descriptor table associated with the
- * current process. Note: make sure you don't call this function before
- * /dev/console exists (which implies that / and /dev are mounted, which is
- * usually done with basicFilesystemSetup()), otherwise stdin/stdout/stderr
- * won't be set up properly
+ * current process.
  */
 FileDescriptorTable& getFileDescriptorTable();
 

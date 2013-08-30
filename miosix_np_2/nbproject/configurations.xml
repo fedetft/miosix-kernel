@@ -304,11 +304,13 @@
           <in>e20.h</in>
         </df>
         <df name="filesystem">
+          <df name="console">
+            <in>console_device.cpp</in>
+            <in>console_device.h</in>
+          </df>
           <df name="devfs">
             <in>base_files.cpp</in>
             <in>base_files.h</in>
-            <in>console_device.cpp</in>
-            <in>console_device.h</in>
             <in>devfs.cpp</in>
             <in>devfs.h</in>
           </df>
@@ -1298,22 +1300,22 @@
       </item>
       <item path="../miosix/e20/e20.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="../miosix/filesystem/console/console_device.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/console/console_device.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/devfs/base_files.cpp"
             ex="false"
             tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -2415,22 +2417,22 @@
       </item>
       <item path="../miosix/e20/e20.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="../miosix/filesystem/console/console_device.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/console/console_device.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/devfs/base_files.cpp"
             ex="false"
             tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -3534,22 +3536,22 @@
       </item>
       <item path="../miosix/e20/e20.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="../miosix/filesystem/console/console_device.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/console/console_device.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/devfs/base_files.cpp"
             ex="false"
             tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -4653,22 +4655,22 @@
       </item>
       <item path="../miosix/e20/e20.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="../miosix/filesystem/console/console_device.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/console/console_device.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/devfs/base_files.cpp"
             ex="false"
             tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -5772,22 +5774,22 @@
       </item>
       <item path="../miosix/e20/e20.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="../miosix/filesystem/console/console_device.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/console/console_device.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/devfs/base_files.cpp"
             ex="false"
             tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -6891,22 +6893,22 @@
       </item>
       <item path="../miosix/e20/e20.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="../miosix/filesystem/console/console_device.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/console/console_device.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/devfs/base_files.cpp"
             ex="false"
             tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -8010,22 +8012,22 @@
       </item>
       <item path="../miosix/e20/e20.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="../miosix/filesystem/console/console_device.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/console/console_device.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/devfs/base_files.cpp"
             ex="false"
             tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -9127,22 +9129,22 @@
       </item>
       <item path="../miosix/e20/e20.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="../miosix/filesystem/console/console_device.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/console/console_device.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/devfs/base_files.cpp"
             ex="false"
             tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -10244,22 +10246,22 @@
       </item>
       <item path="../miosix/e20/e20.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="../miosix/filesystem/console/console_device.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/console/console_device.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/devfs/base_files.cpp"
             ex="false"
             tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -11361,22 +11363,22 @@
       </item>
       <item path="../miosix/e20/e20.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="../miosix/filesystem/console/console_device.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/console/console_device.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/devfs/base_files.cpp"
             ex="false"
             tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -12478,22 +12480,22 @@
       </item>
       <item path="../miosix/e20/e20.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="../miosix/filesystem/console/console_device.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/console/console_device.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/devfs/base_files.cpp"
             ex="false"
             tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -13595,22 +13597,22 @@
       </item>
       <item path="../miosix/e20/e20.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="../miosix/filesystem/console/console_device.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/console/console_device.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/devfs/base_files.cpp"
             ex="false"
             tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -14712,22 +14714,22 @@
       </item>
       <item path="../miosix/e20/e20.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="../miosix/filesystem/console/console_device.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/console/console_device.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/devfs/base_files.cpp"
             ex="false"
             tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/console_device.h"
             ex="false"
             tool="3"
             flavor2="0">

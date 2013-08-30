@@ -28,7 +28,8 @@
 #ifndef CONSOLE_DEVICE_H
 #define	CONSOLE_DEVICE_H
 
-#include "devfs.h"
+#include "filesystem/file.h"
+#include "kernel/sync.h"
 
 namespace miosix {
 
@@ -36,24 +37,54 @@ namespace miosix {
  * An extension to the FileBase interface that adds a new member function,
  * which is used by the kernel to write debug information before the kernel is
  * started or in case of serious errors, right before rebooting.
+ * This is not a pure virtual class, and the default implementation of all
+ * member functions does nothing, acting as a null console. To have a working
+ * console, board support packages should subclass it an implement read(),
+ * write() and IRQwrite().
  * Classes of this type are reference counted, must be allocated on the heap
- * and managed through intrusive_ref_ptr<DeviceFile>
+ * and managed through intrusive_ref_ptr<ConsoleDevice>
  */
-class ConsoleDevice : public DeviceFile
+class ConsoleDevice : public FileBase
 {
 public:
     /**
      * Constructor
      */
-    ConsoleDevice() {}
+    ConsoleDevice() : FileBase(intrusive_ref_ptr<FilesystemBase>()) {}
+    
+    /**
+     * This default implementation returns as if the data was written, but
+     * does nothing
+     */
+    virtual ssize_t write(const void *data, size_t len);
+    
+    /**
+     * This default implementation returns an error
+     */
+    virtual ssize_t read(void *data, size_t len);
+    
+    /**
+     * This implementation claims to be a character device
+     */
+    virtual off_t lseek(off_t pos, int whence);
+    
+    /**
+     * This implementation returns an error
+     */
+    virtual int fstat(struct stat *pstat) const;
+    
+    /**
+     * This implementation claims to be a tty
+     */
+    virtual int isatty() const;
     
     /**
      * Write a string to the Console.
      * Can ONLY be called when the kernel is not yet started, paused or within
-     * an interrupt.
+     * an interrupt. This default implementation ignores writes.
      * \param str the string to write. The string must be NUL terminated.
      */
-    virtual void IRQwrite(const char *str)=0;
+    virtual void IRQwrite(const char *str);
 };
 
 /**
@@ -64,7 +95,6 @@ class ConsoleAdapter : public ConsoleDevice
 public:
     virtual ssize_t write(const void *data, size_t len);
     virtual ssize_t read(void *data, size_t len);
-    virtual int isatty() const;
     virtual void IRQwrite(const char *str);
 };
 
@@ -72,7 +102,7 @@ public:
  * Teriminal device, proxy object supporting additional terminal-specific
  * features
  */
-class TerminalDevice : public DeviceFile
+class TerminalDevice : public FileBase
 {
 public:
     /**

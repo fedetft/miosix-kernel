@@ -29,14 +29,13 @@
 #define	BASE_FILES_H
 
 #include "devfs.h"
-#include "console_device.h"
 
 namespace miosix {
 
 /**
  * A file where write operations do nothing at all
  */
-class NullFile : public ConsoleDevice
+class NullFile : public DeviceFile
 {
 public:
     /**
@@ -62,14 +61,6 @@ public:
      * of errors
      */
     virtual ssize_t read(void *data, size_t len);
-    
-    /**
-     * Write a string to the Console.
-     * Can ONLY be called when the kernel is not yet started, paused or within
-     * an interrupt.
-     * \param str the string to write. The string must be NUL terminated.
-     */
-    virtual void IRQwrite(const char *str);
 };
 
 /**

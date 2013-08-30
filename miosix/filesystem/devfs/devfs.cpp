@@ -29,7 +29,6 @@
 #include <string>
 #include <errno.h>
 #include "base_files.h"
-#include "console_device.h"
 #include "filesystem/stringpart.h"
 
 using namespace std;
@@ -127,8 +126,6 @@ DevFs::DevFs() : inodeCount(1)
     addDeviceFile("/zero",intrusive_ref_ptr<DeviceFileGenerator>(
         new StatelessDeviceFileGenerator(
             intrusive_ref_ptr<DeviceFile>(new ZeroFile))));
-    addDeviceFile("/console",intrusive_ref_ptr<DeviceFileGenerator>(
-        new StatelessDeviceFileGenerator(DefaultConsole::instance().get())));
 }
 
 bool DevFs::addDeviceFile(const char* name,

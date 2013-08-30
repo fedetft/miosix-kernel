@@ -27,10 +27,50 @@
 
 #include "console_device.h"
 #include <errno.h>
-#include "base_files.h"
 #include <interfaces/console.h> //FIXME: remove
 
 namespace miosix {
+
+//
+// class ConsoleDevice
+//
+
+ssize_t ConsoleDevice::write(const void *data, size_t len)
+{
+    return len;
+}
+
+ssize_t ConsoleDevice::read(void *data, size_t len)
+{
+    return -EBADF;
+}
+
+off_t ConsoleDevice::lseek(off_t pos, int whence)
+{
+    switch(whence)
+    {
+        case SEEK_SET:
+        case SEEK_CUR:
+        case SEEK_END:
+            return -EBADF;
+        default:
+            return -EINVAL;
+    }
+}
+
+int ConsoleDevice::fstat(struct stat *pstat) const
+{
+    //TODO: st_dev and st_ino
+    memset(pstat,0,sizeof(struct stat));
+    pstat->st_mode=S_IFCHR | 0755;//crwxr-xr-x Character device
+    pstat->st_nlink=1;
+    pstat->st_blksize=0; //If zero means file buffer equals to BUFSIZ
+    return 0;
+}
+
+int ConsoleDevice::isatty() const { return 1; }
+
+void ConsoleDevice::IRQwrite(const char *str) {}
 
 //
 // class ConsoleAdapter
@@ -48,7 +88,6 @@ ssize_t ConsoleAdapter::read(void *data, size_t len)
     for(size_t i=0;i<len;i++) *d++=Console::readChar();
     return len;
 }
-int ConsoleAdapter::isatty() const { return 1; }
 void ConsoleAdapter::IRQwrite(const char* str)
 {
     Console::IRQwrite(str);
@@ -61,8 +100,8 @@ void ConsoleAdapter::IRQwrite(const char* str)
 //
 
 TerminalDevice::TerminalDevice(intrusive_ref_ptr<FileBase> device)
-        : device(device), mutex(), echo(true),
-          binary(false), skipNewline(false) {}
+        : FileBase(intrusive_ref_ptr<FilesystemBase>()), device(device),
+          mutex(), echo(true), binary(false), skipNewline(false) {}
 
 ssize_t TerminalDevice::write(const void *data, size_t len)
 {
@@ -184,7 +223,7 @@ void DefaultConsole::IRQset(intrusive_ref_ptr<ConsoleDevice> console)
     #endif //WITH_FILESYSTEM
 }
 
-DefaultConsole::DefaultConsole() : console(new NullFile)
+DefaultConsole::DefaultConsole() : console(new ConsoleDevice)
 #ifndef WITH_FILESYSTEM
 , terminal(console)
 #endif //WITH_FILESYSTEM      

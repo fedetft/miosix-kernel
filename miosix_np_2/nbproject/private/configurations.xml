@@ -308,11 +308,13 @@
           <in>e20.h</in>
         </df>
         <df name="filesystem">
+          <df name="console">
+            <in>console_device.cpp</in>
+            <in>console_device.h</in>
+          </df>
           <df name="devfs">
             <in>base_files.cpp</in>
             <in>base_files.h</in>
-            <in>console_device.cpp</in>
-            <in>console_device.h</in>
             <in>devfs.cpp</in>
             <in>devfs.h</in>
           </df>

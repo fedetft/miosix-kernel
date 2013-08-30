@@ -45,7 +45,7 @@
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
 #include "filesystem/file_access.h"
-#include "filesystem/devfs/console_device.h"
+#include "filesystem/console/console_device.h"
 
 /**
 \internal

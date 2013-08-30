@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- File abstraction layer: Moved console support out of DevFs, will allow
+  better code size reduction if DevFs is not needed
 - File abstraction layer: Addded support for stateless and stateful
   device files, added DeviceFileGenerator to support stateful devices.
 - File abstraction layer: TerminalDevice is now instantiated in the FDT
