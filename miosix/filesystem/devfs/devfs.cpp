@@ -56,12 +56,54 @@ off_t DeviceFile::lseek(off_t pos, int whence)
 int DeviceFile::fstat(struct stat* pstat) const
 {
     memset(pstat,0,sizeof(struct stat));
-    pstat->st_dev=this->st_dev;
-    pstat->st_ino=this->st_ino;
+    pstat->st_dev=parentDfg->getDev();
+    pstat->st_ino=parentDfg->getIno();
     pstat->st_mode=S_IFCHR | 0755;//crwxr-xr-x Character device
     pstat->st_nlink=1;
-    pstat->st_blksize=0; //Defualt file buffer equals to BUFSIZ
+    pstat->st_blksize=0; //If zero means file buffer equals to BUFSIZ
     return 0;
+}
+
+//
+// class DeviceFileGenerator
+//
+
+void DeviceFileGenerator::removeHook() {}
+
+DeviceFileGenerator::~DeviceFileGenerator() {}
+
+//
+// class StatelessDeviceFileGenerator
+//
+
+StatelessDeviceFileGenerator::StatelessDeviceFileGenerator(
+    intrusive_ref_ptr<DeviceFile> managedFile) : managedFile(managedFile)
+{
+    //Note1: this creates a loop of intrusive_ref_ptr, as the managed file
+    //holds a pointer to the managed StatelessDeviceFileGenerator, and viceversa
+    //but this is fixed by the removeHook()
+    //Note2: creating an intrusive_ref_ptr from this works since the reference
+    //count is intrusive, if ever we'll switch to shared_ptr, we'll need
+    //enable_sahred_from_this
+    managedFile->setDfg(intrusive_ref_ptr<DeviceFileGenerator>(this));
+}
+
+int StatelessDeviceFileGenerator::open(intrusive_ref_ptr<FileBase>& file,
+        int flags, int mode)
+{
+    file=managedFile;
+    return 0;
+}
+
+int StatelessDeviceFileGenerator::lstat(struct stat *pstat)
+{
+    return managedFile->fstat(pstat);
+}
+
+void StatelessDeviceFileGenerator::removeHook()
+{
+    //Break the cycle of smart pointers
+    managedFile=0;
 }
 
 //
@@ -70,12 +112,27 @@ int DeviceFile::fstat(struct stat* pstat) const
 
 DevFs::DevFs() : inodeCount(1)
 {
-    addDeviceFile("/null",intrusive_ref_ptr<DeviceFile>(new NullFile));
-    addDeviceFile("/zero",intrusive_ref_ptr<DeviceFile>(new ZeroFile));
-    addDeviceFile("/console",DefaultConsole::instance().get());
+    //This will increase openFilesCount to 1. Actually, we don't have an easy
+    //way to keep track of open files, due to StatelessFileGenerators having
+    //the managed file open also when no process has it open, and because
+    //having the DeviceFile's parent pointer point to the DevFs would generate
+    //a loop of refcounted pointers with stateless files. Simply, we don't
+    //recommend umounting DevFs, and to do so we leave openFilesCount
+    //permanently 1, so that only a forced umount can umount it
+    newFileOpened();
+    
+    addDeviceFile("/null",intrusive_ref_ptr<DeviceFileGenerator>(
+        new StatelessDeviceFileGenerator(
+            intrusive_ref_ptr<DeviceFile>(new NullFile))));
+    addDeviceFile("/zero",intrusive_ref_ptr<DeviceFileGenerator>(
+        new StatelessDeviceFileGenerator(
+            intrusive_ref_ptr<DeviceFile>(new ZeroFile))));
+    addDeviceFile("/console",intrusive_ref_ptr<DeviceFileGenerator>(
+        new StatelessDeviceFileGenerator(DefaultConsole::instance().get())));
 }
 
-bool DevFs::addDeviceFile(const char* name, intrusive_ref_ptr<DeviceFile> file)
+bool DevFs::addDeviceFile(const char* name,
+        intrusive_ref_ptr<DeviceFileGenerator> file)
 {
     if(name==0 || name[0]!='/' || name[1]=='\0') return false;
     int len=strlen(name);
@@ -90,27 +147,46 @@ bool DevFs::removeDeviceFile(const char* name)
 {
     if(name==0 || name[0]!='/' || name[1]=='\0') return false;
     Lock<FastMutex> l(mutex);
-    return files.erase(StringPart(name))==1;
+    map<StringPart,intrusive_ref_ptr<DeviceFileGenerator> >::iterator it;
+    it=files.find(StringPart(name));
+    if(it==files.end()) return false;
+    it->second->removeHook();
+    files.erase(StringPart(name));
+    return true;
+}
+
+bool DevFs::removeDeviceFile(intrusive_ref_ptr<DeviceFileGenerator> dfg)
+{
+    if(!dfg) return false;
+    Lock<FastMutex> l(mutex);
+    map<StringPart,intrusive_ref_ptr<DeviceFileGenerator> >::iterator it;
+    for(it=files.begin();it!=files.end();++it)
+    {
+        if(it->second!=dfg) continue;
+        it->second->removeHook();
+        files.erase(it);
+        return true;
+    }
+    return false;
 }
 
 int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         int flags, int mode)
 {
-    //TODO: mode & flags
     Lock<FastMutex> l(mutex);
-    map<StringPart,intrusive_ref_ptr<DeviceFile> >::iterator it=files.find(name);
+    map<StringPart,intrusive_ref_ptr<DeviceFileGenerator> >::iterator it;
+    it=files.find(name);
     if(it==files.end()) return -ENOENT;
-    file=it->second;
-    return 0;
+    return it->second->open(file,flags,mode);
 }
 
 int DevFs::lstat(StringPart& name, struct stat *pstat)
 {
     Lock<FastMutex> l(mutex);
-    map<StringPart,intrusive_ref_ptr<DeviceFile> >::iterator it=files.find(name);
+    map<StringPart,intrusive_ref_ptr<DeviceFileGenerator> >::iterator it;
+    it=files.find(name);
     if(it==files.end()) return -ENOENT;
-    it->second->fstat(pstat);
-    return 0;
+    return it->second->lstat(pstat);
 }
 
 int DevFs::mkdir(StringPart& name, int mode)
@@ -118,21 +194,13 @@ int DevFs::mkdir(StringPart& name, int mode)
     return -EACCES; // No directories support in DevFs yet
 }
 
-bool DevFs::areAllFilesClosed()
+DevFs::~DevFs()
 {
-    Lock<FastMutex> l(mutex);
-    //Can't use openFileCount in devFS, as one instance of each file is stored
-    //in the map. Rather, check the reference count value. No need to use
-    //atomic ops to make a copy of the file before calling use_count() as the
-    //existence of at least one reference in the map guarantees the file won't
-    //be deleted.
-    map<StringPart,intrusive_ref_ptr<DeviceFile> >::iterator it;
-    for(it=files.begin();it!=files.end();++it)
-        if(it->second.use_count()>1) return false;
-    return true;
+    map<StringPart,intrusive_ref_ptr<DeviceFileGenerator> >::iterator it;
+    for(it=files.begin();it!=files.end();++it) it->second->removeHook();
 }
 
-void DevFs::assignInode(intrusive_ref_ptr<DeviceFile> file)
+void DevFs::assignInode(intrusive_ref_ptr<DeviceFileGenerator> file)
 {
     file->setFileInfo(atomicAddExchange(&inodeCount,1),filesystemId);
 }

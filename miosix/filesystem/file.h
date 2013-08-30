@@ -178,7 +178,7 @@ public:
      * \internal
      * \return true if all files belonging to this filesystem are closed 
      */
-    virtual bool areAllFilesClosed();
+    bool areAllFilesClosed() { return openFileCount==0; }
     
     /**
      * \internal

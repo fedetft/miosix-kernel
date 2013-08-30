@@ -34,6 +34,9 @@
 
 namespace miosix {
 
+//Forward decls
+class DeviceFileGenerator;
+
 /**
  * All device files that are meant to be attached to DevFs must derive from this
  * class.
@@ -44,16 +47,18 @@ public:
     /**
      * Constructor
      */
-    DeviceFile() : FileBase(intrusive_ref_ptr<FilesystemBase>()),
-        st_ino(0), st_dev(0) {}
+    DeviceFile() : FileBase(intrusive_ref_ptr<FilesystemBase>()) {}
     
     /**
-     * Move file pointer, if the file supports random-access.
-     * \param pos offset to sum to the beginning of the file, current position
-     * or end of file, depending on whence
-     * \param whence SEEK_SET, SEEK_CUR or SEEK_END
-     * \return the offset from the beginning of the file if the operation
-     * completed, or a negative number in case of errors
+     * Constructor
+     * \param parentDfg the DeviceFileGenerator to which this file belongs
+     */
+    explicit DeviceFile(intrusive_ref_ptr<DeviceFileGenerator> parentDfg)
+        : FileBase(intrusive_ref_ptr<FilesystemBase>()), parentDfg(parentDfg) {}
+    
+    /**
+     * Default implementation that returns an error code, as most device file
+     * are not seekable.
      */
     virtual off_t lseek(off_t pos, int whence);
     
@@ -65,8 +70,66 @@ public:
     virtual int fstat(struct stat *pstat) const;
     
     /**
+     * Set the device file's parent DeviceFileGenerator
+     * \param parentDfg
+     */
+    void setDfg(intrusive_ref_ptr<DeviceFileGenerator> parentDfg)
+    {
+        this->parentDfg=parentDfg;
+    }
+    
+private:
+    intrusive_ref_ptr<DeviceFileGenerator> parentDfg;
+};
+
+/**
+ * Instances of this class take care of producing instances of a specific
+ * device file inside DevFs. Device file can be either stateful or stateless.
+ * Stateful device files, look like /proc/cpuinfo, They have a state represented
+ * by the point at which the process has arrived reading the file, and as such
+ * every time the device file is opened, a new instance has to be returned.
+ * To support that, the driver developer has to subclass DeviceFileGenerator
+ * and DeviceFile to implement the desired logic. Stateless device files are
+ * like /dev/random, where there is no state and every time a read or write is
+ * performed the same action is done. To support that, the driver developer
+ * needs to subclass DeviceFile only, and pass an instance of the subclass to an
+ * instance of StatelessDeviceFile.
+ * Classes of this type are reference counted, must be allocated on the heap
+ * and managed through intrusive_ref_ptr<FileBase>
+ */
+class DeviceFileGenerator : public IntrusiveRefCounted
+{
+public:
+    /**
+     * Constructor.
+     */
+    DeviceFileGenerator() {}
+
+    /**
+     * Return an instance of the file type managed by this DeviceFileGenerator
+     * \param file the file object will be stored here, if the call succeeds
+     * \param flags file flags (open for reading, writing, ...)
+     * \param mode file permissions
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int open(intrusive_ref_ptr<FileBase>& file, int flags, int mode)=0;
+    
+    /**
+     * Obtain information for the file type managed by this DeviceFileGenerator
+     * \param pstat file information is stored here
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int lstat(struct stat *pstat)=0;
+    
+    /**
+     * This member function is called if the device file managed by this
+     * DeviceFileGenerator is removed, or the DevFs is umounted.
+     */
+    virtual void removeHook();
+    
+    /**
      * \internal
-     * Called be DevFs to assign a device and inode to the file
+     * Called be DevFs to assign a device and inode to the DeviceFileGenerator
      */
     void setFileInfo(unsigned int st_ino, short st_dev)
     {
@@ -74,9 +137,69 @@ public:
         this->st_dev=st_dev;
     }
     
+    /**
+     * \return the inode of the file 
+     */
+    unsigned int getIno() const { return st_ino; }
+    
+    /**
+     * \return the device id of the file 
+     */
+    short getDev() const { return st_dev; }
+    
+    /**
+     * Destructor
+     */
+    virtual ~DeviceFileGenerator();
+    
 protected:
     unsigned int st_ino; ///< inode of device file
     short st_dev; ///< device (unique id of the filesystem) of device file
+    
+private:
+    DeviceFileGenerator(const DeviceFileGenerator&);
+    DeviceFileGenerator& operator=(const DeviceFileGenerator&);
+};
+
+/**
+ * This class handles stateless device files, where every time is opened, even
+ * from multiple processes, the same instance is returned.
+ * Classes of this type are reference counted, must be allocated on the heap
+ * and managed through intrusive_ref_ptr<FileBase>
+ */
+class StatelessDeviceFileGenerator : public DeviceFileGenerator
+{
+public:
+    /**
+     * Constructor
+     * \param managedFile the file that is returned every time open is called
+     */
+    StatelessDeviceFileGenerator(intrusive_ref_ptr<DeviceFile> managedFile);
+    
+    /**
+     * Return an instance of the file type managed by this DeviceFileGenerator
+     * \param file the file object will be stored here, if the call succeeds
+     * \param flags file flags (open for reading, writing, ...)
+     * \param mode file permissions
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int open(intrusive_ref_ptr<FileBase>& file, int flags, int mode);
+    
+    /**
+     * Obtain information for the file type managed by this DeviceFileGenerator
+     * \param pstat file information is stored here
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int lstat(struct stat *pstat);
+    
+    /**
+     * This member function is called if the device file managed by this
+     * DeviceFileGenerator is removed, or the DevFs is umounted.
+     */
+    virtual void removeHook();
+    
+private:
+    intrusive_ref_ptr<DeviceFile> managedFile;
 };
 
 /**
@@ -84,25 +207,14 @@ protected:
  * For this reason, it is a little different from other filesystems. Normal
  * filesystems create FileBase objects ondemand, to answer an open() call. Such
  * files have a parent pointer that points to the filesystem. On the contrary,
- * DevFs is a collection of device files. Each device file is a different
- * subclass of FileBase that overrides some of its member functions to access
- * the handled device. These FileBase subclasses do not have a parent pointer
- * into DevFs, instead, DevFs holds a map of device names and pointers into
- * these derived FileBase objects, which always exist, even if they are not
- * opened anywere. Opening the same file name multiple times returns the same
- * instance of the file object.
- * 
- * The reason why device files can't have the parent pointer that points into
- * DevFs is that DevFs already has a pointer into those files, and since they're
- * both refcounted pointers that would be a cycle of refcounted pointer that
- * would cause problem if DevFs is ever umounted.
- * 
- * Also a note on the behaviour when umounting DevFs: since the files don't
- * have a parent pointer into DevFs umounting DevFs will immediately delete
- * the filesystem, while the individual files won't be deleted until the
- * processes that have them opened close them. This isn't an unreasonable
- * behaviour, and also it must be considered that umounting DevFs shouldn't
- * happen in most practical cases.
+ * DevFs is a collection of DeviceFileGenerators, some of which are stateful,
+ * while other are stateless. Each device file is a different subclass of
+ * FileBase that overrides some of its member functions to access the handled
+ * device. These FileBase subclasses do not have a parent pointer into DevFs,
+ * and as such umounting DevFs should better be avoided, as it's not possible
+ * to detect if some of its files are currently opened by some application.
+ * What will happen is that the individual files (and DeviceFileGenerators)
+ * won't be deleted until the processes that have them opened close them.
  */
 class DevFs : public FilesystemBase
 {
@@ -114,11 +226,12 @@ public:
     
     /**
      * Add a device file to DevFs
-     * \param name File name, must start with a slash.
-     * \param file file to add
+     * \param name File name, must start with a slash
+     * \param dfg Device file generator
      * \return true if the file was successfully added
      */
-    bool addDeviceFile(const char *name, intrusive_ref_ptr<DeviceFile> file);
+    bool addDeviceFile(const char *name, intrusive_ref_ptr<DeviceFileGenerator>
+            dfg);
     
     /**
      * Remove a device file. This prevents the file from being opened again,
@@ -129,6 +242,16 @@ public:
      * \return true if the file was successfully removed
      */
     bool removeDeviceFile(const char *name);
+    
+    /**
+     * Remove a device file. This prevents the file from being opened again,
+     * but if at the time this member function is called the file is already
+     * opened, it won't be deallocated till the application closes it, thanks
+     * to the reference counting scheme.
+     * \param dfg the DeviceFileGenerator to remove
+     * \return true if the file was successfully removed
+     */
+    bool removeDeviceFile(intrusive_ref_ptr<DeviceFileGenerator> dfg);
     
     /**
      * Open a file
@@ -160,16 +283,19 @@ public:
     virtual int mkdir(StringPart& name, int mode);
     
     /**
-     * \internal
-     * \return true if all files belonging to this filesystem are closed 
+     * Destructor
      */
-    virtual bool areAllFilesClosed();
+    virtual ~DevFs();
     
 private:
-    void assignInode(intrusive_ref_ptr<DeviceFile> file);
+    /**
+     * Assign an unique inode to the file
+     * \param file file in need of an inode
+     */
+    void assignInode(intrusive_ref_ptr<DeviceFileGenerator> file);
     
     FastMutex mutex;
-    std::map<StringPart,intrusive_ref_ptr<DeviceFile> > files;
+    std::map<StringPart,intrusive_ref_ptr<DeviceFileGenerator> > files;
     int inodeCount;
 };
 

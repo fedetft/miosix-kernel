@@ -67,8 +67,6 @@ int FilesystemBase::readlink(StringPart& name, string& target)
 
 bool FilesystemBase::supportsSymlinks() const { return false; }
 
-bool FilesystemBase::areAllFilesClosed() { return openFileCount==0; }
-
 void FilesystemBase::fileCloseHook() { atomicAdd(&openFileCount,-1); }
 
 void FilesystemBase::newFileOpened() { atomicAdd(&openFileCount,1); }
