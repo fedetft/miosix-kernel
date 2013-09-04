@@ -1,5 +1,11 @@
 Changelog for Miosix np embedded OS
 
+- Fixed support for compiling kernel without WITH_FILESYSTEM and added
+  WITH_DEVFS config option to fine-tune code size for a given application.
+- File abstraction layer: Finished implementing DevFs with working
+  StatelessDeviceFile, and DeviceFileGenerator for stateful files.
+  Added MEssageFileGenerator to support /proc/cpuinfo-like stateful
+  files.
 - File abstraction layer: Moved console support out of DevFs, will allow
   better code size reduction if DevFs is not needed
 - File abstraction layer: Addded support for stateless and stateful

@@ -29,13 +29,16 @@
 #define	BASE_FILES_H
 
 #include "devfs.h"
+#include "config/miosix_settings.h"
+
+#ifdef WITH_DEVFS
 
 namespace miosix {
 
 /**
  * A file where write operations do nothing at all
  */
-class NullFile : public DeviceFile
+class NullFile : public StatelessDeviceFile
 {
 public:
     /**
@@ -66,7 +69,7 @@ public:
 /**
  * A file where read operations return zeroed out memory
  */
-class ZeroFile : public DeviceFile
+class ZeroFile : public StatelessDeviceFile
 {
 public:
     /**
@@ -94,6 +97,86 @@ public:
     virtual ssize_t read(void *data, size_t len);
 };
 
+/**
+ * A DeviceFileGenerator that produces files like /proc/cpuinfo, with
+ * a message that can be read by the application. Message is sampled when
+ * the file is opened. 
+ */
+class MessageFileGenerator : public DeviceFileGenerator
+{
+public:
+    /**
+     * Return an instance of the file type managed by this DeviceFileGenerator
+     * \param file the file object will be stored here, if the call succeeds
+     * \param flags file flags (open for reading, writing, ...)
+     * \param mode file permissions
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int open(intrusive_ref_ptr<FileBase>& file, int flags, int mode);
+    
+    /**
+     * Set the returned message
+     * \param message the new message
+     */
+    void setMessage(std::string message)
+    {
+        Lock<FastMutex> l(mutex);
+        this->message=message;
+    }
+    
+    /**
+     * \return the current message
+     */
+    std::string getMessage() const
+    {
+        Lock<FastMutex> l(mutex);
+        return message;
+    }
+    
+private:
+    /**
+     * The stateful class which handles reading the message
+     */
+    class MessageFile : public StatefulDeviceFile
+    {
+    public:
+        /**
+         * Constructor
+         * \param parent the filesystem to which this file belongs
+         */
+        MessageFile(intrusive_ref_ptr<DeviceFileGenerator> dfg, std::string m)
+            : StatefulDeviceFile(dfg), message(m), index(0) {}
+        
+        /**
+         * Write data to the file, if the file supports writing.
+         * \param data the data to write
+         * \param len the number of bytes to write
+         * \return the number of written characters, or a negative number in
+         * case of errors
+         */
+        virtual ssize_t write(const void *data, size_t len);
+        
+        /**
+         * Read data from the file, if the file supports reading.
+         * \param data buffer to store read data
+         * \param len the number of bytes to read
+         * \return the number of read characters, or a negative number in
+         * case of errors
+         */
+        virtual ssize_t read(void *data, size_t len);
+        
+    private:
+        FastMutex mutex;
+        std::string message;
+        int index;
+    };
+    
+    mutable FastMutex mutex;
+    std::string message;
+};
+
 } //namespace miosix
+
+#endif //WITH_DEVFS
 
 #endif //BASE_FILES_H

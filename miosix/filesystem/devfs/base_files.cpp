@@ -28,8 +28,11 @@
 #include "base_files.h"
 #include <errno.h>
 
-namespace miosix {
+using namespace std;
 
+#ifdef WITH_DEVFS
+
+namespace miosix {
 
 //
 // class NullFile
@@ -60,4 +63,41 @@ ssize_t ZeroFile::read(void *data, size_t len)
     return len;
 }
 
+//
+// class MessageFileGenerator
+//
+
+int MessageFileGenerator::open(intrusive_ref_ptr<FileBase>& file, int flags,
+        int mode)
+{
+    //TODO: add enable_shared_from_this!!
+    Lock<FastMutex> l(mutex);
+    file=intrusive_ref_ptr<FileBase>(
+        new MessageFile(intrusive_ref_ptr<DeviceFileGenerator>(this),message));
+    return 0;
+}
+
+//
+// class MessageFileGenerator::MessageFile
+//
+
+ssize_t MessageFileGenerator::MessageFile::write(const void* data, size_t len)
+{
+    return -EBADF;
+}
+
+ssize_t MessageFileGenerator::MessageFile::read(void* data, size_t len)
+{
+    //The mutex is important, since if two threads call read the resulting race
+    //condition could cause index>length(), so length()-index becomes a high
+    //positive value and that could allow dumping part of the kernel memory
+    Lock<FastMutex> l(mutex);
+    size_t toRead=min(len,message.length()-index);
+    memcpy(data,message.c_str()+index,toRead);
+    index+=toRead;
+    return toRead;
+}
+
 } //namespace miosix
+
+#endif //WITH_DEVFS

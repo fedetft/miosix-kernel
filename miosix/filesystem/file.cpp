@@ -58,7 +58,11 @@ FileBase::~FileBase()
 //
 
 FilesystemBase::FilesystemBase() :
+#ifdef WITH_FILESYSTEM
         filesystemId(FilesystemManager::getFilesystemId()), openFileCount(0) {}
+#else //WITH_FILESYSTEM
+        filesystemId(0), openFileCount(0) {}
+#endif //WITH_FILESYSTEM
 
 int FilesystemBase::readlink(StringPart& name, string& target)
 {

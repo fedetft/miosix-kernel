@@ -8,6 +8,8 @@
 
 using namespace std;
 
+#ifdef WITH_FILESYSTEM
+
 namespace miosix {
 
 /*
@@ -602,13 +604,19 @@ short int FilesystemManager::getFilesystemId()
 
 int FilesystemManager::devCount=1;
 
-intrusive_ref_ptr<DevFs> basicFilesystemSetup()
+#ifdef WITH_DEVFS
+intrusive_ref_ptr<DevFs> //return value is a pointer to DevFs
+#else //WITH_DEVFS
+void                     //return value is void
+#endif //WITH_DEVFS
+basicFilesystemSetup()
 {
     bootlog("Mounting MountpointFs as / ... ");
     FilesystemManager& fsm=FilesystemManager::instance();
     intrusive_ref_ptr<FilesystemBase> rootFs(new MountpointFs);
     bootlog(fsm.kmount("/",rootFs)==0 ? "Ok\r\n" : "Failed\r\n");
     
+    #ifdef WITH_DEVFS
     bootlog("Mounting DevFs as /dev ... ");
     string dev="/dev";
     StringPart sp(dev);
@@ -617,6 +625,7 @@ intrusive_ref_ptr<DevFs> basicFilesystemSetup()
     int r2=fsm.kmount("/dev",result);
     bootlog((r1==0 && r2==0) ? "Ok\r\n" : "Failed\r\n");
     return result;
+    #endif //WITH_DEVFS
 }
 
 FileDescriptorTable& getFileDescriptorTable()
@@ -631,3 +640,5 @@ FileDescriptorTable& getFileDescriptorTable()
 }
 
 } //namespace miosix
+
+#endif //WITH_FILESYSTEM

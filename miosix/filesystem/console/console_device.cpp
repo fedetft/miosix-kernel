@@ -225,7 +225,7 @@ void DefaultConsole::IRQset(intrusive_ref_ptr<ConsoleDevice> console)
 
 DefaultConsole::DefaultConsole() : console(new ConsoleDevice)
 #ifndef WITH_FILESYSTEM
-, terminal(console)
+, terminal(new TerminalDevice(console))
 #endif //WITH_FILESYSTEM      
 {}
 

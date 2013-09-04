@@ -28,12 +28,25 @@
 #include "devfs.h"
 #include <string>
 #include <errno.h>
+#include <fcntl.h>
 #include "base_files.h"
 #include "filesystem/stringpart.h"
 
 using namespace std;
 
+#ifdef WITH_DEVFS
+
 namespace miosix {
+
+static void fillStatHelper(struct stat* pstat, unsigned int st_ino, short st_dev)
+{
+    memset(pstat,0,sizeof(struct stat));
+    pstat->st_dev=st_dev;
+    pstat->st_ino=st_ino;
+    pstat->st_mode=S_IFCHR | 0755;//crwxr-xr-x Character device
+    pstat->st_nlink=1;
+    pstat->st_blksize=0; //If zero means file buffer equals to BUFSIZ
+}
 
 //
 // class DeviceFile
@@ -52,14 +65,24 @@ off_t DeviceFile::lseek(off_t pos, int whence)
     }
 }
 
-int DeviceFile::fstat(struct stat* pstat) const
+//
+// class StatelessDeviceFile
+//
+
+int StatelessDeviceFile::fstat(struct stat* pstat) const
 {
-    memset(pstat,0,sizeof(struct stat));
-    pstat->st_dev=parentDfg->getDev();
-    pstat->st_ino=parentDfg->getIno();
-    pstat->st_mode=S_IFCHR | 0755;//crwxr-xr-x Character device
-    pstat->st_nlink=1;
-    pstat->st_blksize=0; //If zero means file buffer equals to BUFSIZ
+    fillStatHelper(pstat,st_ino,st_dev);
+    return 0;
+}
+
+//
+// class StatefulDeviceFile
+//
+
+int StatefulDeviceFile::fstat(struct stat *pstat) const
+{
+    pair<unsigned int,short> fi=dfg->getFileInfo();
+    fillStatHelper(pstat,fi.first,fi.second);
     return 0;
 }
 
@@ -67,43 +90,13 @@ int DeviceFile::fstat(struct stat* pstat) const
 // class DeviceFileGenerator
 //
 
-void DeviceFileGenerator::removeHook() {}
-
-DeviceFileGenerator::~DeviceFileGenerator() {}
-
-//
-// class StatelessDeviceFileGenerator
-//
-
-StatelessDeviceFileGenerator::StatelessDeviceFileGenerator(
-    intrusive_ref_ptr<DeviceFile> managedFile) : managedFile(managedFile)
+int DeviceFileGenerator::lstat(struct stat *pstat)
 {
-    //Note1: this creates a loop of intrusive_ref_ptr, as the managed file
-    //holds a pointer to the managed StatelessDeviceFileGenerator, and viceversa
-    //but this is fixed by the removeHook()
-    //Note2: creating an intrusive_ref_ptr from this works since the reference
-    //count is intrusive, if ever we'll switch to shared_ptr, we'll need
-    //enable_sahred_from_this
-    managedFile->setDfg(intrusive_ref_ptr<DeviceFileGenerator>(this));
-}
-
-int StatelessDeviceFileGenerator::open(intrusive_ref_ptr<FileBase>& file,
-        int flags, int mode)
-{
-    file=managedFile;
+    fillStatHelper(pstat,st_ino,st_dev);
     return 0;
 }
 
-int StatelessDeviceFileGenerator::lstat(struct stat *pstat)
-{
-    return managedFile->fstat(pstat);
-}
-
-void StatelessDeviceFileGenerator::removeHook()
-{
-    //Break the cycle of smart pointers
-    managedFile=0;
-}
+DeviceFileGenerator::~DeviceFileGenerator() {}
 
 //
 // class DevFs
@@ -111,79 +104,45 @@ void StatelessDeviceFileGenerator::removeHook()
 
 DevFs::DevFs() : inodeCount(1)
 {
-    //This will increase openFilesCount to 1. Actually, we don't have an easy
-    //way to keep track of open files, due to StatelessFileGenerators having
-    //the managed file open also when no process has it open, and because
-    //having the DeviceFile's parent pointer point to the DevFs would generate
-    //a loop of refcounted pointers with stateless files. Simply, we don't
-    //recommend umounting DevFs, and to do so we leave openFilesCount
-    //permanently 1, so that only a forced umount can umount it
+    //This will increase openFilesCount to 1, because we don't have an easy way
+    //to keep track of open files, due to DeviceFileWrapper having stateless
+    //device files open also when no process has it open, and because having
+    //the DeviceFile's parent pointer point to the DevFs would generate a loop
+    //of refcounted pointers with stateless files. Simply, we don't recommend
+    //umounting DevFs, and to do so we leave openFilesCount permanently to 1,
+    //so that only a forced umount can umount it.
     newFileOpened();
     
-    addDeviceFile("/null",intrusive_ref_ptr<DeviceFileGenerator>(
-        new StatelessDeviceFileGenerator(
-            intrusive_ref_ptr<DeviceFile>(new NullFile))));
-    addDeviceFile("/zero",intrusive_ref_ptr<DeviceFileGenerator>(
-        new StatelessDeviceFileGenerator(
-            intrusive_ref_ptr<DeviceFile>(new ZeroFile))));
+    addDeviceFile("/null",intrusive_ref_ptr<StatelessDeviceFile>(new NullFile));
+    addDeviceFile("/zero",intrusive_ref_ptr<StatelessDeviceFile>(new ZeroFile));
 }
 
-bool DevFs::addDeviceFile(const char* name,
-        intrusive_ref_ptr<DeviceFileGenerator> file)
-{
-    if(name==0 || name[0]!='/' || name[1]=='\0') return false;
-    int len=strlen(name);
-    for(int i=1;i<len;i++) if(name[i]=='/') return false;
-    Lock<FastMutex> l(mutex);
-    bool result=files.insert(make_pair(StringPart(name),file)).second;
-    if(result) assignInode(file);
-    return result;
-}
-
-bool DevFs::removeDeviceFile(const char* name)
+bool DevFs::remove(const char* name)
 {
     if(name==0 || name[0]!='/' || name[1]=='\0') return false;
     Lock<FastMutex> l(mutex);
-    map<StringPart,intrusive_ref_ptr<DeviceFileGenerator> >::iterator it;
-    it=files.find(StringPart(name));
+    map<StringPart,DeviceFileWrapper>::iterator it=files.find(StringPart(name));
     if(it==files.end()) return false;
-    it->second->removeHook();
     files.erase(StringPart(name));
     return true;
-}
-
-bool DevFs::removeDeviceFile(intrusive_ref_ptr<DeviceFileGenerator> dfg)
-{
-    if(!dfg) return false;
-    Lock<FastMutex> l(mutex);
-    map<StringPart,intrusive_ref_ptr<DeviceFileGenerator> >::iterator it;
-    for(it=files.begin();it!=files.end();++it)
-    {
-        if(it->second!=dfg) continue;
-        it->second->removeHook();
-        files.erase(it);
-        return true;
-    }
-    return false;
 }
 
 int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         int flags, int mode)
 {
+    if(flags & O_CREAT) return -EINVAL; //Can't create files in DevFs this way
     Lock<FastMutex> l(mutex);
-    map<StringPart,intrusive_ref_ptr<DeviceFileGenerator> >::iterator it;
-    it=files.find(name);
+    map<StringPart,DeviceFileWrapper>::iterator it=files.find(name);
     if(it==files.end()) return -ENOENT;
-    return it->second->open(file,flags,mode);
+    return it->second.open(file,flags,mode);
 }
 
 int DevFs::lstat(StringPart& name, struct stat *pstat)
 {
     Lock<FastMutex> l(mutex);
-    map<StringPart,intrusive_ref_ptr<DeviceFileGenerator> >::iterator it;
-    it=files.find(name);
+    map<StringPart,DeviceFileWrapper>::iterator it=files.find(name);
     if(it==files.end()) return -ENOENT;
-    return it->second->lstat(pstat);
+    return it->second.lstat(pstat);
 }
 
 int DevFs::mkdir(StringPart& name, int mode)
@@ -191,15 +150,18 @@ int DevFs::mkdir(StringPart& name, int mode)
     return -EACCES; // No directories support in DevFs yet
 }
 
-DevFs::~DevFs()
+bool DevFs::addDeviceFile(const char *name, DeviceFileWrapper dfw)
 {
-    map<StringPart,intrusive_ref_ptr<DeviceFileGenerator> >::iterator it;
-    for(it=files.begin();it!=files.end();++it) it->second->removeHook();
-}
-
-void DevFs::assignInode(intrusive_ref_ptr<DeviceFileGenerator> file)
-{
-    file->setFileInfo(atomicAddExchange(&inodeCount,1),filesystemId);
+    if(name==0 || name[0]!='/' || name[1]=='\0') return false;
+    int len=strlen(name);
+    for(int i=1;i<len;i++) if(name[i]=='/') return false;
+    Lock<FastMutex> l(mutex);
+    bool result=files.insert(make_pair(StringPart(name),dfw)).second;
+    //Assign inode to the file
+    if(result) dfw.setFileInfo(atomicAddExchange(&inodeCount,1),filesystemId);
+    return result;
 }
 
 } //namespace miosix
+
+#endif //WITH_DEVFS

@@ -40,11 +40,12 @@
 #include "kernel/intrusive.h"
 #include "config/miosix_settings.h"
 
+#ifdef WITH_FILESYSTEM
+
 namespace miosix {
 
 //Forward decls
 class ResolvedPath;
-class StringPart;
 
 /**
  * This class maps file descriptors to file objects, allowing to
@@ -352,9 +353,15 @@ private:
  * of /, such as /mnt. In case the bsp needs another filesystem setup, such as
  * having a fat32 filesystem as /, this function can't be used, but instead
  * the bsp needs to mount the filesystems manually.
- * \return a pointer to the DevFs, so as to be able to add other device files
+ * \return a pointer to the DevFs, so as to be able to add other device files,
+ * but only if WITH_DEVFS is defined
  */
-intrusive_ref_ptr<DevFs> basicFilesystemSetup();
+#ifdef WITH_DEVFS
+intrusive_ref_ptr<DevFs> //return value is a pointer to DevFs
+#else //WITH_DEVFS
+void                     //return value is void
+#endif //WITH_DEVFS
+basicFilesystemSetup();
 
 /**
  * \return a pointer to the file descriptor table associated with the
@@ -363,5 +370,7 @@ intrusive_ref_ptr<DevFs> basicFilesystemSetup();
 FileDescriptorTable& getFileDescriptorTable();
 
 } //namespace miosix
+
+#endif //WITH_FILESYSTEM
 
 #endif //FILE_ACCESS_H
