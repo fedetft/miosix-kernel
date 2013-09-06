@@ -132,6 +132,12 @@ int FileDescriptorTable::close(int fd)
     return 0;
 }
 
+void FileDescriptorTable::closeAll()
+{
+    for(int i=0;i<MAX_OPEN_FILES;i++)
+        atomic_exchange(files+i,intrusive_ref_ptr<FileBase>());
+}
+
 int FileDescriptorTable::chdir(const char* name)
 {
     if(name==0 || name[0]=='\0') return -EFAULT;   
@@ -587,7 +593,14 @@ int FilesystemManager::umount(const char* path, bool force)
 
 void FilesystemManager::umountAll()
 {
-    //FIXME: implement me
+    Lock<FastMutex> l(mutex);
+    #ifdef WITH_PROCESSES
+    list<FileDescriptorTable*>::iterator it;
+    for(it=fileTables.begin();it!=fileTables.end();++it) (*it)->closeAll();
+    #else //WITH_PROCESSES
+    getFileDescriptorTable().closeAll();
+    #endif //WITH_PROCESSES
+    filesystems.clear();
 }
 
 ResolvedPath FilesystemManager::resolvePath(string& path, bool followLastSymlink)

@@ -89,6 +89,11 @@ public:
     int close(int fd);
     
     /**
+     * Close all files
+     */
+    void closeAll();
+    
+    /**
      * Write data to the file, if the file supports writing.
      * \param data the data to write
      * \param len the number of bytes to write
