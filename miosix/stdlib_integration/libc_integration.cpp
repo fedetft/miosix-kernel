@@ -38,7 +38,6 @@
 //// Settings
 #include "config/miosix_settings.h"
 //// Filesystem
-#include "filesystem/filesystem.h"
 #include "filesystem/file_access.h"
 //// Console
 #include "kernel/logging.h"
@@ -544,7 +543,7 @@ int fcntl(int fd, int cmd, ...)
 int _mkdir_r(struct _reent *ptr, const char *path, int mode)
 {
     #ifdef WITH_FILESYSTEM
-    return miosix::Filesystem::instance().mkdir(path,mode);
+    //FIXME: implement this //return miosix::Filesystem::instance().mkdir(path,mode);
     #else //WITH_FILESYSTEM
     return -1;
     #endif //WITH_FILESYSTEM
@@ -577,7 +576,7 @@ int link(const char *f_old, const char *f_new)
 int _unlink_r(struct _reent *ptr, const char *file)
 {
     #ifdef WITH_FILESYSTEM
-    return miosix::Filesystem::instance().unlink(file);
+    //FIXME: implement this //return miosix::Filesystem::instance().unlink(file);
     #else //WITH_FILESYSTEM
     return -1;
     #endif //WITH_FILESYSTEM

@@ -36,9 +36,6 @@
 #include "core/interrupts.h"
 #include "interfaces/delays.h"
 #include "drivers/serial.h"
-#ifdef WITH_FILESYSTEM
-#include "filesystem/filesystem.h"
-#endif //WITH_FILESYSTEM
 #include "kernel/kernel.h"
 #include "kernel/sync.h"
 #include "interfaces/portability.h"
@@ -256,14 +253,11 @@ system_reboot() immediately after wakeup
 */
 static void _shutdown(bool and_return, Time *t)
 {
-    pauseKernel();
-
-    //Save driver status
     #ifdef WITH_FILESYSTEM
-    Filesystem& fs=Filesystem::instance();
-    bool filesystem_status=fs.isMounted();//Save filesystem status
-    if(filesystem_status) fs.umount();
+    if(and_return==false) FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
+
+    pauseKernel();
 
     //wait button release
     while(buttonEnter()) delayMs(20);
@@ -375,13 +369,6 @@ static void _shutdown(bool and_return, Time *t)
     //Re-enable interrupts
     enableInterrupts();
 
-    //
-    // Restore drivers
-    //
-    #ifdef WITH_FILESYSTEM
-    if(filesystem_status) fs.mount();//Restore filesystem
-    #endif //WITH_FILESYSTEM
-
     restartKernel();
 }
 
@@ -411,11 +398,11 @@ void shutdown()
 void reboot()
 {
     while(!serialTxComplete()) ;
-    pauseKernel();
-    //Turn off drivers
+    
     #ifdef WITH_FILESYSTEM
-    Filesystem::instance().umount();
+    FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
+
     disableInterrupts();
     if(IRQisSerialEnabled()) IRQserialDisable();
     //Clearing PINSEL registers. All pin are GPIO by default

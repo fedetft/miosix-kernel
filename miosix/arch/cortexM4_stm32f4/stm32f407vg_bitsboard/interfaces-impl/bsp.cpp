@@ -33,9 +33,6 @@
 #include <cstdlib>
 #include <inttypes.h>
 #include "interfaces/bsp.h"
-#ifdef WITH_FILESYSTEM
-#include "filesystem/filesystem.h"
-#endif //WITH_FILESYSTEM
 #include "kernel/kernel.h"
 #include "kernel/sync.h"
 #include "interfaces/delays.h"
@@ -103,19 +100,15 @@ minimize power consumption all unused GPIO must not be left floating.
 */
 void shutdown()
 {
-    pauseKernel();
+    #ifdef WITH_FILESYSTEM
+    FilesystemManager::instance().umountAll();
+    #endif //WITH_FILESYSTEM
 
-	//The display could be damaged if left on but without refreshing it
+    disableInterrupts();
+    //The display could be damaged if left on but without refreshing it
 	typedef Gpio<GPIOB_BASE,8>  dispoff;//DISPOFF signal to display
 	dispoff::high();
-
-    #ifdef WITH_FILESYSTEM
-    Filesystem& fs=Filesystem::instance();
-    if(fs.isMounted()) fs.umount();
-    #endif //WITH_FILESYSTEM
-    //Disable interrupts
-    disableInterrupts();
-
+    
     /*
     Removed because low power mode causes issues with SWD programming
     RCC->APB1ENR |= RCC_APB1ENR_PWREN; //Fuckin' clock gating...  
@@ -133,11 +126,11 @@ void shutdown()
 void reboot()
 {
     while(!Console::txComplete()) ;
-    pauseKernel();
-    //Turn off drivers
+    
     #ifdef WITH_FILESYSTEM
-    Filesystem::instance().umount();
+    FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
+
     disableInterrupts();
     miosix_private::IRQsystemReboot();
 }

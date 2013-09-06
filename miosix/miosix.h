@@ -12,7 +12,6 @@
 /* Miosix kernel */
 #include "kernel/kernel.h"
 #include "kernel/sync.h"
-#include "filesystem/filesystem.h"
 /* Utilities */
 #include "util/util.h"
 /* Settings */

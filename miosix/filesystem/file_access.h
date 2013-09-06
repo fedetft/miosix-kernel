@@ -274,6 +274,11 @@ public:
     int umount(const char *path, bool force=false);
     
     /**
+     * Umount all filesystems, to be called before system shutdown or reboot
+     */
+    void umountAll();
+    
+    /**
      * Resolve a path to identify the filesystem it belongs
      * \param path an absolute path name, that must start with '/'. Note that
      * this is an inout parameter, the string is modified so as to return the

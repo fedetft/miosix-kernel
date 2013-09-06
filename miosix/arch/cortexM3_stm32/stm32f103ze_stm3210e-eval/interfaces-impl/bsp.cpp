@@ -33,9 +33,6 @@
 #include <cstdlib>
 #include <inttypes.h>
 #include "interfaces/bsp.h"
-#ifdef WITH_FILESYSTEM
-#include "filesystem/filesystem.h"
-#endif //WITH_FILESYSTEM
 #include "kernel/kernel.h"
 #include "kernel/sync.h"
 #include "interfaces/delays.h"
@@ -97,12 +94,10 @@ minimize power consumption all unused GPIO must not be left floating.
 */
 void shutdown()
 {
-    pauseKernel();
     #ifdef WITH_FILESYSTEM
-    Filesystem& fs=Filesystem::instance();
-    if(fs.isMounted()) fs.umount();
+    FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
-    //Disable interrupts
+
     disableInterrupts();
     if(IRQisSerialEnabled()) IRQserialDisable();
 
@@ -121,11 +116,11 @@ void shutdown()
 void reboot()
 {
     while(!serialTxComplete()) ;
-    pauseKernel();
-    //Turn off drivers
+    
     #ifdef WITH_FILESYSTEM
-    Filesystem::instance().umount();
+    FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
+
     disableInterrupts();
     if(IRQisSerialEnabled()) IRQserialDisable();
     miosix_private::IRQsystemReboot();

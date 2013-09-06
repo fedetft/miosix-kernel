@@ -39,7 +39,6 @@ start the kernel and filesystem.
 // Miosix kernel
 #include "kernel.h"
 #include "filesystem/file_access.h"
-#include "filesystem/filesystem.h"
 #include "error.h"
 #include "logging.h"
 // settings for miosix

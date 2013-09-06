@@ -19,7 +19,6 @@ kernel/stage_2_boot.cpp                                                    \
 kernel/scheduler/priority/priority_scheduler.cpp                           \
 kernel/scheduler/control/control_scheduler.cpp                             \
 kernel/scheduler/edf/edf_scheduler.cpp                                     \
-filesystem/filesystem.cpp                                                  \
 filesystem/file_access.cpp                                                 \
 filesystem/file.cpp                                                        \
 filesystem/stringpart.cpp                                                  \

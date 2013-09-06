@@ -585,6 +585,11 @@ int FilesystemManager::umount(const char* path, bool force)
     return 0;
 }
 
+void FilesystemManager::umountAll()
+{
+    //FIXME: implement me
+}
+
 ResolvedPath FilesystemManager::resolvePath(string& path, bool followLastSymlink)
 {
     //see man path_resolution. This code supports arbitrarily mounted
