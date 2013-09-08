@@ -1,5 +1,6 @@
 Changelog for Miosix np embedded OS
 
+- Added IntrusiveRefCountedEnableSharedFromThis.
 - File abstraction layer: added FilesystemManager::umountAll()
 - Fixed support for compiling kernel without WITH_FILESYSTEM and added
   WITH_DEVFS config option to fine-tune code size for a given application.

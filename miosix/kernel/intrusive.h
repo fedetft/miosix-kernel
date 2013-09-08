@@ -99,6 +99,62 @@ private:
 };
 
 /**
+ * An implementation of 20.7.2.4 enable_shared_from_this for IntrusiveRefCounted
+ * \param T this class uses the CRTP, just like enable_shared_from_this, so if
+ * class Foo derives from IntrusiveRefCountedSharedFromThis, T has to be Foo.
+ */
+template<typename T>
+class IntrusiveRefCountedSharedFromThis
+{
+public:
+    /**
+     * Constructor
+     */
+    IntrusiveRefCountedSharedFromThis()
+    {
+        // This is a static_assert to check that the class derives from
+        // IntrusiveRefCounted too, otherwise it's an error
+        #if __cplusplus > 199711L
+        using namespace std;
+        typedef char check[is_base_of<IntrusiveRefCounted,T>::value ? 1 : -1];
+        #else // c++11
+        // GCC/clang specific
+        typedef char check[__is_base_of(IntrusiveRefCounted,T) ? 1 : -1];
+        #endif // c++11
+    }
+
+    /**
+     * \return an intrusive_ref_ptr to this. In this respect,
+     * IntrusiveRefCounted also behaves like enable_shared_from_this
+     */
+    intrusive_ref_ptr<T> shared_from_this()
+    {
+        // Simply making an intrusive_ref_ptr from this works as the reference
+        // count is intrusive
+        return intrusive_ref_ptr<T>(dynamic_cast<T*>(this));
+    }
+    
+    /**
+     * \return an intrusive_ref_ptr to this In this respect,
+     * IntrusiveRefCounted also behaves like enable_shared_from_this
+     */
+    intrusive_ref_ptr<const T> shared_from_this() const
+    {
+        // Simply making an intrusive_ref_ptr from this works as the reference
+        // count is intrusive
+        return intrusive_ref_ptr<const T>(dynamic_cast<const T*>(this));
+    }
+    
+    /**
+     * Destructor
+     */
+    virtual ~IntrusiveRefCountedSharedFromThis();
+};
+
+template<typename T>
+IntrusiveRefCountedSharedFromThis<T>::~IntrusiveRefCountedSharedFromThis() {}
+
+/**
  * Reference counted pointer to intrusively reference counted objects.
  * This class is made in a way to resemble the shared_ptr class, as specified
  * in chapter 20.7.2.2 of the C++11 standard.
@@ -143,7 +199,7 @@ public:
         // This is a static_assert to disallow polimorphic upcasting
         // of non polimorphic classes, as this will lead to bugs
         #if __cplusplus > 199711L
-        typedef char check[std::has_virtual_destructor<T>() ? 1 : -1];
+        typedef char check[std::has_virtual_destructor<T>::value ? 1 : -1];
         #else // c++11
         // GCC/clang specific
         typedef char check[__has_virtual_destructor(T) ? 1 : -1];
@@ -172,7 +228,7 @@ public:
         // This is a static_assert to disallow polimorphic upcasting
         // of non polimorphic classes, as this will lead to bugs
         #if __cplusplus > 199711L
-        typedef char check[std::has_virtual_destructor<T>() ? 1 : -1];
+        typedef char check[std::has_virtual_destructor<T>::value ? 1 : -1];
         #else // c++11
         // GCC/clang specific
         typedef char check[__has_virtual_destructor(T) ? 1 : -1];
@@ -328,7 +384,7 @@ intrusive_ref_ptr<T>& intrusive_ref_ptr<T>::operator=
     // This is a static_assert to disallow polimorphic upcasting
     // of non polimorphic classes, as this will lead to bugs
     #if __cplusplus > 199711L
-    typedef char check[std::has_virtual_destructor<T>() ? 1 : -1];
+    typedef char check[std::has_virtual_destructor<T>::value ? 1 : -1];
     #else // c++11
     // GCC/clang specific
     typedef char check[__has_virtual_destructor(T) ? 1 : -1];

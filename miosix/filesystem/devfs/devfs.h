@@ -227,8 +227,8 @@ public:
      * \param dfg Device file generator
      * \return true if the file was successfully added
      */
-    bool addDeviceFile(const char *name, intrusive_ref_ptr<DeviceFileGenerator>
-            dfg)
+    bool addDeviceFileGenerator(const char *name,
+            intrusive_ref_ptr<DeviceFileGenerator> dfg)
     {
         return addDeviceFile(name,DeviceFileWrapper(dfg));
     }

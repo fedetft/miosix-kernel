@@ -102,7 +102,8 @@ public:
  * a message that can be read by the application. Message is sampled when
  * the file is opened. 
  */
-class MessageFileGenerator : public DeviceFileGenerator
+class MessageFileGenerator : public DeviceFileGenerator,
+        private IntrusiveRefCountedSharedFromThis<MessageFileGenerator>
 {
 public:
     /**

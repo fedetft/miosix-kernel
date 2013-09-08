@@ -70,10 +70,8 @@ ssize_t ZeroFile::read(void *data, size_t len)
 int MessageFileGenerator::open(intrusive_ref_ptr<FileBase>& file, int flags,
         int mode)
 {
-    //TODO: add enable_shared_from_this!!
     Lock<FastMutex> l(mutex);
-    file=intrusive_ref_ptr<FileBase>(
-        new MessageFile(intrusive_ref_ptr<DeviceFileGenerator>(this),message));
+    file=intrusive_ref_ptr<FileBase>(new MessageFile(shared_from_this(),message));
     return 0;
 }
 
