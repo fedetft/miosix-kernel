@@ -29,6 +29,7 @@
 #include <stdexcept>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <reent.h>
@@ -524,16 +525,49 @@ int isatty(int fd)
 
 /**
  * \internal
- * _fntl_r, TODO: implement it
+ * _fntl_r, perform operations on a file descriptor
  */
-int _fcntl_r(struct _reent *, int fd, int cmd, int opt)
+int _fcntl_r(struct _reent *ptr, int fd, int cmd, int opt)
 {
+    #ifdef WITH_FILESYSTEM
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().fcntl(fd,cmd,opt);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+    
+    #else //WITH_FILESYSTEM
+    ptr->_errno=ENOENT;
     return -1;
+    #endif //WITH_FILESYSTEM
 }
 
 int fcntl(int fd, int cmd, ...)
 {
-    return -1;
+    va_list arg;
+    int result;
+    struct _reent *r=miosix::CReentrancyAccessor::getReent();
+    switch(cmd)
+    {
+        case F_DUPFD:
+        case F_SETFD:
+        case F_SETFL:
+            va_start(arg,cmd);
+            result=_fcntl_r(r,fd,cmd,va_arg(arg,int));
+            va_end(arg);
+        default:
+            result=_fcntl_r(r,fd,cmd,0);
+    }
+    return result;
 }
 
 /**
@@ -604,11 +638,30 @@ int rename(const char *f_old, const char *f_new)
 
 /**
  * \internal
- * getdents, FIXME: implement me
+ * getdents, allows to list the content of a directory
  */
 int getdents(unsigned int fd, struct dirent *dirp, unsigned int count)
 {
+    #ifdef WITH_FILESYSTEM
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().getdents(fd,dirp,count);
+        if(result>=0) return result;
+        miosix::CReentrancyAccessor::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::CReentrancyAccessor::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+    
+    #else //WITH_FILESYSTEM
+    miosix::CReentrancyAccessor::getReent()->_errno=ENOENT;
     return -1;
+    #endif //WITH_FILESYSTEM
 }
 
 

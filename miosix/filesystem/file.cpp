@@ -28,6 +28,8 @@
 #include "file.h"
 #include <cstdio>
 #include <string>
+#include <dirent.h>
+#include <fcntl.h>
 #include "file_access.h"
 
 using namespace std;
@@ -48,9 +50,95 @@ int FileBase::sync()
     return 0;
 }
 
+int FileBase::fcntl(int cmd, int opt)
+{
+    //Newlib makes some calls to fcntl, for example in opendir(). CLOEXEC isn't
+    //supported, but for now we lie and return 0
+    if(cmd==F_SETFD && (opt==FD_CLOEXEC || opt==0)) return 0;
+    return -EBADF;
+}
+
+int FileBase::getdents(void *dp, int len)
+{
+    return -EBADF;
+}
+
 FileBase::~FileBase()
 {
     if(parent) parent->fileCloseHook();
+}
+
+//
+// class DirectoryBase
+//
+
+ssize_t DirectoryBase::write(const void *data, size_t len)
+{
+    return -EBADF;
+}
+    
+ssize_t DirectoryBase::read(void *data, size_t len)
+{
+    return -EBADF;
+}
+
+off_t DirectoryBase::lseek(off_t pos, int whence)
+{
+    return -EBADF;
+}
+
+int DirectoryBase::fstat(struct stat *pstat) const
+{
+    return -EBADF;
+}
+
+int DirectoryBase::addEntry(char **pos, char *end, int ino, char type,
+        const StringPart& n)
+{
+    int reclen=direntHeaderSizeNoPadding+n.length()+1;
+    reclen=(reclen+3) & ~0x3; //Align to 4 bytes
+    if(reclen>end-*pos) return -1;
+    
+    struct dirent *data=reinterpret_cast<struct dirent*>(*pos);
+    data->d_ino=ino;
+    data->d_off=0;
+    data->d_reclen=reclen;
+    data->d_type=type;
+    strcpy(data->d_name,n.c_str());
+    
+    (*pos)+=reclen;
+    return reclen;
+}
+
+int DirectoryBase::addDefaultEntries(char **pos, int thisIno, int upIno)
+{
+    struct dirent *data=reinterpret_cast<struct dirent*>(*pos);
+    data->d_ino=thisIno;
+    data->d_off=0;
+    data->d_reclen=direntHeaderSize;
+    data->d_type=DT_DIR;
+    strcpy(data->d_name,".");
+    
+    (*pos)+=direntHeaderSize;
+    data=reinterpret_cast<struct dirent*>(*pos);
+    data->d_ino=upIno;
+    data->d_off=0;
+    data->d_reclen=direntHeaderSize;
+    data->d_type=DT_DIR;
+    strcpy(data->d_name,"..");
+    
+    (*pos)+=direntHeaderSize;
+    return 2*direntHeaderSize;
+}
+
+int DirectoryBase::addTerminatingEntry(char **pos, char *end)
+{
+    if(direntHeaderSize>end-*pos) return -1;
+    //This sets everything to zero, including d_reclen, terminating the
+    //directory listing loop in readdir.c
+    memset(*pos,0,direntHeaderSize);
+    (*pos)+=direntHeaderSize;
+    return direntHeaderSize;
 }
 
 //
@@ -59,10 +147,11 @@ FileBase::~FileBase()
 
 FilesystemBase::FilesystemBase() :
 #ifdef WITH_FILESYSTEM
-        filesystemId(FilesystemManager::getFilesystemId()), openFileCount(0) {}
+        filesystemId(FilesystemManager::getFilesystemId()), 
 #else //WITH_FILESYSTEM
-        filesystemId(0), openFileCount(0) {}
+        filesystemId(0),
 #endif //WITH_FILESYSTEM
+        parentFsMountpointInode(1), openFileCount(0) {}
 
 int FilesystemBase::readlink(StringPart& name, string& target)
 {

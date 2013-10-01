@@ -106,7 +106,7 @@ int FileDescriptorTable::open(const char* name, int flags, int mode)
 {
     if(name==0 || name[0]=='\0') return -EFAULT;
     Lock<FastMutex> l(mutex);
-    for(int i=0;i<MAX_OPEN_FILES;i++)
+    for(int i=3;i<MAX_OPEN_FILES;i++)
     {
         if(files[i]) continue;
         //Found an empty file descriptor
@@ -211,7 +211,7 @@ public:
     
     /**
      * The main purpose of this class, resolve a path
-     * \param path inout parameter with the path to resolve. The rsolved path
+     * \param path inout parameter with the path to resolve. The resolved path
      * will be modified in-place in this string. The path must be absolute and
      * start with a "/". The caller is responsible for that.
      * \param followLastSymlink if true, follow last symlink
@@ -233,8 +233,7 @@ private:
      * that is neither //, /./ or /../
      * \param path path string
      * \param followIfSymlink if true, follow symbolic links
-     * \return 0 on success, 1 if a symbolic link was found and followed,
-     * or a negative number on error
+     * \return 0 on success, or a negative number on error
      */
     int normalPathComponent(string& path, bool followIfSymlink);
     
@@ -252,13 +251,7 @@ private:
      * \return 0 on success, a negative number on failure
      */
     int recursiveFindFs(string& path);
-    
-    /**
-     * Check that last path component is not a forbidden value
-     * \return true if the last component is good
-     */
-    bool checkLastComponent(string& path);
-    
+
     /// Mounted filesystems
     const map<StringPart,intrusive_ref_ptr<FilesystemBase> >& filesystems;
     
@@ -271,11 +264,10 @@ private:
     /// True if current filesystem supports symlinks
     bool syms;
     
-    /// path[index] is firs unhandled char
+    /// path[index] is first unhandled char
     unsigned int index;
     
-    ///  path.substr(indexIntoFs) is relative path to
-    ///  current filesystem
+    /// path.substr(indexIntoFs) is the relative path to current filesystem
     unsigned int indexIntoFs;
     
     /// How many components does the relative path have in current fs
@@ -296,21 +288,17 @@ ResolvedPath PathResolution::resolvePath(string& path, bool followLastSymlink)
     root=fs=it->second;
     syms=fs->supportsSymlinks();
     index=1;       //Skip leading /
-    indexIntoFs=0; //Contains leading / NOTE: caller must ensure path[0]=='/'
+    indexIntoFs=1; //NOTE: caller must ensure path[0]=='/'
     depthIntoFs=1;
     linksFollowed=0;
     for(;;)
     {
         unsigned int slash=path.find_first_of('/',index);
         //cout<<path.substr(0,slash)<<endl;
-        if(slash==string::npos) //Last component (no trailing /)
-        {
-            if(checkLastComponent(path)==false) return ResolvedPath(-ENOENT);
-            index=path.length()+1; //NOTE: two past the last character
-            int result=normalPathComponent(path,followLastSymlink);
-            if(result<0) return ResolvedPath(result);
-            if(result!=1) return ResolvedPath(fs,indexIntoFs);
-        } else if(slash==index)
+        //Last component (no trailing /)
+        if(slash==string::npos) slash=path.length(); //NOTE: one past the last
+
+        if(slash==index)
         {
             //Path component is empty, caused by double slash, remove it
             path.erase(index,1);
@@ -322,14 +310,23 @@ ResolvedPath PathResolution::resolvePath(string& path, bool followLastSymlink)
             int result=upPathComponent(path,slash);
             if(result<0) return ResolvedPath(result);
         } else {
-            index=slash+1;
-            int result=normalPathComponent(path,true);
+            index=slash+1; //NOTE: if(slash==string::npos) two past the last
+            // follow=followLastSymlink for "/link", but is true for "/link/"
+            bool follow=index>path.length() ? followLastSymlink : true;
+            int result=normalPathComponent(path,follow);
             if(result<0) return ResolvedPath(result);
         }
-        if(index>=path.length()) //Last component (has trailing /)
+        //Last component
+        if(index>=path.length())
         {
-            if(path.length()>1) //Remove trailing /, unless path=="/"
-                path.erase(path.length()-1); 
+            //Remove trailing /
+            unsigned int last=path.length()-1;
+            if(path[last]=='/')
+            {
+                path.erase(last,1);
+                //This may happen if the last path component is a fs
+                if(indexIntoFs>path.length()) indexIntoFs=path.length();
+            }
             return ResolvedPath(fs,indexIntoFs);
         }
     }
@@ -342,6 +339,10 @@ int PathResolution::upPathComponent(string& path, int slash)
     if(removeStart==string::npos) return -ENOENT; //should not happen
     path.erase(removeStart,slash-removeStart);
     index=removeStart+1;
+    //This may happen when merging a path like "/dir/.."
+    if(path.empty()) path='/';
+    //This may happen if the new last path component is a fs, e.g. "/dev/null/.."
+    if(indexIntoFs>path.length()) indexIntoFs=path.length();
     if(--depthIntoFs>0) return 0;
     
     //Depth went to zero, escape current filesystem
@@ -350,25 +351,20 @@ int PathResolution::upPathComponent(string& path, int slash)
 
 int PathResolution::normalPathComponent(string& path, bool followIfSymlink)
 {
-    if(index<path.length())
+    map<StringPart,intrusive_ref_ptr<FilesystemBase> >::const_iterator it;
+    it=filesystems.find(StringPart(path,index-1));
+    if(it!=filesystems.end())
     {
-        //NOTE: index<path.length() is necessary as for example /dev and
-        // /dev/ should resolve to the directory in the root filesystem, not
-        //to the root directory of the /dev filesystem
-        map<StringPart,intrusive_ref_ptr<FilesystemBase> >::const_iterator it;
-        it=filesystems.find(StringPart(path,index-1));
-        if(it!=filesystems.end())
-        {
-            //Jumped to a new filesystem. Not stat-ing the path as we're
-            //relying on mount not allowing to mount a filesystem on anything
-            //but a directory.
-            fs=it->second;
-            syms=fs->supportsSymlinks();
-            indexIntoFs=index-1;
-            depthIntoFs=1;
-            return 0;
-        }
+        //Jumped to a new filesystem. Not stat-ing the path as we're
+        //relying on mount not allowing to mount a filesystem on anything
+        //but a directory.
+        fs=it->second;
+        syms=fs->supportsSymlinks();
+        indexIntoFs=index>path.length() ? index-1 : index;
+        depthIntoFs=1;
+        return 0;
     }
+    depthIntoFs++;
     if(syms && followIfSymlink)
     {
         struct stat st;
@@ -376,12 +372,8 @@ int PathResolution::normalPathComponent(string& path, bool followIfSymlink)
             StringPart sp(path,index-1,indexIntoFs);
             if(int res=fs->lstat(sp,&st)<0) return res;
         }
-        if(S_ISLNK(st.st_mode))
-        {
-            int result=followSymlink(path);
-            if(result<0) return result;
-            else return 1; //1=found and followed a symlink
-        } else if(!S_ISDIR(st.st_mode)) return -ENOENT;
+        if(S_ISLNK(st.st_mode)) return followSymlink(path);
+        else if(index<=path.length() && !S_ISDIR(st.st_mode)) return -ENOTDIR;
     }
     return 0;
 }
@@ -403,32 +395,28 @@ int PathResolution::followSymlink(string& path)
         string newPath;
         newPath.reserve(newPathLen);
         newPath=target;
-        if(index<path.length())
-        {
-            newPath+="/";
-            newPath.insert(newPath.length(),path,index,string::npos);
-        }
+        if(index<=path.length())
+            newPath.insert(newPath.length(),path,index-1,string::npos);
         path.swap(newPath);
         fs=root;
         syms=root->supportsSymlinks();
         index=1;
-        indexIntoFs=0;
+        indexIntoFs=1;
         depthIntoFs=1;
     } else {
         //Symlink is relative
-        int newPathLen=path.length()+target.length()+1;
+        int removeStart=path.find_last_of('/',index-2);
+        int newPathLen=path.length()-(index-removeStart-2)+target.length();
         if(newPathLen>PATH_MAX) return -ENAMETOOLONG;
         string newPath;
         newPath.reserve(newPathLen);
-        newPath.insert(newPath.length(),path,0,index-1);
-        newPath+="/";
+        newPath.insert(0,path,0,removeStart+1);
         newPath+=target;
-        if(index<path.length())
-        {
-            newPath+="/";
-            newPath.insert(newPath.length(),path,index,string::npos);
-        }
+        if(index<=path.length())
+            newPath.insert(newPath.length(),path,index-1,string::npos);
         path.swap(newPath);
+        index=removeStart+1;
+        depthIntoFs--;
     }
     return 0;
 }
@@ -444,7 +432,7 @@ int PathResolution::recursiveFindFs(string& path)
         if(backIndex==0)
         {
             fs=root;
-            indexIntoFs=0;
+            indexIntoFs=1;
             break;
         }
         map<StringPart,intrusive_ref_ptr<FilesystemBase> >::const_iterator it;
@@ -452,21 +440,13 @@ int PathResolution::recursiveFindFs(string& path)
         if(it!=filesystems.end())
         {
             fs=it->second;
-            indexIntoFs=backIndex;
+            indexIntoFs=backIndex+1;
             break;
         }
         depthIntoFs++;
     }
     syms=fs->supportsSymlinks();
     return 0;
-}
-
-bool PathResolution::checkLastComponent(string& path)
-{
-    unsigned int componentLen=path.length()-index;
-    if(componentLen==1 && path[index]=='.') return false;
-    if(componentLen==2 && path[index]=='.' && path[index+1]=='.') return false;
-    return true;
 }
 
 //
@@ -495,6 +475,7 @@ int FilesystemManager::kmount(const char* path, intrusive_ref_ptr<FilesystemBase
         int statres=rp.fs->lstat(sp,&st);
         if(statres<0) return statres;
         if(!S_ISDIR(st.st_mode)) return -ENOTDIR;
+        fs->setParentFsMountpointInode(st.st_ino);
     }
     if(filesystems.insert(make_pair(StringPart(temp),fs)).second==false)
         return -EBUSY; //Means already mounted
@@ -636,9 +617,8 @@ basicFilesystemSetup()
     
     #ifdef WITH_DEVFS
     bootlog("Mounting DevFs as /dev ... ");
-    string dev="/dev";
-    StringPart sp(dev);
-    int r1=rootFs->mkdir(sp,0755);
+    StringPart sp("dev");
+    int r1=rootFs->mkdir(sp,0755); 
     intrusive_ref_ptr<DevFs> result(new DevFs);
     int r2=fsm.kmount("/dev",result);
     bootlog((r1==0 && r2==0) ? "Ok\r\n" : "Failed\r\n");

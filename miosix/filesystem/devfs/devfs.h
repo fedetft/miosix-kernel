@@ -30,6 +30,7 @@
 
 #include <map>
 #include "filesystem/file.h"
+#include "filesystem/stringpart.h"
 #include "kernel/sync.h"
 #include "config/miosix_settings.h"
 
@@ -212,7 +213,7 @@ public:
     
     /**
      * Add a stateless device file to DevFs
-     * \param name File name, must start with a slash
+     * \param name File name, must not start with a slash
      * \param df Device file. Every open() call will return the same file
      * \return true if the file was successfully added
      */
@@ -223,7 +224,7 @@ public:
     
     /**
      * Add a stateful device file to DevFs
-     * \param name File name, must start with a slash
+     * \param name File name, must not start with a slash
      * \param dfg Device file generator
      * \return true if the file was successfully added
      */
@@ -347,9 +348,55 @@ private:
         intrusive_ref_ptr<StatelessDeviceFile> df;
     };
     
+    /**
+     * Directory class for DevFs 
+     */
+    class DevFsDirectory : public DirectoryBase
+    {
+    public:
+        /**
+         * \param parent parent filesystem
+         * \param mutex mustex to lock when accessing the file map
+         * \param files file map
+         * \param currentInode inode of the directory we're listing
+         * \param parentInode inode of the parent directory
+         */
+        DevFsDirectory(intrusive_ref_ptr<FilesystemBase> parent,
+                FastMutex& mutex, std::map<StringPart,DeviceFileWrapper>& files,
+                int currentInode, int parentInode)
+                : DirectoryBase(parent), mutex(mutex), files(files),
+                  currentInode(currentInode), parentInode(parentInode),
+                  first(true), last(false)
+        {
+            Lock<FastMutex> l(mutex);
+            if(files.empty()==false) currentItem=files.begin()->first.c_str();
+        }
+
+        /**
+         * Also directories can be opened as files. In this case, this system
+         * call allows to retrieve directory entries.
+         * \param dp pointer to a memory buffer where one or more struct dirent
+         * will be placed. dp must be four words aligned.
+         * \param len memory buffer size.
+         * \return the number of bytes read on success, or a negative number on
+         * failure.
+         */
+        virtual int getdents(void *dp, int len);
+
+    private:
+        FastMutex& mutex;                 ///< Mutex of parent class
+        std::map<StringPart,DeviceFileWrapper>& files; ///< Directory entries
+        std::string currentItem;          ///< First unhandled item in directory
+        int currentInode,parentInode;     ///< Inodes of . and ..
+
+        bool first; ///< True if first time getdents is called
+        bool last;  ///< True if directory has ended
+    };
+    
     FastMutex mutex;
     std::map<StringPart,DeviceFileWrapper> files;
     int inodeCount;
+    static const int rootDirInode=1;
 };
 
 } //namespace miosix

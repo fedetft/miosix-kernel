@@ -44,7 +44,7 @@ public:
     /**
      * Constructor
      */
-    MountpointFs() : inodeCount(1) {}
+    MountpointFs() : mutex(FastMutex::RECURSIVE), inodeCount(rootDirInode+1) {}
     
     /**
      * Open a file
@@ -79,6 +79,7 @@ private:
     FastMutex mutex;
     std::map<StringPart,int> dirs;
     int inodeCount;
+    static const int rootDirInode=1;
 };
 
 } //namespace miosix

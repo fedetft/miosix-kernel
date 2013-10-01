@@ -1,5 +1,12 @@
 Changelog for Miosix np embedded OS
 
+- File abstraction layer: added testsuite test for directory listing.
+  Also removed two tests from the testsuite related to the old Filesystem
+  and Directory classes.
+- File abstraction layer: implemented fcntl() and getdents().
+- File abstraction layer: improved path resolution with support for opening
+  directories. Now the substring of the resolved path starting with off
+  does not contain a leading /
 - Added IntrusiveRefCountedEnableSharedFromThis.
 - File abstraction layer: added FilesystemManager::umountAll()
 - Fixed support for compiling kernel without WITH_FILESYSTEM and added

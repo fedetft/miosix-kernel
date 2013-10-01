@@ -41,6 +41,7 @@
 #include <sys/stat.h>
 #include <pthread.h>
 #include <errno.h>
+#include <dirent.h>
 #include <tr1/functional>
 #include <ext/atomicity.h>
 
@@ -98,9 +99,8 @@ static void test_24();
 //Filesystem test functions
 #ifdef WITH_FILESYSTEM
 static void fs_test_1();
-static void fs_test_2();
 static void fs_test_3();
-static void fs_test_last();
+static void fs_test_4();
 #endif //WITH_FILESYSTEM
 //Benchmark functions
 static void benchmark_1();
@@ -169,9 +169,8 @@ int main()
                 ledOn();
                 #ifdef WITH_FILESYSTEM
                 fs_test_1();
-                fs_test_2();
                 fs_test_3();
-                fs_test_last();
+                fs_test_4();
                 #else //WITH_FILESYSTEM
                 iprintf("Error, filesystem support is disabled\n");
                 #endif //WITH_FILESYSTEM
@@ -3651,31 +3650,6 @@ static void fs_test_1()
 }
 
 //
-// Filesystem test 2
-//
-/*
-tests:
-is_mounted()
-mount_filesystem()
-umount_filesystem()
-*/
-
-static void fs_test_2()
-{
-    test_name("Filesystem mount/umount");
-    //When starting, filesystem should be mounted
-    Filesystem& fs=Filesystem::instance();
-    if(fs.isMounted()==false) fail("is_mounted() (1)");
-    fs.umount();
-    if(fs.isMounted()==true) fail("umount_filesystem() (1)");
-    if(fs.mount()!=0) fail("mount_filesystem() (1)");
-    if(fs.isMounted()==false) fail("is_mounted() (2)");
-    //Filesystem already mounted, try mounting again, should report error
-    if(fs.mount()!=3) fail("mount_filesystem() (2)");
-    pass();
-}
-
-//
 // Filesystem test 3
 //
 /*
@@ -3721,83 +3695,73 @@ static void fs_test_3()
 }
 
 //
-// Filesystem test last
+// Filesystem test 4
 //
 /*
 tests:
-Directory::open()
-Directtory::next()
-Directory::exists()
-
-Note: this test has to be the last one as it checks for all files in the testdir
-directory. Also, if tests are added that create new files, this test needs to
-be upgraded.
+opendir()/readdir()
 */
 
-struct fs_last_file
+static void fs_test_4()
 {
-    char filename[Directory::FILENAME_LEN];
-    bool found;
-};
-
-static fs_last_file fs_last_names[5];
-
-static void ls_check_valid(Directory& d, bool last)
-{
-    char line[Directory::FILENAME_LEN];
-    unsigned int len;
-    unsigned char a;
-    if(last)
+    test_name("Directory listing");
+    int curInode=0, parentInode=0, devFsInode=0;
+    DIR *d=opendir("/");
+    if(d==NULL) fail("opendir");
+    puts("opened /");
+    for(;;)
     {
-        if(d.next(line,len,a)==true) fail("next() (0)");
-    } else {
-        if(d.next(line,len,a)==false) fail("next() (1)");
-        if(len==0) fail("next() (2)");
-        int i;
-        for(i=0;i<5;i++)
+        struct dirent *de=readdir(d);
+        if(de==NULL) break;
+        if(!strcmp(de->d_name,"."))
         {
-            if(!strcmp(line,fs_last_names[i].filename))
-            {
-                if(fs_last_names[i].found==true)
-                {
-                    fail("next() (2)");
-                } else {
-                    fs_last_names[i].found=true;
-                    return;
-                }
-            }
+            curInode=de->d_ino;
+            if(de->d_type!=DT_DIR) fail("d_type");
+        } else if(!strcmp(de->d_name,"..")) {
+            parentInode=de->d_ino;
+            if(de->d_type!=DT_DIR) fail("d_type");
+        } else if(!strcmp(de->d_name,"dev")) {
+            devFsInode=de->d_ino;
+            if(de->d_type!=DT_DIR) fail("d_type");
         }
-        fail("next() (3)");
+        printf("inode=%lu reclen=%u %s\n",de->d_ino,de->d_reclen,de->d_name);
     }
-}
-
-static void fs_test_last()
-{
-    test_name("Directory class");
-    //Testing exists()
-    if(Directory::exists("/testdir")==false) fail("exist() (1)");
-    //Testing exist() with a nonexistent dirctory
-    if(Directory::exists("/noexist")==true) fail("exist() (2)");
-    Directory d;
-    //Testing Directory::open()
-    if(d.open("/testdir")!=0) fail("open() (1)");
-    strcpy(fs_last_names[0].filename,"file_1.txt");
-    fs_last_names[0].found=false;
-    strcpy(fs_last_names[1].filename,"file_2.txt");
-    fs_last_names[1].found=false;
-    strcpy(fs_last_names[2].filename,"file_3.txt");
-    fs_last_names[2].found=false;
-    strcpy(fs_last_names[3].filename,"file_4.txt");
-    fs_last_names[3].found=false;
-    strcpy(fs_last_names[4].filename,"file_5.dat");
-    fs_last_names[4].found=false;
-    //Testing Directory::next()
-    ls_check_valid(d,false);
-    ls_check_valid(d,false);
-    ls_check_valid(d,false);
-    ls_check_valid(d,false);
-    ls_check_valid(d,false);
-    ls_check_valid(d,true);
+    closedir(d);
+    if(curInode!=1) fail(".");
+    if(parentInode!=1) fail("..");
+    #ifdef WITH_DEVFS
+    if(devFsInode==0) fail("dev");
+    curInode=0, parentInode=0, devFsInode=0;
+    int nullInode=0, zeroInode=0;
+    d=opendir("/dev");
+    if(d==NULL) fail("opendir");
+    puts("opened /dev");
+    for(;;)
+    {
+        struct dirent *de=readdir(d);
+        if(de==NULL) break;
+        if(!strcmp(de->d_name,"."))
+        {
+            curInode=de->d_ino;
+            if(de->d_type!=DT_DIR) fail("d_type");
+        } else if(!strcmp(de->d_name,"..")) {
+            parentInode=de->d_ino;
+            if(de->d_type!=DT_DIR) fail("d_type");
+        } else if(!strcmp(de->d_name,"null")) {
+            nullInode=de->d_ino;
+            if(de->d_type!=DT_CHR) fail("d_type");
+        } else if(!strcmp(de->d_name,"zero")) {
+            zeroInode=de->d_ino;
+            if(de->d_type!=DT_CHR) fail("d_type");
+        }
+        printf("inode=%lu reclen=%u %s\n",de->d_ino,de->d_reclen,de->d_name);
+    }
+    closedir(d);
+    if(curInode!=1) fail(".");
+    if(parentInode!=2) fail("..");
+    if(nullInode!=2) fail("null");
+    if(zeroInode!=3) fail("zero");
+    #endif //WITH_DEVFS
     pass();
 }
 #endif //WITH_FILESYSTEM

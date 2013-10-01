@@ -197,6 +197,35 @@ public:
     }
     
     /**
+     * Perform various operations on a file descriptor
+     * \param cmd specifies the operation to perform
+     * \param opt optional argument that some operation require
+     * \return the exact return value depends on CMD, -1 is returned on error
+     */
+    int fcntl(int fd, int cmd, int opt)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->fcntl(cmd,opt);
+    }
+    
+    /**
+     * List directory content
+     * \param dp dp pointer to a memory buffer where one or more struct dirent
+     * will be placed. dp must be four words aligned.
+     * \param len memory buffer size.
+     * \return the number of bytes read on success, or a negative number on
+     * failure.
+     */
+    int getdents(int fd, void *dp, int len)
+    {
+        if(reinterpret_cast<unsigned>(dp) & 0x3) return -EFAULT; //Not aligned
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->getdents(dp,len);
+    }
+    
+    /**
      * Change current directory
      * \param path new current directory
      * \return 0 on success, or a negative number on failure

@@ -102,7 +102,7 @@ DeviceFileGenerator::~DeviceFileGenerator() {}
 // class DevFs
 //
 
-DevFs::DevFs() : inodeCount(1)
+DevFs::DevFs() : mutex(FastMutex::RECURSIVE), inodeCount(rootDirInode+1)
 {
     //This will increase openFilesCount to 1, because we don't have an easy way
     //to keep track of open files, due to DeviceFileWrapper having stateless
@@ -113,13 +113,13 @@ DevFs::DevFs() : inodeCount(1)
     //so that only a forced umount can umount it.
     newFileOpened();
     
-    addDeviceFile("/null",intrusive_ref_ptr<StatelessDeviceFile>(new NullFile));
-    addDeviceFile("/zero",intrusive_ref_ptr<StatelessDeviceFile>(new ZeroFile));
+    addDeviceFile("null",intrusive_ref_ptr<StatelessDeviceFile>(new NullFile));
+    addDeviceFile("zero",intrusive_ref_ptr<StatelessDeviceFile>(new ZeroFile));
 }
 
 bool DevFs::remove(const char* name)
 {
-    if(name==0 || name[0]!='/' || name[1]=='\0') return false;
+    if(name==0 || name[0]=='\0') return false;
     Lock<FastMutex> l(mutex);
     map<StringPart,DeviceFileWrapper>::iterator it=files.find(StringPart(name));
     if(it==files.end()) return false;
@@ -132,6 +132,14 @@ int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
 {
     if(flags & O_CREAT) return -EINVAL; //Can't create files in DevFs this way
     Lock<FastMutex> l(mutex);
+    if(name.empty()) //Trying to open the root directory of the fs
+    {
+        if(flags & (O_WRONLY | O_RDWR | O_APPEND | O_TRUNC)) return -EACCES;
+        file=intrusive_ref_ptr<FileBase>(
+            new DevFsDirectory(shared_from_this(),
+                mutex,files,rootDirInode,parentFsMountpointInode));
+        return 0;
+    }
     map<StringPart,DeviceFileWrapper>::iterator it=files.find(name);
     if(it==files.end()) return -ENOENT;
     return it->second.open(file,flags,mode);
@@ -152,7 +160,7 @@ int DevFs::mkdir(StringPart& name, int mode)
 
 bool DevFs::addDeviceFile(const char *name, DeviceFileWrapper dfw)
 {
-    if(name==0 || name[0]!='/' || name[1]=='\0') return false;
+    if(name==0 || name[0]=='\0') return false;
     int len=strlen(name);
     for(int i=1;i<len;i++) if(name[i]=='/') return false;
     Lock<FastMutex> l(mutex);
@@ -160,6 +168,46 @@ bool DevFs::addDeviceFile(const char *name, DeviceFileWrapper dfw)
     //Assign inode to the file
     if(result) dfw.setFileInfo(atomicAddExchange(&inodeCount,1),filesystemId);
     return result;
+}
+
+//
+// class DevFs::DevFsDirctory
+//
+
+int DevFs::DevFsDirectory::getdents(void *dp, int len)
+{
+    if(len<minimumBufferSize) return -EINVAL;
+    if(last) return 0;
+    
+    Lock<FastMutex> l(mutex);
+    char *begin=reinterpret_cast<char*>(dp);
+    char *buffer=begin;
+    char *end=buffer+len;
+    if(first)
+    {
+        first=false;
+        addDefaultEntries(&buffer,currentInode,parentInode);
+    }
+    if(currentItem.empty()==false)
+    {
+        map<StringPart,DeviceFileWrapper>::iterator it;
+        it=files.find(StringPart(currentItem));
+        //Someone deleted the exact directory entry we had saved (unlikely)
+        if(it==files.end()) return -EBADF;
+        for(;it!=files.end();++it)
+        {
+            struct stat st;
+            it->second.lstat(&st);
+            if(addEntry(&buffer,end,st.st_ino,st.st_mode>>12,it->first)>0)
+                continue;
+            //Buffer finished
+            currentItem=it->first.c_str();
+            return buffer-begin;
+        }
+    }
+    addTerminatingEntry(&buffer,end);
+    last=true;
+    return buffer-begin;
 }
 
 } //namespace miosix
