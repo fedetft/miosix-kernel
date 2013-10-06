@@ -380,7 +380,6 @@
           <in>stage_2_boot.h</in>
           <in>sync.cpp</in>
           <in>sync.h</in>
-          <in>unistd.cpp</in>
         </df>
         <df name="stdlib_integration">
           <in>libc_integration.cpp</in>
@@ -1492,8 +1491,6 @@
       <item path="../miosix/kernel/sync.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="../miosix/kernel/sync.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../miosix/kernel/unistd.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="../miosix/miosix.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -2609,8 +2606,6 @@
       <item path="../miosix/kernel/sync.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="../miosix/kernel/sync.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../miosix/kernel/unistd.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="../miosix/miosix.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -3729,8 +3724,6 @@
       </item>
       <item path="../miosix/kernel/sync.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="../miosix/kernel/unistd.cpp" ex="false" tool="1" flavor2="0">
-      </item>
       <item path="../miosix/miosix.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/stdlib_integration/libc_integration.cpp"
@@ -4847,8 +4840,6 @@
       <item path="../miosix/kernel/sync.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="../miosix/kernel/sync.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../miosix/kernel/unistd.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="../miosix/miosix.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -5967,8 +5958,6 @@
       </item>
       <item path="../miosix/kernel/sync.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="../miosix/kernel/unistd.cpp" ex="false" tool="1" flavor2="0">
-      </item>
       <item path="../miosix/miosix.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/stdlib_integration/libc_integration.cpp"
@@ -7085,8 +7074,6 @@
       <item path="../miosix/kernel/sync.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="../miosix/kernel/sync.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../miosix/kernel/unistd.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="../miosix/miosix.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -8205,8 +8192,6 @@
       </item>
       <item path="../miosix/kernel/sync.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="../miosix/kernel/unistd.cpp" ex="false" tool="1" flavor2="0">
-      </item>
       <item path="../miosix/miosix.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/stdlib_integration/libc_integration.cpp"
@@ -9321,8 +9306,6 @@
       <item path="../miosix/kernel/sync.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="../miosix/kernel/sync.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../miosix/kernel/unistd.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="../miosix/miosix.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -10439,8 +10422,6 @@
       </item>
       <item path="../miosix/kernel/sync.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="../miosix/kernel/unistd.cpp" ex="false" tool="1" flavor2="0">
-      </item>
       <item path="../miosix/miosix.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/stdlib_integration/libc_integration.cpp"
@@ -11555,8 +11536,6 @@
       <item path="../miosix/kernel/sync.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="../miosix/kernel/sync.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../miosix/kernel/unistd.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="../miosix/miosix.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -12673,8 +12652,6 @@
       </item>
       <item path="../miosix/kernel/sync.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="../miosix/kernel/unistd.cpp" ex="false" tool="1" flavor2="0">
-      </item>
       <item path="../miosix/miosix.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/stdlib_integration/libc_integration.cpp"
@@ -13790,8 +13767,6 @@
       </item>
       <item path="../miosix/kernel/sync.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="../miosix/kernel/unistd.cpp" ex="false" tool="1" flavor2="0">
-      </item>
       <item path="../miosix/miosix.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/stdlib_integration/libc_integration.cpp"
@@ -14906,8 +14881,6 @@
       <item path="../miosix/kernel/sync.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="../miosix/kernel/sync.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../miosix/kernel/unistd.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="../miosix/miosix.h" ex="false" tool="3" flavor2="0">
       </item>

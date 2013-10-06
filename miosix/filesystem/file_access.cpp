@@ -167,6 +167,35 @@ int FileDescriptorTable::chdir(const char* name)
     return 0;
 }
 
+int FileDescriptorTable::mkdir(const char *name, int mode)
+{
+    if(name==0 || name[0]=='\0') return -EFAULT;
+    string path=absolutePath(name);
+    if(path.empty()) return -ENAMETOOLONG;
+    ResolvedPath openData=FilesystemManager::instance().resolvePath(path,true);
+    if(openData.result<0) return openData.result;
+    StringPart sp(path,string::npos,openData.off);
+    return openData.fs->mkdir(sp,mode);
+}
+
+int FileDescriptorTable::unlink(const char *name)
+{
+    if(name==0 || name[0]=='\0') return -EFAULT;
+    string path=absolutePath(name);
+    if(path.empty()) return -ENAMETOOLONG;
+    return FilesystemManager::instance().unlinkHelper(path);
+}
+
+int FileDescriptorTable::rename(const char *oldName, const char *newName)
+{
+    if(oldName==0 || oldName[0]=='\0') return -EFAULT;
+    if(newName==0 || newName[0]=='\0') return -EFAULT;
+    string oldPath=absolutePath(oldName);
+    string newPath=absolutePath(newName);
+    if(oldPath.empty() || newPath.empty()) return -ENAMETOOLONG;
+    return FilesystemManager::instance().renameHelper(oldPath,newPath);
+}
+
 int FileDescriptorTable::statImpl(const char* name, struct stat* pstat, bool f)
 {
     if(name==0 || name[0]=='\0') return -EFAULT;
@@ -594,6 +623,43 @@ ResolvedPath FilesystemManager::resolvePath(string& path, bool followLastSymlink
     Lock<FastMutex> l(mutex);
     PathResolution pr(filesystems);
     return pr.resolvePath(path,followLastSymlink);
+}
+
+int FilesystemManager::unlinkHelper(string& path)
+{
+    //Do everything while keeping the mutex locked to prevent someone to
+    //concurrently mount a filesystem on the directory we're unlinking
+    Lock<FastMutex> l(mutex);
+    ResolvedPath openData=resolvePath(path,true);
+    if(openData.result<0) return openData.result;
+    //After resolvePath() so path is in canonical form and symlinks are followed
+    if(filesystems.find(StringPart(path))!=filesystems.end()) return -EBUSY;
+    StringPart sp(path,string::npos,openData.off);
+    return openData.fs->unlink(sp);
+}
+
+int FilesystemManager::renameHelper(string& oldPath, string& newPath)
+{
+    //Do everything while keeping the mutex locked to prevent someone to
+    //concurrently mount a filesystem on the directory we're renaming
+    Lock<FastMutex> l(mutex);
+    ResolvedPath oldOpenData=resolvePath(oldPath,true);
+    if(oldOpenData.result<0) return oldOpenData.result;
+    ResolvedPath newOpenData=resolvePath(newPath,true);
+    if(newOpenData.result<0) return newOpenData.result;
+    
+    if(oldOpenData.fs!=newOpenData.fs) return -EXDEV; //Can't rename across fs
+    
+    //After resolvePath() so path is in canonical form and symlinks are followed
+    if(filesystems.find(StringPart(oldPath))!=filesystems.end()) return -EBUSY;
+    if(filesystems.find(StringPart(newPath))!=filesystems.end()) return -EBUSY;
+    
+    StringPart oldSp(oldPath,string::npos,oldOpenData.off);
+    StringPart newSp(newPath,string::npos,newOpenData.off);
+    
+    //Can't rename a directory into a subdirectory of itself
+    if(newSp.startsWith(oldSp)) return -EINVAL;
+    return oldOpenData.fs->rename(oldSp,newSp);
 }
 
 short int FilesystemManager::getFilesystemId()

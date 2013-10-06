@@ -1,5 +1,12 @@
 Changelog for Miosix np embedded OS
 
+- Implemented the nanosleep() syscall to support sleep() and usleep().
+- Removed kernel/unistd.cpp as we're now relying in the implementation of
+  sleep() and usleep() in newlib.
+- Fixed newlib patch to add HAVE_NANOSLEEP, as it was omitted by mistake.
+  This change requires recompiling GCC!
+- File abstraction layer: added support for mkdir(), unlink() and rename()
+  syscalls.
 - File abstraction layer: added testsuite test for directory listing.
   Also removed two tests from the testsuite related to the old Filesystem
   and Directory classes.

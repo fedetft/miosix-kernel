@@ -45,6 +45,7 @@
 //// kernel interface
 #include "kernel/kernel.h"
 #include "interfaces/bsp.h"
+#include "interfaces/delays.h"
 #include "board_settings.h"
 
 using namespace std;
@@ -577,8 +578,23 @@ int fcntl(int fd, int cmd, ...)
 int _mkdir_r(struct _reent *ptr, const char *path, int mode)
 {
     #ifdef WITH_FILESYSTEM
-    //FIXME: implement this //return miosix::Filesystem::instance().mkdir(path,mode);
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().mkdir(path,mode);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+    
     #else //WITH_FILESYSTEM
+    ptr->_errno=ENOENT;
     return -1;
     #endif //WITH_FILESYSTEM
 }
@@ -590,11 +606,11 @@ int mkdir(const char *path, mode_t mode)
 
 /**
  * \internal
- * _link_r
- * FIXME: implement me
+ * _link_r: create hardlinks
  */
 int _link_r(struct _reent *ptr, const char *f_old, const char *f_new)
 {
+    ptr->_errno=ENOENT; //Unimplemented at the moment
     return -1;
 }
 
@@ -610,8 +626,23 @@ int link(const char *f_old, const char *f_new)
 int _unlink_r(struct _reent *ptr, const char *file)
 {
     #ifdef WITH_FILESYSTEM
-    //FIXME: implement this //return miosix::Filesystem::instance().unlink(file);
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().unlink(file);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+    
     #else //WITH_FILESYSTEM
+    ptr->_errno=ENOENT;
     return -1;
     #endif //WITH_FILESYSTEM
 }
@@ -623,12 +654,30 @@ int unlink(const char *file)
 
 /**
  * \internal
- * _rename_r
- * FIXME: implement me
+ * _rename_r, rename a file or directory
  */
 int _rename_r(struct _reent *ptr, const char *f_old, const char *f_new)
 {
+    #ifdef WITH_FILESYSTEM
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().rename(f_old,f_new);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+    
+    #else //WITH_FILESYSTEM
+    ptr->_errno=ENOENT;
     return -1;
+    #endif //WITH_FILESYSTEM
 }
 
 int rename(const char *f_old, const char *f_new)
@@ -695,7 +744,7 @@ clock_t times(struct tms *tim)
 
 /**
  * \internal
- * _gettimeofday_r, FIXME: implement me
+ * _gettimeofday_r, unimplemented
  */
 int _gettimeofday_r(struct _reent *ptr, struct timeval *tv, void *tz)
 {
@@ -709,11 +758,16 @@ int gettimeofday(struct timeval *tv, void *tz)
 
 /**
  * \internal
- * nanosleep, FIXME: implement me
+ * nanosleep, high resolution sleep
  */
 int nanosleep(const struct timespec *req, struct timespec *rem)
 {
-    return -1;
+    if(req->tv_sec) miosix::Thread::sleep(req->tv_sec*1000);
+    unsigned int microseconds=req->tv_nsec/1000; //No sub-microsecond support yet
+    if(microseconds>=1000) miosix::Thread::sleep(microseconds/1000);
+    microseconds %= 1000;
+    if(microseconds) miosix::delayUs(microseconds);
+    return 0;
 }
 
 

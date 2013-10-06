@@ -99,6 +99,7 @@ static void test_24();
 //Filesystem test functions
 #ifdef WITH_FILESYSTEM
 static void fs_test_1();
+static void fs_test_2();
 static void fs_test_3();
 static void fs_test_4();
 #endif //WITH_FILESYSTEM
@@ -169,6 +170,7 @@ int main()
                 ledOn();
                 #ifdef WITH_FILESYSTEM
                 fs_test_1();
+                fs_test_2();
                 fs_test_3();
                 fs_test_4();
                 #else //WITH_FILESYSTEM
@@ -3646,6 +3648,85 @@ static void fs_test_1()
     if(fclose(f)!=0) fail("Can't close deleteme.txt");
     remove("/testdir/deleteme.txt");
     if((f=fopen("/testdir/deleteme.txt","r"))!=NULL) fail("remove() error");
+    pass();
+}
+
+//
+// Filesystem test 2
+//
+/*
+tests:
+mkdir/unlink/rename
+*/
+
+/**
+ * \param d scan the content of this directory
+ * \param a if not null, this file must be in the directory
+ * \param b if not null, this file most not be in the directory
+ * \return true on success, false on failure
+ */
+static bool checkDirContent(const std::string& d, const char *a, const char *b)
+{
+    DIR *dir=opendir(d.c_str());
+    bool found=false;
+    for(;;)
+    {
+        struct dirent *de=readdir(dir);
+        if(de==NULL) break;
+        if(a && !strcmp(de->d_name,a)) found=true;
+        if(b && !strcmp(de->d_name,b))
+        {
+            closedir(dir);
+            return false;
+        }
+    }
+    closedir(dir);
+    if(a) return found; else return true;
+}
+
+static void checkInDir(const std::string& d, bool createFile)
+{
+    using namespace std;
+    const char dirname1[]="test1";
+    if(mkdir((d+dirname1).c_str(),0755)!=0) fail("mkdir");
+    if(checkDirContent(d,dirname1,0)==false) fail("mkdir 2");
+    const char dirname2[]="test2";
+    if(rename((d+dirname1).c_str(),(d+dirname2).c_str())) fail("rename");
+    if(checkDirContent(d,dirname2,dirname1)==false) fail("rename 2");
+    if(remove((d+dirname2).c_str())) fail("remove");
+    if(checkDirContent(d,0,dirname2)==false) fail("remove 2");
+    
+    if(createFile==false) return;
+    const char filename1[]="test.txt";
+    FILE *f;
+    if((f=fopen((d+filename1).c_str(),"w"))==NULL) fail("fopen");
+    const char teststr[]="Testing\n";
+    fputs(teststr,f);
+    fclose(f);
+    if(checkDirContent(d,filename1,0)==false) fail("fopen 2");
+    const char filename2[]="test2.txt";
+    if(rename((d+filename1).c_str(),(d+filename2).c_str())) fail("rename 3");
+    if(checkDirContent(d,filename2,filename1)==false) fail("rename 4");
+    if((f=fopen((d+filename2).c_str(),"r"))==NULL) fail("fopen");
+    char s[32];
+    fgets(s,sizeof(s),f);
+    if(strcmp(s,teststr)) fail("file content after rename");
+    fclose(f);
+    if(remove((d+filename2).c_str())) fail("remove 3");
+    if(checkDirContent(d,0,filename2)==false) fail("remove 4");
+}
+
+static void fs_test_2()
+{
+    test_name("mkdir/rename/unlink");
+    checkInDir("/",false);
+    DIR *d=opendir("/sd");
+    if(d!=NULL)
+    {
+        // the /sd mountpoint exists, check mkdir/rename/unlink also here
+        closedir(d);
+        checkInDir("/sd/",true);
+    }
     pass();
 }
 

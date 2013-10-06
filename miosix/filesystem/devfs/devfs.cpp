@@ -153,6 +153,27 @@ int DevFs::lstat(StringPart& name, struct stat *pstat)
     return it->second.lstat(pstat);
 }
 
+int DevFs::unlink(StringPart& name)
+{
+    Lock<FastMutex> l(mutex);
+    if(files.erase(name)==1) return 0;
+    return -ENOENT;
+}
+
+int DevFs::rename(StringPart& oldName, StringPart& newName)
+{
+    Lock<FastMutex> l(mutex);
+    map<StringPart,DeviceFileWrapper>::iterator it=files.find(oldName);
+    if(it==files.end()) return -ENOENT;
+    for(unsigned int i=0;i<newName.length();i++)
+        if(newName[i]=='/')
+            return -EACCES; //DevFs does not support subdirectories
+    files.erase(newName); //If it exists
+    files.insert(make_pair(newName,it->second));
+    files.erase(it);
+    return 0;
+}
+
 int DevFs::mkdir(StringPart& name, int mode)
 {
     return -EACCES; // No directories support in DevFs yet

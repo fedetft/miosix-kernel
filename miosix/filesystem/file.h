@@ -268,6 +268,21 @@ public:
     virtual int lstat(StringPart& name, struct stat *pstat)=0;
     
     /**
+     * Remove a file or directory
+     * \param name path name of file or directory to remove
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int unlink(StringPart& name)=0;
+    
+    /**
+     * Rename a file or directory
+     * \param oldName old file name
+     * \param newName new file name
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int rename(StringPart& oldName, StringPart& newName)=0;
+    
+    /**
      * Create a directory
      * \param name directory name
      * \param mode directory permissions

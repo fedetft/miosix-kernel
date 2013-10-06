@@ -14,7 +14,6 @@ kernel/kernel.cpp                                                          \
 kernel/sync.cpp                                                            \
 kernel/error.cpp                                                           \
 kernel/pthread.cpp                                                         \
-kernel/unistd.cpp                                                          \
 kernel/stage_2_boot.cpp                                                    \
 kernel/scheduler/priority/priority_scheduler.cpp                           \
 kernel/scheduler/control/control_scheduler.cpp                             \

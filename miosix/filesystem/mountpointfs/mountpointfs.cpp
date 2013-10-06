@@ -161,6 +161,26 @@ int MountpointFs::lstat(StringPart& name, struct stat *pstat)
     return 0;
 }
 
+int MountpointFs::unlink(StringPart& name)
+{
+    Lock<FastMutex> l(mutex);
+    if(dirs.erase(name)==1) return 0;
+    return -ENOENT;
+}
+
+int MountpointFs::rename(StringPart& oldName, StringPart& newName)
+{
+    Lock<FastMutex> l(mutex);
+    map<StringPart,int>::iterator it=dirs.find(oldName);
+    if(it==dirs.end()) return -ENOENT;
+    for(unsigned int i=0;i<newName.length();i++)
+        if(newName[i]=='/')
+            return -EACCES; //MountpointFs does not support subdirectories
+    dirs[newName]=it->second;
+    dirs.erase(it);
+    return 0;
+}
+
 int MountpointFs::mkdir(StringPart& name, int mode)
 {
     for(unsigned int i=0;i<name.length();i++)

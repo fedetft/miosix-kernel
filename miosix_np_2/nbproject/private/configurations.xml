@@ -384,7 +384,6 @@
           <in>stage_2_boot.h</in>
           <in>sync.cpp</in>
           <in>sync.h</in>
-          <in>unistd.cpp</in>
         </df>
         <df name="stdlib_integration">
           <in>libc_integration.cpp</in>

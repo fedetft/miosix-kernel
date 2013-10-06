@@ -28,7 +28,7 @@ diff -ruN newlib-2.0.0-old/newlib/configure.host newlib-2.0.0/newlib/configure.h
 +# _NO_WORDEXP: no wordexp() support in Miosix (missing fork())
 +# _SMALL_HEXDIG: save 256 byte of RAM in stdlib/gdtoa-gethex.c
 +# SIGNAL_PROVIDED: disable the implementation of signals in newlib
-+	newlib_cflags="${newlib_cflags} -DREENTRANT_SYSCALLS_PROVIDED -DHAVE_BLKSIZE -DHAVE_FCNTL -D_NO_POPEN -D_NO_WORDEXP -D_SMALL_HEXDIG -DSIGNAL_PROVIDED"
++	newlib_cflags="${newlib_cflags} -DREENTRANT_SYSCALLS_PROVIDED -DHAVE_BLKSIZE -DHAVE_FCNTL -DHAVE_NANOSLEEP -D_NO_POPEN -D_NO_WORDEXP -D_SMALL_HEXDIG -DSIGNAL_PROVIDED"
 +	newlib_cflags="${newlib_cflags} -Wall"
 +	;;
  # RTEMS supplies its own versions of some routines:

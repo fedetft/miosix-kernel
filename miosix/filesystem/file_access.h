@@ -233,6 +233,29 @@ public:
     int chdir(const char *name);
     
     /**
+     * Create a directory
+     * \param name directory to create
+     * \param mode directory permissions
+     * \return 0 on success, or a negative number on failure
+     */
+    int mkdir(const char *name, int mode);
+    
+    /**
+     * Remove a file or directory
+     * \param name file or directory to remove
+     * \return 0 on success, or a negative number on failure
+     */
+    int unlink(const char *name);
+    
+    /**
+     * Rename a file or directory
+     * \param oldName old file name
+     * \param newName new file name
+     * \return 0 on success, or a negative number on failure
+     */
+    int rename(const char *oldName, const char *newName);
+    
+    /**
      * Retrieves an entry in the file descriptor table
      * \param fd file descriptor, index into the table
      * \return a refcounted poiter to the file at the desired entry
@@ -329,6 +352,25 @@ public:
      * \return the resolved path
      */
     ResolvedPath resolvePath(std::string& path, bool followLastSymlink=true);
+    
+    /**
+     * \internal
+     * Helper function to unlink a file or directory. Only meant to be used by
+     * FileDescriptorTable::unlink()
+     * \param path path of file or directory to unlink
+     * \return 0 on success, or a neagtive number on failure
+     */
+    int unlinkHelper(std::string& path);
+    
+    /**
+     * \internal
+     * Helper function to unlink a file or directory. Only meant to be used by
+     * FileDescriptorTable::unlink()
+     * \param oldPath path of file or directory to unlink
+     * \param newPath path of file or directory to unlink
+     * \return 0 on success, or a neagtive number on failure
+     */
+    int renameHelper(std::string& oldPath, std::string& newPath);
     
     /**
      * \internal
