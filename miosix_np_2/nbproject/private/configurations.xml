@@ -2,6 +2,36 @@
 <configurationDescriptor version="89">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df root=".." name="miosix_np_2">
+      <df name="ff10">
+        <df name="doc">
+          <df name="en">
+          </df>
+          <df name="img">
+            <in>app1.c</in>
+            <in>app2.c</in>
+            <in>app3.c</in>
+          </df>
+          <df name="ja">
+          </df>
+        </df>
+        <df name="src">
+          <df name="option">
+            <in>cc932.c</in>
+            <in>cc936.c</in>
+            <in>cc949.c</in>
+            <in>cc950.c</in>
+            <in>ccsbcs.c</in>
+            <in>syscall.c</in>
+            <in>unicode.c</in>
+          </df>
+          <in>diskio.c</in>
+          <in>diskio.h</in>
+          <in>ff.c</in>
+          <in>ff.h</in>
+          <in>ffconf.h</in>
+          <in>integer.h</in>
+        </df>
+      </df>
       <df name="miosix">
         <df name="arch">
           <df name="arm7_lpc2000">
@@ -319,10 +349,22 @@
             <in>devfs.h</in>
           </df>
           <df name="fat32">
+            <df name="option">
+              <in>cc932.c</in>
+              <in>cc936.c</in>
+              <in>cc949.c</in>
+              <in>cc950.c</in>
+              <in>ccsbcs.c</in>
+              <in>syscall.c</in>
+              <in>unicode.c</in>
+            </df>
             <in>diskio.cpp</in>
             <in>diskio.h</in>
+            <in>fat32.cpp</in>
+            <in>fat32.h</in>
             <in>ff.c</in>
             <in>ff.h</in>
+            <in>ffconf.h</in>
             <in>integer.h</in>
           </df>
           <df name="mountpointfs">

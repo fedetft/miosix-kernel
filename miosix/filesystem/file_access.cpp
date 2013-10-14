@@ -4,6 +4,7 @@
 #include <climits>
 #include "console/console_device.h"
 #include "mountpointfs/mountpointfs.h"
+#include "fat32/fat32.h"
 #include "kernel/logging.h"
 
 using namespace std;
@@ -176,6 +177,17 @@ int FileDescriptorTable::mkdir(const char *name, int mode)
     if(openData.result<0) return openData.result;
     StringPart sp(path,string::npos,openData.off);
     return openData.fs->mkdir(sp,mode);
+}
+
+int FileDescriptorTable::rmdir(const char *name)
+{
+    if(name==0 || name[0]=='\0') return -EFAULT;
+    string path=absolutePath(name);
+    if(path.empty()) return -ENAMETOOLONG;
+    ResolvedPath openData=FilesystemManager::instance().resolvePath(path,true);
+    if(openData.result<0) return openData.result;
+    StringPart sp(path,string::npos,openData.off);
+    return openData.fs->rmdir(sp);
 }
 
 int FileDescriptorTable::unlink(const char *name)
@@ -680,6 +692,19 @@ basicFilesystemSetup()
     FilesystemManager& fsm=FilesystemManager::instance();
     intrusive_ref_ptr<FilesystemBase> rootFs(new MountpointFs);
     bootlog(fsm.kmount("/",rootFs)==0 ? "Ok\r\n" : "Failed\r\n");
+    
+    //TODO: Move to individual BSPs -- begin
+    bootlog("Mounting Fat32Fs as /sd ... ");
+    StringPart sd("sd");
+    intrusive_ref_ptr<Fat32Fs> fat32(new Fat32Fs);
+    bool fat32failed=fat32->mountFailed();
+    if(fat32failed==false)
+    {
+        fat32failed=rootFs->mkdir(sd,0755)!=0;
+        fat32failed=fsm.kmount("/sd",fat32)!=0;
+    }
+    bootlog(fat32failed==0 ? "Ok\r\n" : "Failed\r\n");
+    //TODO: Move to individual BSPs -- end
     
     #ifdef WITH_DEVFS
     bootlog("Mounting DevFs as /dev ... ");

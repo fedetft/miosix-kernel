@@ -241,6 +241,13 @@ public:
     int mkdir(const char *name, int mode);
     
     /**
+     * Remove a directory if empty
+     * \param name directory to create
+     * \return 0 on success, or a negative number on failure
+     */
+    int rmdir(const char *name);
+    
+    /**
      * Remove a file or directory
      * \param name file or directory to remove
      * \return 0 on success, or a negative number on failure

@@ -179,6 +179,11 @@ int DevFs::mkdir(StringPart& name, int mode)
     return -EACCES; // No directories support in DevFs yet
 }
 
+int DevFs::rmdir(StringPart& name)
+{
+    return -EACCES; // No directories support in DevFs yet
+}
+
 bool DevFs::addDeviceFile(const char *name, DeviceFileWrapper dfw)
 {
     if(name==0 || name[0]=='\0') return false;

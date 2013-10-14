@@ -288,6 +288,13 @@ public:
      */
     virtual int mkdir(StringPart& name, int mode);
     
+    /**
+     * Remove a directory if empty
+     * \param name directory name
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int rmdir(StringPart& name);
+    
 private:
     //Forward decl
     class DeviceFileWrapper;

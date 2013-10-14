@@ -606,6 +606,39 @@ int mkdir(const char *path, mode_t mode)
 
 /**
  * \internal
+ * _rmdir_r, remove a directory if empty
+ */
+int _rmdir_r(struct _reent *ptr, const char *path)
+{
+    #ifdef WITH_FILESYSTEM
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().rmdir(path);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+    
+    #else //WITH_FILESYSTEM
+    ptr->_errno=ENOENT;
+    return -1;
+    #endif //WITH_FILESYSTEM
+}
+
+int rmdir(const char *path)
+{
+    return _rmdir_r(miosix::CReentrancyAccessor::getReent(),path);
+}
+
+/**
+ * \internal
  * _link_r: create hardlinks
  */
 int _link_r(struct _reent *ptr, const char *f_old, const char *f_new)

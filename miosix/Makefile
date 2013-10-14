@@ -25,6 +25,7 @@ filesystem/console/console_device.cpp                                      \
 filesystem/mountpointfs/mountpointfs.cpp                                   \
 filesystem/devfs/devfs.cpp                                                 \
 filesystem/devfs/base_files.cpp                                            \
+filesystem/fat32/fat32.cpp                                                 \
 filesystem/fat32/ff.c                                                      \
 filesystem/fat32/diskio.cpp                                                \
 stdlib_integration/libc_integration.cpp                                    \

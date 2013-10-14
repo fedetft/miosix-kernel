@@ -25,26 +25,25 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef MOUNTPOINTFS_H
-#define	MOUNTPOINTFS_H
+#ifndef FAT32_H
+#define	FAT32_H
 
-#include <map>
 #include "filesystem/file.h"
 #include "kernel/sync.h"
+#include "ff.h"
 
 namespace miosix {
 
 /**
- * MountpointFs is a special filesystem whose purpose is to create directories
- * to be used as mountpoints for other filesystems.
+ * Fat32 Filesystem.
  */
-class MountpointFs : public FilesystemBase
+class Fat32Fs : public FilesystemBase
 {
 public:
     /**
      * Constructor
      */
-    MountpointFs() : mutex(FastMutex::RECURSIVE), inodeCount(rootDirInode+1) {}
+    Fat32Fs();
     
     /**
      * Open a file
@@ -97,13 +96,21 @@ public:
      */
     virtual int rmdir(StringPart& name);
     
+    /**
+     * \return true if the filesystem failed to mount 
+     */
+    bool mountFailed() const { return failed; }
+    
+    /**
+     * Destructor
+     */
+    ~Fat32Fs();
+    
 private:
-    FastMutex mutex;
-    std::map<StringPart,int> dirs;
-    int inodeCount;
-    static const int rootDirInode=1;
+    FATFS filesystem;
+    bool failed; ///< Failed to mount
 };
 
 } //namespace miosix
 
-#endif //MOUNTPOINTFS_H
+#endif //FAT32_H

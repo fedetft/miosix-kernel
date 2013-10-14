@@ -3409,7 +3409,7 @@ static volatile bool p1end,p2end,p3end,fs_1_error;
 static void fs_t1_p1(void *argv)
 {
     FILE *f;
-    if((f=fopen("/testdir/file_1.txt","w"))==NULL)
+    if((f=fopen("/sd/testdir/file_1.txt","w"))==NULL)
     {
         fs_1_error=true;
         p1end=true;
@@ -3445,7 +3445,7 @@ static void fs_t1_p1(void *argv)
 static void fs_t1_p2(void *argv)
 {
     FILE *f;
-    if((f=fopen("/testdir/file_2.txt","w"))==NULL)
+    if((f=fopen("/sd/testdir/file_2.txt","w"))==NULL)
     {
         fs_1_error=true;
         p2end=true;
@@ -3481,7 +3481,7 @@ static void fs_t1_p2(void *argv)
 static void fs_t1_p3(void *argv)
 {
     FILE *f;
-    if((f=fopen("/testdir/file_3.txt","w"))==NULL)
+    if((f=fopen("/sd/testdir/file_3.txt","w"))==NULL)
     {
         fs_1_error=true;
         p3end=true;
@@ -3518,20 +3518,23 @@ static void fs_test_1()
 {
     test_name("C standard library file functions + mkdir()");
     iprintf("Please wait (long test)\n");
-	//Test mkdir (if possible)
-	int result=mkdir("/testdir",0);
-	switch(result)
-	{
+    //Test mkdir (if possible)
+    int result=mkdir("/sd/testdir",0);
+    switch(result)
+    {
             case 0: break;
-            case -2:
-                iprintf("Directory test not made because directory"
+            case -1:
+                if(errno==EEXIST)
+                {
+                    iprintf("Directory test not made because directory"
                         " already exists\n");
-                break;
+                    break;
+                } //else fallthrough
             default:
                 iprintf("mkdir returned %d\n",result);
                 fail("Directory::mkdir()");
-	}
-	//Test concurrent file write access
+    }
+    //Test concurrent file write access
     p1end=false;
     p2end=false;
     p3end=false;
@@ -3547,7 +3550,7 @@ static void fs_test_1()
     int i,j,k;
     FILE *f;
     //file_1.txt
-    if((f=fopen("/testdir/file_1.txt","r"))==NULL)
+    if((f=fopen("/sd/testdir/file_1.txt","r"))==NULL)
         fail("can't open file_1.txt");
     setbuf(f,NULL);
     i=0;
@@ -3562,7 +3565,7 @@ static void fs_test_1()
     if(i!=512*512) fail("file_1.txt : size error");
     if(fclose(f)!=0) fail("Can't close file file_1.txt");
     //file_2.txt
-    if((f=fopen("/testdir/file_2.txt","r"))==NULL)
+    if((f=fopen("/sd/testdir/file_2.txt","r"))==NULL)
         fail("can't open file_2.txt");
     setbuf(f,NULL);
     i=0;
@@ -3577,7 +3580,7 @@ static void fs_test_1()
     if(i!=512*512) fail("file_2.txt : size error");
     if(fclose(f)!=0) fail("Can't close file file_2.txt");
     //file_3.txt
-    if((f=fopen("/testdir/file_3.txt","r"))==NULL)
+    if((f=fopen("/sd/testdir/file_3.txt","r"))==NULL)
         fail("can't open file_3.txt");
     setbuf(f,NULL);
     i=0;
@@ -3592,17 +3595,17 @@ static void fs_test_1()
     if(fclose(f)!=0) fail("Can't close file file_3.txt");
     delete[] buf;
     //Testing fprintf
-    if((f=fopen("/testdir/file_4.txt","w"))==NULL)
+    if((f=fopen("/sd/testdir/file_4.txt","w"))==NULL)
         fail("can't open w file_4.txt");
     fprintf(f,"Hello world line 001\n");
     if(fclose(f)!=0) fail("Can't close w file_4.txt");
     //Testing append
-    if((f=fopen("/testdir/file_4.txt","a"))==NULL)
+    if((f=fopen("/sd/testdir/file_4.txt","a"))==NULL)
         fail("can't open a file_4.txt");
     for(i=2;i<=128;i++) fprintf(f,"Hello world line %03d\n",i);
     if(fclose(f)!=0) fail("Can't close a file_4.txt");
     //Reading to check (only first 2 lines)
-    if((f=fopen("/testdir/file_4.txt","r"))==NULL)
+    if((f=fopen("/sd/testdir/file_4.txt","r"))==NULL)
         fail("can't open r file_4.txt");
     char line[80];
     fgets(line,sizeof(line),f);
@@ -3615,7 +3618,7 @@ static void fs_test_1()
     //Hello world line 002\n
     //  ...
     //Hello world line 128\n
-    if((f=fopen("/testdir/file_4.txt","r"))==NULL)
+    if((f=fopen("/sd/testdir/file_4.txt","r"))==NULL)
         fail("can't open r2 file_4.txt");
     if(ftell(f)!=0) fail("File opend but cursor not @ address 0");
     fseek(f,-4,SEEK_END);//Seek to 128\n
@@ -3643,11 +3646,11 @@ static void fs_test_1()
     }
     if(fclose(f)!=0) fail("Can't close r2 file_4.txt");
     //Testing remove()
-    if((f=fopen("/testdir/deleteme.txt","w"))==NULL)
+    if((f=fopen("/sd/testdir/deleteme.txt","w"))==NULL)
         fail("can't open deleteme.txt");
     if(fclose(f)!=0) fail("Can't close deleteme.txt");
-    remove("/testdir/deleteme.txt");
-    if((f=fopen("/testdir/deleteme.txt","r"))!=NULL) fail("remove() error");
+    remove("/sd/testdir/deleteme.txt");
+    if((f=fopen("/sd/testdir/deleteme.txt","r"))!=NULL) fail("remove() error");
     pass();
 }
 
@@ -3693,8 +3696,8 @@ static void checkInDir(const std::string& d, bool createFile)
     const char dirname2[]="test2";
     if(rename((d+dirname1).c_str(),(d+dirname2).c_str())) fail("rename");
     if(checkDirContent(d,dirname2,dirname1)==false) fail("rename 2");
-    if(remove((d+dirname2).c_str())) fail("remove");
-    if(checkDirContent(d,0,dirname2)==false) fail("remove 2");
+    if(rmdir((d+dirname2).c_str())) fail("rmdir");
+    if(checkDirContent(d,0,dirname2)==false) fail("rmdir 2");
     
     if(createFile==false) return;
     const char filename1[]="test.txt";
@@ -3712,8 +3715,8 @@ static void checkInDir(const std::string& d, bool createFile)
     fgets(s,sizeof(s),f);
     if(strcmp(s,teststr)) fail("file content after rename");
     fclose(f);
-    if(remove((d+filename2).c_str())) fail("remove 3");
-    if(checkDirContent(d,0,filename2)==false) fail("remove 4");
+    if(unlink((d+filename2).c_str())) fail("unlink 3");
+    if(checkDirContent(d,0,filename2)==false) fail("unlink 4");
 }
 
 static void fs_test_2()
@@ -3743,7 +3746,7 @@ static void fs_test_3()
     test_name("Large file check");
     iprintf("Please wait (long test)\n");
     
-    const char name[]="/testdir/file_5.dat";
+    const char name[]="/sd/testdir/file_5.dat";
     const unsigned int size=1024;
     const unsigned int numBlocks=2048;
     
@@ -3812,7 +3815,7 @@ static void fs_test_4()
     if(parentInode!=1) fail("..");
     #ifdef WITH_DEVFS
     if(devFsInode==0) fail("dev");
-    curInode=0, parentInode=0, devFsInode=0;
+    curInode=0, parentInode=0;
     int nullInode=0, zeroInode=0;
     d=opendir("/dev");
     if(d==NULL) fail("opendir");
@@ -3839,7 +3842,7 @@ static void fs_test_4()
     }
     closedir(d);
     if(curInode!=1) fail(".");
-    if(parentInode!=2) fail("..");
+    if(parentInode!=devFsInode) fail("..");
     if(nullInode!=2) fail("null");
     if(zeroInode!=3) fail("zero");
     #endif //WITH_DEVFS
@@ -4011,7 +4014,7 @@ makes a 1MB file and measures time required to read/write it.
 static void benchmark_3()
 {
     //Write benchmark
-    const char FILENAME[]="/speed.txt";
+    const char FILENAME[]="/sd/speed.txt";
     const unsigned int BUFSIZE=1024;
     char *buf=new char[BUFSIZE];
     memset ((void*)buf,'0',BUFSIZE);

@@ -238,7 +238,7 @@ protected:
  * intrusive_ref_ptr<FilesystemBase>
  */
 class FilesystemBase : public IntrusiveRefCounted,
-        protected IntrusiveRefCountedSharedFromThis<FilesystemBase>
+        public IntrusiveRefCountedSharedFromThis<FilesystemBase>
 {
 public:
     /**
@@ -291,6 +291,13 @@ public:
     virtual int mkdir(StringPart& name, int mode)=0;
     
     /**
+     * Remove a directory if empty
+     * \param name directory name
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int rmdir(StringPart& name)=0;
+    
+    /**
      * Follows a symbolic link
      * \param path path identifying a symlink, relative to the local filesystem
      * \param target the link target is returned here if the call succeeds.
@@ -327,6 +334,11 @@ public:
      * \param inode inode of the directory where the fs is mounted
      */
     void setParentFsMountpointInode(int inode) { parentFsMountpointInode=inode; }
+    
+    /**
+     * \return filesystem id
+     */
+    short int getFsId() const { return filesystemId; }
             
     /**
      * Destructor

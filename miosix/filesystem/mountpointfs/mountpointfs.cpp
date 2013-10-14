@@ -163,8 +163,6 @@ int MountpointFs::lstat(StringPart& name, struct stat *pstat)
 
 int MountpointFs::unlink(StringPart& name)
 {
-    Lock<FastMutex> l(mutex);
-    if(dirs.erase(name)==1) return 0;
     return -ENOENT;
 }
 
@@ -190,6 +188,13 @@ int MountpointFs::mkdir(StringPart& name, int mode)
     if(dirs.insert(make_pair(name,inodeCount)).second==false) return -EEXIST;
     inodeCount++;
     return 0;
+}
+
+int MountpointFs::rmdir(StringPart& name)
+{
+    Lock<FastMutex> l(mutex);
+    if(dirs.erase(name)==1) return 0;
+    return -ENOENT;
 }
 
 } //namespace miosix

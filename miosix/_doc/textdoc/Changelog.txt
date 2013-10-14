@@ -1,5 +1,13 @@
 Changelog for Miosix np embedded OS
 
+- Started work on integrating Fat32 in the new file abstraction layer.
+  Upgraded FatFs from 0.06 to 0.10. Added classes Fat32Fs and Fat32File
+- Added an assertion in IntrusiveRefCountedSharedFromThis to help find
+  bugs.
+- File abstraction layer: FilesystemBase now publicly derives from
+  IntrusiveRefCountedSharedFromThis to allow dynamic_casts
+- File abstraction layer: added FilesystemBase::getFsId()
+- File abstraction layer: added rmdir()
 - Implemented the nanosleep() syscall to support sleep() and usleep().
 - Removed kernel/unistd.cpp as we're now relying in the implementation of
   sleep() and usleep() in newlib.

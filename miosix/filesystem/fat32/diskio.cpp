@@ -48,7 +48,7 @@ DRESULT disk_read (
 	BYTE drv,		/* Physical drive nmuber (0..) */
 	BYTE *buff,		/* Data buffer to store read data */
 	DWORD sector,           /* Sector address (LBA) */
-	BYTE count		/* Number of sectors to read (1..255) */
+	UINT count		/* Number of sectors to read (1..255) */
 )
 {
     if(drv!=0 || count==0) return RES_PARERR;
@@ -65,7 +65,7 @@ DRESULT disk_write (
 	BYTE drv,		/* Physical drive nmuber (0..) */
 	const BYTE *buff,	/* Data to be written */
 	DWORD sector,		/* Sector address (LBA) */
-	BYTE count		/* Number of sectors to write (1..255) */
+	UINT count		/* Number of sectors to write (1..255) */
 )
 {
     if(drv!=0 || count==0) return RES_PARERR;
@@ -103,10 +103,10 @@ DRESULT disk_ioctl (
  * \internal
  * Return current time, used to save file creation time
  */
-DWORD get_fattime()
-{
-    return 0x210000;//TODO: this stub just returns date 01/01/1980 0.00.00
-}
+ DWORD get_fattime()
+ {
+     return 0x210000;//TODO: this stub just returns date 01/01/1980 0.00.00
+ }
 
 #ifdef __cplusplus
 }

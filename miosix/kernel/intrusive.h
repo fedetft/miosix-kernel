@@ -30,6 +30,7 @@
 
 #include <ostream>
 #include <cstddef>
+#include <cassert>
 #include "interfaces/atomic_ops.h"
 
 #if __cplusplus > 199711L
@@ -131,7 +132,9 @@ public:
     {
         // Simply making an intrusive_ref_ptr from this works as the reference
         // count is intrusive
-        return intrusive_ref_ptr<T>(dynamic_cast<T*>(this));
+        T* result=dynamic_cast<T*>(this);
+        assert(result);
+        return intrusive_ref_ptr<T>(result);
     }
     
     /**
@@ -142,7 +145,9 @@ public:
     {
         // Simply making an intrusive_ref_ptr from this works as the reference
         // count is intrusive
-        return intrusive_ref_ptr<const T>(dynamic_cast<const T*>(this));
+        const T* result=dynamic_cast<const T*>(this);
+        assert(result);
+        return intrusive_ref_ptr<const T>(result);
     }
     
     /**

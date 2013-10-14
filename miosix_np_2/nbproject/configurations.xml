@@ -317,8 +317,11 @@
           <df name="fat32">
             <in>diskio.cpp</in>
             <in>diskio.h</in>
+            <in>fat32.cpp</in>
+            <in>fat32.h</in>
             <in>ff.c</in>
             <in>ff.h</in>
+            <in>ffconf.h</in>
             <in>integer.h</in>
           </df>
           <df name="mountpointfs">
@@ -1335,6 +1338,13 @@
             ex="false"
             tool="3"
             flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/fat32/ff.c" ex="false" tool="0" flavor2="0">
       </item>
@@ -2450,6 +2460,13 @@
             ex="false"
             tool="3"
             flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/fat32/ff.c" ex="false" tool="0" flavor2="0">
       </item>
@@ -3568,9 +3585,21 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/filesystem/fat32/fat32.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../miosix/filesystem/fat32/ff.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="../miosix/filesystem/fat32/ff.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/ffconf.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
       </item>
       <item path="../miosix/filesystem/fat32/integer.h"
             ex="false"
@@ -4684,6 +4713,13 @@
             ex="false"
             tool="3"
             flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/fat32/ff.c" ex="false" tool="0" flavor2="0">
       </item>
@@ -5802,6 +5838,13 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/filesystem/fat32/fat32.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../miosix/filesystem/fat32/ff.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="../miosix/filesystem/fat32/ff.h" ex="false" tool="3" flavor2="0">
@@ -6918,6 +6961,13 @@
             ex="false"
             tool="3"
             flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/fat32/ff.c" ex="false" tool="0" flavor2="0">
       </item>
@@ -8036,6 +8086,13 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/filesystem/fat32/fat32.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../miosix/filesystem/fat32/ff.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="../miosix/filesystem/fat32/ff.h" ex="false" tool="3" flavor2="0">
@@ -9150,6 +9207,13 @@
             ex="false"
             tool="3"
             flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/fat32/ff.c" ex="false" tool="0" flavor2="0">
       </item>
@@ -10266,6 +10330,13 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/filesystem/fat32/fat32.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../miosix/filesystem/fat32/ff.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="../miosix/filesystem/fat32/ff.h" ex="false" tool="3" flavor2="0">
@@ -11380,6 +11451,13 @@
             ex="false"
             tool="3"
             flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/fat32/ff.c" ex="false" tool="0" flavor2="0">
       </item>
@@ -12496,6 +12574,13 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/filesystem/fat32/fat32.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../miosix/filesystem/fat32/ff.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="../miosix/filesystem/fat32/ff.h" ex="false" tool="3" flavor2="0">
@@ -13611,6 +13696,13 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/filesystem/fat32/fat32.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../miosix/filesystem/fat32/ff.c" ex="false" tool="0" flavor2="0">
       </item>
       <item path="../miosix/filesystem/fat32/ff.h" ex="false" tool="3" flavor2="0">
@@ -14725,6 +14817,13 @@
             ex="false"
             tool="3"
             flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/fat32/ff.c" ex="false" tool="0" flavor2="0">
       </item>
