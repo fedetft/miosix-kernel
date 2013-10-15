@@ -3772,6 +3772,7 @@ static void fs_test_3()
         if(fread(buf,1,size,f)!=size) fail("read");
         outChecksum^=crc16(buf,size);
     }
+    if(fclose(f)!=0) fail("close 2");
     delete[] buf;
     
     if(checksum!=outChecksum) fail("checksum");
