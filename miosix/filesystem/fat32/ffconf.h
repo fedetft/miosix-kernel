@@ -9,7 +9,6 @@
 #ifndef _FFCONF
 #define _FFCONF 80960	/* Revision ID */
 
-#include <pthread.h>
 
 /*---------------------------------------------------------------------------/
 / Functions and Buffer Configurations
@@ -193,9 +192,12 @@
 /* A header file that defines sync object types on the O/S, such as
 /  windows.h, ucos_ii.h and semphr.h, must be included prior to ff.h. */
 
-#define _FS_REENTRANT	1		/* 0:Disable or 1:Enable */
-//#define _FS_TIMEOUT		1000	/* Timeout period in unit of time ticks */
-#define	_SYNC_t			pthread_mutex_t	/* O/S dependent type of sync object. e.g. HANDLE, OS_EVENT*, ID and etc.. */
+//Note by TFT: the reentrant option uses just one big lock for each FATFS, so
+//given there's no concurrency advantage in using this option, we're just using
+//an ordinary FastMutex in class Fat32Fs and locking it before calling FatFs.
+#define _FS_REENTRANT	0		/* 0:Disable or 1:Enable */
+#define _FS_TIMEOUT		1000	/* Timeout period in unit of time ticks */
+#define	_SYNC_t			HANDLE	/* O/S dependent type of sync object. e.g. HANDLE, OS_EVENT*, ID and etc.. */
 
 /* The _FS_REENTRANT option switches the re-entrancy (thread safe) of the FatFs module.
 /
@@ -204,7 +206,8 @@
 /      ff_req_grant(), ff_rel_grant(), ff_del_syncobj() and ff_cre_syncobj()
 /      function must be added to the project. */
 
-
+//Note by TFT: this is very useful, as it avoids the danger of opening the same
+//file for writing multiple times
 #define	_FS_LOCK	4	/* 0:Disable or >=1:Enable */
 /* To enable file lock control feature, set _FS_LOCK to 1 or greater.
    The value defines how many files can be opened simultaneously. */

@@ -110,70 +110,10 @@
 #include "diskio.h"		/* Declarations of disk I/O functions */
 
 // Added by TFT -- begin
-
 #include <string.h>
 #include <stdlib.h>
-
-/**
- * Create a mutex
- * \param vol Corresponding logical drive being processed
- * \param sobj Pointer to return the created sync object
- * \return 1:Function succeeded, 0:Could not create due to any error
- */
-static int ff_cre_syncobj(BYTE vol, _SYNC_t *sobj)
-{
-    pthread_mutexattr_t ma;
-    pthread_mutexattr_init(&ma);
-    pthread_mutexattr_settype(&ma,PTHREAD_MUTEX_RECURSIVE);
-    int result=pthread_mutex_init(sobj,&ma);
-    pthread_mutexattr_destroy(&ma);
-    if(result==0) return 1;
-    else return 0;
-}
-
-/**
- * Delete a mutex. Unfortunately had to change the signature of this function to
- * take a pointer to a sync object, as it was meant for windows-like HANDLEs and
- * not for posix-like opaque struct pthread_mutex_t (pass by copy a pthread
- * mutex is a recipe for disaster)
- * \param sobj Sync object tied to the logical drive to be deleted
- * \return  1:Function succeeded, 0:Could not delete due to any error
- */
-static int ff_del_syncobj(_SYNC_t *sobj)
-{
-	if(pthread_mutex_destroy(sobj)==0) return 1;
-    else return 0;
-}
-
-/**
- * Delete a mutex. Unfortunately had to change the signature of this function to
- * take a pointer to a sync object, as it was meant for windows-like HANDLEs and
- * not for posix-like opaque struct pthread_mutex_t (pass by copy a pthread
- * mutex is a recipe for disaster)
- * \param sobj Sync object to wait
- * \return TRUE:Got a grant to access the volume, FALSE:Could not get a grant
- */
-static int ff_req_grant(_SYNC_t *sobj)
-{
-	if(pthread_mutex_lock(sobj)==0) return 1;
-    else return 0;
-}
-
-/**
- * Delete a mutex. Unfortunately had to change the signature of this function to
- * take a pointer to a sync object, as it was meant for windows-like HANDLEs and
- * not for posix-like opaque struct pthread_mutex_t (pass by copy a pthread
- * mutex is a recipe for disaster)
- * \param sobj Sync object to be signaled
- */
-void ff_rel_grant(_SYNC_t *sobj)
-{
-	pthread_mutex_unlock(sobj);
-}
-
 static void* ff_memalloc(UINT msize) { return malloc(msize); }
 static void ff_memfree(void* mblock) { free(mblock); }
-
 // Added by TFT -- end
 
 
@@ -614,7 +554,7 @@ const BYTE ExCvt[] = _EXCVT;	/* Upper conversion table for extended characters *
 // Added by TFT -- begin
 
 //Using newlib's version of memcpy, memset, memcmp and strchr which are
-//performance optimized, while these are size optiized ones.
+//performance optimized, while these are size optimized ones.
 #define mem_cpy memcpy
 #define mem_set memset
 #define mem_cmp memcmp
@@ -677,7 +617,7 @@ int lock_fs (
 	FATFS* fs		/* File system object */
 )
 {
-	return ff_req_grant(&fs->sobj);
+	return ff_req_grant(fs->sobj);
 }
 
 
@@ -692,7 +632,7 @@ void unlock_fs (
 		res != FR_INVALID_DRIVE &&
 		res != FR_INVALID_OBJECT &&
 		res != FR_TIMEOUT) {
-		ff_rel_grant(&fs->sobj);
+		ff_rel_grant(fs->sobj);
 	}
 }
 #endif
@@ -2024,6 +1964,7 @@ void get_fileinfo (		/* No return code */
 		fno->fsize = LD_DWORD(dir+DIR_FileSize);	/* Size */
 		fno->fdate = LD_WORD(dir+DIR_WrtDate);		/* Date */
 		fno->ftime = LD_WORD(dir+DIR_WrtTime);		/* Time */
+        fno->inode=dp->sclust; //By TFT
 	}
 	*p = 0;		/* Terminate SFN string by a \0 */
 
@@ -2401,7 +2342,7 @@ FRESULT f_mount (
 		clear_lock(cfs);
 #endif
 #if _FS_REENTRANT						/* Discard sync object of the current volume */
-		if (!ff_del_syncobj(&cfs->sobj)) return FR_INT_ERR;
+		if (!ff_del_syncobj(cfs->sobj)) return FR_INT_ERR;
 #endif
 		cfs->fs_type = 0;				/* Clear old fs object */
 	}

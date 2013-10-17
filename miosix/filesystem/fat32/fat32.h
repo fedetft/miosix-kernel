@@ -107,7 +107,11 @@ public:
     ~Fat32Fs();
     
 private:
+    
+    int unlinkRmdirHelper(StringPart& name, bool delDir);
+    
     FATFS filesystem;
+    FastMutex mutex;
     bool failed; ///< Failed to mount
 };
 

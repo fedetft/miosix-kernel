@@ -171,6 +171,7 @@ typedef struct {
 	TCHAR*	lfname;			/* Pointer to the LFN buffer */
 	UINT 	lfsize;			/* Size of LFN buffer in TCHAR */
 #endif
+    unsigned int inode; //By TFT: support inodes
 } FILINFO;
 
 
@@ -268,12 +269,10 @@ void ff_memfree (void* mblock);			/* Free memory block */
 
 /* Sync functions */
 #if _FS_REENTRANT
-// Added by TFT -- begin
-// int ff_cre_syncobj (BYTE vol, _SYNC_t* sobj);	/* Create a sync object */
-// int ff_req_grant (_SYNC_t sobj);				/* Lock sync object */
-// void ff_rel_grant (_SYNC_t sobj);				/* Unlock sync object */
-// int ff_del_syncobj (_SYNC_t sobj);				/* Delete a sync object */
-// Added by TFT -- end
+int ff_cre_syncobj (BYTE vol, _SYNC_t* sobj);	/* Create a sync object */
+int ff_req_grant (_SYNC_t sobj);				/* Lock sync object */
+void ff_rel_grant (_SYNC_t sobj);				/* Unlock sync object */
+int ff_del_syncobj (_SYNC_t sobj);				/* Delete a sync object */
 #endif
 
 

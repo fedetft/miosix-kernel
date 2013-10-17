@@ -70,25 +70,6 @@ static int translateError(int ec)
 }
 
 /**
- * RAII class for pthread_mutex_t
- */
-class PthreadMutexLock
-{
-public:
-    PthreadMutexLock(pthread_mutex_t& mutex) : mutex(mutex)
-    {
-        pthread_mutex_lock(&mutex);
-    }
-    
-    ~PthreadMutexLock()
-    {
-        pthread_mutex_unlock(&mutex);
-    }
-private:
-    pthread_mutex_t& mutex;
-};
-
-/**
  * Files of the Fat32Fs filesystem
  */
 class Fat32File : public FileBase
@@ -98,7 +79,7 @@ public:
      * Constructor
      * \param parent the filesystem to which this file belongs
      */
-    Fat32File(intrusive_ref_ptr<FilesystemBase> parent);
+    Fat32File(intrusive_ref_ptr<FilesystemBase> parent, FastMutex& mutex);
     
     /**
      * Write data to the file, if the file supports writing.
@@ -142,11 +123,23 @@ public:
     virtual int sync();
     
     /**
+     * \return the FatFs FIL object 
+     */
+    FIL *fil() { return &file; }
+    
+    /**
+     * \param inode file inode
+     */
+    void setInode(int inode) { this->inode=inode; }
+    
+    /**
      * Destructor
      */
     ~Fat32File();
     
+private:
     FIL file;
+    FastMutex& mutex;
     int inode;
 };
 
@@ -154,32 +147,32 @@ public:
 // class Fat32File
 //
 
-Fat32File::Fat32File(intrusive_ref_ptr<FilesystemBase> parent)
-        : FileBase(parent), inode(0) {}
+Fat32File::Fat32File(intrusive_ref_ptr<FilesystemBase> parent, FastMutex& mutex)
+        : FileBase(parent), mutex(mutex), inode(0) {}
 
 ssize_t Fat32File::write(const void *data, size_t len)
 {
+    Lock<FastMutex> l(mutex);
     unsigned int bytesWritten;
-    if(int result=translateError(f_write(&file,data,len,&bytesWritten)))
-        return result;
+    if(int res=translateError(f_write(&file,data,len,&bytesWritten))) return res;
     #ifdef SYNC_AFTER_WRITE
-    //Sync for safety in case of power failure or device removal
-    if(f_sync(&file)!=FR_OK) return -1;
+    if(f_sync(&file)!=FR_OK) return -EIO;
     #endif //SYNC_AFTER_WRITE    
     return static_cast<int>(bytesWritten);
 }
 
 ssize_t Fat32File::read(void *data, size_t len)
 {
+    Lock<FastMutex> l(mutex);
     unsigned int bytesRead;
-    if(int result=translateError(f_read(&file,data,len,&bytesRead)))
-        return result;
+    if(int res=translateError(f_read(&file,data,len,&bytesRead))) return res;
     return static_cast<int>(bytesRead);
 }
 
 off_t Fat32File::lseek(off_t pos, int whence)
 {
-    int offset=-1;
+    Lock<FastMutex> l(mutex);
+    int offset;
     switch(whence)
     {
         case SEEK_CUR:
@@ -215,11 +208,13 @@ int Fat32File::fstat(struct stat *pstat) const
 
 int Fat32File::sync()
 {
+    Lock<FastMutex> l(mutex);
     return translateError(f_sync(&file));
 }
 
 Fat32File::~Fat32File()
 {
+    Lock<FastMutex> l(mutex);
     if(inode) f_close(&file); //TODO: what to do with error code?
 }
 
@@ -229,7 +224,6 @@ Fat32File::~Fat32File()
 
 Fat32Fs::Fat32Fs() : failed(true)
 {
-    //Don't lock filesystem.sobj here, as pthread_mutex_init hasn't been called
     if(!Disk::isAvailable()) return;
     failed=f_mount(&filesystem,"",1)!=FR_OK;
 }
@@ -245,20 +239,17 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
     else if(flags & _FAPPEND) openflags|=FA_OPEN_ALWAYS;//If not exists create
     else openflags|=FA_OPEN_EXISTING;//If not exists fail
     
-    intrusive_ref_ptr<Fat32File> f(new Fat32File(shared_from_this()));
-    PthreadMutexLock l(filesystem.sobj);
-    if(int result=translateError(f_open(&f->file,name.c_str(),openflags)))
-        return result;
-    f->inode=1; //FIXME: where to get inode?
+    intrusive_ref_ptr<Fat32File> f(new Fat32File(shared_from_this(),mutex));
+    Lock<FastMutex> l(mutex);
+    if(int res=translateError(f_open(f->fil(),name.c_str(),openflags))) return res;
+    f->setInode(f->fil()->sclust!=0 ? f->fil()->sclust : 1);
     
     #ifdef SYNC_AFTER_WRITE
-    //Sync for safety in case of power failure or device removal
-    if(f_sync(&f->file)!=FR_OK) return -EFAULT;
+    if(f_sync(f->fil())!=FR_OK) return -EFAULT;
     #endif //SYNC_AFTER_WRITE
 
     //If file opened for appending, seek to end of file
-    if(flags & _FAPPEND)
-        if(f_lseek(&f->file,f->file.fsize)!=FR_OK) return -EFAULT;
+    if(flags & _FAPPEND) if(f_lseek(f->fil(),f->fil()->fsize)!=FR_OK) return -EFAULT;
     
     file=f;
     return 0;
@@ -266,12 +257,12 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
 
 int Fat32Fs::lstat(StringPart& name, struct stat *pstat)
 {
-    PthreadMutexLock l(filesystem.sobj);
+    Lock<FastMutex> l(mutex);
     FILINFO info;
     if(int result=translateError(f_stat(name.c_str(),&info))) return result;
     memset(pstat,0,sizeof(struct stat));
     pstat->st_dev=filesystemId;
-    pstat->st_ino=1; //FIXME: where to get inode?
+    pstat->st_ino=info.inode;
     pstat->st_mode=(info.fattrib & AM_DIR) ?
         S_IFDIR | 0755  //drwxr-xr-x
       : S_IFREG | 0755; //-rwxr-xr-x
@@ -284,39 +275,42 @@ int Fat32Fs::lstat(StringPart& name, struct stat *pstat)
 
 int Fat32Fs::unlink(StringPart& name)
 {
-    PthreadMutexLock l(filesystem.sobj);
-    FILINFO info;
-    if(int result=translateError(f_stat(name.c_str(),&info))) return result;
-    if(info.fattrib & AM_DIR) return -EISDIR;
-    return translateError(f_unlink(name.c_str()));
+    return unlinkRmdirHelper(name,false);
 }
 
 int Fat32Fs::rename(StringPart& oldName, StringPart& newName)
 {
-    PthreadMutexLock l(filesystem.sobj);
+    Lock<FastMutex> l(mutex);
     return translateError(f_rename(oldName.c_str(),newName.c_str()));
 }
 
 int Fat32Fs::mkdir(StringPart& name, int mode)
 {
-    PthreadMutexLock l(filesystem.sobj);
+    Lock<FastMutex> l(mutex);
     return translateError(f_mkdir(name.c_str()));
 }
 
 int Fat32Fs::rmdir(StringPart& name)
 {
-    PthreadMutexLock l(filesystem.sobj);
-    FILINFO info;
-    if(int result=translateError(f_stat(name.c_str(),&info))) return result;
-    if((info.fattrib & AM_DIR)==0) return -ENOTDIR;
-    return translateError(f_unlink(name.c_str()));
+    return unlinkRmdirHelper(name,true);
 }
 
 Fat32Fs::~Fat32Fs()
 {
-    PthreadMutexLock l(filesystem.sobj);
     f_mount(0,0,0); //TODO: what to do with error code?
     Disk::sync();
+}
+
+int Fat32Fs::unlinkRmdirHelper(StringPart& name, bool delDir)
+{
+    Lock<FastMutex> l(mutex);
+    FILINFO info;
+    if(int result=translateError(f_stat(name.c_str(),&info))) return result;
+    if(delDir)
+    {
+        if((info.fattrib & AM_DIR)==0) return -ENOTDIR;
+    } else if(info.fattrib & AM_DIR) return -EISDIR;
+    return translateError(f_unlink(name.c_str()));
 }
 
 } //namespace miosix
