@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
+#include <dirent.h>
 #include <unistd.h>
 #include <errno.h>
 #include <cstring>
@@ -67,6 +68,81 @@ static int translateError(int ec)
         default:
             return -EACCES;
     }
+}
+
+/**
+ * Directory class for MountpointFs 
+ */
+class Fat32Directory : public DirectoryBase
+{
+public:
+    /**
+     * \param parent parent filesystem
+     * \param mutex mutex to lock when accessing the fiesystem
+     */
+    Fat32Directory(intrusive_ref_ptr<FilesystemBase> parent, FastMutex& mutex,
+            int parentFsInode) : DirectoryBase(parent), mutex(mutex),
+            parentFsInode(parentFsInode)
+    {
+        //Make sure a closedir of an uninitialized dir won't do any damage
+        dir.fs=0;
+    }
+    
+    /**
+     * Also directories can be opened as files. In this case, this system call
+     * allows to retrieve directory entries.
+     * \param dp pointer to a memory buffer where one or more struct dirent
+     * will be placed. dp must be four words aligned.
+     * \param len memory buffer size.
+     * \return the number of bytes read on success, or a negative number on
+     * failure.
+     */
+    virtual int getdents(void *dp, int len);
+    
+    /**
+     * Destructor
+     */
+    virtual ~Fat32Directory();
+    
+private:
+    FastMutex& mutex; ///< Parent filesystem's mutex
+    DIR_ dir;    ///< Directory object
+    int parentFsInode; ///< If not null, we're listing the root directory
+};
+
+//
+// class MountpointFsDirctory
+//
+
+int Fat32Directory::getdents(void *dp, int len)
+{
+    if(len<minimumBufferSize) return -EINVAL;
+    char *begin=reinterpret_cast<char*>(dp);
+    char *buffer=begin;
+    char *end=buffer+len;
+    
+    Lock<FastMutex> l(mutex);
+    for(;;)
+    {
+        FILINFO fi;
+        if(int res=translateError(f_readdir(&dir,&fi))) return res;
+        if(fi.fname[0]=='\0')
+        {
+            addTerminatingEntry(&buffer,end);
+            return buffer-begin;
+        }
+        char type=fi.fattrib & AM_DIR ? DT_DIR : DT_REG;
+        StringPart name(fi.fname);
+        int inode=fi.inode; //FIXME: make sure .. appears in the root dir
+        if(!strcmp(fi.fname,"..") && parentFsInode) inode=parentFsInode;
+        if(addEntry(&buffer,end,inode,type,name)<0) return buffer-begin;
+    }
+}
+
+Fat32Directory::~Fat32Directory()
+{
+    Lock<FastMutex> l(mutex);
+    f_closedir(&dir);
 }
 
 /**
@@ -176,13 +252,13 @@ off_t Fat32File::lseek(off_t pos, int whence)
     switch(whence)
     {
         case SEEK_CUR:
-            offset=file.fptr+pos;
+            offset=f_tell(&file)+pos;
             break;
         case SEEK_SET:
             offset=pos;
             break;
         case SEEK_END:
-            offset=file.fsize+pos;
+            offset=f_size(&file)+pos;
             break;
         default:
             return -EINVAL;
@@ -200,9 +276,9 @@ int Fat32File::fstat(struct stat *pstat) const
     pstat->st_ino=inode;
     pstat->st_mode=S_IFREG | 0755; //-rwxr-xr-x
     pstat->st_nlink=1;
-    pstat->st_size=file.fsize;
+    pstat->st_size=f_size(&file);
     pstat->st_blksize=512;
-    pstat->st_blocks=(file.fsize+511)/512;
+    pstat->st_blocks=(f_size(&file)+511)/512;
     return 0;
 }
 

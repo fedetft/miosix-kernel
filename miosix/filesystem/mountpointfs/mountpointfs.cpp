@@ -43,7 +43,7 @@ class MountpointFsDirectory : public DirectoryBase
 public:
     /**
      * \param parent parent filesystem
-     * \param mutex mustex to lock when accessing the file map
+     * \param mutex mutex to lock when accessing the file map
      * \param dirs file map
      * \param root true if we're listing the root directory
      * \param currentInode inode of the directory we're listing
