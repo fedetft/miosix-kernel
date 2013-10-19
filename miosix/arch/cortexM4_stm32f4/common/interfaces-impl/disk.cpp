@@ -648,6 +648,7 @@ public:
         // width, no clock bypass, no powersave.
         // Set low clock speed 400KHz
         SDIO->CLKCR=CLOCK_400KHz | SDIO_CLKCR_CLKEN;
+        SDIO->DTIMER=240000; //Timeout 600ms expressed in SD_CK cycles
     }
 
     /**
@@ -685,8 +686,13 @@ public:
     static unsigned char getRetryCount() { return retries; }
 
 private:
+    /**
+     * Set SDIO clock speed
+     * \param clkdiv speed is SDIOCLK/(clkdiv+2) 
+     */
+    static void setClockSpeed(unsigned int clkdiv);
     
-    //On stm32f2 SDIOCLK is always 48MHz
+    static const unsigned int SDIOCLK=48000000; //On stm32f2 SDIOCLK is always 48MHz
     static const unsigned int CLOCK_400KHz=118; //48MHz/(118+2)=400KHz
     static const unsigned int CLOCK_MAX=0;      //48MHz/(0+2)  =24MHz
 
@@ -702,7 +708,7 @@ private:
     ///\internal Maximum number of calls to IRQreduceClockSpeed() allowed
     static const unsigned char MAX_ALLOWED_REDUCTIONS=1;
 
-    ///\internl value returned by getRetryCount() while *not* calibrating clock.
+    ///\internal value returned by getRetryCount() while *not* calibrating clock.
     static const unsigned char MAX_RETRY=10;
 
     ///\internal Used to allow only one call to reduceClockSpeed()
@@ -728,18 +734,18 @@ void ClockController::calibrateClockSpeed()
     {
         selected=(minFreq+maxFreq)/2;
         DBG("Trying CLKCR=%d\n",selected);
-        SDIO->CLKCR=selected | CLKCR_FLAGS;
+        setClockSpeed(selected);
         if(Disk::read(reinterpret_cast<unsigned char*>(buffer),0,1))
             minFreq=selected;
         else maxFreq=selected;
     }
     //Last round of algorithm
-    SDIO->CLKCR=maxFreq | CLKCR_FLAGS;
+    setClockSpeed(maxFreq);
     if(Disk::read(reinterpret_cast<unsigned char*>(buffer),0,1))
     {
         DBG("Optimal CLKCR=%d\n",maxFreq);
     } else {
-        SDIO->CLKCR=minFreq | CLKCR_FLAGS;
+        setClockSpeed(minFreq);
         DBG("Optimal CLKCR=%d\n",minFreq);
     }
 
@@ -763,8 +769,15 @@ bool ClockController::reduceClockSpeed()
     if(currentClkcr<10) currentClkcr++;
     else currentClkcr+=2;
 
-    SDIO->CLKCR=currentClkcr | CLKCR_FLAGS;
+    setClockSpeed(currentClkcr);
     return true;
+}
+
+void ClockController::setClockSpeed(unsigned int clkdiv)
+{
+    SDIO->CLKCR=clkdiv | CLKCR_FLAGS;
+    //Timeout 600ms expressed in SD_CK cycles
+    SDIO->DTIMER=(6*SDIOCLK)/((clkdiv+2)*10);
 }
 
 unsigned char ClockController::clockReductionAvailable=false;
@@ -955,6 +968,11 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
     if(waitForCardReady()==false) return false;
     
     if(cardType!=SDHC) lba*=512; // Convert to byte address if not SDHC
+    if(nblk>1)
+    {
+        CmdResult cr=Command::send(Command::ACMD23,nblk);
+        if(cr.validateR1Response()==false) return false;
+    }
     
     unsigned int memoryTransferSize=dmaTransferCommonSetup(buffer);
     
@@ -1118,7 +1136,6 @@ static void initSDIOPeripheral()
     SDIO->CMD=0;
     SDIO->DCTRL=0;
     SDIO->ICR=0xc007ff;
-    SDIO->DTIMER=1048576;
     SDIO->POWER=SDIO_POWER_PWRCTRL_1 | SDIO_POWER_PWRCTRL_0; //Power on state
     //This delay is particularly important: when setting the POWER register a
     //glitch on the CMD pin happens. This glitch has a fast fall time and a slow
