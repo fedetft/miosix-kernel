@@ -130,7 +130,6 @@ bool DevFs::remove(const char* name)
 int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         int flags, int mode)
 {
-    if(flags & O_CREAT) return -EINVAL; //Can't create files in DevFs this way
     Lock<FastMutex> l(mutex);
     if(name.empty()) //Trying to open the root directory of the fs
     {

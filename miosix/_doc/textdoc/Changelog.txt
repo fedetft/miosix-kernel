@@ -1,5 +1,12 @@
 Changelog for Miosix np embedded OS
 
+- Updated newlib patches so as to avoid stdio code fragmenting large
+  data blocks passed to fwrite() into smaller chunks if the file is
+  unbuffered. This allows to increment filesystem write performance,
+  especially FAT32 on SD cards.
+- Improved disk.cpp for stm32f4, for improved write performance. This
+  allows to fully utilize the multiple sector write, increasing write
+  performance when writing large data blocks at a time.
 - Started work on integrating Fat32 in the new file abstraction layer.
   Upgraded FatFs from 0.06 to 0.10. Added classes Fat32Fs and Fat32File
 - Added an assertion in IntrusiveRefCountedSharedFromThis to help find
