@@ -5,7 +5,7 @@ Changelog for Miosix np embedded OS
 - Updated newlib patches so as to avoid stdio code fragmenting large
   data blocks passed to fwrite() into smaller chunks if the file is
   unbuffered. This allows to increment filesystem write performance,
-  especially FAT32 on SD cards.
+  especially FAT32 on SD cards. This change requires recompiling GCC!
 - Improved disk.cpp for stm32f4, for improved write performance. This
   allows to fully utilize the multiple sector write, increasing write
   performance when writing large data blocks at a time.
