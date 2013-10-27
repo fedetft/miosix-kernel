@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Updated from GCC 4.7.2 to GCC 4.7.3, due to reported problems building
+  the previous compiler versions.
 - Added a new benchmark to test the filesystem backend (sector read/write).
   This is a separate benchmark and not in the testsuite.
 - Updated newlib patches so as to avoid stdio code fragmenting large

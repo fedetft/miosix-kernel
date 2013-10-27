@@ -1,6 +1,6 @@
-diff -ruN gcc-4.7.2-old/gcc/config/arm/miosix-eabi.h gcc-4.7.2/gcc/config/arm/miosix-eabi.h
---- gcc-4.7.2-old/gcc/config/arm/miosix-eabi.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.7.2/gcc/config/arm/miosix-eabi.h	2012-12-29 12:39:06.613533106 +0100
+diff -ruN gcc-4.7.3-old/gcc/config/arm/miosix-eabi.h gcc-4.7.3/gcc/config/arm/miosix-eabi.h
+--- gcc-4.7.3-old/gcc/config/arm/miosix-eabi.h	1970-01-01 00:00:00.000000000 +0000
++++ gcc-4.7.3/gcc/config/arm/miosix-eabi.h	2013-10-24 00:30:20.741932714 +0000
 @@ -0,0 +1,17 @@
 +
 +/*
@@ -19,9 +19,9 @@ diff -ruN gcc-4.7.2-old/gcc/config/arm/miosix-eabi.h gcc-4.7.2/gcc/config/arm/mi
 +        builtin_define("_MIOSIX");       \
 +        builtin_assert("system=miosix"); \
 +    } while(false)
-diff -ruN gcc-4.7.2-old/gcc/config/arm/t-arm-miosix gcc-4.7.2/gcc/config/arm/t-arm-miosix
---- gcc-4.7.2-old/gcc/config/arm/t-arm-miosix	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.7.2/gcc/config/arm/t-arm-miosix	2012-12-29 12:39:06.613533106 +0100
+diff -ruN gcc-4.7.3-old/gcc/config/arm/t-arm-miosix gcc-4.7.3/gcc/config/arm/t-arm-miosix
+--- gcc-4.7.3-old/gcc/config/arm/t-arm-miosix	1970-01-01 00:00:00.000000000 +0000
++++ gcc-4.7.3/gcc/config/arm/t-arm-miosix	2013-10-24 00:30:20.741932714 +0000
 @@ -0,0 +1,180 @@
 +# Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
 +# 2008, 2010, 2011 Free Software Foundation, Inc.
@@ -203,10 +203,10 @@ diff -ruN gcc-4.7.2-old/gcc/config/arm/t-arm-miosix gcc-4.7.2/gcc/config/arm/t-a
 +# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm600
 +# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm610
 +# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm620
-diff -ruN gcc-4.7.2-old/gcc/config.gcc gcc-4.7.2/gcc/config.gcc
---- gcc-4.7.2-old/gcc/config.gcc	2012-12-29 12:38:51.405533114 +0100
-+++ gcc-4.7.2/gcc/config.gcc	2012-12-29 12:39:06.617533190 +0100
-@@ -902,6 +902,13 @@
+diff -ruN gcc-4.7.3-old/gcc/config.gcc gcc-4.7.3/gcc/config.gcc
+--- gcc-4.7.3-old/gcc/config.gcc	2013-03-06 22:54:11.000000000 +0000
++++ gcc-4.7.3/gcc/config.gcc	2013-10-24 00:30:20.749932714 +0000
+@@ -912,6 +912,13 @@
  	tm_file="dbxelf.h elfos.h arm/unknown-elf.h arm/elf.h arm/bpabi.h"
  	tmake_file="arm/t-arm arm/t-arm-elf"
  	case ${target} in
@@ -220,10 +220,10 @@ diff -ruN gcc-4.7.2-old/gcc/config.gcc gcc-4.7.2/gcc/config.gcc
  	arm*-*-eabi*)
  	  tm_file="$tm_file newlib-stdint.h"
  	  tmake_file="${tmake_file} arm/t-bpabi"
-diff -ruN gcc-4.7.2-old/gcc/configure gcc-4.7.2/gcc/configure
---- gcc-4.7.2-old/gcc/configure	2012-12-29 12:38:50.821533111 +0100
-+++ gcc-4.7.2/gcc/configure	2012-12-29 12:39:06.625533220 +0100
-@@ -11301,7 +11301,7 @@
+diff -ruN gcc-4.7.3-old/gcc/configure gcc-4.7.3/gcc/configure
+--- gcc-4.7.3-old/gcc/configure	2013-02-06 15:23:55.000000000 +0000
++++ gcc-4.7.3/gcc/configure	2013-10-24 00:30:20.761932714 +0000
+@@ -11337,7 +11337,7 @@
      # default
      target_thread_file='single'
      ;;
@@ -232,10 +232,10 @@ diff -ruN gcc-4.7.2-old/gcc/configure gcc-4.7.2/gcc/configure
    single | tpf | vxworks | win32)
      target_thread_file=${enable_threads}
      ;;
-diff -ruN gcc-4.7.2-old/gcc/configure.ac gcc-4.7.2/gcc/configure.ac
---- gcc-4.7.2-old/gcc/configure.ac	2012-12-29 12:38:50.701533113 +0100
-+++ gcc-4.7.2/gcc/configure.ac	2012-12-29 12:39:06.629533213 +0100
-@@ -1423,7 +1423,7 @@
+diff -ruN gcc-4.7.3-old/gcc/configure.ac gcc-4.7.3/gcc/configure.ac
+--- gcc-4.7.3-old/gcc/configure.ac	2013-02-06 15:23:55.000000000 +0000
++++ gcc-4.7.3/gcc/configure.ac	2013-10-24 00:30:20.761932714 +0000
+@@ -1449,7 +1449,7 @@
      # default
      target_thread_file='single'
      ;;
@@ -244,9 +244,9 @@ diff -ruN gcc-4.7.2-old/gcc/configure.ac gcc-4.7.2/gcc/configure.ac
    single | tpf | vxworks | win32)
      target_thread_file=${enable_threads}
      ;;
-diff -ruN gcc-4.7.2-old/libgcc/config/gthr-miosix.h gcc-4.7.2/libgcc/config/gthr-miosix.h
---- gcc-4.7.2-old/libgcc/config/gthr-miosix.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.7.2/libgcc/config/gthr-miosix.h	2012-12-29 12:39:06.629533213 +0100
+diff -ruN gcc-4.7.3-old/libgcc/config/gthr-miosix.h gcc-4.7.3/libgcc/config/gthr-miosix.h
+--- gcc-4.7.3-old/libgcc/config/gthr-miosix.h	1970-01-01 00:00:00.000000000 +0000
++++ gcc-4.7.3/libgcc/config/gthr-miosix.h	2013-10-24 00:30:20.761932714 +0000
 @@ -0,0 +1,53 @@
 +
 +#ifndef GCC_GHTR_MIOSIX_H
@@ -301,9 +301,9 @@ diff -ruN gcc-4.7.2-old/libgcc/config/gthr-miosix.h gcc-4.7.2/libgcc/config/gthr
 +#define __gthread_setspecific             pthread_setspecific
 +
 +#endif //GCC_GHTR_MIOSIX_H
-diff -ruN gcc-4.7.2-old/libgcc/configure gcc-4.7.2/libgcc/configure
---- gcc-4.7.2-old/libgcc/configure	2012-12-29 12:38:52.325533119 +0100
-+++ gcc-4.7.2/libgcc/configure	2012-12-29 12:39:06.629533213 +0100
+diff -ruN gcc-4.7.3-old/libgcc/configure gcc-4.7.3/libgcc/configure
+--- gcc-4.7.3-old/libgcc/configure	2012-08-06 14:34:27.000000000 +0000
++++ gcc-4.7.3/libgcc/configure	2013-10-24 00:30:20.765932714 +0000
 @@ -4473,6 +4473,7 @@
      aix)	thread_header=config/rs6000/gthr-aix.h ;;
      dce)	thread_header=config/pa/gthr-dce.h ;;
@@ -312,9 +312,9 @@ diff -ruN gcc-4.7.2-old/libgcc/configure gcc-4.7.2/libgcc/configure
      mipssde)	thread_header=config/mips/gthr-mipssde.h ;;
      posix)	thread_header=gthr-posix.h ;;
      rtems)	thread_header=config/gthr-rtems.h ;;
-diff -ruN gcc-4.7.2-old/libgcc/configure.ac gcc-4.7.2/libgcc/configure.ac
---- gcc-4.7.2-old/libgcc/configure.ac	2012-12-29 12:38:52.309533118 +0100
-+++ gcc-4.7.2/libgcc/configure.ac	2012-12-29 12:39:06.633533203 +0100
+diff -ruN gcc-4.7.3-old/libgcc/configure.ac gcc-4.7.3/libgcc/configure.ac
+--- gcc-4.7.3-old/libgcc/configure.ac	2012-08-06 14:34:27.000000000 +0000
++++ gcc-4.7.3/libgcc/configure.ac	2013-10-24 00:30:20.765932714 +0000
 @@ -370,6 +370,7 @@
      aix)	thread_header=config/rs6000/gthr-aix.h ;;
      dce)	thread_header=config/pa/gthr-dce.h ;;
@@ -323,9 +323,9 @@ diff -ruN gcc-4.7.2-old/libgcc/configure.ac gcc-4.7.2/libgcc/configure.ac
      mipssde)	thread_header=config/mips/gthr-mipssde.h ;;
      posix)	thread_header=gthr-posix.h ;;
      rtems)	thread_header=config/gthr-rtems.h ;;
-diff -ruN gcc-4.7.2-old/libgcc/unwind-sjlj.c gcc-4.7.2/libgcc/unwind-sjlj.c
---- gcc-4.7.2-old/libgcc/unwind-sjlj.c	2012-12-29 12:38:52.309533118 +0100
-+++ gcc-4.7.2/libgcc/unwind-sjlj.c	2012-12-29 12:39:06.633533203 +0100
+diff -ruN gcc-4.7.3-old/libgcc/unwind-sjlj.c gcc-4.7.3/libgcc/unwind-sjlj.c
+--- gcc-4.7.3-old/libgcc/unwind-sjlj.c	2011-11-02 15:26:35.000000000 +0000
++++ gcc-4.7.3/libgcc/unwind-sjlj.c	2013-10-24 00:30:20.765932714 +0000
 @@ -95,74 +95,29 @@
  
  /* Manage the chain of registered function contexts.  */
@@ -409,9 +409,9 @@ diff -ruN gcc-4.7.2-old/libgcc/unwind-sjlj.c gcc-4.7.2/libgcc/unwind-sjlj.c
  
  void
  _Unwind_SjLj_Unregister (struct SjLj_Function_Context *fc)
-diff -ruN gcc-4.7.2-old/libstdc++-v3/config/cpu/arm/atomicity.h gcc-4.7.2/libstdc++-v3/config/cpu/arm/atomicity.h
---- gcc-4.7.2-old/libstdc++-v3/config/cpu/arm/atomicity.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.7.2/libstdc++-v3/config/cpu/arm/atomicity.h	2012-12-29 12:39:06.633533203 +0100
+diff -ruN gcc-4.7.3-old/libstdc++-v3/config/cpu/arm/atomicity.h gcc-4.7.3/libstdc++-v3/config/cpu/arm/atomicity.h
+--- gcc-4.7.3-old/libstdc++-v3/config/cpu/arm/atomicity.h	1970-01-01 00:00:00.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/config/cpu/arm/atomicity.h	2013-10-24 00:30:20.765932714 +0000
 @@ -0,0 +1,67 @@
 +//Begin TFT patch
 +//Support _Atomic_word operations on arm-miosix-eabi
@@ -480,9 +480,9 @@ diff -ruN gcc-4.7.2-old/libstdc++-v3/config/cpu/arm/atomicity.h gcc-4.7.2/libstd
 +
 +}
 +//End TFT patch
-diff -ruN gcc-4.7.2-old/libstdc++-v3/config/cpu/arm/atomic_word.h gcc-4.7.2/libstdc++-v3/config/cpu/arm/atomic_word.h
---- gcc-4.7.2-old/libstdc++-v3/config/cpu/arm/atomic_word.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-4.7.2/libstdc++-v3/config/cpu/arm/atomic_word.h	2012-12-29 12:39:06.633533203 +0100
+diff -ruN gcc-4.7.3-old/libstdc++-v3/config/cpu/arm/atomic_word.h gcc-4.7.3/libstdc++-v3/config/cpu/arm/atomic_word.h
+--- gcc-4.7.3-old/libstdc++-v3/config/cpu/arm/atomic_word.h	1970-01-01 00:00:00.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/config/cpu/arm/atomic_word.h	2013-10-24 00:30:20.765932714 +0000
 @@ -0,0 +1,12 @@
 +//begin TFT patch
 +//Support _Atomic_word operations on arm-miosix-eabi
@@ -497,9 +497,9 @@ diff -ruN gcc-4.7.2-old/libstdc++-v3/config/cpu/arm/atomic_word.h gcc-4.7.2/libs
 +#endif 
 +//end TFT patch
 \ No newline at end of file
-diff -ruN gcc-4.7.2-old/libstdc++-v3/libsupc++/eh_alloc.cc gcc-4.7.2/libstdc++-v3/libsupc++/eh_alloc.cc
---- gcc-4.7.2-old/libstdc++-v3/libsupc++/eh_alloc.cc	2012-12-29 12:38:52.097533117 +0100
-+++ gcc-4.7.2/libstdc++-v3/libsupc++/eh_alloc.cc	2012-12-29 12:39:06.633533203 +0100
+diff -ruN gcc-4.7.3-old/libstdc++-v3/libsupc++/eh_alloc.cc gcc-4.7.3/libstdc++-v3/libsupc++/eh_alloc.cc
+--- gcc-4.7.3-old/libstdc++-v3/libsupc++/eh_alloc.cc	2011-10-10 19:03:39.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/libsupc++/eh_alloc.cc	2013-10-24 00:30:20.765932714 +0000
 @@ -73,6 +73,15 @@
  # define EMERGENCY_OBJ_COUNT	4
  #endif
@@ -516,9 +516,9 @@ diff -ruN gcc-4.7.2-old/libstdc++-v3/libsupc++/eh_alloc.cc gcc-4.7.2/libstdc++-v
  #if INT_MAX == 32767 || EMERGENCY_OBJ_COUNT <= 32
  typedef unsigned int bitmask_type;
  #else
-diff -ruN gcc-4.7.2-old/libstdc++-v3/libsupc++/eh_globals.cc gcc-4.7.2/libstdc++-v3/libsupc++/eh_globals.cc
---- gcc-4.7.2-old/libstdc++-v3/libsupc++/eh_globals.cc	2012-12-29 12:38:52.097533117 +0100
-+++ gcc-4.7.2/libstdc++-v3/libsupc++/eh_globals.cc	2012-12-29 12:39:06.633533203 +0100
+diff -ruN gcc-4.7.3-old/libstdc++-v3/libsupc++/eh_globals.cc gcc-4.7.3/libstdc++-v3/libsupc++/eh_globals.cc
+--- gcc-4.7.3-old/libstdc++-v3/libsupc++/eh_globals.cc	2011-10-10 19:03:39.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/libsupc++/eh_globals.cc	2013-10-24 00:30:20.769932714 +0000
 @@ -42,119 +42,6 @@
  
  using namespace __cxxabiv1;
@@ -643,9 +643,9 @@ diff -ruN gcc-4.7.2-old/libstdc++-v3/libsupc++/eh_globals.cc gcc-4.7.2/libstdc++
 +//are now Miosix syscalls, since the __cxa_eh_globals struct needs
 +//to be provided on a per-thread basis
 \ No newline at end of file
-diff -ruN gcc-4.7.2-old/libstdc++-v3/libsupc++/guard.cc gcc-4.7.2/libstdc++-v3/libsupc++/guard.cc
---- gcc-4.7.2-old/libstdc++-v3/libsupc++/guard.cc	2012-12-29 12:38:52.097533117 +0100
-+++ gcc-4.7.2/libstdc++-v3/libsupc++/guard.cc	2012-12-29 12:39:06.633533203 +0100
+diff -ruN gcc-4.7.3-old/libstdc++-v3/libsupc++/guard.cc gcc-4.7.3/libstdc++-v3/libsupc++/guard.cc
+--- gcc-4.7.3-old/libstdc++-v3/libsupc++/guard.cc	2012-09-11 15:24:06.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/libsupc++/guard.cc	2013-10-24 00:30:20.769932714 +0000
 @@ -179,238 +179,6 @@
  //  | _GLIBCXX_GUARD_WAITING_BIT) and some other threads are waiting until
  //				  it is initialized.
@@ -889,9 +889,9 @@ diff -ruN gcc-4.7.2-old/libstdc++-v3/libsupc++/guard.cc gcc-4.7.2/libstdc++-v3/l
 +//as static object initialization can occur also before the kernel is started,
 +//therefore at a time when using pthread_mutexe and pthread_cond is unsafe.
 \ No newline at end of file
-diff -ruN gcc-4.7.2-old/libstdc++-v3/libsupc++/pure.cc gcc-4.7.2/libstdc++-v3/libsupc++/pure.cc
---- gcc-4.7.2-old/libstdc++-v3/libsupc++/pure.cc	2012-12-29 12:38:52.097533117 +0100
-+++ gcc-4.7.2/libstdc++-v3/libsupc++/pure.cc	2012-12-29 13:11:28.768002568 +0100
+diff -ruN gcc-4.7.3-old/libstdc++-v3/libsupc++/pure.cc gcc-4.7.3/libstdc++-v3/libsupc++/pure.cc
+--- gcc-4.7.3-old/libstdc++-v3/libsupc++/pure.cc	2011-10-10 19:03:39.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/libsupc++/pure.cc	2013-10-24 00:30:20.769932714 +0000
 @@ -43,15 +43,17 @@
  # define writestr(str) /* Empty */
  #endif
@@ -912,9 +912,9 @@ diff -ruN gcc-4.7.2-old/libstdc++-v3/libsupc++/pure.cc gcc-4.7.2/libstdc++-v3/li
  {
    writestr ("deleted virtual method called\n");
    std::terminate ();
-diff -ruN gcc-4.7.2-old/libstdc++-v3/libsupc++/vterminate.cc gcc-4.7.2/libstdc++-v3/libsupc++/vterminate.cc
---- gcc-4.7.2-old/libstdc++-v3/libsupc++/vterminate.cc	2012-12-29 12:38:52.097533117 +0100
-+++ gcc-4.7.2/libstdc++-v3/libsupc++/vterminate.cc	2012-12-29 12:39:06.637533196 +0100
+diff -ruN gcc-4.7.3-old/libstdc++-v3/libsupc++/vterminate.cc gcc-4.7.3/libstdc++-v3/libsupc++/vterminate.cc
+--- gcc-4.7.3-old/libstdc++-v3/libsupc++/vterminate.cc	2011-01-30 22:39:36.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/libsupc++/vterminate.cc	2013-10-24 00:30:20.769932714 +0000
 @@ -41,7 +41,9 @@
    // A replacement for the standard terminate_handler which prints
    // more information about the terminating exception (if any) on
@@ -926,9 +926,9 @@ diff -ruN gcc-4.7.2-old/libstdc++-v3/libsupc++/vterminate.cc gcc-4.7.2/libstdc++
    {
      static bool terminating;
      if (terminating)
-diff -ruN gcc-4.7.2-old/libstdc++-v3/src/c++11/functexcept.cc gcc-4.7.2/libstdc++-v3/src/c++11/functexcept.cc
---- gcc-4.7.2-old/libstdc++-v3/src/c++11/functexcept.cc	2012-12-29 12:38:52.233533118 +0100
-+++ gcc-4.7.2/libstdc++-v3/src/c++11/functexcept.cc	2012-12-29 12:39:06.637533196 +0100
+diff -ruN gcc-4.7.3-old/libstdc++-v3/src/c++11/functexcept.cc gcc-4.7.3/libstdc++-v3/src/c++11/functexcept.cc
+--- gcc-4.7.3-old/libstdc++-v3/src/c++11/functexcept.cc	2012-01-23 23:12:01.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/src/c++11/functexcept.cc	2013-10-24 00:30:20.769932714 +0000
 @@ -44,72 +44,76 @@
  {
  _GLIBCXX_BEGIN_NAMESPACE_VERSION

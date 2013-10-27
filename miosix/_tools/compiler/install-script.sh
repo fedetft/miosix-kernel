@@ -25,7 +25,7 @@ SUDO=sudo
 
 # Program versions
 BINUTILS=binutils-2.23.1
-GCC=gcc-4.7.2
+GCC=gcc-4.7.3
 NEWLIB=newlib-2.0.0
 GDB=gdb-7.5
 
@@ -58,9 +58,8 @@ mkdir log
 # Part 2: applying patches
 #
 
-patch -p0 < patches/gcc.patch			|| quit ":: Failed patching gcc"
-patch -p0 < patches/newlib.patch		|| quit ":: Failed patching newlib"
-patch -p0 < gcc-patches/gcc-doc.patch   || quit ":: Failed patching gcc texinfo files"
+patch -p0 < patches/gcc.patch		|| quit ":: Failed patching gcc"
+patch -p0 < patches/newlib.patch	|| quit ":: Failed patching newlib"
 
 #
 # Part 3: compile and install binutils
@@ -92,6 +91,7 @@ mkdir objdir
 cd objdir
 $SUDO ../$GCC/configure \
 	--target=arm-miosix-eabi \
+	MAKEINFO=missing \
 	--prefix=$INSTALL_DIR/arm-miosix-eabi \
 	--disable-shared \
 	--disable-libmudflap \
