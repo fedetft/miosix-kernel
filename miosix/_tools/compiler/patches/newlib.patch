@@ -827,7 +827,7 @@ diff -ruN newlib-2.0.0-old/newlib/libc/stdio/findfp.c newlib-2.0.0/newlib/libc/s
    s->_stderr = __sfp(s);
 diff -ruN newlib-2.0.0-old/newlib/libc/stdio/fvwrite.c newlib-2.0.0/newlib/libc/stdio/fvwrite.c
 --- newlib-2.0.0-old/newlib/libc/stdio/fvwrite.c	2011-12-20 09:06:58.000000000 +0000
-+++ newlib-2.0.0/newlib/libc/stdio/fvwrite.c	2013-10-31 00:27:35.880430443 +0000
++++ newlib-2.0.0/newlib/libc/stdio/fvwrite.c	2013-11-01 00:10:54.658314348 +0000
 @@ -21,6 +21,7 @@
  #include <string.h>
  #include <stdlib.h>
@@ -836,26 +836,24 @@ diff -ruN newlib-2.0.0-old/newlib/libc/stdio/fvwrite.c newlib-2.0.0/newlib/libc/
  #include "local.h"
  #include "fvwrite.h"
  
-@@ -89,12 +90,16 @@
+@@ -89,12 +90,14 @@
    if (fp->_flags & __SNBF)
      {
        /*
 -       * Unbuffered: write up to BUFSIZ bytes at a time.
 +       * Unbuffered: split the buffer in the larger chunk that
-+       * is both less than INT_MAX, as some legacy code may
-+       * expect int instead of size_t, and is a multiple of
-+       * fp->_bf._size.
++       * is less than INT_MAX, as some legacy code may expect
++       * int instead of size_t
         */
        do
  	{
  	  GETIOV (;);
 -	  w = fp->_write (ptr, fp->_cookie, p, MIN (len, BUFSIZ));
-+	  w = fp->_write (ptr, fp->_cookie, p,
-+	    ((int)MIN(len, INT_MAX)) / fp->_bf._size * fp->_bf._size);
++	  w = fp->_write (ptr, fp->_cookie, p, MIN (len, INT_MAX));
  	  if (w <= 0)
  	    goto err;
  	  p += w;
-@@ -177,30 +182,24 @@
+@@ -177,30 +180,24 @@
  	      fp->_p += w;
  	      w = len;		/* but pretend copied all */
  	    }
@@ -864,20 +862,20 @@ diff -ruN newlib-2.0.0-old/newlib/libc/stdio/fvwrite.c newlib-2.0.0/newlib/libc/
  	    {
 -	      /* fill and flush */
 +	      /* pass through the buffer */
-+		  w = MIN(len, w);
++	      w = MIN (len, w);
  	      COPY (w);
 -	      /* fp->_w -= w; *//* unneeded */
 +	      fp->_w -= w;
  	      fp->_p += w;
 -	      if (_fflush_r (ptr, fp))
-+	      if(len > w) if (_fflush_r (ptr, fp))
++	      if (fp->_w == 0 && _fflush_r (ptr, fp))
  		goto err;
  	    }
 -	  else if (len >= (w = fp->_bf._size))
 +	  else
  	    {
-+	      w = (int)MIN(len, INT_MAX) / fp->_bf._size * fp->_bf._size;
  	      /* write directly */
++	      w = ((int)MIN (len, INT_MAX)) / fp->_bf._size * fp->_bf._size;
  	      w = fp->_write (ptr, fp->_cookie, p, w);
  	      if (w <= 0)
  		goto err;
@@ -893,6 +891,18 @@ diff -ruN newlib-2.0.0-old/newlib/libc/stdio/fvwrite.c newlib-2.0.0/newlib/libc/
  	  p += w;
  	  len -= w;
  	}
+diff -ruN newlib-2.0.0-old/newlib/libc/stdio/fvwrite.h newlib-2.0.0/newlib/libc/stdio/fvwrite.h
+--- newlib-2.0.0-old/newlib/libc/stdio/fvwrite.h	2007-03-15 18:40:48.000000000 +0000
++++ newlib-2.0.0/newlib/libc/stdio/fvwrite.h	2013-10-31 23:59:16.286301228 +0000
+@@ -28,7 +28,7 @@
+ struct __suio {
+ 	struct	__siov *uio_iov;
+ 	int	uio_iovcnt;
+-	int	uio_resid;
++	size_t	uio_resid;
+ };
+ 
+ 
 diff -ruN newlib-2.0.0-old/newlib/libc/stdlib/__atexit.c newlib-2.0.0/newlib/libc/stdlib/__atexit.c
 --- newlib-2.0.0-old/newlib/libc/stdlib/__atexit.c	2012-01-03 19:13:57.000000000 +0000
 +++ newlib-2.0.0/newlib/libc/stdlib/__atexit.c	2013-06-04 22:39:36.000000000 +0000
