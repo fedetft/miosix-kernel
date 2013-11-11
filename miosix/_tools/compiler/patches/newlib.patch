@@ -827,7 +827,7 @@ diff -ruN newlib-2.0.0-old/newlib/libc/stdio/findfp.c newlib-2.0.0/newlib/libc/s
    s->_stderr = __sfp(s);
 diff -ruN newlib-2.0.0-old/newlib/libc/stdio/fvwrite.c newlib-2.0.0/newlib/libc/stdio/fvwrite.c
 --- newlib-2.0.0-old/newlib/libc/stdio/fvwrite.c	2011-12-20 09:06:58.000000000 +0000
-+++ newlib-2.0.0/newlib/libc/stdio/fvwrite.c	2013-11-01 00:10:54.658314348 +0000
++++ newlib-2.0.0/newlib/libc/stdio/fvwrite.c	2013-11-10 21:31:21.221826183 +0000
 @@ -21,6 +21,7 @@
  #include <string.h>
  #include <stdlib.h>
@@ -841,15 +841,15 @@ diff -ruN newlib-2.0.0-old/newlib/libc/stdio/fvwrite.c newlib-2.0.0/newlib/libc/
      {
        /*
 -       * Unbuffered: write up to BUFSIZ bytes at a time.
-+       * Unbuffered: split the buffer in the larger chunk that
-+       * is less than INT_MAX, as some legacy code may expect
-+       * int instead of size_t
++       * Unbuffered: Split buffer in the largest multiple of BUFSIZ < INT_MAX
++       * as some legacy code may expect int instead of size_t.
         */
        do
  	{
  	  GETIOV (;);
 -	  w = fp->_write (ptr, fp->_cookie, p, MIN (len, BUFSIZ));
-+	  w = fp->_write (ptr, fp->_cookie, p, MIN (len, INT_MAX));
++	  w = fp->_write (ptr, fp->_cookie, p,
++			  MIN (len, INT_MAX - INT_MAX % BUFSIZ));
  	  if (w <= 0)
  	    goto err;
  	  p += w;

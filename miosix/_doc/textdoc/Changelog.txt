@@ -1,5 +1,8 @@
 Changelog for Miosix np embedded OS
 
+- Updated newlib patch for consistency with upstream change.
+  Updated gcc patch for better buffer usage.
+  This change requires recompiling GCC!
 - Performance improved SD driver ported to all stm32 targets
 - Updated newlib compiler patches to improve write performance also for
   fully buffered files. This change and the previous one require

@@ -1,3 +1,6 @@
+
+//Legacy, no longer used. Will be removed.
+
 /***************************************************************************
  *   Copyright (C) 2008 2009 2010 by Terraneo Federico                     *
  *                                                                         *
