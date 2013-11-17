@@ -71,7 +71,7 @@ static int translateError(int ec)
 }
 
 /**
- * Directory class for MountpointFs 
+ * Directory class for Fat32Fs
  */
 class Fat32Directory : public DirectoryBase
 {
@@ -79,6 +79,8 @@ public:
     /**
      * \param parent parent filesystem
      * \param mutex mutex to lock when accessing the fiesystem
+     * \param parentFsInode normally zero, set to the inode of the directory on
+     * which the filesystem is mounted when listing the root directory
      */
     Fat32Directory(intrusive_ref_ptr<FilesystemBase> parent, FastMutex& mutex,
             int parentFsInode) : DirectoryBase(parent), mutex(mutex),
@@ -87,6 +89,11 @@ public:
         //Make sure a closedir of an uninitialized dir won't do any damage
         dir.fs=0;
     }
+    
+    /**
+     * \return the underlying directory object 
+     */
+    DIR_ *directory() { return &dir; }
     
     /**
      * Also directories can be opened as files. In this case, this system call
@@ -111,7 +118,7 @@ private:
 };
 
 //
-// class MountpointFsDirctory
+// class Fat32Directory
 //
 
 int Fat32Directory::getdents(void *dp, int len)
@@ -229,6 +236,7 @@ Fat32File::Fat32File(intrusive_ref_ptr<FilesystemBase> parent, FastMutex& mutex)
 ssize_t Fat32File::write(const void *data, size_t len)
 {
     Lock<FastMutex> l(mutex);
+    if(f_tell(&file)+len<0) return -EFBIG; //Can't write past INT_MAX
     unsigned int bytesWritten;
     if(int res=translateError(f_write(&file,data,len,&bytesWritten))) return res;
     #ifdef SYNC_AFTER_WRITE
@@ -298,7 +306,7 @@ Fat32File::~Fat32File()
 // class Fat32Fs
 //
 
-Fat32Fs::Fat32Fs() : failed(true)
+Fat32Fs::Fat32Fs() : mutex(FastMutex::RECURSIVE), failed(true)
 {
     if(!Disk::isAvailable()) return;
     failed=f_mount(&filesystem,"",1)!=FR_OK;
@@ -307,44 +315,80 @@ Fat32Fs::Fat32Fs() : failed(true)
 int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         int flags, int mode)
 {
-    BYTE openflags=0;
+    if(failed) return -ENOENT;
     flags++; //To convert from O_RDONLY, O_WRONLY, ... to _FREAD, _FWRITE, ...
-    if(flags & _FREAD)  openflags|=FA_READ;
-    if(flags & _FWRITE) openflags|=FA_WRITE;
-    if(flags & _FTRUNC) openflags|=FA_CREATE_ALWAYS;//Truncate
-    else if(flags & _FAPPEND) openflags|=FA_OPEN_ALWAYS;//If not exists create
-    else openflags|=FA_OPEN_EXISTING;//If not exists fail
     
-    intrusive_ref_ptr<Fat32File> f(new Fat32File(shared_from_this(),mutex));
-    Lock<FastMutex> l(mutex);
-    if(int res=translateError(f_open(f->fil(),name.c_str(),openflags))) return res;
-    f->setInode(f->fil()->sclust!=0 ? f->fil()->sclust : 1);
-    
-    #ifdef SYNC_AFTER_WRITE
-    if(f_sync(f->fil())!=FR_OK) return -EFAULT;
-    #endif //SYNC_AFTER_WRITE
+    struct stat st;
+    if(int result=translateError(lstat(name,&st))) return result;
+    if(!S_ISDIR(st.st_mode))
+    {
+        //About to open a file
+        BYTE openflags=0;
+        if(flags & _FREAD)  openflags|=FA_READ;
+        if(flags & _FWRITE) openflags|=FA_WRITE;
+        if(flags & _FTRUNC) openflags|=FA_CREATE_ALWAYS;//Truncate
+        else if(flags & _FAPPEND) openflags|=FA_OPEN_ALWAYS;//If !exists create
+        else openflags|=FA_OPEN_EXISTING;//If not exists fail
 
-    //If file opened for appending, seek to end of file
-    if(flags & _FAPPEND) if(f_lseek(f->fil(),f->fil()->fsize)!=FR_OK) return -EFAULT;
-    
-    file=f;
-    return 0;
+        intrusive_ref_ptr<Fat32File> f(new Fat32File(shared_from_this(),mutex));
+        Lock<FastMutex> l(mutex);
+        if(int res=translateError(f_open(f->fil(),name.c_str(),openflags)))
+            return res;
+        f->setInode(f->fil()->sclust!=0 ? f->fil()->sclust : 1);
+
+        //Can't open files larger than INT_MAX
+        if(static_cast<int>(f_size(f->fil()))<0) return -EOVERFLOW;
+
+        #ifdef SYNC_AFTER_WRITE
+        if(f_sync(f->fil())!=FR_OK) return -EFAULT;
+        #endif //SYNC_AFTER_WRITE
+
+        //If file opened for appending, seek to end of file
+        if(flags & _FAPPEND)
+            if(f_lseek(f->fil(),f_size(f->fil()))!=FR_OK) return -EFAULT;
+
+        file=f;
+        return 0;
+    } else {
+        //About to open a directory
+        if(flags!=_FREAD) return -EISDIR;
+        
+         intrusive_ref_ptr<Fat32Directory> d(
+            new Fat32Directory(shared_from_this(),mutex,
+                name.empty() ? 0 : parentFsMountpointInode));
+         
+         if(int res=translateError(f_opendir(d->directory(),name.c_str())))
+            return res;
+         
+         file=d;
+         return 0;
+    }
 }
 
 int Fat32Fs::lstat(StringPart& name, struct stat *pstat)
 {
-    Lock<FastMutex> l(mutex);
-    FILINFO info;
-    if(int result=translateError(f_stat(name.c_str(),&info))) return result;
+    if(failed) return -ENOENT;
     memset(pstat,0,sizeof(struct stat));
     pstat->st_dev=filesystemId;
-    pstat->st_ino=info.inode;
+    pstat->st_nlink=1;
+    pstat->st_blksize=512;
+    
+    Lock<FastMutex> l(mutex);
+    if(name.empty())
+    {
+        //We are asked to stat the filesystem's root directory
+        pstat->st_ino=1; //FIXME: inode still broken
+        pstat->st_mode=S_IFDIR | 0755;  //drwxr-xr-x
+        return 0;
+    }
+    FILINFO info;
+    if(int result=translateError(f_stat(name.c_str(),&info))) return result;
+    
+    pstat->st_ino=info.inode!=0 ? info.inode : 1; //FIXME: inode still broken
     pstat->st_mode=(info.fattrib & AM_DIR) ?
         S_IFDIR | 0755  //drwxr-xr-x
       : S_IFREG | 0755; //-rwxr-xr-x
-    pstat->st_nlink=1;
     pstat->st_size=info.fsize;
-    pstat->st_blksize=512;
     pstat->st_blocks=(info.fsize+511)/512;
     return 0;
 }
@@ -356,12 +400,14 @@ int Fat32Fs::unlink(StringPart& name)
 
 int Fat32Fs::rename(StringPart& oldName, StringPart& newName)
 {
+    if(failed) return -ENOENT;
     Lock<FastMutex> l(mutex);
     return translateError(f_rename(oldName.c_str(),newName.c_str()));
 }
 
 int Fat32Fs::mkdir(StringPart& name, int mode)
 {
+    if(failed) return -ENOENT;
     Lock<FastMutex> l(mutex);
     return translateError(f_mkdir(name.c_str()));
 }
@@ -373,19 +419,21 @@ int Fat32Fs::rmdir(StringPart& name)
 
 Fat32Fs::~Fat32Fs()
 {
+    if(failed) return;
     f_mount(0,0,0); //TODO: what to do with error code?
     Disk::sync();
 }
 
 int Fat32Fs::unlinkRmdirHelper(StringPart& name, bool delDir)
 {
+    if(failed) return -ENOENT;
     Lock<FastMutex> l(mutex);
-    FILINFO info;
-    if(int result=translateError(f_stat(name.c_str(),&info))) return result;
+    struct stat st;
+    if(int result=translateError(lstat(name,&st))) return result;
     if(delDir)
     {
-        if((info.fattrib & AM_DIR)==0) return -ENOTDIR;
-    } else if(info.fattrib & AM_DIR) return -EISDIR;
+        if(!S_ISDIR(st.st_mode)) return -ENOTDIR;
+    } else if(S_ISDIR(st.st_mode)) return -EISDIR;
     return translateError(f_unlink(name.c_str()));
 }
 

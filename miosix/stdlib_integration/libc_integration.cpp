@@ -573,6 +573,72 @@ int fcntl(int fd, int cmd, ...)
 
 /**
  * \internal
+ * _getcwd_r, return current directory
+ */
+char *_getcwd_r(struct _reent *ptr, char *buf, size_t size)
+{
+    #ifdef WITH_FILESYSTEM
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().getcwd(buf,size);
+        if(result>=0) return buf;
+        ptr->_errno=-result;
+        return NULL;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return NULL;
+    }
+    #endif //__NO_EXCEPTIONS
+    
+    #else //WITH_FILESYSTEM
+    ptr->_errno=ENOENT;
+    return NULL;
+    #endif //WITH_FILESYSTEM
+}
+
+char *getcwd(char *buf, size_t size)
+{
+    return _getcwd_r(miosix::CReentrancyAccessor::getReent(),buf,size);
+}
+
+/**
+ * \internal
+ * _chdir_r, change current directory
+ */
+int _chdir_r(struct _reent *ptr, const char *path)
+{
+    #ifdef WITH_FILESYSTEM
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().chdir(path);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+    
+    #else //WITH_FILESYSTEM
+    ptr->_errno=ENOENT;
+    return -1;
+    #endif //WITH_FILESYSTEM
+}
+
+int chdir(const char *path)
+{
+    return _chdir_r(miosix::CReentrancyAccessor::getReent(),path);
+}
+
+/**
+ * \internal
  * _mkdir_r, create a directory
  */
 int _mkdir_r(struct _reent *ptr, const char *path, int mode)

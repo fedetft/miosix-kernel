@@ -1,5 +1,12 @@
 Changelog for Miosix np embedded OS
 
+- Started implementing FAT32 directory listing, still needs work.
+- Implemented getcwd() and chdir() syscalls
+- Added assertion check that openFileCount is always positive
+- newFileOpened() is now called in FileBase constructor if parent is not null,
+  so filesystems need not remember to do that
+- Updated newlib patch to fix an use after free in closedir()
+  This change requires recompiling GCC!
 - Updated newlib patch for consistency with upstream change.
   Updated gcc patch for better buffer usage.
   This change requires recompiling GCC!

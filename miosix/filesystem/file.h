@@ -49,7 +49,7 @@ public:
      * Constructor
      * \param parent the filesystem to which this file belongs
      */
-    FileBase(intrusive_ref_ptr<FilesystemBase> parent) : parent(parent) {}
+    FileBase(intrusive_ref_ptr<FilesystemBase> parent);
     
     /**
      * Write data to the file, if the file supports writing.
@@ -321,6 +321,13 @@ public:
     
     /**
      * \internal
+     * Called by file constructor whenever a file belonging to this
+     * filesystem is opened. Never call this function from user code.
+     */
+    void newFileOpened();
+    
+    /**
+     * \internal
      * Called by file destructors whenever a file belonging to this
      * filesystem is closed. Never call this function from user code.
      */
@@ -346,11 +353,6 @@ public:
     virtual ~FilesystemBase();
     
 protected:
-    /**
-     * Must be called every time a new file is successfully opened, to update
-     * the open files count
-     */
-    void newFileOpened();
     
     const short int filesystemId; ///< The unique filesystem id, used by lstat
     int parentFsMountpointInode; ///< The inode of the directory in the parent fs

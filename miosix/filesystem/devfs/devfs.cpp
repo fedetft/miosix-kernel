@@ -187,7 +187,7 @@ bool DevFs::addDeviceFile(const char *name, DeviceFileWrapper dfw)
 {
     if(name==0 || name[0]=='\0') return false;
     int len=strlen(name);
-    for(int i=1;i<len;i++) if(name[i]=='/') return false;
+    for(int i=0;i<len;i++) if(name[i]=='/') return false;
     Lock<FastMutex> l(mutex);
     bool result=files.insert(make_pair(StringPart(name),dfw)).second;
     //Assign inode to the file

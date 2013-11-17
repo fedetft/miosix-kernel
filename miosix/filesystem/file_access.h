@@ -226,6 +226,14 @@ public:
     }
     
     /**
+     * Return current directory
+     * \param buf the current directory is stored here
+     * \param len buffer length, if it is not big enough, ERANGE is returned
+     * \return 0 on success, or a negative number on failure
+     */
+    int getcwd(char *buf, size_t len);
+    
+    /**
      * Change current directory
      * \param path new current directory
      * \return 0 on success, or a negative number on failure

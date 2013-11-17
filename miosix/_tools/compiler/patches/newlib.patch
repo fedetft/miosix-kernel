@@ -402,23 +402,46 @@ diff -ruN newlib-2.0.0-old/newlib/libc/include/wchar.h newlib-2.0.0/newlib/libc/
  
 diff -ruN newlib-2.0.0-old/newlib/libc/posix/closedir.c newlib-2.0.0/newlib/libc/posix/closedir.c
 --- newlib-2.0.0-old/newlib/libc/posix/closedir.c	2003-06-06 19:57:51.000000000 +0000
-+++ newlib-2.0.0/newlib/libc/posix/closedir.c	2013-06-22 21:28:16.000000000 +0000
-@@ -65,7 +65,15 @@
- 		(void)free((void *)dirp->dd_buf);
- 		(void)free((void *)dirp);
- 		rc = close(fd);
++++ newlib-2.0.0/newlib/libc/posix/closedir.c	2013-11-13 23:27:50.234105067 +0000
+@@ -52,25 +52,27 @@
+ _DEFUN(closedir, (dirp),
+        register DIR *dirp)
+ {
+-	int fd, rc;
++	int rc;
+ 
+ #ifdef HAVE_DD_LOCK
+ 	__lock_acquire_recursive(dirp->dd_lock);
+ #endif
+-	rc = 0;
+-	fd = dirp->dd_fd;
+-	if (fd != -1) {
+-		dirp->dd_fd = -1;
+-		dirp->dd_loc = 0;
+-		(void)free((void *)dirp->dd_buf);
+-		(void)free((void *)dirp);
+-		rc = close(fd);
+-		_cleanupdir(dirp);
+-	}
++	rc = close(dirp->dd_fd);
 +#ifndef _MIOSIX
- 		_cleanupdir(dirp);
++	_cleanupdir(dirp);
 +#else /* _MIOSIX */
-+		/*
-+		 * A call through a pointer avoids pulling in _cleanupdir, which brings
-+		 * in 128 bytes of BSS, unless user code actually uses seekdir/telldir.
-+		 */
-+		if(dirp->dd_onclose) dirp->dd_onclose(dirp);
++	/*
++	 * A call through a pointer avoids pulling in _cleanupdir, which brings
++	 * in 128 bytes of BSS, unless user code actually uses seekdir/telldir.
++	 */
++	if(dirp->dd_onclose) dirp->dd_onclose(dirp);
 +#endif /* _MIOSIX */
- 	}
++	free((void *)dirp->dd_buf);
  #ifdef HAVE_DD_LOCK
  	__lock_release_recursive(dirp->dd_lock);
+ 	__lock_close_recursive(dirp->dd_lock);
+ #endif
++	free((void *)dirp);
+ 	return rc;
+ }
+ 
 diff -ruN newlib-2.0.0-old/newlib/libc/posix/execl.c newlib-2.0.0/newlib/libc/posix/execl.c
 --- newlib-2.0.0-old/newlib/libc/posix/execl.c	2008-10-31 21:03:41.000000000 +0000
 +++ newlib-2.0.0/newlib/libc/posix/execl.c	2013-06-15 21:36:36.000000000 +0000
@@ -629,9 +652,22 @@ diff -ruN newlib-2.0.0-old/newlib/libc/posix/opendir.c newlib-2.0.0/newlib/libc/
  
  	if (dirp->dd_buf == NULL) {
  		free (dirp);
+diff -ruN newlib-2.0.0-old/newlib/libc/posix/readdir.c newlib-2.0.0/newlib/libc/posix/readdir.c
+--- newlib-2.0.0-old/newlib/libc/posix/readdir.c	2012-07-20 16:55:19.000000000 +0000
++++ newlib-2.0.0/newlib/libc/posix/readdir.c	2013-11-13 23:21:42.350103655 +0000
+@@ -53,9 +53,6 @@
+ #ifdef HAVE_DD_LOCK
+   __lock_acquire_recursive(dirp->dd_lock);
+ #endif
+-
+-  if (dirp->dd_fd == -1)
+-    return NULL;
+  
+   for (;;) {
+     if (dirp->dd_loc == 0) {
 diff -ruN newlib-2.0.0-old/newlib/libc/posix/readdir_r.c newlib-2.0.0/newlib/libc/posix/readdir_r.c
 --- newlib-2.0.0-old/newlib/libc/posix/readdir_r.c	2012-03-02 16:02:04.000000000 +0000
-+++ newlib-2.0.0/newlib/libc/posix/readdir_r.c	2013-06-19 19:46:18.000000000 +0000
++++ newlib-2.0.0/newlib/libc/posix/readdir_r.c	2013-11-13 23:22:07.150103751 +0000
 @@ -42,6 +42,7 @@
  #include <dirent.h>
  #include <errno.h>
@@ -640,7 +676,19 @@ diff -ruN newlib-2.0.0-old/newlib/libc/posix/readdir_r.c newlib-2.0.0/newlib/lib
  
  extern int getdents (int fd, void *dp, int count);
  
-@@ -84,16 +85,17 @@
+@@ -59,11 +60,6 @@
+ #ifdef HAVE_DD_LOCK
+   __lock_acquire_recursive(dirp->dd_lock);
+ #endif
+-
+-  if (dirp->dd_fd == -1) {
+-    *dpp = NULL;
+-    return errno = EBADF;
+-  }
+  
+   for (;;) {
+     if (dirp->dd_loc == 0) {
+@@ -84,16 +80,17 @@
        continue;
      }
      tmpdp = (struct dirent *)(dirp->dd_buf + dirp->dd_loc);
