@@ -114,6 +114,28 @@
 #include <stdlib.h>
 static void* ff_memalloc(UINT msize) { return malloc(msize); }
 static void ff_memfree(void* mblock) { free(mblock); }
+/**
+ * FAT32 does not have the concept of inodes, but we need them.
+ * This code thus uses the sector # containing the directory entry and the
+ * index within the sector where the directory entry is located as inode.
+ * This code has the following limitations:
+ * - If _FS_RPATH is defined and INODE() is applied to the '.' and '..'
+ *   entries, it returns inconsistent results. That's because for example the
+ *   inode of '..' must be the same of the '.' inode of the parent directory,
+ *   but these are in two different directories, so the sector # are different.
+ *   This has been fixed by disabling _FS_RPATH and filling those entries
+ *   manually.
+ * - It assumes that one sector is 512 byte, so that 16 directory entries fit
+ *   in one sector.
+ * - If there are more than 2^32/16 sectors (filesystems > 128GByte) inodes
+ *   are no longer unique!
+ * This code also guarantees not to ever return inode values of 0 and 1, as
+ * zero is an invalid inode, and 1 is reserved by the Fat32Fs code for the
+ * '.' entry of the root directory of the filesystem. If the algorithm for
+ * some reason, such as a >128GB filesystem would return 0 or 1, it always
+ * returns 2.
+ */
+#define INODE(x) ((x->sect<<4 | x->index % 16)<3) ? 2 : (x->sect<<4 | x->index % 16)
 // Added by TFT -- end
 
 
@@ -1964,7 +1986,7 @@ void get_fileinfo (		/* No return code */
 		fno->fsize = LD_DWORD(dir+DIR_FileSize);	/* Size */
 		fno->fdate = LD_WORD(dir+DIR_WrtDate);		/* Date */
 		fno->ftime = LD_WORD(dir+DIR_WrtTime);		/* Time */
-        fno->inode=dp->sclust; //By TFT
+        fno->inode=INODE(dp);
 	}
 	*p = 0;		/* Terminate SFN string by a \0 */
 

@@ -147,6 +147,12 @@ int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
 int DevFs::lstat(StringPart& name, struct stat *pstat)
 {
     Lock<FastMutex> l(mutex);
+    if(name.empty())
+    {
+        fillStatHelper(pstat,rootDirInode,filesystemId);
+        pstat->st_mode=S_IFDIR | 0755; //drwxr-xr-x is a directory
+        return 0;
+    }
     map<StringPart,DeviceFileWrapper>::iterator it=files.find(name);
     if(it==files.end()) return -ENOENT;
     return it->second.lstat(pstat);

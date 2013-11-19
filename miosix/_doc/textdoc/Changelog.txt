@@ -1,5 +1,6 @@
 Changelog for Miosix np embedded OS
 
+- Implemented inode support in FAT32
 - Started implementing FAT32 directory listing, still needs work.
 - Implemented getcwd() and chdir() syscalls
 - Added assertion check that openFileCount is always positive

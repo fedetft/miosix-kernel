@@ -79,12 +79,13 @@ public:
     /**
      * \param parent parent filesystem
      * \param mutex mutex to lock when accessing the fiesystem
-     * \param parentFsInode normally zero, set to the inode of the directory on
-     * which the filesystem is mounted when listing the root directory
+     * \param currentInode inode value for '.' entry
+     * \param parentInode inode value for '..' entry
      */
     Fat32Directory(intrusive_ref_ptr<FilesystemBase> parent, FastMutex& mutex,
-            int parentFsInode) : DirectoryBase(parent), mutex(mutex),
-            parentFsInode(parentFsInode)
+            int currentInode, int parentInode) : DirectoryBase(parent),
+            mutex(mutex), currentInode(currentInode), parentInode(parentInode),
+            first(true)
     {
         //Make sure a closedir of an uninitialized dir won't do any damage
         dir.fs=0;
@@ -112,9 +113,11 @@ public:
     virtual ~Fat32Directory();
     
 private:
-    FastMutex& mutex; ///< Parent filesystem's mutex
-    DIR_ dir;    ///< Directory object
-    int parentFsInode; ///< If not null, we're listing the root directory
+    FastMutex& mutex;  ///< Parent filesystem's mutex
+    DIR_ dir;          ///< Directory object
+    int currentInode;  ///< Inode of '.'
+    int parentInode;   ///< Inode of '..'
+    bool first;        ///< To display '.' and '..' entries
 };
 
 //
@@ -129,6 +132,11 @@ int Fat32Directory::getdents(void *dp, int len)
     char *end=buffer+len;
     
     Lock<FastMutex> l(mutex);
+    if(first)
+    {
+        first=false;
+        addDefaultEntries(&buffer,currentInode,parentInode);
+    }
     for(;;)
     {
         FILINFO fi;
@@ -140,9 +148,7 @@ int Fat32Directory::getdents(void *dp, int len)
         }
         char type=fi.fattrib & AM_DIR ? DT_DIR : DT_REG;
         StringPart name(fi.fname);
-        int inode=fi.inode; //FIXME: make sure .. appears in the root dir
-        if(!strcmp(fi.fname,"..") && parentFsInode) inode=parentFsInode;
-        if(addEntry(&buffer,end,inode,type,name)<0) return buffer-begin;
+        if(addEntry(&buffer,end,fi.inode,type,name)<0) return buffer-begin;
     }
 }
 
@@ -319,7 +325,7 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
     flags++; //To convert from O_RDONLY, O_WRONLY, ... to _FREAD, _FWRITE, ...
     
     struct stat st;
-    if(int result=translateError(lstat(name,&st))) return result;
+    if(int result=lstat(name,&st)) return result;
     if(!S_ISDIR(st.st_mode))
     {
         //About to open a file
@@ -334,7 +340,7 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         Lock<FastMutex> l(mutex);
         if(int res=translateError(f_open(f->fil(),name.c_str(),openflags)))
             return res;
-        f->setInode(f->fil()->sclust!=0 ? f->fil()->sclust : 1);
+        f->setInode(st.st_ino);
 
         //Can't open files larger than INT_MAX
         if(static_cast<int>(f_size(f->fil()))<0) return -EOVERFLOW;
@@ -353,9 +359,22 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         //About to open a directory
         if(flags!=_FREAD) return -EISDIR;
         
-         intrusive_ref_ptr<Fat32Directory> d(
-            new Fat32Directory(shared_from_this(),mutex,
-                name.empty() ? 0 : parentFsMountpointInode));
+        int parentInode;
+        if(name.empty()==false)
+        {
+            char *lastSlash=strrchr(name.c_str(),'/');
+            if(lastSlash)
+            {
+                StringPart parent(const_cast<char*>(name.c_str()),lastSlash-name.c_str()); //TODO: find a better way
+                struct stat st2;
+                if(int result=lstat(name,&st2)) return result;
+                parentInode=st2.st_ino;
+            } else parentInode=1; //Asked to list subdir of root
+        } else parentInode=parentFsMountpointInode; //Asked to list root dir
+        
+        
+        intrusive_ref_ptr<Fat32Directory> d(
+            new Fat32Directory(shared_from_this(),mutex,st.st_ino,parentInode));
          
          if(int res=translateError(f_opendir(d->directory(),name.c_str())))
             return res;
@@ -377,14 +396,15 @@ int Fat32Fs::lstat(StringPart& name, struct stat *pstat)
     if(name.empty())
     {
         //We are asked to stat the filesystem's root directory
-        pstat->st_ino=1; //FIXME: inode still broken
+        //By convention, we use 1 for root dir inode, see INODE() macro in ff.c
+        pstat->st_ino=1;
         pstat->st_mode=S_IFDIR | 0755;  //drwxr-xr-x
         return 0;
     }
     FILINFO info;
     if(int result=translateError(f_stat(name.c_str(),&info))) return result;
     
-    pstat->st_ino=info.inode!=0 ? info.inode : 1; //FIXME: inode still broken
+    pstat->st_ino=info.inode;
     pstat->st_mode=(info.fattrib & AM_DIR) ?
         S_IFDIR | 0755  //drwxr-xr-x
       : S_IFREG | 0755; //-rwxr-xr-x
@@ -429,7 +449,7 @@ int Fat32Fs::unlinkRmdirHelper(StringPart& name, bool delDir)
     if(failed) return -ENOENT;
     Lock<FastMutex> l(mutex);
     struct stat st;
-    if(int result=translateError(lstat(name,&st))) return result;
+    if(int result=lstat(name,&st)) return result;
     if(delDir)
     {
         if(!S_ISDIR(st.st_mode)) return -ENOTDIR;

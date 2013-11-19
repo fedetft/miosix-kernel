@@ -122,9 +122,7 @@
 /  This option has no effect when _LFN_UNICODE is 0. */
 
 
-//By TFT: we don't use f_chdir(), but enabling rpath as a side effect makes
-//. and .. entries appear in the filesystem, and we definitely want them
-#define _FS_RPATH		1	/* 0 to 2 */
+#define _FS_RPATH		0	/* 0 to 2 */
 /* The _FS_RPATH option configures relative path feature.
 /
 /   0: Disable relative path feature and remove related functions.
@@ -210,7 +208,7 @@
 
 //Note by TFT: this is very useful, as it avoids the danger of opening the same
 //file for writing multiple times
-#define	_FS_LOCK	4	/* 0:Disable or >=1:Enable */
+#define	_FS_LOCK	8	/* 0:Disable or >=1:Enable */
 /* To enable file lock control feature, set _FS_LOCK to 1 or greater.
    The value defines how many files can be opened simultaneously. */
 
