@@ -365,7 +365,7 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
             char *lastSlash=strrchr(name.c_str(),'/');
             if(lastSlash)
             {
-                StringPart parent(const_cast<char*>(name.c_str()),lastSlash-name.c_str()); //TODO: find a better way
+                StringPart parent(name,lastSlash-name.c_str());
                 struct stat st2;
                 if(int result=lstat(name,&st2)) return result;
                 parentInode=st2.st_ino;

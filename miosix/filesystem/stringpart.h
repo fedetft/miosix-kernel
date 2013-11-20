@@ -121,7 +121,7 @@ public:
      * allocation.
      * \param rhs a StringPart
      */
-    StringPart(StringPart& rhs, unsigned int idx, unsigned int off);
+    StringPart(StringPart& rhs, unsigned int idx, unsigned int off=0);
     
     /**
      * Copy constructor. Note that deep copying is used, so that the newly
