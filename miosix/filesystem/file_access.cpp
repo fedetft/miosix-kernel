@@ -225,10 +225,7 @@ int FileDescriptorTable::statImpl(const char* name, struct stat* pstat, bool f)
     if(name==0 || name[0]=='\0') return -EFAULT;
     string path=absolutePath(name);
     if(path.empty()) return -ENAMETOOLONG;
-    ResolvedPath openData=FilesystemManager::instance().resolvePath(path,f);
-    if(openData.result<0) return openData.result;
-    StringPart sp(path,string::npos,openData.off);
-    return openData.fs->lstat(sp,pstat);
+    return FilesystemManager::instance().statHelper(path,pstat,f);
 }
 
 FileDescriptorTable::~FileDescriptorTable()
@@ -521,13 +518,11 @@ int FilesystemManager::kmount(const char* path, intrusive_ref_ptr<FilesystemBase
     string temp(path);
     if(!(temp=="/" && filesystems.empty())) //Skip check when mounting /
     {
-        ResolvedPath rp=resolvePath(temp);
-        if(rp.result<0) return rp.result;
-        StringPart sp(temp,string::npos,rp.off);
         struct stat st;
-        int statres=rp.fs->lstat(sp,&st);
-        if(statres<0) return statres;
+        if(int result=statHelper(temp,&st,false)) return result;
         if(!S_ISDIR(st.st_mode)) return -ENOTDIR;
+        string parent=temp+"/..";
+        if(int result=statHelper(parent,&st,false)) return result;
         fs->setParentFsMountpointInode(st.st_ino);
     }
     if(filesystems.insert(make_pair(StringPart(temp),fs)).second==false)
@@ -660,6 +655,14 @@ int FilesystemManager::unlinkHelper(string& path)
     if(filesystems.find(StringPart(path))!=filesystems.end()) return -EBUSY;
     StringPart sp(path,string::npos,openData.off);
     return openData.fs->unlink(sp);
+}
+
+int FilesystemManager::statHelper(string& path, struct stat *pstat, bool f)
+{
+    ResolvedPath openData=resolvePath(path,f);
+    if(openData.result<0) return openData.result;
+    StringPart sp(path,string::npos,openData.off);
+    return openData.fs->lstat(sp,pstat);
 }
 
 int FilesystemManager::renameHelper(string& oldPath, string& newPath)

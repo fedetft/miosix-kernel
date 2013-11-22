@@ -156,6 +156,12 @@ public:
     bool startsWith(const StringPart& rhs) const;
     
     /**
+     * \param c char to find in the string, starting from the end
+     * \return the index of the last occurrence of c, or string::npos
+     */
+    unsigned int findLastOf(char c) const;
+    
+    /**
      * \return the StringPart length, which is the same as strlen(this->c_str())
      */
     unsigned int length() const { return index-offset; }

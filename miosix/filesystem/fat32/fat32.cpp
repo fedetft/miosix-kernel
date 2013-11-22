@@ -33,9 +33,12 @@
 #include <unistd.h>
 #include <errno.h>
 #include <cstring>
+#include <string>
 #include <cstdio>
 #include "filesystem/stringpart.h"
 #include "interfaces/disk.h"
+
+using namespace std;
 
 namespace miosix {
 
@@ -362,10 +365,10 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         int parentInode;
         if(name.empty()==false)
         {
-            char *lastSlash=strrchr(name.c_str(),'/');
-            if(lastSlash)
+            unsigned int lastSlash=name.findLastOf('/');
+            if(lastSlash!=string::npos)
             {
-                StringPart parent(name,lastSlash-name.c_str());
+                StringPart parent(name,lastSlash);
                 struct stat st2;
                 if(int result=lstat(name,&st2)) return result;
                 parentInode=st2.st_ino;

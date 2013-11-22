@@ -379,6 +379,18 @@ public:
     
     /**
      * \internal
+     * Helper function to stat a file or directory. Only meant to be used by
+     * FileDescriptorTable::statImpl()
+     * \param path path of file or directory to stat
+     * \param pstat pointer to stat struct
+     * \param f f true to follow last synlink (stat),
+     * false to not follow it (lstat)
+     * \return 0 on success, or a negative number on failure
+     */
+    int statHelper(std::string& path, struct stat *pstat, bool f);
+    
+    /**
+     * \internal
      * Helper function to unlink a file or directory. Only meant to be used by
      * FileDescriptorTable::unlink()
      * \param oldPath path of file or directory to unlink

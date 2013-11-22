@@ -123,6 +123,15 @@ bool StringPart::startsWith(const StringPart& rhs) const
     return memcmp(this->c_str(),rhs.c_str(),rhs.length())==0;
 }
 
+unsigned int StringPart::findLastOf(char c) const
+{
+    const char *begin=c_str();
+    //Not strrchr() to take advantage of knowing the string length
+    void *index=memrchr(begin,c,length());
+    if(index==0) return std::string::npos;
+    return reinterpret_cast<char*>(index)-begin;
+}
+
 const char *StringPart::c_str() const
 {
     switch(type)
