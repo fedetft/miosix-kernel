@@ -328,8 +328,13 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
     flags++; //To convert from O_RDONLY, O_WRONLY, ... to _FREAD, _FWRITE, ...
     
     struct stat st;
-    if(int result=lstat(name,&st)) return result;
-    if(!S_ISDIR(st.st_mode))
+    if(!(flags & _FWRITE))
+    {
+        //Don't stat now if _FWRITE, the file may not yet exist as we may be
+        //asked to create it
+        if(int result=lstat(name,&st)) return result;
+    }
+    if((flags & _FWRITE) || !S_ISDIR(st.st_mode))
     {
         //About to open a file
         BYTE openflags=0;
@@ -343,6 +348,11 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         Lock<FastMutex> l(mutex);
         if(int res=translateError(f_open(f->fil(),name.c_str(),openflags)))
             return res;
+        if(flags & _FWRITE)
+        {
+            //If we didn't stat before, stat now to get the inode
+            if(int result=lstat(name,&st)) return result;
+        }
         f->setInode(st.st_ino);
 
         //Can't open files larger than INT_MAX
