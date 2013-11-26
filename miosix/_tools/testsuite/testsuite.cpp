@@ -3676,8 +3676,8 @@ static bool checkDirContent(const std::string& d, const char *a, const char *b)
     {
         struct dirent *de=readdir(dir);
         if(de==NULL) break;
-        if(a && !strcmp(de->d_name,a)) found=true;
-        if(b && !strcmp(de->d_name,b))
+        if(a && !strcasecmp(de->d_name,a)) found=true;
+        if(b && !strcasecmp(de->d_name,b))
         {
             closedir(dir);
             return false;
