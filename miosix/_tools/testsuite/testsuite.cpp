@@ -37,7 +37,9 @@
 #include <stdexcept>
 #include <algorithm>
 #include <vector>
+#include <set>
 #include <cassert>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <pthread.h>
 #include <errno.h>
@@ -3787,66 +3789,132 @@ tests:
 opendir()/readdir()
 */
 
+unsigned int checkInodes(const char *dir, unsigned int curInode,
+        unsigned int parentInode, short curDev, short parentDev)
+{
+    if(chdir(dir)) fail("chdir");
+    
+    DIR *d=opendir(".");
+    if(d==NULL) fail("opendir");
+    puts(dir);
+    std::set<unsigned int> inodes;
+    unsigned int result=0;
+    for(;;)
+    {
+        struct dirent *de=readdir(d);
+        if(de==NULL) break;
+        
+        struct stat st;
+        if(stat(de->d_name,&st)) fail("stat");
+        
+        if(de->d_ino!=st.st_ino) fail("inode mismatch");
+        
+        bool mustBeDir=false;
+        if(!strcmp(de->d_name,"."))
+        {
+            mustBeDir=true;
+            if(st.st_ino!=curInode) fail(". inode");
+            if(st.st_dev!=curDev) fail("cur dev");
+        } else if(!strcmp(de->d_name,"..")) {
+            mustBeDir=true;
+            if(st.st_ino!=parentInode) fail(".. inode");
+            if(st.st_dev!=parentDev) fail("parent dev");
+        } else if(!strcasecmp(de->d_name,"testdir")) { 
+            mustBeDir=true;
+            result=st.st_ino;
+            if(st.st_dev!=curDev) fail("parent dev");
+        } else if(st.st_dev!=curDev) fail("cur dev");
+        
+        if(mustBeDir)
+        {
+            if(de->d_type!=DT_DIR) fail("d_type");
+            if(!S_ISDIR(st.st_mode)) fail("st_mode");
+        } else {
+            if(!S_ISDIR(st.st_mode))
+            {
+                int fd=open(de->d_name,O_RDONLY);
+                if(fd<0) fail("open");
+                struct stat st2;
+                if(fstat(fd,&st2)) fail("fstat");
+                close(fd);
+                if(memcmp(&st,&st2,sizeof(struct stat)))
+                    fail("stat/fstat mismatch");
+            }
+        }
+        
+        if((de->d_type==DT_DIR) ^ (S_ISDIR(st.st_mode))) fail("dir mismatch");
+        
+        if(st.st_dev==curDev)
+        {
+            if(inodes.insert(st.st_ino).second==false) fail("duplicate inode");
+        }
+        
+        printf("inode=%lu dev=%d %s\n",st.st_ino,st.st_dev,de->d_name);
+    }
+    closedir(d);
+    
+    if(chdir("/")) fail("chdir");
+    return result;
+}
+
 static void fs_test_4()
 {
     test_name("Directory listing");
-    int curInode=0, parentInode=0, devFsInode=0;
+    unsigned int curInode=0, parentInode=0, devFsInode=0, sdInode=0;
+    short curDevice=0, devDevice=0, sdDevice=0;
     DIR *d=opendir("/");
     if(d==NULL) fail("opendir");
-    puts("opened /");
+    puts("/");
     for(;;)
     {
         struct dirent *de=readdir(d);
         if(de==NULL) break;
+        //de->d_ino may differ from st.st_ino across mountpoints, such as /dev
+        //and /sd as one is the inode of the covered directory, and the other
+        //the inode of the covering one.
+        //The same happens on Linux and many other UNIX based OSes
+        struct stat st;
+        if(strcmp(de->d_name,"..")) //Don't stat ".."
+        {
+            if(stat(de->d_name,&st)) fail("stat");
+            if((de->d_type==DT_DIR) ^ (S_ISDIR(st.st_mode)))
+                fail("dir mismatch");
+        }
         if(!strcmp(de->d_name,"."))
         {
-            curInode=de->d_ino;
             if(de->d_type!=DT_DIR) fail("d_type");
+            if(de->d_ino!=st.st_ino) fail("inode mismatch");
+            curInode=st.st_ino;
+            curDevice=st.st_dev;
         } else if(!strcmp(de->d_name,"..")) {
-            parentInode=de->d_ino;
             if(de->d_type!=DT_DIR) fail("d_type");
+            st.st_ino=de->d_ino; //Not stat-ing ".."
+            st.st_dev=curDevice;
+            parentInode=de->d_ino;
         } else if(!strcmp(de->d_name,"dev")) {
-            devFsInode=de->d_ino;
             if(de->d_type!=DT_DIR) fail("d_type");
+            devFsInode=st.st_ino;
+            devDevice=st.st_dev;
+        } else if(!strcmp(de->d_name,"sd")) {
+            if(de->d_type!=DT_DIR) fail("d_type");
+            sdInode=st.st_ino;
+            sdDevice=st.st_dev;
         }
-        printf("inode=%lu reclen=%u %s\n",de->d_ino,de->d_reclen,de->d_name);
+        
+        printf("inode=%lu dev=%d %s\n",st.st_ino,st.st_dev,de->d_name);
     }
     closedir(d);
-    if(curInode!=1) fail(".");
-    if(parentInode!=1) fail("..");
+    
+    if(curInode!=parentInode) fail("/..");
+    
     #ifdef WITH_DEVFS
-    if(devFsInode==0) fail("dev");
-    curInode=0, parentInode=0;
-    int nullInode=0, zeroInode=0;
-    d=opendir("/dev");
-    if(d==NULL) fail("opendir");
-    puts("opened /dev");
-    for(;;)
-    {
-        struct dirent *de=readdir(d);
-        if(de==NULL) break;
-        if(!strcmp(de->d_name,"."))
-        {
-            curInode=de->d_ino;
-            if(de->d_type!=DT_DIR) fail("d_type");
-        } else if(!strcmp(de->d_name,"..")) {
-            parentInode=de->d_ino;
-            if(de->d_type!=DT_DIR) fail("d_type");
-        } else if(!strcmp(de->d_name,"null")) {
-            nullInode=de->d_ino;
-            if(de->d_type!=DT_CHR) fail("d_type");
-        } else if(!strcmp(de->d_name,"zero")) {
-            zeroInode=de->d_ino;
-            if(de->d_type!=DT_CHR) fail("d_type");
-        }
-        printf("inode=%lu reclen=%u %s\n",de->d_ino,de->d_reclen,de->d_name);
-    }
-    closedir(d);
-    if(curInode!=1) fail(".");
-    if(parentInode!=devFsInode) fail("..");
-    if(nullInode!=2) fail("null");
-    if(zeroInode!=3) fail("zero");
+    if(devFsInode==0 || devDevice==0) fail("dev");
+    checkInodes("/dev",devFsInode,curInode,devDevice,curDevice);
     #endif //WITH_DEVFS
+    if(sdInode==0 || sdDevice==0) fail("sd");
+    int testdirIno=checkInodes("/sd",sdInode,curInode,sdDevice,curDevice);
+    if(testdirIno==0) fail("no testdir");
+    checkInodes("/sd/testdir",testdirIno,sdInode,sdDevice,sdDevice);
     pass();
 }
 #endif //WITH_FILESYSTEM
