@@ -345,8 +345,6 @@
           <in>file.h</in>
           <in>file_access.cpp</in>
           <in>file_access.h</in>
-          <in>filesystem.cpp</in>
-          <in>filesystem.h</in>
           <in>stringpart.cpp</in>
           <in>stringpart.h</in>
         </df>

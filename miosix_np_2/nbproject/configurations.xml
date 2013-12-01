@@ -332,8 +332,6 @@
           <in>file.h</in>
           <in>file_access.cpp</in>
           <in>file_access.h</in>
-          <in>filesystem.cpp</in>
-          <in>filesystem.h</in>
           <in>stringpart.cpp</in>
           <in>stringpart.h</in>
         </df>
@@ -1365,13 +1363,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -2487,13 +2478,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -3617,13 +3601,6 @@
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="../miosix/filesystem/filesystem.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.h" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
             tool="1"
@@ -4740,13 +4717,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -5865,13 +5835,6 @@
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="../miosix/filesystem/filesystem.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.h" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
             tool="1"
@@ -6988,13 +6951,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -8113,13 +8069,6 @@
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="../miosix/filesystem/filesystem.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.h" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
             tool="1"
@@ -9234,13 +9183,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -10357,13 +10299,6 @@
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="../miosix/filesystem/filesystem.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.h" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
             tool="1"
@@ -11478,13 +11413,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -12601,13 +12529,6 @@
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="../miosix/filesystem/filesystem.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.h" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
             tool="1"
@@ -13723,13 +13644,6 @@
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="../miosix/filesystem/filesystem.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.h" ex="false" tool="3" flavor2="0">
-      </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
             tool="1"
@@ -14844,13 +14758,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/filesystem.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
