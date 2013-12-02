@@ -83,6 +83,7 @@ cd objdir
 # Note: despite --enable-lto, lto does not yet work. We'll wait for 4.6.x 
 $SUDO ../$GCC/configure \
 	--target=arm-eabi \
+	MAKEINFO=missing \
 	--prefix=$INSTALL_DIR/arm-miosix-eabi \
 	--program-prefix=arm-miosix-eabi- \
 	--disable-shared \
