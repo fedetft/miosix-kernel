@@ -32,6 +32,7 @@ stdlib_integration/libc_integration.cpp                                    \
 stdlib_integration/libstdcpp_integration.cpp                               \
 e20/e20.cpp                                                                \
 util/util.cpp                                                              \
+util/unicode.cpp                                                           \
 util/version.cpp                                                           \
 util/crc16.cpp                                                             \
 util/lcd44780.cpp

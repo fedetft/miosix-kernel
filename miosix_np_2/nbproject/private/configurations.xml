@@ -408,6 +408,8 @@
           <in>lcd44780.h</in>
           <in>software_i2c.h</in>
           <in>software_spi.h</in>
+          <in>unicode.cpp</in>
+          <in>unicode.h</in>
           <in>util.cpp</in>
           <in>util.h</in>
           <in>version.cpp</in>
