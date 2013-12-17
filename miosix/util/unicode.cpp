@@ -31,7 +31,8 @@ using namespace std;
 
 namespace miosix {
 
-pair<Unicode::error,int> Unicode::utf8toutf16(char16_t *dst, int dstSize, char *src)
+pair<Unicode::error,int> Unicode::utf8toutf16(char16_t *dst, int dstSize,
+        const char *src)
 {
     int length=0;
 
@@ -60,10 +61,11 @@ pair<Unicode::error,int> Unicode::utf8toutf16(char16_t *dst, int dstSize, char *
     #undef PUT
 }
 
-pair<Unicode::error,int> Unicode::utf16toutf8(char *dst, int dstSize, char16_t *src)
+pair<Unicode::error,int> Unicode::utf16toutf8(char *dst, int dstSize,
+        const char16_t *src)
 {
     //Note: explicit cast to be double sure that no sign extension happens
-    unsigned short *srcu=reinterpret_cast<unsigned short*>(src);
+    const unsigned short *srcu=reinterpret_cast<const unsigned short*>(src);
     int length=0;
 
     #define PUT(x) do \
@@ -114,9 +116,9 @@ pair<Unicode::error,int> Unicode::utf16toutf8(char *dst, int dstSize, char16_t *
     #undef PUT
 }
 
-std::pair<bool,int> Unicode::validateUtf8(char* str)
+std::pair<bool,int> Unicode::validateUtf8(const char* str)
 {
-    char *iter=str;
+    const char *iter=str;
     for(;;)
     {
         char32_t codePoint=nextUtf8(iter);

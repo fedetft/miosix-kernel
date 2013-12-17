@@ -112,8 +112,7 @@
 // Added by TFT -- begin
 #include <string.h>
 #include <stdlib.h>
-static void* ff_memalloc(UINT msize) { return malloc(msize); }
-static void ff_memfree(void* mblock) { free(mblock); }
+
 /**
  * FAT32 does not have the concept of inodes, but we need them.
  * This code thus uses the sector # containing the directory entry and the

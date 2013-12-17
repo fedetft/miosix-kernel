@@ -88,7 +88,7 @@ public:
     Fat32Directory(intrusive_ref_ptr<FilesystemBase> parent, FastMutex& mutex,
             int currentInode, int parentInode) : DirectoryBase(parent),
             mutex(mutex), currentInode(currentInode), parentInode(parentInode),
-            first(true)
+            first(true), unfinished(false)
     {
         //Make sure a closedir of an uninitialized dir won't do any damage
         dir.fs=0;
@@ -118,9 +118,11 @@ public:
 private:
     FastMutex& mutex;  ///< Parent filesystem's mutex
     DIR_ dir;          ///< Directory object
+    FILINFO fi;        ///< Information on a file
     int currentInode;  ///< Inode of '.'
     int parentInode;   ///< Inode of '..'
     bool first;        ///< To display '.' and '..' entries
+    bool unfinished;   ///< True if fi contains unread data
 };
 
 //
@@ -140,9 +142,15 @@ int Fat32Directory::getdents(void *dp, int len)
         first=false;
         addDefaultEntries(&buffer,currentInode,parentInode);
     }
+    if(unfinished)
+    {
+        unfinished=false;
+        char type=fi.fattrib & AM_DIR ? DT_DIR : DT_REG;
+        StringPart name(fi.fname);
+        if(addEntry(&buffer,end,fi.inode,type,name)<0) return -EINVAL;
+    }
     for(;;)
     {
-        FILINFO fi;
         if(int res=translateError(f_readdir(&dir,&fi))) return res;
         if(fi.fname[0]=='\0')
         {
@@ -151,7 +159,11 @@ int Fat32Directory::getdents(void *dp, int len)
         }
         char type=fi.fattrib & AM_DIR ? DT_DIR : DT_REG;
         StringPart name(fi.fname);
-        if(addEntry(&buffer,end,fi.inode,type,name)<0) return buffer-begin;
+        if(addEntry(&buffer,end,fi.inode,type,name)<0)
+        {
+            unfinished=true;
+            return buffer-begin;
+        }
     }
 }
 
@@ -380,7 +392,7 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
             {
                 StringPart parent(name,lastSlash);
                 struct stat st2;
-                if(int result=lstat(name,&st2)) return result;
+                if(int result=lstat(parent,&st2)) return result;
                 parentInode=st2.st_ino;
             } else parentInode=1; //Asked to list subdir of root
         } else parentInode=parentFsMountpointInode; //Asked to list root dir

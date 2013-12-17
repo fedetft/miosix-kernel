@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Fixed a bug in fat32 directory listing causing file names to be skipped when
+  listing large directories.
 - Added basic unicode helper functions
 - Implemented inode support in FAT32
 - Started implementing FAT32 directory listing, still needs work.

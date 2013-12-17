@@ -93,7 +93,8 @@ public:
      * \return an error code and the length (in units of char16_t) of the
      * string written to dst
      */
-    static std::pair<error,int> utf8toutf16(char16_t *dst, int dstSize, char *src);
+    static std::pair<error,int> utf8toutf16(char16_t *dst, int dstSize,
+        const char *src);
     
     /**
      * Convert an utf16 string in an utf8 one
@@ -104,14 +105,15 @@ public:
      * endian one)
      * \return an error code and the length of the string written to dst
      */
-    static std::pair<error,int> utf16toutf8(char *dst, int dstSize, char16_t *src);
+    static std::pair<error,int> utf16toutf8(char *dst, int dstSize,
+        const char16_t *src);
     
     /**
      * \param str an utf8 encoded string
      * \return a pair with a bool that is true if the string is valid, and the
      * string length in bytes, not code points
      */
-    static std::pair<bool,int> validateUtf8(char *str);
+    static std::pair<bool,int> validateUtf8(const char *str);
 
 private:
     /**
