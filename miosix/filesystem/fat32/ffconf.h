@@ -60,7 +60,7 @@
 / Locale and Namespace Configurations
 /----------------------------------------------------------------------------*/
 
-#define _CODE_PAGE	932
+#define _CODE_PAGE	1252
 /* The _CODE_PAGE specifies the OEM code page to be used on the target system.
 /  Incorrect setting of the code page can cause a file open failure.
 /
@@ -92,8 +92,12 @@
 /   1    - ASCII (Valid for only non-LFN cfg.)
 */
 
-
-#define	_USE_LFN	0		/* 0 to 3 */
+//Note by TFT: DEF_NAMEBUF is used in the following functions: f_open(),
+//f_opendir(), f_readdir(), f_stat(), f_unlink(), f_mkdir(), f_chmod(),
+//f_utime(), f_rename(), and Miosix always locks a mutex before calling any of,
+//these. For this reason it was chosen to allocate the LFN buffer statically,
+//since the mutex protects from concurrent access to the buffer.
+#define	_USE_LFN	1		/* 0 to 3 */
 #define	_MAX_LFN	255		/* Maximum LFN length to handle (12 to 255) */
 /* The _USE_LFN option switches the LFN feature.
 /
@@ -109,8 +113,8 @@
 /  buffer, memory management functions, ff_memalloc() and ff_memfree(), must be added
 /  to the project. */
 
-
-#define	_LFN_UNICODE	0	/* 0:ANSI/OEM or 1:Unicode */
+//Note by TFT: we do want unicode and not ancient code pages
+#define	_LFN_UNICODE	1	/* 0:ANSI/OEM or 1:Unicode */
 /* To switch the character encoding on the FatFs API to Unicode, enable LFN feature
 /  and set _LFN_UNICODE to 1. */
 

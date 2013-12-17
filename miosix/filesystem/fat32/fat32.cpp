@@ -37,6 +37,7 @@
 #include <cstdio>
 #include "filesystem/stringpart.h"
 #include "interfaces/disk.h"
+#include "util/unicode.h"
 
 using namespace std;
 
@@ -92,6 +93,8 @@ public:
     {
         //Make sure a closedir of an uninitialized dir won't do any damage
         dir.fs=0;
+        fi.lfname=lfn;
+        fi.lfsize=sizeof(lfn);
     }
     
     /**
@@ -123,6 +126,7 @@ private:
     int parentInode;   ///< Inode of '..'
     bool first;        ///< To display '.' and '..' entries
     bool unfinished;   ///< True if fi contains unread data
+    char16_t lfn[256]; ///< Long file name
 };
 
 //
@@ -146,7 +150,9 @@ int Fat32Directory::getdents(void *dp, int len)
     {
         unfinished=false;
         char type=fi.fattrib & AM_DIR ? DT_DIR : DT_REG;
-        StringPart name(fi.fname);
+        char fixme[512];
+        Unicode::utf16toutf8(fixme,512,*fi.lfname ? fi.lfname : fi.fname);
+        StringPart name(fixme);
         if(addEntry(&buffer,end,fi.inode,type,name)<0) return -EINVAL;
     }
     for(;;)
@@ -158,7 +164,9 @@ int Fat32Directory::getdents(void *dp, int len)
             return buffer-begin;
         }
         char type=fi.fattrib & AM_DIR ? DT_DIR : DT_REG;
-        StringPart name(fi.fname);
+        char fixme[512];
+        Unicode::utf16toutf8(fixme,512,*fi.lfname ? fi.lfname : fi.fname);
+        StringPart name(fixme);
         if(addEntry(&buffer,end,fi.inode,type,name)<0)
         {
             unfinished=true;
@@ -330,7 +338,8 @@ Fat32File::~Fat32File()
 Fat32Fs::Fat32Fs() : mutex(FastMutex::RECURSIVE), failed(true)
 {
     if(!Disk::isAvailable()) return;
-    failed=f_mount(&filesystem,"",1)!=FR_OK;
+    TCHAR nul=0;
+    failed=f_mount(&filesystem,&nul,1)!=FR_OK;
 }
 
 int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
@@ -358,7 +367,9 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
 
         intrusive_ref_ptr<Fat32File> f(new Fat32File(shared_from_this(),mutex));
         Lock<FastMutex> l(mutex);
-        if(int res=translateError(f_open(f->fil(),name.c_str(),openflags)))
+        char16_t fixme[256];
+        Unicode::utf8toutf16(fixme,256,name.c_str());
+        if(int res=translateError(f_open(f->fil(),fixme,openflags)))
             return res;
         if(flags & _FWRITE)
         {
@@ -401,7 +412,10 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         intrusive_ref_ptr<Fat32Directory> d(
             new Fat32Directory(shared_from_this(),mutex,st.st_ino,parentInode));
          
-         if(int res=translateError(f_opendir(d->directory(),name.c_str())))
+        Lock<FastMutex> l(mutex);
+        char16_t fixme[256];
+        Unicode::utf8toutf16(fixme,256,name.c_str());
+        if(int res=translateError(f_opendir(d->directory(),fixme)))
             return res;
          
          file=d;
@@ -427,7 +441,11 @@ int Fat32Fs::lstat(StringPart& name, struct stat *pstat)
         return 0;
     }
     FILINFO info;
-    if(int result=translateError(f_stat(name.c_str(),&info))) return result;
+    info.lfname=0; //We're not interested in getting the lfname
+    info.lfsize=0;
+    char16_t fixme[256];
+    Unicode::utf8toutf16(fixme,256,name.c_str());
+    if(int result=translateError(f_stat(fixme,&info))) return result;
     
     pstat->st_ino=info.inode;
     pstat->st_mode=(info.fattrib & AM_DIR) ?
@@ -447,14 +465,20 @@ int Fat32Fs::rename(StringPart& oldName, StringPart& newName)
 {
     if(failed) return -ENOENT;
     Lock<FastMutex> l(mutex);
-    return translateError(f_rename(oldName.c_str(),newName.c_str()));
+    char16_t fixme1[256];
+    Unicode::utf8toutf16(fixme1,256,oldName.c_str());
+    char16_t fixme2[256];
+    Unicode::utf8toutf16(fixme2,256,newName.c_str());
+    return translateError(f_rename(fixme1,fixme2));
 }
 
 int Fat32Fs::mkdir(StringPart& name, int mode)
 {
     if(failed) return -ENOENT;
     Lock<FastMutex> l(mutex);
-    return translateError(f_mkdir(name.c_str()));
+    char16_t fixme[256];
+    Unicode::utf8toutf16(fixme,256,name.c_str());
+    return translateError(f_mkdir(fixme));
 }
 
 int Fat32Fs::rmdir(StringPart& name)
@@ -479,7 +503,9 @@ int Fat32Fs::unlinkRmdirHelper(StringPart& name, bool delDir)
     {
         if(!S_ISDIR(st.st_mode)) return -ENOTDIR;
     } else if(S_ISDIR(st.st_mode)) return -EISDIR;
-    return translateError(f_unlink(name.c_str()));
+    char16_t fixme[256];
+    Unicode::utf8toutf16(fixme,256,name.c_str());
+    return translateError(f_unlink(fixme));
 }
 
 } //namespace miosix

@@ -28,6 +28,8 @@ filesystem/devfs/base_files.cpp                                            \
 filesystem/fat32/fat32.cpp                                                 \
 filesystem/fat32/ff.c                                                      \
 filesystem/fat32/diskio.cpp                                                \
+filesystem/fat32/wtoupper.cpp                                              \
+filesystem/fat32/ccsbcs.c                                                  \
 stdlib_integration/libc_integration.cpp                                    \
 stdlib_integration/libstdcpp_integration.cpp                               \
 e20/e20.cpp                                                                \

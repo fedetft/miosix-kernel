@@ -1,5 +1,6 @@
 Changelog for Miosix np embedded OS
 
+- First working but inefficient unicode support for fat32
 - Fixed a bug in fat32 directory listing causing file names to be skipped when
   listing large directories.
 - Added basic unicode helper functions
