@@ -319,23 +319,16 @@
             <in>devfs.h</in>
           </df>
           <df name="fat32">
-            <df name="option">
-              <in>cc932.c</in>
-              <in>cc936.c</in>
-              <in>cc949.c</in>
-              <in>cc950.c</in>
-              <in>ccsbcs.c</in>
-              <in>syscall.c</in>
-              <in>unicode.c</in>
-            </df>
+            <in>ccsbcs.cpp</in>
             <in>diskio.cpp</in>
             <in>diskio.h</in>
             <in>fat32.cpp</in>
             <in>fat32.h</in>
-            <in>ff.c</in>
+            <in>ff.cpp</in>
             <in>ff.h</in>
             <in>ffconf.h</in>
             <in>integer.h</in>
+            <in>wtoupper.cpp</in>
           </df>
           <df name="mountpointfs">
             <in>mountpointfs.cpp</in>

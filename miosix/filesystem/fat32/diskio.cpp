@@ -8,9 +8,9 @@
 
 using namespace miosix;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+// #ifdef __cplusplus
+// extern "C" {
+// #endif
 
 /**
  * \internal
@@ -108,6 +108,6 @@ DRESULT disk_ioctl (
      return 0x210000;//TODO: this stub just returns date 01/01/1980 0.00.00
  }
 
-#ifdef __cplusplus
-}
-#endif
+// #ifdef __cplusplus
+// }
+// #endif

@@ -61,7 +61,7 @@ static const unsigned short upperCase[]=
 
 static const int tabSize=sizeof(lowerCase)/sizeof(lowerCase[0]);
 
-extern "C" unsigned short ff_wtoupper(unsigned short c)
+unsigned short ff_wtoupper(unsigned short c)
 {
     if(c>='a' && c<='z') return c-('a'-'A');               //26 code points
 
