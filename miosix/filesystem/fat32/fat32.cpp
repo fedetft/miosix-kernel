@@ -338,8 +338,7 @@ Fat32File::~Fat32File()
 Fat32Fs::Fat32Fs() : mutex(FastMutex::RECURSIVE), failed(true)
 {
     if(!Disk::isAvailable()) return;
-    TCHAR nul=0;
-    failed=f_mount(&filesystem,&nul,1)!=FR_OK;
+    failed=f_mount(&filesystem,1)!=FR_OK;
 }
 
 int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
@@ -489,7 +488,7 @@ int Fat32Fs::rmdir(StringPart& name)
 Fat32Fs::~Fat32Fs()
 {
     if(failed) return;
-    f_mount(0,0,0); //TODO: what to do with error code?
+    f_mount(0,0); //TODO: what to do with error code?
     Disk::sync();
 }
 

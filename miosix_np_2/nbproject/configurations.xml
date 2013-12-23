@@ -397,6 +397,8 @@
           <in>lcd44780.h</in>
           <in>software_i2c.h</in>
           <in>software_spi.h</in>
+          <in>unicode.cpp</in>
+          <in>unicode.h</in>
           <in>util.cpp</in>
           <in>util.h</in>
           <in>version.cpp</in>
@@ -3771,6 +3773,10 @@
       <item path="../miosix/util/software_i2c.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/util/software_spi.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/util/unicode.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../miosix/util/unicode.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/util/util.cpp" ex="false" tool="1" flavor2="0">
       </item>

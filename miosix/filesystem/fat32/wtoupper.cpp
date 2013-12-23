@@ -1,4 +1,6 @@
 
+#include "ff.h"
+
 /*
  * This is an alternative version of ff_wtoupper(), designed to be both smaller,
  * faster and to better conform to the unicode specification.

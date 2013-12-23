@@ -2020,30 +2020,32 @@ void get_fileinfo (		/* No return code */
 /* Get logical drive number from path name                               */
 /*-----------------------------------------------------------------------*/
 
-static
-int get_ldnumber (		/* Returns logical drive number (-1:invalid drive) */
-	const TCHAR** path	/* Pointer to pointer to the path name */
-)
-{
-	int vol = -1;
-
-
-	if (*path) {
-		vol = (*path)[0] - '0';
-		if ((UINT)vol < 9 && (*path)[1] == ':') {	/* There is a drive number */
-			*path += 2;		/* Get value and strip it */
-			if (vol >= _VOLUMES) vol = -1;	/* Check if the drive number is valid */
-		} else {			/* No drive number use default drive */
-#if _FS_RPATH && _VOLUMES >= 2
-			vol = CurrVol;	/* Current drive */
-#else
-			vol = 0;		/* Drive 0 */
-#endif
-		}
-	}
-
-	return vol;
-}
+//By TFT: We don't want this reminiscence of microsoft OSes identifying
+//drive numbers with 0:/path/to/file
+// static
+// int get_ldnumber (		/* Returns logical drive number (-1:invalid drive) */
+// 	const TCHAR** path	/* Pointer to pointer to the path name */
+// )
+// {
+// 	int vol = -1;
+// 
+// 
+// 	if (*path) {
+// 		vol = (*path)[0] - '0';
+// 		if ((UINT)vol < 9 && (*path)[1] == ':') {	/* There is a drive number */
+// 			*path += 2;		/* Get value and strip it */
+// 			if (vol >= _VOLUMES) vol = -1;	/* Check if the drive number is valid */
+// 		} else {			/* No drive number use default drive */
+// #if _FS_RPATH && _VOLUMES >= 2
+// 			vol = CurrVol;	/* Current drive */
+// #else
+// 			vol = 0;		/* Drive 0 */
+// #endif
+// 		}
+// 	}
+// 
+// 	return vol;
+// }
 
 
 
@@ -2145,7 +2147,7 @@ BYTE check_fs (	/* 0:FAT boor sector, 1:Valid boor sector but not FAT, 2:Not a b
 static
 FRESULT find_volume (	/* FR_OK(0): successful, !=0: any error occurred */
 	FATFS** rfs,		/* Pointer to pointer to the found file system object */
-	const TCHAR** path,	/* Pointer to pointer to the path name (drive number) */
+	/*const TCHAR** path,*/	/* Pointer to pointer to the path name (drive number) */
 	BYTE wmode			/* !=0: Check write protection for write access */
 )
 {
@@ -2159,7 +2161,7 @@ FRESULT find_volume (	/* FR_OK(0): successful, !=0: any error occurred */
 
 	/* Get logical drive number from the path name */
 	*rfs = 0;
-	vol = get_ldnumber(path);
+	vol = 0;//get_ldnumber(path);
 	if (vol < 0) return FR_INVALID_DRIVE;
 
 	/* Check if the file system object is valid or not */
@@ -2345,7 +2347,7 @@ FRESULT validate (	/* FR_OK(0): The object is valid, !=0: Invalid */
 
 FRESULT f_mount (
 	FATFS* fs,			/* Pointer to the file system object (NULL:unmount)*/
-	const TCHAR* path,	/* Logical drive number to be mounted/unmounted */
+	/*const TCHAR* path,*/	/* Logical drive number to be mounted/unmounted */
 	BYTE opt			/* 0:Do not mount (delayed mount), 1:Mount immediately */
 )
 {
@@ -2354,7 +2356,7 @@ FRESULT f_mount (
 	FRESULT res;
 
 
-	vol = get_ldnumber(&path);
+	vol = 0;//get_ldnumber(&path);
 	if (vol < 0) return FR_INVALID_DRIVE;
 	cfs = FatFs[vol];					/* Pointer to fs object */
 
@@ -2378,7 +2380,7 @@ FRESULT f_mount (
 
 	if (!fs || opt != 1) return FR_OK;	/* Do not mount now, it will be mounted later */
 
-	res = find_volume(&fs, &path, 0);	/* Force mounted the volume */
+	res = find_volume(&fs, /*&path,*/ 0);	/* Force mounted the volume */
 	LEAVE_FF(fs, res);
 }
 
@@ -2407,7 +2409,7 @@ FRESULT f_open (
 	/* Get logical drive number */
 #if !_FS_READONLY
 	mode &= FA_READ | FA_WRITE | FA_CREATE_ALWAYS | FA_OPEN_ALWAYS | FA_CREATE_NEW;
-	res = find_volume(&dj.fs, &path, (BYTE)(mode & ~FA_READ));
+	res = find_volume(&dj.fs, /*&path,*/ (BYTE)(mode & ~FA_READ));
 #else
 	mode &= FA_READ;
 	res = find_volume(&dj.fs, &path, 0);
@@ -3145,7 +3147,7 @@ FRESULT f_opendir (
 	if (!dp) return FR_INVALID_OBJECT;
 
 	/* Get logical drive number */
-	res = find_volume(&fs, &path, 0);
+	res = find_volume(&fs, /*&path,*/ 0);
 	if (res == FR_OK) {
 		dp->fs = fs;
 		INIT_BUF(*dp);
@@ -3269,7 +3271,7 @@ FRESULT f_stat (
 
 
 	/* Get logical drive number */
-	res = find_volume(&dj.fs, &path, 0);
+	res = find_volume(&dj.fs, /*&path,*/ 0);
 	if (res == FR_OK) {
 		INIT_BUF(dj);
 		res = follow_path(&dj, path);	/* Follow the file path */
@@ -3294,7 +3296,7 @@ FRESULT f_stat (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_getfree (
-	const TCHAR* path,	/* Path name of the logical drive number */
+	/*const TCHAR* path,*/	/* Path name of the logical drive number */
 	DWORD* nclst,		/* Pointer to a variable to return number of free clusters */
 	FATFS** fatfs		/* Pointer to return pointer to corresponding file system object */
 )
@@ -3307,7 +3309,7 @@ FRESULT f_getfree (
 
 
 	/* Get logical drive number */
-	res = find_volume(fatfs, &path, 0);
+	res = find_volume(fatfs, /*&path,*/ 0);
 	fs = *fatfs;
 	if (res == FR_OK) {
 		/* If free_clust is valid, return it without full cluster scan */
@@ -3428,7 +3430,7 @@ FRESULT f_unlink (
 
 
 	/* Get logical drive number */
-	res = find_volume(&dj.fs, &path, 1);
+	res = find_volume(&dj.fs, /*&path,*/ 1);
 	if (res == FR_OK) {
 		INIT_BUF(dj);
 		res = follow_path(&dj, path);		/* Follow the file path */
@@ -3498,7 +3500,7 @@ FRESULT f_mkdir (
 
 
 	/* Get logical drive number */
-	res = find_volume(&dj.fs, &path, 1);
+	res = find_volume(&dj.fs, /*&path,*/ 1);
 	if (res == FR_OK) {
 		INIT_BUF(dj);
 		res = follow_path(&dj, path);			/* Follow the file path */
@@ -3573,7 +3575,7 @@ FRESULT f_chmod (
 
 
 	/* Get logical drive number */
-	res = find_volume(&dj.fs, &path, 1);
+	res = find_volume(&dj.fs, /*&path,*/ 1);
 	if (res == FR_OK) {
 		INIT_BUF(dj);
 		res = follow_path(&dj, path);		/* Follow the file path */
@@ -3615,7 +3617,7 @@ FRESULT f_utime (
 
 
 	/* Get logical drive number */
-	res = find_volume(&dj.fs, &path, 1);
+	res = find_volume(&dj.fs, /*&path,*/ 1);
 	if (res == FR_OK) {
 		INIT_BUF(dj);
 		res = follow_path(&dj, path);	/* Follow the file path */
@@ -3658,7 +3660,7 @@ FRESULT f_rename (
 
 
 	/* Get logical drive number of the source object */
-	res = find_volume(&djo.fs, &path_old, 1);
+	res = find_volume(&djo.fs, /*&path_old,*/ 1);
 	if (res == FR_OK) {
 		djn.fs = djo.fs;
 		INIT_BUF(djo);
