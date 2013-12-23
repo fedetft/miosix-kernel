@@ -112,6 +112,7 @@
 // Added by TFT -- begin
 #include <string.h>
 #include <stdlib.h>
+#include <util/unicode.h>
 
 /**
  * FAT32 does not have the concept of inodes, but we need them.
@@ -1742,25 +1743,28 @@ FRESULT dir_remove (	/* FR_OK: Successful, FR_DISK_ERR: A disk error */
 static
 FRESULT create_name (
 	DIR_* dp,			/* Pointer to the directory object */
-	const TCHAR** path	/* Pointer to pointer to the segment in the path string */
+	const /*TCHAR*/char **path	/* Pointer to pointer to the segment in the path string */
 )
 {
 #if _USE_LFN	/* LFN configuration */
 	BYTE b, cf;
-	WCHAR w, *lfn;
+	WCHAR *lfn;
+    char32_t w;
 	UINT i, ni, si, di;
-	const TCHAR *p;
+	const /*TCHAR*/char *p;
 
 	/* Create LFN in Unicode */
 	for (p = *path; *p == '/' || *p == '\\'; p++) ;	/* Strip duplicated separator */
 	lfn = dp->lfn;
-	si = di = 0;
+	/*si =*/ di = 0;
 	for (;;) {
-		w = p[si++];					/* Get a character */
-		if (w < ' ' || w == '/' || w == '\\') break;	/* Break on end of segment */
+		w = miosix::Unicode::nextUtf8(p);/*p[si++];*/					/* Get a character */
+		if(w == miosix::Unicode::invalid || w > 0xffff) return FR_INVALID_NAME;
+        if (w < ' ' || w == '/' || w == '\\') break;	/* Break on end of segment */
 		if (di >= _MAX_LFN)				/* Reject too long name */
 			return FR_INVALID_NAME;
 #if !_LFN_UNICODE
+        #error "Unsupported"
 		w &= 0xFF;
 		if (IsDBCS1(w)) {				/* Check if it is a DBC 1st byte (always false on SBCS cfg) */
 			b = (BYTE)p[si++];			/* Get 2nd byte */
@@ -1775,7 +1779,7 @@ FRESULT create_name (
 			return FR_INVALID_NAME;
 		lfn[di++] = w;					/* Store the Unicode character */
 	}
-	*path = &p[si];						/* Return pointer to the next segment */
+	*path = p/*&p[si]*/;						/* Return pointer to the next segment */
 	cf = (w < ' ') ? NS_LAST : 0;		/* Set last segment flag if end of path */
 #if _FS_RPATH
 	if ((di == 1 && lfn[di-1] == '.') || /* Is this a dot entry? */
@@ -2057,7 +2061,7 @@ void get_fileinfo (		/* No return code */
 static
 FRESULT follow_path (	/* FR_OK(0): successful, !=0: error code */
 	DIR_* dp,			/* Directory object to return last directory and found object */
-	const TCHAR* path	/* Full-path string to find a file or directory */
+	const /*TCHAR*/char *path	/* Full-path string to find a file or directory */
 )
 {
 	FRESULT res;
@@ -2393,7 +2397,7 @@ FRESULT f_mount (
 
 FRESULT f_open (
 	FIL* fp,			/* Pointer to the blank file object */
-	const TCHAR* path,	/* Pointer to the file name */
+	const /*TCHAR*/char *path,	/* Pointer to the file name */
 	BYTE mode			/* Access mode and file open mode flags */
 )
 {
@@ -3136,7 +3140,7 @@ FRESULT f_lseek (
 
 FRESULT f_opendir (
 	DIR_* dp,			/* Pointer to directory object to create */
-	const TCHAR* path	/* Pointer to the directory path */
+	const /*TCHAR*/char *path	/* Pointer to the directory path */
 )
 {
 	FRESULT res;
@@ -3261,7 +3265,7 @@ FRESULT f_readdir (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_stat (
-	const TCHAR* path,	/* Pointer to the file path */
+	const /*TCHAR*/char *path,	/* Pointer to the file path */
 	FILINFO* fno		/* Pointer to file information to return */
 )
 {
@@ -3419,7 +3423,7 @@ FRESULT f_truncate (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_unlink (
-	const TCHAR* path		/* Pointer to the file or directory path */
+	const /*TCHAR*/char *path		/* Pointer to the file or directory path */
 )
 {
 	FRESULT res;
@@ -3489,7 +3493,7 @@ FRESULT f_unlink (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_mkdir (
-	const TCHAR* path		/* Pointer to the directory path */
+	const /*TCHAR*/char *path		/* Pointer to the directory path */
 )
 {
 	FRESULT res;
@@ -3563,7 +3567,7 @@ FRESULT f_mkdir (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_chmod (
-	const TCHAR* path,	/* Pointer to the file path */
+	const /*TCHAR*/char *path,	/* Pointer to the file path */
 	BYTE value,			/* Attribute bits */
 	BYTE mask			/* Attribute mask to change */
 )
@@ -3606,7 +3610,7 @@ FRESULT f_chmod (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_utime (
-	const TCHAR* path,	/* Pointer to the file/directory name */
+	const /*TCHAR*/char *path,	/* Pointer to the file/directory name */
 	const FILINFO* fno	/* Pointer to the time stamp to be set */
 )
 {
@@ -3648,8 +3652,8 @@ FRESULT f_utime (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_rename (
-	const TCHAR* path_old,	/* Pointer to the old name */
-	const TCHAR* path_new	/* Pointer to the new name */
+	const /*TCHAR*/char *path_old,	/* Pointer to the old name */
+	const /*TCHAR*/char *path_new	/* Pointer to the new name */
 )
 {
 	FRESULT res;

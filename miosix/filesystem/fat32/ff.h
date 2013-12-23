@@ -206,7 +206,7 @@ typedef enum {
 /*--------------------------------------------------------------*/
 /* FatFs module application interface                           */
 
-FRESULT f_open (FIL* fp, const TCHAR* path, BYTE mode);				/* Open or create a file */
+FRESULT f_open (FIL* fp, const /*TCHAR*/char *path, BYTE mode);				/* Open or create a file */
 FRESULT f_close (FIL* fp);											/* Close an open file object */
 FRESULT f_read (FIL* fp, void* buff, UINT btr, UINT* br);			/* Read data from a file */
 FRESULT f_write (FIL* fp, const void* buff, UINT btw, UINT* bw);	/* Write data to a file */
@@ -214,15 +214,15 @@ FRESULT f_forward (FIL* fp, UINT(*func)(const BYTE*,UINT), UINT btf, UINT* bf);	
 FRESULT f_lseek (FIL* fp, DWORD ofs);								/* Move file pointer of a file object */
 FRESULT f_truncate (FIL* fp);										/* Truncate file */
 FRESULT f_sync (FIL* fp);											/* Flush cached data of a writing file */
-FRESULT f_opendir (DIR_* dp, const TCHAR* path);						/* Open a directory */
+FRESULT f_opendir (DIR_* dp, const /*TCHAR*/char *path);						/* Open a directory */
 FRESULT f_closedir (DIR_* dp);										/* Close an open directory */
 FRESULT f_readdir (DIR_* dp, FILINFO* fno);							/* Read a directory item */
-FRESULT f_mkdir (const TCHAR* path);								/* Create a sub directory */
-FRESULT f_unlink (const TCHAR* path);								/* Delete an existing file or directory */
-FRESULT f_rename (const TCHAR* path_old, const TCHAR* path_new);	/* Rename/Move a file or directory */
-FRESULT f_stat (const TCHAR* path, FILINFO* fno);					/* Get file status */
-FRESULT f_chmod (const TCHAR* path, BYTE value, BYTE mask);			/* Change attribute of the file/dir */
-FRESULT f_utime (const TCHAR* path, const FILINFO* fno);			/* Change times-tamp of the file/dir */
+FRESULT f_mkdir (const /*TCHAR*/char *path);								/* Create a sub directory */
+FRESULT f_unlink (const /*TCHAR*/char *path);								/* Delete an existing file or directory */
+FRESULT f_rename (const /*TCHAR*/char *path_old, const /*TCHAR*/char *path_new);	/* Rename/Move a file or directory */
+FRESULT f_stat (const /*TCHAR*/char *path, FILINFO* fno);					/* Get file status */
+FRESULT f_chmod (const /*TCHAR*/char *path, BYTE value, BYTE mask);			/* Change attribute of the file/dir */
+FRESULT f_utime (const /*TCHAR*/char *path, const FILINFO* fno);			/* Change times-tamp of the file/dir */
 FRESULT f_chdir (const TCHAR* path);								/* Change current directory */
 FRESULT f_chdrive (const TCHAR* path);								/* Change current drive */
 FRESULT f_getcwd (TCHAR* buff, UINT len);							/* Get current directory */
