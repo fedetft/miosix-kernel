@@ -29,18 +29,47 @@
 
 using namespace std;
 
+ #define PUT(x) do \
+{ \
+    if(length>=dstSize) return make_pair(INSUFFICIENT_SPACE,length); \
+    *dst++=x; length++; \
+} while(0)
+
 namespace miosix {
+
+pair<Unicode::error,int> Unicode::putUtf8(char *dst, char32_t c, int dstSize)
+{
+    //Reserved space for surrogate pairs in utf16 are invalid code points
+    if(c>=0xd800 && c<= 0xdfff) return make_pair(INVALID_STRING,0);
+    //Unicode is limited in the range 0-0x10ffff
+    if(c>0x10ffff) return make_pair(INVALID_STRING,0);
+    int length=0;
+
+    if(c<0x80)
+    {
+        PUT(c);
+        return make_pair(OK,length);
+    }
+    
+    if(c<0x800)
+    {
+        PUT(c>>6 | 0xc0);
+    } else if(c<0x10000) {
+        PUT(c>>12 | 0xe0);
+        PUT(((c>>6) & 0x3f) | 0x80);
+    } else {
+        PUT(c>>18 | 0xf0);
+        PUT(((c>>12) & 0x3f) | 0x80);
+        PUT(((c>>6) & 0x3f) | 0x80);
+    }
+    PUT((c & 0x3f) | 0x80);
+    return make_pair(OK,length);
+}
 
 pair<Unicode::error,int> Unicode::utf8toutf16(char16_t *dst, int dstSize,
         const char *src)
 {
     int length=0;
-
-    #define PUT(x) do \
-    { \
-        if(length>=dstSize) return make_pair(INSUFFICIENT_SPACE,length); \
-        *dst++=x; length++; \
-    } while(0)
     
     for(;;)
     {
@@ -58,7 +87,6 @@ pair<Unicode::error,int> Unicode::utf8toutf16(char16_t *dst, int dstSize,
     
     PUT(0); //Terminate string
     return make_pair(OK,length-1);
-    #undef PUT
 }
 
 pair<Unicode::error,int> Unicode::utf16toutf8(char *dst, int dstSize,
@@ -67,12 +95,6 @@ pair<Unicode::error,int> Unicode::utf16toutf8(char *dst, int dstSize,
     //Note: explicit cast to be double sure that no sign extension happens
     const unsigned short *srcu=reinterpret_cast<const unsigned short*>(src);
     int length=0;
-
-    #define PUT(x) do \
-    { \
-        if(length>=dstSize) return make_pair(INSUFFICIENT_SPACE,length); \
-        *dst++=x; length++; \
-    } while(0)
     
     while(char32_t c=*srcu++)
     {
@@ -97,26 +119,17 @@ pair<Unicode::error,int> Unicode::utf16toutf8(char *dst, int dstSize,
             return make_pair(INVALID_STRING,length);
         }
         
-        if(c<0x800)
-        {
-            PUT(c>>6 | 0xc0);
-        } else if(c<0x10000) {
-            PUT(c>>12 | 0xe0);
-            PUT(((c>>6) & 0x3f) | 0x80);
-        } else {
-            PUT(c>>18 | 0xf0);
-            PUT(((c>>12) & 0x3f) | 0x80);
-            PUT(((c>>6) & 0x3f) | 0x80);
-        }
-        PUT((c & 0x3f) | 0x80);
+        pair<error,int> result=putUtf8(dst,c,dstSize-length);
+        dst+=result.second;
+        length+=result.second;
+        if(result.first!=OK) return make_pair(result.first,length);
     }
     
     PUT(0); //Terminate string
     return make_pair(OK,length-1);
-    #undef PUT
 }
 
-std::pair<bool,int> Unicode::validateUtf8(const char* str)
+pair<bool,int> Unicode::validateUtf8(const char* str)
 {
     const char *iter=str;
     for(;;)
@@ -133,9 +146,9 @@ std::pair<bool,int> Unicode::validateUtf8(const char* str)
 #include <iostream>
 #include <fstream>
 #include <cassert>
-#include "unicode.h"
 
 using namespace std;
+using namespace miosix;
 
 int main(int argc, char *argv[])
 {

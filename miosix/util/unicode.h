@@ -85,6 +85,16 @@ public:
     }
     
     /**
+     * Put an unicode code point into a character array, converting it to utf8.
+     * \param dst pointer to the buffer where the character is to be written
+     * \param c an unicode code point (utf32 char)
+     * \param dstSize number of bytes available in dst
+     * \return an error code and the number of bytes of dst that were used up to
+     * write src to dst
+     */
+    static std::pair<error,int> putUtf8(char *dst, char32_t c, int dstSize);
+    
+    /**
      * Convert an utf8 string in an utf16 one
      * \param dst an utf16 string in system-dependent endianness (i.e: little
      * endian in a little endian machine and big endian in a big endian one)
