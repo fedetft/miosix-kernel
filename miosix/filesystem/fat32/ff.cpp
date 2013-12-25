@@ -1996,22 +1996,44 @@ void get_fileinfo (		/* No return code */
 #if _USE_LFN
 	if (fno->lfname) {
 		WCHAR w, *lfn;
+        char *pp;
 
-		i = 0; p = fno->lfname;
+		i = 0; pp = fno->lfname;
 		if (dp->sect && fno->lfsize && dp->lfn_idx != 0xFFFF) {	/* Get LFN if available */
 			lfn = dp->lfn;
 			while ((w = *lfn++) != 0) {		/* Get an LFN character */
 #if !_LFN_UNICODE
+                #error "unsupported"
 				w = ff_convert(w, 0);		/* Unicode -> OEM */
 				if (!w) { i = 0; break; }	/* No LFN if it could not be converted */
 				if (_DF1S && w >= 0x100)	/* Put 1st byte if it is a DBC (always false on SBCS cfg) */
-					p[i++] = (TCHAR)(w >> 8);
+					pp[i++] = (TCHAR)(w >> 8);
 #endif
-				if (i >= fno->lfsize - 1) { i = 0; break; }	/* No LFN if buffer overflow */
-				p[i++] = (TCHAR)w;
+                std::pair<miosix::Unicode::error,int> result;
+                result = miosix::Unicode::putUtf8(&pp[i],w,fno->lfsize - 1 - i);
+                if(result.first != miosix::Unicode::OK) { i = 0; break; }	/* No LFN if buffer overflow */
+				i += result.second;
 			}
 		}
-		p[i] = 0;	/* Terminate LFN string by a \0 */
+		pp[i] = 0;	/* Terminate LFN string by a \0 */
+        
+        //By TFT: unlike plain FatFs we always want to fill lfname with an
+        //utf8-encoded file name. If there is no lfn (or is too long or
+        //otherwise broken), then take the sfn (which is utf16) and copy it to
+        //lfname, converting it to utf8 in the process
+        if(pp[0]==0)
+        {
+            lfn = fno->fname;
+            i = 0;
+            while ((w = *lfn++) != 0)
+            {
+                std::pair<miosix::Unicode::error,int> result;
+                result = miosix::Unicode::putUtf8(&pp[i],w,fno->lfsize - 1 - i);
+                if(result.first != miosix::Unicode::OK) { i = 0; break; }	/* No LFN if buffer overflow */
+				i += result.second;
+            }
+            pp[i] = 0;	/* Terminate LFN string by a \0 */
+        }
 	}
 #endif
 }

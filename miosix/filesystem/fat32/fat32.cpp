@@ -126,7 +126,7 @@ private:
     int parentInode;   ///< Inode of '..'
     bool first;        ///< To display '.' and '..' entries
     bool unfinished;   ///< True if fi contains unread data
-    char16_t lfn[256]; ///< Long file name
+    char lfn[(_MAX_LFN+1)*2]; ///< Long file name
 };
 
 //
@@ -150,9 +150,7 @@ int Fat32Directory::getdents(void *dp, int len)
     {
         unfinished=false;
         char type=fi.fattrib & AM_DIR ? DT_DIR : DT_REG;
-        char fixme[512];
-        Unicode::utf16toutf8(fixme,512,*fi.lfname ? fi.lfname : fi.fname);
-        StringPart name(fixme);
+        StringPart name(fi.lfname);
         if(addEntry(&buffer,end,fi.inode,type,name)<0) return -EINVAL;
     }
     for(;;)
@@ -164,9 +162,7 @@ int Fat32Directory::getdents(void *dp, int len)
             return buffer-begin;
         }
         char type=fi.fattrib & AM_DIR ? DT_DIR : DT_REG;
-        char fixme[512];
-        Unicode::utf16toutf8(fixme,512,*fi.lfname ? fi.lfname : fi.fname);
-        StringPart name(fixme);
+        StringPart name(fi.lfname);
         if(addEntry(&buffer,end,fi.inode,type,name)<0)
         {
             unfinished=true;
