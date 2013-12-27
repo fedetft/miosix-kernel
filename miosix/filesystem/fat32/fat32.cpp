@@ -334,7 +334,7 @@ Fat32File::~Fat32File()
 Fat32Fs::Fat32Fs() : mutex(FastMutex::RECURSIVE), failed(true)
 {
     if(!Disk::isAvailable()) return;
-    failed=f_mount(&filesystem,1)!=FR_OK;
+    failed=f_mount(&filesystem,1,false)!=FR_OK;
 }
 
 int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
@@ -362,7 +362,7 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
 
         intrusive_ref_ptr<Fat32File> f(new Fat32File(shared_from_this(),mutex));
         Lock<FastMutex> l(mutex);
-        if(int res=translateError(f_open(f->fil(),name.c_str(),openflags)))
+        if(int res=translateError(f_open(&filesystem,f->fil(),name.c_str(),openflags)))
             return res;
         if(flags & _FWRITE)
         {
@@ -406,7 +406,7 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
             new Fat32Directory(shared_from_this(),mutex,st.st_ino,parentInode));
          
         Lock<FastMutex> l(mutex);
-        if(int res=translateError(f_opendir(d->directory(),name.c_str())))
+        if(int res=translateError(f_opendir(&filesystem,d->directory(),name.c_str())))
             return res;
          
          file=d;
@@ -434,7 +434,7 @@ int Fat32Fs::lstat(StringPart& name, struct stat *pstat)
     FILINFO info;
     info.lfname=0; //We're not interested in getting the lfname
     info.lfsize=0;
-    if(int result=translateError(f_stat(name.c_str(),&info))) return result;
+    if(int result=translateError(f_stat(&filesystem,name.c_str(),&info))) return result;
     
     pstat->st_ino=info.inode;
     pstat->st_mode=(info.fattrib & AM_DIR) ?
@@ -454,14 +454,14 @@ int Fat32Fs::rename(StringPart& oldName, StringPart& newName)
 {
     if(failed) return -ENOENT;
     Lock<FastMutex> l(mutex);
-    return translateError(f_rename(oldName.c_str(),newName.c_str()));
+    return translateError(f_rename(&filesystem,oldName.c_str(),newName.c_str()));
 }
 
 int Fat32Fs::mkdir(StringPart& name, int mode)
 {
     if(failed) return -ENOENT;
     Lock<FastMutex> l(mutex);
-    return translateError(f_mkdir(name.c_str()));
+    return translateError(f_mkdir(&filesystem,name.c_str()));
 }
 
 int Fat32Fs::rmdir(StringPart& name)
@@ -472,7 +472,7 @@ int Fat32Fs::rmdir(StringPart& name)
 Fat32Fs::~Fat32Fs()
 {
     if(failed) return;
-    f_mount(0,0); //TODO: what to do with error code?
+    f_mount(&filesystem,0,true); //TODO: what to do with error code?
     Disk::sync();
 }
 
@@ -486,7 +486,7 @@ int Fat32Fs::unlinkRmdirHelper(StringPart& name, bool delDir)
     {
         if(!S_ISDIR(st.st_mode)) return -ENOTDIR;
     } else if(S_ISDIR(st.st_mode)) return -EISDIR;
-    return translateError(f_unlink(name.c_str()));
+    return translateError(f_unlink(&filesystem,name.c_str()));
 }
 
 } //namespace miosix
