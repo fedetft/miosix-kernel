@@ -38,12 +38,13 @@ using namespace std;
 
 namespace miosix {
 
-static void fillStatHelper(struct stat* pstat, unsigned int st_ino, short st_dev)
+static void fillStatHelper(struct stat* pstat, unsigned int st_ino,
+        short st_dev, mode_t mode)
 {
     memset(pstat,0,sizeof(struct stat));
     pstat->st_dev=st_dev;
     pstat->st_ino=st_ino;
-    pstat->st_mode=S_IFCHR | 0755;//crwxr-xr-x Character device
+    pstat->st_mode=mode;
     pstat->st_nlink=1;
     pstat->st_blksize=0; //If zero means file buffer equals to BUFSIZ
 }
@@ -71,7 +72,7 @@ off_t DeviceFile::lseek(off_t pos, int whence)
 
 int StatelessDeviceFile::fstat(struct stat* pstat) const
 {
-    fillStatHelper(pstat,st_ino,st_dev);
+    fillStatHelper(pstat,st_ino,st_dev,S_IFCHR | 0755);//crwxr-xr-x
     return 0;
 }
 
@@ -82,7 +83,7 @@ int StatelessDeviceFile::fstat(struct stat* pstat) const
 int StatefulDeviceFile::fstat(struct stat *pstat) const
 {
     pair<unsigned int,short> fi=dfg->getFileInfo();
-    fillStatHelper(pstat,fi.first,fi.second);
+    fillStatHelper(pstat,fi.first,fi.second,S_IFCHR | 0755);//crwxr-xr-x
     return 0;
 }
 
@@ -92,7 +93,7 @@ int StatefulDeviceFile::fstat(struct stat *pstat) const
 
 int DeviceFileGenerator::lstat(struct stat *pstat)
 {
-    fillStatHelper(pstat,st_ino,st_dev);
+    fillStatHelper(pstat,st_ino,st_dev,S_IFCHR | 0755);//crwxr-xr-x
     return 0;
 }
 
@@ -149,8 +150,7 @@ int DevFs::lstat(StringPart& name, struct stat *pstat)
     Lock<FastMutex> l(mutex);
     if(name.empty())
     {
-        fillStatHelper(pstat,rootDirInode,filesystemId);
-        pstat->st_mode=S_IFDIR | 0755; //drwxr-xr-x is a directory
+        fillStatHelper(pstat,rootDirInode,filesystemId,S_IFDIR | 0755);//drwxr-xr-x
         return 0;
     }
     map<StringPart,DeviceFileWrapper>::iterator it=files.find(name);

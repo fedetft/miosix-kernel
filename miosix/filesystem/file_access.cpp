@@ -222,7 +222,7 @@ int FileDescriptorTable::rename(const char *oldName, const char *newName)
 
 int FileDescriptorTable::statImpl(const char* name, struct stat* pstat, bool f)
 {
-    if(name==0 || name[0]=='\0') return -EFAULT;
+    if(name==0 || name[0]=='\0' || pstat==0) return -EFAULT;
     string path=absolutePath(name);
     if(path.empty()) return -ENAMETOOLONG;
     return FilesystemManager::instance().statHelper(path,pstat,f);

@@ -219,6 +219,7 @@ public:
      */
     int getdents(int fd, void *dp, int len)
     {
+        if(dp==0) return -EFAULT;
         if(reinterpret_cast<unsigned>(dp) & 0x3) return -EFAULT; //Not aligned
         intrusive_ref_ptr<FileBase> file=getFile(fd);
         if(!file) return -EBADF;
