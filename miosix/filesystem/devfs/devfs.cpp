@@ -29,8 +29,9 @@
 #include <string>
 #include <errno.h>
 #include <fcntl.h>
-#include "base_files.h"
 #include "filesystem/stringpart.h"
+#include "interfaces/disk.h" //FIXME: remove
+#include "filesystem/ioctl.h" //FIXME: remove
 
 using namespace std;
 
@@ -49,55 +50,274 @@ static void fillStatHelper(struct stat* pstat, unsigned int st_ino,
     pstat->st_blksize=0; //If zero means file buffer equals to BUFSIZ
 }
 
-//
-// class DeviceFile
-//
-
-off_t DeviceFile::lseek(off_t pos, int whence)
+/**
+ * This file type is for reading and writing from devices
+ */
+class DevFsFile : public FileBase
 {
+public:
+    /**
+     * Constructor
+     * \param fs pointer to DevFs
+     * \param dev the device to which this file refers
+     * \param seekable true if the device is seekable
+     */
+    DevFsFile(intrusive_ref_ptr<FilesystemBase> fs,
+            intrusive_ref_ptr<Device> dev, bool seekable) : FileBase(fs),
+            dev(dev), seekPoint(seekable ? 0 : -1) {}
+
+    /**
+     * Write data to the file, if the file supports writing.
+     * \param data the data to write
+     * \param len the number of bytes to write
+     * \return the number of written characters, or a negative number in
+     * case of errors
+     */
+    virtual ssize_t write(const void *data, size_t len);
+
+    /**
+     * Read data from the file, if the file supports reading.
+     * \param data buffer to store read data
+     * \param len the number of bytes to read
+     * \return the number of read characters, or a negative number in
+     * case of errors
+     */
+    virtual ssize_t read(void *data, size_t len);
+    
+    /**
+     * Move file pointer, if the file supports random-access.
+     * \param pos offset to sum to the beginning of the file, current position
+     * or end of file, depending on whence
+     * \param whence SEEK_SET, SEEK_CUR or SEEK_END
+     * \return the offset from the beginning of the file if the operation
+     * completed, or a negative number in case of errors
+     */
+    virtual off_t lseek(off_t pos, int whence);
+    
+    /**
+     * Return file information.
+     * \param pstat pointer to stat struct
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int fstat(struct stat *pstat) const;
+    
+    /**
+     * Perform various operations on a file descriptor
+     * \param cmd specifies the operation to perform
+     * \param arg optional argument that some operation require
+     * \return the exact return value depends on CMD, -1 is returned on error
+     */
+    virtual int ioctl(int cmd, void *arg);
+
+private:
+    intrusive_ref_ptr<Device> dev; ///< Device file
+    ssize_t seekPoint;             ///< Seek point, or -1 if unseekabble
+};
+
+ssize_t DevFsFile::write(const void *data, size_t len)
+{
+    if(seekPoint>0 && seekPoint+len<0)
+        len=numeric_limits<size_t>::max()-seekPoint-len;
+    int result=dev->writeBlock(data,len,seekPoint);
+    if(result>0 && seekPoint>0) seekPoint+=result;
+    return result;
+}
+
+ssize_t DevFsFile::read(void *data, size_t len)
+{
+    if(seekPoint>0 && seekPoint+len<0)
+        len=numeric_limits<size_t>::max()-seekPoint-len;
+    int result=dev->readBlock(data,len,seekPoint);
+    if(result>0 && seekPoint>0) seekPoint+=result;
+    return result;
+}
+
+off_t DevFsFile::lseek(off_t pos, int whence)
+{
+    if(seekPoint<0) return -EBADF; //No seek support
+    
+    ssize_t newSeekPoint=seekPoint;
     switch(whence)
     {
-        case SEEK_SET:
         case SEEK_CUR:
-        case SEEK_END:
-            return -EBADF;
+            newSeekPoint+=pos;
+            break;
+        case SEEK_SET:
+            newSeekPoint=pos;
+            break;
         default:
-            return -EINVAL;
+            return -EINVAL; //TODO: how to implement SEEK_END?
     }
+    if(newSeekPoint<0) return -EOVERFLOW;
+    seekPoint=newSeekPoint;
+    return seekPoint;
+}
+
+int DevFsFile::fstat(struct stat *pstat) const
+{
+    return dev->lstat(pstat);
+}
+
+int DevFsFile::ioctl(int cmd, void *arg)
+{
+    return dev->ioctl(cmd,arg);
 }
 
 //
-// class StatelessDeviceFile
+// class Device
 //
 
-int StatelessDeviceFile::fstat(struct stat* pstat) const
+int Device::open(intrusive_ref_ptr<FileBase>& file,
+        intrusive_ref_ptr<FilesystemBase> fs, int flags, int mode)
 {
-    fillStatHelper(pstat,st_ino,st_dev,S_IFCHR | 0755);//crwxr-xr-x
+    file=intrusive_ref_ptr<FileBase>(
+        new DevFsFile(fs,shared_from_this(),seekable));
     return 0;
 }
 
-//
-// class StatefulDeviceFile
-//
-
-int StatefulDeviceFile::fstat(struct stat *pstat) const
+int Device::lstat(struct stat* pstat) const
 {
-    pair<unsigned int,short> fi=dfg->getFileInfo();
-    fillStatHelper(pstat,fi.first,fi.second,S_IFCHR | 0755);//crwxr-xr-x
+    mode_t mode=(block ? S_IFBLK : S_IFCHR) | 0750;//brwxr-x--- | crwxr-x---
+    fillStatHelper(pstat,st_ino,st_dev,mode);
     return 0;
 }
 
-//
-// class DeviceFileGenerator
-//
-
-int DeviceFileGenerator::lstat(struct stat *pstat)
+int Device::readBlock(void *buffer, int size, int where)
 {
-    fillStatHelper(pstat,st_ino,st_dev,S_IFCHR | 0755);//crwxr-xr-x
-    return 0;
+    memset(buffer,0,size); //Act as /dev/zero
+    return size;
 }
 
-DeviceFileGenerator::~DeviceFileGenerator() {}
+int Device::writeBlock(const void *buffer, int size, int where)
+{
+    return size; //Act as /dev/null
+}
+
+int Device::ioctl(int cmd, void *arg)
+{
+    return -ENOTTY; //Means the operation does not apply to this descriptor
+}
+
+Device::~Device() {}
+
+//
+// class DiskAdapter
+//
+
+// FIXME temporary -- begin
+DiskAdapter::DiskAdapter() : Device(true,true)
+{
+    if(Disk::isAvailable()) Disk::init();
+}
+
+int DiskAdapter::readBlock(void* buffer, int size, int where)
+{
+    if(Disk::isInitialized()==false) return -EBADF;
+    if(where % 512 || size % 512) return -EFAULT;
+    Lock<FastMutex> l(mutex);
+    if(Disk::read((unsigned char*)buffer,where/512,size/512)) return size;
+    else return -EFAULT;
+}
+
+int DiskAdapter::writeBlock(const void* buffer, int size, int where)
+{
+    if(Disk::isInitialized()==false) return -EBADF;
+    if(where % 512 || size % 512) return -EFAULT;
+    Lock<FastMutex> l(mutex);
+    if(Disk::write((const unsigned char*)buffer,where/512,size/512)) return size;
+    else return -EFAULT;
+}
+
+int DiskAdapter::ioctl(int cmd, void *arg)
+{
+    if(cmd!=IOCTL_SYNC) return -ENOTTY;
+    Lock<FastMutex> l(mutex);
+    Disk::sync();
+    return 0;
+}
+// FIXME temporary -- begin
+
+/**
+ * Directory class for DevFs 
+ */
+class DevFsDirectory : public DirectoryBase
+{
+public:
+    /**
+     * \param parent parent filesystem
+     * \param mutex mutex to lock when accessing the file map
+     * \param files file map
+     * \param currentInode inode of the directory we're listing
+     * \param parentInode inode of the parent directory
+     */
+    DevFsDirectory(intrusive_ref_ptr<FilesystemBase> parent,
+            FastMutex& mutex,
+            map<StringPart,intrusive_ref_ptr<Device> >& files,
+            int currentInode, int parentInode)
+            : DirectoryBase(parent), mutex(mutex), files(files),
+              currentInode(currentInode), parentInode(parentInode),
+              first(true), last(false)
+    {
+        Lock<FastMutex> l(mutex);
+        if(files.empty()==false) currentItem=files.begin()->first.c_str();
+    }
+
+    /**
+     * Also directories can be opened as files. In this case, this system
+     * call allows to retrieve directory entries.
+     * \param dp pointer to a memory buffer where one or more struct dirent
+     * will be placed. dp must be four words aligned.
+     * \param len memory buffer size.
+     * \return the number of bytes read on success, or a negative number on
+     * failure.
+     */
+    virtual int getdents(void *dp, int len);
+
+private:
+    FastMutex& mutex;                 ///< Mutex of parent class
+    map<StringPart,intrusive_ref_ptr<Device> >& files; ///< Directory entries
+    string currentItem;               ///< First unhandled item in directory
+    int currentInode,parentInode;     ///< Inodes of . and ..
+
+    bool first; ///< True if first time getdents is called
+    bool last;  ///< True if directory has ended
+};
+
+int DevFsDirectory::getdents(void *dp, int len)
+{
+    if(len<minimumBufferSize) return -EINVAL;
+    if(last) return 0;
+    
+    Lock<FastMutex> l(mutex);
+    char *begin=reinterpret_cast<char*>(dp);
+    char *buffer=begin;
+    char *end=buffer+len;
+    if(first)
+    {
+        first=false;
+        addDefaultEntries(&buffer,currentInode,parentInode);
+    }
+    if(currentItem.empty()==false)
+    {
+        map<StringPart,intrusive_ref_ptr<Device> >::iterator it;
+        it=files.find(StringPart(currentItem));
+        //Someone deleted the exact directory entry we had saved (unlikely)
+        if(it==files.end()) return -EBADF;
+        for(;it!=files.end();++it)
+        {
+            struct stat st;
+            it->second->lstat(&st);
+            if(addEntry(&buffer,end,st.st_ino,st.st_mode>>12,it->first)>0)
+                continue;
+            //Buffer finished
+            currentItem=it->first.c_str();
+            return buffer-begin;
+        }
+    }
+    addTerminatingEntry(&buffer,end);
+    last=true;
+    return buffer-begin;
+}
 
 //
 // class DevFs
@@ -105,24 +325,28 @@ DeviceFileGenerator::~DeviceFileGenerator() {}
 
 DevFs::DevFs() : mutex(FastMutex::RECURSIVE), inodeCount(rootDirInode+1)
 {
-    //This will increase openFilesCount to 1, because we don't have an easy way
-    //to keep track of open files, due to DeviceFileWrapper having stateless
-    //device files open also when no process has it open, and because having
-    //the DeviceFile's parent pointer point to the DevFs would generate a loop
-    //of refcounted pointers with stateless files. Simply, we don't recommend
-    //umounting DevFs, and to do so we leave openFilesCount permanently to 1,
-    //so that only a forced umount can umount it.
-    newFileOpened();
-    
-    addDeviceFile("null",intrusive_ref_ptr<StatelessDeviceFile>(new NullFile));
-    addDeviceFile("zero",intrusive_ref_ptr<StatelessDeviceFile>(new ZeroFile));
+    addDevice("null",intrusive_ref_ptr<Device>(new Device));
+    addDevice("zero",intrusive_ref_ptr<Device>(new Device));
+}
+
+bool DevFs::addDevice(const char *name, intrusive_ref_ptr<Device> dev)
+{
+    if(name==0 || name[0]=='\0') return false;
+    int len=strlen(name);
+    for(int i=0;i<len;i++) if(name[i]=='/') return false;
+    Lock<FastMutex> l(mutex);
+    bool result=files.insert(make_pair(StringPart(name),dev)).second;
+    //Assign inode to the file
+    if(result) dev->setFileInfo(atomicAddExchange(&inodeCount,1),filesystemId);
+    return result;
 }
 
 bool DevFs::remove(const char* name)
 {
     if(name==0 || name[0]=='\0') return false;
     Lock<FastMutex> l(mutex);
-    map<StringPart,DeviceFileWrapper>::iterator it=files.find(StringPart(name));
+    map<StringPart,intrusive_ref_ptr<Device> >::iterator it;
+    it=files.find(StringPart(name));
     if(it==files.end()) return false;
     files.erase(StringPart(name));
     return true;
@@ -140,9 +364,9 @@ int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
                 mutex,files,rootDirInode,parentFsMountpointInode));
         return 0;
     }
-    map<StringPart,DeviceFileWrapper>::iterator it=files.find(name);
+    map<StringPart,intrusive_ref_ptr<Device> >::iterator it=files.find(name);
     if(it==files.end()) return -ENOENT;
-    return it->second.open(file,flags,mode);
+    return it->second->open(file,shared_from_this(),flags,mode);
 }
 
 int DevFs::lstat(StringPart& name, struct stat *pstat)
@@ -153,9 +377,9 @@ int DevFs::lstat(StringPart& name, struct stat *pstat)
         fillStatHelper(pstat,rootDirInode,filesystemId,S_IFDIR | 0755);//drwxr-xr-x
         return 0;
     }
-    map<StringPart,DeviceFileWrapper>::iterator it=files.find(name);
+    map<StringPart,intrusive_ref_ptr<Device> >::iterator it=files.find(name);
     if(it==files.end()) return -ENOENT;
-    return it->second.lstat(pstat);
+    return it->second->lstat(pstat);
 }
 
 int DevFs::unlink(StringPart& name)
@@ -168,7 +392,7 @@ int DevFs::unlink(StringPart& name)
 int DevFs::rename(StringPart& oldName, StringPart& newName)
 {
     Lock<FastMutex> l(mutex);
-    map<StringPart,DeviceFileWrapper>::iterator it=files.find(oldName);
+    map<StringPart,intrusive_ref_ptr<Device> >::iterator it=files.find(oldName);
     if(it==files.end()) return -ENOENT;
     for(unsigned int i=0;i<newName.length();i++)
         if(newName[i]=='/')
@@ -187,58 +411,6 @@ int DevFs::mkdir(StringPart& name, int mode)
 int DevFs::rmdir(StringPart& name)
 {
     return -EACCES; // No directories support in DevFs yet
-}
-
-bool DevFs::addDeviceFile(const char *name, DeviceFileWrapper dfw)
-{
-    if(name==0 || name[0]=='\0') return false;
-    int len=strlen(name);
-    for(int i=0;i<len;i++) if(name[i]=='/') return false;
-    Lock<FastMutex> l(mutex);
-    bool result=files.insert(make_pair(StringPart(name),dfw)).second;
-    //Assign inode to the file
-    if(result) dfw.setFileInfo(atomicAddExchange(&inodeCount,1),filesystemId);
-    return result;
-}
-
-//
-// class DevFs::DevFsDirctory
-//
-
-int DevFs::DevFsDirectory::getdents(void *dp, int len)
-{
-    if(len<minimumBufferSize) return -EINVAL;
-    if(last) return 0;
-    
-    Lock<FastMutex> l(mutex);
-    char *begin=reinterpret_cast<char*>(dp);
-    char *buffer=begin;
-    char *end=buffer+len;
-    if(first)
-    {
-        first=false;
-        addDefaultEntries(&buffer,currentInode,parentInode);
-    }
-    if(currentItem.empty()==false)
-    {
-        map<StringPart,DeviceFileWrapper>::iterator it;
-        it=files.find(StringPart(currentItem));
-        //Someone deleted the exact directory entry we had saved (unlikely)
-        if(it==files.end()) return -EBADF;
-        for(;it!=files.end();++it)
-        {
-            struct stat st;
-            it->second.lstat(&st);
-            if(addEntry(&buffer,end,st.st_ino,st.st_mode>>12,it->first)>0)
-                continue;
-            //Buffer finished
-            currentItem=it->first.c_str();
-            return buffer-begin;
-        }
-    }
-    addTerminatingEntry(&buffer,end);
-    last=true;
-    return buffer-begin;
 }
 
 } //namespace miosix

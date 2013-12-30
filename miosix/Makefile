@@ -24,7 +24,6 @@ filesystem/stringpart.cpp                                                  \
 filesystem/console/console_device.cpp                                      \
 filesystem/mountpointfs/mountpointfs.cpp                                   \
 filesystem/devfs/devfs.cpp                                                 \
-filesystem/devfs/base_files.cpp                                            \
 filesystem/fat32/fat32.cpp                                                 \
 filesystem/fat32/ff.cpp                                                    \
 filesystem/fat32/diskio.cpp                                                \

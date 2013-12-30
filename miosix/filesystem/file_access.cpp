@@ -711,8 +711,18 @@ basicFilesystemSetup()
     //TODO: Move to individual BSPs -- begin
     bootlog("Mounting Fat32Fs as /sd ... ");
     StringPart sd("sd");
-    intrusive_ref_ptr<Fat32Fs> fat32(new Fat32Fs);
-    bool fat32failed=fat32->mountFailed();
+    
+    bool fat32failed=false;
+    intrusive_ref_ptr<Device> da(new DiskAdapter);
+    intrusive_ref_ptr<FileBase> disk;
+    if(da->open(disk,intrusive_ref_ptr<FilesystemBase>(0),0,0)<0) fat32failed=true;
+    
+    intrusive_ref_ptr<Fat32Fs> fat32;
+    if(fat32failed==false)
+    {
+        fat32=new Fat32Fs(disk);
+        if(fat32->mountFailed()) fat32failed=true;
+    }
     if(fat32failed==false)
     {
         fat32failed=rootFs->mkdir(sd,0755)!=0;

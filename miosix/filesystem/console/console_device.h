@@ -154,10 +154,12 @@ public:
     virtual int isatty() const;
     
     /**
-     * Wait until all I/O operations have completed on this file.
-     * \return 0 on success, or a negative number in case of errors
+     * Perform various operations on a file descriptor
+     * \param cmd specifies the operation to perform
+     * \param arg optional argument that some operation require
+     * \return the exact return value depends on CMD, -1 is returned on error
      */
-    virtual int sync();
+    virtual int ioctl(int cmd, void *arg);
     
     /**
      * Enables or disables echo of commands on the terminal

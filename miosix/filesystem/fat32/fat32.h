@@ -43,7 +43,7 @@ public:
     /**
      * Constructor
      */
-    Fat32Fs();
+    Fat32Fs(intrusive_ref_ptr<FileBase> disk);
     
     /**
      * Open a file

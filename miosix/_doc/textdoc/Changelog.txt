@@ -1,5 +1,15 @@
 Changelog for Miosix np embedded OS
 
+- Changed Fat32Fs so that reads and writes are directed to a generic file
+  instead of to the disk interface. Added temporary DiskAdapter class to
+  maintain compatibility with the old interface until bsps are upgraded.
+- Major rework and simplification of the DevFs infrastructure. Getting rid of
+  stateless device files. All devices are now stateful, and to make a device you
+  only have to subclass Device and implement readBlock()/writeBlock()/ioctl()
+- Removed sync() syscall, replaced by ioctl()
+- Added ioctl() syscall, and miosix/filesystem/ioctl.h with list of IOCTLs
+- Removed reliance on global variable for FatFs, to have allow mounting more
+  than one independent Fat32 filesystem.
 - First working but inefficient unicode support for fat32
 - Fixed a bug in fat32 directory listing causing file names to be skipped when
   listing large directories.

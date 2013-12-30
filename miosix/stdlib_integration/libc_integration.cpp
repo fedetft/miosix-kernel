@@ -573,6 +573,39 @@ int fcntl(int fd, int cmd, ...)
 
 /**
  * \internal
+ * _ioctl_r, perform operations on a file descriptor
+ */
+int _ioctl_r(struct _reent *ptr, int fd, int cmd, void *arg)
+{
+    #ifdef WITH_FILESYSTEM
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().ioctl(fd,cmd,arg);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+    
+    #else //WITH_FILESYSTEM
+    ptr->_errno=ENOENT;
+    return -1;
+    #endif //WITH_FILESYSTEM
+}
+
+int ioctl(int fd, int cmd, void *arg)
+{
+    return _ioctl_r(miosix::CReentrancyAccessor::getReent(),fd,cmd,arg);
+}
+
+/**
+ * \internal
  * _getcwd_r, return current directory
  */
 char *_getcwd_r(struct _reent *ptr, char *buf, size_t size)

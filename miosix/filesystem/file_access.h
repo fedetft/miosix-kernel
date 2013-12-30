@@ -186,17 +186,6 @@ public:
     }
     
     /**
-     * Wait until all I/O operations have completed on this file.
-     * \return 0 on success, or a negative number in case of errors
-     */
-    int sync(int fd)
-    {
-        intrusive_ref_ptr<FileBase> file=getFile(fd);
-        if(!file) return -EBADF;
-        return file->sync();
-    }
-    
-    /**
      * Perform various operations on a file descriptor
      * \param cmd specifies the operation to perform
      * \param opt optional argument that some operation require
@@ -207,6 +196,20 @@ public:
         intrusive_ref_ptr<FileBase> file=getFile(fd);
         if(!file) return -EBADF;
         return file->fcntl(cmd,opt);
+    }
+    
+    /**
+     * Perform various operations on a file descriptor
+     * \param cmd specifies the operation to perform
+     * \param arg optional argument that some operation require
+     * \return the exact return value depends on CMD, -1 is returned on error
+     */
+    int ioctl(int fd, int cmd, void *arg)
+    {
+        //arg unchecked here, as some ioctl don't use it
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->ioctl(cmd,arg);
     }
     
     /**

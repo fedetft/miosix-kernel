@@ -309,8 +309,6 @@
             <in>console_device.h</in>
           </df>
           <df name="devfs">
-            <in>base_files.cpp</in>
-            <in>base_files.h</in>
             <in>devfs.cpp</in>
             <in>devfs.h</in>
           </df>
@@ -334,6 +332,7 @@
           <in>file.h</in>
           <in>file_access.cpp</in>
           <in>file_access.h</in>
+          <in>ioctl.h</in>
           <in>stringpart.cpp</in>
           <in>stringpart.h</in>
         </df>
@@ -1314,16 +1313,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/filesystem/devfs/base_files.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
@@ -1365,6 +1354,8 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/ioctl.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -2427,16 +2418,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/filesystem/devfs/base_files.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
@@ -2478,6 +2459,8 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/ioctl.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -3542,16 +3525,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/filesystem/devfs/base_files.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
@@ -3610,6 +3583,8 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/ioctl.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -4678,16 +4653,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/filesystem/devfs/base_files.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
@@ -4729,6 +4694,8 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/ioctl.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -5793,16 +5760,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/filesystem/devfs/base_files.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
@@ -5844,6 +5801,8 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/ioctl.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -6908,16 +6867,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/filesystem/devfs/base_files.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
@@ -6959,6 +6908,8 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/ioctl.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -8023,16 +7974,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/filesystem/devfs/base_files.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
@@ -8074,6 +8015,8 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/ioctl.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -9136,16 +9079,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/filesystem/devfs/base_files.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
@@ -9187,6 +9120,8 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/ioctl.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -10249,16 +10184,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/filesystem/devfs/base_files.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
@@ -10300,6 +10225,8 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/ioctl.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -11362,16 +11289,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/filesystem/devfs/base_files.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
@@ -11413,6 +11330,8 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/ioctl.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -12475,16 +12394,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/filesystem/devfs/base_files.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
@@ -12526,6 +12435,8 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/ioctl.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -13588,16 +13499,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/filesystem/devfs/base_files.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
@@ -13639,6 +13540,8 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/ioctl.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"
@@ -14701,16 +14604,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/filesystem/devfs/base_files.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/filesystem/devfs/base_files.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
@@ -14752,6 +14645,8 @@
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/file_access.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/filesystem/ioctl.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
             ex="false"

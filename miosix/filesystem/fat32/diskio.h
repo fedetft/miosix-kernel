@@ -5,14 +5,15 @@
 #ifndef _DISKIO_DEFINED
 #define _DISKIO_DEFINED
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+//#ifdef __cplusplus
+//extern "C" {
+//#endif
 
 #define _USE_WRITE	1	/* 1: Enable disk_write function */
 #define _USE_IOCTL	1	/* 1: Enable disk_ioctl fucntion */
 
 #include "integer.h"
+#include <filesystem/file.h>
 
 
 /* Status of Disk Functions */
@@ -32,11 +33,14 @@ typedef enum {
 /* Prototypes for disk control functions */
 
 
-DSTATUS disk_initialize (BYTE pdrv);
-DSTATUS disk_status (BYTE pdrv);
-DRESULT disk_read (BYTE pdrv, BYTE*buff, DWORD sector, UINT count);
-DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT count);
-DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
+DSTATUS disk_initialize (miosix::intrusive_ref_ptr<miosix::FileBase> pdrv);
+DSTATUS disk_status (miosix::intrusive_ref_ptr<miosix::FileBase> pdrv);
+DRESULT disk_read (miosix::intrusive_ref_ptr<miosix::FileBase> pdrv,
+        BYTE*buff, DWORD sector, UINT count);
+DRESULT disk_write (miosix::intrusive_ref_ptr<miosix::FileBase> pdrv,
+        const BYTE* buff, DWORD sector, UINT count);
+DRESULT disk_ioctl (miosix::intrusive_ref_ptr<miosix::FileBase> pdrv,
+        BYTE cmd, void* buff);
 
 
 /* Disk Status Bits (DSTATUS) */
@@ -81,8 +85,8 @@ DRESULT disk_ioctl (BYTE pdrv, BYTE cmd, void* buff);
 #define CT_BLOCK	0x08		/* Block addressing */
 
 
-#ifdef __cplusplus
-}
-#endif
+//#ifdef __cplusplus
+//}
+//#endif
 
 #endif

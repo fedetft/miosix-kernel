@@ -38,123 +38,49 @@
 
 namespace miosix {
 
-//Forward decls
-class DeviceFileGenerator;
-
 /**
- * All device files that are meant to be attached to DevFs must derive from this
- * class, but not directly, either through StatefulDeviceFile or StatelessDeviceFile
- */
-class DeviceFile : public FileBase
-{
-public:
-    /**
-     * Constructor
-     */
-    DeviceFile() : FileBase(intrusive_ref_ptr<FilesystemBase>()) {}
-    
-    /**
-     * Default implementation that returns an error code, as most device file
-     * are not seekable.
-     */
-    virtual off_t lseek(off_t pos, int whence);
-};
-
-/**
- * All stateless device files must derive from this class
- */
-class StatelessDeviceFile : public DeviceFile
-{
-public:
-    /**
-     * Constructor
-     */
-    StatelessDeviceFile() : st_ino(0), st_dev(0) {}
-    
-    /**
-     * Return file information.
-     * \param pstat pointer to stat struct
-     * \return 0 on success, or a negative number on failure
-     */
-    virtual int fstat(struct stat *pstat) const;
-    
-    /**
-     * Set the device file's information, inode number and device file.
-     * \param st_ino device file inode
-     * \param st_dev device file dvice number
-     */
-    void setFileInfo(unsigned int st_ino, short st_dev)
-    {
-        this->st_ino=st_ino;
-        this->st_dev=st_dev;
-    }
-    
-protected:
-    unsigned int st_ino; ///< inode of device file
-    short st_dev; ///< device (unique id of the filesystem) of device file
-};
-
-/**
- * All stateful device files must derive from this class, and in addition
- * must subclass DeviceFileGenerator to generate instances of these files
- */
-class StatefulDeviceFile : public DeviceFile
-{
-public:
-    /**
-     * Constructor
-     * \param dfg the DeviceFileGenerator to which this file belongs
-     */
-    explicit StatefulDeviceFile(intrusive_ref_ptr<DeviceFileGenerator> dfg)
-            : dfg(dfg) {}
-    
-    /**
-     * Return file information.
-     * \param pstat pointer to stat struct
-     * \return 0 on success, or a negative number on failure
-     */
-    virtual int fstat(struct stat *pstat) const;
-    
-protected:
-    intrusive_ref_ptr<DeviceFileGenerator> dfg;
-};
-
-/**
- * Instances of this class take care of producing instances of a specific
- * stateful device file inside DevFs. Stateful device files look like
- * /proc/cpuinfo. They have a state represented by the point at which the
- * process has arrived reading the file, and as such every time the device
- * file is opened, a new instance has to be returned.
- * To support that, the driver developer has to subclass DeviceFileGenerator
- * and StatefulDeviceFile to implement the desired logic. Stateless device
- * files are instead passed directly to DevFs and every open returns the same
- * file instance.
+ * Instances of this class are devices inside DevFs. When open is called, a
+ * DevFsFile is returned, which has its own seek point so that multiple files
+ * can be opened on the same device retaining an unique seek point. A DevFsFile
+ * then calls readBlock() and writeBlock() on this class. These functions have a
+ * third argument which is the seek point, making them stateless.
+ * 
+ * Individual devices must subclass Device and reimplement readBlock(),
+ * writeBlock() and ioctl() as needed. A mutex may be required as multiple
+ * concurrent readBlock(), writeBlock() and ioctl() can occur.
+ * 
  * Classes of this type are reference counted, must be allocated on the heap
  * and managed through intrusive_ref_ptr<FileBase>
  */
-class DeviceFileGenerator : public IntrusiveRefCounted
+class Device : public IntrusiveRefCounted,
+        public IntrusiveRefCountedSharedFromThis<Device>
 {
 public:
     /**
-     * Constructor.
+     * Constructor
+     * \param seekable if true, device is seekable
+     * \param block if true, it is a block device
      */
-    DeviceFileGenerator() {}
-
+    Device(bool seekable=false, bool block=false)
+            : seekable(seekable), block(block) {}
+    
     /**
      * Return an instance of the file type managed by this DeviceFileGenerator
      * \param file the file object will be stored here, if the call succeeds
+     * \param fs pointer to the DevFs
      * \param flags file flags (open for reading, writing, ...)
      * \param mode file permissions
      * \return 0 on success, or a negative number on failure
      */
-    virtual int open(intrusive_ref_ptr<FileBase>& file, int flags, int mode)=0;
+    int open(intrusive_ref_ptr<FileBase>& file,
+            intrusive_ref_ptr<FilesystemBase> fs, int flags, int mode);
     
     /**
      * Obtain information for the file type managed by this DeviceFileGenerator
      * \param pstat file information is stored here
      * \return 0 on success, or a negative number on failure
      */
-    virtual int lstat(struct stat *pstat);
+    int lstat(struct stat *pstat) const;
     
     /**
      * \internal
@@ -167,25 +93,55 @@ public:
     }
     
     /**
-     * \return a pair with the device file's inode and device numbers (fs id) 
+     * Read a block of data
+     * \param buffer buffer where read data will be stored
+     * \param size buffer size
+     * \param where where to read from
+     * \return number of bytes read or a negative number on failure
      */
-    std::pair<unsigned int,short> getFileInfo() const
-    {
-        return std::make_pair(st_ino,st_dev);
-    }
+    virtual int readBlock(void *buffer, int size, int where);
+    
+    /**
+     * Write a block of data
+     * \param buffer buffer where take data to write
+     * \param size buffer size
+     * \param where where to write to
+     * \return number of bytes written or a negative number on failure
+     */
+    virtual int writeBlock(const void *buffer, int size, int where);
+    
+    /**
+     * Performs device-specific operations
+     * \param cmd specifies the operation to perform
+     * \param arg optional argument that some operation require
+     * \return the exact return value depends on CMD, -1 is returned on error
+     */
+    virtual int ioctl(int cmd, void *arg);
     
     /**
      * Destructor
      */
-    virtual ~DeviceFileGenerator();
-    
+    virtual ~Device();
+
 protected:
     unsigned int st_ino; ///< inode of device file
-    short st_dev; ///< device (unique id of the filesystem) of device file
-    
+    short st_dev;        ///< device (unique id of the filesystem) of device file
+    const bool seekable; ///< If true, device is seekable
+    const bool block;    ///< If true, it is a block device
+};
+
+/**
+ * FIXME remove this when removing Console interface!
+ */
+class DiskAdapter : public Device
+{
+public:
+    DiskAdapter();
+    virtual int readBlock(void *buffer, int size, int where);
+    virtual int writeBlock(const void *buffer, int size, int where);
+    virtual int ioctl(int cmd, void *arg);
 private:
-    DeviceFileGenerator(const DeviceFileGenerator&);
-    DeviceFileGenerator& operator=(const DeviceFileGenerator&);
+    FastMutex mutex;
 };
 
 /**
@@ -212,30 +168,15 @@ public:
     DevFs();
     
     /**
-     * Add a stateless device file to DevFs
+     * Add a device file to DevFs
      * \param name File name, must not start with a slash
      * \param df Device file. Every open() call will return the same file
      * \return true if the file was successfully added
      */
-    bool addDeviceFile(const char *name, intrusive_ref_ptr<StatelessDeviceFile> df)
-    {
-        return addDeviceFile(name,DeviceFileWrapper(df));
-    }
+    bool addDevice(const char *name, intrusive_ref_ptr<Device> dev);
     
     /**
-     * Add a stateful device file to DevFs
-     * \param name File name, must not start with a slash
-     * \param dfg Device file generator
-     * \return true if the file was successfully added
-     */
-    bool addDeviceFileGenerator(const char *name,
-            intrusive_ref_ptr<DeviceFileGenerator> dfg)
-    {
-        return addDeviceFile(name,DeviceFileWrapper(dfg));
-    }
-    
-    /**
-     * Remove a device file. This prevents the file from being opened again,
+     * Remove a device. This prevents the device from being opened again,
      * but if at the time this member function is called the file is already
      * opened, it won't be deallocated till the application closes it, thanks
      * to the reference counting scheme.
@@ -296,127 +237,9 @@ public:
     virtual int rmdir(StringPart& name);
     
 private:
-    //Forward decl
-    class DeviceFileWrapper;
-    
-    /**
-     * Add a file to the DevFs
-     * \param name device name
-     * \param dfw DeviceFileWrapper
-     * \return true on success, false on failure
-     */
-    bool addDeviceFile(const char *name, DeviceFileWrapper dfw);
-    
-    /**
-     * Wrapper class for accessing device files
-     */
-    class DeviceFileWrapper
-    {
-    public:
-        /**
-         * Constructor with DeviceFileGenerator
-         * \param dfg the DeviceFileGenerator that will be used to produce
-         * device files
-         */
-        explicit DeviceFileWrapper(intrusive_ref_ptr<DeviceFileGenerator> dfg)
-                : dfg(dfg), df() {}
-        
-        /**
-         * Constructor with DeviceFile
-         * \param df the device file that is returned every time the file is
-         * opened
-         */
-        explicit DeviceFileWrapper(intrusive_ref_ptr<StatelessDeviceFile> df)
-                : dfg(), df(df) {}
-        
-        /**
-         * Return an instance of the file
-         * \param file the file object will be stored here, if the call succeeds
-         * \param flags file flags (open for reading, writing, ...)
-         * \param mode file permissions
-         * \return 0 on success, or a negative number on failure
-         */
-        int open(intrusive_ref_ptr<FileBase>& file, int flags, int mode)
-        {
-            if(dfg) return dfg->open(file,flags,mode);
-            file=df;
-            return 0; 
-        }
-
-        /**
-         * Obtain information for the file
-         * \param pstat file information is stored here
-         * \return 0 on success, or a negative number on failure
-         */
-        int lstat(struct stat *pstat)
-        {
-            if(dfg) return dfg->lstat(pstat);
-            else return df->fstat(pstat);
-        }
-        
-        /**
-         * \internal
-         * Called be DevFs to assign a device and inode to the DeviceFileGenerator
-         */
-        void setFileInfo(unsigned int st_ino, short st_dev)
-        {
-            if(dfg) dfg->setFileInfo(st_ino,st_dev);
-            else df->setFileInfo(st_ino,st_dev);
-        }
-        
-    private:
-        //One of these is always null
-        intrusive_ref_ptr<DeviceFileGenerator> dfg;
-        intrusive_ref_ptr<StatelessDeviceFile> df;
-    };
-    
-    /**
-     * Directory class for DevFs 
-     */
-    class DevFsDirectory : public DirectoryBase
-    {
-    public:
-        /**
-         * \param parent parent filesystem
-         * \param mutex mustex to lock when accessing the file map
-         * \param files file map
-         * \param currentInode inode of the directory we're listing
-         * \param parentInode inode of the parent directory
-         */
-        DevFsDirectory(intrusive_ref_ptr<FilesystemBase> parent,
-                FastMutex& mutex, std::map<StringPart,DeviceFileWrapper>& files,
-                int currentInode, int parentInode)
-                : DirectoryBase(parent), mutex(mutex), files(files),
-                  currentInode(currentInode), parentInode(parentInode),
-                  first(true), last(false)
-        {
-            Lock<FastMutex> l(mutex);
-            if(files.empty()==false) currentItem=files.begin()->first.c_str();
-        }
-
-        /**
-         * Also directories can be opened as files. In this case, this system
-         * call allows to retrieve directory entries.
-         * \param dp pointer to a memory buffer where one or more struct dirent
-         * will be placed. dp must be four words aligned.
-         * \param len memory buffer size.
-         * \return the number of bytes read on success, or a negative number on
-         * failure.
-         */
-        virtual int getdents(void *dp, int len);
-
-    private:
-        FastMutex& mutex;                 ///< Mutex of parent class
-        std::map<StringPart,DeviceFileWrapper>& files; ///< Directory entries
-        std::string currentItem;          ///< First unhandled item in directory
-        int currentInode,parentInode;     ///< Inodes of . and ..
-
-        bool first; ///< True if first time getdents is called
-        bool last;  ///< True if directory has ended
-    };
     
     FastMutex mutex;
-    std::map<StringPart,DeviceFileWrapper> files;
+    std::map<StringPart,intrusive_ref_ptr<Device> > files;
     int inodeCount;
     static const int rootDirInode=1;
 };

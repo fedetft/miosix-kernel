@@ -94,18 +94,20 @@ public:
     virtual int isatty() const;
     
     /**
-     * Wait until all I/O operations have completed on this file.
-     * \return 0 on success, or a negative number in case of errors
-     */
-    virtual int sync();
-    
-    /**
      * Perform various operations on a file descriptor
      * \param cmd specifies the operation to perform
      * \param opt optional argument that some operation require
      * \return the exact return value depends on CMD, -1 is returned on error
      */
     virtual int fcntl(int cmd, int opt);
+    
+    /**
+     * Perform various operations on a file descriptor
+     * \param cmd specifies the operation to perform
+     * \param arg optional argument that some operation require
+     * \return the exact return value depends on CMD, -1 is returned on error
+     */
+    virtual int ioctl(int cmd, void *arg);
     
     /**
      * Also directories can be opened as files. In this case, this system call

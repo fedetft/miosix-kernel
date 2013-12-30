@@ -21,6 +21,8 @@
 //extern "C" {
 //#endif
 
+#include <filesystem/file.h>
+
 #include "integer.h"	/* Basic integer types */
 #include "ffconf.h"		/* FatFs configuration options */
 
@@ -90,7 +92,7 @@ typedef struct {
 
 struct FATFS {
 	BYTE	fs_type;		/* FAT sub-type (0:Not mounted) */
-	BYTE	drv;			/* Physical drive number */
+	//BYTE	drv;			/* Physical drive number */
 	BYTE	csize;			/* Sectors per cluster (1,2,4...128) */
 	BYTE	n_fats;			/* Number of FAT copies (1 or 2) */
 	BYTE	wflag;			/* win[] flag (b0:dirty) */
@@ -117,13 +119,14 @@ struct FATFS {
 	DWORD	dirbase;		/* Root directory start sector (FAT32:Cluster#) */
 	DWORD	database;		/* Data start sector */
 	DWORD	winsect;		/* Current sector appearing in the win[] */
-	BYTE	win[_MAX_SS];	/* Disk access window for Directory, FAT (and file data at tiny cfg) */
+	BYTE	win[_MAX_SS] __attribute__((aligned(4)));	/* Disk access window for Directory, FAT (and file data at tiny cfg) */
 #if _USE_LFN == 1
     WCHAR LfnBuf[_MAX_LFN+1];
 #endif
 #if _FS_LOCK
     FILESEM	Files[_FS_LOCK];/* Open object lock semaphores */
 #endif
+    miosix::intrusive_ref_ptr<miosix::FileBase> drv; /* drive device */
 };
 
 

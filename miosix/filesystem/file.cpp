@@ -51,17 +51,17 @@ int FileBase::isatty() const
     return 0;
 }
 
-int FileBase::sync()
-{
-    return 0;
-}
-
 int FileBase::fcntl(int cmd, int opt)
 {
     //Newlib makes some calls to fcntl, for example in opendir(). CLOEXEC isn't
     //supported, but for now we lie and return 0
     if(cmd==F_SETFD && (opt==FD_CLOEXEC || opt==0)) return 0;
     return -EBADF;
+}
+
+int FileBase::ioctl(int cmd, void *arg)
+{
+    return -ENOTTY; //Means the operation does not apply to this descriptor
 }
 
 int FileBase::getdents(void *dp, int len)

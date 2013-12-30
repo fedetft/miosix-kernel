@@ -36,7 +36,7 @@
 #include <string>
 #include <cstdio>
 #include "filesystem/stringpart.h"
-#include "interfaces/disk.h"
+#include "filesystem/ioctl.h"
 #include "util/unicode.h"
 
 using namespace std;
@@ -225,10 +225,12 @@ public:
     virtual int fstat(struct stat *pstat) const;
     
     /**
-     * Wait until all I/O operations have completed on this file.
-     * \return 0 on success, or a negative number in case of errors
+     * Perform various operations on a file descriptor
+     * \param cmd specifies the operation to perform
+     * \param arg optional argument that some operation require
+     * \return the exact return value depends on CMD, -1 is returned on error
      */
-    virtual int sync();
+    virtual int ioctl(int cmd, void *arg);
     
     /**
      * \return the FatFs FIL object 
@@ -315,8 +317,9 @@ int Fat32File::fstat(struct stat *pstat) const
     return 0;
 }
 
-int Fat32File::sync()
+int Fat32File::ioctl(int cmd, void *arg)
 {
+    if(cmd!=IOCTL_SYNC) return -ENOTTY;
     Lock<FastMutex> l(mutex);
     return translateError(f_sync(&file));
 }
@@ -331,9 +334,10 @@ Fat32File::~Fat32File()
 // class Fat32Fs
 //
 
-Fat32Fs::Fat32Fs() : mutex(FastMutex::RECURSIVE), failed(true)
+Fat32Fs::Fat32Fs(intrusive_ref_ptr<FileBase> disk)
+        : mutex(FastMutex::RECURSIVE), failed(true)
 {
-    if(!Disk::isAvailable()) return;
+    filesystem.drv=disk;
     failed=f_mount(&filesystem,1,false)!=FR_OK;
 }
 
@@ -473,7 +477,8 @@ Fat32Fs::~Fat32Fs()
 {
     if(failed) return;
     f_mount(&filesystem,0,true); //TODO: what to do with error code?
-    Disk::sync();
+    filesystem.drv->ioctl(IOCTL_SYNC,0);
+    filesystem.drv.reset();
 }
 
 int Fat32Fs::unlinkRmdirHelper(StringPart& name, bool delDir)

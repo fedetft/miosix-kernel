@@ -200,7 +200,11 @@ int TerminalDevice::fstat(struct stat *pstat) const
 
 int TerminalDevice::isatty() const { return device->isatty(); }
 
-int TerminalDevice::sync() { return device->sync(); }
+int TerminalDevice::ioctl(int cmd, void *arg)
+{
+    //TODO: trap ioctl to change terminal settings
+    return device->ioctl(cmd,arg);
+}
 
 //
 // class DefaultConsole 
