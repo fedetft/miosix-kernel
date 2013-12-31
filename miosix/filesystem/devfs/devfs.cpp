@@ -39,6 +39,8 @@ using namespace std;
 
 namespace miosix {
 
+static const int _NOSEEK=0x20000; //Special flag used only here to disallow seek
+
 static void fillStatHelper(struct stat* pstat, unsigned int st_ino,
         short st_dev, mode_t mode)
 {
@@ -60,11 +62,11 @@ public:
      * Constructor
      * \param fs pointer to DevFs
      * \param dev the device to which this file refers
-     * \param seekable true if the device is seekable
+     * \param flags file open flags (_FREAD, _FWRITE, ...)
      */
     DevFsFile(intrusive_ref_ptr<FilesystemBase> fs,
-            intrusive_ref_ptr<Device> dev, bool seekable) : FileBase(fs),
-            dev(dev), seekPoint(seekable ? 0 : -1) {}
+            intrusive_ref_ptr<Device> dev, int flags) : FileBase(fs),
+            dev(dev), seekPoint(0), flags(flags) {}
 
     /**
      * Write data to the file, if the file supports writing.
@@ -112,29 +114,30 @@ public:
 private:
     intrusive_ref_ptr<Device> dev; ///< Device file
     ssize_t seekPoint;             ///< Seek point, or -1 if unseekabble
+    int flags;                     ///< File open flags
 };
 
 ssize_t DevFsFile::write(const void *data, size_t len)
 {
-    if(seekPoint>0 && seekPoint+len<0)
-        len=numeric_limits<size_t>::max()-seekPoint-len;
+    if((flags & _FWRITE)==0) return -EINVAL;
+    if(seekPoint+len<0) len=numeric_limits<size_t>::max()-seekPoint-len;
     int result=dev->writeBlock(data,len,seekPoint);
-    if(result>0 && seekPoint>0) seekPoint+=result;
+    if(result>0 && ((flags & _NOSEEK)==0)) seekPoint+=result;
     return result;
 }
 
 ssize_t DevFsFile::read(void *data, size_t len)
 {
-    if(seekPoint>0 && seekPoint+len<0)
-        len=numeric_limits<size_t>::max()-seekPoint-len;
+    if((flags & _FREAD)==0) return -EINVAL;
+    if(seekPoint+len<0) len=numeric_limits<size_t>::max()-seekPoint-len;
     int result=dev->readBlock(data,len,seekPoint);
-    if(result>0 && seekPoint>0) seekPoint+=result;
+    if(result>0 && ((flags & _NOSEEK)==0)) seekPoint+=result;
     return result;
 }
 
 off_t DevFsFile::lseek(off_t pos, int whence)
 {
-    if(seekPoint<0) return -EBADF; //No seek support
+    if(flags & _NOSEEK) return -EBADF; //No seek support
     
     ssize_t newSeekPoint=seekPoint;
     switch(whence)
@@ -170,8 +173,9 @@ int DevFsFile::ioctl(int cmd, void *arg)
 int Device::open(intrusive_ref_ptr<FileBase>& file,
         intrusive_ref_ptr<FilesystemBase> fs, int flags, int mode)
 {
+    flags++; //To convert from O_RDONLY, O_WRONLY, ... to _FREAD, _FWRITE, ...
     file=intrusive_ref_ptr<FileBase>(
-        new DevFsFile(fs,shared_from_this(),seekable));
+        new DevFsFile(fs,shared_from_this(),flags | (seekable ? 0 : _NOSEEK)));
     return 0;
 }
 
@@ -355,10 +359,11 @@ bool DevFs::remove(const char* name)
 int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         int flags, int mode)
 {
+    if(flags & (O_APPEND | O_CREAT | O_EXCL | O_TRUNC)) return -EACCES;
     Lock<FastMutex> l(mutex);
     if(name.empty()) //Trying to open the root directory of the fs
     {
-        if(flags & (O_WRONLY | O_RDWR | O_APPEND | O_TRUNC)) return -EACCES;
+        if(flags & (O_WRONLY | O_RDWR)) return -EACCES;
         file=intrusive_ref_ptr<FileBase>(
             new DevFsDirectory(shared_from_this(),
                 mutex,files,rootDirInode,parentFsMountpointInode));
