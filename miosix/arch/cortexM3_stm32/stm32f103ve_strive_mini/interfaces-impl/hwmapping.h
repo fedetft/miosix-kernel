@@ -38,6 +38,8 @@ namespace miosix {
 //LED
 //typedef Gpio<GPIOB_BASE,5> hwled; //Active high
 
+namespace miosix {
+
 //Display interface
 namespace disp {
 typedef Gpio<GPIOD_BASE, 13> ncpEn;

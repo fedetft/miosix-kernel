@@ -28,6 +28,7 @@
 #include "error.h"
 #include "kernel.h"
 #include "interfaces/portability.h"
+#include "interfaces/bsp.h"
 #include "logging.h"
 
 namespace miosix {
@@ -86,7 +87,14 @@ void errorHandler(Error e)
         default:
             break;
     }
-    if(isUnrecoverable) miosix_private::IRQsystemReboot();
+    if(isUnrecoverable)
+    {
+        #if _BOARD_SONY_NEWMAN
+        IRQerrorMarker(e+1);
+        #endif //_BOARD_SONY_NEWMAN
+        miosix_private::IRQsystemReboot();
+    }
+
     if(interrupts) enableInterrupts();
 }
 

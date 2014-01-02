@@ -25,73 +25,39 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef RNG_H
-#define RNG_H
-
-#include "interfaces/arch_registers.h"
-#include "kernel/sync.h"
+#ifndef BOARD_SETTINGS_H
+#define	BOARD_SETTINGS_H
 
 namespace miosix {
 
 /**
- * Class to access the hardware random number generator in Miosix
- * Works with the hardware RNG in stm32f2 and stm32f4
+ * \addtogroup Settings
+ * \{
  */
-class HardwareRng
-{
-public:
-    /**
-     * \return an instance of this class (singleton)
-     */
-    static HardwareRng& instance();
-    
-    /**
-     * \return a 32 bit random number
-     * \throws runtime_error if the self test is not passed
-     */
-    unsigned int get();
-    
-    /**
-     * Fill a buffer with random data
-     * \param buf buffer to be filled
-     * \param size buffer size
-     * \throws runtime_error if the self test is not passed
-     */
-    void get(void *buf, unsigned int size);
-    
-private:
-    HardwareRng(const HardwareRng&);
-    HardwareRng& operator=(const HardwareRng&);
-    
-    /**
-     * Constructor
-     */
-    HardwareRng() : old(0)
-    {
-        miosix::FastInterruptDisableLock dLock;
-        RCC->AHB2ENR |= RCC_AHB2ENR_RNGEN;
-    }
-    
-    /**
-     * \return a 32 bit random number
-     * \throws runtime_error if the self test is not passed
-     */
-    unsigned int getImpl();
-    
-    /**
-     * To save power, enable the peripheral ony when requested
-     */
-    class PeripheralEnable
-    {
-    public:
-        PeripheralEnable() { RNG->CR=RNG_CR_RNGEN; }
-        ~PeripheralEnable() { RNG->CR=0; }
-    };
-    
-    miosix::FastMutex mutex; ///< To protect against concurrent access
-    unsigned int old; ///< Previously read value
-};
+
+/// Size of stack for main().
+/// The C standard library is stack-heavy (iprintf requires 1.5KB) and the
+/// STM32F207ZG has 128KB of RAM so there is room for a big 4K stack.
+const unsigned int MAIN_STACK_SIZE=4*1024;
+
+/// Frequency of tick (in Hz). The frequency of the STM32F207ZG timer in the
+/// Miosix board can be divided by 1000. This allows to use a 1KHz tick and
+/// the minimun Thread::sleep value is 1ms
+/// For the priority scheduler this is also the context switch frequency
+const unsigned int TICK_FREQ=1000;
+
+///\internal Aux timer run @ 100KHz
+///Note that since the timer is only 16 bits this imposes a limit on the
+///burst measurement of 655ms. If due to a pause_kernel() or
+///disable_interrupts() section a thread runs for more than that time, a wrong
+///burst value will be measured
+const unsigned int AUX_TIMER_CLOCK=100000;
+const unsigned int AUX_TIMER_MAX=0xffff; ///<\internal Aux timer is 16 bits
+
+/**
+ * \}
+ */
 
 } //namespace miosix
 
-#endif //RNG_H
+#endif	/* BOARD_SETTINGS_H */

@@ -25,73 +25,27 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef RNG_H
-#define RNG_H
-
-#include "interfaces/arch_registers.h"
-#include "kernel/sync.h"
+#include "interfaces/console.h"
 
 namespace miosix {
 
-/**
- * Class to access the hardware random number generator in Miosix
- * Works with the hardware RNG in stm32f2 and stm32f4
+/*
+ * The watch has no serial port, so this implementation does nothing
+ * TODO: redirecting IRQwrite() to the display can be an idea
  */
-class HardwareRng
-{
-public:
-    /**
-     * \return an instance of this class (singleton)
-     */
-    static HardwareRng& instance();
-    
-    /**
-     * \return a 32 bit random number
-     * \throws runtime_error if the self test is not passed
-     */
-    unsigned int get();
-    
-    /**
-     * Fill a buffer with random data
-     * \param buf buffer to be filled
-     * \param size buffer size
-     * \throws runtime_error if the self test is not passed
-     */
-    void get(void *buf, unsigned int size);
-    
-private:
-    HardwareRng(const HardwareRng&);
-    HardwareRng& operator=(const HardwareRng&);
-    
-    /**
-     * Constructor
-     */
-    HardwareRng() : old(0)
-    {
-        miosix::FastInterruptDisableLock dLock;
-        RCC->AHB2ENR |= RCC_AHB2ENR_RNGEN;
-    }
-    
-    /**
-     * \return a 32 bit random number
-     * \throws runtime_error if the self test is not passed
-     */
-    unsigned int getImpl();
-    
-    /**
-     * To save power, enable the peripheral ony when requested
-     */
-    class PeripheralEnable
-    {
-    public:
-        PeripheralEnable() { RNG->CR=RNG_CR_RNGEN; }
-        ~PeripheralEnable() { RNG->CR=0; }
-    };
-    
-    miosix::FastMutex mutex; ///< To protect against concurrent access
-    unsigned int old; ///< Previously read value
-};
+
+void Console::write(const char *str) {}
+
+void Console::write(const char *data, int length) {}
+
+bool Console::txComplete() { return true; }
+
+void Console::IRQwrite(const char *str) {}
+
+bool Console::IRQtxComplete() { return true; }
+
+char Console::readChar() { return 0; }
+
+bool Console::readCharNonBlocking(char& c) { return false; }
 
 } //namespace miosix
-
-#endif //RNG_H

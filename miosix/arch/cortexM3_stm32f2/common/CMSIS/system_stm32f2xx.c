@@ -365,6 +365,17 @@ static void SetSysClock(void)
 
   if (HSEStatus == (uint32_t)0x01)
   {
+    #ifdef _BOARD_SONY_NEWMAN
+    //By TFT: We don't know how the clock is configured by the bootloader,
+    //so better switch to the HSE and disable the PLL.
+    unsigned int temp=RCC->CFGR;
+    temp &= ~RCC_CFGR_SW;  /* Clear SW[1:0] bits */
+    temp |= RCC_CFGR_SW_0; /* Enable HSE as system clock */
+    RCC->CFGR=temp;
+    while((RCC->CFGR & RCC_CFGR_SWS)!=RCC_CFGR_SWS_0) ;
+    RCC->CR &= ~ RCC_CR_PLLON;
+    #endif //_BOARD_SONY_NEWMAN
+      
     /* HCLK = SYSCLK / 1*/
     RCC->CFGR |= RCC_CFGR_HPRE_DIV1;
       
@@ -387,8 +398,13 @@ static void SetSysClock(void)
     }
    
     /* Configure Flash prefetch, Instruction cache, Data cache and wait state */
+#ifndef _BOARD_SONY_NEWMAN
     FLASH->ACR = FLASH_ACR_PRFTEN | FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_LATENCY_3WS;
-
+#else //_BOARD_SONY_NEWMAN
+    //By TFT: Three wait states seem to make it unstable (crashing) when CPU load is high
+    FLASH->ACR = FLASH_ACR_PRFTEN | FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_LATENCY_4WS;
+#endif //_BOARD_SONY_NEWMAN
+    
     /* Select the main PLL as system clock source */
     RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));
     RCC->CFGR |= RCC_CFGR_SW_PLL;

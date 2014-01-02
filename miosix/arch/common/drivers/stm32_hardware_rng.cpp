@@ -29,8 +29,9 @@
 #include "interfaces/delays.h"
 #include "stm32_hardware_rng.h"
 
-using namespace miosix;
 using namespace std;
+
+namespace miosix {
 
 //
 // class HardwareRng
@@ -91,7 +92,11 @@ void HardwareRng::get(void* buf, unsigned int size)
 
 unsigned int HardwareRng::getImpl()
 {
-    for(int i=0;i<16;i++)
+    #ifndef __NO_EXCEPTIONS
+    for(int i=0;i<16;i++) //Try up to a reasonable # of times, then throw
+    #else
+    for(;;) //Can't return an error, keep retrying
+    #endif
     {
         int timeout=1000000;
         unsigned int sr;
@@ -108,5 +113,9 @@ unsigned int HardwareRng::getImpl()
         old=result;
         return result;
     }
+    #ifndef __NO_EXCEPTIONS
     throw runtime_error("RNG Fault detected");
+    #endif //__NO_EXCEPTIONS
 }
+
+} //namespace miosix
