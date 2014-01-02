@@ -564,7 +564,7 @@ void PowerManagement::IRQsetPrescalers()
             FLASH->ACR=FLASH_ACR_PRFTEN
                      | FLASH_ACR_ICEN
                      | FLASH_ACR_DCEN
-                     | FLASH_ACR_LATENCY_4WS;
+                     | FLASH_ACR_LATENCY_7WS;
             break;
         case FREQ_26MHz:
             RCC->CFGR |= RCC_CFGR_HPRE_DIV1;  //HCLK=SYSCLK
@@ -574,7 +574,7 @@ void PowerManagement::IRQsetPrescalers()
             FLASH->ACR=FLASH_ACR_PRFTEN
                      | FLASH_ACR_ICEN
                      | FLASH_ACR_DCEN
-                     | FLASH_ACR_LATENCY_0WS;
+                     | FLASH_ACR_LATENCY_1WS;
             break;
     }
 }

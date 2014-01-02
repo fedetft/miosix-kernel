@@ -402,7 +402,7 @@ static void SetSysClock(void)
     FLASH->ACR = FLASH_ACR_PRFTEN | FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_LATENCY_3WS;
 #else //_BOARD_SONY_NEWMAN
     //By TFT: Three wait states seem to make it unstable (crashing) when CPU load is high
-    FLASH->ACR = FLASH_ACR_PRFTEN | FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_LATENCY_4WS;
+    FLASH->ACR = FLASH_ACR_PRFTEN | FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_LATENCY_7WS;
 #endif //_BOARD_SONY_NEWMAN
     
     /* Select the main PLL as system clock source */
