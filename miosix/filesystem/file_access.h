@@ -103,6 +103,9 @@ public:
     ssize_t write(int fd, const void *data, size_t len)
     {
         if(data==0) return -EFAULT;
+        //Important, since len is specified by standard to be unsigned, but the
+        //return value has to be signed
+        if(static_cast<ssize_t>(len)<0) return -EINVAL;
         intrusive_ref_ptr<FileBase> file=getFile(fd);
         if(!file) return -EBADF;
         return file->write(data,len);
@@ -118,6 +121,9 @@ public:
     ssize_t read(int fd, void *data, size_t len)
     {
         if(data==0) return -EFAULT;
+        //Important, since len is specified by standard to be unsigned, but the
+        //return value has to be signed
+        if(static_cast<ssize_t>(len)<0) return -EINVAL;
         intrusive_ref_ptr<FileBase> file=getFile(fd);
         if(!file) return -EBADF;
         return file->read(data,len);

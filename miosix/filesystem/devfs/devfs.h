@@ -99,7 +99,7 @@ public:
      * \param where where to read from
      * \return number of bytes read or a negative number on failure
      */
-    virtual int readBlock(void *buffer, int size, int where);
+    virtual ssize_t readBlock(void *buffer, size_t size, off_t where);
     
     /**
      * Write a block of data
@@ -108,7 +108,7 @@ public:
      * \param where where to write to
      * \return number of bytes written or a negative number on failure
      */
-    virtual int writeBlock(const void *buffer, int size, int where);
+    virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where);
     
     /**
      * Performs device-specific operations
@@ -137,8 +137,8 @@ class DiskAdapter : public Device
 {
 public:
     DiskAdapter();
-    virtual int readBlock(void *buffer, int size, int where);
-    virtual int writeBlock(const void *buffer, int size, int where);
+    virtual ssize_t readBlock(void *buffer, size_t size, off_t where);
+    virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where);
     virtual int ioctl(int cmd, void *arg);
 private:
     FastMutex mutex;

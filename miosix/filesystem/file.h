@@ -25,6 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include <dirent.h>
 #include <sys/stat.h>
 #include "kernel/intrusive.h"
 
@@ -221,14 +222,16 @@ protected:
      */
     static int addTerminatingEntry(char **pos, char *end);
     
-    ///Size of struct dirent excluding d_name. Tha is, the size of d_ino,
-    ///d_off, d_reclen and d_type.
-    static const int direntHeaderSizeNoPadding=11;
+    ///Size of struct dirent excluding d_name. That is, the size of d_ino,
+    ///d_off, d_reclen and d_type.  Notice that there are 4 bytes of padding
+    ///between d_ino and d_off as d_off is a 64 bit number. Should be 19.
+    static const int direntHeaderSizeNoPadding=offsetof(struct dirent,d_name);
     
-    ///Size of struct dirent including 5 bytes of padding, which has two
-    ///purposes, rounding the size to a multiple of 4 bytes, and making room
-    ///for the "." and ".." string in d_name, including terminating \0
-    static const int direntHeaderSize=16;
+    ///Size of struct dirent including room for the "." and ".." string in
+    ///d_name, including terminating \0 and padding for 4-word alignment.
+    ///First +3: make room for '..\0', 3 bytes
+    ///Second +3 and /4*4: four word alignment
+    static const int direntHeaderSize=(direntHeaderSizeNoPadding+3+3)/4*4;
     
     ///Minimum buffer accepted by getdents, two for . and .., plus terminating
     static const int minimumBufferSize=3*direntHeaderSize;

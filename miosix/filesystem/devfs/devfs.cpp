@@ -113,15 +113,16 @@ public:
 
 private:
     intrusive_ref_ptr<Device> dev; ///< Device file
-    ssize_t seekPoint;             ///< Seek point, or -1 if unseekabble
+    off_t seekPoint;               ///< Seek point (note that off_t is 64bit)
     int flags;                     ///< File open flags
 };
 
 ssize_t DevFsFile::write(const void *data, size_t len)
 {
     if((flags & _FWRITE)==0) return -EINVAL;
-    if(seekPoint+len<0) len=numeric_limits<size_t>::max()-seekPoint-len;
-    int result=dev->writeBlock(data,len,seekPoint);
+    if(seekPoint+static_cast<off_t>(len)<0)
+        len=numeric_limits<off_t>::max()-seekPoint-len;
+    ssize_t result=dev->writeBlock(data,len,seekPoint);
     if(result>0 && ((flags & _NOSEEK)==0)) seekPoint+=result;
     return result;
 }
@@ -129,8 +130,9 @@ ssize_t DevFsFile::write(const void *data, size_t len)
 ssize_t DevFsFile::read(void *data, size_t len)
 {
     if((flags & _FREAD)==0) return -EINVAL;
-    if(seekPoint+len<0) len=numeric_limits<size_t>::max()-seekPoint-len;
-    int result=dev->readBlock(data,len,seekPoint);
+    if(seekPoint+static_cast<off_t>(len)<0)
+        len=numeric_limits<off_t>::max()-seekPoint-len;
+    ssize_t result=dev->readBlock(data,len,seekPoint);
     if(result>0 && ((flags & _NOSEEK)==0)) seekPoint+=result;
     return result;
 }
@@ -139,7 +141,7 @@ off_t DevFsFile::lseek(off_t pos, int whence)
 {
     if(flags & _NOSEEK) return -EBADF; //No seek support
     
-    ssize_t newSeekPoint=seekPoint;
+    off_t newSeekPoint=seekPoint;
     switch(whence)
     {
         case SEEK_CUR:
@@ -186,13 +188,13 @@ int Device::lstat(struct stat* pstat) const
     return 0;
 }
 
-int Device::readBlock(void *buffer, int size, int where)
+ssize_t Device::readBlock(void *buffer, size_t size, off_t where)
 {
     memset(buffer,0,size); //Act as /dev/zero
     return size;
 }
 
-int Device::writeBlock(const void *buffer, int size, int where)
+ssize_t Device::writeBlock(const void *buffer, size_t size, off_t where)
 {
     return size; //Act as /dev/null
 }
@@ -214,7 +216,7 @@ DiskAdapter::DiskAdapter() : Device(true,true)
     if(Disk::isAvailable()) Disk::init();
 }
 
-int DiskAdapter::readBlock(void* buffer, int size, int where)
+ssize_t DiskAdapter::readBlock(void* buffer, size_t size, off_t where)
 {
     if(Disk::isInitialized()==false) return -EBADF;
     if(where % 512 || size % 512) return -EFAULT;
@@ -223,7 +225,7 @@ int DiskAdapter::readBlock(void* buffer, int size, int where)
     else return -EFAULT;
 }
 
-int DiskAdapter::writeBlock(const void* buffer, int size, int where)
+ssize_t DiskAdapter::writeBlock(const void* buffer, size_t size, off_t where)
 {
     if(Disk::isInitialized()==false) return -EBADF;
     if(where % 512 || size % 512) return -EFAULT;

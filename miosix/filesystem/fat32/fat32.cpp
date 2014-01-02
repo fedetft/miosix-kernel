@@ -263,7 +263,6 @@ Fat32File::Fat32File(intrusive_ref_ptr<FilesystemBase> parent, FastMutex& mutex)
 ssize_t Fat32File::write(const void *data, size_t len)
 {
     Lock<FastMutex> l(mutex);
-    if(f_tell(&file)+len<0) return -EFBIG; //Can't write past INT_MAX
     unsigned int bytesWritten;
     if(int res=translateError(f_write(&file,data,len,&bytesWritten))) return res;
     #ifdef SYNC_AFTER_WRITE
@@ -283,22 +282,23 @@ ssize_t Fat32File::read(void *data, size_t len)
 off_t Fat32File::lseek(off_t pos, int whence)
 {
     Lock<FastMutex> l(mutex);
-    int offset;
+    off_t offset;
     switch(whence)
     {
         case SEEK_CUR:
-            offset=f_tell(&file)+pos;
+            offset=static_cast<off_t>(f_tell(&file))+pos;
             break;
         case SEEK_SET:
             offset=pos;
             break;
         case SEEK_END:
-            offset=f_size(&file)+pos;
+            offset=static_cast<off_t>(f_size(&file))+pos;
             break;
         default:
             return -EINVAL;
     }
-    if(offset<0) return -EOVERFLOW;
+    //We don't support seek past EOF for Fat32
+    if(offset<0 || offset>static_cast<off_t>(f_size(&file))) return -EOVERFLOW;
     if(int result=translateError(
         f_lseek(&file,static_cast<unsigned long>(offset)))) return result;
     return offset;
@@ -313,7 +313,7 @@ int Fat32File::fstat(struct stat *pstat) const
     pstat->st_nlink=1;
     pstat->st_size=f_size(&file);
     pstat->st_blksize=512;
-    pstat->st_blocks=(f_size(&file)+511)/512;
+    pstat->st_blocks=(static_cast<off_t>(f_size(&file))+511)/512;
     return 0;
 }
 

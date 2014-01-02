@@ -28,7 +28,6 @@
 #include "file.h"
 #include <cstdio>
 #include <string>
-#include <dirent.h>
 #include <fcntl.h>
 #include "file_access.h"
 #include "config/miosix_settings.h"
@@ -36,6 +35,9 @@
 using namespace std;
 
 namespace miosix {
+
+//This is a static assert. The filesystem code assumes off_t is 64bit.
+typedef char check_sizeof_off_t[sizeof(off_t)==8 ? 1 : -1];
 
 //
 // class FileBase

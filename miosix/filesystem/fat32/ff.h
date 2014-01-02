@@ -14,6 +14,20 @@
 /
 /----------------------------------------------------------------------------*/
 
+/*
+ * This version of FatFs has been modified to adapt it to the requirements of
+ * Miosix:
+ * - C++: moved from C to C++ to allow calling other Miosix code
+ * - utf8: the original FatFs API supported only utf16 for file names, but the
+ *   Miosix filesystem API has to be utf8 (aka, according with the
+ *   "utf8 everywhere mainfesto", doesn't want to deal with that crap).
+ *   For efficiency reasons the unicode conversion is done inside the FatFs code
+ * - removal of global variables: to allow to create an arbitrary number of
+ *   independent Fat32 filesystems
+ * - unixification: removal of the dos-like drive numbering scheme and
+ *   addition of an inode field in the FILINFO struct
+ */
+
 #ifndef _FATFS
 #define _FATFS	80960	/* Revision ID */
 
