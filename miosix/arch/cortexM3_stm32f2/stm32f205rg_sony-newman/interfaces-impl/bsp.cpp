@@ -214,7 +214,11 @@ void reboot()
 // Other board specific stuff
 //
 
-FastMutex i2cMutex;
+FastMutex& i2cMutex()
+{
+    static FastMutex mutex;
+    return mutex;
+}
 
 bool i2cWriteReg(miosix::I2C1Driver& i2c, unsigned char dev, unsigned char reg,
         unsigned char data)
@@ -333,7 +337,7 @@ bool PowerManagement::isUsbConnected() const
 bool PowerManagement::isCharging()
 {
     if(isUsbConnected()==false) return false;
-    Lock<FastMutex> l(i2cMutex);
+    Lock<FastMutex> l(i2cMutex());
     unsigned char chgstatus;
     //During testing the i2c command never failed. If it does, we lie and say
     //we're not charging
@@ -368,7 +372,7 @@ void PowerManagement::setCoreFrequency(CoreFrequency cf)
     
     Lock<FastMutex> l(powerManagementMutex);
     //We need to reconfigure I2C for the new frequency 
-    Lock<FastMutex> l2(i2cMutex);
+    Lock<FastMutex> l2(i2cMutex());
     
     {
         FastInterruptDisableLock dLock;
@@ -437,7 +441,7 @@ void PowerManagement::goDeepSleep(int ms)
     Lock<FastMutex> l(powerManagementMutex);
     //We don't use I2C, but we don't want other thread to mess with
     //the hardware while the microcontroller is going in deep sleep
-    Lock<FastMutex> l2(i2cMutex);
+    Lock<FastMutex> l2(i2cMutex());
     
     {
         FastInterruptDisableLock dLock;
@@ -516,7 +520,7 @@ PowerManagement::PowerManagement() : i2c(I2C1Driver::instance()),
                         | VBAT_COMP_ENABLE;
     unsigned char defdcdc=DCDC_DISCH
                         | DCDC1_DEFAULT;
-    Lock<FastMutex> l(i2cMutex);
+    Lock<FastMutex> l(i2cMutex());
     bool error=false;
     if(i2cWriteReg(i2c,PMU_I2C_ADDRESS,CHGCONFIG0,config0)==false) error=true;
     if(i2cWriteReg(i2c,PMU_I2C_ADDRESS,CHGCONFIG1,config1)==false) error=true;
