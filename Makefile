@@ -81,7 +81,7 @@ main.elf: $(OBJ) miosix/libmiosix.a
 	$(CC) $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
-	$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@	
+	$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
 
 #pull in dependecy info for existing .o files
 -include $(OBJ:.o=.d)

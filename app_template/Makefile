@@ -36,15 +36,12 @@ clean:
 	-rm $(OBJ) crt0.o main.elf main.map main.txt prog3.h $(OBJ:.o=.d)
 
 %.o: %.s
-	@echo "========Compiling $<========"
 	$(AS) $(AFLAGS) $< -o $@
 
 %.o : %.c
-	@echo "========Compiling $<========"
 	$(CC) $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
-	@echo "========Compiling $<========"
 	$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
 
 #pull in dependecy info for existing .o files

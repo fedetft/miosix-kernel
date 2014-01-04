@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configurationDescriptor version="84">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
-    <df name="embeddedmiosix" root="..">
+    <df name="miosix_np_2" root="..">
       <df name="app_template">
         <in>crt0.s</in>
         <in>main.c</in>

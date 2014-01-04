@@ -36,16 +36,13 @@ clean:
 	-rm $(OBJ) crt0.o test.elf test.map test.txt mpuTest.h $(OBJ:.o=.d)
 
 %.o: %.s
-	@echo "========Compiling $<========"
 	$(AS) $(AFLAGS) $< -o $@
 
 %.o : %.c
-	@echo "========Compiling $<========"
 	$(CC) $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
-	@echo "========Compiling $<========"
-	$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@	
+	$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
 
 #pull in dependecy info for existing .o files
 -include $(OBJ:.o=.d)
