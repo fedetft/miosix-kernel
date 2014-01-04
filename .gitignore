@@ -1,12 +1,16 @@
-*/nbproject/
-*.bz2
-*.gz
+# Exclude doxygen
+miosix/_doc/doxygen/html/*
+
+# Exclude temporary files
+main.elf
+main.bin
+main.hex
+main.map
 *.o
 *.a
-*.elf
-*.map
-*.hex
-*.bin
-*~
 *.d
-*.directory
+
+# Exclude Mac OS X temporary
+._*
+.DS_Store
+

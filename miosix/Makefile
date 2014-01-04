@@ -26,7 +26,7 @@ kernel/scheduler/edf/edf_scheduler.cpp                                     \
 kernel/filesystem/filesystem.cpp                                           \
 kernel/filesystem/ff.c                                                     \
 kernel/filesystem/diskio.cpp                                               \
-kernel/SystemMap.cpp							   \
+kernel/SystemMap.cpp                                                       \
 util/util.cpp                                                              \
 util/version.cpp                                                           \
 util/crc16.cpp                                                             \
@@ -53,18 +53,15 @@ all: $(OBJ) $(BOOT_FILE)
 	$(AR) rcs libmiosix.a $(OBJ)
 
 clean:
-	-rm $(OBJ) $(BOOT_FILE) libmiosix.a $(OBJ:.o=.d)
+	-rm $(OBJ) $(BOOT_FILE) libmiosix.a $(OBJ:.o=.d) $(BOOT_FILE:.o=.d)
 
 %.o: %.s
-	@echo "========Compiling $<========"
 	$(AS) $(AFLAGS) $< -o $@
 
 %.o : %.c
-	@echo "========Compiling $<========"
 	$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
-	@echo "========Compiling $<========"
 	$(CXX)  $(DFLAGS) $(CXXFLAGS) $< -o $@
 
 #pull in dependecy info for existing .o files

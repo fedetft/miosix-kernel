@@ -16,7 +16,6 @@ SUBDIRS := miosix
 SRC :=                                  \
 main.cpp
 
-
 ##
 ## List here additional static libraries with relative path
 ##
@@ -72,19 +71,16 @@ main: main.elf
 	$(SZ) main.elf
 
 main.elf: $(OBJ) miosix/libmiosix.a
-	@ echo "========Linking========"
+	@ echo "linking"
 	$(CXX) $(LFLAGS) -o main.elf $(OBJ) miosix/$(BOOT_FILE) $(LINK_LIBS)
 
 %.o: %.s
-	@echo "========Compiling $<========"
 	$(AS) $(AFLAGS) $< -o $@
 
 %.o : %.c
-	@echo "========Compiling $<========"
 	$(CC) $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
-	@echo "========Compiling $<========"
 	$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@	
 
 #pull in dependecy info for existing .o files
