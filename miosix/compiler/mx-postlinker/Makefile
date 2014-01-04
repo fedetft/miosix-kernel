@@ -1,7 +1,7 @@
 CXX:= g++ -m32
-CXXFLAGS:= -O2 -c -m32
+CXXFLAGS:= -O2 -c
 OBJS:= postlinker.o main.o
-DFLAGS    := -MM
+DFLAGS:= -MMD -MP
 
 #create program target
 
@@ -14,9 +14,8 @@ install: mx-postlinker
 clean:
 	-rm mx-postlinker *.o *.d
 
+%.o: %.cpp
+	$(CXX) $(DFLAGS) $(CXXFLAGS) $? -o $@
+
 #pull in dependecy info for existing .o files
 -include $(OBJ:.o=.d)
-
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) $? -o $@
-	$(CXX) $(DFLAGS) $(CXXFLAGS) $*.cpp > $*.d
