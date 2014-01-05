@@ -22,6 +22,7 @@
 #include <cstring>
 #include <iostream>
 #include <exception>
+#include <stdexcept>
 #include <utility>
 #include <cstdlib>
 #include <fstream>
@@ -84,9 +85,11 @@ private:
      */
     Elf32_Shdr* getElfSection(int index)
     {
-        unsigned int base=reinterpret_cast<unsigned int>(elf);
-        return reinterpret_cast<Elf32_Shdr*>(base+getElfHeader()->
-                e_shoff+index*sizeof(Elf32_Shdr));
+        unsigned char *base=reinterpret_cast<unsigned char*>(elf);
+        unsigned int offset=getElfHeader()->e_shoff+index*sizeof(Elf32_Shdr);
+        if(offset+sizeof(Elf32_Shdr)>size)
+            throw std::runtime_error("Elf section outside file bounds");
+        return reinterpret_cast<Elf32_Shdr*>(base+offset);
     }
     
     /**
@@ -96,9 +99,11 @@ private:
      */
     Elf32_Phdr *getElfSegment(int index)
     {
-        unsigned int base=reinterpret_cast<unsigned int>(elf);
-        return reinterpret_cast<Elf32_Phdr*>(base+getElfHeader()->e_phoff+
-                index*sizeof(Elf32_Phdr));
+        unsigned char *base=reinterpret_cast<unsigned char*>(elf);
+        unsigned int offset=getElfHeader()->e_phoff+index*sizeof(Elf32_Phdr);
+        if(offset+sizeof(Elf32_Phdr)>size)
+            throw std::runtime_error("Elf segment outside file bounds");
+        return reinterpret_cast<Elf32_Phdr*>(base+offset);
     }
     
     /**
@@ -113,7 +118,7 @@ private:
      */
     std::pair<Elf32_Dyn *,Elf32_Word> getDynamic();
     
-    int* elf;
+    Elf32_Word* elf;
     int size;
     int newSize;
     std::string elfFile;

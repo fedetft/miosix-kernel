@@ -16,7 +16,6 @@
  ***************************************************************************/
 
 #include "postlinker.h"
-#include <stdexcept>
 
 using namespace std;
 
@@ -29,12 +28,12 @@ PostLinker::PostLinker(string s)
     size=f.tellg();
     newSize=size;
     f.seekg(0,ios::beg);
-    int roundedSize=(size+sizeof(int)-1) & ~(sizeof(int)-1);
-    elf=new int[roundedSize/sizeof(int)];
+    int roundedSize=(size+sizeof(Elf32_Word)-1) & ~(sizeof(Elf32_Word)-1);
+    elf=new Elf32_Word[roundedSize/sizeof(Elf32_Word)];
     memset(elf,0,roundedSize);
     f.read(reinterpret_cast<char*>(elf),size);
     static const char magic[EI_NIDENT]={0x7f,'E','L','F',1,1,1};
-    if(memcmp(getElfHeader()->e_ident,magic,EI_NIDENT))
+    if(size<sizeof(Elf32_Ehdr) || memcmp(getElfHeader()->e_ident,magic,EI_NIDENT))
         throw runtime_error("Unrecognized format");
 }
 
@@ -93,8 +92,11 @@ pair<Elf32_Dyn *,Elf32_Word> PostLinker::getDynamic()
     {
         Elf32_Phdr* phdr=getElfSegment(i);
         if(phdr->p_type!=PT_DYNAMIC) continue;
-        unsigned int base=reinterpret_cast<unsigned int>(elf);
-        return make_pair(reinterpret_cast<Elf32_Dyn*>(base+phdr->p_offset),
+        unsigned char *base=reinterpret_cast<unsigned char*>(elf);
+        unsigned int offset=phdr->p_offset;
+        if(offset+phdr->p_memsz>size)
+            throw std::runtime_error("Dynamic outside file bounds");
+        return make_pair(reinterpret_cast<Elf32_Dyn*>(base+offset),
                 phdr->p_memsz/sizeof(Elf32_Dyn));
     }
     throw runtime_error("Dynamic not found");
@@ -109,7 +111,7 @@ int PostLinker::getSizeOfDataAndBss()
         if(!(phdr->p_flags & PF_W) || (phdr->p_flags & PF_X)) continue;
         return phdr->p_memsz;
     }
-    throw runtime_error("Dynamic not found");
+    throw runtime_error(".data/.bss not found");
 }
 
 PostLinker::~PostLinker() 

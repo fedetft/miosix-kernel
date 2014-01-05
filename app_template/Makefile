@@ -33,7 +33,7 @@ all: $(OBJ) crt0.o
 	@xxd -i main.elf | sed 's/unsigned char/const unsigned char __attribute__((aligned(8)))/' > prog3.h
 
 clean:
-	-rm $(OBJ) crt0.o main.elf main.map main.txt prog3.h $(OBJ:.o=.d)
+	-rm $(OBJ) crt0.o main.elf main.map main.txt $(OBJ:.o=.d)
 
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@

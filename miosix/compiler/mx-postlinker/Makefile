@@ -1,4 +1,4 @@
-CXX:= g++ -m32
+CXX:= g++
 CXXFLAGS:= -O2 -c
 OBJS:= postlinker.o main.o
 DFLAGS:= -MMD -MP
