@@ -242,8 +242,7 @@ cd ..
 #
 cd mx-postlinker
 make
-$SUDO make install INSTALL_DIR=$INSTALL_DIR
-$SUDO ln -s $INSTALL_DIR/mx-postlinker /usr/bin
+$SUDO make install INSTALL_DIR=$INSTALL_DIR/arm-miosix-eabi/bin
 cd ..
 
 # Last thing, remove this since its name is not arm-miosix-eabi-
