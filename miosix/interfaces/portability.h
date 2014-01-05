@@ -264,8 +264,9 @@ class MPUConfiguration
 	 
 	 /**
 	  * Check if the address is within the data segment
-      * @param ptr the addresso of the pointer
-      * @return  true if the pointer points within the data segment, false otherwise.
+      * \param ptr the address of the pointer
+      * \return  true if the pointer points within the data segment,
+      * false otherwise.
       */
 	 bool within(const unsigned int ptr) const;
 	 

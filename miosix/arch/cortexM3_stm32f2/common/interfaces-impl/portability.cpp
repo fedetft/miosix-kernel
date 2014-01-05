@@ -28,7 +28,6 @@
 
 #include "interfaces/portability.h"
 #include "kernel/kernel.h"
-#include "util/util.h"
 #include "kernel/error.h"
 #include "interfaces/bsp.h"
 #include "kernel/scheduler/scheduler.h"
@@ -37,6 +36,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include <cassert>
 
 /**
  * \internal
@@ -277,6 +277,14 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     //leaving the content of r4-r8,r10-r11 uninitialized
 }
 
+static unsigned int sizeToMpu(unsigned int size)
+{
+    assert(size>=32);
+    unsigned int result=30-__builtin_clz(size);
+    if(size & (size-1)) result++;
+    return result<<1;
+}
+
 //
 // class MPUConfiguration
 //
@@ -292,27 +300,27 @@ MPUConfiguration::MPUConfiguration(unsigned int *elfBase, unsigned int elfSize,
     regValues[1]=2<<MPU_RASR_AP_Pos
                | MPU_RASR_C_Msk
                | 1 //Enable bit
-               | ((miosix::fhbs(elfSize)-2)<<1);
+               | sizeToMpu(elfSize);
     regValues[3]=3<<MPU_RASR_AP_Pos
                | MPU_RASR_XN_Msk
                | MPU_RASR_C_Msk
                | MPU_RASR_S_Msk
                | 1 //Enable bit
-               | ((miosix::fhbs(imageSize)-2)<<1);
+               | sizeToMpu(imageSize);
     #else //__CODE_IN_XRAM
     regValues[1]=2<<MPU_RASR_AP_Pos
                | MPU_RASR_C_Msk
                | MPU_RASR_B_Msk
                | MPU_RASR_S_Msk
                | 1 //Enable bit
-               | ((miosix::fhbs(elfSize)-2)<<1);
+               | sizeToMpu(elfSize);
     regValues[3]=3<<MPU_RASR_AP_Pos
                | MPU_RASR_XN_Msk
                | MPU_RASR_C_Msk
                | MPU_RASR_B_Msk
                | MPU_RASR_S_Msk
                | 1 //Enable bit
-               | ((miosix::fhbs(imageSize)-2)<<1);
+               | sizeToMpu(imageSize);
     #endif //__CODE_IN_XRAM
 }
 
