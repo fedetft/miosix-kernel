@@ -336,20 +336,22 @@ void MPUConfiguration::dumpConfiguration()
     }
 }
 
-bool MPUConfiguration::within(const unsigned int ptr) const {
-
-	unsigned int base = regValues[2] & (~0x1f);
-	unsigned int end = base + (1 << (((regValues[3] >> 1) & 31) + 1));
-	
-	return ptr >= base && ptr < end;
+bool MPUConfiguration::within(const unsigned int ptr) const
+{
+    unsigned int base = regValues[2] & (~0x1f);
+    unsigned int end = base + (1 << (((regValues[3] >> 1) & 31) + 1));
+    
+    return ptr >= base && ptr < end;
 }
 
-unsigned int MPUConfiguration::getBaseDataAddress() const {
-	return regValues[2] & (~0x1f);
+unsigned int MPUConfiguration::getBaseDataAddress() const
+{
+    return regValues[2] & (~0x1f);
 }
 
-unsigned int MPUConfiguration::getDataSize() const {
-	return (1 << (((regValues[3] >> 1) & 31) + 1));
+unsigned int MPUConfiguration::getDataSize() const
+{
+    return (1 << (((regValues[3] >> 1) & 31) + 1));
 }
 
 #endif //WITH_PROCESSES

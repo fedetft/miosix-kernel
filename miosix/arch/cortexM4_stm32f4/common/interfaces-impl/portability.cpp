@@ -32,7 +32,11 @@
 #include "interfaces/bsp.h"
 #include "kernel/scheduler/scheduler.h"
 #include "kernel/scheduler/tick_interrupt.h"
+#include "core/interrupts.h"
 #include <algorithm>
+#include <cstdio>
+#include <cstring>
+#include <cassert>
 
 /**
  * \internal
@@ -111,8 +115,48 @@ void ISR_preempt()
 void ISR_yield() __attribute__((noinline));
 void ISR_yield()
 {
+    #ifdef WITH_PROCESSES
+    // WARNING: Temporary fix. Rationale:
+    // This fix is intended to avoid kernel or process faulting due to
+    // another process actions. Consider the case in which a process statically
+    // allocates a big array such that there is no space left for saving
+    // context data. If the process issues a system call, in the following
+    // interrupt the context is saved, but since there is no memory available
+    // for all the context data, a mem manage interrupt is set to 'pending'. Then,
+    // a fake syscall is issued, based on the value read on the stack (which
+    // the process hasn't set due to the memory fault and is likely to be 0);
+    // this syscall is usually a yield (due to the value of 0 above),
+    // which can cause the scheduling of the kernel thread. At this point,
+    // the pending mem fault is issued from the kernel thread, causing the
+    //kernel fault and reboot. This is caused by the mem fault interrupt
+    // having less priority of the other interrupts.
+    // This fix checks if there is a mem fault interrupt pending, and, if so,
+    // it clears it and returns before calling the previously mentioned fake
+    // syscall.
+    if(SCB->SHCSR & (1<<13))
+    {
+        if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
+            MP,0,0)))
+        {
+            SCB->SHCSR &= ~(1<<13); //Clear MEMFAULTPENDED bit
+            return;
+        }
+    }
+    #endif // WITH_PROCESSES
     IRQstackOverflowCheck();
+    
+    #ifdef WITH_PROCESSES
+    //If processes are enabled, check the content of r3. If zero then it
+    //it is a simple yield, otherwise handle the syscall
+    //Note that it is required to use ctxsave and not cur->ctxsave because
+    //at this time we do not know if the active context is user or kernel
+    unsigned int threadSp=ctxsave[0];
+    unsigned int *processStack=reinterpret_cast<unsigned int*>(threadSp);
+    if(processStack[3]!=0) miosix::Thread::IRQhandleSvc(processStack[3]);
+    else miosix::Scheduler::IRQfindNextThread();
+    #else //WITH_PROCESSES
     miosix::Scheduler::IRQfindNextThread();
+    #endif //WITH_PROCESSES
 }
 
 #ifdef SCHED_TYPE_CONTROL_BASED
@@ -170,6 +214,50 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
 
 #ifdef WITH_PROCESSES
 
+//
+// class FaultData
+//
+
+void FaultData::print() const
+{
+    switch(id)
+    {
+        case MP:
+            iprintf("* Attempted data access @ 0x%x (PC was 0x%x)\n",arg,pc);
+            break;
+        case MP_NOADDR:
+            iprintf("* Invalid data access (PC was 0x%x)\n",pc);
+            break;
+        case MP_XN:
+            iprintf("* Attempted instruction fetch @ 0x%x\n",pc);
+            break;
+        case UF_DIVZERO:
+            iprintf("* Dvide by zero (PC was 0x%x)\n",pc);
+            break;
+        case UF_UNALIGNED:
+            iprintf("* Unaligned memory access (PC was 0x%x)\n",pc);
+            break;
+        case UF_COPROC:
+            iprintf("* Attempted coprocessor access (PC was 0x%x)\n",pc);
+            break;
+        case UF_EXCRET:
+            iprintf("* Invalid exception return sequence (PC was 0x%x)\n",pc);
+            break;
+        case UF_EPSR:
+            iprintf("* Attempted access to the EPSR (PC was 0x%x)\n",pc);
+            break;
+        case UF_UNDEF:
+            iprintf("* Undefined instruction (PC was 0x%x)\n",pc);
+            break;
+        case UF_UNEXP:
+            iprintf("* Unexpected usage fault (PC was 0x%x)\n",pc);
+            break;
+        case HARDFAULT:
+            iprintf("* Hardfault (PC was 0x%x)\n",pc);
+            break;
+    }
+}
+
 void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
         void *argv, unsigned int *gotBase)
 {
@@ -189,6 +277,83 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     //leaving the content of r4-r8,r10-r11 uninitialized
 }
 
+static unsigned int sizeToMpu(unsigned int size)
+{
+    assert(size>=32);
+    unsigned int result=30-__builtin_clz(size);
+    if(size & (size-1)) result++;
+    return result<<1;
+}
+
+//
+// class MPUConfiguration
+//
+
+MPUConfiguration::MPUConfiguration(unsigned int *elfBase, unsigned int elfSize,
+        unsigned int *imageBase, unsigned int imageSize)
+{
+    regValues[0]=(reinterpret_cast<unsigned int>(elfBase) & (~0x1f))
+               | MPU_RBAR_VALID_Msk | 0; //Region 0
+    regValues[2]=(reinterpret_cast<unsigned int>(imageBase) & (~0x1f))
+               | MPU_RBAR_VALID_Msk | 1; //Region 1
+    #ifndef __CODE_IN_XRAM
+    regValues[1]=2<<MPU_RASR_AP_Pos
+               | MPU_RASR_C_Msk
+               | 1 //Enable bit
+               | sizeToMpu(elfSize);
+    regValues[3]=3<<MPU_RASR_AP_Pos
+               | MPU_RASR_XN_Msk
+               | MPU_RASR_C_Msk
+               | MPU_RASR_S_Msk
+               | 1 //Enable bit
+               | sizeToMpu(imageSize);
+    #else //__CODE_IN_XRAM
+    regValues[1]=2<<MPU_RASR_AP_Pos
+               | MPU_RASR_C_Msk
+               | MPU_RASR_B_Msk
+               | MPU_RASR_S_Msk
+               | 1 //Enable bit
+               | sizeToMpu(elfSize);
+    regValues[3]=3<<MPU_RASR_AP_Pos
+               | MPU_RASR_XN_Msk
+               | MPU_RASR_C_Msk
+               | MPU_RASR_B_Msk
+               | MPU_RASR_S_Msk
+               | 1 //Enable bit
+               | sizeToMpu(imageSize);
+    #endif //__CODE_IN_XRAM
+}
+
+void MPUConfiguration::dumpConfiguration()
+{
+    for(int i=0;i<2;i++)
+    {
+        unsigned int base=regValues[2*i] & (~0x1f);
+        unsigned int end=base+(1<<(((regValues[2*i+1]>>1) & 31)+1));
+        char w=regValues[2*i+1] & (1<<MPU_RASR_AP_Pos) ? 'w' : '-';
+        char x=regValues[2*i+1] & MPU_RASR_XN_Msk ? '-' : 'x';
+        iprintf("* MPU region %d 0x%x-0x%x r%c%c\n",i,base,end,w,x);
+    }
+}
+
+bool MPUConfiguration::within(const unsigned int ptr) const
+{
+    unsigned int base = regValues[2] & (~0x1f);
+    unsigned int end = base + (1 << (((regValues[3] >> 1) & 31) + 1));
+    
+    return ptr >= base && ptr < end;
+}
+
+unsigned int MPUConfiguration::getBaseDataAddress() const
+{
+    return regValues[2] & (~0x1f);
+}
+
+unsigned int MPUConfiguration::getDataSize() const
+{
+    return (1 << (((regValues[3] >> 1) & 31) + 1));
+}
+
 #endif //WITH_PROCESSES
 
 void IRQportableStartKernel()
@@ -201,11 +366,16 @@ void IRQportableStartKernel()
     NVIC_SetPriorityGrouping(7);//This should disable interrupt nesting
     NVIC_SetPriority(SVCall_IRQn,3);//High priority for SVC (Max=0, min=15)
     NVIC_SetPriority(SysTick_IRQn,3);//High priority for SysTick (Max=0, min=15)
+    NVIC_SetPriority(MemoryManagement_IRQn,2);//Higher priority for MemoryManagement (Max=0, min=15)
     SysTick->LOAD=SystemCoreClock/miosix::TICK_FREQ;
     //Start SysTick, set to generate interrupts
     SysTick->CTRL=SysTick_CTRL_ENABLE_Msk | SysTick_CTRL_TICKINT_Msk |
             SysTick_CTRL_CLKSOURCE_Msk;
 
+    #ifdef WITH_PROCESSES
+    //Enable MPU
+    MPU->CTRL=MPU_CTRL_PRIVDEFENA_Msk | MPU_CTRL_ENABLE_Msk;
+    #endif //WITH_PROCESSES
     #ifdef SCHED_TYPE_CONTROL_BASED
     AuxiliaryTimer::IRQinit();
     #endif //SCHED_TYPE_CONTROL_BASED

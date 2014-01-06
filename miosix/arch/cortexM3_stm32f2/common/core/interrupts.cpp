@@ -222,7 +222,7 @@ void __attribute__((noinline)) UsageFault_impl()
     waitConsoleAndReboot();
 }
 
-void __attribute__((naked)) DebugMon_Handler()
+void DebugMon_Handler()
 {
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected DebugMon @ ");

@@ -750,6 +750,26 @@ typedef struct
 #define MPU_RASR_ATTRS_Pos                 16                                             /*!< MPU RASR: MPU Region Attribute field Position */
 #define MPU_RASR_ATTRS_Msk                 (0xFFFFUL << MPU_RASR_ATTRS_Pos)               /*!< MPU RASR: MPU Region Attribute field Mask */
 
+//By TFT: copy-pasted those from core_cm3.h for compatibility -- begin
+#define MPU_RASR_XN_Pos                    28                                             /*!< MPU RASR: XN Position */
+#define MPU_RASR_XN_Msk                    (1ul << MPU_RASR_XN_Pos)                       /*!< MPU RASR: XN Mask */
+
+#define MPU_RASR_AP_Pos                    24                                             /*!< MPU RASR: AP Position */
+#define MPU_RASR_AP_Msk                    (7ul << MPU_RASR_AP_Pos)                       /*!< MPU RASR: AP Mask */
+
+#define MPU_RASR_TEX_Pos                   19                                             /*!< MPU RASR: TEX Position */
+#define MPU_RASR_TEX_Msk                   (7ul << MPU_RASR_TEX_Pos)                      /*!< MPU RASR: TEX Mask */
+
+#define MPU_RASR_S_Pos                     18                                             /*!< MPU RASR: Shareable bit Position */
+#define MPU_RASR_S_Msk                     (1ul << MPU_RASR_S_Pos)                        /*!< MPU RASR: Shareable bit Mask */
+
+#define MPU_RASR_C_Pos                     17                                             /*!< MPU RASR: Cacheable bit Position */
+#define MPU_RASR_C_Msk                     (1ul << MPU_RASR_C_Pos)                        /*!< MPU RASR: Cacheable bit Mask */
+
+#define MPU_RASR_B_Pos                     16                                             /*!< MPU RASR: Bufferable bit Position */
+#define MPU_RASR_B_Msk                     (1ul << MPU_RASR_B_Pos)                        /*!< MPU RASR: Bufferable bit Mask */
+//By TFT: copy-pasted those from core_cm3.h for compatibility -- end
+
 #define MPU_RASR_SRD_Pos                    8                                             /*!< MPU RASR: Sub-Region Disable Position */
 #define MPU_RASR_SRD_Msk                   (0xFFUL << MPU_RASR_SRD_Pos)                   /*!< MPU RASR: Sub-Region Disable Mask */
 

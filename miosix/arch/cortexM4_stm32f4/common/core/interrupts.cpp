@@ -26,6 +26,7 @@
  ***************************************************************************/
 
 #include "kernel/logging.h"
+#include "kernel/kernel.h"
 #include "config/miosix_settings.h"
 #include "interfaces/portability.h"
 #include "interfaces/arch_registers.h"
@@ -54,22 +55,22 @@ static void printUnsignedInt(unsigned int x)
     IRQerrorLog(result);
 }
 
+#endif //WITH_ERRLOG
+
 /**
  * \internal
- * Print the program counter of the thread that was running when the exception
+ * \return the program counter of the thread that was running when the exception
  * occurred.
  */
-static void printProgramCounter()
+static unsigned int getProgramCounter()
 {
-    register unsigned int pc;
+    register unsigned int result;
     // Get program counter when the exception was thrown from stack frame
     asm volatile("mrs   %0,  psp    \n\t"
                  "add   %0, %0, #24 \n\t"
-                 "ldr   %0, [%0]    \n\t":"=r"(pc));
-    printUnsignedInt(pc);
+                 "ldr   %0, [%0]    \n\t":"=r"(result));
+    return result;
 }
-
-#endif //WITH_ERRLOG
 
 /**
  * \internal
@@ -87,11 +88,23 @@ void NMI_Handler()
     waitConsoleAndReboot();
 }
 
-void HardFault_Handler()
+void __attribute__((naked)) HardFault_Handler()
 {
+    saveContext();
+    //Call HardFault_impl(). Name is a C++ mangled name.
+    asm volatile("bl _Z14HardFault_implv");
+    restoreContext();
+}
+
+void __attribute__((noinline)) HardFault_impl()
+{
+    #ifdef WITH_PROCESSES
+    if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
+        HARDFAULT,getProgramCounter()))) return;
+    #endif //WITH_PROCESSES
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected HardFault @ ");
-    printProgramCounter();
+    printUnsignedInt(getProgramCounter());
     unsigned int hfsr=SCB->HFSR;
     if(hfsr & SCB_HFSR_FORCED_Msk)
         IRQerrorLog("Fault escalation occurred\r\n");
@@ -101,12 +114,32 @@ void HardFault_Handler()
     waitConsoleAndReboot();
 }
 
-void MemManage_Handler()
+void __attribute__((naked)) MemManage_Handler()
 {
+    saveContext();
+    //Call MemManage_impl(). Name is a C++ mangled name.
+    asm volatile("bl _Z14MemManage_implv");
+    restoreContext();
+}
+
+void __attribute__((noinline)) MemManage_impl()
+{
+    unsigned int cfsr=SCB->CFSR;
+    #ifdef WITH_PROCESSES
+    int id, arg=0;
+    if(cfsr & 0x00000001) id=MP_XN;
+    else if(cfsr & 0x00000080) { id=MP; arg=SCB->MMFAR; }
+    else id=MP_NOADDR;
+    if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
+        id,getProgramCounter(),arg)))
+    {
+        SCB->SHCSR &= ~(1<<13); //Clear MEMFAULTPENDED bit
+        return;
+    }
+    #endif //WITH_PROCESSES
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected MemManage @ ");
-    printProgramCounter();
-    unsigned int cfsr=SCB->CFSR;
+    printUnsignedInt(getProgramCounter());
     if(cfsr & 0x00000080)
     {
         IRQerrorLog("Fault caused by attempted access to ");
@@ -128,7 +161,7 @@ void BusFault_Handler()
 {
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected BusFault @ ");
-    printProgramCounter();
+    printUnsignedInt(getProgramCounter());
     unsigned int cfsr=SCB->CFSR;
     if(cfsr & 0x00008000)
     {
@@ -149,12 +182,36 @@ void BusFault_Handler()
     waitConsoleAndReboot();
 }
 
-void UsageFault_Handler()
+void __attribute__((naked)) UsageFault_Handler()
 {
+    saveContext();
+    //Call UsageFault_impl(). Name is a C++ mangled name.
+    asm volatile("bl _Z15UsageFault_implv");
+    restoreContext();
+}
+
+void __attribute__((noinline)) UsageFault_impl()
+{
+    unsigned int cfsr=SCB->CFSR;
+    #ifdef WITH_PROCESSES
+    int id;
+    if(cfsr & 0x02000000) id=UF_DIVZERO;
+    else if(cfsr & 0x01000000) id=UF_UNALIGNED;
+    else if(cfsr & 0x00080000) id=UF_COPROC;
+    else if(cfsr & 0x00040000) id=UF_EXCRET;
+    else if(cfsr & 0x00020000) id=UF_EPSR;
+    else if(cfsr & 0x00010000) id=UF_UNDEF;
+    else id=UF_UNEXP;
+    if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
+        id,getProgramCounter())))
+    {
+        SCB->SHCSR &= ~(1<<12); //Clear USGFAULTPENDED bit
+        return;
+    }
+    #endif //WITH_PROCESSES
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected UsageFault @ ");
-    printProgramCounter();
-    unsigned int cfsr=SCB->CFSR;
+    printUnsignedInt(getProgramCounter());
     if(cfsr & 0x02000000) IRQerrorLog("Divide by zero\r\n");
     if(cfsr & 0x01000000) IRQerrorLog("Unaligned memory access\r\n");
     if(cfsr & 0x00080000) IRQerrorLog("Attempted coprocessor access\r\n");
@@ -169,7 +226,7 @@ void DebugMon_Handler()
 {
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected DebugMon @ ");
-    printProgramCounter();
+    printUnsignedInt(getProgramCounter());
     #endif //WITH_ERRLOG
     waitConsoleAndReboot();
 }
@@ -178,7 +235,7 @@ void PendSV_Handler()
 {
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected PendSV @ ");
-    printProgramCounter();
+    printUnsignedInt(getProgramCounter());
     #endif //WITH_ERRLOG
     waitConsoleAndReboot();
 }

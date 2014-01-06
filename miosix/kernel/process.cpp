@@ -351,6 +351,7 @@ void *Process::start(void *argv)
                 case 5:
 					sp.setReturnValue(usleep(sp.getFirstParameter()));
                     break;
+				#ifdef WITH_FILESYSTEM
 				case 6:
 					//open
 				{
@@ -401,6 +402,7 @@ void *Process::start(void *argv)
 						sp.setReturnValue(-1);
 					
 					break;
+				#endif //WITH_FILESYSTEM
 				case 9:
 					//system
 				{				
