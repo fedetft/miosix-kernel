@@ -1,0 +1,91 @@
+
+testsuite_syscall_mpu_open.elf:     file format elf32-littlearm
+testsuite_syscall_mpu_open.elf
+architecture: arm, flags 0x00000050:
+HAS_SYMS, DYNAMIC
+start address 0x00000099
+
+Program Header:
+    LOAD off    0x00000098 vaddr 0x00000098 paddr 0x00000098 align 2**3
+         filesz 0x00000026 memsz 0x00000026 flags r-x
+    LOAD off    0x000000c0 vaddr 0x10000000 paddr 0x10000000 align 2**2
+         filesz 0x00000034 memsz 0x00000034 flags rw-
+ DYNAMIC off    0x000000cc vaddr 0x1000000c paddr 0x1000000c align 2**2
+         filesz 0x00000028 memsz 0x00000028 flags rw-
+
+Dynamic Section:
+  DEBUG                0x00000000
+private flags = 5000002: [Version5 EABI] [has entry point]
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .text         00000026  00000098  00000098  00000098  2**3
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  1 .got          0000000c  10000000  10000000  000000c0  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  2 .dynamic      00000028  1000000c  1000000c  000000cc  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+SYMBOL TABLE:
+00000098 l    d  .text	00000000 .text
+10000000 l    d  .got	00000000 .got
+1000000c l    d  .dynamic	00000000 .dynamic
+00000000 l    df *ABS*	00000000 main.c
+1000000c l     O *ABS*	00000000 _DYNAMIC
+10000000 l     O *ABS*	00000000 _GLOBAL_OFFSET_TABLE_
+00000098 g     F .text	00000000 _start
+000000a0 g     F .text	00000012 main
+000000b4 g     F .text	00000000 _exit
+000000b8 g     F .text	00000000 open
+
+
+Contents of section .text:
+ 0098 00f002f8 00f00af8 002008b5 40f20241  ......... ..@..A
+ 00a8 024600f0 05f80020 08bd00bf 022300df  .F..... .....#..
+ 00b8 062300df 7047                        .#..pG          
+Contents of section .got:
+ 10000000 0c000010 00000000 00000000           ............    
+Contents of section .dynamic:
+ 1000000c 15000000 00000000 00000000 00000000  ................
+ 1000001c 00000000 00000000 00000000 00000000  ................
+ 1000002c 00000000 00000000                    ........        
+
+Disassembly of section .text:
+
+00000098 <_start>:
+_start():
+  98:	f000 f802 	bl	a0 <main>
+  9c:	f000 f80a 	bl	b4 <_exit>
+
+000000a0 <main>:
+main():
+  a0:	2000      	movs	r0, #0
+  a2:	b508      	push	{r3, lr}
+  a4:	f240 4102 	movw	r1, #1026	; 0x402
+  a8:	4602      	mov	r2, r0
+  aa:	f000 f805 	bl	b8 <open>
+  ae:	2000      	movs	r0, #0
+  b0:	bd08      	pop	{r3, pc}
+  b2:	bf00      	nop
+
+000000b4 <_exit>:
+_exit():
+  b4:	2302      	movs	r3, #2
+  b6:	df00      	svc	0
+
+000000b8 <open>:
+open():
+  b8:	2306      	movs	r3, #6
+  ba:	df00      	svc	0
+  bc:	4770      	bx	lr
+
+Disassembly of section .got:
+
+10000000 <.got>:
+10000000:	1000000c 	andne	r0, r0, ip
+	...
+
+Disassembly of section .dynamic:
+
+1000000c <.dynamic>:
+1000000c:	00000015 	andeq	r0, r0, r5, lsl r0
+	...

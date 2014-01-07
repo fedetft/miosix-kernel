@@ -140,9 +140,11 @@ static CardType cardType=Invalid;
 
 //SD card GPIOs
 typedef Gpio<GPIOC_BASE,8>  sdD0;
-typedef Gpio<GPIOC_BASE,9>  sdD1;
+#ifndef _BOARD_STM3220G_EVAL //QUIRK: serial port and SD have pins in common
+typedef Gpio<GPIOC_BASE,9>  sdD1; 
 typedef Gpio<GPIOC_BASE,10> sdD2;
 typedef Gpio<GPIOC_BASE,11> sdD3;
+#endif //_BOARD_STM3220G_EVAL
 typedef Gpio<GPIOC_BASE,12> sdCLK;
 typedef Gpio<GPIOD_BASE,2>  sdCMD;
 

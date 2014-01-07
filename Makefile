@@ -14,7 +14,7 @@ SUBDIRS := miosix
 ## List here your source files (both .s, .c and .cpp)
 ##
 SRC :=                                  \
-main.cpp
+miosix/_tools/testsuite/testsuite.cpp
 
 ##
 ## List here additional static libraries with relative path
@@ -40,6 +40,7 @@ CFLAGS    := $(CFLAGS_BASE)   -I. -Imiosix -Imiosix/arch/common \
              -Imiosix/$(ARCH_INC) -Imiosix/$(BOARD_INC) $(INCLUDE_DIRS)
 AFLAGS    := $(AFLAGS_BASE)
 LFLAGS    := $(LFLAGS_BASE)
+DFLAGS    := -MMD -MP
 
 LINK_LIBS := $(LIBS) -L./miosix -Wl,--start-group -lmiosix -lstdc++ -lc -lm \
     -lgcc -Wl,--end-group
@@ -62,7 +63,7 @@ clean-recursive:
 	done
 
 clean-topdir:
-	-rm $(OBJ) main.elf main.hex main.bin main.map
+	-rm $(OBJ) main.elf main.hex main.bin main.map $(OBJ:.o=.d)
 
 main: main.elf
 	$(CP) -O ihex   main.elf main.hex
@@ -77,7 +78,10 @@ main.elf: $(OBJ) miosix/libmiosix.a
 	$(AS) $(AFLAGS) $< -o $@
 
 %.o : %.c
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
-	$(CXX) $(CXXFLAGS) $< -o $@
+	$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
+
+#pull in dependecy info for existing .o files
+-include $(OBJ:.o=.d)

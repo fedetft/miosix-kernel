@@ -1,0 +1,151 @@
+
+testsuite_file2.elf:     file format elf32-littlearm
+testsuite_file2.elf
+architecture: arm, flags 0x00000050:
+HAS_SYMS, DYNAMIC
+start address 0x00000099
+
+Program Header:
+    LOAD off    0x00000098 vaddr 0x00000098 paddr 0x00000098 align 2**3
+         filesz 0x0000007e memsz 0x0000007e flags r-x
+    LOAD off    0x00000118 vaddr 0x10000000 paddr 0x10000000 align 2**3
+         filesz 0x00000044 memsz 0x00000044 flags rw-
+ DYNAMIC off    0x00000124 vaddr 0x1000000c paddr 0x1000000c align 2**2
+         filesz 0x00000028 memsz 0x00000028 flags rw-
+
+Dynamic Section:
+  DEBUG                0x00000000
+private flags = 5000002: [Version5 EABI] [has entry point]
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .text         0000007e  00000098  00000098  00000098  2**3
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  1 .got          0000000c  10000000  10000000  00000118  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  2 .dynamic      00000028  1000000c  1000000c  00000124  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  3 .rodata       0000000c  10000038  10000038  00000150  2**3
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+SYMBOL TABLE:
+00000098 l    d  .text	00000000 .text
+10000000 l    d  .got	00000000 .got
+1000000c l    d  .dynamic	00000000 .dynamic
+10000038 l    d  .rodata	00000000 .rodata
+00000000 l    df *ABS*	00000000 main.c
+1000000c l     O *ABS*	00000000 _DYNAMIC
+10000000 l     O *ABS*	00000000 _GLOBAL_OFFSET_TABLE_
+00000110 g     F .text	00000000 write
+00000098 g     F .text	00000000 _start
+000000a0 g     F .text	00000060 main
+00000100 g     F .text	00000000 _exit
+00000104 g     F .text	00000000 open
+0000010a g     F .text	00000000 close
+
+
+Contents of section .text:
+ 0098 00f002f8 00f030f8 f8b5164f 002409eb  ......0....O.$..
+ 00a8 070313f8 012f0134 002afad1 4f443846  ...../.4.*..OD8F
+ 00b8 40f20241 00f022f8 b0f1ff3f 064611d0  @..A.."....?.F..
+ 00c8 4ff47a75 02e015f1 ff350dd0 30463946  O.zu.....5..0F9F
+ 00d8 224600f0 19f8a042 f5d03046 00f011f8  "F.....B..0F....
+ 00e8 0220f8bd 0120fce7 304600f0 0af82846  . ... ..0F....(F
+ 00f8 f7e700bf 38000000 022300df 062300df  ....8....#...#..
+ 0108 70470723 00df7047 032300df 7047      pG.#..pG.#..pG  
+Contents of section .got:
+ 10000000 0c000010 00000000 00000000           ............    
+Contents of section .dynamic:
+ 1000000c 15000000 00000000 00000000 00000000  ................
+ 1000001c 00000000 00000000 00000000 00000000  ................
+ 1000002c 00000000 00000000                    ........        
+Contents of section .rodata:
+ 10000038 66696c65 322e6269 6e000000           file2.bin...    
+
+Disassembly of section .text:
+
+00000098 <_start>:
+_start():
+  98:	f000 f802 	bl	a0 <main>
+  9c:	f000 f830 	bl	100 <_exit>
+
+000000a0 <main>:
+main():
+  a0:	b5f8      	push	{r3, r4, r5, r6, r7, lr}
+  a2:	4f16      	ldr	r7, [pc, #88]	; (fc <main+0x5c>)
+  a4:	2400      	movs	r4, #0
+  a6:	eb09 0307 	add.w	r3, r9, r7
+  aa:	f813 2f01 	ldrb.w	r2, [r3, #1]!
+  ae:	3401      	adds	r4, #1
+  b0:	2a00      	cmp	r2, #0
+  b2:	d1fa      	bne.n	aa <main+0xa>
+  b4:	444f      	add	r7, r9
+  b6:	4638      	mov	r0, r7
+  b8:	f240 4102 	movw	r1, #1026	; 0x402
+  bc:	f000 f822 	bl	104 <open>
+  c0:	f1b0 3fff 	cmp.w	r0, #4294967295	; 0xffffffff
+  c4:	4606      	mov	r6, r0
+  c6:	d011      	beq.n	ec <main+0x4c>
+  c8:	f44f 757a 	mov.w	r5, #1000	; 0x3e8
+  cc:	e002      	b.n	d4 <main+0x34>
+  ce:	f115 35ff 	adds.w	r5, r5, #4294967295	; 0xffffffff
+  d2:	d00d      	beq.n	f0 <main+0x50>
+  d4:	4630      	mov	r0, r6
+  d6:	4639      	mov	r1, r7
+  d8:	4622      	mov	r2, r4
+  da:	f000 f819 	bl	110 <write>
+  de:	42a0      	cmp	r0, r4
+  e0:	d0f5      	beq.n	ce <main+0x2e>
+  e2:	4630      	mov	r0, r6
+  e4:	f000 f811 	bl	10a <close>
+  e8:	2002      	movs	r0, #2
+  ea:	bdf8      	pop	{r3, r4, r5, r6, r7, pc}
+  ec:	2001      	movs	r0, #1
+  ee:	e7fc      	b.n	ea <main+0x4a>
+  f0:	4630      	mov	r0, r6
+  f2:	f000 f80a 	bl	10a <close>
+  f6:	4628      	mov	r0, r5
+  f8:	e7f7      	b.n	ea <main+0x4a>
+  fa:	bf00      	nop
+  fc:	00000038 	andeq	r0, r0, r8, lsr r0
+
+00000100 <_exit>:
+_exit():
+ 100:	2302      	movs	r3, #2
+ 102:	df00      	svc	0
+
+00000104 <open>:
+open():
+ 104:	2306      	movs	r3, #6
+ 106:	df00      	svc	0
+ 108:	4770      	bx	lr
+
+0000010a <close>:
+close():
+ 10a:	2307      	movs	r3, #7
+ 10c:	df00      	svc	0
+ 10e:	4770      	bx	lr
+
+00000110 <write>:
+write():
+ 110:	2303      	movs	r3, #3
+ 112:	df00      	svc	0
+ 114:	4770      	bx	lr
+
+Disassembly of section .got:
+
+10000000 <.got>:
+10000000:	1000000c 	andne	r0, r0, ip
+	...
+
+Disassembly of section .dynamic:
+
+1000000c <.dynamic>:
+1000000c:	00000015 	andeq	r0, r0, r5, lsl r0
+	...
+
+Disassembly of section .rodata:
+
+10000038 <.rodata>:
+10000038:	656c6966 	strbvs	r6, [ip, #-2406]!	; 0x966
+1000003c:	69622e32 	stmdbvs	r2!, {r1, r4, r5, r9, sl, fp, sp}^
+10000040:	0000006e 	andeq	r0, r0, lr, rrx

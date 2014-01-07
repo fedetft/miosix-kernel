@@ -1,0 +1,7 @@
+aelf1 : Stack size set to 128 (stack size must be greater than MIN_PROCESS_STACK_SIZE [256])
+aelf2 : Ram size set to 65535 (ram size must be less than MAX_PROCESS_IMAGE_SIZE [64*1024])
+aelf3 : Stack size set to 1945 (stack size must be multiple of 4)
+aelf4 : Ram size set to 14745 (ram size must be multiple of 4)
+aelf5 : Ram size set to 200 (ram size must be greater than BLOCK_SIZE [1024])
+aelf6 : Stack size set to 32768 (data segment size + stack size must be less than ram size)
+aelf7 : Stack size set to 65535 (stack size must be less than MAX_PROCESS_IMAGE_SIZE [64*1024])

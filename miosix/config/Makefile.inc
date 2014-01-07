@@ -134,9 +134,12 @@ ifeq ($(OPT_BOARD),stm32f407vg_stm32f4discovery)
     ## Linker script type, there are two options
     ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
     ## 2) Code + stack + heap in internal RAM (file *_ram.ld)
+    ## 3) Same as 1) but space has been reserved for a process pool, allowing
+    ##    to configure the kernel with "#define WITH_PROCESSES"
     LINKER_SCRIPT_PATH := arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+192k_rom.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+192k_ram.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+192k_rom_processes.ld
 
     ## This causes the interrupt vector table to be relocated in SRAM, must be
     ## uncommented when using the ram linker script
@@ -165,12 +168,15 @@ ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
     ##    forwards interrrupts @ 0x64000000 (see miosix/_tools/bootloaders for
     ##    one).
     ##    The microcontroller must have an external memory interface.
+    ## 4) Same as 3) but space has been reserved for a process pool, allowing
+    ##    to configure the kernel with "#define WITH_PROCESSES"
     ## Warning! enable external ram if you use a linker script that requires it
     ## (see the XRAM flag below)
     LINKER_SCRIPT_PATH := arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram.ld
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram_processes.ld
 
     ## Enable/disable initialization of external RAM at boot. Three options:
     ## __ENABLE_XRAM : If you want the heap in xram (with an appropriate linker
@@ -747,7 +753,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         PROGRAM_CMDLINE := miosix/_tools/bootloaders/stm32/pc_loader/pc_loader \
         /dev/ttyUSB0 main.bin
         else
-        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+            PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
         endif
 
     ##-------------------------------------------------------------------------

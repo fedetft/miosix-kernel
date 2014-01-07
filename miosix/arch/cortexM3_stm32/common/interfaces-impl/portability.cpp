@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -167,6 +167,29 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
     //leaving the content of r4-r11 uninitialized
 }
+
+#ifdef WITH_PROCESSES
+
+void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
+        void *argv, unsigned int *gotBase)
+{
+    unsigned int *stackPtr=sp;
+    stackPtr--; //Stack is full descending, so decrement first
+    *stackPtr=0x01000000; stackPtr--;                                 //--> xPSR
+    *stackPtr=reinterpret_cast<unsigned long>(pc); stackPtr--;        //--> pc
+    *stackPtr=0xffffffff; stackPtr--;                                 //--> lr
+    *stackPtr=0; stackPtr--;                                          //--> r12
+    *stackPtr=0; stackPtr--;                                          //--> r3
+    *stackPtr=0; stackPtr--;                                          //--> r2
+    *stackPtr=0; stackPtr--;                                          //--> r1
+    *stackPtr=reinterpret_cast<unsigned long >(argv);                 //--> r0
+
+    ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
+    ctxsave[6]=reinterpret_cast<unsigned long>(gotBase);              //--> r9 
+    //leaving the content of r4-r8,r10-r11 uninitialized
+}
+
+#endif //WITH_PROCESSES
 
 void IRQportableStartKernel()
 {

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010 by Terraneo Federico                   *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012 by Terraneo Federico       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -188,6 +188,33 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     ctxsave[15]=(unsigned int)&miosix::Thread::threadLauncher;
     ctxsave[16]=0x1f;//thread starts in system mode with irq and fiq enabled.
 }
+
+#ifdef WITH_PROCESSES
+
+void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
+            void *argv, unsigned int *gotBase)
+{
+    ctxsave[0]=(unsigned int)argv;
+    ctxsave[1]=0;
+    ctxsave[2]=0;
+    ctxsave[3]=0;
+    ctxsave[4]=0;
+    ctxsave[5]=0;
+    ctxsave[6]=0;
+    ctxsave[7]=0;
+    ctxsave[8]=0;
+    ctxsave[9]=(unsigned int)gotBase;
+    ctxsave[10]=0;
+    ctxsave[11]=0;
+    ctxsave[12]=0;
+    ctxsave[13]=(unsigned int)sp;//Initialize the thread's stack pointer
+    ctxsave[14]=0xffffffff;//threadLauncher never returns, so lr is not important
+    //Initialize the thread's program counter to the beginning of the entry point
+    ctxsave[15]=(unsigned int)pc;
+    ctxsave[16]=0x1f;//thread starts in system mode with irq and fiq enabled.
+}
+
+#endif //WITH_PROCESSES
 
 void IRQportableStartKernel()
 {

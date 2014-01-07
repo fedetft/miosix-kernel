@@ -15,6 +15,10 @@ kernel/sync.cpp                                                            \
 kernel/error.cpp                                                           \
 kernel/pthread.cpp                                                         \
 kernel/stage_2_boot.cpp                                                    \
+kernel/elf_program.cpp                                                     \
+kernel/process.cpp                                                         \
+kernel/process_pool.cpp                                                    \
+kernel/SystemMap.cpp                                                       \
 kernel/scheduler/priority/priority_scheduler.cpp                           \
 kernel/scheduler/control/control_scheduler.cpp                             \
 kernel/scheduler/edf/edf_scheduler.cpp                                     \
@@ -52,6 +56,7 @@ CXXFLAGS := $(CXXFLAGS_BASE) -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC) \
 CFLAGS   := $(CFLAGS_BASE)   -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC) \
 	    -DCOMPILING_MIOSIX
 AFLAGS   := $(AFLAGS_BASE)
+DFLAGS    := -MMD -MP
 
 ## Build libmiosix.a and stage_1_boot.o (whose path is in BOOT_FILE)
 ## The file stage_1_boot.o is compiled separately because
@@ -61,13 +66,16 @@ all: $(OBJ) $(BOOT_FILE)
 	$(AR) rcs libmiosix.a $(OBJ)
 
 clean:
-	rm $(OBJ) $(BOOT_FILE) libmiosix.a
+	-rm $(OBJ) $(BOOT_FILE) libmiosix.a $(OBJ:.o=.d) $(BOOT_FILE:.o=.d)
 
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@
 
 %.o : %.c
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
-	$(CXX) $(CXXFLAGS) $< -o $@
+	$(CXX)  $(DFLAGS) $(CXXFLAGS) $< -o $@
+
+#pull in dependecy info for existing .o files
+-include $(OBJ:.o=.d)

@@ -41,6 +41,8 @@
 #include <cassert>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <signal.h>
 #include <pthread.h>
 #include <errno.h>
 #include <dirent.h>
@@ -57,6 +59,17 @@
 #include "kernel/intrusive.h"
 #include "filesystem/console/console_device.h"
 #include "util/crc16.h"
+
+#ifdef WITH_PROCESSES
+#include "miosix/kernel/elf_program.h"
+#include "miosix/kernel/process.h"
+#include "kernel/process_pool.h"
+#include "kernel/SystemMap.h"
+
+#include "miosix/testsuite/syscall_testsuite/includes.h"
+#include "miosix/testsuite/elf_testsuite/includes.h"
+#include "miosix/testsuite/mpu_testsuite/includes.h"
+#endif //WITH_PROCESSES
 
 using namespace std::tr1;
 using namespace miosix;
@@ -115,6 +128,37 @@ static void benchmark_4();
 static void exception_test();
 #endif //__NO_EXCEPTIONS
 
+#ifdef WITH_PROCESSES
+void syscall_test_sleep();
+void process_test_process_ret();
+void syscall_test_system();
+#ifdef WITH_FILESYSTEM
+void syscall_test_files();
+void process_test_file_concurrency();
+void syscall_test_mpu_open();
+void syscall_test_mpu_read();
+void syscall_test_mpu_write();
+#endif //WITH_FILESYSTEM
+
+unsigned int* memAllocation(unsigned int size);
+bool memCheck(unsigned int *base, unsigned int size);
+void runElfTest(const char *name, const unsigned char *filename, unsigned int file_length);
+
+int runProgram(const unsigned char *filename, unsigned int file_length);
+bool isSignaled(int exit_code);
+void mpuTest1();
+void mpuTest2();
+void mpuTest3();
+void mpuTest4();
+void mpuTest5();
+void mpuTest6();
+void mpuTest7();
+void mpuTest8();
+void mpuTest9();
+void mpuTest10();
+#endif //WITH_PROCESSES
+
+
 //main(), calls all tests
 int main()
 {
@@ -123,14 +167,17 @@ int main()
     Thread::setPriority(0);
     for(;;)
     {
-        iprintf("Type 't' for kernel test, 'f' for filesystem test, 'x' for "
-        "exception test, 'b' for benchmarks or 's' for shutdown\n");
+        iprintf("Type:\n 't' for kernel test\n 'f' for filesystem test\n 'x' for "
+        "exception test\n 'b' for benchmarks\n 'p' for process tes\n 'y' for syscall test\n"
+        " 'm' for elf and mpu test\n 's' for shutdown\n");
         char c;
         for(;;)
         {
             c=getchar();
             if(c!='\n') break;
         }
+        //For testing mpu
+        unsigned int *m;
         switch(c)
         {
             case 't':
@@ -202,6 +249,87 @@ int main()
             case 's':
                 iprintf("Shutting down\n");
                 shutdown();
+            case 'y':
+                ledOn();
+                #ifdef WITH_PROCESSES
+                #ifdef WITH_FILESYSTEM
+                syscall_test_files();
+                syscall_test_mpu_open();
+                syscall_test_mpu_read();
+                syscall_test_mpu_write();
+                #else //WITH_FILESYSTEM
+                iprintf("Error, filesystem support is disabled\n");
+                #endif //WITH_FILESYSTEM
+
+                syscall_test_sleep();
+                syscall_test_system();
+                #else //WITH_PROCESSES
+                iprintf("Error, process support is disabled\n");
+                #endif //WITH_PROCESSES
+                ledOff();
+                break;
+            case 'p':
+                #ifdef WITH_PROCESSES
+                ledOn();
+                process_test_process_ret();
+                process_test_file_concurrency();
+                ledOff();
+                #endif //WITH_PROCESSES
+                break;
+            case 'm':
+                //The priority of the test thread must be 1
+                Thread::setPriority(1);
+                ledOn();
+                #ifdef WITH_PROCESSES
+                //Note by TFT: these addresses are only valid for the stm3220g-eval.
+                //FIXME: llok into it
+                // ProcessPool allocates 4096 bytes starting from address 0x64100000
+                // Range : 0x64100000 - 0x64101000
+
+                // First process memory layout
+                // Code region : 0x64101000 - 0x64101400
+                // Data region : 0x64104000 - 0x64108000
+
+                // Second process memory layout
+                // Code region : 0x64101400 - 0x64101800
+                // Data region : 0x64108000 - 0x6410c000
+
+                // Third process memory layout
+                // Code region : 0x64101800 - 0x64101c00
+                // Data region : 0x6410c000 - 0x64110000
+
+                //Altered elfs tests
+                iprintf("\nExecuting ELF tests.\n");
+                iprintf("--------------------\n");
+                runElfTest("Elf Test1", aelf1, aelf1_len);
+                runElfTest("Elf Test2", aelf2, aelf2_len);
+                runElfTest("Elf Test3", aelf3, aelf3_len);
+                runElfTest("Elf Test4", aelf4, aelf4_len);
+                runElfTest("Elf Test5", aelf5, aelf5_len);
+                runElfTest("Elf Test6", aelf6, aelf6_len);
+                runElfTest("Elf Test7", aelf7, aelf7_len);
+
+                //Mpu tests
+                iprintf("\n\nExecuting MPU tests.\n");
+                iprintf("---------------------\n");
+                m = memAllocation(4096);
+                mpuTest1();
+                mpuTest2();
+                mpuTest3();
+                mpuTest4();
+                mpuTest5();
+                mpuTest6();
+                mpuTest7();
+                mpuTest8();
+                mpuTest9();
+                mpuTest10();
+                ProcessPool::instance().deallocate(m);
+                #else //#ifdef WITH_PROCESSES
+                iprintf("Error, process support is disabled\n");
+                #endif //#ifdef WITH_PROCESSES
+                ledOff();
+                Thread::setPriority(0);
+            break;
             default:
                 iprintf("Unrecognized option\n");
         }
@@ -239,6 +367,212 @@ static void fail(const char *cause)
     console->write("\r\n",2);
     reboot();
 }
+
+#ifdef WITH_PROCESSES
+
+void process_test_file_concurrency()
+{
+    test_name("Process file concurrency");
+
+    remove("/file1.bin");
+    remove("/file2.bin");
+
+    ElfProgram prog1(reinterpret_cast<const unsigned int*>(testsuite_file1_elf), testsuite_file1_elf_len);
+    ElfProgram prog2(reinterpret_cast<const unsigned int*>(testsuite_file2_elf), testsuite_file2_elf_len);
+
+    pid_t p1 = Process::create(prog1);
+    pid_t p2 = Process::create(prog2);
+
+    int res1 = 0, res2 = 0;
+
+    Process::waitpid(p1, &res1, 0);
+    Process::waitpid(p2, &res2, 0);
+
+    FILE *f1 = fopen("/file1.bin", "rb");
+    FILE *f2 = fopen("/file2.bin", "rb");
+
+    if(!f1) fail("Unable to open first file");
+    if(!f2) fail("Unable to open second file");
+
+    char buffer[10];
+
+    for(int i = 0; i < 1000; i++)
+    {
+        fread(buffer, 1, 9, f1);
+        if(strncmp(buffer, "file1.bin", 9) != 0) fail("Wrong data from file 1");
+    }
+
+    for(int i = 0; i < 1000; i++)
+    {
+        fread(buffer, 1, 9, f2);
+        if(strncmp(buffer, "file2.bin", 9) != 0) fail("Wrong data from file 2");
+    }
+
+    fclose(f1);
+    fclose(f2);
+
+    pass();
+}
+
+void process_test_process_ret()
+{
+    test_name("Process return value");
+    ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_simple_elf),testsuite_simple_elf_len);
+    int ret = 0;
+    pid_t p = Process::create(prog);
+    Process::waitpid(p, &ret, 0);
+    //iprintf("Returned value is %d\n", WEXITSTATUS(ret));
+    if(WEXITSTATUS(ret) != 42) fail("Wrong returned value");
+    pass();
+}
+
+void syscall_test_mpu_open()
+{
+    test_name("open and MPU");
+    ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_syscall_mpu_open_elf), testsuite_syscall_mpu_open_elf_len);
+    int ret = 0;
+    pid_t p = Process::create(prog);
+    Process::waitpid(p, &ret, 0);
+    //iprintf("Returned value is %d\n", ret);
+    if(WTERMSIG(ret) != SIGSYS) fail("0x00000000 is not a valid address!");
+    pass();
+}
+
+void syscall_test_mpu_read()
+{
+    test_name("read calls and MPU");
+    ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_syscall_mpu_read_elf), testsuite_syscall_mpu_read_elf_len);
+    int ret = 0;
+    pid_t p = Process::create(prog);
+    Process::waitpid(p, &ret, 0);
+    //iprintf("Returned value is %d\n", ret);
+    if(WTERMSIG(ret) != SIGSYS) fail("0x00000000 is not a valid address!");
+    pass();
+}
+
+void syscall_test_mpu_write()
+{
+    test_name("write and MPU");
+    ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_syscall_mpu_write_elf), testsuite_syscall_mpu_write_elf_len);
+    int ret = 0;
+    pid_t p = Process::create(prog);
+    Process::waitpid(p, &ret, 0);
+    iprintf("Returned value is %d\n", ret);
+    if(WTERMSIG(ret) != SIGSYS) fail("0x00000000 is not a valid address!");
+    pass();
+}
+
+void syscall_test_system()
+{
+    test_name("system");
+	if(SystemMap::instance().getElfCount() != 0)
+		fail("The system lookup table should be empty");
+	else
+		iprintf("The system lookup table is empty. Correct.\n");
+	
+	SystemMap::instance().addElfProgram("test", reinterpret_cast<const unsigned int*>(testsuite_simple_elf), testsuite_simple_elf_len);
+	
+	if(SystemMap::instance().getElfCount() != 1)
+		fail("Now the system lookup table should contain 1 program");
+	else
+		iprintf("The system lookup table contain one program. Correct.\n");
+	
+	std::pair<const unsigned int*, unsigned int> sysret = SystemMap::instance().getElfProgram("test");
+	
+	if(sysret.first == 0 || sysret.second == 0)
+		fail("The system lookup table has returned an invalid process size or an invalid elf pointer for the process");
+	
+	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_system_elf), testsuite_system_elf_len);
+	
+	int ret = 0;
+	pid_t p = Process::create(prog);
+	Process::waitpid(p, &ret, 0);
+	
+	if(WEXITSTATUS(ret) != 42){
+		iprintf("Host process returned: %d\n", WEXITSTATUS(ret));
+		fail("The system inside a process has failed");
+	}
+
+	SystemMap::instance().removeElfProgram("test");
+	
+	if(SystemMap::instance().getElfCount() != 0)
+		fail("The system lookup table now should be empty.\n");
+	
+	pass();
+}
+
+void syscall_test_sleep(){
+	test_name("System Call: sleep");
+	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_sleep_elf),testsuite_sleep_elf_len);
+	
+//	iprintf("diff was: %d\n", (unsigned int)getTick());
+	
+	int ret = 0;
+	long long time = getTick();
+	pid_t p = Process::create(prog);
+	Process::waitpid(p, &ret, 0);
+	
+	long long diff = llabs((getTick() - time));
+	
+	if (llabs(diff - 5*TICK_FREQ) > static_cast<long long>(TICK_FREQ * 0.02))
+		fail("The sleep should have only a little more than 5 seconds.");
+	
+	pass();
+}
+
+void syscall_test_files(){
+	test_name("System Call: open, read, write, seek, close, system");
+	
+	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_syscall_elf),testsuite_syscall_elf_len);
+	int ret = 0;
+	
+	remove("/foo.bin");
+	
+	pid_t child = Process::create(prog);
+	Process::waitpid(child, &ret, 0);
+	
+	iprintf("Returned value %d\n", WEXITSTATUS(ret));
+	switch(WEXITSTATUS(ret)){
+		case 0:
+			pass();
+			break;
+		case 1:
+			fail("Open with O_RDWR should have failed, the file doesn't exist");
+			break;
+		case 2:
+			fail("Cannot craete new file");
+			break;
+		case 3:
+			fail("file descriptor not valid");
+			break;
+		case 4:
+			fail("write has written the wrong amount of data");
+			break;
+		case 5:
+			fail("read has read the wrong amount of data");
+			break;
+		case 6:
+			fail("readed data doesn't match the written one");
+			break;
+		case 7:
+			fail("close hasn't returned 0");
+			break;
+		case 8:
+			fail("open with O_RDWR failed, but the file exists");
+			break;
+		case 9:
+			fail("read has return the wrogn amount of data");
+			break;
+		case 10:
+			fail("readed data doesn't match the written one");
+			break;
+		case 11:
+			fail("close hasn't returned 0");
+			break;
+	}
+}
+
+#endif //WITH_PROCESSES
 
 //
 // Test 1
@@ -4258,3 +4592,279 @@ static void benchmark_4()
     }
     iprintf("%d fast disable/enable interrupts pairs per second\n",i);
 }
+
+#ifdef WITH_PROCESSES
+
+unsigned int* memAllocation(unsigned int size)
+{
+	unsigned int *p = ProcessPool::instance().allocate(size);
+	memset(p, WATERMARK_FILL, size);
+	iprintf("Allocated %d bytes. Base: %p. Size: 0x%x.\n\n", size, p, size);
+	return p;
+}
+
+// Returns true if a watermark filled memory zone is not corrupted.
+// 'base' must be 4-byte aligned
+bool memCheck(unsigned int *base, unsigned int size)
+{
+	for(unsigned int i = 0; i < size / 4; i++)
+	{
+		if(*(base + i) != WATERMARK_FILL)
+			return false;
+	}
+	return true;
+}
+
+void runElfTest(const char *name, const unsigned char *filename, unsigned int file_length)
+{
+	iprintf("Executing %s...", name);
+	try
+	{
+		ElfProgram prog(reinterpret_cast<const unsigned int*>(filename),file_length);
+		iprintf("not passed.\n");
+	}
+	catch (std::runtime_error &err)
+	{
+		iprintf("passed.\n");
+	}
+}
+
+//It runs the program, waits for its exit, and returns the exit code
+int runProgram(const unsigned char *filename, unsigned int file_length)
+{
+	int ec;
+	ElfProgram prog(reinterpret_cast<const unsigned int*>(filename), file_length);
+	pid_t child=Process::create(prog);
+	Process::waitpid(child, &ec, 0);
+	return ec;
+}
+
+//Returns true if the process has been signaled with SIGSEV
+bool isSignaled(int exit_code)
+{
+	if(WIFSIGNALED(exit_code) && WTERMSIG(exit_code)==SIGSEGV)
+	{
+		return true;
+	}
+	return false;
+}
+
+void mpuTest1()
+{
+	int ec;
+	unsigned int *addr = (unsigned int*) 0x64100000;
+	iprintf("Executing MPU Test 1...\n");
+	ec = runProgram(test1_elf, test1_elf_len);
+	if(isSignaled(ec))
+	{
+		if(*addr == 0xbbbbbbbb)
+			iprintf("...not passed! The process has written a forbidden memory location.\n\n");
+		else if(*addr == WATERMARK_FILL)
+			iprintf("...passed!\n\n");
+		else
+			iprintf("...not passed! Memory has been somehow corrupted.\n\n");
+	}
+	else
+	{
+		iprintf("...not passed! Process exited normally.\n\n");
+	}
+}
+
+void mpuTest2()
+{
+	int ec;
+	unsigned int *addr = (unsigned int*) 0x64100200;
+	iprintf("Executing MPU Test 2...\n");
+	ec = runProgram(test2_elf, test2_elf_len);
+	if(isSignaled(ec))
+	{
+		if(*addr == WATERMARK_FILL)
+			iprintf("...passed!\n\n");
+		else
+			iprintf("...not passed! Memory has been somehow corrupted.\n\n");
+	}
+	else
+	{
+		iprintf("...not passed! Process exited normally.\n\n");
+	}
+}
+
+void mpuTest3()
+{
+	int ec;
+	unsigned int *addr = (unsigned int*) 0x64100200;
+	iprintf("Executing MPU Test 3...\n");
+	ec = runProgram(test3_elf, test3_elf_len);
+	if(isSignaled(ec))
+	{
+		if(*addr == 0xbbbbbbbb)
+			iprintf("...not passed! The process has written a forbidden memory location.\n\n");
+		else
+			iprintf("...passed!\n\n");
+	}
+	else
+	{
+		iprintf("...not passed! Process exited normally.\n\n");
+	}
+}
+
+void mpuTest4()
+{
+	int ec;
+	iprintf("Executing MPU Test 4...\n");
+	ec = runProgram(test4_elf, test4_elf_len);
+	if(isSignaled(ec))
+	{
+		iprintf("...passed!.\n\n");
+	}
+	else
+	{
+		iprintf("...not passed! Process exited normally.\n\n");
+	}
+}
+
+void mpuTest5()
+{
+	int ec;
+	unsigned int *addr = (unsigned int*) 0x64101000;
+	iprintf("Executing MPU Test 5...\n");
+	ec = runProgram(test5_elf, test5_elf_len);
+	if(isSignaled(ec))
+	{
+		if(*addr == 0xbbbbbbbb)
+			iprintf("...not passed! The process has written a forbidden memory location.\n\n");
+		else
+			iprintf("...passed!.\n\n");
+	}
+	else
+	{
+		iprintf("...not passed! Process exited normally.\n\n");
+	}
+}
+
+void mpuTest6()
+{
+	int ec;
+	unsigned int *addr = (unsigned int*) 0x64101404;
+	iprintf("Executing MPU Test 6...\n");
+	ec = runProgram(test6_elf, test6_elf_len);
+	if(isSignaled(ec))
+	{
+		if(*addr == 0xbbbbbbbb)
+			iprintf("...not passed! The process has written a forbidden memory location.\n\n");
+		else
+			iprintf("...passed!.\n\n");
+	}
+	else
+	{
+		iprintf("...not passed! Process exited normally.\n\n");
+	}
+}
+
+void mpuTest7()
+{
+	int ec;
+        unsigned int memSize = 8192;
+        
+        iprintf("Executing MPU Test 7...\n");
+        unsigned int *p = ProcessPool::instance().allocate(memSize);
+        memset(p, WATERMARK_FILL, memSize);
+	ElfProgram prog(reinterpret_cast<const unsigned int*>(test7_elf), test7_elf_len);
+	pid_t child=Process::create(prog);
+	delayMs(1000);
+	Process::waitpid(child, &ec, 0);
+	if(isSignaled(ec))
+	{       
+                if(memCheck(p, memSize) == true)
+                    iprintf("...passed!.\n\n");
+                else
+                    iprintf("...not passed! Memory NOT sane!");
+                ProcessPool::instance().deallocate(p);
+	}
+	else
+	{
+		iprintf("...not passed! Process exited normally.\n\n");
+                ProcessPool::instance().deallocate(p);
+	}
+}
+
+void mpuTest8()
+{
+	// We create two processes. The first goes to sleep for 2 seconds,
+	// while the second process tries to access the data region of the
+	// first.
+	unsigned int *addr = (unsigned int*) 0x64104004;
+	iprintf("Executing MPU Test 8...\n");
+	ElfProgram prog1(reinterpret_cast<const unsigned int*>(test8_1_elf),test8_1_elf_len);
+	ElfProgram prog2(reinterpret_cast<const unsigned int*>(test8_2_elf),test8_2_elf_len);
+	pid_t child1=Process::create(prog1);
+	pid_t child2=Process::create(prog2);
+	int ec1, ec2;
+	Process::waitpid(child1,&ec1,0);
+	Process::waitpid(child2,&ec2,0);
+	if(WIFSIGNALED(ec2) && (WTERMSIG(ec2) == SIGSEGV) && WIFEXITED(ec1))
+	{
+		if(*addr == 0xbbbbbbbb)
+			iprintf("...not passed! The process has written a forbidden memory location.\n\n");
+		else
+			iprintf("...passed!.\n\n");
+	}
+	else
+	{
+		iprintf("...not passed!\n\n");
+	}
+}
+
+void mpuTest9()
+{
+	iprintf("Executing MPU Test 9...\n");
+	ElfProgram prog(reinterpret_cast<const unsigned int*>(test9_elf),test9_elf_len);
+	std::vector<pid_t> pids;
+	int ec;
+	for(unsigned int i = 0; i < 100; i++)
+	{
+		pid_t pid;
+		try {
+			pid = Process::create(prog);
+			pids.push_back(pid);
+		}
+		catch (std::bad_alloc &ex)
+		{
+			iprintf("Bad alloc raised: %s\nIteration is: %d\n", ex.what(), i);
+			break;
+		}
+	}
+	iprintf("Allocated %d processes before system ran out of memory.\n", pids.size());
+	for(unsigned int i = 0; i < pids.size(); i++)
+	{
+		Process::waitpid(pids[i], &ec, 0);
+		//iprintf("Process %d has terminated with return code: %d\n", pids[i], ec);
+	}
+	iprintf("...passed!.\n\n");
+}
+
+void mpuTest10()
+{
+	// The first process is allocated and sent to sleep. The second process statically
+	// allocates a big array and calls a syscall, which will try to write in the memory
+	// chunk owned by the first process.
+	// The first process should end properly, the second process should fault.
+	int ec1, ec2;
+	iprintf("Executing MPU Test 10...\n");
+	ElfProgram prog1(reinterpret_cast<const unsigned int*>(test10_1_elf), test10_1_elf_len);
+	ElfProgram prog2(reinterpret_cast<const unsigned int*>(test10_2_elf), test10_2_elf_len);
+	pid_t child1=Process::create(prog1);
+	pid_t child2=Process::create(prog2);
+	Process::waitpid(child1, &ec1, 0);
+	Process::waitpid(child2, &ec2, 0);
+
+	if(!isSignaled(ec1) && isSignaled(ec2))
+	{
+		iprintf("...passed!.\n\n");
+	}
+	else
+	{
+		iprintf("...not passed!\n\n");
+	}
+}
+#endif //WITH_PROCESSES

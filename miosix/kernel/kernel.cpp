@@ -34,6 +34,7 @@
 #include "arch_settings.h"
 #include "sync.h"
 #include "stage_2_boot.h"
+#include "process.h"
 #include "kernel/scheduler/scheduler.h"
 #include <stdexcept>
 #include <algorithm>
@@ -594,6 +595,36 @@ Thread *Thread::doCreate(void*(*startfunc)(void*) , unsigned int stacksize,
     return thread;
 }
 
+#ifdef WITH_PROCESSES
+
+void Thread::IRQhandleSvc(unsigned int svcNumber)
+{
+    if(cur->proc==0) errorHandler(UNEXPECTED);
+    if(svcNumber==1)
+    {
+        const_cast<Thread*>(cur)->flags.IRQsetUserspace(true);
+        ::ctxsave=cur->userCtxsave;
+        cur->proc->mpu.IRQenable();
+    } else {
+        const_cast<Thread*>(cur)->flags.IRQsetUserspace(false);
+        ::ctxsave=cur->ctxsave;
+        miosix_private::MPUConfiguration::IRQdisable();
+    }
+}
+
+bool Thread::IRQreportFault(const miosix_private::FaultData& fault)
+{
+    if(cur->proc==0 || const_cast<Thread*>(cur)->flags.isInUserspace()==false)
+        return false;
+    cur->proc->fault=fault;
+    const_cast<Thread*>(cur)->flags.IRQsetUserspace(false);
+    ::ctxsave=cur->ctxsave;
+    miosix_private::MPUConfiguration::IRQdisable();
+    return true;
+}
+
+#endif //WITH_PROCESSES
+
 void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
 {
     void *result=0;
@@ -639,7 +670,88 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
     Thread::yield();//Since the thread is now deleted, yield immediately.
     //Will never reach here
     errorHandler(UNEXPECTED);
+}
+
+#ifdef WITH_PROCESSES
+
+miosix_private::SyscallParameters Thread::switchToUserspace()
+{
+    miosix_private::portableSwitchToUserspace();
+    miosix_private::SyscallParameters result(cur->userCtxsave);
+    return result;
+}
+
+Thread *Thread::createUserspace(void *(*startfunc)(void *), void *argv,
+                    unsigned short options, Process *proc)
+{   
+    //Allocate memory for the thread, return if fail
+    unsigned int *base=static_cast<unsigned int*>(malloc(sizeof(Thread)+
+            SYSTEM_MODE_PROCESS_STACK_SIZE+WATERMARK_LEN+CTXSAVE_ON_STACK));
+    if(base==NULL)
+    {
+        errorHandler(OUT_OF_MEMORY);
+        return NULL;//Error
+    }
+    //At the top of thread memory allocate the Thread class with placement new
+    void *threadClass=base+((SYSTEM_MODE_PROCESS_STACK_SIZE+WATERMARK_LEN+
+            CTXSAVE_ON_STACK)/sizeof(unsigned int));
+    Thread *thread=new (threadClass) Thread(base,SYSTEM_MODE_PROCESS_STACK_SIZE,false);
+    try {
+        thread->userCtxsave=new unsigned int[CTXSAVE_SIZE];
+    } catch(std::bad_alloc&)
+    {
+        thread->~Thread();
+        free(base); //Delete ALL thread memory
+        errorHandler(OUT_OF_MEMORY);
+        return NULL;//Error
+    }
+
+    //Fill watermark and stack
+    memset(base, WATERMARK_FILL, WATERMARK_LEN);
+    base+=WATERMARK_LEN/sizeof(unsigned int);
+    memset(base, STACK_FILL, SYSTEM_MODE_PROCESS_STACK_SIZE);
+
+    //On some architectures some registers are saved on the stack, therefore
+    //initCtxsave *must* be called after filling the stack.
+    miosix_private::initCtxsave(thread->ctxsave,startfunc,
+            reinterpret_cast<unsigned int*>(thread),argv);
     
+    thread->proc=proc;
+    if((options & JOINABLE)==0) thread->flags.IRQsetDetached();
+    thread->flags.IRQsetWait(true); //Thread is not yet ready
+    
+    //Add thread to thread list
+    {
+        //Handling the list of threads, critical section is required
+        PauseKernelLock lock;
+        if(Scheduler::PKaddThread(thread,MAIN_PRIORITY)==false)
+        {
+            //Reached limit on number of threads
+            base=thread->watermark;
+            thread->~Thread();
+            free(base); //Delete ALL thread memory
+            return NULL;
+        }
+    }
+
+    return thread;
+}
+
+void Thread::setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
+    unsigned int ramImageSize)
+{
+    void *(*startfunc)(void*)=reinterpret_cast<void *(*)(void*)>(entry);
+    unsigned int *ep=gotBase+ramImageSize/4;
+    miosix_private::initCtxsave(cur->userCtxsave,startfunc,ep,0,gotBase);
+}
+
+#endif //WITH_PROCESSES
+
+Thread::~Thread()
+{
+    #ifdef WITH_PROCESSES
+    if(userCtxsave) delete[] userCtxsave;
+    #endif //WITH_PROCESSES
 }
 
 //
