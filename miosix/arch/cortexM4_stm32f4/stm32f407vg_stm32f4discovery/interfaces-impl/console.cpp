@@ -191,9 +191,9 @@ bool Console::IRQtxComplete()
 char Console::readChar()
 {
     SerialData& s=SerialData::instance();
-    Lock<Mutex> l(SerialData::instance().rxMutex);
+    Lock<Mutex> l(s.rxMutex);
     char result;
-    SerialData::instance().rxQueue.get(result);
+    s.rxQueue.get(result);
     return result;
 }
 
