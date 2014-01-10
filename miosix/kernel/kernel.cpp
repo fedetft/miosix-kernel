@@ -741,7 +741,7 @@ void Thread::setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
     unsigned int ramImageSize)
 {
     void *(*startfunc)(void*)=reinterpret_cast<void *(*)(void*)>(entry);
-    unsigned int *ep=gotBase+ramImageSize/4;
+    unsigned int *ep=gotBase+ramImageSize/sizeof(int);
     miosix_private::initCtxsave(cur->userCtxsave,startfunc,ep,0,gotBase);
 }
 

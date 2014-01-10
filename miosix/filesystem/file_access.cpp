@@ -10,6 +10,8 @@
 
 using namespace std;
 
+#undef WITH_PROCESSES // <----------------------- FIXME! remove this!
+
 #ifdef WITH_FILESYSTEM
 
 namespace miosix {

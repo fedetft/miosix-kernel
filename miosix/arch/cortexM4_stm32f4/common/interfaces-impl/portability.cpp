@@ -277,6 +277,8 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
     ctxsave[6]=reinterpret_cast<unsigned long>(gotBase);              //--> r9 
     //leaving the content of r4-r8,r10-r11 uninitialized
+    ctxsave[9]=0xfffffffd; //EXC_RETURN=thread mode, use psp, no floating ops
+    //leaving the content of s16-s31 uninitialized
 }
 
 static unsigned int sizeToMpu(unsigned int size)

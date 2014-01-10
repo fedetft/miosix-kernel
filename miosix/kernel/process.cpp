@@ -31,6 +31,9 @@
 #include <cstring>
 #include <algorithm>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <limits.h>
 
@@ -72,15 +75,50 @@ using namespace std;
 
 namespace miosix {
 
+/**
+ * This class contains information on all the processes in the system
+ */
+class Processes
+{
+public:
+    /**
+     * \return the instance of this class (singleton)
+     */
+    static Processes& instance();
+    
+    ///Maps the pid to the Process instance. Includes zombie processes
+    map<pid_t,Process *> processes;
+    list<Process *> kernelChilds;
+    list<Process *> kernelZombies;
+    ///Used to assign a new pid to a process
+    pid_t pidCounter;
+    ///Uset to guard access to processes and pidCounter
+    Mutex procMutex;
+    ///Used to wait on process termination
+    ConditionVariable genericWaiting;
+    
+private:
+    Processes() {}
+    Processes(const Processes&);
+    Processes& operator=(const Processes&);
+};
+
+Processes& Processes::instance()
+{
+    static Processes singleton;
+    return singleton;
+}
+
 //
 // class Process
 //
 
 pid_t Process::create(const ElfProgram& program)
 {
+    Processes& p=Processes::instance();
     auto_ptr<Process> proc(new Process(program));
     {   
-        Lock<Mutex> l(procMutex);
+        Lock<Mutex> l(p.procMutex);
         proc->pid=getNewPid();
         if(Thread::getCurrentThread()->proc!=0)
         {
@@ -88,20 +126,20 @@ pid_t Process::create(const ElfProgram& program)
             Thread::getCurrentThread()->proc->childs.push_back(proc.get());
         } else {
             proc->ppid=0;
-            kernelChilds.push_back(proc.get());
+            p.kernelChilds.push_back(proc.get());
         }
-        processes[proc->pid]=proc.get();
+        p.processes[proc->pid]=proc.get();
     }
     Thread *thr=Thread::createUserspace(Process::start,0,Thread::DEFAULT,
         proc.get());
     if(thr==0)
     {
-        Lock<Mutex> l(procMutex);
-        processes.erase(proc->pid);
+        Lock<Mutex> l(p.procMutex);
+        p.processes.erase(proc->pid);
         if(Thread::getCurrentThread()->proc!=0)
         {
             Thread::getCurrentThread()->proc->childs.remove(proc.get());
-        } else kernelChilds.remove(proc.get());
+        } else p.kernelChilds.remove(proc.get());
         throw runtime_error("Thread creation failed");
     }
     //Cannot throw bad_alloc due to the reserve in Process's constructor.
@@ -117,15 +155,17 @@ pid_t Process::create(const ElfProgram& program)
 
 pid_t Process::getppid(pid_t proc)
 {
-    Lock<Mutex> l(procMutex);
-    map<pid_t,Process *>::iterator it=processes.find(proc);
-    if(it==processes.end()) return -1;
+    Processes& p=Processes::instance();
+    Lock<Mutex> l(p.procMutex);
+    map<pid_t,Process *>::iterator it=p.processes.find(proc);
+    if(it==p.processes.end()) return -1;
     return it->second->ppid;
 }
 
 pid_t Process::waitpid(pid_t pid, int* exit, int options)
 {
-    Lock<Mutex> l(procMutex);
+    Processes& p=Processes::instance();
+    Lock<Mutex> l(p.procMutex);
     Process *self=Thread::getCurrentThread()->proc;
     if(self==0)
     {
@@ -133,15 +173,15 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
         if(pid<=0)
         {
             //Wait for a generic child process
-            if(kernelZombies.empty() && (options & WNOHANG)) return 0;
-            while(kernelZombies.empty())
+            if(p.kernelZombies.empty() && (options & WNOHANG)) return 0;
+            while(p.kernelZombies.empty())
             {
-                if(kernelChilds.empty()) return -1;
-                genericWaiting.wait(l);
+                if(p.kernelChilds.empty()) return -1;
+                p.genericWaiting.wait(l);
             }
-            Process *joined=kernelZombies.front();
-            kernelZombies.pop_front();
-            processes.erase(joined->pid);
+            Process *joined=p.kernelZombies.front();
+            p.kernelZombies.pop_front();
+            p.processes.erase(joined->pid);
             if(joined->waitCount!=0) errorHandler(UNEXPECTED);
             if(exit!=0) *exit=joined->exitCode;
             pid_t result=joined->pid;
@@ -149,8 +189,8 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
             return result;
         } else {
             //Wait on a specific child process
-            map<pid_t,Process *>::iterator it=processes.find(pid);
-            if(it==processes.end() || it->second->ppid!=0) return -1;
+            map<pid_t,Process *>::iterator it=p.processes.find(pid);
+            if(it==p.processes.end() || it->second->ppid!=0) return -1;
             Process *joined=it->second;
             if(joined->zombie==false)
             {
@@ -169,8 +209,8 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
             {
                 if(exit!=0) *exit=joined->exitCode;
                 result=joined->pid;
-                kernelZombies.remove(joined);
-                processes.erase(joined->pid);
+                p.kernelZombies.remove(joined);
+                p.processes.erase(joined->pid);
                 delete joined;
             }
             return result;
@@ -184,11 +224,11 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
             while(self->zombies.empty())
             {
                 if(self->childs.empty()) return -1;
-                genericWaiting.wait(l);
+                p.genericWaiting.wait(l);
             }
             Process *joined=self->zombies.front();
             self->zombies.pop_front();
-            processes.erase(joined->pid);
+            p.processes.erase(joined->pid);
             if(joined->waitCount!=0) errorHandler(UNEXPECTED);
             if(exit!=0) *exit=joined->exitCode;
             pid_t result=joined->pid;
@@ -196,8 +236,8 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
             return result;
         } else {
             //Wait on a specific child process
-            map<pid_t,Process *>::iterator it=processes.find(pid);
-            if(it==processes.end() || it->second->ppid!=self->pid
+            map<pid_t,Process *>::iterator it=p.processes.find(pid);
+            if(it==p.processes.end() || it->second->ppid!=self->pid
                     || pid==self->pid) return -1;
             Process *joined=it->second;
             if(joined->zombie==false)
@@ -216,7 +256,7 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
                 result=joined->pid;
                 if(exit!=0) *exit=joined->exitCode;
                 self->zombies.remove(joined);
-                processes.erase(joined->pid);
+                p.processes.erase(joined->pid);
                 delete joined;
             }
             return result;
@@ -395,9 +435,9 @@ void *Process::start(void *argv)
 				case 8:
 					//seek
 					if(proc->mFiles.find(sp.getFirstParameter()) != proc->mFiles.end())
-						sp.setReturnValue(Filesystem::instance().lseekFile(sp.getFirstParameter(),
-																		   sp.getSecondParameter(),
-																		   sp.getThirdParameter()));
+						sp.setReturnValue(lseek(sp.getFirstParameter(),
+								                sp.getSecondParameter(),
+					  						    sp.getThirdParameter()));
 					else
 						sp.setReturnValue(-1);
 					
@@ -435,29 +475,30 @@ void *Process::start(void *argv)
         if(Thread::testTerminate()) running=false;
     } while(running);
     {
-        Lock<Mutex> l(procMutex);
+        Processes& p=Processes::instance();
+        Lock<Mutex> l(p.procMutex);
         proc->zombie=true;
         list<Process*>::iterator it;
         for(it=proc->childs.begin();it!=proc->childs.end();++it) (*it)->ppid=0;
         for(it=proc->zombies.begin();it!=proc->zombies.end();++it) (*it)->ppid=0;
-        kernelChilds.splice(kernelChilds.begin(),proc->childs);
-        kernelZombies.splice(kernelZombies.begin(),proc->zombies);
+        p.kernelChilds.splice(p.kernelChilds.begin(),proc->childs);
+        p.kernelZombies.splice(p.kernelZombies.begin(),proc->zombies);
         if(proc->ppid!=0)
         {
-            map<pid_t,Process *>::iterator it=processes.find(proc->ppid);
-            if(it==processes.end()) errorHandler(UNEXPECTED);
+            map<pid_t,Process *>::iterator it=p.processes.find(proc->ppid);
+            if(it==p.processes.end()) errorHandler(UNEXPECTED);
             it->second->childs.remove(proc);
             if(proc->waitCount>0) proc->waiting.broadcast();
             else {
                 it->second->zombies.push_back(proc);
-                genericWaiting.broadcast();
+                p.genericWaiting.broadcast();
             }
         } else {
-            kernelChilds.remove(proc);
+            p.kernelChilds.remove(proc);
             if(proc->waitCount>0) proc->waiting.broadcast();
             else {
-                kernelZombies.push_back(proc);
-                genericWaiting.broadcast();
+                p.kernelZombies.push_back(proc);
+                p.genericWaiting.broadcast();
             }
         }
     }
@@ -466,22 +507,16 @@ void *Process::start(void *argv)
 
 pid_t Process::getNewPid()
 {
-    for(;;pidCounter++)
+    Processes& p=Processes::instance();
+    for(;;p.pidCounter++)
     {
-        if(pidCounter<0) pidCounter=1;
-        if(pidCounter==0) continue; //Zero is not a valid pid
-        map<pid_t,Process*>::iterator it=processes.find(pidCounter);
-        if(it!=processes.end()) continue; //Pid number already used
-        return pidCounter++;
+        if(p.pidCounter<0) p.pidCounter=1;
+        if(p.pidCounter==0) continue; //Zero is not a valid pid
+        map<pid_t,Process*>::iterator it=p.processes.find(p.pidCounter);
+        if(it!=p.processes.end()) continue; //Pid number already used
+        return p.pidCounter++;
     }
 }
-
-map<pid_t,Process*> Process::processes;
-std::list<Process *> Process::kernelChilds;
-std::list<Process *> Process::kernelZombies;
-pid_t Process::pidCounter=1;
-Mutex Process::procMutex;
-ConditionVariable Process::genericWaiting;
     
 } //namespace miosix
 

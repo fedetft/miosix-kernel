@@ -2,6 +2,17 @@
 <configurationDescriptor version="89">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df root=".." name="miosix_np_2">
+      <df name="app_template">
+        <in>crt0.s</in>
+        <in>main.c</in>
+        <in>prog3.h</in>
+      </df>
+      <df name="app_template_withlibs">
+        <in>crt0.s</in>
+        <in>main.c</in>
+        <in>prog3.h</in>
+        <in>syscallfuffa.c</in>
+      </df>
       <df name="miosix">
         <df name="arch">
           <df name="arm7_lpc2000">
@@ -388,13 +399,22 @@
             <in>scheduler.h</in>
             <in>tick_interrupt.h</in>
           </df>
+          <in>SystemMap.cpp</in>
+          <in>SystemMap.h</in>
           <in>buffer_queue.h</in>
+          <in>elf_program.cpp</in>
+          <in>elf_program.h</in>
+          <in>elf_types.h</in>
           <in>error.cpp</in>
           <in>error.h</in>
           <in>intrusive.h</in>
           <in>kernel.cpp</in>
           <in>kernel.h</in>
           <in>logging.h</in>
+          <in>process.cpp</in>
+          <in>process.h</in>
+          <in>process_pool.cpp</in>
+          <in>process_pool.h</in>
           <in>pthread.cpp</in>
           <in>pthread_private.h</in>
           <in>stage_2_boot.cpp</in>
@@ -427,6 +447,7 @@
       <df name="miosix_np_2">
       </df>
       <in>main.cpp</in>
+      <in>main_processes.cpp</in>
     </df>
   </logicalFolder>
   <projectmakefile>miosix_np_2-Makefile.mk</projectmakefile>

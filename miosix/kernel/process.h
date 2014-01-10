@@ -138,17 +138,6 @@ private:
     bool zombie; ///< True for terminated not yet joined processes
     short int exitCode; ///< Contains the exit code
     
-    ///Maps the pid to the Process instance. Includes zombie processes
-    static std::map<pid_t,Process *> processes;
-    static std::list<Process *> kernelChilds;
-    static std::list<Process *> kernelZombies;
-    ///Used to assign a new pid to a process
-    static pid_t pidCounter;
-    ///Uset to guard access to processes and pidCounter
-    static Mutex procMutex;
-    ///Used to wait on process termination
-    static ConditionVariable genericWaiting;
-    
     //Needs access to fault,mpu
     friend class Thread;
     //Needs access to mpu

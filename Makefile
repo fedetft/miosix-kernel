@@ -14,7 +14,7 @@ SUBDIRS := miosix
 ## List here your source files (both .s, .c and .cpp)
 ##
 SRC :=                                  \
-main.cpp
+main_processes.cpp
 
 ##
 ## List here additional static libraries with relative path

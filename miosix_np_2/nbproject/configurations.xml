@@ -369,13 +369,22 @@
             <in>scheduler.h</in>
             <in>tick_interrupt.h</in>
           </df>
+          <in>SystemMap.cpp</in>
+          <in>SystemMap.h</in>
           <in>buffer_queue.h</in>
+          <in>elf_program.cpp</in>
+          <in>elf_program.h</in>
+          <in>elf_types.h</in>
           <in>error.cpp</in>
           <in>error.h</in>
           <in>intrusive.h</in>
           <in>kernel.cpp</in>
           <in>kernel.h</in>
           <in>logging.h</in>
+          <in>process.cpp</in>
+          <in>process.h</in>
+          <in>process_pool.cpp</in>
+          <in>process_pool.h</in>
           <in>pthread.cpp</in>
           <in>pthread_private.h</in>
           <in>stage_2_boot.cpp</in>
@@ -406,6 +415,7 @@
         <in>miosix.h</in>
       </df>
       <in>main.cpp</in>
+      <in>main_processes.cpp</in>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -2687,6 +2697,8 @@
       </makefileType>
       <item path="../main.cpp" ex="false" tool="1" flavor2="0">
       </item>
+      <item path="../main_processes.cpp" ex="false" tool="1" flavor2="0">
+      </item>
       <item path="../miosix/arch/arm7_lpc2000/common/arch_settings.h"
             ex="false"
             tool="3"
@@ -3624,7 +3636,17 @@
       </item>
       <item path="../miosix/interfaces/portability.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="../miosix/kernel/SystemMap.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../miosix/kernel/SystemMap.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../miosix/kernel/buffer_queue.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/kernel/elf_program.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../miosix/kernel/elf_program.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/kernel/elf_types.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/kernel/error.cpp" ex="false" tool="1" flavor2="0">
       </item>
@@ -3637,6 +3659,14 @@
       <item path="../miosix/kernel/kernel.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/kernel/logging.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/kernel/process.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../miosix/kernel/process.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../miosix/kernel/process_pool.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../miosix/kernel/process_pool.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../miosix/kernel/pthread.cpp" ex="false" tool="1" flavor2="0">
       </item>
