@@ -10,7 +10,7 @@
 
 using namespace std;
 
-#undef WITH_PROCESSES // <----------------------- FIXME! remove this!
+#undef WITH_PROCESSES // FIXME: remove this after integrating file descriptor tables and processes
 
 #ifdef WITH_FILESYSTEM
 
