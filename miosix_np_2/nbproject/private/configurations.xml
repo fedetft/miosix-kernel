@@ -1,18 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configurationDescriptor version="89">
+<configurationDescriptor version="90">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
-    <df root=".." name="miosix_np_2">
-      <df name="app_template">
-        <in>crt0.s</in>
-        <in>main.c</in>
-        <in>prog3.h</in>
-      </df>
-      <df name="app_template_withlibs">
-        <in>crt0.s</in>
-        <in>main.c</in>
-        <in>prog3.h</in>
-        <in>syscallfuffa.c</in>
-      </df>
+    <df root=".." name="0">
       <df name="miosix">
         <df name="arch">
           <df name="arm7_lpc2000">
@@ -447,7 +436,6 @@
       <df name="miosix_np_2">
       </df>
       <in>main.cpp</in>
-      <in>main_processes.cpp</in>
     </df>
   </logicalFolder>
   <projectmakefile>miosix_np_2-Makefile.mk</projectmakefile>
