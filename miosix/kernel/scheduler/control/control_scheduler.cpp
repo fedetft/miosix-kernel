@@ -224,7 +224,8 @@ void ControlScheduler::IRQfindNextThread()
                 miosix_private::MPUConfiguration::IRQdisable();
             } else {
                 ctxsave=cur->userCtxsave;
-                cur->proc->mpu.IRQenable();
+                //A kernel thread is never in userspace, so the cast is safe
+                static_cast<Process*>(cur->proc)->mpu.IRQenable();
             }
             #else //WITH_PROCESSES
             ctxsave=cur->ctxsave;

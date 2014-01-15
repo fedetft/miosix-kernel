@@ -1,5 +1,9 @@
 Changelog for Miosix np embedded OS
 
+- Added ProcessBase class. The kernel used to have a null pointer as process,
+  now it has a ProcessBase instance, and is the only entity that has an
+  instance of PRocessBase that is not also an instance of Process.
+- Merged processes branch
 - breaking change: updated newlib patch to make off_t a 64bit type. This allows
   accessing files larger than 4GByte for filesystems that support it (currently,
   only DevFs). This change requires recompiling GCC!

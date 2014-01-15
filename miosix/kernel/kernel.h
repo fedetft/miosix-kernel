@@ -386,15 +386,13 @@ bool isKernelRunning();
  */
 long long getTick();
 
-//Declaration of the struct, definition follows below
+//Forwrd declaration
 struct SleepData;
-
-//Forwrd declaration of classes
 class MemoryProfiling;
 class Mutex;
 class ConditionVariable;
 #ifdef WITH_PROCESSES
-class Process;
+class ProcessBase;
 #endif //WITH_PROCESSES
 
 /**
@@ -692,6 +690,11 @@ public:
     static const int getStackSize();
     
     #ifdef WITH_PROCESSES
+
+    /**
+     * \return the process associated with the thread 
+     */
+    ProcessBase *getProcess() { return proc; }
     
     /**
      * \internal
@@ -907,21 +910,11 @@ private:
 
     /**
      * Constructor, initializes thread data.
-     * \param priority thread's priority
      * \param watermark pointer to watermark area
      * \param stacksize thread's stack size
+     * \param defaultReent true if the global reentrancy structure is to be used
      */
-    Thread(unsigned int *watermark, unsigned int stacksize, bool defaultReent):
-        schedData(), flags(), savedPriority(0), mutexLocked(0), mutexWaiting(0),
-        watermark(watermark), ctxsave(), stacksize(stacksize),
-        cReent(defaultReent), cppReent()
-    {
-        joinData.waitingForJoin=NULL;
-        #ifdef WITH_PROCESSES
-        proc=0;
-        userCtxsave=0;
-        #endif //WITH_PROCESSES
-    }
+    Thread(unsigned int *watermark, unsigned int stacksize, bool defaultReent);
 
     /**
      * Destructor
@@ -981,7 +974,7 @@ private:
     CppReentrancyData cppReent;
     #ifdef WITH_PROCESSES
     ///Process to which this thread belongs. Null if it is a kernel thread.
-    Process *proc;
+    ProcessBase *proc;
     ///Pointer to the set of saved registers for when the thread is running in
     ///user mode. For kernel threads (i.e, threads where proc==null) this
     ///pointer is null

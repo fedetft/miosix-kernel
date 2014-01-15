@@ -417,8 +417,15 @@ public:
     void addFileDescriptorTable(FileDescriptorTable *fdt)
     {
         #ifdef WITH_PROCESSES
-        Lock<FastMutex> l(mutex);
-        fileTables.push_back(fdt);
+        if(isKernelRunning())
+        {
+            Lock<FastMutex> l(mutex);
+            fileTables.push_back(fdt);
+        } else {
+            //This function is also called before the kernel is started,
+            //and in this case it is forbidden to lock mutexes
+            fileTables.push_back(fdt);
+        }
         #endif //WITH_PROCESSES
     }
     

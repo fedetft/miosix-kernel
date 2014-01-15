@@ -42,10 +42,42 @@
 
 namespace miosix {
 
+class Process;
+
+/**
+ * This class contains the fields that are in common between the kernel and
+ * processes
+ */
+class ProcessBase
+{
+public:
+    /**
+     * Constructor
+     */
+    ProcessBase() : pid(0), ppid(0) {}
+    
+    /**
+     * \return the process' pid 
+     */
+    pid_t getPid() const { return pid; }
+    
+protected:
+    pid_t pid;  ///<The pid of this process
+    pid_t ppid; ///<The parent pid of this process
+    std::list<Process *> childs;   ///<Living child processes are stored here
+    std::list<Process *> zombies;  ///<Dead child processes are stored here
+    
+private:
+    ProcessBase(const ProcessBase&);
+    ProcessBase& operator= (const ProcessBase&);
+    
+    friend class Process;
+};
+
 /**
  * Process class, allows to create and handle processes
  */
-class Process
+class Process : public ProcessBase
 {
 public:
     /**
@@ -91,8 +123,6 @@ public:
     ~Process();
     
 private:
-    Process(const Process&);
-    Process& operator= (const Process&);
     
     /**
      * Constructor
@@ -124,11 +154,8 @@ private:
     miosix_private::MPUConfiguration mpu; ///<Memory protection data
     
     std::vector<Thread *> threads; ///<Threads that belong to the process
-    std::list<Process *> childs;   ///<Living child processes are stored here
-    std::list<Process *> zombies;  ///<Dead child processes are stored here
+    
     std::set<int> mFiles;		   ///<Files openend by this process
-    pid_t pid;  ///<The pid of this process
-    pid_t ppid; ///<The parent pid of this process
     ///Contains the count of active wait calls which specifically requested
     ///to wait on this process
     int waitCount;

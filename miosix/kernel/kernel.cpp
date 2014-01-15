@@ -76,6 +76,13 @@ static bool kernel_started=false;///<\internal becomes true after startKernel.
 /// calls to these functions.
 static unsigned char interruptDisableNesting=0;
 
+#ifdef WITH_PROCESSES
+
+/// The proc field of the Thread class for kernel threads points to this object
+static ProcessBase *kernel=0;
+
+#endif //WITH_PROCESSES
+
 /**
  * \internal
  * Idle thread. Created when the kernel is started, it phisically deallocates
@@ -153,6 +160,15 @@ bool areInterruptsEnabled()
 
 void startKernel()
 {
+    #ifdef WITH_PROCESSES
+    try {
+        kernel=new ProcessBase;
+    } catch(...) {
+        errorHandler(OUT_OF_MEMORY);
+        return;
+    }
+    #endif //WITH_PROCESSES
+
     // Create the idle and main thread
     Thread *idle, *main;
     idle=Thread::doCreate(idleThread,STACK_IDLE,NULL,Thread::DEFAULT,true);
@@ -263,7 +279,7 @@ bool IRQwakeThreads()
 Memory layout for a thread
 	|------------------------|
 	|     class Thread       |
-	|------------------------|<-- proc, this
+	|------------------------|<-- this
 	|         stack          |
 	|           |            |
 	|           V            |
@@ -599,12 +615,13 @@ Thread *Thread::doCreate(void*(*startfunc)(void*) , unsigned int stacksize,
 
 void Thread::IRQhandleSvc(unsigned int svcNumber)
 {
-    if(cur->proc==0) errorHandler(UNEXPECTED);
+    if(cur->proc==kernel) errorHandler(UNEXPECTED);
     if(svcNumber==1)
     {
         const_cast<Thread*>(cur)->flags.IRQsetUserspace(true);
         ::ctxsave=cur->userCtxsave;
-        cur->proc->mpu.IRQenable();
+        //We know it's not the kernel, so the cast is safe
+        static_cast<Process*>(cur->proc)->mpu.IRQenable();
     } else {
         const_cast<Thread*>(cur)->flags.IRQsetUserspace(false);
         ::ctxsave=cur->ctxsave;
@@ -614,9 +631,10 @@ void Thread::IRQhandleSvc(unsigned int svcNumber)
 
 bool Thread::IRQreportFault(const miosix_private::FaultData& fault)
 {
-    if(cur->proc==0 || const_cast<Thread*>(cur)->flags.isInUserspace()==false)
-        return false;
-    cur->proc->fault=fault;
+    if(const_cast<Thread*>(cur)->flags.isInUserspace()==false
+        || cur->proc==kernel) return false;
+    //We know it's not the kernel, so the cast is safe
+    static_cast<Process*>(cur->proc)->fault=fault;
     const_cast<Thread*>(cur)->flags.IRQsetUserspace(false);
     ::ctxsave=cur->ctxsave;
     miosix_private::MPUConfiguration::IRQdisable();
@@ -746,6 +764,18 @@ void Thread::setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
 }
 
 #endif //WITH_PROCESSES
+
+Thread::Thread(unsigned int *watermark, unsigned int stacksize,
+               bool defaultReent) : schedData(), flags(), savedPriority(0),
+               mutexLocked(0), mutexWaiting(0), watermark(watermark),
+               ctxsave(), stacksize(stacksize), cReent(defaultReent), cppReent()
+{
+    joinData.waitingForJoin=NULL;
+    #ifdef WITH_PROCESSES
+    proc=kernel;
+    userCtxsave=0;
+    #endif //WITH_PROCESSES
+}
 
 Thread::~Thread()
 {
