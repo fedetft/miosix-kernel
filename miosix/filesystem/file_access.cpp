@@ -7,10 +7,11 @@
 #include "mountpointfs/mountpointfs.h"
 #include "fat32/fat32.h"
 #include "kernel/logging.h"
+#ifdef WITH_PROCESSES
+#include "kernel/process.h"
+#endif //WITH_PROCESSES
 
 using namespace std;
-
-#undef WITH_PROCESSES // FIXME: remove this after integrating file descriptor tables and processes
 
 #ifdef WITH_FILESYSTEM
 

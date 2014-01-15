@@ -215,10 +215,6 @@ Process::~Process()
     #ifdef __CODE_IN_XRAM
     ProcessPool::instance().deallocate(loadedProgram);
     #endif //__CODE_IN_XRAM
-	
-	//close alla opened files
-	for(set<int>::iterator it = mFiles.begin(); it != mFiles.end(); ++it)
-		close(*it);
 }
 
 Process::Process(const ElfProgram& program) : program(program), waitCount(0),
@@ -296,44 +292,32 @@ void *Process::start(void *argv)
                     proc->exitCode=(sp.getFirstParameter() & 0xff)<<8;
                     break;
                 case 3:
-                    //FIXME: check that the pointer belongs to the process
-					
-					if((sp.getFirstParameter() >= 0 && sp.getFirstParameter() < 3) ||		//stdio
-						proc->mFiles.find(sp.getFirstParameter()) != proc->mFiles.end()){	//only on my files
-						
-						//check if pointer and pointer + size is within the mpu data region
-						if(!proc->mpu.within(sp.getSecondParameter()) ||
-						   !proc->mpu.within(sp.getSecondParameter() + sp.getThirdParameter())){
-							running = false;
-							proc->exitCode = SIGSYS;
-							break;
-						}
-						
-						sp.setReturnValue(write(sp.getFirstParameter(),
-												reinterpret_cast<const char*>(sp.getSecondParameter()),
-												sp.getThirdParameter()));
-					} else 
-						sp.setReturnValue(-1);
+                    //FIXME: check that the pointer belongs to the process	
+                    //check if pointer and pointer + size is within the mpu data region
+                    if(!proc->mpu.within(sp.getSecondParameter()) ||
+                       !proc->mpu.within(sp.getSecondParameter() + sp.getThirdParameter())){
+                        running = false;
+                        proc->exitCode = SIGSYS;
+                        break;
+                    }
+
+                    sp.setReturnValue(write(sp.getFirstParameter(),
+                                            reinterpret_cast<const char*>(sp.getSecondParameter()),
+                                            sp.getThirdParameter()));
 					
                     break;
                 case 4:					
-					if((sp.getFirstParameter() >= 0 && sp.getFirstParameter() < 3) ||		//stdio
-						proc->mFiles.find(sp.getFirstParameter())!= proc->mFiles.end()){	//only on my files
-                    
-						//check if pointer and pointer + size is within the mpu data region
-						if(!proc->mpu.within(sp.getSecondParameter()) ||
-						   !proc->mpu.within(sp.getSecondParameter() + sp.getThirdParameter())){
-							running = false;
-							proc->exitCode = SIGSYS;
-							break;
-						}
-							
-						sp.setReturnValue(read(sp.getFirstParameter(),
-											   reinterpret_cast<char*>(sp.getSecondParameter()),
-											   sp.getThirdParameter()));
-					} else
-						sp.setReturnValue(-1);
-					
+                    //check if pointer and pointer + size is within the mpu data region
+                    if(!proc->mpu.within(sp.getSecondParameter()) ||
+                       !proc->mpu.within(sp.getSecondParameter() + sp.getThirdParameter())){
+                        running = false;
+                        proc->exitCode = SIGSYS;
+                        break;
+                    }
+
+                    sp.setReturnValue(read(sp.getFirstParameter(),
+                                           reinterpret_cast<char*>(sp.getSecondParameter()),
+                                           sp.getThirdParameter()));
                     break;
                 case 5:
 					sp.setReturnValue(usleep(sp.getFirstParameter()));
@@ -360,34 +344,19 @@ void *Process::start(void *argv)
 
 					int fd = open(reinterpret_cast<const char*>(sp.getFirstParameter()),	//filename
 								  sp.getSecondParameter(),									//flags
-								  sp.getThirdParameter());									//permission, used?
-					if (fd != -1)
-						proc->mFiles.insert(fd);
-						
+								  sp.getThirdParameter());									//permission, used?						
 					sp.setReturnValue(fd);
 				}
                     break;
 				case 7:
 					//close
-					if(proc->mFiles.find(sp.getFirstParameter()) != proc->mFiles.end()){
-						int ret = close(sp.getFirstParameter());
-						
-						if(ret == 0)
-							proc->mFiles.erase(sp.getFirstParameter());
-						
-						sp.setReturnValue(ret);
-					} else 
-						sp.setReturnValue(-1);
+						sp.setReturnValue(close(sp.getFirstParameter()));
 					break;
 				case 8:
 					//seek
-					if(proc->mFiles.find(sp.getFirstParameter()) != proc->mFiles.end())
-						sp.setReturnValue(lseek(sp.getFirstParameter(),
+					sp.setReturnValue(lseek(sp.getFirstParameter(),
 								                sp.getSecondParameter(),
-					  						    sp.getThirdParameter()));
-					else
-						sp.setReturnValue(-1);
-					
+					  						    sp.getThirdParameter()));					
 					break;
 				#endif //WITH_FILESYSTEM
 				case 9:

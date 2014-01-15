@@ -37,6 +37,7 @@
 #include "sync.h"
 #include "elf_program.h"
 #include "config/miosix_settings.h"
+#include "filesystem/file_access.h"
 
 #ifdef WITH_PROCESSES
 
@@ -61,11 +62,14 @@ public:
      */
     pid_t getPid() const { return pid; }
     
+    FileDescriptorTable& getFileTable() { return fileTable; }
+    
 protected:
     pid_t pid;  ///<The pid of this process
     pid_t ppid; ///<The parent pid of this process
     std::list<Process *> childs;   ///<Living child processes are stored here
     std::list<Process *> zombies;  ///<Dead child processes are stored here
+    FileDescriptorTable fileTable; ///<The file descriptor table
     
 private:
     ProcessBase(const ProcessBase&);
@@ -155,7 +159,6 @@ private:
     
     std::vector<Thread *> threads; ///<Threads that belong to the process
     
-    std::set<int> mFiles;		   ///<Files openend by this process
     ///Contains the count of active wait calls which specifically requested
     ///to wait on this process
     int waitCount;

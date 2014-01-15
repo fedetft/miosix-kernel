@@ -1,5 +1,6 @@
 Changelog for Miosix np embedded OS
 
+- Added a per-process FileDescriptorTable
 - Added ProcessBase class. The kernel used to have a null pointer as process,
   now it has a ProcessBase instance, and is the only entity that has an
   instance of PRocessBase that is not also an instance of Process.
