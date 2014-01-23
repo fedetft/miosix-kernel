@@ -438,8 +438,7 @@ public:
      * to delete it, or NULL in case of errors.
      *
      * Calls errorHandler(INVALID_PARAMETERS) if stacksize or priority are
-     * invalid, and errorHandler(OUT_OF_MEMORY) if the heap is full.
-     * Can be called when the kernel is paused.
+     * invalid. Can be called when the kernel is paused.
      */
     static Thread *create(void *(*startfunc)(void *), unsigned int stacksize,
                             Priority priority=Priority(), void *argv=NULL,

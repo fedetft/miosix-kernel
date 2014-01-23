@@ -580,11 +580,8 @@ Thread *Thread::doCreate(void*(*startfunc)(void*) , unsigned int stacksize,
     //Allocate memory for the thread, return if fail
     unsigned int *base=static_cast<unsigned int*>(malloc(sizeof(Thread)+
             fullStackSize));
-    if(base==NULL)
-    {
-        errorHandler(OUT_OF_MEMORY);
-        return NULL;
-    }
+    if(base==NULL) return NULL;
+    
     //At the top of thread memory allocate the Thread class with placement new
     void *threadClass=base+(fullStackSize/sizeof(unsigned int));
     Thread *thread=new (threadClass) Thread(base,stacksize,defaultReent);
@@ -701,41 +698,21 @@ miosix_private::SyscallParameters Thread::switchToUserspace()
 
 Thread *Thread::createUserspace(void *(*startfunc)(void *), void *argv,
                     unsigned short options, Process *proc)
-{   
-    //Allocate memory for the thread, return if fail
-    unsigned int *base=static_cast<unsigned int*>(malloc(sizeof(Thread)+
-            SYSTEM_MODE_PROCESS_STACK_SIZE+WATERMARK_LEN+CTXSAVE_ON_STACK));
-    if(base==NULL)
-    {
-        errorHandler(OUT_OF_MEMORY);
-        return NULL;//Error
-    }
-    //At the top of thread memory allocate the Thread class with placement new
-    void *threadClass=base+((SYSTEM_MODE_PROCESS_STACK_SIZE+WATERMARK_LEN+
-            CTXSAVE_ON_STACK)/sizeof(unsigned int));
-    Thread *thread=new (threadClass) Thread(base,SYSTEM_MODE_PROCESS_STACK_SIZE,false);
+{
+    Thread *thread=doCreate(startfunc,SYSTEM_MODE_PROCESS_STACK_SIZE,argv,
+            options,false);
+    if(thread==NULL) return NULL;
+
+    unsigned int *base=thread->watermark;
     try {
         thread->userCtxsave=new unsigned int[CTXSAVE_SIZE];
-    } catch(std::bad_alloc&)
-    {
+    } catch(std::bad_alloc&) {
         thread->~Thread();
         free(base); //Delete ALL thread memory
-        errorHandler(OUT_OF_MEMORY);
         return NULL;//Error
     }
-
-    //Fill watermark and stack
-    memset(base, WATERMARK_FILL, WATERMARK_LEN);
-    base+=WATERMARK_LEN/sizeof(unsigned int);
-    memset(base, STACK_FILL, SYSTEM_MODE_PROCESS_STACK_SIZE);
-
-    //On some architectures some registers are saved on the stack, therefore
-    //initCtxsave *must* be called after filling the stack.
-    miosix_private::initCtxsave(thread->ctxsave,startfunc,
-            reinterpret_cast<unsigned int*>(thread),argv);
     
     thread->proc=proc;
-    if((options & JOINABLE)==0) thread->flags.IRQsetDetached();
     thread->flags.IRQsetWait(true); //Thread is not yet ready
     
     //Add thread to thread list
