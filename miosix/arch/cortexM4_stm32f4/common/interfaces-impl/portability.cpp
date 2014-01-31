@@ -257,6 +257,12 @@ void FaultData::print() const
         case HARDFAULT:
             iprintf("* Hardfault (PC was 0x%x)\n",pc);
             break;
+        case BF:
+            iprintf("* Busfault @ 0x%x (PC was 0x%x)\n",arg,pc);
+            break;
+        case BF_NOADDR:
+            iprintf("*Busfault (PC was 0x%x)\n",pc);
+            break;
     }
 }
 

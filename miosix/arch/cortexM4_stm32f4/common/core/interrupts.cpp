@@ -147,12 +147,32 @@ void __attribute__((noinline)) MemManage_impl()
     miosix_private::IRQsystemReboot();
 }
 
-void BusFault_Handler()
+
+void __attribute__((naked)) BusFault_Handler()
 {
+    saveContext();
+    //Call BusFault_impl(). Name is a C++ mangled name.
+    asm volatile("bl _Z13BusFault_implv");
+    restoreContext();
+}
+
+void __attribute__((noinline)) BusFault_impl()
+{
+    unsigned int cfsr=SCB->CFSR;
+    #ifdef WITH_PROCESSES
+    int id, arg=0;
+    if(cfsr & 0x00008000) { id=BF; arg=SCB->BFAR; }
+    else id=BF_NOADDR;
+    if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
+        id,getProgramCounter(),arg)))
+    {
+        SCB->SHCSR &= ~(1<<14); //Clear BUSFAULTPENDED bit
+        return;
+    }
+    #endif //WITH_PROCESSES
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected BusFault @ ");
     printUnsignedInt(getProgramCounter());
-    unsigned int cfsr=SCB->CFSR;
     if(cfsr & 0x00008000)
     {
         IRQerrorLog("Fault caused by attempted access to ");

@@ -50,7 +50,9 @@ enum FaultType
     UF_EPSR=8,     //Process attempted to access the EPSR
     UF_UNDEF=9,    //Process attempted to execute an invalid instruction
     UF_UNEXP=10,   //Unexpected usage fault
-    HARDFAULT=11   //Hardfault (for example process executed a BKPT instruction)
+    HARDFAULT=11,  //Hardfault (for example process executed a BKPT instruction)
+    BF=12,         //Busfault
+    BF_NOADDR=13   //Busfault (missing addr)
 };
 
 #endif	//INTERRUPTS_H
