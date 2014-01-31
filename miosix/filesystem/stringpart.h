@@ -80,8 +80,8 @@ public:
      * string are skipped. Note that idx calculations take place <b>before</b>
      * offset computation, so idx is relative to the original string.
      */
-    explicit StringPart(std::string& str, unsigned int idx=std::string::npos,
-               unsigned int off=0);
+    explicit StringPart(std::string& str, size_t idx=std::string::npos,
+               size_t off=0);
     
     /**
      * Constructor from C string
@@ -99,8 +99,7 @@ public:
      * string are skipped. Note that idx calculations take place <b>before</b>
      * offset computation, so idx is relative to the original string.
      */
-    explicit StringPart(char *s, unsigned int idx=std::string::npos,
-            unsigned int off=0);
+    explicit StringPart(char *s, size_t idx=std::string::npos, size_t off=0);
     
     /**
      * Constructor from const C string
@@ -121,7 +120,7 @@ public:
      * allocation.
      * \param rhs a StringPart
      */
-    StringPart(StringPart& rhs, unsigned int idx, unsigned int off=0);
+    StringPart(StringPart& rhs, size_t idx, size_t off=0);
     
     /**
      * Copy constructor. Note that deep copying is used, so that the newly
@@ -159,12 +158,12 @@ public:
      * \param c char to find in the string, starting from the end
      * \return the index of the last occurrence of c, or string::npos
      */
-    unsigned int findLastOf(char c) const;
+    size_t findLastOf(char c) const;
     
     /**
      * \return the StringPart length, which is the same as strlen(this->c_str())
      */
-    unsigned int length() const { return index-offset; }
+    size_t length() const { return index-offset; }
     
     /**
      * \return the StringPart as a C string 
@@ -175,7 +174,7 @@ public:
      * \param index index into the string
      * \return the equivalent of this->c_str()[index]
      */
-    char operator[] (unsigned int index) const;
+    char operator[] (size_t index) const;
     
     /**
      * \return true if the string is empty
@@ -204,8 +203,8 @@ private:
         char *cstr;        ///< Pointer to underlying C string
         const char *ccstr; ///< Pointer to underlying const C string
     };
-    unsigned int index;  ///< Index into the character substituted by '\0'
-    unsigned int offset; ///< Offset to skip the first part of a string
+    size_t index;        ///< Index into the character substituted by '\0'
+    size_t offset;       ///< Offset to skip the first part of a string
     char saved;          ///< Char that was replaced by '\0'
     bool owner;          ///< True if this class owns str
     char type;           ///< either CPPSTR or CSTR. Using char to reduce size

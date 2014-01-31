@@ -36,7 +36,7 @@ namespace miosix {
 // class StringPart
 //
 
-StringPart::StringPart(string& str, unsigned int idx, unsigned int off)
+StringPart::StringPart(string& str, size_t idx, size_t off)
         : str(&str), index(idx), offset(off), saved('\0'), owner(false),
           type(CPPSTR)
 {
@@ -48,12 +48,12 @@ StringPart::StringPart(string& str, unsigned int idx, unsigned int off)
     offset=min(offset,index);
 }
 
-StringPart::StringPart(char* s, unsigned int idx, unsigned int off)
+StringPart::StringPart(char* s, size_t idx, size_t off)
         : cstr(s), index(idx), offset(off), saved('\0'), owner(false),
           type(CSTR)
 {
     assert(cstr); //Passed pointer can't be null
-    unsigned int len=strlen(cstr);
+    size_t len=strlen(cstr);
     if(index==string::npos || index>=len) index=len;
     else {
         saved=cstr[index];
@@ -69,7 +69,7 @@ StringPart::StringPart(const char* s)
     index=strlen(s);
 }
 
-StringPart::StringPart(StringPart& rhs, unsigned int idx, unsigned int off)
+StringPart::StringPart(StringPart& rhs, size_t idx, size_t off)
         : saved('\0'), owner(false), type(rhs.type)
 {
     switch(type)
@@ -123,7 +123,7 @@ bool StringPart::startsWith(const StringPart& rhs) const
     return memcmp(this->c_str(),rhs.c_str(),rhs.length())==0;
 }
 
-unsigned int StringPart::findLastOf(char c) const
+size_t StringPart::findLastOf(char c) const
 {
     const char *begin=c_str();
     //Not strrchr() to take advantage of knowing the string length
@@ -142,7 +142,7 @@ const char *StringPart::c_str() const
     }
 }
 
-char StringPart::operator[] (unsigned int index) const
+char StringPart::operator[] (size_t index) const
 {
     switch(type)
     {
