@@ -67,14 +67,14 @@ public:
      * \param off offset into path where the subpath relative to the current
      * filesystem starts
      */
-    ResolvedPath(intrusive_ref_ptr<FilesystemBase> fs, int offset)
+    ResolvedPath(intrusive_ref_ptr<FilesystemBase> fs, size_t offset)
             : result(0), fs(fs), off(offset) {}
     
     int result; ///< 0 on success, a negative number on failure
     intrusive_ref_ptr<FilesystemBase> fs; ///< pointer to the filesystem to which the file belongs
     /// path.c_str()+off is a string containing the relative path into the
     /// filesystem for the looked up file
-    int off;
+    size_t off;
 };
 
 //
@@ -158,7 +158,7 @@ int FileDescriptorTable::getcwd(char *buf, size_t len)
 int FileDescriptorTable::chdir(const char* name)
 {
     if(name==0 || name[0]=='\0') return -EFAULT;
-    int len=strlen(name);
+    size_t len=strlen(name);
     if(name[len-1]!='/') len++; //Reserve room for trailing slash
     Lock<FastMutex> l(mutex);
     if(name[0]!='/') len+=cwd.length();
@@ -242,7 +242,7 @@ FileDescriptorTable::~FileDescriptorTable()
 
 string FileDescriptorTable::absolutePath(const char* path)
 {
-    int len=strlen(path);
+    size_t len=strlen(path);
     if(len>PATH_MAX) return "";
     if(path[0]=='/') return path;
     Lock<FastMutex> l(mutex);
@@ -280,7 +280,7 @@ private:
      * \param slash path[slash] is the / character after the ..
      * \return 0 on success, a negative number on error
      */
-    int upPathComponent(string& path, int slash);
+    int upPathComponent(string& path, size_t slash);
     
     /**
      * Handle a normal path component in a path, i.e, a path component
@@ -319,10 +319,10 @@ private:
     bool syms;
     
     /// path[index] is first unhandled char
-    unsigned int index;
+    size_t index;
     
     /// path.substr(indexIntoFs) is the relative path to current filesystem
-    unsigned int indexIntoFs;
+    size_t indexIntoFs;
     
     /// How many components does the relative path have in current fs
     int depthIntoFs;
@@ -347,7 +347,7 @@ ResolvedPath PathResolution::resolvePath(string& path, bool followLastSymlink)
     linksFollowed=0;
     for(;;)
     {
-        unsigned int slash=path.find_first_of('/',index);
+        size_t slash=path.find_first_of('/',index);
         //cout<<path.substr(0,slash)<<endl;
         //Last component (no trailing /)
         if(slash==string::npos) slash=path.length(); //NOTE: one past the last
@@ -374,7 +374,7 @@ ResolvedPath PathResolution::resolvePath(string& path, bool followLastSymlink)
         if(index>=path.length())
         {
             //Remove trailing /
-            unsigned int last=path.length()-1;
+            size_t last=path.length()-1;
             if(path[last]=='/')
             {
                 path.erase(last,1);
@@ -386,10 +386,10 @@ ResolvedPath PathResolution::resolvePath(string& path, bool followLastSymlink)
     }
 }
 
-int PathResolution::upPathComponent(string& path, int slash)
+int PathResolution::upPathComponent(string& path, size_t slash)
 {
     if(index<=1) return -ENOENT; //root dir has no parent
-    unsigned int removeStart=path.find_last_of('/',index-2);
+    size_t removeStart=path.find_last_of('/',index-2);
     if(removeStart==string::npos) return -ENOENT; //should not happen
     path.erase(removeStart,slash-removeStart);
     index=removeStart+1;
@@ -444,7 +444,7 @@ int PathResolution::followSymlink(string& path)
     if(target[0]=='/')
     {
         //Symlink is absolute
-        int newPathLen=target.length()+path.length()-index+1;
+        size_t newPathLen=target.length()+path.length()-index+1;
         if(newPathLen>PATH_MAX) return -ENAMETOOLONG;
         string newPath;
         newPath.reserve(newPathLen);
@@ -459,8 +459,8 @@ int PathResolution::followSymlink(string& path)
         depthIntoFs=1;
     } else {
         //Symlink is relative
-        int removeStart=path.find_last_of('/',index-2);
-        int newPathLen=path.length()-(index-removeStart-2)+target.length();
+        size_t removeStart=path.find_last_of('/',index-2);
+        size_t newPathLen=path.length()-(index-removeStart-2)+target.length();
         if(newPathLen>PATH_MAX) return -ENAMETOOLONG;
         string newPath;
         newPath.reserve(newPathLen);
@@ -478,7 +478,7 @@ int PathResolution::followSymlink(string& path)
 int PathResolution::recursiveFindFs(string& path)
 {
     depthIntoFs=1;
-    unsigned int backIndex=index;
+    size_t backIndex=index;
     for(;;)
     {
         backIndex=path.find_last_of('/',backIndex-1);
@@ -517,7 +517,7 @@ int FilesystemManager::kmount(const char* path, intrusive_ref_ptr<FilesystemBase
 {
     if(path==0 || path[0]=='\0' || fs==0) return -EFAULT;
     Lock<FastMutex> l(mutex);
-    int len=strlen(path);
+    size_t len=strlen(path);
     if(len>PATH_MAX) return -ENAMETOOLONG;
     string temp(path);
     if(!(temp=="/" && filesystems.empty())) //Skip check when mounting /
@@ -541,7 +541,7 @@ int FilesystemManager::umount(const char* path, bool force)
     typename map<StringPart,intrusive_ref_ptr<FilesystemBase> >::iterator fsIt;
     
     if(path==0 || path[0]=='\0') return -ENOENT;
-    int len=strlen(path);
+    size_t len=strlen(path);
     if(len>PATH_MAX) return -ENAMETOOLONG;
     Lock<FastMutex> l(mutex); //A reader-writer lock would be better
     fsIt it=filesystems.find(StringPart(path));
