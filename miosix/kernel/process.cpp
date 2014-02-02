@@ -210,12 +210,7 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
     }
 }
 
-Process::~Process()
-{
-    #ifdef __CODE_IN_XRAM
-    ProcessPool::instance().deallocate(loadedProgram);
-    #endif //__CODE_IN_XRAM
-}
+Process::~Process() {}
 
 Process::Process(const ElfProgram& program) : program(program), waitCount(0),
         zombie(false)
@@ -227,29 +222,22 @@ Process::Process(const ElfProgram& program) : program(program), waitCount(0),
     image.load(program);
     unsigned int elfSize=program.getElfSize();
     unsigned int roundedSize=elfSize;
-    //Allocatable blocks must be greater than ProcessPool::blockSize, and must
-    //be a power of two due to MPU limitations
     if(elfSize<ProcessPool::blockSize) roundedSize=ProcessPool::blockSize;
-    else if(elfSize & (elfSize-1)) roundedSize=1<<ffs(elfSize);
-    #ifndef __CODE_IN_XRAM
-    //FIXME -- begin
-    //Till a flash file system that ensures proper alignment of the programs
-    //loaded in flash is implemented, make the whole flash visible as a big MPU
-    //region
-    extern unsigned char _end asm("_end");
-    unsigned int flashEnd=reinterpret_cast<unsigned int>(&_end);
-    if(flashEnd & (flashEnd-1)) flashEnd=1<<ffs(flashEnd);
-    mpu=miosix_private::MPUConfiguration(0,flashEnd,
+    roundedSize=miosix_private::MPUConfiguration::roundSizeForMPU(roundedSize);
+    //TODO: Till a flash file system that ensures proper alignment of the
+    //programs loaded in flash is implemented, make the whole flash visible as
+    //a big MPU region. This allows a program to read and execute parts of
+    //other programs but not to write anything.
+    extern unsigned char _elf_pool_start asm("_elf_pool_start");
+    extern unsigned char _elf_pool_end asm("_elf_pool_end");
+    unsigned int *start=reinterpret_cast<unsigned int*>(&_elf_pool_start);
+    unsigned int *end=reinterpret_cast<unsigned int*>(&_elf_pool_end);
+    unsigned int elfPoolSize=(end-start)*sizeof(int);
+    elfPoolSize=miosix_private::MPUConfiguration::roundSizeForMPU(elfPoolSize);
+    mpu=miosix_private::MPUConfiguration(start,elfPoolSize,
             image.getProcessBasePointer(),image.getProcessImageSize());
 //    mpu=miosix_private::MPUConfiguration(program.getElfBase(),roundedSize,
 //            image.getProcessBasePointer(),image.getProcessImageSize());
-    //FIXME -- end
-    #else //__CODE_IN_XRAM
-    loadedProgram=ProcessPool::instance().allocate(roundedSize);
-    memcpy(loadedProgram,reinterpret_cast<char*>(program.getElfBase()),elfSize);
-    mpu=miosix_private::MPUConfiguration(loadedProgram,roundedSize,
-            image.getProcessBasePointer(),image.getProcessImageSize());
-    #endif //__CODE_IN_XRAM
 }
 
 void *Process::start(void *argv)
@@ -258,10 +246,6 @@ void *Process::start(void *argv)
     Process *proc=static_cast<Process*>(Thread::getCurrentThread()->proc);
     if(proc==0) errorHandler(UNEXPECTED);
     unsigned int entry=proc->program.getEntryPoint();
-    #ifdef __CODE_IN_XRAM
-    entry=entry-proc->program.getElfBase()+
-        reinterpret_cast<unsigned int>(proc->loadedProgram);
-    #endif //__CODE_IN_XRAM
     Thread::setupUserspaceContext(entry,proc->image.getProcessBasePointer(),
         proc->image.getProcessImageSize());
     bool running=true;
@@ -275,11 +259,7 @@ void *Process::start(void *argv)
             iprintf("Process %d terminated due to a fault\n"
                     "* Code base address was 0x%x\n"
                     "* Data base address was %p\n",proc->pid,
-                    #ifndef __CODE_IN_XRAM
                     proc->program.getElfBase(),
-                    #else //__CODE_IN_XRAM
-                    reinterpret_cast<unsigned int>(proc->loadedProgram),
-                    #endif //__CODE_IN_XRAM
                     proc->image.getProcessBasePointer());
             proc->mpu.dumpConfiguration();
             proc->fault.print();

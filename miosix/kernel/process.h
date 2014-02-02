@@ -148,11 +148,6 @@ private:
     static pid_t getNewPid();
     
     ElfProgram program; ///<The program that is running inside the process
-    #ifdef __CODE_IN_XRAM
-    /// When __CODE_IN_XRAM is defined, the programs are loaded in the process
-    /// pool so the memory is aligned and the MPU works
-    unsigned int *loadedProgram;
-    #endif //__CODE_IN_XRAM
     ProcessImage image; ///<The RAM image of a process
     miosix_private::FaultData fault; ///< Contains information about faults
     miosix_private::MPUConfiguration mpu; ///<Memory protection data

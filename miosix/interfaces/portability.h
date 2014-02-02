@@ -265,20 +265,31 @@ class MPUConfiguration
       * Print the MPU configuration for debugging purposes
       */
      void dumpConfiguration();
-	 
-	 /**
-	  * Check if the address is within the data segment
+     
+     /**
+      * Some MPU implementations may not allow regions of arbitrary size,
+      * this function allows to round a size up to the minimum value that
+      * the MPU support.
+      * \param size the size of a memory area to be configured as an MPU
+      * region
+      * \return the size rounded to the minimum MPU region allowed that is
+      * greater or equal to the given size
+      */
+     static unsigned int roundSizeForMPU(unsigned int size);
+ 
+     /**
+      * Check if the address is within the data segment
       * \param ptr the address of the pointer
       * \return  true if the pointer points within the data segment,
       * false otherwise.
       */
-	 bool within(const unsigned int ptr) const;
-	 
-	 /**
-	  * \internal
-	  */
-	 unsigned int getBaseDataAddress() const;
-	 unsigned int getDataSize() const;
+     bool within(const unsigned int ptr) const;
+ 
+     /**
+      * \internal
+      */
+     unsigned int getBaseDataAddress() const;
+     unsigned int getDataSize() const;
  
      //Uses default copy constructor and operator=
 private:

@@ -292,7 +292,7 @@ static unsigned int sizeToMpu(unsigned int size)
     assert(size>=32);
     unsigned int result=30-__builtin_clz(size);
     if(size & (size-1)) result++;
-    return result<<1;
+    return result;
 }
 
 //
@@ -310,27 +310,27 @@ MPUConfiguration::MPUConfiguration(unsigned int *elfBase, unsigned int elfSize,
     regValues[1]=2<<MPU_RASR_AP_Pos
                | MPU_RASR_C_Msk
                | 1 //Enable bit
-               | sizeToMpu(elfSize);
+               | sizeToMpu(elfSize)<<1;
     regValues[3]=3<<MPU_RASR_AP_Pos
                | MPU_RASR_XN_Msk
                | MPU_RASR_C_Msk
                | MPU_RASR_S_Msk
                | 1 //Enable bit
-               | sizeToMpu(imageSize);
+               | sizeToMpu(imageSize)<<1;
     #else //__CODE_IN_XRAM
     regValues[1]=2<<MPU_RASR_AP_Pos
                | MPU_RASR_C_Msk
                | MPU_RASR_B_Msk
                | MPU_RASR_S_Msk
                | 1 //Enable bit
-               | sizeToMpu(elfSize);
+               | sizeToMpu(elfSize)<<1;
     regValues[3]=3<<MPU_RASR_AP_Pos
                | MPU_RASR_XN_Msk
                | MPU_RASR_C_Msk
                | MPU_RASR_B_Msk
                | MPU_RASR_S_Msk
                | 1 //Enable bit
-               | sizeToMpu(imageSize);
+               | sizeToMpu(imageSize)<<1;
     #endif //__CODE_IN_XRAM
 }
 
@@ -342,8 +342,13 @@ void MPUConfiguration::dumpConfiguration()
         unsigned int end=base+(1<<(((regValues[2*i+1]>>1) & 31)+1));
         char w=regValues[2*i+1] & (1<<MPU_RASR_AP_Pos) ? 'w' : '-';
         char x=regValues[2*i+1] & MPU_RASR_XN_Msk ? '-' : 'x';
-        iprintf("* MPU region %d 0x%x-0x%x r%c%c\n",i,base,end,w,x);
+        iprintf("* MPU region %d 0x%08x-0x%08x r%c%c\n",i,base,end,w,x);
     }
+}
+
+unsigned int MPUConfiguration::roundSizeForMPU(unsigned int size)
+{
+    return 1<<(sizeToMpu(size)+1);
 }
 
 bool MPUConfiguration::within(const unsigned int ptr) const

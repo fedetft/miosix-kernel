@@ -56,6 +56,10 @@ _heap_end = 0x20008000;
 _process_pool_start = _heap_end;
 _process_pool_end = 0x20020000;                    /* end of available ram  */
 
+/* TODO: for now, leave the whole FLASH readable by processes */
+_elf_pool_start = 0x08000000;
+_elf_pool_end   = 0x08000000+1024*1024; 
+
 /* identify the Entry Point  */
 ENTRY(_Z13Reset_Handlerv)
 
