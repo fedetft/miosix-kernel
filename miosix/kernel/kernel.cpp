@@ -613,7 +613,7 @@ Thread *Thread::doCreate(void*(*startfunc)(void*) , unsigned int stacksize,
 void Thread::IRQhandleSvc(unsigned int svcNumber)
 {
     if(cur->proc==kernel) errorHandler(UNEXPECTED);
-    if(svcNumber==1)
+    if(svcNumber==SYS_USERSPACE)
     {
         const_cast<Thread*>(cur)->flags.IRQsetUserspace(true);
         ::ctxsave=cur->userCtxsave;

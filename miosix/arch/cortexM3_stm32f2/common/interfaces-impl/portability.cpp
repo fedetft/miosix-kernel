@@ -33,6 +33,7 @@
 #include "kernel/scheduler/scheduler.h"
 #include "kernel/scheduler/tick_interrupt.h"
 #include "core/interrupts.h"
+#include "kernel/process.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
@@ -128,7 +129,7 @@ void ISR_yield()
     // this syscall is usually a yield (due to the value of 0 above),
     // which can cause the scheduling of the kernel thread. At this point,
     // the pending mem fault is issued from the kernel thread, causing the
-    //kernel fault and reboot. This is caused by the mem fault interrupt
+    // kernel fault and reboot. This is caused by the mem fault interrupt
     // having less priority of the other interrupts.
     // This fix checks if there is a mem fault interrupt pending, and, if so,
     // it clears it and returns before calling the previously mentioned fake
@@ -152,7 +153,8 @@ void ISR_yield()
     //at this time we do not know if the active context is user or kernel
     unsigned int threadSp=ctxsave[0];
     unsigned int *processStack=reinterpret_cast<unsigned int*>(threadSp);
-    if(processStack[3]!=0) miosix::Thread::IRQhandleSvc(processStack[3]);
+    if(processStack[3]!=miosix::SYS_YIELD)
+        miosix::Thread::IRQhandleSvc(processStack[3]);
     else miosix::Scheduler::IRQfindNextThread();
     #else //WITH_PROCESSES
     miosix::Scheduler::IRQfindNextThread();
@@ -347,22 +349,39 @@ unsigned int MPUConfiguration::roundSizeForMPU(unsigned int size)
     return 1<<(sizeToMpu(size)+1);
 }
 
-bool MPUConfiguration::within(const unsigned int ptr) const
+bool MPUConfiguration::withinForReading(const void *ptr, size_t size) const
 {
-    unsigned int base = regValues[2] & (~0x1f);
-    unsigned int end = base + (1 << (((regValues[3] >> 1) & 31) + 1));
-    
-    return ptr >= base && ptr < end;
+    size_t codeStart=regValues[0] & (~0x1f);
+    size_t codeEnd=codeStart+(1<<(((regValues[1]>>1) & 31)+1));
+    size_t dataStart=regValues[2] & (~0x1f);
+    size_t dataEnd=dataStart+(1<<(((regValues[3]>>1) & 31)+1));
+    size_t base=reinterpret_cast<size_t>(ptr);
+    //The last check is to prevent a wraparound to be considered valid
+    return (   (base>=codeStart && base+size<codeEnd)
+            || (base>=dataStart && base+size<dataEnd)) && base+size>=base;
 }
 
-unsigned int MPUConfiguration::getBaseDataAddress() const
+bool MPUConfiguration::withinForWriting(const void *ptr, size_t size) const
 {
-    return regValues[2] & (~0x1f);
+    size_t dataStart=regValues[2] & (~0x1f);
+    size_t dataEnd=dataStart+(1<<(((regValues[3]>>1) & 31)+1));
+    size_t base=reinterpret_cast<size_t>(ptr);
+    //The last check is to prevent a wraparound to be considered valid
+    return base>=dataStart && base+size<dataEnd && base+size>=base;
 }
 
-unsigned int MPUConfiguration::getDataSize() const
+bool MPUConfiguration::withinForReading(const char* str) const
 {
-    return (1 << (((regValues[3] >> 1) & 31) + 1));
+    size_t codeStart=regValues[0] & (~0x1f);
+    size_t codeEnd=codeStart+(1<<(((regValues[1]>>1) & 31)+1));
+    size_t dataStart=regValues[2] & (~0x1f);
+    size_t dataEnd=dataStart+(1<<(((regValues[3]>>1) & 31)+1));
+    size_t base=reinterpret_cast<size_t>(str);
+    if((base>=codeStart) && (base<codeEnd))
+        return strnlen(str,codeEnd-base)<codeEnd-base;
+    if((base>=dataStart) && (base<dataEnd))
+        return strnlen(str,dataEnd-base)<dataEnd-base;
+    return false;
 }
 
 #endif //WITH_PROCESSES

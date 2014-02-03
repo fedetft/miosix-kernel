@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Rewritten syscall handling for processes. Fixed many vulnerabilites in the
+  checking of syscall parameters.
 - Fixed MPU size calculation, added _elf_pool_start and _elf_pool_end symbols
   that a linker script supporting processes must provide.
 - Thread creation no longer calls errorHandler(OUT_OF_MEMORY) if there

@@ -47,33 +47,6 @@ using namespace std;
 
 #ifdef WITH_PROCESSES
 
-/*
- * List of implemented supervisor calls
- * ------------------------------------
- * 
- * 0 : Yield. Can be called both by kernel threads and process threads both in
- *     userspace and kernelspace mode. It causes the scheduler to switch to
- *     another thread. It is the only SVC that is available also when processes
- *     are disabled in miosix_config.h. No parameters, no return value.
- * 1 : Back to userspace. It is used by process threads running in kernelspace
- *     mode to return to userspace mode after completing a supervisor call.
- *     If called by a process thread already in userspace mode it does nothing.
- *     Use of this SVC is by kernel threads is forbidden. No parameters, no
- *     return value.
- * 2 : Exit. Terminates the current process. One parameter, the exit code.
- *     Never returns. Use of this SVC is by kernel threads is forbidden.
- * 3 : Write. Writes to stdout or a file. Three parameters, file descriptor,
- *     pointer to data to be written, size of data. Returns the number of
- *     written data or -1 on error. Use of this SVC is by kernel threads is
- *     forbidden.
- * 4 : Read. Reads from stdin or a file. Three parameters, file descriptor,
- *     pointer to data buffer, size of buffer. Returns the number of
- *     read data or -1 on error. Use of this SVC is by kernel threads is
- *     forbidden.
- * 5 : Usleep. One parameter, number of microseconds to sleep. Returns 0 on
- *     success, -1 on failure. Use of this SVC is by kernel threads isforbidden.
- */
-
 namespace miosix {
 
 /**
@@ -265,100 +238,74 @@ void *Process::start(void *argv)
             proc->fault.print();
             #endif //WITH_ERRLOG
         } else {
+            int fd;
+            void *ptr;
+            size_t size;
+            const char *str;
             switch(sp.getSyscallId())
             {
-                case 2:
+                case SYS_EXIT:
                     running=false;
                     proc->exitCode=(sp.getFirstParameter() & 0xff)<<8;
                     break;
-                case 3:
-                    //FIXME: check that the pointer belongs to the process	
-                    //check if pointer and pointer + size is within the mpu data region
-                    if(!proc->mpu.within(sp.getSecondParameter()) ||
-                       !proc->mpu.within(sp.getSecondParameter() + sp.getThirdParameter())){
-                        running = false;
-                        proc->exitCode = SIGSYS;
-                        break;
-                    }
-
-                    sp.setReturnValue(write(sp.getFirstParameter(),
-                                            reinterpret_cast<const char*>(sp.getSecondParameter()),
-                                            sp.getThirdParameter()));
-					
+                case SYS_WRITE:
+                    fd=sp.getFirstParameter();
+                    ptr=reinterpret_cast<void*>(sp.getSecondParameter());
+                    size=sp.getThirdParameter();
+                    if(proc->mpu.withinForReading(ptr,size))
+                    {
+                        ssize_t res=write(fd,ptr,size);
+                        sp.setReturnValue(res>=0 ? res : -errno);
+                    } else sp.setReturnValue(-EFAULT);
                     break;
-                case 4:					
-                    //check if pointer and pointer + size is within the mpu data region
-                    if(!proc->mpu.within(sp.getSecondParameter()) ||
-                       !proc->mpu.within(sp.getSecondParameter() + sp.getThirdParameter())){
-                        running = false;
-                        proc->exitCode = SIGSYS;
-                        break;
-                    }
-
-                    sp.setReturnValue(read(sp.getFirstParameter(),
-                                           reinterpret_cast<char*>(sp.getSecondParameter()),
-                                           sp.getThirdParameter()));
+                case SYS_READ:
+                    fd=sp.getFirstParameter();
+                    ptr=reinterpret_cast<void*>(sp.getSecondParameter());
+                    size=sp.getThirdParameter();
+                    if(proc->mpu.withinForWriting(ptr,size))
+                    {
+                        ssize_t res=read(fd,ptr,size);
+                        sp.setReturnValue(res>=0 ? res : -errno);
+                    } else sp.setReturnValue(-EFAULT);
                     break;
-                case 5:
-					sp.setReturnValue(usleep(sp.getFirstParameter()));
+                case SYS_USLEEP:
+                    sp.setReturnValue(usleep(sp.getFirstParameter()));
                     break;
-				#ifdef WITH_FILESYSTEM
-				case 6:
-					//open
-				{
-					unsigned int base = proc->mpu.getBaseDataAddress();
-					unsigned int size = proc->mpu.getDataSize();
-					
-					unsigned int maxLen = min(base + size - sp.getFirstParameter(), (unsigned int)PATH_MAX);
-					size_t filenameLen = strnlen(reinterpret_cast<const char*>(sp.getFirstParameter()), maxLen);
-					
-					if(!proc->mpu.within(sp.getFirstParameter()) ||
-					   !proc->mpu.within(sp.getFirstParameter() + filenameLen)){
-						
-						proc->mpu.dumpConfiguration();	
-						
-						running = false;
-						proc->exitCode = SIGSYS;
-						break;
-					}
-
-					int fd = open(reinterpret_cast<const char*>(sp.getFirstParameter()),	//filename
-								  sp.getSecondParameter(),									//flags
-								  sp.getThirdParameter());									//permission, used?						
-					sp.setReturnValue(fd);
-				}
+                case SYS_OPEN:
+                    str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                    if(proc->mpu.withinForReading(str))
+                    {
+                        int fd=open(str,sp.getSecondParameter(),
+                            sp.getThirdParameter());
+                        sp.setReturnValue(fd>=0 ? fd : -errno);
+                    } else sp.setReturnValue(-EFAULT);
                     break;
-				case 7:
-					//close
-						sp.setReturnValue(close(sp.getFirstParameter()));
-					break;
-				case 8:
-					//seek
-					sp.setReturnValue(lseek(sp.getFirstParameter(),
-								                sp.getSecondParameter(),
-					  						    sp.getThirdParameter()));					
-					break;
-				#endif //WITH_FILESYSTEM
-				case 9:
-					//system
-				{				
-					std::pair<const unsigned int*, unsigned int> res = SystemMap::instance().getElfProgram(reinterpret_cast<const char*>(sp.getFirstParameter()));
-							
-					if(res.first == 0 || res.second == 0){
-						iprintf("Program not found.\n");
-						sp.setReturnValue(-1);
-						break;
-					}
-								
-					ElfProgram program(res.first, res.second);
-					int ret = 0;
-					
-					pid_t child = Process::create(program);
-					Process::waitpid(child, &ret, 0);
-					
-					sp.setReturnValue(WEXITSTATUS(ret));
-				}
-					break;
+                case SYS_CLOSE:
+                    sp.setReturnValue(close(sp.getFirstParameter()));
+                    break;
+                case SYS_LSEEK:
+                    sp.setReturnValue(lseek(sp.getFirstParameter(),
+                        sp.getSecondParameter(),sp.getThirdParameter()));
+                    break;
+                case SYS_SYSTEM:
+                    str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                    if(proc->mpu.withinForReading(str))
+                    {
+                        std::pair<const unsigned int*,unsigned int> res;
+                        res=SystemMap::instance().getElfProgram(str);
+                        if(res.first==0 || res.second==0)
+                        {
+                            iprintf("Program not found.\n");
+                            sp.setReturnValue(-1);
+                        } else {
+                            ElfProgram program(res.first,res.second);
+                            int ret=0;
+                            pid_t child=Process::create(program);
+                            Process::waitpid(child,&ret,0);
+                            sp.setReturnValue(WEXITSTATUS(ret));
+                        }
+                    } else sp.setReturnValue(-EFAULT);
+                    break;
                 default:
                     running=false;
                     proc->exitCode=SIGSYS; //Bad syscall

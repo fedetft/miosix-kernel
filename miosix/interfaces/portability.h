@@ -30,6 +30,7 @@
 
 //For SCHED_TYPE_* config options
 #include "config/miosix_settings.h"
+#include <cstddef>
 
 /**
  * \addtogroup Interfaces
@@ -278,18 +279,27 @@ class MPUConfiguration
      static unsigned int roundSizeForMPU(unsigned int size);
  
      /**
-      * Check if the address is within the data segment
-      * \param ptr the address of the pointer
-      * \return  true if the pointer points within the data segment,
-      * false otherwise.
+      * Check if a buffer is within a readable segment of the process
+      * \param ptr base pointer of the buffer to check
+      * \param size buffer size
+      * \return true if the buffer is correctly within the process
       */
-     bool within(const unsigned int ptr) const;
- 
+     bool withinForReading(const void *ptr, size_t size) const;
+     
      /**
-      * \internal
+      * Check if a buffer is within a writable segment of the process
+      * \param ptr base pointer of the buffer to check
+      * \param size buffer size
+      * \return true if the buffer is correctly within the process
       */
-     unsigned int getBaseDataAddress() const;
-     unsigned int getDataSize() const;
+     bool withinForWriting(const void *ptr, size_t size) const;
+     
+     /**
+      * Check if a nul terminated string is entirely contained in the process,
+      * \param str a pointer to a nul terminated string
+      * \return true if the buffer is correctly within the process
+      */
+     bool withinForReading(const char *str) const;
  
      //Uses default copy constructor and operator=
 private:

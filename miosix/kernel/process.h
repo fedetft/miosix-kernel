@@ -43,6 +43,47 @@
 
 namespace miosix {
 
+/**
+ * List of Miosix syscalls
+ */
+enum Syscalls
+{
+    // Yield. Can be called both by kernel threads and process threads both in
+    // userspace and kernelspace mode. It causes the scheduler to switch to
+    // another thread. It is the only SVC that is available also when processes
+    // are disabled in miosix_config.h. No parameters, no return value.
+    SYS_YIELD=0,
+    // Back to userspace. It is used by process threads running in kernelspace
+    // mode to return to userspace mode after completing an SVC. If called by a
+    // process thread already in userspace mode it does nothing. Use of this
+    // SVC by kernel threads is forbidden. No parameters, no return value.
+    SYS_USERSPACE=1,
+    
+    // Standard unix syscalls. Use of these SVC by kernel threads is forbidden.
+    SYS_EXIT=2,
+    SYS_WRITE=3,
+    SYS_READ=4,
+    SYS_USLEEP=5,
+    SYS_OPEN=6,
+    SYS_CLOSE=7,
+    SYS_LSEEK=8,
+    SYS_SYSTEM=9,
+    SYS_FSTAT=10,
+    SYS_ISATTY=11,
+    SYS_STAT=12,
+    SYS_LSTAT=13,
+    SYS_FCNTL=14,
+    SYS_IOCTL=15,
+    SYS_GETDENTS=16,
+    SYS_GETCWD=17,
+    SYS_CHDIR=18,
+    SYS_MKDIR=19,
+    SYS_RMDIR=20,
+    SYS_UNLINK=21,
+    SYS_RENAME=22
+};
+
+//Forware decl
 class Process;
 
 /**
