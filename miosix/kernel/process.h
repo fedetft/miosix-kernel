@@ -177,10 +177,18 @@ private:
     
     /**
      * Contains the process' main loop. 
-     * \param argv ignored parameter
+     * \param argv the process pointer is passed here
      * \return null
      */
     static void *start(void *argv);
+    
+    /**
+     * Handle a supervisor call
+     * \param sp syscall parameters
+     * \return true if the process can continue running, false if it has
+     * terminated
+     */
+    bool handleSvc(miosix_private::SyscallParameters sp);
     
     /**
      * \return an unique pid that is not zero and is not already in use in the

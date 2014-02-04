@@ -237,84 +237,7 @@ void *Process::start(void *argv)
             proc->mpu.dumpConfiguration();
             proc->fault.print();
             #endif //WITH_ERRLOG
-        } else {
-            int fd;
-            void *ptr;
-            size_t size;
-            const char *str;
-            switch(sp.getSyscallId())
-            {
-                case SYS_EXIT:
-                    running=false;
-                    proc->exitCode=(sp.getFirstParameter() & 0xff)<<8;
-                    break;
-                case SYS_WRITE:
-                    fd=sp.getFirstParameter();
-                    ptr=reinterpret_cast<void*>(sp.getSecondParameter());
-                    size=sp.getThirdParameter();
-                    if(proc->mpu.withinForReading(ptr,size))
-                    {
-                        ssize_t res=write(fd,ptr,size);
-                        sp.setReturnValue(res>=0 ? res : -errno);
-                    } else sp.setReturnValue(-EFAULT);
-                    break;
-                case SYS_READ:
-                    fd=sp.getFirstParameter();
-                    ptr=reinterpret_cast<void*>(sp.getSecondParameter());
-                    size=sp.getThirdParameter();
-                    if(proc->mpu.withinForWriting(ptr,size))
-                    {
-                        ssize_t res=read(fd,ptr,size);
-                        sp.setReturnValue(res>=0 ? res : -errno);
-                    } else sp.setReturnValue(-EFAULT);
-                    break;
-                case SYS_USLEEP:
-                    sp.setReturnValue(usleep(sp.getFirstParameter()));
-                    break;
-                case SYS_OPEN:
-                    str=reinterpret_cast<const char*>(sp.getFirstParameter());
-                    if(proc->mpu.withinForReading(str))
-                    {
-                        int fd=open(str,sp.getSecondParameter(),
-                            sp.getThirdParameter());
-                        sp.setReturnValue(fd>=0 ? fd : -errno);
-                    } else sp.setReturnValue(-EFAULT);
-                    break;
-                case SYS_CLOSE:
-                    sp.setReturnValue(close(sp.getFirstParameter()));
-                    break;
-                case SYS_LSEEK:
-                    sp.setReturnValue(lseek(sp.getFirstParameter(),
-                        sp.getSecondParameter(),sp.getThirdParameter()));
-                    break;
-                case SYS_SYSTEM:
-                    str=reinterpret_cast<const char*>(sp.getFirstParameter());
-                    if(proc->mpu.withinForReading(str))
-                    {
-                        std::pair<const unsigned int*,unsigned int> res;
-                        res=SystemMap::instance().getElfProgram(str);
-                        if(res.first==0 || res.second==0)
-                        {
-                            iprintf("Program not found.\n");
-                            sp.setReturnValue(-1);
-                        } else {
-                            ElfProgram program(res.first,res.second);
-                            int ret=0;
-                            pid_t child=Process::create(program);
-                            Process::waitpid(child,&ret,0);
-                            sp.setReturnValue(WEXITSTATUS(ret));
-                        }
-                    } else sp.setReturnValue(-EFAULT);
-                    break;
-                default:
-                    running=false;
-                    proc->exitCode=SIGSYS; //Bad syscall
-                    #ifdef WITH_ERRLOG
-                    iprintf("Unexpected syscall number %d\n",sp.getSyscallId());
-                    #endif //WITH_ERRLOG
-                    break;
-            }
-        }
+        } else running=proc->handleSvc(sp);
         if(Thread::testTerminate()) running=false;
     } while(running);
     {
@@ -338,6 +261,241 @@ void *Process::start(void *argv)
         }
     }
     return 0;
+}
+
+bool Process::handleSvc(miosix_private::SyscallParameters sp)
+{
+    try {
+        switch(sp.getSyscallId())
+        {
+            case SYS_EXIT:
+            {
+                exitCode=(sp.getFirstParameter() & 0xff)<<8;
+                return false;
+            }
+            case SYS_WRITE:
+            {
+                int fd=sp.getFirstParameter();
+                void *ptr=reinterpret_cast<void*>(sp.getSecondParameter());
+                size_t size=sp.getThirdParameter();
+                if(mpu.withinForReading(ptr,size))
+                {
+                    ssize_t result=fileTable.write(fd,ptr,size);
+                    sp.setReturnValue(result);
+                } else sp.setReturnValue(-EFAULT);
+                break;
+            }
+            case SYS_READ:
+            {
+                int fd=sp.getFirstParameter();
+                void *ptr=reinterpret_cast<void*>(sp.getSecondParameter());
+                size_t size=sp.getThirdParameter();
+                if(mpu.withinForWriting(ptr,size))
+                {
+                    ssize_t result=fileTable.read(fd,ptr,size);
+                    sp.setReturnValue(result);
+                } else sp.setReturnValue(-EFAULT);
+                break;
+            }
+            case SYS_USLEEP:
+            {
+                sp.setReturnValue(usleep(sp.getFirstParameter()));
+                break;
+            }
+            case SYS_OPEN:
+            {
+                const char *str;
+                str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                if(mpu.withinForReading(str))
+                {
+                    int fd=fileTable.open(str,sp.getSecondParameter(),
+                        sp.getThirdParameter());
+                    sp.setReturnValue(fd);
+                } else sp.setReturnValue(-EFAULT);
+                break;
+            }
+            case SYS_CLOSE:
+            {
+                int result=fileTable.close(sp.getFirstParameter());
+                sp.setReturnValue(result);
+                break;
+            }
+            case SYS_LSEEK:
+            {
+                //FIXME: need to pass and return a 64 bit parameter,
+                //now it is truncated to 32 bit but this is wrong
+                off_t result=fileTable.lseek(sp.getFirstParameter(),
+                    sp.getSecondParameter(),sp.getThirdParameter());
+                sp.setReturnValue(result);
+                break;
+            }
+            case SYS_SYSTEM:
+            {
+                const char *str;
+                str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                if(mpu.withinForReading(str))
+                {
+                    std::pair<const unsigned int*,unsigned int> res;
+                    res=SystemMap::instance().getElfProgram(str);
+                    if(res.first==0 || res.second==0)
+                    {
+                        sp.setReturnValue(-1);
+                    } else {
+                        ElfProgram program(res.first,res.second);
+                        int ret=0;
+                        pid_t child=Process::create(program);
+                        Process::waitpid(child,&ret,0);
+                        sp.setReturnValue(WEXITSTATUS(ret));
+                    }
+                } else sp.setReturnValue(-EFAULT);
+                break;
+            }
+            case SYS_FSTAT:
+            {
+                struct stat *pstat;
+                pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
+                if(mpu.withinForWriting(pstat,sizeof(struct stat)))
+                {
+                    int result=fileTable.fstat(sp.getFirstParameter(),pstat);
+                    sp.setReturnValue(result);
+                } else sp.setReturnValue(-EFAULT);
+                break;
+            }
+            case SYS_ISATTY:
+            {
+                int result=fileTable.isatty(sp.getFirstParameter());
+                sp.setReturnValue(result);
+                break;
+            }
+            case SYS_STAT:
+            {
+                const char *str;
+                str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                struct stat *pstat;
+                pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
+                if(mpu.withinForReading(str) &&
+                   mpu.withinForWriting(pstat,sizeof(struct stat)))
+                {
+                    int result=fileTable.stat(str,pstat);
+                    sp.setReturnValue(result);
+                } else sp.setReturnValue(-EFAULT);
+            }
+            case SYS_LSTAT:
+            {
+                const char *str;
+                str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                struct stat *pstat;
+                pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
+                if(mpu.withinForReading(str) &&
+                   mpu.withinForWriting(pstat,sizeof(struct stat)))
+                {
+                    int result=fileTable.lstat(str,pstat);
+                    sp.setReturnValue(result);
+                } else sp.setReturnValue(-EFAULT);
+            }
+            case SYS_FCNTL:
+            {
+                int result=fileTable.fcntl(sp.getFirstParameter(),
+                    sp.getSecondParameter(),sp.getThirdParameter());
+                sp.setReturnValue(result);
+                break;
+            }
+            case SYS_IOCTL:
+            {
+                //TODO: need a way to validate ARG
+                break;
+            }
+            case SYS_GETDENTS:
+            {
+                int fd=sp.getFirstParameter();
+                void *ptr=reinterpret_cast<void*>(sp.getSecondParameter());
+                size_t size=sp.getThirdParameter();
+                if(mpu.withinForWriting(ptr,size))
+                {
+                    int result=fileTable.getdents(fd,ptr,size);
+                    sp.setReturnValue(result);
+                } else sp.setReturnValue(-EFAULT);
+                break;
+            }
+            case SYS_GETCWD:
+            {
+                char *buf=reinterpret_cast<char*>(sp.getFirstParameter());
+                size_t size=sp.getSecondParameter();
+                if(mpu.withinForWriting(buf,size))
+                {
+                    int result=fileTable.getcwd(buf,size);
+                    sp.setReturnValue(result);
+                } else sp.setReturnValue(-EFAULT);
+                break;
+            }
+            case SYS_CHDIR:
+            {
+                const char *str;
+                str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                if(mpu.withinForReading(str))
+                {
+                    int result=fileTable.chdir(str);
+                    sp.setReturnValue(result);
+                } else sp.setReturnValue(-EFAULT);
+                break;
+            }
+            case SYS_MKDIR:
+            {
+                const char *str;
+                str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                if(mpu.withinForReading(str))
+                {
+                    int result=fileTable.mkdir(str,sp.getSecondParameter());
+                    sp.setReturnValue(result);
+                } else sp.setReturnValue(-EFAULT);
+                break;
+            }
+            case SYS_RMDIR:
+            {
+                const char *str;
+                str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                if(mpu.withinForReading(str))
+                {
+                    int result=fileTable.rmdir(str);
+                    sp.setReturnValue(result);
+                } else sp.setReturnValue(-EFAULT);
+                break;
+            }
+            case SYS_UNLINK:
+            {
+                const char *str;
+                str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                if(mpu.withinForReading(str))
+                {
+                    int result=fileTable.unlink(str);
+                    sp.setReturnValue(result);
+                } else sp.setReturnValue(-EFAULT);
+                break;
+            }
+            case SYS_RENAME:
+            {
+                const char *oldName, *newName;
+                oldName=reinterpret_cast<const char*>(sp.getFirstParameter());
+                newName=reinterpret_cast<const char*>(sp.getSecondParameter());
+                if(mpu.withinForReading(oldName) &&
+                   mpu.withinForReading(newName))
+                {
+                    int result=fileTable.rename(oldName,newName);
+                    sp.setReturnValue(result);
+                } else sp.setReturnValue(-EFAULT);
+                break;
+            }
+            default:
+                exitCode=SIGSYS; //Bad syscall
+                #ifdef WITH_ERRLOG
+                iprintf("Unexpected syscall number %d\n",sp.getSyscallId());
+                #endif //WITH_ERRLOG
+                return false;
+        }
+    } catch(exception& e) {
+        sp.setReturnValue(-ENOMEM);
+    }
+    return true;
 }
 
 pid_t Process::getNewPid()

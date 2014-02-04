@@ -61,17 +61,6 @@ namespace miosix {
 #define SCHED_TYPE_PRIORITY
 //#define SCHED_TYPE_CONTROL_BASED
 //#define SCHED_TYPE_EDF
-    
-/// \def WITH_PROCESSES
-/// If uncommented enables support for processes as well as threads.
-/// This enables the dynamic loader to load elf programs, the extended system
-/// call service and, if the hardware supports it, the MPU to provide memory
-/// isolation of processes
-//#define WITH_PROCESSES
-
-#if defined(WITH_PROCESSES) && defined(__NO_EXCEPTIONS)
-#error Processes require C++ exception support
-#endif //defined(WITH_PROCESSES) && defined(__NO_EXCEPTIONS)
 
 //
 // Filesystem options
@@ -98,6 +87,25 @@ namespace miosix {
 /// Maximum number of open files. Trying to open more will fail.
 /// Cannot be lower than 3, as the first three are stdin, stdout, stderr
 const unsigned char MAX_OPEN_FILES=8;
+
+/// \def WITH_PROCESSES
+/// If uncommented enables support for processes as well as threads.
+/// This enables the dynamic loader to load elf programs, the extended system
+/// call service and, if the hardware supports it, the MPU to provide memory
+/// isolation of processes
+//#define WITH_PROCESSES
+
+#if defined(WITH_PROCESSES) && defined(__NO_EXCEPTIONS)
+#error Processes require C++ exception support
+#endif //defined(WITH_PROCESSES) && defined(__NO_EXCEPTIONS)
+
+#if defined(WITH_PROCESSES) && !defined(WITH_FILESYSTEM)
+#error Processes require filesystem support
+#endif //defined(WITH_PROCESSES) && !defined(WITH_FILESYSTEM)
+
+#if defined(WITH_PROCESSES) && !defined(WITH_DEVFS)
+#error Processes require devfs support
+#endif //defined(WITH_PROCESSES) && !defined(WITH_DEVFS)
 
 //
 // C/C++ standard library I/O (stdin, stdout and stderr related)
