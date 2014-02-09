@@ -306,10 +306,11 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             {
                 const char *str;
                 str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                int flags=sp.getSecondParameter();
                 if(mpu.withinForReading(str))
                 {
-                    int fd=fileTable.open(str,sp.getSecondParameter(),
-                        sp.getThirdParameter());
+                    int fd=fileTable.open(str,flags,
+                        (flags & O_CREAT) ? sp.getThirdParameter() : 0);
                     sp.setReturnValue(fd);
                 } else sp.setReturnValue(-EFAULT);
                 break;

@@ -1,5 +1,6 @@
 Changelog for Miosix np embedded OS
 
+- Added forwarding of file mode in the open() syscall.
 - Implemented may other syscalls.
 - Rewritten syscall handling for processes. Fixed many vulnerabilites in the
   checking of syscall parameters.

@@ -255,8 +255,15 @@ int _open_r(struct _reent *ptr, const char *name, int flags, int mode)
 
 int open(const char *name, int flags, ...)
 {
-    //TODO: retrieve file mode
-    return _open_r(miosix::CReentrancyAccessor::getReent(),name,flags,0);
+    int mode=0;
+    if(flags & O_CREAT)
+    {
+        va_list arg;
+        va_start(arg,flags);
+        mode=va_arg(arg,int);
+        va_end(arg);
+    }
+    return _open_r(miosix::CReentrancyAccessor::getReent(),name,flags,mode);
 }
 
 /**
