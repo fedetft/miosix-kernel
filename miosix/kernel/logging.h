@@ -42,7 +42,7 @@ namespace miosix {
 inline void bootlog(const char *string)
 {
     #ifdef WITH_BOOTLOG
-    DefaultConsole::instance().get()->write(string,std::strlen(string));
+    DefaultConsole::instance().get()->writeBlock(string,std::strlen(string),0);
     #endif //WITH_BOOTLOG
 }
 
@@ -66,7 +66,7 @@ inline void IRQbootlog(const char *string)
 inline void errorLog(const char *string)
 {
     #ifdef WITH_ERRLOG
-    DefaultConsole::instance().get()->write(string,std::strlen(string));
+    DefaultConsole::instance().get()->writeBlock(string,std::strlen(string),0);
     #endif //WITH_ERRLOG
 }
 

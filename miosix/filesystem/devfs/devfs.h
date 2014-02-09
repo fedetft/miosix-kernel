@@ -34,8 +34,6 @@
 #include "kernel/sync.h"
 #include "config/miosix_settings.h"
 
-#ifdef WITH_DEVFS
-
 namespace miosix {
 
 /**
@@ -51,6 +49,9 @@ namespace miosix {
  * 
  * Classes of this type are reference counted, must be allocated on the heap
  * and managed through intrusive_ref_ptr<FileBase>
+ * 
+ * This class is defined also if WITH_DEVFS is not defined as it is used by the
+ * Console interface, but in this case the interface is reduced to a minimum
  */
 class Device : public IntrusiveRefCounted,
         public IntrusiveRefCountedSharedFromThis<Device>
@@ -61,11 +62,16 @@ public:
      * \param seekable if true, device is seekable
      * \param block if true, it is a block device
      */
-    Device(bool seekable=false, bool block=false)
-            : seekable(seekable), block(block) {}
+    Device(bool seekable=false, bool block=false, bool tty=false)
+    #ifdef WITH_DEVFS
+        : seekable(seekable), block(block), tty(tty)
+    #endif //WITH_DEVFS
+    {}
     
+    #ifdef WITH_DEVFS
+
     /**
-     * Return an instance of the file type managed by this DeviceFileGenerator
+     * Return an instance of the file type managed by this Device
      * \param file the file object will be stored here, if the call succeeds
      * \param fs pointer to the DevFs
      * \param flags file flags (open for reading, writing, ...)
@@ -76,21 +82,30 @@ public:
             intrusive_ref_ptr<FilesystemBase> fs, int flags, int mode);
     
     /**
-     * Obtain information for the file type managed by this DeviceFileGenerator
+     * Obtain information for the file type managed by this Device
      * \param pstat file information is stored here
      * \return 0 on success, or a negative number on failure
      */
-    int lstat(struct stat *pstat) const;
+    int fstat(struct stat *pstat) const;
+    
+    /**
+     * Check whether the file refers to a terminal.
+     * \return 1 if it is a terminal, 0 if it is not, or a negative number in
+     * case of errors
+     */
+    virtual int isatty() const;
     
     /**
      * \internal
-     * Called be DevFs to assign a device and inode to the DeviceFileGenerator
+     * Called be DevFs to assign a device and inode to the Device
      */
     void setFileInfo(unsigned int st_ino, short st_dev)
     {
         this->st_ino=st_ino;
         this->st_dev=st_dev;
     }
+    
+    #endif //WITH_DEVFS
     
     /**
      * Read a block of data
@@ -111,6 +126,18 @@ public:
     virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where);
     
     /**
+     * Write a string.
+     * An extension to the Device interface that adds a new member function,
+     * which is used by the kernel on console devices to write debug information
+     * before the kernel is started or in case of serious errors, right before
+     * rebooting.
+     * Can ONLY be called when the kernel is not yet started, paused or within
+     * an interrupt. This default implementation ignores writes.
+     * \param str the string to write. The string must be NUL terminated.
+     */
+    virtual void IRQwrite(const char *str);
+    
+    /**
      * Performs device-specific operations
      * \param cmd specifies the operation to perform
      * \param arg optional argument that some operation require
@@ -124,14 +151,19 @@ public:
     virtual ~Device();
 
 protected:
+    #ifdef WITH_DEVFS
     unsigned int st_ino; ///< inode of device file
     short st_dev;        ///< device (unique id of the filesystem) of device file
     const bool seekable; ///< If true, device is seekable
     const bool block;    ///< If true, it is a block device
+    const bool tty;      ///< If true, it is a tty
+    #endif //WITH_DEVFS
 };
 
+#ifdef WITH_DEVFS
+
 /**
- * FIXME remove this when removing Console interface!
+ * FIXME remove this when removing Disk interface!
  */
 class DiskAdapter : public Device
 {
@@ -142,6 +174,18 @@ public:
     virtual int ioctl(int cmd, void *arg);
 private:
     FastMutex mutex;
+};
+
+/**
+ * FIXME remove this when removing Console interface!
+ */
+class ConsoleAdapter : public Device
+{
+public:
+    ConsoleAdapter() : Device(false,false,true) {}
+    virtual ssize_t readBlock(void *buffer, size_t size, off_t where);
+    virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where);
+    virtual void IRQwrite(const char *str);
 };
 
 /**
@@ -244,8 +288,8 @@ private:
     static const int rootDirInode=1;
 };
 
-} //namespace miosix
-
 #endif //WITH_DEVFS
+
+} //namespace miosix
 
 #endif //DEVFS_H

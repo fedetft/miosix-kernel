@@ -92,7 +92,7 @@ void IRQbspInit()
     ledOff();
     miosix::IRQserialInit();
     DefaultConsole::instance().IRQset(
-        intrusive_ref_ptr<ConsoleDevice>(new ConsoleAdapter));
+        intrusive_ref_ptr<Device>(new ConsoleAdapter));
 }
 
 void bspInit2()

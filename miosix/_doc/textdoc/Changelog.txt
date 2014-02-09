@@ -1,5 +1,11 @@
 Changelog for Miosix np embedded OS
 
+- Class TerminalDevice is no longer a proxy for a FileBase, but an adapter
+  that allows to wrap a serial port, which has a Device interface into a
+  FileBase interface.
+- Removed class ConsoleDevice. The purpose of its interface is now carried
+  out by the Device class of DevFs. This will allow to list serial ports
+  among the devices of DevFs, and additionally results in code size reduction.
 - Factorized common code in the various interrupts.h and interrupts.cpp from
   the various arch directories to miosix/common. Now all cortex bsps use the
   same code for handling fault interrupts, avoiding code duplication.

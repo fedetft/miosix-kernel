@@ -32,12 +32,13 @@
 #include "filesystem/stringpart.h"
 #include "interfaces/disk.h" //FIXME: remove
 #include "filesystem/ioctl.h" //FIXME: remove
+#include <interfaces/console.h> //FIXME: remove
 
 using namespace std;
 
-#ifdef WITH_DEVFS
-
 namespace miosix {
+
+#ifdef WITH_DEVFS
 
 static const int _NOSEEK=0x20000; //Special flag used only here to disallow seek
 
@@ -104,6 +105,13 @@ public:
     virtual int fstat(struct stat *pstat) const;
     
     /**
+     * Check whether the file refers to a terminal.
+     * \return 1 if it is a terminal, 0 if it is not, or a negative number in
+     * case of errors
+     */
+    virtual int isatty() const;
+    
+    /**
      * Perform various operations on a file descriptor
      * \param cmd specifies the operation to perform
      * \param arg optional argument that some operation require
@@ -160,7 +168,12 @@ off_t DevFsFile::lseek(off_t pos, int whence)
 
 int DevFsFile::fstat(struct stat *pstat) const
 {
-    return dev->lstat(pstat);
+    return dev->fstat(pstat);
+}
+
+int DevFsFile::isatty() const
+{
+    return dev->isatty();
 }
 
 int DevFsFile::ioctl(int cmd, void *arg)
@@ -181,12 +194,19 @@ int Device::open(intrusive_ref_ptr<FileBase>& file,
     return 0;
 }
 
-int Device::lstat(struct stat* pstat) const
+int Device::fstat(struct stat* pstat) const
 {
     mode_t mode=(block ? S_IFBLK : S_IFCHR) | 0750;//brwxr-x--- | crwxr-x---
     fillStatHelper(pstat,st_ino,st_dev,mode);
     return 0;
 }
+
+int Device::isatty() const
+{
+    return tty ? 1 : 0;
+}
+
+#endif //WITH_DEVFS
 
 ssize_t Device::readBlock(void *buffer, size_t size, off_t where)
 {
@@ -199,12 +219,16 @@ ssize_t Device::writeBlock(const void *buffer, size_t size, off_t where)
     return size; //Act as /dev/null
 }
 
+void Device::IRQwrite(const char *str) {}
+
 int Device::ioctl(int cmd, void *arg)
 {
     return -ENOTTY; //Means the operation does not apply to this descriptor
 }
 
 Device::~Device() {}
+
+#ifdef WITH_DEVFS
 
 //
 // class DiskAdapter
@@ -242,6 +266,29 @@ int DiskAdapter::ioctl(int cmd, void *arg)
     return 0;
 }
 // FIXME temporary -- begin
+
+//
+// class ConsoleAdapter
+//
+
+// FIXME temporary -- begin
+ssize_t ConsoleAdapter::readBlock(void* buffer, size_t size, off_t where)
+{
+    char *d=reinterpret_cast<char*>(buffer);
+    for(size_t i=0;i<size;i++) *d++=Console::readChar();
+    return size;
+}
+ssize_t ConsoleAdapter::writeBlock(const void* buffer, size_t size, off_t where)
+{
+    Console::write(reinterpret_cast<const char*>(buffer),size);
+    return size;
+}
+void ConsoleAdapter::IRQwrite(const char* str)
+{
+    Console::IRQwrite(str);
+    while(!Console::IRQtxComplete()) ;
+}
+// FIXME temporary -- end
 
 /**
  * Directory class for DevFs 
@@ -312,7 +359,7 @@ int DevFsDirectory::getdents(void *dp, int len)
         for(;it!=files.end();++it)
         {
             struct stat st;
-            it->second->lstat(&st);
+            it->second->fstat(&st);
             if(addEntry(&buffer,end,st.st_ino,st.st_mode>>12,it->first)>0)
                 continue;
             //Buffer finished
@@ -386,7 +433,7 @@ int DevFs::lstat(StringPart& name, struct stat *pstat)
     }
     map<StringPart,intrusive_ref_ptr<Device> >::iterator it=files.find(name);
     if(it==files.end()) return -ENOENT;
-    return it->second->lstat(pstat);
+    return it->second->fstat(pstat);
 }
 
 int DevFs::unlink(StringPart& name)
@@ -420,6 +467,6 @@ int DevFs::rmdir(StringPart& name)
     return -EACCES; // No directories support in DevFs yet
 }
 
-} //namespace miosix
-
 #endif //WITH_DEVFS
+
+} //namespace miosix

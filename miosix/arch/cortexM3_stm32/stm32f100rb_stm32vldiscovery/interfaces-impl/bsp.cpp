@@ -64,7 +64,7 @@ void IRQbspInit()
     miosix::IRQserialInit();
     #endif //STDOUT_REDIRECTED_TO_DCC
     DefaultConsole::instance().IRQset(
-        intrusive_ref_ptr<ConsoleDevice>(new ConsoleAdapter));
+        intrusive_ref_ptr<Device>(new ConsoleAdapter));
 }
 
 void bspInit2()

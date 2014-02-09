@@ -181,7 +181,7 @@ void IRQbspInit()
     //(peripheral clock)/(16*baudrate)
     miosix::IRQserialInit(TIMER_CLOCK/16/SERIAL_PORT_SPEED);
     DefaultConsole::instance().IRQset(
-        intrusive_ref_ptr<ConsoleDevice>(new ConsoleAdapter));
+        intrusive_ref_ptr<Device>(new ConsoleAdapter));
 }
 
 void bspInit2()
