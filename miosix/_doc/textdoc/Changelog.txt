@@ -1,5 +1,8 @@
 Changelog for Miosix np embedded OS
 
+- Factorized common code in the various interrupts.h and interrupts.cpp from
+  the various arch directories to miosix/common. Now all cortex bsps use the
+  same code for handling fault interrupts, avoiding code duplication.
 - Added forwarding of file mode in the open() syscall.
 - Implemented may other syscalls.
 - Rewritten syscall handling for processes. Fixed many vulnerabilites in the

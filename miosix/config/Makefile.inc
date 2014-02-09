@@ -312,7 +312,6 @@ ifeq ($(ARCH),arm7_lpc2000)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/core/interrupts.cpp             \
         $(BOARD_INC)/drivers/serial.cpp              \
         $(BOARD_INC)/interfaces-impl/portability.cpp \
         $(BOARD_INC)/interfaces-impl/console.cpp     \
@@ -354,7 +353,8 @@ ifeq ($(ARCH),arm7_lpc2000)
 
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
-    #ARCH_SRC += Nothing to add
+    ARCH_SRC +=                                  \
+    arch/common/core/interrupts_arm7.cpp
 
     ## Select programmer command line
     ## This is the program that is invoked when the user types 'make program'
@@ -586,7 +586,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                  \
     arch/common/drivers/dcc.cpp                  \
-    $(ARCH_INC)/core/interrupts.cpp              \
+    arch/common/core/interrupts_cortexMx.cpp     \
     $(ARCH_INC)/drivers/serial.cpp               \
     $(ARCH_INC)/interfaces-impl/portability.cpp  \
     $(ARCH_INC)/interfaces-impl/delays.cpp       \
@@ -702,7 +702,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     ARCH_SRC +=                                              \
     arch/common/drivers/dcc.cpp                              \
     arch/common/drivers/stm32_hardware_rng.cpp               \
-    $(ARCH_INC)/core/interrupts.cpp                          \
+    arch/common/core/interrupts_cortexMx.cpp                 \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
@@ -910,7 +910,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     ARCH_SRC +=                                              \
     arch/common/drivers/dcc.cpp                              \
     arch/common/drivers/stm32_hardware_rng.cpp               \
-    $(ARCH_INC)/core/interrupts.cpp                          \
+    arch/common/core/interrupts_cortexMx.cpp                 \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
     $(ARCH_INC)/CMSIS/core_cm3.c                             \
@@ -990,7 +990,7 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
     arch/common/drivers/dcc.cpp                              \
-    $(ARCH_INC)/core/interrupts.cpp                          \
+    arch/common/core/interrupts_cortexMx.cpp                 \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \

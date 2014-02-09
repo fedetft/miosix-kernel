@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
+ *   Copyright (C) 2010, 2011, 2012, 2013, 2014 by Terraneo Federico       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -96,9 +96,9 @@ void __attribute__((noinline)) HardFault_impl()
     IRQerrorLog("\r\n***Unexpected HardFault @ ");
     printUnsignedInt(getProgramCounter());
     unsigned int hfsr=SCB->HFSR;
-    if(hfsr & SCB_HFSR_FORCED_Msk)
+    if(hfsr & 0x40000000) //SCB_HFSR_FORCED
         IRQerrorLog("Fault escalation occurred\r\n");
-    if(hfsr & SCB_HFSR_VECTTBL_Msk)
+    if(hfsr & 0x00000002) //SCB_HFSR_VECTTBL
         IRQerrorLog("A BusFault occurred during a vector table read\r\n");
     #endif //WITH_ERRLOG
     miosix_private::IRQsystemReboot();
@@ -130,23 +130,22 @@ void __attribute__((noinline)) MemManage_impl()
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected MemManage @ ");
     printUnsignedInt(getProgramCounter());
-    if(cfsr & 0x00000080)
+    if(cfsr & 0x00000080) //SCB_CFSR_MMARVALID
     {
         IRQerrorLog("Fault caused by attempted access to ");
         printUnsignedInt(SCB->MMFAR);
     } else IRQerrorLog("The address that caused the fault is missing\r\n");
-    if(cfsr & 0x00000010)
+    if(cfsr & 0x00000010) //SCB_CFSR_MSTKERR
         IRQerrorLog("Fault occurred during exception stacking\r\n");
-    if(cfsr & 0x00000008)
+    if(cfsr & 0x00000008) //SCB_CFSR_MUNSTKERR
         IRQerrorLog("Fault occurred during exception unstacking\r\n");
-    if(cfsr & 0x00000002)
+    if(cfsr & 0x00000002) //SCB_CFSR_DACCVIOL
         IRQerrorLog("Fault was caused by invalid PC\r\n");
-    if(cfsr & 0x00000001)
+    if(cfsr & 0x00000001) //SCB_CFSR_IACCVIOL
         IRQerrorLog("Fault was caused by attempted execution from XN area\r\n");
     #endif //WITH_ERRLOG
     miosix_private::IRQsystemReboot();
 }
-
 
 void __attribute__((naked)) BusFault_Handler()
 {
@@ -173,20 +172,20 @@ void __attribute__((noinline)) BusFault_impl()
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected BusFault @ ");
     printUnsignedInt(getProgramCounter());
-    if(cfsr & 0x00008000)
+    if(cfsr & 0x00008000) //SCB_CFSR_BFARVALID
     {
         IRQerrorLog("Fault caused by attempted access to ");
         printUnsignedInt(SCB->BFAR);
     } else IRQerrorLog("The address that caused the fault is missing\r\n");
-    if(cfsr & 0x00001000)
+    if(cfsr & 0x00001000) //SCB_CFSR_STKERR
         IRQerrorLog("Fault occurred during exception stacking\r\n");
-    if(cfsr & 0x00000800)
+    if(cfsr & 0x00000800) //SCB_CFSR_UNSTKERR
         IRQerrorLog("Fault occurred during exception unstacking\r\n");
-    if(cfsr & 0x00000400)
+    if(cfsr & 0x00000400) //SCB_CFSR_IMPRECISERR
         IRQerrorLog("Fault is imprecise\r\n");
-    if(cfsr & 0x00000200)
+    if(cfsr & 0x00000200) //SCB_CFSR_PRECISERR
         IRQerrorLog("Fault is precise\r\n");
-    if(cfsr & 0x00000100)
+    if(cfsr & 0x00000100) //SCB_CFSR_IBUSERR
         IRQerrorLog("Fault happened during instruction fetch\r\n");
     #endif //WITH_ERRLOG
     miosix_private::IRQsystemReboot();
@@ -222,12 +221,18 @@ void __attribute__((noinline)) UsageFault_impl()
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected UsageFault @ ");
     printUnsignedInt(getProgramCounter());
-    if(cfsr & 0x02000000) IRQerrorLog("Divide by zero\r\n");
-    if(cfsr & 0x01000000) IRQerrorLog("Unaligned memory access\r\n");
-    if(cfsr & 0x00080000) IRQerrorLog("Attempted coprocessor access\r\n");
-    if(cfsr & 0x00040000) IRQerrorLog("EXC_RETURN not expected now\r\n");
-    if(cfsr & 0x00020000) IRQerrorLog("Invalid EPSR usage\r\n");
-    if(cfsr & 0x00010000) IRQerrorLog("Undefined instruction\r\n");
+    if(cfsr & 0x02000000) //SCB_CFSR_DIVBYZERO
+        IRQerrorLog("Divide by zero\r\n");
+    if(cfsr & 0x01000000) //SCB_CFSR_UNALIGNED
+        IRQerrorLog("Unaligned memory access\r\n");
+    if(cfsr & 0x00080000) //SCB_CFSR_NOCP
+        IRQerrorLog("Attempted coprocessor access\r\n");
+    if(cfsr & 0x00040000) //SCB_CFSR_INVPC
+        IRQerrorLog("EXC_RETURN not expected now\r\n");
+    if(cfsr & 0x00020000) //SCB_CFSR_INVSTATE
+        IRQerrorLog("Invalid EPSR usage\r\n");
+    if(cfsr & 0x00010000) //SCB_CFSR_UNDEFINSTR
+        IRQerrorLog("Undefined instruction\r\n");
     #endif //WITH_ERRLOG
     miosix_private::IRQsystemReboot();
 }
@@ -252,6 +257,8 @@ void PendSV_Handler()
 
 void unexpectedInterrupt()
 {
+    #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected Peripheral interrupt\r\n");
+    #endif //WITH_ERRLOG
     miosix_private::IRQsystemReboot();
 }

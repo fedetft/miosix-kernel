@@ -28,6 +28,7 @@
 
 #include "LPC213x.h"
 #include "interfaces/portability.h"
+#include "interfaces/delays.h"
 #include "kernel/kernel.h"
 #include "kernel/error.h"
 #include "miosix.h"
@@ -162,6 +163,13 @@ void IRQstackOverflowCheck()
 
 void IRQsystemReboot()
 {
+    //This delay has been added to fix a quirk on the Miosix board.
+    //When writing a message to the console and rebooting, if the
+    //reboot happens too fast with respect to the last character
+    //sent out of the serial port, the FT232 gets confused and the
+    //last charcters are lost, probably from the FT232 buffer.
+    miosix::delayMs(2);
+
     //Jump to reset vector
     asm volatile("ldr pc, =0"::);
 }
