@@ -14,8 +14,6 @@
             </df>
             <df name="lpc2138_miosix_board">
               <df name="core">
-                <in>interrupts.cpp</in>
-                <in>interrupts.h</in>
                 <in>stage_1_boot.s</in>
               </df>
               <df name="drivers">
@@ -38,6 +36,13 @@
             </df>
           </df>
           <df name="common">
+            <df name="core">
+              <in>interrupts.h</in>
+              <in>interrupts_arm7.cpp</in>
+              <in>interrupts_arm7.h</in>
+              <in>interrupts_cortexMx.cpp</in>
+              <in>interrupts_cortexMx.h</in>
+            </df>
             <df name="drivers">
               <in>dcc.cpp</in>
               <in>dcc.h</in>
@@ -53,10 +58,6 @@
                 <in>stm32f10x.h</in>
                 <in>system_stm32f10x.c</in>
                 <in>system_stm32f10x.h</in>
-              </df>
-              <df name="core">
-                <in>interrupts.cpp</in>
-                <in>interrupts.h</in>
               </df>
               <df name="drivers">
                 <in>serial.cpp</in>
@@ -143,10 +144,6 @@
                 <in>system_stm32f2xx.c</in>
                 <in>system_stm32f2xx.h</in>
               </df>
-              <df name="core">
-                <in>interrupts.cpp</in>
-                <in>interrupts.h</in>
-              </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
                 <in>atomic_ops_impl.h</in>
@@ -211,10 +208,6 @@
                 <in>system_stm32l1xx.c</in>
                 <in>system_stm32l1xx.h</in>
               </df>
-              <df name="core">
-                <in>interrupts.cpp</in>
-                <in>interrupts.h</in>
-              </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
                 <in>atomic_ops_impl.h</in>
@@ -251,10 +244,6 @@
                 <in>stm32f4xx.h</in>
                 <in>system_stm32f4xx.c</in>
                 <in>system_stm32f4xx.h</in>
-              </df>
-              <df name="core">
-                <in>interrupts.cpp</in>
-                <in>interrupts.h</in>
               </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
@@ -508,16 +497,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/stage_1_boot.s"
             ex="false"
             tool="4"
@@ -624,16 +603,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -863,16 +832,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -1063,16 +1022,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -1184,16 +1133,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -1612,16 +1551,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/stage_1_boot.s"
             ex="false"
             tool="4"
@@ -1728,16 +1657,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -1967,16 +1886,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -2167,16 +2076,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -2288,16 +2187,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -2718,16 +2607,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/stage_1_boot.s"
             ex="false"
             tool="4"
@@ -2788,6 +2667,31 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/common/core/interrupts.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/common/core/interrupts_arm7.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/common/core/interrupts_arm7.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/common/core/interrupts_cortexMx.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/arch/common/drivers/dcc.cpp"
             ex="false"
             tool="1"
@@ -2834,16 +2738,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -3073,16 +2967,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -3273,16 +3157,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -3394,16 +3268,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -3863,16 +3727,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/stage_1_boot.s"
             ex="false"
             tool="4"
@@ -3979,16 +3833,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -4218,16 +4062,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -4418,16 +4252,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -4539,16 +4363,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -4969,16 +4783,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/stage_1_boot.s"
             ex="false"
             tool="4"
@@ -5085,16 +4889,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -5324,16 +5118,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -5524,16 +5308,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -5645,16 +5419,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -6075,16 +5839,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/stage_1_boot.s"
             ex="false"
             tool="4"
@@ -6191,16 +5945,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -6430,16 +6174,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -6630,16 +6364,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -6751,16 +6475,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -7181,16 +6895,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/stage_1_boot.s"
             ex="false"
             tool="4"
@@ -7297,16 +7001,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -7536,16 +7230,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -7736,16 +7420,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -7857,16 +7531,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -8285,16 +7949,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/stage_1_boot.s"
             ex="false"
             tool="4"
@@ -8401,16 +8055,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -8640,16 +8284,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -8840,16 +8474,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -8961,16 +8585,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -9389,16 +9003,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/stage_1_boot.s"
             ex="false"
             tool="4"
@@ -9505,16 +9109,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -9744,16 +9338,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -9944,16 +9528,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -10065,16 +9639,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -10493,16 +10057,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/stage_1_boot.s"
             ex="false"
             tool="4"
@@ -10609,16 +10163,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -10848,16 +10392,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -11048,16 +10582,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -11169,16 +10693,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -11597,16 +11111,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/stage_1_boot.s"
             ex="false"
             tool="4"
@@ -11713,16 +11217,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -11952,16 +11446,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -12152,16 +11636,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -12273,16 +11747,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -12701,16 +12165,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/stage_1_boot.s"
             ex="false"
             tool="4"
@@ -12817,16 +12271,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -13056,16 +12500,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -13256,16 +12690,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -13377,16 +12801,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -13805,16 +13219,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/stage_1_boot.s"
             ex="false"
             tool="4"
@@ -13921,16 +13325,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -14160,16 +13554,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -14360,16 +13744,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -14481,16 +13855,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -14909,16 +14273,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/stage_1_boot.s"
             ex="false"
             tool="4"
@@ -15025,16 +14379,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -15264,16 +14608,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32f2/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -15464,16 +14798,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/common/core/interrupts.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32l1/common/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -15585,16 +14909,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/common/arch_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/core/interrupts.h"
             ex="false"
             tool="3"
             flavor2="0">

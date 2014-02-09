@@ -14,8 +14,6 @@
             </df>
             <df name="lpc2138_miosix_board">
               <df name="core">
-                <in>interrupts.cpp</in>
-                <in>interrupts.h</in>
                 <in>stage_1_boot.s</in>
               </df>
               <df name="drivers">
@@ -38,6 +36,13 @@
             </df>
           </df>
           <df name="common">
+            <df name="core">
+              <in>interrupts.h</in>
+              <in>interrupts_arm7.cpp</in>
+              <in>interrupts_arm7.h</in>
+              <in>interrupts_cortexMx.cpp</in>
+              <in>interrupts_cortexMx.h</in>
+            </df>
             <df name="drivers">
               <in>dcc.cpp</in>
               <in>dcc.h</in>
@@ -55,10 +60,6 @@
                 <in>stm32f10x.h</in>
                 <in>system_stm32f10x.c</in>
                 <in>system_stm32f10x.h</in>
-              </df>
-              <df name="core">
-                <in>interrupts.cpp</in>
-                <in>interrupts.h</in>
               </df>
               <df name="drivers">
                 <in>serial.cpp</in>
@@ -145,10 +146,6 @@
                 <in>system_stm32f2xx.c</in>
                 <in>system_stm32f2xx.h</in>
               </df>
-              <df name="core">
-                <in>interrupts.cpp</in>
-                <in>interrupts.h</in>
-              </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
                 <in>atomic_ops_impl.h</in>
@@ -228,10 +225,6 @@
                 <in>system_stm32l1xx.c</in>
                 <in>system_stm32l1xx.h</in>
               </df>
-              <df name="core">
-                <in>interrupts.cpp</in>
-                <in>interrupts.h</in>
-              </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
                 <in>atomic_ops_impl.h</in>
@@ -270,10 +263,6 @@
                 <in>stm32f4xx.h</in>
                 <in>system_stm32f4xx.c</in>
                 <in>system_stm32f4xx.h</in>
-              </df>
-              <df name="core">
-                <in>interrupts.cpp</in>
-                <in>interrupts.h</in>
               </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
