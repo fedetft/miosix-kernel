@@ -6,6 +6,10 @@
         <df name="arch">
           <df name="arm7_lpc2000">
             <df name="common">
+              <df name="drivers">
+                <in>serial.cpp</in>
+                <in>serial.h</in>
+              </df>
               <df name="interfaces-impl">
                 <in>atomic_ops_impl.h</in>
                 <in>endianness_impl.h</in>
@@ -16,15 +20,10 @@
               <df name="core">
                 <in>stage_1_boot.s</in>
               </df>
-              <df name="drivers">
-                <in>serial.cpp</in>
-                <in>serial.h</in>
-              </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
-                <in>console.cpp</in>
                 <in>delays.cpp</in>
                 <in>disk.cpp</in>
                 <in>gpio_impl.h</in>
@@ -477,6 +476,16 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/arch/arm7_lpc2000/common/interfaces-impl/atomic_ops_impl.h"
             ex="false"
             tool="3"
@@ -502,16 +511,6 @@
             tool="4"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -525,11 +524,6 @@
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp_impl.h"
             ex="false"
             tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/console.cpp"
-            ex="false"
-            tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/delays.cpp"
@@ -1531,6 +1525,16 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/arch/arm7_lpc2000/common/interfaces-impl/atomic_ops_impl.h"
             ex="false"
             tool="3"
@@ -1556,16 +1560,6 @@
             tool="4"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -1579,11 +1573,6 @@
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp_impl.h"
             ex="false"
             tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/console.cpp"
-            ex="false"
-            tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/delays.cpp"
@@ -1607,6 +1596,31 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/portability_impl.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/common/core/interrupts.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/common/core/interrupts_arm7.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/common/core/interrupts_arm7.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/common/core/interrupts_cortexMx.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -2587,6 +2601,16 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/arch/arm7_lpc2000/common/interfaces-impl/atomic_ops_impl.h"
             ex="false"
             tool="3"
@@ -2612,16 +2636,6 @@
             tool="4"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -2635,11 +2649,6 @@
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp_impl.h"
             ex="false"
             tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/console.cpp"
-            ex="false"
-            tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/delays.cpp"
@@ -3707,6 +3716,16 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/arch/arm7_lpc2000/common/interfaces-impl/atomic_ops_impl.h"
             ex="false"
             tool="3"
@@ -3732,16 +3751,6 @@
             tool="4"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -3755,11 +3764,6 @@
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp_impl.h"
             ex="false"
             tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/console.cpp"
-            ex="false"
-            tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/delays.cpp"
@@ -4763,6 +4767,16 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/arch/arm7_lpc2000/common/interfaces-impl/atomic_ops_impl.h"
             ex="false"
             tool="3"
@@ -4788,16 +4802,6 @@
             tool="4"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -4811,11 +4815,6 @@
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp_impl.h"
             ex="false"
             tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/console.cpp"
-            ex="false"
-            tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/delays.cpp"
@@ -5819,6 +5818,16 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/arch/arm7_lpc2000/common/interfaces-impl/atomic_ops_impl.h"
             ex="false"
             tool="3"
@@ -5844,16 +5853,6 @@
             tool="4"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -5867,11 +5866,6 @@
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp_impl.h"
             ex="false"
             tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/console.cpp"
-            ex="false"
-            tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/delays.cpp"
@@ -6875,6 +6869,16 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/arch/arm7_lpc2000/common/interfaces-impl/atomic_ops_impl.h"
             ex="false"
             tool="3"
@@ -6900,16 +6904,6 @@
             tool="4"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -6923,11 +6917,6 @@
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp_impl.h"
             ex="false"
             tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/console.cpp"
-            ex="false"
-            tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/delays.cpp"
@@ -7929,6 +7918,16 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/arch/arm7_lpc2000/common/interfaces-impl/atomic_ops_impl.h"
             ex="false"
             tool="3"
@@ -7954,16 +7953,6 @@
             tool="4"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -7977,11 +7966,6 @@
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp_impl.h"
             ex="false"
             tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/console.cpp"
-            ex="false"
-            tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/delays.cpp"
@@ -8983,6 +8967,16 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/arch/arm7_lpc2000/common/interfaces-impl/atomic_ops_impl.h"
             ex="false"
             tool="3"
@@ -9008,16 +9002,6 @@
             tool="4"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -9031,11 +9015,6 @@
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp_impl.h"
             ex="false"
             tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/console.cpp"
-            ex="false"
-            tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/delays.cpp"
@@ -10037,6 +10016,16 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/arch/arm7_lpc2000/common/interfaces-impl/atomic_ops_impl.h"
             ex="false"
             tool="3"
@@ -10062,16 +10051,6 @@
             tool="4"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -10085,11 +10064,6 @@
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp_impl.h"
             ex="false"
             tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/console.cpp"
-            ex="false"
-            tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/delays.cpp"
@@ -11091,6 +11065,16 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/arch/arm7_lpc2000/common/interfaces-impl/atomic_ops_impl.h"
             ex="false"
             tool="3"
@@ -11116,16 +11100,6 @@
             tool="4"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -11139,11 +11113,6 @@
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp_impl.h"
             ex="false"
             tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/console.cpp"
-            ex="false"
-            tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/delays.cpp"
@@ -12145,6 +12114,16 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/arch/arm7_lpc2000/common/interfaces-impl/atomic_ops_impl.h"
             ex="false"
             tool="3"
@@ -12170,16 +12149,6 @@
             tool="4"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -12193,11 +12162,6 @@
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp_impl.h"
             ex="false"
             tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/console.cpp"
-            ex="false"
-            tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/delays.cpp"
@@ -13199,6 +13163,16 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/arch/arm7_lpc2000/common/interfaces-impl/atomic_ops_impl.h"
             ex="false"
             tool="3"
@@ -13224,16 +13198,6 @@
             tool="4"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -13247,11 +13211,6 @@
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp_impl.h"
             ex="false"
             tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/console.cpp"
-            ex="false"
-            tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/delays.cpp"
@@ -14253,6 +14212,16 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/arm7_lpc2000/common/drivers/serial.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/arch/arm7_lpc2000/common/interfaces-impl/atomic_ops_impl.h"
             ex="false"
             tool="3"
@@ -14278,16 +14247,6 @@
             tool="4"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.cpp"
-            ex="false"
-            tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/drivers/serial.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/arch_registers_impl.h"
             ex="false"
             tool="3"
@@ -14301,11 +14260,6 @@
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/bsp_impl.h"
             ex="false"
             tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/console.cpp"
-            ex="false"
-            tool="1"
             flavor2="0">
       </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/interfaces-impl/delays.cpp"

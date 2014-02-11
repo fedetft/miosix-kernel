@@ -6,6 +6,10 @@
         <df name="arch">
           <df name="arm7_lpc2000">
             <df name="common">
+              <df name="drivers">
+                <in>serial.cpp</in>
+                <in>serial.h</in>
+              </df>
               <df name="interfaces-impl">
                 <in>atomic_ops_impl.h</in>
                 <in>endianness_impl.h</in>
@@ -16,15 +20,10 @@
               <df name="core">
                 <in>stage_1_boot.s</in>
               </df>
-              <df name="drivers">
-                <in>serial.cpp</in>
-                <in>serial.h</in>
-              </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
-                <in>console.cpp</in>
                 <in>delays.cpp</in>
                 <in>disk.cpp</in>
                 <in>gpio_impl.h</in>
