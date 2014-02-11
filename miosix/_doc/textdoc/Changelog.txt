@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Added class LPC2000Serial. The lpc2000 port no longer relies on
+  the Console interface.
 - Class TerminalDevice is no longer a proxy for a FileBase, but an adapter
   that allows to wrap a serial port, which has a Device interface into a
   FileBase interface.
