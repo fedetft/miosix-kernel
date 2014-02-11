@@ -272,6 +272,7 @@ int DiskAdapter::ioctl(int cmd, void *arg)
 //
 
 // FIXME temporary -- begin
+#ifndef _ARCH_ARM7_LPC2000
 ssize_t ConsoleAdapter::readBlock(void* buffer, size_t size, off_t where)
 {
     char *d=reinterpret_cast<char*>(buffer);
@@ -288,6 +289,7 @@ void ConsoleAdapter::IRQwrite(const char* str)
     Console::IRQwrite(str);
     while(!Console::IRQtxComplete()) ;
 }
+#endif //ARCH_ARM7_LPC2000
 // FIXME temporary -- end
 
 /**

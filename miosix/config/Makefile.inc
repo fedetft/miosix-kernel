@@ -312,9 +312,8 @@ ifeq ($(ARCH),arm7_lpc2000)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/drivers/serial.cpp              \
+        $(ARCH_INC)/drivers/serial.cpp               \
         $(BOARD_INC)/interfaces-impl/portability.cpp \
-        $(BOARD_INC)/interfaces-impl/console.cpp     \
         $(BOARD_INC)/interfaces-impl/disk.cpp        \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp

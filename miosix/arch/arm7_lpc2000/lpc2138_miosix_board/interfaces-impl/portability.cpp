@@ -40,9 +40,6 @@
 
 using namespace std;
 
-//Used by the BSP. TODO: move this code into the "kernel thread"
-void tickHook();
-
 namespace miosix_private {
 
 /**
@@ -60,8 +57,6 @@ void ISR_preempt()
     
     IRQstackOverflowCheck();
     miosix::IRQtickInterrupt();
-
-    tickHook();
 }
 
 /**

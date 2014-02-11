@@ -41,36 +41,9 @@
 #include "interfaces/portability.h"
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
+#include "filesystem/ioctl.h"
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
-
-/**
-\internal
-USB hotplug handler.
-Dynamically start/stop serial driver when USB is connected/disconnected.
-*/
-void tickHook()
-{
-    static unsigned int counter=0;
-    if(++counter==miosix::TICK_FREQ) counter=0;
-    else return;
-    
-    static bool usb_connected=true;//By default, we assume USB is connected
-	
-    //Dynamically start/stop serial port driver
-    if((USBstatus())&&(usb_connected==false))
-    {
-        //USB has been conncted, start serial port driver
-        usb_connected=true;
-        miosix::IRQserialInit(miosix::TIMER_CLOCK/16/miosix::SERIAL_PORT_SPEED);
-    }
-    if((!USBstatus())&&(usb_connected==true))
-    {
-        //USB disconnected, stop serial port driver
-        usb_connected=false;
-        miosix::IRQserialDisable();
-    }
-}
 
 /*
 ******************
@@ -178,10 +151,8 @@ void IRQbspInit()
     rtcInit();
     #endif //WITH_RTC
     //Init serial port
-    //(peripheral clock)/(16*baudrate)
-    miosix::IRQserialInit(TIMER_CLOCK/16/SERIAL_PORT_SPEED);
     DefaultConsole::instance().IRQset(
-        intrusive_ref_ptr<Device>(new ConsoleAdapter));
+        intrusive_ref_ptr<Device>(new LPC2000Serial(SERIAL_PORT_SPEED)));
 }
 
 void bspInit2()
@@ -267,9 +238,6 @@ static void _shutdown(bool and_return, Time *t)
 
     //Disable interrupts
     disableInterrupts();
-    
-    bool serial_status=IRQisSerialEnabled();
-    if(serial_status) IRQserialDisable();
     
     //Clearing PINSEL registers. All pin are GPIO by default
     PINSEL0=0;
@@ -360,11 +328,6 @@ static void _shutdown(bool and_return, Time *t)
     //Enable 3v subsystem
     subsystem_3v_on();
     delayMs(50);
-	
-    if(serial_status) 
-    {
-        IRQserialInit(TIMER_CLOCK/16/SERIAL_PORT_SPEED);//Restore serial port
-    }
     
     //Re-enable interrupts
     enableInterrupts();
@@ -397,14 +360,15 @@ void shutdown()
 
 void reboot()
 {
-    while(!serialTxComplete()) ;
+    //FIXME: at the time of writing, Miosix's newlib does not yet provide the
+    //sys/ioctl.h header file. Replace with a call to ioctl() when ready
+    miosix::getFileDescriptorTable().ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
     
     #ifdef WITH_FILESYSTEM
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
     disableInterrupts();
-    if(IRQisSerialEnabled()) IRQserialDisable();
     //Clearing PINSEL registers. All pin are GPIO by default
     PINSEL0=0;
     PINSEL1=0;
