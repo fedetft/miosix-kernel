@@ -152,13 +152,19 @@ void IRQbspInit()
     #endif //WITH_RTC
     //Init serial port
     DefaultConsole::instance().IRQset(
-        intrusive_ref_ptr<Device>(new LPC2000Serial(SERIAL_PORT_SPEED)));
+        intrusive_ref_ptr<Device>(new LPC2000Serial(0,SERIAL_PORT_SPEED)));
 }
 
 void bspInit2()
 {
     #ifdef WITH_FILESYSTEM
+    #ifdef WITH_DEVFS
+    intrusive_ref_ptr<DevFs> devFs=basicFilesystemSetup();
+    devFs->addDevice(AUX_SERIAL,
+        intrusive_ref_ptr<Device>(new LPC2000Serial(1,9600)));
+    #else //WITH_DEVFS
     basicFilesystemSetup();
+    #endif //WITH_DEVFS
     #endif //WITH_FILESYSTEM
 }
 

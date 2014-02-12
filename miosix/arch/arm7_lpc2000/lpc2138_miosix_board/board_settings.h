@@ -38,6 +38,10 @@ namespace miosix {
 /// Serial port baudrate
 const unsigned int SERIAL_PORT_SPEED=115200;
 
+/// Enable USART1 as well. This is only possible if WITH_DEVFS id defined in
+/// miosix_settings.h The device will appear as /dev/auxtty
+#define AUX_SERIAL "auxtty"
+
 /// Size of stack for main().
 /// The C standard library is stack-heavy (iprintf requires 1.5KB) and the
 /// LPC2138 has 32KB of RAM so there is room for a big 4K stack.

@@ -30,7 +30,7 @@
 #define SERIAL_H
 
 #include "filesystem/console/console_device.h"
-#include "LPC213x.h"
+#include "interfaces/delays.h"
 
 namespace miosix {
 
@@ -49,7 +49,7 @@ public:
      * \param id 0=USART0, 1=USART1
      * \param baudrate serial port baudrate.
      */
-    LPC2000Serial(/*int id,*/ int baudrate);
+    LPC2000Serial(int id, int baudrate);
     
     /**
      * Read a block of data
@@ -101,10 +101,60 @@ public:
     ~LPC2000Serial();
     
 private:
-    bool serialTxFifoEmpty()
+    /**
+     * Wait until all characters have been written to the serial port
+     */
+    void waitSerialTxFifoEmpty()
     {
-        return U0LSR & (1<<6);
+        while((serial->LSR & (1<<6))==0) ;
+        
+        //This delay has been added to fix a quirk on the Miosix board. When
+        //writing a message to the console and rebooting, if the reboot happens
+        //too fast with respect to the last character sent out of the serial
+        //port, the FT232 gets confused and the last charcters are lost,
+        //probably from the FT232 buffer. Using delayMs() to be callable from IRQ
+        delayMs(2);
     }
+    
+    /**
+     * The registers of the USART in struct form, to make a generic driver
+     */
+    struct Usart16550
+    {
+        //Offset 0x00
+        union {
+            volatile unsigned char RBR;
+            volatile unsigned char THR;
+            volatile unsigned char DLL;
+        };
+        char padding0[3];
+        //Offset 0x04
+        union {
+            volatile unsigned char IER;
+            volatile unsigned char DLM;
+        };
+        char padding1[3];
+        //Offset 0x08
+        union {
+            volatile unsigned char IIR;
+            volatile unsigned char FCR;
+        };
+        char padding2[3];
+        //Offset 0x0c
+        volatile unsigned char LCR;
+        char padding3[3];
+        //Offset 0x10
+        volatile unsigned char MCR; //Only USART1 has this
+        char padding4[3];
+        //Offset 0x14
+        volatile unsigned char LSR;
+        char padding5[7];
+        //Offset 0x1c
+        volatile unsigned char SCR;
+        char padding6[19];
+        //Offset 0x30
+        volatile unsigned char TER;
+    };
     
     //Configure the software queue here
     static const int SOFTWARE_TX_QUEUE=32;///< Size of tx software queue
@@ -119,6 +169,8 @@ private:
 
     Queue<char,SOFTWARE_TX_QUEUE> txQueue;///< Tx software queue
     Queue<char,SOFTWARE_RX_QUEUE> rxQueue;///< Rx software queue
+    
+    Usart16550 *serial;
 };
 
 } //namespace miosix
