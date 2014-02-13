@@ -34,6 +34,8 @@
 using namespace std;
 
 namespace miosix {
+    
+#ifdef WITH_FILESYSTEM
 
 /**
  * Directory class for MountpointFs 
@@ -196,5 +198,7 @@ int MountpointFs::rmdir(StringPart& name)
     if(dirs.erase(name)==1) return 0;
     return -ENOENT;
 }
+
+#endif //WITH_FILESYSTEM
 
 } //namespace miosix

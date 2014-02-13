@@ -28,6 +28,7 @@
 #ifndef CONSOLE_DEVICE_H
 #define	CONSOLE_DEVICE_H
 
+#include "config/miosix_settings.h"
 #include "filesystem/devfs/devfs.h"
 #include "kernel/sync.h"
 
@@ -64,6 +65,8 @@ public:
      */
     virtual ssize_t read(void *data, size_t len);
     
+    #ifdef WITH_FILESYSTEM
+    
     /**
      * Move file pointer, if the file supports random-access.
      * \param pos offset to sum to the beginning of the file, current position
@@ -87,6 +90,8 @@ public:
      * case of errors
      */
     virtual int isatty() const;
+    
+    #endif //WITH_FILESYSTEM
     
     /**
      * Perform various operations on a file descriptor

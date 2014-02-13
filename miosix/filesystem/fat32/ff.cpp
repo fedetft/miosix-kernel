@@ -114,6 +114,9 @@
 #include <stdlib.h>
 #include <util/unicode.h>
 #include <interfaces/atomic_ops.h>
+#include "config/miosix_settings.h"
+
+#ifdef WITH_FILESYSTEM
 
 /**
  * FAT32 does not have the concept of inodes, but we need them.
@@ -4610,3 +4613,5 @@ int f_printf (
 
 #endif /* !_FS_READONLY */
 #endif /* _USE_STRFUNC */
+
+#endif //WITH_FILESYSTEM

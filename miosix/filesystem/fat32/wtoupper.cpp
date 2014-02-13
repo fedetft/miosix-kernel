@@ -1,5 +1,6 @@
 
 #include "ff.h"
+#include "config/miosix_settings.h"
 
 /*
  * This is an alternative version of ff_wtoupper(), designed to be both smaller,
@@ -49,6 +50,8 @@
  * not fixed, as it would lead to significantly larger tables.
  */
 
+#ifdef WITH_FILESYSTEM
+
 static const unsigned short lowerCase[]=
 {
     0x00b5, 0x00ff, 0x0131, 0x0133, 0x0135, 0x0137, 0x017a, 0x017c,
@@ -94,6 +97,8 @@ unsigned short ff_wtoupper(unsigned short c)
     for(int i=0;i<tabSize;i++) if(lowerCase[i]==c) return upperCase[i];
     return c;
 }
+
+#endif //WITH_FILESYSTEM
 
 /*
 //Print all characters that have an uppercase

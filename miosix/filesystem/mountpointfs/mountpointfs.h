@@ -31,8 +31,11 @@
 #include <map>
 #include "filesystem/file.h"
 #include "kernel/sync.h"
+#include "config/miosix_settings.h"
 
 namespace miosix {
+    
+#ifdef WITH_FILESYSTEM
 
 /**
  * MountpointFs is a special filesystem whose purpose is to create directories
@@ -103,6 +106,8 @@ private:
     int inodeCount;
     static const int rootDirInode=1;
 };
+
+#endif //WITH_FILESYSTEM
 
 } //namespace miosix
 

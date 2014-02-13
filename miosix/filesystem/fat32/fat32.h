@@ -31,8 +31,11 @@
 #include "filesystem/file.h"
 #include "kernel/sync.h"
 #include "ff.h"
+#include "config/miosix_settings.h"
 
 namespace miosix {
+    
+#ifdef WITH_FILESYSTEM
 
 /**
  * Fat32 Filesystem.
@@ -114,6 +117,8 @@ private:
     FastMutex mutex;
     bool failed; ///< Failed to mount
 };
+
+#endif //WITH_FILESYSTEM
 
 } //namespace miosix
 

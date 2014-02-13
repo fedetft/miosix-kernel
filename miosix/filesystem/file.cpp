@@ -48,6 +48,8 @@ FileBase::FileBase(intrusive_ref_ptr<FilesystemBase> parent) : parent(parent)
     if(parent) parent->newFileOpened();
 }
 
+#ifdef WITH_FILESYSTEM
+
 int FileBase::isatty() const
 {
     return 0;
@@ -70,6 +72,8 @@ int FileBase::getdents(void *dp, int len)
 {
     return -EBADF;
 }
+
+#endif //WITH_FILESYSTEM
 
 FileBase::~FileBase()
 {

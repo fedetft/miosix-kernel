@@ -14,6 +14,9 @@
 
 #include "integer.h"
 #include <filesystem/file.h>
+#include "config/miosix_settings.h"
+
+#ifdef WITH_FILESYSTEM
 
 
 /* Status of Disk Functions */
@@ -83,6 +86,8 @@ DRESULT disk_ioctl (miosix::intrusive_ref_ptr<miosix::FileBase> pdrv,
 #define CT_SD2		0x04		/* SD ver 2 */
 #define CT_SDC		(CT_SD1|CT_SD2)	/* SD */
 #define CT_BLOCK	0x08		/* Block addressing */
+
+#endif //WITH_FILESYSTEM
 
 
 //#ifdef __cplusplus

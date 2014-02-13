@@ -28,6 +28,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include "kernel/intrusive.h"
+#include "config/miosix_settings.h"
 
 #ifndef FILE_H
 #define	FILE_H
@@ -69,6 +70,8 @@ public:
      * of errors
      */
     virtual ssize_t read(void *data, size_t len)=0;
+    
+    #ifdef WITH_FILESYSTEM
     
     /**
      * Move file pointer, if the file supports random-access.
@@ -125,6 +128,8 @@ public:
      * \return a pointer to the parent filesystem
      */
     const intrusive_ref_ptr<FilesystemBase> getParent() const { return parent; }
+    
+    #endif //WITH_FILESYSTEM
     
     /**
      * File destructor

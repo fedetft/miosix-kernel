@@ -5,6 +5,9 @@
 
 #include "diskio.h"
 #include "filesystem/ioctl.h"
+#include "config/miosix_settings.h"
+
+#ifdef WITH_FILESYSTEM
 
 using namespace miosix;
 
@@ -105,3 +108,5 @@ DRESULT disk_ioctl (
 // #ifdef __cplusplus
 // }
 // #endif
+
+#endif //WITH_FILESYSTEM

@@ -26,7 +26,9 @@
 */
 
 #include "ff.h"
+#include "config/miosix_settings.h"
 
+#ifdef WITH_FILESYSTEM
 
 #if _CODE_PAGE == 437
 #define _TBLDEF 1
@@ -523,4 +525,6 @@ WCHAR ff_convert (	/* Converted character, Returns zero on error */
 
 	return c;
 }
+
+#endif //WITH_FILESYSTEM
 

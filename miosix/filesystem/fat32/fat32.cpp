@@ -42,6 +42,8 @@
 using namespace std;
 
 namespace miosix {
+    
+#ifdef WITH_FILESYSTEM
 
 /**
  * Translate between FATFS error codes and POSIX ones
@@ -493,5 +495,7 @@ int Fat32Fs::unlinkRmdirHelper(StringPart& name, bool delDir)
     } else if(S_ISDIR(st.st_mode)) return -EISDIR;
     return translateError(f_unlink(&filesystem,name.c_str()));
 }
+
+#endif //WITH_FILESYSTEM
 
 } //namespace miosix

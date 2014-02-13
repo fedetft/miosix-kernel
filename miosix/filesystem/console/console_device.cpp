@@ -123,6 +123,8 @@ ssize_t TerminalDevice::read(void *data, size_t len)
     return len;
 }
 
+#ifdef WITH_FILESYSTEM
+
 off_t TerminalDevice::lseek(off_t pos, int whence)
 {
     return -EBADF;
@@ -134,6 +136,8 @@ int TerminalDevice::fstat(struct stat *pstat) const
 }
 
 int TerminalDevice::isatty() const { return device->isatty(); }
+
+#endif //WITH_FILESYSTEM
 
 int TerminalDevice::ioctl(int cmd, void *arg)
 {

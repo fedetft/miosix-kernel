@@ -36,6 +36,7 @@
 //#endif
 
 #include <filesystem/file.h>
+#include "config/miosix_settings.h"
 
 #include "integer.h"	/* Basic integer types */
 #include "ffconf.h"		/* FatFs configuration options */
@@ -43,6 +44,8 @@
 #if _FATFS != _FFCONF
 #error Wrong configuration file (ffconf.h).
 #endif
+
+#ifdef WITH_FILESYSTEM
 
 
 
@@ -372,6 +375,8 @@ int ff_del_syncobj (_SYNC_t sobj);				/* Delete a sync object */
 #define	ST_WORD(ptr,val)	*(BYTE*)(ptr)=(BYTE)(val); *((BYTE*)(ptr)+1)=(BYTE)((WORD)(val)>>8)
 #define	ST_DWORD(ptr,val)	*(BYTE*)(ptr)=(BYTE)(val); *((BYTE*)(ptr)+1)=(BYTE)((WORD)(val)>>8); *((BYTE*)(ptr)+2)=(BYTE)((DWORD)(val)>>16); *((BYTE*)(ptr)+3)=(BYTE)((DWORD)(val)>>24)
 #endif
+
+#endif //WITH_FILESYSTEM
 
 //#ifdef __cplusplus
 //}

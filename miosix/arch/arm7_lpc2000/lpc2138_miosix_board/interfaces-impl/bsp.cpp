@@ -368,7 +368,11 @@ void reboot()
 {
     //FIXME: at the time of writing, Miosix's newlib does not yet provide the
     //sys/ioctl.h header file. Replace with a call to ioctl() when ready
+    #ifdef WITH_FILESYSTEM
     miosix::getFileDescriptorTable().ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+    #else //WITH_FILESYSTEM
+    DefaultConsole::instance().get()->ioctl(IOCTL_SYNC,0);
+    #endif //WITH_FILESYSTEM
     
     #ifdef WITH_FILESYSTEM
     FilesystemManager::instance().umountAll();
