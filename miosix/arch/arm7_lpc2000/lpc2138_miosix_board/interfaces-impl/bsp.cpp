@@ -160,8 +160,10 @@ void bspInit2()
     #ifdef WITH_FILESYSTEM
     #ifdef WITH_DEVFS
     intrusive_ref_ptr<DevFs> devFs=basicFilesystemSetup();
+    #ifdef AUX_SERIAL
     devFs->addDevice(AUX_SERIAL,
-        intrusive_ref_ptr<Device>(new LPC2000Serial(1,9600)));
+        intrusive_ref_ptr<Device>(new LPC2000Serial(1,AUX_SERIAL_SPEED)));
+    #endif //AUX_SERIAL
     #else //WITH_DEVFS
     basicFilesystemSetup();
     #endif //WITH_DEVFS
