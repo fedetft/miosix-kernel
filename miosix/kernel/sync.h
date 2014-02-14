@@ -1,5 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011 by Terraneo Federico             *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013, 2014                *
+ *   by Terraneo Federico                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -690,9 +691,8 @@ public:
      */
     bool IRQget(T& elem, bool& hppw)
     {
-        if(waiting->IRQgetPriority() > Thread::IRQgetCurrentThread()->
-                IRQgetPriority())
-            hppw=true;
+        if(waiting && (waiting->IRQgetPriority() >
+                Thread::IRQgetCurrentThread()->IRQgetPriority())) hppw=true;
         IRQwakeWaitingThread();
         if((put_pos==get_pos)&&(num_elem==0))//If queue empty
         {
@@ -736,9 +736,8 @@ public:
      */
     bool IRQput(T elem, bool& hppw)
     {
-        if(waiting->IRQgetPriority() > Thread::IRQgetCurrentThread()->
-                IRQgetPriority())
-            hppw=true;
+        if(waiting && (waiting->IRQgetPriority() >
+                Thread::IRQgetCurrentThread()->IRQgetPriority())) hppw=true;
         IRQwakeWaitingThread();
         if((put_pos==get_pos)&&(num_elem!=0))//If queue full
         {

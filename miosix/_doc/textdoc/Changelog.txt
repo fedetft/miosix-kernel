@@ -1,5 +1,6 @@
 Changelog for Miosix np embedded OS
 
+- Fixed a null pointer dereference in Queue class.
 - Fixed compiling kernel without WITH_FILESYSTEM
 - Added class LPC2000Serial. The lpc2000 port no longer relies on
   the Console interface.
