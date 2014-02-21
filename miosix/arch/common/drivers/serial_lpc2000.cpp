@@ -28,7 +28,7 @@
 
 #include <cstring>
 #include <errno.h>
-#include "serial.h"
+#include "serial_lpc2000.h"
 #include "kernel/sync.h"
 #include "kernel/scheduler/scheduler.h"
 #include "interfaces/portability.h"
@@ -82,7 +82,7 @@ void __attribute__ ((interrupt("IRQ"),naked)) usart1irq()
 // class LPC2000Serial
 //
 
-LPC2000Serial::LPC2000Serial(int id, int baudrate) : Device(false,false,true)
+LPC2000Serial::LPC2000Serial(int id, int baudrate) : Device(Device::TTY)
 {
     InterruptDisableLock dLock;
     if(id<0 || id>1 || ports[id]!=0) errorHandler(UNEXPECTED);
@@ -176,8 +176,11 @@ void LPC2000Serial::IRQwrite(const char *str)
 
 int LPC2000Serial::ioctl(int cmd, void* arg)
 {
-    if(cmd==IOCTL_SYNC) waitSerialTxFifoEmpty();
-    else return -ENOTTY; //Means the operation does not apply to this descriptor
+    if(cmd==IOCTL_SYNC)
+    {
+        waitSerialTxFifoEmpty();
+        return 0;
+    } else return -ENOTTY; //Means the operation does not apply to this descriptor
 }
 
 void LPC2000Serial::IRQhandleInterrupt()

@@ -40,9 +40,10 @@
 #include "interfaces/arch_registers.h"
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
-#include "drivers/serial.h"
+#include "filesystem/ioctl.h"
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
+#include "drivers/serial.h"
 
 namespace miosix {
 
@@ -63,7 +64,6 @@ void IRQbspInit()
     ledOn();
     delayMs(100);
     ledOff();
-    miosix::IRQserialInit();
     DefaultConsole::instance().IRQset(
         intrusive_ref_ptr<Device>(new ConsoleAdapter));
 }
@@ -99,7 +99,6 @@ void shutdown()
     #endif //WITH_FILESYSTEM
 
     disableInterrupts();
-    if(IRQisSerialEnabled()) IRQserialDisable();
 
     SCB->SCR |= SCB_SCR_SLEEPDEEP;
     PWR->CR |= PWR_CR_PDDS; //Select standby mode
@@ -110,19 +109,24 @@ void shutdown()
     //FIXME: wakeup via PA.0 is not working
     
     __WFI();
-	for(;;) ; //Never reach here
+    for(;;) ; //Never reach here
 }
 
 void reboot()
 {
-    while(!serialTxComplete()) ;
+    //FIXME: at the time of writing, Miosix's newlib does not yet provide the
+    //sys/ioctl.h header file. Replace with a call to ioctl() when ready
+    #ifdef WITH_FILESYSTEM
+    miosix::getFileDescriptorTable().ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+    #else //WITH_FILESYSTEM
+    DefaultConsole::instance().get()->ioctl(IOCTL_SYNC,0);
+    #endif //WITH_FILESYSTEM
     
     #ifdef WITH_FILESYSTEM
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
     disableInterrupts();
-    if(IRQisSerialEnabled()) IRQserialDisable();
     miosix_private::IRQsystemReboot();
 }
 

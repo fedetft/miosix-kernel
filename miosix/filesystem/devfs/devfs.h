@@ -58,13 +58,22 @@ class Device : public IntrusiveRefCounted,
 {
 public:
     /**
+     * Possible device types
+     */
+    enum DeviceType
+    {
+        STREAM, ///< Not seekable device, like /dev/random
+        BLOCK,  ///< Seekable block device
+        TTY     ///< Like STREAM, but additionally is a TTY
+    };
+    /**
      * Constructor
      * \param seekable if true, device is seekable
      * \param block if true, it is a block device
      */
-    Device(bool seekable=false, bool block=false, bool tty=false)
+    Device(DeviceType d, bool seekable=false, bool block=false, bool tty=false)
     #ifdef WITH_DEVFS
-        : seekable(seekable), block(block), tty(tty)
+        : seekable(d==BLOCK), block(d==BLOCK), tty(d==TTY)
     #endif //WITH_DEVFS
     {}
     
@@ -174,18 +183,6 @@ public:
     virtual int ioctl(int cmd, void *arg);
 private:
     FastMutex mutex;
-};
-
-/**
- * FIXME remove this when removing Console interface!
- */
-class ConsoleAdapter : public Device
-{
-public:
-    ConsoleAdapter() : Device(false,false,true) {}
-    virtual ssize_t readBlock(void *buffer, size_t size, off_t where);
-    virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where);
-    virtual void IRQwrite(const char *str);
 };
 
 /**

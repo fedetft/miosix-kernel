@@ -30,8 +30,6 @@
 
 #include "interfaces/gpio.h"
 
-namespace miosix {
-
 //
 // All GPIOs are mapped here
 //

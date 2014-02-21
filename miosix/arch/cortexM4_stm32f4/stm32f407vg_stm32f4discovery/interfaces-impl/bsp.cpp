@@ -41,9 +41,10 @@
 #include "interfaces/console.h"
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
-#include "console-impl.h"
+#include "filesystem/ioctl.h"
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
+#include "drivers/serial.h"
 
 namespace miosix {
 
@@ -67,11 +68,8 @@ void IRQbspInit()
     ledOn();
     delayMs(100);
     ledOff();
-    #ifndef STDOUT_REDIRECTED_TO_DCC
-    IRQstm32f4serialPortInit();
-    #endif //STDOUT_REDIRECTED_TO_DCC
     DefaultConsole::instance().IRQset(
-        intrusive_ref_ptr<Device>(new ConsoleAdapter));
+        intrusive_ref_ptr<Device>(new STM32Serial(2,19200)));
 }
 
 void bspInit2()
@@ -122,7 +120,13 @@ void shutdown()
 
 void reboot()
 {
-    while(!Console::txComplete()) ;
+    //FIXME: at the time of writing, Miosix's newlib does not yet provide the
+    //sys/ioctl.h header file. Replace with a call to ioctl() when ready
+    #ifdef WITH_FILESYSTEM
+    miosix::getFileDescriptorTable().ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+    #else //WITH_FILESYSTEM
+    DefaultConsole::instance().get()->ioctl(IOCTL_SYNC,0);
+    #endif //WITH_FILESYSTEM
     
     #ifdef WITH_FILESYSTEM
     FilesystemManager::instance().umountAll();

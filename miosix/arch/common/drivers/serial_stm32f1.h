@@ -33,6 +33,9 @@
 #ifndef SERIAL_H
 #define SERIAL_H
 
+#include <sys/types.h>
+#include "filesystem/devfs/devfs.h"
+
 namespace miosix {
 
 /**
@@ -138,6 +141,18 @@ void IRQserialWriteString(const char *str);
  * \return true if the tx hardware buffer is empty.
  */
 bool IRQserialTxFifoEmpty();
+
+/**
+ * FIXME remove this when removing Console interface!
+ */
+class ConsoleAdapter : public Device
+{
+public:
+    ConsoleAdapter();
+    virtual ssize_t readBlock(void *buffer, size_t size, off_t where);
+    virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where);
+    virtual void IRQwrite(const char *str);
+};
 
 };//Namespace miosix
 

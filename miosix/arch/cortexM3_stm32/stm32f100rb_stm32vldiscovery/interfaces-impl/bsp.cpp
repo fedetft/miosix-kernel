@@ -40,9 +40,10 @@
 #include "interfaces/arch_registers.h"
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
-#include "drivers/serial.h"
+#include "filesystem/ioctl.h"
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
+#include "drivers/serial.h"
 
 namespace miosix {
 
@@ -60,9 +61,6 @@ void IRQbspInit()
     ledOn();
     delayMs(100);
     ledOff();
-    #ifndef STDOUT_REDIRECTED_TO_DCC
-    miosix::IRQserialInit();
-    #endif //STDOUT_REDIRECTED_TO_DCC
     DefaultConsole::instance().IRQset(
         intrusive_ref_ptr<Device>(new ConsoleAdapter));
 }
@@ -98,9 +96,6 @@ void shutdown()
     #endif //WITH_FILESYSTEM
 
     disableInterrupts();
-    #ifndef STDOUT_REDIRECTED_TO_DCC
-    if(IRQisSerialEnabled()) IRQserialDisable();
-    #endif //STDOUT_REDIRECTED_TO_DCC
 
     /*
     Removed because low power mode causes issues with SWD programming
@@ -118,16 +113,19 @@ void shutdown()
 
 void reboot()
 {
-    while(!serialTxComplete()) ;
+    //FIXME: at the time of writing, Miosix's newlib does not yet provide the
+    //sys/ioctl.h header file. Replace with a call to ioctl() when ready
+    #ifdef WITH_FILESYSTEM
+    miosix::getFileDescriptorTable().ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+    #else //WITH_FILESYSTEM
+    DefaultConsole::instance().get()->ioctl(IOCTL_SYNC,0);
+    #endif //WITH_FILESYSTEM
     
     #ifdef WITH_FILESYSTEM
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
     disableInterrupts();
-    #ifndef STDOUT_REDIRECTED_TO_DCC
-    if(IRQisSerialEnabled()) IRQserialDisable();
-    #endif //STDOUT_REDIRECTED_TO_DCC
     miosix_private::IRQsystemReboot();
 }
 

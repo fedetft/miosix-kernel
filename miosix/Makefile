@@ -66,7 +66,8 @@ all: $(OBJ) $(BOOT_FILE)
 	$(AR) rcs libmiosix.a $(OBJ)
 
 clean:
-	-rm $(OBJ) $(BOOT_FILE) libmiosix.a $(OBJ:.o=.d) $(BOOT_FILE:.o=.d)
+	-rm $(OBJ) $(BOOT_FILE) libmiosix.a $(OBJ:.o=.d)
+	-rm -f $(BOOT_FILE:.o=.d)
 
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@

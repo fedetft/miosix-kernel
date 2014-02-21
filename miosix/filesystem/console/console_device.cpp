@@ -166,7 +166,7 @@ void DefaultConsole::IRQset(intrusive_ref_ptr<Device> console)
     #endif //WITH_FILESYSTEM
 }
 
-DefaultConsole::DefaultConsole() : console(new Device)
+DefaultConsole::DefaultConsole() : console(new Device(Device::STREAM))
 #ifndef WITH_FILESYSTEM
 , terminal(new TerminalDevice(console))
 #endif //WITH_FILESYSTEM      

@@ -238,7 +238,9 @@ void serialWrite(const char *str, unsigned int len)
             if(!serialEnabled) return;
 
             // If we get here, the dma buffer is ready
-            unsigned int transferSize=std::min(len,SerialData::SOFTWARE_TX_QUEUE);
+            unsigned int transferSize;
+            transferSize=std::min(len,
+                static_cast<unsigned int>(SerialData::SOFTWARE_TX_QUEUE));
             memcpy(s.tx_dma_buffer,str,transferSize);
             // Setup DMA xfer
             DMA1_Channel4->CPAR=reinterpret_cast<unsigned int>(&USART1->DR);
@@ -404,6 +406,33 @@ void serialRxFlush()
 bool IRQserialTxFifoEmpty()
 {
     return (USART1->SR & USART_SR_TC)!=0;
+}
+
+//
+// class ConsoleAdapter
+//
+
+ConsoleAdapter::ConsoleAdapter() : Device(Device::TTY)
+{
+    InterruptDisableLock dLock;
+    IRQserialInit();
+}
+
+ssize_t ConsoleAdapter::readBlock(void* buffer, size_t size, off_t where)
+{
+    char *d=reinterpret_cast<char*>(buffer);
+    for(size_t i=0;i<size;i++) *d++=serialReadChar();
+    return size;
+}
+ssize_t ConsoleAdapter::writeBlock(const void* buffer, size_t size, off_t where)
+{
+    serialWrite(reinterpret_cast<const char*>(buffer),size);
+    return size;
+}
+void ConsoleAdapter::IRQwrite(const char* str)
+{
+    IRQserialWriteString(str);
+    while(!IRQserialTxFifoEmpty()) ;
 }
 
 }//Namespace miosix

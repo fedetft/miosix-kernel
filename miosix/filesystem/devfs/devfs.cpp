@@ -235,7 +235,7 @@ Device::~Device() {}
 //
 
 // FIXME temporary -- begin
-DiskAdapter::DiskAdapter() : Device(true,true)
+DiskAdapter::DiskAdapter() : Device(Device::BLOCK)
 {
     if(Disk::isAvailable()) Disk::init();
 }
@@ -266,31 +266,6 @@ int DiskAdapter::ioctl(int cmd, void *arg)
     return 0;
 }
 // FIXME temporary -- begin
-
-//
-// class ConsoleAdapter
-//
-
-// FIXME temporary -- begin
-#ifndef _ARCH_ARM7_LPC2000
-ssize_t ConsoleAdapter::readBlock(void* buffer, size_t size, off_t where)
-{
-    char *d=reinterpret_cast<char*>(buffer);
-    for(size_t i=0;i<size;i++) *d++=Console::readChar();
-    return size;
-}
-ssize_t ConsoleAdapter::writeBlock(const void* buffer, size_t size, off_t where)
-{
-    Console::write(reinterpret_cast<const char*>(buffer),size);
-    return size;
-}
-void ConsoleAdapter::IRQwrite(const char* str)
-{
-    Console::IRQwrite(str);
-    while(!Console::IRQtxComplete()) ;
-}
-#endif //ARCH_ARM7_LPC2000
-// FIXME temporary -- end
 
 /**
  * Directory class for DevFs 
@@ -380,8 +355,8 @@ int DevFsDirectory::getdents(void *dp, int len)
 
 DevFs::DevFs() : mutex(FastMutex::RECURSIVE), inodeCount(rootDirInode+1)
 {
-    addDevice("null",intrusive_ref_ptr<Device>(new Device));
-    addDevice("zero",intrusive_ref_ptr<Device>(new Device));
+    addDevice("null",intrusive_ref_ptr<Device>(new Device(Device::STREAM)));
+    addDevice("zero",intrusive_ref_ptr<Device>(new Device(Device::STREAM)));
 }
 
 bool DevFs::addDevice(const char *name, intrusive_ref_ptr<Device> dev)

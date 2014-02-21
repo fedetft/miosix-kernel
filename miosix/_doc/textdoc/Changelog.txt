@@ -1,5 +1,8 @@
 Changelog for Miosix np embedded OS
 
+- Factorized common code in the various stm32 serial port drivers. Work
+  is still ongoing, as stm32f1 still has a different driver, and since
+  DMA mode needs to be implemented.
 - Fixed a null pointer dereference in Queue class.
 - Fixed compiling kernel without WITH_FILESYSTEM
 - Added class LPC2000Serial. The lpc2000 port no longer relies on
