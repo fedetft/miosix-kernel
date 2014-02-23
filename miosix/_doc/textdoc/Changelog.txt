@@ -1,5 +1,6 @@
 Changelog for Miosix np embedded OS
 
+- Removed the console interface (file interfaces/console.h).
 - Factorized common code in the various stm32 serial port drivers. Work
   is still ongoing, as stm32f1 still has a different driver, and since
   DMA mode needs to be implemented.

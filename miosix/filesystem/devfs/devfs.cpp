@@ -32,7 +32,6 @@
 #include "filesystem/stringpart.h"
 #include "interfaces/disk.h" //FIXME: remove
 #include "filesystem/ioctl.h" //FIXME: remove
-#include <interfaces/console.h> //FIXME: remove
 
 using namespace std;
 
