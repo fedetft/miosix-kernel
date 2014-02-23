@@ -45,6 +45,8 @@
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
 #include "drivers/serial.h"
+#include "drivers/dcc.h"
+#include "board_settings.h"
 
 namespace miosix {
 
@@ -145,8 +147,12 @@ void IRQbspInit()
         | FSMC_BWTR1_ADDSET_0;//ADDSET=1
     //Write takes 6 + 1 (WE high to CS high) + 1 (min time CS high) = 8 cycles 
     
-    DefaultConsole::instance().IRQset(
-        intrusive_ref_ptr<Device>(new STM32Serial(1,19200)));
+    DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
+    #ifndef STDOUT_REDIRECTED_TO_DCC
+        new STM32Serial(1,SERIAL_PORT_SPEED)));
+    #else //STDOUT_REDIRECTED_TO_DCC
+        new ARMDCC));
+    #endif //STDOUT_REDIRECTED_TO_DCC
 }
 
 void bspInit2()

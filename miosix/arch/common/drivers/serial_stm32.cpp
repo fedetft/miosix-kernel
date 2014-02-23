@@ -36,7 +36,7 @@
 
 using namespace miosix;
 
-static const unsigned int numPorts=3;
+static const int numPorts=3;
 
 //A nice feature of the stm32 is that the USART are connected to the same
 //GPIOS in all families, stm32f1, f2, f4 and l1. Additionally, USART1 is

@@ -29,7 +29,7 @@
 #define	SERIAL_H
 
 #include "filesystem/console/console_device.h"
-#include "interfaces/delays.h"
+#include "kernel/sync.h"
 
 namespace miosix {
 

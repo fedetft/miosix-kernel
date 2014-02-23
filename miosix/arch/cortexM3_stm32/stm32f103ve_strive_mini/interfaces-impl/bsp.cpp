@@ -44,6 +44,7 @@
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
 #include "drivers/serial.h"
+#include "board_settings.h"
 
 namespace miosix {
 

@@ -54,6 +54,9 @@ const unsigned int TICK_FREQ=1000;
 const unsigned int AUX_TIMER_CLOCK=100000;
 const unsigned int AUX_TIMER_MAX=0xffff; ///<\internal Aux timer is 16 bits
 
+/// Serial port baudrate
+const unsigned int SERIAL_PORT_SPEED=19200;
+
 ///\def STDOUT_REDIRECTED_TO_DCC
 ///If defined, stdout is redirected to the debug communication channel, and
 ///will be printed if OpenOCD is connected. If not defined, stdout will be

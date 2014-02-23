@@ -44,6 +44,8 @@
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
 #include "drivers/serial.h"
+#include "drivers/dcc.h"
+#include "board_settings.h"
 
 namespace miosix {
 
@@ -61,8 +63,12 @@ void IRQbspInit()
     ledOn();
     delayMs(100);
     ledOff();
-    DefaultConsole::instance().IRQset(
-        intrusive_ref_ptr<Device>(new ConsoleAdapter));
+    DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
+    #ifndef STDOUT_REDIRECTED_TO_DCC
+        new ConsoleAdapter));
+    #else //STDOUT_REDIRECTED_TO_DCC
+        new ARMDCC));
+    #endif //STDOUT_REDIRECTED_TO_DCC
 }
 
 void bspInit2()
