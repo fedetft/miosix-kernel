@@ -234,7 +234,7 @@ endif
 ## a new board or porting Miosix to a new architecture                    ##
 ############################################################################
 
-ifneq ($(MAKEFILE_VERSION),1.01)
+ifneq ($(MAKEFILE_VERSION),1.02)
     $(error You are using an incompatible makefile. Make sure it matches \
       the one distributed with the current version of the kernel)
 endif
@@ -581,6 +581,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     ARCH_SRC +=                                  \
     arch/common/core/interrupts_cortexMx.cpp     \
     arch/common/drivers/serial_stm32f1.cpp       \
+    arch/common/drivers/dcc.cpp                  \
     $(ARCH_INC)/interfaces-impl/portability.cpp  \
     $(ARCH_INC)/interfaces-impl/delays.cpp       \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp    \
@@ -694,6 +695,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/drivers/serial_stm32.cpp                     \
     arch/common/drivers/stm32_hardware_rng.cpp               \
+    arch/common/drivers/dcc.cpp                              \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
@@ -897,6 +899,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/drivers/serial_stm32.cpp                     \
+    arch/common/drivers/dcc.cpp                              \
     arch/common/drivers/stm32_hardware_rng.cpp               \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \

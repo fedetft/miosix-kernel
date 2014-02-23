@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Fixed makefile dependencies to allow Miosix parallel builds with
+  make -j4, make -j8, ... to speed up compilation on multicores.
 - Restored support for DCC. It broke somewhere when transitioning to the
   new Device-based serial port drivers. Removed DCC support on stm32f4 as,
   due to OpenOCD limitations, it never actually worked.

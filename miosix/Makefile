@@ -3,7 +3,7 @@
 ## TFT:Terraneo Federico Technlogies
 ## This makefile builds the whole kernel
 ##
-MAKEFILE_VERSION := 1.01
+MAKEFILE_VERSION := 1.02
 include config/Makefile.inc
 
 ## List of all Miosix OS source files that have no special requirements

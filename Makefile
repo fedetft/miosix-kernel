@@ -2,7 +2,7 @@
 ## Makefile for Miosix np embedded OS
 ## TFT:Terraneo Federico Technlogies
 ##
-MAKEFILE_VERSION := 1.01
+MAKEFILE_VERSION := 1.02
 include miosix/config/Makefile.inc
 
 ##
@@ -70,7 +70,7 @@ main: main.elf
 	$(CP) -O binary main.elf main.bin
 	$(SZ) main.elf
 
-main.elf: $(OBJ) miosix/libmiosix.a
+main.elf: $(OBJ) all-recursive
 	@ echo "linking"
 	$(CXX) $(LFLAGS) -o main.elf $(OBJ) miosix/$(BOOT_FILE) $(LINK_LIBS)
 
