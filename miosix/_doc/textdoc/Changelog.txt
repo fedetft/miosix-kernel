@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Unified stm32f1 and stm32f2,f4,l1 serial port drivers. Now the
+  driver for USART1 is DMA based also on the stm32f2 and f4.
 - Fixed makefile dependencies to allow Miosix parallel builds with
   make -j4, make -j8, ... to speed up compilation on multicores.
 - Restored support for DCC. It broke somewhere when transitioning to the

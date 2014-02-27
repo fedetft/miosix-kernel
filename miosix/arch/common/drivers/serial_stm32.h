@@ -25,19 +25,27 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/ 
 
-#ifndef SERIAL_H
-#define	SERIAL_H
+#ifndef SERIAL_STM32_H
+#define	SERIAL_STM32_H
 
 #include "filesystem/console/console_device.h"
 #include "kernel/sync.h"
+#include "board_settings.h"
+
+#if defined(_ARCH_CORTEXM3_STM32) && defined(__ENABLE_XRAM)
+//Quirk: concurrent access to the FSMC from both core and DMA is broken in
+//the stm32f1, so disable DMA mode if XRAM is enabled.
+#undef SERIAL_1_DMA
+#endif
 
 namespace miosix {
 
 /**
  * Serial port class for stm32 microcontrollers.
  * Only supports USART1, USART2 and USART3
- * Additionally, USART1 uses DMA while the other serial use polling for
- * transmission, and interrupt for reception.
+ * Additionally, USART1 can use DMA if SERIAL_1_DMA is defined in
+ * board_settings.h, while the other serial use polling for transmission,
+ * and interrupt for reception.
  */
 class STM32Serial : public Device
 {
@@ -97,6 +105,14 @@ public:
      */
     void IRQhandleInterrupt();
     
+    #ifdef SERIAL_1_DMA
+    /**
+     * \internal the serial port DMA tx interrupts call this member function.
+     * Never call this from user code.
+     */
+    void IRQhandleDMAtx();
+    #endif //SERIAL_1_DMA
+    
     /**
      * Destructor
      */
@@ -108,22 +124,22 @@ private:
      */
     void waitSerialTxFifoEmpty()
     {
-        while((port->SR & USART_SR_TC)!=0) ;
+        while((port->SR & USART_SR_TC)==0) ;
     }
     
-    //Configure the software queue here
-//    static const int SOFTWARE_TX_QUEUE=32;///< Size of tx software queue
     static const int SOFTWARE_RX_QUEUE=32;///< Size of rx software queue
 
-    Mutex txMutex;///< Mutex used to guard the tx queue
-    Mutex rxMutex;///< Mutex used to guard the rx queue
+    Mutex txMutex;///< Mutex locked during transmission
+    Mutex rxMutex;///< Mutex locked during reception
 
-//    Queue<char,SOFTWARE_TX_QUEUE> txQueue;///< Tx software queue
     Queue<char,SOFTWARE_RX_QUEUE> rxQueue;///< Rx software queue
     
     USART_TypeDef *port;
+    #ifdef SERIAL_1_DMA
+    miosix::Thread *txWaiting;
+    #endif //SERIAL_1_DMA
 };
 
 } //namespace miosix
 
-#endif //SERIAL_H
+#endif //SERIAL_STM32_H

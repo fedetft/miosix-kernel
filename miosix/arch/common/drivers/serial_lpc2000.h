@@ -26,8 +26,8 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/ 
 
-#ifndef SERIAL_H
-#define SERIAL_H
+#ifndef SERIAL_LPC2000_H
+#define SERIAL_LPC2000_H
 
 #include "filesystem/console/console_device.h"
 #include "interfaces/delays.h"
@@ -175,4 +175,4 @@ private:
 
 } //namespace miosix
 
-#endif //SERIAL_H
+#endif //SERIAL_LPC2000_H

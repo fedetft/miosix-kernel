@@ -59,7 +59,7 @@ void IRQbspInit()
     delayMs(100);
     ledOff();
     DefaultConsole::instance().IRQset(
-        intrusive_ref_ptr<Device>(new ConsoleAdapter));
+        intrusive_ref_ptr<Device>(new STM32Serial(1,SERIAL_PORT_SPEED)));
 }
 
 void bspInit2()

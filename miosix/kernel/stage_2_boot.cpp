@@ -76,7 +76,8 @@ static void call_constructors(unsigned long *start, unsigned long *end)
 void *mainLoader(void *argv)
 {
     //If reaches here kernel is started, print Ok
-    bootlog("Ok\r\n");
+    puts("Ok");
+    puts(getMiosixVersion());
     
     //Starting part of bsp that must be started after kernel
     bspInit2();
@@ -131,9 +132,8 @@ extern "C" void _init()
 {
     if(areInterruptsEnabled()) errorHandler(INTERRUPTS_ENABLED_AT_BOOT);
     IRQbspInit();
-    //After IRQbspInit() serial port is initialized, so we can use BOOTLOG
-    IRQbootlog(getMiosixVersion());
-    IRQbootlog("\r\nStarting Kernel... ");
+    //After IRQbspInit() serial port is initialized, so we can use IRQbootlog
+    IRQbootlog("Starting Kernel... ");
     startKernel();
     //Never reach here (unless startKernel fails)
 }

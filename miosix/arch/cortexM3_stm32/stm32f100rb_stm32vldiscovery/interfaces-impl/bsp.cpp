@@ -65,7 +65,7 @@ void IRQbspInit()
     ledOff();
     DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
     #ifndef STDOUT_REDIRECTED_TO_DCC
-        new ConsoleAdapter));
+        new STM32Serial(1,SERIAL_PORT_SPEED)));
     #else //STDOUT_REDIRECTED_TO_DCC
         new ARMDCC));
     #endif //STDOUT_REDIRECTED_TO_DCC

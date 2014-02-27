@@ -580,7 +580,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                  \
     arch/common/core/interrupts_cortexMx.cpp     \
-    arch/common/drivers/serial_stm32f1.cpp       \
+    arch/common/drivers/serial_stm32.cpp         \
     arch/common/drivers/dcc.cpp                  \
     $(ARCH_INC)/interfaces-impl/portability.cpp  \
     $(ARCH_INC)/interfaces-impl/delays.cpp       \

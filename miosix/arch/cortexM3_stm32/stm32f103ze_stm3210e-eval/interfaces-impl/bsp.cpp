@@ -57,7 +57,8 @@ void IRQbspInit()
     //Enable all gpios
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_IOPBEN |
                     RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN |
-                    RCC_APB2ENR_IOPEEN | RCC_APB2ENR_IOPFEN;
+                    RCC_APB2ENR_IOPEEN | RCC_APB2ENR_IOPFEN |
+                    RCC_APB2ENR_AFIOEN;
     _led::mode(Mode::OUTPUT_2MHz);// No need to be fast
     sdCardDetect::mode(Mode::INPUT_PULL_UP_DOWN);
     sdCardDetect::pullup();
@@ -66,7 +67,7 @@ void IRQbspInit()
     delayMs(100);
     ledOff();
     DefaultConsole::instance().IRQset(
-        intrusive_ref_ptr<Device>(new ConsoleAdapter));
+        intrusive_ref_ptr<Device>(new STM32Serial(1,SERIAL_PORT_SPEED)));
 }
 
 void bspInit2()
