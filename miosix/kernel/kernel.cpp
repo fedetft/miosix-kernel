@@ -651,9 +651,7 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
     } catch(std::exception& e)
     {
         errorHandler(PROPAGATED_EXCEPTION);
-        errorLog("what():");
-        errorLog(e.what());
-        errorLog("\r\n");
+        errorLog("what():%s\n",e.what());
     } catch(...)
     {
         errorHandler(PROPAGATED_EXCEPTION);

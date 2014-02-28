@@ -710,7 +710,7 @@ basicFilesystemSetup()
     bootlog("Mounting MountpointFs as / ... ");
     FilesystemManager& fsm=FilesystemManager::instance();
     intrusive_ref_ptr<FilesystemBase> rootFs(new MountpointFs);
-    bootlog(fsm.kmount("/",rootFs)==0 ? "Ok\r\n" : "Failed\r\n");
+    bootlog(fsm.kmount("/",rootFs)==0 ? "Ok\n" : "Failed\n");
     
     //TODO: Move to individual BSPs -- begin
     bootlog("Mounting Fat32Fs as /sd ... ");
@@ -732,7 +732,7 @@ basicFilesystemSetup()
         fat32failed=rootFs->mkdir(sd,0755)!=0;
         fat32failed=fsm.kmount("/sd",fat32)!=0;
     }
-    bootlog(fat32failed==0 ? "Ok\r\n" : "Failed\r\n");
+    bootlog(fat32failed==0 ? "Ok\n" : "Failed\n");
     //TODO: Move to individual BSPs -- end
     
     #ifdef WITH_DEVFS
@@ -741,7 +741,7 @@ basicFilesystemSetup()
     int r1=rootFs->mkdir(sp,0755); 
     intrusive_ref_ptr<DevFs> result(new DevFs);
     int r2=fsm.kmount("/dev",result);
-    bootlog((r1==0 && r2==0) ? "Ok\r\n" : "Failed\r\n");
+    bootlog((r1==0 && r2==0) ? "Ok\n" : "Failed\n");
     return result;
     #endif //WITH_DEVFS
 }

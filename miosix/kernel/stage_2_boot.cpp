@@ -76,17 +76,10 @@ static void call_constructors(unsigned long *start, unsigned long *end)
 void *mainLoader(void *argv)
 {
     //If reaches here kernel is started, print Ok
-    puts("Ok");
-    puts(getMiosixVersion());
+    bootlog("Ok\n%s\n",getMiosixVersion());
     
     //Starting part of bsp that must be started after kernel
     bspInit2();
-
-    #ifdef WITH_BOOTLOG
-    iprintf("Available heap %d out of %d Bytes\n",
-            MemoryProfiling::getCurrentFreeHeap(),
-            MemoryProfiling::getHeapSize());
-    #endif
 
     //Initialize C++ global constructors
     extern unsigned long __preinit_array_start asm("__preinit_array_start");
@@ -99,6 +92,10 @@ void *mainLoader(void *argv)
 	call_constructors(&__init_array_start, &__init_array_end);
 	call_constructors(&_ctor_start, &_ctor_end);
     
+    bootlog("Available heap %d out of %d Bytes\n",
+            MemoryProfiling::getCurrentFreeHeap(),
+            MemoryProfiling::getHeapSize());
+    
     //Run application code
     #ifdef __NO_EXCEPTIONS
     main(0,NULL);
@@ -108,9 +105,7 @@ void *mainLoader(void *argv)
     } catch(std::exception& e)
     {
         errorHandler(PROPAGATED_EXCEPTION);
-        errorLog("what():");
-        errorLog(e.what());
-        errorLog("\r\n");
+        errorLog("what():%s\n",e.what());
     } catch(...)
     {
         errorHandler(PROPAGATED_EXCEPTION);

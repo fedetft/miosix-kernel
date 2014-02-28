@@ -77,13 +77,13 @@ void operator delete[](void *p) throw()
  */
 extern "C" void __cxxabiv1::__cxa_pure_virtual(void)
 {
-    miosix::errorLog("\r\n***Pure virtual method called\r\n");
+    miosix::errorLog("\n***Pure virtual method called\n");
     _exit(1);
 }
 
 extern "C" void __cxxabiv1::__cxa_deleted_virtual(void)
 {
-    miosix::errorLog("\r\n***Deleted virtual method called\r\n");
+    miosix::errorLog("\n***Deleted virtual method called\n");
     _exit(1);
 }
 
@@ -181,7 +181,7 @@ namespace __gnu_cxx {
  */
 void __verbose_terminate_handler()
 {
-    miosix::errorLog("\r\n***Unhandled exception thrown\r\n");
+    miosix::errorLog("\n***Unhandled exception thrown\n");
     _exit(1);
 }
 

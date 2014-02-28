@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010, 2011, 2012, 2013, 2014 by Terraneo Federico       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -30,25 +30,30 @@
 
 #include "config/miosix_settings.h"
 #include "filesystem/console/console_device.h"
-#include <cstring>
+#include <cstdio>
+#include <cstdarg>
 
 namespace miosix {
 
 /**
- * Print boot logs on the Console. Can only be called when the kernel is
- * running.
- * \param string to print
+ * Print boot logs. Cotrary to (i)printf(), this can be disabled in
+ * miosix_settings.h if boot logs are not wanted. Can only be called when the
+ * kernel is running.
+ * \param fmt format string
  */
-inline void bootlog(const char *string)
+inline void bootlog(const char *fmt, ...)
 {
     #ifdef WITH_BOOTLOG
-    DefaultConsole::instance().get()->writeBlock(string,std::strlen(string),0);
+    va_list arg;
+    va_start(arg,fmt);
+    viprintf(fmt,arg);
+    va_end(arg);
     #endif //WITH_BOOTLOG
 }
 
 /**
- * Print boot logs on the Console. Can only be called when the kernel is
- * not yet running or paused, or within an IRQ.
+ * Print boot logs. Can only be called when the kernel is not yet running or
+ * paused, or within an IRQ.
  * \param string to print
  */
 inline void IRQbootlog(const char *string)
@@ -59,20 +64,24 @@ inline void IRQbootlog(const char *string)
 }
 
 /**
- * Print eror logs on the Console. Can only be called when the kernel is
- * running.
- * \param string to print
+ * Print error logs. Cotrary to (i)printf(), this can be disabled in
+ * miosix_settings.h if boot logs are not wanted. Can only be called when the
+ * kernel is running.
+ * \param fmt format string
  */
-inline void errorLog(const char *string)
+inline void errorLog(const char *fmt, ...)
 {
     #ifdef WITH_ERRLOG
-    DefaultConsole::instance().get()->writeBlock(string,std::strlen(string),0);
+    va_list arg;
+    va_start(arg,fmt);
+    viprintf(fmt,arg);
+    va_end(arg);
     #endif //WITH_ERRLOG
 }
 
 /**
- * Print error logs on the Console. Can only be called when the kernel is
- * not yet running or paused, or within an IRQ.
+ * Print error logs. Can only be called when the kernel is not yet running or
+ * paused, or within an IRQ.
  * \param string to print
  */
 inline void IRQerrorLog(const char *string)
