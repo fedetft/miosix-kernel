@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Terraneo Federico                               *
+ *   Copyright (C) 2013, 2014 by Terraneo Federico                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -50,20 +50,20 @@ public:
     /**
      * Write data to the file, if the file supports writing.
      * \param data the data to write
-     * \param len the number of bytes to write
+     * \param length the number of bytes to write
      * \return the number of written characters, or a negative number in case
      * of errors
      */
-    virtual ssize_t write(const void *data, size_t len);
+    virtual ssize_t write(const void *data, size_t length);
     
     /**
      * Read data from the file, if the file supports reading.
      * \param data buffer to store read data
-     * \param len the number of bytes to read
+     * \param length the number of bytes to read
      * \return the number of read characters, or a negative number in case
      * of errors
      */
-    virtual ssize_t read(void *data, size_t len);
+    virtual ssize_t read(void *data, size_t length);
     
     #ifdef WITH_FILESYSTEM
     
@@ -124,11 +124,33 @@ public:
     bool isBinary() const { return binary; }
     
 private:
-    intrusive_ref_ptr<Device> device;
-    FastMutex mutex;
-    bool echo;
-    bool binary;
-    bool skipNewline;
+    /**
+     * Perform normalization of a read buffer (\r\n conversion to \n, backspace)
+     * \param buffer pointer to read buffer
+     * \param begin buffer[begin] is the first character to normalize
+     * \param end buffer[end] is one past the las character to normalize
+     * \return a pair with the number of valid character in the buffer (staring
+     * from buffer[0], not from buffer[begin], and a bool that is true if at
+     * least one \n was found. 
+     */
+    std::pair<size_t,bool> normalize(char *buffer, ssize_t begin, ssize_t end);
+    
+    /**
+     * Perform echo when reading a buffer
+     * \param chunkEnd one past the last character to echo back. The first
+     * character is chunkStart. As a side effect, this member function modifies
+     * chunkStart to be equal to chunkEnd+1, if echo is enabled
+     * \param sep optional line separator, printed after the chunk
+     * \param sepLen separator length
+     */
+    void echoBack(const char *chunkEnd, const char *sep=0, size_t sepLen=0);
+    
+    intrusive_ref_ptr<Device> device; ///< Underlying TTY device
+    FastMutex mutex;                  ///< Mutex to serialze concurrent reads
+    const char *chunkStart;           ///< First character to echo in echoBack()
+    bool echo;                        ///< True if echo enabled
+    bool binary;                      ///< True if binary mode enabled
+    bool skipNewline;                 ///< Used by normalize()
 };
 
 /**

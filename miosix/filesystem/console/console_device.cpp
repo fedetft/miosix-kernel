@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Terraneo Federico                               *
+ *   Copyright (C) 2013, 2014 by Terraneo Federico                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -28,6 +28,8 @@
 #include "console_device.h"
 #include <errno.h>
 
+using namespace std;
+
 namespace miosix {
 
 //
@@ -38,89 +40,55 @@ TerminalDevice::TerminalDevice(intrusive_ref_ptr<Device> device)
         : FileBase(intrusive_ref_ptr<FilesystemBase>()), device(device),
           mutex(), echo(true), binary(false), skipNewline(false) {}
 
-ssize_t TerminalDevice::write(const void *data, size_t len)
+ssize_t TerminalDevice::write(const void *data, size_t length)
 {
-    if(binary) return device->writeBlock(data,len,0);
+    if(binary) return device->writeBlock(data,length,0);
     //No mutex here to avoid blocking writes while reads are in progress
-    const char *dataStart=static_cast<const char*>(data);
-    const char *buffer=dataStart;
-    const char *chunkstart=dataStart;
+    const char *buffer=static_cast<const char*>(data);
+    const char *start=buffer;
     //Try to write data in chunks, stop at every \n to replace with \r\n
-    for(size_t i=0;i<len;i++,buffer++)
+    //Although it may be tempting to call echoBack() from here since it performs
+    //a similar task, it is not possible, as echoBack() uses a class field,
+    //chunkStart, and write is not mutexed to allow concurrent writing
+    for(size_t i=0;i<length;i++,buffer++)
     {
-        if(*buffer=='\n')
+        if(*buffer!='\n') continue;
+        if(buffer>start)
         {
-            size_t chunklen=buffer-chunkstart;
-            if(chunklen>0)
-            {
-                ssize_t r=device->writeBlock(chunkstart,chunklen,0);
-                if(r<=0) return chunkstart==dataStart ? r : chunkstart-dataStart;
-            }
-            ssize_t r=device->writeBlock("\r\n",2,0);//Add \r\n
-            if(r<=0) return chunkstart==dataStart ? r : chunkstart-dataStart;
-            chunkstart=buffer+1;
+            ssize_t r=device->writeBlock(start,buffer-start,0);
+            if(r<=0) return r;
         }
+        ssize_t r=device->writeBlock("\r\n",2,0);//Add \r\n
+        if(r<=0) return r;
+        start=buffer+1;
     }
-    if(chunkstart!=buffer)
+    if(buffer>start)
     {
-        ssize_t r=device->writeBlock(chunkstart,buffer-chunkstart,0);
-        if(r<=0) return chunkstart==dataStart ? r : chunkstart-dataStart;
+        ssize_t r=device->writeBlock(start,buffer-start,0);
+        if(r<=0) return r;
     }
-    return len;
+    return length;
 }
 
-ssize_t TerminalDevice::read(void *data, size_t len)
+ssize_t TerminalDevice::read(void *data, size_t length)
 {
     if(binary)
     {
-        ssize_t result=device->readBlock(data,len,0);
+        ssize_t result=device->readBlock(data,length,0);
         if(echo && result>0) device->writeBlock(data,result,0);//Ignore write errors
         return result;
     }
     Lock<FastMutex> l(mutex); //Reads are serialized
-    char *dataStart=static_cast<char*>(data);
-    char *buffer=dataStart;
-    //Trying to be compatible with terminals that output \r, \n or \r\n
-    //When receiving \r skipNewline is set to true so we skip the \n
-    //if it comes right after the \r
-    for(int i=0;i<static_cast<int>(len);i++,buffer++)
+    char *buffer=static_cast<char*>(data);
+    size_t readBytes=0;
+    for(;;)
     {
-        ssize_t r=device->readBlock(buffer,1,0);
-        if(r<=0) return buffer==dataStart ? r : buffer-dataStart;
-        switch(*buffer)
-        {
-            case '\r':
-                *buffer='\n';
-                if(echo) device->writeBlock("\r\n",2,0);
-                skipNewline=true;
-                return i+1;    
-            case '\n':
-                if(skipNewline)
-                {
-                    skipNewline=false;
-                    //Discard the \n because comes right after \r
-                    i--; //Note that i may become -1, but it is acceptable.
-                    buffer--;
-                } else {
-                    if(echo) device->writeBlock("\r\n",2,0);
-                    return i+1;
-                }
-                break;
-            case 0x7f: //Unix backspace
-            case 0x08: //DOS backspace
-            {
-                int backward= i==0 ? 1 : 2;
-                i-=backward; //Note that i may become -1, but it is acceptable.
-                buffer-=backward;
-                if(echo) device->writeBlock("\033[1D \033[1D",9,0);
-                break;
-            }
-            default:
-                skipNewline=false;
-                if(echo) device->writeBlock(buffer,1,0);
-        }
+        ssize_t r=device->readBlock(buffer+readBytes,length-readBytes,0);
+        if(r<0) return r;
+        pair<size_t,bool> result=normalize(buffer,readBytes,readBytes+r);
+        readBytes=result.first;
+        if(readBytes==length || result.second) return readBytes;
     }
-    return len;
 }
 
 #ifdef WITH_FILESYSTEM
@@ -143,6 +111,68 @@ int TerminalDevice::ioctl(int cmd, void *arg)
 {
     //TODO: trap ioctl to change terminal settings
     return device->ioctl(cmd,arg);
+}
+
+pair<size_t,bool> TerminalDevice::normalize(char *buffer, ssize_t begin,
+        ssize_t end)
+{
+    bool newlineFound=false;
+    buffer+=begin;
+    chunkStart=buffer;
+    for(ssize_t i=begin;i<end;i++,buffer++)
+    {
+        switch(*buffer)
+        {
+            //Trying to be compatible with terminals that output \r, \n or \r\n
+            //When receiving \r skipNewline is set to true so we skip the \n
+            //if it comes right after the \r
+            case '\r':
+                *buffer='\n';
+                echoBack(buffer,"\r\n",2);
+                skipNewline=true;
+                newlineFound=true;
+                break;
+            case '\n':
+                if(skipNewline)
+                {
+                    skipNewline=false;
+                    //Discard the \n because comes right after \r
+                    memmove(buffer,buffer+1,end-i-1);
+                    end--;
+                    i--; //Note that i may become -1, but it is acceptable.
+                    buffer--;
+                } else {
+                    echoBack(buffer,"\r\n",2);
+                    newlineFound=true;
+                }
+                break;
+            case 0x7f: //Unix backspace
+            case 0x08: //DOS backspace
+            {
+                //Need to echo before moving buffer data
+                echoBack(buffer,"\033[1D \033[1D",9);
+                ssize_t backward= i==0 ? 1 : 2;
+                memmove(buffer-(backward-1),buffer+1,end-i);
+                end-=backward;
+                i-=backward; //Note that i may become -1, but it is acceptable.
+                buffer-=backward;
+                chunkStart=buffer+1; //Fixup chunkStart after backspace 
+                break;
+            }
+            default:
+                skipNewline=false;
+        }
+    }
+    echoBack(buffer);
+    return make_pair(end,newlineFound);
+}
+
+void TerminalDevice::echoBack(const char *chunkEnd, const char *sep, size_t sepLen)
+{
+    if(!echo) return;
+    if(chunkEnd>chunkStart) device->writeBlock(chunkStart,chunkEnd-chunkStart,0);
+    chunkStart=chunkEnd+1;
+    if(sep) device->writeBlock(sep,sepLen,0); //Ignore write errors
 }
 
 //

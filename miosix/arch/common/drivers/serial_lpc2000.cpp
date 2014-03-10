@@ -82,7 +82,8 @@ void __attribute__ ((interrupt("IRQ"),naked)) usart1irq()
 // class LPC2000Serial
 //
 
-LPC2000Serial::LPC2000Serial(int id, int baudrate) : Device(Device::TTY)
+LPC2000Serial::LPC2000Serial(int id, int baudrate) : Device(Device::TTY),
+        waiting(0), timeout(false)
 {
     InterruptDisableLock dLock;
     if(id<0 || id>1 || ports[id]!=0) errorHandler(UNEXPECTED);
@@ -125,15 +126,39 @@ LPC2000Serial::LPC2000Serial(int id, int baudrate) : Device(Device::TTY)
 
 ssize_t LPC2000Serial::readBlock(void *buffer, size_t size, off_t where)
 {
-    Lock<Mutex> l(rxMutex);
+    if(size==0) return 0;
+    Lock<FastMutex> l(rxMutex);
     char *buf=reinterpret_cast<char*>(buffer);
-    for(size_t i=0;i<size;i++) rxQueue.get(buf[i]);
-    return size;
+    FastInterruptDisableLock dLock;
+    size_t result=0;
+    if(rxQueue.isEmpty()==false)
+    {
+        //There's something in the queue, return what we've got
+        for(;result<size;result++) if(rxQueue.IRQget(buf[result])==false) break;
+    } else {
+        timeout=false;
+        do {
+            //First, wait for data in the queue
+            do {
+                waiting=Thread::IRQgetCurrentThread();
+                waiting->IRQwait();
+                {
+                    FastInterruptEnableLock eLock(dLock);
+                    Thread::yield();
+                }
+            } while(waiting);
+            //Get data from the queue
+            for(;result<size;result++)
+                if(rxQueue.IRQget(buf[result])==false) break;
+            if(result==size) timeout=true; //Not a timeout, but gets us out
+        } while(timeout==false);
+    }
+    return result;
 }
 
 ssize_t LPC2000Serial::writeBlock(const void *buffer, size_t size, off_t where)
 {
-    Lock<Mutex> l(txMutex);
+    Lock<FastMutex> l(txMutex);
     FastInterruptDisableLock dLock;
     size_t len=size;
     const char *buf=reinterpret_cast<const char*>(buffer);
@@ -187,6 +212,7 @@ void LPC2000Serial::IRQhandleInterrupt()
 {
     char c;
     bool hppw=false;
+    bool wakeup=false;
     switch(serial->IIR & 0xf)
     {
         case 0x6: //RLS
@@ -194,11 +220,18 @@ void LPC2000Serial::IRQhandleInterrupt()
             c=serial->RBR;//Read RBR to discard char that caused error
             break;
         case 0x4: //RDA
-            for(int i=0;i<HARDWARE_RX_QUEUE_LENGTH;i++)
-                if(rxQueue.IRQput(serial->RBR,hppw)==false) /*fifo overflow*/;
+            //Note: read one less char than HARDWARE_RX_QUEUE_LENGTH as the
+            //CTI interrupt only occurs if there's at least one character in
+            //the buffer, and we always want the CTI interrupt
+            for(int i=0;i<HARDWARE_RX_QUEUE_LENGTH-1;i++)
+                if(rxQueue.IRQput(serial->RBR)==false) /*fifo overflow*/;
+            wakeup=true;
+            break;
         case 0xc: //CTI
             while(serial->LSR & (1<<0))
-                if(rxQueue.IRQput(serial->RBR,hppw)==false) /*fifo overflow*/;
+                if(rxQueue.IRQput(serial->RBR)==false) /*fifo overflow*/;
+            wakeup=true;
+            timeout=true;
             break;
         case 0x2: //THRE
             for(int i=0;i<HARDWARE_TX_QUEUE_LENGTH;i++)
@@ -208,6 +241,13 @@ void LPC2000Serial::IRQhandleInterrupt()
                 serial->THR=c;
             }
             break;
+    }
+    if(wakeup && waiting)
+    {
+        waiting->IRQwakeup();
+        if(waiting->IRQgetPriority()>
+                Thread::IRQgetCurrentThread()->IRQgetPriority()) hppw=true;
+        waiting=0;
     }
     if(hppw) Scheduler::IRQfindNextThread();
 }

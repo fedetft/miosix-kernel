@@ -1,5 +1,12 @@
 Changelog for Miosix np embedded OS
 
+- Breaking change: serial port drivers used to have a read function to read
+  a buffer of data that would return a buffer with exactly the asked size
+  of data. Now they return up to that size, but if an idle line is found
+  they may return less. This change is exploited in the TerminalDevice class
+  to read data a buffer at a time, and not one character at a time, so all
+  serial driver must implement this behaviour, or reading from serial port
+  won't work as expected. Both STM32 and LPC2000 driver have been upgraded.
 - bootlog() and errorLog() now support format strings.
 - Unified stm32f1 and stm32f2,f4,l1 serial port drivers. Now the
   driver for USART1 is DMA based also on the stm32f2 and f4.

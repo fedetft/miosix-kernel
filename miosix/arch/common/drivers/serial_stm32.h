@@ -57,7 +57,8 @@ public:
      * it is possible to instantiate only one instance of this class for each
      * hardware USART.
      * \param id a number 1 to 3 to select which USART
-     * \param baudrate serial port baudrate.
+     * \param baudrate serial port baudrate. This driver is optimized for speeds
+     * up to 115200 baud.
      */
     STM32Serial(int id, int baudrate);
     
@@ -66,7 +67,9 @@ public:
      * \param buffer buffer where read data will be stored
      * \param size buffer size
      * \param where where to read from
-     * \return number of bytes read or a negative number on failure
+     * \return number of bytes read or a negative number on failure. Note that
+     * it is normal for this function to return less character than the amount
+     * asked
      */
     ssize_t readBlock(void *buffer, size_t size, off_t where);
     
@@ -126,17 +129,18 @@ private:
     {
         while((port->SR & USART_SR_TC)==0) ;
     }
-    
-    static const int SOFTWARE_RX_QUEUE=32;///< Size of rx software queue
 
-    Mutex txMutex;///< Mutex locked during transmission
-    Mutex rxMutex;///< Mutex locked during reception
-
-    Queue<char,SOFTWARE_RX_QUEUE> rxQueue;///< Rx software queue
+    FastMutex txMutex; ///< Mutex locked during transmission
+    FastMutex rxMutex; ///< Mutex locked during reception
     
-    USART_TypeDef *port;
+    size_t rxBufferCapacity;   ///< Size of memory pointed by rxBuffer
+    size_t rxBufferSize;       ///< Actual numer of bytes in the buffer
+    char *rxBuffer;            ///< Receiving data is buffered here
+    miosix::Thread *rxWaiting; ///< Thread waiting for rx, or 0
+    
+    USART_TypeDef *port;       ///< Pointer to USART peripheral
     #ifdef SERIAL_1_DMA
-    miosix::Thread *txWaiting;
+    miosix::Thread *txWaiting; ///< Thread waiting for tx, or 0
     #endif //SERIAL_1_DMA
 };
 

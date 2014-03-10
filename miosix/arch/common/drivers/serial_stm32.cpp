@@ -27,7 +27,7 @@
 
 #include <cstring>
 #include <errno.h>
-#include "serial.h"
+#include "serial_stm32.h"
 #include "kernel/sync.h"
 #include "kernel/scheduler/scheduler.h"
 #include "interfaces/portability.h"
@@ -153,6 +153,12 @@ STM32Serial::STM32Serial(int id, int baudrate) : Device(Device::TTY)
     #ifdef SERIAL_1_DMA
     txWaiting=0;
     #endif //SERIAL_1_DMA
+    rxWaiting=0;
+    //The buffer is selected so as to withstand 20ms of full data rate. In the
+    //8N1 format one char is made of 10 bits. So (baudrate/10)*0.02=baudrate/500
+    rxBufferCapacity=baudrate/500;
+    rxBufferSize=0;
+    rxBuffer=new char[rxBufferCapacity];
     InterruptDisableLock dLock;
     if(id<1|| id>numPorts || ports[id-1]!=0) errorHandler(UNEXPECTED);
     ports[id-1]=this;
@@ -224,24 +230,77 @@ STM32Serial::STM32Serial(int id, int baudrate) : Device(Device::TTY)
     const unsigned int quot=2*freq/baudrate; //2*freq for round to nearest
     port->BRR=quot/2 + (quot & 1);           //Round to nearest
     //Enabled, 8 data bit, no parity, interrupt on character rx
-    port->CR1 = USART_CR1_UE | USART_CR1_RXNEIE | USART_CR1_TE | USART_CR1_RE;
+    port->CR1 = USART_CR1_UE     //Enable port
+              | USART_CR1_RXNEIE //Interrupt on data received
+              | USART_CR1_IDLEIE //Interrupt on idle line
+              | USART_CR1_TE     //Transmission enbled
+              | USART_CR1_RE;    //Reception enabled
 }
 
 ssize_t STM32Serial::readBlock(void *buffer, size_t size, off_t where)
 {
-    Lock<Mutex> l(rxMutex);
-    char *buf=reinterpret_cast<char*>(buffer);
-    for(size_t i=0;i<size;i++) rxQueue.get(buf[i]);
-    return size;
+    if(size==0) return 0;
+    Lock<FastMutex> l(rxMutex);
+    FastInterruptDisableLock dLock;
+    size_t result;
+    if(rxBufferSize>0)
+    {
+        //There's something in the buffer, return what we've got
+        result=min(size,rxBufferSize);
+        memcpy(buffer,rxBuffer,result);
+        /*
+         * The driver used to be based on a circular buffer, but although it
+         * had optimal performance when reading a character at a time,
+         * reading a buffer at a time required a loop popping one character at
+         * a time out of the queue. Also, the old implementation did not allow
+         * zero copy operation, and was unfit for DMA operation, as DMA can't be
+         * instructed to wrap around in a circular buffer fashion.
+         * This implementation has none of these limitations, but the
+         * disadvantage of requiring a memmove to shft characters around if
+         * called with small buffers. A test was made on the EthBoardV2 using
+         * memove to copy 256byte with code running from RAM, and it took 15us.
+         * In a less worst-case scenario, with code running from FLASH and
+         * smaller buffers, it would be far less. This assumes the serial speed
+         * is 115200 or less. For far higher speeds the time to memcpy/memmove
+         * increases, and the max time for doing it before an rx overrun occurs
+         * decreases, requiring a totally different implementation using double
+         * buffering, which was not done as it requires twice the RAM.
+         */
+        if(rxBufferSize>size) memmove(rxBuffer,rxBuffer+size,rxBufferSize-size);
+        rxBufferSize-=result;
+    } else {
+        //Try to be zero copy when possible
+        char *originalBuffer=rxBuffer;
+        size_t originalCapacity=rxBufferCapacity;
+        rxBuffer=reinterpret_cast<char*>(buffer);
+        rxBufferCapacity=size;
+        //TODO: what if buffer is filled, IRQ awakens this thread, but a long
+        //time passes before it is scheduled? need to swap to original buffer in
+        //IRQ, not here
+        do {
+            rxWaiting=Thread::IRQgetCurrentThread();
+            rxWaiting->IRQwait();
+            {
+                FastInterruptEnableLock eLock(dLock);
+                Thread::yield();
+            }
+        } while(rxWaiting || rxBufferSize==0); //Prevents spurious IDLE IRQs
+        result=rxBufferSize;
+        rxBufferSize=0;
+        rxBuffer=originalBuffer;
+        rxBufferCapacity=originalCapacity;
+    }
+    return result;
 }
 
 ssize_t STM32Serial::writeBlock(const void *buffer, size_t size, off_t where)
 {
-    Lock<Mutex> l(txMutex);
+    Lock<FastMutex> l(txMutex);
     const char *buf=reinterpret_cast<const char*>(buffer);
     #ifdef SERIAL_1_DMA
     if(this==ports[0])
     {
+        //FIXME: handle stm32f4 CCM area
         size_t remaining=size;
         FastInterruptDisableLock dLock;
         while(remaining>0)
@@ -310,7 +369,7 @@ void STM32Serial::IRQwrite(const char *str)
     if(this==ports[0])
     {
         // We can reach here also with only kernel paused, so make sure
-        // interrupts are disabled. FIXME: really?
+        // interrupts are disabled.
         bool interrupts=areInterruptsEnabled();
         if(interrupts) fastDisableInterrupts();
 
@@ -354,16 +413,29 @@ int STM32Serial::ioctl(int cmd, void* arg)
 
 void STM32Serial::IRQhandleInterrupt()
 {
-    bool hppw=false;
     unsigned int status=port->SR;
-    if(status & (USART_SR_RXNE | USART_SR_ORE))
+    char c;
+    if(status & USART_SR_RXNE)
     {
         //Always read data, since this clears interrupt flags
-        char c=port->DR;
-        //If no noise nor framing nor parity error put data in queue
-        if((status & USART_SR_RXNE) && ((status & 0x7)==0)) rxQueue.IRQput(c,hppw);
+        c=port->DR;
+        //If no noise nor framing nor parity error put data in buffer
+        if(((status & 0x7)==0) && (rxBufferSize<rxBufferCapacity))
+            rxBuffer[rxBufferSize++]=c;
     }
-    if(hppw) Scheduler::IRQfindNextThread();
+    if((status & USART_SR_IDLE)) c=port->DR; //clears interrupt flags
+    if((status & USART_SR_IDLE) || (rxBufferSize==rxBufferCapacity))
+    {
+        //Buffer full or idle line, awake thread
+        if(rxWaiting)
+        {
+            rxWaiting->IRQwakeup();
+            if(rxWaiting->IRQgetPriority()>
+                Thread::IRQgetCurrentThread()->IRQgetPriority())
+                    Scheduler::IRQfindNextThread();
+            rxWaiting=0;
+        }
+    }
 }
 
 #ifdef SERIAL_1_DMA
@@ -389,42 +461,44 @@ void STM32Serial::IRQhandleDMAtx()
 STM32Serial::~STM32Serial()
 {
     waitSerialTxFifoEmpty();
-    
-    InterruptDisableLock dLock;
-    port->CR1=0;
-    
-    int id=0;
-    for(int i=0;i<numPorts;i++) if(ports[i]==this) id=i+1;
-    if(id==0) errorHandler(UNEXPECTED);
-    ports[id-1]=0;
-    switch(id)
     {
-        case 1:
-            #ifdef SERIAL_1_DMA
-            #ifdef _ARCH_CORTEXM3_STM32
-            NVIC_DisableIRQ(DMA1_Channel4_IRQn);
-            #else //stm32f2, stm32f4
-            NVIC_DisableIRQ(DMA2_Stream7_IRQn);
-            #endif
-            #endif //SERIAL_1_DMA
-            NVIC_DisableIRQ(USART1_IRQn);
-            u1tx::mode(Mode::INPUT);
-            u1rx::mode(Mode::INPUT);
-            RCC->APB2ENR &= ~RCC_APB2ENR_USART1EN;
-            break;
-        case 2:
-            NVIC_DisableIRQ(USART2_IRQn);
-            u2tx::mode(Mode::INPUT);
-            u2rx::mode(Mode::INPUT);
-            RCC->APB1ENR &= ~RCC_APB1ENR_USART2EN;
-            break;
-        case 3:
-            NVIC_DisableIRQ(USART3_IRQn);
-            u3tx::mode(Mode::INPUT);
-            u3rx::mode(Mode::INPUT);
-            RCC->APB1ENR &= ~RCC_APB1ENR_USART3EN;
-            break;
+        InterruptDisableLock dLock;
+        port->CR1=0;
+        
+        int id=0;
+        for(int i=0;i<numPorts;i++) if(ports[i]==this) id=i+1;
+        if(id==0) errorHandler(UNEXPECTED);
+        ports[id-1]=0;
+        switch(id)
+        {
+            case 1:
+                #ifdef SERIAL_1_DMA
+                #ifdef _ARCH_CORTEXM3_STM32
+                NVIC_DisableIRQ(DMA1_Channel4_IRQn);
+                #else //stm32f2, stm32f4
+                NVIC_DisableIRQ(DMA2_Stream7_IRQn);
+                #endif
+                #endif //SERIAL_1_DMA
+                NVIC_DisableIRQ(USART1_IRQn);
+                u1tx::mode(Mode::INPUT);
+                u1rx::mode(Mode::INPUT);
+                RCC->APB2ENR &= ~RCC_APB2ENR_USART1EN;
+                break;
+            case 2:
+                NVIC_DisableIRQ(USART2_IRQn);
+                u2tx::mode(Mode::INPUT);
+                u2rx::mode(Mode::INPUT);
+                RCC->APB1ENR &= ~RCC_APB1ENR_USART2EN;
+                break;
+            case 3:
+                NVIC_DisableIRQ(USART3_IRQn);
+                u3tx::mode(Mode::INPUT);
+                u3rx::mode(Mode::INPUT);
+                RCC->APB1ENR &= ~RCC_APB1ENR_USART3EN;
+                break;
+        }
     }
+    delete[] rxBuffer;
 }
 
 } //namespace miosix

@@ -164,11 +164,13 @@ private:
     static const int HARDWARE_TX_QUEUE_LENGTH=16;
     static const int HARDWARE_RX_QUEUE_LENGTH=8;
 
-    Mutex txMutex;///< Mutex used to guard the tx queue
-    Mutex rxMutex;///< Mutex used to guard the rx queue
+    FastMutex txMutex;///< Mutex used to guard the tx queue
+    FastMutex rxMutex;///< Mutex used to guard the rx queue
 
     Queue<char,SOFTWARE_TX_QUEUE> txQueue;///< Tx software queue
     Queue<char,SOFTWARE_RX_QUEUE> rxQueue;///< Rx software queue
+    Thread *waiting;  ///< Thread waiting on rx queue
+    bool timeout;     ///< Timeout while reading
     
     Usart16550 *serial;
 };
