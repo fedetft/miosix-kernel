@@ -165,18 +165,17 @@ namespace miosix {
 // class STM32Serial
 //
 
-STM32Serial::STM32Serial(int id, int baudrate) : Device(Device::TTY)
+// A note on the baudrate/500: the buffer is selected so as to withstand
+// 20ms of full data rate. In the 8N1 format one char is made of 10 bits.
+// So (baudrate/10)*0.02=baudrate/500
+STM32Serial::STM32Serial(int id, int baudrate)
+        : Device(Device::TTY), rxQueue(rxQueueMin+baudrate/500), rxWaiting(0),
+        idle(true)
 {
     #ifdef SERIAL_1_DMA
     txWaiting=0;
     dmaTxInProgress=false;
     #endif //SERIAL_1_DMA
-    rxWaiting=0;
-    //The buffer is selected so as to withstand 20ms of full data rate. In the
-    //8N1 format one char is made of 10 bits. So (baudrate/10)*0.02=baudrate/500
-    rxBufferCapacity=max(16,baudrate/500);
-    rxBufferSize=0;
-    rxBuffer=new char[rxBufferCapacity];
     InterruptDisableLock dLock;
     if(id<1|| id>numPorts || ports[id-1]!=0) errorHandler(UNEXPECTED);
     ports[id-1]=this;
@@ -257,44 +256,22 @@ STM32Serial::STM32Serial(int id, int baudrate) : Device(Device::TTY)
 
 ssize_t STM32Serial::readBlock(void *buffer, size_t size, off_t where)
 {
-    if(size==0) return 0;
     Lock<FastMutex> l(rxMutex);
+    char *buf=reinterpret_cast<char*>(buffer);
+    size_t result=0;
     FastInterruptDisableLock dLock;
-    size_t result;
-    if(rxBufferSize>0)
+    for(;;)
     {
-        //There's something in the buffer, return what we've got
-        result=min(size,rxBufferSize);
-        memcpy(buffer,rxBuffer,result);
-        /*
-         * The driver used to be based on a circular buffer, but although it
-         * had optimal performance when reading a character at a time,
-         * reading a buffer at a time required a loop popping one character at
-         * a time out of the queue. Also, the old implementation did not allow
-         * zero copy operation, and was unfit for DMA operation, as DMA can't be
-         * instructed to wrap around in a circular buffer fashion.
-         * This implementation has none of these limitations, but the
-         * disadvantage of requiring a memmove to shft characters around if
-         * called with small buffers. A test was made on the EthBoardV2 using
-         * memove to copy 256byte with code running from RAM, and it took 15us.
-         * In a less worst-case scenario, with code running from FLASH and
-         * smaller buffers, it would be far less. This assumes the serial speed
-         * is 115200 or less. For far higher speeds the time to memcpy/memmove
-         * increases, and the max time for doing it before an rx overrun occurs
-         * decreases, requiring a totally different implementation using double
-         * buffering, which was not done as it requires twice the RAM.
-         */
-        if(rxBufferSize>size) memmove(rxBuffer,rxBuffer+size,rxBufferSize-size);
-        rxBufferSize-=result;
-    } else {
-        //Try to be zero copy when possible
-        char *originalBuffer=rxBuffer;
-        size_t originalCapacity=rxBufferCapacity;
-        rxBuffer=reinterpret_cast<char*>(buffer);
-        rxBufferCapacity=size;
-        //TODO: what if buffer is filled, IRQ awakens this thread, but a long
-        //time passes before it is scheduled? need to swap to original buffer in
-        //IRQ, not here
+        //Try to get data from the queue
+        for(;result<size;result++)
+        {
+            if(rxQueue.tryGet(buf[result])==false) break;
+            //This is here just not to keep IRQ disabled for the whole loop
+            FastInterruptEnableLock eLock(dLock);
+        }
+        if(idle && result>0) break;
+        if(result==size) break;
+        //Wait for data in the queue
         do {
             rxWaiting=Thread::IRQgetCurrentThread();
             Thread::IRQwait();
@@ -302,11 +279,7 @@ ssize_t STM32Serial::readBlock(void *buffer, size_t size, off_t where)
                 FastInterruptEnableLock eLock(dLock);
                 Thread::yield();
             }
-        } while(rxWaiting || rxBufferSize==0); //Prevents spurious IDLE IRQs
-        result=rxBufferSize;
-        rxBufferSize=0;
-        rxBuffer=originalBuffer;
-        rxBufferCapacity=originalCapacity;
+        } while(rxWaiting);
     }
     return result;
 }
@@ -397,13 +370,17 @@ void STM32Serial::IRQhandleInterrupt()
         //Always read data, since this clears interrupt flags
         c=port->DR;
         //If no noise nor framing nor parity error put data in buffer
-        if(((status & 0x7)==0) && (rxBufferSize<rxBufferCapacity))
-            rxBuffer[rxBufferSize++]=c;
+        if((status & 0x7)==0) if(rxQueue.tryPut(c)==false) /*fifo overflow*/;
+        idle=false;
     }
-    if((status & USART_SR_IDLE)) c=port->DR; //clears interrupt flags
-    if((status & USART_SR_IDLE) || (rxBufferSize==rxBufferCapacity))
+    if(status & USART_SR_IDLE)
     {
-        //Buffer full or idle line, awake thread
+        c=port->DR; //clears interrupt flags
+        idle=true;
+    }
+    if((status & USART_SR_IDLE) || rxQueue.size()>=rxQueueMin)
+    {
+        //Enough data in buffer or idle line, awake thread
         if(rxWaiting)
         {
             rxWaiting->IRQwakeup();
@@ -476,7 +453,6 @@ STM32Serial::~STM32Serial()
                 break;
         }
     }
-    delete[] rxBuffer;
 }
 
 #ifdef SERIAL_1_DMA

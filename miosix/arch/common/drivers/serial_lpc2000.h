@@ -30,6 +30,8 @@
 #define SERIAL_LPC2000_H
 
 #include "filesystem/console/console_device.h"
+#include "kernel/sync.h"
+#include "kernel/queue.h"
 #include "interfaces/delays.h"
 
 namespace miosix {
@@ -160,22 +162,21 @@ private:
     };
     
     //Configure the software queue here
-    static const int SOFTWARE_TX_QUEUE=32;///< Size of tx software queue
-    static const int SOFTWARE_RX_QUEUE=32;///< Size of rx software queue
+    static const int swTxQueue=32;///< Size of tx software queue
 
     //The hardware queues cannot be modified, since their length is hardware-specific
-    static const int HARDWARE_TX_QUEUE_LENGTH=16;
-    static const int HARDWARE_RX_QUEUE_LENGTH=8;
+    static const int hwTxQueueLen=16;
+    static const int hwRxQueueLen=8;
 
     FastMutex txMutex;///< Mutex used to guard the tx queue
     FastMutex rxMutex;///< Mutex used to guard the rx queue
 
-    Queue<char,SOFTWARE_TX_QUEUE> txQueue;///< Tx software queue
-    Queue<char,SOFTWARE_RX_QUEUE> rxQueue;///< Rx software queue
-    Thread *waiting;  ///< Thread waiting on rx queue
-    bool timeout;     ///< Timeout while reading
+    Queue<char,swTxQueue> txQueue;///< Tx software queue
+    DynUnsyncQueue<char>  rxQueue;///< Rx software queue
+    Thread *rxWaiting;  ///< Thread waiting on rx queue
+    bool idle;          ///< Receiver idle
     
-    Usart16550 *serial;
+    Usart16550 *serial; ///< Serial port registers
 };
 
 } //namespace miosix

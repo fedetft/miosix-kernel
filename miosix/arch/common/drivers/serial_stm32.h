@@ -30,6 +30,7 @@
 
 #include "filesystem/console/console_device.h"
 #include "kernel/sync.h"
+#include "kernel/queue.h"
 #include "board_settings.h"
 
 #if defined(_ARCH_CORTEXM3_STM32) && defined(__ENABLE_XRAM)
@@ -142,17 +143,16 @@ private:
         while((port->SR & USART_SR_TC)==0) ;
     }
 
-    FastMutex txMutex; ///< Mutex locked during transmission
-    FastMutex rxMutex; ///< Mutex locked during reception
+    FastMutex txMutex;                ///< Mutex locked during transmission
+    FastMutex rxMutex;                ///< Mutex locked during reception
     
-    size_t rxBufferCapacity;          ///< Size of memory pointed by rxBuffer
-    size_t rxBufferSize;              ///< Actual numer of bytes in the buffer
-    char *rxBuffer;                   ///< Receiving data is buffered here
-    miosix::Thread *rxWaiting;        ///< Thread waiting for rx, or 0
+    DynUnsyncQueue<char> rxQueue;     ///< Receiving queue
+    static const int rxQueueMin=16;   ///< Minimum queue size
+    Thread *rxWaiting;                ///< Thread waiting for rx, or 0
     
     USART_TypeDef *port;              ///< Pointer to USART peripheral
     #ifdef SERIAL_1_DMA
-    miosix::Thread *txWaiting;        ///< Thread waiting for tx, or 0
+    Thread *txWaiting;                ///< Thread waiting for tx, or 0
     static const int txBufferSize=16; ///< Size of tx buffer, for tx speedup
     /// Tx buffer, for tx speedup. This buffer must not end up in the CCM of the
     /// STM32F4, as it is used to perform DMA operations. This is guaranteed by
@@ -161,6 +161,7 @@ private:
     char txBuffer[txBufferSize];
     bool dmaTxInProgress;             ///< True if a DMA tx is in progress
     #endif //SERIAL_1_DMA
+    bool idle;                        ///< Receiver idle
 };
 
 } //namespace miosix

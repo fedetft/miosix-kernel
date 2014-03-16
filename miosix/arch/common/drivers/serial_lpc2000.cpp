@@ -82,8 +82,11 @@ void __attribute__ ((interrupt("IRQ"),naked)) usart1irq()
 // class LPC2000Serial
 //
 
+// A note on the baudrate/500: the buffer is selected so as to withstand
+// 20ms of full data rate. In the 8N1 format one char is made of 10 bits.
+// So (baudrate/10)*0.02=baudrate/500
 LPC2000Serial::LPC2000Serial(int id, int baudrate) : Device(Device::TTY),
-        waiting(0), timeout(false)
+        rxQueue(hwRxQueueLen+baudrate/500), rxWaiting(0), idle(true)
 {
     InterruptDisableLock dLock;
     if(id<0 || id>1 || ports[id]!=0) errorHandler(UNEXPECTED);
@@ -126,32 +129,30 @@ LPC2000Serial::LPC2000Serial(int id, int baudrate) : Device(Device::TTY),
 
 ssize_t LPC2000Serial::readBlock(void *buffer, size_t size, off_t where)
 {
-    if(size==0) return 0;
     Lock<FastMutex> l(rxMutex);
     char *buf=reinterpret_cast<char*>(buffer);
-    FastInterruptDisableLock dLock;
     size_t result=0;
-    if(rxQueue.isEmpty()==false)
+    FastInterruptDisableLock dLock;
+    for(;;)
     {
-        //There's something in the queue, return what we've got
-        for(;result<size;result++) if(rxQueue.IRQget(buf[result])==false) break;
-    } else {
-        timeout=false;
+        //Try to get data from the queue
+        for(;result<size;result++)
+        {
+            if(rxQueue.tryGet(buf[result])==false) break;
+            //This is here just not to keep IRQ disabled for the whole loop
+            FastInterruptEnableLock eLock(dLock);
+        }
+        if(idle && result>0) break;
+        if(result==size) break;
+        //Wait for data in the queue
         do {
-            //First, wait for data in the queue
-            do {
-                waiting=Thread::IRQgetCurrentThread();
-                waiting->IRQwait();
-                {
-                    FastInterruptEnableLock eLock(dLock);
-                    Thread::yield();
-                }
-            } while(waiting);
-            //Get data from the queue
-            for(;result<size;result++)
-                if(rxQueue.IRQget(buf[result])==false) break;
-            if(result==size) timeout=true; //Not a timeout, but gets us out
-        } while(timeout==false);
+            rxWaiting=Thread::IRQgetCurrentThread();
+            Thread::IRQwait();
+            {
+                FastInterruptEnableLock eLock(dLock);
+                Thread::yield();
+            }
+        } while(rxWaiting);
     }
     return result;
 }
@@ -168,7 +169,7 @@ ssize_t LPC2000Serial::writeBlock(const void *buffer, size_t size, off_t where)
         if((serial->LSR & (1<<5)) && (txQueue.isEmpty()))
         {
             //Fill hardware queue first
-            for(int i=0;i<HARDWARE_TX_QUEUE_LENGTH;i++)
+            for(int i=0;i<hwTxQueueLen;i++)
             {
                 serial->THR=*buf++;
                 len--;
@@ -223,18 +224,19 @@ void LPC2000Serial::IRQhandleInterrupt()
             //Note: read one less char than HARDWARE_RX_QUEUE_LENGTH as the
             //CTI interrupt only occurs if there's at least one character in
             //the buffer, and we always want the CTI interrupt
-            for(int i=0;i<HARDWARE_RX_QUEUE_LENGTH-1;i++)
-                if(rxQueue.IRQput(serial->RBR)==false) /*fifo overflow*/;
+            for(int i=0;i<hwRxQueueLen-1;i++)
+                if(rxQueue.tryPut(serial->RBR)==false) /*fifo overflow*/;
             wakeup=true;
+            idle=false;
             break;
         case 0xc: //CTI
             while(serial->LSR & (1<<0))
-                if(rxQueue.IRQput(serial->RBR)==false) /*fifo overflow*/;
+                if(rxQueue.tryPut(serial->RBR)==false) /*fifo overflow*/;
             wakeup=true;
-            timeout=true;
+            idle=true;
             break;
         case 0x2: //THRE
-            for(int i=0;i<HARDWARE_TX_QUEUE_LENGTH;i++)
+            for(int i=0;i<hwTxQueueLen;i++)
             {
                 //If software queue empty, stop
                 if(txQueue.IRQget(c,hppw)==false) break;
@@ -242,12 +244,12 @@ void LPC2000Serial::IRQhandleInterrupt()
             }
             break;
     }
-    if(wakeup && waiting)
+    if(wakeup && rxWaiting)
     {
-        waiting->IRQwakeup();
-        if(waiting->IRQgetPriority()>
+        rxWaiting->IRQwakeup();
+        if(rxWaiting->IRQgetPriority()>
                 Thread::IRQgetCurrentThread()->IRQgetPriority()) hppw=true;
-        waiting=0;
+        rxWaiting=0;
     }
     if(hppw) Scheduler::IRQfindNextThread();
 }
