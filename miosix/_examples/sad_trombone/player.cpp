@@ -29,7 +29,6 @@
 #include <stdexcept>
 #include <cstring>
 #include "miosix/kernel/scheduler/scheduler.h"
-#include "miosix/kernel/buffer_queue.h"
 #include "util/software_i2c.h"
 #include "adpcm.h"
 #include "player.h"
@@ -62,7 +61,7 @@ static void IRQdmaRefill()
 {
     const unsigned short *buffer;
 	unsigned int size;
-	if(bq->IRQgetReadableBuffer(buffer,size)==false)
+	if(bq->tryGetReadableBuffer(buffer,size)==false)
 	{
 		enobuf=true;
 		return;
@@ -120,7 +119,7 @@ void __attribute__((naked)) DMA1_Channel3_IRQHandler()
 void __attribute__((used)) DACdmaHandlerImpl()
 {
 	DMA1->IFCR=DMA_IFCR_CGIF3;
-	bq->IRQbufferEmptied();
+	bq->bufferEmptied();
 	IRQdmaRefill();
 	waiting->IRQwakeup();
 	if(waiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
@@ -208,7 +207,7 @@ static unsigned short *getWritableBuffer()
 {
 	FastInterruptDisableLock dLock;
 	unsigned short *result;
-	while(bq->IRQgetWritableBuffer(result)==false)
+	while(bq->tryGetWritableBuffer(result)==false)
 	{
 		waiting->IRQwait();
 		{
@@ -225,7 +224,7 @@ static unsigned short *getWritableBuffer()
 static void bufferFilled()
 {
 	FastInterruptDisableLock dLock;
-	bq->IRQbufferFilled(bq->bufferMaxSize);
+	bq->bufferFilled(bq->bufferMaxSize());
 }
 
 //

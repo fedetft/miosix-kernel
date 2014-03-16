@@ -12,6 +12,7 @@
 /* Miosix kernel */
 #include "kernel/kernel.h"
 #include "kernel/sync.h"
+#include "kernel/queue.h"
 /* Utilities */
 #include "util/util.h"
 /* Settings */

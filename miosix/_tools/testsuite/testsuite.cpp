@@ -50,7 +50,6 @@
 #include <ext/atomicity.h>
 
 #include "miosix.h"
-#include "miosix/kernel/buffer_queue.h"
 #include "config/miosix_settings.h"
 #include "interfaces/atomic_ops.h"
 #include "board_settings.h"
@@ -2719,7 +2718,7 @@ static const char b4c[]="";
 static char *IRQgbw(FastInterruptDisableLock& dLock)
 {
     char *buffer=0;
-    if(bq.IRQgetWritableBuffer(buffer)==false)
+    if(bq.tryGetWritableBuffer(buffer)==false)
     {
         FastInterruptEnableLock eLock(dLock);
         fail("BufferQueue::get");
@@ -2730,7 +2729,7 @@ static char *IRQgbw(FastInterruptDisableLock& dLock)
 static void gbr(const char *&buffer, unsigned int& size)
 {
     FastInterruptDisableLock dLock;
-    while(bq.IRQgetReadableBuffer(buffer,size)==false)
+    while(bq.tryGetReadableBuffer(buffer,size)==false)
     {
         Thread::IRQwait();
         {
@@ -2743,7 +2742,7 @@ static void gbr(const char *&buffer, unsigned int& size)
 static void be()
 {
     FastInterruptDisableLock dLock;
-    bq.IRQbufferEmptied();
+    bq.bufferEmptied();
 }
 
 static void t19_p1(void *argv)
@@ -2753,7 +2752,7 @@ static void t19_p1(void *argv)
         FastInterruptDisableLock dLock;
         char *buffer=IRQgbw(dLock);
         strcpy(buffer,b1c);
-        bq.IRQbufferFilled(strlen(b1c));
+        bq.bufferFilled(strlen(b1c));
         t19_v1->IRQwakeup();
         {
             FastInterruptEnableLock eLock(dLock);
@@ -2761,7 +2760,7 @@ static void t19_p1(void *argv)
         }
         buffer=IRQgbw(dLock);
         strcpy(buffer,b2c);
-        bq.IRQbufferFilled(strlen(b2c));
+        bq.bufferFilled(strlen(b2c));
         t19_v1->IRQwakeup();
         {
             FastInterruptEnableLock eLock(dLock);
@@ -2769,7 +2768,7 @@ static void t19_p1(void *argv)
         }
         buffer=IRQgbw(dLock);
         strcpy(buffer,b3c);
-        bq.IRQbufferFilled(strlen(b3c));
+        bq.bufferFilled(strlen(b3c));
         t19_v1->IRQwakeup();
         {
             FastInterruptEnableLock eLock(dLock);
@@ -2777,7 +2776,7 @@ static void t19_p1(void *argv)
         }
         buffer=IRQgbw(dLock);
         strcpy(buffer,b4c);
-        bq.IRQbufferFilled(strlen(b4c));
+        bq.bufferFilled(strlen(b4c));
         t19_v1->IRQwakeup();
     }
 }
@@ -2785,77 +2784,77 @@ static void t19_p1(void *argv)
 static void test_19()
 {
     test_name("BufferQueue");
-    if(bq.bufferMaxSize!=10) fail("bufferMaxSize");
-    if(bq.numberOfBuffers!=3) fail("numberOfBuffers");
+    if(bq.bufferMaxSize()!=10) fail("bufferMaxSize");
+    if(bq.numberOfBuffers()!=3) fail("numberOfBuffers");
     //NOTE: in theory we should disable interrupts before calling these, but
     //since we are accessing it from one thread only, for now it isn't required
-    if(bq.IRQisEmpty()==false) fail("IRQisEmpty");
-    if(bq.IRQisFull()==true) fail("IRQisFull");
+    if(bq.isEmpty()==false) fail("IRQisEmpty");
+    if(bq.isFull()==true) fail("IRQisFull");
 
     //Test filling only one slot
     char *buf=0;
     const char *buffer=0;
     unsigned int size;
-    if(bq.IRQgetReadableBuffer(buffer,size)==true) fail("IRQgetReadableBuffer");
-    if(bq.IRQgetWritableBuffer(buf)==false) fail("IRQgetWritableBuffer");
+    if(bq.tryGetReadableBuffer(buffer,size)==true) fail("IRQgetReadableBuffer");
+    if(bq.tryGetWritableBuffer(buf)==false) fail("IRQgetWritableBuffer");
     const char b1a[]="b1a";
     strcpy(buf,b1a);
-    bq.IRQbufferFilled(strlen(b1a));
+    bq.bufferFilled(strlen(b1a));
     buf=0;
-    if(bq.IRQisEmpty()==true) fail("IRQisEmpty");
-    if(bq.IRQisFull()==true) fail("IRQisFull");
-    if(bq.IRQgetReadableBuffer(buffer,size)==false) fail("IRQgetReadableBuffer");
+    if(bq.isEmpty()==true) fail("IRQisEmpty");
+    if(bq.isFull()==true) fail("IRQisFull");
+    if(bq.tryGetReadableBuffer(buffer,size)==false) fail("IRQgetReadableBuffer");
     if(size!=strlen(b1a)) fail("returned size");
     if(strcmp(buffer,b1a)!=0) fail("returned buffer");
-    bq.IRQbufferEmptied();
-    if(bq.IRQisEmpty()==false) fail("IRQisEmpty");
-    if(bq.IRQisFull()==true) fail("IRQisFull");
-    if(bq.IRQgetReadableBuffer(buffer,size)==true) fail("IRQgetReadableBuffer");
-    if(bq.IRQgetWritableBuffer(buf)==false) fail("IRQgetWritableBuffer");
+    bq.bufferEmptied();
+    if(bq.isEmpty()==false) fail("IRQisEmpty");
+    if(bq.isFull()==true) fail("IRQisFull");
+    if(bq.tryGetReadableBuffer(buffer,size)==true) fail("IRQgetReadableBuffer");
+    if(bq.tryGetWritableBuffer(buf)==false) fail("IRQgetWritableBuffer");
 
     //Test filling all three slots
     const char b1b[]="b1b0";
     strcpy(buf,b1b);
-    bq.IRQbufferFilled(strlen(b1b));
+    bq.bufferFilled(strlen(b1b));
     buf=0;
-    if(bq.IRQisEmpty()==true) fail("IRQisEmpty");
-    if(bq.IRQisFull()==true) fail("IRQisFull");
-    if(bq.IRQgetWritableBuffer(buf)==false) fail("IRQgetWritableBuffer");
+    if(bq.isEmpty()==true) fail("IRQisEmpty");
+    if(bq.isFull()==true) fail("IRQisFull");
+    if(bq.tryGetWritableBuffer(buf)==false) fail("IRQgetWritableBuffer");
     const char b2b[]="b2b01";
     strcpy(buf,b2b);
-    bq.IRQbufferFilled(strlen(b2b));
+    bq.bufferFilled(strlen(b2b));
     buf=0;
-    if(bq.IRQisEmpty()==true) fail("IRQisEmpty");
-    if(bq.IRQisFull()==true) fail("IRQisFull");
-    if(bq.IRQgetWritableBuffer(buf)==false) fail("IRQgetWritableBuffer");
+    if(bq.isEmpty()==true) fail("IRQisEmpty");
+    if(bq.isFull()==true) fail("IRQisFull");
+    if(bq.tryGetWritableBuffer(buf)==false) fail("IRQgetWritableBuffer");
     const char b3b[]="b2b012";
     strcpy(buf,b3b);
-    bq.IRQbufferFilled(strlen(b3b));
+    bq.bufferFilled(strlen(b3b));
     buf=0;
-    if(bq.IRQisEmpty()==true) fail("IRQisEmpty");
-    if(bq.IRQisFull()==false) fail("IRQisFull");
-    if(bq.IRQgetWritableBuffer(buf)==true) fail("IRQgetWritableBuffer");
+    if(bq.isEmpty()==true) fail("IRQisEmpty");
+    if(bq.isFull()==false) fail("IRQisFull");
+    if(bq.tryGetWritableBuffer(buf)==true) fail("IRQgetWritableBuffer");
     buf=0;
     //Filled entirely, now emptying
-    if(bq.IRQgetReadableBuffer(buffer,size)==false) fail("IRQgetReadableBuffer");
+    if(bq.tryGetReadableBuffer(buffer,size)==false) fail("IRQgetReadableBuffer");
     if(size!=strlen(b1b)) fail("returned size");
     if(strcmp(buffer,b1b)!=0) fail("returned buffer");
-    bq.IRQbufferEmptied();
-    if(bq.IRQisEmpty()==true) fail("IRQisEmpty");
-    if(bq.IRQisFull()==true) fail("IRQisFull");
-    if(bq.IRQgetReadableBuffer(buffer,size)==false) fail("IRQgetReadableBuffer");
+    bq.bufferEmptied();
+    if(bq.isEmpty()==true) fail("IRQisEmpty");
+    if(bq.isFull()==true) fail("IRQisFull");
+    if(bq.tryGetReadableBuffer(buffer,size)==false) fail("IRQgetReadableBuffer");
     if(size!=strlen(b2b)) fail("returned size");
     if(strcmp(buffer,b2b)!=0) fail("returned buffer");
-    bq.IRQbufferEmptied();
-    if(bq.IRQisEmpty()==true) fail("IRQisEmpty");
-    if(bq.IRQisFull()==true) fail("IRQisFull");
-    if(bq.IRQgetReadableBuffer(buffer,size)==false) fail("IRQgetReadableBuffer");
+    bq.bufferEmptied();
+    if(bq.isEmpty()==true) fail("IRQisEmpty");
+    if(bq.isFull()==true) fail("IRQisFull");
+    if(bq.tryGetReadableBuffer(buffer,size)==false) fail("IRQgetReadableBuffer");
     if(size!=strlen(b3b)) fail("returned size");
     if(strcmp(buffer,b3b)!=0) fail("returned buffer");
-    bq.IRQbufferEmptied();
-    if(bq.IRQgetReadableBuffer(buffer,size)==true) fail("IRQgetReadableBuffer");
-    if(bq.IRQisEmpty()==false) fail("IRQisEmpty");
-    if(bq.IRQisFull()==true) fail("IRQisFull");
+    bq.bufferEmptied();
+    if(bq.tryGetReadableBuffer(buffer,size)==true) fail("IRQgetReadableBuffer");
+    if(bq.isEmpty()==false) fail("IRQisEmpty");
+    if(bq.isFull()==true) fail("IRQisFull");
 
     //Now real multithreaded test
     t19_v1=Thread::getCurrentThread();
@@ -2877,16 +2876,16 @@ static void test_19()
     if(strcmp(buffer,b4c)!=0) fail("returned buffer");
     be();
     t->join();
-    if(bq.IRQisEmpty()==false) fail("IRQisEmpty");
-    if(bq.IRQisFull()==true) fail("IRQisFull");
+    if(bq.isEmpty()==false) fail("IRQisEmpty");
+    if(bq.isFull()==true) fail("IRQisFull");
 
     //Last, check Reset (again, single thread mode)
-    if(bq.IRQgetWritableBuffer(buf)==false) fail("IRQgetWritableBuffer");
+    if(bq.tryGetWritableBuffer(buf)==false) fail("IRQgetWritableBuffer");
     strcpy(buf,b1a);
-    bq.IRQbufferFilled(strlen(b1a));
-    bq.IRQreset();
-    if(bq.IRQisEmpty()==false) fail("IRQisEmpty");
-    if(bq.IRQisFull()==true) fail("IRQisFull");
+    bq.bufferFilled(strlen(b1a));
+    bq.reset();
+    if(bq.isEmpty()==false) fail("IRQisEmpty");
+    if(bq.isFull()==true) fail("IRQisFull");
     pass();
 }
 

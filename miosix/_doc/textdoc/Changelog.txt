@@ -1,5 +1,10 @@
 Changelog for Miosix np embedded OS
 
+- Added class DynUnsyncQueue to kernel/queue.h, a new circular buffer with its
+  storage heap allocated.
+- Breaking change: refactored the interface of class BufferQueue, and removed
+  its header file. Added header kernel/queue.h with all the varius FIFO data
+  structures in the kernel.
 - Breaking change: serial port drivers used to have a read function to read
   a buffer of data that would return a buffer with exactly the asked size
   of data. Now they return up to that size, but if an idle line is found
