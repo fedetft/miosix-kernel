@@ -1,0 +1,5 @@
+# Allows to run openocd as non-root user to debug various boards.
+# Copy in /etc/udev/rules.d
+
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="15ba", ATTRS{idProduct}=="0003", \
+    MODE:="0666"

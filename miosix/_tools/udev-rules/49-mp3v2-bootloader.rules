@@ -1,4 +1,4 @@
-# Allows to run the dfu-util as non-root user to program the sony smart watch.
+# Allows to run the mp3v2 bootloader as non-root user to program the mp3v2.
 # Copy in /etc/udev/rules.d
 
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="dead", ATTRS{idProduct}=="beee", \
