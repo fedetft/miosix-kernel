@@ -142,6 +142,23 @@ void __attribute__((naked)) DMA2_Stream7_IRQHandler()
 #endif
 #endif //SERIAL_1_DMA
 
+#ifdef _ARCH_CORTEXM4_STM32F4
+/**
+ * The STM3F4 has an ugly quirk of having a 64KB RAM area called CCM that can
+ * only be accessed by the processor and not be the DMA.
+ * \param x pointer to check
+ * \return true if the pointer is inside the CCM, and thus it isn't possible
+ * to use it for DMA transfers
+ */
+static bool isInCCMarea(const void *x)
+{
+    unsigned int ptr=reinterpret_cast<const unsigned int>(x);
+    return (ptr>=0x10000000) && (ptr<(0x10000000+64*1024));
+}
+#else //_ARCH_CORTEXM4_STM32F4
+static inline bool isInCCMarea(const void *x) { return false; }
+#endif //_ARCH_CORTEXM4_STM32F4
+
 namespace miosix {
 
 //
@@ -152,11 +169,12 @@ STM32Serial::STM32Serial(int id, int baudrate) : Device(Device::TTY)
 {
     #ifdef SERIAL_1_DMA
     txWaiting=0;
+    dmaTxInProgress=false;
     #endif //SERIAL_1_DMA
     rxWaiting=0;
     //The buffer is selected so as to withstand 20ms of full data rate. In the
     //8N1 format one char is made of 10 bits. So (baudrate/10)*0.02=baudrate/500
-    rxBufferCapacity=baudrate/500;
+    rxBufferCapacity=max(16,baudrate/500);
     rxBufferSize=0;
     rxBuffer=new char[rxBufferCapacity];
     InterruptDisableLock dLock;
@@ -279,7 +297,7 @@ ssize_t STM32Serial::readBlock(void *buffer, size_t size, off_t where)
         //IRQ, not here
         do {
             rxWaiting=Thread::IRQgetCurrentThread();
-            rxWaiting->IRQwait();
+            Thread::IRQwait();
             {
                 FastInterruptEnableLock eLock(dLock);
                 Thread::yield();
@@ -300,57 +318,26 @@ ssize_t STM32Serial::writeBlock(const void *buffer, size_t size, off_t where)
     #ifdef SERIAL_1_DMA
     if(this==ports[0])
     {
-        //FIXME: handle stm32f4 CCM area
         size_t remaining=size;
-        FastInterruptDisableLock dLock;
+        if(isInCCMarea(buf)==false)
+        {
+            //Use zero copy for all but the last txBufferSize bytes, if possible
+            while(remaining>txBufferSize)
+            {
+                //DMA is limited to 64K
+                size_t transferSize=min<size_t>(remaining-txBufferSize,65535);
+                writeDma(buf,transferSize);
+                buf+=transferSize;
+                remaining-=transferSize;
+            }
+        }
         while(remaining>0)
         {
-            // DMA is limited to 64K
-            size_t transferSize=min<size_t>(remaining,65535);
-            // Setup DMA xfer
-            #ifdef _ARCH_CORTEXM3_STM32
-            DMA1_Channel4->CPAR=reinterpret_cast<unsigned int>(&port->DR);
-            DMA1_Channel4->CMAR=reinterpret_cast<unsigned int>(buf);
-            DMA1_Channel4->CNDTR=transferSize;
-            DMA1_Channel4->CCR=DMA_CCR4_MINC  //Increment RAM pointer
-                             | DMA_CCR4_DIR   //Memory to peripheral
-                             | DMA_CCR4_TEIE  //Interrupt on transfer error
-                             | DMA_CCR4_TCIE  //Interrupt on transfer complete
-                             | DMA_CCR4_EN;   //Start DMA
-            #else //_ARCH_CORTEXM3_STM32
-            DMA2_Stream7->PAR=reinterpret_cast<unsigned int>(&port->DR);
-            DMA2_Stream7->M0AR=reinterpret_cast<unsigned int>(buf);
-            DMA2_Stream7->NDTR=transferSize;
-            //Quirk: not enabling DMA_SxFCR_FEIE because the USART seems to
-            //generate a spurious fifo error. The code was tested and the
-            //transfer completes successfully even in the presence of this fifo
-            //error
-            DMA2_Stream7->FCR=DMA_SxFCR_DMDIS;//Enable fifo
-            DMA2_Stream7->CR=DMA_SxCR_CHSEL_2 //Select channel 4 (USART_TX)
-                           | DMA_SxCR_MINC    //Increment RAM pointer
-                           | DMA_SxCR_DIR_0   //Memory to peripheral
-                           | DMA_SxCR_TCIE    //Interrupt on completion
-                           | DMA_SxCR_TEIE    //Interrupt on transfer error
-                           | DMA_SxCR_DMEIE   //Interrupt on direct mode error
-                           | DMA_SxCR_EN;     //Start the DMA
-            #endif //_ARCH_CORTEXM3_STM32
-            txWaiting=Thread::IRQgetCurrentThread();
-            while(txWaiting)
-            {
-                txWaiting->IRQwait();
-                {
-                    FastInterruptEnableLock eLock(dLock);
-                    Thread::yield();
-                }
-            }
-            // Handle DMA errors for reliability. This should not happen.
-            #ifdef _ARCH_CORTEXM3_STM32
-            transferSize-=DMA1_Channel4->CNDTR;
-            #else //_ARCH_CORTEXM3_STM32
-            transferSize-=DMA2_Stream7->NDTR;
-            #endif //_ARCH_CORTEXM3_STM32
-            remaining-=transferSize;
+            size_t transferSize=min<size_t>(remaining,txBufferSize);
+            memcpy(txBuffer,buf,transferSize);
+            writeDma(txBuffer,transferSize);
             buf+=transferSize;
+            remaining-=transferSize;
         }
         return size;
     }
@@ -365,14 +352,13 @@ ssize_t STM32Serial::writeBlock(const void *buffer, size_t size, off_t where)
 
 void STM32Serial::IRQwrite(const char *str)
 {
+    // We can reach here also with only kernel paused, so make sure
+    // interrupts are disabled. This is important for the DMA case
+    bool interrupts=areInterruptsEnabled();
+    if(interrupts) fastDisableInterrupts();
     #ifdef SERIAL_1_DMA
     if(this==ports[0])
     {
-        // We can reach here also with only kernel paused, so make sure
-        // interrupts are disabled.
-        bool interrupts=areInterruptsEnabled();
-        if(interrupts) fastDisableInterrupts();
-
         #ifdef _ARCH_CORTEXM3_STM32
         //If no DMA transfer is in progress bit EN is zero. Otherwise wait until
         //DMA xfer ends, by waiting for the TC (or TE) interrupt flag
@@ -382,16 +368,6 @@ void STM32Serial::IRQwrite(const char *str)
         //Wait until DMA xfer ends. EN bit is cleared by hardware on transfer end
         while(DMA2_Stream7->CR & DMA_SxCR_EN) ;
         #endif //_ARCH_CORTEXM3_STM32
-        
-        while(*str)
-        {
-            while((USART1->SR & USART_SR_TXE)==0) ;
-            USART1->DR=*str++;
-        }
-        waitSerialTxFifoEmpty();
-
-        if(interrupts) fastEnableInterrupts();
-        return;
     }
     #endif //SERIAL_1_DMA
     while(*str)
@@ -400,6 +376,7 @@ void STM32Serial::IRQwrite(const char *str)
         port->DR=*str++;
     }
     waitSerialTxFifoEmpty();
+    if(interrupts) fastEnableInterrupts();
 }
 
 int STM32Serial::ioctl(int cmd, void* arg)
@@ -450,6 +427,7 @@ void STM32Serial::IRQhandleDMAtx()
               | DMA_HIFCR_CDMEIF7
               | DMA_HIFCR_CFEIF7;
     #endif
+    dmaTxInProgress=false;
     if(txWaiting==0) return;
     txWaiting->IRQwakeup();
     if(txWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
@@ -500,5 +478,52 @@ STM32Serial::~STM32Serial()
     }
     delete[] rxBuffer;
 }
+
+#ifdef SERIAL_1_DMA
+void STM32Serial::writeDma(const char *buffer, size_t size)
+{
+    FastInterruptDisableLock dLock;
+    // If a previous DMA xfer is in progress, wait
+    if(dmaTxInProgress)
+    {
+        txWaiting=Thread::IRQgetCurrentThread();
+        do {
+            Thread::IRQwait();
+            {
+                FastInterruptEnableLock eLock(dLock);
+                Thread::yield();
+            }
+        } while(txWaiting);
+    }
+    // Setup DMA xfer
+    dmaTxInProgress=true;
+    #ifdef _ARCH_CORTEXM3_STM32
+    DMA1_Channel4->CPAR=reinterpret_cast<unsigned int>(&port->DR);
+    DMA1_Channel4->CMAR=reinterpret_cast<unsigned int>(buffer);
+    DMA1_Channel4->CNDTR=size;
+    DMA1_Channel4->CCR=DMA_CCR4_MINC  //Increment RAM pointer
+                     | DMA_CCR4_DIR   //Memory to peripheral
+                     | DMA_CCR4_TEIE  //Interrupt on transfer error
+                     | DMA_CCR4_TCIE  //Interrupt on transfer complete
+                     | DMA_CCR4_EN;   //Start DMA
+    #else //_ARCH_CORTEXM3_STM32
+    DMA2_Stream7->PAR=reinterpret_cast<unsigned int>(&port->DR);
+    DMA2_Stream7->M0AR=reinterpret_cast<unsigned int>(buffer);
+    DMA2_Stream7->NDTR=size;
+    //Quirk: not enabling DMA_SxFCR_FEIE because the USART seems to
+    //generate a spurious fifo error. The code was tested and the
+    //transfer completes successfully even in the presence of this fifo
+    //error
+    DMA2_Stream7->FCR=DMA_SxFCR_DMDIS;//Enable fifo
+    DMA2_Stream7->CR=DMA_SxCR_CHSEL_2 //Select channel 4 (USART_TX)
+                   | DMA_SxCR_MINC    //Increment RAM pointer
+                   | DMA_SxCR_DIR_0   //Memory to peripheral
+                   | DMA_SxCR_TCIE    //Interrupt on completion
+                   | DMA_SxCR_TEIE    //Interrupt on transfer error
+                   | DMA_SxCR_DMEIE   //Interrupt on direct mode error
+                   | DMA_SxCR_EN;     //Start the DMA
+    #endif //_ARCH_CORTEXM3_STM32
+}
+#endif //SERIAL_1_DMA
 
 } //namespace miosix

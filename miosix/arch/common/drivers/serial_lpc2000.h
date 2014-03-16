@@ -35,7 +35,10 @@
 namespace miosix {
 
 /**
- * Serial port class for LPC2000 microcontrollers
+ * Serial port class for LPC2000 microcontrollers.
+ * 
+ * Classes of this type are reference counted, must be allocated on the heap
+ * and managed through intrusive_ref_ptr<FileBase>
  */
 class LPC2000Serial : public Device
 {

@@ -46,6 +46,9 @@ namespace miosix {
  * Additionally, USART1 can use DMA if SERIAL_1_DMA is defined in
  * board_settings.h, while the other serial use polling for transmission,
  * and interrupt for reception.
+ * 
+ * Classes of this type are reference counted, must be allocated on the heap
+ * and managed through intrusive_ref_ptr<FileBase>
  */
 class STM32Serial : public Device
 {
@@ -122,6 +125,15 @@ public:
     ~STM32Serial();
     
 private:
+    #ifdef SERIAL_1_DMA
+    /**
+     * Write to the serial port using DMA
+     * \param buffer buffer to write
+     * \param size size of buffer to write
+     */
+    void writeDma(const char *buffer, size_t size);
+    #endif //SERIAL_1_DMA
+    
     /**
      * Wait until all characters have been written to the serial port
      */
@@ -133,14 +145,21 @@ private:
     FastMutex txMutex; ///< Mutex locked during transmission
     FastMutex rxMutex; ///< Mutex locked during reception
     
-    size_t rxBufferCapacity;   ///< Size of memory pointed by rxBuffer
-    size_t rxBufferSize;       ///< Actual numer of bytes in the buffer
-    char *rxBuffer;            ///< Receiving data is buffered here
-    miosix::Thread *rxWaiting; ///< Thread waiting for rx, or 0
+    size_t rxBufferCapacity;          ///< Size of memory pointed by rxBuffer
+    size_t rxBufferSize;              ///< Actual numer of bytes in the buffer
+    char *rxBuffer;                   ///< Receiving data is buffered here
+    miosix::Thread *rxWaiting;        ///< Thread waiting for rx, or 0
     
-    USART_TypeDef *port;       ///< Pointer to USART peripheral
+    USART_TypeDef *port;              ///< Pointer to USART peripheral
     #ifdef SERIAL_1_DMA
-    miosix::Thread *txWaiting; ///< Thread waiting for tx, or 0
+    miosix::Thread *txWaiting;        ///< Thread waiting for tx, or 0
+    static const int txBufferSize=16; ///< Size of tx buffer, for tx speedup
+    /// Tx buffer, for tx speedup. This buffer must not end up in the CCM of the
+    /// STM32F4, as it is used to perform DMA operations. This is guaranteed by
+    /// the fact that this class must be allocated on the heap as it derives
+    /// from Device, and the Miosix linker scripts never put the heap in CCM
+    char txBuffer[txBufferSize];
+    bool dmaTxInProgress;             ///< True if a DMA tx is in progress
     #endif //SERIAL_1_DMA
 };
 
