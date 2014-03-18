@@ -54,6 +54,12 @@ namespace miosix {
 class STM32Serial : public Device
 {
 public:
+    enum FlowCtrl
+    {
+        NOFLOWCTRL, ///< No hardware flow control
+        RTSCTS      ///< RTS/CTS hardware flow control
+    };
+    
     /**
      * Constructor, initializes the serial port.
      * Calls errorHandler(UNEXPECTED) if id is not in the correct range, or when
@@ -61,10 +67,10 @@ public:
      * it is possible to instantiate only one instance of this class for each
      * hardware USART.
      * \param id a number 1 to 3 to select which USART
-     * \param baudrate serial port baudrate. This driver is optimized for speeds
-     * up to 115200 baud.
+     * \param baudrate serial port baudrate
+     * \param flowControl to enable hardware flow control on this port
      */
-    STM32Serial(int id, int baudrate);
+    STM32Serial(int id, int baudrate, FlowCtrl flowControl=NOFLOWCTRL);
     
     /**
      * Read a block of data
@@ -162,6 +168,7 @@ private:
     bool dmaTxInProgress;             ///< True if a DMA tx is in progress
     #endif //SERIAL_1_DMA
     bool idle;                        ///< Receiver idle
+    const bool flowControl;           ///< True if flow control GPIOs enabled
 };
 
 } //namespace miosix

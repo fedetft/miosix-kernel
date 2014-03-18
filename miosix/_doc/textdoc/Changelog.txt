@@ -1,5 +1,9 @@
 Changelog for Miosix np embedded OS
 
+- Fixed a bug in STM32Serial: the position of the PPRE1 and PPRE2 bitfields
+  in RCC->CFGR varies from device family. This was causing incorrect baudrate
+  settings in some configurations.
+- Added support for RTS/CTS hardware flow control to STM32 serial ports
 - Added class DynUnsyncQueue to kernel/queue.h, a new circular buffer with its
   storage heap allocated.
 - Breaking change: refactored the interface of class BufferQueue, and removed
