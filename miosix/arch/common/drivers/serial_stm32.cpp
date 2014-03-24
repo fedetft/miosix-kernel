@@ -123,6 +123,14 @@ void __attribute__((noinline)) usart1txDmaImpl()
     if(ports[0]) ports[0]->IRQhandleDMAtx();
 }
 
+/**
+ * \internal USART1 DMA rx actual implementation
+ */
+void __attribute__((noinline)) usart1rxDmaImpl()
+{
+    if(ports[0]) ports[0]->IRQhandleDMArx();
+}
+
 #ifdef _ARCH_CORTEXM3_STM32
 /**
  * \internal DMA1 Channel 4 IRQ (configured as USART1 TX)
@@ -131,6 +139,16 @@ void __attribute__((naked)) DMA1_Channel4_IRQHandler()
 {
     saveContext();
     asm volatile("bl _Z15usart1txDmaImplv");
+    restoreContext();
+}
+
+/**
+ * \internal DMA1 Channel 5 IRQ (configured as USART1 RX)
+ */
+void __attribute__((naked)) DMA1_Channel5_IRQHandler()
+{
+    saveContext();
+    asm volatile("bl _Z15usart1rxDmaImplv");
     restoreContext();
 }
 
@@ -143,6 +161,16 @@ void __attribute__((naked)) DMA2_Stream7_IRQHandler()
 {
     saveContext();
     asm volatile("bl _Z15usart1txDmaImplv");
+    restoreContext();
+}
+
+/**
+ * \internal DMA2 stream 5 IRQ (configured as USART1 RX)
+ */
+void __attribute__((naked)) DMA2_Stream5_IRQHandler()
+{
+    saveContext();
+    asm volatile("bl _Z15usart1rxDmaImplv");
     restoreContext();
 }
 #endif
@@ -211,12 +239,20 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
             RCC->AHBENR |= RCC_AHBENR_DMA1EN;
             NVIC_SetPriority(DMA1_Channel4_IRQn,15);//Lowest priority for serial
             NVIC_EnableIRQ(DMA1_Channel4_IRQn);
+            //Higher priority to ensure IRQhandleDMArx() is called before
+            //IRQhandleInterrupt(), so that idle is set correctly
+            NVIC_SetPriority(DMA1_Channel5_IRQn,14);
+            NVIC_EnableIRQ(DMA1_Channel5_IRQn);
             #else //stm32f2, stm32f4
             RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
             NVIC_SetPriority(DMA2_Stream7_IRQn,15);//Lowest priority for serial
             NVIC_EnableIRQ(DMA2_Stream7_IRQn);
+            //Higher priority to ensure IRQhandleDMArx() is called before
+            //IRQhandleInterrupt(), so that idle is set correctly
+            NVIC_SetPriority(DMA2_Stream5_IRQn,14);
+            NVIC_EnableIRQ(DMA2_Stream5_IRQn);
             #endif
-            port->CR3=USART_CR3_DMAT;
+            port->CR3=USART_CR3_DMAT | USART_CR3_DMAR;
             #endif //SERIAL_1_DMA
             #ifndef _ARCH_CORTEXM3_STM32
             //Only stm32f2, f4 and l1 have the new alternate function mapping
@@ -290,8 +326,21 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
     }
     const unsigned int quot=2*freq/baudrate; //2*freq for round to nearest
     port->BRR=quot/2 + (quot & 1);           //Round to nearest
-    if(flowControl) port->CR3=USART_CR3_RTSE | USART_CR3_CTSE;
+    if(flowControl==false) port->CR3 |= USART_CR3_ONEBIT;
+    else port->CR3 |= USART_CR3_ONEBIT | USART_CR3_RTSE | USART_CR3_CTSE;
     //Enabled, 8 data bit, no parity, interrupt on character rx
+    
+#ifdef SERIAL_1_DMA
+    if(this==ports[0])
+    {
+        port->CR1 = USART_CR1_UE     //Enable port
+                  | USART_CR1_IDLEIE //Interrupt on idle line
+                  | USART_CR1_TE     //Transmission enbled
+                  | USART_CR1_RE;    //Reception enabled
+        IRQdmaReadStart();
+        return;
+    }
+#endif //SERIAL_1_DMA
     port->CR1 = USART_CR1_UE     //Enable port
               | USART_CR1_RXNEIE //Interrupt on data received
               | USART_CR1_IDLEIE //Interrupt on idle line
@@ -344,6 +393,7 @@ ssize_t STM32Serial::writeBlock(const void *buffer, size_t size, off_t where)
             {
                 //DMA is limited to 64K
                 size_t transferSize=min<size_t>(remaining-txBufferSize,65535);
+                waitDmaTxCompletion();
                 writeDma(buf,transferSize);
                 buf+=transferSize;
                 remaining-=transferSize;
@@ -352,6 +402,9 @@ ssize_t STM32Serial::writeBlock(const void *buffer, size_t size, off_t where)
         while(remaining>0)
         {
             size_t transferSize=min<size_t>(remaining,txBufferSize);
+            waitDmaTxCompletion();
+            //Copy to txBuffer only after DMA xfer completed, as the previous
+            //xfer may be using the same buffer
             memcpy(txBuffer,buf,transferSize);
             writeDma(txBuffer,transferSize);
             buf+=transferSize;
@@ -410,17 +463,25 @@ void STM32Serial::IRQhandleInterrupt()
 {
     unsigned int status=port->SR;
     char c;
+    #ifdef SERIAL_1_DMA
+    if(this!=ports[0] && (status & USART_SR_RXNE))
+    #else //SERIAL_1_DMA
     if(status & USART_SR_RXNE)
+    #endif //SERIAL_1_DMA
     {
         //Always read data, since this clears interrupt flags
         c=port->DR;
-        //If no noise nor framing nor parity error put data in buffer
-        if((status & 0x7)==0) if(rxQueue.tryPut(c)==false) /*fifo overflow*/;
+        //If no error put data in buffer
+        if((status & USART_SR_FE)==0)
+            if(rxQueue.tryPut(c)==false) /*fifo overflow*/;
         idle=false;
     }
     if(status & USART_SR_IDLE)
     {
         c=port->DR; //clears interrupt flags
+        #ifdef SERIAL_1_DMA
+        if(this==ports[0]) IRQreadDma();
+        #endif //SERIAL_1_DMA
         idle=true;
     }
     if((status & USART_SR_IDLE) || rxQueue.size()>=rxQueueMin)
@@ -456,6 +517,17 @@ void STM32Serial::IRQhandleDMAtx()
         Scheduler::IRQfindNextThread();
     txWaiting=0;
 }
+
+void STM32Serial::IRQhandleDMArx()
+{
+    IRQreadDma();
+    idle=false;
+    if(rxWaiting==0) return;
+    rxWaiting->IRQwakeup();
+    if(rxWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+        Scheduler::IRQfindNextThread();
+    rxWaiting=0;
+}
 #endif //SERIAL_1_DMA
 
 STM32Serial::~STM32Serial()
@@ -473,10 +545,13 @@ STM32Serial::~STM32Serial()
         {
             case 1:
                 #ifdef SERIAL_1_DMA
+                IRQdmaReadStop();
                 #ifdef _ARCH_CORTEXM3_STM32
                 NVIC_DisableIRQ(DMA1_Channel4_IRQn);
+                NVIC_DisableIRQ(DMA1_Channel5_IRQn);
                 #else //stm32f2, stm32f4
                 NVIC_DisableIRQ(DMA2_Stream7_IRQn);
+                NVIC_DisableIRQ(DMA2_Stream5_IRQn);
                 #endif
                 #endif //SERIAL_1_DMA
                 NVIC_DisableIRQ(USART1_IRQn);
@@ -495,7 +570,7 @@ STM32Serial::~STM32Serial()
 }
 
 #ifdef SERIAL_1_DMA
-void STM32Serial::writeDma(const char *buffer, size_t size)
+void STM32Serial::waitDmaTxCompletion()
 {
     FastInterruptDisableLock dLock;
     // If a previous DMA xfer is in progress, wait
@@ -510,7 +585,10 @@ void STM32Serial::writeDma(const char *buffer, size_t size)
             }
         } while(txWaiting);
     }
-    // Setup DMA xfer
+}
+
+void STM32Serial::writeDma(const char *buffer, size_t size)
+{
     dmaTxInProgress=true;
     #ifdef _ARCH_CORTEXM3_STM32
     DMA1_Channel4->CPAR=reinterpret_cast<unsigned int>(&port->DR);
@@ -537,6 +615,58 @@ void STM32Serial::writeDma(const char *buffer, size_t size)
                    | DMA_SxCR_TEIE    //Interrupt on transfer error
                    | DMA_SxCR_DMEIE   //Interrupt on direct mode error
                    | DMA_SxCR_EN;     //Start the DMA
+    #endif //_ARCH_CORTEXM3_STM32
+}
+
+void STM32Serial::IRQreadDma()
+{
+    unsigned int elem=IRQdmaReadStop();
+    for(int i=0;i<elem;i++)
+        if(rxQueue.tryPut(rxBuffer[i])==false) /*fifo overflow*/;
+    IRQdmaReadStart();
+}
+
+void STM32Serial::IRQdmaReadStart()
+{
+    #ifdef _ARCH_CORTEXM3_STM32
+    DMA1_Channel5->CPAR=reinterpret_cast<unsigned int>(&port->DR);
+    DMA1_Channel5->CMAR=reinterpret_cast<unsigned int>(rxBuffer);
+    DMA1_Channel5->CNDTR=rxQueueMin;
+    DMA1_Channel5->CCR=DMA_CCR4_MINC  //Increment RAM pointer
+                     | 0              //Peripheral to memory
+                     | DMA_CCR4_TEIE  //Interrupt on transfer error
+                     | DMA_CCR4_TCIE  //Interrupt on transfer complete
+                     | DMA_CCR4_EN;   //Start DMA
+    #else //_ARCH_CORTEXM3_STM32
+    DMA2_Stream5->PAR=reinterpret_cast<unsigned int>(&port->DR);
+    DMA2_Stream5->M0AR=reinterpret_cast<unsigned int>(rxBuffer);
+    DMA2_Stream5->NDTR=rxQueueMin;
+    DMA2_Stream5->CR=DMA_SxCR_CHSEL_2 //Select channel 4 (USART_RX)
+                   | DMA_SxCR_MINC    //Increment RAM pointer
+                   | 0                //Peripheral to memory
+                   | DMA_SxCR_HTIE    //Interrupt on half transfer
+                   | DMA_SxCR_TEIE    //Interrupt on transfer error
+                   | DMA_SxCR_DMEIE   //Interrupt on direct mode error
+                   | DMA_SxCR_EN;     //Start the DMA
+    #endif //_ARCH_CORTEXM3_STM32
+}
+
+int STM32Serial::IRQdmaReadStop()
+{
+    #ifdef _ARCH_CORTEXM3_STM32
+    DMA1_Channel5->CCR=0;
+    DMA1->IFCR=DMA_IFCR_CGIF5;
+    return rxQueueMin-DMA1_Channel5->CNDTR;
+    #else //_ARCH_CORTEXM3_STM32
+    //Stop DMA and wait for it to actually stop
+    DMA2_Stream5->CR&= ~DMA_SxCR_EN;
+    while(DMA2_Stream5->CR & DMA_SxCR_EN) ;
+    DMA2->HIFCR=DMA_HIFCR_CTCIF5
+              | DMA_HIFCR_CHTIF5
+              | DMA_HIFCR_CTEIF5
+              | DMA_HIFCR_CDMEIF5
+              | DMA_HIFCR_CFEIF5;
+    return rxQueueMin-DMA2_Stream5->NDTR;
     #endif //_ARCH_CORTEXM3_STM32
 }
 #endif //SERIAL_1_DMA

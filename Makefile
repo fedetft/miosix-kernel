@@ -63,7 +63,7 @@ clean-recursive:
 	done
 
 clean-topdir:
-	-rm $(OBJ) main.elf main.hex main.bin main.map $(OBJ:.o=.d)
+	-rm -f $(OBJ) main.elf main.hex main.bin main.map $(OBJ:.o=.d)
 
 main: main.elf
 	$(CP) -O ihex   main.elf main.hex

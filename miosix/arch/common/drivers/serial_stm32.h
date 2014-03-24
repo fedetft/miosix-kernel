@@ -124,6 +124,12 @@ public:
      * Never call this from user code.
      */
     void IRQhandleDMAtx();
+    
+    /**
+     * \internal the serial port DMA rx interrupts call this member function.
+     * Never call this from user code.
+     */
+    void IRQhandleDMArx();
     #endif //SERIAL_1_DMA
     
     /**
@@ -134,11 +140,33 @@ public:
 private:
     #ifdef SERIAL_1_DMA
     /**
-     * Write to the serial port using DMA
+     * Wait until a pending DMA TX completes, if any
+     */
+    void waitDmaTxCompletion();
+    
+    /**
+     * Write to the serial port using DMA. When the function returns, the DMA
+     * transfer is still in progress.
      * \param buffer buffer to write
      * \param size size of buffer to write
      */
     void writeDma(const char *buffer, size_t size);
+    
+    /**
+     * Read from DMA buffer and write data to queue
+     */
+    void IRQreadDma();
+    
+    /**
+     * Start DMA read
+     */
+    void IRQdmaReadStart();
+    
+    /**
+     * Stop DMA read
+     * \return the number of characters in rxBuffer
+     */
+    int IRQdmaReadStop();
     #endif //SERIAL_1_DMA
     
     /**
@@ -165,6 +193,9 @@ private:
     /// the fact that this class must be allocated on the heap as it derives
     /// from Device, and the Miosix linker scripts never put the heap in CCM
     char txBuffer[txBufferSize];
+    /// This buffer emulates the behaviour of a 16550. It is filled using DMA
+    /// and an interrupt is fired as soon as it is half full
+    char rxBuffer[rxQueueMin];
     bool dmaTxInProgress;             ///< True if a DMA tx is in progress
     #endif //SERIAL_1_DMA
     bool idle;                        ///< Receiver idle
