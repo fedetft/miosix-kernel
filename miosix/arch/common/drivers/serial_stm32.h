@@ -37,6 +37,12 @@
 //Quirk: concurrent access to the FSMC from both core and DMA is broken in
 //the stm32f1, so disable DMA mode if XRAM is enabled.
 #undef SERIAL_1_DMA
+#undef SERIAL_2_DMA
+#undef SERIAL_3_DMA
+#endif
+
+#if defined(SERIAL_1_DMA) || defined(SERIAL_2_DMA) || defined(SERIAL_3_DMA)
+#define SERIAL_DMA
 #endif
 
 namespace miosix {
@@ -44,7 +50,7 @@ namespace miosix {
 /**
  * Serial port class for stm32 microcontrollers.
  * Only supports USART1, USART2 and USART3
- * Additionally, USART1 can use DMA if SERIAL_1_DMA is defined in
+ * Additionally, USARTx can use DMA if SERIAL_x_DMA is defined in
  * board_settings.h, while the other serial use polling for transmission,
  * and interrupt for reception.
  * 
@@ -118,7 +124,7 @@ public:
      */
     void IRQhandleInterrupt();
     
-    #ifdef SERIAL_1_DMA
+    #ifdef SERIAL_DMA
     /**
      * \internal the serial port DMA tx interrupts call this member function.
      * Never call this from user code.
@@ -130,7 +136,12 @@ public:
      * Never call this from user code.
      */
     void IRQhandleDMArx();
-    #endif //SERIAL_1_DMA
+    #endif //SERIAL_DMA
+    
+    /**
+     * \return port id, 1 for USART1, 2 for USART2, ... 
+     */
+    int getId() const { return portId; }
     
     /**
      * Destructor
@@ -138,7 +149,7 @@ public:
     ~STM32Serial();
     
 private:
-    #ifdef SERIAL_1_DMA
+    #ifdef SERIAL_DMA
     /**
      * Wait until a pending DMA TX completes, if any
      */
@@ -167,7 +178,7 @@ private:
      * \return the number of characters in rxBuffer
      */
     int IRQdmaReadStop();
-    #endif //SERIAL_1_DMA
+    #endif //SERIAL_DMA
     
     /**
      * Wait until all characters have been written to the serial port
@@ -181,13 +192,20 @@ private:
     FastMutex rxMutex;                ///< Mutex locked during reception
     
     DynUnsyncQueue<char> rxQueue;     ///< Receiving queue
-    static const int rxQueueMin=16;   ///< Minimum queue size
+    static const unsigned int rxQueueMin=16; ///< Minimum queue size
     Thread *rxWaiting;                ///< Thread waiting for rx, or 0
     
     USART_TypeDef *port;              ///< Pointer to USART peripheral
-    #ifdef SERIAL_1_DMA
+    #ifdef SERIAL_DMA
+    #ifdef _ARCH_CORTEXM3_STM32
+    DMA_Channel_TypeDef *dmaTx;       ///< Pointer to DMA TX peripheral
+    DMA_Channel_TypeDef *dmaRx;       ///< Pointer to DMA RX peripheral
+    #else //_ARCH_CORTEXM3_STM32
+    DMA_Stream_TypeDef *dmaTx;        ///< Pointer to DMA TX peripheral
+    DMA_Stream_TypeDef *dmaRx;        ///< Pointer to DMA RX peripheral
+    #endif //_ARCH_CORTEXM3_STM32
     Thread *txWaiting;                ///< Thread waiting for tx, or 0
-    static const int txBufferSize=16; ///< Size of tx buffer, for tx speedup
+    static const unsigned int txBufferSize=16; ///< Size of tx buffer, for tx speedup
     /// Tx buffer, for tx speedup. This buffer must not end up in the CCM of the
     /// STM32F4, as it is used to perform DMA operations. This is guaranteed by
     /// the fact that this class must be allocated on the heap as it derives
@@ -197,9 +215,10 @@ private:
     /// and an interrupt is fired as soon as it is half full
     char rxBuffer[rxQueueMin];
     bool dmaTxInProgress;             ///< True if a DMA tx is in progress
-    #endif //SERIAL_1_DMA
+    #endif //SERIAL_DMA
     bool idle;                        ///< Receiver idle
     const bool flowControl;           ///< True if flow control GPIOs enabled
+    const unsigned char portId;       ///< 1 for USART1, 2 for USART2, ...
 };
 
 } //namespace miosix

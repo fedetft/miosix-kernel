@@ -1,5 +1,8 @@
 Changelog for Miosix np embedded OS
 
+- Breaking change; the default serial for the stm32f4discovery is now USART3
+  Please connect to PB10 and PB11 instead of PA2 and PA3.
+- Completed serial new serial port driver, added DMA support for USART2 and 3
 - Added -f option to rm in Makefile and miosix/Makefile, so that when
   doing make clean on an already clean directory, no errors are reported
 - Added DMA RX for USART1 un STM32Serial. Also fixed bugs on stm32f1.

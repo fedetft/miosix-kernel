@@ -135,7 +135,8 @@ void IRQbspInit()
     
     DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
     #ifndef STDOUT_REDIRECTED_TO_DCC
-        new STM32Serial(1,SERIAL_PORT_SPEED)));
+        new STM32Serial(defaultSerial,defaultSerialSpeed,
+        defaultSerialFlowctrl ? STM32Serial::RTSCTS : STM32Serial::NOFLOWCTRL)));
     #else //STDOUT_REDIRECTED_TO_DCC
         new ARMDCC));
     #endif //STDOUT_REDIRECTED_TO_DCC

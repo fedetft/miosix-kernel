@@ -54,11 +54,13 @@ const unsigned int TICK_FREQ=1000;
 const unsigned int AUX_TIMER_CLOCK=100000;
 const unsigned int AUX_TIMER_MAX=0xffff; ///<\internal Aux timer is 16 bits
 
-/// Serial port baudrate
-const unsigned int SERIAL_PORT_SPEED=19200;
-
-/// Enable DMA mode on USART1 (this occupies the corresponding DMA channels)
+/// Serial port
+const unsigned int defaultSerial=1;
+const unsigned int defaultSerialSpeed=19200;
+const bool defaultSerialFlowctrl=false;
 #define SERIAL_1_DMA
+//#define SERIAL_2_DMA //Serial 2 is not used, so not enabling DMA
+//#define SERIAL_3_DMA //Serial 3 is not used, so not enabling DMA
 
 /**
  * \}

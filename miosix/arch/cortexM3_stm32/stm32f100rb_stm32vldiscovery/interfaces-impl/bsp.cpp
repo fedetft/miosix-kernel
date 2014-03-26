@@ -65,7 +65,8 @@ void IRQbspInit()
     ledOff();
     DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
     #ifndef STDOUT_REDIRECTED_TO_DCC
-        new STM32Serial(1,SERIAL_PORT_SPEED)));
+        new STM32Serial(defaultSerial,defaultSerialSpeed,
+        defaultSerialFlowctrl ? STM32Serial::RTSCTS : STM32Serial::NOFLOWCTRL)));
     #else //STDOUT_REDIRECTED_TO_DCC
         new ARMDCC));
     #endif //STDOUT_REDIRECTED_TO_DCC
@@ -97,6 +98,14 @@ minimize power consumption all unused GPIO must not be left floating.
 */
 void shutdown()
 {
+    //FIXME: at the time of writing, Miosix's newlib does not yet provide the
+    //sys/ioctl.h header file. Replace with a call to ioctl() when ready
+    #ifdef WITH_FILESYSTEM
+    miosix::getFileDescriptorTable().ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+    #else //WITH_FILESYSTEM
+    DefaultConsole::instance().get()->ioctl(IOCTL_SYNC,0);
+    #endif //WITH_FILESYSTEM
+
     #ifdef WITH_FILESYSTEM
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM

@@ -54,8 +54,13 @@ const unsigned int TICK_FREQ=1000;
 const unsigned int AUX_TIMER_CLOCK=100000;
 const unsigned int AUX_TIMER_MAX=0xffff; ///<\internal Aux timer is 16 bits
 
-/// Serial port baudrate
-const unsigned int SERIAL_PORT_SPEED=19200;
+/// Serial port
+const unsigned int defaultSerial=1;
+const unsigned int defaultSerialSpeed=19200;
+const bool defaultSerialFlowctrl=false;
+//#define SERIAL_1_DMA //Serial 1 is used, but no DMA to save on code
+//#define SERIAL_2_DMA //Serial 2 is not used, so not enabling DMA
+//#define SERIAL_3_DMA //Serial 3 is not used, so not enabling DMA
 
 ///\def STDOUT_REDIRECTED_TO_DCC
 ///If defined, stdout is redirected to the debug communication channel, and

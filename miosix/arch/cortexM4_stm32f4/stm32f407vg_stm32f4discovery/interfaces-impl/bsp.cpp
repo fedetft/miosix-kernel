@@ -68,12 +68,21 @@ void IRQbspInit()
     ledOn();
     delayMs(100);
     ledOff();
-    DefaultConsole::instance().IRQset(
-        intrusive_ref_ptr<Device>(new STM32Serial(2,SERIAL_PORT_SPEED)));
+    DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
+        new STM32Serial(defaultSerial,defaultSerialSpeed,
+        defaultSerialFlowctrl ? STM32Serial::RTSCTS : STM32Serial::NOFLOWCTRL)));
 }
 
 void bspInit2()
 {
+    //TODO: remove after a few months
+    #ifdef WITH_BOOTLOG
+    intrusive_ref_ptr<Device> usart2(new STM32Serial(2,19200));
+    const char warn[]="As of 25/03/2014 the default serial for the f4discovery"
+                      " is USART3. Please connect to PB10 and PB11\r\n";
+    usart2->writeBlock(warn,strlen(warn),0);
+    #endif //WITH_BOOTLOG
+
     #ifdef WITH_FILESYSTEM
     basicFilesystemSetup();
     #endif //WITH_FILESYSTEM
@@ -98,6 +107,14 @@ minimize power consumption all unused GPIO must not be left floating.
 */
 void shutdown()
 {
+    //FIXME: at the time of writing, Miosix's newlib does not yet provide the
+    //sys/ioctl.h header file. Replace with a call to ioctl() when ready
+    #ifdef WITH_FILESYSTEM
+    miosix::getFileDescriptorTable().ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+    #else //WITH_FILESYSTEM
+    DefaultConsole::instance().get()->ioctl(IOCTL_SYNC,0);
+    #endif //WITH_FILESYSTEM
+
     #ifdef WITH_FILESYSTEM
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM

@@ -66,8 +66,9 @@ void IRQbspInit()
     ledOn();
     delayMs(100);
     ledOff();
-    DefaultConsole::instance().IRQset(
-        intrusive_ref_ptr<Device>(new STM32Serial(1,SERIAL_PORT_SPEED)));
+    DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
+        new STM32Serial(defaultSerial,defaultSerialSpeed,
+        defaultSerialFlowctrl ? STM32Serial::RTSCTS : STM32Serial::NOFLOWCTRL)));
 }
 
 void bspInit2()
@@ -140,4 +141,4 @@ void reboot()
     miosix_private::IRQsystemReboot();
 }
 
-};//namespace miosix
+} //namespace miosix
