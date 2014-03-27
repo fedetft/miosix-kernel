@@ -62,6 +62,9 @@ const bool defaultSerialFlowctrl=false;
 //#define SERIAL_2_DMA //Serial 1 is not used, so not enabling DMA
 //#define SERIAL_3_DMA //Serial 1 is not used, so not enabling DMA
 
+//SD card driver
+static const unsigned char sdVoltage=33; //Board powered @ 3.3V
+
 /**
  * \}
  */

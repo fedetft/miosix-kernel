@@ -68,6 +68,10 @@ const bool defaultSerialFlowctrl=false;
 ///redirected throug USART1, as usual.
 //#define STDOUT_REDIRECTED_TO_DCC
 
+//SD card driver
+static const unsigned char sdVoltage=33; //Board powered @ 3.3V
+//#define SD_ONE_BIT_DATABUS //Using 4 bit fast bus
+
 /**
  * \}
  */

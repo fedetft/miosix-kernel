@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Starting to remove disk interface. Aggregated stm32f2 and stm32f4 drivers
+  into one.
 - Breaking change; the default serial for the stm32f4discovery is now USART3
   Please connect to PB10 and PB11 instead of PA2 and PA3.
 - Completed serial new serial port driver, added DMA support for USART2 and 3

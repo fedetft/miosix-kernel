@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012, 2013 by Terraneo Federico             *
+ *   Copyright (C) 2010, 2011, 2012, 2013, 2014 by Terraneo Federico       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -31,6 +31,7 @@
 #include "kernel/scheduler/scheduler.h"
 #include "interfaces/delays.h"
 #include "kernel/kernel.h"
+#include "board_settings.h" //For sdVoltage and SD_ONE_BIT_DATABUS definitions
 #include <cstdio>
 #include <cstring>
 
@@ -119,8 +120,8 @@ void __attribute__((used)) SDIOirqImpl()
  * work at this voltage. Range *must* be within 28..36
  * Example 33=3.3v
  */
-static const unsigned char VOLTAGE=33;
-static const unsigned int VOLTAGE_MASK=1<<(VOLTAGE-13); //See OCR reg in SD spec
+//static const unsigned char sdVoltage=33; //Is defined in board_settings.h
+static const unsigned int sdVoltageMask=1<<(sdVoltage-13); //See OCR reg in SD spec
 
 /**
  * \internal
@@ -140,13 +141,153 @@ static CardType cardType=Invalid;
 
 //SD card GPIOs
 typedef Gpio<GPIOC_BASE,8>  sdD0;
-#ifndef _BOARD_STM3220G_EVAL //QUIRK: serial port and SD have pins in common
-typedef Gpio<GPIOC_BASE,9>  sdD1; 
+typedef Gpio<GPIOC_BASE,9>  sdD1;
 typedef Gpio<GPIOC_BASE,10> sdD2;
 typedef Gpio<GPIOC_BASE,11> sdD3;
-#endif //_BOARD_STM3220G_EVAL
 typedef Gpio<GPIOC_BASE,12> sdCLK;
 typedef Gpio<GPIOD_BASE,2>  sdCMD;
+
+//
+// Class BufferConverter
+//
+
+/**
+ * \internal
+ * After fixing the FSMC bug in the stm32f1, ST decided to willingly introduce
+ * another quirk in the stm32f4. They introduced a core coupled memory that is
+ * not accessible by the DMA. While from an hardware perspective it may make
+ * sense, it is a bad design decision when viewed from the software side.
+ * This is because if application code allocates a buffer in the core coupled
+ * memory and passes that to an fread() or fwrite() call, that buffer is
+ * forwarded here, and this driver is DMA-based... Now, in an OS such as Miosix
+ * that tries to shield the application developer from such quirks, it is
+ * unacceptable to fail to work in such an use case, so this class exists to
+ * try and work around this.
+ * In essence, the first "bad buffer" that is passed to a Disk::read() or
+ * Disk::write() causes the allocation on the heap (which Miosix guarantees
+ * is not allocated in the core coupled memory) of a 512 byte buffer which is
+ * then never deallocated and always reused to deal with these bad buffers.
+ * While this works, performance suffers for two reasons: first, when dealing
+ * with those bad buffers, the filesystem code is no longer zero copy, and
+ * second because multiple block read/writes between bad buffers and the SD
+ * card are implemented as a sequence of single block read/writes.
+ * If you're an application developer and care about speed, try to allocate
+ * your buffers in the heap if you're coding for the STM32F4.
+ */
+class BufferConverter
+{
+public:
+    /**
+     * \internal
+     * The buffer will be of this size only.
+     */
+    static const int BUFFER_SIZE=512;
+
+    /**
+     * \internal
+     * \return true if the pointer is not inside the CCM
+     */
+    static bool isGoodBuffer(const unsigned char *x)
+    {
+        unsigned int ptr=reinterpret_cast<const unsigned int>(x);
+        return (ptr<0x10000000) || (ptr>=(0x10000000+64*1024));
+    }
+
+    /**
+     * \internal
+     * Convert from a constunsigned char* buffer of size BUFFER_SIZE to a
+     * const unsigned int* word aligned buffer.
+     * If the original buffer is already word aligned it only does a cast,
+     * otherwise it copies the data on the original buffer to a word aligned
+     * buffer. Useful if subseqent code will read from the buffer.
+     * \param a buffer of size BUFFER_SIZE. Can be word aligned or not.
+     * \return a word aligned buffer with the same data of the given buffer
+     */
+    static const unsigned char *toWordAligned(const unsigned char *buffer);
+
+    /**
+     * \internal
+     * Convert from an unsigned char* buffer of size BUFFER_SIZE to an
+     * unsigned int* word aligned buffer.
+     * If the original buffer is already word aligned it only does a cast,
+     * otherwise it returns a new buffer which *does not* contain the data
+     * on the original buffer. Useful if subseqent code will write to the
+     * buffer. To move the written data to the original buffer, use
+     * toOriginalBuffer()
+     * \param a buffer of size BUFFER_SIZE. Can be word aligned or not.
+     * \return a word aligned buffer with undefined content.
+     */
+    static unsigned char *toWordAlignedWithoutCopy(unsigned char *buffer);
+
+    /**
+     * \internal
+     * Convert the buffer got through toWordAlignedWithoutCopy() to the
+     * original buffer. If the original buffer was word aligned, nothing
+     * happens, otherwise a memcpy is done.
+     * Note that this function does not work on buffers got through
+     * toWordAligned().
+     */
+    static void toOriginalBuffer();
+
+    /**
+     * \internal
+     * Can be called to deallocate the buffer
+     */
+    static void deallocateBuffer();
+
+private:
+    static unsigned char *originalBuffer;
+    static unsigned char *wordAlignedBuffer;
+};
+
+const unsigned char *BufferConverter::toWordAligned(const unsigned char *buffer)
+{
+    originalBuffer=0; //Tell toOriginalBuffer() that there's nothing to do
+    if(isGoodBuffer(buffer))
+    {
+        return buffer;
+    } else {
+        if(wordAlignedBuffer==0)
+            wordAlignedBuffer=new unsigned char[BUFFER_SIZE];
+        std::memcpy(wordAlignedBuffer,buffer,BUFFER_SIZE);
+        return wordAlignedBuffer;
+    }
+}
+
+unsigned char *BufferConverter::toWordAlignedWithoutCopy(
+    unsigned char *buffer)
+{
+    if(isGoodBuffer(buffer))
+    {
+        originalBuffer=0; //Tell toOriginalBuffer() that there's nothing to do
+        return buffer;
+    } else {
+        originalBuffer=buffer; //Save original pointer for toOriginalBuffer()
+        if(wordAlignedBuffer==0)
+            wordAlignedBuffer=new unsigned char[BUFFER_SIZE];
+        return wordAlignedBuffer;
+    }
+}
+
+void BufferConverter::toOriginalBuffer()
+{
+    if(originalBuffer==0) return;
+    std::memcpy(originalBuffer,wordAlignedBuffer,BUFFER_SIZE);
+    originalBuffer=0;
+}
+
+void BufferConverter::deallocateBuffer()
+{
+    originalBuffer=0; //Invalidate also original buffer
+    if(wordAlignedBuffer!=0)
+    {
+        delete[] wordAlignedBuffer;
+        wordAlignedBuffer=0;
+    }
+}
+
+unsigned char *BufferConverter::originalBuffer=0;
+unsigned char *BufferConverter::wordAlignedBuffer=0;
 
 //
 // Class CmdResult
@@ -545,16 +686,14 @@ private:
     static const unsigned int CLOCK_400KHz=118; //48MHz/(118+2)=400KHz
     static const unsigned int CLOCK_MAX=0;      //48MHz/(0+2)  =24MHz
 
-    #ifndef _BOARD_STM3220G_EVAL
+    #ifdef SD_ONE_BIT_DATABUS
+    ///\internal Clock enabled, bus width 1bit, clock powersave enabled.
+    static const unsigned int CLKCR_FLAGS=SDIO_CLKCR_CLKEN | SDIO_CLKCR_PWRSAV;
+    #else //SD_ONE_BIT_DATABUS
     ///\internal Clock enabled, bus width 4bit, clock powersave enabled.
     static const unsigned int CLKCR_FLAGS=SDIO_CLKCR_CLKEN |
         SDIO_CLKCR_WIDBUS_0 | SDIO_CLKCR_PWRSAV;
-    #else //_BOARD_STM3220G_EVAL
-    //Quirk: in the stm3220g-eval the serial port shares some pin with the
-    //SDIO data bus, so use 1 bit mode, even if it's slower
-    ///\internal Clock enabled, bus width 1bit, clock powersave enabled.
-    static const unsigned int CLKCR_FLAGS=SDIO_CLKCR_CLKEN | SDIO_CLKCR_PWRSAV;
-    #endif //_BOARD_STM3220G_EVAL
+    #endif //SD_ONE_BIT_DATABUS
 
     ///\internal Maximum number of calls to IRQreduceClockSpeed() allowed
     static const unsigned char MAX_ALLOWED_REDUCTIONS=1;
@@ -957,16 +1096,14 @@ static void initSDIOPeripheral()
         RCC->APB2ENR |= RCC_APB2ENR_SDIOEN;
         sdD0::mode(Mode::ALTERNATE);
         sdD0::alternateFunction(12);
-        #ifndef _BOARD_STM3220G_EVAL
-        //Quirk: in the stm3220g-eval the serial port shares some pin with the
-        //SDIO data bus, so use 1 bit mode, even if it's slower
+        #ifndef SD_ONE_BIT_DATABUS
         sdD1::mode(Mode::ALTERNATE);
         sdD1::alternateFunction(12);
         sdD2::mode(Mode::ALTERNATE);
         sdD2::alternateFunction(12);
         sdD3::mode(Mode::ALTERNATE);
         sdD3::alternateFunction(12);
-        #endif //_BOARD_STM3220G_EVAL
+        #endif //SD_ONE_BIT_DATABUS
         sdCLK::mode(Mode::ALTERNATE);
         sdCLK::alternateFunction(12);
         sdCMD::mode(Mode::ALTERNATE);
@@ -1015,7 +1152,7 @@ static CardType detectCardType()
         for(int i=0;i<INIT_TIMEOUT;i++)
         {
             //Bit 30 @ 1 = tell the card we like SDHCs
-            r=Command::send(Command::ACMD41,(1<<30) | VOLTAGE_MASK);
+            r=Command::send(Command::ACMD41,(1<<30) | sdVoltageMask);
             //ACMD41 sends R3 as response, whose CRC is wrong.
             if(r.getError()!=CmdResult::Ok && r.getError()!=CmdResult::CRCFail)
             {
@@ -1027,7 +1164,7 @@ static CardType detectCardType()
                 Thread::sleep(10);
                 continue;
             }
-            if((r.getResponse() & VOLTAGE_MASK)==0)
+            if((r.getResponse() & sdVoltageMask)==0)
             {
                 DBGERR("ACMD41 validation: voltage range fail\n");
                 return Invalid;
@@ -1046,7 +1183,7 @@ static CardType detectCardType()
         return Invalid;
     } else {
         //We have an SDv1 or MMC
-        r=Command::send(Command::ACMD41,VOLTAGE_MASK);
+        r=Command::send(Command::ACMD41,sdVoltageMask);
         //ACMD41 sends R3 as response, whose CRC is wrong.
         if(r.getError()!=CmdResult::Ok && r.getError()!=CmdResult::CRCFail)
         {
@@ -1068,10 +1205,10 @@ static CardType detectCardType()
                 {
                     Thread::sleep(10);
                     //Send again command
-                    r=Command::send(Command::ACMD41,VOLTAGE_MASK);
+                    r=Command::send(Command::ACMD41,sdVoltageMask);
                     continue;
                 }
-                if((r.getResponse() & VOLTAGE_MASK)==0)
+                if((r.getResponse() & sdVoltageMask)==0)
                 {
                     DBGERR("ACMD41 validation: voltage range fail\n");
                     return Invalid;
@@ -1147,12 +1284,10 @@ void Disk::init()
             return;
         }
 
-        #ifndef _BOARD_STM3220G_EVAL
-        //Quirk: in the stm3220g-eval the serial port shares some pin with the
-        //SDIO data bus, so use 1 bit mode, even if it's slower
+        #ifndef SD_ONE_BIT_DATABUS
         r=Command::send(Command::ACMD6,2);   //Set 4 bit bus width
         if(r.validateR1Response()==false) return;
-        #endif //_BOARD_STM3220G_EVAL
+        #endif //SD_ONE_BIT_DATABUS
 
         if(cardType!=SDHC)
         {
@@ -1173,13 +1308,41 @@ bool Disk::read(unsigned char *buffer, unsigned int lba,
         unsigned char nSectors)
 {
     DBG("Disk::read(): nSectors=%d\n",nSectors);
+    bool goodBuffer=BufferConverter::isGoodBuffer(buffer);
+    if(goodBuffer==false) DBG("Buffer inside CCM\n");
+    
     for(int i=0;i<ClockController::getRetryCount();i++)
     {
         CardSelector selector;
         if(selector.succeded()==false) continue;
-        if(multipleBlockRead(buffer,nSectors,lba)==false) continue;
-        if(i>0) DBGERR("Read: required %d retries\n",i);
-        return true;
+        bool error=false;
+        
+        if(goodBuffer)
+        {
+            if(multipleBlockRead(buffer,nSectors,lba)==false) error=true;
+        } else {
+            //Fallback code to work around CCM
+            unsigned char *tempBuffer=buffer;
+            unsigned int tempLba=lba;
+            for(unsigned int j=0;j<nSectors;j++)
+            {
+                unsigned char* b=BufferConverter::toWordAlignedWithoutCopy(tempBuffer);
+                if(multipleBlockRead(b,1,tempLba)==false)
+                {
+                    error=true;
+                    break;
+                }
+                BufferConverter::toOriginalBuffer();
+                tempBuffer+=512;
+                tempLba++;
+            }
+        }
+        
+        if(error==false)
+        {
+            if(i>0) DBGERR("Read: required %d retries\n",i);
+            return true;
+        }
     }
     return false;
 }
@@ -1188,13 +1351,40 @@ bool Disk::write(const unsigned char *buffer, unsigned int lba,
         unsigned char nSectors)
 {
     DBG("Disk::write(): nSectors=%d\n",nSectors);
+    bool goodBuffer=BufferConverter::isGoodBuffer(buffer);
+    if(goodBuffer==false) DBG("Buffer inside CCM\n");
+    
     for(int i=0;i<ClockController::getRetryCount();i++)
     {
         CardSelector selector;
         if(selector.succeded()==false) continue;
-        if(multipleBlockWrite(buffer,nSectors,lba)==false) continue;
-        if(i>0) DBGERR("Write: required %d retries\n",i);
-        return true;
+        bool error=false;
+        
+        if(goodBuffer)
+        {
+            if(multipleBlockWrite(buffer,nSectors,lba)==false) error=true;
+        } else {
+            //Fallback code to work around CCM
+            const unsigned char *tempBuffer=buffer;
+            unsigned int tempLba=lba;
+            for(unsigned int j=0;j<nSectors;j++)
+            {
+                const unsigned char* b=BufferConverter::toWordAligned(tempBuffer);
+                if(multipleBlockWrite(b,1,tempLba)==false)
+                {
+                    error=true;
+                    break;
+                }
+                tempBuffer+=512;
+                tempLba++;
+            }
+        }
+        
+        if(error==false)
+        {
+            if(i>0) DBGERR("Write: required %d retries\n",i);
+            return true;
+        }
     }
     return false;
 }

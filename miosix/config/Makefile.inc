@@ -313,7 +313,7 @@ ifeq ($(ARCH),arm7_lpc2000)
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
         $(BOARD_INC)/interfaces-impl/portability.cpp \
-        $(BOARD_INC)/interfaces-impl/disk.cpp        \
+        arch/common/drivers/sd_lpc2000.cpp           \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -384,7 +384,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(ARCH_INC)/interfaces-impl/disk.cpp         \
+        arch/common/drivers/sd_stm32f1.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -420,7 +420,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(ARCH_INC)/interfaces-impl/disk.cpp         \
+        arch/common/drivers/sd_stm32f1.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -491,7 +491,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(ARCH_INC)/interfaces-impl/disk.cpp         \
+        arch/common/drivers/sd_stm32f1.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -525,7 +525,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(ARCH_INC)/interfaces-impl/disk.cpp         \
+        arch/common/drivers/sd_stm32f1.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -699,7 +699,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
-    $(ARCH_INC)/interfaces-impl/disk.cpp                     \
+    arch/common/drivers/sd_stm32f2_f4.cpp                    \
     $(ARCH_INC)/CMSIS/system_stm32f4xx.c
 
 ##-----------------------------------------------------------------------------
@@ -724,7 +724,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(ARCH_INC)/interfaces-impl/disk.cpp         \
+        arch/common/drivers/sd_stm32f2_f4.cpp        \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -763,7 +763,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(ARCH_INC)/interfaces-impl/disk.cpp         \
+        arch/common/drivers/sd_stm32f2_f4.cpp        \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
