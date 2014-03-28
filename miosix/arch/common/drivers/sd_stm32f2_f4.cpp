@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "interfaces/disk.h"
+#include "sd_stm32f2_f4.h"
 #include "interfaces/bsp.h"
 #include "interfaces/arch_registers.h"
 #include "kernel/scheduler/scheduler.h"
@@ -34,6 +34,7 @@
 #include "board_settings.h" //For sdVoltage and SD_ONE_BIT_DATABUS definitions
 #include <cstdio>
 #include <cstring>
+#include <errno.h>
 
 //Note: enabling debugging might cause deadlock when using sleep() or reboot()
 //The bug won't be fixed because debugging is only useful for driver development
@@ -136,7 +137,7 @@ enum CardType
     SDHC=1<<3  ///<\internal if(cardType==SDHC) card is an SDHC
 };
 
-///\internal Type of card. This variable is set in Disk::init()
+///\internal Type of card.
 static CardType cardType=Invalid;
 
 //SD card GPIOs
@@ -163,8 +164,8 @@ typedef Gpio<GPIOD_BASE,2>  sdCMD;
  * that tries to shield the application developer from such quirks, it is
  * unacceptable to fail to work in such an use case, so this class exists to
  * try and work around this.
- * In essence, the first "bad buffer" that is passed to a Disk::read() or
- * Disk::write() causes the allocation on the heap (which Miosix guarantees
+ * In essence, the first "bad buffer" that is passed to a readBlock() or
+ * writeBlock() causes the allocation on the heap (which Miosix guarantees
  * is not allocated in the core coupled memory) of a 512 byte buffer which is
  * then never deallocated and always reused to deal with these bad buffers.
  * While this works, performance suffers for two reasons: first, when dealing
@@ -187,7 +188,7 @@ public:
      * \internal
      * \return true if the pointer is not inside the CCM
      */
-    static bool isGoodBuffer(const unsigned char *x)
+    static bool isGoodBuffer(const void *x)
     {
         unsigned int ptr=reinterpret_cast<const unsigned int>(x);
         return (ptr<0x10000000) || (ptr>=(0x10000000+64*1024));
@@ -649,7 +650,7 @@ public:
      * This function as a side effect enables 4bit bus width, and clock
      * powersave.
      */
-    static void calibrateClockSpeed();
+    static void calibrateClockSpeed(SDIODriver *sdio);
 
     /**
      * \internal
@@ -708,9 +709,9 @@ private:
     static unsigned char retries;
 };
 
-void ClockController::calibrateClockSpeed()
+void ClockController::calibrateClockSpeed(SDIODriver *sdio)
 {
-    //During calibration we call Disk::read which will call reduceClockSpeed()
+    //During calibration we call readBlock() which will call reduceClockSpeed()
     //so not to invalidate calibration clock reduction must not be available
     clockReductionAvailable=0;
     retries=1;
@@ -725,13 +726,13 @@ void ClockController::calibrateClockSpeed()
         selected=(minFreq+maxFreq)/2;
         DBG("Trying CLKCR=%d\n",selected);
         setClockSpeed(selected);
-        if(Disk::read(reinterpret_cast<unsigned char*>(buffer),0,1))
+        if(sdio->readBlock(reinterpret_cast<unsigned char*>(buffer),0,512))
             minFreq=selected;
         else maxFreq=selected;
     }
     //Last round of algorithm
     setClockSpeed(maxFreq);
-    if(Disk::read(reinterpret_cast<unsigned char*>(buffer),0,1))
+    if(sdio->readBlock(reinterpret_cast<unsigned char*>(buffer),0,512))
     {
         DBG("Optimal CLKCR=%d\n",maxFreq);
     } else {
@@ -1223,19 +1224,124 @@ static CardType detectCardType()
 }
 
 //
-// Disk class
+// class SDIODriver
 //
 
-bool Disk::isAvailable()
+intrusive_ref_ptr<SDIODriver> SDIODriver::instance()
 {
-    bool result=sdCardSense();
-    DBG("Disk::isAvailable(): %d\n",result);
-    return result;
+    static FastMutex m;
+    static intrusive_ref_ptr<SDIODriver> instance;
+    Lock<FastMutex> l(m);
+    if(!instance) instance=new SDIODriver();
+    return instance;
 }
 
-void Disk::init()
+ssize_t SDIODriver::readBlock(void* buffer, size_t size, off_t where)
 {
-    diskInitialized=false;
+    if(where % 512 || size % 512) return -EFAULT;
+    unsigned int lba=where/512;
+    unsigned int nSectors=size/512;
+    Lock<FastMutex> l(mutex);
+    DBG("SDIODriver::readBlock(): nSectors=%d\n",nSectors);
+    bool goodBuffer=BufferConverter::isGoodBuffer(buffer);
+    if(goodBuffer==false) DBG("Buffer inside CCM\n");
+    
+    for(int i=0;i<ClockController::getRetryCount();i++)
+    {
+        CardSelector selector;
+        if(selector.succeded()==false) continue;
+        bool error=false;
+        
+        if(goodBuffer)
+        {
+            if(multipleBlockRead(reinterpret_cast<unsigned char*>(buffer),
+                nSectors,lba)==false) error=true;
+        } else {
+            //Fallback code to work around CCM
+            unsigned char *tempBuffer=reinterpret_cast<unsigned char*>(buffer);
+            unsigned int tempLba=lba;
+            for(unsigned int j=0;j<nSectors;j++)
+            {
+                unsigned char* b=BufferConverter::toWordAlignedWithoutCopy(tempBuffer);
+                if(multipleBlockRead(b,1,tempLba)==false)
+                {
+                    error=true;
+                    break;
+                }
+                BufferConverter::toOriginalBuffer();
+                tempBuffer+=512;
+                tempLba++;
+            }
+        }
+        
+        if(error==false)
+        {
+            if(i>0) DBGERR("Read: required %d retries\n",i);
+            return size;
+        }
+    }
+    return -EBADF;
+}
+
+ssize_t SDIODriver::writeBlock(const void* buffer, size_t size, off_t where)
+{
+    if(where % 512 || size % 512) return -EFAULT;
+    unsigned int lba=where/512;
+    unsigned int nSectors=size/512;
+    Lock<FastMutex> l(mutex);
+    DBG("SDIODriver::writeBlock(): nSectors=%d\n",nSectors);
+    bool goodBuffer=BufferConverter::isGoodBuffer(buffer);
+    if(goodBuffer==false) DBG("Buffer inside CCM\n");
+    
+    for(int i=0;i<ClockController::getRetryCount();i++)
+    {
+        CardSelector selector;
+        if(selector.succeded()==false) continue;
+        bool error=false;
+        
+        if(goodBuffer)
+        {
+            if(multipleBlockWrite(reinterpret_cast<const unsigned char*>(buffer),
+                nSectors,lba)==false) error=true;
+        } else {
+            //Fallback code to work around CCM
+            const unsigned char *tempBuffer=
+                reinterpret_cast<const unsigned char*>(buffer);
+            unsigned int tempLba=lba;
+            for(unsigned int j=0;j<nSectors;j++)
+            {
+                const unsigned char* b=BufferConverter::toWordAligned(tempBuffer);
+                if(multipleBlockWrite(b,1,tempLba)==false)
+                {
+                    error=true;
+                    break;
+                }
+                tempBuffer+=512;
+                tempLba++;
+            }
+        }
+        
+        if(error==false)
+        {
+            if(i>0) DBGERR("Write: required %d retries\n",i);
+            return size;
+        }
+    }
+    return -EBADF;
+}
+
+int SDIODriver::ioctl(int cmd, void* arg)
+{
+    DBG("SDIODriver::ioctl()\n");
+    if(cmd!=IOCTL_SYNC) return -ENOTTY;
+    Lock<FastMutex> l(mutex);
+    //Note: no need to select card, since status can be queried even with card
+    //not selected.
+    return waitForCardReady() ? 0 : -EFAULT;
+}
+
+SDIODriver::SDIODriver() : Device(Device::BLOCK)
+{
     initSDIOPeripheral();
 
     // This is more important than it seems, since CMD55 requires the card's RCA
@@ -1298,105 +1404,9 @@ void Disk::init()
 
     // Now that card is initialized, perform self calibration of maximum
     // possible read/write speed. This as a side effect enables 4bit bus width.
-    ClockController::calibrateClockSpeed();
+    ClockController::calibrateClockSpeed(this);
 
-    DBG("Disk::init(): Success\n");
-    diskInitialized=true;
+    DBG("SDIO init: Success\n");
 }
-
-bool Disk::read(unsigned char *buffer, unsigned int lba,
-        unsigned char nSectors)
-{
-    DBG("Disk::read(): nSectors=%d\n",nSectors);
-    bool goodBuffer=BufferConverter::isGoodBuffer(buffer);
-    if(goodBuffer==false) DBG("Buffer inside CCM\n");
-    
-    for(int i=0;i<ClockController::getRetryCount();i++)
-    {
-        CardSelector selector;
-        if(selector.succeded()==false) continue;
-        bool error=false;
-        
-        if(goodBuffer)
-        {
-            if(multipleBlockRead(buffer,nSectors,lba)==false) error=true;
-        } else {
-            //Fallback code to work around CCM
-            unsigned char *tempBuffer=buffer;
-            unsigned int tempLba=lba;
-            for(unsigned int j=0;j<nSectors;j++)
-            {
-                unsigned char* b=BufferConverter::toWordAlignedWithoutCopy(tempBuffer);
-                if(multipleBlockRead(b,1,tempLba)==false)
-                {
-                    error=true;
-                    break;
-                }
-                BufferConverter::toOriginalBuffer();
-                tempBuffer+=512;
-                tempLba++;
-            }
-        }
-        
-        if(error==false)
-        {
-            if(i>0) DBGERR("Read: required %d retries\n",i);
-            return true;
-        }
-    }
-    return false;
-}
-
-bool Disk::write(const unsigned char *buffer, unsigned int lba,
-        unsigned char nSectors)
-{
-    DBG("Disk::write(): nSectors=%d\n",nSectors);
-    bool goodBuffer=BufferConverter::isGoodBuffer(buffer);
-    if(goodBuffer==false) DBG("Buffer inside CCM\n");
-    
-    for(int i=0;i<ClockController::getRetryCount();i++)
-    {
-        CardSelector selector;
-        if(selector.succeded()==false) continue;
-        bool error=false;
-        
-        if(goodBuffer)
-        {
-            if(multipleBlockWrite(buffer,nSectors,lba)==false) error=true;
-        } else {
-            //Fallback code to work around CCM
-            const unsigned char *tempBuffer=buffer;
-            unsigned int tempLba=lba;
-            for(unsigned int j=0;j<nSectors;j++)
-            {
-                const unsigned char* b=BufferConverter::toWordAligned(tempBuffer);
-                if(multipleBlockWrite(b,1,tempLba)==false)
-                {
-                    error=true;
-                    break;
-                }
-                tempBuffer+=512;
-                tempLba++;
-            }
-        }
-        
-        if(error==false)
-        {
-            if(i>0) DBGERR("Write: required %d retries\n",i);
-            return true;
-        }
-    }
-    return false;
-}
-
-bool Disk::sync()
-{
-    DBG("Disk::sync()\n");
-    //Note: no need to select card, since status can be queried even with card
-    //not selected.
-    return waitForCardReady();
-}
-
-bool Disk::diskInitialized=false;
 
 } //namespace miosix

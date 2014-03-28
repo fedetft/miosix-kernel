@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "interfaces/disk.h"
+#include "sd_stm32f1.h"
 #include "interfaces/bsp.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces/delays.h"
@@ -34,6 +34,7 @@
 #include "board_settings.h" //For sdVoltage
 #include <cstdio>
 #include <cstring>
+#include <errno.h>
 
 /*
  * This driver is quite a bit complicated, due to a silicon errata in the
@@ -155,7 +156,7 @@ enum CardType
     SDHC=1<<3  ///<\internal if(cardType==SDHC) card is an SDHC
 };
 
-///\internal Type of card. This variable is set in Disk::init()
+///\internal Type of card.
 static CardType cardType=Invalid;
 
 //SD card GPIOs
@@ -193,7 +194,7 @@ public:
      * \internal
      * \return true if the pointer is word aligned
      */
-    static bool isWordAligned(const unsigned char *x)
+    static bool isWordAligned(const void *x)
     {
         return (reinterpret_cast<const unsigned int>(x) & 0x3)==0;
     }
@@ -762,7 +763,7 @@ public:
      * This function as a side effect enables 4bit bus width, and clock
      * powersave.
      */
-    static void calibrateClockSpeed();
+    static void calibrateClockSpeed(SDIODriver *sdio);
     
     /**
      * \internal
@@ -841,9 +842,9 @@ private:
     static unsigned char retries;
 };
 
-void ClockController::calibrateClockSpeed()
+void ClockController::calibrateClockSpeed(SDIODriver *sdio)
 {
-    //During calibration we call Disk::read which will call reduceClockSpeed()
+    //During calibration we call readBlock which will call reduceClockSpeed()
     //so not to invalidate calibration clock reduction must not be available
     clockReductionAvailable=0;
     retries=1;
@@ -858,13 +859,13 @@ void ClockController::calibrateClockSpeed()
         selected=(minFreq+maxFreq)/2;
         DBG("Trying CLKCR=%d\n",selected);
         setClockSpeed(selected);
-        if(Disk::read(reinterpret_cast<unsigned char*>(buffer),0,1))
+        if(sdio->readBlock(reinterpret_cast<unsigned char*>(buffer),0,512))
             minFreq=selected;
         else maxFreq=selected;
     }
     //Last round of algorithm
     setClockSpeed(maxFreq);
-    if(Disk::read(reinterpret_cast<unsigned char*>(buffer),0,1))
+    if(sdio->readBlock(reinterpret_cast<unsigned char*>(buffer),0,512))
     {
         DBG("Optimal CLKCR=%d\n",maxFreq);
     } else {
@@ -1543,19 +1544,168 @@ static CardType detectCardType()
 }
 
 //
-// Disk class
+// class SDIODriver
 //
 
-bool Disk::isAvailable()
+intrusive_ref_ptr<SDIODriver> SDIODriver::instance()
 {
-    bool result=sdCardSense();
-    DBG("Disk::isAvailable(): %d\n",result);
-    return result;
+    static FastMutex m;
+    static intrusive_ref_ptr<SDIODriver> instance;
+    Lock<FastMutex> l(m);
+    if(!instance) instance=new SDIODriver();
+    return instance;
 }
 
-void Disk::init()
+ssize_t SDIODriver::readBlock(void* buffer, size_t size, off_t where)
 {
-    diskInitialized=false;
+    if(where % 512 || size % 512) return -EFAULT;
+    unsigned int lba=where/512;
+    unsigned int nSectors=size/512;
+    Lock<FastMutex> l(mutex);
+    DBG("SDIODriver::readBlock(): nSectors=%d\n",nSectors);
+    bool aligned=BufferConverter::isWordAligned(buffer);
+    if(aligned==false) DBG("Buffer misaligned\n");
+
+    for(int i=0;i<ClockController::getRetryCount();i++)
+    {
+        //Select card
+        CardSelector selector;
+        if(selector.succeded()==false) continue;
+        bool error=false;
+        
+        #ifdef __ENABLE_XRAM
+        // In the XRAM fallback code multiple sector read is implemented as
+        // a sequence of single block read operations
+        unsigned char *tempBuffer=reinterpret_cast<unsigned char*>(buffer);
+        unsigned int tempLba=lba;
+        for(unsigned int j=0;j<nSectors;j++)
+        {
+            unsigned int* b=BufferConverter::toWordAlignedWithoutCopy(tempBuffer);
+            if(singleBlockRead(b,tempLba)==false)
+            {
+                error=true;
+                break;
+            }
+            BufferConverter::toOriginalBuffer();
+            tempBuffer+=512;
+            tempLba++;
+        }
+        #else //__ENABLE_XRAM
+        // If XRAM is not enabled, then check pointer alignment, and if it is
+        // aligned use a single multipleBlockRead(), else use the buffer
+        // converter and read a sector at a time
+        if(aligned)
+        {
+            if(multipleBlockRead(reinterpret_cast<unsigned int*>(buffer),
+                nSectors,lba)==false) error=true;
+        } else {
+            unsigned char *tempBuffer=reinterpret_cast<unsigned char*>(buffer);
+            unsigned int tempLba=lba;
+            for(unsigned int j=0;j<nSectors;j++)
+            {
+                unsigned int* b=BufferConverter::toWordAlignedWithoutCopy(tempBuffer);
+                if(multipleBlockRead(b,1,tempLba)==false)
+                {
+                    error=true;
+                    break;
+                }
+                BufferConverter::toOriginalBuffer();
+                tempBuffer+=512;
+                tempLba++;
+            }
+        }
+        #endif //__ENABLE_XRAM
+
+        if(error==false)
+        {
+            if(i>0) DBGERR("Read: required %d retries\n",i);
+            return size;
+        }
+    }
+    return -EBADF;
+}
+
+ssize_t SDIODriver::writeBlock(const void* buffer, size_t size, off_t where)
+{
+    if(where % 512 || size % 512) return -EFAULT;
+    unsigned int lba=where/512;
+    unsigned int nSectors=size/512;
+    Lock<FastMutex> l(mutex);
+    DBG("SDIODriver::writeBlock(): nSectors=%d\n",nSectors);
+    bool aligned=BufferConverter::isWordAligned(buffer);
+    if(aligned==false) DBG("Buffer misaligned\n");
+
+    for(int i=0;i<ClockController::getRetryCount();i++)
+    {
+        //Select card
+        CardSelector selector;
+        if(selector.succeded()==false) continue;
+        bool error=false;
+
+        #ifdef __ENABLE_XRAM
+        // In the XRAM fallback code multiple sector write is implemented as
+        // a sequence of single block write operations
+        const unsigned char *tempBuffer=
+            reinterpret_cast<const unsigned char*>(buffer);
+        unsigned int tempLba=lba;
+        for(unsigned int j=0;j<nSectors;j++)
+        {
+            const unsigned int* b=BufferConverter::toWordAligned(tempBuffer);
+            if(singleBlockWrite(b,tempLba)==false)
+            {
+                error=true;
+                break;
+            }
+            tempBuffer+=512;
+            tempLba++;
+        }
+        #else //__ENABLE_XRAM
+        // If XRAM is not enabled, then check pointer alignment, and if it is
+        // aligned use a single multipleBlockWrite(), else use the buffer
+        // converter and write a sector at a time
+        if(aligned)
+        {
+            if(multipleBlockWrite(reinterpret_cast<const unsigned int*>(buffer),
+                nSectors,lba)==false) error=true;
+        } else {
+            const unsigned char *tempBuffer=
+                reinterpret_cast<const unsigned char*>(buffer);
+            unsigned int tempLba=lba;
+            for(unsigned int j=0;j<nSectors;j++)
+            {
+                const unsigned int* b=BufferConverter::toWordAligned(tempBuffer);
+                if(multipleBlockWrite(b,1,tempLba)==false)
+                {
+                    error=true;
+                    break;
+                }
+                tempBuffer+=512;
+                tempLba++;
+            }
+        }
+        #endif //__ENABLE_XRAM
+        
+        if(error==false)
+        {
+            if(i>0) DBGERR("Write: required %d retries\n",i);
+            return size;
+        }
+    }
+    return -EBADF;
+}
+
+int SDIODriver::ioctl(int cmd, void* arg)
+{
+    DBG("SDIODriver::ioctl()\n");
+    if(cmd!=IOCTL_SYNC) return -ENOTTY;
+    Lock<FastMutex> l(mutex);
+    //Note: no need to select card, since status can be queried even with card
+    //not selected.
+    return waitForCardReady() ? 0 : -EFAULT;
+}
+
+SDIODriver::SDIODriver() : Device(Device::BLOCK)
+{
     initSDIOPeripheral();
 
     // This is more important than it seems, since CMD55 requires the card's RCA
@@ -1616,149 +1766,9 @@ void Disk::init()
 
     // Now that card is initialized, perform self calibration of maximum
     // possible read/write speed. This as a side effect enables 4bit bus width.
-    ClockController::calibrateClockSpeed();
+    ClockController::calibrateClockSpeed(this);
 
-    DBG("Disk::init(): Success\n");
-    diskInitialized=true;
+    DBG("SDIO init: Success\n");
 }
-
-bool Disk::read(unsigned char *buffer, unsigned int lba, unsigned char nSectors)
-{
-    DBG("Disk::read(): nSectors=%d\n",nSectors);
-    bool aligned=BufferConverter::isWordAligned(buffer);
-    if(aligned==false) DBG("Buffer misaligned\n");
-
-    for(int i=0;i<ClockController::getRetryCount();i++)
-    {
-        //Select card
-        CardSelector selector;
-        if(selector.succeded()==false) continue;
-        bool error=false;
-        
-        #ifdef __ENABLE_XRAM
-        // In the XRAM fallback code multiple sector read is implemented as
-        // a sequence of single block read operations
-        unsigned char *tempBuffer=buffer;
-        unsigned int tempLba=lba;
-        for(unsigned int j=0;j<nSectors;j++)
-        {
-            unsigned int* b=BufferConverter::toWordAlignedWithoutCopy(tempBuffer);
-            if(singleBlockRead(b,tempLba)==false)
-            {
-                error=true;
-                break;
-            }
-            BufferConverter::toOriginalBuffer();
-            tempBuffer+=512;
-            tempLba++;
-        }
-        #else //__ENABLE_XRAM
-        // If XRAM is not enabled, then check pointer alignment, and if it is
-        // aligned use a single multipleBlockRead(), else use the buffer
-        // converter and read a sector at a time
-        if(aligned)
-        {
-            if(multipleBlockRead(reinterpret_cast<unsigned int*>(buffer),
-                nSectors,lba)==false) error=true;
-        } else {
-            unsigned char *tempBuffer=buffer;
-            unsigned int tempLba=lba;
-            for(unsigned int j=0;j<nSectors;j++)
-            {
-                unsigned int* b=BufferConverter::toWordAlignedWithoutCopy(tempBuffer);
-                if(multipleBlockRead(b,1,tempLba)==false)
-                {
-                    error=true;
-                    break;
-                }
-                BufferConverter::toOriginalBuffer();
-                tempBuffer+=512;
-                tempLba++;
-            }
-        }
-        #endif //__ENABLE_XRAM
-
-        if(error==false)
-        {
-            if(i>0) DBGERR("Read: required %d retries\n",i);
-            return true;
-        }
-    }
-    return false;
-}
-
-bool Disk::write(const unsigned char *buffer, unsigned int lba,
-        unsigned char nSectors)
-{
-    DBG("Disk::write(): nSectors=%d\n",nSectors);
-    bool aligned=BufferConverter::isWordAligned(buffer);
-    if(aligned==false) DBG("Buffer misaligned\n");
-
-    for(int i=0;i<ClockController::getRetryCount();i++)
-    {
-        //Select card
-        CardSelector selector;
-        if(selector.succeded()==false) continue;
-        bool error=false;
-
-        #ifdef __ENABLE_XRAM
-        // In the XRAM fallback code multiple sector write is implemented as
-        // a sequence of single block write operations
-        const unsigned char *tempBuffer=buffer;
-        unsigned int tempLba=lba;
-        for(unsigned int j=0;j<nSectors;j++)
-        {
-            const unsigned int* b=BufferConverter::toWordAligned(tempBuffer);
-            if(singleBlockWrite(b,tempLba)==false)
-            {
-                error=true;
-                break;
-            }
-            tempBuffer+=512;
-            tempLba++;
-        }
-        #else //__ENABLE_XRAM
-        // If XRAM is not enabled, then check pointer alignment, and if it is
-        // aligned use a single multipleBlockWrite(), else use the buffer
-        // converter and write a sector at a time
-        if(aligned)
-        {
-            if(multipleBlockWrite(reinterpret_cast<const unsigned int*>(buffer),
-                nSectors,lba)==false) error=true;
-        } else {
-            const unsigned char *tempBuffer=buffer;
-            unsigned int tempLba=lba;
-            for(unsigned int j=0;j<nSectors;j++)
-            {
-                const unsigned int* b=BufferConverter::toWordAligned(tempBuffer);
-                if(multipleBlockWrite(b,1,tempLba)==false)
-                {
-                    error=true;
-                    break;
-                }
-                tempBuffer+=512;
-                tempLba++;
-            }
-        }
-        #endif //__ENABLE_XRAM
-        
-        if(error==false)
-        {
-            if(i>0) DBGERR("Write: required %d retries\n",i);
-            return true;
-        }
-    }
-    return false;
-}
-
-bool Disk::sync()
-{
-    DBG("Disk::sync()\n");
-    //Note: no need to select card, since status can be queried even with card
-    //not selected.
-    return waitForCardReady();
-}
-
-bool Disk::diskInitialized=false;
 
 } //namespace miosix

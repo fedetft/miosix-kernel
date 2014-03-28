@@ -478,6 +478,7 @@ private:
  * of /, such as /mnt. In case the bsp needs another filesystem setup, such as
  * having a fat32 filesystem as /, this function can't be used, but instead
  * the bsp needs to mount the filesystems manually.
+ * \param dev disk device that will be mounted on /sd
  * \return a pointer to the DevFs, so as to be able to add other device files,
  * but only if WITH_DEVFS is defined
  */
@@ -486,7 +487,7 @@ intrusive_ref_ptr<DevFs> //return value is a pointer to DevFs
 #else //WITH_DEVFS
 void                     //return value is void
 #endif //WITH_DEVFS
-basicFilesystemSetup();
+basicFilesystemSetup(intrusive_ref_ptr<Device> dev);
 
 /**
  * \return a pointer to the file descriptor table associated with the

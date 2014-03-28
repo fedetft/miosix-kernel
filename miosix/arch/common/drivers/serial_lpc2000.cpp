@@ -263,7 +263,7 @@ LPC2000Serial::~LPC2000Serial()
     serial->LCR=0;//DLAB disabled
     serial->FCR=0;
     
-    int id;
+    int id=0;
     if(ports[0]==this) id=0;
     else if(ports[1]==this) id=1;
     else errorHandler(UNEXPECTED);

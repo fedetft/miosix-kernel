@@ -3,10 +3,12 @@
  * Based on code by Martin Thomas to initialize SD cards from LPC2000
  */
 
-#include "interfaces/disk.h"
+#include "sd_lpc2000.h"
 #include "interfaces/bsp.h"
 #include "LPC213x.h"
+#include "board_settings.h" //For sdVoltage
 #include <cstdio>
+#include <errno.h>
 
 //Note: enabling debugging might cause deadlock when using sleep() or reboot()
 //The bug won't be fixed because debugging is only useful for driver development
@@ -358,20 +360,133 @@ static bool tx_datablock (const unsigned char *buf, unsigned char token)
 }
 
 //
-// Disk class
+// class SPISDDriver
 //
 
-bool Disk::isAvailable()
+intrusive_ref_ptr<SPISDDriver> SPISDDriver::instance()
 {
-    bool result=sdCardSense();
-    DBG("Disk::isAvailable(): %d\n",result);
-    return result;
+    static FastMutex m;
+    static intrusive_ref_ptr<SPISDDriver> instance;
+    Lock<FastMutex> l(m);
+    if(!instance) instance=new SPISDDriver();
+    return instance;
 }
 
-void Disk::init()
+ssize_t SPISDDriver::readBlock(void* buffer, size_t size, off_t where)
+{
+    if(where % 512 || size % 512) return -EFAULT;
+    unsigned int lba=where/512;
+    unsigned int nSectors=size/512;
+    unsigned char *buf=reinterpret_cast<unsigned char*>(buffer);
+    Lock<FastMutex> l(mutex);
+    DBG("SPISDDriver::readBlock(): nSectors=%d\n",nSectors);
+    if(!(cardType & 8)) lba*=512;	// Convert to byte address if needed
+    unsigned char result;
+    if(nSectors==1)
+    {           // Single block read
+        result=send_cmd(CMD17,lba);	// READ_SINGLE_BLOCK
+        if(result!=0)
+        {
+            print_error_code(result);
+            CS_HIGH();
+            return -EBADF;
+        }
+        if(rx_datablock(buf,512)==false)
+        {
+            DBGERR("Block read error\n");
+            CS_HIGH();
+            return -EBADF;
+        }
+    } else {	// Multiple block read
+        //DBGERR("Mbr\n");//debug only
+        result=send_cmd(CMD18,lba);   // READ_MULTIPLE_BLOCK
+        if(result!=0)
+        {
+            print_error_code(result);
+            CS_HIGH();
+            return -EBADF;
+        }
+        do {
+            if(!rx_datablock(buf,512)) break;
+            buf+=512;
+        } while(--nSectors);
+        send_cmd(CMD12,0);			// STOP_TRANSMISSION
+        if(nSectors!=0)
+        {
+            DBGERR("Multiple block read error\n");
+            CS_HIGH();
+            return -EBADF;
+        }
+    }
+    CS_HIGH();
+    return size;
+}
+
+ssize_t SPISDDriver::writeBlock(const void* buffer, size_t size, off_t where)
+{
+    if(where % 512 || size % 512) return -EFAULT;
+    unsigned int lba=where/512;
+    unsigned int nSectors=size/512;
+    const unsigned char *buf=reinterpret_cast<const unsigned char*>(buffer);
+    Lock<FastMutex> l(mutex);
+    DBG("SPISDDriver::writeBlock(): nSectors=%d\n",nSectors);
+    if(!(cardType & 8)) lba*=512;	// Convert to byte address if needed
+    unsigned char result;
+    if(nSectors==1)
+    {           // Single block write
+        result=send_cmd(CMD24,lba);         // WRITE_BLOCK
+        if(result!=0)
+        {
+            print_error_code(result);
+            CS_HIGH();
+            return -EBADF;
+        }
+        if(tx_datablock(buf,0xfe)==false)    // WRITE_BLOCK
+        {
+            DBGERR("Block write error\n");
+            CS_HIGH();
+            return -EBADF;
+        }
+    } else {	// Multiple block write
+        //DBGERR("Mbw\n");//debug only
+        if(cardType & 6) send_cmd(ACMD23,nSectors);//Only if it is SD card
+        result=send_cmd(CMD25,lba);          // WRITE_MULTIPLE_BLOCK
+        if(result!=0)
+        {
+            print_error_code(result);
+            CS_HIGH();
+            return -EBADF;
+        }
+        do {
+            if(!tx_datablock(buf,0xfc)) break;
+            buf+=512;
+        } while(--nSectors);
+        if(!tx_datablock(0,0xfd))    // STOP_TRAN token
+        {
+            DBGERR("Multiple block write error\n");
+            CS_HIGH();
+            return -EBADF;
+        }
+    }
+    CS_HIGH();
+    return size;
+}
+
+int SPISDDriver::ioctl(int cmd, void* arg)
+{
+    DBG("SPISDDriver::ioctl()\n");
+    if(cmd!=IOCTL_SYNC) return -ENOTTY;
+    Lock<FastMutex> l(mutex);
+    CS_LOW();
+    unsigned char result=wait_ready();
+    CS_HIGH();
+    if(result==0xff) return 0;
+    else return -EFAULT;
+}
+
+SPISDDriver::SPISDDriver() : Device(Device::BLOCK)
 {
     const int MAX_RETRY=20;//Maximum command retry before failing
-    diskInitialized=false;
     spi_1_init(); /* init at low speed */
     unsigned char resp;
     int i;
@@ -392,17 +507,17 @@ void Disk::init()
     unsigned char n, cmd, ty=0, ocr[4];
     // Enter Idle state
     if(send_cmd(CMD8,0x1aa)==1)
-    {	/* SDHC */
+    {   /* SDHC */
         for(n=0;n<4;n++) ocr[n]=spi_1_send(0xff);// Get return value of R7 resp
         if((ocr[2]==0x01)&&(ocr[3]==0xaa))
-        {	// The card can work at vdd range of 2.7-3.6V
+        {   // The card can work at vdd range of 2.7-3.6V
             for(i=0;i<MAX_RETRY;i++)
             {
                 resp=send_cmd(ACMD41, 1UL << 30);
                 if(resp==0)
                 {
                     if(send_cmd(CMD58,0)==0)
-                    {	// Check CCS bit in the OCR
+                    {   // Check CCS bit in the OCR
                         for(n=0;n<4;n++) ocr[n]=spi_1_send(0xff);
                         if(ocr[0] & 0x40)
                         {
@@ -423,11 +538,11 @@ void Disk::init()
         if(send_cmd(ACMD41,0)<=1)
         {
             ty=2;
-            cmd=ACMD41;	/* SDSC */
+            cmd=ACMD41; /* SDSC */
             DBG("SD card\n");
         } else {
             ty=1;
-            cmd=CMD1;	/* MMC */
+            cmd=CMD1;   /* MMC */
             DBG("MMC card\n");
         }
         for(i=0;i<MAX_RETRY;i++)
@@ -466,110 +581,6 @@ void Disk::init()
     SSPCPSR=SPI_PRESCALE_MIN;
 
     DBG("Init done...\n");
-    diskInitialized=true;//Status = initialized OK
 }
-
-bool Disk::read(unsigned char *buffer, unsigned int lba, unsigned char nSectors)
-{
-    DBG("Disk::read(): nSectors=%d\n",nSectors);
-    if(!(cardType & 8)) lba*=512;	// Convert to byte address if needed
-    unsigned char result;
-    if(nSectors==1)
-    {           // Single block read
-        result=send_cmd(CMD17,lba);	// READ_SINGLE_BLOCK
-        if(result!=0)
-        {
-            print_error_code(result);
-            CS_HIGH();
-            return false; //Error
-        }
-        if(rx_datablock(buffer,512)==false)
-        {
-            DBGERR("Block read error\n");
-            CS_HIGH();
-            return false; //Error
-        }
-    } else {	// Multiple block read
-        //DBGERR("Mbr\n");//debug only
-        result=send_cmd(CMD18,lba);   // READ_MULTIPLE_BLOCK
-        if(result!=0)
-        {
-            print_error_code(result);
-            CS_HIGH();
-            return false; //Error
-        }
-        do {
-            if(!rx_datablock(buffer,512)) break;
-            buffer+=512;
-        } while(--nSectors);
-        send_cmd(CMD12,0);			// STOP_TRANSMISSION
-        if(nSectors!=0)
-        {
-            DBGERR("Multiple block read error\n");
-            CS_HIGH();
-            return false; //Error
-        }
-    }
-    CS_HIGH();
-    return true;
-}
-
-bool Disk::write(const unsigned char *buffer, unsigned int lba,
-        unsigned char nSectors)
-{
-    DBG("Disk::write(): nSectors=%d\n",nSectors);
-    if(!(cardType & 8)) lba*=512;	// Convert to byte address if needed
-    unsigned char result;
-    if(nSectors==1)
-    {           // Single block write
-        result=send_cmd(CMD24,lba);         // WRITE_BLOCK
-        if(result!=0)
-        {
-            print_error_code(result);
-            CS_HIGH();
-            return false; //Error
-        }
-        if(tx_datablock(buffer,0xfe)==false)    // WRITE_BLOCK
-        {
-            DBGERR("Block write error\n");
-            CS_HIGH();
-            return false; //Error
-        }
-    } else {	// Multiple block write
-        //DBGERR("Mbw\n");//debug only
-        if(cardType & 6) send_cmd(ACMD23,nSectors);//Only if it is SD card
-        result=send_cmd(CMD25,lba);          // WRITE_MULTIPLE_BLOCK
-        if(result!=0)
-        {
-            print_error_code(result);
-            CS_HIGH();
-            return false; //Error
-        }
-        do {
-            if(!tx_datablock(buffer,0xfc)) break;
-            buffer+=512;
-        } while(--nSectors);
-        if(!tx_datablock(0,0xfd))    // STOP_TRAN token
-        {
-            DBGERR("Multiple block write error\n");
-            CS_HIGH();
-            return false; //Error
-        }
-    }
-    CS_HIGH();
-    return true;
-}
-
-bool Disk::sync()
-{
-    DBG("Disk::sync()\n");
-    CS_LOW();
-    unsigned char result=wait_ready();
-    CS_HIGH();
-    if(result==0xff) return true;
-    else return false;
-}
-
-bool Disk::diskInitialized=false;
 
 } //namespace miosix

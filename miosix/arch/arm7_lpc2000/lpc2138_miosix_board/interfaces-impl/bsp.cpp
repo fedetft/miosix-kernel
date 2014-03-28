@@ -36,6 +36,7 @@
 #include "core/interrupts.h"
 #include "interfaces/delays.h"
 #include "drivers/serial.h"
+#include "drivers/sd_lpc2000.h"
 #include "kernel/kernel.h"
 #include "kernel/sync.h"
 #include "interfaces/portability.h"
@@ -159,7 +160,7 @@ void bspInit2()
 {
     #ifdef WITH_FILESYSTEM
     #ifdef WITH_DEVFS
-    intrusive_ref_ptr<DevFs> devFs=basicFilesystemSetup();
+    intrusive_ref_ptr<DevFs> devFs=basicFilesystemSetup(SPISDDriver::instance());
     #ifdef AUX_SERIAL
     devFs->addDevice(AUX_SERIAL,
         intrusive_ref_ptr<Device>(new LPC2000Serial(1,AUX_SERIAL_SPEED)));

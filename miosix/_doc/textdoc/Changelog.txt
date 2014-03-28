@@ -1,5 +1,12 @@
 Changelog for Miosix np embedded OS
 
+- Modified BSPs to instantiate the new classes
+- Changed basicFilesystemSetup() to take a pointer to a device to mount as /sd
+- Added SD drivers for stm32 and lpc2000 to miosix/common/drivers, adapted to
+  the Device interface
+- Fixed bug in the testsuite that was causing a file to be opened for reading
+  while another thread still had it opened for writing.
+- Removed interfaces/disk.h
 - Starting to remove disk interface. Aggregated stm32f2 and stm32f4 drivers
   into one.
 - Breaking change; the default serial for the stm32f4discovery is now USART3

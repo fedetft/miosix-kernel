@@ -44,6 +44,7 @@
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
 #include "drivers/serial.h"
+#include "drivers/sd_stm32f2_f4.h"
 #include "board_settings.h"
 
 namespace miosix {
@@ -90,7 +91,7 @@ void bspInit2()
     #endif //WITH_BOOTLOG
 
     #ifdef WITH_FILESYSTEM
-    basicFilesystemSetup();
+    basicFilesystemSetup(SDIODriver::instance());
     #endif //WITH_FILESYSTEM
 }
 

@@ -705,7 +705,7 @@ intrusive_ref_ptr<DevFs> //return value is a pointer to DevFs
 #else //WITH_DEVFS
 void                     //return value is void
 #endif //WITH_DEVFS
-basicFilesystemSetup()
+basicFilesystemSetup(intrusive_ref_ptr<Device> dev)
 {
     bootlog("Mounting MountpointFs as / ... ");
     FilesystemManager& fsm=FilesystemManager::instance();
@@ -717,9 +717,9 @@ basicFilesystemSetup()
     StringPart sd("sd");
     
     bool fat32failed=false;
-    intrusive_ref_ptr<Device> da(new DiskAdapter);
     intrusive_ref_ptr<FileBase> disk;
-    if(da->open(disk,intrusive_ref_ptr<FilesystemBase>(0),O_RDWR,0)<0) fat32failed=true;
+    if(dev && dev->open(disk,intrusive_ref_ptr<FilesystemBase>(0),O_RDWR,0)<0)
+        fat32failed=true;
     
     intrusive_ref_ptr<Fat32Fs> fat32;
     if(fat32failed==false)

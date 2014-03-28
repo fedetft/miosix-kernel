@@ -3737,7 +3737,7 @@ ftell()
 remove()
 Also tests concurrent write by opening and writing 3 files from 3 threads
 */
-static volatile bool p1end,p2end,p3end,fs_1_error;
+static volatile bool fs_1_error;
 
 static void fs_t1_p1(void *argv)
 {
@@ -3745,7 +3745,6 @@ static void fs_t1_p1(void *argv)
     if((f=fopen("/sd/testdir/file_1.txt","w"))==NULL)
     {
         fs_1_error=true;
-        p1end=true;
         return;
     }
     setbuf(f,NULL);
@@ -3760,7 +3759,6 @@ static void fs_t1_p1(void *argv)
             iprintf("Written %d bytes instead of 512\n",j);
             delete[] buf;
             fs_1_error=true;
-            p1end=true;
             fclose(f);
             return;
         }
@@ -3769,10 +3767,8 @@ static void fs_t1_p1(void *argv)
     if(fclose(f)!=0)
     {
         fs_1_error=true;
-        p1end=true;
         return;
     }
-    p1end=true;
 }
 
 static void fs_t1_p2(void *argv)
@@ -3781,7 +3777,6 @@ static void fs_t1_p2(void *argv)
     if((f=fopen("/sd/testdir/file_2.txt","w"))==NULL)
     {
         fs_1_error=true;
-        p2end=true;
         return;
     }
     setbuf(f,NULL);
@@ -3796,7 +3791,6 @@ static void fs_t1_p2(void *argv)
             iprintf("Written %d bytes instead of 512\n",j);
             delete[] buf;
             fs_1_error=true;
-            p2end=true;
             fclose(f);
             return;
         }
@@ -3805,10 +3799,8 @@ static void fs_t1_p2(void *argv)
     if(fclose(f)!=0)
     {
         fs_1_error=true;
-        p2end=true;
         return;
     }
-    p2end=true;
 }
 
 static void fs_t1_p3(void *argv)
@@ -3817,7 +3809,6 @@ static void fs_t1_p3(void *argv)
     if((f=fopen("/sd/testdir/file_3.txt","w"))==NULL)
     {
         fs_1_error=true;
-        p3end=true;
         return;
     }
     setbuf(f,NULL);
@@ -3832,7 +3823,6 @@ static void fs_t1_p3(void *argv)
             iprintf("Written %d bytes instead of 512\n",j);
             delete[] buf;
             fs_1_error=true;
-            p3end=true;
             fclose(f);
             return;
         }
@@ -3841,10 +3831,8 @@ static void fs_t1_p3(void *argv)
     if(fclose(f)!=0)
     {
         fs_1_error=true;
-        p3end=true;
         return;
     }
-    p3end=true;
 }
 
 static void fs_test_1()
@@ -3868,15 +3856,13 @@ static void fs_test_1()
                 fail("Directory::mkdir()");
     }
     //Test concurrent file write access
-    p1end=false;
-    p2end=false;
-    p3end=false;
     fs_1_error=false;
-    Thread::create(fs_t1_p1,2048+512,1,NULL);
-    Thread::create(fs_t1_p2,2048+512,1,NULL);
-    Thread::create(fs_t1_p3,2048+512,1,NULL);
-    while((!p1end)&(!p2end)&(!p3end)) Thread::yield();
-    Thread::sleep(50);
+    Thread *t1=Thread::create(fs_t1_p1,2048+512,1,NULL,Thread::JOINABLE);
+    Thread *t2=Thread::create(fs_t1_p2,2048+512,1,NULL,Thread::JOINABLE);
+    Thread *t3=Thread::create(fs_t1_p3,2048+512,1,NULL,Thread::JOINABLE);
+    t1->join();
+    t2->join();
+    t3->join();
     if(fs_1_error) fail("Concurrent write");
     //Testing file read
     char *buf=new char[1024];

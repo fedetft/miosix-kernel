@@ -44,6 +44,7 @@
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
 #include "drivers/serial.h"
+#include "drivers/sd_stm32f1.h"
 #include "board_settings.h"
 
 namespace miosix {
@@ -119,7 +120,7 @@ void IRQbspInit()
 void bspInit2()
 {
     #ifdef WITH_FILESYSTEM
-    basicFilesystemSetup();
+    basicFilesystemSetup(SDIODriver::instance());
     #endif //WITH_FILESYSTEM
 }
 

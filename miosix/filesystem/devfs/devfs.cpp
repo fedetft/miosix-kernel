@@ -30,8 +30,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include "filesystem/stringpart.h"
-#include "interfaces/disk.h" //FIXME: remove
-#include "filesystem/ioctl.h" //FIXME: remove
 
 using namespace std;
 
@@ -228,43 +226,6 @@ int Device::ioctl(int cmd, void *arg)
 Device::~Device() {}
 
 #ifdef WITH_DEVFS
-
-//
-// class DiskAdapter
-//
-
-// FIXME temporary -- begin
-DiskAdapter::DiskAdapter() : Device(Device::BLOCK)
-{
-    if(Disk::isAvailable()) Disk::init();
-}
-
-ssize_t DiskAdapter::readBlock(void* buffer, size_t size, off_t where)
-{
-    if(Disk::isInitialized()==false) return -EBADF;
-    if(where % 512 || size % 512) return -EFAULT;
-    Lock<FastMutex> l(mutex);
-    if(Disk::read((unsigned char*)buffer,where/512,size/512)) return size;
-    else return -EFAULT;
-}
-
-ssize_t DiskAdapter::writeBlock(const void* buffer, size_t size, off_t where)
-{
-    if(Disk::isInitialized()==false) return -EBADF;
-    if(where % 512 || size % 512) return -EFAULT;
-    Lock<FastMutex> l(mutex);
-    if(Disk::write((const unsigned char*)buffer,where/512,size/512)) return size;
-    else return -EFAULT;
-}
-
-int DiskAdapter::ioctl(int cmd, void *arg)
-{
-    if(cmd!=IOCTL_SYNC) return -ENOTTY;
-    Lock<FastMutex> l(mutex);
-    Disk::sync();
-    return 0;
-}
-// FIXME temporary -- begin
 
 /**
  * Directory class for DevFs 

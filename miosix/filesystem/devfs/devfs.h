@@ -68,10 +68,9 @@ public:
     };
     /**
      * Constructor
-     * \param seekable if true, device is seekable
-     * \param block if true, it is a block device
+     * \param d device type
      */
-    Device(DeviceType d, bool seekable=false, bool block=false, bool tty=false)
+    Device(DeviceType d)
     #ifdef WITH_DEVFS
         : seekable(d==BLOCK), block(d==BLOCK), tty(d==TTY)
     #endif //WITH_DEVFS
@@ -170,20 +169,6 @@ protected:
 };
 
 #ifdef WITH_DEVFS
-
-/**
- * FIXME remove this when removing Disk interface!
- */
-class DiskAdapter : public Device
-{
-public:
-    DiskAdapter();
-    virtual ssize_t readBlock(void *buffer, size_t size, off_t where);
-    virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where);
-    virtual int ioctl(int cmd, void *arg);
-private:
-    FastMutex mutex;
-};
 
 /**
  * DevFs is a special filesystem meant to access devices as they were files.

@@ -45,6 +45,7 @@
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
 #include "drivers/serial.h"
+#include "drivers/sd_stm32f2_f4.h"
 #include "drivers/dcc.h"
 #include "board_settings.h"
 
@@ -157,7 +158,7 @@ void IRQbspInit()
 void bspInit2()
 {
     #ifdef WITH_FILESYSTEM
-    basicFilesystemSetup();
+    basicFilesystemSetup(SDIODriver::instance());
     #endif //WITH_FILESYSTEM
 }
 
