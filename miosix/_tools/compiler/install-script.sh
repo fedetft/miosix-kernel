@@ -58,7 +58,8 @@ mkdir log
 # Part 2: applying patches
 #
 
-patch -p0 < patches/gcc.patch		|| quit ":: Failed patching gcc"
+patch -p0 < patches/gcc.patch		|| quit ":: Failed patching gcc 1"
+patch -p0 < patches/force-got.patch	|| quit ":: Failed patching gcc 2"
 patch -p0 < patches/newlib.patch	|| quit ":: Failed patching newlib"
 
 #
