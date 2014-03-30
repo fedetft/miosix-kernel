@@ -458,7 +458,8 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/interfaces-impl/bsp.cpp
+        $(BOARD_INC)/interfaces-impl/bsp.cpp         \
+        arch/common/drivers/servo_stm32.cpp
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32VLDISCOVERY -DSTM32F10X_MD_VL 
@@ -610,7 +611,8 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/interfaces-impl/bsp.cpp
+        $(BOARD_INC)/interfaces-impl/bsp.cpp         \
+        arch/common/drivers/servo_stm32.cpp
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32F4DISCOVERY 
