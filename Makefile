@@ -53,14 +53,10 @@ program:
 	$(PROGRAM_CMDLINE)
 
 all-recursive:
-	@for i in $(SUBDIRS); do  \
-		$(MAKE) -C $$i FOLDER="$(FOLDER) $$i/" || exit 1;  \
-	done
+	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i) FOLDER="$(FOLDER) $(i)/" || exit 1;)
 
 clean-recursive:
-	@for i in $(SUBDIRS); do  \
-		$(MAKE) -C $$i FOLDER="$(FOLDER) $$i/" clean  || exit 1;  \
-	done
+	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i) FOLDER="$(FOLDER) $(i)/" clean || exit 1;)
 
 clean-topdir:
 	-rm -f $(OBJ) main.elf main.hex main.bin main.map $(OBJ:.o=.d)

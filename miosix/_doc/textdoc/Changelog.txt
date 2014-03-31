@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Changed makefile: moved from bash for loops to GNU Make for loops to avoid
+  a bash dependence that makes it difficult to build Miosix under windows
 - Added servomotor driving library for stm32f4discovery and stm32vldiscovery
 - Modified BSPs to instantiate the new classes
 - Changed basicFilesystemSetup() to take a pointer to a device to mount as /sd
