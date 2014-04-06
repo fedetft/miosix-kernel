@@ -2,7 +2,7 @@
 ## Makefile for Miosix np embedded OS
 ## TFT:Terraneo Federico Technlogies
 ##
-MAKEFILE_VERSION := 1.01
+MAKEFILE_VERSION := 1.02
 include miosix/config/Makefile.inc
 
 ##
@@ -53,24 +53,20 @@ program:
 	$(PROGRAM_CMDLINE)
 
 all-recursive:
-	@for i in $(SUBDIRS); do  \
-		$(MAKE) -C $$i FOLDER="$(FOLDER) $$i/" || exit 1;  \
-	done
+	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i) FOLDER="$(FOLDER) $(i)/" || exit 1;)
 
 clean-recursive:
-	@for i in $(SUBDIRS); do  \
-		$(MAKE) -C $$i FOLDER="$(FOLDER) $$i/" clean  || exit 1;  \
-	done
+	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i) FOLDER="$(FOLDER) $(i)/" clean || exit 1;)
 
 clean-topdir:
-	-rm $(OBJ) main.elf main.hex main.bin main.map $(OBJ:.o=.d)
+	-rm -f $(OBJ) main.elf main.hex main.bin main.map $(OBJ:.o=.d)
 
 main: main.elf
 	$(CP) -O ihex   main.elf main.hex
 	$(CP) -O binary main.elf main.bin
 	$(SZ) main.elf
 
-main.elf: $(OBJ) miosix/libmiosix.a
+main.elf: $(OBJ) all-recursive
 	@ echo "linking"
 	$(CXX) $(LFLAGS) -o main.elf $(OBJ) miosix/$(BOOT_FILE) $(LINK_LIBS)
 
