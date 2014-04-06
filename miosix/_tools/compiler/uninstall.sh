@@ -3,7 +3,7 @@
 # Uninstall script: removes the arm-miosix-eabi-gcc compiler
 
 PREFIX="arm-miosix-eabi-"
-FILES="addr2line ar as c++ c++filt cpp elfedit g++ gcc gccbug gcov gdb gdbtui gprof ld ld.bfd nm objcopy objdump ranlib readelf run size strings strip"
+FILES="addr2line ar as c++ c++filt cpp elfedit g++ gcc gcc-ar gcc-nm gcc-ranlib gccbug gcov gdb gdbtui gprof ld ld.bfd nm objcopy objdump ranlib readelf run size strings strip"
 
 # Remove symlinks to the compiler
 for i in $FILES; do
@@ -25,6 +25,14 @@ if [ -h "/usr/bin/lpc21isp" ]; then
 fi
 if [ -h "/usr/local/bin/lpc21isp" ]; then
 	sudo rm "/usr/local/bin/lpc21isp"
+fi
+
+# Remove mx-postlinker
+if [ -h "/usr/bin/mx-postlinker" ]; then
+	sudo rm "/usr/bin/mx-postlinker"
+fi
+if [ -h "/usr/local/bin/mx-postlinker" ]; then
+	sudo rm "/usr/local/bin/mx-postlinker"
 fi
 
 # Remove the compiler

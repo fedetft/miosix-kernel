@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Upgraded compiler build scripts to build a redistributable Miosix Toolchain
+  for both Linux and Windows
 - Changed makefile: moved from bash for loops to GNU Make for loops to avoid
   a bash dependence that makes it difficult to build Miosix under windows
 - Added servomotor driving library for stm32f4discovery and stm32vldiscovery
