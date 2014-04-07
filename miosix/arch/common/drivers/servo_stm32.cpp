@@ -105,7 +105,7 @@ void SynchronizedServo::enable(int channel)
                 TIM4->CCMR1 |= TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2PE;
                 TIM4->CCER |= TIM_CCER_CC2E;
                 #ifndef _ARCH_CORTEXM3_STM32 //Only stm32f2 and stm32f4 have it
-                servo1out::alternateFunction(2);
+                servo2out::alternateFunction(2);
                 #endif //_ARCH_CORTEXM3_STM32
                 servo2out::mode(Mode::ALTERNATE);
                 break;
@@ -113,7 +113,7 @@ void SynchronizedServo::enable(int channel)
                 TIM4->CCMR2 |= TIM_CCMR2_OC3M_2 | TIM_CCMR2_OC3M_1 | TIM_CCMR2_OC3PE;
                 TIM4->CCER |= TIM_CCER_CC3E;
                 #ifndef _ARCH_CORTEXM3_STM32 //Only stm32f2 and stm32f4 have it
-                servo1out::alternateFunction(2);
+                servo3out::alternateFunction(2);
                 #endif //_ARCH_CORTEXM3_STM32
                 servo3out::mode(Mode::ALTERNATE);
                 break;
@@ -121,7 +121,7 @@ void SynchronizedServo::enable(int channel)
                 TIM4->CCMR2 |= TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4M_1 | TIM_CCMR2_OC4PE;
                 TIM4->CCER |= TIM_CCER_CC4E;
                 #ifndef _ARCH_CORTEXM3_STM32 //Only stm32f2 and stm32f4 have it
-                servo1out::alternateFunction(2);
+                servo4out::alternateFunction(2);
                 #endif //_ARCH_CORTEXM3_STM32
                 servo4out::mode(Mode::ALTERNATE);
                 break;
