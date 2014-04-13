@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- After so many changes and improvements, officially releasing Miosix 2.0beta1
+v2.0beta1
 - Upgraded compiler build scripts to build a redistributable Miosix Toolchain
   for both Linux and Windows
 - Changed makefile: moved from bash for loops to GNU Make for loops to avoid
