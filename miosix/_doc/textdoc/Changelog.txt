@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Added support for stm32f2xx and specifically the new stm32f4discovery with
+  an LCD display.
 - After so many changes and improvements, officially releasing Miosix 2.0beta1
 v2.0beta1
 - Upgraded compiler build scripts to build a redistributable Miosix Toolchain

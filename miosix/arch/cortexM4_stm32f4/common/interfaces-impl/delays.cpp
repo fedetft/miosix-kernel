@@ -31,7 +31,9 @@ namespace miosix {
 
 void delayMs(unsigned int mseconds)
 {
-    #ifdef SYSCLK_FREQ_168MHz
+    #ifdef SYSCLK_FREQ_180MHz
+    register const unsigned int count=45000;
+    #elif defined(SYSCLK_FREQ_168MHz)
     register const unsigned int count=42000;
     #elif SYSCLK_FREQ_84MHz
     register const unsigned int count=21000;
@@ -53,9 +55,17 @@ void delayMs(unsigned int mseconds)
 
 void delayUs(unsigned int useconds)
 {
-    #ifdef SYSCLK_FREQ_168MHz
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimization
+    #ifdef SYSCLK_FREQ_180MHz
+    asm volatile("           mov   r1, #45    \n"
+                 "           mul   r2, %0, r1 \n"
+                 "           mov   r1, #0     \n"
+                 "___loop_u: cmp   r1, r2     \n"
+                 "           itt   lo         \n"
+                 "           addlo r1, r1, #1 \n"
+                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+    #elif defined(SYSCLK_FREQ_168MHz)
     asm volatile("           mov   r1, #42    \n"
                  "           mul   r2, %0, r1 \n"
                  "           mov   r1, #0     \n"
@@ -64,8 +74,6 @@ void delayUs(unsigned int useconds)
                  "           addlo r1, r1, #1 \n"
                  "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
     #else //SYSCLK_FREQ_84MHz
-    // This delay has been calibrated to take x microseconds
-    // It is written in assembler to be independent on compiler optimization
     asm volatile("           mov   r1, #21    \n"
                  "           mul   r2, %0, r1 \n"
                  "           mov   r1, #0     \n"
