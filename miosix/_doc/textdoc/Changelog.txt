@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Fixed bug in testsuite: it failed compiling with exceptions disabled due
+  to RTTI dependence.
 - Fixed a bug in Thread::create() causing a crash when the heap is full.
 - Changed PROGRAM_CMDLINE for stm32vldiscovery from vsprog to stm32flash
 - Unified the CMSIS directories in the various subdirectories of arch into

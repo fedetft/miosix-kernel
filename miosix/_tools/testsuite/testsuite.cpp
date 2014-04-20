@@ -3622,6 +3622,8 @@ static void test_24()
     }
     assert(dtorCalled);
     
+    //dynamic_pointer_cast requires RTTI, so disable testing if no exceptions
+    #ifndef __NO_EXCEPTIONS
     // Successful downcasting
     dtorCalled=false;
     {
@@ -3666,7 +3668,8 @@ static void test_24()
         assert(dynamic_pointer_cast<Derived0>(ptr1));
     }
     assert(dtorCalled);
-    
+    #endif //__NO_EXCEPTIONS
+
     // Reset, on an unshared pointer
     dtorCalled=false;
     {
