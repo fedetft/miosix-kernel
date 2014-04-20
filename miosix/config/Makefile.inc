@@ -496,7 +496,8 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := sudo vsprog -cstm32_vl -ms -I main.hex -oe -owf -ovf
+        #PROGRAM_CMDLINE := sudo vsprog -cstm32_vl -ms -I main.hex -oe -owf -ovf
+        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f103ve_strive_mini
@@ -608,8 +609,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     $(ARCH_INC)/interfaces-impl/portability.cpp  \
     $(ARCH_INC)/interfaces-impl/delays.cpp       \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp    \
-    $(ARCH_INC)/CMSIS/core_cm3.c                 \
-    $(ARCH_INC)/CMSIS/system_stm32f10x.c
+    arch/common/CMSIS/Device/ST/STM32F10x/Source/Templates/system_stm32f10x.c
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM4_stm32f4
@@ -754,7 +754,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
     arch/common/drivers/sd_stm32f2_f4.cpp                    \
-    $(ARCH_INC)/CMSIS/system_stm32f4xx.c
+    arch/common/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM3_stm32f2
@@ -957,8 +957,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     arch/common/drivers/stm32_hardware_rng.cpp               \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
-    $(ARCH_INC)/CMSIS/core_cm3.c                             \
-    $(ARCH_INC)/CMSIS/system_stm32f2xx.c
+    arch/common/CMSIS/Device/ST/STM32F2xx/Source/Templates/system_stm32f2xx.c
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM3_stm32l1
@@ -1037,7 +1036,7 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
-    $(ARCH_INC)/CMSIS/system_stm32l1xx.c
+    arch/common/CMSIS/Device/ST/STM32L1xx/Source/Templates/system_stm32l1xx.c
 
 ##-----------------------------------------------------------------------------
 ## end of architecture list

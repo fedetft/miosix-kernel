@@ -158,9 +158,9 @@ void IRQbspInit()
 
 void bspInit2()
 {
-    #ifdef WITH_FILESYSTEM
-    basicFilesystemSetup();
-    #endif //WITH_FILESYSTEM
+//     #ifdef WITH_FILESYSTEM
+//     basicFilesystemSetup();
+//     #endif //WITH_FILESYSTEM
 }
 
 //
