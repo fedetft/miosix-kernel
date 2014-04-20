@@ -299,6 +299,7 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
     }
     
     Thread *thread=doCreate(startfunc,stacksize,argv,options,false);
+    if(thread==NULL) return NULL;
     
     //Add thread to thread list
     {

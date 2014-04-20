@@ -1,5 +1,6 @@
 Changelog for Miosix np embedded OS
 
+- Fixed a bug in Thread::create() causing a crash when the heap is full.
 - Changed PROGRAM_CMDLINE for stm32vldiscovery from vsprog to stm32flash
 - Unified the CMSIS directories in the various subdirectories of arch into
   one CMSIS, in order to reduce the amount of code duplication and to avoid
