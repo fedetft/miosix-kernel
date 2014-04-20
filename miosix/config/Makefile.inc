@@ -13,7 +13,7 @@
 ## architecture
 ##
 #OPT_BOARD := lpc2138_miosix_board
-OPT_BOARD := stm32f103ze_stm3210e-eval
+#OPT_BOARD := stm32f103ze_stm3210e-eval
 #OPT_BOARD := stm32f103ve_mp3v2
 #OPT_BOARD := stm32f100rb_stm32vldiscovery
 #OPT_BOARD := stm32f103ve_strive_mini
