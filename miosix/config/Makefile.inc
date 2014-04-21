@@ -255,8 +255,9 @@ endif
 ############################################################################
 
 ifneq ($(MAKEFILE_VERSION),1.02)
-    $(error You are using an incompatible makefile. Make sure it matches \
+    $(info You are using an incompatible makefile. Make sure it matches \
       the one distributed with the current version of the kernel)
+    $(error Error)
 endif
 
 ##
@@ -291,7 +292,8 @@ else ifeq ($(OPT_BOARD),stm32f407vg_bitsboard)
 else ifeq ($(OPT_BOARD),stm32f429zi_stm32f4discovery)
     ARCH := cortexM4_stm32f4
 else
-    $(error Error: no board specified in miosix/config/Makefile.inc)
+    $(info Error: no board specified in miosix/config/Makefile.inc)
+    $(error Error)
 endif
 
 
