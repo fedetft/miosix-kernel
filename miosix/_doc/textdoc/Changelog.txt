@@ -1,5 +1,8 @@
 Changelog for Miosix np embedded OS
 
+- Cleaned up code completion configuration for Netbeans. Now the IDE
+  automatically detects the source files that belong to the project by looking 
+  at the debug symbols in the produced elf file. 
 - Added memory barrier to saveContext() to prevent a race condition found in
   the new stm32f429 board.
 - Now Makefile.inc has no predefined board. This has been done in order to
