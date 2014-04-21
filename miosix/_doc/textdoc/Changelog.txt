@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Added memory barrier to saveContext() to prevent a race condition found in
+  the new stm32f429 board.
 - Now Makefile.inc has no predefined board. This has been done in order to
   avoid mistakenly compiling for the wrong board.
 - Fixed bug in testsuite: it failed compiling with exceptions disabled due

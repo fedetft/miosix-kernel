@@ -67,6 +67,15 @@ extern volatile unsigned int *ctxsave;
  * Save context from an interrupt<br>
  * Must be the first line of an IRQ where a context switch can happen.
  * The IRQ must be "naked" to prevent the compiler from generating context save.
+ * 
+ * A note on the dmb instruction, without it a race condition was observed
+ * between pauseKernel() and IRQfindNextThread(). pauseKernel() uses an strex
+ * instruction to store a value in the global variable kernel_running which is
+ * tested by the context switch code in IRQfindNextThread(). Without the memory
+ * barrier IRQfindNextThread() would occasionally read the previous value and
+ * perform a context switch while the kernel was paused, leading to deadlock.
+ * The failure was only observed within the exception_test() in the testsuite
+ * running on the stm32f429zi_stm32f4discovery.
  */
 #define saveContext()                                                         \
 {                                                                              \
@@ -77,7 +86,7 @@ extern volatile unsigned int *ctxsave;
                  "   lsls   r2,  lr,  #27       \n"/*check if bit #4 is set */ \
                  "   bmi    0f                  \n"                            \
                  "   vstmia.32 r0, {s16-s31}    \n"/*save s16-s31 if we need*/ \
-                 "0:                            \n"                            \
+                 "0: dmb                        \n"                            \
                  );                                                            \
 }
 
