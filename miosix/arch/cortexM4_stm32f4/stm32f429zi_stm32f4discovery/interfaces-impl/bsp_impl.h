@@ -46,6 +46,13 @@ namespace miosix {
 
 /**
  * \internal
+ * Called by stage_1_boot.cpp to enable the SDRAM before initializing .data/.bss
+ * Requires the CPU clock to be already configured (running from the PLL)
+ */
+void configureSdram();
+
+/**
+ * \internal
  * used by the ledOn() and ledOff() implementation
  */
 typedef Gpio<GPIOG_BASE,14> _led;

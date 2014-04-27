@@ -1,5 +1,6 @@
 
 #include "interfaces/arch_registers.h"
+#include "interfaces/bsp.h"
 #include "core/interrupts.h" //For the unexpected interrupt call
 #include <string.h>
 
@@ -25,18 +26,6 @@ void program_startup()
 {
     //Cortex M3 core appears to get out of reset with interrupts already enabled
     __disable_irq();
-
-	//SystemInit() is called *before* initializing .data and zeroing .bss
-	//Despite all startup files provided by ST do the opposite, there are three
-	//good reasons to do so:
-	//First, the CMSIS specifications say that SystemInit() must not access
-	//global variables, so it is actually possible to call it before
-	//Second, when running Miosix with the xram linker scripts .data and .bss
-	//are placed in the external RAM, so we *must* call SystemInit(), which
-	//enables xram, before touching .data and .bss
-	//Third, this is a performance improvement since the loops that initialize
-	//.data and zeros .bss now run with the CPU at full speed instead of 8MHz
-    SystemInit();
 
 	//These are defined in the linker script
 	extern unsigned char _etext asm("_etext");
@@ -68,6 +57,24 @@ void program_startup()
 void Reset_Handler() __attribute__((__interrupt__, noreturn));
 void Reset_Handler()
 {
+    //SystemInit() is called *before* initializing .data and zeroing .bss
+	//Despite all startup files provided by ST do the opposite, there are three
+	//good reasons to do so:
+	//First, the CMSIS specifications say that SystemInit() must not access
+	//global variables, so it is actually possible to call it before
+	//Second, when running Miosix with the xram linker scripts .data and .bss
+	//are placed in the external RAM, so we *must* call SystemInit(), which
+	//enables xram, before touching .data and .bss
+	//Third, this is a performance improvement since the loops that initialize
+	//.data and zeros .bss now run with the CPU at full speed instead of 8MHz
+    SystemInit();
+    //ST does not provide code to initialize the stm32f429-disco SDRAM at boot.
+    //Put after SystemInit() as SDRAM is timing-sensitive and needs the full
+    //clock speed.
+    #ifdef __ENABLE_XRAM
+    miosix::configureSdram();
+    #endif //__ENABLE_XRAM
+    
     /*
      * Initialize process stack and switch to it.
      * This is required for booting Miosix, a small portion of the top of the

@@ -8596,6 +8596,7 @@
               <Elem>SYSCLK_FREQ_168MHz</Elem>
               <Elem>_ARCH_CORTEXM4_STM32F4</Elem>
               <Elem>_BOARD_STM32F429ZI_STM32F4DISCOVERY</Elem>
+              <Elem>__ENABLE_XRAM</Elem>
               <Elem>__VFP_FP__</Elem>
             </preprocessorList>
           </cTool>
@@ -8605,6 +8606,7 @@
               <Elem>SYSCLK_FREQ_168MHz</Elem>
               <Elem>_ARCH_CORTEXM4_STM32F4</Elem>
               <Elem>_BOARD_STM32F429ZI_STM32F4DISCOVERY</Elem>
+              <Elem>__ENABLE_XRAM</Elem>
               <Elem>__VFP_FP__</Elem>
             </preprocessorList>
           </ccTool>

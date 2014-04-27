@@ -196,7 +196,7 @@ endif
 ##
 ifeq ($(OPT_BOARD),stm32f207zg_ethboard_v2)
 
-    ## Linker script type, there are three options
+    ## Linker script type, there are two options
     ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
     ##    the most common choice, available for all microcontrollers
     ## 2) Code in external RAM, stack + heap in internal RAM
@@ -234,10 +234,22 @@ endif
 ##
 ifeq ($(OPT_BOARD),stm32f429zi_stm32f4discovery)
 
-    ## Linker script type
+    ## Linker script type, there are three options
+    ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
+    ##    the most common choice, available for all microcontrollers
+    ## 2) Code in FLASH, stack + heap in external RAM (file *8m_xram.ld)
+    ##    You must uncomment -D__ENABLE_XRAM below in this case.
+    ## 3) Code in FLASH, stack + heap in external RAM (file *6m_xram.ld)
+    ##    Same as above, but leaves the upper 2MB of RAM for the LCD.
     LINKER_SCRIPT_PATH := arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery/
-    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+256k_rom.ld
-    #TODO: more options
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+256k_rom.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+8m_xram.ld
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+6m_xram.ld
+
+    ## Uncommenting __ENABLE_XRAM enables the initialization of the external
+    ## 8MB SDRAM memory. Do not uncomment this even if you don't use a linker
+    ## script that requires it, as it is used for the LCD framebuffer.
+    XRAM := -D__ENABLE_XRAM
     
     ## Select clock frequency. Warning: the default clock frequency for
     ## this board is 168MHz and not 180MHz because, due to a limitation in
@@ -733,10 +745,10 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
-    CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(SRAM_BOOT)        \
+    CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
                      -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
                      $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(SRAM_BOOT)        \
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
                      -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
                      $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -ffunction-sections      \
                      -Wall -g -c

@@ -1,5 +1,8 @@
 Changelog for Miosix np embedded OS
 
+- Added SDRAM initialization code for stm32f429 board, and SDRAM linker
+  scripts. The new default is to put .data/.bss/stack and heap in the SDRAM,
+  and to leave the upper 2MB of it for the LCD.
 - Cleaned up code completion configuration for Netbeans. Now the IDE
   automatically detects the source files that belong to the project by looking 
   at the debug symbols in the produced elf file. 

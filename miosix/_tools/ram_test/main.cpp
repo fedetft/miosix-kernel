@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "sha1.h"
 
 const unsigned int ramBase=0x60000000; //Tune this to the right value
@@ -49,6 +50,7 @@ template<typename T> bool ramTest()
     }
     unsigned int a[5];
     sha.Result(a);
+    sleep(10); //To check SDRAM retention ability
     sha.Reset();
     for(unsigned int i=ramBase;i<ramBase+ramSize;i+=sizeof(T))
     {
@@ -63,11 +65,14 @@ template<typename T> bool ramTest()
 
 int main()
 {
-    iprintf("RAM test\nTesting word size transfers\n");
-    if(ramTest<unsigned int>()) return 1;
-    iprintf("Testing halfword size transfers\n");
-    if(ramTest<unsigned short>()) return 1;
-    iprintf("Testing byte size transfers\n");
-    if(ramTest<unsigned char>()) return 1;
-    iprintf("Ok\n");   
+    for(;;)
+    {
+        iprintf("RAM test\nTesting word size transfers\n");
+        if(ramTest<unsigned int>()) return 1;
+        iprintf("Testing halfword size transfers\n");
+        if(ramTest<unsigned short>()) return 1;
+        iprintf("Testing byte size transfers\n");
+        if(ramTest<unsigned char>()) return 1;
+        iprintf("Ok\n");
+    }
 }

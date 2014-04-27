@@ -130,7 +130,7 @@ const unsigned char MAX_OPEN_FILES=8;
 /**
  * \def JTAG_DISABLE_SLEEP
  * JTAG debuggers lose communication with the device if it enters sleep
- * mode, so to use debugging it is necessary to disble sleep in the idle thread.
+ * mode, so to use debugging it is necessary to disable sleep in the idle thread.
  * By default it is not defined (idle thread calls sleep).
  */
 //#define JTAG_DISABLE_SLEEP
