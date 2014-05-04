@@ -58,7 +58,7 @@ void IRQbspInit()
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN
                   | RCC_AHB1ENR_GPIOBEN
                   | RCC_AHB1ENR_GPIOCEN;
-
+    RCC_SYNC();
     using namespace oled;
     OLED_nSS_Pin::mode(Mode::OUTPUT);
     OLED_nSS_Pin::high();
@@ -491,10 +491,11 @@ PowerManagement::PowerManagement() : i2c(I2C1Driver::instance()),
     {
         FastInterruptDisableLock dLock;
         RCC->APB2ENR |= RCC_APB2ENR_ADC1EN | RCC_APB2ENR_SYSCFGEN;
+        RCC_SYNC();
         //Configure PB1 (POWER_BUTTON) as EXTI input
         SYSCFG->EXTICR[2] &= ~(0xf<<12);
         SYSCFG->EXTICR[2] |= 1<<12;
-        //Then disable SYYSCFG access, as we don't need it anymore
+        //Then disable SYSCFG access, as we don't need it anymore
         RCC->APB2ENR &= ~RCC_APB2ENR_SYSCFGEN;
     }
     ADC1->CR1=0;
@@ -629,6 +630,7 @@ LightSensor::LightSensor()
     {
         FastInterruptDisableLock dLock;
         RCC->APB2ENR |= RCC_APB2ENR_ADC2EN;
+        RCC_SYNC();
     }
     ADC2->CR1=0;
     ADC2->CR2=0; //Keep the ADC OFF to save power
@@ -723,6 +725,7 @@ Rtc::Rtc()
     {
         FastInterruptDisableLock dLock;
         RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+        RCC_SYNC();
         PWR->CR |= PWR_CR_DBP;         //Enable access to RTC registers
         
         //Without this reset, the LSEON bit is ignored, and code hangs at while

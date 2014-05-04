@@ -61,7 +61,7 @@ void IRQbspInit()
                  | RCC_AHBENR_GPIOBEN
                  | RCC_AHBENR_GPIOCEN
                  | RCC_AHBENR_GPIOHEN;
-    
+    RCC_SYNC();
     //Port config (H=high, L=low, PU=pullup, PD=pulldown)
 	//  |  PORTA       |  PORTB      |  PORTC  |  PORTH  |
 	//--+--------------+-------------+---------+---------+
@@ -112,6 +112,7 @@ void IRQbspInit()
 
     
     RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+    RCC_SYNC();
     PWR->CR |= PWR_CR_DBP     //Enable access to RTC registers
              | PWR_CR_PLS_1   //Select 2.3V trigger point for low battery
              | PWR_CR_PVDE    //Enable low battery detection

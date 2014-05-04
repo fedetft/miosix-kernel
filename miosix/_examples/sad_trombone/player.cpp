@@ -294,7 +294,9 @@ void Player::play(Sound& sound)
 		//Enable peripherals clock gating, other threads might be concurretly
 		//using these registers, so modify them in a critical section
 		RCC->AHBENR |= RCC_AHBENR_DMA1EN;
+        RCC_SYNC();
 		RCC->APB1ENR |= RCC_APB1ENR_DACEN | RCC_APB1ENR_TIM6EN;
+        RCC_SYNC();
 	}
 
 	//Configure DAC
@@ -349,14 +351,16 @@ void Player::play(Sound& sound)
 #else //Assuming stm32f4discovery
 void Player::play(Sound& sound)
 {
-	Lock<Mutex> l(mutex);
+    Lock<Mutex> l(mutex);
     bq=new BufferQueue<unsigned short,bufferSize>();
 
     {
-		FastInterruptDisableLock dLock;
+        FastInterruptDisableLock dLock;
         //Enable DMA1 and SPI3/I2S3
-        RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN;
-        RCC->APB1ENR |= RCC_APB1ENR_SPI3EN;   
+        RCC->AHB1ENR |= RCC_AHB1EiNR_DMA1EN;
+        RCC_SYNC();
+        RCC->APB1ENR |= RCC_APB1ENR_SPI3EN;
+        RCC_SYNC();
         //Configure GPIOs
         i2c::init();
         mclk::mode(Mode::ALTERNATE);

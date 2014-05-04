@@ -60,6 +60,7 @@ void IRQbspInit()
                     RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN |
                     RCC_APB2ENR_IOPEEN | RCC_APB2ENR_IOPFEN |
                     RCC_APB2ENR_IOPGEN | RCC_APB2ENR_AFIOEN;
+    RCC_SYNC();
     //Set ports
     leds::led1::high();
     leds::led1::mode(Mode::OUTPUT);

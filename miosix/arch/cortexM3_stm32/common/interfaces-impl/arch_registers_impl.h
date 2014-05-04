@@ -7,4 +7,6 @@
 #include "CMSIS/Include/core_cm3.h"
 #include "CMSIS/Device/ST/STM32F10x/Include/system_stm32f10x.h"
 
+#define RCC_SYNC() //Workaround for a bug in stm32f42x
+
 #endif	//ARCH_REGISTERS_IMPL_H

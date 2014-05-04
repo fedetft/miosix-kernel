@@ -59,6 +59,7 @@ void IRQbspInit()
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOBEN |
                     RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN |
                     RCC_AHB1ENR_GPIOEEN | RCC_AHB1ENR_GPIOHEN;
+    RCC_SYNC();
     GPIOA->OSPEEDR=0xaaaaaaaa; //Default to 50MHz speed for all GPIOS
     GPIOB->OSPEEDR=0xaaaaaaaa;
     GPIOC->OSPEEDR=0xaaaaaaaa;
@@ -120,6 +121,7 @@ void shutdown()
     /*
     Removed because low power mode causes issues with SWD programming
     RCC->APB1ENR |= RCC_APB1ENR_PWREN; //Fuckin' clock gating...  
+    RCC_SYNC();
     PWR->CR |= PWR_CR_PDDS; //Select standby mode
     PWR->CR |= PWR_CR_CWUF;
     PWR->CSR |= PWR_CSR_EWUP; //Enable PA.0 as wakeup source

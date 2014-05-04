@@ -61,7 +61,7 @@ void IRQbspInit()
                     RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN |
                     RCC_AHB1ENR_GPIOEEN | RCC_AHB1ENR_GPIOFEN |
                     RCC_AHB1ENR_GPIOGEN;
-
+    RCC_SYNC();
 	//Port config (H=high, L=low, PU=pullup, PD=pulldown)
 	//  |  PORTA  |  PORTB  |  PORTC  |  PORTD  |  PORTE  |  PORTF  |  PORTG  |
 	//--+---------+---------+---------+---------+---------+---------+---------+
@@ -131,6 +131,7 @@ void IRQbspInit()
 
     //Configure FSMC for IS62WC51216BLL-55
     RCC->AHB3ENR=RCC_AHB3ENR_FSMCEN;
+    RCC_SYNC();
     volatile uint32_t& BCR1=FSMC_Bank1->BTCR[0];
     volatile uint32_t& BTR1=FSMC_Bank1->BTCR[1];
     volatile uint32_t& BWTR1=FSMC_Bank1E->BWTR[0];

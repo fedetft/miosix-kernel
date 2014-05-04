@@ -60,6 +60,7 @@ void IRQbspInit()
                     RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN |
                     RCC_APB2ENR_IOPEEN | RCC_APB2ENR_IOPFEN |
                     RCC_APB2ENR_AFIOEN;
+    RCC_SYNC();
     _led::mode(Mode::OUTPUT_2MHz);// No need to be fast
     sdCardDetect::mode(Mode::INPUT_PULL_UP_DOWN);
     sdCardDetect::pullup();

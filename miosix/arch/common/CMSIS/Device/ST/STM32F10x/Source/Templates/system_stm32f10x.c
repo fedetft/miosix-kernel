@@ -471,10 +471,10 @@ void SystemInit_ExtMemCtl(void)
 
   /* Enable FSMC clock */
   RCC->AHBENR = 0x00000114;
-  
+  RCC_SYNC();
   /* Enable GPIOD, GPIOE, GPIOF and GPIOG clocks */  
   RCC->APB2ENR = 0x000001E0;
-  
+  RCC_SYNC();
 /* ---------------  SRAM Data lines, NOE and NWE configuration ---------------*/
 /*----------------  SRAM Address lines configuration -------------------------*/
 /*----------------  NOE and NWE configuration --------------------------------*/  

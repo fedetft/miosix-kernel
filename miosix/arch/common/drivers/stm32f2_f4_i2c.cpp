@@ -135,7 +135,9 @@ void I2C1Driver::init()
     {
         FastInterruptDisableLock dLock;
         RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN;
+        RCC_SYNC();
         RCC->APB1ENR |= RCC_APB1ENR_I2C1EN; //Enable clock gating
+        RCC_SYNC();
     }
     
     NVIC_SetPriority(DMA1_Stream7_IRQn,10);//Low priority for DMA

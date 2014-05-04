@@ -287,6 +287,7 @@ SynchronizedServo::SynchronizedServo() : status(STOPPED)
         // The RCC register should be written with interrupts disabled to
         // prevent race conditions with other threads.
         RCC->APB1ENR |= RCC_APB1ENR_TIM4EN;
+        RCC_SYNC();
     }
     
     // Configure timer

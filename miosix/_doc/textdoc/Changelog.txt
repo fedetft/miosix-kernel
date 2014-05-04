@@ -1,5 +1,9 @@
 Changelog for Miosix np embedded OS
 
+- Added RCC_SYNC() macro to all stm32 BSPs to workaround an errata in the
+  stm32f42x requiring additional cycles to enable clock gating. From now on
+  it is suggested to add an RCC_SYNC() after every access to the RCC to
+  enable clock gating an all stm32 ports.
 - Added SDRAM initialization code for stm32f429 board, and SDRAM linker
   scripts. The new default is to put .data/.bss/stack and heap in the SDRAM,
   and to leave the upper 2MB of it for the LCD.

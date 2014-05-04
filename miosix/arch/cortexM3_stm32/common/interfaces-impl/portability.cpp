@@ -233,6 +233,7 @@ void sleepCpu()
 void AuxiliaryTimer::IRQinit()
 {
     RCC->APB1ENR|=RCC_APB1ENR_TIM2EN;
+    RCC_SYNC();
     DBGMCU->CR|=DBGMCU_CR_DBG_TIM2_STOP; //Tim2 stops while debugging
     TIM2->CR1=0; //Upcounter, not started, no special options
     TIM2->CR2=0; //No special options

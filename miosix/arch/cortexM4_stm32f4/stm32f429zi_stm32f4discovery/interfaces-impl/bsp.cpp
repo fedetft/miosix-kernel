@@ -63,6 +63,8 @@ static void sdramCommandWait()
         if((FMC_Bank5_6->SDSR & FMC_SDSR_BUSY)==0) return;
 }
 
+
+
 void configureSdram()
 {
     //Enable all gpios
@@ -70,10 +72,7 @@ void configureSdram()
                     RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN |
                     RCC_AHB1ENR_GPIOEEN | RCC_AHB1ENR_GPIOFEN |
                     RCC_AHB1ENR_GPIOGEN | RCC_AHB1ENR_GPIOHEN;
-    
-    //For reasons unknown the write to GPIOB->AFR does not occur without a DMB
-    //in the middle
-    __DMB();
+    RCC_SYNC();
     
     //First, configure SDRAM GPIOs
     GPIOB->AFR[0]=0x0cc00000;
@@ -109,9 +108,7 @@ void configureSdram()
     
     //Second, actually start the SDRAM controller
     RCC->AHB3ENR |= RCC_AHB3ENR_FMCEN;
-    
-    //This doesn't seem to be needed, but better be safe
-    __DMB();
+    RCC_SYNC();
     
     //SDRAM is a IS42S16400J -7 speed grade, connected to bank 2 (0xd0000000)
     //Some bits in SDCR[1] are don't care, and the have to be set in SDCR[0],

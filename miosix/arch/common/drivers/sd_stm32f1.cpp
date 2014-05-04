@@ -1416,11 +1416,13 @@ static void initSDIOPeripheral()
         //Doing read-modify-write on RCC->APBENR2 and gpios, better be safe
         FastInterruptDisableLock lock;
         RCC->APB2ENR |= RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN;
+        RCC_SYNC();
         #ifdef __ENABLE_XRAM
         RCC->AHBENR |= RCC_AHBENR_SDIOEN;
         #else //__ENABLE_XRAM
         RCC->AHBENR |= RCC_AHBENR_SDIOEN | RCC_AHBENR_DMA2EN;
         #endif //__ENABLE_XRAM
+        RCC_SYNC();
         sdD0::mode(Mode::ALTERNATE);
         sdD1::mode(Mode::ALTERNATE);
         sdD2::mode(Mode::ALTERNATE);

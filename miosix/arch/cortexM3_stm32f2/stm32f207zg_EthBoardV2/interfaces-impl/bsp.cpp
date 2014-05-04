@@ -62,7 +62,7 @@ void IRQbspInit()
                     RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN |
                     RCC_AHB1ENR_GPIOEEN | RCC_AHB1ENR_GPIOFEN |
                     RCC_AHB1ENR_GPIOGEN;
-
+    RCC_SYNC();
 	//Port config (H=high, L=low, PU=pullup, PD=pulldown)
 	//  |  PORTA  |  PORTB  |  PORTC  |  PORTD  |  PORTE  |  PORTF  |  PORTG  |
 	//--+---------+---------+---------+---------+---------+---------+---------+
@@ -132,6 +132,7 @@ void IRQbspInit()
 
     //Configure FSMC
     RCC->AHB3ENR=RCC_AHB3ENR_FSMCEN;
+    RCC_SYNC();
     volatile uint32_t& BCR1=FSMC_Bank1->BTCR[0];
     volatile uint32_t& BTR1=FSMC_Bank1->BTCR[1];
     BCR1=0x00001011; //16bit width, write enabled, SRAM mode
@@ -198,6 +199,7 @@ void shutdown()
     /*
     Removed because low power mode causes issues with SWD programming
     RCC->APB1ENR |= RCC_APB1ENR_PWREN; //Fuckin' clock gating...  
+    RCC_SYNC();
     PWR->CR |= PWR_CR_PDDS; //Select standby mode
     PWR->CR |= PWR_CR_CWUF;
     PWR->CSR |= PWR_CSR_EWUP; //Enable PA.0 as wakeup source

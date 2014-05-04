@@ -430,7 +430,7 @@ void SystemInit_ExtMemCtl(void)
 */
    /* Enable GPIOD, GPIOE, GPIOF and GPIOG interface clock */
   RCC->AHB1ENR   = 0x00000078;
-  
+  RCC_SYNC(); 
   /* Connect PDx pins to FSMC Alternate function */
   GPIOD->AFR[0]  = 0x00cc00cc;
   //GPIOD->AFR[1]  = 0xcc0ccccc;
@@ -488,7 +488,7 @@ void SystemInit_ExtMemCtl(void)
 /*-- FSMC Configuration ------------------------------------------------------*/
   /* Enable the FSMC interface clock */
   RCC->AHB3ENR         = 0x00000001;
-
+  RCC_SYNC();
   /* Configure and enable Bank1_SRAM2 */
   FSMC_Bank1->BTCR[2]  = 0x00001015;
   FSMC_Bank1->BTCR[3]  = 0x00010400;

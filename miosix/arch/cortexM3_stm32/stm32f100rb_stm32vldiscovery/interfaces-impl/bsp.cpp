@@ -59,6 +59,7 @@ void IRQbspInit()
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_IOPBEN |
                     RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN |
                     RCC_APB2ENR_AFIOEN;
+    RCC_SYNC();
     _led::mode(Mode::OUTPUT_2MHz);
     ledOn();
     delayMs(100);
@@ -115,6 +116,7 @@ void shutdown()
     /*
     Removed because low power mode causes issues with SWD programming
     RCC->APB1ENR |= RCC_APB1ENR_PWREN; //Fuckin' clock gating...  
+    RCC_SYNC();
     PWR->CR |= PWR_CR_PDDS; //Select standby mode
     PWR->CR |= PWR_CR_CWUF;
     PWR->CSR |= PWR_CSR_EWUP; //Enable PA.0 as wakeup source

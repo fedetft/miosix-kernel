@@ -56,9 +56,10 @@ namespace miosix {
 void IRQbspInit()
 {
 	//Enable clocks to all ports
-	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_IOPBEN |
-					RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN |
-					RCC_APB2ENR_IOPEEN | RCC_APB2ENR_AFIOEN;
+    RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_IOPBEN |
+                    RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN |
+                    RCC_APB2ENR_IOPEEN | RCC_APB2ENR_AFIOEN;
+    RCC_SYNC();
     //Set ports
     led::mode(Mode::OUTPUT);
 

@@ -391,9 +391,11 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
         case 1:
             port=USART1;
             RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
+            RCC_SYNC();
             #ifdef SERIAL_1_DMA
             #ifdef _ARCH_CORTEXM3_STM32
             RCC->AHBENR |= RCC_AHBENR_DMA1EN;
+            RCC_SYNC();
             NVIC_SetPriority(DMA1_Channel4_IRQn,15);//Lowest priority for serial
             NVIC_EnableIRQ(DMA1_Channel4_IRQn);
             dmaTx=DMA1_Channel4;
@@ -404,6 +406,7 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
             dmaRx=DMA1_Channel5;
             #else //stm32f2, stm32f4
             RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
+            RCC_SYNC();
             NVIC_SetPriority(DMA2_Stream7_IRQn,15);//Lowest priority for serial
             NVIC_EnableIRQ(DMA2_Stream7_IRQn);
             dmaTx=DMA2_Stream7;
@@ -439,9 +442,11 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
         case 2:
             port=USART2;
             RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
+            RCC_SYNC();
             #ifdef SERIAL_2_DMA
             #ifdef _ARCH_CORTEXM3_STM32
             RCC->AHBENR |= RCC_AHBENR_DMA1EN;
+            RCC_SYNC();
             NVIC_SetPriority(DMA1_Channel7_IRQn,15);//Lowest priority for serial
             NVIC_EnableIRQ(DMA1_Channel7_IRQn);
             dmaTx=DMA1_Channel7;
@@ -452,6 +457,7 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
             dmaRx=DMA1_Channel6;
             #else //stm32f2, stm32f4
             RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN;
+            RCC_SYNC();
             NVIC_SetPriority(DMA1_Stream6_IRQn,15);//Lowest priority for serial
             NVIC_EnableIRQ(DMA1_Stream6_IRQn);
             dmaTx=DMA1_Stream6;
@@ -487,9 +493,11 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
         case 3:
             port=USART3;
             RCC->APB1ENR |= RCC_APB1ENR_USART3EN;
+            RCC_SYNC();
             #ifdef SERIAL_3_DMA
             #ifdef _ARCH_CORTEXM3_STM32
             RCC->AHBENR |= RCC_AHBENR_DMA1EN;
+            RCC_SYNC();
             NVIC_SetPriority(DMA1_Channel2_IRQn,15);//Lowest priority for serial
             NVIC_EnableIRQ(DMA1_Channel2_IRQn);
             dmaTx=DMA1_Channel2;
@@ -500,6 +508,7 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
             dmaRx=DMA1_Channel3;
             #else //stm32f2, stm32f4
             RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN;
+            RCC_SYNC();
             NVIC_SetPriority(DMA1_Stream3_IRQn,15);//Lowest priority for serial
             NVIC_EnableIRQ(DMA1_Stream3_IRQn);
             dmaTx=DMA1_Stream3;

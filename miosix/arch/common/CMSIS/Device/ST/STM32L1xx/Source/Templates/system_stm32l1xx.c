@@ -193,6 +193,7 @@ void SystemInit (void)
     FLASH->ACR |= FLASH_ACR_PRFTEN;
     
     RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+    RCC_SYNC();
   
     /* Select the Voltage Range 1 (1.8 V) */
     PWR->CR = PWR_CR_VOS_0;
@@ -383,7 +384,7 @@ static void SetSysClock(void)
     
     /* Power enable */
     RCC->APB1ENR |= RCC_APB1ENR_PWREN;
-  
+    RCC_SYNC(); 
     /* Select the Voltage Range 1 (1.8 V) */
     PWR->CR = PWR_CR_VOS_0;
   
@@ -463,7 +464,7 @@ void SystemInit_ExtMemCtl(void)
 
   /* Enable GPIOD, GPIOE, GPIOF and GPIOG interface clock */
   RCC->AHBENR   = 0x000080D8;
-  
+  RCC_SYNC(); 
   /* Connect PDx pins to FSMC Alternate function */
   GPIOD->AFR[0]  = 0x00CC00CC;
   GPIOD->AFR[1]  = 0xCCCCCCCC;
@@ -515,7 +516,7 @@ void SystemInit_ExtMemCtl(void)
 /*-- FSMC Configuration ------------------------------------------------------*/
   /* Enable the FSMC interface clock */
   RCC->AHBENR    = 0x400080D8;
-
+  RCC_SYNC();
   /* Configure and enable Bank1_SRAM3 */
   FSMC_Bank1->BTCR[4]  = 0x00001011;
   FSMC_Bank1->BTCR[5]  = 0x00000300;

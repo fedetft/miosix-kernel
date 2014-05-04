@@ -372,6 +372,7 @@ static void SetSysClock(void)
   {
     /* Select regulator voltage output Scale 1 mode, System frequency up to 168 MHz */
     RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+    RCC_SYNC();
     PWR->CR |= PWR_CR_VOS;
 
     /* HCLK = SYSCLK / 1*/
@@ -436,6 +437,7 @@ void SystemInit_ExtMemCtl(void)
   /* Enable GPIOC, GPIOD, GPIOE, GPIOF, GPIOG, GPIOH and GPIOI interface 
       clock */
   RCC->AHB1ENR |= 0x000001F8;
+  RCC_SYNC();
   
   /* Connect PDx pins to FMC Alternate function */
   GPIOD->AFR[0]  = 0x000000CC;
@@ -512,7 +514,7 @@ void SystemInit_ExtMemCtl(void)
 /*-- FMC Configuration ------------------------------------------------------*/
   /* Enable the FMC interface clock */
   RCC->AHB3ENR |= 0x00000001;
-  
+  RCC_SYNC();
   /* Configure and enable SDRAM bank1 */
   FMC_Bank5_6->SDCR[0] = 0x000019E0;
   FMC_Bank5_6->SDTR[0] = 0x01115351;      
@@ -568,7 +570,7 @@ void SystemInit_ExtMemCtl(void)
 /*-- GPIOs Configuration -----------------------------------------------------*/
    /* Enable GPIOD, GPIOE, GPIOF and GPIOG interface clock */
   RCC->AHB1ENR   |= 0x00000078;
-  
+  RCC_SYNC();
   /* Connect PDx pins to FMC Alternate function */
   GPIOD->AFR[0]  = 0x00CCC0CC;
   GPIOD->AFR[1]  = 0xCCCCCCCC;
@@ -620,7 +622,7 @@ void SystemInit_ExtMemCtl(void)
 /*-- FMC/FSMC Configuration --------------------------------------------------*/                                                                               
   /* Enable the FMC/FSMC interface clock */
   RCC->AHB3ENR         |= 0x00000001;
-  
+  RCC_SYNC();
 #if defined(STM32F427xx) || defined(STM32F437xx) || defined(STM32F429xx)|| defined(STM32F439xx) 
   /* Configure and enable Bank1_SRAM2 */
   FMC_Bank1->BTCR[2]  = 0x00001011;

@@ -1094,7 +1094,9 @@ static void initSDIOPeripheral()
         RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN
                       | RCC_AHB1ENR_GPIODEN
                       | RCC_AHB1ENR_DMA2EN;
+        RCC_SYNC();
         RCC->APB2ENR |= RCC_APB2ENR_SDIOEN;
+        RCC_SYNC();
         sdD0::mode(Mode::ALTERNATE);
         sdD0::alternateFunction(12);
         #ifndef SD_ONE_BIT_DATABUS
