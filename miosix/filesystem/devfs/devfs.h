@@ -70,14 +70,9 @@ public:
      * Constructor
      * \param d device type
      */
-    Device(DeviceType d)
-    #ifdef WITH_DEVFS
-        : seekable(d==BLOCK), block(d==BLOCK), tty(d==TTY)
-    #endif //WITH_DEVFS
+    Device(DeviceType d) : seekable(d==BLOCK), block(d==BLOCK), tty(d==TTY)
     {}
     
-    #ifdef WITH_DEVFS
-
     /**
      * Return an instance of the file type managed by this Device
      * \param file the file object will be stored here, if the call succeeds
@@ -102,6 +97,8 @@ public:
      * case of errors
      */
     virtual int isatty() const;
+    
+    #ifdef WITH_DEVFS
     
     /**
      * \internal
@@ -159,13 +156,11 @@ public:
     virtual ~Device();
 
 protected:
-    #ifdef WITH_DEVFS
     unsigned int st_ino; ///< inode of device file
     short st_dev;        ///< device (unique id of the filesystem) of device file
     const bool seekable; ///< If true, device is seekable
     const bool block;    ///< If true, it is a block device
     const bool tty;      ///< If true, it is a tty
-    #endif //WITH_DEVFS
 };
 
 #ifdef WITH_DEVFS

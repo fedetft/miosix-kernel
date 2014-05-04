@@ -35,8 +35,6 @@ using namespace std;
 
 namespace miosix {
 
-#ifdef WITH_DEVFS
-
 static const int _NOSEEK=0x20000; //Special flag used only here to disallow seek
 
 static void fillStatHelper(struct stat* pstat, unsigned int st_ino,
@@ -202,8 +200,6 @@ int Device::isatty() const
 {
     return tty ? 1 : 0;
 }
-
-#endif //WITH_DEVFS
 
 ssize_t Device::readBlock(void *buffer, size_t size, off_t where)
 {
