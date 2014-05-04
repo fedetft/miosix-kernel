@@ -33,35 +33,37 @@
 #include <cstdio>
 #include <cstdarg>
 
-namespace miosix {
-
 /**
- * Print boot logs. Cotrary to (i)printf(), this can be disabled in
+ * Print boot logs. Contrary to (i)printf(), this can be disabled in
  * miosix_settings.h if boot logs are not wanted. Can only be called when the
  * kernel is running.
  * \param fmt format string
  */
+#ifdef WITH_BOOTLOG
 inline void bootlog(const char *fmt, ...)
 {
-    #ifdef WITH_BOOTLOG
     va_list arg;
     va_start(arg,fmt);
     viprintf(fmt,arg);
     va_end(arg);
-    #endif //WITH_BOOTLOG
 }
+#else //WITH_BOOTLOG
+#define bootlog(x,...) ;
+#endif //WITH_BOOTLOG
 
 /**
  * Print boot logs. Can only be called when the kernel is not yet running or
  * paused, or within an IRQ.
  * \param string to print
  */
+#ifdef WITH_BOOTLOG
 inline void IRQbootlog(const char *string)
 {
-    #ifdef WITH_BOOTLOG
-    DefaultConsole::instance().IRQget()->IRQwrite(string);
-    #endif //WITH_BOOTLOG
+    miosix::DefaultConsole::instance().IRQget()->IRQwrite(string);
 }
+#else //WITH_BOOTLOG
+#define IRQbootlog(x) ;
+#endif //WITH_BOOTLOG
 
 /**
  * Print error logs. Cotrary to (i)printf(), this can be disabled in
@@ -69,28 +71,30 @@ inline void IRQbootlog(const char *string)
  * kernel is running.
  * \param fmt format string
  */
+#ifdef WITH_ERRLOG
 inline void errorLog(const char *fmt, ...)
 {
-    #ifdef WITH_ERRLOG
     va_list arg;
     va_start(arg,fmt);
     viprintf(fmt,arg);
     va_end(arg);
-    #endif //WITH_ERRLOG
 }
+#else //WITH_ERRLOG
+#define errorLog(x,...) ;
+#endif //WITH_ERRLOG
 
 /**
  * Print error logs. Can only be called when the kernel is not yet running or
  * paused, or within an IRQ.
  * \param string to print
  */
+#ifdef WITH_ERRLOG
 inline void IRQerrorLog(const char *string)
 {
-    #ifdef WITH_ERRLOG
-    DefaultConsole::instance().IRQget()->IRQwrite(string);
-    #endif //WITH_ERRLOG
+    miosix::DefaultConsole::instance().IRQget()->IRQwrite(string);
 }
-
-} //namespace miosix
+#else //WITH_ERRLOG
+#define IRQerrorLog(x) ;
+#endif //WITH_ERRLOG
 
 #endif	/* LOGGING_H */

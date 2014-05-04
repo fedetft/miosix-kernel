@@ -128,7 +128,7 @@ unsigned int MemoryProfiling::getAbsoluteFreeHeap()
 
 unsigned int MemoryProfiling::getCurrentFreeHeap()
 {
-    struct mallinfo mallocData=mallinfo();
+    struct mallinfo mallocData=_mallinfo_r(__getreent());
     return getHeapSize()-mallocData.uordblks;
 }
 

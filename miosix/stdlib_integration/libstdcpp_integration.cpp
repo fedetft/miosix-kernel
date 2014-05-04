@@ -77,13 +77,13 @@ void operator delete[](void *p) throw()
  */
 extern "C" void __cxxabiv1::__cxa_pure_virtual(void)
 {
-    miosix::errorLog("\n***Pure virtual method called\n");
+    errorLog("\n***Pure virtual method called\n");
     _exit(1);
 }
 
 extern "C" void __cxxabiv1::__cxa_deleted_virtual(void)
 {
-    miosix::errorLog("\n***Deleted virtual method called\n");
+    errorLog("\n***Deleted virtual method called\n");
     _exit(1);
 }
 
@@ -181,7 +181,7 @@ namespace __gnu_cxx {
  */
 void __verbose_terminate_handler()
 {
-    miosix::errorLog("\n***Unhandled exception thrown\n");
+    errorLog("\n***Unhandled exception thrown\n");
     _exit(1);
 }
 
@@ -239,7 +239,7 @@ extern "C" int __cxa_guard_acquire(__guard *g)
             //Wait, the other thread initializing the object is this thread?!?
             //We have a recursive initialization error. Not throwing an
             //exception to avoid pulling in exceptions even with -fno-exception
-            miosix::IRQerrorLog("Recursive initialization\r\n");
+            IRQerrorLog("Recursive initialization\r\n");
             _exit(1);
         }
 
