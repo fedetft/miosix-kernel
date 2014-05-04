@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Added loop mount example.
+- Fixed a bug in umount().
 - Reworked logging.h to decrease code size.
 - Moving from mallinfo() to _mallinfo_r() in getCurrentFreeHeap() to avoid
   accidentally bringing in iprintf(), which increases code size.

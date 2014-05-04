@@ -44,8 +44,38 @@
 
 namespace miosix {
 
-//Forward decls
-class ResolvedPath;
+/**
+ * The result of resolvePath().
+ */
+class ResolvedPath
+{
+public:
+    /**
+     * Constructor
+     */
+    ResolvedPath() : result(-EINVAL), fs(0), off(0) {}
+    
+    /**
+     * Constructor
+     * \param result error code
+     */
+    explicit ResolvedPath(int result) : result(result), fs(0), off(0) {}
+    
+    /**
+     * Constructor
+     * \param fs filesystem
+     * \param off offset into path where the subpath relative to the current
+     * filesystem starts
+     */
+    ResolvedPath(intrusive_ref_ptr<FilesystemBase> fs, size_t offset)
+            : result(0), fs(fs), off(offset) {}
+    
+    int result; ///< 0 on success, a negative number on failure
+    intrusive_ref_ptr<FilesystemBase> fs; ///< pointer to the filesystem to which the file belongs
+    /// path.c_str()+off is a string containing the relative path into the
+    /// filesystem for the looked up file
+    size_t off;
+};
 
 /**
  * This class maps file descriptors to file objects, allowing to
@@ -360,6 +390,23 @@ public:
      */
     void umountAll();
     
+    #ifdef WITH_DEVFS
+    /**
+     * \return a pointer to the devfs, useful to add other device files
+     */
+    intrusive_ref_ptr<DevFs> getDevFs() const { return atomic_load(&devFs); }
+    
+    /**
+     * Called by basicFilesystemSetup() or directly by the BSP to set the
+     * pointer returned by getDevFs() 
+     * \param dev pointer to the DevFs
+     */
+    void setDevFs(intrusive_ref_ptr<DevFs> dev)
+    {
+        atomic_store(&devFs,dev);
+    }
+    #endif //WITH_DEVFS
+    
     /**
      * Resolve a path to identify the filesystem it belongs
      * \param path an absolute path name, that must start with '/'. Note that
@@ -466,6 +513,9 @@ private:
     #ifdef WITH_PROCESSES
     std::list<FileDescriptorTable*> fileTables; ///< Process file tables
     #endif //WITH_PROCESSES
+    #ifdef WITH_DEVFS
+    intrusive_ref_ptr<DevFs> devFs;
+    #endif //WITH_DEVFS
 
     static int devCount; ///< For assigning filesystemId to filesystems
 };
@@ -473,12 +523,13 @@ private:
 /**
  * This is a simplified function to mount the root and /dev filesystems,
  * meant to be called from bspInit2(). It mounts a MountpointFs as root, then
- * creates a /dev directory, and mounts /dev there. After this call it's
- * possible to mount other filesystems, such as a fat32 one, in a subdirectory
- * of /, such as /mnt. In case the bsp needs another filesystem setup, such as
- * having a fat32 filesystem as /, this function can't be used, but instead
- * the bsp needs to mount the filesystems manually.
- * \param dev disk device that will be mounted on /sd
+ * creates a /dev directory, and mounts /dev there. It also takes the passed
+ * device and if it is not null it adds the device di DevFs as /dev/sda.
+ * Last, it attempts to mount /dev/sda at /sd as a Fat32 filesystem.
+ * In case the bsp needs another filesystem setup, such as having a fat32
+ * filesystem as /, this function can't be used, but instead the bsp needs to
+ * mount the filesystems manually.
+ * \param dev disk device that will be added as /dev/sda and mounted on /sd
  * \return a pointer to the DevFs, so as to be able to add other device files,
  * but only if WITH_DEVFS is defined
  */

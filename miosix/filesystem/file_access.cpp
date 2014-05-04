@@ -69,40 +69,6 @@ namespace miosix {
  * of a string.
  */
 
-/**
- * The result of resolvePath(). This class is not in file_access.h as
- * resolvePath() is not meant to be called outside of this file.
- */
-class ResolvedPath
-{
-public:
-    /**
-     * Constructor
-     */
-    ResolvedPath() : result(-EINVAL), fs(0), off(0) {}
-    
-    /**
-     * Constructor
-     * \param result error code
-     */
-    explicit ResolvedPath(int result) : result(result), fs(0), off(0) {}
-    
-    /**
-     * Constructor
-     * \param fs filesystem
-     * \param off offset into path where the subpath relative to the current
-     * filesystem starts
-     */
-    ResolvedPath(intrusive_ref_ptr<FilesystemBase> fs, size_t offset)
-            : result(0), fs(fs), off(offset) {}
-    
-    int result; ///< 0 on success, a negative number on failure
-    intrusive_ref_ptr<FilesystemBase> fs; ///< pointer to the filesystem to which the file belongs
-    /// path.c_str()+off is a string containing the relative path into the
-    /// filesystem for the looked up file
-    size_t off;
-};
-
 //
 // class FileDescriptorTable
 //
@@ -578,7 +544,7 @@ int FilesystemManager::umount(const char* path, bool force)
     //are filesystems, umounting /path must umount also /path/path2
     vector<fsIt> fsToUmount;
     for(fsIt it2=filesystems.begin();it2!=filesystems.end();++it2)
-        if(it2->first.startsWith(it->first)==0) fsToUmount.push_back(it2);
+        if(it2->first.startsWith(it->first)) fsToUmount.push_back(it2);
     
     //Now look into all file descriptor tables if there are open files in the
     //filesystems to umount. If there are, return busy. This is an heavy
@@ -738,14 +704,29 @@ basicFilesystemSetup(intrusive_ref_ptr<Device> dev)
     intrusive_ref_ptr<FilesystemBase> rootFs(new MountpointFs);
     bootlog(fsm.kmount("/",rootFs)==0 ? "Ok\n" : "Failed\n");
     
-    //TODO: Move to individual BSPs -- begin
-    bootlog("Mounting Fat32Fs as /sd ... ");
-    StringPart sd("sd");
+    #ifdef WITH_DEVFS
+    bootlog("Mounting DevFs as /dev ... ");
+    StringPart sp("dev");
+    int r1=rootFs->mkdir(sp,0755); 
+    intrusive_ref_ptr<DevFs> devfs(new DevFs);
+    int r2=fsm.kmount("/dev",devfs);
+    bool devFsOk=(r1==0 && r2==0);
+    bootlog(devFsOk ? "Ok\n" : "Failed\n");
+    if(!devFsOk) return devfs;
+    fsm.setDevFs(devfs);
+    #endif //WITH_DEVFS
     
+    bootlog("Mounting Fat32Fs as /sd ... ");
     bool fat32failed=false;
     intrusive_ref_ptr<FileBase> disk;
+    #ifdef WITH_DEVFS
+    if(dev) devfs->addDevice("sda",dev);
+    StringPart sda("sda");
+    if(devfs->open(disk,sda,O_RDWR,0)<0) fat32failed=true;
+    #else //WITH_DEVFS
     if(dev && dev->open(disk,intrusive_ref_ptr<FilesystemBase>(0),O_RDWR,0)<0)
         fat32failed=true;
+    #endif //WITH_DEVFS
     
     intrusive_ref_ptr<Fat32Fs> fat32;
     if(fat32failed==false)
@@ -755,20 +736,14 @@ basicFilesystemSetup(intrusive_ref_ptr<Device> dev)
     }
     if(fat32failed==false)
     {
+        StringPart sd("sd");
         fat32failed=rootFs->mkdir(sd,0755)!=0;
         fat32failed=fsm.kmount("/sd",fat32)!=0;
     }
     bootlog(fat32failed==0 ? "Ok\n" : "Failed\n");
-    //TODO: Move to individual BSPs -- end
     
     #ifdef WITH_DEVFS
-    bootlog("Mounting DevFs as /dev ... ");
-    StringPart sp("dev");
-    int r1=rootFs->mkdir(sp,0755); 
-    intrusive_ref_ptr<DevFs> result(new DevFs);
-    int r2=fsm.kmount("/dev",result);
-    bootlog((r1==0 && r2==0) ? "Ok\n" : "Failed\n");
-    return result;
+    return devfs;
     #endif //WITH_DEVFS
 }
 
