@@ -341,7 +341,7 @@ bool DevFs::remove(const char* name)
 int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         int flags, int mode)
 {
-    if(flags & (O_APPEND | O_CREAT | O_EXCL | O_TRUNC)) return -EACCES;
+    if(flags & (O_APPEND | O_EXCL)) return -EACCES;
     Lock<FastMutex> l(mutex);
     if(name.empty()) //Trying to open the root directory of the fs
     {

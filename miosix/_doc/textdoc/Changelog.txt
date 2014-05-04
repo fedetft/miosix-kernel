@@ -1,5 +1,8 @@
 Changelog for Miosix np embedded OS
 
+- Added dirlist testcase
+- Relaxed file open mode checks in DevFs to allow opening device files with
+  fopen()
 - Added loop mount example.
 - Fixed a bug in umount().
 - Reworked logging.h to decrease code size.
