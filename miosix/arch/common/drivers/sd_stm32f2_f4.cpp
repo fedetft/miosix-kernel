@@ -726,13 +726,13 @@ void ClockController::calibrateClockSpeed(SDIODriver *sdio)
         selected=(minFreq+maxFreq)/2;
         DBG("Trying CLKCR=%d\n",selected);
         setClockSpeed(selected);
-        if(sdio->readBlock(reinterpret_cast<unsigned char*>(buffer),0,512))
+        if(sdio->readBlock(reinterpret_cast<unsigned char*>(buffer),512,0)==512)
             minFreq=selected;
         else maxFreq=selected;
     }
     //Last round of algorithm
     setClockSpeed(maxFreq);
-    if(sdio->readBlock(reinterpret_cast<unsigned char*>(buffer),0,512))
+    if(sdio->readBlock(reinterpret_cast<unsigned char*>(buffer),512,0)==512)
     {
         DBG("Optimal CLKCR=%d\n",maxFreq);
     } else {
