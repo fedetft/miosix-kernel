@@ -1,5 +1,6 @@
 Changelog for Miosix np embedded OS
 
+- Updated backend_benchmark.cpp to use DevFs instead of the old Disk interface.
 - Fixed a bug in the stm32 SDIO drivers that caused the slowest clock speed
   selection, resulting in a serious performance regression when writing to
   an SD card. Bug was added in commit e697ded4325a5a2de12706712abc4a846d733b3e
