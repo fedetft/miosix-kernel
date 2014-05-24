@@ -1,5 +1,11 @@
 Changelog for Miosix np embedded OS
 
+- Moved board_settings.h in the config directory to allow out of git tree
+  projects to tweak those files without editing files in the Miosix git repo.
+- Added miosix/_tools/init_project_out_of_git_tree.pl script to help set up
+  out of git tree projects.
+- New makefile now supporting out of git tree projects, to help having the
+  Miosix git repo as a submodule of another git repo.
 - Updated backend_benchmark.cpp to use DevFs instead of the old Disk interface.
 - Fixed a bug in the stm32 SDIO drivers that caused the slowest clock speed
   selection, resulting in a serious performance regression when writing to

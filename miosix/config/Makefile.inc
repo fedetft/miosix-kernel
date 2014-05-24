@@ -1,6 +1,5 @@
 ##
-## Makefile for Miosix np embedded OS
-## TFT:Terraneo Federico Technlogies
+## Makefile for Miosix embedded OS
 ## 
 ## This file contains the options required by the build system to build
 ## Miosix on various target architectures. All options start with OPT_
@@ -266,7 +265,7 @@ endif
 ## a new board or porting Miosix to a new architecture                    ##
 ############################################################################
 
-ifneq ($(MAKEFILE_VERSION),1.02)
+ifneq ($(MAKEFILE_VERSION),1.03)
     $(info You are using an incompatible makefile. Make sure it matches \
       the one distributed with the current version of the kernel)
     $(error Error)
@@ -382,7 +381,7 @@ ifeq ($(ARCH),arm7_lpc2000)
     CXXFLAGS_BASE += -D_ARCH_ARM7_LPC2000 -mcpu=arm7tdmi $(OPT_OPTIMIZATION) \
                      -ffunction-sections $(OPT_EXCEPT) -Wall -g -c
     LFLAGS_BASE   := -mcpu=arm7tdmi -Wl,--gc-sections,-Map,main.map          \
-                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                       $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -434,7 +433,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## error message saying that 'make program' is not supported for that
         ## board.
         ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_512k+64k_all_in_xram.ld)
-        PROGRAM_CMDLINE := miosix/_tools/bootloaders/stm32/pc_loader/pc_loader \
+        PROGRAM_CMDLINE := $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
         /dev/ttyUSB0 main.bin
         else
         PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB0
@@ -611,7 +610,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
                      $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
                      $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
     LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
-                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -754,7 +753,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
                      -Wall -g -c
     LFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
                      -Wl,--gc-sections,-Map,main.map                            \
-                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)              \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)              \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -810,7 +809,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## error message saying that 'make program' is not supported for that
         ## board.
         ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld)
-        PROGRAM_CMDLINE := miosix/_tools/bootloaders/stm32/pc_loader/pc_loader \
+        PROGRAM_CMDLINE := $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
         /dev/ttyUSB0 main.bin
         else
             PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
@@ -852,7 +851,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## error message saying that 'make program' is not supported for that
         ## board.
         ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_1m+128k_code_in_xram.ld)
-        PROGRAM_CMDLINE := miosix/_tools/bootloaders/stm32/pc_loader/pc_loader \
+        PROGRAM_CMDLINE := $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
         /dev/ttyUSB1 main.bin
         else
         PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
@@ -959,7 +958,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
                      $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
                      $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
     LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
-                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -1039,7 +1038,7 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
                      $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
                      $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
     LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
-                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files

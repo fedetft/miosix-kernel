@@ -28,6 +28,10 @@
 #ifndef MIOSIX_SETTINGS_H
 #define MIOSIX_SETTINGS_H
 
+// Before you can compile the kernel you have to configure it by editing this
+// file. After that, comment out this line to disable the reminder error.
+#error This error is a reminder that you have not edited miosix_settings.h yet.
+
 /**
  * \file miosix_settings.h
  * NOTE: this file contains ONLY configuration options that are not dependent

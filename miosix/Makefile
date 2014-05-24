@@ -1,10 +1,12 @@
 ##
-## Makefile for Miosix np embedded OS
-## TFT:Terraneo Federico Technlogies
+## Makefile for Miosix embedded OS
 ## This makefile builds the whole kernel
 ##
-MAKEFILE_VERSION := 1.02
-include config/Makefile.inc
+MAKEFILE_VERSION := 1.03
+## Path to kernel directory
+KPATH := .
+## CONFPATH is forwarded by the parent Makefile
+include $(CONFPATH)/config/Makefile.inc
 
 ## List of all Miosix OS source files that have no special requirements
 ## and that must be built for each architecture (both .c and .cpp)
@@ -51,10 +53,11 @@ SRC += $(ARCH_SRC)
 OBJ := $(addsuffix .o, $(basename $(SRC)))
 
 ## Includes the miosix base directory for C/C++
-CXXFLAGS := $(CXXFLAGS_BASE) -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC) \
-	    -DCOMPILING_MIOSIX
-CFLAGS   := $(CFLAGS_BASE)   -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC) \
-	    -DCOMPILING_MIOSIX
+## Always include CONFPATH first, as it overrides the config file location
+CXXFLAGS := $(CXXFLAGS_BASE) -I$(CONFPATH) -I$(CONFPATH)/config/$(BOARD_INC)  \
+            -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC) -DCOMPILING_MIOSIX
+CFLAGS   := $(CFLAGS_BASE)   -I$(CONFPATH) -I$(CONFPATH)/config/$(BOARD_INC)  \
+            -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC) -DCOMPILING_MIOSIX
 AFLAGS   := $(AFLAGS_BASE)
 DFLAGS    := -MMD -MP
 
