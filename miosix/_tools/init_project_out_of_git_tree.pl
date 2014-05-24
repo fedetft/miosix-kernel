@@ -50,7 +50,7 @@ sub copy_and_fixup_makefile
 	while(<$in>)
 	{
 		s/^KPATH := miosix$/KPATH := $relpath\/miosix/;
-		s/^CONFPATH := \$\(realpath \$\(KPATH\)\)$/CONFPATH := \$\(realpath \.\)/;
+		s/^CONFPATH := \$\(KPATH\)$/CONFPATH := \./;
 		print $out "$_";
 	}
 	close($in);

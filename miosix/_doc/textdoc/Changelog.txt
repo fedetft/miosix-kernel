@@ -1,5 +1,8 @@
 Changelog for Miosix np embedded OS
 
+- Improved Makefile path referencing to always use relative paths, as using
+  absolute ones fails when the absolute path contains spaces. This proved to
+  be impossible with makefiles alone and required to add a small perl script
 - Added versioning to miosix_settings.h and board_settings.h to prevent
   misconfiguration when those files are updated.
 - Moved board_settings.h in the config directory to allow out of git tree

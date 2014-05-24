@@ -1,11 +1,11 @@
 ##
 ## Makefile for Miosix embedded OS
 ##
-MAKEFILE_VERSION := 1.03
-## Path to kernel directory
+MAKEFILE_VERSION := 1.04
+## Path to kernel directory (edited by init_project_out_of_git_repo.pl)
 KPATH := miosix
-## Path to config directory
-CONFPATH := $(realpath $(KPATH))
+## Path to config directory (edited by init_project_out_of_git_repo.pl)
+CONFPATH := $(KPATH)
 include $(CONFPATH)/config/Makefile.inc
 
 ##
@@ -59,10 +59,16 @@ program:
 	$(PROGRAM_CMDLINE)
 
 all-recursive:
-	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i) CONFPATH="$(CONFPATH)" || exit 1;)
+	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i)                               \
+	  KPATH=$(shell perl $(KPATH)/_tools/relpath.pl $(i) $(KPATH))       \
+	  CONFPATH=$(shell perl $(KPATH)/_tools/relpath.pl $(i) $(CONFPATH)) \
+	  || exit 1;)
 
 clean-recursive:
-	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i) CONFPATH="$(CONFPATH)" clean || exit 1;)
+	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i)                               \
+	  KPATH=$(shell perl $(KPATH)/_tools/relpath.pl $(i) $(KPATH))       \
+	  CONFPATH=$(shell perl $(KPATH)/_tools/relpath.pl $(i) $(CONFPATH)) \
+	  clean || exit 1;)
 
 clean-topdir:
 	-rm -f $(OBJ) main.elf main.hex main.bin main.map $(OBJ:.o=.d)
@@ -77,10 +83,10 @@ main.elf: $(OBJ) all-recursive
 	$(CXX) $(LFLAGS) -o main.elf $(OBJ) $(KPATH)/$(BOOT_FILE) $(LINK_LIBS)
 
 %.o: %.s
-	$(AS) $(AFLAGS) $< -o $@
+	$(AS)  $(AFLAGS) $< -o $@
 
 %.o : %.c
-	$(CC) $(DFLAGS) $(CFLAGS) $< -o $@
+	$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
 	$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@

@@ -2,10 +2,8 @@
 ## Makefile for Miosix embedded OS
 ## This makefile builds the whole kernel
 ##
-MAKEFILE_VERSION := 1.03
-## Path to kernel directory
-KPATH := .
-## CONFPATH is forwarded by the parent Makefile
+MAKEFILE_VERSION := 1.04
+## KPATH and CONFPATH are forwarded by the parent Makefile
 include $(CONFPATH)/config/Makefile.inc
 
 ## List of all Miosix OS source files that have no special requirements
@@ -73,13 +71,13 @@ clean:
 	-rm -f $(BOOT_FILE:.o=.d)
 
 %.o: %.s
-	$(AS) $(AFLAGS) $< -o $@
+	$(AS)  $(AFLAGS) $< -o $@
 
 %.o : %.c
 	$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
-	$(CXX)  $(DFLAGS) $(CXXFLAGS) $< -o $@
+	$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
 
 #pull in dependecy info for existing .o files
 -include $(OBJ:.o=.d)
