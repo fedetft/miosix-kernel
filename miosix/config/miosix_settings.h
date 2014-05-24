@@ -1,5 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 by Terraneo Federico *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013, 2014                *
+ *   by Terraneo Federico                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -42,6 +43,11 @@
  */
 #include "arch_settings.h"
 #include "board_settings.h"
+#include "util/version.h"
+
+#if SETTINGS_VERSION != 100
+#error You need to update miosix_settings.h to match the version in the kernel.
+#endif
 
 namespace miosix {
 

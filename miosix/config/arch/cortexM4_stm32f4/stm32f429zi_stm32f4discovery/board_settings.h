@@ -28,6 +28,12 @@
 #ifndef BOARD_SETTINGS_H
 #define	BOARD_SETTINGS_H
 
+#include "util/version.h"
+
+#if BOARD_SETTINGS_VERSION != 100
+#error You need to update board_settings.h to match the version in the kernel.
+#endif
+
 namespace miosix {
 
 /**

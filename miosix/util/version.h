@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011 by Terraneo Federico                         *
+ *   Copyright (C) 2010, 2011, 2012, 2013, 2014 by Terraneo Federico       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -39,10 +39,10 @@ namespace miosix {
  * Allows to know the version of the kernel at runtime.
  * \return a string with the kernel version.
  * The format is "Miosix vX.XX (board, builddate, compiler)" where
- * vX.XX is the kernel version number, like "v1.59"
+ * vX.XX is the kernel version number, like "v2.0"
  * board is the board name, like "stm32f103ze_stm3210e-eval"
  * builddate is the date the kernel was built, like "Oct 30 2011 00:58:10"
- * compiler is the compiler version, like "gcc 4.5.2"
+ * compiler is the compiler version, like "gcc 4.7.3"
  */
 const char *getMiosixVersion();
 
@@ -51,5 +51,17 @@ const char *getMiosixVersion();
  */
 
 } //namespace miosix
+
+/**
+ * \internal
+ * Versioning for miosix_settings.h for out of git tree projects
+ */
+#define SETTINGS_VERSION 100
+
+/**
+ * \internal
+ * Versioning for board_settings.h for out of git tree projects
+ */
+#define BOARD_SETTINGS_VERSION 100
 
 #endif	/* VERSION_H */

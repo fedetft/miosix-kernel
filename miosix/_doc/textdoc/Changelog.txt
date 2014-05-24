@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Added versioning to miosix_settings.h and board_settings.h to prevent
+  misconfiguration when those files are updated.
 - Moved board_settings.h in the config directory to allow out of git tree
   projects to tweak those files without editing files in the Miosix git repo.
 - Added miosix/_tools/init_project_out_of_git_tree.pl script to help set up
