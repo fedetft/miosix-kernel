@@ -26,7 +26,6 @@
                 <in>portability_impl.h</in>
               </df>
               <in>LPC213x.h</in>
-              <in>board_settings.h</in>
             </df>
           </df>
           <df name="common">
@@ -106,7 +105,6 @@
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f103ve_mp3v2">
               <df name="core">
@@ -117,7 +115,6 @@
                 <in>bsp_impl.h</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f103ve_strive_mini">
               <df name="core">
@@ -128,7 +125,6 @@
                 <in>bsp_impl.h</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f103ze_redbull_v2">
               <df name="core">
@@ -139,7 +135,6 @@
                 <in>bsp_impl.h</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f103ze_stm3210e-eval">
               <df name="core">
@@ -149,7 +144,6 @@
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
           </df>
           <df name="cortexM3_stm32f2">
@@ -182,7 +176,6 @@
                 <in>bsp_impl.h</in>
                 <in>delays.cpp</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f207ze_als_camboard">
               <df name="core">
@@ -194,7 +187,6 @@
                 <in>delays.cpp</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f207zg_EthBoardV2">
               <df name="core">
@@ -206,7 +198,6 @@
                 <in>delays.cpp</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
           </df>
           <df name="cortexM3_stm32l1">
@@ -232,7 +223,6 @@
                 <in>bsp_impl.h</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
           </df>
           <df name="cortexM4_stm32f4">
@@ -256,7 +246,6 @@
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f407vg_stm32f4discovery">
               <df name="core">
@@ -266,7 +255,6 @@
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f429zi_stm32f4discovery">
               <df name="core">
@@ -474,11 +462,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/board_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/arm7_lpc2000/lpc2138_miosix_board/core/stage_1_boot.s"
             ex="false"
             tool="4"
@@ -599,11 +582,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery/board_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery/core/stage_1_boot.cpp"
             ex="false"
             tool="1"
@@ -615,11 +593,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery/interfaces-impl/bsp_impl.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_mp3v2/board_settings.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -644,11 +617,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_strive_mini/board_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_strive_mini/core/stage_1_boot.cpp"
             ex="false"
             tool="1"
@@ -669,11 +637,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_redbull_v2/board_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_redbull_v2/core/stage_1_boot.cpp"
             ex="false"
             tool="1"
@@ -690,11 +653,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_redbull_v2/interfaces-impl/hwmapping.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_stm3210e-eval/board_settings.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -749,11 +707,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/board_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/core/stage_1_boot.cpp"
             ex="false"
             tool="1"
@@ -772,11 +725,6 @@
       <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/interfaces-impl/delays.cpp"
             ex="false"
             tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ze_als_camboard/board_settings.h"
-            ex="false"
-            tool="3"
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ze_als_camboard/core/stage_1_boot.cpp"
@@ -800,11 +748,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM3_stm32f2/stm32f207ze_als_camboard/interfaces-impl/hwmapping.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/board_settings.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -879,11 +822,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM3_stm32l1/stm32l151c8_als_mainboard/board_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM3_stm32l1/stm32l151c8_als_mainboard/core/stage_1_boot.cpp"
             ex="false"
             tool="1"
@@ -944,11 +882,6 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_bitsboard/board_settings.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_bitsboard/core/stage_1_boot.cpp"
             ex="false"
             tool="1"
@@ -960,11 +893,6 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_bitsboard/interfaces-impl/bsp_impl.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/board_settings.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -1763,6 +1691,7 @@
           <cTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_HD</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_STM3210E_EVAL</Elem>
@@ -1771,6 +1700,7 @@
           <ccTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_HD</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_STM3210E_EVAL</Elem>
@@ -2374,6 +2304,7 @@
           <cTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_HD</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_MP3V2</Elem>
@@ -2382,6 +2313,7 @@
           <ccTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_HD</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_MP3V2</Elem>
@@ -2987,6 +2919,7 @@
           <cTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_MD_VL</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_STM32VLDISCOVERY</Elem>
@@ -2995,6 +2928,7 @@
           <ccTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_MD_VL</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_STM32VLDISCOVERY</Elem>
@@ -3450,6 +3384,7 @@
           <cTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_HD</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_STRIVE_MINI</Elem>
@@ -3458,6 +3393,7 @@
           <ccTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_HD</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_STRIVE_MINI</Elem>
@@ -4064,6 +4000,7 @@
           <cTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_HD</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_REDBULL_V2</Elem>
@@ -4072,6 +4009,7 @@
           <ccTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_HD</Elem>
               <Elem>_ARCH_CORTEXM3_STM32</Elem>
               <Elem>_BOARD_REDBULL_V2</Elem>
@@ -4678,6 +4616,7 @@
           <cTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>SYSCLK_FREQ_168MHz</Elem>
               <Elem>_ARCH_CORTEXM4_STM32F4</Elem>
               <Elem>_BOARD_STM32F4DISCOVERY</Elem>
@@ -4687,6 +4626,7 @@
           <ccTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>SYSCLK_FREQ_168MHz</Elem>
               <Elem>_ARCH_CORTEXM4_STM32F4</Elem>
               <Elem>_BOARD_STM32F4DISCOVERY</Elem>
@@ -5307,6 +5247,7 @@
           <cTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
               <Elem>_BOARD_STM32F4DISCOVERY</Elem>
             </preprocessorList>
@@ -5314,6 +5255,7 @@
           <ccTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
               <Elem>_BOARD_STM32F4DISCOVERY</Elem>
             </preprocessorList>
@@ -5931,6 +5873,7 @@
           <cTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
               <Elem>_BOARD_ETHBOARDV2</Elem>
             </preprocessorList>
@@ -5938,6 +5881,7 @@
           <ccTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
               <Elem>_BOARD_ETHBOARDV2</Elem>
             </preprocessorList>
@@ -6555,6 +6499,7 @@
           <cTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
               <Elem>_BOARD_ALS_CAMBOARD</Elem>
             </preprocessorList>
@@ -6562,6 +6507,7 @@
           <ccTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
               <Elem>_BOARD_ALS_CAMBOARD</Elem>
             </preprocessorList>
@@ -7018,6 +6964,7 @@
           <cTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>_ARCH_CORTEXM3_STM32L1</Elem>
               <Elem>_BOARD_ALS_MAINBOARD</Elem>
             </preprocessorList>
@@ -7025,6 +6972,7 @@
           <ccTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>_ARCH_CORTEXM3_STM32L1</Elem>
               <Elem>_BOARD_ALS_MAINBOARD</Elem>
             </preprocessorList>
@@ -7492,6 +7440,7 @@
           <cTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>SYSCLK_FREQ_168MHz</Elem>
               <Elem>_ARCH_CORTEXM4_STM32F4</Elem>
               <Elem>_BOARD_BITSBOARD</Elem>
@@ -7501,6 +7450,7 @@
           <ccTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>SYSCLK_FREQ_168MHz</Elem>
               <Elem>_ARCH_CORTEXM4_STM32F4</Elem>
               <Elem>_BOARD_BITSBOARD</Elem>
@@ -8121,6 +8071,7 @@
           <cTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
               <Elem>_BOARD_SONY_NEWMAN</Elem>
             </preprocessorList>
@@ -8128,6 +8079,7 @@
           <ccTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>_ARCH_CORTEXM3_STM32F2</Elem>
               <Elem>_BOARD_SONY_NEWMAN</Elem>
             </preprocessorList>
@@ -8593,6 +8545,7 @@
           <cTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>SYSCLK_FREQ_168MHz</Elem>
               <Elem>_ARCH_CORTEXM4_STM32F4</Elem>
               <Elem>_BOARD_STM32F429ZI_STM32F4DISCOVERY</Elem>
@@ -8603,6 +8556,7 @@
           <ccTool>
             <preprocessorList>
               <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>PARSING_FROM_IDE</Elem>
               <Elem>SYSCLK_FREQ_168MHz</Elem>
               <Elem>_ARCH_CORTEXM4_STM32F4</Elem>
               <Elem>_BOARD_STM32F429ZI_STM32F4DISCOVERY</Elem>

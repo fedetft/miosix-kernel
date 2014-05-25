@@ -26,7 +26,6 @@
                 <in>portability_impl.h</in>
               </df>
               <in>LPC213x.h</in>
-              <in>board_settings.h</in>
             </df>
           </df>
           <df name="common">
@@ -177,7 +176,6 @@
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f103ve_mp3v2">
               <df name="core">
@@ -188,7 +186,6 @@
                 <in>bsp_impl.h</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f103ve_strive_mini">
               <df name="core">
@@ -199,7 +196,6 @@
                 <in>bsp_impl.h</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f103ze_redbull_v2">
               <df name="core">
@@ -210,7 +206,6 @@
                 <in>bsp_impl.h</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f103ze_stm3210e-eval">
               <df name="core">
@@ -220,7 +215,6 @@
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
           </df>
           <df name="cortexM3_stm32f2">
@@ -246,7 +240,6 @@
                 <in>delays.cpp</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f207ig_stm3220g-eval">
               <df name="core">
@@ -258,7 +251,6 @@
                 <in>bsp_impl.h</in>
                 <in>delays.cpp</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f207ze_als_camboard">
               <df name="core">
@@ -271,7 +263,6 @@
                 <in>delays.cpp</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f207zg_EthBoardV2">
               <df name="core">
@@ -284,7 +275,6 @@
                 <in>delays.cpp</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
           </df>
           <df name="cortexM3_stm32l1">
@@ -310,7 +300,6 @@
                 <in>bsp_impl.h</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
           </df>
           <df name="cortexM4_stm32f4">
@@ -335,7 +324,6 @@
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f407vg_stm32f4discovery">
               <df name="core">
@@ -346,7 +334,6 @@
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f429zi_stm32f4discovery">
               <df name="core">
@@ -357,11 +344,64 @@
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
           </df>
         </df>
         <df name="config">
+          <df name="arch">
+            <df name="arm7_lpc2000">
+              <df name="lpc2138_miosix_board">
+                <in>board_settings.h</in>
+              </df>
+            </df>
+            <df name="cortexM3_stm32">
+              <df name="stm32f100rb_stm32vldiscovery">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f103ve_mp3v2">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f103ve_strive_mini">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f103ze_redbull_v2">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f103ze_stm3210e-eval">
+                <in>board_settings.h</in>
+              </df>
+            </df>
+            <df name="cortexM3_stm32f2">
+              <df name="stm32f205rg_sony-newman">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f207ig_stm3220g-eval">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f207ze_als_camboard">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f207zg_EthBoardV2">
+                <in>board_settings.h</in>
+              </df>
+            </df>
+            <df name="cortexM3_stm32l1">
+              <df name="stm32l151c8_als_mainboard">
+                <in>board_settings.h</in>
+              </df>
+            </df>
+            <df name="cortexM4_stm32f4">
+              <df name="stm32f407vg_bitsboard">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f407vg_stm32f4discovery">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f429zi_stm32f4discovery">
+                <in>board_settings.h</in>
+              </df>
+            </df>
+          </df>
           <in>miosix_settings.h</in>
         </df>
         <df name="e20">
