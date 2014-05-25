@@ -45,9 +45,11 @@
 #include "board_settings.h"
 #include "util/version.h"
 
-#if SETTINGS_VERSION != 100
-#error You need to update miosix_settings.h to match the version in the kernel.
-#endif
+/**
+ * \internal
+ * Versioning for miosix_settings.h for out of git tree projects
+ */
+#define MIOSIX_SETTINGS_VERSION 100
 
 namespace miosix {
 

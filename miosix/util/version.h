@@ -52,16 +52,4 @@ const char *getMiosixVersion();
 
 } //namespace miosix
 
-/**
- * \internal
- * Versioning for miosix_settings.h for out of git tree projects
- */
-#define SETTINGS_VERSION 100
-
-/**
- * \internal
- * Versioning for board_settings.h for out of git tree projects
- */
-#define BOARD_SETTINGS_VERSION 100
-
 #endif	/* VERSION_H */

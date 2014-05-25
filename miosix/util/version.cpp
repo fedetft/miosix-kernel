@@ -25,6 +25,17 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "config/miosix_settings.h"
+#include "board_settings.h"
+
+#if MIOSIX_SETTINGS_VERSION != 100
+#error You need to update miosix_settings.h to match the version in the kernel.
+#endif
+
+#if BOARD_SETTINGS_VERSION != 100
+#error You need to update board_settings.h to match the version in the kernel.
+#endif
+
 namespace miosix {
 
 #ifdef __GNUC__
