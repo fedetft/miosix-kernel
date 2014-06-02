@@ -1,5 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010 by Terraneo Federico                   *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013, 2014                *
+ *   by Terraneo Federico                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -32,6 +33,7 @@
 
 #include <cstdlib>
 #include <inttypes.h>
+#include <sys/ioctl.h>
 #include "interfaces/bsp.h"
 #include "core/interrupts.h"
 #include "interfaces/delays.h"
@@ -42,7 +44,6 @@
 #include "interfaces/portability.h"
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
-#include "filesystem/ioctl.h"
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
 
@@ -233,6 +234,8 @@ system_reboot() immediately after wakeup
 */
 static void _shutdown(bool and_return, Time *t)
 {
+    ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+    
     #ifdef WITH_FILESYSTEM
     if(and_return==false) FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
@@ -369,13 +372,7 @@ void shutdown()
 
 void reboot()
 {
-    //FIXME: at the time of writing, Miosix's newlib does not yet provide the
-    //sys/ioctl.h header file. Replace with a call to ioctl() when ready
-    #ifdef WITH_FILESYSTEM
-    miosix::getFileDescriptorTable().ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
-    #else //WITH_FILESYSTEM
-    DefaultConsole::instance().get()->ioctl(IOCTL_SYNC,0);
-    #endif //WITH_FILESYSTEM
+    ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
     
     #ifdef WITH_FILESYSTEM
     FilesystemManager::instance().umountAll();

@@ -1,5 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 by Terraneo Federico *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013, 2014                *
+ *   by Terraneo Federico                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -601,8 +602,16 @@ int _ioctl_r(struct _reent *ptr, int fd, int cmd, void *arg)
     #endif //__NO_EXCEPTIONS
     
     #else //WITH_FILESYSTEM
-    ptr->_errno=ENOENT;
-    return -1;
+    if(fd==STDIN_FILENO || fd==STDOUT_FILENO || fd==STDERR_FILENO)
+    {
+        int result=miosix::DefaultConsole::instance().getTerminal()->ioctl(cmd,arg);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    } else {
+        ptr->_errno=ENOENT;
+        return -1;
+    }
     #endif //WITH_FILESYSTEM
 }
 

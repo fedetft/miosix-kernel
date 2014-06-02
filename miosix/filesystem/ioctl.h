@@ -28,9 +28,18 @@
 #ifndef IOCTL_H
 #define	IOCTL_H
 
+namespace miosix {
+
 enum Ioctl
 {
-    IOCTL_SYNC=100
+    IOCTL_SYNC=100,
+    IOCTL_TCGETATTR=101,
+    IOCTL_TCSETATTR_NOW=102,
+    IOCTL_TCSETATTR_FLUSH=103,
+    IOCTL_TCSETATTR_DRAIN=104,
+    IOCTL_FLUSH=105
 };
+
+}
 
 #endif //IOCTL_H

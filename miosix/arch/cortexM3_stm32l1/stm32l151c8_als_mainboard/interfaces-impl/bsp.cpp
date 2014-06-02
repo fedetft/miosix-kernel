@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2012 by Terraneo Federico                               *
+ *   Copyright (C) 2012, 2013, 2014 by Terraneo Federico                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -33,6 +33,7 @@
 
 #include <cstdlib>
 #include <inttypes.h>
+#include <sys/ioctl.h>
 #include "interfaces/bsp.h"
 #include "kernel/kernel.h"
 #include "kernel/sync.h"
@@ -41,7 +42,6 @@
 #include "interfaces/arch_registers.h"
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
-#include "filesystem/ioctl.h"
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
 #include "drivers/serial.h"
@@ -162,13 +162,7 @@ static void spi1send(unsigned char data)
 
 void shutdown()
 {
-    //FIXME: at the time of writing, Miosix's newlib does not yet provide the
-    //sys/ioctl.h header file. Replace with a call to ioctl() when ready
-    #ifdef WITH_FILESYSTEM
-    miosix::getFileDescriptorTable().ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
-    #else //WITH_FILESYSTEM
-    DefaultConsole::instance().get()->ioctl(IOCTL_SYNC,0);
-    #endif //WITH_FILESYSTEM
+    ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
 
     disableInterrupts();
     
@@ -202,13 +196,7 @@ void shutdown()
 
 void reboot()
 {
-    //FIXME: at the time of writing, Miosix's newlib does not yet provide the
-    //sys/ioctl.h header file. Replace with a call to ioctl() when ready
-    #ifdef WITH_FILESYSTEM
-    miosix::getFileDescriptorTable().ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
-    #else //WITH_FILESYSTEM
-    DefaultConsole::instance().get()->ioctl(IOCTL_SYNC,0);
-    #endif //WITH_FILESYSTEM
+    ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
 
     disableInterrupts();
     miosix_private::IRQsystemReboot();
