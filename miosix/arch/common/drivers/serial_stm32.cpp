@@ -27,6 +27,7 @@
 
 #include <cstring>
 #include <errno.h>
+#include <termios.h>
 #include "serial_stm32.h"
 #include "kernel/sync.h"
 #include "kernel/scheduler/scheduler.h"
@@ -674,11 +675,27 @@ void STM32Serial::IRQwrite(const char *str)
 
 int STM32Serial::ioctl(int cmd, void* arg)
 {
-    if(cmd==IOCTL_SYNC)
+    termios *t=reinterpret_cast<termios*>(arg);
+    switch(cmd)
     {
-        waitSerialTxFifoEmpty();
-        return 0;
-    } else return -ENOTTY; //Means the operation does not apply to this descriptor
+        case IOCTL_SYNC:
+            waitSerialTxFifoEmpty();
+            return 0;
+        case IOCTL_TCGETATTR:
+            t->c_iflag=IGNBRK | IGNPAR;
+            t->c_oflag=0;
+            t->c_cflag=CS8 | (flowControl ? CRTSCTS : 0);
+            t->c_lflag=0;
+            return 0;
+        case IOCTL_TCSETATTR_NOW:
+        case IOCTL_TCSETATTR_DRAIN:
+        case IOCTL_TCSETATTR_FLUSH:
+            //Changing things at runtime unsupported, so do nothing, but don't
+            //return error as console_device.h implements some attribute changes
+            return 0;
+        default:
+            return -ENOTTY; //Means the operation does not apply to this descriptor
+    }
 }
 
 void STM32Serial::IRQhandleInterrupt()

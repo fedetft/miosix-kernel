@@ -1,6 +1,6 @@
 
 #define MyAppName "Miosix Toolchain"
-#define MyAppVersion "GCC 4.7.3r000"
+#define MyAppVersion "GCC 4.7.3r001"
 #define MyAppURL "http://miosix.org"
 #define MyAppGUID "{{5270879A-9707-4BCB-930F-2FC7B5621061}"
 

@@ -26,7 +26,9 @@
  ***************************************************************************/
 
 #include "console_device.h"
+#include "filesystem/ioctl.h"
 #include <errno.h>
+#include <termios.h>
 
 using namespace std;
 
@@ -109,8 +111,24 @@ int TerminalDevice::isatty() const { return device->isatty(); }
 
 int TerminalDevice::ioctl(int cmd, void *arg)
 {
-    //TODO: trap ioctl to change terminal settings
-    return device->ioctl(cmd,arg);
+    if(int result=device->ioctl(cmd,arg)!=0) return result;
+    termios *t=reinterpret_cast<termios*>(arg);
+    switch(cmd)
+    {
+        case IOCTL_TCGETATTR:
+            if(echo) t->c_lflag |= ECHO; else t->c_lflag &= ~ECHO;
+            if(binary==false) t->c_lflag |= ICANON; else t->c_lflag &= ~ICANON;
+            break;
+        case IOCTL_TCSETATTR_NOW:
+        case IOCTL_TCSETATTR_DRAIN:
+        case IOCTL_TCSETATTR_FLUSH:
+            echo=(t->c_lflag & ECHO) ? true : false;
+            binary=(t->c_lflag & ICANON) ? false : true;
+            break;
+        default:
+            break;
+    }
+    return 0;
 }
 
 pair<size_t,bool> TerminalDevice::normalize(char *buffer, ssize_t begin,

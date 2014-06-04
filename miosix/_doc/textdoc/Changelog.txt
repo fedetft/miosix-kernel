@@ -1,5 +1,9 @@
 Changelog for Miosix np embedded OS
 
+- Implemented termios support in Miosix, now it is possible to disable echo
+  and/or enter raw mode on serial ports using a standard POSIX interface.
+- Added sys/termios.h to newlib patch
+- Added sys/ioctl.h to newlib patch
 - Improved Makefile path referencing to always use relative paths, as using
   absolute ones fails when the absolute path contains spaces. This proved to
   be impossible with makefiles alone and required to add a small perl script
