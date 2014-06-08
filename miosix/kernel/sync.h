@@ -33,32 +33,6 @@
 #include "kernel.h"
 #include <vector>
 
-#ifndef PTHREAD_MUTEX_RECURSIVE
-/*
- * Small dirty trick.
- * Starting from Miosix 1.58 the upgrade to the new gcc 4.5.2 and the
- * miosix-specific patches becomes mandatory, or the kernel will no longer
- * compile. To make the transition as smooth as possible to those who are
- * using the old arm-miosix-eabi-gcc compiler, we need to print an
- * informative warning telling them they have to upgrade.
- * Now, since the new patches make the #define PTHREAD_MUTEX_RECURSIVE
- * available we can use it to check which compiler is being used.
- */
-#warning "You upgraded to gcc 4.7.2 and mandatory newlib patches, did you?"
-#warning "If not, see http://miosix.org/gcc-4.7.2.html"
-#endif
-#ifndef _MIOSIX
-/*
- * Same small dirty trick.
- * Starting from Miosix 2.00 the kernel can only be compiled with the new
- * gcc 4.7.2 and the miosix-specific patches. See miosix/compiler/readme.txt
- * for more infos. This works as in Miosix before 2.00 the _MIOSIX macro
- * was defined by the Makefile, now it became a gcc intrinsic.
- */
-#error "You upgraded to gcc 4.7.2, did you?"
-#error "If not, see http://miosix.org/gcc-4.7.2.html"
-#endif
-
 namespace miosix {
 
 /**

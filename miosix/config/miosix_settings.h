@@ -213,6 +213,11 @@ const unsigned int WATERMARK_FILL=0xaaaaaaaa;
 /// \internal Used to fill stack (for checking stack usage)
 const unsigned int STACK_FILL=0xbbbbbbbb;
 
+// Compiler version checks
+#if _MIOSIX_GCC_PATCH_VERSION < 1
+#error "You are using a too old compiler. Get the latest one from https://miosix.org/wiki/index.php?title=Miosix_Toolchain"
+#endif
+
 /**
  * \}
  */

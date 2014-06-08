@@ -1,5 +1,9 @@
 Changelog for Miosix np embedded OS
 
+- Added proper compiler patch versioning through the _MIOSIX_GCC_PATCH_VERSION
+  builtin macro.
+- Added small fixed to the previous newlib patch. This is the final change for
+  termios.h
 - Implemented termios support in Miosix, now it is possible to disable echo
   and/or enter raw mode on serial ports using a standard POSIX interface.
 - Added sys/termios.h to newlib patch

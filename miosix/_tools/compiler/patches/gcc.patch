@@ -1,7 +1,7 @@
 diff -ruN gcc-4.7.3-old/gcc/config/arm/miosix-eabi.h gcc-4.7.3/gcc/config/arm/miosix-eabi.h
 --- gcc-4.7.3-old/gcc/config/arm/miosix-eabi.h	1970-01-01 00:00:00.000000000 +0000
 +++ gcc-4.7.3/gcc/config/arm/miosix-eabi.h	2013-11-10 23:21:04.788054065 +0000
-@@ -0,0 +1,17 @@
+@@ -0,0 +1,18 @@
 +
 +/*
 + * Adding a builtin_define to make sure _MIOSIX is always
@@ -17,6 +17,7 @@ diff -ruN gcc-4.7.3-old/gcc/config/arm/miosix-eabi.h gcc-4.7.3/gcc/config/arm/mi
 +    do {                                 \
 +        TARGET_BPABI_CPP_BUILTINS();     \
 +        builtin_define("_MIOSIX");       \
++        builtin_define("_MIOSIX_GCC_PATCH_VERSION=1"); \
 +        builtin_assert("system=miosix"); \
 +    } while(false)
 diff -ruN gcc-4.7.3-old/gcc/config/arm/t-arm-miosix gcc-4.7.3/gcc/config/arm/t-arm-miosix

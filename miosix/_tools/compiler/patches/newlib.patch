@@ -8058,8 +8058,8 @@ diff -ruN newlib-2.0.0-old/newlib/libc/sys/miosix/sys/syslimits.h newlib-2.0.0/n
 +#endif /* _SYS_SYSLIMITS_H */
 diff -ruN newlib-2.0.0-old/newlib/libc/sys/miosix/sys/termios.h newlib-2.0.0/newlib/libc/sys/miosix/sys/termios.h
 --- newlib-2.0.0-old/newlib/libc/sys/miosix/sys/termios.h	1970-01-01 00:00:00.000000000 +0000
-+++ newlib-2.0.0/newlib/libc/sys/miosix/sys/termios.h	2014-06-02 13:52:17.612123204 +0000
-@@ -0,0 +1,114 @@
++++ newlib-2.0.0/newlib/libc/sys/miosix/sys/termios.h	2014-06-04 00:54:11.550194917 +0000
+@@ -0,0 +1,113 @@
 +/* Adapted from sys/sysvi386/sys */
 +
 +#ifndef _SYS_TERMIOS_H
@@ -8153,7 +8153,7 @@ diff -ruN newlib-2.0.0-old/newlib/libc/sys/miosix/sys/termios.h newlib-2.0.0/new
 +#define NCCS 13
 +
 +typedef unsigned char cc_t;
-+typedef unsigned short tcflag_t;
++typedef unsigned int tcflag_t;
 +typedef unsigned int speed_t;
 +
 +struct termios
@@ -8163,7 +8163,6 @@ diff -ruN newlib-2.0.0-old/newlib/libc/sys/miosix/sys/termios.h newlib-2.0.0/new
 +    tcflag_t c_cflag;
 +    tcflag_t c_lflag;
 +    cc_t c_cc[NCCS];
-+    speed_t c_speed;
 +};
 +
 +int tcgetattr(int fd, struct termios *t);
@@ -8176,7 +8175,7 @@ diff -ruN newlib-2.0.0-old/newlib/libc/sys/miosix/sys/termios.h newlib-2.0.0/new
 +#endif /*_SYS_TERMIOS_H*/
 diff -ruN newlib-2.0.0-old/newlib/libc/sys/miosix/termios.c newlib-2.0.0/newlib/libc/sys/miosix/termios.c
 --- newlib-2.0.0-old/newlib/libc/sys/miosix/termios.c	1970-01-01 00:00:00.000000000 +0000
-+++ newlib-2.0.0/newlib/libc/sys/miosix/termios.c	2014-06-01 19:20:41.040073415 +0000
++++ newlib-2.0.0/newlib/libc/sys/miosix/termios.c	2014-06-04 00:55:14.426195842 +0000
 @@ -0,0 +1,46 @@
 +
 +#include <termios.h>
@@ -8206,12 +8205,12 @@ diff -ruN newlib-2.0.0-old/newlib/libc/sys/miosix/termios.c newlib-2.0.0/newlib/
 +
 +speed_t cfgetospeed(const struct termios *t)
 +{
-+    return t->c_speed & 0x00ffffff;
++    return t->c_cflag & 0x00ffffff;
 +}
 +
 +int cfsetospeed(struct termios *t, speed_t speed)
 +{
-+    t->c_speed = (t->c_speed & (~0x00ffffff)) | speed;
++    t->c_cflag = (t->c_cflag & (~0x00ffffff)) | speed;
 +    return 0;
 +}
 +

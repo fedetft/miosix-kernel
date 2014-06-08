@@ -200,7 +200,11 @@ cd $MPFR
 
 make all $PARALLEL 2>../log/z.mpfr.b.txt	|| quit ":: Error compiling mpfr"
 
-make check $PARALLEL 2> ../log/z.mpfr.c.txt	|| quit ":: Error testing mpfr"
+if [[ $HOST != *mingw* ]]; then
+	# printf/scanf tests fail due to wine unimplemented features, this is known
+	# http://readlist.com/lists/gcc.gnu.org/gcc/10/53348.html
+	make check $PARALLEL 2> ../log/z.mpfr.c.txt	|| quit ":: Error testing mpfr"
+fi
 
 make install 2>../log/z.mpfr.d.txt			|| quit ":: Error installing mpfr"
 
