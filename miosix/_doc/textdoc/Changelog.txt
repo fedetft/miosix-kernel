@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Be less restrictive in pthread_attr_setstacksize(). Accept also stack sizes
+  not divisible by 4, as Thread::create() will simply align the stack size.
 - Added proper compiler patch versioning through the _MIOSIX_GCC_PATCH_VERSION
   builtin macro.
 - Added small fixed to the previous newlib patch. This is the final change for

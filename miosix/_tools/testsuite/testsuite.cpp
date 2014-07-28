@@ -54,19 +54,19 @@
 #include "interfaces/atomic_ops.h"
 #include "board_settings.h"
 #include "interfaces/endianness.h"
-#include "miosix/e20/e20.h"
+#include "e20/e20.h"
 #include "kernel/intrusive.h"
 #include "util/crc16.h"
 
 #ifdef WITH_PROCESSES
-#include "miosix/kernel/elf_program.h"
-#include "miosix/kernel/process.h"
+#include "kernel/elf_program.h"
+#include "kernel/process.h"
 #include "kernel/process_pool.h"
 #include "kernel/SystemMap.h"
 
-#include "miosix/testsuite/syscall_testsuite/includes.h"
-#include "miosix/testsuite/elf_testsuite/includes.h"
-#include "miosix/testsuite/mpu_testsuite/includes.h"
+#include "testsuite/syscall_testsuite/includes.h"
+#include "testsuite/elf_testsuite/includes.h"
+#include "testsuite/mpu_testsuite/includes.h"
 #endif //WITH_PROCESSES
 
 using namespace std::tr1;
@@ -165,9 +165,15 @@ int main()
     Thread::setPriority(0);
     for(;;)
     {
-        iprintf("Type:\n 't' for kernel test\n 'f' for filesystem test\n 'x' for "
-        "exception test\n 'b' for benchmarks\n 'p' for process tes\n 'y' for syscall test\n"
-        " 'm' for elf and mpu test\n 's' for shutdown\n");
+        iprintf("Type:\n"
+                " 't' for kernel test\n"
+                " 'f' for filesystem test\n"
+                " 'x' for exception test\n"
+                " 'b' for benchmarks\n"
+                " 'p' for process test\n"
+                " 'y' for syscall test\n"
+                " 'm' for elf and mpu test\n"
+                " 's' for shutdown\n");
         char c;
         for(;;)
         {
@@ -244,9 +250,16 @@ int main()
                 ledOff();
                 Thread::sleep(500);//Ensure all threads are deleted.
                 break;
-            case 's':
-                iprintf("Shutting down\n");
-                shutdown();
+            case 'p':
+                #ifdef WITH_PROCESSES
+                ledOn();
+                process_test_process_ret();
+                process_test_file_concurrency();
+                ledOff();
+                #else //#ifdef WITH_PROCESSES
+                iprintf("Error, process support is disabled\n");
+                #endif //#ifdef WITH_PROCESSES
+                break;
             case 'y':
                 ledOn();
                 #ifdef WITH_PROCESSES
@@ -266,21 +279,13 @@ int main()
                 #endif //WITH_PROCESSES
                 ledOff();
                 break;
-            case 'p':
-                #ifdef WITH_PROCESSES
-                ledOn();
-                process_test_process_ret();
-                process_test_file_concurrency();
-                ledOff();
-                #endif //WITH_PROCESSES
-                break;
             case 'm':
                 //The priority of the test thread must be 1
                 Thread::setPriority(1);
                 ledOn();
                 #ifdef WITH_PROCESSES
                 //Note by TFT: these addresses are only valid for the stm3220g-eval.
-                //FIXME: llok into it
+                //FIXME: look into it
                 // ProcessPool allocates 4096 bytes starting from address 0x64100000
                 // Range : 0x64100000 - 0x64101000
 
@@ -328,6 +333,9 @@ int main()
                 ledOff();
                 Thread::setPriority(0);
             break;
+            case 's':
+                iprintf("Shutting down\n");
+                shutdown();
             default:
                 iprintf("Unrecognized option\n");
         }
