@@ -198,7 +198,7 @@ template <typename SDA, typename SCL, unsigned stretchTimeout>
 bool SoftwareI2C<SDA, SCL, stretchTimeout>::waitForClockStretching()
 {
     if(SCL::value()==1) return true;
-    for(int i=0;i<stretchTimeout;i++)
+    for(unsigned int i=0;i<stretchTimeout;i++)
     {
         Thread::sleep(1);
         if(SCL::value()==1)
