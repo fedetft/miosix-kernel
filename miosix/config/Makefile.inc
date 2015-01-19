@@ -25,6 +25,7 @@
 #OPT_BOARD := stm32f407vg_bitsboard
 #OPT_BOARD := stm32f205rg_sony-newman
 #OPT_BOARD := stm32f429zi_stm32f4discovery
+#OPT_BOARD := stm32f103cb_als_mainboard_rev2
 
 ##
 ## Optimization flags, choose one.
@@ -259,6 +260,12 @@ ifeq ($(OPT_BOARD),stm32f429zi_stm32f4discovery)
     #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_180MHz=180000000
 endif
 
+##---------------------------------------------------------------------------
+## stm32f103cb_als_mainboard_rev2
+##
+
+# No options
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -302,6 +309,8 @@ else ifeq ($(OPT_BOARD),stm32f407vg_bitsboard)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),stm32f429zi_stm32f4discovery)
     ARCH := cortexM4_stm32f4
+else ifeq ($(OPT_BOARD),stm32f103cb_als_mainboard_rev2)
+    ARCH := cortexM3_stm32
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -582,7 +591,40 @@ else ifeq ($(ARCH),cortexM3_stm32)
         -openprjSTM32F10xxE.jflash -openmain.hex -auto -exit
         #PROGRAM_CMDLINE := "c:/Program Files/STMicroelectronics/STM32 ST-LINK Utility/ST-LINK Utility/ST-LINK_CLI.exe" \
         #-c JTAG -Rst -P main.hex 0x08000000 -Run
+        
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f103cb_als_mainboard_rev2
+    ##
+    else ifeq ($(OPT_BOARD),stm32f103cb_als_mainboard_rev2)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_stm32/stm32f103cb_als_mainboard_rev2
 
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_128k+20k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_ALS_MAINBOARD_REV2 -DSTM32F10X_MD
+        CXXFLAGS_BASE += -D_BOARD_ALS_MAINBOARD_REV2 -DSTM32F10X_MD
+
+        ## Clock frequency
+        # Not defining anything results in HSI being used
+        CLOCK_FREQ :=
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := stm32flash -w main.bin -v /dev/ttyUSB1
+    
     ##-------------------------------------------------------------------------
     ## End of board list
     ##
