@@ -602,8 +602,9 @@ static void SetSysClockToHSE(void)
   */
 static void SetSysClockTo24(void)
 {
-  __IO uint32_t StartUpCounter = 0, HSEStatus = 0;
+  __IO uint32_t StartUpCounter = 0, HSEStatus = 0x01; //By TFT: was 0
   
+  #ifndef RUN_WITH_HSI //By TFT
   /* SYSCLK, HCLK, PCLK2 and PCLK1 configuration ---------------------------*/    
   /* Enable HSE */    
   RCC->CR |= ((uint32_t)RCC_CR_HSEON);
@@ -623,6 +624,11 @@ static void SetSysClockTo24(void)
   {
     HSEStatus = (uint32_t)0x00;
   }  
+  #else
+  #ifndef STM32F10X_MD_VL
+  #warning Untested configuration
+  #endif
+  #endif //RUN_WITH_HSI //By TFT
 
   if (HSEStatus == (uint32_t)0x01)
   {
@@ -674,6 +680,10 @@ static void SetSysClockTo24(void)
     RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLXTPRE_HSE_Div2 | RCC_CFGR_PLLMULL6);
 #endif /* STM32F10X_CL */
 
+    #ifdef RUN_WITH_HSI //By TFT
+    RCC->CFGR &= ~RCC_CFGR_PLLSRC;
+    #endif
+
     /* Enable PLL */
     RCC->CR |= RCC_CR_PLLON;
 
@@ -706,8 +716,9 @@ static void SetSysClockTo24(void)
   */
 static void SetSysClockTo36(void)
 {
-  __IO uint32_t StartUpCounter = 0, HSEStatus = 0;
+  __IO uint32_t StartUpCounter = 0, HSEStatus = 0x01; //By TFT: was 0
   
+  #ifndef RUN_WITH_HSI //By TFT
   /* SYSCLK, HCLK, PCLK2 and PCLK1 configuration ---------------------------*/    
   /* Enable HSE */    
   RCC->CR |= ((uint32_t)RCC_CR_HSEON);
@@ -727,6 +738,9 @@ static void SetSysClockTo36(void)
   {
     HSEStatus = (uint32_t)0x00;
   }  
+  #else
+  #warning Untested configuration
+  #endif //RUN_WITH_HSI //By TFT
 
   if (HSEStatus == (uint32_t)0x01)
   {
@@ -775,6 +789,10 @@ static void SetSysClockTo36(void)
     RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLXTPRE_HSE_Div2 | RCC_CFGR_PLLMULL9);
 #endif /* STM32F10X_CL */
 
+    #ifdef RUN_WITH_HSI //By TFT
+    RCC->CFGR &= ~RCC_CFGR_PLLSRC;
+    #endif
+
     /* Enable PLL */
     RCC->CR |= RCC_CR_PLLON;
 
@@ -807,8 +825,9 @@ static void SetSysClockTo36(void)
   */
 static void SetSysClockTo48(void)
 {
-  __IO uint32_t StartUpCounter = 0, HSEStatus = 0;
+  __IO uint32_t StartUpCounter = 0, HSEStatus = 0x01; //By TFT: was 0
   
+  #ifndef RUN_WITH_HSI //By TFT
   /* SYSCLK, HCLK, PCLK2 and PCLK1 configuration ---------------------------*/    
   /* Enable HSE */    
   RCC->CR |= ((uint32_t)RCC_CR_HSEON);
@@ -828,6 +847,9 @@ static void SetSysClockTo48(void)
   {
     HSEStatus = (uint32_t)0x00;
   }  
+  #else
+  #warning Untested configuration
+  #endif //RUN_WITH_HSI //By TFT
 
   if (HSEStatus == (uint32_t)0x01)
   {
@@ -875,6 +897,10 @@ static void SetSysClockTo48(void)
     RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLMULL6);
 #endif /* STM32F10X_CL */
 
+    #ifdef RUN_WITH_HSI //By TFT
+    RCC->CFGR &= ~RCC_CFGR_PLLSRC;
+    #endif
+
     /* Enable PLL */
     RCC->CR |= RCC_CR_PLLON;
 
@@ -908,8 +934,9 @@ static void SetSysClockTo48(void)
   */
 static void SetSysClockTo56(void)
 {
-  __IO uint32_t StartUpCounter = 0, HSEStatus = 0;
+  __IO uint32_t StartUpCounter = 0, HSEStatus = 0x01; //By TFT: was 0
   
+  #ifndef RUN_WITH_HSI //By TFT
   /* SYSCLK, HCLK, PCLK2 and PCLK1 configuration ---------------------------*/   
   /* Enable HSE */    
   RCC->CR |= ((uint32_t)RCC_CR_HSEON);
@@ -929,6 +956,9 @@ static void SetSysClockTo56(void)
   {
     HSEStatus = (uint32_t)0x00;
   }  
+  #else
+  #warning Untested configuration
+  #endif //RUN_WITH_HSI //By TFT
 
   if (HSEStatus == (uint32_t)0x01)
   {
@@ -977,6 +1007,10 @@ static void SetSysClockTo56(void)
 
 #endif /* STM32F10X_CL */
 
+    #ifdef RUN_WITH_HSI //By TFT
+    RCC->CFGR &= ~RCC_CFGR_PLLSRC;
+    #endif
+
     /* Enable PLL */
     RCC->CR |= RCC_CR_PLLON;
 
@@ -1010,8 +1044,9 @@ static void SetSysClockTo56(void)
   */
 static void SetSysClockTo72(void)
 {
-  __IO uint32_t StartUpCounter = 0, HSEStatus = 0;
+  __IO uint32_t StartUpCounter = 0, HSEStatus = 0x01; //By TFT: was 0
   
+  #ifndef RUN_WITH_HSI //By TFT
   /* SYSCLK, HCLK, PCLK2 and PCLK1 configuration ---------------------------*/    
   /* Enable HSE */    
   RCC->CR |= ((uint32_t)RCC_CR_HSEON);
@@ -1031,6 +1066,9 @@ static void SetSysClockTo72(void)
   {
     HSEStatus = (uint32_t)0x00;
   }  
+  #else
+  #warning Untested configuration
+  #endif //RUN_WITH_HSI //By TFT
 
   if (HSEStatus == (uint32_t)0x01)
   {
@@ -1079,6 +1117,10 @@ static void SetSysClockTo72(void)
                                         RCC_CFGR_PLLMULL));
     RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | RCC_CFGR_PLLMULL9);
 #endif /* STM32F10X_CL */
+
+    #ifdef RUN_WITH_HSI //By TFT
+    RCC->CFGR &= ~RCC_CFGR_PLLSRC;
+    #endif
 
     /* Enable PLL */
     RCC->CR |= RCC_CR_PLLON;
