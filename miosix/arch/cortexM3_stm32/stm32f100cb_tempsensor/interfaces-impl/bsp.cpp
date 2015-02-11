@@ -26,10 +26,11 @@
  ***************************************************************************/ 
 
 /***********************************************************************
-* bsp.cpp Part of the Miosix Embedded OS.
-* Board support package, this file initializes hardware.
-************************************************************************/
+ * bsp.cpp Part of the Miosix Embedded OS.
+ * Board support package, this file initializes hardware.
+ ************************************************************************/
 
+#include <utility>
 #include <sys/ioctl.h>
 #include "interfaces/bsp.h"
 #include "interfaces/delays.h"
@@ -39,6 +40,8 @@
 #include "filesystem/console/console_device.h"
 #include "drivers/serial.h"
 #include "board_settings.h"
+
+using namespace std;
 
 //
 // Interrupts
@@ -160,6 +163,81 @@ unsigned int readAdcValue()
 }
 
 //
+// class NonVolatileStorage
+//
+
+NonVolatileStorage& NonVolatileStorage::instance()
+{
+    static NonVolatileStorage singleton;
+    return singleton;
+}
+
+bool NonVolatileStorage::erase()
+{
+    FastInterruptDisableLock dLock;
+    if(IRQunlock()==false) return false;
+    
+    while(FLASH->SR & FLASH_SR_BSY) ;
+    FLASH->CR |= FLASH_CR_PER;
+    FLASH->AR=baseAddress;
+    FLASH->CR |= FLASH_CR_STRT;
+    while(FLASH->SR & FLASH_SR_BSY) ;
+    FLASH->CR &= ~FLASH_CR_PER;
+    
+    FLASH->CR |= FLASH_CR_LOCK;
+    
+    for(int i=0;i<capacity();i++)
+        if(*reinterpret_cast<unsigned char*>(baseAddress+i)!=0xff) return false;
+    return true;
+}
+
+bool NonVolatileStorage::program(const void* data, int size)
+{
+    const char *ptr=reinterpret_cast<const char *>(data);
+    size=min(size,capacity());
+    
+    FastInterruptDisableLock dLock;
+    if(IRQunlock()==false) return false;
+    
+    bool result=true;
+    for(int i=0;i<size;i+=2)
+    {
+        unsigned short a,b;
+        //If size is odd, pad with an 0xff as we can only write halfwords
+        a=(i==size-1) ? 0xff : ptr[i+1];
+        b=ptr[i];
+        //Note: bytes swapped to account for the cpu being little-endian
+        unsigned short val=(a<<8) | b;
+        volatile unsigned short *target=
+                reinterpret_cast<volatile unsigned short*>(baseAddress+i);
+        while(FLASH->SR & FLASH_SR_BSY) ;
+        FLASH->CR |= FLASH_CR_PG;
+        *target=val;
+        while(FLASH->SR & FLASH_SR_BSY) ;
+        FLASH->CR &= ~FLASH_CR_PG;
+        if(*target!=val) result=false;
+    }
+    
+    FLASH->CR |= FLASH_CR_LOCK;
+    return result;
+}
+
+void NonVolatileStorage::read(void* data, int size)
+{
+    size=min(size,capacity());
+    memcpy(data,reinterpret_cast<void*>(baseAddress),size);
+}
+
+bool NonVolatileStorage::IRQunlock()
+{
+    if((FLASH->CR & FLASH_CR_LOCK)==0) return true;
+    FLASH->KEYR=0x45670123;
+    FLASH->KEYR=0xCDEF89AB;
+    if((FLASH->CR & FLASH_CR_LOCK)==0) return true;
+    return false;
+}
+
+//
 // Initialization
 //
 
@@ -193,6 +271,11 @@ void IRQbspInit()
     DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
         new STM32Serial(defaultSerial,defaultSerialSpeed,
         defaultSerialFlowctrl ? STM32Serial::RTSCTS : STM32Serial::NOFLOWCTRL)));
+    
+    //The serial port drver reconfigures PA9 to 50MHz AF out and PA10 to
+    //floating in, but we want them as configured previously, so override
+    GPIOA->CRH=0x22222892;
+    GPIOA->ODR=0x0410;     //Enable pullup on PA10, and set PA4 high (SPI CS)
 }
 
 void bspInit2()

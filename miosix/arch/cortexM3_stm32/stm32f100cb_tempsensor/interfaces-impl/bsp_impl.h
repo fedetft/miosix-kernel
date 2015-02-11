@@ -37,13 +37,90 @@
 
 namespace miosix {
 
+/**
+ * Clear the 4 digit LED display on the board
+ */
 void clearDisplay();
+
+/**
+ * Show a number, in the range -99.9 to 999.9 on the 4 digit LED display
+ * \param number the number to show
+ */
 void showNumber(float number);
 
-typedef Gpio<GPIOA_BASE,4> cs;
+typedef Gpio<GPIOA_BASE,4> cs; ///< For low-level SPI access
+
+/**
+ * Send a single byte to SPI, requires to pull cs low first
+ * \param x byte to send
+ * \return byte received
+ */
 unsigned char spi1sendRecv(unsigned char x=0);
+
+/**
+ * Higher level function to read the status register of the AD7789 connected
+ * through SPI
+ * \return the status register
+ */
 unsigned char readStatusReg();
+
+/**
+ * Higher level function to read a sample from the AD7789 connected through SPI
+ * \return the last converted ADC value
+ */
 unsigned int readAdcValue();
+
+/**
+ * This class allows to store non volatile data into the last FLASH page
+ * of the microcontroller.
+ */
+class NonVolatileStorage
+{
+public:
+    /**
+     * \return an instance of this class
+     */
+    static NonVolatileStorage& instance();
+    
+    /**
+     * \return the maximum size of the available storage
+     */
+    int capacity() const { return 1024; }
+    
+    /**
+     * Erase the non voltaile storage, resetting it to all 0xff
+     * \return true on success, false on failure
+     */
+    bool erase();
+    
+    /**
+     * Program data into the non volatile storage
+     * \param data data to write to the non-volatile storage
+     * \param size size of data to write
+     * \return true on success, false on failure
+     */
+    bool program(const void *data, int size);
+    
+    /**
+     * Read back data from the non volatile storage
+     * \param data data to read to the non-volatile storage
+     * \param size size of data to read
+     */
+    void read(void *data, int size);
+
+private:
+    NonVolatileStorage() {}
+    NonVolatileStorage(const NonVolatileStorage&);
+    NonVolatileStorage& operator= (const NonVolatileStorage&);
+    
+    /**
+     * Perform the unlock sequence
+     * \return true on success, false on failure
+     */
+    bool IRQunlock();
+    
+    static const unsigned int baseAddress=0x0801fc00;
+};
 
 } //namespace miosix
 

@@ -645,7 +645,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
         BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
-        LINKER_SCRIPT := $(BOARD_INC)/stm32_128k+8k_rom.ld
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_127k+8k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>

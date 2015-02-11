@@ -1,5 +1,6 @@
 /*
- * C++ enabled linker script for stm32 (128K FLASH, 8K RAM)
+ * C++ enabled linker script for stm32 (127K FLASH, 8K RAM)
+ * Last 1K of FLASH is reserved as non-volatile storage by the BSP
  * Developed by TFT: Terraneo Federico Technologies
  * Optimized for use with the Miosix kernel
  */
@@ -49,7 +50,7 @@ ENTRY(_Z13Reset_Handlerv)
 /* specify the memory areas  */
 MEMORY
 {
-    flash(rx)   : ORIGIN = 0x08000000, LENGTH = 128K
+    flash(rx)   : ORIGIN = 0x08000000, LENGTH = 127K
 
     /*
      * Note, the ram starts at 0x20000000 but it is necessary to add the size
