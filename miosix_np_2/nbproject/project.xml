@@ -74,6 +74,14 @@
                     <name>stm32f429zi_stm32f4discovery</name>
                     <type>0</type>
                 </confElem>
+                <confElem>
+                    <name>stm32f103cb_als_mainboard_rev2</name>
+                    <type>0</type>
+                </confElem>
+                <confElem>
+                    <name>stm32f100cb_tempsensor</name>
+                    <type>0</type>
+                </confElem>
             </confList>
             <formatting>
                 <project-formatting-style>false</project-formatting-style>
