@@ -110,6 +110,12 @@ void showNumber(float number)
     }
 }
 
+void showLowVoltageIndicator()
+{
+    static const char bat[]={0x7c,0x77,0x78,0x0}; //"bAt "
+    memcpy(digits,bat,4);
+}
+
 //
 // AD7789 driver
 //
@@ -160,6 +166,22 @@ unsigned int readAdcValue()
     cs::high();
     delayUs(1);
     return result;
+}
+
+//
+// PVD driver
+//
+
+static void configureLowVoltageDetect()
+{
+    PWR->CR |= PWR_CR_PVDE   //Low voltage detect enabled
+             | PWR_CR_PLS_1
+             | PWR_CR_PLS_0; //2.5V threshold
+}
+
+bool lowVoltageCheck()
+{
+    return (PWR->CSR & PWR_CSR_PVDO) ? false : true;
 }
 
 //
@@ -247,7 +269,7 @@ void IRQbspInit()
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_IOPBEN |
                     RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN |
                     RCC_APB2ENR_AFIOEN | RCC_APB2ENR_SPI1EN;
-    RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
+    RCC->APB1ENR |= RCC_APB1ENR_TIM3EN | RCC_APB1ENR_PWREN;
     RCC_SYNC();
 
     //Board has no JTAG nor SWD, and those pins are used
@@ -267,6 +289,7 @@ void IRQbspInit()
     GPIOD->CRL=0x22222222; //PD0 and PD1 all out
     
     initAdc();
+    configureLowVoltageDetect();
 
     DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
         new STM32Serial(defaultSerial,defaultSerialSpeed,

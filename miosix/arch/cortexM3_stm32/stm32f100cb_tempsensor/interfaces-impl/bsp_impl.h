@@ -48,6 +48,11 @@ void clearDisplay();
  */
 void showNumber(float number);
 
+/**
+ * Show the word "bAt" on the LED display
+ */
+void showLowVoltageIndicator();
+
 typedef Gpio<GPIOA_BASE,4> cs; ///< For low-level SPI access
 
 /**
@@ -69,6 +74,11 @@ unsigned char readStatusReg();
  * \return the last converted ADC value
  */
 unsigned int readAdcValue();
+
+/**
+ * \return true if the supply voltege is high enough
+ */
+bool lowVoltageCheck();
 
 /**
  * This class allows to store non volatile data into the last FLASH page
