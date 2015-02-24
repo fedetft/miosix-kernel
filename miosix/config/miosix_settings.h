@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013, 2014                *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015          *
  *   by Terraneo Federico                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *

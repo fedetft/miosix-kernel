@@ -78,7 +78,6 @@
               <in>sd_stm32f2_f4.h</in>
               <in>serial_lpc2000.cpp</in>
               <in>serial_stm32.cpp</in>
-              <in>servo_stm32.cpp</in>
               <in>stm32_hardware_rng.cpp</in>
               <in>stm32_hardware_rng.h</in>
               <in>stm32f2_f4_i2c.cpp</in>
@@ -357,16 +356,12 @@
             <in>scheduler.h</in>
             <in>tick_interrupt.h</in>
           </df>
-          <in>SystemMap.cpp</in>
-          <in>elf_program.cpp</in>
           <in>error.cpp</in>
           <in>error.h</in>
           <in>intrusive.h</in>
           <in>kernel.cpp</in>
           <in>kernel.h</in>
           <in>logging.h</in>
-          <in>process.cpp</in>
-          <in>process_pool.cpp</in>
           <in>pthread.cpp</in>
           <in>pthread_private.h</in>
           <in>queue.h</in>
@@ -9277,11 +9272,15 @@
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/arch/common/drivers/serial_stm32.cpp"
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/interfaces-impl/delays.cpp"
             ex="false"
@@ -9321,21 +9320,29 @@
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f103cb_als_mainboard_rev2/core/stage_1_boot.cpp"
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f103cb_als_mainboard_rev2/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f103cb_als_mainboard_rev2/interfaces-impl/bsp_impl.h"
             ex="false"
@@ -9351,11 +9358,15 @@
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/filesystem/file.cpp" ex="false" tool="1" flavor2="9">
         <ccTool>
@@ -9469,6 +9480,8 @@
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/kernel/stage_2_boot.cpp" ex="false" tool="1" flavor2="9">
         <ccTool>
@@ -9762,11 +9775,15 @@
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/arch/common/drivers/serial_stm32.cpp"
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/interfaces-impl/delays.cpp"
             ex="false"
@@ -9806,11 +9823,15 @@
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f100cb_tempsensor/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f100cb_tempsensor/interfaces-impl/bsp_impl.h"
             ex="false"
@@ -9821,21 +9842,29 @@
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/filesystem/file.cpp" ex="false" tool="1" flavor2="9">
         <ccTool>
@@ -9949,6 +9978,8 @@
             ex="false"
             tool="1"
             flavor2="9">
+        <ccTool>
+        </ccTool>
       </item>
       <item path="../miosix/kernel/stage_2_boot.cpp" ex="false" tool="1" flavor2="9">
         <ccTool>

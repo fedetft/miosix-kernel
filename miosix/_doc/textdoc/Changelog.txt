@@ -1,5 +1,6 @@
 Changelog for Miosix np embedded OS
 
+- Added support for new board, oledboard2
 - Added support for new board, tempsensor
 - Added support for new board als_mainboard_rev2
 - Be less restrictive in pthread_attr_setstacksize(). Accept also stack sizes
