@@ -82,6 +82,10 @@
                     <name>stm32f100cb_tempsensor</name>
                     <type>0</type>
                 </confElem>
+                <confElem>
+                    <name>stm32f429zi_oledboard2</name>
+                    <type>0</type>
+                </confElem>
             </confList>
             <formatting>
                 <project-formatting-style>false</project-formatting-style>
