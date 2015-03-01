@@ -36,6 +36,7 @@
 #include "config/miosix_settings.h"
 #include "interfaces/gpio.h"
 #include "drivers/stm32_hardware_rng.h"
+#include "hwmapping.h"
 
 namespace miosix {
 
@@ -51,20 +52,14 @@ namespace miosix {
  */
 void configureSdram();
 
-/**
- * \internal
- * used by the ledOn() and ledOff() implementation
- */
-typedef Gpio<GPIOC_BASE,11> _led;
-
 inline void ledOn()
 {
-    _led::high();
+    led::high();
 }
 
 inline void ledOff()
 {
-    _led::low();
+    led::low();
 }
 
 /**

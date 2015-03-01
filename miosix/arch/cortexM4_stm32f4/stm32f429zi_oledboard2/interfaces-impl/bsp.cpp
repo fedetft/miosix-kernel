@@ -71,27 +71,55 @@ void configureSdram()
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOBEN |
                     RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN |
                     RCC_AHB1ENR_GPIOEEN | RCC_AHB1ENR_GPIOFEN |
-                    RCC_AHB1ENR_GPIOGEN | RCC_AHB1ENR_GPIOHEN;
+                    RCC_AHB1ENR_GPIOGEN;
     RCC_SYNC();
     
-    //First, configure SDRAM GPIOs
-    GPIOB->AFR[0]=0x0cc00000;
-    GPIOC->AFR[0]=0x0000000c;
-    GPIOD->AFR[0]=0x000000cc;
+    //To access the SDRAM we need to configure its GPIO, but since
+    //we're at it, we'll configure all the GPIOS
+
+    //Port config (H=high, L=low, PU=pullup, PD=pulldown)
+    //  |  PORTA  |  PORTB  |  PORTC  |  PORTD  |  PORTE  |  PORTF  |  PORTG  |
+    //--+---------+---------+---------+---------+---------+---------+---------+
+    // 0| IN PD   | AF14    | AF12    | AF12    | AF12    | AF12    | AF12    |
+    // 1| IN PD   | AF14    | IN PD   | AF12    | AF12    | AF12    | AF12    |
+    // 2| IN PD   | IN      | AF5     | AF12    | IN PU   | AF12    | IN PD   |
+    // 3| AF14    | IN PD   | AF5     | AF14    | IN PU   | AF12    | OUT L   |
+    // 4| AF14    | AF5     | OUT L   | IN PD   | IN PU   | AF12    | AF12    |
+    // 5| AF5     | AF12    | IN PD   | IN PD   | IN PU   | AF12    | AF12    |
+    // 6| AF14    | AF12    | AF14    | AF14    | IN PD   | IN PD   | AF14    |
+    // 7| AF5     | IN PD   | AF14    | IN PD   | AF12    | IN PD   | AF14    |
+    // 8| IN PD   | AF14    | AF12    | AF12    | AF12    | IN PD   | AF12    |
+    // 9| AF7     | AF14    | IN PD   | AF12    | AF12    | IN PD   | OUT H   |
+    //10| AF7 PU  | AF14    | AF14    | AF12    | AF12    | AF14    | AF14    |
+    //11| AF14    | AF14    | OUT L   | IN PD   | AF12    | AF12    | AF14    |
+    //12| AF14    | OUT H   | AF12    | IN PD   | AF12    | AF12    | AF14    |
+    //13| AF0     | AF5     | IN PD   | IN PD   | AF12    | AF12    | AF5     |
+    //14| AF0     | IN PD   | IN PD   | AF12    | AF12    | AF12    | AF5     |
+    //15| OUT H   | IN      | IN PD   | AF12    | AF12    | AF12    | AF12    |
+    
+    //First, configure GPIOs
+    GPIOA->AFR[0]=0x5e5ee000;
+    GPIOA->AFR[1]=0x000ee770;
+    GPIOB->AFR[0]=0x0cc500ee;
+    GPIOB->AFR[1]=0x0050eeee;
+    GPIOC->AFR[0]=0xee00550c;
+    GPIOC->AFR[1]=0x000c0e0c;
+    GPIOD->AFR[0]=0x0e00eccc;
     GPIOD->AFR[1]=0xcc000ccc;
     GPIOE->AFR[0]=0xc00000cc;
     GPIOE->AFR[1]=0xcccccccc;
     GPIOF->AFR[0]=0x00cccccc;
-    GPIOF->AFR[1]=0xccccc000;
-    GPIOG->AFR[0]=0x00cc00cc;
-    GPIOG->AFR[1]=0xc000000c;
+    GPIOF->AFR[1]=0xccccce00;
+    GPIOG->AFR[0]=0xeecc00cc;
+    GPIOG->AFR[1]=0xc55eee0c;
 
-    GPIOB->MODER=0x00002800;
-    GPIOC->MODER=0x00000002;
-    GPIOD->MODER=0xa02a000a;
+    GPIOA->MODER=0x6aa8aa80;
+    GPIOB->MODER=0x09aa2a0a;
+    GPIOC->MODER=0x0262a1a2;
+    GPIOD->MODER=0xa02a20aa;
     GPIOE->MODER=0xaaaa800a;
-    GPIOF->MODER=0xaa800aaa;
-    GPIOG->MODER=0x80020a0a;
+    GPIOF->MODER=0xaaa00aaa;
+    GPIOG->MODER=0xaaa6aa4a;
     
     GPIOA->OSPEEDR=0xaaaaaaaa; //Default to 50MHz speed for all GPIOs...
     GPIOB->OSPEEDR=0xaaaaaaaa | 0x00003c00; //...but 100MHz for the SDRAM pins
@@ -100,11 +128,21 @@ void configureSdram()
     GPIOE->OSPEEDR=0xaaaaaaaa | 0xffffc00f;
     GPIOF->OSPEEDR=0xaaaaaaaa | 0xffc00fff;
     GPIOG->OSPEEDR=0xaaaaaaaa | 0xc0030f0f;
-    GPIOH->OSPEEDR=0xaaaaaaaa;
     
-    //Since we'we un-configured PB3/PB4 from the default at boot TDO,NTRST,
-    //finish the job and remove the default pull-up
-    GPIOB->PUPDR=0;
+    GPIOA->PUPDR=0x2412002a;
+    GPIOB->PUPDR=0x20008080;
+    GPIOC->PUPDR=0xa8080808;
+    GPIOD->PUPDR=0x0a808a00;
+    GPIOE->PUPDR=0x00002550;
+    GPIOF->PUPDR=0x000aa000;
+    GPIOG->PUPDR=0x00000020;
+
+    //Last, set GPIOs configured as output to their level
+    expansion::spi1cs::high();
+    expansion::spi2cs::high();
+    display::vregEn::low();
+    display::reset::low();
+    display::cs::high();
     
     //Second, actually start the SDRAM controller
     RCC->AHB3ENR |= RCC_AHB3ENR_FMCEN;
@@ -184,7 +222,6 @@ void configureSdram()
 
 void IRQbspInit()
 {
-    _led::mode(Mode::OUTPUT);
     ledOn();
     delayMs(100);
     ledOff();
