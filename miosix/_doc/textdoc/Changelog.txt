@@ -1,5 +1,6 @@
 Changelog for Miosix np embedded OS
 
+v2.0
 - Added support for new board, oledboard2
 - Added support for new board, tempsensor
 - Added support for new board als_mainboard_rev2
