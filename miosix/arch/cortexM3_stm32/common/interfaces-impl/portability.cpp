@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -168,13 +168,38 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     //leaving the content of r4-r11 uninitialized
 }
 
+#ifdef WITH_PROCESSES
+
+void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
+        void *argv, unsigned int *gotBase)
+{
+    unsigned int *stackPtr=sp;
+    stackPtr--; //Stack is full descending, so decrement first
+    *stackPtr=0x01000000; stackPtr--;                                 //--> xPSR
+    *stackPtr=reinterpret_cast<unsigned long>(pc); stackPtr--;        //--> pc
+    *stackPtr=0xffffffff; stackPtr--;                                 //--> lr
+    *stackPtr=0; stackPtr--;                                          //--> r12
+    *stackPtr=0; stackPtr--;                                          //--> r3
+    *stackPtr=0; stackPtr--;                                          //--> r2
+    *stackPtr=0; stackPtr--;                                          //--> r1
+    *stackPtr=reinterpret_cast<unsigned long >(argv);                 //--> r0
+
+    ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
+    ctxsave[6]=reinterpret_cast<unsigned long>(gotBase);              //--> r9 
+    //leaving the content of r4-r8,r10-r11 uninitialized
+}
+
+#endif //WITH_PROCESSES
+
 void IRQportableStartKernel()
 {
     //Enable fault handlers
     SCB->SHCSR |= SCB_SHCSR_USGFAULTENA | SCB_SHCSR_BUSFAULTENA
             | SCB_SHCSR_MEMFAULTENA;
-    //Enable traps for unaligned memory access and division by zero
-    SCB->CCR |= SCB_CCR_DIV_0_TRP | SCB_CCR_UNALIGN_TRP;
+    //Enable traps for division by zero. Trap for unaligned memory access
+    //was removed as gcc starting from 4.7.2 generates unaligned accesses by
+    //default (https://www.gnu.org/software/gcc/gcc-4.7/changes.html)
+    SCB->CCR |= SCB_CCR_DIV_0_TRP;
     NVIC_SetPriorityGrouping(7);//This should disable interrupt nesting
     NVIC_SetPriority(SVCall_IRQn,3);//High priority for SVC (Max=0, min=15)
     NVIC_SetPriority(SysTick_IRQn,3);//High priority for SysTick (Max=0, min=15)
@@ -208,6 +233,7 @@ void sleepCpu()
 void AuxiliaryTimer::IRQinit()
 {
     RCC->APB1ENR|=RCC_APB1ENR_TIM2EN;
+    RCC_SYNC();
     DBGMCU->CR|=DBGMCU_CR_DBG_TIM2_STOP; //Tim2 stops while debugging
     TIM2->CR1=0; //Upcounter, not started, no special options
     TIM2->CR2=0; //No special options

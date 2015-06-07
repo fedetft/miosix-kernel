@@ -1,0 +1,1038 @@
+diff -ruN gcc-4.7.3-old/gcc/config/arm/miosix-eabi.h gcc-4.7.3/gcc/config/arm/miosix-eabi.h
+--- gcc-4.7.3-old/gcc/config/arm/miosix-eabi.h	1970-01-01 00:00:00.000000000 +0000
++++ gcc-4.7.3/gcc/config/arm/miosix-eabi.h	2013-11-10 23:21:04.788054065 +0000
+@@ -0,0 +1,18 @@
++
++/*
++ * Adding a builtin_define to make sure _MIOSIX is always
++ * defined, in particular
++ * - when newlib is compiled, as there are some #ifdef _MIOSIX
++ * - when libgcc is compiled, as gthr-miosix.h includes pthread.h from newlib
++ *   which again requires _MIOSIX to be defined
++ * - when Miosix processes are compiled, to allow #ifdef _MIOSIX
++ */
++
++#undef TARGET_OS_CPP_BUILTINS
++#define TARGET_OS_CPP_BUILTINS()         \
++    do {                                 \
++        TARGET_BPABI_CPP_BUILTINS();     \
++        builtin_define("_MIOSIX");       \
++        builtin_define("_MIOSIX_GCC_PATCH_VERSION=1"); \
++        builtin_assert("system=miosix"); \
++    } while(false)
+diff -ruN gcc-4.7.3-old/gcc/config/arm/t-arm-miosix gcc-4.7.3/gcc/config/arm/t-arm-miosix
+--- gcc-4.7.3-old/gcc/config/arm/t-arm-miosix	1970-01-01 00:00:00.000000000 +0000
++++ gcc-4.7.3/gcc/config/arm/t-arm-miosix	2013-11-10 23:21:04.788054065 +0000
+@@ -0,0 +1,180 @@
++# Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
++# 2008, 2010, 2011 Free Software Foundation, Inc.
++#
++# This file is part of GCC.
++#
++# GCC is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 3, or (at your option)
++# any later version.
++#
++# GCC is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with GCC; see the file COPYING3.  If not see
++# <http://www.gnu.org/licenses/>.
++
++MULTILIB_OPTIONS     = marm/mthumb
++MULTILIB_DIRNAMES    = arm thumb
++MULTILIB_EXCEPTIONS  = 
++MULTILIB_MATCHES     =
++
++#MULTILIB_OPTIONS     += mcpu=fa526/mcpu=fa626/mcpu=fa606te/mcpu=fa626te/mcpu=fmp626/mcpu=fa726te
++#MULTILIB_DIRNAMES    += fa526 fa626 fa606te fa626te fmp626 fa726te
++#MULTILIB_EXCEPTIONS  += *mthumb*/*mcpu=fa526 *mthumb*/*mcpu=fa626
++
++## begin TFT patch
++## RATIONALE: build multilibs for ARM, Cortex-Mx, and the pie versions
++##
++## The configuration method for multilibs is awkward, you specify a set of
++## options and it it builds a set of libraries equal to the catesian product
++## of the options you specify, but since we need a sparse configuration set
++## the MULTILIB_EXCEPTIONS variable explodes. Sure, there's the / syntax to
++## specify alternatives but it is of no use when two options have to be
++## specified together, such as mfloat-abi=hard mfpu=fpv4-sp-d16
++## see http://gcc.gnu.org/onlinedocs/gcc-2.95.3/gcc_19.html#SEC252
++## see https://github.com/MikeSmith/summon-arm-toolchain/blob/master/patches/patch-gcc-config-arm-t-arm-elf.diff
++## FIXME: cortex-m0 removed as it causes internal compiler error when compiling newlib
++## The following multilibs will be built:
++## marm
++##      mthumb mcpu=cortex-m0
++##      mthumb                mcpu=cortex-m3
++##      mthumb                               mcpu=cortex-m4 mfloat-abi=hard mfpu=fpv4-sp-d16
++## marm                                                                                      msingle-pic-base fpie
++##      mthumb mcpu=cortex-m0                                                                msingle-pic-base fpie
++##      mthumb                mcpu=cortex-m3                                                 msingle-pic-base fpie
++##      mthumb                               mcpu=cortex-m4 mfloat-abi=hard mfpu=fpv4-sp-d16 msingle-pic-base fpie
++## note: http://gcc.gnu.org/onlinedocs/gcc-4.5.2/gcc/ARC-Options.html says that
++## mcpu=cortex-m3 implies mfix-cortex-m3-ldrd so no need to explicitly add it.
++
++# Disable building plain thumb
++MULTILIB_EXCEPTIONS   += mthumb
++
++# In addition to plain ARM build also the mcpu=cortex-mX variants
++MULTILIB_OPTIONS      += mcpu=cortex-m3/mcpu=cortex-m4
++MULTILIB_DIRNAMES     += cm3 cm4
++
++# Disable building marm/mcpu=cortex-mX, only mthumb/mcpu=cortex-mX
++# Also disable mthumb/mcpu=cortex-m4 to build only fpu version for cortex-m4
++MULTILIB_EXCEPTIONS   += mcpu=cortex-m[0-4] mthumb/mcpu=cortex-m4
++
++# cortex-m4 has a floating point unit, so build hardfp multilibs
++MULTILIB_OPTIONS      += mfloat-abi=hard mfpu=fpv4-sp-d16
++MULTILIB_DIRNAMES     += hardfp fpv4
++
++# Disable hardfp support an all but cortex-m4
++MULTILIB_EXCEPTIONS   += mfloat-abi=hard mfpu=fpv4-sp-d16 mfloat-abi=hard/mfpu=fpv4-sp-d16
++MULTILIB_EXCEPTIONS   += mcpu=cortex-m[0-4]/mfloat-abi=hard mcpu=cortex-m[0-4]/mfpu=fpv4-sp-d16 mcpu=cortex-m[0-4]/mfloat-abi=hard/mfpu=fpv4-sp-d16
++MULTILIB_EXCEPTIONS   += mthumb/mfloat-abi=hard mthumb/mfpu=fpv4-sp-d16 mthumb/mfloat-abi=hard/mfpu=fpv4-sp-d16
++MULTILIB_EXCEPTIONS   += mthumb/mcpu=cortex-m[0-4]/mfloat-abi=hard mthumb/mcpu=cortex-m[0-4]/mfpu=fpv4-sp-d16 mthumb/mcpu=cortex-m[0-3]/mfloat-abi=hard/mfpu=fpv4-sp-d16
++
++# Last but not least, the multilibs with msingle-pic-base fpie for processes
++MULTILIB_OPTIONS      += fpie msingle-pic-base
++MULTILIB_DIRNAMES     += pie single-pic-base
++
++# Disable the combinations with fpie or msingle-pic-base only as either none
++# or both have to be specified
++MULTILIB_EXCEPTIONS   += fpie msingle-pic-base
++MULTILIB_EXCEPTIONS   += mcpu=cortex-m[0-4]/fpie mcpu=cortex-m[0-4]/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mfloat-abi=hard/fpie mfloat-abi=hard/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mcpu=cortex-m[0-4]/mfloat-abi=hard/fpie mcpu=cortex-m[0-4]/mfloat-abi=hard/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mfpu=fpv4-sp-d16/fpie mfpu=fpv4-sp-d16/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mcpu=cortex-m[0-4]/mfpu=fpv4-sp-d16/fpie mcpu=cortex-m[0-4]/mfpu=fpv4-sp-d16/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mfloat-abi=hard/mfpu=fpv4-sp-d16/fpie mfloat-abi=hard/mfpu=fpv4-sp-d16/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mcpu=cortex-m[0-4]/mfloat-abi=hard/mfpu=fpv4-sp-d16/fpie mcpu=cortex-m[0-4]/mfloat-abi=hard/mfpu=fpv4-sp-d16/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mthumb/fpie mthumb/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mthumb/mcpu=cortex-m[0-4]/fpie mthumb/mcpu=cortex-m[0-4]/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mthumb/mfloat-abi=hard/fpie mthumb/mfloat-abi=hard/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mthumb/mcpu=cortex-m[0-4]/mfloat-abi=hard/fpie mthumb/mcpu=cortex-m[0-4]/mfloat-abi=hard/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mthumb/mfpu=fpv4-sp-d16/fpie mthumb/mfpu=fpv4-sp-d16/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mthumb/mcpu=cortex-m[0-4]/mfpu=fpv4-sp-d16/fpie mthumb/mcpu=cortex-m[0-4]/mfpu=fpv4-sp-d16/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mthumb/mfloat-abi=hard/mfpu=fpv4-sp-d16/fpie mthumb/mfloat-abi=hard/mfpu=fpv4-sp-d16/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mthumb/mcpu=cortex-m[0-4]/mfloat-abi=hard/mfpu=fpv4-sp-d16/fpie mthumb/mcpu=cortex-m[0-4]/mfloat-abi=hard/mfpu=fpv4-sp-d16/msingle-pic-base
++
++# Now disable all what has been disabled before, only with an added fpie/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mthumb/fpie/msingle-pic-base
++
++MULTILIB_EXCEPTIONS   += mcpu=cortex-m[0-4]/fpie/msingle-pic-base mthumb/mcpu=cortex-m4/fpie/msingle-pic-base
++
++MULTILIB_EXCEPTIONS   += mfloat-abi=hard/fpie/msingle-pic-base mfpu=fpv4-sp-d16/fpie/msingle-pic-base mfloat-abi=hard/mfpu=fpv4-sp-d16/fpie/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mcpu=cortex-m[0-4]/mfloat-abi=hard/fpie/msingle-pic-base mcpu=cortex-m[0-4]/mfpu=fpv4-sp-d16/fpie/msingle-pic-base mcpu=cortex-m[0-4]/mfloat-abi=hard/mfpu=fpv4-sp-d16/fpie/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mthumb/mfloat-abi=hard/fpie/msingle-pic-base mthumb/mfpu=fpv4-sp-d16/fpie/msingle-pic-base mthumb/mfloat-abi=hard/mfpu=fpv4-sp-d16/fpie/msingle-pic-base
++MULTILIB_EXCEPTIONS   += mthumb/mcpu=cortex-m[0-4]/mfloat-abi=hard/fpie/msingle-pic-base mthumb/mcpu=cortex-m[0-4]/mfpu=fpv4-sp-d16/fpie/msingle-pic-base mthumb/mcpu=cortex-m[0-3]/mfloat-abi=hard/mfpu=fpv4-sp-d16/fpie/msingle-pic-base
++
++# The output produced by 'arm-miosix-eabi-gcc --print-multi-lib' is
++# .;
++# pie/single-pic-base;@fpie@msingle-pic-base
++# thumb/cm0;@mthumb@mcpu=cortex-m0
++# thumb/cm3;@mthumb@mcpu=cortex-m3
++# thumb/cm0/pie/single-pic-base;@mthumb@mcpu=cortex-m0@fpie@msingle-pic-base
++# thumb/cm3/pie/single-pic-base;@mthumb@mcpu=cortex-m3@fpie@msingle-pic-base
++# thumb/cm4/hardfp/fpv4;@mthumb@mcpu=cortex-m4@mfloat-abi=hard@mfpu=fpv4-sp-d16
++# thumb/cm4/hardfp/fpv4/pie/single-pic-base;@mthumb@mcpu=cortex-m4@mfloat-abi=hard@mfpu=fpv4-sp-d16@fpie@msingle-pic-base
++## end TFT patch
++
++#MULTILIB_OPTIONS      += march=armv7
++#MULTILIB_DIRNAMES     += thumb2
++#MULTILIB_EXCEPTIONS   += march=armv7* marm/*march=armv7*
++#MULTILIB_MATCHES      += march?armv7=march?armv7-a
++#MULTILIB_MATCHES      += march?armv7=march?armv7-r
++#MULTILIB_MATCHES      += march?armv7=march?armv7-m
++#MULTILIB_MATCHES      += march?armv7=mcpu?cortex-a8
++#MULTILIB_MATCHES      += march?armv7=mcpu?cortex-r4
++#MULTILIB_MATCHES      += march?armv7=mcpu?cortex-m3
++
++# Not quite true.  We can support hard-vfp calling in Thumb2, but how do we
++# express that here?  Also, we really need architecture v5e or later
++# (mcrr etc).
++#MULTILIB_OPTIONS       += mfloat-abi=hard
++#MULTILIB_DIRNAMES      += fpu
++#MULTILIB_EXCEPTIONS    += *mthumb/*mfloat-abi=hard*
++#MULTILIB_EXCEPTIONS    += *mcpu=fa526/*mfloat-abi=hard*
++#MULTILIB_EXCEPTIONS    += *mcpu=fa626/*mfloat-abi=hard*
++
++# MULTILIB_OPTIONS    += mcpu=ep9312
++# MULTILIB_DIRNAMES   += ep9312
++# MULTILIB_EXCEPTIONS += *mthumb/*mcpu=ep9312*
++# 	
++# MULTILIB_OPTIONS     += mlittle-endian/mbig-endian
++# MULTILIB_DIRNAMES    += le be
++# MULTILIB_MATCHES     += mbig-endian=mbe mlittle-endian=mle
++# 
++# MULTILIB_OPTIONS    += mfloat-abi=hard/mfloat-abi=soft
++# MULTILIB_DIRNAMES   += fpu soft
++# MULTILIB_EXCEPTIONS += *mthumb/*mfloat-abi=hard*
++# 
++# MULTILIB_OPTIONS    += mno-thumb-interwork/mthumb-interwork
++# MULTILIB_DIRNAMES   += normal interwork
++# 
++# MULTILIB_OPTIONS    += fno-leading-underscore/fleading-underscore
++# MULTILIB_DIRNAMES   += elf under
++# 
++# MULTILIB_OPTIONS    += mcpu=arm7
++# MULTILIB_DIRNAMES   += nofmult
++# MULTILIB_EXCEPTIONS += *mthumb*/*mcpu=arm7*
++# # Note: the multilib_exceptions matches both -mthumb and
++# # -mthumb-interwork
++# #
++# # We have to match all the arm cpu variants which do not have the
++# # multiply instruction and treat them as if the user had specified
++# # -mcpu=arm7.  Note that in the following the ? is interpreted as
++# # an = for the purposes of matching command line options.
++# # FIXME: There ought to be a better way to do this.
++# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm7d
++# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm7di
++# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm70
++# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm700
++# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm700i
++# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm710
++# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm710c
++# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm7100
++# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm7500
++# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm7500fe
++# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm6
++# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm60
++# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm600
++# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm610
++# MULTILIB_MATCHES    += mcpu?arm7=mcpu?arm620
+diff -ruN gcc-4.7.3-old/gcc/config.gcc gcc-4.7.3/gcc/config.gcc
+--- gcc-4.7.3-old/gcc/config.gcc	2013-03-06 22:54:11.000000000 +0000
++++ gcc-4.7.3/gcc/config.gcc	2013-11-10 23:21:04.792054065 +0000
+@@ -912,6 +912,13 @@
+ 	tm_file="dbxelf.h elfos.h arm/unknown-elf.h arm/elf.h arm/bpabi.h"
+ 	tmake_file="arm/t-arm arm/t-arm-elf"
+ 	case ${target} in
++	arm*-miosix-eabi*)
++	  # Before it would fall to the next case, arm*-*-eabi*, so copy
++	  # the options of the other case and add the miosix-specific ones
++	  tm_file="${tm_file} newlib-stdint.h arm/miosix-eabi.h"  # Append
++	  tmake_file="arm/t-arm arm/t-arm-miosix arm/t-bpabi"     # Replace
++	  use_gcc_stdint=wrap
++	  ;;
+ 	arm*-*-eabi*)
+ 	  tm_file="$tm_file newlib-stdint.h"
+ 	  tmake_file="${tmake_file} arm/t-bpabi"
+diff -ruN gcc-4.7.3-old/gcc/configure gcc-4.7.3/gcc/configure
+--- gcc-4.7.3-old/gcc/configure	2013-02-06 15:23:55.000000000 +0000
++++ gcc-4.7.3/gcc/configure	2013-11-10 23:21:04.796054065 +0000
+@@ -11337,7 +11337,7 @@
+     # default
+     target_thread_file='single'
+     ;;
+-  aix | dce | lynx | mipssde | posix | rtems | \
++  aix | dce | lynx | miosix | mipssde | posix | rtems | \
+   single | tpf | vxworks | win32)
+     target_thread_file=${enable_threads}
+     ;;
+diff -ruN gcc-4.7.3-old/gcc/configure.ac gcc-4.7.3/gcc/configure.ac
+--- gcc-4.7.3-old/gcc/configure.ac	2013-02-06 15:23:55.000000000 +0000
++++ gcc-4.7.3/gcc/configure.ac	2013-11-10 23:21:04.800054065 +0000
+@@ -1449,7 +1449,7 @@
+     # default
+     target_thread_file='single'
+     ;;
+-  aix | dce | lynx | mipssde | posix | rtems | \
++  aix | dce | lynx | miosix | mipssde | posix | rtems | \
+   single | tpf | vxworks | win32)
+     target_thread_file=${enable_threads}
+     ;;
+diff -ruN gcc-4.7.3-old/libgcc/config/gthr-miosix.h gcc-4.7.3/libgcc/config/gthr-miosix.h
+--- gcc-4.7.3-old/libgcc/config/gthr-miosix.h	1970-01-01 00:00:00.000000000 +0000
++++ gcc-4.7.3/libgcc/config/gthr-miosix.h	2013-11-10 23:21:04.800054065 +0000
+@@ -0,0 +1,53 @@
++
++#ifndef GCC_GHTR_MIOSIX_H
++#define GCC_GHTR_MIOSIX_H
++
++#include <pthread.h>
++#include <unistd.h>
++
++//Note to self: gthr.h contains useful information
++//on how a gthr-xxx.h should look like
++
++#define __GTHREADS 1
++#define __GTHREAD_HAS_COND 1
++//#define __GTHREADS_CXX0X 1 //Not yet, missing __gthread_*_timed*
++
++//In Miosix, threads are always enabled, period.
++#define __gthread_active_p() 1
++
++typedef pthread_t       __gthread_t;
++typedef pthread_key_t   __gthread_key_t; //This actually is unimplemented
++typedef pthread_once_t  __gthread_once_t;
++typedef pthread_mutex_t __gthread_mutex_t;
++typedef pthread_mutex_t __gthread_recursive_mutex_t;
++typedef pthread_cond_t  __gthread_cond_t;
++typedef struct timespec __gthread_time_t;
++
++#define __GTHREAD_MUTEX_INIT           PTHREAD_MUTEX_INITIALIZER
++#define __GTHREAD_ONCE_INIT            PTHREAD_ONCE_INIT
++#define __GTHREAD_RECURSIVE_MUTEX_INIT PTHREAD_MUTEX_RECURSIVE_INITIALIZER_NP
++#define __GTHREAD_COND_INIT            PTHREAD_COND_INITIALIZER
++#define __GTHREAD_TIME_INIT            {0,0}
++
++#define __gthread_once                    pthread_once
++#define __gthread_mutex_destroy           pthread_mutex_destroy
++#define __gthread_mutex_lock              pthread_mutex_lock
++#define __gthread_mutex_trylock           pthread_mutex_trylock
++#define __gthread_mutex_unlock            pthread_mutex_unlock
++#define __gthread_recursive_mutex_lock    pthread_mutex_lock
++#define __gthread_recursive_mutex_trylock pthread_mutex_trylock
++#define __gthread_recursive_mutex_unlock  pthread_mutex_unlock
++#define __gthread_cond_broadcast          pthread_cond_broadcast
++#define __gthread_cond_wait               pthread_cond_wait
++#define __gthread_cond_wait_recursive     pthread_cond_wait
++
++//These actually aren't implemented in Miosix, so code trying to use these will
++//fail to link, and for now it's the "desired" behaviour (better than failing
++//at runtime, at least). They are used somewhere in libstdc++ too, but it can
++//be patched to remove those uses.
++#define __gthread_key_create              pthread_key_create
++#define __gthread_key_delete              pthread_key_delete
++#define __gthread_getspecific             pthread_getspecific
++#define __gthread_setspecific             pthread_setspecific
++
++#endif //GCC_GHTR_MIOSIX_H
+diff -ruN gcc-4.7.3-old/libgcc/configure gcc-4.7.3/libgcc/configure
+--- gcc-4.7.3-old/libgcc/configure	2012-08-06 14:34:27.000000000 +0000
++++ gcc-4.7.3/libgcc/configure	2013-11-10 23:21:04.804054065 +0000
+@@ -4473,6 +4473,7 @@
+     aix)	thread_header=config/rs6000/gthr-aix.h ;;
+     dce)	thread_header=config/pa/gthr-dce.h ;;
+     lynx)	thread_header=config/gthr-lynx.h ;;
++    miosix)	thread_header=config/gthr-miosix.h ;;
+     mipssde)	thread_header=config/mips/gthr-mipssde.h ;;
+     posix)	thread_header=gthr-posix.h ;;
+     rtems)	thread_header=config/gthr-rtems.h ;;
+diff -ruN gcc-4.7.3-old/libgcc/configure.ac gcc-4.7.3/libgcc/configure.ac
+--- gcc-4.7.3-old/libgcc/configure.ac	2012-08-06 14:34:27.000000000 +0000
++++ gcc-4.7.3/libgcc/configure.ac	2013-11-10 23:21:04.804054065 +0000
+@@ -370,6 +370,7 @@
+     aix)	thread_header=config/rs6000/gthr-aix.h ;;
+     dce)	thread_header=config/pa/gthr-dce.h ;;
+     lynx)	thread_header=config/gthr-lynx.h ;;
++    miosix)	thread_header=config/gthr-miosix.h ;;
+     mipssde)	thread_header=config/mips/gthr-mipssde.h ;;
+     posix)	thread_header=gthr-posix.h ;;
+     rtems)	thread_header=config/gthr-rtems.h ;;
+diff -ruN gcc-4.7.3-old/libgcc/unwind-sjlj.c gcc-4.7.3/libgcc/unwind-sjlj.c
+--- gcc-4.7.3-old/libgcc/unwind-sjlj.c	2011-11-02 15:26:35.000000000 +0000
++++ gcc-4.7.3/libgcc/unwind-sjlj.c	2013-11-10 23:21:04.804054065 +0000
+@@ -95,74 +95,29 @@
+ 
+ /* Manage the chain of registered function contexts.  */
+ 
+-/* Single threaded fallback chain.  */
+-static struct SjLj_Function_Context *fc_static;
+-
+-#if __GTHREADS
+-static __gthread_key_t fc_key;
+-static int use_fc_key = -1;
+-
+-static void
+-fc_key_init (void)
+-{
+-  use_fc_key = __gthread_key_create (&fc_key, 0) == 0;
+-}
+-
+-static void
+-fc_key_init_once (void)
+-{
+-  static __gthread_once_t once = __GTHREAD_ONCE_INIT;
+-  if (__gthread_once (&once, fc_key_init) != 0 || use_fc_key < 0)
+-    use_fc_key = 0;
+-}
+-#endif
++//Begin TFT patch
++void _Miosix_set_sjlj_ptr(void* ptr);
++void *_Miosix_get_sjlj_ptr();
+ 
+ void
+ _Unwind_SjLj_Register (struct SjLj_Function_Context *fc)
+ {
+-#if __GTHREADS
+-  if (use_fc_key < 0)
+-    fc_key_init_once ();
+-
+-  if (use_fc_key)
+-    {
+-      fc->prev = __gthread_getspecific (fc_key);
+-      __gthread_setspecific (fc_key, fc);
+-    }
+-  else
+-#endif
+-    {
+-      fc->prev = fc_static;
+-      fc_static = fc;
+-    }
++  fc->prev=_Miosix_get_sjlj_ptr();
++  _Miosix_set_sjlj_ptr(fc);
+ }
+ 
+ static inline struct SjLj_Function_Context *
+ _Unwind_SjLj_GetContext (void)
+ {
+-#if __GTHREADS
+-  if (use_fc_key < 0)
+-    fc_key_init_once ();
+-
+-  if (use_fc_key)
+-    return __gthread_getspecific (fc_key);
+-#endif
+-  return fc_static;
++  return _Miosix_get_sjlj_ptr();
+ }
+ 
+ static inline void
+ _Unwind_SjLj_SetContext (struct SjLj_Function_Context *fc)
+ {
+-#if __GTHREADS
+-  if (use_fc_key < 0)
+-    fc_key_init_once ();
+-
+-  if (use_fc_key)
+-    __gthread_setspecific (fc_key, fc);
+-  else
+-#endif
+-    fc_static = fc;
++  _Miosix_set_sjlj_ptr(fc);
+ }
++//End TFT patch
+ 
+ void
+ _Unwind_SjLj_Unregister (struct SjLj_Function_Context *fc)
+diff -ruN gcc-4.7.3-old/libstdc++-v3/config/cpu/arm/atomicity.h gcc-4.7.3/libstdc++-v3/config/cpu/arm/atomicity.h
+--- gcc-4.7.3-old/libstdc++-v3/config/cpu/arm/atomicity.h	1970-01-01 00:00:00.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/config/cpu/arm/atomicity.h	2013-11-10 23:21:04.804054065 +0000
+@@ -0,0 +1,67 @@
++//Begin TFT patch
++//Support _Atomic_word operations on arm-miosix-eabi
++#include <ext/atomicity.h>
++#include <ext/concurrence.h>
++//This header gets copied into a file named atomicity.cc by the build script and compiled into libstdc++
++#ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
++//Declaring those here to avoid including miosix headers in libstdc++
++namespace miosix {
++void disableInterrupts();
++void enableInterrupts();
++}
++#endif //#ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
++
++namespace __gnu_cxx {
++
++  _Atomic_word
++  __attribute__ ((__unused__))
++  __exchange_and_add(volatile _Atomic_word* __mem, int __val) _GLIBCXX_NOTHROW
++  {
++    _Atomic_word __result;
++
++    #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
++    int __ok; //Actually, useless as ext/atomicity.h has an ifdef _GLIBCXX_ATOMIC_BUILTINS_4 so
++    do {      //gcc uses atomic builtins for cortex, but there's no issue in leaving it here
++      asm volatile("ldrex %0, [%1]"     : "=r"(__result)  : "r"(__mem)             : "memory");
++      _Atomic_word __tmp = __result + __val;
++      asm volatile("strex %0, %1, [%2]" : "=&r"(__ok)     : "r"(__tmp), "r"(__mem) : "memory");
++    } while(__ok);
++    #else //__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
++    //Fallback code for CPUs without atomic ops, such as ARM7
++    //Have to disable interrupts this way because this code can be called
++    //with interrupts already disabled and disableInterrupts() do nest safely
++    //so there's no risk of accidentally enabling interrupts when we shouldn't
++    miosix::disableInterrupts();
++    __result = *__mem;
++    *__mem += __val;
++    miosix::enableInterrupts();    
++    #endif //__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
++
++    return __result;
++  }
++
++  void
++  __attribute__ ((__unused__))
++  __atomic_add(volatile _Atomic_word* __mem, int __val) _GLIBCXX_NOTHROW
++  {
++    #ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
++    int __ok; //Actually, useless as ext/atomicity.h has an ifdef _GLIBCXX_ATOMIC_BUILTINS_4 so
++    do {      //gcc uses atomic builtins for cortex, but there's no issue in leaving it here
++      _Atomic_word __tmp;
++      asm volatile("ldrex %0, [%1]"     : "=r"(__tmp)  : "r"(__mem)             : "memory");
++      __tmp += __val;
++      asm volatile("strex %0, %1, [%2]" : "=&r"(__ok)  : "r"(__tmp), "r"(__mem) : "memory");
++    } while(__ok);
++    #else //__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
++    //Fallback code for CPUs without atomic ops, such as ARM7
++    //Have to disable interrupts this way because this code can be called
++    //with interrupts already disabled and disableInterrupts() do nest safely
++    //so there's no risk of accidentally enabling interrupts when we shouldn't
++    miosix::disableInterrupts();
++    *__mem += __val;
++    miosix::enableInterrupts();
++    #endif //__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
++  }
++
++}
++//End TFT patch
+diff -ruN gcc-4.7.3-old/libstdc++-v3/config/cpu/arm/atomic_word.h gcc-4.7.3/libstdc++-v3/config/cpu/arm/atomic_word.h
+--- gcc-4.7.3-old/libstdc++-v3/config/cpu/arm/atomic_word.h	1970-01-01 00:00:00.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/config/cpu/arm/atomic_word.h	2013-11-10 23:21:04.804054065 +0000
+@@ -0,0 +1,12 @@
++//begin TFT patch
++//Support _Atomic_word operations on arm-miosix-eabi
++#ifndef _GLIBCXX_ATOMIC_WORD_H
++#define _GLIBCXX_ATOMIC_WORD_H	1
++
++typedef int _Atomic_word;
++
++#define _GLIBCXX_READ_MEM_BARRIER __asm __volatile ("":::"memory")
++#define _GLIBCXX_WRITE_MEM_BARRIER __asm __volatile ("":::"memory")
++
++#endif 
++//end TFT patch
+\ No newline at end of file
+diff -ruN gcc-4.7.3-old/libstdc++-v3/include/bits/fstream.tcc gcc-4.7.3/libstdc++-v3/include/bits/fstream.tcc
+--- gcc-4.7.3-old/libstdc++-v3/include/bits/fstream.tcc	2011-03-04 21:51:56.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/include/bits/fstream.tcc	2013-11-10 23:23:42.648056387 +0000
+@@ -80,7 +80,7 @@
+     basic_filebuf<_CharT, _Traits>::
+     basic_filebuf() : __streambuf_type(), _M_lock(), _M_file(&_M_lock),
+     _M_mode(ios_base::openmode(0)), _M_state_beg(), _M_state_cur(),
+-    _M_state_last(), _M_buf(0), _M_buf_size(BUFSIZ),
++    _M_state_last(), _M_buf(0), _M_buf_size(BUFSIZ+1), //By TFT: BUFSIZ+1 to optimize reads/writes 
+     _M_buf_allocated(false), _M_reading(false), _M_writing(false), _M_pback(), 
+     _M_pback_cur_save(0), _M_pback_end_save(0), _M_pback_init(false),
+     _M_codecvt(0), _M_ext_buf(0), _M_ext_buf_size(0), _M_ext_next(0),
+diff -ruN gcc-4.7.3-old/libstdc++-v3/libsupc++/eh_alloc.cc gcc-4.7.3/libstdc++-v3/libsupc++/eh_alloc.cc
+--- gcc-4.7.3-old/libstdc++-v3/libsupc++/eh_alloc.cc	2011-10-10 19:03:39.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/libsupc++/eh_alloc.cc	2013-11-10 23:21:04.804054065 +0000
+@@ -73,6 +73,15 @@
+ # define EMERGENCY_OBJ_COUNT	4
+ #endif
+ 
++//begin TFT patch
++//RATIONALE: reduced emergency buffer for ARM microcontrollers, saves ~1.5K of RAM
++#undef EMERGENCY_OBJ_SIZE
++#undef EMERGENCY_OBJ_COUNT
++
++#define EMERGENCY_OBJ_SIZE  160
++#define EMERGENCY_OBJ_COUNT 3
++//end TFT patch
++
+ #if INT_MAX == 32767 || EMERGENCY_OBJ_COUNT <= 32
+ typedef unsigned int bitmask_type;
+ #else
+diff -ruN gcc-4.7.3-old/libstdc++-v3/libsupc++/eh_globals.cc gcc-4.7.3/libstdc++-v3/libsupc++/eh_globals.cc
+--- gcc-4.7.3-old/libstdc++-v3/libsupc++/eh_globals.cc	2011-10-10 19:03:39.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/libsupc++/eh_globals.cc	2013-11-10 23:21:04.808054065 +0000
+@@ -42,119 +42,6 @@
+ 
+ using namespace __cxxabiv1;
+ 
+-#if _GLIBCXX_HAVE_TLS
+-
+-namespace
+-{
+-  abi::__cxa_eh_globals*
+-  get_global() _GLIBCXX_NOTHROW
+-  {
+-    static __thread abi::__cxa_eh_globals global;
+-    return &global;
+-  }
+-} // anonymous namespace
+-
+-extern "C" __cxa_eh_globals*
+-__cxxabiv1::__cxa_get_globals_fast() _GLIBCXX_NOTHROW
+-{ return get_global(); }
+-
+-extern "C" __cxa_eh_globals*
+-__cxxabiv1::__cxa_get_globals() _GLIBCXX_NOTHROW
+-{ return get_global(); }
+-
+-
+-#else
+-
+-// Single-threaded fallback buffer.
+-static __cxa_eh_globals eh_globals;
+-
+-#if __GTHREADS
+-
+-static void
+-eh_globals_dtor(void* ptr)
+-{
+-  if (ptr)
+-    {
+-      __cxa_eh_globals* g = reinterpret_cast<__cxa_eh_globals*>(ptr);
+-      __cxa_exception* exn = g->caughtExceptions;
+-      __cxa_exception* next;
+-      while (exn)
+-	{
+-	  next = exn->nextException;
+-	  _Unwind_DeleteException(&exn->unwindHeader);
+-	  exn = next;
+-	}
+-      free(ptr);
+-    }
+-}
+-
+-struct __eh_globals_init
+-{
+-  __gthread_key_t  	_M_key;
+-  bool 			_M_init;
+-
+-  __eh_globals_init() : _M_init(false)
+-  { 
+-    if (__gthread_active_p())
+-      _M_init = __gthread_key_create(&_M_key, eh_globals_dtor) == 0; 
+-  }
+-
+-  ~__eh_globals_init()
+-  {
+-    if (_M_init)
+-      __gthread_key_delete(_M_key);
+-    _M_init = false;
+-  }
+-};
+-
+-static __eh_globals_init init;
+-
+-extern "C" __cxa_eh_globals*
+-__cxxabiv1::__cxa_get_globals_fast() _GLIBCXX_NOTHROW
+-{
+-  __cxa_eh_globals* g;
+-  if (init._M_init)
+-    g = static_cast<__cxa_eh_globals*>(__gthread_getspecific(init._M_key));
+-  else
+-    g = &eh_globals;
+-  return g;
+-}
+-
+-extern "C" __cxa_eh_globals*
+-__cxxabiv1::__cxa_get_globals() _GLIBCXX_NOTHROW
+-{
+-  __cxa_eh_globals* g;
+-  if (init._M_init)
+-    {
+-      g = static_cast<__cxa_eh_globals*>(__gthread_getspecific(init._M_key));
+-      if (!g)
+-	{
+-	  void* v = malloc(sizeof(__cxa_eh_globals));
+-	  if (v == 0 || __gthread_setspecific(init._M_key, v) != 0)
+-	    std::terminate();
+-	  g = static_cast<__cxa_eh_globals*>(v);
+-	  g->caughtExceptions = 0;
+-	  g->uncaughtExceptions = 0;
+-#ifdef __ARM_EABI_UNWINDER__
+-	  g->propagatingExceptions = 0;
+-#endif
+-	}
+-    }
+-  else
+-    g = &eh_globals;
+-  return g;
+-}
+-
+-#else
+-
+-extern "C" __cxa_eh_globals*
+-__cxxabiv1::__cxa_get_globals_fast() _GLIBCXX_NOTHROW
+-{ return &eh_globals; }
+-
+-extern "C" __cxa_eh_globals*
+-__cxxabiv1::__cxa_get_globals() _GLIBCXX_NOTHROW
+-{ return &eh_globals; }
+-
+-#endif
+-
+-#endif
++//Note by TFT: __cxa_get_globals() and __cxa_get_globals_fast()
++//are now Miosix syscalls, since the __cxa_eh_globals struct needs
++//to be provided on a per-thread basis
+\ No newline at end of file
+diff -ruN gcc-4.7.3-old/libstdc++-v3/libsupc++/guard.cc gcc-4.7.3/libstdc++-v3/libsupc++/guard.cc
+--- gcc-4.7.3-old/libstdc++-v3/libsupc++/guard.cc	2012-09-11 15:24:06.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/libsupc++/guard.cc	2013-11-10 23:21:04.808054065 +0000
+@@ -179,238 +179,6 @@
+ //  | _GLIBCXX_GUARD_WAITING_BIT) and some other threads are waiting until
+ //				  it is initialized.
+ 
+-namespace __cxxabiv1 
+-{
+-#ifdef _GLIBCXX_USE_FUTEX
+-  namespace
+-  {
+-    static inline int __guard_test_bit (const int __byte, const int __val)
+-    {
+-      union { int __i; char __c[sizeof (int)]; } __u = { 0 };
+-      __u.__c[__byte] = __val;
+-      return __u.__i;
+-    }
+-  }
+-#endif
+-
+-  static inline int
+-  init_in_progress_flag(__guard* g)
+-  { return ((char *)g)[1]; }
+-
+-  static inline void
+-  set_init_in_progress_flag(__guard* g, int v)
+-  { ((char *)g)[1] = v; }
+-
+-  static inline void
+-  throw_recursive_init_exception()
+-  {
+-#ifdef __EXCEPTIONS
+-	throw __gnu_cxx::recursive_init_error();
+-#else
+-	// Use __builtin_trap so we don't require abort().
+-	__builtin_trap();
+-#endif
+-  }
+-
+-  // acquire() is a helper function used to acquire guard if thread support is
+-  // not compiled in or is compiled in but not enabled at run-time.
+-  static int
+-  acquire(__guard *g)
+-  {
+-    // Quit if the object is already initialized.
+-    if (_GLIBCXX_GUARD_TEST(g))
+-      return 0;
+-
+-    if (init_in_progress_flag(g))
+-      throw_recursive_init_exception();
+-
+-    set_init_in_progress_flag(g, 1);
+-    return 1;
+-  }
+-
+-  extern "C"
+-  int __cxa_guard_acquire (__guard *g) 
+-  {
+-#ifdef __GTHREADS
+-    // If the target can reorder loads, we need to insert a read memory
+-    // barrier so that accesses to the guarded variable happen after the
+-    // guard test.
+-    if (_GLIBCXX_GUARD_TEST_AND_ACQUIRE (g))
+-      return 0;
+-
+-# ifdef _GLIBCXX_USE_FUTEX
+-    // If __atomic_* and futex syscall are supported, don't use any global
+-    // mutex.
+-    if (__gthread_active_p ())
+-      {
+-	int *gi = (int *) (void *) g;
+-	const int guard_bit = _GLIBCXX_GUARD_BIT;
+-	const int pending_bit = _GLIBCXX_GUARD_PENDING_BIT;
+-	const int waiting_bit = _GLIBCXX_GUARD_WAITING_BIT;
+-
+-	while (1)
+-	  {
+-	    int expected(0);
+-	    if (__atomic_compare_exchange_n(gi, &expected, pending_bit, false,
+-					    __ATOMIC_ACQ_REL,
+-					    __ATOMIC_ACQUIRE))
+-	      {
+-		// This thread should do the initialization.
+-		return 1;
+-	      }
+-	      
+-	    if (expected == guard_bit)
+-	      {
+-		// Already initialized.
+-		return 0;	
+-	      }
+-
+-	     if (expected == pending_bit)
+-	       {
+-		 // Use acquire here.
+-		 int newv = expected | waiting_bit;
+-		 if (!__atomic_compare_exchange_n(gi, &expected, newv, false,
+-						  __ATOMIC_ACQ_REL, 
+-						  __ATOMIC_ACQUIRE))
+-		   {
+-		     if (expected == guard_bit)
+-		       {
+-			 // Make a thread that failed to set the
+-			 // waiting bit exit the function earlier,
+-			 // if it detects that another thread has
+-			 // successfully finished initialising.
+-			 return 0;
+-		       }
+-		     if (expected == 0)
+-		       continue;
+-		   }
+-		 
+-		 expected = newv;
+-	       }
+-
+-	    syscall (SYS_futex, gi, _GLIBCXX_FUTEX_WAIT, expected, 0);
+-	  }
+-      }
+-# else
+-    if (__gthread_active_p ())
+-      {
+-	mutex_wrapper mw;
+-
+-	while (1)	// When this loop is executing, mutex is locked.
+-	  {
+-#  ifdef __GTHREAD_HAS_COND
+-	    // The static is already initialized.
+-	    if (_GLIBCXX_GUARD_TEST(g))
+-	      return 0;	// The mutex will be unlocked via wrapper
+-
+-	    if (init_in_progress_flag(g))
+-	      {
+-		// The guarded static is currently being initialized by
+-		// another thread, so we release mutex and wait for the
+-		// condition variable. We will lock the mutex again after
+-		// this.
+-		get_static_cond().wait_recursive(&get_static_mutex());
+-	      }
+-	    else
+-	      {
+-		set_init_in_progress_flag(g, 1);
+-		return 1; // The mutex will be unlocked via wrapper.
+-	      }
+-#  else
+-	    // This provides compatibility with older systems not supporting
+-	    // POSIX like condition variables.
+-	    if (acquire(g))
+-	      {
+-		mw.unlock = false;
+-		return 1; // The mutex still locked.
+-	      }
+-	    return 0; // The mutex will be unlocked via wrapper.
+-#  endif
+-	  }
+-      }
+-# endif
+-#endif
+-
+-    return acquire (g);
+-  }
+-
+-  extern "C"
+-  void __cxa_guard_abort (__guard *g) throw ()
+-  {
+-#ifdef _GLIBCXX_USE_FUTEX
+-    // If __atomic_* and futex syscall are supported, don't use any global
+-    // mutex.
+-    if (__gthread_active_p ())
+-      {
+-	int *gi = (int *) (void *) g;
+-	const int waiting_bit = _GLIBCXX_GUARD_WAITING_BIT;
+-	int old = __atomic_exchange_n (gi, 0, __ATOMIC_ACQ_REL);
+-
+-	if ((old & waiting_bit) != 0)
+-	  syscall (SYS_futex, gi, _GLIBCXX_FUTEX_WAKE, INT_MAX);
+-	return;
+-      }
+-#elif defined(__GTHREAD_HAS_COND)
+-    if (__gthread_active_p())
+-      {	
+-	mutex_wrapper mw;
+-
+-	set_init_in_progress_flag(g, 0);
+-
+-	// If we abort, we still need to wake up all other threads waiting for
+-	// the condition variable.
+-        get_static_cond().broadcast();
+-	return;
+-      }	
+-#endif
+-
+-    set_init_in_progress_flag(g, 0);
+-#if defined(__GTHREADS) && !defined(__GTHREAD_HAS_COND)
+-    // This provides compatibility with older systems not supporting POSIX like
+-    // condition variables.
+-    if (__gthread_active_p ())
+-      static_mutex->unlock();
+-#endif
+-  }
+-
+-  extern "C"
+-  void __cxa_guard_release (__guard *g) throw ()
+-  {
+-#ifdef _GLIBCXX_USE_FUTEX
+-    // If __atomic_* and futex syscall are supported, don't use any global
+-    // mutex.
+-    if (__gthread_active_p ())
+-      {
+-	int *gi = (int *) (void *) g;
+-	const int guard_bit = _GLIBCXX_GUARD_BIT;
+-	const int waiting_bit = _GLIBCXX_GUARD_WAITING_BIT;
+-	int old = __atomic_exchange_n (gi, guard_bit, __ATOMIC_ACQ_REL);
+-
+-	if ((old & waiting_bit) != 0)
+-	  syscall (SYS_futex, gi, _GLIBCXX_FUTEX_WAKE, INT_MAX);
+-	return;
+-      }
+-#elif defined(__GTHREAD_HAS_COND)
+-    if (__gthread_active_p())
+-      {
+-	mutex_wrapper mw;
+-
+-	set_init_in_progress_flag(g, 0);
+-	_GLIBCXX_GUARD_SET_AND_RELEASE(g);
+-
+-        get_static_cond().broadcast();
+-	return;
+-      }	
+-#endif
+-
+-    set_init_in_progress_flag(g, 0);
+-    _GLIBCXX_GUARD_SET_AND_RELEASE (g);
+-
+-#if defined(__GTHREADS) && !defined(__GTHREAD_HAS_COND)
+-    // This provides compatibility with older systems not supporting POSIX like
+-    // condition variables.
+-    if (__gthread_active_p())
+-      static_mutex->unlock();
+-#endif
+-  }
+-}
++//Patched by TFT: __cxa_guard_[acquire|release|abort] made Miosix syscalls
++//as static object initialization can occur also before the kernel is started,
++//therefore at a time when using pthread_mutexe and pthread_cond is unsafe.
+\ No newline at end of file
+diff -ruN gcc-4.7.3-old/libstdc++-v3/libsupc++/pure.cc gcc-4.7.3/libstdc++-v3/libsupc++/pure.cc
+--- gcc-4.7.3-old/libstdc++-v3/libsupc++/pure.cc	2011-10-10 19:03:39.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/libsupc++/pure.cc	2013-11-10 23:21:04.808054065 +0000
+@@ -43,15 +43,17 @@
+ # define writestr(str) /* Empty */
+ #endif
+ 
++//Patch by TFT: added __attribute__((weak))
+ extern "C" void
+-__cxxabiv1::__cxa_pure_virtual (void)
++__attribute__((weak)) __cxxabiv1::__cxa_pure_virtual (void)
+ {
+   writestr ("pure virtual method called\n");
+   std::terminate ();
+ }
+ 
++//Patch by TFT: added __attribute__((weak))
+ extern "C" void
+-__cxxabiv1::__cxa_deleted_virtual (void)
++__attribute__((weak)) __cxxabiv1::__cxa_deleted_virtual (void)
+ {
+   writestr ("deleted virtual method called\n");
+   std::terminate ();
+diff -ruN gcc-4.7.3-old/libstdc++-v3/libsupc++/vterminate.cc gcc-4.7.3/libstdc++-v3/libsupc++/vterminate.cc
+--- gcc-4.7.3-old/libstdc++-v3/libsupc++/vterminate.cc	2011-01-30 22:39:36.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/libsupc++/vterminate.cc	2013-11-10 23:21:04.808054065 +0000
+@@ -41,7 +41,9 @@
+   // A replacement for the standard terminate_handler which prints
+   // more information about the terminating exception (if any) on
+   // stderr.
+-  void __verbose_terminate_handler()
++
++  //Patch by TFT: add __attribute__((weak)) to make it overridable
++  void __attribute__((weak)) __verbose_terminate_handler()
+   {
+     static bool terminating;
+     if (terminating)
+diff -ruN gcc-4.7.3-old/libstdc++-v3/src/c++11/functexcept.cc gcc-4.7.3/libstdc++-v3/src/c++11/functexcept.cc
+--- gcc-4.7.3-old/libstdc++-v3/src/c++11/functexcept.cc	2012-01-23 23:12:01.000000000 +0000
++++ gcc-4.7.3/libstdc++-v3/src/c++11/functexcept.cc	2013-11-10 23:21:04.808054065 +0000
+@@ -44,72 +44,76 @@
+ {
+ _GLIBCXX_BEGIN_NAMESPACE_VERSION
+ 
++//Patch by TFT: added __attribute__((weak)) to all these functions.
++//This to allow redefining them if compiling without exceptions to
++//avoid pulling in exception support (code size minimization)
++
+ #if __EXCEPTIONS
+-  void
++  void __attribute__((weak))
+   __throw_bad_exception(void)
+   { throw bad_exception(); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_bad_alloc(void)
+   { throw bad_alloc(); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_bad_cast(void)
+   { throw bad_cast(); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_bad_typeid(void)
+   { throw bad_typeid(); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_logic_error(const char* __s)
+   { throw logic_error(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_domain_error(const char* __s)
+   { throw domain_error(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_invalid_argument(const char* __s)
+   { throw invalid_argument(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_length_error(const char* __s)
+   { throw length_error(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_out_of_range(const char* __s)
+   { throw out_of_range(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_runtime_error(const char* __s)
+   { throw runtime_error(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_range_error(const char* __s)
+   { throw range_error(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_overflow_error(const char* __s)
+   { throw overflow_error(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_underflow_error(const char* __s)
+   { throw underflow_error(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_ios_failure(const char* __s)
+   { throw ios_base::failure(_(__s)); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_system_error(int __i)
+   { throw system_error(error_code(__i, generic_category())); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_future_error(int __i)
+   { throw future_error(make_error_code(future_errc(__i))); }
+ 
+-  void
++  void __attribute__((weak))
+   __throw_bad_function_call()
+   { throw bad_function_call(); }
+ 

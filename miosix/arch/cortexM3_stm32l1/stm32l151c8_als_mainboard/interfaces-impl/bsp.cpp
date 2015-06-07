@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2012 by Terraneo Federico                               *
+ *   Copyright (C) 2012, 2013, 2014 by Terraneo Federico                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -33,6 +33,7 @@
 
 #include <cstdlib>
 #include <inttypes.h>
+#include <sys/ioctl.h>
 #include "interfaces/bsp.h"
 #include "kernel/kernel.h"
 #include "kernel/sync.h"
@@ -41,7 +42,11 @@
 #include "interfaces/arch_registers.h"
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
-#include "console-impl.h"
+#include "filesystem/file_access.h"
+#include "filesystem/console/console_device.h"
+#include "drivers/serial.h"
+#include "drivers/dcc.h"
+#include "board_settings.h"
 
 namespace miosix {
 
@@ -56,7 +61,7 @@ void IRQbspInit()
                  | RCC_AHBENR_GPIOBEN
                  | RCC_AHBENR_GPIOCEN
                  | RCC_AHBENR_GPIOHEN;
-    
+    RCC_SYNC();
     //Port config (H=high, L=low, PU=pullup, PD=pulldown)
 	//  |  PORTA       |  PORTB      |  PORTC  |  PORTH  |
 	//--+--------------+-------------+---------+---------+
@@ -107,6 +112,7 @@ void IRQbspInit()
 
     
     RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+    RCC_SYNC();
     PWR->CR |= PWR_CR_DBP     //Enable access to RTC registers
              | PWR_CR_PLS_1   //Select 2.3V trigger point for low battery
              | PWR_CR_PVDE    //Enable low battery detection
@@ -128,14 +134,20 @@ void IRQbspInit()
     delayMs(100);
     ledOff();
     
+    DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
     #ifndef STDOUT_REDIRECTED_TO_DCC
-    IRQstm32f2serialPortInit();
+        new STM32Serial(defaultSerial,defaultSerialSpeed,
+        defaultSerialFlowctrl ? STM32Serial::RTSCTS : STM32Serial::NOFLOWCTRL)));
+    #else //STDOUT_REDIRECTED_TO_DCC
+        new ARMDCC));
     #endif //STDOUT_REDIRECTED_TO_DCC
 }
 
 void bspInit2()
 {
-    //Nothing to do
+//     #ifdef WITH_FILESYSTEM
+//     basicFilesystemSetup();
+//     #endif //WITH_FILESYSTEM
 }
 
 static void spi1send(unsigned char data)
@@ -150,7 +162,8 @@ static void spi1send(unsigned char data)
 
 void shutdown()
 {
-    while(!Console::txComplete()) ;
+    ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+
     disableInterrupts();
     
     //Put outputs in low power mode
@@ -183,7 +196,8 @@ void shutdown()
 
 void reboot()
 {
-    while(!Console::txComplete()) ;
+    ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+
     disableInterrupts();
     miosix_private::IRQsystemReboot();
 }

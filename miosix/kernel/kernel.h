@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011 by Terraneo Federico             *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 by Terraneo Federico *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -33,7 +33,8 @@
 #include "config/miosix_settings.h"
 #include "interfaces/portability.h"
 #include "kernel/scheduler/sched_types.h"
-#include "kernel/syscalls_types.h"
+#include "stdlib_integration/libc_integration.h"
+#include "stdlib_integration/libstdcpp_integration.h"
 #include <cstdlib>
 #include <new>
 #include <functional>
@@ -259,7 +260,7 @@ private:
  * kernel is paused will cause deadlock. Therefore, if possible, it is better to
  * use a Mutex instead of pausing the kernel<br>This function is safe to be
  * called even before the kernel is started. In this case it has no effect.
-*/
+ */
 void pauseKernel();
 
 /**
@@ -360,8 +361,7 @@ private:
 
 /**
  * \internal
- * Start the kernel.<br>You must create at least one thread using Thread::create
- * before starting the kernel. There is no way to stop the kernel once it is
+ * Start the kernel.<br> There is no way to stop the kernel once it is
  * started, except a (software or hardware) system reset.<br>
  * Calls errorHandler(OUT_OF_MEMORY) if there is no heap to create the idle
  * thread. If the function succeds in starting the kernel, it never returns;
@@ -386,13 +386,14 @@ bool isKernelRunning();
  */
 long long getTick();
 
-//Declaration of the struct, definition follows below
+//Forwrd declaration
 struct SleepData;
-
-//Forwrd declaration of classes
 class MemoryProfiling;
 class Mutex;
 class ConditionVariable;
+#ifdef WITH_PROCESSES
+class ProcessBase;
+#endif //WITH_PROCESSES
 
 /**
  * This class represents a thread. It has methods for creating, deleting and
@@ -437,10 +438,7 @@ public:
      * to delete it, or NULL in case of errors.
      *
      * Calls errorHandler(INVALID_PARAMETERS) if stacksize or priority are
-     * invalid, and errorHandler(OUT_OF_MEMORY) if the heap is full.
-     * Can be called when the kernel is paused.
-     * Note: this is the only method of this class that can be called BEFORE the
-     * kernel is started.
+     * invalid. Can be called when the kernel is paused.
      */
     static Thread *create(void *(*startfunc)(void *), unsigned int stacksize,
                             Priority priority=Priority(), void *argv=NULL,
@@ -689,6 +687,32 @@ public:
      * \return the size of the stack of the current thread.
      */
     static const int getStackSize();
+    
+    #ifdef WITH_PROCESSES
+
+    /**
+     * \return the process associated with the thread 
+     */
+    ProcessBase *getProcess() { return proc; }
+    
+    /**
+     * \internal
+     * Can only be called inside an IRQ, its use is to switch a thread between
+     * userspace/kernelspace and back to perform context switches
+     */
+    static void IRQhandleSvc(unsigned int svcNumber);
+    
+    /**
+     * \internal
+     * Can only be called inside an IRQ, its use is to report a fault so that
+     * in case the fault has occurred within a process while it was executing
+     * in userspace, the process can be terminated.
+     * \param fault data about the occurred fault
+     * \return true if the fault was caused by a process, false otherwise.
+     */
+    static bool IRQreportFault(const miosix_private::FaultData& fault);
+    
+    #endif //WITH_PROCESSES
 	
 private:
     //Unwanted methods
@@ -701,45 +725,45 @@ private:
         /**
          * Constructor, sets flags to default.
          */
-        ThreadFlags(): flags(0) {}
+        ThreadFlags() : flags(0) {}
 
         /**
          * Set the wait flag of the thread.
-         * Can only be called with interrupts enabled or within an interrupt.
+         * Can only be called with interrupts disabled or within an interrupt.
          * \param waiting if true the flag will be set, otherwise cleared
          */
         void IRQsetWait(bool waiting);
 
         /**
          * Set the wait_join flag of the thread.
-         * Can only be called with interrupts enabled or within an interrupt.
+         * Can only be called with interrupts disabled or within an interrupt.
          * \param waiting if true the flag will be set, otherwise cleared
          */
         void IRQsetJoinWait(bool waiting);
 
         /**
          * Set wait_cond flag of the thread.
-         * Can only be called with interrupts enabled or within an interrupt.
+         * Can only be called with interrupts disabled or within an interrupt.
          * \param waiting if true the flag will be set, otherwise cleared
          */
         void IRQsetCondWait(bool waiting);
 
         /**
          * Set the sleep flag of the thread.
-         * Can only be called with interrupts enabled or within an interrupt.
+         * Can only be called with interrupts disabled or within an interrupt.
          * \param sleeping if true the flag will be set, otherwise cleared
          */
         void IRQsetSleep(bool sleeping);
 
         /**
          * Set the deleted flag of the thread. This flag can't be cleared.
-         * Can only be called with interrupts enabled or within an interrupt.
+         * Can only be called with interrupts disabled or within an interrupt.
          */
         void IRQsetDeleted();
 
         /**
          * Set the sleep flag of the thread. This flag can't be cleared.
-         * Can only be called with interrupts enabled or within an interrupt.
+         * Can only be called with interrupts disabled or within an interrupt.
          */
         void IRQsetDeleting()
         {
@@ -748,11 +772,21 @@ private:
 
         /**
          * Set the detached flag. This flag can't be cleared.
-         * Can only be called with interrupts enabled or within an interrupt.
+         * Can only be called with interrupts disabled or within an interrupt.
          */
         void IRQsetDetached()
         {
             flags |= DETACHED;
+        }
+        
+        /**
+         * Set the userspace flag of the thread.
+         * Can only be called with interrupts disabled or within an interrupt.
+         * \param sleeping if true the flag will be set, otherwise cleared
+         */
+        void IRQsetUserspace(bool userspace)
+        {
+            if(userspace) flags |= USERSPACE; else flags &= ~USERSPACE;
         }
 
         /**
@@ -800,6 +834,12 @@ private:
          * \return true if the thread is waiting on a condition variable
          */
         bool isWaitingCond() const { return flags & WAIT_COND; }
+        
+        /**
+         * \return true if the thread is running unprivileged inside a process.
+         * Only threads with proc!=null can run in userspace 
+         */
+        bool isInUserspace() const { return flags & USERSPACE; }
 
     private:
         ///\internal Thread is in the wait status. A call to wakeup will change
@@ -825,27 +865,73 @@ private:
 
         ///\internal Thread is waiting on a condition variable
         static const unsigned int WAIT_COND=1<<6;
+        
+        ///\internal Thread is running in userspace
+        static const unsigned int USERSPACE=1<<7;
 
         unsigned short flags;///<\internal flags are stored here
     };
+    
+    #ifdef WITH_PROCESSES
+
+    /**
+     * \internal
+     * Causes a thread belonging to a process to switch to userspace, and
+     * execute userspace code. This function returns when the process performs
+     * a syscall or faults.
+     * \return the syscall parameters used to serve the system call.
+     */
+    static miosix_private::SyscallParameters switchToUserspace();
+
+    /**
+     * Create a thread to be used inside a process. The thread is created in
+     * WAIT status, a wakeup() on it is required to actually start it.
+     * \param startfunc entry point
+     * \param argv parameter to be passed to the entry point
+     * \param options thread options
+     * \param proc process to which this thread belongs
+     */
+    static Thread *createUserspace(void *(*startfunc)(void *),
+        void *argv, unsigned short options, Process *proc);
+    
+    /**
+     * Setup the userspace context of the thread, so that it can be later
+     * switched to userspace. Must be called only once for each thread instance
+     * \param entry userspace entry point
+     * \param gotBase base address of the GOT, also corresponding to the start
+     * of the RAM image of the process
+     * \param ramImageSize size of the process ram image
+     */
+    static void setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
+        unsigned int ramImageSize);
+    
+    #endif //WITH_PROCESSES
 
     /**
      * Constructor, initializes thread data.
-     * \param priority thread's priority
      * \param watermark pointer to watermark area
      * \param stacksize thread's stack size
+     * \param defaultReent true if the global reentrancy structure is to be used
      */
-    Thread(unsigned int *watermark, unsigned int stacksize):
-        schedData(), flags(), savedPriority(0), mutexLocked(0), mutexWaiting(0),
-        watermark(watermark), ctxsave(), stacksize(stacksize)
-    {
-        joinData.waitingForJoin=NULL;
-    }
+    Thread(unsigned int *watermark, unsigned int stacksize, bool defaultReent);
 
     /**
-     * Destructor, does nothing.
+     * Destructor
      */
-    ~Thread() {}
+    ~Thread();
+    
+    /**
+     * Helper function to initialize a Thread
+     * \param startfunc entry point function
+     * \param stacksize stack size for the thread
+     * \param argv argument passed to the thread entry point
+     * \param options thread options
+     * \param defaultReent true if the default C reentrancy data should be used
+     * \return a pointer to a thread, or NULL in case there are not enough
+     * resources to create one.
+     */
+    static Thread *doCreate(void *(*startfunc)(void *), unsigned int stacksize,
+					void *argv, unsigned short options, bool defaultReent);
 
     /**
      * Thread launcher, all threads start from this member function, which calls
@@ -882,8 +968,17 @@ private:
         Thread *waitingForJoin;///<Thread waiting to join this
         void *result;          ///<Result returned by entry point
     } joinData;
-    /// Per-thread instance of data to make C++ exception handling thread safe.
-    ExceptionHandlingData exData;
+    /// Per-thread instance of data to make the C and C++ libraries thread safe.
+    CReentrancyData  cReent;
+    CppReentrancyData cppReent;
+    #ifdef WITH_PROCESSES
+    ///Process to which this thread belongs. Null if it is a kernel thread.
+    ProcessBase *proc;
+    ///Pointer to the set of saved registers for when the thread is running in
+    ///user mode. For kernel threads (i.e, threads where proc==null) this
+    ///pointer is null
+    unsigned int *userCtxsave;
+    #endif //WITH_PROCESSES
     
     //friend functions
     //Needs access to watermark, ctxsave
@@ -915,8 +1010,14 @@ private:
     friend int ::pthread_cond_signal(pthread_cond_t *cond);
     //Needs access to flags
     friend int ::pthread_cond_broadcast(pthread_cond_t *cond);
-    //Needs access to exData
-    friend class ExceptionHandlingAccessor;
+    //Needs access to cReent
+    friend class CReentrancyAccessor;
+    //Needs access to cppReent
+    friend class CppReentrancyAccessor;
+    #ifdef WITH_PROCESSES
+    //Needs PKcreateUserspace(), setupUserspaceContext(), switchToUserspace()
+    friend class Process;
+    #endif //WITH_PROCESSES
 };
 
 /**

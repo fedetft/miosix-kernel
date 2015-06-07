@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -62,6 +62,15 @@ extern volatile unsigned int *ctxsave;
  * Save context from an interrupt<br>
  * Must be the first line of an IRQ where a context switch can happen.
  * The IRQ must be "naked" to prevent the compiler from generating context save.
+ * 
+ * A note on the dmb instruction, without it a race condition was observed
+ * between pauseKernel() and IRQfindNextThread(). pauseKernel() uses an strex
+ * instruction to store a value in the global variable kernel_running which is
+ * tested by the context switch code in IRQfindNextThread(). Without the memory
+ * barrier IRQfindNextThread() would occasionally read the previous value and
+ * perform a context switch while the kernel was paused, leading to deadlock.
+ * The failure was only observed within the exception_test() in the testsuite
+ * running on the stm32f429zi_stm32f4discovery.
  */
 #define saveContext()                                                        \
 {                                                                             \
@@ -70,6 +79,7 @@ extern volatile unsigned int *ctxsave;
                  "ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
                  "ldr   r0,  [r0]        \n\t"                                \
                  "stmia r0,  {r1,r4-r11} \n\t" /*save PROCESS sp + r4-r11*/   \
+                 "dmb                    \n\t"                                \
                  );                                                           \
 }
 
@@ -102,7 +112,9 @@ namespace miosix_private {
 
 inline void doYield()
 {
-    asm volatile("svc 0");
+    asm volatile("movs r3, #0\n\t"
+                 "svc  0"
+                 :::"r3");
 }
 
 inline void doDisableInterrupts()

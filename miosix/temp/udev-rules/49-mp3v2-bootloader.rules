@@ -1,7 +1,0 @@
-# Allows to run the dfu-util as non-root user to program the sony smart watch.
-# Copy in /etc/udev/rules.d
-
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="dead", ATTRS{idProduct}=="beee", \
-    MODE:="0666", \
-    SYMLINK+="mp3v2_bootloader_%n"
-

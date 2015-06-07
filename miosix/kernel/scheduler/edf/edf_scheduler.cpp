@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011 by Terraneo Federico                         *
+ *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -27,6 +27,7 @@
 
 #include "edf_scheduler.h"
 #include "kernel/error.h"
+#include "kernel/process.h"
 #include <algorithm>
 
 using namespace std;
@@ -115,7 +116,19 @@ void EDFScheduler::IRQfindNextThread()
         if(walk->flags.isReady())
         {
             cur=walk;
+            #ifdef WITH_PROCESSES
+            if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
+            {
+                ctxsave=cur->ctxsave;
+                miosix_private::MPUConfiguration::IRQdisable();
+            } else {
+                ctxsave=cur->userCtxsave;
+                //A kernel thread is never in userspace, so the cast is safe
+                static_cast<Process*>(cur->proc)->mpu.IRQenable();
+            }
+            #else //WITH_PROCESSES
             ctxsave=cur->ctxsave;
+            #endif //WITH_PROCESSES
             return;
         }
         walk=walk->schedData.next;

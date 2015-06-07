@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010 by Terraneo Federico                   *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 by Terraneo Federico *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -102,12 +102,12 @@ private:
 };
 
 /**
- * dump a memory area in this format
+ * Dump a memory area in this format
  * 0x00000000 | 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 | ................
  * \param start pointer to beginning of memory block to dump
  * \param len length of memory block to dump
  */
-void memDump(const char *start, int len);
+void memDump(const void *start, int len);
 
 /**
  * \}

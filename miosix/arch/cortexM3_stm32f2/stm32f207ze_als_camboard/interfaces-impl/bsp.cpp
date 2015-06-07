@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2012 by Terraneo Federico                               *
+ *   Copyright (C) 2012, 2013, 2014 by Terraneo Federico                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -33,6 +33,7 @@
 
 #include <cstdlib>
 #include <inttypes.h>
+#include <sys/ioctl.h>
 #include "interfaces/bsp.h"
 #include "kernel/kernel.h"
 #include "kernel/sync.h"
@@ -41,7 +42,11 @@
 #include "interfaces/arch_registers.h"
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
-#include "console-impl.h"
+#include "filesystem/file_access.h"
+#include "filesystem/console/console_device.h"
+#include "drivers/serial.h"
+#include "drivers/dcc.h"
+#include "board_settings.h"
 
 namespace miosix {
 
@@ -56,7 +61,7 @@ void IRQbspInit()
                     RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN |
                     RCC_AHB1ENR_GPIOEEN | RCC_AHB1ENR_GPIOFEN |
                     RCC_AHB1ENR_GPIOGEN;
-
+    RCC_SYNC();
 	//Port config (H=high, L=low, PU=pullup, PD=pulldown)
 	//  |  PORTA  |  PORTB  |  PORTC  |  PORTD  |  PORTE  |  PORTF  |  PORTG  |
 	//--+---------+---------+---------+---------+---------+---------+---------+
@@ -126,6 +131,7 @@ void IRQbspInit()
 
     //Configure FSMC for IS62WC51216BLL-55
     RCC->AHB3ENR=RCC_AHB3ENR_FSMCEN;
+    RCC_SYNC();
     volatile uint32_t& BCR1=FSMC_Bank1->BTCR[0];
     volatile uint32_t& BTR1=FSMC_Bank1->BTCR[1];
     volatile uint32_t& BWTR1=FSMC_Bank1E->BWTR[0];
@@ -142,14 +148,20 @@ void IRQbspInit()
         | FSMC_BWTR1_ADDSET_0;//ADDSET=1
     //Write takes 6 + 1 (WE high to CS high) + 1 (min time CS high) = 8 cycles 
     
+    DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
     #ifndef STDOUT_REDIRECTED_TO_DCC
-    IRQstm32f2serialPortInit();
+        new STM32Serial(defaultSerial,defaultSerialSpeed,
+        defaultSerialFlowctrl ? STM32Serial::RTSCTS : STM32Serial::NOFLOWCTRL)));
+    #else //STDOUT_REDIRECTED_TO_DCC
+        new ARMDCC));
     #endif //STDOUT_REDIRECTED_TO_DCC
 }
 
 void bspInit2()
 {
-    //Nothing to do
+//     #ifdef WITH_FILESYSTEM
+//     basicFilesystemSetup();
+//     #endif //WITH_FILESYSTEM
 }
 
 //
@@ -158,13 +170,16 @@ void bspInit2()
 
 void shutdown()
 {
+    ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+
     disableInterrupts();
     for(;;) __WFI();
 }
 
 void reboot()
 {
-    while(!Console::txComplete()) ;
+    ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+
     disableInterrupts();
     miosix_private::IRQsystemReboot();
 }

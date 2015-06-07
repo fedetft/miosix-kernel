@@ -9,4 +9,16 @@
     </data>
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/1"/>
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
+    <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
+        <group/>
+    </open-files>
+    <preferences xmlns="http://www.netbeans.org/ns/auxiliary-configuration-preferences/1">
+        <module name="org-netbeans-modules-cnd-discovery">
+            <property name="folder" value="/media/truecrypt1/Projects/ARM/miosix/miosix-kernel"/>
+            <property name="rootFolder" value="/media/truecrypt1/Projects/ARM/miosix/miosix-kernel"/>
+            <property name="make-log-file" value="/media/truecrypt1/Projects/ARM/miosix/miosix-kernel"/>
+            <property name="libraries" value=""/>
+            <property name="executable" value="/media/truecrypt1/Projects/ARM/miosix/miosix-kernel/main.elf*/media/truecrypt1/Projects/ARM/miosix/miosix-kernel"/>
+        </module>
+    </preferences>
 </project-private>

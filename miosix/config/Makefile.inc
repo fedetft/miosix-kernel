@@ -1,6 +1,5 @@
 ##
-## Makefile for Miosix np embedded OS
-## TFT:Terraneo Federico Technlogies
+## Makefile for Miosix embedded OS
 ## 
 ## This file contains the options required by the build system to build
 ## Miosix on various target architectures. All options start with OPT_
@@ -13,7 +12,7 @@
 ## architecture
 ##
 #OPT_BOARD := lpc2138_miosix_board
-OPT_BOARD := stm32f103ze_stm3210e-eval
+#OPT_BOARD := stm32f103ze_stm3210e-eval
 #OPT_BOARD := stm32f103ve_mp3v2
 #OPT_BOARD := stm32f100rb_stm32vldiscovery
 #OPT_BOARD := stm32f103ve_strive_mini
@@ -25,6 +24,10 @@ OPT_BOARD := stm32f103ze_stm3210e-eval
 #OPT_BOARD := stm32l151_als_mainboard
 #OPT_BOARD := stm32f407vg_bitsboard
 #OPT_BOARD := stm32f205rg_sony-newman
+#OPT_BOARD := stm32f429zi_stm32f4discovery
+#OPT_BOARD := stm32f103cb_als_mainboard_rev2
+#OPT_BOARD := stm32f100cb_tempsensor
+#OPT_BOARD := stm32f429zi_oledboard2
 
 ##
 ## Optimization flags, choose one.
@@ -69,7 +72,8 @@ ifeq ($(OPT_BOARD),stm32f103ze_stm3210e-eval)
     ## 3) Code + stack + heap in external RAM, (file *_all_in_xram.ld)
     ##    useful for debugging code in hardware like STM3210E-EVAL. Code runs
     ##    *very* slow compared to FLASH. Works only with a booloader that
-    ##    forwards interrrupts @ 0x68000000 (see miosix/bootloaders for one).
+    ##    forwards interrrupts @ 0x68000000 (see miosix/_tools/bootloaders for
+    ##    one).
     ##    The microcontroller must have an external memory interface.
     ## Warning! enable external ram if you use a linker script that requires it
     ## (see the XRAM flag below)
@@ -133,9 +137,12 @@ ifeq ($(OPT_BOARD),stm32f407vg_stm32f4discovery)
     ## Linker script type, there are two options
     ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
     ## 2) Code + stack + heap in internal RAM (file *_ram.ld)
+    ## 3) Same as 1) but space has been reserved for a process pool, allowing
+    ##    to configure the kernel with "#define WITH_PROCESSES"
     LINKER_SCRIPT_PATH := arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+192k_rom.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+192k_ram.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+192k_rom_processes.ld
 
     ## This causes the interrupt vector table to be relocated in SRAM, must be
     ## uncommented when using the ram linker script
@@ -161,14 +168,18 @@ ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
     ## 3) Code + stack + heap in external RAM, (file *_all_in_xram.ld)
     ##    useful for debugging code in hardware like STM3220G-EVAL. Code runs
     ##    *very* slow compared to FLASH. Works only with a booloader that
-    ##    forwards interrrupts @ 0x64000000 (see miosix/bootloaders for one).
+    ##    forwards interrrupts @ 0x64000000 (see miosix/_tools/bootloaders for
+    ##    one).
     ##    The microcontroller must have an external memory interface.
+    ## 4) Same as 3) but space has been reserved for a process pool, allowing
+    ##    to configure the kernel with "#define WITH_PROCESSES"
     ## Warning! enable external ram if you use a linker script that requires it
     ## (see the XRAM flag below)
     LINKER_SCRIPT_PATH := arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram.ld
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram_processes.ld
 
     ## Enable/disable initialization of external RAM at boot. Three options:
     ## __ENABLE_XRAM : If you want the heap in xram (with an appropriate linker
@@ -187,13 +198,14 @@ endif
 ##
 ifeq ($(OPT_BOARD),stm32f207zg_ethboard_v2)
 
-    ## Linker script type, there are three options
+    ## Linker script type, there are two options
     ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
     ##    the most common choice, available for all microcontrollers
     ## 2) Code in external RAM, stack + heap in internal RAM
     ##    (file *_code_in_xram.ld) useful for debugging. Code runs
     ##    *very* slow compared to FLASH. Works only with a booloader that
-    ##    forwards interrrupts @ 0x60000000 (see miosix/bootloaders for one).
+    ##    forwards interrrupts @ 0x60000000 (see miosix/_tools/bootloaders for
+    ##    one).
     ##    You must -D__CODE_IN_XRAM below.
     LINKER_SCRIPT_PATH := arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom.ld
@@ -219,15 +231,90 @@ endif
 
 # No options
 
+##---------------------------------------------------------------------------
+## stm32f429zi_stm32f4discovery
+##
+ifeq ($(OPT_BOARD),stm32f429zi_stm32f4discovery)
+
+    ## Linker script type, there are three options
+    ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
+    ##    the most common choice, available for all microcontrollers
+    ## 2) Code in FLASH, stack + heap in external RAM (file *8m_xram.ld)
+    ##    You must uncomment -D__ENABLE_XRAM below in this case.
+    ## 3) Code in FLASH, stack + heap in external RAM (file *6m_xram.ld)
+    ##    Same as above, but leaves the upper 2MB of RAM for the LCD.
+    LINKER_SCRIPT_PATH := arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery/
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+256k_rom.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+8m_xram.ld
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+6m_xram.ld
+
+    ## Uncommenting __ENABLE_XRAM enables the initialization of the external
+    ## 8MB SDRAM memory. Do not uncomment this even if you don't use a linker
+    ## script that requires it, as it is used for the LCD framebuffer.
+    XRAM := -D__ENABLE_XRAM
+    
+    ## Select clock frequency. Warning: the default clock frequency for
+    ## this board is 168MHz and not 180MHz because, due to a limitation in
+    ## the PLL, it is not possible to generate a precise 48MHz output when
+    ## running the core at 180MHz. If 180MHz is chosen the USB peripheral will
+    ## NOT WORK and the SDIO and RNG will run ~6% slower (45MHz insteand of 48)
+    CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
+    #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_180MHz=180000000
+endif
+
+##---------------------------------------------------------------------------
+## stm32f103cb_als_mainboard_rev2
+##
+
+# No options
+
+##---------------------------------------------------------------------------
+## stm32f100cb_tempsensor
+##
+
+# No options
+
+##---------------------------------------------------------------------------
+## stm32f429zi_oledboard2
+##
+ifeq ($(OPT_BOARD),stm32f429zi_oledboard2)
+
+    ## Linker script type, there are three options
+    ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
+    ##    the most common choice, available for all microcontrollers
+    ## 2) Code in FLASH, stack + heap in external RAM (file *8m_xram.ld)
+    ##    You must uncomment -D__ENABLE_XRAM below in this case.
+    ## 3) Code in FLASH, stack + heap in external RAM (file *6m_xram.ld)
+    ##    Same as above, but leaves the upper 2MB of RAM for the LCD.
+    LINKER_SCRIPT_PATH := arch/cortexM4_stm32f4/stm32f429zi_oledboard2/
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+256k_rom.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+8m_xram.ld
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+6m_xram.ld
+
+    ## Uncommenting __ENABLE_XRAM enables the initialization of the external
+    ## 8MB SDRAM memory. Do not uncomment this even if you don't use a linker
+    ## script that requires it, as it is used for the LCD framebuffer.
+    XRAM := -D__ENABLE_XRAM
+    
+    ## Select clock frequency. Warning: the default clock frequency for
+    ## this board is 168MHz and not 180MHz because, due to a limitation in
+    ## the PLL, it is not possible to generate a precise 48MHz output when
+    ## running the core at 180MHz. If 180MHz is chosen the USB peripheral will
+    ## NOT WORK and the SDIO and RNG will run ~6% slower (45MHz insteand of 48)
+    CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
+    #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_180MHz=180000000
+endif
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
 ## a new board or porting Miosix to a new architecture                    ##
 ############################################################################
 
-ifneq ($(MAKEFILE_VERSION),1.01)
-    $(error You are using an incompatible makefile. Make sure it matches \
+ifneq ($(MAKEFILE_VERSION),1.04)
+    $(info You are using an incompatible makefile. Make sure it matches \
       the one distributed with the current version of the kernel)
+    $(error Error)
 endif
 
 ##
@@ -259,17 +346,27 @@ else ifeq ($(OPT_BOARD),stm32l151_als_mainboard)
     ARCH := cortexM3_stm32l1
 else ifeq ($(OPT_BOARD),stm32f407vg_bitsboard)
     ARCH := cortexM4_stm32f4
+else ifeq ($(OPT_BOARD),stm32f429zi_stm32f4discovery)
+    ARCH := cortexM4_stm32f4
+else ifeq ($(OPT_BOARD),stm32f103cb_als_mainboard_rev2)
+    ARCH := cortexM3_stm32
+else ifeq ($(OPT_BOARD),stm32f100cb_tempsensor)
+    ARCH := cortexM3_stm32
+else ifeq ($(OPT_BOARD),stm32f429zi_oledboard2)
+    ARCH := cortexM4_stm32f4
 else
-    $(error Error: no board specified in miosix/config/Makefile.inc)
+    $(info Error: no board specified in miosix/config/Makefile.inc)
+    $(error Error)
 endif
 
 
 ##
-## Then, initialize C/C++ flags with -D_MIOSIX so that application code can
-## know if the OS is MIOSIX
+## Then, initialize C/C++ flags
 ##
-CFLAGS_BASE   := -D_MIOSIX=\"$(OPT_BOARD)\"
-CXXFLAGS_BASE := -D_MIOSIX=\"$(OPT_BOARD)\"
+CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" \
+                 -Wno-unused-but-set-variable
+CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" \
+                 -Wno-unused-but-set-variable
 
 ##
 ## Now two big switch-like constructs nested. The first lists all possible
@@ -301,11 +398,8 @@ ifeq ($(ARCH),arm7_lpc2000)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/core/interrupts.cpp             \
-        $(BOARD_INC)/drivers/serial.cpp              \
         $(BOARD_INC)/interfaces-impl/portability.cpp \
-        $(BOARD_INC)/interfaces-impl/console.cpp     \
-        $(BOARD_INC)/interfaces-impl/disk.cpp        \
+        arch/common/drivers/sd_lpc2000.cpp           \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -338,12 +432,14 @@ ifeq ($(ARCH),arm7_lpc2000)
     CXXFLAGS_BASE += -D_ARCH_ARM7_LPC2000 -mcpu=arm7tdmi $(OPT_OPTIMIZATION) \
                      -ffunction-sections $(OPT_EXCEPT) -Wall -g -c
     LFLAGS_BASE   := -mcpu=arm7tdmi -Wl,--gc-sections,-Map,main.map          \
-                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                       $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
-    #ARCH_SRC += Nothing to add
+    ARCH_SRC +=                                  \
+    arch/common/core/interrupts_arm7.cpp         \
+    arch/common/drivers/serial_lpc2000.cpp
 
     ## Select programmer command line
     ## This is the program that is invoked when the user types 'make program'
@@ -374,8 +470,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/interfaces-impl/console.cpp     \
-        $(ARCH_INC)/interfaces-impl/disk.cpp         \
+        arch/common/drivers/sd_stm32f1.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -389,7 +484,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## error message saying that 'make program' is not supported for that
         ## board.
         ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_512k+64k_all_in_xram.ld)
-        PROGRAM_CMDLINE := miosix/bootloaders/stm32/pc_loader/pc_loader \
+        PROGRAM_CMDLINE := $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
         /dev/ttyUSB0 main.bin
         else
         PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB0
@@ -411,8 +506,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/interfaces-impl/console.cpp     \
-        $(ARCH_INC)/interfaces-impl/disk.cpp         \
+        arch/common/drivers/sd_stm32f1.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -450,8 +544,8 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/interfaces-impl/console.cpp     \
-        $(BOARD_INC)/interfaces-impl/bsp.cpp
+        $(BOARD_INC)/interfaces-impl/bsp.cpp         \
+        arch/common/drivers/servo_stm32.cpp
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32VLDISCOVERY -DSTM32F10X_MD_VL 
@@ -466,7 +560,8 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := sudo vsprog -cstm32_vl -ms -I main.hex -oe -owf -ovf
+        #PROGRAM_CMDLINE := sudo vsprog -cstm32_vl -ms -I main.hex -oe -owf -ovf
+        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f103ve_strive_mini
@@ -484,8 +579,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/interfaces-impl/console.cpp     \
-        $(ARCH_INC)/interfaces-impl/disk.cpp         \
+        arch/common/drivers/sd_stm32f1.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -519,8 +613,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/interfaces-impl/console.cpp     \
-        $(ARCH_INC)/interfaces-impl/disk.cpp         \
+        arch/common/drivers/sd_stm32f1.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -540,14 +633,81 @@ else ifeq ($(ARCH),cortexM3_stm32)
         -openprjSTM32F10xxE.jflash -openmain.hex -auto -exit
         #PROGRAM_CMDLINE := "c:/Program Files/STMicroelectronics/STM32 ST-LINK Utility/ST-LINK Utility/ST-LINK_CLI.exe" \
         #-c JTAG -Rst -P main.hex 0x08000000 -Run
+        
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f103cb_als_mainboard_rev2
+    ##
+    else ifeq ($(OPT_BOARD),stm32f103cb_als_mainboard_rev2)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_stm32/stm32f103cb_als_mainboard_rev2
 
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_128k+20k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_ALS_MAINBOARD_REV2 -DSTM32F10X_MD
+        CXXFLAGS_BASE += -D_BOARD_ALS_MAINBOARD_REV2 -DSTM32F10X_MD
+
+        ## Clock frequency
+        # Not defining anything results in HSI being used
+        CLOCK_FREQ :=
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := stm32flash -w main.bin -v /dev/ttyUSB1
+    
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f100cb_tempsensor
+    ##
+    else ifeq ($(OPT_BOARD),stm32f100cb_tempsensor)
+
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_stm32/stm32f100cb_tempsensor
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_127k+8k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_TEMPSENSOR -DSTM32F10X_MD_VL 
+        CXXFLAGS_BASE += -D_BOARD_TEMPSENSOR -DSTM32F10X_MD_VL
+
+        ## Clock frequency
+        # Not defining anything results in HSI being used
+        CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000 -DRUN_WITH_HSI
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
+    
     ##-------------------------------------------------------------------------
     ## End of board list
     ##
     endif
 
     ## Select compiler
-    PREFIX=arm-miosix-eabi-
+    PREFIX := arm-miosix-eabi-
 
     ## From compiler prefix form the name of the compiler and other tools
     CC  := $(PREFIX)gcc
@@ -562,28 +722,25 @@ else ifeq ($(ARCH),cortexM3_stm32)
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
     CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32 $(CLOCK_FREQ) $(XRAM)            \
-                     -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
-                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c 
+                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION)             \
+                     -ffunction-sections -Wall -g -c 
     CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32 $(CLOCK_FREQ) $(XRAM)            \
                      $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
-                     -mfix-cortex-m3-ldrd $(OPT_OPTIMIZATION)                \
-                     -ffunction-sections -Wall -g -c
-    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
-                     -Wl,--gc-sections,-Map,main.map                         \
-                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                  \
+    arch/common/core/interrupts_cortexMx.cpp     \
+    arch/common/drivers/serial_stm32.cpp         \
     arch/common/drivers/dcc.cpp                  \
-    $(ARCH_INC)/core/interrupts.cpp              \
-    $(ARCH_INC)/drivers/serial.cpp               \
     $(ARCH_INC)/interfaces-impl/portability.cpp  \
     $(ARCH_INC)/interfaces-impl/delays.cpp       \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp    \
-    $(ARCH_INC)/CMSIS/core_cm3.c                 \
-    $(ARCH_INC)/CMSIS/system_stm32f10x.c
+    arch/common/CMSIS/Device/ST/STM32F10x/Source/Templates/system_stm32f10x.c
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM4_stm32f4
@@ -593,7 +750,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     ARCH_INC := arch/cortexM4_stm32f4/common
 
     ##-------------------------------------------------------------------------
-    ## BOARD: stm32f4discovery
+    ## BOARD: stm32f407vg_stm32f4discovery
     ##
     ifeq ($(OPT_BOARD),stm32f407vg_stm32f4discovery)
         ## Base directory with header files for this board
@@ -607,8 +764,8 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/interfaces-impl/console.cpp     \
-        $(BOARD_INC)/interfaces-impl/bsp.cpp
+        $(BOARD_INC)/interfaces-impl/bsp.cpp         \
+        arch/common/drivers/servo_stm32.cpp
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32F4DISCOVERY 
@@ -623,7 +780,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
 
     ##-------------------------------------------------------------------------
-    ## BOARD: stm32f4discovery
+    ## BOARD: stm32f4bitsboard
     ##
     else ifeq ($(OPT_BOARD),stm32f407vg_bitsboard)
 
@@ -638,7 +795,6 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/interfaces-impl/console.cpp     \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -655,6 +811,66 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## error message saying that 'make program' is not supported for that
         ## board.
         PROGRAM_CMDLINE := stm32flash -w ./main.bin -v /dev/ttyUSB1
+        
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f429zi_stm32f4discovery
+    ##
+    else ifeq ($(OPT_BOARD),stm32f429zi_stm32f4discovery)
+
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        #LINKER_SCRIPT := already selected in board options
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32F429ZI_STM32F4DISCOVERY
+        CXXFLAGS_BASE += -D_BOARD_STM32F429ZI_STM32F4DISCOVERY
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f429zi_oledboard2
+    ##
+    else ifeq ($(OPT_BOARD),stm32f429zi_oledboard2)
+
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM4_stm32f4/stm32f429zi_oledboard2
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        #LINKER_SCRIPT := already selected in board options
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32F429ZI_OLEDBOARD2
+        CXXFLAGS_BASE += -D_BOARD_STM32F429ZI_OLEDBOARD2
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := stm32flash -w main.bin -v /dev/ttyUSB1
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -662,7 +878,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     endif
 
     ## Select compiler
-    PREFIX=arm-miosix-eabi-
+    PREFIX := arm-miosix-eabi-
 
     ## From compiler prefix form the name of the compiler and other tools
     CC  := $(PREFIX)gcc
@@ -675,31 +891,31 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    #FIXME: Replace -mcpu=cortex-m3 with -mcpu=cortex-m4 after upgrading GCC
-    AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
-    CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(SRAM_BOOT)     \
-                     -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
+    AFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+    CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
+                     -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
                      $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(SRAM_BOOT)     \
-                     $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
-                     -mfix-cortex-m3-ldrd $(OPT_OPTIMIZATION)                \
-                     -ffunction-sections -Wall -g -c
-    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
-                     -Wl,--gc-sections,-Map,main.map                         \
-                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
+                     -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
+                     $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -ffunction-sections      \
+                     -Wall -g -c
+    LFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
+                     -Wl,--gc-sections,-Map,main.map                            \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)              \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
-    arch/common/drivers/dcc.cpp                              \
+    arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/drivers/serial_stm32.cpp                     \
     arch/common/drivers/stm32_hardware_rng.cpp               \
-    $(ARCH_INC)/core/interrupts.cpp                          \
+    arch/common/drivers/dcc.cpp                              \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
-    $(ARCH_INC)/interfaces-impl/disk.cpp                     \
-    $(ARCH_INC)/CMSIS/system_stm32f4xx.c
+    arch/common/drivers/sd_stm32f2_f4.cpp                    \
+    arch/common/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM3_stm32f2
@@ -723,8 +939,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(ARCH_INC)/interfaces-impl/disk.cpp         \
-        $(BOARD_INC)/interfaces-impl/console.cpp     \
+        arch/common/drivers/sd_stm32f2_f4.cpp        \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -742,10 +957,10 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## error message saying that 'make program' is not supported for that
         ## board.
         ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld)
-        PROGRAM_CMDLINE := miosix/bootloaders/stm32/pc_loader/pc_loader \
+        PROGRAM_CMDLINE := $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
         /dev/ttyUSB0 main.bin
         else
-        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+            PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
         endif
 
     ##-------------------------------------------------------------------------
@@ -763,8 +978,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(ARCH_INC)/interfaces-impl/disk.cpp         \
-        $(BOARD_INC)/interfaces-impl/console.cpp     \
+        arch/common/drivers/sd_stm32f2_f4.cpp        \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -785,7 +999,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## error message saying that 'make program' is not supported for that
         ## board.
         ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_1m+128k_code_in_xram.ld)
-        PROGRAM_CMDLINE := miosix/bootloaders/stm32/pc_loader/pc_loader \
+        PROGRAM_CMDLINE := $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
         /dev/ttyUSB1 main.bin
         else
         PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
@@ -806,7 +1020,6 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/interfaces-impl/console.cpp     \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -844,7 +1057,6 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
         arch/common/drivers/stm32f2_f4_i2c.cpp       \
-        $(BOARD_INC)/interfaces-impl/console.cpp     \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -888,27 +1100,25 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
     CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32F2 $(CLOCK_FREQ) $(XRAM)          \
-                     -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
-                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION)             \
+                     -ffunction-sections -Wall -g -c
     CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32F2 $(CLOCK_FREQ) $(XRAM)          \
                      $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
-                     -mfix-cortex-m3-ldrd $(OPT_OPTIMIZATION)                \
-                     -ffunction-sections -Wall -g -c
-    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
-                     -Wl,--gc-sections,-Map,main.map                         \
-                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
+    arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/drivers/serial_stm32.cpp                     \
     arch/common/drivers/dcc.cpp                              \
     arch/common/drivers/stm32_hardware_rng.cpp               \
-    $(ARCH_INC)/core/interrupts.cpp                          \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
-    $(ARCH_INC)/CMSIS/core_cm3.c                             \
-    $(ARCH_INC)/CMSIS/system_stm32f2xx.c
+    arch/common/CMSIS/Device/ST/STM32F2xx/Source/Templates/system_stm32f2xx.c
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM3_stm32l1
@@ -932,7 +1142,6 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/interfaces-impl/console.cpp     \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -971,26 +1180,24 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
     CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32L1 $(CLOCK_FREQ) $(XRAM)          \
-                     -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
-                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION)             \
+                     -ffunction-sections -Wall -g -c
     CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32L1 $(CLOCK_FREQ) $(XRAM)          \
                      $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
-                     -mfix-cortex-m3-ldrd $(OPT_OPTIMIZATION)                \
-                     -ffunction-sections -Wall -g -c
-    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd            \
-                     -Wl,--gc-sections,-Map,main.map                         \
-                     -Wl,-T./miosix/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
-    arch/common/drivers/dcc.cpp                              \
-    $(ARCH_INC)/core/interrupts.cpp                          \
+    arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/drivers/serial_stm32.cpp                     \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
-    $(ARCH_INC)/CMSIS/system_stm32l1xx.c
+    arch/common/CMSIS/Device/ST/STM32L1xx/Source/Templates/system_stm32l1xx.c
 
 ##-----------------------------------------------------------------------------
 ## end of architecture list

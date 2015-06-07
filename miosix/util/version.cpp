@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
+ *   Copyright (C) 2010, 2011, 2012, 2013, 2014 by Terraneo Federico       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,6 +25,17 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "config/miosix_settings.h"
+#include "board_settings.h"
+
+#if MIOSIX_SETTINGS_VERSION != 100
+#error You need to update miosix_settings.h to match the version in the kernel.
+#endif
+
+#if BOARD_SETTINGS_VERSION != 100
+#error You need to update board_settings.h to match the version in the kernel.
+#endif
+
 namespace miosix {
 
 #ifdef __GNUC__
@@ -37,7 +48,7 @@ namespace miosix {
 #define AU
 #endif
 
-const char AU ver[]="Miosix v1.61 (" _MIOSIX ", " __DATE__ " " __TIME__ CV ")";
+const char AU ver[]="Miosix v2.0beta1 (" _MIOSIX_BOARDNAME ", " __DATE__ " " __TIME__ CV ")";
 
 const char *getMiosixVersion()
 {

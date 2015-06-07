@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -30,6 +30,7 @@
 
 //For SCHED_TYPE_* config options
 #include "config/miosix_settings.h"
+#include <cstddef>
 
 /**
  * \addtogroup Interfaces
@@ -48,6 +49,16 @@
  * portability_impl.h is included.
  * This file should contain the implementation of those inline functions.
  */
+
+#ifdef WITH_PROCESSES
+
+namespace miosix {
+
+class Process; //Forward decl
+
+} //namespace miosix
+
+#endif //WITH_PROCESSES
 
 /**
  * \}
@@ -98,6 +109,205 @@ inline void doYield();
  */
 void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
         void *argv);
+
+#ifdef WITH_PROCESSES
+
+/**
+ * This class allows to access the parameters that a process passed to
+ * the operating system as part of a system call
+ */
+class SyscallParameters
+{
+public:
+    /**
+     * Constructor, initialize the class starting from the thread's userspace
+     * context
+     */
+    SyscallParameters(unsigned int *context);
+    
+    /**
+     * \return the syscall id, used to identify individual system calls
+     */
+    int getSyscallId() const;
+    
+    /**
+     * \return the first syscall parameter. The returned result is meaningful
+     * only if the syscall (identified through its id) has one or more parameters
+     */
+    unsigned int getFirstParameter() const;
+    
+    /**
+     * \return the second syscall parameter. The returned result is meaningful
+     * only if the syscall (identified through its id) has two or more parameters
+     */
+    unsigned int getSecondParameter() const;
+    
+    /**
+     * \return the third syscall parameter. The returned result is meaningful
+     * only if the syscall (identified through its id) has three parameters
+     */
+    unsigned int getThirdParameter() const;
+    
+    /**
+     * Set the value that will be returned by the syscall.
+     * Invalidates parameters so must be called only after the syscall
+     * parameteres have been read.
+     * \param ret value that will be returned by the syscall.
+     */
+    void setReturnValue(unsigned int ret);
+    
+private:
+    unsigned int *registers;
+};
+
+/**
+ * This class contains information about whether a fault occurred in a process.
+ * It is used to terminate processes that fault.
+ */
+class FaultData
+{
+public:
+    /**
+     * Constructor, initializes the object
+     */
+    FaultData() : id(0) {}
+    
+    /**
+     * Constructor, initializes a FaultData object
+     * \param id id of the fault
+     * \param pc program counter at the moment of the fault
+     * \param arg eventual additional argument, depending on the fault id
+     */
+    FaultData(int id, unsigned int pc, unsigned int arg=0)
+            : id(id), pc(pc), arg(arg) {}
+    
+    /**
+     * \return true if a fault happened within a process
+     */
+    bool faultHappened() const { return id!=0; }
+    
+    /**
+     * Print information about the occurred fault
+     */
+    void print() const;
+    
+private:
+    int id; ///< Id of the fault or zero if no faults
+    unsigned int pc; ///< Program counter value at the time of the fault
+    unsigned int arg;///< Eventual argument, valid only for some id values
+};
+
+/**
+ * \internal
+ * Initializes a ctxsave array when a thread is created.
+ * This version is to initialize the userspace context of processes.
+ * It is used by the kernel, and should not be used by end users.
+ * \param ctxsave a pointer to a field ctxsave inside a Thread class that need
+ * to be filled
+ * \param pc starting program counter of newly created thread, used to
+ * initialize ctxsave
+ * \param sp starting stack pointer of newly created thread, used to initialize
+ * ctxsave
+ * \param argv starting data passed to newly created thread, used to initialize
+ * ctxsave
+ * \param gotBase base address of the global offset table, for userspace
+ * processes
+ */
+void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
+        void *argv, unsigned int *gotBase);
+
+/**
+ * \internal
+ * Cause a supervisor call that will switch the thread back to kernelspace
+ * It is used by the kernel, and should not be used by end users.
+ */
+inline void portableSwitchToUserspace();
+
+/**
+ * \internal
+ * This class is used to manage the MemoryProtectionUnit
+ */
+
+class MPUConfiguration
+{
+ public:
+     /**
+      * Default constructor, leaves the MPU regions unconfigured
+      */
+     MPUConfiguration() {}
+     
+     /**
+      * \internal
+      * \param elfBase base address of the ELF file
+      * \param elfSize size of the ELF file
+      * \param imageBase base address of the Process RAM image
+      * \param imageSize size of the Process RAM image
+      */
+     MPUConfiguration(unsigned int *elfBase, unsigned int elfSize,
+             unsigned int *imageBase, unsigned int imageSize);
+     
+     /**
+      * \internal
+      * This method is used to configure the Memoy Protection region for a 
+      * Process during a context-switch to a userspace thread.
+      * Can only be called inside an IRQ, not even with interrupts disabled
+      */
+     void IRQenable();
+     
+     /**
+      * \internal
+      * This method is used to disable the MPU during a context-switch to a
+      * kernelspace thread.
+      * Can only be called inside an IRQ, not even with interrupts disabled
+      */
+     static void IRQdisable();
+     
+     /**
+      * Print the MPU configuration for debugging purposes
+      */
+     void dumpConfiguration();
+     
+     /**
+      * Some MPU implementations may not allow regions of arbitrary size,
+      * this function allows to round a size up to the minimum value that
+      * the MPU support.
+      * \param size the size of a memory area to be configured as an MPU
+      * region
+      * \return the size rounded to the minimum MPU region allowed that is
+      * greater or equal to the given size
+      */
+     static unsigned int roundSizeForMPU(unsigned int size);
+ 
+     /**
+      * Check if a buffer is within a readable segment of the process
+      * \param ptr base pointer of the buffer to check
+      * \param size buffer size
+      * \return true if the buffer is correctly within the process
+      */
+     bool withinForReading(const void *ptr, size_t size) const;
+     
+     /**
+      * Check if a buffer is within a writable segment of the process
+      * \param ptr base pointer of the buffer to check
+      * \param size buffer size
+      * \return true if the buffer is correctly within the process
+      */
+     bool withinForWriting(const void *ptr, size_t size) const;
+     
+     /**
+      * Check if a nul terminated string is entirely contained in the process,
+      * \param str a pointer to a nul terminated string
+      * \return true if the buffer is correctly within the process
+      */
+     bool withinForReading(const char *str) const;
+ 
+     //Uses default copy constructor and operator=
+private:
+     ///These value are copied into the MPU registers to configure them
+     unsigned int regValues[4]; 
+};
+
+#endif //WITH_PROCESSES
 
 /**
  * \internal

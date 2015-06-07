@@ -1,45 +1,153 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configurationDescriptor version="89">
+<configurationDescriptor version="90">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
-    <df root=".." name="miosix_np_2">
+    <df root=".." name="0">
       <df name="miosix">
         <df name="arch">
           <df name="arm7_lpc2000">
             <df name="common">
               <df name="interfaces-impl">
+                <in>atomic_ops_impl.h</in>
                 <in>endianness_impl.h</in>
               </df>
               <in>arch_settings.h</in>
             </df>
             <df name="lpc2138_miosix_board">
               <df name="core">
-                <in>interrupts.cpp</in>
-                <in>interrupts.h</in>
                 <in>stage_1_boot.s</in>
-              </df>
-              <df name="drivers">
-                <in>serial.cpp</in>
-                <in>serial.h</in>
               </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
-                <in>console.cpp</in>
                 <in>delays.cpp</in>
-                <in>disk.cpp</in>
                 <in>gpio_impl.h</in>
                 <in>portability.cpp</in>
                 <in>portability_impl.h</in>
               </df>
               <in>LPC213x.h</in>
-              <in>board_settings.h</in>
             </df>
           </df>
           <df name="common">
+            <df name="CMSIS">
+              <df name="Device">
+                <df name="ST">
+                  <df name="STM32F10x">
+                    <df name="Include">
+                      <in>stm32f10x.h</in>
+                      <in>system_stm32f10x.h</in>
+                    </df>
+                    <df name="Source">
+                      <df name="Templates">
+                        <in>system_stm32f10x.c</in>
+                      </df>
+                    </df>
+                  </df>
+                  <df name="STM32F2xx">
+                    <df name="Include">
+                      <in>stm32f205xx.h</in>
+                      <in>stm32f207xx.h</in>
+                      <in>stm32f215xx.h</in>
+                      <in>stm32f217xx.h</in>
+                      <in>stm32f2xx.h</in>
+                      <in>system_stm32f2xx.h</in>
+                    </df>
+                    <df name="Source">
+                      <df name="Templates">
+                        <in>system_stm32f2xx.c</in>
+                      </df>
+                    </df>
+                  </df>
+                  <df name="STM32F4xx">
+                    <df name="Include">
+                      <in>stm32f401xc.h</in>
+                      <in>stm32f401xe.h</in>
+                      <in>stm32f405xx.h</in>
+                      <in>stm32f407xx.h</in>
+                      <in>stm32f415xx.h</in>
+                      <in>stm32f417xx.h</in>
+                      <in>stm32f427xx.h</in>
+                      <in>stm32f429xx.h</in>
+                      <in>stm32f437xx.h</in>
+                      <in>stm32f439xx.h</in>
+                      <in>stm32f4xx.h</in>
+                      <in>system_stm32f4xx.h</in>
+                    </df>
+                    <df name="Source">
+                      <df name="Templates">
+                        <in>system_stm32f4xx.c</in>
+                      </df>
+                    </df>
+                  </df>
+                  <df name="STM32L1xx">
+                    <df name="Include">
+                      <in>stm32l1xx.h</in>
+                      <in>system_stm32l1xx.h</in>
+                    </df>
+                    <df name="Source">
+                      <df name="Templates">
+                        <in>system_stm32l1xx.c</in>
+                      </df>
+                    </df>
+                  </df>
+                </df>
+              </df>
+              <df name="Documentation">
+                <df name="Core">
+                  <df name="html">
+                    <df name="search">
+                    </df>
+                  </df>
+                </df>
+                <df name="General">
+                  <df name="html">
+                  </df>
+                </df>
+                <df name="SVD">
+                  <df name="html">
+                  </df>
+                </df>
+              </df>
+              <df name="Include">
+                <in>arm_common_tables.h</in>
+                <in>arm_const_structs.h</in>
+                <in>arm_math.h</in>
+                <in>core_cm0.h</in>
+                <in>core_cm0plus.h</in>
+                <in>core_cm3.h</in>
+                <in>core_cm4.h</in>
+                <in>core_cm4_simd.h</in>
+                <in>core_cmFunc.h</in>
+                <in>core_cmInstr.h</in>
+                <in>core_sc000.h</in>
+                <in>core_sc300.h</in>
+              </df>
+              <df name="SVD">
+              </df>
+            </df>
+            <df name="core">
+              <in>interrupts.h</in>
+              <in>interrupts_arm7.cpp</in>
+              <in>interrupts_arm7.h</in>
+              <in>interrupts_cortexMx.cpp</in>
+              <in>interrupts_cortexMx.h</in>
+            </df>
             <df name="drivers">
               <in>dcc.cpp</in>
               <in>dcc.h</in>
+              <in>sd_lpc2000.cpp</in>
+              <in>sd_lpc2000.h</in>
+              <in>sd_stm32f1.cpp</in>
+              <in>sd_stm32f1.h</in>
+              <in>sd_stm32f2_f4.cpp</in>
+              <in>sd_stm32f2_f4.h</in>
+              <in>serial.h</in>
+              <in>serial_lpc2000.cpp</in>
+              <in>serial_lpc2000.h</in>
+              <in>serial_stm32.cpp</in>
+              <in>serial_stm32.h</in>
+              <in>servo_stm32.cpp</in>
+              <in>servo_stm32.h</in>
               <in>stm32_hardware_rng.cpp</in>
               <in>stm32_hardware_rng.h</in>
               <in>stm32f2_f4_i2c.cpp</in>
@@ -48,25 +156,10 @@
           </df>
           <df name="cortexM3_stm32">
             <df name="common">
-              <df name="CMSIS">
-                <in>core_cm3.c</in>
-                <in>core_cm3.h</in>
-                <in>stm32f10x.h</in>
-                <in>system_stm32f10x.c</in>
-                <in>system_stm32f10x.h</in>
-              </df>
-              <df name="core">
-                <in>interrupts.cpp</in>
-                <in>interrupts.h</in>
-              </df>
-              <df name="drivers">
-                <in>serial.cpp</in>
-                <in>serial.h</in>
-              </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
+                <in>atomic_ops_impl.h</in>
                 <in>delays.cpp</in>
-                <in>disk.cpp</in>
                 <in>endianness_impl.h</in>
                 <in>gpio_impl.cpp</in>
                 <in>gpio_impl.h</in>
@@ -75,6 +168,15 @@
               </df>
               <in>arch_settings.h</in>
             </df>
+            <df name="stm32f100cb_tempsensor">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+              </df>
+            </df>
             <df name="stm32f100rb_stm32vldiscovery">
               <df name="core">
                 <in>stage_1_boot.cpp</in>
@@ -82,9 +184,17 @@
               <df name="interfaces-impl">
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
-                <in>console.cpp</in>
               </df>
-              <in>board_settings.h</in>
+            </df>
+            <df name="stm32f103cb_als_mainboard_rev2">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>hwmapping.h</in>
+              </df>
             </df>
             <df name="stm32f103ve_mp3v2">
               <df name="core">
@@ -93,10 +203,8 @@
               <df name="interfaces-impl">
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
-                <in>console.cpp</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f103ve_strive_mini">
               <df name="core">
@@ -105,10 +213,8 @@
               <df name="interfaces-impl">
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
-                <in>console.cpp</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f103ze_redbull_v2">
               <df name="core">
@@ -117,10 +223,8 @@
               <df name="interfaces-impl">
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
-                <in>console.cpp</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f103ze_stm3210e-eval">
               <df name="core">
@@ -129,27 +233,13 @@
               <df name="interfaces-impl">
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
-                <in>console.cpp</in>
               </df>
-              <in>board_settings.h</in>
             </df>
           </df>
           <df name="cortexM3_stm32f2">
             <df name="common">
-              <df name="CMSIS">
-                <in>core_cm3.c</in>
-                <in>core_cm3.h</in>
-                <in>stm32f2xx.h</in>
-                <in>system_stm32f2xx.c</in>
-                <in>system_stm32f2xx.h</in>
-              </df>
-              <df name="core">
-                <in>interrupts.cpp</in>
-                <in>interrupts.h</in>
-              </df>
               <df name="interfaces-impl">
-                <in>arch_registers_impl.h</in>
-                <in>disk.cpp</in>
+                <in>atomic_ops_impl.h</in>
                 <in>endianness_impl.h</in>
                 <in>gpio_impl.cpp</in>
                 <in>gpio_impl.h</in>
@@ -163,74 +253,54 @@
                 <in>stage_1_boot.cpp</in>
               </df>
               <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
-                <in>console.cpp</in>
                 <in>delays.cpp</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f207ig_stm3220g-eval">
               <df name="core">
                 <in>stage_1_boot.cpp</in>
               </df>
               <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
-                <in>console-impl.h</in>
-                <in>console.cpp</in>
                 <in>delays.cpp</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f207ze_als_camboard">
               <df name="core">
                 <in>stage_1_boot.cpp</in>
               </df>
               <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
-                <in>console-impl.h</in>
-                <in>console.cpp</in>
                 <in>delays.cpp</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f207zg_EthBoardV2">
               <df name="core">
                 <in>stage_1_boot.cpp</in>
               </df>
               <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
-                <in>console-impl.h</in>
-                <in>console.cpp</in>
                 <in>delays.cpp</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
           </df>
           <df name="cortexM3_stm32l1">
             <df name="common">
-              <df name="CMSIS">
-                <df name="Documentation">
-                </df>
-                <in>core_cm3.h</in>
-                <in>core_cmFunc.h</in>
-                <in>core_cmInstr.h</in>
-                <in>stm32l1xx.h</in>
-                <in>system_stm32l1xx.c</in>
-                <in>system_stm32l1xx.h</in>
-              </df>
-              <df name="core">
-                <in>interrupts.cpp</in>
-                <in>interrupts.h</in>
-              </df>
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
+                <in>atomic_ops_impl.h</in>
                 <in>delays.cpp</in>
                 <in>endianness_impl.h</in>
                 <in>gpio_impl.cpp</in>
@@ -247,34 +317,15 @@
               <df name="interfaces-impl">
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
-                <in>console-impl.h</in>
-                <in>console.cpp</in>
                 <in>hwmapping.h</in>
               </df>
-              <in>board_settings.h</in>
             </df>
           </df>
           <df name="cortexM4_stm32f4">
             <df name="common">
-              <df name="CMSIS">
-                <df name="Documentation">
-                </df>
-                <in>core_cm4.h</in>
-                <in>core_cm4_simd.h</in>
-                <in>core_cmFunc.h</in>
-                <in>core_cmInstr.h</in>
-                <in>stm32f4xx.h</in>
-                <in>system_stm32f4xx.c</in>
-                <in>system_stm32f4xx.h</in>
-              </df>
-              <df name="core">
-                <in>interrupts.cpp</in>
-                <in>interrupts.h</in>
-              </df>
               <df name="interfaces-impl">
-                <in>arch_registers_impl.h</in>
+                <in>atomic_ops_impl.h</in>
                 <in>delays.cpp</in>
-                <in>disk.cpp</in>
                 <in>endianness_impl.h</in>
                 <in>gpio_impl.cpp</in>
                 <in>gpio_impl.h</in>
@@ -288,28 +339,108 @@
                 <in>stage_1_boot.cpp</in>
               </df>
               <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
-                <in>console-impl.h</in>
-                <in>console.cpp</in>
               </df>
-              <in>board_settings.h</in>
             </df>
             <df name="stm32f407vg_stm32f4discovery">
               <df name="core">
                 <in>stage_1_boot.cpp</in>
               </df>
               <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
-                <in>console-impl.h</in>
-                <in>console.cpp</in>
               </df>
-              <in>board_settings.h</in>
+            </df>
+            <df name="stm32f429zi_oledboard2">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>hwmapping.h</in>
+              </df>
+            </df>
+            <df name="stm32f429zi_stm32f4discovery">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+              </df>
             </df>
           </df>
         </df>
         <df name="config">
+          <df name="arch">
+            <df name="arm7_lpc2000">
+              <df name="lpc2138_miosix_board">
+                <in>board_settings.h</in>
+              </df>
+            </df>
+            <df name="cortexM3_stm32">
+              <df name="stm32f100cb_tempsensor">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f100rb_stm32vldiscovery">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f103cb_als_mainboard_rev2">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f103ve_mp3v2">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f103ve_strive_mini">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f103ze_redbull_v2">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f103ze_stm3210e-eval">
+                <in>board_settings.h</in>
+              </df>
+            </df>
+            <df name="cortexM3_stm32f2">
+              <df name="stm32f205rg_sony-newman">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f207ig_stm3220g-eval">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f207ze_als_camboard">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f207zg_EthBoardV2">
+                <in>board_settings.h</in>
+              </df>
+            </df>
+            <df name="cortexM3_stm32l1">
+              <df name="stm32l151c8_als_mainboard">
+                <in>board_settings.h</in>
+              </df>
+            </df>
+            <df name="cortexM4_stm32f4">
+              <df name="stm32f407vg_bitsboard">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f407vg_stm32f4discovery">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f429zi_oledboard2">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f429zi_stm32f4discovery">
+                <in>board_settings.h</in>
+              </df>
+            </df>
+          </df>
           <in>miosix_settings.h</in>
         </df>
         <df name="e20">
@@ -317,49 +448,49 @@
           <in>e20.cpp</in>
           <in>e20.h</in>
         </df>
-        <df name="examples">
-          <df name="asm">
-            <in>main.s</in>
+        <df name="filesystem">
+          <df name="console">
+            <in>console_device.cpp</in>
+            <in>console_device.h</in>
           </df>
-          <df name="blinking_led">
-            <in>simple.cpp</in>
+          <df name="devfs">
+            <in>devfs.cpp</in>
+            <in>devfs.h</in>
           </df>
-          <df name="sad_trombone">
-            <in>adpcm.c</in>
-            <in>adpcm.h</in>
-            <in>convert.cpp</in>
-            <in>main.cpp</in>
-            <in>player.cpp</in>
-            <in>player.h</in>
-            <in>sad_trombone.h</in>
+          <df name="fat32">
+            <in>ccsbcs.cpp</in>
+            <in>diskio.cpp</in>
+            <in>diskio.h</in>
+            <in>fat32.cpp</in>
+            <in>fat32.h</in>
+            <in>ff.cpp</in>
+            <in>ff.h</in>
+            <in>ffconf.h</in>
+            <in>integer.h</in>
+            <in>wtoupper.cpp</in>
           </df>
-          <df name="thread_native">
-            <in>native_thread_example.cpp</in>
+          <df name="mountpointfs">
+            <in>mountpointfs.cpp</in>
+            <in>mountpointfs.h</in>
           </df>
-          <df name="thread_pthread">
-            <in>pthread_example.cpp</in>
-          </df>
+          <in>file.cpp</in>
+          <in>file.h</in>
+          <in>file_access.cpp</in>
+          <in>file_access.h</in>
+          <in>ioctl.h</in>
+          <in>stringpart.cpp</in>
+          <in>stringpart.h</in>
         </df>
         <df name="interfaces">
           <in>arch_registers.h</in>
+          <in>atomic_ops.h</in>
           <in>bsp.h</in>
-          <in>console.h</in>
           <in>delays.h</in>
-          <in>disk.h</in>
           <in>endianness.h</in>
           <in>gpio.h</in>
           <in>portability.h</in>
         </df>
         <df name="kernel">
-          <df name="filesystem">
-            <in>diskio.cpp</in>
-            <in>diskio.h</in>
-            <in>ff.c</in>
-            <in>ff.h</in>
-            <in>filesystem.cpp</in>
-            <in>filesystem.h</in>
-            <in>integer.h</in>
-          </df>
           <df name="scheduler">
             <df name="control">
               <in>control_scheduler.cpp</in>
@@ -381,26 +512,34 @@
             <in>scheduler.h</in>
             <in>tick_interrupt.h</in>
           </df>
-          <in>buffer_queue.h</in>
+          <in>SystemMap.cpp</in>
+          <in>SystemMap.h</in>
+          <in>elf_program.cpp</in>
+          <in>elf_program.h</in>
+          <in>elf_types.h</in>
           <in>error.cpp</in>
           <in>error.h</in>
+          <in>intrusive.h</in>
           <in>kernel.cpp</in>
           <in>kernel.h</in>
           <in>logging.h</in>
+          <in>process.cpp</in>
+          <in>process.h</in>
+          <in>process_pool.cpp</in>
+          <in>process_pool.h</in>
           <in>pthread.cpp</in>
           <in>pthread_private.h</in>
+          <in>queue.h</in>
           <in>stage_2_boot.cpp</in>
+          <in>stage_2_boot.h</in>
           <in>sync.cpp</in>
           <in>sync.h</in>
-          <in>syscalls.cpp</in>
-          <in>syscalls.h</in>
-          <in>syscalls_types.h</in>
-          <in>unistd.cpp</in>
         </df>
         <df name="stdlib_integration">
-        </df>
-        <df name="testsuite">
-          <in>testsuite.cpp</in>
+          <in>libc_integration.cpp</in>
+          <in>libc_integration.h</in>
+          <in>libstdcpp_integration.cpp</in>
+          <in>libstdcpp_integration.h</in>
         </df>
         <df name="util">
           <in>crc16.cpp</in>
@@ -409,6 +548,8 @@
           <in>lcd44780.h</in>
           <in>software_i2c.h</in>
           <in>software_spi.h</in>
+          <in>unicode.cpp</in>
+          <in>unicode.h</in>
           <in>util.cpp</in>
           <in>util.h</in>
           <in>version.cpp</in>
@@ -1009,6 +1150,186 @@
       </runprofile>
     </conf>
     <conf name="stm32f205rg_sony-newman" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>2</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <rundir></rundir>
+        <buildfirst>true</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+    <conf name="stm32f429zi_stm32f4discovery" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>2</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <rundir></rundir>
+        <buildfirst>true</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+    <conf name="stm32f103cb_als_mainboard_rev2" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>2</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <rundir></rundir>
+        <buildfirst>true</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+    <conf name="stm32f100cb_tempsensor" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>2</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <rundir></rundir>
+        <buildfirst>true</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+    <conf name="stm32f429zi_oledboard2" type="0">
       <toolsSet>
         <developmentServer>localhost</developmentServer>
         <platform>2</platform>

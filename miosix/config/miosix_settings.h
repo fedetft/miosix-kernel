@@ -1,5 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011, 2012 by Terraneo Federico       *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015          *
+ *   by Terraneo Federico                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -28,6 +29,14 @@
 #ifndef MIOSIX_SETTINGS_H
 #define MIOSIX_SETTINGS_H
 
+// Before you can compile the kernel you have to configure it by editing this
+// file. After that, comment out this line to disable the reminder error.
+// The PARSING_FROM_IDE is because Netbeans gets confused by this, it is never
+// defined when compiling the code.
+#ifndef PARSING_FROM_IDE
+#error This error is a reminder that you have not edited miosix_settings.h yet.
+#endif //PARSING_FROM_IDE
+
 /**
  * \file miosix_settings.h
  * NOTE: this file contains ONLY configuration options that are not dependent
@@ -38,6 +47,13 @@
  */
 #include "arch_settings.h"
 #include "board_settings.h"
+#include "util/version.h"
+
+/**
+ * \internal
+ * Versioning for miosix_settings.h for out of git tree projects
+ */
+#define MIOSIX_SETTINGS_VERSION 100
 
 namespace miosix {
 
@@ -67,9 +83,14 @@ namespace miosix {
 //
 
 /// \def WITH_FILESYSTEM
-/// Allows to enable/disable filesystem support.
+/// Allows to enable/disable filesystem support to save code size
 /// By default it is defined (filesystem support is enabled)
 #define WITH_FILESYSTEM
+
+/// \def WITH_DEVFS
+/// Allows to enable/disable DevFs support to save code size
+/// By default it is defined (DevFs is enabled)
+#define WITH_DEVFS
     
 /// \def SYNC_AFTER_WRITE
 /// Increases filesystem write robustness. After each write operation the
@@ -80,22 +101,31 @@ namespace miosix {
 #define SYNC_AFTER_WRITE
 
 /// Maximum number of open files. Trying to open more will fail.
+/// Cannot be lower than 3, as the first three are stdin, stdout, stderr
 const unsigned char MAX_OPEN_FILES=8;
+
+/// \def WITH_PROCESSES
+/// If uncommented enables support for processes as well as threads.
+/// This enables the dynamic loader to load elf programs, the extended system
+/// call service and, if the hardware supports it, the MPU to provide memory
+/// isolation of processes
+//#define WITH_PROCESSES
+
+#if defined(WITH_PROCESSES) && defined(__NO_EXCEPTIONS)
+#error Processes require C++ exception support
+#endif //defined(WITH_PROCESSES) && defined(__NO_EXCEPTIONS)
+
+#if defined(WITH_PROCESSES) && !defined(WITH_FILESYSTEM)
+#error Processes require filesystem support
+#endif //defined(WITH_PROCESSES) && !defined(WITH_FILESYSTEM)
+
+#if defined(WITH_PROCESSES) && !defined(WITH_DEVFS)
+#error Processes require devfs support
+#endif //defined(WITH_PROCESSES) && !defined(WITH_DEVFS)
 
 //
 // C/C++ standard library I/O (stdin, stdout and stderr related)
 //
-
-/// \def WITH_STDIN_BUFFER
-/// If defined, incoming data fron the serial port
-/// will be buffered prior to being delivered to stdin related functions
-/// (scanf, fgets, cin...). Buffer is flushed on newline or when full.
-/// This has a behaviour more similar to desktop operating systems but
-/// requires 1KB of RAM for the buffer.
-/// Despite counterintuitive, if you never use stdin related functions
-/// defining WITH_STDIN_BUFFER will reduce code size.
-/// By default it is defined (stdin is buffered)
-#define WITH_STDIN_BUFFER
 
 /// \def WITH_BOOTLOG
 /// Uncomment to print bootlogs on stdout.
@@ -116,7 +146,7 @@ const unsigned char MAX_OPEN_FILES=8;
 /**
  * \def JTAG_DISABLE_SLEEP
  * JTAG debuggers lose communication with the device if it enters sleep
- * mode, so to use debugging it is necessary to disble sleep in the idle thread.
+ * mode, so to use debugging it is necessary to disable sleep in the idle thread.
  * By default it is not defined (idle thread calls sleep).
  */
 //#define JTAG_DISABLE_SLEEP
@@ -132,6 +162,20 @@ const unsigned int STACK_IDLE=256;
 /// The chosen value is enough to call C standard library functions
 /// such as printf/fopen which are stack-heavy
 const unsigned int STACK_DEFAULT_FOR_PTHREAD=2048;
+
+/// Maximum size of the RAM image of a process. If a program requires more
+/// the kernel will not run it (MUST be divisible by 4)
+const unsigned int MAX_PROCESS_IMAGE_SIZE=64*1024;
+
+/// Minimum size of the stack for a process. If a program specifies a lower
+/// size the kernel will not run it (MUST be divisible by 4)
+const unsigned int MIN_PROCESS_STACK_SIZE=STACK_MIN;
+
+/// Every userspace thread has two stacks, one for when it is running in
+/// userspace and one for when it is running in kernelspace (that is, while it
+/// is executing system calls). This is the size of the stack for when the
+/// thread is running in kernelspace (MUST be divisible by 4)
+const unsigned int SYSTEM_MODE_PROCESS_STACK_SIZE=2*1024;
 
 /// Number of priorities (MUST be >1)
 /// PRIORITY_MAX-1 is the highest priority, 0 is the lowest. -1 is reserved as
@@ -161,13 +205,18 @@ const unsigned char MAIN_PRIORITY=1;
 /// \internal Length of wartermark (in bytes) to check stack overflow.
 /// MUST be divisible by 4 and can also be zero.
 /// A high value increases context switch time.
-const unsigned char WATERMARK_LEN=16;
+const unsigned int WATERMARK_LEN=16;
 
 /// \internal Used to fill watermark
 const unsigned int WATERMARK_FILL=0xaaaaaaaa;
 
 /// \internal Used to fill stack (for checking stack usage)
 const unsigned int STACK_FILL=0xbbbbbbbb;
+
+// Compiler version checks
+#if _MIOSIX_GCC_PATCH_VERSION < 1
+#error "You are using a too old compiler. Get the latest one from https://miosix.org/wiki/index.php?title=Miosix_Toolchain"
+#endif
 
 /**
  * \}

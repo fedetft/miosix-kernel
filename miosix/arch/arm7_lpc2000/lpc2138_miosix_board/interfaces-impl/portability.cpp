@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010 by Terraneo Federico                   *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012 by Terraneo Federico       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -28,6 +28,7 @@
 
 #include "LPC213x.h"
 #include "interfaces/portability.h"
+#include "interfaces/delays.h"
 #include "kernel/kernel.h"
 #include "kernel/error.h"
 #include "miosix.h"
@@ -38,9 +39,6 @@
 #include <algorithm>
 
 using namespace std;
-
-//Used by the BSP. TODO: move this code into the "kernel thread"
-void tickHook();
 
 namespace miosix_private {
 
@@ -59,8 +57,6 @@ void ISR_preempt()
     
     IRQstackOverflowCheck();
     miosix::IRQtickInterrupt();
-
-    tickHook();
 }
 
 /**
@@ -161,7 +157,7 @@ void IRQstackOverflowCheck()
 }
 
 void IRQsystemReboot()
-{
+{    
     //Jump to reset vector
     asm volatile("ldr pc, =0"::);
 }
@@ -188,6 +184,33 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     ctxsave[15]=(unsigned int)&miosix::Thread::threadLauncher;
     ctxsave[16]=0x1f;//thread starts in system mode with irq and fiq enabled.
 }
+
+#ifdef WITH_PROCESSES
+
+void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
+            void *argv, unsigned int *gotBase)
+{
+    ctxsave[0]=(unsigned int)argv;
+    ctxsave[1]=0;
+    ctxsave[2]=0;
+    ctxsave[3]=0;
+    ctxsave[4]=0;
+    ctxsave[5]=0;
+    ctxsave[6]=0;
+    ctxsave[7]=0;
+    ctxsave[8]=0;
+    ctxsave[9]=(unsigned int)gotBase;
+    ctxsave[10]=0;
+    ctxsave[11]=0;
+    ctxsave[12]=0;
+    ctxsave[13]=(unsigned int)sp;//Initialize the thread's stack pointer
+    ctxsave[14]=0xffffffff;//threadLauncher never returns, so lr is not important
+    //Initialize the thread's program counter to the beginning of the entry point
+    ctxsave[15]=(unsigned int)pc;
+    ctxsave[16]=0x1f;//thread starts in system mode with irq and fiq enabled.
+}
+
+#endif //WITH_PROCESSES
 
 void IRQportableStartKernel()
 {
@@ -229,15 +252,6 @@ void IRQportableStartKernel()
 void sleepCpu()
 {
     PCON|=IDL;
-}
-
-int atomicSwap(int newval, int *var)
-{
-    //ARM calling conventions say the 1st function arg is in r0, the second in r1
-    //and the return value is in r0
-    register int retval asm("r0");
-    asm volatile(	"swp	r0, r0, [r1]	");
-    return retval;
 }
 
 #ifdef SCHED_TYPE_CONTROL_BASED

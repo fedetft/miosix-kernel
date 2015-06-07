@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010 by Terraneo Federico                   *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012 by Terraneo Federico       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -181,7 +181,9 @@ namespace miosix_private {
 
 inline void doYield()
 {
-    asm volatile("swi 0");
+    asm volatile("movs  r3, #0\n\t"
+                 "swi   0"
+                 :::"r3");
 }
 
 inline void doDisableInterrupts()
@@ -213,17 +215,6 @@ inline bool checkAreInterruptsEnabled()
     if(i & 0x80) return false;
     return true;
 }
-
-/**
- * Atomic swap, may be used to implement critical sections efficiently. If the
- * cpu supports it implemented using the cpu assembler intruction, else emulated
- * by disabling the kernel. The implementation on the ARM7 cpu uses the
- * dedicated assembler instruction.
- * \param newval new value to be written to var
- * \param var pointer to a variable
- * \return old value stored in var
- */
-int atomicSwap(int newval, int *var);
 
 /**
  * \}

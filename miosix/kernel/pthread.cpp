@@ -133,7 +133,6 @@ int pthread_attr_getstacksize(const pthread_attr_t *attr, size_t *stacksize)
 int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
 {
     if(stacksize<STACK_MIN) return EINVAL;
-    if((stacksize % 4) !=0) return EINVAL; //Stack size must be divisible by 4
     attr->stacksize=stacksize;
     return 0;
 }
@@ -267,12 +266,12 @@ int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
     }
     p->flags.IRQsetCondWait(true);
 
-    IRQdoMutexUnlock(mutex);
+    unsigned int depth=IRQdoMutexUnlockAllDepthLevels(mutex);
     {
         FastInterruptEnableLock eLock(dLock);
         Thread::yield(); //Here the wait becomes effective
     }
-    IRQdoMutexLock(mutex,dLock);
+    IRQdoMutexLockToDepth(mutex,dLock,depth);
     return 0;
 }
 
@@ -346,5 +345,7 @@ int	pthread_once(pthread_once_t *once, void (*func)())
     if(shouldWeRunFunc) func();
     return 0;
 }
+
+int pthread_setcancelstate(int state, int *oldstate) { return 0; } //Stub
 
 } //extern "C"

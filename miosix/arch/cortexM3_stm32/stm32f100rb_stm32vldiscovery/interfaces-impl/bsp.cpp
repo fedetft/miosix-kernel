@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011 by Terraneo Federico                               *
+ *   Copyright (C) 2011, 2012, 2013, 2014 by Terraneo Federico             *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -30,13 +30,10 @@
 * Board support package, this file initializes hardware.
 ************************************************************************/
 
-
 #include <cstdlib>
 #include <inttypes.h>
+#include <sys/ioctl.h>
 #include "interfaces/bsp.h"
-#ifdef WITH_FILESYSTEM
-#include "kernel/filesystem/filesystem.h"
-#endif //WITH_FILESYSTEM
 #include "kernel/kernel.h"
 #include "kernel/sync.h"
 #include "interfaces/delays.h"
@@ -44,7 +41,11 @@
 #include "interfaces/arch_registers.h"
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
+#include "filesystem/file_access.h"
+#include "filesystem/console/console_device.h"
 #include "drivers/serial.h"
+#include "drivers/dcc.h"
+#include "board_settings.h"
 
 namespace miosix {
 
@@ -58,18 +59,25 @@ void IRQbspInit()
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_IOPBEN |
                     RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN |
                     RCC_APB2ENR_AFIOEN;
+    RCC_SYNC();
     _led::mode(Mode::OUTPUT_2MHz);
     ledOn();
     delayMs(100);
     ledOff();
+    DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
     #ifndef STDOUT_REDIRECTED_TO_DCC
-    miosix::IRQserialInit();
+        new STM32Serial(defaultSerial,defaultSerialSpeed,
+        defaultSerialFlowctrl ? STM32Serial::RTSCTS : STM32Serial::NOFLOWCTRL)));
+    #else //STDOUT_REDIRECTED_TO_DCC
+        new ARMDCC));
     #endif //STDOUT_REDIRECTED_TO_DCC
 }
 
 void bspInit2()
 {
-    //Nothing to do
+//     #ifdef WITH_FILESYSTEM
+//     basicFilesystemSetup();
+//     #endif //WITH_FILESYSTEM
 }
 
 //
@@ -91,20 +99,18 @@ minimize power consumption all unused GPIO must not be left floating.
 */
 void shutdown()
 {
-    pauseKernel();
+    ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+
     #ifdef WITH_FILESYSTEM
-    Filesystem& fs=Filesystem::instance();
-    if(fs.isMounted()) fs.umount();
+    FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
-    //Disable interrupts
+
     disableInterrupts();
-    #ifndef STDOUT_REDIRECTED_TO_DCC
-    if(IRQisSerialEnabled()) IRQserialDisable();
-    #endif //STDOUT_REDIRECTED_TO_DCC
 
     /*
     Removed because low power mode causes issues with SWD programming
     RCC->APB1ENR |= RCC_APB1ENR_PWREN; //Fuckin' clock gating...  
+    RCC_SYNC();
     PWR->CR |= PWR_CR_PDDS; //Select standby mode
     PWR->CR |= PWR_CR_CWUF;
     PWR->CSR |= PWR_CSR_EWUP; //Enable PA.0 as wakeup source
@@ -118,16 +124,13 @@ void shutdown()
 
 void reboot()
 {
-    while(!serialTxComplete()) ;
-    pauseKernel();
-    //Turn off drivers
+    ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+    
     #ifdef WITH_FILESYSTEM
-    Filesystem::instance().umount();
+    FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
+
     disableInterrupts();
-    #ifndef STDOUT_REDIRECTED_TO_DCC
-    if(IRQisSerialEnabled()) IRQserialDisable();
-    #endif //STDOUT_REDIRECTED_TO_DCC
     miosix_private::IRQsystemReboot();
 }
 

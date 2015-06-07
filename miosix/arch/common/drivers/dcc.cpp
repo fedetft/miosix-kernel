@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011 by Terraneo Federico                               *
+ *   Copyright (C) 2011, 2012, 2013, 2014 by Terraneo Federico             *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -29,30 +29,50 @@
  * DCC support inspired by dcc_stdio.c in OpenOCD
  */
 
-#include <algorithm>
 #include <cstring>
-#include "pthread.h"
-#include "miosix.h"
+#include <errno.h>
+#include "filesystem/ioctl.h"
 #include "dcc.h"
 
-using namespace std;
+namespace miosix {
 
-/**
- * Send data to the host
- */
-static void send(unsigned char c)
+ssize_t ARMDCC::readBlock(void* buffer, size_t size, off_t where)
+{
+    return -EBADF;
+}
+
+ssize_t ARMDCC::writeBlock(const void* buffer, size_t size, off_t where)
+{
+    Lock<FastMutex> l(mutex);
+    debugStr(reinterpret_cast<const char*>(buffer),size);
+    return size;
+}
+
+void ARMDCC::IRQwrite(const char* str)
+{
+    //Actually, there is a race condition if IRQdebugWrite is called from an
+    //interrupt while the main code is printing with debugWrite, but it is
+    //not such an issue since IRQdebugWrite is called only
+    //- at boot before the kernel is started, so there are no other threads
+    //- in case of a serious error, to print what went wrong before rebooting
+    //In the second case, which is rare, the data may not be printed correctly
+    debugStr(str,-1);
+}
+
+int ARMDCC::ioctl(int cmd, void* arg)
+{
+    if(cmd==IOCTL_SYNC) return 0; //Nothing to do, but say we did somaething
+    return -ENOTTY; //Means the operation does not apply to this descriptor
+}
+
+void ARMDCC::send(unsigned char c)
 {
     const unsigned int busy=1;
     while(CoreDebug->DCRDR & busy) ;
     CoreDebug->DCRDR=(static_cast<unsigned int>(c)<<8) | busy;
 }
 
-/**
- * Send a line of text to the host.
- * OpenOCD will insert a \n after each line, unfortunately,
- * as this complicates things.
- */
-void debugStr(const char *str, int length)
+void ARMDCC::debugStr(const char *str, int length)
 {
     //If not being debugged, don't print anything
     if((CoreDebug->DEMCR & CoreDebug_DEMCR_TRCENA_Msk)==0) return;
@@ -71,23 +91,4 @@ void debugStr(const char *str, int length)
     if(remaining<4) for(int i=0;i<remaining;i++) send(0);
 }
 
-/// Mutex for locking concurrent access to debug channel
-static pthread_mutex_t mutex=PTHREAD_MUTEX_INITIALIZER;
-
-void debugWrite(const char *str, unsigned int len)
-{
-    pthread_mutex_lock(&mutex);
-    debugStr(str,len);
-    pthread_mutex_unlock(&mutex);
-}
-
-void IRQdebugWrite(const char *str)
-{
-    //Actually, there is a race condition if IRQdebugWrite is called from an
-    //interrupt while the main code is printing with debugWrite, but it is
-    //not such an issue since IRQdebugWrite is called only
-    //- at boot before the kernel is started, so there are no other threads
-    //- in case of a serious error, to print what went wrong before rebooting
-    //In the second case, which is rare, the data may not be printed correctly
-    debugStr(str,-1);
-}
+} //namespace miosix

@@ -1,0 +1,7 @@
+# Allows to run the mp3v2 bootloader as non-root user to program the mp3v2.
+# Copy in /etc/udev/rules.d
+
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="dead", ATTRS{idProduct}=="beee", \
+    MODE:="0666", \
+    SYMLINK+="mp3v2_bootloader_%n"
+

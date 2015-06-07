@@ -114,6 +114,76 @@ void Mutex::PKlock(PauseKernelLock& dLock)
     }
 }
 
+void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
+{
+    Thread *p=Thread::getCurrentThread();
+    if(owner==0)
+    {
+        owner=p;
+        if(recursiveDepth>=0) recursiveDepth=depth;
+        //Save original thread priority, if the thread has not yet locked
+        //another mutex
+        if(owner->mutexLocked==0) owner->savedPriority=owner->getPriority();
+        //Add this mutex to the list of mutexes locked by owner
+        this->next=owner->mutexLocked;
+        owner->mutexLocked=this;
+        return;
+    }
+
+    //This check is very important. Without this attempting to lock the same
+    //mutex twice won't cause a deadlock because the Thread::IRQwait() is
+    //enclosed in a while(owner!=p) which is immeditely false.
+    if(owner==p)
+    {
+        if(recursiveDepth>=0)
+        {
+            recursiveDepth=depth;
+            return;
+        } else errorHandler(MUTEX_DEADLOCK); //Bad, deadlock
+    }
+
+    //Add thread to mutex' waiting queue
+    waiting.push_back(p);
+    LowerPriority l;
+    push_heap(waiting.begin(),waiting.end(),l);
+
+    //Handle priority inheritance
+    if(p->mutexWaiting!=0) errorHandler(UNEXPECTED);
+    p->mutexWaiting=this;
+    if(p->getPriority()>owner->getPriority())
+    {
+        Thread *walk=owner;
+        for(;;)
+        {
+            Scheduler::PKsetPriority(walk,p->getPriority());
+            if(walk->mutexWaiting==0) break;
+            make_heap(walk->mutexWaiting->waiting.begin(),
+                      walk->mutexWaiting->waiting.end(),l);
+            walk=walk->mutexWaiting->owner;
+        }
+    }
+
+    //The while is necessary because some other thread might call wakeup()
+    //on this thread. So the thread can wakeup also for other reasons not
+    //related to the mutex becoming free
+    while(owner!=p)
+    {
+        //Wait can only be called with kernel started, while IRQwait can
+        //only be called with interupts disabled, so that's why interrupts
+        //are disabled
+        {
+            FastInterruptDisableLock l;
+            Thread::IRQwait();//Return immediately
+        }
+        {
+            RestartKernelLock eLock(dLock);
+            //Now the IRQwait becomes effective
+            Thread::yield();
+        }
+    }
+    if(recursiveDepth>=0) recursiveDepth=depth;
+}
+
 bool Mutex::PKtryLock(PauseKernelLock& dLock)
 {
     Thread *p=Thread::getCurrentThread();
@@ -217,6 +287,84 @@ bool Mutex::PKunlock(PauseKernelLock& dLock)
     }
 }
 
+unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
+{
+    Thread *p=Thread::getCurrentThread();
+    if(owner!=p)
+    {
+        errorHandler(MUTEX_UNLOCK_NOT_OWNER);
+        return 0;
+    }
+
+    //Remove this mutex from the list of mutexes locked by the owner
+    if(owner->mutexLocked==this)
+    {
+        owner->mutexLocked=owner->mutexLocked->next;
+    } else {
+        Mutex *walk=owner->mutexLocked;
+        for(;;)
+        {
+            //this Mutex not in owner's list? impossible
+            if(walk->next==0) errorHandler(UNEXPECTED);
+            if(walk->next==this)
+            {
+                walk->next=walk->next->next;
+                break;
+            }
+            walk=walk->next;
+        }
+    }
+
+    //Handle priority inheritance
+    if(owner->mutexLocked==0)
+    {
+        //Not locking any other mutex
+        if(owner->savedPriority!=owner->getPriority())
+            Scheduler::PKsetPriority(owner,owner->savedPriority);
+    } else {
+        Priority pr=owner->savedPriority;
+        //Calculate new priority of thread, which is
+        //max(savedPriority, inheritedPriority)
+        Mutex *walk=owner->mutexLocked;
+        while(walk!=0)
+        {
+            if(walk->waiting.empty()==false)
+                pr=max(pr,walk->waiting.front()->getPriority());
+            walk=walk->next;
+        }
+        if(pr!=owner->getPriority()) Scheduler::PKsetPriority(owner,pr);
+    }
+
+    //Choose next thread to lock the mutex
+    if(waiting.empty()==false)
+    {
+        //There is at least another thread waiting
+        owner=waiting.front();
+        LowerPriority l;
+        pop_heap(waiting.begin(),waiting.end(),l);
+        waiting.pop_back();
+        if(owner->mutexWaiting!=this) errorHandler(UNEXPECTED);
+        owner->mutexWaiting=0;
+        owner->PKwakeup();
+        if(owner->mutexLocked==0) owner->savedPriority=owner->getPriority();
+        //Add this mutex to the list of mutexes locked by owner
+        this->next=owner->mutexLocked;
+        owner->mutexLocked=this;
+        //Handle priority inheritance of new owner
+        if(waiting.empty()==false &&
+           waiting.front()->getPriority()>owner->getPriority())
+                Scheduler::PKsetPriority(owner,waiting.front()->getPriority());
+    } else {
+        owner=0; //No threads waiting
+        std::vector<Thread *>().swap(waiting); //Save some RAM
+    }
+    
+    if(recursiveDepth<0) return 0;
+    unsigned int result=recursiveDepth;
+    recursiveDepth=0;
+    return result;
+}
+
 //
 // class ConditionVariable
 //
@@ -244,12 +392,12 @@ void ConditionVariable::wait(Mutex& m)
         w.p->flags.IRQsetCondWait(true);
     }
 
-    m.PKunlock(dLock);
+    unsigned int depth=m.PKunlockAllDepthLevels(dLock);
     {
         RestartKernelLock eLock(dLock);
         Thread::yield(); //Here the wait becomes effective
     }
-    m.PKlock(dLock);
+    m.PKlockToDepth(dLock,depth);
 }
 
 void ConditionVariable::wait(FastMutex& m)
@@ -270,12 +418,12 @@ void ConditionVariable::wait(FastMutex& m)
     //Unlock mutex and wait
     w.p->flags.IRQsetCondWait(true);
 
-    IRQdoMutexUnlock(m.get());
+    unsigned int depth=IRQdoMutexUnlockAllDepthLevels(m.get());
     {
         FastInterruptEnableLock eLock(dLock);
         Thread::yield(); //Here the wait becomes effective
     }
-    IRQdoMutexLock(m.get(),dLock);
+    IRQdoMutexLockToDepth(m.get(),dLock,depth);
 }
 
 void ConditionVariable::signal()

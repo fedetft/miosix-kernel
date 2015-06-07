@@ -7,8 +7,7 @@
  * startup.cpp
  * STM32 C++ startup.
  * NOTE: for stm32f2 devices ONLY.
- * - supports interrupt handlers in C++ without extern "C"
- * - global constructors are correctly called before main()
+ * Supports interrupt handlers in C++ without extern "C"
  * Developed by Terraneo Federico, based on ST startup code.
  * Additionally modified to boot Miosix.
  */
@@ -16,23 +15,6 @@
 //Will be called at the end of stage 1 of boot, function is implemented in
 //stage_2_boot.cpp
 extern "C" void _init();
-
-/**
- * Calls C++ global constructors
- * \param start first function pointer to call
- * \param end one past the last function pointer to call
- * Declared "noinline" to optimize code size
- */
-static void call_constructors(unsigned long *start, unsigned long *end) __attribute__((noinline));
-static void call_constructors(unsigned long *start, unsigned long *end)
-{
-	for(unsigned long *i=start; i<end; i++)
-	{
-		void (*funcptr)();
-        funcptr=reinterpret_cast<void (*)()>(*i);
-		funcptr();
-	}
-}
 
 /**
  * Called by Reset_Handler, performs initialization and calls main.
@@ -50,12 +32,6 @@ void program_startup()
 	extern unsigned char _edata asm("_edata");
 	extern unsigned char _bss_start asm("_bss_start");
 	extern unsigned char _bss_end asm("_bss_end");
-	extern unsigned long __preinit_array_start asm("__preinit_array_start");
-	extern unsigned long __preinit_array_end asm("__preinit_array_end");
-	extern unsigned long __init_array_start asm("__init_array_start");
-	extern unsigned long __init_array_end asm("__init_array_end");
-	extern unsigned long _ctor_start asm("_ctor_start");
-	extern unsigned long _ctor_end asm("_ctor_end");
 
     //Initialize .data section, clear .bss section
     unsigned char *etext=&_etext;
@@ -71,11 +47,6 @@ void program_startup()
     (void)edata;
     #endif //__CODE_IN_XRAM
     memset(bss_start, 0, bss_end-bss_start);
-
-	//Initialize C++ global constructors
-	call_constructors(&__preinit_array_start, &__preinit_array_end);
-	call_constructors(&__init_array_start, &__init_array_end);
-	call_constructors(&_ctor_start, &_ctor_end);
 
 	//Move on to stage 2
 	_init();

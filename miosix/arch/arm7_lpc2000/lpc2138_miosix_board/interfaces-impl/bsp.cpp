@@ -1,5 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010 by Terraneo Federico                   *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013, 2014                *
+ *   by Terraneo Federico                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -30,49 +31,21 @@
 * Board support package, this file initializes hardware.
 ************************************************************************/
 
-
 #include <cstdlib>
 #include <inttypes.h>
+#include <sys/ioctl.h>
 #include "interfaces/bsp.h"
 #include "core/interrupts.h"
 #include "interfaces/delays.h"
 #include "drivers/serial.h"
-#ifdef WITH_FILESYSTEM
-#include "kernel/filesystem/filesystem.h"
-#endif //WITH_FILESYSTEM
+#include "drivers/sd_lpc2000.h"
 #include "kernel/kernel.h"
 #include "kernel/sync.h"
 #include "interfaces/portability.h"
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
-
-/**
-\internal
-USB hotplug handler.
-Dynamically start/stop serial driver when USB is connected/disconnected.
-*/
-void tickHook()
-{
-    static unsigned int counter=0;
-    if(++counter==miosix::TICK_FREQ) counter=0;
-    else return;
-    
-    static bool usb_connected=true;//By default, we assume USB is connected
-	
-    //Dynamically start/stop serial port driver
-    if((USBstatus())&&(usb_connected==false))
-    {
-        //USB has been conncted, start serial port driver
-        usb_connected=true;
-        miosix::IRQserialInit(miosix::TIMER_CLOCK/16/miosix::SERIAL_PORT_SPEED);
-    }
-    if((!USBstatus())&&(usb_connected==true))
-    {
-        //USB disconnected, stop serial port driver
-        usb_connected=false;
-        miosix::IRQserialDisable();
-    }
-}
+#include "filesystem/file_access.h"
+#include "filesystem/console/console_device.h"
 
 /*
 ******************
@@ -180,13 +153,23 @@ void IRQbspInit()
     rtcInit();
     #endif //WITH_RTC
     //Init serial port
-    //(peripheral clock)/(16*baudrate)
-    miosix::IRQserialInit(TIMER_CLOCK/16/SERIAL_PORT_SPEED);
+    DefaultConsole::instance().IRQset(
+        intrusive_ref_ptr<Device>(new LPC2000Serial(0,SERIAL_PORT_SPEED)));
 }
 
 void bspInit2()
 {
-    //Nothing to do
+    #ifdef WITH_FILESYSTEM
+    #ifdef WITH_DEVFS
+    intrusive_ref_ptr<DevFs> devFs=basicFilesystemSetup(SPISDDriver::instance());
+    #ifdef AUX_SERIAL
+    devFs->addDevice(AUX_SERIAL,
+        intrusive_ref_ptr<Device>(new LPC2000Serial(1,AUX_SERIAL_SPEED)));
+    #endif //AUX_SERIAL
+    #else //WITH_DEVFS
+    basicFilesystemSetup();
+    #endif //WITH_DEVFS
+    #endif //WITH_FILESYSTEM
 }
 
 //
@@ -251,14 +234,13 @@ system_reboot() immediately after wakeup
 */
 static void _shutdown(bool and_return, Time *t)
 {
-    pauseKernel();
-
-    //Save driver status
+    ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+    
     #ifdef WITH_FILESYSTEM
-    Filesystem& fs=Filesystem::instance();
-    bool filesystem_status=fs.isMounted();//Save filesystem status
-    if(filesystem_status) fs.umount();
+    if(and_return==false) FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
+
+    pauseKernel();
 
     //wait button release
     while(buttonEnter()) delayMs(20);
@@ -268,9 +250,6 @@ static void _shutdown(bool and_return, Time *t)
 
     //Disable interrupts
     disableInterrupts();
-    
-    bool serial_status=IRQisSerialEnabled();
-    if(serial_status) IRQserialDisable();
     
     //Clearing PINSEL registers. All pin are GPIO by default
     PINSEL0=0;
@@ -361,21 +340,9 @@ static void _shutdown(bool and_return, Time *t)
     //Enable 3v subsystem
     subsystem_3v_on();
     delayMs(50);
-	
-    if(serial_status) 
-    {
-        IRQserialInit(TIMER_CLOCK/16/SERIAL_PORT_SPEED);//Restore serial port
-    }
     
     //Re-enable interrupts
     enableInterrupts();
-
-    //
-    // Restore drivers
-    //
-    #ifdef WITH_FILESYSTEM
-    if(filesystem_status) fs.mount();//Restore filesystem
-    #endif //WITH_FILESYSTEM
 
     restartKernel();
 }
@@ -405,14 +372,13 @@ void shutdown()
 
 void reboot()
 {
-    while(!serialTxComplete()) ;
-    pauseKernel();
-    //Turn off drivers
+    ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+    
     #ifdef WITH_FILESYSTEM
-    Filesystem::instance().umount();
+    FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
+
     disableInterrupts();
-    if(IRQisSerialEnabled()) IRQserialDisable();
     //Clearing PINSEL registers. All pin are GPIO by default
     PINSEL0=0;
     PINSEL1=0;

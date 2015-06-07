@@ -30,13 +30,10 @@
 * Board support package, this file initializes hardware.
 ************************************************************************/
 
-
 #include <cstdlib>
 #include <inttypes.h>
+#include <sys/ioctl.h>
 #include "interfaces/bsp.h"
-#ifdef WITH_FILESYSTEM
-#include "kernel/filesystem/filesystem.h"
-#endif //WITH_FILESYSTEM
 #include "kernel/kernel.h"
 #include "kernel/sync.h"
 #include "interfaces/delays.h"
@@ -44,7 +41,11 @@
 #include "interfaces/arch_registers.h"
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
+#include "filesystem/file_access.h"
+#include "filesystem/console/console_device.h"
 #include "drivers/serial.h"
+#include "drivers/sd_stm32f1.h"
+#include "board_settings.h"
 
 namespace miosix {
 
@@ -59,6 +60,7 @@ void IRQbspInit()
                     RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN |
                     RCC_APB2ENR_IOPEEN | RCC_APB2ENR_IOPFEN |
                     RCC_APB2ENR_IOPGEN | RCC_APB2ENR_AFIOEN;
+    RCC_SYNC();
     //Set ports
     leds::led1::high();
     leds::led1::mode(Mode::OUTPUT);
@@ -111,12 +113,16 @@ void IRQbspInit()
     ledOn();
     delayMs(100);
     ledOff();
-    miosix::IRQserialInit();
+    DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
+        new STM32Serial(defaultSerial,defaultSerialSpeed,
+        defaultSerialFlowctrl ? STM32Serial::RTSCTS : STM32Serial::NOFLOWCTRL)));
 }
 
 void bspInit2()
 {
-    //Nothing to do
+    #ifdef WITH_FILESYSTEM
+    basicFilesystemSetup(SDIODriver::instance());
+    #endif //WITH_FILESYSTEM
 }
 
 //
@@ -138,14 +144,13 @@ minimize power consumption all unused GPIO must not be left floating.
 */
 void shutdown()
 {
-    pauseKernel();
+    ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+
     #ifdef WITH_FILESYSTEM
-    Filesystem& fs=Filesystem::instance();
-    if(fs.isMounted()) fs.umount();
+    FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
-    //Disable interrupts
+
     disableInterrupts();
-    if(IRQisSerialEnabled()) IRQserialDisable();
 /*
     SCB->SCR |= SCB_SCR_SLEEPDEEP;
     PWR->CR |= PWR_CR_PDDS; //Select standby mode
@@ -162,14 +167,13 @@ void shutdown()
 
 void reboot()
 {
-    while(!serialTxComplete()) ;
-    pauseKernel();
-    //Turn off drivers
+    ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+    
     #ifdef WITH_FILESYSTEM
-    Filesystem::instance().umount();
+    FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
+
     disableInterrupts();
-    if(IRQisSerialEnabled()) IRQserialDisable();
     miosix_private::IRQsystemReboot();
 }
 

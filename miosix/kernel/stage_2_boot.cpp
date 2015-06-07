@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010 by Terraneo Federico                   *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 by Terraneo Federico *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -34,14 +34,14 @@ start the kernel and filesystem.
 
 #include <cstdio>
 #include <stdexcept>
-/* Low level hardware functionalities */
+// Low level hardware functionalities
 #include "interfaces/bsp.h"
-/* Miosix kernel */
+// Miosix kernel
 #include "kernel.h"
-#include "filesystem/filesystem.h"
+#include "filesystem/file_access.h"
 #include "error.h"
 #include "logging.h"
-/* settings for miosix */
+// settings for miosix
 #include "config/miosix_settings.h"
 #include "util/util.h"
 #include "util/version.h"
@@ -49,53 +49,53 @@ start the kernel and filesystem.
 using namespace std;
 
 ///<\internal Entry point for application code.
-extern int main(int argc, char *argv[]);
+int main(int argc, char *argv[]);
 
 namespace miosix {
+
+/**
+ * Calls C++ global constructors
+ * \param start first function pointer to call
+ * \param end one past the last function pointer to call
+ */
+static void call_constructors(unsigned long *start, unsigned long *end)
+{
+	for(unsigned long *i=start; i<end; i++)
+	{
+		void (*funcptr)();
+        funcptr=reinterpret_cast<void (*)()>(*i);
+		funcptr();
+	}
+}
 
 /**
  * \internal
  * Performs the part of initialization that must be done after the kernel is
  * started, and finally calls main()
  */
-static void mainLoader(void *argv)
+void *mainLoader(void *argv)
 {
     //If reaches here kernel is started, print Ok
-    bootlog("Ok\r\n");
-
-    #ifdef WITH_FILESYSTEM
-    bootlog("Starting Filesystem... ");
-    switch(Filesystem::instance().mount())
-    {
-        case 0:
-            bootlog("Ok\r\n");
-            break;
-        case 1:
-            bootlog("Failed\r\n");
-            break;
-        case 2:
-            bootlog("No disk\r\n");
-            break;
-        case 3:
-            bootlog("Error\r\n");
-            break;
-    }
-    #endif //WITH_FILESYSTEM
+    bootlog("Ok\n%s\n",getMiosixVersion());
     
     //Starting part of bsp that must be started after kernel
     bspInit2();
 
-    #ifndef WITH_STDIN_BUFFER
-    //Make stdin unbuffered to save some ram
-    setbuf(stdin,NULL);
-    #endif //WITH_STDIN_BUFFER
-
-    #ifdef WITH_BOOTLOG
-    iprintf("Available heap %d out of %d Bytes\n",
+    //Initialize C++ global constructors
+    extern unsigned long __preinit_array_start asm("__preinit_array_start");
+	extern unsigned long __preinit_array_end asm("__preinit_array_end");
+	extern unsigned long __init_array_start asm("__init_array_start");
+	extern unsigned long __init_array_end asm("__init_array_end");
+	extern unsigned long _ctor_start asm("_ctor_start");
+	extern unsigned long _ctor_end asm("_ctor_end");
+	call_constructors(&__preinit_array_start, &__preinit_array_end);
+	call_constructors(&__init_array_start, &__init_array_end);
+	call_constructors(&_ctor_start, &_ctor_end);
+    
+    bootlog("Available heap %d out of %d Bytes\n",
             MemoryProfiling::getCurrentFreeHeap(),
             MemoryProfiling::getHeapSize());
-    #endif
-
+    
     //Run application code
     #ifdef __NO_EXCEPTIONS
     main(0,NULL);
@@ -105,9 +105,7 @@ static void mainLoader(void *argv)
     } catch(std::exception& e)
     {
         errorHandler(PROPAGATED_EXCEPTION);
-        errorLog("what():");
-        errorLog(e.what());
-        errorLog("\r\n");
+        errorLog("what():%s\n",e.what());
     } catch(...)
     {
         errorHandler(PROPAGATED_EXCEPTION);
@@ -116,6 +114,7 @@ static void mainLoader(void *argv)
     
     //If main returns, shutdown
     shutdown();
+    return 0;
 }
 
 /**
@@ -126,16 +125,12 @@ static void mainLoader(void *argv)
  */
 extern "C" void _init()
 {
-    using namespace miosix;
     if(areInterruptsEnabled()) errorHandler(INTERRUPTS_ENABLED_AT_BOOT);
     IRQbspInit();
-    //After IRQbspInit() serial port is initialized, so we can use BOOTLOG
-    IRQbootlog(getMiosixVersion());
-    IRQbootlog("\r\nStarting Kernel... ");
-    //Create the first thread, and start the scheduler.
-    Thread::create(mainLoader,MAIN_STACK_SIZE,MAIN_PRIORITY,NULL);
+    //After IRQbspInit() serial port is initialized, so we can use IRQbootlog
+    IRQbootlog("Starting Kernel... ");
     startKernel();
-    //Never reach here
+    //Never reach here (unless startKernel fails)
 }
 
 } //namespace miosix

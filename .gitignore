@@ -1,5 +1,5 @@
 # Exclude doxygen
-miosix/doc/doxygen/html/*
+miosix/_doc/doxygen/html/*
 
 # Exclude temporary files
 main.elf
@@ -8,6 +8,7 @@ main.hex
 main.map
 *.o
 *.a
+*.d
 
 # Exclude Mac OS X temporary
 ._*

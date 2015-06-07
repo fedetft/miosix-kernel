@@ -1,0 +1,1056 @@
+Changelog for Miosix np embedded OS
+
+- Added support for new board, oledboard2
+- Added support for new board, tempsensor
+- Added support for new board als_mainboard_rev2
+- Be less restrictive in pthread_attr_setstacksize(). Accept also stack sizes
+  not divisible by 4, as Thread::create() will simply align the stack size.
+- Added proper compiler patch versioning through the _MIOSIX_GCC_PATCH_VERSION
+  builtin macro.
+- Added small fixed to the previous newlib patch. This is the final change for
+  termios.h
+- Implemented termios support in Miosix, now it is possible to disable echo
+  and/or enter raw mode on serial ports using a standard POSIX interface.
+- Added sys/termios.h to newlib patch
+- Added sys/ioctl.h to newlib patch
+- Improved Makefile path referencing to always use relative paths, as using
+  absolute ones fails when the absolute path contains spaces. This proved to
+  be impossible with makefiles alone and required to add a small perl script
+- Added versioning to miosix_settings.h and board_settings.h to prevent
+  misconfiguration when those files are updated.
+- Moved board_settings.h in the config directory to allow out of git tree
+  projects to tweak those files without editing files in the Miosix git repo.
+- Added miosix/_tools/init_project_out_of_git_tree.pl script to help set up
+  out of git tree projects.
+- New makefile now supporting out of git tree projects, to help having the
+  Miosix git repo as a submodule of another git repo.
+- Updated backend_benchmark.cpp to use DevFs instead of the old Disk interface.
+- Fixed a bug in the stm32 SDIO drivers that caused the slowest clock speed
+  selection, resulting in a serious performance regression when writing to
+  an SD card. Bug was added in commit e697ded4325a5a2de12706712abc4a846d733b3e
+- Added streamwriter example to show how to write to an SD card at a relatively
+  high data rate.
+- Added dirlist testcase
+- Relaxed file open mode checks in DevFs to allow opening device files with
+  fopen()
+- Added loop mount example.
+- Fixed a bug in umount().
+- Reworked logging.h to decrease code size.
+- Moving from mallinfo() to _mallinfo_r() in getCurrentFreeHeap() to avoid
+  accidentally bringing in iprintf(), which increases code size.
+- Added RCC_SYNC() macro to all stm32 BSPs to workaround an errata in the
+  stm32f42x requiring additional cycles to enable clock gating. From now on
+  it is suggested to add an RCC_SYNC() after every access to the RCC to
+  enable clock gating an all stm32 ports.
+- Added SDRAM initialization code for stm32f429 board, and SDRAM linker
+  scripts. The new default is to put .data/.bss/stack and heap in the SDRAM,
+  and to leave the upper 2MB of it for the LCD.
+- Cleaned up code completion configuration for Netbeans. Now the IDE
+  automatically detects the source files that belong to the project by looking 
+  at the debug symbols in the produced elf file. 
+- Added memory barrier to saveContext() to prevent a race condition found in
+  the new stm32f429 board.
+- Now Makefile.inc has no predefined board. This has been done in order to
+  avoid mistakenly compiling for the wrong board.
+- Fixed bug in testsuite: it failed compiling with exceptions disabled due
+  to RTTI dependence.
+- Fixed a bug in Thread::create() causing a crash when the heap is full.
+- Changed PROGRAM_CMDLINE for stm32vldiscovery from vsprog to stm32flash
+- Unified the CMSIS directories in the various subdirectories of arch into
+  one CMSIS, in order to reduce the amount of code duplication and to avoid
+  having to deal with subtle incompatibilities between different CMSIS versions
+- Added support for stm32f2xx and specifically the new stm32f4discovery with
+  an LCD display.
+- After so many changes and improvements, officially releasing Miosix 2.0beta1
+v2.0beta1
+- Upgraded compiler build scripts to build a redistributable Miosix Toolchain
+  for both Linux and Windows
+- Changed makefile: moved from bash for loops to GNU Make for loops to avoid
+  a bash dependence that makes it difficult to build Miosix under windows
+- Added servomotor driving library for stm32f4discovery and stm32vldiscovery
+- Modified BSPs to instantiate the new classes
+- Changed basicFilesystemSetup() to take a pointer to a device to mount as /sd
+- Added SD drivers for stm32 and lpc2000 to miosix/common/drivers, adapted to
+  the Device interface
+- Fixed bug in the testsuite that was causing a file to be opened for reading
+  while another thread still had it opened for writing.
+- Removed interfaces/disk.h
+- Starting to remove disk interface. Aggregated stm32f2 and stm32f4 drivers
+  into one.
+- Breaking change; the default serial for the stm32f4discovery is now USART3
+  Please connect to PB10 and PB11 instead of PA2 and PA3.
+- Completed serial new serial port driver, added DMA support for USART2 and 3
+- Added -f option to rm in Makefile and miosix/Makefile, so that when
+  doing make clean on an already clean directory, no errors are reported
+- Added DMA RX for USART1 un STM32Serial. Also fixed bugs on stm32f1.
+- Fixed a bug in STM32Serial: the position of the PPRE1 and PPRE2 bitfields
+  in RCC->CFGR varies from device family. This was causing incorrect baudrate
+  settings in some configurations.
+- Added support for RTS/CTS hardware flow control to STM32 serial ports
+- Added class DynUnsyncQueue to kernel/queue.h, a new circular buffer with its
+  storage heap allocated.
+- Breaking change: refactored the interface of class BufferQueue, and removed
+  its header file. Added header kernel/queue.h with all the varius FIFO data
+  structures in the kernel.
+- Breaking change: serial port drivers used to have a read function to read
+  a buffer of data that would return a buffer with exactly the asked size
+  of data. Now they return up to that size, but if an idle line is found
+  they may return less. This change is exploited in the TerminalDevice class
+  to read data a buffer at a time, and not one character at a time, so all
+  serial driver must implement this behaviour, or reading from serial port
+  won't work as expected. Both STM32 and LPC2000 driver have been upgraded.
+- bootlog() and errorLog() now support format strings.
+- Unified stm32f1 and stm32f2,f4,l1 serial port drivers. Now the
+  driver for USART1 is DMA based also on the stm32f2 and f4.
+- Fixed makefile dependencies to allow Miosix parallel builds with
+  make -j4, make -j8, ... to speed up compilation on multicores.
+- Restored support for DCC. It broke somewhere when transitioning to the
+  new Device-based serial port drivers. Removed DCC support on stm32f4 as,
+  due to OpenOCD limitations, it never actually worked.
+- Removed the console interface (file interfaces/console.h).
+- Factorized common code in the various stm32 serial port drivers. Work
+  is still ongoing, as stm32f1 still has a different driver, and since
+  DMA mode needs to be implemented.
+- Fixed a null pointer dereference in Queue class.
+- Fixed compiling kernel without WITH_FILESYSTEM
+- Added class LPC2000Serial. The lpc2000 port no longer relies on
+  the Console interface.
+- Class TerminalDevice is no longer a proxy for a FileBase, but an adapter
+  that allows to wrap a serial port, which has a Device interface into a
+  FileBase interface.
+- Removed class ConsoleDevice. The purpose of its interface is now carried
+  out by the Device class of DevFs. This will allow to list serial ports
+  among the devices of DevFs, and additionally results in code size reduction.
+- Factorized common code in the various interrupts.h and interrupts.cpp from
+  the various arch directories to miosix/common. Now all cortex bsps use the
+  same code for handling fault interrupts, avoiding code duplication.
+- Added forwarding of file mode in the open() syscall.
+- Implemented may other syscalls.
+- Rewritten syscall handling for processes. Fixed many vulnerabilites in the
+  checking of syscall parameters.
+- Fixed MPU size calculation, added _elf_pool_start and _elf_pool_end symbols
+  that a linker script supporting processes must provide.
+- Thread creation no longer calls errorHandler(OUT_OF_MEMORY) if there
+  is no memory to create a thread. This has been done to prevent system
+  reboots when the (kernel) heap is full, especially if a process creates
+  another process.
+- Refactored Thread::createUserspace() to call Thread::doCreate()
+- Added a per-process FileDescriptorTable
+- Added ProcessBase class. The kernel used to have a null pointer as process,
+  now it has a ProcessBase instance, and is the only entity that has an
+  instance of PRocessBase that is not also an instance of Process.
+- Merged processes branch
+- breaking change: updated newlib patch to make off_t a 64bit type. This allows
+  accessing files larger than 4GByte for filesystems that support it (currently,
+  only DevFs). This change requires recompiling GCC!
+- Changed Fat32Fs so that reads and writes are directed to a generic file
+  instead of to the disk interface. Added temporary DiskAdapter class to
+  maintain compatibility with the old interface until bsps are upgraded.
+- Major rework and simplification of the DevFs infrastructure. Getting rid of
+  stateless device files. All devices are now stateful, and to make a device you
+  only have to subclass Device and implement readBlock()/writeBlock()/ioctl()
+- Removed sync() syscall, replaced by ioctl()
+- Added ioctl() syscall, and miosix/filesystem/ioctl.h with list of IOCTLs
+- Removed reliance on global variable for FatFs, to have allow mounting more
+  than one independent Fat32 filesystem.
+- First working but inefficient unicode support for fat32
+- Fixed a bug in fat32 directory listing causing file names to be skipped when
+  listing large directories.
+- Added basic unicode helper functions
+- Implemented inode support in FAT32
+- Started implementing FAT32 directory listing, still needs work.
+- Implemented getcwd() and chdir() syscalls
+- Added assertion check that openFileCount is always positive
+- newFileOpened() is now called in FileBase constructor if parent is not null,
+  so filesystems need not remember to do that
+- Updated newlib patch to fix an use after free in closedir()
+  This change requires recompiling GCC!
+- Updated newlib patch for consistency with upstream change.
+  Updated gcc patch for better buffer usage.
+  This change requires recompiling GCC!
+- Performance improved SD driver ported to all stm32 targets
+- Updated newlib compiler patches to improve write performance also for
+  fully buffered files. This change and the previous one require
+  recompiling GCC
+- Updated from GCC 4.7.2 to GCC 4.7.3, due to reported problems building
+  the previous compiler versions.
+- Added a new benchmark to test the filesystem backend (sector read/write).
+  This is a separate benchmark and not in the testsuite.
+- Updated newlib patches so as to avoid stdio code fragmenting large
+  data blocks passed to fwrite() into smaller chunks if the file is
+  unbuffered. This allows to increment filesystem write performance,
+  especially FAT32 on SD cards. This change requires recompiling GCC!
+- Improved disk.cpp for stm32f4, for improved write performance. This
+  allows to fully utilize the multiple sector write, increasing write
+  performance when writing large data blocks at a time.
+- Started work on integrating Fat32 in the new file abstraction layer.
+  Upgraded FatFs from 0.06 to 0.10. Added classes Fat32Fs and Fat32File
+- Added an assertion in IntrusiveRefCountedSharedFromThis to help find
+  bugs.
+- File abstraction layer: FilesystemBase now publicly derives from
+  IntrusiveRefCountedSharedFromThis to allow dynamic_casts
+- File abstraction layer: added FilesystemBase::getFsId()
+- File abstraction layer: added rmdir()
+- Implemented the nanosleep() syscall to support sleep() and usleep().
+- Removed kernel/unistd.cpp as we're now relying in the implementation of
+  sleep() and usleep() in newlib.
+- Fixed newlib patch to add HAVE_NANOSLEEP, as it was omitted by mistake.
+  This change requires recompiling GCC!
+- File abstraction layer: added support for mkdir(), unlink() and rename()
+  syscalls.
+- File abstraction layer: added testsuite test for directory listing.
+  Also removed two tests from the testsuite related to the old Filesystem
+  and Directory classes.
+- File abstraction layer: implemented fcntl() and getdents().
+- File abstraction layer: improved path resolution with support for opening
+  directories. Now the substring of the resolved path starting with off
+  does not contain a leading /
+- Added IntrusiveRefCountedEnableSharedFromThis.
+- File abstraction layer: added FilesystemManager::umountAll()
+- Fixed support for compiling kernel without WITH_FILESYSTEM and added
+  WITH_DEVFS config option to fine-tune code size for a given application.
+- File abstraction layer: Finished implementing DevFs with working
+  StatelessDeviceFile, and DeviceFileGenerator for stateful files.
+  Added MEssageFileGenerator to support /proc/cpuinfo-like stateful
+  files.
+- File abstraction layer: Moved console support out of DevFs, will allow
+  better code size reduction if DevFs is not needed
+- File abstraction layer: Addded support for stateless and stateful
+  device files, added DeviceFileGenerator to support stateful devices.
+- File abstraction layer: TerminalDevice is now instantiated in the FDT
+- File abstraction layer: Merged NullFile and NullConsoleDevice classes.
+- File abstraction layer: DeviceFile now implements a default version of
+  lseek and fstat, to factorize common code from individual device files.
+- File abstraction layer: added class DeviceFile from which all files meant
+  to be attached to a DevFs should derive. Contains the code to assign an
+  unique inode to each of them.
+- File abstraction layer: added FilesystemManager::getFilesystemId() to
+  have a different st_dev field when stat-ing files from different filesystems.
+- File abstraction layer: added stringpart.cpp/.h and devfs/base_files.cpp/.h
+  to better modularize code in files. file.h now contains only FileBase and
+  FilesystemBase.
+- Modified again the newlib patch, to make ino_t an unsigned long, as the
+  default was an unsigned short. This change requires recompiling GCC!
+- Removed old filesystem mount code in mainLoader(), replaced with
+  a call to basicFilesystemSetup() in all BSPs.
+- File abstraction layer: added basicFilesystemSetup() to file_access.h
+- interfaces/console.h is no longer #included in miosix.h
+- Removed the need to call IRQtxComplete() after IRQwrite() in the new
+  ConsoleDevice interface, as it simplifies code. Starting getting rid of
+  the old console interfaces in many places.
+- isatty() and sync() are no longer pure virtual in FileBase, added default
+  implementation as in many cases it's enough.
+- Removed temporary Console initialization code from _init() and added it
+  to individual BSPs. However, we're still using the deprecated Console
+  interface and ConsoleAdapter class.
+- Joined the InterruptOutputDevice and ConsoleDevice concepts.
+  Renamed ConsoleDevice into DefaultConsole, and moved it in a file within
+  devfs directory.
+- Added code to prevent C++ exceptions from propagating through C syscalls.
+- Removed support for old single filesystem support in libc_integration.
+- File abstraction layer: Enabled echo by default in TerminalDevice, added
+  mutex to serialize reads, and added support for handling the backspace
+  character as an usability enhancement.
+- File abstraction layer: switched from Mutex to FastMutex for performance.
+- Fixed range of printable characters in memDump.
+- File abstraction layer now handles stdin/stdout/stderr and passes the
+  testsuite, still does not handle fat32 and echo on console is not working.
+- File abstraction layer: added MountpointFs as the default root filesystem
+  to allow mounting other filesystems.
+- Added operator[] to StringPart.
+- File abstraction layer: added pure virtual mkdir() to FilesystemBase.
+- Renamed DIR struct in FatFs code into _DIR_ to avoid conflicts with
+  struct DIR in dirent.h
+- File abstraction layer: added ConsoleDevice class to store the default
+  console device passed by the board support package.
+- File abstraction layer: added ConsoleAdapter class to map the old
+  Console class into the new file abstraction. Will be removed when all
+  bsp will upgrade to the new model.
+- File abstraction layer: correctly handling the one FiledescriptorTable
+  model when WITH_PROCESSES is undefined (processes branch not merged yet).
+- File abstraction layer: now FileDescriptorTable's constructor opens
+  /dev/console as file descriptors 0, 1 and 2 (stdin, stdout and stderr).
+- Now all non reentrant syscalls use CReentrancyAccessor::getReent() to set
+  the errno variable of the thread they're called in.
+- Added option in libc_integration to route the filesystem-related syscalls
+  to the old one filesystem model, or the new file abstraction layer allowing
+  multiple mountpoint model. The new model will gradually replace the old one. 
+- Added -DCOMPILING_MIOSIX to CFLAGS and CXXFLAGS, to allow the introduction
+  of private headers.
+- getMaxHeap() in libc_integration.h is now in the miosix namespace
+- Changed the boot process. Before _init() created the first thread
+  (mainLoader, whose task is to start main()) and then called startKernel().
+  Now mainLoader is started directly by startKernel(). Added stage_2_boot.h.
+- Added Thread::doCreate() to factorize common code used in Thread::create
+  and startKernel(). Takes a bool defaultReent as an addition to let main
+  and the idle thread use the global reentrancy structure.
+- Added cReent to Thread class.
+- Renamed ExceptionHandlingData and ExceptionHandlingAccessor into
+  CppReentrancyData and CppReentrancyAccessor for consistency.
+- Added classes CReentrancyData and CReentrancyAccessor, to handle newlib
+  reentrancy.
+- Removed kernel/syscalls.cpp, and moved its content in two files within
+  stdlib_integration: libc_integration.h/cpp and libstdcpp_integration.h/cpp
+- Added miosix/stdlib_integration directory
+- Changed parameter type of memDump() from const char * to const void *
+- Improved MemoryProfiling::getCurrentFreeHeap(). It now uses mallinfo()
+  instead of returning the high watermark of the heap. Considering that
+  malloc returns memory to the OS using sbrk only when there is a block
+  of at least 128K, the old implementation could overestimate heap usage by
+  as much as 128K. The current implementation is more precise.
+- WATERMARK_LEN is now an unsigned int (was an unsigned char)
+- Changed return value of Filesystem::fstatFile(). It used to set a st_blksize
+  of 0, but now this field is really taken into account for buffer sizing, so
+  better use the filesystem block size.
+- Added pthread_setcancelstate() stub to pthread.h, as newlib calls it.
+- Removed #define WITH_STDIN_BUFFER from miosix_config.h, no longer necessary
+  after the new patch.
+- Rebuilding the GCC toolchain is required, due to the new newlib patch!
+- New newlib patch, with lots of new features, including enabling the
+  newlib/libc/posix folder for support to opendir/readdir (optimized),
+  size optimized floating point conversion (pushed upstream), shared
+  stdin/stdout/stderr across _reent structs, reduced __BUFSIZ__ to 256 byte
+  __DYNAMIC_REENT__ to enable __getreent(), removed unused fields from _reent,
+  added newlib/libc/sys/miosix, fixed some memory leaks when reclaiming
+  a _reent (pushed upstream), reduced page size in malloc to 1KB to better
+  utilize RAM in microcontrollers.
+- Moved filesystem directory from miosix/kernel/filesystem to miosix/filesystem
+- Moved the bootloaders, compiler and testsuite directories inside
+  miosix/_tools.
+- Reorganized directory structure, all subdirectories of the miosix directory
+  that do not contain code that is compiled into the Miosix kernel now start
+  with an underscore, to be easily recognizable. These are: the _doc directory
+  containing documentation, the _examples directory containing examples, and
+  the _tools directory.
+- Added first (non working) inplementation of the new file abstraction
+  layer.
+- Improved pauseKernel() and restartKernel() implementation using atomic
+  operations. Tests show a +20% to +40% performance improvement for
+  pauseKernel() and restartKernel(), and a +15% performance improvement
+  for Mutex operations
+- Added tests to testsuite for atomic operations
+- Added atomic ops emulation for ARM7 port
+- Added an intrusive, lock free, reference counting smart pointer.
+  To use it, #include "kernel/intrusive.h". Also added tests to the
+  testsuite for intrusive_ref_ptr.
+- Added a set of atomic operations too all the cortex ports. These functions
+  are available by #including "interfaces/atomic_ops.h"
+- Backported implementation of __REV(), __REV16(), __REVSH(), __RBIT(),
+  __LDREXB(), __LDREXH(), __LDREXW(), __STREXB(), __STREXH(), __STREXW(),
+  from the newer CMSIS to the CMSIS of the stm32f1 and stm32f2 ports.
+  This results in a performance increase as those functions are now inline.
+  Also, for what concerns the LDREX and STREX family of functions, now the
+  pointer parameter is volatile in all ports, which helps writing code
+  that calls these functions and works consistently across all ports.
+- Changed version number from v1.61 to v20.alpha1 in version.cpp.
+- Added -Wno-unused-but-set-variable to Makefile.
+- Added testsuite check for global objects support outside of the kernel.
+- Removed the use of global objects in the serial port drivers.
+- Breaking change regarding constructors of global objects. Up to Miosix v1.61
+  they were called during stage_1_boot, therefore before the kernel was
+  started. They are now called in stage_2_boot, right before calling main.
+  This results in a more intuitive behaviour, as it is now possible to
+  write on stdout, access the filesystem, create threads, etc. within
+  constructors of global objects. On the downside it is no longer possible to
+  instantiate global objects withing the kernel itself, as this would cause
+  the risk of accessing objects before their constructor has run. The lack of
+  global objects is actively check by check_global_objects.pl at compile time
+  to prevent errors.
+- Changed stm32vldiscovery default stdio redirection from the DCC to the
+  serial port.
+- Added stm32f4 sdio driver, tested on stm32f4discovery.
+- Improved the SDIO drivers for both stm32f1 and stm32f2. It now uses
+  DMA transfers whenever possible. In the stm32f2 it is always possible,
+  while in the stm32f1 it is done if the FSMC is not used for data storage.
+- Added a test in the testsuite to check writing and reading large files
+  from disk, with checksum of the written data.
+- Modified the signature of crc16 to accept a void* instead of a char*,
+  to avoid casting issues.
+- Actually, monitor_soft_reset_halt seems to work in JTAG mode but not with SWD
+- Changed references to "monitor soft_reset_halt" into "monitor reset halt"
+  as openocd changed in version 0.6.1
+- Added scripts to build the new GCC 4.7.2
+- Fixed a bug causing a deadlock if a wait on a condition variable is done
+  on recursive mutex locked more than once.
+- Added test to testsuite to verify the implementation of atomic operations
+  as part of the GCC patches.
+- Added stack alignment requirement to all arch ports, as different arch
+  do have different requirements.
+- Modified context switch code for the Cortex-M4 architecture to preserve
+  floating point registers. Code use lazy stacking to save fpu registers only
+  for threads that do actually use the fpu. Added test to testsuite for this.
+- Fixed the CMSIS of all Cortex ports so as to prevent gcc from using the same
+  register as the first and second argument of strex, strexh, strexb
+- Modified sync.h so as to make mandatory the new gcc 4.7.2 compiler. Not
+  that removing the #error in that file would make the kernel compilable
+  with the previous compiler anyway, this just produces a meaningful error
+  message.
+- The build scripts of Miosix used to defile the _MIOSIX macro as a string with
+  the name of the board. This has now changed. The _MIOSIX macro is still
+  defined but as a compiler intrinsic as part of the gcc patches for 4.7.2.
+  As such, it has no string value, and can only be used for #ifdef _MIOSIX or
+  other similar constructs. The _MIOSIX_BOARDNAME variable has been added with
+  similar semantics as the previous one.
+- A change in the board support packages enables the FPU on Cortex-M4
+  processors, as gcc 4.7 has support for -mcpu=cortex-m4 
+- The kernel now no longer traps unaligned memory accesses when compiled for
+  Cortex-M3 and Cortex-M4. This has been made necessary as gcc starting from
+  4.7 generates unaligned instructions by default. This does not break existing
+  code as is only a relaxation of a constraint.
+  (https://www.gnu.org/software/gcc/gcc-4.7/changes.html)
+- Started porting to gcc 4.7.2
+v1.61
+- Added .gitignore
+- Fixed a bug in usleep() occurring when its argument assumes the 1000 value
+- Improved Lcd44780 driver
+- Improved bitsboard driver
+- Added prliminary version of the event API to allow asynchronous programming.
+  It is located in the miosix/e20 directory, and provides event loops where
+  function calls can be injected by other threads as well as by interrupt
+  handlers.
+- Modified the implementation of pauseKernel() and restartKernel() so as to
+  be able to call them safely within an InterruptDisableLock block. This allows
+  allocating memory with malloc/new when interrupts are disabled in an
+  InterruptDisableLock (but not in a FastInterruptDisableLock). This change
+  only relaxes a constraint, so it does not break existing code.
+v1.60
+- Added new board: bitsboard. This is effectively an stm32f4discovery tweaked
+  be used in the bits project: bits.poul.org
+- Fixed a bug in FastMutex::get(): the member function was unimplemented.
+- Fixed a bug in ST code for the stm3220g-eval board: despite having a 2MB RAM,
+  A18, A19 and A20 were left as GPIOs, resulting in issues when accessing the
+  upper part of the RAM.
+- Added util/lcd44780.h and util/lcd44780.cpp with support for the common
+  HD44780 LCD displays
+- Added Gpio::getPin() to convert from a Gpio to a GpioPin class
+- Added GpioPin class to make it easier to pass a Gpio as a parameter to a
+  function
+- Fixed the stm32 SDIO driver to prevent a glitch on the CMD pin from creating
+  isues with the card initialization.
+- Added EthBoardV2 board to the list of supported boards
+- Added configurations support to the Netbeans project. There is now one
+  configuration for each supported board. This improves code completion for
+  architecture and board specific symbols. Note that selecting a board from the
+  IDE does not replace the need to edit miosix/config/Makefile.inc
+- Adapted sad_trombone example to also support the stm32f4discovery board
+- Added support to stm3220g-eval to miosix/bootloaders/stm32, and renamed
+  folder (before it was miosix/bootloaders/stm3210e-eval)
+- Added linker scripts that support external ram to stm3220g-eval
+- Added external RAM support to stm3220g-eval
+- Added make program support to flash the stm3210e-eval using the stm32flash
+  utility
+- Fixed a bug in the stm3210e-eval related to the xram linker script:
+  the stack pointer was set to the external RAM before that ram was enabled
+- Fixed a bug in SoftwareSPI::sendRecvChar(), improved overall SoftwareSPI
+  code
+- Added support for stm32f2 and stm3220g-eval
+- Renamed arch/cortexM4_stm32 to arch/cortexM4_stm32f4 for consistency
+- Refactored the arch/ directory to avoid code duplication
+- Breaking change in the Makefiles
+v1.59
+- Added arch/cortexM4_stm32 architecture. The current GCC used to build Miosix
+  does not yet support the M4 but since the instruction set is backward
+  compatible the kernel is currently compiled with -mcpu=cortex-m3. This
+  means that floating point operations are still emulated in software, and will
+  be fixed when the compiler is upgraded.
+- Added a couple of examples, including one using BufferQueue to synchronize
+  between a thread and a DMA.
+- Added test to testsuite for BufferQueue
+- Refactored top level directory, now the testsuite and examples have
+  been moved in their directories within the miosix directory
+- Improved Queue class
+- Added class BufferQueue to simplify the development of double buffered
+  data transfers between threads and interrupt routines
+- Some const-ness fixes in util
+- Extended boot improvements to strive mini board
+- Forgot to add util/crc16.cpp to the makefile buid rules
+- New target board: Strive. Thanks to Yury Kuchura for contributing the code.
+- Improved Thread::join(): when joining a thread, deallocate all its resources
+  immeadiately.
+- Added tests to testsuite for endianness.h
+- Added interfaces/endianness.h with optimized functions to convert to/from
+  lille/big endian, as well as byte swapping.
+- Improved boot speed by replacing for loops to initialize .data, .bss and
+  to initialize the stack of threads with memset/memcpy.
+- Improved getMiosixVersion(), new format contains more information, including
+  board name, build date and compiler version.
+- The files binutils-2.21.tar.bz2 and gdb-7.0.tar.bz2 no longer exist on the
+  ftp.gnu.org and mirrors.kernel.org, and this broke the compiler installation
+  script. Fixed by downloading binutils-2.21.1 and gdb-7.0.1a.
+- Added DCC support for the stm32vldiscovery board, to be able to redirect
+  printf through SWD. This has also become the default option for that board.
+
+v1.58
+- Added new board stm32vldiscovery
+- Fixed a bug in the syscall code to handle static constructors. Despite the
+  gcc documentation said that a __guard was 8 bytes, it is actually only 4
+- Changing linker scripts to be compatble with the way GCC handles
+  .bss with C programs
+- Added _times_r in syscalls.cpp to make clock() in time.h work
+- Added exception thread safety test to testsuite.
+- Added class ExceptionHandlingData that keeps a per-thread data structure
+  used to make C++ exceptions thead safe.
+- Updated gcc patches, newlib patches and gcc build scripts. Now as far as
+  I know, every bit of gcc, newlib and libstdc++ is fully threadsafe, finally!
+  (Except the _Reent struct that will be fixed later)
+- Fixed a bug in pthread_once(), optimized __cxa_guard_* code.
+- Made __register_exitproc() and __call_exitprocs() two new syscalls, to allow
+  a future implementation of atexit support.
+- Added support for pthread_once, also added new patch to newlib to reduce the
+  size of pthread_once_t from 8 bytes to 2 bytes
+- Added __cxa_guard_acquire(), __cxa_guard_release() and __cxa_guard_abort()
+  to syscalls.cpp. These override the default ones in libstdc++ and provide
+  a miosix-aware implementation that can guarantee thread safe initialization
+  of static objects. Also, they don't pull in exception support unlike those
+  in libstdc++
+- Fixed a bug in the control based scheduler that caused sporadic crashes
+- Reduced STACK_DEFAULT_FOR_PTHREAD to 2048 bytes, and STACK_MIN to 256 bytes.
+- Added tests in testsuite for FastMutex, helped catch one bug
+- Refactored code in Mutex and CondotionVariable
+- Implement ConditionVariable support for FastMutex
+- Breaking change: the Lock and Unlock classes have been templatized to
+  work both with Mutex and FastMutex. Existing code Needs to be upgraded
+  specifying the template parameter. For example, Lock l(m); becomes
+  Lock<Mutex> l(m); or Lock<FastMutex> l(m);
+- Added -D_REENT_SMALL flag to CFLAGS_BASE and CXXFLAGS_BASE, otherwise
+  #including <reent.h> picks up the wrong version of struct _reent
+- Thanks to the patched version of newlib, rewritten pthread mutex and
+  condition variable code in a faster way.
+- Added new compiler build scripts for gcc-4.5.2, with significantly more
+  patching in the newlib area. This is required to implement pthread mutexes
+  and condition variables efficiently, as well as to reduce memory footprint.
+  As a drawback, the use of the new patched compiler has become mandatory to
+  build Miosix.
+- Bumped to version 1.58 because from now on the new compiler gcc-4.5.2, and
+  especially the new newlib patches become necessary
+
+v1.57
+- Added memory barriers to miosix_private::doDisableInterrupts() and
+  doEnableInterrupts(), and made fastDisableInterrupts() and
+  fastEnableInterrupts() inline, for speed reasons.
+- Fixed a bug in Mutex::tryLock(): it would return false in case it was called
+  on a recursive mutex locked by the same thread
+- Added testsuite tests for new functions/classes
+- Added new fastDisableInterrupts(), fastEnableInterrupts() functions and
+  FastInterruptDisableLock, FastInterruptEnableLock classes to disable
+  interrupts in a fast but not recursive way. Optimized pause and restart
+  kernel code, used these new features where appropriate throughout the kernel.
+- Fixed a tricky bug in the AuxiliaryTimer implementation for the stm32 arch.
+  The prescaler of that timer has a shadow register, and under some timing
+  conditions the new prescaler value never made it through the real prescaler,
+  resulting in burst values ~700 times less than the value computed by the
+  control scheduler. Fixed by forced flush of the prescaler to the shadow
+  register.
+- Added optional feedforward to control scheduler, defaults to active
+  for faster dynamic performance with thread blocking
+- Added Scheduler::IRQwaitStatusHook() to inform the scheduler of thread
+  blocking
+- Added sched_types.h, and separated each *_scheduler.h with an header files
+  containing the definition of the SchedData and Priority classes
+- Added parameters.h with all control based parameters.
+
+v1.56
+- Fixed some bugs in EDF scheduler, found by testsuite.
+- Adapted testsuite to work with EDF scheduler.
+- Removed configuration option EXIT_ON_HEAP_FULL because since STL containers
+  are used in the kernel, there is no more choice: if exceptions are enabled
+  on heap full malloc returns NULL and operator new throws bad_alloc, while
+  if exceptions are disabled on heap full a reboot is performed, to prevent
+  undefined behaviour in STL containers due to operator new not throwing.
+- Some code cleanup in the Mutex class.
+- Fixed a bug in the priority inheritance mechanism, fixed and added
+  a test in the testsuite.
+- Removed priority_queue.h and associated test in testsuite.
+- Modified Mutex class to use the max heap implementation of the STL.
+- Improved preemption points for EDF scheduler.
+- Modifed Thread::wakeup(). Now it can no longer be called with the kernel
+  paused. Added Thread::PKwakeup() that can be called with the kernel paused.
+- Added preemption points in Thread::create(), Thread::setPriority() and
+  Thread::wakeup(), active if the EDF scheduler is selected.
+- Added file tick_interrupt.h with inline function IRQtickInterrupt() that
+  factorizes code for the tick interrupt that was repeated once per target
+  architecture.
+- Adapted EDF scheduler to use class Priority
+- Improved wakeup time in control based scheduler when waking from the idle
+  thread.
+- Added ControlScheduler::IRQgetIdleThread()
+- Changed IRQwakeThreads(). Now it returns a bool.
+- Modified control based scheduler for the introduction of the Priority class
+- Added Priority class, so that different schedulers can redefine what priority
+  means. Changed public interface of Thread class accordingly.
+- Started implementing the EDF scheduler, defined three new member functions
+  of the Thread class to be able to manage thread deadlines.
+- Added Thread::sleepUntil() to make periodic sleeping more accurate.
+  Also added a test for it in the testsuite.
+- Changed data type for kernel tick from unsigned long long to long long.
+  This also required to change the return value of getTick()
+- Added files edf_scheduler.h and edf_scheduler.cpp
+- Fixed bug in control scheduler: the outer regulator continued increasing
+  the burst correction even if the set point could not be attained because of
+  saturation of all inner integral regulators. This fix improves regulator
+  performance when many threads are blocked.
+- Updated openocd config files so that they work with newer releases of
+  openocd. Note that this drops compatibility with openocd v0.1.0
+- Fixed compiler scripts so that they work on Fedora too.
+- Transitioned to git.
+- Added the miosix/config/alt-configs directory to store some interesting
+  alternative possible configurations.
+- Malloc always allocates 4KB sectors that are aligned to 4KB boundaries.
+  The linker script on the stm32 architecture has been modified so that the
+  main stack (the one used for interrupt handling) is at the beginning of ram
+  and not at the end. This will allow malloc to allocate till the ram upper
+  limit and not waste the last 4KB block. Unfortunately it's not possible to
+  do the same on the lpc2000 because upper 32bytes of ram are used for
+  programming the flash memory.
+- Changed default value for WITH_STDIN_BUFFER. By default stdin is now buffered.
+- As part of a cleanup of linker scripts, some symbols such as _stack_top
+  on the stm32 port have been removed.
+- Removed filling of stack with a watermark value at boot, on both stm32 and
+  lpc2000 architectures, to speed up boot process and for compatibility with
+  ongoing linker script optimizations.
+
+v1.55
+- Used fixed point arithmethic for internal I regulators instead of simply
+  integer arithmethic. This allows the regulator to really reache the set point.
+- I+PI scheduler implemented, passes testsuite on both targets.
+- Fixed the same bug of AuxiliaryTimer::IRQsetValue(), but in the LPC2000 target
+- Fixed AuxiliaryTimer spurious interrupt generation for STM32 if IRQsetValue()
+  is called from the SVC interrupt.
+- Added ControlScheduler class, started implementing I+PI scheduler.
+- Fixed inter dependencies of header files after separation of scheduler from
+  kernel
+- Added SchedulerData class that collects all data about a thread required by
+  a scheduling algorithm. Each Thread instance has a ThreadData instance.
+- Thread::getStackBottom() and Thread::getStackSize() are now public,
+  so that MemoryProfiling is no longer frien of Thread.
+- Added PriorityScheduler class and started moving the hardcoded priority
+  scheduler from the kernel to this class.
+- Added scheduler.h as an interface to separate the scheduler from the kernel.
+- Refactored portableStartKernel to IRQportableStartKernel, since was called
+  with interrupts disabled.
+- Added miosix/libmiosix.a as dependency of main.elf in the Makefile,
+  otherwise changing someting in the kernel required a make clean; make
+- Added AuxiliaryTimer class to portability.h, to implement the control based
+  scheduler.
+- Code refactoring to replace names with function and method names with
+  underscores with names in camelcase. Not very useful but improves code
+  consistency.
+
+v1.54
+- Now sector read and write in the stm32 port retry up to three times before
+  giving up, to increase robustness and to fix a bug with large size uSD cards.
+- Modified config/Makefile.inc to use the arm-miosix-eabi compiler
+- Added compiler scripts to build gcc tailored to miosix
+- Changed interface of Thread::detach() and Thread::join(). Now they take
+  the thread to detach/join as "this" parameter, for consistency.
+- Added -D_POSIX_THREADS to Makefile.inc, so that pthreads.h is available
+  in the C standard library.
+- Added file miosix/kernel/pthread.cpp
+- Added Mutex::PKisLocked() to implement pthread_mutex_destroy()
+- Now some pthread functions are friend of Mutex and ConditionVariable, to use
+  the PK* private member functions.
+- Added ConditionVariable::PKwait() and ConditionVariable::PKisEmpty()
+  to implement pthread condition variables.
+- Fixed a bug in Thread::isDetached(): it returned the detach status of the
+  current thread instead of the status of the thread on which the member
+  function was called.
+- Added tests to testsuite to check the pthread implementation.
+
+v1.53
+- Repleced some more calls to disable_interrupts()/enable_interrupts() and
+  pause_kernel()/restart_kernel() with the safer InterruptDisableLock and
+  PauseKernelLock.
+- Generated doxygen documentation, and fixed some bugs about doxygen tags
+  in source files.
+- Improved Thread class. Now its constructor and destructor are called
+  using the placement new syntax. Before, the class was used even if its
+  constructor was never called.
+- Implemented Console::write as a call to serial_write instead of
+  serial_write_str to reduce the function call depth when printing to the
+  console, since it caused stack overflows if printing from threads whose
+  stack is STACK_MIN and the code is compiled with -O0 which does not perform
+  stack frame optimizations
+- Removed serial_write_str as it is no longer used
+- Added CTXSAVE_ON_STACK constant to arch_settings.h to take into account
+  that some architectures save part of the cotext on the stack.
+- Upgraded Thread::create, start_kernel and MemoryProfiling to take int account
+  CTXSAVE_ON_STACK
+- Added ThreadFlags inner class of Thread to handle thread flags at a higher
+  level.
+- Added an overload of Thread::create that accepts an entry point function
+  that returns a void *, for compatibility with pthreads.
+- Added another default parameter to Thread::create, options to set additional
+  thread options, such as joinable threads.
+- Added Thread::IRQexists(), necessary to implement joinable threads.
+- Added DETACHED and WAIT_JOIN flags to ThreadFlags class, and required setter/
+  getter.
+- Added Thread::detach(), Thread::isDetached() and Thread::join() to add
+  support for joinable threads.
+- Added test to testsuite for joinable threads.
+- Added private constructor and operator= to InterruptDisableLock,
+  InterruptEnableLock, PauseKernelLock and RestartKernelLock.
+- Added Unlock class to temporarily unlock a Mutex.
+- Added kernel/unistd.cpp and implemented sleep() and usleep()
+- Moved struct LockedData as a private inner struct of Mutex.
+- A bit of refactoring, added delays.h and gpio.h in miosix/interfaces, and
+  also added the arch_registers.h interface.
+- Added portability.h and bsp.h to interfaces. Now code is more consistent,
+  since all calls from kernel code to architecture specific code is done
+  through the headers in the interfaces folder.
+- Changed name of miosix_private::system_reboot to
+  miosix_private::IRQsystem_reboot
+- Added ConditionVariable class.
+- Added private member functions PKlock() and PKunlock() to Mutex, to allow to
+  lock and unlock mutexes with kernel paused, which is necessary to atomically
+  unlock the mutex and wait in condition variables.
+- Added tests to testsuite for ConditionVariable.
+- Increased default value for WATERMARK_LEN from 4 to 16, to help catch
+  stack overflows.
+- Recently there were a bit too many stack overflows in thread whose stack size
+  is STACK_MIN, so STACK_MIN was increased from 256 to 384 bytes.
+- Added new Mutex implementation. This one fixes several issues with the
+  prevoius implementation regarding priority inheritance, for example this
+  new mplementation allows to lock mre mutexes at the same time ans still
+  have priority inheritance working, or to change the thread's priority while
+  locking a mutex still with no issues.
+- Changed signature of Thread::set_priority(). It is now static and therefore
+  it is no longer allowed for a thread to change thie priority of another
+  thread. This proved of little use, and this change allowed to implement the
+  full priority inheritance algorithm.
+- Added test to testsuite to check the new priority inheritance algorithm.
+- Added Mutex::PKtryLock to prepare for pthreads
+- Added Lock::get() and Unlock::get() and removed friends of Lock.
+- Fixed doxygen documentation. Excluded arch/ folder because doxygen doesn't
+  like the same functions being declared two times in the two architectures.
+- Fixed a bug in error_handler since it disabled interrupts even if called
+  within an interrupt routine.
+
+v1.52
+- added ARM.extab* and ensured 8 byte alignment to linker scripts, as required
+  by eabi.
+- Added back the check to see if the stack pointer is within bounds at every
+  context switch.
+- Enabled traps for unaligned memory access and division by zero in the cortex
+  m3 port.
+- Added a #define to each arch and each board to allow querying this data in
+  code with an #ifdef
+- Removed Thread::do_terminate(), it was already deprecated in Miosix 1.0x due
+  to risk of memory leaks.
+- Added Thread::threadLauncher() and modified init_ctxsave() accordingly.
+  This new way of spawning threads allows to catch unhandled exceptions
+  that propagate through their entry point. Now they are caught in
+  threadLauncher() and this avoids undefined behaviour.
+- Updated testuite so that it does not use Thread::do_terminate()
+- Added test to testsuite to check the correctness of the argv parameter
+- Added test to testsuite to check exception propagation through entry point
+- Improved debug information for arm7. Now data abort and prefetch abort
+  are handled separately from undefined instruction. This makes error
+  identification easier and the error address is now precise.
+- Added MemoryProfiling class to util to gather detailed memory statistics.
+- Make Thread::get_stack_bottom() private because MemoryProfiling is now friend
+  of Thread.
+- Added test to testsuite for MemoryProfiling
+- Optmized system stacks in arm7_lpc2000 port now undef, data abort and prefetch
+  abort share the same stack, and irq and svc share the same stack.
+- Added prliminary implementation of PriorityQueue
+- Added test to testsuite for PriorityQueue
+- Optimized PriorityQueue for code size. Looks like recursive inline destructors
+  cause much code duplication.
+- Now SVC and SysTick interrupts on Cortex M3 have a priority of 3, instead
+  of the default value 0.
+- Rewritten serial driver. Now serial rx is interrupt based instead of polled,
+  while serial tx uses DMA if possible.
+- Fixed a bug in the serial driver of the arm7 port where calling
+  IRQserial_disable() while a thread was sending data could result in that
+  thread blocking.
+- Started implementation of SDIO driver for stm32
+- Fatorized filesystem mount from bsp_init2() to _main_loader() since it
+  must be the same for all architetures
+- Fixed a bug in Filesystem::Filesystem which caused fs initialization to
+  happen twice. Now the constructor does no longer try to mount the filesystem.
+- Inlined Disk::isInitialzed() and Filesystem::isMounted() because it was
+  noticed that these functions are called many times during filesystem access.
+- Increased stack sizes of threads spawned during filesystem test, from 1.5KB
+  to 2.5KB, because they caused stack overflow.
+- Added InterruptEnableLock and RestartKernelLock for an additional degree
+  of freedom when there is the need to disable interrupts and/or pause the
+  kernel.
+- Completed SDIO driver for stm32. It implements the Disk interface and allows
+  read/write access to an SD card using the hardware peripheral available in
+  the stm32.
+- Cleaned up the temp directory
+- Added readme for stm32 bootloader.
+- Renamed this branch from miosix_np_unstable to miosix_np_2 as code is now
+  stable in both architectures for quite a while
+- Added test to testsuite for checking if stderr works
+
+v1.51
+- Implemented interfaces/disk.h which is the interface between the kernel
+  part of the filesystem code and the architecture dependent part.
+- Changed MAX_OPEN_FILES to 8, since memory for files is dynamically allocated
+- Started porting to stm32, modified Makefile.inc
+- Porting to stm32, added CMSIS directory
+- Porting to stm32, implemented portability.h and portability.cpp
+- Porting to stm32, added stage_1_boot and stage_2_boot
+- Porting to stm32, new bsp.cpp with only basic functionality
+- Porting to stm32, basic polled serial driver in serial.cpp
+- Porting to stm32, implemented Console interface using serial driver
+- Porting to stm32, added microcontroller_registers.h as interface so that
+  miosix.h is independent on the microcontroller type
+- Added gpio.h as an architecture-independent way to access gpios
+- Added delays.h and delays.cpp to have busy-waiting delays for milliseconds
+  and microseconds.
+- Added __DSB to interrupt handler where preemption is possible to preserve
+  memory consistency
+- Added __DMB to eneble_interrupts() and restore_interrupts() to preserve
+  memory consistency
+- Added printout of unexpected exceptions and the program conuter value when
+  the hardware exception happened
+- Added additional debug information to unexpected exception handlers, taken
+  from Cortex M3 system control block.
+- Found how to enable fault handlers, before all fault handlers escalated to
+  hardfault.
+- Now disable_interrupts() and enable_interrupts() calls can be nested.
+- Removed disable_and_save_interrupts() and restore_interrupts() since they
+  have been superseded by disable_interrupts() and enable_interrupts()
+- Added two new possible errors to the Error enum, PAUSE_KERNEL_NESTING, and 
+  DISABLE_INTERRUPTS_NESTING.
+- Moved the error_handler() in its own file kernel/error.cpp
+- Added RAII class DisableInterruptLock
+- Added RAII class PauseKernelLock
+- Fctorized stage_2_boot in miosix/kernel. Since the boot process is the same
+  for all architectures there is no need to replicate code in arch
+- Fixed a bug in Cortex M3 where interrupts were enabled at boot, and added
+  a runtime check to make sure it does not happen again.
+- Fixed a bug in the testsuite in benchmark_2 where a preemption happening
+  in between two function calls would cause deadlock.
+- Fixed a bug in the Console implementation for Cortex M3 (serial_read_char())
+  where a mutex was not unlocked and caused locking the same mutex multiple
+  times. The fix implied using the Lock class instead using lock()/unlock()
+- The above bug in Console allowed to discover a long standing bug in the Mutex
+  implememtation where locking the same mutex twice did not cause a deadlock,
+  and locking the same mutex three times caused memory corruption.
+- Added a new possible error to the Error enum, DEADLOCK which fixes the bug
+  above.
+- Fixed some bugs in the testsuite. For short, if a preemption occurred in some
+  places some of the tests would fail. This happened also before, but the
+  increased tick frequency of the Cortex port (1000Hz) together with the running
+  from RAM (slow nomber of instructions per second) made this more evident.
+- Removed __DSB and __DMB from interrupt handlers and disable_interrupts() since
+  they are not necessary.
+- Factorized disable_interrupts() and enable_interrupts() and
+  are_interrupts_enabled() in kernel.h, the nesting counter is implemented only
+  one time, and added doDisableInterrupts(), doEnableInterrupts() and
+  checkAreInterruptsEnabled() to portability.h to access the hardware.
+  Also now disable_interrupts() and enable_interrupts() return immediately
+  before the kernel is started. Lastly, if the nesting reaches the limit
+  error_handler(NESTING_OVERFLOW) is called.
+- Added doYield() to portability.h as a proper solution to the arch-dependant
+  implementation of Thread::yield().
+- Cleaned up some code using DisableInterruptsLock and PauseKernelLock.
+- Testsuite is now running continuously for more than an hour on both
+  architectures and no fault occurred.
+
+v1.50
+- Bumped version to 1.50. This is the unstable version. After all changes will
+  be done the version will be bumped again to 2.00.
+- Removed notice saying this changelog was only for the kernel. There is no
+  longer separation from kernel and drivers for quite some time.
+- Changed directory structure to the new one to allow multiple archithectures
+  and schedulers.
+- Changed makefiles. The new ones do not contain architecture dependent details
+  except for Makefile.inc where it is possible to select the target architecture
+  and board.
+- Added files util/version.h and util/version.cpp. They contain a function
+  to get the kernel version string.
+- Modified syscalls.cpp, added __cxa_pure_virtual in case exceptions are
+  disabled, and added #ifdef EXIT_ON_HEAP_FULL to select behaviour on heap
+  overflow.
+- Removed WITH_NONSTANDARD_ALLOC option in kernel_settings.h, it was broken and
+  useless.
+- Removed WITH_TICK_HOOK option in kernel_settings.h.
+- Removed WITH_CPU_METER option in kernel_settings.h since cpu load monitor
+  won't work with some scheduling algorithm.
+- Removed kernel_settings.h and merged its content in miosix_settings.h
+- Removed WITH_INIT_CALLBACKS option in kernel_settings.h. Initialization is
+  now done in the bsp or in main().
+- Removed WITH_ERROR_HANDLER option from kernel_settings.h since it wasn't
+  really supported.
+- Added -D_MIOSIX to the makefiles (and removed it from miosix.h) so that user
+  code can do a #ifdef _MIOSIX to see if the OS is Miosix.
+- Split configuration options in three file: config/miosix_settings.h for the
+  architecture independent options, arch/<arch name>/common/arch_settings.h
+  for options that depend on the architecture, and
+  arch/<arch name>/<board name>/board_settings.h for options that depend on the
+  board.
+- Added Console interface to decouple the kernel from its underlying
+  implementation.
+- Added file kernel/logging.h with inline functions to print boot logs and
+  error logs only if they are enabled in config/miosix_settings.h
+- Added Filesystem class which wraps filesystem access. It is supposed to be
+  an interface between the C/C++ standrd library's syscalls and the FatFs
+  library.
+- Removed fs_mutex, mount_filesystem(), umount_filesystem() and
+  is_filesystem_mounted(). These functions are now in the Filesystem class.
+- Implemented _kill() syscall. Since in Miosix there is only one process
+  calling it causes a reboot.
+- Added new option to miosix_settings.h: SYNC_AFTER_WRITE to let the user choose
+  safe or fast filesystem write access.
+
+v1.03
+- Added #ifdef __NO_EXCEPTIONS around operator new/delete in syscalls.cpp, and
+  added -D__NO_EXCEPTIONS in Makefile.inc. In this way if compiling with
+  exception support operator new/delete are not redefined and throw
+  std::bad_alloc as expected.
+- Added -ffunction-sections to Makefile.inc to optimize code size
+
+v1.02
+- Centralized compiling options in Makefile.inc. This makes easy changing
+  optimization flags, and switchin between arm-elf-gcc and arm-none-eabi-gcc
+- Fixed C++ code in naked functions bug that prevented the kernel from being
+  compiled with CodeSorcery
+- Added -Wl,--start-group and -Wl,--end-group around system libraries in the
+  Makefile, to fix a problem with Codesourcery GCC
+- Redefined __verbose_terminate_handler to reduce code size and avoid some
+  problems with uncaught exceptions
+- Updated linker script and startup assembler file.
+- Added Lock class in sync.h to allow locking a mutex in an exception safe way
+- Added JTAG_DISABLE_SLEEP #define to allow disbling sleep mode in idle thread
+  otherwise JTAG debuggers lose communication with the device.
+- Method do_terminate() in the Thread class is now deprecated because it can
+  cause memory leaks.
+
+v1.01
+- Added _getpid_r and _kill_r functions to syscalls.cpp because they seem
+  required when compiling with GNUARM compiler on windows.
+- Added bug report on Thread::set_priority() to documentation.
+- Exception support is now enabled by default
+
+v1.00
+- This will be the first public release, so that's why the version number jumped
+  from v0.34 to v1.00. Doing a lot of refactoring to make code easier to read.
+- Changed implementation of Thread::terminate(), now it disables interrupts
+  instead of pausing the kernel to avoid race condition in a read-modify-write
+  operation.
+- In Thread::create() stacksize must be divisible by 4. Added a comment and a
+  check in the code that rounds the number if it is not divisible by 4.
+- Thread::wait() and Thread::IRQwait() are now static, so that a thread cannot
+  put another thread in wait status.
+- Refactoring: merged RTOS and miosix namespaces. New name is miosix.
+  Renamed namespace RTOS_portable. New name is miosix_private.
+  Renamed RTOS_IRQ_Routine() and RTOS_SWI_routine(). New name is kernel_...
+  "RTOS" folder renamed to "kernel", rtos.cpp and rtos.h rtos_settings.h
+  renamed kernel.cpp, kernel.h and kernel_settings.h
+- Added default parameters to Thread::create() now default priority is 1 and
+  default argv is NULL
+- Refactoring: renamed Process class, new name is Thread. Also renamed methods,
+  variables containig the word "process" examples are:
+  IRQfind_next_process() > IRQfind_next_thread() process_list > thread_list...
+- Added method try_lock() to class Mutex
+- Refactoring: renamed method Mutex::enter() to Mutex::lock() and Mutex::leave()
+  to Mutex::unlock() for more consistency with other threading libraries (boost)
+- The kernel tick is now an unsigned long long (64bit integer), while before it
+  was a 32bit integer. This allows not worryinng about tick overflow.
+  the function get_tick() was therefore changed to return an unsigned long long.
+- The list of sleeping threads is now sorted so that there is no need to scan
+  it all at every tick to improve performance.
+- Modified makefile, it no longer makes libmiosix_rtos.a, since was useless in
+  most cases. The part of makefile that created it are simply commented out.
+- Added IRQreset() method to Queue class, to allow resetting a queue from inside
+  interrupts.
+- Removed serial_init() and serial_disable() from Serial.cpp, and added
+  IRQserial_init() and IRQserial_disable(). Now serial port needs interrupts
+  disabled to be turned on/off.
+
+v0.34
+- Added disable_and_save_interrupts() and restore_interrupts() in portability.h
+  to allow writing code that need interrupts disabled to work both when
+  interrupts are already disabled and when interrupts are enabled.
+- Modified pause_kernel() and restart_kernel(). These functions now disable
+  interrupts (with disable_and_save_interrupts()) before incrementing/
+  decrementing kernel_running variable, because increment may not be an atomic
+  operation and may cause race condition.
+- kernel_running is now no longer declared volatile, since it is only modified
+  when interrupts are disabled.
+- Added information about the maximum sleep time as a comment to Process::sleep
+- Added is_kernel_running() in rtos.cpp
+- Added are_interrupts_enabled() in portability.cpp
+
+v0.33
+- Now priority is always represented by a "short int" instead of an
+  "unsigned char". This is because the idle process' priority is -1. This
+  standardized priority system fixes a bug in Queue::IRQget(T, bool&) and
+  Queue::IRQput(T, bool&) to allow implementing context switch inside a driver
+  interrupt.
+- system_reboot() in namespace RTOS_portable is now extern "C" to allow using
+  it inside IRQ easily
+- Added PCONP explicit peripheral enable in Portability.cpp, Serial.cpp and
+  filesystem driver, to allow ondemand peripheral enable strategy.
+- Added get_stack_bottom() to process class.
+
+v0.32
+- Fixed a possible cause of deadlock in Mutex::enter()
+- Fixed bug in Process::sleep(). Now if the kernel tick overflows, it
+  causes no problems.
+- get_tick() moved out of class Process. It is now a function and not a method,
+  since it was unrelated with Process class.
+- Wow, no more FIXME in the kernel code ;)
+
+v0.31
+- Added again atomic_swap(), because it can be used for some device driver.
+- Added Process::get_tick() to allow implementation of timer class.
+- Added Timer class, to measure time intervals.
+- Changed IRQfind_next_process from
+  if(process_list[i]==NULL) continue;
+  temp=process_list[i];
+  for(;;)
+  [...]
+  process_list[i]=temp->next;
+  [...]
+  if(temp==process_list[i]) break;
+  to
+  if(process_list[i]==NULL) continue;
+  temp=process_list[i]->next;
+  for(;;)
+  [...]
+  process_list[i]=temp;
+  [...]
+  if(temp==process_list[i]->next) break;
+  to fix an undesired behaviour of Process::yield() (discovered in testsuite)
+- Added error_handler(UNEXPECTED); after Process::yield(); in
+  Process::do_terminate.
+- Added volatile to kernel_running because pause_kernel and restart_kernel can
+  be called from different processes
+- In Queue class, added IRQwake_waiting_process() at the end of the while in
+  put(), get(), wait_until_not_full(), wait_until not_empty() methods to fix a
+  cause of deadlock (discovered in test_8 of testsuite)
+- Added some compiler flag to RTOS makefile to improve performance
+- Testsuite now ready
+
+v0.30
+- Modified interface and implementation of Queue class
+- Removed RTOS::Process::kill() and RTOS::remove_from_sleeping_list, since
+  those functions can cause system crash
+- Removed SleepLock and Mutex classes, and renamed PhMutex class in Mutex class.
+  Reason: no time to test all those classes, better concentrate on ONE Mutex
+  class and try to test it to avoid bugs.
+- Added a check in Process::sleep() since if the sleep time was lower than the
+  tick resolution, that might cause deadlock. Now the behaviour in this
+  condition is defined, and written as a comment to the Process::sleep method.
+- Added two more methods to the Queue class, wait_until_queue_not_full() and
+  wait_until_queue_not_empty() to allow implementing device drivers where
+  interaction between a software and an hardware queue is required.
+- Reorganized code in portability.h and portability.cpp. Now some functions
+  and macros are no longer "private". This will allow context switch inside
+  interrupt based device drivers.
+- Fixed bug in cpu meter when using IRQ based device drivers
+- Reorganized code in rtos.h and rtos.cpp. Now functions that must be called
+  inside an IRQ, even if "private" are prefixed with IRQ, and
+  IRQfind_next_process() is now "public" (declared in rtos.h) to allow context
+  switch inside interrupt based device drivers.
+- Removed atomic_swap from portability.h and portability.cpp because useless.
+- Temporarily fixed pointer aliasing problem.
+- Added Process::exists in Process class, to see if a process is running or
+  has been deleted.
+
+No changelog was kept prior to v0.30.

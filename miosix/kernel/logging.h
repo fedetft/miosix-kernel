@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010, 2011, 2012, 2013, 2014 by Terraneo Federico       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -29,58 +29,72 @@
 #define	LOGGING_H
 
 #include "config/miosix_settings.h"
-#include "interfaces/console.h"
-
-namespace miosix {
+#include "filesystem/console/console_device.h"
+#include <cstdio>
+#include <cstdarg>
 
 /**
- * Print boot logs on the Console. Can only be called when the kernel is
- * running.
- * \param string to print
+ * Print boot logs. Contrary to (i)printf(), this can be disabled in
+ * miosix_settings.h if boot logs are not wanted. Can only be called when the
+ * kernel is running.
+ * \param fmt format string
  */
-inline void bootlog(const char *string)
+#ifdef WITH_BOOTLOG
+inline void bootlog(const char *fmt, ...)
 {
-    #ifdef WITH_BOOTLOG
-    Console::write(string);
-    #endif //WITH_BOOTLOG
+    va_list arg;
+    va_start(arg,fmt);
+    viprintf(fmt,arg);
+    va_end(arg);
 }
+#else //WITH_BOOTLOG
+#define bootlog(x,...) ;
+#endif //WITH_BOOTLOG
 
 /**
- * Print boot logs on the Console. Can only be called when the kernel is
- * not yet running or paused, or within an IRQ.
+ * Print boot logs. Can only be called when the kernel is not yet running or
+ * paused, or within an IRQ.
  * \param string to print
  */
+#ifdef WITH_BOOTLOG
 inline void IRQbootlog(const char *string)
 {
-    #ifdef WITH_BOOTLOG
-    Console::IRQwrite(string);
-    #endif //WITH_BOOTLOG
+    miosix::DefaultConsole::instance().IRQget()->IRQwrite(string);
 }
+#else //WITH_BOOTLOG
+#define IRQbootlog(x) ;
+#endif //WITH_BOOTLOG
 
 /**
- * Print eror logs on the Console. Can only be called when the kernel is
- * running.
- * \param string to print
+ * Print error logs. Cotrary to (i)printf(), this can be disabled in
+ * miosix_settings.h if boot logs are not wanted. Can only be called when the
+ * kernel is running.
+ * \param fmt format string
  */
-inline void errorLog(const char *string)
+#ifdef WITH_ERRLOG
+inline void errorLog(const char *fmt, ...)
 {
-    #ifdef WITH_ERRLOG
-    Console::write(string);
-    #endif //WITH_ERRLOG
+    va_list arg;
+    va_start(arg,fmt);
+    viprintf(fmt,arg);
+    va_end(arg);
 }
+#else //WITH_ERRLOG
+#define errorLog(x,...) ;
+#endif //WITH_ERRLOG
 
 /**
- * Print error logs on the Console. Can only be called when the kernel is
- * not yet running or paused, or within an IRQ.
+ * Print error logs. Can only be called when the kernel is not yet running or
+ * paused, or within an IRQ.
  * \param string to print
  */
+#ifdef WITH_ERRLOG
 inline void IRQerrorLog(const char *string)
 {
-    #ifdef WITH_ERRLOG
-    Console::IRQwrite(string);
-    #endif //WITH_ERRLOG
+    miosix::DefaultConsole::instance().IRQget()->IRQwrite(string);
 }
-
-} //namespace miosix
+#else //WITH_ERRLOG
+#define IRQerrorLog(x) ;
+#endif //WITH_ERRLOG
 
 #endif	/* LOGGING_H */

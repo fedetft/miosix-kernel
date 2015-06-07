@@ -1,0 +1,101 @@
+
+testsuite_system.elf:     file format elf32-littlearm
+testsuite_system.elf
+architecture: arm, flags 0x00000050:
+HAS_SYMS, DYNAMIC
+start address 0x00000099
+
+Program Header:
+    LOAD off    0x00000098 vaddr 0x00000098 paddr 0x00000098 align 2**3
+         filesz 0x00000022 memsz 0x00000022 flags r-x
+    LOAD off    0x000000c0 vaddr 0x10000000 paddr 0x10000000 align 2**3
+         filesz 0x00000040 memsz 0x00000040 flags rw-
+ DYNAMIC off    0x000000cc vaddr 0x1000000c paddr 0x1000000c align 2**2
+         filesz 0x00000028 memsz 0x00000028 flags rw-
+
+Dynamic Section:
+  DEBUG                0x00000000
+private flags = 5000002: [Version5 EABI] [has entry point]
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .text         00000022  00000098  00000098  00000098  2**3
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  1 .got          0000000c  10000000  10000000  000000c0  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  2 .dynamic      00000028  1000000c  1000000c  000000cc  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  3 .rodata       00000008  10000038  10000038  000000f8  2**3
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+SYMBOL TABLE:
+00000098 l    d  .text	00000000 .text
+10000000 l    d  .got	00000000 .got
+1000000c l    d  .dynamic	00000000 .dynamic
+10000038 l    d  .rodata	00000000 .rodata
+00000000 l    df *ABS*	00000000 main.c
+1000000c l     O *ABS*	00000000 _DYNAMIC
+10000000 l     O *ABS*	00000000 _GLOBAL_OFFSET_TABLE_
+000000b4 g     F .text	00000000 system
+00000098 g     F .text	00000000 _start
+000000a0 g     F .text	00000010 main
+00000000       F *UND*	00000000 seek
+000000b0 g     F .text	00000000 _exit
+
+
+Contents of section .text:
+ 0098 00f002f8 00f008f8 024808b5 484400f0  .........H..HD..
+ 00a8 05f808bd 38000000 022300df 092300df  ....8....#...#..
+ 00b8 7047                                 pG              
+Contents of section .got:
+ 10000000 0c000010 00000000 00000000           ............    
+Contents of section .dynamic:
+ 1000000c 15000000 00000000 00000000 00000000  ................
+ 1000001c 00000000 00000000 00000000 00000000  ................
+ 1000002c 00000000 00000000                    ........        
+Contents of section .rodata:
+ 10000038 74657374 00000000                    test....        
+
+Disassembly of section .text:
+
+00000098 <_start>:
+_start():
+  98:	f000 f802 	bl	a0 <main>
+  9c:	f000 f808 	bl	b0 <_exit>
+
+000000a0 <main>:
+main():
+  a0:	4802      	ldr	r0, [pc, #8]	; (ac <main+0xc>)
+  a2:	b508      	push	{r3, lr}
+  a4:	4448      	add	r0, r9
+  a6:	f000 f805 	bl	b4 <system>
+  aa:	bd08      	pop	{r3, pc}
+  ac:	00000038 	andeq	r0, r0, r8, lsr r0
+
+000000b0 <_exit>:
+_exit():
+  b0:	2302      	movs	r3, #2
+  b2:	df00      	svc	0
+
+000000b4 <system>:
+system():
+  b4:	2309      	movs	r3, #9
+  b6:	df00      	svc	0
+  b8:	4770      	bx	lr
+
+Disassembly of section .got:
+
+10000000 <.got>:
+10000000:	1000000c 	andne	r0, r0, ip
+	...
+
+Disassembly of section .dynamic:
+
+1000000c <.dynamic>:
+1000000c:	00000015 	andeq	r0, r0, r5, lsl r0
+	...
+
+Disassembly of section .rodata:
+
+10000038 <.rodata>:
+10000038:	74736574 	ldrbtvc	r6, [r3], #-1396	; 0x574
+1000003c:	00000000 	andeq	r0, r0, r0

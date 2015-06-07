@@ -58,7 +58,7 @@ void IRQbspInit()
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN
                   | RCC_AHB1ENR_GPIOBEN
                   | RCC_AHB1ENR_GPIOCEN;
-
+    RCC_SYNC();
     using namespace oled;
     OLED_nSS_Pin::mode(Mode::OUTPUT);
     OLED_nSS_Pin::high();
@@ -214,7 +214,11 @@ void reboot()
 // Other board specific stuff
 //
 
-FastMutex i2cMutex;
+FastMutex& i2cMutex()
+{
+    static FastMutex mutex;
+    return mutex;
+}
 
 bool i2cWriteReg(miosix::I2C1Driver& i2c, unsigned char dev, unsigned char reg,
         unsigned char data)
@@ -333,7 +337,7 @@ bool PowerManagement::isUsbConnected() const
 bool PowerManagement::isCharging()
 {
     if(isUsbConnected()==false) return false;
-    Lock<FastMutex> l(i2cMutex);
+    Lock<FastMutex> l(i2cMutex());
     unsigned char chgstatus;
     //During testing the i2c command never failed. If it does, we lie and say
     //we're not charging
@@ -368,7 +372,7 @@ void PowerManagement::setCoreFrequency(CoreFrequency cf)
     
     Lock<FastMutex> l(powerManagementMutex);
     //We need to reconfigure I2C for the new frequency 
-    Lock<FastMutex> l2(i2cMutex);
+    Lock<FastMutex> l2(i2cMutex());
     
     {
         FastInterruptDisableLock dLock;
@@ -437,7 +441,7 @@ void PowerManagement::goDeepSleep(int ms)
     Lock<FastMutex> l(powerManagementMutex);
     //We don't use I2C, but we don't want other thread to mess with
     //the hardware while the microcontroller is going in deep sleep
-    Lock<FastMutex> l2(i2cMutex);
+    Lock<FastMutex> l2(i2cMutex());
     
     {
         FastInterruptDisableLock dLock;
@@ -487,10 +491,11 @@ PowerManagement::PowerManagement() : i2c(I2C1Driver::instance()),
     {
         FastInterruptDisableLock dLock;
         RCC->APB2ENR |= RCC_APB2ENR_ADC1EN | RCC_APB2ENR_SYSCFGEN;
+        RCC_SYNC();
         //Configure PB1 (POWER_BUTTON) as EXTI input
         SYSCFG->EXTICR[2] &= ~(0xf<<12);
         SYSCFG->EXTICR[2] |= 1<<12;
-        //Then disable SYYSCFG access, as we don't need it anymore
+        //Then disable SYSCFG access, as we don't need it anymore
         RCC->APB2ENR &= ~RCC_APB2ENR_SYSCFGEN;
     }
     ADC1->CR1=0;
@@ -516,7 +521,7 @@ PowerManagement::PowerManagement() : i2c(I2C1Driver::instance()),
                         | VBAT_COMP_ENABLE;
     unsigned char defdcdc=DCDC_DISCH
                         | DCDC1_DEFAULT;
-    Lock<FastMutex> l(i2cMutex);
+    Lock<FastMutex> l(i2cMutex());
     bool error=false;
     if(i2cWriteReg(i2c,PMU_I2C_ADDRESS,CHGCONFIG0,config0)==false) error=true;
     if(i2cWriteReg(i2c,PMU_I2C_ADDRESS,CHGCONFIG1,config1)==false) error=true;
@@ -560,7 +565,7 @@ void PowerManagement::IRQsetPrescalers()
             FLASH->ACR=FLASH_ACR_PRFTEN
                      | FLASH_ACR_ICEN
                      | FLASH_ACR_DCEN
-                     | FLASH_ACR_LATENCY_4WS;
+                     | FLASH_ACR_LATENCY_7WS;
             break;
         case FREQ_26MHz:
             RCC->CFGR |= RCC_CFGR_HPRE_DIV1;  //HCLK=SYSCLK
@@ -570,7 +575,7 @@ void PowerManagement::IRQsetPrescalers()
             FLASH->ACR=FLASH_ACR_PRFTEN
                      | FLASH_ACR_ICEN
                      | FLASH_ACR_DCEN
-                     | FLASH_ACR_LATENCY_0WS;
+                     | FLASH_ACR_LATENCY_1WS;
             break;
     }
 }
@@ -625,6 +630,7 @@ LightSensor::LightSensor()
     {
         FastInterruptDisableLock dLock;
         RCC->APB2ENR |= RCC_APB2ENR_ADC2EN;
+        RCC_SYNC();
     }
     ADC2->CR1=0;
     ADC2->CR2=0; //Keep the ADC OFF to save power
@@ -719,6 +725,7 @@ Rtc::Rtc()
     {
         FastInterruptDisableLock dLock;
         RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+        RCC_SYNC();
         PWR->CR |= PWR_CR_DBP;         //Enable access to RTC registers
         
         //Without this reset, the LSEON bit is ignored, and code hangs at while

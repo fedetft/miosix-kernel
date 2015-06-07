@@ -53,7 +53,7 @@ inline void ledOff() {}
  * different purposes (touchscreen, accelerometer, PMU). If you don't do it,
  * your application will crash sooner or later.
  */
-extern FastMutex i2cMutex;
+FastMutex& i2cMutex();
 
 enum {
      PMU_I2C_ADDRESS=0x90,  ///< I2C Address of the PMU

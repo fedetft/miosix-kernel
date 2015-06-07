@@ -70,6 +70,7 @@ private:
     {
         miosix::FastInterruptDisableLock dLock;
         RCC->AHB2ENR |= RCC_AHB2ENR_RNGEN;
+        RCC_SYNC();
     }
     
     /**

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -27,6 +27,7 @@
 
 #include "priority_scheduler.h"
 #include "kernel/error.h"
+#include "kernel/process.h"
 
 #ifdef SCHED_TYPE_PRIORITY
 
@@ -209,7 +210,19 @@ void PriorityScheduler::IRQfindNextThread()
             {
                 //Found a READY thread, so run this one
                 cur=temp;
+                #ifdef WITH_PROCESSES
+                if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
+                {
+                    ctxsave=cur->ctxsave;
+                    miosix_private::MPUConfiguration::IRQdisable();
+                } else {
+                    ctxsave=cur->userCtxsave;
+                    //A kernel thread is never in userspace, so the cast is safe
+                    static_cast<Process*>(cur->proc)->mpu.IRQenable();
+                }
+                #else //WITH_PROCESSES
                 ctxsave=temp->ctxsave;
+                #endif //WITH_PROCESSES
                 //Rotate to next thread so that next time the list is walked
                 //a different thread, if available, will be chosen first
                 thread_list[i]=temp;
@@ -221,6 +234,9 @@ void PriorityScheduler::IRQfindNextThread()
     //No thread found, run the idle thread
     cur=idle;
     ctxsave=idle->ctxsave;
+    #ifdef WITH_PROCESSES
+    miosix_private::MPUConfiguration::IRQdisable();
+    #endif //WITH_PROCESSES
 }
 
 Thread *PriorityScheduler::thread_list[PRIORITY_MAX]={0};

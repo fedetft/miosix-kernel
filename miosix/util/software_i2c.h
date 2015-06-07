@@ -37,8 +37,9 @@ namespace miosix {
  * Software I2C class.
  * \param SDA SDA gpio pin. Pass a Gpio<P,N> class
  * \param SCL SCL gpio pin. Pass a Gpio<P,N> class
+ * \param timeout for clock stretching, in milliseconds
  */
-template <typename SDA, typename SCL>
+template <typename SDA, typename SCL, unsigned stretchTimeout=50>
 class SoftwareI2C
 {
 public:
@@ -78,10 +79,16 @@ public:
 
 private:
     SoftwareI2C();//Disallow creating instances, class is used via typedefs
+    
+    /**
+     * Wait if the slave asserts SCL low. This is called clock stretching.
+     * \return true on success, false on timeout
+     */
+    static bool waitForClockStretching();
 };
 
-template <typename SDA, typename SCL>
-void SoftwareI2C<SDA, SCL>::init()
+template <typename SDA, typename SCL, unsigned stretchTimeout>
+void SoftwareI2C<SDA, SCL, stretchTimeout>::init()
 {
     SDA::mode(Mode::OPEN_DRAIN);
     SCL::mode(Mode::OPEN_DRAIN);
@@ -89,8 +96,8 @@ void SoftwareI2C<SDA, SCL>::init()
     SCL::high();
 }
 
-template <typename SDA, typename SCL>
-void SoftwareI2C<SDA, SCL>::sendStart()
+template <typename SDA, typename SCL, unsigned stretchTimeout>
+void SoftwareI2C<SDA, SCL, stretchTimeout>::sendStart()
 {
     SDA::low();
     delayUs(3);
@@ -98,19 +105,20 @@ void SoftwareI2C<SDA, SCL>::sendStart()
     delayUs(3);
 }
 
-template <typename SDA, typename SCL>
-void SoftwareI2C<SDA, SCL>::sendStop()
+template <typename SDA, typename SCL, unsigned stretchTimeout>
+void SoftwareI2C<SDA, SCL, stretchTimeout>::sendStop()
 {
     SDA::low();
     delayUs(3);
     SCL::high();
     delayUs(3);
+    waitForClockStretching();
     SDA::high();
     delayUs(3);
 }
 
-template <typename SDA, typename SCL>
-bool SoftwareI2C<SDA, SCL>::send(unsigned char data)
+template <typename SDA, typename SCL, unsigned stretchTimeout>
+bool SoftwareI2C<SDA, SCL, stretchTimeout>::send(unsigned char data)
 {
     for(int i=0;i<8;i++)
     {
@@ -119,6 +127,7 @@ bool SoftwareI2C<SDA, SCL>::send(unsigned char data)
         SCL::high();
         data<<=1;
         delayUs(5);//Double delay
+        waitForClockStretching();
         SCL::low();
         delayUs(3);
     }
@@ -126,15 +135,16 @@ bool SoftwareI2C<SDA, SCL>::send(unsigned char data)
     delayUs(3);
     SCL::high();
     delayUs(3);
+    bool timeout=waitForClockStretching();
     bool result=(SDA::value()==0);
     delayUs(3);
     SCL::low();
     delayUs(3);
-    return result;
+    return result && timeout;
 }
 
-template <typename SDA, typename SCL>
-unsigned char SoftwareI2C<SDA, SCL>::recvWithAck()
+template <typename SDA, typename SCL, unsigned stretchTimeout>
+unsigned char SoftwareI2C<SDA, SCL, stretchTimeout>::recvWithAck()
 {
     SDA::high();
     unsigned char result=0;
@@ -145,6 +155,7 @@ unsigned char SoftwareI2C<SDA, SCL>::recvWithAck()
         delayUs(3);
         SCL::high();
         delayUs(5);//Double delay
+        waitForClockStretching();
         SCL::low();
         delayUs(3);
     }
@@ -152,13 +163,14 @@ unsigned char SoftwareI2C<SDA, SCL>::recvWithAck()
     delayUs(3);
     SCL::high();
     delayUs(5);//Double delay
+    waitForClockStretching();
     SCL::low();
     delayUs(3);
     return result;
 }
 
-template <typename SDA, typename SCL>
-unsigned char SoftwareI2C<SDA, SCL>::recvWithNack()
+template <typename SDA, typename SCL, unsigned stretchTimeout>
+unsigned char SoftwareI2C<SDA, SCL, stretchTimeout>::recvWithNack()
 {
     SDA::high();
     unsigned char result=0;
@@ -169,15 +181,33 @@ unsigned char SoftwareI2C<SDA, SCL>::recvWithNack()
         delayUs(3);
         SCL::high();
         delayUs(5);//Double delay
+        waitForClockStretching();
         SCL::low();
         delayUs(3);
     }
     delayUs(3);
     SCL::high();
     delayUs(5);//Double delay
+    waitForClockStretching();
     SCL::low();
     delayUs(3);
     return result;
+}
+
+template <typename SDA, typename SCL, unsigned stretchTimeout>
+bool SoftwareI2C<SDA, SCL, stretchTimeout>::waitForClockStretching()
+{
+    if(SCL::value()==1) return true;
+    for(unsigned int i=0;i<stretchTimeout;i++)
+    {
+        Thread::sleep(1);
+        if(SCL::value()==1)
+        {
+            delayUs(4); //Need to wait at least 4us from rising edge of SCK
+            return true;
+        }
+    }
+    return false;
 }
 
 } //namespace miosix

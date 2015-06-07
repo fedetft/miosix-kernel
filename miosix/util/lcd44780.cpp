@@ -27,6 +27,14 @@ Lcd44780::Lcd44780(miosix::GpioPin rs, miosix::GpioPin e, miosix::GpioPin d4,
 void Lcd44780::go(int x, int y)
 {
     if(x<0 || x>=col || y<0 || y>=row) return;
+
+    // 4x20 is implemented as 2x40. 
+    // TODO Test 4x16 display.
+    if(y>1)
+    {
+        x += col;
+    }
+
     comd(0x80 | ((y & 1) ? 0x40 : 0) | x); //Move cursor
 }
 

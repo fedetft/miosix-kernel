@@ -17,10 +17,11 @@ static inline void crc16Update(unsigned short& crc, unsigned char data)
     crc=(crc<<8) ^ (x<<12) ^ (x<<5) ^ x;
 }
 
-unsigned short crc16(const unsigned char *message, unsigned int length)
+unsigned short crc16(const void *message, unsigned int length)
 {
+    const unsigned char *m=reinterpret_cast<const unsigned char*>(message);
     unsigned short result=0xffff;
-    for(unsigned int i=0;i<length;i++) crc16Update(result,message[i]);
+    for(unsigned int i=0;i<length;i++) crc16Update(result,m[i]);
     return result;
 }
 
