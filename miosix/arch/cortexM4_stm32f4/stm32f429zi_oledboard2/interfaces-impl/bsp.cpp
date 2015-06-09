@@ -63,9 +63,10 @@ static void sdramCommandWait()
         if((FMC_Bank5_6->SDSR & FMC_SDSR_BUSY)==0) return;
 }
 
-
-
-void configureSdram()
+/**
+ * Configure GPIOs at boot
+ */
+static void configureGpio()
 {
     //Enable all gpios
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOBEN |
@@ -73,9 +74,6 @@ void configureSdram()
                     RCC_AHB1ENR_GPIOEEN | RCC_AHB1ENR_GPIOFEN |
                     RCC_AHB1ENR_GPIOGEN;
     RCC_SYNC();
-    
-    //To access the SDRAM we need to configure its GPIO, but since
-    //we're at it, we'll configure all the GPIOS
 
     //Port config (H=high, L=low, PU=pullup, PD=pulldown)
     //  |  PORTA  |  PORTB  |  PORTC  |  PORTD  |  PORTE  |  PORTF  |  PORTG  |
@@ -143,6 +141,13 @@ void configureSdram()
     display::vregEn::low();
     display::reset::low();
     display::cs::high();
+}
+
+void configureSdram()
+{
+    //To access the SDRAM we need to configure its GPIO, but since
+    //we're at it, we'll configure all the GPIOs
+    configureGpio();
     
     //Second, actually start the SDRAM controller
     RCC->AHB3ENR |= RCC_AHB3ENR_FMCEN;
@@ -222,6 +227,11 @@ void configureSdram()
 
 void IRQbspInit()
 {
+    //If using SDRAM GPIOs are configured by configureSdram(), else configure them here
+    #ifndef __ENABLE_XRAM
+    configureGpio();
+    #endif //__ENABLE_XRAM
+
     ledOn();
     delayMs(100);
     ledOff();

@@ -63,8 +63,6 @@ static void sdramCommandWait()
         if((FMC_Bank5_6->SDSR & FMC_SDSR_BUSY)==0) return;
 }
 
-
-
 void configureSdram()
 {
     //Enable all gpios
@@ -184,6 +182,15 @@ void configureSdram()
 
 void IRQbspInit()
 {
+    //If using SDRAM GPIOs are enabled by configureSdram(), else enable them here
+    #ifndef __ENABLE_XRAM
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOBEN |
+                    RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN |
+                    RCC_AHB1ENR_GPIOEEN | RCC_AHB1ENR_GPIOFEN |
+                    RCC_AHB1ENR_GPIOGEN | RCC_AHB1ENR_GPIOHEN;
+    RCC_SYNC();
+    #endif //__ENABLE_XRAM
+    
     _led::mode(Mode::OUTPUT);
     ledOn();
     delayMs(100);
