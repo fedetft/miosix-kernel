@@ -365,7 +365,7 @@ endif
 ##
 CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" \
                  -Wno-unused-but-set-variable
-CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" \
+CXXFLAGS_BASE := -std=gnu++11 -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" \
                  -Wno-unused-but-set-variable
 
 ##

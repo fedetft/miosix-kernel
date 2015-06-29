@@ -31,9 +31,11 @@
 #ifndef UNICODE_H
 #define UNICODE_H
 
-//TODO: these should be provided by the compiler, byt they're not
+#if __cplusplus <= 199711L
+//These are builtin types in C++11, add them if compiling in C++03 mode
 typedef uint16_t char16_t;
 typedef uint32_t char32_t;
+#endif // !c++11
 
 namespace miosix {
 

@@ -1,5 +1,8 @@
 Changelog for Miosix np embedded OS
 
+
+v2.01
+- Added preliminary C++11 support
 v2.0
 - Added support for new board, oledboard2
 - Added support for new board, tempsensor
