@@ -2,6 +2,10 @@ Changelog for Miosix np embedded OS
 
 
 v2.01
+- Added new board: efm32gg332f1024_polinode
+- Added new architacture: cortexM3_efm32gg
+- Refactored endianness and atomic_ops interfaces from the individual
+  architectures to arch/common/core to prevent code duplication.
 - Added preliminary C++11 support
 v2.0
 - Added support for new board, oledboard2

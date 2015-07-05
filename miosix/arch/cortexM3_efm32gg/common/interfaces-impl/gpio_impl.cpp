@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Terraneo Federico                               *
+ *   Copyright (C) 2015 by Terraneo Federico                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,83 +25,50 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef ATOMIC_OPS_IMPL_H
-#define	ATOMIC_OPS_IMPL_H
-
-#include "interfaces/arch_registers.h"
+#include "gpio_impl.h"
 
 namespace miosix {
 
-inline int atomicSwap(volatile int *p, int v)
+void GpioPin::mode(Mode::Mode_ m)
 {
-    int result;
-    volatile uint32_t *ptr=reinterpret_cast<volatile uint32_t*>(p);
-    do {
-        result=__LDREXW(ptr);
-    } while(__STREXW(v,ptr));
-    asm volatile("":::"memory");
-    return result;
+    //Can't avoid the if as we've done with Gpio<P,N>, as n is not a
+    //template parameter in GpioPin
+    if(n>=8) detail::ModeBase::modeImplH(port,n,m);
+    else detail::ModeBase::modeImplL(port,n,m);
 }
 
-inline void atomicAdd(volatile int *p, int incr)
+namespace detail {
+
+void ModeBase::modeImplL(GPIO_P_TypeDef *port, unsigned char n, Mode::Mode_ m)
 {
-    int value;
-    volatile uint32_t *ptr=reinterpret_cast<volatile uint32_t*>(p);
-    do {
-        value=__LDREXW(ptr);
-    } while(__STREXW(value+incr,ptr));
-    asm volatile("":::"memory");
+    const unsigned char o=n*4;
+    
+    //First, transition to disabled state
+    port->MODEL &= ~(0xf<<o);
+    
+    //Then, set port out bit as they have side effects in some modes
+    if(m & 0x10) port->DOUTCLR=1<<n;
+    else if(m & 0x20) port->DOUTSET=1<<n;
+    
+    //Last, configure port to new value
+    port->MODEL |= (m & 0xf)<<o;
 }
 
-inline int atomicAddExchange(volatile int *p, int incr)
+void ModeBase::modeImplH(GPIO_P_TypeDef* port, unsigned char n, Mode::Mode_ m)
 {
-    int result;
-    volatile uint32_t *ptr=reinterpret_cast<volatile uint32_t*>(p);
-    do {
-        result=__LDREXW(ptr);
-    } while(__STREXW(result+incr,ptr));
-    asm volatile("":::"memory");
-    return result;
+    const unsigned char o=(n-8)*4;
+    
+    //First, transition to disabled state
+    port->MODEH &= ~(0xf<<o);
+    
+    //Then, set port out bit as they have side effects in some modes
+    if(m & 0x10) port->DOUTCLR=1<<n;
+    else if(m & 0x20) port->DOUTSET=1<<n;
+    
+    //Last, configure port to new value
+    port->MODEH |= (m & 0xf)<<o;
 }
 
-inline int atomicCompareAndSwap(volatile int *p, int prev, int next)
-{
-    int result;
-    volatile uint32_t *ptr=reinterpret_cast<volatile uint32_t*>(p);
-    do {
-        result=__LDREXW(ptr);
-        if(result!=prev)
-        {
-            __CLREX();
-            return result;
-        }
-    } while(__STREXW(next,ptr));
-    asm volatile("":::"memory");
-    return result;
-}
-
-inline void *atomicFetchAndIncrement(void * const volatile * p, int offset,
-        int incr)
-{
-    void *result;
-    volatile uint32_t *rcp;
-    int rc;
-    do {
-        for(;;)
-        {
-            result=*p;
-            if(result==0) return 0;
-            rcp=reinterpret_cast<uint32_t*>(result)+offset;
-            rc=__LDREXW(rcp);
-            asm volatile("":::"memory");
-            if(result==*p) break;
-            __CLREX();
-        }
-    } while(__STREXW(rc+incr,rcp));
-    asm volatile("":::"memory");
-    return result;
-}
+} //namespace detail
 
 } //namespace miosix
-
-#endif //ATOMIC_OPS_IMPL_H

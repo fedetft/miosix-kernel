@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011 by Terraneo Federico                               *
+ *   Copyright (C) 2011, 2012, 2013, 2014, 2015 by Terraneo Federico       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -28,8 +28,10 @@
 #ifndef ENDIANNESS_IMPL_H
 #define	ENDIANNESS_IMPL_H
 
+#ifndef MIOSIX_BIG_ENDIAN
 //This target is little endian
 #define MIOSIX_LITTLE_ENDIAN
+#endif //MIOSIX_BIG_ENDIAN
 
 #ifdef __cplusplus
 #define __MIOSIX_INLINE inline

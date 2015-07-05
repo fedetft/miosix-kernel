@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Terraneo Federico                               *
+ *   Copyright (C) 2013, 2014, 2015 by Terraneo Federico                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -155,6 +155,14 @@ inline void *atomicFetchAndIncrement(void * const volatile * p, int offset,
  * \}
  */
 
-#include "interfaces-impl/atomic_ops_impl.h"
+#ifdef _ARCH_ARM7_LPC2000
+#include "core/atomic_ops_impl_arm7.h"
+#elif defined(_ARCH_CORTEXM3_STM32)   || defined(_ARCH_CORTEXM3_STM32F2) \
+   || defined(_ARCH_CORTEXM4_STM32F4) || defined(_ARCH_CORTEXM3_STM32L1) \
+   || defined(_ARCH_CORTEXM3_EFM32GG)
+#include "core/atomic_ops_impl_cortexMx.h"
+#else
+#error "No atomic ops for this architecture"
+#endif
 
 #endif //ATOMIC_OPS_H

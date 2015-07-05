@@ -28,6 +28,7 @@
 #OPT_BOARD := stm32f103cb_als_mainboard_rev2
 #OPT_BOARD := stm32f100cb_tempsensor
 #OPT_BOARD := stm32f429zi_oledboard2
+#OPT_BOARD := efm32gg332f1024_polinode
 
 ##
 ## Optimization flags, choose one.
@@ -305,6 +306,12 @@ ifeq ($(OPT_BOARD),stm32f429zi_oledboard2)
     #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_180MHz=180000000
 endif
 
+##---------------------------------------------------------------------------
+## efm32gg332f1024_polinode
+##
+
+# No options
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -354,6 +361,8 @@ else ifeq ($(OPT_BOARD),stm32f100cb_tempsensor)
     ARCH := cortexM3_stm32
 else ifeq ($(OPT_BOARD),stm32f429zi_oledboard2)
     ARCH := cortexM4_stm32f4
+else ifeq ($(OPT_BOARD),efm32gg332f1024_polinode)
+    ARCH := cortexM3_efm32gg
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -1199,6 +1208,85 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/CMSIS/Device/ST/STM32L1xx/Source/Templates/system_stm32l1xx.c
 
+##-----------------------------------------------------------------------------
+## ARCHITECTURE: cortexM3_efm32gg
+##
+else ifeq ($(ARCH),cortexM3_efm32gg)
+    ## Base directory with else header files for this board
+    ARCH_INC := arch/cortexM3_efm32gg/common
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: efm32gg332f1024_polinode
+    ##
+    ifeq ($(OPT_BOARD),efm32gg332f1024_polinode)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_efm32gg/efm32gg332f1024_polinode
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/efm32_1M+128k_rom_usbbootloader.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -DEFM32GG332F1024 -D_BOARD_POLINODE
+        CXXFLAGS_BASE += $(CFLAGS_BASE)
+
+        ## Clock frequency
+        CLOCK_FREQ := -DEFM32_HFXO_FREQ=48000000 -DEFM32_LFXO_FREQ=32768
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := echo 'make program not supported.'
+
+    ##-------------------------------------------------------------------------
+    ## End of board list
+    ##
+    endif
+
+    ## Select compiler
+    PREFIX=arm-miosix-eabi-
+
+    ## From compiler prefix form the name of the compiler and other tools
+    CC  := $(PREFIX)gcc
+    CXX := $(PREFIX)g++
+    LD  := $(PREFIX)ld
+    AR  := $(PREFIX)ar
+    AS  := $(PREFIX)as
+    CP  := $(PREFIX)objcopy
+    OD  := $(PREFIX)objdump
+    SZ  := $(PREFIX)size
+
+    ## Select appropriate compiler flags for both ASM/C/C++/linker
+    AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
+    CFLAGS_BASE   += -D_ARCH_CORTEXM3_EFM32GG $(CLOCK_FREQ)                  \
+                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION)             \
+                     -ffunction-sections -Wall -g -c
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_EFM32GG $(CLOCK_FREQ)                  \
+                     $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
+                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+                     $(OPT_OPTIMIZATION) -nostdlib
+
+    ## Select architecture specific files
+    ## These are the files in arch/<arch name>/common
+    ARCH_SRC +=                                              \
+    arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/drivers/serial_efm32.cpp                     \
+    $(ARCH_INC)/interfaces-impl/portability.cpp              \
+    $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
+    $(ARCH_INC)/interfaces-impl/delays.cpp                   \
+    arch/common/CMSIS/Device/SiliconLabs/EFM32GG/Source/system_efm32gg.c
+    
 ##-----------------------------------------------------------------------------
 ## end of architecture list
 ##

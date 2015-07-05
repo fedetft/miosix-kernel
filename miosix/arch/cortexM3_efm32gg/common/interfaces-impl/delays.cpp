@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Terraneo Federico                               *
+ *   Copyright (C) 2015 by Terraneo Federico                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,83 +25,50 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef ATOMIC_OPS_IMPL_H
-#define	ATOMIC_OPS_IMPL_H
-
+#include "interfaces/delays.h"
 #include "interfaces/arch_registers.h"
 
 namespace miosix {
 
-inline int atomicSwap(volatile int *p, int v)
+#warning "FIXME: EFM32_HFXO_FREQ is not the right value as the core clock can be prescaled"
+//TODO: trying to put SystemCoreClock instead of EFM32_HFXO_FREQ results in the
+//inner loop taking one more asm instruction. Investigate why and whether it
+//may depend on compiler optimizations
+
+void delayMs(unsigned int mseconds)
 {
-    int result;
-    volatile uint32_t *ptr=reinterpret_cast<volatile uint32_t*>(p);
-    do {
-        result=__LDREXW(ptr);
-    } while(__STREXW(v,ptr));
-    asm volatile("":::"memory");
-    return result;
+    //The inner loop takes 4 cycles, so
+    //count = EFM32_HFXO_FREQ*0.001/4 = EFM32_HFXO_FREQ/4000
+    register const unsigned int count=EFM32_HFXO_FREQ/4000;
+
+    for(unsigned int i=0;i<mseconds;i++)
+    {
+        // This delay has been calibrated to take 1 millisecond
+        // It is written in assembler to be independent on compiler optimization
+        asm volatile("           mov   r1, #0     \n"
+                     "___loop_m: cmp   r1, %0     \n"
+                     "           itt   lo         \n"
+                     "           addlo r1, r1, #1 \n"
+                     "           blo   ___loop_m  \n"::"r"(count):"r1");
+    }
 }
 
-inline void atomicAdd(volatile int *p, int incr)
-{
-    int value;
-    volatile uint32_t *ptr=reinterpret_cast<volatile uint32_t*>(p);
-    do {
-        value=__LDREXW(ptr);
-    } while(__STREXW(value+incr,ptr));
-    asm volatile("":::"memory");
-}
+void delayUs(unsigned int useconds)
+{   
+    #if EFM32_HFXO_FREQ==48000000
+    // This delay has been calibrated to take x microseconds
+    // It is written in assembler to be independent on compiler optimization
+    asm volatile("           mov   r1, #12    \n"
+                 "           mul   r2, %0, r1 \n"
+                 "           mov   r1, #0     \n"
+                 "___loop_u: cmp   r1, r2     \n"
+                 "           itt   lo         \n"
+                 "           addlo r1, r1, #1 \n"
+                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
 
-inline int atomicAddExchange(volatile int *p, int incr)
-{
-    int result;
-    volatile uint32_t *ptr=reinterpret_cast<volatile uint32_t*>(p);
-    do {
-        result=__LDREXW(ptr);
-    } while(__STREXW(result+incr,ptr));
-    asm volatile("":::"memory");
-    return result;
-}
-
-inline int atomicCompareAndSwap(volatile int *p, int prev, int next)
-{
-    int result;
-    volatile uint32_t *ptr=reinterpret_cast<volatile uint32_t*>(p);
-    do {
-        result=__LDREXW(ptr);
-        if(result!=prev)
-        {
-            __CLREX();
-            return result;
-        }
-    } while(__STREXW(next,ptr));
-    asm volatile("":::"memory");
-    return result;
-}
-
-inline void *atomicFetchAndIncrement(void * const volatile * p, int offset,
-        int incr)
-{
-    void *result;
-    volatile uint32_t *rcp;
-    int rc;
-    do {
-        for(;;)
-        {
-            result=*p;
-            if(result==0) return 0;
-            rcp=reinterpret_cast<uint32_t*>(result)+offset;
-            rc=__LDREXW(rcp);
-            asm volatile("":::"memory");
-            if(result==*p) break;
-            __CLREX();
-        }
-    } while(__STREXW(rc+incr,rcp));
-    asm volatile("":::"memory");
-    return result;
+    #else
+    #warning "Delays are uncalibrated for this clock frequency"
+    #endif
 }
 
 } //namespace miosix
-
-#endif //ATOMIC_OPS_IMPL_H

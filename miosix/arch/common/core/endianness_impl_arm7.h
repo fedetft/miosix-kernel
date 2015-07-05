@@ -28,8 +28,10 @@
 #ifndef ENDIANNESS_IMPL_H
 #define	ENDIANNESS_IMPL_H
 
+#ifndef MIOSIX_BIG_ENDIAN
 //This target is little endian
 #define MIOSIX_LITTLE_ENDIAN
+#endif //MIOSIX_BIG_ENDIAN
 
 #ifdef __cplusplus
 #define __MIOSIX_INLINE inline

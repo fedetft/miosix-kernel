@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011 by Terraneo Federico                               *
+ *   Copyright (C) 2015 by Terraneo Federico                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,68 +25,50 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef ENDIANNESS_IMPL_H
-#define	ENDIANNESS_IMPL_H
+#ifndef BOARD_SETTINGS_H
+#define	BOARD_SETTINGS_H
 
-//This target is little endian
-#define MIOSIX_LITTLE_ENDIAN
+#include "util/version.h"
 
-#ifdef __cplusplus
-#define __MIOSIX_INLINE inline
-#else //__cplusplus
-#define __MIOSIX_INLINE static inline
-#endif //__cplusplus
+/**
+ * \internal
+ * Versioning for board_settings.h for out of git tree projects
+ */
+#define BOARD_SETTINGS_VERSION 100
 
-__MIOSIX_INLINE unsigned short swapBytes16(unsigned short x)
-{
-    //It's kind of a shame that GCC can't automatically make use of
-    //instructions like rev and rev16 to do byte swapping.
-    //Moreover, while for 32 and 64 bit integers it has builtins, for 16 bit
-    //we're forced to use inline asm.
-    #ifdef __GNUC__
-    if(!__builtin_constant_p(x))
-    {
-        unsigned short y;
-        asm("rev16 %0, %1":"=r"(y):"r"(x));
-        return y;
-    } else {
-        //It gets worse: if value is constant inlining assembler disables
-        //contant folding, wtf...
-        return (x>>8) | (x<<8);
-    }
-    #else
-    return (x>>8) | (x<<8);
-    #endif
-}
+namespace miosix {
 
-__MIOSIX_INLINE unsigned int swapBytes32(unsigned int x)
-{
-    #ifdef __GNUC__
-    return __builtin_bswap32(x);
-    #else
-    return ( x>>24)               |
-           ((x<< 8) & 0x00ff0000) |
-           ((x>> 8) & 0x0000ff00) |
-           ( x<<24);
-    #endif
-}
+/**
+ * \addtogroup Settings
+ * \{
+ */
 
-__MIOSIX_INLINE unsigned long long swapBytes64(unsigned long long x)
-{
-    #ifdef __GNUC__
-    return __builtin_bswap64(x);
-    #else
-    return ( x>>56)                          |
-           ((x<<40) & 0x00ff000000000000ull) |
-           ((x<<24) & 0x0000ff0000000000ull) |
-           ((x<< 8) & 0x000000ff00000000ull) |
-           ((x>> 8) & 0x00000000ff000000ull) |
-           ((x>>24) & 0x0000000000ff0000ull) |
-           ((x>>40) & 0x000000000000ff00ull) |
-           ( x<<56);
-    #endif
-}
+/// Size of stack for main().
+const unsigned int MAIN_STACK_SIZE=4096;
 
-#undef __MIOSIX_INLINE
+/// Frequency of tick (in Hz). The frequency of the efm32gg332f1024 timer in
+/// the board can be divided by 1000. This allows to use a 1KHz tick and
+/// the minimun Thread::sleep value is 1ms
+/// For the priority scheduler this is also the context switch frequency
+const unsigned int TICK_FREQ=1000;
 
-#endif //ENDIANNESS_IMPL_H
+//FIXME: this is here only to make it compile, there's no AUX_TIMER yet in portability.cpp
+///\internal Aux timer run @ 100KHz
+///Note that since the timer is only 16 bits this imposes a limit on the
+///burst measurement of 655ms. If due to a pause_kernel() or
+///disable_interrupts() section a thread runs for more than that time, a wrong
+///burst value will be measured
+const unsigned int AUX_TIMER_CLOCK=100000;
+const unsigned int AUX_TIMER_MAX=0xffff; ///<\internal Aux timer is 16 bits
+
+// /// Serial port
+const unsigned int defaultSerial=0;
+const unsigned int defaultSerialSpeed=115200;
+
+/**
+ * \}
+ */
+
+} //namespace miosix
+
+#endif	/* BOARD_SETTINGS_H */
