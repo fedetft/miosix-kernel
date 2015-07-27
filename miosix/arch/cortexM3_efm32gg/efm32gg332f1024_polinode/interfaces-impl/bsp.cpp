@@ -52,38 +52,13 @@ namespace miosix {
 // Initialization
 //
 
-void oscillatorInit()
-{
-    //The startup of the HFXO oscillator was measured and takes less than 125us
-    
-    MSC->READCTRL=MSC_READCTRL_MODE_WS2; //Two wait states for f>32MHz
-    
-    unsigned int dontChange=CMU->CTRL & CMU_CTRL_LFXOBUFCUR;
-    CMU->CTRL=CMU_CTRL_HFLE                  //We run at a frequency > 32MHz
-            | CMU_CTRL_CLKOUTSEL1_LFXOQ      //For when we will enable clock out
-            | CMU_CTRL_LFXOTIMEOUT_32KCYCLES //Long timeout for LFXO startup
-            | CMU_CTRL_HFXOTIMEOUT_1KCYCLES  //Small timeout for HFXO startup...
-            | CMU_CTRL_HFXOGLITCHDETEN       //...but reset timeout if any glitch
-            | CMU_CTRL_HFXOBUFCUR_BOOSTABOVE32MHZ //We run at a frequency > 32MHz
-            | CMU_CTRL_HFXOBOOST_100PCENT    //Maximum startup boost current
-            | dontChange;                    //Don't change some of the bits
-    
-    //First, enable HFXO (and LFXO since we will need it later)
-    CMU->OSCENCMD=CMU_OSCENCMD_HFXOEN | CMU_OSCENCMD_LFXOEN;
-    //Then switch immediately to HFXO (this stalls the CPU and peripherals
-    //till the HFXO is stable)
-    CMU->CMD=CMU_CMD_HFCLKSEL_HFXO;
-    //Last, disable HFRCO since we don't need it
-    CMU->OSCENCMD=CMU_OSCENCMD_HFRCODIS;
-}
-
 void IRQbspInit()
 {
-    //Enable Gpio
+    //
+    // Setup GPIOs
+    //
     CMU->HFPERCLKEN0|=CMU_HFPERCLKEN0_GPIO;
     GPIO->CTRL=GPIO_CTRL_EM4RET; //GPIOs keep their state in EM4
-    
-    MSC->WRITECTRL=MSC_WRITECTRL_RWWEN;  //Enable FLASH read while write support
     
     redLed::mode(Mode::OUTPUT_LOW);
     greenLed::mode(Mode::OUTPUT_LOW);
@@ -92,10 +67,10 @@ void IRQbspInit()
     loopback32KHzOut::mode(Mode::OUTPUT);
     
     internalSpi::mosi::mode(Mode::OUTPUT_LOW);
-    internalSpi::miso::mode(Mode::INPUT_PULL_DOWN); //To prevent it from floating
+    internalSpi::miso::mode(Mode::INPUT_PULL_DOWN); //To avoid floating
     internalSpi::sck::mode(Mode::OUTPUT_LOW);
     
-    transceiver::cs::mode(Mode::OUTPUT_LOW);
+    transceiver::cs::mode(Mode::OUTPUT_HIGH);
     transceiver::reset::mode(Mode::OUTPUT_LOW);
     transceiver::vregEn::mode(Mode::OUTPUT_LOW);
     transceiver::gpio1::mode(Mode::OUTPUT_LOW);
@@ -111,12 +86,58 @@ void IRQbspInit()
     currentSense::enable::mode(Mode::OUTPUT_LOW);
     //currentSense sense pin remains disabled as it is an analog channel
     
+    //
+    // Setup clocks, as when we get here we're still running with HFRCO
+    //
+
+    //Configure oscillator parameters for HFXO and LFXO
+    unsigned int dontChange=CMU->CTRL & CMU_CTRL_LFXOBUFCUR;
+    CMU->CTRL=CMU_CTRL_HFLE                  //We run at a frequency > 32MHz
+            | CMU_CTRL_CLKOUTSEL1_LFXOQ      //For when we will enable clock out
+            | CMU_CTRL_LFXOTIMEOUT_32KCYCLES //Long timeout for LFXO startup
+            | CMU_CTRL_HFXOTIMEOUT_1KCYCLES  //Small timeout for HFXO startup...
+            | CMU_CTRL_HFXOGLITCHDETEN       //...but restart if any glitch
+            | CMU_CTRL_HFXOBUFCUR_BOOSTABOVE32MHZ //We run at a freq > 32MHz
+            | CMU_CTRL_HFXOBOOST_100PCENT    //Maximum startup boost current
+            | dontChange;                    //Don't change some of the bits
+            
+    //Start HFXO and LFXO.
+    //The startup of the HFXO oscillator was measured and takes less than 125us
+    CMU->OSCENCMD=CMU_OSCENCMD_HFXOEN | CMU_OSCENCMD_LFXOEN;
+    
+    //Configure flash wait states and dividers so that it's safe to run at 48MHz
+    CMU->HFCORECLKDIV=CMU_HFCORECLKDIV_HFCORECLKLEDIV; //We run at a freq >32MHz
+    MSC->READCTRL=MSC_READCTRL_MODE_WS2; //Two wait states for f>32MHz
+    MSC->WRITECTRL=MSC_WRITECTRL_RWWEN;  //Enable FLASH read while write support
+    
     ledOn();
-    delayMs(100);
+    //Reuse the LED blink at boot to wait for the LFXO 32KHz oscillator startup
+    //SWitching temporarily the CPU to run off of the 32KHz XTAL is the easiest
+    //way to sleep while it locks, as it stalls the CPU and peripherals till the
+    //oscillator is stable
+    CMU->CMD=CMU_CMD_HFCLKSEL_LFXO;
     ledOff();
     
-    //TODO: wait for 32KHz XTAL to startup and then enable 32KHz clock output
+    //Then switch immediately to HFXO, so that we (finally) run at 48MHz
+    CMU->CMD=CMU_CMD_HFCLKSEL_HFXO;
     
+    //Disable HFRCO since we don't need it anymore
+    CMU->OSCENCMD=CMU_OSCENCMD_HFRCODIS;
+    
+    //Put the LFXO frequency on the loopback pin
+    CMU->ROUTE=CMU_ROUTE_LOCATION_LOC1 //32KHz out is on PD8
+             | CMU_ROUTE_CLKOUT1PEN;   //Enable pin
+    
+    //The LFA and LFB clock trees are connected to the LFXO
+    CMU->LFCLKSEL=CMU_LFCLKSEL_LFB_LFXO | CMU_LFCLKSEL_LFA_LFXO;
+    
+    //This function initializes the SystemCoreClock variable. It is put here
+    //so as to get the right value
+    SystemCoreClockUpdate();
+    
+    //
+    // Setup serial port
+    //
     DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
         new EFM32Serial(defaultSerial,defaultSerialSpeed)));
 }

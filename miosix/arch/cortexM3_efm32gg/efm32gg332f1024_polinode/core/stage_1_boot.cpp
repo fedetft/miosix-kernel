@@ -26,7 +26,6 @@ void __attribute__((noreturn)) program_startup()
 
     //SystemInit() is called *before* initializing .data and zeroing .bss
     SystemInit();
-    miosix::oscillatorInit();
 
     //These are defined in the linker script
     extern unsigned char _etext asm("_etext");
@@ -43,10 +42,6 @@ void __attribute__((noreturn)) program_startup()
     unsigned char *bss_end=&_bss_end;
     memcpy(data,etext,edata-data);
     memset(bss_start,0,bss_end-bss_start);
-
-    //This function initializes the SystemCoreClock variable. It is put after
-    //oscillatorInit() so as to get the right value, and after .bss is zeroed
-    SystemCoreClockUpdate();
 
     //Move on to stage 2
     _init();

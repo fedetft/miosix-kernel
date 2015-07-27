@@ -38,12 +38,6 @@
 
 namespace miosix {
 
-/**
- * \internal
- * called by stage_1_boot.cpp to start the 48MHz oscillator as soon as we boot
- */
-void oscillatorInit();
-
 inline void ledOn()  { redLed::high(); }
 inline void ledOff() { redLed::low(); }
 
