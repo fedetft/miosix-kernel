@@ -680,6 +680,8 @@
       </df>
       <df name="miosix_np_2">
       </df>
+      <in>cstimer.cpp</in>
+      <in>cstimer.h</in>
       <in>main.cpp</in>
     </df>
   </logicalFolder>

@@ -17,7 +17,7 @@
 #OPT_BOARD := stm32f100rb_stm32vldiscovery
 #OPT_BOARD := stm32f103ve_strive_mini
 #OPT_BOARD := stm32f103ze_redbull_v2
-#OPT_BOARD := stm32f407vg_stm32f4discovery
+OPT_BOARD := stm32f407vg_stm32f4discovery
 #OPT_BOARD := stm32f207ig_stm3220g-eval
 #OPT_BOARD := stm32f207zg_ethboard_v2
 #OPT_BOARD := stm32f207ze_als_camboard
@@ -58,8 +58,8 @@
 ## -O2 is recomended otherwise, as it provides a good balance between code
 ## size and speed
 ##
-#OPT_OPTIMIZATION := -O0
-OPT_OPTIMIZATION := -O2
+OPT_OPTIMIZATION := -O0
+#OPT_OPTIMIZATION := -O2
 #OPT_OPTIMIZATION := -O3
 #OPT_OPTIMIZATION := -Os
 

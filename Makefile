@@ -19,7 +19,7 @@ SUBDIRS := $(KPATH)
 ## List here your source files (both .s, .c and .cpp)
 ##
 SRC :=                                  \
-main.cpp
+main.cpp cstimer.cpp
 
 ##
 ## List here additional static libraries with relative path
