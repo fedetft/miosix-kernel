@@ -2,6 +2,8 @@ Changelog for Miosix np embedded OS
 
 
 v2.01
+- Added timeconversion.cpp/.h as the first step towards high resolution
+  timers
 - Added new board: efm32gg332f1024_polinode
 - Added new architacture: cortexM3_efm32gg
 - Refactored endianness and atomic_ops interfaces from the individual
