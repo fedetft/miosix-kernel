@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013, 2014                *
+ *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015          *
  *   by Terraneo Federico                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -61,7 +61,7 @@ unsigned int getMaxHeap()
 {
     //If getMaxHeap() is called before the first _sbrk_r() maxHeapEnd is zero.
     extern char _end asm("_end"); //defined in the linker script
-    if(maxHeapEnd==0) maxHeapEnd=reinterpret_cast<unsigned int>(&_end);
+    if(maxHeapEnd==0) return reinterpret_cast<unsigned int>(&_end);
     return maxHeapEnd;
 }
 
@@ -153,20 +153,20 @@ void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr)
     //This is the absolute end of the heap
     extern char _heap_end asm("_heap_end"); //defined in the linker script
     //This holds the current end of the heap (static)
-    static char *cur_heap_end=NULL;
+    static char *curHeapEnd=NULL;
     //This holds the previous end of the heap
-    char *prev_heap_end;
+    char *prevHeapEnd;
 
     //Check if it's first time called
-    if(cur_heap_end==NULL) cur_heap_end=&_end;
+    if(curHeapEnd==NULL) curHeapEnd=&_end;
 
-    prev_heap_end=cur_heap_end;
-    if((cur_heap_end+incr)>&_heap_end)
+    prevHeapEnd=curHeapEnd;
+    if((curHeapEnd+incr)>&_heap_end)
     {
         //bad, heap overflow
         #ifdef __NO_EXCEPTIONS
         // When exceptions are disabled operator new would return 0, which would
-        // cause undefined behaviour. So When exceptions are disabled, a heap
+        // cause undefined behaviour. So when exceptions are disabled, a heap
         // overflow causes a reboot.
         errorLog("\n***Heap overflow\n");
         _exit(1);
@@ -174,12 +174,12 @@ void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr)
         return reinterpret_cast<void*>(-1);
         #endif //__NO_EXCEPTIONS
     }
-    cur_heap_end+=incr;
+    curHeapEnd+=incr;
 
-    if(reinterpret_cast<unsigned int>(cur_heap_end) > miosix::maxHeapEnd)
-        miosix::maxHeapEnd=reinterpret_cast<unsigned int>(cur_heap_end);
+    if(reinterpret_cast<unsigned int>(curHeapEnd) > miosix::maxHeapEnd)
+        miosix::maxHeapEnd=reinterpret_cast<unsigned int>(curHeapEnd);
     
-    return reinterpret_cast<void*>(prev_heap_end);
+    return reinterpret_cast<void*>(prevHeapEnd);
 }
 
 void *sbrk(ptrdiff_t incr)
