@@ -30,11 +30,16 @@
 
 #include "interfaces/gpio.h"
 
+//Uncomment when compiling for revision 1.0 of the hardware
+#define WANDSTEM_HW_REV 10
+
 namespace miosix {
 
 typedef Gpio<GPIOF_BASE,2>  redLed;
 typedef Gpio<GPIOA_BASE,4>  greenLed;   //Also pin 20 of expansion connector
-typedef Gpio<GPIOA_BASE,3>  userButton; //Also pin 19 of expansion connector
+
+//In rev 1.0 is also pin 19 of expansion connector, in rev 1.1 pin 30
+typedef Gpio<GPIOA_BASE,3>  userButton;
 
 //This is used for the VHT implementation, allowing to resynchronize
 //the high frequency timer with the RTC every time the node goes out
@@ -46,17 +51,23 @@ typedef Gpio<GPIOA_BASE,10> loopback32KHzIn;
 typedef Gpio<GPIOD_BASE,8>  loopback32KHzOut;
 
 namespace expansion {
-//The 30-pin expansion connector exposes many 20 pins of the microcontroller
+//The 30-pin expansion connector exposes 20 pins of the microcontroller
 //that are freely usable as GPIO by daughter boards, and are named from gpio0
 //to gpio19. Each GPIO can have up to two alternate functions
 //MCU pin                   GPIO#     CONN# AF1          AF2
+#if WANDSTEM_HW_REV==10
 typedef Gpio<GPIOD_BASE,4>  gpio0;  //    1 ADC_CH0
 typedef Gpio<GPIOD_BASE,5>  gpio1;  //    2 ADC_CH1
 typedef Gpio<GPIOD_BASE,6>  gpio2;  //    3 ADC_CH2      LETIMER0
+#else //rev 1.1
+typedef Gpio<GPIOD_BASE,3>  gpio0;  //    1 ADC_CH0
+typedef Gpio<GPIOD_BASE,6>  gpio1;  //    2 ADC_CH1      LETIMER0
+typedef Gpio<GPIOD_BASE,5>  gpio2;  //    3 ADC_CH2
+#endif
 typedef Gpio<GPIOD_BASE,7>  gpio3;  //    4 ADC_CH3      TIMESTAMP_OUT
 typedef Gpio<GPIOC_BASE,5>  gpio4;  //    7 SPI_CS       LETIMER1
 typedef Gpio<GPIOC_BASE,4>  gpio5;  //    8 SPI_SCK
-typedef Gpio<GPIOC_BASE,3>  gpio6;  //    9 SPI_MISO     USART_Rx
+typedef Gpio<GPIOC_BASE,3>  gpio6;  //    9 SPI_MISO     USART_RX
 typedef Gpio<GPIOC_BASE,2>  gpio7;  //   10 SPI_MOSI     USART_TX
 typedef Gpio<GPIOC_BASE,6>  gpio8;  //   11 I2C_SDA      LEUSART_TX
 typedef Gpio<GPIOC_BASE,7>  gpio9;  //   12 I2C_SCL      LEUSART_RX
@@ -68,13 +79,13 @@ typedef Gpio<GPIOC_BASE,1>  gpio14; //   18 PWM2         EXC_ACMP1
 typedef Gpio<GPIOC_BASE,8>  gpio15; //   23 ACMP0
 typedef Gpio<GPIOC_BASE,9>  gpio16; //   24 ACMP1
 typedef Gpio<GPIOC_BASE,10> gpio17; //   25 ACMP2
-typedef Gpio<GPIOE_BASE,8>  gp1018; //   27 PCNT_A
+typedef Gpio<GPIOE_BASE,8>  gpio18; //   27 PCNT_A
 typedef Gpio<GPIOE_BASE,9>  gpio19; //   28 PCNT_B
 } //namespace expansion
 
 namespace internalSpi {
 //The internal SPI is shared between the radio transceiver (CC2520) and flash
-//(IS25LP128). In addition, the CC2520 can be configured to output an anlog
+//(IS25LP128). In addition, the CC2520 can be configured to output an analog
 //value proportional to its temperature on a pin that is shared with sck
 typedef Gpio<GPIOD_BASE,0>  mosi;
 typedef Gpio<GPIOD_BASE,1>  miso;
@@ -95,27 +106,31 @@ typedef Gpio<GPIOA_BASE,9>  stxon;
 } //namespace transceiver
 
 namespace flash {
-//The on-board flash
+//The on-board flash is a 16MByte IS25LP128, works down to 2.3V
 typedef Gpio<GPIOC_BASE,11> cs;
 typedef Gpio<GPIOA_BASE,5>  hold;
 } //namespace flash
 
 namespace currentSense {
-//The current sensor usies a MAX44284F and 0.12ohm shunt resistor.
-//Using the internal 1.2V reference for the ADC, the measurement range is 200mA
-//and the resolution is ~49uA. The current sensor can sense the consumption of
+//The current sensor uses a MAX44284F and 0.12ohm shunt resistor.
+//Using the internal 1.25V reference for the ADC, the measurement range is 208mA
+//and the resolution is ~51uA. The current sensor can sense the consumption of
 //all the components on the board (MCU, transceiver, flash) and also of the
 //components on the daughter board, unless they are hooked up to the VBAT line.
 typedef Gpio<GPIOC_BASE,0>  enable;
+#if WANDSTEM_HW_REV==10
 typedef Gpio<GPIOD_BASE,3>  sense;  //Analog, also pin 5 of expansion connector
+#else //rev 1.1
+typedef Gpio<GPIOD_BASE,4>  sense;  //Analog, also pin 5 of expansion connector
+#endif
 } //namespace currentSense
 
 namespace debugConnector {
 //The debug connector exposes a serial port for printf/scanf debugging, and
-//the SWD debug interface. The connector is also used the start the bootloader
+//the SWD debug interface. The connector is also used to start the bootloader
 //to upload code to the board, by pulling SWCLK high and resetting the board.
 //The bootloader can load code either using the serial port or the USB port.
-//Finally, also the MCU reset in is exposed.
+//Finally, also the MCU reset is exposed.
 typedef Gpio<GPIOE_BASE,10> tx;     //kernel serial port
 typedef Gpio<GPIOE_BASE,11> rx;     //kernel serial port
 typedef Gpio<GPIOF_BASE,0>  swclk;  //SWD (also pull high to start bootloader)
