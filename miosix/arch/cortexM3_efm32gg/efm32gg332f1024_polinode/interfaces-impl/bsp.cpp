@@ -90,15 +90,25 @@ void IRQbspInit()
     // Setup clocks, as when we get here we're still running with HFRCO
     //
 
+    //HFXO startup time seems slightly dependent on supply voltage, with
+    //higher voltage resulting in longer startup time (changes by a few us at
+    //most). Also, HFXOBOOST greatly affects startup time, as shown in the
+    //following table
+    //BOOST sample#1  sample#2
+    //100%    94us     100us
+    // 80%   104us     111us
+    // 70%   117us     125us
+    // 50%   205us     223us
+
     //Configure oscillator parameters for HFXO and LFXO
     unsigned int dontChange=CMU->CTRL & CMU_CTRL_LFXOBUFCUR;
     CMU->CTRL=CMU_CTRL_HFLE                  //We run at a frequency > 32MHz
-            | CMU_CTRL_CLKOUTSEL1_LFXOQ      //For when we will enable clock out
-            | CMU_CTRL_LFXOTIMEOUT_32KCYCLES //Long timeout for LFXO startup
-            | CMU_CTRL_HFXOTIMEOUT_1KCYCLES  //Small timeout for HFXO startup...
-            | CMU_CTRL_HFXOGLITCHDETEN       //...but restart if any glitch
+            | CMU_CTRL_CLKOUTSEL1_LFXOQ      //Used for the 32KHz loopback
+            | CMU_CTRL_LFXOTIMEOUT_16KCYCLES //16K cyc timeout for LFXO startup
+            | CMU_CTRL_LFXOBOOST_70PCENT     //Use recomended value
+            | CMU_CTRL_HFXOTIMEOUT_1KCYCLES  //1K cyc timeout for HFXO startup
             | CMU_CTRL_HFXOBUFCUR_BOOSTABOVE32MHZ //We run at a freq > 32MHz
-            | CMU_CTRL_HFXOBOOST_100PCENT    //Maximum startup boost current
+            | CMU_CTRL_HFXOBOOST_70PCENT     //We want a startup time >=100us
             | dontChange;                    //Don't change some of the bits
             
     //Start HFXO and LFXO.
