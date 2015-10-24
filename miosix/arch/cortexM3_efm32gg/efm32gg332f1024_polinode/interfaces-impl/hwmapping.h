@@ -30,7 +30,7 @@
 
 #include "interfaces/gpio.h"
 
-//Uncomment when compiling for revision 1.0 of the hardware
+//Select hardware revision (10=1.0, 11=1.1, ...)
 #define WANDSTEM_HW_REV 10
 
 namespace miosix {
@@ -38,7 +38,11 @@ namespace miosix {
 typedef Gpio<GPIOF_BASE,2>  redLed;
 typedef Gpio<GPIOA_BASE,4>  greenLed;   //Also pin 20 of expansion connector
 
-//In rev 1.0 is also pin 19 of expansion connector, in rev 1.1 pin 30
+//Also connected to a pin of the expansion connector in some revisions
+//rev 1.0 pin 19
+//rev 1.1 pin 30
+//rev 1.2 pin 30
+//rev 1.3 no longer connected to the expansion connector
 typedef Gpio<GPIOA_BASE,3>  userButton;
 
 //This is used for the VHT implementation, allowing to resynchronize
@@ -50,6 +54,12 @@ typedef Gpio<GPIOA_BASE,3>  userButton;
 typedef Gpio<GPIOA_BASE,10> loopback32KHzIn;
 typedef Gpio<GPIOD_BASE,8>  loopback32KHzOut;
 
+#if WANDSTEM_HW_REV>12
+//low  = 2.3V
+//high = 3.1V
+typedef Gpio<GPIOE_BASE,15> voltageSelect;
+#endif
+
 namespace expansion {
 //The 30-pin expansion connector exposes 20 pins of the microcontroller
 //that are freely usable as GPIO by daughter boards, and are named from gpio0
@@ -59,23 +69,23 @@ namespace expansion {
 typedef Gpio<GPIOD_BASE,4>  gpio0;  //    1 ADC_CH0
 typedef Gpio<GPIOD_BASE,5>  gpio1;  //    2 ADC_CH1
 typedef Gpio<GPIOD_BASE,6>  gpio2;  //    3 ADC_CH2      LETIMER0
-#else //rev 1.1
+#else //rev 1.1 or greater
 typedef Gpio<GPIOD_BASE,3>  gpio0;  //    1 ADC_CH0
 typedef Gpio<GPIOD_BASE,6>  gpio1;  //    2 ADC_CH1      LETIMER0
 typedef Gpio<GPIOD_BASE,5>  gpio2;  //    3 ADC_CH2
 #endif
-typedef Gpio<GPIOD_BASE,7>  gpio3;  //    4 ADC_CH3      TIMESTAMP_OUT
+typedef Gpio<GPIOD_BASE,7>  gpio3;  //    4 ADC_CH3
 typedef Gpio<GPIOC_BASE,5>  gpio4;  //    7 SPI_CS       LETIMER1
 typedef Gpio<GPIOC_BASE,4>  gpio5;  //    8 SPI_SCK
 typedef Gpio<GPIOC_BASE,3>  gpio6;  //    9 SPI_MISO     USART_RX
 typedef Gpio<GPIOC_BASE,2>  gpio7;  //   10 SPI_MOSI     USART_TX
 typedef Gpio<GPIOC_BASE,6>  gpio8;  //   11 I2C_SDA      LEUSART_TX
 typedef Gpio<GPIOC_BASE,7>  gpio9;  //   12 I2C_SCL      LEUSART_RX
-typedef Gpio<GPIOE_BASE,12> gpio10; //   13 TIMESTAMP_IN
+typedef Gpio<GPIOE_BASE,12> gpio10; //   13 TIMESTAMP_IN/OUT
 typedef Gpio<GPIOB_BASE,11> gpio11; //   14 DAC_OUT
 typedef Gpio<GPIOA_BASE,0>  gpio12; //   15 PWM0         PRS0
 typedef Gpio<GPIOA_BASE,1>  gpio13; //   16 PWM1         PRS1
-typedef Gpio<GPIOC_BASE,1>  gpio14; //   18 PWM2         EXC_ACMP1
+typedef Gpio<GPIOC_BASE,1>  gpio14; //   18              EXC_ACMP1
 typedef Gpio<GPIOC_BASE,8>  gpio15; //   23 ACMP0
 typedef Gpio<GPIOC_BASE,9>  gpio16; //   24 ACMP1
 typedef Gpio<GPIOC_BASE,10> gpio17; //   25 ACMP2
@@ -101,7 +111,9 @@ typedef Gpio<GPIOF_BASE,12> vregEn;
 typedef Gpio<GPIOE_BASE,13> gpio1;
 typedef Gpio<GPIOE_BASE,14> gpio2;
 typedef Gpio<GPIOA_BASE,8>  excChB; //including SFD and FRM_DONE
+#if WANDSTEM_HW_REV<13
 typedef Gpio<GPIOE_BASE,15> gpio4;
+#endif
 typedef Gpio<GPIOA_BASE,9>  stxon;
 } //namespace transceiver
 
@@ -120,7 +132,7 @@ namespace currentSense {
 typedef Gpio<GPIOC_BASE,0>  enable;
 #if WANDSTEM_HW_REV==10
 typedef Gpio<GPIOD_BASE,3>  sense;  //Analog, also pin 5 of expansion connector
-#else //rev 1.1
+#else //rev 1.1 or greater
 typedef Gpio<GPIOD_BASE,4>  sense;  //Analog, also pin 5 of expansion connector
 #endif
 } //namespace currentSense
