@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configurationDescriptor version="90">
+<configurationDescriptor version="95">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df root=".." name="0">
       <df name="miosix">
@@ -31,6 +31,65 @@
           <df name="common">
             <df name="CMSIS">
               <df name="Device">
+                <df name="SiliconLabs">
+                  <df name="EFM32GG">
+                    <df name="Include">
+                      <in>efm32gg332f1024.h</in>
+                      <in>efm32gg_acmp.h</in>
+                      <in>efm32gg_adc.h</in>
+                      <in>efm32gg_aes.h</in>
+                      <in>efm32gg_af_pins.h</in>
+                      <in>efm32gg_af_ports.h</in>
+                      <in>efm32gg_burtc.h</in>
+                      <in>efm32gg_burtc_ret.h</in>
+                      <in>efm32gg_calibrate.h</in>
+                      <in>efm32gg_cmu.h</in>
+                      <in>efm32gg_dac.h</in>
+                      <in>efm32gg_devinfo.h</in>
+                      <in>efm32gg_dma.h</in>
+                      <in>efm32gg_dma_ch.h</in>
+                      <in>efm32gg_dma_descriptor.h</in>
+                      <in>efm32gg_dmactrl.h</in>
+                      <in>efm32gg_dmareq.h</in>
+                      <in>efm32gg_ebi.h</in>
+                      <in>efm32gg_emu.h</in>
+                      <in>efm32gg_etm.h</in>
+                      <in>efm32gg_gpio.h</in>
+                      <in>efm32gg_gpio_p.h</in>
+                      <in>efm32gg_i2c.h</in>
+                      <in>efm32gg_lcd.h</in>
+                      <in>efm32gg_lesense.h</in>
+                      <in>efm32gg_lesense_buf.h</in>
+                      <in>efm32gg_lesense_ch.h</in>
+                      <in>efm32gg_lesense_st.h</in>
+                      <in>efm32gg_letimer.h</in>
+                      <in>efm32gg_leuart.h</in>
+                      <in>efm32gg_msc.h</in>
+                      <in>efm32gg_pcnt.h</in>
+                      <in>efm32gg_prs.h</in>
+                      <in>efm32gg_prs_ch.h</in>
+                      <in>efm32gg_prs_signals.h</in>
+                      <in>efm32gg_rmu.h</in>
+                      <in>efm32gg_romtable.h</in>
+                      <in>efm32gg_rtc.h</in>
+                      <in>efm32gg_timer.h</in>
+                      <in>efm32gg_timer_cc.h</in>
+                      <in>efm32gg_uart.h</in>
+                      <in>efm32gg_usart.h</in>
+                      <in>efm32gg_usb.h</in>
+                      <in>efm32gg_usb_diep.h</in>
+                      <in>efm32gg_usb_doep.h</in>
+                      <in>efm32gg_usb_hc.h</in>
+                      <in>efm32gg_vcmp.h</in>
+                      <in>efm32gg_wdog.h</in>
+                      <in>em_device.h</in>
+                      <in>system_efm32gg.h</in>
+                    </df>
+                    <df name="Source">
+                      <in>system_efm32gg.c</in>
+                    </df>
+                  </df>
+                </df>
                 <df name="ST">
                   <df name="STM32F10x">
                     <df name="Include">
@@ -126,6 +185,10 @@
               </df>
             </df>
             <df name="core">
+              <in>atomic_ops_impl_arm7.h</in>
+              <in>atomic_ops_impl_cortexMx.h</in>
+              <in>endianness_impl_arm7.h</in>
+              <in>endianness_impl_cortexMx.h</in>
               <in>interrupts.h</in>
               <in>interrupts_arm7.cpp</in>
               <in>interrupts_arm7.h</in>
@@ -142,6 +205,8 @@
               <in>sd_stm32f2_f4.cpp</in>
               <in>sd_stm32f2_f4.h</in>
               <in>serial.h</in>
+              <in>serial_efm32.cpp</in>
+              <in>serial_efm32.h</in>
               <in>serial_lpc2000.cpp</in>
               <in>serial_lpc2000.h</in>
               <in>serial_stm32.cpp</in>
@@ -152,6 +217,29 @@
               <in>stm32_hardware_rng.h</in>
               <in>stm32f2_f4_i2c.cpp</in>
               <in>stm32f2_f4_i2c.h</in>
+            </df>
+          </df>
+          <df name="cortexM3_efm32gg">
+            <df name="common">
+              <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
+                <in>delays.cpp</in>
+                <in>gpio_impl.cpp</in>
+                <in>gpio_impl.h</in>
+                <in>portability.cpp</in>
+                <in>portability_impl.h</in>
+              </df>
+              <in>arch_settings.h</in>
+            </df>
+            <df name="efm32gg332f1024_polinode">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+                <in>hwmapping.h</in>
+              </df>
             </df>
           </df>
           <df name="cortexM3_stm32">
@@ -384,6 +472,11 @@
                 <in>board_settings.h</in>
               </df>
             </df>
+            <df name="cortexM3_efm32gg">
+              <df name="efm32gg332f1024_polinode">
+                <in>board_settings.h</in>
+              </df>
+            </df>
             <df name="cortexM3_stm32">
               <df name="stm32f100cb_tempsensor">
                 <in>board_settings.h</in>
@@ -534,6 +627,8 @@
           <in>stage_2_boot.h</in>
           <in>sync.cpp</in>
           <in>sync.h</in>
+          <in>timeconversion.cpp</in>
+          <in>timeconversion.h</in>
         </df>
         <df name="stdlib_integration">
           <in>libc_integration.cpp</in>

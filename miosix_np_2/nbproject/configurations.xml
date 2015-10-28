@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configurationDescriptor version="90">
+<configurationDescriptor version="95">
   <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
     <df root=".." name="0">
       <df name="miosix">
@@ -1763,8 +1763,6 @@
             ex="false"
             tool="0"
             flavor2="2">
-        <cTool>
-        </cTool>
       </item>
       <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
             ex="false"
@@ -2376,8 +2374,6 @@
             ex="false"
             tool="0"
             flavor2="2">
-        <cTool>
-        </cTool>
       </item>
       <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
             ex="false"
@@ -2991,8 +2987,6 @@
             ex="false"
             tool="0"
             flavor2="2">
-        <cTool>
-        </cTool>
       </item>
       <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
             ex="false"
@@ -3456,8 +3450,6 @@
             ex="false"
             tool="0"
             flavor2="2">
-        <cTool>
-        </cTool>
       </item>
       <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
             ex="false"
@@ -4072,8 +4064,6 @@
             ex="false"
             tool="0"
             flavor2="2">
-        <cTool>
-        </cTool>
       </item>
       <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
             ex="false"
@@ -4690,8 +4680,6 @@
             ex="false"
             tool="0"
             flavor2="2">
-        <cTool>
-        </cTool>
       </item>
       <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
             ex="false"
@@ -5317,8 +5305,6 @@
             ex="false"
             tool="0"
             flavor2="2">
-        <cTool>
-        </cTool>
       </item>
       <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
             ex="false"
@@ -5943,8 +5929,6 @@
             ex="false"
             tool="0"
             flavor2="2">
-        <cTool>
-        </cTool>
       </item>
       <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
             ex="false"
@@ -6569,8 +6553,6 @@
             ex="false"
             tool="0"
             flavor2="2">
-        <cTool>
-        </cTool>
       </item>
       <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
             ex="false"
@@ -7034,8 +7016,6 @@
             ex="false"
             tool="0"
             flavor2="2">
-        <cTool>
-        </cTool>
       </item>
       <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
             ex="false"
@@ -7514,8 +7494,6 @@
             ex="false"
             tool="0"
             flavor2="2">
-        <cTool>
-        </cTool>
       </item>
       <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
             ex="false"
@@ -8141,8 +8119,6 @@
             ex="false"
             tool="0"
             flavor2="2">
-        <cTool>
-        </cTool>
       </item>
       <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
             ex="false"
@@ -8621,8 +8597,6 @@
             ex="false"
             tool="0"
             flavor2="2">
-        <cTool>
-        </cTool>
       </item>
       <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
             ex="false"
@@ -9283,22 +9257,16 @@
             ex="false"
             tool="0"
             flavor2="2">
-        <cTool>
-        </cTool>
       </item>
       <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/arch/common/drivers/serial_stm32.cpp"
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/interfaces-impl/delays.cpp"
             ex="false"
@@ -9338,29 +9306,21 @@
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f103cb_als_mainboard_rev2/core/stage_1_boot.cpp"
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f103cb_als_mainboard_rev2/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f103cb_als_mainboard_rev2/interfaces-impl/bsp_impl.h"
             ex="false"
@@ -9376,15 +9336,11 @@
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/filesystem/file.cpp" ex="false" tool="1" flavor2="9">
         <ccTool>
@@ -9498,8 +9454,6 @@
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/kernel/stage_2_boot.cpp" ex="false" tool="1" flavor2="9">
         <ccTool>
@@ -9786,22 +9740,16 @@
             ex="false"
             tool="0"
             flavor2="2">
-        <cTool>
-        </cTool>
       </item>
       <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/arch/common/drivers/serial_stm32.cpp"
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/common/interfaces-impl/delays.cpp"
             ex="false"
@@ -9841,15 +9789,11 @@
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f100cb_tempsensor/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f100cb_tempsensor/interfaces-impl/bsp_impl.h"
             ex="false"
@@ -9860,29 +9804,21 @@
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/filesystem/file.cpp" ex="false" tool="1" flavor2="9">
         <ccTool>
@@ -9996,8 +9932,6 @@
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/kernel/stage_2_boot.cpp" ex="false" tool="1" flavor2="9">
         <ccTool>
@@ -10288,15 +10222,11 @@
             ex="false"
             tool="0"
             flavor2="2">
-        <cTool>
-        </cTool>
       </item>
       <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/arch/common/drivers/sd_stm32f2_f4.cpp"
             ex="false"
@@ -10403,8 +10333,6 @@
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_oledboard2/interfaces-impl/arch_registers_impl.h"
             ex="false"
@@ -10415,8 +10343,6 @@
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_oledboard2/interfaces-impl/bsp_impl.h"
             ex="false"
@@ -10432,15 +10358,11 @@
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/config/arch/cortexM4_stm32f4/stm32f429zi_oledboard2/board_settings.h"
             ex="false"
@@ -10451,15 +10373,11 @@
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/filesystem/devfs/devfs.cpp"
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/filesystem/fat32/ccsbcs.cpp"
             ex="false"
@@ -10595,8 +10513,6 @@
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/filesystem/stringpart.cpp"
             ex="false"
@@ -10669,8 +10585,6 @@
             ex="false"
             tool="1"
             flavor2="9">
-        <ccTool>
-        </ccTool>
       </item>
       <item path="../miosix/kernel/stage_2_boot.cpp" ex="false" tool="1" flavor2="9">
         <ccTool>
