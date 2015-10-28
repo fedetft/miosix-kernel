@@ -17,7 +17,7 @@ SUBDIRS := $(KPATH)
 ## List here your source files (both .s, .c and .cpp)
 ##
 SRC :=                                  \
-miosix/_tools/testsuite/testsuite.cpp
+main.cpp
 
 ##
 ## List here additional static libraries with relative path
