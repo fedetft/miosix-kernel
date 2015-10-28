@@ -2,7 +2,7 @@
 ## Makefile for Miosix embedded OS
 ## This makefile builds the whole kernel
 ##
-MAKEFILE_VERSION := 1.05
+MAKEFILE_VERSION := 1.06
 ## KPATH and CONFPATH are forwarded by the parent Makefile
 include $(CONFPATH)/config/Makefile.inc
 

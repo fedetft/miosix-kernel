@@ -1,7 +1,7 @@
 ##
 ## Makefile for Miosix embedded OS
 ##
-MAKEFILE_VERSION := 1.05
+MAKEFILE_VERSION := 1.06
 ## Path to kernel directory (edited by init_project_out_of_git_repo.pl)
 KPATH := miosix
 ## Path to config directory (edited by init_project_out_of_git_repo.pl)
@@ -17,7 +17,7 @@ SUBDIRS := $(KPATH)
 ## List here your source files (both .s, .c and .cpp)
 ##
 SRC :=                                  \
-main.cpp
+miosix/_tools/testsuite/testsuite.cpp
 
 ##
 ## List here additional static libraries with relative path

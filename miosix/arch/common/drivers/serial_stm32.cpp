@@ -96,6 +96,7 @@ void __attribute__((naked)) USART2_IRQHandler()
     restoreContext();
 }
 
+#ifndef STM32F411xE
 /**
  * \internal interrupt routine for usart3 actual implementation
  */
@@ -113,6 +114,7 @@ void __attribute__((naked)) USART3_IRQHandler()
     asm volatile("bl _Z13usart3irqImplv");
     restoreContext();
 }
+#endif //STM32F411xE
 
 #ifdef SERIAL_1_DMA
 
@@ -491,6 +493,7 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
             NVIC_EnableIRQ(USART2_IRQn);
             if(RCC->CFGR & RCC_CFGR_PPRE1_2) freq/=1<<(((RCC->CFGR>>ppre1) & 0x3)+1);
             break;
+        #ifndef STM32F411xE
         case 3:
             port=USART3;
             RCC->APB1ENR |= RCC_APB1ENR_USART3EN;
@@ -542,6 +545,7 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
             NVIC_EnableIRQ(USART3_IRQn);
             if(RCC->CFGR & RCC_CFGR_PPRE1_2) freq/=1<<(((RCC->CFGR>>ppre1) & 0x3)+1);
             break;
+        #endif //STM32F411xE
     }
     const unsigned int quot=2*freq/baudrate; //2*freq for round to nearest
     port->BRR=quot/2 + (quot & 1);           //Round to nearest
@@ -808,6 +812,7 @@ STM32Serial::~STM32Serial()
                 NVIC_ClearPendingIRQ(USART2_IRQn);
                 RCC->APB1ENR &= ~RCC_APB1ENR_USART2EN;
                 break;
+            #ifndef STM32F411xE
             case 3:
                 #ifdef SERIAL_3_DMA
                 IRQdmaReadStop();
@@ -827,6 +832,7 @@ STM32Serial::~STM32Serial()
                 NVIC_ClearPendingIRQ(USART3_IRQn);
                 RCC->APB1ENR &= ~RCC_APB1ENR_USART3EN;
                 break;
+            #endif //STM32F411xE
         }
     }
 }

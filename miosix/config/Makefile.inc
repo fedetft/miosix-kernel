@@ -29,6 +29,7 @@
 #OPT_BOARD := stm32f100cb_tempsensor
 #OPT_BOARD := stm32f429zi_oledboard2
 #OPT_BOARD := efm32gg332f1024_polinode
+#OPT_BOARD := stm32f411re_nucleo
 
 ##
 ## Optimization flags, choose one.
@@ -312,13 +313,19 @@ endif
 
 # No options
 
+##---------------------------------------------------------------------------
+## stm32f411re_nucleo
+##
+
+# No options
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
 ## a new board or porting Miosix to a new architecture                    ##
 ############################################################################
 
-ifneq ($(MAKEFILE_VERSION),1.05)
+ifneq ($(MAKEFILE_VERSION),1.06)
     $(info You are using an incompatible makefile. Make sure it matches \
       the one distributed with the current version of the kernel)
     $(error Error)
@@ -363,6 +370,8 @@ else ifeq ($(OPT_BOARD),stm32f429zi_oledboard2)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),efm32gg332f1024_polinode)
     ARCH := cortexM3_efm32gg
+else ifeq ($(OPT_BOARD),stm32f411re_nucleo)
+    ARCH := cortexM4_stm32f4
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -773,8 +782,9 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/interfaces-impl/bsp.cpp         \
-        arch/common/drivers/servo_stm32.cpp
+        arch/common/drivers/stm32_hardware_rng.cpp   \
+        arch/common/drivers/servo_stm32.cpp          \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32F4DISCOVERY 
@@ -804,6 +814,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        arch/common/drivers/stm32_hardware_rng.cpp   \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -837,6 +848,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        arch/common/drivers/stm32_hardware_rng.cpp   \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -867,6 +879,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        arch/common/drivers/stm32_hardware_rng.cpp   \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -880,6 +893,39 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## error message saying that 'make program' is not supported for that
         ## board.
         PROGRAM_CMDLINE := stm32flash -w main.bin -v /dev/ttyUSB1
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f411re_nucleo
+    ##
+    else ifeq ($(OPT_BOARD),stm32f411re_nucleo)
+
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM4_stm32f4/stm32f411re_nucleo
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_512k+128k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32F411RE_NUCLEO
+        CXXFLAGS_BASE += -D_BOARD_STM32F411RE_NUCLEO
+        
+        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
+        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_84MHz=84000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -918,7 +964,6 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/drivers/serial_stm32.cpp                     \
-    arch/common/drivers/stm32_hardware_rng.cpp               \
     arch/common/drivers/dcc.cpp                              \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \

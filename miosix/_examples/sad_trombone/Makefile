@@ -1,7 +1,7 @@
 ##
 ## Makefile for Miosix embedded OS
 ##
-MAKEFILE_VERSION := 1.05
+MAKEFILE_VERSION := 1.06
 ## Path to kernel directory (edited by init_project_out_of_git_repo.pl)
 KPATH := miosix
 ## Path to config directory (edited by init_project_out_of_git_repo.pl)

@@ -2,6 +2,7 @@ Changelog for Miosix np embedded OS
 
 
 v2.01
+- Added new board: stm32f411re_nucleo
 - Added timeconversion.cpp/.h as the first step towards high resolution
   timers
 - Added new board: efm32gg332f1024_polinode
