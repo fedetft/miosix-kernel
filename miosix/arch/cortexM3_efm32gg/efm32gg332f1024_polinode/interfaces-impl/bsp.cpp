@@ -77,7 +77,9 @@ void IRQbspInit()
     transceiver::gpio1::mode(Mode::OUTPUT_LOW);
     transceiver::gpio2::mode(Mode::OUTPUT_LOW);
     transceiver::excChB::mode(Mode::OUTPUT_LOW);
+    #if WANDSTEM_HW_REV<13
     transceiver::gpio4::mode(Mode::OUTPUT_LOW);
+    #endif
     transceiver::stxon::mode(Mode::OUTPUT_LOW);
     
     flash::cs::mode(Mode::OUTPUT_HIGH);
