@@ -177,7 +177,8 @@ void FilesystemBase::newFileOpened() { atomicAdd(&openFileCount,1); }
 void FilesystemBase::fileCloseHook()
 {
     #ifdef WITH_ERRLOG
-    assert(atomicAddExchange(&openFileCount,-1)>=0);
+    int result=atomicAddExchange(&openFileCount,-1);
+    assert(result>=0);
     #else //WITH_ERRLOG
     atomicAdd(&openFileCount,-1);
     #endif //WITH_ERRLOG
