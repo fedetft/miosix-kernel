@@ -123,6 +123,7 @@
                       <in>stm32f401xe.h</in>
                       <in>stm32f405xx.h</in>
                       <in>stm32f407xx.h</in>
+                      <in>stm32f411xe.h</in>
                       <in>stm32f415xx.h</in>
                       <in>stm32f417xx.h</in>
                       <in>stm32f427xx.h</in>
@@ -442,6 +443,16 @@
                 <in>bsp_impl.h</in>
               </df>
             </df>
+            <df name="stm32f411re_nucleo">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>arch_registers_impl.h</in>
+                <in>bsp.cpp</in>
+                <in>bsp_impl.h</in>
+              </df>
+            </df>
             <df name="stm32f429zi_oledboard2">
               <df name="core">
                 <in>stage_1_boot.cpp</in>
@@ -524,6 +535,9 @@
                 <in>board_settings.h</in>
               </df>
               <df name="stm32f407vg_stm32f4discovery">
+                <in>board_settings.h</in>
+              </df>
+              <df name="stm32f411re_nucleo">
                 <in>board_settings.h</in>
               </df>
               <df name="stm32f429zi_oledboard2">
