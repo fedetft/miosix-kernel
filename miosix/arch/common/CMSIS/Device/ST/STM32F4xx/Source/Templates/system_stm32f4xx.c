@@ -129,6 +129,13 @@
 #define PLL_N      336
 #define PLL_P      2
 #define PLL_Q      7
+#elif defined(SYSCLK_FREQ_100MHz)
+#define PLL_N      200
+#define PLL_P      2
+// Warning: this output will be 40MHz due to PLL limitations instead of 48MHz.
+// This means that the SDIO and RNG will run approximatively 17% slower and
+// that the USB peripheral WILL NOT WORK as it requires a precise 48MHz
+#define PLL_Q      5
 #elif defined(SYSCLK_FREQ_84MHz)
 #define PLL_N      336
 #define PLL_P      4
@@ -168,6 +175,8 @@
 uint32_t SystemCoreClock = 180000000;
 #elif defined(SYSCLK_FREQ_168MHz)
 uint32_t SystemCoreClock = 168000000;
+#elif defined(SYSCLK_FREQ_100MHz)
+uint32_t SystemCoreClock = 100000000;
 #elif defined(SYSCLK_FREQ_84MHz)
 uint32_t SystemCoreClock = 84000000;
 #else

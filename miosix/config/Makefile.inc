@@ -152,6 +152,7 @@ ifeq ($(OPT_BOARD),stm32f407vg_stm32f4discovery)
 
     ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
     CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
+    #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_100MHz=100000000
     #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_84MHz=84000000
 
 endif
@@ -260,8 +261,9 @@ ifeq ($(OPT_BOARD),stm32f429zi_stm32f4discovery)
     ## the PLL, it is not possible to generate a precise 48MHz output when
     ## running the core at 180MHz. If 180MHz is chosen the USB peripheral will
     ## NOT WORK and the SDIO and RNG will run ~6% slower (45MHz insteand of 48)
-    CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
     #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_180MHz=180000000
+    CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
+    #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_100MHz=100000000
 endif
 
 ##---------------------------------------------------------------------------
@@ -317,7 +319,11 @@ endif
 ## stm32f411re_nucleo
 ##
 
-# No options
+ifeq ($(OPT_BOARD),stm32f411re_nucleo)
+    # Select clock frequency
+    CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_100MHz=100000000
+    #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_84MHz=84000000
+endif
 
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
@@ -915,9 +921,6 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32F411RE_NUCLEO
         CXXFLAGS_BASE += -D_BOARD_STM32F411RE_NUCLEO
-        
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_84MHz=84000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
