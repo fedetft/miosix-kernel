@@ -66,24 +66,34 @@ void IRQbspInit()
     loopback32KHzIn::mode(Mode::INPUT);
     loopback32KHzOut::mode(Mode::OUTPUT);
     
+    #if WANDSTEM_HW_REV>=13
+    voltageSelect::mode(Mode::OUTPUT_LOW); //Default VDD=2.3V
+    #endif
+    
     internalSpi::mosi::mode(Mode::OUTPUT_LOW);
-    internalSpi::miso::mode(Mode::INPUT_PULL_DOWN); //To avoid floating
+    internalSpi::miso::mode(Mode::INPUT_PULL_DOWN);   //To prevent it floating
     internalSpi::sck::mode(Mode::OUTPUT_LOW);
     
-    transceiver::cs::mode(Mode::OUTPUT_HIGH);
+    transceiver::cs::mode(Mode::OUTPUT_LOW);
     transceiver::reset::mode(Mode::OUTPUT_LOW);
     transceiver::vregEn::mode(Mode::OUTPUT_LOW);
-    transceiver::gpio1::mode(Mode::OUTPUT_LOW);
-    transceiver::gpio1::mode(Mode::OUTPUT_LOW);
-    transceiver::gpio2::mode(Mode::OUTPUT_LOW);
-    transceiver::excChB::mode(Mode::OUTPUT_LOW);
+    transceiver::gpio1::mode(Mode::INPUT_PULL_DOWN);  //To prevent it floating
+    transceiver::gpio2::mode(Mode::INPUT_PULL_DOWN);  //To prevent it floating
+    transceiver::excChB::mode(Mode::INPUT_PULL_DOWN); //To prevent it floating
     #if WANDSTEM_HW_REV<13
-    transceiver::gpio4::mode(Mode::OUTPUT_LOW);
+    transceiver::gpio4::mode(Mode::INPUT_PULL_DOWN);  //To prevent it floating
     #endif
     transceiver::stxon::mode(Mode::OUTPUT_LOW);
     
-    flash::cs::mode(Mode::OUTPUT_HIGH);
-    flash::hold::mode(Mode::OUTPUT_HIGH);
+    #if WANDSTEM_HW_REV>10
+    //Flash is gated, keeping low prevents current from flowing in gated domain
+    flash::cs::mode(Mode::OUTPUT_LOW);
+    flash::hold::mode(Mode::OUTPUT_LOW);
+    #else
+    //Flash not power gated in earlier boards
+    flash::cs::mode(Mode::OUTPUT_LOW);
+    flash::hold::mode(Mode::OUTPUT_LOW);
+    #endif
     
     currentSense::enable::mode(Mode::OUTPUT_LOW);
     //currentSense sense pin remains disabled as it is an analog channel

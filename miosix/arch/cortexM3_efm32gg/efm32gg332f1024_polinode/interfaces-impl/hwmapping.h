@@ -107,7 +107,7 @@ namespace transceiver {
 //a timer input capture and output compare channel for precise packet timing
 typedef Gpio<GPIOA_BASE,2>  cs;
 typedef Gpio<GPIOF_BASE,5>  reset;
-typedef Gpio<GPIOF_BASE,12> vregEn;
+typedef Gpio<GPIOF_BASE,12> vregEn; //Also power switch enable
 typedef Gpio<GPIOE_BASE,13> gpio1;
 typedef Gpio<GPIOE_BASE,14> gpio2;
 typedef Gpio<GPIOA_BASE,8>  excChB; //including SFD and FRM_DONE
