@@ -91,8 +91,8 @@ void IRQbspInit()
     flash::hold::mode(Mode::OUTPUT_LOW);
     #else
     //Flash not power gated in earlier boards
-    flash::cs::mode(Mode::OUTPUT_LOW);
-    flash::hold::mode(Mode::OUTPUT_LOW);
+    flash::cs::mode(Mode::OUTPUT_HIGH);
+    flash::hold::mode(Mode::OUTPUT_HIGH);
     #endif
     
     currentSense::enable::mode(Mode::OUTPUT_LOW);
