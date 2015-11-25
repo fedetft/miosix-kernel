@@ -132,8 +132,12 @@ public:
     {
         // Simply making an intrusive_ref_ptr from this works as the reference
         // count is intrusive
+        #ifndef __NO_EXCEPTIONS
         T* result=dynamic_cast<T*>(this);
         assert(result);
+        #else //__NO_EXCEPTIONS
+        T* result=static_cast<T*>(this);
+        #endif //__NO_EXCEPTIONS
         return intrusive_ref_ptr<T>(result);
     }
     
@@ -145,8 +149,12 @@ public:
     {
         // Simply making an intrusive_ref_ptr from this works as the reference
         // count is intrusive
+        #ifndef __NO_EXCEPTIONS
         const T* result=dynamic_cast<const T*>(this);
         assert(result);
+        #else //__NO_EXCEPTIONS
+        const T* result=static_cast<const T*>(this);
+        #endif //__NO_EXCEPTIONS
         return intrusive_ref_ptr<const T>(result);
     }
     

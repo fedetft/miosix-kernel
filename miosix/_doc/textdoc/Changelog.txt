@@ -2,6 +2,8 @@ Changelog for Miosix np embedded OS
 
 
 v2.01
+- Fixed bug in intrusive.h which caused compiler errors when building with
+  exceptions and RTTI disabled
 - Added new board: stm32f411re_nucleo
 - Added timeconversion.cpp/.h as the first step towards high resolution
   timers
