@@ -8,6 +8,14 @@ KPATH := miosix
 CONFPATH := $(KPATH)
 include $(CONFPATH)/config/Makefile.inc
 
+ifeq ("$(BUILD_VERBOSE)","1")
+Q := @
+ECHO := @echo
+else
+Q := 
+ECHO := @true
+endif
+
 ##
 ## List here subdirectories which contains makefiles
 ##
@@ -79,17 +87,20 @@ main: main.elf
 	$(SZ) main.elf
 
 main.elf: $(OBJ) all-recursive
-	@ echo "linking"
-	$(CXX) $(LFLAGS) -o main.elf $(OBJ) $(KPATH)/$(BOOT_FILE) $(LINK_LIBS)
+	$(ECHO) "[LD]   main.elf"
+	$(Q)$(CXX) $(LFLAGS) -o main.elf $(OBJ) $(KPATH)/$(BOOT_FILE) $(LINK_LIBS)
 
 %.o: %.s
-	$(AS)  $(AFLAGS) $< -o $@
+	$(ECHO) "[AS]   $<" 
+	$(Q)$(AS)  $(AFLAGS) $< -o $@
 
 %.o : %.c
-	$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
+	$(ECHO) "[CC]   $<" 
+	$(Q)$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
-	$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
+	$(ECHO) "[CXX]  $<" 
+	$(Q)$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
 
 #pull in dependecy info for existing .o files
 -include $(OBJ:.o=.d)

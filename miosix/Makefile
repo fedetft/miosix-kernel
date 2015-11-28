@@ -6,6 +6,14 @@ MAKEFILE_VERSION := 1.04
 ## KPATH and CONFPATH are forwarded by the parent Makefile
 include $(CONFPATH)/config/Makefile.inc
 
+ifeq ("$(BUILD_VERBOSE)","1")
+Q :=
+ECHO := @true
+else
+Q := @
+ECHO := @echo
+endif
+
 ## List of all Miosix OS source files that have no special requirements
 ## and that must be built for each architecture (both .c and .cpp)
 ## These files will end up in libmiosix.a
@@ -63,21 +71,26 @@ DFLAGS    := -MMD -MP
 ## The file stage_1_boot.o is compiled separately because
 ## it must not end up in libmiosix.a
 all: $(OBJ) $(BOOT_FILE)
-	perl _tools/check_global_objects.pl $(OBJ)
-	$(AR) rcs libmiosix.a $(OBJ)
+	$(ECHO) "[PERL] Checking global objects"
+	$(Q)perl _tools/check_global_objects.pl $(OBJ)
+	$(ECHO) "[AR]   libmiosix.a"
+	$(Q)$(AR) rcs libmiosix.a $(OBJ)
 
 clean:
 	-rm -f $(OBJ) $(BOOT_FILE) libmiosix.a $(OBJ:.o=.d)
 	-rm -f $(BOOT_FILE:.o=.d)
 
 %.o: %.s
-	$(AS)  $(AFLAGS) $< -o $@
+	$(ECHO) "[AS]   $<"
+	$(Q)$(AS)  $(AFLAGS) $< -o $@
 
 %.o : %.c
-	$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
+	$(ECHO) "[CC]   $<"
+	$(Q)$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
-	$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
+	$(ECHO) "[CXX]  $<"
+	$(Q)$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
 
 #pull in dependecy info for existing .o files
 -include $(OBJ:.o=.d)
