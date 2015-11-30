@@ -1,19 +1,19 @@
 ##
 ## Makefile for Miosix embedded OS
 ##
-MAKEFILE_VERSION := 1.06
+MAKEFILE_VERSION := 1.07
 ## Path to kernel directory (edited by init_project_out_of_git_repo.pl)
 KPATH := miosix
 ## Path to config directory (edited by init_project_out_of_git_repo.pl)
 CONFPATH := $(KPATH)
 include $(CONFPATH)/config/Makefile.inc
 
-ifeq ("$(BUILD_VERBOSE)","1")
-Q := @
-ECHO := @echo
-else
+ifeq ("$(VERBOSE)","1")
 Q := 
 ECHO := @true
+else
+Q := @
+ECHO := @echo
 endif
 
 ##
@@ -82,24 +82,26 @@ clean-topdir:
 	-rm -f $(OBJ) main.elf main.hex main.bin main.map $(OBJ:.o=.d)
 
 main: main.elf
-	$(CP) -O ihex   main.elf main.hex
-	$(CP) -O binary main.elf main.bin
-	$(SZ) main.elf
+	$(ECHO) "[CP  ] main.hex"
+	$(Q)$(CP) -O ihex   main.elf main.hex
+	$(ECHO) "[CP  ] main.bin"
+	$(Q)$(CP) -O binary main.elf main.bin
+	$(Q)$(SZ) main.elf
 
 main.elf: $(OBJ) all-recursive
-	$(ECHO) "[LD]   main.elf"
+	$(ECHO) "[LD  ] main.elf"
 	$(Q)$(CXX) $(LFLAGS) -o main.elf $(OBJ) $(KPATH)/$(BOOT_FILE) $(LINK_LIBS)
 
 %.o: %.s
-	$(ECHO) "[AS]   $<" 
+	$(ECHO) "[AS  ] $<"
 	$(Q)$(AS)  $(AFLAGS) $< -o $@
 
 %.o : %.c
-	$(ECHO) "[CC]   $<" 
+	$(ECHO) "[CC  ] $<"
 	$(Q)$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
-	$(ECHO) "[CXX]  $<" 
+	$(ECHO) "[CXX ] $<"
 	$(Q)$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
 
 #pull in dependecy info for existing .o files

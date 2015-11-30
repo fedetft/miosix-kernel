@@ -2,11 +2,11 @@
 ## Makefile for Miosix embedded OS
 ## This makefile builds the whole kernel
 ##
-MAKEFILE_VERSION := 1.06
+MAKEFILE_VERSION := 1.07
 ## KPATH and CONFPATH are forwarded by the parent Makefile
 include $(CONFPATH)/config/Makefile.inc
 
-ifeq ("$(BUILD_VERBOSE)","1")
+ifeq ("$(VERBOSE)","1")
 Q :=
 ECHO := @true
 else
@@ -74,7 +74,7 @@ DFLAGS    := -MMD -MP
 all: $(OBJ) $(BOOT_FILE)
 	$(ECHO) "[PERL] Checking global objects"
 	$(Q)perl _tools/check_global_objects.pl $(OBJ)
-	$(ECHO) "[AR]   libmiosix.a"
+	$(ECHO) "[AR  ] libmiosix.a"
 	$(Q)$(AR) rcs libmiosix.a $(OBJ)
 
 clean:
@@ -82,15 +82,15 @@ clean:
 	-rm -f $(BOOT_FILE:.o=.d)
 
 %.o: %.s
-	$(ECHO) "[AS]   $<"
+	$(ECHO) "[AS  ] $<"
 	$(Q)$(AS)  $(AFLAGS) $< -o $@
 
 %.o : %.c
-	$(ECHO) "[CC]   $<"
+	$(ECHO) "[CC  ] $<"
 	$(Q)$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
 
 %.o : %.cpp
-	$(ECHO) "[CXX]  $<"
+	$(ECHO) "[CXX ] $<"
 	$(Q)$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
 
 #pull in dependecy info for existing .o files

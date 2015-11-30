@@ -2,6 +2,9 @@ Changelog for Miosix np embedded OS
 
 
 v2.01
+- Committed patch from Alain <carpikemail@gmail.com> to make build output more
+  readable. Detailed compiler options are still available building with
+  "make VERBOSE=1"
 - Fixed bug in intrusive.h which caused compiler errors when building with
   exceptions and RTTI disabled
 - Added new board: stm32f411re_nucleo
