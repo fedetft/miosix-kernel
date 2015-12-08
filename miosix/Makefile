@@ -6,14 +6,6 @@ MAKEFILE_VERSION := 1.07
 ## KPATH and CONFPATH are forwarded by the parent Makefile
 include $(CONFPATH)/config/Makefile.inc
 
-ifeq ("$(VERBOSE)","1")
-Q :=
-ECHO := @true
-else
-Q := @
-ECHO := @echo
-endif
-
 ## List of all Miosix OS source files that have no special requirements
 ## and that must be built for each architecture (both .c and .cpp)
 ## These files will end up in libmiosix.a
@@ -55,6 +47,14 @@ util/lcd44780.cpp
 ## ARCH_SRC will contain different source files depending on which
 ## architecture/board is selected in config/Makefile.inc
 SRC += $(ARCH_SRC)
+
+ifeq ("$(VERBOSE)","1")
+Q :=
+ECHO := @true
+else
+Q := @
+ECHO := @echo
+endif
 
 ## Replaces both "foo.cpp"-->"foo.o" and "foo.c"-->"foo.o"
 OBJ := $(addsuffix .o, $(basename $(SRC)))

@@ -8,14 +8,6 @@ KPATH := miosix
 CONFPATH := $(KPATH)
 include $(CONFPATH)/config/Makefile.inc
 
-ifeq ("$(VERBOSE)","1")
-Q := 
-ECHO := @true
-else
-Q := @
-ECHO := @echo
-endif
-
 ##
 ## List here subdirectories which contains makefiles
 ##
@@ -40,6 +32,14 @@ INCLUDE_DIRS :=
 ##############################################################################
 ## You should not need to modify anything below                             ##
 ##############################################################################
+
+ifeq ("$(VERBOSE)","1")
+Q := 
+ECHO := @true
+else
+Q := @
+ECHO := @echo
+endif
 
 ## Replaces both "foo.cpp"-->"foo.o" and "foo.c"-->"foo.o"
 OBJ := $(addsuffix .o, $(basename $(SRC)))
