@@ -23,7 +23,7 @@
  *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
- ***************************************************************************/ 
+ ***************************************************************************/
  //Miosix kernel
 
 #include "interfaces/portability.h"
@@ -305,22 +305,23 @@ void IRQportableStartKernel()
     NVIC_SetPriority(SysTick_IRQn,3);//High priority for SysTick (Max=0, min=15)
     NVIC_SetPriority(MemoryManagement_IRQn,2);//Higher priority for MemoryManagement (Max=0, min=15)
     SysTick->LOAD=SystemCoreClock/miosix::TICK_FREQ;
-    //Start SysTick, set to generate interrupts
     SysTick->CTRL=SysTick_CTRL_ENABLE_Msk | SysTick_CTRL_TICKINT_Msk |
             SysTick_CTRL_CLKSOURCE_Msk;
-
     #ifdef WITH_PROCESSES
     miosix::IRQenableMPUatBoot();
     #endif //WITH_PROCESSES
     #ifdef SCHED_TYPE_CONTROL_BASED
     AuxiliaryTimer::IRQinit();
     #endif //SCHED_TYPE_CONTROL_BASED
-    
+
     //create a temporary space to save current registers. This data is useless
     //since there's no way to stop the sheduler, but we need to save it anyway.
     unsigned int s_ctxsave[miosix::CTXSAVE_SIZE];
     ctxsave=s_ctxsave;//make global ctxsave point to it
-    //Note, we can't use enableInterrupts() now since the call is not mathced
+}
+
+void IRQportableFinishKernelStartup(){
+	//Note, we can't use enableInterrupts() now since the call is not mathced
     //by a call to disableInterrupts()
     __enable_fault_irq();
     __enable_irq();

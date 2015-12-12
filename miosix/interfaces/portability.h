@@ -237,9 +237,30 @@ void IRQstackOverflowCheck();
 /**
  * \internal
  * Called by miosix::start_kernel to handle the architecture-specific part of
- * initialization. It is used by the kernel, and should not be used by end users
+ * initialization. It is used by the kernel, and should not be used by end users.
+ * It is ensured that the miosix::kernel_started flag false during the execution
+ * of this function. Upon return, miosix::kernel_started is set to be true and
+ * IRQportableFinishKernelStartup is called immediately.
+ * A motivation for this flow could be that it allows running of general purpose
+ * driver classes that would be ran either before or after start of the kernel.
+ * Probably these drivers may need to disable interrupts using InterruptDisableLock
+ * in the case that they are initialized after kernel's startup, while using
+ * InterruptDisableLock is error-prone when the kernel_started flag is true and
+ * the kernel is not fully started yet.
  */
 void IRQportableStartKernel();
+
+/**
+ * \internal
+ * This function is called right after IRQportableStartKernel by
+ * miosix::start_kernel. The miosix::kernel_started is set to true at this
+ * stage.
+ * A typical behaviour that's expected is to :
+ * 1) Enable falut IRQ
+ * 2) Enable IRQs
+ * 3) miosix::Thread::yield();
+ */
+void IRQportableFinishKernelStartup();
 
 /**
  * \internal

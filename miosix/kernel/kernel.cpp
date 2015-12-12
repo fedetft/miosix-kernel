@@ -72,7 +72,7 @@ volatile int kernel_running=0;
 ///\internal true if a tick occurs while the kernel is paused
 volatile bool tick_skew=false;
 
-static bool kernel_started=false;///<\internal becomes true after startKernel.
+bool kernel_started=false;///<\internal becomes true after startKernel.
 
 /// This is used by disableInterrupts() and enableInterrupts() to allow nested
 /// calls to these functions.
@@ -198,10 +198,11 @@ void startKernel()
     setCReentrancyCallback(Thread::getCReent);
     
     // Now kernel is started
-    kernel_started=true;
-    
+
     // Dispatch the task to the architecture-specific function
     miosix_private::IRQportableStartKernel();
+    kernel_started=true;
+    miosix_private::IRQportableFinishKernelStartup();
 }
 
 bool isKernelRunning()
@@ -341,7 +342,7 @@ bool Thread::testTerminate()
     //Just reading, no need for critical section
     return const_cast<Thread*>(cur)->flags.isDeleting();
 }
-	
+
 void Thread::sleep(unsigned int ms)
 {
     if(ms==0) return;
@@ -452,7 +453,7 @@ void Thread::wait()
     Thread::yield();
     //Return here after wakeup
 }
-	
+
 void Thread::wakeup()
 {
     //pausing the kernel is not enough because of IRQwait and IRQwakeup
