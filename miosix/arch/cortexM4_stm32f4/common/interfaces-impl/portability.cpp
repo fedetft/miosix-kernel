@@ -38,6 +38,8 @@
 #include <cstdio>
 #include <cstring>
 #include <cassert>
+#include "interfaces/cstimer.h"
+//#define CNTX_SWITCH_USE_SYSTICK
 
 /**
  * \internal
@@ -49,10 +51,12 @@
 void SysTick_Handler()   __attribute__((naked));
 void SysTick_Handler()
 {
+#ifdef CNTX_SWITCH_USE_SYSTICK
     saveContext();
     //Call ISR_preempt(). Name is a C++ mangled name.
     asm volatile("bl _ZN14miosix_private11ISR_preemptEv");
     restoreContext();
+#endif
 }
 
 /**
@@ -304,9 +308,13 @@ void IRQportableStartKernel()
     NVIC_SetPriority(SVCall_IRQn,3);//High priority for SVC (Max=0, min=15)
     NVIC_SetPriority(SysTick_IRQn,3);//High priority for SysTick (Max=0, min=15)
     NVIC_SetPriority(MemoryManagement_IRQn,2);//Higher priority for MemoryManagement (Max=0, min=15)
+#ifdef CNTX_SWITCH_USE_SYSTICK
     SysTick->LOAD=SystemCoreClock/miosix::TICK_FREQ;
     SysTick->CTRL=SysTick_CTRL_ENABLE_Msk | SysTick_CTRL_TICKINT_Msk |
             SysTick_CTRL_CLKSOURCE_Msk;
+#else //USE ContextSwitchTimer class (TIM2)
+    miosix::ContextSwitchTimer::instance();
+#endif
     #ifdef WITH_PROCESSES
     miosix::IRQenableMPUatBoot();
     #endif //WITH_PROCESSES

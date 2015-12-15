@@ -9,7 +9,7 @@ namespace miosix{
         long long getNextInterrupt();
         /**
          * Could be call both when the interrupts are enabled/disabled!
-         * @return 
+         * @return the current tick count of the timer
          */
         long long getCurrentTick();
         virtual ~ContextSwitchTimer();
