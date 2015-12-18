@@ -7,7 +7,7 @@ using namespace miosix;
 
 static long long cst_ms32time = 0; //most significant 32 bits of counter
 static long long cst_ms32chkp = 0; //most significant 32 bits of check point
-static volatile bool cst_chkProcessed;
+static bool lateIrq=false;
 static long long cst_prevChk;
 
 #define CST_QUANTOM 84000
@@ -29,17 +29,14 @@ ContextSwitchTimer::ContextSwitchTimer() {
         InterruptDisableLock idl;
         RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
         RCC_SYNC();
+        DBGMCU->APB1FZ|=DBGMCU_APB1_FZ_DBG_TIM2_STOP; //Tim2 stops while debugging
     }
     /*
      * Setup TIM2 base configuration
      * Mode: Up-counter
      * Interrupts: counter overflow, Compare/Capture on channel 1
      */
-    TIM2->CR1=0;
-    TIM2->CCR1=0;
-    TIM2->CCR2=0;
-    TIM2->CCR3=0;
-    TIM2->CCR4=0;
+    TIM2->CR1=TIM_CR1_URS;
     TIM2->DIER=TIM_DIER_UIE | TIM_DIER_CC1IE;
     NVIC_SetPriority(TIM2_IRQn,3);
     NVIC_EnableIRQ(TIM2_IRQn);
@@ -91,8 +88,11 @@ long long ContextSwitchTimer::getCurrentTick() {
 void ContextSwitchTimer::setNextInterrupt(long long tick) {
     cst_ms32chkp = tick & 0xFFFFFFFF00000000;
     TIM2->CCR1 = (uint32_t)(tick & 0xFFFFFFFF);
-    cst_chkProcessed = false;
-    //if (getCurrentTick() > getNextInterrupt()) IRQbootlog("TIM2 - CHECK POINT SET IN THE PAST\r\n");
+    if (getCurrentTick() > getNextInterrupt())
+    {
+        NVIC_SetPendingIRQ(TIM2_IRQn);
+        lateIrq=true;
+    }
 }
 
 long long ContextSwitchTimer::getNextInterrupt(){
@@ -101,19 +101,19 @@ long long ContextSwitchTimer::getNextInterrupt(){
 
 void __attribute__((used)) cstirqhnd(){
     //IRQbootlog("TIM2-IRQ\r\n");
-    if (TIM2->SR & TIM_SR_CC1IF){
+    if (TIM2->SR & TIM_SR_CC1IF || lateIrq){
         //Checkpoint met
         //The interrupt flag must be cleared unconditionally whether we are in the
         //correct epoch or not otherwise the interrupt will happen even in unrelated
         //epochs and slowing down the whole system.
         TIM2->SR = ~TIM_SR_CC1IF;
-        if(cst_ms32time==cst_ms32chkp){
+        if(cst_ms32time==cst_ms32chkp || lateIrq){
+            lateIrq=false;
             //Set next checkpoint interrupt
             ////cst_prevChk += CST_QUANTOM;
             ////ContextSwitchTimer::instance().setNextInterrupt(cst_prevChk);
             ContextSwitchTimer::instance().setNextInterrupt(
                 ContextSwitchTimer::instance().getCurrentTick() + CST_QUANTOM);
-            cst_chkProcessed = true;
             //Call preempt routine
             miosix_private::ISR_preempt();
         }
@@ -123,11 +123,7 @@ void __attribute__((used)) cstirqhnd(){
     //On the initial update SR = UIF (ONLY)
     if (TIM2->SR & TIM_SR_UIF){
         TIM2->SR = ~TIM_SR_UIF; //w0 clear
-        if (TIM2->SR & TIM_SR_CC2IF){
-            TIM2->SR = ~TIM_SR_CC2IF;
-            //IRQbootlog(" (ROLLOVER) \r\n");
-            cst_ms32time += 0x100000000;
-        }
+        cst_ms32time += 0x100000000;
     }
 }
 
