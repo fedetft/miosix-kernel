@@ -2,7 +2,7 @@
 ## Makefile for Miosix embedded OS
 ## This makefile builds the whole kernel
 ##
-MAKEFILE_VERSION := 1.07
+MAKEFILE_VERSION := 1.08
 ## KPATH and CONFPATH are forwarded by the parent Makefile
 include $(CONFPATH)/config/Makefile.inc
 
@@ -76,7 +76,7 @@ OBJ := $(addprefix $(OBJDIR)/$(OPT_BOARD)/, $(addsuffix .o, $(basename $(SRC))))
 all: $(OBJ) $(BOOT_FILE)
 	$(ECHO) "[PERL] Checking global objects"
 	$(Q)perl _tools/check_global_objects.pl $(OBJ)
-	$(ECHO) "[AR  ] libmiosix.a"
+	$(ECHO) "[AR]   libmiosix.a"
 	$(Q)mkdir -p $(OUTDIR)/$(OPT_BOARD)
 	$(Q)$(AR) rcs $(OUTDIR)/$(OPT_BOARD)/libmiosix.a $(OBJ)
 
@@ -85,17 +85,17 @@ clean:
 	-rm -f $(BOOT_FILE:.o=.d)
 
 $(OBJDIR)/$(OPT_BOARD)/%.o: %.s
-	$(ECHO) "[AS  ] $<"
+	$(ECHO) "[AS]   $<"
 	$(Q)mkdir -p $(dir $@)
 	$(Q)$(AS)  $(AFLAGS) $< -o $@
 
 $(OBJDIR)/$(OPT_BOARD)/%.o : %.c
-	$(ECHO) "[CC  ] $<"
+	$(ECHO) "[CC]   $<"
 	$(Q)mkdir -p $(dir $@)
 	$(Q)$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
 
 $(OBJDIR)/$(OPT_BOARD)/%.o : %.cpp
-	$(ECHO) "[CXX ] $<"
+	$(ECHO) "[CXX]  $<"
 	$(Q)mkdir -p $(dir $@)
 	$(Q)$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
 
