@@ -56,8 +56,8 @@ AFLAGS   := $(AFLAGS_BASE)
 LFLAGS   := $(LFLAGS_BASE)
 DFLAGS   := -MMD -MP
 
-LINK_LIBS := $(LIBS) -L$(KPATH) -Wl,--start-group -lmiosix -lstdc++ -lc \
-             -lm -lgcc -Wl,--end-group
+LINK_LIBS := $(LIBS) -L$(KPATH)/bin/$(OPT_BOARD) -Wl,--start-group -lmiosix   \
+			-lstdc++ -lc -lm -lgcc -Wl,--end-group
 
 all: all-recursive main
 
