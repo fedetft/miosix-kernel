@@ -1,16 +1,21 @@
 #include "miosix.h"
 #include "interfaces/cstimer.h"
 #include "interfaces/portability.h"
+#include "kernel/kernel.h"
 #include "kernel/logging.h"
 #include <cstdlib>
 using namespace miosix;
+namespace miosix{
+void IRQaddToSleepingList(SleepData *x);
+extern SleepData *sleeping_list;
+}
 
 static long long cst_ms32time = 0; //most significant 32 bits of counter
 static long long cst_ms32chkp = 0; //most significant 32 bits of check point
 static bool lateIrq=false;
-static long long cst_prevChk;
+static SleepData csRecord;
 
-#define CST_QUANTOM 84000
+#define CST_QUANTOM 84000*4
 #define CST_ROLLOVER_INT (TIM2->SR & TIM_SR_UIF) && (TIM2->SR & TIM_SR_CC2IF)
 
 namespace miosix_private{
@@ -58,8 +63,12 @@ ContextSwitchTimer::ContextSwitchTimer() {
      * Other initializations
      */
     // Set the first checkpoint interrupt
-    cst_prevChk = CST_QUANTOM;
-    setNextInterrupt(cst_prevChk);
+    csRecord.p = 0;
+    csRecord.wakeup_time = CST_QUANTOM;
+    csRecord.next = sleeping_list;
+    sleeping_list = &csRecord;
+    setNextInterrupt(CST_QUANTOM);
+    //IRQaddToSleepingList(&csRecord); //Recursive Initialization error
     // Enable TIM2 Counter
     cst_ms32time = 0;
     TIM2->EGR = TIM_EGR_UG; //To enforce the timer to apply PSC (and other non-immediate settings)
@@ -109,12 +118,34 @@ void __attribute__((used)) cstirqhnd(){
         TIM2->SR = ~TIM_SR_CC1IF;
         if(cst_ms32time==cst_ms32chkp || lateIrq){
             lateIrq=false;
+            long long tick = ContextSwitchTimer::instance().getCurrentTick();
             //Set next checkpoint interrupt
             ////cst_prevChk += CST_QUANTOM;
             ////ContextSwitchTimer::instance().setNextInterrupt(cst_prevChk);
-            ContextSwitchTimer::instance().setNextInterrupt(
-                ContextSwitchTimer::instance().getCurrentTick() + CST_QUANTOM);
-            //Call preempt routine
+            //ContextSwitchTimer::instance().setNextInterrupt(
+            //    ContextSwitchTimer::instance().getCurrentTick() + CST_QUANTOM);
+            
+            //Add next context switch time to the sleeping list iff this is a
+            //context switch
+            
+            if (tick > csRecord.wakeup_time){
+                //Remove the cs item from the sleeping list manually
+                if (sleeping_list==&csRecord)
+                    sleeping_list=sleeping_list->next;
+                SleepData* slp = sleeping_list;
+                while (slp!=NULL){
+                    if (slp->next==&csRecord){
+                        slp->next=slp->next->next;
+                        break;
+                    }
+                    slp = slp->next;
+                }
+                //Add next cs item to the list via IRQaddToSleepingList
+                //Note that the next timer interrupt is set by IRQaddToSleepingList
+                //according to the head of the list!
+                csRecord.wakeup_time += CST_QUANTOM;
+                IRQaddToSleepingList(&csRecord); //It would also set the next timer interrupt
+            }
             miosix_private::ISR_preempt();
         }
 

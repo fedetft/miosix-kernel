@@ -497,7 +497,7 @@ public:
      * CANNOT be called when the kernel is paused.
      */
     static void sleep(unsigned int ms);
-    
+    static void nanoSleep(unsigned int ns);
     /**
      * Put the thread to sleep until the specified absolute time is reached.
      * If the time is in the past, returns immediately.
@@ -521,7 +521,7 @@ public:
      * CANNOT be called when the kernel is paused.
      */
     static void sleepUntil(long long absoluteTime);
-
+    static void nanoSleepUntil(long long absoluteTime);
     /**
      * Return a pointer to the Thread class of the current thread.
      * \return a pointer to the current thread.
@@ -718,7 +718,19 @@ private:
     //Unwanted methods
     Thread(const Thread& p);///< No public copy constructor
     Thread& operator = (const Thread& p);///< No publc operator =
-
+    /**
+     * This is the base function for adding a thread to the sleeping list.
+     * Other functions such as nanoSleep, sleep and sleepUntil are base on
+     * appropriate calls to tickSleepUntil.
+     * To both keep maintainability and fast response, it is implemented as an
+     * inline function. It's better for the caller to put this call in the end
+     * of its code flow as tickSleepUntil would make the thread to yield.
+     * @param absTicks: For a tickless kernel (i.e. it uses an external aperiodic
+     * timer) absTicks is in terms of aperiodic timer tick otherwise it is in
+     * terms of kernel's tick!
+     */
+    static void tickSleepUntil(long long absTicks);
+    
     class ThreadFlags
     {
     public:
