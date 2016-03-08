@@ -28,7 +28,7 @@
 #OPT_BOARD := stm32f103cb_als_mainboard_rev2
 #OPT_BOARD := stm32f100cb_tempsensor
 #OPT_BOARD := stm32f429zi_oledboard2
-#OPT_BOARD := efm32gg332f1024_polinode
+#OPT_BOARD := efm32gg332f1024_wandstem
 #OPT_BOARD := stm32f411re_nucleo
 
 ##
@@ -310,7 +310,7 @@ ifeq ($(OPT_BOARD),stm32f429zi_oledboard2)
 endif
 
 ##---------------------------------------------------------------------------
-## efm32gg332f1024_polinode
+## efm32gg332f1024_wandstem
 ##
 
 # No options
@@ -374,7 +374,7 @@ else ifeq ($(OPT_BOARD),stm32f100cb_tempsensor)
     ARCH := cortexM3_stm32
 else ifeq ($(OPT_BOARD),stm32f429zi_oledboard2)
     ARCH := cortexM4_stm32f4
-else ifeq ($(OPT_BOARD),efm32gg332f1024_polinode)
+else ifeq ($(OPT_BOARD),efm32gg332f1024_wandstem)
     ARCH := cortexM3_efm32gg
 else ifeq ($(OPT_BOARD),stm32f411re_nucleo)
     ARCH := cortexM4_stm32f4
@@ -1264,11 +1264,11 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
     ARCH_INC := arch/cortexM3_efm32gg/common
 
     ##-------------------------------------------------------------------------
-    ## BOARD: efm32gg332f1024_polinode
+    ## BOARD: efm32gg332f1024_wandstem
     ##
-    ifeq ($(OPT_BOARD),efm32gg332f1024_polinode)
+    ifeq ($(OPT_BOARD),efm32gg332f1024_wandstem)
         ## Base directory with header files for this board
-        BOARD_INC := arch/cortexM3_efm32gg/efm32gg332f1024_polinode
+        BOARD_INC := arch/cortexM3_efm32gg/efm32gg332f1024_wandstem
 
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
@@ -1281,7 +1281,7 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -DEFM32GG332F1024 -D_BOARD_POLINODE
+        CFLAGS_BASE   += -DEFM32GG332F1024 -D_BOARD_WANDSTEM
         CXXFLAGS_BASE += $(CFLAGS_BASE)
 
         ## Clock frequency

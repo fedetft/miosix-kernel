@@ -29,9 +29,9 @@
 #define	HWMAPPING_H
 
 #include "interfaces/gpio.h"
+#include "board_settings.h"
 
-//Select hardware revision (10=1.0, 11=1.1, ...)
-#define WANDSTEM_HW_REV 10
+//NOTE: WANDSTEM_HW_REV is now defined in board_settings.h
 
 namespace miosix {
 

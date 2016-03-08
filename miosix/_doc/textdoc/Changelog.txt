@@ -2,6 +2,7 @@ Changelog for Miosix np embedded OS
 
 
 v2.01
+- Renamed board codenamed "polinode" to its final name "wandstem"
 - Committed patch from Alain <carpikemail@gmail.com> to make build output more
   readable. Detailed compiler options are still available building with
   "make VERBOSE=1"

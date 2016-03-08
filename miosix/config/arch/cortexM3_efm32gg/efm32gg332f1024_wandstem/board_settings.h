@@ -36,6 +36,13 @@
  */
 #define BOARD_SETTINGS_VERSION 100
 
+/**
+ * Select hardware revision (10=1.0, 11=1.1, ...).
+ * Different versions of the board were built, with minor differences in GPIO
+ * usage. Default is currently the latest one, which is v1.3
+ */
+#define WANDSTEM_HW_REV 13
+
 namespace miosix {
 
 /**
