@@ -145,7 +145,7 @@ void __attribute__((used)) I2SdmaHandlerImpl()
                 DMA_HIFCR_CTEIF5  |
                 DMA_HIFCR_CDMEIF5 |
                 DMA_HIFCR_CFEIF5;
-	bq->IRQbufferEmptied();
+	bq->bufferEmptied();
 	IRQdmaRefill();
 	waiting->IRQwakeup();
 	if(waiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
@@ -357,7 +357,7 @@ void Player::play(Sound& sound)
     {
         FastInterruptDisableLock dLock;
         //Enable DMA1 and SPI3/I2S3
-        RCC->AHB1ENR |= RCC_AHB1EiNR_DMA1EN;
+        RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN;
         RCC_SYNC();
         RCC->APB1ENR |= RCC_APB1ENR_SPI3EN;
         RCC_SYNC();
