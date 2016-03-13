@@ -204,7 +204,7 @@ void bspInit2()
 {
     #ifdef WITH_FILESYSTEM
     intrusive_ref_ptr<DevFs> devFs=basicFilesystemSetup(SDIODriver::instance());
-    devFs->addDevice("/dev/gps",
+    devFs->addDevice("gps",
         intrusive_ref_ptr<Device>(new STM32Serial(2,9600)));
     #endif //WITH_FILESYSTEM
 }
