@@ -271,9 +271,7 @@
           <df name="cortexM4_stm32f4">
             <df name="common">
               <df name="interfaces-impl">
-                <in>atomic_ops_impl.h</in>
                 <in>delays.cpp</in>
-                <in>endianness_impl.h</in>
                 <in>gpio_impl.cpp</in>
                 <in>gpio_impl.h</in>
                 <in>portability.cpp</in>
@@ -315,6 +313,15 @@
                 <in>arch_registers_impl.h</in>
                 <in>bsp.cpp</in>
                 <in>bsp_impl.h</in>
+                <in>hwmapping.h</in>
+              </df>
+            </df>
+            <df name="stm32f429zi_skyward_anakin">
+              <df name="core">
+                <in>stage_1_boot.cpp</in>
+              </df>
+              <df name="interfaces-impl">
+                <in>bsp.cpp</in>
                 <in>hwmapping.h</in>
               </df>
             </df>
@@ -406,12 +413,16 @@
             <in>scheduler.h</in>
             <in>tick_interrupt.h</in>
           </df>
+          <in>SystemMap.cpp</in>
+          <in>elf_program.cpp</in>
           <in>error.cpp</in>
           <in>error.h</in>
           <in>intrusive.h</in>
           <in>kernel.cpp</in>
           <in>kernel.h</in>
           <in>logging.h</in>
+          <in>process.cpp</in>
+          <in>process_pool.cpp</in>
           <in>pthread.cpp</in>
           <in>pthread_private.h</in>
           <in>queue.h</in>
@@ -419,6 +430,7 @@
           <in>stage_2_boot.h</in>
           <in>sync.cpp</in>
           <in>sync.h</in>
+          <in>timeconversion.cpp</in>
         </df>
         <df name="stdlib_integration">
           <in>libc_integration.cpp</in>
@@ -916,19 +928,9 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/atomic_ops_impl.h"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/delays.cpp"
             ex="false"
             tool="1"
-            flavor2="0">
-      </item>
-      <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/endianness_impl.h"
-            ex="false"
-            tool="3"
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/gpio_impl.cpp"
@@ -977,6 +979,11 @@
             flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/interfaces-impl/bsp_impl.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
             ex="false"
             tool="3"
             flavor2="0">
@@ -1347,6 +1354,11 @@
             <pElem>../miosix</pElem>
           </incDir>
         </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
       </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
             ex="false"
@@ -1896,6 +1908,11 @@
       <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_stm3210e-eval/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
@@ -2513,6 +2530,11 @@
             tool="1"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
             ex="false"
             tool="1"
@@ -3078,6 +3100,11 @@
             tool="1"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
             ex="false"
             tool="1"
@@ -3589,6 +3616,11 @@
       <item path="../miosix/arch/cortexM3_stm32/stm32f103ve_strive_mini/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
@@ -4204,6 +4236,11 @@
       <item path="../miosix/arch/cortexM3_stm32/stm32f103ze_redbull_v2/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
@@ -4840,6 +4877,11 @@
       <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
@@ -5489,6 +5531,11 @@
           </incDir>
         </ccTool>
       </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
             ex="false"
             tool="1"
@@ -6114,6 +6161,11 @@
           </incDir>
         </ccTool>
       </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
             ex="false"
             tool="1"
@@ -6658,6 +6710,11 @@
             tool="1"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
             ex="false"
             tool="1"
@@ -7131,6 +7188,11 @@
       <item path="../miosix/arch/cortexM3_stm32l1/stm32l151c8_als_mainboard/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
@@ -7659,6 +7721,11 @@
       <item path="../miosix/arch/cortexM4_stm32f4/stm32f407vg_bitsboard/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
@@ -8259,6 +8326,11 @@
           </incDir>
         </ccTool>
       </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
             ex="false"
             tool="1"
@@ -8761,6 +8833,11 @@
             <pElem>../miosix/arch/common</pElem>
           </incDir>
         </ccTool>
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
       </item>
       <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery/core/stage_1_boot.cpp"
             ex="false"
@@ -9391,6 +9468,11 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
             ex="false"
             tool="1"
@@ -9869,6 +9951,11 @@
             ex="false"
             tool="1"
             flavor2="9">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
       </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
             ex="false"
@@ -10421,6 +10508,11 @@
             tool="3"
             flavor2="0">
       </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
+            flavor2="0">
+      </item>
       <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery/core/stage_1_boot.cpp"
             ex="false"
             tool="1"
@@ -10933,9 +11025,6 @@
         <dependencyChecking>false</dependencyChecking>
         <rebuildPropChanged>false</rebuildPropChanged>
       </toolsSet>
-      <flagsDictionary>
-        <element flagsID="0" commonFlags="-std=c89"/>
-      </flagsDictionary>
       <codeAssistance>
       </codeAssistance>
       <makefileType>
@@ -11051,6 +11140,11 @@
       <item path="../miosix/arch/cortexM3_efm32gg/efm32gg332f1024_wandstem/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
@@ -11552,9 +11646,6 @@
         <dependencyChecking>false</dependencyChecking>
         <rebuildPropChanged>false</rebuildPropChanged>
       </toolsSet>
-      <flagsDictionary>
-        <element flagsID="0" commonFlags="-std=c89"/>
-      </flagsDictionary>
       <codeAssistance>
       </codeAssistance>
       <makefileType>
@@ -11738,6 +11829,11 @@
       <item path="../miosix/arch/cortexM4_stm32f4/stm32f411re_nucleo/interfaces-impl/bsp.cpp"
             ex="false"
             tool="1"
+            flavor2="0">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/hwmapping.h"
+            ex="false"
+            tool="3"
             flavor2="0">
       </item>
       <item path="../miosix/filesystem/console/console_device.cpp"
@@ -12355,6 +12451,462 @@
           <incDir>
             <pElem>../miosix/util</pElem>
           </incDir>
+        </ccTool>
+      </folder>
+    </conf>
+    <conf name="stm32f429zi_skyward_anakin" type="0">
+      <toolsSet>
+        <compilerSet>ARM_MIOSIX_EABI|GNU</compilerSet>
+        <dependencyChecking>false</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <flagsDictionary>
+        <element flagsID="0" commonFlags="-O2 -g"/>
+        <element flagsID="1" commonFlags="-std=gnu++11 -O2"/>
+      </flagsDictionary>
+      <codeAssistance>
+      </codeAssistance>
+      <makefileType>
+        <makeTool>
+          <buildCommandWorkingDir>..</buildCommandWorkingDir>
+          <buildCommand>${MAKE} -f Makefile</buildCommand>
+          <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
+          <executablePath>../main.elf</executablePath>
+          <cTool>
+            <incDir>
+              <pElem>../miosix</pElem>
+              <pElem>../miosix/config/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+              <pElem>../miosix/arch/common</pElem>
+              <pElem>../miosix/arch/cortexM4_stm32f4/common</pElem>
+              <pElem>../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+            </incDir>
+            <preprocessorList>
+              <Elem>COMPILING_MIOSIX</Elem>
+              <Elem>HSE_VALUE=25000000</Elem>
+              <Elem>SYSCLK_FREQ_180MHz=180000000</Elem>
+              <Elem>_ARCH_CORTEXM4_STM32F4</Elem>
+              <Elem>_BOARD_STM32F429ZI_SKYWARD_ANAKIN</Elem>
+              <Elem>_MIOSIX_BOARDNAME="stm32f429zi_skyward_anakin"</Elem>
+            </preprocessorList>
+            <undefinedList>
+              <Elem>__SOFTFP__</Elem>
+            </undefinedList>
+          </cTool>
+          <ccTool>
+            <standard>8</standard>
+            <preprocessorList>
+              <Elem>_ARCH_CORTEXM4_STM32F4</Elem>
+              <Elem>_BOARD_STM32F429ZI_SKYWARD_ANAKIN</Elem>
+            </preprocessorList>
+            <undefinedList>
+              <Elem>__SOFTFP__</Elem>
+            </undefinedList>
+          </ccTool>
+        </makeTool>
+      </makefileType>
+      <item path="../main.cpp" ex="false" tool="1" flavor2="8">
+        <ccTool flags="1">
+          <incDir>
+            <pElem>../miosix</pElem>
+            <pElem>../miosix/config/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+            <pElem>..</pElem>
+            <pElem>../miosix/arch/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>HSE_VALUE=25000000</Elem>
+            <Elem>SYSCLK_FREQ_180MHz=180000000</Elem>
+            <Elem>_MIOSIX_BOARDNAME="stm32f429zi_skyward_anakin"</Elem>
+          </preprocessorList>
+        </ccTool>
+      </item>
+      <item path="../miosix/arch/common/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c"
+            ex="false"
+            tool="0"
+            flavor2="2">
+      </item>
+      <item path="../miosix/arch/common/core/interrupts_cortexMx.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/arch/common/drivers/dcc.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/arch/common/drivers/sd_stm32f2_f4.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/arch/common/drivers/serial_stm32.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/arch/common/drivers/stm32_hardware_rng.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/delays.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/gpio_impl.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/common/interfaces-impl/portability.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/core/stage_1_boot.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin/interfaces-impl/bsp.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery/core/stage_1_boot.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery/interfaces-impl/bsp.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/e20/e20.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="../miosix/filesystem/console/console_device.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/filesystem/devfs/devfs.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/filesystem/fat32/ccsbcs.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/filesystem/fat32/diskio.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/filesystem/fat32/fat32.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/filesystem/fat32/ff.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="../miosix/filesystem/fat32/wtoupper.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/filesystem/file.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="../miosix/filesystem/file_access.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/filesystem/mountpointfs/mountpointfs.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/filesystem/stringpart.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/kernel/SystemMap.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="../miosix/kernel/elf_program.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="../miosix/kernel/error.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="../miosix/kernel/kernel.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="../miosix/kernel/process.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="../miosix/kernel/process_pool.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="../miosix/kernel/pthread.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="../miosix/kernel/scheduler/control/control_scheduler.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/kernel/scheduler/edf/edf_scheduler.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/kernel/scheduler/priority/priority_scheduler.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/kernel/stage_2_boot.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="../miosix/kernel/sync.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="../miosix/kernel/timeconversion.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/stdlib_integration/libc_integration.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/stdlib_integration/libstdcpp_integration.cpp"
+            ex="false"
+            tool="1"
+            flavor2="8">
+      </item>
+      <item path="../miosix/util/crc16.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="../miosix/util/lcd44780.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="../miosix/util/unicode.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="../miosix/util/util.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="../miosix/util/version.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <folder path="0/miosix">
+        <ccTool>
+          <preprocessorList>
+            <Elem>COMPILING_MIOSIX</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/miosix/arch/common">
+        <ccTool>
+          <incDir>
+            <pElem>../miosix</pElem>
+            <pElem>../miosix/config/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+            <pElem>../miosix/arch/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>HSE_VALUE=25000000</Elem>
+            <Elem>SYSCLK_FREQ_180MHz=180000000</Elem>
+            <Elem>_MIOSIX_BOARDNAME="stm32f429zi_skyward_anakin"</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/miosix/arch/cortexM4_stm32f4/common">
+        <ccTool>
+          <incDir>
+            <pElem>../miosix</pElem>
+            <pElem>../miosix/config/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+            <pElem>../miosix/arch/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>HSE_VALUE=25000000</Elem>
+            <Elem>SYSCLK_FREQ_180MHz=180000000</Elem>
+            <Elem>_MIOSIX_BOARDNAME="stm32f429zi_skyward_anakin"</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/core">
+        <ccTool>
+          <incDir>
+            <pElem>../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/core</pElem>
+            <pElem>../miosix/arch/common/CMSIS/Include</pElem>
+            <pElem>../miosix/arch/common/CMSIS/Device/ST/STM32F4xx/Include</pElem>
+            <pElem>../miosix/arch/common/core</pElem>
+            <pElem>../miosix</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="0/miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/interfaces-impl">
+        <ccTool>
+          <incDir>
+            <pElem>../miosix/kernel</pElem>
+            <pElem>../miosix/arch/common/CMSIS/Include</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/common/interfaces-impl</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/interfaces-impl</pElem>
+            <pElem>../miosix/filesystem</pElem>
+            <pElem>/opt/arm-miosix-eabi/arm-miosix-eabi/include/c++/4.7.3/arm-miosix-eabi/thumb/cm4/hardfp/fpv4/bits</pElem>
+            <pElem>../miosix/arch/common/CMSIS/Device/ST/STM32F4xx/Include</pElem>
+            <pElem>../miosix/filesystem/console</pElem>
+            <pElem>../miosix/arch/common/drivers</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery</pElem>
+            <pElem>../miosix/config</pElem>
+            <pElem>../miosix/kernel/scheduler/control</pElem>
+            <pElem>../miosix/interfaces</pElem>
+            <pElem>../miosix</pElem>
+            <pElem>../miosix/arch/common</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="0/miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin">
+        <ccTool>
+          <incDir>
+            <pElem>../miosix</pElem>
+            <pElem>../miosix/config/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+            <pElem>../miosix/arch/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>HSE_VALUE=25000000</Elem>
+            <Elem>SYSCLK_FREQ_180MHz=180000000</Elem>
+            <Elem>_MIOSIX_BOARDNAME="stm32f429zi_skyward_anakin"</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/miosix/arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery">
+        <ccTool>
+          <preprocessorList>
+            <Elem>PARSING_FROM_IDE</Elem>
+            <Elem>SYSCLK_FREQ_168MHz</Elem>
+            <Elem>__ENABLE_XRAM</Elem>
+            <Elem>__VFP_FP__</Elem>
+          </preprocessorList>
+          <undefinedList>
+            <Elem>__SOFTFP__</Elem>
+          </undefinedList>
+        </ccTool>
+      </folder>
+      <folder path="0/miosix/arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery/core">
+        <ccTool>
+          <incDir>
+            <pElem>../miosix/arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery/core</pElem>
+            <pElem>../miosix/arch/common/CMSIS/Include</pElem>
+            <pElem>../miosix/arch/common/CMSIS/Device/ST/STM32F4xx/Include</pElem>
+            <pElem>../miosix/arch/common/core</pElem>
+            <pElem>../miosix</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="0/miosix/arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery/interfaces-impl">
+        <ccTool>
+          <incDir>
+            <pElem>../miosix/kernel</pElem>
+            <pElem>../miosix/arch/common/CMSIS/Include</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/common/interfaces-impl</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery/interfaces-impl</pElem>
+            <pElem>../miosix/filesystem</pElem>
+            <pElem>/opt/arm-miosix-eabi/arm-miosix-eabi/include/c++/4.7.3/arm-miosix-eabi/thumb/cm4/hardfp/fpv4/bits</pElem>
+            <pElem>../miosix/arch/common/CMSIS/Device/ST/STM32F4xx/Include</pElem>
+            <pElem>../miosix/filesystem/console</pElem>
+            <pElem>../miosix/arch/common/drivers</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery</pElem>
+            <pElem>../miosix/config</pElem>
+            <pElem>../miosix/kernel/scheduler/control</pElem>
+            <pElem>../miosix/interfaces</pElem>
+            <pElem>../miosix</pElem>
+            <pElem>../miosix/arch/common</pElem>
+          </incDir>
+        </ccTool>
+      </folder>
+      <folder path="0/miosix/e20">
+        <ccTool>
+          <incDir>
+            <pElem>../miosix</pElem>
+            <pElem>../miosix/config/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+            <pElem>../miosix/arch/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>HSE_VALUE=25000000</Elem>
+            <Elem>SYSCLK_FREQ_180MHz=180000000</Elem>
+            <Elem>_MIOSIX_BOARDNAME="stm32f429zi_skyward_anakin"</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/miosix/filesystem">
+        <ccTool>
+          <incDir>
+            <pElem>../miosix</pElem>
+            <pElem>../miosix/config/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+            <pElem>../miosix/arch/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>HSE_VALUE=25000000</Elem>
+            <Elem>SYSCLK_FREQ_180MHz=180000000</Elem>
+            <Elem>_MIOSIX_BOARDNAME="stm32f429zi_skyward_anakin"</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/miosix/kernel">
+        <ccTool>
+          <incDir>
+            <pElem>../miosix</pElem>
+            <pElem>../miosix/config/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+            <pElem>../miosix/arch/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>HSE_VALUE=25000000</Elem>
+            <Elem>SYSCLK_FREQ_180MHz=180000000</Elem>
+            <Elem>_MIOSIX_BOARDNAME="stm32f429zi_skyward_anakin"</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/miosix/stdlib_integration">
+        <ccTool>
+          <incDir>
+            <pElem>../miosix</pElem>
+            <pElem>../miosix/config/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+            <pElem>../miosix/arch/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>HSE_VALUE=25000000</Elem>
+            <Elem>SYSCLK_FREQ_180MHz=180000000</Elem>
+            <Elem>_MIOSIX_BOARDNAME="stm32f429zi_skyward_anakin"</Elem>
+          </preprocessorList>
+        </ccTool>
+      </folder>
+      <folder path="0/miosix/util">
+        <ccTool>
+          <incDir>
+            <pElem>../miosix</pElem>
+            <pElem>../miosix/config/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+            <pElem>../miosix/arch/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/common</pElem>
+            <pElem>../miosix/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
+          </incDir>
+          <preprocessorList>
+            <Elem>HSE_VALUE=25000000</Elem>
+            <Elem>SYSCLK_FREQ_180MHz=180000000</Elem>
+            <Elem>_MIOSIX_BOARDNAME="stm32f429zi_skyward_anakin"</Elem>
+          </preprocessorList>
         </ccTool>
       </folder>
     </conf>

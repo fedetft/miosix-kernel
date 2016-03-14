@@ -191,7 +191,18 @@ void IRQbspInit()
     RCC_SYNC();
     #endif //__ENABLE_XRAM
     
-    _led::mode(Mode::OUTPUT);
+    leds::led0::mode(Mode::OUTPUT);
+    leds::led1::mode(Mode::OUTPUT);
+    leds::led2::mode(Mode::OUTPUT);
+    leds::led3::mode(Mode::OUTPUT);
+    leds::led4::mode(Mode::OUTPUT);
+    leds::led5::mode(Mode::OUTPUT);
+    leds::led6::mode(Mode::OUTPUT);
+    leds::led7::mode(Mode::OUTPUT);
+    leds::led8::mode(Mode::OUTPUT);
+    leds::led9::mode(Mode::OUTPUT);
+    
+
     ledOn();
     delayMs(100);
     ledOff();
