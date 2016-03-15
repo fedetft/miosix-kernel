@@ -72,7 +72,6 @@ void Reset_Handler()
     //Put after SystemInit() as SDRAM is timing-sensitive and needs the full
     //clock speed.
     #ifdef __ENABLE_XRAM
-#error "FIXME: set RAM timings for anakin"
     miosix::configureSdram();
     #endif //__ENABLE_XRAM
     

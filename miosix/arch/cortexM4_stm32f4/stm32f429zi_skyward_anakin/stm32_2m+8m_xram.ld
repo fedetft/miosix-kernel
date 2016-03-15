@@ -1,5 +1,5 @@
 /*
- * C++ enabled linker script for stm32 (2M FLASH, 256K RAM, 16M XRAM)
+ * C++ enabled linker script for stm32 (2M FLASH, 256K RAM, 8M XRAM)
  * Developed by TFT: Terraneo Federico Technologies
  * Optimized for use with the Miosix kernel
  */
@@ -62,7 +62,7 @@ MEMORY
      */
     smallram(wx) : ORIGIN = 0x10000200, LENGTH =  64K-0x200 
     largeram(wx) : ORIGIN = 0x20000000, LENGTH = 192K
-    xram(wx)     : ORIGIN = 0xd0000000, LENGTH =  16M
+    xram(wx)     : ORIGIN = 0xd0000000, LENGTH =   8M
 }
 
 /* now define the output sections  */

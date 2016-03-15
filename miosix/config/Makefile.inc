@@ -340,13 +340,13 @@ ifeq ($(OPT_BOARD),stm32f429zi_skyward_anakin)
     ## 2) Code in FLASH, stack + heap in external RAM (file *16m_xram.ld)
     ##    You must uncomment -D__ENABLE_XRAM below in this case.
     LINKER_SCRIPT_PATH := arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery/
-    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+256k_rom.ld
-    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+16m_xram.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+256k_rom.ld
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+8m_xram.ld
 
     ## Uncommenting __ENABLE_XRAM enables the initialization of the external
     ## 8MB SDRAM memory. Do not uncomment this even if you don't use a linker
     ## script that requires it, as it is used for the LCD framebuffer.
-    #XRAM := -D__ENABLE_XRAM
+    XRAM := -D__ENABLE_XRAM
     
     ## Select clock frequency.
     ## Warning: due to a limitation in the PLL, it is not possible to generate
