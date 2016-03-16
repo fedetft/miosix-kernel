@@ -72,8 +72,6 @@ void configureSdram()
                     RCC_AHB1ENR_GPIOGEN | RCC_AHB1ENR_GPIOHEN;
     RCC_SYNC();
     
-#warning "SDRAM timings for anakin are still experimental, not production grade"
-    
     //First, configure SDRAM GPIOs
     GPIOB->AFR[0]=0x0cc00000;
     GPIOC->AFR[0]=0x0000000c;
@@ -120,7 +118,7 @@ void configureSdram()
                        | FMC_SDCR1_NR_0   // 12 bit row address
                        | FMC_SDCR1_MWID_0 // 16 bit data bus
                        | FMC_SDCR1_NB     //  4 banks
-                       | FMC_SDCR1_CAS_1; //  2 cycle CAS latency (F<111MHz) TODO: check rise time on board, see note 9 page 21
+                       | FMC_SDCR1_CAS_1; //  2 cycle CAS latency (TCK>9+0.5ns [1])
     
     #ifdef SYSCLK_FREQ_180MHz
     //One SDRAM clock cycle is 11.1ns
@@ -129,7 +127,7 @@ void configureSdram()
     FMC_Bank5_6->SDTR[0]=(6-1)<<12        // 6 cycle TRC  (66.6ns>60ns)
                        | (2-1)<<20;       // 2 cycle TRP  (22.2ns>18ns)
     FMC_Bank5_6->SDTR[1]=(2-1)<<0         // 2 cycle TMRD
-                       | (6-1)<<4         // 6 cycle TXSR (66.6ns>61.5ns) TODO: check rise fall time note 10
+                       | (6-1)<<4         // 6 cycle TXSR (66.6ns>61.5+0.5ns [1])
                        | (4-1)<<8         // 4 cycle TRAS (44.4ns>42ns)
                        | (2-1)<<16        // 2 cycle TWR
                        | (2-1)<<24;       // 2 cycle TRCD (22.2ns>18ns)
@@ -140,34 +138,39 @@ void configureSdram()
     FMC_Bank5_6->SDTR[0]=(6-1)<<12        // 6 cycle TRC  (71.4ns>60ns)
                        | (2-1)<<20;       // 2 cycle TRP  (23.8ns>18ns)
     FMC_Bank5_6->SDTR[1]=(2-1)<<0         // 2 cycle TMRD
-                       | (6-1)<<4         // 6 cycle TXSR (71.4ns>61.5ns)
+                       | (6-1)<<4         // 6 cycle TXSR (71.4ns>61.5+0.5ns [1])
                        | (4-1)<<8         // 4 cycle TRAS (47.6ns>42ns)
                        | (2-1)<<16        // 2 cycle TWR
                        | (2-1)<<24;       // 2 cycle TRCD (23.8ns>18ns)
     #else
     #error No SDRAM timings for this clock
     #endif
+    //NOTE [1]: the timings for TCK and TIS depend on rise and fall times
+    //(see note 9 and 10 on datasheet). Timings are adjusted accordingly to
+    //the measured 2ns rise and fall time
 
     FMC_Bank5_6->SDCMR=  FMC_SDCMR_CTB2   // Enable bank 2
                        | 1;               // MODE=001 clock enabled
     sdramCommandWait();
     
-    //ST and SDRAM datasheet agree a 100us delay is required here. //TODO: check
-    delayUs(100);
+    //SDRAM datasheet requires 200us delay here (note 11), here we use 10% more
+    delayUs(220);
 
     FMC_Bank5_6->SDCMR=  FMC_SDCMR_CTB2   // Enable bank 2
                        | 2;               // MODE=010 precharge all command
     sdramCommandWait();
-    
-    FMC_Bank5_6->SDCMR=  (8-1)<<5         // NRFS=8 SDRAM datasheet says //TODO: check
-                                          // "at least two AUTO REFRESH cycles"
-                       | FMC_SDCMR_CTB2   // Enable bank 2
-                       | 3;               // MODE=011 auto refresh
-    sdramCommandWait();
 
+    //FIXME: note 11 on SDRAM datasheet says extended mode register must be set,
+    //but the ST datasheet does not seem to explain how
     FMC_Bank5_6->SDCMR=0x220<<9           // MRD=0x220:CAS latency=2 burst len=1
                        | FMC_SDCMR_CTB2   // Enable bank 2
                        | 4;               // MODE=100 load mode register
+    sdramCommandWait();
+	
+    FMC_Bank5_6->SDCMR=  (4-1)<<5         // NRFS=8 SDRAM datasheet requires
+                                          // a minimum of 2 cycles, here we use 4
+                       | FMC_SDCMR_CTB2   // Enable bank 2
+                       | 3;               // MODE=011 auto refresh
     sdramCommandWait();
 
     // 32ms/4096=7.8125us, but datasheet says to round that to 7.8us
@@ -193,17 +196,61 @@ void IRQbspInit()
     RCC_SYNC();
     #endif //__ENABLE_XRAM
     
-    leds::led0::mode(Mode::OUTPUT);
-    leds::led1::mode(Mode::OUTPUT);
-    leds::led2::mode(Mode::OUTPUT);
-    leds::led3::mode(Mode::OUTPUT);
-    leds::led4::mode(Mode::OUTPUT);
-    leds::led5::mode(Mode::OUTPUT);
-    leds::led6::mode(Mode::OUTPUT);
-    leds::led7::mode(Mode::OUTPUT);
-    leds::led8::mode(Mode::OUTPUT);
-    leds::led9::mode(Mode::OUTPUT);
+    using namespace leds;
+    led0::mode(Mode::OUTPUT);
+    led1::mode(Mode::OUTPUT);
+    led2::mode(Mode::OUTPUT);
+    led3::mode(Mode::OUTPUT);
+    led4::mode(Mode::OUTPUT);
+    led5::mode(Mode::OUTPUT);
+    led6::mode(Mode::OUTPUT);
+    led7::mode(Mode::OUTPUT);
+    led8::mode(Mode::OUTPUT);
+    led9::mode(Mode::OUTPUT);
     
+    using namespace sensors;
+    fxas21002::cs::mode(Mode::OUTPUT);
+    fxas21002::cs::high();
+    fxas21002::int1::mode(Mode::INPUT);
+    fxas21002::int2::mode(Mode::INPUT);
+    
+    lps331::cs::mode(Mode::OUTPUT);
+    lps331::cs::high();
+    lps331::int1::mode(Mode::INPUT);
+    lps331::int2::mode(Mode::INPUT);
+    
+    lsm9ds::csg::mode(Mode::OUTPUT);
+    lsm9ds::csg::high();
+    lsm9ds::csm::mode(Mode::OUTPUT);
+    lsm9ds::csm::high();
+    lsm9ds::drdyg::mode(Mode::INPUT);
+    lsm9ds::int1g::mode(Mode::INPUT);
+    lsm9ds::int1m::mode(Mode::INPUT);
+    lsm9ds::int2m::mode(Mode::INPUT);
+    
+    max21105::cs::mode(Mode::OUTPUT);
+    max21105::cs::high();
+    max21105::int1::mode(Mode::INPUT);
+    max21105::int2::mode(Mode::INPUT);
+    
+    max31856::cs::mode(Mode::OUTPUT);
+    max31856::cs::high();
+    max31856::drdy::mode(Mode::INPUT);
+    max31856::fault::mode(Mode::INPUT);
+    
+    mpl3115::int1::mode(Mode::INPUT);
+    mpl3115::int2::mode(Mode::INPUT);
+    
+    mpu9250::cs::mode(Mode::OUTPUT);
+    mpu9250::cs::high();
+    mpu9250::int1::mode(Mode::INPUT);
+    
+    ms5803::cs::mode(Mode::OUTPUT);
+    ms5803::cs::high();
+    
+    eth::cs::mode(Mode::OUTPUT);
+    eth::cs::high();
+    eth::int1::mode(Mode::INPUT);
 
     ledOn();
     delayMs(100);
