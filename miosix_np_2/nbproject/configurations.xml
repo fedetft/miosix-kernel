@@ -12461,8 +12461,7 @@
         <rebuildPropChanged>false</rebuildPropChanged>
       </toolsSet>
       <flagsDictionary>
-        <element flagsID="0" commonFlags="-O2 -g"/>
-        <element flagsID="1" commonFlags="-std=gnu++11 -O2"/>
+        <element flagsID="0" commonFlags="-std=gnu++11 -O2"/>
       </flagsDictionary>
       <codeAssistance>
       </codeAssistance>
@@ -12505,7 +12504,7 @@
         </makeTool>
       </makefileType>
       <item path="../main.cpp" ex="false" tool="1" flavor2="8">
-        <ccTool flags="1">
+        <ccTool flags="0">
           <incDir>
             <pElem>../miosix</pElem>
             <pElem>../miosix/config/arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin</pElem>
