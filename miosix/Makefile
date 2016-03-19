@@ -41,7 +41,8 @@ util/util.cpp                                                              \
 util/unicode.cpp                                                           \
 util/version.cpp                                                           \
 util/crc16.cpp                                                             \
-util/lcd44780.cpp
+util/lcd44780.cpp                                                          \
+kernel/IRQDisplayPrint.cpp
 
 ## Add the architecture dependand sources to the list of files to build.
 ## ARCH_SRC will contain different source files depending on which
@@ -62,9 +63,9 @@ OBJ := $(addsuffix .o, $(basename $(SRC)))
 ## Includes the miosix base directory for C/C++
 ## Always include CONFPATH first, as it overrides the config file location
 CXXFLAGS := $(CXXFLAGS_BASE) -I$(CONFPATH) -I$(CONFPATH)/config/$(BOARD_INC)  \
-            -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC) -DCOMPILING_MIOSIX
+            -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC) -DCOMPILING_MIOSIX -I../mxgui
 CFLAGS   := $(CFLAGS_BASE)   -I$(CONFPATH) -I$(CONFPATH)/config/$(BOARD_INC)  \
-            -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC) -DCOMPILING_MIOSIX
+            -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC) -DCOMPILING_MIOSIX -I../mxgui
 AFLAGS   := $(AFLAGS_BASE)
 DFLAGS    := -MMD -MP
 
