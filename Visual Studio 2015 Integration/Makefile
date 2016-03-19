@@ -143,6 +143,13 @@ ifeq ($(USE_DEL_TO_CLEAN),1)
 else
 	rm -rf $(BINARYDIR)
 endif
+
+clean-recursive:
+	$(foreach i,$(RECURSIVE_BUILD_SUBDIRS),$(MAKE) -C $(i)											\
+	  KPATH=$(shell perl $(MIOSIX_KERNEL_PATH)/_tools/relpath.pl $(i) $(MIOSIX_KERNEL_PATH))		\
+	  CONFPATH=$(shell perl $(MIOSIX_KERNEL_PATH)/_tools/relpath.pl $(i) $(MIOSIX_KERNEL_PATH))		\
+	  OPT_OPTIMIZATION=$(OPT_OPTIMIZATION)															\
+	  clean || exit 1;)
 	
 print-includes:
 	$(info Add the following folders to includes in VS to get IntelliSense working:)
