@@ -124,11 +124,11 @@ all_make_files := $(firstword $(MAKEFILE_LIST)) $(CONFIGURATION_FLAGS_FILE) $(AD
 all: build-recursive build-program size-stats
 
 build-recursive:
-	$(foreach i,$(RECURSIVE_BUILD_SUBDIRS),$(MAKE) -C $(i)               \
-	  KPATH=$(shell perl $(MIOSIX_KERNEL_PATH)/_tools/relpath.pl $(i) $(MIOSIX_KERNEL_PATH))       \
+	$(foreach i,$(RECURSIVE_BUILD_SUBDIRS),($(MAKE) -C $(i) \
+	  KPATH=$(shell perl $(MIOSIX_KERNEL_PATH)/_tools/relpath.pl $(i) $(MIOSIX_KERNEL_PATH)) \
 	  CONFPATH=$(shell perl $(MIOSIX_KERNEL_PATH)/_tools/relpath.pl $(i) $(MIOSIX_KERNEL_PATH)) \
 	  OPT_OPTIMIZATION=$(OPT_OPTIMIZATION) \
-	  || exit 1;)
+	  || exit 1) &&) @echo Recursive build of subdirs done
 
 build-program: $(PRIMARY_OUTPUTS)
 	
@@ -145,11 +145,10 @@ else
 endif
 
 clean-recursive:
-	$(foreach i,$(RECURSIVE_BUILD_SUBDIRS),$(MAKE) -C $(i)											\
-	  KPATH=$(shell perl $(MIOSIX_KERNEL_PATH)/_tools/relpath.pl $(i) $(MIOSIX_KERNEL_PATH))		\
-	  CONFPATH=$(shell perl $(MIOSIX_KERNEL_PATH)/_tools/relpath.pl $(i) $(MIOSIX_KERNEL_PATH))		\
-	  OPT_OPTIMIZATION=$(OPT_OPTIMIZATION)															\
-	  clean || exit 1;)
+	$(foreach i,$(RECURSIVE_BUILD_SUBDIRS),($(MAKE) -C $(i) \
+	  KPATH=$(shell perl $(MIOSIX_KERNEL_PATH)/_tools/relpath.pl $(i) $(MIOSIX_KERNEL_PATH)) \
+	  CONFPATH=$(shell perl $(MIOSIX_KERNEL_PATH)/_tools/relpath.pl $(i) $(MIOSIX_KERNEL_PATH)) \
+	  clean || exit 1) &&) @echo Recursive clean of subdirs done
 	
 print-includes:
 	$(info Add the following folders to includes in VS to get IntelliSense working:)
