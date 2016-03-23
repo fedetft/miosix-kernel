@@ -145,7 +145,8 @@ void restartKernel()
     //are disabled with an InterruptDisableLock
     if(interruptDisableNesting==0)
     {
-        if(old==0 && tick_skew) //If we missed some tick yield immediately
+        //If we missed some tick yield immediately
+        if(old==1 && tick_skew)
         { 
             tick_skew=false;
             Thread::yield();
@@ -180,12 +181,13 @@ void startKernel()
     }
     
     // Add them to the scheduler
-    Scheduler::IRQsetIdleThread(idle);
     if(Scheduler::PKaddThread(main,MAIN_PRIORITY)==false)
     {
         errorHandler(UNEXPECTED);
         return;
     }
+    // Idle thread needs to be set after main (see control_scheduler.cpp)
+    Scheduler::IRQsetIdleThread(idle);
     
     //Now kernel is started
     kernel_started=true;

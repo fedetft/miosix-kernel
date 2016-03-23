@@ -1,6 +1,11 @@
 Changelog for Miosix np embedded OS
 
-
+- Fixed two bugs in kernel.cpp related to the control scheduler. 1. The idle
+  thread needs to be set after the main one. 2. The yield on tick skew in
+  restartKernel() was not functioning after the code was rewritten using atomic
+  operations. The control scheduler heavily relies on this, because if the burst
+  of the current thread finishes while the kernel is paused, preemption can only
+  occur here, as the control scheduler does not perform periodic preemption.
 - Added skyward's anakin board
 
 v2.01
