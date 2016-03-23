@@ -28,13 +28,12 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <boost/regex.hpp>
+#include <regex>
 #include "fdstream.h"
 #include <unistd.h>
 #include <sys/wait.h>
 
 using namespace std;
-using namespace boost;
 
 int main()
 {

@@ -140,7 +140,7 @@ class basic_fdostream: public std::basic_ostream<charT, Traits> {
 public:
   basic_fdostream(int fd, bool manage = true): std::basic_ostream<charT, Traits>(0),
                                                buf(fd, manage) { // pass the descriptor at construction
-    rdbuf(&buf);
+    this->rdbuf(&buf);
   }
   basic_fdostream(): std::basic_ostream<charT, Traits>(0) {      // attach the descriptor later
     rdbuf(&buf);
@@ -187,7 +187,7 @@ class basic_fdistream : public std::basic_istream<charT, Traits> {
 public:
   basic_fdistream (int fd, bool manage = true) : std::basic_istream<charT, Traits>(0),
                                                  buf(fd, manage) { // pass the descriptor at construction
-    rdbuf(&buf);
+    this->rdbuf(&buf);
   }
   basic_fdistream () : std::basic_istream<charT, Traits>(0) {      // attach the descriptor later
     rdbuf(&buf);

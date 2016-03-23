@@ -4,13 +4,14 @@
 
 target remote :3333
 
-monitor soft_reset_halt
-load
+# monitor soft_reset_halt
+# load
+monitor reset halt
 
 # Breakpoint must be put on line that sets Tr to zero,
 # so after external regulator has run but before internal
 # regulator has run
-break control_scheduler.h:188
+break control_scheduler.h:203
 c
 
 # Select variables to watch
