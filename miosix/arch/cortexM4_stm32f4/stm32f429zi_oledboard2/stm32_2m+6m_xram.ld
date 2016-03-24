@@ -51,7 +51,7 @@ _main_stack_size = 0x00000200;                     /* main stack = 512Bytes */
 _main_stack_top  = 0x10000000 + _main_stack_size;
 ASSERT(_main_stack_size   % 8 == 0, "MAIN stack size error");
 
-/* Mapping the heap into the large 192KB RAM */
+/* Mapping the heap into XRAM */
 _heap_end = 0xd0600000;                            /* end of available ram  */
 
 /* identify the Entry Point  */
