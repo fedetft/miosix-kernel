@@ -47,7 +47,7 @@ _main_stack_top  = 0x10000000 + _main_stack_size;
 ASSERT(_main_stack_size   % 8 == 0, "MAIN stack size error");
 
 /* Mapping the heap into XRAM */
-_heap_end = 0xd1000000;                            /* end of available ram  */
+_heap_end = 0xd0800000;                            /* end of available ram  */
 
 /* identify the Entry Point  */
 ENTRY(_Z13Reset_Handlerv)
