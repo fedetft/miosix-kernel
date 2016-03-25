@@ -32,6 +32,12 @@ void tdms(int n)
 
 int main()
 {
+//    //STM32-specific: enable PLL freq to be output on PA8
+//    typedef Gpio<GPIOA_BASE,8> mco;
+//    mco::speed(Speed::_100MHz);
+//    mco::mode(Mode::ALTERNATE);
+//    mco::alternateFunction(0);
+//    RCC->CFGR |= (0x3<<21);
     int n;
     out::mode(Mode::OUTPUT);
     iprintf("Delay test\nEnter value in us\n");

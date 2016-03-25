@@ -1,5 +1,21 @@
 Changelog for Miosix np embedded OS
 
+
+v2.01
+- Renamed board codenamed "polinode" to its final name "wandstem"
+- Committed patch from Alain <carpikemail@gmail.com> to make build output more
+  readable. Detailed compiler options are still available building with
+  "make VERBOSE=1"
+- Fixed bug in intrusive.h which caused compiler errors when building with
+  exceptions and RTTI disabled
+- Added new board: stm32f411re_nucleo
+- Added timeconversion.cpp/.h as the first step towards high resolution
+  timers
+- Added new board: efm32gg332f1024_polinode
+- Added new architacture: cortexM3_efm32gg
+- Refactored endianness and atomic_ops interfaces from the individual
+  architectures to arch/common/core to prevent code duplication.
+- Added preliminary C++11 support
 v2.0
 - Added support for new board, oledboard2
 - Added support for new board, tempsensor

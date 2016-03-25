@@ -1,7 +1,7 @@
 ##
 ## Makefile for Miosix embedded OS
 ##
-MAKEFILE_VERSION := 1.04
+MAKEFILE_VERSION := 1.07
 ## Path to kernel directory (edited by init_project_out_of_git_repo.pl)
 KPATH := miosix
 ## Path to config directory (edited by init_project_out_of_git_repo.pl)
@@ -40,6 +40,14 @@ INCLUDE_DIRS :=
 ##############################################################################
 ## You should not need to modify anything below                             ##
 ##############################################################################
+
+ifeq ("$(VERBOSE)","1")
+Q := 
+ECHO := @true
+else
+Q := @
+ECHO := @echo
+endif
 
 ## Replaces both "foo.cpp"-->"foo.o" and "foo.c"-->"foo.o"
 OBJ := $(addsuffix .o, $(basename $(SRC)))
@@ -82,9 +90,11 @@ clean-topdir:
 	-rm -f $(OBJ) main.elf main.hex main.bin main.map $(OBJ:.o=.d)
 
 main: main.elf
-	$(CP) -O ihex   main.elf main.hex
-	$(CP) -O binary main.elf main.bin
-	$(SZ) main.elf
+	$(ECHO) "[CP  ] main.hex"
+	$(Q)$(CP) -O ihex   main.elf main.hex
+	$(ECHO) "[CP  ] main.bin"
+	$(Q)$(CP) -O binary main.elf main.bin
+	$(Q)$(SZ) main.elf
 
 main.elf: $(OBJ) all-recursive
 	$(ECHO) "[LD]   main.elf"

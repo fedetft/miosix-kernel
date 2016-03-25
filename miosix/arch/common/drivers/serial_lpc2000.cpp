@@ -28,6 +28,7 @@
 
 #include <cstring>
 #include <errno.h>
+#include <termios.h>
 #include "serial_lpc2000.h"
 #include "kernel/sync.h"
 #include "kernel/scheduler/scheduler.h"
@@ -211,7 +212,7 @@ int LPC2000Serial::ioctl(int cmd, void* arg)
         case IOCTL_TCGETATTR:
             t->c_iflag=IGNBRK | IGNPAR;
             t->c_oflag=0;
-            t->c_cflag=CS8 | (flowControl ? CRTSCTS : 0);
+            t->c_cflag=CS8;
             t->c_lflag=0;
             return 0;
         case IOCTL_TCSETATTR_NOW:

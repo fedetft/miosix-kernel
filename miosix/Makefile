@@ -2,7 +2,7 @@
 ## Makefile for Miosix embedded OS
 ## This makefile builds the whole kernel
 ##
-MAKEFILE_VERSION := 1.04
+MAKEFILE_VERSION := 1.07
 ## KPATH and CONFPATH are forwarded by the parent Makefile
 include $(CONFPATH)/config/Makefile.inc
 
@@ -26,6 +26,7 @@ kernel/stage_2_boot.cpp                                                    \
 kernel/elf_program.cpp                                                     \
 kernel/process.cpp                                                         \
 kernel/process_pool.cpp                                                    \
+kernel/timeconversion.cpp                                                  \
 kernel/SystemMap.cpp                                                       \
 kernel/scheduler/priority/priority_scheduler.cpp                           \
 kernel/scheduler/control/control_scheduler.cpp                             \
@@ -54,6 +55,14 @@ util/lcd44780.cpp
 ## ARCH_SRC will contain different source files depending on which
 ## architecture/board is selected in config/Makefile.inc
 SRC += $(ARCH_SRC)
+
+ifeq ("$(VERBOSE)","1")
+Q :=
+ECHO := @true
+else
+Q := @
+ECHO := @echo
+endif
 
 ## Replaces both "foo.cpp"-->"foo.o" and "foo.c"-->"foo.o"
 OBJ := $(addsuffix .o, $(basename $(SRC)))

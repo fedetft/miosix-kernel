@@ -86,6 +86,14 @@
                     <name>stm32f429zi_oledboard2</name>
                     <type>0</type>
                 </confElem>
+                <confElem>
+                    <name>efm32gg332f1024_wandstem</name>
+                    <type>0</type>
+                </confElem>
+                <confElem>
+                    <name>stm32f411re_nucleo</name>
+                    <type>0</type>
+                </confElem>
             </confList>
             <formatting>
                 <project-formatting-style>false</project-formatting-style>
