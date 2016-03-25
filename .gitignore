@@ -13,3 +13,4 @@ main.map
 # Exclude Mac OS X temporary
 ._*
 .DS_Store
+.*.swp
