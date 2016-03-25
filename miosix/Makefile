@@ -6,14 +6,6 @@ MAKEFILE_VERSION := 1.08
 ## KPATH and CONFPATH are forwarded by the parent Makefile
 include $(CONFPATH)/config/Makefile.inc
 
-ifeq ("$(BUILD_VERBOSE)","1")
-Q :=
-ECHO := @true
-else
-Q := @
-ECHO := @echo
-endif
-
 ## List of all Miosix OS source files that have no special requirements
 ## and that must be built for each architecture (both .c and .cpp)
 ## These files will end up in libmiosix.a

@@ -8,14 +8,6 @@ KPATH := miosix
 CONFPATH := $(KPATH)
 include $(CONFPATH)/config/Makefile.inc
 
-ifeq ("$(BUILD_VERBOSE)","1")
-Q := @
-ECHO := @echo
-else
-Q := 
-ECHO := @true
-endif
-
 ##
 ## List here subdirectories which contains makefiles
 ##
