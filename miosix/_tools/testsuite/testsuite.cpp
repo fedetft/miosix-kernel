@@ -705,10 +705,15 @@ static void t2_p1(void *argv)
     }
 }
 
+static void t2_p2(void *argv)
+{
+    while(Thread::testTerminate()==false) t2_v1=true;
+}
+
 static void test_2()
 {
     test_name("pause/restart kernel");
-    t2_p_v1=Thread::create(t2_p1,STACK_SMALL,0,NULL);
+    t2_p_v1=Thread::create(t2_p1,STACK_SMALL,0,NULL,Thread::JOINABLE);
     pauseKernel();//
     t2_v1=false;
     //If the kernel is stopped, t2_v1 must not be updated
@@ -730,6 +735,26 @@ static void test_2()
         if(t2_v1==false) fail("restartKernel");
     }
     t2_p_v1->terminate();
+    t2_p_v1->join();
+    
+    t2_p_v1=Thread::create(t2_p2,STACK_SMALL,0,NULL,Thread::JOINABLE);
+    for(int i=0;i<5;i++)
+    {
+        bool failed=false;
+        {
+            PauseKernelLock pk;
+            t2_v1=false;
+            delayMs(40); //40ms to surely cause a missed preemption
+            if(t2_v1==true) failed=true;
+            t2_v1=false;
+        }
+        //Here we check the variable immediately after restartKernel(), so this
+        //test will pass only if tickSkew works
+        if(t2_v1==false) fail("tickSkew in restartKernel");
+        if(failed) fail("pauseKernel");
+    }
+    t2_p_v1->terminate();
+    t2_p_v1->join();
     pass();
 }
 

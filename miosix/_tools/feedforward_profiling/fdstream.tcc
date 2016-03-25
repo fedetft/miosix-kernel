@@ -112,7 +112,7 @@ basic_fdoutbuf<charT , Traits>::overflow(int_type c) {
   // the stream must be full: empty buffer and then put c in buffer
   if (flush_buffer() == -1) return traits_type::eof();
   if (traits_type::eq_int_type(traits_type::eof(), c)) return traits_type::not_eof(c);
-  return sputc(c);
+  return this->sputc(c);
 }
 
 #ifndef FDSTREAM_USE_STD_N_READ_WRITE

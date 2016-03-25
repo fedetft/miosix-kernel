@@ -20,8 +20,8 @@ Functions and methods that begin with IRQ cannot be called outside IRQ or when
 interrupts are enabled.<br>
 When the kernel is paused, you must read the comment of the function to see if
 it can be called since there is no general rule.<br>
-Only recently (starting from Miosix 1.53) some of the functions designed to be
-called with kernel paused are marked with the PK prefix.
+Starting from Miosix 1.53 functions designed to be called with kernel paused
+are marked with the PK prefix.
 */
 
 /**
