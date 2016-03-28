@@ -857,6 +857,19 @@ void STM32Serial::waitDmaTxCompletion()
 
 void STM32Serial::writeDma(const char *buffer, size_t size)
 {
+    //Quirk: DMA messes up the TC bit, and causes waitSerialTxFifoEmpty() to
+    //return prematurely, causing characters to be missed when rebooting
+    //immediatley a write. You can just clear the bit manually, but doing that
+    //is dangerous, as if you clear the bit but for any reason the serial
+    //write doesn't start (think an invalid buffer, or another thread crashing),
+    //then TC will never be set and waitSerialTxFifoEmpty() deadlocks!
+    //The only way to clear it safely is to first read SR and then write to
+    //DR (thus the bit is cleared at the same time a transmission is started,
+    //and the race condition is eliminated). This is the purpose of this
+    //instruction, it reads SR. When we start the DMA, the DMA controller
+    //writes to DR and completes the TC clear sequence.
+    while((port->SR & USART_SR_TXE)==0) ;
+    
     dmaTxInProgress=true;
     #ifdef _ARCH_CORTEXM3_STM32
     dmaTx->CPAR=reinterpret_cast<unsigned int>(&port->DR);

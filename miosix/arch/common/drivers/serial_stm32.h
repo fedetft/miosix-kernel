@@ -181,7 +181,8 @@ private:
     #endif //SERIAL_DMA
     
     /**
-     * Wait until all characters have been written to the serial port
+     * Wait until all characters have been written to the serial port.
+     * Needs to be callable from interrupts disabled (it is used in IRQwrite)
      */
     void waitSerialTxFifoEmpty()
     {

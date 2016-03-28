@@ -1,5 +1,6 @@
 Changelog for Miosix np embedded OS
 
+- Fixed bug in STM32Serial in IOCTL_SYNC
 - Added test to testsuite to explicitly check the tickSkew logic
 - Fixed two bugs in kernel.cpp related to the control scheduler. 1. The idle
   thread needs to be set after the main one. 2. The yield on tick skew in
