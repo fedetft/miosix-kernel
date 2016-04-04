@@ -3,10 +3,6 @@
 #include <miosix.h>
 #include <kernel/scheduler/scheduler.h>
 
-#ifdef I2C_WITH_DMA
-#warning "I2C driver is used in DMA mode! This means that DMA1 stream 7 channel 1 and DMA1 stream 0 channel 1 are used!"
-#endif
-
 using namespace miosix;
 
 static bool error;        ///< Set to true by IRQ on error
@@ -109,17 +105,19 @@ void __attribute__((used)) I2C1HandlerImpl()
     /* If rxBuf is equal to zero means that we are sending the slave 
        address and this ISR is used to manage the address sent interrupt */
     
-    if(rxBuf == 0){
+    if(rxBuf == 0)
+    {
         I2C1->CR2 &= ~I2C_CR2_ITEVTEN;
         rxFinished = true;
     }
     
-    if(I2C1->SR1 & I2C_SR1_RXNE){
-        
+    if(I2C1->SR1 & I2C_SR1_RXNE)
+    {
         rxBuf[rxBufCnt++] = I2C1->DR;
-        if(rxBufCnt >= rxBufSize){
-          I2C1->CR2 &= ~(I2C_CR2_ITEVTEN | I2C_CR2_ITBUFEN);
-          rxFinished = true; 
+        if(rxBufCnt >= rxBufSize)
+        {
+            I2C1->CR2 &= ~(I2C_CR2_ITEVTEN | I2C_CR2_ITBUFEN);
+            rxFinished = true; 
         }  
     }
     

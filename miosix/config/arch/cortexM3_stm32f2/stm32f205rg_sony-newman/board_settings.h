@@ -62,6 +62,8 @@ const unsigned int TICK_FREQ=1000;
 const unsigned int AUX_TIMER_CLOCK=100000;
 const unsigned int AUX_TIMER_MAX=0xffff; ///<\internal Aux timer is 16 bits
 
+#define I2C_WITH_DMA
+
 /**
  * \}
  */

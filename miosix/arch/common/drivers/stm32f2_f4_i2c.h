@@ -1,10 +1,9 @@
 
 #include <interfaces/arch_registers.h>
+#include "board_settings.h"
 
 #ifndef STM32F2_I2C_H
 #define	STM32F2_I2C_H
-
-// #define I2C_WITH_DMA
 
 namespace miosix {
 
