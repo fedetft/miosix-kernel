@@ -150,9 +150,11 @@ clean-recursive:
 	  CONFPATH=$(shell perl $(MIOSIX_KERNEL_PATH)/_tools/relpath.pl $(i) $(MIOSIX_KERNEL_PATH)) \
 	  clean || exit 1) &&) @echo Recursive clean of subdirs done
 	
+empty:=
+space:= $(empty) $(empty)
 print-includes:
 	$(info Add the following folders to includes in VS to get IntelliSense working:)
-	$(info $(MIOSIX_INCLUDE_DIRS))
+	$(info $(subst $(space),;,$(subst . ,,$(MIOSIX_INCLUDE_DIRS))))
 
 #recipes
 $(BINARYDIR):
