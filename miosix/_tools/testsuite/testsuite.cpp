@@ -367,9 +367,9 @@ static void fail(const char *cause)
 {
     //Can't use iprintf here because fail() may be used in threads
     //with 256 bytes of stack, and iprintf may cause stack overflow
-    write(STDOUT_FILENO,"Failed:\r\n",9);
+    write(STDOUT_FILENO,"Failed:\n",8);
     write(STDOUT_FILENO,cause,strlen(cause));
-    write(STDOUT_FILENO,"\r\n",2);
+    write(STDOUT_FILENO,"\n",1);
     reboot();
 }
 
