@@ -154,7 +154,7 @@ empty:=
 space:= $(empty) $(empty)
 print-includes:
 	$(info Add the following folders to includes in VS to get IntelliSense working:)
-	$(info $(subst $(space),;,$(subst . ,,$(MIOSIX_INCLUDE_DIRS))))
+	$(info $(subst $(space),;,$(subst .,,$(MIOSIX_INCLUDE_DIRS))))
 
 #recipes
 $(BINARYDIR):
