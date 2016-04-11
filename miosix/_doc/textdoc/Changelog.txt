@@ -1,5 +1,7 @@
 Changelog for Miosix np embedded OS
 
+- Added SoftwareI2C::sendRepeatedStart(), and fixed a glitch in
+  SoftwareI2C::init()
 - Fixed bug in STM32Serial in IOCTL_SYNC
 - Added test to testsuite to explicitly check the tickSkew logic
 - Fixed two bugs in kernel.cpp related to the control scheduler. 1. The idle

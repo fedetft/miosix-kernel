@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011 by Terraneo Federico                               *
+ *   Copyright (C) 2011, 2012, 2013, 2014, 2015, 2016 by Terraneo Federico *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -49,9 +49,14 @@ public:
     static void init();
 
     /**
-     * Send a start condition
+     * Send a start condition.
      */
     static void sendStart();
+    
+    /**
+     * Send a repeated start.
+     */
+    static void sendRepeatedStart();
 
     /**
      * Send a stop condition
@@ -90,10 +95,10 @@ private:
 template <typename SDA, typename SCL, unsigned stretchTimeout>
 void SoftwareI2C<SDA, SCL, stretchTimeout>::init()
 {
-    SDA::mode(Mode::OPEN_DRAIN);
-    SCL::mode(Mode::OPEN_DRAIN);
     SDA::high();
     SCL::high();
+    SDA::mode(Mode::OPEN_DRAIN);
+    SCL::mode(Mode::OPEN_DRAIN);
 }
 
 template <typename SDA, typename SCL, unsigned stretchTimeout>
@@ -103,6 +108,17 @@ void SoftwareI2C<SDA, SCL, stretchTimeout>::sendStart()
     delayUs(3);
     SCL::low();
     delayUs(3);
+}
+
+template <typename SDA, typename SCL, unsigned stretchTimeout>
+void SoftwareI2C<SDA, SCL, stretchTimeout>::sendRepeatedStart()
+{
+    SDA::high();
+    delayUs(3);
+    SCL::high();
+    delayUs(3);
+    waitForClockStretching();
+    sendStart();
 }
 
 template <typename SDA, typename SCL, unsigned stretchTimeout>
