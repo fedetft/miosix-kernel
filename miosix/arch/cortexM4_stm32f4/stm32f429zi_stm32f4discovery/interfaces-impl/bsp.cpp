@@ -46,7 +46,7 @@
 #include "drivers/serial.h"
 #include "drivers/sd_stm32f2_f4.h"
 #include "board_settings.h"
-#include "kernel/IRQDisplayPrint.h"
+// #include "kernel/IRQDisplayPrint.h"
 
 namespace miosix {
 
@@ -181,7 +181,7 @@ void configureSdram()
     #endif
 }
 
-IRQDisplayPrint *irq_display;
+// static IRQDisplayPrint *irq_display;
 void IRQbspInit()
 {
     //If using SDRAM GPIOs are enabled by configureSdram(), else enable them here
@@ -197,8 +197,11 @@ void IRQbspInit()
     ledOn();
     delayMs(100);
     ledOff();
-	irq_display = new IRQDisplayPrint();
-    DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(irq_display));
+    DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
+        new STM32Serial(defaultSerial,defaultSerialSpeed,
+        defaultSerialFlowctrl ? STM32Serial::RTSCTS : STM32Serial::NOFLOWCTRL)));
+//     irq_display = new IRQDisplayPrint();
+//     DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(irq_display));
 }
 
 void* printIRQ(void *argv)
@@ -213,7 +216,7 @@ void bspInit2()
     #ifdef WITH_FILESYSTEM
     basicFilesystemSetup(SDIODriver::instance());
     #endif //WITH_FILESYSTEM
-	Thread::create(printIRQ, 2048);
+//     Thread::create(printIRQ, 2048);
 }
 
 //
