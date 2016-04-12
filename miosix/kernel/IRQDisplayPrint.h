@@ -6,28 +6,30 @@
 using namespace std;
 
 namespace miosix {
-	
-	class IRQDisplayPrint : public Device
-	{
-	public:
-		IRQDisplayPrint();
-		~IRQDisplayPrint();
-		
-		void IRQwrite(const char *str);
-		ssize_t writeBlock(const void *buffer, size_t size, off_t where);
 
-		void printIRQ();
-	private:
-		Queue<string, 20> input_queue;
-		vector<string> print_lines;
+class IRQDisplayPrint : public Device
+{
+public:
+    IRQDisplayPrint();
+    ~IRQDisplayPrint();
+    
+    void IRQwrite(const char *str);
+    ssize_t writeBlock(const void *buffer, size_t size, off_t where);
 
-		int right_margin;
-		int bottom_margin;
-		bool carriage_return_enabled;
+    void printIRQ();
+private:
+    Queue<string, 20> input_queue;
+    vector<string> print_lines;
 
-		bool carriage_return_fix(string str);
-		void process_string(string str);
-		void check_array_overflow();
-		void internal_print();
-	};
+    int right_margin;
+    int bottom_margin;
+    bool carriage_return_enabled;
+
+    bool carriage_return_fix(string str);
+    void process_string(string str);
+    void check_array_overflow();
+    void internal_print();
 };
+
+
+} //namespace miosix
