@@ -204,12 +204,12 @@ void IRQbspInit()
 //     DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(irq_display));
 }
 
-void* printIRQ(void *argv)
-{
-	intrusive_ref_ptr<IRQDisplayPrint> irqq(irq_display);
-	irqq.get()->printIRQ();
-	return NULL;
-}
+// void* printIRQ(void *argv)
+// {
+// 	intrusive_ref_ptr<IRQDisplayPrint> irqq(irq_display);
+// 	irqq.get()->printIRQ();
+// 	return NULL;
+// }
 
 void bspInit2()
 {
