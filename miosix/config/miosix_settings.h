@@ -149,7 +149,7 @@ const unsigned char MAX_OPEN_FILES=8;
  * mode, so to use debugging it is necessary to disable sleep in the idle thread.
  * By default it is not defined (idle thread calls sleep).
  */
-#define JTAG_DISABLE_SLEEP
+//#define JTAG_DISABLE_SLEEP
 
 /// Minimum stack size (MUST be divisible by 4)
 const unsigned int STACK_MIN=256;
