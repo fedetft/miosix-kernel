@@ -313,7 +313,7 @@ void IRQportableStartKernel()
     SysTick->CTRL=SysTick_CTRL_ENABLE_Msk | SysTick_CTRL_TICKINT_Msk |
             SysTick_CTRL_CLKSOURCE_Msk;
 #else //USE ContextSwitchTimer class (TIM2)
-    miosix::ContextSwitchTimer::instance();
+    miosix::ContextSwitchTimer::instance().IRQsetNextInterrupt(CST_QUANTUM);
 #endif
     #ifdef WITH_PROCESSES
     miosix::IRQenableMPUatBoot();

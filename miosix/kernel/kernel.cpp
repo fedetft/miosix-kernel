@@ -260,7 +260,7 @@ void IRQaddToSleepingList(SleepData *x)
     //Upon any change to the sleeping_list the ContextSwitchTimer should have
     //its interrupt set to the head of the list in order to keep it sync with
     //the list
-    ContextSwitchTimer::instance().setNextInterrupt(sleeping_list->wakeup_time);
+    ContextSwitchTimer::instance().IRQsetNextInterrupt(sleeping_list->wakeup_time);
 }
 
 /**
@@ -287,7 +287,7 @@ bool IRQwakeThreads()
         sleeping_list=sleeping_list->next;//Remove from list
         result=true;
         //update interrupt of context switch timer
-        ContextSwitchTimer::instance().setNextInterrupt(sleeping_list->wakeup_time);
+        ContextSwitchTimer::instance().IRQsetNextInterrupt(sleeping_list->wakeup_time);
     }
     return result;
 }
