@@ -328,7 +328,8 @@ void IRQportableStartKernel()
     ctxsave=s_ctxsave;//make global ctxsave point to it
 }
 
-void IRQportableFinishKernelStartup(){
+void IRQportableFinishKernelStartup()
+{
 	//Note, we can't use enableInterrupts() now since the call is not mathced
     //by a call to disableInterrupts()
     __enable_fault_irq();

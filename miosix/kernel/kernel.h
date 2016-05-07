@@ -718,18 +718,6 @@ private:
     //Unwanted methods
     Thread(const Thread& p);///< No public copy constructor
     Thread& operator = (const Thread& p);///< No publc operator =
-    /**
-     * This is the base function for adding a thread to the sleeping list.
-     * Other functions such as nanoSleep, sleep and sleepUntil are base on
-     * appropriate calls to tickSleepUntil.
-     * To both keep maintainability and fast response, it is implemented as an
-     * inline function. It's better for the caller to put this call in the end
-     * of its code flow as tickSleepUntil would make the thread to yield.
-     * @param absTicks: For a tickless kernel (i.e. it uses an external aperiodic
-     * timer) absTicks is in terms of aperiodic timer tick otherwise it is in
-     * terms of kernel's tick!
-     */
-    static void tickSleepUntil(long long absTicks);
     
     class ThreadFlags
     {
@@ -955,6 +943,17 @@ private:
      */
     static void threadLauncher(void *(*threadfunc)(void*), void *argv);
     
+    /**
+     * Puts the thread to sleep until the given time.
+     * This is the base function for adding a thread to the sleeping list.
+     * Other functions such as nanoSleep, sleep and sleepUntil are base on
+     * appropriate calls to tickSleepUntil.
+     * \param absTicks: For a tickless kernel (i.e. it uses an external aperiodic
+     * timer) absTicks is in terms of aperiodic timer tick otherwise it is in
+     * terms of kernel's tick!
+     */
+    static void tickSleepUntil(long long absTicks);
+
     /**
      * Allocates the idle thread and makes cur point to it
      * Can only be called before the kernel is started, is called exactly once

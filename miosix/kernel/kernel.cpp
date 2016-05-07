@@ -352,7 +352,8 @@ bool Thread::testTerminate()
     return const_cast<Thread*>(cur)->flags.isDeleting();
 }
 
-inline void Thread::tickSleepUntil(long long absTicks){
+inline void Thread::tickSleepUntil(long long absTicks)
+{
     //absTicks: As it is in terms of real ticks of the kernel/timer, there's no 
     //resolution issues here.
     //This function does not care about setting the wakeup_time in the past
@@ -373,15 +374,17 @@ inline void Thread::tickSleepUntil(long long absTicks){
     Thread::yield();
 }
 
-void Thread::nanoSleep(unsigned int ns){
-    if(ns==0) return; //To-Do: should be (ns &lt; resolution + epsilon)
-    long long ticks = ns * 0.084;//To-do: ns2tick fast conversion needed
+void Thread::nanoSleep(unsigned int ns)
+{
+    if(ns==0) return; //TODO: should be (ns &lt; resolution + epsilon)
+    long long ticks = ns * 0.084;//TODO: ns2tick fast conversion needed
     tickSleepUntil(ContextSwitchTimer::instance().getCurrentTick() + ticks);
 }
 
-void Thread::nanoSleepUntil(long long absoluteTime){
-    //To-Do: The absolute time should be rounded w.r.t. the timer resolution
-    long long ticks = absoluteTime * 0.084;//To-do: ns2tick fast conversion needed
+void Thread::nanoSleepUntil(long long absoluteTime)
+{
+    //TODO: The absolute time should be rounded w.r.t. the timer resolution
+    long long ticks = absoluteTime * 0.084;//TODO: ns2tick fast conversion needed
     if (ticks <= ContextSwitchTimer::instance().getCurrentTick()) return;
     tickSleepUntil(ticks);
 }

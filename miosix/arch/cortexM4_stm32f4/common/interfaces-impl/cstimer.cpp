@@ -16,17 +16,15 @@ namespace miosix_private {
 void ISR_preempt();
 }
 
-static long long cst_ms32time = 0; //most significant 32 bits of counter
-static long long cst_ms32chkp = 0; //most significant 32 bits of check point
+static long long ms32time = 0; //most significant 32 bits of counter
+static long long ms32chkp = 0; //most significant 32 bits of check point
 static bool lateIrq=false;
 static SleepData csRecord;
 
 static inline long long nextInterrupt()
 {
-    return cst_ms32chkp | TIM2->CCR1;
+    return ms32chkp | TIM2->CCR1;
 }
-
-#define CST_ROLLOVER_INT (TIM2->SR & TIM_SR_UIF) && (TIM2->SR & TIM_SR_CC2IF)
 
 void __attribute__((naked)) TIM2_IRQHandler()
 {
@@ -38,26 +36,31 @@ void __attribute__((naked)) TIM2_IRQHandler()
 void __attribute__((used)) cstirqhnd()
 {
     //IRQbootlog("TIM2-IRQ\r\n");
-    if (TIM2->SR & TIM_SR_CC1IF || lateIrq){
+    if(TIM2->SR & TIM_SR_CC1IF || lateIrq)
+    {
         //Checkpoint met
         //The interrupt flag must be cleared unconditionally whether we are in the
         //correct epoch or not otherwise the interrupt will happen even in unrelated
         //epochs and slowing down the whole system.
         TIM2->SR = ~TIM_SR_CC1IF;
-        if(cst_ms32time==cst_ms32chkp || lateIrq){
+        if(ms32time==ms32chkp || lateIrq)
+        {
             lateIrq=false;
             long long tick = ContextSwitchTimer::instance().getCurrentTick();
             
             //Add next context switch time to the sleeping list iff this is a
             //context switch
             
-            if (tick >= csRecord.wakeup_time){
+            if(tick >= csRecord.wakeup_time)
+            {
                 //Remove the cs item from the sleeping list manually
-                if (sleeping_list==&csRecord)
+                if(sleeping_list==&csRecord)
                     sleeping_list=sleeping_list->next;
                 SleepData* slp = sleeping_list;
-                while (slp!=NULL){
-                    if (slp->next==&csRecord){
+                while(slp!=NULL)
+                {
+                    if(slp->next==&csRecord)
+                    {
                         slp->next=slp->next->next;
                         break;
                     }
@@ -75,9 +78,10 @@ void __attribute__((used)) cstirqhnd()
     }
     //Rollover
     //On the initial update SR = UIF (ONLY)
-    if (TIM2->SR & TIM_SR_UIF){
+    if(TIM2->SR & TIM_SR_UIF)
+    {
         TIM2->SR = ~TIM_SR_UIF; //w0 clear
-        cst_ms32time += 0x100000000;
+        ms32time += 0x100000000;
     }
 }
 
@@ -95,7 +99,7 @@ ContextSwitchTimer& ContextSwitchTimer::instance()
 
 void ContextSwitchTimer::IRQsetNextInterrupt(long long tick)
 {
-    cst_ms32chkp = tick & 0xFFFFFFFF00000000;
+    ms32chkp = tick & 0xFFFFFFFF00000000;
     TIM2->CCR1 = static_cast<unsigned int>(tick & 0xFFFFFFFF);
     if(getCurrentTick() > nextInterrupt())
     {
@@ -119,12 +123,13 @@ long long ContextSwitchTimer::getCurrentTick() const
      *
      */
     uint32_t counter = TIM2->CNT;
-    if (CST_ROLLOVER_INT && counter < 0x80000000){
-        long long result=(cst_ms32time | counter) + 0x100000000ll;
+    if((TIM2->SR & TIM_SR_UIF) && counter < 0x80000000)
+    {
+        long long result=(ms32time | counter) + 0x100000000ll;
         if(interrupts) enableInterrupts();
         return result;
     }
-    long long result=cst_ms32time | counter;
+    long long result=ms32time | counter;
     if(interrupts) enableInterrupts();
     return result;
 }
@@ -133,49 +138,39 @@ ContextSwitchTimer::~ContextSwitchTimer() {}
 
 ContextSwitchTimer::ContextSwitchTimer()
 {
-    /*
-     *  TIM2 Source Clock (from APB1) Enable
-     */
+    // TIM2 Source Clock (from APB1) Enable
     {
         InterruptDisableLock idl;
         RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
         RCC_SYNC();
         DBGMCU->APB1FZ|=DBGMCU_APB1_FZ_DBG_TIM2_STOP; //Tim2 stops while debugging
     }
-    /*
-     * Setup TIM2 base configuration
-     * Mode: Up-counter
-     * Interrupts: counter overflow, Compare/Capture on channel 1
-     */
+    // Setup TIM2 base configuration
+    // Mode: Up-counter
+    // Interrupts: counter overflow, Compare/Capture on channel 1
     TIM2->CR1=TIM_CR1_URS;
     TIM2->DIER=TIM_DIER_UIE | TIM_DIER_CC1IE;
     NVIC_SetPriority(TIM2_IRQn,3); //High priority for TIM2 (Max=0, min=15)
     NVIC_EnableIRQ(TIM2_IRQn);
-    /*
-     * Configure channel 1 as:
-     * Output channel (CC1S=0)
-     * No preload(OC1PE=0), hence TIM2_CCR1 can be written at anytime
-     * No effect on the output signal on match (OC1M = 0)
-     */
+    // Configure channel 1 as:
+    // Output channel (CC1S=0)
+    // No preload(OC1PE=0), hence TIM2_CCR1 can be written at anytime
+    // No effect on the output signal on match (OC1M = 0)
     TIM2->CCMR1 = 0;
     TIM2->CCR1 = 0;
-    /*
-     * TIM2 Operation Frequency Configuration: Max Freq. and longest period
-     */
+    // TIM2 Operation Frequency Configuration: Max Freq. and longest period
     TIM2->PSC = 0;
     TIM2->ARR = 0xFFFFFFFF;
     
-    /*
-     * Other initializations
-     */
+    // Other initializations
     // Set the first checkpoint interrupt
-    csRecord.p = 0;
+    csRecord.p = 0; //FIXME: remove these when removing direct sleeping_list access
     csRecord.wakeup_time = CST_QUANTUM;
     csRecord.next = sleeping_list;
     sleeping_list = &csRecord;
-    //IRQaddToSleepingList(&csRecord); //Recursive Initialization error
+    // IRQaddToSleepingList(&csRecord); //Recursive Initialization error FIXME: why commented?
     // Enable TIM2 Counter
-    cst_ms32time = 0;
+    ms32time = 0;
     TIM2->EGR = TIM_EGR_UG; //To enforce the timer to apply PSC (and other non-immediate settings)
     TIM2->CR1 |= TIM_CR1_CEN;
     
