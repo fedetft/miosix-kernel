@@ -8,17 +8,11 @@
 
 using namespace miosix;
 
-namespace miosix {
-void IRQaddToSleepingList(SleepData *x);
-extern SleepData *sleeping_list;
-}
-
 //TODO: comment me
 static const uint32_t threshold = 0xffffffff/4*3;
 static long long ms32time = 0; //most significant 32 bits of counter
 static long long ms32chkp = 0; //most significant 32 bits of check point
 static bool lateIrq=false;
-static SleepData csRecord;
 
 static inline long long nextInterrupt()
 {
@@ -54,33 +48,8 @@ void __attribute__((used)) cstirqhnd()
         if(ms32time==ms32chkp || lateIrq)
         {
             lateIrq=false;
-            long long tick = IRQgetTick();
             
-            //Add next context switch time to the sleeping list iff this is a
-            //context switch
-            
-            if(tick >= csRecord.wakeup_time)
-            {
-                //Remove the cs item from the sleeping list manually
-                if(sleeping_list==&csRecord)
-                    sleeping_list=sleeping_list->next;
-                SleepData* slp = sleeping_list;
-                while(slp!=NULL)
-                {
-                    if(slp->next==&csRecord)
-                    {
-                        slp->next=slp->next->next;
-                        break;
-                    }
-                    slp = slp->next;
-                }
-                //Add next cs item to the list via IRQaddToSleepingList
-                //Note that the next timer interrupt is set by IRQaddToSleepingList
-                //according to the head of the list!
-                csRecord.wakeup_time += CST_QUANTUM;
-                IRQaddToSleepingList(&csRecord); //It would also set the next timer interrupt
-            }
-            IRQtimerInterrupt();
+            IRQtimerInterrupt(nextInterrupt());
         }
 
     }
@@ -166,13 +135,6 @@ ContextSwitchTimer::ContextSwitchTimer()
     TIM2->PSC = 0;
     TIM2->ARR = 0xFFFFFFFF;
     
-    // Other initializations
-    // Set the first checkpoint interrupt
-    csRecord.p = 0; //FIXME: remove these when removing direct sleeping_list access
-    csRecord.wakeup_time = CST_QUANTUM;
-    csRecord.next = sleeping_list;
-    sleeping_list = &csRecord;
-    // IRQaddToSleepingList(&csRecord); //Recursive Initialization error FIXME: why commented?
     // Enable TIM2 Counter
     ms32time = 0;
     TIM2->EGR = TIM_EGR_UG; //To enforce the timer to apply PSC (and other non-immediate settings)

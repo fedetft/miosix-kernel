@@ -40,38 +40,53 @@ namespace miosix {
 extern volatile int kernel_running;///\internal Do not use outside the kernel
 extern volatile bool tick_skew;///\internal Do not use outside the kernel
 extern volatile Thread *cur;///\internal Do not use outside the kernel
-extern bool IRQwakeThreads();///\internal Do not use outside the kernel
+extern bool IRQwakeThreads(long long currentTick, unsigned int burst);///\internal Do not use outside the kernel
 
-inline void IRQtimerInterrupt()
+inline void IRQtimerInterrupt(long long currentTick)
 {
     miosix_private::IRQstackOverflowCheck();
-    bool woken=IRQwakeThreads();//Increment tick and wake threads,if any
-    (void)woken; //Avoid unused variable warning.
-
-    #ifdef SCHED_TYPE_PRIORITY
-    //With the priority scheduler every tick causes a context switck
-    Scheduler::IRQfindNextThread();//If the kernel is running, preempt
+    
+    unsigned int burst=Scheduler::IRQfindNextThread();//If the kernel is running, preempt
     if(kernel_running!=0) tick_skew=true;
-    #elif defined(SCHED_TYPE_CONTROL_BASED)
-    //Normally, with the control based scheduler, preemptions do not happen
-    //here, but in the auxiliary timer interrupt to take into account variable
-    //bursts. But there is one exception: when a thread wakes up from sleep
-    //and the idle thread is running.
-    if(woken && cur==ControlScheduler::IRQgetIdleThread())
-    {
-        Scheduler::IRQfindNextThread();
-        if(kernel_running!=0) tick_skew=true;
-    }
-    #elif defined(SCHED_TYPE_EDF)
-    //With the EDF scheduler a preemption happens only if a thread with a closer
-    //deadline appears. So by deafult there is no need to call the scheduler;
-    //only if some threads were woken, they may have closer deadlines
-    if(woken)
-    {
-        Scheduler::IRQfindNextThread();
-        if(kernel_running!=0) tick_skew=true;
-    }
+    IRQwakeThreads(currentTick,burst);
+    
+    
+    #ifndef SCHED_TYPE_PRIORITY
+    //TODO: the old tick scheduler called this function periodically,
+    //so the EDF scheduler would have to be called only if a thread was woken.
+    //Now we can have no periodic preemption, and so if we are called (and EDF
+    //is selected), at least one thread has woken up, so there's no need for woken
+    //Modify the code below accordingly
+    #error "FIXME"
     #endif
+
+//    miosix_private::IRQstackOverflowCheck();
+//    bool woken=IRQwakeThreads();//Increment tick and wake threads,if any
+//    (void)woken; //Avoid unused variable warning.
+//    #ifdef SCHED_TYPE_PRIORITY
+//    //With the priority scheduler every tick causes a context switck
+//    Scheduler::IRQfindNextThread();//If the kernel is running, preempt
+//    if(kernel_running!=0) tick_skew=true;
+//    #elif defined(SCHED_TYPE_CONTROL_BASED)
+//    //Normally, with the control based scheduler, preemptions do not happen
+//    //here, but in the auxiliary timer interrupt to take into account variable
+//    //bursts. But there is one exception: when a thread wakes up from sleep
+//    //and the idle thread is running.
+//    if(woken && cur==ControlScheduler::IRQgetIdleThread())
+//    {
+//        Scheduler::IRQfindNextThread();
+//        if(kernel_running!=0) tick_skew=true;
+//    }
+//    #elif defined(SCHED_TYPE_EDF)
+//    //With the EDF scheduler a preemption happens only if a thread with a closer
+//    //deadline appears. So by deafult there is no need to call the scheduler;
+//    //only if some threads were woken, they may have closer deadlines
+//    if(woken)
+//    {
+//        Scheduler::IRQfindNextThread();
+//        if(kernel_running!=0) tick_skew=true;
+//    }
+//    #endif
 }
 
 }

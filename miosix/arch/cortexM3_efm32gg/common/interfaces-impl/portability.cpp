@@ -97,7 +97,7 @@ namespace miosix_private {
 void ISR_preempt() __attribute__((noinline));
 void ISR_preempt()
 {
-    miosix::IRQtimerInterrupt();
+    miosix::IRQtimerInterrupt(0 /*TODO dummy parameter */);
 }
 
 /**

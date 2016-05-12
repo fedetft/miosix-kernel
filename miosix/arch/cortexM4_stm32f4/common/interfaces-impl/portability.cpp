@@ -106,7 +106,7 @@ namespace miosix_private {
 void ISR_preempt() __attribute__((noinline));
 void ISR_preempt()
 {
-    miosix::IRQtimerInterrupt();
+    miosix::IRQtimerInterrupt(0 /*TODO dummy parameter */);
 }
 #endif //USE_CSTIMER
 
@@ -312,8 +312,6 @@ void IRQportableStartKernel()
     SysTick->LOAD=SystemCoreClock/miosix::TICK_FREQ;
     SysTick->CTRL=SysTick_CTRL_ENABLE_Msk | SysTick_CTRL_TICKINT_Msk |
             SysTick_CTRL_CLKSOURCE_Msk;
-#else //USE ContextSwitchTimer class (TIM2)
-    miosix::ContextSwitchTimer::instance().IRQsetNextInterrupt(CST_QUANTUM);
 #endif
     #ifdef WITH_PROCESSES
     miosix::IRQenableMPUatBoot();
