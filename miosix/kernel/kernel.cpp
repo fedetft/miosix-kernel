@@ -283,7 +283,7 @@ bool IRQwakeThreads()
         //Since list is sorted, if we don't need to wake the first element
         //we don't need to wake the other too
 #ifdef USE_CSTIMER
-        if(ContextSwitchTimer::instance().getCurrentTick() < sleeping_list->wakeup_time) break;
+        if(ContextSwitchTimer::instance().IRQgetCurrentTick() < sleeping_list->wakeup_time) break;
         if (sleeping_list->p != 0) //distinguish between context switches and sleeps
             sleeping_list->p->flags.IRQsetSleep(false);//Wake thread
 #else
