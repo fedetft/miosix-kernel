@@ -16,6 +16,8 @@ namespace miosix_private {
 void ISR_preempt();
 }
 
+//TODO: comment me
+static const uint32_t threshold = 0xffffffff/4*3;
 static long long ms32time = 0; //most significant 32 bits of counter
 static long long ms32chkp = 0; //most significant 32 bits of check point
 static bool lateIrq=false;
@@ -24,6 +26,16 @@ static SleepData csRecord;
 static inline long long nextInterrupt()
 {
     return ms32chkp | TIM2->CCR1;
+}
+
+static inline long long IRQgetTick()
+{
+    //If overflow occurs while interrupts disabled
+    //counter should be checked before rollover interrupt flag
+    uint32_t counter = TIM2->CNT;
+    if((TIM2->SR & TIM_SR_UIF) && counter < threshold)
+        return (ms32time | static_cast<long long>(counter)) + 0x100000000ll;
+    return ms32time | static_cast<long long>(counter);
 }
 
 void __attribute__((naked)) TIM2_IRQHandler()
@@ -35,7 +47,6 @@ void __attribute__((naked)) TIM2_IRQHandler()
 
 void __attribute__((used)) cstirqhnd()
 {
-    //IRQbootlog("TIM2-IRQ\r\n");
     if(TIM2->SR & TIM_SR_CC1IF || lateIrq)
     {
         //Checkpoint met
@@ -46,7 +57,7 @@ void __attribute__((used)) cstirqhnd()
         if(ms32time==ms32chkp || lateIrq)
         {
             lateIrq=false;
-            long long tick = ContextSwitchTimer::instance().getCurrentTick();
+            long long tick = IRQgetTick();
             
             //Add next context switch time to the sleeping list iff this is a
             //context switch
@@ -101,7 +112,7 @@ void ContextSwitchTimer::IRQsetNextInterrupt(long long tick)
 {
     ms32chkp = tick & 0xFFFFFFFF00000000;
     TIM2->CCR1 = static_cast<unsigned int>(tick & 0xFFFFFFFF);
-    if(getCurrentTick() > nextInterrupt())
+    if(IRQgetTick() > nextInterrupt())
     {
         NVIC_SetPendingIRQ(TIM2_IRQn);
         lateIrq=true;
@@ -117,21 +128,14 @@ long long ContextSwitchTimer::getCurrentTick() const
 {
     bool interrupts=areInterruptsEnabled();
     if(interrupts) disableInterrupts();
-    //If overflow occurs while interrupts disabled
-    /*
-     * counter should be checked before rollover interrupt flag
-     *
-     */
-    uint32_t counter = TIM2->CNT;
-    if((TIM2->SR & TIM_SR_UIF) && counter < 0x80000000)
-    {
-        long long result=(ms32time | counter) + 0x100000000ll;
-        if(interrupts) enableInterrupts();
-        return result;
-    }
-    long long result=ms32time | counter;
+    long long result=IRQgetTick();
     if(interrupts) enableInterrupts();
     return result;
+}
+
+long long ContextSwitchTimer::IRQgetCurrentTick() const
+{
+    return IRQgetTick();
 }
 
 ContextSwitchTimer::~ContextSwitchTimer() {}
