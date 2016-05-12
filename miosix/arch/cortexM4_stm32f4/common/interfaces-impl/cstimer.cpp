@@ -1,15 +1,11 @@
-#include "miosix.h"
+
 #include "interfaces/cstimer.h"
-#include "interfaces/portability.h"
+#include "interfaces/arch_registers.h"
 #include "kernel/kernel.h"
-#include "kernel/logging.h"
 #include "kernel/scheduler/timer_interrupt.h"
-#include <cstdlib>
 
 using namespace miosix;
 
-//TODO: comment me
-static const uint32_t threshold = 0xffffffff/4*3;
 static long long ms32time = 0; //most significant 32 bits of counter
 static long long ms32chkp = 0; //most significant 32 bits of check point
 static bool lateIrq=false;
@@ -21,11 +17,32 @@ static inline long long nextInterrupt()
 
 static inline long long IRQgetTick()
 {
-    //If overflow occurs while interrupts disabled
-    //counter should be checked before rollover interrupt flag
-    uint32_t counter = TIM2->CNT;
-    if((TIM2->SR & TIM_SR_UIF) && counter < threshold)
-        return (ms32time | static_cast<long long>(counter)) + 0x100000000ll;
+    //THE PENDING BIT TRICK, version 2
+    //This algorithm is the main part that allows to extend in software a
+    //32bit timer to a 64bit one. The basic idea is this: the lower bits of the
+    //64bit timer are kept by the counter register of the timer, while the upper
+    //bits are kept in a software variable. When the hardware timer overflows, 
+    //an interrupt is used to update the upper bits.
+    //Reading the timer may appear to be doable by just an OR operation between
+    //the software variable and the hardware counter, but is actually way
+    //trickier than it seems, because user code may:
+    //1 disable interrupts,
+    //2 spend a little time with interrupts disabled,
+    //3 call this function.
+    //Now, if a timer overflow occurs while interrupts are disabled, the upper
+    //bits have not yet been updated, so we would return the wrong time.
+    //To fix this, we check the timer overflow pending bit, and if it is set
+    //we return the time adjusted accordingly. This almost works, the last
+    //issue to fix is that reading the timer counter and the pending bit
+    //is not an atomic operation, and the counter may roll over exactly at that
+    //point in time. To solve this, we read the timer a second time to see if
+    //it had rolled over.
+    //Note that this algorithm imposes a limit on the maximum time interrupts
+    //can be disabeld, equals to one hardware timer period minus the time
+    //between the two timer reads in this algorithm.
+    unsigned int counter=TIM2->CNT;
+    if((TIM2->SR & TIM_SR_UIF) && TIM2->CNT>=counter)
+        return (ms32time | static_cast<long long>(counter)) + 0x100000000LL;
     return ms32time | static_cast<long long>(counter);
 }
 
@@ -40,25 +57,19 @@ void __attribute__((used)) cstirqhnd()
 {
     if(TIM2->SR & TIM_SR_CC1IF || lateIrq)
     {
-        //Checkpoint met
-        //The interrupt flag must be cleared unconditionally whether we are in the
-        //correct epoch or not otherwise the interrupt will happen even in unrelated
-        //epochs and slowing down the whole system.
         TIM2->SR = ~TIM_SR_CC1IF;
         if(ms32time==ms32chkp || lateIrq)
         {
             lateIrq=false;
-            
             IRQtimerInterrupt(nextInterrupt());
         }
 
     }
     //Rollover
-    //On the initial update SR = UIF (ONLY)
     if(TIM2->SR & TIM_SR_UIF)
     {
-        TIM2->SR = ~TIM_SR_UIF; //w0 clear
-        ms32time += 0x100000000;
+        TIM2->SR = ~TIM_SR_UIF;
+        ms32time += 0x100000000LL;
     }
 }
 
@@ -76,9 +87,9 @@ ContextSwitchTimer& ContextSwitchTimer::instance()
 
 void ContextSwitchTimer::IRQsetNextInterrupt(long long tick)
 {
-    ms32chkp = tick & 0xFFFFFFFF00000000;
+    ms32chkp = tick & 0xFFFFFFFF00000000LL;
     TIM2->CCR1 = static_cast<unsigned int>(tick & 0xFFFFFFFF);
-    if(IRQgetTick() > nextInterrupt())
+    if(IRQgetTick() >= nextInterrupt())
     {
         NVIC_SetPendingIRQ(TIM2_IRQn);
         lateIrq=true;
@@ -113,6 +124,8 @@ ContextSwitchTimer::ContextSwitchTimer()
 {
     // TIM2 Source Clock (from APB1) Enable
     {
+        //NOTE: Not FastInterruptDisableLock as this is called before kernel
+        //is started
         InterruptDisableLock idl;
         RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
         RCC_SYNC();
@@ -136,8 +149,7 @@ ContextSwitchTimer::ContextSwitchTimer()
     TIM2->ARR = 0xFFFFFFFF;
     
     // Enable TIM2 Counter
-    ms32time = 0;
-    TIM2->EGR = TIM_EGR_UG; //To enforce the timer to apply PSC (and other non-immediate settings)
+    TIM2->EGR = TIM_EGR_UG; //To enforce the timer to apply PSC
     TIM2->CR1 |= TIM_CR1_CEN;
     
     // The global variable SystemCoreClock from ARM's CMSIS allows to know
