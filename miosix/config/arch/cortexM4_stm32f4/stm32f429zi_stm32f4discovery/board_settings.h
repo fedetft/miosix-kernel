@@ -30,8 +30,6 @@
 
 #include "util/version.h"
 
-#define USE_CSTIMER
-
 /**
  * \internal
  * Versioning for board_settings.h for out of git tree projects
