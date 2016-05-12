@@ -65,7 +65,9 @@ static volatile bool exist_deleted=false;
 
 SleepData *sleeping_list=NULL;///list of sleeping threads
 
+#ifndef USE_CSTIMER
 static volatile long long tick=0;///<\internal Kernel tick
+#endif //USE_CSTIMER
 
 ///\internal !=0 after pauseKernel(), ==0 after restartKernel()
 volatile int kernel_running=0;
@@ -213,6 +215,7 @@ bool isKernelRunning()
 
 long long getTick()
 {
+    #ifndef USE_CSTIMER
     /*
      * Reading a volatile 64bit integer on a 32bit platform with interrupts
      * enabled is tricky because the operation is not atomic, so we need to
@@ -226,6 +229,9 @@ long long getTick()
         b=static_cast<long long>(tick);
         if(a==b) return a;
     }
+    #else //USE_CSTIMER
+    return ContextSwitchTimer::instance().getCurrentTick();
+    #endif //USE_CSTIMER
 }
 
 /**
@@ -275,7 +281,9 @@ void IRQaddToSleepingList(SleepData *x)
  */
 bool IRQwakeThreads()
 {
+    #ifndef USE_CSTIMER
     tick++;//Increment tick
+    #endif //USE_CSTIMER
     bool result=false;
     for(;;)
     {
