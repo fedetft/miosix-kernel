@@ -40,15 +40,16 @@ namespace miosix {
 extern volatile int kernel_running;///\internal Do not use outside the kernel
 extern volatile bool tick_skew;///\internal Do not use outside the kernel
 extern volatile Thread *cur;///\internal Do not use outside the kernel
-extern bool IRQwakeThreads(long long currentTick, unsigned int burst);///\internal Do not use outside the kernel
+extern bool IRQwakeThreads(long long currentTick);///\internal Do not use outside the kernel
 
 inline void IRQtimerInterrupt(long long currentTick)
 {
     miosix_private::IRQstackOverflowCheck();
+    IRQwakeThreads(currentTick);
     
-    unsigned int burst=Scheduler::IRQfindNextThread();//If the kernel is running, preempt
+    Scheduler::IRQfindNextThread();//If the kernel is running, preempt
     if(kernel_running!=0) tick_skew=true;
-    IRQwakeThreads(currentTick,burst);
+   
     
     
     #ifndef SCHED_TYPE_PRIORITY

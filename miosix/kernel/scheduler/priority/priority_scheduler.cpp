@@ -29,8 +29,6 @@
 #include "kernel/error.h"
 #include "kernel/process.h"
 
-static const unsigned int cstQuantum=84000; ///FIXME: remove
-
 #ifdef SCHED_TYPE_PRIORITY
 
 namespace miosix {
@@ -199,9 +197,9 @@ void PriorityScheduler::IRQsetIdleThread(Thread *idleThread)
     idle=idleThread;
 }
 
-unsigned int PriorityScheduler::IRQfindNextThread()
+void PriorityScheduler::IRQfindNextThread()
 {
-    if(kernel_running!=0) return cstQuantum;//If kernel is paused, do nothing
+    if(kernel_running!=0) return;//If kernel is paused, do nothing
     for(int i=PRIORITY_MAX-1;i>=0;i--)
     {
         if(thread_list[i]==NULL) continue;
@@ -228,7 +226,7 @@ unsigned int PriorityScheduler::IRQfindNextThread()
                 //Rotate to next thread so that next time the list is walked
                 //a different thread, if available, will be chosen first
                 thread_list[i]=temp;
-                return cstQuantum;
+                return;
             } else temp=temp->schedData.next;
             if(temp==thread_list[i]->schedData.next) break;
         }
@@ -239,7 +237,6 @@ unsigned int PriorityScheduler::IRQfindNextThread()
     #ifdef WITH_PROCESSES
     MPUConfiguration::IRQdisable();
     #endif //WITH_PROCESSES
-    return cstQuantum;
 }
 
 Thread *PriorityScheduler::thread_list[PRIORITY_MAX]={0};

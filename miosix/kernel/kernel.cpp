@@ -83,6 +83,8 @@ static unsigned char interruptDisableNesting=0;
 
 #ifdef USE_CSTIMER
 
+#define CST_QUANTUM 84000 //FIXME: find a way to propagate this here!!!
+
 /// Used for context switches with the high resolution timer
 static SleepData csRecord;
 
@@ -210,7 +212,6 @@ void startKernel()
     // Dispatch the task to the architecture-specific function
     #ifdef USE_CSTIMER
     // Set the first checkpoint interrupt
-#define CST_QUANTUM 84000 //FIXME: find a way to propagate this here!!!
     csRecord.p = 0;
     csRecord.wakeup_time = CST_QUANTUM;
     csRecord.next = sleeping_list;
@@ -293,7 +294,7 @@ void IRQaddToSleepingList(SleepData *x)
  * It is used by the kernel, and should not be used by end users.
  * \return true if some thread was woken.
  */
-bool IRQwakeThreads(long long currentTick, unsigned int burst)
+bool IRQwakeThreads(long long currentTick)
 {
     #ifndef USE_CSTIMER
     tick++;//Increment tick
@@ -318,7 +319,7 @@ bool IRQwakeThreads(long long currentTick, unsigned int burst)
         //Add next cs item to the list via IRQaddToSleepingList
         //Note that the next timer interrupt is set by IRQaddToSleepingList
         //according to the head of the list!
-        csRecord.wakeup_time += burst;
+        csRecord.wakeup_time += CST_QUANTUM;
         IRQaddToSleepingList(&csRecord); //It would also set the next timer interrupt
     }
     #endif //USE_CSTIMER
