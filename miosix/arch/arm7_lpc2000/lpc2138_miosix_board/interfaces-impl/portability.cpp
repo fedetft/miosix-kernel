@@ -34,7 +34,7 @@
 #include "miosix.h"
 #include "portability_impl.h"
 #include "kernel/scheduler/scheduler.h"
-#include "kernel/scheduler/tick_interrupt.h"
+#include "kernel/scheduler/timer_interrupt.h"
 #include "board_settings.h"
 #include <algorithm>
 
@@ -55,8 +55,7 @@ void ISR_preempt()
 	T0IR=0x1;//Clear interrupt
     VICVectAddr=0xff;//Restart VIC
     
-    IRQstackOverflowCheck();
-    miosix::IRQtickInterrupt();
+    miosix::IRQtimerInterrupt();
 }
 
 /**

@@ -3,7 +3,7 @@
 #include "interfaces/portability.h"
 #include "kernel/kernel.h"
 #include "kernel/logging.h"
-#include "kernel/scheduler/tick_interrupt.h"
+#include "kernel/scheduler/timer_interrupt.h"
 #include <cstdlib>
 
 using namespace miosix;
@@ -80,7 +80,7 @@ void __attribute__((used)) cstirqhnd()
                 csRecord.wakeup_time += CST_QUANTUM;
                 IRQaddToSleepingList(&csRecord); //It would also set the next timer interrupt
             }
-            IRQtickInterrupt();
+            IRQtimerInterrupt();
         }
 
     }

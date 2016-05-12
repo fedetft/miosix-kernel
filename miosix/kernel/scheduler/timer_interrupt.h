@@ -25,8 +25,8 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef TICK_INTERRUPT_H
-#define	TICK_INTERRUPT_H
+#ifndef TIMER_INTERRUPT_H
+#define	TIMER_INTERRUPT_H
 
 #include "config/miosix_settings.h"
 #include "interfaces/portability.h"
@@ -42,11 +42,9 @@ extern volatile bool tick_skew;///\internal Do not use outside the kernel
 extern volatile Thread *cur;///\internal Do not use outside the kernel
 extern bool IRQwakeThreads();///\internal Do not use outside the kernel
 
-inline void IRQtickInterrupt()
+inline void IRQtimerInterrupt()
 {
-    #ifdef USE_CSTIMER
     miosix_private::IRQstackOverflowCheck();
-    #endif //USE_CSTIMER
     bool woken=IRQwakeThreads();//Increment tick and wake threads,if any
     (void)woken; //Avoid unused variable warning.
 
@@ -78,4 +76,4 @@ inline void IRQtickInterrupt()
 
 }
 
-#endif //TICK_INTERRUPT_H
+#endif //TIMER_INTERRUPT_H

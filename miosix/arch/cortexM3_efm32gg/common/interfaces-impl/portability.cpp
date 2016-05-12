@@ -31,7 +31,7 @@
 #include "kernel/error.h"
 #include "interfaces/bsp.h"
 #include "kernel/scheduler/scheduler.h"
-#include "kernel/scheduler/tick_interrupt.h"
+#include "kernel/scheduler/timer_interrupt.h"
 #include <algorithm>
 
 /**
@@ -97,8 +97,7 @@ namespace miosix_private {
 void ISR_preempt() __attribute__((noinline));
 void ISR_preempt()
 {
-    IRQstackOverflowCheck();
-    miosix::IRQtickInterrupt();
+    miosix::IRQtimerInterrupt();
 }
 
 /**
