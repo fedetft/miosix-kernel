@@ -644,8 +644,8 @@ else ifeq ($(ARCH),cortexM3_stm32)
         arch/common/drivers/servo_stm32.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_SOLERTEGIARD -DSTM32F10X_MD_VL 
-        CXXFLAGS_BASE += -D_BOARD_SOLERTEGIARD -DSTM32F10X_MD_VL
+        CFLAGS_BASE   += -D_BOARD_SOLERTEGIARD -DSTM32F10X_HD_VL 
+        CXXFLAGS_BASE += -D_BOARD_SOLERTEGIARD -DSTM32F10X_HD_VL
 
         ## Clock frequency
         CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000
