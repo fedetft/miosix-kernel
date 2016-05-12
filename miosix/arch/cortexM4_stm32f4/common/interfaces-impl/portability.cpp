@@ -95,6 +95,7 @@ void TIM3_IRQHandler()
 
 namespace miosix_private {
 
+#ifndef USE_CSTIMER
 /**
  * \internal
  * Called by the timer interrupt, preempt to next thread
@@ -108,6 +109,7 @@ void ISR_preempt()
     IRQstackOverflowCheck();
     miosix::IRQtickInterrupt();
 }
+#endif //USE_CSTIMER
 
 /**
  * \internal

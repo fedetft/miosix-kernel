@@ -3,6 +3,7 @@
 #include "interfaces/portability.h"
 #include "kernel/kernel.h"
 #include "kernel/logging.h"
+#include "kernel/scheduler/tick_interrupt.h"
 #include <cstdlib>
 
 using namespace miosix;
@@ -10,10 +11,6 @@ using namespace miosix;
 namespace miosix {
 void IRQaddToSleepingList(SleepData *x);
 extern SleepData *sleeping_list;
-}
-
-namespace miosix_private {
-void ISR_preempt();
 }
 
 //TODO: comment me
@@ -83,7 +80,7 @@ void __attribute__((used)) cstirqhnd()
                 csRecord.wakeup_time += CST_QUANTUM;
                 IRQaddToSleepingList(&csRecord); //It would also set the next timer interrupt
             }
-            miosix_private::ISR_preempt();
+            IRQtickInterrupt();
         }
 
     }
@@ -127,6 +124,9 @@ long long ContextSwitchTimer::getNextInterrupt() const
 long long ContextSwitchTimer::getCurrentTick() const
 {
     bool interrupts=areInterruptsEnabled();
+    //TODO: optimization opportunity, if we can guarantee that no call to this
+    //function occurs before kernel is started, then we can use
+    //fastInterruptDisable())
     if(interrupts) disableInterrupts();
     long long result=IRQgetTick();
     if(interrupts) enableInterrupts();

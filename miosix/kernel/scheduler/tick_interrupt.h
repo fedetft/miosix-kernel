@@ -29,6 +29,7 @@
 #define	TICK_INTERRUPT_H
 
 #include "config/miosix_settings.h"
+#include "interfaces/portability.h"
 #include "scheduler.h"
 
 namespace miosix {
@@ -43,6 +44,9 @@ extern bool IRQwakeThreads();///\internal Do not use outside the kernel
 
 inline void IRQtickInterrupt()
 {
+    #ifdef USE_CSTIMER
+    miosix_private::IRQstackOverflowCheck();
+    #endif //USE_CSTIMER
     bool woken=IRQwakeThreads();//Increment tick and wake threads,if any
     (void)woken; //Avoid unused variable warning.
 

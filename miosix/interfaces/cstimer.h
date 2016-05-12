@@ -3,7 +3,7 @@
 
 namespace miosix {
 
-#define CST_QUANTUM 42000//84000 ///FIXME: remove
+#define CST_QUANTUM 84000 ///FIXME: remove
 
 /**
  * This class is a low level interface to a hardware timer, that is used as
