@@ -6,6 +6,11 @@
 
 using namespace miosix;
 
+const unsigned int timerBits=32;
+const unsigned long long overflowIncrement=(1LL<<timerBits);
+const unsigned long long lowerMask=overflowIncrement-1;
+const unsigned long long upperMask=0xFFFFFFFFFFFFFFFFLL-lowerMask;
+
 static long long ms32time = 0; //most significant 32 bits of counter
 static long long ms32chkp = 0; //most significant 32 bits of check point
 static bool lateIrq=false;
@@ -42,7 +47,7 @@ static inline long long IRQgetTick()
     //between the two timer reads in this algorithm.
     unsigned int counter=TIM2->CNT;
     if((TIM2->SR & TIM_SR_UIF) && TIM2->CNT>=counter)
-        return (ms32time | static_cast<long long>(counter)) + 0x100000000LL;
+        return (ms32time | static_cast<long long>(counter)) + overflowIncrement;
     return ms32time | static_cast<long long>(counter);
 }
 
@@ -69,7 +74,7 @@ void __attribute__((used)) cstirqhnd()
     if(TIM2->SR & TIM_SR_UIF)
     {
         TIM2->SR = ~TIM_SR_UIF;
-        ms32time += 0x100000000LL;
+        ms32time += overflowIncrement;
     }
 }
 
@@ -87,8 +92,8 @@ ContextSwitchTimer& ContextSwitchTimer::instance()
 
 void ContextSwitchTimer::IRQsetNextInterrupt(long long tick)
 {
-    ms32chkp = tick & 0xFFFFFFFF00000000LL;
-    TIM2->CCR1 = static_cast<unsigned int>(tick & 0xFFFFFFFF);
+    ms32chkp = tick & upperMask;
+    TIM2->CCR1 = static_cast<unsigned int>(tick & lowerMask);
     if(IRQgetTick() >= nextInterrupt())
     {
         NVIC_SetPendingIRQ(TIM2_IRQn);
