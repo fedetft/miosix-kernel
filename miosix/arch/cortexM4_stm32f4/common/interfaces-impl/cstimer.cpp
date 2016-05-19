@@ -3,6 +3,7 @@
 #include "interfaces/arch_registers.h"
 #include "kernel/kernel.h"
 #include "kernel/scheduler/timer_interrupt.h"
+#include "../../../../../debugpin.h"
 
 using namespace miosix;
 
@@ -60,12 +61,14 @@ void __attribute__((naked)) TIM2_IRQHandler()
 
 void __attribute__((used)) cstirqhnd()
 {
+    HighPin<debug1> h1;
     if(TIM2->SR & TIM_SR_CC1IF || lateIrq)
     {
         TIM2->SR = ~TIM_SR_CC1IF;
         if(ms32time==ms32chkp || lateIrq)
         {
             lateIrq=false;
+            HighPin<debug2> h2;
             IRQtimerInterrupt(nextInterrupt());
         }
 
