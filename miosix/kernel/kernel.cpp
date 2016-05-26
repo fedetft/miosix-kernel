@@ -63,7 +63,7 @@ volatile Thread *cur=NULL;///<\internal Thread currently running
 ///\internal True if there are threads in the DELETED status. Used by idle thread
 static volatile bool exist_deleted=false;
 
-SleepData *sleeping_list=NULL;///list of sleeping threads
+static SleepData *sleeping_list=NULL;///list of sleeping threads
 
 #ifndef USE_CSTIMER
 static volatile long long tick=0;///<\internal Kernel tick
