@@ -67,6 +67,8 @@ static volatile bool exist_deleted=false;
 
 static IntrusiveList<SleepData> *sleepingList=nullptr;///list of sleeping threads
 
+static ContextSwitchTimer *timer = nullptr; // FIXME please
+
 #ifndef USE_CSTIMER
 static volatile long long tick=0;///<\internal Kernel tick
 #endif //USE_CSTIMER
@@ -175,6 +177,7 @@ bool areInterruptsEnabled()
 
 void startKernel()
 {
+    timer = &ContextSwitchTimer::instance();
     sleepingList = new(std::nothrow) IntrusiveList<SleepData>;
     csRecord = new(std::nothrow) SleepData;
     if(sleepingList==nullptr || csRecord==nullptr)
@@ -219,10 +222,10 @@ void startKernel()
     // Dispatch the task to the architecture-specific function
     #ifdef USE_CSTIMER
     // Set the first checkpoint interrupt
-    csRecord->p = 0;
+    csRecord->p = nullptr;
     csRecord->wakeup_time = CSQUANTUM;
     sleepingList->push_front(csRecord);
-    miosix::ContextSwitchTimer::instance().IRQsetNextInterrupt(CSQUANTUM);
+    timer->IRQsetNextInterrupt(CSQUANTUM);
     #endif //USE_CSTIMER
     miosix_private::IRQportableStartKernel();
     kernel_started=true;
@@ -251,7 +254,7 @@ long long getTick()
         if(a==b) return a;
     }
     #else //USE_CSTIMER
-    return ContextSwitchTimer::instance().getCurrentTick();
+    return timer->getCurrentTick();
     #endif //USE_CSTIMER
 }
 
@@ -279,7 +282,7 @@ void IRQaddToSleepingList(SleepData *x)
     //Upon any change to the sleepingList the ContextSwitchTimer should have
     //its interrupt set to the head of the list in order to keep it sync with
     //the list
-    ContextSwitchTimer::instance().IRQsetNextInterrupt(sleepingList->front()->wakeup_time);
+    timer->IRQsetNextInterrupt(sleepingList->front()->wakeup_time);
 #endif
 }
 
@@ -289,12 +292,27 @@ void IRQaddToSleepingList(SleepData *x)
  */
 void IRQsetNextPreemption(long long preemptionTime)
 {
+#ifdef USE_CSTIMER
     // Remove all the preemption points from the list
     IntrusiveList<SleepData>::iterator it(csRecord);
     sleepingList->erase(it);
-    //
+    
+    //This piece of code is a duplication of IRQaddToSleepingList
+    //that is in-lined for performance issues
     csRecord->wakeup_time = preemptionTime;
-    IRQaddToSleepingList(csRecord); //It would also set the next timer interrupt
+    if(sleepingList->empty() || sleepingList->front()->wakeup_time >= preemptionTime)
+    {
+        sleepingList->push_front(csRecord);
+    } else {
+        auto it = sleepingList->begin();
+        while (it != sleepingList->end() && (*it)->wakeup_time < preemptionTime ) ++it;
+        sleepingList->insert(it,csRecord);
+    }
+    //Upon any change to the sleepingList the ContextSwitchTimer should have
+    //its interrupt set to the head of the list in order to keep it sync with
+    //the list
+    timer->IRQsetNextInterrupt(sleepingList->front()->wakeup_time);
+#endif
 }
 /**
  * \internal
