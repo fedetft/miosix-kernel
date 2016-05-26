@@ -669,10 +669,20 @@ public:
         T *cur;
     public:
         iterator(T *cur) : cur(cur) {}
-        iterator operator++() { cur = static_cast<T*>(cur->next); }
-        iterator operator--() { cur = static_cast<T*>(cur->prev); }
-        iterator operator++(int) { cur = static_cast<T*>(cur->next); }
-        iterator operator--(int) { cur = static_cast<T*>(cur->prev); }
+        iterator operator++() { cur = static_cast<T*>(cur->next); return *this; }
+        iterator operator--() { cur = static_cast<T*>(cur->prev); return *this; }
+        iterator operator++(int)
+        {
+            iterator result=*this;
+            cur = static_cast<T*>(cur->next);
+            return result;
+        }
+        iterator operator--(int)
+        {
+            iterator result=*this;
+            cur = static_cast<T*>(cur->prev);
+            return result;
+        }
         T* operator*() { return cur; }
         bool operator==(const iterator& rhs) { return cur==rhs.cur; }
         bool operator!=(const iterator& rhs) { return cur!=rhs.cur; }
