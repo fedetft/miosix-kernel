@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2015 by Terraneo Federico                               *
+ *   Copyright (C) 2015, 2016 by Terraneo Federico                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -60,10 +60,21 @@ typedef Gpio<GPIOD_BASE,8>  loopback32KHzOut;
 typedef Gpio<GPIOE_BASE,15> voltageSelect;
 #endif
 
+#if WANDSTEM_HW_REV>13
+//Revision 1.4 separated the radio power management from expansion connector
+//power management. Before revision 1.4, transceiver::vregEn served both
+//functions, while starting from revision 1.4, this pin controls the power
+//switch for the expansion connector, and transceiver::vregEn controls the
+//cc2520 and flash power domain
+typedef Gpio<GPIOC_BASE,10> powerSwitch;
+#endif //rev 1.4 or higher
+
 namespace expansion {
-//The 30-pin expansion connector exposes 20 pins of the microcontroller
+//The 30-pin expansion connector exposes some pins of the microcontroller
 //that are freely usable as GPIO by daughter boards, and are named from gpio0
-//to gpio19. Each GPIO can have up to two alternate functions
+//to gpio19. Each GPIO can have up to two alternate functions.
+//Revision 1.4 uses reserves two GPIOs for internal use, the former gpio3 and
+//gpio17, reducing the GPIO count from 20 to 18.
 //MCU pin                   GPIO#     CONN# AF1          AF2
 #if WANDSTEM_HW_REV==10
 typedef Gpio<GPIOD_BASE,4>  gpio0;  //    1 ADC_CH0
@@ -74,7 +85,9 @@ typedef Gpio<GPIOD_BASE,3>  gpio0;  //    1 ADC_CH0
 typedef Gpio<GPIOD_BASE,6>  gpio1;  //    2 ADC_CH1      LETIMER0
 typedef Gpio<GPIOD_BASE,5>  gpio2;  //    3 ADC_CH2
 #endif
-typedef Gpio<GPIOD_BASE,7>  gpio3;  //    4 ADC_CH3
+#if WANDSTEM_HW_REV<14
+typedef Gpio<GPIOD_BASE,7>  gpio3;  //    4 ADC_CH3      reserved in rev 1.4
+#endif //rev 1.3 or lower
 typedef Gpio<GPIOC_BASE,5>  gpio4;  //    7 SPI_CS       LETIMER1
 typedef Gpio<GPIOC_BASE,4>  gpio5;  //    8 SPI_SCK
 typedef Gpio<GPIOC_BASE,3>  gpio6;  //    9 SPI_MISO     USART_RX
@@ -88,7 +101,9 @@ typedef Gpio<GPIOA_BASE,1>  gpio13; //   16 PWM1         PRS1
 typedef Gpio<GPIOC_BASE,1>  gpio14; //   18              EXC_ACMP1
 typedef Gpio<GPIOC_BASE,8>  gpio15; //   23 ACMP0
 typedef Gpio<GPIOC_BASE,9>  gpio16; //   24 ACMP1
-typedef Gpio<GPIOC_BASE,10> gpio17; //   25 ACMP2
+#if WANDSTEM_HW_REV<14
+typedef Gpio<GPIOC_BASE,10> gpio17; //   25 ACMP2        reserved in rev 1.4
+#endif //rev 1.3 or lower
 typedef Gpio<GPIOE_BASE,8>  gpio18; //   27 PCNT_A
 typedef Gpio<GPIOE_BASE,9>  gpio19; //   28 PCNT_B
 } //namespace expansion
@@ -107,7 +122,7 @@ namespace transceiver {
 //a timer input capture and output compare channel for precise packet timing
 typedef Gpio<GPIOA_BASE,2>  cs;
 typedef Gpio<GPIOF_BASE,5>  reset;
-typedef Gpio<GPIOF_BASE,12> vregEn; //Also power switch enable
+typedef Gpio<GPIOF_BASE,12> vregEn; //Also power switch enable before rev 1.4
 typedef Gpio<GPIOE_BASE,13> gpio1;
 typedef Gpio<GPIOE_BASE,14> gpio2;
 typedef Gpio<GPIOA_BASE,8>  excChB; //including SFD and FRM_DONE
@@ -136,6 +151,14 @@ typedef Gpio<GPIOD_BASE,3>  sense;  //Analog, also pin 5 of expansion connector
 typedef Gpio<GPIOD_BASE,4>  sense;  //Analog, also pin 5 of expansion connector
 #endif
 } //namespace currentSense
+
+//Rev 1.4 introduced a sensor for the battery voltage. This is done using a
+//voltage divider that is enabled when the cc2520 voltage domain is enabled.
+//The voltage that can be sensed at this point is the battery voltage
+//multiplied by 0.237
+#if WANDSTEM_HW_REV>13
+typedef Gpio<GPIOD_BASE,7>  voltageSense;
+#endif //rev 1.4 or higher
 
 namespace debugConnector {
 //The debug connector exposes a serial port for printf/scanf debugging, and
