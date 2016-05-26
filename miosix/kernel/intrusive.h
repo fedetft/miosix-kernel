@@ -703,9 +703,9 @@ public:
     
     /**
      * Removes the specified item from the list.
-     * @param item
+     * @param an iterator to the next item
      */
-    void erase(iterator it);
+    iterator erase(iterator it);
     
     iterator begin()
     {
@@ -810,7 +810,7 @@ void IntrusiveList<T>::pop_front()
         head->prev = nullptr;
         emptyListItem.next = head->next;
         head->next = nullptr;
-        head = static_cast<T*>(emptyListItem).next;
+        head = static_cast<T*>(emptyListItem.next);
     }   
 }
 
@@ -836,15 +836,18 @@ void IntrusiveList<T>::insert(iterator position, T *item)
 }
 
 template<typename T>
-void IntrusiveList<T>::erase(iterator it)
+typename IntrusiveList<T>::iterator IntrusiveList<T>::erase(iterator it)
 {
-    if((*it)==&emptyListItem) return;
+    if((*it)==&emptyListItem) return it;
+    iterator result = it;
+    result++;
     (*it)->next->prev = (*it)->prev;
     (*it)->prev->next = (*it)->next;
     (*it)->next = nullptr;
     (*it)->prev = nullptr;
     head = static_cast<T*>(emptyListItem.next);
     tail = static_cast<T*>(emptyListItem.prev);
+    return result;
 }
 
 } //namespace miosix
