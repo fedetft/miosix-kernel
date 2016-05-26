@@ -634,188 +634,218 @@ intrusive_ref_ptr<T> atomic_exchange(intrusive_ref_ptr<T> *p,
     return p->atomic_exchange(r);
 }
 
-template <typename ItemT>
-class IntrusiveList;
+template <typename T>
+class IntrusiveList; //Forward declaration
+
 /**
- * Class: IntrusiveListItem
+ * Base class from which all items to be put in an IntrusiveList must derive,
+ * contains the next and prev pointer that create the list
  */
 class IntrusiveListItem
 {
-public:
-    IntrusiveListItem(){
-        next = NULL;
-        prev = NULL;
-    }
 private:
-    IntrusiveListItem *next;
-    IntrusiveListItem *prev;
+    IntrusiveListItem *next=nullptr;
+    IntrusiveListItem *prev=nullptr;
     template<typename T>
     friend class IntrusiveList;
-
 };
 
 /**
- * Class: IntrusiveList
- * ItemT should be a subclass of IntrusiveListItem
+ * A doubly linked list that only accepts objects that derive from
+ * IntrusiveListItem.
+ * 
+ * Compared to std::list, this class offers the guarantee that no dynamic memory
+ * allocation is performed. Differently from std::list, objects are not copied
+ * when put in the list, so this is a non-owning container. The caller is
+ * responsible for managing the lifetime of objects put in this list.
  */
-template <typename ItemT>
+template <typename T>
 class IntrusiveList
 {
 public:
-    class iterator{
+    class iterator
+    {
     private:
-        ItemT *cur;
+        T *cur;
     public:
-        iterator(ItemT *_cur) : cur(_cur){}
-        iterator operator++(int) {cur = static_cast<ItemT*>(cur->next);}
-        iterator operator--(int) {cur = static_cast<ItemT*>(cur->prev);}
-        ItemT* operator*() {return cur;}
-        bool operator==(const iterator& rhs) {return cur==rhs.cur;}
-        bool operator!=(const iterator& rhs) {return cur!=rhs.cur;}
+        iterator(T *cur) : cur(cur) {}
+        iterator operator++(int) { cur = static_cast<T*>(cur->next); }
+        iterator operator--(int) { cur = static_cast<T*>(cur->prev); }
+        T* operator*() { return cur; }
+        bool operator==(const iterator& rhs) { return cur==rhs.cur; }
+        bool operator!=(const iterator& rhs) { return cur!=rhs.cur; }
     };
-    IntrusiveList()
+    
+    IntrusiveList() : head(&emptyListItem), tail(&emptyListItem)
     {
         emptyListItem.next = &emptyListItem;
         emptyListItem.prev = &emptyListItem;
-        head = &emptyListItem;
-        rear = &emptyListItem;
     }
-    void push_back(ItemT *item){
-        item->next = &emptyListItem;
-        item->prev = rear;
-        rear = item;
-        emptyListItem.prev = rear;
-        if (head==&emptyListItem){
-            head = rear;
-            emptyListItem.next = head;
-        }else
-            item->prev->next = item;
-    }
+    
+    void push_back(T *item);
+    
     /**
      * Removes the last element in the list.
      */
-    void pop_back()
-    {
-        if (rear == &emptyListItem) return;
-        if (rear == head)
-        {
-            head->next = NULL;
-            head->prev = NULL;
-            emptyListItem.next = &emptyListItem;
-            emptyListItem.prev = &emptyListItem;
-            rear = &emptyListItem;
-            head = &emptyListItem;
-        }else{
-            rear->prev->next = &emptyListItem;
-            emptyListItem.prev = rear->prev;
-            rear->prev = NULL;
-            rear->next = NULL;
-            rear = static_cast<ItemT*>(emptyListItem.prev);
-        }   
-    }
-    void push_front(ItemT *item)
-    {
-        item->prev = &emptyListItem;
-        if (head != &emptyListItem)
-        {
-            item->next = head;
-            item->next->prev = item;
-            emptyListItem.next = item;
-        }else{
-            item->next = &emptyListItem;
-            rear = item;
-            emptyListItem.prev = item;
-            emptyListItem.next = item;
-        }
-        head = item;
-        
-    }
+    void pop_back();
+    
+    void push_front(T *item);
+    
     /**
      * Removes the first item (head) of the list.
      */
-    void pop_front()
-    {
-        if (head==&emptyListItem) return;
-        if (rear == head)
-        {
-            head->next = NULL;
-            head->prev = NULL;
-            emptyListItem.next = &emptyListItem;
-            emptyListItem.prev = &emptyListItem;
-            rear = &emptyListItem;
-            head = &emptyListItem;
-        }else{
-            head->next->prev = &emptyListItem;
-            head->prev = NULL;
-            emptyListItem.next = head->next;
-            head->next = NULL;
-            head = (ItemT*)static_cast<IntrusiveListItem>(emptyListItem).next;
-        }   
-    }
+    void pop_front();
+    
     /**
      * Inserts the given item before the position indicated by the iterator
      */
-    void insert(iterator position, ItemT *item)
-    {
-        if (head==&emptyListItem){
-            head = item;
-            rear = item;
-            item->next = &emptyListItem;
-            item->prev = &emptyListItem;
-            emptyListItem.next = item;
-            emptyListItem.prev = item;
-            return;
-        }
-        item->next = static_cast<IntrusiveListItem *>(*position);
-        item->prev = static_cast<IntrusiveListItem *>(*position)->prev;
-        item->prev->next = item;
-        (*position)->prev = item;
-        if (item->prev == &emptyListItem)
-            head = item;
-        if (item->next == &emptyListItem)
-            rear = item;
-    }
+    void insert(iterator position, T *item);
+    
     /**
      * Removes the specified item from the list.
      * @param item
      */
-    void erase(iterator it)
-    {
-        if ((*it)==&emptyListItem) return;
-        (*it)->next->prev = (*it)->prev;
-        (*it)->prev->next = (*it)->next;
-        (*it)->next = NULL;
-        (*it)->prev = NULL;
-        head = (ItemT*)static_cast<IntrusiveListItem>(emptyListItem).next;
-        rear = (ItemT*)static_cast<IntrusiveListItem>(emptyListItem).prev;
-    }
+    void erase(iterator it);
+    
     iterator begin()
     {
         return iterator(head);
     }
+    
     iterator end()
     {
         return iterator(&emptyListItem);
     }
-    ItemT* front()
+    
+    T* front()
     {
         return head;
     }
-    ItemT* back()
+    
+    T* back()
     {
-        return rear;
+        return tail;
     }
+    
     bool empty() const
     {
-        return (head==&emptyListItem);
+        return head==&emptyListItem;
     }
 private:
-    ItemT *head;
-    ItemT *rear;
-    ItemT emptyListItem;
     
+    void removeLastItem()
+    {
+        head->next = nullptr;
+        head->prev = nullptr;
+        emptyListItem.next = &emptyListItem;
+        emptyListItem.prev = &emptyListItem;
+        tail = &emptyListItem;
+        head = &emptyListItem;
+    }
+    
+    T *head;
+    T *tail;
+    T emptyListItem;
 };
 
+template<typename T>
+void IntrusiveList<T>::push_back(T *item)
+{
+    item->next = &emptyListItem;
+    item->prev = tail;
+    tail = item;
+    emptyListItem.prev = item;
+    if(head==&emptyListItem)
+    {
+        head = tail;
+        emptyListItem.next = head;
+    } else item->prev->next = item;
+}
+
+template<typename T>
+void IntrusiveList<T>::pop_back()
+{
+    if(tail == head)
+    {
+        //Note: this is safe also in the case of pop_back of an empty list
+        //by mistake
+        removeLastItem();
+    } else {
+        tail->prev->next = &emptyListItem;
+        emptyListItem.prev = tail->prev;
+        tail->prev = nullptr;
+        tail->next = nullptr;
+        tail = static_cast<T*>(emptyListItem.prev);
+    }   
+}
+
+template<typename T>
+void IntrusiveList<T>::push_front(T *item)
+{
+    item->prev = &emptyListItem;
+    if(head != &emptyListItem)
+    {
+        item->next = head;
+        item->next->prev = item;
+        emptyListItem.next = item;
+    } else {
+        item->next = &emptyListItem;
+        tail = item;
+        emptyListItem.prev = item;
+        emptyListItem.next = item;
+    }
+    head = item;
+}
+
+template<typename T>
+void IntrusiveList<T>::pop_front()
+{
+    if(tail == head)
+    {
+        //Note: this is safe also in the case of pop_back of an empty list
+        //by mistake
+        removeLastItem();
+    } else {
+        head->next->prev = &emptyListItem;
+        head->prev = nullptr;
+        emptyListItem.next = head->next;
+        head->next = nullptr;
+        head = static_cast<T*>(emptyListItem).next;
+    }   
+}
+
+template<typename T>
+void IntrusiveList<T>::insert(iterator position, T *item)
+{
+    if(head==&emptyListItem)
+    {
+        head = item;
+        tail = item;
+        item->next = &emptyListItem;
+        item->prev = &emptyListItem;
+        emptyListItem.next = item;
+        emptyListItem.prev = item;
+        return;
+    }
+    item->next = static_cast<IntrusiveListItem *>(*position); //FIXME: do we need this upcast?
+    item->prev = static_cast<IntrusiveListItem *>(*position)->prev;
+    item->prev->next = item;
+    (*position)->prev = item;
+    if(item->prev == &emptyListItem) head = item;
+    if(item->next == &emptyListItem) tail = item;
+}
+
+template<typename T>
+void IntrusiveList<T>::erase(iterator it)
+{
+    if((*it)==&emptyListItem) return;
+    (*it)->next->prev = (*it)->prev;
+    (*it)->prev->next = (*it)->next;
+    (*it)->next = nullptr;
+    (*it)->prev = nullptr;
+    head = static_cast<T*>(emptyListItem.next);
+    tail = static_cast<T*>(emptyListItem.prev);
+}
 
 } //namespace miosix
 
