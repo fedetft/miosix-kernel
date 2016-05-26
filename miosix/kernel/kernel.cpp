@@ -43,6 +43,8 @@
 #include <string.h>
 #include <reent.h>
 
+#define CSQUANTUM 84000 //FIXME: remove it please
+
 /*
 Used by assembler context switch macros
 This variable is set by miosix::IRQfindNextThread in file kernel.cpp
@@ -63,7 +65,7 @@ volatile Thread *cur=NULL;///<\internal Thread currently running
 ///\internal True if there are threads in the DELETED status. Used by idle thread
 static volatile bool exist_deleted=false;
 
-static SleepData *sleeping_list=NULL;///list of sleeping threads
+static IntrusiveList<SleepData> *sleepingList=nullptr;///list of sleeping threads
 
 #ifndef USE_CSTIMER
 static volatile long long tick=0;///<\internal Kernel tick
@@ -83,10 +85,8 @@ static unsigned char interruptDisableNesting=0;
 
 #ifdef USE_CSTIMER
 
-#define CST_QUANTUM 84000 //FIXME: find a way to propagate this here!!!
-
 /// Used for context switches with the high resolution timer
-static SleepData csRecord;
+static SleepData *csRecord=nullptr;
 
 #endif //USE_CSTIMER
 
@@ -175,6 +175,13 @@ bool areInterruptsEnabled()
 
 void startKernel()
 {
+    sleepingList = new(std::nothrow) IntrusiveList<SleepData>;
+    csRecord = new(std::nothrow) SleepData;
+    if(sleepingList==nullptr || csRecord==nullptr)
+    {
+        errorHandler(OUT_OF_MEMORY);
+        return;
+    }
     #ifdef WITH_PROCESSES
     try {
         kernel=new ProcessBase;
@@ -212,11 +219,10 @@ void startKernel()
     // Dispatch the task to the architecture-specific function
     #ifdef USE_CSTIMER
     // Set the first checkpoint interrupt
-    csRecord.p = 0;
-    csRecord.wakeup_time = CST_QUANTUM;
-    csRecord.next = sleeping_list;
-    sleeping_list = &csRecord;
-    miosix::ContextSwitchTimer::instance().IRQsetNextInterrupt(CST_QUANTUM);
+    csRecord->p = 0;
+    csRecord->wakeup_time = CSQUANTUM;
+    sleepingList->push_front(csRecord);
+    miosix::ContextSwitchTimer::instance().IRQsetNextInterrupt(CSQUANTUM);
     #endif //USE_CSTIMER
     miosix_private::IRQportableStartKernel();
     kernel_started=true;
@@ -261,31 +267,35 @@ long long getTick()
 void IRQaddToSleepingList(SleepData *x)
 {
     x->p->flags.IRQsetSleep(true);
-    if((sleeping_list==NULL)||(x->wakeup_time <= sleeping_list->wakeup_time))
+    if(sleepingList->empty() || sleepingList->front()->wakeup_time >= x->wakeup_time)
     {
-        x->next=sleeping_list;
-        sleeping_list=x;   
+        sleepingList->push_front(x);
     } else {
-       SleepData *cur=sleeping_list;
-       for(;;)
-       {
-           if((cur->next==NULL)||(x->wakeup_time <= cur->next->wakeup_time))
-           {
-               x->next=cur->next;
-               cur->next=x;
-               break;
-           }
-           cur=cur->next;
-       }
+        auto it = sleepingList->begin();
+        while (it != sleepingList->end() && (*it)->wakeup_time < x->wakeup_time ) ++it;
+        sleepingList->insert(it,x);
     }
 #ifdef USE_CSTIMER
-    //Upon any change to the sleeping_list the ContextSwitchTimer should have
+    //Upon any change to the sleepingList the ContextSwitchTimer should have
     //its interrupt set to the head of the list in order to keep it sync with
     //the list
-    ContextSwitchTimer::instance().IRQsetNextInterrupt(sleeping_list->wakeup_time);
+    ContextSwitchTimer::instance().IRQsetNextInterrupt(sleepingList->front()->wakeup_time);
 #endif
 }
 
+/**
+ * \internal
+ * \return 
+ */
+void IRQsetNextPreemption(long long preemptionTime)
+{
+    // Remove all the preemption points from the list
+    IntrusiveList<SleepData>::iterator it(csRecord);
+    sleepingList->erase(it);
+    //
+    csRecord->wakeup_time = preemptionTime;
+    IRQaddToSleepingList(csRecord); //It would also set the next timer interrupt
+}
 /**
  * \internal
  * Called @ every tick to check if it's time to wake some thread.
@@ -298,51 +308,23 @@ bool IRQwakeThreads(long long currentTick)
 {
     #ifndef USE_CSTIMER
     tick++;//Increment tick
-    #else //USE_CSTIMER
-    //Add next context switch time to the sleeping list iff this is a
-    //context switch
-    if(currentTick >= csRecord.wakeup_time)
-    {
-        //Remove the cs item from the sleeping list manually
-        if(sleeping_list==&csRecord)
-            sleeping_list=sleeping_list->next;
-        SleepData* slp = sleeping_list;
-        while(slp!=NULL)
-        {
-            if(slp->next==&csRecord)
-            {
-                slp->next=slp->next->next;
-                break;
-            }
-            slp = slp->next;
-        }
-        //Add next cs item to the list via IRQaddToSleepingList
-        //Note that the next timer interrupt is set by IRQaddToSleepingList
-        //according to the head of the list!
-        csRecord.wakeup_time += CST_QUANTUM;
-        IRQaddToSleepingList(&csRecord); //It would also set the next timer interrupt
-    }
     #endif //USE_CSTIMER
+
+    //If no item in list, return
+    if(sleepingList->empty()) return false;
+    
     bool result=false;
-    for(;;)
+    //Since list is sorted, if we don't need to wake the first element
+    //we don't need to wake the other too
+    for(auto it = sleepingList->begin() ; it != sleepingList->end() ;)
     {
-        if(sleeping_list==NULL) break;//If no item in list, return
-        //Since list is sorted, if we don't need to wake the first element
-        //we don't need to wake the other too
-#ifdef USE_CSTIMER
-        if(ContextSwitchTimer::instance().IRQgetCurrentTick() < sleeping_list->wakeup_time) break;
-        if (sleeping_list->p != 0) //distinguish between context switches and sleeps
-            sleeping_list->p->flags.IRQsetSleep(false);//Wake thread
-#else
-        if(tick != sleeping_list->wakeup_time) break;
-        sleeping_list->p->flags.IRQsetSleep(false);//Wake thread
-#endif
-        sleeping_list=sleeping_list->next;//Remove from list
-        result=true;
-#ifdef USE_CSTIMER
-        //update interrupt of context switch timer
-        ContextSwitchTimer::instance().IRQsetNextInterrupt(sleeping_list->wakeup_time);
-#endif
+        if(currentTick < (*it)->wakeup_time) break;
+        if((*it)->p == nullptr) ++it; //Only csRecord has p==nullptr
+        else {
+            (*it)->p->flags.IRQsetSleep(false); //Wake thread
+            it = sleepingList->erase(it);
+            result = true;
+        }
     }
     return result;
 }
@@ -420,7 +402,7 @@ inline void Thread::tickSleepUntil(long long absTicks)
     //thread wakes up (i.e: after Thread::yield() returns)
     SleepData d;
     //pauseKernel() here is not enough since even if the kernel is stopped
-    //the tick isr will wake threads, modifying the sleeping_list
+    //the tick isr will wake threads, modifying the sleepingList
     {
         FastInterruptDisableLock lock;
         d.p=const_cast<Thread*>(cur);
@@ -453,7 +435,7 @@ void Thread::sleep(unsigned int ms)
 #else
     if(ms==0) return;
     //pauseKernel() here is not enough since even if the kernel is stopped
-    //the tick isr will wake threads, modifying the sleeping_list
+    //the tick isr will wake threads, modifying the sleepingList
     {
         FastInterruptDisableLock lock;
         SleepData d;
@@ -473,7 +455,7 @@ void Thread::sleepUntil(long long absoluteTime)
     nanoSleepUntil(absoluteTime * 1000000);
 #else
     //pauseKernel() here is not enough since even if the kernel is stopped
-    //the tick isr will wake threads, modifying the sleeping_list
+    //the tick isr will wake threads, modifying the sleepingList
     {
         FastInterruptDisableLock lock;
         if(absoluteTime<=getTick()) return; //Wakeup time in the past, return
@@ -780,7 +762,7 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
     #endif //__NO_EXCEPTIONS
     //Thread returned from its entry point, so delete it
 
-    //Since the thread is running, it cannot be in the sleeping_list, so no need
+    //Since the thread is running, it cannot be in the sleepingList, so no need
     //to remove it from the list
     {
         FastInterruptDisableLock lock;

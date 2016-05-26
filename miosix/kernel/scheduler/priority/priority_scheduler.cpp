@@ -30,7 +30,7 @@
 #include "kernel/process.h"
 
 #ifdef SCHED_TYPE_PRIORITY
-
+#define CSQUANTUM 84000 //FIXME : Remove this
 namespace miosix {
 
 //These are defined in kernel.cpp
@@ -197,9 +197,9 @@ void PriorityScheduler::IRQsetIdleThread(Thread *idleThread)
     idle=idleThread;
 }
 
-void PriorityScheduler::IRQfindNextThread()
+unsigned int PriorityScheduler::IRQfindNextThread()
 {
-    if(kernel_running!=0) return;//If kernel is paused, do nothing
+    if(kernel_running!=0) return CSQUANTUM;//If kernel is paused, do nothing
     for(int i=PRIORITY_MAX-1;i>=0;i--)
     {
         if(thread_list[i]==NULL) continue;
@@ -226,7 +226,7 @@ void PriorityScheduler::IRQfindNextThread()
                 //Rotate to next thread so that next time the list is walked
                 //a different thread, if available, will be chosen first
                 thread_list[i]=temp;
-                return;
+                return CSQUANTUM;
             } else temp=temp->schedData.next;
             if(temp==thread_list[i]->schedData.next) break;
         }
@@ -237,6 +237,7 @@ void PriorityScheduler::IRQfindNextThread()
     #ifdef WITH_PROCESSES
     MPUConfiguration::IRQdisable();
     #endif //WITH_PROCESSES
+    return CSQUANTUM;
 }
 
 Thread *PriorityScheduler::thread_list[PRIORITY_MAX]={0};
