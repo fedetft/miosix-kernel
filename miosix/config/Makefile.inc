@@ -32,6 +32,7 @@
 #OPT_BOARD := stm32f411re_nucleo
 #OPT_BOARD := stm32f429zi_skyward_anakin
 #OPT_BOARD := stm32f100rc_solertegiard
+#OPT_BOARD := stm32f205rc_skyward_stormtrooper
 
 ##
 ## Optimization flags, choose one.
@@ -415,6 +416,8 @@ else ifeq ($(OPT_BOARD),stm32f429zi_skyward_anakin)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),stm32f100rc_solertegiard)
     ARCH := cortexM3_stm32
+else ifeq ($(OPT_BOARD),stm32f205rc_skyward_stormtrooper)
+    ARCH := cortexM3_stm32f2
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -1242,6 +1245,32 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
             dfu-util -d 0fce:f0fa -a 0 -i 0 -s 0x08040000 -D main.bin;     \
             dfu-util -d 0fce:f0fa -a 0 -i 0 -s 0x080ffffc -D magic.bin;    \
             rm magic.bin
+            
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f205rc_skyward_stormtrooper
+    ##
+    else ifeq ($(OPT_BOARD),stm32f205rc_skyward_stormtrooper)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_stm32f2/stm32f205rc_skyward_stormtrooper
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_512k+128k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        arch/common/drivers/stm32f2_f4_i2c.cpp       \
+        $(BOARD_INC)/interfaces-impl/delays.cpp      \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32F205RC_SKYWARD_STORMTROOPER
+        CXXFLAGS_BASE += -D_BOARD_STM32F205RC_SKYWARD_STORMTROOPER
+
+        ## Clock frequency
+        CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_120MHz=120000000
 
     ##-------------------------------------------------------------------------
     ## End of board list
