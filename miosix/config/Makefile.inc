@@ -32,6 +32,7 @@
 #OPT_BOARD := stm32f411re_nucleo
 #OPT_BOARD := stm32f429zi_skyward_anakin
 #OPT_BOARD := stm32f100rc_solertegiard
+#OPT_BOARD := stm32f401vc_stm32f4discovery
 
 ##
 ## Optimization flags, choose one.
@@ -358,6 +359,12 @@ ifeq ($(OPT_BOARD),stm32f429zi_skyward_anakin)
 
 endif
 
+##---------------------------------------------------------------------------
+## stm32f401vc_stm32f4discovery
+##
+
+# No options
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -415,6 +422,8 @@ else ifeq ($(OPT_BOARD),stm32f429zi_skyward_anakin)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),stm32f100rc_solertegiard)
     ARCH := cortexM3_stm32
+else ifeq ($(OPT_BOARD),stm32f401vc_stm32f4discovery)
+    ARCH := cortexM4_stm32f4
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -1036,6 +1045,41 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## error message saying that 'make program' is not supported for that
         ## board.
         PROGRAM_CMDLINE := stm32flash -w main.bin -v /dev/ttyUSB0
+
+    ##-------------------------------------------------------------------------
+    ## stm32f401vc_stm32f4discovery
+    ##
+    else ifeq ($(OPT_BOARD),stm32f401vc_stm32f4discovery)
+
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM4_stm32f4/stm32f401vc_stm32f4discovery
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_256k+64k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        arch/common/drivers/stm32f2_f4_i2c.cpp       \
+        arch/common/drivers/stm32_hardware_rng.cpp   \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32F401VC_STM32F4DISCOVERY
+        CXXFLAGS_BASE += -D_BOARD_STM32F401VC_STM32F4DISCOVERY
+
+        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
+        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_84MHz=84000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
 
     ##-------------------------------------------------------------------------
     ## End of board list
