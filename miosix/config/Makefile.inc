@@ -1066,7 +1066,6 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
         arch/common/drivers/stm32f2_f4_i2c.cpp       \
-        arch/common/drivers/stm32_hardware_rng.cpp   \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
