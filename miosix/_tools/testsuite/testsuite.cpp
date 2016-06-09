@@ -961,7 +961,7 @@ static void test_4()
     for(int i=0;i<4;i++)
     {
         delayMs(100);
-        if((t4_v1==true)||(tick!=getTick()))
+        if(t4_v1)
         {
             enableInterrupts();//
             fail("disableInterrupts");
@@ -983,7 +983,7 @@ static void test_4()
     for(int i=0;i<4;i++)
     {
         delayMs(100);
-        if((t4_v1==true)||(tick!=getTick()))
+        if(t4_v1)
         {
             fastEnableInterrupts();//
             fail("disableInterrupts");
@@ -1900,8 +1900,23 @@ isKernelRunning()
 areInterruptsEnabled()
 */
 
+static volatile bool t9_v1;
+
+void t9_p1(void*)
+{
+    for(;;)
+    {
+        if(Thread::testTerminate()) break;
+        t9_v1=true;
+        #ifdef SCHED_TYPE_EDF
+        Thread::sleep(1);
+        #endif //SCHED_TYPE_EDF
+    }
+}
+
 static void test_9()
 {
+    Thread *p=Thread::create(t9_p1,STACK_SMALL,0,NULL,Thread::JOINABLE);
     test_name("isKernelRunning and save/restore interrupts");
     //Testing kernel_running with nested pause_kernel()
     if(isKernelRunning()==false) fail("isKernelRunning() (1)");
@@ -1927,12 +1942,11 @@ static void test_9()
     restartKernel();//1
     if(isKernelRunning()==false) fail("isKernelRunning() (5)");
     //Testing nesting of disableInterrupts()
-    long long i;
     if(areInterruptsEnabled()==false) fail("areInterruptsEnabled() (1)");
     disableInterrupts();//Now interrupts should be disabled
-    i=getTick();
+    t9_v1=false;
     delayMs(100);
-    if(i!=getTick())
+    if(t9_v1)
     {
         enableInterrupts();
         fail("disableInterrups() nesting (1)");
@@ -1943,9 +1957,8 @@ static void test_9()
         fail("areInterruptsEnabled() (2)");
     }
     disableInterrupts();//Interrupts already disabled
-    i=getTick();
     delayMs(100);
-    if(i!=getTick())
+    if(t9_v1)
     {
         enableInterrupts();
         fail("disableInterrups() nesting (2)");
@@ -1956,9 +1969,8 @@ static void test_9()
         fail("areInterruptsEnabled() (3)");
     }
     enableInterrupts();//Now interrupts should remain disabled
-    i=getTick();
     delayMs(100);
-    if(i!=getTick())
+    if(t9_v1)
     {
         enableInterrupts();
         fail("enableInterrupts() nesting (1)");
@@ -1969,14 +1981,15 @@ static void test_9()
         fail("areInterruptsEnabled() (4)");
     }
     enableInterrupts();//Now interrupts should be enabled
-    i=getTick();
     delayMs(100);
-    if(i==getTick())
+    if(t9_v1==false)
     {
         enableInterrupts();
         fail("enableInterrupts() nesting (2)");
     }
     if(areInterruptsEnabled()==false) fail("areInterruptsEnabled() (5)");
+    p->terminate();
+    p->join();
     pass();
 }
 
