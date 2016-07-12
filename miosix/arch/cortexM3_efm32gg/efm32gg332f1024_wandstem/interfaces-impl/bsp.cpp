@@ -69,6 +69,10 @@ void IRQbspInit()
     #if WANDSTEM_HW_REV>=13
     voltageSelect::mode(Mode::OUTPUT_LOW); //Default VDD=2.3V
     #endif
+
+    #if WANDSTEM_HW_REV>13
+    powerSwitch::mode(Mode::OUTPUT_LOW);
+    #endif
     
     internalSpi::mosi::mode(Mode::OUTPUT_LOW);
     internalSpi::miso::mode(Mode::INPUT_PULL_DOWN);   //To prevent it floating
