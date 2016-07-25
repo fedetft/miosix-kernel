@@ -67,8 +67,6 @@ static volatile bool exist_deleted=false;
 
 static IntrusiveList<SleepData> *sleepingList=nullptr;///list of sleeping threads
 
-static ContextSwitchTimer *timer = nullptr; // FIXME please
-
 #ifndef USE_CSTIMER
 static volatile long long tick=0;///<\internal Kernel tick
 #endif //USE_CSTIMER
@@ -86,6 +84,8 @@ bool kernel_started=false;///<\internal becomes true after startKernel.
 static unsigned char interruptDisableNesting=0;
 
 #ifdef USE_CSTIMER
+
+static ContextSwitchTimer *timer = nullptr; // FIXME please
 
 /// Used for context switches with the high resolution timer
 static SleepData *csRecord=nullptr;
@@ -177,14 +177,23 @@ bool areInterruptsEnabled()
 
 void startKernel()
 {
+    #ifdef USE_CSTIMER
     timer = &ContextSwitchTimer::instance();
     sleepingList = new(std::nothrow) IntrusiveList<SleepData>;
-    csRecord = new(std::nothrow) SleepData;
+        csRecord = new(std::nothrow) SleepData;
     if(sleepingList==nullptr || csRecord==nullptr)
     {
         errorHandler(OUT_OF_MEMORY);
         return;
     }
+    #else //USE_CSTIMER
+    sleepingList = new(std::nothrow) IntrusiveList<SleepData>;
+    if(sleepingList==nullptr)
+    {
+        errorHandler(OUT_OF_MEMORY);
+        return;
+    }
+    #endif //USE_CSTIMER
     #ifdef WITH_PROCESSES
     try {
         kernel=new ProcessBase;
@@ -326,7 +335,26 @@ bool IRQwakeThreads(long long currentTick)
 {
     #ifndef USE_CSTIMER
     tick++;//Increment tick
-    #endif //USE_CSTIMER
+    
+    //If no item in list, return
+    if(sleepingList->empty()) return false;
+    
+    bool result=false;
+    //Since list is sorted, if we don't need to wake the first element
+    //we don't need to wake the other too
+    for(auto it = sleepingList->begin() ; it != sleepingList->end() ;)
+    {
+        if(tick < (*it)->wakeup_time) break;
+        if((*it)->p == nullptr) ++it; //Only csRecord has p==nullptr
+        else {
+            (*it)->p->flags.IRQsetSleep(false); //Wake thread
+            it = sleepingList->erase(it);
+            result = true;
+        }
+    }
+    return result;
+    
+    #else //USE_CSTIMER
 
     //If no item in list, return
     if(sleepingList->empty()) return false;
@@ -345,6 +373,7 @@ bool IRQwakeThreads(long long currentTick)
         }
     }
     return result;
+    #endif //USE_CSTIMER
 }
 
 /*
