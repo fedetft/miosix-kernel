@@ -2026,9 +2026,11 @@ void t10_p1(void *argv)
 void test_10()
 {
     test_name("Exception handling");
-    Thread::sleep(10);
     Thread *t=Thread::create(t10_p1,1024+512,0,NULL);
-    Thread::sleep(80);
+    //This sleep needs to be long enough to let the other thread print the
+    //"An exception propagated ..." string on the serial port, otherwise the
+    //test fails because the other thread still exists because it is printing.
+    Thread::sleep(100);
     if(Thread::exists(t)) fail("Thread not deleted");
     pass();
 }
