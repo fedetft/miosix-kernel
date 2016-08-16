@@ -83,6 +83,8 @@ bool kernel_started=false;///<\internal becomes true after startKernel.
 /// calls to these functions.
 static unsigned char interruptDisableNesting=0;
 
+static int deepSleepCounter = 0;
+
 #ifdef USE_CSTIMER
 
 static ContextSwitchTimer *timer = nullptr; // FIXME please
@@ -117,11 +119,24 @@ void *idleThread(void *argv)
         #ifndef JTAG_DISABLE_SLEEP
         //JTAG debuggers lose communication with the device if it enters sleep
         //mode, so to use debugging it is necessary to remove this instruction
-        miosix_private::sleepCpu();
+        
+        bool sleep=false;
+        {
+            FastInterruptDisableLock lock;
+            if (deepSleepCounter == 0)
+            {
+               miosix_private::IRQdeepSleep();
+            }
+            else
+                sleep=true;
+        }
+        if (sleep) miosix_private::sleepCpu();
+        
         #endif
     }
     return 0; //Just to avoid a compiler warning
 }
+
 
 void disableInterrupts()
 {
@@ -173,6 +188,16 @@ void restartKernel()
 bool areInterruptsEnabled()
 {
     return miosix_private::checkAreInterruptsEnabled();
+}
+
+void deepSleepLock()
+{
+    atomicAdd(&deepSleepCounter,1);
+}
+
+void deepSleepUnlock()
+{ 
+    atomicAdd(&deepSleepCounter,-1);
 }
 
 void startKernel()

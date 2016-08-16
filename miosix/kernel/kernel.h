@@ -362,6 +362,27 @@ private:
     RestartKernelLock& operator= (const RestartKernelLock& l);
 };
 
+/*Increment the deepSleepCounter variable, enabling deep sleep of MCU if the variable
+ * holds a positive value*/ 
+void deepSleepLock();
+
+/*Decrement the deepSleepCounter variable, disabling deep sleep of MCU if the variable
+ * becomes a positive value*/ 
+void deepSleepUnlock();
+
+class DeepSleepLock
+{
+public:       
+    DeepSleepLock(){deepSleepLock();}
+
+    ~DeepSleepLock(){deepSleepUnlock();}
+
+    // Copy Class 
+private: 
+    DeepSleepLock(const DeepSleepLock&);
+    DeepSleepLock& operator= (const DeepSleepLock&);
+};
+
 /**
  * \internal
  * Start the kernel.<br> There is no way to stop the kernel once it is

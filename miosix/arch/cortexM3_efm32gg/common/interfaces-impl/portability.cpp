@@ -34,6 +34,13 @@
 #include "kernel/scheduler/timer_interrupt.h"
 #include <algorithm>
 
+#define ADCSAMPLES                        1024
+
+extern volatile uint16_t ramBufferAdcData1[ADCSAMPLES];
+extern volatile uint16_t ramBufferAdcData2[ADCSAMPLES];
+
+DMA_DESCRIPTOR_TypeDef dmaControlBlock[DMACTRL_CH_CNT * 2] __attribute__ ((aligned(DMACTRL_ALIGNMENT)));
+
 /**
  * \internal
  * timer interrupt routine.
@@ -66,6 +73,64 @@ void SVC_Handler()
     restoreContext();
 }
 
+void DMA_IRQHandler()
+{
+    DMA_DESCRIPTOR_TypeDef *descr = (DMA_DESCRIPTOR_TypeDef *)(DMA->CTRLBASE);
+    
+    int                    channel;
+    miosix_private::DMA_CB_TypeDef         *cb;
+    uint32_t               pending;
+    uint32_t               pendingPrio;
+    uint32_t               prio;
+    uint32_t               primaryCpy;
+    int                    i;
+
+    
+    /* Get all pending interrupts */
+    pending = DMA->IF;
+
+    /* Check for bus error */
+    if (pending & DMA_IF_ERR)
+    {
+      /* Loop here to enable the debugger to see what has happened */ 
+      return;
+    }
+    
+    prio        = DMA->CHPRIS;
+    pendingPrio = pending & prio;
+    for (i = 0; i < 2; i++)
+    {
+      channel = 0;
+      while (pendingPrio)
+      {
+          
+        if (pendingPrio & 1)
+        {
+          DMA->IFC = 1 << channel;
+          cb = (miosix_private::DMA_CB_TypeDef *)(descr[channel].USER);
+          if (cb)
+          {
+                
+                primaryCpy   = cb->primary;
+                cb->primary ^= 1;
+                if (cb->cbFunc)
+                {   
+                    
+                    cb->cbFunc(channel, (bool)primaryCpy, cb->userPtr);
+                }
+          }
+        }
+
+        pendingPrio >>= 1;
+        channel++;
+      }
+
+      /* On second iteration, process default priority channels */
+      pendingPrio = pending & ~prio;
+    }
+}
+
+
 #ifdef SCHED_TYPE_CONTROL_BASED
 /**
  * \internal
@@ -86,6 +151,387 @@ void XXX_IRQHandler()
 #endif //SCHED_TYPE_CONTROL_BASED
 
 namespace miosix_private {
+    
+ DMA_CB_TypeDef cb;
+
+void setup_DMA(DMA_CB_TypeDef cbtemp)
+{   
+    DMA_Init_TypeDef        dmaInit;
+    DMA_CfgChannel_TypeDef  chnlCfg;
+    DMA_CfgDescr_TypeDef    descrCfg;
+    
+    DMA_Reset();
+    
+    /* Initializing the DMA */  
+    dmaInit.hprot        = 0;
+    dmaInit.controlBlock = dmaControlBlock;
+    DMA_Init(&dmaInit);
+    
+    /* Setup call-back function */
+    cb.cbFunc  = cbtemp.cbFunc;
+    cb.userPtr = NULL;
+    
+    /* Setting up channel */
+    chnlCfg.highPri   = false;
+    chnlCfg.enableInt = true;
+    chnlCfg.select    = DMAREQ_ADC0_SINGLE;
+    chnlCfg.cb        = &cb;
+    DMA_CfgChannel(DMA_CHANNEL_ADC, &chnlCfg);
+    
+    /* Setting up channel descriptor */
+    descrCfg.dstInc  = dmaDataInc2;	// tell dma to increment by a byte
+    descrCfg.srcInc  = dmaDataIncNone;
+    descrCfg.size    = dmaDataSize2;	// tell dma to read just one byte
+    descrCfg.arbRate = dmaArbitrate1;
+    descrCfg.hprot   = 0;
+
+    DMA_CfgDescr(DMA_CHANNEL_ADC, true, &descrCfg); // configure primary descriptor
+    DMA_CfgDescr(DMA_CHANNEL_ADC, false, &descrCfg);  // configure alternate descriptor
+    
+    DMA_begin();
+}
+
+void DMA_Pause(void)
+{
+    
+    DMA_DESCRIPTOR_TypeDef *descr;
+    descr = ((DMA_DESCRIPTOR_TypeDef *)(DMA->CTRLBASE));
+    descr->CTRL &= 0xFFFFFFF8; 
+}
+
+void DMA_begin(void)
+{
+    miosix_private::DMA_ActivatePingPong(DMA_CHANNEL_ADC,
+                                        false,
+                                        (void *) ramBufferAdcData1,
+                                        (void *) &(ADC0->SINGLEDATA),
+                                        ADCSAMPLES - 1,
+                                        (void *) ramBufferAdcData2,
+                                        (void *) &(ADC0->SINGLEDATA),
+                                        ADCSAMPLES - 1);
+}
+    
+void DMA_Reset(void)
+{
+    int i;
+    
+    /* Disable DMA interrupts */
+    NVIC_DisableIRQ(DMA_IRQn);
+
+    /* Put the DMA controller into a known state, first disabling it. */
+    DMA->CONFIG      = _DMA_CONFIG_RESETVALUE;
+    DMA->CHUSEBURSTC = _DMA_CHUSEBURSTC_MASK;
+    DMA->CHREQMASKC  = _DMA_CHREQMASKC_MASK;
+    DMA->CHENC       = _DMA_CHENC_MASK;
+    DMA->CHALTC      = _DMA_CHALTC_MASK;
+    DMA->CHPRIC      = _DMA_CHPRIC_MASK;
+    DMA->ERRORC      = DMA_ERRORC_ERRORC;
+    DMA->IEN         = _DMA_IEN_RESETVALUE;
+    DMA->IFC         = _DMA_IFC_MASK;
+
+    /* Clear channel control flags */
+    for (i = 0; i < DMA_CHAN_COUNT; i++)
+    {
+        DMA->CH[i].CTRL = _DMA_CH_CTRL_RESETVALUE;
+    }
+} 
+    
+    
+void DMA_CfgDescr(unsigned int channel, bool primary,DMA_CfgDescr_TypeDef *cfg)
+{
+    DMA_DESCRIPTOR_TypeDef *temp;
+
+    /* Find descriptor to configure */
+    if (primary)
+    {
+        temp = (DMA_DESCRIPTOR_TypeDef *)DMA->CTRLBASE ;
+    }
+    else
+    {
+        temp = (DMA_DESCRIPTOR_TypeDef *)DMA->ALTCTRLBASE;
+    }
+    temp += channel;
+    
+    temp->CTRL =    (cfg->dstInc << _DMA_CTRL_DST_INC_SHIFT) |
+                    (cfg->size << _DMA_CTRL_DST_SIZE_SHIFT)  |
+                    (cfg->srcInc << _DMA_CTRL_SRC_INC_SHIFT) |
+                    (cfg->size << _DMA_CTRL_SRC_SIZE_SHIFT)  |
+                    ((uint32_t)(cfg->hprot) << _DMA_CTRL_SRC_PROT_CTRL_SHIFT) |
+                    (cfg->arbRate << _DMA_CTRL_R_POWER_SHIFT)|
+                    (0 << _DMA_CTRL_N_MINUS_1_SHIFT)         | /* Set when activated */
+                    (0 << _DMA_CTRL_NEXT_USEBURST_SHIFT)     | /* Set when activated */
+                    DMA_CTRL_CYCLE_CTRL_INVALID;               /* Set when activated */
+}
+
+void DMA_Init(DMA_Init_TypeDef *init)
+{
+    CMU->HFCORECLKEN0 |= CMU_HFCORECLKEN0_DMA;
+     DMA_Reset();
+     
+    NVIC_ClearPendingIRQ(DMA_IRQn);
+    NVIC_EnableIRQ(DMA_IRQn);
+
+    DMA->IEN = DMA_IEN_ERR;
+
+    DMA->CTRLBASE = (uint32_t)(init->controlBlock);
+
+    DMA->CONFIG = ((uint32_t)(init->hprot) << _DMA_CONFIG_CHPROT_SHIFT) | DMA_CONFIG_EN;
+}
+
+void DMA_CfgChannel(unsigned int channel, DMA_CfgChannel_TypeDef *cfg)
+{
+  DMA_DESCRIPTOR_TypeDef *descr;
+  
+  descr               = (DMA_DESCRIPTOR_TypeDef *)(DMA->CTRLBASE);
+  descr[channel].USER = (uint32_t)(cfg->cb);
+
+  /* Set to specified priority for channel */
+  if (cfg->highPri)
+  {
+    DMA->CHPRIS = 1 << channel;
+  }
+  else
+  {
+    DMA->CHPRIC = 1 << channel;
+  }
+
+  /* Set DMA signal source select */
+  DMA->CH[channel].CTRL = cfg->select;
+
+  /* Enable/disable interrupt as specified */
+  if (cfg->enableInt)
+  {
+    DMA->IFC  = (1 << channel);
+    DMA->IEN |= (1 << channel);
+  }
+  else
+  {
+    DMA->IEN =  ((DMA->IEN &  ~(1 << channel)) & 0x3FF); 
+  }
+}
+
+void DMA_Prepare(unsigned int channel,DMA_CycleCtrl_TypeDef cycleCtrl,
+                bool primary,bool useBurst,void *dst,void *src,unsigned int nMinus1)
+{
+    DMA_DESCRIPTOR_TypeDef *descr;
+    DMA_DESCRIPTOR_TypeDef *primDescr;
+    DMA_CB_TypeDef         *cb;
+    uint32_t               inc;
+    uint32_t               chBit;
+    uint32_t               tmp;
+
+    primDescr = ((DMA_DESCRIPTOR_TypeDef *)(DMA->CTRLBASE)) + channel;
+
+    /* Find descriptor to configure */
+    if (primary)
+    {
+      descr = primDescr;
+    }
+    else
+    {
+      descr = ((DMA_DESCRIPTOR_TypeDef *)(DMA->ALTCTRLBASE)) + channel;
+    }
+
+    cb = (DMA_CB_TypeDef *)(primDescr->USER);
+    if (cb)
+    {
+      cb->primary = (uint8_t)primary;
+    }
+
+    if (src)
+    {
+      inc = (descr->CTRL & _DMA_CTRL_SRC_INC_MASK) >> _DMA_CTRL_SRC_INC_SHIFT;
+      if (inc == _DMA_CTRL_SRC_INC_NONE)
+      {
+        descr->SRCEND = src;
+      }
+      else
+      {
+        descr->SRCEND = (void *)((uint32_t)src + (nMinus1 << inc));
+      }
+    }
+
+    if (dst)
+    {
+      inc = (descr->CTRL & _DMA_CTRL_DST_INC_MASK) >> _DMA_CTRL_DST_INC_SHIFT;
+      if (inc == _DMA_CTRL_DST_INC_NONE)
+      {
+        descr->DSTEND = dst;
+      }
+      else
+      {
+        descr->DSTEND = (void *)((uint32_t)dst + (nMinus1 << inc));
+      }
+    }
+
+    chBit = 1 << channel;
+    if (useBurst)
+    {
+      DMA->CHUSEBURSTS = chBit;
+    }
+    else
+    {
+      DMA->CHUSEBURSTC = chBit;
+    }
+
+    if (primary)
+    {
+      DMA->CHALTC = chBit;
+    }
+    else
+    {
+      DMA->CHALTS = chBit;
+    }
+
+    /* Set cycle control */
+    tmp         = descr->CTRL & ~(_DMA_CTRL_CYCLE_CTRL_MASK | _DMA_CTRL_N_MINUS_1_MASK);
+    tmp        |= nMinus1 << _DMA_CTRL_N_MINUS_1_SHIFT;
+    tmp        |= (uint32_t)cycleCtrl << _DMA_CTRL_CYCLE_CTRL_SHIFT;
+    descr->CTRL = tmp;
+}
+
+void DMA_RefreshPingPong(unsigned int channel, bool primary,bool useBurst,
+                         void *dst, void *src, unsigned int nMinus1,bool stop)
+{
+    DMA_CycleCtrl_TypeDef  cycleCtrl;
+    DMA_DESCRIPTOR_TypeDef *descr;
+    uint32_t               inc;
+    uint32_t               chBit;
+    uint32_t               tmp;
+    
+    /* The ping-pong DMA cycle may be stopped by issuing a basic cycle type */
+    if (stop)
+    {
+      cycleCtrl = dmaCycleCtrlBasic;
+    }
+    else
+    {
+      cycleCtrl = dmaCycleCtrlPingPong;
+    }
+
+    /* Find descriptor to configure */
+    if (primary)
+    {
+      descr = ((DMA_DESCRIPTOR_TypeDef *)(DMA->CTRLBASE)) + channel;
+    }
+    else
+    {
+      descr = ((DMA_DESCRIPTOR_TypeDef *)(DMA->ALTCTRLBASE)) + channel;
+    }
+
+    if (src)
+    {
+      inc = (descr->CTRL & _DMA_CTRL_SRC_INC_MASK) >> _DMA_CTRL_SRC_INC_SHIFT;
+      if (inc == _DMA_CTRL_SRC_INC_NONE)
+      {
+        descr->SRCEND = src;
+      }
+      else
+      {
+        descr->SRCEND = (void *)((uint32_t)src + (nMinus1 << inc));
+      }
+    }
+
+    if (dst)
+    {
+      inc = (descr->CTRL & _DMA_CTRL_DST_INC_MASK) >> _DMA_CTRL_DST_INC_SHIFT;
+      if (inc == _DMA_CTRL_DST_INC_NONE)
+      {
+        descr->DSTEND = dst;
+      }
+      else
+      {
+        descr->DSTEND = (void *)((uint32_t)dst + (nMinus1 << inc));
+      }
+    }
+
+    chBit = 1 << channel;
+    if (useBurst)
+    {
+      DMA->CHUSEBURSTS = chBit;
+    }
+    else
+    {
+      DMA->CHUSEBURSTC = chBit;
+    }
+
+    /* Set cycle control */
+    tmp         = descr->CTRL & ~(_DMA_CTRL_CYCLE_CTRL_MASK | _DMA_CTRL_N_MINUS_1_MASK);
+    tmp        |= nMinus1 << _DMA_CTRL_N_MINUS_1_SHIFT;
+    tmp        |= cycleCtrl << _DMA_CTRL_CYCLE_CTRL_SHIFT;
+    descr->CTRL = tmp;
+}
+
+void DMA_ActivatePingPong(unsigned int channel,bool useBurst,
+                          void *primDst,void *primSrc,unsigned int primNMinus1,
+                          void *altDst,void *altSrc,unsigned int altNMinus1)
+{
+      /* Prepare alternate descriptor first */
+      DMA_Prepare(channel,dmaCycleCtrlPingPong,false,useBurst,altDst,altSrc,altNMinus1);
+
+      /* Prepare primary descriptor last in order to start cycle using it */
+      DMA_Prepare(channel,dmaCycleCtrlPingPong,true,useBurst,primDst,primSrc,primNMinus1);
+
+      /* Enable channel, request signal is provided by peripheral device */
+      DMA->CHENS = 1 << channel;
+}
+
+    void LETIMER0_IRQHandler()
+    {   
+        if (LETIMER0->IFS & LETIMER_IFS_COMP0)
+        {
+            LETIMER0->IFC |= LETIMER_IFC_COMP0;
+        }
+    }
+    
+    void RTC_IRQHandler()
+    {
+        RTC->IFC=RTC_IFC_COMP0;
+    }
+
+    void waitRtc(int val)
+    {   
+        SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+        EMU->CTRL=0;
+        
+        RTC->COMP0=(RTC->CNT+val) & 0xffffff;
+        RTC->IEN |= RTC_IEN_COMP0;
+        
+        while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP0) 
+        {   
+            __WFI();
+  
+            //oscillatorInit(); //FIXME
+            
+            CMU->OSCENCMD=CMU_OSCENCMD_HFXOEN;
+            CMU->CMD=CMU_CMD_HFCLKSEL_HFXO; //This locks the CPU till clock is stable
+            CMU->OSCENCMD=CMU_OSCENCMD_HFRCODIS;
+
+            //if(NVIC_GetPendingIRQ(RTC_IRQn)) break;
+        }
+        
+        SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
+        RTC->IEN &= ~RTC_IEN_COMP0;
+    }
+
+    void initRtc()
+    {   
+        CMU->HFCORECLKEN0 |= CMU_HFCORECLKEN0_LE; //Enable clock to low energy peripherals
+        CMU->LFACLKEN0 |= CMU_LFACLKEN0_RTC;
+        while(CMU->SYNCBUSY & CMU_SYNCBUSY_LFACLKEN0) ;
+
+        RTC->CNT=0;
+
+        RTC->CTRL=RTC_CTRL_EN;
+        while(RTC->SYNCBUSY & RTC_SYNCBUSY_CTRL) ;
+
+        NVIC_EnableIRQ(RTC_IRQn);
+    }
+
+    void IRQdeepSleep()
+    {
+       waitRtc(32);
+    }
 
 /**
  * \internal
