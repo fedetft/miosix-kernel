@@ -39,7 +39,7 @@
 #include "drivers/stm32f2_f4_i2c.h"
 #include "kernel/sync.h"
 #include <list>
-#include <tr1/functional>
+//#include <functional>
 
 namespace miosix {
 
@@ -275,7 +275,7 @@ private:
     bool wakeOnButton;
     CoreFrequency coreFreq;
     FastMutex powerManagementMutex;
-//    std::list<std::tr1::function<void (bool)> > notifier;
+//    std::list<std::function<void (bool)> > notifier;
 };
 
 /**

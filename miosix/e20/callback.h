@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2012 by Terraneo Federico                               *
+ *   Copyright (C) 2012, 2013, 2014, 2105, 2106 by Terraneo Federico       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -45,7 +45,7 @@ protected:
     enum Op
     {
         CALL,
-        COPY,
+        ASSIGN,
         DESTROY
     };
     /**
@@ -70,8 +70,13 @@ protected:
                 case CALL:
                     (*o1)();
                     break;
-                case COPY:
-                    *o1=*o2;
+                case ASSIGN:
+                    //This used to be simply *o1=*o2 when we were using
+                    //tr1/functional, but in C++11 the type returned by bind
+                    //due to having a move constructor doesn't like being
+                    //assigned, only copy construction works so we have to
+                    //use placement new
+                    new (o1) T(*o2);
                     break;
                 case DESTROY:
                     o1->~T();
@@ -82,12 +87,12 @@ protected:
 };
 
 /**
- * A Callback works just like an std::tr1::function, but has some additional
+ * A Callback works just like an std::function, but has some additional
  * <b>limitations</b>. First, it can only accept function objects that take void
  * as a parameter and return void, and second if the size of the
  * implementation-defined type returned by bind is larger than N a
  * compile-time error is generated. Also, calling an empty Callback does
- * nothing, while doing the same on a tr1::function results in an exception
+ * nothing, while doing the same on a function results in an exception
  * being thrown.
  * 
  * The reason why one would want to use this class is because, other than the
@@ -129,7 +134,7 @@ public:
     Callback(const Callback& rhs)
     {
         operation=rhs.operation;
-        if(operation) operation(any,rhs.any,COPY);
+        if(operation) operation(any,rhs.any,ASSIGN);
     }
     
     /**
@@ -203,7 +208,7 @@ Callback<N>& Callback<N>::operator= (const Callback<N>& rhs)
     if(this==&rhs) return *this; //Handle assignmento to self
     if(operation) operation(any,0,DESTROY);
     operation=rhs.operation;
-    if(operation) operation(any,rhs.any,COPY);
+    if(operation) operation(any,rhs.any,ASSIGN);
     return *this;
 }
 
