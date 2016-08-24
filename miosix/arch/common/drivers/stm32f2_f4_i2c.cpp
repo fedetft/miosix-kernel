@@ -15,9 +15,9 @@ static Thread *waiting=0; ///< Thread waiting for an operation to complete
  */
 
 #ifndef I2C_WITH_DMA
-uint8_t *rxBuf = 0;
-unsigned int rxBufCnt = 0;
-unsigned int rxBufSize = 0;
+static uint8_t *rxBuf = 0;
+static unsigned int rxBufCnt = 0;
+static unsigned int rxBufSize = 0;
 #endif
 
 
