@@ -54,43 +54,39 @@ int main(int argc, char *argv[]);
 namespace miosix {
 
 /**
+ * \internal
  * Calls C++ global constructors
  * \param start first function pointer to call
  * \param end one past the last function pointer to call
  */
-static void call_constructors(unsigned long *start, unsigned long *end)
+static void callConstructors(unsigned long *start, unsigned long *end)
 {
-	for(unsigned long *i=start; i<end; i++)
-	{
-		void (*funcptr)();
+    for(unsigned long *i=start; i<end; i++)
+    {
+        void (*funcptr)();
         funcptr=reinterpret_cast<void (*)()>(*i);
-		funcptr();
-	}
+        funcptr();
+    }
 }
 
-/**
- * \internal
- * Performs the part of initialization that must be done after the kernel is
- * started, and finally calls main()
- */
 void *mainLoader(void *argv)
 {
     //If reaches here kernel is started, print Ok
     bootlog("Ok\n%s\n",getMiosixVersion());
-    
+
     //Starting part of bsp that must be started after kernel
     bspInit2();
 
-    //Initialize C++ global constructors
+    //Initialize application C++ global constructors (called after boot)
     extern unsigned long __preinit_array_start asm("__preinit_array_start");
-	extern unsigned long __preinit_array_end asm("__preinit_array_end");
-	extern unsigned long __init_array_start asm("__init_array_start");
-	extern unsigned long __init_array_end asm("__init_array_end");
-	extern unsigned long _ctor_start asm("_ctor_start");
-	extern unsigned long _ctor_end asm("_ctor_end");
-	call_constructors(&__preinit_array_start, &__preinit_array_end);
-	call_constructors(&__init_array_start, &__init_array_end);
-	call_constructors(&_ctor_start, &_ctor_end);
+    extern unsigned long __preinit_array_end asm("__preinit_array_end");
+    extern unsigned long __init_array_start asm("__init_array_start");
+    extern unsigned long __init_array_end asm("__init_array_end");
+    extern unsigned long _ctor_start asm("_ctor_start");
+    extern unsigned long _ctor_end asm("_ctor_end");
+    callConstructors(&__preinit_array_start, &__preinit_array_end);
+    callConstructors(&__init_array_start, &__init_array_end);
+    callConstructors(&_ctor_start, &_ctor_end);
     
     bootlog("Available heap %d out of %d Bytes\n",
             MemoryProfiling::getCurrentFreeHeap(),
@@ -117,14 +113,17 @@ void *mainLoader(void *argv)
     return 0;
 }
 
-/**
- * \internal
- * Performs the part of initialization that must be done before the kernel is
- * started, and starts the kernel.
- * This function is called by the stage 1 boot which is architecture dependent.
- */
+} //namespace miosix
+
 extern "C" void _init()
 {
+    using namespace miosix;
+
+    //Initialize kernel C++ global constructors (called before boot)
+    extern unsigned long __miosix_init_array_start asm("__miosix_init_array_start");
+    extern unsigned long __miosix_init_array_end asm("__miosix_init_array_end");
+    callConstructors(&__miosix_init_array_start, &__miosix_init_array_end);
+
     if(areInterruptsEnabled()) errorHandler(INTERRUPTS_ENABLED_AT_BOOT);
     IRQbspInit();
     //After IRQbspInit() serial port is initialized, so we can use IRQbootlog
@@ -132,5 +131,3 @@ extern "C" void _init()
     startKernel();
     //Never reach here (unless startKernel fails)
 }
-
-} //namespace miosix

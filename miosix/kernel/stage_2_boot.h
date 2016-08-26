@@ -36,6 +36,7 @@
 namespace miosix {
 
 /**
+ * \internal
  * This function will perform the part of system initialization that must be
  * done after the kernel is started. At the end, it will call main()
  * \param argv ignored parameter
@@ -43,5 +44,13 @@ namespace miosix {
 void *mainLoader(void *argv);
 
 } //namespace miosix
+
+/**
+ * \internal
+ * Performs the part of initialization that must be done before the kernel is
+ * started, and starts the kernel.
+ * This function is called by the stage 1 boot which is architecture dependent.
+ */
+extern "C" void _init();
 
 #endif //STAGE_2_BOOT_H

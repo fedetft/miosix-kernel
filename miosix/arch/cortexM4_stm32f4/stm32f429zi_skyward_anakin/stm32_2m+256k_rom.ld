@@ -100,6 +100,12 @@ SECTIONS
         /* C++ Static constructors/destructors (eabi) */
         . = ALIGN(4);
         KEEP(*(.init))
+        
+        . = ALIGN(4);
+        __miosix_init_array_start = .;
+        KEEP (*(SORT(.miosix_init_array.*)))
+        KEEP (*(.miosix_init_array))
+        __miosix_init_array_end = .;
 
         . = ALIGN(4);
         __preinit_array_start = .;

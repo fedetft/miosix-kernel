@@ -119,7 +119,7 @@ SECTIONS
         /* these sections for C++? */
         *(.gcc_except_table)
         *(.gcc_except_table.*)
-		*(.ARM.extab*)
+        *(.ARM.extab*)
         *(.gnu.linkonce.armextab.*)
 
         . = ALIGN(4);
@@ -131,6 +131,12 @@ SECTIONS
         /* C++ Static constructors/destructors (eabi) */
         . = ALIGN(4);
         KEEP(*(.init))
+        
+        . = ALIGN(4);
+        __miosix_init_array_start = .;
+        KEEP (*(SORT(.miosix_init_array.*)))
+        KEEP (*(.miosix_init_array))
+        __miosix_init_array_end = .;
 
         . = ALIGN(4);
         __preinit_array_start = .;
@@ -179,7 +185,7 @@ SECTIONS
     . = ALIGN(8);
     _etext = .;
 
-	/* .data section: global variables go to ram, but also store a copy to
+    /* .data section: global variables go to ram, but also store a copy to
        flash to initialize them */
     .data : ALIGN(8)
     {
@@ -187,7 +193,7 @@ SECTIONS
         *(.data)
         *(.data.*)
         *(.gnu.linkonce.d.*)
-		. = ALIGN(8);
+        . = ALIGN(8);
         _edata = .;
     } > ram AT > flash
 
@@ -198,7 +204,7 @@ SECTIONS
         *(.bss)
         *(.bss.*)
         *(.gnu.linkonce.b.*)
-		. = ALIGN(8);
+        . = ALIGN(8);
     } > ram
     _bss_end = .;
 

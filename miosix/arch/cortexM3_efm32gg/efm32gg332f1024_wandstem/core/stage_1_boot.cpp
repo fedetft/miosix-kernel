@@ -2,6 +2,7 @@
 #include "interfaces/arch_registers.h"
 #include "interfaces/bsp.h"
 #include "core/interrupts.h" //For the unexpected interrupt call
+#include "kernel/stage_2_boot.h"
 #include <string.h>
 
 /*
@@ -10,10 +11,6 @@
  * Developed by Terraneo Federico to boot Miosix,
  * based on silicon laboratories startup code.
  */
-
-//Will be called at the end of stage 1 of boot, function is implemented in
-//stage_2_boot.cpp
-extern "C" void _init();
 
 /**
  * Called by Reset_Handler, performs initialization and calls main.

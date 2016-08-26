@@ -1,5 +1,16 @@
 Changelog for Miosix np embedded OS
 
+v2.02
+- Modified the policy about global objects inside the kernel. The previous
+  policy was to forbid them, by checking with a script that there were none.
+  This policy was found to be too restrictive, so a new script
+  (miosix/_tools/kernel_global_objects.pl) moves the pointers to function that
+  cause their construction in a separate section compared to the one used for
+  the application global objects. Thus the global objects are now divided in
+  two group: the kernel ones, which are called before boot, and the application
+  ones, which are called after boot, right before main. This is made necessary
+  by the fact that Miosix allows an application to be statically linked with the
+  kernel, so both end up in the same binary file.
 - Added SoftwareI2C::sendRepeatedStart(), and fixed a glitch in
   SoftwareI2C::init()
 - Fixed bug in STM32Serial in IOCTL_SYNC
