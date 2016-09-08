@@ -1456,8 +1456,12 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
-        ARCH_SRC :=                                  \
-        $(BOARD_INC)/interfaces-impl/bsp.cpp
+        ARCH_SRC :=                                    \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp           \
+        $(BOARD_INC)/interfaces-impl/spi.cpp           \
+        $(BOARD_INC)/interfaces-impl/power_manager.cpp \
+        $(BOARD_INC)/interfaces-impl/timer.cpp         \
+        $(BOARD_INC)/interfaces-impl/transceiver.cpp
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -DEFM32GG332F1024 -D_BOARD_WANDSTEM
