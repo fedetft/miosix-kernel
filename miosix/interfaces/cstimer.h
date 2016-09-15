@@ -1,6 +1,8 @@
 #ifndef CSTIMER_H
 #define	CSTIMER_H
 
+#include "kernel/timeconversion.h"
+
 namespace miosix {
 
 /**
@@ -64,6 +66,8 @@ private:
     
     unsigned int timerFreq;
 };
+
+extern TimeConversion *tc;
 
 } //namespace miosix
 

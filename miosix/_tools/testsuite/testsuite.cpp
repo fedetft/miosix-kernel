@@ -803,14 +803,16 @@ also tests creation of multiple instances of the same thread
 
 static void t3_p1(void *argv)
 {
-    const int SLEEP_TIME=100;
+    const int SLEEP_TIME=100; // in ms
     for(;;)
     {
         if(Thread::testTerminate()) break;
         //Test that Thread::sleep sleeps the desired number of ticks
-        long long x=getTick();
+        long long x1=getTick(); //getTick returns # passed quantums
         Thread::sleep(SLEEP_TIME);
-        if(llabs(((SLEEP_TIME*TICK_FREQ)/1000)-(getTick()-x))>5)
+        long long x2=getTick();
+        //if(llabs(((SLEEP_TIME*TICK_FREQ)/1000)-(getTick()-x))>5)
+        if (llabs((x2-x1)*preemptionPeriodNs/1000000-SLEEP_TIME)>5) //Max tolerated error is 5ms
             fail("Thread::sleep() or getTick()");
     }
 }
@@ -880,16 +882,19 @@ static void test_3()
     if(t3_deleted==false) fail("multiple instances (4)");
     //Testing Thread::sleepUntil()
     long long tick;
-    const int period=static_cast<int>(TICK_FREQ*0.01); //10ms
+    //const int period=static_cast<int>(TICK_FREQ*0.01); //10ms
+    const int period=10000000;//10ms
     {
         InterruptDisableLock lock; //Making these two operations atomic.
-        tick=getTick();
+        tick=getTick()*preemptionPeriodNs;
         tick+=period;
     }
     for(int i=0;i<4;i++)
     {
-        Thread::sleepUntil(tick);
-        if(tick!=getTick()) fail("Thread::sleepUntil()");
+        //tick is in number of quantums passed while sleepUntil requires ms
+        Thread::nanoSleepUntil(tick);
+        long long t2 = getTick();
+        if(tick!=t2*preemptionPeriodNs) fail("Thread::sleepUntil()");
         tick+=period;
     }
     pass();

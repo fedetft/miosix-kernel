@@ -3,7 +3,7 @@
 #include "interfaces/arch_registers.h"
 #include "kernel/kernel.h"
 #include "kernel/scheduler/timer_interrupt.h"
-#include "../../../../../debugpin.h"
+#include "kernel/timeconversion.h"
 
 using namespace miosix;
 
@@ -61,15 +61,13 @@ void __attribute__((naked)) TIM2_IRQHandler()
 
 void __attribute__((used)) cstirqhnd()
 {
-    HighPin<debug1> h1;
     if(TIM2->SR & TIM_SR_CC1IF || lateIrq)
     {
         TIM2->SR = ~TIM_SR_CC1IF;
         if(ms32time==ms32chkp || lateIrq)
         {
             lateIrq=false;
-            HighPin<debug2> h2;
-            IRQtimerInterrupt(nextInterrupt());
+            IRQtimerInterrupt(tc->tick2ns(nextInterrupt()));
         }
 
     }
@@ -172,6 +170,9 @@ ContextSwitchTimer::ContextSwitchTimer()
     // interface. After this, the freq variable contains the frequency in Hz
     // at which the timer prescaler is clocked.
     if(RCC->CFGR & RCC_CFGR_PPRE1_2) timerFreq/=1<<((RCC->CFGR>>10) & 0x3);
+    tc=new TimeConversion(timerFreq);
 }
+
+TimeConversion *tc;
 
 } //namespace miosix

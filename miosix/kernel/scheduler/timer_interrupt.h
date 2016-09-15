@@ -43,6 +43,9 @@ extern volatile Thread *cur;///\internal Do not use outside the kernel
 extern void IRQsetNextPreemption(long long preemptionTime); ///\internal Do not use outside the kernel
 extern bool IRQwakeThreads(long long currentTick);///\internal Do not use outside the kernel
 
+/**
+ * @param currentTick: Should be in nanoseconds
+ */
 inline void IRQtimerInterrupt(long long currentTick)
 {
     miosix_private::IRQstackOverflowCheck();

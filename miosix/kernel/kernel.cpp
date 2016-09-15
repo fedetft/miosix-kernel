@@ -38,12 +38,11 @@
 #include "kernel/scheduler/scheduler.h"
 #include "stdlib_integration/libc_integration.h"
 #include "interfaces/cstimer.h"
+#include "timeconversion.h"
 #include <stdexcept>
 #include <algorithm>
 #include <string.h>
 #include <reent.h>
-
-#define CSQUANTUM 84000 //FIXME: remove it please
 
 /*
 Used by assembler context switch macros
@@ -119,6 +118,8 @@ void *idleThread(void *argv)
         #ifndef JTAG_DISABLE_SLEEP
         //JTAG debuggers lose communication with the device if it enters sleep
         //mode, so to use debugging it is necessary to remove this instruction
+        
+//FIX ME: deepsleep has not been integrated fully so the code is surrounded with ifdef 
 #ifdef BOARD_efm32gg332f1024_wandstem
         bool sleep=false;
         {
@@ -193,6 +194,7 @@ bool areInterruptsEnabled()
     return miosix_private::checkAreInterruptsEnabled();
 }
 
+//FIX ME: deepsleep has not been integrated fully so the code is surrounded with ifdef 
 #ifdef BOARD_efm32gg332f1024_wandstem
 void deepSleepLock()
 {
@@ -261,9 +263,9 @@ void startKernel()
     #ifdef USE_CSTIMER
     // Set the first checkpoint interrupt
     csRecord->p = nullptr;
-    csRecord->wakeup_time = CSQUANTUM;
+    csRecord->wakeup_time = preemptionPeriodNs;
     sleepingList->push_front(csRecord);
-    timer->IRQsetNextInterrupt(CSQUANTUM);
+    timer->IRQsetNextInterrupt(tc->ns2tick(preemptionPeriodNs));
     #endif //USE_CSTIMER
     miosix_private::IRQportableStartKernel();
     kernel_started=true;
@@ -292,7 +294,7 @@ long long getTick()
         if(a==b) return a;
     }
     #else //USE_CSTIMER
-    return timer->getCurrentTick()/CSQUANTUM;
+    return tc->tick2ns(timer->getCurrentTick())/preemptionPeriodNs;
     #endif //USE_CSTIMER
 }
 
@@ -320,7 +322,7 @@ void IRQaddToSleepingList(SleepData *x)
     //Upon any change to the sleepingList the ContextSwitchTimer should have
     //its interrupt set to the head of the list in order to keep it sync with
     //the list
-    timer->IRQsetNextInterrupt(sleepingList->front()->wakeup_time);
+    timer->IRQsetNextInterrupt(tc->ns2tick(sleepingList->front()->wakeup_time));
 #endif
 }
 
@@ -349,7 +351,7 @@ void IRQsetNextPreemption(long long preemptionTime)
     //Upon any change to the sleepingList the ContextSwitchTimer should have
     //its interrupt set to the head of the list in order to keep it sync with
     //the list
-    timer->IRQsetNextInterrupt(sleepingList->front()->wakeup_time);
+    timer->IRQsetNextInterrupt(tc->ns2tick(sleepingList->front()->wakeup_time));
 #endif
 }
 /**
@@ -466,10 +468,16 @@ bool Thread::testTerminate()
 }
 
 #ifdef USE_CSTIMER
-inline void Thread::tickSleepUntil(long long absTicks)
+void Thread::nanoSleep(unsigned int ns)
 {
-    //absTicks: As it is in terms of real ticks of the kernel/timer, there's no 
-    //resolution issues here.
+    if(ns==0) return; //TODO: should be (ns &lt; resolution + epsilon)
+    //TODO: Mutual Exclusion issue
+    nanoSleepUntil(tc->tick2ns(ContextSwitchTimer::instance().getCurrentTick()) + ns);
+}
+
+void Thread::nanoSleepUntil(long long absoluteTime)
+{
+    //TODO: The absolute time should be rounded w.r.t. the timer resolution
     //This function does not care about setting the wakeup_time in the past
     //as it should be based on the policy taken into account by IRQwakeThreads
 
@@ -482,25 +490,11 @@ inline void Thread::tickSleepUntil(long long absTicks)
     {
         FastInterruptDisableLock lock;
         d.p=const_cast<Thread*>(cur);
-        d.wakeup_time = absTicks;
+        d.wakeup_time = absoluteTime;
         IRQaddToSleepingList(&d);//Also sets SLEEP_FLAG
     }
     Thread::yield();
-}
-
-void Thread::nanoSleep(unsigned int ns)
-{
-    if(ns==0) return; //TODO: should be (ns &lt; resolution + epsilon)
-    long long ticks = ns * 0.084;//TODO: ns2tick fast conversion needed
-    tickSleepUntil(ContextSwitchTimer::instance().getCurrentTick() + ticks);
-}
-
-void Thread::nanoSleepUntil(long long absoluteTime)
-{
-    //TODO: The absolute time should be rounded w.r.t. the timer resolution
-    long long ticks = absoluteTime * 0.084;//TODO: ns2tick fast conversion needed
-    if (ticks <= ContextSwitchTimer::instance().getCurrentTick()) return;
-    tickSleepUntil(ticks);
+    
 }
 #endif
 
