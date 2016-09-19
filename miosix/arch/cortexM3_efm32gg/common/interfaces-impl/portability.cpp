@@ -33,6 +33,7 @@
 #include "kernel/scheduler/scheduler.h"
 #include "kernel/scheduler/timer_interrupt.h"
 #include <algorithm>
+#include "fixme_dma.h"
 
 #define ADCSAMPLES                        1024
 

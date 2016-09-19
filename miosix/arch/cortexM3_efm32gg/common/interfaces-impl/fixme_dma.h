@@ -2,9 +2,10 @@
  *  FIXXX ME
  ***************************************************************************/
 
-#ifndef PORTABILITY_H
-#define	PORTABILITY_H
+#ifndef PORTABILITY_FIXME_H
+#define	PORTABILITY_FIXME_H
 
+namespace miosix_private{
 
 #define DMA_CHANNEL_ADC                   0
 
@@ -118,6 +119,6 @@ void waitRtc(int val);
 void initRtc(); 
 void IRQdeepSleep();
     
-
+}
 
 #endif

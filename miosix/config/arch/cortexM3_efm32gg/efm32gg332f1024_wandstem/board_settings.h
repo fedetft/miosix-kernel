@@ -53,6 +53,9 @@ namespace miosix {
 /// Size of stack for main().
 const unsigned int MAIN_STACK_SIZE=4096;
 
+const unsigned int preemptionPeriodNs=1000000;
+
+
 /// Frequency of tick (in Hz). The frequency of the efm32gg332f1024 timer in
 /// the board can be divided by 1000. This allows to use a 1KHz tick and
 /// the minimun Thread::sleep value is 1ms
