@@ -519,7 +519,7 @@ public:
      * CANNOT be called when the kernel is paused.
      */
     static void sleep(unsigned int ms);
-    static void nanoSleep(unsigned int ns);
+    static void nanoSleep(long long ns);
     /**
      * Put the thread to sleep until the specified absolute time is reached.
      * If the time is in the past, returns immediately.

@@ -41,6 +41,7 @@
 #include "timeconversion.h"
 #include <stdexcept>
 #include <algorithm>
+#include <limits>
 #include <string.h>
 #include <reent.h>
 
@@ -64,7 +65,9 @@ volatile Thread *cur=NULL;///<\internal Thread currently running
 ///\internal True if there are threads in the DELETED status. Used by idle thread
 static volatile bool exist_deleted=false;
 
-static IntrusiveList<SleepData> *sleepingList=nullptr;///list of sleeping threads
+IntrusiveList<SleepData> *sleepingList=nullptr;///list of sleeping threads
+///Contains head of the sleeping list in terms of timer's ticks
+long long firstSleepItemTicks = std::numeric_limits<long long>::max();
 
 #ifndef USE_CSTIMER
 static volatile long long tick=0;///<\internal Kernel tick
@@ -83,15 +86,6 @@ bool kernel_started=false;///<\internal becomes true after startKernel.
 static unsigned char interruptDisableNesting=0;
 
 static int deepSleepCounter = 0;
-
-#ifdef USE_CSTIMER
-
-static ContextSwitchTimer *timer = nullptr; // FIXME please
-
-/// Used for context switches with the high resolution timer
-static SleepData *csRecord=nullptr;
-
-#endif //USE_CSTIMER
 
 #ifdef WITH_PROCESSES
 
@@ -208,23 +202,12 @@ void deepSleepUnlock()
 #endif
 void startKernel()
 {
-    #ifdef USE_CSTIMER
-    timer = &ContextSwitchTimer::instance();
-    sleepingList = new(std::nothrow) IntrusiveList<SleepData>;
-        csRecord = new(std::nothrow) SleepData;
-    if(sleepingList==nullptr || csRecord==nullptr)
-    {
-        errorHandler(OUT_OF_MEMORY);
-        return;
-    }
-    #else //USE_CSTIMER
     sleepingList = new(std::nothrow) IntrusiveList<SleepData>;
     if(sleepingList==nullptr)
     {
         errorHandler(OUT_OF_MEMORY);
         return;
     }
-    #endif //USE_CSTIMER
     #ifdef WITH_PROCESSES
     try {
         kernel=new ProcessBase;
@@ -260,13 +243,6 @@ void startKernel()
     setCReentrancyCallback(Thread::getCReent);
     
     // Dispatch the task to the architecture-specific function
-    #ifdef USE_CSTIMER
-    // Set the first checkpoint interrupt
-    csRecord->p = nullptr;
-    csRecord->wakeup_time = preemptionPeriodNs;
-    sleepingList->push_front(csRecord);
-    timer->IRQsetNextInterrupt(tc->ns2tick(preemptionPeriodNs));
-    #endif //USE_CSTIMER
     miosix_private::IRQportableStartKernel();
     kernel_started=true;
     miosix_private::IRQportableFinishKernelStartup();
@@ -294,7 +270,7 @@ long long getTick()
         if(a==b) return a;
     }
     #else //USE_CSTIMER
-    return tc->tick2ns(timer->getCurrentTick())/preemptionPeriodNs;
+    return tc->tick2ns(ContextSwitchTimer::instance().getCurrentTick())/preemptionPeriodNs;
     #endif //USE_CSTIMER
 }
 
@@ -318,42 +294,9 @@ void IRQaddToSleepingList(SleepData *x)
         while (it != sleepingList->end() && (*it)->wakeup_time < x->wakeup_time ) ++it;
         sleepingList->insert(it,x);
     }
-#ifdef USE_CSTIMER
-    //Upon any change to the sleepingList the ContextSwitchTimer should have
-    //its interrupt set to the head of the list in order to keep it sync with
-    //the list
-    timer->IRQsetNextInterrupt(tc->ns2tick(sleepingList->front()->wakeup_time));
-#endif
+    firstSleepItemTicks = tc->ns2tick(sleepingList->front()->wakeup_time);
 }
 
-/**
- * \internal
- * \return 
- */
-void IRQsetNextPreemption(long long preemptionTime)
-{
-#ifdef USE_CSTIMER
-    // Remove all the preemption points from the list
-    IntrusiveList<SleepData>::iterator it(csRecord);
-    sleepingList->erase(it);
-    
-    //This piece of code is a duplication of IRQaddToSleepingList
-    //that is in-lined for performance issues
-    csRecord->wakeup_time = preemptionTime;
-    if(sleepingList->empty() || sleepingList->front()->wakeup_time >= preemptionTime)
-    {
-        sleepingList->push_front(csRecord);
-    } else {
-        auto it = sleepingList->begin();
-        while (it != sleepingList->end() && (*it)->wakeup_time < preemptionTime ) ++it;
-        sleepingList->insert(it,csRecord);
-    }
-    //Upon any change to the sleepingList the ContextSwitchTimer should have
-    //its interrupt set to the head of the list in order to keep it sync with
-    //the list
-    timer->IRQsetNextInterrupt(tc->ns2tick(sleepingList->front()->wakeup_time));
-#endif
-}
 /**
  * \internal
  * Called @ every tick to check if it's time to wake some thread.
@@ -388,7 +331,8 @@ bool IRQwakeThreads(long long currentTick)
     #else //USE_CSTIMER
 
     //If no item in list, return
-    if(sleepingList->empty()) return false;
+    if(sleepingList->empty())
+        return false;
     
     bool result=false;
     //Since list is sorted, if we don't need to wake the first element
@@ -403,6 +347,10 @@ bool IRQwakeThreads(long long currentTick)
             result = true;
         }
     }
+    if(sleepingList->empty()) 
+        firstSleepItemTicks = std::numeric_limits<long long>::max();
+    else
+        firstSleepItemTicks = tc->ns2tick(sleepingList->front()->wakeup_time);
     return result;
     #endif //USE_CSTIMER
 }
@@ -468,7 +416,7 @@ bool Thread::testTerminate()
 }
 
 #ifdef USE_CSTIMER
-void Thread::nanoSleep(unsigned int ns)
+void Thread::nanoSleep(long long ns)
 {
     if(ns==0) return; //TODO: should be (ns &lt; resolution + epsilon)
     //TODO: Mutual Exclusion issue
@@ -501,7 +449,7 @@ void Thread::nanoSleepUntil(long long absoluteTime)
 void Thread::sleep(unsigned int ms)
 {
 #ifdef USE_CSTIMER
-    nanoSleep(ms * 1000000);
+    nanoSleep(mul32x32to64(ms,1000000));
 #else
     if(ms==0) return;
     //pauseKernel() here is not enough since even if the kernel is stopped

@@ -29,6 +29,18 @@
 #define TIMECONVERSION_H
 
 namespace miosix {
+    
+/**
+ * \param a 32 bit unsigned number
+ * \param b 32 bit unsigned number
+ * \return a * b as a 64 unsigned number 
+ */
+inline unsigned long long mul32x32to64(unsigned int a, unsigned int b)
+{
+    //Casts are to produce a 64 bit result. Compiles to a single asm instruction
+    //in processors having 32x32 multiplication with 64 bit result
+    return static_cast<unsigned long long>(a)*static_cast<unsigned long long>(b);
+}
 
 /**
  * Multiplication between a 64 bit integer and a 32.32 fixed point number,

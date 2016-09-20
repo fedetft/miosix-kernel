@@ -67,7 +67,7 @@ void __attribute__((used)) cstirqhnd()
         if(ms32time==ms32chkp || lateIrq)
         {
             lateIrq=false;
-            IRQtimerInterrupt(tc->tick2ns(nextInterrupt()));
+            IRQtimerInterrupt(tc->tick2ns(IRQgetTick()));
         }
 
     }

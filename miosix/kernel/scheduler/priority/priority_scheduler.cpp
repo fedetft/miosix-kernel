@@ -28,6 +28,8 @@
 #include "priority_scheduler.h"
 #include "kernel/error.h"
 #include "kernel/process.h"
+#include "interfaces/cstimer.h"
+#include "kernel/timeconversion.h"
 
 #ifdef SCHED_TYPE_PRIORITY
 namespace miosix {
@@ -35,6 +37,9 @@ namespace miosix {
 //These are defined in kernel.cpp
 extern volatile Thread *cur;
 extern volatile int kernel_running;
+static ContextSwitchTimer& timer = ContextSwitchTimer::instance();
+extern long long firstSleepItemTicks;
+extern IntrusiveList<SleepData> *sleepingList;
 
 //
 // class PriorityScheduler
@@ -196,6 +201,15 @@ void PriorityScheduler::IRQsetIdleThread(Thread *idleThread)
     idle=idleThread;
 }
 
+static void setNextPreemption(){
+    static long long preemptionPeriodTicks = tc->ns2tick(preemptionPeriodNs);
+    long long nextPeriodicPreemption = timer.IRQgetCurrentTick() + preemptionPeriodTicks;   
+    if (firstSleepItemTicks < nextPeriodicPreemption )
+        timer.IRQsetNextInterrupt(firstSleepItemTicks);
+    else
+        timer.IRQsetNextInterrupt(nextPeriodicPreemption);
+}
+
 unsigned int PriorityScheduler::IRQfindNextThread()
 {
     if(kernel_running!=0) return preemptionPeriodNs;//If kernel is paused, do nothing
@@ -225,6 +239,7 @@ unsigned int PriorityScheduler::IRQfindNextThread()
                 //Rotate to next thread so that next time the list is walked
                 //a different thread, if available, will be chosen first
                 thread_list[i]=temp;
+                setNextPreemption();
                 return preemptionPeriodNs;
             } else temp=temp->schedData.next;
             if(temp==thread_list[i]->schedData.next) break;
@@ -236,6 +251,7 @@ unsigned int PriorityScheduler::IRQfindNextThread()
     #ifdef WITH_PROCESSES
     MPUConfiguration::IRQdisable();
     #endif //WITH_PROCESSES
+    setNextPreemption();
     return preemptionPeriodNs;
 }
 
