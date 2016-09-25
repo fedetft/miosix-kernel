@@ -137,11 +137,15 @@ void IRQbspInit()
     MSC->WRITECTRL=MSC_WRITECTRL_RWWEN;  //Enable FLASH read while write support
     
     ledOn();
+    #ifndef JTAG_DISABLE_SLEEP
     //Reuse the LED blink at boot to wait for the LFXO 32KHz oscillator startup
     //SWitching temporarily the CPU to run off of the 32KHz XTAL is the easiest
     //way to sleep while it locks, as it stalls the CPU and peripherals till the
     //oscillator is stable
     CMU->CMD=CMU_CMD_HFCLKSEL_LFXO;
+    #else //JTAG_DISABLE_SLEEP
+    while((CMU->STATUS & CMU_STATUS_LFXORDY)==0) ;
+    #endif //JTAG_DISABLE_SLEEP
     ledOff();
     
     //Then switch immediately to HFXO, so that we (finally) run at 48MHz
