@@ -565,7 +565,8 @@ bool Transceiver::handlePacketReceptionEvents(long long timeout, RecvResult& res
     }
     
     //Wait for the second event to occur (RX_FRM_DONE)
-    long long secondTimeout=min(timeout,timer.getValue()+maxPacketTimeout);
+    auto secondTimeout=config.strictTimeout ? min(timeout,timer.getValue()+maxPacketTimeout)
+                                            : max(timeout,timer.getValue()+maxPacketTimeout);
     if(timer.absoluteWaitTimeoutOrEvent(secondTimeout))
     {
         if(timer.getValue()<timeout)

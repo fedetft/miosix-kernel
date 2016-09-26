@@ -48,12 +48,18 @@ using CC2520StatusBitmask=unsigned char;
 class TransceiverConfiguration
 {
 public:
-    TransceiverConfiguration(int frequency, int txPower=0, bool crc=true)
-        : frequency(frequency), txPower(txPower), crc(crc) {}
+    TransceiverConfiguration(int frequency, int txPower=0, bool crc=true,
+                             bool strictTimeout=true)
+        : frequency(frequency), txPower(txPower), crc(crc),
+          strictTimeout(strictTimeout) {}
 
-    int frequency; ///< TX/RX frequency, between 2394 and 2507
-    int txPower;   ///< TX power in dBm
-    bool crc;      ///< True to add CRC during TX and check it during RX
+    int frequency;      ///< TX/RX frequency, between 2394 and 2507
+    int txPower;        ///< TX power in dBm
+    bool crc;           ///< True to add CRC during TX and check it during RX
+    bool strictTimeout; ///< Used only when receiving. If false and an SFD has
+                        ///< been received, prolong the timeout to receive the
+                        ///< packet. If true, return upon timeout even if a
+                        ///< packet is being received
 };
 
 /**
