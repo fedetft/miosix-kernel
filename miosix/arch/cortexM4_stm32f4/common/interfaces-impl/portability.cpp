@@ -50,12 +50,6 @@
 void SysTick_Handler()   __attribute__((naked));
 void SysTick_Handler()
 {
-#ifndef USE_CSTIMER
-    saveContext();
-    //Call ISR_preempt(). Name is a C++ mangled name.
-    asm volatile("bl _ZN14miosix_private11ISR_preemptEv");
-    restoreContext();
-#endif
 }
 
 /**
@@ -94,21 +88,6 @@ void TIM3_IRQHandler()
 #endif //SCHED_TYPE_CONTROL_BASED
 
 namespace miosix_private {
-
-#ifndef USE_CSTIMER
-/**
- * \internal
- * Called by the timer interrupt, preempt to next thread
- * Declared noinline to avoid the compiler trying to inline it into the caller,
- * which would violate the requirement on naked functions. Function is not
- * static because otherwise the compiler optimizes it out...
- */
-void ISR_preempt() __attribute__((noinline));
-void ISR_preempt()
-{
-    miosix::IRQtimerInterrupt(0 /*TODO dummy parameter */);
-}
-#endif //USE_CSTIMER
 
 /**
  * \internal
@@ -308,11 +287,7 @@ void IRQportableStartKernel()
     NVIC_SetPriority(SVCall_IRQn,3);//High priority for SVC (Max=0, min=15)
     NVIC_SetPriority(SysTick_IRQn,3);//High priority for SysTick (Max=0, min=15)
     NVIC_SetPriority(MemoryManagement_IRQn,2);//Higher priority for MemoryManagement (Max=0, min=15)
-#ifndef USE_CSTIMER
-    SysTick->LOAD=SystemCoreClock/miosix::TICK_FREQ;
-    SysTick->CTRL=SysTick_CTRL_ENABLE_Msk | SysTick_CTRL_TICKINT_Msk |
-            SysTick_CTRL_CLKSOURCE_Msk;
-#endif
+    
     #ifdef WITH_PROCESSES
     miosix::IRQenableMPUatBoot();
     #endif //WITH_PROCESSES

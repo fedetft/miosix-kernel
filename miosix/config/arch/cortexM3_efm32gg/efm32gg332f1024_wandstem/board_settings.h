@@ -43,8 +43,6 @@
  */
 #define WANDSTEM_HW_REV 14
 
-#define USE_CSTIMER //FIXME: remove when cstimer becomes default
-
 namespace miosix {
 
 /**

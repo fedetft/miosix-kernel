@@ -69,10 +69,6 @@ IntrusiveList<SleepData> *sleepingList=nullptr;///list of sleeping threads
 ///Contains head of the sleeping list in terms of timer's ticks
 long long firstSleepItemTicks = std::numeric_limits<long long>::max();
 
-#ifndef USE_CSTIMER
-static volatile long long tick=0;///<\internal Kernel tick
-#endif //USE_CSTIMER
-
 ///\internal !=0 after pauseKernel(), ==0 after restartKernel()
 volatile int kernel_running=0;
 
@@ -255,23 +251,7 @@ bool isKernelRunning()
 
 long long getTick()
 {
-    #ifndef USE_CSTIMER
-    /*
-     * Reading a volatile 64bit integer on a 32bit platform with interrupts
-     * enabled is tricky because the operation is not atomic, so we need to
-     * read it twice to see if we were interrupted in the middle of the read
-     * operation.
-     */
-    long long a,b;
-    for(;;)
-    {
-        a=static_cast<long long>(tick);
-        b=static_cast<long long>(tick);
-        if(a==b) return a;
-    }
-    #else //USE_CSTIMER
     return tc->tick2ns(ContextSwitchTimer::instance().getCurrentTick())/preemptionPeriodNs;
-    #endif //USE_CSTIMER
 }
 
 /**
@@ -307,29 +287,6 @@ void IRQaddToSleepingList(SleepData *x)
  */
 bool IRQwakeThreads(long long currentTick)
 {
-    #ifndef USE_CSTIMER
-    tick++;//Increment tick
-    
-    //If no item in list, return
-    if(sleepingList->empty()) return false;
-    
-    bool result=false;
-    //Since list is sorted, if we don't need to wake the first element
-    //we don't need to wake the other too
-    for(auto it = sleepingList->begin() ; it != sleepingList->end() ;)
-    {
-        if(tick < (*it)->wakeup_time) break;
-        if((*it)->p == nullptr) ++it; //Only csRecord has p==nullptr
-        else {
-            (*it)->p->flags.IRQsetSleep(false); //Wake thread
-            it = sleepingList->erase(it);
-            result = true;
-        }
-    }
-    return result;
-    
-    #else //USE_CSTIMER
-
     //If no item in list, return
     if(sleepingList->empty())
         return false;
@@ -352,7 +309,6 @@ bool IRQwakeThreads(long long currentTick)
     else
         firstSleepItemTicks = tc->ns2tick(sleepingList->front()->wakeup_time);
     return result;
-    #endif //USE_CSTIMER
 }
 
 /*
@@ -415,7 +371,6 @@ bool Thread::testTerminate()
     return const_cast<Thread*>(cur)->flags.isDeleting();
 }
 
-#ifdef USE_CSTIMER
 void Thread::nanoSleep(long long ns)
 {
     if(ns==0) return; //TODO: should be (ns &lt; resolution + epsilon)
@@ -444,46 +399,15 @@ void Thread::nanoSleepUntil(long long absoluteTime)
     Thread::yield();
     
 }
-#endif
 
 void Thread::sleep(unsigned int ms)
 {
-#ifdef USE_CSTIMER
     nanoSleep(mul32x32to64(ms,1000000));
-#else
-    if(ms==0) return;
-    //pauseKernel() here is not enough since even if the kernel is stopped
-    //the tick isr will wake threads, modifying the sleepingList
-    {
-        FastInterruptDisableLock lock;
-        SleepData d;
-        d.p=const_cast<Thread*>(cur);
-        if(((ms*TICK_FREQ)/1000)>0) d.wakeup_time=getTick()+(ms*TICK_FREQ)/1000;
-        //If tick resolution is too low, wait one tick
-        else d.wakeup_time=getTick()+1;
-        IRQaddToSleepingList(&d);//Also sets SLEEP_FLAG
-    }
-    Thread::yield();
-#endif
 }
 
 void Thread::sleepUntil(long long absoluteTime)
 {
-#ifdef USE_CSTIMER
     nanoSleepUntil(absoluteTime * 1000000);
-#else
-    //pauseKernel() here is not enough since even if the kernel is stopped
-    //the tick isr will wake threads, modifying the sleepingList
-    {
-        FastInterruptDisableLock lock;
-        if(absoluteTime<=getTick()) return; //Wakeup time in the past, return
-        SleepData d;
-        d.p=const_cast<Thread*>(cur);
-        d.wakeup_time=absoluteTime;
-        IRQaddToSleepingList(&d);//Also sets SLEEP_FLAG
-    }
-    Thread::yield();
-#endif
 }
 
 Thread *Thread::getCurrentThread()

@@ -5,8 +5,13 @@
 
 #include "miosix/interfaces/gpio.h"
 
+#ifdef _BOARD_STM32F4DISCOVERY
 typedef miosix::Gpio<GPIOA_BASE, 1> debug1;
-typedef miosix::Gpio<GPIOA_BASE,15> debug2;
+typedef miosix::Gpio<GPIOA_BASE, 15> debug2;
+#elif _BOARD_WANDSTEM
+typedef miosix::Gpio<GPIOC_BASE, 2> debug1; // on the board: gpio7
+typedef miosix::Gpio<GPIOC_BASE, 7> debug2; // on the board: gpio9
+#endif
 
 template<typename T>
 class HighPin
