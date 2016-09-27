@@ -78,28 +78,24 @@ private:
 };
 
 /**
- * This class allows to convert the time from the system timer ticks to
- * nanoseconds and back.
- * Notice that although this class only contains static member functions,
- * it allows inlining of the conversion member functions while still
- * encapsulating the conversion factors.
+ * Instances of this class can be used by timer drivers to convert from ticks
+ * in the timer resolution to nanoseconds and back.
  */
 class TimeConversion
 {
 public:
     /**
-     * Set the conversion factors based on the timer frequency.
-     * \param hz timer clock frequency in Hz
+     * Constructor
+     * Set the conversion factors based on the tick frequency.
+     * \param hz tick frequency in Hz
      */
-    static void setTimerFrequency(unsigned int hz);
+    TimeConversion(unsigned int hz);
     
     /**
      * \param tick time point in timer ticks
      * \return the equivalent time point in the nanosecond timescale
-     * 
-     * Do not call this functions before setTimerFrequency() !
      */
-    static inline long long tick2ns(long long tick)
+    inline long long tick2ns(long long tick)
     {
         return mul64x32d32(tick,toNs.integerPart(),toNs.fractionalPart());
     }
@@ -107,10 +103,8 @@ public:
     /**
      * \param ns time point in nanoseconds
      * \return the equivalent time point in the timer tick timescale
-     * 
-     * Do not call this functions before setTimerFrequency() !
      */
-    static inline long long ns2tick(long long ns)
+    inline long long ns2tick(long long ns)
     {
         return mul64x32d32(ns,toTick.integerPart(),toTick.fractionalPart());
     }
@@ -118,24 +112,22 @@ public:
     /**
      * \return the conversion factor from ticks to ns
      */
-    static inline TimeConversionFactor getTick2nsConversion() { return toNs; }
+    inline TimeConversionFactor getTick2nsConversion() { return toNs; }
     
     /**
      * \return the conversion factor from ns to tick
      */
-    static inline TimeConversionFactor getNs2tickConversion() { return toTick; }
+    inline TimeConversionFactor getNs2tickConversion() { return toTick; }
     
 private:
-    //This class is not meant for taking instances, disallow construction
-    TimeConversion();
     
     /**
      * \param float a floar number
      * \return the number in 32.32 fixed point format
      */
-    static TimeConversionFactor __attribute__((noinline)) floatToFactor(float x);
+    TimeConversionFactor __attribute__((noinline)) floatToFactor(float x);
     
-    static TimeConversionFactor toNs, toTick;
+    TimeConversionFactor toNs, toTick;
 };
 
 } //namespace miosix

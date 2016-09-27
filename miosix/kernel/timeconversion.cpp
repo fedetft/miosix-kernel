@@ -115,7 +115,7 @@ long long mul64x32d32(long long a, unsigned int bi, unsigned int bf)
 // class TimeConversion
 //
 
-void TimeConversion::setTimerFrequency(unsigned int hz)
+TimeConversion::TimeConversion(unsigned int hz)
 {
     float hzf=static_cast<float>(hz);
     toNs=floatToFactor(1e9f/hzf);
@@ -130,7 +130,7 @@ TimeConversionFactor TimeConversion::floatToFactor(float x)
     return TimeConversionFactor(i,f);
 }
 
-TimeConversionFactor TimeConversion::toNs, TimeConversion::toTick;
+} //namespace miosix
 
 //Testsuite for multiplication algorithm and factor computation. Compile with:
 // g++ -std=c++11 -O2 -DTEST_ALGORITHM -o test timeconversion.cpp; ./test
@@ -144,6 +144,7 @@ TimeConversionFactor TimeConversion::toNs, TimeConversion::toTick;
 #define P(x) cout<<#x<<'='<<x<<' ';
 
 using namespace std;
+using namespace miosix;
 
 const double twoPower32=4294967296.; //2^32 as a double
 
@@ -160,7 +161,6 @@ void test(double b, unsigned int bi, unsigned int bd, double iterations)
     //This is the error of the 32.32 representation and factor computation
     double errorPPM=(b-br)/b*1e6;
     P(errorPPM);
-    cout<<endl<<"===================="<<endl;
 
     srand(0);
     for(int i=0;i<iterations;i++)
@@ -179,25 +179,25 @@ void test(double b, unsigned int bi, unsigned int bd, double iterations)
 
 int main()
 {
-    vector<double> freqs={8e6, 24e6, 48e6, 72e6, 120e6, 168e6, 180e6, 400e6};
+    vector<double> freqs={32768, 8e6, 24e6, 48e6, 72e6, 120e6, 168e6, 180e6, 400e6};
     for(double d : freqs)
     {
-        TimeConversion::setTimerFrequency(d);
+        TimeConversion tc(d);
         double b;
         unsigned int bi, bd;
         
+        cout<<"==== "<<d<<" ===="<<endl;
         b=1e9/d;
-        bi=TimeConversion::getTick2nsConversion().integerPart();
-        bd=TimeConversion::getTick2nsConversion().fractionalPart();
+        bi=tc.getTick2nsConversion().integerPart();
+        bd=tc.getTick2nsConversion().fractionalPart();
         test(b,bi,bd,1000000);
 
         b=d/1e9;
-        bi=TimeConversion::getNs2tickConversion().integerPart();
-        bd=TimeConversion::getNs2tickConversion().fractionalPart();
+        bi=tc.getNs2tickConversion().integerPart();
+        bd=tc.getNs2tickConversion().fractionalPart();
         test(b,bi,bd,1000000);
+        cout<<endl;
     }
 }
 
 #endif //TEST_ALGORITHM
-
-} //namespace miosix
