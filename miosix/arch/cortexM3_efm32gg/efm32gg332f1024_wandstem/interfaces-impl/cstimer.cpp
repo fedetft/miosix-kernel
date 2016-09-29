@@ -18,6 +18,8 @@ static long long ms32time = 0; //most significant 32 bits of counter
 static long long ms32chkp = 0; //most significant 32 bits of check point
 static bool lateIrq=false;
 
+static TimeConversion *tc;
+
 static inline long long nextInterrupt()
 {
     return ms32chkp | TIMER3->CC[1].CCV<<16 | TIMER1->CC[1].CCV;
@@ -112,7 +114,8 @@ namespace miosix {
         return instance;
     }
     
-    void ContextSwitchTimer::IRQsetNextInterrupt(long long tick){
+    void ContextSwitchTimer::IRQsetNextInterrupt(long long ns){
+        long long tick = tc->ns2tick(ns);
         ms32chkp = tick & upperMask;
         TIMER3->CC[1].CCV = static_cast<unsigned int>((tick & 0xFFFF0000)>>16);
         TIMER1->CC[1].CCV = static_cast<unsigned int>(tick & 0xFFFF);
@@ -130,7 +133,7 @@ namespace miosix {
     
     long long ContextSwitchTimer::getNextInterrupt() const
     {
-        return nextInterrupt();
+        return tc->tick2ns(nextInterrupt());
     }
     
     long long ContextSwitchTimer::getCurrentTick() const
@@ -140,14 +143,14 @@ namespace miosix {
         //function occurs before kernel is started, then we can use
         //fastInterruptDisable())
         if(interrupts) disableInterrupts();
-        long long result=IRQgetTick();
+        long long result=tc->tick2ns(IRQgetTick());
         if(interrupts) enableInterrupts();
         return result;
     }
     
     long long ContextSwitchTimer::IRQgetCurrentTick() const
     {
-        return IRQgetTick();
+        return tc->tick2ns(IRQgetTick());
     }
     
     ContextSwitchTimer::~ContextSwitchTimer(){}
@@ -185,9 +188,8 @@ namespace miosix {
         TIMER1->CMD = TIMER_CMD_START;
         //Setup tick2ns conversion tool
         timerFreq = 48000000;
-        tc=new TimeConversion(timerFreq);
+        static TimeConversion stc(timerFreq);
+        tc = &stc;
     }
-
-TimeConversion *tc;
 
 }

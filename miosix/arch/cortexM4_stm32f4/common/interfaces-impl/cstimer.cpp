@@ -16,6 +16,8 @@ static long long ms32time = 0; //most significant 32 bits of counter
 static long long ms32chkp = 0; //most significant 32 bits of check point
 static bool lateIrq=false;
 
+static TimeConversion *tc;
+
 static inline long long nextInterrupt()
 {
     return ms32chkp | TIM2->CCR1;
@@ -91,8 +93,9 @@ ContextSwitchTimer& ContextSwitchTimer::instance()
     return instance;
 }
 
-void ContextSwitchTimer::IRQsetNextInterrupt(long long tick)
+void ContextSwitchTimer::IRQsetNextInterrupt(long long ns)
 {
+    long long tick = tc->ns2tick(ns);
     ms32chkp = tick & upperMask;
     TIM2->CCR1 = static_cast<unsigned int>(tick & lowerMask);
     if(IRQgetTick() >= nextInterrupt())
@@ -104,7 +107,7 @@ void ContextSwitchTimer::IRQsetNextInterrupt(long long tick)
 
 long long ContextSwitchTimer::getNextInterrupt() const
 {
-    return nextInterrupt();
+    return tc->tick2ns(nextInterrupt());
 }
 
 long long ContextSwitchTimer::getCurrentTick() const
@@ -114,14 +117,14 @@ long long ContextSwitchTimer::getCurrentTick() const
     //function occurs before kernel is started, then we can use
     //fastInterruptDisable())
     if(interrupts) disableInterrupts();
-    long long result=IRQgetTick();
+    long long result=tc->tick2ns(IRQgetTick());
     if(interrupts) enableInterrupts();
     return result;
 }
 
 long long ContextSwitchTimer::IRQgetCurrentTick() const
 {
-    return IRQgetTick();
+    return tc->tick2ns(IRQgetTick());
 }
 
 ContextSwitchTimer::~ContextSwitchTimer() {}
@@ -170,9 +173,8 @@ ContextSwitchTimer::ContextSwitchTimer()
     // interface. After this, the freq variable contains the frequency in Hz
     // at which the timer prescaler is clocked.
     if(RCC->CFGR & RCC_CFGR_PPRE1_2) timerFreq/=1<<((RCC->CFGR>>10) & 0x3);
-    tc=new TimeConversion(timerFreq);
+    static TimeConversion stc(timerFreq);
+    tc = &stc;
 }
-
-TimeConversion *tc;
 
 } //namespace miosix

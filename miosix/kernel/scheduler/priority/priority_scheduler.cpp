@@ -30,6 +30,7 @@
 #include "kernel/process.h"
 #include "interfaces/cstimer.h"
 #include "kernel/timeconversion.h"
+#include <limits>
 
 #ifdef SCHED_TYPE_PRIORITY
 namespace miosix {
@@ -38,7 +39,6 @@ namespace miosix {
 extern volatile Thread *cur;
 extern volatile int kernel_running;
 static ContextSwitchTimer& timer = ContextSwitchTimer::instance();
-extern long long firstSleepItemTicks;
 extern IntrusiveList<SleepData> *sleepingList;
 
 //
@@ -202,13 +202,17 @@ void PriorityScheduler::IRQsetIdleThread(Thread *idleThread)
 }
 
 static void setNextPreemption(bool curIsIdleThread){
-    static long long preemptionPeriodTicks = tc->ns2tick(preemptionPeriodNs);
+    long long firstWakeupInList;
+    if (sleepingList->empty())
+        firstWakeupInList = std::numeric_limits<long long>::max();
+    else
+        firstWakeupInList = sleepingList->front()->wakeup_time;
     if (curIsIdleThread){
-        timer.IRQsetNextInterrupt(firstSleepItemTicks);
+        timer.IRQsetNextInterrupt(firstWakeupInList);
     }else{
-        long long nextPeriodicPreemption = timer.IRQgetCurrentTick() + preemptionPeriodTicks;   
-        if (firstSleepItemTicks < nextPeriodicPreemption )
-            timer.IRQsetNextInterrupt(firstSleepItemTicks);
+        long long nextPeriodicPreemption = timer.IRQgetCurrentTick() + preemptionPeriodNs;   
+        if (firstWakeupInList < nextPeriodicPreemption )
+            timer.IRQsetNextInterrupt(firstWakeupInList);
         else
             timer.IRQsetNextInterrupt(nextPeriodicPreemption);
     }

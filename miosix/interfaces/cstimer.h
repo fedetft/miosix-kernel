@@ -1,14 +1,16 @@
 #ifndef CSTIMER_H
 #define	CSTIMER_H
 
-#include "kernel/timeconversion.h"
-
 namespace miosix {
 
 /**
  * This class is a low level interface to a hardware timer, that is used as
  * the basis for the Miosix timing infrastructure. In detail, it allows to
- * set interrupts used both for thread wakeup from sleep, and for preemption. 
+ * set interrupts used both for thread wakeup from sleep, and for preemption.
+ * Please note that although the HW timer may operate in ticks, the class should
+ * provide the user (which is kernel/scheduler codes) with a timing scheme
+ * in nanoseconds. It is highly recommended to use TimeConversion class for
+ * this purpose.
  */
 class ContextSwitchTimer
 {
@@ -21,7 +23,7 @@ public:
     /**
      * Set the next interrupt.
      * Can be called with interrupts disabled or within an interrupt.
-     * \param tick the time when the interrupt will be fired, in timer ticks
+     * \param tick the time when the interrupt will be fired, in nanoseconds
      */
     void IRQsetNextInterrupt(long long tick);
     
@@ -35,12 +37,12 @@ public:
      * Could be call both when the interrupts are enabled/disabled!
      * TODO: investigate if it's possible to remove the possibility to call
      * this with IRQ disabled and use IRQgetCurrentTick() instead
-     * \return the current tick count of the timer
+     * \return the current tick count of the timer (in terms of nanoseconds)
      */
     long long getCurrentTick() const;
     
     /**
-     * \return the current tick count of the timer.
+     * \return the current tick count of the timer (in terms of nanoseconds)
      * Can only be called with interrupts disabled or within an IRQ
      */
     long long IRQgetCurrentTick() const;
@@ -66,8 +68,6 @@ private:
     
     unsigned int timerFreq;
 };
-
-extern TimeConversion *tc;
 
 } //namespace miosix
 
