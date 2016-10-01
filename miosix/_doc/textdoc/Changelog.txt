@@ -1,6 +1,8 @@
 Changelog for Miosix np embedded OS
 
 v2.02
+- Reworked timeconversion.h and timeconversion.cpp with much improved
+  algorithms for converting from timer ticks to nanoseconds and back
 - Modified the policy about global objects inside the kernel. The previous
   policy was to forbid them, by checking with a script that there were none.
   This policy was found to be too restrictive, so a new script

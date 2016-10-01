@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2015 by Terraneo Federico                               *
+ *   Copyright (C) 2015, 2016 by Terraneo Federico                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -71,7 +71,17 @@ public:
      * \return the fractional part of the fixed point number
      */
     inline unsigned int fractionalPart() const { return f; }
-
+    
+    /**
+     * \param x value to add to the fractional part
+     * \return a TimeConversionFactor with the same integer part and the
+     * fractional part corrected by delta
+     */
+    TimeConversionFactor operator+(int delta) const
+    {
+        return TimeConversionFactor(i,f+delta);
+    }
+    
 private:
     unsigned int i;
     unsigned int f;
@@ -87,7 +97,9 @@ public:
     /**
      * Constructor
      * Set the conversion factors based on the tick frequency.
-     * \param hz tick frequency in Hz
+     * \param hz tick frequency in Hz. The range of timer frequencies that are
+     * supported is 10KHz to 1GHz. The algorithms in this class may not work
+     * outside this range
      */
     TimeConversion(unsigned int hz);
     
@@ -95,39 +107,80 @@ public:
      * \param tick time point in timer ticks
      * \return the equivalent time point in the nanosecond timescale
      */
-    inline long long tick2ns(long long tick)
+    inline long long tick2ns(long long tick) const
     {
-        return mul64x32d32(tick,toNs.integerPart(),toNs.fractionalPart());
+        return convert(tick,toNs);
     }
 
     /**
      * \param ns time point in nanoseconds
      * \return the equivalent time point in the timer tick timescale
+     * 
+     * As this function may modify some class variables as part of the
+     * internal online adjustment process, it is not reentrant. The caller
+     * is responsible to prevent concurrent calls
      */
-    inline long long ns2tick(long long ns)
-    {
-        return mul64x32d32(ns,toTick.integerPart(),toTick.fractionalPart());
-    }
+    long long ns2tick(long long ns);
     
     /**
      * \return the conversion factor from ticks to ns
      */
-    inline TimeConversionFactor getTick2nsConversion() { return toNs; }
+    inline TimeConversionFactor getTick2nsConversion() const { return toNs; }
     
     /**
      * \return the conversion factor from ns to tick
      */
-    inline TimeConversionFactor getNs2tickConversion() { return toTick; }
+    inline TimeConversionFactor getNs2tickConversion() const { return toTick; }
+    
+    /**
+     * \return the time interval in ns from the last online round trip
+     * adjustment for ns2tick() where the adjust offset is cached.
+     * This should not matter to you unless you are working on the inner
+     * details of the round trip adjustment code, otherwise you can safely
+     * ignore this value
+     */
+    long long getAdjustInterval() const { return adjustIntervalNs; }
+    
+    /**
+     * \return the cached online round trip adjust offset in ns for ns2tick().
+     * This should not matter to you unless you are working on the inner
+     * details of the round trip adjustment code, otherwise you can safely
+     * ignore this value
+     */
+    long long getAdjustOffset() const { return adjustOffsetNs; }
     
 private:
+
+    /**
+     * Compute the error in ticks of an unadjusted conversion from tick to ns
+     * and back (a "round trip"), when the toTick conversion coefficient
+     * is adjusted by delta and at the given time point.
+     * This function is used internally to compute adjust coefficients.
+     * \param tick time point in ticks on which to do the round trip
+     * \param delta signed value to add the the fractional part of toTick
+     * to obtain a temporary coefficient on which the round trip error is
+     * computed
+     * \return the round trip error in ticks
+     */
+    long long __attribute__((noinline)) computeRoundTripError(long long tick, int delta) const;
+
+    /**
+     * \param x time point to convert
+     * \return the converted time point
+     */
+    static inline long long convert(long long x, TimeConversionFactor tcf)
+    {
+        return mul64x32d32(x,tcf.integerPart(),tcf.fractionalPart());
+    }
     
     /**
      * \param float a floar number
      * \return the number in 32.32 fixed point format
      */
-    TimeConversionFactor __attribute__((noinline)) floatToFactor(float x);
-    
+    static TimeConversionFactor __attribute__((noinline)) floatToFactor(float x);
+
     TimeConversionFactor toNs, toTick;
+    long long adjustIntervalNs, lastAdjustTimeNs, adjustOffsetNs;
 };
 
 } //namespace miosix
