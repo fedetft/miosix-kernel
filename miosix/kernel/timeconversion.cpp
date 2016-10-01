@@ -269,6 +269,12 @@ long long TimeConversion::ns2tick(long long ns)
      * for the new adjustment. This was shown to reduce the number of
      * iterations to always one for patterns that call ns2tick with ns values
      * without very large jumps in value.
+     * 
+     * This algorithm was benchmarked on an efm32 Cortex-M4 microcontroller
+     * running at 48MHz, and this is the runtime:
+     * using cached value     118 cycles
+     * readjust 1 iteration   288 cycles
+     * readjust 2 iterations  439 cycles
      */
     if(abs(ns-lastAdjustTimeNs)>adjustIntervalNs)
     {
@@ -385,6 +391,13 @@ TimeConversion::TimeConversion(unsigned int hz)
     P(adjustInterval);
     std::cout<<std::endl;
     #endif //TEST_ALGORITHM
+    
+    /*
+     * This constructor was benchmarked on an efm32 Cortex-M4 microcontroller
+     * running at 48MHz, and this is the runtime:
+     * tick freq 32768   2170 cycles
+     * tick freq 400MHz  4120 cycles
+     */
 }
 
 long long TimeConversion::computeRoundTripError(long long tick, int delta) const
