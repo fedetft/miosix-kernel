@@ -31,10 +31,12 @@
 #ifndef TIMER_H
 #define TIMER_H
 
+#include <kernel/timeconversion.h>
+
 namespace miosix {
 
 /**
- * Pure virtual class defining the RadioTimer interface.
+ * Pure virtual class defining the HardwareTimer interface.
  * This interface includes support for an input capture module, used by the
  * Transceiver driver to timestamp packet reception, and an output compare
  * module, used again by the Transceiver to send packets deterministically.
@@ -43,27 +45,20 @@ class HardwareTimer
 {
 public:
     /**
-     * \return the timer counter value
+     * \return the timer counter value in nanoseconds
      */
     virtual long long getValue() const=0;
-
-    /**
-     * Set the RTC counter value
-     * \param value new RTC value
-     */
-    virtual void setValue(long long value)=0;
     
     /**
      * Put thread in wait for the specified relative time.
      * This function wait for a relative time passed as parameter.
-     * \param value relative time to wait, expressed in number of tick of the 
-     * count rate of timer.
+     * \param value relative time to wait, expressed in nanoseconds
      */
     virtual void wait(long long value)=0;
     
     /**
      * Puts the thread in wait for the specified absolute time.
-     * \param value absolute time in which the thread is waiting.
+     * \param value absolute wait time in nanoseconds
      * If value of absolute time is in the past no waiting will be set
      * and function return immediately.
      * \return true if the wait time was in the past
@@ -76,7 +71,7 @@ public:
      * When the timer interrupt will occur, the associated GPIO passes 
      * from a low logic level to a high logic level for few us.
      * \param value absolute value when the interrupt will occur, expressed in 
-     * number of tick of the count rate of timer.
+     * nanoseconds
      * If value of absolute time is in the past no waiting will be set
      * and function return immediately. In this case, the GPIO will not be
      * pulsed
@@ -87,16 +82,14 @@ public:
     
     /**
      * Put thread in waiting of timeout or extern event.
-     * \param value timeout expressed in number of tick of the 
-     * count rate of timer.
+     * \param value timeout expressed in nanoseconds
      * \return true in case of timeout
      */
     virtual bool waitTimeoutOrEvent(long long value)=0;
     
     /**
      * Put thread in waiting of timeout or extern event.
-     * \param value absolute timeout expressed in number of tick of the 
-     * count rate of timer.
+     * \param value absolute timeout expressed in nanoseconds
      * If value of absolute time is in the past no waiting will be set
      * and function return immediately.
      * \return true in case of timeout, or if the wait time is in the past.
@@ -106,7 +99,8 @@ public:
     virtual bool absoluteWaitTimeoutOrEvent(long long value)=0;
     
     /**
-     * \return the precise time when the IRQ signal of the event was asserted
+     * \return the precise time in nanoseconds when the IRQ signal of the event
+     * was asserted
      */
     virtual long long getExtEventTimestamp() const=0;
 };
@@ -119,7 +113,7 @@ class Rtc : public HardwareTimer
 {
 public:
     /**
-     * \return an instance to the RTC (singleton)
+     * \return the timer counter value in nanoseconds
      */
     static Rtc& instance();
     
@@ -129,22 +123,21 @@ public:
     long long getValue() const;
 
     /**
-     * Set the RTC counter value
-     * \param value new RTC value
+     * Set the timer counter value
+     * \param value new timer value in nanoseconds
      */
     void setValue(long long value);
     
     /**
      * Put thread in wait for the specified relative time.
      * This function wait for a relative time passed as parameter.
-     * \param value relative time to wait, expressed in number of tick of the 
-     * count rate of timer.
+     * \param value relative time to wait, expressed in nanoseconds
      */
     void wait(long long value);
     
     /**
      * Puts the thread in wait for the specified absolute time.
-     * \param value absolute time in which the thread is waiting.
+     * \param value absolute wait time in nanoseconds
      * If value of absolute time is in the past no waiting will be set
      * and function return immediately.
      * \return true if the wait time was in the past
@@ -155,9 +148,9 @@ public:
      * Set the timer interrupt to occur at an absolute value and put the 
      * thread in wait of this. 
      * When the timer interrupt will occur, the associated GPIO passes 
-     * from a low logic level to a high logic level for few us. 
+     * from a low logic level to a high logic level for few us.
      * \param value absolute value when the interrupt will occur, expressed in 
-     * number of tick of the count rate of timer.
+     * nanoseconds
      * If value of absolute time is in the past no waiting will be set
      * and function return immediately. In this case, the GPIO will not be
      * pulsed
@@ -166,18 +159,16 @@ public:
      */
     bool absoluteWaitTrigger(long long value);
     
-    /**
+     /**
      * Put thread in waiting of timeout or extern event.
-     * \param value timeout expressed in number of tick of the 
-     * count rate of timer.
+     * \param value timeout expressed in nanoseconds
      * \return true in case of timeout
      */
     bool waitTimeoutOrEvent(long long value);
     
     /**
      * Put thread in waiting of timeout or extern event.
-     * \param value absolute timeout expressed in number of tick of the 
-     * count rate of timer.
+     * \param value absolute timeout expressed in nanoseconds
      * If value of absolute time is in the past no waiting will be set
      * and function return immediately.
      * \return true in case of timeout, or if the wait time is in the past.
@@ -187,18 +178,32 @@ public:
     bool absoluteWaitTimeoutOrEvent(long long value);
     
     /**
-     * \return the precise time when the IRQ signal of the event was asserted
+     * \return the precise time in nanoseconds when the IRQ signal of the event
+     * was asserted
      */
     long long getExtEventTimestamp() const;
     
-    static const unsigned int frequency=32768; ///< The RTC frequency in Hz
+    /// The internal RTC frequency in Hz. Note that this is only provided for
+    /// reference, as the rest of the API works in nanoseconds regardless of
+    /// the RTC tick frequency
+    static const unsigned int frequency=32768;
     
 private:
     /**
      * Constructor
      */
-    Rtc();  
+    Rtc();
+    
+    TimeConversion tc; ///< Class for converting from nanoseconds to ticks
 };
+
+/**
+ * \return the timer used by the transceiver
+ */
+inline HardwareTimer& getTransceiverTimer()
+{
+    return Rtc::instance();
+}
 
 } //namespace miosix
 

@@ -29,9 +29,10 @@
 #ifndef TRANSCEIVER_H
 #define TRANSCEIVER_H
 
+#include <limits>
 #include "power_manager.h"
 #include "spi.h"
-#include "timer.h"
+#include "hardware_timer.h"
 
 namespace miosix {
 
@@ -42,16 +43,26 @@ enum class CC2520State;
 using CC2520ExceptionBitmask=unsigned int;
 using CC2520StatusBitmask=unsigned char;
 
+/// Pass this to recv() to disable timeout
+const long long infiniteTimeout=std::numeric_limits<long long>::max();
+
 /**
  * This class is used to configure the transceiver
  */
 class TransceiverConfiguration
 {
 public:
-    TransceiverConfiguration(int frequency, int txPower=0, bool crc=true,
+    TransceiverConfiguration(int frequency=2450, int txPower=0, bool crc=true,
                              bool strictTimeout=true)
         : frequency(frequency), txPower(txPower), crc(crc),
           strictTimeout(strictTimeout) {}
+    
+    /**
+     * Configure the frequency field of this class from a IEEE 802.15.4
+     * channel number
+     * \param channel IEEE 802.15.4 channel number (from 11 to 26)
+     */
+    int setChannel(int channel);
 
     int frequency;      ///< TX/RX frequency, between 2394 and 2507
     int txPower;        ///< TX power in dBm
@@ -257,13 +268,14 @@ private:
      * there is the need to receive a packet. It will wait for the SFD and
      * RX_FRM_DONE exceptions
      * \param timeout timeout for reception
+     * \param size maximum packet size in bytes
      * \param result the function will set result.error to TIMEOUT when
      * returning due to a timeout, and will set result.timestampValid if an SFD
      * was detected
      * \return true in case of timeout
      * \throws runtime_error in case of errors
      */
-    bool handlePacketReceptionEvents(long long timeout, RecvResult& result);
+    bool handlePacketReceptionEvents(long long timeout, int size, RecvResult& result);
     
     /**
      * Read a data packet from the transceiver

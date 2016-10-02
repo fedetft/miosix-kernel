@@ -28,6 +28,7 @@
 
 #include "transceiver.h"
 #include "cc2520_constants.h"
+#include "config/miosix_settings.h"
 #include <stdexcept>
 #include <algorithm>
 #include <cassert>
@@ -56,6 +57,32 @@ using complExcChB=transceiver::gpio2; ///< Function of this pin is missing in bs
 // Timeout computation
 //
 
+#ifndef LEGACY_HW_TIMER_IN_TICKS
+
+/// Wait time for the RSSI to become valid
+const auto rssiWait=80000;
+
+/// Slack added to all constants ending in "timeout"
+const auto slack=128000;
+
+/// Transceiver activation time (time from idle to TX or RX, and from RX to TX)
+/// Measured STXON to SFD_TX delay (turnaround+preambleSfdTime) is 352.370us
+const auto turnaround=192370;
+
+/// Time to send one byte as float
+const auto timePerByte=32000;
+
+/// Time to send the first part of each packet (4 bytes preamble + 1 byte SFD)
+const auto preambleSfdTime=timePerByte*5;
+
+/// Timeout from sending STXON to when the SFD should be sent
+const auto sfdTimeout=slack+turnaround+preambleSfdTime;
+
+/// Timeout from an SFD to when the maximum length packet should end
+const auto maxPacketTimeout=slack+timePerByte*128;
+
+#else //LEGACY_HW_TIMER_IN_TICKS
+
 /// Timer frequency
 const auto hz=Rtc::frequency;
 
@@ -80,10 +107,7 @@ const auto sfdTimeout=slack+turnaround+preambleSfdTime;
 /// Timeout from an SFD to when the maximum length packet should end
 const auto maxPacketTimeout=slack+static_cast<long long>(timePerBytef*128*hz);
 
-//FIXME write an analysisis of the error caused by turnaround and preambleSfdTime
-//at 32 khz, showing that the timestamp falls right at the middle of a tick
-//assuming TX and RX clock are in phase, which is good because the answer will be
-//correct even if the two clocks are ~+/-0.5 tick out of phase
+#endif //LEGACY_HW_TIMER_IN_TICKS
 
 /**
  * Used by the SPI code to respect tcscks, csckh, tcsnh
@@ -115,6 +139,16 @@ public:
         spiDelay();
     }
 };
+
+//
+// class TransceiverConfiguration
+//
+
+int TransceiverConfiguration::setChannel(int channel)
+{
+    if(channel<11 || channel>26) throw range_error("Channel not in range");
+    frequency=2405+5*(channel-11);
+}
 
 //
 // class Transceiver
@@ -335,7 +369,7 @@ RecvResult Transceiver::recv(void *pkt, int size, long long timeout)
         }
     }
     
-    if(handlePacketReceptionEvents(timeout,result)==false)
+    if(handlePacketReceptionEvents(timeout,size,result)==false)
          readPacketFromRxBuffer(pkt,size,result);
     return result;
 }
@@ -385,8 +419,8 @@ CC2520StatusBitmask Transceiver::commandStrobe(CC2520Command cmd)
 }
 
 Transceiver::Transceiver()
-    : pm(PowerManager::instance()), spi(Spi::instance()), timer(Rtc::instance()),
-      state(CC2520State::DEEPSLEEP), config(2450) {}
+    : pm(PowerManager::instance()), spi(Spi::instance()),
+      timer(getTransceiverTimer()), state(CC2520State::DEEPSLEEP), config() {}
 
 void Transceiver::startRxAndWaitForRssi()
 {
@@ -522,7 +556,7 @@ void Transceiver::handlePacketTransmissionEvents(int size)
     if(silentError) idle();
 }
 
-bool Transceiver::handlePacketReceptionEvents(long long timeout, RecvResult& result)
+bool Transceiver::handlePacketReceptionEvents(long long timeout, int size, RecvResult& result)
 {
     //Wait for the first event to occur (SFD), or timeout
     if(timer.absoluteWaitTimeoutOrEvent(timeout)==true)
@@ -565,8 +599,13 @@ bool Transceiver::handlePacketReceptionEvents(long long timeout, RecvResult& res
     }
     
     //Wait for the second event to occur (RX_FRM_DONE)
-    auto secondTimeout=config.strictTimeout ? min(timeout,timer.getValue()+maxPacketTimeout)
-                                            : max(timeout,timer.getValue()+maxPacketTimeout);
+    #ifndef LEGACY_HW_TIMER_IN_TICKS
+    long long tt=slack+timePerByte*size;
+    #else //LEGACY_HW_TIMER_IN_TICKS
+    long long tt=maxPacketTimeout;
+    #endif //LEGACY_HW_TIMER_IN_TICKS
+    auto secondTimeout=config.strictTimeout ? min(timeout,timer.getValue()+tt)
+                                            : max(timeout,timer.getValue()+tt);
     if(timer.absoluteWaitTimeoutOrEvent(secondTimeout))
     {
         if(timer.getValue()<timeout)

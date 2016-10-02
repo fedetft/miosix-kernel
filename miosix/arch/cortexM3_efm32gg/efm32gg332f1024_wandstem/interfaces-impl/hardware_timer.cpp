@@ -28,9 +28,10 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "timer.h"
+#include "hardware_timer.h"
 #include <miosix.h>
 #include <kernel/scheduler/scheduler.h>
+#include "config/miosix_settings.h"
 
 using namespace miosix;
 
@@ -41,21 +42,21 @@ enum class WaitResult
     EVENT
 };
 
-static long long swCounter=0;         ///< RTC software counter
-static unsigned int lastHwCounter=0;  ///< variable for evaluate overflow
+static long long swCounter=0;         ///< RTC software counter in ticks
+static unsigned int lastHwCounter=0;  ///< variable for evaluating overflows
 
 static Thread *rtcWaiting=nullptr;    ///< Thread waiting for the RTC irq
 static bool rtcTriggerEnable=false;   ///< If true COMP0 causes trigger
 static bool eventOccurred=false;      ///< Set by the event pin irq
-static long long timestampEvent=0;    ///< input capture timestamp
+static long long timestampEvent=0;    ///< input capture timestamp in ticks
 
 /**
  * Fast (inline) function for reading the RTC
- * \return the RTC value, including the software part extending it to 64 bits
+ * \return the RTC value in ticks, extended in software to 64 bits
  */
 static inline long long readRtc()
 {
-    //FIXME: if not called at least every period, it fails, use pending bit trick?
+    //FIXME: if not called at least every period (512s) it fails, use pending bit trick?
     unsigned int hwCounter=RTC->CNT;
     if(hwCounter<lastHwCounter) swCounter+=(1<<24); //RTC is 24 bit
     lastHwCounter=hwCounter;
@@ -216,11 +217,24 @@ Rtc& Rtc::instance()
 
 long long Rtc::getValue() const
 {
-    return readRtc();
+    long long result;
+    { 
+        //readRtc() is not reentrant, and is also called in the GPIO timestamp irq
+        FastInterruptDisableLock dLock;
+        result=readRtc();
+    }
+    #ifndef LEGACY_HW_TIMER_IN_TICKS
+    return tc.tick2ns(result);
+    #else //LEGACY_HW_TIMER_IN_TICKS
+    return result;
+    #endif //LEGACY_HW_TIMER_IN_TICKS
 }
 
 void Rtc::setValue(long long value)
 {
+    #ifndef LEGACY_HW_TIMER_IN_TICKS
+    value=tc.ns2tick(value);
+    #endif //LEGACY_HW_TIMER_IN_TICKS
     //Stop timer and wait for it to be stopped
     RTC->CTRL=0;
     unsigned int hwCounter=value & 0x0000000000ffffffull;
@@ -237,38 +251,62 @@ void Rtc::setValue(long long value)
 
 void Rtc::wait(long long value)
 {
+    #ifndef LEGACY_HW_TIMER_IN_TICKS
+    waitImpl(tc.ns2tick(getValue()+value),false);
+    #else //LEGACY_HW_TIMER_IN_TICKS
     waitImpl(getValue()+value,false);
+    #endif //LEGACY_HW_TIMER_IN_TICKS
 }
 
 bool Rtc::absoluteWait(long long value)
 {
+    #ifndef LEGACY_HW_TIMER_IN_TICKS
+    return waitImpl(tc.ns2tick(value),false)==WaitResult::WAKEUP_IN_THE_PAST;
+    #else //LEGACY_HW_TIMER_IN_TICKS
     return waitImpl(value,false)==WaitResult::WAKEUP_IN_THE_PAST;
+    #endif //LEGACY_HW_TIMER_IN_TICKS
 }
 
 bool Rtc::absoluteWaitTrigger(long long value)
 {
     rtcTriggerEnable=true;
+    #ifndef LEGACY_HW_TIMER_IN_TICKS
+    bool result=waitImpl(tc.ns2tick(value),false)==WaitResult::WAKEUP_IN_THE_PAST;
+    #else //LEGACY_HW_TIMER_IN_TICKS
     bool result=waitImpl(value,false)==WaitResult::WAKEUP_IN_THE_PAST;
+    #endif //LEGACY_HW_TIMER_IN_TICKS
     rtcTriggerEnable=false;
     return result;
 }
 
 bool Rtc::waitTimeoutOrEvent(long long value)
 {
+    #ifndef LEGACY_HW_TIMER_IN_TICKS
+    return waitImpl(tc.ns2tick(getValue()+value),true)!=WaitResult::EVENT;
+    #else //LEGACY_HW_TIMER_IN_TICKS
     return waitImpl(getValue()+value,true)!=WaitResult::EVENT;
+    #endif //LEGACY_HW_TIMER_IN_TICKS
 }
 
 bool Rtc::absoluteWaitTimeoutOrEvent(long long value)
 {
+    #ifndef LEGACY_HW_TIMER_IN_TICKS
+    return waitImpl(tc.ns2tick(value),true)!=WaitResult::EVENT;
+    #else //LEGACY_HW_TIMER_IN_TICKS
     return waitImpl(value,true)!=WaitResult::EVENT;
+    #endif //LEGACY_HW_TIMER_IN_TICKS
 }
 
 long long Rtc::getExtEventTimestamp() const
 {
+    #ifndef LEGACY_HW_TIMER_IN_TICKS
+    return tc.tick2ns(timestampEvent);
+    #else //LEGACY_HW_TIMER_IN_TICKS
     return timestampEvent;
+    #endif //LEGACY_HW_TIMER_IN_TICKS
 }
 
-Rtc::Rtc()
+Rtc::Rtc() : tc(frequency)
 {
     FastInterruptDisableLock dLock;
     
