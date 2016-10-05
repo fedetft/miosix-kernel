@@ -44,22 +44,6 @@ DMA_DESCRIPTOR_TypeDef dmaControlBlock[DMACTRL_CH_CNT * 2] __attribute__ ((align
 
 /**
  * \internal
- * timer interrupt routine.
- * Since inside naked functions only assembler code is allowed, this function
- * only calls the ctxsave/ctxrestore macros (which are in assembler), and calls
- * the implementation code in ISR_preempt()
- */
-void SysTick_Handler() __attribute__((naked));
-void SysTick_Handler()
-{
-    saveContext();
-    //Call ISR_preempt(). Name is a C++ mangled name.
-    asm volatile("bl _ZN14miosix_private11ISR_preemptEv");
-    restoreContext();
-}
-
-/**
- * \internal
  * software interrupt routine.
  * Since inside naked functions only assembler code is allowed, this function
  * only calls the ctxsave/ctxrestore macros (which are in assembler), and calls
@@ -647,11 +631,6 @@ void IRQportableStartKernel()
     SCB->CCR |= SCB_CCR_DIV_0_TRP_Msk;
     NVIC_SetPriorityGrouping(7);//This should disable interrupt nesting
     NVIC_SetPriority(SVCall_IRQn,3);//High priority for SVC (Max=0, min=15)
-    NVIC_SetPriority(SysTick_IRQn,3);//High priority for SysTick (Max=0, min=15)
-    SysTick->LOAD=SystemCoreClock/miosix::TICK_FREQ-1;
-    //Start SysTick, set to generate interrupts
-    SysTick->CTRL=SysTick_CTRL_ENABLE_Msk | SysTick_CTRL_TICKINT_Msk |
-            SysTick_CTRL_CLKSOURCE_Msk;
 
     #ifdef SCHED_TYPE_CONTROL_BASED
     AuxiliaryTimer::IRQinit();

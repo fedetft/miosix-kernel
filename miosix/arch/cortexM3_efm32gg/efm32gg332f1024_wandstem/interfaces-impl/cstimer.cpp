@@ -43,7 +43,6 @@ namespace miosix {
     
     ContextSwitchTimer::ContextSwitchTimer(): b(HighResolutionTimerBase::instance())
     {
-        static TimeConversion stc(b.getTimerFrequency());
-        tc = &stc;
+        tc = new TimeConversion(b.getTimerFrequency());
     }
 }

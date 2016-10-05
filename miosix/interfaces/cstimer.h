@@ -1,8 +1,6 @@
 #ifndef CSTIMER_H
 #define	CSTIMER_H
 
-#include "../arch/cortexM3_efm32gg/efm32gg332f1024_wandstem/interfaces-impl/high_resolution_timer_base.h"
-
 namespace miosix {
 
 /**
@@ -67,7 +65,6 @@ private:
      * Constructor, private because it's a singleton
      */
     ContextSwitchTimer();
-    HighResolutionTimerBase& b;
     unsigned int timerFreq;
 };
 
