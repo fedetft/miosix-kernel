@@ -28,11 +28,18 @@
 #include "timeconversion.h"
 
 #ifdef TEST_ALGORITHM
+
 #include <iostream>
 #include <cassert>
 #include <vector>
 #include <cmath>
-#define P(x) std::cout<<#x<<'='<<x<<' ';
+#include <limits>
+
+static bool print=true;
+#define P(x) if(print) std::cout<<#x<<'='<<x<<' ';
+#define NL if(print) std::cout<<std::endl;
+#define ITERATION if(print) std::cout<<'+';
+
 #endif //TEST_ALGORITHM
 
 namespace miosix {
@@ -61,7 +68,8 @@ static inline unsigned long long mul32x32to64(unsigned int a, unsigned int b)
     return static_cast<unsigned long long>(a)*static_cast<unsigned long long>(b);
 }
 
-long long mul64x32d32(long long a, unsigned int bi, unsigned int bf)
+unsigned long long mul64x32d32(unsigned long long a,
+                               unsigned int bi, unsigned int bf)
 {
     /*
      * The implemntation is a standard multiplication algorithm:
@@ -95,10 +103,8 @@ long long mul64x32d32(long long a, unsigned int bi, unsigned int bf)
      * cycles. An example arch is the Cortex-M0. How to deal with those arch?
      */
 
-    //Negative values for a are not allowed, cast is safe
-    unsigned long long au=static_cast<unsigned long long>(a);
-    unsigned int aLo=lo(au);
-    unsigned int aHi=hi(au);
+    unsigned int aLo=lo(a);
+    unsigned int aHi=hi(a);
 
     unsigned long long result=mul32x32to64(bi,aLo);
     result+=mul32x32to64(bf,aHi);
@@ -116,11 +122,30 @@ long long mul64x32d32(long long a, unsigned int bi, unsigned int bf)
     result+=static_cast<unsigned long long>(bi*aHi)<<32;
 
     //Caller is responsible to never call this with values that produce overflow
-    return static_cast<long long>(result);
+    return result;
 }
 
-static inline bool     sign(long long x) { return x>=0; }
-static inline long long abs(long long x) { return sign(x) ? x : -x; }
+/**
+ * \param x a long long
+ * \return true if x>=0
+ */
+static inline bool sign(long long x)
+{
+    return x>=0;
+}
+
+/**
+ * \param x a long long
+ * \return |x|
+ * 
+ * Note that compared to llabs this function returns an unsigned number, and
+ * is also sure to be inlined
+ */
+static inline unsigned long long uabs(long long x)
+{
+    long long result= sign(x) ? x : -x;
+    return static_cast<unsigned long long>(result);
+}
 
 /*
  * A note on the issues of tick to nanosecond conversion and back.
@@ -170,16 +195,17 @@ static inline long long abs(long long x) { return sign(x) ? x : -x; }
  * so the error of the nanosecond to tick conversion can grow as large as
  * 10ppm for tick frequencies in the 10KHz range. The solution to this problem
  * is twofold. First, an offline optimization of the back conversion coefficient
- * is done, with the aim of having its error as much as possible equal and
- * opposite in sign to the tick to nanosecond error.
- * Then, an online round trip adjustment is done, by computing the round trip
- * offset and subtracting it to the conversion, in order to make sure the round
- * trip error is less than two ticks.
+ * is done int the TimeConversion constructor, with the aim of having its error
+ * as much as possible equal and opposite in sign to the tick to nanosecond
+ * error.
+ * Then, an online round trip adjustment is done in ns2tick(), by computing the
+ * round trip offset and subtracting it to the conversion, in order to make
+ * sure the round trip error is less than two ticks.
  * As the online adjustment is a little expensive, the result is cached, and for
  * conversion which are "near" to the one at the previous nanosecond to tick
  * call the same offset is used. The range that is considered "near" is
  * again computed offline, as it depends on how good the offline optimization
- * was at making one conversion coefficent the opposite of the other, but is
+ * was at making one conversion coefficient the opposite of the other, but is
  * generally in the range of a few seconds to a few tens of seconds.
  */
 
@@ -235,8 +261,8 @@ long long TimeConversion::ns2tick(long long ns)
      * give us the correct answer, tick, if the difference between ns and ns2
      * is less than adjustIntervalNs.
      * 
-     * The algorithm that fixes this works as follows. For simplicity,
-     * assume that before the for loop, there's a adjustOffsetNs=0 statement.
+     * The algorithm that fixes this works as follows. Before the for loop,
+     * there's an adjustOffsetNs=0 statement.
      * At the first iteration we try to do a round trip around
      * ns+adjustOffsetNs, but adjustOffsetNs is zero, so we get the same result
      * as the previous round trip described above. As the result of this
@@ -258,40 +284,49 @@ long long TimeConversion::ns2tick(long long ns)
      * the previous adjustOffsetNs as a guess to get make tick2 closer to
      * tick this time. The maximum number of iterations that was observed is
      * just 3, so the iteration is particularly efficient.
-     * As you can see, the for loop has a hard limit of 10 iterations. This is 
+     * As you can see, the for loop has a hard limit of 5 iterations. This is 
      * NOT expected to occur in practice, and has only been done to be 100%
      * sure that this algorithm won't turn into an infinite loop when given
      * off-design numbers, such as negative numbers.
-     * The last thing worth mentioning is why there's no adjustOffsetNs=0
-     * before the for loop. As explained, each iteration works by using
-     * the previous adjustOffsetNs as a guess for the next one, so why stop
-     * there, why not use the value at the previous adjustment as a guess
-     * for the new adjustment. This was shown to reduce the number of
-     * iterations to always one for patterns that call ns2tick with ns values
-     * without very large jumps in value.
+     * The last thing worth mentioning is that a previous implementation omitted
+     * the adjustOffsetNs=0 before the for loop. As explained, each iteration
+     * works by using the previous adjustOffsetNs as a guess for the next one,
+     * and the initializtion of was omitted to use the previous value as a guess
+     * for the new adjustment. While this was shown to reduce the number of
+     * iterations in some cases, if ns2tick() was first called with a very large
+     * value, and then with a very small one, a negative adjustOffsetNs would
+     * result in underflow and caused wrong results to bbe produced.
+     * Also, the casts to unsigned are needed because ns+adjustOffsetNs was
+     * shown to overflow for values of ns close to the maximum number a
+     * long long can hold and positive adjustOffsetNs, but uns+adjustOffsetNs
+     * can hold positive numbers far greater than its signed couterpart.
      * 
      * This algorithm was benchmarked on an efm32 Cortex-M4 microcontroller
      * running at 48MHz, and this is the runtime:
-     * using cached value     118 cycles
-     * readjust 1 iteration   288 cycles
-     * readjust 2 iterations  439 cycles
+     * using cached value     115 cycles
+     * readjust 1 iteration   284 cycles
+     * readjust 2 iterations  438 cycles
      */
-    if(abs(ns-lastAdjustTimeNs)>adjustIntervalNs)
+
+    //Negative numbers for ns are not allowed, cast is safe
+    auto uns=static_cast<unsigned long long>(ns);
+    if(uabs(static_cast<long long>(uns-lastAdjustTimeNs))>adjustIntervalNs)
     {
-        for(int i=0;i<10;i++)
+        adjustOffsetNs=0;
+        for(int i=0;i<5;i++)
         {
             #ifdef TEST_ALGORITHM
-            std::cout<<'+';
+            ITERATION;
             #endif //TEST_ALGORITHM
-            lastAdjustTimeNs=convert(convert(ns+adjustOffsetNs,toTick),toNs);
-            adjustOffsetNs=(ns+adjustOffsetNs)-lastAdjustTimeNs;
-            if(abs(ns-lastAdjustTimeNs)<(adjustIntervalNs>>1)) break;
+            lastAdjustTimeNs=convert(convert(uns+adjustOffsetNs,toTick),toNs);
+            adjustOffsetNs=static_cast<long long>((uns+adjustOffsetNs)-lastAdjustTimeNs);
+            if(uabs(static_cast<long long>(uns-lastAdjustTimeNs))<(adjustIntervalNs>>1)) break;
         }
         #ifdef TEST_ALGORITHM
-        std::cout<<std::endl;
+        NL;
         #endif //TEST_ALGORITHM
     }
-    return convert(ns+adjustOffsetNs,toTick);
+    return static_cast<long long>(convert(uns+adjustOffsetNs,toTick));
 }
 
 TimeConversion::TimeConversion(unsigned int hz)
@@ -315,8 +350,8 @@ TimeConversion::TimeConversion(unsigned int hz)
      * without fear of overflow. 1<<62 is ~146years, but even if during the
      * bisection the number nearly doubles, no overflow occurs.
      */
-    const long long longUptimeNs=1LL<<62;
-    const long long longUptimeTick=convert(longUptimeNs,toTick);
+    const unsigned long long longUptimeNs=1ULL<<62;
+    const unsigned long long longUptimeTick=convert(longUptimeNs,toTick);
     /*
      * Max correction 25ppm (1/400000=25ppm). This value is a guess based on
      * the observed correction values when running with TEST_ALGORITHM, and has
@@ -333,7 +368,7 @@ TimeConversion::TimeConversion(unsigned int hz)
         for(;;)
         {
             #ifdef TEST_ALGORITHM
-            std::cout<<'+';
+            ITERATION;
             #endif //TEST_ALGORITHM
             int cDelta=(aDelta+bDelta)/2;
             if(cDelta==aDelta || cDelta==bDelta) break;
@@ -348,14 +383,14 @@ TimeConversion::TimeConversion(unsigned int hz)
             }
         }
     }
-    int delta=abs(aError)<abs(bError) ? aDelta : bDelta;
+    int delta=uabs(aError)<uabs(bError) ? aDelta : bDelta;
     toTick=toTick+delta;
     #ifdef TEST_ALGORITHM
-    std::cout<<std::endl;
+    NL;
     unsigned int maxCorrection=toTick.fractionalPart()/40000;
     P(maxCorrection);
     P(delta);
-    std::cout<<std::endl;
+    NL;
     #endif //TEST_ALGORITHM
 
     //
@@ -377,11 +412,11 @@ TimeConversion::TimeConversion(unsigned int hz)
      * the online correction overhead at the price of a higher error for corner
      * case values (if they even exist and are practically relevant).
      */
-    adjustIntervalNs=128000000000LL;
-    long long tick=convert(adjustIntervalNs,toTick);
+    adjustIntervalNs=128000000000ULL;
+    unsigned long long tick=convert(adjustIntervalNs,toTick);
     for(int i=0;i<9;i++)
     {
-        if(abs(computeRoundTripError(tick,0))<2) break;
+        if(uabs(computeRoundTripError(tick,0))<2) break;
         tick>>=1;
         adjustIntervalNs>>=1;
     }
@@ -389,23 +424,24 @@ TimeConversion::TimeConversion(unsigned int hz)
     #ifdef TEST_ALGORITHM
     double adjustInterval=static_cast<double>(adjustIntervalNs)/1e9;
     P(adjustInterval);
-    std::cout<<std::endl;
+    NL;
     #endif //TEST_ALGORITHM
     
     /*
      * This constructor was benchmarked on an efm32 Cortex-M4 microcontroller
      * running at 48MHz, and this is the runtime:
-     * tick freq 32768   2170 cycles
-     * tick freq 400MHz  4120 cycles
+     * tick freq 32768   2458 cycles
+     * tick freq 400MHz  4800 cycles
      */
 }
 
-long long TimeConversion::computeRoundTripError(long long tick, int delta) const
+long long TimeConversion::computeRoundTripError(unsigned long long tick,
+                                                int delta) const
 {
     auto adjustedToTick=toTick+delta;
-    long long ns=convert(tick,toNs);
-    long long roundTrip=convert(ns,adjustedToTick);
-    return tick-roundTrip;
+    unsigned long long ns=convert(tick,toNs);
+    unsigned long long roundTrip=convert(ns,adjustedToTick);
+    return static_cast<long long>(tick-roundTrip);
 }
 
 TimeConversionFactor TimeConversion::floatToFactor(float x)
@@ -425,16 +461,26 @@ TimeConversionFactor TimeConversion::floatToFactor(float x)
 using namespace std;
 using namespace miosix;
 
-const double twoPower32=4294967296.; //2^32 as a double
+void printRoundTripError(TimeConversion& tc, long long tick)
+{
+    long long roundTripError=tick-tc.ns2tick(tc.tick2ns(tick));
+    P(roundTripError);
+    NL;
+}
 
-void test(double b, unsigned int bi, unsigned int bd, double iterations)
+long double coefficient(unsigned int bi, unsigned int bd)
 {
     //Recompute rounded value using those coefficients. The aim of this test
     //is to assess the multiplication algorithm, so we use integer and
     //fractional part back-converted to a long double that contains the exact
     //same value as the fixed point number
-    long double br=static_cast<long double>(bd)/twoPower32
-                  +static_cast<long double>(bi);
+    const long double twoPower32=4294967296.; //2^32 as a long double
+    return static_cast<long double>(bd)/twoPower32+static_cast<long double>(bi);
+}
+
+void test(double b, unsigned int bi, unsigned int bd, int iterations)
+{
+    long double br=coefficient(bi,bd);
     P(bi);
     P(bd);
     //This is the error of the 32.32 representation and factor computation
@@ -451,16 +497,56 @@ void test(double b, unsigned int bi, unsigned int bd, double iterations)
         unsigned long long result=mul64x32d32(a,bi,bd);
         //Our reference is a long double multiplication
         unsigned long long reference=static_cast<long double>(a)*br;
-        assert(llabs(result-reference)<2);
+        assert(uabs(result-reference)<2);
     }
-    cout<<endl;
+    NL;
 }
 
-void printRoundTripError(TimeConversion& tc, long long tick)
+void testns2tick(TimeConversion& tc, int iterations)
 {
-    long long roundTripError=tick-tc.ns2tick(tc.tick2ns(tick));
-    P(roundTripError);
-    cout<<endl;
+    //First, we get the tick value that results in the maximum ns value
+    //that fits in a long long
+    unsigned int bi,bd;
+    bi=tc.getTick2nsConversion().integerPart();
+    bd=tc.getTick2nsConversion().fractionalPart();
+    long double toNs=coefficient(bi,bd);
+    long long maxTick=numeric_limits<long long>::max()/toNs;
+    //Care about rounding
+    while(tc.tick2ns(maxTick)<0) maxTick--;
+    print=false;
+    srand(0);
+
+    //Fully random test
+    for(int i=0;i<iterations;i++)
+    {
+        long long a=static_cast<unsigned long long>(rand() & 0x7fffffff)<<32
+                  | static_cast<unsigned long long>(rand());
+        a=a % maxTick;
+        assert(uabs(tc.ns2tick(tc.tick2ns(a))-a)<2);
+    }
+    //Large and small test, was proven to check some corner cases
+    for(int i=0;i<iterations;i++)
+    {
+        long long a=static_cast<unsigned long long>(rand() & 0x7fffffff)<<32
+                  | static_cast<unsigned long long>(rand());
+        a=a % maxTick;
+        assert(uabs(tc.ns2tick(tc.tick2ns(a))-a)<2);
+
+        long long b=static_cast<unsigned long long>(rand());
+        b=b % maxTick;
+        assert(uabs(tc.ns2tick(tc.tick2ns(b))-b)<2);
+    }
+    //Largest and small test
+    for(int i=0;i<iterations;i++)
+    {
+        assert(uabs(tc.ns2tick(tc.tick2ns(maxTick))-maxTick)<2);
+
+        long long b=static_cast<unsigned long long>(rand());
+        b=b % maxTick;
+        assert(uabs(tc.ns2tick(tc.tick2ns(b))-b)<2);
+    }
+
+    print=true;
 }
 
 int main()
@@ -491,6 +577,8 @@ int main()
         bi=tc.getNs2tickConversion().integerPart();
         bd=tc.getNs2tickConversion().fractionalPart();
         test(b,bi,bd,1000000);
+
+        testns2tick(tc,1000000);
         cout<<endl;
     }
 }

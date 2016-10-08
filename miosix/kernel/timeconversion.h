@@ -33,16 +33,16 @@ namespace miosix {
 /**
  * Multiplication between a 64 bit integer and a 32.32 fixed point number,
  * 
- * The caller must guarantee that the 64 bit number is positive and that the
- * result of the multiplication fits in 64 bits. Otherwise the behaviour is
- * unspecified.
+ * The caller must guarantee that the result of the multiplication fits in
+ * 64 bits. Otherwise the behaviour is unspecified.
  * 
  * \param a the 64 bit integer number.
  * \param bi the 32 bit integer part of the fixed point number
  * \param bf the 32 bit fractional part of the fixed point number
  * \return the result of the multiplication. The fractional part is discarded.
  */
-long long mul64x32d32(long long a, unsigned int bi, unsigned int bf);
+unsigned long long mul64x32d32(unsigned long long a,
+                               unsigned int bi, unsigned int bf);
 
 /**
  * This class holds a 32.32 fixed point number used for time conversion
@@ -109,7 +109,9 @@ public:
      */
     inline long long tick2ns(long long tick) const
     {
-        return convert(tick,toNs);
+        //Negative numbers for tick are not allowed, cast is safe
+        auto utick=static_cast<unsigned long long>(tick);
+        return static_cast<long long>(convert(utick,toNs));
     }
 
     /**
@@ -139,7 +141,7 @@ public:
      * details of the round trip adjustment code, otherwise you can safely
      * ignore this value
      */
-    long long getAdjustInterval() const { return adjustIntervalNs; }
+    unsigned long long getAdjustInterval() const { return adjustIntervalNs; }
     
     /**
      * \return the cached online round trip adjust offset in ns for ns2tick().
@@ -162,13 +164,15 @@ private:
      * computed
      * \return the round trip error in ticks
      */
-    long long __attribute__((noinline)) computeRoundTripError(long long tick, int delta) const;
+    long long __attribute__((noinline))
+    computeRoundTripError(unsigned long long tick, int delta) const;
 
     /**
      * \param x time point to convert
      * \return the converted time point
      */
-    static inline long long convert(long long x, TimeConversionFactor tcf)
+    static inline unsigned long long convert(unsigned long long x,
+                                             TimeConversionFactor tcf)
     {
         return mul64x32d32(x,tcf.integerPart(),tcf.fractionalPart());
     }
@@ -180,7 +184,8 @@ private:
     static TimeConversionFactor __attribute__((noinline)) floatToFactor(float x);
 
     TimeConversionFactor toNs, toTick;
-    long long adjustIntervalNs, lastAdjustTimeNs, adjustOffsetNs;
+    unsigned long long adjustIntervalNs, lastAdjustTimeNs;
+    long long adjustOffsetNs;
 };
 
 } //namespace miosix
