@@ -29,6 +29,7 @@
 #ifndef TRANSCEIVER_H
 #define TRANSCEIVER_H
 
+#include <miosix.h>
 #include <limits>
 #include "power_manager.h"
 #include "spi.h"
@@ -331,6 +332,7 @@ private:
     HardwareTimer& timer;
     CC2520State state;
     TransceiverConfiguration config;
+    miosix::Thread *waiting;
 };
 
 } //namespace miosix

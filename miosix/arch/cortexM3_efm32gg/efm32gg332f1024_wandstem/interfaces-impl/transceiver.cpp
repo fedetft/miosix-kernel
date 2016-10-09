@@ -28,11 +28,12 @@
 
 #include "transceiver.h"
 #include "cc2520_constants.h"
+#include "gpioirq.h"
 #include "config/miosix_settings.h"
 #include <stdexcept>
 #include <algorithm>
 #include <cassert>
-#include <miosix.h>
+#include <kernel/scheduler/scheduler.h>
 
 using namespace std;
 
@@ -420,7 +421,18 @@ CC2520StatusBitmask Transceiver::commandStrobe(CC2520Command cmd)
 
 Transceiver::Transceiver()
     : pm(PowerManager::instance()), spi(Spi::instance()),
-      timer(getTransceiverTimer()), state(CC2520State::DEEPSLEEP), config() {}
+      timer(getTransceiverTimer()), state(CC2520State::DEEPSLEEP),
+      waiting(nullptr)
+{
+    registerGpioIrq(internalSpi::miso::getPin(),GpioIrqEdge::RISING,
+    [this]{
+        if(!waiting) return;
+        waiting->IRQwakeup();
+        if(waiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+            Scheduler::IRQfindNextThread();
+        waiting=nullptr;
+    });
+}
 
 void Transceiver::startRxAndWaitForRssi()
 {
@@ -713,8 +725,22 @@ void Transceiver::clearAllExceptions()
 
 void Transceiver::waitXosc()
 {
-    //TODO: implement it using interrupts
-    while(internalSpi::miso::value()==0) ;
+    //The simplest possible implementation is
+    //while(internalSpi::miso::value()==0) ;
+    //but it is too energy hungry
+    
+    auto misoPin=internalSpi::miso::getPin();
+    FastInterruptDisableLock dLock;
+    waiting=Thread::IRQgetCurrentThread();
+    IRQenableGpioIrq(misoPin);
+    do {
+        Thread::IRQwait();
+        {
+            FastInterruptEnableLock eLock(dLock);
+            Thread::yield();
+        }
+    } while(waiting);
+    IRQdisableGpioIrq(misoPin);
 }
 
 unsigned char Transceiver::txPower(int dBm)
