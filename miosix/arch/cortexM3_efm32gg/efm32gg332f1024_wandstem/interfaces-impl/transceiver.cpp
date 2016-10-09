@@ -35,6 +35,8 @@
 #include <cassert>
 #include <kernel/scheduler/scheduler.h>
 
+#define LEGACY_HW_TIMER_IN_TICKS //FIXME: revert!
+
 using namespace std;
 
 namespace miosix {
@@ -175,6 +177,11 @@ void Transceiver::turnOn()
         waitXosc();
     }
     
+    configure();
+}
+
+void Transceiver::configure()
+{
     //
     // Configure transceiver as per given configuration class
     //
@@ -231,6 +238,7 @@ void Transceiver::turnOn()
     writeReg(CC2520Register::ADCTEST2,0x03);
 
     state=CC2520State::IDLE;
+    idle();
 }
 
 void Transceiver::turnOff()
@@ -241,6 +249,8 @@ void Transceiver::turnOff()
     transceiver::reset::low();
     pm.disableTransceiverPowerDomain();
 }
+
+bool Transceiver::isTurnedOn() const { return state!=CC2520State::DEEPSLEEP; }
 
 void Transceiver::idle()
 {

@@ -121,6 +121,13 @@ public:
      * \return the timer counter value
      */
     long long getValue() const;
+    
+    /**
+     * \return the timer counter value
+     * 
+     * Can be called with interrupt disabled
+     */
+    long long IRQgetValue() const;
 
     /**
      * Set the timer counter value

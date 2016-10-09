@@ -47,6 +47,12 @@ public:
     static PowerManager& instance();
     
     /**
+     * Go to deep sleep until the specified time point
+     * \param when absolute time point in ticks of the Rtc when to wake up 
+     */
+    void deepSleepUntil(long long when);
+    
+    /**
      * The transceiver power domain is handled using a reference count.
      * Drivers may enable it, incrementing the reference count. When drivers
      * disable it, it is really disabled only if this is the last driver that
@@ -138,6 +144,16 @@ private:
      */
     PowerManager();
     
+    /**
+     * Called before entering deep sleep
+     */
+    void preDeepSleep();
+    
+    /**
+     * Called after exiting deep sleep 
+     */
+    void postDeepSleep();
+    
     PowerManager(const PowerManager&)=delete;
     PowerManager& operator=(const PowerManager&)=delete;
     
@@ -145,6 +161,7 @@ private:
     int sensorPowerDomainRefCount;
     int regulatorVoltageRefCount;
     FastMutex powerMutex;
+    bool wasTransceiverTurnedOn;
     Spi& spi;
 };
 

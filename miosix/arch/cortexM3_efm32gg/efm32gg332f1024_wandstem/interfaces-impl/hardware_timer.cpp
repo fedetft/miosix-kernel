@@ -34,6 +34,8 @@
 #include "gpioirq.h"
 #include "config/miosix_settings.h"
 
+#define LEGACY_HW_TIMER_IN_TICKS //FIXME: revert!
+
 using namespace miosix;
 
 enum class WaitResult
@@ -207,6 +209,16 @@ long long Rtc::getValue() const
         FastInterruptDisableLock dLock;
         result=readRtc();
     }
+    #ifndef LEGACY_HW_TIMER_IN_TICKS
+    return tc.tick2ns(result);
+    #else //LEGACY_HW_TIMER_IN_TICKS
+    return result;
+    #endif //LEGACY_HW_TIMER_IN_TICKS
+}
+
+long long int Rtc::IRQgetValue() const
+{
+    long long result=readRtc();
     #ifndef LEGACY_HW_TIMER_IN_TICKS
     return tc.tick2ns(result);
     #else //LEGACY_HW_TIMER_IN_TICKS

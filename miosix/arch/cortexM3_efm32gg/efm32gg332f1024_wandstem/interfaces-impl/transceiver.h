@@ -121,11 +121,22 @@ public:
      * Turn the thransceiver ON (i.e: bring it out of deep sleep)
      */
     void turnOn();
+    
+    /**
+     * \internal this member function is used for restoring the transceiver
+     * state during deep sleep
+     */
+    void configure();
 
     /**
      * Turn the transceiver OFF (i.e: bring it to deep sleep)
      */
     void turnOff();
+    
+    /**
+     * \return true if the transceiver is turned on
+     */
+    bool isTurnedOn() const;
     
     /**
      * Put the transceiver to idle state.
