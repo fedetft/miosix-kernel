@@ -144,7 +144,7 @@ public:
 // class TransceiverConfiguration
 //
 
-int TransceiverConfiguration::setChannel(int channel)
+void TransceiverConfiguration::setChannel(int channel)
 {
     if(channel<11 || channel>26) throw range_error("Channel not in range");
     frequency=2405+5*(channel-11);

@@ -62,7 +62,7 @@ public:
      * channel number
      * \param channel IEEE 802.15.4 channel number (from 11 to 26)
      */
-    int setChannel(int channel);
+    void setChannel(int channel);
 
     int frequency;      ///< TX/RX frequency, between 2394 and 2507
     int txPower;        ///< TX power in dBm
