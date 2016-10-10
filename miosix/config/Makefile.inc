@@ -2112,7 +2112,8 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
         $(BOARD_INC)/interfaces-impl/gpioirq.cpp        \
         $(BOARD_INC)/interfaces-impl/hardware_timer.cpp \
         $(BOARD_INC)/interfaces-impl/transceiver.cpp    \
-        $(BOARD_INC)/interfaces-impl/cstimer.cpp
+        $(BOARD_INC)/interfaces-impl/cstimer.cpp        \
+        $(BOARD_INC)/interfaces-impl/high_resolution_timer_base.cpp
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -DEFM32GG332F1024 -D_BOARD_WANDSTEM

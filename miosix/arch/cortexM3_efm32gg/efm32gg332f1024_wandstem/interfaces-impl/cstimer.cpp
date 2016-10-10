@@ -3,6 +3,7 @@
 #include "kernel/kernel.h"
 #include "kernel/scheduler/timer_interrupt.h"
 #include "kernel/timeconversion.h"
+#include "cstimer_impl.h"
 #include "high_resolution_timer_base.h"
 
 using namespace miosix;
@@ -21,28 +22,26 @@ namespace miosix {
     }
     
     void ContextSwitchTimer::IRQsetNextInterrupt(long long ns){
-        b.IRQsetNextInterrupt1(tc->ns2tick(ns));
+        pImpl->b.IRQsetNextInterrupt1(tc->ns2tick(ns));
     }
     
-    long long ContextSwitchTimer::getNextInterrupt() const
-    {
-        return tc->tick2ns(b.IRQgetSetTimeCCV1());
+    long long ContextSwitchTimer::getNextInterrupt() const{
+         return tc->tick2ns(pImpl->b.IRQgetSetTimeCCV1());
     }
     
-    long long ContextSwitchTimer::getCurrentTick() const
-    {
-        return tc->tick2ns(b.getCurrentTick());
+    long long ContextSwitchTimer::getCurrentTick() const{
+        return tc->tick2ns(pImpl->b.getCurrentTick());
     }
     
-    long long ContextSwitchTimer::IRQgetCurrentTick() const
-    {
-        return tc->tick2ns(b.IRQgetCurrentTick());
+    long long ContextSwitchTimer::IRQgetCurrentTick() const{
+        return tc->tick2ns(pImpl->b.IRQgetCurrentTick());
     }
     
     ContextSwitchTimer::~ContextSwitchTimer(){}
     
-    ContextSwitchTimer::ContextSwitchTimer(): b(HighResolutionTimerBase::instance())
-    {
-        tc = new TimeConversion(b.getTimerFrequency());
+    ContextSwitchTimer::ContextSwitchTimer(){
+        pImpl=new ContextSwitchTimerImpl();
+        timerFreq=pImpl->b.getTimerFrequency();
+        tc = new TimeConversion(timerFreq);
     }
 }

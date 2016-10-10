@@ -11,7 +11,7 @@
  * Created on September 27, 2016, 2:20 AM
  */
 
-#include "../../../../miosix.h"
+#include "miosix.h"
 
 #ifndef HIGH_RESOLUTION_TIMER_BASE_H
 #define HIGH_RESOLUTION_TIMER_BASE_H
@@ -20,7 +20,7 @@ namespace miosix {
 
 class HighResolutionTimerBase {
 public:
-    static Thread *tWaiting;
+    static Thread *tWaitingGPIO;
     
     static HighResolutionTimerBase& instance();
     
