@@ -247,7 +247,7 @@ bool isKernelRunning()
     return (kernel_running==0) && kernel_started;
 }
 
-long long getTick()
+long long getTime()
 {
     return ContextSwitchTimer::instance().getCurrentTick();
 }

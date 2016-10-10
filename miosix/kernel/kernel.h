@@ -404,11 +404,11 @@ void startKernel();
 bool isKernelRunning();
 
 /**
- * Returns the current kernel tick.<br>Can be called also with interrupts
- * disabled and/or kernel paused.
- * \return current kernel tick
+ * Returns the time passed in nanoseconds since the context switch started.<br>
+ * Can be called also with interrupts disabled and/or kernel paused.
+ * \return current time in nanoseconds
  */
-long long getTick();
+long long getTime();
 
 //Forwrd declaration
 struct SleepData;
@@ -527,9 +527,8 @@ public:
      * \code
      * void periodicThread()
      * {
-     *     //Run every 90 milliseconds
-     *     const int period=static_cast<int>(TICK_FREQ*0.09);
-     *     long long tick=getTick();
+     *     const int period=90; //Run every 90 milliseconds
+     *     long long tick=getTime()/1000000; //convert ns to ms
      *     for(;;)
      *     {
      *         //Do work

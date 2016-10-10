@@ -904,55 +904,38 @@ int getdents(unsigned int fd, struct dirent *dirp, unsigned int count)
 #define CLOCK_MONOTONIC 4
 #endif
 
-/// Conversion factor from ticks to nanoseconds
-/// TICK_FREQ in Miosix is either 1000 or (on older chips) 200, so a simple
-/// multiplication/division factor does not cause rounding errors
-static constexpr long tickNsFactor=1000000000/miosix::TICK_FREQ;
+static constexpr int nsPerSec = 1000000000;
 
 /**
  * Convert from timespec to the Miosix representation of time
  * \param tp input timespec, must not be nullptr and be a valid pointer
- * \return Miosix ticks
+ * \return Miosix nanoseconds
  */
 inline long long timespec2ll(const struct timespec *tp)
 {
     //NOTE: the cast is required to prevent overflow with older versions
     //of the Miosix compiler where tv_sec is int and not long long
-    return static_cast<long long>(tp->tv_sec)*miosix::TICK_FREQ
-           + tp->tv_nsec/tickNsFactor;
+    //TODO: optimize
+    return static_cast<long long>(tp->tv_sec) * nsPerSec + tp->tv_nsec;
 }
 
 /**
- * Convert from he Miosix representation of time to a timespec
- * \param tick input Miosix ticks
+ * Convert from the Miosix representation of time to a timespec
+ * \param ns input Miosix nanoseconds
  * \param tp output timespec, must not be nullptr and be a valid pointer
  */
-inline void ll2timespec(long long tick, struct timespec *tp)
+inline void ll2timespec(long long ns, struct timespec *tp)
 {
-    #ifdef __ARM_EABI__
-    // Despite there being a single intrinsic, __aeabi_ldivmod, that computes
-    // both the result of the / and % operator, GCC 9.2.0 isn't smart enough and
-    // calls the intrinsic twice. This asm implementation saves ~115 cycles
-    // by calling it once. Sadly, I had to use asm as the calling conventions
-    // of the intrinsic appear to be nonstandard.
-    // NOTE: actually a and b, by being 64 bit numbers, occupy register pairs
-    register long long a asm("r0") = tick;
-    register long long b asm("r2") = miosix::TICK_FREQ;
-    // NOTE: clobbering lr to mark function not leaf due to the bl
-    asm volatile("bl	__aeabi_ldivmod" : "+r"(a), "+r"(b) :: "lr");
-    tp->tv_sec = a;
-    tp->tv_nsec = static_cast<long>(b) * tickNsFactor;
-    #else //__ARM_EABI__
-    tp->tv_sec = tick / miosix::TICK_FREQ;
-    tp->tv_nsec = static_cast<long>(tick % miosix::TICK_FREQ) * tickNsFactor;
-    #endif //__ARM_EABI__
+    //TODO: optimize
+    tp->tv_sec = ns / nsPerSec;
+    tp->tv_nsec = static_cast<long>(ns % nsPerSec);
 }
 
 int clock_gettime(clockid_t clock_id, struct timespec *tp)
 {
     if(tp==nullptr) return -1;
     //TODO: support CLOCK_REALTIME
-    ll2timespec(miosix::getTick(),tp);
+    ll2timespec(miosix::getTime(),tp);
     return 0;
 }
 
@@ -966,7 +949,7 @@ int clock_getres(clockid_t clock_id, struct timespec *res)
 {
     if(res==nullptr) return -1;
     res->tv_sec=0;
-    res->tv_nsec=tickNsFactor;
+    res->tv_nsec=1; //TODO: get resolution from hardware timer
     return 0;
 }
 
@@ -975,9 +958,9 @@ int clock_nanosleep(clockid_t clock_id, int flags,
 {
     if(req==nullptr) return -1;
     //TODO: support CLOCK_REALTIME
-    long long timeTick=timespec2ll(req);
-    if(flags!=TIMER_ABSTIME) timeTick+=miosix::getTick();
-    miosix::Thread::sleepUntil(timeTick);
+    long long timeNs=timespec2ll(req);
+    if(flags!=TIMER_ABSTIME) timeNs+=miosix::getTime();
+    miosix::Thread::nanoSleepUntil(timeNs);
     return 0;
 }
 

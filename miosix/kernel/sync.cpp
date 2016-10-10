@@ -478,14 +478,14 @@ void Timer::start()
 {
     first=false;
     running=true;
-    start_tick=getTick();
+    start_tick=getTime();
 }
 
 void Timer::stop()
 {
     if(running==false) return;
     running=false;
-    tick_count+=getTick()-start_tick;
+    tick_count+=getTime()-start_tick;
     start_tick=0;
 }
 
