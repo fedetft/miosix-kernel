@@ -139,6 +139,11 @@ public:
     bool isTurnedOn() const;
     
     /**
+     * \return true if the transceiver is turned on
+     */
+    bool IRQisTurnedOn() const;
+    
+    /**
      * Put the transceiver to idle state.
      * This function is meant to be called after sending or receiving data to
      * make sure the transceiver is set to the idle state to save some power.

@@ -252,6 +252,8 @@ void Transceiver::turnOff()
 
 bool Transceiver::isTurnedOn() const { return state!=CC2520State::DEEPSLEEP; }
 
+bool Transceiver::IRQisTurnedOn() const { return state!=CC2520State::DEEPSLEEP; }
+
 void Transceiver::idle()
 {
     if(state==CC2520State::DEEPSLEEP) return;

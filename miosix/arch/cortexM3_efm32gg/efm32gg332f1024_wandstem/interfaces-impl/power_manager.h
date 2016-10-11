@@ -33,6 +33,9 @@
 
 namespace miosix {
 
+//Forward decl
+class Transceiver;
+
 /**
  * This class allows to handle the power management of the entire node.
  * This class is internally mutexed, and is thus safe to be accessed
@@ -147,12 +150,22 @@ private:
     /**
      * Called before entering deep sleep
      */
-    void preDeepSleep();
+    void IRQpreDeepSleep(Transceiver& rtx);
+    
+    /**
+     * Called before WFI to implement the parallel HFXO and cc2520 vreg startup
+     */
+    void IRQmakeSureTransceiverPowerDomainIsDisabled();
+    
+    /**
+     * Called after WFI to implement the parallel HFXO and cc2520 vreg startup
+     */
+    void IRQrestartHFXOandTransceiverPowerDomainEnable();
     
     /**
      * Called after exiting deep sleep 
      */
-    void postDeepSleep();
+    void IRQpostDeepSleep(Transceiver& rtx);
     
     PowerManager(const PowerManager&)=delete;
     PowerManager& operator=(const PowerManager&)=delete;
@@ -162,6 +175,7 @@ private:
     int regulatorVoltageRefCount;
     FastMutex powerMutex;
     bool wasTransceiverTurnedOn;
+    bool transceiverPowerDomainExplicitDelayNeeded;
     Spi& spi;
 };
 

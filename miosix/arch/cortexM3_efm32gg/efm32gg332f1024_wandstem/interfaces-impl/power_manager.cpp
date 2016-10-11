@@ -49,76 +49,64 @@ PowerManager& PowerManager::instance()
 
 void PowerManager::deepSleepUntil(long long int when)
 {
-    Lock<FastMutex> l(powerMutex);
-    
+    //instance() is not necessarily safe to be called with IRQ disabled
     Rtc& rtc=Rtc::instance();
+    Transceiver& rtx=Transceiver::instance();
+    
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
     
-    PauseKernelLock pkLock;
-    
-    preDeepSleep();
+    Lock<FastMutex> l(powerMutex);  //To access reference counts freely
+    PauseKernelLock pkLock;         //To run unexpected IRQs without ctxsw
+    FastInterruptDisableLock dLock; //To do everything else atomically
     
     RTC->COMP1=when & 0xffffff;
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1) ;
-    
+    RTC->IFC=RTC_IFC_COMP1;
+    RTC->IEN |= RTC_IEN_COMP1;
+    //NOTE: the corner case where the wakeup is now is considered "in the past"
+    if(when<=rtc.IRQgetValue())
     {
-        FastInterruptDisableLock dLock;
-        
-        //NOTE: this is very important, enabling the interrpt without clearing the
-        //interrupt flag causes the function to return prematurely, sometimes
         RTC->IFC=RTC_IFC_COMP1;
-        RTC->IEN |= RTC_IEN_COMP1;
-
-        //NOTE: the corner case where the wakeup is now is considered "in the past"
-        if(when<=rtc.IRQgetValue())
+        RTC->IEN &= ~RTC_IEN_COMP1;
+    } else {
+        IRQpreDeepSleep(rtx);
+        SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+        EMU->CTRL=0;
+        for(;;)
         {
-            RTC->IFC=RTC_IFC_COMP1;
-            RTC->IEN &= ~RTC_IEN_COMP1;
-        } else {
-            SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
-            EMU->CTRL=0;
-            for(;;)
+            //First, try to go to sleep. If an interrupt occurred since when
+            //we have disabled them, this is executed as a nop
+            IRQmakeSureTransceiverPowerDomainIsDisabled();
+            __WFI();
+            IRQrestartHFXOandTransceiverPowerDomainEnable();
+            //If the interrupt we want is now pending, everything's ok
+            if(NVIC_GetPendingIRQ(RTC_IRQn))
             {
-                //First, try to go to sleep. If an interrupt occurred since when
-                //we have disabled them, this is executed as a nop
-                __WFI();
-                expansion::gpio0::high();//FIXME
-                //Restart HFXO
-                CMU->OSCENCMD=CMU_OSCENCMD_HFXOEN;
-                CMU->CMD=CMU_CMD_HFCLKSEL_HFXO; //This locks the CPU till clock is stable
-                CMU->OSCENCMD=CMU_OSCENCMD_HFRCODIS;
-                //If the interrupt we want is now pending, everything's ok
-                if(NVIC_GetPendingIRQ(RTC_IRQn))
+                //Clear the interrupt (both in the RTC peripheral and NVIC),
+                //this is important as pending IRQ prevent WFI from working
+                //FIXME sleeps of more that 512s still don't work due to rtc
+                //class requirement of at least one read per period
+                RTC->IFC=RTC_IFC_COMP1;
+                NVIC_ClearPendingIRQ(RTC_IRQn);
+                if(when<=rtc.IRQgetValue()) break;
+            } else {
+                //Else we are in an uncomfortable situation: we're waiting for
+                //a specific interrupt, but we didn't go to sleep as another
+                //interrupt occured. The core won't allow thw WFI to put us to
+                //sleep till we serve the interrupt, so let's do it.
+                //Note that since the kernel is paused the interrupt we're
+                //serving can't cause a context switch and fuck up things.
                 {
-                    //Clear the interrupt (both in the RTC peripheral and NVIC),
-                    //this is important because to do a WFI again, no interrupts must
-                    //be pending
-                    //FIXME sleeps of more that 512s still don't work due to Rtc
-                    //class requirement of at least one read per period
-                    RTC->IFC=RTC_IFC_COMP1;
-                    NVIC_ClearPendingIRQ(RTC_IRQn);
-                    if(when<=rtc.IRQgetValue()) break;
-                } else {
-                    //Else we are in an uncomfortable situation: we're waiting for
-                    //a specific interrupt, but we didn't go to sleep as another
-                    //interrupt occured. The core won't allow thw WFI to put us to
-                    //sleep till we serve the interrupt, so let's do it.
-                    //Note that since the kernel is paused the interrupt we're
-                    //serving can't cause a context switch and fuck up things.
-                    {
-                        FastInterruptEnableLock eLock(dLock);
-                        //Here interrupts are enabled, so the interrupt gets served
-                        __NOP();
-                    }
+                    FastInterruptEnableLock eLock(dLock);
+                    //Here interrupts are enabled, so the interrupt gets served
+                    __NOP();
                 }
             }
-            SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
-            RTC->IEN &= ~RTC_IEN_COMP1;
         }
+        SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
+        RTC->IEN &= ~RTC_IEN_COMP1;
+        IRQpostDeepSleep(rtx);
     }
-    
-    postDeepSleep();
-    expansion::gpio0::low();//FIXME
 }
 
 void PowerManager::enableTransceiverPowerDomain()
@@ -134,6 +122,8 @@ void PowerManager::enableTransceiverPowerDomain()
         //The voltage at the the flash rises in about 70us,
         //observed using an oscilloscope. The voltage at the
         //transceiver is even faster, but the spec says 100us
+        //TODO: power hungry, but we can't use the rtc as only one thread
+        //can use it at a time, and we may be called by another thread
         delayUs(100);
         
         transceiver::cs::high();
@@ -263,22 +253,18 @@ PowerManager::PowerManager()
       regulatorVoltageRefCount(0),
       spi(Spi::instance()) {}
 
-void PowerManager::preDeepSleep()
+void PowerManager::IRQpreDeepSleep(Transceiver& rtx)
 {
     if(transceiverPowerDomainRefCount>0)
     {
-        wasTransceiverTurnedOn=Transceiver::instance().isTurnedOn();
+        wasTransceiverTurnedOn=rtx.IRQisTurnedOn();
         
         //Disable power domain (this also disables the transceiver)
         spi.disable();
-        
         flash::hold::low();
         flash::cs::low();
-        
         transceiver::reset::low();
         transceiver::cs::low();
-        
-        transceiver::vregEn::low();
     }
     
     #if WANDSTEM_HW_REV>13
@@ -288,21 +274,46 @@ void PowerManager::preDeepSleep()
     //Not setting the voltage regulator to low voltage for now
 }
 
-void PowerManager::postDeepSleep()
+void PowerManager::IRQmakeSureTransceiverPowerDomainIsDisabled()
+{
+    //This is called right before going deep sleep, unconditionally disable
+    //voltage regulator power domain
+    transceiver::vregEn::low();
+}
+
+void PowerManager::IRQrestartHFXOandTransceiverPowerDomainEnable()
+{
+    //This function implements an optimization to improve the time to restore
+    //the system state when exiting deep sleep: we need to restart the MCU
+    //crystal oscillator, and this takes around 100us. Then, we also need to
+    //restart the cc2520 power domain and wait for the voltage to be stable,
+    //which incidentally requires again 100us. So, we do both things in
+    //parallel.
+    //However, this introduces two complications:
+    //- additional wakeups: we enabling the power domain but then find out it's
+    //  not the right wakeup time. So we need to disable it again when going
+    //  back to sleep. IRQmakeSureTransceiverPowerDomainIsDisabled() does this
+    //- if the __WFI() is turned into a nop, the HFXO may remain enabled, thus
+    //  we won't have our delay. We use transceiverPowerDomainExplicitDelayNeeded
+    //  to store whether an explict delay is needed
+    
+    if(transceiverPowerDomainRefCount>0) transceiver::vregEn::high();
+    transceiverPowerDomainExplicitDelayNeeded=
+        CMU->STATUS & CMU_STATUS_HFXOENS ? true : false;
+    
+    CMU->OSCENCMD=CMU_OSCENCMD_HFXOEN;
+    CMU->CMD=CMU_CMD_HFCLKSEL_HFXO; //This locks the CPU till clock is stable
+    CMU->OSCENCMD=CMU_OSCENCMD_HFRCODIS;
+}
+
+void PowerManager::IRQpostDeepSleep(Transceiver& rtx)
 {
     if(transceiverPowerDomainRefCount>0)
     {
-        //Enable power domain
-        transceiver::vregEn::high();
-        
-        //The voltage at the the flash rises in about 70us,
-        //observed using an oscilloscope. The voltage at the
-        //transceiver is even faster, but the spec says 100us
-        delayUs(100); //TODO: power hungry
+        if(transceiverPowerDomainExplicitDelayNeeded) delayUs(100);
 
         flash::cs::high();
         flash::hold::high();
-        
         spi.enable();
         
         if(wasTransceiverTurnedOn)
@@ -310,12 +321,10 @@ void PowerManager::postDeepSleep()
             transceiver::reset::high();
 
             //wait until SO=1 (clock stable and running)
-            expansion::gpio1::high();//FIXME
             while(internalSpi::miso::value()==0) ; //TODO: power hungry
-            expansion::gpio1::low();//FIXME
             transceiver::cs::high();
             
-            Transceiver::instance().configure();
+            rtx.configure();
         }
     }
     
