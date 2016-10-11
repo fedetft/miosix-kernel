@@ -36,22 +36,6 @@
 
 /**
  * \internal
- * timer interrupt routine.
- * Since inside naked functions only assembler code is allowed, this function
- * only calls the ctxsave/ctxrestore macros (which are in assembler), and calls
- * the implementation code in ISR_preempt()
- */
-void SysTick_Handler()   __attribute__((naked));
-void SysTick_Handler()
-{
-    saveContext();
-    //Call ISR_preempt(). Name is a C++ mangled name.
-    asm volatile("bl _ZN14miosix_private11ISR_preemptEv");
-    restoreContext();
-}
-
-/**
- * \internal
  * software interrupt routine.
  * Since inside naked functions only assembler code is allowed, this function
  * only calls the ctxsave/ctxrestore macros (which are in assembler), and calls
@@ -86,19 +70,6 @@ void TIM2_IRQHandler()
 #endif //SCHED_TYPE_CONTROL_BASED
 
 namespace miosix_private {
-
-/**
- * \internal
- * Called by the timer interrupt, preempt to next thread
- * Declared noinline to avoid the compiler trying to inline it into the caller,
- * which would violate the requirement on naked functions. Function is not
- * static because otherwise the compiler optimizes it out...
- */
-void ISR_preempt() __attribute__((noinline));
-void ISR_preempt()
-{
-    miosix::IRQtimerInterrupt();
-}
 
 /**
  * \internal
@@ -201,11 +172,6 @@ void IRQportableStartKernel()
     SCB->CCR |= SCB_CCR_DIV_0_TRP;
     NVIC_SetPriorityGrouping(7);//This should disable interrupt nesting
     NVIC_SetPriority(SVCall_IRQn,3);//High priority for SVC (Max=0, min=15)
-    NVIC_SetPriority(SysTick_IRQn,3);//High priority for SysTick (Max=0, min=15)
-    SysTick->LOAD=SystemCoreClock/miosix::TICK_FREQ;
-    //Start SysTick, set to generate interrupts
-    SysTick->CTRL=SysTick_CTRL_ENABLE | SysTick_CTRL_TICKINT |
-            SysTick_CTRL_CLKSOURCE;
 
     #ifdef SCHED_TYPE_CONTROL_BASED
     AuxiliaryTimer::IRQinit();
@@ -215,6 +181,10 @@ void IRQportableStartKernel()
     //since there's no way to stop the sheduler, but we need to save it anyway.
     unsigned int s_ctxsave[miosix::CTXSAVE_SIZE];
     ctxsave=s_ctxsave;//make global ctxsave point to it
+}
+
+void IRQportableFinishKernelStartup()
+{
     //Note, we can't use enableInterrupts() now since the call is not mathced
     //by a call to disableInterrupts()
     __enable_fault_irq();
