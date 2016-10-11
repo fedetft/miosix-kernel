@@ -59,12 +59,20 @@ void PowerManager::deepSleepUntil(long long int when)
     PauseKernelLock pkLock;         //To run unexpected IRQs without ctxsw
     FastInterruptDisableLock dLock; //To do everything else atomically
     
-    RTC->COMP1=when & 0xffffff;
+    //The wakeup time has been profiled, and takes ~310us when the transceiver
+    //has to be enabled, and ~100us with the transceiver disabled.
+    //so we wake up that time before, plus some margin:
+    //transceiver enabled:  12 ticks 366us (56us margin)
+    //transceiver disabled:  5 ticks 152us (52us margin)
+    const int wakeupTime= transceiverPowerDomainRefCount>0 ? 12 : 5;
+    
+    long long preWake=when-wakeupTime;
+    RTC->COMP1=preWake & 0xffffff;
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1) ;
     RTC->IFC=RTC_IFC_COMP1;
     RTC->IEN |= RTC_IEN_COMP1;
     //NOTE: the corner case where the wakeup is now is considered "in the past"
-    if(when<=rtc.IRQgetValue())
+    if(preWake<=rtc.IRQgetValue())
     {
         RTC->IFC=RTC_IFC_COMP1;
         RTC->IEN &= ~RTC_IEN_COMP1;
@@ -88,7 +96,7 @@ void PowerManager::deepSleepUntil(long long int when)
                 //class requirement of at least one read per period
                 RTC->IFC=RTC_IFC_COMP1;
                 NVIC_ClearPendingIRQ(RTC_IRQn);
-                if(when<=rtc.IRQgetValue()) break;
+                if(preWake<=rtc.IRQgetValue()) break;
             } else {
                 //Else we are in an uncomfortable situation: we're waiting for
                 //a specific interrupt, but we didn't go to sleep as another
@@ -107,6 +115,14 @@ void PowerManager::deepSleepUntil(long long int when)
         RTC->IEN &= ~RTC_IEN_COMP1;
         IRQpostDeepSleep(rtx);
     }
+        //Post deep sleep wait to absorb wakeup time jitter
+    RTC->COMP1=when & 0xffffff;
+    while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1) ;
+    RTC->IFC=RTC_IFC_COMP1;
+    RTC->IEN |= RTC_IEN_COMP1;
+    while(when>rtc.IRQgetValue()) __WFI();
+    RTC->IFC=RTC_IFC_COMP1;
+    RTC->IEN &= ~RTC_IEN_COMP1;
 }
 
 void PowerManager::enableTransceiverPowerDomain()
@@ -321,7 +337,15 @@ void PowerManager::IRQpostDeepSleep(Transceiver& rtx)
             transceiver::reset::high();
 
             //wait until SO=1 (clock stable and running)
-            while(internalSpi::miso::value()==0) ; //TODO: power hungry
+            //The simplest possible implementation is
+            //while(internalSpi::miso::value()==0) ;
+            //but it is too energy hungry
+            //internalSpi::miso is PD1, so 1<<1
+            GPIO->IFC=1<<1;
+            GPIO->IEN |= (1<<1);
+            while(internalSpi::miso::value()==0) __WFI();
+            GPIO->IFC=1<<1;
+            GPIO->IEN &= ~(1<<1);
             transceiver::cs::high();
             
             rtx.configure();
