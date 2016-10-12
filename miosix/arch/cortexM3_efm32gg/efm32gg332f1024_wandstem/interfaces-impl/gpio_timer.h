@@ -29,6 +29,7 @@ namespace miosix {
     
     class GPIOtimer{    
     public:
+        static Thread *tWaitingGPIO;
         static GPIOtimer& instance();
         virtual ~GPIOtimer();
         WaitResult waitTimeoutOrEvent(long long value);
@@ -47,8 +48,8 @@ namespace miosix {
         * \return true if the wait time was in the past, in this case the GPIO
         * has not been pulsed
         */
-        bool absoluteWaitTrigger(long long value);
-        bool waitTrigger(long long value);
+        bool absoluteWaitTrigger(long long tick);
+        bool waitTrigger(long long tick);
         
         
         

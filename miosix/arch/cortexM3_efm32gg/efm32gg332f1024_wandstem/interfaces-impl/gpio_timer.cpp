@@ -19,9 +19,11 @@ GPIOtimer& GPIOtimer::instance(){
 }
 
 GPIOtimer::GPIOtimer(): b(HighResolutionTimerBase::instance()) {
-    expansion::gpio10::mode(Mode::OUTPUT);
+    setPinMode(false);
     isInput=true;
 }
+
+Thread* GPIOtimer::tWaitingGPIO=nullptr;
 
 void GPIOtimer::setPinMode(bool inputMode){
     if(inputMode){
@@ -41,9 +43,9 @@ long long GPIOtimer::getExtEventTimestamp() const{
     return b.IRQgetSetTimeCCV2();
 }
 
-WaitResult GPIOtimer::absoluteWaitTimeoutOrEvent(long long value){
+WaitResult GPIOtimer::absoluteWaitTimeoutOrEvent(long long tick){
     FastInterruptDisableLock dLock;
-    if(value<b.getCurrentTick()){
+    if(tick<b.getCurrentTick()){
 	return WaitResult::WAKEUP_IN_THE_PAST;
     }
     
@@ -51,45 +53,45 @@ WaitResult GPIOtimer::absoluteWaitTimeoutOrEvent(long long value){
     setPinMode(true);
     b.setCCInterrupt2(false);
     b.setCCInterrupt2Tim1(true);
-    long long ctick;
+    long long ctick=0;
     do {
-        HighResolutionTimerBase::tWaiting=Thread::IRQgetCurrentThread();
+        tWaitingGPIO=Thread::IRQgetCurrentThread();
         Thread::IRQwait();
         {
             FastInterruptEnableLock eLock(dLock);
-            Thread::yield();
+	    Thread::yield();
         }
 	ctick = b.getCurrentTick();
-    } while(HighResolutionTimerBase::tWaiting && value>ctick);
+    } while(tWaitingGPIO && tick>ctick);
     
-    if(HighResolutionTimerBase::tWaiting==nullptr){
+    if(tWaitingGPIO==nullptr){
 	return WaitResult::EVENT;
     }else{
 	return WaitResult::WAIT_COMPLETED;
     }
 }
 
-WaitResult GPIOtimer::waitTimeoutOrEvent(long long value){
-    return absoluteWaitTimeoutOrEvent(b.getCurrentTick()+value);
+WaitResult GPIOtimer::waitTimeoutOrEvent(long long tick){
+    return absoluteWaitTimeoutOrEvent(b.getCurrentTick()+tick);
 }
 
 /*
  Not blocking function!
  */
-bool GPIOtimer::absoluteWaitTrigger(long long value){
+bool GPIOtimer::absoluteWaitTrigger(long long tick){
     FastInterruptDisableLock dLock;
-    if(!b.IRQsetNextInterrupt2(value)){
+    if(!b.IRQsetNextInterrupt2(tick)){
 	return true;
     }
     b.setModeGPIOTimer(false);    //output timer 
     setPinMode(false);	    //output pin
-    b.setCCInterrupt2(false);
+    b.setCCInterrupt2Tim1(false);
     b.setCCInterrupt2(true); //enable
     return false;
 }
 
-bool GPIOtimer::waitTrigger(long long value){
-    return absoluteWaitTrigger(b.getCurrentTick()+value);
+bool GPIOtimer::waitTrigger(long long tick){
+    return absoluteWaitTrigger(b.getCurrentTick()+tick);
 }
 
 GPIOtimer::~GPIOtimer() {}

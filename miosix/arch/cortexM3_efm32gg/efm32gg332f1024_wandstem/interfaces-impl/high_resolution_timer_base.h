@@ -20,7 +20,6 @@ namespace miosix {
 
 class HighResolutionTimerBase {
 public:
-    static Thread *tWaitingGPIO;
     
     static HighResolutionTimerBase& instance();
     
