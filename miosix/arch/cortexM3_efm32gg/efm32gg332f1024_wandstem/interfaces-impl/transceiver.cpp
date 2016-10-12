@@ -35,8 +35,6 @@
 #include <cassert>
 #include <kernel/scheduler/scheduler.h>
 
-#define LEGACY_HW_TIMER_IN_TICKS //FIXME: revert!
-
 using namespace std;
 
 namespace miosix {
@@ -57,10 +55,8 @@ namespace miosix {
 using complExcChB=transceiver::gpio2; ///< Function of this pin is missing in bsp
 
 //
-// Timeout computation
+// Time constants computation
 //
-
-#ifndef LEGACY_HW_TIMER_IN_TICKS
 
 /// Wait time for the RSSI to become valid
 const auto rssiWait=80000;
@@ -83,34 +79,6 @@ const auto sfdTimeout=slack+turnaround+preambleSfdTime;
 
 /// Timeout from an SFD to when the maximum length packet should end
 const auto maxPacketTimeout=slack+timePerByte*128;
-
-#else //LEGACY_HW_TIMER_IN_TICKS
-
-/// Timer frequency
-const auto hz=Rtc::frequency;
-
-/// Wait time for the RSSI to become valid
-const auto rssiWait=static_cast<long long>(80e-6f*hz+0.5f);
-
-/// Slack added to all constants ending in "timeout"
-const auto slack=static_cast<long long>(128e-6f*hz+0.5f);
-
-/// Transceiver activation time (time from idle to TX or RX, and from RX to TX)
-const auto turnaround=static_cast<long long>(192e-6f*hz+0.5f);
-
-/// Time to send one byte as float
-const float timePerBytef=32e-6f;
-
-/// Time to send the first part of each packet (4 bytes preamble + 1 byte SFD)
-const auto preambleSfdTime=static_cast<long long>(timePerBytef*5*hz+0.5f);
-
-/// Timeout from sending STXON to when the SFD should be sent
-const auto sfdTimeout=slack+turnaround+preambleSfdTime;
-
-/// Timeout from an SFD to when the maximum length packet should end
-const auto maxPacketTimeout=slack+static_cast<long long>(timePerBytef*128*hz);
-
-#endif //LEGACY_HW_TIMER_IN_TICKS
 
 /**
  * Used by the SPI code to respect tcscks, csckh, tcsnh
@@ -328,7 +296,7 @@ void Transceiver::sendAt(const void* pkt, int size, long long when)
     writePacketToTxBuffer(pkt,size);
     //NOTE: when is the time where the first byte of the packet should be sent,
     //while the cc2520 requires the turnaround from STXON to sending
-    if(timer.absoluteWaitTrigger(when-turnaround)==true)
+    if(timer.absoluteWaitTrigger(when-timer.ns2tick(turnaround))==true)
     {
         //See diagram on page 69 of datasheet
         commandStrobe(CC2520Command::SFLUSHTX);
@@ -369,7 +337,7 @@ RecvResult Transceiver::recv(void *pkt, int size, long long timeout)
             if(inFifo>=lengthByte+1)
             {
                 //Timestamp is wrong and we know it, so we don't set valid
-                result.timestamp=timer.getExtEventTimestamp()-preambleSfdTime;
+                result.timestamp=timer.getExtEventTimestamp()-timer.ns2tick(preambleSfdTime);
                 
                 //We may still be in the middle of another packet reception, so
                 //this may cause FRM_DONE to occur without a previous SFD,
@@ -460,8 +428,8 @@ void Transceiver::startRxAndWaitForRssi()
     //The datasheet says the maximum time for the RSSI to become valid is
     //the time for the receiver to start (192us) plus the time to receive
     //8 symbols (128us), the total is 320us, so we wait for a maximum of
-    //5 * 80us, or 400us
-    const int retryTimes=5;
+    //8 * 80us, or 640us
+    const int retryTimes=8;
     for(int i=0;i<retryTimes;i++)
     {
         CC2520StatusBitmask status=commandStrobe(CC2520Command::SNOP);
@@ -469,7 +437,7 @@ void Transceiver::startRxAndWaitForRssi()
         if(i==retryTimes-1)
             throw runtime_error("Transceiver::startRxAndWaitForRssi timeout");
         
-        timer.wait(rssiWait);
+        timer.wait(timer.ns2tick(rssiWait));
     }
 }
 
@@ -510,7 +478,7 @@ void Transceiver::handlePacketTransmissionEvents(int size)
     bool silentError=false;
     restart:
     //Wait for the first event to occur (SFD)
-    if(timer.waitTimeoutOrEvent(sfdTimeout)==true)
+    if(timer.waitTimeoutOrEvent(timer.ns2tick(sfdTimeout))==true)
     {
         //In case of timeout, abort current transmission
         idle();
@@ -562,7 +530,7 @@ void Transceiver::handlePacketTransmissionEvents(int size)
     }
     
     //Wait for the second event to occur (TX_FRM_DONE)
-    bool timeout=timer.waitTimeoutOrEvent(maxPacketTimeout);
+    bool timeout=timer.waitTimeoutOrEvent(timer.ns2tick(maxPacketTimeout));
     exc=getExceptions(0b001);
     if(timeout==true || (exc & CC2520Exception::TX_FRM_DONE)==0)
     {
@@ -590,7 +558,7 @@ bool Transceiver::handlePacketReceptionEvents(long long timeout, int size, RecvR
     }
     //NOTE: the returned timestamp is the time where the first byte of the
     //packet is received, while the cc2520 allows timestamping at the SFD
-    result.timestamp=timer.getExtEventTimestamp()-preambleSfdTime;
+    result.timestamp=timer.getExtEventTimestamp()-timer.ns2tick(preambleSfdTime);
     
     unsigned int exc=getExceptions(0b011);
     if(exc & CC2520Exception::RX_OVERFLOW)
@@ -623,11 +591,7 @@ bool Transceiver::handlePacketReceptionEvents(long long timeout, int size, RecvR
     }
     
     //Wait for the second event to occur (RX_FRM_DONE)
-    #ifndef LEGACY_HW_TIMER_IN_TICKS
-    long long tt=slack+timePerByte*size;
-    #else //LEGACY_HW_TIMER_IN_TICKS
-    long long tt=maxPacketTimeout;
-    #endif //LEGACY_HW_TIMER_IN_TICKS
+    long long tt=timer.ns2tick(slack+timePerByte*size);
     auto secondTimeout=config.strictTimeout ? min(timeout,timer.getValue()+tt)
                                             : max(timeout,timer.getValue()+tt);
     if(timer.absoluteWaitTimeoutOrEvent(secondTimeout))

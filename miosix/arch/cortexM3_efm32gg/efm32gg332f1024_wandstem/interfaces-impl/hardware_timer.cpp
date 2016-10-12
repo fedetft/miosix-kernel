@@ -34,8 +34,6 @@
 #include "gpioirq.h"
 #include "config/miosix_settings.h"
 
-#define LEGACY_HW_TIMER_IN_TICKS //FIXME: revert!
-
 using namespace miosix;
 
 enum class WaitResult
@@ -204,34 +202,18 @@ Rtc& Rtc::instance()
 
 long long Rtc::getValue() const
 {
-    long long result;
-    { 
-        //readRtc() is not reentrant, and is also called in the GPIO timestamp irq
-        FastInterruptDisableLock dLock;
-        result=readRtc();
-    }
-    #ifndef LEGACY_HW_TIMER_IN_TICKS
-    return tc.tick2ns(result);
-    #else //LEGACY_HW_TIMER_IN_TICKS
-    return result;
-    #endif //LEGACY_HW_TIMER_IN_TICKS
+    //readRtc() is not reentrant, and is also called in the GPIO timestamp irq
+    FastInterruptDisableLock dLock;
+    return readRtc();
 }
 
 long long int Rtc::IRQgetValue() const
 {
-    long long result=readRtc();
-    #ifndef LEGACY_HW_TIMER_IN_TICKS
-    return tc.tick2ns(result);
-    #else //LEGACY_HW_TIMER_IN_TICKS
-    return result;
-    #endif //LEGACY_HW_TIMER_IN_TICKS
+    return readRtc();
 }
 
 void Rtc::setValue(long long value)
 {
-    #ifndef LEGACY_HW_TIMER_IN_TICKS
-    value=tc.ns2tick(value);
-    #endif //LEGACY_HW_TIMER_IN_TICKS
     //Stop timer and wait for it to be stopped
     RTC->CTRL=0;
     unsigned int hwCounter=value & 0x0000000000ffffffull;
@@ -248,59 +230,50 @@ void Rtc::setValue(long long value)
 
 void Rtc::wait(long long value)
 {
-    #ifndef LEGACY_HW_TIMER_IN_TICKS
-    waitImpl(tc.ns2tick(getValue()+value),false);
-    #else //LEGACY_HW_TIMER_IN_TICKS
     waitImpl(getValue()+value,false);
-    #endif //LEGACY_HW_TIMER_IN_TICKS
 }
 
 bool Rtc::absoluteWait(long long value)
 {
-    #ifndef LEGACY_HW_TIMER_IN_TICKS
-    return waitImpl(tc.ns2tick(value),false)==WaitResult::WAKEUP_IN_THE_PAST;
-    #else //LEGACY_HW_TIMER_IN_TICKS
     return waitImpl(value,false)==WaitResult::WAKEUP_IN_THE_PAST;
-    #endif //LEGACY_HW_TIMER_IN_TICKS
 }
 
 bool Rtc::absoluteWaitTrigger(long long value)
 {
     rtcTriggerEnable=true;
-    #ifndef LEGACY_HW_TIMER_IN_TICKS
-    bool result=waitImpl(tc.ns2tick(value),false)==WaitResult::WAKEUP_IN_THE_PAST;
-    #else //LEGACY_HW_TIMER_IN_TICKS
     bool result=waitImpl(value,false)==WaitResult::WAKEUP_IN_THE_PAST;
-    #endif //LEGACY_HW_TIMER_IN_TICKS
     rtcTriggerEnable=false;
     return result;
 }
 
 bool Rtc::waitTimeoutOrEvent(long long value)
 {
-    #ifndef LEGACY_HW_TIMER_IN_TICKS
-    return waitImpl(tc.ns2tick(getValue()+value),true)!=WaitResult::EVENT;
-    #else //LEGACY_HW_TIMER_IN_TICKS
     return waitImpl(getValue()+value,true)!=WaitResult::EVENT;
-    #endif //LEGACY_HW_TIMER_IN_TICKS
 }
 
 bool Rtc::absoluteWaitTimeoutOrEvent(long long value)
 {
-    #ifndef LEGACY_HW_TIMER_IN_TICKS
-    return waitImpl(tc.ns2tick(value),true)!=WaitResult::EVENT;
-    #else //LEGACY_HW_TIMER_IN_TICKS
     return waitImpl(value,true)!=WaitResult::EVENT;
-    #endif //LEGACY_HW_TIMER_IN_TICKS
 }
 
 long long Rtc::getExtEventTimestamp() const
 {
-    #ifndef LEGACY_HW_TIMER_IN_TICKS
-    return tc.tick2ns(timestampEvent);
-    #else //LEGACY_HW_TIMER_IN_TICKS
     return timestampEvent;
-    #endif //LEGACY_HW_TIMER_IN_TICKS
+}
+
+long long int Rtc::tick2ns(long long int tick)
+{
+    return tc.tick2ns(tick);
+}
+
+long long int Rtc::ns2tick(long long int ns)
+{
+    return tc.ns2tick(ns);
+}
+
+unsigned int Rtc::getTickFrequency() const
+{
+    return frequency;
 }
 
 Rtc::Rtc() : tc(frequency)
