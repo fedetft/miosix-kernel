@@ -67,7 +67,8 @@ void PowerManager::deepSleepUntil(long long int when)
     const int wakeupTime= transceiverPowerDomainRefCount>0 ? 12 : 5;
     
     long long preWake=when-wakeupTime;
-    RTC->COMP1=preWake & 0xffffff;
+    //EFM32 compare channels trigger 1 tick late (undocumented quirk)
+    RTC->COMP1=(preWake-1) & 0xffffff;
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1) ;
     RTC->IFC=RTC_IFC_COMP1;
     RTC->IEN |= RTC_IEN_COMP1;
@@ -115,8 +116,9 @@ void PowerManager::deepSleepUntil(long long int when)
         RTC->IEN &= ~RTC_IEN_COMP1;
         IRQpostDeepSleep(rtx);
     }
-        //Post deep sleep wait to absorb wakeup time jitter
-    RTC->COMP1=when & 0xffffff;
+    //Post deep sleep wait to absorb wakeup time jitter
+    //EFM32 compare channels trigger 1 tick late (undocumented quirk)
+    RTC->COMP1=(when-1) & 0xffffff;
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1) ;
     RTC->IFC=RTC_IFC_COMP1;
     RTC->IEN |= RTC_IEN_COMP1;

@@ -75,7 +75,8 @@ static inline long long readRtc()
 static WaitResult waitImpl(long long value, bool eventSensitive)
 {
     auto eventPin=transceiver::excChB::getPin();
-    RTC->COMP0=value & 0xffffff;
+    //EFM32 compare channels trigger 1 tick late (undocumented quirk)
+    RTC->COMP0=(value-1) & 0xffffff;
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP0) ;
     
     FastInterruptDisableLock dLock;
