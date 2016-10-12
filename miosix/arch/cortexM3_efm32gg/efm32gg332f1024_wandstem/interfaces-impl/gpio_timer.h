@@ -30,6 +30,7 @@ namespace miosix {
     class GPIOtimer{    
     public:
         static Thread *tWaitingGPIO;
+        static long long aux1;
         static GPIOtimer& instance();
         virtual ~GPIOtimer();
         WaitResult waitTimeoutOrEvent(long long value);

@@ -80,13 +80,11 @@ WaitResult GPIOtimer::waitTimeoutOrEvent(long long tick){
  */
 bool GPIOtimer::absoluteWaitTrigger(long long tick){
     FastInterruptDisableLock dLock;
-    if(!b.IRQsetNextInterrupt2(tick)){
-	return true;
-    }
     b.setModeGPIOTimer(false);    //output timer 
     setPinMode(false);	    //output pin
-    b.setCCInterrupt2Tim1(false);
-    b.setCCInterrupt2(true); //enable
+    if(b.IRQsetNextInterrupt2(tick)){
+	return true;
+    }
     return false;
 }
 
@@ -94,5 +92,6 @@ bool GPIOtimer::waitTrigger(long long tick){
     return absoluteWaitTrigger(b.getCurrentTick()+tick);
 }
 
+long long GPIOtimer::aux1=0;
 GPIOtimer::~GPIOtimer() {}
 
