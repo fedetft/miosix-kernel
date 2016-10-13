@@ -42,18 +42,6 @@
 
 /**
  * \internal
- * timer interrupt routine.
- * Since inside naked functions only assembler code is allowed, this function
- * only calls the ctxsave/ctxrestore macros (which are in assembler), and calls
- * the implementation code in ISR_preempt()
- */
-void SysTick_Handler()   __attribute__((naked));
-void SysTick_Handler()
-{
-}
-
-/**
- * \internal
  * software interrupt routine.
  * Since inside naked functions only assembler code is allowed, this function
  * only calls the ctxsave/ctxrestore macros (which are in assembler), and calls
@@ -285,7 +273,6 @@ void IRQportableStartKernel()
     SCB->CCR |= SCB_CCR_DIV_0_TRP_Msk;
     NVIC_SetPriorityGrouping(7);//This should disable interrupt nesting
     NVIC_SetPriority(SVCall_IRQn,3);//High priority for SVC (Max=0, min=15)
-    NVIC_SetPriority(SysTick_IRQn,3);//High priority for SysTick (Max=0, min=15)
     NVIC_SetPriority(MemoryManagement_IRQn,2);//Higher priority for MemoryManagement (Max=0, min=15)
     
     #ifdef WITH_PROCESSES
