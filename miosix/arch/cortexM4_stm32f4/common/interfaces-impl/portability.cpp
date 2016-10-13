@@ -56,25 +56,6 @@ void SVC_Handler()
     restoreContext();
 }
 
-#ifdef SCHED_TYPE_CONTROL_BASED
-/**
- * \internal
- * Auxiliary timer interupt routine.
- * Used for variable lenght bursts in control based scheduler.
- * Since inside naked functions only assembler code is allowed, this function
- * only calls the ctxsave/ctxrestore macros (which are in assembler), and calls
- * the implementation code in ISR_yield()
- */
-void TIM3_IRQHandler() __attribute__((naked));
-void TIM3_IRQHandler()
-{
-    saveContext();
-    //Call ISR_auxTimer(). Name is a C++ mangled name.
-    asm volatile("bl _ZN14miosix_private12ISR_auxTimerEv");
-    restoreContext();
-}
-#endif //SCHED_TYPE_CONTROL_BASED
-
 namespace miosix_private {
 
 /**
@@ -131,22 +112,6 @@ void ISR_yield()
     miosix::Scheduler::IRQfindNextThread();
     #endif //WITH_PROCESSES
 }
-
-#ifdef SCHED_TYPE_CONTROL_BASED
-/**
- * \internal
- * Auxiliary timer interupt routine.
- * Used for variable lenght bursts in control based scheduler.
- */
-void ISR_auxTimer() __attribute__((noinline));
-void ISR_auxTimer()
-{
-    IRQstackOverflowCheck();
-    miosix::Scheduler::IRQfindNextThread();//If the kernel is running, preempt
-    if(miosix::kernel_running!=0) miosix::tick_skew=true;
-    TIM3->SR=0;
-}
-#endif //SCHED_TYPE_CONTROL_BASED
 
 void IRQstackOverflowCheck()
 {
@@ -278,9 +243,6 @@ void IRQportableStartKernel()
     #ifdef WITH_PROCESSES
     miosix::IRQenableMPUatBoot();
     #endif //WITH_PROCESSES
-    #ifdef SCHED_TYPE_CONTROL_BASED
-    AuxiliaryTimer::IRQinit();
-    #endif //SCHED_TYPE_CONTROL_BASED
 
     //create a temporary space to save current registers. This data is useless
     //since there's no way to stop the sheduler, but we need to save it anyway.
@@ -302,52 +264,5 @@ void sleepCpu()
 {
     __WFI();
 }
-
-#ifdef SCHED_TYPE_CONTROL_BASED
-void AuxiliaryTimer::IRQinit()
-{
-    RCC->APB1ENR|=RCC_APB1ENR_TIM3EN;
-    RCC_SYNC();
-    DBGMCU->APB1FZ|=DBGMCU_APB1_FZ_DBG_TIM3_STOP; //Tim3 stops while debugging
-    TIM3->CR1=0; //Upcounter, not started, no special options
-    TIM3->CR2=0; //No special options
-    TIM3->SMCR=0; //No external trigger
-    TIM3->CNT=0; //Clear timer
-    //get timer frequency considering APB1 prescaler
-    //consider that timer clock is twice APB1 clock when the APB1 prescaler has
-    //a division factor greater than 2
-    int timerClock=SystemCoreClock;
-    int apb1prescaler=(RCC->CFGR>>10) & 7;
-    if(apb1prescaler>4) timerClock>>=(apb1prescaler-4);
-    TIM3->PSC=(timerClock/miosix::AUX_TIMER_CLOCK)-1;
-    TIM3->ARR=0xffff; //Count from zero to 0xffff
-    TIM3->DIER=TIM_DIER_CC1IE; //Enable interrupt on compare
-    TIM3->CCR1=0xffff; //This will be initialized later with setValue
-    NVIC_SetPriority(TIM3_IRQn,3);//High priority for TIM3 (Max=0, min=15)
-    NVIC_EnableIRQ(TIM3_IRQn);
-    TIM3->CR1=TIM_CR1_CEN; //Start timer
-    //This is very important: without this the prescaler shadow register may
-    //not be updated
-    TIM3->EGR=TIM_EGR_UG;
-}
-
-int AuxiliaryTimer::IRQgetValue()
-{
-    return static_cast<int>(TIM3->CNT);
-}
-
-void AuxiliaryTimer::IRQsetValue(int x)
-{
-    TIM3->CR1=0; //Stop timer since changing CNT or CCR1 while running fails
-    TIM3->CNT=0;
-    TIM3->CCR1=static_cast<unsigned short>(std::min(x,0xffff));
-    TIM3->CR1=TIM_CR1_CEN; //Start timer again
-    //The above instructions cause a spurious if not called within the
-    //timer 2 IRQ (This happens if called from an SVC).
-    //Clearing the pending bit prevents this spurious interrupt
-    TIM3->SR=0;
-    NVIC_ClearPendingIRQ(TIM3_IRQn);
-}
-#endif //SCHED_TYPE_CONTROL_BASED
 
 } //namespace miosix_private

@@ -29,6 +29,7 @@
 #include "kernel/error.h"
 #include "kernel/process.h"
 #include <limits>
+#include "interfaces/cstimer.h"
 
 using namespace std;
 
@@ -39,6 +40,9 @@ namespace miosix {
 //These are defined in kernel.cpp
 extern volatile Thread *cur;
 extern volatile int kernel_running;
+static ContextSwitchTimer& timer = ContextSwitchTimer::instance();
+extern IntrusiveList<SleepData> *sleepingList;
+static long long burstStart = 0;
 
 //
 // class ControlScheduler
@@ -145,20 +149,45 @@ Thread *ControlScheduler::IRQgetIdleThread()
     return idle;
 }
 
-void ControlScheduler::IRQfindNextThread()
+// Should be called when the current thread is the idle thread
+static inline void IRQsetNextPreemptionForIdle(){
+    if (sleepingList->empty())
+        timer.IRQsetNextInterrupt(numeric_limits<long long>::max());
+    else
+        timer.IRQsetNextInterrupt(sleepingList->front()->wakeup_time);
+}
+
+// Should be called for threads other than idle thread
+static inline void IRQsetNextPreemption(long long burst){
+    long long firstWakeupInList;
+    long long nextPreemption;
+    if (sleepingList->empty())
+        firstWakeupInList = numeric_limits<long long>::max();
+    else
+        firstWakeupInList = sleepingList->front()->wakeup_time;
+    burstStart = timer.IRQgetCurrentTick();
+    nextPreemption = burstStart + burst;
+    if (firstWakeupInList < nextPreemption)
+        timer.IRQsetNextInterrupt(firstWakeupInList);
+    else
+        timer.IRQsetNextInterrupt(nextPreemption);
+}
+
+unsigned int ControlScheduler::IRQfindNextThread()
 {
     // Warning: since this function is called within interrupt routines, it
     //is not possible to add/remove elements to threadList, since that would
     //require dynamic memory allocation/deallocation which is forbidden within
     //interrupts. Iterating the list is safe, though
 
-    if(kernel_running!=0) return;//If kernel is paused, do nothing
+    if(kernel_running!=0) return 0;//If kernel is paused, do nothing
 
     if(cur!=idle)
     {
         //Not preempting from the idle thread, store actual burst time of
         //the preempted thread
-        int Tp=miosix_private::AuxiliaryTimer::IRQgetValue();
+        //int Tp=miosix_private::AuxiliaryTimer::IRQgetValue(); //CurTime - LastTime = real burst
+        int Tp = static_cast<int>(timer.IRQgetCurrentTick() - burstStart);
         cur->schedData.Tp=Tp;
         Tr+=Tp;
     }
@@ -204,8 +233,9 @@ void ControlScheduler::IRQfindNextThread()
                 #ifdef WITH_PROCESSES
                 MPUConfiguration::IRQdisable();
                 #endif
-                miosix_private::AuxiliaryTimer::IRQsetValue(bIdle);
-                return;
+                //miosix_private::AuxiliaryTimer::IRQsetValue(bIdle); //curTime + burst
+                IRQsetNextPreemptionForIdle();
+                return 0;
             }
 
             //End of round reached, run scheduling algorithm
@@ -230,9 +260,10 @@ void ControlScheduler::IRQfindNextThread()
             #else //WITH_PROCESSES
             ctxsave=cur->ctxsave;
             #endif //WITH_PROCESSES
-            miosix_private::AuxiliaryTimer::IRQsetValue(
-                    curInRound->schedData.bo/multFactor);
-            return;
+            //miosix_private::AuxiliaryTimer::IRQsetValue(
+            //        curInRound->schedData.bo/multFactor);
+            IRQsetNextPreemption(curInRound->schedData.bo/multFactor);
+            return 0;
         } else {
             //If we get here we have a non ready thread that cannot run,
             //so regardless of the burst calculated by the scheduler

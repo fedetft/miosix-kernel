@@ -150,7 +150,7 @@ public:
      * It's behaviour is to modify the global variable miosix::cur which always
      * points to the currently running thread.
      */
-    static void IRQfindNextThread();
+    static unsigned int IRQfindNextThread();
 
 private:
 
