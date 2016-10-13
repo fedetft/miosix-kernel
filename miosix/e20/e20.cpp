@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2012 by Terraneo Federico                               *
+ *   Copyright (C) 2012, 2013, 2014, 2015, 2016 by Terraneo Federico       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -28,9 +28,6 @@
 #include "e20.h"
 
 using namespace std;
-#if __cplusplus <= 199711L
-using namespace std::tr1;
-#endif //!c++11
 
 namespace miosix {
 

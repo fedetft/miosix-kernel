@@ -11,6 +11,12 @@
 void pthread_mutex_unlock() {}
 void pthread_mutex_lock() {}
 void pthread_mutex_destroy() {}
+int pthread_setcancelstate(int state, int *oldstate) { return 0; }
+
+struct _reent *__getreent()
+{
+    return _GLOBAL_REENT;
+}
 
 int __register_exitproc(int type, void (*fn)(void), void *arg, void *d) { return 0; }
 void __call_exitprocs(int code, void *d) {}
@@ -50,6 +56,7 @@ int _fstat_r(struct _reent *ptr, int fd, struct stat *pstat) { return -1; }
 int _stat_r(struct _reent *ptr, const char *file, struct stat *pstat) { return -1; }
 int isatty(int fd) { return -1; }
 int _isatty(int fd) { return -1; }
+int _isatty_r(struct _reent *ptr, int fd) { return -1; }
 int mkdir(const char *path, mode_t mode) { return -1; }
 int _unlink_r(struct _reent *ptr, const char *file) { return -1; }
 clock_t _times_r(struct _reent *ptr, struct tms *tim) { return -1; }

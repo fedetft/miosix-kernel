@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2012 by Terraneo Federico                               *
+ *   Copyright (C) 2012, 2013, 2014, 2015, 2016 by Terraneo Federico       *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -31,14 +31,7 @@
 #define E20_H
 
 #include <list>
-#if __cplusplus > 199711L
 #include <functional>
-//TODO: remove this once we make the full transition to C++11
-#define FUN_NAMESPACE std
-#else //c++11
-#include <tr1/functional>
-#define FUN_NAMESPACE std::tr1
-#endif //c++11
 #include <miosix.h>
 #include "callback.h"
 
@@ -71,7 +64,7 @@ public:
      * run() or runOne(). Bind can be used to bind parameters to the function.
      * \throws std::bad_alloc if there is not enough heap memory
      */
-    void post(FUN_NAMESPACE::function<void ()> event);
+    void post(std::function<void ()> event);
 
     /**
      * This function blocks waiting for events being posted, and when available
@@ -111,7 +104,7 @@ private:
     EventQueue(const EventQueue&);
     EventQueue& operator= (const EventQueue&);
 
-    std::list<FUN_NAMESPACE::function<void ()> > events; ///< Event queue
+    std::list<std::function<void ()> > events; ///< Event queue
     mutable FastMutex m; ///< Mutex for synchronisation
     ConditionVariable cv; ///< Condition variable for synchronisation
 };

@@ -30,15 +30,16 @@
 * development to check for regressions.
 *************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cmath>
 #include <stdexcept>
 #include <algorithm>
 #include <vector>
 #include <set>
 #include <cassert>
+#include <functional>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -46,7 +47,6 @@
 #include <pthread.h>
 #include <errno.h>
 #include <dirent.h>
-#include <tr1/functional>
 #include <ext/atomicity.h>
 
 #include "miosix.h"
@@ -69,7 +69,7 @@
 #include "testsuite/mpu_testsuite/includes.h"
 #endif //WITH_PROCESSES
 
-using namespace std::tr1;
+using namespace std;
 using namespace miosix;
 
 // A reasonably small stack value for spawning threads during the test.

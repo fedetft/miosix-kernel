@@ -182,6 +182,16 @@ public:
         return ((port->DIN & 1<<n)? 1 : 0);
     }
     
+    /**
+     * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
+     */
+    unsigned int getPinPort() const { return port-GPIO->P; }
+    
+    /**
+     * \return the pin number, from 0 to 15
+     */
+    unsigned int getPinNumber() const { return n; }
+    
 private:
     GPIO_P_TypeDef *port; ///<Pointer to the port
     unsigned char n;      ///<Number of the GPIO within the port

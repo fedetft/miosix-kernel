@@ -1,13 +1,12 @@
 
 #include <cstdio>
-#include <tr1/functional>
+#include <functional>
 #include <stdint.h>
 #include "e20/e20.h"
 #include "miosix.h"
 #include "kernel/scheduler/scheduler.h"
 
 using namespace std;
-using namespace std::tr1;
 using namespace miosix;
 
 //Connect IR sensor output to PC6 of the stm32f4discovery

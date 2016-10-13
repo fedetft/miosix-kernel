@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2015 by Terraneo Federico                               *
+ *   Copyright (C) 2015, 2016 by Terraneo Federico                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -33,16 +33,16 @@ namespace miosix {
 /**
  * Multiplication between a 64 bit integer and a 32.32 fixed point number,
  * 
- * The caller must guarantee that the 64 bit number is positive and that the
- * result of the multiplication fits in 64 bits. Otherwise the behaviour is
- * unspecified.
+ * The caller must guarantee that the result of the multiplication fits in
+ * 64 bits. Otherwise the behaviour is unspecified.
  * 
  * \param a the 64 bit integer number.
  * \param bi the 32 bit integer part of the fixed point number
  * \param bf the 32 bit fractional part of the fixed point number
  * \return the result of the multiplication. The fractional part is discarded.
  */
-long long mul64x32d32(long long a, unsigned int bi, unsigned int bf);
+unsigned long long mul64x32d32(unsigned long long a,
+                               unsigned int bi, unsigned int bf);
 
 /**
  * This class holds a 32.32 fixed point number used for time conversion
@@ -71,71 +71,121 @@ public:
      * \return the fractional part of the fixed point number
      */
     inline unsigned int fractionalPart() const { return f; }
-
+    
+    /**
+     * \param x value to add to the fractional part
+     * \return a TimeConversionFactor with the same integer part and the
+     * fractional part corrected by delta
+     */
+    TimeConversionFactor operator+(int delta) const
+    {
+        return TimeConversionFactor(i,f+delta);
+    }
+    
 private:
     unsigned int i;
     unsigned int f;
 };
 
 /**
- * This class allows to convert the time from the system timer ticks to
- * nanoseconds and back.
- * Notice that although this class only contains static member functions,
- * it allows inlining of the conversion member functions while still
- * encapsulating the conversion factors.
+ * Instances of this class can be used by timer drivers to convert from ticks
+ * in the timer resolution to nanoseconds and back.
  */
 class TimeConversion
 {
 public:
     /**
-     * Set the conversion factors based on the timer frequency.
-     * \param hz timer clock frequency in Hz
+     * Constructor
+     * Set the conversion factors based on the tick frequency.
+     * \param hz tick frequency in Hz. The range of timer frequencies that are
+     * supported is 10KHz to 1GHz. The algorithms in this class may not work
+     * outside this range
      */
-    static void setTimerFrequency(unsigned int hz);
+    TimeConversion(unsigned int hz);
     
     /**
      * \param tick time point in timer ticks
      * \return the equivalent time point in the nanosecond timescale
-     * 
-     * Do not call this functions before setTimerFrequency() !
      */
-    static inline long long tick2ns(long long tick)
+    inline long long tick2ns(long long tick) const
     {
-        return mul64x32d32(tick,toNs.integerPart(),toNs.fractionalPart());
+        //Negative numbers for tick are not allowed, cast is safe
+        auto utick=static_cast<unsigned long long>(tick);
+        return static_cast<long long>(convert(utick,toNs));
     }
 
     /**
      * \param ns time point in nanoseconds
      * \return the equivalent time point in the timer tick timescale
      * 
-     * Do not call this functions before setTimerFrequency() !
+     * As this function may modify some class variables as part of the
+     * internal online adjustment process, it is not reentrant. The caller
+     * is responsible to prevent concurrent calls
      */
-    static inline long long ns2tick(long long ns)
-    {
-        return mul64x32d32(ns,toTick.integerPart(),toTick.fractionalPart());
-    }
+    long long ns2tick(long long ns);
     
     /**
      * \return the conversion factor from ticks to ns
      */
-    static inline TimeConversionFactor getTick2nsConversion() { return toNs; }
+    inline TimeConversionFactor getTick2nsConversion() const { return toNs; }
     
     /**
      * \return the conversion factor from ns to tick
      */
-    static inline TimeConversionFactor getNs2tickConversion() { return toTick; }
+    inline TimeConversionFactor getNs2tickConversion() const { return toTick; }
+    
+    /**
+     * \return the time interval in ns from the last online round trip
+     * adjustment for ns2tick() where the adjust offset is cached.
+     * This should not matter to you unless you are working on the inner
+     * details of the round trip adjustment code, otherwise you can safely
+     * ignore this value
+     */
+    unsigned long long getAdjustInterval() const { return adjustIntervalNs; }
+    
+    /**
+     * \return the cached online round trip adjust offset in ns for ns2tick().
+     * This should not matter to you unless you are working on the inner
+     * details of the round trip adjustment code, otherwise you can safely
+     * ignore this value
+     */
+    long long getAdjustOffset() const { return adjustOffsetNs; }
     
 private:
-    //This class is not meant for taking instances, disallow construction
-    TimeConversion();
+
+    /**
+     * Compute the error in ticks of an unadjusted conversion from tick to ns
+     * and back (a "round trip"), when the toTick conversion coefficient
+     * is adjusted by delta and at the given time point.
+     * This function is used internally to compute adjust coefficients.
+     * \param tick time point in ticks on which to do the round trip
+     * \param delta signed value to add the the fractional part of toTick
+     * to obtain a temporary coefficient on which the round trip error is
+     * computed
+     * \return the round trip error in ticks
+     */
+    long long __attribute__((noinline))
+    computeRoundTripError(unsigned long long tick, int delta) const;
+
+    /**
+     * \param x time point to convert
+     * \return the converted time point
+     */
+    static inline unsigned long long convert(unsigned long long x,
+                                             TimeConversionFactor tcf)
+    {
+        return mul64x32d32(x,tcf.integerPart(),tcf.fractionalPart());
+    }
     
     /**
      * \param float a floar number
      * \return the number in 32.32 fixed point format
      */
     static TimeConversionFactor __attribute__((noinline)) floatToFactor(float x);
-    
-    static TimeConversionFactor toNs, toTick;
+
+    TimeConversionFactor toNs, toTick;
+    unsigned long long adjustIntervalNs, lastAdjustTimeNs;
+    long long adjustOffsetNs;
 };
 
 } //namespace miosix
