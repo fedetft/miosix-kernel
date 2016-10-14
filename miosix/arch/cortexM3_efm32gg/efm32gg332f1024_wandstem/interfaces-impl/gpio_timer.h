@@ -51,6 +51,8 @@ namespace miosix {
         */
         bool absoluteWaitTrigger(long long tick);
         bool waitTrigger(long long tick);
+        bool absoluteSyncWaitTrigger(long long tick);
+        bool syncWaitTrigger(long long tick);
         
         
         

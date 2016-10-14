@@ -11,6 +11,7 @@
 #include "miosix.h"
 #include <cstdlib>
 #include <cstdio>
+#include "../../../../debugpin.h"
 using namespace miosix;
 
 GPIOtimer& GPIOtimer::instance(){
@@ -82,14 +83,39 @@ bool GPIOtimer::absoluteWaitTrigger(long long tick){
     FastInterruptDisableLock dLock;
     b.setModeGPIOTimer(false);    //output timer 
     setPinMode(false);	    //output pin
-    if(b.IRQsetNextInterrupt2(tick)){
-	return true;
+    if(!b.IRQsetNextInterrupt2(tick)){
+	return false;
     }
-    return false;
+    return true;
 }
 
 bool GPIOtimer::waitTrigger(long long tick){
     return absoluteWaitTrigger(b.getCurrentTick()+tick);
+}
+
+bool GPIOtimer::absoluteSyncWaitTrigger(long long tick){
+    {	
+	FastInterruptDisableLock dLock;
+	b.setModeGPIOTimer(false);	//output timer 
+	setPinMode(false);		//output pin
+	if(!b.IRQsetNextInterrupt2(tick)){
+	    return false;
+	}
+    
+	do {
+	    tWaitingGPIO=Thread::IRQgetCurrentThread();
+	    Thread::IRQwait();
+	    {
+		FastInterruptEnableLock eLock(dLock);
+		Thread::yield();
+	    }
+	} while(tWaitingGPIO && tick>b.getCurrentTick());
+    }
+    return true;
+}
+
+bool GPIOtimer::syncWaitTrigger(long long tick){
+    return absoluteSyncWaitTrigger(b.getCurrentTick()+tick); 
 }
 
 long long GPIOtimer::aux1=0;

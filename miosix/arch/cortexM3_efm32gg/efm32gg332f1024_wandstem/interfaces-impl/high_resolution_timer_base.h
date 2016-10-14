@@ -37,7 +37,7 @@ public:
      * \param tick the time when the interrupt will be fired, in timer ticks
      */
     bool IRQsetNextInterrupt0(long long tick);
-    bool IRQsetNextInterrupt1(long long tick);
+    void IRQsetNextInterrupt1(long long tick);
     bool IRQsetNextInterrupt2(long long tick);
     
     /**
