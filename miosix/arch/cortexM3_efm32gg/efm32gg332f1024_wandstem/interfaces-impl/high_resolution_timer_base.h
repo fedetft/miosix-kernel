@@ -18,6 +18,14 @@
 
 namespace miosix {
 
+enum class WaitResult
+{
+    WAKEUP_IN_THE_PAST,
+    WAIT_COMPLETED,
+    EVENT,
+    WAITING
+};
+    
 class HighResolutionTimerBase {
 public:
     
@@ -26,8 +34,7 @@ public:
     /**
      * \return the timer frequency in Hz
      */
-    unsigned int getTimerFrequency() const
-    {
+    unsigned int getTimerFrequency() const{
         return timerFreq;
     }
     
@@ -38,15 +45,15 @@ public:
      */
     bool IRQsetNextInterrupt0(long long tick);
     void IRQsetNextInterrupt1(long long tick);
-    bool IRQsetNextInterrupt2(long long tick);
+    WaitResult IRQsetNextInterrupt2(long long tick);
     
     /**
      * \return the time when the next interrupt will be fired.
      * That is, the last value passed to setNextInterrupt().
      */
-    long long IRQgetSetTimeCCV0();
-    long long IRQgetSetTimeCCV1();
-    long long IRQgetSetTimeCCV2();
+    long long IRQgetSetTimeCCV0() const;
+    long long IRQgetSetTimeCCV1() const;
+    long long IRQgetSetTimeCCV2() const;
     /**
      * Could be call both when the interrupts are enabled/disabled!
      * TODO: investigate if it's possible to remove the possibility to call

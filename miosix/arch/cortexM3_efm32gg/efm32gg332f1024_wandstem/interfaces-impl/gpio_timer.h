@@ -13,6 +13,7 @@
 
 #include "high_resolution_timer_base.h"
 #include "hwmapping.h"
+#include "timer.h"
 
 #ifndef GPIO_TIMER_H
 #define GPIO_TIMER_H
@@ -20,21 +21,21 @@
 static volatile int aux=0;
 
 namespace miosix {
-    enum class WaitResult
-    {
-        WAKEUP_IN_THE_PAST,
-        WAIT_COMPLETED,
-        EVENT
-    };
     
-    class GPIOtimer{    
+    class GPIOtimer : public TimerInterface{    
     public:
         static Thread *tWaitingGPIO;
         static long long aux1;
+        
+        long long getValue() const;
+        
+        void wait(long long value);
+        bool absoluteWait(long long value);
+        
         static GPIOtimer& instance();
         virtual ~GPIOtimer();
-        WaitResult waitTimeoutOrEvent(long long value);
-        WaitResult absoluteWaitTimeoutOrEvent(long long value);
+        bool waitTimeoutOrEvent(long long value);
+        bool absoluteWaitTimeoutOrEvent(long long value);
         
         /**
         * Set the timer interrupt to occur at an absolute value and put the 
@@ -54,9 +55,12 @@ namespace miosix {
         bool absoluteSyncWaitTrigger(long long tick);
         bool syncWaitTrigger(long long tick);
         
-        
+        unsigned int getTickFrequency() const;
         
         long long getExtEventTimestamp() const;
+        
+        long long tick2ns(long long tick);
+        long long ns2tick(long long ns);
         
         bool getMode();
         
@@ -65,6 +69,7 @@ namespace miosix {
         void setPinMode(bool inputMode);
         HighResolutionTimerBase& b;
         bool isInput; 
+        TimeConversion tc;
     };
 
 }
