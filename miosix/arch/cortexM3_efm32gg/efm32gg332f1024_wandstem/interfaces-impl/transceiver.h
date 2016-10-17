@@ -109,8 +109,8 @@ public:
 class Transceiver
 {
 public:
-    static const int minFrequency=2394; ///< Minimum supported frequency (MHz)
-    static const int maxFrequency=2507; ///< Maximum supported frequency (MHz)
+    static const int minFrequency=2400; ///< Minimum supported frequency (MHz)
+    static const int maxFrequency=2483; ///< Maximum supported frequency (MHz)
     
     /**
      * \return an instance to the transceiver
