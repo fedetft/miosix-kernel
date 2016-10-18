@@ -49,10 +49,6 @@ static inline long long IRQgetTick(){
 }
 
 inline void interruptGPIOTimerRoutine(){
-    TIMER1->IEN &= ~TIMER_IEN_CC2;
-    TIMER3->IEN &= ~TIMER_IEN_CC2;
-    TIMER1->IFC = TIMER_IFC_CC2;
-    TIMER3->IFC = TIMER_IFC_CC2;
     if(TIMER1->CC[2].CTRL & TIMER_CC_CTRL_MODE_OUTPUTCOMPARE){
 	//keep high for at least x Us
 	delayUs(1);
@@ -106,32 +102,25 @@ static void setupTimers(){
 /*
  Return EVENT if the timer triggers in this routine, otherwise the timer is set and returns WAITING
  */
+static int fase=0;
+
 static WaitResult setupTimers2(){
+    TIMER1->IEN |= TIMER_IEN_CC2;
+    fase=0;
     // We assume that this function is called only when the checkpoint is in future
-    if (ms32chkp[2] == ms32time){
-        // If the most significant 32bit matches, enable TIM3
-        TIMER3->IFC = TIMER_IFC_CC2;
-        TIMER3->IEN |= TIMER_IEN_CC2;
-	unsigned short temp=static_cast<unsigned short>(TIMER3->CC[2].CCV) + 1;
-        if (static_cast<unsigned short>(TIMER3->CNT) >= temp){
-            TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
-	    // If TIM3 matches by the time it is being enabled, disable it right away
-            TIMER3->IFC = TIMER_IFC_CC2;
-            TIMER3->IEN &= ~TIMER_IEN_CC2;
-            // Enable TIM1 since TIM3 has been already matched
-            TIMER1->IFC = TIMER_IFC_CC2;
-            TIMER1->IEN |= TIMER_IEN_CC2;
-            if (TIMER1->CNT >= TIMER1->CC[2].CCV){
-                //This line introduce a delay of 10ticks... it should be revised
-		TIMER1->CC[2].CCV = static_cast<unsigned int>(10+TIMER1->CNT);
-		// If TIM1 matches by the time it is being enabled, call the scheduler right away
-		interruptGPIOTimerRoutine();
-		return WaitResult::EVENT;
-            }
-        }
+    if ((ms32chkp[2] == ms32time && static_cast<unsigned short>(TIMER3->CC[2].CCV+1)==TIMER3->CNT && TIMER1->CNT >= TIMER1->CC[2].CCV )
+	    ||  IRQgetTick()>=HighResolutionTimerBase::instance().IRQgetSetTimeCCV2()){
+	// Enable TIM1 since TIM3 has been already matched
+	TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
+	//This line introduce a delay of 10ticks... it should be revised
+	TIMER1->CC[2].CCV = static_cast<unsigned short>(10+TIMER1->CNT);
+	TIMER1->IFC = TIMER_IFC_CC2;
+	TIMER1->IEN &= ~TIMER_IEN_CC2;
+	// If TIM1 matches by the time it is being enabled, call the routine right away
+	interruptGPIOTimerRoutine();
+	return WaitResult::EVENT;
     }
     return WaitResult::WAITING;
-    // If the most significant 32bit aren't match wait for TIM3 to overflow!
 }
 
 
@@ -156,7 +145,6 @@ void __attribute__((used)) cstirqhnd3(){
         TIMER3->IFC = TIMER_IFC_OF;
         ms32time += overflowIncrement;
         setupTimers();
-	setupTimers2();
     }
     //Checkpoint
     if ((TIMER3->IEN & TIMER_IEN_CC1) && (TIMER3->IF & TIMER_IF_CC1)){
@@ -175,38 +163,33 @@ void __attribute__((used)) cstirqhnd3(){
             }
         }
     } 
-    
-    //This if is to manage the GPIOtimer in OUTPUT Mode
-    if ((TIMER3->IEN & TIMER_IEN_CC2) && (TIMER3->IF & TIMER_IF_CC2)){
-        TIMER3->IFC = TIMER_IFC_CC2;
-	unsigned short temp=static_cast<unsigned short>(TIMER3->CC[2].CCV) + 1;
-        if (static_cast<unsigned short>(TIMER3->CNT) >= temp){
-            //Set the mode to raise the pin
-	    TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
-	    // Should happen if and only if most significant 32 bits have been matched
-            TIMER3->IEN &= ~ TIMER_IEN_CC2;
-            // Enable TIM1 since TIM3 has been already matched
-            TIMER1->IFC = TIMER_IFC_CC2;
-            TIMER1->IEN |= TIMER_IEN_CC2;
-            if (TIMER1->CNT >= TIMER1->CC[2].CCV){
-		//This line introduce a delay of 10ticks... it should be revised
-		TIMER1->CC[2].CCV = static_cast<unsigned int>(10+TIMER1->CNT);
-                // If TIM1 matches by the time it is being enabled, call the scheduler right away
-                interruptGPIOTimerRoutine();
-            }
-        }
-    } 
 }
 void __attribute__((used)) cstirqhnd1(){
     if ((TIMER1->IEN & TIMER_IEN_CC1) && (TIMER1->IF & TIMER_IF_CC1)){
         TIMER1->IFC = TIMER_IFC_CC1;
-        // Should happen if and only if most significant 48 bits have been matched
-        callScheduler();
+	callScheduler();
     }
     
     //This if is used to manage the case of GPIOTimer, both INPUT and OUTPUT mode
     if ((TIMER1->IEN & TIMER_IEN_CC2) && (TIMER1->IF & TIMER_IF_CC2)){
-        interruptGPIOTimerRoutine();
+        TIMER1->IFC = TIMER_IFC_CC2;
+	if(fase==0 && 
+		((ms32chkp[2] == ms32time && TIMER3->CNT>=TIMER3->CC[2].CCV ))
+	    ){
+	    fase=1;
+	    TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
+	    return;
+	}
+	if(TIMER3->CNT==0xFFFF)
+	    if(fase==0 && TIMER3->CNT==0xFFFF && ms32chkp[2] == (ms32time+(1LLU<<timerBits)) && TIMER3->CNT==TIMER3->CC[2].CCV){
+		fase=1;
+		TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
+		return;
+	    }
+	if(fase==1){
+	    TIMER1->IEN &= ~TIMER_IEN_CC2;
+	    interruptGPIOTimerRoutine();
+	}
     }
 }
 
@@ -363,9 +346,9 @@ WaitResult HighResolutionTimerBase::IRQsetNextInterrupt2(long long tick){
     long long curTick = IRQgetTick();
     if(curTick >= tick){
 	// The interrupt is in the past => call timerInt immediately
-	interruptGPIOTimerRoutine(); //TODO: It could cause multiple invocations of sched.
+	interruptGPIOTimerRoutine();
 	return WaitResult::WAKEUP_IN_THE_PAST;
-    }else{
+    }else{ 
 	ms32chkp[2] = tick & upperMask;
 	TIMER3->CC[2].CCV = static_cast<unsigned int>((tick & 0xFFFF0000)>>16)-1;
 	TIMER1->CC[2].CCV = static_cast<unsigned int>(tick & 0xFFFF);
