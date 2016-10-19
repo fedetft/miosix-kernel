@@ -154,7 +154,7 @@ void Transceiver::configure()
     // Configure transceiver as per given configuration class
     //
     
-    writeReg(CC2520Register::FREQCTRL,config.frequency-minFrequency);
+    writeReg(CC2520Register::FREQCTRL,config.frequency-2394);
     writeReg(CC2520Register::FRMCTRL0,0x40*config.crc); //automatically add FCS
     writeReg(CC2520Register::TXPOWER,txPower(config.txPower));
     
@@ -246,7 +246,7 @@ void Transceiver::configure(const TransceiverConfiguration& config)
     if(state==CC2520State::DEEPSLEEP) return;
     if(state!=CC2520State::IDLE) idle();
     
-    writeReg(CC2520Register::FREQCTRL,config.frequency-minFrequency);
+    writeReg(CC2520Register::FREQCTRL,config.frequency-2394);
     writeReg(CC2520Register::FRMCTRL0,0x40*config.crc);
     writeReg(CC2520Register::TXPOWER,txPower(config.txPower));
 }
