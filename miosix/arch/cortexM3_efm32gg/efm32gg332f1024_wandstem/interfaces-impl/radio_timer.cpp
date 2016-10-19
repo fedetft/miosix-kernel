@@ -15,7 +15,7 @@
 
 using namespace miosix;
 
-Thread* RadioTimer::tWaitingRadio=nullptr;
+Thread* RadioTimer::tWaiting=nullptr;
 
 long long RadioTimer::getValue() const{
      return b.getCurrentTick();
@@ -34,14 +34,32 @@ bool RadioTimer::absoluteWait(long long tick){
 }
 
 bool RadioTimer::absoluteWaitTrigger(long long tick){
-    return 0;
+    return false;
 }
 
-bool RadioTimer::waitTimeoutOrEvent(long long tick){
-    return 0;
-}
 bool RadioTimer::absoluteWaitTimeoutOrEvent(long long tick){
-    return 0;
+    FastInterruptDisableLock dLock;
+    if(tick<b.getCurrentTick()){
+	return true;
+    }
+    
+    b.setModeRadioTimer(true);
+    b.setCCInterrupt0(false);
+    b.setCCInterrupt0Tim2(true);
+    do {
+        tWaiting=Thread::IRQgetCurrentThread();
+        Thread::IRQwait();
+        {
+            FastInterruptEnableLock eLock(dLock);
+	    Thread::yield();
+        }
+    } while(tWaiting && tick>b.getCurrentTick());
+    
+    if(tWaiting==nullptr){
+	return false;
+    }else{
+	return true;
+    }
 }
 
 long long RadioTimer::tick2ns(long long tick){

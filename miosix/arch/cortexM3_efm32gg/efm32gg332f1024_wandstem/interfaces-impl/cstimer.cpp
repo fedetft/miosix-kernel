@@ -10,11 +10,6 @@ using namespace miosix;
 
 static TimeConversion *tc;
 
-//
-// class ContextSwitchTimer
-//
-void __attribute__((used)) cstirqhnd2(){}
-
 namespace miosix {
     
     ContextSwitchTimer& ContextSwitchTimer::instance()

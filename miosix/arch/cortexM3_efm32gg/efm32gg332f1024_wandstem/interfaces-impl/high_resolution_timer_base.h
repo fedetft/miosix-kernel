@@ -43,9 +43,9 @@ public:
      * Can be called with interrupts disabled or within an interrupt.
      * \param tick the time when the interrupt will be fired, in timer ticks
      */
-    bool IRQsetNextInterrupt0(long long tick);
+    WaitResult IRQsetNextRadioInterrupt(long long tick);
     void IRQsetNextInterrupt1(long long tick);
-    WaitResult IRQsetNextInterrupt2(long long tick);
+    WaitResult IRQsetNextGPIOInterrupt(long long tick);
     
     /**
      * \return the time when the next interrupt will be fired.
@@ -66,7 +66,9 @@ public:
     void setCCInterrupt1(bool enable);
     void setCCInterrupt2(bool enable);
     void setCCInterrupt2Tim1(bool enable);
+    void setCCInterrupt0Tim2(bool enable);
     void setModeGPIOTimer(bool input);
+    void setModeRadioTimer(bool input);
     /**
      * \return the current tick count of the timer.
      * Can only be called with interrupts disabled or within an IRQ

@@ -101,7 +101,7 @@ bool GPIOtimer::absoluteWaitTrigger(long long tick){
     FastInterruptDisableLock dLock;
     b.setModeGPIOTimer(false);    //output timer 
     setPinMode(false);	    //output pin
-    if(b.IRQsetNextInterrupt2(tick)==WaitResult::WAKEUP_IN_THE_PAST){
+    if(b.IRQsetNextGPIOInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
 	return true;
     }
     return false;
@@ -116,7 +116,7 @@ bool GPIOtimer::absoluteSyncWaitTrigger(long long tick){
 	FastInterruptDisableLock dLock;
 	b.setModeGPIOTimer(false);	//output timer 
 	setPinMode(false);		//output pin
-	if(b.IRQsetNextInterrupt2(tick)==WaitResult::WAKEUP_IN_THE_PAST){
+	if(b.IRQsetNextGPIOInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
 	    return true;
 	}
     

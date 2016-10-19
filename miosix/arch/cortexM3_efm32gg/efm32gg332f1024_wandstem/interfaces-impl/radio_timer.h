@@ -22,7 +22,7 @@ namespace miosix{
         public:
             //transceiver::excChB //usato per la ricezione INPUT_CAPTURE
             //transceiver::stxon //usato per attivare la trasmissione OUTPUTCOMPARE
-            static Thread *tWaitingRadio;
+            static Thread *tWaiting;
             static RadioTimer& instance();
             virtual ~RadioTimer();
             
