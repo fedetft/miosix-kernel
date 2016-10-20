@@ -791,6 +791,9 @@ public:
      */
     iterator erase(iterator it)
     {
+        // Can't erase an item that is already erased
+        if ((*it)->next==nullptr || (*it)->prev==nullptr) return it;
+        // Can't erase the emptyListItem which is used for internal purposes
         if((*it)==&emptyListItem) return it;
         iterator result = it;
         result++;
