@@ -72,7 +72,6 @@ inline void interruptGPIOTimerRoutine(){
 
 inline void interruptRadioTimerRoutine(){
     if(TIMER2->CC[1].CTRL & TIMER_CC_CTRL_MODE_OUTPUTCOMPARE){
-	delayUs(1);
 	TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_CLEAR;
 	TIMER2->CC[1].CCV = static_cast<unsigned int>(TIMER2->CNT+10);//static_cast<unsigned int>(tick & 0xFFFF);
     }
@@ -208,20 +207,18 @@ void __attribute__((used)) cstirqhnd1(){
     //This if is used to manage the case of GPIOTimer, both INPUT and OUTPUT mode
     if ((TIMER1->IEN & TIMER_IEN_CC2) && (TIMER1->IF & TIMER_IF_CC2)){
         TIMER1->IFC = TIMER_IFC_CC2;
-	if(fase==0 && 
-		((ms32chkp[2] == ms32time && TIMER3->CNT>=TIMER3->CC[2].CCV ))
-	    ){
-	    fase=1;
-	    TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
-	    return;
-	}
-	if(TIMER3->CNT==0xFFFF)
-	    if(fase==0 && TIMER3->CNT==0xFFFF && ms32chkp[2] == (ms32time+(1LLU<<timerBits)) && TIMER3->CNT==TIMER3->CC[2].CCV){
-		fase=1;
+	if(fase==0){
+	    HighResolutionTimerBase& b=HighResolutionTimerBase::instance();
+	    
+	    //nextInterrupt
+	    //The double cast is REALLY necessary to get the correct value
+	    long long t=ms32chkp[2] | static_cast<unsigned int>(static_cast<unsigned short>(TIMER3->CC[2].CCV+1)<<16) | TIMER1->CC[2].CCV;
+	    long long diff=t-b.IRQgetCurrentTick();
+	    if(diff<=0xFFFF){
 		TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
-		return;
+		fase=1;
 	    }
-	if(fase==1){
+	}else{
 	    TIMER1->IEN &= ~TIMER_IEN_CC2;
 	    interruptGPIOTimerRoutine();
 	}
@@ -337,13 +334,32 @@ void HighResolutionTimerBase::IRQsetNextInterrupt1(long long tick){
 
 /*
  Return true if the pin is going to raise, otherwise false, the pin remain low because the command arrived too late
- * FIXME: get in trouble if the interrupt is set less than 1.3ms after the current time. Problem due to the 2-phase stages
- * FIXME2: there 2 check if the time has passed...
- *  */
+ *  */ //Should be called at least 4us before the next interrupt, otherwise it returns with WAKEUP_IN_THE_PAST
 WaitResult HighResolutionTimerBase::IRQsetNextGPIOInterrupt(long long tick){
-    TIMER1->IEN &= ~TIMER_IEN_CC2;
+    long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
+    long long diff=tick-curTick;
     
-    long long curTick = IRQgetTick();
+    if(diff>150){
+	fase=0;
+	unsigned short t1=static_cast<unsigned short>((tick & 0xFFFF)-1),
+		    t3=static_cast<unsigned short>(((tick & 0xFFFF0000)>>16)-1);
+	//The first number of tick should be enough to execute instructions until TIMER1->IEN
+	ms32chkp[2] = tick & upperMask;
+	TIMER3->CC[2].CCV = t3;
+	TIMER1->CC[2].CCV = t1;
+
+	TIMER1->IFC = TIMER_IFC_CC2;
+	TIMER1->IEN |= TIMER_IEN_CC2;
+	if(diff<=0xFFFF){
+	    TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
+	    fase=1; //if phase=1, this means that the value in TIMER3 isn't read and we can still write t3 as usual
+	}
+	return WaitResult::WAITING;
+    }else{
+	return WaitResult::WAKEUP_IN_THE_PAST;
+    }
+    /*
+    long long curTick = IRQgetTick(); //This require almost 1us
     if(curTick >= tick){
 	// The interrupt is in the past => call timerInt immediately
 	interruptGPIOTimerRoutine();
@@ -364,8 +380,8 @@ WaitResult HighResolutionTimerBase::IRQsetNextGPIOInterrupt(long long tick){
 	    return WaitResult::EVENT;
 	}
 	return WaitResult::WAITING;
-	//return setupTimers2();
     }
+    */
 }
 
 // In this function I prepare the timer, but i don't enable the timer.
