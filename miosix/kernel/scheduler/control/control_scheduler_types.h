@@ -27,6 +27,7 @@
 
 #include "config/miosix_settings.h"
 #include "parameters.h"
+#include "kernel/intrusive.h"
 
 #ifndef CONTROL_SCHEDULER_TYPES_H
 #define	CONTROL_SCHEDULER_TYPES_H
@@ -36,6 +37,31 @@
 namespace miosix {
 
 class Thread; //Forward declaration
+
+/**
+ * Real-time priority definitions 
+ * Applied to realtime field of ControlSchedulerPriority class.
+ * 
+ * When a thread wakes up (due to a prior Thread::sleep or waiting
+ * for a hardware irq or etc.), the actual time the thread will have
+ * its burst remainder will depend on the real-time priority set for it.
+ */
+/**
+ * REALTIME_PRIORITY_IMMEDIATE: The processor control is transfered to the thread
+ * right in the time it wakes up.
+ */
+#define REALTIME_PRIORITY_IMMEDIATE 1
+/**
+ * REALTIME_PRIORITY_NEXT_BURST: The processor control is transfered to the thread
+ * right after the current running thread has consumed its burst time.
+ */
+#define REALTIME_PRIORITY_NEXT_BURST 2
+/**
+ * REALTIME_PRIORITY_NEXT_ROUND: The processor control is transfered to the thread
+ * in the next round and the thread is delayed until all remaining active threads
+ * are run.
+ */
+#define REALTIME_PRIORITY_NEXT_ROUND 3
 
 /**
  * This class models the concept of priority for the control based scheduler.
@@ -52,8 +78,11 @@ public:
      * Constructor. Not explicit for backward compatibility.
      * \param priority the desired priority value.
      */
-    ControlSchedulerPriority(short int priority): priority(priority) {}
-
+    ControlSchedulerPriority(short int priority): priority(priority), 
+            realtime(REALTIME_PRIORITY_NEXT_ROUND) {}
+    
+    ControlSchedulerPriority(short int priority, short int realtime):
+            priority(priority),realtime(realtime){}
     /**
      * Default constructor.
      */
@@ -63,6 +92,8 @@ public:
      * \return the priority value
      */
     short int get() const { return priority; }
+    
+    short int getRealtime() const {return realtime; }
 
     /**
      * \return true if this objects represents a valid priority.
@@ -71,16 +102,18 @@ public:
      */
     bool validate() const
     {
-        return this->priority>=0 && this->priority<PRIORITY_MAX;
+        return this->priority>=0 && this->priority<PRIORITY_MAX && 
+                this->realtime >=1 && this->realtime<=3;
     }
 
 private:
     short int priority;///< The priority value
+    short int realtime;///< The realtime priority value
 };
 
 inline bool operator <(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
-    return a.get() < b.get();
+    return a.getRealtime() < b.getRealtime();
 }
 
 inline bool operator <=(ControlSchedulerPriority a, ControlSchedulerPriority b)
@@ -108,6 +141,12 @@ inline bool operator !=(ControlSchedulerPriority a, ControlSchedulerPriority b)
     return a.get() != b.get();
 }
 
+struct ThreadsListItem : public IntrusiveListItem
+{
+    ThreadsListItem(): t(0) {}
+    Thread *t;
+};
+
 /**
  * \internal
  * An instance of this class is embedded in every Thread class. It contains all
@@ -131,6 +170,8 @@ public:
     int SP_Tp;//Processing time set point
     int Tp;//Real processing time
     Thread *next;//Next thread in list
+    ThreadsListItem atlEntry; //Entry in activeThreads list
+    bool lastReadyStatus;
 };
 
 } //namespace miosix

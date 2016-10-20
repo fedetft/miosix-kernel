@@ -650,6 +650,7 @@ Thread *Thread::doCreate(void*(*startfunc)(void*) , unsigned int stacksize,
             reinterpret_cast<unsigned int*>(thread),argv);
 
     if((options & JOINABLE)==0) thread->flags.IRQsetDetached();
+    thread->flags.t = thread;
     return thread;
 }
 
@@ -838,31 +839,31 @@ Thread::~Thread()
 void Thread::ThreadFlags::IRQsetWait(bool waiting)
 {
     if(waiting) flags |= WAIT; else flags &= ~WAIT;
-    Scheduler::IRQwaitStatusHook();
+    Scheduler::IRQwaitStatusHook(this->t);
 }
 
 void Thread::ThreadFlags::IRQsetJoinWait(bool waiting)
 {
     if(waiting) flags |= WAIT_JOIN; else flags &= ~WAIT_JOIN;
-    Scheduler::IRQwaitStatusHook();
+    Scheduler::IRQwaitStatusHook(this->t);
 }
 
 void Thread::ThreadFlags::IRQsetCondWait(bool waiting)
 {
     if(waiting) flags |= WAIT_COND; else flags &= ~WAIT_COND;
-    Scheduler::IRQwaitStatusHook();
+    Scheduler::IRQwaitStatusHook(this->t);
 }
 
 void Thread::ThreadFlags::IRQsetSleep(bool sleeping)
 {
     if(sleeping) flags |= SLEEP; else flags &= ~SLEEP;
-    Scheduler::IRQwaitStatusHook();
+    Scheduler::IRQwaitStatusHook(this->t);
 }
 
 void Thread::ThreadFlags::IRQsetDeleted()
 {
     flags |= DELETED;
-    Scheduler::IRQwaitStatusHook();
+    Scheduler::IRQwaitStatusHook(this->t);
 }
 
 } //namespace miosix

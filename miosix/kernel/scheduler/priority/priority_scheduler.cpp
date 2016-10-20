@@ -29,7 +29,6 @@
 #include "kernel/error.h"
 #include "kernel/process.h"
 #include "interfaces/cstimer.h"
-#include "kernel/timeconversion.h"
 #include <limits>
 
 #ifdef SCHED_TYPE_PRIORITY

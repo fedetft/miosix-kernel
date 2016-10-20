@@ -861,6 +861,7 @@ private:
          */
         bool isInUserspace() const { return flags & USERSPACE; }
 
+        Thread* t;
     private:
         ///\internal Thread is in the wait status. A call to wakeup will change
         ///this
