@@ -11,17 +11,8 @@
 #include <cstdlib>
 #include <cstdio>
 #include "../../../../debugpin.h"
+
 using namespace miosix;
-
-GPIOtimer& GPIOtimer::instance(){
-    static GPIOtimer instance;
-    return instance;
-}
-
-GPIOtimer::GPIOtimer(): b(HighResolutionTimerBase::instance()),tc(b.getTimerFrequency()) {
-    setPinMode(false);
-    isInput=true;
-}
 
 Thread* GPIOtimer::tWaitingGPIO=nullptr;
 
@@ -45,21 +36,11 @@ bool GPIOtimer::absoluteWait(long long tick){
     return false;
 }
 
-
-void GPIOtimer::setPinMode(bool inputMode){
-    if(inputMode){
-        expansion::gpio10::mode(Mode::INPUT);
-        isInput=true;
-    }else{
-        expansion::gpio10::mode(Mode::OUTPUT);
-        isInput=false;
-    }
-}
-
 bool GPIOtimer::getMode(){
     return isInput;
 }
 
+//NOTE: Think about how to set the right ms32chkp related to the captured timestamp
 long long GPIOtimer::getExtEventTimestamp() const{
     return b.IRQgetSetTimeCCV2();
 }
@@ -69,11 +50,14 @@ bool GPIOtimer::absoluteWaitTimeoutOrEvent(long long tick){
     if(tick<b.getCurrentTick()){
 	return true;
     }
-    
-    b.setModeGPIOTimer(true);
-    setPinMode(true);
+    if(!isInput){
+	b.setModeGPIOTimer(true);
+	expansion::gpio10::mode(Mode::INPUT);
+	isInput=true;
+    }
     b.setCCInterrupt2(false);
     b.setCCInterrupt2Tim1(true);
+    
     do {
         tWaitingGPIO=Thread::IRQgetCurrentThread();
         Thread::IRQwait();
@@ -99,8 +83,11 @@ bool GPIOtimer::waitTimeoutOrEvent(long long tick){
  */
 bool GPIOtimer::absoluteWaitTrigger(long long tick){
     FastInterruptDisableLock dLock;
-    b.setModeGPIOTimer(false);    //output timer 
-    setPinMode(false);	    //output pin
+    if(isInput){
+	b.setModeGPIOTimer(false);		//output timer 
+	expansion::gpio10::mode(Mode::OUTPUT);	//output pin
+	isInput=false;
+    }
     if(b.IRQsetNextGPIOInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
 	return true;
     }
@@ -111,15 +98,22 @@ bool GPIOtimer::waitTrigger(long long tick){
     return absoluteWaitTrigger(b.getCurrentTick()+tick);
 }
 
+/*
+ * This takes about 5us to be executed
+ */
 bool GPIOtimer::absoluteSyncWaitTrigger(long long tick){
-    {	
+    {
+	expansion::gpio1::high();
 	FastInterruptDisableLock dLock;
-	b.setModeGPIOTimer(false);	//output timer 
-	setPinMode(false);		//output pin
+	if(isInput){
+	    b.setModeGPIOTimer(false);			//output timer 
+	    expansion::gpio10::mode(Mode::OUTPUT);	//output pin
+	    isInput=false;
+	}
 	if(b.IRQsetNextGPIOInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
 	    return true;
 	}
-    
+	expansion::gpio1::low();
 	do {
 	    tWaitingGPIO=Thread::IRQgetCurrentThread();
 	    Thread::IRQwait();
@@ -147,3 +141,12 @@ long long GPIOtimer::ns2tick(long long ns){
 long long GPIOtimer::aux1=0;
 GPIOtimer::~GPIOtimer() {}
 
+GPIOtimer& GPIOtimer::instance(){
+    static GPIOtimer instance;
+    return instance;
+}
+
+GPIOtimer::GPIOtimer(): b(HighResolutionTimerBase::instance()),tc(b.getTimerFrequency()) {
+    expansion::gpio10::mode(Mode::INPUT);
+    isInput=true;
+}

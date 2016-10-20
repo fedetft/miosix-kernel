@@ -31,7 +31,6 @@ namespace miosix{
             void wait(long long tick);         
             bool absoluteWait(long long tick); 
             
-            
             bool absoluteWaitTrigger(long long tick);
             
             bool waitTimeoutOrEvent(long long tick);

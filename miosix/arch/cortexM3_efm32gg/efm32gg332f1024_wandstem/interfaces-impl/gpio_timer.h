@@ -66,7 +66,6 @@ namespace miosix {
         
     private:
         GPIOtimer();
-        void setPinMode(bool inputMode);
         HighResolutionTimerBase& b;
         bool isInput; 
         TimeConversion tc;

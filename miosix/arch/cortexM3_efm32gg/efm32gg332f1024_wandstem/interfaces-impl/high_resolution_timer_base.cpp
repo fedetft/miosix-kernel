@@ -31,6 +31,7 @@ static long long ms32time = 0; //most significant 32 bits of counter
 static long long ms32chkp[3] = {0,0,0}; //most significant 32 bits of check point
 static TimeConversion* tc;
 
+static int fase=0;
 
 static inline unsigned int IRQread32Timer(){
     unsigned int high=TIMER3->CNT;
@@ -56,8 +57,7 @@ static inline long long IRQgetTick(){
 inline void interruptGPIOTimerRoutine(){
     if(TIMER1->CC[2].CTRL & TIMER_CC_CTRL_MODE_OUTPUTCOMPARE){
 	TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_CLEAR;
-	//I don't need to enable the interrupt because "output" is separated
-	//10 tick are enough to 
+	//10 tick are enough to execute this line
 	TIMER1->CC[2].CCV = static_cast<unsigned int>(TIMER1->CNT+10);//static_cast<unsigned int>(tick & 0xFFFF);
     }
     //Reactivating the thread that is waiting for the event.
@@ -85,7 +85,7 @@ inline void interruptRadioTimerRoutine(){
     }
 }
 
-static __attribute__((noinline)) void callScheduler(){
+static  void callScheduler(){
     TIMER1->IEN &= ~TIMER_IEN_CC1;
     TIMER3->IEN &= ~TIMER_IEN_CC1;
     TIMER1->IFC = TIMER_IFC_CC1;
@@ -116,32 +116,6 @@ static void setupTimers(){
     }
     // If the most significant 32bit aren't match wait for TIM3 to overflow!
 }
-
-/*
- Return EVENT if the timer triggers in this routine, otherwise the timer is set and returns WAITING
- */
-static int fase=0;
-
-static WaitResult setupTimers2(){
-    TIMER1->IEN |= TIMER_IEN_CC2;
-    fase=0;
-    // We assume that this function is called only when the checkpoint is in future
-    if ((ms32chkp[2] == ms32time && static_cast<unsigned short>(TIMER3->CC[2].CCV+1)==TIMER3->CNT && TIMER1->CNT >= TIMER1->CC[2].CCV )
-	    ||  HighResolutionTimerBase::instance().IRQgetSetTimeCCV2()<=IRQgetTick()){
-	// Enable TIM1 since TIM3 has been already matched
-	TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
-	//This line introduce a delay of 10ticks... it should be revised
-	TIMER1->CC[2].CCV = static_cast<unsigned short>(10+TIMER1->CNT);
-	TIMER1->IFC = TIMER_IFC_CC2;
-	TIMER1->IEN &= ~TIMER_IEN_CC2;
-	// If TIM1 matches by the time it is being enabled, call the routine right away
-	interruptGPIOTimerRoutine();
-	return WaitResult::EVENT;
-    }
-    return WaitResult::WAITING;
-}
-
-
 
 void __attribute__((naked)) TIMER3_IRQHandler()
 {
@@ -198,6 +172,10 @@ void __attribute__((used)) cstirqhnd2(){
     }
 }
 
+/*
+ * This takes about 2.5us to execute, so the Pin can't stay high for less than this value, 
+ * and we can't set more interrupts in a period of 2.5us+
+ */
 void __attribute__((used)) cstirqhnd1(){
     if ((TIMER1->IEN & TIMER_IEN_CC1) && (TIMER1->IF & TIMER_IF_CC1)){
         TIMER1->IFC = TIMER_IFC_CC1;
@@ -210,9 +188,8 @@ void __attribute__((used)) cstirqhnd1(){
 	if(fase==0){
 	    HighResolutionTimerBase& b=HighResolutionTimerBase::instance();
 	    
-	    //nextInterrupt
-	    //The double cast is REALLY necessary to get the correct value
-	    long long t=ms32chkp[2] | static_cast<unsigned int>(static_cast<unsigned short>(TIMER3->CC[2].CCV+1)<<16) | TIMER1->CC[2].CCV;
+	    //get nextInterrupt
+	    long long t=ms32chkp[2]|TIMER1->CC[2].CCV;
 	    long long diff=t-b.IRQgetCurrentTick();
 	    if(diff<=0xFFFF){
 		TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
@@ -333,55 +310,34 @@ void HighResolutionTimerBase::IRQsetNextInterrupt1(long long tick){
 }
 
 /*
- Return true if the pin is going to raise, otherwise false, the pin remain low because the command arrived too late
- *  */ //Should be called at least 4us before the next interrupt, otherwise it returns with WAKEUP_IN_THE_PAST
+ * Return true if the pin is going to raise, otherwise false, the pin remain low because the command arrived too late
+ * Should be called at least 4us before the next interrupt, otherwise it returns with WAKEUP_IN_THE_PAST
+ */
 WaitResult HighResolutionTimerBase::IRQsetNextGPIOInterrupt(long long tick){
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
     
+    // 150 are enough to make sure that this routine ends and the timer IEN is enabled. 
+    //NOTE: this is really dependent on compiler, optimization and other stuff
     if(diff>150){
 	fase=0;
 	unsigned short t1=static_cast<unsigned short>((tick & 0xFFFF)-1),
 		    t3=static_cast<unsigned short>(((tick & 0xFFFF0000)>>16)-1);
-	//The first number of tick should be enough to execute instructions until TIMER1->IEN
-	ms32chkp[2] = tick & upperMask;
-	TIMER3->CC[2].CCV = t3;
+	//ms32chkp[2] is going to store even the middle part, because we don't need to use TIMER3
+	ms32chkp[2] = tick & (upperMask | 0xFFFF0000);
 	TIMER1->CC[2].CCV = t1;
 
 	TIMER1->IFC = TIMER_IFC_CC2;
 	TIMER1->IEN |= TIMER_IEN_CC2;
+	//0xFFFF because it's the roundtrip of timer
 	if(diff<=0xFFFF){
 	    TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
-	    fase=1; //if phase=1, this means that the value in TIMER3 isn't read and we can still write t3 as usual
+	    fase=1; //if phase=1, this means that we have to shutdown the pin next time that TIMER1 triggers
 	}
 	return WaitResult::WAITING;
     }else{
 	return WaitResult::WAKEUP_IN_THE_PAST;
     }
-    /*
-    long long curTick = IRQgetTick(); //This require almost 1us
-    if(curTick >= tick){
-	// The interrupt is in the past => call timerInt immediately
-	interruptGPIOTimerRoutine();
-	return WaitResult::WAKEUP_IN_THE_PAST;
-    }else{ 
-	ms32chkp[2] = tick & upperMask;
-	TIMER3->CC[2].CCV = static_cast<unsigned int>((tick & 0xFFFF0000)>>16)-1;
-	TIMER1->IFC = TIMER_IFC_CC2;
-	TIMER1->CC[2].CCV = static_cast<unsigned int>(tick & 0xFFFF);
-	
-	fase=0;
-	TIMER1->IEN |= TIMER_IEN_CC2;
-	if(TIMER1->IF & TIMER_IF_CC2 && tick<=IRQgetTick()){
-	    TIMER1->IEN &= ~TIMER_IEN_CC2;
-	    TIMER1->IFC = TIMER_IFC_CC2;
-	    // If TIM1 matches by the time it is being enabled, call the routine right away
-	    interruptGPIOTimerRoutine();
-	    return WaitResult::EVENT;
-	}
-	return WaitResult::WAITING;
-    }
-    */
 }
 
 // In this function I prepare the timer, but i don't enable the timer.
