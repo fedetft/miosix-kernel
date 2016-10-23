@@ -184,7 +184,7 @@ void Transceiver::configure()
     
     //With the crystal and capacitor selection in the node, this is required
     //to trim the crystal frequency as close as possible to 32MHz
-    writeReg(CC2520Register::FREQTUNE,13);
+    writeReg(CC2520Register::FREQTUNE,14);
     
     writeReg(CC2520Register::FRMFILT0,0x00); //disable frame filtering
     writeReg(CC2520Register::FRMFILT1,0x00); //disable frame filtering
