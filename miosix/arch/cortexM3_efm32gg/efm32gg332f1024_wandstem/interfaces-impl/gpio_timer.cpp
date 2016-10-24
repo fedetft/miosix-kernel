@@ -147,6 +147,7 @@ GPIOtimer& GPIOtimer::instance(){
 }
 
 GPIOtimer::GPIOtimer(): b(HighResolutionTimerBase::instance()),tc(b.getTimerFrequency()) {
+    b.setModeGPIOTimer(true);
     expansion::gpio10::mode(Mode::INPUT);
     isInput=true;
 }

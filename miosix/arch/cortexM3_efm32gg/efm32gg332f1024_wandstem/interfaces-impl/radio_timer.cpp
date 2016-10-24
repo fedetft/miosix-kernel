@@ -34,6 +34,19 @@ bool RadioTimer::absoluteWait(long long tick){
 }
 
 bool RadioTimer::absoluteWaitTrigger(long long tick){
+    FastInterruptDisableLock dLock;
+    b.setModeRadioTimer(false);			//output timer 
+    if(b.IRQsetNextRadioInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
+	return true;
+    }
+    do {
+	tWaiting=Thread::IRQgetCurrentThread();
+	Thread::IRQwait();
+	{
+	    FastInterruptEnableLock eLock(dLock);
+	    Thread::yield();
+	}
+    } while(tWaiting && tick>b.getCurrentTick());
     return false;
 }
 

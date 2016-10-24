@@ -11,8 +11,8 @@
  * Created on October 17, 2016, 10:27 AM
  */
 
-#ifndef TIMER_H
-#define TIMER_H
+#ifndef TIMERINTERFACE_H
+#define TIMERINTERFACE_H
 
 #include <kernel/timeconversion.h>
 
@@ -24,7 +24,7 @@ namespace miosix {
  * Transceiver driver to timestamp packet reception, and an output compare
  * module, used again by the Transceiver to send packets deterministically.
  */
-    class TimerInterface{
+    class HardwareTimer{
     public:
         /**
          * \return the timer counter value in ticks
@@ -113,7 +113,5 @@ namespace miosix {
     };
 }
 
-
-
-#endif /* TIMER_H */
+#endif /* TIMERINTERFACE_H */
 

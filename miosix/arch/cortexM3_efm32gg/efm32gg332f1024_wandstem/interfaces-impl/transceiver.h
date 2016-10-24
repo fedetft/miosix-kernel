@@ -33,7 +33,7 @@
 #include <limits>
 #include "power_manager.h"
 #include "spi.h"
-#include "hardware_timer.h"
+#include "rtc.h"
 
 namespace miosix {
 

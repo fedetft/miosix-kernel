@@ -27,7 +27,7 @@ public:
      * Can be called with interrupts disabled or within an interrupt.
      * \param tick the time when the interrupt will be fired, in nanoseconds
      */
-    void IRQsetNextInterrupt(long long tick);
+    void IRQsetNextInterrupt(long long ns);
     
     /**
      * \return the time when the next interrupt will be fired.
@@ -73,4 +73,4 @@ private:
 
 } //namespace miosix
 
-#endif //TIMER_H
+#endif //CSTIMER_H

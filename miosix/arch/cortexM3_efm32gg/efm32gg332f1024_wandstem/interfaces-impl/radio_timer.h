@@ -12,16 +12,16 @@
  */
 
 #include "high_resolution_timer_base.h"
-#include "timer.h"
+#include "timer_interface.h"
 
 #ifndef RADIO_TIMER_H
 #define RADIO_TIMER_H
 
 namespace miosix{
-    class RadioTimer : public TimerInterface {
+    class RadioTimer : public HardwareTimer {
         public:
-            //transceiver::excChB //usato per la ricezione INPUT_CAPTURE
-            //transceiver::stxon //usato per attivare la trasmissione OUTPUTCOMPARE
+            //transceiver::excChB //usato per la ricezione INPUT_CAPTURE TIM2_CC0 PA8
+            //transceiver::stxon //usato per attivare la trasmissione OUTPUTCOMPARE TIM2_CC1 PA9
             static Thread *tWaiting;
             static RadioTimer& instance();
             virtual ~RadioTimer();

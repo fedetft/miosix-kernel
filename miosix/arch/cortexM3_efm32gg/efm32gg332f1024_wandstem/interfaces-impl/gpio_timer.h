@@ -13,7 +13,7 @@
 
 #include "high_resolution_timer_base.h"
 #include "hwmapping.h"
-#include "timer.h"
+#include "timer_interface.h"
 
 #ifndef GPIO_TIMER_H
 #define GPIO_TIMER_H
@@ -22,7 +22,7 @@ static volatile int aux=0;
 
 namespace miosix {
     
-    class GPIOtimer : public TimerInterface{    
+    class GPIOtimer : public HardwareTimer{    
     public:
         static Thread *tWaitingGPIO;
         static long long aux1;

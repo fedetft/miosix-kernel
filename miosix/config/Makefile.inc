@@ -59,7 +59,7 @@
 ## size and speed
 ##
 #OPT_OPTIMIZATION := -O0
-OPT_OPTIMIZATION := -O2
+#OPT_OPTIMIZATION := -O2
 #OPT_OPTIMIZATION := -O3
 #OPT_OPTIMIZATION := -Os
 
@@ -2112,7 +2112,7 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
         $(BOARD_INC)/interfaces-impl/power_manager.cpp  \
         $(BOARD_INC)/interfaces-impl/high_resolution_timer_base.cpp \
         $(BOARD_INC)/interfaces-impl/gpioirq.cpp        \
-        $(BOARD_INC)/interfaces-impl/hardware_timer.cpp \
+        $(BOARD_INC)/interfaces-impl/rtc.cpp \
         $(BOARD_INC)/interfaces-impl/transceiver.cpp    \
         $(BOARD_INC)/interfaces-impl/cstimer.cpp        \
         $(BOARD_INC)/interfaces-impl/gpio_timer.cpp     \

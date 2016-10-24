@@ -1,10 +1,6 @@
 #include "interfaces/cstimer.h"
-#include "interfaces/arch_registers.h"
-#include "kernel/kernel.h"
-#include "kernel/scheduler/timer_interrupt.h"
 #include "kernel/timeconversion.h"
 #include "cstimer_impl.h"
-#include "high_resolution_timer_base.h"
 
 using namespace miosix;
 

@@ -28,7 +28,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "hardware_timer.h"
+#include "rtc.h"
 #include <miosix.h>
 #include <kernel/scheduler/scheduler.h>
 #include "gpioirq.h"
@@ -78,7 +78,7 @@ static WaitResult waitImpl(long long value, bool eventSensitive)
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP0) ;
     
     FastInterruptDisableLock dLock;
-    //NOTE: this is very important, enabling the interrpt without clearing the
+    //NOTE: this is very important, enabling the interrupt without clearing the
     //interrupt flag causes the function to return prematurely, sometimes
     RTC->IFC=RTC_IFC_COMP0;
     RTC->IEN |= RTC_IEN_COMP0;

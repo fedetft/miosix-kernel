@@ -27,11 +27,12 @@ const unsigned long long overflowIncrement=(1LL<<timerBits);
 const unsigned long long lowerMask=overflowIncrement-1;
 const unsigned long long upperMask=0xFFFFFFFFFFFFFFFFLL-lowerMask;
 
-static long long ms32time = 0; //most significant 32 bits of counter
+static long long ms32time = 0;		//most significant 32 bits of counter
 static long long ms32chkp[3] = {0,0,0}; //most significant 32 bits of check point
 static TimeConversion* tc;
 
-static int fase=0;
+static int faseGPIO=0;
+static int faseRadio=0;
 
 static inline unsigned int IRQread32Timer(){
     unsigned int high=TIMER3->CNT;
@@ -58,7 +59,7 @@ inline void interruptGPIOTimerRoutine(){
     if(TIMER1->CC[2].CTRL & TIMER_CC_CTRL_MODE_OUTPUTCOMPARE){
 	TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_CLEAR;
 	//10 tick are enough to execute this line
-	TIMER1->CC[2].CCV = static_cast<unsigned int>(TIMER1->CNT+10);//static_cast<unsigned int>(tick & 0xFFFF);
+	TIMER1->CC[2].CCV = static_cast<unsigned short>(TIMER1->CNT+10);//static_cast<unsigned int>(tick & 0xFFFF);
     }
     //Reactivating the thread that is waiting for the event.
     if(GPIOtimer::tWaitingGPIO){
@@ -73,7 +74,7 @@ inline void interruptGPIOTimerRoutine(){
 inline void interruptRadioTimerRoutine(){
     if(TIMER2->CC[1].CTRL & TIMER_CC_CTRL_MODE_OUTPUTCOMPARE){
 	TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_CLEAR;
-	TIMER2->CC[1].CCV = static_cast<unsigned int>(TIMER2->CNT+10);//static_cast<unsigned int>(tick & 0xFFFF);
+	TIMER2->CC[1].CCV = static_cast<unsigned short>(TIMER2->CNT+10);//static_cast<unsigned int>(tick & 0xFFFF);
     }
     
     //Reactivating the thread that is waiting for the event.
@@ -165,9 +166,16 @@ void __attribute__((used)) cstirqhnd3(){
 }
 
 void __attribute__((used)) cstirqhnd2(){
-    if ((TIMER2->IEN & TIMER_IEN_CC0) && (TIMER2->IF & TIMER_IF_CC0)){
+    //CC0 listening for received packet 
+    if ((TIMER2->IEN & TIMER_IEN_CC0) && (TIMER2->IF & TIMER_IF_CC0) ){
 	 TIMER2->IEN &= ~ TIMER_IEN_CC0;
 	 TIMER2->IFC = TIMER_IFC_CC0;
+	 interruptRadioTimerRoutine();
+    }
+    //CC1 for output/trigger
+    if ((TIMER2->IEN & TIMER_IEN_CC1) && (TIMER2->IF & TIMER_IF_CC1) ){
+	 TIMER2->IEN &= ~ TIMER_IEN_CC1;
+	 TIMER2->IFC = TIMER_IFC_CC1;
 	 interruptRadioTimerRoutine();
     }
 }
@@ -185,7 +193,7 @@ void __attribute__((used)) cstirqhnd1(){
     //This if is used to manage the case of GPIOTimer, both INPUT and OUTPUT mode
     if ((TIMER1->IEN & TIMER_IEN_CC2) && (TIMER1->IF & TIMER_IF_CC2)){
         TIMER1->IFC = TIMER_IFC_CC2;
-	if(fase==0){
+	if(faseGPIO==0){
 	    HighResolutionTimerBase& b=HighResolutionTimerBase::instance();
 	    
 	    //get nextInterrupt
@@ -193,7 +201,7 @@ void __attribute__((used)) cstirqhnd1(){
 	    long long diff=t-b.IRQgetCurrentTick();
 	    if(diff<=0xFFFF){
 		TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
-		fase=1;
+		faseGPIO=1;
 	    }
 	}else{
 	    TIMER1->IEN &= ~TIMER_IEN_CC2;
@@ -263,30 +271,28 @@ long long HighResolutionTimerBase::getCurrentTick(){
 }
 
 WaitResult HighResolutionTimerBase::IRQsetNextRadioInterrupt(long long tick){
-    TIMER2->IEN &= ~TIMER_IEN_CC1;
+    long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
+    long long diff=tick-curTick;
     
-    long long curTick = IRQgetTick();
-    if(curTick >= tick){
-	// The interrupt is in the past => call timerInt immediately
-	interruptGPIOTimerRoutine();
-	return WaitResult::WAKEUP_IN_THE_PAST;
-    }else{ 
-	ms32chkp[0] = tick & upperMask;
-	TIMER3->CC[0].CCV = static_cast<unsigned int>((tick & 0xFFFF0000)>>16)-1;
+    // 150 are enough to make sure that this routine ends and the timer IEN is enabled. 
+    //NOTE: this is really dependent on compiler, optimization and other stuff
+    if(diff>150){
+	faseRadio=0;
+	unsigned short t1=static_cast<unsigned short>((tick & 0xFFFF)-1);
+	//ms32chkp[0] is going to store even the middle part, because we don't need to use TIMER3
+	ms32chkp[0] = tick & (upperMask | 0xFFFF0000);
+	TIMER2->CC[1].CCV = t1;
+
 	TIMER2->IFC = TIMER_IFC_CC1;
-	TIMER2->CC[1].CCV = static_cast<unsigned int>(tick & 0xFFFF);
-	
-	fase=0;
 	TIMER2->IEN |= TIMER_IEN_CC1;
-	if(TIMER2->IF & TIMER_IF_CC1 && tick<=IRQgetTick()){
-	    TIMER2->IEN &= ~TIMER_IEN_CC1;
-	    TIMER2->IFC = TIMER_IFC_CC1;
-	    // If TIM1 matches by the time it is being enabled, call the routine right away
-	    interruptRadioTimerRoutine();
-	    return WaitResult::EVENT;
+	//0xFFFF because it's the roundtrip of timer
+	if(diff<=0xFFFF){
+	    TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
+	    faseRadio=1; //if phase=1, this means that we have to shutdown the pin next time that TIMER1 triggers
 	}
 	return WaitResult::WAITING;
-	//return setupTimers2();
+    }else{
+	return WaitResult::WAKEUP_IN_THE_PAST;
     }
 } 
 
@@ -320,9 +326,8 @@ WaitResult HighResolutionTimerBase::IRQsetNextGPIOInterrupt(long long tick){
     // 150 are enough to make sure that this routine ends and the timer IEN is enabled. 
     //NOTE: this is really dependent on compiler, optimization and other stuff
     if(diff>150){
-	fase=0;
-	unsigned short t1=static_cast<unsigned short>((tick & 0xFFFF)-1),
-		    t3=static_cast<unsigned short>(((tick & 0xFFFF0000)>>16)-1);
+	faseGPIO=0;
+	unsigned short t1=static_cast<unsigned short>((tick & 0xFFFF)-1);
 	//ms32chkp[2] is going to store even the middle part, because we don't need to use TIMER3
 	ms32chkp[2] = tick & (upperMask | 0xFFFF0000);
 	TIMER1->CC[2].CCV = t1;
@@ -332,7 +337,7 @@ WaitResult HighResolutionTimerBase::IRQsetNextGPIOInterrupt(long long tick){
 	//0xFFFF because it's the roundtrip of timer
 	if(diff<=0xFFFF){
 	    TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
-	    fase=1; //if phase=1, this means that we have to shutdown the pin next time that TIMER1 triggers
+	    faseGPIO=1; //if phase=1, this means that we have to shutdown the pin next time that TIMER1 triggers
 	}
 	return WaitResult::WAITING;
     }else{
@@ -363,7 +368,7 @@ void HighResolutionTimerBase::setModeGPIOTimer(bool input){
 			|   TIMER_CC_CTRL_INSEL_PRS
 			|   TIMER_CC_CTRL_ICEDGE_BOTH
 			|   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
-	
+	faseGPIO=1;
     }else{
         TIMER1->CC[2].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
         TIMER3->CC[2].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE; 
@@ -392,7 +397,7 @@ void HighResolutionTimerBase::setModeRadioTimer(bool input){
 	//TIMER3->CC2 as consumer
 	TIMER3->CC[0].CTRL=TIMER_CC_CTRL_PRSSEL_PRSCH1
 			|   TIMER_CC_CTRL_INSEL_PRS
-			|   TIMER_CC_CTRL_ICEDGE_BOTH
+			|   TIMER_CC_CTRL_ICEDGE_RISING
 			|   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
     }else{ // Gpio<GPIOA_BASE,9>  stxon
 	TIMER2->CC[1].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;

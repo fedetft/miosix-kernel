@@ -27,7 +27,7 @@
 
 #include "power_manager.h"
 #include "board_settings.h"
-#include "hardware_timer.h"
+#include "rtc.h"
 #include "transceiver.h"
 #include "interfaces/bsp.h"
 #include <stdexcept>
