@@ -38,16 +38,16 @@ public:
     /**
      * Could be call both when the interrupts are enabled/disabled!
      * TODO: investigate if it's possible to remove the possibility to call
-     * this with IRQ disabled and use IRQgetCurrentTick() instead
+     * this with IRQ disabled and use IRQgetCurrentTime() instead
      * \return the current tick count of the timer (in terms of nanoseconds)
      */
-    long long getCurrentTick() const;
+    long long getCurrentTime() const;
     
     /**
      * \return the current tick count of the timer (in terms of nanoseconds)
      * Can only be called with interrupts disabled or within an IRQ
      */
-    long long IRQgetCurrentTick() const;
+    long long IRQgetCurrentTime() const;
     
     /**
      * \return the timer frequency in Hz

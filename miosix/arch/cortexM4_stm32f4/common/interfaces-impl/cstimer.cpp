@@ -110,7 +110,7 @@ long long ContextSwitchTimer::getNextInterrupt() const
     return tc->tick2ns(nextInterrupt());
 }
 
-long long ContextSwitchTimer::getCurrentTick() const
+long long ContextSwitchTimer::getCurrentTime() const
 {
     bool interrupts=areInterruptsEnabled();
     //TODO: optimization opportunity, if we can guarantee that no call to this
@@ -122,7 +122,7 @@ long long ContextSwitchTimer::getCurrentTick() const
     return result;
 }
 
-long long ContextSwitchTimer::IRQgetCurrentTick() const
+long long ContextSwitchTimer::IRQgetCurrentTime() const
 {
     return tc->tick2ns(IRQgetTick());
 }

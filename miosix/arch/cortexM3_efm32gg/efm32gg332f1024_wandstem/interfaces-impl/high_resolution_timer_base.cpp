@@ -198,7 +198,7 @@ void __attribute__((used)) cstirqhnd1(){
 	    
 	    //get nextInterrupt
 	    long long t=ms32chkp[2]|TIMER1->CC[2].CCV;
-	    long long diff=t-b.IRQgetCurrentTick();
+	    long long diff=t-b.IRQgetCurrentTime();
 	    if(diff<=0xFFFF){
 		TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
 		faseGPIO=1;
@@ -220,7 +220,7 @@ long long HighResolutionTimerBase::IRQgetSetTimeCCV2() const{
     return ms32chkp[2] | TIMER3->CC[2].CCV<<16 | TIMER1->CC[2].CCV;
 }
 
-long long HighResolutionTimerBase::IRQgetCurrentTick(){
+long long HighResolutionTimerBase::IRQgetCurrentTime(){
     return IRQgetTick();
 }
 
@@ -258,13 +258,13 @@ void HighResolutionTimerBase::setCCInterrupt0Tim2(bool enable){
         TIMER2->IEN&=~TIMER_IEN_CC0;
 }
 
-long long HighResolutionTimerBase::getCurrentTick(){
+long long HighResolutionTimerBase::getCurrentTime(){
     bool interrupts=areInterruptsEnabled();
     //TODO: optimization opportunity, if we can guarantee that no call to this
     //function occurs before kernel is started, then we can use
     //fastInterruptDisable())
     if(interrupts) disableInterrupts();
-    long long result=IRQgetCurrentTick();
+    long long result=IRQgetCurrentTime();
     if(interrupts) enableInterrupts();
     return result;
 

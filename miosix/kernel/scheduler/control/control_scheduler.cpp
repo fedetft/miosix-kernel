@@ -207,7 +207,7 @@ static inline void IRQsetNextPreemption(long long burst){
         firstWakeupInList = numeric_limits<long long>::max();
     else
         firstWakeupInList = sleepingList->front()->wakeup_time;
-    burstStart = timer.IRQgetCurrentTick();
+    burstStart = timer.IRQgetCurrentTime();
     nextPreemption = burstStart + burst;
     if (firstWakeupInList < nextPreemption)
         timer.IRQsetNextInterrupt(firstWakeupInList);
@@ -229,7 +229,7 @@ unsigned int ControlScheduler::IRQfindNextThread()
         //Not preempting from the idle thread, store actual burst time of
         //the preempted thread
         //int Tp=miosix_private::AuxiliaryTimer::IRQgetValue(); //CurTime - LastTime = real burst
-        int Tp = static_cast<int>(timer.IRQgetCurrentTick() - burstStart);
+        int Tp = static_cast<int>(timer.IRQgetCurrentTime() - burstStart);
         cur->schedData.Tp=Tp;
         Tr+=Tp;
     }

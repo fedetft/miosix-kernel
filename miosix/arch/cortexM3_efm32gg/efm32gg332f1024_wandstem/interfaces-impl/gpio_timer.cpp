@@ -17,7 +17,7 @@ using namespace miosix;
 Thread* GPIOtimer::tWaitingGPIO=nullptr;
 
 long long GPIOtimer::getValue() const{
-    return b.getCurrentTick();
+    return b.getCurrentTime();
 }
 
 unsigned int GPIOtimer::getTickFrequency() const{
@@ -29,7 +29,7 @@ void GPIOtimer::wait(long long tick){
 }
 
 bool GPIOtimer::absoluteWait(long long tick){
-    if(b.getCurrentTick()>=tick){
+    if(b.getCurrentTime()>=tick){
 	return true;
     }
     Thread::nanoSleepUntil(tc.tick2ns(tick));
@@ -47,7 +47,7 @@ long long GPIOtimer::getExtEventTimestamp() const{
 
 bool GPIOtimer::absoluteWaitTimeoutOrEvent(long long tick){
     FastInterruptDisableLock dLock;
-    if(tick<b.getCurrentTick()){
+    if(tick<b.getCurrentTime()){
 	return true;
     }
     if(!isInput){
@@ -65,7 +65,7 @@ bool GPIOtimer::absoluteWaitTimeoutOrEvent(long long tick){
             FastInterruptEnableLock eLock(dLock);
 	    Thread::yield();
         }
-    } while(tWaitingGPIO && tick>b.getCurrentTick());
+    } while(tWaitingGPIO && tick>b.getCurrentTime());
     
     if(tWaitingGPIO==nullptr){
 	return false;
@@ -75,7 +75,7 @@ bool GPIOtimer::absoluteWaitTimeoutOrEvent(long long tick){
 }
 
 bool GPIOtimer::waitTimeoutOrEvent(long long tick){
-    return absoluteWaitTimeoutOrEvent(b.getCurrentTick()+tick);
+    return absoluteWaitTimeoutOrEvent(b.getCurrentTime()+tick);
 }
 
 /*
@@ -95,7 +95,7 @@ bool GPIOtimer::absoluteWaitTrigger(long long tick){
 }
 
 bool GPIOtimer::waitTrigger(long long tick){
-    return absoluteWaitTrigger(b.getCurrentTick()+tick);
+    return absoluteWaitTrigger(b.getCurrentTime()+tick);
 }
 
 /*
@@ -121,13 +121,13 @@ bool GPIOtimer::absoluteSyncWaitTrigger(long long tick){
 		FastInterruptEnableLock eLock(dLock);
 		Thread::yield();
 	    }
-	} while(tWaitingGPIO && tick>b.getCurrentTick());
+	} while(tWaitingGPIO && tick>b.getCurrentTime());
     }
     return false;
 }
 
 bool GPIOtimer::syncWaitTrigger(long long tick){
-    return absoluteSyncWaitTrigger(b.getCurrentTick()+tick); 
+    return absoluteSyncWaitTrigger(b.getCurrentTime()+tick); 
 }
 
 long long GPIOtimer::tick2ns(long long tick){

@@ -209,7 +209,7 @@ static void setNextPreemption(bool curIsIdleThread){
     if (curIsIdleThread){
         timer.IRQsetNextInterrupt(firstWakeupInList);
     }else{
-        long long nextPeriodicPreemption = timer.IRQgetCurrentTick() + preemptionPeriodNs;   
+        long long nextPeriodicPreemption = timer.IRQgetCurrentTime() + preemptionPeriodNs;   
         if (firstWakeupInList < nextPeriodicPreemption )
             timer.IRQsetNextInterrupt(firstWakeupInList);
         else

@@ -57,10 +57,10 @@ public:
     /**
      * Could be call both when the interrupts are enabled/disabled!
      * TODO: investigate if it's possible to remove the possibility to call
-     * this with IRQ disabled and use IRQgetCurrentTick() instead
+     * this with IRQ disabled and use IRQgetCurrentTime() instead
      * \return the current tick count of the timer
      */
-    long long getCurrentTick();
+    long long getCurrentTime();
     
     void setCCInterrupt0(bool enable);
     void setCCInterrupt1(bool enable);
@@ -73,7 +73,7 @@ public:
      * \return the current tick count of the timer.
      * Can only be called with interrupts disabled or within an IRQ
      */
-    long long IRQgetCurrentTick();
+    long long IRQgetCurrentTime();
     
     virtual ~HighResolutionTimerBase();
     

@@ -22,12 +22,12 @@ namespace miosix {
          return tc->tick2ns(pImpl->b.IRQgetSetTimeCCV1());
     }
     
-    long long ContextSwitchTimer::getCurrentTick() const{
-        return tc->tick2ns(pImpl->b.getCurrentTick());
+    long long ContextSwitchTimer::getCurrentTime() const{
+        return tc->tick2ns(pImpl->b.getCurrentTime());
     }
     
-    long long ContextSwitchTimer::IRQgetCurrentTick() const{
-        return tc->tick2ns(pImpl->b.IRQgetCurrentTick());
+    long long ContextSwitchTimer::IRQgetCurrentTime() const{
+        return tc->tick2ns(pImpl->b.IRQgetCurrentTime());
     }
     
     ContextSwitchTimer::~ContextSwitchTimer(){}
