@@ -18,8 +18,6 @@
 #ifndef GPIO_TIMER_H
 #define GPIO_TIMER_H
 
-static volatile int aux=0;
-
 namespace miosix {
     
     class GPIOtimer : public HardwareTimer{    

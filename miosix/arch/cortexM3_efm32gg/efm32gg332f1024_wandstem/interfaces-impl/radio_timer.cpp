@@ -18,7 +18,7 @@ using namespace miosix;
 Thread* RadioTimer::tWaiting=nullptr;
 
 long long RadioTimer::getValue() const{
-     return b.getCurrentTime();
+     return b.getCurrentTick();
  }  
             
 void RadioTimer::wait(long long tick){
@@ -26,7 +26,7 @@ void RadioTimer::wait(long long tick){
 }
 
 bool RadioTimer::absoluteWait(long long tick){
-    if(b.getCurrentTime()>=tick){
+    if(b.getCurrentTick()>=tick){
 	return true;
     }
     Thread::nanoSleepUntil(tc.tick2ns(tick));
@@ -46,13 +46,13 @@ bool RadioTimer::absoluteWaitTrigger(long long tick){
 	    FastInterruptEnableLock eLock(dLock);
 	    Thread::yield();
 	}
-    } while(tWaiting && tick>b.getCurrentTime());
+    } while(tWaiting && tick>b.getCurrentTick());
     return false;
 }
 
 bool RadioTimer::absoluteWaitTimeoutOrEvent(long long tick){
     FastInterruptDisableLock dLock;
-    if(tick<b.getCurrentTime()){
+    if(tick<b.getCurrentTick()){
 	return true;
     }
     
@@ -66,7 +66,7 @@ bool RadioTimer::absoluteWaitTimeoutOrEvent(long long tick){
             FastInterruptEnableLock eLock(dLock);
 	    Thread::yield();
         }
-    } while(tWaiting && tick>b.getCurrentTime());
+    } while(tWaiting && tick>b.getCurrentTick());
     
     if(tWaiting==nullptr){
 	return false;

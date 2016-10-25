@@ -17,7 +17,7 @@ using namespace miosix;
 Thread* GPIOtimer::tWaitingGPIO=nullptr;
 
 long long GPIOtimer::getValue() const{
-    return b.getCurrentTime();
+    return b.getCurrentTick();
 }
 
 unsigned int GPIOtimer::getTickFrequency() const{
@@ -29,7 +29,7 @@ void GPIOtimer::wait(long long tick){
 }
 
 bool GPIOtimer::absoluteWait(long long tick){
-    if(b.getCurrentTime()>=tick){
+    if(b.getCurrentTick()>=tick){
 	return true;
     }
     Thread::nanoSleepUntil(tc.tick2ns(tick));
@@ -47,7 +47,7 @@ long long GPIOtimer::getExtEventTimestamp() const{
 
 bool GPIOtimer::absoluteWaitTimeoutOrEvent(long long tick){
     FastInterruptDisableLock dLock;
-    if(tick<b.getCurrentTime()){
+    if(tick<b.getCurrentTick()){
 	return true;
     }
     if(!isInput){
@@ -55,6 +55,7 @@ bool GPIOtimer::absoluteWaitTimeoutOrEvent(long long tick){
 	expansion::gpio10::mode(Mode::INPUT);
 	isInput=true;
     }
+    b.cleanBufferGPIO();
     b.setCCInterrupt2(false);
     b.setCCInterrupt2Tim1(true);
     
@@ -65,7 +66,7 @@ bool GPIOtimer::absoluteWaitTimeoutOrEvent(long long tick){
             FastInterruptEnableLock eLock(dLock);
 	    Thread::yield();
         }
-    } while(tWaitingGPIO && tick>b.getCurrentTime());
+    } while(tWaitingGPIO && tick>b.getCurrentTick());
     
     if(tWaitingGPIO==nullptr){
 	return false;
@@ -75,7 +76,7 @@ bool GPIOtimer::absoluteWaitTimeoutOrEvent(long long tick){
 }
 
 bool GPIOtimer::waitTimeoutOrEvent(long long tick){
-    return absoluteWaitTimeoutOrEvent(b.getCurrentTime()+tick);
+    return absoluteWaitTimeoutOrEvent(b.getCurrentTick()+tick);
 }
 
 /*
@@ -86,6 +87,7 @@ bool GPIOtimer::absoluteWaitTrigger(long long tick){
     if(isInput){
 	b.setModeGPIOTimer(false);		//output timer 
 	expansion::gpio10::mode(Mode::OUTPUT);	//output pin
+	expansion::gpio10::low();
 	isInput=false;
     }
     if(b.IRQsetNextGPIOInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
@@ -95,7 +97,7 @@ bool GPIOtimer::absoluteWaitTrigger(long long tick){
 }
 
 bool GPIOtimer::waitTrigger(long long tick){
-    return absoluteWaitTrigger(b.getCurrentTime()+tick);
+    return absoluteWaitTrigger(b.getCurrentTick()+tick);
 }
 
 /*
@@ -108,6 +110,7 @@ bool GPIOtimer::absoluteSyncWaitTrigger(long long tick){
 	if(isInput){
 	    b.setModeGPIOTimer(false);			//output timer 
 	    expansion::gpio10::mode(Mode::OUTPUT);	//output pin
+	    expansion::gpio10::low();
 	    isInput=false;
 	}
 	if(b.IRQsetNextGPIOInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
@@ -121,13 +124,13 @@ bool GPIOtimer::absoluteSyncWaitTrigger(long long tick){
 		FastInterruptEnableLock eLock(dLock);
 		Thread::yield();
 	    }
-	} while(tWaitingGPIO && tick>b.getCurrentTime());
+	} while(tWaitingGPIO && tick>b.getCurrentTick());
     }
     return false;
 }
 
 bool GPIOtimer::syncWaitTrigger(long long tick){
-    return absoluteSyncWaitTrigger(b.getCurrentTime()+tick); 
+    return absoluteSyncWaitTrigger(b.getCurrentTick()+tick); 
 }
 
 long long GPIOtimer::tick2ns(long long tick){

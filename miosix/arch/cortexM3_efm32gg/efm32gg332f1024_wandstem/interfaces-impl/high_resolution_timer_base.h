@@ -54,13 +54,23 @@ public:
     long long IRQgetSetTimeCCV0() const;
     long long IRQgetSetTimeCCV1() const;
     long long IRQgetSetTimeCCV2() const;
+    
+    /*
+     * Clean buffer in TIMER used by GPIOTimer
+     */
+    void cleanBufferGPIO();
     /**
      * Could be call both when the interrupts are enabled/disabled!
      * TODO: investigate if it's possible to remove the possibility to call
      * this with IRQ disabled and use IRQgetCurrentTime() instead
      * \return the current tick count of the timer
      */
-    long long getCurrentTime();
+    long long getCurrentTick();
+    /**
+     * \return the current tick count of the timer.
+     * Can only be called with interrupts disabled or within an IRQ
+     */
+    long long IRQgetCurrentTick();
     
     void setCCInterrupt0(bool enable);
     void setCCInterrupt1(bool enable);
@@ -69,11 +79,6 @@ public:
     void setCCInterrupt0Tim2(bool enable);
     void setModeGPIOTimer(bool input);
     void setModeRadioTimer(bool input);
-    /**
-     * \return the current tick count of the timer.
-     * Can only be called with interrupts disabled or within an IRQ
-     */
-    long long IRQgetCurrentTime();
     
     virtual ~HighResolutionTimerBase();
     
