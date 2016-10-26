@@ -66,10 +66,9 @@ inline void interruptGPIOTimerRoutine(){
 	TIMER1->CC[2].CCV = static_cast<unsigned short>(TIMER1->CNT+10);//static_cast<unsigned int>(tick & 0xFFFF);
     }else if(TIMER1->CC[2].CTRL & TIMER_CC_CTRL_MODE_INPUTCAPTURE){
 	ms32chkp[2]=ms32time;
-	HighResolutionTimerBase& b=HighResolutionTimerBase::instance();
 	//really in the past, the overflow of TIMER3 is occurred but the timer wasn't updated
-	long long a=b.IRQgetSetTimeCCV2();
-	long long c=b.getCurrentTick();
+	long long a=ms32chkp[2] | TIMER3->CC[2].CCV<<16 | TIMER1->CC[2].CCV;;
+	long long c=IRQgetTick();
 	if(a-c< -48000000){ 
 	    ms32chkp[2]+=overflowIncrement;
 	}
@@ -204,15 +203,15 @@ void __attribute__((used)) cstirqhnd1(){
 	callScheduler();
     }
     
-    //This if is used to manage the case of GPIOTimer, both INPUT and OUTPUT mode
+    //This if is used to manage the case of GPIOTimer, both INPUT and OUTPUT mode, in INPUT it goes direclty in the "else branch"
     if ((TIMER1->IEN & TIMER_IEN_CC2) && (TIMER1->IF & TIMER_IF_CC2)){
         TIMER1->IFC = TIMER_IFC_CC2;
+	greenLed::toggle();
 	if(faseGPIO==0){
-	    HighResolutionTimerBase& b=HighResolutionTimerBase::instance();
 	    
 	    //get nextInterrupt
 	    long long t=ms32chkp[2]|TIMER1->CC[2].CCV;
-	    long long diff=t-b.IRQgetCurrentTick();
+	    long long diff=t-IRQgetTick();
 	    if(diff<=0xFFFF){
 		TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
 		faseGPIO=1;
@@ -337,17 +336,19 @@ void HighResolutionTimerBase::IRQsetNextInterrupt1(long long tick){
 WaitResult HighResolutionTimerBase::IRQsetNextGPIOInterrupt(long long tick){
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
+    tick--; //to trigger at the RIGHT time!
     
     // 150 are enough to make sure that this routine ends and the timer IEN is enabled. 
     //NOTE: this is really dependent on compiler, optimization and other stuff
-    if(diff>150){
+    if(diff>200){
 	faseGPIO=0;
-	unsigned short t1=static_cast<unsigned short>((tick & 0xFFFF)-1);
+	unsigned short t1=static_cast<unsigned short>(tick & 0xFFFF);
 	//ms32chkp[2] is going to store even the middle part, because we don't need to use TIMER3
 	ms32chkp[2] = tick & (upperMask | 0xFFFF0000);
 	TIMER1->CC[2].CCV = t1;
 
 	setCCInterrupt2Tim1(true);
+	diff=tick-IRQgetTick();
 	//0xFFFF because it's the roundtrip of timer
 	if(diff<=0xFFFF){
 	    TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
