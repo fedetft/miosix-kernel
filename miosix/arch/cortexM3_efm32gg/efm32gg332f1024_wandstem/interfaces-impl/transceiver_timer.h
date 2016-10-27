@@ -18,13 +18,13 @@
 #define RADIO_TIMER_H
 
 namespace miosix{
-    class RadioTimer : public HardwareTimer {
+    class TransceiverTimer : public HardwareTimer {
         public:
             //transceiver::excChB //usato per la ricezione INPUT_CAPTURE TIM2_CC0 PA8
             //transceiver::stxon //usato per attivare la trasmissione OUTPUTCOMPARE TIM2_CC1 PA9
             static Thread *tWaiting;
-            static RadioTimer& instance();
-            virtual ~RadioTimer();
+            static TransceiverTimer& instance();
+            virtual ~TransceiverTimer();
             
             long long getValue() const;   
             
@@ -45,7 +45,7 @@ namespace miosix{
             
 
         private:
-            RadioTimer();
+            TransceiverTimer();
             HighResolutionTimerBase& b;
             TimeConversion tc;
     };

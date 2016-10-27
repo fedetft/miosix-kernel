@@ -11,21 +11,21 @@
  * Created on October 11, 2016, 11:17 AM
  */
 
-#include "radio_timer.h"
+#include "transceiver_timer.h"
 
 using namespace miosix;
 
-Thread* RadioTimer::tWaiting=nullptr;
+Thread* TransceiverTimer::tWaiting=nullptr;
 
-long long RadioTimer::getValue() const{
+long long TransceiverTimer::getValue() const{
      return b.getCurrentTick();
  }  
             
-void RadioTimer::wait(long long tick){
+void TransceiverTimer::wait(long long tick){
     Thread::nanoSleep(tc.tick2ns(tick));
 }
 
-bool RadioTimer::absoluteWait(long long tick){
+bool TransceiverTimer::absoluteWait(long long tick){
     if(b.getCurrentTick()>=tick){
 	return true;
     }
@@ -33,10 +33,10 @@ bool RadioTimer::absoluteWait(long long tick){
     return false;
 }
 
-bool RadioTimer::absoluteWaitTrigger(long long tick){
+bool TransceiverTimer::absoluteWaitTrigger(long long tick){
     FastInterruptDisableLock dLock;
-    b.setModeRadioTimer(false);			//output timer 
-    if(b.IRQsetNextRadioInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
+    b.setModeTransceiverTimer(false);			//output timer 
+    if(b.IRQsetNextTransceiverInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
 	return true;
     }
     do {
@@ -50,13 +50,13 @@ bool RadioTimer::absoluteWaitTrigger(long long tick){
     return false;
 }
 
-bool RadioTimer::absoluteWaitTimeoutOrEvent(long long tick){
+bool TransceiverTimer::absoluteWaitTimeoutOrEvent(long long tick){
     FastInterruptDisableLock dLock;
     if(tick<b.getCurrentTick()){
 	return true;
     }
     
-    b.setModeRadioTimer(true);
+    b.setModeTransceiverTimer(true);
     b.setCCInterrupt0(false);
     b.setCCInterrupt0Tim2(true);
     do {
@@ -75,29 +75,29 @@ bool RadioTimer::absoluteWaitTimeoutOrEvent(long long tick){
     }
 }
 
-long long RadioTimer::tick2ns(long long tick){
+long long TransceiverTimer::tick2ns(long long tick){
     return tc.tick2ns(tick);
 }
 
-long long RadioTimer::ns2tick(long long ns){
+long long TransceiverTimer::ns2tick(long long ns){
     return tc.ns2tick(ns);
 }
             
-unsigned int RadioTimer::getTickFrequency() const{
+unsigned int TransceiverTimer::getTickFrequency() const{
     return b.getTimerFrequency();
 }
 
 	    
-long long RadioTimer::getExtEventTimestamp() const{
+long long TransceiverTimer::getExtEventTimestamp() const{
     return b.IRQgetSetTimeCCV0();
 }
 	    
-RadioTimer::RadioTimer():b(HighResolutionTimerBase::instance()),tc(b.getTimerFrequency()) {}
+TransceiverTimer::TransceiverTimer():b(HighResolutionTimerBase::instance()),tc(b.getTimerFrequency()) {}
 
-RadioTimer& RadioTimer::instance(){
-    static RadioTimer instance;
+TransceiverTimer& TransceiverTimer::instance(){
+    static TransceiverTimer instance;
     return instance;
 }
 
-RadioTimer::~RadioTimer() {}
+TransceiverTimer::~TransceiverTimer() {}
 

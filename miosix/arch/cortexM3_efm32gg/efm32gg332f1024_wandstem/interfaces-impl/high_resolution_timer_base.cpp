@@ -17,7 +17,7 @@
 #include "high_resolution_timer_base.h"
 #include "kernel/timeconversion.h"
 #include "gpio_timer.h"
-#include "radio_timer.h"
+#include "transceiver_timer.h"
 #include "../../../../debugpin.h"
 
 using namespace miosix;
@@ -32,7 +32,7 @@ static long long ms32chkp[3] = {0,0,0}; //most significant 32 bits of check poin
 static TimeConversion* tc;
 
 static int faseGPIO=0;
-static int faseRadio=0;
+static int faseTransceiver=0;
 
 static inline unsigned int IRQread32Timer(){
     unsigned int high=TIMER3->CNT;
@@ -83,18 +83,18 @@ inline void interruptGPIOTimerRoutine(){
     
 }
 
-inline void interruptRadioTimerRoutine(){
+inline void interruptTransceiverTimerRoutine(){
     if(TIMER2->CC[1].CTRL & TIMER_CC_CTRL_MODE_OUTPUTCOMPARE){
 	TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_CLEAR;
 	TIMER2->CC[1].CCV = static_cast<unsigned short>(TIMER2->CNT+10);//static_cast<unsigned int>(tick & 0xFFFF);
     }
     
     //Reactivating the thread that is waiting for the event.
-    if(RadioTimer::tWaiting){
-	RadioTimer::tWaiting->IRQwakeup();
-	if(RadioTimer::tWaiting->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority())
+    if(TransceiverTimer::tWaiting){
+	TransceiverTimer::tWaiting->IRQwakeup();
+	if(TransceiverTimer::tWaiting->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority())
 	    Scheduler::IRQfindNextThread();
-	RadioTimer::tWaiting=nullptr;
+	TransceiverTimer::tWaiting=nullptr;
     }
 }
 
@@ -183,13 +183,13 @@ void __attribute__((used)) cstirqhnd2(){
     if ((TIMER2->IEN & TIMER_IEN_CC0) && (TIMER2->IF & TIMER_IF_CC0) ){
 	 TIMER2->IEN &= ~ TIMER_IEN_CC0;
 	 TIMER2->IFC = TIMER_IFC_CC0;
-	 interruptRadioTimerRoutine();
+	 interruptTransceiverTimerRoutine();
     }
     //CC1 for output/trigger the sending packet event
     if ((TIMER2->IEN & TIMER_IEN_CC1) && (TIMER2->IF & TIMER_IF_CC1) ){
 	 TIMER2->IEN &= ~ TIMER_IEN_CC1;
 	 TIMER2->IFC = TIMER_IFC_CC1;
-	 interruptRadioTimerRoutine();
+	 interruptTransceiverTimerRoutine();
     }
 }
 
@@ -206,9 +206,7 @@ void __attribute__((used)) cstirqhnd1(){
     //This if is used to manage the case of GPIOTimer, both INPUT and OUTPUT mode, in INPUT it goes direclty in the "else branch"
     if ((TIMER1->IEN & TIMER_IEN_CC2) && (TIMER1->IF & TIMER_IF_CC2)){
         TIMER1->IFC = TIMER_IFC_CC2;
-	greenLed::toggle();
 	if(faseGPIO==0){
-	    
 	    //get nextInterrupt
 	    long long t=ms32chkp[2]|TIMER1->CC[2].CCV;
 	    long long diff=t-IRQgetTick();
@@ -284,14 +282,14 @@ long long HighResolutionTimerBase::getCurrentTick(){
 
 }
 
-WaitResult HighResolutionTimerBase::IRQsetNextRadioInterrupt(long long tick){
+WaitResult HighResolutionTimerBase::IRQsetNextTransceiverInterrupt(long long tick){
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
     
     // 150 are enough to make sure that this routine ends and the timer IEN is enabled. 
     //NOTE: this is really dependent on compiler, optimization and other stuff
     if(diff>150){
-	faseRadio=0;
+	faseTransceiver=0;
 	unsigned short t1=static_cast<unsigned short>((tick & 0xFFFF)-1);
 	//ms32chkp[0] is going to store even the middle part, because we don't need to use TIMER3
 	ms32chkp[0] = tick & (upperMask | 0xFFFF0000);
@@ -302,7 +300,7 @@ WaitResult HighResolutionTimerBase::IRQsetNextRadioInterrupt(long long tick){
 	//0xFFFF because it's the roundtrip of timer
 	if(diff<=0xFFFF){
 	    TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
-	    faseRadio=1; //if phase=1, this means that we have to shutdown the pin next time that TIMER1 triggers
+	    faseTransceiver=1; //if phase=1, this means that we have to shutdown the pin next time that TIMER1 triggers
 	}
 	return WaitResult::WAITING;
     }else{
@@ -397,7 +395,7 @@ void HighResolutionTimerBase::cleanBufferGPIO(){
     falseRead(&TIMER1->CC[2].CCV);
 }
 
-void HighResolutionTimerBase::setModeRadioTimer(bool input){
+void HighResolutionTimerBase::setModeTransceiverTimer(bool input){
     //Connect TIMER2->CC0/1 to pin PA8 and PA9
     TIMER2->ROUTE = TIMER_ROUTE_CC0PEN
 		| TIMER_ROUTE_CC1PEN

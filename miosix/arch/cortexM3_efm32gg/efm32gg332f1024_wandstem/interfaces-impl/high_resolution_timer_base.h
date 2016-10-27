@@ -43,7 +43,7 @@ public:
      * Can be called with interrupts disabled or within an interrupt.
      * \param tick the time when the interrupt will be fired, in timer ticks
      */
-    WaitResult IRQsetNextRadioInterrupt(long long tick);
+    WaitResult IRQsetNextTransceiverInterrupt(long long tick);
     void IRQsetNextInterrupt1(long long tick);
     WaitResult IRQsetNextGPIOInterrupt(long long tick);
     
@@ -78,7 +78,7 @@ public:
     void setCCInterrupt2Tim1(bool enable);
     void setCCInterrupt0Tim2(bool enable);
     void setModeGPIOTimer(bool input);
-    void setModeRadioTimer(bool input);
+    void setModeTransceiverTimer(bool input);
     
     virtual ~HighResolutionTimerBase();
     

@@ -118,7 +118,7 @@ public:
     static Transceiver& instance();
 
     /**
-     * Turn the thransceiver ON (i.e: bring it out of deep sleep)
+     * Turn the transceiver ON (i.e: bring it out of deep sleep)
      */
     void turnOn();
     
