@@ -83,10 +83,21 @@ inline void interruptGPIOTimerRoutine(){
     
 }
 
+/*
+ * FIXME: The following codition could be always true, they aren't exclusive
+ */
 inline void interruptTransceiverTimerRoutine(){
     if(TIMER2->CC[1].CTRL & TIMER_CC_CTRL_MODE_OUTPUTCOMPARE){
 	TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_CLEAR;
 	TIMER2->CC[1].CCV = static_cast<unsigned short>(TIMER2->CNT+10);//static_cast<unsigned int>(tick & 0xFFFF);
+    }else if(TIMER1->CC[0].CTRL & TIMER_CC_CTRL_MODE_INPUTCAPTURE){
+	ms32chkp[0]=ms32time;
+	//really in the past, the overflow of TIMER3 is occurred but the timer wasn't updated
+	long long a=ms32chkp[0] | TIMER3->CC[0].CCV<<16 | TIMER1->CC[0].CCV;;
+	long long c=IRQgetTick();
+	if(a-c< -48000000){ 
+	    ms32chkp[0]+=overflowIncrement;
+	}
     }
     
     //Reactivating the thread that is waiting for the event.
@@ -235,27 +246,27 @@ long long HighResolutionTimerBase::IRQgetCurrentTick(){
     return IRQgetTick();
 }
 
-void HighResolutionTimerBase::setCCInterrupt0(bool enable){
+void HighResolutionTimerBase::enableCC0Interrupt(bool enable){
     if(enable){
         TIMER3->IEN|=TIMER_IEN_CC0;
     }else{
         TIMER3->IEN&=~TIMER_IEN_CC0;
     }
 }
-void HighResolutionTimerBase::setCCInterrupt1(bool enable){
+void HighResolutionTimerBase::enableCC1Interrupt(bool enable){
     if(enable)
         TIMER3->IEN|=TIMER_IEN_CC1;
     else
         TIMER3->IEN&=~TIMER_IEN_CC1;
 }
-void HighResolutionTimerBase::setCCInterrupt2(bool enable){
+void HighResolutionTimerBase::enableCC2Interrupt(bool enable){
     if(enable)
         TIMER3->IEN|=TIMER_IEN_CC2;
     else
         TIMER3->IEN&=~TIMER_IEN_CC2;
 }
 
-void HighResolutionTimerBase::setCCInterrupt2Tim1(bool enable){
+void HighResolutionTimerBase::enableCC2InterruptTim1(bool enable){
     if(enable){
 	TIMER1->IFC= TIMER_IF_CC2;
         TIMER1->IEN|=TIMER_IEN_CC2;
@@ -263,11 +274,19 @@ void HighResolutionTimerBase::setCCInterrupt2Tim1(bool enable){
         TIMER1->IEN&=~TIMER_IEN_CC2;
 }
 
-void HighResolutionTimerBase::setCCInterrupt0Tim2(bool enable){
+void HighResolutionTimerBase::enableCC0InterruptTim2(bool enable){
     if(enable)
         TIMER2->IEN|=TIMER_IEN_CC0;
     else
         TIMER2->IEN&=~TIMER_IEN_CC0;
+}
+
+void HighResolutionTimerBase::enableCC1InterruptTim2(bool enable){
+    if(enable){
+	TIMER2->IFC= TIMER_IF_CC1;
+        TIMER2->IEN|=TIMER_IEN_CC1;
+    }else
+        TIMER2->IEN&=~TIMER_IEN_CC1;
 }
 
 long long HighResolutionTimerBase::getCurrentTick(){
@@ -285,18 +304,18 @@ long long HighResolutionTimerBase::getCurrentTick(){
 WaitResult HighResolutionTimerBase::IRQsetNextTransceiverInterrupt(long long tick){
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
-    
+    tick--;
     // 150 are enough to make sure that this routine ends and the timer IEN is enabled. 
     //NOTE: this is really dependent on compiler, optimization and other stuff
-    if(diff>150){
+    if(diff>200){
 	faseTransceiver=0;
-	unsigned short t1=static_cast<unsigned short>((tick & 0xFFFF)-1);
+	unsigned short t1=static_cast<unsigned short>(tick & 0xFFFF);
 	//ms32chkp[0] is going to store even the middle part, because we don't need to use TIMER3
 	ms32chkp[0] = tick & (upperMask | 0xFFFF0000);
 	TIMER2->CC[1].CCV = t1;
 
-	TIMER2->IFC = TIMER_IFC_CC1;
-	TIMER2->IEN |= TIMER_IEN_CC1;
+	enableCC1InterruptTim2(true);
+	diff=tick-IRQgetTick();
 	//0xFFFF because it's the roundtrip of timer
 	if(diff<=0xFFFF){
 	    TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
@@ -345,7 +364,7 @@ WaitResult HighResolutionTimerBase::IRQsetNextGPIOInterrupt(long long tick){
 	ms32chkp[2] = tick & (upperMask | 0xFFFF0000);
 	TIMER1->CC[2].CCV = t1;
 
-	setCCInterrupt2Tim1(true);
+	enableCC2InterruptTim1(true);
 	diff=tick-IRQgetTick();
 	//0xFFFF because it's the roundtrip of timer
 	if(diff<=0xFFFF){

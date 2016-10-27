@@ -57,8 +57,8 @@ bool TransceiverTimer::absoluteWaitTimeoutOrEvent(long long tick){
     }
     
     b.setModeTransceiverTimer(true);
-    b.setCCInterrupt0(false);
-    b.setCCInterrupt0Tim2(true);
+    b.enableCC0Interrupt(false);
+    b.enableCC0InterruptTim2(true);
     do {
         tWaiting=Thread::IRQgetCurrentThread();
         Thread::IRQwait();
@@ -73,6 +73,10 @@ bool TransceiverTimer::absoluteWaitTimeoutOrEvent(long long tick){
     }else{
 	return true;
     }
+}
+
+bool TransceiverTimer::waitTimeoutOrEvent(long long tick){
+    return absoluteWaitTimeoutOrEvent(b.getCurrentTick()+tick);
 }
 
 long long TransceiverTimer::tick2ns(long long tick){

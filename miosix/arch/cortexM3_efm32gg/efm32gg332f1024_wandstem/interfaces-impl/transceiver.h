@@ -34,6 +34,7 @@
 #include "power_manager.h"
 #include "spi.h"
 #include "rtc.h"
+#include "transceiver_timer.h"
 
 namespace miosix {
 

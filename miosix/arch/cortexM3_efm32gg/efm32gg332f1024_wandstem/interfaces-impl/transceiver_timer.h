@@ -14,8 +14,8 @@
 #include "high_resolution_timer_base.h"
 #include "timer_interface.h"
 
-#ifndef RADIO_TIMER_H
-#define RADIO_TIMER_H
+#ifndef TRANSCEIVER_TIMER_H
+#define TRANSCEIVER_TIMER_H
 
 namespace miosix{
     class TransceiverTimer : public HardwareTimer {
@@ -49,9 +49,10 @@ namespace miosix{
             HighResolutionTimerBase& b;
             TimeConversion tc;
     };
-}
+
+} //miosix namespace
 
 
 
-#endif /* RADIO_TIMER_H */
+#endif /* TRANSCEIVER_TIMER_H */
 

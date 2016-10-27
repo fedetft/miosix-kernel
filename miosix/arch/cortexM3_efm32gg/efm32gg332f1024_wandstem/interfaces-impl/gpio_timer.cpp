@@ -56,8 +56,8 @@ bool GPIOtimer::absoluteWaitTimeoutOrEvent(long long tick){
 	isInput=true;
     }
     b.cleanBufferGPIO();
-    b.setCCInterrupt2(false);
-    b.setCCInterrupt2Tim1(true);
+    b.enableCC2Interrupt(false);
+    b.enableCC2InterruptTim1(true);
     
     do {
         tWaitingGPIO=Thread::IRQgetCurrentThread();

@@ -72,11 +72,12 @@ public:
      */
     long long IRQgetCurrentTick();
     
-    void setCCInterrupt0(bool enable);
-    void setCCInterrupt1(bool enable);
-    void setCCInterrupt2(bool enable);
-    void setCCInterrupt2Tim1(bool enable);
-    void setCCInterrupt0Tim2(bool enable);
+    void enableCC0Interrupt(bool enable);
+    void enableCC1Interrupt(bool enable);
+    void enableCC2Interrupt(bool enable);
+    void enableCC2InterruptTim1(bool enable);
+    void enableCC0InterruptTim2(bool enable);
+    void enableCC1InterruptTim2(bool enable);
     void setModeGPIOTimer(bool input);
     void setModeTransceiverTimer(bool input);
     

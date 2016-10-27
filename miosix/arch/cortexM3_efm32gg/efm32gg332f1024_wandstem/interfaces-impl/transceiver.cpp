@@ -401,7 +401,7 @@ CC2520StatusBitmask Transceiver::commandStrobe(CC2520Command cmd)
 
 Transceiver::Transceiver()
     : pm(PowerManager::instance()), spi(Spi::instance()),
-      timer(getTransceiverTimer()), state(CC2520State::DEEPSLEEP),
+      timer(Rtc::instance()), state(CC2520State::DEEPSLEEP),
       waiting(nullptr)
 {
     registerGpioIrq(internalSpi::miso::getPin(),GpioIrqEdge::RISING,

@@ -28,8 +28,8 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef TIMER_H
-#define TIMER_H
+#ifndef RTC_H
+#define RTC_H
 
 #include "timer_interface.h"
 #include <kernel/timeconversion.h>
@@ -158,14 +158,6 @@ private:
     TimeConversion tc; ///< Class for converting from nanoseconds to ticks
 };
 
-/**
- * \return the timer used by the transceiver
- */
-inline HardwareTimer& getTransceiverTimer()
-{
-    return Rtc::instance();
-}
-
 } //namespace miosix
 
-#endif //TIMER_H
+#endif //RTC_H

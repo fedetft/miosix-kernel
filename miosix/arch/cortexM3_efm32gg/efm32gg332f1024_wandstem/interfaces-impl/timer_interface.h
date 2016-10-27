@@ -11,8 +11,8 @@
  * Created on October 17, 2016, 10:27 AM
  */
 
-#ifndef TIMERINTERFACE_H
-#define TIMERINTERFACE_H
+#ifndef TIMER_INTERFACE_H
+#define TIMER_INTERFACE_H
 
 #include <kernel/timeconversion.h>
 
@@ -113,5 +113,5 @@ namespace miosix {
     };
 }
 
-#endif /* TIMERINTERFACE_H */
+#endif /* TIMER_INTERFACE_H */
 
