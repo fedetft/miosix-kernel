@@ -191,14 +191,24 @@ void __attribute__((used)) cstirqhnd2(){
 	}
 	interruptTransceiverTimerRoutine();
     }
+    
     //CC1 for output/trigger the sending packet event
     if ((TIMER2->IEN & TIMER_IEN_CC1) && (TIMER2->IF & TIMER_IF_CC1) ){
-	TIMER2->IEN &= ~ TIMER_IEN_CC1;
 	TIMER2->IFC = TIMER_IFC_CC1;
-	 
-	TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_CLEAR;
-	TIMER2->CC[1].CCV = static_cast<unsigned short>(TIMER2->CNT+10);//static_cast<unsigned int>(tick & 0xFFFF);
-	interruptTransceiverTimerRoutine();
+	if(faseTransceiver==0){
+	    //get nextInterrupt
+	    long long t=ms32chkp[0]|TIMER2->CC[1].CCV;
+	    long long diff=t-IRQgetTick();
+	    if(diff<=0xFFFF){
+		TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
+		faseTransceiver=1;
+	    }
+	}else{
+	    TIMER2->IEN &= ~TIMER_IEN_CC1;
+	    TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_CLEAR;
+	    TIMER2->CC[1].CCV = static_cast<unsigned short>(TIMER2->CNT+10);
+	    interruptTransceiverTimerRoutine();
+	}
     }
 }
 
@@ -413,8 +423,6 @@ void HighResolutionTimerBase::cleanBufferGPIO(){
 }
 
 void HighResolutionTimerBase::setModeTransceiverTimer(){
-    
-    
     //For input capture feature:
 	//Connect TIMER2->CC0 to pin PA8
 	TIMER2->ROUTE |= TIMER_ROUTE_CC0PEN

@@ -55,7 +55,6 @@ bool TransceiverTimer::absoluteWaitTimeoutOrEvent(long long tick){
 	return true;
     }
     
-    
     b.enableCC0Interrupt(false);
     b.enableCC0InterruptTim2(true);
     do {

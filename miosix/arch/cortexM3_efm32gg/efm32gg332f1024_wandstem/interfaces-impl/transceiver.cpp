@@ -298,7 +298,7 @@ void Transceiver::sendAt(const void* pkt, int size, long long when)
     //while the cc2520 requires the turnaround from STXON to sending
     if(timer.absoluteWaitTrigger(when-timer.ns2tick(turnaround))==true)
     {
-        //See diagram on page 69 of datasheet
+	//See diagram on page 69 of datasheet
         commandStrobe(CC2520Command::SFLUSHTX);
         throw runtime_error("Transceiver::sendAt too late to send");
     }
