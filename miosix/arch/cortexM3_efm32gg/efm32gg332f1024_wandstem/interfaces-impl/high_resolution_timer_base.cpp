@@ -87,19 +87,6 @@ inline void interruptGPIOTimerRoutine(){
  * FIXME: The following codition could be always true, they aren't exclusive
  */
 inline void interruptTransceiverTimerRoutine(){
-    if(TIMER2->CC[1].CTRL & TIMER_CC_CTRL_MODE_OUTPUTCOMPARE){
-	TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_CLEAR;
-	TIMER2->CC[1].CCV = static_cast<unsigned short>(TIMER2->CNT+10);//static_cast<unsigned int>(tick & 0xFFFF);
-    }else if(TIMER1->CC[0].CTRL & TIMER_CC_CTRL_MODE_INPUTCAPTURE){
-	ms32chkp[0]=ms32time;
-	//really in the past, the overflow of TIMER3 is occurred but the timer wasn't updated
-	long long a=ms32chkp[0] | TIMER3->CC[0].CCV<<16 | TIMER1->CC[0].CCV;;
-	long long c=IRQgetTick();
-	if(a-c< -48000000){ 
-	    ms32chkp[0]+=overflowIncrement;
-	}
-    }
-    
     //Reactivating the thread that is waiting for the event.
     if(TransceiverTimer::tWaiting){
 	TransceiverTimer::tWaiting->IRQwakeup();
@@ -190,17 +177,28 @@ void __attribute__((used)) cstirqhnd3(){
 
 
 void __attribute__((used)) cstirqhnd2(){
-    //CC0 listening for received packet 
+    //CC0 listening for received packet --> input mode
     if ((TIMER2->IEN & TIMER_IEN_CC0) && (TIMER2->IF & TIMER_IF_CC0) ){
-	 TIMER2->IEN &= ~ TIMER_IEN_CC0;
-	 TIMER2->IFC = TIMER_IFC_CC0;
-	 interruptTransceiverTimerRoutine();
+	TIMER2->IEN &= ~ TIMER_IEN_CC0;
+	TIMER2->IFC = TIMER_IFC_CC0;
+	
+	ms32chkp[0]=ms32time;
+	//really in the past, the overflow of TIMER3 is occurred but the timer wasn't updated
+	long long a=ms32chkp[0] | TIMER3->CC[0].CCV<<16 | TIMER2->CC[0].CCV;;
+	long long c=IRQgetTick();
+	if(a-c< -48000000){ 
+	    ms32chkp[0]+=overflowIncrement;
+	}
+	interruptTransceiverTimerRoutine();
     }
     //CC1 for output/trigger the sending packet event
     if ((TIMER2->IEN & TIMER_IEN_CC1) && (TIMER2->IF & TIMER_IF_CC1) ){
-	 TIMER2->IEN &= ~ TIMER_IEN_CC1;
-	 TIMER2->IFC = TIMER_IFC_CC1;
-	 interruptTransceiverTimerRoutine();
+	TIMER2->IEN &= ~ TIMER_IEN_CC1;
+	TIMER2->IFC = TIMER_IFC_CC1;
+	 
+	TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_CLEAR;
+	TIMER2->CC[1].CCV = static_cast<unsigned short>(TIMER2->CNT+10);//static_cast<unsigned int>(tick & 0xFFFF);
+	interruptTransceiverTimerRoutine();
     }
 }
 
@@ -414,13 +412,13 @@ void HighResolutionTimerBase::cleanBufferGPIO(){
     falseRead(&TIMER1->CC[2].CCV);
 }
 
-void HighResolutionTimerBase::setModeTransceiverTimer(bool input){
-    //Connect TIMER2->CC0/1 to pin PA8 and PA9
-    TIMER2->ROUTE = TIMER_ROUTE_CC0PEN
-		| TIMER_ROUTE_CC1PEN
-		| TIMER_ROUTE_LOCATION_LOC0;
+void HighResolutionTimerBase::setModeTransceiverTimer(){
     
-    if(input){
+    
+    //For input capture feature:
+	//Connect TIMER2->CC0 to pin PA8
+	TIMER2->ROUTE |= TIMER_ROUTE_CC0PEN
+		| TIMER_ROUTE_LOCATION_LOC0;	
 	//Gpio<GPIOA_BASE,8>  excChB;
 	//Configuro la modalità input
 	TIMER2->CC[0].CTRL = TIMER_CC_CTRL_MODE_INPUTCAPTURE |
@@ -437,10 +435,13 @@ void HighResolutionTimerBase::setModeTransceiverTimer(bool input){
 			|   TIMER_CC_CTRL_INSEL_PRS
 			|   TIMER_CC_CTRL_ICEDGE_RISING
 			|   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
-    }else{ // Gpio<GPIOA_BASE,9>  stxon
+    
+    //For output capture feature // Gpio<GPIOA_BASE,9>  stxon
+	//Connect TIMER2->CC1 to pin PA9
+	TIMER2->ROUTE |= TIMER_ROUTE_CC1PEN
+		| TIMER_ROUTE_LOCATION_LOC0;
 	TIMER2->CC[1].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
         TIMER3->CC[1].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE; 
-    }
 }
 
 HighResolutionTimerBase& HighResolutionTimerBase::instance(){
@@ -488,11 +489,14 @@ HighResolutionTimerBase::HighResolutionTimerBase() {
     TIMER3->CC[1].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
 
     NVIC_SetPriority(TIMER1_IRQn,3);
+    NVIC_SetPriority(TIMER2_IRQn,3);
     NVIC_SetPriority(TIMER3_IRQn,3);
-    NVIC_ClearPendingIRQ(TIMER3_IRQn);
     NVIC_ClearPendingIRQ(TIMER1_IRQn);
-    NVIC_EnableIRQ(TIMER3_IRQn);
+    NVIC_ClearPendingIRQ(TIMER2_IRQn);
+    NVIC_ClearPendingIRQ(TIMER3_IRQn);
     NVIC_EnableIRQ(TIMER1_IRQn);
+    NVIC_EnableIRQ(TIMER2_IRQn);
+    NVIC_EnableIRQ(TIMER3_IRQn);
     
     timerFreq=48000000;
     tc=new TimeConversion(timerFreq);

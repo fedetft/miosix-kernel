@@ -79,7 +79,7 @@ public:
     void enableCC0InterruptTim2(bool enable);
     void enableCC1InterruptTim2(bool enable);
     void setModeGPIOTimer(bool input);
-    void setModeTransceiverTimer(bool input);
+    void setModeTransceiverTimer();
     
     virtual ~HighResolutionTimerBase();
     

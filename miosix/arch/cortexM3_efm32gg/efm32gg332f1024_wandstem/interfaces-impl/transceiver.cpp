@@ -401,7 +401,7 @@ CC2520StatusBitmask Transceiver::commandStrobe(CC2520Command cmd)
 
 Transceiver::Transceiver()
     : pm(PowerManager::instance()), spi(Spi::instance()),
-      timer(Rtc::instance()), state(CC2520State::DEEPSLEEP),
+      timer(TransceiverTimer::instance()), state(CC2520State::DEEPSLEEP),
       waiting(nullptr)
 {
     registerGpioIrq(internalSpi::miso::getPin(),GpioIrqEdge::RISING,
@@ -484,6 +484,7 @@ void Transceiver::handlePacketTransmissionEvents(int size)
         idle();
         throw runtime_error("Transceiver::handlePacketTransmissionEvents timeout 1");
     }
+    
     unsigned int exc=getExceptions(0b111);
     if(exc & CC2520Exception::SFD)
     {
