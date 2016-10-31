@@ -22,8 +22,7 @@ namespace miosix {
     
     class GPIOtimer : public HardwareTimer{    
     public:
-        static Thread *tWaitingGPIO;
-        static long long aux1;
+        static Thread *tWaiting;
         
         long long getValue() const;
         

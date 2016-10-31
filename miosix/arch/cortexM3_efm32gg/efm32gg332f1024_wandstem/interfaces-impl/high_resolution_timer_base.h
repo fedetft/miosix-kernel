@@ -51,14 +51,16 @@ public:
      * \return the time when the next interrupt will be fired.
      * That is, the last value passed to setNextInterrupt().
      */
-    long long IRQgetSetTimeCCV0() const;
-    long long IRQgetSetTimeCCV1() const;
-    long long IRQgetSetTimeCCV2() const;
+    long long IRQgetSetTimeTransceiver() const;
+    long long IRQgetSetTimeCS() const;
+    long long IRQgetSetTimeGPIO() const;
     
     /*
-     * Clean buffer in TIMER used by GPIOTimer
+     * Clean buffer in TIMER used by GPIOTimer, necessary when input capture mode is enabled
      */
     void cleanBufferGPIO();
+    void cleanBufferTrasceiver();
+    
     /**
      * Could be call both when the interrupts are enabled/disabled!
      * TODO: investigate if it's possible to remove the possibility to call
@@ -78,6 +80,14 @@ public:
     void enableCC2InterruptTim1(bool enable);
     void enableCC0InterruptTim2(bool enable);
     void enableCC1InterruptTim2(bool enable);
+    
+    /**
+     * Function to prepare the timers to works in a given mode. For Transceiver,
+     * it use 2 different low channel, so we can set both of them at the 
+     * beginning of our code.
+     * @param input true to set the input/capture mode, false to set the output 
+     * mode
+     */
     void setModeGPIOTimer(bool input);
     void setModeTransceiverTimer();
     

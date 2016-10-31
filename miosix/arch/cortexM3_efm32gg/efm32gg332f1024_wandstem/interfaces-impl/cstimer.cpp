@@ -19,7 +19,7 @@ namespace miosix {
     }
     
     long long ContextSwitchTimer::getNextInterrupt() const{
-         return tc->tick2ns(pImpl->b.IRQgetSetTimeCCV1());
+        return tc->tick2ns(pImpl->b.IRQgetSetTimeCS());
     }
     
     long long ContextSwitchTimer::getCurrentTime() const{

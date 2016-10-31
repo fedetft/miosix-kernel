@@ -54,7 +54,7 @@ bool TransceiverTimer::absoluteWaitTimeoutOrEvent(long long tick){
     if(tick<b.getCurrentTick()){
 	return true;
     }
-    
+    b.cleanBufferTrasceiver();
     b.enableCC0Interrupt(false);
     b.enableCC0InterruptTim2(true);
     do {
@@ -91,7 +91,7 @@ unsigned int TransceiverTimer::getTickFrequency() const{
 
 	    
 long long TransceiverTimer::getExtEventTimestamp() const{
-    return b.IRQgetSetTimeCCV0();
+    return b.IRQgetSetTimeTransceiver();
 }
 	    
 TransceiverTimer::TransceiverTimer():b(HighResolutionTimerBase::instance()),tc(b.getTimerFrequency()) {

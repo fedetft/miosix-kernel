@@ -14,7 +14,7 @@
 
 using namespace miosix;
 
-Thread* GPIOtimer::tWaitingGPIO=nullptr;
+Thread* GPIOtimer::tWaiting=nullptr;
 
 long long GPIOtimer::getValue() const{
     return b.getCurrentTick();
@@ -42,7 +42,7 @@ bool GPIOtimer::getMode(){
 
 //NOTE: Think about how to set the right ms32chkp related to the captured timestamp
 long long GPIOtimer::getExtEventTimestamp() const{
-    return b.IRQgetSetTimeCCV2();
+    return b.IRQgetSetTimeGPIO();
 }
 
 bool GPIOtimer::absoluteWaitTimeoutOrEvent(long long tick){
@@ -60,15 +60,15 @@ bool GPIOtimer::absoluteWaitTimeoutOrEvent(long long tick){
     b.enableCC2InterruptTim1(true);
     
     do {
-        tWaitingGPIO=Thread::IRQgetCurrentThread();
+        tWaiting=Thread::IRQgetCurrentThread();
         Thread::IRQwait();
         {
             FastInterruptEnableLock eLock(dLock);
 	    Thread::yield();
         }
-    } while(tWaitingGPIO && tick>b.getCurrentTick());
+    } while(tWaiting && tick>b.getCurrentTick());
     
-    if(tWaitingGPIO==nullptr){
+    if(tWaiting==nullptr){
 	return false;
     }else{
 	return true;
@@ -118,13 +118,13 @@ bool GPIOtimer::absoluteSyncWaitTrigger(long long tick){
 	}
 	expansion::gpio1::low();
 	do {
-	    tWaitingGPIO=Thread::IRQgetCurrentThread();
+	    tWaiting=Thread::IRQgetCurrentThread();
 	    Thread::IRQwait();
 	    {
 		FastInterruptEnableLock eLock(dLock);
 		Thread::yield();
 	    }
-	} while(tWaitingGPIO && tick>b.getCurrentTick());
+	} while(tWaiting && tick>b.getCurrentTick());
     }
     return false;
 }
@@ -141,7 +141,6 @@ long long GPIOtimer::ns2tick(long long ns){
     return tc.ns2tick(ns);
 }
 
-long long GPIOtimer::aux1=0;
 GPIOtimer::~GPIOtimer() {}
 
 GPIOtimer& GPIOtimer::instance(){

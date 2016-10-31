@@ -74,11 +74,11 @@ inline void interruptGPIOTimerRoutine(){
 	}
     }
     //Reactivating the thread that is waiting for the event.
-    if(GPIOtimer::tWaitingGPIO){
-	GPIOtimer::tWaitingGPIO->IRQwakeup();
-	if(GPIOtimer::tWaitingGPIO->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+    if(GPIOtimer::tWaiting){
+	GPIOtimer::tWaiting->IRQwakeup();
+	if(GPIOtimer::tWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
 	    Scheduler::IRQfindNextThread();
-	GPIOtimer::tWaitingGPIO=nullptr;
+	GPIOtimer::tWaiting=nullptr;
     }
     
 }
@@ -240,13 +240,13 @@ void __attribute__((used)) cstirqhnd1(){
     }
 }
 
-long long HighResolutionTimerBase::IRQgetSetTimeCCV0() const{
-    return ms32chkp[0] | TIMER3->CC[0].CCV<<16 | TIMER1->CC[0].CCV;
+long long HighResolutionTimerBase::IRQgetSetTimeTransceiver() const{
+    return ms32chkp[0] | TIMER3->CC[0].CCV<<16 | TIMER2->CC[0].CCV;
 }
-long long HighResolutionTimerBase::IRQgetSetTimeCCV1() const{
+long long HighResolutionTimerBase::IRQgetSetTimeCS() const{
     return ms32chkp[1] | TIMER3->CC[1].CCV<<16 | TIMER1->CC[1].CCV;
 }
-long long HighResolutionTimerBase::IRQgetSetTimeCCV2() const{
+long long HighResolutionTimerBase::IRQgetSetTimeGPIO() const{
     return ms32chkp[2] | TIMER3->CC[2].CCV<<16 | TIMER1->CC[2].CCV;
 }
 
@@ -420,6 +420,13 @@ void HighResolutionTimerBase::cleanBufferGPIO(){
     falseRead(&TIMER1->CC[2].CCV);
     falseRead(&TIMER3->CC[2].CCV);
     falseRead(&TIMER1->CC[2].CCV);
+}
+
+void HighResolutionTimerBase::cleanBufferTrasceiver(){
+    falseRead(&TIMER3->CC[0].CCV);
+    falseRead(&TIMER2->CC[0].CCV);
+    falseRead(&TIMER3->CC[0].CCV);
+    falseRead(&TIMER2->CC[0].CCV);
 }
 
 void HighResolutionTimerBase::setModeTransceiverTimer(){
