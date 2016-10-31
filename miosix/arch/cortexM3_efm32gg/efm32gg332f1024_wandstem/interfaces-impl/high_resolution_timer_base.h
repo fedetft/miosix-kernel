@@ -1,15 +1,29 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
-/* 
- * File:   high_resolution_timer_base.h
- * Author: fabiuz
- *
- * Created on September 27, 2016, 2:20 AM
- */
+/***************************************************************************
+ *   Copyright (C) 2016 by Fabiano Riccardi                                *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   As a special exception, if other files instantiate templates or use   *
+ *   macros or inline functions from this file, or you compile this file   *
+ *   and link it with other works to produce a work based on this file,    *
+ *   this file does not by itself cause the resulting work to be covered   *
+ *   by the GNU General Public License. However the source code for this   *
+ *   file must still be made available in accordance with the GNU General  *
+ *   Public License. This exception does not invalidate any other reasons  *
+ *   why a work based on this file might be covered by the GNU General     *
+ *   Public License.                                                       *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
+ ***************************************************************************/
 
 #include "miosix.h"
 
@@ -44,19 +58,21 @@ public:
      * \param tick the time when the interrupt will be fired, in timer ticks
      */
     WaitResult IRQsetNextTransceiverInterrupt(long long tick);
-    void IRQsetNextInterrupt1(long long tick);
+    void IRQsetNextInterruptCS(long long tick);
     WaitResult IRQsetNextGPIOInterrupt(long long tick);
     
     /**
      * \return the time when the next interrupt will be fired.
-     * That is, the last value passed to setNextInterrupt().
+     * That is, the last value passed to setNextInterrupt(), or the value
+     * captured in input mode.
      */
     long long IRQgetSetTimeTransceiver() const;
     long long IRQgetSetTimeCS() const;
     long long IRQgetSetTimeGPIO() const;
     
     /*
-     * Clean buffer in TIMER used by GPIOTimer, necessary when input capture mode is enabled
+     * Clean buffer in TIMER used by GPIOTimer, necessary when input capture 
+     * mode is enabled
      */
     void cleanBufferGPIO();
     void cleanBufferTrasceiver();
@@ -85,7 +101,7 @@ public:
      * Function to prepare the timers to works in a given mode. For Transceiver,
      * it use 2 different low channel, so we can set both of them at the 
      * beginning of our code.
-     * @param input true to set the input/capture mode, false to set the output 
+     * \param input true to set the input/capture mode, false to set the output 
      * mode
      */
     void setModeGPIOTimer(bool input);
