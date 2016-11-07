@@ -57,11 +57,11 @@ class Thread; //Forward declaration
  */
 #define REALTIME_PRIORITY_NEXT_BURST 2
 /**
- * REALTIME_PRIORITY_NEXT_ROUND: The processor control is transfered to the thread
- * in the next round and the thread is delayed until all remaining active threads
- * are run.
+ * REALTIME_PRIORITY_END_OF_ROUND: The processor control is transfered to the 
+ * thread in the end of the round and the thread is delayed until all remaining 
+ * active threads are run.
  */
-#define REALTIME_PRIORITY_NEXT_ROUND 3
+#define REALTIME_PRIORITY_END_OF_ROUND 3
 
 /**
  * This class models the concept of priority for the control based scheduler.
@@ -79,7 +79,7 @@ public:
      * \param priority the desired priority value.
      */
     ControlSchedulerPriority(short int priority): priority(priority), 
-            realtime(REALTIME_PRIORITY_NEXT_ROUND) {}
+            realtime(REALTIME_PRIORITY_END_OF_ROUND) {}
     
     ControlSchedulerPriority(short int priority, short int realtime):
             priority(priority),realtime(realtime){}
@@ -105,6 +105,18 @@ public:
         return this->priority>=0 && this->priority<PRIORITY_MAX && 
                 this->realtime >=1 && this->realtime<=3;
     }
+    
+    /**
+     * This function acts like a less-than operator but should be only used in
+     * synchronization module for priority inheritance. The concept of priority
+     * for preemption is not exactly the same for priority inheritance, hence,
+     * this operation is a branch out of preemption priority for inheritance
+     * purpose.
+     * @return 
+     */
+    inline bool mutexLessOp(ControlSchedulerPriority b){
+        return false;
+    }
 
 private:
     short int priority;///< The priority value
@@ -113,32 +125,21 @@ private:
 
 inline bool operator <(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
-    return a.getRealtime() < b.getRealtime();
+    return b.getRealtime() == 1 && a.getRealtime() != 1;
 }
 
-inline bool operator <=(ControlSchedulerPriority a, ControlSchedulerPriority b)
-{
-    return a.get() <= b.get();
-}
-
-inline bool operator >(ControlSchedulerPriority a, ControlSchedulerPriority b)
-{
-    return a.get() > b.get();
-}
-
-inline bool operator >=(ControlSchedulerPriority a, ControlSchedulerPriority b)
-{
-    return a.get() >= b.get();
+inline bool operator>(ControlSchedulerPriority a, ControlSchedulerPriority b){
+    return a.getRealtime() == 1 && b.getRealtime() != 1;
 }
 
 inline bool operator ==(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
-    return a.get() == b.get();
+    return a.getRealtime() == b.getRealtime();
 }
 
 inline bool operator !=(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
-    return a.get() != b.get();
+    return a.getRealtime() != b.getRealtime();
 }
 
 struct ThreadsListItem : public IntrusiveListItem

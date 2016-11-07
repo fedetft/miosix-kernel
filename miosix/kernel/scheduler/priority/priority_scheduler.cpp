@@ -37,8 +37,11 @@ namespace miosix {
 //These are defined in kernel.cpp
 extern volatile Thread *cur;
 extern volatile int kernel_running;
-static ContextSwitchTimer& timer = ContextSwitchTimer::instance();
 extern IntrusiveList<SleepData> *sleepingList;
+
+//Internal data
+static ContextSwitchTimer& timer = ContextSwitchTimer::instance();
+static long long nextPeriodicPreemption = std::numeric_limits<long long>::max();
 
 //
 // class PriorityScheduler
@@ -200,16 +203,23 @@ void PriorityScheduler::IRQsetIdleThread(Thread *idleThread)
     idle=idleThread;
 }
 
-static void setNextPreemption(bool curIsIdleThread){
+long long PriorityScheduler::IRQgetNextPreemption()
+{
+    return nextPeriodicPreemption;
+}
+
+static void IRQsetNextPreemption(bool curIsIdleThread){
     long long firstWakeupInList;
     if (sleepingList->empty())
         firstWakeupInList = std::numeric_limits<long long>::max();
     else
         firstWakeupInList = sleepingList->front()->wakeup_time;
+    
     if (curIsIdleThread){
         timer.IRQsetNextInterrupt(firstWakeupInList);
+        nextPeriodicPreemption = std::numeric_limits<long long>::max();
     }else{
-        long long nextPeriodicPreemption = timer.IRQgetCurrentTime() + preemptionPeriodNs;   
+        nextPeriodicPreemption = timer.IRQgetCurrentTime() + preemptionPeriodNs;   
         if (firstWakeupInList < nextPeriodicPreemption )
             timer.IRQsetNextInterrupt(firstWakeupInList);
         else
@@ -246,7 +256,7 @@ unsigned int PriorityScheduler::IRQfindNextThread()
                 //Rotate to next thread so that next time the list is walked
                 //a different thread, if available, will be chosen first
                 thread_list[i]=temp;
-                setNextPreemption(false);
+                IRQsetNextPreemption(false);
                 return preemptionPeriodNs;
             } else temp=temp->schedData.next;
             if(temp==thread_list[i]->schedData.next) break;
@@ -258,7 +268,7 @@ unsigned int PriorityScheduler::IRQfindNextThread()
     #ifdef WITH_PROCESSES
     MPUConfiguration::IRQdisable();
     #endif //WITH_PROCESSES
-    setNextPreemption(true);
+    IRQsetNextPreemption(true);
     return preemptionPeriodNs;
 }
 

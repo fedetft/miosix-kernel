@@ -272,7 +272,8 @@ void IRQaddToSleepingList(SleepData *x)
         while (it != sleepingList->end() && (*it)->wakeup_time < x->wakeup_time ) ++it;
         sleepingList->insert(it,x);
     }
-    //firstSleepItemTicks = tc->ns2tick(sleepingList->front()->wakeup_time);
+    //if (sleepingList->front()->wakeup_time < ContextSwitchTimer::instance().IRQgetCurrentTime())
+    //    ContextSwitchTimer::instance().IRQsetNextInterrupt(sleepingList->front()->wakeup_time);
 }
 
 /**
@@ -281,7 +282,7 @@ void IRQaddToSleepingList(SleepData *x)
  * Also increases the system tick.
  * Takes care of clearing SLEEP_FLAG.
  * It is used by the kernel, and should not be used by end users.
- * \return true if some thread was woken.
+ * \return true if some thread with higher priority of current thread is woken.
  */
 bool IRQwakeThreads(long long currentTick)
 {
@@ -298,14 +299,12 @@ bool IRQwakeThreads(long long currentTick)
         if((*it)->p == nullptr) ++it; //Only csRecord has p==nullptr
         else {
             (*it)->p->flags.IRQsetSleep(false); //Wake thread
+            if (const_cast<Thread*>(cur)->getPriority() < (*it)->p->getPriority())
+                result = true;
             it = sleepingList->erase(it);
-            result = true;
+            
         }
     }
-//    if(sleepingList->empty()) 
-//        firstSleepItemTicks = std::numeric_limits<long long>::max();
-//    else
-//        firstSleepItemTicks = tc->ns2tick(sleepingList->front()->wakeup_time);
     return result;
 }
 
@@ -394,8 +393,12 @@ void Thread::nanoSleepUntil(long long absoluteTime)
         d.wakeup_time = absoluteTime;
         IRQaddToSleepingList(&d);//Also sets SLEEP_FLAG
     }
+    // NOTE: There is no need to synchronize the timer (calling IRQsetNextInterrupt)
+    // with the list at this point. Because, Thread::yield will make a supervisor
+    // call and subsequently it will call the IRQfindNextThread. IRQfindNextThread
+    // keeps the timer synchronized with the sleeping list head and beginning of
+    // next burst time. (see ISR_yield() in portability.cpp
     Thread::yield();
-    
 }
 
 void Thread::sleep(unsigned int ms)

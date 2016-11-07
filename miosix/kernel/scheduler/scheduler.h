@@ -169,7 +169,17 @@ public:
     {
         return T::IRQfindNextThread();
     }
-
+    
+    /**
+     * It returns the next preemption to be caused by the scheduler
+     * i.e. the beginning of the next burst.
+     * At the beginning, when no burst exists it returns
+     * numeric_limits<long long>::max().
+     */
+    static long long IRQgetNextPreemption()
+    {
+        return T::IRQgetNextPreemption();
+    }
 };
 
 #ifdef SCHED_TYPE_PRIORITY

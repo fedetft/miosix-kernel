@@ -139,6 +139,8 @@ public:
      * \return the burst time
      */
     static unsigned int IRQfindNextThread();
+    
+    static long long IRQgetNextPreemption();
 
 private:
 

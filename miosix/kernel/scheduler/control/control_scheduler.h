@@ -146,6 +146,8 @@ public:
      * points to the currently running thread.
      */
     static unsigned int IRQfindNextThread();
+    
+    static long long IRQgetNextPreemption();
 
 private:
     

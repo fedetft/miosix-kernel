@@ -48,9 +48,12 @@ extern bool IRQwakeThreads(long long currentTick);///\internal Do not use outsid
 inline void IRQtimerInterrupt(long long currentTick)
 {
     miosix_private::IRQstackOverflowCheck();
-    IRQwakeThreads(currentTick);
+    bool hptw = IRQwakeThreads(currentTick);
+    if (currentTick >= Scheduler::IRQgetNextPreemption() || hptw ){
+        //End of the burst || a higher priority thread has woken up
+        Scheduler::IRQfindNextThread();//If the kernel is running, preempt
+    }
     
-    Scheduler::IRQfindNextThread();//If the kernel is running, preempt
     if(kernel_running!=0) tick_skew=true;
     
     #ifndef SCHED_TYPE_PRIORITY
@@ -59,7 +62,7 @@ inline void IRQtimerInterrupt(long long currentTick)
     //Now we can have no periodic preemption, and so if we are called (and EDF
     //is selected), at least one thread has woken up, so there's no need for woken
     //Modify the code below accordingly
-    #error "FIXME"
+    //#error "FIXME"
     #endif
 
 //    miosix_private::IRQstackOverflowCheck();

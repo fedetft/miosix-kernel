@@ -172,7 +172,7 @@ static inline bool IRQdoMutexUnlock(pthread_mutex_t *mutex)
         mutex->first=mutex->first->next;
 
         #ifndef SCHED_TYPE_EDF
-        if(t->IRQgetPriority() >Thread::IRQgetCurrentThread()->IRQgetPriority())
+        if(Thread::IRQgetCurrentThread()->IRQgetPriority() < t->IRQgetPriority())
             return true;
         #endif //SCHED_TYPE_EDF
         return false;

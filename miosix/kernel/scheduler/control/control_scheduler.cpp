@@ -49,6 +49,7 @@ static ContextSwitchTimer& timer = ContextSwitchTimer::instance();
 static long long burstStart = 0;
 static IntrusiveList<ThreadsListItem> activeThreads;
 static IntrusiveList<ThreadsListItem>::iterator curInRound = activeThreads.end();
+static long long nextPreemption = numeric_limits<long long>::max();
 
 //
 // class ControlScheduler
@@ -191,28 +192,30 @@ Thread *ControlScheduler::IRQgetIdleThread()
     return idle;
 }
 
+long long ControlScheduler::IRQgetNextPreemption()
+{
+    return nextPreemption;
+}
+
 // Should be called when the current thread is the idle thread
 static inline void IRQsetNextPreemptionForIdle(){
     if (sleepingList->empty())
-        timer.IRQsetNextInterrupt(numeric_limits<long long>::max());
+        nextPreemption = numeric_limits<long long>::max();
     else
-        timer.IRQsetNextInterrupt(sleepingList->front()->wakeup_time);
+        nextPreemption = sleepingList->front()->wakeup_time;
+    timer.IRQsetNextInterrupt(nextPreemption);
 }
 
 // Should be called for threads other than idle thread
 static inline void IRQsetNextPreemption(long long burst){
     long long firstWakeupInList;
-    long long nextPreemption;
     if (sleepingList->empty())
         firstWakeupInList = numeric_limits<long long>::max();
     else
         firstWakeupInList = sleepingList->front()->wakeup_time;
     burstStart = timer.IRQgetCurrentTime();
-    nextPreemption = burstStart + burst;
-    if (firstWakeupInList < nextPreemption)
-        timer.IRQsetNextInterrupt(firstWakeupInList);
-    else
-        timer.IRQsetNextInterrupt(nextPreemption);
+    nextPreemption = min(firstWakeupInList,burstStart + burst);
+    timer.IRQsetNextInterrupt(nextPreemption);
 }
 
 unsigned int ControlScheduler::IRQfindNextThread()

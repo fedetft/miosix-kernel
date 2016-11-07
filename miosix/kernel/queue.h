@@ -277,8 +277,8 @@ bool Queue<T,len>::IRQget(T& elem)
 template <typename T, unsigned int len>
 bool Queue<T,len>::IRQget(T& elem, bool& hppw)
 {
-    if(waiting && (waiting->IRQgetPriority() >
-            Thread::IRQgetCurrentThread()->IRQgetPriority())) hppw=true;
+    if(waiting && (Thread::IRQgetCurrentThread()->IRQgetPriority()) < 
+            waiting->IRQgetPriority()) hppw=true;
     IRQwakeWaitingThread();
     if(isEmpty()) return false;
     numElem--;
@@ -301,8 +301,8 @@ bool Queue<T,len>::IRQput(const T& elem)
 template <typename T, unsigned int len>
 bool Queue<T,len>::IRQput(const T& elem, bool& hppw)
 {
-    if(waiting && (waiting->IRQgetPriority() >
-            Thread::IRQgetCurrentThread()->IRQgetPriority())) hppw=true;
+    if(waiting && (Thread::IRQgetCurrentThread()->IRQgetPriority() <
+            waiting->IRQgetPriority())) hppw=true;
     IRQwakeWaitingThread();
     if(isFull()) return false;
     numElem++;
