@@ -215,16 +215,12 @@ static void IRQsetNextPreemption(bool curIsIdleThread){
     else
         firstWakeupInList = sleepingList->front()->wakeup_time;
     
-    if (curIsIdleThread){
-        timer.IRQsetNextInterrupt(firstWakeupInList);
-        nextPeriodicPreemption = std::numeric_limits<long long>::max();
-    }else{
-        nextPeriodicPreemption = timer.IRQgetCurrentTime() + preemptionPeriodNs;   
-        if (firstWakeupInList < nextPeriodicPreemption )
-            timer.IRQsetNextInterrupt(firstWakeupInList);
-        else
-            timer.IRQsetNextInterrupt(nextPeriodicPreemption);
-    }
+    if (curIsIdleThread)
+        nextPeriodicPreemption = firstWakeupInList;
+    else
+        nextPeriodicPreemption = std::min(firstWakeupInList, timer.IRQgetCurrentTime() + preemptionPeriodNs);
+    
+    timer.IRQsetNextInterrupt(nextPeriodicPreemption);
 }
 
 unsigned int PriorityScheduler::IRQfindNextThread()
