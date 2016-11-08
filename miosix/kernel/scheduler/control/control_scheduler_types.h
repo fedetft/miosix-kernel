@@ -125,21 +125,23 @@ private:
 
 inline bool operator <(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
-    return b.getRealtime() == 1 && a.getRealtime() != 1;
+    return (b.getRealtime() == 1 && a.getRealtime() != 1) ||
+            (a.getRealtime() != 1 && b.getRealtime() != 1 && a.get() < b.get());
 }
 
 inline bool operator>(ControlSchedulerPriority a, ControlSchedulerPriority b){
-    return a.getRealtime() == 1 && b.getRealtime() != 1;
+    return (a.getRealtime() == 1 && b.getRealtime() != 1) ||
+            (a.getRealtime() != 1 && b.getRealtime() != 1 && a.get() > b.get());
 }
 
 inline bool operator ==(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
-    return a.getRealtime() == b.getRealtime();
+    return (a.getRealtime() == b.getRealtime()) && (a.get() == b.get());
 }
 
 inline bool operator !=(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
-    return a.getRealtime() != b.getRealtime();
+    return (a.getRealtime() != b.getRealtime()) || (a.get()!= b.get());
 }
 
 struct ThreadsListItem : public IntrusiveListItem
