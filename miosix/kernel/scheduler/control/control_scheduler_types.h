@@ -125,13 +125,15 @@ private:
 
 inline bool operator <(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
-    return (b.getRealtime() == 1 && a.getRealtime() != 1) ||
-            (a.getRealtime() != 1 && b.getRealtime() != 1 && a.get() < b.get());
+    //rule 1) Idle thread should be always preempted by any thread!
+    //rule 2) Only REALTIME_PRIORITY_IMMEDIATE threads can preempt other threads
+    //right away, for other real-time priorities, the scheduler does not
+    //require to be called before the end of the current burst!
+    return a.get()==-1 || (a.getRealtime() != 1 && b.getRealtime() == 1);
 }
 
 inline bool operator>(ControlSchedulerPriority a, ControlSchedulerPriority b){
-    return (a.getRealtime() == 1 && b.getRealtime() != 1) ||
-            (a.getRealtime() != 1 && b.getRealtime() != 1 && a.get() > b.get());
+    return b.get()==-1 || (a.getRealtime() == 1 && b.getRealtime() != 1);
 }
 
 inline bool operator ==(ControlSchedulerPriority a, ControlSchedulerPriority b)

@@ -200,7 +200,8 @@ long long ControlScheduler::IRQgetNextPreemption()
 // Should be called when the current thread is the idle thread
 static inline void IRQsetNextPreemptionForIdle(){
     if (sleepingList->empty())
-        //normally should happen unless an IRQ is set!
+        //normally should not happen unless an IRQ is already set and able to
+        //preempt idle thread
         nextPreemption = numeric_limits<long long>::max(); 
     else
         nextPreemption = sleepingList->front()->wakeup_time;
