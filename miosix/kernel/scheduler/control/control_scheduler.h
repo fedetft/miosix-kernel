@@ -27,7 +27,7 @@
 
 #ifndef CONTROL_SCHEDULER_H
 #define	CONTROL_SCHEDULER_H
-
+#define SCHED_CONTROL_MULTIBURST
 #include "config/miosix_settings.h"
 #include "control_scheduler_types.h"
 #include "parameters.h"
@@ -168,9 +168,10 @@ private:
     static Thread *threadList;
     static unsigned int threadListSize;
 
-    ///\internal the entry of current thread in the round in the activeThreads list
-    //static IntrusiveList<ThreadsListItem>::iterator curInRound;
-
+#ifndef SCHED_CONTROL_MULTIBURST 
+    ///\internal current thread in the round
+    static Thread *curInRound;
+#endif
     ///\internal idle thread
     static Thread *idle;
 

@@ -46,22 +46,24 @@ class Thread; //Forward declaration
  * for a hardware irq or etc.), the actual time the thread will have
  * its burst remainder will depend on the real-time priority set for it.
  */
-/**
- * REALTIME_PRIORITY_IMMEDIATE: The processor control is transfered to the thread
- * right in the time it wakes up.
- */
-#define REALTIME_PRIORITY_IMMEDIATE 1
-/**
- * REALTIME_PRIORITY_NEXT_BURST: The processor control is transfered to the thread
- * right after the current running thread has consumed its burst time.
- */
-#define REALTIME_PRIORITY_NEXT_BURST 2
-/**
- * REALTIME_PRIORITY_END_OF_ROUND: The processor control is transfered to the 
- * thread in the end of the round and the thread is delayed until all remaining 
- * active threads are run.
- */
-#define REALTIME_PRIORITY_END_OF_ROUND 3
+enum ControlRealtimePriority{
+    /**
+     * REALTIME_PRIORITY_IMMEDIATE: The processor control is transfered to the thread
+     * right in the time it wakes up.
+     */
+    REALTIME_PRIORITY_IMMEDIATE = 1,
+    /**
+     * REALTIME_PRIORITY_NEXT_BURST: The processor control is transfered to the thread
+     * right after the current running thread has consumed its burst time.
+     */
+    REALTIME_PRIORITY_NEXT_BURST = 2,
+    /**
+     * REALTIME_PRIORITY_END_OF_ROUND: The processor control is transfered to the 
+     * thread in the end of the round and the thread is delayed until all remaining 
+     * active threads are run.
+     */ 
+    REALTIME_PRIORITY_END_OF_ROUND = 3
+};
 
 /**
  * This class models the concept of priority for the control based scheduler.
