@@ -58,7 +58,7 @@ bool GPIOtimer::absoluteWait(long long tick){
 
 //NOTE: Think about how to set the right ms32chkp related to the captured timestamp
 long long GPIOtimer::getExtEventTimestamp() const{
-    return b.IRQgetSetTimeGPIO();
+    return b.IRQgetSetTimeGPIO() - stabilizingTime;
 }
 
 bool GPIOtimer::absoluteWaitTimeoutOrEvent(long long tick){
@@ -161,6 +161,8 @@ GPIOtimer& GPIOtimer::instance(){
     static GPIOtimer instance;
     return instance;
 }
+
+const int GPIOtimer::stabilizingTime = 4;
 
 GPIOtimer::GPIOtimer(): b(HighResolutionTimerBase::instance()),tc(b.getTimerFrequency()) {
     b.setModeGPIOTimer(true);

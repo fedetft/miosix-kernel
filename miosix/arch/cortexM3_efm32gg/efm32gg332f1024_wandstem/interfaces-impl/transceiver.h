@@ -149,7 +149,7 @@ public:
      * This function is meant to be called after sending or receiving data to
      * make sure the transceiver is set to the idle state to save some power.
      * Its use is not required for the operation of the transceiver, and if not
-     * used the transceiver may reamin in receive mode more than necessary.
+     * used the transceiver may remain in receive mode more than necessary.
      */
     void idle();
 

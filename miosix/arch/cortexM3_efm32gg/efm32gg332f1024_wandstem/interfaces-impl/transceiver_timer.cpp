@@ -105,9 +105,11 @@ unsigned int TransceiverTimer::getTickFrequency() const{
 
 	    
 long long TransceiverTimer::getExtEventTimestamp() const{
-    return b.IRQgetSetTimeTransceiver();
+    return b.IRQgetSetTimeTransceiver()-stabilizingTime;
 }
-	    
+	 
+const int TransceiverTimer::stabilizingTime=7;
+
 TransceiverTimer::TransceiverTimer():b(HighResolutionTimerBase::instance()),tc(b.getTimerFrequency()) {
     b.setModeTransceiverTimer();
 }

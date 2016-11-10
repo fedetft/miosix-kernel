@@ -68,6 +68,9 @@ const auto slack=128000;
 /// Measured STXON to SFD_TX delay (turnaround+preambleSfdTime) is 352.370us
 const auto turnaround=192370;
 
+/// Measured SFD_TX to SFD_RX delay 
+const auto rxSfdLag=3374;
+
 /// Time to send one byte as float
 const auto timePerByte=32000;
 
@@ -337,7 +340,8 @@ RecvResult Transceiver::recv(void *pkt, int size, long long timeout)
             if(inFifo>=lengthByte+1)
             {
                 //Timestamp is wrong and we know it, so we don't set valid
-                result.timestamp=timer.getExtEventTimestamp()-timer.ns2tick(preambleSfdTime);
+                result.timestamp=timer.getExtEventTimestamp()-
+			         timer.ns2tick(preambleSfdTime+rxSfdLag);
                 
                 //We may still be in the middle of another packet reception, so
                 //this may cause FRM_DONE to occur without a previous SFD,
@@ -559,7 +563,8 @@ bool Transceiver::handlePacketReceptionEvents(long long timeout, int size, RecvR
     }
     //NOTE: the returned timestamp is the time where the first byte of the
     //packet is received, while the cc2520 allows timestamping at the SFD
-    result.timestamp=timer.getExtEventTimestamp()-timer.ns2tick(preambleSfdTime);
+    result.timestamp=timer.getExtEventTimestamp()-
+	             timer.ns2tick(preambleSfdTime+rxSfdLag);
     
     unsigned int exc=getExceptions(0b011);
     if(exc & CC2520Exception::RX_OVERFLOW)

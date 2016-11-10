@@ -78,6 +78,7 @@ namespace miosix {
         HighResolutionTimerBase& b;
         bool isInput; 
         TimeConversion tc;
+        static const int stabilizingTime; 
     };
 
 }
