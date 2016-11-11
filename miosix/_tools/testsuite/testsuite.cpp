@@ -910,7 +910,7 @@ static void test_3()
         //tick is in number of ns passed, wakeup time should not differ by > 1ms
         Thread::nanoSleepUntil(tick);
         long long t2 = getTime();
-        if(tick/1000000!=t2/1000000) fail("Thread::sleepUntil()");
+        if((t2-tick)/1000000>0) fail("Thread::sleepUntil()");
         tick+=period;
     }
     pass();
