@@ -63,9 +63,10 @@ long long GPIOtimer::getExtEventTimestamp() const{
 
 bool GPIOtimer::absoluteWaitTimeoutOrEvent(long long tick){
     FastInterruptDisableLock dLock;
-    if(tick<b.getCurrentTick()){
+    if(b.IRQsetGPIOtimeout(tick)==WaitResult::WAKEUP_IN_THE_PAST){
 	return true;
     }
+    
     if(!isInput){
 	b.setModeGPIOTimer(true);
 	expansion::gpio10::mode(Mode::INPUT);

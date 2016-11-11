@@ -41,77 +41,82 @@ enum class WaitResult
 };
     
 class HighResolutionTimerBase {
-public:
-    
-    static HighResolutionTimerBase& instance();
-    
-    /**
-     * \return the timer frequency in Hz
-     */
-    unsigned int getTimerFrequency() const{
-        return timerFreq;
-    }
-    
-    /**
-     * Set the next interrupt.
-     * Can be called with interrupts disabled or within an interrupt.
-     * \param tick the time when the interrupt will be fired, in timer ticks
-     */
-    WaitResult IRQsetNextTransceiverInterrupt(long long tick);
-    void IRQsetNextInterruptCS(long long tick);
-    WaitResult IRQsetNextGPIOInterrupt(long long tick);
-    
-    /**
-     * \return the time when the next interrupt will be fired.
-     * That is, the last value passed to setNextInterrupt(), or the value
-     * captured in input mode.
-     */
-    long long IRQgetSetTimeTransceiver() const;
-    long long IRQgetSetTimeCS() const;
-    long long IRQgetSetTimeGPIO() const;
-    
-    /*
-     * Clean buffer in TIMER used by GPIOTimer, necessary when input capture 
-     * mode is enabled
-     */
-    void cleanBufferGPIO();
-    void cleanBufferTrasceiver();
-    
-    /**
-     * Could be call both when the interrupts are enabled/disabled!
-     * TODO: investigate if it's possible to remove the possibility to call
-     * this with IRQ disabled and use IRQgetCurrentTime() instead
-     * \return the current tick count of the timer
-     */
-    long long getCurrentTick();
-    /**
-     * \return the current tick count of the timer.
-     * Can only be called with interrupts disabled or within an IRQ
-     */
-    long long IRQgetCurrentTick();
-    
-    void enableCC0Interrupt(bool enable);
-    void enableCC1Interrupt(bool enable);
-    void enableCC2Interrupt(bool enable);
-    void enableCC2InterruptTim1(bool enable);
-    void enableCC0InterruptTim2(bool enable);
-    void enableCC1InterruptTim2(bool enable);
-    
-    /**
-     * Function to prepare the timers to works in a given mode. For Transceiver,
-     * it use 2 different low channel, so we can set both of them at the 
-     * beginning of our code.
-     * \param input true to set the input/capture mode, false to set the output 
-     * mode
-     */
-    void setModeGPIOTimer(bool input);
-    void setModeTransceiverTimer();
-    
-    virtual ~HighResolutionTimerBase();
-    
-private:
-    HighResolutionTimerBase();
-    unsigned int timerFreq;
+    public:
+
+        static HighResolutionTimerBase& instance();
+
+        /**
+         * \return the timer frequency in Hz
+         */
+        unsigned int getTimerFrequency() const{
+            return HighResolutionTimerBase::freq;
+        }
+
+        /**
+         * Set the next interrupt.
+         * Can be called with interrupts disabled or within an interrupt.
+         * \param tick the time when the interrupt will be fired, in timer ticks
+         */
+        WaitResult IRQsetNextTransceiverInterrupt(long long tick);
+        void IRQsetNextInterruptCS(long long tick);
+        WaitResult IRQsetNextGPIOInterrupt(long long tick);
+
+        /**
+         * \return the time when the next interrupt will be fired.
+         * That is, the last value passed to setNextInterrupt(), or the value
+         * captured in input mode.
+         */
+        long long IRQgetSetTimeTransceiver() const;
+        long long IRQgetSetTimeCS() const;
+        long long IRQgetSetTimeGPIO() const;
+
+        /*
+         * Clean buffer in TIMER used by GPIOTimer, necessary when input capture 
+         * mode is enabled
+         */
+        void cleanBufferGPIO();
+        void cleanBufferTrasceiver();
+
+        /**
+         * Could be call both when the interrupts are enabled/disabled!
+         * TODO: investigate if it's possible to remove the possibility to call
+         * this with IRQ disabled and use IRQgetCurrentTime() instead
+         * \return the current tick count of the timer
+         */
+        long long getCurrentTick();
+        /**
+         * \return the current tick count of the timer.
+         * Can only be called with interrupts disabled or within an IRQ
+         */
+        long long IRQgetCurrentTick();
+
+        void enableCC0Interrupt(bool enable);
+        void enableCC1Interrupt(bool enable);
+        void enableCC2Interrupt(bool enable);
+        void enableCC0InterruptTim1(bool enable);
+        void enableCC2InterruptTim1(bool enable);
+        void enableCC0InterruptTim2(bool enable);
+        void enableCC1InterruptTim2(bool enable);
+
+        /**
+         * Function to prepare the timers to works in a given mode. For Transceiver,
+         * it use 2 different low channel, so we can set both of them at the 
+         * beginning of our code.
+         * \param input true to set the input/capture mode, false to set the output 
+         * mode
+         */
+        void setModeGPIOTimer(bool input);
+        void setModeTransceiverTimer(bool input);
+        
+        WaitResult IRQsetGPIOtimeout(long long tick);
+        WaitResult IRQsetTransceiverTimeout(long long tick);
+
+        virtual ~HighResolutionTimerBase();
+
+    protected:
+        HighResolutionTimerBase();
+        static const unsigned int freq;
+        
 };
 
 }//end miosix namespace
