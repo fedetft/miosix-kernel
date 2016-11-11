@@ -741,7 +741,16 @@ static void t2_p1(void *argv)
 
 static void t2_p2(void *argv)
 {
+    #ifdef SCHED_TYPE_EDF
+    do {
+        Thread::getCurrentThread()->wait();
+        long long t = getTime();
+        Thread::sleep(20);
+        t2_v1=true;
+    } while(!Thread::testTerminate());
+    #else
     while(Thread::testTerminate()==false) t2_v1=true;
+    #endif
 }
 
 static void test_2()
@@ -775,6 +784,9 @@ static void test_2()
     for(int i=0;i<5;i++)
     {
         bool failed=false;
+        #ifdef SCHED_TYPE_EDF
+        t2_p_v1->wakeup();
+        #endif
         {
             PauseKernelLock pk;
             t2_v1=false;
@@ -788,6 +800,9 @@ static void test_2()
         if(failed) fail("pauseKernel");
     }
     t2_p_v1->terminate();
+    #ifdef SCHED_TYPE_EDF
+    t2_p_v1->wakeup();
+    #endif
     t2_p_v1->join();
     pass();
 }
@@ -895,7 +910,7 @@ static void test_3()
         //tick is in number of ns passed, wakeup time should not differ by > 1ms
         Thread::nanoSleepUntil(tick);
         long long t2 = getTime();
-        if((t2-tick)/1000000>0) fail("Thread::sleepUntil()");
+        if(tick/1000000!=t2/1000000) fail("Thread::sleepUntil()");
         tick+=period;
     }
     pass();
@@ -1030,17 +1045,18 @@ static void test_4()
     Thread::sleep(10);
     #ifdef SCHED_TYPE_EDF
     Thread::create(t4_p2,STACK_SMALL);
-    const int period=static_cast<int>(TICK_FREQ*0.05);
-    tick=getTick();
+    //const int period=static_cast<int>(TICK_FREQ*0.05);
+    const int period= 50000000; //50 ms
+    tick=getTime();
     //This takes .024/.05=48% of CPU time
     for(int i=0;i<10;i++)
     {
         long long prevTick=tick;
         tick+=period;
         Thread::setPriority(Priority(tick)); //Change deadline
-        Thread::sleepUntil(prevTick); //Make sure the task is run periodically
+        Thread::nanoSleepUntil(prevTick); //Make sure the task is run periodically
         delayMs(24);
-        if(getTick()>tick) fail("Deadline missed (B)\n");
+        if(getTime()>tick) fail("Deadline missed (B)\n");
     }
     #endif //SCHED_TYPE_EDF
     pass();
