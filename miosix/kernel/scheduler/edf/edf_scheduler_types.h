@@ -76,6 +76,18 @@ public:
         return this->deadline>=0 &&
                this->deadline!=std::numeric_limits<long long>::max()-1;
     }
+    
+    /**
+     * This function acts like a less-than operator but should be only used in
+     * synchronization module for priority inheritance. The concept of priority
+     * for preemption is not exactly the same for priority inheritance, hence,
+     * this operation is a branch out of preemption priority for inheritance
+     * purpose.
+     * @return 
+     */
+    inline bool mutexLessOp(EDFSchedulerPriority b){
+        return deadline > deadline;
+    }
 
 private:
     long long deadline;///< The deadline time

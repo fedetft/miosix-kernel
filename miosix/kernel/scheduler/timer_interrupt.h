@@ -52,19 +52,9 @@ inline void IRQtimerInterrupt(long long currentTick)
     if (currentTick >= Scheduler::IRQgetNextPreemption() || hptw ){
         //End of the burst || a higher priority thread has woken up
         Scheduler::IRQfindNextThread();//If the kernel is running, preempt
+        if(kernel_running!=0) tick_skew=true;
     }
     
-    if(kernel_running!=0) tick_skew=true;
-    
-    #ifndef SCHED_TYPE_PRIORITY
-    //TODO: the old tick scheduler called this function periodically,
-    //so the EDF scheduler would have to be called only if a thread was woken.
-    //Now we can have no periodic preemption, and so if we are called (and EDF
-    //is selected), at least one thread has woken up, so there's no need for woken
-    //Modify the code below accordingly
-    //#error "FIXME"
-    #endif
-
 //    miosix_private::IRQstackOverflowCheck();
 //    bool woken=IRQwakeThreads();//Increment tick and wake threads,if any
 //    (void)woken; //Avoid unused variable warning.

@@ -28,6 +28,8 @@
 #include "edf_scheduler.h"
 #include "kernel/error.h"
 #include "kernel/process.h"
+#include "interfaces/cstimer.h"
+#include "kernel/scheduler/timer_interrupt.h"
 #include <algorithm>
 
 using namespace std;
@@ -39,7 +41,11 @@ namespace miosix {
 //These are defined in kernel.cpp
 extern volatile Thread *cur;
 extern volatile int kernel_running;
+extern IntrusiveList<SleepData> *sleepingList;
 
+//Static members
+static ContextSwitchTimer& timer = ContextSwitchTimer::instance();
+static long long nextPreemption = numeric_limits<long long>::max();
 //
 // class EDFScheduler
 //
@@ -105,9 +111,24 @@ void EDFScheduler::IRQsetIdleThread(Thread *idleThread)
     add(idleThread);
 }
 
-void EDFScheduler::IRQfindNextThread()
+long long EDFScheduler::IRQgetNextPreemption()
 {
-    if(kernel_running!=0) return;//If kernel is paused, do nothing
+    return nextPreemption;
+}
+
+static void IRQsetNextPreemption(){
+    if (sleepingList->empty())
+    {
+        nextPreemption = numeric_limits<long long>::max();
+    }else{
+        nextPreemption = sleepingList->front()->wakeup_time;
+    }
+    timer.IRQsetNextInterrupt(nextPreemption);
+}
+
+unsigned int EDFScheduler::IRQfindNextThread()
+{
+    if(kernel_running!=0) return 0;//If kernel is paused, do nothing
     
     Thread *walk=head;
     for(;;)
@@ -129,7 +150,8 @@ void EDFScheduler::IRQfindNextThread()
             #else //WITH_PROCESSES
             ctxsave=cur->ctxsave;
             #endif //WITH_PROCESSES
-            return;
+            IRQsetNextPreemption();
+            return 1;
         }
         walk=walk->schedData.next;
     }
