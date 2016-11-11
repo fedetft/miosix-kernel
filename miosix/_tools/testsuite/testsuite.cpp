@@ -744,7 +744,6 @@ static void t2_p2(void *argv)
     #ifdef SCHED_TYPE_EDF
     do {
         Thread::getCurrentThread()->wait();
-        long long t = getTime();
         Thread::sleep(20);
         t2_v1=true;
     } while(!Thread::testTerminate());
@@ -1045,8 +1044,7 @@ static void test_4()
     Thread::sleep(10);
     #ifdef SCHED_TYPE_EDF
     Thread::create(t4_p2,STACK_SMALL);
-    //const int period=static_cast<int>(TICK_FREQ*0.05);
-    const int period= 50000000; //50 ms
+    const int period=50000000; //50 ms
     tick=getTime();
     //This takes .024/.05=48% of CPU time
     for(int i=0;i<10;i++)
