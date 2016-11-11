@@ -86,7 +86,7 @@ public:
      * @return 
      */
     inline bool mutexLessOp(EDFSchedulerPriority b){
-        return deadline > deadline;
+        return deadline > b.deadline;
     }
 
 private:
