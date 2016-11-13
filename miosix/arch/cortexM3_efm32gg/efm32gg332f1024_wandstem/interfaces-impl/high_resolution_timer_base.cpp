@@ -32,7 +32,6 @@
 #include "kernel/timeconversion.h"
 #include "gpio_timer.h"
 #include "transceiver_timer.h"
-#include "virtual_high_resolution_timer_base.cpp"
 #include "../../../../debugpin.h"
 
 using namespace miosix;
@@ -195,7 +194,10 @@ void __attribute__((used)) cstirqhnd2(){
     if ((TIMER2->IEN & TIMER_IEN_CC0) && (TIMER2->IF & TIMER_IF_CC0) ){
 	TIMER2->IEN &= ~ TIMER_IEN_CC0;
 	TIMER2->IFC = TIMER_IFC_CC0;
-	
+        //disable the timeout
+	TIMER2->IEN &= ~ TIMER_IEN_CC1;
+	TIMER2->IFC = TIMER_IFC_CC1;
+        
 	ms32chkp[0]=ms32time;
 	//really in the past, the overflow of TIMER3 is occurred but the timer wasn't updated
 	long long a=ms32chkp[0] | TIMER3->CC[0].CCV<<16 | TIMER2->CC[0].CCV;;
@@ -210,7 +212,8 @@ void __attribute__((used)) cstirqhnd2(){
     if ((TIMER2->IEN & TIMER_IEN_CC1) && (TIMER2->IF & TIMER_IF_CC1) ){
 	TIMER2->IFC = TIMER_IFC_CC1;
 	
-	if(TIMER2->CC[2].CTRL & TIMER_CC_CTRL_MODE_OUTPUTCOMPARE){
+        //if PEN, it means that we want to trigger, otherwise we are in timeout for input/capture
+	if(TIMER2->ROUTE & TIMER_ROUTE_CC1PEN){
 	    if(faseTransceiver==0){
 		//get nextInterrupt
 		long long t=ms32chkp[0]|TIMER2->CC[1].CCV;
@@ -230,6 +233,7 @@ void __attribute__((used)) cstirqhnd2(){
 	    long long diff=t-IRQgetTick();
 	    if(diff<0){
 		TIMER2->IEN &= ~TIMER_IEN_CC1;
+                //Disable the input capture interrupt
 		TIMER2->IEN &= ~TIMER_IEN_CC0;
 		TIMER2->IFC = TIMER_IFC_CC0;
 		//Reactivating the thread that is waiting for the event, WITHOUT changing the tWaiting
@@ -340,9 +344,10 @@ void HighResolutionTimerBase::enableCC2InterruptTim1(bool enable){
 }
 
 void HighResolutionTimerBase::enableCC0InterruptTim2(bool enable){
-    if(enable)
+    if(enable){
+        TIMER2->IFC= TIMER_IF_CC0;
         TIMER2->IEN|=TIMER_IEN_CC0;
-    else
+    }else
         TIMER2->IEN&=~TIMER_IEN_CC0;
 }
 
@@ -475,22 +480,9 @@ void HighResolutionTimerBase::setModeGPIOTimer(bool input){
     } 
 }
 
-void HighResolutionTimerBase::cleanBufferGPIO(){
-    falseRead(&TIMER3->CC[2].CCV);
-    falseRead(&TIMER1->CC[2].CCV);
-    falseRead(&TIMER3->CC[2].CCV);
-    falseRead(&TIMER1->CC[2].CCV);
-}
-
-void HighResolutionTimerBase::cleanBufferTrasceiver(){
-    falseRead(&TIMER3->CC[0].CCV);
-    falseRead(&TIMER2->CC[0].CCV);
-    falseRead(&TIMER3->CC[0].CCV);
-    falseRead(&TIMER2->CC[0].CCV);
-}
-
 void HighResolutionTimerBase::setModeTransceiverTimer(bool input){
-	//For input capture feature:
+    if(input){	
+        //For input capture feature:
 	//Connect TIMER2->CC0 to pin PA8 aka excChB
 	TIMER2->ROUTE |= TIMER_ROUTE_CC0PEN
 		| TIMER_ROUTE_LOCATION_LOC0;	
@@ -510,15 +502,29 @@ void HighResolutionTimerBase::setModeTransceiverTimer(bool input){
 			|   TIMER_CC_CTRL_INSEL_PRS
 			|   TIMER_CC_CTRL_ICEDGE_RISING
 			|   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
-    
+        
+        TIMER2->CC[1].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
+        TIMER2->ROUTE &= ~TIMER_ROUTE_CC1PEN; //used as timeout the incoming event
+    }else{
 	//For output capture feature:
 	//Connect TIMER2->CC1 to pin PA9 aka stxon
-	if(input){
-	    TIMER2->ROUTE |= TIMER_ROUTE_CC1PEN; //used to trigger at a give time on the stxon
-	}else{
-	    TIMER2->ROUTE &= ~TIMER_ROUTE_CC1PEN; //used as timeout the incoming event
-	}
+        TIMER2->ROUTE |= TIMER_ROUTE_CC1PEN; //used to trigger at a give time on the stxon
 	TIMER2->CC[1].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
+    }
+}
+
+void HighResolutionTimerBase::cleanBufferGPIO(){
+    falseRead(&TIMER3->CC[2].CCV);
+    falseRead(&TIMER1->CC[2].CCV);
+    falseRead(&TIMER3->CC[2].CCV);
+    falseRead(&TIMER1->CC[2].CCV);
+}
+
+void HighResolutionTimerBase::cleanBufferTrasceiver(){
+    falseRead(&TIMER3->CC[0].CCV);
+    falseRead(&TIMER2->CC[0].CCV);
+    falseRead(&TIMER3->CC[0].CCV);
+    falseRead(&TIMER2->CC[0].CCV);
 }
 
 WaitResult HighResolutionTimerBase::IRQsetGPIOtimeout(long long tick){
@@ -631,3 +637,5 @@ HighResolutionTimerBase::HighResolutionTimerBase() {
 HighResolutionTimerBase::~HighResolutionTimerBase() {
     delete tc;
 }
+
+int HighResolutionTimerBase::aux=0;

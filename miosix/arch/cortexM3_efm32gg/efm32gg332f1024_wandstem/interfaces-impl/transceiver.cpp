@@ -77,7 +77,7 @@ const auto timePerByte=32000;
 /// Time to send the first part of each packet (4 bytes preamble + 1 byte SFD)
 const auto preambleSfdTime=timePerByte*5;
 
-/// Timeout from sending STXON to when the SFD should be sent
+/// Timeout from sending STXON to when the SFD should be sent, around 500us
 const auto sfdTimeout=slack+turnaround+preambleSfdTime;
 
 /// Timeout from an SFD to when the maximum length packet should end

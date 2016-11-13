@@ -112,7 +112,7 @@ class HighResolutionTimerBase {
         WaitResult IRQsetTransceiverTimeout(long long tick);
 
         virtual ~HighResolutionTimerBase();
-
+        static int aux;
     protected:
         HighResolutionTimerBase();
         static const unsigned int freq;
