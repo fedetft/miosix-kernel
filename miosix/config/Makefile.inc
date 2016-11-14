@@ -18,7 +18,7 @@
 #OPT_BOARD := stm32f103ve_strive_mini
 #OPT_BOARD := stm32f103ze_redbull_v2
 #OPT_BOARD := stm32f407vg_stm32f4discovery
-#OPT_BOARD := stm32f207ig_stm3220g-eval
+OPT_BOARD := stm32f207ig_stm3220g-eval
 #OPT_BOARD := stm32f207zg_ethboard_v2
 #OPT_BOARD := stm32f207ze_als_camboard
 #OPT_BOARD := stm32l151_als_mainboard
@@ -59,7 +59,7 @@
 ## size and speed
 ##
 #OPT_OPTIMIZATION := -O0
-#OPT_OPTIMIZATION := -O2
+OPT_OPTIMIZATION := -O2
 #OPT_OPTIMIZATION := -O3
 #OPT_OPTIMIZATION := -Os
 
@@ -2005,6 +2005,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     arch/common/drivers/stm32_hardware_rng.cpp               \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
+    $(ARCH_INC)/interfaces-impl/cstimer.cpp      \
     arch/common/CMSIS/Device/ST/STM32F2xx/Source/Templates/system_stm32f2xx.c
 
 ##-----------------------------------------------------------------------------
