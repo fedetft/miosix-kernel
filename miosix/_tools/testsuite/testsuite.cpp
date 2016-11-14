@@ -1984,10 +1984,12 @@ static void test_9()
     if(t9_v1)
     {
         enableInterrupts();
+        enableInterrupts();
         fail("disableInterrups() nesting (2)");
     }
     if(areInterruptsEnabled()==true)
     {
+        enableInterrupts();
         enableInterrupts();
         fail("areInterruptsEnabled() (3)");
     }
@@ -2007,7 +2009,6 @@ static void test_9()
     delayMs(100);
     if(t9_v1==false)
     {
-        enableInterrupts();
         fail("enableInterrupts() nesting (2)");
     }
     if(areInterruptsEnabled()==false) fail("areInterruptsEnabled() (5)");
