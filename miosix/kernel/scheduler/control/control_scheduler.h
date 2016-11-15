@@ -27,7 +27,9 @@
 
 #ifndef CONTROL_SCHEDULER_H
 #define	CONTROL_SCHEDULER_H
+
 #define SCHED_CONTROL_MULTIBURST
+
 #include "config/miosix_settings.h"
 #include "control_scheduler_types.h"
 #include "parameters.h"

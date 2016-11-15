@@ -756,39 +756,37 @@ void ControlScheduler::IRQrecalculateAlfa()
     if(sumPriority==0) return;
     #ifndef SCHED_CONTROL_FIXED_POINT
     float base=1.0f/((float)sumPriority);
-    //for(Thread *it=threadList;it!=0;it=it->schedData.next)
-    for (auto it = activeThreads.begin() ; it != activeThreads.end() ; it++)
+    for(Thread *it=threadList;it!=0;it=it->schedData.next)
     {
         #ifdef ENABLE_FEEDFORWARD
         //Assign zero bursts to blocked threads
-        if((*it)->t->flags.isReady())
+        if(it->flags.isReady())
         {
-            (*it)->t->schedData.alfa=base*((float)((*it)->t->schedData.priority.get()+1));
+            it->schedData.alfa=base*((float)(it->schedData.priority.get()+1));
         } else {
-            (*it)->t->schedData.alfa=0;
+            it->schedData.alfa=0;
         }
         #else //ENABLE_FEEDFORWARD
         //Assign bursts irrespective of thread blocking status
-        (*it)->t->schedData.alfa=base*((float)((*it)->t->schedData.priority.get()+1));
+        it->schedData.alfa=base*((float)(it->schedData.priority.get()+1));
         #endif //ENABLE_FEEDFORWARD
     }
     #else //FIXED_POINT_MATH
     //Sum of all alfa is maximum value for an unsigned short
     unsigned int base=4096/sumPriority;
-    //for(Thread *it=threadList;it!=0;it=it->schedData.next)
-    for (auto it = activeThreads.begin() ; it != activeThreads.end() ; it++)
+    for(Thread *it=threadList;it!=0;it=it->schedData.next)
     {
         #ifdef ENABLE_FEEDFORWARD
         //Assign zero bursts to blocked threads
-        if((*it)->t->flags.isReady())
+        if(it->flags.isReady())
         {
-            (*it)->t->schedData.alfa=base*((*it)->t->schedData.priority.get()+1);
+            it->schedData.alfa=base*(it->schedData.priority.get()+1);
         } else {
-            (*it)->t->schedData.alfa=0;
+            it->schedData.alfa=0;
         }
         #else //ENABLE_FEEDFORWARD
         //Assign bursts irrespective of thread blocking status
-        (*it)->t->schedData.alfa=base*((*it)->t->schedData.priority.get()+1);
+        it->schedData.alfa=base*(it->schedData.priority.get()+1);
         #endif //ENABLE_FEEDFORWARD
     }
     #endif //FIXED_POINT_MATH
