@@ -33,6 +33,7 @@
 #include "gpio_timer.h"
 #include "transceiver_timer.h"
 #include "../../../../debugpin.h"
+#include "rtc.h"
 
 using namespace miosix;
 
@@ -162,6 +163,13 @@ void __attribute__((naked)) TIMER1_IRQHandler()
     restoreContext();
 }
 
+void __attribute__((naked)) CMU_IRQHandler()
+{
+    saveContext();
+    asm volatile("bl _Z10cmuhandlerv");
+    restoreContext();
+}
+
 void __attribute__((used)) cstirqhnd3(){
     //rollover
     if (TIMER3->IF & TIMER_IF_OF){
@@ -271,6 +279,8 @@ void __attribute__((used)) cstirqhnd1(){
 	    }
 	}else{
 	    TIMER1->IEN &= ~TIMER_IEN_CC2;
+	    TIMER1->IEN &= ~TIMER_IEN_CC0;
+	    TIMER1->IFC = TIMER_IFC_CC0;
 	    interruptGPIOTimerRoutine();
 	}
     }
@@ -290,6 +300,23 @@ void __attribute__((used)) cstirqhnd1(){
 		    Scheduler::IRQfindNextThread();
 	    }
 	}
+    }
+}
+
+void __attribute__((used)) cmuhandler(){
+    static float y;
+    static bool first=true;
+    if(CMU->IF & CMU_IF_CALRDY){
+	if(first){
+	    y=CMU->CALCNT;
+	    first=false;
+	}else{
+	    y=0.8f*y+0.2f*CMU->CALCNT;
+	}
+        CMU->IFC=CMU_IFC_CALRDY;
+	bool hppw;
+	HighResolutionTimerBase::queue.IRQpost([&](){printf("%f\n",y);},hppw);
+	if(hppw) Scheduler::IRQfindNextThread();
     }
 }
 
@@ -567,12 +594,78 @@ WaitResult HighResolutionTimerBase::IRQsetTransceiverTimeout(long long tick){
     }
 } 
 
+void HighResolutionTimerBase::resyncVht(){
+    Rtc& rtc=Rtc::instance();
+    long long rtcTime;
+    int a=0,b=0,c=0,d=0,e=0;
+    {
+	FastInterruptDisableLock dLock;
+	HighPin<debug1> x;
+	int prev=loopback32KHzIn::value();
+//	a=RTC->CNT;
+	for(;;)
+	{
+	    int curr=loopback32KHzIn::value();
+	    if(curr==0 && prev==1) break;
+	    prev=curr;
+	}
+//	d=TIMER2->CNT;
+//	b=RTC->CNT;
+	TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
+			    | TIMER_CC_CTRL_FILT_DISABLE
+			    | TIMER_CC_CTRL_INSEL_PIN
+			    | TIMER_CC_CTRL_MODE_INPUTCAPTURE;
+	while((TIMER2->IF & TIMER_IF_CC2)==0) ;
+	TIMER2->CC[2].CTRL=0;
+	TIMER2->IFC=TIMER_IFC_CC2;
+	e=TIMER2->CC[2].CCV;
+	rtcTime=rtc.IRQgetValue();
+//	c=RTC->CNT;
+    }
+    printf("a=%d b=%d c=%d d=%d e=%d e-d=%d\n",a,b,c,d,e,e>=d ? e-d : e+65536-d);
+}
+
+void HighResolutionTimerBase::setAutoResyncVht(bool enable){
+    if(enable){
+	
+    }else{
+	
+    }
+}
+
+void HighResolutionTimerBase::resyncClock(){
+    CMU->CMD = CMU_CMD_CALSTART;
+}
+        
+void HighResolutionTimerBase::setAutoResyncClocks(bool enable){
+    if(enable){
+	CMU->CTRL |= CMU_CALCTRL_CONT;
+	CMU->CMD = CMU_CMD_CALSTART;
+    }else{
+	CMU->CTRL &= ~CMU_CALCTRL_CONT;
+	CMU->CMD = CMU_CMD_CALSTOP;
+    }
+}
+
+void HighResolutionTimerBase::initResyncCmu(){
+    CMU->CALCTRL=CMU_CALCTRL_DOWNSEL_LFXO|CMU_CALCTRL_UPSEL_HFXO|CMU_CALCTRL_CONT;
+    //due to hardware timer characteristic, the real counter trigger at value+1
+    //tick of LFCO to yield the maximum from to up counter
+    CMU->CALCNT=700; 
+    //enable interrupt
+    CMU->IEN=CMU_IEN_CALRDY;
+    NVIC_SetPriority(CMU_IRQn,3);
+    NVIC_ClearPendingIRQ(CMU_IRQn);
+    NVIC_EnableIRQ(CMU_IRQn);
+}
+
 HighResolutionTimerBase& HighResolutionTimerBase::instance(){
     static HighResolutionTimerBase hrtb;
     return hrtb;
 }
 
 const unsigned int HighResolutionTimerBase::freq=48000000;
+FixedEventQueue<100,12> HighResolutionTimerBase::queue;
 
 HighResolutionTimerBase::HighResolutionTimerBase() {
     //Power the timers up and PRS system
@@ -632,6 +725,8 @@ HighResolutionTimerBase::HighResolutionTimerBase() {
     TIMER1->CTRL &= ~TIMER_CTRL_SYNC;
     TIMER2->CTRL &= ~TIMER_CTRL_SYNC;
     TIMER3->CTRL &= ~TIMER_CTRL_SYNC;
+    
+    initResyncCmu();
 }
 
 HighResolutionTimerBase::~HighResolutionTimerBase() {

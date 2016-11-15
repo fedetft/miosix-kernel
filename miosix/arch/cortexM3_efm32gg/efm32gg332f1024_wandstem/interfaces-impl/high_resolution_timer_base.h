@@ -26,7 +26,7 @@
  ***************************************************************************/
 
 #include "miosix.h"
-
+#include "../../../../e20/e20.h"
 #ifndef HIGH_RESOLUTION_TIMER_BASE_H
 #define HIGH_RESOLUTION_TIMER_BASE_H
 
@@ -110,10 +110,36 @@ class HighResolutionTimerBase {
         
         WaitResult IRQsetGPIOtimeout(long long tick);
         WaitResult IRQsetTransceiverTimeout(long long tick);
-
+        
+        void resyncVht();
+        void setAutoResyncVht(bool enable);
+        
+        /**
+         * These function are used to sync the HF and the LF clock. It requires 
+         * few ms to trigger the interrupt that effectively compensate the 2 
+         * clocks.
+         * Of course, it's not busy waiting.
+         */
+        void resyncClock();
+        void setAutoResyncClocks(bool enable);
+        
         virtual ~HighResolutionTimerBase();
         static int aux;
-    protected:
+        
+        /**
+        These 4 variables are used to manage the correction of the timers.
+        * vhtBase (high frequency): keeps the last sync point
+        * vhtSyncPointRtc (low frequency): keeps the last sync point, just a simple conversion from vhtBase
+        * vhtSyncPointVht (high frequency: keeps the precise value of last sync point
+        * vhtOffset (high frequency): keeps the difference between the actual time and the counter value
+        */
+       static long long vhtBase;
+       static long long vhtSyncPointRtc;
+       static long long vhtSyncPointVht;
+       static long long vhtOffset;
+       static FixedEventQueue<100,12> queue;
+    private:
+        void initResyncCmu();
         HighResolutionTimerBase();
         static const unsigned int freq;
         
