@@ -344,11 +344,14 @@ bool Thread::testTerminate()
 void Thread::sleep(unsigned int ms)
 {
     if(ms==0) return;
+    //The SleepData variable has to be in scope till Thread::yield() returns
+    //as IRQaddToSleepingList() makes it part of a linked list till the
+    //thread wakes up (i.e: after Thread::yield() returns)
+    SleepData d;
     //pauseKernel() here is not enough since even if the kernel is stopped
     //the tick isr will wake threads, modifying the sleeping_list
     {
         FastInterruptDisableLock lock;
-        SleepData d;
         d.p=const_cast<Thread*>(cur);
         if(((ms*TICK_FREQ)/1000)>0) d.wakeup_time=getTick()+(ms*TICK_FREQ)/1000;
         //If tick resolution is too low, wait one tick
@@ -360,12 +363,15 @@ void Thread::sleep(unsigned int ms)
 
 void Thread::sleepUntil(long long absoluteTime)
 {
+    //The SleepData variable has to be in scope till Thread::yield() returns
+    //as IRQaddToSleepingList() makes it part of a linked list till the
+    //thread wakes up (i.e: after Thread::yield() returns)
+    SleepData d;
     //pauseKernel() here is not enough since even if the kernel is stopped
     //the tick isr will wake threads, modifying the sleeping_list
     {
         FastInterruptDisableLock lock;
         if(absoluteTime<=getTick()) return; //Wakeup time in the past, return
-        SleepData d;
         d.p=const_cast<Thread*>(cur);
         d.wakeup_time=absoluteTime;
         IRQaddToSleepingList(&d);//Also sets SLEEP_FLAG

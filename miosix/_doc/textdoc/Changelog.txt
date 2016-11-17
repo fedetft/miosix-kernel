@@ -1,6 +1,12 @@
 Changelog for Miosix np embedded OS
 
 v2.02
+- Found a long-standing undefined behaviour in Thread::sleep() and
+  Thread::sleepUntil() where the variable "SleepData d" was used beyond its
+  scope. The issue was found by code inspection, and by disassembling the code
+  it was found that the assembly code was correct despite the undefined
+  behaviour in the source code. This is why the issue has remained unidentified
+  for so long, as it caused no bug to occur.
 - Reworked timeconversion.h and timeconversion.cpp with much improved
   algorithms for converting from timer ticks to nanoseconds and back
 - Modified the policy about global objects inside the kernel. The previous
