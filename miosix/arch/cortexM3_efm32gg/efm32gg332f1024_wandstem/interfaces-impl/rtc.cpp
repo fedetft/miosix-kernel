@@ -43,6 +43,11 @@ enum class WaitResult
     EVENT
 };
 
+const unsigned int timerBits=24;
+const unsigned long long overflowIncrement=(1LL<<timerBits);
+const unsigned long long lowerMask=overflowIncrement-1;
+const unsigned long long upperMask=0xFFFFFFFFFFFFFFFFLL-lowerMask;
+
 static long long swCounter=0;         ///< RTC software counter in ticks
 static unsigned int lastHwCounter=0;  ///< variable for evaluating overflows
 
@@ -57,13 +62,22 @@ static long long timestampEvent=0;    ///< input capture timestamp in ticks
  */
 static inline long long readRtc()
 {
-    //FIXME: if not called at least every period (512s) it fails, use pending bit trick?
+    //PENDING BIT TRICK
+    unsigned int counter=RTC->CNT;
+    if((RTC->IF & _RTC_IFC_OF_MASK) && RTC->CNT>=counter)
+        return (swCounter | static_cast<long long>(counter)) + overflowIncrement;
+    return swCounter | static_cast<long long>(counter);
+}/*
+//PENDING BIT TRICK
+    unsigned int counter=IRQread32Timer();
+    if((TIMER3->IF & _TIMER_IFC_OF_MASK) && IRQread32Timer()>=counter)
+        return (ms32time | static_cast<long long>(counter)) + overflowIncrement;
+    return ms32time | static_cast<long long>(counter);
+//FIXME: if not called at least every period (512s) it fails, use pending bit trick?
     unsigned int hwCounter=RTC->CNT;
     if(hwCounter<lastHwCounter) swCounter+=(1<<24); //RTC is 24 bit
     lastHwCounter=hwCounter;
-    return swCounter | hwCounter;
-}
-
+    return swCounter | hwCounter;*/
 /**
  * Common part of all wait functions
  * \param value absolute time point when the wait has to end
@@ -145,8 +159,10 @@ void __attribute__((naked)) RTC_IRQHandler()
  */
 void __attribute__((used)) RTChandlerImpl()
 {
-    if(RTC->IF & RTC_IF_OF)
+    if(RTC->IF & RTC_IF_OF){
         RTC->IFC=RTC_IFC_OF;
+        swCounter+=upperMask;
+    }
     
     if(RTC->IF & RTC_IF_COMP0)
     {
