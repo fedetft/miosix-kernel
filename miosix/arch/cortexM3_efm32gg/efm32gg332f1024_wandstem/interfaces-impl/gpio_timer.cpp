@@ -31,6 +31,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include "../../../../debugpin.h"
+#include "gpioirq.h"
 
 using namespace miosix;
 
@@ -163,10 +164,11 @@ GPIOtimer& GPIOtimer::instance(){
     return instance;
 }
 
-const int GPIOtimer::stabilizingTime = 4;
+const int GPIOtimer::stabilizingTime = 3;
 
 GPIOtimer::GPIOtimer(): b(HighResolutionTimerBase::instance()),tc(b.getTimerFrequency()) {
     b.setModeGPIOTimer(true);
     expansion::gpio10::mode(Mode::INPUT);
     isInput=true;
+    registerGpioIrq(expansion::gpio10::getPin(),GpioIrqEdge::RISING,[](){});
 }
