@@ -67,7 +67,6 @@ bool TransceiverTimer::absoluteWaitTrigger(long long tick){
 bool TransceiverTimer::absoluteWaitTimeoutOrEvent(long long tick){
     FastInterruptDisableLock dLock;
     if(b.IRQsetTransceiverTimeout(tick)==WaitResult::WAKEUP_IN_THE_PAST){
-	HighResolutionTimerBase::aux=1;
         return true;
     }
     b.setModeTransceiverTimer(true);
@@ -84,10 +83,8 @@ bool TransceiverTimer::absoluteWaitTimeoutOrEvent(long long tick){
     } while(tWaiting && tick>b.getCurrentTick());
     
     if(tWaiting==nullptr){
-        HighResolutionTimerBase::aux=2;
 	return false;
     }else{
-        HighResolutionTimerBase::aux=3;
 	return true;
     }
 }

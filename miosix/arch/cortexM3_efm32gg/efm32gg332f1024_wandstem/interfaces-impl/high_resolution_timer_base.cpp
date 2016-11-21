@@ -34,6 +34,7 @@
 #include "transceiver_timer.h"
 #include "../../../../debugpin.h"
 #include "rtc.h"
+#include "gpioirq.h"
 
 using namespace miosix;
 
@@ -208,7 +209,7 @@ void __attribute__((used)) cstirqhnd2(){
         
 	ms32chkp[0]=ms32time;
 	//really in the past, the overflow of TIMER3 is occurred but the timer wasn't updated
-	long long a=ms32chkp[0] | TIMER3->CC[0].CCV<<16 | TIMER2->CC[0].CCV;;
+	long long a=ms32chkp[0] | TIMER3->CC[0].CCV<<16 | TIMER2->CC[0].CCV;
 	long long c=IRQgetTick();
 	if(a-c< -48000000){ 
 	    ms32chkp[0]+=overflowIncrement;
@@ -273,7 +274,6 @@ void __attribute__((used)) cstirqhnd1(){
 	    long long t=ms32chkp[2]|TIMER1->CC[2].CCV;
 	    long long diff=t-IRQgetTick();
 	    if(diff<=0xFFFF){
-		HighPin<debug1> hp;
 		TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
 		faseGPIO=1;
 	    }
@@ -315,7 +315,7 @@ void __attribute__((used)) cmuhandler(){
 	}
         CMU->IFC=CMU_IFC_CALRDY;
 	bool hppw;
-	HighResolutionTimerBase::queue.IRQpost([&](){printf("%f\n",y);},hppw);
+	HighResolutionTimerBase::queue.IRQpost([&](){printf("%d\n",CMU->CALCNT);},hppw);
 	if(hppw) Scheduler::IRQfindNextThread();
     }
 }
@@ -483,20 +483,18 @@ void HighResolutionTimerBase::setModeGPIOTimer(bool input){
 	    | TIMER_ROUTE_LOCATION_LOC1;
     if(input){
 	//Configuro la modalità input
-	TIMER1->CC[2].CTRL = TIMER_CC_CTRL_MODE_INPUTCAPTURE |
-			  TIMER_CC_CTRL_ICEDGE_RISING |
-                          TIMER_CC_CTRL_INSEL_PIN; 
-	
-	//Config PRS: Timer3 has to be a consumer, Timer1 a producer, TIMER3 keeps the most significative part
-	//TIMER1->CC2 as producer, i have to specify the event i'm interest in    
-	PRS->CH[0].CTRL|=PRS_CH_CTRL_SOURCESEL_TIMER1
-			|PRS_CH_CTRL_SIGSEL_TIMER1CC2;
-
-	//TIMER3->CC2 as consumer
-	TIMER3->CC[2].CTRL= TIMER_CC_CTRL_PRSSEL_PRSCH0
+	    //Configuro la modalità input
+    TIMER1->CC[2].CTRL = TIMER_CC_CTRL_PRSSEL_PRSCH0
 			|   TIMER_CC_CTRL_INSEL_PRS
 			|   TIMER_CC_CTRL_ICEDGE_RISING  //NOTE: when does the output get low?
 			|   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
+    TIMER3->CC[2].CTRL= TIMER_CC_CTRL_PRSSEL_PRSCH0
+			|   TIMER_CC_CTRL_INSEL_PRS
+			|   TIMER_CC_CTRL_ICEDGE_RISING  //NOTE: when does the output get low?
+			|   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
+    
+    PRS->CH[0].CTRL = PRS_CH_CTRL_SOURCESEL_GPIOH
+			|   PRS_CH_CTRL_SIGSEL_GPIOPIN12;
 	//Configured for timeout
 	TIMER1->CC[0].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
 	//fase GPIO is required in OUTPUT Mode, here we have to set to 1
@@ -600,27 +598,49 @@ void HighResolutionTimerBase::resyncVht(){
     int a=0,b=0,c=0,d=0,e=0;
     {
 	FastInterruptDisableLock dLock;
-	HighPin<debug1> x;
 	int prev=loopback32KHzIn::value();
-//	a=RTC->CNT;
-	for(;;)
-	{
-	    int curr=loopback32KHzIn::value();
-	    if(curr==0 && prev==1) break;
-	    prev=curr;
+	for(;;){
+		int curr=loopback32KHzIn::value();
+		if(curr-prev==-1) break;
+		prev=curr;
 	}
-//	d=TIMER2->CNT;
-//	b=RTC->CNT;
-	TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
-			    | TIMER_CC_CTRL_FILT_DISABLE
-			    | TIMER_CC_CTRL_INSEL_PIN
-			    | TIMER_CC_CTRL_MODE_INPUTCAPTURE;
+	int high=TIMER3->CNT;
+
+	TIMER2->IFC = TIMER_IFC_CC2;
+	TIMER2->CC[2].CTRL |= TIMER_CC_CTRL_MODE_INPUTCAPTURE;
+	
+	//Wait until we capture the first raising edge in the 32khz wave, 
+	//it takes max half period, less than 16us -->732.4ticks @48000000Hz
 	while((TIMER2->IF & TIMER_IF_CC2)==0) ;
-	TIMER2->CC[2].CTRL=0;
-	TIMER2->IFC=TIMER_IFC_CC2;
-	e=TIMER2->CC[2].CCV;
-	rtcTime=rtc.IRQgetValue();
-//	c=RTC->CNT;
+	
+	//Creating the proper value of vhtSyncPointVht
+	int high2=TIMER3->CNT;
+	//Turn off the input capture mode
+	TIMER2->CC[2].CTRL &= ~_TIMER_CC_CTRL_MODE_MASK;
+	//This is the exact point when the rtc is incremented to the actual value 
+	if(high==high2){
+	    vhtSyncPointVht = ms32time | high<<16 | TIMER2->CC[2].CCV; //FIXME:: add the highest part
+	}else{
+	    // 735 are really enough to be sure that we are in the new window
+	    if(TIMER2->CC[2].CCV < 735){
+		if(high==0xFFFF){
+		    vhtSyncPointVht = (ms32time+overflowIncrement) | high2<<16 | TIMER2->CC[2].CCV;
+		}else{
+		    vhtSyncPointVht = ms32time | high2<<16 | TIMER2->CC[2].CCV;
+		}
+	    }else{
+		vhtSyncPointVht = ms32time | high<<16 | TIMER2->CC[2].CCV;
+	    }
+	}
+	
+	vhtSyncPointRtc=rtc.IRQgetValue();
+	{
+            unsigned long long conversion=vhtSyncPointRtc;
+            conversion*=HighResolutionTimerBase::freq;
+            conversion+=HighResolutionTimerBase::freq/2; //Round to nearest
+            conversion/=HighResolutionTimerBase::freq;
+            vhtBase=conversion;
+        }
     }
     printf("a=%d b=%d c=%d d=%d e=%d e-d=%d\n",a,b,c,d,e,e>=d ? e-d : e+65536-d);
 }
@@ -637,7 +657,7 @@ void HighResolutionTimerBase::resyncClock(){
     CMU->CMD = CMU_CMD_CALSTART;
 }
         
-void HighResolutionTimerBase::setAutoResyncClocks(bool enable){
+void HighResolutionTimerBase::setAutoAndStartResyncClocks(bool enable){
     if(enable){
 	CMU->CTRL |= CMU_CALCTRL_CONT;
 	CMU->CMD = CMU_CMD_CALSTART;
@@ -726,6 +746,12 @@ HighResolutionTimerBase::HighResolutionTimerBase() {
     TIMER2->CTRL &= ~TIMER_CTRL_SYNC;
     TIMER3->CTRL &= ~TIMER_CTRL_SYNC;
     
+    //Virtual high resolution timer, init without starting the input mode!
+    TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
+			| TIMER_CC_CTRL_FILT_DISABLE
+			| TIMER_CC_CTRL_INSEL_PIN
+			| TIMER_CC_CTRL_MODE_OFF;
+    
     initResyncCmu();
 }
 
@@ -733,4 +759,7 @@ HighResolutionTimerBase::~HighResolutionTimerBase() {
     delete tc;
 }
 
-int HighResolutionTimerBase::aux=0;
+long long HighResolutionTimerBase::aux1=0;
+long long HighResolutionTimerBase::aux2=0;
+long long HighResolutionTimerBase::aux3=0;
+long long HighResolutionTimerBase::aux4=0;
