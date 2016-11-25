@@ -25,16 +25,13 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "interfaces/arch_registers.h"
 #include "kernel/kernel.h"
 #include "kernel/scheduler/timer_interrupt.h"
 #include "high_resolution_timer_base.h"
 #include "kernel/timeconversion.h"
 #include "gpio_timer.h"
 #include "transceiver_timer.h"
-#include "../../../../debugpin.h"
 #include "rtc.h"
-#include "gpioirq.h"
 
 using namespace miosix;
 
@@ -483,17 +480,18 @@ void HighResolutionTimerBase::setModeGPIOTimer(bool input){
 	    | TIMER_ROUTE_LOCATION_LOC1;
     if(input){
 	//Configuro la modalità input
-	    //Configuro la modalità input
-    TIMER1->CC[2].CTRL = TIMER_CC_CTRL_PRSSEL_PRSCH0
+	//The consumer are both timers
+	TIMER1->CC[2].CTRL = TIMER_CC_CTRL_PRSSEL_PRSCH0
 			|   TIMER_CC_CTRL_INSEL_PRS
 			|   TIMER_CC_CTRL_ICEDGE_RISING  //NOTE: when does the output get low?
 			|   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
-    TIMER3->CC[2].CTRL= TIMER_CC_CTRL_PRSSEL_PRSCH0
+	TIMER3->CC[2].CTRL= TIMER_CC_CTRL_PRSSEL_PRSCH0
 			|   TIMER_CC_CTRL_INSEL_PRS
 			|   TIMER_CC_CTRL_ICEDGE_RISING  //NOTE: when does the output get low?
 			|   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
-    
-    PRS->CH[0].CTRL = PRS_CH_CTRL_SOURCESEL_GPIOH
+	
+	// The producer is the PGIO12
+	PRS->CH[0].CTRL = PRS_CH_CTRL_SOURCESEL_GPIOH
 			|   PRS_CH_CTRL_SIGSEL_GPIOPIN12;
 	//Configured for timeout
 	TIMER1->CC[0].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
@@ -509,21 +507,20 @@ void HighResolutionTimerBase::setModeTransceiverTimer(bool input){
     if(input){	
         //For input capture feature:
 	//Connect TIMER2->CC0 to pin PA8 aka excChB
-	TIMER2->ROUTE |= TIMER_ROUTE_CC0PEN
-		| TIMER_ROUTE_LOCATION_LOC0;	
-
-	//Configuro la modalità input
-	TIMER2->CC[0].CTRL = TIMER_CC_CTRL_MODE_INPUTCAPTURE |
-			  TIMER_CC_CTRL_ICEDGE_RISING |
-                          TIMER_CC_CTRL_INSEL_PIN; 
+//	TIMER2->ROUTE |= TIMER_ROUTE_CC0PEN
+//		| TIMER_ROUTE_LOCATION_LOC0;	
 	
 	//Config PRS: Timer3 has to be a consumer, Timer2 a producer, TIMER3 keeps the most significative part
 	//TIMER2->CC0 as producer, i have to specify the event i'm interest in    
-	PRS->CH[1].CTRL|= PRS_CH_CTRL_SOURCESEL_TIMER2
-			| PRS_CH_CTRL_SIGSEL_TIMER2CC0;
+	PRS->CH[1].CTRL|= PRS_CH_CTRL_SOURCESEL_GPIOH
+			|   PRS_CH_CTRL_SIGSEL_GPIOPIN8;
 
 	//TIMER3->CC2 as consumer
 	TIMER3->CC[0].CTRL=TIMER_CC_CTRL_PRSSEL_PRSCH1
+			|   TIMER_CC_CTRL_INSEL_PRS
+			|   TIMER_CC_CTRL_ICEDGE_RISING
+			|   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
+	TIMER2->CC[0].CTRL=TIMER_CC_CTRL_PRSSEL_PRSCH1
 			|   TIMER_CC_CTRL_INSEL_PRS
 			|   TIMER_CC_CTRL_ICEDGE_RISING
 			|   TIMER_CC_CTRL_MODE_INPUTCAPTURE;

@@ -26,11 +26,6 @@
  ***************************************************************************/
 
 #include "gpio_timer.h"
-#include "hwmapping.h"
-#include "miosix.h"
-#include <cstdlib>
-#include <cstdio>
-#include "../../../../debugpin.h"
 #include "gpioirq.h"
 
 using namespace miosix;

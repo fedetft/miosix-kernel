@@ -26,6 +26,7 @@
  ***************************************************************************/
 
 #include "transceiver_timer.h"
+#include "gpioirq.h"
 
 using namespace miosix;
 
@@ -109,9 +110,11 @@ long long TransceiverTimer::getExtEventTimestamp() const{
     return b.IRQgetSetTimeTransceiver()-stabilizingTime;
 }
 	 
-const int TransceiverTimer::stabilizingTime=7;
+const int TransceiverTimer::stabilizingTime=6;
 
-TransceiverTimer::TransceiverTimer():b(HighResolutionTimerBase::instance()),tc(b.getTimerFrequency()) {}
+TransceiverTimer::TransceiverTimer():b(HighResolutionTimerBase::instance()),tc(b.getTimerFrequency()) {
+    registerGpioIrq(transceiver::excChB::getPin(),GpioIrqEdge::RISING,[](){});
+}
 
 TransceiverTimer& TransceiverTimer::instance(){
     static TransceiverTimer instance;
