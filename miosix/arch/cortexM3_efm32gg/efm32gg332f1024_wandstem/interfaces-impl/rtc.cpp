@@ -185,8 +185,11 @@ void __attribute__((used)) RTChandlerImpl()
         }
     }
     
-    if(RTC->IF & RTC_IF_COMP1)
+    if(RTC->IF & RTC_IF_COMP1){
         RTC->IFC=RTC_IFC_COMP1;
+        greenLed::toggle();
+        RTC->COMP1=RTC->CNT+100000;
+    }
 }
 
 /**

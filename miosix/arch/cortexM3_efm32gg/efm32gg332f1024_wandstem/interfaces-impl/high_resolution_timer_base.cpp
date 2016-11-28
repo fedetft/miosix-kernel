@@ -50,6 +50,12 @@ static TimeConversion* tc;
 static int faseGPIO=0;
 static int faseTransceiver=0;
 
+static volatile unsigned long long vhtBaseVht=0;        ///< Vht time corresponding to rtc time: theoretical
+static unsigned long long vhtSyncPointRtc=0;     ///< Rtc time corresponding to vht time : known with sum
+static volatile unsigned long long vhtSyncPointVht=0;     ///< Vht time corresponding to rtc time :timestanped
+static unsigned long long syncVhtRtcPeriod=100000;
+static long long error=0;
+
 static inline unsigned int IRQread32Timer(){
     unsigned int high=TIMER3->CNT;
     unsigned int low=TIMER1->CNT;
@@ -194,6 +200,10 @@ void __attribute__((used)) cstirqhnd3(){
     } 
 }
 
+template<typename C>
+C divisionRounded(C a, C b){
+    return (a+b/2)/b;
+}
 
 void __attribute__((used)) cstirqhnd2(){
     //CC0 listening for received packet --> input mode
@@ -250,6 +260,27 @@ void __attribute__((used)) cstirqhnd2(){
 		}
 	    }
 	}
+    }
+    
+    if ((TIMER2->IEN & TIMER_IEN_CC2) && (TIMER2->IF & TIMER_IF_CC2) ){
+        TIMER2->IFC = TIMER_IFC_CC2;
+        unsigned long long old_vhtBase = vhtBaseVht;
+        unsigned long long old_vhtSyncPointVht=vhtSyncPointVht;
+        
+        //FIXME
+        //actual times
+        vhtSyncPointVht = ms32time | (TIMER3->CNT << 16) | TIMER2->CC[2].CCV;
+        vhtBaseVht=divisionRounded(static_cast<unsigned long long>(vhtSyncPointRtc*48000000),static_cast<unsigned long long>(32768));
+        
+        //Future time
+        vhtSyncPointRtc+=syncVhtRtcPeriod;
+        
+        long long temp=divisionRounded(static_cast<unsigned long long>(vhtSyncPointRtc*48000000),static_cast<unsigned long long>(32768));
+        error=vhtSyncPointVht-temp;
+        redLed::toggle();
+        bool hppw;
+	HighResolutionTimerBase::queue.IRQpost([&](){printf("%lld %lld %lld\n",vhtSyncPointVht,error,temp);},hppw);
+	if(hppw) Scheduler::IRQfindNextThread();
     }
 }
 
