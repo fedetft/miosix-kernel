@@ -67,17 +67,8 @@ static inline long long readRtc()
     if((RTC->IF & _RTC_IFC_OF_MASK) && RTC->CNT>=counter)
         return (swCounter | static_cast<long long>(counter)) + overflowIncrement;
     return swCounter | static_cast<long long>(counter);
-}/*
-//PENDING BIT TRICK
-    unsigned int counter=IRQread32Timer();
-    if((TIMER3->IF & _TIMER_IFC_OF_MASK) && IRQread32Timer()>=counter)
-        return (ms32time | static_cast<long long>(counter)) + overflowIncrement;
-    return ms32time | static_cast<long long>(counter);
-//FIXME: if not called at least every period (512s) it fails, use pending bit trick?
-    unsigned int hwCounter=RTC->CNT;
-    if(hwCounter<lastHwCounter) swCounter+=(1<<24); //RTC is 24 bit
-    lastHwCounter=hwCounter;
-    return swCounter | hwCounter;*/
+}
+
 /**
  * Common part of all wait functions
  * \param value absolute time point when the wait has to end
@@ -185,10 +176,9 @@ void __attribute__((used)) RTChandlerImpl()
         }
     }
     
-    if(RTC->IF & RTC_IF_COMP1){
+    if((RTC->IEN & RTC_IEN_COMP1) & (RTC->IF & RTC_IF_COMP1)){
         RTC->IFC=RTC_IFC_COMP1;
-        greenLed::toggle();
-        RTC->COMP1=RTC->CNT+100000;
+        RTC->COMP1=RTC->CNT+99999;
     }
 }
 
@@ -315,7 +305,7 @@ Rtc::Rtc() : tc(frequency)
     
     //In the EFM32GG332F1024 the RTC has two compare channels, used in this way:
     //COMP0 -> used for wait and trigger
-    //COMP1 -> reserved for VHT resync
+    //COMP1 -> reserved for VHT resync and Power manager
     //NOTE: interrupt not yet enabled as we're not setting RTC->IEN
     NVIC_EnableIRQ(RTC_IRQn);
     NVIC_SetPriority(RTC_IRQn,10); //Low priority
@@ -325,8 +315,8 @@ Rtc::Rtc() : tc(frequency)
     // (at the RTC resolution using a hardware input capture/output compare
     // channel isn't necessary, as one RTC tick is more than 1400 CPU cycles)
     //
-    
-    registerGpioIrq(transceiver::excChB::getPin(),GpioIrqEdge::RISING,GPIO8Handler);
+    //Not more needed
+    //registerGpioIrq(transceiver::excChB::getPin(),GpioIrqEdge::RISING,GPIO8Handler);
 }
 
 } //namespace miosix

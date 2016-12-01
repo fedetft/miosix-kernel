@@ -138,8 +138,10 @@ class HighResolutionTimerBase {
        static long long vhtSyncPointVht;
        static long long vhtOffset;
        
-       static long long aux1,aux2,aux3,aux4;
+       static long long aux1,aux2,aux3,aux4,error;
        static FixedEventQueue<100,12> queue;
+       static Thread *tWaiting;
+       static long long diffs[100];
     private:
         void initResyncCmu();
         HighResolutionTimerBase();

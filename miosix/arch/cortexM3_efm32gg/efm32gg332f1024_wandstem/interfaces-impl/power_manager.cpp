@@ -84,16 +84,16 @@ void PowerManager::deepSleepUntil(long long int when)
         for(;;)
         {
             //First, try to go to sleep. If an interrupt occurred since when
-            //we have disabled them, this is executed as a nop
+            //we have disabled them, this is executed as a NOP
             IRQmakeSureTransceiverPowerDomainIsDisabled();
             __WFI();
             IRQrestartHFXOandTransceiverPowerDomainEnable();
-            //If the interrupt we want is now pending, everything's ok
+            //If the interrupt we want is now pending, everything is ok
             if(NVIC_GetPendingIRQ(RTC_IRQn))
             {
                 //Clear the interrupt (both in the RTC peripheral and NVIC),
                 //this is important as pending IRQ prevent WFI from working
-                //FIXME sleeps of more that 512s still don't work due to rtc
+                //FIXME sleeps of more that 512s still don't work due to RTC
                 //class requirement of at least one read per period
                 RTC->IFC=RTC_IFC_COMP1;
                 NVIC_ClearPendingIRQ(RTC_IRQn);
@@ -101,7 +101,7 @@ void PowerManager::deepSleepUntil(long long int when)
             } else {
                 //Else we are in an uncomfortable situation: we're waiting for
                 //a specific interrupt, but we didn't go to sleep as another
-                //interrupt occured. The core won't allow thw WFI to put us to
+                //interrupt occurred. The core won't allow the WFI to put us to
                 //sleep till we serve the interrupt, so let's do it.
                 //Note that since the kernel is paused the interrupt we're
                 //serving can't cause a context switch and fuck up things.
