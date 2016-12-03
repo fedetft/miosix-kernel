@@ -50,10 +50,12 @@ bool TransceiverTimer::absoluteWait(long long tick){
 
 bool TransceiverTimer::absoluteWaitTrigger(long long tick){
     FastInterruptDisableLock dLock;
+    
+    b.setModeTransceiverTimer(false);
     if(b.IRQsetNextTransceiverInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
 	return true;
     }
-    b.setModeTransceiverTimer(false);
+    
     do {
 	tWaiting=Thread::IRQgetCurrentThread();
 	Thread::IRQwait();
