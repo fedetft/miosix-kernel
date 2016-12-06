@@ -261,7 +261,7 @@ void __attribute__((used)) cstirqhnd2(){
 	}
     }
     
-    if ((TIMER2->IEN & TIMER_IEN_CC2) && (TIMER2->IF & TIMER_IF_CC2) ){
+    /*if ((TIMER2->IEN & TIMER_IEN_CC2) && (TIMER2->IF & TIMER_IF_CC2) ){
         TIMER2->IFC = TIMER_IFC_CC2;
         unsigned long long old_vhtBase = vhtBaseVht;
         unsigned long long old_vhtSyncPointVht=vhtSyncPointVht;
@@ -281,11 +281,6 @@ void __attribute__((used)) cstirqhnd2(){
         long long temp=divisionRounded(static_cast<unsigned long long>(vhtSyncPointRtc*48000000),static_cast<unsigned long long>(32768));
         HighResolutionTimerBase::error=vhtSyncPointVht-temp;
         redLed::toggle();
-	
-	TIMER2->CC[2].CTRL = TIMER_CC_CTRL_MODE_OFF;
-	loopback32KHzOut::mode(Mode::OUTPUT);
-	loopback32KHzIn::mode(Mode::INPUT);
-	expansion::gpio18::mode(Mode::DISABLED);
 	
 	long long rtcTime,time1,hrtIdeal;
 	HighResolutionTimerBase::diffs[1]=vhtSyncPointVht;
@@ -308,18 +303,10 @@ void __attribute__((used)) cstirqhnd2(){
 	HighResolutionTimerBase::tWaiting->IRQwakeup();
 	Scheduler::IRQfindNextThread();
 	
-	loopback32KHzOut::mode(Mode::DISABLED);
-	loopback32KHzIn::mode(Mode::INPUT);
-	expansion::gpio18::mode(Mode::OUTPUT);
-	TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
-			| TIMER_CC_CTRL_FILT_DISABLE
-			| TIMER_CC_CTRL_INSEL_PIN
-			| TIMER_CC_CTRL_MODE_INPUTCAPTURE;
-	
-        /*bool hppw;
+        bool hppw;
 	HighResolutionTimerBase::queue.IRQpost([&](){printf("%lld %lld %lld\n",vhtSyncPointVht,temp,HighResolutionTimerBase::error);},hppw);
-	if(hppw) Scheduler::IRQfindNextThread();*/
-    }
+	if(hppw) Scheduler::IRQfindNextThread();
+    }*/
 }
 
 /*
