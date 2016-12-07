@@ -178,7 +178,7 @@ void __attribute__((used)) RTChandlerImpl()
     
     if((RTC->IEN & RTC_IEN_COMP1) & (RTC->IF & RTC_IF_COMP1)){
         RTC->IFC=RTC_IFC_COMP1;
-        RTC->COMP1=RTC->CNT+99999;
+        RTC->COMP1=RTC->CNT+2999;
     }
 }
 

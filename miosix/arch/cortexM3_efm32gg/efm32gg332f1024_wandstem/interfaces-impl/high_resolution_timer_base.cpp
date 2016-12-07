@@ -50,10 +50,10 @@ static TimeConversion* tc;
 static int faseGPIO=0;
 static int faseTransceiver=0;
 
-static volatile unsigned long long vhtBaseVht=0;        ///< Vht time corresponding to rtc time: theoretical
-static unsigned long long vhtSyncPointRtc=0;     ///< Rtc time corresponding to vht time : known with sum
-static volatile unsigned long long vhtSyncPointVht=0;     ///< Vht time corresponding to rtc time :timestanped
-static unsigned long long syncVhtRtcPeriod=100000;
+//static volatile unsigned long long vhtBaseVht=0;        ///< Vht time corresponding to rtc time: theoretical
+//static unsigned long long syncPointRtc=0;     ///< Rtc time corresponding to vht time : known with sum
+//static volatile unsigned long long syncPointVht=0;     ///< Vht time corresponding to rtc time :timestanped
+//static unsigned long long syncVhtRtcPeriod=3000;
 
 static inline unsigned int IRQread32Timer(){
     unsigned int high=TIMER3->CNT;
@@ -261,52 +261,38 @@ void __attribute__((used)) cstirqhnd2(){
 	}
     }
     
-    /*if ((TIMER2->IEN & TIMER_IEN_CC2) && (TIMER2->IF & TIMER_IF_CC2) ){
-        TIMER2->IFC = TIMER_IFC_CC2;
-        unsigned long long old_vhtBase = vhtBaseVht;
-        unsigned long long old_vhtSyncPointVht=vhtSyncPointVht;
+    if ((TIMER2->IEN & TIMER_IEN_CC2) && (TIMER2->IF & TIMER_IF_CC2) ){
+        static bool ft=true;
+	static int ex;
+	TIMER2->IFC = TIMER_IFC_CC2;
+	//HighResolutionTimerBase::tWaiting->IRQwakeup();
+	//Scheduler::IRQfindNextThread();
+	
+	//"Actual" times 
+	HighResolutionTimerBase::syncPointRtc += HighResolutionTimerBase::syncPeriodVhtRtc;
         HighResolutionTimerBase::diffs[0]=RTC->CNT;
         //FIXME
         //actual times
-        vhtSyncPointVht = ms32time | (TIMER3->CNT << 16) | TIMER2->CC[2].CCV;
+        HighResolutionTimerBase::syncPointHrtTimestamped = ms32time | (TIMER3->CNT << 16) | TIMER2->CC[2].CCV;
 	//Assuming that this routine is executed within 1.3ms after the interrupt
-	if(vhtSyncPointVht>IRQgetTick()){
-	    vhtSyncPointVht = ms32time | ((TIMER3->CNT-1) << 16) | TIMER2->CC[2].CCV;
+	if(HighResolutionTimerBase::syncPointHrtTimestamped > IRQgetTick()){
+	    HighResolutionTimerBase::syncPointHrtTimestamped = ms32time | ((TIMER3->CNT-1) << 16) | TIMER2->CC[2].CCV;
 	}
-        vhtBaseVht=divisionRounded(static_cast<unsigned long long>(vhtSyncPointRtc*48000000),static_cast<unsigned long long>(32768));
+        int conversion=divisionRounded(static_cast<unsigned long long>(HighResolutionTimerBase::syncPeriodVhtRtc*48000000),static_cast<unsigned long long>(32768));
+        HighResolutionTimerBase::syncPointHrtExpected += conversion + HighResolutionTimerBase::clockCorrection;
         
-        //Future time
-        vhtSyncPointRtc+=syncVhtRtcPeriod;
-        
-        long long temp=divisionRounded(static_cast<unsigned long long>(vhtSyncPointRtc*48000000),static_cast<unsigned long long>(32768));
-        HighResolutionTimerBase::error=vhtSyncPointVht-temp;
+	//required to make a coarse estimation of error and avoid overflow in flopsync algorithm
+	if(ft){
+	    ft=false;
+	    ex=HighResolutionTimerBase::syncPointHrtTimestamped - (HighResolutionTimerBase::syncPointHrtExpected);
+	}
+        HighResolutionTimerBase::error = HighResolutionTimerBase::syncPointHrtTimestamped-ex - (HighResolutionTimerBase::syncPointHrtExpected);
         redLed::toggle();
 	
-	long long rtcTime,time1,hrtIdeal;
-	HighResolutionTimerBase::diffs[1]=vhtSyncPointVht;
-	HighResolutionTimerBase::diffs[2]=temp;
-	HighResolutionTimerBase::diffs[3]=HighResolutionTimerBase::error;
 	
-	for(int i=0+4;i<20+4;i++){
-	    int prev=loopback32KHzIn::value();
-	    for(;;){
-		int curr=loopback32KHzIn::value();
-		if(curr==1 && prev==0) break;
-		prev=curr;
-	    }
-	    //Approximated
-	    time1=IRQgetTick();
-	    rtcTime=RTC->CNT; //FIXME
-	    HighResolutionTimerBase::diffs[i]=(time1-HighResolutionTimerBase::error)-(rtcTime*48000000+16384)/32768;
-	    delayMs(1);
-	}
 	HighResolutionTimerBase::tWaiting->IRQwakeup();
 	Scheduler::IRQfindNextThread();
-	
-        bool hppw;
-	HighResolutionTimerBase::queue.IRQpost([&](){printf("%lld %lld %lld\n",vhtSyncPointVht,temp,HighResolutionTimerBase::error);},hppw);
-	if(hppw) Scheduler::IRQfindNextThread();
-    }*/
+    }
 }
 
 /*
@@ -646,7 +632,7 @@ WaitResult HighResolutionTimerBase::IRQsetTransceiverTimeout(long long tick){
 } 
 
 void HighResolutionTimerBase::resyncVht(){
-    Rtc& rtc=Rtc::instance();
+    /*Rtc& rtc=Rtc::instance();
     long long rtcTime;
     int a=0,b=0,c=0,d=0,e=0;
     {
@@ -695,7 +681,7 @@ void HighResolutionTimerBase::resyncVht(){
             vhtBase=conversion;
         }
     }
-    printf("a=%d b=%d c=%d d=%d e=%d e-d=%d\n",a,b,c,d,e,e>=d ? e-d : e+65536-d);
+    printf("a=%d b=%d c=%d d=%d e=%d e-d=%d\n",a,b,c,d,e,e>=d ? e-d : e+65536-d);*/
 }
 
 void HighResolutionTimerBase::setAutoResyncVht(bool enable){
@@ -817,5 +803,10 @@ long long HighResolutionTimerBase::aux2=0;
 long long HighResolutionTimerBase::aux3=0;
 long long HighResolutionTimerBase::aux4=0;
 long long HighResolutionTimerBase::error=0;
+unsigned long long HighResolutionTimerBase::syncPeriodVhtRtc=3000;
+long long HighResolutionTimerBase::syncPointHrtExpected=0;
+long long HighResolutionTimerBase::syncPointHrtTimestamped=0;
+long long HighResolutionTimerBase::clockCorrection=0;
+long long HighResolutionTimerBase::syncPointRtc=0;
 long long HighResolutionTimerBase::diffs[100]={0};
 Thread* HighResolutionTimerBase::tWaiting=nullptr;

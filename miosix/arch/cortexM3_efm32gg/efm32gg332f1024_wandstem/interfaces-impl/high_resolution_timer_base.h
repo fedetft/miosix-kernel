@@ -133,10 +133,13 @@ class HighResolutionTimerBase {
         * vhtSyncPointVht (high frequency: keeps the precise value of last sync point
         * vhtOffset (high frequency): keeps the difference between the actual time and the counter value
         */
-       static long long vhtBase;
-       static long long vhtSyncPointRtc;
-       static long long vhtSyncPointVht;
+       static long long base;
+       static long long syncPointRtc;
+       static long long syncPointHrtExpected;
+       static long long syncPointHrtTimestamped;
        static long long vhtOffset;
+       static unsigned long long syncPeriodVhtRtc;
+       static long long clockCorrection;
        
        static long long aux1,aux2,aux3,aux4,error;
        static FixedEventQueue<100,12> queue;
