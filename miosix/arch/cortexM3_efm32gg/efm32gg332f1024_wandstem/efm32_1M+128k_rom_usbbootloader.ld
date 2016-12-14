@@ -21,7 +21,7 @@
  * Note: if increasing the main stack size also increase the ORIGIN value in
  * the MEMORY definitions below accordingly.
  */
-_main_stack_size = 0x00000200;                     /* main stack = 512Bytes */
+_main_stack_size = 0x00000300;                     /* main stack = 768Bytes */
 _main_stack_top  = 0x20000000 + _main_stack_size;
 ASSERT(_main_stack_size   % 8 == 0, "MAIN stack size error");
 
@@ -40,7 +40,7 @@ MEMORY
      * Note, the ram starts at 0x20000000 but it is necessary to add the size
      * of the main stack, so it is 0x20000200.
      */
-    ram(wx)   : ORIGIN = 0x20000200, LENGTH = 128K-0x200
+    ram(wx)   : ORIGIN = 0x20000300, LENGTH = 128K-0x300
 }
 
 /* now define the output sections  */
