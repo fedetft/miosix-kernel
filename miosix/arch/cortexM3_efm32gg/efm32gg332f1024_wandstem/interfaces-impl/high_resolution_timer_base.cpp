@@ -265,33 +265,34 @@ void __attribute__((used)) cstirqhnd2(){
         static bool ft=true;
 	static int ex;
 	TIMER2->IFC = TIMER_IFC_CC2;
-	//HighResolutionTimerBase::tWaiting->IRQwakeup();
-	//Scheduler::IRQfindNextThread();
 	
-	//"Actual" times 
+	// "Actual" times 
 	HighResolutionTimerBase::syncPointRtc += HighResolutionTimerBase::syncPeriodVhtRtc;
         HighResolutionTimerBase::diffs[0]=RTC->CNT;
-        //FIXME
+
         //actual times
-        HighResolutionTimerBase::syncPointHrtTimestamped = ms32time | (TIMER3->CNT << 16) | TIMER2->CC[2].CCV;
+        HighResolutionTimerBase::syncPointHrtExpected = ms32time | (TIMER3->CNT << 16) | TIMER2->CC[2].CCV;
 	//Assuming that this routine is executed within 1.3ms after the interrupt
-	if(HighResolutionTimerBase::syncPointHrtTimestamped > IRQgetTick()){
-	    HighResolutionTimerBase::syncPointHrtTimestamped = ms32time | ((TIMER3->CNT-1) << 16) | TIMER2->CC[2].CCV;
+	if(HighResolutionTimerBase::syncPointHrtExpected > IRQgetTick()){
+	    HighResolutionTimerBase::syncPointHrtExpected = ms32time | ((TIMER3->CNT-1) << 16) | TIMER2->CC[2].CCV;
 	}
         int conversion=divisionRounded(static_cast<unsigned long long>(HighResolutionTimerBase::syncPeriodVhtRtc*48000000),static_cast<unsigned long long>(32768));
-        HighResolutionTimerBase::syncPointHrtExpected += conversion + HighResolutionTimerBase::clockCorrection;
+        HighResolutionTimerBase::syncPointHrtTimestamped += conversion + HighResolutionTimerBase::clockCorrection;
         
 	//required to make a coarse estimation of error and avoid overflow in flopsync algorithm
 	if(ft){
 	    ft=false;
-	    ex=HighResolutionTimerBase::syncPointHrtTimestamped - (HighResolutionTimerBase::syncPointHrtExpected);
+	    ex=HighResolutionTimerBase::syncPointHrtExpected - (HighResolutionTimerBase::syncPointHrtTimestamped);
 	}
-        HighResolutionTimerBase::error = HighResolutionTimerBase::syncPointHrtTimestamped-ex - (HighResolutionTimerBase::syncPointHrtExpected);
+        HighResolutionTimerBase::error = HighResolutionTimerBase::syncPointHrtExpected-ex - (HighResolutionTimerBase::syncPointHrtTimestamped);
         redLed::toggle();
 	
 	
+	redLed::toggle();
 	HighResolutionTimerBase::tWaiting->IRQwakeup();
-	Scheduler::IRQfindNextThread();
+	if(HighResolutionTimerBase::tWaiting->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority()){
+	    Scheduler::IRQfindNextThread();
+	}
     }
 }
 
