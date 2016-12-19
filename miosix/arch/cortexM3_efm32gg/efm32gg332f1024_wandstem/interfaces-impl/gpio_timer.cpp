@@ -33,7 +33,8 @@ using namespace miosix;
 Thread* GPIOtimer::tWaiting=nullptr;
 
 long long GPIOtimer::getValue() const{
-    return b.getCurrentTick();
+    FastInterruptDisableLock dLock;
+    return HighResolutionTimerBase::syncPointHrtTeoretical+b.IRQgetCurrentTick()-HighResolutionTimerBase::syncPointHrtMaster;
 }
 
 unsigned int GPIOtimer::getTickFrequency() const{

@@ -33,15 +33,16 @@
 #include <kernel/scheduler/scheduler.h>
 #include "gpioirq.h"
 #include "config/miosix_settings.h"
+#include "high_resolution_timer_base.h"
 
 using namespace miosix;
 
-enum class WaitResult
-{
-    WAKEUP_IN_THE_PAST,
-    WAIT_COMPLETED,
-    EVENT
-};
+//enum class WaitResult
+//{
+//    WAKEUP_IN_THE_PAST,
+//    WAIT_COMPLETED,
+//    EVENT
+//};
 
 const unsigned int timerBits=24;
 const unsigned long long overflowIncrement=(1LL<<timerBits);
@@ -152,7 +153,7 @@ void __attribute__((used)) RTChandlerImpl()
 {
     if(RTC->IF & RTC_IF_OF){
         RTC->IFC=RTC_IFC_OF;
-        swCounter+=upperMask;
+        swCounter+=overflowIncrement;
     }
     
     if(RTC->IF & RTC_IF_COMP0)
@@ -178,8 +179,13 @@ void __attribute__((used)) RTChandlerImpl()
     
     if((RTC->IEN & RTC_IEN_COMP1) & (RTC->IF & RTC_IF_COMP1)){
         RTC->IFC=RTC_IFC_COMP1;
-        RTC->COMP1+=2999;
-	
+        RTC->COMP1+=3000;
+	while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1) ;
+//	int a=readRtc();
+//
+//	bool hppw;
+//	HighResolutionTimerBase::queue.IRQpost([=](){printf("rtc::%lld\n",HighResolutionTimerBase::syncPointHrtSlave*32768/48000000);});
+//	if(hppw) Scheduler::IRQfindNextThread();
     }
 }
 

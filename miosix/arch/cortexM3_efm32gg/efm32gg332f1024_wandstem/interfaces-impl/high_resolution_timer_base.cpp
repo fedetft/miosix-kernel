@@ -204,6 +204,12 @@ C divisionRounded(C a, C b){
     return (a+b/2)/b;
 }
 
+template<typename C>
+C divisionRoundedNeg(C a, C b){
+    int sign=((a<0 || b<0) && !(a<0 && b<0))? -1 : 1;
+    return (a+sign*b/2)/b;
+}
+
 void __attribute__((used)) cstirqhnd2(){
     //CC0 listening for received packet --> input mode
     if ((TIMER2->IEN & TIMER_IEN_CC0) && (TIMER2->IF & TIMER_IF_CC0) ){
@@ -264,31 +270,40 @@ void __attribute__((used)) cstirqhnd2(){
     if ((TIMER2->IEN & TIMER_IEN_CC2) && (TIMER2->IF & TIMER_IF_CC2) ){
         static bool ft=true;
 	static int ex;
+	static int i=0;
+	
 	TIMER2->IFC = TIMER_IFC_CC2;
 	
 	// "Actual" times 
 	HighResolutionTimerBase::syncPointRtc += HighResolutionTimerBase::syncPeriodVhtRtc;
-        HighResolutionTimerBase::diffs[0]=RTC->CNT;
 
-        //actual times
-        HighResolutionTimerBase::syncPointHrtExpected = ms32time | (TIMER3->CNT << 16) | TIMER2->CC[2].CCV;
+        HighResolutionTimerBase::syncPointHrtMaster = ms32time | (TIMER3->CNT << 16) | TIMER2->CC[2].CCV;
 	//Assuming that this routine is executed within 1.3ms after the interrupt
-	if(HighResolutionTimerBase::syncPointHrtExpected > IRQgetTick()){
-	    HighResolutionTimerBase::syncPointHrtExpected = ms32time | ((TIMER3->CNT-1) << 16) | TIMER2->CC[2].CCV;
+	if(HighResolutionTimerBase::syncPointHrtMaster > IRQgetTick()){
+	    HighResolutionTimerBase::syncPointHrtMaster = ms32time | ((TIMER3->CNT-1) << 16) | TIMER2->CC[2].CCV;
 	}
-        int conversion=divisionRounded(static_cast<unsigned long long>(HighResolutionTimerBase::syncPeriodVhtRtc*48000000),static_cast<unsigned long long>(32768));
-        HighResolutionTimerBase::syncPointHrtTimestamped += conversion + HighResolutionTimerBase::clockCorrection;
+	
+        int conversion=divisionRounded(static_cast<unsigned long long>(HighResolutionTimerBase::syncPeriodVhtRtc*48000000),static_cast<unsigned long long>(32768)); // The result is 4394531.25
+        if(i==3){
+	    HighResolutionTimerBase::syncPointHrtTeoretical++;
+	    i=0;
+	}else{
+	    i++;
+	}
+	HighResolutionTimerBase::syncPointHrtTeoretical+=conversion;
+	HighResolutionTimerBase::syncPointHrtSlave += conversion + HighResolutionTimerBase::clockCorrection;
         
-	//required to make a coarse estimation of error and avoid overflow in flopsync algorithm
+	//required to make a coarse estimation of offset between the clock (they don't start at the same time)
+	//and avoid overflow in flopsync algorithm
 	if(ft){
 	    ft=false;
-	    ex=HighResolutionTimerBase::syncPointHrtExpected - (HighResolutionTimerBase::syncPointHrtTimestamped);
+	    ex=HighResolutionTimerBase::syncPointHrtMaster - (HighResolutionTimerBase::syncPointHrtSlave);
+	    HighResolutionTimerBase::queue.IRQpost([=](){printf("ex: %d\n",ex);});
 	}
-        HighResolutionTimerBase::error = HighResolutionTimerBase::syncPointHrtExpected-ex - (HighResolutionTimerBase::syncPointHrtTimestamped);
-        redLed::toggle();
+	//master-ex è come se avessi che i 2 timer partissero davvero assieme
+        HighResolutionTimerBase::error = HighResolutionTimerBase::syncPointHrtMaster-ex - (HighResolutionTimerBase::syncPointHrtSlave);
 	
 	
-	redLed::toggle();
 	HighResolutionTimerBase::tWaiting->IRQwakeup();
 	if(HighResolutionTimerBase::tWaiting->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority()){
 	    Scheduler::IRQfindNextThread();
@@ -632,100 +647,13 @@ WaitResult HighResolutionTimerBase::IRQsetTransceiverTimeout(long long tick){
     }
 } 
 
-void HighResolutionTimerBase::resyncVht(){
-    /*Rtc& rtc=Rtc::instance();
-    long long rtcTime;
-    int a=0,b=0,c=0,d=0,e=0;
-    {
-	FastInterruptDisableLock dLock;
-	int prev=loopback32KHzIn::value();
-	for(;;){
-		int curr=loopback32KHzIn::value();
-		if(curr-prev==-1) break;
-		prev=curr;
-	}
-	int high=TIMER3->CNT;
-
-	TIMER2->IFC = TIMER_IFC_CC2;
-	TIMER2->CC[2].CTRL |= TIMER_CC_CTRL_MODE_INPUTCAPTURE;
-	
-	//Wait until we capture the first raising edge in the 32khz wave, 
-	//it takes max half period, less than 16us -->732.4ticks @48000000Hz
-	while((TIMER2->IF & TIMER_IF_CC2)==0) ;
-	
-	//Creating the proper value of vhtSyncPointVht
-	int high2=TIMER3->CNT;
-	//Turn off the input capture mode
-	TIMER2->CC[2].CTRL &= ~_TIMER_CC_CTRL_MODE_MASK;
-	//This is the exact point when the rtc is incremented to the actual value 
-	if(high==high2){
-	    vhtSyncPointVht = ms32time | high<<16 | TIMER2->CC[2].CCV; //FIXME:: add the highest part
-	}else{
-	    // 735 are really enough to be sure that we are in the new window
-	    if(TIMER2->CC[2].CCV < 735){
-		if(high==0xFFFF){
-		    vhtSyncPointVht = (ms32time+overflowIncrement) | high2<<16 | TIMER2->CC[2].CCV;
-		}else{
-		    vhtSyncPointVht = ms32time | high2<<16 | TIMER2->CC[2].CCV;
-		}
-	    }else{
-		vhtSyncPointVht = ms32time | high<<16 | TIMER2->CC[2].CCV;
-	    }
-	}
-	
-	vhtSyncPointRtc=rtc.IRQgetValue();
-	{
-            unsigned long long conversion=vhtSyncPointRtc;
-            conversion*=HighResolutionTimerBase::freq;
-            conversion+=HighResolutionTimerBase::freq/2; //Round to nearest
-            conversion/=HighResolutionTimerBase::freq;
-            vhtBase=conversion;
-        }
-    }
-    printf("a=%d b=%d c=%d d=%d e=%d e-d=%d\n",a,b,c,d,e,e>=d ? e-d : e+65536-d);*/
-}
-
-void HighResolutionTimerBase::setAutoResyncVht(bool enable){
-    if(enable){
-	
-    }else{
-	
-    }
-}
-
-void HighResolutionTimerBase::resyncClock(){
-    CMU->CMD = CMU_CMD_CALSTART;
-}
-        
-void HighResolutionTimerBase::setAutoAndStartResyncClocks(bool enable){
-    if(enable){
-	CMU->CTRL |= CMU_CALCTRL_CONT;
-	CMU->CMD = CMU_CMD_CALSTART;
-    }else{
-	CMU->CTRL &= ~CMU_CALCTRL_CONT;
-	CMU->CMD = CMU_CMD_CALSTOP;
-    }
-}
-
-void HighResolutionTimerBase::initResyncCmu(){
-    CMU->CALCTRL=CMU_CALCTRL_DOWNSEL_LFXO|CMU_CALCTRL_UPSEL_HFXO|CMU_CALCTRL_CONT;
-    //due to hardware timer characteristic, the real counter trigger at value+1
-    //tick of LFCO to yield the maximum from to up counter
-    CMU->CALCNT=700; 
-    //enable interrupt
-    CMU->IEN=CMU_IEN_CALRDY;
-    NVIC_SetPriority(CMU_IRQn,3);
-    NVIC_ClearPendingIRQ(CMU_IRQn);
-    NVIC_EnableIRQ(CMU_IRQn);
-}
-
 HighResolutionTimerBase& HighResolutionTimerBase::instance(){
     static HighResolutionTimerBase hrtb;
     return hrtb;
 }
 
 const unsigned int HighResolutionTimerBase::freq=48000000;
-FixedEventQueue<100,12> HighResolutionTimerBase::queue;
+FixedEventQueue<50,16> HighResolutionTimerBase::queue;
 
 HighResolutionTimerBase::HighResolutionTimerBase() {
     //Power the timers up and PRS system
@@ -792,7 +720,6 @@ HighResolutionTimerBase::HighResolutionTimerBase() {
 			| TIMER_CC_CTRL_INSEL_PIN
 			| TIMER_CC_CTRL_MODE_OFF;
     
-    initResyncCmu();
 }
 
 HighResolutionTimerBase::~HighResolutionTimerBase() {
@@ -805,8 +732,9 @@ long long HighResolutionTimerBase::aux3=0;
 long long HighResolutionTimerBase::aux4=0;
 long long HighResolutionTimerBase::error=0;
 unsigned long long HighResolutionTimerBase::syncPeriodVhtRtc=3000;
-long long HighResolutionTimerBase::syncPointHrtExpected=0;
-long long HighResolutionTimerBase::syncPointHrtTimestamped=0;
+long long HighResolutionTimerBase::syncPointHrtMaster=0;
+long long HighResolutionTimerBase::syncPointHrtSlave=0;
+long long HighResolutionTimerBase::syncPointHrtTeoretical=0;
 long long HighResolutionTimerBase::clockCorrection=0;
 long long HighResolutionTimerBase::syncPointRtc=0;
 long long HighResolutionTimerBase::diffs[100]={0};

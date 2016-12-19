@@ -111,18 +111,6 @@ class HighResolutionTimerBase {
         WaitResult IRQsetGPIOtimeout(long long tick);
         WaitResult IRQsetTransceiverTimeout(long long tick);
         
-        void resyncVht();
-        void setAutoResyncVht(bool enable);
-        
-        /**
-         * These function are used to sync the HF and the LF clock. It requires 
-         * few ms to trigger the interrupt that effectively compensate the 2 
-         * clocks.
-         * Of course, it's not busy waiting.
-         */
-        void resyncClock();
-        void setAutoAndStartResyncClocks(bool enable);
-        
         virtual ~HighResolutionTimerBase();
         static int aux;
         
@@ -135,18 +123,18 @@ class HighResolutionTimerBase {
         */
        static long long base;
        static long long syncPointRtc;
-       static long long syncPointHrtExpected;
-       static long long syncPointHrtTimestamped;
+       static long long syncPointHrtMaster;
+       static long long syncPointHrtSlave;
+       static long long syncPointHrtTeoretical;
        static long long vhtOffset;
        static unsigned long long syncPeriodVhtRtc;
        static long long clockCorrection;
        
        static long long aux1,aux2,aux3,aux4,error;
-       static FixedEventQueue<100,12> queue;
+       static FixedEventQueue<50,16> queue;
        static Thread *tWaiting;
        static long long diffs[100];
     private:
-        void initResyncCmu();
         HighResolutionTimerBase();
         static const unsigned int freq;
         
