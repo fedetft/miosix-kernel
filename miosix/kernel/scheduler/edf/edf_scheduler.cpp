@@ -44,7 +44,7 @@ extern volatile int kernel_running;
 extern IntrusiveList<SleepData> *sleepingList;
 
 //Static members
-static ContextSwitchTimer& timer = ContextSwitchTimer::instance();
+static ContextSwitchTimer *timer = nullptr;
 static long long nextPreemption = numeric_limits<long long>::max();
 //
 // class EDFScheduler
@@ -107,6 +107,7 @@ void EDFScheduler::PKsetPriority(Thread *thread,
 
 void EDFScheduler::IRQsetIdleThread(Thread *idleThread)
 {
+    timer = &ContextSwitchTimer::instance();
     idleThread->schedData.deadline=numeric_limits<long long>::max()-1;
     add(idleThread);
 }
@@ -123,7 +124,7 @@ static void IRQsetNextPreemption(){
     }else{
         nextPreemption = sleepingList->front()->wakeup_time;
     }
-    timer.IRQsetNextInterrupt(nextPreemption);
+    timer->IRQsetNextInterrupt(nextPreemption);
 }
 
 unsigned int EDFScheduler::IRQfindNextThread()

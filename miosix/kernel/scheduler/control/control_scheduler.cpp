@@ -40,7 +40,7 @@ namespace miosix {
 //These are defined in kernel.cpp
 extern volatile Thread *cur;
 extern volatile int kernel_running;
-static ContextSwitchTimer& timer = ContextSwitchTimer::instance();
+static ContextSwitchTimer& timer = nullptr;
 extern IntrusiveList<SleepData> *sleepingList;
 static long long burstStart = 0;
 static long long nextPreemption = numeric_limits<long long>::max();
@@ -137,6 +137,7 @@ void ControlScheduler::PKsetPriority(Thread *thread,
 
 void ControlScheduler::IRQsetIdleThread(Thread *idleThread)
 {
+    timer = &ContextSwitchTimer::instance();
     idleThread->schedData.priority=-1;
     idle=idleThread;
     //Initializing curInRound to end() so that the first time
@@ -163,7 +164,7 @@ static inline void IRQsetNextPreemptionForIdle(){
         nextPreemption = numeric_limits<long long>::max(); 
     else
         nextPreemption = sleepingList->front()->wakeup_time;
-    timer.IRQsetNextInterrupt(nextPreemption);
+    timer->IRQsetNextInterrupt(nextPreemption);
 }
 
 // Should be called for threads other than idle thread
@@ -173,9 +174,9 @@ static inline void IRQsetNextPreemption(long long burst){
         firstWakeupInList = numeric_limits<long long>::max();
     else
         firstWakeupInList = sleepingList->front()->wakeup_time;
-    burstStart = timer.IRQgetCurrentTime();
+    burstStart = timer->IRQgetCurrentTime();
     nextPreemption = min(firstWakeupInList,burstStart + burst);
-    timer.IRQsetNextInterrupt(nextPreemption);
+    timer->IRQsetNextInterrupt(nextPreemption);
 }
 
 unsigned int ControlScheduler::IRQfindNextThread()
@@ -192,7 +193,7 @@ unsigned int ControlScheduler::IRQfindNextThread()
         //Not preempting from the idle thread, store actual burst time of
         //the preempted thread
         //int Tp=miosix_private::AuxiliaryTimer::IRQgetValue(); //CurTime - LastTime = real burst
-        int Tp = static_cast<int>(timer.IRQgetCurrentTime() - burstStart);
+        int Tp = static_cast<int>(timer->IRQgetCurrentTime() - burstStart);
         cur->schedData.Tp=Tp;
         Tr+=Tp;
     }
@@ -445,7 +446,7 @@ extern IntrusiveList<SleepData> *sleepingList;
 extern bool kernel_started;
 
 //Internal
-static ContextSwitchTimer& timer = ContextSwitchTimer::instance();
+static ContextSwitchTimer& timer = nullptr;
 static long long burstStart = 0;
 static IntrusiveList<ThreadsListItem> activeThreads;
 static IntrusiveList<ThreadsListItem>::iterator curInRound = activeThreads.end();
@@ -579,6 +580,7 @@ void ControlScheduler::PKsetPriority(Thread *thread,
 
 void ControlScheduler::IRQsetIdleThread(Thread *idleThread)
 {
+    timer = &ContextSwitchTimer::instance();
     idleThread->schedData.priority=-1;
     idle=idleThread;
     //Initializing curInRound to end() so that the first time
@@ -605,7 +607,7 @@ static inline void IRQsetNextPreemptionForIdle(){
         nextPreemption = numeric_limits<long long>::max(); 
     else
         nextPreemption = sleepingList->front()->wakeup_time;
-    timer.IRQsetNextInterrupt(nextPreemption);
+    timer->IRQsetNextInterrupt(nextPreemption);
 }
 
 // Should be called for threads other than idle thread
@@ -615,9 +617,9 @@ static inline void IRQsetNextPreemption(long long burst){
         firstWakeupInList = numeric_limits<long long>::max();
     else
         firstWakeupInList = sleepingList->front()->wakeup_time;
-    burstStart = timer.IRQgetCurrentTime();
+    burstStart = timer->IRQgetCurrentTime();
     nextPreemption = min(firstWakeupInList,burstStart + burst);
-    timer.IRQsetNextInterrupt(nextPreemption);
+    timer->IRQsetNextInterrupt(nextPreemption);
 }
 
 unsigned int ControlScheduler::IRQfindNextThread()
@@ -634,7 +636,7 @@ unsigned int ControlScheduler::IRQfindNextThread()
         //Not preempting from the idle thread, store actual burst time of
         //the preempted thread
         //int Tp=miosix_private::AuxiliaryTimer::IRQgetValue(); //CurTime - LastTime = real burst
-        int Tp = static_cast<int>(timer.IRQgetCurrentTime() - burstStart);
+        int Tp = static_cast<int>(timer->IRQgetCurrentTime() - burstStart);
         cur->schedData.Tp=Tp;
         Tr+=Tp;
     }

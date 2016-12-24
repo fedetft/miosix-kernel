@@ -32,6 +32,7 @@
 #include "interfaces/bsp.h"
 #include <stdexcept>
 #include <sys/ioctl.h>
+#include "high_resolution_timer_base.h"
 
 using namespace std;
 
@@ -56,7 +57,7 @@ void PowerManager::deepSleepUntil(long long int when)
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
     
     Lock<FastMutex> l(powerMutex);  //To access reference counts freely
-    PauseKernelLock pkLock;         //To run unexpected IRQs without ctxsw
+    PauseKernelLock pkLock;         //To run unexpected IRQs without context switch
     FastInterruptDisableLock dLock; //To do everything else atomically
     
     //The wakeup time has been profiled, and takes ~310us when the transceiver
@@ -79,7 +80,10 @@ void PowerManager::deepSleepUntil(long long int when)
         RTC->IEN &= ~RTC_IEN_COMP1;
     } else {
         IRQpreDeepSleep(rtx);
-        SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+	// Flag to enable the deepsleep when we will call _WFI, 
+	// otherwise _WFI is translated as a simple sleep status, this means that the core is not running 
+	// but all the peripheral (HF and LF), are still working and they can trigger exception
+        SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk; 
         EMU->CTRL=0;
         for(;;)
         {
@@ -93,11 +97,19 @@ void PowerManager::deepSleepUntil(long long int when)
             {
                 //Clear the interrupt (both in the RTC peripheral and NVIC),
                 //this is important as pending IRQ prevent WFI from working
-                //FIXME sleeps of more that 512s still don't work due to RTC
-                //class requirement of at least one read per period
+                
                 RTC->IFC=RTC_IFC_COMP1;
-                NVIC_ClearPendingIRQ(RTC_IRQn);
-                if(preWake<=rtc.IRQgetValue()) break;
+                if(preWake<=rtc.IRQgetValue()){
+		    NVIC_ClearPendingIRQ(RTC_IRQn);
+		    break;
+		}else{
+		    FastInterruptEnableLock eLock(dLock);
+                    // Here interrupts are enabled, so the software part of RTC 
+		    // can be updated
+		    // NOP operation to be sure that the interrupt can be executed
+                    __NOP();
+		}
+		NVIC_ClearPendingIRQ(RTC_IRQn);
             } else {
                 //Else we are in an uncomfortable situation: we're waiting for
                 //a specific interrupt, but we didn't go to sleep as another
@@ -112,17 +124,31 @@ void PowerManager::deepSleepUntil(long long int when)
                 }
             }
         }
-        SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
-        RTC->IEN &= ~RTC_IEN_COMP1;
+	// Simple sleep when you call _WFI, for example in the Idle thread
+        SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk; 
+	//We need this interrupt to continue the sync of HRT with RTC
+        RTC->IEN &= ~RTC_IEN_COMP1; 
         IRQpostDeepSleep(rtx);
     }
-    //Post deep sleep wait to absorb wakeup time jitter
+    //Post deep sleep wait to absorb wakeup time jitter, jitter due to physical phenomena like XO stabilization
     //EFM32 compare channels trigger 1 tick late (undocumented quirk)
+    HighResolutionTimerBase::aux1=rtc.IRQgetValue();
     RTC->COMP1=(when-1) & 0xffffff;
+    
+    HighResolutionTimerBase::aux4=RTC->COMP1;
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1) ;
+    HighResolutionTimerBase::aux2=rtc.IRQgetValue();
     RTC->IFC=RTC_IFC_COMP1;
     RTC->IEN |= RTC_IEN_COMP1;
+    //I have to use polling because the interrupt are still disabled
+    //This "polling" is particular: __WFI make sleeping the core, only if there aren't pending IRQ. 
+    //When a generic interrupt triggers, 
+    //the core wakes and check the condition. 
+    //If true, it goes forward, otherwise the interrupt is caused by another IRQ. 
+    //But this IRQ can't be serve because the interrupts are disabled, hence the while-cycle turns in a polling-cycle 
+    //(bad and not low power, but definitely very rare)
     while(when>rtc.IRQgetValue()) __WFI();
+    HighResolutionTimerBase::aux3=rtc.IRQgetValue();
     RTC->IFC=RTC_IFC_COMP1;
     RTC->IEN &= ~RTC_IEN_COMP1;
 }
@@ -319,9 +345,10 @@ void PowerManager::IRQrestartHFXOandTransceiverPowerDomainEnable()
     transceiverPowerDomainExplicitDelayNeeded=
         CMU->STATUS & CMU_STATUS_HFXOENS ? true : false;
     
-    CMU->OSCENCMD=CMU_OSCENCMD_HFXOEN;
-    CMU->CMD=CMU_CMD_HFCLKSEL_HFXO; //This locks the CPU till clock is stable
-    CMU->OSCENCMD=CMU_OSCENCMD_HFRCODIS;
+    CMU->OSCENCMD=CMU_OSCENCMD_HFXOEN; 
+    CMU->CMD=CMU_CMD_HFCLKSEL_HFXO;	//This locks the CPU till clock is stable
+					//because the HFXO won't emit any waveform until it is stabilized
+    CMU->OSCENCMD=CMU_OSCENCMD_HFRCODIS; //turn off RC oscillator
 }
 
 void PowerManager::IRQpostDeepSleep(Transceiver& rtx)

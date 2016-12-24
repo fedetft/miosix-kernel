@@ -317,6 +317,8 @@ Rtc::Rtc() : tc(frequency)
     NVIC_EnableIRQ(RTC_IRQn);
     NVIC_SetPriority(RTC_IRQn,10); //Low priority
     
+    RTC->IEN |= RTC_IEN_OF;
+    
     //
     // Configure the GPIO interrupt used for packet reception timestamping
     // (at the RTC resolution using a hardware input capture/output compare
