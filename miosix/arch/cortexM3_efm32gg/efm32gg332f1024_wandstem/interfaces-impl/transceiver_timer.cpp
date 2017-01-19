@@ -33,9 +33,10 @@ using namespace miosix;
 Thread* TransceiverTimer::tWaiting=nullptr;
 
 long long TransceiverTimer::getValue() const{
-     return b.getCurrentTick();
- }  
-            
+    FastInterruptDisableLock dLock;
+    return b.IRQgetCurrentTick();
+}
+
 void TransceiverTimer::wait(long long tick){
     Thread::nanoSleep(tc.tick2ns(tick));
 }

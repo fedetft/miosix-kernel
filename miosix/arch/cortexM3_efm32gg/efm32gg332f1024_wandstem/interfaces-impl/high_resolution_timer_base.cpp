@@ -451,7 +451,7 @@ long long HighResolutionTimerBase::getCurrentTick(){
     //function occurs before kernel is started, then we can use
     //fastInterruptDisable())
     if(interrupts) disableInterrupts();
-    long long result=IRQgetCurrentTick();
+    long long result=IRQgetTick();
     if(interrupts) enableInterrupts();
     return result;
 }

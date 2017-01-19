@@ -2107,17 +2107,18 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
-        ARCH_SRC :=                                     \
-        $(BOARD_INC)/interfaces-impl/bsp.cpp            \
-        $(BOARD_INC)/interfaces-impl/spi.cpp            \
-        $(BOARD_INC)/interfaces-impl/power_manager.cpp  \
+        ARCH_SRC :=                                                 \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp                        \
+        $(BOARD_INC)/interfaces-impl/spi.cpp                        \
+        $(BOARD_INC)/interfaces-impl/power_manager.cpp              \
+        $(BOARD_INC)/interfaces-impl/cstimer.cpp                    \
+        $(BOARD_INC)/interfaces-impl/timer_interface.cpp            \
+        $(BOARD_INC)/interfaces-impl/rtc.cpp                        \
         $(BOARD_INC)/interfaces-impl/high_resolution_timer_base.cpp \
-        $(BOARD_INC)/interfaces-impl/gpioirq.cpp        \
-        $(BOARD_INC)/interfaces-impl/rtc.cpp \
-        $(BOARD_INC)/interfaces-impl/transceiver.cpp    \
-        $(BOARD_INC)/interfaces-impl/cstimer.cpp        \
-        $(BOARD_INC)/interfaces-impl/gpio_timer.cpp     \
-        $(BOARD_INC)/interfaces-impl/transceiver_timer.cpp
+        $(BOARD_INC)/interfaces-impl/gpio_timer.cpp                 \
+        $(BOARD_INC)/interfaces-impl/transceiver_timer.cpp          \
+        $(BOARD_INC)/interfaces-impl/gpioirq.cpp                    \
+        $(BOARD_INC)/interfaces-impl/transceiver.cpp
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -DEFM32GG332F1024 -D_BOARD_WANDSTEM

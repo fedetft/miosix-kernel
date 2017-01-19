@@ -405,7 +405,7 @@ CC2520StatusBitmask Transceiver::commandStrobe(CC2520Command cmd)
 
 Transceiver::Transceiver()
     : pm(PowerManager::instance()), spi(Spi::instance()),
-      timer(TransceiverTimer::instance()), state(CC2520State::DEEPSLEEP),
+      timer(getTransceiverTimer()), state(CC2520State::DEEPSLEEP),
       waiting(nullptr)
 {
     registerGpioIrq(internalSpi::miso::getPin(),GpioIrqEdge::RISING,
@@ -597,9 +597,8 @@ bool Transceiver::handlePacketReceptionEvents(long long timeout, int size, RecvR
     }
     
     //Wait for the second event to occur (RX_FRM_DONE)
-    long long tt=timer.ns2tick(slack+timePerByte*size);
-    auto secondTimeout=config.strictTimeout ? min(timeout,timer.getValue()+tt)
-                                            : max(timeout,timer.getValue()+tt);
+    long long tt=timer.getValue()+timer.ns2tick(slack+timePerByte*size);
+    auto secondTimeout=config.strictTimeout ? min(timeout,tt) : max(timeout,tt);
     if(timer.absoluteWaitTimeoutOrEvent(secondTimeout))
     {
         if(timer.getValue()<timeout)

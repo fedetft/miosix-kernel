@@ -520,19 +520,6 @@ void DMA_ActivatePingPong(unsigned int channel,bool useBurst,
 
 /**
  * \internal
- * Called by the timer interrupt, preempt to next thread
- * Declared noinline to avoid the compiler trying to inline it into the caller,
- * which would violate the requirement on naked functions. Function is not
- * static because otherwise the compiler optimizes it out...
- */
-void ISR_preempt() __attribute__((noinline));
-void ISR_preempt()
-{
-    miosix::IRQtimerInterrupt(0 /*TODO dummy parameter */);
-}
-
-/**
- * \internal
  * Called by the software interrupt, yield to next thread
  * Declared noinline to avoid the compiler trying to inline it into the caller,
  * which would violate the requirement on naked functions. Function is not
