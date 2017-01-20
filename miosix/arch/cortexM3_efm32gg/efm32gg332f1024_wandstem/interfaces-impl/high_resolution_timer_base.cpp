@@ -76,6 +76,10 @@ static inline long long IRQgetTick(){
     return ms32time | static_cast<long long>(counter);
 }
 
+static inline long long IRQgetTickCorrected(){
+    return IRQgetTick() + HighResolutionTimerBase::clockCorrection;
+}
+
 void falseRead(volatile uint32_t *p){
     *p;
 }
@@ -714,12 +718,30 @@ HighResolutionTimerBase::HighResolutionTimerBase() {
     TIMER2->CTRL &= ~TIMER_CTRL_SYNC;
     TIMER3->CTRL &= ~TIMER_CTRL_SYNC;
     
+    
+    Rtc::instance();
+
+    RTC->COMP1=RTC->CNT+1;
     //Virtual high resolution timer, init without starting the input mode!
     TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
 			| TIMER_CC_CTRL_FILT_DISABLE
-			| TIMER_CC_CTRL_INSEL_PIN
-			| TIMER_CC_CTRL_MODE_OFF;
+			| TIMER_CC_CTRL_INSEL_PRS
+			| TIMER_CC_CTRL_PRSSEL_PRSCH4
+			| TIMER_CC_CTRL_MODE_INPUTCAPTURE;
+    PRS->CH[4].CTRL= PRS_CH_CTRL_SOURCESEL_RTC | PRS_CH_CTRL_SIGSEL_RTCCOMP1;
+    RTC->IFC=RTC_IFC_COMP1;
+    long long timestamp;
+    while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
     
+    while(!(RTC->IF & RTC_IF_COMP1));
+    
+    timestamp=(TIMER3->CNT<<16) | TIMER2->CC[2].CCV;
+    if(timestamp > IRQread32Timer()){
+	timestamp=((TIMER3->CNT-1)<<16) | TIMER2->CC[2].CCV;
+    }
+    clockCorrection=divisionRounded(48000000LL * RTC->CNT, 32768LL)-timestamp;
+    
+    TIMER2->CC[2].CTRL=0;
 }
 
 HighResolutionTimerBase::~HighResolutionTimerBase() {

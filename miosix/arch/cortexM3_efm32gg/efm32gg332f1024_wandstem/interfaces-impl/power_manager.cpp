@@ -48,10 +48,16 @@ PowerManager& PowerManager::instance()
     return singleton;
 }
 
+template<typename C>
+C divisionRounded(C a, C b){
+    return (a+b/2)/b;
+}
+
 void PowerManager::deepSleepUntil(long long int when)
 {
     //instance() is not necessarily safe to be called with IRQ disabled
     Rtc& rtc=Rtc::instance();
+    HighResolutionTimerBase& b=HighResolutionTimerBase::instance();
     Transceiver& rtx=Transceiver::instance();
     
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
@@ -65,7 +71,7 @@ void PowerManager::deepSleepUntil(long long int when)
     //so we wake up that time before, plus some margin:
     //transceiver enabled:  12 ticks 366us (56us margin)
     //transceiver disabled:  5 ticks 152us (52us margin)
-    const int wakeupTime= transceiverPowerDomainRefCount>0 ? 12 : 5;
+    const int wakeupTime= transceiverPowerDomainRefCount>0 ? 12+3 : 5+3;
     
     long long preWake=when-wakeupTime;
     //EFM32 compare channels trigger 1 tick late (undocumented quirk)
@@ -131,13 +137,48 @@ void PowerManager::deepSleepUntil(long long int when)
         IRQpostDeepSleep(rtx);
     }
     //Post deep sleep wait to absorb wakeup time jitter, jitter due to physical phenomena like XO stabilization
+    
+    
+    
+    RTC->COMP1=RTC->CNT+1;
+    //Virtual high resolution timer, init without starting the input mode!
+    TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
+			| TIMER_CC_CTRL_FILT_DISABLE
+			| TIMER_CC_CTRL_INSEL_PRS
+			| TIMER_CC_CTRL_PRSSEL_PRSCH4
+			| TIMER_CC_CTRL_MODE_INPUTCAPTURE;
+    PRS->CH[4].CTRL= PRS_CH_CTRL_SOURCESEL_RTC | PRS_CH_CTRL_SIGSEL_RTCCOMP1;
+    RTC->IFC=RTC_IFC_COMP1;
+    long long timestamp;
+    while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
+
+    while(!(RTC->IF & RTC_IF_COMP1));
+    //0x(1)FFFFFFFF //0x2 00000100
+    /////////////////// Correction overflow for hardware part
+    timestamp=(TIMER3->CNT<<16) | TIMER2->CC[2].CCV;
+    long long now=b.IRQgetCurrentTick();
+    if(timestamp > (now & 0x00000000FFFFFFFF)){
+	greenLed::high();
+	timestamp=((TIMER3->CNT-1)<<16) | TIMER2->CC[2].CCV;
+    }
+    ///////////////////
+    
+    
+    /////////////////// Correction for software part
+    
+    ///////////////////
+    
+    HighResolutionTimerBase::clockCorrection=divisionRounded(48000000LL * rtc.getValue(), 32768LL)-timestamp;
+    
+    TIMER2->CC[2].CTRL=0;
+    
+    
+    
+    
     //EFM32 compare channels trigger 1 tick late (undocumented quirk)
-    HighResolutionTimerBase::aux1=rtc.IRQgetValue();
     RTC->COMP1=(when-1) & 0xffffff;
     
-    HighResolutionTimerBase::aux4=RTC->COMP1;
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1) ;
-    HighResolutionTimerBase::aux2=rtc.IRQgetValue();
     RTC->IFC=RTC_IFC_COMP1;
     RTC->IEN |= RTC_IEN_COMP1;
     //I have to use polling because the interrupt are still disabled
@@ -148,7 +189,6 @@ void PowerManager::deepSleepUntil(long long int when)
     //But this IRQ can't be serve because the interrupts are disabled, hence the while-cycle turns in a polling-cycle 
     //(bad and not low power, but definitely very rare)
     while(when>rtc.IRQgetValue()) __WFI();
-    HighResolutionTimerBase::aux3=rtc.IRQgetValue();
     RTC->IFC=RTC_IFC_COMP1;
     RTC->IEN &= ~RTC_IEN_COMP1;
 }
