@@ -48,6 +48,9 @@ namespace miosix {
 /// STM32F207IG has 128KB of RAM so there is room for a big 4K stack.
 const unsigned int MAIN_STACK_SIZE=4*1024;
 
+/// Context Switch Quantum Size (measured in nanoseconds)
+const unsigned int preemptionPeriodNs=1000000;
+
 /// Frequency of tick (in Hz). The frequency of the STM32F207IG timer in the
 /// Miosix board can be divided by 1000. This allows to use a 1KHz tick and
 /// the minimun Thread::sleep value is 1ms
