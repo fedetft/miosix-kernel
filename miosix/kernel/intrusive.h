@@ -777,7 +777,7 @@ public:
             emptyListItem.prev = item;
             return;
         }
-        item->next = static_cast<IntrusiveListItem *>(*position); //FIXME: do we need this upcast?
+        item->next = *position;
         item->prev = static_cast<IntrusiveListItem *>(*position)->prev;
         item->prev->next = item;
         (*position)->prev = item;
