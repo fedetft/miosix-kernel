@@ -36,8 +36,6 @@ namespace miosix {
     
     class GPIOtimer : public HardwareTimer{    
     public:
-        static Thread *tWaiting;
-        
         long long getValue() const;
         
         void wait(long long value);
@@ -60,11 +58,9 @@ namespace miosix {
         * pulsed
         * \return true if the wait time was in the past, in this case the GPIO
         * has not been pulsed
-        */
+        */ 
         bool absoluteWaitTrigger(long long tick);
         bool waitTrigger(long long tick);
-        bool absoluteSyncWaitTrigger(long long tick);
-        bool syncWaitTrigger(long long tick);
         
         unsigned int getTickFrequency() const;
         

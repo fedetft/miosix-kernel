@@ -89,6 +89,7 @@ class HighResolutionTimerBase {
          * Can only be called with interrupts disabled or within an IRQ
          */
         long long IRQgetCurrentTick();
+        long long IRQgetCurrentTickCorrected();
 
         void enableCC0Interrupt(bool enable);
         void enableCC1Interrupt(bool enable);
@@ -111,8 +112,11 @@ class HighResolutionTimerBase {
         WaitResult IRQsetGPIOtimeout(long long tick);
         WaitResult IRQsetTransceiverTimeout(long long tick);
         
+        Thread* IRQgpioWait(long long tick,FastInterruptDisableLock* dLock);
+        Thread* IRQtransceiverWait(long long tick,FastInterruptDisableLock *dLock);
+        
         virtual ~HighResolutionTimerBase();
-        static int aux;
+        
         
         /**
         These 4 variables are used to manage the correction of the timers.
@@ -129,15 +133,15 @@ class HighResolutionTimerBase {
        static long long vhtOffset;
        static unsigned long long syncPeriodVhtRtc;
        static long long clockCorrection;
-       
+       static int aux;
        static long long aux1,aux2,aux3,aux4,error;
        static FixedEventQueue<50,16> queue;
        static Thread *tWaiting;
        static long long diffs[100];
+    
     private:
         HighResolutionTimerBase();
         static const unsigned int freq;
-        
 };
 
 }//end miosix namespace

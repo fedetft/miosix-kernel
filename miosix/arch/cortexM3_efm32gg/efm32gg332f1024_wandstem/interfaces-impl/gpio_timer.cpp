@@ -30,8 +30,6 @@
 
 using namespace miosix;
 
-Thread* GPIOtimer::tWaiting=nullptr;
-
 long long GPIOtimer::getValue() const{
     FastInterruptDisableLock dLock;
     return HighResolutionTimerBase::syncPointHrtTeoretical+b.IRQgetCurrentTick()-HighResolutionTimerBase::syncPointHrtMaster;
@@ -73,14 +71,7 @@ bool GPIOtimer::absoluteWaitTimeoutOrEvent(long long tick){
     b.enableCC2Interrupt(false);
     b.enableCC2InterruptTim1(true);
     
-    do {
-        tWaiting=Thread::IRQgetCurrentThread();
-        Thread::IRQwait();
-        {
-            FastInterruptEnableLock eLock(dLock);
-	    Thread::yield();
-        }
-    } while(tWaiting && tick>b.getCurrentTick());
+    Thread* tWaiting=b.IRQgpioWait(tick,&dLock);
     
     if(tWaiting==nullptr){
 	return false;
@@ -94,30 +85,9 @@ bool GPIOtimer::waitTimeoutOrEvent(long long tick){
 }
 
 /*
- Not blocking function!
- */
-bool GPIOtimer::absoluteWaitTrigger(long long tick){
-    FastInterruptDisableLock dLock;
-    if(isInput){
-	b.setModeGPIOTimer(false);		//output timer 
-	expansion::gpio10::mode(Mode::OUTPUT);	//output pin
-	expansion::gpio10::low();
-	isInput=false;
-    }
-    if(b.IRQsetNextGPIOInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
-	return true;
-    }
-    return false;
-}
-
-bool GPIOtimer::waitTrigger(long long tick){
-    return absoluteWaitTrigger(b.getCurrentTick()+tick);
-}
-
-/*
  * This takes about 5us to be executed
  */
-bool GPIOtimer::absoluteSyncWaitTrigger(long long tick){
+bool GPIOtimer::absoluteWaitTrigger(long long tick){
     {
 	FastInterruptDisableLock dLock;
 	if(isInput){
@@ -129,20 +99,14 @@ bool GPIOtimer::absoluteSyncWaitTrigger(long long tick){
 	if(b.IRQsetNextGPIOInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
 	    return true;
 	}
-	do {
-	    tWaiting=Thread::IRQgetCurrentThread();
-	    Thread::IRQwait();
-	    {
-		FastInterruptEnableLock eLock(dLock);
-		Thread::yield();
-	    }
-	} while(tWaiting && tick>b.getCurrentTick());
+	
+	b.IRQgpioWait(tick,&dLock);
     }
     return false;
 }
 
-bool GPIOtimer::syncWaitTrigger(long long tick){
-    return absoluteSyncWaitTrigger(b.getCurrentTick()+tick); 
+bool GPIOtimer::waitTrigger(long long tick){
+    return absoluteWaitTrigger(b.getCurrentTick()+tick); 
 }
 
 long long GPIOtimer::tick2ns(long long tick){
@@ -160,11 +124,20 @@ GPIOtimer& GPIOtimer::instance(){
     return instance;
 }
 
-const int GPIOtimer::stabilizingTime = 3;
-
 GPIOtimer::GPIOtimer(): b(HighResolutionTimerBase::instance()),tc(b.getTimerFrequency()) {
     b.setModeGPIOTimer(true);
     expansion::gpio10::mode(Mode::INPUT);
     isInput=true;
     registerGpioIrq(expansion::gpio10::getPin(),GpioIrqEdge::RISING,[](){});
 }
+
+/// This parameter was obtained by connecting an output compare to an input
+/// capture channel and computing the difference between the expected and
+/// captured value. 
+///
+/// It is believed that it is caused by the internal flip-flop
+/// in the input capture stage for resynchronizing the asynchronous input and
+/// prevent metastability. The test has also been done on multiple boards.
+/// The only open issue is whether this delay of 3 ticks is all at the input
+/// capture stage or some of those ticks are in the output compare.
+const int GPIOtimer::stabilizingTime = 3;

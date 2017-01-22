@@ -47,6 +47,9 @@ static long long ms32time = 0;		//most significant 32 bits of counter
 static long long ms32chkp[3] = {0,0,0}; //most significant 32/48 bits of checkpoint
 static TimeConversion* tc;
 
+Thread *gpioWaiting=nullptr;
+Thread *transceiverWaiting=nullptr;
+
 static int faseGPIO=0;
 static int faseTransceiver=0;
 
@@ -99,21 +102,21 @@ inline void interruptGPIOTimerRoutine(){
 	}
     }
     //Reactivating the thread that is waiting for the event.
-    if(GPIOtimer::tWaiting){
-	GPIOtimer::tWaiting->IRQwakeup();
-	if(GPIOtimer::tWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+    if(gpioWaiting){
+	gpioWaiting->IRQwakeup();
+	if(gpioWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
 	    Scheduler::IRQfindNextThread();
-	GPIOtimer::tWaiting=nullptr;
+	gpioWaiting=nullptr;
     }
 }
 
 inline void interruptTransceiverTimerRoutine(){
     //Reactivating the thread that is waiting for the event.
-    if(TransceiverTimer::tWaiting){
-	TransceiverTimer::tWaiting->IRQwakeup();
-	if(TransceiverTimer::tWaiting->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority())
+    if(transceiverWaiting){
+	transceiverWaiting->IRQwakeup();
+	if(transceiverWaiting->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority())
 	    Scheduler::IRQfindNextThread();
-	TransceiverTimer::tWaiting=nullptr;
+	transceiverWaiting=nullptr;
     }
 }
 
@@ -262,9 +265,9 @@ void __attribute__((used)) cstirqhnd2(){
 		TIMER2->IEN &= ~TIMER_IEN_CC0;
 		TIMER2->IFC = TIMER_IFC_CC0;
 		//Reactivating the thread that is waiting for the event, WITHOUT changing the tWaiting
-		if(TransceiverTimer::tWaiting){
-		    TransceiverTimer::tWaiting->IRQwakeup();
-		    if(TransceiverTimer::tWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+		if(transceiverWaiting){
+		    transceiverWaiting->IRQwakeup();
+		    if(transceiverWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
 			Scheduler::IRQfindNextThread();
 		}
 	    }
@@ -353,9 +356,9 @@ void __attribute__((used)) cstirqhnd1(){
 	    TIMER1->IEN &= ~TIMER_IEN_CC2;
 	    TIMER1->IFC = TIMER_IFC_CC2;
 	    //Reactivating the thread that is waiting for the event, WITHOUT changing the tWaiting
-	    if(GPIOtimer::tWaiting){
-		GPIOtimer::tWaiting->IRQwakeup();
-		if(GPIOtimer::tWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+	    if(gpioWaiting){
+		gpioWaiting->IRQwakeup();
+		if(gpioWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
 		    Scheduler::IRQfindNextThread();
 	    }
 	}
@@ -391,6 +394,30 @@ long long HighResolutionTimerBase::IRQgetSetTimeGPIO() const{
 
 long long HighResolutionTimerBase::IRQgetCurrentTick(){
     return IRQgetTick();
+}
+
+Thread* HighResolutionTimerBase::IRQgpioWait(long long tick,FastInterruptDisableLock *dLock){
+    do{
+	gpioWaiting=Thread::IRQgetCurrentThread();
+	Thread::IRQwait();
+	{
+	    FastInterruptEnableLock eLock(*dLock);
+	    Thread::yield();
+	}
+    }while(gpioWaiting && tick>IRQgetTick());
+    return gpioWaiting;
+}
+
+Thread* HighResolutionTimerBase::IRQtransceiverWait(long long tick,FastInterruptDisableLock *dLock){
+    do {
+        transceiverWaiting=Thread::IRQgetCurrentThread();
+        Thread::IRQwait();
+        {
+            FastInterruptEnableLock eLock(*dLock);
+	    Thread::yield();
+        }
+    } while(transceiverWaiting && tick>IRQgetTick());
+    return transceiverWaiting;
 }
 
 void HighResolutionTimerBase::enableCC0Interrupt(bool enable){
