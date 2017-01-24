@@ -115,6 +115,9 @@ class HighResolutionTimerBase {
         Thread* IRQgpioWait(long long tick,FastInterruptDisableLock* dLock);
         Thread* IRQtransceiverWait(long long tick,FastInterruptDisableLock *dLock);
         
+        bool gpioAbsoluteWaitTimeoutOrEvent(long long tick);
+        bool gpioAbsoluteWaitTrigger(long long tick);
+        
         virtual ~HighResolutionTimerBase();
         
         
@@ -131,7 +134,8 @@ class HighResolutionTimerBase {
        static long long syncPointHrtSlave;
        static long long syncPointHrtTeoretical;
        static long long vhtOffset;
-       static unsigned long long syncPeriodVhtRtc;
+       static unsigned long long syncPeriodRtc;
+       static int syncPeriodHrt;
        static long long clockCorrection;
        static int aux;
        static long long aux1,aux2,aux3,aux4,error;

@@ -66,12 +66,14 @@ void PowerManager::deepSleepUntil(long long int when)
     PauseKernelLock pkLock;         //To run unexpected IRQs without context switch
     FastInterruptDisableLock dLock; //To do everything else atomically
     
+    const int timeToSyncAfterWakeup = 3;
+    
     //The wakeup time has been profiled, and takes ~310us when the transceiver
     //has to be enabled, and ~100us with the transceiver disabled.
     //so we wake up that time before, plus some margin:
     //transceiver enabled:  12 ticks 366us (56us margin)
     //transceiver disabled:  5 ticks 152us (52us margin)
-    const int wakeupTime= transceiverPowerDomainRefCount>0 ? 12+3 : 5+3;
+    const int wakeupTime = timeToSyncAfterWakeup + (transceiverPowerDomainRefCount>0 ? 12 : 5);
     
     long long preWake=when-wakeupTime;
     //EFM32 compare channels trigger 1 tick late (undocumented quirk)
@@ -167,7 +169,7 @@ void PowerManager::deepSleepUntil(long long int when)
     /////////////////// Correction for software part
     
     ///////////////////
-    
+    //FIXME After 135 days it can overflows,
     HighResolutionTimerBase::clockCorrection=divisionRounded(48000000LL * rtc.getValue(), 32768LL)-timestamp;
     
     TIMER2->CC[2].CTRL=0;

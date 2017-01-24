@@ -53,9 +53,9 @@ Thread *transceiverWaiting=nullptr;
 static int faseGPIO=0;
 static int faseTransceiver=0;
 
-//static volatile unsigned long long vhtBaseVht=0;        ///< Vht time corresponding to rtc time: theoretical
-//static unsigned long long syncPointRtc=0;     ///< Rtc time corresponding to vht time : known with sum
-//static volatile unsigned long long syncPointVht=0;     ///< Vht time corresponding to rtc time :timestanped
+//static volatile unsigned long long vhtBaseVht=0;	    ///< Vht time corresponding to rtc time: theoretical
+//static unsigned long long syncPointRtc=0;		    ///< Rtc time corresponding to vht time : known with sum
+//static volatile unsigned long long syncPointVht=0;	    ///< Vht time corresponding to rtc time :timestanped
 //static unsigned long long syncVhtRtcPeriod=3000;
 
 static inline unsigned int IRQread32Timer(){
@@ -173,13 +173,6 @@ void __attribute__((naked)) TIMER1_IRQHandler()
     restoreContext();
 }
 
-void __attribute__((naked)) CMU_IRQHandler()
-{
-    saveContext();
-    asm volatile("bl _Z10cmuhandlerv");
-    restoreContext();
-}
-
 void __attribute__((used)) cstirqhnd3(){
     //rollover
     if (TIMER3->IF & TIMER_IF_OF){
@@ -275,40 +268,45 @@ void __attribute__((used)) cstirqhnd2(){
     }
     
     if ((TIMER2->IEN & TIMER_IEN_CC2) && (TIMER2->IF & TIMER_IF_CC2) ){
-        static bool ft=true;
-	static int ex;
+//        static bool ft=true;
+//	static int ex;
 	static int i=0;
 	
 	TIMER2->IFC = TIMER_IFC_CC2;
 	
-	// "Actual" times 
-	HighResolutionTimerBase::syncPointRtc += HighResolutionTimerBase::syncPeriodVhtRtc;
+	// "Actual" times in which RTC had triggered.
+	// I have to subtract syncPersiond because RTC->COMP1 has already updated in RTC routine
+	HighResolutionTimerBase::syncPointRtc += RTC->COMP1 - HighResolutionTimerBase::syncPeriodRtc;
 
+	//Reading the timestamp of the low freq clock
         HighResolutionTimerBase::syncPointHrtMaster = ms32time | (TIMER3->CNT << 16) | TIMER2->CC[2].CCV;
+	
 	//Assuming that this routine is executed within 1.3ms after the interrupt
 	if(HighResolutionTimerBase::syncPointHrtMaster > IRQgetTick()){
-	    HighResolutionTimerBase::syncPointHrtMaster = ms32time | ((TIMER3->CNT-1) << 16) | TIMER2->CC[2].CCV;
+	    HighResolutionTimerBase::syncPointHrtMaster = ms32time | (static_cast<unsigned short>(TIMER3->CNT-1) << 16) | TIMER2->CC[2].CCV;
 	}
 	
-        int conversion=divisionRounded(static_cast<unsigned long long>(HighResolutionTimerBase::syncPeriodVhtRtc*48000000),static_cast<unsigned long long>(32768)); // The result is 4394531.25
+	//Adding the previous correction.
+	HighResolutionTimerBase::syncPointHrtMaster+=HighResolutionTimerBase::clockCorrection;
+	
         if(i==3){
 	    HighResolutionTimerBase::syncPointHrtTeoretical++;
 	    i=0;
 	}else{
 	    i++;
 	}
-	HighResolutionTimerBase::syncPointHrtTeoretical+=conversion;
-	HighResolutionTimerBase::syncPointHrtSlave += conversion + HighResolutionTimerBase::clockCorrection;
+	HighResolutionTimerBase::syncPointHrtTeoretical += HighResolutionTimerBase::syncPeriodHrt;
+	
+	HighResolutionTimerBase::syncPointHrtSlave += HighResolutionTimerBase::syncPeriodHrt + HighResolutionTimerBase::clockCorrection;
         
 	//required to make a coarse estimation of offset between the clock (they don't start at the same time)
 	//and avoid overflow in flopsync algorithm
-	if(ft){
-	    ft=false;
-	    ex=HighResolutionTimerBase::syncPointHrtMaster - (HighResolutionTimerBase::syncPointHrtSlave);
-	    HighResolutionTimerBase::queue.IRQpost([=](){printf("ex: %d\n",ex);});
-	}
-	//master-ex è come se avessi che i 2 timer partissero davvero assieme
-        HighResolutionTimerBase::error = HighResolutionTimerBase::syncPointHrtMaster-ex - (HighResolutionTimerBase::syncPointHrtSlave);
+//	if(ft){
+//	    ft=false;
+//	    ex=HighResolutionTimerBase::syncPointHrtMaster - (HighResolutionTimerBase::syncPointHrtSlave);
+//	    HighResolutionTimerBase::queue.IRQpost([=](){printf("ex: %d\n",ex);});
+//	}
+        HighResolutionTimerBase::error = HighResolutionTimerBase::syncPointHrtMaster - (HighResolutionTimerBase::syncPointHrtSlave);
 	
 	
 	HighResolutionTimerBase::tWaiting->IRQwakeup();
@@ -362,23 +360,6 @@ void __attribute__((used)) cstirqhnd1(){
 		    Scheduler::IRQfindNextThread();
 	    }
 	}
-    }
-}
-
-void __attribute__((used)) cmuhandler(){
-    static float y;
-    static bool first=true;
-    if(CMU->IF & CMU_IF_CALRDY){
-	if(first){
-	    y=CMU->CALCNT;
-	    first=false;
-	}else{
-	    y=0.8f*y+0.2f*CMU->CALCNT;
-	}
-        CMU->IFC=CMU_IFC_CALRDY;
-	bool hppw;
-	HighResolutionTimerBase::queue.IRQpost([&](){printf("%lu\n",CMU->CALCNT);},hppw);
-	if(hppw) Scheduler::IRQfindNextThread();
     }
 }
 
@@ -533,7 +514,7 @@ void HighResolutionTimerBase::IRQsetNextInterruptCS(long long tick){
  * Return true if the pin is going to raise, otherwise false, the pin remain low because the command arrived too late
  * Should be called at least 4us before the next interrupt, otherwise it returns with WAKEUP_IN_THE_PAST
  */
-WaitResult HighResolutionTimerBase::IRQsetNextGPIOInterrupt(long long tick){
+inline WaitResult HighResolutionTimerBase::IRQsetNextGPIOInterrupt(long long tick){
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
     tick--; //to trigger at the RIGHT time!
@@ -638,7 +619,7 @@ void HighResolutionTimerBase::cleanBufferTrasceiver(){
     falseRead(&TIMER2->CC[0].CCV);
 }
 
-WaitResult HighResolutionTimerBase::IRQsetGPIOtimeout(long long tick){
+inline WaitResult HighResolutionTimerBase::IRQsetGPIOtimeout(long long tick){
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
     tick--; //to trigger at the RIGHT time!
@@ -676,7 +657,51 @@ WaitResult HighResolutionTimerBase::IRQsetTransceiverTimeout(long long tick){
     }else{
 	return WaitResult::WAKEUP_IN_THE_PAST;
     }
-} 
+}
+
+bool isInputGPIO=true;
+bool HighResolutionTimerBase::gpioAbsoluteWaitTrigger(long long tick){
+    {
+	FastInterruptDisableLock dLock;
+	if(isInputGPIO){
+	    setModeGPIOTimer(false);			//output timer 
+	    expansion::gpio10::mode(Mode::OUTPUT);	//output pin
+	    expansion::gpio10::low();
+	    isInputGPIO=false;
+	}
+	if(IRQsetNextGPIOInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
+	    return true;
+	}
+	
+	IRQgpioWait(tick,&dLock);
+    }
+    return false;
+}
+
+bool HighResolutionTimerBase::gpioAbsoluteWaitTimeoutOrEvent(long long tick){
+    FastInterruptDisableLock dLock;
+    if(IRQsetGPIOtimeout(tick)==WaitResult::WAKEUP_IN_THE_PAST){
+	return true;
+    }
+    
+    //Important optimization that allows us to save 1.5us
+    if(!isInputGPIO){
+	setModeGPIOTimer(true);
+	expansion::gpio10::mode(Mode::INPUT);
+	isInputGPIO=true;
+    }
+    cleanBufferGPIO();
+    enableCC2Interrupt(false);
+    enableCC2InterruptTim1(true);
+        
+    Thread* tWaiting=IRQgpioWait(tick,&dLock);
+    
+    if(tWaiting==nullptr){
+	return false;
+    }else{
+	return true;
+    }
+}
 
 HighResolutionTimerBase& HighResolutionTimerBase::instance(){
     static HighResolutionTimerBase hrtb;
@@ -726,7 +751,8 @@ HighResolutionTimerBase::HighResolutionTimerBase() {
     TIMER3->CC[1].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
 
     NVIC_SetPriority(TIMER1_IRQn,3);
-    NVIC_SetPriority(TIMER2_IRQn,3);
+    // Priority 8, this is very important, it MUST be a lower priority than RTC priority
+    NVIC_SetPriority(TIMER2_IRQn,8);
     NVIC_SetPriority(TIMER3_IRQn,3);
     NVIC_ClearPendingIRQ(TIMER1_IRQn);
     NVIC_ClearPendingIRQ(TIMER2_IRQn);
@@ -749,7 +775,7 @@ HighResolutionTimerBase::HighResolutionTimerBase() {
     Rtc::instance();
 
     RTC->COMP1=RTC->CNT+1;
-    //Virtual high resolution timer, init without starting the input mode!
+    //Virtual high resolution timer, init starting the input mode!
     TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
 			| TIMER_CC_CTRL_FILT_DISABLE
 			| TIMER_CC_CTRL_INSEL_PRS
@@ -757,18 +783,26 @@ HighResolutionTimerBase::HighResolutionTimerBase() {
 			| TIMER_CC_CTRL_MODE_INPUTCAPTURE;
     PRS->CH[4].CTRL= PRS_CH_CTRL_SOURCESEL_RTC | PRS_CH_CTRL_SIGSEL_RTCCOMP1;
     RTC->IFC=RTC_IFC_COMP1;
-    long long timestamp;
+    
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
     
     while(!(RTC->IF & RTC_IF_COMP1));
     
-    timestamp=(TIMER3->CNT<<16) | TIMER2->CC[2].CCV;
+    long long timestamp=(TIMER3->CNT<<16) | TIMER2->CC[2].CCV;
     if(timestamp > IRQread32Timer()){
 	timestamp=((TIMER3->CNT-1)<<16) | TIMER2->CC[2].CCV;
     }
     clockCorrection=divisionRounded(48000000LL * RTC->CNT, 32768LL)-timestamp;
     
     TIMER2->CC[2].CTRL=0;
+    
+    //Resync done, now I have to set the next resync
+//    RTC->COMP1=RTC->CNT+syncPeriodRtc;
+//    TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
+//			| TIMER_CC_CTRL_FILT_DISABLE
+//			| TIMER_CC_CTRL_INSEL_PRS
+//			| TIMER_CC_CTRL_PRSSEL_PRSCH4
+//			| TIMER_CC_CTRL_MODE_INPUTCAPTURE;
 }
 
 HighResolutionTimerBase::~HighResolutionTimerBase() {
@@ -780,7 +814,8 @@ long long HighResolutionTimerBase::aux2=0;
 long long HighResolutionTimerBase::aux3=0;
 long long HighResolutionTimerBase::aux4=0;
 long long HighResolutionTimerBase::error=0;
-unsigned long long HighResolutionTimerBase::syncPeriodVhtRtc=3000;
+unsigned long long HighResolutionTimerBase::syncPeriodRtc=3000;
+int HighResolutionTimerBase::syncPeriodHrt=divisionRounded(static_cast<unsigned long long>(HighResolutionTimerBase::syncPeriodRtc*48000000),static_cast<unsigned long long>(32768)); // The result is 4394531.25
 long long HighResolutionTimerBase::syncPointHrtMaster=0;
 long long HighResolutionTimerBase::syncPointHrtSlave=0;
 long long HighResolutionTimerBase::syncPointHrtTeoretical=0;

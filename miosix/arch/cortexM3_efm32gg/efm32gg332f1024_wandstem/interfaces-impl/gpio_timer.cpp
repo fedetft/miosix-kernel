@@ -30,6 +30,12 @@
 
 using namespace miosix;
 
+/**
+ * NOTE: this is a simple forward class to HighResolutionTimerBase.
+ * The reason is mainly efficiency of execution, 
+ * keeping the function in the same file permits inlining.
+ */
+
 long long GPIOtimer::getValue() const{
     FastInterruptDisableLock dLock;
     return HighResolutionTimerBase::syncPointHrtTeoretical+b.IRQgetCurrentTick()-HighResolutionTimerBase::syncPointHrtMaster;
@@ -57,52 +63,15 @@ long long GPIOtimer::getExtEventTimestamp() const{
 }
 
 bool GPIOtimer::absoluteWaitTimeoutOrEvent(long long tick){
-    FastInterruptDisableLock dLock;
-    if(b.IRQsetGPIOtimeout(tick)==WaitResult::WAKEUP_IN_THE_PAST){
-	return true;
-    }
-    
-    if(!isInput){
-	b.setModeGPIOTimer(true);
-	expansion::gpio10::mode(Mode::INPUT);
-	isInput=true;
-    }
-    b.cleanBufferGPIO();
-    b.enableCC2Interrupt(false);
-    b.enableCC2InterruptTim1(true);
-    
-    Thread* tWaiting=b.IRQgpioWait(tick,&dLock);
-    
-    if(tWaiting==nullptr){
-	return false;
-    }else{
-	return true;
-    }
+    return b.gpioAbsoluteWaitTimeoutOrEvent(tick);
 }
 
 bool GPIOtimer::waitTimeoutOrEvent(long long tick){
     return absoluteWaitTimeoutOrEvent(b.getCurrentTick()+tick);
 }
 
-/*
- * This takes about 5us to be executed
- */
 bool GPIOtimer::absoluteWaitTrigger(long long tick){
-    {
-	FastInterruptDisableLock dLock;
-	if(isInput){
-	    b.setModeGPIOTimer(false);			//output timer 
-	    expansion::gpio10::mode(Mode::OUTPUT);	//output pin
-	    expansion::gpio10::low();
-	    isInput=false;
-	}
-	if(b.IRQsetNextGPIOInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
-	    return true;
-	}
-	
-	b.IRQgpioWait(tick,&dLock);
-    }
-    return false;
+    return b.gpioAbsoluteWaitTrigger(tick);
 }
 
 bool GPIOtimer::waitTrigger(long long tick){
