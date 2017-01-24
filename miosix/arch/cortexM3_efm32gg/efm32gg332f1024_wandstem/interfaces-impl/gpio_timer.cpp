@@ -26,7 +26,6 @@
  ***************************************************************************/
 
 #include "gpio_timer.h"
-#include "gpioirq.h"
 
 using namespace miosix;
 
@@ -94,10 +93,7 @@ GPIOtimer& GPIOtimer::instance(){
 }
 
 GPIOtimer::GPIOtimer(): b(HighResolutionTimerBase::instance()),tc(b.getTimerFrequency()) {
-    b.setModeGPIOTimer(true);
-    expansion::gpio10::mode(Mode::INPUT);
-    isInput=true;
-    registerGpioIrq(expansion::gpio10::getPin(),GpioIrqEdge::RISING,[](){});
+    b.initGPIO();
 }
 
 /// This parameter was obtained by connecting an output compare to an input

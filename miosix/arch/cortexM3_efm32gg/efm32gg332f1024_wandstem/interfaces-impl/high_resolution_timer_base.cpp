@@ -32,6 +32,7 @@
 #include "gpio_timer.h"
 #include "transceiver_timer.h"
 #include "rtc.h"
+#include "gpioirq.h"
 
 using namespace miosix;
 
@@ -377,12 +378,13 @@ long long HighResolutionTimerBase::IRQgetCurrentTick(){
     return IRQgetTick();
 }
 
-Thread* HighResolutionTimerBase::IRQgpioWait(long long tick,FastInterruptDisableLock *dLock){
+inline Thread* HighResolutionTimerBase::IRQgpioWait(long long tick,FastInterruptDisableLock *dLock){
     do{
 	gpioWaiting=Thread::IRQgetCurrentThread();
 	Thread::IRQwait();
 	{
 	    FastInterruptEnableLock eLock(*dLock);
+	    redLed::low();
 	    Thread::yield();
 	}
     }while(gpioWaiting && tick>IRQgetTick());
@@ -414,14 +416,14 @@ void HighResolutionTimerBase::enableCC1Interrupt(bool enable){
     else
         TIMER3->IEN&=~TIMER_IEN_CC1;
 }
-void HighResolutionTimerBase::enableCC2Interrupt(bool enable){
+inline void HighResolutionTimerBase::enableCC2Interrupt(bool enable){
     if(enable)
         TIMER3->IEN|=TIMER_IEN_CC2;
     else
         TIMER3->IEN&=~TIMER_IEN_CC2;
 }
 
-void HighResolutionTimerBase::enableCC0InterruptTim1(bool enable){
+inline void HighResolutionTimerBase::enableCC0InterruptTim1(bool enable){
     if(enable){
 	TIMER1->IFC= TIMER_IF_CC0;
         TIMER1->IEN|=TIMER_IEN_CC0;
@@ -429,7 +431,7 @@ void HighResolutionTimerBase::enableCC0InterruptTim1(bool enable){
         TIMER1->IEN&=~TIMER_IEN_CC0;
 }
 
-void HighResolutionTimerBase::enableCC2InterruptTim1(bool enable){
+inline void HighResolutionTimerBase::enableCC2InterruptTim1(bool enable){
     if(enable){
 	TIMER1->IFC= TIMER_IF_CC2;
         TIMER1->IEN|=TIMER_IEN_CC2;
@@ -544,7 +546,7 @@ inline WaitResult HighResolutionTimerBase::IRQsetNextGPIOInterrupt(long long tic
 // In this function I prepare the timer, but i don't enable it.
 // Set true to get the input mode: wait for the raising of the pin and timestamp the time in which occurs
 // Set false to get the output mode: When the time set is reached, raise the pin!
-void HighResolutionTimerBase::setModeGPIOTimer(bool input){    
+inline void HighResolutionTimerBase::setModeGPIOTimer(bool input){    
     //Connect TIMER1->CC2 to PIN PE12, meaning GPIO10 on wandstem
     TIMER1->ROUTE=TIMER_ROUTE_CC2PEN
 	    | TIMER_ROUTE_LOCATION_LOC1;
@@ -605,7 +607,7 @@ void HighResolutionTimerBase::setModeTransceiverTimer(bool input){
     }
 }
 
-void HighResolutionTimerBase::cleanBufferGPIO(){
+inline void HighResolutionTimerBase::cleanBufferGPIO(){
     falseRead(&TIMER3->CC[2].CCV);
     falseRead(&TIMER1->CC[2].CCV);
     falseRead(&TIMER3->CC[2].CCV);
@@ -701,6 +703,13 @@ bool HighResolutionTimerBase::gpioAbsoluteWaitTimeoutOrEvent(long long tick){
     }else{
 	return true;
     }
+}
+
+void HighResolutionTimerBase::initGPIO(){
+    setModeGPIOTimer(true);
+    expansion::gpio10::mode(Mode::INPUT);
+    isInputGPIO=true;
+    registerGpioIrq(expansion::gpio10::getPin(),GpioIrqEdge::RISING,[](){});
 }
 
 HighResolutionTimerBase& HighResolutionTimerBase::instance(){
