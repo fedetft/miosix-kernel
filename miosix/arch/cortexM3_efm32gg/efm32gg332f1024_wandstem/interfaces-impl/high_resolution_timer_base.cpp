@@ -685,9 +685,7 @@ bool HighResolutionTimerBase::gpioAbsoluteWaitTrigger(long long tick){
 
 bool HighResolutionTimerBase::gpioAbsoluteWaitTimeoutOrEvent(long long tick){
     FastInterruptDisableLock dLock;
-    if(IRQsetGPIOtimeout(tick)==WaitResult::WAKEUP_IN_THE_PAST){
-	return true;
-    }
+    WaitResult r=IRQsetGPIOtimeout(tick);
     
     //Important optimization that allows us to save 1.5us
     if(!isInputGPIO){
@@ -698,7 +696,19 @@ bool HighResolutionTimerBase::gpioAbsoluteWaitTimeoutOrEvent(long long tick){
     cleanBufferGPIO();
     enableCC2Interrupt(false);
     enableCC2InterruptTim1(true);
-        
+      
+    if(expansion::gpio10::value()){
+	enableCC2InterruptTim1(false);
+	enableCC0InterruptTim1(false);
+	return false;
+    }
+    if(r==WaitResult::WAKEUP_IN_THE_PAST){
+	enableCC2InterruptTim1(false);
+	enableCC0InterruptTim1(false);
+	return true;
+    }
+    
+    
     Thread* tWaiting=IRQgpioWait(tick,&dLock);
     
     if(tWaiting==nullptr){
@@ -736,7 +746,7 @@ bool HighResolutionTimerBase::transceiverAbsoluteWaitTimeoutOrEvent(long long ti
     enableCC0Interrupt(false);
     enableCC0InterruptTim2(true);
     
-    if(r==WaitResult::EVENT){
+    if(transceiver::excChB::value()){
 	enableCC0InterruptTim2(false);
 	enableCC1InterruptTim2(false);
 	//TIMER1->CC[0].CTRL=0;
