@@ -51,6 +51,9 @@ static TimeConversion* tc;
 Thread *gpioWaiting=nullptr;
 Thread *transceiverWaiting=nullptr;
 
+bool isInputGPIO=true;
+bool isInputTransceiver=true;
+
 static int faseGPIO=0;
 static int faseTransceiver=0;
 
@@ -384,7 +387,6 @@ inline Thread* HighResolutionTimerBase::IRQgpioWait(long long tick,FastInterrupt
 	Thread::IRQwait();
 	{
 	    FastInterruptEnableLock eLock(*dLock);
-	    redLed::low();
 	    Thread::yield();
 	}
     }while(gpioWaiting && tick>IRQgetTick());
@@ -397,13 +399,15 @@ Thread* HighResolutionTimerBase::IRQtransceiverWait(long long tick,FastInterrupt
         Thread::IRQwait();
         {
             FastInterruptEnableLock eLock(*dLock);
+	    	    redLed::low();
+
 	    Thread::yield();
         }
     } while(transceiverWaiting && tick>IRQgetTick());
     return transceiverWaiting;
 }
 
-void HighResolutionTimerBase::enableCC0Interrupt(bool enable){
+inline void HighResolutionTimerBase::enableCC0Interrupt(bool enable){
     if(enable){
         TIMER3->IEN|=TIMER_IEN_CC0;
     }else{
@@ -439,7 +443,7 @@ inline void HighResolutionTimerBase::enableCC2InterruptTim1(bool enable){
         TIMER1->IEN&=~TIMER_IEN_CC2;
 }
 
-void HighResolutionTimerBase::enableCC0InterruptTim2(bool enable){
+inline void HighResolutionTimerBase::enableCC0InterruptTim2(bool enable){
     if(enable){
         TIMER2->IFC= TIMER_IF_CC0;
         TIMER2->IEN|=TIMER_IEN_CC0;
@@ -447,7 +451,7 @@ void HighResolutionTimerBase::enableCC0InterruptTim2(bool enable){
         TIMER2->IEN&=~TIMER_IEN_CC0;
 }
 
-void HighResolutionTimerBase::enableCC1InterruptTim2(bool enable){
+inline void HighResolutionTimerBase::enableCC1InterruptTim2(bool enable){
     if(enable){
 	TIMER2->IFC= TIMER_IF_CC1;
         TIMER2->IEN|=TIMER_IEN_CC1;
@@ -466,7 +470,7 @@ long long HighResolutionTimerBase::getCurrentTick(){
     return result;
 }
 
-WaitResult HighResolutionTimerBase::IRQsetNextTransceiverInterrupt(long long tick){
+inline WaitResult HighResolutionTimerBase::IRQsetNextTransceiverInterrupt(long long tick){
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
     tick--;
@@ -575,7 +579,7 @@ inline void HighResolutionTimerBase::setModeGPIOTimer(bool input){
     } 
 }
 
-void HighResolutionTimerBase::setModeTransceiverTimer(bool input){
+inline void HighResolutionTimerBase::setModeTransceiverTimer(bool input){
     if(input){	
         //For input capture feature:
 	//Connect TIMER2->CC0 to pin PA8 aka excChB
@@ -614,7 +618,7 @@ inline void HighResolutionTimerBase::cleanBufferGPIO(){
     falseRead(&TIMER1->CC[2].CCV);
 }
 
-void HighResolutionTimerBase::cleanBufferTrasceiver(){
+inline void HighResolutionTimerBase::cleanBufferTrasceiver(){
     falseRead(&TIMER3->CC[0].CCV);
     falseRead(&TIMER2->CC[0].CCV);
     falseRead(&TIMER3->CC[0].CCV);
@@ -641,7 +645,7 @@ inline WaitResult HighResolutionTimerBase::IRQsetGPIOtimeout(long long tick){
     }
 }
 
-WaitResult HighResolutionTimerBase::IRQsetTransceiverTimeout(long long tick){
+inline WaitResult HighResolutionTimerBase::IRQsetTransceiverTimeout(long long tick){
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
     tick--;
@@ -661,7 +665,6 @@ WaitResult HighResolutionTimerBase::IRQsetTransceiverTimeout(long long tick){
     }
 }
 
-bool isInputGPIO=true;
 bool HighResolutionTimerBase::gpioAbsoluteWaitTrigger(long long tick){
     {
 	FastInterruptDisableLock dLock;
@@ -711,6 +714,55 @@ void HighResolutionTimerBase::initGPIO(){
     isInputGPIO=true;
     registerGpioIrq(expansion::gpio10::getPin(),GpioIrqEdge::RISING,[](){});
 }
+
+bool HighResolutionTimerBase::transceiverAbsoluteWaitTrigger(long long tick){
+    FastInterruptDisableLock dLock;
+    
+    setModeTransceiverTimer(false);
+    if(IRQsetNextTransceiverInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
+	return true;
+    }
+    
+    IRQtransceiverWait(tick,&dLock);
+    return false;
+}
+
+bool HighResolutionTimerBase::transceiverAbsoluteWaitTimeoutOrEvent(long long tick){
+    FastInterruptDisableLock dLock;
+    WaitResult r=IRQsetTransceiverTimeout(tick);
+    
+    setModeTransceiverTimer(true);
+    cleanBufferTrasceiver();
+    enableCC0Interrupt(false);
+    enableCC0InterruptTim2(true);
+    
+    if(r==WaitResult::EVENT){
+	enableCC0InterruptTim2(false);
+	enableCC1InterruptTim2(false);
+	//TIMER1->CC[0].CTRL=0;
+	return false;
+    }
+    if(r==WaitResult::WAKEUP_IN_THE_PAST){
+	enableCC0InterruptTim2(false);
+	enableCC1InterruptTim2(false);
+	//TIMER1->CC[0].CTRL=0;
+        return true;
+    }
+    
+    
+    Thread* tWaiting=IRQtransceiverWait(tick,&dLock);
+    
+    if(tWaiting==nullptr){
+	return false;
+    }else{
+	return true;
+    }
+}
+
+void HighResolutionTimerBase::initTransceiver(){
+    registerGpioIrq(transceiver::excChB::getPin(),GpioIrqEdge::RISING,[](){});
+}
+
 
 HighResolutionTimerBase& HighResolutionTimerBase::instance(){
     static HighResolutionTimerBase hrtb;

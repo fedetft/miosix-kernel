@@ -88,7 +88,8 @@ public:
      * Put thread in waiting of timeout or extern event.
      * \param value absolute timeout expressed in ticks
      * If value of absolute time is in the past no waiting will be set
-     * and function return immediately.
+     * and function return immediately. If the event has already occurred,
+     * return immediately.
      * \return true in case of timeout, or if the wait time is in the past.
      * In the corner case where both the timeout and the event are in the past,
      * return false.

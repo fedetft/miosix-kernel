@@ -115,6 +115,10 @@ class HighResolutionTimerBase {
         Thread* IRQgpioWait(long long tick,FastInterruptDisableLock* dLock);
         Thread* IRQtransceiverWait(long long tick,FastInterruptDisableLock *dLock);
         
+        void initTransceiver();
+        bool transceiverAbsoluteWaitTimeoutOrEvent(long long tick);
+        bool transceiverAbsoluteWaitTrigger(long long tick);
+        
         void initGPIO();
         bool gpioAbsoluteWaitTimeoutOrEvent(long long tick);
         bool gpioAbsoluteWaitTrigger(long long tick);

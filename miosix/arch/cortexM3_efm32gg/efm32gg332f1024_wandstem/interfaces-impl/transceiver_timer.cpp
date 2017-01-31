@@ -26,7 +26,6 @@
  ***************************************************************************/
 
 #include "transceiver_timer.h"
-#include "gpioirq.h"
 
 using namespace miosix;
 
@@ -51,34 +50,11 @@ bool TransceiverTimer::absoluteWait(long long tick){
 }
 
 bool TransceiverTimer::absoluteWaitTrigger(long long tick){
-    FastInterruptDisableLock dLock;
-    
-    b.setModeTransceiverTimer(false);
-    if(b.IRQsetNextTransceiverInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
-	return true;
-    }
-    
-    b.IRQtransceiverWait(tick,&dLock);
-    return false;
+    return b.transceiverAbsoluteWaitTrigger(tick);
 }
 
 bool TransceiverTimer::absoluteWaitTimeoutOrEvent(long long tick){
-    FastInterruptDisableLock dLock;
-    if(b.IRQsetTransceiverTimeout(tick)==WaitResult::WAKEUP_IN_THE_PAST){
-        return true;
-    }
-    b.setModeTransceiverTimer(true);
-    b.cleanBufferTrasceiver();
-    b.enableCC0Interrupt(false);
-    b.enableCC0InterruptTim2(true);
-    
-    Thread* tWaiting=b.IRQtransceiverWait(tick,&dLock);
-    
-    if(tWaiting==nullptr){
-	return false;
-    }else{
-	return true;
-    }
+    return b.transceiverAbsoluteWaitTimeoutOrEvent(tick);
 }
 
 bool TransceiverTimer::waitTimeoutOrEvent(long long tick){
@@ -102,7 +78,7 @@ long long TransceiverTimer::getExtEventTimestamp() const{
 }
 	 
 TransceiverTimer::TransceiverTimer():b(HighResolutionTimerBase::instance()),tc(b.getTimerFrequency()) {
-    registerGpioIrq(transceiver::excChB::getPin(),GpioIrqEdge::RISING,[](){});
+    b.initTransceiver();
 }
 
 TransceiverTimer& TransceiverTimer::instance(){
