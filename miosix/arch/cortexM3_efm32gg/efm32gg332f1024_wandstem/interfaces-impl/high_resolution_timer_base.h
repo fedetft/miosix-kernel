@@ -124,7 +124,7 @@ class HighResolutionTimerBase {
         bool gpioAbsoluteWaitTrigger(long long tick);
         
         virtual ~HighResolutionTimerBase();
-        
+        static void initFlopsyncThread();
         
         /**
         These 4 variables are used to manage the correction of the timers.
@@ -139,13 +139,14 @@ class HighResolutionTimerBase {
        static long long syncPointHrtSlave;
        static long long syncPointHrtTeoretical;
        static long long vhtOffset;
-       static unsigned long long syncPeriodRtc;
-       static int syncPeriodHrt;
+       static long long nextSyncPointRtc;
+       static long long syncPeriodRtc;
+       static long long syncPeriodHrt;
        static long long clockCorrection;
        static int aux;
        static long long aux1,aux2,aux3,aux4,error;
        static FixedEventQueue<50,16> queue;
-       static Thread *tWaiting;
+       static Thread *flopsyncThread;
        static long long diffs[100];
     
     private:

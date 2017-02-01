@@ -45,7 +45,7 @@
 #include "filesystem/console/console_device.h"
 #include "drivers/serial.h"
 #include "board_settings.h"
-
+#include "high_resolution_timer_base.h"
 namespace miosix {
 
 //
@@ -174,6 +174,7 @@ void IRQbspInit()
 
 void bspInit2()
 {
+    //HighResolutionTimerBase::initFlopsyncThread();
 //     #ifdef WITH_FILESYSTEM
 //     basicFilesystemSetup();
 //     #endif //WITH_FILESYSTEM
