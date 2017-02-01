@@ -40,16 +40,16 @@ enum class WaitResult
     WAITING
 };
     
-class HighResolutionTimerBase {
+class HRTB {
     public:
 
-        static HighResolutionTimerBase& instance();
+        static HRTB& instance();
 
         /**
          * \return the timer frequency in Hz
          */
         unsigned int getTimerFrequency() const{
-            return HighResolutionTimerBase::freq;
+            return HRTB::freq;
         }
 
         /**
@@ -123,7 +123,7 @@ class HighResolutionTimerBase {
         bool gpioAbsoluteWaitTimeoutOrEvent(long long tick);
         bool gpioAbsoluteWaitTrigger(long long tick);
         
-        virtual ~HighResolutionTimerBase();
+        virtual ~HRTB();
         static void initFlopsyncThread();
         
         /**
@@ -150,7 +150,7 @@ class HighResolutionTimerBase {
        static long long diffs[100];
     
     private:
-        HighResolutionTimerBase();
+        HRTB();
         static const unsigned int freq;
 };
 

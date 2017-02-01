@@ -71,7 +71,7 @@ namespace miosix {
         
     private:
         GPIOtimer();
-        HighResolutionTimerBase& b;
+        HRTB& b;
         bool isInput; 
         TimeConversion tc;
         static const int stabilizingTime; 

@@ -57,7 +57,7 @@ void PowerManager::deepSleepUntil(long long int when)
 {
     //instance() is not necessarily safe to be called with IRQ disabled
     Rtc& rtc=Rtc::instance();
-    HighResolutionTimerBase& b=HighResolutionTimerBase::instance();
+    HRTB& b=HRTB::instance();
     Transceiver& rtx=Transceiver::instance();
     
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
@@ -170,7 +170,7 @@ void PowerManager::deepSleepUntil(long long int when)
     
     ///////////////////
     //FIXME After 135 days it can overflows,
-    HighResolutionTimerBase::clockCorrection=divisionRounded(48000000LL * rtc.getValue(), 32768LL)-timestamp;
+    HRTB::clockCorrection=divisionRounded(48000000LL * rtc.getValue(), 32768LL)-timestamp;
     
     TIMER2->CC[2].CTRL=0;
     

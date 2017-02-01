@@ -77,7 +77,7 @@ long long TransceiverTimer::getExtEventTimestamp() const{
     return b.IRQgetSetTimeTransceiver()-stabilizingTime;
 }
 	 
-TransceiverTimer::TransceiverTimer():b(HighResolutionTimerBase::instance()),tc(b.getTimerFrequency()) {
+TransceiverTimer::TransceiverTimer():b(HRTB::instance()),tc(b.getTimerFrequency()) {
     b.initTransceiver();
 }
 

@@ -57,7 +57,7 @@ namespace miosix{
 
         private:
             TransceiverTimer();
-            HighResolutionTimerBase& b;
+            HRTB& b;
             TimeConversion tc;
             static const int stabilizingTime;
     };

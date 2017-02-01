@@ -18,9 +18,9 @@ namespace miosix{
     
 class ContextSwitchTimerImpl{
     public:
-        HighResolutionTimerBase& b;
+        HRTB& b;
         ContextSwitchTimerImpl():
-            b(HighResolutionTimerBase::instance()){};
+            b(HRTB::instance()){};
 };
 
 }

@@ -86,7 +86,7 @@ static inline long long IRQgetTick(){
 }
 
 static inline long long IRQgetTickCorrected(){
-    return IRQgetTick() + HighResolutionTimerBase::clockCorrection;
+    return IRQgetTick() + HRTB::clockCorrection;
 }
 
 void falseRead(volatile uint32_t *p){
@@ -298,22 +298,22 @@ void __attribute__((used)) cstirqhnd2(){
 	//Reading the timestamp of the low freq clock
 	uint32_t low=TIMER2->CC[2].CCV;
 	uint32_t high=TIMER3->CNT;
-        HighResolutionTimerBase::syncPointHrtMaster = ms32time | high << 16 | low;
+        HRTB::syncPointHrtMaster = ms32time | high << 16 | low;
 	//Assuming that this routine is executed within 1.3ms after the interrupt
-	if(HighResolutionTimerBase::syncPointHrtMaster > IRQgetTick()){
-	    HighResolutionTimerBase::syncPointHrtMaster = ms32time | ((high-1) << 16) | low;
+	if(HRTB::syncPointHrtMaster > IRQgetTick()){
+	    HRTB::syncPointHrtMaster = ms32time | ((high-1) << 16) | low;
 	}
 	//Adding the basic correction
-	HighResolutionTimerBase::syncPointHrtMaster+=HighResolutionTimerBase::clockCorrection;
+	HRTB::syncPointHrtMaster+=HRTB::clockCorrection;
 	
 	//Reading and setting the next rtc trigger
-	HighResolutionTimerBase::nextSyncPointRtc += HighResolutionTimerBase::syncPeriodRtc;
+	HRTB::nextSyncPointRtc += HRTB::syncPeriodRtc;
 	//Clean the output channel of RTC
 	RTC->IFC = RTC_IFC_COMP1;
-	RTC->COMP1 = HighResolutionTimerBase::nextSyncPointRtc;
+	RTC->COMP1 = HRTB::nextSyncPointRtc;
 	
-	HighResolutionTimerBase::flopsyncThread->IRQwakeup();
-	if(HighResolutionTimerBase::flopsyncThread->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority()){
+	HRTB::flopsyncThread->IRQwakeup();
+	if(HRTB::flopsyncThread->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority()){
 	    Scheduler::IRQfindNextThread();
 	}
     }
@@ -366,21 +366,21 @@ void __attribute__((used)) cstirqhnd1(){
     }
 }
 
-long long HighResolutionTimerBase::IRQgetSetTimeTransceiver() const{
+long long HRTB::IRQgetSetTimeTransceiver() const{
     return ms32chkp[0] | TIMER3->CC[0].CCV<<16 | TIMER2->CC[0].CCV;
 }
-long long HighResolutionTimerBase::IRQgetSetTimeCS() const{
+long long HRTB::IRQgetSetTimeCS() const{
     return ms32chkp[1] | TIMER3->CC[1].CCV<<16 | TIMER1->CC[1].CCV;
 }
-long long HighResolutionTimerBase::IRQgetSetTimeGPIO() const{
+long long HRTB::IRQgetSetTimeGPIO() const{
     return ms32chkp[2] | TIMER3->CC[2].CCV<<16 | TIMER1->CC[2].CCV;
 }
 
-long long HighResolutionTimerBase::IRQgetCurrentTick(){
+long long HRTB::IRQgetCurrentTick(){
     return IRQgetTick();
 }
 
-inline Thread* HighResolutionTimerBase::IRQgpioWait(long long tick,FastInterruptDisableLock *dLock){
+inline Thread* HRTB::IRQgpioWait(long long tick,FastInterruptDisableLock *dLock){
     do{
 	gpioWaiting=Thread::IRQgetCurrentThread();
 	Thread::IRQwait();
@@ -392,7 +392,7 @@ inline Thread* HighResolutionTimerBase::IRQgpioWait(long long tick,FastInterrupt
     return gpioWaiting;
 }
 
-Thread* HighResolutionTimerBase::IRQtransceiverWait(long long tick,FastInterruptDisableLock *dLock){
+Thread* HRTB::IRQtransceiverWait(long long tick,FastInterruptDisableLock *dLock){
     do {
         transceiverWaiting=Thread::IRQgetCurrentThread();
         Thread::IRQwait();
@@ -406,27 +406,27 @@ Thread* HighResolutionTimerBase::IRQtransceiverWait(long long tick,FastInterrupt
     return transceiverWaiting;
 }
 
-inline void HighResolutionTimerBase::enableCC0Interrupt(bool enable){
+inline void HRTB::enableCC0Interrupt(bool enable){
     if(enable){
         TIMER3->IEN|=TIMER_IEN_CC0;
     }else{
         TIMER3->IEN&=~TIMER_IEN_CC0;
     }
 }
-void HighResolutionTimerBase::enableCC1Interrupt(bool enable){
+void HRTB::enableCC1Interrupt(bool enable){
     if(enable)
         TIMER3->IEN|=TIMER_IEN_CC1;
     else
         TIMER3->IEN&=~TIMER_IEN_CC1;
 }
-inline void HighResolutionTimerBase::enableCC2Interrupt(bool enable){
+inline void HRTB::enableCC2Interrupt(bool enable){
     if(enable)
         TIMER3->IEN|=TIMER_IEN_CC2;
     else
         TIMER3->IEN&=~TIMER_IEN_CC2;
 }
 
-inline void HighResolutionTimerBase::enableCC0InterruptTim1(bool enable){
+inline void HRTB::enableCC0InterruptTim1(bool enable){
     if(enable){
 	TIMER1->IFC= TIMER_IF_CC0;
         TIMER1->IEN|=TIMER_IEN_CC0;
@@ -434,7 +434,7 @@ inline void HighResolutionTimerBase::enableCC0InterruptTim1(bool enable){
         TIMER1->IEN&=~TIMER_IEN_CC0;
 }
 
-inline void HighResolutionTimerBase::enableCC2InterruptTim1(bool enable){
+inline void HRTB::enableCC2InterruptTim1(bool enable){
     if(enable){
 	TIMER1->IFC= TIMER_IF_CC2;
         TIMER1->IEN|=TIMER_IEN_CC2;
@@ -442,7 +442,7 @@ inline void HighResolutionTimerBase::enableCC2InterruptTim1(bool enable){
         TIMER1->IEN&=~TIMER_IEN_CC2;
 }
 
-inline void HighResolutionTimerBase::enableCC0InterruptTim2(bool enable){
+inline void HRTB::enableCC0InterruptTim2(bool enable){
     if(enable){
         TIMER2->IFC= TIMER_IF_CC0;
         TIMER2->IEN|=TIMER_IEN_CC0;
@@ -450,7 +450,7 @@ inline void HighResolutionTimerBase::enableCC0InterruptTim2(bool enable){
         TIMER2->IEN&=~TIMER_IEN_CC0;
 }
 
-inline void HighResolutionTimerBase::enableCC1InterruptTim2(bool enable){
+inline void HRTB::enableCC1InterruptTim2(bool enable){
     if(enable){
 	TIMER2->IFC= TIMER_IF_CC1;
         TIMER2->IEN|=TIMER_IEN_CC1;
@@ -458,7 +458,7 @@ inline void HighResolutionTimerBase::enableCC1InterruptTim2(bool enable){
         TIMER2->IEN&=~TIMER_IEN_CC1;
 }
 
-long long HighResolutionTimerBase::getCurrentTick(){
+long long HRTB::getCurrentTick(){
     bool interrupts=areInterruptsEnabled();
     //TODO: optimization opportunity, if we can guarantee that no call to this
     //function occurs before kernel is started, then we can use
@@ -469,7 +469,7 @@ long long HighResolutionTimerBase::getCurrentTick(){
     return result;
 }
 
-inline WaitResult HighResolutionTimerBase::IRQsetNextTransceiverInterrupt(long long tick){
+inline WaitResult HRTB::IRQsetNextTransceiverInterrupt(long long tick){
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
     tick--;
@@ -496,7 +496,7 @@ inline WaitResult HighResolutionTimerBase::IRQsetNextTransceiverInterrupt(long l
     }
 } 
 
-void HighResolutionTimerBase::IRQsetNextInterruptCS(long long tick){
+void HRTB::IRQsetNextInterruptCS(long long tick){
     // First off, disable timers to prevent unnecessary IRQ
     // when IRQsetNextInterrupt is called multiple times consecutively.
     TIMER1->IEN &= ~TIMER_IEN_CC1;
@@ -519,7 +519,7 @@ void HighResolutionTimerBase::IRQsetNextInterruptCS(long long tick){
  * Return true if the pin is going to raise, otherwise false, the pin remain low because the command arrived too late
  * Should be called at least 4us before the next interrupt, otherwise it returns with WAKEUP_IN_THE_PAST
  */
-inline WaitResult HighResolutionTimerBase::IRQsetNextGPIOInterrupt(long long tick){
+inline WaitResult HRTB::IRQsetNextGPIOInterrupt(long long tick){
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
     tick--; //to trigger at the RIGHT time!
@@ -549,7 +549,7 @@ inline WaitResult HighResolutionTimerBase::IRQsetNextGPIOInterrupt(long long tic
 // In this function I prepare the timer, but i don't enable it.
 // Set true to get the input mode: wait for the raising of the pin and timestamp the time in which occurs
 // Set false to get the output mode: When the time set is reached, raise the pin!
-inline void HighResolutionTimerBase::setModeGPIOTimer(bool input){    
+inline void HRTB::setModeGPIOTimer(bool input){    
     //Connect TIMER1->CC2 to PIN PE12, meaning GPIO10 on wandstem
     TIMER1->ROUTE=TIMER_ROUTE_CC2PEN
 	    | TIMER_ROUTE_LOCATION_LOC1;
@@ -578,7 +578,7 @@ inline void HighResolutionTimerBase::setModeGPIOTimer(bool input){
     } 
 }
 
-inline void HighResolutionTimerBase::setModeTransceiverTimer(bool input){
+inline void HRTB::setModeTransceiverTimer(bool input){
     if(input){	
         //For input capture feature:
 	//Connect TIMER2->CC0 to pin PA8 aka excChB
@@ -610,21 +610,21 @@ inline void HighResolutionTimerBase::setModeTransceiverTimer(bool input){
     }
 }
 
-inline void HighResolutionTimerBase::cleanBufferGPIO(){
+inline void HRTB::cleanBufferGPIO(){
     falseRead(&TIMER3->CC[2].CCV);
     falseRead(&TIMER1->CC[2].CCV);
     falseRead(&TIMER3->CC[2].CCV);
     falseRead(&TIMER1->CC[2].CCV);
 }
 
-inline void HighResolutionTimerBase::cleanBufferTrasceiver(){
+inline void HRTB::cleanBufferTrasceiver(){
     falseRead(&TIMER3->CC[0].CCV);
     falseRead(&TIMER2->CC[0].CCV);
     falseRead(&TIMER3->CC[0].CCV);
     falseRead(&TIMER2->CC[0].CCV);
 }
 
-inline WaitResult HighResolutionTimerBase::IRQsetGPIOtimeout(long long tick){
+inline WaitResult HRTB::IRQsetGPIOtimeout(long long tick){
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
     tick--; //to trigger at the RIGHT time!
@@ -644,7 +644,7 @@ inline WaitResult HighResolutionTimerBase::IRQsetGPIOtimeout(long long tick){
     }
 }
 
-inline WaitResult HighResolutionTimerBase::IRQsetTransceiverTimeout(long long tick){
+inline WaitResult HRTB::IRQsetTransceiverTimeout(long long tick){
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
     tick--;
@@ -664,7 +664,7 @@ inline WaitResult HighResolutionTimerBase::IRQsetTransceiverTimeout(long long ti
     }
 }
 
-bool HighResolutionTimerBase::gpioAbsoluteWaitTrigger(long long tick){
+bool HRTB::gpioAbsoluteWaitTrigger(long long tick){
     {
 	FastInterruptDisableLock dLock;
 	if(isInputGPIO){
@@ -682,7 +682,7 @@ bool HighResolutionTimerBase::gpioAbsoluteWaitTrigger(long long tick){
     return false;
 }
 
-bool HighResolutionTimerBase::gpioAbsoluteWaitTimeoutOrEvent(long long tick){
+bool HRTB::gpioAbsoluteWaitTimeoutOrEvent(long long tick){
     FastInterruptDisableLock dLock;
     WaitResult r=IRQsetGPIOtimeout(tick);
     
@@ -717,14 +717,14 @@ bool HighResolutionTimerBase::gpioAbsoluteWaitTimeoutOrEvent(long long tick){
     }
 }
 
-void HighResolutionTimerBase::initGPIO(){
+void HRTB::initGPIO(){
     setModeGPIOTimer(true);
     expansion::gpio10::mode(Mode::INPUT);
     isInputGPIO=true;
     registerGpioIrq(expansion::gpio10::getPin(),GpioIrqEdge::RISING,[](){});
 }
 
-bool HighResolutionTimerBase::transceiverAbsoluteWaitTrigger(long long tick){
+bool HRTB::transceiverAbsoluteWaitTrigger(long long tick){
     FastInterruptDisableLock dLock;
     
     setModeTransceiverTimer(false);
@@ -736,7 +736,7 @@ bool HighResolutionTimerBase::transceiverAbsoluteWaitTrigger(long long tick){
     return false;
 }
 
-bool HighResolutionTimerBase::transceiverAbsoluteWaitTimeoutOrEvent(long long tick){
+bool HRTB::transceiverAbsoluteWaitTimeoutOrEvent(long long tick){
     FastInterruptDisableLock dLock;
     WaitResult r=IRQsetTransceiverTimeout(tick);
     
@@ -768,26 +768,26 @@ bool HighResolutionTimerBase::transceiverAbsoluteWaitTimeoutOrEvent(long long ti
     }
 }
 
-void HighResolutionTimerBase::initTransceiver(){
+void HRTB::initTransceiver(){
     registerGpioIrq(transceiver::excChB::getPin(),GpioIrqEdge::RISING,[](){});
 }
 
 
-HighResolutionTimerBase& HighResolutionTimerBase::instance(){
-    static HighResolutionTimerBase hrtb;
+HRTB& HRTB::instance(){
+    static HRTB hrtb;
     return hrtb;
 }
 
-void HighResolutionTimerBase::initFlopsyncThread(){
+void HRTB::initFlopsyncThread(){
     // Thread that is waken up by the timer2 to perform the clock correction
     flopsyncThread=Thread::create(runCorrection,2048,1);
     TIMER2->IEN |= TIMER_IEN_CC2;
 }
 
-const unsigned int HighResolutionTimerBase::freq=48000000;
-FixedEventQueue<50,16> HighResolutionTimerBase::queue;
+const unsigned int HRTB::freq=48000000;
+FixedEventQueue<50,16> HRTB::queue;
 
-HighResolutionTimerBase::HighResolutionTimerBase() {
+HRTB::HRTB() {
     //Power the timers up and PRS system
     {
         InterruptDisableLock l;
@@ -837,7 +837,7 @@ HighResolutionTimerBase::HighResolutionTimerBase() {
     NVIC_EnableIRQ(TIMER2_IRQn);
     NVIC_EnableIRQ(TIMER3_IRQn);
     
-    tc=new TimeConversion(HighResolutionTimerBase::freq);
+    tc=new TimeConversion(HRTB::freq);
     //Start timers
     TIMER1->CMD = TIMER_CMD_START;
     //Synchronization is required only when timers are to start.
@@ -881,22 +881,22 @@ HighResolutionTimerBase::HighResolutionTimerBase() {
 //			| TIMER_CC_CTRL_MODE_INPUTCAPTURE;
 }
 
-HighResolutionTimerBase::~HighResolutionTimerBase() {
+HRTB::~HRTB() {
     delete tc;
 }
 
-long long HighResolutionTimerBase::aux1=0;
-long long HighResolutionTimerBase::aux2=0;
-long long HighResolutionTimerBase::aux3=0;
-long long HighResolutionTimerBase::aux4=0;
-long long HighResolutionTimerBase::error=0;
-long long HighResolutionTimerBase::syncPeriodRtc=15008;
-long long HighResolutionTimerBase::syncPeriodHrt=21984375;
-long long HighResolutionTimerBase::syncPointHrtMaster=0;
-long long HighResolutionTimerBase::syncPointHrtSlave=0;
-long long HighResolutionTimerBase::syncPointHrtTeoretical=0;
-long long HighResolutionTimerBase::nextSyncPointRtc=0;
-long long HighResolutionTimerBase::clockCorrection=0;
-long long HighResolutionTimerBase::syncPointRtc=0;
-long long HighResolutionTimerBase::diffs[100]={0};
-Thread* HighResolutionTimerBase::flopsyncThread=nullptr;
+long long HRTB::aux1=0;
+long long HRTB::aux2=0;
+long long HRTB::aux3=0;
+long long HRTB::aux4=0;
+long long HRTB::error=0;
+long long HRTB::syncPeriodRtc=15008;
+long long HRTB::syncPeriodHrt=21984375;
+long long HRTB::syncPointHrtMaster=0;
+long long HRTB::syncPointHrtSlave=0;
+long long HRTB::syncPointHrtTeoretical=0;
+long long HRTB::nextSyncPointRtc=0;
+long long HRTB::clockCorrection=0;
+long long HRTB::syncPointRtc=0;
+long long HRTB::diffs[100]={0};
+Thread* HRTB::flopsyncThread=nullptr;
