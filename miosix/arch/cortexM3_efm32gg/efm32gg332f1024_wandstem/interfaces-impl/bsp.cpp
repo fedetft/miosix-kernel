@@ -174,7 +174,7 @@ void IRQbspInit()
 
 void bspInit2()
 {
-    //HighResolutionTimerBase::initFlopsyncThread();
+    HRTB::initFlopsyncThread();
 //     #ifdef WITH_FILESYSTEM
 //     basicFilesystemSetup();
 //     #endif //WITH_FILESYSTEM

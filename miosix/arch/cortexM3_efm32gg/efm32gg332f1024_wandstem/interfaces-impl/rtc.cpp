@@ -61,7 +61,7 @@ static long long timestampEvent=0;    ///< input capture timestamp in ticks
  * Fast (inline) function for reading the RTC
  * \return the RTC value in ticks, extended in software to 64 bits
  */
-static inline long long readRtc()
+static inline long long IRQreadRtc()
 {
     //PENDING BIT TRICK
     unsigned int counter=RTC->CNT;
@@ -110,7 +110,7 @@ static WaitResult waitImpl(long long value, bool eventSensitive)
     }
     
     //NOTE: the corner case where the wakeup is now is considered "in the past"
-    if(value<=readRtc())
+    if(value<=IRQreadRtc())
     {
         if(eventSensitive) IRQdisableGpioIrq(eventPin);
         RTC->IFC=RTC_IFC_COMP0;
@@ -126,7 +126,7 @@ static WaitResult waitImpl(long long value, bool eventSensitive)
             Thread::yield();
         }
         //The readRtc() check in the while is for waits past one RTC period
-    } while(rtcWaiting && value>readRtc());
+    } while(rtcWaiting && value>IRQreadRtc());
     RTC->IEN &= ~RTC_IEN_COMP0;
     if(eventSensitive)
     {
@@ -178,14 +178,7 @@ void __attribute__((used)) RTChandlerImpl()
     }
     
     if((RTC->IEN & RTC_IEN_COMP1) & (RTC->IF & RTC_IF_COMP1)){
-        RTC->IFC=RTC_IFC_COMP1;
-        RTC->COMP1+=3000;
-	while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1) ;
-//	int a=readRtc();
-//
-//	bool hppw;
-//	HighResolutionTimerBase::queue.IRQpost([=](){printf("rtc::%lld\n",HighResolutionTimerBase::syncPointHrtSlave*32768/48000000);});
-//	if(hppw) Scheduler::IRQfindNextThread();
+    
     }
 }
 
@@ -194,7 +187,7 @@ void __attribute__((used)) RTChandlerImpl()
  */
 void GPIO8Handler()
 {   
-    timestampEvent=readRtc();
+    timestampEvent=IRQreadRtc();
     eventOccurred=true;
     
     if(!rtcWaiting) return;
@@ -220,12 +213,12 @@ long long Rtc::getValue() const
 {
     //readRtc() is not reentrant, and is also called in the GPIO timestamp irq
     FastInterruptDisableLock dLock;
-    return readRtc();
+    return IRQreadRtc();
 }
 
 long long int Rtc::IRQgetValue() const
 {
-    return readRtc();
+    return IRQreadRtc();
 }
 
 void Rtc::setValue(long long value)

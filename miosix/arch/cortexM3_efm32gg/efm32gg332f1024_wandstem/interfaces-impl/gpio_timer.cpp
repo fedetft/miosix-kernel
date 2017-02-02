@@ -37,7 +37,7 @@ using namespace miosix;
 
 long long GPIOtimer::getValue() const{
     FastInterruptDisableLock dLock;
-    return HRTB::syncPointHrtTeoretical+b.IRQgetCurrentTick()-HRTB::syncPointHrtMaster;
+    return b.IRQgetCurrentTick();
 }
 
 unsigned int GPIOtimer::getTickFrequency() const{

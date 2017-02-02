@@ -130,18 +130,18 @@ void runCorrection(void*){
     long long rtcT,hrtT;
     while(1){
 	Thread::wait();
-//	{
-//	    //Read in atomic context the 2 value to run flopsync
-//	    FastInterruptDisableLock dLock;
-//	    rtcT=HighResolutionTimerBase::nextSyncPointRtc-HighResolutionTimerBase::syncPeriodRtc;
-//	    hrtT=HighResolutionTimerBase::syncPointHrtMaster;
-//	}
+	{
+	    //Read in atomic context the 2 value to run flopsync
+	    FastInterruptDisableLock dLock;
+	    rtcT=HRTB::nextSyncPointRtc-HRTB::syncPeriodRtc;
+	    hrtT=HRTB::syncPointHrtMaster;
+	}
 //    
 //	//HighResolutionTimerBase::syncPointHrtTeoretical += HighResolutionTimerBase::syncPeriodHrt;
 //	HighResolutionTimerBase::syncPointHrtSlave += HighResolutionTimerBase::syncPeriodHrt + HighResolutionTimerBase::clockCorrection;
 //	HighResolutionTimerBase::error = HighResolutionTimerBase::syncPointHrtMaster - (HighResolutionTimerBase::syncPointHrtSlave);
-//	printf("[%lld] %lld %lld comp1:%lu\n",rtc->getValue(),rtcT,hrtT,RTC->COMP1);
-	printf("ciao\n");
+	printf("[%lld] %lld %lld comp1:%lu\n",rtc->getValue(),rtcT,hrtT,RTC->COMP1);
+	
     }
 }
 
@@ -305,13 +305,13 @@ void __attribute__((used)) cstirqhnd2(){
 	}
 	//Adding the basic correction
 	HRTB::syncPointHrtMaster+=HRTB::clockCorrection;
-	
+
 	//Reading and setting the next rtc trigger
 	HRTB::nextSyncPointRtc += HRTB::syncPeriodRtc;
 	//Clean the output channel of RTC
 	RTC->IFC = RTC_IFC_COMP1;
-	RTC->COMP1 = HRTB::nextSyncPointRtc;
-	
+	//RTC->COMP1 = HRTB::nextSyncPointRtc;
+	RTC->COMP1 = RTC->COMP1+HRTB::syncPeriodRtc;
 	HRTB::flopsyncThread->IRQwakeup();
 	if(HRTB::flopsyncThread->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority()){
 	    Scheduler::IRQfindNextThread();
@@ -780,7 +780,7 @@ HRTB& HRTB::instance(){
 
 void HRTB::initFlopsyncThread(){
     // Thread that is waken up by the timer2 to perform the clock correction
-    flopsyncThread=Thread::create(runCorrection,2048,1);
+    HRTB::flopsyncThread=Thread::create(runCorrection,2048,1);
     TIMER2->IEN |= TIMER_IEN_CC2;
 }
 
@@ -850,30 +850,38 @@ HRTB::HRTB() {
     
     rtc=&Rtc::instance();
 
-    RTC->COMP1=RTC->CNT+1;
-    //Virtual high resolution timer, init starting the input mode!
-    TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
-			| TIMER_CC_CTRL_FILT_DISABLE
-			| TIMER_CC_CTRL_INSEL_PRS
-			| TIMER_CC_CTRL_PRSSEL_PRSCH4
-			| TIMER_CC_CTRL_MODE_INPUTCAPTURE;
-    PRS->CH[4].CTRL= PRS_CH_CTRL_SOURCESEL_RTC | PRS_CH_CTRL_SIGSEL_RTCCOMP1;
-    RTC->IFC=RTC_IFC_COMP1;
-    
-    while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
-    
-    while(!(RTC->IF & RTC_IF_COMP1));
-    
-    long long timestamp=(TIMER3->CNT<<16) | TIMER2->CC[2].CCV;
-    if(timestamp > IRQread32Timer()){
-	timestamp=((TIMER3->CNT-1)<<16) | TIMER2->CC[2].CCV;
+    {
+	InterruptDisableLock l;
+	//This code relies on the fact than the following two instructions will
+	//be executed together (in less than one RTC tick), and the +1 is actually
+	//a +2 as the interrupt occurs one tick afters
+	RTC->COMP1=RTC->CNT+1;
+	//Virtual high resolution timer, init starting the input mode!
+	TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
+			    | TIMER_CC_CTRL_FILT_DISABLE
+			    | TIMER_CC_CTRL_INSEL_PRS
+			    | TIMER_CC_CTRL_PRSSEL_PRSCH4
+			    | TIMER_CC_CTRL_MODE_INPUTCAPTURE;
+	PRS->CH[4].CTRL= PRS_CH_CTRL_SOURCESEL_RTC | PRS_CH_CTRL_SIGSEL_RTCCOMP1;
+
+	RTC->IFC=RTC_IFC_COMP1;
+	while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
+	while(!(RTC->IF & RTC_IF_COMP1));
+	long long timestamp=(TIMER3->CNT<<16) | TIMER2->CC[2].CCV;
+	if(timestamp > IRQread32Timer()){
+	    timestamp=((TIMER3->CNT-1)<<16) | TIMER2->CC[2].CCV;
+	}
+	//conversion factor between RTC and HRT is 48e6/32768=1464+3623878656/2^32
+	#if EFM32_HFXO_FREQ!=48000000 || EFM32_LFXO_FREQ!=32768
+	#error "Clock frequency assumption not satisfied"
+	#endif
+	HRTB::clockCorrection=mul64x32d32(RTC->COMP1+1, 1464, 3623878656)-timestamp;
     }
-    clockCorrection=divisionRounded(48000000LL * RTC->CNT, 32768LL)-timestamp;
     
-    TIMER2->CC[2].CTRL=0;
+//    TIMER2->CC[2].CTRL=0;
     
     //Resync done, now I have to set the next resync
-//    RTC->COMP1=RTC->CNT+syncPeriodRtc;
+    RTC->COMP1=RTC->CNT+syncPeriodRtc;
 //    TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
 //			| TIMER_CC_CTRL_FILT_DISABLE
 //			| TIMER_CC_CTRL_INSEL_PRS
@@ -885,8 +893,8 @@ HRTB::~HRTB() {
     delete tc;
 }
 
-long long HRTB::aux1=0;
-long long HRTB::aux2=0;
+long long HRTB::aux1=-1;
+long long HRTB::aux2=-1;
 long long HRTB::aux3=0;
 long long HRTB::aux4=0;
 long long HRTB::error=0;
