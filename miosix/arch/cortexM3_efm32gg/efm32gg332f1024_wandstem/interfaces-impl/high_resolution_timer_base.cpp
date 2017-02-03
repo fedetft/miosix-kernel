@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2016 by Fabiano Riccardi, Sasan                         *
+ *   Copyright (C) 2016 by Fabiano Riccardi	                           *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -52,6 +52,8 @@ Thread *gpioWaiting=nullptr;
 Thread *transceiverWaiting=nullptr;
 
 Rtc *rtc=nullptr;
+bool softEnable=true;
+
 
 bool isInputGPIO=true;
 bool isInputTransceiver=true;
@@ -140,8 +142,15 @@ void runCorrection(void*){
 //	//HighResolutionTimerBase::syncPointHrtTeoretical += HighResolutionTimerBase::syncPeriodHrt;
 //	HighResolutionTimerBase::syncPointHrtSlave += HighResolutionTimerBase::syncPeriodHrt + HighResolutionTimerBase::clockCorrection;
 //	HighResolutionTimerBase::error = HighResolutionTimerBase::syncPointHrtMaster - (HighResolutionTimerBase::syncPointHrtSlave);
-	printf("[%lld] %lld %lld comp1:%lu\n",rtc->getValue(),rtcT,hrtT,RTC->COMP1);
 	
+	if(softEnable)
+	{
+	    // Single instruction that update the error variable, 
+	    // interrupt can occur, but not thread preemption
+	    PauseKernelLock p;
+	    //This printf shouldn't be in here because is very slow 
+	    printf("[%lld] next resync:%lu\n",rtc->getValue(),RTC->COMP1);
+	}
     }
 }
 
@@ -312,9 +321,12 @@ void __attribute__((used)) cstirqhnd2(){
 	RTC->IFC = RTC_IFC_COMP1;
 	//RTC->COMP1 = HRTB::nextSyncPointRtc;
 	RTC->COMP1 = RTC->COMP1+HRTB::syncPeriodRtc;
-	HRTB::flopsyncThread->IRQwakeup();
-	if(HRTB::flopsyncThread->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority()){
-	    Scheduler::IRQfindNextThread();
+	
+	if(softEnable){
+	    HRTB::flopsyncThread->IRQwakeup();
+	    if(HRTB::flopsyncThread->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority()){
+		Scheduler::IRQfindNextThread();
+	    }
 	}
     }
 }
@@ -776,6 +788,14 @@ void HRTB::initTransceiver(){
 HRTB& HRTB::instance(){
     static HRTB hrtb;
     return hrtb;
+}
+
+void HRTB::stopResyncSoft(){
+    softEnable=false;
+}
+
+void HRTB::startResyncSoft(){
+    softEnable=true;
 }
 
 void HRTB::initFlopsyncThread(){

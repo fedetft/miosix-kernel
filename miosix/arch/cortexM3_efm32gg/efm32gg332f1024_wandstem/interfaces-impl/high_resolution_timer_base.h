@@ -125,7 +125,9 @@ class HRTB {
         
         virtual ~HRTB();
         static void initFlopsyncThread();
-        
+        static void stopResyncSoft();
+        static void startResyncSoft();
+
         /**
         These 4 variables are used to manage the correction of the timers.
         * vhtBase (high frequency): keeps the last sync point
