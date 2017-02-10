@@ -26,7 +26,6 @@
  ***************************************************************************/
 
 #include "flopsync_vht.h"
-//#include <algorithm>
 
 using namespace std;
 
