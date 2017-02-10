@@ -33,6 +33,7 @@
 #include "transceiver_timer.h"
 #include "rtc.h"
 #include "gpioirq.h"
+#include "light_flopsync1.h"
 
 using namespace miosix;
 
@@ -60,6 +61,10 @@ bool isInputTransceiver=true;
 
 static int faseGPIO=0;
 static int faseTransceiver=0;
+
+//To keep a precise track of missing sync. 
+//It is incremented in the TMR2->CC2 routine and reset in the Thread 
+static int pendingVhtSync=0;
 
 //static volatile unsigned long long vhtBaseVht=0;	    ///< Vht time corresponding to rtc time: theoretical
 //static unsigned long long syncPointRtc=0;		    ///< Rtc time corresponding to vht time : known with sum
@@ -129,27 +134,46 @@ inline void interruptTransceiverTimerRoutine(){
 }
 
 void runCorrection(void*){
-    long long rtcT,hrtT;
+    long long hrtT;
+    long long rtcT;
+    LightFlopsync1 f;
+    
+    int tempPendingVhtSync;				    ///< Number of sync acquired in a round
     while(1){
 	Thread::wait();
 	{
-	    //Read in atomic context the 2 value to run flopsync
+	    //Read in atomic context the 2 SHARED values to run flopsync
 	    FastInterruptDisableLock dLock;
-	    rtcT=HRTB::nextSyncPointRtc-HRTB::syncPeriodRtc;
+	    //rtcT=HRTB::nextSyncPointRtc-HRTB::syncPeriodRtc;
 	    hrtT=HRTB::syncPointHrtMaster;
+	    tempPendingVhtSync=pendingVhtSync;
+	    pendingVhtSync=0;
 	}
-//    
-//	//HighResolutionTimerBase::syncPointHrtTeoretical += HighResolutionTimerBase::syncPeriodHrt;
-//	HighResolutionTimerBase::syncPointHrtSlave += HighResolutionTimerBase::syncPeriodHrt + HighResolutionTimerBase::clockCorrection;
-//	HighResolutionTimerBase::error = HighResolutionTimerBase::syncPointHrtMaster - (HighResolutionTimerBase::syncPointHrtSlave);
 	
+	HRTB::syncPointHrtSlave += (HRTB::syncPeriodHrt + HRTB::clockCorrectionFlopsync)*tempPendingVhtSync;
+	//Master è quello timestampato correttamente, il nostro punto di riferimento
+	HRTB::error = hrtT - (HRTB::syncPointHrtSlave);
+	std::pair<int,int> result=f.computeCorrection(HRTB::error);
+	
+	
+	PauseKernelLock pkLock;
 	if(softEnable)
 	{
 	    // Single instruction that update the error variable, 
 	    // interrupt can occur, but not thread preemption
-	    PauseKernelLock p;
+	    HRTB::clockCorrectionFlopsync=result.first;
 	    //This printf shouldn't be in here because is very slow 
-	    printf("[%lld] next resync:%lu\n",rtc->getValue(),RTC->COMP1);
+	    printf("HRT bare:%lld, RTC %lld, COMP1:%lu basicCorr:%lld, Master:%lld Slave:%lld\n\t"
+		    "Error:%lld, FSync corr:%lld, PendingSync:%d\n\n",
+		    IRQgetTick(),
+		    rtc->getValue(),
+		    RTC->COMP1,
+		    HRTB::clockCorrection,
+		    HRTB::syncPointHrtMaster,
+		    HRTB::syncPointHrtSlave,
+		    HRTB::error,
+		    HRTB::clockCorrectionFlopsync,
+		    tempPendingVhtSync);
 	}
     }
 }
@@ -233,17 +257,6 @@ void __attribute__((used)) cstirqhnd3(){
     } 
 }
 
-template<typename C>
-C divisionRounded(C a, C b){
-    return (a+b/2)/b;
-}
-
-template<typename C>
-C divisionRoundedNeg(C a, C b){
-    int sign=((a<0 || b<0) && !(a<0 && b<0))? -1 : 1;
-    return (a+sign*b/2)/b;
-}
-
 void __attribute__((used)) cstirqhnd2(){
     //CC0 listening for received packet --> input mode
     if ((TIMER2->IEN & TIMER_IEN_CC0) && (TIMER2->IF & TIMER_IF_CC0) ){
@@ -303,7 +316,7 @@ void __attribute__((used)) cstirqhnd2(){
     
     if ((TIMER2->IEN & TIMER_IEN_CC2) && (TIMER2->IF & TIMER_IF_CC2) ){	
 	TIMER2->IFC = TIMER_IFC_CC2;
-	
+	greenLed::toggle();
 	//Reading the timestamp of the low freq clock
 	uint32_t low=TIMER2->CC[2].CCV;
 	uint32_t high=TIMER3->CNT;
@@ -319,8 +332,9 @@ void __attribute__((used)) cstirqhnd2(){
 	HRTB::nextSyncPointRtc += HRTB::syncPeriodRtc;
 	//Clean the output channel of RTC
 	RTC->IFC = RTC_IFC_COMP1;
-	//RTC->COMP1 = HRTB::nextSyncPointRtc;
 	RTC->COMP1 = RTC->COMP1+HRTB::syncPeriodRtc;
+	
+	pendingVhtSync++;
 	
 	if(softEnable){
 	    HRTB::flopsyncThread->IRQwakeup();
@@ -376,6 +390,25 @@ void __attribute__((used)) cstirqhnd1(){
 	    }
 	}
     }
+}
+
+long long HRTB::getVhtTimestamp(){
+    /////////////////// Correction overflow for hardware part
+    long long timestamp=(TIMER3->CNT<<16) | TIMER2->CC[2].CCV;
+    
+    long long now=IRQgetCurrentTick();
+    if(timestamp > (now & 0x00000000FFFFFFFF)){
+	//greenLed::high();
+	timestamp-=65536;
+    }
+    ///////////////////
+    
+    /////////////////// Correction for software part
+    timestamp+=ms32time;
+    if((TIMER3->IF & _TIMER_IFC_OF_MASK) && now-timestamp>100000000)
+        timestamp += overflowIncrement;
+    ///////////////////
+    return timestamp;
 }
 
 long long HRTB::IRQgetSetTimeTransceiver() const{
@@ -804,9 +837,6 @@ void HRTB::initFlopsyncThread(){
     TIMER2->IEN |= TIMER_IEN_CC2;
 }
 
-const unsigned int HRTB::freq=48000000;
-FixedEventQueue<50,16> HRTB::queue;
-
 HRTB::HRTB() {
     //Power the timers up and PRS system
     {
@@ -891,33 +921,37 @@ HRTB::HRTB() {
 	if(timestamp > IRQread32Timer()){
 	    timestamp=((TIMER3->CNT-1)<<16) | TIMER2->CC[2].CCV;
 	}
+	
+	RTC->IFC=RTC_IFC_COMP1;
+	TIMER2->IFC=TIMER_IFC_CC2;
 	//conversion factor between RTC and HRT is 48e6/32768=1464+3623878656/2^32
 	#if EFM32_HFXO_FREQ!=48000000 || EFM32_LFXO_FREQ!=32768
 	#error "Clock frequency assumption not satisfied"
 	#endif
 	HRTB::clockCorrection=mul64x32d32(RTC->COMP1+1, 1464, 3623878656)-timestamp;
+	HRTB::syncPointHrtSlave=mul64x32d32(RTC->COMP1+1, 1464, 3623878656);
     }
     
-//    TIMER2->CC[2].CTRL=0;
     
     //Resync done, now I have to set the next resync
-    RTC->COMP1=RTC->CNT+syncPeriodRtc;
-//    TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
-//			| TIMER_CC_CTRL_FILT_DISABLE
-//			| TIMER_CC_CTRL_INSEL_PRS
-//			| TIMER_CC_CTRL_PRSSEL_PRSCH4
-//			| TIMER_CC_CTRL_MODE_INPUTCAPTURE;
+    RTC->COMP1=RTC->CNT+syncPeriodRtc-1;
+    while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
+    
 }
 
 HRTB::~HRTB() {
     delete tc;
 }
 
+
+const unsigned int HRTB::freq=48000000;
+FixedEventQueue<50,16> HRTB::queue;
 long long HRTB::aux1=-1;
 long long HRTB::aux2=-1;
 long long HRTB::aux3=0;
 long long HRTB::aux4=0;
 long long HRTB::error=0;
+//NOTE: you have to change both value to make flopsync works
 long long HRTB::syncPeriodRtc=15008;
 long long HRTB::syncPeriodHrt=21984375;
 long long HRTB::syncPointHrtMaster=0;
@@ -925,6 +959,7 @@ long long HRTB::syncPointHrtSlave=0;
 long long HRTB::syncPointHrtTeoretical=0;
 long long HRTB::nextSyncPointRtc=0;
 long long HRTB::clockCorrection=0;
+long long HRTB::clockCorrectionFlopsync=0;
 long long HRTB::syncPointRtc=0;
 long long HRTB::diffs[100]={0};
 Thread* HRTB::flopsyncThread=nullptr;

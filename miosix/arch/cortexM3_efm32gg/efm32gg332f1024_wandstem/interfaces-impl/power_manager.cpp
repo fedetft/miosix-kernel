@@ -160,24 +160,10 @@ void PowerManager::deepSleepUntil(long long int when)
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
 
     while(!(RTC->IF & RTC_IF_COMP1));
-    //0x(1)FFFFFFFF //0x2 00000100
-    
-    /////////////////// Correction overflow for hardware part
-    long long timestamp=(TIMER3->CNT<<16) | TIMER2->CC[2].CCV;
-    
-    long long now=b.IRQgetCurrentTick();
     long long nowRtc=rtc.IRQgetValue();
-    HRTB::aux1=nowRtc;
-    if(timestamp > (now & 0x00000000FFFFFFFF)){
-	greenLed::high();
-	timestamp-=65536;
-    }
-    ///////////////////
+    long long timestamp=b.getVhtTimestamp();
     
-    /////////////////// Correction for software part
-    
-    ///////////////////
-    HRTB::clockCorrection=mul64x32d32(nowRtc, 1464, 3623878656)-timestamp;    
+    HRTB::clockCorrection=mul64x32d32(nowRtc, 1464, 3623878656)-timestamp;
     
     //EFM32 compare channels trigger 1 tick late (undocumented quirk)
     RTC->COMP1=(when-1) & 0xffffff;
@@ -200,8 +186,10 @@ void PowerManager::deepSleepUntil(long long int when)
     TIMER2->IFC=TIMER_IFC_CC2;
     TIMER2->CC[2].CCV;
     
-    RTC->COMP1=RTC->CNT+HRTB::syncPeriodRtc;
-    HRTB::aux2=rtc.IRQgetValue();
+    HRTB::syncPointHrtSlave=mul64x32d32(RTC->COMP1+1, 1464, 3623878656);
+    HRTB::clockCorrectionFlopsync=0;
+    
+    RTC->COMP1=RTC->CNT+HRTB::syncPeriodRtc-1;
 }
 
 void PowerManager::enableTransceiverPowerDomain()
