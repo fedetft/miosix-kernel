@@ -186,7 +186,7 @@ void PowerManager::deepSleepUntil(long long int when)
     TIMER2->IFC=TIMER_IFC_CC2;
     TIMER2->CC[2].CCV;
     
-    HRTB::syncPointHrtSlave=mul64x32d32(RTC->COMP1+1, 1464, 3623878656);
+    HRTB::syncPointHrtSlave=mul64x32d32(RTC->COMP1+1, 1464, 3623878656)+HRTB::clockCorrectionFlopsync;
     HRTB::clockCorrectionFlopsync=0;
     
     RTC->COMP1=RTC->CNT+HRTB::syncPeriodRtc-1;
