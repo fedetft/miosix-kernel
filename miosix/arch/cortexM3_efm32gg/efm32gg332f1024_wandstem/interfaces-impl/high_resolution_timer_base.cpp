@@ -33,7 +33,7 @@
 #include "transceiver_timer.h"
 #include "rtc.h"
 #include "gpioirq.h"
-#include "light_flopsync1.h"
+#include "flopsync_vht.h"
 
 using namespace miosix;
 
@@ -136,7 +136,7 @@ inline void interruptTransceiverTimerRoutine(){
 void runCorrection(void*){
     long long hrtT;
     long long rtcT;
-    LightFlopsync1 f;
+    FlopsyncVHT f;
     
     int tempPendingVhtSync;				    ///< Number of sync acquired in a round
     while(1){
@@ -153,7 +153,7 @@ void runCorrection(void*){
 	HRTB::syncPointHrtSlave += (HRTB::syncPeriodHrt + HRTB::clockCorrectionFlopsync)*tempPendingVhtSync;
 	//Master è quello timestampato correttamente, il nostro punto di riferimento
 	HRTB::error = hrtT - (HRTB::syncPointHrtSlave);
-	std::pair<int,int> result=f.computeCorrection(HRTB::error);
+	int u=f.computeCorrection(HRTB::error);
 	
 	
 	PauseKernelLock pkLock;
@@ -161,7 +161,7 @@ void runCorrection(void*){
 	{
 	    // Single instruction that update the error variable, 
 	    // interrupt can occur, but not thread preemption
-	    HRTB::clockCorrectionFlopsync=result.first;
+	    HRTB::clockCorrectionFlopsync=u;
 	    //This printf shouldn't be in here because is very slow 
 	    printf("HRT bare:%lld, RTC %lld, COMP1:%lu basicCorr:%lld, Master:%lld Slave:%lld\n\t"
 		    "Error:%lld, FSync corr:%lld, PendingSync:%d\n\n",

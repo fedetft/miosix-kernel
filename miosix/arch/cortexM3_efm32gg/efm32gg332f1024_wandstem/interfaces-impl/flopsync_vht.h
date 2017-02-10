@@ -24,39 +24,32 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
-#include <utility>
 
-#ifndef CONTROLLER_FLOPSYNC_H
-#define	CONTROLLER_FLOPSYNC_H
+#ifndef FLOPSYNC_VHT_H
+#define	FLOPSYNC_VHT_H
 
 /**
- * Old flopsync controller.
+ * Simplified flopsync that only computes clock correction
  */
-class LightFlopsync1
+class FlopsyncVHT
 {
 public:
     /**
      * Constructor
      */
-    LightFlopsync1();
+    FlopsyncVHT();
     
     /**
      * Compute clock correction and receiver window given synchronization error
      * \param e synchronization error
-     * \return a pair with the clock correction, and the receiver window
+     * \return the clock correction
      */
-    std::pair<int,int> computeCorrection(int e);
-    
-    /**
-     * Compute clock correction and receiver window when a packet is lost
-     * \return a pair with the clock correction, and the receiver window
-     */
-    std::pair<int,int> lostPacket();
+    int computeCorrection(int e);
     
     /**
      * Used after a resynchronization to reset the controller state
      */
-    void reset();
+    void reset() { uo=eo=0; }
     
     /**
      * \return the synchronization error e(k)
@@ -68,35 +61,9 @@ public:
      */
     int getClockCorrection() const;
     
-    /**
-     * \return the receiver window (w)
-     */
-    int getReceiverWindow() const { return scaleFactor*dw; }
-    
 private:
     int uo;
-    int sum;
-    int squareSum;
-    short eo;
-    unsigned char count;
-    unsigned char dw;
-    int wMin;
-    int wMax;
-    
-    static const int numSamples=8; //Number of samples for variance compuation
-    static const int fp=64; //Fixed point, log2(fp) bits are the decimal part
-    #ifndef USE_VHT
-    static const int scaleFactor=1;
-    #else //USE_VHT
-    //The maximum value that can enter the window computation algorithm without
-    //without causing overflows is around 700, resulting in a scaleFactor of
-    //5 when the vht resolution is 1us, and w is 3ms. That however would cause
-    //overflow when writing the result to dw, which is just an unsigned char
-    //(to save RAM). This requires a higher scale factor, of about w/255, or 12.
-    //However, this requires more iterations to approximate the square root,
-    //so we're using a scale factor of 30.
-    static const int scaleFactor=480;
-    #endif //USE_VHT
+    int eo;
 };
 
-#endif //CONTROLLER_FLOPSYNC_H
+#endif //FLOPSYNC_VHT_H

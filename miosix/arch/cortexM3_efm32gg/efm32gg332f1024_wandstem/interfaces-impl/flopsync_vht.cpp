@@ -25,11 +25,8 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "light_flopsync1.h"
-#include "timer_interface.h"
-#include <algorithm>
-#include "transceiver_timer.h"
-
+#include "flopsync_vht.h"
+//#include <algorithm>
 
 using namespace std;
 
@@ -39,15 +36,9 @@ using namespace std;
 // class Flopsync1
 //
 
-LightFlopsync1::LightFlopsync1()
-{
-    auto& timer=miosix::TransceiverTimer::instance();
-    wMin=timer.ns2tick( 100000)/scaleFactor; //100us
-    wMax=timer.ns2tick(6000000)/scaleFactor; //6ms
-    reset();
-}
+FlopsyncVHT::FlopsyncVHT() { reset(); }
 
-pair<int,int> LightFlopsync1::computeCorrection(int e)
+int FlopsyncVHT::computeCorrection(int e)
 {
     //u(k)=u(k-1)+1.375*e(k)-e(k-1)
     int u=uo+11*e-8*eo;
@@ -68,46 +59,11 @@ pair<int,int> LightFlopsync1::computeCorrection(int e)
     #endif //SWITCHED
     eo=e;
     
-    e/=scaleFactor;
-    
-    //Update receiver window size
-    sum+=e*fp;
-    squareSum+=e*e*fp;
-    if(++count>=numSamples)
-    {
-        //Variance computed as E[X^2]-E[X]^2
-        int average=sum/numSamples;
-        int var=squareSum/numSamples-average*average/fp;
-        //Using the Babylonian method to approximate square root
-        int stddev=var/7;
-        for(int j=0;j<3;j++) if(stddev>0) stddev=(stddev+var*fp/stddev)/2;
-        //Set the window size to three sigma
-        int winSize=stddev*3/fp;
-        //Clamp between min and max window
-        dw=max<int>(min<int>(winSize,wMax),wMin);
-        sum=squareSum=count=0;
-    }
-
-    return make_pair(uquant,scaleFactor*dw);
+    return uquant;
 }
 
-pair<int,int> LightFlopsync1::lostPacket()
+int FlopsyncVHT::getClockCorrection() const
 {
-    //Double receiver window on packet loss, still clamped to max value
-    dw=min<int>(2*dw,wMax);
-    return make_pair(getClockCorrection(),scaleFactor*dw);
-}
-
-void LightFlopsync1::reset()
-{
-    uo=eo=sum=squareSum=count=0;
-    dw=wMax;
-}
-
-int LightFlopsync1::getClockCorrection() const
-{
-    //Error measure is unavailable if the packet is lost, the best we can
-    //do is to reuse the past correction value
     int sign=uo>=0 ? 1 : -1;
     return (uo+4*sign)/8;
 }
