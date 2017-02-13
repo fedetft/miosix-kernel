@@ -96,11 +96,11 @@ static inline long long IRQgetTickCorrected(){
     return IRQgetTick() + HRTB::clockCorrection;
 }
 
-static inline long long IRQgetCurrentTickVht(){
-    long long offset=mul64x32d32(HRTB::nextSyncPointRtc, 1464, 3623878656);
-    long long factor=HRTB::syncPeriodHrt/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync);
+long long HRTB::IRQgetCurrentTickVht(){
     
-    return 0;
+    float factor=(float)HRTB::syncPeriodHrt/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync);
+    printf("Theor: %lld,Factor : %.7f",syncPointHrtTheoretical,factor);
+    return HRTB::syncPointHrtTheoretical+(IRQgetTickCorrected()-HRTB::syncPointHrtSlave)*factor;
 }
 
 void falseRead(volatile uint32_t *p){
@@ -917,7 +917,8 @@ HRTB::HRTB() {
         //This code relies on the fact than the following two instructions will
         //be executed together (in less than one RTC tick), and the +1 is actually
         //a +2 as the interrupt occurs one tick afters
-        RTC->COMP1=RTC->CNT+1;
+        int now=RTC->CNT+2;
+        RTC->COMP1=now-1;
         //Virtual high resolution timer, init starting the input mode!
         TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
                     | TIMER_CC_CTRL_FILT_DISABLE
@@ -932,16 +933,16 @@ HRTB::HRTB() {
         long long timestamp=(TIMER3->CNT<<16) | TIMER2->CC[2].CCV;
         if(timestamp > IRQread32Timer()){
             timestamp=((TIMER3->CNT-1)<<16) | TIMER2->CC[2].CCV;
-	}
+        }
 	
-	RTC->IFC=RTC_IFC_COMP1;
-	TIMER2->IFC=TIMER_IFC_CC2;
-	//conversion factor between RTC and HRT is 48e6/32768=1464+3623878656/2^32
-	#if EFM32_HFXO_FREQ!=48000000 || EFM32_LFXO_FREQ!=32768
-	#error "Clock frequency assumption not satisfied"
-	#endif
-	HRTB::clockCorrection=mul64x32d32(RTC->COMP1+1, 1464, 3623878656)-timestamp;
-	HRTB::syncPointHrtSlave=mul64x32d32(RTC->COMP1+1, 1464, 3623878656);
+        RTC->IFC=RTC_IFC_COMP1;
+        TIMER2->IFC=TIMER_IFC_CC2;
+        //conversion factor between RTC and HRT is 48e6/32768=1464+3623878656/2^32
+        #if EFM32_HFXO_FREQ!=48000000 || EFM32_LFXO_FREQ!=32768
+        #error "Clock frequency assumption not satisfied"
+        #endif
+        HRTB::clockCorrection=mul64x32d32(now, 1464, 3623878656)-timestamp;
+        HRTB::syncPointHrtSlave=mul64x32d32(now, 1464, 3623878656);
     }
     
     
