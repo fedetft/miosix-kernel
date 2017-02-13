@@ -96,6 +96,13 @@ static inline long long IRQgetTickCorrected(){
     return IRQgetTick() + HRTB::clockCorrection;
 }
 
+static inline long long IRQgetCurrentTickVht(){
+    long long offset=mul64x32d32(HRTB::nextSyncPointRtc, 1464, 3623878656);
+    long long factor=HRTB::syncPeriodHrt/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync);
+    
+    return 0;
+}
+
 void falseRead(volatile uint32_t *p){
     *p;
 }
@@ -163,12 +170,15 @@ void runCorrection(void*){
 	    // interrupt can occur, but not thread preemption
 	    HRTB::clockCorrectionFlopsync=u;
 	    //This printf shouldn't be in here because is very slow 
-	    printf("HRT bare:%lld, RTC %lld, COMP1:%lu basicCorr:%lld, Master:%lld Slave:%lld\n\t"
-		    "Error:%lld, FSync corr:%lld, PendingSync:%d\n\n",
+	    printf( "HRT bare:%lld, RTC %lld, next:%lld, COMP1:%lu basicCorr:%lld\n\t"
+                "Theor:%lld, Master:%lld, Slave:%lld\n\t"
+                "Error:%lld, FSync corr:%lld, PendingSync:%d\n\n",
 		    IRQgetTick(),
 		    rtc->getValue(),
+            HRTB::nextSyncPointRtc,
 		    RTC->COMP1,
 		    HRTB::clockCorrection,
+            HRTB::syncPointHrtTheoretical,
 		    HRTB::syncPointHrtMaster,
 		    HRTB::syncPointHrtSlave,
 		    HRTB::error,
@@ -326,11 +336,13 @@ void __attribute__((used)) cstirqhnd2(){
 	    HRTB::syncPointHrtMaster = ms32time | ((high-1) << 16) | low;
 	}
 	//Adding the basic correction
-	HRTB::syncPointHrtMaster+=HRTB::clockCorrection;
+	HRTB::syncPointHrtMaster += HRTB::clockCorrection;
 
 	//Reading and setting the next rtc trigger
 	HRTB::nextSyncPointRtc += HRTB::syncPeriodRtc;
-	//Clean the output channel of RTC
+    HRTB::syncPointHrtTheoretical += HRTB::syncPeriodHrt;
+    
+    //Clean the output channel of RTC
 	RTC->IFC = RTC_IFC_COMP1;
 	RTC->COMP1 = RTC->COMP1+HRTB::syncPeriodRtc;
 	
@@ -901,25 +913,25 @@ HRTB::HRTB() {
     rtc=&Rtc::instance();
 
     {
-	InterruptDisableLock l;
-	//This code relies on the fact than the following two instructions will
-	//be executed together (in less than one RTC tick), and the +1 is actually
-	//a +2 as the interrupt occurs one tick afters
-	RTC->COMP1=RTC->CNT+1;
-	//Virtual high resolution timer, init starting the input mode!
-	TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
-			    | TIMER_CC_CTRL_FILT_DISABLE
-			    | TIMER_CC_CTRL_INSEL_PRS
-			    | TIMER_CC_CTRL_PRSSEL_PRSCH4
-			    | TIMER_CC_CTRL_MODE_INPUTCAPTURE;
-	PRS->CH[4].CTRL= PRS_CH_CTRL_SOURCESEL_RTC | PRS_CH_CTRL_SIGSEL_RTCCOMP1;
+        InterruptDisableLock l;
+        //This code relies on the fact than the following two instructions will
+        //be executed together (in less than one RTC tick), and the +1 is actually
+        //a +2 as the interrupt occurs one tick afters
+        RTC->COMP1=RTC->CNT+1;
+        //Virtual high resolution timer, init starting the input mode!
+        TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
+                    | TIMER_CC_CTRL_FILT_DISABLE
+                    | TIMER_CC_CTRL_INSEL_PRS
+                    | TIMER_CC_CTRL_PRSSEL_PRSCH4
+                    | TIMER_CC_CTRL_MODE_INPUTCAPTURE;
+        PRS->CH[4].CTRL= PRS_CH_CTRL_SOURCESEL_RTC | PRS_CH_CTRL_SIGSEL_RTCCOMP1;
 
-	RTC->IFC=RTC_IFC_COMP1;
-	while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
-	while(!(RTC->IF & RTC_IF_COMP1));
-	long long timestamp=(TIMER3->CNT<<16) | TIMER2->CC[2].CCV;
-	if(timestamp > IRQread32Timer()){
-	    timestamp=((TIMER3->CNT-1)<<16) | TIMER2->CC[2].CCV;
+        RTC->IFC=RTC_IFC_COMP1;
+        while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
+        while(!(RTC->IF & RTC_IF_COMP1));
+        long long timestamp=(TIMER3->CNT<<16) | TIMER2->CC[2].CCV;
+        if(timestamp > IRQread32Timer()){
+            timestamp=((TIMER3->CNT-1)<<16) | TIMER2->CC[2].CCV;
 	}
 	
 	RTC->IFC=RTC_IFC_COMP1;
@@ -934,9 +946,10 @@ HRTB::HRTB() {
     
     
     //Resync done, now I have to set the next resync
-    RTC->COMP1=RTC->CNT+syncPeriodRtc-1;
+    nextSyncPointRtc=RTC->CNT+syncPeriodRtc;
+    RTC->COMP1=nextSyncPointRtc-1;
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
-    
+    HRTB::syncPointHrtTheoretical=mul64x32d32(HRTB::nextSyncPointRtc-HRTB::syncPeriodRtc,1464, 3623878656);
 }
 
 HRTB::~HRTB() {
@@ -956,10 +969,10 @@ long long HRTB::syncPeriodRtc=15008;
 long long HRTB::syncPeriodHrt=21984375;
 long long HRTB::syncPointHrtMaster=0;
 long long HRTB::syncPointHrtSlave=0;
-long long HRTB::syncPointHrtTeoretical=0;
+long long HRTB::syncPointHrtTheoretical=0;
+long long HRTB::syncPointRtc=0;
 long long HRTB::nextSyncPointRtc=0;
 long long HRTB::clockCorrection=0;
 long long HRTB::clockCorrectionFlopsync=0;
-long long HRTB::syncPointRtc=0;
 long long HRTB::diffs[100]={0};
 Thread* HRTB::flopsyncThread=nullptr;

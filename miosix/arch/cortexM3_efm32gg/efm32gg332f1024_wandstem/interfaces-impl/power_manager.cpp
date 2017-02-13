@@ -142,8 +142,9 @@ void PowerManager::deepSleepUntil(long long int when)
         IRQpostDeepSleep(rtx);
     }
     //Post deep sleep wait to absorb wakeup time jitter, jitter due to physical phenomena like XO stabilization
-    
-    RTC->COMP1=RTC->CNT+1;
+    long long nowRtc=rtc.IRQgetValue();
+    long long syncAt=nowRtc+2;
+    RTC->COMP1=syncAt-1;
     //Virtual high resolution timer, init without starting the input mode!
     TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
 			| TIMER_CC_CTRL_FILT_DISABLE
@@ -160,13 +161,16 @@ void PowerManager::deepSleepUntil(long long int when)
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
 
     while(!(RTC->IF & RTC_IF_COMP1));
-    long long nowRtc=rtc.IRQgetValue();
-    long long timestamp=b.getVhtTimestamp();
-    
-    HRTB::clockCorrection=mul64x32d32(nowRtc, 1464, 3623878656)-timestamp;
     
     //EFM32 compare channels trigger 1 tick late (undocumented quirk)
     RTC->COMP1=(when-1) & 0xffffff;
+    
+    long long timestamp=b.getVhtTimestamp();
+    HRTB::clockCorrection=mul64x32d32(syncAt, 1464, 3623878656)-timestamp;
+    HRTB::syncPointHrtSlave=mul64x32d32(syncAt, 1464, 3623878656)+HRTB::clockCorrectionFlopsync;
+    
+    HRTB::nextSyncPointRtc=syncAt+HRTB::syncPeriodRtc;
+    HRTB::syncPointHrtTheoretical=mul64x32d32(HRTB::nextSyncPointRtc-HRTB::syncPeriodRtc,1464, 3623878656);
     
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1) ;
     RTC->IFC=RTC_IFC_COMP1;
@@ -186,10 +190,7 @@ void PowerManager::deepSleepUntil(long long int when)
     TIMER2->IFC=TIMER_IFC_CC2;
     TIMER2->CC[2].CCV;
     
-    HRTB::syncPointHrtSlave=mul64x32d32(RTC->COMP1+1, 1464, 3623878656)+HRTB::clockCorrectionFlopsync;
-    HRTB::clockCorrectionFlopsync=0;
-    
-    RTC->COMP1=RTC->CNT+HRTB::syncPeriodRtc-1;
+    RTC->COMP1=HRTB::nextSyncPointRtc-1;
 }
 
 void PowerManager::enableTransceiverPowerDomain()

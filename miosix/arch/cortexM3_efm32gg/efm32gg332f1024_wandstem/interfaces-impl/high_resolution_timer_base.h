@@ -90,6 +90,7 @@ class HRTB {
          */
         long long IRQgetCurrentTick();
         long long IRQgetCurrentTickCorrected();
+        long long IRQgetCurrentTickVht();
 
         long long getVhtTimestamp();
         
@@ -138,22 +139,25 @@ class HRTB {
         * vhtSyncPointVht (high frequency: keeps the precise value of last sync point
         * vhtOffset (high frequency): keeps the difference between the actual time and the counter value
         */
-       static long long base;
-       static long long syncPointRtc;
-       static long long syncPointHrtMaster;
-       static long long syncPointHrtSlave;
-       static long long syncPointHrtTeoretical;
-       static long long vhtOffset;
-       static long long nextSyncPointRtc;
-       static long long syncPeriodRtc;
-       static long long syncPeriodHrt;
-       static long long clockCorrection;
-       static long long clockCorrectionFlopsync;
-       static int aux;
-       static long long aux1,aux2,aux3,aux4,error;
-       static FixedEventQueue<50,16> queue;
-       static Thread *flopsyncThread;
-       static long long diffs[100];
+        static long long syncPointHrtMaster;
+        static long long syncPointHrtSlave;
+        static long long syncPointHrtTheoretical;
+        static long long vhtOffset;
+        static long long syncPeriodRtc;
+        static long long syncPointRtc;
+        static long long nextSyncPointRtc;
+        static long long syncPeriodHrt;
+        static long long clockCorrection;
+        static long long clockCorrectionFlopsync;
+        
+        /**
+         * Debug variables
+         */
+        static int aux;
+        static long long aux1,aux2,aux3,aux4,error;
+        static FixedEventQueue<50,16> queue;
+        static Thread *flopsyncThread;
+        static long long diffs[100];
     
     private:
         HRTB();
