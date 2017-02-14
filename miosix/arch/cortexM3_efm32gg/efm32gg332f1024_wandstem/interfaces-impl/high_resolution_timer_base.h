@@ -25,11 +25,11 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "miosix.h"
-#include "../../../../e20/e20.h"
 #ifndef HIGH_RESOLUTION_TIMER_BASE_H
 #define HIGH_RESOLUTION_TIMER_BASE_H
 
+#include "miosix.h"
+#include "../../../../e20/e20.h"
 namespace miosix {
 
 enum class WaitResult
@@ -93,6 +93,7 @@ class HRTB {
         long long IRQgetCurrentTickVht();
 
         long long getVhtTimestamp();
+        long long getOriginalTickVht(long long tick);
         
         void enableCC0Interrupt(bool enable);
         void enableCC1Interrupt(bool enable);
@@ -130,6 +131,8 @@ class HRTB {
         static void initFlopsyncThread();
         static void stopResyncSoft();
         static void startResyncSoft();
+        static void stopResyncHard();
+        static void startResyncHard();
         
 
         /**

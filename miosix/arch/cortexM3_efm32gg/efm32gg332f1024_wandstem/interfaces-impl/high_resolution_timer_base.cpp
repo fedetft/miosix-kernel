@@ -34,6 +34,7 @@
 #include "rtc.h"
 #include "gpioirq.h"
 #include "flopsync_vht.h"
+#include "../../../../debugpin.h"
 
 using namespace miosix;
 
@@ -54,7 +55,7 @@ Thread *transceiverWaiting=nullptr;
 
 Rtc *rtc=nullptr;
 bool softEnable=true;
-
+bool vhtEnable=true;
 
 bool isInputGPIO=true;
 bool isInputTransceiver=true;
@@ -65,6 +66,12 @@ static int faseTransceiver=0;
 //To keep a precise track of missing sync. 
 //It is incremented in the TMR2->CC2 routine and reset in the Thread 
 static int pendingVhtSync=0;
+//Multiplicative factor VHT
+double factor=1;
+static unsigned int factorI=1;
+static unsigned int factorD=0;
+static unsigned int inverseFactorI=1;
+static unsigned int inverseFactorD=0;
 
 //static volatile unsigned long long vhtBaseVht=0;	    ///< Vht time corresponding to rtc time: theoretical
 //static unsigned long long syncPointRtc=0;		    ///< Rtc time corresponding to vht time : known with sum
@@ -97,10 +104,17 @@ static inline long long IRQgetTickCorrected(){
 }
 
 long long HRTB::IRQgetCurrentTickVht(){
-    
-    float factor=(float)HRTB::syncPeriodHrt/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync);
     printf("Theor: %lld,Factor : %.7f",syncPointHrtTheoretical,factor);
-    return HRTB::syncPointHrtTheoretical+(IRQgetTickCorrected()-HRTB::syncPointHrtSlave)*factor;
+    HRTB::aux1=IRQgetTickCorrected();
+    
+    long long tick;
+    tick=HRTB::syncPointHrtTheoretical+mul64x32d32(HRTB::aux1-HRTB::syncPointHrtSlave,factorI,factorD);
+    return tick;
+}
+
+//Return the value with basic correction
+long long HRTB::getOriginalTickVht(long long tick){
+    return mul64x32d32((tick-HRTB::syncPointHrtTheoretical),inverseFactorI,inverseFactorD)+HRTB::syncPointHrtSlave;
 }
 
 void falseRead(volatile uint32_t *p){
@@ -141,6 +155,7 @@ inline void interruptTransceiverTimerRoutine(){
 }
 
 void runCorrection(void*){
+    initDebugPins();
     long long hrtT;
     long long rtcT;
     FlopsyncVHT f;
@@ -162,7 +177,18 @@ void runCorrection(void*){
 	HRTB::error = hrtT - (HRTB::syncPointHrtSlave);
 	int u=f.computeCorrection(HRTB::error);
 	
-	
+    //Simple calculation of factor, very inefficient
+    factor=(double)HRTB::syncPeriodHrt/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync);
+    //HighPin<debug1> hp;
+    //efficient way to calculate the factor
+    long long temp=(HRTB::syncPeriodHrt<<32)/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)-4294967296;
+    factorI= temp>0 ? 1:0;
+    factorD= (unsigned int) temp;
+    //calculate inverse of previous factor
+    temp=((HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)<<32)/HRTB::syncPeriodHrt-4294967296;
+    inverseFactorI= temp>0 ? 1:0;
+    inverseFactorD=(unsigned int)temp;
+    
 	PauseKernelLock pkLock;
 	if(softEnable)
 	{
@@ -170,20 +196,20 @@ void runCorrection(void*){
 	    // interrupt can occur, but not thread preemption
 	    HRTB::clockCorrectionFlopsync=u;
 	    //This printf shouldn't be in here because is very slow 
-	    printf( "HRT bare:%lld, RTC %lld, next:%lld, COMP1:%lu basicCorr:%lld\n\t"
-                "Theor:%lld, Master:%lld, Slave:%lld\n\t"
-                "Error:%lld, FSync corr:%lld, PendingSync:%d\n\n",
-		    IRQgetTick(),
-		    rtc->getValue(),
-            HRTB::nextSyncPointRtc,
-		    RTC->COMP1,
-		    HRTB::clockCorrection,
-            HRTB::syncPointHrtTheoretical,
-		    HRTB::syncPointHrtMaster,
-		    HRTB::syncPointHrtSlave,
-		    HRTB::error,
-		    HRTB::clockCorrectionFlopsync,
-		    tempPendingVhtSync);
+//	    printf( "HRT bare:%lld, RTC %lld, next:%lld, COMP1:%lu basicCorr:%lld\n\t"
+//                "Theor:%lld, Master:%lld, Slave:%lld\n\t"
+//                "Error:%lld, FSync corr:%lld, PendingSync:%d\n\n",
+//		    IRQgetTick(),
+//		    rtc->getValue(),
+//            HRTB::nextSyncPointRtc,
+//		    RTC->COMP1,
+//		    HRTB::clockCorrection,
+//            HRTB::syncPointHrtTheoretical,
+//		    HRTB::syncPointHrtMaster,
+//		    HRTB::syncPointHrtSlave,
+//		    HRTB::error,
+//		    HRTB::clockCorrectionFlopsync,
+//		    tempPendingVhtSync);
 	}
     }
 }
@@ -843,6 +869,16 @@ void HRTB::startResyncSoft(){
     softEnable=true;
 }
 
+void HRTB::stopResyncHard(){
+    stopResyncSoft();
+    vhtEnable=false;
+}
+
+void HRTB::startResyncHard(){
+    startResyncSoft();
+    vhtEnable=true;
+}
+
 void HRTB::initFlopsyncThread(){
     // Thread that is waken up by the timer2 to perform the clock correction
     HRTB::flopsyncThread=Thread::create(runCorrection,2048,1);
@@ -966,8 +1002,8 @@ long long HRTB::aux3=0;
 long long HRTB::aux4=0;
 long long HRTB::error=0;
 //NOTE: you have to change both value to make flopsync works
-long long HRTB::syncPeriodRtc=15008;
-long long HRTB::syncPeriodHrt=21984375;
+long long HRTB::syncPeriodRtc=3008;//7520; //15008; //3008
+long long HRTB::syncPeriodHrt=4406250;//11015625;//21984375;//4406250;
 long long HRTB::syncPointHrtMaster=0;
 long long HRTB::syncPointHrtSlave=0;
 long long HRTB::syncPointHrtTheoretical=0;
