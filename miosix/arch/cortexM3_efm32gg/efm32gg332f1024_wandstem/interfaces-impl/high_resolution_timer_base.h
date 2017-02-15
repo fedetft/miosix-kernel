@@ -84,6 +84,7 @@ class HRTB {
          * \return the current tick count of the timer
          */
         long long getCurrentTick();
+        long long getCurrentTickCorrected();
         /**
          * \return the current tick count of the timer.
          * Can only be called with interrupts disabled or within an IRQ
@@ -92,8 +93,11 @@ class HRTB {
         long long IRQgetCurrentTickCorrected();
         long long IRQgetCurrentTickVht();
 
+        /**
+         * Return the VHT timestamp, let's say the captured result after a pulse of RTC
+         * @return 
+         */
         long long getVhtTimestamp();
-        long long getOriginalTickVht(long long tick);
         
         void enableCC0Interrupt(bool enable);
         void enableCC1Interrupt(bool enable);
@@ -128,12 +132,6 @@ class HRTB {
         bool gpioAbsoluteWaitTrigger(long long tick);
         
         virtual ~HRTB();
-        static void initFlopsyncThread();
-        static void stopResyncSoft();
-        static void startResyncSoft();
-        static void stopResyncHard();
-        static void startResyncHard();
-        
 
         /**
         These 4 variables are used to manage the correction of the timers.

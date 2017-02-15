@@ -35,6 +35,7 @@
 #include "gpioirq.h"
 #include "flopsync_vht.h"
 #include "../../../../debugpin.h"
+#include "vht.h"
 
 using namespace miosix;
 
@@ -54,24 +55,12 @@ Thread *gpioWaiting=nullptr;
 Thread *transceiverWaiting=nullptr;
 
 Rtc *rtc=nullptr;
-bool softEnable=true;
-bool vhtEnable=true;
 
 bool isInputGPIO=true;
 bool isInputTransceiver=true;
 
 static int faseGPIO=0;
 static int faseTransceiver=0;
-
-//To keep a precise track of missing sync. 
-//It is incremented in the TMR2->CC2 routine and reset in the Thread 
-static int pendingVhtSync=0;
-//Multiplicative factor VHT
-double factor=1;
-static unsigned int factorI=1;
-static unsigned int factorD=0;
-static unsigned int inverseFactorI=1;
-static unsigned int inverseFactorD=0;
 
 //static volatile unsigned long long vhtBaseVht=0;	    ///< Vht time corresponding to rtc time: theoretical
 //static unsigned long long syncPointRtc=0;		    ///< Rtc time corresponding to vht time : known with sum
@@ -103,44 +92,30 @@ static inline long long IRQgetTickCorrected(){
     return IRQgetTick() + HRTB::clockCorrection;
 }
 
-long long HRTB::IRQgetCurrentTickVht(){
-    printf("Theor: %lld,Factor : %.7f",syncPointHrtTheoretical,factor);
-    HRTB::aux1=IRQgetTickCorrected();
-    
-    long long tick;
-    tick=HRTB::syncPointHrtTheoretical+mul64x32d32(HRTB::aux1-HRTB::syncPointHrtSlave,factorI,factorD);
-    return tick;
-}
-
-//Return the value with basic correction
-long long HRTB::getOriginalTickVht(long long tick){
-    return mul64x32d32((tick-HRTB::syncPointHrtTheoretical),inverseFactorI,inverseFactorD)+HRTB::syncPointHrtSlave;
-}
-
 void falseRead(volatile uint32_t *p){
     *p;
 }
 
 inline void interruptGPIOTimerRoutine(){
     if(TIMER1->CC[2].CTRL & TIMER_CC_CTRL_MODE_OUTPUTCOMPARE){
-	TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_CLEAR;
-	//10 tick are enough to execute this line
-	TIMER1->CC[2].CCV = static_cast<unsigned short>(TIMER1->CNT+10);
+        TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_CLEAR;
+        //10 tick are enough to execute this line
+        TIMER1->CC[2].CCV = static_cast<unsigned short>(TIMER1->CNT+10);
     }else if(TIMER1->CC[2].CTRL & TIMER_CC_CTRL_MODE_INPUTCAPTURE){
-	ms32chkp[2]=ms32time;
-	//really in the past, the overflow of TIMER3 is occurred but the timer wasn't updated
-	long long a=ms32chkp[2] | TIMER3->CC[2].CCV<<16 | TIMER1->CC[2].CCV;;
-	long long c=IRQgetTick();
-	if(a-c< -48000000){ 
-	    ms32chkp[2]+=overflowIncrement;
-	}
+        ms32chkp[2]=ms32time;
+        //really in the past, the overflow of TIMER3 is occurred but the timer wasn't updated
+        long long a=ms32chkp[2] | TIMER3->CC[2].CCV<<16 | TIMER1->CC[2].CCV;;
+        long long c=IRQgetTick();
+        if(a-c< -48000000){ 
+            ms32chkp[2]+=overflowIncrement;
+        }
     }
     //Reactivating the thread that is waiting for the event.
     if(gpioWaiting){
-	gpioWaiting->IRQwakeup();
-	if(gpioWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
-	    Scheduler::IRQfindNextThread();
-	gpioWaiting=nullptr;
+        gpioWaiting->IRQwakeup();
+        if(gpioWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+            Scheduler::IRQfindNextThread();
+        gpioWaiting=nullptr;
     }
 }
 
@@ -151,65 +126,6 @@ inline void interruptTransceiverTimerRoutine(){
 	if(transceiverWaiting->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority())
 	    Scheduler::IRQfindNextThread();
 	transceiverWaiting=nullptr;
-    }
-}
-
-void runCorrection(void*){
-    initDebugPins();
-    long long hrtT;
-    long long rtcT;
-    FlopsyncVHT f;
-    
-    int tempPendingVhtSync;				    ///< Number of sync acquired in a round
-    while(1){
-	Thread::wait();
-	{
-	    //Read in atomic context the 2 SHARED values to run flopsync
-	    FastInterruptDisableLock dLock;
-	    //rtcT=HRTB::nextSyncPointRtc-HRTB::syncPeriodRtc;
-	    hrtT=HRTB::syncPointHrtMaster;
-	    tempPendingVhtSync=pendingVhtSync;
-	    pendingVhtSync=0;
-	}
-	
-	HRTB::syncPointHrtSlave += (HRTB::syncPeriodHrt + HRTB::clockCorrectionFlopsync)*tempPendingVhtSync;
-	//Master è quello timestampato correttamente, il nostro punto di riferimento
-	HRTB::error = hrtT - (HRTB::syncPointHrtSlave);
-	int u=f.computeCorrection(HRTB::error);
-	
-    //Simple calculation of factor, very inefficient
-    factor=(double)HRTB::syncPeriodHrt/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync);
-    //efficient way to calculate the factor
-    long long temp=(HRTB::syncPeriodHrt<<32)/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)-4294967296;
-    factorI= temp>0 ? 1:0;
-    factorD= (unsigned int) temp;
-    //calculate inverse of previous factor
-    temp=((HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)<<32)/HRTB::syncPeriodHrt-4294967296;
-    inverseFactorI= temp>0 ? 1:0;
-    inverseFactorD=(unsigned int)temp;
-    
-	PauseKernelLock pkLock;
-	if(softEnable)
-	{
-	    // Single instruction that update the error variable, 
-	    // interrupt can occur, but not thread preemption
-	    HRTB::clockCorrectionFlopsync=u;
-	    //This printf shouldn't be in here because is very slow 
-	    printf( "HRT bare:%lld, RTC %lld, next:%lld, COMP1:%lu basicCorr:%lld\n\t"
-                "Theor:%lld, Master:%lld, Slave:%lld\n\t"
-                "Error:%lld, FSync corr:%lld, PendingSync:%d\n\n",
-		    IRQgetTick(),
-		    rtc->getValue(),
-            HRTB::nextSyncPointRtc,
-		    RTC->COMP1,
-		    HRTB::clockCorrection,
-            HRTB::syncPointHrtTheoretical,
-		    HRTB::syncPointHrtMaster,
-		    HRTB::syncPointHrtSlave,
-		    HRTB::error,
-		    HRTB::clockCorrectionFlopsync,
-		    tempPendingVhtSync);
-	}
     }
 }
 
@@ -371,9 +287,9 @@ void __attribute__((used)) cstirqhnd2(){
         RTC->IFC = RTC_IFC_COMP1;
         RTC->COMP1 = RTC->COMP1+HRTB::syncPeriodRtc;
 
-        pendingVhtSync++;
+        VHT::pendingVhtSync++;
 
-        if(softEnable){
+        if(VHT::softEnable){
             HRTB::flopsyncThread->IRQwakeup();
             if(HRTB::flopsyncThread->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority()){
                 Scheduler::IRQfindNextThread();
@@ -421,9 +337,9 @@ void __attribute__((used)) cstirqhnd1(){
             TIMER1->IFC = TIMER_IFC_CC2;
             //Reactivating the thread that is waiting for the event, WITHOUT changing the tWaiting
             if(gpioWaiting){
-            gpioWaiting->IRQwakeup();
-            if(gpioWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
-                Scheduler::IRQfindNextThread();
+                gpioWaiting->IRQwakeup();
+                if(gpioWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+                    Scheduler::IRQfindNextThread();
             }
         }
     }
@@ -858,30 +774,6 @@ void HRTB::initTransceiver(){
 HRTB& HRTB::instance(){
     static HRTB hrtb;
     return hrtb;
-}
-
-void HRTB::stopResyncSoft(){
-    softEnable=false;
-}
-
-void HRTB::startResyncSoft(){
-    softEnable=true;
-}
-
-void HRTB::stopResyncHard(){
-    stopResyncSoft();
-    vhtEnable=false;
-}
-
-void HRTB::startResyncHard(){
-    startResyncSoft();
-    vhtEnable=true;
-}
-
-void HRTB::initFlopsyncThread(){
-    // Thread that is waken up by the timer2 to perform the clock correction
-    HRTB::flopsyncThread=Thread::create(runCorrection,2048,1);
-    TIMER2->IEN |= TIMER_IEN_CC2;
 }
 
 HRTB::HRTB() {

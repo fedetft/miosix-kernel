@@ -174,7 +174,6 @@ void IRQbspInit()
 
 void bspInit2()
 {
-    HRTB::initFlopsyncThread();
 //     #ifdef WITH_FILESYSTEM
 //     basicFilesystemSetup();
 //     #endif //WITH_FILESYSTEM
