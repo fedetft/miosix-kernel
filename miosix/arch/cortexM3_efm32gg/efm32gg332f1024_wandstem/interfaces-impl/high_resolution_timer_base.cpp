@@ -179,7 +179,6 @@ void runCorrection(void*){
 	
     //Simple calculation of factor, very inefficient
     factor=(double)HRTB::syncPeriodHrt/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync);
-    //HighPin<debug1> hp;
     //efficient way to calculate the factor
     long long temp=(HRTB::syncPeriodHrt<<32)/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)-4294967296;
     factorI= temp>0 ? 1:0;
@@ -196,20 +195,20 @@ void runCorrection(void*){
 	    // interrupt can occur, but not thread preemption
 	    HRTB::clockCorrectionFlopsync=u;
 	    //This printf shouldn't be in here because is very slow 
-//	    printf( "HRT bare:%lld, RTC %lld, next:%lld, COMP1:%lu basicCorr:%lld\n\t"
-//                "Theor:%lld, Master:%lld, Slave:%lld\n\t"
-//                "Error:%lld, FSync corr:%lld, PendingSync:%d\n\n",
-//		    IRQgetTick(),
-//		    rtc->getValue(),
-//            HRTB::nextSyncPointRtc,
-//		    RTC->COMP1,
-//		    HRTB::clockCorrection,
-//            HRTB::syncPointHrtTheoretical,
-//		    HRTB::syncPointHrtMaster,
-//		    HRTB::syncPointHrtSlave,
-//		    HRTB::error,
-//		    HRTB::clockCorrectionFlopsync,
-//		    tempPendingVhtSync);
+	    printf( "HRT bare:%lld, RTC %lld, next:%lld, COMP1:%lu basicCorr:%lld\n\t"
+                "Theor:%lld, Master:%lld, Slave:%lld\n\t"
+                "Error:%lld, FSync corr:%lld, PendingSync:%d\n\n",
+		    IRQgetTick(),
+		    rtc->getValue(),
+            HRTB::nextSyncPointRtc,
+		    RTC->COMP1,
+		    HRTB::clockCorrection,
+            HRTB::syncPointHrtTheoretical,
+		    HRTB::syncPointHrtMaster,
+		    HRTB::syncPointHrtSlave,
+		    HRTB::error,
+		    HRTB::clockCorrectionFlopsync,
+		    tempPendingVhtSync);
 	}
     }
 }
@@ -296,90 +295,90 @@ void __attribute__((used)) cstirqhnd3(){
 void __attribute__((used)) cstirqhnd2(){
     //CC0 listening for received packet --> input mode
     if ((TIMER2->IEN & TIMER_IEN_CC0) && (TIMER2->IF & TIMER_IF_CC0) ){
-	TIMER2->IEN &= ~ TIMER_IEN_CC0;
-	TIMER2->IFC = TIMER_IFC_CC0;
-        //disable the timeout
-	TIMER2->IEN &= ~ TIMER_IEN_CC1;
-	TIMER2->IFC = TIMER_IFC_CC1;
-        
-	ms32chkp[0]=ms32time;
-	//really in the past, the overflow of TIMER3 is occurred but the timer wasn't updated
-	long long a=ms32chkp[0] | TIMER3->CC[0].CCV<<16 | TIMER2->CC[0].CCV;
-	long long c=IRQgetTick();
-	if(a-c< -48000000){ 
-	    ms32chkp[0]+=overflowIncrement;
-	}
-	interruptTransceiverTimerRoutine();
+        TIMER2->IEN &= ~ TIMER_IEN_CC0;
+        TIMER2->IFC = TIMER_IFC_CC0;
+            //disable the timeout
+        TIMER2->IEN &= ~ TIMER_IEN_CC1;
+        TIMER2->IFC = TIMER_IFC_CC1;
+
+        ms32chkp[0]=ms32time;
+        //really in the past, the overflow of TIMER3 is occurred but the timer wasn't updated
+        long long a=ms32chkp[0] | TIMER3->CC[0].CCV<<16 | TIMER2->CC[0].CCV;
+        long long c=IRQgetTick();
+        if(a-c< -48000000){ 
+            ms32chkp[0]+=overflowIncrement;
+        }
+        interruptTransceiverTimerRoutine();
     }
     
     //CC1 for output/trigger the sending packet event
     if ((TIMER2->IEN & TIMER_IEN_CC1) && (TIMER2->IF & TIMER_IF_CC1) ){
-	TIMER2->IFC = TIMER_IFC_CC1;
+        TIMER2->IFC = TIMER_IFC_CC1;
 	
         //if PEN, it means that we want to trigger, otherwise we are in timeout for input/capture
-	if(TIMER2->ROUTE & TIMER_ROUTE_CC1PEN){
-	    if(faseTransceiver==0){
-		//get nextInterrupt
-		long long t=ms32chkp[0]|TIMER2->CC[1].CCV;
-		long long diff=t-IRQgetTick();
-		if(diff<=0xFFFF){
-		    TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
-		    faseTransceiver=1;
-		}
-	    }else{
-		TIMER2->IEN &= ~TIMER_IEN_CC1;
-		TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_CLEAR;
-		TIMER2->CC[1].CCV = static_cast<unsigned short>(TIMER2->CNT+10);
-		interruptTransceiverTimerRoutine();
-	    }
-	}else{//We are in the INPUT mode, this case is to check the timeout
-	    long long t=ms32chkp[0]|TIMER2->CC[1].CCV;
-	    long long diff=t-IRQgetTick();
-	    if(diff<0){
-		TIMER2->IEN &= ~TIMER_IEN_CC1;
-                //Disable the input capture interrupt
-		TIMER2->IEN &= ~TIMER_IEN_CC0;
-		TIMER2->IFC = TIMER_IFC_CC0;
-		//Reactivating the thread that is waiting for the event, WITHOUT changing the tWaiting
-		if(transceiverWaiting){
-		    transceiverWaiting->IRQwakeup();
-		    if(transceiverWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
-			Scheduler::IRQfindNextThread();
-		}
-	    }
-	}
+        if(TIMER2->ROUTE & TIMER_ROUTE_CC1PEN){
+            if(faseTransceiver==0){
+                //get nextInterrupt
+                long long t=ms32chkp[0]|TIMER2->CC[1].CCV;
+                long long diff=t-IRQgetTick();
+                if(diff<=0xFFFF){
+                    TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
+                    faseTransceiver=1;
+                }
+            }else{
+                TIMER2->IEN &= ~TIMER_IEN_CC1;
+                TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_CLEAR;
+                TIMER2->CC[1].CCV = static_cast<unsigned short>(TIMER2->CNT+10);
+                interruptTransceiverTimerRoutine();
+            }
+        }else{//We are in the INPUT mode, this case is to check the timeout
+            long long t=ms32chkp[0]|TIMER2->CC[1].CCV;
+            long long diff=t-IRQgetTick();
+            if(diff<0){
+                TIMER2->IEN &= ~TIMER_IEN_CC1;
+                        //Disable the input capture interrupt
+                TIMER2->IEN &= ~TIMER_IEN_CC0;
+                TIMER2->IFC = TIMER_IFC_CC0;
+                //Reactivating the thread that is waiting for the event, WITHOUT changing the tWaiting
+                if(transceiverWaiting){
+                    transceiverWaiting->IRQwakeup();
+                    if(transceiverWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+                    Scheduler::IRQfindNextThread();
+                }
+            }
+        }
     }
     
     if ((TIMER2->IEN & TIMER_IEN_CC2) && (TIMER2->IF & TIMER_IF_CC2) ){	
-	TIMER2->IFC = TIMER_IFC_CC2;
-	greenLed::toggle();
-	//Reading the timestamp of the low freq clock
-	uint32_t low=TIMER2->CC[2].CCV;
-	uint32_t high=TIMER3->CNT;
+        TIMER2->IFC = TIMER_IFC_CC2;
+        greenLed::toggle();
+        //Reading the timestamp of the low freq clock
+        uint32_t low=TIMER2->CC[2].CCV;
+        uint32_t high=TIMER3->CNT;
         HRTB::syncPointHrtMaster = ms32time | high << 16 | low;
-	//Assuming that this routine is executed within 1.3ms after the interrupt
-	if(HRTB::syncPointHrtMaster > IRQgetTick()){
-	    HRTB::syncPointHrtMaster = ms32time | ((high-1) << 16) | low;
-	}
-	//Adding the basic correction
-	HRTB::syncPointHrtMaster += HRTB::clockCorrection;
+        //Assuming that this routine is executed within 1.3ms after the interrupt
+        if(HRTB::syncPointHrtMaster > IRQgetTick()){
+            HRTB::syncPointHrtMaster = ms32time | ((high-1) << 16) | low;
+        }
+        //Adding the basic correction
+        HRTB::syncPointHrtMaster += HRTB::clockCorrection;
 
-	//Reading and setting the next rtc trigger
-	HRTB::nextSyncPointRtc += HRTB::syncPeriodRtc;
-    HRTB::syncPointHrtTheoretical += HRTB::syncPeriodHrt;
-    
-    //Clean the output channel of RTC
-	RTC->IFC = RTC_IFC_COMP1;
-	RTC->COMP1 = RTC->COMP1+HRTB::syncPeriodRtc;
-	
-	pendingVhtSync++;
-	
-	if(softEnable){
-	    HRTB::flopsyncThread->IRQwakeup();
-	    if(HRTB::flopsyncThread->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority()){
-		Scheduler::IRQfindNextThread();
-	    }
-	}
+        //Reading and setting the next rtc trigger
+        HRTB::nextSyncPointRtc += HRTB::syncPeriodRtc;
+        HRTB::syncPointHrtTheoretical += HRTB::syncPeriodHrt;
+
+        //Clean the output channel of RTC
+        RTC->IFC = RTC_IFC_COMP1;
+        RTC->COMP1 = RTC->COMP1+HRTB::syncPeriodRtc;
+
+        pendingVhtSync++;
+
+        if(softEnable){
+            HRTB::flopsyncThread->IRQwakeup();
+            if(HRTB::flopsyncThread->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority()){
+                Scheduler::IRQfindNextThread();
+            }
+        }
     }
 }
 
@@ -390,43 +389,43 @@ void __attribute__((used)) cstirqhnd2(){
 void __attribute__((used)) cstirqhnd1(){
     if ((TIMER1->IEN & TIMER_IEN_CC1) && (TIMER1->IF & TIMER_IF_CC1)){
         TIMER1->IFC = TIMER_IFC_CC1;
-	callScheduler();
+        callScheduler();
     }
     
     //This if is used to manage the case of GPIOTimer, both INPUT and OUTPUT mode, in INPUT it goes directly in the "else branch"
     if ((TIMER1->IEN & TIMER_IEN_CC2) && (TIMER1->IF & TIMER_IF_CC2)){
         TIMER1->IFC = TIMER_IFC_CC2;
-	if(faseGPIO==0){
-	    //get nextInterrupt
-	    long long t=ms32chkp[2]|TIMER1->CC[2].CCV;
-	    long long diff=t-IRQgetTick();
-	    if(diff<=0xFFFF){
-		TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
-		faseGPIO=1;
-	    }
-	}else{
-	    TIMER1->IEN &= ~TIMER_IEN_CC2;
-	    TIMER1->IEN &= ~TIMER_IEN_CC0;
-	    TIMER1->IFC = TIMER_IFC_CC0;
-	    interruptGPIOTimerRoutine();
-	}
+        if(faseGPIO==0){
+            //get nextInterrupt
+            long long t=ms32chkp[2]|TIMER1->CC[2].CCV;
+            long long diff=t-IRQgetTick();
+            if(diff<=0xFFFF){
+            TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
+            faseGPIO=1;
+            }
+        }else{
+            TIMER1->IEN &= ~TIMER_IEN_CC2;
+            TIMER1->IEN &= ~TIMER_IEN_CC0;
+            TIMER1->IFC = TIMER_IFC_CC0;
+            interruptGPIOTimerRoutine();
+        }
     }
     
     if ((TIMER1->IEN & TIMER_IEN_CC0) && (TIMER1->IF & TIMER_IF_CC0)){
-	TIMER1->IFC = TIMER_IFC_CC0;
-	long long t=ms32chkp[2]|TIMER1->CC[0].CCV;
-	long long diff=t-IRQgetTick();
-	if(diff<0){
-	    TIMER1->IEN &= ~TIMER_IEN_CC0;
-	    TIMER1->IEN &= ~TIMER_IEN_CC2;
-	    TIMER1->IFC = TIMER_IFC_CC2;
-	    //Reactivating the thread that is waiting for the event, WITHOUT changing the tWaiting
-	    if(gpioWaiting){
-		gpioWaiting->IRQwakeup();
-		if(gpioWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
-		    Scheduler::IRQfindNextThread();
-	    }
-	}
+        TIMER1->IFC = TIMER_IFC_CC0;
+        long long t=ms32chkp[2]|TIMER1->CC[0].CCV;
+        long long diff=t-IRQgetTick();
+        if(diff<0){
+            TIMER1->IEN &= ~TIMER_IEN_CC0;
+            TIMER1->IEN &= ~TIMER_IEN_CC2;
+            TIMER1->IFC = TIMER_IFC_CC2;
+            //Reactivating the thread that is waiting for the event, WITHOUT changing the tWaiting
+            if(gpioWaiting){
+            gpioWaiting->IRQwakeup();
+            if(gpioWaiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+                Scheduler::IRQfindNextThread();
+            }
+        }
     }
 }
 
@@ -436,8 +435,8 @@ long long HRTB::getVhtTimestamp(){
     
     long long now=IRQgetCurrentTick();
     if(timestamp > (now & 0x00000000FFFFFFFF)){
-	//greenLed::high();
-	timestamp-=65536;
+        //greenLed::high();
+        timestamp-=65536;
     }
     ///////////////////
     
@@ -465,12 +464,12 @@ long long HRTB::IRQgetCurrentTick(){
 
 inline Thread* HRTB::IRQgpioWait(long long tick,FastInterruptDisableLock *dLock){
     do{
-	gpioWaiting=Thread::IRQgetCurrentThread();
-	Thread::IRQwait();
-	{
-	    FastInterruptEnableLock eLock(*dLock);
-	    Thread::yield();
-	}
+        gpioWaiting=Thread::IRQgetCurrentThread();
+        Thread::IRQwait();
+        {
+            FastInterruptEnableLock eLock(*dLock);
+            Thread::yield();
+        }
     }while(gpioWaiting && tick>IRQgetTick());
     return gpioWaiting;
 }
@@ -481,9 +480,9 @@ Thread* HRTB::IRQtransceiverWait(long long tick,FastInterruptDisableLock *dLock)
         Thread::IRQwait();
         {
             FastInterruptEnableLock eLock(*dLock);
-	    	    redLed::low();
+	    	redLed::low();
 
-	    Thread::yield();
+            Thread::yield();
         }
     } while(transceiverWaiting && tick>IRQgetTick());
     return transceiverWaiting;
@@ -511,7 +510,7 @@ inline void HRTB::enableCC2Interrupt(bool enable){
 
 inline void HRTB::enableCC0InterruptTim1(bool enable){
     if(enable){
-	TIMER1->IFC= TIMER_IF_CC0;
+        TIMER1->IFC= TIMER_IF_CC0;
         TIMER1->IEN|=TIMER_IEN_CC0;
     }else
         TIMER1->IEN&=~TIMER_IEN_CC0;
@@ -519,7 +518,7 @@ inline void HRTB::enableCC0InterruptTim1(bool enable){
 
 inline void HRTB::enableCC2InterruptTim1(bool enable){
     if(enable){
-	TIMER1->IFC= TIMER_IF_CC2;
+        TIMER1->IFC= TIMER_IF_CC2;
         TIMER1->IEN|=TIMER_IEN_CC2;
     }else
         TIMER1->IEN&=~TIMER_IEN_CC2;
@@ -535,7 +534,7 @@ inline void HRTB::enableCC0InterruptTim2(bool enable){
 
 inline void HRTB::enableCC1InterruptTim2(bool enable){
     if(enable){
-	TIMER2->IFC= TIMER_IF_CC1;
+        TIMER2->IFC= TIMER_IF_CC1;
         TIMER2->IEN|=TIMER_IEN_CC1;
     }else
         TIMER2->IEN&=~TIMER_IEN_CC1;
@@ -560,22 +559,22 @@ inline WaitResult HRTB::IRQsetNextTransceiverInterrupt(long long tick){
     // 150 are enough to make sure that this routine ends and the timer IEN is enabled. 
     //NOTE: this is really dependent on compiler, optimization and other stuff
     if(diff>200){
-	faseTransceiver=0;
-	unsigned short t1=static_cast<unsigned short>(tick & 0xFFFF);
-	//ms32chkp[0] is going to store even the middle part, because we don't need to use TIMER3
-	ms32chkp[0] = tick & (upperMask | 0xFFFF0000);
-	TIMER2->CC[1].CCV = t1;
+        faseTransceiver=0;
+        unsigned short t1=static_cast<unsigned short>(tick & 0xFFFF);
+        //ms32chkp[0] is going to store even the middle part, because we don't need to use TIMER3
+        ms32chkp[0] = tick & (upperMask | 0xFFFF0000);
+        TIMER2->CC[1].CCV = t1;
 
-	enableCC1InterruptTim2(true);
-	diff=tick-IRQgetTick();
-	//0xFFFF because it's the roundtrip of timer
-	if(diff<=0xFFFF){
-	    TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
-	    faseTransceiver=1; //if phase=1, this means that we have to shutdown the pin next time that TIMER1 triggers
-	}
-	return WaitResult::WAITING;
+        enableCC1InterruptTim2(true);
+        diff=tick-IRQgetTick();
+        //0xFFFF because it's the roundtrip of timer
+        if(diff<=0xFFFF){
+            TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
+            faseTransceiver=1; //if phase=1, this means that we have to shutdown the pin next time that TIMER1 triggers
+        }
+        return WaitResult::WAITING;
     }else{
-	return WaitResult::WAKEUP_IN_THE_PAST;
+        return WaitResult::WAKEUP_IN_THE_PAST;
     }
 } 
 
@@ -587,14 +586,14 @@ void HRTB::IRQsetNextInterruptCS(long long tick){
 
     long long curTick = IRQgetTick();
     if(curTick >= tick){
-	// The interrupt is in the past => call timerInt immediately
-	callScheduler(); //TODO: It could cause multiple invocations of sched.
+        // The interrupt is in the past => call timerInt immediately
+        callScheduler(); //TODO: It could cause multiple invocations of sched.
     }else{
-	// Apply the new interrupt on to the timer channels
-	TIMER1->CC[1].CCV = static_cast<unsigned int>(tick & 0xFFFF);
-	TIMER3->CC[1].CCV = static_cast<unsigned int>((tick & 0xFFFF0000)>>16)-1;
-	ms32chkp[1] = tick & upperMask;
-	setupTimers();
+        // Apply the new interrupt on to the timer channels
+        TIMER1->CC[1].CCV = static_cast<unsigned int>(tick & 0xFFFF);
+        TIMER3->CC[1].CCV = static_cast<unsigned int>((tick & 0xFFFF0000)>>16)-1;
+        ms32chkp[1] = tick & upperMask;
+        setupTimers();
     }
 }
 
@@ -610,22 +609,22 @@ inline WaitResult HRTB::IRQsetNextGPIOInterrupt(long long tick){
     // 150 are enough to make sure that this routine ends and the timer IEN is enabled. 
     //NOTE: this is really dependent on compiler, optimization and other stuff
     if(diff>200){
-	faseGPIO=0;
-	unsigned short t1=static_cast<unsigned short>(tick & 0xFFFF);
-	//ms32chkp[2] is going to store even the middle part, because we don't need to use TIMER3
-	ms32chkp[2] = tick & (upperMask | 0xFFFF0000);
-	TIMER1->CC[2].CCV = t1;
+        faseGPIO=0;
+        unsigned short t1=static_cast<unsigned short>(tick & 0xFFFF);
+        //ms32chkp[2] is going to store even the middle part, because we don't need to use TIMER3
+        ms32chkp[2] = tick & (upperMask | 0xFFFF0000);
+        TIMER1->CC[2].CCV = t1;
 
-	enableCC2InterruptTim1(true);
-	diff=tick-IRQgetTick();
-	//0xFFFF because it's the roundtrip of timer
-	if(diff<=0xFFFF){
-	    TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
-	    faseGPIO=1; //if phase=1, this means that we have to shutdown the pin next time that TIMER1 triggers
-	}
-	return WaitResult::WAITING;
+        enableCC2InterruptTim1(true);
+        diff=tick-IRQgetTick();
+        //0xFFFF because it's the roundtrip of timer
+        if(diff<=0xFFFF){
+            TIMER1->CC[2].CTRL = (TIMER1->CC[2].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
+            faseGPIO=1; //if phase=1, this means that we have to shutdown the pin next time that TIMER1 triggers
+        }
+        return WaitResult::WAITING;
     }else{
-	return WaitResult::WAKEUP_IN_THE_PAST;
+        return WaitResult::WAKEUP_IN_THE_PAST;
     }
 }
 
@@ -637,24 +636,24 @@ inline void HRTB::setModeGPIOTimer(bool input){
     TIMER1->ROUTE=TIMER_ROUTE_CC2PEN
 	    | TIMER_ROUTE_LOCATION_LOC1;
     if(input){
-	//Configuro la modalità input
-	//The consumer are both timers
-	TIMER1->CC[2].CTRL = TIMER_CC_CTRL_PRSSEL_PRSCH0
-			|   TIMER_CC_CTRL_INSEL_PRS
-			|   TIMER_CC_CTRL_ICEDGE_RISING  //NOTE: when does the output get low?
-			|   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
-	TIMER3->CC[2].CTRL= TIMER_CC_CTRL_PRSSEL_PRSCH0
-			|   TIMER_CC_CTRL_INSEL_PRS
-			|   TIMER_CC_CTRL_ICEDGE_RISING  //NOTE: when does the output get low?
-			|   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
-	
-	// The producer is the PGIO12
-	PRS->CH[0].CTRL = PRS_CH_CTRL_SOURCESEL_GPIOH
-			|   PRS_CH_CTRL_SIGSEL_GPIOPIN12;
-	//Configured for timeout
-	TIMER1->CC[0].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
-	//fase GPIO is required in OUTPUT Mode, here we have to set to 1
-	faseGPIO=1;
+        //Configuro la modalità input
+        //The consumer are both timers
+        TIMER1->CC[2].CTRL = TIMER_CC_CTRL_PRSSEL_PRSCH0
+                |   TIMER_CC_CTRL_INSEL_PRS
+                |   TIMER_CC_CTRL_ICEDGE_RISING  //NOTE: when does the output get low?
+                |   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
+        TIMER3->CC[2].CTRL= TIMER_CC_CTRL_PRSSEL_PRSCH0
+                |   TIMER_CC_CTRL_INSEL_PRS
+                |   TIMER_CC_CTRL_ICEDGE_RISING  //NOTE: when does the output get low?
+                |   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
+
+        // The producer is the PGIO12
+        PRS->CH[0].CTRL = PRS_CH_CTRL_SOURCESEL_GPIOH
+                |   PRS_CH_CTRL_SIGSEL_GPIOPIN12;
+        //Configured for timeout
+        TIMER1->CC[0].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
+        //fase GPIO is required in OUTPUT Mode, here we have to set to 1
+        faseGPIO=1;
     }else{
         TIMER1->CC[2].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
         TIMER3->CC[2].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE; 
@@ -664,32 +663,32 @@ inline void HRTB::setModeGPIOTimer(bool input){
 inline void HRTB::setModeTransceiverTimer(bool input){
     if(input){	
         //For input capture feature:
-	//Connect TIMER2->CC0 to pin PA8 aka excChB
-//	TIMER2->ROUTE |= TIMER_ROUTE_CC0PEN
-//		| TIMER_ROUTE_LOCATION_LOC0;	
-	
-	//Config PRS: Timer3 has to be a consumer, Timer2 a producer, TIMER3 keeps the most significative part
-	//TIMER2->CC0 as producer, i have to specify the event i'm interest in    
-	PRS->CH[1].CTRL|= PRS_CH_CTRL_SOURCESEL_GPIOH
-			|   PRS_CH_CTRL_SIGSEL_GPIOPIN8;
+        //Connect TIMER2->CC0 to pin PA8 aka excChB
+        //	TIMER2->ROUTE |= TIMER_ROUTE_CC0PEN
+        //		| TIMER_ROUTE_LOCATION_LOC0;	
 
-	//TIMER3->CC2 as consumer
-	TIMER3->CC[0].CTRL=TIMER_CC_CTRL_PRSSEL_PRSCH1
-			|   TIMER_CC_CTRL_INSEL_PRS
-			|   TIMER_CC_CTRL_ICEDGE_RISING
-			|   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
-	TIMER2->CC[0].CTRL=TIMER_CC_CTRL_PRSSEL_PRSCH1
-			|   TIMER_CC_CTRL_INSEL_PRS
-			|   TIMER_CC_CTRL_ICEDGE_RISING
-			|   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
-        
+        //Config PRS: Timer3 has to be a consumer, Timer2 a producer, TIMER3 keeps the most significative part
+        //TIMER2->CC0 as producer, i have to specify the event i'm interest in    
+        PRS->CH[1].CTRL|= PRS_CH_CTRL_SOURCESEL_GPIOH
+                |   PRS_CH_CTRL_SIGSEL_GPIOPIN8;
+
+        //TIMER3->CC2 as consumer
+        TIMER3->CC[0].CTRL=TIMER_CC_CTRL_PRSSEL_PRSCH1
+                |   TIMER_CC_CTRL_INSEL_PRS
+                |   TIMER_CC_CTRL_ICEDGE_RISING
+                |   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
+        TIMER2->CC[0].CTRL=TIMER_CC_CTRL_PRSSEL_PRSCH1
+                |   TIMER_CC_CTRL_INSEL_PRS
+                |   TIMER_CC_CTRL_ICEDGE_RISING
+                |   TIMER_CC_CTRL_MODE_INPUTCAPTURE;
+
         TIMER2->CC[1].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
         TIMER2->ROUTE &= ~TIMER_ROUTE_CC1PEN; //used as timeout the incoming event
     }else{
-	//For output capture feature:
-	//Connect TIMER2->CC1 to pin PA9 aka stxon
+        //For output capture feature:
+        //Connect TIMER2->CC1 to pin PA9 aka stxon
         TIMER2->ROUTE |= TIMER_ROUTE_CC1PEN; //used to trigger at a give time on the stxon
-	TIMER2->CC[1].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
+        TIMER2->CC[1].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
     }
 }
 
@@ -715,15 +714,15 @@ inline WaitResult HRTB::IRQsetGPIOtimeout(long long tick){
     // 150 are enough to make sure that this routine ends and the timer IEN is enabled. 
     //NOTE: this is really dependent on compiler, optimization and other stuff
     if(diff>200){
-	unsigned short t1=static_cast<unsigned short>(tick & 0xFFFF);
-	//ms32chkp[2] is going to store even the middle part, because we don't need to use TIMER3
-	ms32chkp[2] = tick & (upperMask | 0xFFFF0000);
-	TIMER1->CC[0].CCV = t1;
+        unsigned short t1=static_cast<unsigned short>(tick & 0xFFFF);
+        //ms32chkp[2] is going to store even the middle part, because we don't need to use TIMER3
+        ms32chkp[2] = tick & (upperMask | 0xFFFF0000);
+        TIMER1->CC[0].CCV = t1;
 
-	enableCC0InterruptTim1(true);
-	return WaitResult::WAITING;
+        enableCC0InterruptTim1(true);
+        return WaitResult::WAITING;
     }else{
-	return WaitResult::WAKEUP_IN_THE_PAST;
+        return WaitResult::WAKEUP_IN_THE_PAST;
     }
 }
 
@@ -735,32 +734,32 @@ inline WaitResult HRTB::IRQsetTransceiverTimeout(long long tick){
     // 150 are enough to make sure that this routine ends and the timer IEN is enabled. 
     //NOTE: this is really dependent on compiler, optimization and other stuff
     if(diff>200){
-	unsigned short t1=static_cast<unsigned short>(tick & 0xFFFF);
-	//ms32chkp[0] is going to store even the middle part, because we don't need to use TIMER3
-	ms32chkp[0] = tick & (upperMask | 0xFFFF0000);
-	TIMER2->CC[1].CCV = t1;
+        unsigned short t1=static_cast<unsigned short>(tick & 0xFFFF);
+        //ms32chkp[0] is going to store even the middle part, because we don't need to use TIMER3
+        ms32chkp[0] = tick & (upperMask | 0xFFFF0000);
+        TIMER2->CC[1].CCV = t1;
 
-	enableCC1InterruptTim2(true);
-	return WaitResult::WAITING;
+        enableCC1InterruptTim2(true);
+        return WaitResult::WAITING;
     }else{
-	return WaitResult::WAKEUP_IN_THE_PAST;
+        return WaitResult::WAKEUP_IN_THE_PAST;
     }
 }
 
 bool HRTB::gpioAbsoluteWaitTrigger(long long tick){
     {
-	FastInterruptDisableLock dLock;
-	if(isInputGPIO){
-	    setModeGPIOTimer(false);			//output timer 
-	    expansion::gpio10::mode(Mode::OUTPUT);	//output pin
-	    expansion::gpio10::low();
-	    isInputGPIO=false;
-	}
-	if(IRQsetNextGPIOInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
-	    return true;
-	}
-	
-	IRQgpioWait(tick,&dLock);
+        FastInterruptDisableLock dLock;
+        if(isInputGPIO){
+            setModeGPIOTimer(false);			//output timer 
+            expansion::gpio10::mode(Mode::OUTPUT);	//output pin
+            expansion::gpio10::low();
+            isInputGPIO=false;
+        }
+        if(IRQsetNextGPIOInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
+            return true;
+        }
+
+        IRQgpioWait(tick,&dLock);
     }
     return false;
 }
@@ -771,32 +770,32 @@ bool HRTB::gpioAbsoluteWaitTimeoutOrEvent(long long tick){
     
     //Important optimization that allows us to save 1.5us
     if(!isInputGPIO){
-	setModeGPIOTimer(true);
-	expansion::gpio10::mode(Mode::INPUT);
-	isInputGPIO=true;
+        setModeGPIOTimer(true);
+        expansion::gpio10::mode(Mode::INPUT);
+        isInputGPIO=true;
     }
     cleanBufferGPIO();
     enableCC2Interrupt(false);
     enableCC2InterruptTim1(true);
       
     if(expansion::gpio10::value()){
-	enableCC2InterruptTim1(false);
-	enableCC0InterruptTim1(false);
-	return false;
+        enableCC2InterruptTim1(false);
+        enableCC0InterruptTim1(false);
+        return false;
     }
     if(r==WaitResult::WAKEUP_IN_THE_PAST){
-	enableCC2InterruptTim1(false);
-	enableCC0InterruptTim1(false);
-	return true;
+        enableCC2InterruptTim1(false);
+        enableCC0InterruptTim1(false);
+        return true;
     }
     
     
     Thread* tWaiting=IRQgpioWait(tick,&dLock);
     
     if(tWaiting==nullptr){
-	return false;
+        return false;
     }else{
-	return true;
+        return true;
     }
 }
 
@@ -812,7 +811,7 @@ bool HRTB::transceiverAbsoluteWaitTrigger(long long tick){
     
     setModeTransceiverTimer(false);
     if(IRQsetNextTransceiverInterrupt(tick)==WaitResult::WAKEUP_IN_THE_PAST){
-	return true;
+        return true;
     }
     
     IRQtransceiverWait(tick,&dLock);
@@ -829,15 +828,15 @@ bool HRTB::transceiverAbsoluteWaitTimeoutOrEvent(long long tick){
     enableCC0InterruptTim2(true);
     
     if(transceiver::excChB::value()){
-	enableCC0InterruptTim2(false);
-	enableCC1InterruptTim2(false);
-	//TIMER1->CC[0].CTRL=0;
-	return false;
+        enableCC0InterruptTim2(false);
+        enableCC1InterruptTim2(false);
+        //TIMER1->CC[0].CTRL=0;
+        return false;
     }
     if(r==WaitResult::WAKEUP_IN_THE_PAST){
-	enableCC0InterruptTim2(false);
-	enableCC1InterruptTim2(false);
-	//TIMER1->CC[0].CTRL=0;
+        enableCC0InterruptTim2(false);
+        enableCC1InterruptTim2(false);
+        //TIMER1->CC[0].CTRL=0;
         return true;
     }
     
@@ -845,9 +844,9 @@ bool HRTB::transceiverAbsoluteWaitTimeoutOrEvent(long long tick){
     Thread* tWaiting=IRQtransceiverWait(tick,&dLock);
     
     if(tWaiting==nullptr){
-	return false;
+        return false;
     }else{
-	return true;
+        return true;
     }
 }
 
@@ -1002,8 +1001,8 @@ long long HRTB::aux3=0;
 long long HRTB::aux4=0;
 long long HRTB::error=0;
 //NOTE: you have to change both value to make flopsync works
-long long HRTB::syncPeriodRtc=3008;//7520; //15008; //3008
-long long HRTB::syncPeriodHrt=4406250;//11015625;//21984375;//4406250;
+long long HRTB::syncPeriodRtc=15008;//7520; //15008; //3008
+long long HRTB::syncPeriodHrt=21984375;//11015625;//21984375;//4406250;
 long long HRTB::syncPointHrtMaster=0;
 long long HRTB::syncPointHrtSlave=0;
 long long HRTB::syncPointHrtTheoretical=0;
