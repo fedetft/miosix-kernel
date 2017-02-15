@@ -37,16 +37,7 @@ void runCorrection(void*){
         HRTB::error = hrtT - (HRTB::syncPointHrtSlave);
         int u=f.computeCorrection(HRTB::error);
 
-        //Simple calculation of factor, very inefficient
-        factor = (double)HRTB::syncPeriodHrt/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync);
-        //efficient way to calculate the factor
-        long long temp=(HRTB::syncPeriodHrt<<32)/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)-4294967296;
-        factorI = temp>0 ? 1:0;
-        factorD = (unsigned int) temp;
-        //calculate inverse of previous factor
-        temp = ((HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)<<32)/HRTB::syncPeriodHrt-4294967296;
-        inverseFactorI = temp>0 ? 1:0;
-        inverseFactorD = (unsigned int)temp;
+        
 
         PauseKernelLock pkLock;
         if(VHT::softEnable)
@@ -54,6 +45,19 @@ void runCorrection(void*){
             // Single instruction that update the error variable, 
             // interrupt can occur, but not thread preemption
             HRTB::clockCorrectionFlopsync=u;
+
+            //Simple calculation of factor, very inefficient
+            factor = (double)HRTB::syncPeriodHrt/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync);
+            //efficient way to calculate the factor T/(T+u(k))
+            long long temp=(HRTB::syncPeriodHrt<<32)/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)-4294967296;
+            factorI = temp>0 ? 1:0;
+            factorD = (unsigned int) temp;
+            //calculate inverse of previous factor (T+u(k))/T
+            temp = ((HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)<<32)/HRTB::syncPeriodHrt-4294967296;
+            inverseFactorI = temp>0 ? 1:0;
+            inverseFactorD = (unsigned int)temp;
+            
+            
             //This printf shouldn't be in here because is very slow 
             printf( "HRT bare:%lld, RTC %lld, next:%lld, COMP1:%lu basicCorr:%lld\n\t"
                     "Theor:%lld, Master:%lld, Slave:%lld\n\t"

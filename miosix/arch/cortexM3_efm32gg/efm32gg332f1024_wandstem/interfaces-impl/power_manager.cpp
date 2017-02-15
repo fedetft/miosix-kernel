@@ -167,7 +167,7 @@ void PowerManager::deepSleepUntil(long long int when)
     
     long long timestamp=b.getVhtTimestamp();
     HRTB::clockCorrection=mul64x32d32(syncAt, 1464, 3623878656)-timestamp;
-    HRTB::syncPointHrtSlave=mul64x32d32(syncAt, 1464, 3623878656)+HRTB::clockCorrectionFlopsync;
+    HRTB::syncPointHrtSlave=mul64x32d32(syncAt, 1464, 3623878656);
     
     HRTB::nextSyncPointRtc=syncAt+HRTB::syncPeriodRtc;
     HRTB::syncPointHrtTheoretical=mul64x32d32(HRTB::nextSyncPointRtc-HRTB::syncPeriodRtc,1464, 3623878656);
