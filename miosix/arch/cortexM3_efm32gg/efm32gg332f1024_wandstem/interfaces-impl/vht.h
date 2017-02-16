@@ -54,6 +54,10 @@ public:
     
 private:
     VHT();
+    
+    static void doRun(void *arg);
+    
+    void loop();
 };
 
 }

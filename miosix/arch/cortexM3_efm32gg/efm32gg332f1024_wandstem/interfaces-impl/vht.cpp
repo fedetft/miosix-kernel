@@ -14,7 +14,47 @@ static unsigned int factorD=0;
 static unsigned int inverseFactorI=1;
 static unsigned int inverseFactorD=0;
 
-void runCorrection(void*){
+long long VHT::getTick(){
+    //printf("Theor: %lld,Factor : %.7f",HRTB::syncPointHrtTheoretical,factor);
+    HRTB::aux1=hrtb->IRQgetCurrentTick()+HRTB::clockCorrection;
+    
+    long long tick;
+    tick=HRTB::syncPointHrtTheoretical+mul64x32d32(HRTB::aux1-HRTB::syncPointHrtSlave,factorI,factorD);
+    return tick;
+}
+
+long long VHT::getOriginalTick(long long tick){
+    return mul64x32d32((tick-HRTB::syncPointHrtTheoretical),inverseFactorI,inverseFactorD)+HRTB::syncPointHrtSlave;
+}
+
+void VHT::stopResyncSoft(){
+    softEnable=false;
+}
+
+void VHT::startResyncSoft(){
+    softEnable=true;
+}
+
+VHT& VHT::instance(){
+    static VHT vht;
+    return vht;
+}
+
+VHT::VHT() {
+    hrtb=&HRTB::instance();
+    rtc=&Rtc::instance();
+    
+    // Thread that is waken up by the timer2 to perform the clock correction
+    HRTB::flopsyncThread=Thread::create(&VHT::doRun,2048,1,this);
+    TIMER2->IEN |= TIMER_IEN_CC2;
+}
+
+void VHT::doRun(void* arg)
+{
+    reinterpret_cast<VHT*>(arg)->loop();
+}
+
+void VHT::loop() {
     initDebugPins();
     long long hrtT;
     long long rtcT;
@@ -57,59 +97,24 @@ void runCorrection(void*){
             inverseFactorI = temp>0 ? 1:0;
             inverseFactorD = (unsigned int)temp;
             
-            
+            printf("%lld\n",HRTB::clockCorrectionFlopsync);
             //This printf shouldn't be in here because is very slow 
-            printf( "HRT bare:%lld, RTC %lld, next:%lld, COMP1:%lu basicCorr:%lld\n\t"
-                    "Theor:%lld, Master:%lld, Slave:%lld\n\t"
-                    "Error:%lld, FSync corr:%lld, PendingSync:%d\n\n",
-                hrtb->IRQgetCurrentTick(),
-                rtc->getValue(),
-                HRTB::nextSyncPointRtc,
-                RTC->COMP1,
-                HRTB::clockCorrection,
-                HRTB::syncPointHrtTheoretical,
-                HRTB::syncPointHrtMaster,
-                HRTB::syncPointHrtSlave,
-                HRTB::error,
-                HRTB::clockCorrectionFlopsync,
-                tempPendingVhtSync);
+//            printf( "HRT bare:%lld, RTC %lld, next:%lld, COMP1:%lu basicCorr:%lld\n\t"
+//                    "Theor:%lld, Master:%lld, Slave:%lld\n\t"
+//                    "Error:%lld, FSync corr:%lld, PendingSync:%d\n\n",
+//                hrtb->IRQgetCurrentTick(),
+//                rtc->getValue(),
+//                HRTB::nextSyncPointRtc,
+//                RTC->COMP1,
+//                HRTB::clockCorrection,
+//                HRTB::syncPointHrtTheoretical,
+//                HRTB::syncPointHrtMaster,
+//                HRTB::syncPointHrtSlave,
+//                HRTB::error,
+//                HRTB::clockCorrectionFlopsync,
+//                tempPendingVhtSync);
         }
     }
-}
-
-long long VHT::getTick(){
-    printf("Theor: %lld,Factor : %.7f",HRTB::syncPointHrtTheoretical,factor);
-    HRTB::aux1=hrtb->IRQgetCurrentTick()+HRTB::clockCorrection;
-    
-    long long tick;
-    tick=HRTB::syncPointHrtTheoretical+mul64x32d32(HRTB::aux1-HRTB::syncPointHrtSlave,factorI,factorD);
-    return tick;
-}
-
-long long VHT::getOriginalTick(long long tick){
-    return mul64x32d32((tick-HRTB::syncPointHrtTheoretical),inverseFactorI,inverseFactorD)+HRTB::syncPointHrtSlave;
-}
-
-void VHT::stopResyncSoft(){
-    softEnable=false;
-}
-
-void VHT::startResyncSoft(){
-    softEnable=true;
-}
-
-VHT& VHT::instance(){
-    static VHT vht;
-    return vht;
-}
-
-VHT::VHT() {
-    hrtb=&HRTB::instance();
-    rtc=&Rtc::instance();
-    
-    // Thread that is waken up by the timer2 to perform the clock correction
-    HRTB::flopsyncThread=Thread::create(runCorrection,2048,1);
-    TIMER2->IEN |= TIMER_IEN_CC2;
 }
 
 int VHT::pendingVhtSync=0;
