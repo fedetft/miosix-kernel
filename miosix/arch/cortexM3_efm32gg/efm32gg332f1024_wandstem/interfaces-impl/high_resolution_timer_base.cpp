@@ -55,6 +55,7 @@ Thread *gpioWaiting=nullptr;
 Thread *transceiverWaiting=nullptr;
 
 Rtc *rtc=nullptr;
+VHT *vht=nullptr;
 
 bool isInputGPIO=true;
 bool isInputTransceiver=true;
@@ -90,6 +91,10 @@ static inline long long IRQgetTick(){
 
 static inline long long IRQgetTickCorrected(){
     return IRQgetTick() + HRTB::clockCorrection;
+}
+
+static inline long long IRQgetTickCorrectedVht(){
+    return vht->uncorrected2corrected(IRQgetTickCorrected());
 }
 
 void falseRead(volatile uint32_t *p){
@@ -377,6 +382,14 @@ long long HRTB::IRQgetSetTimeGPIO() const{
 
 long long HRTB::IRQgetCurrentTick(){
     return IRQgetTick();
+}
+
+long long HRTB::IRQgetCurrentTickCorrected(){
+    return IRQgetTickCorrected();
+}
+
+long long HRTB::IRQgetCurrentTickVht(){
+    return IRQgetTickCorrectedVht();
 }
 
 inline Thread* HRTB::IRQgpioWait(long long tick,FastInterruptDisableLock *dLock){
@@ -774,6 +787,7 @@ void HRTB::initTransceiver(){
 
 HRTB& HRTB::instance(){
     static HRTB hrtb;
+    vht=&VHT::instance();
     return hrtb;
 }
 
@@ -839,7 +853,6 @@ HRTB::HRTB() {
     
     
     rtc=&Rtc::instance();
-
     {
         InterruptDisableLock l;
         //This code relies on the fact than the following two instructions will

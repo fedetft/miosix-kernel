@@ -46,6 +46,7 @@
 #include "drivers/serial.h"
 #include "board_settings.h"
 #include "high_resolution_timer_base.h"
+#include "vht.h"
 namespace miosix {
 
 //
@@ -174,6 +175,7 @@ void IRQbspInit()
 
 void bspInit2()
 {
+    VHT::instance().start();
 //     #ifdef WITH_FILESYSTEM
 //     basicFilesystemSetup();
 //     #endif //WITH_FILESYSTEM

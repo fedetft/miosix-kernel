@@ -4,41 +4,6 @@
 using namespace std;
 using namespace miosix;
 
-static HRTB* hrtb=nullptr;
-static Rtc* rtc=nullptr;
-
-//Multiplicative factor VHT
-double factor=1;
-static unsigned int factorI=1;
-static unsigned int factorD=0;
-static unsigned int inverseFactorI=1;
-static unsigned int inverseFactorD=0;
-
-static long long fastNegMul(unsigned long long a,unsigned int bi, unsigned int bf){
-    if(a<0){
-        return -mul64x32d32(-a,bi,bf);
-    }else{
-        return mul64x32d32(a,bi,bf);
-    }
-}
-
-long long VHT::getTick(){
-    //printf("Theor: %lld,Factor : %.7f",HRTB::syncPointHrtTheoretical,factor);
-    HRTB::aux1=hrtb->IRQgetCurrentTick()+HRTB::clockCorrection;
-    
-    long long tick;
-    tick=HRTB::syncPointHrtTheoretical+mul64x32d32(HRTB::aux1-HRTB::syncPointHrtSlave,factorI,factorD);
-    return tick;
-}
-
-long long VHT::getOriginalTick(long long tick){
-    return mul64x32d32((tick-HRTB::syncPointHrtTheoretical),inverseFactorI,inverseFactorD)+HRTB::syncPointHrtSlave;
-}
-
-long long VHT::correctTickWithCurrentWindow(long long tick){
-    return HRTB::syncPointHrtTheoretical+fastNegMul(tick-HRTB::syncPointHrtSlave,factorI,factorD);
-}
-
 void VHT::stopResyncSoft(){
     softEnable=false;
 }
@@ -52,12 +17,12 @@ VHT& VHT::instance(){
     return vht;
 }
 
-VHT::VHT() {
-    hrtb=&HRTB::instance();
-    rtc=&Rtc::instance();
-    
-    // Thread that is waken up by the timer2 to perform the clock correction
+void VHT::start(){
     HRTB::flopsyncThread=Thread::create(&VHT::doRun,2048,1,this);
+}
+
+VHT::VHT() {
+    // Thread that is waken up by the timer2 to perform the clock correction
     TIMER2->IEN |= TIMER_IEN_CC2;
 }
 
@@ -67,6 +32,9 @@ void VHT::doRun(void* arg)
 }
 
 void VHT::loop() {
+    HRTB& hrtb=HRTB::instance();
+    Rtc& rtc=Rtc::instance();
+
     initDebugPins();
     long long hrtT;
     long long rtcT;
@@ -88,8 +56,6 @@ void VHT::loop() {
         //Master è quello timestampato correttamente, il nostro punto di riferimento
         HRTB::error = hrtT - (HRTB::syncPointHrtSlave);
         int u=f.computeCorrection(HRTB::error);
-        
-
         
         if(VHT::softEnable)
         {
@@ -114,8 +80,8 @@ void VHT::loop() {
         printf( "HRT bare:%lld, RTC %lld, next:%lld, COMP1:%lu basicCorr:%lld\n\t"
                 "Theor:%lld, Master:%lld, Slave:%lld\n\t"
                 "Error:%lld, FSync corr:%lld, PendingSync:%d\n\n",
-            hrtb->IRQgetCurrentTick(),
-            rtc->getValue(),
+            hrtb.IRQgetCurrentTick(),
+            rtc.getValue(),
             HRTB::nextSyncPointRtc,
             RTC->COMP1,
             HRTB::clockCorrection,
@@ -149,6 +115,12 @@ int VHT::pendingVhtSync=0;
 bool VHT::softEnable=true;
 bool VHT::hardEnable=true;
 
+//Multiplicative factor VHT
+double VHT::factor=1;
+unsigned int VHT::factorI=1;
+unsigned int VHT::factorD=0;
+unsigned int VHT::inverseFactorI=1;
+unsigned int VHT::inverseFactorD=0;
 
 
 
