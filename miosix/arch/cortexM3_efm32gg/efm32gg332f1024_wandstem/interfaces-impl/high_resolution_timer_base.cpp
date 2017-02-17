@@ -104,7 +104,7 @@ inline void interruptGPIOTimerRoutine(){
     }else if(TIMER1->CC[2].CTRL & TIMER_CC_CTRL_MODE_INPUTCAPTURE){
         ms32chkp[2]=ms32time;
         //really in the past, the overflow of TIMER3 is occurred but the timer wasn't updated
-        long long a=ms32chkp[2] | TIMER3->CC[2].CCV<<16 | TIMER1->CC[2].CCV;;
+        long long a=ms32chkp[2] | TIMER3->CC[2].CCV<<16 | TIMER1->CC[2].CCV;
         long long c=IRQgetTick();
         if(a-c< -48000000){ 
             ms32chkp[2]+=overflowIncrement;
@@ -122,10 +122,10 @@ inline void interruptGPIOTimerRoutine(){
 inline void interruptTransceiverTimerRoutine(){
     //Reactivating the thread that is waiting for the event.
     if(transceiverWaiting){
-	transceiverWaiting->IRQwakeup();
-	if(transceiverWaiting->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority())
-	    Scheduler::IRQfindNextThread();
-	transceiverWaiting=nullptr;
+        transceiverWaiting->IRQwakeup();
+        if(transceiverWaiting->IRQgetPriority() > Thread::IRQgetCurrentThread()->IRQgetPriority())
+            Scheduler::IRQfindNextThread();
+        transceiverWaiting=nullptr;
     }
 }
 
@@ -144,7 +144,7 @@ static void setupTimers(){
         // If the most significant 32bit matches, enable TIM3
         TIMER3->IFC = TIMER_IFC_CC1;
         TIMER3->IEN |= TIMER_IEN_CC1;
-	unsigned short temp=static_cast<unsigned short>(TIMER3->CC[1].CCV) + 1;
+        unsigned short temp=static_cast<unsigned short>(TIMER3->CC[1].CCV) + 1;
         if (static_cast<unsigned short>(TIMER3->CNT) >= temp){
             // If TIM3 matches by the time it is being enabled, disable it right away
             TIMER3->IFC = TIMER_IFC_CC1;
@@ -368,7 +368,8 @@ long long HRTB::IRQgetSetTimeTransceiver() const{
     return ms32chkp[0] | TIMER3->CC[0].CCV<<16 | TIMER2->CC[0].CCV;
 }
 long long HRTB::IRQgetSetTimeCS() const{
-    return ms32chkp[1] | TIMER3->CC[1].CCV<<16 | TIMER1->CC[1].CCV;
+    //TIMER3->CC[1].CCV+1 overflows are correctly truncated by promotion
+    return ms32chkp[1] | (TIMER3->CC[1].CCV+1)<<16 | TIMER1->CC[1].CCV;
 }
 long long HRTB::IRQgetSetTimeGPIO() const{
     return ms32chkp[2] | TIMER3->CC[2].CCV<<16 | TIMER1->CC[2].CCV;

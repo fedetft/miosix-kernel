@@ -62,12 +62,22 @@ class HRTB {
         WaitResult IRQsetNextGPIOInterrupt(long long tick);
 
         /**
+         * \return if in INPUT CAPTURE mode, return the captured timestamp, otherwise
+         * it return a meaningless value
+         */
+        long long IRQgetSetTimeTransceiver() const;
+        
+        /**
          * \return the time when the next interrupt will be fired.
          * That is, the last value passed to setNextInterrupt(), or the value
          * captured in input mode.
          */
-        long long IRQgetSetTimeTransceiver() const;
         long long IRQgetSetTimeCS() const;
+        
+        /**
+         * \return if in INPUT CAPTURE mode, return the captured timestamp, otherwise
+         * it return a meaningless value
+         */
         long long IRQgetSetTimeGPIO() const;
 
         /*

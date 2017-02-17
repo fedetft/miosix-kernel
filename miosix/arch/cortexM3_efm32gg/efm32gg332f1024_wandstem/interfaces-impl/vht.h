@@ -49,6 +49,13 @@ public:
      */
     long long getOriginalTick(long long);
     
+    /**
+     * Correct a given tick value with the windows parameter
+     * @param tick
+     * @return 
+     */
+    long long correctTickWithCurrentWindow(long long tick);
+    
     void stopResyncSoft();
     void startResyncSoft();
     
