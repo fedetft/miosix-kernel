@@ -111,16 +111,16 @@ void PowerManager::deepSleepUntil(long long int when)
                 
                 RTC->IFC=RTC_IFC_COMP1;
                 if(preWake<=rtc.IRQgetValue()){
-		    NVIC_ClearPendingIRQ(RTC_IRQn);
-		    break;
-		}else{
-		    FastInterruptEnableLock eLock(dLock);
+                    NVIC_ClearPendingIRQ(RTC_IRQn);
+                    break;
+                }else{
+                    FastInterruptEnableLock eLock(dLock);
                     // Here interrupts are enabled, so the software part of RTC 
-		    // can be updated
-		    // NOP operation to be sure that the interrupt can be executed
+                    // can be updated
+                    // NOP operation to be sure that the interrupt can be executed
                     __NOP();
-		}
-		NVIC_ClearPendingIRQ(RTC_IRQn);
+                }
+            NVIC_ClearPendingIRQ(RTC_IRQn);
             } else {
                 //Else we are in an uncomfortable situation: we're waiting for
                 //a specific interrupt, but we didn't go to sleep as another
@@ -135,16 +135,16 @@ void PowerManager::deepSleepUntil(long long int when)
                 }
             }
         }
-	// Simple sleep when you call _WFI, for example in the Idle thread
+        // Simple sleep when you call _WFI, for example in the Idle thread
         SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk; 
-	//We need this interrupt to continue the sync of HRT with RTC
+        //We need this interrupt to continue the sync of HRT with RTC
         RTC->IEN &= ~RTC_IEN_COMP1; 
         IRQpostDeepSleep(rtx);
     }
     //Post deep sleep wait to absorb wakeup time jitter, jitter due to physical phenomena like XO stabilization
     long long nowRtc=rtc.IRQgetValue();
-    long long syncAt=nowRtc+2;
-    RTC->COMP1=syncAt-1;
+    long long syncAtRtc=nowRtc+2;
+    RTC->COMP1=syncAtRtc-1;
     //Virtual high resolution timer, init without starting the input mode!
     TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
 			| TIMER_CC_CTRL_FILT_DISABLE
@@ -166,11 +166,12 @@ void PowerManager::deepSleepUntil(long long int when)
     RTC->COMP1=(when-1) & 0xffffff;
     
     long long timestamp=b.getVhtTimestamp();
-    HRTB::clockCorrection=mul64x32d32(syncAt, 1464, 3623878656)-timestamp;
-    HRTB::syncPointHrtSlave=mul64x32d32(syncAt, 1464, 3623878656);
+    long long syncAtHrt=mul64x32d32(syncAtRtc, 1464, 3623878656);
+    HRTB::clockCorrection=syncAtHrt-timestamp;
+    HRTB::syncPointHrtSlave=syncAtHrt;
     
-    HRTB::nextSyncPointRtc=syncAt+HRTB::syncPeriodRtc;
-    HRTB::syncPointHrtTheoretical=mul64x32d32(HRTB::nextSyncPointRtc-HRTB::syncPeriodRtc,1464, 3623878656);
+    HRTB::nextSyncPointRtc=syncAtRtc+HRTB::syncPeriodRtc;
+    HRTB::syncPointHrtTheoretical=syncAtHrt;
     
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1) ;
     RTC->IFC=RTC_IFC_COMP1;

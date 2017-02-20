@@ -61,7 +61,7 @@ public:
 private:
     VHT();
     
-    static inline long long fastNegMul(unsigned long long a,unsigned int bi, unsigned int bf){
+    static inline long long fastNegMul(long long a,unsigned int bi, unsigned int bf){
         if(a<0){
             return -mul64x32d32(-a,bi,bf);
         }else{
