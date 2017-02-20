@@ -28,10 +28,12 @@
 #include "interfaces/cstimer.h"
 #include "kernel/timeconversion.h"
 #include "cstimer_impl.h"
+#include "vht.h"
 
 using namespace miosix;
 
 static TimeConversion *tc;
+static VHT *vht;
 
 namespace miosix {
     
@@ -42,7 +44,7 @@ namespace miosix {
     }
     
     void ContextSwitchTimer::IRQsetNextInterrupt(long long ns){
-        pImpl->b.IRQsetNextInterruptCS(tc->ns2tick(ns));
+        pImpl->b.IRQsetNextInterruptCS(pImpl->b.removeBasicCorrection(tc->ns2tick(ns)));
     }
     
     long long ContextSwitchTimer::getNextInterrupt() const{
@@ -50,11 +52,11 @@ namespace miosix {
     }
     
     long long ContextSwitchTimer::getCurrentTime() const{
-        return tc->tick2ns(pImpl->b.getCurrentTick());
+        return tc->tick2ns(pImpl->b.addBasicCorrection(pImpl->b.getCurrentTick()));
     }
     
     long long ContextSwitchTimer::IRQgetCurrentTime() const{
-        return tc->tick2ns(pImpl->b.IRQgetCurrentTick());
+        return tc->tick2ns(pImpl->b.addBasicCorrection(pImpl->b.IRQgetCurrentTick()));
     }
     
     ContextSwitchTimer::~ContextSwitchTimer(){}
@@ -63,5 +65,7 @@ namespace miosix {
         pImpl=new ContextSwitchTimerImpl();
         timerFreq=pImpl->b.getTimerFrequency();
         tc = new TimeConversion(timerFreq);
+        vht=&VHT::instance();
+        
     }
 }

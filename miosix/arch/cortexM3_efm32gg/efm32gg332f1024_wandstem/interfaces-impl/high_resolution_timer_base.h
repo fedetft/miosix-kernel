@@ -87,6 +87,14 @@ class HRTB {
         void cleanBufferGPIO();
         void cleanBufferTrasceiver();
 
+        long long removeBasicCorrection(long long tick){
+            return tick-clockCorrection;
+        }
+        
+        long long addBasicCorrection(long long tick){
+            return tick+clockCorrection;
+        }
+        
         /**
          * Could be call both when the interrupts are enabled/disabled!
          * TODO: investigate if it's possible to remove the possibility to call
