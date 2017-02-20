@@ -44,7 +44,7 @@ namespace miosix {
     }
     
     void ContextSwitchTimer::IRQsetNextInterrupt(long long ns){
-        pImpl->b.IRQsetNextInterruptCS(pImpl->b.removeBasicCorrection(tc->ns2tick(ns)));
+        pImpl->b.IRQsetNextInterruptCS(pImpl->b.removeBasicCorrection(vht->corrected2uncorrected(tc->ns2tick(ns))));
     }
     
     long long ContextSwitchTimer::getNextInterrupt() const{
@@ -52,11 +52,11 @@ namespace miosix {
     }
     
     long long ContextSwitchTimer::getCurrentTime() const{
-        return tc->tick2ns(pImpl->b.addBasicCorrection(pImpl->b.getCurrentTick()));
+        return tc->tick2ns(vht->uncorrected2corrected(pImpl->b.addBasicCorrection(pImpl->b.getCurrentTick())));
     }
     
     long long ContextSwitchTimer::IRQgetCurrentTime() const{
-        return tc->tick2ns(pImpl->b.addBasicCorrection(pImpl->b.IRQgetCurrentTick()));
+        return tc->tick2ns(vht->uncorrected2corrected(pImpl->b.addBasicCorrection(pImpl->b.IRQgetCurrentTick())));
     }
     
     ContextSwitchTimer::~ContextSwitchTimer(){}
