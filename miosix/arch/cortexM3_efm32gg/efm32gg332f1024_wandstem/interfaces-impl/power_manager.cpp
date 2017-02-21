@@ -38,6 +38,9 @@ using namespace std;
 
 namespace miosix {
 
+    
+static Rtc *rtc=nullptr;
+static HRTB *b=nullptr;
 //
 // class PowerManager
 //
@@ -48,16 +51,10 @@ PowerManager& PowerManager::instance()
     return singleton;
 }
 
-template<typename C>
-C divisionRounded(C a, C b){
-    return (a+b/2)/b;
-}
-
 void PowerManager::deepSleepUntil(long long int when)
 {
     //instance() is not necessarily safe to be called with IRQ disabled
-    Rtc& rtc=Rtc::instance();
-    HRTB& b=HRTB::instance();
+    
     Transceiver& rtx=Transceiver::instance();
     
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
@@ -85,7 +82,7 @@ void PowerManager::deepSleepUntil(long long int when)
     RTC->IFC=RTC_IFC_COMP1;
     RTC->IEN |= RTC_IEN_COMP1;
     //NOTE: the corner case where the wakeup is now is considered "in the past"
-    if(preWake<=rtc.IRQgetValue())
+    if(preWake<=rtc->IRQgetValue())
     {
         RTC->IFC=RTC_IFC_COMP1;
         RTC->IEN &= ~RTC_IEN_COMP1;
@@ -110,7 +107,7 @@ void PowerManager::deepSleepUntil(long long int when)
                 //this is important as pending IRQ prevent WFI from working
                 
                 RTC->IFC=RTC_IFC_COMP1;
-                if(preWake<=rtc.IRQgetValue()){
+                if(preWake<=rtc->IRQgetValue()){
                     NVIC_ClearPendingIRQ(RTC_IRQn);
                     break;
                 }else{
@@ -129,6 +126,7 @@ void PowerManager::deepSleepUntil(long long int when)
                 //Note that since the kernel is paused the interrupt we're
                 //serving can't cause a context switch and fuck up things.
                 {
+                    resyncClock();
                     FastInterruptEnableLock eLock(dLock);
                     //Here interrupts are enabled, so the interrupt gets served
                     __NOP();
@@ -142,37 +140,11 @@ void PowerManager::deepSleepUntil(long long int when)
         IRQpostDeepSleep(rtx);
     }
     //Post deep sleep wait to absorb wakeup time jitter, jitter due to physical phenomena like XO stabilization
-    long long nowRtc=rtc.IRQgetValue();
-    long long syncAtRtc=nowRtc+2;
-    RTC->COMP1=syncAtRtc-1;
-    //Virtual high resolution timer, init without starting the input mode!
-    TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
-			| TIMER_CC_CTRL_FILT_DISABLE
-			| TIMER_CC_CTRL_INSEL_PRS
-			| TIMER_CC_CTRL_PRSSEL_PRSCH4
-			| TIMER_CC_CTRL_MODE_INPUTCAPTURE;
-    PRS->CH[4].CTRL= PRS_CH_CTRL_SOURCESEL_RTC | PRS_CH_CTRL_SIGSEL_RTCCOMP1;
-    RTC->IFC=RTC_IFC_COMP1;
+    resyncClock();
     
-    //Clean the buffer to avoid false reads
-    TIMER2->CC[2].CCV;
-    TIMER2->CC[2].CCV;
-    
-    while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
-
-    while(!(RTC->IF & RTC_IF_COMP1));
     
     //EFM32 compare channels trigger 1 tick late (undocumented quirk)
     RTC->COMP1=(when-1) & 0xffffff;
-    
-    long long timestamp=b.getVhtTimestamp();
-    long long syncAtHrt=mul64x32d32(syncAtRtc, 1464, 3623878656);
-    HRTB::clockCorrection=syncAtHrt-timestamp;
-    HRTB::syncPointHrtSlave=syncAtHrt;
-    
-    HRTB::nextSyncPointRtc=syncAtRtc+HRTB::syncPeriodRtc;
-    HRTB::syncPointHrtTheoretical=syncAtHrt;
-    
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1) ;
     RTC->IFC=RTC_IFC_COMP1;
     RTC->IEN |= RTC_IEN_COMP1;
@@ -183,7 +155,7 @@ void PowerManager::deepSleepUntil(long long int when)
     //If true, it goes forward, otherwise the interrupt is caused by another IRQ. 
     //But this IRQ can't be served because the interrupts are disabled, hence the while-cycle turns in a polling-cycle 
     //(bad and not low power, but definitely very rare)
-    while(when>rtc.IRQgetValue()) __WFI();
+    while(when>rtc->IRQgetValue()) __WFI();
     RTC->IEN &= ~RTC_IEN_COMP1;
     RTC->IFC=RTC_IFC_COMP1;
 
@@ -336,7 +308,11 @@ PowerManager::PowerManager()
     : transceiverPowerDomainRefCount(0),
       sensorPowerDomainRefCount(0),
       regulatorVoltageRefCount(0),
-      spi(Spi::instance()) {}
+      spi(Spi::instance()) 
+{
+    b=&HRTB::instance();
+    rtc=&Rtc::instance();
+}
 
 void PowerManager::IRQpreDeepSleep(Transceiver& rtx)
 {
@@ -425,6 +401,36 @@ void PowerManager::IRQpostDeepSleep(Transceiver& rtx)
     #if WANDSTEM_HW_REV>13
     if(sensorPowerDomainRefCount>0) powerSwitch::high();
     #endif
+}
+
+void PowerManager::resyncClock(){
+    long long nowRtc=rtc->IRQgetValue();
+    long long syncAtRtc=nowRtc+2;
+    RTC->COMP1=syncAtRtc-1;
+    //Virtual high resolution timer, init without starting the input mode!
+    TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
+			| TIMER_CC_CTRL_FILT_DISABLE
+			| TIMER_CC_CTRL_INSEL_PRS
+			| TIMER_CC_CTRL_PRSSEL_PRSCH4
+			| TIMER_CC_CTRL_MODE_INPUTCAPTURE;
+    PRS->CH[4].CTRL= PRS_CH_CTRL_SOURCESEL_RTC | PRS_CH_CTRL_SIGSEL_RTCCOMP1;
+    RTC->IFC=RTC_IFC_COMP1;
+    
+    //Clean the buffer to avoid false reads
+    TIMER2->CC[2].CCV;
+    TIMER2->CC[2].CCV;
+    
+    while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
+
+    while(!(RTC->IF & RTC_IF_COMP1));
+    
+    long long timestamp=b->getVhtTimestamp();
+    long long syncAtHrt=mul64x32d32(syncAtRtc, 1464, 3623878656);
+    HRTB::clockCorrection=syncAtHrt-timestamp;
+    HRTB::syncPointHrtSlave=syncAtHrt;
+    
+    HRTB::nextSyncPointRtc=syncAtRtc+HRTB::syncPeriodRtc;
+    HRTB::syncPointHrtTheoretical=syncAtHrt;
 }
 
 } //namespace miosix
