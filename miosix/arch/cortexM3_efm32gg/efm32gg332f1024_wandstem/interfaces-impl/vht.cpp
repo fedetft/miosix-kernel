@@ -51,46 +51,47 @@ void VHT::loop() {
             tempPendingVhtSync=VHT::pendingVhtSync;
             VHT::pendingVhtSync=0;
         }
-
-        HRTB::syncPointHrtSlave += (HRTB::syncPeriodHrt + HRTB::clockCorrectionFlopsync)*tempPendingVhtSync;
         //Master è quello timestampato correttamente, il nostro punto di riferimento
         HRTB::error = hrtT - (HRTB::syncPointHrtSlave);
         int u=f.computeCorrection(HRTB::error);
         
         if(VHT::softEnable)
         {
-            PauseKernelLock pkLock;
-            // Single instruction that update the error variable, 
-            // interrupt can occur, but not thread preemption
-            HRTB::clockCorrectionFlopsync=u;
+            {
+                PauseKernelLock pkLock;
+                // Single instruction that update the error variable, 
+                // interrupt can occur, but not thread preemption
+                HRTB::clockCorrectionFlopsync=u;
 
-            //Simple calculation of factor, very inefficient
-            factor = (double)HRTB::syncPeriodHrt/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync);
-            //efficient way to calculate the factor T/(T+u(k))
-            long long temp=(HRTB::syncPeriodHrt<<32)/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)-4294967296;
-            factorI = temp>0 ? 1:0;
-            factorD = (unsigned int) temp;
-            //calculate inverse of previous factor (T+u(k))/T
-            temp = ((HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)<<32)/HRTB::syncPeriodHrt-4294967296;
-            inverseFactorI = temp>0 ? 1:0;
-            inverseFactorD = (unsigned int)temp;
+                //Simple calculation of factor, very inefficient
+                factor = (double)HRTB::syncPeriodHrt/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync);
+                //efficient way to calculate the factor T/(T+u(k))
+                long long temp=(HRTB::syncPeriodHrt<<32)/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)-4294967296;
+                factorI = temp>0 ? 1:0;
+                factorD = (unsigned int) temp;
+                //calculate inverse of previous factor (T+u(k))/T
+                temp = ((HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)<<32)/HRTB::syncPeriodHrt-4294967296;
+                inverseFactorI = temp>0 ? 1:0;
+                inverseFactorD = (unsigned int)temp;
+            }
+            //printf("%lld\n",HRTB::clockCorrectionFlopsync);
+            //This printf shouldn't be in here because is very slow 
+            printf( "HRT bare:%lld, RTC %lld, next:%lld, COMP1:%lu basicCorr:%lld\n\t"
+                    "Theor:%lld, Master:%lld, Slave:%lld\n\t"
+                    "Error:%lld, FSync corr:%lld, PendingSync:%d\n\n",
+                hrtb.IRQgetCurrentTick(),
+                rtc.getValue(),
+                HRTB::nextSyncPointRtc,
+                RTC->COMP1,
+                HRTB::clockCorrection,
+                HRTB::syncPointHrtTheoretical,
+                HRTB::syncPointHrtMaster,
+                HRTB::syncPointHrtSlave,
+                HRTB::error,
+                HRTB::clockCorrectionFlopsync,
+                tempPendingVhtSync);
         } 
-//      printf("%lld\n",HRTB::clockCorrectionFlopsync);
-        //This printf shouldn't be in here because is very slow 
-        printf( "HRT bare:%lld, RTC %lld, next:%lld, COMP1:%lu basicCorr:%lld\n\t"
-                "Theor:%lld, Master:%lld, Slave:%lld\n\t"
-                "Error:%lld, FSync corr:%lld, PendingSync:%d\n\n",
-            hrtb.IRQgetCurrentTick(),
-            rtc.getValue(),
-            HRTB::nextSyncPointRtc,
-            RTC->COMP1,
-            HRTB::clockCorrection,
-            HRTB::syncPointHrtTheoretical,
-            HRTB::syncPointHrtMaster,
-            HRTB::syncPointHrtSlave,
-            HRTB::error,
-            HRTB::clockCorrectionFlopsync,
-            tempPendingVhtSync);
+
         
          
         // If the event is enough in the future, correct the CStimer. NO!

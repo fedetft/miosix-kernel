@@ -288,6 +288,7 @@ void __attribute__((used)) cstirqhnd2(){
         HRTB::nextSyncPointRtc += HRTB::syncPeriodRtc;
         HRTB::syncPointHrtTheoretical += HRTB::syncPeriodHrt;
 
+        HRTB::syncPointHrtSlave += (HRTB::syncPeriodHrt + HRTB::clockCorrectionFlopsync);
         //Clean the output channel of RTC
         RTC->IFC = RTC_IFC_COMP1;
         RTC->COMP1 = RTC->COMP1+HRTB::syncPeriodRtc;
