@@ -74,7 +74,6 @@ private:
     void loop();
     
     //Multiplicative factor VHT
-    static double factor;
     static unsigned int factorI;
     static unsigned int factorD;
     static unsigned int inverseFactorI;

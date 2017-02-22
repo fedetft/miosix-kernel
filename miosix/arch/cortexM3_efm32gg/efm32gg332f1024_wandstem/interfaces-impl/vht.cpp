@@ -1,5 +1,6 @@
 #include "vht.h"
 #include "flopsync_vht.h"
+#include "cassert"
 
 using namespace std;
 using namespace miosix;
@@ -41,6 +42,7 @@ void VHT::loop() {
     FlopsyncVHT f;
     
     int tempPendingVhtSync;				    ///< Number of sync acquired in a round
+    const long long x=(double)48000000*HRTB::syncPeriodRtc/32768*0.0003f;
     while(1){
         Thread::wait();
         {
@@ -57,22 +59,22 @@ void VHT::loop() {
         
         if(VHT::softEnable)
         {
+            //The correction should always less than 300ppm
+            assert(HRTB::error<x&&HRTB::error>-x);
             {
                 PauseKernelLock pkLock;
                 // Single instruction that update the error variable, 
                 // interrupt can occur, but not thread preemption
                 HRTB::clockCorrectionFlopsync=u;
 
-                //Simple calculation of factor, very inefficient
-                factor = (double)HRTB::syncPeriodHrt/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync);
                 //efficient way to calculate the factor T/(T+u(k))
-                long long temp=(HRTB::syncPeriodHrt<<32)/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)-4294967296;
-                factorI = temp>0 ? 1:0;
-                factorD = (unsigned int) temp;
+                long long temp=(HRTB::syncPeriodHrt<<32)/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync);
+                factorI = static_cast<unsigned int>((temp & 0xFFFFFFFF00000000LLU)>>32);
+                factorD = static_cast<unsigned int>(temp);
                 //calculate inverse of previous factor (T+u(k))/T
-                temp = ((HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)<<32)/HRTB::syncPeriodHrt-4294967296;
-                inverseFactorI = temp>0 ? 1:0;
-                inverseFactorD = (unsigned int)temp;
+                temp = ((HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)<<32)/HRTB::syncPeriodHrt;
+                inverseFactorI = static_cast<unsigned int>((temp & 0xFFFFFFFF00000000LLU)>>32);
+                inverseFactorD = static_cast<unsigned int>(temp);
             }
             //printf("%lld\n",HRTB::clockCorrectionFlopsync);
             //This printf shouldn't be in here because is very slow 
@@ -117,7 +119,6 @@ bool VHT::softEnable=true;
 bool VHT::hardEnable=true;
 
 //Multiplicative factor VHT
-double VHT::factor=1;
 unsigned int VHT::factorI=1;
 unsigned int VHT::factorD=0;
 unsigned int VHT::inverseFactorI=1;
