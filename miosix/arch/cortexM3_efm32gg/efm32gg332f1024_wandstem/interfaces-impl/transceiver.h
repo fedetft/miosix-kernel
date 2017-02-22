@@ -109,6 +109,12 @@ public:
 class Transceiver
 {
 public:
+    
+    enum Unit{
+        TICK,
+        NS
+    };
+    
     static const int minFrequency=2405; ///< Minimum supported frequency (MHz)
     static const int maxFrequency=2480; ///< Maximum supported frequency (MHz)
     
@@ -196,7 +202,7 @@ public:
      * packet is to be transmitted on the wireless channel
      * \throws exception in case of errors
      */
-    void sendAt(const void *pkt, int size, long long when);
+    void sendAt(const void *pkt, int size, long long when, Unit = Unit::NS);
     
     /**
      * \param pkt pointer to a buffer where the packet will be stored
@@ -215,7 +221,7 @@ public:
      * responsibility of the caller to check the timeout and discard the
      * packet.
      */
-    RecvResult recv(void *pkt, int size, long long timeout);
+    RecvResult recv(void *pkt, int size, long long timeout, Unit unit=Unit::NS);
 
     /**
      * Read the RSSI of the currently selected channel
@@ -292,7 +298,7 @@ private:
      * \return true in case of timeout
      * \throws runtime_error in case of errors
      */
-    bool handlePacketReceptionEvents(long long timeout, int size, RecvResult& result);
+    bool handlePacketReceptionEvents(long long timeout, int size, RecvResult& result, Unit unit);
     
     /**
      * Read a data packet from the transceiver
