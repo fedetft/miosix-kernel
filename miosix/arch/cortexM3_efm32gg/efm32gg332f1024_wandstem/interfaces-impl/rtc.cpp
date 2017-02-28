@@ -33,7 +33,7 @@
 #include <kernel/scheduler/scheduler.h>
 #include "gpioirq.h"
 #include "config/miosix_settings.h"
-#include "high_resolution_timer_base.h"
+#include "hrtb.h"
 
 using namespace miosix;
 

@@ -14,10 +14,10 @@
 #ifndef VHT_H
 #define VHT_H
 
-#include "high_resolution_timer_base.h"
+#include "hrtb.h"
 #include "kernel/kernel.h"
 #include "kernel/scheduler/timer_interrupt.h"
-#include "high_resolution_timer_base.h"
+#include "hrtb.h"
 #include "kernel/timeconversion.h"
 #include "gpio_timer.h"
 #include "transceiver_timer.h"

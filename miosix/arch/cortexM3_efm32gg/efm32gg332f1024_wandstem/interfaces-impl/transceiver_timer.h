@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "high_resolution_timer_base.h"
+#include "hrtb.h"
 #include "timer_interface.h"
 
 #ifndef TRANSCEIVER_TIMER_H

@@ -32,7 +32,7 @@
 #include "interfaces/bsp.h"
 #include <stdexcept>
 #include <sys/ioctl.h>
-#include "high_resolution_timer_base.h"
+#include "hrtb.h"
 
 using namespace std;
 

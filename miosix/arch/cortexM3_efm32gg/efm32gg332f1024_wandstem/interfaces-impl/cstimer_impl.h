@@ -10,7 +10,7 @@
  *
  * Created on October 3, 2016, 2:36 AM
  */
-#include "high_resolution_timer_base.h"
+#include "hrtb.h"
 
 #ifndef CSTIMER_IMPL_H
 #define CSTIMER_IMPL_H

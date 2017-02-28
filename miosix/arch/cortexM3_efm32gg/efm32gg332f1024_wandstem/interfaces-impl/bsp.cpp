@@ -45,7 +45,7 @@
 #include "filesystem/console/console_device.h"
 #include "drivers/serial.h"
 #include "board_settings.h"
-#include "high_resolution_timer_base.h"
+#include "hrtb.h"
 #include "vht.h"
 namespace miosix {
 
