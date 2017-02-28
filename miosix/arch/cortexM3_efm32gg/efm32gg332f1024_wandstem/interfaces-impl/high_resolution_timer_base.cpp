@@ -236,7 +236,7 @@ void __attribute__((used)) cstirqhnd2(){
     if ((TIMER2->IEN & TIMER_IEN_CC1) && (TIMER2->IF & TIMER_IF_CC1) ){
         TIMER2->IFC = TIMER_IFC_CC1;
 	
-        //if PEN, it means that we want to trigger, otherwise we are in timeout for input/capture
+        //if PEN, it means that we want to trigger, otherwise we are in timeout for input capture
         if(TIMER2->ROUTE & TIMER_ROUTE_CC1PEN){
             if(faseTransceiver==0){
                 //get nextInterrupt
@@ -393,7 +393,7 @@ long long HRTB::IRQgetCurrentTickVht(){
     return IRQgetTickCorrectedVht();
 }
 
-inline Thread* HRTB::IRQgpioWait(long long tick,FastInterruptDisableLock *dLock){
+Thread* HRTB::IRQgpioWait(long long tick,FastInterruptDisableLock *dLock){
     do{
         gpioWaiting=Thread::IRQgetCurrentThread();
         Thread::IRQwait();
@@ -482,6 +482,28 @@ long long HRTB::getCurrentTick(){
     return result;
 }
 
+long long HRTB::getCurrentTickCorrected(){
+    bool interrupts=areInterruptsEnabled();
+    //TODO: optimization opportunity, if we can guarantee that no call to this
+    //function occurs before kernel is started, then we can use
+    //fastInterruptDisable())
+    if(interrupts) disableInterrupts();
+    long long result=IRQgetTickCorrected();
+    if(interrupts) enableInterrupts();
+    return result;
+}
+
+long long HRTB::getCurrentTickVht(){
+    bool interrupts=areInterruptsEnabled();
+    //TODO: optimization opportunity, if we can guarantee that no call to this
+    //function occurs before kernel is started, then we can use
+    //fastInterruptDisable())
+    if(interrupts) disableInterrupts();
+    long long result=IRQgetTickCorrectedVht();
+    if(interrupts) enableInterrupts();
+    return result;
+}
+
 inline WaitResult HRTB::IRQsetNextTransceiverInterrupt(long long tick){
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
@@ -562,7 +584,7 @@ inline WaitResult HRTB::IRQsetNextGPIOInterrupt(long long tick){
 // In this function I prepare the timer, but i don't enable it.
 // Set true to get the input mode: wait for the raising of the pin and timestamp the time in which occurs
 // Set false to get the output mode: When the time set is reached, raise the pin!
-inline void HRTB::setModeGPIOTimer(bool input){    
+void HRTB::setModeGPIOTimer(bool input){    
     //Connect TIMER1->CC2 to PIN PE12, meaning GPIO10 on wandstem
     TIMER1->ROUTE=TIMER_ROUTE_CC2PEN
 	    | TIMER_ROUTE_LOCATION_LOC1;
@@ -591,7 +613,7 @@ inline void HRTB::setModeGPIOTimer(bool input){
     } 
 }
 
-inline void HRTB::setModeTransceiverTimer(bool input){
+void HRTB::setModeTransceiverTimer(bool input){
     if(input){	
         //For input capture feature:
         //Connect TIMER2->CC0 to pin PA8 aka excChB
@@ -637,7 +659,7 @@ inline void HRTB::cleanBufferTrasceiver(){
     falseRead(&TIMER2->CC[0].CCV);
 }
 
-inline WaitResult HRTB::IRQsetGPIOtimeout(long long tick){
+WaitResult HRTB::IRQsetGPIOtimeout(long long tick){
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
     tick--; //to trigger at the RIGHT time!
@@ -657,7 +679,7 @@ inline WaitResult HRTB::IRQsetGPIOtimeout(long long tick){
     }
 }
 
-inline WaitResult HRTB::IRQsetTransceiverTimeout(long long tick){
+WaitResult HRTB::IRQsetTransceiverTimeout(long long tick){
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
     tick--;

@@ -41,15 +41,19 @@ long long TransceiverTimer::getValue() const{
 }
 
 void TransceiverTimer::wait(long long tick){
-    Thread::nanoSleep(tc.tick2ns(tick));
+    absoluteWait(b.getCurrentTickVht()+tick);
 }
 
 bool TransceiverTimer::absoluteWait(long long tick){
-    if(b.getCurrentTick()>=tick){
-	return true;
+    FastInterruptDisableLock dLock;
+    
+    long long t=b.removeBasicCorrection(vht->corrected2uncorrected(tick));
+    b.setModeTransceiverTimer(true);
+    if(b.IRQsetTransceiverTimeout(t)==WaitResult::WAITING){
+        b.IRQtransceiverWait(t,&dLock);
+        return false;
     }
-    Thread::nanoSleepUntil(tc.tick2ns(tick));
-    return false;
+    return true;
 }
 
 bool TransceiverTimer::absoluteWaitTrigger(long long tick){

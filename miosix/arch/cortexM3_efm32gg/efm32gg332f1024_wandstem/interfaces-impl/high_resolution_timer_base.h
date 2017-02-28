@@ -103,6 +103,8 @@ class HRTB {
          */
         long long getCurrentTick();
         long long getCurrentTickCorrected();
+        long long getCurrentTickVht();
+        
         /**
          * \return the current tick count of the timer.
          * Can only be called with interrupts disabled or within an IRQ
