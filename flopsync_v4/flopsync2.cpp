@@ -38,8 +38,8 @@ using namespace std;
 Flopsync2::Flopsync2()
 {
     auto& timer=miosix::getTransceiverTimer();
-    wMin=timer.ns2tick( 100000)/scaleFactor; //100us
-    wMax=timer.ns2tick(6000000)/scaleFactor; //6ms
+    wMin= 100000/scaleFactor; //100us
+    wMax=6000000/scaleFactor; //6ms
     reset();
 }
 
