@@ -1,6 +1,10 @@
 # Exclude doxygen
 miosix/_doc/doxygen/html/*
 
+# Exclude binary files
+miosix/bin
+miosix/obj
+
 # Exclude temporary files
 main.elf
 main.bin
@@ -13,3 +17,6 @@ main.map
 # Exclude Mac OS X temporary
 ._*
 .DS_Store
+
+# Exclude Vim temporary
+.*.swp
