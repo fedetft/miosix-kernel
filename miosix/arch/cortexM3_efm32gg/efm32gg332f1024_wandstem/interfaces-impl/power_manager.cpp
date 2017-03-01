@@ -51,9 +51,12 @@ PowerManager& PowerManager::instance()
     return singleton;
 }
 
-void PowerManager::deepSleepUntil(long long int when)
+void PowerManager::deepSleepUntil(long long int when, Unit unit)
 {
     //instance() is not necessarily safe to be called with IRQ disabled
+    if(unit==Unit::NS){
+        when=rtc->ns2tick(when);
+    }
     
     Transceiver& rtx=Transceiver::instance();
     

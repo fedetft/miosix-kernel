@@ -44,6 +44,11 @@ class Transceiver;
 class PowerManager
 {
 public:
+    
+    enum Unit{
+        NS,
+        TICK
+    };
     /**
      * \return the PowerManager instance (singleton)
      */
@@ -51,9 +56,10 @@ public:
     
     /**
      * Go to deep sleep until the specified time point
-     * \param when absolute time point in ticks of the Rtc when to wake up 
+     * \param when absolute time point in ticks of the Rtc when to wake up
+     * \param the default is in NS, you can force the TICK unit 
      */
-    void deepSleepUntil(long long when);
+    void deepSleepUntil(long long when, Unit unit=Unit::NS);
     
     /**
      * The transceiver power domain is handled using a reference count.
