@@ -49,7 +49,7 @@ FlooderRootNode::FlooderRootNode(long long syncPeriod,
       panId(panId), txPower(txPower), debug(false)
 {
     //Minimum ~550us, 200us of slack added
-    rootNodeWakeupAdvance=timer.ns2tick(750000);
+    rootNodeWakeupAdvance=750000;
 }
 
 bool FlooderRootNode::synchronize()
@@ -63,8 +63,9 @@ bool FlooderRootNode::synchronize()
             if(debug) puts("FlooderRootNode::synchronize called too late");
             return false;
         }
+        //printf("Before deepsleep..%lld..%lld.\n",getTime(),wakeupTime);
         pm.deepSleepUntil(wakeupTime);
-    } else frameStart=timer.getValue()+rootNodeWakeupAdvance;
+    } else frameStart=getTime()+rootNodeWakeupAdvance;
     
     ledOn();
     TransceiverConfiguration cfg(radioFrequency,txPower);
