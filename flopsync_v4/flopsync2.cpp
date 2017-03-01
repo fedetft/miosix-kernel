@@ -26,7 +26,7 @@
  ***************************************************************************/
 
 #include "flopsync2.h"
-#include "interfaces-impl/hardware_timer.h"
+#include "interfaces-impl/timer_interface.h"
 #include <algorithm>
 
 using namespace std;

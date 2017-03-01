@@ -32,7 +32,7 @@
 
 using namespace std;
 using namespace miosix;
-
+static long long lastT=-1,T=-1;
 //
 // class FlooderSyncNode
 //
@@ -50,34 +50,35 @@ FlooderSyncNode::FlooderSyncNode(Synchronizer *synchronizer,
       radioFrequency(radioFrequency), clockCorrection(0),
       receiverWindow(synchronizer->getReceiverWindow()),
       missPackets(maxMissPackets+1), hop(0),
-      panId(panId), txPower(txPower), fixedHop(false), debug(false)
+      panId(panId), txPower(txPower), fixedHop(false), debug(true)
 {
     //300us and forced receiverWindow=1 fails, keeping this at minimum
-    syncNodeWakeupAdvance=timer.ns2tick(450000);
+    syncNodeWakeupAdvance=450000;
     //5 byte (4 preamble, 1 SFD) * 32us/byte
-    packetPreambleTime=timer.ns2tick(160000);
+    packetPreambleTime=160000;
     //Time when packet is rebroadcast (time for packet)
     //~400us is the minimum to add, added 200us slack
     //FIXME: with a so small slack if the packet is received at the end of the
     //receiver window there may be no time for rebroadcast
-    packetRebroadcastTime=timer.ns2tick((syncPacketSize+6)*32000+600000);
+    packetRebroadcastTime=(syncPacketSize+6)*32000+600000;
 }
         
 bool FlooderSyncNode::synchronize()
 {
     if(missPackets>maxMissPackets) return true;
-    
     computedFrameStart+=syncPeriod+clockCorrection;
     long long wakeupTime=computedFrameStart-(syncNodeWakeupAdvance+receiverWindow); 
     long long timeoutTime=computedFrameStart+receiverWindow+packetPreambleTime;
     
-    if(timer.getValue()>=wakeupTime)
+    if(getTime()>=wakeupTime)
     {
         if(debug) puts("FlooderSyncNode::synchronize called too late");
         ++missPackets;
         return false;
     }
-    pm.deepSleepUntil(wakeupTime);
+    printf("WT:%lld %lld\n",wakeupTime,getTime());
+    pm.deepSleepUntil(wakeupTime-100000000);
+    printf("WU\n");
     
     ledOn();
     //Transceiver configured with non strict timeout
@@ -92,6 +93,9 @@ bool FlooderSyncNode::synchronize()
     {
         try {
             auto result=transceiver.recv(packet,syncPacketSize,timeoutTime);
+            T=result.timestamp;
+            //printf("Timestamp diff:%lld\n",T-lastT);
+            lastT=T;
             if(   result.error==RecvResult::OK && result.timestampValid==true
                && result.size==syncPacketSize
                && packet[0]==0x46 && packet[1]==0x08 && packet[2]==hop
@@ -107,7 +111,7 @@ bool FlooderSyncNode::synchronize()
             if(debug) puts(e.what());
             break;
         }
-        if(timer.getValue()>=timeoutTime)
+        if(getTime()>=timeoutTime)
         {
             timeout=true;
             break;
@@ -137,7 +141,7 @@ bool FlooderSyncNode::synchronize()
     }
     clockCorrection=r.first;
     receiverWindow=r.second;
-    
+    //printf("CC:%d %d\n",clockCorrection,receiverWindow);
     //Correct frame start considering hops
     measuredFrameStart-=hop*packetRebroadcastTime;
     return false;
@@ -166,6 +170,7 @@ void FlooderSyncNode::resynchronize()
     {
         try {
             auto result=transceiver.recv(packet,syncPacketSize,infiniteTimeout);
+            lastT=result.timestamp;
             if(isSyncPacket(result,packet))
             {
                 computedFrameStart=measuredFrameStart=result.timestamp;
@@ -180,9 +185,10 @@ void FlooderSyncNode::resynchronize()
     receiverWindow=synchronizer->getReceiverWindow();
     missPackets=0;
     hop=packet[2];
+    printf("First resync:%lld\n",computedFrameStart);
     //Correct frame start considering hops
     measuredFrameStart-=hop*packetRebroadcastTime;
-    if(debug) puts("Done.");
+    if(debug) puts("Done.\n");
 }
 
 void FlooderSyncNode::rebroadcast(long long int receivedTimestamp,
