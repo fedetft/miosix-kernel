@@ -93,7 +93,7 @@ public:
      * \param hop hop to which the node should belong, or 0 to restore the
      * default behaviour of automatically joining an hop
      */
-    void forceHop(unsigned char hop) { this->hop=hop; fixedHop= hop!=0; }
+    void forceHop(unsigned char hop) { this->hop=hop-1; fixedHop= hop!=0; }
     
     /**
      * \param enabled if true, this class prints debug data
@@ -107,6 +107,8 @@ private:
      * \param packet the received packet
      */
     void rebroadcast(long long receivedTimestamp, unsigned char *packet);
+    
+    bool isSyncPacket(miosix::RecvResult& result, unsigned char *packet);
     
     miosix::PowerManager& pm;
     miosix::HardwareTimer& timer;

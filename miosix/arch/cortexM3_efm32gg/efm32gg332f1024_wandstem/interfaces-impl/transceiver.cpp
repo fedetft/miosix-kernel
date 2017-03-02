@@ -34,6 +34,7 @@
 #include <algorithm>
 #include <cassert>
 #include <kernel/scheduler/scheduler.h>
+#include "../../../../debugpin.h"
 
 using namespace std;
 
@@ -366,9 +367,7 @@ RecvResult Transceiver::recv(void *pkt, int size, long long timeout,Unit unit)
             }
         }
     }
-    if(unit==Unit::NS){
-        timeout=timer.ns2tick(timeout);
-    }
+    
     if(handlePacketReceptionEvents(timeout,size,result,unit)==false)
          readPacketFromRxBuffer(pkt,size,result);
     return result;

@@ -84,7 +84,7 @@ private:
     int squareSum;
     int eo, eoo;
     unsigned char count;
-    unsigned char dw;
+    int dw;
     char init;
     int wMin;
     int wMax;
