@@ -194,7 +194,7 @@ void configureSdram()
                        | 3;               // MODE=011 auto refresh
     sdramCommandWait();
 
-    FMC_Bank5_6->SDCMR=0x220<<9           // MRD=0x220:CAS latency=2 burst len=1
+    FMC_Bank5_6->SDCMR=0x230<<9           // MRD=0x230:CAS latency=3 burst len=1
                        | FMC_SDCMR_CTB1   // Enable bank 1
                        | 4;               // MODE=100 load mode register
     sdramCommandWait();
