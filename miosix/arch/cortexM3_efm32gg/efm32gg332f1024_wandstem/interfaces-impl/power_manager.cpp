@@ -33,7 +33,8 @@
 #include <stdexcept>
 #include <sys/ioctl.h>
 #include "hrtb.h"
-
+#include "../../../../debugpin.h"
+#include "stdio.h"
 using namespace std;
 
 namespace miosix {
@@ -109,8 +110,8 @@ void PowerManager::deepSleepUntil(long long int when, Unit unit)
                 //Clear the interrupt (both in the RTC peripheral and NVIC),
                 //this is important as pending IRQ prevent WFI from working
                 
-                RTC->IFC=RTC_IFC_COMP1;
-                if(preWake<=rtc->IRQgetValue()){
+                if((preWake-1)<=rtc->IRQgetValue()){
+                    RTC->IFC=RTC_IFC_COMP1;
                     NVIC_ClearPendingIRQ(RTC_IRQn);
                     break;
                 }else{
@@ -120,7 +121,7 @@ void PowerManager::deepSleepUntil(long long int when, Unit unit)
                     // NOP operation to be sure that the interrupt can be executed
                     __NOP();
                 }
-            NVIC_ClearPendingIRQ(RTC_IRQn);
+                NVIC_ClearPendingIRQ(RTC_IRQn);
             } else {
                 //Else we are in an uncomfortable situation: we're waiting for
                 //a specific interrupt, but we didn't go to sleep as another
@@ -135,6 +136,9 @@ void PowerManager::deepSleepUntil(long long int when, Unit unit)
                     __NOP();
                 }
             }
+            if(preWake-1<=rtc->IRQgetValue()){
+                break;
+            }
         }
         // Simple sleep when you call _WFI, for example in the Idle thread
         SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk; 
@@ -144,8 +148,7 @@ void PowerManager::deepSleepUntil(long long int when, Unit unit)
     }
     //Post deep sleep wait to absorb wakeup time jitter, jitter due to physical phenomena like XO stabilization
     resyncClock();
-    
-    
+        
     //EFM32 compare channels trigger 1 tick late (undocumented quirk)
     RTC->COMP1=(when-1) & 0xffffff;
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1) ;
@@ -409,6 +412,8 @@ void PowerManager::IRQpostDeepSleep(Transceiver& rtx)
 void PowerManager::resyncClock(){
     long long nowRtc=rtc->IRQgetValue();
     long long syncAtRtc=nowRtc+2;
+    //This is very important, we need to restore the previous value in COMP1, to gaurentee the proper wakeup
+    long long prevCOMP1=RTC->COMP1;
     RTC->COMP1=syncAtRtc-1;
     //Virtual high resolution timer, init without starting the input mode!
     TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
@@ -428,10 +433,11 @@ void PowerManager::resyncClock(){
     while(!(RTC->IF & RTC_IF_COMP1));
     
     long long timestamp=b->getVhtTimestamp();
+    RTC->COMP1=prevCOMP1;
+    while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
     long long syncAtHrt=mul64x32d32(syncAtRtc, 1464, 3623878656);
     HRTB::clockCorrection=syncAtHrt-timestamp;
     HRTB::syncPointHrtSlave=syncAtHrt;
-    
     HRTB::nextSyncPointRtc=syncAtRtc+HRTB::syncPeriodRtc;
     HRTB::syncPointHrtTheoretical=syncAtHrt;
 }
