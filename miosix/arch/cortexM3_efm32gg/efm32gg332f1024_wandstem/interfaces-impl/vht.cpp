@@ -1,3 +1,30 @@
+/***************************************************************************
+ *   Copyright (C) 2016 by Fabiano Riccardi                                *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   As a special exception, if other files instantiate templates or use   *
+ *   macros or inline functions from this file, or you compile this file   *
+ *   and link it with other works to produce a work based on this file,    *
+ *   this file does not by itself cause the resulting work to be covered   *
+ *   by the GNU General Public License. However the source code for this   *
+ *   file must still be made available in accordance with the GNU General  *
+ *   Public License. This exception does not invalidate any other reasons  *
+ *   why a work based on this file might be covered by the GNU General     *
+ *   Public License.                                                       *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
+ ***************************************************************************/
+
 #include "vht.h"
 #include "flopsync_vht.h"
 #include "cassert"
@@ -19,12 +46,13 @@ VHT& VHT::instance(){
 }
 
 void VHT::start(){
+    TIMER2->IEN |= TIMER_IEN_CC2;
+    
+    // Thread that is waken up by the timer2 to perform the clock correction
     HRTB::flopsyncThread=Thread::create(&VHT::doRun,2048,1,this);
 }
 
 VHT::VHT() {
-    // Thread that is waken up by the timer2 to perform the clock correction
-    TIMER2->IEN |= TIMER_IEN_CC2;
 }
 
 void VHT::doRun(void* arg)
@@ -78,20 +106,20 @@ void VHT::loop() {
             }
             //printf("%lld\n",HRTB::clockCorrectionFlopsync);
             //This printf shouldn't be in here because is very slow 
-            printf( "HRT bare:%lld, RTC %lld, next:%lld, COMP1:%lu basicCorr:%lld\n\t"
-                    "Theor:%lld, Master:%lld, Slave:%lld\n\t"
-                    "Error:%lld, FSync corr:%lld, PendingSync:%d\n\n",
-                hrtb.IRQgetCurrentTick(),
-                rtc.getValue(),
-                HRTB::nextSyncPointRtc,
-                RTC->COMP1,
-                HRTB::clockCorrection,
-                HRTB::syncPointHrtTheoretical,
-                HRTB::syncPointHrtMaster,
-                HRTB::syncPointHrtSlave,
-                HRTB::error,
-                HRTB::clockCorrectionFlopsync,
-                tempPendingVhtSync);
+//            printf( "HRT bare:%lld, RTC %lld, next:%lld, COMP1:%lu basicCorr:%lld\n\t"
+//                    "Theor:%lld, Master:%lld, Slave:%lld\n\t"
+//                    "Error:%lld, FSync corr:%lld, PendingSync:%d\n\n",
+//                hrtb.IRQgetCurrentTick(),
+//                rtc.getValue(),
+//                HRTB::nextSyncPointRtc,
+//                RTC->COMP1,
+//                HRTB::clockCorrection,
+//                HRTB::syncPointHrtTheoretical,
+//                HRTB::syncPointHrtMaster,
+//                HRTB::syncPointHrtSlave,
+//                HRTB::error,
+//                HRTB::clockCorrectionFlopsync,
+//                tempPendingVhtSync);
         } 
 
         
