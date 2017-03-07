@@ -26,7 +26,6 @@
  ***************************************************************************/
 
 #include "flopsync1.h"
-#include "interfaces-impl/timer_interface.h"
 #include <algorithm>
 
 using namespace std;
@@ -39,7 +38,6 @@ using namespace std;
 
 Flopsync1::Flopsync1()
 {
-    auto& timer=miosix::getTransceiverTimer();
     wMin=( 100000)/scaleFactor; //100us
     wMax=(6000000)/scaleFactor; //6ms
     reset();

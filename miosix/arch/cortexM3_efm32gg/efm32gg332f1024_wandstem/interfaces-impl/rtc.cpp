@@ -47,7 +47,6 @@ using namespace miosix;
 const unsigned int timerBits=24;
 const unsigned long long overflowIncrement=(1LL<<timerBits);
 const unsigned long long lowerMask=overflowIncrement-1;
-const unsigned long long upperMask=0xFFFFFFFFFFFFFFFFLL-lowerMask;
 
 static long long swCounter=0;         ///< RTC software counter in ticks
 static unsigned int lastHwCounter=0;  ///< variable for evaluating overflows
@@ -177,8 +176,8 @@ void __attribute__((used)) RTChandlerImpl()
         }
     }
     
-    if((RTC->IEN & RTC_IEN_COMP1) & (RTC->IF & RTC_IF_COMP1)){
-    
+    if(RTC->IF & RTC_IF_COMP1){
+        RTC->IFC=RTC_IFC_COMP1;
     }
 }
 
