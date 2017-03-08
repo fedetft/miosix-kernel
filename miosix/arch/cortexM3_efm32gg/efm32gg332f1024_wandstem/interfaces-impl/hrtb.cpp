@@ -139,8 +139,8 @@ static  void callScheduler(){
     TIMER3->IEN &= ~TIMER_IEN_CC1;
     TIMER1->IFC = TIMER_IFC_CC1;
     TIMER3->IFC = TIMER_IFC_CC1;
-    long long tick = tc->tick2ns(IRQgetTickCorrectedVht());
-    IRQtimerInterrupt(tick);
+    long long ns = tc->tick2ns(IRQgetTickCorrectedVht());
+    IRQtimerInterrupt(ns);
 }
 
 static void setupTimers(){

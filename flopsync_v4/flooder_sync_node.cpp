@@ -30,12 +30,18 @@
 #include <cassert>
 #include <stdexcept>
 #include "../../../../debugpin.h"
+#include "kernel/timeconversion.h"
+#include "interfaces-impl/transceiver_timer.h"
 
 using namespace std;
 using namespace miosix;
 //
 // class FlooderSyncNode
 //
+
+//Max period, necessary to guarantee the proper behaviuor of runUpdate
+//They are about 1099s
+static long long maxPeriod=1099511627775;
 
 FlooderSyncNode::FlooderSyncNode(Synchronizer *synchronizer,
                                  long long syncPeriod,
@@ -46,13 +52,18 @@ FlooderSyncNode::FlooderSyncNode(Synchronizer *synchronizer,
       timer(getTransceiverTimer()),
       transceiver(Transceiver::instance()),
       synchronizer(synchronizer),
-      measuredFrameStart(0), computedFrameStart(0),
+      measuredFrameStart(0), 
+      computedFrameStart(0),
+      computedFrameStartTick(0),
+      theoreticalFrameStartNs(0),theoreticalFrameStartTick(0),
       radioFrequency(radioFrequency), clockCorrection(0),
       receiverWindow(synchronizer->getReceiverWindow()),
       missPackets(maxMissPackets+1), hop(0),
       panId(panId), txPower(txPower), fixedHop(false), debug(true)
 {
+    assert(maxPeriod>=syncPeriod);
     //350us and forced receiverWindow=1 fails, keeping this at minimum
+    //This is dependent on the optimization level, i usually use level -O2
     syncNodeWakeupAdvance=450000;
     //5 byte (4 preamble, 1 SFD) * 32us/byte
     packetPreambleTime=160000;
@@ -61,12 +72,19 @@ FlooderSyncNode::FlooderSyncNode(Synchronizer *synchronizer,
     //FIXME: with a so small slack if the packet is received at the end of the
     //receiver window there may be no time for rebroadcast
     packetRebroadcastTime=(syncPacketSize+6)*32000+600000;
+    tc=new TimeConversion(48000000);
+    initDebugPins();
 }
         
 bool FlooderSyncNode::synchronize()
 {
+    
     if(missPackets>maxMissPackets) return true;
+    
+    TransceiverTimer& t=TransceiverTimer::instance();
+
     computedFrameStart+=syncPeriod+clockCorrection;
+    computedFrameStartTick=tc->ns2tick(computedFrameStart);
     long long wakeupTime=computedFrameStart-(syncNodeWakeupAdvance+receiverWindow); 
     long long timeoutTime=computedFrameStart+receiverWindow+packetPreambleTime;
         
@@ -76,7 +94,9 @@ bool FlooderSyncNode::synchronize()
         ++missPackets;
         return false;
     }
+
     pm.deepSleepUntil(wakeupTime);
+    debug1::high();
     ledOn();
     //Transceiver configured with non strict timeout
     miosix::TransceiverConfiguration cfg(radioFrequency,txPower,true,false);
@@ -88,7 +108,8 @@ bool FlooderSyncNode::synchronize()
     bool timeout=false;
     for(;;)
     {
-        try {            
+        try {    
+            debug1::low();
             auto result=transceiver.recv(packet,syncPacketSize,timeoutTime);
             if(isSyncPacket(result,packet) && packet[2]==hop)
             {
@@ -131,6 +152,9 @@ bool FlooderSyncNode::synchronize()
     receiverWindow=r.second;
     //Correct frame start considering hops
     //measuredFrameStart-=hop*packetRebroadcastTime;
+    theoreticalFrameStartNs+=syncPeriod;
+    theoreticalFrameStartTick=tc->ns2tick(theoreticalFrameStartNs);
+    runUpdate();
     return false;
 }
 
@@ -150,7 +174,9 @@ void FlooderSyncNode::resynchronize()
             auto result=transceiver.recv(packet,syncPacketSize,infiniteTimeout);
             if(isSyncPacket(result,packet) && (fixedHop==false || packet[2]==hop))
             {
-                computedFrameStart=measuredFrameStart=result.timestamp;
+                //Even the Theoretic is started at this time, so the absolute time is dependent of the board
+                theoreticalFrameStartNs=computedFrameStart=measuredFrameStart=result.timestamp;
+                computedFrameStartTick=theoreticalFrameStartTick=tc->ns2tick(theoreticalFrameStartNs);
                 break;
             }
         } catch(exception& e) {
@@ -163,7 +189,7 @@ void FlooderSyncNode::resynchronize()
     receiverWindow=synchronizer->getReceiverWindow();
     missPackets=0;
     if(!fixedHop) hop=packet[2];
-    printf("First resync:%lld\n",computedFrameStart);
+    //printf("First resync:%lld\n",computedFrameStart);
     //Correct frame start considering hops
     //measuredFrameStart-=hop*packetRebroadcastTime;
     if(debug) puts("Done.\n");
@@ -180,8 +206,7 @@ void FlooderSyncNode::rebroadcast(long long int receivedTimestamp,
     } catch(exception& e) {
         if(debug) puts(e.what());
     }
-    printf("Rebroad done!\n")
-;}
+}
 
 bool FlooderSyncNode::isSyncPacket(RecvResult& result, unsigned char *packet){
     return    result.error==RecvResult::OK && result.timestampValid==true
@@ -191,3 +216,19 @@ bool FlooderSyncNode::isSyncPacket(RecvResult& result, unsigned char *packet){
                && packet[4]==static_cast<unsigned char>(panId & 0xff)
                && packet[5]==0xff && packet[6]==0xff;
 }
+
+void FlooderSyncNode::runUpdate(){
+    //efficient way to calculate the factor T/(T+u(k))
+    long long temp=(syncPeriod<<24)/(syncPeriod+clockCorrection);
+    //printf("Temp1: %lld\n",temp);
+    factorI = static_cast<unsigned int>((temp & 0x00FFFFFFFF000000LLU)>>24);
+    factorD = static_cast<unsigned int>(temp<<8);
+    //calculate inverse of previous factor (T+u(k))/T
+    temp = ((syncPeriod+clockCorrection)<<24)/syncPeriod;
+    //printf("Temp2: %lld\n",temp);
+    inverseFactorI = static_cast<unsigned int>((temp & 0x00FFFFFFFF000000LLU)>>24);
+    inverseFactorD = static_cast<unsigned int>(temp<<8);
+    
+    //printf("%u %u %u %u\n",factorI,factorD,inverseFactorI,inverseFactorD);
+}
+

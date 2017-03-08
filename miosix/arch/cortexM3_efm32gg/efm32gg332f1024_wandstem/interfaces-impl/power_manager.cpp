@@ -54,7 +54,6 @@ PowerManager& PowerManager::instance()
 
 void PowerManager::deepSleepUntil(long long int when, Unit unit)
 {
-    //instance() is not necessarily safe to be called with IRQ disabled
     if(unit==Unit::NS){
         when=rtc->ns2tick(when);
     }
@@ -66,7 +65,7 @@ void PowerManager::deepSleepUntil(long long int when, Unit unit)
     Lock<FastMutex> l(powerMutex);  //To access reference counts freely
     PauseKernelLock pkLock;         //To run unexpected IRQs without context switch
     FastInterruptDisableLock dLock; //To do everything else atomically
-    
+
     const int timeToSyncAfterWakeup = 3;
     
     //The wakeup time has been profiled, and takes ~310us when the transceiver
@@ -92,9 +91,9 @@ void PowerManager::deepSleepUntil(long long int when, Unit unit)
         RTC->IEN &= ~RTC_IEN_COMP1;
     } else {
         IRQpreDeepSleep(rtx);
-	// Flag to enable the deepsleep when we will call _WFI, 
-	// otherwise _WFI is translated as a simple sleep status, this means that the core is not running 
-	// but all the peripheral (HF and LF), are still working and they can trigger exception
+        // Flag to enable the deepsleep when we will call _WFI, 
+        // otherwise _WFI is translated as a simple sleep status, this means that the core is not running 
+        // but all the peripheral (HF and LF), are still working and they can trigger exception
         SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk; 
         EMU->CTRL=0;
         for(;;)
@@ -129,8 +128,8 @@ void PowerManager::deepSleepUntil(long long int when, Unit unit)
                 //sleep till we serve the interrupt, so let's do it.
                 //Note that since the kernel is paused the interrupt we're
                 //serving can't cause a context switch and fuck up things.
+                resyncClock();
                 {
-                    resyncClock();
                     FastInterruptEnableLock eLock(dLock);
                     //Here interrupts are enabled, so the interrupt gets served
                     __NOP();
@@ -431,8 +430,11 @@ void PowerManager::resyncClock(){
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
 
     while(!(RTC->IF & RTC_IF_COMP1));
-    
     long long timestamp=b->getVhtTimestamp();
+    //Got the values, now polishment of flags and register
+    RTC->IFC=RTC_IFC_COMP1;
+    TIMER2->IFC=TIMER_IFC_CC2;
+    
     RTC->COMP1=prevCOMP1;
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
     long long syncAtHrt=mul64x32d32(syncAtRtc, 1464, 3623878656);

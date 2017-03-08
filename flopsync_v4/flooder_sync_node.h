@@ -28,6 +28,7 @@
 #ifndef FLOODER_SYNC_NODE_H
 #define	FLOODER_SYNC_NODE_H
 
+#include "stdio.h"
 #include "interfaces-impl/transceiver.h"
 #include "interfaces-impl/timer_interface.h"
 #include "interfaces-impl/power_manager.h"
@@ -35,6 +36,9 @@
 #include "flooding_scheme.h"
 #include <miosix.h>
 #include <cstring>
+#include "kernel/timeconversion.h"
+
+using namespace miosix;
 
 /**
  * Glossy flooding scheme, generic synchronized node
@@ -82,7 +86,7 @@ public:
     {
         return computedFrameStart-hop*packetRebroadcastTime;
     }
-    
+
     /**
      * \return true if in this frame the sync packet was not received
      */
@@ -93,12 +97,30 @@ public:
      * \param hop hop to which the node should belong, or 0 to restore the
      * default behaviour of automatically joining an hop
      */
-    void forceHop(unsigned char hop) { this->hop=hop-1; fixedHop= hop!=0; }
+    void forceHop(unsigned char hop) { this->hop=hop-1; fixedHop= this->hop!=0; }
     
     /**
      * \param enabled if true, this class prints debug data
      */
     void debugMode(bool enabled) { debug=enabled; }
+    
+    /**
+     * Uncorrect a given tick value with the windows parameter
+     * @param tick in HIGH frequency
+     * @return  
+     */
+    long long corrected2uncorrected(long long tick){
+        return computedFrameStartTick+fastNegMul((tick-theoreticalFrameStartTick),inverseFactorI,inverseFactorD);
+    }
+        
+    /**
+     * Correct a given tick value with the windows parameter
+     * @param tick in HIGH frequency
+     * @return 
+     */
+    long long uncorrected2corrected(long long tick){
+        return theoreticalFrameStartTick+fastNegMul(tick-computedFrameStartTick,factorI,factorD);
+    }
     
 private:
     /**
@@ -108,14 +130,30 @@ private:
      */
     void rebroadcast(long long receivedTimestamp, unsigned char *packet);
     
+    void runUpdate();
+    
     bool isSyncPacket(miosix::RecvResult& result, unsigned char *packet);
     
+    long long fastNegMul(long long a,unsigned int bi, unsigned int bf){
+        if(a<0){
+            return -mul64x32d32(-a,bi,bf);
+        }else{
+            return mul64x32d32(a,bi,bf);
+        }
+    }
+    
+    TimeConversion* tc;
     miosix::PowerManager& pm;
     miosix::HardwareTimer& timer;
     miosix::Transceiver& transceiver;
     Synchronizer *synchronizer;
+    
     long long measuredFrameStart;
     long long computedFrameStart;
+    long long computedFrameStartTick;
+    long long theoreticalFrameStartNs;
+    long long theoreticalFrameStartTick;
+    
     unsigned int radioFrequency;
     int clockCorrection;
     int receiverWindow; 
@@ -132,6 +170,11 @@ private:
     static const unsigned char maxHops=20;
     static const unsigned char maxMissPackets=3;
     static const int syncPacketSize=7;
+    
+    unsigned int factorI=1;
+    unsigned int factorD=0;
+    unsigned int inverseFactorI=1;
+    unsigned int inverseFactorD=0;
 };
 
 #endif //FLOODER_SYNC_NODE_H
