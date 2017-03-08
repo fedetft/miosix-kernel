@@ -31,17 +31,16 @@
 #include <stdexcept>
 #include "../../../../debugpin.h"
 #include "kernel/timeconversion.h"
-#include "interfaces-impl/transceiver_timer.h"
+#include "interfaces-impl/virtual_clock.h"
 
 using namespace std;
 using namespace miosix;
+
+static VirtualClock* vt=nullptr;
+
 //
 // class FlooderSyncNode
 //
-
-//Max period, necessary to guarantee the proper behaviuor of runUpdate
-//They are about 1099s
-static long long maxPeriod=1099511627775;
 
 FlooderSyncNode::FlooderSyncNode(Synchronizer *synchronizer,
                                  long long syncPeriod,
@@ -61,7 +60,8 @@ FlooderSyncNode::FlooderSyncNode(Synchronizer *synchronizer,
       missPackets(maxMissPackets+1), hop(0),
       panId(panId), txPower(txPower), fixedHop(false), debug(true)
 {
-    assert(maxPeriod>=syncPeriod);
+    vt=&VirtualClock::instance();
+    vt->setSyncPeriod(syncPeriod);
     //350us and forced receiverWindow=1 fails, keeping this at minimum
     //This is dependent on the optimization level, i usually use level -O2
     syncNodeWakeupAdvance=450000;
@@ -73,16 +73,14 @@ FlooderSyncNode::FlooderSyncNode(Synchronizer *synchronizer,
     //receiver window there may be no time for rebroadcast
     packetRebroadcastTime=(syncPacketSize+6)*32000+600000;
     tc=new TimeConversion(48000000);
+    
     initDebugPins();
 }
         
 bool FlooderSyncNode::synchronize()
 {
-    
     if(missPackets>maxMissPackets) return true;
     
-    TransceiverTimer& t=TransceiverTimer::instance();
-
     computedFrameStart+=syncPeriod+clockCorrection;
     computedFrameStartTick=tc->ns2tick(computedFrameStart);
     long long wakeupTime=computedFrameStart-(syncNodeWakeupAdvance+receiverWindow); 
@@ -132,6 +130,7 @@ bool FlooderSyncNode::synchronize()
     transceiver.turnOff();
     ledOff();
     pair<int,int> r;
+    printf("[%lld] ",getTime()/1000000000);
     if(timeout)
     {
         if(++missPackets>maxMissPackets)
@@ -154,7 +153,7 @@ bool FlooderSyncNode::synchronize()
     //measuredFrameStart-=hop*packetRebroadcastTime;
     theoreticalFrameStartNs+=syncPeriod;
     theoreticalFrameStartTick=tc->ns2tick(theoreticalFrameStartNs);
-    runUpdate();
+    vt->update(theoreticalFrameStartTick,computedFrameStartTick,clockCorrection);
     return false;
 }
 
@@ -215,20 +214,5 @@ bool FlooderSyncNode::isSyncPacket(RecvResult& result, unsigned char *packet){
                && packet[3]==static_cast<unsigned char>(panId>>8)
                && packet[4]==static_cast<unsigned char>(panId & 0xff)
                && packet[5]==0xff && packet[6]==0xff;
-}
-
-void FlooderSyncNode::runUpdate(){
-    //efficient way to calculate the factor T/(T+u(k))
-    long long temp=(syncPeriod<<24)/(syncPeriod+clockCorrection);
-    //printf("Temp1: %lld\n",temp);
-    factorI = static_cast<unsigned int>((temp & 0x00FFFFFFFF000000LLU)>>24);
-    factorD = static_cast<unsigned int>(temp<<8);
-    //calculate inverse of previous factor (T+u(k))/T
-    temp = ((syncPeriod+clockCorrection)<<24)/syncPeriod;
-    //printf("Temp2: %lld\n",temp);
-    inverseFactorI = static_cast<unsigned int>((temp & 0x00FFFFFFFF000000LLU)>>24);
-    inverseFactorD = static_cast<unsigned int>(temp<<8);
-    
-    //printf("%u %u %u %u\n",factorI,factorD,inverseFactorI,inverseFactorD);
 }
 

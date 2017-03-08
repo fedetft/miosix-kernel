@@ -2120,7 +2120,8 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
         $(BOARD_INC)/interfaces-impl/gpioirq.cpp                    \
         $(BOARD_INC)/interfaces-impl/transceiver.cpp                \
         $(BOARD_INC)/interfaces-impl/flopsync_vht.cpp               \
-        $(BOARD_INC)/interfaces-impl/vht.cpp
+        $(BOARD_INC)/interfaces-impl/vht.cpp                        \
+        $(BOARD_INC)/interfaces-impl/virtual_clock.cpp
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -DEFM32GG332F1024 -D_BOARD_WANDSTEM

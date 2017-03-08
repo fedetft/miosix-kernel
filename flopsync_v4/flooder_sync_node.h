@@ -104,24 +104,6 @@ public:
      */
     void debugMode(bool enabled) { debug=enabled; }
     
-    /**
-     * Uncorrect a given tick value with the windows parameter
-     * @param tick in HIGH frequency
-     * @return  
-     */
-    long long corrected2uncorrected(long long tick){
-        return computedFrameStartTick+fastNegMul((tick-theoreticalFrameStartTick),inverseFactorI,inverseFactorD);
-    }
-        
-    /**
-     * Correct a given tick value with the windows parameter
-     * @param tick in HIGH frequency
-     * @return 
-     */
-    long long uncorrected2corrected(long long tick){
-        return theoreticalFrameStartTick+fastNegMul(tick-computedFrameStartTick,factorI,factorD);
-    }
-    
 private:
     /**
      * Rebroadcst the synchronization packet using glossy
@@ -129,9 +111,7 @@ private:
      * \param packet the received packet
      */
     void rebroadcast(long long receivedTimestamp, unsigned char *packet);
-    
-    void runUpdate();
-    
+        
     bool isSyncPacket(miosix::RecvResult& result, unsigned char *packet);
     
     long long fastNegMul(long long a,unsigned int bi, unsigned int bf){
