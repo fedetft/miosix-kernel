@@ -55,7 +55,7 @@ public:
      * @return 
      */
     static inline long long corrected2uncorrected(long long tick){
-        return mul64x32d32((tick-HRTB::syncPointHrtTheoretical),inverseFactorI,inverseFactorD)+HRTB::syncPointHrtSlave;
+        return fastNegMul((tick-HRTB::syncPointHrtTheoretical),inverseFactorI,inverseFactorD)+HRTB::syncPointHrtSlave;
     }
     
     void start();
