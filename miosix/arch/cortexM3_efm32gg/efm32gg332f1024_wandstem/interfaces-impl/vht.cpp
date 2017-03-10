@@ -84,9 +84,11 @@ void VHT::loop() {
         //Master è quello timestampato correttamente, il nostro punto di riferimento
         HRTB::error = hrtT - (HRTB::syncPointHrtExpected);
         int u=f.computeCorrection(HRTB::error);
-        
+
         if(VHT::softEnable)
         {
+            greenLed::toggle();
+
             //The correction should always less than 300ppm
             assert(HRTB::error<x&&HRTB::error>-x);
             {

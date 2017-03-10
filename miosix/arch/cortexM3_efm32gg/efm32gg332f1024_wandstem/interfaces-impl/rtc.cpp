@@ -264,7 +264,7 @@ bool Rtc::absoluteWaitTimeoutOrEvent(long long value)
     return waitImpl(value,true)!=WaitResult::EVENT;
 }
 
-long long Rtc::getExtEventTimestamp() const
+long long Rtc::getExtEventTimestamp(Correct c) const
 {
     return timestampEvent;
 }

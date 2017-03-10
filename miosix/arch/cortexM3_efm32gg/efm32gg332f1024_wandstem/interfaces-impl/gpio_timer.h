@@ -64,7 +64,7 @@ namespace miosix {
         
         unsigned int getTickFrequency() const;
         
-        long long getExtEventTimestamp() const;
+        long long getExtEventTimestamp(Correct c) const;
         
         long long tick2ns(long long tick);
         long long ns2tick(long long ns);

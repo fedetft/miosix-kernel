@@ -439,9 +439,10 @@ void PowerManager::resyncClock(){
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
     long long syncAtHrt=mul64x32d32(syncAtRtc, 1464, 3623878656);
     HRTB::clockCorrection=syncAtHrt-timestamp;
-    HRTB::syncPointHrtSlave=syncAtHrt;
+    HRTB::syncPointHrtExpected=syncAtHrt;
     HRTB::nextSyncPointRtc=syncAtRtc+HRTB::syncPeriodRtc;
     HRTB::syncPointHrtTheoretical=syncAtHrt;
+    HRTB::syncPointHrtActual=syncAtHrt;
 }
 
 } //namespace miosix

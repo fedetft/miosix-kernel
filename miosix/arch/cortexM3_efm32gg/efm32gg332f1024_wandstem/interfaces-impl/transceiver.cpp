@@ -316,7 +316,7 @@ void Transceiver::sendAt(const void* pkt, int size, long long when, Unit unit)
     handlePacketTransmissionEvents(size);
 }
 
-RecvResult Transceiver::recv(void *pkt, int size, long long timeout,Unit unit)
+RecvResult Transceiver::recv(void *pkt, int size, long long timeout, Unit unit, HardwareTimer::Correct c)
 {
     if(state==CC2520State::DEEPSLEEP)
         throw runtime_error("Transceiver::recv while in deep sleep");
@@ -350,10 +350,10 @@ RecvResult Transceiver::recv(void *pkt, int size, long long timeout,Unit unit)
                 //Timestamp is wrong and we know it, so we don't set valid
                 
                 if(unit==Unit::NS){
-                    result.timestamp=timer.tick2ns(timer.getExtEventTimestamp())-
+                    result.timestamp=timer.tick2ns(timer.getExtEventTimestamp(c))-
                         (preambleSfdTime+rxSfdLag);
                 }else{
-                    result.timestamp=timer.getExtEventTimestamp()-
+                    result.timestamp=timer.getExtEventTimestamp(c)-
                         timer.ns2tick(preambleSfdTime+rxSfdLag);
                 }
                 
@@ -368,7 +368,7 @@ RecvResult Transceiver::recv(void *pkt, int size, long long timeout,Unit unit)
         }
     }
     
-    if(handlePacketReceptionEvents(timeout,size,result,unit)==false)
+    if(handlePacketReceptionEvents(timeout,size,result,unit,c)==false)
          readPacketFromRxBuffer(pkt,size,result);
     return result;
 }
@@ -567,7 +567,7 @@ void Transceiver::handlePacketTransmissionEvents(int size)
     if(silentError) idle();
 }
 
-bool Transceiver::handlePacketReceptionEvents(long long timeout, int size, RecvResult& result, Unit unit)
+bool Transceiver::handlePacketReceptionEvents(long long timeout, int size, RecvResult& result, Unit unit, HardwareTimer::Correct c)
 {
     if(unit==Unit::NS)
     {
@@ -583,10 +583,10 @@ bool Transceiver::handlePacketReceptionEvents(long long timeout, int size, RecvR
     //packet is received, while the cc2520 allows timestamping at the SFD
     
     if(unit==Unit::NS){
-        result.timestamp=timer.tick2ns(timer.getExtEventTimestamp())-
+        result.timestamp=timer.tick2ns(timer.getExtEventTimestamp(c))-
                         (preambleSfdTime+rxSfdLag);
     }else{
-        result.timestamp=timer.getExtEventTimestamp()-
+        result.timestamp=timer.getExtEventTimestamp(c)-
                         timer.ns2tick(preambleSfdTime+rxSfdLag);
     }
     

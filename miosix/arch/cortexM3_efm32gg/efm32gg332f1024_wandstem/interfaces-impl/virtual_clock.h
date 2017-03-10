@@ -59,7 +59,7 @@ public:
     
     void update(long long baseTheoretical, long long baseComputed, long long clockCorrection);
     
-    void setSyncPeriod(long long syncPeriod){
+    void setSyncPeriod(unsigned long long syncPeriod){
         if(syncPeriod>maxPeriod) throw 0;
         this->syncPeriod=syncPeriod;
     }
@@ -79,8 +79,8 @@ private:
     
     //Max period, necessary to guarantee the proper behaviour of runUpdate
     //They are 2^40=1099s
-    const long long maxPeriod=1099511627775;
-    long long syncPeriod=-1;
+    const unsigned long long maxPeriod=1099511627775;
+    unsigned long long syncPeriod=0;
     long long baseTheoretical=0;
     long long baseComputed=0;
     unsigned int factorI=1;

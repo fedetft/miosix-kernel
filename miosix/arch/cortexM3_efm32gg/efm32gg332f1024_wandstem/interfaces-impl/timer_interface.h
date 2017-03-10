@@ -41,6 +41,11 @@ namespace miosix {
 class HardwareTimer
 {
 public:
+    enum Correct{
+        CORR,
+        UNCORR
+    };
+    
     /**
      * \return the timer counter value in ticks
      */
@@ -100,7 +105,7 @@ public:
      * \return the precise time in ticks when the IRQ signal of the event was
      * asserted
      */
-    virtual long long getExtEventTimestamp() const=0;
+    virtual long long getExtEventTimestamp(Correct c) const=0;
 
     /**
      * Althought the interface to the timer is in ticks to be able to do

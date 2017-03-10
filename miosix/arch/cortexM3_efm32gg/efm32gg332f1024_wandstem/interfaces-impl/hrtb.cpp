@@ -36,6 +36,7 @@
 #include "flopsync_vht.h"
 #include "../../../../debugpin.h"
 #include "vht.h"
+#include "virtual_clock.h"
 
 using namespace miosix;
 
@@ -56,17 +57,13 @@ Thread *transceiverWaiting=nullptr;
 
 Rtc *rtc=nullptr;
 VHT *vht=nullptr;
+VirtualClock *vt=nullptr;
 
 bool isInputGPIO=true;
 bool isInputTransceiver=true;
 
 static int faseGPIO=0;
 static int faseTransceiver=0;
-
-//static volatile unsigned long long vhtBaseVht=0;	    ///< Vht time corresponding to rtc time: theoretical
-//static unsigned long long syncPointRtc=0;		    ///< Rtc time corresponding to vht time : known with sum
-//static volatile unsigned long long syncPointVht=0;	    ///< Vht time corresponding to rtc time :timestanped
-//static unsigned long long syncVhtRtcPeriod=3000;
 
 static inline unsigned int IRQread32Timer(){
     unsigned int high=TIMER3->CNT;
@@ -139,7 +136,8 @@ static  void callScheduler(){
     TIMER3->IEN &= ~TIMER_IEN_CC1;
     TIMER1->IFC = TIMER_IFC_CC1;
     TIMER3->IFC = TIMER_IFC_CC1;
-    long long ns = tc->tick2ns(IRQgetTickCorrectedVht());
+    //This line takes about 7.7microseconds
+    long long ns = tc->tick2ns(vt->uncorrected2corrected(IRQgetTickCorrectedVht()));
     IRQtimerInterrupt(ns);
 }
 
@@ -272,23 +270,23 @@ void __attribute__((used)) cstirqhnd2(){
     
     if ((TIMER2->IEN & TIMER_IEN_CC2) && (TIMER2->IF & TIMER_IF_CC2) ){	
         TIMER2->IFC = TIMER_IFC_CC2;
-        greenLed::toggle();
+
         //Reading the timestamp of the low freq clock
         uint32_t low=TIMER2->CC[2].CCV;
         uint32_t high=TIMER3->CNT;
-        HRTB::syncPointHrtMaster = ms32time | high << 16 | low;
+        HRTB::syncPointHrtActual = ms32time | high << 16 | low;
         //Assuming that this routine is executed within 1.3ms after the interrupt
-        if(HRTB::syncPointHrtMaster > IRQgetTick()){
-            HRTB::syncPointHrtMaster = ms32time | ((high-1) << 16) | low;
+        if(HRTB::syncPointHrtActual > IRQgetTick()){
+            HRTB::syncPointHrtActual = ms32time | ((high-1) << 16) | low;
         }
         //Adding the basic correction
-        HRTB::syncPointHrtMaster += HRTB::clockCorrection;
+        HRTB::syncPointHrtActual += HRTB::clockCorrection;
 
         //Reading and setting the next rtc trigger
         HRTB::nextSyncPointRtc += HRTB::syncPeriodRtc;
         HRTB::syncPointHrtTheoretical += HRTB::syncPeriodHrt;
 
-        HRTB::syncPointHrtSlave += (HRTB::syncPeriodHrt + HRTB::clockCorrectionFlopsync);
+        HRTB::syncPointHrtExpected += (HRTB::syncPeriodHrt + HRTB::clockCorrectionFlopsync);
         //Clean the output channel of RTC
         RTC->IFC = RTC_IFC_COMP1;
         RTC->COMP1 = RTC->COMP1+HRTB::syncPeriodRtc;
@@ -906,10 +904,10 @@ HRTB::HRTB() {
         #error "Clock frequency assumption not satisfied"
         #endif
         HRTB::clockCorrection=mul64x32d32(now, 1464, 3623878656)-timestamp;
-        HRTB::syncPointHrtSlave=mul64x32d32(now, 1464, 3623878656);
+        HRTB::syncPointHrtExpected=mul64x32d32(now, 1464, 3623878656);
     }
     
-    
+    vt=&VirtualClock::instance();
     //Resync done, now I have to set the next resync
     nextSyncPointRtc=RTC->CNT+syncPeriodRtc;
     RTC->COMP1=nextSyncPointRtc-1;
@@ -932,8 +930,8 @@ long long HRTB::error=0;
 //NOTE: you have to change both value to make flopsync works
 long long HRTB::syncPeriodRtc=6560;//7520; //15008; //3008; //6560;
 long long HRTB::syncPeriodHrt=9609375;//11015625;//21984375;//4406250;//9609375;
-long long HRTB::syncPointHrtMaster=0;
-long long HRTB::syncPointHrtSlave=0;
+long long HRTB::syncPointHrtActual=0;
+long long HRTB::syncPointHrtExpected=0;
 long long HRTB::syncPointHrtTheoretical=0;
 long long HRTB::syncPointRtc=0;
 long long HRTB::nextSyncPointRtc=0;

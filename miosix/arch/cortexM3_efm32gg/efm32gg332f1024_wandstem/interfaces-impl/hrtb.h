@@ -153,17 +153,9 @@ class HRTB {
         
         virtual ~HRTB();
 
-        /**
-        These 4 variables are used to manage the correction of the timers.
-        * vhtBase (high frequency): keeps the last sync point
-        * vhtSyncPointRtc (low frequency): keeps the last sync point, just a simple conversion from vhtBase
-        * vhtSyncPointVht (high frequency: keeps the precise value of last sync point
-        * vhtOffset (high frequency): keeps the difference between the actual time and the counter value
-        */
-        static long long syncPointHrtMaster;
-        static long long syncPointHrtSlave;
+        static long long syncPointHrtActual;
+        static long long syncPointHrtExpected;
         static long long syncPointHrtTheoretical;
-        static long long vhtOffset;
         static long long syncPeriodRtc;
         static long long syncPointRtc;
         static long long nextSyncPointRtc;

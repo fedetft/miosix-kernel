@@ -27,27 +27,29 @@
 
 #include "transceiver_timer.h"
 #include "vht.h"
+#include "virtual_clock.h"
 
 using namespace miosix;
 
 static VHT* vht=nullptr;
+static VirtualClock *vt=nullptr;
 
 //transceiver::excChB	usato per la ricezione INPUT_CAPTURE TIMER2_CC0 -> PA8
 //transceiver::stxon	usato per attivare la trasmissione OUTPUTCOMPARE TIMER2_CC1 -> PA9
 
 long long TransceiverTimer::getValue() const{
     FastInterruptDisableLock dLock;
-    return b.IRQgetCurrentTickVht();
+    return vt->uncorrected2corrected(b.IRQgetCurrentTickVht());
 }
 
 void TransceiverTimer::wait(long long tick){
-    absoluteWait(b.getCurrentTickVht()+tick);
+    absoluteWait(vt->uncorrected2corrected(b.getCurrentTickVht())+tick);
 }
 
 bool TransceiverTimer::absoluteWait(long long tick){
     FastInterruptDisableLock dLock;
     
-    long long t=b.removeBasicCorrection(vht->corrected2uncorrected(tick));
+    long long t=b.removeBasicCorrection(vht->corrected2uncorrected(vt->corrected2uncorrected(tick)));
     b.setModeTransceiverTimer(true);
     if(b.IRQsetTransceiverTimeout(t)==WaitResult::WAITING){
         b.IRQtransceiverWait(t,&dLock);
@@ -57,15 +59,15 @@ bool TransceiverTimer::absoluteWait(long long tick){
 }
 
 bool TransceiverTimer::absoluteWaitTrigger(long long tick){
-    return b.transceiverAbsoluteWaitTrigger(b.removeBasicCorrection(vht->corrected2uncorrected(tick)));
+    return b.transceiverAbsoluteWaitTrigger(b.removeBasicCorrection(vht->corrected2uncorrected(vt->corrected2uncorrected(tick))));
 }
 
 bool TransceiverTimer::absoluteWaitTimeoutOrEvent(long long tick){
-    return b.transceiverAbsoluteWaitTimeoutOrEvent(b.removeBasicCorrection(vht->corrected2uncorrected(tick)));
+    return b.transceiverAbsoluteWaitTimeoutOrEvent(b.removeBasicCorrection(vht->corrected2uncorrected(vt->corrected2uncorrected(tick))));
 }
 
 bool TransceiverTimer::waitTimeoutOrEvent(long long tick){
-    return absoluteWaitTimeoutOrEvent(b.IRQgetCurrentTickVht()+tick);
+    return absoluteWaitTimeoutOrEvent(vt->uncorrected2corrected(b.IRQgetCurrentTickVht())+tick);
 }
 
 long long TransceiverTimer::tick2ns(long long tick){
@@ -80,13 +82,19 @@ unsigned int TransceiverTimer::getTickFrequency() const{
     return b.getTimerFrequency();
 }
 	    
-long long TransceiverTimer::getExtEventTimestamp() const{
-    return vht->uncorrected2corrected(b.addBasicCorrection(b.IRQgetSetTimeTransceiver()))-stabilizingTime;
+long long TransceiverTimer::getExtEventTimestamp(Correct c) const{
+    long long t=(vht->uncorrected2corrected(b.addBasicCorrection(b.IRQgetSetTimeTransceiver()-stabilizingTime)));
+    if(c==Correct::UNCORR){
+        return t;
+    }else{
+        return vt->uncorrected2corrected(t);
+    }
 }
 	 
 TransceiverTimer::TransceiverTimer():b(HRTB::instance()),tc(b.getTimerFrequency()) {
     b.initTransceiver();
     vht=&VHT::instance();
+    vt=&VirtualClock::instance();
 }
 
 TransceiverTimer& TransceiverTimer::instance(){

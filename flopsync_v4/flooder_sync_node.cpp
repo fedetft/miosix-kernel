@@ -37,7 +37,7 @@ using namespace std;
 using namespace miosix;
 
 static VirtualClock* vt=nullptr;
-
+static long long computedNsProva;
 //
 // class FlooderSyncNode
 //
@@ -81,10 +81,12 @@ bool FlooderSyncNode::synchronize()
 {
     if(missPackets>maxMissPackets) return true;
     
+    //This an uncorrected clock! Good for Rtc, that doesn't correct by itself
     computedFrameStart+=syncPeriod+clockCorrection;
     computedFrameStartTick=tc->ns2tick(computedFrameStart);
     long long wakeupTime=computedFrameStart-(syncNodeWakeupAdvance+receiverWindow); 
-    long long timeoutTime=computedFrameStart+receiverWindow+packetPreambleTime;
+    //This is corrected: thank to the last factor of the sum
+    long long timeoutTime=computedFrameStart+receiverWindow+packetPreambleTime-2*clockCorrection; 
         
     if(getTime()>=wakeupTime)
     {
@@ -94,6 +96,8 @@ bool FlooderSyncNode::synchronize()
     }
 
     pm.deepSleepUntil(wakeupTime);
+    long long now=getTime();
+    
     debug1::high();
     ledOn();
     //Transceiver configured with non strict timeout
@@ -108,7 +112,8 @@ bool FlooderSyncNode::synchronize()
     {
         try {    
             debug1::low();
-            auto result=transceiver.recv(packet,syncPacketSize,timeoutTime);
+            auto result=transceiver.recv(packet,syncPacketSize,timeoutTime,Transceiver::Unit::NS,HardwareTimer::Correct::UNCORR);
+            debug1::high();
             if(isSyncPacket(result,packet) && packet[2]==hop)
             {
                 measuredFrameStart=result.timestamp;
@@ -125,11 +130,14 @@ bool FlooderSyncNode::synchronize()
             break;
         }
     }
+    debug1::low();
+    
     transceiver.idle(); //Save power waiting for rebroadcast time
     if(timeout==false) rebroadcast(measuredFrameStart,packet);
     transceiver.turnOff();
     ledOff();
     pair<int,int> r;
+    printf("%lld %lld\n",wakeupTime,now);
     printf("[%lld] ",getTime()/1000000000);
     if(timeout)
     {
@@ -147,13 +155,29 @@ bool FlooderSyncNode::synchronize()
         missPackets=0;
         if(debug) printf("e=%d u=%d w=%d rssi=%d\n",e,clockCorrection,receiverWindow,rssi);
     }
+    computedNsProva+=syncPeriod;
+//    printf("MeasuredFrame start %lld %lld %lld %lld\n",
+//            tc->ns2tick(measuredFrameStart),
+//            vt->uncorrected2corrected(tc->ns2tick(measuredFrameStart)),
+//            tc->ns2tick(computedFrameStart-clockCorrection),
+//            tc->ns2tick(computedFrameStart));
     clockCorrection=r.first;
     receiverWindow=r.second;
     //Correct frame start considering hops
     //measuredFrameStart-=hop*packetRebroadcastTime;
     theoreticalFrameStartNs+=syncPeriod;
     theoreticalFrameStartTick=tc->ns2tick(theoreticalFrameStartNs);
-    vt->update(theoreticalFrameStartTick,computedFrameStartTick,clockCorrection);
+    printf("%lld %lld %lld\n",theoreticalFrameStartNs,(measuredFrameStart),computedFrameStart);
+    vt->update(tc->ns2tick(measuredFrameStart),computedFrameStartTick,clockCorrection);
+    
+    
+//    long long measuredFrameStartTick=tc->ns2tick(measuredFrameStart);
+//    //Try to estimate some timestamp
+//    for(long long i=computedFrameStartTick;i<computedFrameStartTick+676190476;i+=80000000){
+//        printf("%lld\n",i-vt->uncorrected2corrected(i));
+//    }
+//    printf("%lld?\n",computedFrameStartTick+syncPeriod-clockCorrection-vt->uncorrected2corrected(computedFrameStartTick+syncPeriod));
+//    printf("Fine test\n");
     return false;
 }
 
@@ -174,7 +198,7 @@ void FlooderSyncNode::resynchronize()
             if(isSyncPacket(result,packet) && (fixedHop==false || packet[2]==hop))
             {
                 //Even the Theoretic is started at this time, so the absolute time is dependent of the board
-                theoreticalFrameStartNs=computedFrameStart=measuredFrameStart=result.timestamp;
+                computedNsProva=theoreticalFrameStartNs=computedFrameStart=measuredFrameStart=result.timestamp;
                 computedFrameStartTick=theoreticalFrameStartTick=tc->ns2tick(theoreticalFrameStartNs);
                 break;
             }

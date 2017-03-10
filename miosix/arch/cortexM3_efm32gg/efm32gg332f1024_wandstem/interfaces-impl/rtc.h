@@ -119,7 +119,7 @@ public:
      * \return the precise time in ticks when the IRQ signal of the event was
      * asserted
      */
-    long long getExtEventTimestamp() const;
+    long long getExtEventTimestamp(Correct c) const;
     
         /**
      * Althought the interface to the timer is in ticks to be able to do

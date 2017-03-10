@@ -115,6 +115,11 @@ public:
         NS
     };
     
+    enum Correct{
+        CORR,
+        UNCORR
+    };
+    
     static const int minFrequency=2405; ///< Minimum supported frequency (MHz)
     static const int maxFrequency=2480; ///< Maximum supported frequency (MHz)
     
@@ -221,7 +226,7 @@ public:
      * responsibility of the caller to check the timeout and discard the
      * packet.
      */
-    RecvResult recv(void *pkt, int size, long long timeout, Unit unit=Unit::NS);
+    RecvResult recv(void *pkt, int size, long long timeout, Unit unit=Unit::NS, HardwareTimer::Correct c=HardwareTimer::Correct::CORR);
 
     /**
      * Read the RSSI of the currently selected channel
@@ -298,7 +303,7 @@ private:
      * \return true in case of timeout
      * \throws runtime_error in case of errors
      */
-    bool handlePacketReceptionEvents(long long timeout, int size, RecvResult& result, Unit unit);
+    bool handlePacketReceptionEvents(long long timeout, int size, RecvResult& result, Unit unit, HardwareTimer::Correct c);
     
     /**
      * Read a data packet from the transceiver
