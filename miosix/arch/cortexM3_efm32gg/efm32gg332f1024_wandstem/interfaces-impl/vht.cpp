@@ -77,12 +77,12 @@ void VHT::loop() {
             //Read in atomic context the 2 SHARED values to run flopsync
             FastInterruptDisableLock dLock;
             //rtcT=HRTB::nextSyncPointRtc-HRTB::syncPeriodRtc;
-            hrtT=HRTB::syncPointHrtMaster;
+            hrtT=HRTB::syncPointHrtActual;
             tempPendingVhtSync=VHT::pendingVhtSync;
             VHT::pendingVhtSync=0;
         }
         //Master è quello timestampato correttamente, il nostro punto di riferimento
-        HRTB::error = hrtT - (HRTB::syncPointHrtSlave);
+        HRTB::error = hrtT - (HRTB::syncPointHrtExpected);
         int u=f.computeCorrection(HRTB::error);
         
         if(VHT::softEnable)

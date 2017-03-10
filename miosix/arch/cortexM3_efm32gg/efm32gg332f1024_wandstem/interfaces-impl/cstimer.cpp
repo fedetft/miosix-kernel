@@ -29,11 +29,13 @@
 #include "kernel/timeconversion.h"
 #include "cstimer_impl.h"
 #include "vht.h"
+#include "virtual_clock.h"
 
 using namespace miosix;
 
-static TimeConversion *tc;
-static VHT *vht;
+static TimeConversion *tc=nullptr;
+static VHT *vht=nullptr;
+static VirtualClock *vt=nullptr;
 
 namespace miosix {
     
@@ -44,7 +46,7 @@ namespace miosix {
     }
     
     void ContextSwitchTimer::IRQsetNextInterrupt(long long ns){
-        pImpl->b.IRQsetNextInterruptCS(pImpl->b.removeBasicCorrection(vht->corrected2uncorrected(tc->ns2tick(ns))));
+        pImpl->b.IRQsetNextInterruptCS(pImpl->b.removeBasicCorrection(vht->corrected2uncorrected(vt->corrected2uncorrected(tc->ns2tick(ns)))));
     }
     
     long long ContextSwitchTimer::getNextInterrupt() const{
@@ -52,11 +54,11 @@ namespace miosix {
     }
     
     long long ContextSwitchTimer::getCurrentTime() const{
-        return tc->tick2ns(vht->uncorrected2corrected(pImpl->b.addBasicCorrection(pImpl->b.getCurrentTick())));
+        return tc->tick2ns(vt->uncorrected2corrected(vht->uncorrected2corrected(pImpl->b.addBasicCorrection(pImpl->b.getCurrentTick()))));
     }
     
     long long ContextSwitchTimer::IRQgetCurrentTime() const{
-        return tc->tick2ns(vht->uncorrected2corrected(pImpl->b.addBasicCorrection(pImpl->b.IRQgetCurrentTick())));
+        return tc->tick2ns(vt->uncorrected2corrected(vht->uncorrected2corrected(pImpl->b.addBasicCorrection(pImpl->b.IRQgetCurrentTick()))));
     }
     
     ContextSwitchTimer::~ContextSwitchTimer(){}
@@ -66,6 +68,7 @@ namespace miosix {
         timerFreq=pImpl->b.getTimerFrequency();
         tc = new TimeConversion(timerFreq);
         vht=&VHT::instance();
+        vt=&VirtualClock::instance();
         
     }
 }

@@ -29,6 +29,7 @@
 #include <cstdio>
 #include <stdexcept>
 #include <miosix.h>
+#include "../debugpin.h"
 
 using namespace std;
 using namespace miosix;
@@ -54,6 +55,7 @@ FlooderRootNode::FlooderRootNode(long long syncPeriod,
 
 bool FlooderRootNode::synchronize()
 {
+    initDebugPins();
     if(frameStart>0)
     {
         frameStart+=syncPeriod;
@@ -63,7 +65,6 @@ bool FlooderRootNode::synchronize()
             if(debug) puts("FlooderRootNode::synchronize called too late");
             return false;
         }
-        //printf("Before deepsleep..%lld..%lld.\n",getTime(),wakeupTime);
         pm.deepSleepUntil(wakeupTime);
     } else frameStart=getTime()+rootNodeWakeupAdvance;
     

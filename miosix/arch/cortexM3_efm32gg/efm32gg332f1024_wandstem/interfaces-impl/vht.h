@@ -55,7 +55,7 @@ public:
      * @return 
      */
     static inline long long corrected2uncorrected(long long tick){
-        return fastNegMul((tick-HRTB::syncPointHrtTheoretical),inverseFactorI,inverseFactorD)+HRTB::syncPointHrtSlave;
+        return fastNegMul((tick-HRTB::syncPointHrtTheoretical),inverseFactorI,inverseFactorD)+HRTB::syncPointHrtExpected;
     }
     
     void start();
@@ -66,7 +66,7 @@ public:
      * @return 
      */
     static inline long long uncorrected2corrected(long long tick){
-        return HRTB::syncPointHrtTheoretical+fastNegMul(tick-HRTB::syncPointHrtSlave,factorI,factorD);
+        return HRTB::syncPointHrtTheoretical+fastNegMul(tick-HRTB::syncPointHrtExpected,factorI,factorD);
     }
     
     void stopResyncSoft();
