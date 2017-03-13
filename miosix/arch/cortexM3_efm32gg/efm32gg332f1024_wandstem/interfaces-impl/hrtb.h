@@ -117,7 +117,7 @@ class HRTB {
          * Return the VHT timestamp, let's say the captured result after a pulse of RTC
          * @return 
          */
-        long long getVhtTimestamp();
+        long long IRQgetVhtTimestamp();
         
         void enableCC0Interrupt(bool enable);
         void enableCC1Interrupt(bool enable);

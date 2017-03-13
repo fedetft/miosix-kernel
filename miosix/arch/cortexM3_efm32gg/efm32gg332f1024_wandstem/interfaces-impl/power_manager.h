@@ -173,7 +173,7 @@ private:
      */
     void IRQpostDeepSleep(Transceiver& rtx);
     
-    void resyncClock();
+    void IRQresyncClock();
     
     PowerManager(const PowerManager&)=delete;
     PowerManager& operator=(const PowerManager&)=delete;

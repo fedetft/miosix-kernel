@@ -128,7 +128,7 @@ void PowerManager::deepSleepUntil(long long int when, Unit unit)
                 //sleep till we serve the interrupt, so let's do it.
                 //Note that since the kernel is paused the interrupt we're
                 //serving can't cause a context switch and fuck up things.
-                resyncClock();
+                IRQresyncClock();
                 {
                     FastInterruptEnableLock eLock(dLock);
                     //Here interrupts are enabled, so the interrupt gets served
@@ -146,7 +146,7 @@ void PowerManager::deepSleepUntil(long long int when, Unit unit)
         IRQpostDeepSleep(rtx);
     }
     //Post deep sleep wait to absorb wakeup time jitter, jitter due to physical phenomena like XO stabilization
-    resyncClock();
+    IRQresyncClock();
         
     //EFM32 compare channels trigger 1 tick late (undocumented quirk)
     RTC->COMP1=(when-1) & 0xffffff;
@@ -408,7 +408,7 @@ void PowerManager::IRQpostDeepSleep(Transceiver& rtx)
     #endif
 }
 
-void PowerManager::resyncClock(){
+void PowerManager::IRQresyncClock(){
     long long nowRtc=rtc->IRQgetValue();
     long long syncAtRtc=nowRtc+2;
     //This is very important, we need to restore the previous value in COMP1, to gaurentee the proper wakeup
@@ -430,7 +430,7 @@ void PowerManager::resyncClock(){
     while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
 
     while(!(RTC->IF & RTC_IF_COMP1));
-    long long timestamp=b->getVhtTimestamp();
+    long long timestamp=b->IRQgetVhtTimestamp();
     //Got the values, now polishment of flags and register
     RTC->IFC=RTC_IFC_COMP1;
     TIMER2->IFC=TIMER_IFC_CC2;

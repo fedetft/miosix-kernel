@@ -216,7 +216,7 @@ void __attribute__((used)) cstirqhnd2(){
     if ((TIMER2->IEN & TIMER_IEN_CC0) && (TIMER2->IF & TIMER_IF_CC0) ){
         TIMER2->IEN &= ~ TIMER_IEN_CC0;
         TIMER2->IFC = TIMER_IFC_CC0;
-            //disable the timeout
+        //disable the timeout
         TIMER2->IEN &= ~ TIMER_IEN_CC1;
         TIMER2->IFC = TIMER_IFC_CC1;
 
@@ -255,7 +255,7 @@ void __attribute__((used)) cstirqhnd2(){
             long long diff=t-IRQgetTick();
             if(diff<0){
                 TIMER2->IEN &= ~TIMER_IEN_CC1;
-                        //Disable the input capture interrupt
+                //Disable the input capture interrupt
                 TIMER2->IEN &= ~TIMER_IEN_CC0;
                 TIMER2->IFC = TIMER_IFC_CC0;
                 //Reactivating the thread that is waiting for the event, WITHOUT changing the tWaiting
@@ -349,7 +349,7 @@ void __attribute__((used)) cstirqhnd1(){
     }
 }
 
-long long HRTB::getVhtTimestamp(){
+long long HRTB::IRQgetVhtTimestamp(){
     /////////////////// Correction overflow for hardware part
     long long timestamp=(TIMER3->CNT<<16) | TIMER2->CC[2].CCV;
     
@@ -503,12 +503,14 @@ long long HRTB::getCurrentTickVht(){
 }
 
 inline WaitResult HRTB::IRQsetNextTransceiverInterrupt(long long tick){
+    debug2::high();
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
     tick--;
     
-    // 150 are enough to make sure that this routine ends and the timer IEN is enabled. 
-    //NOTE: this is really dependent on compiler, optimization and other stuff
+    // 200 are enough to make sure that this routine ends and the timer IEN is enabled. 
+    //NOTE: this is really dependent on compiler, optimization and other stuff, 
+    // with -O2 it takes 163 ticks
     if(diff>200){
         faseTransceiver=0;
         unsigned short t1=static_cast<unsigned short>(tick & 0xFFFF);
@@ -518,8 +520,9 @@ inline WaitResult HRTB::IRQsetNextTransceiverInterrupt(long long tick){
 
         enableCC1InterruptTim2(true);
         diff=tick-IRQgetTick();
-        //0xFFFF because it's the roundtrip of timer
+        //0xFFFF because it's the round trip of timer
         if(diff<=0xFFFF){
+            debug2::low();
             TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
             faseTransceiver=1; //if phase=1, this means that we have to shutdown the pin next time that TIMER1 triggers
         }
@@ -612,6 +615,9 @@ void HRTB::setModeGPIOTimer(bool input){
 }
 
 void HRTB::setModeTransceiverTimer(bool input){
+    //before it's better to reset
+    TIMER2->CC[1].CTRL=0;
+    
     if(input){	
         //For input capture feature:
         //Connect TIMER2->CC0 to pin PA8 aka excChB
@@ -876,11 +882,14 @@ HRTB::HRTB() {
     rtc=&Rtc::instance();
     {
         InterruptDisableLock l;
-        //This code relies on the fact than the following two instructions will
-        //be executed together (in less than one RTC tick), and the +1 is actually
-        //a +2 as the interrupt occurs one tick afters
-        int now=RTC->CNT+2;
-        RTC->COMP1=now-1;
+        
+        int nowRtc;
+        long long nowHrt;
+        // This code relies on the fact than the following two instructions will
+        // be executed together (in less than one RTC tick), remember that timers and rtc
+        // trigger always after one tick
+        nowRtc=RTC->CNT+2;
+        RTC->COMP1=nowRtc-1;
         //Virtual high resolution timer, init starting the input mode!
         TIMER2->CC[2].CTRL=TIMER_CC_CTRL_ICEDGE_RISING
                     | TIMER_CC_CTRL_FILT_DISABLE
@@ -903,16 +912,17 @@ HRTB::HRTB() {
         #if EFM32_HFXO_FREQ!=48000000 || EFM32_LFXO_FREQ!=32768
         #error "Clock frequency assumption not satisfied"
         #endif
-        HRTB::clockCorrection=mul64x32d32(now, 1464, 3623878656)-timestamp;
-        HRTB::syncPointHrtExpected=mul64x32d32(now, 1464, 3623878656);
+        nowHrt=mul64x32d32(nowRtc, 1464, 3623878656);
+        HRTB::clockCorrection=nowHrt-timestamp;
+        HRTB::syncPointHrtExpected=nowHrt;
+        //Resync done, now I have to set the next resync
+        nextSyncPointRtc=nowRtc+syncPeriodRtc;
+        RTC->COMP1=nextSyncPointRtc-1;
+        while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
+        HRTB::syncPointHrtTheoretical=nowHrt;
     }
     
     vt=&VirtualClock::instance();
-    //Resync done, now I have to set the next resync
-    nextSyncPointRtc=RTC->CNT+syncPeriodRtc;
-    RTC->COMP1=nextSyncPointRtc-1;
-    while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
-    HRTB::syncPointHrtTheoretical=mul64x32d32(HRTB::nextSyncPointRtc-HRTB::syncPeriodRtc,1464, 3623878656);
 }
 
 HRTB::~HRTB() {
