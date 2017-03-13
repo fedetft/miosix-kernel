@@ -814,7 +814,6 @@ void HRTB::initTransceiver(){
 
 HRTB& HRTB::instance(){
     static HRTB hrtb;
-    vht=&VHT::instance();
     return hrtb;
 }
 
@@ -921,7 +920,8 @@ HRTB::HRTB() {
         while(RTC->SYNCBUSY & RTC_SYNCBUSY_COMP1);
         HRTB::syncPointHrtTheoretical=nowHrt;
     }
-    
+    vht=&VHT::instance();
+    vht->update(HRTB::syncPointHrtTheoretical,HRTB::syncPointHrtExpected,0);
     vt=&VirtualClock::instance();
 }
 
@@ -936,7 +936,6 @@ long long HRTB::aux1=-1;
 long long HRTB::aux2=-1;
 long long HRTB::aux3=0;
 long long HRTB::aux4=0;
-long long HRTB::error=0;
 //NOTE: you have to change both value to make flopsync works
 long long HRTB::syncPeriodRtc=6560;//7520; //15008; //3008; //6560;
 long long HRTB::syncPeriodHrt=9609375;//11015625;//21984375;//4406250;//9609375;

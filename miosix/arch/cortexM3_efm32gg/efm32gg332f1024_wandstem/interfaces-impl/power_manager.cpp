@@ -28,6 +28,7 @@
 #include "power_manager.h"
 #include "board_settings.h"
 #include "rtc.h"
+#include "vht.h"
 #include "transceiver.h"
 #include "interfaces/bsp.h"
 #include <stdexcept>
@@ -42,6 +43,7 @@ namespace miosix {
     
 static Rtc *rtc=nullptr;
 static HRTB *b=nullptr;
+static VHT *vht=nullptr;
 //
 // class PowerManager
 //
@@ -317,6 +319,7 @@ PowerManager::PowerManager()
 {
     b=&HRTB::instance();
     rtc=&Rtc::instance();
+    vht=&VHT::instance();
 }
 
 void PowerManager::IRQpreDeepSleep(Transceiver& rtx)
@@ -443,6 +446,7 @@ void PowerManager::IRQresyncClock(){
     HRTB::nextSyncPointRtc=syncAtRtc+HRTB::syncPeriodRtc;
     HRTB::syncPointHrtTheoretical=syncAtHrt;
     HRTB::syncPointHrtActual=syncAtHrt;
+    vht->IRQoffsetUpdate(HRTB::syncPointHrtTheoretical,HRTB::syncPointHrtExpected);
 }
 
 } //namespace miosix

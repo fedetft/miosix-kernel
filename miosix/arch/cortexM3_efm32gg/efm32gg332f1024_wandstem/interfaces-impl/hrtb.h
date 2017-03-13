@@ -167,7 +167,7 @@ class HRTB {
          * Debug variables
          */
         static int aux;
-        static long long aux1,aux2,aux3,aux4,error;
+        static long long aux1,aux2,aux3,aux4;
         static FixedEventQueue<50,16> queue;
         static Thread *flopsyncThread;
         static long long diffs[100];

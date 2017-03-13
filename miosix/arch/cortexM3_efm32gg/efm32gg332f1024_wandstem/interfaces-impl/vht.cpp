@@ -52,6 +52,31 @@ void VHT::start(){
     HRTB::flopsyncThread=Thread::create(&VHT::doRun,2048,1,this);
 }
 
+void VHT::IRQoffsetUpdate(long long baseTheoretical, long long baseComputed){
+    this->baseTheoretical=baseTheoretical;
+    this->baseExpected=baseComputed;
+}
+
+void VHT::update(long long baseTheoretical, long long baseComputed, long long clockCorrection){
+    //efficient way to calculate the factor T/(T+u(k))
+    long long temp=(HRTB::syncPeriodHrt<<32)/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync);
+    //calculate inverse of previous factor (T+u(k))/T
+    long long inverseTemp = ((HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)<<32)/HRTB::syncPeriodHrt;
+    
+    //Save modification to make effective the update
+    {
+        FastInterruptDisableLock dl;
+        IRQoffsetUpdate(baseTheoretical, baseComputed);
+        
+        factorI = static_cast<unsigned int>((temp & 0xFFFFFFFF00000000LLU)>>32);
+        factorD = static_cast<unsigned int>(temp);
+        
+        inverseFactorI = static_cast<unsigned int>((inverseTemp & 0xFFFFFFFF00000000LLU)>>32);
+        inverseFactorD = static_cast<unsigned int>(inverseTemp);
+    }
+    
+}
+
 VHT::VHT() {
 }
 
@@ -65,47 +90,38 @@ void VHT::loop() {
     Rtc& rtc=Rtc::instance();
 
     initDebugPins();
-    long long hrtT;
-    long long rtcT;
+    long long hrtActual;
+    long long hrtExpected;
     FlopsyncVHT f;
     
     int tempPendingVhtSync;				    ///< Number of sync acquired in a round
+    //x is the mar theoretical error: it should be lower than 300ppm
     const long long x=(double)48000000*HRTB::syncPeriodRtc/32768*0.0003f;
     while(1){
         Thread::wait();
         {
-            //Read in atomic context the 2 SHARED values to run flopsync
             FastInterruptDisableLock dLock;
-            //rtcT=HRTB::nextSyncPointRtc-HRTB::syncPeriodRtc;
-            hrtT=HRTB::syncPointHrtActual;
+            hrtActual=HRTB::syncPointHrtActual;
+            hrtExpected=HRTB::syncPointHrtExpected;
             tempPendingVhtSync=VHT::pendingVhtSync;
             VHT::pendingVhtSync=0;
         }
-        //Master è quello timestampato correttamente, il nostro punto di riferimento
-        HRTB::error = hrtT - (HRTB::syncPointHrtExpected);
-        int u=f.computeCorrection(HRTB::error);
+        
+        //This var is written only here
+        error = hrtActual - (hrtExpected);
+        int u=f.computeCorrection(error);
 
         if(VHT::softEnable)
         {
+            //Applying the update
             greenLed::toggle();
 
             //The correction should always less than 300ppm
-            assert(HRTB::error<x&&HRTB::error>-x);
-            {
-                PauseKernelLock pkLock;
-                // Single instruction that update the error variable, 
-                // interrupt can occur, but not thread preemption
-                HRTB::clockCorrectionFlopsync=u;
-
-                //efficient way to calculate the factor T/(T+u(k))
-                long long temp=(HRTB::syncPeriodHrt<<32)/(HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync);
-                factorI = static_cast<unsigned int>((temp & 0xFFFFFFFF00000000LLU)>>32);
-                factorD = static_cast<unsigned int>(temp);
-                //calculate inverse of previous factor (T+u(k))/T
-                temp = ((HRTB::syncPeriodHrt+HRTB::clockCorrectionFlopsync)<<32)/HRTB::syncPeriodHrt;
-                inverseFactorI = static_cast<unsigned int>((temp & 0xFFFFFFFF00000000LLU)>>32);
-                inverseFactorD = static_cast<unsigned int>(temp);
-            }
+            assert(error<x&&error>-x);
+            
+            HRTB::clockCorrectionFlopsync=u;
+            update(HRTB::syncPointHrtTheoretical,HRTB::syncPointHrtExpected,HRTB::clockCorrectionFlopsync);
+            
             //printf("%lld\n",HRTB::clockCorrectionFlopsync);
             //This printf shouldn't be in here because is very slow 
 //            printf( "HRT bare:%lld, RTC %lld, next:%lld, COMP1:%lu basicCorr:%lld\n\t"
@@ -119,7 +135,7 @@ void VHT::loop() {
 //                HRTB::syncPointHrtTheoretical,
 //                HRTB::syncPointHrtMaster,
 //                HRTB::syncPointHrtSlave,
-//                HRTB::error,
+//                error,
 //                HRTB::clockCorrectionFlopsync,
 //                tempPendingVhtSync);
         } 
@@ -147,6 +163,10 @@ void VHT::loop() {
 int VHT::pendingVhtSync=0;
 bool VHT::softEnable=true;
 bool VHT::hardEnable=true;
+
+long long VHT::baseTheoretical=0;
+long long VHT::baseExpected=0;
+long long VHT::error=0;
 
 //Multiplicative factor VHT
 unsigned int VHT::factorI=1;

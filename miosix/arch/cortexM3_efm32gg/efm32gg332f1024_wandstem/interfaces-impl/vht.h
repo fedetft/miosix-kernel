@@ -55,7 +55,7 @@ public:
      * @return 
      */
     static inline long long corrected2uncorrected(long long tick){
-        return fastNegMul((tick-HRTB::syncPointHrtTheoretical),inverseFactorI,inverseFactorD)+HRTB::syncPointHrtExpected;
+        return baseExpected+fastNegMul((tick-baseTheoretical),inverseFactorI,inverseFactorD);
     }
     
     void start();
@@ -66,8 +66,12 @@ public:
      * @return 
      */
     static inline long long uncorrected2corrected(long long tick){
-        return HRTB::syncPointHrtTheoretical+fastNegMul(tick-HRTB::syncPointHrtExpected,factorI,factorD);
+        return baseTheoretical+fastNegMul(tick-baseExpected,factorI,factorD);
     }
+    
+    void IRQoffsetUpdate(long long baseTheoretical, long long baseComputed);
+    
+    void update(long long baseTheoretical, long long baseComputed, long long clockCorrection);
     
     void stopResyncSoft();
     void startResyncSoft();
@@ -86,6 +90,10 @@ private:
     static void doRun(void *arg);
     
     void loop();
+    
+    static long long baseTheoretical;
+    static long long baseExpected;
+    static long long error;
     
     //Multiplicative factor VHT
     static unsigned int factorI;
