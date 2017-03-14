@@ -503,7 +503,6 @@ long long HRTB::getCurrentTickVht(){
 }
 
 inline WaitResult HRTB::IRQsetNextTransceiverInterrupt(long long tick){
-    debug2::high();
     long long curTick = IRQgetTick(); // This require almost 1us about 50ticks
     long long diff=tick-curTick;
     tick--;
@@ -522,7 +521,6 @@ inline WaitResult HRTB::IRQsetNextTransceiverInterrupt(long long tick){
         diff=tick-IRQgetTick();
         //0xFFFF because it's the round trip of timer
         if(diff<=0xFFFF){
-            debug2::low();
             TIMER2->CC[1].CTRL = (TIMER2->CC[1].CTRL & ~_TIMER_CC_CTRL_CMOA_MASK) | TIMER_CC_CTRL_CMOA_SET;
             faseTransceiver=1; //if phase=1, this means that we have to shutdown the pin next time that TIMER1 triggers
         }

@@ -44,6 +44,7 @@ namespace miosix {
 static Rtc *rtc=nullptr;
 static HRTB *b=nullptr;
 static VHT *vht=nullptr;
+static TimeConversion *tc=nullptr;
 //
 // class PowerManager
 //
@@ -57,7 +58,21 @@ PowerManager& PowerManager::instance()
 void PowerManager::deepSleepUntil(long long int when, Unit unit)
 {
     if(unit==Unit::NS){
-        when=rtc->ns2tick(when);
+        // This conversion is very critical: we can't use the straightforward method
+        // due to the approximation make during the conversion (necessary to be efficient).
+        // ns-->tick(HF)->\
+        //                  represent a different time. 
+        //                  This difference grows with the increasing of time value.
+        // ns-->tick(LF)->/
+        //
+        // This brings problem if we need to do operation that involves the use 
+        // of both clocks, aka the sleep (or equivalent) and the deep sleep
+        // In this way, I do the
+        // ns->tick(HR)[approximated]->tick(LF)[equivalent to the approx tick(HR)]
+        // This operation is of course slower than usual, but affordable given 
+        // the fact that the deep sleep should be called quite with large time span.
+        unsigned long long temp=tc->ns2tick(when);
+        when=temp*32/46875;
     }
     
     Transceiver& rtx=Transceiver::instance();
@@ -320,6 +335,7 @@ PowerManager::PowerManager()
     b=&HRTB::instance();
     rtc=&Rtc::instance();
     vht=&VHT::instance();
+    tc=new TimeConversion(48000000);
 }
 
 void PowerManager::IRQpreDeepSleep(Transceiver& rtx)
