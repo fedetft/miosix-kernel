@@ -97,7 +97,7 @@ public:
      * \param hop hop to which the node should belong, or 0 to restore the
      * default behaviour of automatically joining an hop
      */
-    void forceHop(unsigned char hop) { this->hop=hop-1; fixedHop= this->hop!=0; }
+    void forceHop(unsigned char hop) { this->hop=hop; fixedHop=hop!=0; }
     
     /**
      * \param enabled if true, this class prints debug data
@@ -141,7 +141,8 @@ private:
     int packetPreambleTime;
     int packetRebroadcastTime;
     unsigned char missPackets;
-    unsigned char hop; //Hop from which we receive packets (we belong to hop+1)
+    unsigned char hop;  // My hop
+                        // Root is 0, the first dynamic hop starts from 1 
     unsigned short panId;
     short txPower;
     bool fixedHop;
@@ -150,11 +151,6 @@ private:
     static const unsigned char maxHops=20;
     static const unsigned char maxMissPackets=3;
     static const int syncPacketSize=7;
-    
-    unsigned int factorI=1;
-    unsigned int factorD=0;
-    unsigned int inverseFactorI=1;
-    unsigned int inverseFactorD=0;
 };
 
 #endif //FLOODER_SYNC_NODE_H

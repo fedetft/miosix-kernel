@@ -32,12 +32,14 @@
 #include "../../../../debugpin.h"
 #include "kernel/timeconversion.h"
 #include "interfaces-impl/virtual_clock.h"
+#include "roundtrip.h"
 
 using namespace std;
 using namespace miosix;
 
-static VirtualClock* vt=nullptr;
-static long long computedNsProva;
+static Roundtrip *roundtrip=nullptr;
+static VirtualClock *vt=nullptr;
+
 //
 // class FlooderSyncNode
 //
@@ -60,6 +62,8 @@ FlooderSyncNode::FlooderSyncNode(Synchronizer *synchronizer,
       missPackets(maxMissPackets+1), hop(0),
       panId(panId), txPower(txPower), fixedHop(false), debug(true)
 {
+    roundtrip=new Roundtrip(hop,radioFrequency,txPower,panId,2500000);
+    
     vt=&VirtualClock::instance();
     vt->setSyncPeriod(syncPeriod);
     //350us and forced receiverWindow=1 fails, keeping this at minimum
@@ -81,6 +85,9 @@ bool FlooderSyncNode::synchronize()
 {
     if(missPackets>maxMissPackets) return true;
     
+    theoreticalFrameStartNs+=syncPeriod;
+    theoreticalFrameStartTick=tc->ns2tick(theoreticalFrameStartNs);
+    
     //This an uncorrected clock! Good for Rtc, that doesn't correct by itself
     computedFrameStart+=syncPeriod+clockCorrection;
     computedFrameStartTick=tc->ns2tick(computedFrameStart);
@@ -88,7 +95,8 @@ bool FlooderSyncNode::synchronize()
     long long wakeupTime=computedFrameStart-(syncNodeWakeupAdvance+receiverWindow); 
     //This is corrected: thank to the last factor of the sum
     long long timeoutTime=computedFrameStart+receiverWindow+packetPreambleTime-clockCorrection; 
-        
+    //long long timeoutTime=tc->tick2ns(vt->uncorrected2corrected(tc->ns2tick(computedFrameStart+receiverWindow+packetPreambleTime)));    
+    
     if(getTime()>=wakeupTime)
     {
         if(debug) puts("FlooderSyncNode::synchronize called too late");
@@ -112,9 +120,9 @@ bool FlooderSyncNode::synchronize()
     {
         try {    
             auto result=transceiver.recv(packet,syncPacketSize,timeoutTime,Transceiver::Unit::NS,HardwareTimer::Correct::UNCORR);
-            now=getTime();
-            if(isSyncPacket(result,packet) && packet[2]==hop)
+            if(isSyncPacket(result,packet) && packet[2]==hop-1)
             {
+                now=getTime();
                 measuredFrameStart=result.timestamp;
                 rssi=result.rssi;
                 break;
@@ -123,6 +131,7 @@ bool FlooderSyncNode::synchronize()
             if(debug) puts(e.what());
             break;
         }
+        now=getTime();
         if(now>=timeoutTime)
         {
             timeout=true;
@@ -135,6 +144,8 @@ bool FlooderSyncNode::synchronize()
     transceiver.turnOff();
     ledOff();
     pair<int,int> r;
+    
+    if(timeout==false) roundtrip->ask(measuredFrameStart, 4800000);
     
     printf("[%lld] ",now/1000000000);
     if(timeout)
@@ -153,15 +164,12 @@ bool FlooderSyncNode::synchronize()
         missPackets=0;
         if(debug) printf("e=%d u=%d w=%d rssi=%d\n",e,clockCorrection,receiverWindow,rssi);
     }
-    computedNsProva+=syncPeriod;
 
     clockCorrection=r.first;
     receiverWindow=r.second;
-    //Correct frame start considering hops
-    //measuredFrameStart-=hop*packetRebroadcastTime;
-    theoreticalFrameStartNs+=syncPeriod;
-    theoreticalFrameStartTick=tc->ns2tick(theoreticalFrameStartNs);
+    
     vt->update(tc->ns2tick(measuredFrameStart),computedFrameStartTick,clockCorrection);
+    //vt->update(theoreticalFrameStart),computedFrameStartTick,clockCorrection);
     
     return false;
 }
@@ -180,10 +188,10 @@ void FlooderSyncNode::resynchronize()
     {
         try {
             auto result=transceiver.recv(packet,syncPacketSize,infiniteTimeout);
-            if(isSyncPacket(result,packet) && (fixedHop==false || packet[2]==hop))
+            if(isSyncPacket(result,packet) && (!fixedHop || packet[2]==hop-1))
             {
                 //Even the Theoretic is started at this time, so the absolute time is dependent of the board
-                computedNsProva=theoreticalFrameStartNs=computedFrameStart=measuredFrameStart=result.timestamp;
+                theoreticalFrameStartNs=computedFrameStart=measuredFrameStart=result.timestamp;
                 computedFrameStartTick=theoreticalFrameStartTick=tc->ns2tick(theoreticalFrameStartNs);
                 break;
             }
@@ -196,8 +204,9 @@ void FlooderSyncNode::resynchronize()
     clockCorrection=0;
     receiverWindow=synchronizer->getReceiverWindow();
     missPackets=0;
-    if(!fixedHop) hop=packet[2];
-    //printf("First resync:%lld\n",computedFrameStart);
+    if(!fixedHop) hop=packet[2]+1;
+    roundtrip->setHop(hop);
+    
     //Correct frame start considering hops
     //measuredFrameStart-=hop*packetRebroadcastTime;
     if(debug) puts("Done.\n");
@@ -207,7 +216,7 @@ void FlooderSyncNode::rebroadcast(long long int receivedTimestamp,
                                   unsigned char* packet)
 {
     if(packet[2]>=maxHops-1) return;
-    packet[2]++;
+    packet[2]=hop;
     receivedTimestamp+=packetRebroadcastTime;
     try {
         transceiver.sendAt(packet,syncPacketSize,receivedTimestamp);

@@ -30,9 +30,12 @@
 #include <stdexcept>
 #include <miosix.h>
 #include "../debugpin.h"
+#include "roundtrip.h"
 
 using namespace std;
 using namespace miosix;
+
+static Roundtrip *roundtrip=nullptr;
 
 //
 // class FlooderRootNode
@@ -49,6 +52,8 @@ FlooderRootNode::FlooderRootNode(long long syncPeriod,
       frameStart(-1),
       panId(panId), txPower(txPower), debug(false)
 {
+    roundtrip=new Roundtrip(0,radioFrequency,txPower,panId,2500000);
+
     //Minimum ~550us, 200us of slack added
     rootNodeWakeupAdvance=750000;
 }
@@ -76,7 +81,7 @@ bool FlooderRootNode::synchronize()
     {
         0x46, //frame type 0b110 (reserved), intra pan
         0x08, //no source addressing, short destination addressing
-        0x00, //seq no reused as glossy hop count, 0=root node
+        0x00, //seq no reused as glossy hop count, 0=root node, it has to contain the source hop
         static_cast<unsigned char>(panId>>8),
         static_cast<unsigned char>(panId & 0xff), //destination pan ID
         0xff, 0xff                                //destination addr (broadcast)
@@ -89,5 +94,6 @@ bool FlooderRootNode::synchronize()
     transceiver.turnOff();
     ledOff();
 
+    roundtrip->reply(48000000);
     return false; //Root node does not desynchronize
 }
