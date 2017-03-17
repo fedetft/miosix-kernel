@@ -15,7 +15,6 @@ Roundtrip::Roundtrip(unsigned char hop, unsigned int radioFrequency, short txPow
 {
     tc=new TimeConversion(48000000);
     this->delay=tc->ns2tick(delay);
-    printf("%lld\n",delay);
 }
 
 void Roundtrip::ask(long long at, long long timeout){
@@ -35,7 +34,7 @@ void Roundtrip::ask(long long at, long long timeout){
     miosix::TransceiverConfiguration cfg(radioFrequency,txPower,true,false);
     transceiver.configure(cfg);
     transceiver.turnOn();
-    //24000 correspond to 0.5ms enough to do the sendAt
+    //120000 correspond to 0.25ms enough to do the sendAt
     long long sendTime=tc->ns2tick(at)+120000;
     try {
         transceiver.sendAt(roundtripPacket,askPacketSize,sendTime,Transceiver::Unit::TICK);
@@ -53,7 +52,7 @@ void Roundtrip::ask(long long at, long long timeout){
     transceiver.turnOff();
     
     if(result.size==p.getPacketSize() && result.error==RecvResult::ErrorCode::OK && result.timestampValid){
-        lastDelay=result.timestamp-sendTime;
+        lastDelay=result.timestamp-sendTime-delay;
         totalDelay=p.decode().first*accuracy+lastDelay;
         if(debug) printf("delay=%d total=%d\n",lastDelay,totalDelay);
     }else{

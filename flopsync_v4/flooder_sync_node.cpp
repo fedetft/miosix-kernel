@@ -89,13 +89,13 @@ bool FlooderSyncNode::synchronize()
     theoreticalFrameStartTick=tc->ns2tick(theoreticalFrameStartNs);
     
     //This an uncorrected clock! Good for Rtc, that doesn't correct by itself
+    //This is the estimate of the next packet in our clock
     computedFrameStart+=syncPeriod+clockCorrection;
     computedFrameStartTick=tc->ns2tick(computedFrameStart);
     //This is NOT corrected
     long long wakeupTime=computedFrameStart-(syncNodeWakeupAdvance+receiverWindow); 
-    //This is corrected: thank to the last factor of the sum
-    long long timeoutTime=computedFrameStart+receiverWindow+packetPreambleTime-clockCorrection; 
-    //long long timeoutTime=tc->tick2ns(vt->uncorrected2corrected(tc->ns2tick(computedFrameStart+receiverWindow+packetPreambleTime)));    
+    //This is fully corrected
+    long long timeoutTime=tc->tick2ns(vt->uncorrected2corrected(tc->ns2tick(computedFrameStart+receiverWindow+packetPreambleTime)));    
     
     if(getTime()>=wakeupTime)
     {
@@ -140,12 +140,15 @@ bool FlooderSyncNode::synchronize()
     }
     
     transceiver.idle(); //Save power waiting for rebroadcast time
-    if(timeout==false) rebroadcast(measuredFrameStart,packet);
+    
+    //This conversion is really necessary to get the corrected time in NS, to pass to transceiver
+    long long a=tc->tick2ns(vt->uncorrected2corrected(tc->ns2tick(measuredFrameStart)));
+    if(timeout==false) rebroadcast(a,packet);
     transceiver.turnOff();
     ledOff();
     pair<int,int> r;
     
-    if(timeout==false) roundtrip->ask(measuredFrameStart, 4800000);
+    if(timeout==false) roundtrip->ask(a, 4800000);
     
     printf("[%lld] ",now/1000000000);
     if(timeout)
@@ -168,8 +171,8 @@ bool FlooderSyncNode::synchronize()
     clockCorrection=r.first;
     receiverWindow=r.second;
     
-    vt->update(tc->ns2tick(measuredFrameStart),computedFrameStartTick,clockCorrection);
-    //vt->update(theoreticalFrameStart),computedFrameStartTick,clockCorrection);
+    //vt->update(tc->ns2tick(measuredFrameStart),computedFrameStartTick,clockCorrection);
+    vt->update(theoreticalFrameStartTick,computedFrameStartTick,clockCorrection);
     
     return false;
 }
