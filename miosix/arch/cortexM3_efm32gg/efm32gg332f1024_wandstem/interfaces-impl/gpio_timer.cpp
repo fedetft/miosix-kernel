@@ -27,7 +27,7 @@
 
 #include "gpio_timer.h"
 
-using namespace miosix;
+namespace miosix{
 
 /**
  * NOTE: this is a simple forward class to HighResolutionTimerBase.
@@ -38,10 +38,6 @@ using namespace miosix;
 long long GPIOtimer::getValue() const{
     FastInterruptDisableLock dLock;
     return b.IRQgetCurrentTick();
-}
-
-unsigned int GPIOtimer::getTickFrequency() const{
-    return b.getTimerFrequency();
 }
 
 void GPIOtimer::wait(long long tick){
@@ -73,10 +69,6 @@ bool GPIOtimer::absoluteWaitTrigger(long long tick){
     return b.gpioAbsoluteWaitTrigger(tick);
 }
 
-bool GPIOtimer::waitTrigger(long long tick){
-    return absoluteWaitTrigger(b.getCurrentTick()+tick); 
-}
-
 long long GPIOtimer::tick2ns(long long tick){
     return tc.tick2ns(tick);
 }
@@ -106,3 +98,4 @@ GPIOtimer::GPIOtimer(): b(HRTB::instance()),tc(b.getTimerFrequency()) {
 /// The only open issue is whether this delay of 3 ticks is all at the input
 /// capture stage or some of those ticks are in the output compare.
 const int GPIOtimer::stabilizingTime = 3;
+}

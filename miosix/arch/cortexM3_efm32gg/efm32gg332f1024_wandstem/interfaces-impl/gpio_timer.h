@@ -60,9 +60,8 @@ namespace miosix {
         * has not been pulsed
         */ 
         bool absoluteWaitTrigger(long long tick);
-        bool waitTrigger(long long tick);
         
-        unsigned int getTickFrequency() const;
+        inline unsigned int getTickFrequency() const{ return b.getTimerFrequency(); }
         
         long long getExtEventTimestamp(Correct c) const;
         
