@@ -34,9 +34,6 @@ using namespace miosix;
 static VHT* vht=nullptr;
 static VirtualClock *vt=nullptr;
 
-//transceiver::excChB	usato per la ricezione INPUT_CAPTURE TIMER2_CC0 -> PA8
-//transceiver::stxon	usato per attivare la trasmissione OUTPUTCOMPARE TIMER2_CC1 -> PA9
-
 long long TransceiverTimer::getValue() const{
     FastInterruptDisableLock dLock;
     return vt->uncorrected2corrected(b.IRQgetCurrentTickVht());

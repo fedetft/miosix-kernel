@@ -71,6 +71,8 @@ namespace miosix {
         
     private:
         GPIOtimer();
+        GPIOtimer(const GPIOtimer&)=delete;
+        GPIOtimer& operator= (const GPIOtimer&)=delete;
         HRTB& b;
         bool isInput; 
         TimeConversion tc;

@@ -78,6 +78,8 @@ public:
     
 private:
     VHT();
+    VHT(const VHT&)=delete;
+    VHT& operator=(const VHT&)=delete;
     
     static inline long long fastNegMul(long long a,unsigned int bi, unsigned int bf){
         if(a<0){

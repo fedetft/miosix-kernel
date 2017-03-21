@@ -152,6 +152,8 @@ private:
      * Constructor
      */
     PowerManager();
+    PowerManager(const PowerManager&)=delete;
+    PowerManager& operator= (const PowerManager&)=delete;
     
     /**
      * Called before entering deep sleep
@@ -174,9 +176,6 @@ private:
     void IRQpostDeepSleep(Transceiver& rtx);
     
     void IRQresyncClock();
-    
-    PowerManager(const PowerManager&)=delete;
-    PowerManager& operator=(const PowerManager&)=delete;
     
     int transceiverPowerDomainRefCount;
     int sensorPowerDomainRefCount;

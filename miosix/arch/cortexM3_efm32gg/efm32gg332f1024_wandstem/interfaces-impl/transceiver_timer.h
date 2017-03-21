@@ -57,6 +57,9 @@ namespace miosix{
 
         private:
             TransceiverTimer();
+            TransceiverTimer(const TransceiverTimer&)=delete;
+            TransceiverTimer& operator= (const TransceiverTimer&)=delete;
+            
             HRTB& b;
             TimeConversion tc;
             static const int stabilizingTime;

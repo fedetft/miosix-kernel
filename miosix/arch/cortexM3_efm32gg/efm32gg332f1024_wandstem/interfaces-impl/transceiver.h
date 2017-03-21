@@ -262,7 +262,6 @@ private:
      * Constructor
      */
     Transceiver();
-
     Transceiver(const Transceiver&)=delete;
     Transceiver& operator= (const Transceiver&)=delete;
     

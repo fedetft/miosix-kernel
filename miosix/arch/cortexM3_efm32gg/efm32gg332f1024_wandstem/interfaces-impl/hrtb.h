@@ -44,7 +44,7 @@ class HRTB {
     public:
 
         static HRTB& instance();
-
+        
         /**
          * \return the timer frequency in Hz
          */
@@ -174,6 +174,9 @@ class HRTB {
     
     private:
         HRTB();
+        HRTB(const HRTB&)=delete;
+        HRTB& operator=(const HRTB&)=delete;
+        
         static const unsigned int freq;
 };
 

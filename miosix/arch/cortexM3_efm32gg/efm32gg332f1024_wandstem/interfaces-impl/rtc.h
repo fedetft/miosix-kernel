@@ -154,6 +154,8 @@ private:
      * Constructor
      */
     Rtc();
+    Rtc(const Rtc&)=delete;
+    Rtc& operator=(const Rtc&)=delete;
     
     TimeConversion tc; ///< Class for converting from nanoseconds to ticks
 };
