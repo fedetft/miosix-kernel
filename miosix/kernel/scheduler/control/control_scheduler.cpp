@@ -40,7 +40,7 @@ namespace miosix {
 //These are defined in kernel.cpp
 extern volatile Thread *cur;
 extern volatile int kernel_running;
-static ContextSwitchTimer& timer = nullptr;
+static ContextSwitchTimer *timer = nullptr;
 extern IntrusiveList<SleepData> *sleepingList;
 static long long burstStart = 0;
 static long long nextPreemption = numeric_limits<long long>::max();
@@ -446,7 +446,7 @@ extern IntrusiveList<SleepData> *sleepingList;
 extern bool kernel_started;
 
 //Internal
-static ContextSwitchTimer& timer = nullptr;
+static ContextSwitchTimer *timer = nullptr;
 static long long burstStart = 0;
 static IntrusiveList<ThreadsListItem> activeThreads;
 static IntrusiveList<ThreadsListItem>::iterator curInRound = activeThreads.end();
