@@ -35,6 +35,7 @@
 #OPT_BOARD := stm32f205rc_skyward_stormtrooper
 #OPT_BOARD := stm32f401vc_stm32f4discovery
 #OPT_BOARD := stm32f103c8_breakout
+#OPT_BOARD := stm32f100c8_microboard
 
 ##
 ## Optimization flags, choose one.
@@ -365,6 +366,8 @@ endif
 ## stm32f401vc_stm32f4discovery
 ##
 
+# No options
+
 ##---------------------------------------------------------------------------
 ## stm32f103c8_breakout
 ##
@@ -384,6 +387,10 @@ ifeq ($(OPT_BOARD),stm32f103c8_breakout)
     #CLOCK_FREQ := -DSYSCLK_FREQ_72MHz=72000000
 
 endif
+
+##---------------------------------------------------------------------------
+## stm32f100c8_microboard
+##
 
 # No options
 
@@ -449,6 +456,8 @@ else ifeq ($(OPT_BOARD),stm32f205rc_skyward_stormtrooper)
 else ifeq ($(OPT_BOARD),stm32f401vc_stm32f4discovery)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),stm32f103c8_breakout)
+    ARCH := cortexM3_stm32
+else ifeq ($(OPT_BOARD),stm32f100c8_microboard)
     ARCH := cortexM3_stm32
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
@@ -864,6 +873,40 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## board.
         #PROGRAM_CMDLINE := sudo vsprog -cstm32_vl -ms -I main.hex -oe -owf -ovf
         PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
+        
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f100c8_microboard
+    ##
+    else ifeq ($(OPT_BOARD),stm32f100c8_microboard)
+
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_stm32/stm32f100c8_microboard
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_63k+8k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_MICROBOARD -DSTM32F10X_MD_VL 
+        CXXFLAGS_BASE += -D_BOARD_MICROBOARD -DSTM32F10X_MD_VL
+
+        ## Clock frequency
+        # Not defining anything results in HSI being used
+        CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000 -DRUN_WITH_HSI
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB0
     
     ##-------------------------------------------------------------------------
     ## End of board list
