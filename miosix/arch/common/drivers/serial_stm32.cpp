@@ -48,6 +48,8 @@ typedef Gpio<GPIOA_BASE,9>  u1tx;
 typedef Gpio<GPIOA_BASE,10> u1rx;
 typedef Gpio<GPIOA_BASE,11> u1cts;
 typedef Gpio<GPIOA_BASE,12> u1rts;
+
+#if !defined(STM32_NO_SERIAL_2_3)
 typedef Gpio<GPIOA_BASE,2>  u2tx;
 typedef Gpio<GPIOA_BASE,3>  u2rx;
 typedef Gpio<GPIOA_BASE,0>  u2cts;
@@ -56,6 +58,7 @@ typedef Gpio<GPIOB_BASE,10> u3tx;
 typedef Gpio<GPIOB_BASE,11> u3rx;
 typedef Gpio<GPIOB_BASE,13> u3cts;
 typedef Gpio<GPIOB_BASE,14> u3rts;
+#endif //!defined(STM32_NO_SERIAL_2_3)
 
 /// Pointer to serial port classes to let interrupts access the classes
 static STM32Serial *ports[numPorts]={0};
@@ -77,6 +80,8 @@ void __attribute__((naked)) USART1_IRQHandler()
     asm volatile("bl _Z13usart1irqImplv");
     restoreContext();
 }
+
+#if !defined(STM32_NO_SERIAL_2_3)
 
 /**
  * \internal interrupt routine for usart2 actual implementation
@@ -115,6 +120,7 @@ void __attribute__((naked)) USART3_IRQHandler()
     restoreContext();
 }
 #endif //STM32F411xE
+#endif //!defined(STM32_NO_SERIAL_2_3)
 
 #ifdef SERIAL_1_DMA
 
@@ -188,7 +194,7 @@ void __attribute__((naked)) DMA2_Stream5_IRQHandler()
 #endif
 #endif //SERIAL_1_DMA
 
-#ifdef SERIAL_2_DMA
+#if defined(SERIAL_2_DMA) && !defined(STM32_NO_SERIAL_2_3)
 
 /**
  * \internal USART2 DMA tx actual implementation
@@ -260,7 +266,7 @@ void __attribute__((naked)) DMA1_Stream5_IRQHandler()
 #endif
 #endif //SERIAL_2_DMA
 
-#ifdef SERIAL_3_DMA
+#if defined(SERIAL_3_DMA) && !defined(STM32_NO_SERIAL_2_3)
 
 /**
  * \internal USART3 DMA tx actual implementation
@@ -442,6 +448,8 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
             NVIC_EnableIRQ(USART1_IRQn);
             if(RCC->CFGR & RCC_CFGR_PPRE2_2) freq/=1<<(((RCC->CFGR>>ppre2) & 0x3)+1);
             break;
+        
+        #if !defined(STM32_NO_SERIAL_2_3)
         case 2:
             port=USART2;
             RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
@@ -546,6 +554,7 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
             if(RCC->CFGR & RCC_CFGR_PPRE1_2) freq/=1<<(((RCC->CFGR>>ppre1) & 0x3)+1);
             break;
         #endif //!defined(STM32F411xE) && !defined(STM32F401xC)
+        #endif //!defined(STM32_NO_SERIAL_2_3)
     }
     const unsigned int quot=2*freq/baudrate; //2*freq for round to nearest
     port->BRR=quot/2 + (quot & 1);           //Round to nearest
@@ -793,6 +802,8 @@ STM32Serial::~STM32Serial()
                 NVIC_ClearPendingIRQ(USART1_IRQn);
                 RCC->APB2ENR &= ~RCC_APB2ENR_USART1EN;
                 break;
+                
+            #if !defined(STM32_NO_SERIAL_2_3)    
             case 2:
                 #ifdef SERIAL_2_DMA
                 IRQdmaReadStop();
@@ -833,6 +844,7 @@ STM32Serial::~STM32Serial()
                 RCC->APB1ENR &= ~RCC_APB1ENR_USART3EN;
                 break;
             #endif //!defined(STM32F411xE) && !defined(STM32F401xC)
+            #endif //!defined(STM32_NO_SERIAL_2_3)
         }
     }
 }

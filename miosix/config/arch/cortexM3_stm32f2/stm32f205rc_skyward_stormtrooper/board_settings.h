@@ -71,6 +71,10 @@ const bool defaultSerialFlowctrl=false;
 // #define SERIAL_2_DMA   //Serial 2 is used by the piksi GPS, enable DMA
 //#define SERIAL_3_DMA //Serial 3 is not used
 
+//STM32Serial class supports only USART1, for USART2 and USART3 low-level
+//access is needed to write modbus RTU driver properly
+#define STM32_NO_SERIAL_2_3
+
 /**
  * \}
  */
