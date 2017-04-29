@@ -75,7 +75,7 @@ OBJ := $(addprefix $(OBJDIR)/$(OPT_BOARD)/, $(addsuffix .o, $(basename $(SRC))))
 ## it must not end up in libmiosix.a
 all: $(OBJ) $(BOOT_FILE)
 	$(ECHO) "[PERL] Checking global objects"
-	$(Q)perl _tools/check_global_objects.pl $(OBJ)
+	$(Q)perl _tools/kernel_global_objects.pl $(OBJ)
 	$(ECHO) "[AR]   libmiosix.a"
 	$(Q)mkdir -p $(OUTDIR)/$(OPT_BOARD)
 	$(Q)$(AR) rcs $(OUTDIR)/$(OPT_BOARD)/libmiosix.a $(OBJ)
