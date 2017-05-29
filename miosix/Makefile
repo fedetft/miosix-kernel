@@ -37,6 +37,7 @@ filesystem/fat32/ccsbcs.cpp                                                \
 stdlib_integration/libc_integration.cpp                                    \
 stdlib_integration/libstdcpp_integration.cpp                               \
 e20/e20.cpp                                                                \
+e20/unmember.cpp                                                           \
 util/util.cpp                                                              \
 util/unicode.cpp                                                           \
 util/version.cpp                                                           \
