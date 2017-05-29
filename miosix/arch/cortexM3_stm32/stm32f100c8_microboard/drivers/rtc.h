@@ -23,81 +23,87 @@
  *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
- ***************************************************************************/ 
+ ***************************************************************************/
 
-/***********************************************************************
-* bsp_impl.h Part of the Miosix Embedded OS.
-* Board support package, this file initializes hardware.
-************************************************************************/
+#ifndef RTC_H
+#define RTC_H
 
-#ifndef BSP_IMPL_H
-#define BSP_IMPL_H
-
-#include "interfaces/gpio.h"
-#include "hwmapping.h"
+#include <kernel/timeconversion.h>
 
 namespace miosix {
 
-inline void ledOn()  { redLed::high(); }
-inline void ledOff() { redLed::low();  }
+/**
+ * Puts the MCU in deep sleep until the specified absolute time.
+ * \param value absolute wait time in nanoseconds
+ * If value of absolute time is in the past no waiting will be set
+ * and function return immediately.
+ */
+void absoluteDeepSleep(long long value);
 
 /**
- * \return true if the supply voltege is high enough
+ * Driver for the stm32 RTC.
+ * All the wait and deepSleep functions cannot be called concurrently by
+ * multiple threads.
  */
-bool lowVoltageCheck();
-
-/**
- * This class allows to store non volatile data into the last FLASH page
- * of the microcontroller.
- */
-class NonVolatileStorage
+class Rtc
 {
 public:
     /**
      * \return an instance of this class
      */
-    static NonVolatileStorage& instance();
+    static Rtc& instance();
+
+    /**
+     * \return the timer counter value in nanoseconds
+     */
+    long long getValue() const;
+
+    /**
+     * \return the timer counter value in nanoseconds
+     * 
+     * Can be called with interrupt disabled, or inside an interrupt
+     */
+    long long IRQgetValue() const;
+
+    /**
+     * Set the timer counter value
+     * \param value new timer value in nanoseconds
+     * 
+     * NOTE: if alarm is set wakeup time is not updated
+     */
+    void setValue(long long value);
     
     /**
-     * \return the maximum size of the available storage
+     * Put thread in wait for the specified relative time.
+     * This function wait for a relative time passed as parameter.
+     * \param value relative time to wait, expressed in nanoseconds
      */
-    int capacity() const { return 1024; }
+    void wait(long long value);
     
     /**
-     * Erase the non voltaile storage, resetting it to all 0xff
-     * \return true on success, false on failure
+     * Puts the thread in wait until the specified absolute time.
+     * \param value absolute wait time in nanoseconds
+     * If value of absolute time is in the past no waiting will be set
+     * and function return immediately.
+     * \return true if the wait time was in the past
      */
-    bool erase();
-    
+    bool absoluteWait(long long value);
+
     /**
-     * Program data into the non volatile storage
-     * \param data data to write to the non-volatile storage
-     * \param size size of data to write
-     * \return true on success, false on failure
+     * \return the timer frequency in Hz
      */
-    bool program(const void *data, int size, int offset=0);
-    
-    /**
-     * Read back data from the non volatile storage
-     * \param data data to read to the non-volatile storage
-     * \param size size of data to read
-     */
-    void read(void *data, int size);
+    unsigned int getTickFrequency() const { return 16384; }
 
 private:
-    NonVolatileStorage() {}
-    NonVolatileStorage(const NonVolatileStorage&);
-    NonVolatileStorage& operator= (const NonVolatileStorage&);
+    Rtc();
+    Rtc(const Rtc&)=delete;
+    Rtc& operator= (const Rtc&)=delete;
     
-    /**
-     * Perform the unlock sequence
-     * \return true on success, false on failure
-     */
-    bool IRQunlock();
+    TimeConversion tc;
     
-    static const unsigned int baseAddress=0x0800fc00;
+    friend void absoluteDeepSleep(long long value);
 };
 
 } //namespace miosix
 
-#endif //BSP_IMPL_H
+#endif //RTC_H
