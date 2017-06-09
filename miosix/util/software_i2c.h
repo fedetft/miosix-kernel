@@ -164,9 +164,11 @@ unsigned char SoftwareI2C<SDA, SCL, stretchTimeout>::recvWithAck()
 {
     SDA::high();
     unsigned char result=0;
+    delayUs(3);
     for(int i=0;i<8;i++)
     {
         result<<=1;
+        
         if(SDA::value()) result |= 1;
         delayUs(3);
         SCL::high();
@@ -190,9 +192,11 @@ unsigned char SoftwareI2C<SDA, SCL, stretchTimeout>::recvWithNack()
 {
     SDA::high();
     unsigned char result=0;
+    delayUs(3);
     for(int i=0;i<8;i++)
     {
         result<<=1;
+
         if(SDA::value()) result |= 1;
         delayUs(3);
         SCL::high();
