@@ -167,6 +167,14 @@ public:
     {
         if(operation) operation(any,0,CALL);
     }
+    
+    /**
+     * Call the callback, generating undefined behaviour if no callback is set
+     */
+    void call()
+    {
+        operation(any,0,CALL);
+    }
 
     //Safe bool idiom
     struct SafeBoolStruct { void* b; };

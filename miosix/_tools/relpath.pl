@@ -19,5 +19,6 @@ die "Use: perl relpath.pl from to\n" unless($#ARGV+1==2);
 my $from=abs_path($ARGV[0]);
 my $to=abs_path($ARGV[1]);
 my $relpath=File::Spec->abs2rel($to,$from);
+$relpath =~ tr#\\#/#; # Windows quirk
 print "$relpath";
 #print STDERR "========== from='$from' to='$to' relpath='$relpath'\n";

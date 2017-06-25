@@ -1,3 +1,29 @@
+/***************************************************************************
+ *   Copyright (C) 2013 by Terraneo Federico and Silvano Seva              *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   As a special exception, if other files instantiate templates or use   *
+ *   macros or inline functions from this file, or you compile this file   *
+ *   and link it with other works to produce a work based on this file,    *
+ *   this file does not by itself cause the resulting work to be covered   *
+ *   by the GNU General Public License. However the source code for this   *
+ *   file must still be made available in accordance with the GNU General  *
+ *   Public License. This exception does not invalidate any other reasons  *
+ *   why a work based on this file might be covered by the GNU General     *
+ *   Public License.                                                       *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
+ ***************************************************************************/
 
 #include "stm32f2_f4_i2c.h"
 #include <miosix.h>
@@ -5,8 +31,8 @@
 
 using namespace miosix;
 
-static bool error;        ///< Set to true by IRQ on error
-static Thread *waiting=0; ///< Thread waiting for an operation to complete
+static volatile bool error; ///< Set to true by IRQ on error
+static Thread *waiting=0;   ///< Thread waiting for an operation to complete
 
 /* In non-DMA mode the variables below are used to
  * handle the reception of 2 or more bytes through 
@@ -215,8 +241,9 @@ void I2C1Driver::init()
     I2C1->CR1=I2C_CR1_PE; //Enable peripheral
 }
 
-bool I2C1Driver::send(unsigned char address, const void *data, int len)
-{
+bool I2C1Driver::send(unsigned char address, 
+        const void *data, int len, bool sendStop)
+{    
     address &= 0xfe; //Mask bit 0, as we are writing
     if(start(address)==false || (I2C1->SR2 & I2C_SR2_TRA)==0)
     {
@@ -300,8 +327,16 @@ bool I2C1Driver::send(unsigned char address, const void *data, int len)
      * so this code below spins for 8 data bits of the last byte plus the ack
      * bit, plus the stop bit. That's 12000 wasted CPU cycles. Thanks, ST...
      */
-    I2C1->CR1 |= I2C_CR1_STOP;
-    while(I2C1->SR2 & I2C_SR2_MSL) ; //Wait for stop bit sent
+    
+    if(sendStop)
+    {
+        I2C1->CR1 |= I2C_CR1_STOP;
+        while(I2C1->SR2 & I2C_SR2_MSL) ; //Wait for stop bit sent
+    } else {
+        // Dummy write, is the only way to clear 
+        // the TxE flag if stop bit is not sent...
+        I2C1->DR = 0x00;    
+    }
     return !error;
 }
 
@@ -362,7 +397,7 @@ bool I2C1Driver::recv(unsigned char address, void *data, int len)
     if(len > 1)
     {
         I2C1->CR2 |= I2C_CR2_ITERREN | I2C_CR2_ITEVTEN | I2C_CR2_ITBUFEN;
-                
+
         rxBufCnt = 0;
         rxBufSize = len-2;       
         
@@ -386,7 +421,8 @@ bool I2C1Driver::recv(unsigned char address, void *data, int len)
     while(!(I2C1->SR1 & I2C_SR1_RXNE)) ;
     rxBuf[len-1] = I2C1->DR;
     
-    rxBuf = 0;      //set pointer to rx buffer to zero after having used it, see i2c event ISR 
+    //set pointer to rx buffer to zero after having used it, see i2c event ISR 
+    rxBuf = 0;
     
     I2C1->CR2 &= ~I2C_CR2_ITERREN; 
     #endif
@@ -397,6 +433,15 @@ bool I2C1Driver::recv(unsigned char address, void *data, int len)
 
 bool I2C1Driver::start(unsigned char address, bool immediateNak)
 {
+    /* Because the only way to send a restart is having the send function not 
+     * sending a stop condition after the data transfer, here we have to manage
+     * a couple of things in SR1: 
+     * - the BTF flag is set, cleared by a dummy read of DR
+     * - The Berr flag is set, this because the I2C harware detects the start 
+     *   condition sent without a stop before it as a misplaced start and 
+     *   rises an error
+     */
+
     I2C1->CR1 |= I2C_CR1_START | I2C_CR1_ACK;
     if(!waitStatus1()) return false;
     if((I2C1->SR1 & I2C_SR1_SB)==0) return false; //Must read SR1 to clear flag

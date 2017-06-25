@@ -39,6 +39,7 @@
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
 #include "drivers/serial.h"
+#include "drivers/rtc.h"
 #include "board_settings.h"
 
 using namespace std;
@@ -90,10 +91,11 @@ bool NonVolatileStorage::erase()
     return true;
 }
 
-bool NonVolatileStorage::program(const void* data, int size)
+bool NonVolatileStorage::program(const void* data, int size, int offset)
 {
+    if(size<=0 || offset<0) return false;
     const char *ptr=reinterpret_cast<const char *>(data);
-    size=min(size,capacity());
+    size=min(size,capacity()-offset);
     
     FastInterruptDisableLock dLock;
     if(IRQunlock()==false) return false;
@@ -108,7 +110,7 @@ bool NonVolatileStorage::program(const void* data, int size)
         //Note: bytes swapped to account for the cpu being little-endian
         unsigned short val=(a<<8) | b;
         volatile unsigned short *target=
-                reinterpret_cast<volatile unsigned short*>(baseAddress+i);
+                reinterpret_cast<volatile unsigned short*>(baseAddress+offset+i);
         while(FLASH->SR & FLASH_SR_BSY) ;
         FLASH->CR |= FLASH_CR_PG;
         *target=val;
@@ -149,10 +151,16 @@ void IRQbspInit()
     RCC->APB1ENR |= RCC_APB1ENR_PWREN;
     RCC_SYNC();
     
+    //All GPIOs default to input with pulldown
+    GPIOA->CRL=0x88888888; GPIOA->CRH=0x88888888;
+    GPIOB->CRL=0x88888888; GPIOB->CRH=0x88888888;
+    GPIOC->CRH=0x88888888;
+    GPIOD->CRL=0x88888888;
+    
     redLed::mode(Mode::OUTPUT);
     yellowLed::mode(Mode::OUTPUT);
     ledOn();
-    delayMs(100);
+    Rtc::instance(); //Starting the 32KHz oscillator takes time
     ledOff();
 
     configureLowVoltageDetect();
