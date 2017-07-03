@@ -265,7 +265,23 @@ void bspInit2()
     #ifdef WITH_FILESYSTEM
     intrusive_ref_ptr<DevFs> devFs=basicFilesystemSetup(SDIODriver::instance());
     devFs->addDevice("gps",
-        intrusive_ref_ptr<Device>(new STM32Serial(2,9600)));
+        intrusive_ref_ptr<Device>(new STM32Serial(2,115200)));
+
+    //TODO: STM32Serial configures USART2 on its default pins, which are
+    //instead connected to the lps331 interrupt pins. For now we'll
+    //manually deconfigure the old pins and reconfigure the new ones, but
+    //a better way would be desirable
+    {
+        FastInterruptDisableLock dLock;
+        // Deconfigure old pins (that the STM32Serial driver thinks it's usart
+        sensors::lps331::int1::mode(Mode::INPUT);
+        sensors::lps331::int2::mode(Mode::INPUT);
+        // Configure new pins, which is where the usart actually is
+        piksi::rx::alternateFunction(7);
+        piksi::tx::alternateFunction(7);
+        piksi::rx::mode(Mode::ALTERNATE);
+        piksi::tx::mode(Mode::ALTERNATE);
+    }
     #endif //WITH_FILESYSTEM
 }
 
