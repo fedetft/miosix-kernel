@@ -149,6 +149,11 @@ using bootsel0 = Gpio<GPIOG_BASE, 6>;
 using bootsel1 = Gpio<GPIOG_BASE, 7>;
 } //namespace misc
 
+namespace piksi {
+using tx       = Gpio<GPIOD_BASE, 5>;
+using rx       = Gpio<GPIOD_BASE, 6>;
+} //namespace piksi
+
 } //namespace miosix
 
 #endif //HWMAPPING_H
