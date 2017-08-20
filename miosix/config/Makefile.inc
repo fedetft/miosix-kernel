@@ -1241,8 +1241,8 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_STM32F469NI_STM32F469I-DISCO
-        CXXFLAGS_BASE += -D_BOARD_STM32F469NI_STM32F469I-DISCO
+        CFLAGS_BASE   += -D_BOARD_STM32F469NI_STM32F469I_DISCO
+        CXXFLAGS_BASE += -D_BOARD_STM32F469NI_STM32F469I_DISCO
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
