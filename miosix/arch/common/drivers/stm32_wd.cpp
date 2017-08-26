@@ -25,10 +25,11 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/ 
 
-#include "board_settings.h"
 #include "stm32_wd.h"
 #include "miosix.h"
+#include <algorithm>
 
+using namespace std;
 
 namespace miosix {
 
@@ -38,33 +39,24 @@ IWatchDog& IWatchDog::instance()
     return singleton;
 }
 
-void IWatchDog::init(void)
+void IWatchDog::enable(int ms)
 {
-    enable();
-}
-
-void IWatchDog::enable(void)
-{
-  /* disable WD configuration protection */
+    /* disable WD configuration protection */
     IWDG->KR = 0x5555;
 
-/* set prescaler divider to /32 */
+    /* set prescaler divider to /32 */
     IWDG->PR = 0x3; 
 
-/* set reload register to count from 0xFFF */
-    IWDG->RLR = 0xFFF;
+    /* set reload register */
+    IWDG->RLR = max(1,min(4096,ms))-1;
 
-/* start the watchdog */
+    /* start the watchdog */
     IWDG->KR = 0xCCCC;
 }
 
-
-
 void IWatchDog::refresh()
 {
-  IWDG->KR=0xAAAA;
+    IWDG->KR=0xAAAA;
 }
 
-
-
-} /* namespace miosix */
+} //namespace miosix

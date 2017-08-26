@@ -24,12 +24,12 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/ 
- 
 
 namespace miosix {
 
-
-
+/**
+ * Driver for the STM32 independent watchdog
+ */
 class IWatchDog 
 {
 public:
@@ -38,17 +38,25 @@ public:
      */
     static IWatchDog& instance();
     
-    void init(void);
-    void enable(void);
-    void refresh(void);
+    /**
+     * Enable the watchdog
+     * \param ms reload period, from 1 (1 millisecond) to 4096 (4.096 seconds)
+     */
+    void enable(int ms);
+
+    /**
+     * If the watchdog is not periodically reloaded at least within the
+     * period selected by enable, the microcontroller is reset.
+     * The datsheet says that the oscillator clocking the watchdog can be
+     * up to twice as fast, so it is recomended to reload the watchdog three
+     * to four times faster to prevent spurious resets.
+     */
+    void refresh();
 
 private:
-
-    IWatchDog(const IWatchDog&);
-    IWatchDog& operator=(const IWatchDog&);
+    IWatchDog(const IWatchDog&)=delete;
+    IWatchDog& operator=(const IWatchDog&)=delete;
     IWatchDog() {}
-
 };
 
-
-}
+} //namespace miosix
