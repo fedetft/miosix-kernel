@@ -44,7 +44,8 @@ SGM& SGM::instance()
     return singleton;
 }
 
-SGM::SGM(){
+SGM::SGM()
+{
     /* Enable PWR clock */
     RCC->APB1ENR |= RCC_APB1ENR_PWREN;
     
@@ -62,21 +63,17 @@ SGM::SGM(){
     /* Wait for backup regulator */
     while (!(PWR->CSR & (PWR_CSR_BRR)));
 
-        /* Retrive last reset reason and clear the pending flag */
+    /* Retrive last reset reason and clear the pending flag */
     readResetRegister();
+
     /* 
      * If the reset wasn't caused by software failure we cannot trust
      * the content of the backup memory and we need to clear it.
      */
-    if(last_reset != RST_SW){
+    if(lastReset != RST_SW)
+    {
         memset(preserve_start, 0, preserve_end-preserve_start);
     }
-}
-
-void SGM::enableWrite()
-{
-    /* Disable Backup Domain write protection */
-     PWR->CR |= PWR_CR_DBP; 
 }
 
 void SGM::disableWrite()
@@ -85,56 +82,49 @@ void SGM::disableWrite()
     PWR->CR &= ~PWR_CR_DBP;
 }
 
+void SGM::enableWrite()
+{
+    /* Disable Backup Domain write protection */
+     PWR->CR |= PWR_CR_DBP; 
+}
+
 void SGM::clearResetFlag()
 {
     RCC->CSR |= RCC_CSR_RMVF;
 }
 
-
-ResetReason SGM::lastResetReason()
-{
-    return last_reset;
-}
-
 void SGM::readResetRegister()
 {
-  uint32_t resetReg = RCC->CSR;
-  clearResetFlag();
-  if(resetReg & RCC_CSR_LPWRRSTF)
-  {
-    last_reset = RST_LOW_PWR;
-    return;
-  }
-  else if( resetReg & RCC_CSR_WWDGRSTF)
-  {
-    last_reset = RST_WINDOW_WDG;
-    return;
-  }
-  else if( resetReg & RCC_CSR_WDGRSTF)
-  {
-    last_reset = RST_INDEPENDENT_WDG;
-    return;
-  }
-  else if( resetReg & RCC_CSR_SFTRSTF)
-  {
-    last_reset = RST_SW;
-    return;
-  }
-  else if( resetReg & RCC_CSR_PORRSTF)
-  {
-    last_reset = RST_POWER_ON;
-    return;
-  }
-  else if( resetReg & RCC_CSR_PADRSTF)
-  {
-    last_reset = RST_PIN;
-    return;
-  }
-  else{
-    last_reset = RST_UNKNOWN;
-  return;
-
-  }
+    uint32_t resetReg = RCC->CSR;
+    clearResetFlag();
+    if(resetReg & RCC_CSR_LPWRRSTF)
+    {
+        lastReset = RST_LOW_PWR;
+    }
+    else if( resetReg & RCC_CSR_WWDGRSTF)
+    {
+        lastReset = RST_WINDOW_WDG;
+    }
+    else if( resetReg & RCC_CSR_WDGRSTF)
+    {
+        lastReset = RST_INDEPENDENT_WDG;
+    }
+    else if( resetReg & RCC_CSR_SFTRSTF)
+    {
+        lastReset = RST_SW;
+    }
+    else if( resetReg & RCC_CSR_PORRSTF)
+    {
+        lastReset = RST_POWER_ON;
+    }
+    else if( resetReg & RCC_CSR_PADRSTF)
+    {
+        lastReset = RST_PIN;
+    }
+    else
+    {
+        lastReset = RST_UNKNOWN;
+    }
 }
 
-} /* namespace miosix */
+} // namespace miosix
