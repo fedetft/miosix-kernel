@@ -59,12 +59,12 @@ typedef Gpio<GPIOG_BASE,6> _led;
 
 inline void ledOn()
 {
-    _led::high();
+    _led::low();
 }
 
 inline void ledOff()
 {
-    _led::low();
+    _led::high();
 }
 
 /**
