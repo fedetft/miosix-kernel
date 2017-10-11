@@ -62,14 +62,14 @@ MEMORY
      */
     smallram(wx) : ORIGIN = 0x10000200, LENGTH =  64K-0x200 
     largeram(wx) : ORIGIN = 0x20000000, LENGTH = 192K
-    xram(wx)     : ORIGIN = 0xd0000000, LENGTH =   8M
+    backupram(rw)    : ORIGIN = 0x40024000, LENGTH =  4K
+    xram(wx)     : ORIGIN = 0xd0000000, LENGTH =  8M
 }
 
 /* now define the output sections  */
 SECTIONS
 {
     . = 0;
-    
     /* .text section: code goes to flash */
     .text :
     {
@@ -173,7 +173,18 @@ SECTIONS
         . = ALIGN(8);
     } > xram
     _bss_end = .;
-
     _end = .;
-    PROVIDE(end = .);
+    PROVIDE(end = .);  
+
+    .preserve(NOLOAD) : ALIGN(4)
+    {
+        _preserve_start = .;
+        . = ALIGN(4);
+        *(.preserve);
+        *(.preserve*);
+        . = ALIGN(4);
+        _preserve_end = .;
+    } > backupram
+    
+
 }

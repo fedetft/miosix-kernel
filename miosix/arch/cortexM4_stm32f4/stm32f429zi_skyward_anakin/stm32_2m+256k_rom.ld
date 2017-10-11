@@ -66,13 +66,13 @@ MEMORY
      */
     smallram(wx) : ORIGIN = 0x10000200, LENGTH =  64K-0x200 
     largeram(wx) : ORIGIN = 0x20000000, LENGTH = 192K
+    backupram(rw)    : ORIGIN = 0x40024000, LENGTH =  4K
 }
 
 /* now define the output sections  */
 SECTIONS
 {
     . = 0;
-    
     /* .text section: code goes to flash */
     .text :
     {
@@ -179,4 +179,14 @@ SECTIONS
 
     /*_end = .;*/
     /*PROVIDE(end = .);*/
+    
+    .preserve(NOLOAD) : ALIGN(4)
+    {
+        _preserve_start = .;
+        . = ALIGN(4);
+        *(.preserve);
+        *(.preserve*);
+        . = ALIGN(4);
+        _preserve_end = .;
+    } > backupram
 }
