@@ -84,7 +84,14 @@ void IRQbspInit()
 void bspInit2()
 {
     #ifdef WITH_FILESYSTEM
+    #ifdef AUX_SERIAL
+    intrusive_ref_ptr<DevFs> devFs=basicFilesystemSetup(SDIODriver::instance());
+    devFs->addDevice(AUX_SERIAL,
+        intrusive_ref_ptr<Device>(new STM32Serial(2,auxSerialSpeed,
+        auxSerialFlowctrl ? STM32Serial::RTSCTS : STM32Serial::NOFLOWCTRL)));
+    #else //AUX_SERIAL
     basicFilesystemSetup(SDIODriver::instance());
+    #endif //AUX_SERIAL
     #endif //WITH_FILESYSTEM
 }
 
