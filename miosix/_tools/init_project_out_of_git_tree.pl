@@ -57,10 +57,55 @@ sub copy_and_fixup_makefile
 	close($out);
 }
 
+sub copy_and_fixup_nbproj
+{
+	dircopy("$source/miosix_np_2","$target/miosix_np_2") or die;
+	open(NBCONF,  "<$target/miosix_np_2/nbproject/configurations.xml") or die;
+	my @lines = <NBCONF>;
+	close(NBCONF);
+
+	# KPATH must contain the path to the kernel. Said path must be relative and
+    # in the unix format (i.e: with / as path separator, not \). This is
+    # because the generated Makefile may be put in a public git repository that
+    # has the miosix kernel as a submodule, and it would be bad to put an
+    # absolute path in a git repo, or a path that is only usable from windows
+    my $relpath=File::Spec->abs2rel($source,$target);
+    $relpath =~ s/\\/\//; # Force the use of / as path separator
+
+	# Splitting relpath for adding the correct df tags
+	my @splitted_relpath = split(/\//, $relpath);
+
+	my $closing = "";
+	foreach(@splitted_relpath) {
+		$closing .= "</df>";
+	}
+
+	my $opening = "";
+	foreach my $dir_name (@splitted_relpath) {
+		$opening .= "<df name=\"$dir_name\">";
+	}
+
+	my @newlines;
+	my %replace = (
+		"\/miosix\/" => "\/$relpath\/miosix\/",
+		"\/miosix<" => "\/$relpath\/miosix<",
+		"<df name=\"miosix\">" => $opening . "<df name=\"miosix\">",
+		"<in>main.cpp<\/in>" => $closing . "<in>main.cpp</in>"
+	);
+	foreach(@lines) {
+		$_ =~ s/(@{[join "|", keys %replace]})/$replace{$1}/g;
+		push(@newlines,$_);
+	}
+
+	open(NBCONF, ">$target/miosix_np_2/nbproject/configurations.xml") || die "File not found";
+	print NBCONF @newlines;
+	close(NBCONF);
+}
+
 copy("$source/main.cpp","$target/main.cpp") or die;
 copy_and_fixup_makefile("$source/Makefile","$target/Makefile");
+copy_and_fixup_nbproj();
 dircopy("$source/miosix/config","$target/config") or die;
-dircopy("$source/miosix_np_2","$target/miosix_np_2") or die;
 
 print "Successfully created Miosix project\n";
 print "Target directory: $target\n";
