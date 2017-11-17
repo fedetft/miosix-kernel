@@ -76,7 +76,7 @@ FlooderSyncNode::FlooderSyncNode(Synchronizer *synchronizer,
     //FIXME: with a so small slack if the packet is received at the end of the
     //receiver window there may be no time for rebroadcast
     packetRebroadcastTime=(syncPacketSize+6)*32000+600000;
-    tc=new TimeConversion(48000000);
+    tc=new TimeConversion(EFM32_HFXO_FREQ);
     
     initDebugPins();
 }

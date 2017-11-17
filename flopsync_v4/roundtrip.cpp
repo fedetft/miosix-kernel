@@ -13,7 +13,7 @@ Roundtrip::Roundtrip(unsigned char hop, unsigned int radioFrequency, short txPow
         timer(getTransceiverTimer()),
         debug(true)
 {
-    tc=new TimeConversion(48000000);
+    tc=new TimeConversion(EFM32_HFXO_FREQ);
     this->delay=tc->ns2tick(delay);
 }
 

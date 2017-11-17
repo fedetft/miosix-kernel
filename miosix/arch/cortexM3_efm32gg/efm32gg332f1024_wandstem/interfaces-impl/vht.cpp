@@ -96,7 +96,7 @@ void VHT::loop() {
     
     int tempPendingVhtSync;				    ///< Number of sync acquired in a round
     //x is the mar theoretical error: it should be lower than 300ppm
-    const long long x=(double)48000000*HRTB::syncPeriodRtc/32768*0.0003f;
+    const long long x=(double)EFM32_HFXO_FREQ*HRTB::syncPeriodRtc/32768*0.0003f;
     while(1){
         Thread::wait();
         {

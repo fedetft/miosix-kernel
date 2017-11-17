@@ -81,7 +81,7 @@ Spi::Spi()
     USART1->FRAME=USART_FRAME_STOPBITS_ONE //Should not even be needed
                 | USART_FRAME_PARITY_NONE
                 | USART_FRAME_DATABITS_EIGHT;
-    USART1->CLKDIV=((48000000/8000000/2)-1)<<8; //CC2520 max freq is 8MHz
+    USART1->CLKDIV=((EFM32_HFXO_FREQ/8000000/2)-1)<<8; //CC2520 max freq is 8MHz
     USART1->IEN=0;
     USART1->IRCTRL=0;
     USART1->I2SCTRL=0;

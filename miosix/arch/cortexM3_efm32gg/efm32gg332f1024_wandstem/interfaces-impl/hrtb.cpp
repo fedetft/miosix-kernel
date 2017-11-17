@@ -108,7 +108,7 @@ inline void interruptGPIOTimerRoutine(){
         //really in the past, the overflow of TIMER3 is occurred but the timer wasn't updated
         long long a=ms32chkp[2] | TIMER3->CC[2].CCV<<16 | TIMER1->CC[2].CCV;
         long long c=IRQgetTick();
-        if(a-c< -48000000){ 
+        if(a-c< -48000000){ //WTF is this? TODO document me
             ms32chkp[2]+=overflowIncrement;
         }
     }
@@ -224,7 +224,7 @@ void __attribute__((used)) cstirqhnd2(){
         //really in the past, the overflow of TIMER3 is occurred but the timer wasn't updated
         long long a=ms32chkp[0] | TIMER3->CC[0].CCV<<16 | TIMER2->CC[0].CCV;
         long long c=IRQgetTick();
-        if(a-c< -48000000){ 
+        if(a-c< -48000000){ //WTF is this?! TODO document me
             ms32chkp[0]+=overflowIncrement;
         }
         interruptTransceiverTimerRoutine();

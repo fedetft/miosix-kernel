@@ -94,6 +94,6 @@ bool FlooderRootNode::synchronize()
     transceiver.turnOff();
     ledOff();
 
-    roundtrip->reply(48000000);
+    roundtrip->reply(EFM32_HFXO_FREQ);
     return false; //Root node does not desynchronize
 }

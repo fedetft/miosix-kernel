@@ -335,7 +335,7 @@ PowerManager::PowerManager()
     b=&HRTB::instance();
     rtc=&Rtc::instance();
     vht=&VHT::instance();
-    tc=new TimeConversion(48000000);
+    tc=new TimeConversion(EFM32_HFXO_FREQ);
 }
 
 void PowerManager::IRQpreDeepSleep(Transceiver& rtx)
