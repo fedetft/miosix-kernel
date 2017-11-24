@@ -355,7 +355,6 @@ long long HRTB::IRQgetVhtTimestamp(){
     
     long long now=IRQgetCurrentTick();
     if(timestamp > (now & 0x00000000FFFFFFFF)){
-        //greenLed::high();
         timestamp-=65536;
     }
     ///////////////////

@@ -113,9 +113,6 @@ void VHT::loop() {
 
         if(VHT::softEnable)
         {
-            //Applying the update
-            greenLed::toggle();
-
             //The correction should always less than 300ppm
             assert(error<x&&error>-x);
             
