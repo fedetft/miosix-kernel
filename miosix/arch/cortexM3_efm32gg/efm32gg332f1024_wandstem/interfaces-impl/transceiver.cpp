@@ -671,8 +671,9 @@ void Transceiver::readPacketFromRxBuffer(void* pkt, int size, RecvResult& result
         {
             result.rssi=decodeRssi(spi.sendRecv());   
             unsigned char crcCheck=spi.sendRecv();
-            if((crcCheck & 0x80)==0) result.error=RecvResult::CRC_FAIL;
-        }
+            result.error = crcCheck & 0x80? RecvResult::OK : RecvResult::CRC_FAIL;
+        } else
+            result.error = RecvResult::OK;
     }
     
     //FIFOP is raised at the end of each valid packet, so clear it

@@ -85,14 +85,15 @@ public:
      */
     enum ErrorCode
     {
-        OK,       ///< Receive succeeded
-        TIMEOUT,  ///< Receive timed out
-        TOO_LONG, ///< Packet was too long for the given buffer
-        CRC_FAIL  ///< Packet failed CRC check
+        OK,             ///< Receive succeeded
+        TIMEOUT,        ///< Receive timed out
+        TOO_LONG,       ///< Packet was too long for the given buffer
+        CRC_FAIL,       ///< Packet failed CRC check
+        UNINITIALIZED   ///< Receive returned exception
     };
     
     RecvResult()
-        : timestamp(0), rssi(-128), size(0), error(OK), timestampValid(false) {}
+        : timestamp(0), rssi(-128), size(0), error(UNINITIALIZED), timestampValid(false) {}
     
     long long timestamp; ///< Packet timestamp. It is the time point when the
                          ///< first bit of the packet preamble is received
