@@ -36,7 +36,7 @@ class FloodingScheme
 public:
     /**
      * Constructor
-     * \param syncPeriod synchronization period
+     * \param syncPeriod synchronization period in nanoseconds
      */
     FloodingScheme(long long syncPeriod) : syncPeriod(syncPeriod) {}
     

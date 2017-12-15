@@ -49,7 +49,7 @@ public:
     /**
      * Constructor
      * \param synchronizer pointer to synchronizer
-     * \param syncPeriod synchronization period
+     * \param syncPeriod synchronization period expressed in nanoseconds
      * \param radioFrequency the radio frequency used for synchronizing
      * \param panId pan ID
      * \param txPower powr at which the sync packet has to be transmitted
@@ -112,7 +112,14 @@ private:
      */
     void rebroadcast(long long receivedTimestamp, unsigned char *packet);
         
-    bool isSyncPacket(miosix::RecvResult& result, unsigned char *packet);
+    inline bool isSyncPacket(miosix::RecvResult& result, unsigned char *packet) {
+        return result.error == RecvResult::OK
+                && result.timestampValid && result.size == syncPacketSize
+                && packet[0] == 0x46 && packet[1] == 0x08
+                && packet[3] == static_cast<unsigned char>(panId >> 8)
+                && packet[4] == static_cast<unsigned char>(panId & 0xff)
+                && packet[5] == 0xff && packet[6] == 0xff;
+    }
     
     long long fastNegMul(long long a,unsigned int bi, unsigned int bf){
         if(a<0){
@@ -130,9 +137,7 @@ private:
     
     long long measuredFrameStart;
     long long computedFrameStart;
-    long long computedFrameStartTick;
     long long theoreticalFrameStartNs;
-    long long theoreticalFrameStartTick;
     
     unsigned int radioFrequency;
     int clockCorrection;

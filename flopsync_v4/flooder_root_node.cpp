@@ -50,28 +50,28 @@ FlooderRootNode::FlooderRootNode(long long syncPeriod,
       transceiver(Transceiver::instance()),
       radioFrequency(radioFrequency),
       frameStart(-1),
-      panId(panId), txPower(txPower), debug(false)
+      panId(panId), txPower(txPower), debug(true)
 {
-    roundtrip=new Roundtrip(0,radioFrequency,txPower,panId,2500000);
+    roundtrip=new Roundtrip(0,radioFrequency,txPower,panId,52083);
 
     //Minimum ~550us, 200us of slack added
     rootNodeWakeupAdvance=750000;
+    initDebugPins();
 }
 
 bool FlooderRootNode::synchronize()
 {
-    initDebugPins();
     if(frameStart>0)
     {
         frameStart+=syncPeriod;
         long long wakeupTime=frameStart-rootNodeWakeupAdvance;
         if(timer.getValue()>=wakeupTime)
         {
-            if(debug) puts("FlooderRootNode::synchronize called too late");
+            if(debug) printf("FlooderRootNode::synchronize called too late\n");
             return false;
         }
         pm.deepSleepUntil(wakeupTime);
-    } else frameStart=getTime()+rootNodeWakeupAdvance;
+    } else frameStart=getTime()+rootNodeWakeupAdvance; //start condition, transmits first sync frame asap
     
     ledOn();
     TransceiverConfiguration cfg(radioFrequency,txPower);
@@ -86,14 +86,17 @@ bool FlooderRootNode::synchronize()
         static_cast<unsigned char>(panId & 0xff), //destination pan ID
         0xff, 0xff                                //destination addr (broadcast)
     };
+    //Sending synchronization start packet
     try {
         transceiver.sendAt(syncPacket,sizeof(syncPacket),frameStart);
     } catch(exception& e) {
-        if(debug) puts(e.what());
-    }    
+        if(debug) printf("%s\n", e.what());
+    }
+    if (debug) printf("Sync packet sent at %lld\n", frameStart);
     transceiver.turnOff();
     ledOff();
 
-    roundtrip->reply(EFM32_HFXO_FREQ);
+    //start awaiting the roundtrip calculation packet and manage its response
+    roundtrip->reply(1000000000LL); //1s
     return false; //Root node does not desynchronize
 }

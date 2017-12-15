@@ -42,7 +42,7 @@ class FlooderRootNode : public FloodingScheme
 public:
     /**
      * Constructor
-     * \param syncPeriod synchronization period
+     * \param syncPeriod synchronization period expressed in nanoseconds
      * \param radioFrequency the radio frequency used for synchronizing
      * \param panId pan ID
      * \param txPower powr at which the sync packet has to be transmitted
@@ -72,6 +72,7 @@ public:
     long long getComputedFrameStart() const { return frameStart; }
     
     /**
+     * Enables/disables the debug mode
      * \param enabled if true, this class prints debug data
      */
     void debugMode(bool enabled) { debug=enabled; }

@@ -16,20 +16,21 @@ public:
      * @param txPower 
      * @param panId
      * @param delay this is required by asker and replier, it is the delay 
-     *          between recv and retransmit 
+     *          between recv and retransmit  expressed in nanoseconds
      */
     Roundtrip(unsigned char hop, unsigned int radioFrequency, short txPower, short panId,
-            int delay);
+            long long delay);
     
     /**
-     * Function to ask the previous hop nodes to send packet contains 
-     * the distance from the master
-     * @param timeout time until to wait for the reply, it is a relative time
+     * Function to ask the previous hop nodes to send packet containing 
+     * the distance from the master for measuring the accumulated RTT
+     * @param timeout time until to wait for the reply, it is a relative time in nanoseconds
+     * @param at when to send the roundtrip request
      */
-    void ask(long long at, long long timeout);
+    void ask(long long at, long long timeout); //TODO this should maybe return some kind of time
 
     /**
-     * Function to listen and wait until an ask packet is received
+     * Function to listen and wait until a RTT calculation packet is received and reply after the fixed delay
      * @param timeout time to wait for ask packet, it is a relative time
      */
     void reply(long long timeout);
@@ -37,16 +38,23 @@ public:
     void setHop(unsigned char hop){ this->hop=hop; }
     
 private:
-    bool isRoundtripPacket(RecvResult& result, unsigned char *packet);
+    inline bool isRoundtripPacket(RecvResult& result, unsigned char *packet) {
+        return result.error == RecvResult::OK && result.timestampValid == true
+                && result.size == askPacketSize
+                && packet[0] == 0x46 && packet[1] == 0x08
+                && packet[3] == static_cast<unsigned char> (panId >> 8)
+                && packet[4] == static_cast<unsigned char> (panId & 0xff)
+                && packet[5] == 0xff && packet[6] == 0xfe;
+    }
     TimeConversion* tc;
     unsigned int radioFrequency;
     unsigned char hop;
     unsigned short panId;
     short txPower;
-    int delay;
+    long long delay;
     
-    int lastDelay;
-    int totalDelay;
+    long long lastDelay;
+    long long totalDelay;
     
     Transceiver& transceiver;
     HardwareTimer& timer;

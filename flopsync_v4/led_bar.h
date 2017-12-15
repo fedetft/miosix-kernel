@@ -27,7 +27,7 @@ public:
     /**
      * Return the content packet
      * @return  the int represent a number in range [0,N*2], the boolean says 
-     *          of the packet is "good" and not to much corrupted
+     *          of the packet is "good" and not too much corrupted
      */
     std::pair<int,bool> decode();
     
@@ -62,12 +62,11 @@ void LedBar<N>::encode(int num)
 {
     using namespace std;
     num = max<int>(0,min<int>(N*2,num));
-    memset(packet, 0, N);
+    int bytesCount = num / 2;
+    memset(packet, 0xFF, bytesCount);
+    memset(packet + bytesCount, 0, N);
 
-    for(int i = 0; i < num/2; i++)
-        packet[i] = 0xff;
-
-    if(num & 1) packet[num/2] = 0xf0;
+    if(num & 1) packet[bytesCount] = 0xf0;
 }
 
 template<unsigned N>
