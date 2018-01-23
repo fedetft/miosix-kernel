@@ -214,6 +214,8 @@ public:
      * \param pkt pointer to a buffer where the packet will be stored
      * \param size size of the buffer
      * \param timeout timeout absolute time after which the function returns
+     * \param unit the unit in which timeout is specified and packet is timestamped
+     * \param c if the returned timestamp will be corrected by VT or not
      * \return a RecvResult class with the information about the operation
      * outcome
      * \throws exception in case of errors
