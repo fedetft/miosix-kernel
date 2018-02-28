@@ -316,7 +316,7 @@ void Transceiver::sendAt(const void* pkt, int size, long long when, Unit unit)
     handlePacketTransmissionEvents(size);
 }
 
-RecvResult Transceiver::recv(void *pkt, int size, long long timeout, Unit unit, HardwareTimer::Correct c)
+RecvResult Transceiver::recv(void *pkt, int size, long long timeout, Unit unit, Correct c)
 {
     if(state==CC2520State::DEEPSLEEP)
         throw runtime_error("Transceiver::recv while in deep sleep");
@@ -350,10 +350,10 @@ RecvResult Transceiver::recv(void *pkt, int size, long long timeout, Unit unit, 
                 //Timestamp is wrong and we know it, so we don't set valid
                 
                 if(unit==Unit::NS){
-                    result.timestamp=timer.tick2ns(timer.getExtEventTimestamp(c))-
+                    result.timestamp=timer.tick2ns(timer.getExtEventTimestamp((HardwareTimer::Correct) c))-
                         (preambleSfdTime+rxSfdLag);
                 }else{
-                    result.timestamp=timer.getExtEventTimestamp(c)-
+                    result.timestamp=timer.getExtEventTimestamp((HardwareTimer::Correct) c)-
                         timer.ns2tick(preambleSfdTime+rxSfdLag);
                 }
                 
@@ -567,7 +567,7 @@ void Transceiver::handlePacketTransmissionEvents(int size)
     if(silentError) idle();
 }
 
-bool Transceiver::handlePacketReceptionEvents(long long timeout, int size, RecvResult& result, Unit unit, HardwareTimer::Correct c)
+bool Transceiver::handlePacketReceptionEvents(long long timeout, int size, RecvResult& result, Unit unit, Correct c)
 {
     if(unit==Unit::NS)
     {
@@ -583,10 +583,10 @@ bool Transceiver::handlePacketReceptionEvents(long long timeout, int size, RecvR
     //packet is received, while the cc2520 allows timestamping at the SFD
     
     if(unit==Unit::NS){
-        result.timestamp=timer.tick2ns(timer.getExtEventTimestamp(c))-
+        result.timestamp=timer.tick2ns(timer.getExtEventTimestamp((HardwareTimer::Correct) c))-
                         (preambleSfdTime+rxSfdLag);
     }else{
-        result.timestamp=timer.getExtEventTimestamp(c)-
+        result.timestamp=timer.getExtEventTimestamp((HardwareTimer::Correct) c)-
                         timer.ns2tick(preambleSfdTime+rxSfdLag);
     }
     
