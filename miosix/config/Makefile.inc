@@ -30,6 +30,7 @@
 #OPT_BOARD := stm32f429zi_oledboard2
 #OPT_BOARD := efm32gg332f1024_wandstem
 #OPT_BOARD := stm32f411re_nucleo
+#OPT_BOARD := stm32f401re_nucleo
 #OPT_BOARD := stm32f429zi_skyward_anakin
 #OPT_BOARD := stm32f100rc_solertegiard
 #OPT_BOARD := stm32f205rc_skyward_stormtrooper
@@ -337,6 +338,17 @@ ifeq ($(OPT_BOARD),stm32f411re_nucleo)
 endif
 
 ##---------------------------------------------------------------------------
+## stm32f401re_nucleo
+##
+ifeq ($(OPT_BOARD),stm32f401re_nucleo)
+
+    # Select clock frequency
+    CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_100MHz=100000000
+    #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_84MHz=84000000
+
+endif
+
+##---------------------------------------------------------------------------
 ## stm32f429zi_skyward_anakin
 ##
 ifeq ($(OPT_BOARD),stm32f429zi_skyward_anakin)
@@ -510,6 +522,8 @@ else ifeq ($(OPT_BOARD),stm32f429zi_oledboard2)
 else ifeq ($(OPT_BOARD),efm32gg332f1024_wandstem)
     ARCH := cortexM3_efm32gg
 else ifeq ($(OPT_BOARD),stm32f411re_nucleo)
+    ARCH := cortexM4_stm32f4
+else ifeq ($(OPT_BOARD),stm32f401re_nucleo)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),stm32f429zi_skyward_anakin)
     ARCH := cortexM4_stm32f4
@@ -1183,6 +1197,37 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## error message saying that 'make program' is not supported for that
         ## board.
         PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f401re_nucleo
+    ##
+    else ifeq ($(OPT_BOARD),stm32f401re_nucleo)
+
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM4_stm32f4/stm32f401re_nucleo
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_512k+96k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32F401RE_NUCLEO
+        CXXFLAGS_BASE += -D_BOARD_STM32F401RE_NUCLEO
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+
 
     ##-------------------------------------------------------------------------
     ## stm32f429zi_skyward_anakin
