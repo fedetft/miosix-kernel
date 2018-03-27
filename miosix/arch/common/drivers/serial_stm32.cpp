@@ -54,8 +54,17 @@ typedef Gpio<GPIOA_BASE,2>  u2tx;
 typedef Gpio<GPIOA_BASE,3>  u2rx;
 typedef Gpio<GPIOA_BASE,0>  u2cts;
 typedef Gpio<GPIOA_BASE,1>  u2rts;
+#ifndef _BOARD_STM3220G_EVAL
 typedef Gpio<GPIOB_BASE,10> u3tx;
 typedef Gpio<GPIOB_BASE,11> u3rx;
+#else //_BOARD_STM3220G_EVAL
+//The STM3220G_EVAL board maps usart3 to different pins.
+//TODO: modify the class constructor so that it takes the gpiopins as
+//parameter, so as to allow each board to custom-remap usart pins,
+//otherwise this common driver will end up having even more ifdefs
+typedef Gpio<GPIOB_BASE,10> u3tx;
+typedef Gpio<GPIOB_BASE,11> u3rx;
+#endif //_BOARD_STM3220G_EVAL
 typedef Gpio<GPIOB_BASE,13> u3cts;
 typedef Gpio<GPIOB_BASE,14> u3rts;
 #endif //!defined(STM32_NO_SERIAL_2_3)
