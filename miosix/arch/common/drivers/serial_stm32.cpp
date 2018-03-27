@@ -62,8 +62,8 @@ typedef Gpio<GPIOB_BASE,11> u3rx;
 //TODO: modify the class constructor so that it takes the gpiopins as
 //parameter, so as to allow each board to custom-remap usart pins,
 //otherwise this common driver will end up having even more ifdefs
-typedef Gpio<GPIOB_BASE,10> u3tx;
-typedef Gpio<GPIOB_BASE,11> u3rx;
+typedef Gpio<GPIOC_BASE,10> u3tx;
+typedef Gpio<GPIOC_BASE,11> u3rx;
 #endif //_BOARD_STM3220G_EVAL
 typedef Gpio<GPIOB_BASE,13> u3cts;
 typedef Gpio<GPIOB_BASE,14> u3rts;
