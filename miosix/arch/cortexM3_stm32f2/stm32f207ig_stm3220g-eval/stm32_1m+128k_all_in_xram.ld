@@ -115,9 +115,6 @@ SECTIONS
     } > ram
     __exidx_end = .;
 
-    . = ALIGN(8);
-    _etext = .;
-
 	/* .data section: global variables go to ram, but also store a copy to
        flash to initialize them */
     .data : ALIGN(8)
@@ -129,6 +126,7 @@ SECTIONS
         . = ALIGN(8);
         _edata = .;
     } > ram
+    _etext = LOADADDR(.data);
 
     /* .bss section: uninitialized global variables go to ram */
     _bss_start = .;
