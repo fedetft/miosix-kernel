@@ -46,6 +46,7 @@
 #include "drivers/serial.h"
 #include "drivers/sd_stm32f2_f4.h"
 #include "board_settings.h"
+#include "hwmapping.h"
 
 namespace miosix {
 
@@ -191,7 +192,82 @@ void IRQbspInit()
     RCC_SYNC();
     #endif //__ENABLE_XRAM
     
-    _led::mode(Mode::OUTPUT);
+    using namespace interfaces;
+    spi1::sck::mode(Mode::ALTERNATE);
+    spi1::sck::alternateFunction(5);
+    spi1::miso::mode(Mode::ALTERNATE);
+    spi1::miso::alternateFunction(5);
+    spi1::mosi::mode(Mode::ALTERNATE);
+    spi1::mosi::alternateFunction(5);
+    
+    spi2::sck::mode(Mode::ALTERNATE);
+    spi2::sck::alternateFunction(5);
+    spi2::miso::mode(Mode::ALTERNATE);
+    spi2::miso::alternateFunction(5);
+    spi2::mosi::mode(Mode::ALTERNATE);
+    spi2::mosi::alternateFunction(5);
+    
+    i2c::scl::mode(Mode::ALTERNATE_OD);
+    i2c::scl::alternateFunction(4);
+    i2c::sda::mode(Mode::ALTERNATE_OD);
+    i2c::sda::alternateFunction(4);
+    
+    uart4::rx::mode(Mode::ALTERNATE);
+    uart4::rx::alternateFunction(8);
+    uart4::tx::mode(Mode::ALTERNATE);
+    uart4::tx::alternateFunction(8);
+    
+    can::rx::mode(Mode::ALTERNATE);
+    can::rx::alternateFunction(9);
+    can::tx::mode(Mode::ALTERNATE);
+    can::tx::alternateFunction(9);
+    
+    using namespace sensors;
+    adis16405::cs::mode(Mode::OUTPUT);
+    adis16405::cs::high();
+    adis16405::nrst::mode(Mode::OUTPUT);
+    adis16405::nrst::high();
+    adis16405::ckIn::mode(Mode::ALTERNATE);
+    adis16405::ckIn::alternateFunction(2);
+    adis16405::dio1::mode(Mode::INPUT);    
+    
+    ad7994::ab::mode(Mode::INPUT);
+    ad7994::nconvst::mode(Mode::OUTPUT);
+    
+    max21105::cs::mode(Mode::OUTPUT);
+    max21105::cs::high();
+    
+    mpu9250::cs::mode(Mode::OUTPUT);
+    mpu9250::cs::high();
+    
+    ms5803::cs::mode(Mode::OUTPUT);
+    ms5803::cs::high();
+    
+    using namespace actuators;
+    hbridgel::ena::mode(Mode::OUTPUT);
+    hbridgel::ena::low();
+    hbridgel::in::mode(Mode::ALTERNATE);
+    hbridgel::in::alternateFunction(2);
+    hbridgel::csens::mode(Mode::INPUT_ANALOG);
+    
+    hbridger::ena::mode(Mode::OUTPUT);
+    hbridger::ena::low();
+    hbridger::in::mode(Mode::ALTERNATE);
+    hbridger::in::alternateFunction(2);
+    hbridger::csens::mode(Mode::INPUT_ANALOG);
+    
+    InAir9B::cs::mode(Mode::OUTPUT);
+    InAir9B::cs::high();    
+    //NOTE: in the InAir9B datasheet is specified that the nRSR line should be
+    //on hi-Z state when idle, thus we set the gpio as open drain
+    InAir9B::nrst::mode(Mode::OPEN_DRAIN);
+    InAir9B::nrst::high();
+    InAir9B::dio0::mode(Mode::INPUT);
+    InAir9B::dio1::mode(Mode::INPUT);
+    InAir9B::dio2::mode(Mode::INPUT);
+    InAir9B::dio3::mode(Mode::INPUT);
+    
+    _led::mode(Mode::OUTPUT);    
 // Removed led blink to speed up boot
 //     ledOn();
 //     delayMs(100);
@@ -204,7 +280,9 @@ void IRQbspInit()
 void bspInit2()
 {
     #ifdef WITH_FILESYSTEM
-    basicFilesystemSetup(SDIODriver::instance());
+    intrusive_ref_ptr<DevFs> devFs = basicFilesystemSetup(SDIODriver::instance());
+    devFs->addDevice("gps", intrusive_ref_ptr<Device>(new STM32Serial(2,115200)));
+    devFs->addDevice("radio", intrusive_ref_ptr<Device>(new STM32Serial(3,115200)));
     #endif //WITH_FILESYSTEM
 }
 
