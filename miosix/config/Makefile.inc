@@ -462,13 +462,9 @@ endif
 ##---------------------------------------------------------------------------
 ## stm32f401re_nucleo
 ##
-ifeq ($(OPT_BOARD),stm32f401re_nucleo)
 
-    # Select clock frequency
-    CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_100MHz=100000000
-    #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_84MHz=84000000
+# No options
 
-endif
 
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
@@ -1353,6 +1349,9 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32F401RE_NUCLEO
         CXXFLAGS_BASE += -D_BOARD_STM32F401RE_NUCLEO
+
+        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
+        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_84MHz=84000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
