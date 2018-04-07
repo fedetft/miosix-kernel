@@ -158,7 +158,6 @@ void __attribute__((weak)) I2C3_EV_IRQHandler();
 void __attribute__((weak)) I2C3_ER_IRQHandler();
 void __attribute__((weak)) FPU_IRQHandler();
 void __attribute__((weak)) SPI4_IRQHandler();
-void __attribute__((weak)) SPI5_IRQHandler();
 
 //Stack top, defined in the linker script
 extern char _main_stack_top asm("_main_stack_top");
@@ -271,7 +270,6 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
 	0,
 	0,
 	SPI4_IRQHandler,
-	SPI5_IRQHandler,
 };
 
 #pragma weak WWDG_IRQHandler = Default_Handler
@@ -330,4 +328,3 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
 #pragma weak I2C3_ER_IRQHandler = Default_Handler
 #pragma weak FPU_IRQHandler = Default_Handler
 #pragma weak SPI4_IRQHandler = Default_Handler
-#pragma weak SPI5_IRQHandler = Default_Handler
