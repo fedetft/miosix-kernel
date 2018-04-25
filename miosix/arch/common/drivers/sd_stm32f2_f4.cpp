@@ -685,7 +685,12 @@ private:
     
     static const unsigned int SDIOCLK=48000000; //On stm32f2 SDIOCLK is always 48MHz
     static const unsigned int CLOCK_400KHz=118; //48MHz/(118+2)=400KHz
+    #ifdef OVERRIDE_SD_CLOCK_DIVIDER_MAX
+    //Some boards using SDRAM cause SDIO TX Underrun occasionally
+    static const unsigned int CLOCK_MAX=OVERRIDE_SD_CLOCK_DIVIDER_MAX;
+    #else //OVERRIDE_SD_CLOCK_DIVIDER_MAX
     static const unsigned int CLOCK_MAX=0;      //48MHz/(0+2)  =24MHz
+    #endif //OVERRIDE_SD_CLOCK_DIVIDER_MAX
 
     #ifdef SD_ONE_BIT_DATABUS
     ///\internal Clock enabled, bus width 1bit, clock powersave enabled.

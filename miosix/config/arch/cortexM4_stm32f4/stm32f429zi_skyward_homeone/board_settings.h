@@ -74,6 +74,10 @@ const bool defaultSerialFlowctrl=false;
 
 //SD card driver
 static const unsigned char sdVoltage=30; //Board powered @ 3.0V
+#ifdef __ENABLE_XRAM
+//Reduce SD clock to ~4.8MHz
+#define OVERRIDE_SD_CLOCK_DIVIDER_MAX 8
+#endif //__ENABLE_XRAM
 //#define SD_ONE_BIT_DATABUS //This board supports 4 bit databus to SD card
 
 /**
