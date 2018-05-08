@@ -168,6 +168,7 @@ public:
      */
     InterruptEnableLock(InterruptDisableLock& l)
     {
+        (void)l;
         enableInterrupts();
     }
 
@@ -232,6 +233,7 @@ public:
      */
     FastInterruptEnableLock(FastInterruptDisableLock& l)
     {
+        (void)l;
         fastEnableInterrupts();
     }
 
@@ -341,6 +343,7 @@ public:
      */
     RestartKernelLock(PauseKernelLock& l)
     {
+        (void)l;
         restartKernel();
     }
 
