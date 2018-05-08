@@ -87,7 +87,6 @@ tuple<void (*)(void*), void*> unmemberLogic(unsigned long mixedField,
 
 } //namespace miosix
 
-#define TEST_ALGORITHM
 //Testsuite for member function pointer implementation. Compile with:
 // g++ -std=c++11 -O2 -DTEST_ALGORITHM -o test unmember.cpp; ./test
 #ifdef TEST_ALGORITHM
