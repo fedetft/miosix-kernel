@@ -27,27 +27,31 @@
 
 #include "virtual_clock.h"
 
+namespace miosix {
+
 VirtualClock& VirtualClock::instance(){
     static VirtualClock vt;
     return vt;
 }
 
 void VirtualClock::update(long long baseTheoretical, long long baseComputed, long long clockCorrection){
-        assert(syncPeriod!=0);
-        //efficient way to calculate the factor T/(T+u(k))
-        unsigned long long temp=(syncPeriod<<28)/(syncPeriod+clockCorrection);
-        //calculate inverse of previous factor (T+u(k))/T
-        unsigned long long inverseTemp = ((syncPeriod+clockCorrection)<<28)/syncPeriod;
-        {
-            FastInterruptDisableLock dLock;
-            factorI = static_cast<unsigned int>((temp & 0x0FFFFFFFF0000000LLU)>>28);
-            factorD = static_cast<unsigned int>(temp<<4);
+    assert(syncPeriod!=0);
+    //efficient way to calculate the factor T/(T+u(k))
+    unsigned long long temp=(syncPeriod<<28)/(syncPeriod+clockCorrection);
+    //calculate inverse of previous factor (T+u(k))/T
+    unsigned long long inverseTemp = ((syncPeriod+clockCorrection)<<28)/syncPeriod;
+    {
+        FastInterruptDisableLock dLock;
+        factorI = static_cast<unsigned int>((temp & 0x0FFFFFFFF0000000LLU)>>28);
+        factorD = static_cast<unsigned int>(temp<<4);
 
-            inverseFactorI = static_cast<unsigned int>((inverseTemp & 0x0FFFFFFFF0000000LLU)>>28);
-            inverseFactorD = static_cast<unsigned int>(inverseTemp<<4);
+        inverseFactorI = static_cast<unsigned int>((inverseTemp & 0x0FFFFFFFF0000000LLU)>>28);
+        inverseFactorD = static_cast<unsigned int>(inverseTemp<<4);
 
-            this->baseTheoretical=baseTheoretical;
-            this->baseComputed=baseComputed;
-        }
-        //printf("%u %u %u %u %lld %lld\n",factorI,factorD,inverseFactorI,inverseFactorD,this->baseTheoretical, this->baseComputed);
+        this->baseTheoretical=baseTheoretical;
+        this->baseComputed=baseComputed;
     }
+    //printf("%u %u %u %u %lld %lld\n",factorI,factorD,inverseFactorI,inverseFactorD,this->baseTheoretical, this->baseComputed);
+}
+
+}

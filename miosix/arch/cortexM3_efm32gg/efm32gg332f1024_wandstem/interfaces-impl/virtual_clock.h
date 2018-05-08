@@ -33,8 +33,7 @@
 #include "stdio.h"
 #include "miosix.h"
 
-using namespace miosix;
-
+namespace miosix {
 class VirtualClock {
 public:
     static VirtualClock& instance();
@@ -88,6 +87,7 @@ private:
     unsigned int inverseFactorI=1;
     unsigned int inverseFactorD=0;
 };
+}
 
 #endif /* VIRTUAL_CLOCK_H */
 
