@@ -71,6 +71,6 @@ inline void ledOff()
 \}
 */
 
-};//namespace miosix
+} //namespace miosix
 
 #endif //BSP_IMPL_H

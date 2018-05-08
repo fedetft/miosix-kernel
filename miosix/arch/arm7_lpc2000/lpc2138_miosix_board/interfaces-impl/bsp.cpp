@@ -462,4 +462,4 @@ PllValues getPllFreq()
     }
 }
 
-};//namespace miosix
+} //namespace miosix

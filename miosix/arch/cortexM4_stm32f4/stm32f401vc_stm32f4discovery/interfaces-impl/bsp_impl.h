@@ -84,6 +84,6 @@ inline bool sdCardSense() { return true; }
 \}
 */
 
-};//namespace miosix
+} //namespace miosix
 
 #endif //BSP_IMPL_H

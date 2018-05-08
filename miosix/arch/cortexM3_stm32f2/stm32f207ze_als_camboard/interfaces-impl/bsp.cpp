@@ -184,4 +184,4 @@ void reboot()
     miosix_private::IRQsystemReboot();
 }
 
-};//namespace miosix
+} //namespace miosix

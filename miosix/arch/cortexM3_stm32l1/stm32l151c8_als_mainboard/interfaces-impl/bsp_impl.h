@@ -41,6 +41,6 @@ namespace miosix {
 inline void ledOn()  { led::high(); }
 inline void ledOff() { led::low(); }
 
-}
+} //namespace miosix
 
 #endif //BSP_IMPL_H
