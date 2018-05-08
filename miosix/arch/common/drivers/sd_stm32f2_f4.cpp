@@ -40,10 +40,10 @@
 //The bug won't be fixed because debugging is only useful for driver development
 ///\internal Debug macro, for normal conditions
 //#define DBG iprintf
-#define DBG(x,...) ;
+#define DBG(x,...) do {} while(0)
 ///\internal Debug macro, for errors only
 //#define DBGERR iprintf
-#define DBGERR(x,...) ;
+#define DBGERR(x,...) do {} while(0)
 
 /**
  * \internal
