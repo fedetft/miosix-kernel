@@ -547,9 +547,9 @@ endif
 ## Then, initialize C/C++ flags
 ##
 CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" \
-                 -Wno-unused-but-set-variable
-CXXFLAGS_BASE := -std=gnu++11 -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" \
-                 -Wno-unused-but-set-variable
+                 -ffunction-sections -Wno-unused-but-set-variable -Wall -g
+CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -std=gnu++11 \
+                 -ffunction-sections -Wno-unused-but-set-variable -Wall -g
 
 ##
 ## Now two big switch-like constructs nested. The first lists all possible
@@ -610,10 +610,9 @@ ifeq ($(ARCH),arm7_lpc2000)
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := -mcpu=arm7tdmi -mapcs-32 -mfloat-abi=soft
-    CFLAGS_BASE   += -D_ARCH_ARM7_LPC2000 -mcpu=arm7tdmi $(OPT_OPTIMIZATION) \
-                     -ffunction-sections -Wall -g -c
+    CFLAGS_BASE   += -D_ARCH_ARM7_LPC2000 -mcpu=arm7tdmi $(OPT_OPTIMIZATION) -c
     CXXFLAGS_BASE += -D_ARCH_ARM7_LPC2000 -mcpu=arm7tdmi $(OPT_OPTIMIZATION) \
-                     -ffunction-sections $(OPT_EXCEPT) -Wall -g -c
+                     $(OPT_EXCEPT) -c
     LFLAGS_BASE   := -mcpu=arm7tdmi -Wl,--gc-sections,-Map,main.map          \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                       $(OPT_OPTIMIZATION) -nostdlib
@@ -1008,11 +1007,10 @@ else ifeq ($(ARCH),cortexM3_stm32)
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
     CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32 $(CLOCK_FREQ) $(XRAM)            \
-                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION)             \
-                     -ffunction-sections -Wall -g -c 
+                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION) -c 
     CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32 $(CLOCK_FREQ) $(XRAM)            \
                      $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
-                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+                     $(OPT_OPTIMIZATION) -c
     LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                      $(OPT_OPTIMIZATION) -nostdlib
@@ -1383,11 +1381,10 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     AFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
     CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
                      -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+                     $(OPT_OPTIMIZATION) -c
     CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
                      -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-                     $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -ffunction-sections      \
-                     -Wall -g -c
+                     $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
     LFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
                      -Wl,--gc-sections,-Map,main.map                            \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)              \
@@ -1614,11 +1611,10 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
     CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32F2 $(CLOCK_FREQ) $(XRAM)          \
-                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION)             \
-                     -ffunction-sections -Wall -g -c
+                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION) -c
     CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32F2 $(CLOCK_FREQ) $(XRAM)          \
                      $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
-                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+                     $(OPT_OPTIMIZATION) -c
     LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                      $(OPT_OPTIMIZATION) -nostdlib
@@ -1694,11 +1690,10 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
     CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32L1 $(CLOCK_FREQ) $(XRAM)          \
-                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION)             \
-                     -ffunction-sections -Wall -g -c
+                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION) -c
     CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32L1 $(CLOCK_FREQ) $(XRAM)          \
                      $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
-                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+                     $(OPT_OPTIMIZATION) -c
     LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                      $(OPT_OPTIMIZATION) -nostdlib
@@ -1778,11 +1773,10 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
     CFLAGS_BASE   += -D_ARCH_CORTEXM3_EFM32GG $(CLOCK_FREQ)                  \
-                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION)             \
-                     -ffunction-sections -Wall -g -c
+                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION) -c
     CXXFLAGS_BASE += -D_ARCH_CORTEXM3_EFM32GG $(CLOCK_FREQ)                  \
                      $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
-                     $(OPT_OPTIMIZATION) -ffunction-sections -Wall -g -c
+                     $(OPT_OPTIMIZATION) -c
     LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
                      $(OPT_OPTIMIZATION) -nostdlib
