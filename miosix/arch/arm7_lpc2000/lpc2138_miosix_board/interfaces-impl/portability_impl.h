@@ -220,6 +220,6 @@ inline bool checkAreInterruptsEnabled()
  * \}
  */
 
-}; //namespace miosix_private
+} //namespace miosix_private
 
 #endif //PORTABILITY_IMPL_H

@@ -515,4 +515,4 @@ void Timer::clear()
     start_tick=tick_count=0;
 }
 
-}; //namespace miosix
+} //namespace miosix

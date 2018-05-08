@@ -1061,6 +1061,6 @@ struct SleepData
  * \}
  */
 
-}; //namespace miosix
+} //namespace miosix
 
 #endif //KERNEL_H

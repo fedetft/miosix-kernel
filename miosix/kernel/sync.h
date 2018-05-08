@@ -516,6 +516,6 @@ private:
  * \}
  */
 
-}; //namespace miosix
+} //namespace miosix
 
 #endif //SYNC_H

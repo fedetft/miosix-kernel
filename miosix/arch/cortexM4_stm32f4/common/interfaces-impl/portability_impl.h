@@ -220,6 +220,6 @@ inline void MPUConfiguration::IRQdisable()
  * \}
  */
 
-}; //namespace miosix_private
+} //namespace miosix_private
 
 #endif //PORTABILITY_IMPL_H

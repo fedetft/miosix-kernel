@@ -802,4 +802,4 @@ void Thread::ThreadFlags::IRQsetDeleted()
     Scheduler::IRQwaitStatusHook();
 }
 
-}; //namespace miosix
+} //namespace miosix
