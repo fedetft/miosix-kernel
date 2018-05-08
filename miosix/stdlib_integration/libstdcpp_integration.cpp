@@ -254,7 +254,7 @@ extern "C" int __cxa_guard_acquire(__guard *g)
  * Called after the thread has successfully initialized the object
  * \param g guard struct
  */
-extern "C" void __cxa_guard_release(__guard *g)
+extern "C" void __cxa_guard_release(__guard *g) noexcept
 {
     miosix::InterruptDisableLock dLock;
     MiosixGuard *guard=reinterpret_cast<MiosixGuard*>(g);
@@ -265,7 +265,7 @@ extern "C" void __cxa_guard_release(__guard *g)
  * Called if an exception was thrown while the object was being initialized
  * \param g guard struct
  */
-extern "C" void __cxa_guard_abort(__guard *g)
+extern "C" void __cxa_guard_abort(__guard *g) noexcept
 {
     miosix::InterruptDisableLock dLock;
     MiosixGuard *guard=reinterpret_cast<MiosixGuard*>(g);
