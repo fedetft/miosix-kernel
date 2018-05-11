@@ -36,15 +36,21 @@ VirtualClock& VirtualClock::instance(){
 
 void VirtualClock::update(long long baseTheoretical, long long baseComputed, long long clockCorrection){
     assert(syncPeriod!=0);
-    //efficient way to calculate the factor T/(T+u(k))
+    //performs a fixed point division, using a 36.28 representation, to compute
+    // T/(T+u(k)), which in this case results left-shifter of 28 positions.
     unsigned long long temp=(syncPeriod<<28)/(syncPeriod+clockCorrection);
-    //calculate inverse of previous factor (T+u(k))/T
+    //similarly to the previous division, calculates the inverse factor.
     unsigned long long inverseTemp = ((syncPeriod+clockCorrection)<<28)/syncPeriod;
     {
         FastInterruptDisableLock dLock;
+
+        //the calculated factor is then split into integer and decimal part.
+        //Both of them are 32 bits long, since the fixed point implementation
+        //is 64 x 32.32 and the lost precision is of 0.0037 ppm, therefore negligible.
         factorI = static_cast<unsigned int>((temp & 0x0FFFFFFFF0000000LLU)>>28);
         factorD = static_cast<unsigned int>(temp<<4);
 
+        //same is done for the inverse coefficient
         inverseFactorI = static_cast<unsigned int>((inverseTemp & 0x0FFFFFFFF0000000LLU)>>28);
         inverseFactorD = static_cast<unsigned int>(inverseTemp<<4);
 

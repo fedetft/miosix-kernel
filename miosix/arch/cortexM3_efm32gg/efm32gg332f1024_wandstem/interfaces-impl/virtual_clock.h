@@ -34,30 +34,59 @@
 #include "miosix.h"
 
 namespace miosix {
+/**
+ * This class implements an instrument for correcting the clock based on
+ * the FLOPSYNC-2 synchronization algorithm. It receives FLOPSYNC-2 data
+ * and parameters as input, preserving a state capable of correcting an arbitrary
+ * timestamp, using an equation of type texpected = tstart + coeff * skew
+ */
 class VirtualClock {
 public:
     static VirtualClock& instance();
     
     /**
-     * Uncorrect a given tick value with the windows parameter
-     * @param tick in HIGH frequency
-     * @return  
+     * Converts a corrected time, expressed in ticks, into an uncorrected one
+     * @param tick corrected ticks
+     * @return the uncorrected ticks corresponding
      */
     long long corrected2uncorrected(long long tick){
         return baseComputed+fastNegMul((tick-baseTheoretical),inverseFactorI,inverseFactorD);
     }
         
     /**
-     * Correct a given tick value with the windows parameter
-     * @param tick in HIGH frequency
-     * @return 
+     * Converts an uncorrected time, expressed in ticks, into a corrected one
+     * @param tick uncorrected ticks
+     * @return the corrected ticks corresponding
      */
     long long uncorrected2corrected(long long tick){
         return baseTheoretical+fastNegMul(tick-baseComputed,factorI,factorD);
     }
     
+    /**
+     * Updates the internal data, used to compute the correction and thus applying it
+     * on the provided times.
+     * @param baseTheoretical the time that should have expired, since the synchronization
+     * started, in theory. So equals to t_0 + kT, where:
+     * - t_0 is the first synchronization time point in the local clock, in ticks, corrected only
+     *   by VHT and not by FLOPSYNC-2.
+     * - k is the number of iterations of the synchronizer.
+     * - T is the synchronization interval, as passed in the setSyncPeriod
+     * @param baseComputed the time that is expired, in ticks, corrected at each iteration
+     * using the raw FLOPSYNC-2 correction. So equals to t_0 + sum_{i=0}^{i=k}(T + corr(i))
+     * where corr(i) expresses the correction estimated by the FLOPSYNC-2 controller at the i-th
+     * iteration.
+     * @param clockCorrection time, expressed in nanoseconds, of the correction computed by FLOPSYNC-2
+     * for the current iteration.
+     */
     void update(long long baseTheoretical, long long baseComputed, long long clockCorrection);
     
+    /**
+     * To be used only while initializing the time synchronization. Its purpose is initializing the T value
+     * to be used in the correction as proportionality coefficient, thus performing compensation,
+     * applying it as skew compensation but including also offset compensation, therefore obtaining
+     * a monotonic clock.
+     * @param syncPeriod the time T, also known as synchronization interval
+     */
     void setSyncPeriod(unsigned long long syncPeriod){
         if(syncPeriod>maxPeriod) throw 0;
         this->syncPeriod=syncPeriod;
