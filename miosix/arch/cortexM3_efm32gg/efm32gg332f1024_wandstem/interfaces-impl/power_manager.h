@@ -30,6 +30,10 @@
 
 #include <miosix.h>
 #include "spi.h"
+#include "hrtb.h"
+#include "rtc.h"
+#include "vht.h"
+#include "virtual_clock.h"
 
 namespace miosix {
 
@@ -59,7 +63,7 @@ public:
      * \param when absolute time point of the Rtc when to wake up
      * \param the default is in NS, you can force the TICK unit 
      */
-    void deepSleepUntil(long long when, Unit unit=Unit::NS);
+    void deepSleepUntil(long long when/*, Unit unit=Unit::NS*/);
     
     /**
      * The transceiver power domain is handled using a reference count.
@@ -184,6 +188,12 @@ private:
     bool wasTransceiverTurnedOn;
     bool transceiverPowerDomainExplicitDelayNeeded;
     Spi& spi;
+
+    HRTB& b;
+    Rtc& rtc;
+    VHT& vht;
+    VirtualClock& vt;
+    TimeConversion tc;
 };
 
 /**
