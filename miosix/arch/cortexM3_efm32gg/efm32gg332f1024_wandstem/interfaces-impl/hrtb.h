@@ -29,7 +29,8 @@
 #define HIGH_RESOLUTION_TIMER_BASE_H
 
 #include "miosix.h"
-#include "../../../../e20/e20.h"
+#include <e20/e20.h>
+
 namespace miosix {
 
 enum class WaitResult
@@ -166,11 +167,7 @@ class HRTB {
         /**
          * Debug variables
          */
-        static int aux;
-        static long long aux1,aux2,aux3,aux4;
-        static FixedEventQueue<50,16> queue;
         static Thread *flopsyncThread;
-        static long long diffs[100];
     
     private:
         HRTB();

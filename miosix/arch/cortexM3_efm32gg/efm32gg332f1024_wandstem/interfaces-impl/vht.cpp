@@ -89,7 +89,6 @@ void VHT::loop() {
     HRTB& hrtb=HRTB::instance();
     Rtc& rtc=Rtc::instance();
 
-    initDebugPins();
     long long hrtActual;
     long long hrtExpected;
     FlopsyncVHT f;

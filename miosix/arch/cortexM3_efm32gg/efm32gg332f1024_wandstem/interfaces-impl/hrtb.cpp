@@ -34,7 +34,6 @@
 #include "rtc.h"
 #include "gpioirq.h"
 #include "flopsync_vht.h"
-#include "../../../../debugpin.h"
 #include "vht.h"
 #include "virtual_clock.h"
 
@@ -928,11 +927,6 @@ HRTB::~HRTB() {
 
 
 const unsigned int HRTB::freq=48000000;
-FixedEventQueue<50,16> HRTB::queue;
-long long HRTB::aux1=-1;
-long long HRTB::aux2=-1;
-long long HRTB::aux3=0;
-long long HRTB::aux4=0;
 //NOTE: you have to change both value to make flopsync works
 long long HRTB::syncPeriodRtc=6560;//7520; //15008; //3008; //6560;
 long long HRTB::syncPeriodHrt=9609375;//11015625;//21984375;//4406250;//9609375;
@@ -943,5 +937,4 @@ long long HRTB::syncPointRtc=0;
 long long HRTB::nextSyncPointRtc=0;
 long long HRTB::clockCorrection=0;
 long long HRTB::clockCorrectionFlopsync=0;
-long long HRTB::diffs[100]={0};
 Thread* HRTB::flopsyncThread=nullptr;

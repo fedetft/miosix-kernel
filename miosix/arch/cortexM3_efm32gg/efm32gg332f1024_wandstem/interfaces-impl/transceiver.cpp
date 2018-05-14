@@ -34,7 +34,6 @@
 #include <algorithm>
 #include <cassert>
 #include <kernel/scheduler/scheduler.h>
-#include "../../../../debugpin.h"
 
 using namespace std;
 

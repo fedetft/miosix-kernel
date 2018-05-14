@@ -37,7 +37,7 @@
 #include "transceiver_timer.h"
 #include "rtc.h"
 #include "flopsync_vht.h"
-#include "../../../../debugpin.h"
+
 namespace miosix{
     
 class VHT {
