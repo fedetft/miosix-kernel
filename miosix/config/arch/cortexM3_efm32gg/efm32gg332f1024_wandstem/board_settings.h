@@ -43,6 +43,13 @@
  */
 #define WANDSTEM_HW_REV 14
 
+/**
+ * Disable FLOPSYNCVHT support in the board support package.
+ * Note that for best clock skew correction you should avoid entering the
+ * deep sleep state if you disable FLOSPYNCVHT
+ */
+// #define DISABLE_FLOPSYNCVHT
+
 namespace miosix {
 
 /**
