@@ -407,8 +407,6 @@ Thread* HRTB::IRQtransceiverWait(long long tick,FastInterruptDisableLock *dLock)
         Thread::IRQwait();
         {
             FastInterruptEnableLock eLock(*dLock);
-	    	redLed::low();
-
             Thread::yield();
         }
     } while(transceiverWaiting && tick>IRQgetTick());
