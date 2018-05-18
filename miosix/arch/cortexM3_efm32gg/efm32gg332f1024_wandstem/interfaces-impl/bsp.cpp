@@ -175,7 +175,7 @@ void IRQbspInit()
 
 void bspInit2()
 {
-    #ifdef DISABLE_FLOPSYNCVHT
+    #ifndef DISABLE_FLOPSYNCVHT
     VHT::instance().start();
     #endif //DISABLE_FLOPSYNCVHT
 //     #ifdef WITH_FILESYSTEM
