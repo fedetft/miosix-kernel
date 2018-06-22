@@ -186,7 +186,11 @@ private:
      */
     void waitSerialTxFifoEmpty()
     {
+        #ifndef _ARCH_CORTEXM7_STM32F7
         while((port->SR & USART_SR_TC)==0) ;
+        #else //_ARCH_CORTEXM7_STM32F7
+        while((port->ISR & USART_ISR_TC)==0) ;
+        #endif //_ARCH_CORTEXM7_STM32F7
     }
 
     FastMutex txMutex;                ///< Mutex locked during transmission

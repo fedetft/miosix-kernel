@@ -54,17 +54,24 @@ typedef Gpio<GPIOA_BASE,2>  u2tx;
 typedef Gpio<GPIOA_BASE,3>  u2rx;
 typedef Gpio<GPIOA_BASE,0>  u2cts;
 typedef Gpio<GPIOA_BASE,1>  u2rts;
-#ifndef _BOARD_STM3220G_EVAL
-typedef Gpio<GPIOB_BASE,10> u3tx;
-typedef Gpio<GPIOB_BASE,11> u3rx;
-#else //_BOARD_STM3220G_EVAL
-//The STM3220G_EVAL board maps usart3 to different pins.
+
 //TODO: modify the class constructor so that it takes the gpiopins as
 //parameter, so as to allow each board to custom-remap usart pins,
 //otherwise this common driver will end up having even more ifdefs
+#ifdef _BOARD_STM3220G_EVAL
+//The STM3220G_EVAL board maps usart3 to different pins.
 typedef Gpio<GPIOC_BASE,10> u3tx;
 typedef Gpio<GPIOC_BASE,11> u3rx;
-#endif //_BOARD_STM3220G_EVAL
+#elif defined(_BOARD_STM32F746ZG_NUCLEO)
+//The STM32F746ZG_NUCLEO board maps usart3 to different pins.
+typedef Gpio<GPIOD_BASE,8> u3tx;
+typedef Gpio<GPIOD_BASE,9> u3rx;
+#else
+//Default placement
+typedef Gpio<GPIOB_BASE,10> u3tx;
+typedef Gpio<GPIOB_BASE,11> u3rx;
+#endif
+
 typedef Gpio<GPIOB_BASE,13> u3cts;
 typedef Gpio<GPIOB_BASE,14> u3rts;
 #endif //!defined(STM32_NO_SERIAL_2_3)
@@ -655,8 +662,13 @@ ssize_t STM32Serial::writeBlock(const void *buffer, size_t size, off_t where)
     #endif //SERIAL_DMA
     for(size_t i=0;i<size;i++)
     {
+        #ifndef _ARCH_CORTEXM7_STM32F7
         while((port->SR & USART_SR_TXE)==0) ;
         port->DR=*buf++;
+        #else //_ARCH_CORTEXM7_STM32F7
+        while((port->ISR & USART_ISR_TXE)==0) ;
+        port->TDR=*buf++;
+        #endif //_ARCH_CORTEXM7_STM32F7
     }
     return size;
 }
@@ -688,8 +700,13 @@ void STM32Serial::IRQwrite(const char *str)
     #endif //SERIAL_DMA
     while(*str)
     {
+        #ifndef _ARCH_CORTEXM7_STM32F7
         while((port->SR & USART_SR_TXE)==0) ;
         port->DR=*str++;
+        #else //_ARCH_CORTEXM7_STM32F7
+        while((port->ISR & USART_ISR_TXE)==0) ;
+        port->TDR=*str++;
+        #endif //_ARCH_CORTEXM7_STM32F7
     }
     waitSerialTxFifoEmpty();
     if(interrupts) fastEnableInterrupts();
@@ -722,7 +739,14 @@ int STM32Serial::ioctl(int cmd, void* arg)
 
 void STM32Serial::IRQhandleInterrupt()
 {
+    #ifndef _ARCH_CORTEXM7_STM32F7
     unsigned int status=port->SR;
+    #else //_ARCH_CORTEXM7_STM32F7
+    unsigned int status=port->ISR;
+    constexpr unsigned int USART_SR_RXNE=USART_ISR_RXNE;
+    constexpr unsigned int USART_SR_IDLE=USART_ISR_IDLE;
+    constexpr unsigned int USART_SR_FE  =USART_ISR_FE;
+    #endif //_ARCH_CORTEXM7_STM32F7
     char c;
     #ifdef SERIAL_DMA
     if(dmaRx==0 && (status & USART_SR_RXNE))
@@ -731,7 +755,11 @@ void STM32Serial::IRQhandleInterrupt()
     #endif //SERIAL_DMA
     {
         //Always read data, since this clears interrupt flags
+        #ifndef _ARCH_CORTEXM7_STM32F7
         c=port->DR;
+        #else //_ARCH_CORTEXM7_STM32F7
+        c=port->RDR;
+        #endif //_ARCH_CORTEXM7_STM32F7
         //If no error put data in buffer
         if((status & USART_SR_FE)==0)
             if(rxQueue.tryPut(c)==false) /*fifo overflow*/;
@@ -739,7 +767,11 @@ void STM32Serial::IRQhandleInterrupt()
     }
     if(status & USART_SR_IDLE)
     {
+        #ifndef _ARCH_CORTEXM7_STM32F7
         c=port->DR; //clears interrupt flags
+        #else //_ARCH_CORTEXM7_STM32F7
+        port->ICR=USART_ICR_IDLECF; //clears interrupt flags
+        #endif //_ARCH_CORTEXM7_STM32F7
         #ifdef SERIAL_DMA
         if(dmaRx) IRQreadDma();
         #endif //SERIAL_DMA
@@ -889,7 +921,11 @@ void STM32Serial::writeDma(const char *buffer, size_t size)
     //and the race condition is eliminated). This is the purpose of this
     //instruction, it reads SR. When we start the DMA, the DMA controller
     //writes to DR and completes the TC clear sequence.
+    #ifndef _ARCH_CORTEXM7_STM32F7
     while((port->SR & USART_SR_TXE)==0) ;
+    #else //_ARCH_CORTEXM7_STM32F7
+    while((port->ISR & USART_ISR_TXE)==0) ;
+    #endif //_ARCH_CORTEXM7_STM32F7
     
     dmaTxInProgress=true;
     #ifdef _ARCH_CORTEXM3_STM32
@@ -902,7 +938,11 @@ void STM32Serial::writeDma(const char *buffer, size_t size)
              | DMA_CCR4_TCIE  //Interrupt on transfer complete
              | DMA_CCR4_EN;   //Start DMA
     #else //_ARCH_CORTEXM3_STM32
+    #ifndef _ARCH_CORTEXM7_STM32F7
     dmaTx->PAR=reinterpret_cast<unsigned int>(&port->DR);
+    #else //_ARCH_CORTEXM7_STM32F7
+    dmaTx->PAR=reinterpret_cast<unsigned int>(&port->TDR);
+    #endif //_ARCH_CORTEXM7_STM32F7
     dmaTx->M0AR=reinterpret_cast<unsigned int>(buffer);
     dmaTx->NDTR=size;
     //Quirk: not enabling DMA_SxFCR_FEIE because the USART seems to
@@ -940,7 +980,11 @@ void STM32Serial::IRQdmaReadStart()
              | DMA_CCR4_TCIE  //Interrupt on transfer complete
              | DMA_CCR4_EN;   //Start DMA
     #else //_ARCH_CORTEXM3_STM32
+    #ifndef _ARCH_CORTEXM7_STM32F7
     dmaRx->PAR=reinterpret_cast<unsigned int>(&port->DR);
+    #else //_ARCH_CORTEXM7_STM32F7
+    dmaRx->PAR=reinterpret_cast<unsigned int>(&port->RDR);
+    #endif //_ARCH_CORTEXM7_STM32F7
     dmaRx->M0AR=reinterpret_cast<unsigned int>(rxBuffer);
     dmaRx->NDTR=rxQueueMin;
     dmaRx->CR=DMA_SxCR_CHSEL_2 //Select channel 4 (USART_RX)
