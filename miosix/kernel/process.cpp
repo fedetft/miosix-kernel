@@ -196,7 +196,7 @@ Process::Process(const ElfProgram& program) : program(program), waitCount(0),
     unsigned int elfSize=program.getElfSize();
     unsigned int roundedSize=elfSize;
     if(elfSize<ProcessPool::blockSize) roundedSize=ProcessPool::blockSize;
-    roundedSize=miosix_private::MPUConfiguration::roundSizeForMPU(roundedSize);
+    roundedSize=MPUConfiguration::roundSizeForMPU(roundedSize);
     //TODO: Till a flash file system that ensures proper alignment of the
     //programs loaded in flash is implemented, make the whole flash visible as
     //a big MPU region. This allows a program to read and execute parts of
@@ -206,10 +206,10 @@ Process::Process(const ElfProgram& program) : program(program), waitCount(0),
     unsigned int *start=reinterpret_cast<unsigned int*>(&_elf_pool_start);
     unsigned int *end=reinterpret_cast<unsigned int*>(&_elf_pool_end);
     unsigned int elfPoolSize=(end-start)*sizeof(int);
-    elfPoolSize=miosix_private::MPUConfiguration::roundSizeForMPU(elfPoolSize);
-    mpu=miosix_private::MPUConfiguration(start,elfPoolSize,
+    elfPoolSize=MPUConfiguration::roundSizeForMPU(elfPoolSize);
+    mpu=MPUConfiguration(start,elfPoolSize,
             image.getProcessBasePointer(),image.getProcessImageSize());
-//    mpu=miosix_private::MPUConfiguration(program.getElfBase(),roundedSize,
+//    mpu=MPUConfiguration(program.getElfBase(),roundedSize,
 //            image.getProcessBasePointer(),image.getProcessImageSize());
 }
 

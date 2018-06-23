@@ -195,25 +195,6 @@ inline void portableSwitchToUserspace()
                  :::"r3");
 }
 
-//
-// class MPU
-//
-
-inline void MPUConfiguration::IRQenable()
-{
-    MPU->RBAR=regValues[0];
-    MPU->RASR=regValues[1];
-    MPU->RBAR=regValues[2];
-    MPU->RASR=regValues[3];
-    __set_CONTROL(3); 
-}
-
-inline void MPUConfiguration::IRQdisable()
-{
-    __set_CONTROL(2);
-}
-
-
 #endif //WITH_PROCESSES
 
 /**

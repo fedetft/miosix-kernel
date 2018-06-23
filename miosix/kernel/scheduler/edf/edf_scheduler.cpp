@@ -120,7 +120,7 @@ void EDFScheduler::IRQfindNextThread()
             if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
             {
                 ctxsave=cur->ctxsave;
-                miosix_private::MPUConfiguration::IRQdisable();
+                MPUConfiguration::IRQdisable();
             } else {
                 ctxsave=cur->userCtxsave;
                 //A kernel thread is never in userspace, so the cast is safe

@@ -631,7 +631,7 @@ void Thread::IRQhandleSvc(unsigned int svcNumber)
     } else {
         const_cast<Thread*>(cur)->flags.IRQsetUserspace(false);
         ::ctxsave=cur->ctxsave;
-        miosix_private::MPUConfiguration::IRQdisable();
+        MPUConfiguration::IRQdisable();
     }
 }
 
@@ -643,7 +643,7 @@ bool Thread::IRQreportFault(const miosix_private::FaultData& fault)
     static_cast<Process*>(cur->proc)->fault=fault;
     const_cast<Thread*>(cur)->flags.IRQsetUserspace(false);
     ::ctxsave=cur->ctxsave;
-    miosix_private::MPUConfiguration::IRQdisable();
+    MPUConfiguration::IRQdisable();
     return true;
 }
 
