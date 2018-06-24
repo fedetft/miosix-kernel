@@ -310,8 +310,10 @@ void IRQportableStartKernel()
             SysTick_CTRL_CLKSOURCE_Msk;
 
     #ifdef WITH_PROCESSES
-    //Enable MPU
-    MPU->CTRL=MPU_CTRL_PRIVDEFENA_Msk | MPU_CTRL_ENABLE_Msk;
+    //NOTE: if caches are enabled, the MPU will be enabled also if processes are
+    //not enabled, so this is here for the rare configuration of caches disabled
+    //but processes enabled
+    miosix::IRQenableMPUatBoot();
     #endif //WITH_PROCESSES
     #ifdef SCHED_TYPE_CONTROL_BASED
     AuxiliaryTimer::IRQinit();

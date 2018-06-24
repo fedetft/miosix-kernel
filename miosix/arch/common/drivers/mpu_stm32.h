@@ -34,6 +34,22 @@
 
 namespace miosix {
 
+/**
+ * \param size in bytes >32
+ * \return a value that can be written to MPU->RASR to represent that size
+ */
+unsigned int sizeToMpu(unsigned int size);
+
+/**
+ * To be called at boot to enable the MPU.
+ * Without calling this function, the MPU will not work even if regions are
+ * configured in MPUConfiguration
+ */
+inline void IRQenableMPUatBoot()
+{
+    MPU->CTRL=MPU_CTRL_PRIVDEFENA_Msk | MPU_CTRL_ENABLE_Msk;
+}
+
 #ifdef WITH_PROCESSES
 
 /**

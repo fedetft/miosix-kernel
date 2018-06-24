@@ -32,15 +32,15 @@
 
 namespace miosix {
 
-#ifdef WITH_PROCESSES
-
-static unsigned int sizeToMpu(unsigned int size)
+unsigned int sizeToMpu(unsigned int size)
 {
     assert(size>=32);
     unsigned int result=30-__builtin_clz(size);
     if(size & (size-1)) result++;
     return result;
 }
+
+#ifdef WITH_PROCESSES
 
 //
 // class MPUConfiguration
@@ -49,36 +49,24 @@ static unsigned int sizeToMpu(unsigned int size)
 MPUConfiguration::MPUConfiguration(unsigned int *elfBase, unsigned int elfSize,
         unsigned int *imageBase, unsigned int imageSize)
 {
+    // NOTE: The ARM documentation is unclear about the effect of the shareable
+    // bit on a single core architecture. Experimental evidence on an STM32F476
+    // shows that setting it in IRQconfigureCache for the internal RAM region
+    // causes the boot to fail.
+    // For this reason, all regions are marked as not shareable
     regValues[0]=(reinterpret_cast<unsigned int>(elfBase) & (~0x1f))
-               | MPU_RBAR_VALID_Msk | 0; //Region 0
+               | MPU_RBAR_VALID_Msk | 6; //Region 6
     regValues[2]=(reinterpret_cast<unsigned int>(imageBase) & (~0x1f))
-               | MPU_RBAR_VALID_Msk | 1; //Region 1
-    #ifndef __CODE_IN_XRAM
-    regValues[1]=2<<MPU_RASR_AP_Pos
+               | MPU_RBAR_VALID_Msk | 7; //Region 7
+    regValues[1]=2<<MPU_RASR_AP_Pos //Privileged: RW, unprivileged: RO
                | MPU_RASR_C_Msk
                | 1 //Enable bit
                | sizeToMpu(elfSize)<<1;
-    regValues[3]=3<<MPU_RASR_AP_Pos
+    regValues[3]=3<<MPU_RASR_AP_Pos //Privileged: RW, unprivileged: RW
                | MPU_RASR_XN_Msk
                | MPU_RASR_C_Msk
-               | MPU_RASR_S_Msk
                | 1 //Enable bit
                | sizeToMpu(imageSize)<<1;
-    #else //__CODE_IN_XRAM
-    regValues[1]=2<<MPU_RASR_AP_Pos
-               | MPU_RASR_C_Msk
-               | MPU_RASR_B_Msk
-               | MPU_RASR_S_Msk
-               | 1 //Enable bit
-               | sizeToMpu(elfSize)<<1;
-    regValues[3]=3<<MPU_RASR_AP_Pos
-               | MPU_RASR_XN_Msk
-               | MPU_RASR_C_Msk
-               | MPU_RASR_B_Msk
-               | MPU_RASR_S_Msk
-               | 1 //Enable bit
-               | sizeToMpu(imageSize)<<1;
-    #endif //__CODE_IN_XRAM
 }
 
 void MPUConfiguration::dumpConfiguration()
@@ -89,7 +77,7 @@ void MPUConfiguration::dumpConfiguration()
         unsigned int end=base+(1<<(((regValues[2*i+1]>>1) & 31)+1));
         char w=regValues[2*i+1] & (1<<MPU_RASR_AP_Pos) ? 'w' : '-';
         char x=regValues[2*i+1] & MPU_RASR_XN_Msk ? '-' : 'x';
-        iprintf("* MPU region %d 0x%08x-0x%08x r%c%c\n",i,base,end,w,x);
+        iprintf("* MPU region %d 0x%08x-0x%08x r%c%c\n",i+6,base,end,w,x);
     }
 }
 
