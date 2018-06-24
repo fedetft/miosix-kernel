@@ -68,7 +68,7 @@ const unsigned int defaultSerialSpeed=115200;
 const bool defaultSerialFlowctrl=false;
 // #define SERIAL_1_DMA
 // #define SERIAL_2_DMA
-// #define SERIAL_3_DMA
+#define SERIAL_3_DMA
 
 //SD card driver
 static const unsigned char sdVoltage=33; //Board powered @ 3.3V

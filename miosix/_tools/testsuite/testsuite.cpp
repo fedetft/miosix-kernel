@@ -3915,6 +3915,22 @@ void testCacheAndDMA()
         testOneDmaTransaction(size,cacheLine-1);
         testOneDmaTransaction(size,cacheLine-1);
     }
+    
+    //Testing misalignment small transfers.
+    //This test is meant to trigger bugs where the write buffer is not flushed
+    //as it should, which occurred in the serial port driver before
+    //markBufferBeforeDmaWrite() had a __DSB().
+    //Unfortunately, I could not reproduce the write buffer bug with this
+    //testcase, so this corner case remains not covered by this testsuite
+    //This test is anyway left just in case it catches something else
+    for(unsigned int size=1;size<cacheLine;size+=1)
+    {
+        for(unsigned int offset=1;offset<cacheLine;offset+=1)
+        {
+            testOneDmaTransaction(size,offset);
+            testOneDmaTransaction(size,offset);
+        }
+    }
     pass();
 }
 #endif //_ARCH_CORTEXM7_STM32F7

@@ -32,7 +32,7 @@
  * A note about caches. Using the testsuite benchmark, when caches are
  * disabled the STM32F746 @ 216MHz is less than half the speed of the
  * STM32F407 @ 168MHz. By enabling the ICACHE things get better, but it is
- * still slower, and achieves a speedup of 1.51 only when both ICACHE and
+ * still slower, and achieves a speedup of 1.53 only when both ICACHE and
  * DCACHE are enabled. The speedup also includes the gains due to the faster
  * clock frequency. So if you want speed you have to use caches.
  * Moreover, DMA drivers such as the serial port fail also when DCACHE is
@@ -57,11 +57,20 @@ void IRQconfigureCache(const unsigned int *xramBase=nullptr, unsigned int xramSi
  * the DMA will read the buffer.
  * \param buffer buffer
  * \param size buffer size
- * 
- * Since the current cache policy is write-through, there's nothing to do.
- * This function exists mainly for future compatibility.
  */
-inline void markBufferBeforeDmaWrite(const void *buffer, int size) {}
+inline void markBufferBeforeDmaWrite(const void *buffer, int size)
+{
+    // You may think that since the cache is configured as write-through,
+    // there's nothing to do before the DMA can read a memory buffer just
+    // written by the CPU, right? Wrong! Othere than the cache, there's the
+    // write buffer to worry about. My hypothesis is that once a memory region
+    // is marked as cacheable, the write buffer becomes more lax in
+    // automatically flushing as soon as possible. In the stm32 serial port
+    // driver writing just a few characters causes garbage to be printed if
+    // this __DSB() is removed. Apparently, the characters remian in the write
+    // buffer.
+    __DSB();
+}
 
 /**
  * Call this function after having completed a DMA transfer where the DMA has

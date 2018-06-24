@@ -34,6 +34,7 @@
 #include "interfaces/portability.h"
 #include "interfaces/gpio.h"
 #include "filesystem/ioctl.h"
+#include "core/cache_cortexMx.h"
 
 using namespace std;
 using namespace miosix;
@@ -910,6 +911,7 @@ void STM32Serial::waitDmaTxCompletion()
 
 void STM32Serial::writeDma(const char *buffer, size_t size)
 {
+    markBufferBeforeDmaWrite(buffer,size);
     //Quirk: DMA messes up the TC bit, and causes waitSerialTxFifoEmpty() to
     //return prematurely, causing characters to be missed when rebooting
     //immediatley a write. You can just clear the bit manually, but doing that
@@ -963,6 +965,7 @@ void STM32Serial::writeDma(const char *buffer, size_t size)
 void STM32Serial::IRQreadDma()
 {
     int elem=IRQdmaReadStop();
+    markBufferAfterDmaRead(rxBuffer,rxQueueMin);
     for(int i=0;i<elem;i++)
         if(rxQueue.tryPut(rxBuffer[i])==false) /*fifo overflow*/;
     IRQdmaReadStart();
