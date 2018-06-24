@@ -31,7 +31,7 @@
 //For SCHED_TYPE_* config options
 #include "config/miosix_settings.h"
 //For MPUConfiguration
-#include "drivers/memory_protection.h"
+#include "core/memory_protection.h"
 #include <cstddef>
 
 /**

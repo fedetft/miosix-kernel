@@ -1402,9 +1402,9 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/drivers/serial_stm32.cpp                     \
     arch/common/drivers/dcc.cpp                              \
-    arch/common/drivers/mpu_stm32.cpp                        \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
@@ -1632,9 +1632,9 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/drivers/serial_stm32.cpp                     \
     arch/common/drivers/dcc.cpp                              \
-    arch/common/drivers/mpu_stm32.cpp                        \
     arch/common/drivers/stm32_hardware_rng.cpp               \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
@@ -1879,9 +1879,9 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/drivers/serial_stm32.cpp                     \
     arch/common/drivers/dcc.cpp                              \
-    arch/common/drivers/mpu_stm32.cpp                        \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \

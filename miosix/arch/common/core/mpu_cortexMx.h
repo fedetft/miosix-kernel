@@ -25,8 +25,8 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef MPU_STM32_H
-#define MPU_STM32_H
+#ifndef MPU_CORTEX_MX_H
+#define MPU_CORTEX_MX_H
 
 #include "config/miosix_settings.h"
 #include "interfaces/arch_registers.h"
@@ -149,4 +149,4 @@ private:
 
 } //namespace miosix
 
-#endif //MPU_STM32_H
+#endif //MPU_CORTEX_MX_H

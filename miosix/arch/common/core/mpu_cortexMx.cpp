@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "mpu_stm32.h"
+#include "mpu_cortexMx.h"
 #include <cstdio>
 #include <cstring>
 #include <cassert>
