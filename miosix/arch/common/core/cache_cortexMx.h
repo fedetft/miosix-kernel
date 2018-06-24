@@ -28,16 +28,78 @@
 #ifndef CACHE_CORTEX_MX_H
 #define CACHE_CORTEX_MX_H
 
-/**
- * A note about caches. Using the testsuite benchmark, when caches are
+/*
+ * README: Essentials about how cache support is implemented.
+ * 
+ * Caches in the Cortex M7 are transparent to software, except when using
+ * the DMA. As the DMA reads and writes directly to memory, explicit management
+ * is required. The default cache policy is write-back, but this has been deemed
+ * unsuitable for Miosix, so for the time being only write-through is supported.
+ * 
+ * The IRQconfigureCache() configures the cache as write-through and enables it.
+ * It should be called early at boot, in stage_1_boot.cpp
+ * 
+ * When writing DMA drivers, before passing a buffer to the DMA for it to be
+ * written to a peripheral, call markBufferBeforeDmaWrite().
+ * After a DMA read from a peripheral to a memory buffer has completed,
+ * call markBufferAfterDmaRead(). These take care of keeping the DMA operations
+ * in sync with the cache. These become no-ops for other architectures, so you
+ * can freely put the in any driver.
+ */
+
+/*
+ * Some more info about caches. Why not supporting write-back?
+ * When writing data from memory to a peripheral using DMA, things are easy
+ * also with write-back. You just flush (clean) the relevant cache lines, and
+ * the DMA has access to the correct values. So it looks like it's ok.
+ * When instead the DMA has to write to a memory location things become
+ * complicated. Assume that a buffer not aligned to a cache line is passed to
+ * a DMA read routine. After that a context switch happens and another thread
+ * writes to a memory location that is on the same cache line as the (beginning
+ * or end of) the buffer passed to the DMA. At the same time the DMA is writing
+ * to the buffer.
+ * At the end the situation looks like this, where the thread has written to
+ * location X in the cache, while the DMA has written Y to the buffer.
+ * <-- outside buffer --x-- buffer -->
+ * +----------------------------------+
+ * |   X                |             | cache
+ * +----------------------------------+
+ * |                    |YYYYYYYYYYYYY| memory
+ * +----------------------------------+
+ * What are you suppose to do? If you flush (clean) the cache line, X will be
+ * committed to memory, but the Y data written by the DMA will be lost. If you
+ * invalidate the cache, Y is preserved, but X is lost.
+ * If you're just thinking that the problem can be solved by making sure buffers
+ * are aligned to the cache line (and their size is a multiple of the cache
+ * line), well, there's a problem.
+ * Miosix is a real-time OS, and for performance and safety, most drivers are
+ * zero copy. Applications routinely pass to DMA drivers such as the SDIO large
+ * buffers (think 100+KB). Of course allocating an aligned buffer inside the
+ * DMA driver as large as the user-passed buffer and copying the data there
+ * isn't just slow, it wouldn't be safe, as you risk to exceed the free heap
+ * memory or fragment the heap. Allocating a small buffer and splitting the
+ * large DMA transfer in many small ones where the user passed buffer is copyied
+ * one chunk at a time would be feasible, but even slower, and even more so
+ * considering that some peripherals such as SD cards are optimized for large
+ * sequential writes, not for small chunks.
+ * But what if we make sure all buffers passed to DMA drivers are aligned?
+ * That is a joke, as it the burden of doing so is unmaintainable. Buffers
+ * passed to DMA memory are everywhere, in the C/C++ standard library
+ * (think the buffer used for IO formatting inside printf/fprintf), and
+ * everywherein application code. Something like
+ * char s[128]="Hello world";
+ * puts(s);
+ * may cause s to be passed to a DMA driver. We would spend our lives chasing
+ * unaligned buffers, and the risk of this causing difficult to reproduce memory
+ * corruptions is too high. For this reason, for the time being, Miosix only
+ * supports write-through caching on the Cortex-M7.
+ * 
+ * A note about performance. Using the testsuite benchmark, when caches are
  * disabled the STM32F746 @ 216MHz is less than half the speed of the
  * STM32F407 @ 168MHz. By enabling the ICACHE things get better, but it is
  * still slower, and achieves a speedup of 1.53 only when both ICACHE and
  * DCACHE are enabled. The speedup also includes the gains due to the faster
  * clock frequency. So if you want speed you have to use caches.
- * Moreover, DMA drivers such as the serial port fail also when DCACHE is
- * disabled, and similar issues have been reported on the net as well.
- * So, there's really no reason to disable caches.
  */
 
 #include "interfaces/arch_registers.h"
@@ -62,7 +124,7 @@ inline void markBufferBeforeDmaWrite(const void *buffer, int size)
 {
     // You may think that since the cache is configured as write-through,
     // there's nothing to do before the DMA can read a memory buffer just
-    // written by the CPU, right? Wrong! Othere than the cache, there's the
+    // written by the CPU, right? Wrong! Other than the cache, there's the
     // write buffer to worry about. My hypothesis is that once a memory region
     // is marked as cacheable, the write buffer becomes more lax in
     // automatically flushing as soon as possible. In the stm32 serial port
