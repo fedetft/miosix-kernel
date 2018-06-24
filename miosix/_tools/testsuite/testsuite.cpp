@@ -69,6 +69,11 @@
 #include "testsuite/mpu_testsuite/includes.h"
 #endif //WITH_PROCESSES
 
+#ifdef _ARCH_CORTEXM7_STM32F7
+#include <kernel/scheduler/scheduler.h>
+#include <core/cache_cortexMx.h>
+#endif //_ARCH_CORTEXM7_STM32F7
+
 using namespace std;
 using namespace miosix;
 
@@ -109,6 +114,9 @@ static void test_21();
 static void test_22();
 static void test_23();
 static void test_24();
+#ifdef _ARCH_CORTEXM7_STM32F7
+void testCacheAndDMA();
+#endif //_ARCH_CORTEXM7_STM32F7
 //Filesystem test functions
 #ifdef WITH_FILESYSTEM
 static void fs_test_1();
@@ -213,6 +221,9 @@ int main()
                 test_22();
                 test_23();
                 test_24();
+                #ifdef _ARCH_CORTEXM7_STM32F7
+                testCacheAndDMA();
+                #endif //_ARCH_CORTEXM7_STM32F7
                 
                 ledOff();
                 Thread::sleep(500);//Ensure all threads are deleted.
@@ -3753,6 +3764,160 @@ static void test_24()
     
     pass();
 }
+
+#ifdef _ARCH_CORTEXM7_STM32F7
+static Thread *waiting=nullptr; /// Thread waiting on DMA completion IRQ
+
+/**
+ * DMA completion IRQ
+ */
+void __attribute__((naked)) DMA2_Stream0_IRQHandler()
+{
+    saveContext();
+    asm volatile("bl _Z9dma2s0irqv");
+    restoreContext();
+}
+
+/**
+ * DMA completion IRQ actual implementation
+ */
+void dma2s0irq()
+{
+    DMA2->LIFCR=0b111101;
+    if(waiting) waiting->IRQwakeup();
+    if(waiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+        Scheduler::IRQfindNextThread();
+    waiting=nullptr;
+}
+
+/**
+ * Copy memory to memory using DMA, used to test cache and DMA consistency
+ */
+void dmaMemcpy(void *dest, const void *source, int size,
+               void *slackBeforeDest, void *slackBeforeSource, int slackBeforeSize,
+               void *slackAfterDest, void *slackAfterSource, int slackAfterSize
+)
+{
+    FastInterruptDisableLock dLock;
+    DMA2_Stream0->NDTR=size;
+    DMA2_Stream0->PAR=reinterpret_cast<unsigned int>(source);
+    DMA2_Stream0->M0AR=reinterpret_cast<unsigned int>(dest);
+    DMA2_Stream0->CR=0             //Select channel 0
+                | DMA_SxCR_MINC    //Increment RAM pointer
+                | DMA_SxCR_PINC    //Increment RAM pointer
+                | DMA_SxCR_DIR_1   //Memory to memory
+                | DMA_SxCR_TCIE    //Interrupt on transfer complete
+                | DMA_SxCR_TEIE    //Interrupt on transfer error
+                | DMA_SxCR_DMEIE   //Interrupt on direct mode error
+                | DMA_SxCR_EN;     //Start the DMA
+    //Write to the same cache lines the DMA is using to try creating a stale
+    if(slackBeforeSize) memcpy(slackBeforeDest,slackBeforeSource,slackBeforeSize);
+    if(slackAfterSize) memcpy(slackAfterDest,slackAfterSource,slackAfterSize);
+    waiting=Thread::IRQgetCurrentThread();
+    do {
+        FastInterruptEnableLock eLock(dLock);
+        Thread::yield();
+    } while(waiting);
+}
+
+static const unsigned int cacheLine=32; //Cortex-M7 cache line size
+static const unsigned int bufferSize=4096;
+static char __attribute__((aligned(32))) src[bufferSize];
+static char __attribute__((aligned(32))) dst[bufferSize];
+
+void testOneDmaTransaction(unsigned int size, unsigned int offset)
+{
+    //Pointer to buffer where the DMA will write, with the desired offset from
+    //perfect cache line alignment
+    char *source=src+offset;
+    char *dest=dst+offset;
+    
+    //If the DMA memory buffer beginning is misaligned, get pointer and size to
+    //the cache line that includes the buffer beginning
+    char *slackBeforeSource=reinterpret_cast<char*>(
+        reinterpret_cast<unsigned int>(source) & (~(cacheLine-1)));
+    char *slackBeforeDest=reinterpret_cast<char*>(
+        reinterpret_cast<unsigned int>(dest) & (~(cacheLine-1)));
+    unsigned int slackBeforeSize=source-slackBeforeSource;
+    
+    //If the DMA memory buffer end is misaligned, get pointer and size to
+    //the cache line that includes the buffer end
+    char *slackAfterSource=source+size;
+    char *slackAfterDest=dest+size;
+    unsigned int slackAfterSize=cacheLine -
+        (reinterpret_cast<unsigned int>(slackAfterSource) & (cacheLine-1));
+    if(slackAfterSize==cacheLine) slackAfterSize=0;
+    
+//     fprintf(stderr,"%d %d %d\n",size,slackBeforeSize,slackAfterSize);
+    assert(((size+slackBeforeSize+slackAfterSize) % cacheLine)==0);
+    
+    //Initialize the DMA buffer source, dest, including the before/after region
+    for(unsigned int i=0;i<size+slackBeforeSize+slackAfterSize;i++)
+    {
+        slackBeforeSource[i]=rand();
+        slackBeforeDest[i]=0;
+    }
+    markBufferBeforeDmaWrite(source,size);
+    dmaMemcpy(dest,source,size,
+              slackBeforeDest,slackBeforeSource,slackBeforeSize,
+              slackAfterDest,slackAfterSource,slackAfterSize);
+    markBufferAfterDmaRead(dest,size);
+    bool error=false;
+    for(unsigned int i=0;i<size+slackBeforeSize+slackAfterSize;i++)
+    {
+        if(slackBeforeSource[i]==slackBeforeDest[i]) continue;
+        error=true;
+        break;
+    }
+    if(error)
+    {
+        puts("Source memory region");
+        memDump(slackBeforeSource,size+slackBeforeSize+slackAfterSize);
+        puts("Dest memory region");
+        memDump(slackBeforeDest,size+slackBeforeSize+slackAfterSize);
+        iprintf("testOneDmaTransaction(size=%d,offset=%d) failed\n",size,offset);
+        fail("cache not in sync with DMA");
+    }
+}
+
+void testCacheAndDMA()
+{
+    test_name("STM32 cache/DMA");
+    {
+        FastInterruptDisableLock dLock;
+        RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
+        RCC_SYNC();
+        NVIC_SetPriority(DMA2_Stream0_IRQn,15);//Lowest priority for serial
+        NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+    }
+
+    //Testing cache-aligned transactions
+    for(unsigned int size=cacheLine;size<=bufferSize;size+=cacheLine)
+    {
+        testOneDmaTransaction(size,0);
+        testOneDmaTransaction(size,0);
+    }
+    
+    //Testing misalignment by offset
+    for(unsigned int size=cacheLine;size<=bufferSize-cacheLine;size+=cacheLine)
+    {
+        testOneDmaTransaction(size,1);
+        testOneDmaTransaction(size,1);
+        testOneDmaTransaction(size,cacheLine-1);
+        testOneDmaTransaction(size,cacheLine-1);
+    }
+    
+    //Testing misalignment by offset and size
+    for(unsigned int size=cacheLine/2;size<=bufferSize-2*cacheLine;size+=cacheLine)
+    {
+        testOneDmaTransaction(size,1);
+        testOneDmaTransaction(size,1);
+        testOneDmaTransaction(size,cacheLine-1);
+        testOneDmaTransaction(size,cacheLine-1);
+    }
+    pass();
+}
+#endif //_ARCH_CORTEXM7_STM32F7
 
 #ifdef WITH_FILESYSTEM
 //

@@ -1,6 +1,7 @@
 
 #include "interfaces/arch_registers.h"
 #include "core/interrupts.h" //For the unexpected interrupt call
+#include "core/cache_cortexMx.h"
 #include "kernel/stage_2_boot.h"
 #include <string.h>
 
@@ -35,9 +36,7 @@ void program_startup()
 	//.data and zeros .bss now run with the CPU at full speed instead of 8MHz
     SystemInit();
 
-	//TODO: look more into caches
-	SCB_EnableICache();
-// 	SCB_EnableDCache();
+	miosix::IRQconfigureCache();
 
 	//These are defined in the linker script
 	extern unsigned char _etext asm("_etext");
