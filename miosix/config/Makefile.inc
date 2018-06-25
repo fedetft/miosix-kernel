@@ -40,6 +40,7 @@
 #OPT_BOARD := stm32f429zi_skyward_homeone
 #OPT_BOARD := stm32f401re_nucleo
 #OPT_BOARD := stm32f746zg_nucleo
+#OPT_BOARD := stm32f407vg_thermal_test_chip
 
 ##
 ## Optimization flags, choose one.
@@ -472,6 +473,12 @@ endif
 
 # No options
 
+##---------------------------------------------------------------------------
+## stm32f407vg_thermal_test_chip
+##
+
+# No options
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -545,6 +552,8 @@ else ifeq ($(OPT_BOARD),stm32f401re_nucleo)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),stm32f746zg_nucleo)
     ARCH := cortexM7_stm32f7
+else ifeq ($(OPT_BOARD),stm32f407vg_thermal_test_chip)
+    ARCH := cortexM4_stm32f4
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -1358,6 +1367,38 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
 
         ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
         CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_84MHz=84000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+        
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f407vg_thermal_test_chip
+    ##
+    else ifeq ($(OPT_BOARD),stm32f407vg_thermal_test_chip)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM4_stm32f4/stm32f407vg_thermal_test_chip
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+192k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_THERMALTESTCHIP
+        CXXFLAGS_BASE += -D_BOARD_THERMALTESTCHIP
+
+        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
+        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
