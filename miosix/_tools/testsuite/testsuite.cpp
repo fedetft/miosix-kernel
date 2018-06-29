@@ -69,10 +69,10 @@
 #include "testsuite/mpu_testsuite/includes.h"
 #endif //WITH_PROCESSES
 
-#ifdef _ARCH_CORTEXM7_STM32F7
+#if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
 #include <kernel/scheduler/scheduler.h>
 #include <core/cache_cortexMx.h>
-#endif //_ARCH_CORTEXM7_STM32F7
+#endif //_ARCH_CORTEXM7_STM32F7/H7
 
 using namespace std;
 using namespace miosix;
@@ -114,9 +114,9 @@ static void test_21();
 static void test_22();
 static void test_23();
 static void test_24();
-#ifdef _ARCH_CORTEXM7_STM32F7
+#if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
 void testCacheAndDMA();
-#endif //_ARCH_CORTEXM7_STM32F7
+#endif //_ARCH_CORTEXM7_STM32F7/H7
 //Filesystem test functions
 #ifdef WITH_FILESYSTEM
 static void fs_test_1();
@@ -221,9 +221,9 @@ int main()
                 test_22();
                 test_23();
                 test_24();
-                #ifdef _ARCH_CORTEXM7_STM32F7
+                #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
                 testCacheAndDMA();
-                #endif //_ARCH_CORTEXM7_STM32F7
+                #endif //_ARCH_CORTEXM7_STM32F7/H7
                 
                 ledOff();
                 Thread::sleep(500);//Ensure all threads are deleted.
@@ -3765,7 +3765,7 @@ static void test_24()
     pass();
 }
 
-#ifdef _ARCH_CORTEXM7_STM32F7
+#if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
 static Thread *waiting=nullptr; /// Thread waiting on DMA completion IRQ
 
 /**
@@ -3933,7 +3933,7 @@ void testCacheAndDMA()
     }
     pass();
 }
-#endif //_ARCH_CORTEXM7_STM32F7
+#endif //_ARCH_CORTEXM7_STM32F7/H7
 
 #ifdef WITH_FILESYSTEM
 //

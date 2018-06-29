@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012, 2013, 2014 by Terraneo Federico       *
+ *   Copyright (C) 2010-2018 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -186,11 +186,11 @@ private:
      */
     void waitSerialTxFifoEmpty()
     {
-        #ifndef _ARCH_CORTEXM7_STM32F7
+        #if !defined(_ARCH_CORTEXM7_STM32F7) && !defined(_ARCH_CORTEXM7_STM32H7)
         while((port->SR & USART_SR_TC)==0) ;
-        #else //_ARCH_CORTEXM7_STM32F7
+        #else //_ARCH_CORTEXM7_STM32F7/H7
         while((port->ISR & USART_ISR_TC)==0) ;
-        #endif //_ARCH_CORTEXM7_STM32F7
+        #endif //_ARCH_CORTEXM7_STM32F7/H7
     }
 
     FastMutex txMutex;                ///< Mutex locked during transmission
