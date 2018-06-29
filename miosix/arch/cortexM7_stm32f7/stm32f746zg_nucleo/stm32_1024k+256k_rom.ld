@@ -1,5 +1,5 @@
 /*
- * C++ enabled linker script for stm32 (512K FLASH, 128K RAM)
+ * C++ enabled linker script for stm32 (1M FLASH, 256K RAM)
  * Developed by TFT: Terraneo Federico Technologies
  * Optimized for use with the Miosix kernel
  */

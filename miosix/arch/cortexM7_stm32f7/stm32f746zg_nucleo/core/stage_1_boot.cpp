@@ -8,7 +8,7 @@
 /*
  * startup.cpp
  * STM32 C++ startup.
- * NOTE: for stm32f411 devices ONLY.
+ * NOTE: for stm32f746 devices ONLY.
  * Supports interrupt handlers in C++ without extern "C"
  * Developed by Terraneo Federico, based on ST startup code.
  * Additionally modified to boot Miosix.
