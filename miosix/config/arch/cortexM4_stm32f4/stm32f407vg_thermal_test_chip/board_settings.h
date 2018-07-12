@@ -62,14 +62,15 @@ const unsigned int TICK_FREQ=1000;
 const unsigned int AUX_TIMER_CLOCK=100000;
 const unsigned int AUX_TIMER_MAX=0xffff; ///<\internal Aux timer is 16 bits
 
-const unsigned int defaultSerial=3;
-const unsigned int defaultSerialSpeed=19200;
+const unsigned int defaultSerial=1;
+const unsigned int defaultSerialSpeed=115200;
 const bool defaultSerialFlowctrl=false;
 // Uncomment AUX_SERIAL to enable. The device will appear as /dev/auxtty.
-//#define AUX_SERIAL "auxtty"
-const unsigned int auxSerialSpeed=9600;
+#define AUX_SERIAL "auxtty"
+const unsigned int auxSerial=3;
+const unsigned int auxSerialSpeed=115200;
 const bool auxSerialFlowctrl=false;
-//#define SERIAL_1_DMA
+#define SERIAL_1_DMA
 //#define SERIAL_2_DMA
 #define SERIAL_3_DMA
 

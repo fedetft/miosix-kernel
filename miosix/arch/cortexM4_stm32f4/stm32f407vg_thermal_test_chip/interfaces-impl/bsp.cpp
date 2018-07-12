@@ -81,7 +81,7 @@ void bspInit2()
     #ifdef AUX_SERIAL
     intrusive_ref_ptr<DevFs> devFs=basicFilesystemSetup(SDIODriver::instance());
     devFs->addDevice(AUX_SERIAL,
-        intrusive_ref_ptr<Device>(new STM32Serial(3,auxSerialSpeed,
+        intrusive_ref_ptr<Device>(new STM32Serial(auxSerial,auxSerialSpeed,
         auxSerialFlowctrl ? STM32Serial::RTSCTS : STM32Serial::NOFLOWCTRL)));
     #else //AUX_SERIAL
     basicFilesystemSetup(SDIODriver::instance());
