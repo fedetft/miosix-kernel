@@ -42,6 +42,7 @@
 #OPT_BOARD := stm32f746zg_nucleo
 #OPT_BOARD := stm32h753xi_eval
 #OPT_BOARD := stm32f407vg_thermal_test_chip
+#OPT_BOARD := stm32f205_generic
 
 ##
 ## Optimization flags, choose one.
@@ -497,6 +498,12 @@ endif
 
 # No options
 
+##---------------------------------------------------------------------------
+## stm32f205_generic
+##
+
+# No options
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -574,6 +581,8 @@ else ifeq ($(OPT_BOARD),stm32h753xi_eval)
     ARCH := cortexM7_stm32h7
 else ifeq ($(OPT_BOARD),stm32f407vg_thermal_test_chip)
     ARCH := cortexM4_stm32f4
+else ifeq ($(OPT_BOARD),stm32f205_generic)
+    ARCH := cortexM3_stm32f2
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -1659,6 +1668,42 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
 
         ## Clock frequency
         CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_120MHz=120000000
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f205_generic
+    ##
+    else ifeq ($(OPT_BOARD),stm32f205_generic)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_stm32f2/stm32f205_generic
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+128k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        arch/common/drivers/sd_stm32f2_f4.cpp        \
+        arch/common/drivers/stm32f2_f4_i2c.cpp       \
+        arch/common/drivers/servo_stm32.cpp          \
+        $(BOARD_INC)/interfaces-impl/delays.cpp      \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32F205_GENERIC
+        CXXFLAGS_BASE += -D_BOARD_STM32F205_GENERIC
+
+        ## Clock frequency
+        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_120MHz=120000000
+        
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB0
 
     ##-------------------------------------------------------------------------
     ## End of board list
