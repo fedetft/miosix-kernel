@@ -63,8 +63,10 @@ void IRQbspInit()
                     RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN |
                     RCC_AHB1ENR_GPIOHEN;
     RCC_SYNC();
-    
-    //TODO: maybe configure GPIO speed to fast speed mode??
+    GPIOA->OSPEEDR=0xaaaaaaaa; //Default to 50MHz speed for all GPIOS
+    GPIOB->OSPEEDR=0xaaaaaaaa;
+    GPIOC->OSPEEDR=0xaaaaaaaa;
+    GPIOD->OSPEEDR=0xaaaaaaaa;
     
     using namespace memories;
     sck::mode(Mode::ALTERNATE);
