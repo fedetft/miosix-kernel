@@ -1,8 +1,9 @@
 
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.1)
 project(PC_LOADER)
 
 ## Target
+set(CMAKE_CXX_STANDARD 11)
 set(LOADER_SRCS main.cpp serialstream.cpp)
 add_executable(pc_loader ${LOADER_SRCS})
 
@@ -13,7 +14,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 ## Link libraries
-set(BOOST_LIBS thread date_time system)
+set(BOOST_LIBS system)
 find_package(Boost COMPONENTS ${BOOST_LIBS} REQUIRED)
 target_link_libraries(pc_loader ${Boost_LIBRARIES})
 find_package(Threads REQUIRED)
