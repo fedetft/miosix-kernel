@@ -122,6 +122,7 @@ void IRQconfigureCache(const unsigned int *xramBase=nullptr, unsigned int xramSi
  */
 inline void markBufferBeforeDmaWrite(const void *buffer, int size)
 {
+#if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT==1)
     // You may think that since the cache is configured as write-through,
     // there's nothing to do before the DMA can read a memory buffer just
     // written by the CPU, right? Wrong! Other than the cache, there's the
@@ -132,6 +133,7 @@ inline void markBufferBeforeDmaWrite(const void *buffer, int size)
     // this __DSB() is removed. Apparently, the characters remian in the write
     // buffer.
     __DSB();
+#endif
 }
 
 /**
