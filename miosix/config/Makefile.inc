@@ -1988,6 +1988,7 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/core/cache_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
+    arch/common/drivers/sd_stm32f2_f4.cpp                    \
     arch/common/drivers/dcc.cpp                              \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \

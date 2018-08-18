@@ -28,6 +28,7 @@
 #include "sd_stm32f2_f4.h"
 #include "interfaces/bsp.h"
 #include "interfaces/arch_registers.h"
+#include "core/cache_cortexMx.h"
 #include "kernel/scheduler/scheduler.h"
 #include "interfaces/delays.h"
 #include "kernel/kernel.h"
@@ -45,6 +46,53 @@
 //#define DBGERR iprintf
 #define DBGERR(x,...) do {} while(0)
 
+/*
+ * The SDMMC1 peripheral in the STM32F7 is basically the old SDIO with the
+ * registers renamed and a few bits changed. Let's map the old names in the new
+ */
+#if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
+
+#define SDIO                 SDMMC1
+#define RCC_APB2ENR_SDIOEN   RCC_APB2ENR_SDMMC1EN
+#define SDIO_IRQn            SDMMC1_IRQn
+
+#define SDIO_STA_STBITERR    0 //This bit has been removed
+#define SDIO_STA_RXOVERR     SDMMC_STA_RXOVERR
+#define SDIO_STA_TXUNDERR    SDMMC_STA_TXUNDERR
+#define SDIO_STA_DTIMEOUT    SDMMC_STA_DTIMEOUT
+#define SDIO_STA_DCRCFAIL    SDMMC_STA_DCRCFAIL
+#define SDIO_STA_CMDSENT     SDMMC_STA_CMDSENT
+#define SDIO_STA_CMDREND     SDMMC_STA_CMDREND
+#define SDIO_STA_CCRCFAIL    SDMMC_STA_CCRCFAIL
+#define SDIO_STA_CTIMEOUT    SDMMC_STA_CTIMEOUT
+
+#define SDIO_CMD_CPSMEN      SDMMC_CMD_CPSMEN
+#define SDIO_CMD_WAITRESP_0  SDMMC_CMD_WAITRESP_0
+#define SDIO_CMD_WAITRESP_1  SDMMC_CMD_WAITRESP_1
+
+#define SDIO_ICR_CTIMEOUTC   SDMMC_ICR_CTIMEOUTC
+#define SDIO_ICR_CCRCFAILC   SDMMC_ICR_CCRCFAILC
+
+#define SDIO_CLKCR_CLKEN     SDMMC_CLKCR_CLKEN
+#define SDIO_CLKCR_PWRSAV    SDMMC_CLKCR_PWRSAV
+#define SDIO_CLKCR_PWRSAV    SDMMC_CLKCR_PWRSAV
+
+#define SDIO_MASK_STBITERRIE 0 //This bit has been removed
+#define SDIO_MASK_RXOVERRIE  SDMMC_MASK_RXOVERRIE
+#define SDIO_MASK_TXUNDERRIE SDMMC_MASK_TXUNDERRIE
+#define SDIO_MASK_DCRCFAILIE SDMMC_MASK_DCRCFAILIE
+#define SDIO_MASK_DTIMEOUTIE SDMMC_MASK_DTIMEOUTIE
+#define SDIO_MASK_DATAENDIE  SDMMC_MASK_DATAENDIE
+
+#define SDIO_DCTRL_DMAEN     SDMMC_DCTRL_DMAEN
+#define SDIO_DCTRL_DTDIR     SDMMC_DCTRL_DTDIR
+#define SDIO_DCTRL_DTEN      SDMMC_DCTRL_DTEN
+
+#define SDIO_POWER_PWRCTRL_1 SDMMC_POWER_PWRCTRL_1
+#define SDIO_POWER_PWRCTRL_0 SDMMC_POWER_PWRCTRL_0
+
+#endif //defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
+
 /**
  * \internal
  * DMA2 Stream3 interrupt handler
@@ -60,7 +108,11 @@ void __attribute__((naked)) DMA2_Stream3_IRQHandler()
  * \internal
  * SDIO interrupt handler
  */
+#if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
+void __attribute__((naked)) SDMMC1_IRQHandler()
+#else //stm32f2 and stm32f4
 void __attribute__((naked)) SDIO_IRQHandler()
+#endif
 {
     saveContext();
     asm volatile("bl _ZN6miosix11SDIOirqImplEv");
@@ -939,6 +991,9 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
         ClockController::reduceClockSpeed();
         return false;
     }
+    
+    //Read ok, deal with cache coherence
+    markBufferAfterDmaRead(buffer,nblk*512);
     return true;
 }
 
@@ -961,6 +1016,10 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
         nblk-=32767;
         lba+=32767;
     }
+    
+    //Deal with cache coherence
+    markBufferBeforeDmaWrite(buffer,nblk*512);
+    
     if(waitForCardReady()==false) return false;
     
     if(cardType!=SDHC) lba*=512; // Convert to byte address if not SDHC

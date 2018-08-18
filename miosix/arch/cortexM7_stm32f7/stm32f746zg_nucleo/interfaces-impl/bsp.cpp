@@ -80,8 +80,7 @@ void IRQbspInit()
 void bspInit2()
 {
     #ifdef WITH_FILESYSTEM
-	//FIXME
-//     basicFilesystemSetup(SDIODriver::instance());
+    basicFilesystemSetup(SDIODriver::instance());
     #endif //WITH_FILESYSTEM
 }
 
