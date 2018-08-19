@@ -31,6 +31,7 @@
 #include "filesystem/console/console_device.h"
 #include "kernel/sync.h"
 #include "kernel/queue.h"
+#include "interfaces/gpio.h"
 #include "board_settings.h"
 
 #if defined(_ARCH_CORTEXM3_STM32) && defined(__ENABLE_XRAM)
@@ -67,7 +68,13 @@ public:
     };
     
     /**
-     * Constructor, initializes the serial port.
+     * Constructor, initializes the serial port using the default pins, which
+     * are:
+     * USART1: tx=PA9  rx=PA10 cts=PA11 rts=PA12
+     * USART2: tx=PA2  rx=PA3  cts=PA0  rts=PA1
+     * USART3: tx=PB10 rx=PB11 cts=PB13 rts=PB14
+     * If you board has a different mapping, use one of the other constructors.
+     * 
      * Calls errorHandler(UNEXPECTED) if id is not in the correct range, or when
      * attempting to construct multiple objects with the same id. That is,
      * it is possible to instantiate only one instance of this class for each
@@ -77,6 +84,46 @@ public:
      * \param flowControl to enable hardware flow control on this port
      */
     STM32Serial(int id, int baudrate, FlowCtrl flowControl=NOFLOWCTRL);
+    
+    /**
+     * Constructor, initializes the serial port using remapped pins and disables
+     * flow control.
+     * 
+     * NOTE: for stm32f2, f4, f7 and h7 you have to set the correct alternate
+     * function to the pins in order to connect then to the USART peripheral
+     * before passing them to this class.
+     * 
+     * Calls errorHandler(UNEXPECTED) if id is not in the correct range, or when
+     * attempting to construct multiple objects with the same id. That is,
+     * it is possible to instantiate only one instance of this class for each
+     * hardware USART.
+     * \param id a number 1 to 3 to select which USART
+     * \param baudrate serial port baudrate
+     * \param tx tx pin
+     * \param rx rx pin
+     */
+    STM32Serial(int id, int baudrate, miosix::GpioPin tx, miosix::GpioPin rx);
+    
+    /**
+     * Constructor, initializes the serial port using remapped pins and enables
+     * flow control.
+     * 
+     * NOTE: for stm32f2, f4, f7 and h7 you have to set the correct alternate
+     * function to the pins in order to connect then to the USART peripheral
+     * before passing them to this class.
+     * 
+     * Calls errorHandler(UNEXPECTED) if id is not in the correct range, or when
+     * attempting to construct multiple objects with the same id. That is,
+     * it is possible to instantiate only one instance of this class for each
+     * hardware USART.
+     * \param id a number 1 to 3 to select which USART
+     * \param tx tx pin
+     * \param rx rx pin
+     * \param rts rts pin
+     * \param cts cts pin
+     */
+    STM32Serial(int id, int baudrate, miosix::GpioPin tx, miosix::GpioPin rx,
+                miosix::GpioPin rts, miosix::GpioPin cts);
     
     /**
      * Read a block of data
@@ -149,6 +196,12 @@ public:
     ~STM32Serial();
     
 private:
+    /**
+     * Code common for all constructors
+     */
+    void commonInit(int id, int baudrate, miosix::GpioPin tx, miosix::GpioPin rx,
+                    miosix::GpioPin rts, miosix::GpioPin cts);
+    
     #ifdef SERIAL_DMA
     /**
      * Wait until a pending DMA TX completes, if any
@@ -198,7 +251,7 @@ private:
     
     DynUnsyncQueue<char> rxQueue;     ///< Receiving queue
     static const unsigned int rxQueueMin=16; ///< Minimum queue size
-    Thread *rxWaiting;                ///< Thread waiting for rx, or 0
+    Thread *rxWaiting=0;              ///< Thread waiting for rx, or 0
     
     USART_TypeDef *port;              ///< Pointer to USART peripheral
     #ifdef SERIAL_DMA
@@ -221,7 +274,7 @@ private:
     char rxBuffer[rxQueueMin];
     bool dmaTxInProgress;             ///< True if a DMA tx is in progress
     #endif //SERIAL_DMA
-    bool idle;                        ///< Receiver idle
+    bool idle=true;                   ///< Receiver idle
     const bool flowControl;           ///< True if flow control GPIOs enabled
     const unsigned char portId;       ///< 1 for USART1, 2 for USART2, ...
 };

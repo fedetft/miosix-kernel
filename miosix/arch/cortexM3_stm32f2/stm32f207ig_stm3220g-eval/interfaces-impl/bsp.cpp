@@ -77,13 +77,10 @@ void IRQbspInit()
     ledOn();
     delayMs(100);
     ledOff();
+    auto tx=Gpio<GPIOC_BASE,10>::getPin(); tx.alternateFunction(7);
+    auto rx=Gpio<GPIOC_BASE,11>::getPin(); rx.alternateFunction(7);
     DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
-    #ifndef STDOUT_REDIRECTED_TO_DCC
-        new STM32Serial(defaultSerial,defaultSerialSpeed,
-        defaultSerialFlowctrl ? STM32Serial::RTSCTS : STM32Serial::NOFLOWCTRL)));
-    #else //STDOUT_REDIRECTED_TO_DCC
-        new ARMDCC));
-    #endif //STDOUT_REDIRECTED_TO_DCC
+        new STM32Serial(3,defaultSerialSpeed,tx,rx)));
 }
 
 void bspInit2()

@@ -32,7 +32,6 @@
 #include "kernel/sync.h"
 #include "kernel/scheduler/scheduler.h"
 #include "interfaces/portability.h"
-#include "interfaces/gpio.h"
 #include "filesystem/ioctl.h"
 #include "core/cache_cortexMx.h"
 
@@ -45,42 +44,20 @@ static const int numPorts=3; //Supporting only USART1, USART2, USART3
 //GPIOS in all families, stm32f1, f2, f4 and l1. Additionally, USART1 is
 //always connected to the APB2, while USART2 and USART3 are always on APB1
 //Unfortunately, this does not hold with DMA.
-#ifdef _BOARD_STM32H753XI_EVAL
-typedef Gpio<GPIOB_BASE,14> u1tx;
-typedef Gpio<GPIOB_BASE,15> u1rx;
-#else
 typedef Gpio<GPIOA_BASE,9>  u1tx;
 typedef Gpio<GPIOA_BASE,10> u1rx;
-#endif
 typedef Gpio<GPIOA_BASE,11> u1cts;
 typedef Gpio<GPIOA_BASE,12> u1rts;
 
-#if !defined(STM32_NO_SERIAL_2_3)
 typedef Gpio<GPIOA_BASE,2>  u2tx;
 typedef Gpio<GPIOA_BASE,3>  u2rx;
 typedef Gpio<GPIOA_BASE,0>  u2cts;
 typedef Gpio<GPIOA_BASE,1>  u2rts;
 
-//TODO: modify the class constructor so that it takes the gpiopins as
-//parameter, so as to allow each board to custom-remap usart pins,
-//otherwise this common driver will end up having even more ifdefs
-#ifdef _BOARD_STM3220G_EVAL
-//The STM3220G_EVAL board maps usart3 to different pins.
-typedef Gpio<GPIOC_BASE,10> u3tx;
-typedef Gpio<GPIOC_BASE,11> u3rx;
-#elif defined(_BOARD_STM32F746ZG_NUCLEO)
-//The STM32F746ZG_NUCLEO board maps usart3 to different pins.
-typedef Gpio<GPIOD_BASE,8> u3tx;
-typedef Gpio<GPIOD_BASE,9> u3rx;
-#else
-//Default placement
 typedef Gpio<GPIOB_BASE,10> u3tx;
 typedef Gpio<GPIOB_BASE,11> u3rx;
-#endif
-
 typedef Gpio<GPIOB_BASE,13> u3cts;
 typedef Gpio<GPIOB_BASE,14> u3rts;
-#endif //!defined(STM32_NO_SERIAL_2_3)
 
 /// Pointer to serial port classes to let interrupts access the classes
 static STM32Serial *ports[numPorts]={0};
@@ -389,8 +366,77 @@ static inline bool isInCCMarea(const void *x) { return false; }
 // 20ms of full data rate. In the 8N1 format one char is made of 10 bits.
 // So (baudrate/10)*0.02=baudrate/500
 STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
-        : Device(Device::TTY), rxQueue(rxQueueMin+baudrate/500), rxWaiting(0),
-        idle(true), flowControl(flowControl==RTSCTS), portId(id)
+        : Device(Device::TTY), rxQueue(rxQueueMin+baudrate/500),
+          flowControl(flowControl==RTSCTS), portId(id)
+{
+    #ifndef _ARCH_CORTEXM3_STM32
+    //stm32f2, f4, l1, f7, h7 require alternate function mapping
+    switch(id)
+    {
+        case 1:
+            u1tx::alternateFunction(7);
+            u1rx::alternateFunction(7);
+            if(flowControl)
+            {
+                u1rts::alternateFunction(7);
+                u1cts::alternateFunction(7);
+            }
+            break;
+        case 2:
+            u2tx::alternateFunction(7);
+            u2rx::alternateFunction(7);
+            if(flowControl)
+            {
+                u2rts::alternateFunction(7);
+                u2cts::alternateFunction(7);
+            }
+            break;
+        case 3:
+            u3tx::alternateFunction(7);
+            u3rx::alternateFunction(7);
+            if(flowControl)
+            {
+                u3rts::alternateFunction(7);
+                u3cts::alternateFunction(7);
+            }
+            break;
+    }
+    #endif //_ARCH_CORTEXM3_STM32
+    
+    switch(id)
+    {
+        case 1:
+            commonInit(id,baudrate,u1tx::getPin(),u1rx::getPin(),
+                       u1rts::getPin(),u1cts::getPin());
+            break;
+        case 2:
+            commonInit(id,baudrate,u2tx::getPin(),u2rx::getPin(),
+                       u2rts::getPin(),u3cts::getPin());
+            break;
+        case 3:
+            commonInit(id,baudrate,u3tx::getPin(),u2rx::getPin(),
+                       u2rts::getPin(),u3cts::getPin());
+            break;
+    }
+}
+
+STM32Serial::STM32Serial(int id, int baudrate, GpioPin tx, GpioPin rx)
+    : Device(Device::TTY), rxQueue(rxQueueMin+baudrate/500),
+      flowControl(false), portId(id)
+{
+    commonInit(id,baudrate,tx,rx,tx,rx); //The last two args will be ignored
+}
+
+STM32Serial::STM32Serial(int id, int baudrate, GpioPin tx, GpioPin rx,
+    miosix::GpioPin rts, miosix::GpioPin cts)
+    : Device(Device::TTY), rxQueue(rxQueueMin+baudrate/500),
+      flowControl(true), portId(id)
+{
+    commonInit(id,baudrate,tx,rx,rts,cts);
+}
+
+void STM32Serial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
+                             GpioPin rts, GpioPin cts)
 {
     #ifdef SERIAL_DMA
     dmaTx=0;
@@ -402,13 +448,6 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
     if(id<1|| id>numPorts || ports[id-1]!=0) errorHandler(UNEXPECTED);
     ports[id-1]=this;
     unsigned int freq=SystemCoreClock;
-    //Quirk: stm32f1 rx pin has to be in input mode, while stm32f2 and up want
-    //it in ALTERNATE mode. Go figure...
-    #ifdef _ARCH_CORTEXM3_STM32
-    Mode::Mode_ rxPinMode=Mode::INPUT;
-    #else //_ARCH_CORTEXM3_STM32
-    Mode::Mode_ rxPinMode=Mode::ALTERNATE;
-    #endif //_ARCH_CORTEXM3_STM32
     //Quirk the position of the PPRE1 and PPRE2 bitfields in RCC->CFGR changes
     #if defined(_ARCH_CORTEXM3_STM32) || defined(_ARCH_CORTEXM3_STM32L1)
     const unsigned int ppre1=8;
@@ -449,28 +488,6 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
             #endif
             port->CR3=USART_CR3_DMAT | USART_CR3_DMAR;
             #endif //SERIAL_1_DMA
-            #ifndef _ARCH_CORTEXM3_STM32
-            //Only stm32f2, f4 and l1 have the new alternate function mapping
-            #ifdef _BOARD_STM32H753XI_EVAL
-            u1tx::alternateFunction(4);
-            u1rx::alternateFunction(4);
-            #else
-            u1tx::alternateFunction(7);
-            u1rx::alternateFunction(7);
-            #endif
-            if(flowControl)
-            {
-                u1rts::alternateFunction(7);
-                u1cts::alternateFunction(7);
-            }
-            #endif //_ARCH_CORTEXM3_STM32
-            u1tx::mode(Mode::ALTERNATE);
-            u1rx::mode(rxPinMode);
-            if(flowControl)
-            {
-                u1rts::mode(Mode::ALTERNATE);
-                u1cts::mode(rxPinMode);
-            }
             NVIC_SetPriority(USART1_IRQn,15);//Lowest priority for serial
             NVIC_EnableIRQ(USART1_IRQn);
             #ifndef _ARCH_CORTEXM7_STM32H7
@@ -522,23 +539,6 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
             #endif
             port->CR3=USART_CR3_DMAT | USART_CR3_DMAR;
             #endif //SERIAL_2_DMA
-            #ifndef _ARCH_CORTEXM3_STM32
-            //Only stm32f2, f4 and l1 have the new alternate function mapping
-            u2tx::alternateFunction(7);
-            u2rx::alternateFunction(7);
-            if(flowControl)
-            {
-                u2rts::alternateFunction(7);
-                u2cts::alternateFunction(7);
-            }
-            #endif //_ARCH_CORTEXM3_STM32
-            u2tx::mode(Mode::ALTERNATE);
-            u2rx::mode(rxPinMode);
-            if(flowControl)
-            {
-                u2rts::mode(Mode::ALTERNATE);
-                u2cts::mode(rxPinMode);
-            }
             NVIC_SetPriority(USART2_IRQn,15);//Lowest priority for serial
             NVIC_EnableIRQ(USART2_IRQn);
             #ifndef _ARCH_CORTEXM7_STM32H7
@@ -589,23 +589,6 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
             #endif
             port->CR3=USART_CR3_DMAT | USART_CR3_DMAR;
             #endif //SERIAL_3_DMA
-            #ifndef _ARCH_CORTEXM3_STM32
-            //Only stm32f2, f4 and l1 have the new alternate function mapping
-            u3tx::alternateFunction(7);
-            u3rx::alternateFunction(7);
-            if(flowControl)
-            {
-                u3rts::alternateFunction(7);
-                u3cts::alternateFunction(7);
-            }
-            #endif //_ARCH_CORTEXM3_STM32
-            u3tx::mode(Mode::ALTERNATE);
-            u3rx::mode(rxPinMode);
-            if(flowControl)
-            {
-                u3rts::mode(Mode::ALTERNATE);
-                u3cts::mode(rxPinMode);
-            }
             NVIC_SetPriority(USART3_IRQn,15);//Lowest priority for serial
             NVIC_EnableIRQ(USART3_IRQn);
             #ifndef _ARCH_CORTEXM7_STM32H7
@@ -623,6 +606,20 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
             break;
         #endif //!defined(STM32F411xE) && !defined(STM32F401xE) && !defined(STM32F401xC)
         #endif //!defined(STM32_NO_SERIAL_2_3)
+    }
+    //Quirk: stm32f1 rx pin has to be in input mode, while stm32f2 and up want
+    //it in ALTERNATE mode. Go figure...
+    #ifdef _ARCH_CORTEXM3_STM32
+    Mode::Mode_ rxPinMode=Mode::INPUT;
+    #else //_ARCH_CORTEXM3_STM32
+    Mode::Mode_ rxPinMode=Mode::ALTERNATE;
+    #endif //_ARCH_CORTEXM3_STM32
+    tx.mode(Mode::ALTERNATE);
+    rx.mode(rxPinMode);
+    if(flowControl)
+    {
+        rts.mode(Mode::ALTERNATE);
+        cts.mode(rxPinMode);
     }
     const unsigned int quot=2*freq/baudrate; //2*freq for round to nearest
     port->BRR=quot/2 + (quot & 1);           //Round to nearest

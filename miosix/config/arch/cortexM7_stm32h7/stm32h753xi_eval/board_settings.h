@@ -62,9 +62,8 @@ const unsigned int AUX_TIMER_CLOCK=100000;
 const unsigned int AUX_TIMER_MAX=0xffff; ///<\internal Aux timer is 16 bits
 
 /// Serial port
-const unsigned int defaultSerial=1;
+//This board only exposes USART1, without flow control
 const unsigned int defaultSerialSpeed=115200;
-const bool defaultSerialFlowctrl=false;
 // #define SERIAL_1_DMA //TODO: serial port DMA
 // #define SERIAL_2_DMA
 // #define SERIAL_3_DMA

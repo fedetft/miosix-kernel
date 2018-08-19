@@ -63,9 +63,8 @@ const unsigned int AUX_TIMER_CLOCK=100000;
 const unsigned int AUX_TIMER_MAX=0xffff; ///<\internal Aux timer is 16 bits
 
 /// Serial port
-const unsigned int defaultSerial=3;
+//This board only exposes USART3, without flow control
 const unsigned int defaultSerialSpeed=19200;
-const bool defaultSerialFlowctrl=false;
 //#define SERIAL_1_DMA //Serial 1 is not used, so not enabling DMA
 //#define SERIAL_2_DMA //Serial 2 is not used, so not enabling DMA
 #define SERIAL_3_DMA
