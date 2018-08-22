@@ -38,8 +38,9 @@ namespace miosix {
  * \param SDA SDA gpio pin. Pass a Gpio<P,N> class
  * \param SCL SCL gpio pin. Pass a Gpio<P,N> class
  * \param timeout for clock stretching, in milliseconds
+ * \param fast false=~100KHz true=~400KHz
  */
-template <typename SDA, typename SCL, unsigned stretchTimeout=50>
+template <typename SDA, typename SCL, unsigned stretchTimeout=50, bool fast=false>
 class SoftwareI2C
 {
 public:
@@ -92,8 +93,8 @@ private:
     static bool waitForClockStretching();
 };
 
-template <typename SDA, typename SCL, unsigned stretchTimeout>
-void SoftwareI2C<SDA, SCL, stretchTimeout>::init()
+template <typename SDA, typename SCL, unsigned stretchTimeout, bool fast>
+void SoftwareI2C<SDA, SCL, stretchTimeout, fast>::init()
 {
     SDA::high();
     SCL::high();
@@ -101,121 +102,121 @@ void SoftwareI2C<SDA, SCL, stretchTimeout>::init()
     SCL::mode(Mode::OPEN_DRAIN);
 }
 
-template <typename SDA, typename SCL, unsigned stretchTimeout>
-void SoftwareI2C<SDA, SCL, stretchTimeout>::sendStart()
+template <typename SDA, typename SCL, unsigned stretchTimeout, bool fast>
+void SoftwareI2C<SDA, SCL, stretchTimeout, fast>::sendStart()
 {
     SDA::low();
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
     SCL::low();
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
 }
 
-template <typename SDA, typename SCL, unsigned stretchTimeout>
-void SoftwareI2C<SDA, SCL, stretchTimeout>::sendRepeatedStart()
+template <typename SDA, typename SCL, unsigned stretchTimeout, bool fast>
+void SoftwareI2C<SDA, SCL, stretchTimeout, fast>::sendRepeatedStart()
 {
     SDA::high();
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
     SCL::high();
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
     waitForClockStretching();
     sendStart();
 }
 
-template <typename SDA, typename SCL, unsigned stretchTimeout>
-void SoftwareI2C<SDA, SCL, stretchTimeout>::sendStop()
+template <typename SDA, typename SCL, unsigned stretchTimeout, bool fast>
+void SoftwareI2C<SDA, SCL, stretchTimeout, fast>::sendStop()
 {
     SDA::low();
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
     SCL::high();
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
     waitForClockStretching();
     SDA::high();
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
 }
 
-template <typename SDA, typename SCL, unsigned stretchTimeout>
-bool SoftwareI2C<SDA, SCL, stretchTimeout>::send(unsigned char data)
+template <typename SDA, typename SCL, unsigned stretchTimeout, bool fast>
+bool SoftwareI2C<SDA, SCL, stretchTimeout, fast>::send(unsigned char data)
 {
     for(int i=0;i<8;i++)
     {
         if(data & 0x80) SDA::high(); else SDA::low();
-        delayUs(3);
+        delayUs(fast ? 1 : 3);
         SCL::high();
         data<<=1;
-        delayUs(5);//Double delay
+        delayUs(fast ? 2 : 5);//Double delay
         waitForClockStretching();
         SCL::low();
-        delayUs(3);
+        delayUs(fast ? 1 : 3);
     }
     SDA::high();
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
     SCL::high();
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
     bool timeout=waitForClockStretching();
     bool result=(SDA::value()==0);
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
     SCL::low();
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
     return result && timeout;
 }
 
-template <typename SDA, typename SCL, unsigned stretchTimeout>
-unsigned char SoftwareI2C<SDA, SCL, stretchTimeout>::recvWithAck()
+template <typename SDA, typename SCL, unsigned stretchTimeout, bool fast>
+unsigned char SoftwareI2C<SDA, SCL, stretchTimeout, fast>::recvWithAck()
 {
     SDA::high();
     unsigned char result=0;
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
     for(int i=0;i<8;i++)
     {
         result<<=1;
         
         if(SDA::value()) result |= 1;
-        delayUs(3);
+        delayUs(fast ? 1 : 3);
         SCL::high();
-        delayUs(5);//Double delay
+        delayUs(fast ? 2 : 5);//Double delay
         waitForClockStretching();
         SCL::low();
-        delayUs(3);
+        delayUs(fast ? 1 : 3);
     }
     SDA::low();
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
     SCL::high();
-    delayUs(5);//Double delay
+    delayUs(fast ? 2 : 5);//Double delay
     waitForClockStretching();
     SCL::low();
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
     return result;
 }
 
-template <typename SDA, typename SCL, unsigned stretchTimeout>
-unsigned char SoftwareI2C<SDA, SCL, stretchTimeout>::recvWithNack()
+template <typename SDA, typename SCL, unsigned stretchTimeout, bool fast>
+unsigned char SoftwareI2C<SDA, SCL, stretchTimeout, fast>::recvWithNack()
 {
     SDA::high();
     unsigned char result=0;
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
     for(int i=0;i<8;i++)
     {
         result<<=1;
 
         if(SDA::value()) result |= 1;
-        delayUs(3);
+        delayUs(fast ? 1 : 3);
         SCL::high();
-        delayUs(5);//Double delay
+        delayUs(fast ? 2 : 5);//Double delay
         waitForClockStretching();
         SCL::low();
-        delayUs(3);
+        delayUs(fast ? 1 : 3);
     }
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
     SCL::high();
-    delayUs(5);//Double delay
+    delayUs(fast ? 2 : 5);//Double delay
     waitForClockStretching();
     SCL::low();
-    delayUs(3);
+    delayUs(fast ? 1 : 3);
     return result;
 }
 
-template <typename SDA, typename SCL, unsigned stretchTimeout>
-bool SoftwareI2C<SDA, SCL, stretchTimeout>::waitForClockStretching()
+template <typename SDA, typename SCL, unsigned stretchTimeout, bool fast>
+bool SoftwareI2C<SDA, SCL, stretchTimeout, fast>::waitForClockStretching()
 {
     if(SCL::value()==1) return true;
     for(unsigned int i=0;i<stretchTimeout;i++)
