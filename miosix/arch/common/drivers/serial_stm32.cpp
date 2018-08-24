@@ -411,11 +411,11 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
             break;
         case 2:
             commonInit(id,baudrate,u2tx::getPin(),u2rx::getPin(),
-                       u2rts::getPin(),u3cts::getPin());
+                       u2rts::getPin(),u2cts::getPin());
             break;
         case 3:
-            commonInit(id,baudrate,u3tx::getPin(),u2rx::getPin(),
-                       u2rts::getPin(),u3cts::getPin());
+            commonInit(id,baudrate,u3tx::getPin(),u3rx::getPin(),
+                       u3rts::getPin(),u3cts::getPin());
             break;
     }
 }
