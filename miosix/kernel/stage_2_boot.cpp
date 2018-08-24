@@ -98,13 +98,11 @@ void *mainLoader(void *argv)
     #else //__NO_EXCEPTIONS
     try {
         main(0,NULL);
-    } catch(std::exception& e)
-    {
-        errorHandler(PROPAGATED_EXCEPTION);
+    } catch(std::exception& e) {
+        errorLog("***An exception propagated through a thread\n");
         errorLog("what():%s\n",e.what());
-    } catch(...)
-    {
-        errorHandler(PROPAGATED_EXCEPTION);
+    } catch(...) {
+        errorLog("***An exception propagated through a thread\n");
     }
     #endif //__NO_EXCEPTIONS
     

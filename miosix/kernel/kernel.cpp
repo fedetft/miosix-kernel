@@ -294,11 +294,7 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
 					Priority priority, void *argv, unsigned short options)
 {
     //Check to see if input parameters are valid
-    if(priority.validate()==false || stacksize<STACK_MIN)
-    {
-        errorHandler(INVALID_PARAMETERS);
-        return NULL;
-    }
+    if(priority.validate()==false || stacksize<STACK_MIN) return NULL;
     
     Thread *thread=doCreate(startfunc,stacksize,argv,options,false);
     if(thread==NULL) return NULL;
@@ -399,7 +395,7 @@ Priority Thread::getPriority()
 
 void Thread::setPriority(Priority pr)
 {
-    if(pr.validate()==false) errorHandler(INVALID_PARAMETERS);
+    if(pr.validate()==false) return;
     PauseKernelLock lock;
 
     Thread *current=getCurrentThread();
@@ -657,13 +653,11 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
     #else //__NO_EXCEPTIONS
     try {
         result=threadfunc(argv);
-    } catch(std::exception& e)
-    {
-        errorHandler(PROPAGATED_EXCEPTION);
+    } catch(std::exception& e) {
+        errorLog("***An exception propagated through a thread\n");
         errorLog("what():%s\n",e.what());
-    } catch(...)
-    {
-        errorHandler(PROPAGATED_EXCEPTION);
+    } catch(...) {
+        errorLog("***An exception propagated through a thread\n");
     }
     #endif //__NO_EXCEPTIONS
     //Thread returned from its entry point, so delete it

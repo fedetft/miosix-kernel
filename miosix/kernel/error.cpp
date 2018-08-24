@@ -41,21 +41,8 @@ void errorHandler(Error e)
     bool interrupts=areInterruptsEnabled();
     if(interrupts) disableInterrupts();
 
-    bool isUnrecoverable=false;
-    //Recoverable errors
-    switch(e)
-    {
-        case INVALID_PARAMETERS:
-            IRQerrorLog("\r\n***Invalid parameter\r\n");
-            break;
-        case PROPAGATED_EXCEPTION:
-            IRQerrorLog("\r\n***An exception propagated through a thread\r\n");
-            break;
-        case MUTEX_UNLOCK_NOT_OWNER:
-            IRQerrorLog("\r\n***unlock() called on a non locked mutex\r\n");
-        default:
-            isUnrecoverable=true;
-    }
+    //Recoverable errors: None
+    
     //Unrecoverable errors
     switch(e)
     {
@@ -87,15 +74,9 @@ void errorHandler(Error e)
         default:
             break;
     }
-    if(isUnrecoverable)
-    {
-        #if _BOARD_SONY_NEWMAN
-        IRQerrorMarker(e+1);
-        #endif //_BOARD_SONY_NEWMAN
-        miosix_private::IRQsystemReboot();
-    }
+    miosix_private::IRQsystemReboot();
 
-    if(interrupts) enableInterrupts();
+    //if(interrupts) enableInterrupts(); // Not needed since no recoverable errors
 }
 
 } //namespace miosix

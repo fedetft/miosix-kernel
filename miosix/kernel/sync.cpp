@@ -209,11 +209,7 @@ bool Mutex::PKtryLock(PauseKernelLock& dLock)
 bool Mutex::PKunlock(PauseKernelLock& dLock)
 {
     Thread *p=Thread::getCurrentThread();
-    if(owner!=p)
-    {
-        errorHandler(MUTEX_UNLOCK_NOT_OWNER);
-        return false;
-    }
+    if(owner!=p) return false;
 
     if(recursiveDepth>0)
     {
@@ -290,11 +286,7 @@ bool Mutex::PKunlock(PauseKernelLock& dLock)
 unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
 {
     Thread *p=Thread::getCurrentThread();
-    if(owner!=p)
-    {
-        errorHandler(MUTEX_UNLOCK_NOT_OWNER);
-        return 0;
-    }
+    if(owner!=p) return 0;
 
     //Remove this mutex from the list of mutexes locked by the owner
     if(owner->mutexLocked==this)

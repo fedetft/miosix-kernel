@@ -37,12 +37,7 @@ namespace miosix {
  */
 enum Error
 {
-    /// A function/method was called with invalid parameters.<br>
-    /// Error is recoverable.
-    INVALID_PARAMETERS,
-
-    /// The heap is full, malloc/new returned NULL.<br>
-    /// Whether error is recoverable is architecture specific.
+    /// The heap is full, malloc/new returned NULL.<br>Error is UNRECOVERABLE
     OUT_OF_MEMORY,
 
     /// The stack of a thread overflowed.<br>Error is UNRECOVERABLE
@@ -63,20 +58,12 @@ enum Error
     /// Error is UNRECOVERABLE
     MUTEX_DEADLOCK,
 
-    /// An attempt to call unlock() on a mutex without first calling lock
-    /// has been detected.
-    MUTEX_UNLOCK_NOT_OWNER,
-
     /// The calls to pauseKernel or disableInterrupts were nested too
     ///much. Error is UNRECOVERABLE
     NESTING_OVERFLOW,
 
-    /// An uncaught exception propagated throug a thread's entry point.
-    /// Error is recoverable.
-    PROPAGATED_EXCEPTION,
-
     /// Interrupts are wrongly enabled during boot
-    /// Error is unrecoverable
+    /// Error is UNRECOVERABLE
     INTERRUPTS_ENABLED_AT_BOOT
 };
 

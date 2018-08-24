@@ -158,10 +158,7 @@ static inline bool IRQdoMutexUnlock(pthread_mutex_t *mutex)
 {
 //    Safety check removed for speed reasons
 //    if(mutex->owner!=reinterpret_cast<void*>(Thread::IRQgetCurrentThread()))
-//    {
-//        errorHandler(MUTEX_UNLOCK_NOT_OWNER);
 //        return false;
-//    }
     if(mutex->recursive>0)
     {
         mutex->recursive--;
@@ -197,10 +194,7 @@ static inline unsigned int IRQdoMutexUnlockAllDepthLevels(pthread_mutex_t *mutex
 {
 //    Safety check removed for speed reasons
 //    if(mutex->owner!=reinterpret_cast<void*>(Thread::IRQgetCurrentThread()))
-//    {
-//        errorHandler(MUTEX_UNLOCK_NOT_OWNER);
 //        return false;
-//    }
     if(mutex->first!=0)
     {
         Thread *t=reinterpret_cast<Thread*>(mutex->first->thread);

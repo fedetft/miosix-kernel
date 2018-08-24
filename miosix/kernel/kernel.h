@@ -440,8 +440,7 @@ public:
      * \return a reference to the thread created, that can be used, for example,
      * to delete it, or NULL in case of errors.
      *
-     * Calls errorHandler(INVALID_PARAMETERS) if stacksize or priority are
-     * invalid. Can be called when the kernel is paused.
+     * Can be called when the kernel is paused.
      */
     static Thread *create(void *(*startfunc)(void *), unsigned int stacksize,
                             Priority priority=Priority(), void *argv=NULL,
@@ -563,8 +562,6 @@ public:
      * now static. This implies a thread can no longer set the priority of
      * another thread.
      * \param pr desired priority. Must be 0<=pr<PRIORITY_MAX
-     *
-     * Calls errorHandler(INVALID_PARAMETERS) if pr is not within bounds.
      *
      * Can be called when the kernel is paused.
      */
