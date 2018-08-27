@@ -789,7 +789,7 @@ static void t3_p1(void *argv)
         //Test that Thread::sleep sleeps the desired number of ticks
         long long x=getTick();
         Thread::sleep(SLEEP_TIME);
-        if(abs(((SLEEP_TIME*TICK_FREQ)/1000)-(getTick()-x))>5)
+        if(llabs(((SLEEP_TIME*TICK_FREQ)/1000)-(getTick()-x))>5)
             fail("Thread::sleep() or getTick()");
     }
 }
@@ -1663,7 +1663,7 @@ static void test_timer(Timer *t)
     t->stop();
     //Testing interval precision
     if(t->interval()==-1) fail("interval (3)");
-    if(abs(t->interval()-((100*TICK_FREQ)/1000))>4) fail("not precise");
+    if(llabs(t->interval()-((100*TICK_FREQ)/1000))>4) fail("not precise");
     //Testing isRunning
     if(t->isRunning()==true) fail("isRunning (1)");
 }
@@ -1684,12 +1684,12 @@ static void test_7()
     t.stop();
     Timer w(t);
     if(w.interval()==-1) fail("interval (copy 1)");
-    if(abs(w.interval()-((100*TICK_FREQ)/1000))>4) fail("not precise (copy 1)");
+    if(llabs(w.interval()-((100*TICK_FREQ)/1000))>4) fail("not precise (copy 1)");
     if(w.isRunning()==true) fail("isRunning (copy 1)");
     Timer q;
     q=t;
     if(q.interval()==-1) fail("interval (= 1)");
-    if(abs(q.interval()-((100*TICK_FREQ)/1000))>4) fail("not precise (= 1)");
+    if(llabs(q.interval()-((100*TICK_FREQ)/1000))>4) fail("not precise (= 1)");
     if(q.isRunning()==true) fail("isRunning (= 1)");
     //Testing copy constructor and operator = with a running timer
     t.clear();
@@ -1698,13 +1698,13 @@ static void test_7()
     Timer x(t);//copy constructor called when running
     x.stop();
     if(x.interval()==-1) fail("interval (copy 2)");
-    if(abs(x.interval()-((100*TICK_FREQ)/1000))>4) fail("not precise (copy 2)");
+    if(llabs(x.interval()-((100*TICK_FREQ)/1000))>4) fail("not precise (copy 2)");
     if(x.isRunning()==true) fail("isRunning (copy 2)");
     Timer y;
     y=t;//Operator = called when running
     y.stop();
     if(y.interval()==-1) fail("interval (= 2)");
-    if(abs(y.interval()-((100*TICK_FREQ)/1000))>4) fail("not precise (= 2)");
+    if(llabs(y.interval()-((100*TICK_FREQ)/1000))>4) fail("not precise (= 2)");
     if(y.isRunning()==true) fail("isRunning (= 2)");
     //Testing concatenating time intervals
     t.clear();//Calling clear without calling stop. done on purpose
@@ -1715,7 +1715,7 @@ static void test_7()
     Thread::sleep(150);
     t.stop();
     if(t.interval()==-1) fail("interval (= 2)");
-    if(abs(t.interval()-((250*TICK_FREQ)/1000))>4) fail("not precise (= 2)");
+    if(llabs(t.interval()-((250*TICK_FREQ)/1000))>4) fail("not precise (= 2)");
     pass();
 }
 

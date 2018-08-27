@@ -1,0 +1,99 @@
+
+Note:
+- older kernels CANNOT use the new compiler due to at least __throw_out_of_range_fmt
+  being added, hence breaking compatibility
+- can newer kernels continue using the old compiler? We'll see
+
+TODO: install-script.sh
+=======================
+
+GDB not tested, may not compile
+Release mode and compiling for windows not tested, may not work
+
+TODO: gcc.patch
+===============
+
+NOT APPLIED, without those, armv7 use of atomic ops in libstdc++ is expected to be slower
+Thread safety of libstdc++ on all platforms has to be reavaluated
+libstdc++-v3/config/cpu/arm/atomicity.h
+libstdc++-v3/config/cpu/arm/atomic_word.h
+
+NOT APPLIED, reevaluate why is it needed
+gcc-8.2.0/libstdc++-v3/include/bits/fstream.tcc
+
+Test emergency buffer size is still enough
+gcc-8.2.0/libstdc++-v3/libsupc++/eh_alloc.cc
+
+NOT APPLIED Do not patch these, patch eh_teminate.cc instead, may catch more use cases!
+Also update miosix as neeed and keep the old redeclaration for the previous compiler support
+gcc-8.2.0/libstdc++-v3/libsupc++/pure.cc
+
+Extend Miosix to add support for __throw_out_of_range_fmt
+Investigate why __throw_ios_failure, __throw_system_error, __throw_future_error
+__throw_bad_function_call no longer exist!
+gcc-8.2.0/libstdc++-v3/src/c++11/functexcept.cc
+
+New files using gthread_key not yet part of patch
+libstdc++-v3/src/c++11/condition_variable.cc:    __gthread_key_t key;
+libstdc++-v3/libsupc++/atexit_thread.cc:  __gthread_key_t key;
+
+TODO: force-got.patch
+=====================
+
+Entire patch not yet ported
+
+
+TODO: newlib.patch
+==================
+
+Test new _REENT_GLOBAL_STDIO_STREAMS
+/*
+ * Newlib has this feature of having one set of {stdin,stdout,stderr} per
+ * _reent structure. This has mainly two advantages:
+ * - writing to stdout is thread safe without the need for file locking,
+ *   as each thread has its own FILE struct and therefore its buffer,
+ *   so two threads can't stomp each other due to a shared stdout buffer.
+ * - it allows to implement 'threads as if they were processes', each with
+ *   its own fully independent set of stdin/out/err file descriptors.
+ * However, this also has its own disadvantages:
+ * - It may create a race condition when doing a
+ *   fclose(stdout);
+ *   fopen(stdout,...);
+ *   Note that this argument applies also to stdin and stderr. In this case
+ *   if for any reason the fopen does not reuse the very same fd that was
+ *   closed (such as a context switch between the calls, and another thread
+ *   'stealing' the low-numbered file descriptor), then *ALL* the other
+ *   threads in the system, including those that will be created after the
+ *   fact, will write/read to the wrong file descriptor.
+ * - In a C library for embedded systems, this wastes a considerable amount
+ *   of RAM. First of all, FILE is a big struct, ~100Bytes, so for every
+ *   thread that you create that uses stdio, you pay ~300Bytes. And then
+ *   there's file buffering. The default BUFSIZ is 1024Bytes, so the first
+ *   printf you make in a thread adds that amount of RAM. Of course, if the
+ *   thread also reads from stdin, a second buffer is needed.
+ * 
+ * Considering that neither of the advantages applies to Miosix (as it
+ * already implements file locking and doesn't intend to let threads have
+ * separate stdin/stdout/stderr), this only has disadvantages.
+ * Therefore for Miosix this has been changed, by making stdin, stdout
+ * and stderr always point to _GLOBAL_REENT (and changing __sinit() to only
+ * initialize _stdin,_stdout and _stderr of _GLOBAL_REENT).
+ * 
+ * The only thing that has been left out, is to completely remove stdio
+ * stuff from _reent (this means _stdin, _stdout, _stderr, __sdidinit,
+ * __cleanup and _sglue). This would reduce the size of _reent by 24 bytes,
+ * but woul require complex changes and is therefore postponed.
+ */
+
+Not added last part of patch,seems unnecessary as _REENT_ONLY is not defined
+anyway (lines 823..837 old patch?)
+patching file newlib-3.0.0.20180802/newlib/libc/include/sys/reent.h
+
+TODO: reevaluate if the only small if remaining is this patch is still needed
+patching file newlib-3.0.0.20180802/newlib/libc/reent/reent.c
+
+TODO: the old patch had a memory leak comment, is it still relevant?
+patching file newlib-3.0.0.20180802/newlib/libc/stdio/findfp.c
+
+TODO: recheck the entire atexit stuff looking at the patches that move atexit out of reent
+patching file newlib-3.0.0.20180802/newlib/libc/stdlib/__atexit.c

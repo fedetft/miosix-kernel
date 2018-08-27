@@ -50,9 +50,14 @@ namespace miosix {
     "-mp" ts(_MIOSIX_CLANG_PATCH_VERSION)
 #define AU __attribute__((used))
 #elif defined(__GNUC__)
+#ifdef _MIOSIX_GCC_PATCH_MAJOR
+#define PV ts(_MIOSIX_GCC_PATCH_MAJOR) "." ts(_MIOSIX_GCC_PATCH_MINOR)
+#else
+#define PV ts(_MIOSIX_GCC_PATCH_VERSION)
+#endif
 #define CV ", gcc " \
     ts(__GNUC__) "." ts(__GNUC_MINOR__) "." ts(__GNUC_PATCHLEVEL__) \
-    "-mp" ts(_MIOSIX_GCC_PATCH_VERSION)
+    "-mp" PV
 #define AU __attribute__((used))
 #else
 #define CV
