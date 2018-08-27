@@ -68,7 +68,7 @@ const bool defaultSerialFlowctrl=false;
 // Uncomment AUX_SERIAL to enable. The device will appear as /dev/auxtty.
 #define AUX_SERIAL "auxtty"
 const unsigned int auxSerial=3;
-const unsigned int auxSerialSpeed=115200;
+const unsigned int auxSerialSpeed=230400;
 const bool auxSerialFlowctrl=false;
 #define SERIAL_1_DMA
 //#define SERIAL_2_DMA
@@ -77,8 +77,8 @@ const bool auxSerialFlowctrl=false;
 //#define I2C_WITH_DMA
 
 //SD card driver
-static const unsigned char sdVoltage=30; //Board powered @ 3.0V
-#define SD_ONE_BIT_DATABUS //Can't use 4 bit databus due to pin conflicts
+static const unsigned char sdVoltage=33; //Board powered @ 3.3V
+// #define SD_ONE_BIT_DATABUS //Commented to use 4 bit databus
 
 /**
  * \}
