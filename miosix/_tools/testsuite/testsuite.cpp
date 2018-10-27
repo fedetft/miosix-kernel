@@ -1994,7 +1994,7 @@ void test_10()
     test_name("Exception handling");
     Thread::sleep(10);
     Thread *t=Thread::create(t10_p1,1024+512,0,NULL);
-    Thread::sleep(40);
+    Thread::sleep(80);
     if(Thread::exists(t)) fail("Thread not deleted");
     pass();
 }
