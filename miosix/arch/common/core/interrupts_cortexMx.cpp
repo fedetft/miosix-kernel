@@ -95,14 +95,20 @@ void __attribute__((noinline)) HardFault_impl()
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected HardFault @ ");
     printUnsignedInt(getProgramCounter());
+    #ifndef _ARCH_CORTEXM0
     unsigned int hfsr=SCB->HFSR;
     if(hfsr & 0x40000000) //SCB_HFSR_FORCED
         IRQerrorLog("Fault escalation occurred\r\n");
     if(hfsr & 0x00000002) //SCB_HFSR_VECTTBL
         IRQerrorLog("A BusFault occurred during a vector table read\r\n");
+    #endif //_ARCH_CORTEXM0
     #endif //WITH_ERRLOG
     miosix_private::IRQsystemReboot();
 }
+
+// Cortex M0/M0+ architecture does not have the interrupts handled by code
+// below this point
+#ifndef _ARCH_CORTEXM0
 
 void __attribute__((naked)) MemManage_Handler()
 {
@@ -245,6 +251,7 @@ void DebugMon_Handler()
     #endif //WITH_ERRLOG
     miosix_private::IRQsystemReboot();
 }
+#endif //_ARCH_CORTEXM0
 
 void PendSV_Handler()
 {

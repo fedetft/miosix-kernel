@@ -46,6 +46,14 @@
 #define SERIAL_DMA
 #endif
 
+#if defined(SERIAL_DMA) && defined(_ARCH_CORTEXM0_STM32)
+#undef SERIAL_1_DMA
+#undef SERIAL_2_DMA
+#undef SERIAL_3_DMA
+#undef SERIAL_DMA
+#warning "DMA not yet implemented for STM32F0 family"
+#endif
+
 namespace miosix {
 
 /**
@@ -239,7 +247,8 @@ private:
      */
     void waitSerialTxFifoEmpty()
     {
-        #if !defined(_ARCH_CORTEXM7_STM32F7) && !defined(_ARCH_CORTEXM7_STM32H7)
+        #if !defined(_ARCH_CORTEXM7_STM32F7) && !defined(_ARCH_CORTEXM7_STM32H7) \
+         && !defined(_ARCH_CORTEXM0_STM32)
         while((port->SR & USART_SR_TC)==0) ;
         #else //_ARCH_CORTEXM7_STM32F7/H7
         while((port->ISR & USART_ISR_TC)==0) ;
