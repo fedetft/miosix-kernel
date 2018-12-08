@@ -44,6 +44,7 @@
 #include <limits>
 #include <string.h>
 #include <reent.h>
+#include "interfaces/deep_sleep.h"
 
 /*
 Used by assembler context switch macros
@@ -79,7 +80,13 @@ bool kernel_started=false;///<\internal becomes true after startKernel.
 /// calls to these functions.
 static unsigned char interruptDisableNesting=0;
 
+#ifdef WITH_DEEP_SLEEP
+
+///  This variable is used to keep count of how many peripherals are actually used.
+/// If it 0 then the system can enter the deep sleep state
 static int deepSleepCounter = 0;
+
+#endif // WITH_DEEP_SLEEP
 
 #ifdef WITH_PROCESSES
 
@@ -107,24 +114,19 @@ void *idleThread(void *argv)
         //JTAG debuggers lose communication with the device if it enters sleep
         //mode, so to use debugging it is necessary to remove this instruction
         
-//FIX ME: deepsleep has not been integrated fully so the code is surrounded with ifdef 
-#ifdef BOARD_efm32gg332f1024_wandstem
+        #ifdef WITH_DEEP_SLEEP
         bool sleep=false;
         {
             FastInterruptDisableLock lock;
-            if (deepSleepCounter == 0)
-            {
-               miosix_private::IRQdeepSleep();
-            }
-            else
-                sleep=true;
+            if(deepSleepCounter==0) IRQdeepSleep();
+            else sleep=true;
         }
-        if (sleep) miosix_private::sleepCpu();
-#else
+        if(sleep) miosix_private::sleepCpu();
+        #else //WITH_DEEP_SLEEP
         miosix_private::sleepCpu();
-#endif
+        #endif //WITH_DEEP_SLEEP
         
-        #endif
+        #endif //JTAG_DISABLE_SLEEP
     }
     return 0; //Just to avoid a compiler warning
 }
@@ -181,9 +183,8 @@ bool areInterruptsEnabled()
 {
     return miosix_private::checkAreInterruptsEnabled();
 }
-
-//FIX ME: deepsleep has not been integrated fully so the code is surrounded with ifdef 
-#ifdef BOARD_efm32gg332f1024_wandstem
+ 
+#ifdef WITH_DEEP_SLEEP
 void deepSleepLock()
 {
     atomicAdd(&deepSleepCounter,1);
@@ -193,7 +194,8 @@ void deepSleepUnlock()
 { 
     atomicAdd(&deepSleepCounter,-1);
 }
-#endif
+#endif // WITH_DEEP_SLEEP
+
 void startKernel()
 {
     sleepingList = new(std::nothrow) IntrusiveList<SleepData>;
