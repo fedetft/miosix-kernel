@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013, 2014, 2015 by Terraneo Federico                   *
+ *   Copyright (C) 2017 by Terraneo Federico                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,36 +25,63 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef DEEP_SLEEP_H
-#define DEEP_SLEEP_H 
+#ifndef RTC_H
+#define RTC_H
 
-/**
- * \addtogroup Interfaces
- * \{
- */
-
-/**
- * \file deep_sleep.h
- * This file contains required functions to implement automatic deep sleep state
- * switch.
- * 
- * This solution on supported hardware allows to power off also the peripherals when the system
- * is in idle state and doens't require any peripheral action.
- */
+#include <kernel/timeconversion.h>
 
 namespace miosix {
 
-/** 
- * \param abstime : selected absolute time to wake up from deep sleep state. At this time the interrupt
- * from RTC will be executed
-**/
-void IRQdeepSleep(long long abstime);
+/**
+ * Puts the MCU in deep sleep until the specified absolute time.
+ * \param value absolute wait time in nanoseconds
+ * If value of absolute time is in the past no waiting will be set
+ * and function return immediately.
+ */
+void absoluteDeepSleep(long long value);
 
 /**
- * Function called during boot process by IRQbspInit to setup support for deep sleep state
+ * Driver for the stm32 RTC.
+ * All the wait and deepSleep functions cannot be called concurrently by
+ * multiple threads.
  */
-void IRQdeepSleepInit();
+class Rtc
+{
+public:
+    /**
+     * \return an instance of this class
+     */
+    static Rtc& instance();
+    static unsigned int remaining_wakeup = 0;
+
+    long long getSSR();
+
+    long long IRQgetSSR(FastInterruptDisableLock);
+    void wait(long long value);
+    
+    /**
+     * Puts the thread in wait until the specified absolute time.
+     * \param value absolute wait time in nanoseconds
+     * If value of absolute time is in the past no waiting will be set
+     * and function return immediately.
+     * \return true if the wait time was in the past
+     */
+    bool absoluteWait(long long value);
+
+    /**
+     * \return the timer frequency in Hz
+     */
+
+
+
+private:
+    Rtc();
+    Rtc(const Rtc&)=delete;
+    Rtc& operator= (const Rtc&)=delete;
+    
+    friend void absoluteDeepSleep(long long value);
+};
 
 } //namespace miosix
 
-#endif //  DEEP_SLEEP_H
+#endif //RTC_H
