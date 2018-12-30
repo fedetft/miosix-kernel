@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2017 by Terraneo Federico                               *
+ *   Copyright (C) 2012, 2013, 2014 by Terraneo Federico                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -23,60 +23,38 @@
  *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
- ***************************************************************************/
+ ***************************************************************************/ 
 
-#ifndef RTC_H
-#define RTC_H
-
-#include <kernel/timeconversion.h>
-#include <kernel/kernel.h>
+#include "interfaces/deep_sleep.h"
+#include "interfaces/arch_registers.h"
+#include "drivers/rtc.h"
 
 namespace miosix {
 
-/**
- * Puts the MCU in deep sleep until the specified absolute time.
- * \param value absolute wait time in nanoseconds
- * If value of absolute time is in the past no waiting will be set
- * and function return immediately.
- */
-/**
- * Driver for the stm32 RTC.
- * All the wait and deepSleep functions cannot be called concurrently by
- * multiple threads.
- */
-class Rtc
+// enabling programmable wakeup timer for RTC
+// as described in the refernence manual of
+// STM32F407VG (the EXTI lines should be already
+// configured)
+void IRQdeepSleep(long long int abstime)
 {
-public:
-    /**
-     * \return an instance of this class
-     */
-    static Rtc* instance();
-    unsigned int remaining_wakeup = 0;
+    unsigned long long int value = (abstime % 1000000); // part less than 1 second  
 
-    void setWakeupInterrupt();
+    RTC->CR &= ~RTC_CR_WUTE;
+    while( (RTC->ISR & RTC_ISR_WUTWF ) == 0 );
+    RTC->CR |= (RTC_CR_WUCKSEL_0 | RTC_CR_WUCKSEL_1);
+    RTC->CR &= ~(RTC_CR_WUCKSEL_2) ; // select RTC/2 clock for wakeup
+    RTC->WUTR = value & RTC_WUTR_WUT; 
+    RTC->CR |=  RTC_CR_WUTE;
 
-    unsigned short int getSSR();
-    
+    __WFE();
+}
 
-    /**
-     * \return the timer frequency in Hz
-     */
-
-
-
-private:
-    Rtc();
-    Rtc(const Rtc&);
-    Rtc& operator= (const Rtc&);
-    unsigned int clock_freq = 0; // Hz set according to the selected clock  
-    
-    unsigned short int IRQgetSSR(FastInterruptDisableLock&);
-    unsigned long long int IRQgetTime(FastInterruptDisableLock&);
-    unsigned long long IRQgetDate(FastInterruptDisableLock&);
-
-    friend void absoluteDeepSleep(long long value);
-};
+// setup of the RTC registers
+// and configure it to allow RTC Wakeup IRQ
+void IRQdeepSleepInit()
+{
+    Rtc* rtc = Rtc::instance();
+    rtc->setWakeupInterrupt();
+}
 
 } //namespace miosix
-
-#endif //RTC_H

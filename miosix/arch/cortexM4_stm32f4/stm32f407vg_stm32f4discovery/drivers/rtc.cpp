@@ -29,161 +29,98 @@
 #include <miosix.h>
 #include <sys/ioctl.h>
 #include <kernel/scheduler/scheduler.h>
+#include <kernel/kernel.h>
 
 using namespace miosix;
 
-namespace {
-
-//
-// class ScopedCnf, RAII to allow writing to the RTC alarm and prescaler.
-// NOTE: datasheet says that after CNF bit has been cleared, no write is allowed
-// to *any* of the RTC registers, not just PRL,CNT,ALR until RTOFF goes to 1.
-// We do not wait until RTOFF is 1 in the destructor for performance reasons,
-// so the rest of the code must be careful.
-//
-class ScopedCnf
-{
-public:
-    ScopedCnf()
-    {
-        while((RTC->CR & RTC_CR_RTOFF)==0) ;
-        RTC->CRL=0b11111;
-    }
-    
-    ~ScopedCnf()
-    {
-        RTC->CR=0b01111;
-    }
-};
-
-long long swTime=0;      //64bit software extension of current time in ticks
-long long irqTime=0;     //64bit software extension of scheduled irq time in ticks
-Thread *waiting=nullptr; //waiting thread
-
-/**
- * RTC interrupt
- */
-void __attribute__((naked)) RTC_IRQHandler()
-{
-    saveContext();
-    asm volatile("bl _Z10RTCIrqImplv");
-    restoreContext();
-}
-
-/**
- * RTC interrupt actual implementation
- */
-void __attribute__((used)) RTCIrqImpl()
-{
-    unsigned int crl=RTC->CRL;
-    if(crl & RTC_CRL_OWF)
-    {
-        RTC->CRL=(RTC->CRL | 0xf) & ~RTC_CRL_OWF;
-        swTime+=1LL<<32;
-    } else if(crl & RTC_CRL_ALRF) {
-        RTC->CRL=(RTC->CRL | 0xf) & ~RTC_CRL_ALRF;
-        if(waiting && IRQgetTick()>=irqTime)
-        {
-            waiting->IRQwakeup();
-            if(waiting->IRQgetPriority()>
-                Thread::IRQgetCurrentThread()->IRQgetPriority())
-                    Scheduler::IRQfindNextThread();
-            waiting=nullptr;
-        }
-    }
-}
 
 namespace miosix {
 
-void absoluteDeepSleep(long long int ns_value)
-{
-    FastInterrupDisableLock dlock;
-    const long long wakeupAdvance=3; //waking up takes time
-    
-    Rtc& rtc=Rtc::instance();
-    ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
-
-
-    unsigned long long int value = (ns_value % 1000000); // part less than 1 second  
-
-    EXTI->RTSR |= (1<<22);
-    EXTI->EMR  |= (1<<22); //enable event for wakeup
-
-    RTC->CR &= ~RTC_CR_WUTE;
-    while( (RTC->ISR & RTC_ISR_WUTWF ) == 0 );
-    RTC->CR |= (RTC_CR_WUCKSEL_0 | RTC_CR_WUCKSEL_1);
-    RTC->CR &= ~(RTC_CR_WUCKSEL_2) ; // select RTC/2 clock for wakeupt
-    RTC->WUTR = value & RTC_WUTR_WUT; 
-    RTC->CR |=  RTC_CR_WUTE;
-    while((RTC->CR & RTC_CR_RTOFF)==0) ;
-    
-
-}
 //
 // class Rtc
 //
 
-Rtc& Rtc::instance()
+Rtc* Rtc::instance()
 {
-    static Rtc singleton;
-    return singleton;
-}
-
-long long Rtc::getSSR() const
-{
-    //Function takes ~170 clock cycles ~60 cycles IRQgetTick, ~96 cycles tick2ns
-    long long tick;
-    {
-        FastInterruptDisableLock dLock;
-        tick=IRQgetTick();
+    static Rtc* singleton = nullptr;
+    if ( singleton == nullptr) {
+	singleton = new Rtc();
     }
-    //tick2ns is reentrant, so can be called with interrupt enabled
-    return tc.tick2ns(tick);
+    singleton->clock_freq = 32768; 
+    return singleton;
+
 }
 
-long long Rtc::IRQSgetSSR() const
+unsigned short int Rtc::getSSR() 
 {
-    return tc.tick2ns(IRQgetTick());
+ // //Function takes ~170 clock cycles ~60 cycles IRQgetTick, ~96 cycles tick2ns
+    long long ssr;
+    {
+     FastInterruptDisableLock dlock;
+     ssr = IRQgetSSR(dlock);
+    }
 }
 
-void Rtc::setValue(long long value)
+unsigned short int Rtc::IRQgetSSR(FastInterruptDisableLock& dlock) 
 {
-    FastInterruptDisableLock dLock;
-    swTime=tc.ns2tick(value)-IRQgetHwTick();
+ unsigned short int subseconds = 0x000 | (RTC->TSSSR & RTC_TSSSR_SS);
+ return subseconds;
 }
 
-void Rtc::wait(long long value)
+// Return day time as microseconds
+unsigned long long int Rtc::IRQgetTime(FastInterruptDisableLock& dlock)
 {
-    FastInterruptDisableLock dLock;
-    IRQabsoluteWaitTick(IRQgetTick()+tc.ns2tick(value),dLock);
+ unsigned short int hour_tens = 0x0000 | (RTC->TSTR & RTC_TSTR_HT);
+ unsigned short int hour_units = 0x0000 | (RTC->TSTR & RTC_TSTR_HU);
+ unsigned short int minute_tens = 0x0000 | (RTC->TSTR & RTC_TSTR_MNT);
+ unsigned short int minute_units = 0x0000 | (RTC->TSTR & RTC_TSTR_MNU);
+ unsigned short int second_tens = 0x0000 | (RTC->TSTR & RTC_TSTR_ST);
+ unsigned short int second_units = 0x0000 | (RTC->TSTR & RTC_TSTR_SU);
+ unsigned short int subseconds = 0x000 | (RTC->TSSSR & RTC_TSSSR_SS);
+ unsigned long long int time_microsecs = ( hour_tens * 10 + hour_units) * 3600 * 1000000 \
+					 + (minute_tens * 10 + minute_units) * 60 * 1000000 \
+					 + ( second_tens * 10 + second_units ) * 1000000 \
+					 + ( 256 - subseconds ) * 1000 / (clock_freq / 129) ;
+ if ( (RTC->TSTR & RTC_TSTR_PM) == 0 ) 
+ 	return time_microsecs;
+ else
+	 return time_microsecs + 12 * 3600 * 1000000;
 }
 
-bool Rtc::absoluteWait(long long value)
+// \todo
+unsigned long long int Rtc::IRQgetDate(FastInterruptDisableLock& dlock) 
 {
-    FastInterruptDisableLock dLock;
-    return IRQabsoluteWaitTick(tc.ns2tick(value),dLock);
+	unsigned long long int date_secs;
+ 	// \todo
+	return date_secs;
+}
+
+void Rtc::setWakeupInterrupt() 
+{
+	EXTI->IMR |= (1<<22);
+	EXTI->RTSR |= (1<<22);
+	EXTI->FTSR &= ~(1<<22);
+	NVIC_SetPriority(RTC_WKUP_IRQn,10);
+	NVIC_EnableIRQ(RTC_WKUP_IRQn);
 }
 
 Rtc::Rtc() 
 {
-    {
-        FastInterruptDisableLock dLock;
-        RCC->APB1ENR |= RCC_APB1ENR_PWREN;
-        PWR->CR |= PWR_CR_DBP;
-        RCC->BDCR=RCC_BDCR_RTCEN       //RTC enabled
-                | RCC_BDCR_LSEON       //External 32KHz oscillator enabled
-                | RCC_BDCR_RTCSEL_0;   //Select LSE as clock source for RTC
-    }
-    while((RCC->BDCR & RCC_BDCR_LSERDY)==0) ; //Wait for LSE to start
-    
-    {
-	FastInterruptDisableLock dlock;
-	EXTI->IMR |= (1<<22);
-	EXTI->RTSR |= (1<<22);
-	EXTI->FTSR &= ~(1<<22);
-	NVIC_SetPriority(RTC_WKUP_IRQn,5);
-	NVIC_EnableIRQ(RTC_WKUP_IRQn);
-    }
+	{
+		FastInterruptDisableLock dLock;
+		RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+		PWR->CR |= PWR_CR_DBP;
+		RCC->BDCR=RCC_BDCR_RTCEN       //RTC enabled
+			| RCC_BDCR_LSEON       //External 32KHz oscillator enabled
+			| RCC_BDCR_RTCSEL_0;   //Select LSE as clock source for RTC
+	}
+	while((RCC->BDCR & RCC_BDCR_LSERDY)==0) ; //Wait for LSE to start    
+
+	{ 
+		FastInterruptDisableLock dLock;
+	RTC->WPR = 0xCA;
+	RTC->WPR = 0x53;
+	}
 }
 
 } //namespace miosix

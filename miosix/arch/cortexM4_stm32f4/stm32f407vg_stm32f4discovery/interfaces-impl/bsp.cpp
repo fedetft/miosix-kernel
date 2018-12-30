@@ -46,6 +46,7 @@
 #include "drivers/serial.h"
 #include "drivers/sd_stm32f2_f4.h"
 #include "board_settings.h"
+#include "interfaces/deep_sleep.h"
 
 namespace miosix {
 
@@ -93,6 +94,10 @@ void bspInit2()
     basicFilesystemSetup(SDIODriver::instance());
     #endif //AUX_SERIAL
     #endif //WITH_FILESYSTEM
+
+#ifdef WITH_DEEP_SLEEP
+    IRQdeepSleepInit();
+#endif // WITH_DEEP_SLEEP
 }
 
 //

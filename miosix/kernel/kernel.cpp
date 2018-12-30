@@ -142,18 +142,6 @@ void *idleThread(void *argv)
     return 0; //Just to avoid a compiler warning
 }
 
-#ifdef WITH_DEEP_SLEEP
-
-void deepSleepLock() {
-	atomicAdd(&deepSleepCounter, 1);
-}
-
-void deepSleepUnlock() {
-	atomicAdd(&deepSleepCounter, -1);
-}
-
-#endif // WITH_DEEP_SLEEP
-
 void disableInterrupts()
 {
     //Before the kernel is started interrupts are disabled,
