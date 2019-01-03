@@ -36,91 +36,144 @@ using namespace miosix;
 
 namespace miosix {
 
-//
-// class Rtc
-//
+  //
+  // class Rtc
+  //
 
-Rtc* Rtc::instance()
-{
+  Rtc* Rtc::instance()
+  {
     static Rtc* singleton = nullptr;
     if ( singleton == nullptr) {
-	singleton = new Rtc();
+      singleton = new Rtc();
     }
-    singleton->clock_freq = 32768; 
     return singleton;
 
-}
+  }
 
-unsigned short int Rtc::getSSR() 
-{
- // //Function takes ~170 clock cycles ~60 cycles IRQgetTick, ~96 cycles tick2ns
-    long long ssr;
+  unsigned short int Rtc::getSSR() 
+  {
+    // Function takes ~170 clock cycles ~60 cycles IRQgetTick, ~96 cycles tick2ns
+    short int ss = 0;
     {
-     FastInterruptDisableLock dlock;
-     ssr = IRQgetSSR(dlock);
+      FastInterruptDisableLock dlock;
+      ss = IRQgetSSR(dlock);
     }
-}
+    ss = (prescaler_s - ss )/(prescaler_s + 1);
+    return ss;
+  }
 
-unsigned short int Rtc::IRQgetSSR(FastInterruptDisableLock& dlock) 
-{
- unsigned short int subseconds = 0x000 | (RTC->TSSSR & RTC_TSSSR_SS);
- return subseconds;
-}
+  unsigned long long int Rtc::getTime()
+  {
+    long long int time = 0;
+    {
+      FastInterruptDisableLock dlock;
+      time = IRQgetTime(dlock);      
+    }
+    return time;
+  }
 
-// Return day time as microseconds
-unsigned long long int Rtc::IRQgetTime(FastInterruptDisableLock& dlock)
-{
- unsigned short int hour_tens = 0x0000 | (RTC->TSTR & RTC_TSTR_HT);
- unsigned short int hour_units = 0x0000 | (RTC->TSTR & RTC_TSTR_HU);
- unsigned short int minute_tens = 0x0000 | (RTC->TSTR & RTC_TSTR_MNT);
- unsigned short int minute_units = 0x0000 | (RTC->TSTR & RTC_TSTR_MNU);
- unsigned short int second_tens = 0x0000 | (RTC->TSTR & RTC_TSTR_ST);
- unsigned short int second_units = 0x0000 | (RTC->TSTR & RTC_TSTR_SU);
- unsigned short int subseconds = 0x000 | (RTC->TSSSR & RTC_TSSSR_SS);
- unsigned long long int time_microsecs = ( hour_tens * 10 + hour_units) * 3600 * 1000000 \
-					 + (minute_tens * 10 + minute_units) * 60 * 1000000 \
-					 + ( second_tens * 10 + second_units ) * 1000000 \
-					 + ( 256 - subseconds ) * 1000 / (clock_freq / 129) ;
- if ( (RTC->TSTR & RTC_TSTR_PM) == 0 ) 
- 	return time_microsecs;
- else
-	 return time_microsecs + 12 * 3600 * 1000000;
-}
+  unsigned long long int Rtc::getDate()
+  {
+    long long int date = 0;
+    {
+      FastInterruptDisableLock dlock;
+      date = IRQgetDate(dlock);
+    }
+    return date;
+  }
 
-// \todo
-unsigned long long int Rtc::IRQgetDate(FastInterruptDisableLock& dlock) 
-{
-	unsigned long long int date_secs;
- 	// \todo
-	return date_secs;
-}
+  // Return the value of RTC_SSR register
+  unsigned short int Rtc::IRQgetSSR(FastInterruptDisableLock& dlock) 
+  {
+    while(( RTC->ISR & RTC_ISR_RSF) == 0);
+    return (0x00000000 | (RTC->SSR & RTC_SSR_SS)) ;
+  }
 
-void Rtc::setWakeupInterrupt() 
-{
-	EXTI->IMR |= (1<<22);
-	EXTI->RTSR |= (1<<22);
-	EXTI->FTSR &= ~(1<<22);
-	NVIC_SetPriority(RTC_WKUP_IRQn,10);
-	NVIC_EnableIRQ(RTC_WKUP_IRQn);
-}
+  // Return day time as microseconds
+  unsigned long long int Rtc::IRQgetTime(FastInterruptDisableLock& dlock)
+  {
+    while(( RTC->ISR & RTC_ISR_RSF) == 0);
+    unsigned short int hour_tens = 0x00000000 | (RTC->TSTR & RTC_TSTR_HT);
+    unsigned short int hour_units = 0x00000000 | (RTC->TSTR & RTC_TSTR_HU);
+    unsigned short int minute_tens = 0x00000000 | (RTC->TSTR & RTC_TSTR_MNT);
+    unsigned short int minute_units = 0x00000000 | (RTC->TSTR & RTC_TSTR_MNU);
+    unsigned short int second_tens = 0x00000000 | (RTC->TSTR & RTC_TSTR_ST);
+    unsigned short int second_units = 0x00000000 | (RTC->TSTR & RTC_TSTR_SU);
+    unsigned short int ss_value = 0x00000000 | (RTC->SSR & RTC_SSR_SS);
+    unsigned long long int time_microsecs = ( hour_tens * 10 + hour_units) * 3600 * 1000000 \
+      + ( minute_tens * 10 + minute_units) * 60 * 1000000 \
+      + ( second_tens * 10 + second_units ) * 1000000 \
+      + ( prescaler_s - ss_value )/(prescaler_s + 1);
+    if ( (RTC->TSTR & RTC_TSTR_PM) == 0 ) 
+      return time_microsecs;
+    else
+      return time_microsecs + 12 * 3600000000;
+  }
 
-Rtc::Rtc() 
-{
-	{
-		FastInterruptDisableLock dLock;
-		RCC->APB1ENR |= RCC_APB1ENR_PWREN;
-		PWR->CR |= PWR_CR_DBP;
-		RCC->BDCR=RCC_BDCR_RTCEN       //RTC enabled
-			| RCC_BDCR_LSEON       //External 32KHz oscillator enabled
-			| RCC_BDCR_RTCSEL_0;   //Select LSE as clock source for RTC
-	}
-	while((RCC->BDCR & RCC_BDCR_LSERDY)==0) ; //Wait for LSE to start    
+  // \todo
+  unsigned long long int Rtc::IRQgetDate(FastInterruptDisableLock& dlock) 
+  {
+    unsigned long long int date_secs = 0;
+    while(( RTC->ISR & RTC_ISR_RSF) == 0);
+    unsigned short int hour_tens = 0x00000000 | (RTC->TR & RTC_TR_HT);
+    unsigned short int hour_units = 0x00000000 | (RTC->TR & RTC_TR_HU);
+    unsigned short int minute_tens = 0x00000000 | (RTC->TR & RTC_TR_MNT);
+    unsigned short int minute_units = 0x00000000 | (RTC->TR & RTC_TR_MNU);
+    unsigned short int second_tens = 0x00000000 | (RTC->TR & RTC_TR_ST);
+    unsigned short int second_units = 0x00000000 | (RTC->TR & RTC_TR_SU);
+    unsigned short int subseconds = 0x00000000 | (RTC->SSR & RTC_SSR_SS);
+    unsigned short int year_tens = 0x000000000 | (RTC->DR & RTC_DR_YT);
+    unsigned short int year_units = 0x000000000 | (RTC->DR & RTC_DR_YU);
+    unsigned short int month_tens = 0x000000000 | (RTC->DR & RTC_DR_MT);
+    unsigned short int month_units = 0x000000000 | (RTC->DR & RTC_DR_MU);
+    unsigned short int day_tens = 0x000000000 | (RTC->DR & RTC_DR_DT);
+    unsigned short int day_units = 0x000000000 | (RTC->DR & RTC_DR_DU);
+    // \todo
+    return date_secs;
+  }
 
-	{ 
-		FastInterruptDisableLock dLock;
-	RTC->WPR = 0xCA;
-	RTC->WPR = 0x53;
-	}
-}
+  void Rtc::setWakeupInterrupt() 
+  {
+    EXTI->IMR |= (1<<22);
+    EXTI->RTSR |= (1<<22);
+    EXTI->FTSR &= ~(1<<22);
+    NVIC_SetPriority(RTC_WKUP_IRQn,10);
+    NVIC_EnableIRQ(RTC_WKUP_IRQn);
+    clock_freq = 32768;
+    prescaler_s = 0x00000000 |  (RTC->PRER & RTC_PRER_PREDIV_S);
+    wkp_clock_period = 1000000 * 2 / 32768 ; 
+  }
+
+  void Rtc::setWakeupTimer(unsigned short int wut_value)
+  {
+    RTC->CR &= ~RTC_CR_WUTE;
+    while( (RTC->ISR & RTC_ISR_WUTWF ) == 0 );
+    RTC->CR |= (RTC_CR_WUCKSEL_0 | RTC_CR_WUCKSEL_1);
+    RTC->CR &= ~(RTC_CR_WUCKSEL_2) ; // select RTC/2 clock for wakeup
+    RTC->WUTR = wut_value & RTC_WUTR_WUT; 
+    RTC->CR |=  RTC_CR_WUTE;    
+  }
+  
+  Rtc::Rtc() 
+  {
+    {
+      FastInterruptDisableLock dLock;
+      RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+      PWR->CR |= PWR_CR_DBP;
+      RCC->BDCR=RCC_BDCR_RTCEN       //RTC enabled
+	| RCC_BDCR_LSEON       //External 32KHz oscillator enabled
+	| RCC_BDCR_RTCSEL_0;   //Select LSE as clock source for RTC
+      // RCC->CSR |= RCC_CSR_LSION; // Used in Stop mode domain
+    }
+    while((RCC->BDCR & RCC_BDCR_LSERDY)==0) ; //Wait for LSE to start    
+
+    { 
+      FastInterruptDisableLock dLock;
+      RTC->WPR = 0xCA;
+      RTC->WPR = 0x53;
+      RTC->CR &= ~(RTC_CR_BYPSHAD); 
+    }
+    
+  }
 
 } //namespace miosix

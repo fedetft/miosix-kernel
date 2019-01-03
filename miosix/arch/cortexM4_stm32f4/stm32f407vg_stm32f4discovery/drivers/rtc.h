@@ -25,6 +25,12 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+/***********************************************************************
+* rtc.h Part of the Miosix Embedded OS.
+* Rtc support for the board that initialize correctly the RTC peripheral,
+* and exposes its functionalities.
+************************************************************************/
+
 #ifndef RTC_H
 #define RTC_H
 
@@ -34,15 +40,11 @@
 namespace miosix {
 
 /**
- * Puts the MCU in deep sleep until the specified absolute time.
- * \param value absolute wait time in nanoseconds
- * If value of absolute time is in the past no waiting will be set
- * and function return immediately.
- */
-/**
- * Driver for the stm32 RTC.
+ * \brief Class implementing the functionalities 
+ *        of the RTC peripherla of the board
+ *
  * All the wait and deepSleep functions cannot be called concurrently by
- * multiple threads.
+ * multiple threads, so there is a single instance of the class that is share * among all the threads
  */
 class Rtc
 {
@@ -51,30 +53,56 @@ public:
      * \return an instance of this class
      */
     static Rtc* instance();
-    unsigned int remaining_wakeup = 0;
 
-    void setWakeupInterrupt();
-
-    unsigned short int getSSR();
-    
 
     /**
-     * \return the timer frequency in Hz
+     * Function used to setup the wakeup interrupt for the 
+     * RTC and the associated NVIC IRQ and EXTI lines.
+     * It also store the correct value for the clock used by RTC
+     * and the wakeup clock period
      */
+    void setWakeupInterrupt();
 
-
+    /**
+     * Set wakeup timer for wakeup interrupt according to the
+     * procedure described in the reference manual of the
+     * STM32F407VG
+     */
+    void setWakeupTimer(unsigned short int);
+    /**
+     * \return the Sub second value of the Time register of the RTC
+     *         as milliseconds.
+     *
+     * The value is converted according to the current clock used to
+     * synchronize the RTC. 
+     */
+    unsigned short int getSSR();
+    unsigned long long int getDate();
+    unsigned long long int getTime();
 
 private:
     Rtc();
     Rtc(const Rtc&);
     Rtc& operator= (const Rtc&);
-    unsigned int clock_freq = 0; // Hz set according to the selected clock  
+    unsigned int clock_freq = 0; // Hz set according to the selected clock
+    unsigned int wkp_clock_period = 0; // how much ms often the wut counter is decreased
+    unsigned short int prescaler_s = 0; // Need to know the prescaler factor 
     
+    long int remaining_wakeups = 0; ///< keep track of remaining wakeups after 1 second
+    /*
+     * not preemptable function that read SSR value of the RTC Time register
+     */
     unsigned short int IRQgetSSR(FastInterruptDisableLock&);
+    /*
+     * not preemptable function that compute the time of the RTC Time register
+     */
     unsigned long long int IRQgetTime(FastInterruptDisableLock&);
-    unsigned long long IRQgetDate(FastInterruptDisableLock&);
+    /*
+     * not preemptable function that compute the date of the RTC calendar value
+     */
+    unsigned long long int IRQgetDate(FastInterruptDisableLock&);
 
-    friend void absoluteDeepSleep(long long value);
+    friend void IRQdeepSleep(long long int value);
 };
 
 } //namespace miosix
