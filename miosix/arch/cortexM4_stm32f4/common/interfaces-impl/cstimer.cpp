@@ -127,6 +127,26 @@ long long ContextSwitchTimer::IRQgetCurrentTime() const
     return tc->tick2ns(IRQgetTick());
 }
 
+void ContextSwitchTimer::setCurrentTime(long long ns) const
+{
+    bool interrupts=areInterruptsEnabled();
+    //TODO: optimization opportunity, if we can guarantee that no call to this
+    //function occurs before kernel is started, then we can use
+    //fastInterruptDisable())
+    if(interrupts) disableInterrupts();
+    long long newCounterValue=tc->ns2tick(ns);
+    ms32time = newCounterValue;
+    TIM2->CNT = static_cast<unsigned int>(newCounterValue & lowerMask);
+    if(interrupts) enableInterrupts();
+}
+  
+void ContextSwitchTimer::IRQsetCurrentTime(long long ns) const
+{
+  long long newCounterValue=tc->ns2tick(ns);
+  ms32time = newCounterValue;
+  TIM2->CNT = static_cast<unsigned int>(newCounterValue & lowerMask);
+}
+
 ContextSwitchTimer::~ContextSwitchTimer() {}
 
 ContextSwitchTimer::ContextSwitchTimer()

@@ -42,6 +42,21 @@ public:
      * \return the current tick count of the timer (in terms of nanoseconds)
      */
     long long getCurrentTime() const;
+
+    /**
+     * Set the current system time
+     * Used to adjust the time for example if the system clock was stopped
+     * due to entering deep sleep.
+     */
+    void setCurrentTime(long long ns) const;
+
+    /**
+     * Set the current system time.
+     * Can be called with interrupts disabled or within an interrupt.
+     * Used to adjust the time for example if the system clock was stopped
+     * due to entering deep sleep.
+     */ 
+    void IRQsetCurrentTime(long long ns) const;
     
     /**
      * \return the current tick count of the timer (in terms of nanoseconds)
