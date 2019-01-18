@@ -92,18 +92,19 @@ private:
     /*
      * not preemptable function that read SSR value of the RTC Time register
      */
-    unsigned short int IRQgetSSR(FastInterruptDisableLock&);
+    unsigned short int IRQgetSSR();
     /*
      * not preemptable function that compute the time of the RTC Time register
      */
-    unsigned long long int IRQgetTime(FastInterruptDisableLock&);
+    unsigned long long int IRQgetTime();
     /*
      * not preemptable function that compute the date of the RTC calendar value
      */
-    unsigned long long int IRQgetDate(FastInterruptDisableLock&);
+    unsigned long long int IRQgetDate();
 
     friend void IRQdeepSleep(long long int value);
 };
+
 
 } //namespace miosix
 

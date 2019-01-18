@@ -56,9 +56,8 @@ namespace miosix {
     short int ss = 0;
     {
       FastInterruptDisableLock dlock;
-      ss = IRQgetSSR(dlock);
+      ss = IRQgetSSR();
     }
-    ss = (prescaler_s - ss )/(prescaler_s + 1);
     return ss;
   }
 
@@ -67,7 +66,7 @@ namespace miosix {
     long long int time = 0;
     {
       FastInterruptDisableLock dlock;
-      time = IRQgetTime(dlock);      
+      time = IRQgetTime();      
     }
     return time;
   }
@@ -77,20 +76,22 @@ namespace miosix {
     long long int date = 0;
     {
       FastInterruptDisableLock dlock;
-      date = IRQgetDate(dlock);
+      date = IRQgetDate();
     }
     return date;
   }
 
-  // Return the value of RTC_SSR register
-  unsigned short int Rtc::IRQgetSSR(FastInterruptDisableLock& dlock) 
-  {
-    while(( RTC->ISR & RTC_ISR_RSF) == 0);
-    return (0x00000000 | (RTC->SSR & RTC_SSR_SS)) ;
+// Return the value of RTC_SSR register
+ unsigned short int Rtc::IRQgetSSR()
+ {
+   while((RTC->ISR & RTC_ISR_RSF) == 0);
+   unsigned short int ssr = RTC->SSR & RTC_SSR_SS;
+   RTC->ISR &= ~(RTC_ISR_RSF);
+   return ssr;
   }
 
   // Return day time as microseconds
-  unsigned long long int Rtc::IRQgetTime(FastInterruptDisableLock& dlock)
+  unsigned long long int Rtc::IRQgetTime()
   {
     while(( RTC->ISR & RTC_ISR_RSF) == 0);
     unsigned short int hour_tens = 0x00000000 | (RTC->TSTR & RTC_TSTR_HT);
@@ -104,6 +105,7 @@ namespace miosix {
       + ( minute_tens * 10 + minute_units) * 60 * 1000000 \
       + ( second_tens * 10 + second_units ) * 1000000 \
       + ( prescaler_s - ss_value )/(prescaler_s + 1);
+    RTC->ISR &= ~(RTC_ISR_RSF);
     if ( (RTC->TSTR & RTC_TSTR_PM) == 0 ) 
       return time_microsecs;
     else
@@ -111,7 +113,7 @@ namespace miosix {
   }
 
   // \todo
-  unsigned long long int Rtc::IRQgetDate(FastInterruptDisableLock& dlock) 
+  unsigned long long int Rtc::IRQgetDate() 
   {
     unsigned long long int date_secs = 0;
     while(( RTC->ISR & RTC_ISR_RSF) == 0);
@@ -129,6 +131,7 @@ namespace miosix {
     unsigned short int day_tens = 0x000000000 | (RTC->DR & RTC_DR_DT);
     unsigned short int day_units = 0x000000000 | (RTC->DR & RTC_DR_DU);
     // \todo
+    RTC->ISR &= ~(RTC_ISR_RSF);
     return date_secs;
   }
 
@@ -159,21 +162,29 @@ namespace miosix {
     {
       FastInterruptDisableLock dLock;
       RCC->APB1ENR |= RCC_APB1ENR_PWREN;
-      PWR->CR |= PWR_CR_DBP;
-      RCC->BDCR=RCC_BDCR_RTCEN       //RTC enabled
+      PWR->CR |= PWR_CR_DBP; // enable write in backup domain
+      RCC->BDCR |= RCC_BDCR_RTCEN       //RTC enabled
 	| RCC_BDCR_LSEON       //External 32KHz oscillator enabled
 	| RCC_BDCR_RTCSEL_0;   //Select LSE as clock source for RTC
-      // RCC->CSR |= RCC_CSR_LSION; // Used in Stop mode domain
     }
-    while((RCC->BDCR & RCC_BDCR_LSERDY)==0) ; //Wait for LSE to start    
+    while((RCC->BDCR & RCC_BDCR_LSERDY)==0); //Wait for LSE to start    
 
-    { 
+    {
+      // Enable write on RTC_ISR register
       FastInterruptDisableLock dLock;
       RTC->WPR = 0xCA;
       RTC->WPR = 0x53;
-      RTC->CR &= ~(RTC_CR_BYPSHAD); 
-    }
-    
+      RTC->CR &= ~(RTC_CR_BYPSHAD);
+      RTC->PRER = (128 <<16) | ( 256<<0);
+      RTC->ISR |= RTC_ISR_INIT;
+      while((RTC->ISR & RTC_ISR_INITF)== 0); // wait clock and calendar initialization
+      RTC->TR = (RTC_TR_SU & 0x0) | (RTC_TR_ST & 0x0) | (RTC_TR_MNU & 0x0 )
+	| (RTC_TR_MNT & 0x0) | (RTC_TR_HU & 0x0) | (RTC_TR_HT & 0x0); 
+      RTC->DR = (1<<0) | (1<<8) | (1<<13) | (9<<16) | (1<<20); // initialized to 1/1/2019
+
+      RTC->CR &= ~(RTC_CR_FMT); // Use 24-hour format
+      RTC->ISR &= ~(RTC_ISR_INIT);
+    }    
   }
 
 } //namespace miosix
