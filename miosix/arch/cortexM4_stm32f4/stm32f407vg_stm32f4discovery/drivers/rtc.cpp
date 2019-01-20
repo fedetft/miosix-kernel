@@ -40,12 +40,9 @@ namespace miosix {
   // class Rtc
   //
 
-  Rtc* Rtc::instance()
+  Rtc& Rtc::instance()
   {
-    static Rtc* singleton = nullptr;
-    if ( singleton == nullptr) {
-      singleton = new Rtc();
-    }
+    static Rtc singleton;
     return singleton;
 
   }

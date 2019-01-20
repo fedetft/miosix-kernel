@@ -26,6 +26,7 @@
  ***************************************************************************/ 
 
 #include "interfaces/deep_sleep.h"
+#include "interfaces/cstimer.h"
 #include "interfaces/arch_registers.h"
 #include "drivers/rtc.h"
 
@@ -37,33 +38,35 @@ namespace miosix {
 // configured)
 void IRQdeepSleep(long long int abstime)
 {
-    Rtc* rtc = Rtc::instance();
-    long long int reltime = abstime - getTime(); // as nanoseconds delay from now
+    Rtc& rtc = Rtc::instance();
+    ContextSwitchTimer cstimer = ContextSwitchTimer::instance();
+    long long int reltime = abstime - cstimer.IRQgetCurrentTime(); // as nanoseconds delay from now
     if(reltime < 0)
     {
         return; // too late for sleeping
     } else {
-        long long int wut_ticks = reltime / rtc->wkp_clock_period;
+        long long int wut_ticks = reltime / rtc.wkp_clock_period;
         unsigned short int wut = wut_ticks % 128;
-        rtc->remaining_wakeups = wut_ticks / 128;
-        rtc->setWakeupTimer(wut);
+        rtc.remaining_wakeups = wut_ticks / 128;
+        rtc.setWakeupTimer(wut);
         __WFE();
-        while(rtc->remaining_wakeups > 0)
+        while(rtc.remaining_wakeups > 0)
         {
             wut = 128;
-            rtc->remaining_wakeups--;
-            rtc->setWakeupTimer(wut);
+            rtc.remaining_wakeups--;
+            rtc.setWakeupTimer(wut);
             __WFE();
         }
     }
+    cstimer.IRQsetCurrentTime(abstime);
 }
 
 // setup of the RTC registers
 // and configure it to allow RTC Wakeup IRQ
 void IRQdeepSleepInit()
 {
-    Rtc* rtc = Rtc::instance();
-    rtc->setWakeupInterrupt();
+    Rtc& rtc = Rtc::instance();
+    rtc.setWakeupInterrupt();
 }
 
 } //namespace miosix

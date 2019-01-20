@@ -52,7 +52,7 @@ public:
     /**
      * \return an instance of this class
      */
-    static Rtc* instance();
+    static Rtc& instance();
 
 
     /**
