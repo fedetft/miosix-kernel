@@ -39,6 +39,9 @@
 
 namespace miosix {
 
+
+  void IRQrtcInit();
+  
   /**
    * \brief Class implementing the functionalities 
    *        of the RTC peripherla of the board
@@ -100,11 +103,11 @@ namespace miosix {
      * 
      * \param Deep sleep interval expressed as nanoseconds
      */
-    void enterWakeupStopModeFor(long long int ns);
+    void enterWakeupStopModeFor(unsigned long long int ns);
     /**
      * not preemptable implementation of enterWakeupStopModeFor
      */
-    void IRQenterWakeupStopModeFor(long long int ns);
+    void IRQenterWakeupStopModeFor(unsigned long long int ns);
   private:
     Rtc();
     Rtc(const Rtc&);

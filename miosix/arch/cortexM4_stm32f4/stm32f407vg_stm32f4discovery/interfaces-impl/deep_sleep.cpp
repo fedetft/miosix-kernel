@@ -32,39 +32,35 @@
 
 namespace miosix {
 
-// enabling programmable wakeup timer for RTC
-// as described in the refernence manual of
-// STM32F407VG (the EXTI lines should be already
-// configured)
-void IRQdeepSleep(long long int abstime)
+void IRQdeepSleep(unsigned long long int abstime)
 {
     Rtc& rtc = Rtc::instance();
     ContextSwitchTimer cstimer = ContextSwitchTimer::instance();
-    long long int reltime = abstime - cstimer.IRQgetCurrentTime(); // as nanoseconds delay from now
-    if(reltime < 0)
+    unsigned long long int reltime = abstime - cstimer.IRQgetCurrentTime(); // as nanoseconds delay from now
+    // if ( reltime < 0 )
+    // {
+    //   // unsigned integer overflow
+    //   rtc.IRQenterWakeupStopModeFor(2000 * 1000000); // for now the maximum stop mode interval is 2 seconds
+    // }
+    if (reltime < 120000)
     {
         return; // too late for sleeping
-    } else {
-        long long int wut_ticks = reltime / rtc.wkp_clock_period;
-        unsigned short int wut = wut_ticks % 128;
-        rtc.remaining_wakeups = wut_ticks / 128;
-        rtc.setWakeupTimer(wut);
-        __WFE();
-        while(rtc.remaining_wakeups > 0)
-        {
-            wut = 128;
-            rtc.remaining_wakeups--;
-            rtc.setWakeupTimer(wut);
-            __WFE();
-        }
     }
-    cstimer.IRQsetCurrentTime(abstime);
+    else if (reltime > 3000 * 1000000)
+    {
+        rtc.IRQenterWakeupStopModeFor(3000 * 1000000); // overflow detected
+    }
+    else
+    {
+        rtc.IRQenterWakeupStopModeFor(reltime);
+    }
+    //   cstimer.IRQsetCurrentTime(abstime);
 }
 
-// setup of the RTC registers
-// and configure it to allow RTC Wakeup IRQ
 void IRQdeepSleepInit()
 {
+    //   SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+    // PWR->CR |= PWR_CR_LPDS;
     Rtc& rtc = Rtc::instance();
     rtc.setWakeupInterrupt();
 }

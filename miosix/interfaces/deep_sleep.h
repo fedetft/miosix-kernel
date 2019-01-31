@@ -45,13 +45,15 @@
 namespace miosix {
 
 /** 
+ * \brief Put in deep sleep the board until the next wakeup schedule
+ *
  * \param abstime : selected absolute time to wake up from deep sleep state. At this time the interrupt
  * from RTC will be executed
-**/
-void IRQdeepSleep(long long abstime);
+ */
+void IRQdeepSleep(unsigned long long abstime);
 
 /**
- * Function called during boot process by IRQbspInit to setup support for deep sleep state
+ * \brief Initialize the required component to support the deep sleep functionalities.
  */
 void IRQdeepSleepInit();
 
