@@ -744,6 +744,7 @@ ssize_t STM32Serial::readBlock(void *buffer, size_t size, off_t where)
     char *buf=reinterpret_cast<char*>(buffer);
     size_t result=0;
     FastInterruptDisableLock dLock;
+    DeepSleepLock dpLock;
     for(;;)
     {
         //Try to get data from the queue
@@ -771,6 +772,7 @@ ssize_t STM32Serial::readBlock(void *buffer, size_t size, off_t where)
 ssize_t STM32Serial::writeBlock(const void *buffer, size_t size, off_t where)
 {
     Lock<FastMutex> l(txMutex);
+    DeepSleepLock dpLock;
     const char *buf=reinterpret_cast<const char*>(buffer);
     #ifdef SERIAL_DMA
     if(dmaTx)
@@ -1105,6 +1107,7 @@ void STM32Serial::writeDma(const char *buffer, size_t size)
     //and the race condition is eliminated). This is the purpose of this
     //instruction, it reads SR. When we start the DMA, the DMA controller
     //writes to DR and completes the TC clear sequence.
+    DeepSleepLock dpLock;
     #if !defined(_ARCH_CORTEXM7_STM32F7) && !defined(_ARCH_CORTEXM7_STM32H7) \
      && !defined(_ARCH_CORTEXM0_STM32)   && !defined(_ARCH_CORTEXM4_STM32F3) \
      && !defined(_ARCH_CORTEXM4_STM32L4)
