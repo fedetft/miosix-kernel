@@ -49,7 +49,6 @@ namespace miosix {
 
   unsigned short int Rtc::getSSR() 
   {
-    // Function takes ~170 clock cycles ~60 cycles IRQgetTick, ~96 cycles tick2ns
     short int ss = 0;
     {
       FastInterruptDisableLock dlock;
@@ -137,24 +136,74 @@ namespace miosix {
     EXTI->IMR |= (1<<22);
     EXTI->RTSR |= (1<<22);
     EXTI->FTSR &= ~(1<<22);
-    NVIC_SetPriority(RTC_WKUP_IRQn,10);
-    NVIC_EnableIRQ(RTC_WKUP_IRQn);
-    clock_freq = 32768;
-    prescaler_s = 0x00000000 |  (RTC->PRER & RTC_PRER_PREDIV_S);
-    wkp_clock_period = 1000000 * 2 / 32768 ; 
-  }
+ }
 
   void Rtc::setWakeupTimer(unsigned short int wut_value)
   {
     RTC->CR &= ~RTC_CR_WUTE;
     while( (RTC->ISR & RTC_ISR_WUTWF ) == 0 );
     RTC->CR |= (RTC_CR_WUCKSEL_0 | RTC_CR_WUCKSEL_1);
-    RTC->CR &= ~(RTC_CR_WUCKSEL_2) ; // select RTC/2 clock for wakeup
-    RTC->WUTR = wut_value & RTC_WUTR_WUT; 
-    RTC->CR |=  RTC_CR_WUTE;    
+    RTC->CR &= ~(RTC_CR_WUCKSEL_2) ; //! select RTC/2 clock for wakeup
+    RTC->WUTR = wut_value & RTC_WUTR_WUT;  
+  }
+
+  inline void Rtc::startWakeupTimer()
+  {
+    RTC->CR |= RTC_CR_WUTE;
+  }
+
+  inline void  Rtc::stopWakeupTimer()
+  {
+    RTC->CR &= ~RTC_CR_WUTE;
+  }
+
+  void Rtc::enterWakeupStopModeFor(long long int ns)
+  {
+    long long int wut_ticks = wkp_tc.ns2tick(ns);
+    remaining_wakeups = wut_ticks / 0xffff;
+    unsigned int last_wut = wut_ticks % 0xffff;
+    while (remaining_wakeups > 0 )
+	{
+	  setWakeupTimer(0xffff);
+	  {
+	    FastInterruptDisableLock dlock;
+	    IRQenterWakeupStopMode();
+	  }
+	}
+    setWakeupTimer(last_wut);
+    {
+      FastInterruptDisableLock dlock;
+      IRQenterWakeupStopMode();
+    }
+  }
+
+  void Rtc::IRQenterWakeupStopModeFor(long long int ns)
+  {
+    long long int wut_ticks = wkp_tc.ns2tick(ns);
+    remaining_wakeups = wut_ticks / 0xffff;
+    unsigned int last_wut = wut_ticks % 0xffff;
+    while (remaining_wakeups > 0 )
+	{
+	  setWakeupTimer(0xffff);
+	  IRQenterWakeupStopMode();
+	}
+    setWakeupTimer(last_wut);
+    IRQenterWakeupStopMode();
   }
   
-  Rtc::Rtc() 
+  void Rtc::IRQenterWakeupStopMode()
+  {
+    startWakeupTimer();
+    __SEV();
+    __WFE();
+    __WFE();
+    stopWakeupTimer();
+  }
+  
+  Rtc::Rtc() :
+    clock_freq(32768) ,
+    wkp_tc(clock_freq / 2) ,
+    wkp_clock_period( 1000000000 * 2 / clock_freq ) 
   {
     {
       FastInterruptDisableLock dLock;
@@ -163,16 +212,14 @@ namespace miosix {
       RCC->BDCR |= RCC_BDCR_RTCEN       //RTC enabled
 	| RCC_BDCR_LSEON       //External 32KHz oscillator enabled
 	| RCC_BDCR_RTCSEL_0;   //Select LSE as clock source for RTC
-    }
-    while((RCC->BDCR & RCC_BDCR_LSERDY)==0); //Wait for LSE to start    
+      //    while((RCC->BDCR & RCC_BDCR_LSERDY)==0); //Wait for LSE to start    
 
-    {
       // Enable write on RTC_ISR register
-      FastInterruptDisableLock dLock;
       RTC->WPR = 0xCA;
       RTC->WPR = 0x53;
+      
       RTC->CR &= ~(RTC_CR_BYPSHAD);
-      RTC->PRER = (128 <<16) | ( 256<<0);
+      RTC->PRER = (128 <<16) | ( 256<<0); // default prescaler
       RTC->ISR |= RTC_ISR_INIT;
       while((RTC->ISR & RTC_ISR_INITF)== 0); // wait clock and calendar initialization
       RTC->TR = (RTC_TR_SU & 0x0) | (RTC_TR_ST & 0x0) | (RTC_TR_MNU & 0x0 )
@@ -181,7 +228,8 @@ namespace miosix {
 
       RTC->CR &= ~(RTC_CR_FMT); // Use 24-hour format
       RTC->ISR &= ~(RTC_ISR_INIT);
-    }    
+    }
+    prescaler_s = 0x00000000 |  (RTC->PRER & RTC_PRER_PREDIV_S);
   }
 
 } //namespace miosix

@@ -26,10 +26,10 @@
  ***************************************************************************/
 
 /***********************************************************************
-* rtc.h Part of the Miosix Embedded OS.
-* Rtc support for the board that initialize correctly the RTC peripheral,
-* and exposes its functionalities.
-************************************************************************/
+ * rtc.h Part of the Miosix Embedded OS.
+ * Rtc support for the board that initialize correctly the RTC peripheral,
+ * and exposes its functionalities.
+ ************************************************************************/
 
 #ifndef RTC_H
 #define RTC_H
@@ -39,23 +39,27 @@
 
 namespace miosix {
 
-/**
- * \brief Class implementing the functionalities 
- *        of the RTC peripherla of the board
- *
- * All the wait and deepSleep functions cannot be called concurrently by
- * multiple threads, so there is a single instance of the class that is share * among all the threads
- */
-class Rtc
-{
-public:
+  /**
+   * \brief Class implementing the functionalities 
+   *        of the RTC peripherla of the board
+   *
+   * All the wait and deepSleep functions cannot be called concurrently by
+   * multiple threads, so there is a single instance of the class that is share * among all the threads
+   */
+  class Rtc
+  {
+  public:
     /**
-     * \return an instance of this class
+     * \brief Rtc class implements the singleton design pattern
+     *
+     * \return the only used instance of this class
      */
     static Rtc& instance();
 
 
     /**
+     * \brief Setup the wakeup timer for deep sleep interrupts.
+     *
      * Function used to setup the wakeup interrupt for the 
      * RTC and the associated NVIC IRQ and EXTI lines.
      * It also store the correct value for the clock used by RTC
@@ -64,46 +68,76 @@ public:
     void setWakeupInterrupt();
 
     /**
+     * \brief Set wakeup timer for wakeup interrupt
+     *
      * Set wakeup timer for wakeup interrupt according to the
      * procedure described in the reference manual of the
-     * STM32F407VG
+     * STM32F407VG. It doesn't make the timer start
      */
     void setWakeupTimer(unsigned short int);
+
     /**
+     * \brief Starts the periodic wakeup timer of the RTC 
+     */
+    void startWakeupTimer();
+    /**
+     * \brief Stop the periodic wakeup timer of the RTC
+     */ 
+    void stopWakeupTimer();
+    /**
+     * \brief Get the subseconds value of RTC 
      * \return the Sub second value of the Time register of the RTC
-     *         as milliseconds.
-     *
-     * The value is converted according to the current clock used to
-     * synchronize the RTC. 
+     *         as milliseconds. The value is converted according to 
+     * the current clock used to  synchronize the RTC. 
      */
     unsigned short int getSSR();
     unsigned long long int getDate();
     unsigned long long int getTime();
 
-private:
+    /**
+     * \brief Enter the stop mode using the wakeup timer for a specified amount of 
+     * time
+     * 
+     * \param Deep sleep interval expressed as nanoseconds
+     */
+    void enterWakeupStopModeFor(long long int ns);
+    /**
+     * not preemptable implementation of enterWakeupStopModeFor
+     */
+    void IRQenterWakeupStopModeFor(long long int ns);
+  private:
     Rtc();
     Rtc(const Rtc&);
     Rtc& operator= (const Rtc&);
-    unsigned int clock_freq = 0; // Hz set according to the selected clock
-    unsigned int wkp_clock_period = 0; // how much ms often the wut counter is decreased
-    unsigned short int prescaler_s = 0; // Need to know the prescaler factor 
+    unsigned int clock_freq = 0; //! Hz set according to the selected clock
+    unsigned int wkp_clock_period = 0; //! How many nanoseconds often the wut counter is decreased
+    unsigned short int prescaler_s = 0; //! Needed to know the prescaler factor 
+
+    TimeConversion wkp_tc;
     
-    long int remaining_wakeups = 0; ///< keep track of remaining wakeups after 1 second
-    /*
+    long int remaining_wakeups = 0; ///! keep track of remaining wakeups for very long deep sleep intervals
+    /**
      * not preemptable function that read SSR value of the RTC Time register
      */
     unsigned short int IRQgetSSR();
-    /*
+    /**
      * not preemptable function that compute the time of the RTC Time register
      */
     unsigned long long int IRQgetTime();
-    /*
+    /**
      * not preemptable function that compute the date of the RTC calendar value
      */
     unsigned long long int IRQgetDate();
 
+    /**
+     * Not preemptable function that enters actually in Stop Mode
+     */
+    void IRQenterWakeupStopMode();
+
     friend void IRQdeepSleep(long long int value);
-};
+
+    
+  };
 
 
 } //namespace miosix
