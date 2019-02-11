@@ -97,6 +97,8 @@ namespace miosix {
     unsigned long long int getDate();
     unsigned long long int getTime();
 
+    unsigned long long int getWakeupOverhead();
+    long long int getMinimumDeepSleepPeriod();
     /**
      * \brief Enter the stop mode using the wakeup timer for a specified amount of 
      * time
@@ -115,7 +117,9 @@ namespace miosix {
     unsigned int clock_freq = 0; //! Hz set according to the selected clock
     unsigned int wkp_clock_period = 0; //! How many nanoseconds often the wut counter is decreased
     unsigned short int prescaler_s = 0; //! Needed to know the prescaler factor 
+    unsigned long long int wakeupOverheadNs;
 
+    const long long int minimumDeepSleepPeriod = 121000; //! the number of nanoseconds for the smallest deep sleep interval
     TimeConversion wkp_tc;
     
     long int remaining_wakeups = 0; ///! keep track of remaining wakeups for very long deep sleep intervals

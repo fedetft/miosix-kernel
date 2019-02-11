@@ -137,6 +137,7 @@ namespace miosix {
     EXTI->RTSR |= (1<<22);
     EXTI->FTSR &= ~(1<<22);
     RTC->CR |= RTC_CR_WUTIE;
+    wakeupOverheadNs = 100000;
  }
 
   void Rtc::setWakeupTimer(unsigned short int wut_value)
@@ -159,9 +160,19 @@ namespace miosix {
     RTC->ISR &= ~RTC_ISR_WUTF;
   }
 
+  unsigned long long int Rtc::getWakeupOverhead() 
+  {
+	return wakeupOverheadNs;
+  }
+
+   long long int Rtc::getMinimumDeepSleepPeriod() 
+  {
+	return minimumDeepSleepPeriod;
+  }
+
   void Rtc::enterWakeupStopModeFor(unsigned long long int ns)
   {
-    long long int wut_ticks = wkp_tc.ns2tick(ns);
+    long long int wut_ticks = wkp_tc.ns2tick(ns - wakeupOverheadNs);
     remaining_wakeups = wut_ticks / 0xffff;
     unsigned int last_wut = wut_ticks % 0xffff;
     while (remaining_wakeups > 0 )
@@ -171,6 +182,7 @@ namespace miosix {
 	    FastInterruptDisableLock dlock;
 	    IRQenterWakeupStopMode();
 	  }
+	  remaining_wakeups--;
 	}
     setWakeupTimer(last_wut);
     {
@@ -181,16 +193,24 @@ namespace miosix {
 
   void Rtc::IRQenterWakeupStopModeFor(unsigned long long int ns)
   {
+    using red=Gpio<GPIOD_BASE,10>;
+    red::mode(Mode::OUTPUT);
+    red::low();
     long long int wut_ticks = wkp_tc.ns2tick(ns);
     remaining_wakeups = wut_ticks / 0xffff;
     unsigned int last_wut = wut_ticks % 0xffff;
     while (remaining_wakeups > 0 )
 	{
 	  setWakeupTimer(0xffff);
+	  red::high();
 	  IRQenterWakeupStopMode();
+	  red::low();
+	  remaining_wakeups--;
 	}
     setWakeupTimer(last_wut);
+    red::high();
     IRQenterWakeupStopMode();
+    red::low();
   }
   
   void Rtc::IRQenterWakeupStopMode()

@@ -37,18 +37,10 @@ void IRQdeepSleep(unsigned long long int abstime)
     Rtc& rtc = Rtc::instance();
     ContextSwitchTimer cstimer = ContextSwitchTimer::instance();
     unsigned long long int reltime = abstime - cstimer.IRQgetCurrentTime(); // as nanoseconds delay from now
-    // if ( reltime < 0 )
-    // {
-    //   // unsigned integer overflow
-    //   rtc.IRQenterWakeupStopModeFor(2000 * 1000000); // for now the maximum stop mode interval is 2 seconds
-    // }
-    if (reltime < 120000)
+    reltime = reltime - rtc.getWakeupOverhead();
+    if (reltime < rtc.getMinimumDeepSleepPeriod())
     {
         return; // too late for sleeping
-    }
-    else if (reltime > 3000 * 1000000)
-    {
-        rtc.IRQenterWakeupStopModeFor(3000 * 1000000); // overflow detected
     }
     else
     {
