@@ -223,8 +223,11 @@ namespace miosix {
       RCC->BDCR &= ~(RCC_BDCR_RTCSEL_1);
       RCC_SYNC();
     }
-      while((RCC->BDCR & RCC_BDCR_LSERDY)==0); //Wait for LSE to start    
-
+    using green=Gpio<GPIOD_BASE,12>;
+    green::mode(Mode::OUTPUT);
+    green::high();
+    while((RCC->BDCR & RCC_BDCR_LSERDY)==0); //Wait for LSE to start    
+    green::low();
     // Enable write on RTC_ISR register
     {
       FastInterruptDisableLock dlock;

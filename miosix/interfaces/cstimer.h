@@ -48,7 +48,7 @@ public:
      * Used to adjust the time for example if the system clock was stopped
      * due to entering deep sleep.
      */
-    void setCurrentTime(long long ns) const;
+    void setCurrentTime(long long ns);
 
     /**
      * Set the current system time.
@@ -56,7 +56,7 @@ public:
      * Used to adjust the time for example if the system clock was stopped
      * due to entering deep sleep.
      */ 
-    void IRQsetCurrentTime(long long ns) const;
+    void IRQsetCurrentTime(long long ns);
     
     /**
      * \return the current tick count of the timer (in terms of nanoseconds)
@@ -84,6 +84,7 @@ private:
     ContextSwitchTimer();
     unsigned int timerFreq;
     ContextSwitchTimerImpl* pImpl;
+    long long set_offset; // offset used to set current time
 };
 
 } //namespace miosix

@@ -54,7 +54,7 @@ void IRQdeepSleep(unsigned long long int abstime)
     {
         rtc.IRQenterWakeupStopModeFor(reltime);
     }
-    //   cstimer.IRQsetCurrentTime(abstime);
+    cstimer.IRQsetCurrentTime(abstime);
 }
 
 void IRQdeepSleepInit()

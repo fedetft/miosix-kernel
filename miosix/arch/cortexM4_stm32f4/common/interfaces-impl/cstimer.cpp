@@ -124,10 +124,10 @@ long long ContextSwitchTimer::getCurrentTime() const
 
 long long ContextSwitchTimer::IRQgetCurrentTime() const
 {
-    return tc->tick2ns(IRQgetTick());
+    return tc->tick2ns(IRQgetTick()) + set_offset;
 }
 
-void ContextSwitchTimer::setCurrentTime(long long ns) const
+void ContextSwitchTimer::setCurrentTime(long long ns)
 {
     bool interrupts=areInterruptsEnabled();
     //TODO: optimization opportunity, if we can guarantee that no call to this
@@ -140,11 +140,10 @@ void ContextSwitchTimer::setCurrentTime(long long ns) const
     if(interrupts) enableInterrupts();
 }
   
-void ContextSwitchTimer::IRQsetCurrentTime(long long ns) const
+void ContextSwitchTimer::IRQsetCurrentTime(long long ns) 
 {
-  long long newCounterValue=tc->ns2tick(ns);
-  ms32time = newCounterValue;
-  TIM2->CNT = static_cast<unsigned int>(newCounterValue & lowerMask);
+  long long current_time = tc->tick2ns(IRQgetTick());
+  set_offset = ns - current_time;
 }
 
 ContextSwitchTimer::~ContextSwitchTimer() {}
@@ -194,6 +193,7 @@ ContextSwitchTimer::ContextSwitchTimer()
     // at which the timer prescaler is clocked.
     if(RCC->CFGR & RCC_CFGR_PPRE1_2) timerFreq/=1<<((RCC->CFGR>>10) & 0x3);
     static TimeConversion stc(timerFreq);
+    set_offset = 0;
     tc = &stc;
 }
 
