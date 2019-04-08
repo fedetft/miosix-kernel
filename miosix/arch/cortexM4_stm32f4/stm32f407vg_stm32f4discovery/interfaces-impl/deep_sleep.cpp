@@ -27,32 +27,40 @@
 
 #include "interfaces/deep_sleep.h"
 #include "interfaces/cstimer.h"
+#include "interfaces/portability.h"
 #include "interfaces/arch_registers.h"
 #include "drivers/rtc.h"
+#include "drivers/power_manager.h"
+#include "miosix.h"
 
 namespace miosix {
-
+  
 void IRQdeepSleep(unsigned long long int abstime)
 {
+    using red = Gpio<GPIOD_BASE,10>;
+    red::mode(Mode::OUTPUT);
     Rtc& rtc = Rtc::instance();
+    PowerManagement& pm = PowerManagement::instance();
     ContextSwitchTimer cstimer = ContextSwitchTimer::instance();
-    unsigned long long int reltime = abstime - cstimer.IRQgetCurrentTime(); // as nanoseconds delay from now
-    reltime = reltime - rtc.getWakeupOverhead();
+    unsigned long long int reltime = abstime - cstimer.IRQgetCurrentTime();
     if (reltime < rtc.getMinimumDeepSleepPeriod())
     {
-        return; // too late for sleeping
+        // Too late for deep-sleep, use normal sleep
+        miosix_private::sleepCpu();
+        return; 
     }
     else
     {
-        rtc.IRQenterWakeupStopModeFor(reltime);
+        red::high();
+        pm.IRQgoDeepSleepFor(reltime);
+        red::low();
     }
     cstimer.IRQsetCurrentTime(abstime);
 }
 
 void IRQdeepSleepInit()
 {
-    //   SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
-    // PWR->CR |= PWR_CR_LPDS;
+    PowerManagement& pm = PowerManagement::instance();
     Rtc& rtc = Rtc::instance();
     rtc.setWakeupInterrupt();
 }

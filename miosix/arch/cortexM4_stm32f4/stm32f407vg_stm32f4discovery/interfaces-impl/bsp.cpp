@@ -44,6 +44,8 @@
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
 #include "drivers/serial.h"
+#include "drivers/rtc.h"
+#include "drivers/power_manager.h"
 #include "drivers/sd_stm32f2_f4.h"
 #include "board_settings.h"
 #include "interfaces/deep_sleep.h"
@@ -95,9 +97,14 @@ void bspInit2()
     #endif //AUX_SERIAL
     #endif //WITH_FILESYSTEM
 
+    {
+      FastInterruptDisableLock d;
+      PowerManagement::instance();
+      Rtc::instance();
 #ifdef WITH_DEEP_SLEEP
-    IRQdeepSleepInit();
+      IRQdeepSleepInit();
 #endif // WITH_DEEP_SLEEP
+    }
 }
 
 //

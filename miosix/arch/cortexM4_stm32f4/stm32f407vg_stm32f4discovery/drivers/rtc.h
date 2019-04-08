@@ -37,6 +37,8 @@
 #include <kernel/timeconversion.h>
 #include <kernel/kernel.h>
 
+#include "power_manager.h"
+
 namespace miosix {
 
 
@@ -98,18 +100,7 @@ namespace miosix {
     unsigned long long int getTime();
 
     unsigned long long int getWakeupOverhead();
-    long long int getMinimumDeepSleepPeriod();
-    /**
-     * \brief Enter the stop mode using the wakeup timer for a specified amount of 
-     * time
-     * 
-     * \param Deep sleep interval expressed as nanoseconds
-     */
-    void enterWakeupStopModeFor(unsigned long long int ns);
-    /**
-     * not preemptable implementation of enterWakeupStopModeFor
-     */
-    void IRQenterWakeupStopModeFor(unsigned long long int ns);
+    unsigned long long int getMinimumDeepSleepPeriod();
   private:
     Rtc();
     Rtc(const Rtc&);
@@ -119,7 +110,7 @@ namespace miosix {
     unsigned short int prescaler_s = 0; //! Needed to know the prescaler factor 
     unsigned long long int wakeupOverheadNs;
 
-    const long long int minimumDeepSleepPeriod = 121000; //! the number of nanoseconds for the smallest deep sleep interval
+    const unsigned long long int minimumDeepSleepPeriod = 121000; //! the number of nanoseconds for the smallest deep sleep interval
     TimeConversion wkp_tc;
     
     long int remaining_wakeups = 0; ///! keep track of remaining wakeups for very long deep sleep intervals
@@ -136,13 +127,10 @@ namespace miosix {
      */
     unsigned long long int IRQgetDate();
 
-    /**
-     * Not preemptable function that enters actually in Stop Mode
-     */
-    void IRQenterWakeupStopMode();
+
 
     friend void IRQdeepSleep(long long int value);
-
+    friend PowerManagement;
     
   };
 

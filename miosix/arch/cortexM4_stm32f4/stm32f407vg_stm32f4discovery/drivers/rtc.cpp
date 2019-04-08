@@ -31,6 +31,7 @@
 #include <kernel/scheduler/scheduler.h>
 #include <kernel/kernel.h>
 
+#include "power_manager.h"
 using namespace miosix;
 
 
@@ -39,6 +40,9 @@ namespace miosix {
   //
   // class Rtc
   //
+  void IRQrtcInit() {
+    Rtc::instance(); // create the singleton
+  }
 
   Rtc& Rtc::instance()
   {
@@ -133,6 +137,8 @@ namespace miosix {
 
   void Rtc::setWakeupInterrupt() 
   {
+    EXTI->EMR &= ~(1<<11);
+    EXTI->RTSR &= ~(1<<11);
     EXTI->EMR |= (1<<22);
     EXTI->RTSR |= (1<<22);
     EXTI->FTSR &= ~(1<<22);
@@ -149,12 +155,12 @@ namespace miosix {
     RTC->WUTR = wut_value & RTC_WUTR_WUT;  
   }
 
-  inline void Rtc::startWakeupTimer()
+  void Rtc::startWakeupTimer()
   {
     RTC->CR |= RTC_CR_WUTE;
   }
 
-  inline void  Rtc::stopWakeupTimer()
+  void  Rtc::stopWakeupTimer()
   {
     RTC->CR &= ~RTC_CR_WUTE;
     RTC->ISR &= ~RTC_ISR_WUTF;
@@ -165,69 +171,12 @@ namespace miosix {
 	return wakeupOverheadNs;
   }
 
-   long long int Rtc::getMinimumDeepSleepPeriod() 
+  unsigned long long int Rtc::getMinimumDeepSleepPeriod() 
   {
 	return minimumDeepSleepPeriod;
   }
 
-  void Rtc::enterWakeupStopModeFor(unsigned long long int ns)
-  {
-    long long int wut_ticks = wkp_tc.ns2tick(ns - wakeupOverheadNs);
-    remaining_wakeups = wut_ticks / 0xffff;
-    unsigned int last_wut = wut_ticks % 0xffff;
-    while (remaining_wakeups > 0 )
-	{
-	  setWakeupTimer(0xffff);
-	  {
-	    FastInterruptDisableLock dlock;
-	    IRQenterWakeupStopMode();
-	  }
-	  remaining_wakeups--;
-	}
-    setWakeupTimer(last_wut);
-    {
-      FastInterruptDisableLock dlock;
-      IRQenterWakeupStopMode();
-    }
-  }
 
-  void Rtc::IRQenterWakeupStopModeFor(unsigned long long int ns)
-  {
-    using red=Gpio<GPIOD_BASE,10>;
-    red::mode(Mode::OUTPUT);
-    red::low();
-    long long int wut_ticks = wkp_tc.ns2tick(ns);
-    remaining_wakeups = wut_ticks / 0xffff;
-    unsigned int last_wut = wut_ticks % 0xffff;
-    while (remaining_wakeups > 0 )
-	{
-	  setWakeupTimer(0xffff);
-	  red::high();
-	  IRQenterWakeupStopMode();
-	  red::low();
-	  remaining_wakeups--;
-	}
-    setWakeupTimer(last_wut);
-    red::high();
-    IRQenterWakeupStopMode();
-    red::low();
-  }
-  
-  void Rtc::IRQenterWakeupStopMode()
-  {
-    // Safe procedure to enter stopmode
-    RTC->CR &= ~(RTC_CR_WUTIE);
-    RTC->ISR &= ~(RTC_ISR_WUTF);
-    PWR->CSR &= ~(PWR_CSR_WUF);
-    EXTI->PR = 0xffff; // reset pending bits
-    RTC->CR |= RTC_CR_WUTIE;
-    startWakeupTimer();
-    __SEV();
-    __WFE();
-    __WFE();
-    stopWakeupTimer();
-  }
-  
   Rtc::Rtc() :
     clock_freq(32768) ,
     wkp_tc(clock_freq / 2) ,
@@ -236,18 +185,16 @@ namespace miosix {
     {
       FastInterruptDisableLock dLock;
       RCC->APB1ENR |= RCC_APB1ENR_PWREN;
-      PWR->CR |= PWR_CR_DBP; // enable write in backup domain
+      PWR->CR |= PWR_CR_DBP;
       RCC->BDCR |= RCC_BDCR_RTCEN       //RTC enabled
 	| RCC_BDCR_LSEON       //External 32KHz oscillator enabled
 	| RCC_BDCR_RTCSEL_0;   //Select LSE as clock source for RTC
       RCC->BDCR &= ~(RCC_BDCR_RTCSEL_1);
-      RCC_SYNC();
     }
-    using green=Gpio<GPIOD_BASE,12>;
-    green::mode(Mode::OUTPUT);
-    green::high();
-    while((RCC->BDCR & RCC_BDCR_LSERDY)==0); //Wait for LSE to start    
-    green::low();
+    _led::mode(Mode::OUTPUT);
+    _led::high();
+    while((RCC->BDCR & RCC_BDCR_LSERDY)==0); //Wait for LSE to start
+    _led::low();
     // Enable write on RTC_ISR register
     {
       FastInterruptDisableLock dlock;
@@ -272,5 +219,8 @@ namespace miosix {
     // NVIC_SetPriority(RTC_WKUP_IRQn,10);
     // NVIC_EnableIRQ(RTC_WKUP_IRQn);
   }
+
+
+
 
 } //namespace miosix
