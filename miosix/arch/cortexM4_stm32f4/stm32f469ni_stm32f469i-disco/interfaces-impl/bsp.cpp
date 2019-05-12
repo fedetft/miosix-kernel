@@ -56,7 +56,7 @@ namespace miosix {
 
 /**
  * The example code from ST checks for the busy flag after each command.
- * Interestingly I couldn't find any mention of this in the datsheet.
+ * Interestingly I couldn't find any mention of this in the datasheet.
  */
 static void sdramCommandWait()
 {
@@ -97,7 +97,8 @@ void configureSdram()
                     RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN |
                     RCC_AHB1ENR_GPIOEEN | RCC_AHB1ENR_GPIOFEN |
                     RCC_AHB1ENR_GPIOGEN | RCC_AHB1ENR_GPIOHEN |
-                    RCC_AHB1ENR_GPIOIEN;
+                    RCC_AHB1ENR_GPIOIEN | RCC_AHB1ENR_GPIOJEN |
+                    RCC_AHB1ENR_GPIOKEN;
     RCC_SYNC();
 
     //First, configure SDRAM GPIOs, memory controller uses AF12
@@ -139,6 +140,8 @@ void configureSdram()
     GPIOG->OSPEEDR=0xaaaaaaaa | 0xc0030f0f;
     GPIOH->OSPEEDR=0xaaaaaaaa | 0xffff00f0;
     GPIOI->OSPEEDR=0xaaaaaaaa | 0x003cffff;
+    GPIOJ->OSPEEDR=0xaaaaaaaa;
+    GPIOK->OSPEEDR=0xaaaaaaaa;
 
     //Second, actually start the SDRAM controller
     RCC->AHB3ENR |= RCC_AHB3ENR_FMCEN;
@@ -220,7 +223,8 @@ void IRQbspInit()
                     RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN |
                     RCC_AHB1ENR_GPIOEEN | RCC_AHB1ENR_GPIOFEN |
                     RCC_AHB1ENR_GPIOGEN | RCC_AHB1ENR_GPIOHEN |
-                    RCC_AHB1ENR_GPIOIEN;
+                    RCC_AHB1ENR_GPIOIEN | RCC_AHB1ENR_GPIOJEN |
+                    RCC_AHB1ENR_GPIOKEN;
     RCC_SYNC();
     #endif //__ENABLE_XRAM
 
