@@ -43,6 +43,7 @@ void IRQdeepSleep(unsigned long long int abstime)
     PowerManagement& pm = PowerManagement::instance();
     ContextSwitchTimer cstimer = ContextSwitchTimer::instance();
     unsigned long long int reltime = abstime - cstimer.IRQgetCurrentTime();
+    reltime = reltime - rtc.stopModeOffsetns;
     if (reltime < rtc.getMinimumDeepSleepPeriod())
     {
         // Too late for deep-sleep, use normal sleep

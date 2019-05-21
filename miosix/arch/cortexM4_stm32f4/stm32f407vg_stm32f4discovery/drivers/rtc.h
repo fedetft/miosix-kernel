@@ -60,7 +60,8 @@ namespace miosix {
      * \return the only used instance of this class
      */
     static Rtc& instance();
-
+    
+    const unsigned int stopModeOffsetns = 504000;
 
     /**
      * \brief Setup the wakeup timer for deep sleep interrupts.
