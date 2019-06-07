@@ -123,7 +123,6 @@ void PowerManagement::IRQgoDeepSleepFor(unsigned long long int ns)
     }
   rtc.setWakeupTimer(last_wut);
   IRQenterStopMode();
-  IRQsetSystemClock();
 }
 
 void PowerManagement::IRQenterStopMode()

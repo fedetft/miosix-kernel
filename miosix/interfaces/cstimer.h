@@ -76,7 +76,9 @@ public:
      * Destructor
      */
     virtual ~ContextSwitchTimer();
-    
+
+    ContextSwitchTimer(const ContextSwitchTimer&) = delete;
+    ContextSwitchTimer& operator=(const ContextSwitchTimer&) = delete;
 private:
     /**
      * Constructor, private because it's a singleton

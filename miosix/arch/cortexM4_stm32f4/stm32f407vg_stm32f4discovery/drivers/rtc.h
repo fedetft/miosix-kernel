@@ -102,10 +102,11 @@ namespace miosix {
 
     unsigned long long int getWakeupOverhead();
     unsigned long long int getMinimumDeepSleepPeriod();
+
+    Rtc (const Rtc&) = delete;
+    Rtc& operator=(const Rtc&) = delete;
   private:
     Rtc();
-    Rtc(const Rtc&);
-    Rtc& operator= (const Rtc&);
     unsigned int clock_freq = 0; //! Hz set according to the selected clock
     unsigned int wkp_clock_period = 0; //! How many nanoseconds often the wut counter is decreased
     unsigned short int prescaler_s = 0; //! Needed to know the prescaler factor 

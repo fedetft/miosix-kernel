@@ -198,10 +198,10 @@ public:
      */
     void unlock() { powerManagementMutex.unlock(); }
 
+    PowerManagement(const PowerManagement&) = delete;
+    PowerManagement& operator=(const PowerManagement&) = delete;
     
 private:
-    PowerManagement(const PowerManagement&);
-    PowerManagement& operator=(const PowerManagement&);
     
     /**
      * Constructor

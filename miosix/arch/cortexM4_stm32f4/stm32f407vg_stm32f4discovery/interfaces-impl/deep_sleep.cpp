@@ -32,18 +32,21 @@
 #include "drivers/rtc.h"
 #include "drivers/power_manager.h"
 #include "miosix.h"
+#include <algorithm>
+
+using namespace std;
 
 namespace miosix {
   
 void IRQdeepSleep(unsigned long long int abstime)
 {
-    using red = Gpio<GPIOD_BASE,10>;
+    using red = Gpio<GPIOD_BASE,12>;
     red::mode(Mode::OUTPUT);
     Rtc& rtc = Rtc::instance();
     PowerManagement& pm = PowerManagement::instance();
-    ContextSwitchTimer cstimer = ContextSwitchTimer::instance();
-    unsigned long long int reltime = abstime - cstimer.IRQgetCurrentTime();
-    reltime = reltime - rtc.stopModeOffsetns;
+    ContextSwitchTimer& cstimer = ContextSwitchTimer::instance();
+    long long int reltime = abstime - cstimer.IRQgetCurrentTime();
+    reltime = max<long long>(reltime - rtc.stopModeOffsetns, 0LL);
     if (reltime < rtc.getMinimumDeepSleepPeriod())
     {
         // Too late for deep-sleep, use normal sleep
@@ -55,8 +58,8 @@ void IRQdeepSleep(unsigned long long int abstime)
         red::high();
         pm.IRQgoDeepSleepFor(reltime);
         red::low();
+        return;
     }
-    cstimer.IRQsetCurrentTime(abstime);
 }
 
 void IRQdeepSleepInit()
