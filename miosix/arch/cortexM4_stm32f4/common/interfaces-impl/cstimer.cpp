@@ -96,7 +96,8 @@ ContextSwitchTimer& ContextSwitchTimer::instance()
 
 void ContextSwitchTimer::IRQsetNextInterrupt(long long ns)
 {
-    long long closest_time = std::max<long long>(ns - set_offset, IRQgetCurrentTime()); // offset should be always less than input
+    long long currentTick = IRQgetTick();
+    long long closest_time = std::max<long long>(ns - set_offset, tc->tick2ns(currentTick)); // offset should be always less than input
     long long tick = tc->ns2tick(closest_time); 
     ms32chkp = tick & upperMask;
     TIM2->CCR1 = static_cast<unsigned int>(tick & lowerMask);
