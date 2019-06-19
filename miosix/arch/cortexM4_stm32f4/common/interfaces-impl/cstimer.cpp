@@ -15,6 +15,7 @@ const unsigned long long upperMask=0xFFFFFFFFFFFFFFFFLL-lowerMask;
 static long long ms32time = 0; //most significant 32 bits of counter
 static long long ms32chkp = 0; //most significant 32 bits of check point
 static bool lateIrq=false;
+static long long set_offset = 0;
 
 static TimeConversion *tc;
 
@@ -69,7 +70,7 @@ void __attribute__((used)) cstirqhnd()
         if(ms32time==ms32chkp || lateIrq)
         {
             lateIrq=false;
-            IRQtimerInterrupt(tc->tick2ns(IRQgetTick()));
+            IRQtimerInterrupt(tc->tick2ns(IRQgetTick()) + set_offset);
         }
 
     }
@@ -95,7 +96,8 @@ ContextSwitchTimer& ContextSwitchTimer::instance()
 
 void ContextSwitchTimer::IRQsetNextInterrupt(long long ns)
 {
-    long long tick = tc->ns2tick(ns);
+    long long closest_time = std::max<long long>(ns - set_offset, IRQgetCurrentTime()); // offset should be always less than input
+    long long tick = tc->ns2tick(closest_time); 
     ms32chkp = tick & upperMask;
     TIM2->CCR1 = static_cast<unsigned int>(tick & lowerMask);
     if(IRQgetTick() >= nextInterrupt())
@@ -107,7 +109,7 @@ void ContextSwitchTimer::IRQsetNextInterrupt(long long ns)
 
 long long ContextSwitchTimer::getNextInterrupt() const
 {
-    return tc->tick2ns(nextInterrupt());
+    return tc->tick2ns(nextInterrupt()) + set_offset; 
 }
 
 long long ContextSwitchTimer::getCurrentTime() const
@@ -118,6 +120,7 @@ long long ContextSwitchTimer::getCurrentTime() const
     //fastInterruptDisable())
     if(interrupts) disableInterrupts();
     long long result=tc->tick2ns(IRQgetTick());
+    result += set_offset;
     if(interrupts) enableInterrupts();
     return result;
 }
@@ -134,16 +137,15 @@ void ContextSwitchTimer::setCurrentTime(long long ns)
     //function occurs before kernel is started, then we can use
     //fastInterruptDisable())
     if(interrupts) disableInterrupts();
-    long long newCounterValue=tc->ns2tick(ns);
-    ms32time = newCounterValue;
-    TIM2->CNT = static_cast<unsigned int>(newCounterValue & lowerMask);
+    long long current_time = tc->tick2ns(IRQgetTick());
+    set_offset = std::max(ns - current_time, 0LL); // avoid negative offsets
     if(interrupts) enableInterrupts();
 }
   
 void ContextSwitchTimer::IRQsetCurrentTime(long long ns) 
 {
-  long long current_time = tc->tick2ns(IRQgetTick());
-  set_offset = ns - current_time;
+    long long current_time = tc->tick2ns(IRQgetTick());
+    set_offset = std::max(ns - current_time, 0LL); // avoid negative offsets
 }
 
 ContextSwitchTimer::~ContextSwitchTimer() {}
@@ -195,6 +197,11 @@ ContextSwitchTimer::ContextSwitchTimer()
     static TimeConversion stc(timerFreq);
     set_offset = 0;
     tc = &stc;
+}
+
+long long ContextSwitchTimer::getOffset() const
+{
+    return set_offset;
 }
 
 } //namespace miosix
