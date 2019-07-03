@@ -47,7 +47,7 @@ void startPll()
                     | RCC_PLLCKSELR_DIVM1_2     //M=5 (25MHz/5)5MHz
                     | RCC_PLLCKSELR_PLLSRC_HSE; //HSE selected as PLL source
     RCC->PLL1DIVR = (2-1)<<24 // R=2
-                  | (4-1)<<16 // Q=4
+                  | (8-1)<<16 // Q=8
                   | (2-1)<<9  // P=2
                   | (160-1);  // N=160
     RCC->PLLCFGR |= RCC_PLLCFGR_PLL1RGE_2 // Pll ref clock between 4 and 8MHz
