@@ -58,8 +58,8 @@
 ## -O2 is recomended otherwise, as it provides a good balance between code
 ## size and speed
 ##
-#OPT_OPTIMIZATION := -O0
-OPT_OPTIMIZATION := -O2
+OPT_OPTIMIZATION := -O0
+#OPT_OPTIMIZATION := -O2
 #OPT_OPTIMIZATION := -O3
 #OPT_OPTIMIZATION := -Os
 
@@ -1325,10 +1325,10 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         arch/common/drivers/stm32f2_f4_i2c.cpp       \
         arch/common/drivers/stm32_hardware_rng.cpp   \
         arch/common/drivers/servo_stm32.cpp          \
-	$(BOARD_INC)/drivers/rtc.cpp		\
-	$(BOARD_INC)/drivers/power_manager.cpp \
-	$(BOARD_INC)/interfaces-impl/deep_sleep.cpp  \
-        $(BOARD_INC)/interfaces-impl/bsp.cpp
+        $(BOARD_INC)/drivers/power_manager.cpp       \
+        $(BOARD_INC)/drivers/rtc.cpp                 \
+        $(BOARD_INC)/interfaces-impl/deep_sleep.cpp  \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp    
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32F4DISCOVERY 
