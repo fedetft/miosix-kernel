@@ -41,7 +41,6 @@ namespace miosix {
 void IRQdeepSleep(unsigned long long int abstime)
 {
     using red = Gpio<GPIOD_BASE,12>;
-    red::mode(Mode::OUTPUT);
     Rtc& rtc = Rtc::instance();
     PowerManagement& pm = PowerManagement::instance();
     ContextSwitchTimer& cstimer = ContextSwitchTimer::instance();
@@ -54,9 +53,14 @@ void IRQdeepSleep(unsigned long long int abstime)
     }
     else
     {
+#ifdef DEBUG_DEEP_SLEEP
         red::high();
+#endif
+      
         pm.IRQgoDeepSleepFor(reltime);
+#ifdef DEBUG_DEEP_SLEEP
         red::low();
+#endif
         cstimer.IRQsetCurrentTime(abstime);
     }
     return;

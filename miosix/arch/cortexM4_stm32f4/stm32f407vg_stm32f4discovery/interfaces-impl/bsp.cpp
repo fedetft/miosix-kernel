@@ -98,7 +98,7 @@ void bspInit2()
     #endif //WITH_FILESYSTEM
 
     {
-      FastInterruptDisableLock d;
+      InterruptDisableLock d; // Avoid problem with nested loops
       PowerManagement::instance();
       Rtc::instance();
 #ifdef WITH_DEEP_SLEEP

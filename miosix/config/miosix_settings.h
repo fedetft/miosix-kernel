@@ -105,6 +105,10 @@ namespace miosix {
 /// Adds interfaces and required variables to support deep sleep state switch
 /// automatically when peripherals are not required
 #define WITH_DEEP_SLEEP
+  
+/// \def DEBUG_DEEP_SLEEP 
+  /// Work with WITH_DEEP_SLEEP and blink a system led when the board is in deep sleep mode, so the developer can see it
+// #define DEBUG_DEEP_SLEEP
 
 
 /// Maximum number of open files. Trying to open more will fail.

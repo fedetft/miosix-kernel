@@ -200,6 +200,19 @@ public:
 
     PowerManagement(const PowerManagement&) = delete;
     PowerManagement& operator=(const PowerManagement&) = delete;
+
+    /* to implement methods
+
+       bool isUsbConnected() const
+
+       bool isCharging()
+
+       int getBatteryStatus()
+
+       int getBatteryVoltage()
+
+       void setCoreFrequency(CoreFrequency cf)
+     */ 
     
 private:
     
