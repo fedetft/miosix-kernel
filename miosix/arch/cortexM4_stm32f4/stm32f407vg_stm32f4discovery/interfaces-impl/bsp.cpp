@@ -45,7 +45,6 @@
 #include "filesystem/console/console_device.h"
 #include "drivers/serial.h"
 #include "drivers/rtc.h"
-#include "drivers/power_manager.h"
 #include "drivers/sd_stm32f2_f4.h"
 #include "board_settings.h"
 #include "interfaces/deep_sleep.h"
@@ -82,6 +81,22 @@ void IRQbspInit()
     DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
         new STM32Serial(defaultSerial,defaultSerialSpeed,
         defaultSerialFlowctrl ? STM32Serial::RTSCTS : STM32Serial::NOFLOWCTRL)));
+    {
+      InterruptDisableLock dLock;
+      RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+      PWR->CR |= PWR_CR_DBP;
+      RCC->BDCR |= RCC_BDCR_RTCEN       //RTC enabled
+	| RCC_BDCR_LSEON       //External 32KHz oscillator enabled
+	| RCC_BDCR_RTCSEL_0;   //Select LSE as clock source for RTC
+      RCC->BDCR &= ~(RCC_BDCR_RTCSEL_1);
+    }
+    ledOn();
+    while((RCC->BDCR & RCC_BDCR_LSERDY)==0); //Wait for LSE to start
+    ledOff();
+
+    #ifdef WITH_DEEP_SLEEP
+    IRQdeepSleepInit();
+    #endif // WITH_DEEP_SLEEP
 }
 
 void bspInit2()
@@ -96,15 +111,6 @@ void bspInit2()
     basicFilesystemSetup(SDIODriver::instance());
     #endif //AUX_SERIAL
     #endif //WITH_FILESYSTEM
-
-    {
-      InterruptDisableLock d; // Avoid problem with nested loops
-      PowerManagement::instance();
-      Rtc::instance();
-#ifdef WITH_DEEP_SLEEP
-      IRQdeepSleepInit();
-#endif // WITH_DEEP_SLEEP
-    }
 }
 
 //

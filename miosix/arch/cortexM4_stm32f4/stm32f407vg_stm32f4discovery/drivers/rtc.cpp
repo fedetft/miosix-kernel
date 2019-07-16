@@ -31,7 +31,6 @@
 #include <kernel/scheduler/scheduler.h>
 #include <kernel/kernel.h>
 
-#include "power_manager.h"
 using namespace miosix;
 
 
@@ -183,7 +182,7 @@ namespace miosix {
     wkp_clock_period( 1000000000 * 2 / clock_freq ) 
   {
     {
-      FastInterruptDisableLock dLock;
+      InterruptDisableLock dLock;
       RCC->APB1ENR |= RCC_APB1ENR_PWREN;
       PWR->CR |= PWR_CR_DBP;
       RCC->BDCR |= RCC_BDCR_RTCEN       //RTC enabled
@@ -191,30 +190,23 @@ namespace miosix {
 	| RCC_BDCR_RTCSEL_0;   //Select LSE as clock source for RTC
       RCC->BDCR &= ~(RCC_BDCR_RTCSEL_1);
     }
-    _led::mode(Mode::OUTPUT);
-    _led::high();
+    ledOn();
     while((RCC->BDCR & RCC_BDCR_LSERDY)==0); //Wait for LSE to start
-    _led::low();
+    ledOff();
     // Enable write on RTC_ISR register
-    {
-      FastInterruptDisableLock dlock;
       RTC->WPR = 0xCA;
       RTC->WPR = 0x53;
       
       RTC->CR &= ~(RTC_CR_BYPSHAD);
       RTC->PRER = (128 <<16) | ( 256<<0); // default prescaler
       RTC->ISR |= RTC_ISR_INIT;
-    }
     while((RTC->ISR & RTC_ISR_INITF)== 0); // wait clock and calendar initialization
-    {
-      FastInterruptDisableLock dlock;
       RTC->TR = (RTC_TR_SU & 0x0) | (RTC_TR_ST & 0x0) | (RTC_TR_MNU & 0x0 )
 	| (RTC_TR_MNT & 0x0) | (RTC_TR_HU & 0x0) | (RTC_TR_HT & 0x0); 
       RTC->DR = (1<<0) | (1<<8) | (1<<13) | (9<<16) | (1<<20); // initialized to 1/1/2019
 
       RTC->CR &= ~(RTC_CR_FMT); // Use 24-hour format
       RTC->ISR &= ~(RTC_ISR_INIT);
-    }
     prescaler_s = 0x00000000 |  (RTC->PRER & RTC_PRER_PREDIV_S);
     // NVIC_SetPriority(RTC_WKUP_IRQn,10);
     // NVIC_EnableIRQ(RTC_WKUP_IRQn);

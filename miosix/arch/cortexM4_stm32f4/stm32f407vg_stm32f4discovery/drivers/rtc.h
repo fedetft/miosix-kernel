@@ -37,7 +37,6 @@
 #include <kernel/timeconversion.h>
 #include <kernel/kernel.h>
 
-#include "power_manager.h"
 
 namespace miosix {
 
@@ -131,8 +130,7 @@ namespace miosix {
 
 
 
-    friend void IRQdeepSleep(long long int value);
-    friend PowerManagement;
+    friend void IRQdeepSleep(unsigned long long int);
     
   };
 
