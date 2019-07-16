@@ -33,6 +33,12 @@
 #include "miosix.h"
 #include <algorithm>
 
+
+/// /def DEBUG_DEEP_SLEEP
+/// This debug symbol makes the deep sleep routine to make
+/// a led blink when the board enter the stop mode
+/// #define DEBUG_DEEP_SLEEP
+
 using namespace std;
 
 namespace miosix {
@@ -41,37 +47,6 @@ static Rtc* rtc = nullptr;
 
 static void IRQsetSystemClock()
 {
-  // RCC->CR |= RCC_CR_HSEON;
- 
-  // /* Wait till HSE is ready and if Time out is reached exit */
-  // while(((RCC->CR & RCC_CR_HSERDY) == 0));
-
-  // /* Select regulator voltage output Scale 1 mode, System frequency up to 168 MHz */
-  // RCC->APB1ENR |= RCC_APB1ENR_PWREN;
-  // RCC_SYNC();
-  // PWR->CR |= PWR_CR_VOS;
-
-
-  // /* Configure the main PLL */
-  // RCC->PLLCFGR = PLL_M | (PLL_N << 6) | (((PLL_P >> 1) -1) << 16) |
-  //   (RCC_PLLCFGR_PLLSRC_HSE) | (PLL_Q << 24);
-
-  // /* Enable the main PLL */
-  // RCC->CR |= RCC_CR_PLLON;
-
-  // /* Wait till the main PLL is ready */
-  // while((RCC->CR & RCC_CR_PLLRDY) == 0)
-  //   {
-  //   }
-   
-  // /* Configure Flash prefetch, Instruction cache, Data cache and wait state */
-  // FLASH->ACR = FLASH_ACR_ICEN |FLASH_ACR_DCEN |FLASH_ACR_LATENCY_5WS;
-
-  // /* Wait till the main PLL is used as system clock source */
-  // while ((RCC->CFGR & RCC_CFGR_SWS ) != RCC_CFGR_SWS_PLL);
-  // {
-  // }
-
     RCC->CR |= RCC_CR_HSEON | RCC_CR_HSION;
     while((RCC->CR & RCC_CR_HSERDY)==0) ;
     while((RCC->CR & RCC_CR_HSIRDY)==0) ;

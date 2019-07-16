@@ -17,7 +17,7 @@
 #OPT_BOARD := stm32f100rb_stm32vldiscovery
 #OPT_BOARD := stm32f103ve_strive_mini
 #OPT_BOARD := stm32f103ze_redbull_v2
-OPT_BOARD := stm32f407vg_stm32f4discovery
+#OPT_BOARD := stm32f407vg_stm32f4discovery
 #OPT_BOARD := stm32f207ig_stm3220g-eval
 #OPT_BOARD := stm32f207zg_ethboard_v2
 #OPT_BOARD := stm32f207ze_als_camboard
@@ -58,8 +58,8 @@ OPT_BOARD := stm32f407vg_stm32f4discovery
 ## -O2 is recomended otherwise, as it provides a good balance between code
 ## size and speed
 ##
-OPT_OPTIMIZATION := -O0
-#OPT_OPTIMIZATION := -O2
+#OPT_OPTIMIZATION := -O0
+OPT_OPTIMIZATION := -O2
 #OPT_OPTIMIZATION := -O3
 #OPT_OPTIMIZATION := -Os
 
@@ -1325,7 +1325,6 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         arch/common/drivers/stm32f2_f4_i2c.cpp       \
         arch/common/drivers/stm32_hardware_rng.cpp   \
         arch/common/drivers/servo_stm32.cpp          \
-        $(BOARD_INC)/drivers/power_manager.cpp       \
         $(BOARD_INC)/drivers/rtc.cpp                 \
         $(BOARD_INC)/interfaces-impl/deep_sleep.cpp  \
         $(BOARD_INC)/interfaces-impl/bsp.cpp    
