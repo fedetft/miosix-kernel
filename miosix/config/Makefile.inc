@@ -806,6 +806,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
         $(BOARD_INC)/interfaces-impl/bsp.cpp         \
+        arch/common/drivers/stm32_rtc.cpp            \
         arch/common/drivers/servo_stm32.cpp
 
         ## Add a #define to allow querying board name
@@ -1047,7 +1048,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
         $(BOARD_INC)/interfaces-impl/bsp.cpp         \
-        $(BOARD_INC)/drivers/rtc.cpp
+        arch/common/drivers/stm32_rtc.cpp
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_MICROBOARD -DSTM32F10X_MD_VL 
@@ -1082,7 +1083,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
         $(BOARD_INC)/interfaces-impl/bsp.cpp         \
-        $(BOARD_INC)/drivers/rtc.cpp
+        arch/common/drivers/stm32_rtc.cpp
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32F103CX_GENERIC -DSTM32F10X_MD_VL 

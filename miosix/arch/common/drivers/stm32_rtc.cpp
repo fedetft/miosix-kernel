@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "rtc.h"
+#include "stm32_rtc.h"
 #include <miosix.h>
 #include <sys/ioctl.h>
 #include <kernel/scheduler/scheduler.h>
@@ -157,7 +157,11 @@ namespace miosix {
 
 void absoluteDeepSleep(long long int value)
 {
+    #ifdef RUN_WITH_HSI
     const long long wakeupAdvance=3; //waking up takes time
+    #else //RUN_WITH_HSI
+    const long long wakeupAdvance=33; //HSE starup time is 2ms
+    #endif //RUN_WITH_HSI
     
     Rtc& rtc=Rtc::instance();
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
@@ -191,6 +195,9 @@ void absoluteDeepSleep(long long int value)
         SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
         PWR->CR &= ~PWR_CR_LPDS;
         
+        #ifndef SYSCLK_FREQ_24MHz
+        #error TODO: support more PLL frequencies
+        #endif
         //STOP mode resets the clock to the HSI 8MHz, so restore the 24MHz clock
         #ifndef RUN_WITH_HSI
         RCC->CR |= RCC_CR_HSEON;
@@ -228,6 +235,9 @@ void absoluteDeepSleep(long long int value)
     EXTI->EMR &=~ EXTI_EMR_MR17; //disable event for wakeup
     
     tick+=wakeupAdvance;
+    
+    //NOTE: if we use the HSE we may spin for a while, but adding a
+    //IRQabsoluteWaitTick here makes this function wakeup too late
     while(IRQgetTick()<tick) ;
 }
 
