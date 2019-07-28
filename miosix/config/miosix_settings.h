@@ -100,14 +100,6 @@ namespace miosix {
 /// By default it is defined (slow but safe)
 #define SYNC_AFTER_WRITE
 
-
-/// \def WITH_DEEP_SLEEP 
-/// Adds interfaces and required variables to support deep sleep state switch
-/// automatically when peripherals are not required
-#define WITH_DEEP_SLEEP
-  
-
-
 /// Maximum number of open files. Trying to open more will fail.
 /// Cannot be lower than 3, as the first three are stdin, stdout, stderr
 const unsigned char MAX_OPEN_FILES=8;
@@ -131,10 +123,6 @@ const unsigned char MAX_OPEN_FILES=8;
 #error Processes require devfs support
 #endif //defined(WITH_PROCESSES) && !defined(WITH_DEVFS)
 
-#if defined(WITH_DEEP_SLEEP) && defined(JTAG_DISABLE_SLEEP)
-#error Deep sleep cannot work together with jtag
-#endif //defined(WITH_PROCESSES) && !defined(WITH_DEVFS)
-
 //
 // C/C++ standard library I/O (stdin, stdout and stderr related)
 //
@@ -155,6 +143,11 @@ const unsigned char MAX_OPEN_FILES=8;
 // Kernel related options (stack sizes, priorities)
 //
 
+/// \def WITH_DEEP_SLEEP 
+/// Adds interfaces and required variables to support deep sleep state switch
+/// automatically when peripherals are not required
+#define WITH_DEEP_SLEEP
+
 /**
  * \def JTAG_DISABLE_SLEEP
  * JTAG debuggers lose communication with the device if it enters sleep
@@ -162,6 +155,10 @@ const unsigned char MAX_OPEN_FILES=8;
  * By default it is not defined (idle thread calls sleep).
  */
 //#define JTAG_DISABLE_SLEEP
+
+#if defined(WITH_DEEP_SLEEP) && defined(JTAG_DISABLE_SLEEP)
+#error Deep sleep cannot work together with jtag
+#endif //defined(WITH_PROCESSES) && !defined(WITH_DEVFS)
 
 /// Minimum stack size (MUST be divisible by 4)
 const unsigned int STACK_MIN=256;
