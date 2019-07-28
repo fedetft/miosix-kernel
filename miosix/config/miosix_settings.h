@@ -146,7 +146,7 @@ const unsigned char MAX_OPEN_FILES=8;
 /// \def WITH_DEEP_SLEEP 
 /// Adds interfaces and required variables to support deep sleep state switch
 /// automatically when peripherals are not required
-#define WITH_DEEP_SLEEP
+//#define WITH_DEEP_SLEEP
 
 /**
  * \def JTAG_DISABLE_SLEEP
