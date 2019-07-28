@@ -50,7 +50,7 @@ namespace miosix {
  * \param abstime : selected absolute time to wake up from deep sleep state. At this time the interrupt
  * from RTC will be executed
  */
-void IRQdeepSleep(unsigned long long abstime);
+void IRQdeepSleep(long long abstime);
 
 /**
  * \brief Initialize the required component to support the deep sleep functionalities.

@@ -104,12 +104,11 @@ static void IRQenterStopMode()
     rtc->stopWakeupTimer();
 }
   
-void IRQdeepSleep(unsigned long long int abstime)
+void IRQdeepSleep(long long int abstime)
 {
-    using red = Gpio<GPIOD_BASE,12>;
     ContextSwitchTimer& cstimer = ContextSwitchTimer::instance();
-    long long int reltime = abstime - cstimer.IRQgetCurrentTime();
-    reltime = max<long long>(reltime - rtc->stopModeOffsetns, 0LL);
+    long long reltime = abstime - cstimer.IRQgetCurrentTime();
+    reltime = max(reltime - rtc->stopModeOffsetns, 0LL);
     if(reltime < rtc->getMinimumDeepSleepPeriod())
     {
         // Too late for deep-sleep, use normal sleep
@@ -120,7 +119,7 @@ void IRQdeepSleep(unsigned long long int abstime)
 #endif
       
         rtc->setWakeupInterrupt();
-        long long int wut_ticks = rtc->wkp_tc.ns2tick(reltime);
+        long long wut_ticks = rtc->wkp_tc.ns2tick(reltime);
         unsigned int remaining_wakeups = wut_ticks / 0xffff;
         unsigned int last_wut = wut_ticks % 0xffff;
         while(remaining_wakeups > 0)

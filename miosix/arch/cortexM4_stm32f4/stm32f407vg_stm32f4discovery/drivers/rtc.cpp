@@ -101,9 +101,9 @@ namespace miosix {
 //     unsigned short int second_tens = 0x00000000 | (RTC->TSTR & RTC_TSTR_ST);
 //     unsigned short int second_units = 0x00000000 | (RTC->TSTR & RTC_TSTR_SU);
 //     unsigned short int ss_value = 0x00000000 | (RTC->SSR & RTC_SSR_SS);
-//     unsigned long long int time_microsecs = ( hour_tens * 10 + hour_units) * 3600 * 1000000 \
-//       + ( minute_tens * 10 + minute_units) * 60 * 1000000 \
-//       + ( second_tens * 10 + second_units ) * 1000000 \
+//     unsigned long long int time_microsecs = ( hour_tens * 10 + hour_units) * 3600 * 1000000
+//       + ( minute_tens * 10 + minute_units) * 60 * 1000000
+//       + ( second_tens * 10 + second_units ) * 1000000
 //       + ( prescaler_s - ss_value )/(prescaler_s + 1);
 //     RTC->ISR &= ~(RTC_ISR_RSF);
 //     if ( (RTC->TSTR & RTC_TSTR_PM) == 0 ) 
@@ -166,12 +166,12 @@ namespace miosix {
     RTC->ISR &= ~RTC_ISR_WUTF;
   }
 
-  unsigned long long int Rtc::getWakeupOverhead() 
+  long long Rtc::getWakeupOverhead() 
   {
 	return wakeupOverheadNs;
   }
 
-  unsigned long long int Rtc::getMinimumDeepSleepPeriod() 
+  long long Rtc::getMinimumDeepSleepPeriod() 
   {
 	return minimumDeepSleepPeriod;
   }
@@ -179,8 +179,8 @@ namespace miosix {
 
   Rtc::Rtc() :
     clock_freq(32768) ,
-    wkp_tc(clock_freq / 2) ,
-    wkp_clock_period( 1000000000 * 2 / clock_freq ) 
+    wkp_clock_period( 1000000000 * 2 / clock_freq ) ,
+    wkp_tc(clock_freq / 2)
   {
     {
       InterruptDisableLock dl;
