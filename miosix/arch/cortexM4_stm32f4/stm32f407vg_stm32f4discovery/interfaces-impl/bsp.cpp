@@ -44,10 +44,8 @@
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
 #include "drivers/serial.h"
-#include "drivers/rtc.h"
 #include "drivers/sd_stm32f2_f4.h"
 #include "board_settings.h"
-#include "interfaces/deep_sleep.h"
 
 namespace miosix {
 
@@ -81,9 +79,6 @@ void IRQbspInit()
     DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
         new STM32Serial(defaultSerial,defaultSerialSpeed,
         defaultSerialFlowctrl ? STM32Serial::RTSCTS : STM32Serial::NOFLOWCTRL)));
-    #ifdef WITH_DEEP_SLEEP
-    IRQdeepSleepInit();
-    #endif // WITH_DEEP_SLEEP
 }
 
 void bspInit2()

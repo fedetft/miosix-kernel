@@ -36,6 +36,7 @@ start the kernel and filesystem.
 #include <stdexcept>
 // Low level hardware functionalities
 #include "interfaces/bsp.h"
+#include "interfaces/deep_sleep.h"
 // Miosix kernel
 #include "kernel.h"
 #include "filesystem/file_access.h"
@@ -124,6 +125,9 @@ extern "C" void _init()
 
     if(areInterruptsEnabled()) errorHandler(INTERRUPTS_ENABLED_AT_BOOT);
     IRQbspInit();
+    #ifdef WITH_DEEP_SLEEP
+    IRQdeepSleepInit();
+    #endif // WITH_DEEP_SLEEP
     //After IRQbspInit() serial port is initialized, so we can use IRQbootlog
     IRQbootlog("Starting Kernel... ");
     startKernel();
