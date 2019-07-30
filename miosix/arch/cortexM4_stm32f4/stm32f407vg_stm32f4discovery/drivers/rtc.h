@@ -37,29 +37,27 @@
 #include <kernel/timeconversion.h>
 #include <kernel/kernel.h>
 
-
 namespace miosix {
 
+void IRQrtcInit();
 
-  void IRQrtcInit();
-  
-  /**
-   * \brief Class implementing the functionalities 
-   *        of the RTC peripherla of the board
-   *
-   * All the wait and deepSleep functions cannot be called concurrently by
-   * multiple threads, so there is a single instance of the class that is share * among all the threads
-   */
-  class Rtc
-  {
-  public:
+/**
+ * \brief Class implementing the functionalities 
+ *        of the RTC peripherla of the board
+ *
+ * All the wait and deepSleep functions cannot be called concurrently by
+ * multiple threads, so there is a single instance of the class that is share * among all the threads
+ */
+class Rtc
+{
+public:
     /**
      * \brief Rtc class implements the singleton design pattern
      *
      * \return the only used instance of this class
      */
     static Rtc& instance();
-    
+
     const unsigned int stopModeOffsetns = 504000;
 
     /**
@@ -104,7 +102,7 @@ namespace miosix {
 
     Rtc (const Rtc&) = delete;
     Rtc& operator=(const Rtc&) = delete;
-  private:
+private:
     Rtc();
     unsigned int clock_freq; //! Hz set according to the selected clock
     unsigned int wkp_clock_period; //! How many nanoseconds often the wut counter is decreased
@@ -113,7 +111,7 @@ namespace miosix {
 
     const long long minimumDeepSleepPeriod = 121000; //! the number of nanoseconds for the smallest deep sleep interval
     TimeConversion wkp_tc;
-    
+
     long int remaining_wakeups = 0; ///! keep track of remaining wakeups for very long deep sleep intervals
     /**
      * not preemptable function that read SSR value of the RTC Time register
@@ -128,12 +126,8 @@ namespace miosix {
     /*  *\/ */
     /* unsigned long long int IRQgetDate(); */
 
-
-
     friend void IRQdeepSleep(long long);
-    
-  };
-
+};
 
 } //namespace miosix
 

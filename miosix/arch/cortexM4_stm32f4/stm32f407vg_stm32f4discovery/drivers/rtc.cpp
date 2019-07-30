@@ -37,19 +37,18 @@ using namespace miosix;
 
 namespace miosix {
 
-  //
-  // class Rtc
-  //
-  void IRQrtcInit() {
+//
+// class Rtc
+//
+void IRQrtcInit() {
     Rtc::instance(); // create the singleton
-  }
+}
 
-  Rtc& Rtc::instance()
-  {
+Rtc& Rtc::instance()
+{
     static Rtc singleton;
     return singleton;
-
-  }
+}
 
 //   unsigned short int Rtc::getSSR() 
 //   {
@@ -135,8 +134,8 @@ namespace miosix {
 //     return date_secs;
 //   }
 
-  void Rtc::setWakeupInterrupt() 
-  {
+void Rtc::setWakeupInterrupt() 
+{
     EXTI->EMR &= ~(1<<11);
     EXTI->RTSR &= ~(1<<11);
     EXTI->EMR |= (1<<22);
@@ -144,83 +143,79 @@ namespace miosix {
     EXTI->FTSR &= ~(1<<22);
     RTC->CR |= RTC_CR_WUTIE;
     wakeupOverheadNs = 100000;
- }
+}
 
-  void Rtc::setWakeupTimer(unsigned short int wut_value)
-  {
+void Rtc::setWakeupTimer(unsigned short int wut_value)
+{
     RTC->CR &= ~RTC_CR_WUTE;
     while( (RTC->ISR & RTC_ISR_WUTWF ) == 0 );
     RTC->CR |= (RTC_CR_WUCKSEL_0 | RTC_CR_WUCKSEL_1);
     RTC->CR &= ~(RTC_CR_WUCKSEL_2) ; //! select RTC/2 clock for wakeup
     RTC->WUTR = wut_value & RTC_WUTR_WUT;  
-  }
+}
 
-  void Rtc::startWakeupTimer()
-  {
+void Rtc::startWakeupTimer()
+{
     RTC->CR |= RTC_CR_WUTE;
-  }
+}
 
-  void  Rtc::stopWakeupTimer()
-  {
+void  Rtc::stopWakeupTimer()
+{
     RTC->CR &= ~RTC_CR_WUTE;
     RTC->ISR &= ~RTC_ISR_WUTF;
-  }
+}
 
-  long long Rtc::getWakeupOverhead() 
-  {
-	return wakeupOverheadNs;
-  }
+long long Rtc::getWakeupOverhead() 
+{
+    return wakeupOverheadNs;
+}
 
-  long long Rtc::getMinimumDeepSleepPeriod() 
-  {
-	return minimumDeepSleepPeriod;
-  }
+long long Rtc::getMinimumDeepSleepPeriod() 
+{
+    return minimumDeepSleepPeriod;
+}
 
-
-  Rtc::Rtc() :
-    clock_freq(32768) ,
-    wkp_clock_period( 1000000000 * 2 / clock_freq ) ,
+Rtc::Rtc() :
+    clock_freq(32768),
+    wkp_clock_period(1000000000 * 2 / clock_freq),
     wkp_tc(clock_freq / 2)
-  {
+{
     {
-      InterruptDisableLock dl;
-      RCC->APB1ENR |= RCC_APB1ENR_PWREN;
-      PWR->CR |= PWR_CR_DBP;
+        InterruptDisableLock dl;
+        RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+        PWR->CR |= PWR_CR_DBP;
 
-      // Without the next two lines the BDCR bit for LSEON
-      // is ignored and the next while loop never exits
-      RCC->BDCR = RCC_BDCR_BDRST;
-      RCC->BDCR = 0;
-      
-      RCC->BDCR |= RCC_BDCR_RTCEN       //RTC enabled
-	| RCC_BDCR_LSEON       //External 32KHz oscillator enabled
-	| RCC_BDCR_RTCSEL_0;   //Select LSE as clock source for RTC
-      RCC->BDCR &= ~(RCC_BDCR_RTCSEL_1);
-      RCC->CFGR |= (0b1<<21);
+        // Without the next two lines the BDCR bit for LSEON
+        // is ignored and the next while loop never exits
+        RCC->BDCR = RCC_BDCR_BDRST;
+        RCC->BDCR = 0;
+
+        RCC->BDCR |= RCC_BDCR_RTCEN       //RTC enabled
+                   | RCC_BDCR_LSEON       //External 32KHz oscillator enabled
+                   | RCC_BDCR_RTCSEL_0;   //Select LSE as clock source for RTC
+        RCC->BDCR &= ~(RCC_BDCR_RTCSEL_1);
+        RCC->CFGR |= (0b1<<21);
     }
     ledOn();
-    while((RCC->BDCR & RCC_BDCR_LSERDY)==0); //Wait for LSE to start
+    while((RCC->BDCR & RCC_BDCR_LSERDY)==0) ; //Wait for LSE to start
     ledOff();
     // Enable write on RTC_ISR register
-      RTC->WPR = 0xCA;
-      RTC->WPR = 0x53;
-      
-      RTC->CR &= ~(RTC_CR_BYPSHAD);
-      RTC->PRER = (128 <<16) | ( 256<<0); // default prescaler
-      RTC->ISR |= RTC_ISR_INIT;
-    while((RTC->ISR & RTC_ISR_INITF)== 0); // wait clock and calendar initialization
-      RTC->TR = (RTC_TR_SU & 0x0) | (RTC_TR_ST & 0x0) | (RTC_TR_MNU & 0x0 )
-	| (RTC_TR_MNT & 0x0) | (RTC_TR_HU & 0x0) | (RTC_TR_HT & 0x0); 
-      RTC->DR = (1<<0) | (1<<8) | (1<<13) | (9<<16) | (1<<20); // initialized to 1/1/2019
+    RTC->WPR = 0xCA;
+    RTC->WPR = 0x53;
 
-      RTC->CR &= ~(RTC_CR_FMT); // Use 24-hour format
-      RTC->ISR &= ~(RTC_ISR_INIT);
+    RTC->CR &= ~(RTC_CR_BYPSHAD);
+    RTC->PRER = (128 <<16) | ( 256<<0); // default prescaler
+    RTC->ISR |= RTC_ISR_INIT;
+    while((RTC->ISR & RTC_ISR_INITF)== 0) ; // wait clock and calendar initialization
+    RTC->TR = (RTC_TR_SU & 0x0)  | (RTC_TR_ST & 0x0) | (RTC_TR_MNU & 0x0)
+            | (RTC_TR_MNT & 0x0) | (RTC_TR_HU & 0x0) | (RTC_TR_HT & 0x0); 
+    RTC->DR = (1<<0) | (1<<8) | (1<<13) | (9<<16) | (1<<20); // initialized to 1/1/2019
+
+    RTC->CR &= ~(RTC_CR_FMT); // Use 24-hour format
+    RTC->ISR &= ~(RTC_ISR_INIT);
     prescaler_s = 0x00000000 |  (RTC->PRER & RTC_PRER_PREDIV_S);
     // NVIC_SetPriority(RTC_WKUP_IRQn,10);
     // NVIC_EnableIRQ(RTC_WKUP_IRQn);
-  }
-
-
-
+}
 
 } //namespace miosix
