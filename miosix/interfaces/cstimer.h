@@ -42,14 +42,13 @@ public:
      * \return the current tick count of the timer (in terms of nanoseconds)
      */
     long long getCurrentTime() const;
-
+    
     /**
-     * Set the current system time
-     * Used to adjust the time for example if the system clock was stopped
-     * due to entering deep sleep.
+     * \return the current tick count of the timer (in terms of nanoseconds)
+     * Can only be called with interrupts disabled or within an IRQ
      */
-    void setCurrentTime(long long ns);
-
+    long long IRQgetCurrentTime() const;
+    
     /**
      * Set the current system time.
      * Can be called with interrupts disabled or within an interrupt.
@@ -59,24 +58,12 @@ public:
     void IRQsetCurrentTime(long long ns);
     
     /**
-     * \return the current tick count of the timer (in terms of nanoseconds)
-     * Can only be called with interrupts disabled or within an IRQ
-     */
-    long long IRQgetCurrentTime() const;
-    
-    /**
      * \return the timer frequency in Hz
      */
     unsigned int getTimerFrequency() const
     {
         return timerFreq;
     }
-
-    /** 
-     * \return the set_offset variable used in IRQgetCurrentTime
-     * useful for external computation
-     */
-    long long getOffset() const;
     
     /**
      * Destructor

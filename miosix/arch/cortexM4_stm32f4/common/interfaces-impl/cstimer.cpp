@@ -128,18 +128,6 @@ long long ContextSwitchTimer::IRQgetCurrentTime() const
 {
     return tc->tick2ns(IRQgetTick()) + set_offset;
 }
-
-void ContextSwitchTimer::setCurrentTime(long long ns)
-{
-    bool interrupts=areInterruptsEnabled();
-    //TODO: optimization opportunity, if we can guarantee that no call to this
-    //function occurs before kernel is started, then we can use
-    //fastInterruptDisable())
-    if(interrupts) disableInterrupts();
-    long long current_time = tc->tick2ns(IRQgetTick());
-    set_offset = std::max(ns - current_time, 0LL); // avoid negative offsets
-    if(interrupts) enableInterrupts();
-}
   
 void ContextSwitchTimer::IRQsetCurrentTime(long long ns) 
 {
@@ -196,11 +184,6 @@ ContextSwitchTimer::ContextSwitchTimer()
     static TimeConversion stc(timerFreq);
     set_offset = 0;
     tc = &stc;
-}
-
-long long ContextSwitchTimer::getOffset() const
-{
-    return set_offset;
 }
 
 } //namespace miosix
