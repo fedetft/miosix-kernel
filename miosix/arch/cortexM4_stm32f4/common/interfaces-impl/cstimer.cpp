@@ -96,7 +96,13 @@ ContextSwitchTimer& ContextSwitchTimer::instance()
 
 void ContextSwitchTimer::IRQsetNextInterrupt(long long ns)
 {
-    long long tick =  std::max<long long>(tc->ns2tick(ns - set_offset), IRQgetTick()); 
+    long long offsetNs = ns - set_offset;
+    if(offsetNs <= 0)
+    {
+        NVIC_SetPendingIRQ(TIM2_IRQn);
+        lateIrq=true;
+    }
+    long long tick = tc->ns2tick(offsetNs);
     ms32chkp = tick & upperMask;
     TIM2->CCR1 = static_cast<unsigned int>(tick & lowerMask);
     if(IRQgetTick() >= nextInterrupt())
@@ -131,8 +137,12 @@ long long ContextSwitchTimer::IRQgetCurrentTime() const
   
 void ContextSwitchTimer::IRQsetCurrentTime(long long ns) 
 {
-    long long current_time = tc->tick2ns(IRQgetTick());
-    set_offset = std::max(ns - current_time, 0LL); // avoid negative offsets
+    long long nextInterrupt = getNextInterrupt();
+    long long currentTime = tc->tick2ns(IRQgetTick());
+    //NOTE: can only move time forward, the OS can't tolerate a backward jump
+    set_offset = std::max(ns - currentTime, 0LL);
+    //NOTE: adjust also when the next interrupt will be fired
+    IRQsetNextInterrupt(nextInterrupt);
 }
 
 ContextSwitchTimer::~ContextSwitchTimer() {}
