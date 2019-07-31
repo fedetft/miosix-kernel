@@ -14,8 +14,8 @@ const unsigned long long upperMask=0xFFFFFFFFFFFFFFFFLL-lowerMask;
 
 static long long ms32time = 0; //most significant 32 bits of counter
 static long long ms32chkp = 0; //most significant 32 bits of check point
-static bool lateIrq=false;
 static long long set_offset = 0;
+static bool lateIrq=false;
 
 static TimeConversion *tc;
 
@@ -124,8 +124,7 @@ long long ContextSwitchTimer::getCurrentTime() const
     //function occurs before kernel is started, then we can use
     //fastInterruptDisable())
     if(interrupts) disableInterrupts();
-    long long result=tc->tick2ns(IRQgetTick());
-    result += set_offset;
+    long long result=tc->tick2ns(IRQgetTick()) + set_offset;
     if(interrupts) enableInterrupts();
     return result;
 }
@@ -135,7 +134,7 @@ long long ContextSwitchTimer::IRQgetCurrentTime() const
     return tc->tick2ns(IRQgetTick()) + set_offset;
 }
   
-void ContextSwitchTimer::IRQsetCurrentTime(long long ns) 
+void ContextSwitchTimer::IRQsetCurrentTime(long long ns)
 {
     long long nextInterrupt = getNextInterrupt();
     long long currentTime = tc->tick2ns(IRQgetTick());
@@ -192,7 +191,6 @@ ContextSwitchTimer::ContextSwitchTimer()
     // at which the timer prescaler is clocked.
     if(RCC->CFGR & RCC_CFGR_PPRE1_2) timerFreq/=1<<((RCC->CFGR>>10) & 0x3);
     static TimeConversion stc(timerFreq);
-    set_offset = 0;
     tc = &stc;
 }
 
