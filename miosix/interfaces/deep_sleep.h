@@ -38,25 +38,49 @@
  * This file contains required functions to implement automatic deep sleep state
  * switch.
  * 
- * This solution on supported hardware allows to power off also the peripherals when the system
- * is in idle state and doens't require any peripheral action.
+ * This solution on supported hardware allows to power off also the peripherals
+ * when the system is in idle state and doesn't require any peripheral action.
+ * 
+ * NOTE: this interface is meant to be used only by the kernel and not by user
+ * code. When automatic deep sleep is enabled, it is transparent to applications.
  */
 
 namespace miosix {
 
-/** 
- * \brief Put in deep sleep the board until the next wakeup schedule
- *
- * \param abstime : selected absolute time to wake up from deep sleep state. At this time the interrupt
- * from RTC will be executed
- */
-void IRQdeepSleep(long long abstime);
-
 /**
- * \brief Initialize the required component to support the deep sleep functionalities.
+ * \internal
+ * Initialize the required component to support the deep sleep functionalities.
  */
 void IRQdeepSleepInit();
 
+/** 
+ * \internal
+ * Put in deep sleep the board until the next wakeup schedule.
+ * \param abstime : selected absolute time to wake up from deep sleep state.
+ * This blocking function shall return when abstime is reached.
+ * \return true if the deep sleep operation was performed succesfully, and the
+ * function has returned at the prescribed time (within its tolerance).
+ * This function may immediately return false if some condition is not met and
+ * going in deep sleep was not possible, for example the requested wakeup time
+ * is too close considering the overhead of going in deep sleep.
+ */
+bool IRQdeepSleep(long long abstime);
+
+/**
+ * \internal
+ * Put in deep sleep the board without a wakeup time.
+ * This may happen because of waiting for some event that can happen also
+ * in deep sleep.
+ * \return true if the deep sleep operation was performed succesfully.
+ * This function may immediately return false if some condition is not met and
+ * going in deep sleep was not possible.
+ */
+bool IRQdeepSleep();
+
 } //namespace miosix
+
+/**
+ * \}
+ */
 
 #endif //  DEEP_SLEEP_H

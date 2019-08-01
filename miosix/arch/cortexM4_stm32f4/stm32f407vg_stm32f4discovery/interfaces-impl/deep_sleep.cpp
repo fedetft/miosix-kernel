@@ -103,8 +103,14 @@ static void IRQenterStopMode()
     //Configure PLL and turn it on
     rtc->stopWakeupTimer();
 }
+
+void IRQdeepSleepInit()
+{
+    rtc = &Rtc::instance();
+    rtc->setWakeupInterrupt();
+}
   
-void IRQdeepSleep(long long int abstime)
+bool IRQdeepSleep(long long int abstime)
 {
     ContextSwitchTimer& cstimer = ContextSwitchTimer::instance();
     long long reltime = abstime - cstimer.IRQgetCurrentTime();
@@ -112,7 +118,7 @@ void IRQdeepSleep(long long int abstime)
     if(reltime < rtc->getMinimumDeepSleepPeriod())
     {
         // Too late for deep-sleep, use normal sleep
-        miosix_private::sleepCpu();
+        return false;
     } else {
 #ifdef DEBUG_DEEP_SLEEP
         _led::high();
@@ -135,13 +141,12 @@ void IRQdeepSleep(long long int abstime)
 #endif
         cstimer.IRQsetCurrentTime(abstime);
     }
-    return;
+    return true;
 }
 
-void IRQdeepSleepInit()
+bool IRQdeepSleep()
 {
-    rtc = &Rtc::instance();
-    rtc->setWakeupInterrupt();
+    return IRQdeepSleep(3600000000000); //Just wait a long time, 3600s
 }
 
 } //namespace miosix

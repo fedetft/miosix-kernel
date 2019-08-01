@@ -115,23 +115,23 @@ void *idleThread(void *argv)
         //mode, so to use debugging it is necessary to remove this instruction
         
         #ifdef WITH_DEEP_SLEEP
-        bool sleep=false;
         {
             FastInterruptDisableLock lock;
+            bool sleep;
             if(deepSleepCounter==0)
             {
-                long long closest_wakeup_time=0;
-                if(!sleepingList->empty()) 
+                if(sleepingList->empty()==false)
                 {
-                    auto first_sleep=sleepingList->begin();
-                    closest_wakeup_time=(*first_sleep)->wakeup_time;
-                } else {
-                    closest_wakeup_time=3600000000000; //3600s
-                }
-                IRQdeepSleep(closest_wakeup_time);
+                    long long wakeup=(*sleepingList->begin())->wakeup_time;
+                    sleep=!IRQdeepSleep(wakeup);
+                } else sleep=!IRQdeepSleep();
             } else sleep=true;
+            //NOTE: going to sleep with interrupts disabled makes sure no
+            //preemption occurs from when we take the decision to sleep till
+            //we actually do sleep. Wakeup interrupt will be run when we enable
+            //back interrupts
+            if(sleep) miosix_private::sleepCpu();
         }
-        if(sleep) miosix_private::sleepCpu();
         #else //WITH_DEEP_SLEEP
         miosix_private::sleepCpu();
         #endif //WITH_DEEP_SLEEP

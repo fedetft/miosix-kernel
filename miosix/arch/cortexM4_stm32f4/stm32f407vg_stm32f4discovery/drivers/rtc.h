@@ -126,7 +126,7 @@ private:
     /*  *\/ */
     /* unsigned long long int IRQgetDate(); */
 
-    friend void IRQdeepSleep(long long);
+    friend bool IRQdeepSleep(long long);
 };
 
 } //namespace miosix
