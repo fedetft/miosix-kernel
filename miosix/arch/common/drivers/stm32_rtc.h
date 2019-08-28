@@ -71,7 +71,7 @@ public:
      * 
      * NOTE: if alarm is set wakeup time is not updated
      */
-    void setValue(long long value);
+//     void setValue(long long value);
     
     /**
      * Put thread in wait for the specified relative time.

@@ -158,9 +158,9 @@ namespace miosix {
 void absoluteDeepSleep(long long int value)
 {
     #ifdef RUN_WITH_HSI
-    const long long wakeupAdvance=3; //waking up takes time
+    const int wakeupAdvance=3; //waking up takes time
     #else //RUN_WITH_HSI
-    const long long wakeupAdvance=33; //HSE starup time is 2ms
+    const int wakeupAdvance=33; //HSE starup time is 2ms
     #endif //RUN_WITH_HSI
     
     Rtc& rtc=Rtc::instance();
@@ -169,8 +169,8 @@ void absoluteDeepSleep(long long int value)
     FastInterruptDisableLock dLock;
     
     //Set alarm and enable EXTI
-    long long tick=rtc.tc.ns2tick(value)-wakeupAdvance;
-    unsigned int hwAlarm=(tick & 0xffffffffULL) - (swTime & 0xffffffffULL);
+    long long wkupTick=rtc.tc.ns2tick(value)-wakeupAdvance;
+    unsigned int hwAlarm=(wkupTick & 0xffffffffULL) - (swTime & 0xffffffffULL);
     {
         ScopedCnf cnf;
         RTC->ALRL=hwAlarm;
@@ -182,7 +182,8 @@ void absoluteDeepSleep(long long int value)
     EXTI->RTSR |= EXTI_RTSR_TR17;
     EXTI->EMR  |= EXTI_EMR_MR17; //enable event for wakeup
     
-    while(IRQgetTick()<tick)
+    long long tick=IRQgetTick();
+    while(tick<wkupTick)
     {
         PWR->CR |= PWR_CR_LPDS;
         SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
@@ -222,23 +223,28 @@ void absoluteDeepSleep(long long int value)
         
         //Clear IRQ
         unsigned int crl=RTC->CRL;
-        if(crl & RTC_CRL_OWF)
+        //NOTE: ST docs say OWF, ALRF are not updated in deep sleep. So, to
+        //detect counter ovreflow we check for oldTick>newTick. The check for
+        //flags is still there in case overflow/alarm occurs before/after sleep
+        if(crl & RTC_CRL_OWF || tick>IRQgetTick())
         {
-            //TODO: check that an overflow does cause a wakeup just like alarm
             RTC->CRL=(RTC->CRL | 0xf) & ~RTC_CRL_OWF;
             swTime+=1LL<<32;
         } else if(crl & RTC_CRL_ALRF) {
             RTC->CRL=(RTC->CRL | 0xf) & ~RTC_CRL_ALRF;
         }
+        
+        //Update tick, done after checking IRQ flags to avoid race condition
+        tick=IRQgetTick();
     }
     
     EXTI->EMR &=~ EXTI_EMR_MR17; //disable event for wakeup
     
-    tick+=wakeupAdvance;
+    wkupTick+=wakeupAdvance;
     
     //NOTE: if we use the HSE we may spin for a while, but adding a
     //IRQabsoluteWaitTick here makes this function wakeup too late
-    while(IRQgetTick()<tick) ;
+    while(IRQgetTick()<wkupTick) ;
 }
 
 //
@@ -268,11 +274,12 @@ long long Rtc::IRQgetValue() const
     return tc.tick2ns(IRQgetTick());
 }
 
-void Rtc::setValue(long long value)
-{
-    FastInterruptDisableLock dLock;
-    swTime=tc.ns2tick(value)-IRQgetHwTick();
-}
+// May not work due to the way hwAlarm is computed in sleep functions
+// void Rtc::setValue(long long value)
+// {
+//     FastInterruptDisableLock dLock;
+//     swTime=tc.ns2tick(value)-IRQgetHwTick();
+// }
 
 void Rtc::wait(long long value)
 {
