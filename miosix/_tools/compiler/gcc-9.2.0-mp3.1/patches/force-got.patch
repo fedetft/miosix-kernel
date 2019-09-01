@@ -1,0 +1,90 @@
+diff -ruN gcc-9.2.0-old/gcc/config/arm/arm.c gcc-9.2.0/gcc/config/arm/arm.c
+--- gcc-9.2.0-old/gcc/config/arm/arm.c	2019-04-23 12:03:41.000000000 +0200
++++ gcc-9.2.0/gcc/config/arm/arm.c	2019-08-31 15:47:58.107771386 +0200
+@@ -7526,6 +7526,20 @@
+ 	  reg = gen_reg_rtx (Pmode);
+ 	}
+ 
++      char miosix_is_rodata=0;
++      //TODO: #ifdef _MIOSIX does not work in this context
++      /* If miosix custom compilation for processes is enabled, we verify if
++         the variable is const or not. Then we'll access all the data except for
++         readonly section, via GOT. For rodata we'll use pc-realtive addressing. */	
++      if ( !arm_pic_data_is_text_relative && SYMBOL_REF_HAS_BLOCK_INFO_P(orig) 
++           && SYMBOL_REF_BLOCK(orig) != NULL 
++           && ( ( strstr(SYMBOL_REF_BLOCK(orig)->sect->named.name,".rodata" ) != NULL ) 
++                || (SYMBOL_REF_BLOCK(orig)->sect == readonly_data_section ))){           
++           miosix_is_rodata=1;
++           /*printf("\n++Value of SYMBOL_REF within legitimize_pic_address: %#X",SYMBOL_REF_FLAGS (orig));*/
++           
++         }
++
+       /* VxWorks does not impose a fixed gap between segments; the run-time
+ 	 gap can be different from the object-file gap.  We therefore can't
+ 	 use GOTOFF unless we are absolutely sure that the symbol is in the
+@@ -7541,7 +7555,7 @@
+ 	       && (SYMBOL_REF_DECL (orig)
+ 		   ? !DECL_WEAK (SYMBOL_REF_DECL (orig)) : 1)))
+ 	  && NEED_GOT_RELOC
+-	  && arm_pic_data_is_text_relative)
++	  && (arm_pic_data_is_text_relative || miosix_is_rodata))
+ 	insn = arm_pic_static_addr (orig, reg);
+       else
+ 	{
+@@ -26737,6 +26751,33 @@
+     SYMBOL_REF_FLAG (XEXP (rtl, 0)) = 1;
+ 
+   default_encode_section_info (decl, rtl, first);
++  
++#if 0
++  /* If we are compiling for a miosix process mark down that the declaration is
++     constant
++     FIXME: here we have a bug. Any marking of SYMBOL_REF_FLAGS will not be preserved
++     during transformation and optimization processing of the IR. Actually those
++     metadata will be overwritten during the compilation process */
++     /*
++  if(TARGET_SINGLE_PIC_BASE){
++  	/* Careful not to prod global register variables.  */
++  	if (!MEM_P (rtl))
++	    return;
++  	/* Mark the data coming from readonly decl, assuming no relocation for 
++  	   categorize_decl_for_section  */ 
++	if (GET_CODE (XEXP (rtl, 0)) != SYMBOL_REF)
++	  return;
++    
++	if(decl_readonly_section(decl,0)){
++	    SYMBOL_REF_FLAGS (XEXP (rtl, 0)) |= SYMBOL_FLAG_READONLY_DECL;
++	    /*
++	    printf("\nconst value found!!");
++	    printf("\nflags value is %#X", SYMBOL_REF_FLAGS (XEXP (rtl, 0)));
++	    */
++	 }
++   }	
++#endif
++
+ }
+ #endif /* !ARM_PE */
+ 
+diff -ruN gcc-9.2.0-old/gcc/config/arm/arm.h gcc-9.2.0/gcc/config/arm/arm.h
+--- gcc-9.2.0-old/gcc/config/arm/arm.h	2019-04-23 12:03:41.000000000 +0200
++++ gcc-9.2.0/gcc/config/arm/arm.h	2019-08-31 15:23:38.840566527 +0200
+@@ -1678,6 +1678,19 @@
+    Shifts in addresses can't be by a register.  */
+ #define MAX_REGS_PER_ADDRESS 2
+ 
++/* Flag to mark constant decls before RTL pass. We would
++   really like to have to know if any rtx operand is going to be placed in a
++   readonly section.
++   NOTE: there aren't any other custom symbol_flag defined for arm arch.
++   FIXME: by now marking a node of the tree in the IR is useless because any byte
++   except of the least significant one is overwritten during the code transformation.
++   We should provide that all the metadata bytes will not be overwritten. */
++/*
++#define SYMBOL_FLAG_READONLY_DECL	(SYMBOL_FLAG_MACH_DEP << 2)
++#define SYMBOL_REF_READONLY_DECL_P(X)	\
++	((SYMBOL_REF_FLAGS (X) & SYMBOL_FLAG_READONLY_DECL) != 0)
++*/
++
+ /* Recognize any constant value that is a valid address.  */
+ /* XXX We can address any constant, eventually...  */
+ /* ??? Should the TARGET_ARM here also apply to thumb2?  */
