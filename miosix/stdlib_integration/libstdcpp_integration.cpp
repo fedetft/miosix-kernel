@@ -42,27 +42,41 @@ using namespace std;
 // C++ exception support
 // =====================
 
+#if __cplusplus >= 201703L
+#warning: TODO: Override new with alignment (libsupc++/new_opa.cc, new_opv.cc, ...
+#endif
+
 #ifdef __NO_EXCEPTIONS
 /*
  * If not using exceptions, ovverride the default new, delete with
  * an implementation that does not throw, to minimze code size
  */
-void *operator new(size_t size) throw()
+void *operator new(size_t size) noexcept
 {
     return malloc(size);
 }
 
-void *operator new[](size_t size) throw()
+void *operator new(size_t size, const std::nothrow_t&) noexcept
 {
     return malloc(size);
 }
 
-void operator delete(void *p) throw()
+void *operator new[](size_t size) noexcept
+{
+    return malloc(size);
+}
+
+void *operator new[](size_t size, const std::nothrow_t&) noexcept
+{
+    return malloc(size);
+}
+
+void operator delete(void *p) noexcept
 {
     free(p);
 }
 
-void operator delete[](void *p) throw()
+void operator delete[](void *p) noexcept
 {
     free(p);
 }
@@ -101,15 +115,23 @@ void __throw_domain_error(const char*) { _exit(1); }
 void __throw_invalid_argument(const char*) { _exit(1); }
 void __throw_length_error(const char*) { _exit(1); }
 void __throw_out_of_range(const char*) { _exit(1); }
+void __throw_out_of_range_fmt(const char*, ...) { exit(1); } //Since GCC 9.2.0
 void __throw_runtime_error(const char*) { _exit(1); }
 void __throw_range_error(const char*) { _exit(1); }
 void __throw_overflow_error(const char*) { _exit(1); }
 void __throw_underflow_error(const char*) { _exit(1); }
-void __throw_ios_failure(const char*) { _exit(1); }
+void __throw_ios_failure(const char*) { _exit(1); } //Unused since GCC 9.2.0
 void __throw_system_error(int) { _exit(1); }
 void __throw_future_error(int) { _exit(1); }
 void __throw_bad_function_call() { _exit(1); }
 } //namespace std
+
+namespace __cxxabiv1 {
+extern "C" void __cxa_throw_bad_array_length() { exit(1); } //Since GCC 9.2.0
+extern "C" void __cxa_bad_cast() { exit(1); } //Since GCC 9.2.0
+extern "C" void __cxa_bad_typeid() { exit(1); } //Since GCC 9.2.0
+extern "C" void __cxa_throw_bad_array_new_length() { exit(1); } //Since GCC 9.2.0
+} //namespace __cxxabiv1
 
 #endif //__NO_EXCEPTIONS
 

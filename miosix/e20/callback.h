@@ -224,12 +224,12 @@ template<unsigned N>
 template<typename T>
 Callback<N>& Callback<N>::operator= (T functor)
 {
-    //This is a static assert: if an error is reported about this line
-    //an attempt to store a too large object is made. Increase N.
-    typedef char check1[sizeof(any)<sizeof(T) ? -1 : 1];
+    //If an error is reported about this line an attempt to store a too large
+    //object is made. Increase N.
+    static_assert(sizeof(any)>=sizeof(T),"");
     
     //This should not fail unless something has a stricter alignment than double
-    typedef char check2[__alignof__(any)<__alignof__(T) ? -1 : 1];
+    static_assert(__alignof__(any)>=__alignof__(T),"");
 
     if(operation) operation(any,0,DESTROY);
 

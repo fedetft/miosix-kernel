@@ -25,6 +25,10 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+//Makes memrchr available in newer GCCs
+#define _GNU_SOURCE
+#include <string.h>
+
 #include "stringpart.h"
 #include <cassert>
 
