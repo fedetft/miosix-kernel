@@ -1,0 +1,1 @@
+Compiler patches for 8.2.0 were never completed and are kept only for reference.
