@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 by Terraneo Federico *
+ *   Copyright (C) 2008-2019 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -44,6 +44,7 @@ using namespace std;
 
 #if __cplusplus >= 201703L
 #warning: TODO: Override new with alignment (libsupc++/new_opa.cc, new_opv.cc, ...
+#warning: TODO: FIX __gthread_key_t in libstdc++/include/std/memory_resource
 #endif
 
 #ifdef __NO_EXCEPTIONS
@@ -100,6 +101,13 @@ extern "C" void __cxxabiv1::__cxa_deleted_virtual(void)
     errorLog("\n***Deleted virtual method called\n");
     _exit(1);
 }
+
+#if _MIOSIX_GCC_PATCH_MAJOR > 2
+namespace std {
+void terminate()  noexcept { _exit(1); } //Since GCC 9.2.0
+void unexpected() noexcept { _exit(1); } //Since GCC 9.2.0
+} //namespace std
+#endif
 
 /*
  * If not using exceptions, ovverride these functions with
