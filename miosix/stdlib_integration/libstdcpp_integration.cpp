@@ -303,3 +303,33 @@ extern "C" void __cxa_guard_abort(__guard *g) noexcept
 }
 
 } //namespace __cxxabiv1
+
+//
+// libatomic support, to provide thread safe atomic operation fallbacks
+// ====================================================================
+
+// Not using the fast version, as these may be used before the kernel is started
+
+extern "C" unsigned int libat_quick_lock_n(void *ptr)
+{
+    miosix::disableInterrupts();
+    return 0;
+}
+
+extern "C" void libat_quick_unlock_n(void *ptr, unsigned int token)
+{
+    miosix::enableInterrupts();
+}
+
+// These are to implement "heavy" atomic operations, which are not used in
+// libstdc++. For now let's keep them disbaled.
+
+// extern "C" void libat_lock_n(void *ptr, size_t n)
+// {
+//     miosix::pauseKernel();
+// }
+// 
+// extern "C" void libat_unlock_n(void *ptr, size_t n)
+// {
+//     miosix::restartKernel();
+// }

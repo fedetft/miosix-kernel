@@ -56,8 +56,15 @@ AFLAGS   := $(AFLAGS_BASE)
 LFLAGS   := $(LFLAGS_BASE)
 DFLAGS   := -MMD -MP
 
-LINK_LIBS := $(LIBS) -L$(KPATH) -Wl,--start-group -lmiosix -lstdc++ -lc \
-             -lm -lgcc -Wl,--end-group
+## libmiosix.a is among stdlibs because needs to be within start/end group
+STDLIBS  := -lmiosix -lstdc++ -lc -lm -lgcc
+
+GCCMAJOR := $(shell $(CC) --version | perl -e '$$_=<>;/\(GCC\) (\d+)/;print "$$1"')
+ifneq ($(GCCMAJOR),4)
+	STDLIBS += -latomic
+endif
+
+LINK_LIBS := $(LIBS) -L$(KPATH) -Wl,--start-group $(STDLIBS) -Wl,--end-group
 
 all: all-recursive main
 
