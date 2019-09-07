@@ -1,7 +1,7 @@
 diff -ruN gcc-9.2.0-old/gcc/config/arm/arm.c gcc-9.2.0/gcc/config/arm/arm.c
---- gcc-9.2.0-old/gcc/config/arm/arm.c	2019-04-23 12:03:41.000000000 +0200
-+++ gcc-9.2.0/gcc/config/arm/arm.c	2019-08-31 15:47:58.107771386 +0200
-@@ -7526,6 +7526,20 @@
+--- gcc-9.2.0-old/gcc/config/arm/arm.c	2019-09-04 10:00:04.469303128 +0200
++++ gcc-9.2.0/gcc/config/arm/arm.c	2019-09-04 09:54:04.058994962 +0200
+@@ -7548,6 +7548,20 @@
  	  reg = gen_reg_rtx (Pmode);
  	}
  
@@ -22,7 +22,7 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/arm.c gcc-9.2.0/gcc/config/arm/arm.c
        /* VxWorks does not impose a fixed gap between segments; the run-time
  	 gap can be different from the object-file gap.  We therefore can't
  	 use GOTOFF unless we are absolutely sure that the symbol is in the
-@@ -7541,7 +7555,7 @@
+@@ -7563,7 +7577,7 @@
  	       && (SYMBOL_REF_DECL (orig)
  		   ? !DECL_WEAK (SYMBOL_REF_DECL (orig)) : 1)))
  	  && NEED_GOT_RELOC
@@ -31,7 +31,7 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/arm.c gcc-9.2.0/gcc/config/arm/arm.c
  	insn = arm_pic_static_addr (orig, reg);
        else
  	{
-@@ -26737,6 +26751,33 @@
+@@ -26759,6 +26773,33 @@
      SYMBOL_REF_FLAG (XEXP (rtl, 0)) = 1;
  
    default_encode_section_info (decl, rtl, first);
@@ -67,7 +67,7 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/arm.c gcc-9.2.0/gcc/config/arm/arm.c
  
 diff -ruN gcc-9.2.0-old/gcc/config/arm/arm.h gcc-9.2.0/gcc/config/arm/arm.h
 --- gcc-9.2.0-old/gcc/config/arm/arm.h	2019-04-23 12:03:41.000000000 +0200
-+++ gcc-9.2.0/gcc/config/arm/arm.h	2019-08-31 15:23:38.840566527 +0200
++++ gcc-9.2.0/gcc/config/arm/arm.h	2019-09-04 09:54:04.058994962 +0200
 @@ -1678,6 +1678,19 @@
     Shifts in addresses can't be by a register.  */
  #define MAX_REGS_PER_ADDRESS 2

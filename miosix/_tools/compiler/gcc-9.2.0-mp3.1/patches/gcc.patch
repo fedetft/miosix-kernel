@@ -1,6 +1,6 @@
 diff -ruN gcc-9.2.0-old/config/gthr.m4 gcc-9.2.0/config/gthr.m4
 --- gcc-9.2.0-old/config/gthr.m4	2012-10-15 15:10:30.000000000 +0200
-+++ gcc-9.2.0/config/gthr.m4	2019-09-01 23:50:39.035910716 +0200
++++ gcc-9.2.0/config/gthr.m4	2019-09-04 10:28:50.305075317 +0200
 @@ -14,6 +14,7 @@
      aix)	thread_header=config/rs6000/gthr-aix.h ;;
      dce)	thread_header=config/pa/gthr-dce.h ;;
@@ -9,9 +9,45 @@ diff -ruN gcc-9.2.0-old/config/gthr.m4 gcc-9.2.0/config/gthr.m4
      mipssde)	thread_header=config/mips/gthr-mipssde.h ;;
      posix)	thread_header=gthr-posix.h ;;
      rtems)	thread_header=config/gthr-rtems.h ;;
+diff -ruN gcc-9.2.0-old/gcc/config/arm/arm.c gcc-9.2.0/gcc/config/arm/arm.c
+--- gcc-9.2.0-old/gcc/config/arm/arm.c	2019-04-23 12:03:41.000000000 +0200
++++ gcc-9.2.0/gcc/config/arm/arm.c	2019-09-05 00:28:44.662194132 +0200
+@@ -2758,8 +2758,30 @@
+ 	}
+   }
+ 
+-  if (TARGET_AAPCS_BASED)
+-    synchronize_libfunc = init_one_libfunc ("__sync_synchronize");
++  //Rationale:
++  //Compiling code that instantiates C++ static objects on architectures that do
++  //not have memory fence/barrier instructions (e.g: ARM7TDMI) causes undefined
++  //reference to `__sync_synchronize'.
++  //expand_mem_thread_fence() in gcc/optabs.c:6489 tries to emit ASM insn
++  //and failing that, emits the __sync_synchronize call if available.
++  //Synchronize_libfunc is used only in optabs.c and defined only for ARM/MIPS
++  //$ grep -R 'synchronize_libfunc' gcc-9.2.0
++  //libfuncs.h:79:#define synchronize_libfunc    (libfunc_table[LTI_synchronize])
++  //config/arm/arm.c:2776:    synchronize_libfunc = init_one_libfunc ("__sync_synchronize");
++  //config/mips/mips.c:13535:      synchronize_libfunc = init_one_libfunc ("__sync_synchronize");
++  //optabs.c:6500:  else if (synchronize_libfunc != NULL_RTX)
++  //optabs.c:6501:    emit_library_call (synchronize_libfunc, LCT_NORMAL, VOIDmode);
++  //$ grep -Rn 'LTI_synchronize' gcc-9.2.0
++  //libfuncs.h:29:  LTI_synchronize,
++  //libfuncs.h:79:#define synchronize_libfunc (libfunc_table[LTI_synchronize])
++  //The ARM implementation is in libgcc and only exists for linux and bsd.
++  //
++  //Solution: remove given ARM7TDMI don't need hardware memory barriers at all.
++  //
++  //When updating patches to new compiler, check that cortex-M targets have
++  //dmb instructions, while ARM7TDMI code has no calls to __sync_synchronize.
++  //if (TARGET_AAPCS_BASED)
++  //  synchronize_libfunc = init_one_libfunc ("__sync_synchronize");
+ 
+   speculation_barrier_libfunc = init_one_libfunc ("__speculation_barrier");
+ }
 diff -ruN gcc-9.2.0-old/gcc/config/arm/miosix-eabi.h gcc-9.2.0/gcc/config/arm/miosix-eabi.h
 --- gcc-9.2.0-old/gcc/config/arm/miosix-eabi.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-9.2.0/gcc/config/arm/miosix-eabi.h	2019-09-01 23:50:39.035910716 +0200
++++ gcc-9.2.0/gcc/config/arm/miosix-eabi.h	2019-09-04 10:28:50.521078106 +0200
 @@ -0,0 +1,19 @@
 +
 +/*
@@ -34,7 +70,7 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/miosix-eabi.h gcc-9.2.0/gcc/config/arm/mi
 +    } while(false)
 diff -ruN gcc-9.2.0-old/gcc/config/arm/t-arm-miosix gcc-9.2.0/gcc/config/arm/t-arm-miosix
 --- gcc-9.2.0-old/gcc/config/arm/t-arm-miosix	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-9.2.0/gcc/config/arm/t-arm-miosix	2019-09-01 23:50:39.035910716 +0200
++++ gcc-9.2.0/gcc/config/arm/t-arm-miosix	2019-09-04 10:28:50.521078106 +0200
 @@ -0,0 +1,49 @@
 +
 +## RATIONALE: build multilibs for ARM, Cortex-Mx, and the pie versions
@@ -87,7 +123,7 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/t-arm-miosix gcc-9.2.0/gcc/config/arm/t-a
 +# thumb/cm7/hardfp/fpv5/pie/single-pic-base;@mthumb@mcpu=cortex-m7@mfloat-abi=hard@mfpu=fpv5-d16@fpie@msingle-pic-base
 diff -ruN gcc-9.2.0-old/gcc/config.gcc gcc-9.2.0/gcc/config.gcc
 --- gcc-9.2.0-old/gcc/config.gcc	2019-08-03 22:16:22.000000000 +0200
-+++ gcc-9.2.0/gcc/config.gcc	2019-09-01 23:50:39.035910716 +0200
++++ gcc-9.2.0/gcc/config.gcc	2019-09-04 10:28:50.521078106 +0200
 @@ -1218,6 +1218,13 @@
  	tmake_file="${tmake_file} arm/t-arm arm/t-arm-elf"
  	target_cpu_cname="arm7tdmi"
@@ -104,7 +140,7 @@ diff -ruN gcc-9.2.0-old/gcc/config.gcc gcc-9.2.0/gcc/config.gcc
  	  tmake_file="${tmake_file} arm/t-bpabi"
 diff -ruN gcc-9.2.0-old/gcc/configure gcc-9.2.0/gcc/configure
 --- gcc-9.2.0-old/gcc/configure	2019-06-26 11:15:46.000000000 +0200
-+++ gcc-9.2.0/gcc/configure	2019-09-01 23:50:39.039910744 +0200
++++ gcc-9.2.0/gcc/configure	2019-09-04 10:28:50.525078157 +0200
 @@ -11860,7 +11860,7 @@
      # default
      target_thread_file='single'
@@ -116,7 +152,7 @@ diff -ruN gcc-9.2.0-old/gcc/configure gcc-9.2.0/gcc/configure
      ;;
 diff -ruN gcc-9.2.0-old/gcc/configure.ac gcc-9.2.0/gcc/configure.ac
 --- gcc-9.2.0-old/gcc/configure.ac	2019-06-26 11:15:46.000000000 +0200
-+++ gcc-9.2.0/gcc/configure.ac	2019-09-01 23:50:39.039910744 +0200
++++ gcc-9.2.0/gcc/configure.ac	2019-09-04 10:28:50.525078157 +0200
 @@ -1646,7 +1646,7 @@
      # default
      target_thread_file='single'
@@ -126,9 +162,67 @@ diff -ruN gcc-9.2.0-old/gcc/configure.ac gcc-9.2.0/gcc/configure.ac
    single | tpf | vxworks | win32)
      target_thread_file=${enable_threads}
      ;;
+diff -ruN gcc-9.2.0-old/libatomic/config/miosix/host-config.h gcc-9.2.0/libatomic/config/miosix/host-config.h
+--- gcc-9.2.0-old/libatomic/config/miosix/host-config.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-9.2.0/libatomic/config/miosix/host-config.h	2019-09-05 09:47:04.113812875 +0200
+@@ -0,0 +1,23 @@
++
++/*
++ * According to libatomic_i.h, here we should implement
++ * - UWORD protect_start(void *ptr);
++ * - void protect_end(void *ptr, UWORD token);
++ * which are used by fop_n.c fop_n.c cas_n.c exch_n.c tas_n.c store_n.c for
++ * 'small' operations.
++ */
++
++unsigned int libat_quick_lock_n(void *ptr);
++void libat_quick_unlock_n(void *ptr, unsigned int token);
++
++static inline UWORD protect_start(void *ptr)
++{
++	return libat_quick_lock_n(ptr);
++}
++
++static inline void protect_end(void *ptr, UWORD token)
++{
++	libat_quick_unlock_n(ptr, token);
++}
++
++#include_next <host-config.h>
+diff -ruN gcc-9.2.0-old/libatomic/config/miosix/lock.c gcc-9.2.0/libatomic/config/miosix/lock.c
+--- gcc-9.2.0-old/libatomic/config/miosix/lock.c	1970-01-01 01:00:00.000000000 +0100
++++ gcc-9.2.0/libatomic/config/miosix/lock.c	2019-09-05 09:42:02.534698889 +0200
+@@ -0,0 +1,13 @@
++
++/*
++ * According to libatomic_i.h, here we should implement
++ * - void libat_lock_n(void *ptr, size_t n);
++ * - void libat_unlock_n(void *ptr, size_t n);
++ * which are used by gexch.c gcas.c gload.c gstore.c for 'large' operations.
++ *
++ * Except, we don't. These function may be directly implemented in Miosix should
++ * the need arise, or intentionally left as undefined references if large
++ * locking intrinsics are to be disallowed.
++ */
++
++#include "libatomic_i.h"
+diff -ruN gcc-9.2.0-old/libatomic/configure.tgt gcc-9.2.0/libatomic/configure.tgt
+--- gcc-9.2.0-old/libatomic/configure.tgt	2019-01-01 13:31:55.000000000 +0100
++++ gcc-9.2.0/libatomic/configure.tgt	2019-09-05 00:40:55.953606286 +0200
+@@ -154,6 +154,10 @@
+         esac
+ 	;;
+ 
++  arm*-miosix-eabi*)
++	config_path="miosix"
++	;;
++
+   *-*-rtems*)
+ 	XCFLAGS="${configure_tgt_pre_target_cpu_XCFLAGS}"
+ 	config_path="rtems"
 diff -ruN gcc-9.2.0-old/libgcc/config/gthr-miosix.h gcc-9.2.0/libgcc/config/gthr-miosix.h
 --- gcc-9.2.0-old/libgcc/config/gthr-miosix.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-9.2.0/libgcc/config/gthr-miosix.h	2019-09-01 23:50:39.039910744 +0200
++++ gcc-9.2.0/libgcc/config/gthr-miosix.h	2019-09-04 10:28:50.525078157 +0200
 @@ -0,0 +1,55 @@
 +
 +// RATIONALE: make the code generated by GCC thread safe by providing a thread model
@@ -187,7 +281,7 @@ diff -ruN gcc-9.2.0-old/libgcc/config/gthr-miosix.h gcc-9.2.0/libgcc/config/gthr
 +#endif //GCC_GHTR_MIOSIX_H
 diff -ruN gcc-9.2.0-old/libgcc/configure gcc-9.2.0/libgcc/configure
 --- gcc-9.2.0-old/libgcc/configure	2018-10-31 18:03:16.000000000 +0100
-+++ gcc-9.2.0/libgcc/configure	2019-09-01 23:50:39.039910744 +0200
++++ gcc-9.2.0/libgcc/configure	2019-09-04 10:28:50.525078157 +0200
 @@ -5543,6 +5543,7 @@
      aix)	thread_header=config/rs6000/gthr-aix.h ;;
      dce)	thread_header=config/pa/gthr-dce.h ;;
@@ -198,7 +292,7 @@ diff -ruN gcc-9.2.0-old/libgcc/configure gcc-9.2.0/libgcc/configure
      rtems)	thread_header=config/gthr-rtems.h ;;
 diff -ruN gcc-9.2.0-old/libgcc/unwind-sjlj.c gcc-9.2.0/libgcc/unwind-sjlj.c
 --- gcc-9.2.0-old/libgcc/unwind-sjlj.c	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libgcc/unwind-sjlj.c	2019-09-01 23:50:39.039910744 +0200
++++ gcc-9.2.0/libgcc/unwind-sjlj.c	2019-09-04 10:28:50.525078157 +0200
 @@ -91,7 +91,14 @@
    _Unwind_Personality_Fn personality;
  } _Unwind_FrameState;
@@ -250,7 +344,7 @@ diff -ruN gcc-9.2.0-old/libgcc/unwind-sjlj.c gcc-9.2.0/libgcc/unwind-sjlj.c
  {
 diff -ruN gcc-9.2.0-old/libstdc++-v3/configure gcc-9.2.0/libstdc++-v3/configure
 --- gcc-9.2.0-old/libstdc++-v3/configure	2019-07-03 23:09:13.000000000 +0200
-+++ gcc-9.2.0/libstdc++-v3/configure	2019-09-01 23:50:39.047910800 +0200
++++ gcc-9.2.0/libstdc++-v3/configure	2019-09-04 10:28:50.529078209 +0200
 @@ -15419,6 +15419,7 @@
      aix)	thread_header=config/rs6000/gthr-aix.h ;;
      dce)	thread_header=config/pa/gthr-dce.h ;;
@@ -261,7 +355,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/configure gcc-9.2.0/libstdc++-v3/configure
      rtems)	thread_header=config/gthr-rtems.h ;;
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/bad_array_length.cc gcc-9.2.0/libstdc++-v3/libsupc++/bad_array_length.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/bad_array_length.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/bad_array_length.cc	2019-09-01 23:50:39.047910800 +0200
++++ gcc-9.2.0/libstdc++-v3/libsupc++/bad_array_length.cc	2019-09-04 10:28:50.533078261 +0200
 @@ -48,9 +48,18 @@
  
  } // namespace std
@@ -284,7 +378,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/bad_array_length.cc gcc-9.2.0/lib
  
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_alloc.cc gcc-9.2.0/libstdc++-v3/libsupc++/eh_alloc.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_alloc.cc	2019-01-21 12:47:30.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_alloc.cc	2019-09-01 23:50:39.047910800 +0200
++++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_alloc.cc	2019-09-04 10:28:50.533078261 +0200
 @@ -73,6 +73,14 @@
  # define EMERGENCY_OBJ_COUNT	4
  #endif
@@ -302,7 +396,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_alloc.cc gcc-9.2.0/libstdc++-v
    void __freeres();
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_aux_runtime.cc gcc-9.2.0/libstdc++-v3/libsupc++/eh_aux_runtime.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_aux_runtime.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_aux_runtime.cc	2019-09-01 23:50:39.047910800 +0200
++++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_aux_runtime.cc	2019-09-04 10:28:50.533078261 +0200
 @@ -29,14 +29,23 @@
  #include "unwind-cxx.h"
  #include <bits/exception_defines.h>
@@ -332,7 +426,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_aux_runtime.cc gcc-9.2.0/libst
  { _GLIBCXX_THROW_OR_ABORT(std::bad_array_new_length()); }
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_globals.cc gcc-9.2.0/libstdc++-v3/libsupc++/eh_globals.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_globals.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_globals.cc	2019-09-01 23:50:39.047910800 +0200
++++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_globals.cc	2019-09-04 10:28:50.533078261 +0200
 @@ -41,6 +41,11 @@
  
  using namespace __cxxabiv1;
@@ -353,7 +447,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_globals.cc gcc-9.2.0/libstdc++
 +#endif //_MIOSIX
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_terminate.cc gcc-9.2.0/libstdc++-v3/libsupc++/eh_terminate.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_terminate.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_terminate.cc	2019-09-01 23:50:39.047910800 +0200
++++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_terminate.cc	2019-09-04 10:28:50.533078261 +0200
 @@ -37,6 +37,15 @@
  }
  #endif
@@ -390,7 +484,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_terminate.cc gcc-9.2.0/libstdc
    __unexpected (get_unexpected ());
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/guard.cc gcc-9.2.0/libstdc++-v3/libsupc++/guard.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/guard.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/guard.cc	2019-09-01 23:50:39.047910800 +0200
++++ gcc-9.2.0/libstdc++-v3/libsupc++/guard.cc	2019-09-04 10:28:50.533078261 +0200
 @@ -190,6 +190,11 @@
  //  | _GLIBCXX_GUARD_WAITING_BIT) and some other threads are waiting until
  //				  it is initialized.
@@ -411,7 +505,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/guard.cc gcc-9.2.0/libstdc++-v3/l
 +#endif //_MIOSIX
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/pure.cc gcc-9.2.0/libstdc++-v3/libsupc++/pure.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/pure.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/pure.cc	2019-09-01 23:50:39.047910800 +0200
++++ gcc-9.2.0/libstdc++-v3/libsupc++/pure.cc	2019-09-04 10:28:50.533078261 +0200
 @@ -43,14 +43,23 @@
  # define writestr(str) /* Empty */
  #endif
@@ -440,7 +534,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/pure.cc gcc-9.2.0/libstdc++-v3/li
    writestr ("deleted virtual method called\n");
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/vterminate.cc gcc-9.2.0/libstdc++-v3/libsupc++/vterminate.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/vterminate.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/vterminate.cc	2019-09-01 23:50:39.047910800 +0200
++++ gcc-9.2.0/libstdc++-v3/libsupc++/vterminate.cc	2019-09-04 10:28:50.533078261 +0200
 @@ -34,6 +34,14 @@
  using namespace std;
  using namespace abi;
@@ -467,7 +561,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/vterminate.cc gcc-9.2.0/libstdc++
      if (terminating)
 diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/functexcept.cc gcc-9.2.0/libstdc++-v3/src/c++11/functexcept.cc
 --- gcc-9.2.0-old/libstdc++-v3/src/c++11/functexcept.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/src/c++11/functexcept.cc	2019-09-01 23:50:39.047910800 +0200
++++ gcc-9.2.0/libstdc++-v3/src/c++11/functexcept.cc	2019-09-04 10:28:50.533078261 +0200
 @@ -35,6 +35,15 @@
  # define _(msgid)   (msgid)
  #endif
@@ -576,7 +670,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/functexcept.cc gcc-9.2.0/libstdc+
  
 diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/functional.cc gcc-9.2.0/libstdc++-v3/src/c++11/functional.cc
 --- gcc-9.2.0-old/libstdc++-v3/src/c++11/functional.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/src/c++11/functional.cc	2019-09-01 23:50:39.047910800 +0200
++++ gcc-9.2.0/libstdc++-v3/src/c++11/functional.cc	2019-09-04 10:28:50.533078261 +0200
 @@ -25,11 +25,20 @@
  #include <functional>
  #include <bits/functexcept.h>
@@ -601,7 +695,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/functional.cc gcc-9.2.0/libstdc++
  
 diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/future.cc gcc-9.2.0/libstdc++-v3/src/c++11/future.cc
 --- gcc-9.2.0-old/libstdc++-v3/src/c++11/future.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/src/c++11/future.cc	2019-09-01 23:50:39.047910800 +0200
++++ gcc-9.2.0/libstdc++-v3/src/c++11/future.cc	2019-09-04 10:28:50.533078261 +0200
 @@ -25,6 +25,15 @@
  #include <future>
  #include <bits/functexcept.h>
@@ -629,7 +723,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/future.cc gcc-9.2.0/libstdc++-v3/
  
 diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/snprintf_lite.cc gcc-9.2.0/libstdc++-v3/src/c++11/snprintf_lite.cc
 --- gcc-9.2.0-old/libstdc++-v3/src/c++11/snprintf_lite.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/src/c++11/snprintf_lite.cc	2019-09-01 23:50:39.047910800 +0200
++++ gcc-9.2.0/libstdc++-v3/src/c++11/snprintf_lite.cc	2019-09-04 10:28:50.533078261 +0200
 @@ -37,7 +37,22 @@
  }
  
@@ -692,7 +786,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/snprintf_lite.cc gcc-9.2.0/libstd
      return __d - __buf;
 diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/system_error.cc gcc-9.2.0/libstdc++-v3/src/c++11/system_error.cc
 --- gcc-9.2.0-old/libstdc++-v3/src/c++11/system_error.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/src/c++11/system_error.cc	2019-09-01 23:50:39.047910800 +0200
++++ gcc-9.2.0/libstdc++-v3/src/c++11/system_error.cc	2019-09-04 10:28:50.533078261 +0200
 @@ -32,6 +32,15 @@
  #include <errno.h>
  #undef __sso_string

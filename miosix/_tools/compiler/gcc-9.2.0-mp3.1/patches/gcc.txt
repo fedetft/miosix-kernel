@@ -53,10 +53,17 @@ This patch does the following:
    - occurrences of _GLIBCXX_THROW_OR_ABORT in headers. Don't know how to fix
      those, if they are ever used inside a .cc file within libstdc++ itself.
 
--------------------------------------------------------------------------------
+NOTES
+-----
+
+Types to watch out
+------------------
+Some unexported types are copy-pasted in the kernel, and need to be kept consistent
+struct __cxa_eh_globals in miosix/stdlib_integration/libstdcpp_integration.h
+
 
 Calculations to minimize the emergency buffer for throwing std::bad_alloc.
-
+--------------------------------------------------------------------------
 # Sample program to do the computation -- begin
 //Requires to copy-paste unwind-cxx.h from libsupc++
 #include <stdio.h>
