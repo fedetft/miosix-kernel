@@ -539,7 +539,7 @@ endif
 ## a new board or porting Miosix to a new architecture                    ##
 ############################################################################
 
-ifneq ($(MAKEFILE_VERSION),1.07)
+ifneq ($(MAKEFILE_VERSION),1.08)
     $(info You are using an incompatible makefile. Make sure it matches \
       the one distributed with the current version of the kernel)
     $(error Error)
@@ -625,10 +625,15 @@ endif
 ##
 ## Then, initialize C/C++ flags
 ##
-CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" \
-                 -ffunction-sections -Wno-unused-but-set-variable -Wall -g
-CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -std=gnu++11 \
-                 -ffunction-sections -Wno-unused-but-set-variable -Wall -g
+ifneq ($(GCCMAJOR),4)
+	CXXSTD := -std=c++14
+else
+	CXXSTD := -std=gnu++11
+endif
+CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE \
+                 -ffunction-sections  -Wall -g
+CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE \
+                 $(CXXSTD) -ffunction-sections  -Wall -g
 
 ##
 ## Now two big switch-like constructs nested. The first lists all possible
@@ -1920,7 +1925,7 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -DEFM32GG332F1024 -D_BOARD_WANDSTEM
-        CXXFLAGS_BASE += $(CFLAGS_BASE)
+        CXXFLAGS_BASE += -DEFM32GG332F1024 -D_BOARD_WANDSTEM
 
         ## Clock frequency
         CLOCK_FREQ := -DEFM32_HFXO_FREQ=48000000 -DEFM32_LFXO_FREQ=32768
@@ -2031,18 +2036,18 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    ## TODO: when upgrading compiler, add native cortex M7 support.
-    ## For now we'll fallback to M4 which is compatible, but does not support
-    ## double precision HW floating point
-    AFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+    ifneq ($(GCCMAJOR),4)
+        ARCHOPTS := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
+    else
+        ## Fallback to cortex M4 and single precision fp, which is compatible
+        ARCHOPTS := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+    endif
+    AFLAGS_BASE   := $(ARCHOPTS)
     CFLAGS_BASE   += -D_ARCH_CORTEXM7_STM32F7 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
-                     -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-                     $(OPT_OPTIMIZATION) -c
+                     $(ARCHOPTS) $(OPT_OPTIMIZATION) -c
     CXXFLAGS_BASE += -D_ARCH_CORTEXM7_STM32F7 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
-                     -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-                     $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-                     -Wl,--gc-sections,-Map,main.map                            \
+                     $(ARCHOPTS) $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
+    LFLAGS_BASE   := $(ARCHOPTS) -Wl,--gc-sections,-Map,main.map                \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)              \
                      $(OPT_OPTIMIZATION) -nostdlib
 
@@ -2119,18 +2124,18 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    ## TODO: when upgrading compiler, add native cortex M7 support.
-    ## For now we'll fallback to M4 which is compatible, but does not support
-    ## double precision HW floating point
-    AFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+    ifneq ($(GCCMAJOR),4)
+        ARCHOPTS := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
+    else
+        ## Fallback to cortex M4 and single precision fp, which is compatible
+        ARCHOPTS := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+    endif
+    AFLAGS_BASE   := $(ARCHOPTS)
     CFLAGS_BASE   += -D_ARCH_CORTEXM7_STM32H7 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
-                     -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-                     $(OPT_OPTIMIZATION) -c
+                     $(ARCHOPTS) $(OPT_OPTIMIZATION) -c
     CXXFLAGS_BASE += -D_ARCH_CORTEXM7_STM32H7 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
-                     -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-                     $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-                     -Wl,--gc-sections,-Map,main.map                            \
+                     $(ARCHOPTS) $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
+    LFLAGS_BASE   := $(ARCHOPTS) -Wl,--gc-sections,-Map,main.map                \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)              \
                      $(OPT_OPTIMIZATION) -nostdlib
 

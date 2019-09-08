@@ -1,7 +1,9 @@
 ##
 ## Makefile for Miosix embedded OS
 ##
-MAKEFILE_VERSION := 1.07
+MAKEFILE_VERSION := 1.08
+GCCMAJOR := $(shell arm-miosix-eabi-gcc --version | \
+                    perl -e '$$_=<>;/\(GCC\) (\d+)/;print "$$1"')
 ## Path to kernel directory (edited by init_project_out_of_git_repo.pl)
 KPATH := miosix
 ## Path to config directory (edited by init_project_out_of_git_repo.pl)
@@ -59,7 +61,6 @@ DFLAGS   := -MMD -MP
 ## libmiosix.a is among stdlibs because needs to be within start/end group
 STDLIBS  := -lmiosix -lstdc++ -lc -lm -lgcc
 
-GCCMAJOR := $(shell $(CC) --version | perl -e '$$_=<>;/\(GCC\) (\d+)/;print "$$1"')
 ifneq ($(GCCMAJOR),4)
 	STDLIBS += -latomic
 endif
