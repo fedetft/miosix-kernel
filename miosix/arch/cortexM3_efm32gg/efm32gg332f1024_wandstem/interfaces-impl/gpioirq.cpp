@@ -151,7 +151,7 @@ void disableGpioIrq(GpioPin pin)
 bool IRQenableGpioIrq(GpioPin pin)
 {
     unsigned int number=pin.getPinNumber();
-    if(number>15 || callbacks[number]==false) return false;
+    if(number>15 || !callbacks[number]) return false;
     GPIO->IFC=1<<number;
     GPIO->IEN |= (1<<number);
     return true;
@@ -160,7 +160,7 @@ bool IRQenableGpioIrq(GpioPin pin)
 bool IRQdisableGpioIrq(GpioPin pin)
 {
     unsigned int number=pin.getPinNumber();
-    if(number>15 || callbacks[number]==false) return false;
+    if(number>15 || !callbacks[number]) return false;
     GPIO->IEN &= ~(1<<number);
     GPIO->IFC=1<<number;
     return true;
