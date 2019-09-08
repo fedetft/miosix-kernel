@@ -182,13 +182,18 @@ public:
      */
     void unlock()
     {
+        #ifdef SCHED_TYPE_EDF
         bool hppw;
         {
             PauseKernelLock dLock;
             hppw=PKunlock(dLock);
         }
-        #ifdef SCHED_TYPE_EDF
         if(hppw) Thread::yield();//The other thread might have a closer deadline
+        #else
+        {
+            PauseKernelLock dLock;
+            PKunlock(dLock);
+        }
         #endif //SCHED_TYPE_EDF
     }
 	

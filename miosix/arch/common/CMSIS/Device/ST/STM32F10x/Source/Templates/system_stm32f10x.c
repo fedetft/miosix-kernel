@@ -603,6 +603,7 @@ static void SetSysClockToHSE(void)
 static void SetSysClockTo24(void)
 {
   __IO uint32_t StartUpCounter = 0, HSEStatus = 0x01; //By TFT: was 0
+  (void)StartUpCounter;
   
   #ifndef RUN_WITH_HSI //By TFT
   /* SYSCLK, HCLK, PCLK2 and PCLK1 configuration ---------------------------*/    
@@ -717,6 +718,7 @@ static void SetSysClockTo24(void)
 static void SetSysClockTo36(void)
 {
   __IO uint32_t StartUpCounter = 0, HSEStatus = 0x01; //By TFT: was 0
+  (void)StartUpCounter;
   
   #ifndef RUN_WITH_HSI //By TFT
   /* SYSCLK, HCLK, PCLK2 and PCLK1 configuration ---------------------------*/    
@@ -826,6 +828,7 @@ static void SetSysClockTo36(void)
 static void SetSysClockTo48(void)
 {
   __IO uint32_t StartUpCounter = 0, HSEStatus = 0x01; //By TFT: was 0
+  (void)StartUpCounter;
   
   #ifndef RUN_WITH_HSI //By TFT
   /* SYSCLK, HCLK, PCLK2 and PCLK1 configuration ---------------------------*/    
@@ -935,6 +938,7 @@ static void SetSysClockTo48(void)
 static void SetSysClockTo56(void)
 {
   __IO uint32_t StartUpCounter = 0, HSEStatus = 0x01; //By TFT: was 0
+  (void)StartUpCounter;
   
   #ifndef RUN_WITH_HSI //By TFT
   /* SYSCLK, HCLK, PCLK2 and PCLK1 configuration ---------------------------*/   
@@ -1045,6 +1049,7 @@ static void SetSysClockTo56(void)
 static void SetSysClockTo72(void)
 {
   __IO uint32_t StartUpCounter = 0, HSEStatus = 0x01; //By TFT: was 0
+  (void)StartUpCounter;
   
   #ifndef RUN_WITH_HSI //By TFT
   /* SYSCLK, HCLK, PCLK2 and PCLK1 configuration ---------------------------*/    

@@ -125,6 +125,7 @@ static void spi_1_init()
         SSPDR=0xff;
         while( !(SSPSR & (1<<RNE)) ) ; //Wait
         incoming=SSPDR;
+        (void)incoming;
     }
 }
 
