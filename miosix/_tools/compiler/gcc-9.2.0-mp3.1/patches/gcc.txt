@@ -62,6 +62,45 @@ Some unexported types are copy-pasted in the kernel, and need to be kept consist
 struct __cxa_eh_globals in miosix/stdlib_integration/libstdcpp_integration.h
 
 
+Program to check how atomic ops are handled
+-------------------------------------------
+//test code -- begin
+//libsupc++/eh_atomics.h is worth a look
+#include <bits/c++config.h>
+#include <bits/atomic_word.h>
+#include <bits/atomic_lockfree_defines.h>
+_Atomic_word theInt;
+void inc()
+{
+    __atomic_add_fetch (&theInt, 1, __ATOMIC_ACQ_REL);
+}
+bool decTest()
+{
+    return __atomic_sub_fetch (&theInt, 1, __ATOMIC_ACQ_REL) == 0;
+}
+//arm-miosix-eabi-g++ -mthumb -mcpu=cortex-m3 -std=c++11 -O2 -S test.cpp
+// _Z3incv:
+//     dmb    ish
+//     ldr    r3, .L4
+// .L2:
+//     ldrex    r2, [r3]
+//     adds    r2, r2, #1
+//     strex    r1, r2, [r3]
+//     cmp    r1, #0
+//     bne    .L2
+//     dmb    ish
+//     bx    lr
+//arm-miosix-eabi-g++ -mthumb -mcpu=cortex-m0 -std=c++11 -O2 -S test.cpp
+// _Z3incv:
+//     push    {r4, lr}
+//     movs    r2, #4
+//     movs    r1, #1
+//     ldr    r0, .L3
+//     bl    __atomic_fetch_add_4
+//     pop    {r4, pc}
+//test code -- end
+
+
 Calculations to minimize the emergency buffer for throwing std::bad_alloc.
 --------------------------------------------------------------------------
 # Sample program to do the computation -- begin
