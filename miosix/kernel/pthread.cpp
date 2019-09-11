@@ -336,19 +336,41 @@ int pthread_cond_broadcast(pthread_cond_t *cond)
 // Once API
 //
 
-int	pthread_once(pthread_once_t *once, void (*func)())
+int pthread_once(pthread_once_t *once, void (*func)())
 {
-    if(once==0 || func==0 || once->is_initialized!=1) return EINVAL;
-    bool shouldWeRunFunc=false;
-    {
-        FastInterruptDisableLock dLock;
-        if(once->init_executed==0)
+    if(once==nullptr || func==nullptr || once->is_initialized!=1) return EINVAL;
+    
+    bool again;
+    do {
         {
-            once->init_executed=1;
-            shouldWeRunFunc=true;
+            FastInterruptDisableLock dLock;
+            switch(once->init_executed)
+            {
+                case 0: //We're the first ones (or previous call has thrown)
+                    once->init_executed=1;
+                    again=false;
+                    break;
+                case 1: //Call started but not ended
+                    again=true;
+                    break;
+                default: //Already called, return immediately
+                    return 0;
+            }
         }
+        if(again) Thread::yield(); //Yield and let other thread complete
+    } while(again);
+    
+    #ifdef __NO_EXCEPTIONS
+    func();
+    #else //__NO_EXCEPTIONS
+    try {
+        func();
+    } catch(...) {
+        once->init_executed=0; //We failed, let some other thread try
+        throw;
     }
-    if(shouldWeRunFunc) func();
+    #endif //__NO_EXCEPTIONS
+    once->init_executed=2; //We succeeded
     return 0;
 }
 

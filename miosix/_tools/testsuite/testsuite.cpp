@@ -74,6 +74,11 @@
 #include <core/cache_cortexMx.h>
 #endif //_ARCH_CORTEXM7_STM32F7/H7
 
+#if _MIOSIX_GCC_PATCH_MAJOR >= 2
+#include <ctime>
+static_assert(sizeof(time_t)==8,"time_t is not 64 bit");
+#endif
+
 using namespace std;
 using namespace miosix;
 
@@ -188,8 +193,6 @@ int main()
             c=getchar();
             if(c!='\n') break;
         }
-        //For testing mpu
-        unsigned int *m;
         switch(c)
         {
             case 't':
@@ -291,6 +294,7 @@ int main()
                 ledOff();
                 break;
             case 'm':
+            {
                 //The priority of the test thread must be 1
                 Thread::setPriority(1);
                 ledOn();
@@ -326,7 +330,7 @@ int main()
                 //Mpu tests
                 iprintf("\n\nExecuting MPU tests.\n");
                 iprintf("---------------------\n");
-                m = memAllocation(4096);
+                unsigned int *m = memAllocation(4096);
                 mpuTest1();
                 mpuTest2();
                 mpuTest3();
@@ -343,7 +347,8 @@ int main()
                 #endif //#ifdef WITH_PROCESSES
                 ledOff();
                 Thread::setPriority(0);
-            break;
+                break;
+            }
             case 's':
                 iprintf("Shutting down\n");
                 shutdown();
@@ -2032,7 +2037,7 @@ void test_11()
         fail("getAbsoluteFreeStack (1)");
     if(MemoryProfiling::getAbsoluteFreeStack()>curFreeStack-4)
         fail("getAbsoluteFreeStack (2)");
-        unsigned int heapSize=MemoryProfiling::getHeapSize();
+    unsigned int heapSize=MemoryProfiling::getHeapSize();
     if(MemoryProfiling::getCurrentFreeHeap()>heapSize)
         fail("getCurrentFreeHeap");
     if(MemoryProfiling::getAbsoluteFreeHeap()>heapSize)
@@ -2427,7 +2432,19 @@ void t16_f1()
     a++;
 }
 
+void t16_f2()
+{
+    Thread::sleep(200);
+    a++;
+}
+
 pthread_once_t t16_o1=PTHREAD_ONCE_INIT;
+pthread_once_t t16_o2=PTHREAD_ONCE_INIT;
+
+void t16_p5(void*)
+{
+    if(pthread_once(&t16_o2,t16_f2)!=0) fail("pthread_once 6");
+}
 
 static void test_16()
 {
@@ -2597,13 +2614,19 @@ static void test_16()
     //
     //Note: implementation detail since otherwise by the very nature of
     //pthread_once, it wouldn't be possible to run the test more than once ;)
-    if(t16_o1.init_executed==1) t16_o1.init_executed=0;
+    if(t16_o1.init_executed) t16_o1.init_executed=0;
+    if(t16_o2.init_executed) t16_o2.init_executed=0;
     a=0;
     if(pthread_once(&t16_o1,t16_f1)!=0) fail("pthread_once 1");
     if(a!=1) fail("pthread_once 2");
     if(pthread_once(&t16_o1,t16_f1)!=0) fail("pthread_once 2");
     if(a!=1) fail("pthread_once 3");
     if(sizeof(pthread_once_t)!=2) fail("pthread_once 4");
+    a=0;
+    Thread::create(t16_p5,STACK_MIN);
+    Thread::sleep(50);
+    if(pthread_once(&t16_o2,t16_f2)!=0) fail("pthread_once 5");
+    if(a!=1) fail("pthread_once does not wait");
     pass();
 }
 
