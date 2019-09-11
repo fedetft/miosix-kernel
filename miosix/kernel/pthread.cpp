@@ -137,6 +137,12 @@ int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
     return 0;
 }
 
+int sched_yield()
+{
+    Thread::yield();
+    return 0;
+}
+
 //
 // Mutex API
 //
