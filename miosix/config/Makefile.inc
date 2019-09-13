@@ -630,9 +630,9 @@ ifneq ($(GCCMAJOR),4)
 else
 	CXXSTD := -std=gnu++11
 endif
-CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE \
+CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
                  -ffunction-sections  -Wall -g
-CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE \
+CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
                  $(CXXSTD) -ffunction-sections  -Wall -g
 
 ##
