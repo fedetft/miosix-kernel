@@ -72,9 +72,9 @@
 #include "kernel/process_pool.h"
 #include "kernel/SystemMap.h"
 
-#include "testsuite/syscall_testsuite/includes.h"
-#include "testsuite/elf_testsuite/includes.h"
-#include "testsuite/mpu_testsuite/includes.h"
+#include "syscall_testsuite/includes.h"
+#include "elf_testsuite/includes.h"
+#include "mpu_testsuite/includes.h"
 #endif //WITH_PROCESSES
 
 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
