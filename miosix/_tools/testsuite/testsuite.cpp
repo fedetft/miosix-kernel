@@ -48,6 +48,14 @@
 #include <errno.h>
 #include <dirent.h>
 #include <ext/atomicity.h>
+#ifdef _MIOSIX_GCC_PATCH_MAJOR
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <future>
+#include <chrono>
+#include <atomic>
+#endif //_MIOSIX_GCC_PATCH_MAJOR
 
 #include "miosix.h"
 #include "config/miosix_settings.h"
@@ -86,7 +94,7 @@ using namespace miosix;
 // Using this instead of STACK_MIN because STACK_MIN is too low for some tests
 // and caused stack overflows when compiling with -O0
 // Note: can be reduced down to STACK_MIN if only testing with -O2
-const unsigned int STACK_SMALL=512;
+const unsigned int STACK_SMALL=768;
 
 //Functions common to all tests
 static void test_name(const char *name);
@@ -119,6 +127,9 @@ static void test_21();
 static void test_22();
 static void test_23();
 static void test_24();
+#ifdef _MIOSIX_GCC_PATCH_MAJOR
+static void test_25();
+#endif //_MIOSIX_GCC_PATCH_MAJOR
 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
 void testCacheAndDMA();
 #endif //_ARCH_CORTEXM7_STM32F7/H7
@@ -224,6 +235,9 @@ int main()
                 test_22();
                 test_23();
                 test_24();
+                #ifdef _MIOSIX_GCC_PATCH_MAJOR
+                test_25();
+                #endif //_MIOSIX_GCC_PATCH_MAJOR
                 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
                 testCacheAndDMA();
                 #endif //_ARCH_CORTEXM7_STM32F7/H7
@@ -3234,6 +3248,7 @@ static void test_21()
 //
 /*
 tests:
+atomic<T>
 __atomic_add()
 __exchange_and_add()
 These are not actually in the kernel but in the patches to gcc
@@ -3244,6 +3259,9 @@ static int t22_v1;
 static int t22_v2;
 static int t22_v3;
 static int t22_v4;
+#ifdef _MIOSIX_GCC_PATCH_MAJOR
+atomic<int> t22_v6;
+#endif //_MIOSIX_GCC_PATCH_MAJOR
 
 static bool t22_v5;
 
@@ -3270,9 +3288,32 @@ static void *t22_t1(void*)
 		__gnu_cxx::__exchange_and_add(&t22_v2,-1);
         atomicAdd(&t22_v3,1);
         atomicAddExchange(&t22_v4,1);
+        #ifdef _MIOSIX_GCC_PATCH_MAJOR
+        t22_v6++;
+        #endif //_MIOSIX_GCC_PATCH_MAJOR
 	}
 	return 0;
 }
+
+#ifdef _MIOSIX_GCC_PATCH_MAJOR
+class t22_c1
+{
+public:
+    bool canDelete=false;
+    ~t22_c1() { if(canDelete==false) fail("Deleted too soon"); }
+};
+
+shared_ptr<t22_c1> t22_v7;
+
+void t22_t3(void*)
+{
+    auto inst1=make_shared<t22_c1>();
+    for(int i=0;i<100000;i++) atomic_store(&t22_v7,inst1);
+    atomic_store(&t22_v7,shared_ptr<t22_c1>(nullptr));
+    if(inst1.use_count()!=1) fail("shared_ptr atomic_store (1)");
+    inst1->canDelete=true;
+}
+#endif //_MIOSIX_GCC_PATCH_MAJOR
 
 static void test_22()
 {
@@ -3288,10 +3329,16 @@ static void test_22()
         __gnu_cxx::__exchange_and_add(&t22_v2,1);
         atomicAdd(&t22_v3,-1);
         atomicAddExchange(&t22_v4,-1);
+        #ifdef _MIOSIX_GCC_PATCH_MAJOR
+        t22_v6--;
+        #endif //_MIOSIX_GCC_PATCH_MAJOR
     }
     pthread_join(t,0);
     if(t22_v1!=0 || t22_v2!=0 || t22_v3!=0 || t22_v4!=0)
         fail("not thread safe");
+    #ifdef _MIOSIX_GCC_PATCH_MAJOR
+    if(t22_v6!=0) fail("C++11 atomics not thread safe");
+    #endif //_MIOSIX_GCC_PATCH_MAJOR
     
     //Functional test for miosix atomic ops
     int x=10;
@@ -3377,6 +3424,17 @@ static void test_22()
     
     t2->terminate();
     t2->join();
+    
+    #ifdef _MIOSIX_GCC_PATCH_MAJOR
+    Thread *t3=Thread::create(t22_t3,STACK_SMALL,0,0,Thread::JOINABLE);
+    auto inst2=make_shared<t22_c1>();
+    for(int i=0;i<100000;i++) atomic_store(&t22_v7,inst2);
+    atomic_store(&t22_v7,shared_ptr<t22_c1>(nullptr));
+    if(inst2.use_count()!=1) fail("shared_ptr atomic_store (2)");
+    inst2->canDelete=true;
+    t3->join();
+    if(atomic_load(&t22_v7)!=nullptr) fail("shared_ptr atomic_load");
+    #endif //_MIOSIX_GCC_PATCH_MAJOR
     
     pass();
 }
@@ -3787,6 +3845,215 @@ static void test_24()
     
     pass();
 }
+
+#ifdef _MIOSIX_GCC_PATCH_MAJOR
+//
+// Test 25
+//
+/*
+tests:
+C++ threads API
+ thread::thread
+ thread::get_id
+ thread::native_handle
+ thread::detach
+ thread::joinable
+ thread::join
+ async
+ future
+ mutex
+ lock
+ recursive_mutex
+ lock_guard
+ unique_lock
+ condition_variable
+ call_once
+ yield
+*/
+
+Thread *t25_v1=nullptr;
+
+int t25_p1(int a, int b)
+{
+    if(a!=2 || b!=5) fail("thread::thread params");
+    t25_v1=Thread::getCurrentThread();
+    t25_v1->wait();
+    return a+b;
+}
+
+volatile bool t25_v2;
+mutex t25_m1;
+
+void t25_p2()
+{
+    lock_guard<mutex> l(t25_m1);
+    t25_v2=true;
+    Thread::sleep(50);
+}
+
+condition_variable t25_c1;
+
+void t25_p3(int i)
+{
+    Thread::sleep(30);
+    if(t25_m1.try_lock()==false) fail("cond_wait did not release mutex");
+    t25_v2=true;
+    if(i==0) t25_c1.notify_one(); else t25_c1.notify_all();
+    t25_m1.unlock();
+}
+
+static void test_25()
+{
+    /*
+     * C++11 threads run with MAIN_PRIORITY, so to avoid deadlocks or other
+     * artifacts, we restore main't priority to the default, and set it back
+     * to 0 at the end of this test, as the rest of the testsuite runs with
+     lowest priority
+     */
+    Thread::setPriority(MAIN_PRIORITY);
+    test_name("C++11 threads");
+    //
+    // Test thread::thread, native_handle, get_id, detach, joinable
+    //
+    {
+        thread thr(t25_p1,2,5);
+        Thread *t=reinterpret_cast<Thread*>(thr.native_handle());
+        if(Thread::exists(t)==false) fail("thread::thread");
+        if(t->isDetached()==true) fail("initial detachstate");
+        if(thr.joinable()==false) fail("thread::joinable");
+        thr.detach();
+        if(t->isDetached()==false) fail("thread::detach");
+        if(thr.joinable()==true) fail("thread::joinable");
+        thread::id self=this_thread::get_id();
+        if(self==thr.get_id()) fail("thread_id::operator== (1)");
+        if(self!=this_thread::get_id()) fail("thread_id::operator== (2)");
+        
+        Thread::sleep(10); //Give the other thread time to call wait()
+        if(t!=t25_v1) fail("thread::native_handle");
+        t->wakeup();
+        Thread::sleep(10);
+        if(Thread::exists(t)) fail("unexpected");
+    }
+    //
+    // Testing join
+    //
+    {
+        thread thr(t25_p1,2,5);
+        Thread *t=reinterpret_cast<Thread*>(thr.native_handle());
+        if(Thread::exists(t)==false) fail("thread::thread");
+        Thread::sleep(10); //Give the other thread time to call wait()
+        t->wakeup();
+        thr.join();
+        if(Thread::exists(t)==true) fail("thread::join");
+    }
+    //
+    // Testing async
+    //
+    {
+        future<int> fut=async(launch::async,t25_p1,2,5);
+        Thread::sleep(10); //Give the other thread time to call wait()
+        t25_v1->wakeup();
+        if(fut.get()!=7) fail("future");
+    }
+    //
+    // Testing mutex
+    //
+    {
+        t25_m1.lock();
+        t25_v2=false;
+        thread thr(t25_p2);
+        Thread::sleep(10);
+        if(t25_v2==true) fail("mutex fail");
+        t25_m1.unlock();
+        Thread::sleep(10);
+        if(t25_v2==false) fail("mutex fail (2)");
+        thr.join();
+    }
+    {
+        thread thr(t25_p2);
+        Thread::sleep(10);
+        //After the thread is created it will lock the mutex for 50ms
+        if(t25_m1.try_lock()==true) fail("trylock");
+        thr.join();
+        if(t25_m1.try_lock()==false) fail("trylock (2)");
+        t25_m1.unlock();
+    }
+    //
+    // Testing recursive_mutex
+    //
+    auto isLocked=[](recursive_mutex& m)->bool {
+        return async(launch::async,[&]()->bool {
+            if(m.try_lock()==true)
+            {
+                m.unlock();
+                return false;
+            } else return true;
+        }).get();
+    };
+    {
+        recursive_mutex rm;
+        rm.lock();
+        if(isLocked(rm)==false) fail("recursive_mutex::lock");
+        rm.lock();
+        if(isLocked(rm)==false) fail("recursive_mutex::lock");
+        rm.unlock();
+        if(isLocked(rm)==false) fail("recursive_mutex::unlock");
+        rm.unlock();
+        if(isLocked(rm)==true) fail("recursive_mutex::unlock");
+    }
+    //
+    // Testing lock
+    //
+    {
+        recursive_mutex rm1,rm2;
+        lock(rm1,rm2);
+        if(!isLocked(rm1) || !isLocked(rm2)) fail("lock");
+        rm1.unlock();
+        rm2.unlock();
+    }
+    //
+    // Testing condition_variable
+    //
+    for(int i=0;i<2;i++)
+    {
+        thread thr(t25_p3,i);
+        {
+            unique_lock<mutex> l(t25_m1);
+            t25_v2=false;
+            t25_c1.wait(l);
+            if(t25_v2==false) fail("did not really wait");
+        }
+        thr.join();
+    }
+    //
+    // Testing call_once
+    //
+    {
+        once_flag flag;
+        int a=0;
+        thread thr([&]{ call_once(flag,[&]{ Thread::sleep(100); a++; }); });
+        call_once(flag,[&]{ a++; });
+        thr.join();
+        call_once(flag,[&]{ a++; });
+        if(a!=1) fail("call_once");
+    }
+    //
+    // Testing yield
+    //
+    {
+        volatile bool enable=false;
+        volatile bool flag=false;
+        thread thr([&]{ while(enable==false) /*wait*/; flag=true; });
+        Thread::sleep(10); //Get the other thread ready
+        enable=true;
+        this_thread::yield();
+        if(flag==false) fail("this_thread::yield");
+        thr.join();
+    }
+    pass();
+    Thread::setPriority(0);
+}
+#endif //_MIOSIX_GCC_PATCH_MAJOR
 
 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
 static Thread *waiting=nullptr; /// Thread waiting on DMA completion IRQ
