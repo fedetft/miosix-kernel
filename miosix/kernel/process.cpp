@@ -94,7 +94,7 @@ pid_t Process::create(const ElfProgram& program)
 {
     Processes& p=Processes::instance();
     ProcessBase *parent=Thread::getCurrentThread()->proc;
-    auto_ptr<Process> proc(new Process(program));
+    unique_ptr<Process> proc(new Process(program));
     {   
         Lock<Mutex> l(p.procMutex);
         proc->pid=getNewPid();
