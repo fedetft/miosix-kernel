@@ -473,7 +473,8 @@ public:
      */
     void bufferFilled(unsigned int actualSize)
     {
-        if(++cnt>numbuf) errorHandler(UNEXPECTED);
+        if(isFull()) errorHandler(UNEXPECTED);
+        cnt++;
         bufSize[put++]=actualSize;
         if(put>=numbuf) put=0;
     }
@@ -494,7 +495,7 @@ public:
      */
     bool tryGetReadableBuffer(const T *&buffer, unsigned int& actualSize)
     {
-        if(cnt==0) return false;
+        if(isEmpty()) return false;
         buffer=buf[get];
         actualSize=bufSize[get];
         return true;
@@ -507,7 +508,8 @@ public:
      */
     void bufferEmptied()
     {
-        if(--cnt<0) errorHandler(UNEXPECTED);
+        if(isEmpty()) errorHandler(UNEXPECTED);
+        cnt--;
         get++;
         if(get>=numbuf) get=0;
     }
