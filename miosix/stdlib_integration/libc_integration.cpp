@@ -34,6 +34,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <reent.h>
+#include <sys/time.h>
 #include <sys/times.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
@@ -863,25 +864,119 @@ int getdents(unsigned int fd, struct dirent *dirp, unsigned int count)
 
 
 
+
+/*
+ * Time API in Miosix
+ * ==================
+ *
+ * CORE
+ * - clock_gettime
+ * - clock_nanosleep
+ * - clock_settime
+ * - clock_getres
+ *
+ * DERIVED, preferred
+ * - C++11 chrono system|steady_clock -> clock_gettime
+ * - C++11 sleep_for|until            -> clock_nanosleep
+ *
+ * DERIVED, for compatibility (replace with core functions when possible)
+ * - sleep|usleep -> nanosleep        -> clock_nanosleep
+ * - clock        -> times            -> clock_gettime
+ * - time         -> gettimeofday     -> clock_gettime
+ *
+ * UNSUPPORTED
+ * - timer_create -> ? 
+ */
+
+#ifndef _MIOSIX_GCC_PATCH_MAJOR //Before GCC 9.2.0
+#define CLOCK_MONOTONIC 4
+#endif
+
+/// Conversion factor from ticks to nanoseconds
+/// TICK_FREQ in Miosix is either 1000 or (on older chips) 200, so a simple
+/// multiplication/division factor does not cause rounding errors
+static constexpr long tickNsFactor=1000000000/miosix::TICK_FREQ;
+
+/**
+ * Convert from timespec to the Miosix representation of time
+ * \param tp input timespec, must not be nullptr and be a valid pointer
+ * \return Miosix ticks
+ */
+inline long long timespec2ll(const struct timespec *tp)
+{
+    //NOTE: the cast is required to prevent overflow with older versions
+    //of the Miosix compiler where tv_sec is int and not long long
+    return static_cast<long long>(tp->tv_sec)*miosix::TICK_FREQ
+           + tp->tv_nsec/tickNsFactor;
+}
+
+/**
+ * Convert from he Miosix representation of time to a timespec
+ * \param tick input Miosix ticks
+ * \param tp output timespec, must not be nullptr and be a valid pointer
+ */
+inline void ll2timespec(long long tick, struct timespec *tp)
+{
+    tp->tv_sec=tick/miosix::TICK_FREQ;
+    tp->tv_nsec=static_cast<long>(tick%miosix::TICK_FREQ)*tickNsFactor;
+}
+
+int clock_gettime(clockid_t clock_id, struct timespec *tp)
+{
+    if(tp==nullptr) return -1;
+    //TODO: support CLOCK_REALTIME
+    ll2timespec(miosix::getTick(),tp);
+    return 0;
+}
+
+int clock_settime(clockid_t clock_id, const struct timespec *tp)
+{
+    //TODO: support CLOCK_REALTIME
+    return -1;
+}
+
+int clock_getres(clockid_t clock_id, struct timespec *res)
+{
+    if(res==nullptr) return -1;
+    res->tv_sec=0;
+    res->tv_nsec=tickNsFactor;
+    return 0;
+}
+
+int clock_nanosleep(clockid_t clock_id, int flags,
+                    const struct timespec *req, struct timespec *rem)
+{
+    if(req==nullptr) return -1;
+    //TODO: support CLOCK_REALTIME
+    long long timeTick=timespec2ll(req);
+    if(flags!=TIMER_ABSTIME) timeTick+=miosix::getTick();
+    miosix::Thread::sleepUntil(timeTick);
+    return 0;
+}
+
 /**
  * \internal
  * _times_r, return elapsed time
  */
 clock_t _times_r(struct _reent *ptr, struct tms *tim)
 {
-    long long t=miosix::getTick();
-    t*=CLOCKS_PER_SEC;
-    t/=miosix::TICK_FREQ;
-    t&=0xffffffffull;
-    tim->tms_utime=t;
-    tim->tms_stime=0;  //Miosix doesn't separate user/system time
-    tim->tms_cutime=0; //child processes simply don't exist
-    tim->tms_cstime=0;
+    struct timespec tp;
+    //No CLOCK_PROCESS_CPUTIME_ID support, use CLOCK_MONOTONIC
+    if(clock_gettime(CLOCK_MONOTONIC,&tp)) return static_cast<clock_t>(-1);
+    constexpr int divFactor=1000000000/CLOCKS_PER_SEC;
+    clock_t utime=tp.tv_sec*CLOCKS_PER_SEC + tp.tv_nsec/divFactor;
+    
     //Actually, we should return tim.utime or -1 on failure, but clock_t is
     //unsigned, so if we return tim.utime and someone calls _times_r in an
     //unlucky moment where tim.utime is 0xffffffff it would be interpreted as -1
     //IMHO, the specifications are wrong since returning an unsigned leaves
-    //no value left to return in case of errors, so I return zero, period.
+    //no value left to return in case of errors. Thus 0 is returned if a valid
+    //pointer is passed, and tim.utime if the pointer is null
+    if(tim==nullptr) return utime;
+    tim->tms_utime=utime;
+    tim->tms_stime=0;
+    tim->tms_cutime=0;
+    tim->tms_cstime=0;
     return 0;
 }
 
@@ -890,13 +985,14 @@ clock_t times(struct tms *tim)
     return _times_r(miosix::CReentrancyAccessor::getReent(),tim);
 }
 
-/**
- * \internal
- * _gettimeofday_r, unimplemented
- */
 int _gettimeofday_r(struct _reent *ptr, struct timeval *tv, void *tz)
 {
-    return -1;
+    if(tv==nullptr || tz!=nullptr) return -1;
+    struct timespec tp;
+    if(clock_gettime(CLOCK_REALTIME,&tp)) return -1;
+    tv->tv_sec=tp.tv_sec;
+    tv->tv_usec=tp.tv_nsec/1000;
+    return 0;
 }
 
 int gettimeofday(struct timeval *tv, void *tz)
@@ -904,18 +1000,10 @@ int gettimeofday(struct timeval *tv, void *tz)
     return _gettimeofday_r(miosix::CReentrancyAccessor::getReent(),tv,tz);
 }
 
-/**
- * \internal
- * nanosleep, high resolution sleep
- */
+
 int nanosleep(const struct timespec *req, struct timespec *rem)
 {
-    if(req->tv_sec) miosix::Thread::sleep(req->tv_sec*1000);
-    unsigned int microseconds=req->tv_nsec/1000; //No sub-microsecond support yet
-    if(microseconds>=1000) miosix::Thread::sleep(microseconds/1000);
-    microseconds %= 1000;
-    if(microseconds) miosix::delayUs(microseconds);
-    return 0;
+    return clock_nanosleep(CLOCK_MONOTONIC,0,req,rem);
 }
 
 

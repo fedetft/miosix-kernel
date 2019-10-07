@@ -3869,6 +3869,8 @@ C++ threads API
  condition_variable
  call_once
  yield
+ this_thread::sleep_for
+ this_thread::sleep_until
 */
 
 Thread *t25_v1=nullptr;
@@ -4049,6 +4051,24 @@ static void test_25()
         this_thread::yield();
         if(flag==false) fail("this_thread::yield");
         thr.join();
+    }
+    //
+    // Testing system_clock/this_thread::sleep_for
+    //
+    {
+        auto a=chrono::system_clock::now().time_since_epoch().count();
+        this_thread::sleep_for(chrono::milliseconds(100));
+        auto b=chrono::system_clock::now().time_since_epoch().count();
+        if(llabs(b-a-100000000)>5000000) fail("sleep_for");
+    }
+    //
+    // Testing steady_clock/this_thread::sleep_until
+    //
+    {
+        auto a=chrono::steady_clock::now().time_since_epoch().count();
+        this_thread::sleep_until(chrono::steady_clock::now()+chrono::milliseconds(100));
+        auto b=chrono::steady_clock::now().time_since_epoch().count();
+        if(llabs(b-a-100000000)>5000000) fail("sleep_until");
     }
     pass();
     Thread::setPriority(0);
