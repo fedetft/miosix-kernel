@@ -81,8 +81,11 @@ public:
      */
     ~CReentrancyData()
     {
-        _reclaim_reent(threadReent);
-        if(threadReent && threadReent!=_GLOBAL_REENT) free(threadReent);
+        if(threadReent && threadReent!=_GLOBAL_REENT)
+        {
+            _reclaim_reent(threadReent);
+            free(threadReent);
+        }
     }
 
 private:
