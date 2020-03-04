@@ -1,6 +1,6 @@
 diff -ruN gcc-9.2.0-old/config/gthr.m4 gcc-9.2.0/config/gthr.m4
 --- gcc-9.2.0-old/config/gthr.m4	2012-10-15 15:10:30.000000000 +0200
-+++ gcc-9.2.0/config/gthr.m4	2019-11-19 14:55:06.334036346 +0100
++++ gcc-9.2.0/config/gthr.m4	2020-03-02 23:18:10.362550423 +0100
 @@ -14,6 +14,7 @@
      aix)	thread_header=config/rs6000/gthr-aix.h ;;
      dce)	thread_header=config/pa/gthr-dce.h ;;
@@ -11,7 +11,7 @@ diff -ruN gcc-9.2.0-old/config/gthr.m4 gcc-9.2.0/config/gthr.m4
      rtems)	thread_header=config/gthr-rtems.h ;;
 diff -ruN gcc-9.2.0-old/gcc/config/arm/arm.c gcc-9.2.0/gcc/config/arm/arm.c
 --- gcc-9.2.0-old/gcc/config/arm/arm.c	2019-09-08 21:15:31.910408479 +0200
-+++ gcc-9.2.0/gcc/config/arm/arm.c	2019-11-19 14:55:06.482047242 +0100
++++ gcc-9.2.0/gcc/config/arm/arm.c	2020-03-02 23:18:10.418550793 +0100
 @@ -2758,8 +2758,30 @@
  	}
    }
@@ -47,7 +47,7 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/arm.c gcc-9.2.0/gcc/config/arm/arm.c
  }
 diff -ruN gcc-9.2.0-old/gcc/config/arm/miosix-eabi.h gcc-9.2.0/gcc/config/arm/miosix-eabi.h
 --- gcc-9.2.0-old/gcc/config/arm/miosix-eabi.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-9.2.0/gcc/config/arm/miosix-eabi.h	2019-11-19 14:55:06.350037525 +0100
++++ gcc-9.2.0/gcc/config/arm/miosix-eabi.h	2020-03-02 23:18:10.374550502 +0100
 @@ -0,0 +1,19 @@
 +
 +/*
@@ -70,7 +70,7 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/miosix-eabi.h gcc-9.2.0/gcc/config/arm/mi
 +    } while(false)
 diff -ruN gcc-9.2.0-old/gcc/config/arm/t-arm-miosix gcc-9.2.0/gcc/config/arm/t-arm-miosix
 --- gcc-9.2.0-old/gcc/config/arm/t-arm-miosix	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-9.2.0/gcc/config/arm/t-arm-miosix	2019-11-19 14:55:06.350037525 +0100
++++ gcc-9.2.0/gcc/config/arm/t-arm-miosix	2020-03-02 23:18:10.374550502 +0100
 @@ -0,0 +1,49 @@
 +
 +## RATIONALE: build multilibs for ARM, Cortex-Mx, and the pie versions
@@ -123,7 +123,7 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/t-arm-miosix gcc-9.2.0/gcc/config/arm/t-a
 +# thumb/cm7/hardfp/fpv5/pie/single-pic-base;@mthumb@mcpu=cortex-m7@mfloat-abi=hard@mfpu=fpv5-d16@fpie@msingle-pic-base
 diff -ruN gcc-9.2.0-old/gcc/config.gcc gcc-9.2.0/gcc/config.gcc
 --- gcc-9.2.0-old/gcc/config.gcc	2019-08-03 22:16:22.000000000 +0200
-+++ gcc-9.2.0/gcc/config.gcc	2019-11-19 14:55:06.350037525 +0100
++++ gcc-9.2.0/gcc/config.gcc	2020-03-02 23:18:10.374550502 +0100
 @@ -1218,6 +1218,13 @@
  	tmake_file="${tmake_file} arm/t-arm arm/t-arm-elf"
  	target_cpu_cname="arm7tdmi"
@@ -140,7 +140,7 @@ diff -ruN gcc-9.2.0-old/gcc/config.gcc gcc-9.2.0/gcc/config.gcc
  	  tmake_file="${tmake_file} arm/t-bpabi"
 diff -ruN gcc-9.2.0-old/gcc/configure gcc-9.2.0/gcc/configure
 --- gcc-9.2.0-old/gcc/configure	2019-06-26 11:15:46.000000000 +0200
-+++ gcc-9.2.0/gcc/configure	2019-11-19 14:55:06.354037819 +0100
++++ gcc-9.2.0/gcc/configure	2020-03-02 23:18:10.382550555 +0100
 @@ -11860,7 +11860,7 @@
      # default
      target_thread_file='single'
@@ -152,7 +152,7 @@ diff -ruN gcc-9.2.0-old/gcc/configure gcc-9.2.0/gcc/configure
      ;;
 diff -ruN gcc-9.2.0-old/gcc/configure.ac gcc-9.2.0/gcc/configure.ac
 --- gcc-9.2.0-old/gcc/configure.ac	2019-06-26 11:15:46.000000000 +0200
-+++ gcc-9.2.0/gcc/configure.ac	2019-11-19 14:55:06.354037819 +0100
++++ gcc-9.2.0/gcc/configure.ac	2020-03-02 23:18:10.386550582 +0100
 @@ -1646,7 +1646,7 @@
      # default
      target_thread_file='single'
@@ -164,7 +164,7 @@ diff -ruN gcc-9.2.0-old/gcc/configure.ac gcc-9.2.0/gcc/configure.ac
      ;;
 diff -ruN gcc-9.2.0-old/libatomic/config/miosix/host-config.h gcc-9.2.0/libatomic/config/miosix/host-config.h
 --- gcc-9.2.0-old/libatomic/config/miosix/host-config.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-9.2.0/libatomic/config/miosix/host-config.h	2019-11-19 14:55:06.354037819 +0100
++++ gcc-9.2.0/libatomic/config/miosix/host-config.h	2020-03-02 23:18:10.386550582 +0100
 @@ -0,0 +1,23 @@
 +
 +/*
@@ -191,7 +191,7 @@ diff -ruN gcc-9.2.0-old/libatomic/config/miosix/host-config.h gcc-9.2.0/libatomi
 +#include_next <host-config.h>
 diff -ruN gcc-9.2.0-old/libatomic/config/miosix/lock.c gcc-9.2.0/libatomic/config/miosix/lock.c
 --- gcc-9.2.0-old/libatomic/config/miosix/lock.c	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-9.2.0/libatomic/config/miosix/lock.c	2019-11-19 14:55:06.354037819 +0100
++++ gcc-9.2.0/libatomic/config/miosix/lock.c	2020-03-02 23:18:10.386550582 +0100
 @@ -0,0 +1,13 @@
 +
 +/*
@@ -208,7 +208,7 @@ diff -ruN gcc-9.2.0-old/libatomic/config/miosix/lock.c gcc-9.2.0/libatomic/confi
 +#include "libatomic_i.h"
 diff -ruN gcc-9.2.0-old/libatomic/configure.tgt gcc-9.2.0/libatomic/configure.tgt
 --- gcc-9.2.0-old/libatomic/configure.tgt	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libatomic/configure.tgt	2019-11-19 14:55:06.358038113 +0100
++++ gcc-9.2.0/libatomic/configure.tgt	2020-03-02 23:18:10.386550582 +0100
 @@ -154,6 +154,10 @@
          esac
  	;;
@@ -222,7 +222,7 @@ diff -ruN gcc-9.2.0-old/libatomic/configure.tgt gcc-9.2.0/libatomic/configure.tg
  	config_path="rtems"
 diff -ruN gcc-9.2.0-old/libgcc/config/gthr-miosix.h gcc-9.2.0/libgcc/config/gthr-miosix.h
 --- gcc-9.2.0-old/libgcc/config/gthr-miosix.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-9.2.0/libgcc/config/gthr-miosix.h	2019-11-19 14:55:06.358038113 +0100
++++ gcc-9.2.0/libgcc/config/gthr-miosix.h	2020-03-02 23:18:10.386550582 +0100
 @@ -0,0 +1,94 @@
 +
 +// RATIONALE: make the code generated by GCC thread safe by providing a thread model
@@ -320,7 +320,7 @@ diff -ruN gcc-9.2.0-old/libgcc/config/gthr-miosix.h gcc-9.2.0/libgcc/config/gthr
 +#endif //GCC_GHTR_MIOSIX_H
 diff -ruN gcc-9.2.0-old/libgcc/configure gcc-9.2.0/libgcc/configure
 --- gcc-9.2.0-old/libgcc/configure	2018-10-31 18:03:16.000000000 +0100
-+++ gcc-9.2.0/libgcc/configure	2019-11-19 14:55:06.358038113 +0100
++++ gcc-9.2.0/libgcc/configure	2020-03-02 23:18:10.390550609 +0100
 @@ -5543,6 +5543,7 @@
      aix)	thread_header=config/rs6000/gthr-aix.h ;;
      dce)	thread_header=config/pa/gthr-dce.h ;;
@@ -331,7 +331,7 @@ diff -ruN gcc-9.2.0-old/libgcc/configure gcc-9.2.0/libgcc/configure
      rtems)	thread_header=config/gthr-rtems.h ;;
 diff -ruN gcc-9.2.0-old/libgcc/unwind-sjlj.c gcc-9.2.0/libgcc/unwind-sjlj.c
 --- gcc-9.2.0-old/libgcc/unwind-sjlj.c	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libgcc/unwind-sjlj.c	2019-11-19 14:55:06.358038113 +0100
++++ gcc-9.2.0/libgcc/unwind-sjlj.c	2020-03-02 23:18:10.390550609 +0100
 @@ -91,7 +91,14 @@
    _Unwind_Personality_Fn personality;
  } _Unwind_FrameState;
@@ -381,78 +381,9 @@ diff -ruN gcc-9.2.0-old/libgcc/unwind-sjlj.c gcc-9.2.0/libgcc/unwind-sjlj.c
  void
  _Unwind_SjLj_Unregister (struct SjLj_Function_Context *fc)
  {
-diff -ruN gcc-9.2.0-old/libstdc++-v3/acinclude.m4 gcc-9.2.0/libstdc++-v3/acinclude.m4
---- gcc-9.2.0-old/libstdc++-v3/acinclude.m4	2019-07-03 23:09:13.000000000 +0200
-+++ gcc-9.2.0/libstdc++-v3/acinclude.m4	2019-11-21 01:08:26.091036449 +0100
-@@ -372,7 +372,8 @@
-     GCC_TRY_COMPILE_OR_LINK(
-       [#include <sys/stat.h>],
-       [struct stat buffer;
--       fstat(0, &buffer);
-+       // Patch rationale: work around undefined reference during linking
-+       //fstat(0, &buffer);
-        S_ISREG(buffer.st_mode);],
-       [glibcxx_cv_S_ISREG=yes],
-       [glibcxx_cv_S_ISREG=no])
-@@ -381,7 +382,8 @@
-     GCC_TRY_COMPILE_OR_LINK(
-       [#include <sys/stat.h>],
-       [struct stat buffer;
--       fstat(0, &buffer);
-+       // Patch rationale: work around undefined reference during linking
-+       //fstat(0, &buffer);
-        S_IFREG & buffer.st_mode;],
-       [glibcxx_cv_S_IFREG=yes],
-       [glibcxx_cv_S_IFREG=no])
-@@ -1013,8 +1015,9 @@
-          void foo(char* fmt, ...)
-          {
-            va_list args; va_start(args, fmt);
--           vfscanf(stderr, "%i", args);
--           vscanf("%i", args);
-+           // Patch rationale: work around undefined reference during linking
-+           //vfscanf(stderr, "%i", args);
-+           //vscanf("%i", args);
-            vsnprintf(fmt, 0, "%i", args);
-            vsscanf(fmt, "%i", args);
-            snprintf(fmt, 0, "%i");
-@@ -1250,8 +1253,9 @@
-          void foo(char* fmt, ...)
-          {
-            va_list args; va_start(args, fmt);
--           vfscanf(stderr, "%i", args);
--           vscanf("%i", args);
-+           // Patch rationale: work around undefined reference during linking
-+           //vfscanf(stderr, "%i", args);
-+           //vscanf("%i", args);
-            vsnprintf(fmt, 0, "%i", args);
-            vsscanf(fmt, "%i", args);
-            snprintf(fmt, 0, "%i");
-@@ -1623,7 +1627,9 @@
-   if test x"$ac_has_sys_time_h" = x"yes"; then
-     AC_MSG_CHECKING([for gettimeofday])
-     GCC_TRY_COMPILE_OR_LINK([#include <sys/time.h>],
--      [timeval tv; gettimeofday(&tv, 0);],
-+      [// Patch rationale: work around undefined reference during linking
-+       // gettimeofday is supported by Miosix, just requires linking with libmiosix.a
-+       timeval tv; //gettimeofday(&tv, 0);],
-       [ac_has_gettimeofday=yes], [ac_has_gettimeofday=no])
- 
-     AC_MSG_RESULT($ac_has_gettimeofday)
-@@ -4242,7 +4248,9 @@
-   AC_CACHE_VAL(glibcxx_cv_TMPNAM, [dnl
-     GCC_TRY_COMPILE_OR_LINK(
-       [#include <stdio.h>],
--      [char *tmp = tmpnam(NULL);],
-+      [// Patch rationale: work around undefined reference during linking
-+       // tmpnam is supported by Miosix, just requires linking with libmiosix.a
-+       //char *tmp = tmpnam(NULL);],
-       [glibcxx_cv_TMPNAM=yes],
-       [glibcxx_cv_TMPNAM=no])
-   ])
 diff -ruN gcc-9.2.0-old/libstdc++-v3/configure gcc-9.2.0/libstdc++-v3/configure
 --- gcc-9.2.0-old/libstdc++-v3/configure	2019-07-03 23:09:13.000000000 +0200
-+++ gcc-9.2.0/libstdc++-v3/configure	2019-11-21 01:09:47.670445165 +0100
++++ gcc-9.2.0/libstdc++-v3/configure	2020-03-04 21:49:10.892598364 +0100
 @@ -15419,6 +15419,7 @@
      aix)	thread_header=config/rs6000/gthr-aix.h ;;
      dce)	thread_header=config/pa/gthr-dce.h ;;
@@ -461,120 +392,12 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/configure gcc-9.2.0/libstdc++-v3/configure
      mipssde)	thread_header=config/mips/gthr-mipssde.h ;;
      posix)	thread_header=gthr-posix.h ;;
      rtems)	thread_header=config/gthr-rtems.h ;;
-@@ -17219,8 +17220,9 @@
-          void foo(char* fmt, ...)
-          {
-            va_list args; va_start(args, fmt);
--           vfscanf(stderr, "%i", args);
--           vscanf("%i", args);
-+           // Patch rationale: work around undefined reference during linking
-+           //vfscanf(stderr, "%i", args);
-+           //vscanf("%i", args);
-            vsnprintf(fmt, 0, "%i", args);
-            vsscanf(fmt, "%i", args);
-            snprintf(fmt, 0, "%i");
-@@ -17250,8 +17252,9 @@
-          void foo(char* fmt, ...)
-          {
-            va_list args; va_start(args, fmt);
--           vfscanf(stderr, "%i", args);
--           vscanf("%i", args);
-+           // Patch rationale: work around undefined reference during linking
-+           //vfscanf(stderr, "%i", args);
-+           //vscanf("%i", args);
-            vsnprintf(fmt, 0, "%i", args);
-            vsscanf(fmt, "%i", args);
-            snprintf(fmt, 0, "%i");
-@@ -17900,8 +17903,9 @@
-          void foo(char* fmt, ...)
-          {
-            va_list args; va_start(args, fmt);
--           vfscanf(stderr, "%i", args);
--           vscanf("%i", args);
-+           // Patch rationale: work around undefined reference during linking
-+           //vfscanf(stderr, "%i", args);
-+           //vscanf("%i", args);
-            vsnprintf(fmt, 0, "%i", args);
-            vsscanf(fmt, "%i", args);
-            snprintf(fmt, 0, "%i");
-@@ -17931,8 +17935,9 @@
-          void foo(char* fmt, ...)
-          {
-            va_list args; va_start(args, fmt);
--           vfscanf(stderr, "%i", args);
--           vscanf("%i", args);
-+           // Patch rationale: work around undefined reference during linking
-+           //vfscanf(stderr, "%i", args);
-+           //vscanf("%i", args);
-            vsnprintf(fmt, 0, "%i", args);
-            vsscanf(fmt, "%i", args);
-            snprintf(fmt, 0, "%i");
-@@ -19795,7 +19800,8 @@
- main ()
- {
- struct stat buffer;
--       fstat(0, &buffer);
-+       // Patch rationale: work around undefined reference during linking
-+       //fstat(0, &buffer);
-        S_ISREG(buffer.st_mode);
-   ;
-   return 0;
-@@ -19818,7 +19824,8 @@
- main ()
- {
- struct stat buffer;
--       fstat(0, &buffer);
-+       // Patch rationale: work around undefined reference during linking
-+       //fstat(0, &buffer);
-        S_ISREG(buffer.st_mode);
-   ;
-   return 0;
-@@ -19847,7 +19854,8 @@
- main ()
- {
- struct stat buffer;
--       fstat(0, &buffer);
-+       // Patch rationale: work around undefined reference during linking
-+       //fstat(0, &buffer);
-        S_IFREG & buffer.st_mode;
-   ;
-   return 0;
-@@ -19870,7 +19878,8 @@
- main ()
- {
- struct stat buffer;
--       fstat(0, &buffer);
-+       // Patch rationale: work around undefined reference during linking
-+       //fstat(0, &buffer);
-        S_IFREG & buffer.st_mode;
-   ;
-   return 0;
-@@ -20737,7 +20746,9 @@
- int
- main ()
- {
--timeval tv; gettimeofday(&tv, 0);
-+// Patch rationale: work around undefined reference during linking
-+// gettimeofday is supported by Miosix, just requires linking with libmiosix.a
-+timeval tv; //gettimeofday(&tv, 0);
-   ;
-   return 0;
- }
-@@ -20758,7 +20769,9 @@
- int
- main ()
- {
--timeval tv; gettimeofday(&tv, 0);
-+// Patch rationale: work around undefined reference during linking
-+// gettimeofday is supported by Miosix, just requires linking with libmiosix.a
-+timeval tv; //gettimeofday(&tv, 0);
-   ;
-   return 0;
- }
-@@ -20888,6 +20901,23 @@
+@@ -20886,6 +20887,23 @@
+         ac_has_nanosleep=yes
+         ac_has_sched_yield=yes
          ;;
-     esac
- 
++    esac
++
 +    # apparently the miosix in arm-miosix-eabi is ${target_vendor}
 +    case "${target_vendor}" in
 +        miosix*)
@@ -590,36 +413,12 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/configure gcc-9.2.0/libstdc++-v3/configure
 +        ac_has_nanosleep=yes
 +        ac_has_sched_yield=yes
 +        ;;
-+    esac
-+
-   elif test x"$enable_libstdcxx_time" != x"no"; then
+     esac
  
-     if test x"$enable_libstdcxx_time" = x"rt"; then
-@@ -21515,7 +21545,9 @@
- int
- main ()
- {
--char *tmp = tmpnam(NULL);
-+// Patch rationale: work around undefined reference during linking
-+// tmpnam is supported by Miosix, just requires linking with libmiosix.a
-+//char *tmp = tmpnam(NULL);
-   ;
-   return 0;
- }
-@@ -21536,7 +21568,9 @@
- int
- main ()
- {
--char *tmp = tmpnam(NULL);
-+// Patch rationale: work around undefined reference during linking
-+// tmpnam is supported by Miosix, just requires linking with libmiosix.a
-+//char *tmp = tmpnam(NULL);
-   ;
-   return 0;
- }
+   elif test x"$enable_libstdcxx_time" != x"no"; then
 diff -ruN gcc-9.2.0-old/libstdc++-v3/include/bits/basic_string.h gcc-9.2.0/libstdc++-v3/include/bits/basic_string.h
 --- gcc-9.2.0-old/libstdc++-v3/include/bits/basic_string.h	2019-04-24 17:17:53.000000000 +0200
-+++ gcc-9.2.0/libstdc++-v3/include/bits/basic_string.h	2019-11-19 14:55:06.366038703 +0100
++++ gcc-9.2.0/libstdc++-v3/include/bits/basic_string.h	2020-03-02 23:18:10.406550714 +0100
 @@ -6538,41 +6538,45 @@
    { return __gnu_cxx::__stoa(&std::strtold, "stold", __str.c_str(), __idx); }
  #endif // _GLIBCXX_USE_C99_STDLIB
@@ -674,7 +473,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/include/bits/basic_string.h gcc-9.2.0/libst
  
 diff -ruN gcc-9.2.0-old/libstdc++-v3/include/bits/fstream.tcc gcc-9.2.0/libstdc++-v3/include/bits/fstream.tcc
 --- gcc-9.2.0-old/libstdc++-v3/include/bits/fstream.tcc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/include/bits/fstream.tcc	2019-11-19 14:55:06.366038703 +0100
++++ gcc-9.2.0/libstdc++-v3/include/bits/fstream.tcc	2020-03-02 23:18:10.406550714 +0100
 @@ -80,7 +80,7 @@
      basic_filebuf<_CharT, _Traits>::
      basic_filebuf() : __streambuf_type(), _M_lock(), _M_file(&_M_lock),
@@ -686,7 +485,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/include/bits/fstream.tcc gcc-9.2.0/libstdc+
      _M_codecvt(0), _M_ext_buf(0), _M_ext_buf_size(0), _M_ext_next(0),
 diff -ruN gcc-9.2.0-old/libstdc++-v3/include/std/thread gcc-9.2.0/libstdc++-v3/include/std/thread
 --- gcc-9.2.0-old/libstdc++-v3/include/std/thread	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/include/std/thread	2019-11-19 14:55:06.366038703 +0100
++++ gcc-9.2.0/libstdc++-v3/include/std/thread	2020-03-02 23:18:10.406550714 +0100
 @@ -375,8 +375,13 @@
  	    static_cast<std::time_t>(__s.count()),
  	    static_cast<long>(__ns.count())
@@ -731,7 +530,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/include/std/thread gcc-9.2.0/libstdc++-v3/i
  
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/bad_array_length.cc gcc-9.2.0/libstdc++-v3/libsupc++/bad_array_length.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/bad_array_length.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/bad_array_length.cc	2019-11-19 14:55:06.366038703 +0100
++++ gcc-9.2.0/libstdc++-v3/libsupc++/bad_array_length.cc	2020-03-02 23:18:10.406550714 +0100
 @@ -48,9 +48,18 @@
  
  } // namespace std
@@ -754,7 +553,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/bad_array_length.cc gcc-9.2.0/lib
  
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_alloc.cc gcc-9.2.0/libstdc++-v3/libsupc++/eh_alloc.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_alloc.cc	2019-01-21 12:47:30.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_alloc.cc	2019-11-19 14:55:06.366038703 +0100
++++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_alloc.cc	2020-03-02 23:18:10.406550714 +0100
 @@ -73,6 +73,14 @@
  # define EMERGENCY_OBJ_COUNT	4
  #endif
@@ -772,7 +571,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_alloc.cc gcc-9.2.0/libstdc++-v
    void __freeres();
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_aux_runtime.cc gcc-9.2.0/libstdc++-v3/libsupc++/eh_aux_runtime.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_aux_runtime.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_aux_runtime.cc	2019-11-19 14:55:06.366038703 +0100
++++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_aux_runtime.cc	2020-03-02 23:18:10.406550714 +0100
 @@ -29,14 +29,23 @@
  #include "unwind-cxx.h"
  #include <bits/exception_defines.h>
@@ -802,7 +601,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_aux_runtime.cc gcc-9.2.0/libst
  { _GLIBCXX_THROW_OR_ABORT(std::bad_array_new_length()); }
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_globals.cc gcc-9.2.0/libstdc++-v3/libsupc++/eh_globals.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_globals.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_globals.cc	2019-11-19 14:55:06.366038703 +0100
++++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_globals.cc	2020-03-02 23:18:10.406550714 +0100
 @@ -41,6 +41,11 @@
  
  using namespace __cxxabiv1;
@@ -823,7 +622,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_globals.cc gcc-9.2.0/libstdc++
 +#endif //_MIOSIX
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_terminate.cc gcc-9.2.0/libstdc++-v3/libsupc++/eh_terminate.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_terminate.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_terminate.cc	2019-11-19 14:55:06.366038703 +0100
++++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_terminate.cc	2020-03-02 23:18:10.406550714 +0100
 @@ -37,6 +37,15 @@
  }
  #endif
@@ -860,7 +659,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_terminate.cc gcc-9.2.0/libstdc
    __unexpected (get_unexpected ());
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/guard.cc gcc-9.2.0/libstdc++-v3/libsupc++/guard.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/guard.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/guard.cc	2019-11-19 14:55:06.366038703 +0100
++++ gcc-9.2.0/libstdc++-v3/libsupc++/guard.cc	2020-03-02 23:18:10.406550714 +0100
 @@ -190,6 +190,11 @@
  //  | _GLIBCXX_GUARD_WAITING_BIT) and some other threads are waiting until
  //				  it is initialized.
@@ -881,7 +680,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/guard.cc gcc-9.2.0/libstdc++-v3/l
 +#endif //_MIOSIX
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/pure.cc gcc-9.2.0/libstdc++-v3/libsupc++/pure.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/pure.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/pure.cc	2019-11-19 14:55:06.366038703 +0100
++++ gcc-9.2.0/libstdc++-v3/libsupc++/pure.cc	2020-03-02 23:18:10.406550714 +0100
 @@ -43,14 +43,23 @@
  # define writestr(str) /* Empty */
  #endif
@@ -910,7 +709,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/pure.cc gcc-9.2.0/libstdc++-v3/li
    writestr ("deleted virtual method called\n");
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/vterminate.cc gcc-9.2.0/libstdc++-v3/libsupc++/vterminate.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/vterminate.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/vterminate.cc	2019-11-19 14:55:06.366038703 +0100
++++ gcc-9.2.0/libstdc++-v3/libsupc++/vterminate.cc	2020-03-02 23:18:10.406550714 +0100
 @@ -34,6 +34,14 @@
  using namespace std;
  using namespace abi;
@@ -937,7 +736,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/vterminate.cc gcc-9.2.0/libstdc++
      if (terminating)
 diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/functexcept.cc gcc-9.2.0/libstdc++-v3/src/c++11/functexcept.cc
 --- gcc-9.2.0-old/libstdc++-v3/src/c++11/functexcept.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/src/c++11/functexcept.cc	2019-11-19 14:55:06.366038703 +0100
++++ gcc-9.2.0/libstdc++-v3/src/c++11/functexcept.cc	2020-03-02 23:18:10.406550714 +0100
 @@ -35,6 +35,15 @@
  # define _(msgid)   (msgid)
  #endif
@@ -1046,7 +845,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/functexcept.cc gcc-9.2.0/libstdc+
  
 diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/functional.cc gcc-9.2.0/libstdc++-v3/src/c++11/functional.cc
 --- gcc-9.2.0-old/libstdc++-v3/src/c++11/functional.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/src/c++11/functional.cc	2019-11-19 14:55:06.366038703 +0100
++++ gcc-9.2.0/libstdc++-v3/src/c++11/functional.cc	2020-03-02 23:18:10.406550714 +0100
 @@ -25,11 +25,20 @@
  #include <functional>
  #include <bits/functexcept.h>
@@ -1071,7 +870,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/functional.cc gcc-9.2.0/libstdc++
  
 diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/future.cc gcc-9.2.0/libstdc++-v3/src/c++11/future.cc
 --- gcc-9.2.0-old/libstdc++-v3/src/c++11/future.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/src/c++11/future.cc	2019-11-19 14:55:06.366038703 +0100
++++ gcc-9.2.0/libstdc++-v3/src/c++11/future.cc	2020-03-02 23:18:10.406550714 +0100
 @@ -25,6 +25,15 @@
  #include <future>
  #include <bits/functexcept.h>
@@ -1099,7 +898,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/future.cc gcc-9.2.0/libstdc++-v3/
  
 diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/snprintf_lite.cc gcc-9.2.0/libstdc++-v3/src/c++11/snprintf_lite.cc
 --- gcc-9.2.0-old/libstdc++-v3/src/c++11/snprintf_lite.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/src/c++11/snprintf_lite.cc	2019-11-19 14:55:06.366038703 +0100
++++ gcc-9.2.0/libstdc++-v3/src/c++11/snprintf_lite.cc	2020-03-02 23:18:10.406550714 +0100
 @@ -37,7 +37,22 @@
  }
  
@@ -1162,7 +961,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/snprintf_lite.cc gcc-9.2.0/libstd
      return __d - __buf;
 diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/system_error.cc gcc-9.2.0/libstdc++-v3/src/c++11/system_error.cc
 --- gcc-9.2.0-old/libstdc++-v3/src/c++11/system_error.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/src/c++11/system_error.cc	2019-11-19 14:55:06.366038703 +0100
++++ gcc-9.2.0/libstdc++-v3/src/c++11/system_error.cc	2020-03-02 23:18:10.406550714 +0100
 @@ -32,6 +32,15 @@
  #include <errno.h>
  #undef __sso_string
