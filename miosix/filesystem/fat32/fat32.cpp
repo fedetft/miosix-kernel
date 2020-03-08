@@ -349,28 +349,37 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
     if(failed) return -ENOENT;
     flags++; //To convert from O_RDONLY, O_WRONLY, ... to _FREAD, _FWRITE, ...
     
+    // Code path checklist:
+    // Not existent | Regular file | Directory |
+    //      ok      |      ok      |    ok     | _FREAD
+    //      ok      |      ok      |    ok     | _FWRITE
+    //      ok      |      ok      |    ok     | _FWRITE | _FCREAT
+    
     struct stat st;
-    if(!(flags & _FWRITE))
+    bool statFailed=false;
+    if(int result=lstat(name,&st))
     {
-        //Don't stat now if _FWRITE, the file may not yet exist as we may be
-        //asked to create it
-        if(int result=lstat(name,&st)) return result;
+        //If _FCREAT the file may not yet exist as we are asked to create it
+        if((flags & (_FWRITE | _FCREAT)) != (_FWRITE | _FCREAT)) return result;
+        else statFailed=true;
     }
-    if((flags & _FWRITE) || !S_ISDIR(st.st_mode))
+        
+    //Using if short circuit, as st is not initialized if statFailed
+    if(statFailed || !S_ISDIR(st.st_mode))
     {
         //About to open a file
         BYTE openflags=0;
         if(flags & _FREAD)  openflags|=FA_READ;
         if(flags & _FWRITE) openflags|=FA_WRITE;
         if(flags & _FTRUNC) openflags|=FA_CREATE_ALWAYS;//Truncate
-        else if(flags & _FAPPEND) openflags|=FA_OPEN_ALWAYS;//If !exists create
+        else if(flags & _FCREAT) openflags|=FA_OPEN_ALWAYS;//If !exists create
         else openflags|=FA_OPEN_EXISTING;//If not exists fail
 
         intrusive_ref_ptr<Fat32File> f(new Fat32File(shared_from_this(),mutex));
         Lock<FastMutex> l(mutex);
         if(int res=translateError(f_open(&filesystem,f->fil(),name.c_str(),openflags)))
             return res;
-        if(flags & _FWRITE)
+        if(statFailed)
         {
             //If we didn't stat before, stat now to get the inode
             if(int result=lstat(name,&st)) return result;
@@ -392,7 +401,7 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         return 0;
     } else {
         //About to open a directory
-        if(flags!=_FREAD) return -EISDIR;
+        if(flags & (_FWRITE | _FAPPEND | _FCREAT | _FTRUNC)) return -EISDIR;
         
         int parentInode;
         if(name.empty()==false)
