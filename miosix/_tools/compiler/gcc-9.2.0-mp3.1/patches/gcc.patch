@@ -1,6 +1,6 @@
 diff -ruN gcc-9.2.0-old/config/gthr.m4 gcc-9.2.0/config/gthr.m4
 --- gcc-9.2.0-old/config/gthr.m4	2012-10-15 15:10:30.000000000 +0200
-+++ gcc-9.2.0/config/gthr.m4	2020-03-02 23:18:10.362550423 +0100
++++ gcc-9.2.0/config/gthr.m4	2020-03-09 21:52:00.002397333 +0100
 @@ -14,6 +14,7 @@
      aix)	thread_header=config/rs6000/gthr-aix.h ;;
      dce)	thread_header=config/pa/gthr-dce.h ;;
@@ -11,7 +11,7 @@ diff -ruN gcc-9.2.0-old/config/gthr.m4 gcc-9.2.0/config/gthr.m4
      rtems)	thread_header=config/gthr-rtems.h ;;
 diff -ruN gcc-9.2.0-old/gcc/config/arm/arm.c gcc-9.2.0/gcc/config/arm/arm.c
 --- gcc-9.2.0-old/gcc/config/arm/arm.c	2019-09-08 21:15:31.910408479 +0200
-+++ gcc-9.2.0/gcc/config/arm/arm.c	2020-03-02 23:18:10.418550793 +0100
++++ gcc-9.2.0/gcc/config/arm/arm.c	2020-03-09 21:52:00.510401122 +0100
 @@ -2758,8 +2758,30 @@
  	}
    }
@@ -47,7 +47,7 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/arm.c gcc-9.2.0/gcc/config/arm/arm.c
  }
 diff -ruN gcc-9.2.0-old/gcc/config/arm/miosix-eabi.h gcc-9.2.0/gcc/config/arm/miosix-eabi.h
 --- gcc-9.2.0-old/gcc/config/arm/miosix-eabi.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-9.2.0/gcc/config/arm/miosix-eabi.h	2020-03-02 23:18:10.374550502 +0100
++++ gcc-9.2.0/gcc/config/arm/miosix-eabi.h	2020-03-09 21:52:00.014397421 +0100
 @@ -0,0 +1,19 @@
 +
 +/*
@@ -70,7 +70,7 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/miosix-eabi.h gcc-9.2.0/gcc/config/arm/mi
 +    } while(false)
 diff -ruN gcc-9.2.0-old/gcc/config/arm/t-arm-miosix gcc-9.2.0/gcc/config/arm/t-arm-miosix
 --- gcc-9.2.0-old/gcc/config/arm/t-arm-miosix	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-9.2.0/gcc/config/arm/t-arm-miosix	2020-03-02 23:18:10.374550502 +0100
++++ gcc-9.2.0/gcc/config/arm/t-arm-miosix	2020-03-09 21:52:00.014397421 +0100
 @@ -0,0 +1,49 @@
 +
 +## RATIONALE: build multilibs for ARM, Cortex-Mx, and the pie versions
@@ -123,7 +123,7 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/t-arm-miosix gcc-9.2.0/gcc/config/arm/t-a
 +# thumb/cm7/hardfp/fpv5/pie/single-pic-base;@mthumb@mcpu=cortex-m7@mfloat-abi=hard@mfpu=fpv5-d16@fpie@msingle-pic-base
 diff -ruN gcc-9.2.0-old/gcc/config.gcc gcc-9.2.0/gcc/config.gcc
 --- gcc-9.2.0-old/gcc/config.gcc	2019-08-03 22:16:22.000000000 +0200
-+++ gcc-9.2.0/gcc/config.gcc	2020-03-02 23:18:10.374550502 +0100
++++ gcc-9.2.0/gcc/config.gcc	2020-03-09 21:52:00.014397421 +0100
 @@ -1218,6 +1218,13 @@
  	tmake_file="${tmake_file} arm/t-arm arm/t-arm-elf"
  	target_cpu_cname="arm7tdmi"
@@ -140,7 +140,7 @@ diff -ruN gcc-9.2.0-old/gcc/config.gcc gcc-9.2.0/gcc/config.gcc
  	  tmake_file="${tmake_file} arm/t-bpabi"
 diff -ruN gcc-9.2.0-old/gcc/configure gcc-9.2.0/gcc/configure
 --- gcc-9.2.0-old/gcc/configure	2019-06-26 11:15:46.000000000 +0200
-+++ gcc-9.2.0/gcc/configure	2020-03-02 23:18:10.382550555 +0100
++++ gcc-9.2.0/gcc/configure	2020-03-09 21:52:00.018397452 +0100
 @@ -11860,7 +11860,7 @@
      # default
      target_thread_file='single'
@@ -152,7 +152,7 @@ diff -ruN gcc-9.2.0-old/gcc/configure gcc-9.2.0/gcc/configure
      ;;
 diff -ruN gcc-9.2.0-old/gcc/configure.ac gcc-9.2.0/gcc/configure.ac
 --- gcc-9.2.0-old/gcc/configure.ac	2019-06-26 11:15:46.000000000 +0200
-+++ gcc-9.2.0/gcc/configure.ac	2020-03-02 23:18:10.386550582 +0100
++++ gcc-9.2.0/gcc/configure.ac	2020-03-09 21:52:00.334399808 +0100
 @@ -1646,7 +1646,7 @@
      # default
      target_thread_file='single'
@@ -164,7 +164,7 @@ diff -ruN gcc-9.2.0-old/gcc/configure.ac gcc-9.2.0/gcc/configure.ac
      ;;
 diff -ruN gcc-9.2.0-old/libatomic/config/miosix/host-config.h gcc-9.2.0/libatomic/config/miosix/host-config.h
 --- gcc-9.2.0-old/libatomic/config/miosix/host-config.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-9.2.0/libatomic/config/miosix/host-config.h	2020-03-02 23:18:10.386550582 +0100
++++ gcc-9.2.0/libatomic/config/miosix/host-config.h	2020-03-09 21:52:00.354399958 +0100
 @@ -0,0 +1,23 @@
 +
 +/*
@@ -191,7 +191,7 @@ diff -ruN gcc-9.2.0-old/libatomic/config/miosix/host-config.h gcc-9.2.0/libatomi
 +#include_next <host-config.h>
 diff -ruN gcc-9.2.0-old/libatomic/config/miosix/lock.c gcc-9.2.0/libatomic/config/miosix/lock.c
 --- gcc-9.2.0-old/libatomic/config/miosix/lock.c	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-9.2.0/libatomic/config/miosix/lock.c	2020-03-02 23:18:10.386550582 +0100
++++ gcc-9.2.0/libatomic/config/miosix/lock.c	2020-03-09 21:52:00.354399958 +0100
 @@ -0,0 +1,13 @@
 +
 +/*
@@ -208,7 +208,7 @@ diff -ruN gcc-9.2.0-old/libatomic/config/miosix/lock.c gcc-9.2.0/libatomic/confi
 +#include "libatomic_i.h"
 diff -ruN gcc-9.2.0-old/libatomic/configure.tgt gcc-9.2.0/libatomic/configure.tgt
 --- gcc-9.2.0-old/libatomic/configure.tgt	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libatomic/configure.tgt	2020-03-02 23:18:10.386550582 +0100
++++ gcc-9.2.0/libatomic/configure.tgt	2020-03-09 21:52:00.354399958 +0100
 @@ -154,6 +154,10 @@
          esac
  	;;
@@ -222,7 +222,7 @@ diff -ruN gcc-9.2.0-old/libatomic/configure.tgt gcc-9.2.0/libatomic/configure.tg
  	config_path="rtems"
 diff -ruN gcc-9.2.0-old/libgcc/config/gthr-miosix.h gcc-9.2.0/libgcc/config/gthr-miosix.h
 --- gcc-9.2.0-old/libgcc/config/gthr-miosix.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-9.2.0/libgcc/config/gthr-miosix.h	2020-03-02 23:18:10.386550582 +0100
++++ gcc-9.2.0/libgcc/config/gthr-miosix.h	2020-03-09 21:52:00.354399958 +0100
 @@ -0,0 +1,94 @@
 +
 +// RATIONALE: make the code generated by GCC thread safe by providing a thread model
@@ -320,7 +320,7 @@ diff -ruN gcc-9.2.0-old/libgcc/config/gthr-miosix.h gcc-9.2.0/libgcc/config/gthr
 +#endif //GCC_GHTR_MIOSIX_H
 diff -ruN gcc-9.2.0-old/libgcc/configure gcc-9.2.0/libgcc/configure
 --- gcc-9.2.0-old/libgcc/configure	2018-10-31 18:03:16.000000000 +0100
-+++ gcc-9.2.0/libgcc/configure	2020-03-02 23:18:10.390550609 +0100
++++ gcc-9.2.0/libgcc/configure	2020-03-09 21:52:00.354399958 +0100
 @@ -5543,6 +5543,7 @@
      aix)	thread_header=config/rs6000/gthr-aix.h ;;
      dce)	thread_header=config/pa/gthr-dce.h ;;
@@ -331,7 +331,7 @@ diff -ruN gcc-9.2.0-old/libgcc/configure gcc-9.2.0/libgcc/configure
      rtems)	thread_header=config/gthr-rtems.h ;;
 diff -ruN gcc-9.2.0-old/libgcc/unwind-sjlj.c gcc-9.2.0/libgcc/unwind-sjlj.c
 --- gcc-9.2.0-old/libgcc/unwind-sjlj.c	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libgcc/unwind-sjlj.c	2020-03-02 23:18:10.390550609 +0100
++++ gcc-9.2.0/libgcc/unwind-sjlj.c	2020-03-09 21:52:00.354399958 +0100
 @@ -91,7 +91,14 @@
    _Unwind_Personality_Fn personality;
  } _Unwind_FrameState;
@@ -383,7 +383,7 @@ diff -ruN gcc-9.2.0-old/libgcc/unwind-sjlj.c gcc-9.2.0/libgcc/unwind-sjlj.c
  {
 diff -ruN gcc-9.2.0-old/libstdc++-v3/configure gcc-9.2.0/libstdc++-v3/configure
 --- gcc-9.2.0-old/libstdc++-v3/configure	2019-07-03 23:09:13.000000000 +0200
-+++ gcc-9.2.0/libstdc++-v3/configure	2020-03-04 21:49:10.892598364 +0100
++++ gcc-9.2.0/libstdc++-v3/configure	2020-03-09 21:52:00.366400047 +0100
 @@ -15419,6 +15419,7 @@
      aix)	thread_header=config/rs6000/gthr-aix.h ;;
      dce)	thread_header=config/pa/gthr-dce.h ;;
@@ -418,8 +418,8 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/configure gcc-9.2.0/libstdc++-v3/configure
    elif test x"$enable_libstdcxx_time" != x"no"; then
 diff -ruN gcc-9.2.0-old/libstdc++-v3/include/bits/basic_string.h gcc-9.2.0/libstdc++-v3/include/bits/basic_string.h
 --- gcc-9.2.0-old/libstdc++-v3/include/bits/basic_string.h	2019-04-24 17:17:53.000000000 +0200
-+++ gcc-9.2.0/libstdc++-v3/include/bits/basic_string.h	2020-03-02 23:18:10.406550714 +0100
-@@ -6538,41 +6538,45 @@
++++ gcc-9.2.0/libstdc++-v3/include/bits/basic_string.h	2020-03-09 22:50:33.071262112 +0100
+@@ -6538,43 +6538,81 @@
    { return __gnu_cxx::__stoa(&std::strtold, "stold", __str.c_str(), __idx); }
  #endif // _GLIBCXX_USE_C99_STDLIB
  
@@ -433,59 +433,123 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/include/bits/basic_string.h gcc-9.2.0/libst
    // DR 1261.
    inline string
    to_string(int __val)
--  { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf, 4 * sizeof(int),
-+  { return __gnu_cxx::__to_xstring<string>(&vsniprintf, 4 * sizeof(int),
++#ifndef _MIOSIX
+   { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf, 4 * sizeof(int),
  					   "%d", __val); }
++#else
++  { return __gnu_cxx::__to_xstring<string>(&vsniprintf, 4 * sizeof(int),
++					   "%d", __val); }
++#endif
  
    inline string
    to_string(unsigned __val)
--  { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf,
-+  { return __gnu_cxx::__to_xstring<string>(&vsniprintf,
++#ifndef _MIOSIX
+   { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf,
  					   4 * sizeof(unsigned),
  					   "%u", __val); }
++#else
++  { return __gnu_cxx::__to_xstring<string>(&vsniprintf,
++					   4 * sizeof(unsigned),
++					   "%u", __val); }
++#endif
  
    inline string
    to_string(long __val)
--  { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf, 4 * sizeof(long),
-+  { return __gnu_cxx::__to_xstring<string>(&vsniprintf, 4 * sizeof(long),
++#ifndef _MIOSIX
+   { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf, 4 * sizeof(long),
  					   "%ld", __val); }
++#else
++  { return __gnu_cxx::__to_xstring<string>(&vsniprintf, 4 * sizeof(long),
++					   "%ld", __val); }
++#endif
  
    inline string
    to_string(unsigned long __val)
--  { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf,
-+  { return __gnu_cxx::__to_xstring<string>(&vsniprintf,
++#ifndef _MIOSIX
+   { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf,
  					   4 * sizeof(unsigned long),
  					   "%lu", __val); }
++#else
++  { return __gnu_cxx::__to_xstring<string>(&vsniprintf,
++					   4 * sizeof(unsigned long),
++					   "%lu", __val); }
++#endif
  
    inline string
    to_string(long long __val)
--  { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf,
-+  { return __gnu_cxx::__to_xstring<string>(&vsniprintf,
++#ifndef _MIOSIX
+   { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf,
  					   4 * sizeof(long long),
  					   "%lld", __val); }
++#else
++  { return __gnu_cxx::__to_xstring<string>(&vsniprintf,
++					   4 * sizeof(long long),
++					   "%lld", __val); }
++#endif
  
    inline string
    to_string(unsigned long long __val)
--  { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf,
-+  { return __gnu_cxx::__to_xstring<string>(&vsniprintf,
++#ifndef _MIOSIX
+   { return __gnu_cxx::__to_xstring<string>(&std::vsnprintf,
  					   4 * sizeof(unsigned long long),
  					   "%llu", __val); }
++#else
++  { return __gnu_cxx::__to_xstring<string>(&vsniprintf,
++					   4 * sizeof(unsigned long long),
++					   "%llu", __val); }
++#endif
+ 
+   inline string
+   to_string(float __val)
+diff -ruN gcc-9.2.0-old/libstdc++-v3/include/bits/basic_string.tcc gcc-9.2.0/libstdc++-v3/include/bits/basic_string.tcc
+--- gcc-9.2.0-old/libstdc++-v3/include/bits/basic_string.tcc	2019-01-05 00:23:22.000000000 +0100
++++ gcc-9.2.0/libstdc++-v3/include/bits/basic_string.tcc	2020-03-09 22:43:58.927812322 +0100
+@@ -1596,6 +1596,16 @@
+       return __in;
+     }
+ 
++/*
++ * Forcing the instantiation of std::string in string-inst.cc may reduce compile
++ * times but it hardcodes that C++ exceptions are enabled causing code bloat, as
++ * arm-miosix-eabi-objdump -t string-inst.o | grep '\*UND\*.*__cxa'
++ * on an unpatched GCC shows.
++ * This patch enables back instantiation of string from user code and works
++ * together with the one in string_inst.cc
++ */
++#ifndef _MIOSIX
++    
+   // Inhibit implicit instantiations for required instantiations,
+   // which are defined via explicit instantiations elsewhere.
+ #if _GLIBCXX_EXTERN_TEMPLATE
+@@ -1649,6 +1659,8 @@
+ #endif // _GLIBCXX_USE_WCHAR_T
+ #endif // _GLIBCXX_EXTERN_TEMPLATE
+ 
++#endif //_MIOSIX
++
+ _GLIBCXX_END_NAMESPACE_VERSION
+ } // namespace std
  
 diff -ruN gcc-9.2.0-old/libstdc++-v3/include/bits/fstream.tcc gcc-9.2.0/libstdc++-v3/include/bits/fstream.tcc
 --- gcc-9.2.0-old/libstdc++-v3/include/bits/fstream.tcc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/include/bits/fstream.tcc	2020-03-02 23:18:10.406550714 +0100
-@@ -80,7 +80,7 @@
++++ gcc-9.2.0/libstdc++-v3/include/bits/fstream.tcc	2020-03-09 21:52:00.370400077 +0100
+@@ -80,7 +80,12 @@
      basic_filebuf<_CharT, _Traits>::
      basic_filebuf() : __streambuf_type(), _M_lock(), _M_file(&_M_lock),
      _M_mode(ios_base::openmode(0)), _M_state_beg(), _M_state_cur(),
 -    _M_state_last(), _M_buf(0), _M_buf_size(BUFSIZ),
-+    _M_state_last(), _M_buf(0), _M_buf_size(BUFSIZ+1), //By TFT: BUFSIZ+1 to optimize reads/writes
++    _M_state_last(), _M_buf(0),
++#ifndef _MIOSIX
++    _M_buf_size(BUFSIZ),
++#else
++    _M_buf_size(BUFSIZ+1), //By TFT: BUFSIZ+1 to optimize reads/writes
++#endif
      _M_buf_allocated(false), _M_reading(false), _M_writing(false), _M_pback(), 
      _M_pback_cur_save(0), _M_pback_end_save(0), _M_pback_init(false),
      _M_codecvt(0), _M_ext_buf(0), _M_ext_buf_size(0), _M_ext_next(0),
 diff -ruN gcc-9.2.0-old/libstdc++-v3/include/std/thread gcc-9.2.0/libstdc++-v3/include/std/thread
 --- gcc-9.2.0-old/libstdc++-v3/include/std/thread	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/include/std/thread	2020-03-02 23:18:10.406550714 +0100
++++ gcc-9.2.0/libstdc++-v3/include/std/thread	2020-03-09 21:52:00.370400077 +0100
 @@ -375,8 +375,13 @@
  	    static_cast<std::time_t>(__s.count()),
  	    static_cast<long>(__ns.count())
@@ -530,7 +594,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/include/std/thread gcc-9.2.0/libstdc++-v3/i
  
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/bad_array_length.cc gcc-9.2.0/libstdc++-v3/libsupc++/bad_array_length.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/bad_array_length.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/bad_array_length.cc	2020-03-02 23:18:10.406550714 +0100
++++ gcc-9.2.0/libstdc++-v3/libsupc++/bad_array_length.cc	2020-03-09 21:52:00.370400077 +0100
 @@ -48,9 +48,18 @@
  
  } // namespace std
@@ -553,7 +617,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/bad_array_length.cc gcc-9.2.0/lib
  
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_alloc.cc gcc-9.2.0/libstdc++-v3/libsupc++/eh_alloc.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_alloc.cc	2019-01-21 12:47:30.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_alloc.cc	2020-03-02 23:18:10.406550714 +0100
++++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_alloc.cc	2020-03-09 21:52:00.370400077 +0100
 @@ -73,6 +73,14 @@
  # define EMERGENCY_OBJ_COUNT	4
  #endif
@@ -571,7 +635,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_alloc.cc gcc-9.2.0/libstdc++-v
    void __freeres();
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_aux_runtime.cc gcc-9.2.0/libstdc++-v3/libsupc++/eh_aux_runtime.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_aux_runtime.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_aux_runtime.cc	2020-03-02 23:18:10.406550714 +0100
++++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_aux_runtime.cc	2020-03-09 21:52:00.370400077 +0100
 @@ -29,14 +29,23 @@
  #include "unwind-cxx.h"
  #include <bits/exception_defines.h>
@@ -601,7 +665,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_aux_runtime.cc gcc-9.2.0/libst
  { _GLIBCXX_THROW_OR_ABORT(std::bad_array_new_length()); }
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_globals.cc gcc-9.2.0/libstdc++-v3/libsupc++/eh_globals.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_globals.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_globals.cc	2020-03-02 23:18:10.406550714 +0100
++++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_globals.cc	2020-03-09 21:52:00.370400077 +0100
 @@ -41,6 +41,11 @@
  
  using namespace __cxxabiv1;
@@ -622,7 +686,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_globals.cc gcc-9.2.0/libstdc++
 +#endif //_MIOSIX
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_terminate.cc gcc-9.2.0/libstdc++-v3/libsupc++/eh_terminate.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_terminate.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_terminate.cc	2020-03-02 23:18:10.406550714 +0100
++++ gcc-9.2.0/libstdc++-v3/libsupc++/eh_terminate.cc	2020-03-09 21:52:00.370400077 +0100
 @@ -37,6 +37,15 @@
  }
  #endif
@@ -659,7 +723,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/eh_terminate.cc gcc-9.2.0/libstdc
    __unexpected (get_unexpected ());
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/guard.cc gcc-9.2.0/libstdc++-v3/libsupc++/guard.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/guard.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/guard.cc	2020-03-02 23:18:10.406550714 +0100
++++ gcc-9.2.0/libstdc++-v3/libsupc++/guard.cc	2020-03-09 21:52:00.370400077 +0100
 @@ -190,6 +190,11 @@
  //  | _GLIBCXX_GUARD_WAITING_BIT) and some other threads are waiting until
  //				  it is initialized.
@@ -680,7 +744,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/guard.cc gcc-9.2.0/libstdc++-v3/l
 +#endif //_MIOSIX
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/pure.cc gcc-9.2.0/libstdc++-v3/libsupc++/pure.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/pure.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/pure.cc	2020-03-02 23:18:10.406550714 +0100
++++ gcc-9.2.0/libstdc++-v3/libsupc++/pure.cc	2020-03-09 21:52:00.370400077 +0100
 @@ -43,14 +43,23 @@
  # define writestr(str) /* Empty */
  #endif
@@ -709,7 +773,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/pure.cc gcc-9.2.0/libstdc++-v3/li
    writestr ("deleted virtual method called\n");
 diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/vterminate.cc gcc-9.2.0/libstdc++-v3/libsupc++/vterminate.cc
 --- gcc-9.2.0-old/libstdc++-v3/libsupc++/vterminate.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/libsupc++/vterminate.cc	2020-03-02 23:18:10.406550714 +0100
++++ gcc-9.2.0/libstdc++-v3/libsupc++/vterminate.cc	2020-03-09 21:52:00.370400077 +0100
 @@ -34,6 +34,14 @@
  using namespace std;
  using namespace abi;
@@ -736,7 +800,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/libsupc++/vterminate.cc gcc-9.2.0/libstdc++
      if (terminating)
 diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/functexcept.cc gcc-9.2.0/libstdc++-v3/src/c++11/functexcept.cc
 --- gcc-9.2.0-old/libstdc++-v3/src/c++11/functexcept.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/src/c++11/functexcept.cc	2020-03-02 23:18:10.406550714 +0100
++++ gcc-9.2.0/libstdc++-v3/src/c++11/functexcept.cc	2020-03-09 21:52:00.370400077 +0100
 @@ -35,6 +35,15 @@
  # define _(msgid)   (msgid)
  #endif
@@ -753,7 +817,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/functexcept.cc gcc-9.2.0/libstdc+
  namespace __gnu_cxx
  {
    int __snprintf_lite(char *__buf, size_t __bufsize, const char *__fmt,
-@@ -45,49 +54,55 @@
+@@ -45,45 +54,46 @@
  {
  _GLIBCXX_BEGIN_NAMESPACE_VERSION
  
@@ -806,21 +870,24 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/functexcept.cc gcc-9.2.0/libstdc+
 +  void AW
    __throw_out_of_range_fmt(const char* __fmt, ...)
    {
++    #ifndef _MIOSIX
      const size_t __len = __builtin_strlen(__fmt);
-+    #ifdef _MIOSIX
-+    //Longest string found is in include/std/string_view (26Bytes)
-+    //+2*11Bytes (required to print largest int) + NUL = ~50Bytes
-+    const size_t __alloca_size = __len + 50;
-+    #else
      // We expect at most 2 numbers, and 1 short string. The additional
      // 512 bytes should provide more than enough space for expansion.
-     const size_t __alloca_size = __len + 512;
-+    #endif
-     char *const __s = static_cast<char*>(__builtin_alloca(__alloca_size));
-     va_list __ap;
- 
-@@ -97,19 +112,19 @@
+@@ -95,21 +105,31 @@
+     __gnu_cxx::__snprintf_lite(__s, __alloca_size, __fmt, __ap);
+     _GLIBCXX_THROW_OR_ABORT(out_of_range(_(__s)));
      va_end(__ap);  // Not reached.
++    #else
++    // Miosix applications usually run with tiny stacks of a few KB, doing an
++    // alloca of 512+ bytes is almost guaranteed to cause stack overflow.
++    // The fact that this allocation happens if an exception is thrown (which
++    // should normally not occur) only makes testing and sizing stacks harder.
++    // For this reason, even if it is a nice feature, we've decided to not
++    // expand formats. Users will get a strange exception with %zu or other
++    // format strings in it, but at least no stack overflow.
++    _GLIBCXX_THROW_OR_ABORT(out_of_range(_(__fmt)));
++    #endif
    }
  
 -  void
@@ -845,7 +912,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/functexcept.cc gcc-9.2.0/libstdc+
  
 diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/functional.cc gcc-9.2.0/libstdc++-v3/src/c++11/functional.cc
 --- gcc-9.2.0-old/libstdc++-v3/src/c++11/functional.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/src/c++11/functional.cc	2020-03-02 23:18:10.406550714 +0100
++++ gcc-9.2.0/libstdc++-v3/src/c++11/functional.cc	2020-03-09 21:52:00.370400077 +0100
 @@ -25,11 +25,20 @@
  #include <functional>
  #include <bits/functexcept.h>
@@ -870,7 +937,7 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/functional.cc gcc-9.2.0/libstdc++
  
 diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/future.cc gcc-9.2.0/libstdc++-v3/src/c++11/future.cc
 --- gcc-9.2.0-old/libstdc++-v3/src/c++11/future.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/src/c++11/future.cc	2020-03-02 23:18:10.406550714 +0100
++++ gcc-9.2.0/libstdc++-v3/src/c++11/future.cc	2020-03-09 21:52:00.370400077 +0100
 @@ -25,6 +25,15 @@
  #include <future>
  #include <bits/functexcept.h>
@@ -896,72 +963,35 @@ diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/future.cc gcc-9.2.0/libstdc++-v3/
    __throw_future_error(int __i __attribute__((unused)))
    { _GLIBCXX_THROW_OR_ABORT(future_error(make_error_code(future_errc(__i)))); }
  
-diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/snprintf_lite.cc gcc-9.2.0/libstdc++-v3/src/c++11/snprintf_lite.cc
---- gcc-9.2.0-old/libstdc++-v3/src/c++11/snprintf_lite.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/src/c++11/snprintf_lite.cc	2020-03-02 23:18:10.406550714 +0100
-@@ -37,7 +37,22 @@
- }
+diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/string-inst.cc gcc-9.2.0/libstdc++-v3/src/c++11/string-inst.cc
+--- gcc-9.2.0-old/libstdc++-v3/src/c++11/string-inst.cc	2019-01-01 13:31:55.000000000 +0100
++++ gcc-9.2.0/libstdc++-v3/src/c++11/string-inst.cc	2020-03-09 22:45:02.628373493 +0100
+@@ -50,6 +50,16 @@
+ # define C char
+ #endif
  
- namespace __gnu_cxx {
-+  #ifdef _MIOSIX
-+  //If space runs out don't do yet another alloca which may cause stack overflow,
-+  //just don't expand formats...
-+  int __insufficient_space(char *__buf, size_t __bufsize, const char *__fmt)
-+    __attribute__((__noinline__));
++/*
++ * Forcing the instantiation of std::string in string-inst.cc may reduce compile
++ * times but it hardcodes that C++ exceptions are enabled causing code bloat, as
++ * arm-miosix-eabi-objdump -t string-inst.o | grep '\*UND\*.*__cxa'
++ * on an unpatched GCC shows.
++ * This patch disables forced instantiation of string from the stdlib and works
++ * together with the one in basic_string.tcc
++ */
++#ifndef _MIOSIX
++
+ namespace std _GLIBCXX_VISIBILITY(default)
+ {
+ _GLIBCXX_BEGIN_NAMESPACE_VERSION
+@@ -121,3 +131,5 @@
  
-+  int __insufficient_space(char *__buf, size_t __bufsize, const char *__fmt)
-+  {
-+      size_t __len = __builtin_strlen(__fmt);
-+      if(__len > __bufsize - 1) __len = __bufsize - 1;
-+      __builtin_memcpy(__buf, __fmt, __len);
-+      __buf[__len] = '\0';
-+      return __len;
-+  }
-+  #define __INSUFFICIENT_SPACE return __insufficient_space(__buf, __bufsize, __fmt);
-+  #else
-   // Private helper to throw logic error if snprintf_lite runs out
-   // of space (which is not expected to ever happen).
-   // NUL-terminates __buf.
-@@ -63,7 +78,8 @@
-     __e[__errlen + __len - 1] = '\0';
-     std::__throw_logic_error(__e);
-   }
--
-+  #define __INSUFFICIENT_SPACE __throw_insufficient_space(__buf, __d);
-+  #endif
- 
-   // Private routine to append decimal representation of VAL to the given
-   // BUFFER, but not more than BUFSIZE characters.
-@@ -122,7 +138,7 @@
- 
- 		if (__v[0] != '\0')
- 		  // Not enough space for __fmt expansion.
--		  __throw_insufficient_space(__buf, __d);
-+		  __INSUFFICIENT_SPACE
- 
- 		__s += 2;  // Step over %s.
- 		continue;
-@@ -137,7 +153,7 @@
- 		    __d += __len;
- 		  else
- 		    // Not enough space for __fmt expansion.
--		    __throw_insufficient_space(__buf, __d);
-+		    __INSUFFICIENT_SPACE
- 
- 		  __s += 3;  // Step over %zu
- 		  continue;
-@@ -150,7 +166,7 @@
- 
-     if (__s[0] != '\0')
-       // Not enough space for __fmt expansion.
--      __throw_insufficient_space(__buf, __d);
-+      __INSUFFICIENT_SPACE
- 
-     *__d = '\0';
-     return __d - __buf;
+ _GLIBCXX_END_NAMESPACE_VERSION
+ } // namespace
++
++#endif //_MIOSIX
 diff -ruN gcc-9.2.0-old/libstdc++-v3/src/c++11/system_error.cc gcc-9.2.0/libstdc++-v3/src/c++11/system_error.cc
 --- gcc-9.2.0-old/libstdc++-v3/src/c++11/system_error.cc	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libstdc++-v3/src/c++11/system_error.cc	2020-03-02 23:18:10.406550714 +0100
++++ gcc-9.2.0/libstdc++-v3/src/c++11/system_error.cc	2020-03-09 21:52:00.370400077 +0100
 @@ -32,6 +32,15 @@
  #include <errno.h>
  #undef __sso_string
