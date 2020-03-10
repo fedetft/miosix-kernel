@@ -128,7 +128,9 @@ void __throw_runtime_error(const char*) { _exit(1); }
 void __throw_range_error(const char*) { _exit(1); }
 void __throw_overflow_error(const char*) { _exit(1); }
 void __throw_underflow_error(const char*) { _exit(1); }
+#if !defined(_MIOSIX_GCC_PATCH_MAJOR) || _MIOSIX_GCC_PATCH_MAJOR <= 2
 void __throw_ios_failure(const char*) { _exit(1); } //Unused since GCC 9.2.0
+#endif
 void __throw_system_error(int) { _exit(1); }
 void __throw_future_error(int) { _exit(1); }
 void __throw_bad_function_call() { _exit(1); }
