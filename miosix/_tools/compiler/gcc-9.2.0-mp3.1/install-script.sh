@@ -170,7 +170,6 @@ mkdir log
 patch -p0 < patches/gcc.patch		|| quit ":: Failed patching gcc 1"
 patch -p0 < patches/force-got.patch	|| quit ":: Failed patching gcc 2"
 patch -p0 < patches/newlib.patch	|| quit ":: Failed patching newlib"
-#patch -p0 < ../fixme-reducecompiletime.patch || quit ":: Failed fixme patch"
 
 #
 # Part 3: compile libraries
@@ -279,11 +278,12 @@ $SUDO ../$GCC/configure \
 	MAKEINFO=missing \
 	--prefix=$INSTALL_DIR/arm-miosix-eabi \
 	--disable-shared \
-	--disable-libmudflap \
 	--disable-libssp \
 	--disable-nls \
 	--disable-libgomp \
 	--disable-libstdcxx-pch \
+	--disable-libstdcxx-dual-abi \
+	--disable-libstdcxx-filesystem-ts \
 	--enable-threads=miosix \
 	--enable-languages="c,c++" \
 	--enable-lto \
