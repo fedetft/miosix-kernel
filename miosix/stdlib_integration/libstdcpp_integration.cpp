@@ -29,6 +29,9 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <cxxabi.h>
+#if _MIOSIX_GCC_PATCH_MAJOR > 2
+#include <thread>
+#endif
 //// Settings
 #include "config/miosix_settings.h"
 //// Console
@@ -106,6 +109,16 @@ extern "C" void __cxxabiv1::__cxa_deleted_virtual(void)
 namespace std {
 void terminate()  noexcept { _exit(1); } //Since GCC 9.2.0
 void unexpected() noexcept { _exit(1); } //Since GCC 9.2.0
+/*
+ * This one comes from thread.cc, the need to call the class destructor makes it
+ * call __cxa_end_cleanup which pulls in exception code.
+ */
+extern "C" void* execute_native_thread_routine(void* __p)
+{
+    thread::_State_ptr __t{ static_cast<thread::_State*>(__p) };
+    __t->_M_run();
+    return nullptr;
+}
 } //namespace std
 #endif
 
