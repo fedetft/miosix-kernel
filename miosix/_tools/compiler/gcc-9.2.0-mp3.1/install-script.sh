@@ -23,11 +23,11 @@
 #### Configuration tunables -- begin ####
 
 # Uncomment if installing globally on the system
-# INSTALL_DIR=/opt
-# SUDO=sudo
+INSTALL_DIR=/opt/arm-miosix-eabi
+SUDO=sudo
 # Uncomment if installing locally, sudo isn't necessary
-INSTALL_DIR=`pwd`/gcc
-SUDO=
+#INSTALL_DIR=`pwd`/gcc/arm-miosix-eabi
+#SUDO=
 
 # Uncomment if targeting a local install (linux only). This will use
 # -march= -mtune= flags to optimize for your processor, but the code
@@ -104,7 +104,7 @@ if [[ $HOST ]]; then
 		EXT=
 	fi
 else
-	export PATH=$INSTALL_DIR/arm-miosix-eabi/bin:$PATH
+	export PATH=$INSTALL_DIR/bin:$PATH
 
 	HOSTCC=gcc
 	HOSTCXX=g++
@@ -229,7 +229,7 @@ cd $BINUTILS
 	--build=`./config.guess` \
 	--host=$HOST \
 	--target=arm-miosix-eabi \
-	--prefix=$INSTALL_DIR/arm-miosix-eabi \
+	--prefix=$INSTALL_DIR \
 	--enable-interwork \
 	--enable-multilib \
 	--enable-lto \
@@ -256,7 +256,7 @@ $SUDO ../$GCC/configure \
 	--with-mpfr=$LIB_DIR \
 	--with-mpc=$LIB_DIR \
 	MAKEINFO=missing \
-	--prefix=$INSTALL_DIR/arm-miosix-eabi \
+	--prefix=$INSTALL_DIR \
 	--disable-shared \
 	--disable-libssp \
 	--disable-nls \
@@ -290,12 +290,12 @@ $SUDO make install-gcc 2>../log/f.txt		|| quit ":: Error installing gcc-start"
 # This causes troubles because newlib.h contains the _WANT_REENT_SMALL used to
 # select the appropriate _Reent struct. This error is visible to user code since
 # GCC seems to take the wrong newlib.h and user code gets the wrong _Reent struct
-$SUDO rm -rf $INSTALL_DIR/arm-miosix-eabi/arm-miosix-eabi/sys-include
+$SUDO rm -rf $INSTALL_DIR/arm-miosix-eabi/sys-include
 
 # Another fix, looks like export PATH isn't enough for newlib, it fails
 # running arm-miosix-eabi-ranlib when installing
 if [[ $SUDO ]]; then
-	$SUDO ln -s $INSTALL_DIR/arm-miosix-eabi/bin/* /usr/bin
+	$SUDO ln -s $INSTALL_DIR/bin/* /usr/bin
 fi
 
 cd ..
@@ -311,7 +311,7 @@ cd newlib-obj
 	--build=`../$GCC/config.guess` \
 	--host=$HOST \
 	--target=arm-miosix-eabi \
-	--prefix=$INSTALL_DIR/arm-miosix-eabi \
+	--prefix=$INSTALL_DIR \
 	--enable-multilib \
 	--enable-newlib-reent-small \
 	--enable-newlib-multithread \
@@ -371,14 +371,14 @@ check_multilibs() {
 	fi 
 }
 
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-miosix-eabi/lib
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-miosix-eabi/lib/thumb/cm0
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-miosix-eabi/lib/thumb/cm3
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-miosix-eabi/lib/thumb/cm4/hardfp/fpv4sp
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-miosix-eabi/lib/thumb/cm7/hardfp/fpv5
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-miosix-eabi/lib/thumb/cm3/pie/single-pic-base
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-miosix-eabi/lib/thumb/cm4/hardfp/fpv4sp/pie/single-pic-base
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/arm-miosix-eabi/lib/thumb/cm7/hardfp/fpv5/pie/single-pic-base
+check_multilibs $INSTALL_DIR/arm-miosix-eabi/lib
+check_multilibs $INSTALL_DIR/arm-miosix-eabi/lib/thumb/cm0
+check_multilibs $INSTALL_DIR/arm-miosix-eabi/lib/thumb/cm3
+check_multilibs $INSTALL_DIR/arm-miosix-eabi/lib/thumb/cm4/hardfp/fpv4sp
+check_multilibs $INSTALL_DIR/arm-miosix-eabi/lib/thumb/cm7/hardfp/fpv5
+check_multilibs $INSTALL_DIR/arm-miosix-eabi/lib/thumb/cm3/pie/single-pic-base
+check_multilibs $INSTALL_DIR/arm-miosix-eabi/lib/thumb/cm4/hardfp/fpv4sp/pie/single-pic-base
+check_multilibs $INSTALL_DIR/arm-miosix-eabi/lib/thumb/cm7/hardfp/fpv5/pie/single-pic-base
 echo "::All multilibs have been built. OK"
 
 #
@@ -436,7 +436,7 @@ CXX=$HOSTCXX ../$GDB/configure \
 	--build=`../$GDB/config.guess` \
 	--host=$HOST \
 	--target=arm-miosix-eabi \
-	--prefix=$INSTALL_DIR/arm-miosix-eabi \
+	--prefix=$INSTALL_DIR \
 	--with-libmpfr-prefix=$LIB_DIR \
 	--with-expat-prefix=$LIB_DIR \
 	--with-system-zlib=no \
@@ -458,7 +458,7 @@ cd ..
 cd mx-postlinker
 make CXX="$HOSTCXX" SUFFIX=$EXT				|| quit ":: Error compiling mx-postlinker"
 $SUDO make install CXX="$HOSTCXX" SUFFIX=$EXT \
-	INSTALL_DIR=$INSTALL_DIR/arm-miosix-eabi/bin \
+	INSTALL_DIR=$INSTALL_DIR/bin \
 											|| quit ":: Error installing mx-postlinker"
 make CXX="$HOSTCXX" SUFFIX=$EXT clean
 cd ..
@@ -469,7 +469,7 @@ cd ..
 
 $HOSTCC -o lpc21isp$EXT lpc21isp.c						|| quit ":: Error compiling lpc21isp"
 
-$SUDO mv lpc21isp$EXT $INSTALL_DIR/arm-miosix-eabi/bin	|| quit ":: Error installing lpc21isp"
+$SUDO mv lpc21isp$EXT $INSTALL_DIR/bin					|| quit ":: Error installing lpc21isp"
 
 #
 # Part 12: install GNU make and rm (windows release only)
@@ -481,7 +481,7 @@ if [[ $HOST == *mingw* ]]; then
 
 	./configure \
 	--host=$HOST \
-	--prefix=$INSTALL_DIR/arm-miosix-eabi 2> z.make.a.txt	|| quit ":: Error configuring make"
+	--prefix=$INSTALL_DIR 2> z.make.a.txt					|| quit ":: Error configuring make"
 
 	make all $PARALLEL 2>../log/z.make.b.txt				|| quit ":: Error compiling make"
 
@@ -492,9 +492,9 @@ if [[ $HOST == *mingw* ]]; then
 	# FIXME get a better rm to distribute for windows
 	$HOSTCC -o rm$EXT -O2 installers/windows/rm.c			|| quit ":: Error compiling rm"
 
-	mv rm$EXT $INSTALL_DIR/arm-miosix-eabi/bin				|| quit ":: Error installing rm"
+	mv rm$EXT $INSTALL_DIR/bin								|| quit ":: Error installing rm"
 
-	cp downloaded/qstlink2.exe $INSTALL_DIR/arm-miosix-eabi/bin	|| quit ":: Error installing qstlink2"
+	cp downloaded/qstlink2.exe $INSTALL_DIR/bin				|| quit ":: Error installing qstlink2"
 fi
 
 #
@@ -502,14 +502,14 @@ fi
 #
 
 # Remove this since its name is not arm-miosix-eabi-
-$SUDO rm $INSTALL_DIR/arm-miosix-eabi/bin/arm-miosix-eabi-$GCC$EXT
+$SUDO rm $INSTALL_DIR/bin/arm-miosix-eabi-$GCC$EXT
 
 # Strip stuff that is very large when having debug symbols to save disk space
-# This simple thing can easily save 100+MB
-find $INSTALL_DIR -name cc1$EXT | xargs $HOSTSTRIP
-find $INSTALL_DIR -name cc1plus$EXT | xargs $HOSTSTRIP
-find $INSTALL_DIR -name lto1$EXT | xargs $HOSTSTRIP
-strip $INSTALL_DIR/arm-miosix-eabi/bin/*
+# This simple thing can easily save 500+MB
+find $INSTALL_DIR -name cc1$EXT     | $SUDO xargs $HOSTSTRIP
+find $INSTALL_DIR -name cc1plus$EXT | $SUDO xargs $HOSTSTRIP
+find $INSTALL_DIR -name lto1$EXT    | $SUDO xargs $HOSTSTRIP
+$SUDO strip $INSTALL_DIR/bin/*
 
 
 
@@ -522,10 +522,10 @@ if [[ $HOST ]]; then
 	else
 		chmod +x installers/linux/installer.sh uninstall.sh
 		# Distribute the installer and uninstaller too
-		cp installers/linux/installer.sh uninstall.sh $INSTALL_DIR/arm-miosix-eabi
+		cp installers/linux/installer.sh uninstall.sh $INSTALL_DIR
 		sh downloaded/$MAKESELF.run
 		./$MAKESELF/makeself.sh --xz                       \
-			$INSTALL_DIR/arm-miosix-eabi                   \
+			$INSTALL_DIR                                   \
 			MiosixToolchainInstaller9.2.0mp3.1.run         \
 			"Miosix toolchain for Linux (GCC 9.2.0-mp3.1)" \
 			"./installer.sh"
@@ -533,11 +533,11 @@ if [[ $HOST ]]; then
 else
 	# Install the uninstaller too
 	chmod +x uninstall.sh
-	$SUDO cp uninstall.sh $INSTALL_DIR/arm-miosix-eabi
+	$SUDO cp uninstall.sh $INSTALL_DIR
 	# If sudo not an empty variable, make symlinks to /usr/bin
 	# else make a script to override PATH
 	if [[ $SUDO ]]; then
-		$SUDO ln -s $INSTALL_DIR/arm-miosix-eabi/bin/* /usr/bin
+		$SUDO ln -s $INSTALL_DIR/bin/* /usr/bin
 	else
 		echo '# Used when installing the compiler locally to test it' > env.sh
 		echo '# usage: $ . ./env.sh' >> env.sh
