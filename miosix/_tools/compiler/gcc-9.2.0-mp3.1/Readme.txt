@@ -16,13 +16,13 @@ Example:
 Step 2
 ------
 Install the following dependencies:
-gcc, g++, make, ncurses, byacc, flex, texinfo, patch, gmp, mpfr, mpc, tar, unzip, lzip, libelf perl
+gcc, g++, make, ncurses, byacc, flex, texinfo, patch, tar, unzip, lzip, libelf perl libexpat
 
 For example, for Ubuntu/Kubuntu open a shell and type:
-sudo apt-get install gcc g++ make libncurses5-dev byacc flex texinfo patch libgmp3-dev libmpfr-dev libmpc-dev tar unzip lzip libelf-dev perl
+sudo apt-get install gcc g++ make libncurses5-dev byacc flex texinfo patch tar unzip lzip libelf-dev perl libexpat1-dev
 
 While on Fedora:
-sudo yum intall gcc gcc-c++ make ncurses-devel byacc flex texinfo patch gmp-devel mpfr-devel libmpc-devel tar unzip lzip elfutils-libelf-devel perl
+sudo yum intall gcc gcc-c++ make ncurses-devel byacc flex texinfo patch tar unzip lzip elfutils-libelf-devel perl libexpat-devel
 
 Note: these scripts require "sudo" unless you want to intall the compiler locally.
 If you use a distro like Fedora where sudo is not enabled by default, use "visudo" to enable sudo for your account.

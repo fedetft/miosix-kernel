@@ -53,6 +53,15 @@ This patch does the following:
    - occurrences of _GLIBCXX_THROW_OR_ABORT in headers. Don't know how to fix
      those, if they are ever used inside a .cc file within libstdc++ itself.
 
+12) It moves some functions from a .cc file within libstdc++ to the header file,
+  as when libstdc++ is compiled, exceptions are enabled. This code then pulls
+  in exception support (and its code size penalty) even when Miosix is built
+  with exceptions disabled. string, condition_variable and thread have
+  been patched to avoid this. For string, removing template instantiation
+  prevention code for basic_string was needed to generate non-exception code
+  that is preferentially linked instead of the one in libstdc++ forcedly
+  instantiated in libstdc++.
+
 NOTES
 -----
 
@@ -75,8 +84,8 @@ Some configure checks fail because in order to check for the presence of a
 particular function, a sample C program is compiled AND LINKED. Now, the
 GCC for miosix is meant to work if linked to libmiosix.a which isn't there yet,
 so code depending on syscalls causes "undefined reference" link failures.
-Do check the output of configure (configure.log) for check failures and fix
-configure and acinclude.m4 accordingly.
+Do check the output of configure (configure.log) for check failures and
+add stubs to newlib accordingly.
 Note: look for configure.log in objdir/arm-miosix-eabi subdirectories,
 which curently are libatomic, libgcc, libquadmath and libstdc++-v3.
 The one that does more syscall-dependent configure checks is libstdc++
