@@ -295,6 +295,9 @@ $SUDO rm -rf $INSTALL_DIR/arm-miosix-eabi/sys-include
 # Another fix, looks like export PATH isn't enough for newlib, it fails
 # running arm-miosix-eabi-ranlib when installing
 if [[ $SUDO ]]; then
+	# This is actually done also later, but we don't want to add a symlink too
+	$SUDO rm $INSTALL_DIR/bin/arm-miosix-eabi-$GCC$EXT
+
 	$SUDO ln -s $INSTALL_DIR/bin/* /usr/bin
 fi
 
@@ -524,7 +527,9 @@ if [[ $HOST ]]; then
 		# Distribute the installer and uninstaller too
 		cp installers/linux/installer.sh uninstall.sh $INSTALL_DIR
 		sh downloaded/$MAKESELF.run
-		./$MAKESELF/makeself.sh --xz                       \
+		# NOTE: --keep-umask otherwise the installer extracts files setting to 0
+		# permissions to group and other, resulting in an unusable installation
+		./$MAKESELF/makeself.sh --xz --keep-umask          \
 			$INSTALL_DIR                                   \
 			MiosixToolchainInstaller9.2.0mp3.1.run         \
 			"Miosix toolchain for Linux (GCC 9.2.0-mp3.1)" \
