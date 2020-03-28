@@ -19,8 +19,8 @@ DisableDirPage=yes
 DefaultGroupName={#MyAppName}
 ; Allow user to disable adding stuff to the start menu
 AllowNoIcons=yes
-; Produce an installer named MiosixToolchainInstaller.exe
-OutputBaseFilename=MiosixToolchainInstaller
+; Produce an installer named MiosixToolchainInstaller9.2.0mp3.1.exe
+OutputBaseFilename=MiosixToolchainInstaller9.2.0mp3.1
 Compression=lzma
 ; Compress everything into one lzma stream
 SolidCompression=yes

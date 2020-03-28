@@ -520,7 +520,7 @@ $SUDO strip $INSTALL_DIR/bin/*
 if [[ $HOST ]]; then
 	if [[ $HOST == *mingw* ]]; then
 		cd installers/windows
-		wine "C:\Program Files\Inno Setup 6\Compil32.exe" /cc MiosixInstaller.iss
+		wine "C:\Program Files (x86)\Inno Setup 6\Compil32.exe" /cc MiosixInstaller.iss
 		cd ../..
 	else
 		chmod +x installers/linux/installer.sh uninstall.sh
