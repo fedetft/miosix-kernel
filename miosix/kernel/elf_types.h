@@ -80,8 +80,10 @@ const Elf32_Word EV_CURRENT = 1;
 const Elf32_Half EM_ARM  = 0x28;
 
 // Values for e_flags
-const Elf32_Word EF_ARM_EABI_MASK = 0x05000000;
-const Elf32_Word EF_HAS_ENTRY_POINT = 2;
+const Elf32_Word EF_ARM_EABIMASK   = 0xff000000;
+const Elf32_Word EF_ARM_EABI_VER5  = 0x05000000;
+const Elf32_Word EF_ARM_VFP_FLOAT  = 0x400;
+const Elf32_Word EF_ARM_SOFT_FLOAT = 0x200;
 
 /*
  * Elf program header

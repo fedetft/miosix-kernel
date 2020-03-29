@@ -72,7 +72,12 @@ bool ElfProgram::validateHeader()
     if(ehdr->e_version!=EV_CURRENT) return false;
     if(ehdr->e_entry>=size) return false;
     if(ehdr->e_phoff>=size-sizeof(Elf32_Phdr)) return false;
-    if(ehdr->e_flags!=(EF_ARM_EABI_MASK | EF_HAS_ENTRY_POINT)) return false;
+    // Old GCC 4.7.3 used to set bit 0x2 (EF_ARM_HASENTRY) but there's no trace
+    // of this requirement in the current ELF spec for ARM.
+    if((ehdr->e_flags & EF_ARM_EABIMASK) != EF_ARM_EABI_VER5) return false;
+    #if !defined(__FPU_USED) || __FPU_USED==0
+    if(ehdr->e_flags & EF_ARM_VFP_FLOAT) throw runtime_error("FPU required");
+    #endif
     if(ehdr->e_ehsize!=sizeof(Elf32_Ehdr)) return false;
     if(ehdr->e_phentsize!=sizeof(Elf32_Phdr)) return false;
     //This to avoid that the next condition could pass due to 32bit wraparound

@@ -29,11 +29,12 @@ all: $(OBJ) crt0.o
 	$(CXX) $(LFLAGS) -o main.elf $(OBJ) crt0.o $(LINK_LIBS)
 	$(SZ)  main.elf
 	@arm-miosix-eabi-objdump -Dslx main.elf > main.txt
+	@arm-miosix-eabi-strip main.elf
 	@mx-postlinker main.elf --ramsize=16384 --stacksize=2048 --strip-sectheader
 	@xxd -i main.elf | sed 's/unsigned char/const unsigned char __attribute__((aligned(8)))/' > prog3.h
 
 clean:
-	-rm $(OBJ) crt0.o main.elf main.map main.txt $(OBJ:.o=.d)
+	-rm -f $(OBJ) crt0.o main.elf main.map main.txt $(OBJ:.o=.d)
 
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@
