@@ -988,7 +988,7 @@ STM32Serial::~STM32Serial()
             case 3:
                 #ifdef SERIAL_3_DMA
                 IRQdmaReadStop();
-                #ifdef defined(_ARCH_CORTEXM3_STM32) || defined(_ARCH_CORTEXM4_STM32F3)
+                #if defined(_ARCH_CORTEXM3_STM32) || defined(_ARCH_CORTEXM4_STM32F3)
                 NVIC_DisableIRQ(DMA1_Channel2_IRQn);
                 NVIC_ClearPendingIRQ(DMA1_Channel2_IRQn);
                 NVIC_DisableIRQ(DMA1_Channel3_IRQn);
