@@ -303,7 +303,9 @@ Rtc::Rtc() : tc(getTickFrequency())
                 | RCC_BDCR_LSEON       //External 32KHz oscillator enabled
                 | RCC_BDCR_RTCSEL_0;   //Select LSE as clock source for RTC
         RCC_SYNC();
+        #ifdef RTC_CLKOUT_ENABLE
         BKP->RTCCR=BKP_RTCCR_CCO;      //Output RTC clock/64 on pin
+        #endif
     }
     while((RCC->BDCR & RCC_BDCR_LSERDY)==0) ; //Wait for LSE to start
     

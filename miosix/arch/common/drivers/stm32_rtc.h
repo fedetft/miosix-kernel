@@ -32,6 +32,12 @@
 
 namespace miosix {
 
+///
+/// Uncomment this directive to enable the RTC clock output functionality
+///
+
+//#define RTC_CLKOUT_ENABLE
+
 /**
  * Puts the MCU in deep sleep until the specified absolute time.
  * \param value absolute wait time in nanoseconds
