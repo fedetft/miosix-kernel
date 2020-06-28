@@ -6,7 +6,7 @@
 #include "kernel/process.h"
 #include "kernel/SystemMap.h"
 
-#include "app_template/prog3.h"
+#include "process_template/proc.h"
 
 using namespace std;
 using namespace miosix;

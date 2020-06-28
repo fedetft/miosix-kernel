@@ -296,17 +296,24 @@ void ProcessImage::load(const ElfProgram& program)
     {
         const Elf32_Rel *rel=reinterpret_cast<const Elf32_Rel*>(base+dtRel);
         const int relSize=dtRelsz/sizeof(Elf32_Rel);
-        const unsigned int base=reinterpret_cast<unsigned int>(image);
-        DBG("Relocations -- start (process RAM image @ 0x%x)\n",base);
+        const unsigned int ramBase=reinterpret_cast<unsigned int>(image);
+        DBG("Relocations -- start (code base @0x%x, data base @ 0x%x)\n",base,ramBase);
         for(int i=0;i<relSize;i++,rel++)
         {
             unsigned int offset=(rel->r_offset-DATA_START)/4;
             switch(ELF32_R_TYPE(rel->r_info))
             {
                 case R_ARM_RELATIVE:
-                    DBG("R_ARM_RELATIVE offset 0x%x from 0x%x to 0x%x\n",
-                        offset*4,image[offset],image[offset]+base-DATA_START);
-                    image[offset]+=base-DATA_START;
+                    if(image[offset]>=DATA_START)
+                    {
+                        DBG("R_ARM_RELATIVE offset 0x%x from 0x%x to 0x%x\n",
+                            offset*4,image[offset],image[offset]+ramBase-DATA_START);
+                        image[offset]+=ramBase-DATA_START;
+                    } else {
+                        DBG("R_ARM_RELATIVE offset 0x%x from 0x%x to 0x%x\n",
+                            offset*4,image[offset],image[offset]+base);
+                        image[offset]+=base;
+                    }
                     break;
                 default:
                     break;

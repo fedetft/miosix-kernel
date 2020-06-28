@@ -23,7 +23,16 @@ void __call_exitprocs(int code, void *d) {}
 
 void *__dso_handle=(void*) &__dso_handle;
 
-void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr) { return (void*)-1; }
+void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr)
+{
+    extern char _end asm("_end");
+    static char *top=0;
+    if(top==0) top=&_end;
+    char *result=top;
+    top+=incr;
+    return result;
+}
+
 void __malloc_lock() {}
 void __malloc_unlock() {}
 int _open_r(struct _reent *ptr, const char *name, int flags, int mode) { return -1; }
@@ -49,13 +58,33 @@ int _read_r(struct _reent *ptr, int fd, void *buf, size_t cnt)
     return read(fd,buf,cnt);
 }
 
+int _fstat(int fd, struct stat *pstat)
+{
+    switch(fd)
+    {
+        case STDIN_FILENO:
+        case STDOUT_FILENO:
+        case STDERR_FILENO:
+            memset(pstat,0,sizeof(struct stat));
+            pstat->st_mode=S_IFCHR;//Character device
+            pstat->st_blksize=0; //Defualt file buffer equals to BUFSIZ
+            return 0;
+        default:
+            return -1;
+    }
+}
+
+int _fstat_r(struct _reent *ptr, int fd, struct stat *pstat)
+{
+    return _fstat(fd, pstat);
+}
+
+int isatty(int fd) { return 1; }
+int _isatty(int fd) { return 1; }
+
 off_t _lseek(int fd, off_t pos, int whence) { return -1; }
 off_t _lseek_r(struct _reent *ptr, int fd, off_t pos, int whence) { return -1; }
-int _fstat(int fd, struct stat *pstat) { return -1; }
-int _fstat_r(struct _reent *ptr, int fd, struct stat *pstat) { return -1; }
 int _stat_r(struct _reent *ptr, const char *file, struct stat *pstat) { return -1; }
-int isatty(int fd) { return -1; }
-int _isatty(int fd) { return -1; }
 int _isatty_r(struct _reent *ptr, int fd) { return -1; }
 int mkdir(const char *path, mode_t mode) { return -1; }
 int _unlink_r(struct _reent *ptr, const char *file) { return -1; }

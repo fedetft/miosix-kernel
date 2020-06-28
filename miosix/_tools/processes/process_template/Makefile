@@ -1,10 +1,10 @@
 ##
-## Makefile for writing PROGRAMS for the Miosix embedded OS
-## TFT:Terraneo Federico Technlogies
+## Makefile for writing PROCESSES for the Miosix embedded OS
 ##
 
 SRC := \
-main.c
+main.c \
+syscallfuffa.c
 
 ## Replaces both "foo.cpp"-->"foo.o" and "foo.c"-->"foo.o"
 OBJ := $(addsuffix .o, $(basename $(SRC)))
@@ -31,7 +31,7 @@ all: $(OBJ) crt0.o
 	@arm-miosix-eabi-objdump -Dslx main.elf > main.txt
 	@arm-miosix-eabi-strip main.elf
 	@mx-postlinker main.elf --ramsize=16384 --stacksize=2048 --strip-sectheader
-	@xxd -i main.elf | sed 's/unsigned char/const unsigned char __attribute__((aligned(8)))/' > prog3.h
+	@xxd -i main.elf | sed 's/unsigned char/const unsigned char __attribute__((aligned(8)))/' > proc.h
 
 clean:
 	-rm -f $(OBJ) crt0.o main.elf main.map main.txt $(OBJ:.o=.d)

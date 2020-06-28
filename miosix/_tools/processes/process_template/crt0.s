@@ -1,6 +1,5 @@
 /*
- * Startup script for writing PROGRAMS for the Miosix embedded OS
- * TFT:Terraneo Federico Technlogies
+ * Startup script for writing PROCESSES for the Miosix embedded OS
  */
 
 .syntax unified
@@ -31,6 +30,59 @@ _exit:
 	movs r3, #2
 	svc  0
 
+/**
+ * open, open a file
+ * \param fd file descriptor
+ * \param file access mode
+ * \param xxx access permisions
+ * \return file descriptor or -1 if errors
+ */
+.section .text.open
+.global open
+.type open, %function
+open:
+	movs r3, #6
+	svc 0
+	bx lr
+
+/**
+ * close, close a file
+ * \param fd file descriptor
+ */
+.section .text.close
+.global close
+.type close, %function
+close:
+	movs r3, #7
+	svc 0
+	bx lr
+
+/**
+ * seek
+ * \param fd file descriptor
+ * \param pos moving offset
+ * \param start position, SEEK_SET, SEEK_CUR or SEEK_END
+*/
+.section .text.seek
+.global seek
+.type seek, %function
+seek:
+	movs r3, #8
+	svc 0
+	bx lr
+
+
+/**
+ * system, fork and execture a program, blocking
+ * \param program to execute
+ */
+.section .text.system
+.global system
+.type system, %function
+system:
+	movs r3, #9
+	svc 0
+	bx lr
 /**
  * write, write to file
  * \param fd file descriptor
