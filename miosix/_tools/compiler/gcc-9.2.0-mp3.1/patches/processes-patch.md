@@ -299,6 +299,125 @@ TL;DR: in pointer containing data structures, sometimes we go through the GOT ev
 
 
 
+
+## The problem with vtables (FIXED)
+
+An example with `cout << "Hello world" << endl;` fails with a segfault during static construction of the cout object. The problem arises during a `dynamic_cast`.
+
+```
+Process 1 terminated due to a fault
+* Code base address was 0x64017268
+* Data base address was 0x64100000
+* MPU region 6 0x64000000-0x64100000 r-x
+* MPU region 7 0x64100000-0x64104000 rw-
+* Attempted data access @ 0x74017818 (PC was 0x6403a610)
+Process 1 terminated
+Process segfaulted
+```
+
+Trying to understand where the wrong address goes `0x74017818 - 0x64017268 = 0x100005b0` and this address points to
+
+```
+ .data.rel.ro._ZTVSt5ctypeIcE
+                0x00000000100005b0       0x30 /home/fede/Documents/programmazione/miosix/compiler/current/gcc/arm-miosix-eabi/lib/gcc/arm-miosix-eabi/9.2.0/../../../../arm-miosix-eabi/lib/thumb/cm3/pie/single-pic-base/libstdc++.a(ctype.o)
+                0x00000000100005b0                _ZTVSt5ctypeIcE
+```
+
+and `_ZTVSt5ctypeIcE` is `vtable for std::ctype<char>`.
+
+Further testing with a simpler program fails in the same way
+
+```
+#include <cstdio>
+
+class Base
+{
+public:
+    virtual void print() const { puts("I'm Base"); }
+    virtual ~Base() {}
+};
+
+class Derived : public Base
+{
+public:
+    virtual void print() const { puts("I'm Derived"); }
+};
+
+void __attribute__((noinline)) call(Base *base)
+{
+    base->print();
+}
+
+Base *__attribute__((noinline)) mkbase()
+{
+   return new Base;
+}
+
+Derived *__attribute__((noinline)) mkderived()
+{
+   return new Derived;
+}
+
+int main()
+{
+    volatile int i=0;
+    Base *base = i==0 ? mkderived() : mkbase();
+    call(base);
+    delete base;
+}
+```
+
+It appears that the issue occurs in the constructor
+
+```
+0000ead4 <_Z9mkderivedv>:
+_Z9mkderivedv():
+    ead4:	b508      	push	{r3, lr}
+    ead6:	2004      	movs	r0, #4
+    ead8:	f000 f946 	bl	ed68 <_Znwj>
+    eadc:	4b02      	ldr	r3, [pc, #8]	; (eae8 <_Z9mkderivedv+0x14>)
+    eade:	447b      	add	r3, pc
+    eae0:	3308      	adds	r3, #8
+    eae2:	6003      	str	r3, [r0, #0]
+    eae4:	bd08      	pop	{r3, pc}
+    eae6:	bf00      	nop
+    eae8:	0fff162e 	svceq	0x00ff162e
+```
+
+where the object memory is allocated, and the vptr is set to point to the vtable using PC-relative addressing even though the vtable is in RAM, as it's in .dat.rel.ro
+
+The vtable is considered const even though it contains pointers becauses it passes the `decl_readonly_section` check, which is done before the `contains_pointers_p` check.
+
+```
+(symbol_ref/i:SI ("_ZTV4Base") [flags 0x82] <var_decl 0x7ff42878d480 _ZTV4Base>)
+ <var_decl 0x7ff42878d480 _ZTV4Base
+    type <array_type 0x7ff42781d498
+        type <pointer_type 0x7ff427aea498 __vtbl_ptr_type type <function_type 0x7ff427aea348>
+            unsigned type_6 SI
+            size <integer_cst 0x7ff4279e3108 constant 32>
+            unit-size <integer_cst 0x7ff4279e3120 constant 4>
+            align:32 warn_if_not_align:0 symtab:0 alias-set 4 canonical-type 0x7ff427aea498
+            pointer_to_this <pointer_type 0x7ff427aea7e0>>
+        BLK
+        size <integer_cst 0x7ff4279e3468 constant 128>
+        unit-size <integer_cst 0x7ff4279e3480 constant 16>
+        align:32 warn_if_not_align:0 symtab:0 alias-set 4 canonical-type 0x7ff42781d498
+        domain <integer_type 0x7ff42781d3f0 type <integer_type 0x7ff4279ed000 sizetype>
+            type_6 SI size <integer_cst 0x7ff4279e3108 32> unit-size <integer_cst 0x7ff4279e3120 4>
+            align:32 warn_if_not_align:0 symtab:0 alias-set -1 canonical-type 0x7ff42781d3f0 precision:32 min <integer_cst 0x7ff4279e3138 0> max <integer_cst 0x7ff42781a258 3>>
+        pointer_to_this <pointer_type 0x7ff427825bd0>>
+    readonly addressable used public static tree_1 tree_2 tree_5 ignored weak read virtual decl_5 BLK vtable.cpp:2:7 size <integer_cst 0x7ff4279e3468 128> unit-size <integer_cst 0x7ff4279e3480 16>
+    user align:32 warn_if_not_align:0 context <record_type 0x7ff427af3348 Base> initial <constructor 0x7ff42781a270>
+   
+    (mem/u/c:BLK (symbol_ref/i:SI ("_ZTV4Base") [flags 0x82] <var_decl 0x7ff42878d480 _ZTV4Base>) [4 _ZTV4Base+0 S16 A32])>
+constant (decl_readonly_section)
+```
+
+As the vtable contains constant pointers (that need to be initialized to within .text to point to the member functions), relocations need to be done.
+The solution is to move the `contains_pointers_p` check first.
+
+
+
 ## Addendum
 
 How to recompile GCC only (not the stdlibs) for quick experiments
