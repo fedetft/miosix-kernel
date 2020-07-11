@@ -16,7 +16,18 @@ SECTIONS
         *(.text)
         *(.text.*)
         *(.gnu.linkonce.t.*)
+        *(.gcc_except_table)
+        *(.gcc_except_table.*)
+        *(.ARM.extab*)
+        *(.gnu.linkonce.armextab.*)
     }
+
+    __exidx_start = .;
+    .ARM.exidx :
+    {
+        *(.ARM.exidx* .gnu.linkonce.armexidx.*)
+    }
+    __exidx_end = .;
     
     .rodata : ALIGN(8)
     {
@@ -35,6 +46,28 @@ SECTIONS
 
     /* FIXME: If this is put in the other segment, it makes it writable */
     .dynamic  : { *(.dynamic) }
+
+    /* FIXME: this name is temporary, find the proper one */
+    .initfini : ALIGN(8)
+    {
+        KEEP(*(.init))
+
+        __preinit_array_start = .;
+        KEEP (*(.preinit_array))
+        __preinit_array_end = .;
+
+        __init_array_start = .;
+        KEEP (*(SORT(.init_array.*)))
+        KEEP (*(.init_array))
+        __init_array_end = .;
+
+        KEEP(*(.fini))
+
+        __fini_array_start = .;
+        KEEP (*(.fini_array))
+        KEEP (*(SORT(.fini_array.*)))
+        __fini_array_end = .;
+    }
 
     .data : ALIGN(8)
     {
