@@ -1,20 +1,22 @@
 
 # Notes on the patch to support processes in Miosix
 
-TODO: Intro, pie, single-pic-base, no fixed offset between .text/.rodata and .got/.data/.bss, the usual stuff of how Miosix processes work.
+TODO: Intro, pie, single-pic-base, no fixed offset between .text/.rodata and .got/.data/.bss, the basic stuff of how Miosix processes work.
 
-TODO: Comment the changes that were introduced in 4.7.3 and their limitations (processes couldn't use stadard libraries as malloc was broken), as what comes next is a delta compared to it.
+TODO: Comment the changes that were introduced in 4.7.3 and their limitations (processes couldn't use standard libraries as malloc and everything that used it was broken), as what comes next is a delta compared to it.
 
 
 
 
 ## The problem with extern const (FIXED)
 
-In the GCC 4.7.3 processes: 
+In processes compiled with GCC 4.7.3: 
 
 - stuff   in .data are accessed from the GOT, which is OK
 - strings in .rodata are accessed PC-relative, which is OK
 - consts in .rodata are accessed from the GOT, which is WRONG! (more on that later when pointer are involved, though)
+
+Here's an example:
 
 ```
 extern const int aRodata;
@@ -49,6 +51,8 @@ get3:
 	bx	lr
 ```
 
+`get1()` is the wrong one, of course.
+
 (Compiled with `arm-miosix-eabi-gcc -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd -fpie -msingle-pic-base -O2 -S processes.c`).
 
 What usually masks the issue is constant folding. Unless it's an extern const the value gets folded and the problem does not arise.
@@ -74,15 +78,15 @@ newlib-3.1.0/newlib/libc/stdlib/mallocr.c:2378
   f2:	685c      	ldr	r4, [r3, #4]
 ```
 
-But replicating similar code that referenced the same concolute array, `__malloc_av_` did not cause segfaults.
+But replicating similar code that referenced the same convolute array, `__malloc_av_` did not cause segfaults.
 
-An objdump of main.o found at the end of func:
+An objdump of `main.o` found at the end of func:
 
 ```
 			44: R_ARM_GOT32	__malloc_av_
 ```
 
-While an objdump of lib_a-mallocr.o at the end of malloc_r:
+While an objdump of `lib_a-mallocr.o` at the end of `malloc_r`:
 
 ```
 			55c: R_ARM_GOTOFF32	.LANCHOR0
@@ -143,7 +147,7 @@ struct _reent *const _global_impure_ptr = &impure_data;
 
 At first it was believed that the issue is with the constness of pointer being more complex than normal variables, as we need not confuse the constness of the thing pointed to from the constness of the pointer itself.
 
-However, forther investigation found out the const patch works in this case too:
+However, further investigation found out the const patch works in this case too:
 
 ```
 extern const int * cptr;
@@ -268,7 +272,7 @@ diff -ruN gcc-9.2.0-old/gcc/varasm.c gcc-9.2.0/gcc/varasm.c
 ```
 
 But it was found out that this patch failed to work when arrays were concerned.
-An example found in nelib that caused segfaults is in `dtoa.c` when accessing the `tinytens` and `bigtens` arrays defined in `mprec.c`.
+An example found in newlib that caused segfaults is in `dtoa.c` when accessing the `tinytens` and `bigtens` arrays defined in `mprec.c`.
 
 A simpler testcase can be made but it requires two translation units to prevent folding masking the issue.
 
@@ -319,7 +323,7 @@ Trying to understand where the wrong address goes `0x74017818 - 0x64017268 = 0x1
 
 ```
  .data.rel.ro._ZTVSt5ctypeIcE
-                0x00000000100005b0       0x30 /home/fede/Documents/programmazione/miosix/compiler/current/gcc/arm-miosix-eabi/lib/gcc/arm-miosix-eabi/9.2.0/../../../../arm-miosix-eabi/lib/thumb/cm3/pie/single-pic-base/libstdc++.a(ctype.o)
+                0x00000000100005b0       0x30 libstdc++.a(ctype.o)
                 0x00000000100005b0                _ZTVSt5ctypeIcE
 ```
 
@@ -415,6 +419,475 @@ constant (decl_readonly_section)
 
 As the vtable contains constant pointers (that need to be initialized to within .text to point to the member functions), relocations need to be done.
 The solution is to move the `contains_pointers_p` check first.
+
+
+
+
+## The problem with R_ARM_REL32 relocations (FIXED)
+
+Trying to compile C++ programs that do not use exceptions causes compilation to fail. An example as simple as this triggers the issue:
+
+```
+#include <cstdio>
+
+using namespace std;
+
+int main()
+{
+    printf("Hello world\n");
+    return 0;
+}
+```
+
+which fails with:
+
+```
+ld: libgcc.a(unwind-arm.o): relocation R_ARM_REL32 against external or undefined symbol `__cxa_call_unexpected' can not be used when making a PIE executable; recompile with -fPIC
+libgcc.a(unwind-arm.o): in function `__gnu_unwind_pr_common':
+unwind-arm-common.inc:824:(.text+0x744): dangerous relocation: unsupported relocation
+```
+
+Compiling with `-fno-exceptions` or adding code that throws/catches exceptions fixes the issue, but code that does not throw should not fail to compile.
+
+The problem is in `unwind-arm-common.inc` which declares a few functions prototypes as `__attribute__((weak))` that it then calls. Moreover, in one case it checkes whether the pointer to the `__gnu_Unwind_Find_exidix` function is not null, to see if the function exists in the (runtime) linked binary.
+
+The fix consists in patching `unwind-arm-common.inc` so that the function prototypes are no longer weak, and removing completely the check **and** then call to `__gnu_Unwind_Find_exidix` as it's not needed in Miosix.
+
+
+
+
+## The problem with unwinding exception tables
+
+A simple program that throws an exception would segfault
+
+```
+#include <cstdio>
+
+void __attribute__((noinline)) f()
+{
+   throw 1; 
+}
+
+int main() try {
+    puts("in");
+    f();
+    puts("out");
+    return 0;
+} catch(int& e) {
+    puts("exc");
+    return e;
+}
+```
+
+in `__cxa_type_match`
+
+```
+0000eee4 <__cxa_type_match>:
+[...]
+gcc-9.2.0/libstdc++-v3/libsupc++/eh_arm.cc:86
+    ef08:	6823      	ldr	r3, [r4, #0]
+```
+
+The fault happens when dereferencing a pointer, but the pointer does not get computed in this function, but passed as a parameter.
+The caller is `__gxx_personality_v0`
+
+```
+line 576 of eh_personality.cc
+
+      while (1)
+	{
+	  p = action_record;
+	  p = read_sleb128 (p, &ar_filter);
+	  read_sleb128 (p, &ar_disp);
+
+	  if (ar_filter == 0)
+	    {
+	      // Zero filter values are cleanups.
+	      saw_cleanup = true;
+	    }
+	  else if (ar_filter > 0)
+	    {
+	      // Positive filter values are handlers.
+	      catch_type = get_ttype_entry (&info, ar_filter);
+
+	      // Null catch type is a catch-all handler; we can catch foreign
+	      // exceptions with this.  Otherwise we must match types.
+	      if (! catch_type
+		  || (throw_type
+		      && get_adjusted_ptr (catch_type, throw_type,
+					   &thrown_ptr)))
+```
+
+The `get_adjusted_ptr` is a macro to the `__cxa_type_match` code that is faulting.
+The corrupted variable is `catch_type`, and is returned by `get_ttype_entry`, which in turn gets it by calling `read_encoded_value_with_base` in `libgcc/unwind-pe.h`.
+
+The `read_encoded_value_with_base` is called with the following parameters:
+```
+unsigned char encoding = 0x10
+_Unwind_Ptr base       = 0
+const unsigned char *p = 0x64027198 - 0x64017268 = 0xff30
+```
+
+and at memory location 0xff30 in the elf file there is the .ARM.extab section, so this code is retrieving a pointer from the exception unwinding tables.
+So, summing up, the unwind tables are coded assuming that it's possible to construct addresses to the typeinfo structures (which are in .data.rel.ro, thus in RAM) through PC-relative addressing which is not possible.
+
+From the same file we also find another useful function:
+
+```
+static _Unwind_Ptr
+base_of_encoded_value (unsigned char encoding, struct _Unwind_Context *context)
+{
+  if (encoding == DW_EH_PE_omit)
+    return 0;
+
+  switch (encoding & 0x70)
+    {
+    case DW_EH_PE_absptr:
+    case DW_EH_PE_pcrel:
+    case DW_EH_PE_aligned:
+      return 0;
+
+    case DW_EH_PE_textrel:
+      return _Unwind_GetTextRelBase (context);
+    case DW_EH_PE_datarel:
+      return _Unwind_GetDataRelBase (context);
+    case DW_EH_PE_funcrel:
+      return _Unwind_GetRegionStart (context);
+    }
+  __gxx_abort ();
+}
+```
+
+This function computes the `base` parameter the the previous function, and returns zero since encoding is 0x10 or `DW_EH_PE_pcrel`.
+
+However, `_Unwind_GetDataRelBase()` is in `libgcc/config/arm/pr-support.c`
+
+```
+/* These two should never be used.  */
+
+_Unwind_Ptr
+_Unwind_GetDataRelBase (_Unwind_Context *context __attribute__ ((unused)))
+{
+  abort ();
+}
+```
+
+great, so that's unimplemented...
+
+One last bit we need to get the whole picture: how the compiler selects which encoding to use: `cd gcc/config/arm && grep -R 'DW_EH_PE_'`
+
+which found the list of constants:
+
+```
+#define DW_EH_PE_absptr		0x00
+
+#define DW_EH_PE_pcrel		0x10
+#define DW_EH_PE_textrel	0x20
+#define DW_EH_PE_datarel	0x30
+#define DW_EH_PE_funcrel	0x40
+#define DW_EH_PE_aligned	0x50
+
+#define DW_EH_PE_indirect	0x80
+```
+
+and this file `gcc/config/arm/arm.h` which says
+
+```
+#ifndef ARM_TARGET2_DWARF_FORMAT
+#define ARM_TARGET2_DWARF_FORMAT DW_EH_PE_pcrel
+#endif
+
+/* ttype entries (the only interesting data references used)
+   use TARGET2 relocations.  */
+#define ASM_PREFERRED_EH_DATA_FORMAT(code, data) \
+  (((code) == 0 && (data) == 1 && ARM_UNWIND_INFO) ? ARM_TARGET2_DWARF_FORMAT \
+			       : DW_EH_PE_absptr)
+```
+
+And this is actually documented!
+
+`https://gcc.gnu.org/onlinedocs/gccint/Exception-Handling.html`
+
+`ASM_PREFERRED_EH_DATA_FORMAT (code, global)`
+
+So, despite the macro implementation in `arm.h` calls the parameters `code` and `data`, they are actually `code` and `global`:
+
+`code`:
+
+* 0 for data
+* 1 for code labels
+* 2 for function pointers
+
+while `global` is true if the symbol may be affected by dynamic relocations.
+
+From my understanding, the encoding is absptr unless we're accessing data and dynamic relocations may occur (ARM_UNWIND_INFO is the constant 1 so it's always true), in that case it's pcrel.
+
+A possible solution that was tested is:
+
+* `#define ARM_TARGET2_DWARF_FORMAT DW_EH_PE_datarel`
+* implement `_Unwind_GetDataRelBase`.
+
+This is the patch that does the first thing:
+
+```
+diff -ruN gcc-9.2.0-old/gcc/config/arm/arm.h gcc-9.2.0/gcc/config/arm/arm.h
+--- gcc-9.2.0-old/gcc/config/arm/arm.h	2019-04-23 12:03:41.000000000 +0200
++++ gcc-9.2.0/gcc/config/arm/arm.h	2020-07-14 09:14:20.611848691 +0200
+@@ -878,7 +878,12 @@
+ #define EH_RETURN_STACKADJ_RTX	gen_rtx_REG (SImode, ARM_EH_STACKADJ_REGNUM)
+ 
+ #ifndef ARM_TARGET2_DWARF_FORMAT
+-#define ARM_TARGET2_DWARF_FORMAT DW_EH_PE_pcrel
++//TODO: #ifdef _MIOSIX does not work in this context
++//Produce exception unwinding tables that work with Miosix processes
++//see processes-patch.md, section "The problem with unwinding exception tables"
++//we want pcrel as usual for the Miosix kernel, and datarel for processes (pic)
++#define ARM_TARGET2_DWARF_FORMAT (flag_pic ? DW_EH_PE_datarel : DW_EH_PE_pcrel)
++//#define ARM_TARGET2_DWARF_FORMAT DW_EH_PE_pcrel
+ #endif
+ 
+ /* ttype entries (the only interesting data references used)
+```
+
+This is the patch that does the second:
+
+```
+diff -ruN gcc-9.2.0-old/libgcc/config/arm/pr-support.c gcc-9.2.0/libgcc/config/arm/pr-support.c
+--- gcc-9.2.0-old/libgcc/config/arm/pr-support.c	2019-04-23 12:03:41.000000000 +0200
++++ gcc-9.2.0/libgcc/config/arm/pr-support.c	2020-07-14 09:14:20.615848615 +0200
+@@ -376,7 +376,14 @@
+ _Unwind_Ptr
+ _Unwind_GetDataRelBase (_Unwind_Context *context __attribute__ ((unused)))
+ {
+-  abort ();
++//TODO: #ifdef _MIOSIX does not work in this context
++//Support exception unwinding that work with Miosix processes
++//see processes-patch.md, section "The problem with unwinding exception tables"
++//NOTE: this code gets linked (even though it never gets used) also in the kernel,
++//so the symbol name we coose here must also exist in the kernel linker scripts
++  extern char _data asm("_data"); //defined in the linker script
++  return &_data;
++//   abort ();
+ }
+ 
+ _Unwind_Ptr
+```
+
+And this just adds a print to see what happens:
+
+```
+diff -ruN gcc-9.2.0-old/gcc/except.c gcc-9.2.0/gcc/except.c
+--- gcc-9.2.0-old/gcc/except.c	2019-03-11 14:58:44.000000000 +0100
++++ gcc-9.2.0/gcc/except.c	2020-07-15 09:55:53.382783507 +0200
+@@ -3022,6 +3022,11 @@
+   else
+     {
+       tt_format = ASM_PREFERRED_EH_DATA_FORMAT (/*code=*/0, /*global=*/1);
++      // This is here for debugging the change to ARM_TARGET2_DWARF_FORMAT
++      // in Miosix processes: when compiling C++ code that throws and catches
++      // exceptions, it should print 0x10 (DW_EH_PE_pcrel) when compiling the
++      // kernel (non-pic) and 0x30 (DW_EH_PE_datarel) when compiling processes
++      printf("\n\n-- called 0x%x --\n\n",tt_format);
+       if (HAVE_AS_LEB128)
+ 	ASM_GENERATE_INTERNAL_LABEL (ttype_label,
+ 				     section ? "LLSDATTC" : "LLSDATT",
+```
+
+
+But these patch don't work. With those changes throwing from a process still fails as before.
+Even though at compile-time the DW_EH_PE_datarel value seems to be selected and the printf patch prints 0x30 (the call to `ASM_PREFERRED_EH_DATA_FORMAT` is in `output_one_function_exception_table` in `gcc/except.c` which is where the printf patch above is), `read_encoded_value_with_base` at runtime still gets called with 0x10 (pcrel)...
+
+More digging found this kludge in `eh_personality.cc`:
+
+```
+#if _GLIBCXX_OVERRIDE_TTYPE_ENCODING
+      /* Older ARM EABI toolchains set this value incorrectly, so use a
+	 hardcoded OS-specific format.  */
+      info->ttype_encoding = _GLIBCXX_OVERRIDE_TTYPE_ENCODING;
+#endif
+```
+
+Yes, despite we're wasting bytes in the binary to encode the format of pointer entries, they serve nothing as they are overridden by a compile-time kludge that forces the runtime library to ignore it...
+
+`https://gcc.gnu.org/legacy-ml/gcc-patches/2011-09/msg00765.html`
+
+The `#define _GLIBCXX_OVERRIDE_TTYPE_ENCODING` occurs in `libgcc/config/arm/unwind-arm.h`,
+in the middle of the `_Unwind_decode_typeinfo_ptr` function (if you need to make a kludge, do it well...).
+
+Ok, more patching to remove the kludge:
+
+```
+diff -ruN gcc-9.2.0-old/libgcc/config/arm/unwind-arm.h gcc-9.2.0/libgcc/config/arm/unwind-arm.h
+--- gcc-9.2.0-old/libgcc/config/arm/unwind-arm.h	2019-01-01 13:31:55.000000000 +0100
++++ gcc-9.2.0/libgcc/config/arm/unwind-arm.h	2020-07-14 09:14:20.615848615 +0200
+@@ -57,7 +57,14 @@
+ #elif defined(__symbian__) || defined(__uClinux__)
+ #define _GLIBCXX_OVERRIDE_TTYPE_ENCODING (DW_EH_PE_absptr)
+       /* Absolute pointer.  Nothing more to do.  */
++#elif defined(_MIOSIX)
++     //DO NOT DEFINE _GLIBCXX_OVERRIDE_TTYPE_ENCODING, we don't want that kludge
++     //as the encoding could be either pc-relative (kernel) or data-relative (processes)
++     //see processes-patch.md
++     //This relies on base_of_encoded_value() setting base to 0 for DW_EH_PE_pcrel
++     tmp += base ? base : ptr;
+ #else
++#error FIXME deleteme added just in case
+ #define _GLIBCXX_OVERRIDE_TTYPE_ENCODING (DW_EH_PE_pcrel)
+       /* Pc-relative pointer.  */
+       tmp += ptr;
+```
+
+but this does not work either...
+
+At runtime, in the process, `read_encoded_value_with_base` is called with the following parameters:
+```
+unsigned char encoding = 0x30
+_Unwind_Ptr base       = 0x64100000
+const unsigned char *p = 0x640271c4
+```
+
+The first two parameters are correct, the third one, is not.
+
+This time the encoding is the correct value. Also the base is ok, so we have the data base address. However, p points to where the offset is stored in the unwinding tables. And dereferencing that location we find 0x0fff023c. This is wrong, as the target we want is at 0x10000188, and 0x64100000 + 0x0fff023c = 0x740f023c which is the faulting address causing the segfault and not the target address.
+
+So while everything is set up for data-relative, the offset that gets encoded is still pc-relative...
+
+And it is here when things get complicated, as we need to llok deep into what's encoded in the unwinding tables.
+
+When compiling the simple `main.cpp` that throws at the beginning of this chapter, GCC produces the following tables, and the unwind tables end up in the binary, with a one-to-one match, (after the ULEB128 encoding is understood `https://en.wikipedia.org/wiki/LEB128`):
+
+
+```
+ .ARM.extab.text.startup.main
+                0x000000000000ff30       0x20 main.o
+
+ 0ff28                   79f5ff7f b0b0a800  ........y.......
+ 0ff38 ff301501 0c06080e 011c042a 002e0400  .0.........*....
+ 0ff48 00010000 3c02ff0f 
+
+	.global	__gxx_personality_v0
+	.personality	__gxx_personality_v0
+	.handlerdata
+	.align	2
+                                     79f5ff7f b0b0a800 = personality?
+.LLSDA2:
+	.byte	0xff                     ff
+	.byte	0x30                     30
+	.uleb128 .LLSDATT2-.LLSDATTD2    15
+.LLSDATTD2:
+	.byte	0x1                      01
+	.uleb128 .LLSDACSE2-.LLSDACSB2   0c
+.LLSDACSB2:
+	.uleb128 .LEHB0-.LFB2            06
+	.uleb128 .LEHE0-.LEHB0           08
+	.uleb128 .L9-.LFB2               0e
+	.uleb128 0x1                     01
+	.uleb128 .LEHB1-.LFB2            1c
+	.uleb128 .LEHE1-.LEHB1           04
+	.uleb128 .L10-.LFB2              2a
+	.uleb128 0                       00
+	.uleb128 .LEHB2-.LFB2            2e
+	.uleb128 .LEHE2-.LEHB2           04
+	.uleb128 0                       00
+	.uleb128 0                       00
+.LLSDACSE2:
+	.byte	0x1                      01
+	.byte	0                        00
+	.align	2                        00
+	.word	_ZTIi(TARGET2)           3c02ff0f (0x0fff023c)
+```
+
+So the problematic offset is right at the end, 0x0fff023c. However, GCC is not producing the address, it just outputs `.word	_ZTIi(TARGET2)`. In this declaration, `_ZTIi` is the target symbol we want to access, and `(TARGET2)` a relocation type.
+
+Who prints this `.word	_ZTIi(TARGET2)` in GCC? We're back to our friend, the `output_one_function_exception_table` in `gcc/except.c`. Just like the address is last in the exception tables, also the code that prints is last in the function,
+
+```
+  if (targetm.arm_eabi_unwinder)
+    {
+      tree type;
+      for (i = 0;
+	   vec_safe_iterate (cfun->eh->ehspec_data.arm_eabi, i, &type); ++i)
+	output_ttype (type, tt_format, tt_format_size);
+    }
+```
+
+The job is done by the `output_ttype`, but not exactly, as this function contains a
+
+```
+  /* Allow the target to override the type table entry format.  */
+  if (targetm.asm_out.ttype (value))
+    return;
+```
+
+and the ARM target has this function pointer non-null, and thus overrides the default `output_ttype` behavior. Following the code we get back to `arm.c`.
+
+```
+static bool
+arm_output_ttype (rtx x)
+{
+  fputs ("\t.word\t", asm_out_file);
+  output_addr_const (asm_out_file, x);
+  /* Use special relocations for symbol references.  */
+  if (!CONST_INT_P (x))
+    fputs ("(TARGET2)", asm_out_file);
+  fputc ('\n', asm_out_file);
+
+  return TRUE;
+}
+```
+
+and this is the function that prints the symbol name and `(TARGET2)`.
+
+adding an `if(flag_pic) return FALSE;` at the beginning of this function just affords an internal compiler error, apparently as by returning false we get back to `output_ttype` which calls `dw2_asm_output_encoded_addr_rtx` that contains a
+
+```
+#ifdef ASM_OUTPUT_DWARF_DATAREL
+	case DW_EH_PE_datarel:
+	  gcc_assert (GET_CODE (addr) == SYMBOL_REF);
+	  ASM_OUTPUT_DWARF_DATAREL (asm_out_file, size, XSTR (addr, 0));
+	  break;
+#endif
+```
+
+and none is provided (sigh).
+
+Ok, backtracking, batching and trying to patch `arm_output_ttype` to produce another relocation type. But which type? The "ELF for the ARM Architecture" document availbale online seems to hint that ` R_ARM_BASE_ABS` is the right one, as it's a static relocation where the target is accessed as B(S) + A, which seems right.
+
+
+```
+diff -ruN gcc-9.2.0-old/gcc/config/arm/arm.c gcc-9.2.0/gcc/config/arm/arm.c
+--- gcc-9.2.0-old/gcc/config/arm/arm.c	2019-04-23 12:03:41.000000000 +0200
++++ gcc-9.2.0/gcc/config/arm/arm.c	2020-07-15 23:37:34.457141163 +0200
+@@ -27847,7 +28036,23 @@
+   output_addr_const (asm_out_file, x);
+   /* Use special relocations for symbol references.  */
+   if (!CONST_INT_P (x))
++  {
++      //TODO: #ifdef _MIOSIX does not work in this context
++      //When generation C++ exception unwinding tables, DO generate data-relative
++      //entries instead of overriding them with pc-relative relocations
++      //See processes-patch.md
++      if(flag_pic)
++      {
++          //Use R_ARM_RELATIVE to generate a data-relative static relocation
++          //see "ELF for the ARM AELF for the ARM Architecture"
++          printf("using R_ARM_RELATIVE relocation for exception unwinding tables\n");
++          fputs ("(BASE_ABS)", asm_out_file);
++      } else {
++          //Produce the default R_ARM_TARGET2 static relocation that is supposed
++          //to be platform specific but is actually pc-relative
+     fputs ("(TARGET2)", asm_out_file);
++      }
++  }
+   fputc ('\n', asm_out_file);
+ 
+   return TRUE;
+```
+
+And here we find more trouble: the gnu assember does not support the relocation we want being input from assembly files...
+
+
+
 
 
 
