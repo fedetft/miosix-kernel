@@ -5,6 +5,7 @@ TODO: Intro, pie, single-pic-base, no fixed offset between .text/.rodata and .go
 
 TODO: Comment the changes that were introduced in 4.7.3 and their limitations (processes couldn't use standard libraries as malloc and everything that used it was broken), as what comes next is a delta compared to it.
 
+NOTE: Most of this document contains addresses from debugging sessions done when DATA_BASE, or the base address of the data segment in a Miosix process before being dynamically relocated, is 0x10000000. This was later changed to 0x40000000, so watch out if some address seems strange.
 
 
 
@@ -291,7 +292,7 @@ const int ptr[] = { 0x12345678 };
 This example and the one in libc do cause the appearance of GOT entries which point to .rodata.
 
 Instead of chasing every case where we need to promote something from .rodata to .data, a patch was made in the OS kernel relocation code:
-if the relocation target address is not greater than DATA_START (0x10000000), it means that the relocation points to .rodata, and in that case the relocation is done starting from the CODE base address, not from the RAM base address.
+if the relocation target address is not greater than DATA_BASE (which was 0x10000000 and later as part of these patch was changed to 0x40000000), it means that the relocation points to .rodata, and in that case the relocation is done starting from the CODE base address, not from the RAM base address.
 
 This fix made obsolete the idea of forcedly promoting pointer-containing data structures to RAM, so the `varasm.c` patch above was removed. This choice saves RAM, as now
 
@@ -456,7 +457,7 @@ The fix consists in patching `unwind-arm-common.inc` so that the function protot
 
 
 
-## The problem with unwinding exception tables
+## The problem with unwinding exception tables (FIXED)
 
 A simple program that throws an exception would segfault
 
@@ -886,6 +887,44 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/arm.c gcc-9.2.0/gcc/config/arm/arm.c
 
 And here we find more trouble: the gnu assember does not support the relocation we want being input from assembly files...
 
+Ok, backtracking again, we'll have to make TARGET2 relocations work for our platform. GNU ld has an option, `--target2=<type>` that allows to override how it handles target2 relocations. Great!
+By grepping the sources (couldn't find what strings are accepted as type) it looks like the options are `abs`, `rel`, `got-rel`. The default behavior we're seeing is `rel`. `got-rel` seems promising on paper, but it produces garbage for unknown reasons. `abs` is best actually, as it produces the absolute address of the symbol, like 0x10000178. Of course, by just subtracting DATA_BASE, we get the data-relative offset we want. Maybe we could patch the unwinder to subtract DATA_BASE, but it looks like there's a problem.
+
+Miosix does not load binaries compiled with `--target2=abs`, and the reason is simple, other than producing the absolute value, the linker produces a dynamic relocation to fix it up at runtime, as we're in PIE/PIC mode, and for the first time that's NOT what we want, as relocations in a readonly sections can't be made. However, by temporarily commenting out that check in the kernel, adding a check to skip this wrong relocation and patching the binary by hand by removing 0x10000000 to that address, the process works and throws correctly with the readonly unwinding tables.
+
+Now, we just need a non-kludge way to do this.
+
+For this, there's no escape to patching binutils too. The patch first adds the `--target2=mx-data-rel` option and maps it to a brand new static relocation type, `R_ARM_MIOSIXPROC_TGT2`, that is basically the same as `R_ARM_ABS32` (the one behind `--target2=abs`) except it does not leave dynamic relocations behind and subtracts DATA_BASE), making a true data-rel static relocation encoding the offset of the symbol from the data base address.
+
+And that, finally, worked.
+
+
+
+
+## Caveat fot future patchers
+
+If you do an `arm-miosix-eaby-objdump -Dslx main.bin` (of course before it's stripped and mx-postlinked), the start of the disassembly is something like
+
+```
+Program Header:
+    LOAD off    0x00000098 vaddr 0x00000098 paddr 0x00000098 align 2**3
+         filesz 0x00004fcc memsz 0x00004fcc flags r-x
+    LOAD off    0x00005068 vaddr 0x40000000 paddr 0x40000000 align 2**3
+         filesz 0x00000640 memsz 0x00000840 flags rw-
+ DYNAMIC off    0x000050f8 vaddr 0x40000090 paddr 0x40000090 align 2**2
+         filesz 0x00000048 memsz 0x00000048 flags rw-
+
+Dynamic Section:
+  DEBUG                0x00000000
+  REL                  0x00004564
+  RELSZ                0x00000b00
+  RELENT               0x00000008
+  FLAGS_1              0x08000000
+  RELCOUNT             0x00000001
+private flags = 5000200: [Version5 EABI] [soft-float ABI]
+```
+
+which is more useful than it looks, as it allows to see if the binary is good looking. Sometimes innocuous-looking changes in the linker script such as renaming an output section trigger special behavior in the linker with strange side effects, such as adding useless entries to dynamic (such as if you call an output section `.init_array`), adding useless nested segments (such as calling an output section `.ARM.exidx`), or making the text segment writable, which then Miosix will of course fail to load as it violates `W^X`. So do check those when making changes!
 
 
 

@@ -42,7 +42,7 @@ namespace miosix {
 #define DBG(x,...) do {} while(0)
     
 ///By convention, in an elf file for Miosix, the data segment starts @ this addr
-static const unsigned int DATA_START=0x10000000;
+static const unsigned int DATA_BASE=0x40000000;
 
 //
 // class ElfProgram
@@ -174,7 +174,8 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
                 if(dyn->d_un.d_val!=sizeof(Elf32_Rel)) return false;
                 break;  
             case DT_MX_ABI:
-                if(dyn->d_un.d_val==DV_MX_ABI_V0) miosixTagFound=true;
+                if(dyn->d_un.d_val==DV_MX_ABI_V1) miosixTagFound=true;
+                else throw runtime_error("Unknown/unsupported DT_MX_ABI");
                 break;
             case DT_MX_RAMSIZE:
                 ramSize=dyn->d_un.d_val;
@@ -221,8 +222,8 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
                 case R_ARM_NONE:
                     break;
                 case R_ARM_RELATIVE:
-                    if(rel->r_offset<DATA_START) return false;
-                    if(rel->r_offset>DATA_START+dataSegmentSize-4) return false;
+                    if(rel->r_offset<DATA_BASE) return false;
+                    if(rel->r_offset>DATA_BASE+dataSegmentSize-4) return false;
                     if(rel->r_offset & 0x3) return false;
                     break;
                 default:
@@ -300,15 +301,15 @@ void ProcessImage::load(const ElfProgram& program)
         DBG("Relocations -- start (code base @0x%x, data base @ 0x%x)\n",base,ramBase);
         for(int i=0;i<relSize;i++,rel++)
         {
-            unsigned int offset=(rel->r_offset-DATA_START)/4;
+            unsigned int offset=(rel->r_offset-DATA_BASE)/4;
             switch(ELF32_R_TYPE(rel->r_info))
             {
                 case R_ARM_RELATIVE:
-                    if(image[offset]>=DATA_START)
+                    if(image[offset]>=DATA_BASE)
                     {
                         DBG("R_ARM_RELATIVE offset 0x%x from 0x%x to 0x%x\n",
-                            offset*4,image[offset],image[offset]+ramBase-DATA_START);
-                        image[offset]+=ramBase-DATA_START;
+                            offset*4,image[offset],image[offset]+ramBase-DATA_BASE);
+                        image[offset]+=ramBase-DATA_BASE;
                     } else {
                         DBG("R_ARM_RELATIVE offset 0x%x from 0x%x to 0x%x\n",
                             offset*4,image[offset],image[offset]+base);

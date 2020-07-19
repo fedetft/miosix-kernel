@@ -16,9 +16,9 @@ SZ  := arm-miosix-eabi-size
 AFLAGS   := -mcpu=cortex-m3 -mthumb
 CFLAGS   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd -fpie -msingle-pic-base \
             -ffunction-sections -O2 -Wall -c
-CXXFLAGS := $(CFLAGS) -fno-exceptions
+CXXFLAGS := $(CFLAGS)
 LFLAGS   := -mcpu=cortex-m3 -mthumb -mfix-cortex-m3-ldrd -fpie -msingle-pic-base \
-            -Wl,--gc-sections,-Map,main.map,-T./miosix.ld,-n,-pie,--spare-dynamic-tags,3 \
+            -Wl,--gc-sections,-Map,main.map,-T./miosix.ld,-n,-pie,--spare-dynamic-tags,3,--target2=mx-data-rel \
             -O2 -nostdlib
 DFLAGS    := -MMD -MP
 

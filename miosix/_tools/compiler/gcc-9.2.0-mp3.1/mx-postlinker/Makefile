@@ -1,12 +1,12 @@
 CXX:= g++
 CXXFLAGS:= -O2 -c
-OBJS:= postlinker.o main.o
+OBJ:= postlinker.o main.o
 DFLAGS:= -MMD -MP
 
 #create program target
 
-mx-postlinker: $(OBJS)
-	$(CXX) -o $@${SUFFIX} $?
+mx-postlinker: $(OBJ)
+	$(CXX) -o $@${SUFFIX} $(OBJ)
 
 install: mx-postlinker
 	cp mx-postlinker${SUFFIX} $(INSTALL_DIR)

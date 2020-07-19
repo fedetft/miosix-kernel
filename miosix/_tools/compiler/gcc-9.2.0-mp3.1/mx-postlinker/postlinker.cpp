@@ -72,7 +72,7 @@ void PostLinker::setMxTags(int stackSize, int ramSize)
                 break;
             case 2:
                 dyn.first->d_tag=DT_MX_ABI;
-                dyn.first->d_un.d_val=DV_MX_ABI_V0;
+                dyn.first->d_un.d_val=DV_MX_ABI_V1;
                 return;
         }
         ctr++;     

@@ -62,14 +62,14 @@ int main()
 				
 					//close(fp);
 					//fp = open("/test.txt", O_RDWR, 0);
-					seek(fp, SEEK_SET, 0);
+					lseek(fp, SEEK_SET, 0);
 					
 					if(write(fp, "123", 3) == 3){
 						write(1, "Write ok\n", 9);
 						check |= 0x01;
 					}
 					
-					seek(fp, SEEK_SET, 0);
+					lseek(fp, SEEK_SET, 0);
 					
 					if(read(fp, result, 100) == 4){
 						write(1, "Read ok\n", 8);
