@@ -71,7 +71,10 @@ class CReentrancyAccessor
 public:
     static struct _reent *getReent()
     {
-        return miosix::Thread::getCurrentThread()->cReent.getReent();
+        auto thread=miosix::Thread::getCurrentThread();
+        if(thread) return thread->cReent.getReent();
+        //Before the kernel is started getCurrentThread() returns nullptr
+        return _GLOBAL_REENT;
     }
 };
 
