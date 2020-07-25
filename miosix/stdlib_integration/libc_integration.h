@@ -32,11 +32,10 @@
 #include <cstdlib>
 #include <cstring>
 
-//Can't yet make this header private, as it's included by kernel.h
-//#ifndef COMPILING_MIOSIX
-//#error "This is header is private, it can't be used outside Miosix itself."
-//#error "If your code depends on a private header, it IS broken."
-//#endif //COMPILING_MIOSIX
+#ifndef COMPILING_MIOSIX
+#error "This is header is private, it can't be used outside Miosix itself."
+#error "If your code depends on a private header, it IS broken."
+#endif //COMPILING_MIOSIX
 
 namespace miosix {
 
@@ -48,59 +47,14 @@ namespace miosix {
  */
 unsigned int getMaxHeap();
 
-//Forward declaration of a class to hide accessors to CReentrancyData
-class CReentrancyAccessor;
-
 /**
  * \internal
- * This is a wrapper class that contains all per-thread data required to make
- * the C standard library thread safe.
+ * Used by the kernel during the boot process to switch the C standard library
+ * from using a single global reentrancy structure to using per-thread
+ * reentrancy structures
+ * \param callback a function that return the per-thread reentrancy structure
  */
-class CReentrancyData
-{
-public:
-    /**
-     * Constructor, creates a new newlib reentrancy structure and initializes it
-     */
-    CReentrancyData(bool useDefault=false)
-    {
-        if(useDefault==false)
-        {
-            threadReent=(struct _reent*)malloc(sizeof(_reent));
-            if(threadReent) _REENT_INIT_PTR(threadReent);
-        } else threadReent=_GLOBAL_REENT;
-    }
-    
-    /**
-     * \return true if the C reentrancy data was initialized successfully 
-     */
-    bool isInitialized() const { return threadReent!=0; }
-
-    /**
-     * Destructor, reclaims the reentrancy structure
-     */
-    ~CReentrancyData()
-    {
-        if(threadReent && threadReent!=_GLOBAL_REENT)
-        {
-            _reclaim_reent(threadReent);
-            free(threadReent);
-        }
-    }
-
-private:
-    CReentrancyData(const CReentrancyData&);
-    CReentrancyData& operator=(const CReentrancyData&);
-
-    struct _reent *threadReent; ///< Pointer to the reentrancy structure
-    
-    /**
-     * \return the reentrancy structure 
-     */
-    struct _reent *getReent() const { return threadReent; } 
-
-    friend class CReentrancyAccessor;
-};
+void setCReentrancyCallback(struct _reent *(*callback)());
 
 } //namespace miosix
 

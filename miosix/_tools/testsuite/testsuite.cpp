@@ -130,6 +130,7 @@ static void test_24();
 #ifdef _MIOSIX_GCC_PATCH_MAJOR
 static void test_25();
 #endif //_MIOSIX_GCC_PATCH_MAJOR
+static void test_26();
 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
 void testCacheAndDMA();
 #endif //_ARCH_CORTEXM7_STM32F7/H7
@@ -238,6 +239,7 @@ int main()
                 #ifdef _MIOSIX_GCC_PATCH_MAJOR
                 test_25();
                 #endif //_MIOSIX_GCC_PATCH_MAJOR
+                test_26();
                 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
                 testCacheAndDMA();
                 #endif //_ARCH_CORTEXM7_STM32F7/H7
@@ -4093,6 +4095,39 @@ static void test_25()
     Thread::setPriority(0);
 }
 #endif //_MIOSIX_GCC_PATCH_MAJOR
+
+//
+// Test 26
+//
+/*
+tests:
+C reentrancy data
+*/
+
+void *t26_t1(void*)
+{
+    for(int i=0;i<10;i++)
+    {
+        if(errno!=0) fail("errno");
+        Thread::sleep(1);
+    }
+    return nullptr;
+}
+
+static void test_26()
+{
+    test_name("C reentrancy data");
+    pthread_t t;
+    pthread_create(&t,0,t26_t1,0);
+    for(int i=0;i<10;i++)
+    {
+        errno=-i-1;
+        Thread::sleep(1);
+        if(errno!=-i-1) fail("errno");
+    }
+    pthread_join(t,0);
+    pass();
+}
 
 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
 static Thread *waiting=nullptr; /// Thread waiting on DMA completion IRQ

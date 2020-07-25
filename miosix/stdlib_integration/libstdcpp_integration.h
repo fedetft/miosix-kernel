@@ -84,11 +84,6 @@ public:
         sjlj_ptr=0;
         #endif //__ARM_EABI__
     }
-    
-    /**
-     * \return true if the C++ reentrancy data was initialized successfully 
-     */
-    bool isInitialized() const { return true; /* Always successful */ }
 
     /**
      * Destructor, checks that no memory is leaked (should never happen)

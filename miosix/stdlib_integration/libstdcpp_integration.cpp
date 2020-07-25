@@ -165,18 +165,18 @@ class CppReentrancyAccessor
 public:
     static __cxxabiv1::__cxa_eh_globals *getEhGlobals()
     {
-        return &miosix::Thread::getCurrentThread()->cppReent.eh_globals;
+        return &miosix::Thread::getCurrentThread()->cppReentrancyData.eh_globals;
     }
 
     #ifndef __ARM_EABI__
     static void *getSjljPtr()
     {
-        return miosix::Thread::getCurrentThread()->cppReent.sjlj_ptr;
+        return miosix::Thread::getCurrentThread()->cppReentrancyData.sjlj_ptr;
     }
 
     static void setSjljPtr(void *ptr)
     {
-        miosix::Thread::getCurrentThread()->cppReent.sjlj_ptr=ptr;
+        miosix::Thread::getCurrentThread()->cppReentrancyData.sjlj_ptr=ptr;
     }
     #endif //__ARM_EABI__
 };
