@@ -81,7 +81,7 @@ static unsigned char interruptDisableNesting=0;
 #ifdef WITH_PROCESSES
 
 /// The proc field of the Thread class for kernel threads points to this object
-static ProcessBase *kernel=0;
+static ProcessBase *kernel=nullptr;
 
 #endif //WITH_PROCESSES
 
@@ -163,10 +163,25 @@ bool areInterruptsEnabled()
 
 void startKernel()
 {
-    //As a side effect this function allocates the idle thread and makes cur
-    //point to it. It's probably been called many times during boot by the time
-    //we get here, but we can't be sure
+    #ifdef WITH_PROCESSES
+    try {
+        kernel=new ProcessBase;
+    } catch(...) {
+        errorHandler(OUT_OF_MEMORY);
+    }
+    #endif //WITH_PROCESSES
+    
+    // As a side effect this function allocates the idle thread and makes cur
+    // point to it. It's probably been called many times during boot by the time
+    // we get here, but we can't be sure
     auto *idle=Thread::IRQgetCurrentThread();
+    
+    #ifdef WITH_PROCESSES
+    // If the idle thread was allocated before startKernel(), then its proc
+    // is nullptr. We can't move kernel=new ProcessBase; earlier than this
+    // function, though
+    idle->proc=kernel;
+    #endif //WITH_PROCESSES
 
     // Create the idle and main thread
     Thread *main;
@@ -179,13 +194,13 @@ void startKernel()
     // Idle thread needs to be set after main (see control_scheduler.cpp)
     Scheduler::IRQsetIdleThread(idle);
     
-    //Make the C standard library use per-thread reeentrancy structure
+    // Make the C standard library use per-thread reeentrancy structure
     setCReentrancyCallback(Thread::getCReent);
     
-    //Now kernel is started
+    // Now kernel is started
     kernel_started=true;
     
-    //Dispatch the task to the architecture-specific function
+    // Dispatch the task to the architecture-specific function
     miosix_private::IRQportableStartKernel();
 }
 
@@ -690,15 +705,6 @@ Thread *Thread::allocateIdleThread()
     //NOTE: this function is only called once before the kernel is started, so
     //there are no concurrency issues, not even with interrupts
     
-    //This needs to be done before the first thread is created
-    #ifdef WITH_PROCESSES
-    try {
-        kernel=new ProcessBase;
-    } catch(...) {
-        errorHandler(OUT_OF_MEMORY);
-    }
-    #endif //WITH_PROCESSES
-
     // Create the idle and main thread
     auto *idle=Thread::doCreate(idleThread,STACK_IDLE,NULL,Thread::DEFAULT,true);
     if(idle==nullptr) errorHandler(OUT_OF_MEMORY);
@@ -781,7 +787,7 @@ Thread::Thread(unsigned int *watermark, unsigned int stacksize,
     }
     #ifdef WITH_PROCESSES
     proc=kernel;
-    userCtxsave=0;
+    userCtxsave=nullptr;
     #endif //WITH_PROCESSES
 }
 

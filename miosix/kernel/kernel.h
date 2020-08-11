@@ -837,7 +837,6 @@ private:
         
         /**
          * \return true if the thread is running unprivileged inside a process.
-         * Only threads with proc!=null can run in userspace 
          */
         bool isInUserspace() const { return flags & USERSPACE; }
 
@@ -989,7 +988,7 @@ private:
     ///Process to which this thread belongs. Null if it is a kernel thread.
     ProcessBase *proc;
     ///Pointer to the set of saved registers for when the thread is running in
-    ///user mode. For kernel threads (i.e, threads where proc==null) this
+    ///user mode. For kernel threads (i.e, threads where proc==kernel) this
     ///pointer is null
     unsigned int *userCtxsave;
     #endif //WITH_PROCESSES
