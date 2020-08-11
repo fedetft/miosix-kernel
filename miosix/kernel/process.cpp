@@ -50,6 +50,11 @@ using namespace std;
 namespace miosix {
 
 /**
+ * Used to check if a pointer passed from userspace is aligned
+ */
+static bool aligned(void *x) { return (reinterpret_cast<unsigned>(x) & 0b11)==0; }
+
+/**
  * This class contains information on all the processes in the system
  */
 class Processes
@@ -355,7 +360,7 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             {
                 struct stat *pstat;
                 pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
-                if(mpu.withinForWriting(pstat,sizeof(struct stat)))
+                if(mpu.withinForWriting(pstat,sizeof(struct stat)) && aligned(pstat))
                 {
                     int result=fileTable.fstat(sp.getFirstParameter(),pstat);
                     sp.setReturnValue(result);
@@ -375,7 +380,7 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
                 struct stat *pstat;
                 pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
                 if(mpu.withinForReading(str) &&
-                   mpu.withinForWriting(pstat,sizeof(struct stat)))
+                   mpu.withinForWriting(pstat,sizeof(struct stat)) && aligned(pstat))
                 {
                     int result=fileTable.stat(str,pstat);
                     sp.setReturnValue(result);
@@ -388,7 +393,7 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
                 struct stat *pstat;
                 pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
                 if(mpu.withinForReading(str) &&
-                   mpu.withinForWriting(pstat,sizeof(struct stat)))
+                   mpu.withinForWriting(pstat,sizeof(struct stat)) && aligned(pstat))
                 {
                     int result=fileTable.lstat(str,pstat);
                     sp.setReturnValue(result);
