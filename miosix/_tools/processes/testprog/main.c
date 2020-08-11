@@ -49,7 +49,7 @@ int main()
 				usleep(*p);
 				break;
 			case '5':
-				fp = open("/test.txt", O_RDWR|O_TRUNC, 0);
+				fp = open("/sd/test.txt", O_RDWR|O_TRUNC|O_CREAT, 0644);
 				
 				if(fp != -1){
 					write(1, "File opened\n", 12);
