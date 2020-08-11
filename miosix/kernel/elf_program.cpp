@@ -62,6 +62,8 @@ bool ElfProgram::validateHeader()
 {
     //Validate ELF header
     //Note: this code assumes a little endian elf and a little endian ARM CPU
+    if(isUnaligned8(getElfBase()))
+        throw runtime_error("Elf file load address alignment error");
     if(size<sizeof(Elf32_Ehdr)) return false;
     const Elf32_Ehdr *ehdr=getElfHeader();
     static const char magic[EI_NIDENT]={0x7f,'E','L','F',1,1,1};
@@ -72,6 +74,7 @@ bool ElfProgram::validateHeader()
     if(ehdr->e_version!=EV_CURRENT) return false;
     if(ehdr->e_entry>=size) return false;
     if(ehdr->e_phoff>=size-sizeof(Elf32_Phdr)) return false;
+    if(isUnaligned4(ehdr->e_phoff)) return false;
     // Old GCC 4.7.3 used to set bit 0x2 (EF_ARM_HASENTRY) but there's no trace
     // of this requirement in the current ELF spec for ARM.
     if((ehdr->e_flags & EF_ARM_EABIMASK) != EF_ARM_EABI_VER5) return false;
@@ -97,8 +100,18 @@ bool ElfProgram::validateHeader()
         if(phdr->p_offset>=size) return false;
         if(phdr->p_filesz>=size) return false;
         if(phdr->p_offset+phdr->p_filesz>size) return false;
-        
-        if(phdr->p_align>8) throw runtime_error("Segment alignment too strict");
+        switch(phdr->p_align)
+        {
+            case 1: break;
+            case 4:
+                if(isUnaligned4(phdr->p_offset)) return false;
+                break;
+            case 8:
+                if(isUnaligned8(phdr->p_offset)) return false;
+                break;
+            default:
+                throw runtime_error("Unsupported segment alignment");
+        }
         
         switch(phdr->p_type)
         {
@@ -132,6 +145,7 @@ bool ElfProgram::validateHeader()
                 dynamicSegmentPresent=true;
                 //DYNAMIC segment *must* come after data segment
                 if(dataSegmentPresent==false) return false;
+                if(phdr->p_align<4) return false;
                 if(validateDynamicSegment(phdr,dataSegmentSize)==false)
                     return false;
                 break;
@@ -148,8 +162,7 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
         unsigned int dataSegmentSize)
 {
     unsigned int base=getElfBase();
-    const Elf32_Dyn *dyn=
-        reinterpret_cast<const Elf32_Dyn*>(getElfBase()+dynamic->p_offset);
+    const Elf32_Dyn *dyn=reinterpret_cast<const Elf32_Dyn*>(base+dynamic->p_offset);
     const int dynSize=dynamic->p_memsz/sizeof(Elf32_Dyn);
     Elf32_Addr dtRel=0;
     Elf32_Word dtRelsz=0;
@@ -212,6 +225,7 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
         if(dtRel>=size) return false;
         if(dtRelsz>=size) return false;
         if(dtRel+dtRelsz>size) return false;
+        if(isUnaligned4(dtRel)) return false;
         
         const Elf32_Rel *rel=reinterpret_cast<const Elf32_Rel*>(base+dtRel);
         const int relSize=dtRelsz/sizeof(Elf32_Rel);

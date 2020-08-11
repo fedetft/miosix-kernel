@@ -121,6 +121,18 @@ private:
     bool validateDynamicSegment(const Elf32_Phdr *dynamic,
             unsigned int dataSegmentSize);
     
+    /**
+     * \param x field to check for word alignment issues
+     * \return true if not aligned correctly
+     */
+    static bool isUnaligned4(unsigned int x) { return x & 0b11; }
+    
+    /**
+     * \param x field to check for doubleword alignment issues
+     * \return true if not aligned correctly
+     */
+    static bool isUnaligned8(unsigned int x) { return x & 0b111; }
+    
     const unsigned int * const elf; ///<Pointer to the content of the elf file
     unsigned int size; ///< Size of the elf file
 };
