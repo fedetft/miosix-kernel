@@ -1,7 +1,7 @@
 ##
 ## Makefile for Miosix embedded OS
 ##
-MAKEFILE_VERSION := 1.08
+MAKEFILE_VERSION := 1.09
 GCCMAJOR := $(shell arm-miosix-eabi-gcc --version | \
                     perl -e '$$_=<>;/\(GCC\) (\d+)/;print "$$1"')
 ## Path to kernel directory (edited by init_project_out_of_git_repo.pl)
