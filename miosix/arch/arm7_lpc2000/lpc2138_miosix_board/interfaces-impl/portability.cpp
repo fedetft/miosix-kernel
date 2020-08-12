@@ -165,8 +165,8 @@ void IRQsystemReboot()
 void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
             void *argv)
 {
-    ctxsave[0]=(unsigned int)pc;// First function arg is passed in r0
-    ctxsave[1]=(unsigned int)argv;
+    ctxsave[0]=reinterpret_cast<unsigned int>(pc);// First function arg is passed in r0
+    ctxsave[1]=reinterpret_cast<unsigned int>(argv);
     ctxsave[2]=0;
     ctxsave[3]=0;
     ctxsave[4]=0;
@@ -178,39 +178,12 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     ctxsave[10]=0;
     ctxsave[11]=0;
     ctxsave[12]=0;
-    ctxsave[13]=(unsigned int)sp;//Initialize the thread's stack pointer
+    ctxsave[13]=reinterpret_cast<unsigned int>(sp);//Initialize the thread's stack pointer
     ctxsave[14]=0xffffffff;//threadLauncher never returns, so lr is not important
     //Initialize the thread's program counter to the beginning of the entry point
-    ctxsave[15]=(unsigned int)&miosix::Thread::threadLauncher;
+    ctxsave[15]=reinterpret_cast<unsigned int>(&miosix::Thread::threadLauncher);
     ctxsave[16]=0x1f;//thread starts in system mode with irq and fiq enabled.
 }
-
-#ifdef WITH_PROCESSES
-
-void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
-            void *argv, unsigned int *gotBase)
-{
-    ctxsave[0]=(unsigned int)argv;
-    ctxsave[1]=0;
-    ctxsave[2]=0;
-    ctxsave[3]=0;
-    ctxsave[4]=0;
-    ctxsave[5]=0;
-    ctxsave[6]=0;
-    ctxsave[7]=0;
-    ctxsave[8]=0;
-    ctxsave[9]=(unsigned int)gotBase;
-    ctxsave[10]=0;
-    ctxsave[11]=0;
-    ctxsave[12]=0;
-    ctxsave[13]=(unsigned int)sp;//Initialize the thread's stack pointer
-    ctxsave[14]=0xffffffff;//threadLauncher never returns, so lr is not important
-    //Initialize the thread's program counter to the beginning of the entry point
-    ctxsave[15]=(unsigned int)pc;
-    ctxsave[16]=0x1f;//thread starts in system mode with irq and fiq enabled.
-}
-
-#endif //WITH_PROCESSES
 
 void IRQportableStartKernel()
 {
@@ -231,7 +204,7 @@ void IRQportableStartKernel()
     VICIntSelect&=~(1<<4);//Timer0=IRQ
     VICIntEnable=(1<<4);//Timer0 interrupt ON
     VICVectCntl0=0x20 | 0x4;//Slot 0 of VIC used by Timer0
-    VICVectAddr0=(unsigned long)&kernel_IRQ_Routine;
+    VICVectAddr0=reinterpret_cast<unsigned long>(&kernel_IRQ_Routine);
     T0TCR=0x1;//Start timer
 
     #ifdef SCHED_TYPE_CONTROL_BASED
@@ -276,7 +249,7 @@ void AuxiliaryTimer::IRQinit()
     VICIntSelect&=~(1<<5);//Timer1=IRQ
     VICIntEnable=(1<<5);//Timer1 interrupt ON
     VICVectCntl1=0x20 | 0x5;//Slot 1 of VIC used by Timer1
-    VICVectAddr1=(unsigned long)&kernel_auxTimer_Routine;
+    VICVectAddr1=reinterpret_cast<unsigned int>(&kernel_auxTimer_Routine);
     T1TCR=0x1;//Start timer
 }
 
