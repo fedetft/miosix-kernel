@@ -217,10 +217,13 @@ const unsigned int STACK_FILL=0xbbbbbbbb;
 #if _MIOSIX_GCC_PATCH_MAJOR > 3
 #warning "You are using a too new compiler, which may not be supported"
 #elif _MIOSIX_GCC_PATCH_MAJOR == 2
-#warning "The compiler you are using has known incomplete patches and is not supported"
+#error "The compiler you are using has known incomplete patches and is not supported. Get the latest one from https://miosix.org/wiki/index.php?title=Miosix_Toolchain"
+#elif _MIOSIX_GCC_PATCH_VERSION == 1
+#warning "You are using an unsupported compiler. Get the latest one from https://miosix.org/wiki/index.php?title=Miosix_Toolchain"
 #endif
-#if !defined(_MIOSIX_GCC_PATCH_MAJOR) && _MIOSIX_GCC_PATCH_VERSION < 1
-#error "You are using a too old compiler. Get the latest one from https://miosix.org/wiki/index.php?title=Miosix_Toolchain"
+#if  !defined(_MIOSIX_GCC_PATCH_MAJOR) && \
+    (!defined(_MIOSIX_GCC_PATCH_VERSION) || _MIOSIX_GCC_PATCH_VERSION < 1)
+#error "You are using an unsupported compiler. Get the latest one from https://miosix.org/wiki/index.php?title=Miosix_Toolchain"
 #endif
 
 /**
