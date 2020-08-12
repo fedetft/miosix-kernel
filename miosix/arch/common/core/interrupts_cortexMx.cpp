@@ -57,6 +57,8 @@ static void printUnsignedInt(unsigned int x)
 
 #endif //WITH_ERRLOG
 
+#if defined(WITH_PROCESSES) || defined(WITH_ERRLOG)
+
 /**
  * \internal
  * \return the program counter of the thread that was running when the exception
@@ -71,6 +73,8 @@ static unsigned int getProgramCounter()
                  "ldr   %0, [%0]    \n\t":"=r"(result));
     return result;
 }
+
+#endif //WITH_PROCESSES || WITH_ERRLOG
 
 void NMI_Handler()
 {
@@ -120,7 +124,9 @@ void __attribute__((naked)) MemManage_Handler()
 
 void __attribute__((noinline)) MemManage_impl()
 {
+    #if defined(WITH_PROCESSES) || defined(WITH_ERRLOG)
     unsigned int cfsr=SCB->CFSR;
+    #endif //WITH_PROCESSES || WITH_ERRLOG
     #ifdef WITH_PROCESSES
     int id, arg=0;
     if(cfsr & 0x00000001) id=MP_XN;
@@ -163,7 +169,9 @@ void __attribute__((naked)) BusFault_Handler()
 
 void __attribute__((noinline)) BusFault_impl()
 {
+    #if defined(WITH_PROCESSES) || defined(WITH_ERRLOG)
     unsigned int cfsr=SCB->CFSR;
+    #endif //WITH_PROCESSES || WITH_ERRLOG
     #ifdef WITH_PROCESSES
     int id, arg=0;
     if(cfsr & 0x00008000) { id=BF; arg=SCB->BFAR; }
@@ -207,7 +215,9 @@ void __attribute__((naked)) UsageFault_Handler()
 
 void __attribute__((noinline)) UsageFault_impl()
 {
+    #if defined(WITH_PROCESSES) || defined(WITH_ERRLOG)
     unsigned int cfsr=SCB->CFSR;
+    #endif //WITH_PROCESSES || WITH_ERRLOG
     #ifdef WITH_PROCESSES
     int id;
     if(cfsr & 0x02000000) id=UF_DIVZERO;
@@ -251,6 +261,7 @@ void DebugMon_Handler()
     #endif //WITH_ERRLOG
     miosix_private::IRQsystemReboot();
 }
+
 #endif //_ARCH_CORTEXM0
 
 void PendSV_Handler()
