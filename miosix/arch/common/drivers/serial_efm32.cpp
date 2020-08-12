@@ -192,6 +192,7 @@ void EFM32Serial::IRQwrite(const char *str)
 
 int EFM32Serial::ioctl(int cmd, void* arg)
 {
+    if(reinterpret_cast<unsigned>(arg) & 0b11) return -EFAULT; //Unaligned
     termios *t=reinterpret_cast<termios*>(arg);
     switch(cmd)
     {
