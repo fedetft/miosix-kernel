@@ -20,7 +20,7 @@ This example code shows a high-performance logging class that
 - buffers data to compensate for the delays of the storage medium
 
 To configure the logger for your application, to trade off buffer space vs write
-data rate, uoy can edit Logger.h
+data rate, you can edit Logger.h
 
     static const unsigned int filenameMaxRetry = 100; ///< Limit on new filename
     static const unsigned int maxRecordSize    = 128; ///< Limit on logged data

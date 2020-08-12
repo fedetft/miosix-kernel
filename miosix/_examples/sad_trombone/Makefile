@@ -1,20 +1,14 @@
 ##
 ## Makefile for Miosix embedded OS
 ##
-MAKEFILE_VERSION := 1.07
+MAKEFILE_VERSION := 1.09
+GCCMAJOR := $(shell arm-miosix-eabi-gcc --version | \
+                    perl -e '$$_=<>;/\(GCC\) (\d+)/;print "$$1"')
 ## Path to kernel directory (edited by init_project_out_of_git_repo.pl)
 KPATH := miosix
 ## Path to config directory (edited by init_project_out_of_git_repo.pl)
 CONFPATH := $(KPATH)
 include $(CONFPATH)/config/Makefile.inc
-
-ifeq ("$(VERBOSE)","1")
-Q := 
-ECHO := @true
-else
-Q := @
-ECHO := @echo
-endif
 
 ##
 ## List here subdirectories which contains makefiles
@@ -41,6 +35,14 @@ INCLUDE_DIRS :=
 ## You should not need to modify anything below                             ##
 ##############################################################################
 
+ifeq ("$(VERBOSE)","1")
+Q := 
+ECHO := @true
+else
+Q := @
+ECHO := @echo
+endif
+
 ## Replaces both "foo.cpp"-->"foo.o" and "foo.c"-->"foo.o"
 OBJ := $(addsuffix .o, $(basename $(SRC)))
 
@@ -56,8 +58,14 @@ AFLAGS   := $(AFLAGS_BASE)
 LFLAGS   := $(LFLAGS_BASE)
 DFLAGS   := -MMD -MP
 
-LINK_LIBS := $(LIBS) -L$(KPATH) -Wl,--start-group -lmiosix -lstdc++ -lc \
-             -lm -lgcc -Wl,--end-group
+## libmiosix.a is among stdlibs because needs to be within start/end group
+STDLIBS  := -lmiosix -lstdc++ -lc -lm -lgcc
+
+ifneq ($(GCCMAJOR),4)
+	STDLIBS += -latomic
+endif
+
+LINK_LIBS := $(LIBS) -L$(KPATH) -Wl,--start-group $(STDLIBS) -Wl,--end-group
 
 all: all-recursive main
 
