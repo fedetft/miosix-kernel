@@ -248,7 +248,8 @@ private:
     void waitSerialTxFifoEmpty()
     {
         #if !defined(_ARCH_CORTEXM7_STM32F7) && !defined(_ARCH_CORTEXM7_STM32H7) \
-         && !defined(_ARCH_CORTEXM0_STM32) && !defined(_ARCH_CORTEXM4_STM32F3)
+         && !defined(_ARCH_CORTEXM0_STM32)   && !defined(_ARCH_CORTEXM4_STM32F3) \
+         && !defined(_ARCH_CORTEXM4_STM32L4)
         while((port->SR & USART_SR_TC)==0) ;
         #else //_ARCH_CORTEXM7_STM32F7/H7
         while((port->ISR & USART_ISR_TC)==0) ;
@@ -264,7 +265,8 @@ private:
     
     USART_TypeDef *port;              ///< Pointer to USART peripheral
     #ifdef SERIAL_DMA
-    #if defined(_ARCH_CORTEXM3_STM32) || defined(_ARCH_CORTEXM4_STM32F3)
+    #if defined(_ARCH_CORTEXM3_STM32) || defined(_ARCH_CORTEXM4_STM32F3) \
+     || defined(_ARCH_CORTEXM4_STM32L4)
     DMA_Channel_TypeDef *dmaTx;       ///< Pointer to DMA TX peripheral
     DMA_Channel_TypeDef *dmaRx;       ///< Pointer to DMA RX peripheral
     #else //_ARCH_CORTEXM3_STM32 and _ARCH_CORTEXM4_STM32F3
