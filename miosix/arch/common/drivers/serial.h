@@ -11,6 +11,8 @@
 #include "serial_stm32.h"
 #elif defined(_ARCH_CORTEXM3_EFM32GG)
 #include "serial_efm32.h"
+#elif defined(_ARCH_CORTEXM4_ATSAM4L)
+#include "serial_atsam4l.h"
 #else
 #error "Unknown arch"
 #endif
