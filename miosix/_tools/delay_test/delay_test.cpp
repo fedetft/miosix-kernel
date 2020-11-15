@@ -39,7 +39,7 @@ int main()
 //    mco::alternateFunction(0);
 //    RCC->CFGR |= (0x3<<21);
 //    //ATSAM4L-specific: output RCFAST clock on PA2
-//    SCIF->SCIF_GCCTRL[0].SCIF_GCCTRL=5<<8 | SCIF_GCCTRL_CEN;
+//    SCIF->SCIF_GCCTRL[0].SCIF_GCCTRL = SCIF_GCCTRL_OSCSEL(5) | SCIF_GCCTRL_CEN;
 //    using gclk0 = Gpio<GPIOA_BASE,2>;
 //    gclk0::mode(Mode::ALTERNATE);
 //    gclk0::alternateFunction('A');

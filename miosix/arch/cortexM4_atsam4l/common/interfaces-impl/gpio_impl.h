@@ -114,7 +114,8 @@ public:
      * \param p GPIOA_BASE, GPIOB_BASE, ...
      * \param n which pin (0 to 31)
      */
-    GpioPin(GpioPort *p, unsigned char n) : p(p), n(n) {}
+    GpioPin(unsigned int p, unsigned char n)
+        : p(reinterpret_cast<GpioPort*>(p)), n(n) {}
 
     /**
      * Set the GPIO to the desired mode (INPUT, OUTPUT, ...)
@@ -289,7 +290,7 @@ public:
      */
     static GpioPin getPin()
     {
-        return GpioPin(reinterpret_cast<GpioPort*>(P),N);
+        return GpioPin(P,N);
     }
 };
 
