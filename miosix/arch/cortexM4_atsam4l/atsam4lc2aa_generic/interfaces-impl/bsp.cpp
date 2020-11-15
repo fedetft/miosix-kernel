@@ -57,7 +57,7 @@ void IRQbspInit()
     using tx = Gpio<GPIOA_BASE,26>;
     rx::alternateFunction('B');
     tx::alternateFunction('B');
-    rx::mode(Mode::ALTERNATE);
+    rx::mode(Mode::ALTERNATE_PULL_UP);
     tx::mode(Mode::ALTERNATE);
 
     DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
