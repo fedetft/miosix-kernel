@@ -38,3 +38,12 @@ void SystemInit();
 #ifdef __cplusplus
 }
 #endif //__cplusplus
+
+/**
+ * Start the OSC32K oscillator.
+ * Requires the board to have a 32768Hz XTAL connected to the proper pins.
+ * This is a blocking function, that takes around 2 seconds to complete,
+ * as according to the datasheet the oscillator nominally takes 30000 cycles
+ * to fully stabilize.
+ */
+void start32kHzOscillator();

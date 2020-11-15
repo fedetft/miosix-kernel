@@ -49,3 +49,30 @@ void SystemInit()
 #ifdef __cplusplus
 }
 #endif //__cplusplus
+
+void start32kHzOscillator()
+{
+//     iprintf("Starting 32kHz XTAL... ");
+//     fflush(stdout);
+
+    //NOTE: at least with the 32kHz crystal I've tested (CL=12.5pF), this
+    //oscillator has a very noticeable jitter. Triggering with a scope on the
+    //rising edge, you can see it by zooming on the falling edge. Using the
+    //maximum current of 425nA reduced the jitter, but it is still ~200ns!
+    //Amplitude controlled mode is worse, don't use it.
+    BSCIF->BSCIF_OSCCTRL32 = BSCIF_OSCCTRL32_STARTUP(4)  //64K cycles startup
+                           | BSCIF_OSCCTRL32_SELCURR(15) //425nA (max)
+                           | BSCIF_OSCCTRL32_MODE(1)     //Crystal mode
+                           | BSCIF_OSCCTRL32_EN1K
+                           | BSCIF_OSCCTRL32_EN32K
+                           | BSCIF_OSCCTRL32_OSC32EN;
+    while((BSCIF->BSCIF_PCLKSR & BSCIF_PCLKSR_OSC32RDY) == 0) ;
+//     puts("Ok");
+
+//     //Output OSC32K on PA2/GCLK0 for measurement purpose
+//     SCIF->SCIF_GCCTRL[0].SCIF_GCCTRL = SCIF_GCCTRL_OSCSEL(1) //Output OSC32K
+//                                      | SCIF_GCCTRL_CEN;
+//     using gclk0 = Gpio<GPIOA_BASE,2>;
+//     gclk0::mode(Mode::ALTERNATE);
+//     gclk0::alternateFunction('A');
+}
