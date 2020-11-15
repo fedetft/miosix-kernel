@@ -2609,6 +2609,7 @@ else ifeq ($(ARCH),cortexM4_atsam4l)
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/drivers/serial_atsam4l.cpp                   \
     $(ARCH_INC)/drivers/clock.cpp                            \
+    $(ARCH_INC)/drivers/lcd.cpp                              \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
     $(ARCH_INC)/interfaces-impl/delays.cpp
