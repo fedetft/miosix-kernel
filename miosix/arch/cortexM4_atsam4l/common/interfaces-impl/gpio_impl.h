@@ -190,6 +190,16 @@ public:
         return (p->GPIO_PVR & 1<<n) ? 1 : 0;
     }
 
+    /**
+     * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
+     */
+    unsigned int getPort() const { return reinterpret_cast<unsigned int>(p); }
+
+    /**
+     * \return the pin number, from 0 to 31
+     */
+    unsigned char getNumber() const { return n; }
+
 private:
     GpioPort *p;     //Pointer to the port
     unsigned char n; //Number of the GPIO within the port
@@ -292,6 +302,16 @@ public:
     {
         return GpioPin(P,N);
     }
+
+    /**
+     * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
+     */
+    unsigned int getPort() const { return P; }
+    
+    /**
+     * \return the pin number, from 0 to 31
+     */
+    unsigned char getNumber() const { return N; }
 };
 
 } //namespace miosix

@@ -159,6 +159,16 @@ public:
     {
         low();//When in input pullup/pulldown mode ODR=choose pullup/pulldown
     }
+    
+    /**
+     * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
+     */
+    unsigned int getPort() const { return reinterpret_cast<unsigned int>(p); }
+    
+    /**
+     * \return the pin number, from 0 to 15
+     */
+    unsigned char getNumber() const { return n; }
 
 private:
     GPIO_TypeDef *p; //Pointer to the port
@@ -237,6 +247,16 @@ public:
     {
         return GpioPin(P,N);
     }
+    
+    /**
+     * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
+     */
+    unsigned int getPort() const { return P; }
+    
+    /**
+     * \return the pin number, from 0 to 15
+     */
+    unsigned char getNumber() const { return N; }
 
 private:
     Gpio();//Only static member functions, disallow creating instances

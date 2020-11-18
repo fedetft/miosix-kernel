@@ -173,6 +173,16 @@ public:
     {
         return (p->IDR & (1<<n)) ? 1 : 0;
     }
+
+    /**
+     * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
+     */
+    unsigned int getPort() const { return reinterpret_cast<unsigned int>(p); }
+    
+    /**
+     * \return the pin number, from 0 to 15
+     */
+    unsigned char getNumber() const { return n; }
     
 private:
     GPIO_TypeDef *p; //Pointer to the port
@@ -255,6 +265,16 @@ public:
     {
         return GpioPin(P,N);
     }
+    
+    /**
+     * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
+     */
+    unsigned int getPort() const { return P; }
+    
+    /**
+     * \return the pin number, from 0 to 15
+     */
+    unsigned char getNumber() const { return N; }
 
 private:
     Gpio();//Only static member functions, disallow creating instances

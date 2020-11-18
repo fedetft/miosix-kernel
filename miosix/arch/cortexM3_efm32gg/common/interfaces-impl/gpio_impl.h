@@ -185,12 +185,12 @@ public:
     /**
      * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
      */
-    unsigned int getPinPort() const { return port-GPIO->P; }
+    unsigned int getPort() const { return port-GPIO->P; }
     
     /**
      * \return the pin number, from 0 to 15
      */
-    unsigned int getPinNumber() const { return n; }
+    unsigned char getNumber() const { return n; }
     
 private:
     GPIO_P_TypeDef *port; ///<Pointer to the port
@@ -314,6 +314,16 @@ public:
     {
         return GpioPin(&GPIO->P[P],N);
     }
+    
+    /**
+     * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
+     */
+    unsigned int getPort() const { return P; }
+    
+    /**
+     * \return the pin number, from 0 to 15
+     */
+    unsigned char getNumber() const { return N; }
 
 private:
     Gpio();//Only static member functions, disallow creating instances

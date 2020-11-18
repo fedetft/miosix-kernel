@@ -65,7 +65,7 @@
  * Then a template Gpio class should be provided, with at least the following
  * member functions:
  * \code
- * template<typename P, unsigned char N>
+ * template<unsigned int P, unsigned char N>
  * class Gpio
  * {
  * public:
@@ -73,6 +73,8 @@
  *     static void high();
  *     static void low();
  *     static int value();
+ *     unsigned int getPort() const;
+ *     unsigned char getNumber() const;
  * private:
  *     Gpio();//Only static member functions, disallow creating instances
  * };
@@ -87,6 +89,10 @@
  *
  * value() should return either 1 or 0 to refect the state of a gpio configured
  * as input
+ * 
+ * getPort() should return the gpio port
+ * 
+ * getNumber() should return the gpio pin number
  *
  * Lastly, a number of constants must be provided to be passed as first template
  * parameter of the Gpio class, usually identifying the gpio port, while the

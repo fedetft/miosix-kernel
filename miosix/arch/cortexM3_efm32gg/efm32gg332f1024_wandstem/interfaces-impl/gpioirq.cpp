@@ -84,7 +84,7 @@ namespace miosix {
 
 void registerGpioIrq(GpioPin pin, GpioIrqEdge edge, function<void ()> callback)
 {
-    unsigned int port=pin.getPinPort(), number=pin.getPinNumber();
+    unsigned int port=pin.getPort(), number=pin.getNumber();
     if(port>5) throw range_error("Port out of range");
     if(number>15) throw range_error("Pin number out of range");
     
@@ -150,7 +150,7 @@ void disableGpioIrq(GpioPin pin)
 
 bool IRQenableGpioIrq(GpioPin pin)
 {
-    unsigned int number=pin.getPinNumber();
+    unsigned int number=pin.getNumber();
     if(number>15 || !callbacks[number]) return false;
     GPIO->IFC=1<<number;
     GPIO->IEN |= (1<<number);
@@ -159,7 +159,7 @@ bool IRQenableGpioIrq(GpioPin pin)
 
 bool IRQdisableGpioIrq(GpioPin pin)
 {
-    unsigned int number=pin.getPinNumber();
+    unsigned int number=pin.getNumber();
     if(number>15 || !callbacks[number]) return false;
     GPIO->IEN &= ~(1<<number);
     GPIO->IFC=1<<number;
@@ -168,7 +168,7 @@ bool IRQdisableGpioIrq(GpioPin pin)
 
 void unregisterGpioIrq(GpioPin pin)
 {
-    unsigned int number=pin.getPinNumber();
+    unsigned int number=pin.getNumber();
     if(number>15) throw range_error("Pin number out of range");
     function<void ()> empty;
     {
