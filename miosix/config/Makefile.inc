@@ -720,9 +720,9 @@ else
 	CXXSTD := -std=gnu++11
 endif
 CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
-                 -ffunction-sections  -Wall -g
+                 -ffunction-sections -Wall -Werror=return-type -g
 CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
-                 $(CXXSTD) -ffunction-sections  -Wall -g
+                 $(CXXSTD) -ffunction-sections -Wall -Werror=return-type -g
 
 ##
 ## Now two big switch-like constructs nested. The first lists all possible
