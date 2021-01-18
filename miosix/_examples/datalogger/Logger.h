@@ -31,6 +31,7 @@
 #include <cstdio>
 #include <list>
 #include <queue>
+#include <chrono>
 #include <type_traits>
 #include "LogStats.h"
 
@@ -151,7 +152,9 @@ private:
      */
     void logStats()
     {
-        s.setTimestamp(miosix::getTick());
+        using namespace std::chrono;
+        s.setTimestamp(duration_cast<milliseconds>(
+            system_clock::now().time_since_epoch()).count());
         log(s);
     }
 

@@ -29,11 +29,14 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <stdexcept>
+#include <chrono>
+#include <thread>
 #include <interfaces/atomic_ops.h>
 #include <tscpp/buffer.h>
 #include "Logger.h"
 
 using namespace std;
+using namespace std::chrono;
 using namespace miosix;
 using namespace tscpp;
 
@@ -264,8 +267,7 @@ void Logger::writeThread()
                 return;
 
             // Write data to disk
-            Timer timer;
-            timer.start();
+            auto t = system_clock::now();
 //             ledOn();
 
             size_t result = fwrite(buffer->data, 1, buffer->size, file);
@@ -280,8 +282,8 @@ void Logger::writeThread()
                 s.statBufferWritten++;
 
 //             ledOff();
-            timer.stop();
-            s.statWriteTime    = timer.interval();
+            auto d = system_clock::now() - t;
+            s.statWriteTime    = duration_cast<milliseconds>(d).count();
             s.statMaxWriteTime = max(s.statMaxWriteTime, s.statWriteTime);
 
             {
@@ -309,7 +311,7 @@ void Logger::statsThread()
         {
             for (;;)
             {
-                Thread::sleep(1000);
+                this_thread::sleep_for(seconds(1));
                 if (started == false)
                     return;
                 logStats();

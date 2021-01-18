@@ -14,10 +14,12 @@
 #include <cstdio>
 #include <cstring>
 #include <cassert>
+#include <chrono>
 #include <fcntl.h>
 #include <miosix.h>
 
 using namespace std;
+using namespace std::chrono;
 using namespace miosix;
 
 static bool randomAccess; ///< Random or sequential access?
@@ -30,7 +32,6 @@ void testThread(void *)
     const int sizei=sizeb/sizeof(int); ///< Block write size in integers
     int *data=new int[sizei];
     memset(data,0xaa,sizeb);
-    Timer timer;
     const int startAddr=10240; ///< Start address, skip first sectors
     const int endAddr=2000000; ///< End address ~1GB card
     int addr=startAddr;
@@ -49,16 +50,14 @@ void testThread(void *)
             if(addr>endAddr-sizeb) addr=startAddr;
         }
         lseek(fd,addr,SEEK_SET);
-        timer.start();
+        auto t=system_clock::now();
         ledOn();
         if(writeAccess) if(write(fd,data,sizeb)!=sizeb) assert(false);
         else; else if(read(fd,data,sizeb)!=sizeb) assert(false);
         ledOff();
-        timer.stop();
-        float time=timer.interval();
-        time/=TICK_FREQ;
-        timer.clear();
-        float speed=sizek/static_cast<float>(time);
+        duration<float> d=system_clock::now()-t;
+        float time=d.count();
+        float speed=sizek/time;
         printf("time:%0.3fs speed:%0.1fKB/s\n",time,speed);
         if(Thread::testTerminate()) break;
     }

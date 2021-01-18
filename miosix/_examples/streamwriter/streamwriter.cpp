@@ -5,10 +5,13 @@
 #include <cstdio>
 #include <cstring>
 #include <list>
+#include <chrono>
+#include <thread>
 #include <stdexcept>
 #include <miosix.h>
 
 using namespace std;
+using namespace std::chrono;
 using namespace miosix;
 
 /**
@@ -29,7 +32,8 @@ Record readSensors()
     Record result;
     //TODO: insert sensor reading code here instead of memset()
     memset(&result,0,sizeof(result));
-    result.timestamp=getTick();
+    result.timestamp=duration_cast<milliseconds>(
+        system_clock::now().time_since_epoch()).count();
     return result;
 }
 
@@ -78,7 +82,7 @@ static int statBufferWritten=0;  ///< Number of buffers successfully written to 
 void senseThread(void *argv)
 {
     try {
-        long long wakeupTime=getTick();
+        auto wakeupTime=system_clock::now();
         for(;;)
         {
             if(stopSensing) break;
@@ -89,8 +93,8 @@ void senseThread(void *argv)
                 if(queuedSamples.IRQput(sample)==false) statDroppedSamples++;
                 else statQueuePush++;
             }
-            wakeupTime+=1; //Sampling period in milliseconds
-            Thread::sleepUntil(wakeupTime);
+            wakeupTime+=milliseconds(1);
+            this_thread::sleep_until(wakeupTime);
         }
     } catch(exception& e) {
         printf("Error: senseThread failed due to an exception: %s\n",e.what());
@@ -153,7 +157,6 @@ void packThread(void *argv)
 void writeThread(void *argv)
 {
     try {
-        Timer timer;
         for(;;)
         {
             //Get a full buffer, wait if none is available
@@ -170,14 +173,13 @@ void writeThread(void *argv)
             }
             
             //Write data to disk
-            timer.start();
+            auto t=system_clock::now();
             ledOn();
             if(fwrite(buffer,1,bufferSize,file)!=bufferSize) statWriteFailed++;
             else statBufferWritten++;
             ledOff();
-            timer.stop();
-            statWriteTime=timer.interval();
-            timer.clear();
+            auto d=system_clock::now()-t;
+            statWriteTime=duration_cast<milliseconds>(d).count();
             statMaxWriteTime=max(statMaxWriteTime,statWriteTime);
             
             //Return the buffer to the packThread()
@@ -201,7 +203,7 @@ void statsThread(void *argv)
         for(;;)
         {
             if(stopSensing) return;
-            Thread::sleep(1000);
+            this_thread::sleep_for(seconds(1));
             printf("ds:%d wf:%d wt:%d mwt:%d qp:%d bf:%d bw:%d\n",
                 statDroppedSamples,statWriteFailed,statWriteTime,
                 statMaxWriteTime,statQueuePush,statBufferFilled,statBufferWritten);
@@ -249,7 +251,7 @@ void startSensingChain()
 void stopSensingChain()
 {
     stopSensing=true;
-    Thread::sleep(20); //Wait for threads to terminate
+    this_thread::sleep_for(milliseconds(20)); //Wait for threads to terminate
     //Wake threads eventually locked somewhere
     {
         FastInterruptDisableLock dLock;

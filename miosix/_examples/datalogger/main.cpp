@@ -1,10 +1,13 @@
 
 #include <cstdio>
+#include <chrono>
+#include <thread>
 #include <miosix.h>
 #include "Logger.h"
 #include "ExampleData.h"
 
 using namespace std;
+using namespace std::chrono;
 using namespace miosix;
 
 volatile bool stop=false;
@@ -41,15 +44,20 @@ void loggerDemo(void*)
     logger.start();
     
     int a=0,b=0;
-    auto period=2; //2ms, 500Hz
-    for(auto t=getTick();;)
+    auto period=milliseconds(2); //2ms, 500Hz
+    for(auto t=system_clock::now();;)
     {
         if(stop) break;
-        auto tNew=t+period;
-        Thread::sleepUntil(tNew);
-        t=getTick();
-        if(t>tNew) b++; //Deadline miss
-        ExampleData ed(a++,b,t);
+        t+=period;
+        auto now=system_clock::now();
+        if(t>now)
+        {
+            this_thread::sleep_until(t);
+        } else {
+            b++; //Deadline miss
+            t=now;
+        }
+        ExampleData ed(a++,b,t.time_since_epoch().count());
         logger.log(ed);
     }
     
