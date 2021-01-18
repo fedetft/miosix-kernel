@@ -929,8 +929,23 @@ inline long long timespec2ll(const struct timespec *tp)
  */
 inline void ll2timespec(long long tick, struct timespec *tp)
 {
-    tp->tv_sec=tick/miosix::TICK_FREQ;
-    tp->tv_nsec=static_cast<long>(tick%miosix::TICK_FREQ)*tickNsFactor;
+    #ifdef __ARM_EABI__
+    // Despite there being a single intrinsic, __aeabi_ldivmod, that computes
+    // both the result of the / and % operator, GCC 9.2.0 isn't smart enough and
+    // calls the intrinsic twice. This asm implementation saves ~115 cycles
+    // by calling it once. Sadly, I had to use asm as the calling conventions
+    // of the intrinsic appear to be nonstandard.
+    // NOTE: actually a and b, by being 64 bit numbers, occupy register pairs
+    register long long a asm("r0") = tick;
+    register long long b asm("r2") = miosix::TICK_FREQ;
+    // NOTE: clobbering lr to mark function not leaf due to the bl
+    asm volatile("bl	__aeabi_ldivmod" : "+r"(a), "+r"(b) :: "lr");
+    tp->tv_sec = a;
+    tp->tv_nsec = static_cast<long>(b) * tickNsFactor;
+    #else //__ARM_EABI__
+    tp->tv_sec = tick / miosix::TICK_FREQ;
+    tp->tv_nsec = static_cast<long>(tick % miosix::TICK_FREQ) * tickNsFactor;
+    #endif //__ARM_EABI__
 }
 
 int clock_gettime(clockid_t clock_id, struct timespec *tp)
