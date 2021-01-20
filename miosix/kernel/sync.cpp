@@ -465,48 +465,4 @@ void ConditionVariable::broadcast()
     if(hppw) Thread::yield();
 }
 
-//
-// class Timer
-//
-
-Timer::Timer()
-{
-    first=true;
-    running=false;
-    start_tick=tick_count=0;
-}
-
-void Timer::start()
-{
-    first=false;
-    running=true;
-    start_tick=getTime();
-}
-
-void Timer::stop()
-{
-    if(running==false) return;
-    running=false;
-    tick_count+=getTime()-start_tick;
-    start_tick=0;
-}
-
-bool Timer::isRunning() const
-{
-    return running;
-}
-
-int Timer::interval() const
-{
-    if((first==true)||(running==true)||(tick_count>2147483647)) return -1;
-    return (int)tick_count;
-}
-
-void Timer::clear()
-{
-    first=true;
-    running=false;
-    start_tick=tick_count=0;
-}
-
 } //namespace miosix

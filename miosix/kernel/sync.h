@@ -464,60 +464,6 @@ private:
 };
 
 /**
- * A timer that can be used to measure time intervals.<br>Its resolution equals
- * the kernel tick.<br>Maximum interval is 2^31-1 ticks.
- */
-class Timer
-{
-public:
-    /**
-     * Constructor. Timer is initialized in stopped status.
-     */
-    Timer();
-
-    /**
-     * Start the timer
-     */
-    void start();
-
-    /**
-     * Stop the timer. After stop, Timer can be started and stopped again to
-     * count non-contiguous timer intervals.
-     */
-    void stop();
-
-    /**
-     * \return true if timer is running
-     */
-    bool isRunning() const;
-
-    /**
-     * get the interval, in kernel ticks.
-     * \return the number of tick between start and stop. Returns -1 if the
-     * timer was never started, if interval is called after start but before
-     * stop, or if it overflowed.
-     *
-     * To read the vaue of a timer without stopping it, you can use its copy
-     * constructor to create another timer, and stop it while the first timer
-     * keeps running.
-     */
-    int interval() const;
-
-    /**
-     * Clear the timer and set it to not running state.
-     */
-    void clear();
-
-    //Using default copy constructor, operator = and destructor
-private:
-    //Timer data
-    bool first;///< True if start has never been called
-    bool running;///< True if timer is running
-    long long start_tick;///< The kernel tick when start was called.
-    long long tick_count;///< The tick count
-};
-
-/**
  * \}
  */
 

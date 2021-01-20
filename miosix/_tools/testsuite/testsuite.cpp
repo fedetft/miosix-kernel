@@ -107,7 +107,6 @@ static void test_3();
 static void test_4();
 static void test_5();
 static void test_6();
-static void test_7();
 static void test_8();
 static void test_9();
 #ifndef __NO_EXCEPTIONS
@@ -216,7 +215,6 @@ int main()
                 test_4();
                 test_5();
                 test_6();
-                test_7();
                 test_8();
                 test_9();
                 #ifndef __NO_EXCEPTIONS
@@ -1681,87 +1679,8 @@ static void test_6()
 }
 
 //
-// Test 7
+// Test 7 removed, Timer class deprecated
 //
-/*
-tests:
-Timer::start
-Timer::stop
-Timer::isRunning
-Timer::interval
-Timer::clear
-*/
-
-static void test_timer(Timer *t)
-{
-    //Testing interval behaviour when timer never started
-    if(t->interval()!=-1) fail("interval (1)");
-    //Testing isRunning
-    if(t->isRunning()==true) fail("isRunning (1)");
-    t->start();
-    //Testing interval behaviour when timer not stopped
-    if(t->interval()!=-1) fail("interval (2)");
-    //Testing isRunning
-    if(t->isRunning()==false) fail("isRunning (2)");
-    Thread::sleep(100);
-    t->stop();
-    //Testing interval precision
-    if(t->interval()==-1) fail("interval (3)");
-    if(llabs(t->interval()-((100*TICK_FREQ)/1000))>4) fail("not precise");
-    //Testing isRunning
-    if(t->isRunning()==true) fail("isRunning (1)");
-}
-
-static void test_7()
-{
-    test_name("Timer class");
-    Timer t;
-    //Testing a new timer
-    test_timer(&t);
-    t.clear();
-    //Testing after clear
-    test_timer(&t);
-    //Testing copy constructor and operator = with a stopped timer
-    t.clear();
-    t.start();
-    Thread::sleep(100);
-    t.stop();
-    Timer w(t);
-    if(w.interval()==-1) fail("interval (copy 1)");
-    if(llabs(w.interval()-((100*TICK_FREQ)/1000))>4) fail("not precise (copy 1)");
-    if(w.isRunning()==true) fail("isRunning (copy 1)");
-    Timer q;
-    q=t;
-    if(q.interval()==-1) fail("interval (= 1)");
-    if(llabs(q.interval()-((100*TICK_FREQ)/1000))>4) fail("not precise (= 1)");
-    if(q.isRunning()==true) fail("isRunning (= 1)");
-    //Testing copy constructor and operator = with a running timer
-    t.clear();
-    t.start();
-    Thread::sleep(100);
-    Timer x(t);//copy constructor called when running
-    x.stop();
-    if(x.interval()==-1) fail("interval (copy 2)");
-    if(llabs(x.interval()-((100*TICK_FREQ)/1000))>4) fail("not precise (copy 2)");
-    if(x.isRunning()==true) fail("isRunning (copy 2)");
-    Timer y;
-    y=t;//Operator = called when running
-    y.stop();
-    if(y.interval()==-1) fail("interval (= 2)");
-    if(llabs(y.interval()-((100*TICK_FREQ)/1000))>4) fail("not precise (= 2)");
-    if(y.isRunning()==true) fail("isRunning (= 2)");
-    //Testing concatenating time intervals
-    t.clear();//Calling clear without calling stop. done on purpose
-    t.start();
-    Thread::sleep(100);
-    t.stop();
-    t.start();
-    Thread::sleep(150);
-    t.stop();
-    if(t.interval()==-1) fail("interval (= 2)");
-    if(llabs(t.interval()-((250*TICK_FREQ)/1000))>4) fail("not precise (= 2)");
-    pass();
-}
 
 //
 // Test 8
@@ -4926,29 +4845,18 @@ serial write speed
 
 static void benchmark_1()
 {
-    Timer t;
-    t.start();
+    using namespace std::chrono;
+    auto t=system_clock::now();
     extern unsigned long _data asm("_data");
     char *data=reinterpret_cast<char*>(&_data);
-    #ifndef _ARCH_ARM7_LPC2000
     memDump(data,2048);
-    t.stop();
+    auto d=system_clock::now()-t;
     //every line dumps 16 bytes, and is 81 char long (considering \r\n)
     //so (2048/16)*81=10368
-    iprintf("Time required to print 10368 char is %dms\n",(
-            t.interval()*1000)/TICK_FREQ);
-    unsigned int baudrate=10368*10000/((t.interval()*1000)/TICK_FREQ);
+    iprintf("Time required to print 10368 char is %lldms\n",
+        duration_cast<milliseconds>(d).count());
+    unsigned int baudrate=10368*10000/duration_cast<milliseconds>(d).count();
     iprintf("Effective baud rate =%u\n",baudrate);
-    #else //_ARCH_ARM7_LPC2000
-    memDump(data,32768);
-    t.stop();
-    //every line dumps 16 bytes, and is 81 char long (considering \r\n)
-    //so (32768/16)*81=165888
-    iprintf("Time required to print 165888 char is %dms\n",(
-            t.interval()*1000)/TICK_FREQ);
-    unsigned int baudrate=165888*10000/((t.interval()*1000)/TICK_FREQ);
-    iprintf("Effective baud rate =%u\n",baudrate);
-    #endif //_ARCH_ARM7_LPC2000
 }
 
 //
@@ -4959,52 +4867,43 @@ tests:
 context switch speed
 */
 
+static bool b2_v1;
+static int b2_v2;
+
 static void b2_p1(void *argv)
 {
     for(;;)
     {
         if(Thread::testTerminate()) break;
         Thread::yield();
+        if(b2_v1) b2_v2++;
     }
 }
 
-static int b2_f1()
+static int b2_f1(int priority)
 {
-    int i=0;
-    Timer t;
-    t.start();
-    for(;;)
-    {
-        //Since calling interval() on a running timer is not allowed,
-        //we need to make a copy of the timer and stop the copy.
-        Timer k(t);
-        k.stop();
-        if((unsigned int)k.interval()>=TICK_FREQ) break;
-        i+=2;
-        Thread::yield();
-    }
-    t.stop();
-    return i;
+    Thread::setPriority(priority);
+    b2_v1=false;
+    b2_v2=0;
+    Thread *t1=Thread::create(b2_p1,STACK_SMALL,priority,NULL,Thread::JOINABLE);
+    Thread *t2=Thread::create(b2_p1,STACK_SMALL,priority,NULL,Thread::JOINABLE);
+    b2_v1=true; //Start counting
+    Thread::sleep(1000);
+    b2_v1=false; //Stop counting
+    t1->terminate();
+    t2->terminate();
+    t1->join();
+    t2->join();
+    return b2_v2;
 }
 
 static void benchmark_2()
 {
     #ifndef SCHED_TYPE_EDF
-    //Test context switch time at maximum priority
-    Thread::setPriority(3);//Using max priority
-    Thread *p=Thread::create(b2_p1,STACK_SMALL,3,NULL);
-    int i=b2_f1();
-    p->terminate();
-    iprintf("%d context switch per second (max priority)\n",i);
-    Thread::sleep(10);
-    Thread::setPriority(0);//Restoring original priority
-    p=Thread::create(b2_p1,STACK_SMALL,0,NULL);
-    i=b2_f1();
-    p->terminate();
-    iprintf("%d context switch per second (min priority)\n",i);
-    Thread::sleep(10);
+    iprintf("%d context switch per second (max priority)\n",b2_f1(3));
+    iprintf("%d context switch per second (min priority)\n",b2_f1(0));
     #else //SCHED_TYPE_EDF
-    iprintf("Context switch benchmark not possible with edf\n");
+    iprintf("Context switch benchmark not possible with EDF\n");
     #endif //SCHED_TYPE_EDF
 }
 
@@ -5019,6 +4918,7 @@ makes a 1MB file and measures time required to read/write it.
 
 static void benchmark_3()
 {
+    using namespace std::chrono;
     //Write benchmark
     const char FILENAME[]="/sd/speed.txt";
     const unsigned int BUFSIZE=1024;
@@ -5032,31 +4932,28 @@ static void benchmark_3()
         return;
     }
     setbuf(f,NULL);
-    Timer total,part;
     int i,max=0;
-    total.start();
+    auto total=system_clock::now();
     for(i=0;i<1024;i++)
     {
-        part.start();
+        auto part=system_clock::now();
         if(fwrite(buf,1,BUFSIZE,f)!=BUFSIZE)
         {
             iprintf("Write error\n");
             break;
         }
-        part.stop();
-        if(part.interval()>max) max=part.interval();
-        part.clear();
+        auto d=system_clock::now()-part;
+        max=std::max(max,static_cast<int>(duration_cast<milliseconds>(d).count()));
     }
-    total.stop();
+    auto d=system_clock::now()-total;
     if(fclose(f)!=0) iprintf("Error in fclose 1\n");
     iprintf("Filesystem write benchmark\n");
-    unsigned int writeTime=(total.interval()*1000)/TICK_FREQ;
+    unsigned int writeTime=duration_cast<milliseconds>(d).count();
     unsigned int writeSpeed=static_cast<unsigned int>(1024000.0/writeTime);
     iprintf("Total write time = %dms (%dKB/s)\n",writeTime,writeSpeed);
-    iprintf("Max filesystem latency = %dms\n",(max*1000)/TICK_FREQ);
+    iprintf("Max filesystem latency = %dms\n",max);
     //Read benchmark
     max=0;
-    total.clear();
     if((f=fopen(FILENAME,"r"))==NULL)
     {
         iprintf("Filesystem read benchmark not made. Can't open file\n");
@@ -5064,19 +4961,18 @@ static void benchmark_3()
         return;
     }
     setbuf(f,NULL);
-    total.start();
+    total=system_clock::now();
     for(i=0;i<1024;i++)
     {
         memset(buf,0,BUFSIZE);
-        part.start();
+        auto part=system_clock::now();
         if(fread(buf,1,BUFSIZE,f)!=BUFSIZE)
         {
             iprintf("Read error 1\n");
             break;
         }
-        part.stop();
-        if(part.interval()>max) max=part.interval();
-        part.clear();
+        auto d=system_clock::now()-part;
+        max=std::max(max,static_cast<int>(duration_cast<milliseconds>(d).count()));
         for(unsigned j=0;j<BUFSIZE;j++) if(buf[j]!='0')
         {
             iprintf("Read error 2\n");
@@ -5084,13 +4980,13 @@ static void benchmark_3()
         }
     }
     quit:
-    total.stop();
+    d=system_clock::now()-total;
     if(fclose(f)!=0) iprintf("Error in fclose 2\n");
     iprintf("Filesystem read test\n");
-    unsigned int readTime=(total.interval()*1000)/TICK_FREQ;
+    unsigned int readTime=duration_cast<milliseconds>(d).count();
     unsigned int readSpeed=static_cast<unsigned int>(1024000.0/readTime);
     iprintf("Total read time = %dms (%dKB/s)\n",readTime,readSpeed);
-    iprintf("Max filesystem latency = %dms\n",(max*1000)/TICK_FREQ);
+    iprintf("Max filesystem latency = %dms\n",max);
     delete[] buf;
 }
 
