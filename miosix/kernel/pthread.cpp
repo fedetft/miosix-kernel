@@ -31,6 +31,7 @@
  */
 
 #include <pthread.h>
+#include <sched.h>
 #include <errno.h>
 #include <stdexcept>
 #include "kernel.h"
@@ -58,13 +59,15 @@ int pthread_create(pthread_t *pthread, const pthread_attr_t *attr,
 {
     Thread::Options opt=Thread::JOINABLE;
     unsigned int stacksize=STACK_DEFAULT_FOR_PTHREAD;
+    unsigned int priority=1;
     if(attr!=NULL)
     {
         if(attr->detachstate==PTHREAD_CREATE_DETACHED)
             opt=Thread::DEFAULT;
         stacksize=attr->stacksize;
+        priority=attr->schedparam.sched_priority;
     }
-    Thread *result=Thread::create(start,stacksize,1,arg,opt);
+    Thread *result=Thread::create(start,stacksize,priority,arg,opt);
     if(result==0) return EAGAIN;
     *pthread=reinterpret_cast<pthread_t>(result);
     return 0;
@@ -102,6 +105,7 @@ int pthread_attr_init(pthread_attr_t *attr)
     //We only use two fields of pthread_attr_t so initialize only these two
     attr->detachstate=PTHREAD_CREATE_JOINABLE;
     attr->stacksize=STACK_DEFAULT_FOR_PTHREAD;
+    attr->schedparam.sched_priority=1;
     return 0;
 }
 
@@ -134,6 +138,36 @@ int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize)
 {
     if(stacksize<STACK_MIN) return EINVAL;
     attr->stacksize=stacksize;
+    return 0;
+}
+
+int pthread_attr_getschedparam (const pthread_attr_t *attr,
+                                struct sched_param *param)
+{
+    *param = attr->schedparam;
+    return 0;
+}
+
+int pthread_attr_setschedparam (pthread_attr_t *attr,
+                                const struct sched_param *param)
+{
+    attr->schedparam = *param;
+    return 0;
+}
+
+int sched_get_priority_max(int policy)
+{
+    (void) policy;
+
+    // Max priority, defined in miosix_setting.h
+    return PRIORITY_MAX - 1;
+}
+
+int sched_get_priority_min(int policy)
+{
+    (void) policy;
+
+    // In miosix the minimum allowed priority is zero.
     return 0;
 }
 
@@ -339,7 +373,7 @@ int pthread_cond_broadcast(pthread_cond_t *cond)
 int pthread_once(pthread_once_t *once, void (*func)())
 {
     if(once==nullptr || func==nullptr || once->is_initialized!=1) return EINVAL;
-    
+
     bool again;
     do {
         {
@@ -359,7 +393,7 @@ int pthread_once(pthread_once_t *once, void (*func)())
         }
         if(again) Thread::yield(); //Yield and let other thread complete
     } while(again);
-    
+
     #ifdef __NO_EXCEPTIONS
     func();
     #else //__NO_EXCEPTIONS
