@@ -2551,7 +2551,7 @@ else ifeq ($(ARCH),cortexM4_atsam4l)
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
         BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
-        LINKER_SCRIPT := $(BOARD_INC)/atsam_112k+20k_rom.ld
+        LINKER_SCRIPT := $(BOARD_INC)/atsam_112k+32k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
