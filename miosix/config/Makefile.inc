@@ -50,6 +50,7 @@
 #OPT_BOARD := stm32f100c8_vaisala_rs41
 #OPT_BOARD := stm32l476rg_nucleo
 #OPT_BOARD := atsam4lc2aa_generic
+#OPT_BOARD := stm32f411ce_blackpill
 
 ##
 ## Optimization flags, choose one.
@@ -610,6 +611,10 @@ endif
 ## atsam4lc2aa_generic
 ##
 
+##---------------------------------------------------------------------------
+## stm32f411ce_blackpill
+##
+
 # No options
 
 ############################################################################
@@ -705,6 +710,8 @@ else ifeq ($(OPT_BOARD),stm32l476rg_nucleo)
     ARCH := cortexM4_stm32l4
 else ifeq ($(OPT_BOARD),atsam4lc2aa_generic)
     ARCH := cortexM4_atsam4l
+else ifeq ($(OPT_BOARD),stm32f411ce_blackpill)
+    ARCH := cortexM4_stm32f4
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -1648,6 +1655,38 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
 
         ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
         CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f411ce_blackpill
+    ##
+    else ifeq ($(OPT_BOARD),stm32f411ce_blackpill)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM4_stm32f4/stm32f411ce_blackpill
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_512k+128k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32F411CE_BLACKPILL
+        CXXFLAGS_BASE += -D_BOARD_STM32F411CE_BLACKPILL
+
+        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
+        CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_100MHz=100000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
