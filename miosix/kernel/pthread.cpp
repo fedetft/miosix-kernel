@@ -111,7 +111,7 @@ int pthread_attr_init(pthread_attr_t *attr)
     attr->detachstate=PTHREAD_CREATE_JOINABLE;
     attr->stacksize=STACK_DEFAULT_FOR_PTHREAD;
     //Default priority level is one above minimum.
-    attr->schedparam.sched_priority=PRIORITY_MAX-2;
+    attr->schedparam.sched_priority=PRIORITY_MAX-1-MAIN_PRIORITY;
     return 0;
 }
 
