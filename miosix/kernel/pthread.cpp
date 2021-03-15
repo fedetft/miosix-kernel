@@ -34,6 +34,7 @@
 #include <sched.h>
 #include <errno.h>
 #include <stdexcept>
+#include <algorithm>
 #include "kernel.h"
 #include "error.h"
 #include "pthread_private.h"
@@ -65,7 +66,11 @@ int pthread_create(pthread_t *pthread, const pthread_attr_t *attr,
         if(attr->detachstate==PTHREAD_CREATE_DETACHED)
             opt=Thread::DEFAULT;
         stacksize=attr->stacksize;
-        priority=attr->schedparam.sched_priority;
+        // Cap priority value in the range between 0 and PRIORITY_MAX-1
+        int prio=std::min(std::max(0, attr->schedparam.sched_priority),
+                          PRIORITY_MAX-1);
+        // Swap unix-based priority back to the miosix one.
+        priority=(PRIORITY_MAX-1)-prio;
     }
     Thread *result=Thread::create(start,stacksize,priority,arg,opt);
     if(result==0) return EAGAIN;
@@ -102,10 +107,11 @@ int pthread_equal(pthread_t t1, pthread_t t2)
 
 int pthread_attr_init(pthread_attr_t *attr)
 {
-    //We only use two fields of pthread_attr_t so initialize only these two
+    //We only use three fields of pthread_attr_t so initialize only these
     attr->detachstate=PTHREAD_CREATE_JOINABLE;
     attr->stacksize=STACK_DEFAULT_FOR_PTHREAD;
-    attr->schedparam.sched_priority=1;
+    //Default priority level is one above minimum.
+    attr->schedparam.sched_priority=PRIORITY_MAX-2;
     return 0;
 }
 
@@ -159,16 +165,17 @@ int sched_get_priority_max(int policy)
 {
     (void) policy;
 
-    // Max priority, defined in miosix_setting.h
-    return PRIORITY_MAX - 1;
+    // Unix-like thread priorities: max priority is zero.
+    return 0;
 }
 
 int sched_get_priority_min(int policy)
 {
     (void) policy;
 
-    // In miosix the minimum allowed priority is zero.
-    return 0;
+    // Unix-like thread priorities: min priority is a value above zero.
+    // The value for PRIORITY_MAX is configured in miosix_settings.h
+    return PRIORITY_MAX - 1;
 }
 
 int sched_yield()
