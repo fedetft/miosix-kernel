@@ -574,7 +574,7 @@ endif
 ## stm32f100c8_vaisala_rs41
 ##
 
-ifeq ($(OPT_BOARD),stm32f100cx_generic)
+ifeq ($(OPT_BOARD),stm32f100c8_vaisala_rs41)
 
     ## Select clock frequency
     ## Not defining anything results in HSI being used
