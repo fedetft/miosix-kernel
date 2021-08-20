@@ -973,8 +973,7 @@ static void test_4()
     if(q!=Thread::IRQgetCurrentThread()) fail("IRQgetCurrentThread");
     //Check IRQgetPriority
     if(p->IRQgetPriority()!=0) fail("IRQgetPriority");
-    //Check that tick is not incremented and t4_v1 is not updated
-    long long tick=getTime();
+    //Check that t4_v1 is not updated
     t4_v1=false;
     for(int i=0;i<4;i++)
     {
@@ -995,8 +994,7 @@ static void test_4()
     if(t4_v1==false) fail("variable not updated");
 
     fastDisableInterrupts();//
-    //Check that tick is not incremented and t4_v1 is not updated
-    tick=getTime();
+    //Check that t4_v1 is not updated
     t4_v1=false;
     for(int i=0;i<4;i++)
     {
@@ -1043,7 +1041,7 @@ static void test_4()
     #ifdef SCHED_TYPE_EDF
     Thread::create(t4_p2,STACK_SMALL);
     const int period=50000000; //50 ms
-    tick=getTime();
+    long long tick=getTime();
     //This takes .024/.05=48% of CPU time
     for(int i=0;i<10;i++)
     {
