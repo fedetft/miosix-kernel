@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 by Terraneo Federico *
+ *   Copyright (C) 2008 - 2021 by Terraneo Federico                        *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -91,6 +91,13 @@ using namespace miosix;
 // and caused stack overflows when compiling with -O0
 // Note: can be reduced down to STACK_MIN if only testing with -O2
 const unsigned int STACK_SMALL=768;
+
+#ifndef _BOARD_WANDSTEM
+const unsigned int MAX_TIME_IRQ_DISABLED=14000;//us
+#else
+//theoretical maximum for this board is 2^16/2/48e6=680us
+const unsigned int MAX_TIME_IRQ_DISABLED=500;//us
+#endif
 
 //Functions common to all tests
 static void test_name(const char *name);
@@ -967,14 +974,11 @@ static void test_4()
     if(p->IRQgetPriority()!=0) fail("IRQgetPriority");
     //Check that t4_v1 is not updated
     t4_v1=false;
-    for(int i=0;i<4;i++)
+    delayUs(MAX_TIME_IRQ_DISABLED);
+    if(t4_v1)
     {
-        delayMs(100);
-        if(t4_v1)
-        {
-            enableInterrupts();//
-            fail("disableInterrupts");
-        }
+        enableInterrupts();//
+        fail("disableInterrupts");
     }
     enableInterrupts();//
     #ifndef SCHED_TYPE_EDF
@@ -988,14 +992,11 @@ static void test_4()
     fastDisableInterrupts();//
     //Check that t4_v1 is not updated
     t4_v1=false;
-    for(int i=0;i<4;i++)
+    delayUs(MAX_TIME_IRQ_DISABLED);
+    if(t4_v1)
     {
-        delayMs(100);
-        if(t4_v1)
-        {
-            fastEnableInterrupts();//
-            fail("disableInterrupts");
-        }
+        fastEnableInterrupts();//
+        fail("disableInterrupts");
     }
     fastEnableInterrupts();//
     #ifndef SCHED_TYPE_EDF
@@ -1017,12 +1018,9 @@ static void test_4()
     //Since priority is higher, the other thread must not run
     //Of course this is not true for the control based scheduler
     t4_v1=false;
-    for(int i=0;i<4;i++)
-    {
-        Thread::yield();//must return immediately
-        delayMs(100);
-        if(t4_v1==true) fail("setPriority (1)");
-    }
+    Thread::yield();//must return immediately
+    delayMs(100);
+    if(t4_v1==true) fail("setPriority (1)");
     #endif //SCHED_TYPE_CONTROL_BASED
     //Restoring original priority
     Thread::setPriority(0);
@@ -1877,7 +1875,7 @@ static void test_9()
     if(areInterruptsEnabled()==false) fail("areInterruptsEnabled() (1)");
     disableInterrupts();//Now interrupts should be disabled
     t9_v1=false;
-    delayMs(100);
+    delayUs(MAX_TIME_IRQ_DISABLED/3);
     if(t9_v1)
     {
         enableInterrupts();
@@ -1889,7 +1887,7 @@ static void test_9()
         fail("areInterruptsEnabled() (2)");
     }
     disableInterrupts();//Interrupts already disabled
-    delayMs(100);
+    delayUs(MAX_TIME_IRQ_DISABLED/3);
     if(t9_v1)
     {
         enableInterrupts();
@@ -1903,7 +1901,7 @@ static void test_9()
         fail("areInterruptsEnabled() (3)");
     }
     enableInterrupts();//Now interrupts should remain disabled
-    delayMs(100);
+    delayUs(MAX_TIME_IRQ_DISABLED/3);
     if(t9_v1)
     {
         enableInterrupts();
@@ -1915,7 +1913,7 @@ static void test_9()
         fail("areInterruptsEnabled() (4)");
     }
     enableInterrupts();//Now interrupts should be enabled
-    delayMs(100);
+    delayMs(10);
     if(t9_v1==false)
     {
         fail("enableInterrupts() nesting (2)");
@@ -3328,28 +3326,20 @@ static void test_22()
         int x=10;
         if(atomicSwap(&x,20)!=10) error=true;
         if(x!=20) error=true;
-        
-        delayMs(5); //Wait to check that interrupts are disabled
 
         x=10;
         atomicAdd(&x,-5);
         if(x!=5) error=true;
-        
-        delayMs(5); //Wait to check that interrupts are disabled
 
         x=10;
         if(atomicAddExchange(&x,5)!=10) error=true;
         if(x!=15) error=true;
-        
-        delayMs(5); //Wait to check that interrupts are disabled
 
         x=10;
         if(atomicCompareAndSwap(&x,11,12)!=10) error=true;
         if(x!=10) error=true;
         if(atomicCompareAndSwap(&x,10,13)!=10) error=true;
         if(x!=13) error=true;
-        
-        delayMs(5); //Wait to check that interrupts are disabled
 
         t22_s1 data;
         t22_s1 *dataPtr=&data;
@@ -3362,7 +3352,7 @@ static void test_22()
         if(atomicFetchAndIncrement(ptr,1,-2)!=dataPtr) error=true;
         if(data.b!=8) error=true;
         
-        delayMs(5); //Wait to check that interrupts are disabled
+        delayUs(MAX_TIME_IRQ_DISABLED); //Wait to check interrupts are disabled
         if(t22_v5) error=true;
     }
     if(error) fail("Interrupt test not passed");
