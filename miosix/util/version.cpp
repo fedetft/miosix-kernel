@@ -44,27 +44,17 @@ namespace miosix {
 #define tts(x) #x
 #define ts(x) tts(x)
 
-#ifdef __clang__ //clang also defines GNUC, so it has to go first
-#define CV ", clang " \
-    ts(__clang_major__) "." ts(__clang_minor__) "." ts(__clang_patchlevel__) \
-    "-mp" ts(_MIOSIX_CLANG_PATCH_VERSION)
-#define AU __attribute__((used))
-#elif defined(__GNUC__)
-#ifdef _MIOSIX_GCC_PATCH_MAJOR
-#define PV ts(_MIOSIX_GCC_PATCH_MAJOR) "." ts(_MIOSIX_GCC_PATCH_MINOR)
-#else
-#define PV ts(_MIOSIX_GCC_PATCH_VERSION)
-#endif
+#if defined(__GNUC__) && !defined(__clang__)
 #define CV ", gcc " \
     ts(__GNUC__) "." ts(__GNUC_MINOR__) "." ts(__GNUC_PATCHLEVEL__) \
-    "-mp" PV
+    "-mp" ts(_MIOSIX_GCC_PATCH_MAJOR) "." ts(_MIOSIX_GCC_PATCH_MINOR)
 #define AU __attribute__((used))
 #else
 #define CV
 #define AU
 #endif
 
-const char AU ver[]="Miosix v2.22 (" _MIOSIX_BOARDNAME ", " __DATE__ " " __TIME__ CV ")";
+const char AU ver[]="Miosix v3.0devel1 (" _MIOSIX_BOARDNAME ", " __DATE__ " " __TIME__ CV ")";
 
 const char *getMiosixVersion()
 {
