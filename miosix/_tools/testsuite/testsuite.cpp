@@ -48,14 +48,12 @@
 #include <errno.h>
 #include <dirent.h>
 #include <ext/atomicity.h>
-#ifdef _MIOSIX_GCC_PATCH_MAJOR
 #include <thread>
 #include <mutex>
 #include <condition_variable>
 #include <future>
 #include <chrono>
 #include <atomic>
-#endif //_MIOSIX_GCC_PATCH_MAJOR
 
 #include "miosix.h"
 #include "config/miosix_settings.h"
@@ -82,10 +80,8 @@
 #include <core/cache_cortexMx.h>
 #endif //_ARCH_CORTEXM7_STM32F7/H7
 
-#if _MIOSIX_GCC_PATCH_MAJOR >= 2
 #include <ctime>
 static_assert(sizeof(time_t)==8,"time_t is not 64 bit");
-#endif
 
 using namespace std;
 using namespace miosix;
@@ -126,9 +122,7 @@ static void test_21();
 static void test_22();
 static void test_23();
 static void test_24();
-#ifdef _MIOSIX_GCC_PATCH_MAJOR
 static void test_25();
-#endif //_MIOSIX_GCC_PATCH_MAJOR
 static void test_26();
 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
 void testCacheAndDMA();
@@ -234,9 +228,7 @@ int main()
                 test_22();
                 test_23();
                 test_24();
-                #ifdef _MIOSIX_GCC_PATCH_MAJOR
                 test_25();
-                #endif //_MIOSIX_GCC_PATCH_MAJOR
                 test_26();
                 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
                 testCacheAndDMA();
@@ -3217,9 +3209,7 @@ static int t22_v1;
 static int t22_v2;
 static int t22_v3;
 static int t22_v4;
-#ifdef _MIOSIX_GCC_PATCH_MAJOR
 atomic<int> t22_v6;
-#endif //_MIOSIX_GCC_PATCH_MAJOR
 
 static bool t22_v5;
 
@@ -3246,14 +3236,11 @@ static void *t22_t1(void*)
 		__gnu_cxx::__exchange_and_add(&t22_v2,-1);
         atomicAdd(&t22_v3,1);
         atomicAddExchange(&t22_v4,1);
-        #ifdef _MIOSIX_GCC_PATCH_MAJOR
         t22_v6++;
-        #endif //_MIOSIX_GCC_PATCH_MAJOR
 	}
 	return 0;
 }
 
-#ifdef _MIOSIX_GCC_PATCH_MAJOR
 int t22_v8;
 
 class t22_c1
@@ -3276,7 +3263,6 @@ void t22_t3(void*)
     atomic_store(&t22_v7,shared_ptr<t22_c1>(nullptr));
     inst1->canDelete=true;
 }
-#endif //_MIOSIX_GCC_PATCH_MAJOR
 
 static void test_22()
 {
@@ -3292,16 +3278,12 @@ static void test_22()
         __gnu_cxx::__exchange_and_add(&t22_v2,1);
         atomicAdd(&t22_v3,-1);
         atomicAddExchange(&t22_v4,-1);
-        #ifdef _MIOSIX_GCC_PATCH_MAJOR
         t22_v6--;
-        #endif //_MIOSIX_GCC_PATCH_MAJOR
     }
     pthread_join(t,0);
     if(t22_v1!=0 || t22_v2!=0 || t22_v3!=0 || t22_v4!=0)
         fail("not thread safe");
-    #ifdef _MIOSIX_GCC_PATCH_MAJOR
     if(t22_v6!=0) fail("C++11 atomics not thread safe");
-    #endif //_MIOSIX_GCC_PATCH_MAJOR
     
     //Functional test for miosix atomic ops
     int x=10;
@@ -3388,7 +3370,6 @@ static void test_22()
     t2->terminate();
     t2->join();
     
-    #ifdef _MIOSIX_GCC_PATCH_MAJOR
     t22_v8=0;
     {
         Thread *t3=Thread::create(t22_t3,STACK_SMALL,0,0,Thread::JOINABLE);
@@ -3411,7 +3392,6 @@ static void test_22()
         iprintf("deleted %d\n",t22_v8);
         fail("Not deleted");
     }
-    #endif //_MIOSIX_GCC_PATCH_MAJOR
     
     pass();
 }
@@ -3823,7 +3803,6 @@ static void test_24()
     pass();
 }
 
-#ifdef _MIOSIX_GCC_PATCH_MAJOR
 //
 // Test 25
 //
@@ -4050,7 +4029,6 @@ static void test_25()
     pass();
     Thread::setPriority(0);
 }
-#endif //_MIOSIX_GCC_PATCH_MAJOR
 
 //
 // Test 26

@@ -900,10 +900,6 @@ int getdents(unsigned int fd, struct dirent *dirp, unsigned int count)
  * - timer_create -> ? 
  */
 
-#ifndef _MIOSIX_GCC_PATCH_MAJOR //Before GCC 9.2.0
-#define CLOCK_MONOTONIC 4
-#endif
-
 static constexpr int nsPerSec = 1000000000;
 
 /**
