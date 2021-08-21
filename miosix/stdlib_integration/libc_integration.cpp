@@ -48,7 +48,6 @@
 #include "kernel/kernel.h"
 #include "interfaces/bsp.h"
 #include "interfaces/cstimer.h"
-#include "board_settings.h"
 
 using namespace std;
 

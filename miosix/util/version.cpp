@@ -26,12 +26,11 @@
  ***************************************************************************/
 
 #include "config/miosix_settings.h"
-#include "board_settings.h"
 
 // These two #if are here because version checking for config files in
 // out-of-git-tree projects has to be done somewhere.
 
-#if MIOSIX_SETTINGS_VERSION != 100
+#if MIOSIX_SETTINGS_VERSION != 300
 #error You need to update miosix_settings.h to match the version in the kernel.
 #endif
 

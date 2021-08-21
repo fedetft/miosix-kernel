@@ -1,6 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015          *
- *   by Terraneo Federico                                                  *
+ *   Copyright (C) 2008-2021 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -26,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/ 
 
-#ifndef MIOSIX_SETTINGS_H
-#define MIOSIX_SETTINGS_H
+#pragma once
 
 // Before you can compile the kernel you have to configure it by editing this
 // file. After that, comment out this line to disable the reminder error.
@@ -43,7 +41,7 @@
  * on architecture specific details. The other options are in the following
  * files which are included here:
  * miosix/arch/architecture name/common/arch_settings.h
- * miosix/arch/architecture name/board name/board_settings.h
+ * miosix/config/arch/architecture name/board name/board_settings.h
  */
 #include "arch_settings.h"
 #include "board_settings.h"
@@ -53,7 +51,7 @@
  * \internal
  * Versioning for miosix_settings.h for out of git tree projects
  */
-#define MIOSIX_SETTINGS_VERSION 100
+#define MIOSIX_SETTINGS_VERSION 300
 
 namespace miosix {
 
@@ -235,5 +233,3 @@ const unsigned int STACK_FILL=0xbbbbbbbb;
  */
 
 } //namespace miosix
-
-#endif //MIOSIX_SETTINGS_H

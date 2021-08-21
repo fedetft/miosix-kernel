@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 by Terraneo Federico *
+ *   Copyright (C) 2008-2021 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -24,12 +24,9 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/ 
- //Miosix kernel
 
-#ifndef KERNEL_H
-#define KERNEL_H
+#pragma once
 
-//Include settings.
 #include "config/miosix_settings.h"
 #include "interfaces/portability.h"
 #include "kernel/scheduler/sched_types.h"
@@ -38,9 +35,7 @@
 #include <cstdlib>
 #include <new>
 #include <functional>
-
-// some pthread functions are friends of Thread
-#include <pthread.h>
+#include <pthread.h> // some pthread functions are friends of Thread
 
 /**
  * \namespace miosix
@@ -1100,5 +1095,3 @@ struct SleepData : public IntrusiveListItem
  */
 
 } //namespace miosix
-
-#endif //KERNEL_H

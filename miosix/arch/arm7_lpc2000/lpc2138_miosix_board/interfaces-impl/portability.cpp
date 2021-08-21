@@ -35,7 +35,6 @@
 #include "portability_impl.h"
 #include "kernel/scheduler/scheduler.h"
 #include "kernel/scheduler/timer_interrupt.h"
-#include "board_settings.h"
 #include <algorithm>
 
 using namespace std;

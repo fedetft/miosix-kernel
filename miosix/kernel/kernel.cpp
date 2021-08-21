@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 by Terraneo Federico *
+ *   Copyright (C) 2008-2021 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -31,7 +31,6 @@
 #include "interfaces/atomic_ops.h"
 #include "error.h"
 #include "logging.h"
-#include "arch_settings.h"
 #include "sync.h"
 #include "stage_2_boot.h"
 #include "process.h"

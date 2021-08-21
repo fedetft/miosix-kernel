@@ -25,11 +25,9 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef HWMAPPING_H
-#define	HWMAPPING_H
+#pragma once
 
 #include "interfaces/gpio.h"
-#include "board_settings.h"
 
 namespace miosix {
 
@@ -87,5 +85,3 @@ namespace spi
 };
 
 } //namespace miosix
-
-#endif //HWMAPPING_H

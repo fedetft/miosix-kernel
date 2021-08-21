@@ -34,8 +34,7 @@
 #include "util.h"
 #include "kernel/kernel.h"
 #include "stdlib_integration/libc_integration.h"
-#include "config/miosix_settings.h"
-#include "arch_settings.h" //For WATERMARK_FILL and STACK_FILL
+#include "config/miosix_settings.h" //For WATERMARK_FILL and STACK_FILL
 
 using namespace std;
 
