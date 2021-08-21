@@ -381,14 +381,19 @@ bool Thread::testTerminate()
     return const_cast<Thread*>(cur)->flags.isDeleting();
 }
 
+void Thread::sleep(unsigned int ms)
+{
+    nanoSleep(mul32x32to64(ms,1000000));
+}
+
 void Thread::nanoSleep(long long ns)
 {
-    if(ns==0) return; //TODO: should be (ns &lt; resolution + epsilon)
+    if(ns<=0) return; //TODO: should be (ns &lt; resolution + epsilon)
     //TODO: Mutual Exclusion issue
     nanoSleepUntil(ContextSwitchTimer::instance().getCurrentTime() + ns);
 }
 
-void Thread::nanoSleepUntil(long long absoluteTime)
+void Thread::nanoSleepUntil(long long absoluteTimeNs)
 {
     //TODO: The absolute time should be rounded w.r.t. the timer resolution
     //This function does not care about setting the wakeup_time in the past
@@ -403,7 +408,7 @@ void Thread::nanoSleepUntil(long long absoluteTime)
     {
         FastInterruptDisableLock lock;
         d.p=const_cast<Thread*>(cur);
-        d.wakeup_time = absoluteTime;
+        d.wakeup_time = absoluteTimeNs;
         IRQaddToSleepingList(&d);//Also sets SLEEP_FLAG
     }
     // NOTE: There is no need to synchronize the timer (calling IRQsetNextInterrupt)
@@ -412,16 +417,6 @@ void Thread::nanoSleepUntil(long long absoluteTime)
     // keeps the timer synchronized with the sleeping list head and beginning of
     // next burst time. (see ISR_yield() in portability.cpp
     Thread::yield();
-}
-
-void Thread::sleep(unsigned int ms)
-{
-    nanoSleep(mul32x32to64(ms,1000000));
-}
-
-void Thread::sleepUntil(long long absoluteTime)
-{
-    nanoSleepUntil(absoluteTime * 1000000);
 }
 
 Thread *Thread::getCurrentThread()

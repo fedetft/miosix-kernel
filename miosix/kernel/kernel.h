@@ -508,18 +508,25 @@ public:
     static bool testTerminate();
 
     /**
-     * Put the thread to sleep for a number of milliseconds.<br>The actual
-     * precision depends on the kernel tick used. If the specified wait time is
-     * lower than the tick accuracy, the thread will be put to sleep for one
-     * tick.<br>Maximum sleep time is (2^32-1) / TICK_FREQ. If a sleep time
-     * higher than that value is specified, the behaviour is undefined.
-     * \param ms the number of millisecond. If it is ==0 this method will
+     * Put the thread to sleep for a number of milliseconds.
+     * <br>The actual precision depends on the underlying hardware timer.
+     * \param ms the number of milliseconds. If it is ==0 this method will
      * return immediately
      *
      * CANNOT be called when the kernel is paused.
      */
     static void sleep(unsigned int ms);
+
+    /**
+     * Put the thread to sleep for a number of nanoseconds.
+     * <br>The actual precision depends on the underlying hardware timer.
+     * \param ns the number of nanoseconds. If it is <=0 this method will
+     * return immediately
+     *
+     * CANNOT be called when the kernel is paused.
+     */
     static void nanoSleep(long long ns);
+    
     /**
      * Put the thread to sleep until the specified absolute time is reached.
      * If the time is in the past, returns immediately.
@@ -527,22 +534,22 @@ public:
      * \code
      * void periodicThread()
      * {
-     *     const int period=90; //Run every 90 milliseconds
-     *     long long tick=getTime()/1000000; //convert ns to ms
+     *     const long long period=90000000; //Run every 90 milliseconds
+     *     long long time=getTime();
      *     for(;;)
      *     {
      *         //Do work
-     *         tick+=period;
-     *         Thread::sleepUntil(tick);
+     *         time+=period;
+     *         Thread::nanoSleepUntil(time);
      *     }
      * }
      * \endcode
-     * \param absoluteTime when to wake up
+     * \param absoluteTime when to wake up, in nanoseconds
      *
      * CANNOT be called when the kernel is paused.
      */
-    static void sleepUntil(long long absoluteTime);
-    static void nanoSleepUntil(long long absoluteTime);
+    static void nanoSleepUntil(long long absoluteTimeNs);
+    
     /**
      * Return a pointer to the Thread class of the current thread.
      * \return a pointer to the current thread.
