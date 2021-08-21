@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
+ *   Copyright (C) 2010-2021 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef PORTABILITY_H
-#define	PORTABILITY_H
+#pragma once
 
 //For SCHED_TYPE_* config options
 #include "config/miosix_settings.h"
@@ -341,5 +340,3 @@ private:
 
 // This contains the macros and the implementation of inline functions
 #include "interfaces-impl/portability_impl.h"
-
-#endif //PORTABILITY_H

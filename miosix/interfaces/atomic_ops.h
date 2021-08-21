@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013, 2014, 2015 by Terraneo Federico                   *
+ *   Copyright (C) 2013-2021 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef ATOMIC_OPS_H
-#define	ATOMIC_OPS_H
+#pragma once
 
 /**
  * \addtogroup Interfaces
@@ -168,5 +167,3 @@ inline void *atomicFetchAndIncrement(void * const volatile * p, int offset,
 #else
 #error "No atomic ops for this architecture"
 #endif
-
-#endif //ATOMIC_OPS_H

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013, 2014, 2015 by Terraneo Federico                   *
+ *   Copyright (C) 2018-2021 by Terraneo Federico, Daniele Marsella        *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef DEEP_SLEEP_H
-#define DEEP_SLEEP_H 
+#pragma once
 
 /**
  * \addtogroup Interfaces
@@ -82,5 +81,3 @@ bool IRQdeepSleep();
 /**
  * \}
  */
-
-#endif //  DEEP_SLEEP_H
