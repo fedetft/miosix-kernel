@@ -58,7 +58,6 @@
 #include "miosix.h"
 #include "config/miosix_settings.h"
 #include "interfaces/atomic_ops.h"
-#include "board_settings.h"
 #include "interfaces/endianness.h"
 #include "e20/e20.h"
 #include "kernel/intrusive.h"
@@ -522,7 +521,8 @@ void syscall_test_system()
 	pid_t p = Process::create(prog);
 	Process::waitpid(p, &ret, 0);
 	
-	if(WEXITSTATUS(ret) != 42){
+	if(WEXITSTATUS(ret) != 42)
+    {
 		iprintf("Host process returned: %d\n", WEXITSTATUS(ret));
 		fail("The system inside a process has failed");
 	}
@@ -535,26 +535,21 @@ void syscall_test_system()
 	pass();
 }
 
-void syscall_test_sleep(){
+void syscall_test_sleep()
+{
 	test_name("System Call: sleep");
 	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_sleep_elf),testsuite_sleep_elf_len);
-	
-//	iprintf("diff was: %d\n", (unsigned int)getTick());
-	
 	int ret = 0;
-	long long time = getTick();
+	long long time = getTime();
 	pid_t p = Process::create(prog);
 	Process::waitpid(p, &ret, 0);
-	
-	long long diff = llabs((getTick() - time));
-	
-	if (llabs(diff - 5*TICK_FREQ) > static_cast<long long>(TICK_FREQ * 0.02))
-		fail("The sleep should have only a little more than 5 seconds.");
-	
+	long long err = llabs((getTime()-time-5000000000ll)/1000000);
+	if(err>10) fail("The sleep should have only a little more than 5 seconds.");
 	pass();
 }
 
-void syscall_test_files(){
+void syscall_test_files()
+{
 	test_name("System Call: open, read, write, seek, close, system");
 	
 	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_syscall_elf),testsuite_syscall_elf_len);
@@ -566,7 +561,8 @@ void syscall_test_files(){
 	Process::waitpid(child, &ret, 0);
 	
 	iprintf("Returned value %d\n", WEXITSTATUS(ret));
-	switch(WEXITSTATUS(ret)){
+	switch(WEXITSTATUS(ret))
+    {
 		case 0:
 			pass();
 			break;
@@ -809,22 +805,22 @@ static void test_2()
 /*
 tests:
 Thread::sleep()
-Thread::sleepUntil()
+Thread::nanoSleepUntil()
 getTime()
 also tests creation of multiple instances of the same thread
 */
 
 static void t3_p1(void *argv)
 {
-    const int SLEEP_TIME=100; // in ms
+    const int SLEEP_TIME=100;//ms
     for(;;)
     {
         if(Thread::testTerminate()) break;
-        //Test that Thread::sleep sleeps the desired number of ticks
+        //Test that Thread::sleep sleeps the desired time
         long long x1=getTime(); //getTime returns passed time in ns
         Thread::sleep(SLEEP_TIME);
         long long x2=getTime();
-        if(llabs((x2-x1)/1000000-SLEEP_TIME)>5) //Max tolerated error is 5ms
+        if(llabs((x2-x1)/1000000-SLEEP_TIME)>0) //Max tolerated error is 1ms
             fail("Thread::sleep() or getTime()");
     }
 }
@@ -834,7 +830,7 @@ static volatile bool t3_deleted;//Set when an instance of t3_p2 is deleted
 
 static void t3_p2(void *argv)
 {
-    const int SLEEP_TIME=15;
+    const int SLEEP_TIME=15;//ms
     for(;;)
     {
         t3_v2=true;
@@ -849,18 +845,18 @@ static void t3_p2(void *argv)
 
 static void test_3()
 {
-    test_name("tick and sleep");
-    Thread *p=Thread::create(t3_p1,STACK_SMALL,0,NULL);
+    test_name("time and sleep");
+    Thread *p=Thread::create(t3_p1,STACK_SMALL,0,NULL,Thread::JOINABLE);
     for(int i=0;i<4;i++)
     {
-        //The other thread is running tick() test
-        Thread::sleep((101*1000)/TICK_FREQ);
+        //The other thread is running time test
+        Thread::sleep(101);
     }
     p->terminate();
-    Thread::sleep(200); //make sure the other thread does terminate*/
+    p->join();
     //Testing Thread::sleep() again
     t3_v2=false;
-    p=Thread::create(t3_p2,STACK_SMALL,0,NULL);
+    p=Thread::create(t3_p2,STACK_SMALL,0,NULL,Thread::JOINABLE);
     //t3_p2 sleeps for 15ms, then sets t3_v2. We sleep for 20ms so t3_v2 should
     //be true
     Thread::sleep(20);
@@ -876,7 +872,7 @@ static void test_3()
     t3_v2=false;
     //Creating another instance of t3_p2 to check what happens when 3 threads
     //are sleeping
-    Thread *p2=Thread::create(t3_p2,STACK_SMALL,0,NULL);
+    Thread *p2=Thread::create(t3_p2,STACK_SMALL,0,NULL,Thread::JOINABLE);
     //p will wake @ t=45, main will wake @ t=47 and p2 @ t=50ms
     //this will test proper sorting of sleeping_list in the kernel
     Thread::sleep(12);
@@ -884,30 +880,30 @@ static void test_3()
     //Deleting the two instances of t3_p2
     t3_deleted=false;
     p->terminate();
-    Thread::sleep(20);
+    p->join();
     if(Thread::exists(p)) fail("multiple instances (1)");
     if(t3_deleted==false) fail("multiple instances (2)");
     t3_deleted=false;
     p2->terminate();
-    Thread::sleep(20);
+    p2->join();
     if(Thread::exists(p)) fail("multiple instances (3)");
     if(t3_deleted==false) fail("multiple instances (4)");
-    //Testing Thread::sleepUntil()
-    long long tick;
+    //Testing Thread::nanoSleepUntil()
+    long long time;
         
     const int period=10000000;//10ms
     {
         InterruptDisableLock lock; //Making these two operations atomic.
-        tick=getTime();
-        tick+=period;
+        time=getTime();
+        time+=period;
     }
     for(int i=0;i<4;i++)
     {
-        //tick is in number of ns passed, wakeup time should not differ by > 1ms
-        Thread::nanoSleepUntil(tick);
+        //time is in number of ns passed, wakeup time should not differ by > 1ms
+        Thread::nanoSleepUntil(time);
         long long t2 = getTime();
-        if(llabs(t2-tick)/1000000>0) fail("Thread::sleepUntil()");
-        tick+=period;
+        if(llabs(t2-time)/1000000>0) fail("Thread::nanoSleepUntil()");
+        time+=period;
     }
     pass();
 }
@@ -945,16 +941,16 @@ static void t4_p1(void *argv)
 //This takes .014/.03=47% of CPU time
 static void t4_p2(void *argv)
 {
-    const int period=static_cast<int>(TICK_FREQ*0.03);
-    long long tick=getTime();
+    const int period=30000000;//ms
+    long long time=getTime();
     for(int i=0;i<10;i++)
     {
-        long long prevTick=tick;
-        tick+=period;
-        Thread::setPriority(Priority(tick)); //Change deadline
-        Thread::sleepUntil(prevTick); //Make sure the task is run periodically
+        long long prevTime=time;
+        time+=period;
+        Thread::setPriority(Priority(time)); //Change deadline
+        Thread::nanoSleepUntil(prevTime); //Make sure the task is run periodically
         delayMs(14);
-        if(getTime()>tick) fail("Deadline missed (A)\n");
+        if(getTime()>time) fail("Deadline missed (A)\n");
     }
 }
 #endif //SCHED_TYPE_EDF
@@ -1030,17 +1026,17 @@ static void test_4()
     Thread::sleep(10);
     #ifdef SCHED_TYPE_EDF
     Thread::create(t4_p2,STACK_SMALL);
-    const int period=50000000; //50 ms
-    long long tick=getTime();
+    const int period=50000000;//ms
+    long long time=getTime();
     //This takes .024/.05=48% of CPU time
     for(int i=0;i<10;i++)
     {
-        long long prevTick=tick;
-        tick+=period;
-        Thread::setPriority(Priority(tick)); //Change deadline
-        Thread::nanoSleepUntil(prevTick); //Make sure the task is run periodically
+        long long prevTime=time;
+        time+=period;
+        Thread::setPriority(Priority(time)); //Change deadline
+        Thread::nanoSleepUntil(prevTime); //Make sure the task is run periodically
         delayMs(24);
-        if(getTime()>tick) fail("Deadline missed (B)\n");
+        if(getTime()>time) fail("Deadline missed (B)\n");
     }
     #endif //SCHED_TYPE_EDF
     pass();
