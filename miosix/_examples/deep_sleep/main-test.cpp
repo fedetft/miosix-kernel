@@ -27,14 +27,12 @@
 
 #include <cstdio>
 #include "miosix.h"
-#include "interfaces/cstimer.h"
 
 using namespace std;
 using namespace miosix;
 
 int main()
 {
-    ContextSwitchTimer& cstimer = ContextSwitchTimer::instance();
     long long int timeBefore, timeAfter;
     using sleepLed = Gpio<GPIOD_BASE, 13>;     // orange
     using deepSleepLed = Gpio<GPIOD_BASE, 15>; // blue
@@ -47,9 +45,9 @@ int main()
         fflush(stdout);
         delayMs(500);
         deepSleepLed::high();
-        timeBefore = cstimer.getCurrentTime();
+        timeBefore = getTime();
         Thread::sleep(i * 1000);
-        timeAfter = cstimer.getCurrentTime();
+        timeAfter = getTime();
         deepSleepLed::low();
         printf("Elapsed time: %lld \n", timeAfter - timeBefore);
         {
@@ -58,9 +56,9 @@ int main()
             fflush(stdout);
             delayMs(500);
             sleepLed::high();
-            timeBefore = cstimer.getCurrentTime();
+            timeBefore = getTime();
             Thread::sleep(i * 1000);
-            timeAfter = cstimer.getCurrentTime();
+            timeAfter = getTime();
             sleepLed::low();
             printf("Elapsed time: %lld \n", timeAfter - timeBefore);
         }

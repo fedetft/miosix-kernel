@@ -25,12 +25,12 @@ public:
     /**
      * Set the next interrupt.
      * Can be called with interrupts disabled or within an interrupt.
-     * \param tick the time when the interrupt will be fired, in nanoseconds
+     * \param ns the time when the interrupt will be fired, in nanoseconds
      */
     void IRQsetNextInterrupt(long long ns);
     
     /**
-     * \return the time when the next interrupt will be fired.
+     * \return the time in nanoseconds when the next interrupt will be fired.
      * That is, the last value passed to setNextInterrupt().
      */
     long long getNextInterrupt() const;
@@ -39,12 +39,12 @@ public:
      * Could be call both when the interrupts are enabled/disabled!
      * TODO: investigate if it's possible to remove the possibility to call
      * this with IRQ disabled and use IRQgetCurrentTime() instead
-     * \return the current tick count of the timer (in terms of nanoseconds)
+     * \return the current time in nanoseconds as read from the timer
      */
     long long getCurrentTime() const;
     
     /**
-     * \return the current tick count of the timer (in terms of nanoseconds)
+     * \return the current time in nanoseconds as read from the timer
      * Can only be called with interrupts disabled or within an IRQ
      */
     long long IRQgetCurrentTime() const;
@@ -54,11 +54,16 @@ public:
      * Can be called with interrupts disabled or within an interrupt.
      * Used to adjust the time for example if the system clock was stopped
      * due to entering deep sleep.
+     * FIXME: specify what should happen to an already set interrupt when time
+     * is changed
      */ 
     void IRQsetCurrentTime(long long ns);
     
     /**
-     * \return the timer frequency in Hz
+     * \return the timer frequency in Hz.
+     * If a prescaler is used, it should be taken into account, the returned
+     * value should be equal to the frequency at which the timer increments in
+     * an observable way through IRQgetCurrentTime()
      */
     unsigned int getTimerFrequency() const
     {
