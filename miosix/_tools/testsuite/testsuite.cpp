@@ -906,7 +906,7 @@ static void test_3()
         //tick is in number of ns passed, wakeup time should not differ by > 1ms
         Thread::nanoSleepUntil(tick);
         long long t2 = getTime();
-        if((t2-tick)/1000000>0) fail("Thread::sleepUntil()");
+        if(llabs(t2-tick)/1000000>0) fail("Thread::sleepUntil()");
         tick+=period;
     }
     pass();
@@ -1846,9 +1846,9 @@ void t9_p1(void*)
 
 static void test_9()
 {
-    Thread *p=Thread::create(t9_p1,STACK_SMALL,0,NULL,Thread::JOINABLE);
     test_name("isKernelRunning and save/restore interrupts");
     //Testing kernel_running with nested pause_kernel()
+    Thread *p=Thread::create(t9_p1,STACK_SMALL,0,NULL,Thread::JOINABLE);
     if(isKernelRunning()==false) fail("isKernelRunning() (1)");
     pauseKernel();//1
     if(isKernelRunning()==true)
