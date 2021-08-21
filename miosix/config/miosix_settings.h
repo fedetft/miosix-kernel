@@ -203,6 +203,10 @@ const short int PRIORITY_MAX=64;
 /// The meaning of a thread's priority depends on the chosen scheduler.
 const unsigned char MAIN_PRIORITY=1;
 
+#ifdef SCHED_TYPE_PRIORITY
+/// Maximum thread time slice in nanoseconds, after which preemption occurs
+const unsigned int MAX_TIME_SLICE=1000000;
+#endif //SCHED_TYPE_PRIORITY
 
 
 //

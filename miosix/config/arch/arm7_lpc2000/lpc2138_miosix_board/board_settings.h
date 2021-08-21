@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012, 2013, 2014 by Terraneo Federico       *
+ *   Copyright (C) 2010-2021 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,16 +25,13 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef BOARD_SETTINGS_H
-#define	BOARD_SETTINGS_H
-
-#include "util/version.h"
+#pragma once
 
 /**
  * \internal
  * Versioning for board_settings.h for out of git tree projects
  */
-#define BOARD_SETTINGS_VERSION 100
+#define BOARD_SETTINGS_VERSION 300
 
 namespace miosix {
 
@@ -58,19 +55,8 @@ const unsigned int AUX_SERIAL_SPEED=9600;
 /// LPC2138 has 32KB of RAM so there is room for a big 4K stack.
 const unsigned int MAIN_STACK_SIZE=4*1024;
 
-/// Frequency of tick (in Hz). The LPC2138 timer in the Miosix board is
-/// clocked at 14745600Hz which cannot be divided by 1000. So we're using a
-/// 200Hz tick rate. This implies the minimun Thread::sleep value is 5ms
-/// For the priority scheduler this is also the context switch frequency
-const unsigned int TICK_FREQ=200;
-
 /// \internal Clock frequency of hardware timer, hardware specific data
 const unsigned int TIMER_CLOCK=14745600;
-
-const unsigned int AUX_TIMER_CLOCK=100000; ///\internal Aux timer run @ 100KHz
-///\internal Aux timer is 32 bits, but due to the fixed point scheduler and for
-///consistency with the stm32 we treat it as it was a 16bit timer
-const unsigned int AUX_TIMER_MAX=0xffff;
 
 /// \def WITH_RTC
 /// Uncomment to enable support for RTC. Time-related functions depend on it.
@@ -88,5 +74,3 @@ const unsigned int AUX_TIMER_MAX=0xffff;
  */
 
 } //namespace miosix
-
-#endif	/* BOARD_SETTINGS_H */

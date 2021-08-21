@@ -219,14 +219,14 @@ static void IRQsetNextPreemption(bool curIsIdleThread){
     if (curIsIdleThread)
         nextPeriodicPreemption = firstWakeupInList;
     else
-        nextPeriodicPreemption = std::min(firstWakeupInList, timer->IRQgetCurrentTime() + preemptionPeriodNs);
+        nextPeriodicPreemption = std::min(firstWakeupInList, timer->IRQgetCurrentTime() + MAX_TIME_SLICE);
     
     timer->IRQsetNextInterrupt(nextPeriodicPreemption);
 }
 
 unsigned int PriorityScheduler::IRQfindNextThread()
 {
-    if(kernel_running!=0) return preemptionPeriodNs;//If kernel is paused, do nothing
+    if(kernel_running!=0) return MAX_TIME_SLICE;//If kernel is paused, do nothing
     for(int i=PRIORITY_MAX-1;i>=0;i--)
     {
         if(thread_list[i]==NULL) continue;
@@ -254,7 +254,7 @@ unsigned int PriorityScheduler::IRQfindNextThread()
                 //a different thread, if available, will be chosen first
                 thread_list[i]=temp;
                 IRQsetNextPreemption(false);
-                return preemptionPeriodNs;
+                return MAX_TIME_SLICE;
             } else temp=temp->schedData.next;
             if(temp==thread_list[i]->schedData.next) break;
         }
@@ -266,7 +266,7 @@ unsigned int PriorityScheduler::IRQfindNextThread()
     MPUConfiguration::IRQdisable();
     #endif //WITH_PROCESSES
     IRQsetNextPreemption(true);
-    return preemptionPeriodNs;
+    return MAX_TIME_SLICE;
 }
 
 Thread *PriorityScheduler::thread_list[PRIORITY_MAX]={0};

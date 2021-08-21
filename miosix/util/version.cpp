@@ -34,7 +34,7 @@
 #error You need to update miosix_settings.h to match the version in the kernel.
 #endif
 
-#if BOARD_SETTINGS_VERSION != 100
+#if BOARD_SETTINGS_VERSION != 300
 #error You need to update board_settings.h to match the version in the kernel.
 #endif
 
