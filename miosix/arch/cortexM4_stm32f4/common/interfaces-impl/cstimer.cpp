@@ -112,11 +112,6 @@ void ContextSwitchTimer::IRQsetNextInterrupt(long long ns)
     }
 }
 
-long long ContextSwitchTimer::getNextInterrupt() const
-{
-    return tc->tick2ns(nextInterrupt()) + set_offset; 
-}
-
 long long ContextSwitchTimer::getCurrentTime() const
 {
     bool interrupts=areInterruptsEnabled();
@@ -136,15 +131,13 @@ long long ContextSwitchTimer::IRQgetCurrentTime() const
   
 void ContextSwitchTimer::IRQsetCurrentTime(long long ns)
 {
-    long long nextInterrupt = getNextInterrupt();
+    long long nextInterrupt = tc->tick2ns(nextInterrupt()) + set_offset;
     long long currentTime = tc->tick2ns(IRQgetTick());
     //NOTE: can only move time forward, the OS can't tolerate a backward jump
     set_offset = std::max(ns - currentTime, 0LL);
     //NOTE: adjust also when the next interrupt will be fired
     IRQsetNextInterrupt(nextInterrupt);
 }
-
-ContextSwitchTimer::~ContextSwitchTimer() {}
 
 ContextSwitchTimer::ContextSwitchTimer()
 {

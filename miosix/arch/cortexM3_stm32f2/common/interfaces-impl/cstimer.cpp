@@ -105,11 +105,6 @@ void ContextSwitchTimer::IRQsetNextInterrupt(long long ns)
     }
 }
 
-long long ContextSwitchTimer::getNextInterrupt() const
-{
-    return tc->tick2ns(nextInterrupt());
-}
-
 long long ContextSwitchTimer::getCurrentTime() const
 {
     bool interrupts=areInterruptsEnabled();
@@ -126,8 +121,6 @@ long long ContextSwitchTimer::IRQgetCurrentTime() const
 {
     return tc->tick2ns(IRQgetTick());
 }
-
-ContextSwitchTimer::~ContextSwitchTimer() {}
 
 ContextSwitchTimer::ContextSwitchTimer()
 {
@@ -176,4 +169,5 @@ ContextSwitchTimer::ContextSwitchTimer()
     static TimeConversion stc(timerFreq);
     tc = &stc;
 }
+
 } //namespace miosix
