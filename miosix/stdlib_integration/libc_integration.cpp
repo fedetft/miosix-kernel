@@ -47,7 +47,7 @@
 //// kernel interface
 #include "kernel/kernel.h"
 #include "interfaces/bsp.h"
-#include "interfaces/delays.h"
+#include "interfaces/cstimer.h"
 #include "board_settings.h"
 
 using namespace std;
@@ -935,6 +935,7 @@ inline void ll2timespec(long long ns, struct timespec *tp)
     tp->tv_sec = a;
     tp->tv_nsec = static_cast<long>(b);
     #else //__ARM_EABI__
+    #warning Warning POSIX time API not optimized for this platform
     tp->tv_sec = ns / nsPerSec;
     tp->tv_nsec = static_cast<long>(ns % nsPerSec);
     #endif //__ARM_EABI__
@@ -957,8 +958,15 @@ int clock_settime(clockid_t clock_id, const struct timespec *tp)
 int clock_getres(clockid_t clock_id, struct timespec *res)
 {
     if(res==nullptr) return -1;
+    //TODO: support CLOCK_REALTIME
+
+    //Integer division with round-to-nearest for better accuracy
+    auto& timer=miosix::ContextSwitchTimer::instance();
+    int resolution=2*nsPerSec/timer.getTimerFrequency();
+    resolution=(resolution & 1) ? resolution/2+1 : resolution/2;
+
     res->tv_sec=0;
-    res->tv_nsec=1; //TODO: get resolution from hardware timer
+    res->tv_nsec=resolution;
     return 0;
 }
 
