@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2015 by Terraneo Federico                               *
+ *   Copyright (C) 2015-2021 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef ARCH_SETTINGS_H
-#define	ARCH_SETTINGS_H
+#pragma once
 
 namespace miosix {
 
@@ -55,5 +54,3 @@ const unsigned int CTXSAVE_STACK_ALIGNMENT=8;
  */
 
 } //namespace miosix
-
-#endif	/* ARCH_SETTINGS_H */
