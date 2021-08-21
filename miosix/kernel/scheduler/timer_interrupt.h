@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010-2021 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef TIMER_INTERRUPT_H
-#define	TIMER_INTERRUPT_H
+#pragma once
 
 #include "config/miosix_settings.h"
 #include "interfaces/portability.h"
@@ -38,52 +37,23 @@ namespace miosix {
 //internal implementation of the kernel and are defined in kernel.cpp
 //User code should not know about these nor try to use them.
 extern volatile int kernel_running;///\internal Do not use outside the kernel
-extern volatile bool tick_skew;///\internal Do not use outside the kernel
+extern volatile bool pendingWakeup;///\internal Do not use outside the kernel
 extern volatile Thread *cur;///\internal Do not use outside the kernel
-extern bool IRQwakeThreads(long long currentTick);///\internal Do not use outside the kernel
+extern bool IRQwakeThreads(long long currentTime);///\internal Do not use outside the kernel
 
 /**
- * @param currentTick: Should be in nanoseconds
+ * \param currentTime time in nanoseconds when the timer interrupt fired
  */
-inline void IRQtimerInterrupt(long long currentTick)
+inline void IRQtimerInterrupt(long long currentTime)
 {
     miosix_private::IRQstackOverflowCheck();
-    bool hptw = IRQwakeThreads(currentTick);
-    if (currentTick >= Scheduler::IRQgetNextPreemption() || hptw ){
+    bool hptw = IRQwakeThreads(currentTime);
+    if(currentTime >= Scheduler::IRQgetNextPreemption() || hptw)
+    {
         //End of the burst || a higher priority thread has woken up
         Scheduler::IRQfindNextThread();//If the kernel is running, preempt
-        if(kernel_running!=0) tick_skew=true;
+        if(kernel_running!=0) pendingWakeup=true;
     }
-    
-//    miosix_private::IRQstackOverflowCheck();
-//    bool woken=IRQwakeThreads();//Increment tick and wake threads,if any
-//    (void)woken; //Avoid unused variable warning.
-//    #ifdef SCHED_TYPE_PRIORITY
-//    //With the priority scheduler every tick causes a context switck
-//    Scheduler::IRQfindNextThread();//If the kernel is running, preempt
-//    if(kernel_running!=0) tick_skew=true;
-//    #elif defined(SCHED_TYPE_CONTROL_BASED)
-//    //Normally, with the control based scheduler, preemptions do not happen
-//    //here, but in the auxiliary timer interrupt to take into account variable
-//    //bursts. But there is one exception: when a thread wakes up from sleep
-//    //and the idle thread is running.
-//    if(woken && cur==ControlScheduler::IRQgetIdleThread())
-//    {
-//        Scheduler::IRQfindNextThread();
-//        if(kernel_running!=0) tick_skew=true;
-//    }
-//    #elif defined(SCHED_TYPE_EDF)
-//    //With the EDF scheduler a preemption happens only if a thread with a closer
-//    //deadline appears. So by deafult there is no need to call the scheduler;
-//    //only if some threads were woken, they may have closer deadlines
-//    if(woken)
-//    {
-//        Scheduler::IRQfindNextThread();
-//        if(kernel_running!=0) tick_skew=true;
-//    }
-//    #endif
 }
 
-}
-
-#endif //TIMER_INTERRUPT_H
+} //namespace miosix

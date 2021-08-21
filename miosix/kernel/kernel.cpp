@@ -70,8 +70,8 @@ IntrusiveList<SleepData> *sleepingList=nullptr;///list of sleeping threads
 ///\internal !=0 after pauseKernel(), ==0 after restartKernel()
 volatile int kernel_running=0;
 
-///\internal true if a tick occurs while the kernel is paused
-volatile bool tick_skew=false;
+///\internal true if a thread wakeup occurs while the kernel is paused
+volatile bool pendingWakeup=false;
 
 bool kernel_started=false;///<\internal becomes true after startKernel.
 
@@ -178,10 +178,10 @@ void restartKernel()
     //are disabled with an InterruptDisableLock
     if(interruptDisableNesting==0)
     {
-        //If we missed some tick yield immediately
-        if(old==1 && tick_skew)
+        //If we missed preemptions yield immediately
+        if(old==1 && pendingWakeup)
         { 
-            tick_skew=false;
+            pendingWakeup=false;
             Thread::yield();
         }
     }
@@ -290,13 +290,12 @@ void IRQaddToSleepingList(SleepData *x)
 
 /**
  * \internal
- * Called @ every tick to check if it's time to wake some thread.
- * Also increases the system tick.
+ * Called to check if it's time to wake some thread.
  * Takes care of clearing SLEEP_FLAG.
  * It is used by the kernel, and should not be used by end users.
  * \return true if some thread with higher priority of current thread is woken.
  */
-bool IRQwakeThreads(long long currentTick)
+bool IRQwakeThreads(long long currentTime)
 {
     //If no item in list, return
     if(sleepingList->empty())
@@ -307,7 +306,7 @@ bool IRQwakeThreads(long long currentTick)
     //we don't need to wake the other too
     for(auto it = sleepingList->begin() ; it != sleepingList->end() ;)
     {
-        if(currentTick < (*it)->wakeup_time) break;
+        if(currentTime < (*it)->wakeup_time) break;
         if((*it)->p == nullptr) ++it; //Only csRecord has p==nullptr
         else {
             (*it)->p->flags.IRQsetSleep(false); //Wake thread
@@ -403,7 +402,7 @@ void Thread::nanoSleepUntil(long long absoluteTimeNs)
     //thread wakes up (i.e: after Thread::yield() returns)
     SleepData d;
     //pauseKernel() here is not enough since even if the kernel is stopped
-    //the tick isr will wake threads, modifying the sleepingList
+    //the timer isr will wake threads, modifying the sleepingList
     {
         FastInterruptDisableLock lock;
         d.p=const_cast<Thread*>(cur);
