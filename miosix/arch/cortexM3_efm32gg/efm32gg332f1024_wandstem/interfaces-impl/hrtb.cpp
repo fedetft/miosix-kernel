@@ -466,17 +466,17 @@ inline void HRTB::enableCC1InterruptTim2(bool enable){
 }
 
 long long HRTB::getCurrentTick(){
-    InterruptDisableLock dLock;
+    FastInterruptDisableLock dLock;
     return IRQgetTick();
 }
 
 long long HRTB::getCurrentTickCorrected(){
-    InterruptDisableLock dLock;
+    FastInterruptDisableLock dLock;
     return IRQgetTickCorrected();
 }
 
 long long HRTB::getCurrentTickVht(){
-    InterruptDisableLock dLock;
+    FastInterruptDisableLock dLock;
     return IRQgetTickCorrectedVht();
 }
 

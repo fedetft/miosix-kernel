@@ -114,7 +114,7 @@ void ContextSwitchTimer::IRQsetNextInterrupt(long long ns)
 
 long long ContextSwitchTimer::getCurrentTime() const
 {
-    InterruptDisableLock dLock;
+    FastInterruptDisableLock dLock;
     return tc->tick2ns(IRQgetTick()) + set_offset;
 }
 
