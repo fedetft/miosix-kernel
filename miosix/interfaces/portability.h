@@ -293,45 +293,6 @@ inline bool checkAreInterruptsEnabled();
  */
 void sleepCpu();
 
-#ifdef SCHED_TYPE_CONTROL_BASED
-/**
- * Allow access to a second timer to allow variable burst preemption together
- * with fixed tick timekeeping.
- */
-class AuxiliaryTimer
-{
-public:
-    /**
-     * Initializes the auxiliary timer.
-     */
-    static void IRQinit();
-
-    /**
-     * \internal
-     * Used to implement new control-based scheduler. Used to get the error
-     * between desired burst time and real burst time.
-     * It is responsibility of who implements this function to ensure that
-     * the returned value has the three most significant bits set to zero
-     * (that is, is a positive number between 0 and 0x1fffffff). This is
-     * necessary to avoid oerflow in the scheduler implementation.
-     * \return time since last time set_timer_value() was called.
-     */
-    static int IRQgetValue();
-
-    /**
-     * \internal
-     * Reset timer counter to zero and set next preempt after x timer counts.
-     * \param x time before next preempt will occur. Must be >0
-     */
-    static void IRQsetValue(int x);
-
-private:
-    //Unwanted functions
-    AuxiliaryTimer();
-    AuxiliaryTimer& operator= (AuxiliaryTimer& );
-};
-#endif //SCHED_TYPE_CONTROL_BASED
-
 /**
  * \}
  */
