@@ -47,7 +47,7 @@
 //// kernel interface
 #include "kernel/kernel.h"
 #include "interfaces/bsp.h"
-#include "interfaces/cstimer.h"
+#include "interfaces/os_timer.h"
 
 using namespace std;
 
@@ -960,8 +960,7 @@ int clock_getres(clockid_t clock_id, struct timespec *res)
     //TODO: support CLOCK_REALTIME
 
     //Integer division with round-to-nearest for better accuracy
-    auto& timer=miosix::ContextSwitchTimer::instance();
-    int resolution=2*nsPerSec/timer.getTimerFrequency();
+    int resolution=2*nsPerSec/miosix::internal::osTimerGetFrequency();
     resolution=(resolution & 1) ? resolution/2+1 : resolution/2;
 
     res->tv_sec=0;

@@ -26,6 +26,7 @@
  ***************************************************************************/ 
 
 #include "timeconversion.h"
+#include <limits>
 
 #ifdef TEST_ALGORITHM
 
@@ -33,7 +34,6 @@
 #include <cassert>
 #include <vector>
 #include <cmath>
-#include <limits>
 
 static bool print=true;
 #define P(x) if(print) std::cout<<#x<<'='<<x<<' ';
@@ -316,6 +316,12 @@ long long TimeConversion::ns2tick(long long ns)
     }
     return static_cast<long long>(convert(uns+adjustOffsetNs,toTick));
 }
+
+TimeConversion::TimeConversion()
+    : toNs(1,0), toTick(1,0),
+      adjustIntervalNs(std::numeric_limits<unsigned long long>::max()),
+      lastAdjustTimeNs(0), adjustOffsetNs(0)
+{}
 
 TimeConversion::TimeConversion(unsigned int hz)
     : lastAdjustTimeNs(0), adjustOffsetNs(0)

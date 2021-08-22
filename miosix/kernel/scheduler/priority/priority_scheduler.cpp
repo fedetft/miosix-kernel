@@ -28,7 +28,7 @@
 #include "priority_scheduler.h"
 #include "kernel/error.h"
 #include "kernel/process.h"
-#include "interfaces/cstimer.h"
+#include "interfaces/os_timer.h"
 #include <limits>
 
 #ifdef SCHED_TYPE_PRIORITY
@@ -40,7 +40,6 @@ extern volatile int kernel_running;
 extern IntrusiveList<SleepData> *sleepingList;
 
 //Internal data
-static ContextSwitchTimer *timer=nullptr;
 static long long nextPeriodicPreemption = std::numeric_limits<long long>::max();
 
 //
@@ -199,7 +198,6 @@ void PriorityScheduler::PKsetPriority(Thread *thread,
 
 void PriorityScheduler::IRQsetIdleThread(Thread *idleThread)
 {
-    timer = &ContextSwitchTimer::instance();
     idleThread->schedData.priority=-1;
     idle=idleThread;
 }
@@ -209,19 +207,21 @@ long long PriorityScheduler::IRQgetNextPreemption()
     return nextPeriodicPreemption;
 }
 
-static void IRQsetNextPreemption(bool curIsIdleThread){
+static void IRQsetNextPreemption(bool curIsIdleThread)
+{
     long long firstWakeupInList;
-    if (sleepingList->empty())
+    if(sleepingList->empty())
+        //TODO: can't we just not set an interrupt?
         firstWakeupInList = std::numeric_limits<long long>::max();
     else
         firstWakeupInList = sleepingList->front()->wakeup_time;
     
-    if (curIsIdleThread)
+    if(curIsIdleThread)
         nextPeriodicPreemption = firstWakeupInList;
     else
-        nextPeriodicPreemption = std::min(firstWakeupInList, timer->IRQgetCurrentTime() + MAX_TIME_SLICE);
+        nextPeriodicPreemption = std::min(firstWakeupInList, IRQgetTime() + MAX_TIME_SLICE);
     
-    timer->IRQsetNextInterrupt(nextPeriodicPreemption);
+    internal::IRQosTimerSetInterrupt(nextPeriodicPreemption);
 }
 
 unsigned int PriorityScheduler::IRQfindNextThread()

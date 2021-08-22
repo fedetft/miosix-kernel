@@ -1297,7 +1297,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     $(ARCH_INC)/interfaces-impl/portability.cpp  \
     $(ARCH_INC)/interfaces-impl/delays.cpp       \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp    \
-    $(ARCH_INC)/interfaces-impl/cstimer.cpp      \
+    $(ARCH_INC)/interfaces-impl/os_timer.cpp     \
     arch/common/CMSIS/Device/ST/STM32F10x/Source/Templates/system_stm32f10x.c
 
 ##-----------------------------------------------------------------------------
@@ -1740,7 +1740,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
-    $(ARCH_INC)/interfaces-impl/cstimer.cpp		     \
+    $(ARCH_INC)/interfaces-impl/os_timer.cpp                 \
     arch/common/drivers/sd_stm32f2_f4.cpp                    \
     arch/common/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
 
@@ -2007,7 +2007,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     arch/common/drivers/stm32_hardware_rng.cpp               \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
-    $(ARCH_INC)/interfaces-impl/cstimer.cpp      \
+    $(ARCH_INC)/interfaces-impl/os_timer.cpp                 \
     arch/common/CMSIS/Device/ST/STM32F2xx/Source/Templates/system_stm32f2xx.c
 
 ##-----------------------------------------------------------------------------
@@ -2113,7 +2113,7 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
         $(BOARD_INC)/interfaces-impl/bsp.cpp                        \
         $(BOARD_INC)/interfaces-impl/spi.cpp                        \
         $(BOARD_INC)/interfaces-impl/power_manager.cpp              \
-        $(BOARD_INC)/interfaces-impl/cstimer.cpp                    \
+        $(BOARD_INC)/interfaces-impl/os_timer.cpp                   \
         $(BOARD_INC)/interfaces-impl/timer_interface.cpp            \
         $(BOARD_INC)/interfaces-impl/rtc.cpp                        \
         $(BOARD_INC)/interfaces-impl/hrtb.cpp                       \

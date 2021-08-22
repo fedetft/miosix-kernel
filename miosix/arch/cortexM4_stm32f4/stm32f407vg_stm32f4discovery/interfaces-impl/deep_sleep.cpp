@@ -27,7 +27,7 @@
  ***************************************************************************/ 
 
 #include "interfaces/deep_sleep.h"
-#include "interfaces/cstimer.h"
+#include "interfaces/os_timer.h"
 #include "interfaces/portability.h"
 #include "interfaces/arch_registers.h"
 #include "drivers/rtc.h"
@@ -112,8 +112,7 @@ void IRQdeepSleepInit()
   
 bool IRQdeepSleep(long long int abstime)
 {
-    ContextSwitchTimer& cstimer = ContextSwitchTimer::instance();
-    long long reltime = abstime - cstimer.IRQgetCurrentTime();
+    long long reltime = abstime - IRQgetTime();
     reltime = max(reltime - rtc->stopModeOffsetns, 0LL);
     if(reltime < rtc->getMinimumDeepSleepPeriod())
     {
@@ -139,7 +138,7 @@ bool IRQdeepSleep(long long int abstime)
 #ifdef DEBUG_DEEP_SLEEP
         _led::low();
 #endif
-        cstimer.IRQsetCurrentTime(abstime);
+        internal::IRQosTimerSetTime(abstime);
     }
     return true;
 }

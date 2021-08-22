@@ -1,5 +1,5 @@
 
-#include "interfaces/cstimer.h"
+#include "interfaces/os_timer.h"
 #include "interfaces/arch_registers.h"
 #include "kernel/kernel.h"
 #include "kernel/scheduler/timer_interrupt.h"
@@ -12,12 +12,13 @@ const unsigned long long overflowIncrement=(1LL<<timerBits);
 const unsigned long long lowerMask=overflowIncrement-1;
 const unsigned long long upperMask=0xFFFFFFFFFFFFFFFFLL-lowerMask;
 
+static int timerFreq;
 static long long ms32time = 0; //most significant 32 bits of counter
 static long long ms32chkp = 0; //most significant 32 bits of check point
 static long long set_offset = 0;
 static bool lateIrq=false;
 
-static TimeConversion *tc;
+static TimeConversion tc;
 
 static inline long long nextInterrupt()
 {
@@ -70,7 +71,7 @@ void __attribute__((used)) cstirqhnd()
         if(ms32time==ms32chkp || lateIrq)
         {
             lateIrq=false;
-            IRQtimerInterrupt(tc->tick2ns(IRQgetTick()) + set_offset);
+            IRQtimerInterrupt(tc.tick2ns(IRQgetTick()) + set_offset);
         }
 
     }
@@ -82,58 +83,22 @@ void __attribute__((used)) cstirqhnd()
     }
 }
 
-//
-// class ContextSwitchTimer
-//
-
 namespace miosix {
 
-ContextSwitchTimer& ContextSwitchTimer::instance()
-{
-    static ContextSwitchTimer instance;
-    return instance;
-}
-
-void ContextSwitchTimer::IRQsetNextInterrupt(long long ns)
-{
-    long long offsetNs = ns - set_offset;
-    if(offsetNs <= 0)
-    {
-        NVIC_SetPendingIRQ(TIM2_IRQn);
-        lateIrq=true;
-    }
-    long long tick = tc->ns2tick(offsetNs);
-    ms32chkp = tick & upperMask;
-    TIM2->CCR1 = static_cast<unsigned int>(tick & lowerMask);
-    if(IRQgetTick() >= nextInterrupt())
-    {
-        NVIC_SetPendingIRQ(TIM2_IRQn);
-        lateIrq=true;
-    }
-}
-
-long long ContextSwitchTimer::getCurrentTime() const
+long long getTime()
 {
     FastInterruptDisableLock dLock;
-    return tc->tick2ns(IRQgetTick()) + set_offset;
+    return tc.tick2ns(IRQgetTick()) + set_offset;
 }
 
-long long ContextSwitchTimer::IRQgetCurrentTime() const
+long long IRQgetTime()
 {
-    return tc->tick2ns(IRQgetTick()) + set_offset;
-}
-  
-void ContextSwitchTimer::IRQsetCurrentTime(long long ns)
-{
-    long long nextIrqTime = tc->tick2ns(nextInterrupt()) + set_offset;
-    long long currentTime = tc->tick2ns(IRQgetTick());
-    //NOTE: can only move time forward, the OS can't tolerate a backward jump
-    set_offset = std::max(ns - currentTime, 0LL);
-    //NOTE: adjust also when the next interrupt will be fired
-    IRQsetNextInterrupt(nextIrqTime);
+    return tc.tick2ns(IRQgetTick()) + set_offset;
 }
 
-ContextSwitchTimer::ContextSwitchTimer()
+namespace internal {
+
+void IRQosTimerInit()
 {
     // TIM2 Source Clock (from APB1) Enable
     {
@@ -177,8 +142,42 @@ ContextSwitchTimer::ContextSwitchTimer()
     // interface. After this, the freq variable contains the frequency in Hz
     // at which the timer prescaler is clocked.
     if(RCC->CFGR & RCC_CFGR_PPRE1_2) timerFreq/=1<<((RCC->CFGR>>10) & 0x3);
-    static TimeConversion stc(timerFreq);
-    tc = &stc;
+    tc=TimeConversion(timerFreq);
 }
+
+void IRQosTimerSetInterrupt(long long ns)
+{
+    long long offsetNs = ns - set_offset;
+    if(offsetNs <= 0)
+    {
+        NVIC_SetPendingIRQ(TIM2_IRQn);
+        lateIrq=true;
+    }
+    long long tick = tc.ns2tick(offsetNs);
+    ms32chkp = tick & upperMask;
+    TIM2->CCR1 = static_cast<unsigned int>(tick & lowerMask);
+    if(IRQgetTick() >= nextInterrupt())
+    {
+        NVIC_SetPendingIRQ(TIM2_IRQn);
+        lateIrq=true;
+    }
+}
+  
+void IRQosTimerSetTime(long long ns)
+{
+    long long nextIrqTime = tc.tick2ns(nextInterrupt()) + set_offset;
+    long long currentTime = tc.tick2ns(IRQgetTick());
+    //NOTE: can only move time forward, the OS can't tolerate a backward jump
+    set_offset = std::max(ns - currentTime, 0LL);
+    //NOTE: adjust also when the next interrupt will be fired
+    IRQosTimerSetInterrupt(nextIrqTime);
+}
+
+unsigned int osTimerGetFrequency()
+{
+    return timerFreq;
+}
+
+} //namespace internal
 
 } //namespace miosix

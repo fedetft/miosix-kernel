@@ -36,6 +36,7 @@ start the kernel and filesystem.
 #include <stdexcept>
 // Low level hardware functionalities
 #include "interfaces/bsp.h"
+#include "interfaces/os_timer.h"
 #include "interfaces/deep_sleep.h"
 // Miosix kernel
 #include "kernel.h"
@@ -125,6 +126,7 @@ extern "C" void _init()
 
     if(areInterruptsEnabled()) errorHandler(INTERRUPTS_ENABLED_AT_BOOT);
     IRQbspInit();
+    internal::IRQosTimerInit();
     #ifdef WITH_DEEP_SLEEP
     IRQdeepSleepInit();
     #endif // WITH_DEEP_SLEEP

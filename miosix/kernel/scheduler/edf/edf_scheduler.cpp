@@ -28,7 +28,7 @@
 #include "edf_scheduler.h"
 #include "kernel/error.h"
 #include "kernel/process.h"
-#include "interfaces/cstimer.h"
+#include "interfaces/os_timer.h"
 #include "kernel/scheduler/timer_interrupt.h"
 #include <algorithm>
 
@@ -44,7 +44,6 @@ extern volatile int kernel_running;
 extern IntrusiveList<SleepData> *sleepingList;
 
 //Static members
-static ContextSwitchTimer *timer = nullptr;
 static long long nextPreemption = numeric_limits<long long>::max();
 //
 // class EDFScheduler
@@ -107,7 +106,6 @@ void EDFScheduler::PKsetPriority(Thread *thread,
 
 void EDFScheduler::IRQsetIdleThread(Thread *idleThread)
 {
-    timer = &ContextSwitchTimer::instance();
     idleThread->schedData.deadline=numeric_limits<long long>::max()-1;
     add(idleThread);
 }
@@ -117,14 +115,16 @@ long long EDFScheduler::IRQgetNextPreemption()
     return nextPreemption;
 }
 
-static void IRQsetNextPreemption(){
-    if (sleepingList->empty())
+static void IRQsetNextPreemption()
+{
+    if(sleepingList->empty())
     {
+        //TODO: can't we just not set an interrupt?
         nextPreemption = numeric_limits<long long>::max();
-    }else{
+    } else {
         nextPreemption = sleepingList->front()->wakeup_time;
     }
-    timer->IRQsetNextInterrupt(nextPreemption);
+    internal::IRQosTimerSetInterrupt(nextPreemption);
 }
 
 unsigned int EDFScheduler::IRQfindNextThread()

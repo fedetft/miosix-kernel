@@ -106,6 +106,8 @@ private:
 class TimeConversion
 {
 public:
+    TimeConversion();
+
     /**
      * Constructor
      * Set the conversion factors based on the tick frequency.

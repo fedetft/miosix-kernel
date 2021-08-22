@@ -38,7 +38,6 @@
 #include <cstdio>
 #include <cstring>
 #include <cassert>
-#include "interfaces/cstimer.h"
 
 /**
  * \internal

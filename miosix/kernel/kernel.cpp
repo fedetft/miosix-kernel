@@ -36,7 +36,7 @@
 #include "process.h"
 #include "kernel/scheduler/scheduler.h"
 #include "stdlib_integration/libc_integration.h"
-#include "interfaces/cstimer.h"
+#include "interfaces/os_timer.h"
 #include "timeconversion.h"
 #include <stdexcept>
 #include <algorithm>
@@ -259,15 +259,9 @@ bool isKernelRunning()
     return (kernel_running==0) && kernel_started;
 }
 
-long long getTime()
-{
-    return ContextSwitchTimer::instance().getCurrentTime();
-}
-
-long long IRQgetTime()
-{
-    return ContextSwitchTimer::instance().IRQgetCurrentTime();
-}
+//These are not implemented here, but in the platform/board-specific os_timer.
+//long long getTime()
+//long long IRQgetTime()
 
 /**
  * \internal
@@ -393,7 +387,7 @@ void Thread::nanoSleep(long long ns)
 {
     if(ns<=0) return; //TODO: should be (ns &lt; resolution + epsilon)
     //TODO: Mutual Exclusion issue
-    nanoSleepUntil(ContextSwitchTimer::instance().getCurrentTime() + ns);
+    nanoSleepUntil(getTime() + ns);
 }
 
 void Thread::nanoSleepUntil(long long absoluteTimeNs)
