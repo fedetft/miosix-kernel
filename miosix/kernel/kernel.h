@@ -399,11 +399,20 @@ void startKernel();
 bool isKernelRunning();
 
 /**
- * Returns the time passed in nanoseconds since the context switch started.<br>
- * Can be called also with interrupts disabled and/or kernel paused.
+ * Returns OS time, which is a monotonic clock started when the OS booted.<br>
+ * Warning! This function replaces the getTick() in previous versions of the
+ * kernel, but unlike getTick(), getTime() cannot be called with interrupts
+ * disabled. For that, you need to call IRQgeTime().
  * \return current time in nanoseconds
  */
 long long getTime();
+
+/**
+ * Returns OS time, which is a monotonic clock started when the OS booted.<br>
+ * Must be called with interrupts disabled, or within an interrupt.
+ * \return current time in nanoseconds
+ */
+long long IRQgetTime();
 
 //Forwrd declaration
 struct SleepData;

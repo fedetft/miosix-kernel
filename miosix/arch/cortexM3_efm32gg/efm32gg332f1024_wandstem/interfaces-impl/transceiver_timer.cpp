@@ -64,6 +64,7 @@ bool TransceiverTimer::absoluteWaitTimeoutOrEvent(long long tick){
 }
 
 bool TransceiverTimer::waitTimeoutOrEvent(long long tick){
+    //FIXME: why the IRQ version of getCurrentTickVht()?
     return absoluteWaitTimeoutOrEvent(vt->uncorrected2corrected(b.IRQgetCurrentTickVht())+tick);
 }
 

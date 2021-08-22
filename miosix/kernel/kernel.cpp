@@ -264,6 +264,11 @@ long long getTime()
     return ContextSwitchTimer::instance().getCurrentTime();
 }
 
+long long IRQgetTime()
+{
+    return ContextSwitchTimer::instance().IRQgetCurrentTime();
+}
+
 /**
  * \internal
  * Used by Thread::sleep() to add a thread to sleeping list. The list is sorted

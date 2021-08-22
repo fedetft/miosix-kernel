@@ -97,9 +97,6 @@ class HRTB {
         }
         
         /**
-         * Could be call both when the interrupts are enabled/disabled!
-         * TODO: investigate if it's possible to remove the possibility to call
-         * this with IRQ disabled and use IRQgetCurrentTime() instead
          * \return the current tick count of the timer
          */
         long long getCurrentTick();

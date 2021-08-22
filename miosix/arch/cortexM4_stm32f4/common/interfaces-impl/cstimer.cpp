@@ -114,14 +114,8 @@ void ContextSwitchTimer::IRQsetNextInterrupt(long long ns)
 
 long long ContextSwitchTimer::getCurrentTime() const
 {
-    bool interrupts=areInterruptsEnabled();
-    //TODO: optimization opportunity, if we can guarantee that no call to this
-    //function occurs before kernel is started, then we can use
-    //fastInterruptDisable())
-    if(interrupts) disableInterrupts();
-    long long result=tc->tick2ns(IRQgetTick()) + set_offset;
-    if(interrupts) enableInterrupts();
-    return result;
+    InterruptDisableLock dLock;
+    return tc->tick2ns(IRQgetTick()) + set_offset;
 }
 
 long long ContextSwitchTimer::IRQgetCurrentTime() const

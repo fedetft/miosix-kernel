@@ -466,36 +466,18 @@ inline void HRTB::enableCC1InterruptTim2(bool enable){
 }
 
 long long HRTB::getCurrentTick(){
-    bool interrupts=areInterruptsEnabled();
-    //TODO: optimization opportunity, if we can guarantee that no call to this
-    //function occurs before kernel is started, then we can use
-    //fastInterruptDisable())
-    if(interrupts) disableInterrupts();
-    long long result=IRQgetTick();
-    if(interrupts) enableInterrupts();
-    return result;
+    InterruptDisableLock dLock;
+    return IRQgetTick();
 }
 
 long long HRTB::getCurrentTickCorrected(){
-    bool interrupts=areInterruptsEnabled();
-    //TODO: optimization opportunity, if we can guarantee that no call to this
-    //function occurs before kernel is started, then we can use
-    //fastInterruptDisable())
-    if(interrupts) disableInterrupts();
-    long long result=IRQgetTickCorrected();
-    if(interrupts) enableInterrupts();
-    return result;
+    InterruptDisableLock dLock;
+    return IRQgetTickCorrected();
 }
 
 long long HRTB::getCurrentTickVht(){
-    bool interrupts=areInterruptsEnabled();
-    //TODO: optimization opportunity, if we can guarantee that no call to this
-    //function occurs before kernel is started, then we can use
-    //fastInterruptDisable())
-    if(interrupts) disableInterrupts();
-    long long result=IRQgetTickCorrectedVht();
-    if(interrupts) enableInterrupts();
-    return result;
+    InterruptDisableLock dLock;
+    return IRQgetTickCorrectedVht();
 }
 
 inline WaitResult HRTB::IRQsetNextTransceiverInterrupt(long long tick){

@@ -187,7 +187,7 @@ static void rtcInit()
     CIIR=0;
 }
 
-Time getTime()
+Time rtcGetTime()
 {
     Time t;
     unsigned int t0,t1;
@@ -206,7 +206,7 @@ Time getTime()
     return t;
 }
 
-void setTime(Time t)
+void rtcSetTime(Time t)
 {
     PauseKernelLock lock;//The RTC is a shared resource ;)
     CCR&=~(1<<0);//Stop RTC clock

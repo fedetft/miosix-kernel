@@ -894,7 +894,7 @@ static void test_3()
     const int period=10000000;//10ms
     {
         InterruptDisableLock lock; //Making these two operations atomic.
-        time=getTime();
+        time=IRQgetTime();
         time+=period;
     }
     for(int i=0;i<4;i++)

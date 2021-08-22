@@ -275,13 +275,13 @@ struct Time
 Read time from RTC
 \return current time
 */
-Time getTime();
+Time rtcGetTime();
 
 /**
 Set current time
 \param t time that will be written into RTC
 */
-void setTime(Time t);
+void rtcSetTime(Time t);
 #endif //WITH_RTC
 
 /**
