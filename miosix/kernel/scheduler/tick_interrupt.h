@@ -36,7 +36,7 @@ namespace miosix {
 //These are a couple of global variables and a function that are part of the
 //internal implementation of the kernel and are defined in kernel.cpp
 //User code should not know about these nor try to use them.
-extern unsigned char kernel_running;///\internal Do not use outside the kernel
+extern volatile int kernel_running;///\internal Do not use outside the kernel
 extern volatile bool tick_skew;///\internal Do not use outside the kernel
 extern volatile Thread *cur;///\internal Do not use outside the kernel
 extern bool IRQwakeThreads();///\internal Do not use outside the kernel

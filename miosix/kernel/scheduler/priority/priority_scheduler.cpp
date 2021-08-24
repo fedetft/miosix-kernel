@@ -35,7 +35,7 @@ namespace miosix {
 
 //These are defined in kernel.cpp
 extern volatile Thread *cur;
-extern unsigned char kernel_running;
+extern volatile int kernel_running;
 
 //
 // class PriorityScheduler
