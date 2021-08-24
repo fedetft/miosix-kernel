@@ -1,59 +1,106 @@
+/***************************************************************************
+ *   Copyright (C) 2021 by Terraneo Federico                               *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   As a special exception, if other files instantiate templates or use   *
+ *   macros or inline functions from this file, or you compile this file   *
+ *   and link it with other works to produce a work based on this file,    *
+ *   this file does not by itself cause the resulting work to be covered   *
+ *   by the GNU General Public License. However the source code for this   *
+ *   file must still be made available in accordance with the GNU General  *
+ *   Public License. This exception does not invalidate any other reasons  *
+ *   why a work based on this file might be covered by the GNU General     *
+ *   Public License.                                                       *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
+ ***************************************************************************/
 
+#include "kernel/kernel.h"
 #include "interfaces/os_timer.h"
 #include "interfaces/arch_registers.h"
-#include "kernel/kernel.h"
-#include "kernel/scheduler/timer_interrupt.h"
-#include "kernel/timeconversion.h"
 
 using namespace miosix;
 
-const unsigned int timerBits=32;
-const unsigned long long overflowIncrement=(1LL<<timerBits);
-const unsigned long long lowerMask=overflowIncrement-1;
-const unsigned long long upperMask=0xFFFFFFFFFFFFFFFFLL-lowerMask;
-
-static int timerFreq;
-static long long ms32time = 0; //most significant 32 bits of counter
-static long long ms32chkp = 0; //most significant 32 bits of check point
-static bool lateIrq=false;
-
-static TimeConversion tc;
-
-static inline long long nextInterrupt()
+class STM32Timer32bit : public TimerAdapter<STM32Timer32bit, 32>
 {
-    return ms32chkp | TIM2->CCR1;
-}
+public:
+    static inline unsigned int IRQgetTimerCounter() { return TIM2->CNT; }
+    static inline void IRQsetTimerCounter(unsigned int v) { TIM2->CNT=v; }
 
-static inline long long IRQgetTick()
-{
-    //THE PENDING BIT TRICK, version 2
-    //This algorithm is the main part that allows to extend in software a
-    //32bit timer to a 64bit one. The basic idea is this: the lower bits of the
-    //64bit timer are kept by the counter register of the timer, while the upper
-    //bits are kept in a software variable. When the hardware timer overflows, 
-    //an interrupt is used to update the upper bits.
-    //Reading the timer may appear to be doable by just an OR operation between
-    //the software variable and the hardware counter, but is actually way
-    //trickier than it seems, because user code may:
-    //1 disable interrupts,
-    //2 spend a little time with interrupts disabled,
-    //3 call this function.
-    //Now, if a timer overflow occurs while interrupts are disabled, the upper
-    //bits have not yet been updated, so we would return the wrong time.
-    //To fix this, we check the timer overflow pending bit, and if it is set
-    //we return the time adjusted accordingly. This almost works, the last
-    //issue to fix is that reading the timer counter and the pending bit
-    //is not an atomic operation, and the counter may roll over exactly at that
-    //point in time. To solve this, we read the timer a second time to see if
-    //it had rolled over.
-    //Note that this algorithm imposes a limit on the maximum time interrupts
-    //can be disabeld, equals to one hardware timer period minus the time
-    //between the two timer reads in this algorithm.
-    unsigned int counter=TIM2->CNT;
-    if((TIM2->SR & TIM_SR_UIF) && TIM2->CNT>=counter)
-        return (ms32time | static_cast<long long>(counter)) + overflowIncrement;
-    return ms32time | static_cast<long long>(counter);
-}
+    static inline unsigned int IRQgetTimerMatchReg() { return TIM2->CCR1; }
+    static inline void IRQsetTimerMatchReg(unsigned int v) { TIM2->CCR1=v; }
+
+    static inline bool IRQgetOverflowFlag() { return TIM2->SR & TIM_SR_UIF; }
+    static inline void IRQclearOverflowFlag() { TIM2->SR = ~TIM_SR_UIF; }
+    
+    static inline bool IRQgetMatchFlag() { return TIM2->SR & TIM_SR_CC1IF; }
+    static inline void IRQclearMatchFlag() { TIM2->SR = ~TIM_SR_CC1IF; }
+    
+    static inline void IRQforcePendingIrq() { NVIC_SetPendingIRQ(TIM2_IRQn); }
+
+    static inline void IRQstopTimer() { TIM2->CR1 &= ~TIM_CR1_CEN; }
+    static inline void IRQstartTimer() { TIM2->CR1 |= TIM_CR1_CEN; }
+    
+    static unsigned int IRQTimerFrequency()
+    {
+        // The global variable SystemCoreClock from ARM's CMSIS allows to know
+        // the CPU frequency.
+        unsigned int result=SystemCoreClock;
+
+        // The timer frequency may however be a submultiple of the CPU frequency,
+        // due to the bus at whch the periheral is connected being slower. The
+        // RCC->CFGR register tells us how slower the APB1 bus is running.
+        // This formula takes into account that if the APB1 clock is divided by a
+        // factor of two or greater, the timer is clocked at twice the bus
+        // interface. After this, the freq variable contains the frequency in Hz
+        // at which the timer prescaler is clocked.
+        if(RCC->CFGR & RCC_CFGR_PPRE1_2) result/=1<<((RCC->CFGR>>10) & 0x3);
+        return result;
+    }
+    
+    static void IRQinitTimer()
+    {
+        {
+            //NOTE: Not FastInterruptDisableLock as this is called before kernel
+            //is started
+            InterruptDisableLock idl;
+            RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+            RCC_SYNC();
+            DBGMCU->APB1FZ|=DBGMCU_APB1_FZ_DBG_TIM2_STOP; //Stop while debugging
+        }
+        // Setup TIM2 base configuration
+        // Mode: Up-counter
+        // Interrupts: counter overflow, Compare/Capture on channel 1
+        TIM2->CR1=TIM_CR1_URS;
+        TIM2->DIER=TIM_DIER_UIE | TIM_DIER_CC1IE;
+        NVIC_SetPriority(TIM2_IRQn,3); //High priority for TIM2 (Max=0, min=15)
+        NVIC_EnableIRQ(TIM2_IRQn);
+        // Configure channel 1 as:
+        // Output channel (CC1S=0)
+        // No preload(OC1PE=0), hence TIM2_CCR1 can be written at anytime
+        // No effect on the output signal on match (OC1M = 0)
+        TIM2->CCMR1 = 0;
+        TIM2->CCR1 = 0;
+        // TIM2 Operation Frequency Configuration: Max Freq. and longest period
+        TIM2->PSC = 0;
+        TIM2->ARR = 0xFFFFFFFF;
+        
+        // Enable TIM2 Counter
+        TIM2->EGR = TIM_EGR_UG; //To enforce the timer to apply PSC
+    }
+};
+
+static STM32Timer32bit timer;
 
 void __attribute__((naked)) TIM2_IRQHandler()
 {
@@ -64,127 +111,11 @@ void __attribute__((naked)) TIM2_IRQHandler()
 
 void __attribute__((used)) cstirqhnd()
 {
-    if(TIM2->SR & TIM_SR_CC1IF || lateIrq)
-    {
-        TIM2->SR = ~TIM_SR_CC1IF;
-        if(ms32time==ms32chkp || lateIrq)
-        {
-            lateIrq=false;
-            IRQtimerInterrupt(tc.tick2ns(IRQgetTick()));
-        }
-
-    }
-    //Rollover
-    if(TIM2->SR & TIM_SR_UIF)
-    {
-        TIM2->SR = ~TIM_SR_UIF;
-        ms32time += overflowIncrement;
-    }
+    timer.IRQhandler();
 }
 
 namespace miosix {
 
-long long getTime() noexcept
-{
-    FastInterruptDisableLock dLock;
-    return tc.tick2ns(IRQgetTick());
-}
-
-long long IRQgetTime() noexcept
-{
-    return tc.tick2ns(IRQgetTick());
-}
-
-namespace internal {
-
-void IRQosTimerInit()
-{
-    // TIM2 Source Clock (from APB1) Enable
-    {
-        //NOTE: Not FastInterruptDisableLock as this is called before kernel
-        //is started
-        InterruptDisableLock idl;
-        RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
-        RCC_SYNC();
-        DBGMCU->APB1FZ|=DBGMCU_APB1_FZ_DBG_TIM2_STOP; //Tim2 stops while debugging
-    }
-    // Setup TIM2 base configuration
-    // Mode: Up-counter
-    // Interrupts: counter overflow, Compare/Capture on channel 1
-    TIM2->CR1=TIM_CR1_URS;
-    TIM2->DIER=TIM_DIER_UIE | TIM_DIER_CC1IE;
-    NVIC_SetPriority(TIM2_IRQn,3); //High priority for TIM2 (Max=0, min=15)
-    NVIC_EnableIRQ(TIM2_IRQn);
-    // Configure channel 1 as:
-    // Output channel (CC1S=0)
-    // No preload(OC1PE=0), hence TIM2_CCR1 can be written at anytime
-    // No effect on the output signal on match (OC1M = 0)
-    TIM2->CCMR1 = 0;
-    TIM2->CCR1 = 0;
-    // TIM2 Operation Frequency Configuration: Max Freq. and longest period
-    TIM2->PSC = 0;
-    TIM2->ARR = 0xFFFFFFFF;
-    
-    // Enable TIM2 Counter
-    TIM2->EGR = TIM_EGR_UG; //To enforce the timer to apply PSC
-    TIM2->CR1 |= TIM_CR1_CEN;
-    
-    // The global variable SystemCoreClock from ARM's CMSIS allows to know
-    // the CPU frequency.
-    timerFreq=SystemCoreClock;
-
-    // The timer frequency may however be a submultiple of the CPU frequency,
-    // due to the bus at whch the periheral is connected being slower. The
-    // RCC->CFGR register tells us how slower the APB1 bus is running.
-    // This formula takes into account that if the APB1 clock is divided by a
-    // factor of two or greater, the timer is clocked at twice the bus
-    // interface. After this, the freq variable contains the frequency in Hz
-    // at which the timer prescaler is clocked.
-    if(RCC->CFGR & RCC_CFGR_PPRE1_2) timerFreq/=1<<((RCC->CFGR>>10) & 0x3);
-    tc=TimeConversion(timerFreq);
-}
-
-void IRQosTimerSetInterrupt(long long ns) noexcept
-{
-    if(ns <= 0)
-    {
-        NVIC_SetPendingIRQ(TIM2_IRQn);
-        lateIrq=true;
-    }
-    long long tick = tc.ns2tick(ns);
-    ms32chkp = tick & upperMask;
-    TIM2->CCR1 = static_cast<unsigned int>(tick & lowerMask);
-    if(IRQgetTick() >= nextInterrupt())
-    {
-        NVIC_SetPendingIRQ(TIM2_IRQn);
-        lateIrq=true;
-    }
-}
-  
-void IRQosTimerSetTime(long long ns) noexcept
-{
-    //Normally we never stop the timer not to accumulate clock skew,
-    //but here we're introducing a clock jump anyway
-    TIM2->CR1 &= ~TIM_CR1_CEN;
-    //NOTE: can only move time forward, the OS can't tolerate a backward jump
-    if(ns>IRQgetTime())
-    {
-        long long tick = tc.ns2tick(ns);
-        ms32time = tick & upperMask;
-        TIM2->CNT = static_cast<unsigned int>(tick & lowerMask);
-        TIM2->SR = ~TIM_SR_UIF;
-        //NOTE: adjust also when the next interrupt will be fired
-        long long nextIrqTime = tc.tick2ns(nextInterrupt());
-        IRQosTimerSetInterrupt(nextIrqTime);
-    }
-    TIM2->CR1 |= TIM_CR1_CEN;
-}
-
-unsigned int osTimerGetFrequency()
-{
-    return timerFreq;
-}
-
-} //namespace internal
+DEFAULT_OS_TIMER_INTERFACE_IMPLMENTATION(timer);
 
 } //namespace miosix
