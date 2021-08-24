@@ -260,8 +260,8 @@ bool isKernelRunning()
 }
 
 //These are not implemented here, but in the platform/board-specific os_timer.
-//long long getTime()
-//long long IRQgetTime()
+//long long getTime() noexcept
+//long long IRQgetTime() noexcept
 
 /**
  * \internal

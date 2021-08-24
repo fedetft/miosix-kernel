@@ -15,7 +15,6 @@ const unsigned long long upperMask=0xFFFFFFFFFFFFFFFFLL-lowerMask;
 static int timerFreq;
 static long long ms32time = 0; //most significant 32 bits of counter
 static long long ms32chkp = 0; //most significant 32 bits of check point
-static long long set_offset = 0;
 static bool lateIrq=false;
 
 static TimeConversion tc;
@@ -71,7 +70,7 @@ void __attribute__((used)) cstirqhnd()
         if(ms32time==ms32chkp || lateIrq)
         {
             lateIrq=false;
-            IRQtimerInterrupt(tc.tick2ns(IRQgetTick()) + set_offset);
+            IRQtimerInterrupt(tc.tick2ns(IRQgetTick()));
         }
 
     }
@@ -85,15 +84,15 @@ void __attribute__((used)) cstirqhnd()
 
 namespace miosix {
 
-long long getTime()
+long long getTime() noexcept
 {
     FastInterruptDisableLock dLock;
-    return tc.tick2ns(IRQgetTick()) + set_offset;
+    return tc.tick2ns(IRQgetTick());
 }
 
-long long IRQgetTime()
+long long IRQgetTime() noexcept
 {
-    return tc.tick2ns(IRQgetTick()) + set_offset;
+    return tc.tick2ns(IRQgetTick());
 }
 
 namespace internal {
@@ -145,15 +144,14 @@ void IRQosTimerInit()
     tc=TimeConversion(timerFreq);
 }
 
-void IRQosTimerSetInterrupt(long long ns)
+void IRQosTimerSetInterrupt(long long ns) noexcept
 {
-    long long offsetNs = ns - set_offset;
-    if(offsetNs <= 0)
+    if(ns <= 0)
     {
         NVIC_SetPendingIRQ(TIM2_IRQn);
         lateIrq=true;
     }
-    long long tick = tc.ns2tick(offsetNs);
+    long long tick = tc.ns2tick(ns);
     ms32chkp = tick & upperMask;
     TIM2->CCR1 = static_cast<unsigned int>(tick & lowerMask);
     if(IRQgetTick() >= nextInterrupt())
@@ -163,14 +161,23 @@ void IRQosTimerSetInterrupt(long long ns)
     }
 }
   
-void IRQosTimerSetTime(long long ns)
+void IRQosTimerSetTime(long long ns) noexcept
 {
-    long long nextIrqTime = tc.tick2ns(nextInterrupt()) + set_offset;
-    long long currentTime = tc.tick2ns(IRQgetTick());
+    //Normally we never stop the timer not to accumulate clock skew,
+    //but here we're introducing a clock jump anyway
+    TIM2->CR1 &= ~TIM_CR1_CEN;
     //NOTE: can only move time forward, the OS can't tolerate a backward jump
-    set_offset = std::max(ns - currentTime, 0LL);
-    //NOTE: adjust also when the next interrupt will be fired
-    IRQosTimerSetInterrupt(nextIrqTime);
+    if(ns>IRQgetTime())
+    {
+        long long tick = tc.ns2tick(ns);
+        ms32time = tick & upperMask;
+        TIM2->CNT = static_cast<unsigned int>(tick & lowerMask);
+        TIM2->SR = ~TIM_SR_UIF;
+        //NOTE: adjust also when the next interrupt will be fired
+        long long nextIrqTime = tc.tick2ns(nextInterrupt());
+        IRQosTimerSetInterrupt(nextIrqTime);
+    }
+    TIM2->CR1 |= TIM_CR1_CEN;
 }
 
 unsigned int osTimerGetFrequency()

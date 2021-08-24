@@ -377,7 +377,7 @@ long long HRTB::IRQgetSetTimeGPIO() const{
     return ms32chkp[2] | TIMER3->CC[2].CCV<<16 | TIMER1->CC[2].CCV;
 }
 
-long long HRTB::IRQgetCurrentTick(){
+long long HRTB::IRQgetCurrentTick() noexcept {
     return IRQgetTick();
 }
 
@@ -465,7 +465,7 @@ inline void HRTB::enableCC1InterruptTim2(bool enable){
         TIMER2->IEN&=~TIMER_IEN_CC1;
 }
 
-long long HRTB::getCurrentTick(){
+long long HRTB::getCurrentTick() noexcept {
     FastInterruptDisableLock dLock;
     return IRQgetTick();
 }
@@ -508,7 +508,7 @@ inline WaitResult HRTB::IRQsetNextTransceiverInterrupt(long long tick){
     }
 } 
 
-void HRTB::IRQsetNextInterruptCS(long long tick){
+void HRTB::IRQsetNextInterruptCS(long long tick) noexcept {
     // First off, disable timers to prevent unnecessary IRQ
     // when IRQsetNextInterrupt is called multiple times consecutively.
     TIMER1->IEN &= ~TIMER_IEN_CC1;

@@ -405,14 +405,14 @@ bool isKernelRunning();
  * disabled. For that, you need to call IRQgeTime().
  * \return current time in nanoseconds
  */
-long long getTime();
+long long getTime() noexcept;
 
 /**
  * Returns OS time, which is a monotonic clock started when the OS booted.<br>
  * Must be called with interrupts disabled, or within an interrupt.
  * \return current time in nanoseconds
  */
-long long IRQgetTime();
+long long IRQgetTime() noexcept;
 
 //Forwrd declaration
 struct SleepData;

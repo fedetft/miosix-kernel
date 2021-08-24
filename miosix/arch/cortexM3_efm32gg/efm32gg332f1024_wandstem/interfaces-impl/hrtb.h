@@ -59,7 +59,7 @@ class HRTB {
          * \param tick the time when the interrupt will be fired, in timer ticks
          */
         WaitResult IRQsetNextTransceiverInterrupt(long long tick);
-        void IRQsetNextInterruptCS(long long tick);
+        void IRQsetNextInterruptCS(long long tick) noexcept;
         WaitResult IRQsetNextGPIOInterrupt(long long tick);
 
         /**
@@ -99,7 +99,7 @@ class HRTB {
         /**
          * \return the current tick count of the timer
          */
-        long long getCurrentTick();
+        long long getCurrentTick() noexcept;
         long long getCurrentTickCorrected();
         long long getCurrentTickVht();
         
@@ -107,7 +107,7 @@ class HRTB {
          * \return the current tick count of the timer.
          * Can only be called with interrupts disabled or within an IRQ
          */
-        long long IRQgetCurrentTick();
+        long long IRQgetCurrentTick() noexcept;
         long long IRQgetCurrentTickCorrected();
         long long IRQgetCurrentTickVht();
 

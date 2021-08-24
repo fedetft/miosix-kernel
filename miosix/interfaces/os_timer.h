@@ -51,8 +51,8 @@ namespace miosix {
 // functions, although they are not declared here, but in kernel.h, as
 // these are the only two function that are meant to be called also from
 // application code. For comments about the intended behavior, see kernel.h
-//long long getTime();
-//long long IRQgetTime();
+//long long getTime() noexcept;
+//long long IRQgetTime() noexcept;
     
 namespace internal {
 
@@ -77,7 +77,7 @@ void IRQosTimerInit();
  * \endcode
  * function defined in kernel/scheduler/timer_interrupt.h
  */
-void IRQosTimerSetInterrupt(long long ns);
+void IRQosTimerSetInterrupt(long long ns) noexcept;
 
 /**
  * \internal
@@ -93,7 +93,7 @@ void IRQosTimerSetInterrupt(long long ns);
  * moved accordingly or fired immediately if the timer advance causes it
  * to be in the past.
  */ 
-void IRQosTimerSetTime(long long ns);
+void IRQosTimerSetTime(long long ns) noexcept;
 
 /**
  * \internal

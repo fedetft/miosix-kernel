@@ -57,7 +57,7 @@ static inline unsigned int lo(unsigned long long x) { return x & 0xffffffff; }
 static inline unsigned int hi(unsigned long long x) { return x>>32; }
 
 unsigned long long mul64x32d32(unsigned long long a,
-                               unsigned int bi, unsigned int bf)
+                               unsigned int bi, unsigned int bf) noexcept
 {
     /*
      * The implemntation is a standard multiplication algorithm:
@@ -201,7 +201,7 @@ static inline unsigned long long uabs(long long x)
 // class TimeConversion
 //
 
-long long TimeConversion::ns2tick(long long ns)
+long long TimeConversion::ns2tick(long long ns) noexcept
 {
     /*
      * This algorithm does the online adjustment to compensate for round trip
@@ -317,13 +317,13 @@ long long TimeConversion::ns2tick(long long ns)
     return static_cast<long long>(convert(uns+adjustOffsetNs,toTick));
 }
 
-TimeConversion::TimeConversion()
+TimeConversion::TimeConversion() noexcept
     : toNs(1,0), toTick(1,0),
       adjustIntervalNs(std::numeric_limits<unsigned long long>::max()),
       lastAdjustTimeNs(0), adjustOffsetNs(0)
 {}
 
-TimeConversion::TimeConversion(unsigned int hz)
+TimeConversion::TimeConversion(unsigned int hz) noexcept
     : lastAdjustTimeNs(0), adjustOffsetNs(0)
 {
     //
@@ -430,7 +430,7 @@ TimeConversion::TimeConversion(unsigned int hz)
 }
 
 long long TimeConversion::computeRoundTripError(unsigned long long tick,
-                                                int delta) const
+                                                int delta) const noexcept
 {
     auto adjustedToTick=toTick+delta;
     unsigned long long ns=convert(tick,toNs);
@@ -438,7 +438,7 @@ long long TimeConversion::computeRoundTripError(unsigned long long tick,
     return static_cast<long long>(tick-roundTrip);
 }
 
-TimeConversionFactor TimeConversion::floatToFactor(float x)
+TimeConversionFactor TimeConversion::floatToFactor(float x) noexcept
 {
     const float twoPower32=4294967296.f; //2^32 as a float
     unsigned int i=x;

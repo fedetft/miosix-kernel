@@ -39,12 +39,12 @@ static TimeConversion tc;
 static VHT *vht=nullptr;
 static VirtualClock *vt=nullptr;
 
-long long getTime()
+long long getTime() noexcept
 {
     return tc.tick2ns(vt->uncorrected2corrected(vht->uncorrected2corrected(b->addBasicCorrection(b->getCurrentTick()))));
 }
 
-long long IRQgetTime()
+long long IRQgetTime() noexcept
 {
     return tc.tick2ns(vt->uncorrected2corrected(vht->uncorrected2corrected(b->addBasicCorrection(b->IRQgetCurrentTick()))));
 }
@@ -59,7 +59,7 @@ void IRQosTimerInit()
     vt=&VirtualClock::instance();
 }
 
-void IRQosTimerSetInterrupt(long long ns)
+void IRQosTimerSetInterrupt(long long ns) noexcept
 {
     b->IRQsetNextInterruptCS(b->removeBasicCorrection(vht->corrected2uncorrected(vt->corrected2uncorrected(tc.ns2tick(ns)))));
 }
@@ -69,7 +69,7 @@ void IRQosTimerSetInterrupt(long long ns)
 //     return tc->tick2ns(vt->uncorrected2corrected(vht->uncorrected2corrected(pImpl->b.addBasicCorrection(pImpl->b.IRQgetSetTimeCS()))));
 // }
 
-// void IRQosTimerSetTime(long long ns)
+// void IRQosTimerSetTime(long long ns) noexcept
 // {
 //     //TODO
 // }
