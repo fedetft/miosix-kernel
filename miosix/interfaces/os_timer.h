@@ -248,27 +248,26 @@ public:
         //Normally we never stop the timer not to accumulate clock skew,
         //but here we're asked to introduce a clock jump anyway
         D::IRQstopTimer();
-        if(ns>IRQgetTimeNs())
+        long long oldTick = IRQgetTimeTick();
+        long long tick = tc.ns2tick(ns);
+        if(tick>oldTick)
         {
-            long long tick = tc.ns2tick(ns);
             upperTimeTick = tick & upperMask;
             D::IRQsetTimerCounter(static_cast<unsigned int>(tick & lowerMask));
             D::IRQclearOverflowFlag();
             //Adjust also when the next interrupt will be fired
-            long long nextIrqNs = IRQgetIrqNs();
-            //TODO: if IRQ is in the past this causes spurious IRQ
-            IRQsetIrqNs(nextIrqNs);
+            long long nextIrqTick = IRQgetIrqTick();
+            if(nextIrqTick>oldTick) IRQsetIrqTick(nextIrqTick);
         }
         D::IRQstartTimer();
     }
     
     /**
      * Schedule the next os interrupt
-     * \param ns absolute time in nanoseconds
+     * \param ns absolute time in ticks, must be > 0
      */
-    inline void IRQsetIrqNs(long long ns)
+    inline void IRQsetIrqTick(long long tick)
     {
-        long long tick = tc.ns2tick(ns);
         upperIrqTick = tick & upperMask;
         D::IRQsetTimerMatchReg(static_cast<unsigned int>(tick & lowerMask));
         if(IRQgetTimeTick() >= IRQgetIrqTick())
@@ -276,6 +275,15 @@ public:
             D::IRQforcePendingIrq();
             lateIrq=true;
         }
+    }
+    
+    /**
+     * Schedule the next os interrupt
+     * \param ns absolute time in nanoseconds, must be > 0
+     */
+    inline void IRQsetIrqNs(long long ns)
+    {
+        IRQsetIrqTick(tc.ns2tick(ns));
     }
     
     /**
