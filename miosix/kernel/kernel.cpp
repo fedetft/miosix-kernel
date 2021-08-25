@@ -385,17 +385,13 @@ void Thread::sleep(unsigned int ms)
 
 void Thread::nanoSleep(long long ns)
 {
-    if(ns<=0) return; //TODO: should be (ns &lt; resolution + epsilon)
-    //TODO: Mutual Exclusion issue
-    nanoSleepUntil(getTime() + ns);
+    if(ns<=0) return;
+    nanoSleepUntil(getTime()+ns);
 }
 
 void Thread::nanoSleepUntil(long long absoluteTimeNs)
 {
-    //TODO: The absolute time should be rounded w.r.t. the timer resolution
-    //This function does not care about setting the wakeup_time in the past
-    //as it should be based on the policy taken into account by IRQwakeThreads
-
+    if(absoluteTimeNs<=0) return;
     //The SleepData variable has to be in scope till Thread::yield() returns
     //as IRQaddToSleepingList() makes it part of a linked list till the
     //thread wakes up (i.e: after Thread::yield() returns)
@@ -405,7 +401,7 @@ void Thread::nanoSleepUntil(long long absoluteTimeNs)
     {
         FastInterruptDisableLock lock;
         d.p=const_cast<Thread*>(cur);
-        d.wakeup_time = absoluteTimeNs;
+        d.wakeup_time=absoluteTimeNs;
         IRQaddToSleepingList(&d);//Also sets SLEEP_FLAG
     }
     // NOTE: There is no need to synchronize the timer (calling IRQsetNextInterrupt)

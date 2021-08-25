@@ -268,11 +268,6 @@ public:
      */
     inline void IRQsetIrqNs(long long ns)
     {
-        if(ns <= 0)
-        {
-            D::IRQforcePendingIrq();
-            lateIrq=true;
-        }
         long long tick = tc.ns2tick(ns);
         upperIrqTick = tick & upperMask;
         D::IRQsetTimerMatchReg(static_cast<unsigned int>(tick & lowerMask));
