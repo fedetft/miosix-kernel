@@ -333,7 +333,7 @@ public:
  * 
  * void timerInterruptRoutine()
  * {
- *     timer.IRQhandler();
+ *     miosix::timer.IRQhandler();
  * }
  * \endcode
  */

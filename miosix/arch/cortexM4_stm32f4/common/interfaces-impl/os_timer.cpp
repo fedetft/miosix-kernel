@@ -29,7 +29,7 @@
 #include "interfaces/os_timer.h"
 #include "interfaces/arch_registers.h"
 
-using namespace miosix;
+namespace miosix {
 
 class STM32Timer32bit : public TimerAdapter<STM32Timer32bit, 32>
 {
@@ -101,6 +101,8 @@ public:
 };
 
 static STM32Timer32bit timer;
+DEFAULT_OS_TIMER_INTERFACE_IMPLMENTATION(timer);
+} //namespace miosix
 
 void __attribute__((naked)) TIM2_IRQHandler()
 {
@@ -111,11 +113,5 @@ void __attribute__((naked)) TIM2_IRQHandler()
 
 void __attribute__((used)) cstirqhnd()
 {
-    timer.IRQhandler();
+    miosix::timer.IRQhandler();
 }
-
-namespace miosix {
-
-DEFAULT_OS_TIMER_INTERFACE_IMPLMENTATION(timer);
-
-} //namespace miosix
