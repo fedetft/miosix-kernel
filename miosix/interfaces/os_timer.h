@@ -209,7 +209,7 @@ public:
         // interrupts can be disabeld, equals to one hardware timer period minus
         // the time between the two timer reads in this algorithm.
         unsigned int counter=D::IRQgetTimerCounter();
-        if((D::IRQgetOverflowFlag()) && D::IRQgetTimerCounter()>=counter)
+        if(D::IRQgetOverflowFlag() && D::IRQgetTimerCounter()>=counter)
             return (upperTimeTick | static_cast<long long>(counter)) + upperIncr;
         return upperTimeTick | static_cast<long long>(counter);
     }
@@ -293,14 +293,13 @@ public:
         if(D::IRQgetMatchFlag() || lateIrq)
         {
             D::IRQclearMatchFlag();
-            if(upperTimeTick == upperIrqTick || lateIrq)
+            long long tick=IRQgetTimeTick();
+            if(tick >= IRQgetIrqTick() || lateIrq)
             {
                 lateIrq=false;
-                IRQtimerInterrupt(IRQgetTimeNs());
+                IRQtimerInterrupt(tc.tick2ns(tick));
             }
-
         }
-        //Rollover
         if(D::IRQgetOverflowFlag())
         {
             D::IRQclearOverflowFlag();
@@ -329,10 +328,17 @@ public:
  * \code
  * namespace miosix {
  * class MyHwTimer : public TimerAdapter<MyHwTimer, insert timer bits here>
- * [...]
+ * {
+ *     [...]
+ * };
  * 
  * static MyHwTimer timer;
  * DEFAULT_OS_TIMER_INTERFACE_IMPLMENTATION(timer);
+ * }
+ * 
+ * void timerInterruptRoutine()
+ * {
+ *     timer.IRQhandler();
  * }
  * \endcode
  */
