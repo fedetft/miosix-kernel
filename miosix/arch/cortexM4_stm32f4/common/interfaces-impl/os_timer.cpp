@@ -31,25 +31,25 @@
 
 namespace miosix {
 
-class STM32Timer32bit : public TimerAdapter<STM32Timer32bit, 32>
+class STM32Timer5 : public TimerAdapter<STM32Timer5, 32>
 {
 public:
-    static inline unsigned int IRQgetTimerCounter() { return TIM2->CNT; }
-    static inline void IRQsetTimerCounter(unsigned int v) { TIM2->CNT=v; }
+    static inline unsigned int IRQgetTimerCounter() { return TIM5->CNT; }
+    static inline void IRQsetTimerCounter(unsigned int v) { TIM5->CNT=v; }
 
-    static inline unsigned int IRQgetTimerMatchReg() { return TIM2->CCR1; }
-    static inline void IRQsetTimerMatchReg(unsigned int v) { TIM2->CCR1=v; }
+    static inline unsigned int IRQgetTimerMatchReg() { return TIM5->CCR1; }
+    static inline void IRQsetTimerMatchReg(unsigned int v) { TIM5->CCR1=v; }
 
-    static inline bool IRQgetOverflowFlag() { return TIM2->SR & TIM_SR_UIF; }
-    static inline void IRQclearOverflowFlag() { TIM2->SR = ~TIM_SR_UIF; }
+    static inline bool IRQgetOverflowFlag() { return TIM5->SR & TIM_SR_UIF; }
+    static inline void IRQclearOverflowFlag() { TIM5->SR = ~TIM_SR_UIF; }
     
-    static inline bool IRQgetMatchFlag() { return TIM2->SR & TIM_SR_CC1IF; }
-    static inline void IRQclearMatchFlag() { TIM2->SR = ~TIM_SR_CC1IF; }
+    static inline bool IRQgetMatchFlag() { return TIM5->SR & TIM_SR_CC1IF; }
+    static inline void IRQclearMatchFlag() { TIM5->SR = ~TIM_SR_CC1IF; }
     
-    static inline void IRQforcePendingIrq() { NVIC_SetPendingIRQ(TIM2_IRQn); }
+    static inline void IRQforcePendingIrq() { NVIC_SetPendingIRQ(TIM5_IRQn); }
 
-    static inline void IRQstopTimer() { TIM2->CR1 &= ~TIM_CR1_CEN; }
-    static inline void IRQstartTimer() { TIM2->CR1 |= TIM_CR1_CEN; }
+    static inline void IRQstopTimer() { TIM5->CR1 &= ~TIM_CR1_CEN; }
+    static inline void IRQstartTimer() { TIM5->CR1 |= TIM_CR1_CEN; }
     
     static unsigned int IRQTimerFrequency()
     {
@@ -70,48 +70,41 @@ public:
     
     static void IRQinitTimer()
     {
-        {
-            //NOTE: Not FastInterruptDisableLock as this is called before kernel
-            //is started
-            InterruptDisableLock idl;
-            RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
-            RCC_SYNC();
-            DBGMCU->APB1FZ|=DBGMCU_APB1_FZ_DBG_TIM2_STOP; //Stop while debugging
-        }
-        // Setup TIM2 base configuration
+        RCC->APB1ENR |= RCC_APB1ENR_TIM5EN;
+        RCC_SYNC();
+        DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_TIM5_STOP; //Stop while debugging
+        // Setup TIM5 base configuration
         // Mode: Up-counter
         // Interrupts: counter overflow, Compare/Capture on channel 1
-        TIM2->CR1=TIM_CR1_URS;
-        TIM2->DIER=TIM_DIER_UIE | TIM_DIER_CC1IE;
-        NVIC_SetPriority(TIM2_IRQn,3); //High priority for TIM2 (Max=0, min=15)
-        NVIC_EnableIRQ(TIM2_IRQn);
+        TIM5->CR1=TIM_CR1_URS;
+        TIM5->DIER=TIM_DIER_UIE | TIM_DIER_CC1IE;
+        NVIC_SetPriority(TIM5_IRQn,3); //High priority for TIM5 (Max=0, min=15)
+        NVIC_EnableIRQ(TIM5_IRQn);
         // Configure channel 1 as:
         // Output channel (CC1S=0)
-        // No preload(OC1PE=0), hence TIM2_CCR1 can be written at anytime
+        // No preload(OC1PE=0), hence TIM5_CCR1 can be written at anytime
         // No effect on the output signal on match (OC1M = 0)
-        TIM2->CCMR1 = 0;
-        TIM2->CCR1 = 0;
-        // TIM2 Operation Frequency Configuration: Max Freq. and longest period
-        TIM2->PSC = 0;
-        TIM2->ARR = 0xFFFFFFFF;
-        
-        // Enable TIM2 Counter
-        TIM2->EGR = TIM_EGR_UG; //To enforce the timer to apply PSC
+        TIM5->CCMR1 = 0;
+        TIM5->CCR1 = 0;
+        // TIM5 Operation Frequency Configuration: Max Freq. and longest period
+        TIM5->PSC = 0;
+        TIM5->ARR = 0xFFFFFFFF;
+        TIM5->EGR = TIM_EGR_UG; //To enforce the timer to apply PSC
     }
 };
 
-static STM32Timer32bit timer;
+static STM32Timer5 timer;
 DEFAULT_OS_TIMER_INTERFACE_IMPLMENTATION(timer);
 } //namespace miosix
 
-void __attribute__((naked)) TIM2_IRQHandler()
+void __attribute__((naked)) TIM5_IRQHandler()
 {
     saveContext();
-    asm volatile ("bl _Z9cstirqhndv");
+    asm volatile ("bl _Z11osTimerImplv");
     restoreContext();
 }
 
-void __attribute__((used)) cstirqhnd()
+void __attribute__((used)) osTimerImpl()
 {
     miosix::timer.IRQhandler();
 }
