@@ -762,6 +762,7 @@ ifeq ($(ARCH),arm7_lpc2000)
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
         $(BOARD_INC)/interfaces-impl/portability.cpp \
+        $(BOARD_INC)/interfaces-impl/os_timer.cpp    \
         arch/common/drivers/sd_lpc2000.cpp           \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
