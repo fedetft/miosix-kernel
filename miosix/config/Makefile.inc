@@ -623,7 +623,7 @@ endif
 ## a new board or porting Miosix to a new architecture                    ##
 ############################################################################
 
-ifneq ($(MAKEFILE_VERSION),1.09)
+ifneq ($(MAKEFILE_VERSION),1.10)
     $(info You are using an incompatible makefile. Make sure it matches \
       the one distributed with the current version of the kernel)
     $(error Error)
@@ -721,15 +721,10 @@ endif
 ##
 ## Then, initialize C/C++ flags
 ##
-ifneq ($(GCCMAJOR),4)
-	CXXSTD := -std=c++14
-else
-	CXXSTD := -std=gnu++11
-endif
 CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
                  -ffunction-sections -Wall -Werror=return-type -g
 CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
-                 $(CXXSTD) -ffunction-sections -Wall -Werror=return-type -g
+                 -std=c++14 -ffunction-sections -Wall -Werror=return-type -g
 
 ##
 ## Now two big switch-like constructs nested. The first lists all possible
@@ -1741,8 +1736,8 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
-    $(ARCH_INC)/interfaces-impl/os_timer.cpp                 \
     arch/common/drivers/sd_stm32f2_f4.cpp                    \
+    arch/common/core/stm32f2_f4_f7_os_timer.cpp              \
     arch/common/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
 
 ##-----------------------------------------------------------------------------
@@ -2008,7 +2003,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     arch/common/drivers/stm32_hardware_rng.cpp               \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
-    $(ARCH_INC)/interfaces-impl/os_timer.cpp                 \
+    arch/common/core/stm32f2_f4_f7_os_timer.cpp              \
     arch/common/CMSIS/Device/ST/STM32F2xx/Source/Templates/system_stm32f2xx.c
 
 ##-----------------------------------------------------------------------------
@@ -2264,6 +2259,7 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
+    arch/common/core/stm32f2_f4_f7_os_timer.cpp              \
     arch/common/CMSIS/Device/ST/STM32F7xx/Source/Templates/system_stm32f7xx.c
     
 ##-----------------------------------------------------------------------------
@@ -2324,19 +2320,15 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
     OD  := $(PREFIX)objdump
     SZ  := $(PREFIX)size
 
-    ## Select appropriate compiler flags for both ASM/C/C++/linker
-    ifneq ($(GCCMAJOR),4)
-        ARCHOPTS := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
-    else
-        ## Fallback to cortex M4 and single precision fp, which is compatible
-        ARCHOPTS := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
-    endif
-    AFLAGS_BASE   := $(ARCHOPTS)
+    AFLAGS_BASE   := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
     CFLAGS_BASE   += -D_ARCH_CORTEXM7_STM32H7 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
-                     $(ARCHOPTS) $(OPT_OPTIMIZATION) -c
+                     -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16    \
+                     $(OPT_OPTIMIZATION) -c
     CXXFLAGS_BASE += -D_ARCH_CORTEXM7_STM32H7 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
-                     $(ARCHOPTS) $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := $(ARCHOPTS) -Wl,--gc-sections,-Map,main.map                \
+                     -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16    \
+                     $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
+    LFLAGS_BASE   := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16    \
+                     -Wl,--gc-sections,-Map,main.map                            \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)              \
                      $(OPT_OPTIMIZATION) -nostdlib
 
@@ -2352,6 +2344,7 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
+    arch/common/core/stm32f2_f4_f7_os_timer.cpp              \
     arch/common/CMSIS/Device/ST/STM32H7xx/Source/Templates/system_stm32h7xx.c
 
 ##-----------------------------------------------------------------------------
