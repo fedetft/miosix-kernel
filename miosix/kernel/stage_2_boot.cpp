@@ -90,6 +90,7 @@ void *mainLoader(void *argv)
     callConstructors(&__init_array_start, &__init_array_end);
     callConstructors(&_ctor_start, &_ctor_end);
     
+    bootlog("OS Timer freq = %d Hz\n", internal::osTimerGetFrequency());
     bootlog("Available heap %d out of %d Bytes\n",
             MemoryProfiling::getCurrentFreeHeap(),
             MemoryProfiling::getHeapSize());
