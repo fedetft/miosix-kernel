@@ -846,6 +846,11 @@ static void t3_p2(void *argv)
 static void test_3()
 {
     test_name("time and sleep");
+    auto start=getTime();
+    delayMs(10);
+    auto delta=getTime()-start;
+    //10% tolerance
+    if(delta<9000000 || delta>11000000) fail("getTime and delayMs don't agree");
     Thread *p=Thread::create(t3_p1,STACK_SMALL,0,NULL,Thread::JOINABLE);
     for(int i=0;i<4;i++)
     {
