@@ -36,6 +36,7 @@
 #include "interfaces/delays.h"
 #include "interfaces/portability.h"
 #include "interfaces/arch_registers.h"
+#include "interfaces/os_timer.h"
 #include "config/miosix_settings.h"
 #include <algorithm>
 
@@ -392,21 +393,9 @@ void PowerManagement::setCoreFrequency(CoreFrequency cf)
         //Changing frequency requires to change many things that depend on
         //said frequency:
         
-        //Miosix's preemption tick
+        //Miosix's os timer
         SystemCoreClockUpdate();
-        SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;
-        SysTick->LOAD=SystemCoreClock/miosix::TICK_FREQ;
-        SysTick->CTRL |= SysTick_CTRL_ENABLE_Msk;
-        
-        //Miosix's auxiliary timer (if required)
-        #ifdef SCHED_TYPE_CONTROL_BASED
-        int timerClock=SystemCoreClock;
-        int apb1prescaler=(RCC->CFGR>>10) & 7;
-        if(apb1prescaler>4) timerClock>>=(apb1prescaler-4);
-        TIM3->CR1 &= ~TIM_CR1_CEN; //Stop timer
-        TIM3->PSC=(timerClock/miosix::AUX_TIMER_CLOCK)-1;
-        TIM3->CR1 |= TIM_CR1_CEN; //Start timer
-        #endif //SCHED_TYPE_CONTROL_BASED
+        internal::IRQosTimerInit();
     }
     
     //And also reconfigure the I2C (can't change this with IRQ disabled)

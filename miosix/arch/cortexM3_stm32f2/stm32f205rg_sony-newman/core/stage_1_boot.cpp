@@ -107,7 +107,7 @@ void /*__attribute__((weak))*/ UsageFault_Handler();
 void /*__attribute__((weak))*/ SVC_Handler();
 void /*__attribute__((weak))*/ DebugMon_Handler();
 void /*__attribute__((weak))*/ PendSV_Handler();
-void /*__attribute__((weak))*/ SysTick_Handler();
+void __attribute__((weak)) SysTick_Handler();
 
 //Interrupt handlers
 void __attribute__((weak)) WWDG_IRQHandler();
@@ -301,6 +301,7 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
 	HASH_RNG_IRQHandler,
 };
 
+#pragma weak SysTick_IRQHandler = Default_Handler
 #pragma weak WWDG_IRQHandler = Default_Handler
 #pragma weak PVD_IRQHandler = Default_Handler
 #pragma weak TAMP_STAMP_IRQHandler = Default_Handler

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
+ *   Copyright (C) 2010-2021 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -24,7 +24,6 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
- //Miosix kernel
 
 #include "interfaces/portability.h"
 #include "kernel/kernel.h"
@@ -50,7 +49,7 @@ void SVC_Handler() __attribute__((naked));
 void SVC_Handler()
 {
     saveContext();
-	//Call ISR_yield(). Name is a C++ mangled name.
+    //Call ISR_yield(). Name is a C++ mangled name.
     asm volatile("bl _ZN14miosix_private9ISR_yieldEv");
     restoreContext();
 }
@@ -238,7 +237,7 @@ void IRQportableStartKernel()
     NVIC_SetPriorityGrouping(7);//This should disable interrupt nesting
     NVIC_SetPriority(SVCall_IRQn,3);//High priority for SVC (Max=0, min=15)
     NVIC_SetPriority(MemoryManagement_IRQn,2);//Higher priority for MemoryManagement (Max=0, min=15)
-    
+
     #ifdef WITH_PROCESSES
     miosix::IRQenableMPUatBoot();
     #endif //WITH_PROCESSES
@@ -251,7 +250,7 @@ void IRQportableStartKernel()
 
 void IRQportableFinishKernelStartup()
 {
-	//Note, we can't use enableInterrupts() now since the call is not mathced
+    //Note, we can't use enableInterrupts() now since the call is not matched
     //by a call to disableInterrupts()
     __enable_fault_irq();
     __enable_irq();
