@@ -249,9 +249,8 @@ void startKernel()
     setCReentrancyCallback(Thread::getCReent);
     
     // Dispatch the task to the architecture-specific function
-    miosix_private::IRQportableStartKernel();
     kernel_started=true;
-    miosix_private::IRQportableFinishKernelStartup();
+    miosix_private::IRQportableStartKernel();
 }
 
 bool isKernelRunning()

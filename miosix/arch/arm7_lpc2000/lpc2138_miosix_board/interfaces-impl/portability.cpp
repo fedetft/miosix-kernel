@@ -118,10 +118,6 @@ void IRQportableStartKernel()
     //since there's no way to stop the sheduler, but we need to save it anyway.
     unsigned int s_ctxsave[miosix::CTXSAVE_SIZE];
     ctxsave=s_ctxsave;//make global ctxsave point to it
-}
-
-void IRQportableFinishKernelStartup()
-{
     miosix::Thread::yield();//Note that this automatically enables interrupts
     //Never reaches here
 }
