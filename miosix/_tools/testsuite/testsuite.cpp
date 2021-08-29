@@ -849,6 +849,7 @@ static void test_3()
     auto start=getTime();
     delayMs(10);
     auto delta=getTime()-start;
+    iprintf("%lld\n",delta);
     //10% tolerance
     if(delta<9000000 || delta>11000000) fail("getTime and delayMs don't agree");
     Thread *p=Thread::create(t3_p1,STACK_SMALL,0,NULL,Thread::JOINABLE);
