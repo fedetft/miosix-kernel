@@ -64,24 +64,28 @@ public:
         // factor of two or greater, the timer is clocked at twice the bus
         // interface. After this, the freq variable contains the frequency in Hz
         // at which the timer prescaler is clocked.
-        #if !defined(_ARCH_CORTEXM7_STM32H7)
-        if(RCC->CFGR & RCC_CFGR_PPRE1_2) result/=1<<((RCC->CFGR>>10) & 0x3);
-        #else
+        #if defined(_ARCH_CORTEXM7_STM32H7)
         if(RCC->D2CFGR & RCC_D2CFGR_D2PPRE1_2) result/=1<<((RCC->D2CFGR>>4) & 0x3);
+        #else
+        if(RCC->CFGR & RCC_CFGR_PPRE1_2) result/=1<<((RCC->CFGR>>10) & 0x3);
         #endif
         return result;
     }
     
     static void IRQinitTimer()
     {
-        #if !defined(_ARCH_CORTEXM7_STM32H7)
-        RCC->APB1ENR |= RCC_APB1ENR_TIM5EN;
-        RCC_SYNC();
-        DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_TIM5_STOP; //Stop while debugging
-        #else 
+        #if defined(_ARCH_CORTEXM7_STM32H7)
         RCC->APB1LENR |= RCC_APB1LENR_TIM5EN;
         RCC_SYNC();
         DBGMCU->APB1LFZ1 |= DBGMCU_APB1LFZ1_DBG_TIM5; //Stop while debugging
+        #elif defined(_ARCH_CORTEXM4_STM32L4)
+        RCC->APB1ENR1 |= RCC_APB1ENR1_TIM5EN;
+        RCC_SYNC();
+        DBGMCU->APB1FZR1 |= DBGMCU_APB1FZR1_DBG_TIM5_STOP; //Stop while debugging
+        #else
+        RCC->APB1ENR |= RCC_APB1ENR_TIM5EN;
+        RCC_SYNC();
+        DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_TIM5_STOP; //Stop while debugging
         #endif
         // Setup TIM5 base configuration
         // Mode: Up-counter

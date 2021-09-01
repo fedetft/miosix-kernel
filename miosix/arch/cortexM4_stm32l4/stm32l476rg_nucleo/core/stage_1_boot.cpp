@@ -7,7 +7,7 @@
 /*
  * startup.cpp
  * STM32 C++ startup.
- * NOTE: for stm32f411 devices ONLY.
+ * NOTE: for stm32l476 devices ONLY.
  * Supports interrupt handlers in C++ without extern "C"
  * Developed by Terraneo Federico, based on ST startup code.
  * Additionally modified to boot Miosix.
@@ -99,7 +99,7 @@ void /*__attribute__((weak))*/ UsageFault_Handler();
 void /*__attribute__((weak))*/ SVC_Handler();
 void /*__attribute__((weak))*/ DebugMon_Handler();
 void /*__attribute__((weak))*/ PendSV_Handler();
-void /*__attribute__((weak))*/ SysTick_Handler();
+void __attribute__((weak)) SysTick_Handler();
 
 //Interrupt handlers
 void __attribute__((weak)) WWDG_IRQHandler();
@@ -210,8 +210,8 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
     SysTick_Handler,            /* SysTick Handler */
 
     /* External Interrupts */
-	WWDG_IRQHandler,
-	PVD_PVM_IRQHandler,
+    WWDG_IRQHandler,
+    PVD_PVM_IRQHandler,
     TAMP_STAMP_IRQHandler,
     RTC_WKUP_IRQHandler,
     FLASH_IRQHandler,
@@ -294,6 +294,7 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
     FPU_IRQHandler
 };
 
+#pragma weak SysTick_Handler = Default_Handler
 #pragma weak WWDG_IRQHandler = Default_Handler
 #pragma weak PVD_PVM_IRQHandler = Default_Handler
 #pragma weak TAMP_STAMP_IRQHandler = Default_Handler
