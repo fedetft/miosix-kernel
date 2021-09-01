@@ -71,7 +71,11 @@ public:
     {
         RCC->APB1ENR |= RCC_APB1ENR_TIM4EN;
         RCC_SYNC();
+        #ifndef _ARCH_CORTEXM3_STM32L1
         DBGMCU->CR |= DBGMCU_CR_DBG_TIM4_STOP; //Stop while debugging
+        #else
+        DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_TIM4_STOP; //Stop while debugging
+        #endif
         // Setup TIM4 base configuration
         // Mode: Up-counter
         // Interrupts: counter overflow, Compare/Capture on channel 1
