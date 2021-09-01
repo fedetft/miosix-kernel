@@ -237,6 +237,7 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
                                    STM32F10x Medium Value Line Density devices.*/
 };
 
+#pragma weak SysTick_Handler = Default_Handler
 #pragma weak WWDG_IRQHandler = Default_Handler
 #pragma weak PVD_IRQHandler = Default_Handler
 #pragma weak TAMPER_IRQHandler = Default_Handler
@@ -278,4 +279,3 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
 #pragma weak CEC_IRQHandler = Default_Handler
 #pragma weak TIM6_DAC_IRQHandler = Default_Handler
 #pragma weak TIM7_IRQHandler = Default_Handler
-#pragma weak SysTick_Handler = Default_Handler

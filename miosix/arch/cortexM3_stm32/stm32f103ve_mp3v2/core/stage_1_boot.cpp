@@ -123,7 +123,7 @@ void /*__attribute__((weak))*/ UsageFault_Handler();
 void /*__attribute__((weak))*/ SVC_Handler();
 void /*__attribute__((weak))*/ DebugMon_Handler();
 void /*__attribute__((weak))*/ PendSV_Handler();
-void /*__attribute__((weak))*/ SysTick_Handler();
+void __attribute__((weak)) SysTick_Handler();
 
 //Interrupt handlers
 void __attribute__((weak)) WWDG_IRQHandler();
@@ -285,14 +285,7 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
                                    STM32F10x High Density devices.*/
 };
 
-//#pragma weak NMI_Handler = Default_Handler
-//#pragma weak MemManage_Handler = Default_Handler
-//#pragma weak BusFault_Handler = Default_Handler
-//#pragma weak UsageFault_Handler = Default_Handler
-//#pragma weak SVC_Handler = Default_Handler
-//#pragma weak DebugMon_Handler = Default_Handler
-//#pragma weak PendSV_Handler = Default_Handler
-//#pragma weak SysTick_Handler = Default_Handler
+#pragma weak SysTick_Handler = Default_Handler
 #pragma weak WWDG_IRQHandler = Default_Handler
 #pragma weak PVD_IRQHandler = Default_Handler
 #pragma weak TAMPER_IRQHandler = Default_Handler
@@ -354,4 +347,3 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
 #pragma weak DMA2_Channel3_IRQHandler = Default_Handler
 #pragma weak DMA2_Channel4_5_IRQHandler = Default_Handler
 #pragma weak SystemInit_ExtMemCtl = SystemInit_ExtMemCtl_Dummy
-

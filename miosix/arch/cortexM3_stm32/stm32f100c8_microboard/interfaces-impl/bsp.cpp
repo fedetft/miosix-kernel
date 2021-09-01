@@ -144,7 +144,7 @@ bool NonVolatileStorage::IRQunlock()
 
 void IRQbspInit()
 {
-    //Enable all gpios, as well as AFIO, SPI1, TIM3
+    //Enable all gpios, as well as AFIO, SPI1
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN | RCC_APB2ENR_IOPBEN |
                     RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN |
                     RCC_APB2ENR_AFIOEN;

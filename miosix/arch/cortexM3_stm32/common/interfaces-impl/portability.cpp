@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
+ *   Copyright (C) 2010-2021 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -23,8 +23,7 @@
  *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
- ***************************************************************************/ 
- //Miosix kernel
+ ***************************************************************************/
 
 #include "interfaces/portability.h"
 #include "kernel/kernel.h"
@@ -45,29 +44,10 @@ void SVC_Handler() __attribute__((naked));
 void SVC_Handler()
 {
     saveContext();
-	//Call ISR_yield(). Name is a C++ mangled name.
+    //Call ISR_yield(). Name is a C++ mangled name.
     asm volatile("bl _ZN14miosix_private9ISR_yieldEv");
     restoreContext();
 }
-
-#ifdef SCHED_TYPE_CONTROL_BASED
-/**
- * \internal
- * Auxiliary timer interupt routine.
- * Used for variable lenght bursts in control based scheduler.
- * Since inside naked functions only assembler code is allowed, this function
- * only calls the ctxsave/ctxrestore macros (which are in assembler), and calls
- * the implementation code in ISR_yield()
- */
-void TIM2_IRQHandler() __attribute__((naked));
-void TIM2_IRQHandler()
-{
-    saveContext();
-    //Call ISR_auxTimer(). Name is a C++ mangled name.
-    asm volatile("bl _ZN14miosix_private12ISR_auxTimerEv");
-    restoreContext();
-}
-#endif //SCHED_TYPE_CONTROL_BASED
 
 namespace miosix_private {
 
@@ -84,22 +64,6 @@ void ISR_yield()
     IRQstackOverflowCheck();
     miosix::Scheduler::IRQfindNextThread();
 }
-
-#ifdef SCHED_TYPE_CONTROL_BASED
-/**
- * \internal
- * Auxiliary timer interupt routine.
- * Used for variable lenght bursts in control based scheduler.
- */
-void ISR_auxTimer() __attribute__((noinline));
-void ISR_auxTimer()
-{
-    IRQstackOverflowCheck();
-    miosix::Scheduler::IRQfindNextThread();//If the kernel is running, preempt
-    if(miosix::kernel_running!=0) miosix::tick_skew=true;
-    TIM2->SR=0;
-}
-#endif //SCHED_TYPE_CONTROL_BASED
 
 void IRQstackOverflowCheck()
 {
@@ -172,16 +136,12 @@ void IRQportableStartKernel()
     SCB->CCR |= SCB_CCR_DIV_0_TRP;
     NVIC_SetPriorityGrouping(7);//This should disable interrupt nesting
     NVIC_SetPriority(SVCall_IRQn,3);//High priority for SVC (Max=0, min=15)
-
-    #ifdef SCHED_TYPE_CONTROL_BASED
-    AuxiliaryTimer::IRQinit();
-    #endif //SCHED_TYPE_CONTROL_BASED
     
     //create a temporary space to save current registers. This data is useless
     //since there's no way to stop the sheduler, but we need to save it anyway.
     unsigned int s_ctxsave[miosix::CTXSAVE_SIZE];
     ctxsave=s_ctxsave;//make global ctxsave point to it
-    //Note, we can't use enableInterrupts() now since the call is not mathced
+    //Note, we can't use enableInterrupts() now since the call is not matched
     //by a call to disableInterrupts()
     __enable_fault_irq();
     __enable_irq();
@@ -193,46 +153,5 @@ void sleepCpu()
 {
     __WFI();
 }
-
-#ifdef SCHED_TYPE_CONTROL_BASED
-void AuxiliaryTimer::IRQinit()
-{
-    RCC->APB1ENR|=RCC_APB1ENR_TIM2EN;
-    RCC_SYNC();
-    DBGMCU->CR|=DBGMCU_CR_DBG_TIM2_STOP; //Tim2 stops while debugging
-    TIM2->CR1=0; //Upcounter, not started, no special options
-    TIM2->CR2=0; //No special options
-    TIM2->SMCR=0; //No external trigger
-    TIM2->CNT=0; //Clear timer
-    TIM2->PSC=(SystemCoreClock/miosix::AUX_TIMER_CLOCK)-1;
-    TIM2->ARR=0xffff; //Count from zero to 0xffff
-    TIM2->DIER=TIM_DIER_CC1IE; //Enable interrupt on compare
-    TIM2->CCR1=0xffff; //This will be initialized later with setValue
-    NVIC_SetPriority(TIM2_IRQn,3);//High priority for TIM2 (Max=0, min=15)
-    NVIC_EnableIRQ(TIM2_IRQn);
-    TIM2->CR1=TIM_CR1_CEN; //Start timer
-    //This is very important: without this the prescaler shadow register may
-    //not be updated
-    TIM2->EGR=TIM_EGR_UG;
-}
-
-int AuxiliaryTimer::IRQgetValue()
-{
-    return static_cast<int>(TIM2->CNT);
-}
-
-void AuxiliaryTimer::IRQsetValue(int x)
-{
-    TIM2->CR1=0; //Stop timer since changing CNT or CCR1 while running fails
-    TIM2->CNT=0;
-    TIM2->CCR1=static_cast<unsigned short>(std::min(x,0xffff));
-    TIM2->CR1=TIM_CR1_CEN; //Start timer again
-    //The above instructions cause a spurious if not called within the
-    //timer 2 IRQ (This happens if called from an SVC).
-    //Clearing the pending bit prevents this spurious interrupt
-    TIM2->SR=0;
-    NVIC_ClearPendingIRQ(TIM2_IRQn);
-}
-#endif //SCHED_TYPE_CONTROL_BASED
 
 } //namespace miosix_private

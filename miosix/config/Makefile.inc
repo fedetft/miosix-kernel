@@ -1293,7 +1293,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     $(ARCH_INC)/interfaces-impl/portability.cpp  \
     $(ARCH_INC)/interfaces-impl/delays.cpp       \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp    \
-    $(ARCH_INC)/interfaces-impl/os_timer.cpp     \
+    arch/common/core/stm32f1_l1_os_timer.cpp     \
     arch/common/CMSIS/Device/ST/STM32F10x/Source/Templates/system_stm32f10x.c
 
 ##-----------------------------------------------------------------------------
