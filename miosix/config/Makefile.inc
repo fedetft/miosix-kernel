@@ -2424,6 +2424,7 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
+    arch/common/core/stm32f0_f3_os_timer.cpp                 \
     arch/common/CMSIS/Device/ST/STM32F0xx/Source/Templates/system_stm32f0xx.c
 
 ##-----------------------------------------------------------------------------
@@ -2501,6 +2502,7 @@ else ifeq ($(ARCH),cortexM4_stm32f3)
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
+    arch/common/core/stm32f0_f3_os_timer.cpp                 \
     arch/common/CMSIS/Device/ST/STM32F3xx/Source/Templates/system_stm32f3xx.c
 
 ##-----------------------------------------------------------------------------
