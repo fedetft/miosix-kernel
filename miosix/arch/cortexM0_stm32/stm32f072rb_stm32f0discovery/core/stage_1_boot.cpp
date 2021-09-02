@@ -95,7 +95,7 @@ void /*__attribute__((weak))*/ NMI_Handler();       //weak because they are
 void /*__attribute__((weak))*/ HardFault_Handler(); //surely defined by Miosix
 void /*__attribute__((weak))*/ SVC_Handler();
 void /*__attribute__((weak))*/ PendSV_Handler();
-void /*__attribute__((weak))*/ SysTick_Handler();
+void __attribute__((weak)) SysTick_Handler();
 
 // These system handlers are present in Miosix but not supported by the
 // architecture, so are defined as weak
@@ -196,7 +196,8 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
     CEC_CAN_IRQHandler,               /* CEC and CAN                  */
     USB_IRQHandler                    /* USB                          */
 };
-                           
+
+#pragma weak SysTick_Handler = Default_Handler
 #pragma weak WWDG_IRQHandler = Default_Handler
 #pragma weak PVD_VDDIO2_IRQHandler = Default_Handler
 #pragma weak RTC_IRQHandler = Default_Handler

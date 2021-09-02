@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
+ *   Copyright (C) 2010-2021 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -23,32 +23,15 @@
  *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
- ***************************************************************************/ 
- //Miosix kernel
+ ***************************************************************************/
 
 #include "interfaces/portability.h"
 #include "kernel/kernel.h"
 #include "kernel/error.h"
 #include "interfaces/bsp.h"
 #include "kernel/scheduler/scheduler.h"
-#include "kernel/scheduler/tick_interrupt.h"
+#include "kernel/scheduler/timer_interrupt.h"
 #include <algorithm>
-
-/**
- * \internal
- * timer interrupt routine.
- * Since inside naked functions only assembler code is allowed, this function
- * only calls the ctxsave/ctxrestore macros (which are in assembler), and calls
- * the implementation code in ISR_preempt()
- */
-void SysTick_Handler()   __attribute__((naked));
-void SysTick_Handler()
-{
-    saveContext();
-    //Call ISR_preempt(). Name is a C++ mangled name.
-    asm volatile("bl _ZN14miosix_private11ISR_preemptEv");
-    restoreContext();
-}
 
 /**
  * \internal
@@ -61,45 +44,12 @@ void SVC_Handler() __attribute__((naked));
 void SVC_Handler()
 {
     saveContext();
-	//Call ISR_yield(). Name is a C++ mangled name.
+    //Call ISR_yield(). Name is a C++ mangled name.
     asm volatile("bl _ZN14miosix_private9ISR_yieldEv");
     restoreContext();
 }
 
-#ifdef SCHED_TYPE_CONTROL_BASED
-/**
- * \internal
- * Auxiliary timer interupt routine.
- * Used for variable lenght bursts in control based scheduler.
- * Since inside naked functions only assembler code is allowed, this function
- * only calls the ctxsave/ctxrestore macros (which are in assembler), and calls
- * the implementation code in ISR_yield()
- */
-void XXX_IRQHandler() __attribute__((naked));
-void XXX_IRQHandler()
-{
-    saveContext();
-    //Call ISR_auxTimer(). Name is a C++ mangled name.
-    asm volatile("bl _ZN14miosix_private12ISR_auxTimerEv");
-    restoreContext();
-}
-#endif //SCHED_TYPE_CONTROL_BASED
-
 namespace miosix_private {
-
-/**
- * \internal
- * Called by the timer interrupt, preempt to next thread
- * Declared noinline to avoid the compiler trying to inline it into the caller,
- * which would violate the requirement on naked functions. Function is not
- * static because otherwise the compiler optimizes it out...
- */
-void ISR_preempt() __attribute__((noinline));
-void ISR_preempt()
-{
-    IRQstackOverflowCheck();
-    miosix::IRQtickInterrupt();
-}
 
 /**
  * \internal
@@ -114,22 +64,6 @@ void ISR_yield()
     IRQstackOverflowCheck();
     miosix::Scheduler::IRQfindNextThread();
 }
-
-#ifdef SCHED_TYPE_CONTROL_BASED
-/**
- * \internal
- * Auxiliary timer interupt routine.
- * Used for variable lenght bursts in control based scheduler.
- */
-void ISR_auxTimer() __attribute__((noinline));
-void ISR_auxTimer()
-{
-    IRQstackOverflowCheck();
-    miosix::Scheduler::IRQfindNextThread();//If the kernel is running, preempt
-    if(miosix::kernel_running!=0) miosix::tick_skew=true;
-    TIM2->SR=0;
-}
-#endif //SCHED_TYPE_CONTROL_BASED
 
 void IRQstackOverflowCheck()
 {
@@ -171,16 +105,7 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
 void IRQportableStartKernel()
 {   
     NVIC_SetPriority(SVC_IRQn,3);//High priority for SVC (Max=0, min=15)
-    NVIC_SetPriority(SysTick_IRQn,3);//High priority for SysTick (Max=0, min=15)
-    SysTick->LOAD=SystemCoreClock/miosix::TICK_FREQ;
-    //Start SysTick, set to generate interrupts
-    SysTick->CTRL=SysTick_CTRL_ENABLE_Msk | SysTick_CTRL_TICKINT_Msk |
-                 SysTick_CTRL_CLKSOURCE_Msk;
 
-    #ifdef SCHED_TYPE_CONTROL_BASED
-    AuxiliaryTimer::IRQinit();
-    #endif //SCHED_TYPE_CONTROL_BASED
-    
     //create a temporary space to save current registers. This data is useless
     //since there's no way to stop the sheduler, but we need to save it anyway.
     unsigned int s_ctxsave[miosix::CTXSAVE_SIZE];
@@ -196,23 +121,5 @@ void sleepCpu()
 {
     __WFI();
 }
-
-#ifdef SCHED_TYPE_CONTROL_BASED
-#error "AUX_TIMER not yet implemented"
-void AuxiliaryTimer::IRQinit()
-{
-
-}
-
-int AuxiliaryTimer::IRQgetValue()
-{
-    
-}
-
-void AuxiliaryTimer::IRQsetValue(int x)
-{
-    
-}
-#endif //SCHED_TYPE_CONTROL_BASED
 
 } //namespace miosix_private
