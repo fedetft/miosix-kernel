@@ -159,8 +159,11 @@ unsigned int osTimerGetFrequency();
  * 
  * \tparam D the derived class (see curiously recurring template pattern)
  * \tparam bits the bits of the underlying hardware timer, up to 32 bit.
+ * \tparam quirkAdvance some timers don't like being set very close to the
+ * actual interrupt time. If this is the case set this parameter to the minimum
+ * number of ticks in the future the timer must be set, otherwise keep at 0 
  */
-template<typename D, unsigned bits>
+template<typename D, unsigned bits, unsigned quirkAdvance=0>
 class TimerAdapter
 {
 public:
@@ -268,9 +271,10 @@ public:
      */
     inline void IRQsetIrqTick(long long tick)
     {
-        upperIrqTick = tick & upperMask;
-        D::IRQsetTimerMatchReg(static_cast<unsigned int>(tick & lowerMask));
-        if(IRQgetTimeTick() >= IRQgetIrqTick())
+        auto tick2 = tick + quirkAdvance;
+        upperIrqTick = tick2 & upperMask;
+        D::IRQsetTimerMatchReg(static_cast<unsigned int>(tick2 & lowerMask));
+        if(IRQgetTimeTick() >= tick)
         {
             D::IRQforcePendingIrq();
             lateIrq=true;

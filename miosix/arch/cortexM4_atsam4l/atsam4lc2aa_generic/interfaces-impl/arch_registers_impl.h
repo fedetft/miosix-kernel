@@ -35,3 +35,9 @@
 
 //This file in turn includes core_cm4.h
 #include "CMSIS/Device/Atmel/sam4l/include/sam4lc2a.h"
+
+//This register is mentioned in the document but a definition is not provided
+#define PDBG (*((volatile unsigned int*)0xe0042000))
+#define PDBG_PEVC (1<<2)
+#define PDBG_AST  (1<<1)
+#define PDBG_WDT  (1<<0)

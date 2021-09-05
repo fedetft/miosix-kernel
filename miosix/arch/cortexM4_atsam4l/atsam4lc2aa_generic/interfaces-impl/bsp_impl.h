@@ -42,6 +42,8 @@ namespace miosix {
 // using led_ = Gpio<GPIOA_BASE,2>;
 // inline void ledOn()  { led_::high(); }
 // inline void ledOff() { led_::low();  }
+inline void ledOn() {}
+inline void ledOff() {}
 
 /**
 \}

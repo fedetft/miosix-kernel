@@ -102,7 +102,7 @@ void /*__attribute__((weak))*/ UsageFault_Handler();
 void /*__attribute__((weak))*/ SVC_Handler();
 void /*__attribute__((weak))*/ DebugMon_Handler();
 void /*__attribute__((weak))*/ PendSV_Handler();
-void /*__attribute__((weak))*/ SysTick_Handler();
+void __attribute__((weak)) SysTick_Handler();
 
 //Interrupt handlers
 void __attribute__((weak)) HFLASHC_Handler();
@@ -293,6 +293,7 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
     LCDCA_Handler
 };
 
+#pragma weak SysTick_Handler = Default_Handler
 #pragma weak HFLASHC_Handler = Default_Handler
 #pragma weak PDCA_0_Handler = Default_Handler
 #pragma weak PDCA_1_Handler = Default_Handler
