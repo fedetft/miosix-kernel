@@ -40,6 +40,13 @@ void SystemInit();
 #endif //__cplusplus
 
 /**
+ * \returns the OSCSEL number corresponding to the currently selected main
+ * oscillator (see Table 13-8 Generic Clock Sources) to put in registers such
+ * as SCIF_GCCTRL corresponding 
+ */
+int getSelectedOscillator();
+
+/**
  * Start the OSC32K oscillator.
  * Requires the board to have a 32768Hz XTAL connected to the proper pins.
  * This is a blocking function, that takes around 2 seconds to complete,

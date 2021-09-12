@@ -104,9 +104,9 @@ public:
         // at which the timer prescaler is clocked.
         if(RCC->CFGR & RCC_CFGR_PPRE1_2) timerInputFreq/=1<<((RCC->CFGR>>8) & 0x3);
         
-        //TODO: handle the case when the prescribed timer frequency is not
-        //achievable. For now, we just enter an infinite loop so if someone
-        //selects an impossible frequency this won't go unnoticed during testing
+        //Handle the case when the prescribed timer frequency is not achievable.
+        //For now, we just enter an infinite loop so if someone selects an
+        //impossible frequency it won't go unnoticed during testing
         if(timerInputFreq % timerFrequency)
         {
             IRQbootlog("Frequency error\r\n");

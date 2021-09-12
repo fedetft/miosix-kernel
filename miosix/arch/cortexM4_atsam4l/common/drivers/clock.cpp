@@ -34,21 +34,26 @@ extern "C" {
 
 //NOTE: atsam4l start at reset with a 115kHz oscillator, that is way too slow
 // here we configure the internal RC oscillator to 12MHz
-//TODO: support more clock options
+//TODO: support more clock options in SystemInit() and getSelectedOscillator()
 
 unsigned int SystemCoreClock = 12000000;
 
 void SystemInit()
 {
-    SCIF->SCIF_UNLOCK=0xaa<<24 | SCIF_RCFASTCFG_OFFSET;
+    SCIF->SCIF_UNLOCK = SCIF_UNLOCK_KEY(0xaa) | SCIF_UNLOCK_ADDR(SCIF_RCFASTCFG_OFFSET);
     SCIF->SCIF_RCFASTCFG |= (1<<9) | SCIF_RCFASTCFG_EN; //12MHz
-    PM->PM_UNLOCK=0xaa<<24 | PM_MCCTRL_OFFSET;
+    PM->PM_UNLOCK = PM_UNLOCK_KEY(0xaa) | PM_UNLOCK_ADDR(PM_MCCTRL_OFFSET);
     PM->PM_MCCTRL=PM_MCCTRL_MCSEL_RCFAST;
 }
 
 #ifdef __cplusplus
 }
 #endif //__cplusplus
+
+int getSelectedOscillator()
+{
+    return 5; //RCFAST (see Table 13-8 Generic Clock Sources)
+}
 
 void start32kHzOscillator()
 {

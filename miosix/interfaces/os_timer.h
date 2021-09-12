@@ -260,7 +260,20 @@ public:
             D::IRQclearOverflowFlag();
             //Adjust also when the next interrupt will be fired
             long long nextIrqTick = IRQgetIrqTick();
-            if(nextIrqTick>oldTick) IRQsetIrqTick(nextIrqTick);
+            if(nextIrqTick>oldTick)
+            {
+                //Avoid using IRQsetIrqTick(nextIrqTick) as in some weird timers
+                //IRQgetTimeTick() does not work after setting the timer counter
+                //and before starting the timer (ATsam4l is an example)
+                auto tick2 = nextIrqTick + quirkAdvance;
+                upperIrqTick = tick2 & upperMask;
+                D::IRQsetTimerMatchReg(static_cast<unsigned int>(tick2 & lowerMask));
+                if(tick >= nextIrqTick)
+                {
+                    D::IRQforcePendingIrq();
+                    lateIrq=true;
+                }
+            }
         }
         D::IRQstartTimer();
     }

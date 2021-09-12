@@ -40,6 +40,11 @@ namespace miosix {
  * \{
  */
 
+/// Use AST as os_timer instead of TC1. This requires a 32kHz crystal to be
+/// connected to the board, reduces timing resolution to only 16kHz and makes
+/// context switches much slower but the os easily keeps time across deep sleeps
+//#define WITH_RTC_AS_OS_TIMER
+
 /// Size of stack for main().
 /// The C standard library is stack-heavy (iprintf requires 1KB) but the
 /// atsam4lc2aa only has 32KB of RAM so there is room for a big 4K stack.
