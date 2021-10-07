@@ -33,12 +33,11 @@ void GpioBase::modeImpl(GpioPort *p, unsigned char n, Mode m)
 {
     auto mm = static_cast<unsigned char>(m);
 
-    const unsigned char OUTPUT       = 0b000001;
-    const unsigned char ALTERNATE    = 0b000010;
-    const unsigned char PULLUP       = 0b000100;
-    const unsigned char PULLDOWN     = 0b001000;
-    const unsigned char SCHMITT_TRIG = 0b010000;
-//     const unsigned char OPEN_DRAIN   = 0b100000;
+    const unsigned char OUTPUT       = 0b00001;
+    const unsigned char ALTERNATE    = 0b00010;
+    const unsigned char PULLUP       = 0b00100;
+    const unsigned char PULLDOWN     = 0b01000;
+    const unsigned char SCHMITT_TRIG = 0b10000; //Required to function as input
 
     switch(mm & (PULLUP | PULLDOWN))
     {
@@ -58,9 +57,6 @@ void GpioBase::modeImpl(GpioPort *p, unsigned char n, Mode m)
 
     if(mm & SCHMITT_TRIG) p->GPIO_STERS=1<<n;
     else                  p->GPIO_STERC=1<<n;
-
-//     if(mm & OPEN_DRAIN) p->GPIO_ODMERS=1<<n;
-//     else                p->GPIO_ODMERC=1<<n;
 
     switch(mm & (OUTPUT | ALTERNATE))
     {

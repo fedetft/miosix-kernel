@@ -54,6 +54,9 @@ namespace miosix {
  *   drive only exist for ODCR0. Does ODCR1 even exist and do something?
  * - The header file has more completely undocumented registers, such as LOCK
  *   and UNLOCK registers...
+ * - The datasheet lists a Schmitt trigger feature implying it's an optional
+ *   feature for inputs, but it looks like it *must* be enabled for the GPIO to
+ *   operate as an input
  */
 
 /**
@@ -62,28 +65,17 @@ namespace miosix {
  */
 enum class Mode : unsigned char
 {
-    INPUT                  = 0b000000, ///Floating Input
-    INPUT_PULL_UP          = 0b000100, ///Pullup   Input
-    INPUT_PULL_DOWN        = 0b001000, ///Pulldown Input
-    INPUT_ST               = 0b010000, ///Floating Input Schmitt-trigger
-    INPUT_PULL_UP_ST       = 0b010100, ///Pullup   Input Schmitt-trigger
-    INPUT_PULL_DOWN_ST     = 0b011000, ///Pulldown Input Schmitt-trigger
-    OUTPUT                 = 0b000001, ///Push Pull  Output
-    ALTERNATE              = 0b000010, ///Alternate function
+    OFF                    = 0b00000, ///Disconnected
+    INPUT                  = 0b10000, ///Floating Input
+    INPUT_PULL_UP          = 0b10100, ///Pullup   Input
+    INPUT_PULL_DOWN        = 0b11000, ///Pulldown Input
+    OUTPUT                 = 0b10001, ///Push Pull Output
+    ALTERNATE              = 0b10010, ///Alternate function
 
     //These may not not work with all peripherals, as section 23.6.2.1 says that
     //some peripherals may override pullup/down/schmitt trigger control
-    ALTERNATE_PULL_UP      = 0b000110, ///Alternate function Pullup
-    ALTERNATE_PULL_DOWN    = 0b001010, ///Alternate function Pulldown
-    ALTERNATE_ST           = 0b010010, ///Alternate function Floating Schmitt-trigger
-    ALTERNATE_PULL_UP_ST   = 0b010110, ///Alternate function Pullup   Schmitt-trigger
-    ALTERNATE_PULL_DOWN_ST = 0b011010, ///Alternate function Pulldown Schmitt-trigger
-
-    //Uses undocumented register, does not seem to work
-//     OPEN_DRAIN             = 0b100001, ///Open drain
-//     OPEN_DRAIN_PULL_UP     = 0b100101, ///Open drain Pullup
-//     ALTERNATE_OD           = 0b100010, ///Alternate function Open drain
-//     ALTERNATE_PULL_UP_OD   = 0b100110  ///Alternate function Open drain Pullup
+    ALTERNATE_PULL_UP      = 0b10110, ///Alternate function Pullup
+    ALTERNATE_PULL_DOWN    = 0b11010, ///Alternate function Pulldown
 };
 
 /**
