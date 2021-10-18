@@ -2177,6 +2177,11 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     ## BOARD: stm32f746zg_nucleo
     ##
     ifeq ($(OPT_BOARD),stm32f746zg_nucleo)
+        ## Select appropriate compiler flags for both ASM/C/C++/linker
+        ## Not all stm32f7 have the double precision FPU. Those that only
+        ## support single precision are built as cortex m4
+        ARCHOPTS := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+    
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM7_stm32f7/stm32f746zg_nucleo
 
@@ -2224,13 +2229,6 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     OD  := $(PREFIX)objdump
     SZ  := $(PREFIX)size
 
-    ## Select appropriate compiler flags for both ASM/C/C++/linker
-    ifneq ($(GCCMAJOR),4)
-        ARCHOPTS := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
-    else
-        ## Fallback to cortex M4 and single precision fp, which is compatible
-        ARCHOPTS := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
-    endif
     AFLAGS_BASE   := $(ARCHOPTS)
     CFLAGS_BASE   += -D_ARCH_CORTEXM7_STM32F7 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
                      $(ARCHOPTS) $(OPT_OPTIMIZATION) -c
