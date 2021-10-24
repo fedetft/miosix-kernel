@@ -2609,9 +2609,6 @@ else ifeq ($(ARCH),cortexM4_atsam4l)
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_ATSAM4LC2AA_GENERIC
         CXXFLAGS_BASE += -D_BOARD_ATSAM4LC2AA_GENERIC
-        
-        ## Clock frequency
-        CLOCK_FREQ := -DCLOCK_FREQ=12000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -2643,10 +2640,10 @@ else ifeq ($(ARCH),cortexM4_atsam4l)
     ## NOTE: although the atsam4l are cortex M4, they have no FPU, so the
     ## closest multilib we have is cortex M3, and that's basically what they are
     AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
-    CFLAGS_BASE   += -D_ARCH_CORTEXM4_ATSAM4L $(CLOCK_FREQ) $(XRAM)             \
-                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION) -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_ATSAM4L $(CLOCK_FREQ) $(XRAM)             \
-                     -mcpu=cortex-m3 -mthumb $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
+    CFLAGS_BASE   += -D_ARCH_CORTEXM4_ATSAM4L -mcpu=cortex-m3 -mthumb           \
+                     $(OPT_OPTIMIZATION) -c
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_ATSAM4L -mcpu=cortex-m3 -mthumb           \
+                     $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
     LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map    \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)              \
                      $(OPT_OPTIMIZATION) -nostdlib

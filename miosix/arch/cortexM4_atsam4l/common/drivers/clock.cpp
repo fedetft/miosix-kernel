@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2020 by Terraneo Federico                               *
+ *   Copyright (C) 2020, 2021 by Terraneo Federico                         *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -27,39 +27,65 @@
 
 #include "clock.h"
 #include "interfaces/arch_registers.h"
+#include "board_settings.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif //__cplusplus
 
-//NOTE: atsam4l start at reset with a 115kHz oscillator, that is way too slow
-// here we configure the internal RC oscillator to 12MHz
-//TODO: support more clock options in SystemInit() and getSelectedOscillator()
 
-unsigned int SystemCoreClock = 12000000;
+unsigned int SystemCoreClock = miosix::bootClock;
+
+static void configureRcfast(int frange)
+{
+    auto tempRcFastCfg = SCIF->SCIF_RCFASTCFG;
+    tempRcFastCfg &= ~SCIF_RCFASTCFG_FRANGE_Msk;
+    tempRcFastCfg |= SCIF_RCFASTCFG_FRANGE(frange) | SCIF_RCFASTCFG_EN;
+    SCIF->SCIF_UNLOCK = SCIF_UNLOCK_KEY(0xaa) | SCIF_UNLOCK_ADDR(SCIF_RCFASTCFG_OFFSET);
+    SCIF->SCIF_RCFASTCFG = tempRcFastCfg; //Can't do read-modify-write, confuses the lock
+    while((SCIF->SCIF_RCFASTCFG & SCIF_RCFASTCFG_EN)==0) ;
+    PM->PM_UNLOCK = PM_UNLOCK_KEY(0xaa) | PM_UNLOCK_ADDR(PM_MCCTRL_OFFSET);
+    PM->PM_MCCTRL=PM_MCCTRL_MCSEL_RCFAST;
+}
 
 void SystemInit()
 {
-    SCIF->SCIF_UNLOCK = SCIF_UNLOCK_KEY(0xaa) | SCIF_UNLOCK_ADDR(SCIF_RCFASTCFG_OFFSET);
-    SCIF->SCIF_RCFASTCFG |= (1<<9) | SCIF_RCFASTCFG_EN; //12MHz
-    PM->PM_UNLOCK = PM_UNLOCK_KEY(0xaa) | PM_UNLOCK_ADDR(PM_MCCTRL_OFFSET);
-    PM->PM_MCCTRL=PM_MCCTRL_MCSEL_RCFAST;
+    //TODO: support more clock options in SystemInit() and getSelectedOscillator()
+    switch(miosix::bootClock)
+    {
+        case 4000000:
+            configureRcfast(0);
+            break;
+        case 8000000:
+            configureRcfast(1);
+            break;
+        case 12000000:
+            configureRcfast(2);  
+            break;
+    }
 }
 
 #ifdef __cplusplus
 }
 #endif //__cplusplus
 
+namespace miosix {
+
 int getSelectedOscillator()
 {
-    return 5; //RCFAST (see Table 13-8 Generic Clock Sources)
+    //see Table 13-8 Generic Clock Sources
+    switch(SystemCoreClock)
+    {
+        case 4000000:  return 5; //RCFAST
+        case 8000000:  return 5; //RCFAST
+        case 12000000: return 5; //RCFAST
+        default: return 0; //RCSYS
+    }
 }
 
 void start32kHzOscillator()
 {
-//     iprintf("Starting 32kHz XTAL... ");
-//     fflush(stdout);
-
+#ifndef USE_RC_32K_OSCILLATOR
     //NOTE: at least with the 32kHz crystal I've tested (CL=12.5pF), this
     //oscillator has a very noticeable jitter. Triggering with a scope on the
     //rising edge, you can see it by zooming on the falling edge. Using the
@@ -72,12 +98,27 @@ void start32kHzOscillator()
                            | BSCIF_OSCCTRL32_EN32K
                            | BSCIF_OSCCTRL32_OSC32EN;
     while((BSCIF->BSCIF_PCLKSR & BSCIF_PCLKSR_OSC32RDY) == 0) ;
-//     puts("Ok");
-
 //     //Output OSC32K on PA2/GCLK0 for measurement purpose
 //     SCIF->SCIF_GCCTRL[0].SCIF_GCCTRL = SCIF_GCCTRL_OSCSEL(1) //Output OSC32K
 //                                      | SCIF_GCCTRL_CEN;
 //     using gclk0 = Gpio<GPIOA_BASE,2>;
 //     gclk0::mode(Mode::ALTERNATE);
 //     gclk0::alternateFunction('A');
+#else //USE_RC_32K_OSCILLATOR
+    //Enable RC 32kHz oscillator
+    BSCIF->BSCIF_UNLOCK = BSCIF_UNLOCK_KEY(0xaa)
+                        | BSCIF_UNLOCK_ADDR(BSCIF_RC32KCR_OFFSET);
+    BSCIF->BSCIF_RC32KCR = BSCIF_RC32KCR_EN1K
+                         | BSCIF_RC32KCR_EN32K
+                         | BSCIF_RC32KCR_TCEN
+                         | BSCIF_RC32KCR_EN;
+    while((BSCIF->BSCIF_PCLKSR & BSCIF_PCLKSR_RC32KRDY) == 0) ;
+    //Select RC 32kHz oscillator
+    auto tempPmcon = BPM->BPM_PMCON | BPM_PMCON_CK32S;
+    BPM->BPM_UNLOCK = BPM_UNLOCK_KEY(0xaa)
+                    | BPM_UNLOCK_ADDR(BPM_PMCON_OFFSET);
+    BPM->BPM_PMCON = tempPmcon; //Can't do read-modify-write, confuses the lock
+#endif
 }
+
+} //namespace miosix

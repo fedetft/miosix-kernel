@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2015-2020 by Terraneo Federico                          *
+ *   Copyright (C) 2015-2021 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -27,12 +27,13 @@
 
 #include "interfaces/delays.h"
 #include "interfaces/arch_registers.h"
+#include "board_settings.h"
 
 namespace miosix {
 
 void delayMs(unsigned int mseconds)
 {
-    register const unsigned int count = CLOCK_FREQ / 4000;
+    register const unsigned int count = bootClock / 4000;
 
     for(unsigned int i=0;i<mseconds;i++)
     {
@@ -48,20 +49,38 @@ void delayMs(unsigned int mseconds)
 
 void delayUs(unsigned int useconds)
 {   
-    #if CLOCK_FREQ == 12000000
-    // This delay has been calibrated to take x microseconds
-    // It is written in assembler to be independent on compiler optimization
-    asm volatile("           mov   r1, #3     \n"
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
-
-    #else
-    #warning "Delays are uncalibrated for this clock frequency"
-    #endif
+    if(bootClock==12000000)
+    {
+        // This delay has been calibrated to take x microseconds
+        // It is written in assembler to be independent on compiler optimization
+        asm volatile("           mov   r1, #3     \n"
+                     "           mul   r2, %0, r1 \n"
+                     "           mov   r1, #0     \n"
+                     "___loop_u: cmp   r1, r2     \n"
+                     "           itt   lo         \n"
+                     "           addlo r1, r1, #1 \n"
+                     "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+    } else if(bootClock==8000000) {
+        // This delay has been calibrated to take x microseconds
+        // It is written in assembler to be independent on compiler optimization
+        asm volatile("           mov   r1, #2     \n"
+                     "           mul   r2, %0, r1 \n"
+                     "           mov   r1, #0     \n"
+                     "___loop_u: cmp   r1, r2     \n"
+                     "           ittt  lo         \n"
+                     "           noplo            \n"
+                     "           addlo r1, r1, #1 \n"
+                     "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+    } else {
+        // This delay has been calibrated to take x microseconds
+        // It is written in assembler to be independent on compiler optimization
+        asm volatile("           mov   r1, #0     \n"
+                     "___loop_u: cmp   r1, %0     \n"
+                     "           ittt  lo         \n"
+                     "           noplo            \n"
+                     "           addlo r1, r1, #1 \n"
+                     "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+    }
 }
 
 } //namespace miosix

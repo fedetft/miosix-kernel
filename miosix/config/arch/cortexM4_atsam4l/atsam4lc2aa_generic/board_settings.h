@@ -40,6 +40,15 @@ namespace miosix {
  * \{
  */
 
+/// Select oscillator speed at startup. Currently supported configurations are
+/// 4, 8, 12MHz, all using RCFAST
+constexpr unsigned int bootClock=12000000;
+
+/// If this is NOT defined, start32kHzOscillator() starts the 32kHz crystal
+/// oscillator, so you need a quarts crystal attached to the proper pins.
+/// If this IS defined, start32kHzOscillator() falls back to the internal RC osc
+//#define USE_RC_32K_OSCILLATOR
+
 /// Use AST as os_timer instead of TC1. This requires a 32kHz crystal to be
 /// connected to the board, reduces timing resolution to only 16kHz and makes
 /// context switches much slower but the os easily keeps time across deep sleeps

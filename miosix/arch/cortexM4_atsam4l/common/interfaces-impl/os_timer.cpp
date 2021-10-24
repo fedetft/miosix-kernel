@@ -161,8 +161,9 @@ public:
                                          | SCIF_GCCTRL_DIVEN
                                          | SCIF_GCCTRL_CEN;
         
+        auto tempPbamask = PM->PM_PBAMASK | PM_PBAMASK_TC1;
         PM->PM_UNLOCK = PM_UNLOCK_KEY(0xaa) | PM_UNLOCK_ADDR(PM_PBAMASK_OFFSET);
-        PM->PM_PBAMASK |= PM_PBAMASK_TC1; //Enable clock gating to TC1
+        PM->PM_PBAMASK = tempPbamask; //Enable clock gating to TC1
         
         TC1->TC_CHANNEL[0].TC_CMR = TC_CMR_WAVE | TC_CMR_CAPTURE_TCCLKS(0); //CLOCK=GCLK8
         TC1->TC_CHANNEL[0].TC_IER = TC_IER_CPCS | TC_IER_COVFS;
