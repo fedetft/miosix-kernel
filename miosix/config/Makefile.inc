@@ -51,6 +51,7 @@
 #OPT_BOARD := stm32l476rg_nucleo
 #OPT_BOARD := atsam4lc2aa_generic
 #OPT_BOARD := stm32f411ce_blackpill
+#OPT_BOARD := stm32l4r9zi_sensortile
 
 ##
 ## Optimization flags, choose one.
@@ -617,6 +618,29 @@ endif
 
 # No options
 
+##---------------------------------------------------------------------------
+## stm32l4r9zi_sensortile
+##
+
+ifeq ($(OPT_BOARD),stm32l4r9zi_sensortile)
+
+    ## Select clock frequency
+    ## Not defining any of these results in the internal 4MHz clock (MSI) to be used
+    #CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000
+    #CLOCK_FREQ := -DSYSCLK_FREQ_36MHz=36000000
+    CLOCK_FREQ := -DSYSCLK_FREQ_48MHz=48000000
+    #CLOCK_FREQ := -DSYSCLK_FREQ_56MHz=56000000
+    #CLOCK_FREQ := -DSYSCLK_FREQ_80MHz=80000000 -DRUN_WITH_HSE
+
+    ## Same as above, but using 16MHz HSI as clock source
+    #CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000 -DRUN_WITH_HSI
+    #CLOCK_FREQ := -DSYSCLK_FREQ_36MHz=36000000 -DRUN_WITH_HSI
+    #CLOCK_FREQ := -DSYSCLK_FREQ_48MHz=48000000 -DRUN_WITH_HSI
+    #CLOCK_FREQ := -DSYSCLK_FREQ_56MHz=56000000 -DRUN_WITH_HSI
+    #CLOCK_FREQ := -DSYSCLK_FREQ_80MHz=80000000 -DRUN_WITH_HSI
+
+endif
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -712,6 +736,8 @@ else ifeq ($(OPT_BOARD),atsam4lc2aa_generic)
     ARCH := cortexM4_atsam4l
 else ifeq ($(OPT_BOARD),stm32f411ce_blackpill)
     ARCH := cortexM4_stm32f4
+else ifeq ($(OPT_BOARD),stm32l4r9zi_sensortile)
+    ARCH := cortexM4_stm32l4
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -2532,6 +2558,36 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32L476RG_NUCLEO
         CXXFLAGS_BASE += -D_BOARD_STM32L476RG_NUCLEO
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := echo 'make program not supported.'
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32l4r9zi_sensortile
+    ##
+    else ifeq ($(OPT_BOARD),stm32l4r9zi_sensortile)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM4_stm32l4/stm32l4r9zi_sensortile
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_2m+640k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp         \
+        arch/common/drivers/sd_stm32l4.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32L4R9ZI_SENSORTILE
+        CXXFLAGS_BASE += -D_BOARD_STM32L4R9ZI_SENSORTILE
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
