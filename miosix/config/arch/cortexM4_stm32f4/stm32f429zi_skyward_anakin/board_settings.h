@@ -53,8 +53,6 @@ const bool defaultSerialFlowctrl=false;
 #define SERIAL_2_DMA   //Serial 2 is used by the piksi GPS, enable DMA
 //#define SERIAL_3_DMA //Serial 3 is not used
 
-#define I2C_WITH_DMA
-
 //SD card driver
 static const unsigned char sdVoltage=33; //Board powered @ 3.3V
 #ifdef __ENABLE_XRAM

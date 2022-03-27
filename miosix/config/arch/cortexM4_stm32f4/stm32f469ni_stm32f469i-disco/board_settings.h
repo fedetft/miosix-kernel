@@ -55,8 +55,6 @@ const bool defaultSerialFlowctrl=false;
 //#define SERIAL_2_DMA //Serial 2 is not used, so not enabling DMA
 #define SERIAL_3_DMA
 
-//#define I2C_WITH_DMA
-
 //SD card driver
 static const unsigned char sdVoltage=30; //Board powered @ 3.0V
 #define SD_ONE_BIT_DATABUS //Can't use 4 bit databus due to pin conflicts

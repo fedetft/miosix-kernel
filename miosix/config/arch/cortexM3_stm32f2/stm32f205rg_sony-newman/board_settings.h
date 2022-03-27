@@ -45,8 +45,6 @@ namespace miosix {
 /// STM32F207ZG has 128KB of RAM so there is room for a big 4K stack.
 const unsigned int MAIN_STACK_SIZE=4*1024;
 
-#define I2C_WITH_DMA
-
 /**
  * \}
  */
