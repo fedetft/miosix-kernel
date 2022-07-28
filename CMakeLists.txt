@@ -1,11 +1,10 @@
 ##
 ## Makefile for Miosix embedded OS
 ##
-
 set(PROJECT_NAME ProjectName)
 
 ## Path to toolchain directory
-set(TOOLCHAIN_PATH "C:/arm-miosix-eabi")
+set(TOOLCHAIN_PATH "/opt/arm-miosix-eabi")
 
 ## Path to kernel directory
 set(KPATH miosix)
@@ -34,11 +33,6 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_VERSION 1)
 set(CMAKE_VERBOSE_MAKEFILE ON)
-
-file(GLOB TOOLCHAIN_PATH ${TOOLCHAIN_PATH})
-if (TOOLCHAIN_PATH STREQUAL "")
-    message(FATAL_ERROR "Toolchain not found")
-endif()
 
 set(KPATH_REL ${KPATH})
 

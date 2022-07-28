@@ -3,24 +3,25 @@
 ## This makefile builds the whole kernel
 ##
 
-project(kernel)
-include(config/CMakeLists.txt)
+project(Miosix)
+set(MIOSIX_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_subdirectory(config)
 
 include_directories(
-        ${TOOLCHAIN_PATH}/arm-miosix-eabi/include
-        ${TOOLCHAIN_PATH}/lib/gcc/arm-miosix-eabi/4.7.3/include
-        ${TOOLCHAIN_PATH}/lib/gcc/arm-miosix-eabi/4.7.3/include-fixed
-        ${TOOLCHAIN_PATH}/arm-miosix-eabi/include/c++/4.7.3/
-        ${TOOLCHAIN_PATH}/arm-miosix-eabi/include/c++/4.7.3/arm-miosix-eabi
-        ${TOOLCHAIN_PATH}/arm-miosix-eabi/include/c++/4.7.3/backward
-        ${CONFPATH}
-        ${CONFPATH}/${BOARD_INC}
-        ${KPATH}
-        arch/common
-        ${ARCH_INC}
-        ${BOARD_INC}
-        ${INCLUDE_DIRS}
-)
+    ${TOOLCHAIN_PATH}/arm-miosix-eabi/include
+    ${TOOLCHAIN_PATH}/lib/gcc/arm-miosix-eabi/4.7.3/include
+    ${TOOLCHAIN_PATH}/lib/gcc/arm-miosix-eabi/4.7.3/include-fixed
+    ${TOOLCHAIN_PATH}/arm-miosix-eabi/include/c++/4.7.3/
+    ${TOOLCHAIN_PATH}/arm-miosix-eabi/include/c++/4.7.3/arm-miosix-eabi
+    ${TOOLCHAIN_PATH}/arm-miosix-eabi/include/c++/4.7.3/backward
+    ${CONFPATH}
+    ${CONFPATH}/${BOARD_INC}
+    ${MIOSIX_PATH}
+    arch/common
+    ${ARCH_INC}
+    ${BOARD_INC}
+    ${INCLUDE_DIRS})
 
 ## List of all Miosix OS source files that have no special requirements
 ## and that must be built for each architecture (both .c and .cpp)
