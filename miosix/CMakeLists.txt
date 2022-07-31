@@ -188,3 +188,5 @@ endfunction()
 
 # Discover the allowed configurations
 add_subdirectory(${ARCH_FOLDER})
+
+add_subdirectory(_tools/testsuite EXCLUDE_FROM_ALL)
