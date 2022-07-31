@@ -1,0 +1,6 @@
+## Select clock frequency
+## Not defining any of these results in the internal 8MHz clock to be used
+#set(CLOCK_FREQ -DSYSCLK_FREQ_24MHz=24000000 -DRUN_WITH_HSI)
+#set(CLOCK_FREQ -DSYSCLK_FREQ_36MHz=36000000 -DRUN_WITH_HSI)
+#set(CLOCK_FREQ -DSYSCLK_FREQ_48MHz=48000000 -DRUN_WITH_HSI)
+set(CLOCK_FREQ -DSYSCLK_FREQ_56MHz=56000000 -DRUN_WITH_HSI)

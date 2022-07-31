@@ -1,83 +1,190 @@
-##
-## Makefile for Miosix embedded OS
-## This makefile builds the whole kernel
-##
+cmake_minimum_required(VERSION 3.16)
 
-project(Miosix)
+project(Miosix
+        DESCRIPTION "OS kernel designed to run on 32bit microcontrollers"
+        HOMEPAGE_URL "https://miosix.org/"
+        LANGUAGES C CXX ASM)
+
+set(MIOSIX_BOARD "" CACHE STRING "The board to be targeted")
+
 set(MIOSIX_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+set(ARCH_FOLDER arch)
+set(ARCH_ALL_COMMON_PATH ${MIOSIX_PATH}/${ARCH_FOLDER}/common)
+set(CONFIG_PATH ${CMAKE_CURRENT_SOURCE_DIR}/config)
 
-add_subdirectory(config)
+# List of all Miosix OS source files that have no special requirements
+# and that must be built for each architecture (both .c and .cpp).
+# These files will end up in libmiosix.a.
 
-include_directories(
-    ${TOOLCHAIN_PATH}/arm-miosix-eabi/include
-    ${TOOLCHAIN_PATH}/lib/gcc/arm-miosix-eabi/4.7.3/include
-    ${TOOLCHAIN_PATH}/lib/gcc/arm-miosix-eabi/4.7.3/include-fixed
-    ${TOOLCHAIN_PATH}/arm-miosix-eabi/include/c++/4.7.3/
-    ${TOOLCHAIN_PATH}/arm-miosix-eabi/include/c++/4.7.3/arm-miosix-eabi
-    ${TOOLCHAIN_PATH}/arm-miosix-eabi/include/c++/4.7.3/backward
-    ${CONFPATH}
-    ${CONFPATH}/${BOARD_INC}
-    ${MIOSIX_PATH}
-    arch/common
-    ${ARCH_INC}
-    ${BOARD_INC}
-    ${INCLUDE_DIRS})
+set(MIOSIX_SOURCES
+        ${MIOSIX_PATH}/kernel/kernel.cpp
+        ${MIOSIX_PATH}/kernel/sync.cpp
+        ${MIOSIX_PATH}/kernel/error.cpp
+        ${MIOSIX_PATH}/kernel/pthread.cpp
+        ${MIOSIX_PATH}/kernel/stage_2_boot.cpp
+        ${MIOSIX_PATH}/kernel/elf_program.cpp
+        ${MIOSIX_PATH}/kernel/process.cpp
+        ${MIOSIX_PATH}/kernel/process_pool.cpp
+        ${MIOSIX_PATH}/kernel/timeconversion.cpp
+        ${MIOSIX_PATH}/kernel/SystemMap.cpp
+        ${MIOSIX_PATH}/kernel/scheduler/priority/priority_scheduler.cpp
+        ${MIOSIX_PATH}/kernel/scheduler/control/control_scheduler.cpp
+        ${MIOSIX_PATH}/kernel/scheduler/edf/edf_scheduler.cpp
+        ${MIOSIX_PATH}/filesystem/file_access.cpp
+        ${MIOSIX_PATH}/filesystem/file.cpp
+        ${MIOSIX_PATH}/filesystem/stringpart.cpp
+        ${MIOSIX_PATH}/filesystem/console/console_device.cpp
+        ${MIOSIX_PATH}/filesystem/mountpointfs/mountpointfs.cpp
+        ${MIOSIX_PATH}/filesystem/devfs/devfs.cpp
+        ${MIOSIX_PATH}/filesystem/fat32/fat32.cpp
+        ${MIOSIX_PATH}/filesystem/fat32/ff.cpp
+        ${MIOSIX_PATH}/filesystem/fat32/diskio.cpp
+        ${MIOSIX_PATH}/filesystem/fat32/wtoupper.cpp
+        ${MIOSIX_PATH}/filesystem/fat32/ccsbcs.cpp
+        ${MIOSIX_PATH}/stdlib_integration/libc_integration.cpp
+        ${MIOSIX_PATH}/stdlib_integration/libstdcpp_integration.cpp
+        ${MIOSIX_PATH}/e20/e20.cpp
+        ${MIOSIX_PATH}/e20/unmember.cpp
+        ${MIOSIX_PATH}/util/util.cpp
+        ${MIOSIX_PATH}/util/unicode.cpp
+        ${MIOSIX_PATH}/util/version.cpp
+        ${MIOSIX_PATH}/util/crc16.cpp
+        ${MIOSIX_PATH}/util/lcd44780.cpp)
 
-## List of all Miosix OS source files that have no special requirements
-## and that must be built for each architecture (both .c and .cpp)
-## These files will end up in libmiosix.a
-set(SOURCES
-        kernel/kernel.cpp
-        kernel/sync.cpp
-        kernel/error.cpp
-        kernel/pthread.cpp
-        kernel/stage_2_boot.cpp
-        kernel/elf_program.cpp
-        kernel/process.cpp
-        kernel/process_pool.cpp
-        kernel/timeconversion.cpp
-        kernel/SystemMap.cpp
-        kernel/scheduler/priority/priority_scheduler.cpp
-        kernel/scheduler/control/control_scheduler.cpp
-        kernel/scheduler/edf/edf_scheduler.cpp
-        filesystem/file_access.cpp
-        filesystem/file.cpp
-        filesystem/stringpart.cpp
-        filesystem/console/console_device.cpp
-        filesystem/mountpointfs/mountpointfs.cpp
-        filesystem/devfs/devfs.cpp
-        filesystem/fat32/fat32.cpp
-        filesystem/fat32/ff.cpp
-        filesystem/fat32/diskio.cpp
-        filesystem/fat32/wtoupper.cpp
-        filesystem/fat32/ccsbcs.cpp
-        stdlib_integration/libc_integration.cpp
-        stdlib_integration/libstdcpp_integration.cpp
-        e20/e20.cpp
-        e20/unmember.cpp
-        util/util.cpp
-        util/unicode.cpp
-        util/version.cpp
-        util/crc16.cpp
-        util/lcd44780.cpp
-        )
+# Declare an architecture into the Miosix build system.
+# A folder with the same name of the architecture must exist within the folder
+# declaring the architecture.
+function(miosix_add_arch NAME)
+    set(ARCH_NAME ${NAME})
+    set(ARCH_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${ARCH_NAME})
 
-## Add the architecture dependand sources to the list of files to build.
-## ARCH_SRC will contain different source files depending on which
-## architecture/board is selected in config/Makefile.inc
+    # The file to be included to set the compilation options for this
+    # architecture. It must be included after all the board-related options
+    # have been defined.
+    set(ARCH_OPTIONS ${ARCH_PATH}/options.cmake)
 
-list(APPEND SOURCES ${ARCH_SRC})
-list(APPEND SOURCES ${BOOT_FILE})
+    # Base directory with header files for the architecture
+    set(ARCH_INC ${ARCH_FOLDER}/${ARCH_NAME}/common)
 
-set(DFLAGS "-MMD -MP")
+    add_subdirectory(${NAME})
+endfunction()
 
-set(CMAKE_C_FLAGS "${DFLAGS} ${CFLAGS_BASE} -DCOMPILING_MIOSIX")
-set(CMAKE_CXX_FLAGS "${DFLAGS} ${CXXFLAGS_BASE} -DCOMPILING_MIOSIX")
-set(CMAKE_ASM_FLAGS ${AFLAGS_BASE})
+function(miosix_set_properties TARGET)
+    # Set the compilation options
+    target_compile_features(${TARGET} PUBLIC cxx_std_14)
 
-set(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> rcs <TARGET> <LINK_FLAGS> <OBJECTS>")
-set(CMAKE_C_ARCHIVE_CREATE "<CMAKE_AR> rcs <TARGET> <LINK_FLAGS> <OBJECTS>")
+    set(DFLAGS -MMD -MP)
 
-add_library(miosix STATIC ${SOURCES})
+    target_compile_options(${TARGET} PUBLIC
+            ${DFLAGS}
+            $<$<COMPILE_LANGUAGE:ASM>:${AFLAGS_BASE}>
+            $<$<COMPILE_LANGUAGE:C>:${CFLAGS_BASE}>
+            $<$<COMPILE_LANGUAGE:CXX>:${CXXFLAGS_BASE}>)
 
-# TODO: run "perl _tools/kernel_global_objects.pl $(OBJ)"
+    # Set the link options
+    #set_property(TARGET ${TARGET} PROPERTY INTERFACE_LINK_DEPENDS ${LINKER_SCRIPT})
+
+    target_link_options(${TARGET} INTERFACE ${LFLAGS_BASE})
+    target_link_libraries(${TARGET} INTERFACE stdc++ c m gcc atomic)
+
+    # Add the 'DEBUG' and 'COMPILING_MIOSIX' definitions while compiling the sources of Miosix
+    target_compile_definitions(${TARGET} PUBLIC $<$<CONFIG:Debug>:DEBUG> PRIVATE COMPILING_MIOSIX)
+
+    # Set the include directories
+    target_include_directories(${TARGET} PUBLIC
+            ${MIOSIX_PATH}
+            ${ARCH_ALL_COMMON_PATH}
+            ${MIOSIX_PATH}/${ARCH_INC}
+            ${MIOSIX_PATH}/${BOARD_INC}
+            ${CONFIG_PATH}
+            ${CONFIG_PATH}/${BOARD_INC})
+endfunction()
+
+# Declare a board into the Miosix build system.
+# A folder with the same name of the board must exist within the folder
+# declaring the board.
+function(miosix_add_board NAME)
+    if (${MIOSIX_BOARD} STREQUAL ${NAME})
+        set(BOARD_NAME ${NAME})
+        set(BOARD_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${BOARD_NAME})
+
+        # Base directory with header files for the board
+        set(BOARD_INC ${ARCH_FOLDER}/${ARCH_NAME}/${BOARD_NAME})
+
+        # The files to be included to set the compilation options for this
+        # board. The `BOARD_OPTIONS` file must be included before the
+        # `BOARD_CONFIG_OPTIONS` one, in order to allow the user to overwrite
+        # options in case of need.
+
+        set(BOARD_CONFIG_OPTIONS ${CONFIG_PATH}/${BOARD_INC}/options.cmake)
+        set(BOARD_OPTIONS ${CMAKE_CURRENT_SOURCE_DIR}/${BOARD_NAME}/options.cmake)
+
+        # Base compilation and link flags
+        set(AFLAGS_BASE "")
+        set(CFLAGS_BASE -D_MIOSIX_BOARDNAME=\"${BOARD_NAME}\" -ffunction-sections -Wno-unused-but-set-variable -Wall -g)
+        set(CXXFLAGS_BASE -D_MIOSIX_BOARDNAME=\"${BOARD_NAME}\" -ffunction-sections -Wno-unused-but-set-variable -Wall -g)
+        set(LFLAGS_BASE "")
+
+        # Get the board options
+        include(${BOARD_OPTIONS})
+        include(${CONFIG_PATH}/options.cmake)
+        include(${BOARD_CONFIG_OPTIONS})
+
+        # Get the architecture options
+        include(${ARCH_OPTIONS})
+
+        # Create the target for the Miosix library
+        set(MIOSIX_LIB miosix)
+
+        add_library(${MIOSIX_LIB} STATIC
+                ${MIOSIX_SOURCES}
+                ${ARCH_SRC})
+
+        miosix_set_properties(${MIOSIX_LIB})
+
+        # Create the target for the stage_1_boot library
+        set(STAGE_1_BOOT_LIB stage_1_boot)
+        add_library(${STAGE_1_BOOT_LIB} OBJECT ${BOOT_FILE})
+        target_sources(${MIOSIX_LIB} INTERFACE $<TARGET_OBJECTS:${STAGE_1_BOOT_LIB}>)
+        miosix_set_properties(${STAGE_1_BOOT_LIB})
+
+        #add_custom_command(TARGET ${MIOSIX_LIB} POST_BUILD
+        #        COMMAND perl ${MIOSIX_PATH}/_tools/kernel_global_objects.pl $<TARGET_OBJECTS:${MIOSIX_LIB}>
+        #        VERBATIM
+        #        COMMAND_EXPAND_LISTS)
+    endif()
+endfunction()
+
+function(miosix_add_executable NAME)
+    # Declare the target for the binary
+    add_executable(${NAME} ${ARGN})
+
+    # Link the Miosix library
+    target_link_libraries(${NAME} PUBLIC miosix)
+
+    # Set the output folder
+    set_target_properties(${NAME}
+            PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Output/${NAME}")
+
+    # Set the name for generated ELF file
+    set_target_properties(${NAME} PROPERTIES OUTPUT_NAME main.elf)
+
+    # Generate the .hex and .bin files
+    set(ELF_FILE ${CMAKE_BINARY_DIR}/Output/${NAME}/main.elf)
+    set(HEX_FILE ${CMAKE_BINARY_DIR}/Output/${NAME}/main.hex)
+    set(BIN_FILE ${CMAKE_BINARY_DIR}/Output/${NAME}/main.bin)
+
+    add_custom_command(TARGET ${NAME} POST_BUILD
+            COMMAND ${CMAKE_OBJCOPY} -O ihex ${ELF_FILE} ${HEX_FILE}
+            BYPRODUCTS ${HEX_FILE}
+            COMMENT "Building ${HEX_FILE}")
+
+    add_custom_command(TARGET ${NAME} POST_BUILD
+            COMMAND ${CMAKE_OBJCOPY} -O binary ${ELF_FILE} ${BIN_FILE}
+            BYPRODUCTS ${BIN_FILE}
+            COMMENT "Building ${BIN_FILE}")
+endfunction()
+
+# Discover the allowed configurations
+add_subdirectory(${ARCH_FOLDER})

@@ -1,0 +1,7 @@
+# stm32f100c8 has 64K, stm32f100cb has 128K
+#set(LINKER_SCRIPT ${BOARD_PATH}/stm32_64k+8k_rom.ld)
+set(LINKER_SCRIPT ${BOARD_PATH}/stm32_128k+8k_rom.ld)
+
+## Select clock frequency
+set(CLOCK_FREQ -DSYSCLK_FREQ_24MHz=24000000 -DRUN_WITH_HSI)
+#set(CLOCK_FREQ -DSYSCLK_FREQ_24MHz=24000000)

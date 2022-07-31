@@ -1,0 +1,1 @@
+miosix_add_board(efm32gg332f1024_wandstem)

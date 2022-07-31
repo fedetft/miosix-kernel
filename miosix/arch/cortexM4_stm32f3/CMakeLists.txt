@@ -1,0 +1,1 @@
+miosix_add_board(stm32f303vc_stm32f3discovery)

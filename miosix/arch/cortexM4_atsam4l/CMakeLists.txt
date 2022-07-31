@@ -1,0 +1,1 @@
+miosix_add_board(atsam4lc2aa_generic)

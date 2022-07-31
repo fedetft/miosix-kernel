@@ -1,0 +1,6 @@
+miosix_add_board(stm32f205_generic)
+miosix_add_board(stm32f205rc_skyward_stormtrooper)
+miosix_add_board(stm32f205rg_sony-newman)
+miosix_add_board(stm32f207ig_stm3220g-eval)
+miosix_add_board(stm32f207ze_als_camboard)
+miosix_add_board(stm32f207zg_EthBoardV2)
