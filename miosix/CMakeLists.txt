@@ -199,6 +199,14 @@ function(miosix_add_executable NAME)
             COMMENT "Building ${BIN_FILE}")
 endfunction()
 
+function(miosix_add_library NAME)
+    # Declare the target for the library
+    add_library(${NAME} STATIC ${ARGN})
+
+    # Link the Miosix library
+    target_link_libraries(${NAME} PUBLIC miosix-lib)
+endfunction()
+
 # Discover the allowed configurations
 add_subdirectory(${ARCH_FOLDER})
 
