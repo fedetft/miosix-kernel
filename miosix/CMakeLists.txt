@@ -147,6 +147,7 @@ function(miosix_add_board NAME)
 
         # Create the target for the Miosix library
         add_library(miosix-lib STATIC $<TARGET_OBJECTS:miosix-obj>)
+        add_dependencies(miosix-lib miosix-obj)
 
         miosix_set_properties(miosix-lib)
 
