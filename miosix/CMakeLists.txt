@@ -92,7 +92,7 @@ function(miosix_set_properties TARGET)
             $<$<COMPILE_LANGUAGE:CXX>:${CXXFLAGS_BASE}>)
 
     # Set the link options
-    #set_property(TARGET ${TARGET} PROPERTY INTERFACE_LINK_DEPENDS ${LINKER_SCRIPT})
+    set_property(TARGET ${TARGET} PROPERTY INTERFACE_LINK_DEPENDS ${LINKER_SCRIPT})
 
     target_link_options(${TARGET} INTERFACE ${LFLAGS_BASE})
     target_link_libraries(${TARGET} INTERFACE stdc++ c m gcc atomic)
