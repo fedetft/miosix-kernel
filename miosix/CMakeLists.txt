@@ -7,6 +7,10 @@ project(Miosix
 
 set(MIOSIX_BOARD "" CACHE STRING "The board to be targeted")
 
+if (NOT MIOSIX_BOARD)
+    message(FATAL_ERROR "No MIOSIX_BOARD set")
+endif()
+
 set(MIOSIX_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 set(ARCH_FOLDER arch)
 set(ARCH_ALL_COMMON_PATH ${MIOSIX_PATH}/${ARCH_FOLDER}/common)
