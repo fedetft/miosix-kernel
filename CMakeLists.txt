@@ -9,11 +9,6 @@ set(LIBS "")
 ## List here additional include directories (in the form -Iinclude_dir)
 set(INCLUDE_DIRS "")
 
-##
-## List here your source files (both .s, .c and .cpp)
-##
-file(GLOB SOURCES main.cpp)
-
 
 
 ##############################################################################

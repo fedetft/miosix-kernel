@@ -133,25 +133,27 @@ function(miosix_add_board NAME)
         # Get the architecture options
         include(${ARCH_OPTIONS})
 
-        # Create the target for the Miosix library
-        set(MIOSIX_LIB miosix)
-
-        add_library(${MIOSIX_LIB} STATIC
+        # Create the target for the Miosix object files
+        add_library(miosix-obj OBJECT
                 ${MIOSIX_SOURCES}
                 ${ARCH_SRC})
 
-        miosix_set_properties(${MIOSIX_LIB})
+        miosix_set_properties(miosix-obj)
 
         # Create the target for the stage_1_boot library
-        set(STAGE_1_BOOT_LIB stage_1_boot)
-        add_library(${STAGE_1_BOOT_LIB} OBJECT ${BOOT_FILE})
-        target_sources(${MIOSIX_LIB} INTERFACE $<TARGET_OBJECTS:${STAGE_1_BOOT_LIB}>)
-        miosix_set_properties(${STAGE_1_BOOT_LIB})
+        add_library(stage_1_boot OBJECT ${BOOT_FILE})
+        target_sources(miosix-obj INTERFACE $<TARGET_OBJECTS:stage_1_boot>)
+        miosix_set_properties(stage_1_boot)
 
-        #add_custom_command(TARGET ${MIOSIX_LIB} POST_BUILD
-        #        COMMAND perl ${MIOSIX_PATH}/_tools/kernel_global_objects.pl $<TARGET_OBJECTS:${MIOSIX_LIB}>
-        #        VERBATIM
-        #        COMMAND_EXPAND_LISTS)
+        # Create the target for the Miosix library
+        add_library(miosix-lib STATIC $<TARGET_OBJECTS:miosix-obj>)
+
+        miosix_set_properties(miosix-lib)
+
+        add_custom_command(TARGET miosix-lib PRE_LINK
+                COMMAND perl ${MIOSIX_PATH}/_tools/kernel_global_objects.pl $<TARGET_OBJECTS:miosix-obj>
+                VERBATIM
+                COMMAND_EXPAND_LISTS)
     endif()
 endfunction()
 
@@ -160,7 +162,7 @@ function(miosix_add_executable NAME)
     add_executable(${NAME} ${ARGN})
 
     # Link the Miosix library
-    target_link_libraries(${NAME} PUBLIC miosix)
+    target_link_libraries(${NAME} PUBLIC miosix-lib)
 
     # Set the output folder
     set_target_properties(${NAME}

@@ -50,7 +50,7 @@ foreach my $filename (@ARGV)
 {
 	# First, check that the argument is really an object file
 	die "$filename is not a file name."    unless -f $filename;
-	die "$filename is not an object file." unless    $filename=~/\.o$/;
+	#die "$filename is not an object file." unless    $filename=~/\.o$/;
 
 	# Then use readelf to dump all sections of the file
 	my $output=`arm-miosix-eabi-readelf -SW \"$filename\"`;
