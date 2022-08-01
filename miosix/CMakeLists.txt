@@ -150,11 +150,6 @@ function(miosix_add_board NAME)
 
         miosix_set_properties(miosix-obj)
 
-        # Create the target for the stage_1_boot library
-        add_library(stage_1_boot OBJECT ${BOOT_FILE})
-        target_sources(miosix-obj INTERFACE $<TARGET_OBJECTS:stage_1_boot>)
-        miosix_set_properties(stage_1_boot)
-
         # Create the target for the Miosix library
         add_library(miosix-lib STATIC $<TARGET_OBJECTS:miosix-obj>)
         add_dependencies(miosix-lib miosix-obj)
@@ -165,6 +160,11 @@ function(miosix_add_board NAME)
                 COMMAND perl ${MIOSIX_PATH}/_tools/kernel_global_objects.pl $<TARGET_OBJECTS:miosix-obj>
                 VERBATIM
                 COMMAND_EXPAND_LISTS)
+
+        # Create the target for the stage_1_boot library
+        add_library(stage_1_boot OBJECT ${BOOT_FILE})
+        target_sources(miosix-lib INTERFACE $<TARGET_OBJECTS:stage_1_boot>)
+        miosix_set_properties(stage_1_boot)
     endif()
 endfunction()
 
