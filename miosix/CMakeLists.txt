@@ -6,15 +6,21 @@ project(Miosix
         LANGUAGES C CXX ASM)
 
 set(MIOSIX_BOARD "" CACHE STRING "The board to be targeted")
+set(MIOSIX_CONFIG_PATH ${CMAKE_CURRENT_SOURCE_DIR}/config CACHE STRING "The path of the board configurations folder")
+option(MIOSIX_IN_TREE_BUILD "Consider the current build as an in-tree one" OFF)
 
 if (NOT MIOSIX_BOARD)
     message(FATAL_ERROR "No MIOSIX_BOARD set")
 endif()
 
+if ("${MIOSIX_CONFIG_PATH}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}/config" AND NOT ${MIOSIX_IN_TREE_BUILD})
+    message(WARNING "Internal config folder is being used. Consider making your own out-of-tree copy by running the "
+                    "'${CMAKE_CURRENT_SOURCE_DIR}/_tools/init_project_out_of_git_tree.pl' script.")
+endif()
+
 set(MIOSIX_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 set(ARCH_FOLDER arch)
 set(ARCH_ALL_COMMON_PATH ${MIOSIX_PATH}/${ARCH_FOLDER}/common)
-set(CONFIG_PATH ${CMAKE_CURRENT_SOURCE_DIR}/config)
 
 # List of all Miosix OS source files that have no special requirements
 # and that must be built for each architecture (both .c and .cpp).
@@ -100,8 +106,8 @@ function(miosix_set_properties TARGET)
             ${ARCH_ALL_COMMON_PATH}
             ${MIOSIX_PATH}/${ARCH_INC}
             ${MIOSIX_PATH}/${BOARD_INC}
-            ${CONFIG_PATH}
-            ${CONFIG_PATH}/${BOARD_INC})
+            ${MIOSIX_CONFIG_PATH}
+            ${MIOSIX_CONFIG_PATH}/${BOARD_INC})
 endfunction()
 
 # Declare a board into the Miosix build system.
@@ -120,7 +126,7 @@ function(miosix_add_board NAME)
         # `BOARD_CONFIG_OPTIONS` one, in order to allow the user to overwrite
         # options in case of need.
 
-        set(BOARD_CONFIG_OPTIONS ${CONFIG_PATH}/${BOARD_INC}/options.cmake)
+        set(BOARD_CONFIG_OPTIONS ${MIOSIX_CONFIG_PATH}/${BOARD_INC}/options.cmake)
         set(BOARD_OPTIONS ${CMAKE_CURRENT_SOURCE_DIR}/${BOARD_NAME}/options.cmake)
 
         # Base compilation and link flags
@@ -131,7 +137,7 @@ function(miosix_add_board NAME)
 
         # Get the board options
         include(${BOARD_OPTIONS})
-        include(${CONFIG_PATH}/options.cmake)
+        include(${MIOSIX_CONFIG_PATH}/options.cmake)
         include(${BOARD_CONFIG_OPTIONS})
 
         # Get the architecture options
