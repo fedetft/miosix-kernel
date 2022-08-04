@@ -1,0 +1,1 @@
+miosix_add_board(stm32f072rb_stm32f0discovery)

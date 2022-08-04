@@ -1,0 +1,5 @@
+## Select clock frequency
+## Not defining anything results in HSI being used
+#set(CLOCK_FREQ -DSYSCLK_FREQ_8MHz=8000000)
+set(CLOCK_FREQ -DSYSCLK_FREQ_24MHz=24000000 -DRUN_WITH_HSI)
+#set(CLOCK_FREQ -DSYSCLK_FREQ_24MHz=24000000 -DHSE_VALUE=24000000

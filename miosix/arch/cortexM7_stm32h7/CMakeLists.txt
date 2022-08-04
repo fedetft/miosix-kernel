@@ -1,0 +1,1 @@
+miosix_add_board(stm32h753xi_eval)

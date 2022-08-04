@@ -1,0 +1,1 @@
+miosix_add_board(stm32l476rg_nucleo)
