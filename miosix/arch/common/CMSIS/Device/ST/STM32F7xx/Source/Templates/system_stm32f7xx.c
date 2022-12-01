@@ -98,6 +98,36 @@
                                    This value must be a multiple of 0x200. */
 /******************************************************************************/
 
+// By Alberto Nidasio and TFT -- begin
+#if (HSE_VALUE % 2000000) == 0
+
+//PLL input frequency set to 2MHz to reduce jitter as suggested by the datasheet.
+const unsigned int PLL_M=HSE_VALUE/2000000;
+#ifdef SYSCLK_FREQ_216MHz
+const unsigned int PLL_Q=9;
+const unsigned int PLL_R=7;
+const unsigned int PLL_N=216;
+const unsigned int PLL_P=2;
+#else
+#error Clock not selected
+#endif
+
+#else // HSE_VALUE not divisible by 2MHz
+
+//PLL Input frequency set to 1MHz
+const unsigned int PLL_M=HSE_VALUE/1000000;
+#ifdef SYSCLK_FREQ_216MHz
+const unsigned int PLL_Q=9;
+const unsigned int PLL_R=7;
+const unsigned int PLL_N=432;
+const unsigned int PLL_P=2;
+#else
+#error Clock not selected
+#endif
+
+#endif // HSE_VALUE divisibility check
+// By Alberto Nidasio and TFT -- end
+
 /**
   * @}
   */
@@ -292,15 +322,6 @@ void SetSysClk(void)
 /*            PLL (clocked by HSE) used as System clock source                */
 /******************************************************************************/
   
-/************************* PLL Parameters for clock at 216MHz******************/
-  //By TFT: the original settings were for a boar with a 25MHz clock, not 8MHz
-  //They also mention a PLL_R that doesn't exist in the datasheet and maps to
-  //reseved bits. Finally, the PLL input frequency was set to 2MHz to reduce
-  //PLL jitter as suggested by the datasheet.
-  
-  //uint32_t PLL_M = 25,PLL_Q = 9, PLL_R = 7, PLL_N = 432, PLL_P = 2;
-  uint32_t PLL_M = 4,PLL_Q = 9, PLL_R = 7, PLL_N = 216, PLL_P = 2;
-  
   /* Enable Power Control clock */
   RCC->APB1ENR |= RCC_APB1ENR_PWREN;
  
@@ -340,7 +361,7 @@ void SetSysClk(void)
     do
     {
       tmpreg = PWR->CSR1 & PWR_CSR1_ODSWRDY;
-    } while((tmpreg != PWR_CSR1_ODSWRDY) && (timeout-- > 0)); 
+    } while((tmpreg != PWR_CSR1_ODSWRDY) && (timeout-- > 0));
    
     /* HCLK = SYSCLK / 1*/
     RCC->CFGR |= RCC_CFGR_HPRE_DIV1;
@@ -362,7 +383,7 @@ void SetSysClk(void)
   timeout = 0xFFFF;
   do
   {
-    tmpreg = (RCC->CR & RCC_CR_PLLRDY); 
+    tmpreg = (RCC->CR & RCC_CR_PLLRDY);
   } while((tmpreg != RCC_CR_PLLRDY) && (timeout-- > 0));
   
   if(timeout != 0)
@@ -377,7 +398,7 @@ void SetSysClk(void)
     timeout = 0xFFFF;
     do
     {
-      tmpreg = (RCC->CFGR & RCC_CFGR_SWS); 
+      tmpreg = (RCC->CFGR & RCC_CFGR_SWS);
     } while((tmpreg != RCC_CFGR_SWS) && (timeout-- > 0));
   }   
 }

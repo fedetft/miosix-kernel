@@ -52,6 +52,7 @@
 #OPT_BOARD := atsam4lc2aa_generic
 #OPT_BOARD := stm32f411ce_blackpill
 #OPT_BOARD := stm32l4r9zi_sensortile
+#OPT_BOARD := stm32f769ni_discovery
 
 ##
 ## Optimization flags, choose one.
@@ -738,6 +739,8 @@ else ifeq ($(OPT_BOARD),stm32f411ce_blackpill)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),stm32l4r9zi_sensortile)
     ARCH := cortexM4_stm32l4
+else ifeq ($(OPT_BOARD),stm32f769ni_discovery)
+    ARCH := cortexM7_stm32f7
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -2230,6 +2233,7 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
         arch/common/drivers/stm32_hardware_rng.cpp   \
+        arch/common/drivers/sd_stm32f2_f4.cpp        \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -2246,6 +2250,45 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## error message saying that 'make program' is not supported for that
         ## board.
         PROGRAM_CMDLINE := echo 'make program not supported.'
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f769ni_discovery
+    ##
+    else ifeq ($(OPT_BOARD),stm32f769ni_discovery)
+        ## Select appropriate compiler flags for both ASM/C/C++/linker
+        ## The stm32f769 has the double precision FPU, so we will build for m7
+        ARCHOPTS := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
+    
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM7_stm32f7/stm32f769ni_discovery
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        # LINKER_SCRIPT := $(BOARD_INC)/stm32_s2m+384k_ram.ld
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_2m+16m_xram.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC := $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32F769NI_DISCO
+        CXXFLAGS_BASE += -D_BOARD_STM32F769NI_DISCO
+
+        ## Enables the initialization of the external 16MB SDRAM memory
+        XRAM := -D__ENABLE_XRAM
+
+        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
+        CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_216MHz=216000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := st-flash --reset write "main.bin" 0x8000000
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -2281,7 +2324,6 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/core/cache_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
-    arch/common/drivers/sd_stm32f2_f4.cpp                    \
     arch/common/drivers/dcc.cpp                              \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
