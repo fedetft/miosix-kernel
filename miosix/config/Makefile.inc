@@ -52,6 +52,7 @@
 #OPT_BOARD := atsam4lc2aa_generic
 #OPT_BOARD := stm32f411ce_blackpill
 #OPT_BOARD := stm32l4r9zi_sensortile
+#OPT_BOARD := stm32f767zi_nucleo
 #OPT_BOARD := stm32f769ni_discovery
 
 ##
@@ -739,6 +740,8 @@ else ifeq ($(OPT_BOARD),stm32f411ce_blackpill)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),stm32l4r9zi_sensortile)
     ARCH := cortexM4_stm32l4
+else ifeq ($(OPT_BOARD),stm32f767zi_nucleo)
+    ARCH := cortexM7_stm32f7
 else ifeq ($(OPT_BOARD),stm32f769ni_discovery)
     ARCH := cortexM7_stm32f7
 else
@@ -2250,6 +2253,43 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## error message saying that 'make program' is not supported for that
         ## board.
         PROGRAM_CMDLINE := echo 'make program not supported.'
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f767zi_nucleo
+    ##
+    else ifeq ($(OPT_BOARD),stm32f767zi_nucleo)
+        ## Select appropriate compiler flags for both ASM/C/C++/linker
+        ## The stm32f767 has the double precision FPU, so we will build for m7
+        ARCHOPTS := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
+    
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM7_stm32f7/stm32f767zi_nucleo
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_2m+384k_ram.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                           \
+        arch/common/drivers/sd_stm32f2_f4.cpp \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32F767ZI_NUCLEO
+        CXXFLAGS_BASE += -D_BOARD_STM32F767ZI_NUCLEO
+
+        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
+        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_216MHz=216000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := st-flash --reset write "main.bin" 0x8000000
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f769ni_discovery
