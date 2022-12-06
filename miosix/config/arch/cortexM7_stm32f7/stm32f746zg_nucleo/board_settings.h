@@ -41,11 +41,10 @@ namespace miosix {
  */
 
 /// Size of stack for main().
-/// The C standard library is stack-heavy (iprintf requires 1KB) 
+/// The C standard library is stack-heavy (iprintf requires 1KB)
 const unsigned int MAIN_STACK_SIZE=4*1024;
 
 /// Serial port
-//This board only exposes USART3, without flow control, connected to an UART/USB
 const unsigned int defaultSerialSpeed=115200;
 // #define SERIAL_1_DMA
 // #define SERIAL_2_DMA

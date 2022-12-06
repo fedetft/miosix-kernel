@@ -204,7 +204,7 @@
               <in>sd_stm32f1.cpp</in>
               <in>sd_stm32f1.h</in>
               <in>sd_stm32f2_f4.cpp</in>
-              <in>sd_stm32f2_f4.h</in>
+              <in>sd_stm32f2_f4_f7.h</in>
               <in>serial.h</in>
               <in>serial_efm32.cpp</in>
               <in>serial_efm32.h</in>

@@ -27,7 +27,7 @@ void program_startup()
     // enabled
     __disable_irq();
 
-    miosix::IRQconfigureCache();
+    miosix::IRQconfigureCache((const unsigned int*)0xc0000000, 16 * 1024 * 1024);
 
     // These are defined in the linker script
     extern unsigned char _etext asm("_etext");

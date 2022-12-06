@@ -45,19 +45,38 @@ namespace miosix {
 
 /**
  * \internal
- * used by the ledOn() and ledOff() implementation
+ * Board pin definition
  */
-typedef Gpio<GPIOB_BASE,14> _led;
+typedef Gpio<GPIOB_BASE,0> userLed1;
+typedef Gpio<GPIOB_BASE,7> userLed2;
+typedef Gpio<GPIOB_BASE,14> userLed3;
+typedef Gpio<GPIOC_BASE,13> userBtn;
 
 inline void ledOn()
 {
-    _led::high();
+    userLed1::high();
+    userLed2::high();
+    userLed3::high();
 }
 
 inline void ledOff()
 {
-    _led::low();
+    userLed1::low();
+    userLed2::low();
+    userLed3::low();
 }
+
+inline void led1On() { userLed1::high(); }
+
+inline void led1Off() { userLed1::low(); }
+
+inline void led2On() { userLed2::high(); }
+
+inline void led2Off() { userLed2::low(); }
+
+inline void led3On() { userLed3::high(); }
+
+inline void led3Off() { userLed3::low(); }
 
 /**
  * Polls the SD card sense GPIO.

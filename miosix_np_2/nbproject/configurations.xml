@@ -82,7 +82,7 @@
               <in>sd_stm32f1.cpp</in>
               <in>sd_stm32f1.h</in>
               <in>sd_stm32f2_f4.cpp</in>
-              <in>sd_stm32f2_f4.h</in>
+              <in>sd_stm32f2_f4_f7.h</in>
               <in>serial_efm32.cpp</in>
               <in>serial_lpc2000.cpp</in>
               <in>serial_stm32.cpp</in>
@@ -603,7 +603,7 @@
             tool="3"
             flavor2="0">
       </item>
-      <item path="../miosix/arch/common/drivers/sd_stm32f2_f4.h"
+      <item path="../miosix/arch/common/drivers/sd_stm32f2_f4_f7.h"
             ex="false"
             tool="3"
             flavor2="0">

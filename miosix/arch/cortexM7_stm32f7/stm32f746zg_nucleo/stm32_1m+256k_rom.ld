@@ -1,14 +1,14 @@
 /*
- * C++ enabled linker script for stm32 (1M FLASH, 256K RAM)
+ * C++ enabled linker script for stm32f746zg (1M FLASH, 256K RAM)
  * Developed by TFT: Terraneo Federico Technologies
  * Optimized for use with the Miosix kernel
  */
 
 /*
  * This linker script puts:
- * - read only data and code (.text, .rodata, .eh_*) in flash
- * - stacks, heap and sections .data and .bss in the internal ram
- * - the external ram (if available) is not used.
+ * - read only data and code (.text, .rodata, .eh_*) in FLASH
+ * - the 512Byte main (IRQ) stack, .data and .bss in the DTCM 64KB RAM
+ * - .data, .bss, stacks and heap in the internal RAM.
  */
 
 /*
@@ -36,33 +36,35 @@
  * Note: if increasing the main stack size also increase the ORIGIN value in
  * the MEMORY definitions below accordingly.
  */
-_main_stack_size = 0x00000200;                     /* main stack = 512Bytes */
+
+_main_stack_size = 512;                             /* main stack = 512Bytes */
 _main_stack_top  = 0x20000000 + _main_stack_size;
 ASSERT(_main_stack_size   % 8 == 0, "MAIN stack size error");
 
-/* end of the heap on 320KB microcontrollers */
-_heap_end = 0x20050000;                            /* end of available ram  */
+/* Mapping the heap to the end of SRAM2 */
+_heap_end = 0x20000000 + 320K;                       /* end of available ram */
 
-/* identify the Entry Point  */
+/* Identify the Entry Point  */
 ENTRY(_Z13Reset_Handlerv)
 
-/* specify the memory areas  */
+/*
+ * Specify the memory areas
+ *
+ * NOTE: starting at 0x20000000 there's 64KB of DTCM (Data Tightly Coupled
+ * Memory). Technically, we could use this as normal RAM as there's a way for
+ * the DMA to access it, but the datasheet is unclear about performance
+ * penalties for doing so. To avoid nonuniform DMA memory access latencies,
+ * we leave this 64KB DTCM unused except for the first 512Bytes which are for
+ * the interrupt stack. This leaves us with 384KB of RAM
+ */
 MEMORY
 {
-    flash(rx)   : ORIGIN = 0x08000000, LENGTH = 1M
-
-    /*
-     * NOTE: starting at 0x20000000 there's 64KB of DTCM. Technically, we could
-     * use this as normal RAM as there's a way the DMA can access it, but the
-     * datasheet is unclear about performance penalties for doing so.
-     * To avoid nonuniform DMA memory access latencies, we leve this 64KB DTCM
-     * unused except for the first 512Bytes which are for the interrupt stack.
-     * This leaves us with 256KB of RAM
-     */
-    ram(wx)     : ORIGIN = 0x20010000, LENGTH =  256K
+    sram(wx)  : ORIGIN = 0x20010000, LENGTH = 256K
+    dtcm(wx)  : ORIGIN = 0x20000000, LENGTH = 64K     /* Used for main stack */
+    flash(rx) : ORIGIN = 0x08000000, LENGTH = 1M
 }
 
-/* now define the output sections  */
+/* Now define the output sections  */
 SECTIONS
 {
     . = 0;
@@ -76,10 +78,10 @@ SECTIONS
         *(.text)
         *(.text.*)
         *(.gnu.linkonce.t.*)
-        /* these sections for thumb interwork? */
+        /* These sections for thumb interwork? */
         *(.glue_7)
         *(.glue_7t)
-        /* these sections for C++? */
+        /* These sections for C++? */
         *(.gcc_except_table)
         *(.gcc_except_table.*)
         *(.ARM.extab*)
@@ -145,8 +147,10 @@ SECTIONS
     } > flash
     __exidx_end = .;
 
-	/* .data section: global variables go to ram, but also store a copy to
-       flash to initialize them */
+	/*
+     * .data section: global variables go to sram, but also store a copy to
+     * flash to initialize them
+     */
     .data : ALIGN(8)
     {
         _data = .;
@@ -155,10 +159,10 @@ SECTIONS
         *(.gnu.linkonce.d.*)
         . = ALIGN(8);
         _edata = .;
-    } > ram AT > flash
+    } > sram AT > flash
     _etext = LOADADDR(.data);
 
-    /* .bss section: uninitialized global variables go to ram */
+    /* .bss section: uninitialized global variables go to sram */
     _bss_start = .;
     .bss :
     {
@@ -166,7 +170,7 @@ SECTIONS
         *(.bss.*)
         *(.gnu.linkonce.b.*)
         . = ALIGN(8);
-    } > ram
+    } > sram
     _bss_end = .;
 
     _end = .;

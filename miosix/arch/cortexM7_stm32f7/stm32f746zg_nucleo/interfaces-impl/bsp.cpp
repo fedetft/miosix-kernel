@@ -23,29 +23,32 @@
  *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
- ***************************************************************************/ 
+ ***************************************************************************/
 
 /***********************************************************************
-* bsp.cpp Part of the Miosix Embedded OS.
-* Board support package, this file initializes hardware.
-************************************************************************/
+ * bsp.cpp Part of the Miosix Embedded OS.
+ * Board support package, this file initializes hardware.
+ ************************************************************************/
 
-#include <cstdlib>
+#include "interfaces/bsp.h"
+
 #include <inttypes.h>
 #include <sys/ioctl.h>
-#include "interfaces/bsp.h"
-#include "kernel/kernel.h"
-#include "kernel/sync.h"
+
+#include <cstdlib>
+
+#include "board_settings.h"
+#include "config/miosix_settings.h"
+#include "drivers/sd_stm32f2_f4_f7.h"
+#include "drivers/serial.h"
+#include "filesystem/console/console_device.h"
+#include "filesystem/file_access.h"
+#include "interfaces/arch_registers.h"
 #include "interfaces/delays.h"
 #include "interfaces/portability.h"
-#include "interfaces/arch_registers.h"
-#include "config/miosix_settings.h"
+#include "kernel/kernel.h"
 #include "kernel/logging.h"
-#include "filesystem/file_access.h"
-#include "filesystem/console/console_device.h"
-#include "drivers/serial.h"
-#include "drivers/sd_stm32f2_f4.h"
-#include "board_settings.h"
+#include "kernel/sync.h"
 
 namespace miosix {
 
@@ -68,7 +71,12 @@ void IRQbspInit()
     GPIOE->OSPEEDR=0xaaaaaaaa;
     GPIOF->OSPEEDR=0xaaaaaaaa;
     GPIOH->OSPEEDR=0xaaaaaaaa;
-    _led::mode(Mode::OUTPUT);
+
+    userLed1::mode(Mode::OUTPUT);
+    userLed2::mode(Mode::OUTPUT);
+    userLed3::mode(Mode::OUTPUT);
+    userBtn::mode(Mode::INPUT);
+
     ledOn();
     delayMs(100);
     ledOff();
@@ -104,7 +112,7 @@ void shutdown()
 void reboot()
 {
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
-    
+
     #ifdef WITH_FILESYSTEM
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM

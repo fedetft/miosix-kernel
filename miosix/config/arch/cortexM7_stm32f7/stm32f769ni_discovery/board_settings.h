@@ -47,12 +47,13 @@ const unsigned int MAIN_STACK_SIZE=4*1024;
 /// Serial port
 const unsigned int defaultSerial=1;
 const unsigned int defaultSerialSpeed=115200;
-// #define SERIAL_1_DMA
+#define SERIAL_1_DMA
 // #define SERIAL_2_DMA
 // #define SERIAL_3_DMA
 
 // SD card driver
 static const unsigned char sdVoltage=33; //Board powered @ 3.3V
+// #define SD_ONE_BIT_DATABUS
 
 /**
  * \}
