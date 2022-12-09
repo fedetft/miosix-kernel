@@ -64,7 +64,7 @@ public:
         // factor of two or greater, the timer is clocked at twice the bus
         // interface. After this, the freq variable contains the frequency in Hz
         // at which the timer prescaler is clocked.
-        #if _ARCH_CORTEXM0_STM32
+        #if _ARCH_CORTEXM0_STM32F0
         if(RCC->CFGR & RCC_CFGR_PPRE_2) result/=1<<((RCC->CFGR>>8) & 0x3);
         #else
         if(RCC->CFGR & RCC_CFGR_PPRE1_2) result/=1<<((RCC->CFGR>>8) & 0x3);

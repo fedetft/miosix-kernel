@@ -1775,7 +1775,7 @@
               <Elem>COMPILING_MIOSIX</Elem>
               <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_HD</Elem>
-              <Elem>_ARCH_CORTEXM3_STM32</Elem>
+              <Elem>_ARCH_CORTEXM3_STM32F1</Elem>
               <Elem>_BOARD_STM3210E_EVAL</Elem>
             </preprocessorList>
           </cTool>
@@ -1785,7 +1785,7 @@
               <Elem>COMPILING_MIOSIX</Elem>
               <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_HD</Elem>
-              <Elem>_ARCH_CORTEXM3_STM32</Elem>
+              <Elem>_ARCH_CORTEXM3_STM32F1</Elem>
               <Elem>_BOARD_STM3210E_EVAL</Elem>
             </preprocessorList>
           </ccTool>
@@ -2392,7 +2392,7 @@
               <Elem>COMPILING_MIOSIX</Elem>
               <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_HD</Elem>
-              <Elem>_ARCH_CORTEXM3_STM32</Elem>
+              <Elem>_ARCH_CORTEXM3_STM32F1</Elem>
               <Elem>_BOARD_MP3V2</Elem>
             </preprocessorList>
           </cTool>
@@ -2402,7 +2402,7 @@
               <Elem>COMPILING_MIOSIX</Elem>
               <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_HD</Elem>
-              <Elem>_ARCH_CORTEXM3_STM32</Elem>
+              <Elem>_ARCH_CORTEXM3_STM32F1</Elem>
               <Elem>_BOARD_MP3V2</Elem>
             </preprocessorList>
           </ccTool>
@@ -3011,7 +3011,7 @@
               <Elem>COMPILING_MIOSIX</Elem>
               <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_MD_VL</Elem>
-              <Elem>_ARCH_CORTEXM3_STM32</Elem>
+              <Elem>_ARCH_CORTEXM3_STM32F1</Elem>
               <Elem>_BOARD_STM32VLDISCOVERY</Elem>
             </preprocessorList>
           </cTool>
@@ -3021,7 +3021,7 @@
               <Elem>COMPILING_MIOSIX</Elem>
               <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_MD_VL</Elem>
-              <Elem>_ARCH_CORTEXM3_STM32</Elem>
+              <Elem>_ARCH_CORTEXM3_STM32F1</Elem>
               <Elem>_BOARD_STM32VLDISCOVERY</Elem>
             </preprocessorList>
           </ccTool>
@@ -3480,7 +3480,7 @@
               <Elem>COMPILING_MIOSIX</Elem>
               <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_HD</Elem>
-              <Elem>_ARCH_CORTEXM3_STM32</Elem>
+              <Elem>_ARCH_CORTEXM3_STM32F1</Elem>
               <Elem>_BOARD_STRIVE_MINI</Elem>
             </preprocessorList>
           </cTool>
@@ -3490,7 +3490,7 @@
               <Elem>COMPILING_MIOSIX</Elem>
               <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_HD</Elem>
-              <Elem>_ARCH_CORTEXM3_STM32</Elem>
+              <Elem>_ARCH_CORTEXM3_STM32F1</Elem>
               <Elem>_BOARD_STRIVE_MINI</Elem>
             </preprocessorList>
           </ccTool>
@@ -4100,7 +4100,7 @@
               <Elem>COMPILING_MIOSIX</Elem>
               <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_HD</Elem>
-              <Elem>_ARCH_CORTEXM3_STM32</Elem>
+              <Elem>_ARCH_CORTEXM3_STM32F1</Elem>
               <Elem>_BOARD_REDBULL_V2</Elem>
             </preprocessorList>
           </cTool>
@@ -4110,7 +4110,7 @@
               <Elem>COMPILING_MIOSIX</Elem>
               <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_HD</Elem>
-              <Elem>_ARCH_CORTEXM3_STM32</Elem>
+              <Elem>_ARCH_CORTEXM3_STM32F1</Elem>
               <Elem>_BOARD_REDBULL_V2</Elem>
             </preprocessorList>
           </ccTool>
@@ -9359,7 +9359,7 @@
               <Elem>COMPILING_MIOSIX</Elem>
               <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_MD</Elem>
-              <Elem>_ARCH_CORTEXM3_STM32</Elem>
+              <Elem>_ARCH_CORTEXM3_STM32F1</Elem>
               <Elem>_BOARD_ALS_MAINBOARD_REV2</Elem>
             </preprocessorList>
           </cTool>
@@ -9369,7 +9369,7 @@
               <Elem>COMPILING_MIOSIX</Elem>
               <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_MD</Elem>
-              <Elem>_ARCH_CORTEXM3_STM32</Elem>
+              <Elem>_ARCH_CORTEXM3_STM32F1</Elem>
               <Elem>_BOARD_ALS_MAINBOARD_REV2</Elem>
             </preprocessorList>
           </ccTool>
@@ -9848,7 +9848,7 @@
               <Elem>COMPILING_MIOSIX</Elem>
               <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_MD_VL</Elem>
-              <Elem>_ARCH_CORTEXM3_STM32</Elem>
+              <Elem>_ARCH_CORTEXM3_STM32F1</Elem>
               <Elem>_BOARD_TEMPSENSOR</Elem>
             </preprocessorList>
           </cTool>
@@ -9858,7 +9858,7 @@
               <Elem>COMPILING_MIOSIX</Elem>
               <Elem>PARSING_FROM_IDE</Elem>
               <Elem>STM32F10X_MD_VL</Elem>
-              <Elem>_ARCH_CORTEXM3_STM32</Elem>
+              <Elem>_ARCH_CORTEXM3_STM32F1</Elem>
               <Elem>_BOARD_TEMPSENSOR</Elem>
             </preprocessorList>
           </ccTool>
