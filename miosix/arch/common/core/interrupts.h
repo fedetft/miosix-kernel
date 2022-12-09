@@ -13,11 +13,3 @@
 #else
 #error "Unknown arch"
 #endif
-
-// Cortex M0 and M0+ does not have some SCB registers, in order to avoid
-// compilation issues a flag is defined to disable code that accesses to 
-// registers not present in these families
-
-#if defined(_ARCH_CORTEXM0_STM32F0)
-#define _ARCH_CORTEXM0
-#endif
