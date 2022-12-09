@@ -103,7 +103,7 @@ ifeq ($(OPT_BOARD),stm32f103ze_stm3210e-eval)
     ##    The microcontroller must have an external memory interface.
     ## Warning! enable external ram if you use a linker script that requires it
     ## (see the XRAM flag below)
-    LINKER_SCRIPT_PATH := arch/cortexM3_stm32/stm32f103ze_stm3210e-eval/
+    LINKER_SCRIPT_PATH := arch/cortexM3_stm32f1/stm32f103ze_stm3210e-eval/
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_rom.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_xram.ld
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_all_in_xram.ld
@@ -137,7 +137,7 @@ ifeq ($(OPT_BOARD),stm32f103ve_mp3v2)
     ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
     ## 2) Code + stack + heap in internal RAM (file *_ram.ld)
     ## Note: this board relies on a bootloader for interrupt forwarding in ram
-    LINKER_SCRIPT_PATH := arch/cortexM3_stm32/stm32f103ve_mp3v2/
+    LINKER_SCRIPT_PATH := arch/cortexM3_stm32f1/stm32f103ve_mp3v2/
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_rom.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_ram.ld
 
@@ -522,7 +522,7 @@ endif
 ifeq ($(OPT_BOARD),stm32f103cx_generic)
     
     # stm32f103c8 has 64K, stm32f103cb has 128K
-    LINKER_SCRIPT_PATH := arch/cortexM3_stm32/stm32f103cx_generic/
+    LINKER_SCRIPT_PATH := arch/cortexM3_stm32f1/stm32f103cx_generic/
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_64k+20k_rom.ld
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_128k+20k_rom.ld
     
@@ -548,7 +548,7 @@ endif
 ifeq ($(OPT_BOARD),stm32f100cx_generic)
 
     # stm32f100c8 has 64K, stm32f100cb has 128K
-    LINKER_SCRIPT_PATH := arch/cortexM3_stm32/stm32f100cx_generic/
+    LINKER_SCRIPT_PATH := arch/cortexM3_stm32f1/stm32f100cx_generic/
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_64k+8k_rom.ld
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_128k+8k_rom.ld
 
@@ -661,15 +661,15 @@ endif
 ifeq ($(OPT_BOARD),lpc2138_miosix_board)
     ARCH := arm7_lpc2000
 else ifeq ($(OPT_BOARD),stm32f103ze_stm3210e-eval)
-    ARCH := cortexM3_stm32
+    ARCH := cortexM3_stm32f1
 else ifeq ($(OPT_BOARD),stm32f103ve_mp3v2)
-    ARCH := cortexM3_stm32
+    ARCH := cortexM3_stm32f1
 else ifeq ($(OPT_BOARD),stm32f100rb_stm32vldiscovery)
-    ARCH := cortexM3_stm32
+    ARCH := cortexM3_stm32f1
 else ifeq ($(OPT_BOARD),stm32f103ve_strive_mini)
-    ARCH := cortexM3_stm32
+    ARCH := cortexM3_stm32f1
 else ifeq ($(OPT_BOARD),stm32f103ze_redbull_v2)
-    ARCH := cortexM3_stm32
+    ARCH := cortexM3_stm32f1
 else ifeq ($(OPT_BOARD),stm32f407vg_stm32f4discovery)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
@@ -687,9 +687,9 @@ else ifeq ($(OPT_BOARD),stm32f407vg_bitsboard)
 else ifeq ($(OPT_BOARD),stm32f429zi_stm32f4discovery)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),stm32f103cb_als_mainboard_rev2)
-    ARCH := cortexM3_stm32
+    ARCH := cortexM3_stm32f1
 else ifeq ($(OPT_BOARD),stm32f100cb_tempsensor)
-    ARCH := cortexM3_stm32
+    ARCH := cortexM3_stm32f1
 else ifeq ($(OPT_BOARD),stm32f429zi_oledboard2)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),efm32gg332f1024_wandstem)
@@ -699,15 +699,15 @@ else ifeq ($(OPT_BOARD),stm32f411re_nucleo)
 else ifeq ($(OPT_BOARD),stm32f429zi_skyward_anakin)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),stm32f100rc_solertegiard)
-    ARCH := cortexM3_stm32
+    ARCH := cortexM3_stm32f1
 else ifeq ($(OPT_BOARD),stm32f205rc_skyward_stormtrooper)
     ARCH := cortexM3_stm32f2
 else ifeq ($(OPT_BOARD),stm32f401vc_stm32f4discovery)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),stm32f103c8_breakout)
-    ARCH := cortexM3_stm32
+    ARCH := cortexM3_stm32f1
 else ifeq ($(OPT_BOARD),stm32f100c8_microboard)
-    ARCH := cortexM3_stm32
+    ARCH := cortexM3_stm32f1
 else ifeq ($(OPT_BOARD),stm32f469ni_stm32f469i-disco)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),stm32f429zi_skyward_homeone)
@@ -723,15 +723,15 @@ else ifeq ($(OPT_BOARD),stm32f407vg_thermal_test_chip)
 else ifeq ($(OPT_BOARD),stm32f205_generic)
     ARCH := cortexM3_stm32f2
 else ifeq ($(OPT_BOARD),stm32f103cx_generic)
-    ARCH := cortexM3_stm32
+    ARCH := cortexM3_stm32f1
 else ifeq ($(OPT_BOARD),stm32f072rb_stm32f0discovery)
     ARCH := cortexM0_stm32f0
 else ifeq ($(OPT_BOARD),stm32f100cx_generic)
-    ARCH := cortexM3_stm32
+    ARCH := cortexM3_stm32f1
 else ifeq ($(OPT_BOARD),stm32f303vc_stm32f3discovery)
     ARCH := cortexM4_stm32f3
 else ifeq ($(OPT_BOARD),stm32f100c8_vaisala_rs41)
-    ARCH := cortexM3_stm32
+    ARCH := cortexM3_stm32f1
 else ifeq ($(OPT_BOARD),stm32l476rg_nucleo)
     ARCH := cortexM4_stm32l4
 else ifeq ($(OPT_BOARD),atsam4lc2aa_generic)
@@ -838,11 +838,11 @@ ifeq ($(ARCH),arm7_lpc2000)
     PROGRAM_CMDLINE := lpc21isp -verify main.hex /dev/ttyUSB0 115200 14746
 
 ##-----------------------------------------------------------------------------
-## ARCHITECTURE: cortexM3_stm32
+## ARCHITECTURE: cortexM3_stm32f1
 ##
-else ifeq ($(ARCH),cortexM3_stm32)
+else ifeq ($(ARCH),cortexM3_stm32f1)
     ## Base directory with header files for this board
-    ARCH_INC := arch/cortexM3_stm32/common
+    ARCH_INC := arch/cortexM3_stm32f1/common
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f103ze_stm3210e-eval
@@ -850,7 +850,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     ifeq ($(OPT_BOARD),stm32f103ze_stm3210e-eval)
 
         ## Base directory with header files for this board
-        BOARD_INC := arch/cortexM3_stm32/stm32f103ze_stm3210e-eval
+        BOARD_INC := arch/cortexM3_stm32f1/stm32f103ze_stm3210e-eval
 
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
@@ -886,7 +886,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     else ifeq ($(OPT_BOARD),stm32f103ve_mp3v2)
 
         ## Base directory with header files for this board
-        BOARD_INC := arch/cortexM3_stm32/stm32f103ve_mp3v2
+        BOARD_INC := arch/cortexM3_stm32f1/stm32f103ve_mp3v2
 
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
@@ -924,7 +924,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     else ifeq ($(OPT_BOARD),stm32f100rb_stm32vldiscovery)
 
         ## Base directory with header files for this board
-        BOARD_INC := arch/cortexM3_stm32/stm32f100rb_stm32vldiscovery
+        BOARD_INC := arch/cortexM3_stm32f1/stm32f100rb_stm32vldiscovery
 
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
@@ -960,7 +960,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     else ifeq ($(OPT_BOARD),stm32f100rc_solertegiard)
 
         ## Base directory with header files for this board
-        BOARD_INC := arch/cortexM3_stm32/stm32f100rc_solertegiard
+        BOARD_INC := arch/cortexM3_stm32f1/stm32f100rc_solertegiard
 
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
@@ -996,7 +996,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     else ifeq ($(OPT_BOARD),stm32f103ve_strive_mini)
 
         ## Base directory with header files for this board
-        BOARD_INC := arch/cortexM3_stm32/stm32f103ve_strive_mini
+        BOARD_INC := arch/cortexM3_stm32f1/stm32f103ve_strive_mini
 
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
@@ -1030,7 +1030,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     ##
     else ifeq ($(OPT_BOARD),stm32f103ze_redbull_v2)
         ## Base directory with header files for this board
-        BOARD_INC := arch/cortexM3_stm32/stm32f103ze_redbull_v2
+        BOARD_INC := arch/cortexM3_stm32f1/stm32f103ze_redbull_v2
 
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
@@ -1066,7 +1066,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     ##
     else ifeq ($(OPT_BOARD),stm32f103cb_als_mainboard_rev2)
         ## Base directory with header files for this board
-        BOARD_INC := arch/cortexM3_stm32/stm32f103cb_als_mainboard_rev2
+        BOARD_INC := arch/cortexM3_stm32f1/stm32f103cb_als_mainboard_rev2
 
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
@@ -1100,7 +1100,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     else ifeq ($(OPT_BOARD),stm32f100cb_tempsensor)
 
         ## Base directory with header files for this board
-        BOARD_INC := arch/cortexM3_stm32/stm32f100cb_tempsensor
+        BOARD_INC := arch/cortexM3_stm32f1/stm32f100cb_tempsensor
 
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
@@ -1134,7 +1134,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     else ifeq ($(OPT_BOARD),stm32f103c8_breakout)
 
         ## Base directory with header files for this board
-        BOARD_INC := arch/cortexM3_stm32/stm32f103c8_breakout
+        BOARD_INC := arch/cortexM3_stm32f1/stm32f103c8_breakout
 
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
@@ -1166,7 +1166,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     else ifeq ($(OPT_BOARD),stm32f100c8_microboard)
 
         ## Base directory with header files for this board
-        BOARD_INC := arch/cortexM3_stm32/stm32f100c8_microboard
+        BOARD_INC := arch/cortexM3_stm32f1/stm32f100c8_microboard
 
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
@@ -1201,7 +1201,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     else ifeq ($(OPT_BOARD),stm32f103cx_generic)
 
         ## Base directory with header files for this board
-        BOARD_INC := arch/cortexM3_stm32/stm32f103cx_generic
+        BOARD_INC := arch/cortexM3_stm32f1/stm32f103cx_generic
 
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
@@ -1232,7 +1232,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     else ifeq ($(OPT_BOARD),stm32f100cx_generic)
 
         ## Base directory with header files for this board
-        BOARD_INC := arch/cortexM3_stm32/stm32f100cx_generic
+        BOARD_INC := arch/cortexM3_stm32f1/stm32f100cx_generic
 
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
@@ -1263,7 +1263,7 @@ else ifeq ($(ARCH),cortexM3_stm32)
     else ifeq ($(OPT_BOARD),stm32f100c8_vaisala_rs41)
 
         ## Base directory with header files for this board
-        BOARD_INC := arch/cortexM3_stm32/stm32f100c8_vaisala_rs41
+        BOARD_INC := arch/cortexM3_stm32f1/stm32f100c8_vaisala_rs41
 
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
@@ -2460,14 +2460,14 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
 ##
 else ifeq ($(ARCH),cortexM0_stm32f0)
     ## Base directory with else header files for this board
-    ARCH_INC := arch/cortexM0_stm32/common
+    ARCH_INC := arch/cortexM0_stm32f0/common
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f072rb_stm32f0discovery
     ##
     ifeq ($(OPT_BOARD),stm32f072rb_stm32f0discovery)
         ## Base directory with header files for this board
-        BOARD_INC := arch/cortexM0_stm32/stm32f072rb_stm32f0discovery
+        BOARD_INC := arch/cortexM0_stm32f0/stm32f072rb_stm32f0discovery
 
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.

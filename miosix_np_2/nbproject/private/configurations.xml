@@ -243,7 +243,7 @@
               </df>
             </df>
           </df>
-          <df name="cortexM3_stm32">
+          <df name="cortexM3_stm32f1">
             <df name="common">
               <df name="interfaces-impl">
                 <in>arch_registers_impl.h</in>
@@ -497,7 +497,7 @@
                 <in>board_settings.h</in>
               </df>
             </df>
-            <df name="cortexM3_stm32">
+            <df name="cortexM3_stm32f1">
               <df name="stm32f100cb_tempsensor">
                 <in>board_settings.h</in>
               </df>
