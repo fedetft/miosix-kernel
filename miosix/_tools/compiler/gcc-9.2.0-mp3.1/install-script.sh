@@ -22,11 +22,20 @@
 
 #### Configuration tunables -- begin ####
 
-# Uncomment if installing globally on the system
-INSTALL_DIR=/opt/arm-miosix-eabi
+# Uncomment if installing globally on this system
+PREFIX=/opt/arm-miosix-eabi
+DESTDIR=
 SUDO=sudo
-# Uncomment if installing locally, sudo isn't necessary
-#INSTALL_DIR=`pwd`/gcc/arm-miosix-eabi
+# Uncomment if installing locally on this system, sudo isn't necessary
+#PREFIX=`pwd`/gcc/arm-miosix-eabi
+#DESTDIR=
+#SUDO=
+# Uncomment for producing a package for redistribution. The prefix is still
+# the same used for installing globally, but during installation the directory
+# where files are copied is prefixed with $DESTDIR. No sudo is necessary but
+# all files *must* be copied to the prefix before they can be used.
+#PREFIX=/opt/arm-miosix-eabi
+#DESTDIR=`pwd`/dist
 #SUDO=
 
 # Uncomment if targeting a local install (linux only). This will use
@@ -67,15 +76,20 @@ if [[ $SUDO ]]; then
 		quit ":: Error global install distributable compiling are mutually exclusive"
 	fi
 fi
+if [[ $DESTDIR && ( -z $HOST ) ]]; then
+	echo ":: It looks like you are installing to a separate destination"
+	echo ":: directory without specifying a host target."
+	echo ":: This means the binaries will NOT be redistributable."
+fi
 
-if [[ $HOST ]]; then
-	# Canadian cross compiling requires to have the same version of the
-	# arm-miosix-eabi-gcc that we are going to compile installed locally
-	# in the Linux system from which we are compiling, so as to build
-	# libc, libstdc++, ...
-	# Please note that since the already installed version of
+if [[ $HOST || $DESTDIR ]]; then
+	# Since we do not install the bootstrapped arm-miosix-eabi-gcc during the
+	# build process, for making libc, libstdc++, ... we need the same version of
+	# arm-miosix-eabi-gcc that we are going to compile already installed locally
+	# in the system from which we are compiling.
+	#   Please note that since the already installed version of
 	# arm-miosix-eabi-gcc is used to build the standard libraries, it
-	# MUST BE THE EXACT SAME VERSION, including miosix-specific patches
+	# MUST BE THE EXACT SAME VERSION, including miosix-specific patches.
 	__GCCVER=`arm-miosix-eabi-gcc --version | perl -ne \
 		'next unless(/(\d+\.\d+.\d+)/); print "gcc-$1\n";'`;
 	__GCCPAT=`arm-miosix-eabi-gcc -dM -E - < /dev/null | perl -e \
@@ -87,9 +101,18 @@ if [[ $HOST ]]; then
 		 print "mp$M.$m";'`;
     __GCCPATCUR='mp3.1'; # Can't autodetect this one easily from gcc.patch
 	if [[ ($__GCCVER != $GCC) || ($__GCCPAT != $__GCCPATCUR) ]]; then
-		quit ":: Error must first install $GCC$__GCCPATCUR system-wide (or . ./env.sh it)"
+		quit ":: Error must first install $GCC$__GCCPATCUR system-wide"
 	fi
+	if [[ $DESTDIR && ( ! -e $PREFIX/bin/arm-miosix-eabi-gcc ) ]]; then
+		quit ":: Error To use \$DESTDIR you must first install $GCC$__GCCPATCUR in the same prefix"
+	fi
+else
+	# Otherwise, add the install prefix to the path in order to ensure things are
+	# available as soon as we build them.
+	export PATH=$PREFIX/bin:$PATH
+fi
 
+if [[ $HOST ]]; then
 	# Canadian cross compiling requires the windows compiler to build
 	# arm-miosix-eabi-gcc.exe, ...
 	which "$HOST-gcc" > /dev/null || quit ":: Error must have host cross compiler"
@@ -104,8 +127,6 @@ if [[ $HOST ]]; then
 		EXT=
 	fi
 else
-	export PATH=$INSTALL_DIR/bin:$PATH
-
 	HOSTCC=gcc
 	HOSTCXX=g++
 	HOSTSTRIP=strip
@@ -141,8 +162,8 @@ extract()
 }
 
 extract 'binutils' $BINUTILS.tar.xz patches/binutils.patch
-extract 'gcc' $GCC.tar.xz	patches/gcc.patch
-extract 'newlib' $NEWLIB.tar.gz	patches/newlib.patch
+extract 'gcc' $GCC.tar.xz patches/gcc.patch
+extract 'newlib' $NEWLIB.tar.gz patches/newlib.patch
 extract 'gdb' $GDB.tar.xz
 extract 'gmp' $GMP.tar.xz
 extract 'mpfr' $MPFR.tar.xz
@@ -153,12 +174,14 @@ if [[ $HOST == *mingw* ]]; then
 fi
 if [[ $HOST == *linux* ]]; then
 	extract 'ncurses' $NCURSES.tar.gz
+	chmod +x downloaded/$MAKESELF.run
+	downloaded/$MAKESELF.run --target $MAKESELF || quit ":: Error extracting makeself"
 fi
-if [[ $HOST ]]; then
+if [[ $HOST || $DESTDIR ]]; then
 	extract 'expat' $EXPAT.tar.xz
 fi
 
-unzip lpc21isp_148_src.zip					|| quit ":: Error extracting lpc21isp"
+unzip -o lpc21isp_148_src.zip || quit ":: Error extracting lpc21isp"
 mkdir log
 
 #
@@ -238,7 +261,7 @@ cd $BINUTILS
 	--build=`./config.guess` \
 	--host=$HOST \
 	--target=arm-miosix-eabi \
-	--prefix=$INSTALL_DIR \
+	--prefix=$PREFIX \
 	--enable-interwork \
 	--enable-multilib \
 	--enable-lto \
@@ -246,7 +269,7 @@ cd $BINUTILS
 
 make all $PARALLEL 2>../log/b.txt			|| quit ":: Error compiling binutils"
 
-$SUDO make install 2>../log/c.txt			|| quit ":: Error installing binutils"
+$SUDO make install DESTDIR=$DESTDIR 2>../log/c.txt || quit ":: Error installing binutils"
 
 cd ..
 
@@ -257,6 +280,32 @@ cd ..
 mkdir objdir
 cd objdir
 
+# GCC needs the C headers of the target to configure and build the C++ standard
+# library, therefore when configured --with-headers=[...] the configure script
+# unconditionally copies those headers in the
+# $PREFIX/arm-miosix-eabi/sys-include folder.
+#   This is fine for local installs, (up to a certain point, see later
+# comments), but for distributable builds we already have the headers in
+# $PREFIX/arm-miosix-eabi/include (not in sys-include!) and we don't want to
+# touch the existing install.
+#   However the GCC makefiles are not clever enough to search in `include`
+# rather than `sys-include` when checking if limits.h exists to decide whether
+# to "fix" it. Since `sys-include` does not exists, GCC does not find limits.h
+# and replaces it with its own, which does not include all definitions made
+# by newlib's one. This incorrect file ends up installed and used by the
+# built GCC causing build failures usually related to missing defines used
+# by dirent.h.
+#   Therefore we must differentiate the case in which we are installing
+# or building for redistribution. When we build for redistribution we use
+# --with-sysroot and --with-native-system-header-dir to instruct the GCC
+# configure script to set CROSS_SYSTEM_HEADER_DIR to the place where we already
+# have our headers available, without attempting to copy stuff in $PREFIX.
+if [[ $DESTDIR ]]; then
+	__GCC_CONF_HEADERS_PARAM="--with-sysroot=$PREFIX/arm-miosix-eabi --with-native-system-header-dir=/include"
+else
+	__GCC_CONF_HEADERS_PARAM=--with-headers=../$NEWLIB/newlib/libc/include
+fi
+
 $SUDO ../$GCC/configure \
 	--build=`../$GCC/config.guess` \
 	--host=$HOST \
@@ -265,7 +314,7 @@ $SUDO ../$GCC/configure \
 	--with-mpfr=$LIB_DIR \
 	--with-mpc=$LIB_DIR \
 	MAKEINFO=missing \
-	--prefix=$INSTALL_DIR \
+	--prefix=$PREFIX \
 	--disable-shared \
 	--disable-libssp \
 	--disable-nls \
@@ -278,36 +327,36 @@ $SUDO ../$GCC/configure \
 	--enable-lto \
 	--disable-wchar_t \
 	--with-newlib \
-	--with-headers=../$NEWLIB/newlib/libc/include \
+	${__GCC_CONF_HEADERS_PARAM} \
 	2>../log/d.txt							|| quit ":: Error configuring gcc-start"
 
-$SUDO make all-gcc $PARALLEL 2>../log/e.txt	|| quit ":: Error compiling gcc-start"
+$SUDO make all-gcc $PARALLEL 2>../log/e.txt || quit ":: Error compiling gcc-start"
 
-$SUDO make install-gcc 2>../log/f.txt		|| quit ":: Error installing gcc-start"
+$SUDO make install-gcc DESTDIR=$DESTDIR 2>../log/f.txt || quit ":: Error installing gcc-start"
 
-# Remove the sys-include directory
-# There are two reasons why to remove it: first because it is unnecessary,
-# second because it is harmful. Apparently GCC needs the C headers of the target
-# to build the compiler itself, therefore when configured --with-newlib and
-# --with-headers=[...] it copies those headers in the sys-include folder.
-# After gcc is compiled, the installation of newlib places the headers in the
-# include dirctory and at that point the sys-include headers aren't necessary anymore
-# Now, to see why the're harmful, consider the header newlib.h It is initially
-# empty and is filled in by the newlib's ./configure with the appropriate options
-# Now, since the configure process happens after, the newlib.h in sys-include
-# is the wrong (empty) one, while the one in include is the correct one.
-# This causes troubles because newlib.h contains the _WANT_REENT_SMALL used to
-# select the appropriate _Reent struct. This error is visible to user code since
-# GCC seems to take the wrong newlib.h and user code gets the wrong _Reent struct
-$SUDO rm -rf $INSTALL_DIR/arm-miosix-eabi/sys-include
+if [[ -z $DESTDIR ]]; then
+	# Remove the sys-include directory if we are installing locally.
+	# There are two reasons why to remove it: first because it is unnecessary,
+	# second because it is harmful.
+	# After gcc is compiled, the installation of newlib places the headers in the
+	# include dirctory and at that point the sys-include headers aren't necessary anymore
+	# Now, to see why the're harmful, consider the header newlib.h It is initially
+	# empty and is filled in by the newlib's ./configure with the appropriate options
+	# Now, since the configure process happens after, the newlib.h in sys-include
+	# is the wrong (empty) one, while the one in include is the correct one.
+	# This causes troubles because newlib.h contains the _WANT_REENT_SMALL used to
+	# select the appropriate _Reent struct. This error is visible to user code since
+	# GCC seems to take the wrong newlib.h and user code gets the wrong _Reent struct
+	$SUDO rm -rf $PREFIX/arm-miosix-eabi/sys-include
+	
+	# Another fix, looks like export PATH isn't enough for newlib, it fails
+	# running arm-miosix-eabi-ranlib when installing
+	if [[ $SUDO ]]; then
+		# This is actually done also later, but we don't want to add a symlink too
+		$SUDO rm $PREFIX/bin/arm-miosix-eabi-$GCC$EXT
 
-# Another fix, looks like export PATH isn't enough for newlib, it fails
-# running arm-miosix-eabi-ranlib when installing
-if [[ $SUDO ]]; then
-	# This is actually done also later, but we don't want to add a symlink too
-	$SUDO rm $INSTALL_DIR/bin/arm-miosix-eabi-$GCC$EXT
-
-	$SUDO ln -s $INSTALL_DIR/bin/* /usr/bin
+		$SUDO ln -s $DESTDIR$PREFIX/bin/* /usr/bin
+	fi
 fi
 
 cd ..
@@ -323,7 +372,7 @@ cd newlib-obj
 	--build=`../$GCC/config.guess` \
 	--host=$HOST \
 	--target=arm-miosix-eabi \
-	--prefix=$INSTALL_DIR \
+	--prefix=$PREFIX \
 	--enable-multilib \
 	--enable-newlib-reent-small \
 	--enable-newlib-multithread \
@@ -337,7 +386,7 @@ cd newlib-obj
 
 make $PARALLEL 2>../log/h.txt				|| quit ":: Error compiling newlib"
 
-$SUDO make install 2>../log/i.txt			|| quit ":: Error installing newlib"
+$SUDO make install DESTDIR=$DESTDIR 2>../log/i.txt || quit ":: Error installing newlib"
 
 cd ..
 
@@ -349,7 +398,7 @@ cd objdir
 
 $SUDO make all $PARALLEL 2>../log/j.txt		|| quit ":: Error compiling gcc-end"
 
-$SUDO make install 2>../log/k.txt			|| quit ":: Error installing gcc-end"
+$SUDO make install DESTDIR=$DESTDIR 2>../log/k.txt || quit ":: Error installing gcc-end"
 
 cd ..
 
@@ -383,14 +432,14 @@ check_multilibs() {
 	fi 
 }
 
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/lib
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/lib/thumb/cm0
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/lib/thumb/cm3
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/lib/thumb/cm4/hardfp/fpv4sp
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/lib/thumb/cm7/hardfp/fpv5
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/lib/thumb/cm3/pie/single-pic-base
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/lib/thumb/cm4/hardfp/fpv4sp/pie/single-pic-base
-check_multilibs $INSTALL_DIR/arm-miosix-eabi/lib/thumb/cm7/hardfp/fpv5/pie/single-pic-base
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/cm0
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/cm3
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/cm4/hardfp/fpv4sp
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/cm7/hardfp/fpv5
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/cm3/pie/single-pic-base
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/cm4/hardfp/fpv4sp/pie/single-pic-base
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/cm7/hardfp/fpv5/pie/single-pic-base
 echo "::All multilibs have been built. OK"
 
 #
@@ -398,7 +447,7 @@ echo "::All multilibs have been built. OK"
 #
 
 # GDB on linux/windows needs expat
-if [[ $HOST ]]; then
+if [[ $HOST || $DESTDIR ]]; then
 	cd $EXPAT
 
 	./configure \
@@ -448,7 +497,7 @@ CXX=$HOSTCXX ../$GDB/configure \
 	--build=`../$GDB/config.guess` \
 	--host=$HOST \
 	--target=arm-miosix-eabi \
-	--prefix=$INSTALL_DIR \
+	--prefix=$PREFIX \
 	--with-libmpfr-prefix=$LIB_DIR \
 	--with-expat-prefix=$LIB_DIR \
 	--with-system-zlib=no \
@@ -458,9 +507,12 @@ CXX=$HOSTCXX ../$GDB/configure \
 	--enable-multilib \
 	--disable-werror 2>../log/l.txt			|| quit ":: Error configuring gdb"
 
-make all $PARALLEL 2>../log/m.txt			|| quit ":: Error compiling gdb"
+# Specify a dummy MAKEINFO binary to work around an issue in the gdb makefiles
+# where compilation fails if MAKEINFO is not installed.
+# https://sourceware.org/bugzilla/show_bug.cgi?id=14678
+make all MAKEINFO=/usr/bin/true $PARALLEL 2>../log/m.txt || quit ":: Error compiling gdb"
 
-$SUDO make install 2>../log/n.txt			|| quit ":: Error installing gdb"
+$SUDO make install MAKEINFO=/usr/bin/true DESTDIR=$DESTDIR 2>../log/n.txt || quit ":: Error installing gdb"
 
 cd ..
 
@@ -470,7 +522,7 @@ cd ..
 cd mx-postlinker
 make CXX="$HOSTCXX" SUFFIX=$EXT				|| quit ":: Error compiling mx-postlinker"
 $SUDO make install CXX="$HOSTCXX" SUFFIX=$EXT \
-	INSTALL_DIR=$INSTALL_DIR/bin \
+	INSTALL_DIR=$DESTDIR$PREFIX/bin \
 											|| quit ":: Error installing mx-postlinker"
 make CXX="$HOSTCXX" SUFFIX=$EXT clean
 cd ..
@@ -481,7 +533,7 @@ cd ..
 
 $HOSTCC -o lpc21isp$EXT lpc21isp.c						|| quit ":: Error compiling lpc21isp"
 
-$SUDO mv lpc21isp$EXT $INSTALL_DIR/bin					|| quit ":: Error installing lpc21isp"
+$SUDO mv lpc21isp$EXT $DESTDIR$PREFIX/bin || quit ":: Error installing lpc21isp"
 
 #
 # Part 12: install GNU make and rm (windows release only)
@@ -493,20 +545,20 @@ if [[ $HOST == *mingw* ]]; then
 
 	./configure \
 	--host=$HOST \
-	--prefix=$INSTALL_DIR 2> z.make.a.txt					|| quit ":: Error configuring make"
+	--prefix=$PREFIX 2> z.make.a.txt || quit ":: Error configuring make"
 
-	make all $PARALLEL 2>../log/z.make.b.txt				|| quit ":: Error compiling make"
+	make all $PARALLEL 2>../log/z.make.b.txt || quit ":: Error compiling make"
 
-	make install 2>../log/z.make.c.txt						|| quit ":: Error installing make"
+	make install DESTDIR=$DESTDIR 2>../log/z.make.c.txt || quit ":: Error installing make"
 
 	cd ..
 
 	# FIXME get a better rm to distribute for windows
-	$HOSTCC -o rm$EXT -O2 installers/windows/rm.c			|| quit ":: Error compiling rm"
+	$HOSTCC -o rm$EXT -O2 installers/windows/rm.c || quit ":: Error compiling rm"
 
-	mv rm$EXT $INSTALL_DIR/bin								|| quit ":: Error installing rm"
+	mv rm$EXT $DESTDIR$PREFIX/bin || quit ":: Error installing rm"
 
-	cp downloaded/qstlink2.exe $INSTALL_DIR/bin				|| quit ":: Error installing qstlink2"
+	cp downloaded/qstlink2.exe $DESTDIR$PREFIX/bin || quit ":: Error installing qstlink2"
 fi
 
 #
@@ -514,33 +566,38 @@ fi
 #
 
 # Remove this since its name is not arm-miosix-eabi-
-$SUDO rm $INSTALL_DIR/bin/arm-miosix-eabi-$GCC$EXT
+$SUDO rm $DESTDIR$PREFIX/bin/arm-miosix-eabi-$GCC$EXT
 
 # Strip stuff that is very large when having debug symbols to save disk space
 # This simple thing can easily save 500+MB
-find $INSTALL_DIR -name cc1$EXT     | $SUDO xargs $HOSTSTRIP
-find $INSTALL_DIR -name cc1plus$EXT | $SUDO xargs $HOSTSTRIP
-find $INSTALL_DIR -name lto1$EXT    | $SUDO xargs $HOSTSTRIP
-$SUDO strip $INSTALL_DIR/bin/*
+find $DESTDIR$PREFIX -name cc1$EXT     | $SUDO xargs $HOSTSTRIP
+find $DESTDIR$PREFIX -name cc1plus$EXT | $SUDO xargs $HOSTSTRIP
+find $DESTDIR$PREFIX -name lto1$EXT    | $SUDO xargs $HOSTSTRIP
+$SUDO strip $DESTDIR$PREFIX/bin/*
 
 
 
 # Installers, env variables and other stuff
-if [[ $HOST ]]; then
+if [[ $HOST || $DESTDIR ]]; then
 	if [[ $HOST == *mingw* ]]; then
 		cd installers/windows
 		wine "C:\Program Files (x86)\Inno Setup 6\Compil32.exe" /cc MiosixInstaller.iss
 		cd ../..
 	else
-		chmod +x installers/linux/installer.sh uninstall.sh
 		# Distribute the installer and uninstaller too
-		cp installers/linux/installer.sh uninstall.sh $INSTALL_DIR
+		if [[ $DESTDIR ]]; then
+			sed -E "s|/opt/arm-miosix-eabi|$PREFIX|g" installers/linux/installer.sh > $DESTDIR$PREFIX/installer.sh
+			sed -E "s|/opt/arm-miosix-eabi|$PREFIX|g" uninstall.sh > $DESTDIR$PREFIX/uninstall.sh
+		else
+			cp installers/linux/installer.sh uninstall.sh $DESTDIR$PREFIX
+		fi
+		chmod +x $DESTDIR$PREFIX/installer.sh $DESTDIR$PREFIX/uninstall.sh
 		sh downloaded/$MAKESELF.run
 		# NOTE: --keep-umask otherwise the installer extracts files setting to 0
 		# permissions to group and other, resulting in an unusable installation
-		./$MAKESELF/makeself.sh --xz --keep-umask          \
-			$INSTALL_DIR                                   \
-			MiosixToolchainInstaller9.2.0mp3.1.run         \
+		./$MAKESELF/makeself.sh --xz --keep-umask \
+			$DESTDIR$PREFIX \
+			MiosixToolchainInstaller9.2.0mp3.1.run \
 			"Miosix toolchain for Linux (GCC 9.2.0-mp3.1)" \
 			"./installer.sh"
 	fi
@@ -551,12 +608,12 @@ else
 	# If sudo not an empty variable, make symlinks to /usr/bin
 	# else make a script to override PATH
 	if [[ $SUDO ]]; then
-		$SUDO ln -s $INSTALL_DIR/bin/* /usr/bin
+		$SUDO ln -s $DESTDIR$PREFIX/bin/* /usr/bin
 	else
 		echo '# Used when installing the compiler locally to test it' > env.sh
 		echo '# usage: $ . ./env.sh' >> env.sh
 		echo '# or     $ source ./env.sh' >> env.sh
-		echo "export PATH=`pwd`/gcc/arm-miosix-eabi/bin:"'$PATH' >> env.sh
+		echo "export PATH=$PREFIX/bin:"'$PATH' >> env.sh
 		chmod +x env.sh
 	fi
 fi
