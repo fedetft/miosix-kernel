@@ -119,38 +119,47 @@ else
 fi
 
 #
-# Part 1: extract data
+# Part 1/2: extract data, apply patches
 #
 
-echo "Extracting files, please wait..."
-tar -xf downloaded/$BINUTILS.tar.xz			|| quit ":: Error extracting binutils"
-tar -xf downloaded/$GCC.tar.xz				|| quit ":: Error extracting gcc"
-tar -xf downloaded/$NEWLIB.tar.gz			|| quit ":: Error extracting newlib"
-tar -xf downloaded/$GDB.tar.xz				|| quit ":: Error extracing gdb"
-tar -xf downloaded/$GMP.tar.xz				|| quit ":: Error extracting gmp"
-tar -xf downloaded/$MPFR.tar.xz				|| quit ":: Error extracting mpfr"
-tar -xf downloaded/$MPC.tar.gz				|| quit ":: Error extracting mpc"
+extract()
+{
+	label=$1
+	filename=$2
+	patchfile=$3
+	directory=${filename%.tar*}
+	
+	if [[ -e $directory ]]; then
+		echo "Skipping extraction/patching of $label, directory $directory exists"
+	else
+		echo "Extracting $label..."
+		tar -xf downloaded/$2 || quit ":: Error extracting $label"
+		if [[ ! -z "$patchfile" ]]; then
+			patch -p0 < "$patchfile" || quit ":: Failed patching $label"
+		fi
+	fi
+}
+
+extract 'binutils' $BINUTILS.tar.xz patches/binutils.patch
+extract 'gcc' $GCC.tar.xz	patches/gcc.patch
+extract 'newlib' $NEWLIB.tar.gz	patches/newlib.patch
+extract 'gdb' $GDB.tar.xz
+extract 'gmp' $GMP.tar.xz
+extract 'mpfr' $MPFR.tar.xz
+extract 'mpc' $MPC.tar.gz
 
 if [[ $HOST == *mingw* ]]; then
-	tar -xf downloaded/$MAKE.tar.gz			|| quit ":: Error extracting make"
+	extract 'make' $MAKE.tar.gz
 fi
 if [[ $HOST == *linux* ]]; then
-	tar -xf downloaded/$NCURSES.tar.gz		|| quit ":: Error extracting ncurses"
+	extract 'ncurses' $NCURSES.tar.gz
 fi
 if [[ $HOST ]]; then
-	tar -xf downloaded/$EXPAT.tar.xz		|| quit ":: Error extracting expat"
+	extract 'expat' $EXPAT.tar.xz
 fi
 
 unzip lpc21isp_148_src.zip					|| quit ":: Error extracting lpc21isp"
 mkdir log
-
-#
-# Part 2: applying patches
-#
-
-patch -p0 < patches/binutils.patch	|| quit ":: Failed patching binutils"
-patch -p0 < patches/gcc.patch		|| quit ":: Failed patching gcc"
-patch -p0 < patches/newlib.patch	|| quit ":: Failed patching newlib"
 
 #
 # Part 3: compile libraries
