@@ -54,8 +54,8 @@ MPFR=mpfr-4.0.2
 MPC=mpc-1.1.0
 NCURSES=ncurses-6.1
 MAKE=make-4.2.1
-MAKESELF=makeself-2.4.0
-EXPAT=expat-2.2.9
+MAKESELF=makeself-2.4.5
+EXPAT=expat-2.2.10
 
 quit() {
 	echo $1
