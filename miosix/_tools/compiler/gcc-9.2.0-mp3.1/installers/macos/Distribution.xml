@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<installer-gui-script minSpecVersion="1">
+    <title>Miosix Toolchain for macOS</title>
+    
+    <options customize="never" require-scripts="false" hostArchitectures="x86_64"/>
+    
+    <welcome file="welcome.rtf" uti="public.rtf"/>
+    <license file="license.txt" uti="public.text"/>
+    
+    <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
+    <pkg-ref id="org.miosix.toolchain.gcc-9.2.0-mp3.1" onConclusion="none">gcc-9.2.0-mp3.1.pkg</pkg-ref>
+    <choice id="org.miosix.toolchain.gcc-9.2.0-mp3.1" visible="false">
+        <pkg-ref id="org.miosix.toolchain.gcc-9.2.0-mp3.1"/>
+    </choice>
+    <choices-outline>
+        <line choice="org.miosix.toolchain.gcc-9.2.0-mp3.1"/>
+    </choices-outline>
+</installer-gui-script>
