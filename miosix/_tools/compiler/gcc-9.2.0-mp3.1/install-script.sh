@@ -38,15 +38,29 @@ SUDO=sudo
 #DESTDIR=`pwd`/dist
 #SUDO=
 
-# Uncomment if targeting a local install (linux only). This will use
+# Uncomment if targeting a local install (linux/macOS only). This will use
 # -march= -mtune= flags to optimize for your processor, but the code
 # won't be portable to other architectures, so don't distribute it
+BUILD=
 HOST=
 # Uncomment if targeting linux 64 bit (distributable)
+#BUILD=
 #HOST=x86_64-linux-gnu
 # Uncomment if targeting windows 64 bit (distributable)
 # you have to run this script from Linux anyway (see canadian cross compiling)
+#BUILD=
 #HOST=x86_64-w64-mingw32
+# Uncomment if targeting macOS 64 bit Intel (distributable)
+#   The script must be run under macOS and without canadian cross compiling
+# because it confuses autotools's configuration scripts.
+#   Instead we set the compiler options for macOS minimum version and
+# architecture in order to be able to deploy the binaries on older machines and
+# OS versions. We also must force --build and --host to specify a x86_64 cpu
+# to avoid architecture-dependent code.
+#BUILD=x86_64-apple-darwin17 # No macs exist with a cpu older than a Core 2
+#HOST=
+#export CFLAGS='-mmacos-version-min=10.13 -O3'
+#export CXXFLAGS='-mmacos-version-min=10.13 -O3'
 
 #### Configuration tunables -- end ####
 
@@ -79,7 +93,7 @@ fi
 if [[ $DESTDIR && ( -z $HOST ) ]]; then
 	echo ":: It looks like you are installing to a separate destination"
 	echo ":: directory without specifying a host target."
-	echo ":: This means the binaries will NOT be redistributable."
+	echo ":: This means the binaries might NOT be redistributable."
 fi
 
 if [[ $HOST || $DESTDIR ]]; then
@@ -191,7 +205,7 @@ mkdir log
 cd $GMP
 
 ./configure \
-	--build=`./config.guess` \
+	--build=$BUILD \
 	--host=$HOST \
 	--prefix=$LIB_DIR \
 	--enable-static --disable-shared \
@@ -211,7 +225,7 @@ cd ..
 cd $MPFR
 
 ./configure \
-	--build=`./config.guess` \
+	--build=$BUILD \
 	--host=$HOST \
 	--prefix=$LIB_DIR \
 	--enable-static --disable-shared \
@@ -232,7 +246,7 @@ cd ..
 cd $MPC
 
 ./configure \
-	--build=`./config.guess` \
+	--build=$BUILD \
 	--host=$HOST \
 	--prefix=$LIB_DIR \
 	--enable-static --disable-shared \
@@ -258,7 +272,7 @@ cd ..
 cd $BINUTILS
 
 ./configure \
-	--build=`./config.guess` \
+	--build=$BUILD \
 	--host=$HOST \
 	--target=arm-miosix-eabi \
 	--prefix=$PREFIX \
@@ -307,7 +321,7 @@ else
 fi
 
 $SUDO ../$GCC/configure \
-	--build=`../$GCC/config.guess` \
+	--build=$BUILD \
 	--host=$HOST \
 	--target=arm-miosix-eabi \
 	--with-gmp=$LIB_DIR \
@@ -355,7 +369,11 @@ if [[ -z $DESTDIR ]]; then
 		# This is actually done also later, but we don't want to add a symlink too
 		$SUDO rm $PREFIX/bin/arm-miosix-eabi-$GCC$EXT
 
-		$SUDO ln -s $DESTDIR$PREFIX/bin/* /usr/bin
+		# Linking to /usr/bin does not work on macOS because of SIP, but newlib
+		# appears to build just fine with export PATH on macOS...
+		if [[ ! ( $(uname -s) == 'Darwin' ) ]]; then
+			$SUDO ln -s $DESTDIR$PREFIX/bin/* /usr/bin
+		fi
 	fi
 fi
 
@@ -369,7 +387,7 @@ mkdir newlib-obj
 cd newlib-obj
 
 ../$NEWLIB/configure \
-	--build=`../$GCC/config.guess` \
+	--build=$BUILD \
 	--host=$HOST \
 	--target=arm-miosix-eabi \
 	--prefix=$PREFIX \
@@ -451,6 +469,7 @@ if [[ $HOST || $DESTDIR ]]; then
 	cd $EXPAT
 
 	./configure \
+		--build=$BUILD \
 		--host=$HOST \
 		--prefix=$LIB_DIR \
 		--enable-static=yes \
@@ -473,7 +492,7 @@ if [[ $HOST == *linux* ]]; then
 	cd $NCURSES
 
 	./configure \
-		--build=`./config.guess` \
+		--build=$BUILD \
 		--host=$HOST \
 		--prefix=$LIB_DIR \
 		--with-normal --without-shared \
@@ -494,7 +513,7 @@ cd gdb-obj
 
 # CXX=$HOSTCXX to avoid having to distribute libstdc++.dll on windows
 CXX=$HOSTCXX ../$GDB/configure \
-	--build=`../$GDB/config.guess` \
+	--build=$BUILD \
 	--host=$HOST \
 	--target=arm-miosix-eabi \
 	--prefix=$PREFIX \
@@ -544,8 +563,9 @@ if [[ $HOST == *mingw* ]]; then
 	cd $MAKE
 
 	./configure \
-	--host=$HOST \
-	--prefix=$PREFIX 2> z.make.a.txt || quit ":: Error configuring make"
+		--build=$BUILD \
+		--host=$HOST \
+		--prefix=$PREFIX 2> z.make.a.txt || quit ":: Error configuring make"
 
 	make all $PARALLEL 2>../log/z.make.b.txt || quit ":: Error compiling make"
 
@@ -583,6 +603,34 @@ if [[ $HOST || $DESTDIR ]]; then
 		cd installers/windows
 		wine "C:\Program Files (x86)\Inno Setup 6\Compil32.exe" /cc MiosixInstaller.iss
 		cd ../..
+	elif [[ $DESTDIR && ( $(uname -s) == 'Darwin' || $HOST == *darwin* ) ]]; then
+		# Distribute the uninstaller too
+		cp uninstall.sh $DESTDIR$PREFIX
+		# Prepare the postinstall script by replacing the correct prefix
+		mkdir -p installers/macos/Scripts
+		cat installers/macos/ScriptsTemplates/postinstall | \
+			sed -e 's|PREFIX=|PREFIX='"$PREFIX"'|' > \
+				installers/macos/Scripts/postinstall
+		chmod +x installers/macos/Scripts/postinstall
+		# Build a standard macOS package.
+		# The wizard steps are configured by the Distribution.xml file.
+		# Documentation:
+		#   https://developer.apple.com/library/archive/documentation/
+		#   DeveloperTools/Reference/DistributionDefinitionRef/Chapters/
+		#   Introduction.html#//apple_ref/doc/uid/TP40005370-CH1-SW1
+		# Also see `man productbuild` and `man pkgbuild`.
+		pkgbuild \
+			--identifier 'org.miosix.toolchain.gcc-9.2.0-mp3.1' \
+			--version '9.2.0.3.1' \
+			--install-location / \
+			--scripts installers/macos/Scripts \
+			--root $DESTDIR \
+			'gcc-9.2.0-mp3.1.pkg'
+		productbuild \
+			--distribution installers/macos/Distribution.xml \
+			--resources installers/macos/Resources \
+			--package-path ./ \
+			'./MiosixToolchainInstaller9.2.0mp3.1.pkg'
 	else
 		# Distribute the installer and uninstaller too
 		if [[ $DESTDIR ]]; then
@@ -604,10 +652,10 @@ if [[ $HOST || $DESTDIR ]]; then
 else
 	# Install the uninstaller too
 	chmod +x uninstall.sh
-	$SUDO cp uninstall.sh $INSTALL_DIR
-	# If sudo not an empty variable, make symlinks to /usr/bin
-	# else make a script to override PATH
-	if [[ $SUDO ]]; then
+	$SUDO cp uninstall.sh $DESTDIR$PREFIX
+	# If sudo not an empty variable and we are not on macOS, make symlinks to
+	# /usr/bin. else make a script to override PATH
+	if [[ ( $(uname -s) != 'Darwin' ) && $SUDO ]]; then
 		$SUDO ln -s $DESTDIR$PREFIX/bin/* /usr/bin
 	else
 		echo '# Used when installing the compiler locally to test it' > env.sh

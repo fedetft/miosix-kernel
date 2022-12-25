@@ -1,0 +1,83 @@
+#!/bin/bash
+
+# The following script is inspired by the one used by macports, so credit
+# to them for figuring out how to detect and handle each different shell.
+#  It is tradition for macOS power users to use a shell of their own liking
+# and Apple itself has switched from bash to zsh in macOS 10.15 so we must
+# take that into account.
+
+PREFIX=
+BINPATH=${PREFIX}/bin
+DSCL=/usr/bin/dscl
+
+fail()
+{
+  echo "$1"
+  exit 1
+}
+
+echo 'Modifying PATH for current user.'
+
+# Determine the user's shell, in order to choose an appropriate configuration file we'll be tweaking.
+# Exit nicely if the shell is any other than bash or tcsh, as that's considered non-standard.
+USHELL=$(${DSCL} . -read "/Users/${USER}" shell) || fail "error: could not determine shell name!"
+# leave full path to shell
+USHELL=${USHELL#*shell: }
+
+case "${USHELL}" in
+    */tcsh)
+        echo "Detected tcsh"
+        ENV_COMMAND="setenv"
+        ASSIGN=" "
+        if [[ -f "${HOME}/.tcshrc" ]]; then
+            CONF_FILE=tcshrc
+        elif [[ -f "${HOME}/.cshrc" ]]; then
+            CONF_FILE=cshrc
+        else
+            CONF_FILE=tcshrc
+        fi
+        ;;
+    */bash)
+        echo "Detected bash"
+        ENV_COMMAND="export"
+        ASSIGN="="
+        if [[ -f "${HOME}/.bash_profile" ]]; then
+            CONF_FILE=bash_profile
+        elif [[ -f "${HOME}/.bash_login" ]]; then
+            CONF_FILE=bash_login
+        else
+            CONF_FILE=profile
+        fi
+        ;;
+    */zsh)
+        echo "Detected zsh"
+        ENV_COMMAND="export"
+        ASSIGN="="
+        CONF_FILE="zprofile"
+        ;;
+    *)
+        fail "error: unknown shell ($USHELL)!"
+        ;;
+esac
+
+# Adding our setting to the PATH variable if not already there:
+# Run as the $USER: /usr/bin/su $USER -l
+# Run a command in the shell: -c "/usr/bin/printenv PATH"
+# Only process the last line output (profile may print info): tail -n 1
+# Output each path on its own line: tr ":" "\n"
+# Look for exactly the BINPATH: grep "^${BINPATH}$"
+if /usr/bin/su "${USER}" -l -c "/usr/bin/printenv PATH" | tail -n 1 | tr ":" "\n" | grep "^${BINPATH}$" > /dev/null; then
+    echo "Your shell already has the right PATH environment variable!"
+    exit 0
+fi
+
+if [[ -f "${HOME}/.${CONF_FILE}" ]]; then
+    echo "Backing up ${HOME}/.${CONF_FILE} to ${HOME}/.${CONF_FILE}.tmp"
+    /bin/cp -fp "${HOME}/.${CONF_FILE}" "${HOME}/.${CONF_FILE}.tmp" || fail 'Could not backup profile'
+fi
+{
+    echo -e "# Miosix toolchain PATH addition"
+    echo "${ENV_COMMAND} PATH${ASSIGN}${BINPATH}:\$PATH"
+} >> "${HOME}/.${CONF_FILE}"
+chown "${USER}" "${HOME}/.${CONF_FILE}" || echo "warning: unable to fix permissions on ${HOME}/.${CONF_FILE}!"
+echo "Modification of user PATH completed."
