@@ -291,14 +291,14 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
 int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
 {
     //attr is currently not considered
-    cond->first=0;
+    cond->first=nullptr;
     //No need to initialize cond->last
     return 0;
 }
 
 int pthread_cond_destroy(pthread_cond_t *cond)
 {
-    if(cond->first!=0) return EBUSY;
+    if(cond->first!=nullptr) return EBUSY;
     return 0;
 }
 
@@ -308,8 +308,8 @@ int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
     Thread *p=Thread::IRQgetCurrentThread();
     WaitingList waiting; //Element of a linked list on stack
     waiting.thread=reinterpret_cast<void*>(p);
-    waiting.next=0; //Putting this thread last on the list (lifo policy)
-    if(cond->first==0)
+    waiting.next=nullptr; //Putting this thread last on the list (lifo policy)
+    if(cond->first==nullptr)
     {
         cond->first=&waiting;
         cond->last=&waiting;
@@ -328,6 +328,17 @@ int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
     return 0;
 }
 
+int	pthread_cond_timedwait(pthread_cond_t *__cond,
+				           pthread_mutex_t *__mutex,
+				           const struct timespec *__abstime) {
+    
+    // ===========================================================================================================
+    // TODO: Implement
+    // ===========================================================================================================
+
+    return 0;
+}
+
 int pthread_cond_signal(pthread_cond_t *cond)
 {
     #ifdef SCHED_TYPE_EDF
@@ -335,7 +346,7 @@ int pthread_cond_signal(pthread_cond_t *cond)
     #endif //SCHED_TYPE_EDF
     {
         FastInterruptDisableLock dLock;
-        if(cond->first==0) return 0;
+        if(cond->first==nullptr) return 0;
 
         Thread *t=reinterpret_cast<Thread*>(cond->first->thread);
         t->flags.IRQsetCondWait(false);
@@ -360,7 +371,7 @@ int pthread_cond_broadcast(pthread_cond_t *cond)
     #endif //SCHED_TYPE_EDF
     {
         FastInterruptDisableLock lock;
-        while(cond->first!=0)
+        while(cond->first!=nullptr)
         {
             Thread *t=reinterpret_cast<Thread*>(cond->first->thread);
             t->flags.IRQsetCondWait(false);
