@@ -2242,10 +2242,6 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         CFLAGS_BASE   += -D_BOARD_STM32F746ZG_NUCLEO
         CXXFLAGS_BASE += -D_BOARD_STM32F746ZG_NUCLEO
 
-        ## Select the SDMMC peripheral to use for the filesystem
-        SD := -D__SDMMC1
-        # SD := -D__SDMMC2
-
         ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
         CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_216MHz=216000000
 
@@ -2281,10 +2277,6 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32F767ZI_NUCLEO
         CXXFLAGS_BASE += -D_BOARD_STM32F767ZI_NUCLEO
-
-        ## Select the SDMMC peripheral to use for the filesystem
-        SD := -D__SDMMC1
-        # SD := -D__SDMMC2
 
         ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
         CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_216MHz=216000000
@@ -2325,10 +2317,6 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## Enables the initialization of the external 16MB SDRAM memory
         XRAM := -D__ENABLE_XRAM
 
-        ## Select the SDMMC peripheral to use for the filesystem
-        # SD := -D__SDMMC1
-        SD := -D__SDMMC2
-
         ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
         CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_216MHz=216000000
 
@@ -2360,9 +2348,9 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
 
     AFLAGS_BASE   := $(ARCHOPTS)
     CFLAGS_BASE   += -D_ARCH_CORTEXM7_STM32F7 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
-                     $(SD) $(ARCHOPTS) $(OPT_OPTIMIZATION) -c
+                     $(ARCHOPTS) $(OPT_OPTIMIZATION) -c
     CXXFLAGS_BASE += -D_ARCH_CORTEXM7_STM32F7 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
-                     $(SD) $(ARCHOPTS) $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
+                     $(ARCHOPTS) $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
     LFLAGS_BASE   := $(ARCHOPTS) -Wl,--gc-sections,-Map,main.map                \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)              \
                      $(OPT_OPTIMIZATION) -nostdlib
