@@ -100,6 +100,12 @@
 #define SDIO_POWER_PWRCTRL_1 SDMMC_POWER_PWRCTRL_1
 #define SDIO_POWER_PWRCTRL_0 SDMMC_POWER_PWRCTRL_0
 
+constexpr int ICR_FLAGS_CLR=0x5ff;
+
+#else  //defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
+
+constexpr int ICR_FLAGS_CLR=0x7ff;
+
 #endif //defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
 
 #if (defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)) && defined(__SDMMC2)
@@ -174,8 +180,8 @@ void __attribute__((used)) SDDMAirqImpl()
     
     if(!waiting) return;
     waiting->IRQwakeup();
-	if(waiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
-		Scheduler::IRQfindNextThread();
+    if(waiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+        Scheduler::IRQfindNextThread();
     waiting=0;
 }
 
@@ -190,12 +196,12 @@ void __attribute__((used)) SDirqImpl()
                     SDIO_STA_TXUNDERR | SDIO_STA_DTIMEOUT | SDIO_STA_DCRCFAIL))
         transferError=true;
     
-    SDIO->ICR=0x7ff;//Clear flags
+    SDIO->ICR=ICR_FLAGS_CLR; //Clear flags
     
     if(!waiting) return;
     waiting->IRQwakeup();
-	if(waiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
-		Scheduler::IRQfindNextThread();
+    if(waiting->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+        Scheduler::IRQfindNextThread();
     waiting=0;
 }
 
@@ -672,12 +678,12 @@ CmdResult Command::send(CommandType cmd, unsigned int arg)
         {
             if(SDIO->STA & SDIO_STA_CMDSENT)
             {
-                SDIO->ICR=0x7ff;//Clear flags
+                SDIO->ICR=ICR_FLAGS_CLR;//Clear flags
                 return CmdResult(cc,CmdResult::Ok);
             }
             delayUs(1);
         }
-        SDIO->ICR=0x7ff;//Clear flags
+        SDIO->ICR=ICR_FLAGS_CLR;//Clear flags
         return CmdResult(cc,CmdResult::Timeout);
     }
 
@@ -687,7 +693,7 @@ CmdResult Command::send(CommandType cmd, unsigned int arg)
         unsigned int status=SDIO->STA;
         if(status & SDIO_STA_CMDREND)
         {
-            SDIO->ICR=0x7ff;//Clear flags
+            SDIO->ICR=ICR_FLAGS_CLR;//Clear flags
             if(SDIO->RESPCMD==cc) return CmdResult(cc,CmdResult::Ok);
             else return CmdResult(cc,CmdResult::RespNotMatch);
         }
@@ -925,8 +931,18 @@ static void displayBlockTransferError()
 static unsigned int dmaTransferCommonSetup(const unsigned char *buffer)
 {
     //Clear both SDIO and DMA interrupt flags
-    SDIO->ICR=0x4005ff;
-    DMA2->LIFCR=0xffffffff;
+    SDIO->ICR=ICR_FLAGS_CLR;
+    #if (defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)) && defined(__SDMMC2)
+    DMA2->LIFCR = DMA_LIFCR_CTCIF0
+                | DMA_LIFCR_CTEIF0
+                | DMA_LIFCR_CDMEIF0
+                | DMA_LIFCR_CFEIF0;
+    #else
+    DMA2->LIFCR = DMA_LIFCR_CTCIF3
+                | DMA_LIFCR_CTEIF3
+                | DMA_LIFCR_CDMEIF3
+                | DMA_LIFCR_CFEIF3;
+    #endif
 
     transferError=false;
     dmaFlags=sdioFlags=0;
@@ -1255,7 +1271,11 @@ static void initSDIOPeripheral()
     SDIO->CLKCR=0;
     SDIO->CMD=0;
     SDIO->DCTRL=0;
+    #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
+    SDIO->ICR=0x4005ff;
+    #else
     SDIO->ICR=0xc007ff;
+    #endif
     SDIO->POWER=SDIO_POWER_PWRCTRL_1 | SDIO_POWER_PWRCTRL_0; //Power on state
     //This delay is particularly important: when setting the POWER register a
     //glitch on the CMD pin happens. This glitch has a fast fall time and a slow
