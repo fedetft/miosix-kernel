@@ -27,8 +27,6 @@
 
 #pragma once
 
-#include "util/version.h"
-
 /**
  * \internal
  * Versioning for board_settings.h for out of git tree projects
