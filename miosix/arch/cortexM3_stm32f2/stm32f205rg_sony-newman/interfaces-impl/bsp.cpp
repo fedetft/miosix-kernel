@@ -105,11 +105,7 @@ void IRQbspInit()
     ACCELEROMETER_INT_Pin::mode(Mode::INPUT_PULL_DOWN);
     
     using namespace i2c;
-    I2C_SCL_Pin::mode(Mode::ALTERNATE);
-    I2C_SCL_Pin::alternateFunction(4);
     I2C_SCL_Pin::speed(Speed::_50MHz);
-    I2C_SDA_Pin::mode(Mode::ALTERNATE);
-    I2C_SDA_Pin::alternateFunction(4);
     I2C_SDA_Pin::speed(Speed::_50MHz);
     
     BUZER_PWM_Pin::mode(Mode::OUTPUT);
@@ -221,19 +217,19 @@ FastMutex& i2cMutex()
     return mutex;
 }
 
-bool i2cWriteReg(miosix::I2C1Driver& i2c, unsigned char dev, unsigned char reg,
+bool i2cWriteReg(miosix::I2C1Master *i2c, unsigned char dev, unsigned char reg,
         unsigned char data)
 {
     const unsigned char buffer[]={reg,data};
-    return i2c.send(dev,buffer,sizeof(buffer));
+    return i2c->send(dev,buffer,sizeof(buffer));
 }
 
-bool i2cReadReg(miosix::I2C1Driver& i2c, unsigned char dev, unsigned char reg,
+bool i2cReadReg(miosix::I2C1Master *i2c, unsigned char dev, unsigned char reg,
         unsigned char& data)
 {
-    if(i2c.send(dev,&reg,1)==false) return false;
+    if(i2c->send(dev,&reg,1)==false) return false;
     unsigned char temp;
-    if(i2c.recv(dev,&temp,1)==false) return false;
+    if(i2c->recv(dev,&temp,1)==false) return false;
     data=temp;
     return true;
 }
@@ -399,7 +395,9 @@ void PowerManagement::setCoreFrequency(CoreFrequency cf)
     }
     
     //And also reconfigure the I2C (can't change this with IRQ disabled)
-    i2c.init(); //Reinitialize after the frequency change
+    //Reinitialize after the frequency change
+    delete i2c;
+    i2c=new I2C1Master(i2c::I2C_SDA_Pin::getPin(),i2c::I2C_SCL_Pin::getPin(),100);
 }
 
 void PowerManagement::goDeepSleep(int ms)
@@ -473,9 +471,9 @@ void PowerManagement::goDeepSleep(int ms)
     }
 }
 
-PowerManagement::PowerManagement() : i2c(I2C1Driver::instance()),
-        chargingAllowed(true), wakeOnButton(false), coreFreq(FREQ_120MHz),
-        powerManagementMutex(FastMutex::RECURSIVE)
+PowerManagement::PowerManagement() : i2c(new I2C1Master(i2c::I2C_SDA_Pin::getPin(),
+        i2c::I2C_SCL_Pin::getPin(),100)), chargingAllowed(true), wakeOnButton(false),
+        coreFreq(FREQ_120MHz), powerManagementMutex(FastMutex::RECURSIVE)
 {
     {
         FastInterruptDisableLock dLock;

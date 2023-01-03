@@ -48,7 +48,7 @@ inline void ledOn()  {}
 inline void ledOff() {}
 
 /**
- * You <b>must</b> lock this mutex before accessing the I2C1Driver directly
+ * You <b>must</b> lock this mutex before accessing the I2C1Master directly
  * on this board, as there are multiple threads that access the I2C for
  * different purposes (touchscreen, accelerometer, PMU). If you don't do it,
  * your application will crash sooner or later.
@@ -70,7 +70,7 @@ enum {
  * \param data byte to write
  * \return true on success, false on failure
  */
-bool i2cWriteReg(miosix::I2C1Driver& i2c, unsigned char dev, unsigned char reg,
+bool i2cWriteReg(miosix::I2C1Master *i2c, unsigned char dev, unsigned char reg,
         unsigned char data);
 
 /**
@@ -82,7 +82,7 @@ bool i2cWriteReg(miosix::I2C1Driver& i2c, unsigned char dev, unsigned char reg,
  * \param data byte to write
  * \return true on success, false on failure
  */
-bool i2cReadReg(miosix::I2C1Driver& i2c, unsigned char dev, unsigned char reg,
+bool i2cReadReg(miosix::I2C1Master *i2c, unsigned char dev, unsigned char reg,
         unsigned char& data);
 
 /**
@@ -270,7 +270,7 @@ private:
      */
     void IRQsetCoreFreq();
     
-    I2C1Driver &i2c;
+    I2C1Master *i2c;
     bool chargingAllowed;
     bool wakeOnButton;
     CoreFrequency coreFreq;
