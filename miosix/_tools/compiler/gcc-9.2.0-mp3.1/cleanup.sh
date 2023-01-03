@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # After running install-script.sh, this script will clean up temporary files.
 # It will not remove the files created by the download.sh script, so that
