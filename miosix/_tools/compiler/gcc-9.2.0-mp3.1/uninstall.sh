@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Uninstall script: removes the arm-miosix-eabi-gcc compiler
 

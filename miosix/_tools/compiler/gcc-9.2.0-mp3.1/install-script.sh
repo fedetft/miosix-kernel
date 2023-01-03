@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Script to build the gcc compiler required for Miosix.
 # Usage: ./install-script -j`nproc`
