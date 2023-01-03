@@ -209,9 +209,6 @@ static void SetSysClock(void);
   static void SetSysClockTo80(void);
 #endif
 
-static uint32_t EnableHSE();
-static uint32_t EnableHSI();
-
 /**
   * @}
   */
@@ -377,6 +374,8 @@ void SystemCoreClockUpdate(void)
 
 // Added by silseva
 
+#ifdef RUN_WITH_HSE
+
 /**
  * @brief Activates HSE oscillator and waits until is ready
  * @param None
@@ -409,6 +408,7 @@ static uint32_t EnableHSE()
   return HSEStatus;
 }
 
+#elif defined(RUN_WITH_HSI)
 
 /**
  * @brief Activates HSI oscillator and waits until is ready
@@ -441,6 +441,8 @@ static uint32_t EnableHSI()
   
   return HSIStatus;
 }
+
+#endif //RUN_WITH_HSI
 
 
 /**
@@ -549,7 +551,7 @@ static void SetSysClockTo24(void)
 
   #ifdef RUN_WITH_HSE //By silseva
   HSEStatus = EnableHSE();
-  #elif defined RUN_WITH_HSI
+  #elif defined(RUN_WITH_HSI)
   HSEStatus = EnableHSI();
   #endif //RUN_WITH_HSI
 

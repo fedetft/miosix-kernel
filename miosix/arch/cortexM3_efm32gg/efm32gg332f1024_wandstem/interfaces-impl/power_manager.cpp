@@ -53,7 +53,7 @@ void PowerManager::deepSleepUntil(long long int when/*, Unit unit*/)
     //if(unit==Unit::NS){
         // This conversion is very critical: we can't use the straightforward method
         // due to the approximation make during the conversion (necessary to be efficient).
-        // ns-->tick(HF)->\
+        // ns-->tick(HF)->
         //                  represent a different time. 
         //                  This difference grows with the increasing of time value.
         // ns-->tick(LF)->/

@@ -30,10 +30,11 @@
 
 namespace miosix {
 
-#warning "FIXME: EFM32_HFXO_FREQ is not the right value as the core clock can be prescaled"
-//TODO: trying to put SystemCoreClock instead of EFM32_HFXO_FREQ results in the
-//inner loop taking one more asm instruction. Investigate why and whether it
-//may depend on compiler optimizations
+//TODO: in theory the core clock can be prescaled so EFM32_HFXO_FREQ could not
+//reflect the actual CPU speed, but no use case for doing it was found. Should
+//prescaling be implemented, this code needs to be modified, but trying to put
+//SystemCoreClock instead of EFM32_HFXO_FREQ results in the inner loop taking
+//one more asm instruction, skewing delays.
 
 void delayMs(unsigned int mseconds)
 {

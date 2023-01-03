@@ -624,11 +624,7 @@ static void SetSysClockTo24(void)
   else
   {
     HSEStatus = (uint32_t)0x00;
-  }  
-  #else
-  #ifndef STM32F10X_MD_VL
-  #warning Untested configuration
-  #endif
+  }
   #endif //RUN_WITH_HSI //By TFT
 
   if (HSEStatus == (uint32_t)0x01)
