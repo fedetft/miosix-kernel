@@ -50,7 +50,7 @@ HOST=
 # you have to run this script from Linux anyway (see canadian cross compiling)
 #BUILD=
 #HOST=x86_64-w64-mingw32
-# Uncomment if targeting macOS 64 bit Intel (distributable)
+# Uncomment if targeting macOS 64 bit Intel (distributable) on macOS
 #   The script must be run under macOS and without canadian cross compiling
 # because it confuses autotools's configuration scripts.
 #   Instead we set the compiler options for macOS minimum version and
@@ -61,6 +61,10 @@ HOST=
 #HOST=
 #export CFLAGS='-mmacos-version-min=10.13 -O3'
 #export CXXFLAGS='-mmacos-version-min=10.13 -O3'
+# Uncomment if targeting macOS 64 bit Intel (distributable) on Linux
+# Must first install the osxcross toolchain
+#BUILD=
+#HOST=x86_64-apple-darwin18
 
 #### Configuration tunables -- end ####
 
@@ -213,8 +217,8 @@ cd $GMP
 
 make all $PARALLEL 2>../log/z.gmp.b.txt		|| quit ":: Error compiling gmp"
 
-if [[ $HOST != *mingw* ]]; then
-	# Don't check if cross-compiling for windows
+if [[ ! $HOST ]]; then
+	# Don't check if cross-compiling
 	make check $PARALLEL 2> ../log/z.gmp.c.txt	|| quit ":: Error testing gmp"
 fi
 
@@ -234,8 +238,8 @@ cd $MPFR
 
 make all $PARALLEL 2>../log/z.mpfr.b.txt	|| quit ":: Error compiling mpfr"
 
-if [[ $HOST != *mingw* ]]; then
-	# Don't check if cross-compiling for windows
+if [[ ! $HOST ]]; then
+	# Don't check if cross-compiling
 	make check $PARALLEL 2> ../log/z.mpfr.c.txt	|| quit ":: Error testing mpfr"
 fi
 
@@ -256,7 +260,7 @@ cd $MPC
 
 make all $PARALLEL 2>../log/z.mpc.b.txt		|| quit ":: Error compiling mpc"
 
-if [[ $HOST != *mingw* ]]; then
+if [[ ! $HOST ]]; then
 	# Don't check if cross-compiling for windows
 	make check $PARALLEL 2> ../log/z.mpc.c.txt	|| quit ":: Error testing mpc"
 fi
@@ -599,12 +603,13 @@ $SUDO $HOSTSTRIP $DESTDIR$PREFIX/bin/*
 
 # Installers, env variables and other stuff
 if [[ $HOST || $DESTDIR ]]; then
-	if [[ $HOST == *mingw* ]]; then
+	if [[ ( $(uname -s) == 'Linux' ) && ( $HOST == *mingw* ) ]]; then
+		# Build an executable installer for Windows
 		cd installers/windows
 		wine "C:\Program Files (x86)\Inno Setup 6\Compil32.exe" /cc MiosixInstaller.iss
 		cd ../..
-	elif [[ $DESTDIR && ( $(uname -s) == 'Darwin' || $HOST == *darwin* ) ]]; then
-		# Distribute the uninstaller too
+	elif [[ ( $(uname -s) == 'Darwin' ) && ( ! $HOST || $HOST == *darwin* ) ]]; then
+		# Build a .pkg installer for macOS if we are on macOS and we are building for it
 		cp uninstall.sh $DESTDIR$PREFIX
 		# Prepare the postinstall script by replacing the correct prefix
 		mkdir -p installers/macos/Scripts
@@ -631,7 +636,8 @@ if [[ $HOST || $DESTDIR ]]; then
 			--resources installers/macos/Resources \
 			--package-path ./ \
 			'./MiosixToolchainInstaller9.2.0mp3.1.pkg'
-	else
+	elif [[ ( $(uname -s) == 'Linux' ) && ( $HOST == *linux* ) ]]; then
+		# Build a makeself installer
 		# Distribute the installer and uninstaller too
 		if [[ $DESTDIR ]]; then
 			sed -E "s|/opt/arm-miosix-eabi|$PREFIX|g" installers/linux/installer.sh > $DESTDIR$PREFIX/installer.sh
