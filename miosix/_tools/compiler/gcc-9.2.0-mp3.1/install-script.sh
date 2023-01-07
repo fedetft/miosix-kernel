@@ -593,7 +593,7 @@ $SUDO rm $DESTDIR$PREFIX/bin/arm-miosix-eabi-$GCC$EXT
 find $DESTDIR$PREFIX -name cc1$EXT     | $SUDO xargs $HOSTSTRIP
 find $DESTDIR$PREFIX -name cc1plus$EXT | $SUDO xargs $HOSTSTRIP
 find $DESTDIR$PREFIX -name lto1$EXT    | $SUDO xargs $HOSTSTRIP
-$SUDO strip $DESTDIR$PREFIX/bin/*
+$SUDO $HOSTSTRIP $DESTDIR$PREFIX/bin/*
 
 
 
