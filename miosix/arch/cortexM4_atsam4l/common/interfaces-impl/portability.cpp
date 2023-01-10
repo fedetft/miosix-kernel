@@ -37,80 +37,11 @@
 #include <cstring>
 #include <cassert>
 
+namespace miosix {
 extern void (* const __Vectors[])();
-
-/**
- * \internal
- * software interrupt routine.
- * Since inside naked functions only assembler code is allowed, this function
- * only calls the ctxsave/ctxrestore macros (which are in assembler), and calls
- * the implementation code in ISR_yield()
- */
-void SVC_Handler() __attribute__((naked));
-void SVC_Handler()
-{
-    saveContext();
-    //Call ISR_yield(). Name is a C++ mangled name.
-    asm volatile("bl _ZN14miosix_private9ISR_yieldEv");
-    restoreContext();
 }
 
 namespace miosix_private {
-
-/**
- * \internal
- * Called by the software interrupt, yield to next thread
- * Declared noinline to avoid the compiler trying to inline it into the caller,
- * which would violate the requirement on naked functions. Function is not
- * static because otherwise the compiler optimizes it out...
- */
-void ISR_yield() __attribute__((noinline));
-void ISR_yield()
-{
-    #ifdef WITH_PROCESSES
-    // WARNING: Temporary fix. Rationale:
-    // This fix is intended to avoid kernel or process faulting due to
-    // another process actions. Consider the case in which a process statically
-    // allocates a big array such that there is no space left for saving
-    // context data. If the process issues a system call, in the following
-    // interrupt the context is saved, but since there is no memory available
-    // for all the context data, a mem manage interrupt is set to 'pending'. Then,
-    // a fake syscall is issued, based on the value read on the stack (which
-    // the process hasn't set due to the memory fault and is likely to be 0);
-    // this syscall is usually a yield (due to the value of 0 above),
-    // which can cause the scheduling of the kernel thread. At this point,
-    // the pending mem fault is issued from the kernel thread, causing the
-    // kernel fault and reboot. This is caused by the mem fault interrupt
-    // having less priority of the other interrupts.
-    // This fix checks if there is a mem fault interrupt pending, and, if so,
-    // it clears it and returns before calling the previously mentioned fake
-    // syscall.
-    if(SCB->SHCSR & (1<<13))
-    {
-        if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
-            fault::MP,0,0)))
-        {
-            SCB->SHCSR &= ~(1<<13); //Clear MEMFAULTPENDED bit
-            return;
-        }
-    }
-    #endif // WITH_PROCESSES
-    miosix::Thread::IRQstackOverflowCheck();
-    
-    #ifdef WITH_PROCESSES
-    //If processes are enabled, check the content of r3. If zero then it
-    //it is a simple yield, otherwise handle the syscall
-    //Note that it is required to use ctxsave and not cur->ctxsave because
-    //at this time we do not know if the active context is user or kernel
-    unsigned int threadSp=ctxsave[0];
-    unsigned int *processStack=reinterpret_cast<unsigned int*>(threadSp);
-    if(processStack[3]!=static_cast<unsigned int>(miosix::Syscall::YIELD))
-        miosix::Thread::IRQhandleSvc(processStack[3]);
-    else miosix::Scheduler::IRQfindNextThread();
-    #else //WITH_PROCESSES
-    miosix::Scheduler::IRQfindNextThread();
-    #endif //WITH_PROCESSES
-}
 
 void IRQsystemReboot()
 {
@@ -221,8 +152,7 @@ void IRQportableStartKernel()
     //NOTE: the SAM-BA bootloader does not relocate the vector table offset,
     //so any interrupt would call the SAM-BA IRQ handler, not the application
     //ones.
-    SCB->VTOR = reinterpret_cast<unsigned int>(&__Vectors);
-
+    SCB->VTOR = reinterpret_cast<unsigned int>(&miosix::__Vectors);
     //Enable fault handlers
     SCB->SHCSR |= SCB_SHCSR_USGFAULTENA_Msk | SCB_SHCSR_BUSFAULTENA_Msk
             | SCB_SHCSR_MEMFAULTENA_Msk;

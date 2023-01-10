@@ -144,7 +144,7 @@ void disableInterrupts()
 {
     //Before the kernel is started interrupts are disabled,
     //so disabling them again won't hurt
-    miosix_private::doDisableInterrupts();
+    doDisableInterrupts();
     if(interruptDisableNesting==0xff) errorHandler(NESTING_OVERFLOW);
     interruptDisableNesting++;
 }
@@ -159,7 +159,7 @@ void enableInterrupts()
     interruptDisableNesting--;
     if(interruptDisableNesting==0 && kernelStarted==true)
     {
-        miosix_private::doEnableInterrupts();
+        doEnableInterrupts();
     }
 }
 
@@ -202,7 +202,7 @@ void restartKernel()
 
 bool areInterruptsEnabled()
 {
-    return miosix_private::checkAreInterruptsEnabled();
+    return checkAreInterruptsEnabled();
 }
 
 void deepSleepLock()
@@ -365,7 +365,7 @@ Thread *Thread::create(void (*startfunc)(void *), unsigned int stacksize,
 
 void Thread::yield()
 {
-    miosix_private::doYield();
+    doYield();
 }
 
 void Thread::sleep(unsigned int ms)
@@ -861,9 +861,9 @@ void Thread::IRQenableIrqAndWaitImpl()
     const_cast<Thread*>(runningThread)->flags.IRQsetWait(true);
     auto savedNesting=interruptDisableNesting; //For InterruptDisableLock
     interruptDisableNesting=0;
-    miosix_private::doEnableInterrupts();
+    doEnableInterrupts();
     Thread::yield(); //Here the wait becomes effective
-    miosix_private::doDisableInterrupts();
+    doDisableInterrupts();
     if(interruptDisableNesting!=0) errorHandler(UNEXPECTED);
     interruptDisableNesting=savedNesting;
 }
@@ -877,9 +877,9 @@ TimedWaitResult Thread::IRQenableIrqAndTimedWaitImpl(long long absoluteTimeNs)
     IRQaddToSleepingList(&sleepData);
     auto savedNesting=interruptDisableNesting; //For InterruptDisableLock
     interruptDisableNesting=0;
-    miosix_private::doEnableInterrupts();
+    doEnableInterrupts();
     Thread::yield(); //Here the wait becomes effective
-    miosix_private::doDisableInterrupts();
+    doDisableInterrupts();
     if(interruptDisableNesting!=0) errorHandler(UNEXPECTED);
     interruptDisableNesting=savedNesting;
     bool removed=sleepingList.removeFast(&sleepData);

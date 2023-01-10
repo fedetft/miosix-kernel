@@ -25,14 +25,125 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "interrupts_cortexMx.h"
 #include "kernel/logging.h"
 #include "kernel/kernel.h"
+#include "kernel/error.h"
+#include "kernel/scheduler/scheduler.h"
+#include "kernel/stage_2_boot.h"
 #include "config/miosix_settings.h"
 #include "interfaces/portability.h"
 #include "interfaces/arch_registers.h"
-#include "interrupts.h"
+#include "interfaces/interrupts.h"
 
-using namespace miosix;
+namespace miosix {
+
+static void unexpectedInterrupt(void*);
+
+// Same code behavior but different code size TODO document or remove
+// #define VARIANT
+
+const unsigned int numInterrupts=MIOSIX_NUM_PERIPHERAL_IRQ;
+#ifdef VARIANT
+void (*irqTable[numInterrupts])(void *)={ &unexpectedInterrupt };
+void *irqArgs[numInterrupts];
+#else
+struct IrqForwardingEntry
+{
+    void (*handler)(void *);
+    void *arg;
+};
+IrqForwardingEntry irqTable[numInterrupts]={ &unexpectedInterrupt, nullptr };
+#endif
+
+bool IRQregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexcept
+{
+    if(id>=numInterrupts) return false;
+    #ifdef VARIANT
+//     if(irqTable[id]!=unexpectedInterrupt) return false;
+    irqTable[id]=handler;
+    irqArgs[id]=arg;
+    #else
+//     if(irqTable[id].handler!=unexpectedInterrupt) return false;
+    irqTable[id].handler=handler;
+    irqTable[id].arg=arg;
+    #endif
+    return true;
+}
+
+void IRQunregisterIrq(unsigned int id) noexcept
+{
+    if(id>=numInterrupts) return;
+    #ifdef VARIANT
+    irqTable[id]=unexpectedInterrupt;
+    irqArgs[id]=nullptr;
+    #else
+    irqTable[id].handler=unexpectedInterrupt;
+    irqTable[id].arg=nullptr;
+    #endif
+}
+
+bool IRQisIrqRegistered(unsigned int id) noexcept
+{
+    if(id>=numInterrupts) return false;
+    #ifdef VARIANT
+    return irqTable[id]==unexpectedInterrupt;
+    #else
+    return irqTable[id].handler==unexpectedInterrupt;
+    #endif
+}
+
+void IRQinvokeScheduler() noexcept
+{
+    doYield();
+}
+
+// NOTE: more compact assembly is produced if this function is not marked noexcept
+template<int N> void irqProxy() /*noexcept*/
+{
+    #ifdef VARIANT
+    (*irqTable[N])(irqArgs[N]);
+    #else
+    (*irqTable[N].handler)(irqTable[N].arg);
+    #endif
+}
+
+// If all the ARM Cortex microcontrollers had the same number of interrupts, we
+// could just write the interrupt proxy table explicitly in the following way:
+//
+// extern const fnptr interruptProxyTable[numInterrupts]=
+// {
+//     &irqProxy<0>, &irqProxy<1>, ... &irqProxy<numInterrupts-1>
+// };
+//
+// However, numInterrupts is different in different microcontrollers, so we use
+// template metaprogramming to programmatically generate the interrupt proxy
+// table  whose size is the value of numInterrupts.
+
+typedef void (*fnptr)();
+
+template<fnptr... args>
+struct InterruptProxyTable
+{
+    const fnptr entry[sizeof...(args)]={ args... };
+};
+
+template<unsigned N, fnptr... args>
+struct TableGenerator
+{
+    typedef typename TableGenerator<N-1, &irqProxy<N-1>, args...>::type type;
+    static const type table;
+};
+
+template<fnptr... args>
+struct TableGenerator<0, args...>
+{
+    typedef InterruptProxyTable<args...> type;
+    static const type table;
+};
+
+template<unsigned N, fnptr... args>
+const typename TableGenerator<N, args...>::type TableGenerator<N, args...>::table;
 
 #ifdef WITH_ERRLOG
 
@@ -82,19 +193,15 @@ void NMI_Handler()
     miosix_private::IRQsystemReboot();
 }
 
-void __attribute__((naked)) HardFault_Handler()
-{
-    saveContext();
-    //Call HardFault_impl(). Name is a C++ mangled name.
-    asm volatile("bl _Z14HardFault_implv");
-    restoreContext();
-}
-
-void __attribute__((noinline)) HardFault_impl()
+void HardFault_Handler()
 {
     #ifdef WITH_PROCESSES
     if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
-        fault::HARDFAULT,getProgramCounter()))) return;
+        fault::HARDFAULT,getProgramCounter())))
+    {
+        IRQinvokeScheduler();
+        return;
+    }
     #endif //WITH_PROCESSES
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected HardFault @ ");
@@ -114,15 +221,7 @@ void __attribute__((noinline)) HardFault_impl()
 // below this point
 #if !defined(_ARCH_CORTEXM0_STM32F0) && !defined(_ARCH_CORTEXM0_STM32G0) && !defined(_ARCH_CORTEXM0PLUS_STM32L0) && !defined(_ARCH_CORTEXM0PLUS_RP2040)
 
-void __attribute__((naked)) MemManage_Handler()
-{
-    saveContext();
-    //Call MemManage_impl(). Name is a C++ mangled name.
-    asm volatile("bl _Z14MemManage_implv");
-    restoreContext();
-}
-
-void __attribute__((noinline)) MemManage_impl()
+void MemManage_Handler()
 {
     #if defined(WITH_PROCESSES) || defined(WITH_ERRLOG)
     unsigned int cfsr=SCB->CFSR;
@@ -136,6 +235,7 @@ void __attribute__((noinline)) MemManage_impl()
         id,getProgramCounter(),arg)))
     {
         SCB->SHCSR &= ~(1<<13); //Clear MEMFAULTPENDED bit
+        IRQinvokeScheduler();
         return;
     }
     #endif //WITH_PROCESSES
@@ -159,15 +259,7 @@ void __attribute__((noinline)) MemManage_impl()
     miosix_private::IRQsystemReboot();
 }
 
-void __attribute__((naked)) BusFault_Handler()
-{
-    saveContext();
-    //Call BusFault_impl(). Name is a C++ mangled name.
-    asm volatile("bl _Z13BusFault_implv");
-    restoreContext();
-}
-
-void __attribute__((noinline)) BusFault_impl()
+void BusFault_Handler()
 {
     #if defined(WITH_PROCESSES) || defined(WITH_ERRLOG)
     unsigned int cfsr=SCB->CFSR;
@@ -180,6 +272,7 @@ void __attribute__((noinline)) BusFault_impl()
         id,getProgramCounter(),arg)))
     {
         SCB->SHCSR &= ~(1<<14); //Clear BUSFAULTPENDED bit
+        IRQinvokeScheduler();
         return;
     }
     #endif //WITH_PROCESSES
@@ -205,15 +298,7 @@ void __attribute__((noinline)) BusFault_impl()
     miosix_private::IRQsystemReboot();
 }
 
-void __attribute__((naked)) UsageFault_Handler()
-{
-    saveContext();
-    //Call UsageFault_impl(). Name is a C++ mangled name.
-    asm volatile("bl _Z15UsageFault_implv");
-    restoreContext();
-}
-
-void __attribute__((noinline)) UsageFault_impl()
+void UsageFault_Handler()
 {
     #if defined(WITH_PROCESSES) || defined(WITH_ERRLOG)
     unsigned int cfsr=SCB->CFSR;
@@ -231,6 +316,7 @@ void __attribute__((noinline)) UsageFault_impl()
         id,getProgramCounter())))
     {
         SCB->SHCSR &= ~(1<<12); //Clear USGFAULTPENDED bit
+        IRQinvokeScheduler();
         return;
     }
     #endif //WITH_PROCESSES
@@ -262,21 +348,255 @@ void DebugMon_Handler()
     miosix_private::IRQsystemReboot();
 }
 
-#endif // !defined(_ARCH_CORTEXM0_STM32F0) && !defined(_ARCH_CORTEXM0_STM32G0) && !defined(_ARCH_CORTEXM0PLUS_STM32L0) && !defined(_ARCH_CORTEXM0PLUS_RP2040)
-
-void PendSV_Handler()
+void SVC_Handler()
 {
+    #ifdef WITH_PROCESSES
+    // WARNING: Temporary fix. Rationale:
+    // This fix is intended to avoid kernel or process faulting due to
+    // another process actions. Consider the case in which a process statically
+    // allocates a big array such that there is no space left for saving
+    // context data. If the process issues a system call, in the following
+    // interrupt the context is saved, but since there is no memory available
+    // for all the context data, a mem manage interrupt is set to 'pending'. Then,
+    // a fake syscall is issued, based on the value read on the stack (which
+    // the process hasn't set due to the memory fault and is likely to be 0);
+    // this syscall is usually a yield (due to the value of 0 above),
+    // which can cause the scheduling of the kernel thread. At this point,
+    // the pending mem fault is issued from the kernel thread, causing the
+    // kernel fault and reboot. This is caused by the mem fault interrupt
+    // having less priority of the other interrupts.
+    // This fix checks if there is a mem fault interrupt pending, and, if so,
+    // it clears it and returns before calling the previously mentioned fake
+    // syscall.
+    if(SCB->SHCSR & (1<<13))
+    {
+        if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
+            fault::MP,0,0)))
+        {
+            SCB->SHCSR &= ~(1<<13); //Clear MEMFAULTPENDED bit
+            return;
+        }
+    }
+    miosix::Thread::IRQstackOverflowCheck(); //BUG! here we check the stack but we haven't saved the context!
+
+    //If processes are enabled, check the content of r3. If zero then it
+    //it is a simple yield, otherwise handle the syscall
+    //Note that it is required to use ctxsave and not cur->ctxsave because
+    //at this time we do not know if the active context is user or kernel
+    unsigned int threadSp=ctxsave[0];
+    unsigned int *processStack=reinterpret_cast<unsigned int*>(threadSp);
+    if(processStack[3]!=static_cast<unsigned int>(miosix::Syscall::YIELD))
+        miosix::Thread::IRQhandleSvc(processStack[3]);
+    IRQinvokeScheduler(); //TODO: is it right to invoke the scheduler always? Check
+    #else //WITH_PROCESSES
     #ifdef WITH_ERRLOG
-    IRQerrorLog("\r\n***Unexpected PendSV @ ");
+    IRQerrorLog("\r\n***Unexpected SVC @ ");
     printUnsignedInt(getProgramCounter());
     #endif //WITH_ERRLOG
     miosix_private::IRQsystemReboot();
+    #endif //WITH_PROCESSES
 }
 
-void unexpectedInterrupt()
+#endif // !defined(_ARCH_CORTEXM0_STM32F0) && !defined(_ARCH_CORTEXM0_STM32G0) && !defined(_ARCH_CORTEXM0PLUS_STM32L0) && !defined(_ARCH_CORTEXM0PLUS_RP2040)
+
+/**
+ * \internal
+ * \def saveContext()
+ * Save context from an interrupt<br>
+ * Must be the first line of an IRQ where a context switch can happen.
+ * The IRQ must be "naked" to prevent the compiler from generating context save.
+ *
+ * A note on the dmb instruction, without it a race condition was observed
+ * between pauseKernel() and IRQfindNextThread(). pauseKernel() uses an strex
+ * instruction to store a value in the global variable kernel_running which is
+ * tested by the context switch code in IRQfindNextThread(). Without the memory
+ * barrier IRQfindNextThread() would occasionally read the previous value and
+ * perform a context switch while the kernel was paused, leading to deadlock.
+ * The failure was only observed within the exception_test() in the testsuite
+ * running on the stm32f429zi_stm32f4discovery.
+ */
+#define saveContext()                                                        \
+    asm volatile("stmdb sp!, {lr}        \n\t" /*save lr on MAIN stack*/      \
+                 "mrs   r1,  psp         \n\t" /*get PROCESS stack pointer*/  \
+                 "ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
+                 "ldr   r0,  [r0]        \n\t"                                \
+                 "stmia r0,  {r1,r4-r11} \n\t" /*save PROCESS sp + r4-r11*/   \
+                 "dmb                    \n\t"                                \
+                 );
+
+/**
+ * \def restoreContext()
+ * Restore context in an IRQ where saveContext() is used. Must be the last line
+ * of an IRQ where a context switch can happen. The IRQ must be "naked" to
+ * prevent the compiler from generating context restore.
+ */
+#define restoreContext()                                                     \
+    asm volatile("ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
+                 "ldr   r0,  [r0]        \n\t"                                \
+                 "ldmia r0,  {r1,r4-r11} \n\t" /*restore r4-r11 + r1=psp*/    \
+                 "msr   psp, r1          \n\t" /*restore PROCESS sp*/         \
+                 "ldmia sp!, {pc}        \n\t" /*return*/                     \
+                 );
+
+void PendSV_Handler()
+{
+    saveContext();
+    //Call ISR_yield(). Name is a C++ mangled name.
+    asm volatile("bl _ZN6miosix9ISR_yieldEv");
+    restoreContext();
+}
+
+/**
+ * \internal
+ * Called by the software interrupt, yield to next thread
+ * Declared noinline to avoid the compiler trying to inline it into the caller,
+ * which would violate the requirement on naked functions. Function is not
+ * static because otherwise the compiler optimizes it out...
+ */
+void ISR_yield() __attribute__((noinline));
+void ISR_yield()
+{
+    miosix::Thread::IRQstackOverflowCheck();
+    miosix::Scheduler::IRQfindNextThread();
+}
+
+
+
+/**
+ * Called by Reset_Handler, performs initialization and calls main.
+ * Never returns.
+ */
+void program_startup() __attribute__((noreturn));
+void program_startup()
+{
+    //Cortex M3 core appears to get out of reset with interrupts already enabled
+    __disable_irq();
+
+    //These are defined in the linker script
+    extern unsigned char _etext asm("_etext");
+    extern unsigned char _data asm("_data");
+    extern unsigned char _edata asm("_edata");
+    extern unsigned char _bss_start asm("_bss_start");
+    extern unsigned char _bss_end asm("_bss_end");
+
+    //Initialize .data section, clear .bss section
+    unsigned char *etext=&_etext;
+    unsigned char *data=&_data;
+    unsigned char *edata=&_edata;
+    unsigned char *bss_start=&_bss_start;
+    unsigned char *bss_end=&_bss_end;
+    memcpy(data, etext, edata-data);
+    memset(bss_start, 0, bss_end-bss_start);
+
+    //Move on to stage 2
+    _init();
+
+    //If main returns, reboot
+    NVIC_SystemReset();
+    for(;;) ;
+}
+
+/**
+ * Reset handler, called by hardware immediately after reset
+ */
+void Reset_Handler() __attribute__((__interrupt__, noreturn));
+void Reset_Handler()
+{
+    /*
+     * SystemInit() is called *before* initializing .data and zeroing .bss
+     * Despite all startup files provided by ATMEL do the opposite, there are
+     * three good reasons to do so:
+     * First, the CMSIS specifications say that SystemInit() must not access
+     * global variables, so it is actually possible to call it before
+     * Second, when running Miosix with the xram linker scripts .data and .bss
+     * are placed in the external RAM, so we *must* call SystemInit(), which
+     * enables xram, before touching .data and .bss
+     * Third, this is a performance improvement since the loops that initialize
+     * .data and zeros .bss now run with the CPU at full speed instead of 115kHz
+     * Note that it is called before switching stacks because the memory
+     * at _heap_end can be unavailable until the external RAM is initialized.
+     */
+    SystemInit();
+
+    /*
+     * Initialize process stack and switch to it.
+     * This is required for booting Miosix, a small portion of the top of the
+     * heap area will be used as stack until the first thread starts. After,
+     * this stack will be abandoned and the process stack will point to the
+     * current thread's stack.
+     */
+    asm volatile("ldr r0,  =_heap_end          \n\t"
+                 "msr psp, r0                  \n\t"
+                 "movw r0, #2                  \n\n" //Privileged, process stack
+                 "msr control, r0              \n\t"
+                 "isb                          \n\t":::"r0");
+
+    program_startup();
+}
+
+static void unexpectedInterrupt(void*)
 {
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected Peripheral interrupt\r\n");
     #endif //WITH_ERRLOG
     miosix_private::IRQsystemReboot();
 }
+
+//Stack top, defined in the linker script
+extern char _main_stack_top asm("_main_stack_top");
+
+#if __CORTEX_M != 0
+//Interrupt vectors, must be placed @ address 0x00000000
+//The extern declaration is required otherwise g++ optimizes it out
+extern void (* const __Vectors[])();
+void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
+{
+    reinterpret_cast<void (*)()>(&_main_stack_top),// Stack pointer
+    Reset_Handler,       // Reset Handler
+    NMI_Handler,         // NMI Handler
+    HardFault_Handler,   // Hard Fault Handler
+    MemManage_Handler,   // MPU Fault Handler
+    BusFault_Handler,    // Bus Fault Handler
+    UsageFault_Handler,  // Usage Fault Handler
+    nullptr,             // Reserved
+    nullptr,             // Reserved
+    nullptr,             // Reserved
+    nullptr,             // Reserved
+    SVC_Handler,         // SVCall Handler
+    DebugMon_Handler,    // Debug Monitor Handler
+    nullptr,             // Reserved
+    PendSV_Handler,      // PendSV Handler
+    nullptr,             // SysTick Handler (Miosix does not use it)
+};
+#else //__CORTEX_M != 0
+//Interrupt vectors, must be placed @ address 0x00000000
+//The extern declaration is required otherwise g++ optimizes it out
+extern void (* const __Vectors[])();
+void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
+{
+    reinterpret_cast<void (*)()>(&_main_stack_top),// Stack pointer
+    Reset_Handler,       // Reset Handler
+    NMI_Handler,         // NMI Handler
+    HardFault_Handler,   // Hard Fault Handler
+    nullptr,             // Reserved
+    nullptr,             // Reserved
+    nullptr,             // Reserved
+    nullptr,             // Reserved
+    nullptr,             // Reserved
+    nullptr,             // Reserved
+    nullptr,             // Reserved
+    SVC_Handler,         // SVCall Handler
+    nullptr,             // Reserved
+    nullptr,             // Reserved
+    PendSV_Handler,      // PendSV Handler
+    nullptr,             // SysTick Handler (Miosix does not use it)
+};
+#endif //__CORTEX_M != 0
+
+// The rest of the interrupt table, the one for peripheral interrupts is
+// generated programmatically using template metaprogramming to produce the
+// proxy functions that allow dynamically registering interrupts.
+extern __attribute__ ((section(".isr_vector"))) const auto
+    interruptProxyTable=TableGenerator<numInterrupts>::table;
+
+} //namespace miosix

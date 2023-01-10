@@ -30,6 +30,7 @@
 #include "interfaces/os_timer.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces/delays.h"
+#include "interfaces/interrupts.h"
 #include "kernel/logging.h"
 
 /*
@@ -142,7 +143,7 @@ public:
         return timerFrequency;
     }
     
-    static void IRQinitTimer()
+    static void IRQinitTimer(TimerAdapter<ATSAM_TC1_Timer,16> *instance)
     {
         int timerInputFreq = SystemCoreClock / 2;
         
@@ -168,6 +169,10 @@ public:
         TC1->TC_CHANNEL[0].TC_CMR = TC_CMR_WAVE | TC_CMR_CAPTURE_TCCLKS(0); //CLOCK=GCLK8
         TC1->TC_CHANNEL[0].TC_IER = TC_IER_CPCS | TC_IER_COVFS;
         
+        //FIXME: add back
+        IRQregisterIrq(TC10_IRQn,&TimerAdapter<ATSAM_TC1_Timer,16>::IRQhandler,instance);
+//         IRQregisterIrq(TC10_IRQn,&ATSAM_TC1_Timer::IRQhandler,
+//             static_cast<TimerAdapter<ATSAM_TC1_Timer, 16>*>(this));
         NVIC_SetPriority(TC10_IRQn,3);
         NVIC_EnableIRQ(TC10_IRQn);
     }
@@ -176,18 +181,6 @@ public:
 static ATSAM_TC1_Timer timer;
 DEFAULT_OS_TIMER_INTERFACE_IMPLMENTATION(timer);
 } //namespace miosix
-
-void __attribute__((naked)) TC10_Handler()
-{
-    saveContext();
-    asm volatile("bl _Z11osTimerImplv");
-    restoreContext();
-}
-
-void __attribute__((used)) osTimerImpl()
-{
-    miosix::timer.IRQhandler();
-}
 
 #else //WITH_RTC_AS_OS_TIMER
 
@@ -260,7 +253,7 @@ public:
     
     static unsigned int IRQTimerFrequency() { return 16384; }
     
-    static void IRQinitTimer()
+    void IRQinitTimer()
     {
         start32kHzOscillator();
 
@@ -289,8 +282,12 @@ public:
         AST->AST_WER=AST_WER_ALARM0 | AST_WER_OVF;
         
         //High priority for AST (Max=0, min=15)
+        IRQregisterIrq(AST_ALARM_IRQn,&ATSAM_AST_Timer::IRQhandler,
+            static_cast<TimerAdapter<ATSAM_AST_Timer, 32, 2>*>(this));
         NVIC_SetPriority(AST_ALARM_IRQn,3); 
         NVIC_EnableIRQ(AST_ALARM_IRQn);
+        IRQregisterIrq(AST_OVF_IRQn,&ATSAM_AST_Timer::IRQhandler,
+            static_cast<TimerAdapter<ATSAM_AST_Timer, 32, 2>*>(this));
         NVIC_SetPriority(AST_OVF_IRQn,3);
         NVIC_EnableIRQ(AST_OVF_IRQn);
     }
@@ -318,24 +315,5 @@ void test()
     }
 }*/
 } //namespace miosix
-
-void __attribute__((naked)) AST_ALARM_Handler()
-{
-    saveContext();
-    asm volatile("bl _Z11osTimerImplv");
-    restoreContext();
-}
-
-void __attribute__((naked)) AST_OVF_Handler()
-{
-    saveContext();
-    asm volatile("bl _Z11osTimerImplv");
-    restoreContext();
-}
-
-void __attribute__((used)) osTimerImpl()
-{
-    miosix::timer.IRQhandler();
-}
 
 #endif //WITH_RTC_AS_OS_TIMER
