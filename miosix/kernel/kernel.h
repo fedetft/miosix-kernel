@@ -29,6 +29,7 @@
 
 #include "config/miosix_settings.h"
 #include "interfaces/portability.h"
+#include "core/interrupts.h"
 #include "kernel/scheduler/sched_types.h"
 #include "stdlib_integration/libstdcpp_integration.h"
 #include "intrusive.h"
@@ -80,7 +81,7 @@ void enableInterrupts();
  */
 inline void fastDisableInterrupts()
 {
-    miosix_private::doDisableInterrupts();
+    doDisableInterrupts();
 }
 
 /**
@@ -93,7 +94,7 @@ inline void fastDisableInterrupts()
  */
 inline void fastEnableInterrupts()
 {
-    miosix_private::doEnableInterrupts();
+    doEnableInterrupts();
 }
 
 /**

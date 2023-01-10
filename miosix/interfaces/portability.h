@@ -95,7 +95,7 @@ void IRQsystemReboot();
  * Cause a context switch.
  * It is used by the kernel, and should not be used by end users.
  */
-inline void doYield();
+// inline void doYield();
 
 /**
  * \internal
@@ -260,7 +260,7 @@ void IRQportableFinishKernelStartup();
  * This is used by the kernel to implement disableInterrupts() and
  * enableInterrupts(). You should never need to call these functions directly.
  */
-inline void doDisableInterrupts();
+// inline void doDisableInterrupts();
 
 /**
  * \internal
@@ -268,7 +268,7 @@ inline void doDisableInterrupts();
  * This is used by the kernel to implement disableInterrupts() and
  * enableInterrupts(). You should never need to call these functions directly.
  */
-inline void doEnableInterrupts();
+// inline void doEnableInterrupts();
 
 /**
  * \internal
@@ -276,7 +276,7 @@ inline void doEnableInterrupts();
  * You should never need to call this function directly.
  * \return true if interrupts are enabled
  */
-inline bool checkAreInterruptsEnabled();
+// inline bool checkAreInterruptsEnabled();
 
 /**
  * \internal

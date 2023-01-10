@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Terraneo Federico                               *
+ *   Copyright (C) 2008-2023 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,19 +25,9 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/ 
 
-/***********************************************************************
-* interrupts.h Part of the Miosix Embedded OS.
-* Implementation of "Generic" interrupts, not related to a particular
-* hardware driver.
-************************************************************************/
+#pragma once
 
-#ifndef INTERRUPTS_H
-#define INTERRUPTS_H
-
-void default_IRQ_Routine()      __attribute__ ((interrupt("IRQ")));
 extern "C" void FIQ_Routine()   __attribute__ ((interrupt("FIQ")));
 extern "C" void UNDEF_Routine() __attribute__ ((interrupt("UNDEF")));
 extern "C" void DABT_Routine()  __attribute__ ((interrupt("DABT")));
 extern "C" void PABT_Routine()  __attribute__ ((interrupt("PABT")));
-
-#endif //INTERRUPTS_H

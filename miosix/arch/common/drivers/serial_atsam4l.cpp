@@ -34,32 +34,10 @@
 #include "kernel/scheduler/scheduler.h"
 #include "interfaces/portability.h"
 #include "filesystem/ioctl.h"
+#include "interfaces/interrupts.h"
 
 using namespace std;
 using namespace miosix;
-
-static const int numPorts=4; //USART0 to USART3
-
-/// Pointer to serial port classes to let interrupts access the classes
-static ATSAMSerial *ports[numPorts]={0};
-
-/**
- * \internal interrupt routine for usart2 rx actual implementation
- */
-void __attribute__((noinline)) usart2rxIrqImpl()
-{
-   if(ports[2]) ports[2]->IRQhandleInterrupt();
-}
-
-/**
- * \internal interrupt routine for usart2 rx
- */
-void __attribute__((naked)) USART2_Handler()
-{
-    saveContext();
-    asm volatile("bl _Z15usart2rxIrqImplv");
-    restoreContext();
-}
 
 namespace miosix {
 
@@ -74,17 +52,17 @@ ATSAMSerial::ATSAMSerial(int id, int baudrate)
     : Device(Device::TTY), rxQueue(rxQueueMin+baudrate/500), rxWaiting(0),
     idle(true), portId(id)
 {
-    if(id!=2 || ports[portId]) errorHandler(UNEXPECTED);
+    if(id!=2) errorHandler(UNEXPECTED);
     
     {
         InterruptDisableLock dLock;
-        ports[portId]=this;
         
         port=USART2;
         
         //TODO: USART2 hardcoded
         PM->PM_UNLOCK = PM_UNLOCK_KEY(0xaa) | PM_UNLOCK_ADDR(PM_PBAMASK_OFFSET);
         PM->PM_PBAMASK |= PM_PBAMASK_USART2;
+        IRQregisterIrq(USART2_IRQn,&ATSAMSerial::IRQhandleInterrupt,this);
         NVIC_SetPriority(USART2_IRQn,15);//Lowest priority for serial
         NVIC_EnableIRQ(USART2_IRQn);
     }
@@ -230,11 +208,10 @@ ATSAMSerial::~ATSAMSerial()
     port->US_IDR = US_IDR_RXRDY | US_IDR_TIMEOUT;
     
     InterruptDisableLock dLock;
-    ports[portId]=nullptr;
-    
     //TODO: USART2 hardcoded
     NVIC_DisableIRQ(USART2_IRQn);
     NVIC_ClearPendingIRQ(USART2_IRQn);
+    IRQunregisterIrq(USART2_IRQn);
     PM->PM_UNLOCK = PM_UNLOCK_KEY(0xaa) | PM_UNLOCK_ADDR(PM_PBAMASK_OFFSET);
     PM->PM_PBAMASK &= ~PM_PBAMASK_USART2;
 }
