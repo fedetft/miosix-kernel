@@ -220,7 +220,7 @@ static long long IRQsetNextPreemption(bool runningIdleThread)
     return t;
 }
 
-void PriorityScheduler::IRQfindNextThread()
+void PriorityScheduler::IRQrunScheduler()
 {
     if(kernelRunning!=0) //If kernel is paused, do nothing
     {

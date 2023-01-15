@@ -152,6 +152,8 @@ public:
     }
 
     /**
+     * TODO update comment
+     *
      * This function is used to develop interrupt driven peripheral drivers.<br>
      * Can be used ONLY inside an IRQ (and not when interrupts are disabled) to
      * find next thread in READY status. If the kernel is paused, does nothing.
@@ -163,9 +165,9 @@ public:
      * It's behaviour is to modify the global variable miosix::cur which always
      * points to the currently running thread.
      */
-    static void IRQfindNextThread()
+    static void IRQrunScheduler()
     {
-        T::IRQfindNextThread();
+        T::IRQrunScheduler();
     }
     
     /**
