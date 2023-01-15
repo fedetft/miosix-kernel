@@ -31,7 +31,6 @@
 #include <termios.h>
 #include "serial_atsam4l.h"
 #include "kernel/sync.h"
-#include "kernel/scheduler/scheduler.h"
 #include "interfaces/portability.h"
 #include "filesystem/ioctl.h"
 #include "interfaces/interrupts.h"
@@ -194,8 +193,7 @@ void ATSAMSerial::IRQhandleInterrupt()
     {
         rxWaiting->IRQwakeup();
         if(rxWaiting->IRQgetPriority()>
-            Thread::IRQgetCurrentThread()->IRQgetPriority())
-                Scheduler::IRQfindNextThread();
+            Thread::IRQgetCurrentThread()->IRQgetPriority()) IRQinvokeScheduler();
         rxWaiting=0;
     }
 }

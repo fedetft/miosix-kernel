@@ -29,7 +29,7 @@
 #pragma once
 
 #include "kernel.h"
-#include "kernel/scheduler/scheduler.h"
+#include "interfaces/interrupts.h"
 #include "intrusive.h"
 #include <vector>
 
@@ -570,7 +570,7 @@ public:
      * triggering a reschedule.
      * Only for use in IRQ handlers.
      * \param hppw is set to `true' if a scheduler update is necessary to
-     * wake up a formerly sleeping thread with `Scheduler::IRQfindNextThread()`.
+     * wake up a formerly sleeping thread with `IRQinvokeScheduler()`.
      * Otherwise it is not modified.
      * \warning Use in a thread context with interrupts disabled or with the
      * kernel paused is forbidden.
@@ -587,7 +587,7 @@ public:
     {
         bool hppw=false;
         IRQsignal(hppw);
-        if(hppw) Scheduler::IRQfindNextThread();
+        if(hppw) IRQinvokeScheduler();
     }
 
     /**
