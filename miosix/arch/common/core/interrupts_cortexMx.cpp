@@ -50,21 +50,22 @@ void *irqArgs[numInterrupts];
 #else
 struct IrqForwardingEntry
 {
+    constexpr IrqForwardingEntry() : handler(&unexpectedInterrupt), arg(nullptr) {}
     void (*handler)(void *);
     void *arg;
 };
-IrqForwardingEntry irqTable[numInterrupts]={ &unexpectedInterrupt, nullptr };
+IrqForwardingEntry irqTable[numInterrupts];
 #endif
 
 bool IRQregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexcept
 {
     if(id>=numInterrupts) return false;
     #ifdef VARIANT
-//     if(irqTable[id]!=unexpectedInterrupt) return false;
+    if(irqTable[id]!=unexpectedInterrupt) return false;
     irqTable[id]=handler;
     irqArgs[id]=arg;
     #else
-//     if(irqTable[id].handler!=unexpectedInterrupt) return false;
+    if(irqTable[id].handler!=unexpectedInterrupt) return false;
     irqTable[id].handler=handler;
     irqTable[id].arg=arg;
     #endif
