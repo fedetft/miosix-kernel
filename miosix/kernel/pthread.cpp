@@ -290,21 +290,27 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
 
 int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
 {
-    //attr is currently not considered
-    cond->first=nullptr;
-    //No need to initialize cond->last
+    static_assert(sizeof(IntrusiveList<CondData>)==sizeof(cond));
+
+    new (cond) IntrusiveList<CondData>;
+
     return 0;
 }
 
 int pthread_cond_destroy(pthread_cond_t *cond)
 {
-    if(cond->first!=nullptr) return EBUSY;
+    static_assert(sizeof(IntrusiveList<CondData>)==sizeof(cond));
+
+    IntrusiveList<CondData> *condList = reinterpret_cast<IntrusiveList<CondData>>(cond);
+
+    if(condList->front()!=nullptr) return EBUSY;
+    condList->~IntrusiveList<CondData>();
     return 0;
 }
 
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
-    FastInterruptDisableLock dLock;
+    /*FastInterruptDisableLock dLock;
     Thread *p=Thread::IRQgetCurrentThread();
     WaitingList waiting; //Element of a linked list on stack
     waiting.thread=reinterpret_cast<void*>(p);
@@ -324,7 +330,7 @@ int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
         FastInterruptEnableLock eLock(dLock);
         Thread::yield(); //Here the wait becomes effective
     }
-    IRQdoMutexLockToDepth(mutex,dLock,depth);
+    IRQdoMutexLockToDepth(mutex,dLock,depth);*/
     return 0;
 }
 
@@ -341,7 +347,7 @@ int	pthread_cond_timedwait(pthread_cond_t *__cond,
 
 int pthread_cond_signal(pthread_cond_t *cond)
 {
-    #ifdef SCHED_TYPE_EDF
+    /*#ifdef SCHED_TYPE_EDF
     bool hppw=false;
     #endif //SCHED_TYPE_EDF
     {
@@ -360,13 +366,13 @@ int pthread_cond_signal(pthread_cond_t *cond)
     #ifdef SCHED_TYPE_EDF
     //If the woken thread has higher priority, yield
     if(hppw) Thread::yield();
-    #endif //SCHED_TYPE_EDF
+    #endif //SCHED_TYPE_EDF*/
     return 0;
 }
 
 int pthread_cond_broadcast(pthread_cond_t *cond)
 {
-    #ifdef SCHED_TYPE_EDF
+    /*#ifdef SCHED_TYPE_EDF
     bool hppw=false;
     #endif //SCHED_TYPE_EDF
     {
@@ -386,7 +392,7 @@ int pthread_cond_broadcast(pthread_cond_t *cond)
     #ifdef SCHED_TYPE_EDF
     //If at least one of the woken thread has higher, yield
     if(hppw) Thread::yield();
-    #endif //SCHED_TYPE_EDF
+    #endif //SCHED_TYPE_EDF*/
     return 0;
 }
 
