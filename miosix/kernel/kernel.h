@@ -1121,7 +1121,7 @@ struct SleepData : public IntrusiveListItem
 struct CondData : public IntrusiveListItem
 {
     ///\internal Thread that is sleeping
-    Thread *p;
+    Thread *thread;
 };
 
 /**
