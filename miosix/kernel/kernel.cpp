@@ -257,9 +257,9 @@ bool isKernelRunning()
 
 /**
  * \internal
- * Used by Thread::sleep() to add a thread to sleeping list. The list is sorted
- * by the wakeupTime field to reduce time required to wake threads during
- * context switch.
+ * Used by Thread::sleep() and pthread_cond_timedwait() to add a thread to
+ * sleeping list. The list is sorted by the wakeupTime field to reduce time
+ * required to wake threads during context switch.
  * Also sets thread SLEEP_FLAG. It is labeled IRQ not because it is meant to be
  * used inside an IRQ, but because interrupts must be disabled prior to calling
  * this function.
@@ -275,6 +275,19 @@ void IRQaddToSleepingList(SleepData *x)
         while(it!=sleepingList.end() && (*it)->wakeupTime<x->wakeupTime) ++it;
         sleepingList.insert(it,x);
     }
+}
+
+/**
+ * \internal
+ * Used by pthread_cond_timedwait() to remove a thread from sleeping list in case that it
+ * is woke up by a signal or broadcast.
+ * It is labeled IRQ not because it is meant to be
+ * used inside an IRQ, but because interrupts must be disabled prior to calling
+ * this function.
+ */
+void IRQremoveFromSleepingList(SleepData *x)
+{
+    sleepingList.removeFast(x);
 }
 
 /**
@@ -299,6 +312,8 @@ bool IRQwakeThreads(long long currentTime)
         if((*it)->p==nullptr) ++it; //Only csRecord has p==nullptr
         else {
             (*it)->p->flags.IRQsetSleep(false); //Wake thread
+            //Reset cond wait flag to wakeup threads in pthread_cond_timedwait() too
+            (*it)->p->flags.IRQsetCondWait(false);
             if(const_cast<Thread*>(runningThread)->getPriority()<(*it)->p->getPriority())
                 result=true;
             it=sleepingList.erase(it);

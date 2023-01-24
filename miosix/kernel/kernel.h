@@ -420,6 +420,8 @@ struct SleepData;
 class MemoryProfiling;
 class Mutex;
 class ConditionVariable;
+void IRQaddToSleepingList(SleepData *x);
+void IRQremoveFromSleepingList(SleepData *x);
 #ifdef WITH_PROCESSES
 class ProcessBase;
 #endif //WITH_PROCESSES
@@ -1040,6 +1042,8 @@ private:
     //friend functions
     //Need access to status
     friend void IRQaddToSleepingList(SleepData *x);
+    //Need access to status
+    friend void IRQremoveFromSleepingList(SleepData *x);
     //Needs access to status
     friend bool IRQwakeThreads(long long currentTick);
     //Needs access to watermark, status, next
@@ -1061,6 +1065,8 @@ private:
     friend class EDFScheduler;
     //Needs access to flags
     friend int ::pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+    //Needs access to flags
+    friend int ::pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime);
     //Needs access to flags
     friend int ::pthread_cond_signal(pthread_cond_t *cond);
     //Needs access to flags
@@ -1110,18 +1116,6 @@ struct SleepData : public IntrusiveListItem
     ///\internal When this number becomes equal to the kernel tick,
     ///the thread will wake
     long long wakeupTime;
-};
-
-/**
- * \internal
- * \struct Cond_data
- * This struct is used to make a list of threads that are waiting on a condition variable.
- * It is used by the kernel, and should not be used by end users.
- */
-struct CondData : public IntrusiveListItem
-{
-    ///\internal Thread that is sleeping
-    Thread *thread;
 };
 
 /**

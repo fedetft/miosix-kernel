@@ -216,6 +216,18 @@ static inline unsigned int IRQdoMutexUnlockAllDepthLevels(pthread_mutex_t *mutex
     return result;
 }
 
+/**
+ * \internal
+ * \struct CondData
+ * This struct is used to make a list of threads that are waiting on a condition variable.
+ * It is used by the kernel, and should not be used by end users.
+ */
+struct CondData : public IntrusiveListItem
+{
+    ///\internal Thread that is waiting
+    Thread *thread;
+};
+
 } //namespace miosix
 
 #endif //PTHREAD_PRIVATE_H
