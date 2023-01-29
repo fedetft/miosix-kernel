@@ -192,8 +192,6 @@ if [[ $HOST == *mingw* ]]; then
 fi
 if [[ $HOST == *linux* ]]; then
 	extract 'ncurses' $NCURSES.tar.gz
-	chmod +x downloaded/$MAKESELF.run
-	downloaded/$MAKESELF.run --target $MAKESELF || quit ":: Error extracting makeself"
 fi
 if [[ $HOST || $DESTDIR ]]; then
 	extract 'expat' $EXPAT.tar.xz
