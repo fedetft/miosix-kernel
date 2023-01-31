@@ -30,17 +30,17 @@ SUDO=sudo
 #PREFIX=`pwd`/gcc/arm-miosix-eabi
 #DESTDIR=
 #SUDO=
-# Uncomment for producing a package for redistribution. The prefix is still
-# the same used for installing globally, but during installation the directory
-# where files are copied is prefixed with $DESTDIR. No sudo is necessary but
-# all files *must* be copied to the prefix before they can be used.
+# Uncomment for producing a package for redistribution. The prefix is set to the
+# final install directory, but when this script does "make install" files are
+# copied with $DESTDIR as prefix. When doing a redistibutable build you also
+# have to specify HOST or (on Mac OS), BUILD, see below.
 #PREFIX=/opt/arm-miosix-eabi
 #DESTDIR=`pwd`/dist
 #SUDO=
 
-# Uncomment if targeting a local install (linux/macOS only). This will use
-# -march= -mtune= flags to optimize for your processor, but the code
-# won't be portable to other architectures, so don't distribute it
+# Uncomment if targeting a local install. This will use -march= -mtune= flags
+# to optimize for your processor, but the code won't be portable to other
+# architectures, so don't distribute it
 BUILD=
 HOST=
 # Uncomment if targeting linux 64 bit (distributable)
@@ -50,21 +50,21 @@ HOST=
 # you have to run this script from Linux anyway (see canadian cross compiling)
 #BUILD=
 #HOST=x86_64-w64-mingw32
-# Uncomment if targeting macOS 64 bit Intel (distributable) on macOS
-#   The script must be run under macOS and without canadian cross compiling
-# because it confuses autotools's configuration scripts.
-#   Instead we set the compiler options for macOS minimum version and
-# architecture in order to be able to deploy the binaries on older machines and
-# OS versions. We also must force --build and --host to specify a x86_64 cpu
-# to avoid architecture-dependent code.
+# Uncomment if targeting macOS 64 bit Intel (distributable), compiling on Linux
+# Must first install the osxcross toolchain
+#BUILD=
+#HOST=x86_64-apple-darwin18
+# Uncomment if targeting macOS 64 bit Intel (distributable), compiling on macOS
+# The script must be run under macOS and without canadian cross compiling
+# because it confuses autotools's configuration scripts. Instead we set the
+# compiler options for macOS minimum version and architecture in order to be
+# able to deploy the binaries on older machines and OS versions. We also must
+# force --build and --host to specify a x86_64 cpu to avoid
+# architecture-dependent code.
 #BUILD=x86_64-apple-darwin17 # No macs exist with a cpu older than a Core 2
 #HOST=
 #export CFLAGS='-mmacos-version-min=10.13 -O3'
 #export CXXFLAGS='-mmacos-version-min=10.13 -O3'
-# Uncomment if targeting macOS 64 bit Intel (distributable) on Linux
-# Must first install the osxcross toolchain
-#BUILD=
-#HOST=x86_64-apple-darwin18
 
 #### Configuration tunables -- end ####
 
@@ -89,18 +89,20 @@ quit() {
 	exit 1
 }
 
-if [[ $SUDO ]]; then
-	if [[ $HOST ]]; then
+# Is it a redistributable build?
+if [[ $DESTDIR ]]; then
+	if [[ $SUDO ]]; then
 		quit ":: Error global install distributable compiling are mutually exclusive"
 	fi
-fi
-if [[ $DESTDIR && ( -z $HOST ) ]]; then
-	echo ":: It looks like you are installing to a separate destination"
-	echo ":: directory without specifying a host target."
-	echo ":: This means the binaries might NOT be redistributable."
-fi
-
-if [[ $HOST || $DESTDIR ]]; then
+	if [[ $(uname -s) == 'Darwin' ]]; then
+		if [[ -z $BUILD ]]; then
+			quit ":: Error distributable compiling but no BUILD specifed"
+		fi
+	else
+		if [[ -z $HOST ]]; then
+			quit ":: Error distributable compiling but no HOST specifed"
+		fi
+	fi
 	# Since we do not install the bootstrapped arm-miosix-eabi-gcc during the
 	# build process, for making libc, libstdc++, ... we need the same version of
 	# arm-miosix-eabi-gcc that we are going to compile already installed locally
@@ -121,18 +123,24 @@ if [[ $HOST || $DESTDIR ]]; then
 	if [[ ($__GCCVER != $GCC) || ($__GCCPAT != $__GCCPATCUR) ]]; then
 		quit ":: Error must first install $GCC$__GCCPATCUR system-wide"
 	fi
-	if [[ $DESTDIR && ( ! -e $PREFIX/bin/arm-miosix-eabi-gcc ) ]]; then
+	if [[ ! -e $PREFIX/bin/arm-miosix-eabi-gcc ]]; then
 		quit ":: Error To use \$DESTDIR you must first install $GCC$__GCCPATCUR in the same prefix"
 	fi
 else
-	# Otherwise, add the install prefix to the path in order to ensure things are
-	# available as soon as we build them.
+	if [[ $HOST || $BUILD ]]; then
+		# NOTE: doing a non redistributable build but specifying HOST or BUILD
+		# may work, but is untested. Remove this line if you want to try.
+		quit ":: Specifying either HOST or BUILD without DESTDIR is not supported"
+	fi
+	# For local builds assume there's no existing miosix compiler installed,
+	# add the install prefix to the path in order to ensure tools are available
+	# as soon as we build them.
 	export PATH=$PREFIX/bin:$PATH
 fi
 
+# Are we canadian cross compiling?
 if [[ $HOST ]]; then
-	# Canadian cross compiling requires the windows compiler to build
-	# arm-miosix-eabi-gcc.exe, ...
+	# Canadian cross compiling requires the compiler for the host machine
 	which "$HOST-gcc" > /dev/null || quit ":: Error must have host cross compiler"
 
 	HOSTCC="$HOST-gcc"
@@ -193,7 +201,7 @@ fi
 if [[ $HOST == *linux* ]]; then
 	extract 'ncurses' $NCURSES.tar.gz
 fi
-if [[ $HOST || $DESTDIR ]]; then
+if [[ $DESTDIR ]]; then
 	extract 'expat' $EXPAT.tar.xz
 fi
 
@@ -467,7 +475,7 @@ echo "::All multilibs have been built. OK"
 #
 
 # GDB on linux/windows needs expat
-if [[ $HOST || $DESTDIR ]]; then
+if [[ $DESTDIR ]]; then
 	cd $EXPAT
 
 	./configure \
@@ -600,13 +608,30 @@ $SUDO $HOSTSTRIP $DESTDIR$PREFIX/bin/*
 
 
 # Installers, env variables and other stuff
-if [[ $HOST || $DESTDIR ]]; then
-	if [[ ( $(uname -s) == 'Linux' ) && ( $HOST == *mingw* ) ]]; then
+if [[ $DESTDIR ]]; then
+	if [[ ( $(uname -s) == 'Linux' ) && ( $HOST == *linux* ) ]]; then
+		# Build a makeself installer
+		# Distribute the installer and uninstaller too
+		sed -E "s|/opt/arm-miosix-eabi|$PREFIX|g" installers/linux/installer.sh > $DESTDIR$PREFIX/installer.sh
+		sed -E "s|/opt/arm-miosix-eabi|$PREFIX|g" uninstall.sh > $DESTDIR$PREFIX/uninstall.sh
+		chmod +x $DESTDIR$PREFIX/installer.sh $DESTDIR$PREFIX/uninstall.sh
+		sh downloaded/$MAKESELF.run
+		# NOTE: --keep-umask otherwise the installer extracts files setting to 0
+		# permissions to group and other, resulting in an unusable installation
+		./$MAKESELF/makeself.sh --xz --keep-umask \
+			$DESTDIR$PREFIX \
+			MiosixToolchainInstaller9.2.0mp3.1.run \
+			"Miosix toolchain for Linux (GCC 9.2.0-mp3.1)" \
+			"./installer.sh"
+	elif [[ ( $(uname -s) == 'Linux' ) && ( $HOST == *mingw* ) ]]; then
 		# Build an executable installer for Windows
 		cd installers/windows
 		wine "C:\Program Files (x86)\Inno Setup 6\Compil32.exe" /cc MiosixInstaller.iss
 		cd ../..
-	elif [[ ( $(uname -s) == 'Darwin' ) && ( ! $HOST || $HOST == *darwin* ) ]]; then
+	elif [[ ( $(uname -s) == 'Linux' ) && ( $HOST == *darwin* ) ]]; then
+		echo "TODO: there seems to be no way to produce a .pkg mac installer"
+		echo "from Linux as the pkgbuild/productbuild tools aren't available"
+	elif [[ $(uname -s) == 'Darwin' ]]; then
 		# Build a .pkg installer for macOS if we are on macOS and we are building for it
 		cp uninstall.sh $DESTDIR$PREFIX
 		# Prepare the postinstall script by replacing the correct prefix
@@ -634,24 +659,6 @@ if [[ $HOST || $DESTDIR ]]; then
 			--resources installers/macos/Resources \
 			--package-path ./ \
 			'./MiosixToolchainInstaller9.2.0mp3.1.pkg'
-	elif [[ ( $(uname -s) == 'Linux' ) && ( $HOST == *linux* ) ]]; then
-		# Build a makeself installer
-		# Distribute the installer and uninstaller too
-		if [[ $DESTDIR ]]; then
-			sed -E "s|/opt/arm-miosix-eabi|$PREFIX|g" installers/linux/installer.sh > $DESTDIR$PREFIX/installer.sh
-			sed -E "s|/opt/arm-miosix-eabi|$PREFIX|g" uninstall.sh > $DESTDIR$PREFIX/uninstall.sh
-		else
-			cp installers/linux/installer.sh uninstall.sh $DESTDIR$PREFIX
-		fi
-		chmod +x $DESTDIR$PREFIX/installer.sh $DESTDIR$PREFIX/uninstall.sh
-		sh downloaded/$MAKESELF.run
-		# NOTE: --keep-umask otherwise the installer extracts files setting to 0
-		# permissions to group and other, resulting in an unusable installation
-		./$MAKESELF/makeself.sh --xz --keep-umask \
-			$DESTDIR$PREFIX \
-			MiosixToolchainInstaller9.2.0mp3.1.run \
-			"Miosix toolchain for Linux (GCC 9.2.0-mp3.1)" \
-			"./installer.sh"
 	fi
 else
 	# Install the uninstaller too
