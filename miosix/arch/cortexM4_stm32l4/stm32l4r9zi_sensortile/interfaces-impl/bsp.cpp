@@ -83,6 +83,7 @@ void IRQbspInit()
     _led::mode(Mode::OUTPUT);
     _greenLed::mode(Mode::OUTPUT);
     _usart2_rts::high();
+    sdCardDetect::mode(Mode::INPUT_PULL_UP);
     ledOn();
     delayMs(100);
     ledOff();

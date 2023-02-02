@@ -2721,7 +2721,7 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := echo 'make program not supported.'
+        PROGRAM_CMDLINE := st-flash --reset write "main.bin" 0x8000000
 
     ##-------------------------------------------------------------------------
     ## End of board list

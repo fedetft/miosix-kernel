@@ -1,5 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2015 by Terraneo Federico                               *
+ *   Copyright (C) 2023 by Daniele Cattaneo                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -74,17 +75,19 @@ inline void greenLedOff()
 typedef Gpio<GPIOD_BASE, 4> _usart2_rts;
 
 
+///\internal Pin connected to SD_DETECT
+typedef Gpio<GPIOB_BASE,12> sdCardDetect;
+
 /**
- * Polls the SD card sense GPIO.
- * 
- * This board has no SD card whatsoever, but a card can be connected to the
- * following GPIOs:
- * TODO: never tested
- * 
- * \return true. As there's no SD card sense switch, let's pretend that
- * the card is present.
+ * Polls the SD card sense GPIO
+ * \return true if there is an uSD card in the socket.
+ * \note According to the schematic, SD_DETECT is shorted to GND when the card
+ * is removed, and open when the card is inserted.
  */
-inline bool sdCardSense() { return true; }
+inline bool sdCardSense()
+{
+    return sdCardDetect::value()!=0;
+}
 
 /**
 \}
