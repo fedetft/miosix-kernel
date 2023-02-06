@@ -38,6 +38,7 @@
 #include "kernel.h"
 #include "error.h"
 #include "pthread_private.h"
+#include "timeconversion.h"
 
 using namespace miosix;
 
@@ -344,7 +345,7 @@ int	pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const s
     condList->push_back(&listItem); //Putting this thread last on the list (lifo policy)
     SleepData sleepData; //Element to put in the sleepingList
     sleepData.p=p;
-    sleepData.wakeupTime=abstime->tv_nsec;
+    sleepData.wakeupTime=mul32x32to64(abstime->tv_sec, 1000000000) + abstime->tv_nsec;
     IRQaddToSleepingList(&sleepData); //Putting this thread on the sleeping list too
     p->flags.IRQsetCondWait(true);
 
@@ -355,10 +356,13 @@ int	pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const s
     }
     //Ensure that the thread is removed from both list, as it can be woken by either
     //a signal/broadcast (that removes it from condList) or by IRQwakeThreads (that removes it from sleeping list).
-    if(condList->removeFast(&listItem)) //If the thread was still in the cond variable list, it was woken up by a timeout
-        return ETIMEDOUT;
+    bool removed=condList->removeFast(&listItem);
     IRQremoveFromSleepingList(&sleepData);
+
     IRQdoMutexLockToDepth(mutex,dLock,depth);
+
+    //If the thread was still in the cond variable list, it was woken up by a timeout
+    if(removed) return ETIMEDOUT;
     return 0;
 }
 
