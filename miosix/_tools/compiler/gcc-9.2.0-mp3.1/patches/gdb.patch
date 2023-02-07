@@ -1,0 +1,10 @@
+--- gdb-9.1-old/bfd/elf-bfd.h	2020-02-08 13:50:13
++++ gdb-9.1/bfd/elf-bfd.h	2023-02-07 15:41:42
+@@ -26,6 +26,7 @@
+ #include "elf/external.h"
+ #include "elf/internal.h"
+ #include "bfdlink.h"
++#include <string.h> //GDB on MacOS compiles but doesn't work without this one
+ 
+ #ifdef __cplusplus
+ extern "C" {
