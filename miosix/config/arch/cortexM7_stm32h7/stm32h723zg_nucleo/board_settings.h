@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
+ *   Copyright (C) 2018-2021 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,46 +25,38 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "interfaces/delays.h"
+#pragma once
+
+/**
+ * \internal
+ * Versioning for board_settings.h for out of git tree projects
+ */
+#define BOARD_SETTINGS_VERSION 300
 
 namespace miosix {
 
-void delayMs(unsigned int mseconds)
-{
-    #ifdef SYSCLK_FREQ_400MHz
-    register const unsigned int count=133000;
-    #elif defined(SYSCLK_FREQ_550MHz)
-    #warning "Delays are uncalibrated for this clock frequency"
-    register const unsigned int count=133000 * 550/400;
-    #else
-    #warning "Delays are uncalibrated for this clock frequency"
-    #endif
-    
-    for(unsigned int i=0;i<mseconds;i++)
-    {
-        // This delay has been calibrated to take 1 millisecond
-        // It is written in assembler to be independent on compiler optimization
-        asm volatile("           mov   r1, #0     \n"
-                     "___loop_m: cmp   r1, %0     \n"
-                     "           itt   lo         \n"
-                     "           addlo r1, r1, #1 \n"
-                     "           blo   ___loop_m  \n"::"r"(count):"r1");
-    }
-}
+/**
+ * \addtogroup Settings
+ * \{
+ */
 
-void delayUs(unsigned int useconds)
-{
-    // This delay has been calibrated to take x microseconds
-    // It is written in assembler to be independent on compiler optimization
-    #ifdef SYSCLK_FREQ_400MHz
-    asm volatile("           mov   r1, #133   \n"
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
-    #endif
-}
+/// Size of stack for main().
+/// The C standard library is stack-heavy (iprintf requires 1KB)
+const unsigned int MAIN_STACK_SIZE=4*1024;
+
+/// Serial port
+//This board only exposes USART1, without flow control
+const unsigned int defaultSerialSpeed=115200;
+// #define SERIAL_1_DMA //TODO: serial port DMA
+// #define SERIAL_2_DMA
+// #define SERIAL_3_DMA
+
+//SD card driver
+static const unsigned char sdVoltage=33; //Board powered @ 3.3V
+#define SD_ONE_BIT_DATABUS //For now we'll use 1 bit bus
+
+/**
+ * \}
+ */
 
 } //namespace miosix

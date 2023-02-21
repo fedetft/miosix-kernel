@@ -139,6 +139,8 @@
 //By TFT: we increase the clock BEFORE initializing .data and .bss!
 #ifdef SYSCLK_FREQ_400MHz
 uint32_t SystemCoreClock = 400000000;
+#elif SYSCLK_FREQ_550MHz
+uint32_t SystemCoreClock = 550000000;
 #else
 #error No clock defined
 #endif

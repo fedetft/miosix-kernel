@@ -66,7 +66,7 @@ void startPll()
     RCC->D3CFGR = RCC_D3CFGR_D3PPRE_DIV2; //D3 APB4   /2
     
     //And increase FLASH wait states
-    FLASH->ACR = FLASH_ACR_WRHIGHFREQ_2   //Settings for FLASH freq=200MHz
+    FLASH->ACR = FLASH_ACR_WRHIGHFREQ_1   //Settings for FLASH freq=200MHz
                | FLASH_ACR_LATENCY_3WS;
     
     //Finally, increase frequency

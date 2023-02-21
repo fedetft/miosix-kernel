@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
+ *   Copyright (C) 2018 by Terraneo Federico                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -23,48 +23,59 @@
  *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
- ***************************************************************************/
+ ***************************************************************************/ 
 
-#include "interfaces/delays.h"
+/***********************************************************************
+* bsp_impl.h Part of the Miosix Embedded OS.
+* Board support package, this file initializes hardware.
+************************************************************************/
+
+#ifndef BSP_IMPL_H
+#define BSP_IMPL_H
+
+#include "config/miosix_settings.h"
+#include "interfaces/gpio.h"
 
 namespace miosix {
 
-void delayMs(unsigned int mseconds)
+/**
+\addtogroup Hardware
+\{
+*/
+
+/**
+ * \internal
+ * used by the ledOn() and ledOff() implementation
+ */
+typedef Gpio<GPIOB_BASE,14> _led;
+
+inline void ledOn()
 {
-    #ifdef SYSCLK_FREQ_400MHz
-    register const unsigned int count=133000;
-    #elif defined(SYSCLK_FREQ_550MHz)
-    #warning "Delays are uncalibrated for this clock frequency"
-    register const unsigned int count=133000 * 550/400;
-    #else
-    #warning "Delays are uncalibrated for this clock frequency"
-    #endif
-    
-    for(unsigned int i=0;i<mseconds;i++)
-    {
-        // This delay has been calibrated to take 1 millisecond
-        // It is written in assembler to be independent on compiler optimization
-        asm volatile("           mov   r1, #0     \n"
-                     "___loop_m: cmp   r1, %0     \n"
-                     "           itt   lo         \n"
-                     "           addlo r1, r1, #1 \n"
-                     "           blo   ___loop_m  \n"::"r"(count):"r1");
-    }
+    //Led is connected to VCC, so to turn it on the GPIO has to be low
+    _led::low();
 }
 
-void delayUs(unsigned int useconds)
+inline void ledOff()
 {
-    // This delay has been calibrated to take x microseconds
-    // It is written in assembler to be independent on compiler optimization
-    #ifdef SYSCLK_FREQ_400MHz
-    asm volatile("           mov   r1, #133   \n"
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
-    #endif
+    _led::high();
 }
+
+/**
+ * Polls the SD card sense GPIO.
+ * 
+ * This board has no SD card whatsoever, but a card can be connected to the
+ * following GPIOs:
+ * TODO: never tested
+ * 
+ * \return true. As there's no SD card sense switch, let's pretend that
+ * the card is present.
+ */
+inline bool sdCardSense() { return true; }
+
+/**
+\}
+*/
 
 } //namespace miosix
+
+#endif //BSP_IMPL_H

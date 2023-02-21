@@ -42,6 +42,7 @@
 #OPT_BOARD := stm32f401re_nucleo
 #OPT_BOARD := stm32f746zg_nucleo
 #OPT_BOARD := stm32h753xi_eval
+#OPT_BOARD := stm32h723zg_nucleo
 #OPT_BOARD := stm32f407vg_thermal_test_chip
 #OPT_BOARD := stm32f205_generic
 #OPT_BOARD := stm32f103cx_generic
@@ -511,6 +512,21 @@ ifeq ($(OPT_BOARD),stm32h753xi_eval)
 endif
 
 ##---------------------------------------------------------------------------
+## stm32h723zg_nucleo
+##
+
+ifeq ($(OPT_BOARD),stm32h723zg_nucleo)
+
+    ## Linker script type, there are three options
+    ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
+    ##    the most common choice, available for all microcontrollers
+    ## 2) Code in FLASH, stack + heap in external RAM (file *m_xram.ld)
+    ##    You must uncomment -D__ENABLE_XRAM below in this case.
+    LINKER_SCRIPT_PATH := arch/cortexM7_stm32h7/stm32h723zg_nucleo/
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom.ld
+endif
+
+##---------------------------------------------------------------------------
 ## stm32f407vg_thermal_test_chip
 ##
 
@@ -726,6 +742,8 @@ else ifeq ($(OPT_BOARD),stm32f401re_nucleo)
 else ifeq ($(OPT_BOARD),stm32f746zg_nucleo)
     ARCH := cortexM7_stm32f7
 else ifeq ($(OPT_BOARD),stm32h753xi_eval)
+    ARCH := cortexM7_stm32h7
+else ifeq ($(OPT_BOARD),stm32h723zg_nucleo)
     ARCH := cortexM7_stm32h7
 else ifeq ($(OPT_BOARD),stm32f407vg_thermal_test_chip)
     ARCH := cortexM4_stm32f4
@@ -2456,6 +2474,38 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
         ## board.
         PROGRAM_CMDLINE := echo 'make program not supported.'
 
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32h723zg_nucleo
+    ##
+    else ifeq ($(OPT_BOARD),stm32h723zg_nucleo)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM7_stm32h7/stm32h723zg_nucleo
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        #LINKER_SCRIPT := already selected in board options
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        arch/common/drivers/stm32_hardware_rng.cpp   \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32H723ZG_NUCLEO
+        CXXFLAGS_BASE += -D_BOARD_STM32H723ZG_NUCLEO
+
+        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
+        CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_550MHz=550000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := echo 'make program not supported.'
     ##-------------------------------------------------------------------------
     ## End of board list
     ##
