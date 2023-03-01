@@ -67,10 +67,10 @@ void IRQbspInit()
     GPIOA->OSPEEDR=0xaaaaaaaa; //Default to 50MHz speed for all GPIOS
     GPIOB->OSPEEDR=0xaaaaaaaa;
     GPIOC->OSPEEDR=0xaaaaaaaa;
-    GPIOD->OSPEEDR=0xf3ff0f0f | 0xaaaaaaaa; //GPIOD,E,F,G are used by the FSMC
-    GPIOE->OSPEEDR=0xffffc00f | 0xaaaaaaaa; //configure those pins as 100MHz
-    GPIOF->OSPEEDR=0xff000fff | 0xaaaaaaaa; //(constants taken from
-    GPIOG->OSPEEDR=0x000c0fff | 0xaaaaaaaa; // SystemInit_ExtMemCtl)
+    GPIOD->OSPEEDR=0xaaaaaaaa;
+    GPIOE->OSPEEDR=0xaaaaaaaa;
+    GPIOF->OSPEEDR=0xaaaaaaaa;
+    GPIOG->OSPEEDR=0xaaaaaaaa;
     led1::mode(Mode::OUTPUT);
     led2::mode(Mode::OUTPUT);
     led3::mode(Mode::OUTPUT);
