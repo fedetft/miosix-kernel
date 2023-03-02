@@ -2,8 +2,6 @@
   ******************************************************************************
   * @file    system_stm32f2xx.c
   * @author  MCD Application Team
-  * @version V2.0.1
-  * @date    25-March-2014
   * @brief   CMSIS Cortex-M3 Device Peripheral Access Layer System Source File.
   *             
   *   This file provides two functions and one global variable to be called from 
@@ -23,29 +21,13 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2014 STMicroelectronics</center></h2>
+  * <h2><center>&copy; Copyright (c) 2016 STMicroelectronics.
+  * All rights reserved.</center></h2>
   *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  * This software component is licensed by ST under BSD 3-Clause license,
+  * the "License"; You may not use this file except in compliance with the
+  * License. You may obtain a copy of the License at:
+  *                        opensource.org/licenses/BSD-3-Clause
   *
   ******************************************************************************
   */
@@ -65,10 +47,16 @@
 //By TFT: was #include "stm32f4xx_hal.h", but the specific chip is #defined in
 //arch_registers_impl.h
 #include "interfaces/arch_registers.h"
-//By TFT: the .h file for the chip used to define this
-#define HSI_VALUE 16000000
 //By TFT: was in the old stm32f4xx.h
 #define HSE_STARTUP_TIMEOUT    ((uint16_t)0x0500)
+
+#if !defined  (HSE_VALUE) 
+  #define HSE_VALUE    ((uint32_t)25000000) /*!< Default value of the External oscillator in Hz */
+#endif /* HSE_VALUE */
+
+#if !defined  (HSI_VALUE)
+  #define HSI_VALUE    ((uint32_t)16000000) /*!< Value of the Internal oscillator in Hz*/
+#endif /* HSI_VALUE */
 
 /**
   * @}
@@ -95,15 +83,38 @@
 #define DATA_IN_ExtSRAM
 #endif //__ENABLE_XRAM
 
-/*!< Uncomment the following line if you need to relocate your vector Table in
-     Internal SRAM. */
+/* Note: Following vector table addresses must be defined in line with linker
+         configuration. */
+/*!< Uncomment the following line if you need to relocate the vector table
+     anywhere in Flash or Sram, else the vector table is kept at the automatic
+     remap of boot address selected */
+/* #define USER_VECT_TAB_ADDRESS */
+
+#if defined(USER_VECT_TAB_ADDRESS)
+/*!< Uncomment the following line if you need to relocate your vector Table
+     in Sram else user remap will be done in Flash. */
 /* #define VECT_TAB_SRAM */
-#ifndef _BOARD_SONY_NEWMAN //By TFT: the smartwatch has a bootloader
-#define VECT_TAB_OFFSET  0x00 /*!< Vector Table base offset field. 
-                                   This value must be a multiple of 0x200. */
-#else //_BOARD_SONY_NEWMAN
-#define VECT_TAB_OFFSET  0x40000
+#if defined(VECT_TAB_SRAM)
+#define VECT_TAB_BASE_ADDRESS   SRAM_BASE       /*!< Vector Table base address field.
+                                                     This value must be a multiple of 0x200. */
+#define VECT_TAB_OFFSET         0x00000000U     /*!< Vector Table base offset field.
+                                                     This value must be a multiple of 0x200. */
+#else
+#define VECT_TAB_BASE_ADDRESS   FLASH_BASE      /*!< Vector Table base address field.
+                                                     This value must be a multiple of 0x200. */
+#define VECT_TAB_OFFSET         0x00000000U     /*!< Vector Table base offset field.
+                                                     This value must be a multiple of 0x200. */
+#endif /* VECT_TAB_SRAM */
+#endif /* USER_VECT_TAB_ADDRESS */
+
+//By TFT -- begin
+// the smartwatch has a bootloader
+#ifdef _BOARD_SONY_NEWMAN
+#define USER_VECT_TAB_ADDRESS
+#define VECT_TAB_BASE_ADDRESS  FLASH_BASE
+#define VECT_TAB_OFFSET        0x40000
 #endif //_BOARD_SONY_NEWMAN
+//By TFT -- end
 
 //By TFT -- begin
 // this was backported from an older version. Now this code seems to be
@@ -137,7 +148,7 @@
   * @{
   */
   
-  /* This varaible can be updated in Three ways :
+  /* This variable can be updated in Three ways :
       1) by calling CMSIS function SystemCoreClockUpdate()
       2) by calling HAL API function HAL_RCC_GetHCLKFreq()
       3) each time HAL_RCC_ClockConfig() is called to configure the system clock frequency 
@@ -146,8 +157,8 @@
                variable is updated automatically.
   */
   uint32_t SystemCoreClock = 120000000;
-  __I uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
-
+  const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
+  const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
 /**
   * @}
   */
@@ -178,25 +189,6 @@ static void SetSysClock(void);
   */
 void SystemInit(void)
 {
-  /* Reset the RCC clock configuration to the default reset state ------------*/
-  /* Set HSION bit */
-  RCC->CR |= (uint32_t)0x00000001;
-
-  /* Reset CFGR register */
-  RCC->CFGR = 0x00000000;
-
-  /* Reset HSEON, CSSON and PLLON bits */
-  RCC->CR &= (uint32_t)0xFEF6FFFF;
-
-  /* Reset PLLCFGR register */
-  RCC->PLLCFGR = 0x24003010;
-
-  /* Reset HSEBYP bit */
-  RCC->CR &= (uint32_t)0xFFFBFFFF;
-
-  /* Disable all interrupts */
-  RCC->CIR = 0x00000000;
-
 #ifdef DATA_IN_ExtSRAM
   SystemInit_ExtMemCtl(); 
 #endif /* DATA_IN_ExtSRAM */
@@ -205,12 +197,10 @@ void SystemInit(void)
      AHB/APBx prescalers and Flash settings ----------------------------------*/
   SetSysClock();
 
-  /* Configure the Vector Table location add offset address ------------------*/
-#ifdef VECT_TAB_SRAM
-  SCB->VTOR = SRAM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
-#else
-  SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
-#endif
+  /* Configure the Vector Table location -------------------------------------*/
+#if defined(USER_VECT_TAB_ADDRESS)
+  SCB->VTOR = VECT_TAB_BASE_ADDRESS | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
+#endif /* USER_VECT_TAB_ADDRESS */
 }
 
 /**
@@ -238,10 +228,10 @@ void SystemInit(void)
   *             16 MHz) but the real value may vary depending on the variations
   *             in voltage and temperature.   
   *    
-  *         (**) HSE_VALUE is a constant defined in stm32f2xx_hal_conf.h file (default value
-  *              25 MHz), user has to ensure that HSE_VALUE is same as the real
-  *              frequency of the crystal used. Otherwise, this function may
-  *              have wrong result.
+  *         (**) HSE_VALUE is a constant defined in stm32f2xx_hal_conf.h file (its value
+  *              depends on the application requirements), user has to ensure that HSE_VALUE
+  *              is same as the real frequency of the crystal used. Otherwise, this function
+  *              may have wrong result.
   *                
   *         - The result of this function could be not correct when using fractional
   *           value for HSE crystal.
@@ -280,7 +270,7 @@ void SystemCoreClockUpdate(void)
       else
       {
         /* HSI used as PLL clock source */
-        pllvco = (HSI_VALUE / pllm) * ((RCC->PLLCFGR & RCC_PLLCFGR_PLLN) >> 6);      
+        pllvco = (HSI_VALUE / pllm) * ((RCC->PLLCFGR & RCC_PLLCFGR_PLLN) >> 6);
       }
 
       pllp = (((RCC->PLLCFGR & RCC_PLLCFGR_PLLP) >>16) + 1 ) *2;
@@ -393,12 +383,6 @@ static void SetSysClock(void)
 }
 // By TFT -- end
 
-/**
-  * @brief  Setup the external memory controller. Called in startup_stm32f2xx.s
-  *         before jump to __main
-  * @param  None
-  * @retval None
-  */
 #ifdef DATA_IN_ExtSRAM
 /**
   * @brief  Setup the external memory controller.
@@ -411,116 +395,66 @@ static void SetSysClock(void)
 void SystemInit_ExtMemCtl(void)
 {
 /*-- GPIOs Configuration -----------------------------------------------------*/
-/*
- +-------------------+--------------------+------------------+------------------+
- +                       SRAM pins assignment                                  +
- +-------------------+--------------------+------------------+------------------+
- | PD0  <-> FSMC_D2  | PE0  <-> FSMC_NBL0 | PF0  <-> FSMC_A0 | PG0 <-> FSMC_A10 |
- | PD1  <-> FSMC_D3  | PE1  <-> FSMC_NBL1 | PF1  <-> FSMC_A1 | PG1 <-> FSMC_A11 |
- | PD4  <-> FSMC_NOE | PE7  <-> FSMC_D4   | PF2  <-> FSMC_A2 | PG2 <-> FSMC_A12 |
- | PD5  <-> FSMC_NWE | PE8  <-> FSMC_D5   | PF3  <-> FSMC_A3 | PG3 <-> FSMC_A13 |
- | PD8  <-> FSMC_D13 | PE9  <-> FSMC_D6   | PF4  <-> FSMC_A4 | PG4 <-> FSMC_A14 |
- | PD9  <-> FSMC_D14 | PE10 <-> FSMC_D7   | PF5  <-> FSMC_A5 | PG5 <-> FSMC_A15 |
- | PD10 <-> FSMC_D15 | PE11 <-> FSMC_D8   | PF12 <-> FSMC_A6 | PG9 <-> FSMC_NE2 |
- | PD11 <-> FSMC_A16 | PE12 <-> FSMC_D9   | PF13 <-> FSMC_A7 |------------------+
- | PD12 <-> FSMC_A17 | PE13 <-> FSMC_D10  | PF14 <-> FSMC_A8 | 
- | PD14 <-> FSMC_D0  | PE14 <-> FSMC_D11  | PF15 <-> FSMC_A9 | 
- | PD15 <-> FSMC_D1  | PE15 <-> FSMC_D12  |------------------+
- +-------------------+--------------------+
-*/
    /* Enable GPIOD, GPIOE, GPIOF and GPIOG interface clock */
-  RCC->AHB1ENR   = 0x00000078;
-  RCC_SYNC(); 
+  RCC->AHB1ENR   |= 0x00000078;
+  RCC_SYNC();
+
   /* Connect PDx pins to FSMC Alternate function */
-  GPIOD->AFR[0]  = 0x00cc00cc;
-  //GPIOD->AFR[1]  = 0xcc0ccccc;
-  GPIOD->AFR[1]  = 0xcccccccc; //By TFT: enable PD13 as A18
+  GPIOD->AFR[0]  = 0x00CCC0CC;
+  GPIOD->AFR[1]  = 0xCCCCCCCC;
   /* Configure PDx pins in Alternate function mode */  
-  //GPIOD->MODER   = 0xa2aa0a0a;
-  GPIOD->MODER   = 0xaaaa0a0a; //By TFT: enable PD13 as A18
+  GPIOD->MODER   = 0xAAAA0A8A;
   /* Configure PDx pins speed to 100 MHz */  
-  //GPIOD->OSPEEDR = 0xf3ff0f0f;
-  GPIOD->OSPEEDR = 0xffff0f0f; //By TFT: enable PD13 as A18
+  GPIOD->OSPEEDR = 0xFFFF0FCF;
   /* Configure PDx pins Output type to push-pull */  
   GPIOD->OTYPER  = 0x00000000;
   /* No pull-up, pull-down for PDx pins */ 
   GPIOD->PUPDR   = 0x00000000;
 
   /* Connect PEx pins to FSMC Alternate function */
-  //GPIOE->AFR[0]  = 0xc00000cc;
-  GPIOE->AFR[0]  = 0xc00cc0cc; //By TFT: enable PE3,PE4 as A19,A20
-  GPIOE->AFR[1]  = 0xcccccccc;
+  GPIOE->AFR[0]  = 0xC00CC0CC;
+  GPIOE->AFR[1]  = 0xCCCCCCCC;
   /* Configure PEx pins in Alternate function mode */ 
-  //GPIOE->MODER   = 0xaaaa800a;
-  GPIOE->MODER   = 0xaaaa828a; //By TFT: enable PE3,PE4 as A19,A20
+  GPIOE->MODER   = 0xAAAA828A;
   /* Configure PEx pins speed to 100 MHz */ 
-  //GPIOE->OSPEEDR = 0xffffc00f;
-  GPIOE->OSPEEDR = 0xffffc3cf; //By TFT: enable PE3,PE4 as A19,A20
+  GPIOE->OSPEEDR = 0xFFFFC3CF;
   /* Configure PEx pins Output type to push-pull */  
   GPIOE->OTYPER  = 0x00000000;
   /* No pull-up, pull-down for PEx pins */ 
   GPIOE->PUPDR   = 0x00000000;
 
   /* Connect PFx pins to FSMC Alternate function */
-  GPIOF->AFR[0]  = 0x00cccccc;
-  GPIOF->AFR[1]  = 0xcccc0000;
+  GPIOF->AFR[0]  = 0x00CCCCCC;
+  GPIOF->AFR[1]  = 0xCCCC0000;
   /* Configure PFx pins in Alternate function mode */   
-  GPIOF->MODER   = 0xaa000aaa;
+  GPIOF->MODER   = 0xAA000AAA;
   /* Configure PFx pins speed to 100 MHz */ 
-  GPIOF->OSPEEDR = 0xff000fff;
+  GPIOF->OSPEEDR = 0xFF000FFF;
   /* Configure PFx pins Output type to push-pull */  
   GPIOF->OTYPER  = 0x00000000;
   /* No pull-up, pull-down for PFx pins */ 
   GPIOF->PUPDR   = 0x00000000;
 
   /* Connect PGx pins to FSMC Alternate function */
-  GPIOG->AFR[0]  = 0x00cccccc;
-  GPIOG->AFR[1]  = 0x000000c0;
+  GPIOG->AFR[0]  = 0x00CCCCCC;
+  GPIOG->AFR[1]  = 0x000000C0;
   /* Configure PGx pins in Alternate function mode */ 
-  GPIOG->MODER   = 0x00080aaa;
+  GPIOG->MODER   = 0x00085AAA;
   /* Configure PGx pins speed to 100 MHz */ 
-  GPIOG->OSPEEDR = 0x000c0fff;
+  GPIOG->OSPEEDR = 0x000CAFFF;
   /* Configure PGx pins Output type to push-pull */  
   GPIOG->OTYPER  = 0x00000000;
   /* No pull-up, pull-down for PGx pins */ 
   GPIOG->PUPDR   = 0x00000000;
   
-/*-- FSMC Configuration ------------------------------------------------------*/
+/*--FSMC Configuration -------------------------------------------------------*/
   /* Enable the FSMC interface clock */
-  RCC->AHB3ENR         = 0x00000001;
+  RCC->AHB3ENR         |= 0x00000001;
   RCC_SYNC();
   /* Configure and enable Bank1_SRAM2 */
-  FSMC_Bank1->BTCR[2]  = 0x00001015;
-  FSMC_Bank1->BTCR[3]  = 0x00010400;
-  FSMC_Bank1E->BWTR[2] = 0x0fffffff;
-/*
-  Bank1_SRAM2 is configured as follow:
-
-  p.FSMC_AddressSetupTime = 0;
-  p.FSMC_AddressHoldTime = 0;
-  p.FSMC_DataSetupTime = 4;
-  p.FSMC_BusTurnAroundDuration = 1;
-  p.FSMC_CLKDivision = 0;
-  p.FSMC_DataLatency = 0;
-  p.FSMC_AccessMode = FSMC_AccessMode_A;
-
-  FSMC_NORSRAMInitStructure.FSMC_Bank = FSMC_Bank1_NORSRAM2;
-  FSMC_NORSRAMInitStructure.FSMC_DataAddressMux = FSMC_DataAddressMux_Disable;
-  FSMC_NORSRAMInitStructure.FSMC_MemoryType = FSMC_MemoryType_PSRAM;
-  FSMC_NORSRAMInitStructure.FSMC_MemoryDataWidth = FSMC_MemoryDataWidth_16b;
-  FSMC_NORSRAMInitStructure.FSMC_BurstAccessMode = FSMC_BurstAccessMode_Disable;
-  FSMC_NORSRAMInitStructure.FSMC_AsynchronousWait = FSMC_AsynchronousWait_Disable;  
-  FSMC_NORSRAMInitStructure.FSMC_WaitSignalPolarity = FSMC_WaitSignalPolarity_Low;
-  FSMC_NORSRAMInitStructure.FSMC_WrapMode = FSMC_WrapMode_Disable;
-  FSMC_NORSRAMInitStructure.FSMC_WaitSignalActive = FSMC_WaitSignalActive_BeforeWaitState;
-  FSMC_NORSRAMInitStructure.FSMC_WriteOperation = FSMC_WriteOperation_Enable;
-  FSMC_NORSRAMInitStructure.FSMC_WaitSignal = FSMC_WaitSignal_Disable;
-  FSMC_NORSRAMInitStructure.FSMC_ExtendedMode = FSMC_ExtendedMode_Disable;
-  FSMC_NORSRAMInitStructure.FSMC_WriteBurst = FSMC_WriteBurst_Disable;
-  FSMC_NORSRAMInitStructure.FSMC_ReadWriteTimingStruct = &p;
-  FSMC_NORSRAMInitStructure.FSMC_WriteTimingStruct = &p;
-*/
-  
+  FSMC_Bank1->BTCR[2]  = 0x00001011;
+  FSMC_Bank1->BTCR[3]  = 0x00000201;
+  FSMC_Bank1E->BWTR[2] = 0x0FFFFFFF;
 }
 #endif /* DATA_IN_ExtSRAM */
 
