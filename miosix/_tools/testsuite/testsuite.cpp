@@ -130,6 +130,7 @@ static void test_23();
 static void test_24();
 static void test_25();
 static void test_26();
+static void test_27();
 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
 void testCacheAndDMA();
 #endif //_ARCH_CORTEXM7_STM32F7/H7
@@ -236,6 +237,7 @@ int main()
                 test_24();
                 test_25();
                 test_26();
+                test_27();
                 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
                 testCacheAndDMA();
                 #endif //_ARCH_CORTEXM7_STM32F7/H7
@@ -4178,6 +4180,119 @@ static void test_26()
         if(errno!=-i-1) fail("errno");
     }
     pthread_join(t,0);
+    pass();
+}
+
+//
+// Test 27
+//
+/*
+tests:
+Semaphore class
+*/
+
+struct t27_data
+{
+    t27_data(): consumer(5), producer(5) {}
+    Semaphore consumer;
+    Semaphore producer;
+};
+
+void *t27_t1(void *xdata)
+{
+    t27_data *data=reinterpret_cast<t27_data *>(xdata);
+    for(int i=0; i<4; i++) data->consumer.wait();
+    if(data->consumer.getCount() != 1)
+        fail("wait to 1 with counter >= 0 not working");
+    bool res = data->consumer.tryWait();
+    if(data->consumer.getCount() != 0 || res != true)
+        fail("tryWait to 0 with counter = 1 not working");
+    res = data->consumer.tryWait();
+    if(data->consumer.getCount() != 0 || res != false)
+        fail("tryWait with counter = 0 not working");
+    for(int i=0; i<10; i++)
+    {
+        data->producer.signal();
+        data->consumer.wait();
+    }
+    return nullptr;
+}
+
+void *t27_t2(void *xdata)
+{
+    t27_data *data=reinterpret_cast<t27_data *>(xdata);
+    for(int i=0; i<2; i++)
+    {
+        Thread::sleep(100);
+        data->producer.signal();
+        data->consumer.wait();
+    }
+    return nullptr;
+}
+
+void *t27_t3(void *xdata)
+{
+    t27_data *data=reinterpret_cast<t27_data *>(xdata);
+    data->producer.signal();
+    data->consumer.wait();
+    return nullptr;
+}
+
+static void test_27()
+{
+    test_name("Semaphores");
+    t27_data data;
+
+    Thread *thd=Thread::create(t27_t1,STACK_SMALL,MAIN_PRIORITY,reinterpret_cast<void*>(&data),Thread::JOINABLE);
+    for(int i=0; i<5; i++) data.producer.wait();
+    if(data.producer.getCount() != 0)
+        fail("wait to zero with counter >= 0 not working");
+    for(int i=0; i<10; i++)
+    {
+        data.producer.wait();
+        data.consumer.signal();
+    }
+    thd->join();
+    if(data.producer.getCount() != 0 && data.consumer.getCount() != 0)
+        fail("wait with counter == 0 not working");
+    
+    Thread *thd2=Thread::create(t27_t2,STACK_SMALL,MAIN_PRIORITY,reinterpret_cast<void*>(&data),Thread::JOINABLE);
+    auto res = data.producer.timedWait(getTime()+200*1000000LL);
+    if(res == TimedWaitResult::Timeout)
+        fail("timedWait did not return the first time without timeout, timebase incorrect?");
+    data.consumer.signal();
+    res = data.producer.timedWait(getTime()+8*1000000LL);
+    int j = 0;
+    while(res == TimedWaitResult::Timeout)
+    {
+        j++;
+        res = data.producer.timedWait(getTime()+8*1000000LL);
+    }
+    if(j < 12 || j > 13)
+    {
+        iprintf("j=%d, should be 12 or 13\n", j);
+        fail("timedWait timed out too many/few times, timebase incorrect?");
+    }
+    data.consumer.signal();
+    thd2->join();
+    if(data.producer.getCount() != 0 && data.consumer.getCount() != 0)
+        fail("timedWait with counter == 0 not working");
+    
+    //Testing multiple threads enqueued on the same semaphore
+    #ifndef SCHED_TYPE_EDF
+    Thread *thds[3];
+    for(int i=0; i<3; i++)
+    {
+        //Priority is > than MAIN_PRIORITY to ensure all the threads get stuck
+        //at the `data->consumer.wait();` line and not earlier.
+        //This test is disabled on EDF scheduler to avoid having to fudge with
+        //deadlines to make this happen.
+        thds[i] = Thread::create(t27_t3,STACK_SMALL,MAIN_PRIORITY+1,reinterpret_cast<void*>(&data),Thread::JOINABLE);
+        data.producer.wait();
+    }
+    for(int i=0; i<3; i++) data.consumer.signal();
+    for(int i=0; i<3; i++) thds[i]->join(); //This hangs if the test fails
+    #endif
     pass();
 }
 
