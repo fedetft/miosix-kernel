@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010-2021 by Terraneo Federico                          *
+ *   Copyright (C) 2023 by Daniele Cattaneo                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,21 +25,35 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-//Common #include are grouped here for ease of use 
+#include "cpu_time_counter.h"
+#include "kernel/kernel.h"
 
-#pragma once
+#ifdef WITH_CPU_TIME_COUNTER
 
-/* Hardware */
-#include <interfaces/arch_registers.h>
-#include <interfaces/gpio.h>
-#include <interfaces/delays.h>
-#include <interfaces/bsp.h>
-/* Miosix kernel */
-#include <kernel/kernel.h>
-#include <kernel/sync.h>
-#include <kernel/queue.h>
-#include <kernel/cpu_time_counter.h>
-/* Utilities */
-#include <util/util.h>
-/* Settings */
-#include <config/miosix_settings.h>
+using namespace miosix;
+
+Thread *CPUTimeCounter::head = nullptr;
+Thread *CPUTimeCounter::tail = nullptr;
+volatile unsigned int CPUTimeCounter::nThreads = 0;
+
+void CPUTimeCounter::PKremoveDeadThreads()
+{
+    Thread *prev = nullptr;
+    Thread *cur = head;
+    while (cur) {
+        if (cur->flags.isDeleted()) {
+            if (prev) {
+                prev->timeCounterData.next = cur->timeCounterData.next;
+            } else {
+                head = cur->timeCounterData.next;
+            }
+            nThreads--;
+        } else {
+            prev = cur;
+        }
+        cur = cur->timeCounterData.next;
+    }
+    tail = prev;
+}
+
+#endif // WITH_CPU_TIME_COUNTER

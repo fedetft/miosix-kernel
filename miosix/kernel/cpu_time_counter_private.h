@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010-2021 by Terraneo Federico                          *
+ *   Copyright (C) 2023 by Daniele Cattaneo                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,21 +25,32 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-//Common #include are grouped here for ease of use 
+#ifndef CPU_TIME_COUNTER_PRIVATE_H
+#define CPU_TIME_COUNTER_PRIVATE_H
 
-#pragma once
+#include "cpu_time_counter.h"
 
-/* Hardware */
-#include <interfaces/arch_registers.h>
-#include <interfaces/gpio.h>
-#include <interfaces/delays.h>
-#include <interfaces/bsp.h>
-/* Miosix kernel */
-#include <kernel/kernel.h>
-#include <kernel/sync.h>
-#include <kernel/queue.h>
-#include <kernel/cpu_time_counter.h>
-/* Utilities */
-#include <util/util.h>
-/* Settings */
-#include <config/miosix_settings.h>
+#ifdef WITH_CPU_TIME_COUNTER
+
+namespace miosix {
+
+// Declared in kernel.cpp
+extern volatile Thread *cur;
+
+long long CPUTimeCounter::PKwillSwitchContext()
+{
+    long long t = IRQgetTime();
+    cur->timeCounterData.usedCpuTime += t - cur->timeCounterData.lastActivation;
+    return t;
+}
+
+void CPUTimeCounter::PKdidSwitchContext(long long t)
+{
+    cur->timeCounterData.lastActivation = t;
+}
+
+}
+
+#endif // WITH_CPU_TIME_COUNTER
+
+#endif

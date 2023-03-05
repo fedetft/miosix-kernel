@@ -32,6 +32,7 @@
 #include "kernel/scheduler/sched_types.h"
 #include "stdlib_integration/libstdcpp_integration.h"
 #include "intrusive.h"
+#include "cpu_time_counter_types.h"
 #include <cstdlib>
 #include <new>
 #include <functional>
@@ -1025,6 +1026,9 @@ private:
     ///pointer is null
     unsigned int *userCtxsave;
     #endif //WITH_PROCESSES
+    #ifdef WITH_CPU_TIME_COUNTER
+    CPUTimeCounterPrivateThreadData timeCounterData;
+    #endif //WITH_CPU_TIME_COUNTER
     
     //friend functions
     //Needs access to watermark, ctxsave
@@ -1062,6 +1066,10 @@ private:
     //Needs PKcreateUserspace(), setupUserspaceContext(), switchToUserspace()
     friend class Process;
     #endif //WITH_PROCESSES
+    #ifdef WITH_CPU_TIME_COUNTER
+    //Needs access to timeCounterData
+    friend class CPUTimeCounter;
+    #endif //WITH_CPU_TIME_COUNTER
 };
 
 /**

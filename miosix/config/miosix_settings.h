@@ -76,6 +76,12 @@ namespace miosix {
 //#define SCHED_TYPE_CONTROL_BASED
 //#define SCHED_TYPE_EDF
 
+/// \def WITH_CPU_TIME_COUNTER
+/// Allows to enable/disable CPUTimeCounter to save code size and remove its
+/// overhead from the scheduling process. By default it is defined
+/// (CPUTimeCounter is enabled).
+#define WITH_CPU_TIME_COUNTER
+
 //
 // Filesystem options
 //

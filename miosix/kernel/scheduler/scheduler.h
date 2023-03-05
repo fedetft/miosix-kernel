@@ -32,6 +32,7 @@
 #include "kernel/scheduler/priority/priority_scheduler.h"
 #include "kernel/scheduler/control/control_scheduler.h"
 #include "kernel/scheduler/edf/edf_scheduler.h"
+#include "kernel/cpu_time_counter_private.h"
 
 namespace miosix {
 
@@ -67,7 +68,12 @@ public:
      */
     static bool PKaddThread(Thread *thread, Priority priority)
     {
-        return T::PKaddThread(thread,priority);
+        bool res = T::PKaddThread(thread,priority);
+        #ifdef WITH_CPU_TIME_COUNTER
+        if (res)
+            CPUTimeCounter::PKaddThread(thread);
+        #endif
+        return res;
     }
 
     /**
@@ -91,6 +97,9 @@ public:
      */
     static void PKremoveDeadThreads()
     {
+        #ifdef WITH_CPU_TIME_COUNTER
+        CPUTimeCounter::PKremoveDeadThreads();
+        #endif
         T::PKremoveDeadThreads();
     }
 
@@ -138,6 +147,9 @@ public:
      */
     static void IRQsetIdleThread(Thread *idleThread)
     {
+        #ifdef WITH_CPU_TIME_COUNTER
+        CPUTimeCounter::PKaddIdleThread(idleThread);
+        #endif
         return T::IRQsetIdleThread(idleThread);
     }
 
@@ -167,7 +179,14 @@ public:
      */
     static unsigned int IRQfindNextThread()
     {
-        return T::IRQfindNextThread();
+        #ifdef WITH_CPU_TIME_COUNTER
+        long long t = CPUTimeCounter::PKwillSwitchContext();
+        #endif
+        unsigned int res = T::IRQfindNextThread();
+        #ifdef WITH_CPU_TIME_COUNTER
+        CPUTimeCounter::PKdidSwitchContext(t);
+        #endif
+        return res;
     }
     
     /**

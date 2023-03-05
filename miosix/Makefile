@@ -20,6 +20,7 @@ kernel/process.cpp                                                         \
 kernel/process_pool.cpp                                                    \
 kernel/timeconversion.cpp                                                  \
 kernel/SystemMap.cpp                                                       \
+kernel/cpu_time_counter.cpp                                                \
 kernel/scheduler/priority/priority_scheduler.cpp                           \
 kernel/scheduler/control/control_scheduler.cpp                             \
 kernel/scheduler/edf/edf_scheduler.cpp                                     \
