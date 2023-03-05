@@ -38,10 +38,16 @@
 
 namespace miosix {
 
-static void unexpectedInterrupt(void*);
-
 // Same code behavior but different code size TODO document or remove
 // #define VARIANT
+
+static void unexpectedInterrupt(void*)
+{
+    #ifdef WITH_ERRLOG
+    IRQerrorLog("\r\n***Unexpected Peripheral interrupt\r\n");
+    #endif //WITH_ERRLOG
+    miosix_private::IRQsystemReboot();
+}
 
 const unsigned int numInterrupts=MIOSIX_NUM_PERIPHERAL_IRQ;
 #ifdef VARIANT
@@ -533,14 +539,6 @@ void Reset_Handler()
                  "isb                          \n\t":::"r0");
 
     program_startup();
-}
-
-static void unexpectedInterrupt(void*)
-{
-    #ifdef WITH_ERRLOG
-    IRQerrorLog("\r\n***Unexpected Peripheral interrupt\r\n");
-    #endif //WITH_ERRLOG
-    miosix_private::IRQsystemReboot();
 }
 
 //Stack top, defined in the linker script

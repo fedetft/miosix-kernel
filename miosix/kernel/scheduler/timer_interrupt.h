@@ -51,6 +51,7 @@ inline bool IRQtimerInterrupt(long long currentTime)
     if(currentTime >= Scheduler::IRQgetNextPreemption() || hptw)
     {
         //End of the burst || a higher priority thread has woken up
+        //TODO: IRQinvokeScheduler() returns the burst time, but is only called here and return value is ignored
         IRQinvokeScheduler(); //If the kernel is running, preempt
         return false;
     }
