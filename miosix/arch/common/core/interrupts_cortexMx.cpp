@@ -445,6 +445,7 @@ void SVC_Handler()
                  "ldmia sp!, {pc}        \n\t" /*return*/                     \
                  );
 
+void PendSV_Handler() __attribute__((naked));
 void PendSV_Handler()
 {
     saveContext();
