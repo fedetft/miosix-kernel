@@ -169,7 +169,7 @@ public:
         TC1->TC_CHANNEL[0].TC_CMR = TC_CMR_WAVE | TC_CMR_CAPTURE_TCCLKS(0); //CLOCK=GCLK8
         TC1->TC_CHANNEL[0].TC_IER = TC_IER_CPCS | TC_IER_COVFS;
         
-        //FIXME: add back
+        //FIXME: probably the "this" line below works just as well
         IRQregisterIrq(TC10_IRQn,&TimerAdapter<ATSAM_TC1_Timer,16>::IRQhandler,instance);
 //         IRQregisterIrq(TC10_IRQn,&ATSAM_TC1_Timer::IRQhandler,
 //             static_cast<TimerAdapter<ATSAM_TC1_Timer, 16>*>(this));
