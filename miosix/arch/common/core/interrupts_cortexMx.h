@@ -52,6 +52,7 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
 inline void doYield()
 {
     SCB->ICSR=SCB_ICSR_PENDSVSET_Msk;
+    asm volatile("dmb":::"memory");
     //NVIC_SetPendingIRQ(PendSV_IRQn);
 //     asm volatile("movs r3, #0\n\t"
 //                  "svc  0"
