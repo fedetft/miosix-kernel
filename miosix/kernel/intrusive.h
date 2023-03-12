@@ -634,7 +634,7 @@ intrusive_ref_ptr<T> atomic_exchange(intrusive_ref_ptr<T> *p,
     return p->atomic_exchange(r);
 }
 
-template <typename T>
+template<typename T>
 class IntrusiveList; //Forward declaration
 
 /**
@@ -659,14 +659,16 @@ private:
  * when put in the list, so this is a non-owning container. The caller is
  * responsible for managing the lifetime of objects put in this list.
  */
-template <typename T>
+template<typename T>
 class IntrusiveList
 {
 public:
     class iterator
     {
     private:
-        template <typename> friend class IntrusiveList;
+        template<typename>
+        friend class IntrusiveList;
+
         T *cur;
         iterator(T *cur) : cur(cur) {}
     public:
@@ -709,8 +711,7 @@ public:
      */
     void pop_back()
     {
-        if(tail == nullptr)
-            return;
+        if(tail == nullptr) return;
         T *removedItem = tail;
         tail = static_cast<T*>(removedItem->prev);
         if(tail == nullptr)
@@ -740,8 +741,7 @@ public:
      */
     void pop_front()
     {
-        if(head == nullptr)
-            return;
+        if(head == nullptr) return;
         T *removedItem = head;
         head = static_cast<T*>(removedItem->next);
         if(head == nullptr)
@@ -767,7 +767,7 @@ public:
             item->prev = tail;
             tail = item;
         }
-        if (item->prev != nullptr)
+        if(item->prev != nullptr)
         {
             item->prev->next = item;
         } else {
@@ -781,15 +781,15 @@ public:
      */
     iterator erase(iterator position)
     {
-        if(*position == nullptr)
-            return position; // Bail out if we are at the end of the list
+        //Bail out if we are at the end of the list
+        if(*position == nullptr) return position;
         if((*position)->prev != nullptr)
         {
             (*position)->prev->next = (*position)->next;
             (*position)->prev = nullptr;
         } else {
-            if(head != *position)
-                return position; // Bail out if the item is not in the list
+            //Bail out if the item is not in the list
+            if(head != *position) return position;
             head = static_cast<T*>((*position)->next);
         }
         iterator result = iterator(static_cast<T*>((*position)->next));
