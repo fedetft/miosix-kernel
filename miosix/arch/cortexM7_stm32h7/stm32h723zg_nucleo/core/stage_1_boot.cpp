@@ -180,9 +180,8 @@ void __attribute__((weak)) OTG_HS_EP1_OUT_IRQHandler();
 void __attribute__((weak)) OTG_HS_EP1_IN_IRQHandler();
 void __attribute__((weak)) OTG_HS_WKUP_IRQHandler();
 void __attribute__((weak)) OTG_HS_IRQHandler();
-void __attribute__((weak)) DCMI_IRQHandler();
-void __attribute__((weak)) CRYP_IRQHandler();
-void __attribute__((weak)) HASH_RNG_IRQHandler();
+void __attribute__((weak)) DCMI_PSSI_IRQHandler();
+void __attribute__((weak)) RNG_IRQHandler();
 void __attribute__((weak)) FPU_IRQHandler();
 void __attribute__((weak)) UART7_IRQHandler();
 void __attribute__((weak)) UART8_IRQHandler();
@@ -193,37 +192,23 @@ void __attribute__((weak)) SAI1_IRQHandler();
 void __attribute__((weak)) LTDC_IRQHandler();
 void __attribute__((weak)) LTDC_ER_IRQHandler();
 void __attribute__((weak)) DMA2D_IRQHandler();
-void __attribute__((weak)) SAI2_IRQHandler();
-void __attribute__((weak)) QUADSPI_IRQHandler();
+void __attribute__((weak)) OCTOSPI1_IRQHandler();
 void __attribute__((weak)) LPTIM1_IRQHandler();
 void __attribute__((weak)) CEC_IRQHandler();
 void __attribute__((weak)) I2C4_EV_IRQHandler();
 void __attribute__((weak)) I2C4_ER_IRQHandler();
 void __attribute__((weak)) SPDIF_RX_IRQHandler();
-void __attribute__((weak)) OTG_FS_EP1_OUT_IRQHandler();
-void __attribute__((weak)) OTG_FS_EP1_IN_IRQHandler();
-void __attribute__((weak)) OTG_FS_WKUP_IRQHandler();
-void __attribute__((weak)) OTG_FS_IRQHandler();
 void __attribute__((weak)) DMAMUX1_OVR_IRQHandler();
-void __attribute__((weak)) HRTIM1_Master_IRQHandler();
-void __attribute__((weak)) HRTIM1_TIMA_IRQHandler();
-void __attribute__((weak)) HRTIM1_TIMB_IRQHandler();
-void __attribute__((weak)) HRTIM1_TIMC_IRQHandler();
-void __attribute__((weak)) HRTIM1_TIMD_IRQHandler();
-void __attribute__((weak)) HRTIM1_TIME_IRQHandler();
-void __attribute__((weak)) HRTIM1_FLT_IRQHandler();
 void __attribute__((weak)) DFSDM1_FLT0_IRQHandler();
 void __attribute__((weak)) DFSDM1_FLT1_IRQHandler();
 void __attribute__((weak)) DFSDM1_FLT2_IRQHandler();
 void __attribute__((weak)) DFSDM1_FLT3_IRQHandler();
-void __attribute__((weak)) SAI3_IRQHandler();
 void __attribute__((weak)) SWPMI1_IRQHandler();
 void __attribute__((weak)) TIM15_IRQHandler();
 void __attribute__((weak)) TIM16_IRQHandler();
 void __attribute__((weak)) TIM17_IRQHandler();
 void __attribute__((weak)) MDIOS_WKUP_IRQHandler();
 void __attribute__((weak)) MDIOS_IRQHandler();
-void __attribute__((weak)) JPEG_IRQHandler();
 void __attribute__((weak)) MDMA_IRQHandler();
 void __attribute__((weak)) SDMMC2_IRQHandler();
 void __attribute__((weak)) HSEM1_IRQHandler();
@@ -237,15 +222,28 @@ void __attribute__((weak)) BDMA_Channel4_IRQHandler();
 void __attribute__((weak)) BDMA_Channel5_IRQHandler();
 void __attribute__((weak)) BDMA_Channel6_IRQHandler();
 void __attribute__((weak)) BDMA_Channel7_IRQHandler();
-void __attribute__((weak)) COMP1_IRQHandler();
+void __attribute__((weak)) COMP_IRQHandler();
 void __attribute__((weak)) LPTIM2_IRQHandler();
 void __attribute__((weak)) LPTIM3_IRQHandler();
 void __attribute__((weak)) LPTIM4_IRQHandler();
 void __attribute__((weak)) LPTIM5_IRQHandler();
 void __attribute__((weak)) LPUART1_IRQHandler();
 void __attribute__((weak)) CRS_IRQHandler();
+void __attribute__((weak)) ECC_IRQHandler();
 void __attribute__((weak)) SAI4_IRQHandler();
+void __attribute__((weak)) DTS_IRQHandler();
 void __attribute__((weak)) WAKEUP_PIN_IRQHandler();
+void __attribute__((weak)) OCTOSPI2_IRQHandler();
+void __attribute__((weak)) FMAC_IRQHandler();
+void __attribute__((weak)) CORDIC_IRQHandler();
+void __attribute__((weak)) UART9_IRQHandler();
+void __attribute__((weak)) USART10_IRQHandler();
+void __attribute__((weak)) I2C5_EV_IRQHandler();
+void __attribute__((weak)) I2C5_ER_IRQHandler();
+void __attribute__((weak)) FDCAN3_IT0_IRQHandler();
+void __attribute__((weak)) FDCAN3_IT1_IRQHandler();
+void __attribute__((weak)) TIM23_IRQHandler();
+void __attribute__((weak)) TIM24_IRQHandler();
 
 //Stack top, defined in the linker script
 extern char _main_stack_top asm("_main_stack_top");
@@ -351,9 +349,9 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
 	OTG_HS_EP1_IN_IRQHandler,
 	OTG_HS_WKUP_IRQHandler,
 	OTG_HS_IRQHandler,
-	DCMI_IRQHandler,
-	CRYP_IRQHandler,
-	HASH_RNG_IRQHandler,
+	DCMI_PSSI_IRQHandler, // 
+	0,
+	RNG_IRQHandler,
 	FPU_IRQHandler,
 	UART7_IRQHandler,
 	UART8_IRQHandler,
@@ -364,37 +362,37 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
 	LTDC_IRQHandler,
 	LTDC_ER_IRQHandler,
 	DMA2D_IRQHandler,
-	SAI2_IRQHandler,
-	QUADSPI_IRQHandler,
+	0,
+	OCTOSPI1_IRQHandler,
 	LPTIM1_IRQHandler,
 	CEC_IRQHandler,
 	I2C4_EV_IRQHandler,
 	I2C4_ER_IRQHandler,
 	SPDIF_RX_IRQHandler,
-	OTG_FS_EP1_OUT_IRQHandler,
-	OTG_FS_EP1_IN_IRQHandler,
-	OTG_FS_WKUP_IRQHandler,
-	OTG_FS_IRQHandler,
+	0,
+	0,
+	0,
+	0,
 	DMAMUX1_OVR_IRQHandler,
-	HRTIM1_Master_IRQHandler,
-	HRTIM1_TIMA_IRQHandler,
-	HRTIM1_TIMB_IRQHandler,
-	HRTIM1_TIMC_IRQHandler,
-	HRTIM1_TIMD_IRQHandler,
-	HRTIM1_TIME_IRQHandler,
-	HRTIM1_FLT_IRQHandler,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
 	DFSDM1_FLT0_IRQHandler,
 	DFSDM1_FLT1_IRQHandler,
 	DFSDM1_FLT2_IRQHandler,
 	DFSDM1_FLT3_IRQHandler,
-	SAI3_IRQHandler,
+	0,
 	SWPMI1_IRQHandler,
 	TIM15_IRQHandler,
 	TIM16_IRQHandler,
 	TIM17_IRQHandler,
 	MDIOS_WKUP_IRQHandler,
 	MDIOS_IRQHandler,
-	JPEG_IRQHandler,
+	0,
 	MDMA_IRQHandler,
 	0,
 	SDMMC2_IRQHandler,
@@ -410,7 +408,7 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
 	BDMA_Channel5_IRQHandler,
 	BDMA_Channel6_IRQHandler,
 	BDMA_Channel7_IRQHandler,
-	COMP1_IRQHandler,
+	COMP_IRQHandler,
 	LPTIM2_IRQHandler,
 	LPTIM3_IRQHandler,
 	LPTIM4_IRQHandler,
@@ -418,11 +416,24 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
 	LPUART1_IRQHandler,
 	0,
 	CRS_IRQHandler,
-	0,
+	ECC_IRQHandler,
 	SAI4_IRQHandler,
-	0,
+	DTS_IRQHandler,
 	0,
 	WAKEUP_PIN_IRQHandler,
+	OCTOSPI2_IRQHandler,
+	0,
+	0,
+	FMAC_IRQHandler,
+	CORDIC_IRQHandler,
+	UART9_IRQHandler,
+	USART10_IRQHandler,
+	I2C5_EV_IRQHandler,
+	I2C5_ER_IRQHandler,
+	FDCAN3_IT0_IRQHandler,
+	FDCAN3_IT1_IRQHandler,
+	TIM23_IRQHandler,
+	TIM24_IRQHandler,
 };
 
 #pragma weak SysTick_Handler = Default_Handler
@@ -499,9 +510,8 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
 #pragma weak OTG_HS_EP1_IN_IRQHandler = Default_Handler
 #pragma weak OTG_HS_WKUP_IRQHandler = Default_Handler
 #pragma weak OTG_HS_IRQHandler = Default_Handler
-#pragma weak DCMI_IRQHandler = Default_Handler
-#pragma weak CRYP_IRQHandler = Default_Handler
-#pragma weak HASH_RNG_IRQHandler = Default_Handler
+#pragma weak DCMI_PSSI_IRQHandler = Default_Handler
+#pragma weak RNG_IRQHandler = Default_Handler
 #pragma weak FPU_IRQHandler = Default_Handler
 #pragma weak UART7_IRQHandler = Default_Handler
 #pragma weak UART8_IRQHandler = Default_Handler
@@ -512,37 +522,23 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
 #pragma weak LTDC_IRQHandler = Default_Handler
 #pragma weak LTDC_ER_IRQHandler = Default_Handler
 #pragma weak DMA2D_IRQHandler = Default_Handler
-#pragma weak SAI2_IRQHandler = Default_Handler
-#pragma weak QUADSPI_IRQHandler = Default_Handler
+#pragma weak OCTOSPI1_IRQHandler = Default_Handler
 #pragma weak LPTIM1_IRQHandler = Default_Handler
 #pragma weak CEC_IRQHandler = Default_Handler
 #pragma weak I2C4_EV_IRQHandler = Default_Handler
 #pragma weak I2C4_ER_IRQHandler = Default_Handler
 #pragma weak SPDIF_RX_IRQHandler = Default_Handler
-#pragma weak OTG_FS_EP1_OUT_IRQHandler = Default_Handler
-#pragma weak OTG_FS_EP1_IN_IRQHandler = Default_Handler
-#pragma weak OTG_FS_WKUP_IRQHandler = Default_Handler
-#pragma weak OTG_FS_IRQHandler = Default_Handler
 #pragma weak DMAMUX1_OVR_IRQHandler = Default_Handler
-#pragma weak HRTIM1_Master_IRQHandler = Default_Handler
-#pragma weak HRTIM1_TIMA_IRQHandler = Default_Handler
-#pragma weak HRTIM1_TIMB_IRQHandler = Default_Handler
-#pragma weak HRTIM1_TIMC_IRQHandler = Default_Handler
-#pragma weak HRTIM1_TIMD_IRQHandler = Default_Handler
-#pragma weak HRTIM1_TIME_IRQHandler = Default_Handler
-#pragma weak HRTIM1_FLT_IRQHandler = Default_Handler
 #pragma weak DFSDM1_FLT0_IRQHandler = Default_Handler
 #pragma weak DFSDM1_FLT1_IRQHandler = Default_Handler
 #pragma weak DFSDM1_FLT2_IRQHandler = Default_Handler
 #pragma weak DFSDM1_FLT3_IRQHandler = Default_Handler
-#pragma weak SAI3_IRQHandler = Default_Handler
 #pragma weak SWPMI1_IRQHandler = Default_Handler
 #pragma weak TIM15_IRQHandler = Default_Handler
 #pragma weak TIM16_IRQHandler = Default_Handler
 #pragma weak TIM17_IRQHandler = Default_Handler
 #pragma weak MDIOS_WKUP_IRQHandler = Default_Handler
 #pragma weak MDIOS_IRQHandler = Default_Handler
-#pragma weak JPEG_IRQHandler = Default_Handler
 #pragma weak MDMA_IRQHandler = Default_Handler
 #pragma weak SDMMC2_IRQHandler = Default_Handler
 #pragma weak HSEM1_IRQHandler = Default_Handler
@@ -556,12 +552,25 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
 #pragma weak BDMA_Channel5_IRQHandler = Default_Handler
 #pragma weak BDMA_Channel6_IRQHandler = Default_Handler
 #pragma weak BDMA_Channel7_IRQHandler = Default_Handler
-#pragma weak COMP1_IRQHandler = Default_Handler
+#pragma weak COMP_IRQHandler = Default_Handler
 #pragma weak LPTIM2_IRQHandler = Default_Handler
 #pragma weak LPTIM3_IRQHandler = Default_Handler
 #pragma weak LPTIM4_IRQHandler = Default_Handler
 #pragma weak LPTIM5_IRQHandler = Default_Handler
 #pragma weak LPUART1_IRQHandler = Default_Handler
 #pragma weak CRS_IRQHandler = Default_Handler
+#pragma weak ECC_IRQHandler = Default_Handler
 #pragma weak SAI4_IRQHandler = Default_Handler
+#pragma weak DTS_IRQHandler = Default_Handler
 #pragma weak WAKEUP_PIN_IRQHandler = Default_Handler
+#pragma weak OCTOSPI2_IRQHandler = Default_Handler
+#pragma weak FMAC_IRQHandler = Default_Handler
+#pragma weak CORDIC_IRQHandler = Default_Handler
+#pragma weak UART9_IRQHandler = Default_Handler
+#pragma weak USART10_IRQHandler = Default_Handler
+#pragma weak I2C5_EV_IRQHandler = Default_Handler
+#pragma weak I2C5_ER_IRQHandler = Default_Handler
+#pragma weak FDCAN3_IT0_IRQHandler = Default_Handler
+#pragma weak FDCAN3_IT1_IRQHandler = Default_Handler
+#pragma weak TIM23_IRQHandler = Default_Handler
+#pragma weak TIM24_IRQHandler = Default_Handler
