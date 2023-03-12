@@ -16,6 +16,7 @@ endif()
 ## Link libraries
 set(BOOST_LIBS system)
 find_package(Boost COMPONENTS ${BOOST_LIBS} REQUIRED)
+target_include_directories(pc_loader PRIVATE ${Boost_INCLUDE_DIRS})
 target_link_libraries(pc_loader ${Boost_LIBRARIES})
 find_package(Threads REQUIRED)
 target_link_libraries(pc_loader ${CMAKE_THREAD_LIBS_INIT})
