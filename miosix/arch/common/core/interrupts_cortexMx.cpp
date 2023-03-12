@@ -469,6 +469,68 @@ void ISR_yield()
 }
 
 
+void Reset_Handler() __attribute__((__interrupt__, noreturn));
+//Stack top, defined in the linker script
+extern char _main_stack_top asm("_main_stack_top");
+
+struct InterruptTable
+{
+    constexpr InterruptTable(char* stackptr, fnptr i1, fnptr i2, fnptr i3,
+                             fnptr i4, fnptr i5, fnptr i6, fnptr i7,
+                             fnptr i8, fnptr i9, fnptr i10, fnptr i11,
+                             fnptr i12, fnptr i13, fnptr i14, fnptr i15,
+                             TableGenerator<numInterrupts>::type interruptProxyTable)
+    : stackptr(stackptr), i1(i1), i2(i2), i3(i3), i4(i4), i5(i5), i6(i6), i7(i7),
+      i8(i8), i9(i9), i10(i10), i11(i11), i12(i12), i13(i13), i14(i14), i15(i15),
+      interruptProxyTable(interruptProxyTable) {}
+
+    char *stackptr;
+    fnptr i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13, i14, i15;
+    // The rest of the interrupt table, the one for peripheral interrupts is
+    // generated programmatically using template metaprogramming to produce the
+    // proxy functions that allow dynamically registering interrupts.
+    TableGenerator<numInterrupts>::type interruptProxyTable;
+};
+
+__attribute__((section(".isr_vector"))) const InterruptTable systemInterruptTable
+(
+    #if __CORTEX_M != 0
+        &_main_stack_top,    // Stack pointer
+        Reset_Handler,       // Reset Handler
+        NMI_Handler,         // NMI Handler
+        HardFault_Handler,   // Hard Fault Handler
+        MemManage_Handler,   // MPU Fault Handler
+        BusFault_Handler,    // Bus Fault Handler
+        UsageFault_Handler,  // Usage Fault Handler
+        nullptr,             // Reserved
+        nullptr,             // Reserved
+        nullptr,             // Reserved
+        nullptr,             // Reserved
+        SVC_Handler,         // SVCall Handler
+        DebugMon_Handler,    // Debug Monitor Handler
+        nullptr,             // Reserved
+        PendSV_Handler,      // PendSV Handler
+        nullptr,             // SysTick Handler (Miosix does not use it)
+    #else //__CORTEX_M != 0
+        &_main_stack_top,    // Stack pointer
+        Reset_Handler,       // Reset Handler
+        NMI_Handler,         // NMI Handler
+        HardFault_Handler,   // Hard Fault Handler
+        nullptr,             // Reserved
+        nullptr,             // Reserved
+        nullptr,             // Reserved
+        nullptr,             // Reserved
+        nullptr,             // Reserved
+        nullptr,             // Reserved
+        nullptr,             // Reserved
+        SVC_Handler,         // SVCall Handler
+        nullptr,             // Reserved
+        nullptr,             // Reserved
+        PendSV_Handler,      // PendSV Handler
+        nullptr,             // SysTick Handler (Miosix does not use it)
+    #endif //__CORTEX_M != 0
+    TableGenerator<numInterrupts>::table
+);
 
 /**
  * Called by Reset_Handler, performs initialization and calls main.
@@ -479,6 +541,9 @@ void program_startup()
 {
     //Cortex M3 core appears to get out of reset with interrupts already enabled
     __disable_irq();
+    //NOTE: needed by some MCUS such as ATSam4l where the SAM-BA bootloader
+    //does not relocate the vector table offset
+    SCB->VTOR = reinterpret_cast<unsigned int>(&systemInterruptTable);
 
     //These are defined in the linker script
     extern unsigned char _etext asm("_etext");
@@ -507,7 +572,6 @@ void program_startup()
 /**
  * Reset handler, called by hardware immediately after reset
  */
-void Reset_Handler() __attribute__((__interrupt__, noreturn));
 void Reset_Handler()
 {
     /*
@@ -541,62 +605,5 @@ void Reset_Handler()
 
     program_startup();
 }
-
-//Stack top, defined in the linker script
-extern char _main_stack_top asm("_main_stack_top");
-
-#if __CORTEX_M != 0
-//Interrupt vectors, must be placed @ address 0x00000000
-//The extern declaration is required otherwise g++ optimizes it out
-extern void (* const __Vectors[])();
-void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
-{
-    reinterpret_cast<void (*)()>(&_main_stack_top),// Stack pointer
-    Reset_Handler,       // Reset Handler
-    NMI_Handler,         // NMI Handler
-    HardFault_Handler,   // Hard Fault Handler
-    MemManage_Handler,   // MPU Fault Handler
-    BusFault_Handler,    // Bus Fault Handler
-    UsageFault_Handler,  // Usage Fault Handler
-    nullptr,             // Reserved
-    nullptr,             // Reserved
-    nullptr,             // Reserved
-    nullptr,             // Reserved
-    SVC_Handler,         // SVCall Handler
-    DebugMon_Handler,    // Debug Monitor Handler
-    nullptr,             // Reserved
-    PendSV_Handler,      // PendSV Handler
-    nullptr,             // SysTick Handler (Miosix does not use it)
-};
-#else //__CORTEX_M != 0
-//Interrupt vectors, must be placed @ address 0x00000000
-//The extern declaration is required otherwise g++ optimizes it out
-extern void (* const __Vectors[])();
-void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
-{
-    reinterpret_cast<void (*)()>(&_main_stack_top),// Stack pointer
-    Reset_Handler,       // Reset Handler
-    NMI_Handler,         // NMI Handler
-    HardFault_Handler,   // Hard Fault Handler
-    nullptr,             // Reserved
-    nullptr,             // Reserved
-    nullptr,             // Reserved
-    nullptr,             // Reserved
-    nullptr,             // Reserved
-    nullptr,             // Reserved
-    nullptr,             // Reserved
-    SVC_Handler,         // SVCall Handler
-    nullptr,             // Reserved
-    nullptr,             // Reserved
-    PendSV_Handler,      // PendSV Handler
-    nullptr,             // SysTick Handler (Miosix does not use it)
-};
-#endif //__CORTEX_M != 0
-
-// The rest of the interrupt table, the one for peripheral interrupts is
-// generated programmatically using template metaprogramming to produce the
-// proxy functions that allow dynamically registering interrupts.
-extern __attribute__ ((section(".isr_vector"))) const auto
-    interruptProxyTable=TableGenerator<numInterrupts>::table;
 
 } //namespace miosix
