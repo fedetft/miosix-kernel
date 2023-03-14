@@ -28,6 +28,28 @@
 #include "interfaces/arch_registers.h"
 #include "pll.h"
 
+#if (HSE_VALUE == 25000000)
+static constexpr M=5;   // M=5 25MHz/5=5MHz
+#ifdef SYSCLK_FREQ_550MHz
+static constexpr N=220; // N=220 = 1100MHz
+#elif defined(SYSCLK_FREQ_400MHz)
+static constexpr N=160; // N=160 = 800MHz
+#else
+#error "SYSCLK value not supported!"
+#endif
+#elif (HSE_VALUE == 8000000)
+static constexpr M=2;   // M=2 8MHz/2=4MHz
+#ifdef SYSCLK_FREQ_550MHz
+static constexpr N=275; // N=275 = 1100MHz
+#elif defined(SYSCLK_FREQ_400MHz)
+static constexpr N=200; // N=200 = 800MHz
+#else
+#error "SYSCLK value not supported!"
+#endif
+#else
+#error "HSE value not supported!"
+#endif
+
 void startPll()
 {
     //In the STM32H7 DVFS was introduced (chapter 6, Power control)
@@ -43,13 +65,14 @@ void startPll()
     while((RCC->CR & RCC_CR_HSERDY)==0) ; //Wait
     
     //Start the PLL
-    RCC->PLLCKSELR |= RCC_PLLCKSELR_DIVM1_0
-                    | RCC_PLLCKSELR_DIVM1_2     //M=5 (25MHz/5)5MHz
+    RCC->PLLCKSELR |= M<<RCC_PLLCKSELR_DIVM1_Pos
                     | RCC_PLLCKSELR_PLLSRC_HSE; //HSE selected as PLL source
-    RCC->PLL1DIVR = (2-1)<<24 // R=2
-                  | (8-1)<<16 // Q=8
-                  | (2-1)<<9  // P=2
-                  | (160-1);  // N=160
+
+    RCC->PLL1DIVR = (2-1)<<RCC_PLL1DIVR_R1_Pos // R=2
+                  | (8-1)<<RCC_PLL1DIVR_Q1_Pos // Q=8
+                  | (2-1)<<RCC_PLL1DIVR_P1_Pos // P=2
+                  | (N-1)<<RCC_PLL1DIVR_N1_Pos;
+
     RCC->PLLCFGR |= RCC_PLLCFGR_PLL1RGE_2 // Pll ref clock between 4 and 8MHz
                   | RCC_PLLCFGR_DIVP1EN   // Enable output P
                   | RCC_PLLCFGR_DIVQ1EN   // Enable output Q

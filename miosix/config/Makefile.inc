@@ -2497,7 +2497,7 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
         CXXFLAGS_BASE += -D_BOARD_STM32H723ZG_NUCLEO
 
         ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_550MHz=550000000
+        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_550MHz=550000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types

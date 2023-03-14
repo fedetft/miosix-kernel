@@ -34,7 +34,7 @@ void delayMs(unsigned int mseconds)
     #ifdef SYSCLK_FREQ_400MHz
     register const unsigned int count=133000;
     #elif defined(SYSCLK_FREQ_550MHz)
-    register const unsigned int count=1000*550/4;
+    register const unsigned int count=182875;
     #else
     #warning "Delays are uncalibrated for this clock frequency"
     #endif
@@ -65,7 +65,7 @@ void delayUs(unsigned int useconds)
                  "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
     
     #elif defined(SYSCLK_FREQ_550MHz)
-    asm volatile("           mov   r1, #133   \n"
+    asm volatile("           mov   r1, #183   \n"
                  "           mul   r2, %0, r1 \n"
                  "           mov   r1, #0     \n"
                  "___loop_u: cmp   r1, r2     \n"
