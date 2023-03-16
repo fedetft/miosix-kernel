@@ -121,7 +121,7 @@ void *idleThread(void *argv)
             {
                 if(sleepingList->empty()==false)
                 {
-                    long long wakeup=(*sleepingList->begin())->wakeup_time;
+                    long long wakeup=sleepingList->front()->wakeup_time;
                     sleep=!IRQdeepSleep(wakeup);
                 } else sleep=!IRQdeepSleep();
             } else sleep=true;
