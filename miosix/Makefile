@@ -19,6 +19,7 @@ kernel/elf_program.cpp                                                     \
 kernel/process.cpp                                                         \
 kernel/process_pool.cpp                                                    \
 kernel/timeconversion.cpp                                                  \
+kernel/intrusive.cpp                                                       \
 kernel/SystemMap.cpp                                                       \
 kernel/cpu_time_counter.cpp                                                \
 kernel/scheduler/priority/priority_scheduler.cpp                           \

@@ -31,7 +31,13 @@
 #include <cstddef>
 #include <cassert>
 #include <type_traits>
+#ifndef TEST_ALGORITHM
 #include "interfaces/atomic_ops.h"
+#include "error.h"
+#endif //TEST_ALGORITHM
+
+//Only enable when testing code that uses IntrusiveList
+//#define INTRUSIVE_LIST_ERROR_CHECK
 
 namespace miosix {
 
@@ -669,22 +675,52 @@ public:
     class iterator
     {
     public:
-        iterator() : cur(nullptr) {}
+        iterator() : list(nullptr), cur(nullptr) {}
 
-        T* operator*() { return static_cast<T*>(cur); }
+        T* operator*()
+        {
+            #ifdef INTRUSIVE_LIST_ERROR_CHECK
+            if(list==nullptr || cur==nullptr) IntrusiveList<T>::fail();
+            #endif //INTRUSIVE_LIST_ERROR_CHECK
+            return static_cast<T*>(cur);
+        }
 
-        iterator operator++() { cur=cur->next; return *this; }
-        iterator operator--() { cur=cur->prev; return *this; }
+        iterator operator++()
+        {
+            #ifdef INTRUSIVE_LIST_ERROR_CHECK
+            if(list==nullptr || cur==nullptr) IntrusiveList<T>::fail();
+            #endif //INTRUSIVE_LIST_ERROR_CHECK
+            cur=cur->next; return *this;
+        }
+
+        iterator operator--()
+        {
+            #ifdef INTRUSIVE_LIST_ERROR_CHECK
+            if(list==nullptr || list->empty()) IntrusiveList<T>::fail();
+            #endif //INTRUSIVE_LIST_ERROR_CHECK
+            if(cur!=nullptr) cur=cur->prev;
+            else cur=list->tail; //Special case: decrementing end()
+            return *this;
+        }
+
         iterator operator++(int)
         {
+            #ifdef INTRUSIVE_LIST_ERROR_CHECK
+            if(list==nullptr || cur==nullptr) IntrusiveList<T>::fail();
+            #endif //INTRUSIVE_LIST_ERROR_CHECK
             iterator result=*this;
             cur=cur->next;
             return result;
         }
+
         iterator operator--(int)
         {
+            #ifdef INTRUSIVE_LIST_ERROR_CHECK
+            if(list==nullptr || list->empty()) IntrusiveList<T>::fail();
+            #endif //INTRUSIVE_LIST_ERROR_CHECK
             iterator result=*this;
-            cur=cur->prev;
+            if(cur!=nullptr) cur=cur->prev;
+            else cur=list->tail; //Special case: decrementing end()
             return result;
         }
 
@@ -692,8 +728,10 @@ public:
         bool operator!=(const iterator& rhs) { return cur!=rhs.cur; }
 
     private:
-        iterator(IntrusiveListItem *cur) : cur(cur) {}
+        iterator(IntrusiveList<T> *list, IntrusiveListItem *cur)
+            : list(list), cur(cur) {}
 
+        IntrusiveList<T> *list;
         IntrusiveListItem *cur;
 
         friend class IntrusiveList<T>;
@@ -719,8 +757,8 @@ public:
     void push_back(T *item)
     {
         #ifdef INTRUSIVE_LIST_ERROR_CHECK
-        if(head!=nullptr ^ tail!=nullptr) fail();
-        if(head==tail && !(head->prev==nullptr && head->next==nullptr)) fail();
+        if((head!=nullptr) ^ (tail!=nullptr)) fail();
+        if(!empty() && head==tail && (head->prev || head->next)) fail();
         if(item->prev!=nullptr || item->next!=nullptr) fail();
         #endif //INTRUSIVE_LIST_ERROR_CHECK
         if(empty()) head=item;
@@ -738,7 +776,7 @@ public:
     {
         #ifdef INTRUSIVE_LIST_ERROR_CHECK
         if(head==nullptr || tail==nullptr) fail();
-        if(head==tail && !(head->prev==nullptr && head->next==nullptr)) fail();
+        if(!empty() && head==tail && (head->prev || head->next)) fail();
         #endif //INTRUSIVE_LIST_ERROR_CHECK
         IntrusiveListItem *removedItem=tail;
         tail=removedItem->prev;
@@ -756,8 +794,8 @@ public:
     void push_front(T *item)
     {
         #ifdef INTRUSIVE_LIST_ERROR_CHECK
-        if(head!=nullptr ^ tail!=nullptr) fail();
-        if(head==tail && !(head->prev==nullptr && head->next==nullptr)) fail();
+        if((head!=nullptr) ^ (tail!=nullptr)) fail();
+        if(!empty() && head==tail && (head->prev || head->next)) fail();
         if(item->prev!=nullptr || item->next!=nullptr) fail();
         #endif //INTRUSIVE_LIST_ERROR_CHECK
         if(empty()) tail=item;
@@ -775,7 +813,7 @@ public:
     {
         #ifdef INTRUSIVE_LIST_ERROR_CHECK
         if(head==nullptr || tail==nullptr) fail();
-        if(head==tail && !(head->prev==nullptr && head->next==nullptr)) fail();
+        if(!empty() && head==tail && (head->prev || head->next)) fail();
         #endif //INTRUSIVE_LIST_ERROR_CHECK
         IntrusiveListItem *removedItem=head;
         head=removedItem->next;
@@ -793,10 +831,11 @@ public:
      */
     void insert(iterator it, T *item)
     {
-        IntrusiveListItem *cur=*it;
+        IntrusiveListItem *cur=it.cur; //Safe even if it==end(), cur==nullptr
         #ifdef INTRUSIVE_LIST_ERROR_CHECK
-        if(head!=nullptr ^ tail!=nullptr) fail();
-        if(head==tail && !(head->prev==nullptr && head->next==nullptr)) fail();
+        if((head!=nullptr) ^ (tail!=nullptr)) fail();
+        if(!empty() && head==tail && (head->prev || head->next)) fail();
+        if(it.list!=this) fail();
         if(cur!=nullptr)
         {
             if(cur->prev==nullptr && cur!=head) fail();
@@ -824,10 +863,11 @@ public:
      */
     iterator erase(iterator it)
     {
-        IntrusiveListItem *cur=*it;
+        IntrusiveListItem *cur=it.cur; //Safe even if it==end(), cur==nullptr
         #ifdef INTRUSIVE_LIST_ERROR_CHECK
         if(head==nullptr || tail==nullptr) fail();
-        if(head==tail && !(head->prev==nullptr && head->next==nullptr)) fail();
+        if(!empty() && head==tail && (head->prev || head->next)) fail();
+        if(it.list!=this) fail();
         if(cur==nullptr) fail();
         if(cur->prev==nullptr && cur!=head) fail();
         if(cur->next==nullptr && cur!=tail) fail();
@@ -836,7 +876,7 @@ public:
         else head=cur->next;
         if(cur->next!=nullptr) cur->next->prev=cur->prev;
         else tail=cur->prev;
-        iterator result(cur->next);
+        iterator result(this,cur->next);
         cur->prev=nullptr;
         cur->next=nullptr;
         return result;
@@ -845,12 +885,12 @@ public:
     /**
      * \return an iterator to the first item
      */
-    iterator begin() { return iterator(head); }
+    iterator begin() { return iterator(this,head); }
     
     /**
      * \return an iterator to the last item
      */
-    iterator end() { return iterator(nullptr); }
+    iterator end() { return iterator(this,nullptr); }
     
     /**
      * \return a pointer to the first item. List must not be empty
@@ -868,8 +908,24 @@ public:
     bool empty() const { return head==nullptr; }
 
 private:
+    #ifdef INTRUSIVE_LIST_ERROR_CHECK
+    static void fail();
+    #endif //INTRUSIVE_LIST_ERROR_CHECK
+
     IntrusiveListItem *head;
     IntrusiveListItem *tail;
 };
+
+#ifdef INTRUSIVE_LIST_ERROR_CHECK
+template<typename T>
+void IntrusiveList<T>::fail()
+{
+    #ifndef TEST_ALGORITHM
+    errorHandler(UNEXPECTED);
+    #else //TEST_ALGORITHM
+    assert(false);
+    #endif //TEST_ALGORITHM
+}
+#endif //INTRUSIVE_LIST_ERROR_CHECK
 
 } //namespace miosix

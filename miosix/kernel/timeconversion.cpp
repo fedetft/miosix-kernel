@@ -449,7 +449,7 @@ TimeConversionFactor TimeConversion::floatToFactor(float x) noexcept
 } //namespace miosix
 
 //Testsuite for multiplication algorithm and factor computation. Compile with:
-// g++ -std=c++11 -O2 -DTEST_ALGORITHM -o test timeconversion.cpp; ./test
+// g++ -std=c++14 -O2 -DTEST_ALGORITHM -o test timeconversion.cpp; ./test
 #ifdef TEST_ALGORITHM
 
 using namespace std;
