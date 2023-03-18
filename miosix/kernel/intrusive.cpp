@@ -1,3 +1,29 @@
+/***************************************************************************
+ *   Copyright (C) 2023 by Terraneo Federico                               *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   As a special exception, if other files instantiate templates or use   *
+ *   macros or inline functions from this file, or you compile this file   *
+ *   and link it with other works to produce a work based on this file,    *
+ *   this file does not by itself cause the resulting work to be covered   *
+ *   by the GNU General Public License. However the source code for this   *
+ *   file must still be made available in accordance with the GNU General  *
+ *   Public License. This exception does not invalidate any other reasons  *
+ *   why a work based on this file might be covered by the GNU General     *
+ *   Public License.                                                       *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
+ ***************************************************************************/
 
 #ifndef TEST_ALGORITHM
 
@@ -24,9 +50,129 @@ using namespace miosix;
 
 #endif //TEST_ALGORITHM
 
+namespace miosix {
 
+//
+// class IntrusiveListBase
+//
 
+void IntrusiveListBase::push_back(IntrusiveListItem *item)
+{
+    #ifdef INTRUSIVE_LIST_ERROR_CHECK
+    if((head!=nullptr) ^ (tail!=nullptr)) fail();
+    if(!empty() && head==tail && (head->prev || head->next)) fail();
+    if(item->prev!=nullptr || item->next!=nullptr) fail();
+    #endif //INTRUSIVE_LIST_ERROR_CHECK
+    if(empty()) head=item;
+    else {
+        item->prev=tail;
+        tail->next=item;
+    }
+    tail=item;
+}
 
+void IntrusiveListBase::pop_back()
+{
+    #ifdef INTRUSIVE_LIST_ERROR_CHECK
+    if(head==nullptr || tail==nullptr) fail();
+    if(!empty() && head==tail && (head->prev || head->next)) fail();
+    #endif //INTRUSIVE_LIST_ERROR_CHECK
+    IntrusiveListItem *removedItem=tail;
+    tail=removedItem->prev;
+    if(tail!=nullptr)
+    {
+        tail->next=nullptr;
+        removedItem->prev=nullptr;
+    } else head=nullptr;
+}
+
+void IntrusiveListBase::push_front(IntrusiveListItem *item)
+{
+    #ifdef INTRUSIVE_LIST_ERROR_CHECK
+    if((head!=nullptr) ^ (tail!=nullptr)) fail();
+    if(!empty() && head==tail && (head->prev || head->next)) fail();
+    if(item->prev!=nullptr || item->next!=nullptr) fail();
+    #endif //INTRUSIVE_LIST_ERROR_CHECK
+    if(empty()) tail=item;
+    else {
+        head->prev=item;
+        item->next=head;
+    }
+    head=item;
+}
+
+void IntrusiveListBase::pop_front()
+{
+    #ifdef INTRUSIVE_LIST_ERROR_CHECK
+    if(head==nullptr || tail==nullptr) fail();
+    if(!empty() && head==tail && (head->prev || head->next)) fail();
+    #endif //INTRUSIVE_LIST_ERROR_CHECK
+    IntrusiveListItem *removedItem=head;
+    head=removedItem->next;
+    if(head!=nullptr)
+    {
+        head->prev=nullptr;
+        removedItem->next=nullptr;
+    } else tail=nullptr;
+}
+
+void IntrusiveListBase::insert(IntrusiveListItem *cur, IntrusiveListItem *item)
+{
+    #ifdef INTRUSIVE_LIST_ERROR_CHECK
+    if((head!=nullptr) ^ (tail!=nullptr)) fail();
+    if(!empty() && head==tail && (head->prev || head->next)) fail();
+    if(cur!=nullptr)
+    {
+        if(cur->prev==nullptr && cur!=head) fail();
+        if(cur->next==nullptr && cur!=tail) fail();
+    }
+    if(item->prev!=nullptr || item->next!=nullptr) fail();
+    #endif //INTRUSIVE_LIST_ERROR_CHECK
+    item->next=cur;
+    if(cur!=nullptr)
+    {
+        item->prev=cur->prev;
+        cur->prev=item;
+    } else {
+        item->prev=tail;
+        tail=item;
+    }
+    if(item->prev!=nullptr) item->prev->next=item;
+    else head=item;
+}
+
+IntrusiveListItem *IntrusiveListBase::erase(IntrusiveListItem *cur)
+{
+    #ifdef INTRUSIVE_LIST_ERROR_CHECK
+    if(head==nullptr || tail==nullptr) fail();
+    if(!empty() && head==tail && (head->prev || head->next)) fail();
+    if(cur==nullptr) fail();
+    if(cur->prev==nullptr && cur!=head) fail();
+    if(cur->next==nullptr && cur!=tail) fail();
+    #endif //INTRUSIVE_LIST_ERROR_CHECK
+    if(cur->prev!=nullptr) cur->prev->next=cur->next;
+    else head=cur->next;
+    if(cur->next!=nullptr) cur->next->prev=cur->prev;
+    else tail=cur->prev;
+    auto result=cur->next;
+    cur->prev=nullptr;
+    cur->next=nullptr;
+    return result;
+}
+
+#ifdef INTRUSIVE_LIST_ERROR_CHECK
+#warning "INTRUSIVE_LIST_ERROR_CHECK should not be enabled in release builds"
+void IntrusiveListBase::fail()
+{
+    #ifndef TEST_ALGORITHM
+    errorHandler(UNEXPECTED);
+    #else //TEST_ALGORITHM
+    assert(false);
+    #endif //TEST_ALGORITHM
+}
+#endif //INTRUSIVE_LIST_ERROR_CHECK
+
+} //namespace miosix
 
 //Testsuite for IntrusiveList. Compile with:
 //g++ -DTEST_ALGORITHM -DINTRUSIVE_LIST_ERROR_CHECK -fsanitize=address -m32

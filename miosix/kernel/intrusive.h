@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Terraneo Federico                               *
+ *   Copyright (C) 2013-2023 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -636,8 +636,10 @@ intrusive_ref_ptr<T> atomic_exchange(intrusive_ref_ptr<T> *p,
     return p->atomic_exchange(r);
 }
 
+//Forward declarations
+class IntrusiveListBase;
 template<typename T>
-class IntrusiveList; //Forward declaration
+class IntrusiveList;
 
 /**
  * Base class from which all items to be put in an IntrusiveList must derive,
@@ -648,8 +650,47 @@ class IntrusiveListItem
 private:
     IntrusiveListItem *next=nullptr;
     IntrusiveListItem *prev=nullptr;
+
+    friend class IntrusiveListBase;
     template<typename T>
     friend class IntrusiveList;
+};
+
+/**
+ * \internal
+ * Base class of IntrusiveList with the non-template-dependent part to improve
+ * code size when instantiationg multiple IntrusiveLists
+ */
+class IntrusiveListBase
+{
+protected:
+    IntrusiveListBase() : head(nullptr), tail(nullptr) {}
+
+    void push_back(IntrusiveListItem *item);
+
+    void pop_back();
+
+    void push_front(IntrusiveListItem *item);
+
+    void pop_front();
+
+    void insert(IntrusiveListItem *cur, IntrusiveListItem *item);
+
+    IntrusiveListItem *erase(IntrusiveListItem *cur);
+
+    IntrusiveListItem* front() { return head; }
+
+    IntrusiveListItem* back() { return tail; }
+
+    bool empty() const { return head==nullptr; }
+
+    #ifdef INTRUSIVE_LIST_ERROR_CHECK
+    static void fail();
+    #endif //INTRUSIVE_LIST_ERROR_CHECK
+
+private:
+    IntrusiveListItem *head;
+    IntrusiveListItem *tail;
 };
 
 /**
@@ -666,7 +707,7 @@ private:
  * this list.
  */
 template<typename T>
-class IntrusiveList
+class IntrusiveList : private IntrusiveListBase
 {
 public:
     /**
@@ -680,7 +721,7 @@ public:
         T* operator*()
         {
             #ifdef INTRUSIVE_LIST_ERROR_CHECK
-            if(list==nullptr || cur==nullptr) IntrusiveList<T>::fail();
+            if(list==nullptr || cur==nullptr) IntrusiveListBase::fail();
             #endif //INTRUSIVE_LIST_ERROR_CHECK
             return static_cast<T*>(cur);
         }
@@ -688,7 +729,7 @@ public:
         iterator operator++()
         {
             #ifdef INTRUSIVE_LIST_ERROR_CHECK
-            if(list==nullptr || cur==nullptr) IntrusiveList<T>::fail();
+            if(list==nullptr || cur==nullptr) IntrusiveListBase::fail();
             #endif //INTRUSIVE_LIST_ERROR_CHECK
             cur=cur->next; return *this;
         }
@@ -696,7 +737,7 @@ public:
         iterator operator--()
         {
             #ifdef INTRUSIVE_LIST_ERROR_CHECK
-            if(list==nullptr || list->empty()) IntrusiveList<T>::fail();
+            if(list==nullptr || list->empty()) IntrusiveListBase::fail();
             #endif //INTRUSIVE_LIST_ERROR_CHECK
             if(cur!=nullptr) cur=cur->prev;
             else cur=list->tail; //Special case: decrementing end()
@@ -706,7 +747,7 @@ public:
         iterator operator++(int)
         {
             #ifdef INTRUSIVE_LIST_ERROR_CHECK
-            if(list==nullptr || cur==nullptr) IntrusiveList<T>::fail();
+            if(list==nullptr || cur==nullptr) IntrusiveListBase::fail();
             #endif //INTRUSIVE_LIST_ERROR_CHECK
             iterator result=*this;
             cur=cur->next;
@@ -716,7 +757,7 @@ public:
         iterator operator--(int)
         {
             #ifdef INTRUSIVE_LIST_ERROR_CHECK
-            if(list==nullptr || list->empty()) IntrusiveList<T>::fail();
+            if(list==nullptr || list->empty()) IntrusiveListBase::fail();
             #endif //INTRUSIVE_LIST_ERROR_CHECK
             iterator result=*this;
             if(cur!=nullptr) cur=cur->prev;
@@ -740,7 +781,7 @@ public:
     /**
      * Constructor, produces an empty list
      */
-    IntrusiveList() : head(nullptr), tail(nullptr) {}
+    IntrusiveList() {}
 
     /**
      * Disabled copy constructor and operator=
@@ -754,75 +795,23 @@ public:
      * Adds item to the end of the list
      * \param item item to add
      */
-    void push_back(T *item)
-    {
-        #ifdef INTRUSIVE_LIST_ERROR_CHECK
-        if((head!=nullptr) ^ (tail!=nullptr)) fail();
-        if(!empty() && head==tail && (head->prev || head->next)) fail();
-        if(item->prev!=nullptr || item->next!=nullptr) fail();
-        #endif //INTRUSIVE_LIST_ERROR_CHECK
-        if(empty()) head=item;
-        else {
-            item->prev=tail;
-            tail->next=item;
-        }
-        tail=item;
-    }
+    void push_back(T *item) { IntrusiveListBase::push_back(item); }
     
     /**
      * Removes the last element in the list
      */
-    void pop_back()
-    {
-        #ifdef INTRUSIVE_LIST_ERROR_CHECK
-        if(head==nullptr || tail==nullptr) fail();
-        if(!empty() && head==tail && (head->prev || head->next)) fail();
-        #endif //INTRUSIVE_LIST_ERROR_CHECK
-        IntrusiveListItem *removedItem=tail;
-        tail=removedItem->prev;
-        if(tail!=nullptr)
-        {
-            tail->next=nullptr;
-            removedItem->prev=nullptr;
-        } else head=nullptr;
-    }
+    void pop_back() { IntrusiveListBase::pop_back(); }
     
     /**
      * Adds item to the front of the list
      * \param item item to add
      */
-    void push_front(T *item)
-    {
-        #ifdef INTRUSIVE_LIST_ERROR_CHECK
-        if((head!=nullptr) ^ (tail!=nullptr)) fail();
-        if(!empty() && head==tail && (head->prev || head->next)) fail();
-        if(item->prev!=nullptr || item->next!=nullptr) fail();
-        #endif //INTRUSIVE_LIST_ERROR_CHECK
-        if(empty()) tail=item;
-        else {
-            head->prev=item;
-            item->next=head;
-        }
-        head=item;
-    }
+    void push_front(T *item) { IntrusiveListBase::push_front(item); }
     
     /**
      * Removes the first item of the list
      */
-    void pop_front()
-    {
-        #ifdef INTRUSIVE_LIST_ERROR_CHECK
-        if(head==nullptr || tail==nullptr) fail();
-        if(!empty() && head==tail && (head->prev || head->next)) fail();
-        #endif //INTRUSIVE_LIST_ERROR_CHECK
-        IntrusiveListItem *removedItem=head;
-        head=removedItem->next;
-        if(head!=nullptr)
-        {
-            head->prev=nullptr;
-            removedItem->next=nullptr;
-        } else tail=nullptr;
-    }
+    void pop_front() { IntrusiveListBase::pop_front(); }
     
     /**
      * Inserts the given item before the position indicated by the iterator
@@ -831,29 +820,11 @@ public:
      */
     void insert(iterator it, T *item)
     {
-        IntrusiveListItem *cur=it.cur; //Safe even if it==end(), cur==nullptr
         #ifdef INTRUSIVE_LIST_ERROR_CHECK
-        if((head!=nullptr) ^ (tail!=nullptr)) fail();
-        if(!empty() && head==tail && (head->prev || head->next)) fail();
         if(it.list!=this) fail();
-        if(cur!=nullptr)
-        {
-            if(cur->prev==nullptr && cur!=head) fail();
-            if(cur->next==nullptr && cur!=tail) fail();
-        }
-        if(item->prev!=nullptr || item->next!=nullptr) fail();
         #endif //INTRUSIVE_LIST_ERROR_CHECK
-        item->next=cur;
-        if(cur!=nullptr)
-        {
-            item->prev=cur->prev;
-            cur->prev=item;
-        } else {
-            item->prev=tail;
-            tail=item;
-        }
-        if(item->prev!=nullptr) item->prev->next=item;
-        else head=item;
+        IntrusiveListItem *cur=it.cur; //Safe even if it==end() -> cur=nullptr
+        IntrusiveListBase::insert(cur,item);
     }
     
     /**
@@ -863,29 +834,17 @@ public:
      */
     iterator erase(iterator it)
     {
-        IntrusiveListItem *cur=it.cur; //Safe even if it==end(), cur==nullptr
         #ifdef INTRUSIVE_LIST_ERROR_CHECK
-        if(head==nullptr || tail==nullptr) fail();
-        if(!empty() && head==tail && (head->prev || head->next)) fail();
         if(it.list!=this) fail();
-        if(cur==nullptr) fail();
-        if(cur->prev==nullptr && cur!=head) fail();
-        if(cur->next==nullptr && cur!=tail) fail();
         #endif //INTRUSIVE_LIST_ERROR_CHECK
-        if(cur->prev!=nullptr) cur->prev->next=cur->next;
-        else head=cur->next;
-        if(cur->next!=nullptr) cur->next->prev=cur->prev;
-        else tail=cur->prev;
-        iterator result(this,cur->next);
-        cur->prev=nullptr;
-        cur->next=nullptr;
-        return result;
+        IntrusiveListItem *cur=it.cur; //Safe even if it==end() -> cur=nullptr
+        return iterator(this,IntrusiveListBase::erase(cur));
     }
     
     /**
      * \return an iterator to the first item
      */
-    iterator begin() { return iterator(this,head); }
+    iterator begin() { return iterator(this,IntrusiveListBase::front()); }
     
     /**
      * \return an iterator to the last item
@@ -895,37 +854,17 @@ public:
     /**
      * \return a pointer to the first item. List must not be empty
      */
-    T* front() { return static_cast<T*>(head); }
+    T* front() { return static_cast<T*>(IntrusiveListBase::front()); }
     
     /**
      * \return a pointer to the last item. List must not be empty
      */
-    T* back() { return static_cast<T*>(tail); }
+    T* back() { return static_cast<T*>(IntrusiveListBase::back()); }
     
     /**
      * \return true if the list is empty
      */
-    bool empty() const { return head==nullptr; }
-
-private:
-    #ifdef INTRUSIVE_LIST_ERROR_CHECK
-    static void fail();
-    #endif //INTRUSIVE_LIST_ERROR_CHECK
-
-    IntrusiveListItem *head;
-    IntrusiveListItem *tail;
+    bool empty() const { return IntrusiveListBase::empty(); }
 };
-
-#ifdef INTRUSIVE_LIST_ERROR_CHECK
-template<typename T>
-void IntrusiveList<T>::fail()
-{
-    #ifndef TEST_ALGORITHM
-    errorHandler(UNEXPECTED);
-    #else //TEST_ALGORITHM
-    assert(false);
-    #endif //TEST_ALGORITHM
-}
-#endif //INTRUSIVE_LIST_ERROR_CHECK
 
 } //namespace miosix
