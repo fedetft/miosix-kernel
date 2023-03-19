@@ -740,7 +740,7 @@ public:
             if(list==nullptr || list->empty()) IntrusiveListBase::fail();
             #endif //INTRUSIVE_LIST_ERROR_CHECK
             if(cur!=nullptr) cur=cur->prev;
-            else cur=list->tail; //Special case: decrementing end()
+            else cur=list->IntrusiveListBase::back(); //Special case: decrementing end()
             return *this;
         }
 
@@ -761,7 +761,7 @@ public:
             #endif //INTRUSIVE_LIST_ERROR_CHECK
             iterator result=*this;
             if(cur!=nullptr) cur=cur->prev;
-            else cur=list->tail; //Special case: decrementing end()
+            else cur=list->IntrusiveListBase::back(); //Special case: decrementing end()
             return result;
         }
 
