@@ -3210,6 +3210,7 @@ These are not actually in the kernel but in the patches to gcc
 also tests atomic operations provided by miosix (interfaces/atomic_ops.h)
 */
 
+const int t22_iterations=100000;
 static int t22_v1;
 static int t22_v2;
 static int t22_v3;
@@ -3229,21 +3230,28 @@ static void t22_t2(void *argv)
     while(Thread::testTerminate()==false)
     {
         t22_v5=true;
+        #ifndef SCHED_TYPE_EDF
         Thread::yield();
+        #else //SCHED_TYPE_EDF
+        Thread::sleep(1);
+        #endif //SCHED_TYPE_EDF
     }
 }
 
 static void *t22_t1(void*)
 {
-	for(int i=0;i<100000;i++)
-	{
-		__gnu_cxx::__atomic_add(&t22_v1,1);
-		__gnu_cxx::__exchange_and_add(&t22_v2,-1);
+    for(int i=0;i<t22_iterations;i++)
+    {
+        __gnu_cxx::__atomic_add(&t22_v1,1);
+        __gnu_cxx::__exchange_and_add(&t22_v2,-1);
         atomicAdd(&t22_v3,1);
         atomicAddExchange(&t22_v4,1);
         t22_v6++;
-	}
-	return 0;
+        #ifdef SCHED_TYPE_EDF
+        if((i % (t22_iterations/10))==0) Thread::sleep(1);
+        #endif //SCHED_TYPE_EDF
+    }
+    return 0;
 }
 
 int t22_v8;
@@ -3264,7 +3272,13 @@ shared_ptr<t22_c1> t22_v7;
 void t22_t3(void*)
 {
     auto inst1=make_shared<t22_c1>();
-    for(int i=0;i<100000;i++) atomic_store(&t22_v7,inst1);
+    for(int i=0;i<t22_iterations;i++)
+    {
+        atomic_store(&t22_v7,inst1);
+        #ifdef SCHED_TYPE_EDF
+        if((i % (t22_iterations/10))==0) Thread::sleep(1);
+        #endif //SCHED_TYPE_EDF
+    }
     atomic_store(&t22_v7,shared_ptr<t22_c1>(nullptr));
     inst1->canDelete=true;
 }
@@ -3277,13 +3291,16 @@ static void test_22()
     t22_v1=t22_v2=t22_v3=t22_v4=0;
     pthread_t t;
     pthread_create(&t,0,t22_t1,0);
-    for(int i=0;i<100000;i++)
+    for(int i=0;i<t22_iterations;i++)
     {
         __gnu_cxx::__atomic_add(&t22_v1,-1);
         __gnu_cxx::__exchange_and_add(&t22_v2,1);
         atomicAdd(&t22_v3,-1);
         atomicAddExchange(&t22_v4,-1);
         t22_v6--;
+        #ifdef SCHED_TYPE_EDF
+        if((i % (t22_iterations/10))==0) Thread::sleep(1);
+        #endif //SCHED_TYPE_EDF
     }
     pthread_join(t,0);
     if(t22_v1!=0 || t22_v2!=0 || t22_v3!=0 || t22_v4!=0)
@@ -3308,7 +3325,7 @@ static void test_22()
     if(x!=10) fail("atomicCompareAndSwap 2");
     if(atomicCompareAndSwap(&x,10,13)!=10) fail("atomicCompareAndSwap 3");
     if(x!=13) fail("atomicCompareAndSwap 4");
-    
+
     t22_s1 data;
     t22_s1 *dataPtr=&data;
     void * const volatile *ptr=
@@ -3329,7 +3346,7 @@ static void test_22()
     {
         FastInterruptDisableLock dLock;
         t22_v5=false;
-        
+
         int x=10;
         if(atomicSwap(&x,20)!=10) error=true;
         if(x!=20) error=true;
@@ -3358,12 +3375,12 @@ static void test_22()
         if(data.a!=2) error=true;
         if(atomicFetchAndIncrement(ptr,1,-2)!=dataPtr) error=true;
         if(data.b!=8) error=true;
-        
+
         delayUs(MAX_TIME_IRQ_DISABLED); //Wait to check interrupts are disabled
         if(t22_v5) error=true;
     }
     if(error) fail("Interrupt test not passed");
-    
+
     t2->terminate();
     t2->join();
     
@@ -3371,7 +3388,13 @@ static void test_22()
     {
         Thread *t3=Thread::create(t22_t3,STACK_SMALL,0,0,Thread::JOINABLE);
         auto inst2=make_shared<t22_c1>();
-        for(int i=0;i<100000;i++) atomic_store(&t22_v7,inst2);
+        for(int i=0;i<t22_iterations;i++)
+        {
+            atomic_store(&t22_v7,inst2);
+            #ifdef SCHED_TYPE_EDF
+            if((i % (t22_iterations/10))==0) Thread::sleep(1);
+            #endif //SCHED_TYPE_EDF
+        }
         atomic_store(&t22_v7,shared_ptr<t22_c1>(nullptr));
         // NOTE: we can't check use_count to be 1 because the C++ specs say it
         // can provide inaccurate results, and it does. Apparently atomic_store
@@ -3863,7 +3886,7 @@ static void test_25()
      * C++11 threads run with MAIN_PRIORITY, so to avoid deadlocks or other
      * artifacts, we restore main't priority to the default, and set it back
      * to 0 at the end of this test, as the rest of the testsuite runs with
-     lowest priority
+     * lowest priority
      */
     Thread::setPriority(MAIN_PRIORITY);
     test_name("C++11 threads");
@@ -3995,6 +4018,7 @@ static void test_25()
     //
     // Testing yield
     //
+    #ifndef SCHED_TYPE_EDF
     {
         volatile bool enable=false;
         volatile bool flag=false;
@@ -4005,6 +4029,7 @@ static void test_25()
         if(flag==false) fail("this_thread::yield");
         thr.join();
     }
+    #endif //SCHED_TYPE_EDF
     //
     // Testing system_clock/this_thread::sleep_for
     //
