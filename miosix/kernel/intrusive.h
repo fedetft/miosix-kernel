@@ -840,6 +840,16 @@ public:
         IntrusiveListItem *cur=it.cur; //Safe even if it==end() -> cur=nullptr
         return iterator(this,IntrusiveListBase::erase(cur));
     }
+
+    /**
+     * Nonportable version of std::list::remove that is O(1) since it relies on
+     * the list being intrusive
+     * NOTE: can ONLY be called if you are sure the item to remove is in the
+     * list it is being removed from. If the item is not in any list or is in
+     * another list, it produces undefined bahavior.
+     * \param item item to remove
+     */
+    void removeFast(T *item) { IntrusiveListBase::erase(item); }
     
     /**
      * \return an iterator to the first item

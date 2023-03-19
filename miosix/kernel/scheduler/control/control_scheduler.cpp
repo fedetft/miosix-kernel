@@ -473,11 +473,10 @@ static inline void addThreadToActiveList(ThreadsListItem *atlEntry)
     }
 }
 
-static inline void remThreadfromActiveList(ThreadsListItem *atlEntry){
-    if (curInRound==IntrusiveList<ThreadsListItem>::iterator(atlEntry)){
-        curInRound++;
-    }
-    activeThreads.erase(IntrusiveList<ThreadsListItem>::iterator(atlEntry));
+static inline void remThreadfromActiveList(ThreadsListItem *atlEntry)
+{
+    if(*curInRound==atlEntry) curInRound++;
+    activeThreads.removeFast(atlEntry);
 }
 
 bool ControlScheduler::PKaddThread(Thread *thread,
@@ -682,7 +681,7 @@ unsigned int ControlScheduler::IRQfindNextThread()
 
             //End of round reached, run scheduling algorithm
             //curInRound=threadList;
-            curInRound = activeThreads.front();
+            curInRound=activeThreads.begin();
             IRQrunRegulator(allReadyThreadsSaturated);
         }
 
