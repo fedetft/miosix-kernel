@@ -37,7 +37,7 @@ namespace miosix {
 //These are defined in kernel.cpp
 extern volatile Thread *cur;
 extern volatile int kernel_running;
-extern IntrusiveList<SleepData> *sleepingList;
+extern IntrusiveList<SleepData> sleepingList;
 
 //Internal data
 static long long nextPeriodicPreemption = std::numeric_limits<long long>::max();
@@ -210,16 +210,14 @@ long long PriorityScheduler::IRQgetNextPreemption()
 static void IRQsetNextPreemption(bool curIsIdleThread)
 {
     long long firstWakeupInList;
-    if(sleepingList->empty())
+    if(sleepingList.empty())
         //TODO: can't we just not set an interrupt?
-        firstWakeupInList = std::numeric_limits<long long>::max();
+        firstWakeupInList=std::numeric_limits<long long>::max();
     else
-        firstWakeupInList = sleepingList->front()->wakeup_time;
+        firstWakeupInList=sleepingList.front()->wakeup_time;
     
-    if(curIsIdleThread)
-        nextPeriodicPreemption = firstWakeupInList;
-    else
-        nextPeriodicPreemption = std::min(firstWakeupInList, IRQgetTime() + MAX_TIME_SLICE);
+    if(curIsIdleThread) nextPeriodicPreemption=firstWakeupInList;
+    else nextPeriodicPreemption=std::min(firstWakeupInList,IRQgetTime()+MAX_TIME_SLICE);
     
     internal::IRQosTimerSetInterrupt(nextPeriodicPreemption);
 }

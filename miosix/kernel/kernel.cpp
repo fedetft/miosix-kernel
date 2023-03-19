@@ -65,7 +65,7 @@ volatile Thread *cur=NULL;///<\internal Thread currently running
 ///\internal True if there are threads in the DELETED status. Used by idle thread
 static volatile bool exist_deleted=false;
 
-IntrusiveList<SleepData> *sleepingList=nullptr;///list of sleeping threads
+IntrusiveList<SleepData> sleepingList;///list of sleeping threads
 
 ///\internal !=0 after pauseKernel(), ==0 after restartKernel()
 volatile int kernel_running=0;
@@ -119,9 +119,9 @@ void *idleThread(void *argv)
             bool sleep;
             if(deepSleepCounter==0)
             {
-                if(sleepingList->empty()==false)
+                if(sleepingList.empty()==false)
                 {
-                    long long wakeup=sleepingList->front()->wakeup_time;
+                    long long wakeup=sleepingList.front()->wakeup_time;
                     sleep=!IRQdeepSleep(wakeup);
                 } else sleep=!IRQdeepSleep();
             } else sleep=true;
@@ -208,12 +208,6 @@ void deepSleepUnlock()
 
 void startKernel()
 {
-    sleepingList = new(std::nothrow) IntrusiveList<SleepData>;
-    if(sleepingList==nullptr)
-    {
-        errorHandler(OUT_OF_MEMORY);
-        return;
-    }
     #ifdef WITH_PROCESSES
     try {
         kernel=new ProcessBase;
@@ -274,16 +268,14 @@ bool isKernelRunning()
 void IRQaddToSleepingList(SleepData *x)
 {
     x->p->flags.IRQsetSleep(true);
-    if(sleepingList->empty() || sleepingList->front()->wakeup_time >= x->wakeup_time)
+    if(sleepingList.empty() || sleepingList.front()->wakeup_time>=x->wakeup_time)
     {
-        sleepingList->push_front(x);
+        sleepingList.push_front(x);
     } else {
-        auto it = sleepingList->begin();
-        while (it != sleepingList->end() && (*it)->wakeup_time < x->wakeup_time ) ++it;
-        sleepingList->insert(it,x);
+        auto it=sleepingList.begin();
+        while(it!=sleepingList.end() && (*it)->wakeup_time<x->wakeup_time) ++it;
+        sleepingList.insert(it,x);
     }
-    //if (sleepingList->front()->wakeup_time < ContextSwitchTimer::instance().IRQgetCurrentTime())
-    //    ContextSwitchTimer::instance().IRQsetNextInterrupt(sleepingList->front()->wakeup_time);
 }
 
 /**
@@ -296,22 +288,21 @@ void IRQaddToSleepingList(SleepData *x)
 bool IRQwakeThreads(long long currentTime)
 {
     //If no item in list, return
-    if(sleepingList->empty())
+    if(sleepingList.empty())
         return false;
     
     bool result=false;
     //Since list is sorted, if we don't need to wake the first element
     //we don't need to wake the other too
-    for(auto it = sleepingList->begin() ; it != sleepingList->end() ;)
+    for(auto it=sleepingList.begin();it!=sleepingList.end();)
     {
-        if(currentTime < (*it)->wakeup_time) break;
-        if((*it)->p == nullptr) ++it; //Only csRecord has p==nullptr
+        if(currentTime<(*it)->wakeup_time) break;
+        if((*it)->p==nullptr) ++it; //Only csRecord has p==nullptr
         else {
             (*it)->p->flags.IRQsetSleep(false); //Wake thread
-            if (const_cast<Thread*>(cur)->getPriority() < (*it)->p->getPriority())
+            if(const_cast<Thread*>(cur)->getPriority()<(*it)->p->getPriority())
                 result = true;
-            it = sleepingList->erase(it);
-            
+            it=sleepingList.erase(it);
         }
     }
     return result;

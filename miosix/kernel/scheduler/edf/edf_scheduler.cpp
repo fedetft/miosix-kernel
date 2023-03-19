@@ -41,7 +41,7 @@ namespace miosix {
 //These are defined in kernel.cpp
 extern volatile Thread *cur;
 extern volatile int kernel_running;
-extern IntrusiveList<SleepData> *sleepingList;
+extern IntrusiveList<SleepData> sleepingList;
 
 //Static members
 static long long nextPreemption = numeric_limits<long long>::max();
@@ -117,12 +117,12 @@ long long EDFScheduler::IRQgetNextPreemption()
 
 static void IRQsetNextPreemption()
 {
-    if(sleepingList->empty())
+    if(sleepingList.empty())
     {
         //TODO: can't we just not set an interrupt?
-        nextPreemption = numeric_limits<long long>::max();
+        nextPreemption=numeric_limits<long long>::max();
     } else {
-        nextPreemption = sleepingList->front()->wakeup_time;
+        nextPreemption=sleepingList.front()->wakeup_time;
     }
     internal::IRQosTimerSetInterrupt(nextPreemption);
 }

@@ -40,7 +40,7 @@ namespace miosix {
 //These are defined in kernel.cpp
 extern volatile Thread *cur;
 extern volatile int kernel_running;
-extern IntrusiveList<SleepData> *sleepingList;
+extern IntrusiveList<SleepData> sleepingList;
 static long long burstStart = 0;
 static long long nextPreemption = numeric_limits<long long>::max();
 
@@ -155,26 +155,25 @@ long long ControlScheduler::IRQgetNextPreemption()
 }
 
 // Should be called when the current thread is the idle thread
-static inline void IRQsetNextPreemptionForIdle(){
-    if (sleepingList->empty())
+static inline void IRQsetNextPreemptionForIdle()
+{
+    if(sleepingList.empty())
         //normally should not happen unless an IRQ is already set and able to
         //preempt idle thread
         //TODO: can't we just not set an interrupt?
-        nextPreemption = numeric_limits<long long>::max(); 
-    else
-        nextPreemption = sleepingList->front()->wakeup_time;
+        nextPreemption=numeric_limits<long long>::max();
+    else nextPreemption=sleepingList.front()->wakeup_time;
     internal::IRQosTimerSetInterrupt(nextPreemption);
 }
 
 // Should be called for threads other than idle thread
-static inline void IRQsetNextPreemption(long long burst){
+static inline void IRQsetNextPreemption(long long burst)
+{
     long long firstWakeupInList;
-    if (sleepingList->empty())
-        firstWakeupInList = numeric_limits<long long>::max();
-    else
-        firstWakeupInList = sleepingList->front()->wakeup_time;
-    burstStart = IRQgetTime();
-    nextPreemption = min(firstWakeupInList,burstStart + burst);
+    if(sleepingList.empty()) firstWakeupInList=numeric_limits<long long>::max();
+    else firstWakeupInList=sleepingList.front()->wakeup_time;
+    burstStart=IRQgetTime();
+    nextPreemption=min(firstWakeupInList,burstStart+burst);
     internal::IRQosTimerSetInterrupt(nextPreemption);
 }
 
@@ -441,7 +440,7 @@ namespace miosix {
 //These are defined in kernel.cpp
 extern volatile Thread *cur;
 extern volatile int kernel_running;
-extern IntrusiveList<SleepData> *sleepingList;
+extern IntrusiveList<SleepData> sleepingList;
 extern bool kernel_started;
 
 //Internal
@@ -596,26 +595,25 @@ long long ControlScheduler::IRQgetNextPreemption()
 }
 
 // Should be called when the current thread is the idle thread
-static inline void IRQsetNextPreemptionForIdle(){
-    if (sleepingList->empty())
+static inline void IRQsetNextPreemptionForIdle()
+{
+    if(sleepingList.empty())
         //normally should not happen unless an IRQ is already set and able to
         //preempt idle thread
         //TODO: can't we just not set an interrupt?
-        nextPreemption = numeric_limits<long long>::max(); 
-    else
-        nextPreemption = sleepingList->front()->wakeup_time;
+        nextPreemption=numeric_limits<long long>::max();
+    else nextPreemption=sleepingList.front()->wakeup_time;
     internal::IRQosTimerSetInterrupt(nextPreemption);
 }
 
 // Should be called for threads other than idle thread
-static inline void IRQsetNextPreemption(long long burst){
+static inline void IRQsetNextPreemption(long long burst)
+{
     long long firstWakeupInList;
-    if (sleepingList->empty())
-        firstWakeupInList = numeric_limits<long long>::max();
-    else
-        firstWakeupInList = sleepingList->front()->wakeup_time;
-    burstStart = IRQgetTime();
-    nextPreemption = min(firstWakeupInList,burstStart + burst);
+    if(sleepingList.empty()) firstWakeupInList=numeric_limits<long long>::max();
+    else firstWakeupInList=sleepingList.front()->wakeup_time;
+    burstStart=IRQgetTime();
+    nextPreemption=min(firstWakeupInList,burstStart+burst);
     internal::IRQosTimerSetInterrupt(nextPreemption);
 }
 
