@@ -812,6 +812,9 @@ ssize_t STM32Serial::writeBlock(const void *buffer, size_t size, off_t where)
          && !defined(_ARCH_CORTEXM4_STM32L4)
         while((port->SR & USART_SR_TXE)==0) ;
         port->DR=*buf++;
+        #elif defined(_ARCH_CORTEXM7_STM32H7)
+        while((port->ISR & USART_ISR_TXE_TXFNF)==0) ;
+        port->TDR=*buf++;
         #else //_ARCH_CORTEXM7_STM32F7/H7
         while((port->ISR & USART_ISR_TXE)==0) ;
         port->TDR=*buf++;
@@ -857,6 +860,9 @@ void STM32Serial::IRQwrite(const char *str)
          && !defined(_ARCH_CORTEXM4_STM32L4)
         while((port->SR & USART_SR_TXE)==0) ;
         port->DR=*str++;
+        #elif defined(_ARCH_CORTEXM7_STM32H7)
+        while((port->ISR & USART_ISR_TXE_TXFNF)==0) ;
+        port->TDR=*str++;
         #else //_ARCH_CORTEXM7_STM32F7/H7
         while((port->ISR & USART_ISR_TXE)==0) ;
         port->TDR=*str++;
@@ -898,6 +904,11 @@ void STM32Serial::IRQhandleInterrupt()
      && !defined(_ARCH_CORTEXM0_STM32F0)   && !defined(_ARCH_CORTEXM4_STM32F3) \
      && !defined(_ARCH_CORTEXM4_STM32L4)
     unsigned int status=port->SR;
+    #elif defined(_ARCH_CORTEXM7_STM32H7)
+    unsigned int status=port->ISR;
+    constexpr unsigned int USART_SR_RXNE=USART_ISR_RXNE_RXFNE;
+    constexpr unsigned int USART_SR_IDLE=USART_ISR_IDLE;
+    constexpr unsigned int USART_SR_FE  =USART_ISR_FE;
     #else //_ARCH_CORTEXM7_STM32F7/H7
     unsigned int status=port->ISR;
     constexpr unsigned int USART_SR_RXNE=USART_ISR_RXNE;
@@ -1112,6 +1123,8 @@ void STM32Serial::writeDma(const char *buffer, size_t size)
      && !defined(_ARCH_CORTEXM0_STM32F0)   && !defined(_ARCH_CORTEXM4_STM32F3) \
      && !defined(_ARCH_CORTEXM4_STM32L4)
     while((port->SR & USART_SR_TXE)==0) ;
+    #elif defined(_ARCH_CORTEXM7_STM32H7)
+    while((port->ISR & USART_ISR_TXE_TXFNF)==0) ;
     #else //_ARCH_CORTEXM7_STM32F7/H7
     while((port->ISR & USART_ISR_TXE)==0) ;
     #endif //_ARCH_CORTEXM7_STM32F7/H7

@@ -72,14 +72,15 @@ void IRQbspInit()
     GPIOH->OSPEEDR=0xaaaaaaaa;
     GPIOJ->OSPEEDR=0xaaaaaaaa;
     GPIOK->OSPEEDR=0xaaaaaaaa;
+
     _led::mode(Mode::OUTPUT);
     ledOn();
     delayMs(100);
     ledOff();
-    // auto tx=Gpio<GPIOB_BASE,14>::getPin(); tx.alternateFunction(4);
-    // auto rx=Gpio<GPIOB_BASE,15>::getPin(); rx.alternateFunction(4);
-    // DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
-    //     new STM32Serial(1,defaultSerialSpeed,tx,rx)));
+    auto tx=Gpio<GPIOD_BASE,8>::getPin(); tx.alternateFunction(7);
+    auto rx=Gpio<GPIOD_BASE,9>::getPin(); rx.alternateFunction(7);
+    DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
+        new STM32Serial(defaultSerialPort,defaultSerialSpeed,tx,rx)));
 }
 
 void bspInit2()

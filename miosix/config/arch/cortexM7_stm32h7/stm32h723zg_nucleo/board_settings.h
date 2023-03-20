@@ -47,6 +47,7 @@ const unsigned int MAIN_STACK_SIZE=4*1024;
 /// Serial port
 //This board only exposes USART1, without flow control
 const unsigned int defaultSerialSpeed=115200;
+const unsigned int defaultSerialPort=3;
 // #define SERIAL_1_DMA //TODO: serial port DMA
 // #define SERIAL_2_DMA
 // #define SERIAL_3_DMA
