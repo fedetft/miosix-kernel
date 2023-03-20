@@ -44,7 +44,8 @@ extern volatile int kernel_running;
 extern IntrusiveList<SleepData> sleepingList;
 
 //Static members
-static long long nextPreemption = numeric_limits<long long>::max();
+static long long nextPreemption=numeric_limits<long long>::max();
+
 //
 // class EDFScheduler
 //
@@ -59,9 +60,9 @@ bool EDFScheduler::PKaddThread(Thread *thread, EDFSchedulerPriority priority)
 bool EDFScheduler::PKexists(Thread *thread)
 {
     Thread *walk=head;
-    while(walk!=0)
+    while(walk!=nullptr)
     {
-        if(walk==thread && (! (walk->flags.isDeleted()))) return true;
+        if(walk==thread && (!walk->flags.isDeleted())) return true;
         walk=walk->schedData.next;
     }
     return false;
@@ -72,7 +73,7 @@ void EDFScheduler::PKremoveDeadThreads()
     //Delete all threads at the beginning of the list
     for(;;)
     {
-        if(head==0) errorHandler(UNEXPECTED); //Empty list is wrong.
+        if(head==nullptr) errorHandler(UNEXPECTED); //Empty list is wrong.
         if(head->flags.isDeleted()==false) break;
         Thread *toBeDeleted=head;
         head=head->schedData.next;
@@ -84,7 +85,7 @@ void EDFScheduler::PKremoveDeadThreads()
     Thread *walk=head;
     for(;;)
     {
-        if(walk->schedData.next==0) break;
+        if(walk->schedData.next==nullptr) break;
         if(walk->schedData.next->flags.isDeleted())
         {
             Thread *toBeDeleted=walk->schedData.next;
@@ -121,9 +122,7 @@ static void IRQsetNextPreemption()
     {
         //TODO: can't we just not set an interrupt?
         nextPreemption=numeric_limits<long long>::max();
-    } else {
-        nextPreemption=sleepingList.front()->wakeup_time;
-    }
+    } else nextPreemption=sleepingList.front()->wakeup_time;
     internal::IRQosTimerSetInterrupt(nextPreemption);
 }
 
@@ -134,7 +133,7 @@ unsigned int EDFScheduler::IRQfindNextThread()
     Thread *walk=head;
     for(;;)
     {
-        if(walk==0) errorHandler(UNEXPECTED);
+        if(walk==nullptr) errorHandler(UNEXPECTED);
         if(walk->flags.isReady())
         {
             cur=walk;
@@ -161,7 +160,7 @@ unsigned int EDFScheduler::IRQfindNextThread()
 void EDFScheduler::add(Thread *thread)
 {
     long long newDeadline=thread->schedData.deadline.get();
-    if(head==0)
+    if(head==nullptr)
     {
         head=thread;
         return;
@@ -175,7 +174,7 @@ void EDFScheduler::add(Thread *thread)
     Thread *walk=head;
     for(;;)
     {
-        if(walk->schedData.next==0 || newDeadline<=
+        if(walk->schedData.next==nullptr || newDeadline<=
            walk->schedData.next->schedData.deadline.get())
         {
             thread->schedData.next=walk->schedData.next;
@@ -188,7 +187,7 @@ void EDFScheduler::add(Thread *thread)
 
 void EDFScheduler::remove(Thread *thread)
 {
-    if(head==0) errorHandler(UNEXPECTED);
+    if(head==nullptr) errorHandler(UNEXPECTED);
     if(head==thread)
     {
         head=head->schedData.next;
@@ -197,7 +196,7 @@ void EDFScheduler::remove(Thread *thread)
     Thread *walk=head;
     for(;;)
     {
-        if(walk->schedData.next==0) errorHandler(UNEXPECTED);
+        if(walk->schedData.next==nullptr) errorHandler(UNEXPECTED);
         if(walk->schedData.next==thread)
         {
             walk->schedData.next=walk->schedData.next->schedData.next;
@@ -207,7 +206,7 @@ void EDFScheduler::remove(Thread *thread)
     }
 }
 
-Thread *EDFScheduler::head=0;
+Thread *EDFScheduler::head=nullptr;
 
 } //namespace miosix
 
