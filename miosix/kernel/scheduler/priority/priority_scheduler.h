@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef PRIORITY_SCHEDULER_H
-#define	PRIORITY_SCHEDULER_H
+#pragma once
 
 #include "config/miosix_settings.h"
 #include "priority_scheduler_types.h"
@@ -140,13 +139,17 @@ public:
      */
     static unsigned int IRQfindNextThread();
     
+    /**
+     * \internal
+     * \return the next scheduled preemption set by the scheduler
+     * In case no preemption is set returns numeric_limits<long long>::max()
+     */
     static long long IRQgetNextPreemption();
 
 private:
 
     ///\internal Vector of lists of threads, there's one list for each priority
     ///Each list s a circular list.
-    ///(since 0=NULL, using aggregate initialization)
     static Thread *thread_list[PRIORITY_MAX];
 
     ///\internal idle thread
@@ -156,5 +159,3 @@ private:
 } //namespace miosix
 
 #endif //SCHED_TYPE_PRIORITY
-
-#endif //PRIORITY_SCHEDULER_H

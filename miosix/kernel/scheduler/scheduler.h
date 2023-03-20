@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef SCHEDULER_H
-#define	SCHEDULER_H
+#pragma once
 
 #include "config/miosix_settings.h"
 #include "kernel/scheduler/priority/priority_scheduler.h"
@@ -50,7 +49,6 @@ template<typename T>
 class basic_scheduler
 {
 public:
-
     /**
      * \internal
      * Add a new thread to the scheduler.
@@ -68,10 +66,9 @@ public:
      */
     static bool PKaddThread(Thread *thread, Priority priority)
     {
-        bool res = T::PKaddThread(thread,priority);
+        bool res=T::PKaddThread(thread,priority);
         #ifdef WITH_CPU_TIME_COUNTER
-        if (res)
-            CPUTimeCounter::PKaddThread(thread);
+        if(res) CPUTimeCounter::PKaddThread(thread);
         #endif
         return res;
     }
@@ -180,9 +177,9 @@ public:
     static unsigned int IRQfindNextThread()
     {
         #ifdef WITH_CPU_TIME_COUNTER
-        long long t = CPUTimeCounter::PKwillSwitchContext();
+        long long t=CPUTimeCounter::PKwillSwitchContext();
         #endif
-        unsigned int res = T::IRQfindNextThread();
+        unsigned int res=T::IRQfindNextThread();
         #ifdef WITH_CPU_TIME_COUNTER
         CPUTimeCounter::PKdidSwitchContext(t);
         #endif
@@ -190,10 +187,9 @@ public:
     }
     
     /**
-     * It returns the next preemption to be caused by the scheduler
-     * i.e. the beginning of the next burst.
-     * At the beginning, when no burst exists it returns
-     * numeric_limits<long long>::max().
+     * \internal
+     * \return the next scheduled preemption set by the scheduler
+     * In case no preemption is set returns numeric_limits<long long>::max()
      */
     static long long IRQgetNextPreemption()
     {
@@ -212,5 +208,3 @@ typedef basic_scheduler<EDFScheduler> Scheduler;
 #endif
 
 } //namespace miosix
-
-#endif	//SCHEDULER_H

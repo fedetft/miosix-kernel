@@ -40,7 +40,7 @@ extern volatile int kernel_running;
 extern IntrusiveList<SleepData> sleepingList;
 
 //Internal data
-static long long nextPeriodicPreemption = std::numeric_limits<long long>::max();
+static long long nextPeriodicPreemption=std::numeric_limits<long long>::max();
 
 //
 // class PriorityScheduler
@@ -50,7 +50,7 @@ bool PriorityScheduler::PKaddThread(Thread *thread,
         PrioritySchedulerPriority priority)
 {
     thread->schedData.priority=priority;
-    if(thread_list[priority.get()]==NULL)
+    if(thread_list[priority.get()]==nullptr)
     {
         thread_list[priority.get()]=thread;
         thread->schedData.next=thread;//Circular list
@@ -65,15 +65,11 @@ bool PriorityScheduler::PKexists(Thread *thread)
 {
     for(int i=PRIORITY_MAX-1;i>=0;i--)
     {
-        if(thread_list[i]==NULL) continue;
+        if(thread_list[i]==nullptr) continue;
         Thread *temp=thread_list[i];
         for(;;)
         {
-            if((temp==thread)&&(! (temp->flags.isDeleted())))
-            {
-                //Found
-                return true;
-            }
+            if((temp==thread) && (!temp->flags.isDeleted())) return true;
             temp=temp->schedData.next;
             if(temp==thread_list[i]) break;
         }
@@ -85,9 +81,9 @@ void PriorityScheduler::PKremoveDeadThreads()
 {
     for(int i=PRIORITY_MAX-1;i>=0;i--)
     {
-        if(thread_list[i]==NULL) continue;
+        if(thread_list[i]==nullptr) continue;
         bool first=false;//If false the tail of the list hasn't been calculated
-        Thread *tail=NULL;//Tail of the list
+        Thread *tail=nullptr;//Tail of the list
         //Special case: removing first element in the list
         while(thread_list[i]->flags.isDeleted())
         {
@@ -98,7 +94,7 @@ void PriorityScheduler::PKremoveDeadThreads()
                 void *base=thread_list[i]->watermark;
                 thread_list[i]->~Thread();
                 free(base); //Delete ALL thread memory
-                thread_list[i]=NULL;
+                thread_list[i]=nullptr;
                 break;
             }
             //If it is the first time the tail of the list hasn't
@@ -119,8 +115,8 @@ void PriorityScheduler::PKremoveDeadThreads()
             d->~Thread();
             free(base);//Delete ALL thread memory
         }
-        if(thread_list[i]==NULL) continue;
-        //If it comes here, the first item is not NULL, and doesn't have
+        if(thread_list[i]==nullptr) continue;
+        //If it comes here, the first item is not nullptr, and doesn't have
         //to be deleted General case: removing items not at the first
         //place
         Thread *temp=thread_list[i];
@@ -154,7 +150,7 @@ void PriorityScheduler::PKsetPriority(Thread *thread,
                 thread_list[oldPriority.get()])
         {
             //Only one element in the list
-            thread_list[oldPriority.get()]=NULL;
+            thread_list[oldPriority.get()]=nullptr;
         } else {
             Thread *tail=thread_list[oldPriority.get()];//Tail of the list
             while(tail->schedData.next!=thread_list[oldPriority.get()])
@@ -186,7 +182,7 @@ void PriorityScheduler::PKsetPriority(Thread *thread,
         }
     }
     //Last insert the thread in the new list
-    if(thread_list[newPriority.get()]==NULL)
+    if(thread_list[newPriority.get()]==nullptr)
     {
         thread_list[newPriority.get()]=thread;
         thread->schedData.next=thread;//Circular list
@@ -227,7 +223,7 @@ unsigned int PriorityScheduler::IRQfindNextThread()
     if(kernel_running!=0) return MAX_TIME_SLICE;//If kernel is paused, do nothing
     for(int i=PRIORITY_MAX-1;i>=0;i--)
     {
-        if(thread_list[i]==NULL) continue;
+        if(thread_list[i]==nullptr) continue;
         Thread *temp=thread_list[i]->schedData.next;
         for(;;)
         {
@@ -267,8 +263,8 @@ unsigned int PriorityScheduler::IRQfindNextThread()
     return MAX_TIME_SLICE;
 }
 
-Thread *PriorityScheduler::thread_list[PRIORITY_MAX]={0};
-Thread *PriorityScheduler::idle=0;
+Thread *PriorityScheduler::thread_list[PRIORITY_MAX]={nullptr};
+Thread *PriorityScheduler::idle=nullptr;
 
 } //namespace miosix
 
