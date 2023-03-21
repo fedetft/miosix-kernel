@@ -464,11 +464,11 @@ static inline void addThreadToActiveList(ThreadsListItem *atlEntry)
     
     switch(atlEntry->t->getPriority().getRealtime())
     {
-        case REALTIME_PRIORITY_IMMEDIATE:
+        case ControlRealtimePriority::REALTIME_PRIORITY_IMMEDIATE:
             activeThreads.insert(curInRound,atlEntry);
             curInRound--; curInRound--;
             break;
-        case REALTIME_PRIORITY_NEXT_BURST:
+        case ControlRealtimePriority::REALTIME_PRIORITY_NEXT_BURST:
         {
             auto temp=curInRound;
             activeThreads.insert(++temp,atlEntry);
@@ -627,11 +627,6 @@ static inline void IRQsetNextPreemption(long long burst)
 
 unsigned int ControlScheduler::IRQfindNextThread()
 {
-    // Warning: since this function is called within interrupt routines, it
-    //is not possible to add/remove elements to threadList, since that would
-    //require dynamic memory allocation/deallocation which is forbidden within
-    //interrupts. Iterating the list is safe, though
-
     if(kernel_running!=0) return 0;//If kernel is paused, do nothing
 
     if(cur!=idle)
