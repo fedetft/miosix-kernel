@@ -36,13 +36,17 @@ using namespace std;
 
 #ifdef SCHED_TYPE_CONTROL_BASED
 #ifndef SCHED_CONTROL_MULTIBURST
+
 namespace miosix {
+
 //These are defined in kernel.cpp
 extern volatile Thread *cur;
 extern volatile int kernel_running;
 extern IntrusiveList<SleepData> sleepingList;
-static long long burstStart = 0;
-static long long nextPreemption = numeric_limits<long long>::max();
+
+//Internal
+static long long burstStart=0;
+static long long nextPreemption=numeric_limits<long long>::max();
 
 //
 // class ControlScheduler
@@ -72,8 +76,8 @@ bool ControlScheduler::PKaddThread(Thread *thread,
 
 bool ControlScheduler::PKexists(Thread *thread)
 {
-    if(thread==0) return false;
-    for(Thread *it=threadList;it!=0;it=it->schedData.next)
+    if(thread==nullptr) return false;
+    for(Thread *it=threadList;it!=nullptr;it=it->schedData.next)
     {
        if(it==thread)
        {
@@ -87,7 +91,7 @@ bool ControlScheduler::PKexists(Thread *thread)
 void ControlScheduler::PKremoveDeadThreads()
 {
     //Special case, threads at the head of the list
-    while(threadList!=0 && threadList->flags.isDeleted())
+    while(threadList!=nullptr && threadList->flags.isDeleted())
     {
         Thread *toBeDeleted=threadList;
         {
@@ -100,10 +104,10 @@ void ControlScheduler::PKremoveDeadThreads()
         toBeDeleted->~Thread();
         free(base); //Delete ALL thread memory
     }
-    if(threadList!=0)
+    if(threadList!=nullptr)
     {
         //General case, delete threads not at the head of the list
-        for(Thread *it=threadList;it->schedData.next!=0;it=it->schedData.next)
+        for(Thread *it=threadList;it->schedData.next!=nullptr;it=it->schedData.next)
         {
             if(it->schedData.next->flags.isDeleted()==false) continue;
             Thread *toBeDeleted=it->schedData.next;
@@ -141,7 +145,7 @@ void ControlScheduler::IRQsetIdleThread(Thread *idleThread)
     //Initializing curInRound to end() so that the first time
     //IRQfindNextThread() is called the scheduling algorithm runs
     if(threadListSize!=1) errorHandler(UNEXPECTED);
-    curInRound=0;
+    curInRound=nullptr;
 }
 
 Thread *ControlScheduler::IRQgetIdleThread()
@@ -191,7 +195,7 @@ unsigned int ControlScheduler::IRQfindNextThread()
         //Not preempting from the idle thread, store actual burst time of
         //the preempted thread
         //int Tp=miosix_private::AuxiliaryTimer::IRQgetValue(); //CurTime - LastTime = real burst
-        int Tp = static_cast<int>(IRQgetTime() - burstStart);
+        int Tp=static_cast<int>(IRQgetTime()-burstStart);
         cur->schedData.Tp=Tp;
         Tr+=Tp;
     }
@@ -199,8 +203,8 @@ unsigned int ControlScheduler::IRQfindNextThread()
     //Find next thread to run
     for(;;)
     {
-        if(curInRound!=0) curInRound=curInRound->schedData.next;
-        if(curInRound==0) //Note: do not replace with an else
+        if(curInRound!=nullptr) curInRound=curInRound->schedData.next;
+        if(curInRound==nullptr) //Note: do not replace with an else
         {
             //Check these two statements:
             //- If all threads are not ready, the scheduling algorithm must be
@@ -210,7 +214,7 @@ unsigned int ControlScheduler::IRQfindNextThread()
             //  increasing because the set point cannot be attained anyway.
             bool allThreadNotReady=true;
             bool allReadyThreadsSaturated=true;
-            for(Thread *it=threadList;it!=0;it=it->schedData.next)
+            for(Thread *it=threadList;it!=nullptr;it=it->schedData.next)
             {
                 if(it->flags.isReady())
                 {
@@ -231,7 +235,7 @@ unsigned int ControlScheduler::IRQfindNextThread()
                 //This is very important: the idle thread can *remove* dead
                 //threads from threadList, so it can invalidate iterators
                 //to any element except theadList.end()
-                curInRound=0;
+                curInRound=nullptr;
                 cur=idle;
                 ctxsave=cur->ctxsave;
                 #ifdef WITH_PROCESSES
@@ -290,7 +294,7 @@ void ControlScheduler::IRQrecalculateAlfa()
     //Note that since priority goes from 0 to PRIORITY_MAX-1
     //but priorities we need go from 1 to PRIORITY_MAX we need to add one
     unsigned int sumPriority=0;
-    for(Thread *it=threadList;it!=0;it=it->schedData.next)
+    for(Thread *it=threadList;it!=nullptr;it=it->schedData.next)
     {
         #ifdef ENABLE_FEEDFORWARD
         //Count only ready threads
@@ -305,7 +309,7 @@ void ControlScheduler::IRQrecalculateAlfa()
     if(sumPriority==0) return;
     #ifndef SCHED_CONTROL_FIXED_POINT
     float base=1.0f/((float)sumPriority);
-    for(Thread *it=threadList;it!=0;it=it->schedData.next)
+    for(Thread *it=threadList;it!=nullptr;it=it->schedData.next)
     {
         #ifdef ENABLE_FEEDFORWARD
         //Assign zero bursts to blocked threads
@@ -323,7 +327,7 @@ void ControlScheduler::IRQrecalculateAlfa()
     #else //FIXED_POINT_MATH
     //Sum of all alfa is maximum value for an unsigned short
     unsigned int base=4096/sumPriority;
-    for(Thread *it=threadList;it!=0;it=it->schedData.next)
+    for(Thread *it=threadList;it!=nullptr;it=it->schedData.next)
     {
         #ifdef ENABLE_FEEDFORWARD
         //Assign zero bursts to blocked threads
@@ -378,7 +382,7 @@ void ControlScheduler::IRQrunRegulator(bool allReadyThreadsSaturated)
         #endif //FIXED_POINT_MATH
         eTro=eTr;
         Tr=0;//Reset round time
-        for(Thread *it=threadList;it!=0;it=it->schedData.next)
+        for(Thread *it=threadList;it!=nullptr;it=it->schedData.next)
         {
             //Recalculate per thread set point
             #ifndef SCHED_CONTROL_FIXED_POINT
@@ -406,7 +410,7 @@ void ControlScheduler::IRQrunRegulator(bool allReadyThreadsSaturated)
         eTro=0;
         bco=0;
 
-        for(Thread *it=threadList;it!=0;it=it->schedData.next)
+        for(Thread *it=threadList;it!=nullptr;it=it->schedData.next)
         {
             //Recalculate per thread set point
             #ifndef SCHED_CONTROL_FIXED_POINT
@@ -424,17 +428,19 @@ void ControlScheduler::IRQrunRegulator(bool allReadyThreadsSaturated)
     #endif //ENABLE_REGULATOR_REINIT
 }
 
-Thread *ControlScheduler::threadList=0;
+Thread *ControlScheduler::threadList=nullptr;
 unsigned int ControlScheduler::threadListSize=0;
-Thread *ControlScheduler::curInRound=0;
-Thread *ControlScheduler::idle=0;
+Thread *ControlScheduler::curInRound=nullptr;
+Thread *ControlScheduler::idle=nullptr;
 int ControlScheduler::SP_Tr=0;
 int ControlScheduler::Tr=bNominal;
 int ControlScheduler::bco=0;
 int ControlScheduler::eTro=0;
 bool ControlScheduler::reinitRegulator=false;
 }
-#else
+
+#else //SCHED_CONTROL_MULTIBURST
+
 namespace miosix {
 
 //These are defined in kernel.cpp
@@ -444,10 +450,10 @@ extern IntrusiveList<SleepData> sleepingList;
 extern bool kernel_started;
 
 //Internal
-static long long burstStart = 0;
+static long long burstStart=0;
 static IntrusiveList<ThreadsListItem> activeThreads;
-static IntrusiveList<ThreadsListItem>::iterator curInRound = activeThreads.end();
-static long long nextPreemption = numeric_limits<long long>::max();
+static IntrusiveList<ThreadsListItem>::iterator curInRound=activeThreads.end();
+static long long nextPreemption=numeric_limits<long long>::max();
 
 //
 // class ControlScheduler
@@ -456,10 +462,11 @@ static long long nextPreemption = numeric_limits<long long>::max();
 static inline void addThreadToActiveList(ThreadsListItem *atlEntry)
 {
     
-    switch (atlEntry->t->getPriority().getRealtime()){
+    switch(atlEntry->t->getPriority().getRealtime())
+    {
         case REALTIME_PRIORITY_IMMEDIATE:
             activeThreads.insert(curInRound,atlEntry);
-            curInRound--;curInRound--;
+            curInRound--; curInRound--;
             break;
         case REALTIME_PRIORITY_NEXT_BURST:
         {
@@ -498,11 +505,12 @@ bool ControlScheduler::PKaddThread(Thread *thread,
         SP_Tr+=bNominal; //One thread more, increase round time
         // Insert the thread in activeThreads list according to its real-time
         // priority
-        if (thread->flags.isReady()){
+        if(thread->flags.isReady())
+        {
             addThreadToActiveList(&thread->schedData.atlEntry);
-            thread->schedData.lastReadyStatus = true;
-        }else{
-            thread->schedData.lastReadyStatus = false;
+            thread->schedData.lastReadyStatus=true;
+        } else {
+            thread->schedData.lastReadyStatus=false;
         }
         
         IRQrecalculateAlfa();
@@ -512,8 +520,8 @@ bool ControlScheduler::PKaddThread(Thread *thread,
 
 bool ControlScheduler::PKexists(Thread *thread)
 {
-    if(thread==0) return false;
-    for(Thread *it=threadList;it!=0;it=it->schedData.next)
+    if(thread==nullptr) return false;
+    for(Thread *it=threadList;it!=nullptr;it=it->schedData.next)
     {
        if(it==thread)
        {
@@ -527,7 +535,7 @@ bool ControlScheduler::PKexists(Thread *thread)
 void ControlScheduler::PKremoveDeadThreads()
 {
     //Special case, threads at the head of the list
-    while(threadList!=0 && threadList->flags.isDeleted())
+    while(threadList!=nullptr && threadList->flags.isDeleted())
     {
         Thread *toBeDeleted=threadList;
         {
@@ -540,10 +548,10 @@ void ControlScheduler::PKremoveDeadThreads()
         toBeDeleted->~Thread();
         free(base); //Delete ALL thread memory
     }
-    if(threadList!=0)
+    if(threadList!=nullptr)
     {
         //General case, delete threads not at the head of the list
-        for(Thread *it=threadList;it->schedData.next!=0;it=it->schedData.next)
+        for(Thread *it=threadList;it->schedData.next!=nullptr;it=it->schedData.next)
         {
             if(it->schedData.next->flags.isDeleted()==false) continue;
             Thread *toBeDeleted=it->schedData.next;
@@ -650,13 +658,14 @@ unsigned int ControlScheduler::IRQfindNextThread()
             //  then the integral regulator of the outer regulator must stop
             //  increasing because the set point cannot be attained anyway.
             bool allReadyThreadsSaturated=true;
-            for (auto it=activeThreads.begin() ; it!=activeThreads.end() ; it++)
+            for(auto it=activeThreads.begin();it!=activeThreads.end();++it)
             {
-                if((*it)->t->schedData.bo<bMax*multFactor){
-                        allReadyThreadsSaturated=false;
-                        //Found a counterexample for both statements,
-                        //no need to scan the list further.
-                        break;
+                if((*it)->t->schedData.bo<bMax*multFactor)
+                {
+                    allReadyThreadsSaturated=false;
+                    //Found a counterexample for both statements,
+                    //no need to scan the list further.
+                    break;
                 }
             }
             if(activeThreads.empty())
@@ -717,14 +726,15 @@ unsigned int ControlScheduler::IRQfindNextThread()
 void ControlScheduler::IRQwaitStatusHook(Thread* t)
 {
     // Managing activeThreads list
-    if (t->flags.isReady() && !t->schedData.lastReadyStatus){
+    if(t->flags.isReady() && !t->schedData.lastReadyStatus)
+    {
         // The thread has became active -> put it in the list
         addThreadToActiveList(&t->schedData.atlEntry);
-        t->schedData.lastReadyStatus = true;
-    }else if (!t->flags.isReady() && t->schedData.lastReadyStatus){
+        t->schedData.lastReadyStatus=true;
+    } else if(!t->flags.isReady() && t->schedData.lastReadyStatus) {
         // The thread is no longer active -> remove it from the list
         remThreadfromActiveList(&t->schedData.atlEntry);
-        t->schedData.lastReadyStatus = false;
+        t->schedData.lastReadyStatus=false;
     }
     #ifdef ENABLE_FEEDFORWARD
     IRQrecalculateAlfa();
@@ -737,8 +747,7 @@ void ControlScheduler::IRQrecalculateAlfa()
     //Note that since priority goes from 0 to PRIORITY_MAX-1
     //but priorities we need go from 1 to PRIORITY_MAX we need to add one
     unsigned int sumPriority=0;
-    //for(Thread *it=threadList;it!=0;it=it->schedData.next)
-    for (auto it = activeThreads.begin() ; it != activeThreads.end() ; it++)
+    for(auto it=activeThreads.begin();it!=activeThreads.end();++it)
     {
         #ifdef ENABLE_FEEDFORWARD
         //Count only ready threads
@@ -753,7 +762,7 @@ void ControlScheduler::IRQrecalculateAlfa()
     if(sumPriority==0) return;
     #ifndef SCHED_CONTROL_FIXED_POINT
     float base=1.0f/((float)sumPriority);
-    for(Thread *it=threadList;it!=0;it=it->schedData.next)
+    for(Thread *it=threadList;it!=nullptr;it=it->schedData.next)
     {
         #ifdef ENABLE_FEEDFORWARD
         //Assign zero bursts to blocked threads
@@ -771,7 +780,7 @@ void ControlScheduler::IRQrecalculateAlfa()
     #else //FIXED_POINT_MATH
     //Sum of all alfa is maximum value for an unsigned short
     unsigned int base=4096/sumPriority;
-    for(Thread *it=threadList;it!=0;it=it->schedData.next)
+    for(Thread *it=threadList;it!=nullptr;it=it->schedData.next)
     {
         #ifdef ENABLE_FEEDFORWARD
         //Assign zero bursts to blocked threads
@@ -826,7 +835,7 @@ void ControlScheduler::IRQrunRegulator(bool allReadyThreadsSaturated)
         #endif //FIXED_POINT_MATH
         eTro=eTr;
         Tr=0;//Reset round time
-        for(Thread *it=threadList;it!=0;it=it->schedData.next)
+        for(Thread *it=threadList;it!=nullptr;it=it->schedData.next)
         {
             //Recalculate per thread set point
             #ifndef SCHED_CONTROL_FIXED_POINT
@@ -854,7 +863,7 @@ void ControlScheduler::IRQrunRegulator(bool allReadyThreadsSaturated)
         eTro=0;
         bco=0;
 
-        for(Thread *it=threadList;it!=0;it=it->schedData.next)
+        for(Thread *it=threadList;it!=nullptr;it=it->schedData.next)
         {
             //Recalculate per thread set point
             #ifndef SCHED_CONTROL_FIXED_POINT
@@ -872,15 +881,16 @@ void ControlScheduler::IRQrunRegulator(bool allReadyThreadsSaturated)
     #endif //ENABLE_REGULATOR_REINIT
 }
 
-Thread *ControlScheduler::threadList=0;
+Thread *ControlScheduler::threadList=nullptr;
 unsigned int ControlScheduler::threadListSize=0;
-//Thread *ControlScheduler::curInRound=0;
-Thread *ControlScheduler::idle=0;
+Thread *ControlScheduler::idle=nullptr;
 int ControlScheduler::SP_Tr=0;
 int ControlScheduler::Tr=bNominal;
 int ControlScheduler::bco=0;
 int ControlScheduler::eTro=0;
 bool ControlScheduler::reinitRegulator=false;
+
 } //namespace miosix
-#endif // SCHED_CONTROL_MULTIBURST
+
+#endif //SCHED_CONTROL_MULTIBURST
 #endif //SCHED_TYPE_CONTROL_BASED

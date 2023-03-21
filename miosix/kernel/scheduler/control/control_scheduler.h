@@ -25,10 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef CONTROL_SCHEDULER_H
-#define	CONTROL_SCHEDULER_H
-
-#define SCHED_CONTROL_MULTIBURST
+#pragma once
 
 #include "config/miosix_settings.h"
 #include "control_scheduler_types.h"
@@ -149,10 +146,14 @@ public:
      */
     static unsigned int IRQfindNextThread();
     
+    /**
+     * \internal
+     * \return the next scheduled preemption set by the scheduler
+     * In case no preemption is set returns numeric_limits<long long>::max()
+     */
     static long long IRQgetNextPreemption();
 
 private:
-    
     /**
      * \internal
      * When priorities are modified, this function recalculates alfa for each
@@ -170,10 +171,10 @@ private:
     static Thread *threadList;
     static unsigned int threadListSize;
 
-#ifndef SCHED_CONTROL_MULTIBURST 
+    #ifndef SCHED_CONTROL_MULTIBURST
     ///\internal current thread in the round
     static Thread *curInRound;
-#endif
+    #endif
     ///\internal idle thread
     static Thread *idle;
 
@@ -198,5 +199,3 @@ private:
 } //namespace miosix
 
 #endif //SCHED_TYPE_CONTROL_BASED
-
-#endif //CONTROL_SCHEDULER_H
