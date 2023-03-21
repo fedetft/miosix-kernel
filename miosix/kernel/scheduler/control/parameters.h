@@ -47,7 +47,7 @@ namespace miosix {
 
 ///Enables support for Real-time priorities in the control scheduler, that
 ///are otherwise ignored.
-#define SCHED_CONTROL_MULTIBURST
+//#define SCHED_CONTROL_MULTIBURST
 
 ///Run the scheduler using fixed point math only. Faster but less precise.
 ///Note that the inner integral regulators are always fixed point, this affects

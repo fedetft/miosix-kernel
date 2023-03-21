@@ -136,6 +136,7 @@ private:
 
 inline bool operator<(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
+    #ifdef SCHED_CONTROL_MULTIBURST
     //rule 1) Idle thread should be always preempted by any thread!
     //rule 2) Only REALTIME_PRIORITY_IMMEDIATE threads can preempt other threads
     //right away, for other real-time priorities, the scheduler does not
@@ -143,23 +144,38 @@ inline bool operator<(ControlSchedulerPriority a, ControlSchedulerPriority b)
     return a.get()==-1 ||
         (a.getRealtime()!=ControlRealtimePriority::REALTIME_PRIORITY_IMMEDIATE &&
          b.getRealtime()==ControlRealtimePriority::REALTIME_PRIORITY_IMMEDIATE);
+    #else
+    return a.get()<b.get();
+    #endif
 }
 
 inline bool operator>(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
+    #ifdef SCHED_CONTROL_MULTIBURST
     return b.get()==-1 ||
         (a.getRealtime()==ControlRealtimePriority::REALTIME_PRIORITY_IMMEDIATE &&
          b.getRealtime()!=ControlRealtimePriority::REALTIME_PRIORITY_IMMEDIATE);
+    #else
+    return a.get()>b.get();
+    #endif
 }
 
 inline bool operator==(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
+    #ifdef SCHED_CONTROL_MULTIBURST
     return (a.getRealtime()==b.getRealtime()) && (a.get()==b.get());
+    #else
+    return a.get()==b.get();
+    #endif
 }
 
 inline bool operator!=(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
+    #ifdef SCHED_CONTROL_MULTIBURST
     return (a.getRealtime()!=b.getRealtime()) || (a.get()!=b.get());
+    #else
+    return a.get()!=b.get();
+    #endif
 }
 
 struct ThreadsListItem : public IntrusiveListItem
