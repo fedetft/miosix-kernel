@@ -117,7 +117,7 @@ public:
      * @return 
      */
     inline bool mutexLessOp(ControlSchedulerPriority b){
-        return false;
+        return priority < b.priority;
     }
 
 private:
