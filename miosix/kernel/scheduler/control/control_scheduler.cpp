@@ -181,14 +181,9 @@ static inline void IRQsetNextPreemption(long long burst)
     internal::IRQosTimerSetInterrupt(nextPreemption);
 }
 
-unsigned int ControlScheduler::IRQfindNextThread()
+void ControlScheduler::IRQfindNextThread()
 {
-    // Warning: since this function is called within interrupt routines, it
-    //is not possible to add/remove elements to threadList, since that would
-    //require dynamic memory allocation/deallocation which is forbidden within
-    //interrupts. Iterating the list is safe, though
-
-    if(kernel_running!=0) return 0;//If kernel is paused, do nothing
+    if(kernel_running!=0) return;//If kernel is paused, do nothing
 
     if(cur!=idle)
     {
@@ -241,9 +236,8 @@ unsigned int ControlScheduler::IRQfindNextThread()
                 #ifdef WITH_PROCESSES
                 miosix_private::MPUConfiguration::IRQdisable();
                 #endif
-                //miosix_private::AuxiliaryTimer::IRQsetValue(bIdle); //curTime + burst
                 IRQsetNextPreemptionForIdle();
-                return 0;
+                return;
             }
 
             //End of round reached, run scheduling algorithm
@@ -271,7 +265,7 @@ unsigned int ControlScheduler::IRQfindNextThread()
             //miosix_private::AuxiliaryTimer::IRQsetValue(
             //        curInRound->schedData.bo/multFactor);
             IRQsetNextPreemption(curInRound->schedData.bo/multFactor);
-            return 0;
+            return;
         } else {
             //If we get here we have a non ready thread that cannot run,
             //so regardless of the burst calculated by the scheduler
@@ -625,16 +619,15 @@ static inline void IRQsetNextPreemption(long long burst)
     internal::IRQosTimerSetInterrupt(nextPreemption);
 }
 
-unsigned int ControlScheduler::IRQfindNextThread()
+void ControlScheduler::IRQfindNextThread()
 {
-    if(kernel_running!=0) return 0;//If kernel is paused, do nothing
+    if(kernel_running!=0) return;//If kernel is paused, do nothing
 
     if(cur!=idle)
     {
         //Not preempting from the idle thread, store actual burst time of
         //the preempted thread
-        //int Tp=miosix_private::AuxiliaryTimer::IRQgetValue(); //CurTime - LastTime = real burst
-        int Tp = static_cast<int>(IRQgetTime() - burstStart);
+        int Tp=static_cast<int>(IRQgetTime()-burstStart);
         cur->schedData.Tp=Tp;
         Tr+=Tp;
     }
@@ -642,7 +635,6 @@ unsigned int ControlScheduler::IRQfindNextThread()
     //Find next thread to run
     for(;;)
     {
-        //if(curInRound!=0) curInRound=curInRound->schedData.next;
         if(curInRound!=activeThreads.end()) curInRound++;
         if(curInRound==activeThreads.end()) //Note: do not replace with an else
         {
@@ -676,13 +668,11 @@ unsigned int ControlScheduler::IRQfindNextThread()
                 #ifdef WITH_PROCESSES
                 MPUConfiguration::IRQdisable();
                 #endif
-                //miosix_private::AuxiliaryTimer::IRQsetValue(bIdle); //curTime + burst
                 IRQsetNextPreemptionForIdle();
-                return 0;
+                return;
             }
 
             //End of round reached, run scheduling algorithm
-            //curInRound=threadList;
             curInRound=activeThreads.begin();
             IRQrunRegulator(allReadyThreadsSaturated);
         }
@@ -707,13 +697,10 @@ unsigned int ControlScheduler::IRQfindNextThread()
             //miosix_private::AuxiliaryTimer::IRQsetValue(
             //        curInRound->schedData.bo/multFactor);
             IRQsetNextPreemption(cur->schedData.bo/multFactor);
-            return 0;
+            return;
         } else {
-            //If we get here we have a non ready thread that cannot run,
-            //so regardless of the burst calculated by the scheduler
-            //we do not run it and set Tp to zero.
-            //curInRound->schedData.Tp=0;
-            return UINT_MAX; //This case should not happen, just for debug!
+            //Error: a not ready thread end up in the ready list
+            errorHandler(UNEXPECTED);
         }
     }
 }

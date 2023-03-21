@@ -218,9 +218,9 @@ static void IRQsetNextPreemption(bool curIsIdleThread)
     internal::IRQosTimerSetInterrupt(nextPeriodicPreemption);
 }
 
-unsigned int PriorityScheduler::IRQfindNextThread()
+void PriorityScheduler::IRQfindNextThread()
 {
-    if(kernel_running!=0) return MAX_TIME_SLICE;//If kernel is paused, do nothing
+    if(kernel_running!=0) return;//If kernel is paused, do nothing
     for(int i=PRIORITY_MAX-1;i>=0;i--)
     {
         if(thread_list[i]==nullptr) continue;
@@ -248,7 +248,7 @@ unsigned int PriorityScheduler::IRQfindNextThread()
                 //a different thread, if available, will be chosen first
                 thread_list[i]=temp;
                 IRQsetNextPreemption(false);
-                return MAX_TIME_SLICE;
+                return;
             } else temp=temp->schedData.next;
             if(temp==thread_list[i]->schedData.next) break;
         }
@@ -260,7 +260,6 @@ unsigned int PriorityScheduler::IRQfindNextThread()
     MPUConfiguration::IRQdisable();
     #endif //WITH_PROCESSES
     IRQsetNextPreemption(true);
-    return MAX_TIME_SLICE;
 }
 
 Thread *PriorityScheduler::thread_list[PRIORITY_MAX]={nullptr};

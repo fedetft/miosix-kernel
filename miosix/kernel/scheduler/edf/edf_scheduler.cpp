@@ -126,10 +126,9 @@ static void IRQsetNextPreemption()
     internal::IRQosTimerSetInterrupt(nextPreemption);
 }
 
-unsigned int EDFScheduler::IRQfindNextThread()
+void EDFScheduler::IRQfindNextThread()
 {
-    if(kernel_running!=0) return 0;//If kernel is paused, do nothing
-    
+    if(kernel_running!=0) return;//If kernel is paused, do nothing
     Thread *walk=head;
     for(;;)
     {
@@ -151,7 +150,7 @@ unsigned int EDFScheduler::IRQfindNextThread()
             ctxsave=cur->ctxsave;
             #endif //WITH_PROCESSES
             IRQsetNextPreemption();
-            return 1;
+            return;
         }
         walk=walk->schedData.next;
     }

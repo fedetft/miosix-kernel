@@ -88,9 +88,4 @@ static const int bMin=static_cast<int>(200000);// 200us
 ///maximum burst time (to avoid losing responsiveness/timer overflow)
 static const int bMax=static_cast<int>(20000000);// 20ms
 
-///idle thread has a fixed burst length that can be modified here
-///it is recomended to leave it to a high value, but that does not cause
-///overflow of the auxiliary timer
-static const int bIdle=static_cast<int>(500000000);// 500ms
-
 }

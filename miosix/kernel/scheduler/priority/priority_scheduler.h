@@ -135,9 +135,8 @@ public:
      * If the kernel is paused does nothing.
      * It's behaviour is to modify the global variable miosix::cur which always
      * points to the currently running thread.
-     * \return the burst time
      */
-    static unsigned int IRQfindNextThread();
+    static void IRQfindNextThread();
     
     /**
      * \internal

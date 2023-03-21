@@ -172,18 +172,16 @@ public:
      * If the kernel is paused does nothing.
      * It's behaviour is to modify the global variable miosix::cur which always
      * points to the currently running thread.
-     * \return the burst time
      */
-    static unsigned int IRQfindNextThread()
+    static void IRQfindNextThread()
     {
         #ifdef WITH_CPU_TIME_COUNTER
         long long t=CPUTimeCounter::PKwillSwitchContext();
         #endif
-        unsigned int res=T::IRQfindNextThread();
+        T::IRQfindNextThread();
         #ifdef WITH_CPU_TIME_COUNTER
         CPUTimeCounter::PKdidSwitchContext(t);
         #endif
-        return res;
     }
     
     /**
