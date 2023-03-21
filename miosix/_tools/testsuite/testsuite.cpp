@@ -1442,7 +1442,6 @@ static void test_6()
     //
     // Testing full priority inheritance algorithm
     //
-    #ifndef SCHED_TYPE_CONTROL_BASED
     Thread *t3;
     Thread *t4;
     {
@@ -1508,7 +1507,6 @@ static void test_6()
     t3->join();
     t4->join();
     Thread::sleep(10);
-    #endif
     //
     // Testing recursive mutexes
     //
