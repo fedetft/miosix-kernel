@@ -205,16 +205,15 @@ long long PriorityScheduler::IRQgetNextPreemption()
 
 static void IRQsetNextPreemption(bool curIsIdleThread)
 {
-    long long firstWakeupInList;
-    if(sleepingList.empty())
-        //TODO: can't we just not set an interrupt?
-        firstWakeupInList=std::numeric_limits<long long>::max();
-    else
-        firstWakeupInList=sleepingList.front()->wakeup_time;
-    
-    if(curIsIdleThread) nextPeriodicPreemption=firstWakeupInList;
-    else nextPeriodicPreemption=std::min(firstWakeupInList,IRQgetTime()+MAX_TIME_SLICE);
-    
+    long long first;
+    if(sleepingList.empty()) first=std::numeric_limits<long long>::max();
+    else first=sleepingList.front()->wakeup_time;
+
+    if(curIsIdleThread) nextPeriodicPreemption=first;
+    else nextPeriodicPreemption=std::min(first,IRQgetTime()+MAX_TIME_SLICE);
+
+    //We could not set an interrupt if the sleeping list is empty and cur is
+    //idle but there's no such hurry to run idle anyway, so why bother?
     internal::IRQosTimerSetInterrupt(nextPeriodicPreemption);
 }
 

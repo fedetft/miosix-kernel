@@ -118,11 +118,12 @@ long long EDFScheduler::IRQgetNextPreemption()
 
 static void IRQsetNextPreemption()
 {
-    if(sleepingList.empty())
-    {
-        //TODO: can't we just not set an interrupt?
-        nextPreemption=numeric_limits<long long>::max();
-    } else nextPreemption=sleepingList.front()->wakeup_time;
+    if(sleepingList.empty()) nextPreemption=numeric_limits<long long>::max();
+    else nextPreemption=sleepingList.front()->wakeup_time;
+
+    //We could not set an interrupt if the sleeping list is empty, but then we
+    //would spuriously run the scheduler at every rollover of the hardware timer
+    //and this could waste more cycles than setting the interrupt
     internal::IRQosTimerSetInterrupt(nextPreemption);
 }
 

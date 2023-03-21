@@ -35,7 +35,6 @@
 using namespace std;
 
 #ifdef SCHED_TYPE_CONTROL_BASED
-#ifndef SCHED_CONTROL_MULTIBURST
 
 namespace miosix {
 
@@ -47,6 +46,30 @@ extern IntrusiveList<SleepData> sleepingList;
 //Internal
 static long long burstStart=0;
 static long long nextPreemption=numeric_limits<long long>::max();
+
+// Should be called when the current thread is the idle thread
+static inline void IRQsetNextPreemptionForIdle()
+{
+    if(sleepingList.empty()) nextPreemption=numeric_limits<long long>::max();
+    else nextPreemption=sleepingList.front()->wakeup_time;
+
+    //We could not set an interrupt if the sleeping list is empty but there's
+    //no such hurry to run idle anyway, so why bother?
+    internal::IRQosTimerSetInterrupt(nextPreemption);
+}
+
+// Should be called for threads other than idle thread
+static inline void IRQsetNextPreemption(long long burst)
+{
+    long long firstWakeupInList;
+    if(sleepingList.empty()) firstWakeupInList=numeric_limits<long long>::max();
+    else firstWakeupInList=sleepingList.front()->wakeup_time;
+    burstStart=IRQgetTime();
+    nextPreemption=min(firstWakeupInList,burstStart+burst);
+    internal::IRQosTimerSetInterrupt(nextPreemption);
+}
+
+#ifndef SCHED_CONTROL_MULTIBURST
 
 //
 // class ControlScheduler
@@ -156,29 +179,6 @@ Thread *ControlScheduler::IRQgetIdleThread()
 long long ControlScheduler::IRQgetNextPreemption()
 {
     return nextPreemption;
-}
-
-// Should be called when the current thread is the idle thread
-static inline void IRQsetNextPreemptionForIdle()
-{
-    if(sleepingList.empty())
-        //normally should not happen unless an IRQ is already set and able to
-        //preempt idle thread
-        //TODO: can't we just not set an interrupt?
-        nextPreemption=numeric_limits<long long>::max();
-    else nextPreemption=sleepingList.front()->wakeup_time;
-    internal::IRQosTimerSetInterrupt(nextPreemption);
-}
-
-// Should be called for threads other than idle thread
-static inline void IRQsetNextPreemption(long long burst)
-{
-    long long firstWakeupInList;
-    if(sleepingList.empty()) firstWakeupInList=numeric_limits<long long>::max();
-    else firstWakeupInList=sleepingList.front()->wakeup_time;
-    burstStart=IRQgetTime();
-    nextPreemption=min(firstWakeupInList,burstStart+burst);
-    internal::IRQosTimerSetInterrupt(nextPreemption);
 }
 
 void ControlScheduler::IRQfindNextThread()
@@ -435,19 +435,9 @@ bool ControlScheduler::reinitRegulator=false;
 
 #else //SCHED_CONTROL_MULTIBURST
 
-namespace miosix {
-
-//These are defined in kernel.cpp
-extern volatile Thread *cur;
-extern volatile int kernel_running;
-extern IntrusiveList<SleepData> sleepingList;
-extern bool kernel_started;
-
 //Internal
-static long long burstStart=0;
 static IntrusiveList<ThreadsListItem> activeThreads;
 static IntrusiveList<ThreadsListItem>::iterator curInRound=activeThreads.end();
-static long long nextPreemption=numeric_limits<long long>::max();
 
 //
 // class ControlScheduler
@@ -594,29 +584,6 @@ Thread *ControlScheduler::IRQgetIdleThread()
 long long ControlScheduler::IRQgetNextPreemption()
 {
     return nextPreemption;
-}
-
-// Should be called when the current thread is the idle thread
-static inline void IRQsetNextPreemptionForIdle()
-{
-    if(sleepingList.empty())
-        //normally should not happen unless an IRQ is already set and able to
-        //preempt idle thread
-        //TODO: can't we just not set an interrupt?
-        nextPreemption=numeric_limits<long long>::max();
-    else nextPreemption=sleepingList.front()->wakeup_time;
-    internal::IRQosTimerSetInterrupt(nextPreemption);
-}
-
-// Should be called for threads other than idle thread
-static inline void IRQsetNextPreemption(long long burst)
-{
-    long long firstWakeupInList;
-    if(sleepingList.empty()) firstWakeupInList=numeric_limits<long long>::max();
-    else firstWakeupInList=sleepingList.front()->wakeup_time;
-    burstStart=IRQgetTime();
-    nextPreemption=min(firstWakeupInList,burstStart+burst);
-    internal::IRQosTimerSetInterrupt(nextPreemption);
 }
 
 void ControlScheduler::IRQfindNextThread()
