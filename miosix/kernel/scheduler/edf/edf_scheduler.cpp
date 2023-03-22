@@ -29,7 +29,6 @@
 #include "kernel/error.h"
 #include "kernel/process.h"
 #include "interfaces/os_timer.h"
-#include "kernel/scheduler/timer_interrupt.h"
 #include <algorithm>
 
 using namespace std;

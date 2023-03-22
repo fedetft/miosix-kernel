@@ -30,7 +30,6 @@
 #include "kernel/error.h"
 #include "interfaces/bsp.h"
 #include "kernel/scheduler/scheduler.h"
-#include "kernel/scheduler/timer_interrupt.h"
 #include <algorithm>
 
 extern void (* const __Vectors[])();
@@ -49,6 +48,10 @@ void SVC_Handler()
     //Call ISR_yield(). Name is a C++ mangled name.
     asm volatile("bl _ZN14miosix_private9ISR_yieldEv");
     restoreContext();
+}
+
+namespace miosix {
+extern volatile Thread *cur;///\internal Do not use outside the kernel
 }
 
 namespace miosix_private {

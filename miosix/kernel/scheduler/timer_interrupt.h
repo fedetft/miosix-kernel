@@ -27,7 +27,6 @@
 
 #pragma once
 
-#include "config/miosix_settings.h"
 #include "interfaces/portability.h"
 #include "scheduler.h"
 
@@ -38,7 +37,6 @@ namespace miosix {
 //User code should not know about these nor try to use them.
 extern volatile int kernel_running;///\internal Do not use outside the kernel
 extern volatile bool pendingWakeup;///\internal Do not use outside the kernel
-extern volatile Thread *cur;///\internal Do not use outside the kernel
 extern bool IRQwakeThreads(long long currentTime);///\internal Do not use outside the kernel
 
 /**

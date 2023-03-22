@@ -33,10 +33,13 @@
 #include "miosix.h"
 #include "portability_impl.h"
 #include "kernel/scheduler/scheduler.h"
-#include "kernel/scheduler/timer_interrupt.h"
 #include <algorithm>
 
 using namespace std;
+
+namespace miosix {
+extern volatile Thread *cur;///\internal Do not use outside the kernel
+}
 
 namespace miosix_private {
 

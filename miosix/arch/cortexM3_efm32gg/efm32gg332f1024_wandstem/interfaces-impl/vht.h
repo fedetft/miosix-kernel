@@ -30,7 +30,6 @@
 
 #include "hrtb.h"
 #include "kernel/kernel.h"
-#include "kernel/scheduler/timer_interrupt.h"
 #include "hrtb.h"
 #include "kernel/timeconversion.h"
 #include "gpio_timer.h"

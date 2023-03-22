@@ -28,9 +28,8 @@
 #include "control_scheduler.h"
 #include "kernel/error.h"
 #include "kernel/process.h"
-#include <limits>
 #include "interfaces/os_timer.h"
-#include "kernel/scheduler/scheduler.h"
+#include <limits>
 
 using namespace std;
 
