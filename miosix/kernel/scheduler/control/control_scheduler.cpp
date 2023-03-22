@@ -189,7 +189,6 @@ void ControlScheduler::IRQfindNextThread()
     {
         //Not preempting from the idle thread, store actual burst time of
         //the preempted thread
-        //int Tp=miosix_private::AuxiliaryTimer::IRQgetValue(); //CurTime - LastTime = real burst
         int Tp=static_cast<int>(IRQgetTime()-burstStart);
         cur->schedData.Tp=Tp;
         Tr+=Tp;
@@ -262,8 +261,6 @@ void ControlScheduler::IRQfindNextThread()
             #else //WITH_PROCESSES
             ctxsave=cur->ctxsave;
             #endif //WITH_PROCESSES
-            //miosix_private::AuxiliaryTimer::IRQsetValue(
-            //        curInRound->schedData.bo/multFactor);
             IRQsetNextPreemption(curInRound->schedData.bo/multFactor);
             return;
         } else {
@@ -661,8 +658,6 @@ void ControlScheduler::IRQfindNextThread()
             #else //WITH_PROCESSES
             ctxsave=cur->ctxsave;
             #endif //WITH_PROCESSES
-            //miosix_private::AuxiliaryTimer::IRQsetValue(
-            //        curInRound->schedData.bo/multFactor);
             IRQsetNextPreemption(cur->schedData.bo/multFactor);
             return;
         } else {
