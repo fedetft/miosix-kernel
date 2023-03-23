@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef CPU_TIME_COUNTER_PRIVATE_H
-#define CPU_TIME_COUNTER_PRIVATE_H
+#pragma once
 
 #include "cpu_time_counter.h"
 
@@ -35,22 +34,20 @@
 namespace miosix {
 
 // Declared in kernel.cpp
-extern volatile Thread *cur;
+extern volatile Thread *runningThread;
 
 long long CPUTimeCounter::PKwillSwitchContext()
 {
-    long long t = IRQgetTime();
-    cur->timeCounterData.usedCpuTime += t - cur->timeCounterData.lastActivation;
+    long long t=IRQgetTime();
+    runningThread->timeCounterData.usedCpuTime+=t-runningThread->timeCounterData.lastActivation;
     return t;
 }
 
 void CPUTimeCounter::PKdidSwitchContext(long long t)
 {
-    cur->timeCounterData.lastActivation = t;
+    runningThread->timeCounterData.lastActivation=t;
 }
 
-}
+} //namespace miosix
 
-#endif // WITH_CPU_TIME_COUNTER
-
-#endif
+#endif //WITH_CPU_TIME_COUNTER

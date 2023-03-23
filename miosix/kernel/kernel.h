@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008-2021 by Terraneo Federico                          *
+ *   Copyright (C) 2008-2023 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -464,17 +464,17 @@ public:
      * point function
      * \param options thread options, such ad Thread::JOINABLE
      * \return a reference to the thread created, that can be used, for example,
-     * to delete it, or NULL in case of errors.
+     * to delete it, or nullptr in case of errors.
      *
      * Can be called when the kernel is paused.
      */
     static Thread *create(void *(*startfunc)(void *), unsigned int stacksize,
-                            Priority priority=Priority(), void *argv=NULL,
+                            Priority priority=Priority(), void *argv=nullptr,
                             unsigned short options=DEFAULT);
 
     /**
      * Same as create(void (*startfunc)(void *), unsigned int stacksize,
-     * Priority priority=1, void *argv=NULL)
+     * Priority priority=1, void *argv=nullptr)
      * but in this case the entry point of the thread returns a void*
      * \param startfunc the entry point function for the thread
      * \param stacksize size of thread stack, its minimum is the constant
@@ -487,10 +487,10 @@ public:
      * point function
      * \param options thread options, such ad Thread::JOINABLE
      * \return a reference to the thread created, that can be used, for example,
-     * to delete it, or NULL in case of errors.
+     * to delete it, or nullptr in case of errors.
      */
     static Thread *create(void (*startfunc)(void *), unsigned int stacksize,
-                            Priority priority=Priority(), void *argv=NULL,
+                            Priority priority=Priority(), void *argv=nullptr,
                             unsigned short options=DEFAULT);
 
     /**
@@ -658,11 +658,11 @@ public:
      * Calling join on a detached thread might cause undefined behaviour.
      * \param result If the entry point function of the thread to join returns
      * void *, the return value of the entry point is stored here, otherwise
-     * the content of this variable is undefined. If NULL is passed as result
+     * the content of this variable is undefined. If nullptr is passed as result
      * the return value will not be stored.
      * \return true on success, false on failure
      */
-    bool join(void** result=NULL);
+    bool join(void** result=nullptr);
 
     /**
      * Same as get_current_thread(), but meant to be used insida an IRQ, when
@@ -967,7 +967,7 @@ private:
      * \param argv argument passed to the thread entry point
      * \param options thread options
      * \param defaultReent true if the default C reentrancy data should be used
-     * \return a pointer to a thread, or NULL in case there are not enough
+     * \return a pointer to a thread, or nullptr in case there are not enough
      * resources to create one.
      */
     static Thread *doCreate(void *(*startfunc)(void *), unsigned int stacksize,
@@ -1014,7 +1014,7 @@ private:
     unsigned int ctxsave[CTXSAVE_SIZE];///< Holds cpu registers during ctxswitch
     unsigned int stacksize;///< Contains stack size
     ///This union is used to join threads. When the thread to join has not yet
-    ///terminated and no other thread called join it contains (Thread *)NULL,
+    ///terminated and no other thread called join it contains (Thread *)nullptr,
     ///when a thread calls join on this thread it contains the thread waiting
     ///for the join, and when the thread terminated it contains (void *)result
     union
@@ -1109,7 +1109,7 @@ struct SleepData : public IntrusiveListItem
     
     ///\internal When this number becomes equal to the kernel tick,
     ///the thread will wake
-    long long wakeup_time;
+    long long wakeupTime;
 };
 
 /**

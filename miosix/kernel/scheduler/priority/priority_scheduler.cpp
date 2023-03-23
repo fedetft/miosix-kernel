@@ -35,8 +35,8 @@
 namespace miosix {
 
 //These are defined in kernel.cpp
-extern volatile Thread *cur;
-extern volatile int kernel_running;
+extern volatile Thread *runningThread;
+extern volatile int kernelRunning;
 extern IntrusiveList<SleepData> sleepingList;
 
 //Internal data
@@ -203,23 +203,23 @@ long long PriorityScheduler::IRQgetNextPreemption()
     return nextPeriodicPreemption;
 }
 
-static void IRQsetNextPreemption(bool curIsIdleThread)
+static void IRQsetNextPreemption(bool runningIdleThread)
 {
     long long first;
     if(sleepingList.empty()) first=std::numeric_limits<long long>::max();
-    else first=sleepingList.front()->wakeup_time;
+    else first=sleepingList.front()->wakeupTime;
 
-    if(curIsIdleThread) nextPeriodicPreemption=first;
+    if(runningIdleThread) nextPeriodicPreemption=first;
     else nextPeriodicPreemption=std::min(first,IRQgetTime()+MAX_TIME_SLICE);
 
-    //We could not set an interrupt if the sleeping list is empty and cur is
-    //idle but there's no such hurry to run idle anyway, so why bother?
+    //We could not set an interrupt if the sleeping list is empty and runningThread
+    //is idle but there's no such hurry to run idle anyway, so why bother?
     internal::IRQosTimerSetInterrupt(nextPeriodicPreemption);
 }
 
 void PriorityScheduler::IRQfindNextThread()
 {
-    if(kernel_running!=0) return;//If kernel is paused, do nothing
+    if(kernelRunning!=0) return;//If kernel is paused, do nothing
     for(int i=PRIORITY_MAX-1;i>=0;i--)
     {
         if(threadList[i]==nullptr) continue;
@@ -229,16 +229,16 @@ void PriorityScheduler::IRQfindNextThread()
             if(temp->flags.isReady())
             {
                 //Found a READY thread, so run this one
-                cur=temp;
+                runningThread=temp;
                 #ifdef WITH_PROCESSES
-                if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
+                if(const_cast<Thread*>(runningThread)->flags.isInUserspace()==false)
                 {
-                    ctxsave=cur->ctxsave;
+                    ctxsave=runningThread->ctxsave;
                     MPUConfiguration::IRQdisable();
                 } else {
-                    ctxsave=cur->userCtxsave;
+                    ctxsave=runningThread->userCtxsave;
                     //A kernel thread is never in userspace, so the cast is safe
-                    static_cast<Process*>(cur->proc)->mpu.IRQenable();
+                    static_cast<Process*>(runningThread->proc)->mpu.IRQenable();
                 }
                 #else //WITH_PROCESSES
                 ctxsave=temp->ctxsave;
@@ -253,7 +253,7 @@ void PriorityScheduler::IRQfindNextThread()
         }
     }
     //No thread found, run the idle thread
-    cur=idle;
+    runningThread=idle;
     ctxsave=idle->ctxsave;
     #ifdef WITH_PROCESSES
     MPUConfiguration::IRQdisable();

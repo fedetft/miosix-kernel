@@ -38,8 +38,8 @@ using namespace std;
 namespace miosix {
 
 //These are defined in kernel.cpp
-extern volatile Thread *cur;
-extern volatile int kernel_running;
+extern volatile Thread *runningThread;
+extern volatile int kernelRunning;
 extern IntrusiveList<SleepData> sleepingList;
 
 //Static members
@@ -118,7 +118,7 @@ long long EDFScheduler::IRQgetNextPreemption()
 static void IRQsetNextPreemption()
 {
     if(sleepingList.empty()) nextPreemption=numeric_limits<long long>::max();
-    else nextPreemption=sleepingList.front()->wakeup_time;
+    else nextPreemption=sleepingList.front()->wakeupTime;
 
     //We could not set an interrupt if the sleeping list is empty, but then we
     //would spuriously run the scheduler at every rollover of the hardware timer
@@ -128,26 +128,26 @@ static void IRQsetNextPreemption()
 
 void EDFScheduler::IRQfindNextThread()
 {
-    if(kernel_running!=0) return;//If kernel is paused, do nothing
+    if(kernelRunning!=0) return;//If kernel is paused, do nothing
     Thread *walk=head;
     for(;;)
     {
         if(walk==nullptr) errorHandler(UNEXPECTED);
         if(walk->flags.isReady())
         {
-            cur=walk;
+            runningThread=walk;
             #ifdef WITH_PROCESSES
-            if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
+            if(const_cast<Thread*>(runningThread)->flags.isInUserspace()==false)
             {
-                ctxsave=cur->ctxsave;
+                ctxsave=runningThread->ctxsave;
                 MPUConfiguration::IRQdisable();
             } else {
-                ctxsave=cur->userCtxsave;
+                ctxsave=runningThread->userCtxsave;
                 //A kernel thread is never in userspace, so the cast is safe
-                static_cast<Process*>(cur->proc)->mpu.IRQenable();
+                static_cast<Process*>(runningThread->proc)->mpu.IRQenable();
             }
             #else //WITH_PROCESSES
-            ctxsave=cur->ctxsave;
+            ctxsave=runningThread->ctxsave;
             #endif //WITH_PROCESSES
             IRQsetNextPreemption();
             return;

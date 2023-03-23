@@ -38,19 +38,19 @@ using namespace std;
 namespace miosix {
 
 //These are defined in kernel.cpp
-extern volatile Thread *cur;
-extern volatile int kernel_running;
+extern volatile Thread *runningThread;
+extern volatile int kernelRunning;
 extern IntrusiveList<SleepData> sleepingList;
 
 //Internal
 static long long burstStart=0;
 static long long nextPreemption=numeric_limits<long long>::max();
 
-// Should be called when the current thread is the idle thread
+// Should be called when the running thread is the idle thread
 static inline void IRQsetNextPreemptionForIdle()
 {
     if(sleepingList.empty()) nextPreemption=numeric_limits<long long>::max();
-    else nextPreemption=sleepingList.front()->wakeup_time;
+    else nextPreemption=sleepingList.front()->wakeupTime;
 
     //We could not set an interrupt if the sleeping list is empty but there's
     //no such hurry to run idle anyway, so why bother?
@@ -62,7 +62,7 @@ static inline void IRQsetNextPreemption(long long burst)
 {
     long long firstWakeupInList;
     if(sleepingList.empty()) firstWakeupInList=numeric_limits<long long>::max();
-    else firstWakeupInList=sleepingList.front()->wakeup_time;
+    else firstWakeupInList=sleepingList.front()->wakeupTime;
     burstStart=IRQgetTime();
     nextPreemption=min(firstWakeupInList,burstStart+burst);
     internal::IRQosTimerSetInterrupt(nextPreemption);
@@ -182,14 +182,14 @@ long long ControlScheduler::IRQgetNextPreemption()
 
 void ControlScheduler::IRQfindNextThread()
 {
-    if(kernel_running!=0) return;//If kernel is paused, do nothing
+    if(kernelRunning!=0) return;//If kernel is paused, do nothing
 
-    if(cur!=idle)
+    if(runningThread!=idle)
     {
         //Not preempting from the idle thread, store actual burst time of
         //the preempted thread
         int Tp=static_cast<int>(IRQgetTime()-burstStart);
-        cur->schedData.Tp=Tp;
+        runningThread->schedData.Tp=Tp;
         Tr+=Tp;
     }
 
@@ -229,8 +229,8 @@ void ControlScheduler::IRQfindNextThread()
                 //threads from threadList, so it can invalidate iterators
                 //to any element except theadList.end()
                 curInRound=nullptr;
-                cur=idle;
-                ctxsave=cur->ctxsave;
+                runningThread=idle;
+                ctxsave=runningThread->ctxsave;
                 #ifdef WITH_PROCESSES
                 miosix_private::MPUConfiguration::IRQdisable();
                 #endif
@@ -246,19 +246,19 @@ void ControlScheduler::IRQfindNextThread()
         if(curInRound->flags.isReady())
         {
             //Found a READY thread, so run this one
-            cur=curInRound;
+            runningThread=curInRound;
             #ifdef WITH_PROCESSES
-            if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
+            if(const_cast<Thread*>(runningThread)->flags.isInUserspace()==false)
             {
-                ctxsave=cur->ctxsave;
+                ctxsave=runningThread->ctxsave;
                 miosix_private::MPUConfiguration::IRQdisable();
             } else {
-                ctxsave=cur->userCtxsave;
+                ctxsave=runningThread->userCtxsave;
                 //A kernel thread is never in userspace, so the cast is safe
-                static_cast<Process*>(cur->proc)->mpu.IRQenable();
+                static_cast<Process*>(runningThread->proc)->mpu.IRQenable();
             }
             #else //WITH_PROCESSES
-            ctxsave=cur->ctxsave;
+            ctxsave=runningThread->ctxsave;
             #endif //WITH_PROCESSES
             IRQsetNextPreemption(curInRound->schedData.bo/multFactor);
             return;
@@ -584,14 +584,14 @@ long long ControlScheduler::IRQgetNextPreemption()
 
 void ControlScheduler::IRQfindNextThread()
 {
-    if(kernel_running!=0) return;//If kernel is paused, do nothing
+    if(kernelRunning!=0) return;//If kernel is paused, do nothing
 
-    if(cur!=idle)
+    if(runningThread!=idle)
     {
         //Not preempting from the idle thread, store actual burst time of
         //the preempted thread
         int Tp=static_cast<int>(IRQgetTime()-burstStart);
-        cur->schedData.Tp=Tp;
+        runningThread->schedData.Tp=Tp;
         Tr+=Tp;
     }
 
@@ -626,8 +626,8 @@ void ControlScheduler::IRQfindNextThread()
                 //threads from threadList, so it can invalidate iterators
                 //to any element except theadList.end()
                 curInRound=activeThreads.end();
-                cur=idle;
-                ctxsave=cur->ctxsave;
+                runningThread=idle;
+                ctxsave=runningThread->ctxsave;
                 #ifdef WITH_PROCESSES
                 MPUConfiguration::IRQdisable();
                 #endif
@@ -643,21 +643,21 @@ void ControlScheduler::IRQfindNextThread()
         if((*curInRound)->t->flags.isReady())
         {
             //Found a READY thread, so run this one
-            cur=(*curInRound)->t;
+            runningThread=(*curInRound)->t;
             #ifdef WITH_PROCESSES
-            if(const_cast<Thread*>(cur)->flags.isInUserspace()==false)
+            if(const_cast<Thread*>(runningThread)->flags.isInUserspace()==false)
             {
-                ctxsave=cur->ctxsave;
+                ctxsave=runningThread->ctxsave;
                 MPUConfiguration::IRQdisable();
             } else {
-                ctxsave=cur->userCtxsave;
+                ctxsave=runningThread->userCtxsave;
                 //A kernel thread is never in userspace, so the cast is safe
-                static_cast<Process*>(cur->proc)->mpu.IRQenable();
+                static_cast<Process*>(runningThread->proc)->mpu.IRQenable();
             }
             #else //WITH_PROCESSES
-            ctxsave=cur->ctxsave;
+            ctxsave=runningThread->ctxsave;
             #endif //WITH_PROCESSES
-            IRQsetNextPreemption(cur->schedData.bo/multFactor);
+            IRQsetNextPreemption(runningThread->schedData.bo/multFactor);
             return;
         } else {
             //Error: a not ready thread end up in the ready list
