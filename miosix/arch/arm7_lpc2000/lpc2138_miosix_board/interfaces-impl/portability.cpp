@@ -37,10 +37,6 @@
 
 using namespace std;
 
-namespace miosix {
-extern volatile Thread *cur;///\internal Do not use outside the kernel
-}
-
 namespace miosix_private {
 
 /**
@@ -53,7 +49,7 @@ namespace miosix_private {
 void ISR_yield() __attribute__((noinline));
 void ISR_yield()
 {
-    IRQstackOverflowCheck();
+    miosix::Thread::IRQstackOverflowCheck();
     miosix::Scheduler::IRQfindNextThread();
 }
 
@@ -71,19 +67,6 @@ extern "C" void kernel_SWI_Routine()
     //Call ISR_yield(). Name is a C++ mangled name.
     asm volatile("bl _ZN14miosix_private9ISR_yieldEv");
     restoreContext();
-}
-
-void IRQstackOverflowCheck()
-{
-    const unsigned int watermarkSize=miosix::WATERMARK_LEN/sizeof(unsigned int);
-    for(unsigned int i=0;i<watermarkSize;i++)
-    {
-        if(miosix::cur->watermark[i]!=miosix::WATERMARK_FILL)
-            miosix::errorHandler(miosix::STACK_OVERFLOW);
-    }
-    if(miosix::cur->ctxsave[13] < reinterpret_cast<unsigned int>(
-            miosix::cur->watermark+watermarkSize))
-        miosix::errorHandler(miosix::STACK_OVERFLOW);
 }
 
 void IRQsystemReboot()

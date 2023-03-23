@@ -746,7 +746,14 @@ public:
     static bool IRQreportFault(const miosix_private::FaultData& fault);
     
     #endif //WITH_PROCESSES
-	
+
+    /**
+     * \internal
+     * Used before every context switch to check if the stack of the thread
+     * being preempted has overflowed
+     */
+    static void IRQstackOverflowCheck();
+
 private:
     //Unwanted methods
     Thread(const Thread& p);///< No public copy constructor
@@ -1031,8 +1038,6 @@ private:
     #endif //WITH_CPU_TIME_COUNTER
     
     //friend functions
-    //Needs access to watermark, ctxsave
-    friend void miosix_private::IRQstackOverflowCheck();
     //Need access to status
     friend void IRQaddToSleepingList(SleepData *x);
     //Needs access to status

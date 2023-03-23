@@ -62,6 +62,7 @@
 extern "C" {
 extern volatile unsigned int *ctxsave;
 }
+const int stackPtrOffsetInCtxsave=13; ///< Allows to locate the stack pointer
 
 /**
  * \internal

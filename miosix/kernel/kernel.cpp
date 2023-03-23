@@ -684,6 +684,18 @@ bool Thread::IRQreportFault(const miosix_private::FaultData& fault)
 
 #endif //WITH_PROCESSES
 
+void Thread::IRQstackOverflowCheck()
+{
+    const unsigned int watermarkSize=WATERMARK_LEN/sizeof(unsigned int);
+    for(unsigned int i=0;i<watermarkSize;i++)
+    {
+        if(cur->watermark[i]!=WATERMARK_FILL) errorHandler(STACK_OVERFLOW);
+    }
+    if(cur->ctxsave[stackPtrOffsetInCtxsave] <
+        reinterpret_cast<unsigned int>(cur->watermark+watermarkSize))
+        errorHandler(STACK_OVERFLOW);
+}
+
 void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
 {
     void *result=0;

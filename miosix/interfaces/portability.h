@@ -230,13 +230,6 @@ inline void portableSwitchToUserspace();
 
 /**
  * \internal
- * Used before every context switch to check if the stack of the thread has
- * overflowed must be called before IRQfindNextThread().
- */
-void IRQstackOverflowCheck();
-
-/**
- * \internal
  * Called by miosix::start_kernel to handle the architecture-specific part of
  * initialization. It is used by the kernel, and should not be used by end users.
  * It is ensured that the miosix::kernel_started flag false during the execution

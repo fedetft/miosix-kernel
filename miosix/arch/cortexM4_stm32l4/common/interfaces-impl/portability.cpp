@@ -53,10 +53,6 @@ void SVC_Handler()
     restoreContext();
 }
 
-namespace miosix {
-extern volatile Thread *cur;///\internal Do not use outside the kernel
-}
-
 namespace miosix_private {
 
 /**
@@ -97,7 +93,7 @@ void ISR_yield()
         }
     }
     #endif // WITH_PROCESSES
-    IRQstackOverflowCheck();
+    miosix::Thread::IRQstackOverflowCheck();
     
     #ifdef WITH_PROCESSES
     //If processes are enabled, check the content of r3. If zero then it
@@ -112,19 +108,6 @@ void ISR_yield()
     #else //WITH_PROCESSES
     miosix::Scheduler::IRQfindNextThread();
     #endif //WITH_PROCESSES
-}
-
-void IRQstackOverflowCheck()
-{
-    const unsigned int watermarkSize=miosix::WATERMARK_LEN/sizeof(unsigned int);
-    for(unsigned int i=0;i<watermarkSize;i++)
-    {
-        if(miosix::cur->watermark[i]!=miosix::WATERMARK_FILL)
-            miosix::errorHandler(miosix::STACK_OVERFLOW);
-    }
-    if(miosix::cur->ctxsave[0] < reinterpret_cast<unsigned int>(
-            miosix::cur->watermark+watermarkSize))
-        miosix::errorHandler(miosix::STACK_OVERFLOW);
 }
 
 void IRQsystemReboot()
