@@ -837,19 +837,27 @@ public:
         #ifdef INTRUSIVE_LIST_ERROR_CHECK
         if(it.list!=this) fail();
         #endif //INTRUSIVE_LIST_ERROR_CHECK
-        IntrusiveListItem *cur=it.cur; //Safe even if it==end() -> cur=nullptr
+        IntrusiveListItem *cur=it.cur;
         return iterator(this,IntrusiveListBase::erase(cur));
     }
 
     /**
      * Nonportable version of std::list::remove that is O(1) since it relies on
      * the list being intrusive
-     * NOTE: can ONLY be called if you are sure the item to remove is in the
-     * list it is being removed from. If the item is not in any list or is in
-     * another list, it produces undefined bahavior.
-     * \param item item to remove
+     * NOTE: can ONLY be called if you are sure the item to remove is either not
+     * in any list (in this case, nothing is done) or is in the list it is being
+     * removed from. Trying to remove an item that is present in another list
+     * produces undefined bahavior.
+     * \param item item to remove, must not be nullptr
+     * \return true if the item was removed, false if the item was not present
+     * in the list
      */
-    void removeFast(T *item) { IntrusiveListBase::erase(item); }
+    bool removeFast(T *item)
+    {
+        if(item->prev==nullptr && IntrusiveListBase::front()!=item) return false;
+        IntrusiveListBase::erase(item);
+        return true;
+    }
     
     /**
      * \return an iterator to the first item
