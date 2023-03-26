@@ -296,6 +296,8 @@ static_assert(sizeof(IntrusiveList<CondData>)==sizeof(pthread_cond_t),"Invalid p
 int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
 {
     //attr is currently not considered
+    //NOTE: pthread_condattr_setclock is not supported, the only clock supported
+    //for pthread_cond_timedwait is CLOCK_MONOTONIC
     new (cond) IntrusiveList<CondData>; //Placement new as cond is a C type
     return 0;
 }
