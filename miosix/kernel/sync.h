@@ -1,6 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013, 2014                *
- *   by Terraneo Federico                                                  *
+ *   Copyright (C) 2008-2023 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,12 +24,11 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/ 
- //Miosix kernel
 
-#ifndef SYNC_H
-#define SYNC_H
+#pragma once
 
 #include "kernel.h"
+#include "intrusive.h"
 #include <vector>
 
 namespace miosix {
@@ -68,7 +66,7 @@ public:
             pthread_mutexattr_settype(&temp,PTHREAD_MUTEX_RECURSIVE);
             pthread_mutex_init(&impl,&temp);
             pthread_mutexattr_destroy(&temp);
-        } else pthread_mutex_init(&impl,NULL);
+        } else pthread_mutex_init(&impl,nullptr);
     }
 
     /**
@@ -387,6 +385,26 @@ private:
 };
 
 /**
+ * \internal
+ * \struct CondData
+ * This struct is used to make a list of threads that are waiting on a condition
+ * variable. It is used by the kernel, and should not be used by end users.
+ */
+struct CondData : public IntrusiveListItem
+{
+    Thread *thread; ///<\internal Thread that is waiting
+};
+
+/**
+    * Possible return values of timedWait
+    */
+enum class TimedWaitResult
+{
+    NoTimeout,
+    Timeout
+};
+
+/**
  * A condition variable class for thread synchronization, available from
  * Miosix 1.53.<br>
  * One or more threads can wait on the condition variable, and the signal()
@@ -402,7 +420,7 @@ public:
     /**
      * Constructor, initializes the ConditionVariable.
      */
-    ConditionVariable();
+    ConditionVariable() {}
 
     /**
      * Unlock the mutex and wait.
@@ -414,6 +432,20 @@ public:
     void wait(Lock<T>& l)
     {
         wait(l.get());
+    }
+
+    /**
+     * Unlock the mutex and wait until woken up or timeout occurs.
+     * If more threads call wait() they must do so specifying the same mutex,
+     * otherwise the behaviour is undefined.
+     * \param l A Lock instance that locked a Mutex
+     * \param absTime absolute timeout time in nanoseconds
+     * \return whether the return was due to a timout or wakeup
+     */
+    template<typename T>
+    TimedWaitResult wait(Lock<T>& l, long long absTime)
+    {
+        return timedWait(l.get());
     }
 
     /**
@@ -430,7 +462,32 @@ public:
      * otherwise the behaviour is undefined.
      * \param m a locked Mutex
      */
-    void wait(FastMutex& m);
+    void wait(FastMutex& m)
+    {
+        //Memory layout of ConditionVariable is the same of pthread_cond_t and
+        //the algorithm would be exactly the same
+        pthread_cond_wait(reinterpret_cast<pthread_cond_t*>(this),m.get());
+    }
+
+    /**
+     * Unlock the Mutex and wait until woken up or timeout occurs.
+     * If more threads call wait() they must do so specifying the same mutex,
+     * otherwise the behaviour is undefined.
+     * \param m a locked Mutex
+     * \param absTime absolute timeout time in nanoseconds
+     * \return whether the return was due to a timout or wakeup
+     */
+    TimedWaitResult timedWait(Mutex& m, long long absTime);
+
+    /**
+     * Unlock the FastMutex and wait until woken up or timeout occurs.
+     * If more threads call wait() they must do so specifying the same mutex,
+     * otherwise the behaviour is undefined.
+     * \param m a locked Mutex
+     * \param absTime absolute timeout time in nanoseconds
+     * \return whether the return was due to a timout or wakeup
+     */
+    TimedWaitResult timedWait(FastMutex& m, long long absTime);
 
     /**
      * Wakeup one waiting thread.
@@ -448,19 +505,8 @@ private:
     ConditionVariable(const ConditionVariable& );
     ConditionVariable& operator= (const ConditionVariable& );
 
-    /**
-     * \internal
-     * \struct WaitingData
-     * This struct is used to make a list of waiting threads.
-     */
-    struct WaitingData
-    {
-        Thread *p;///<\internal Thread that is waiting
-        WaitingData *next;///<\internal Next thread in the list
-    };
-
-    WaitingData *first;///<Pointer to first element of waiting fifo
-    WaitingData *last;///<Pointer to last element of waiting fifo
+    //Memory layout must be kept in sync with pthread_cond, see wait(FastMutex& m)
+    IntrusiveList<CondData> condList;
 };
 
 /**
@@ -468,5 +514,3 @@ private:
  */
 
 } //namespace miosix
-
-#endif //SYNC_H

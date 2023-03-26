@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011 by Terraneo Federico                         *
+ *   Copyright (C) 2010-2023 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -330,41 +330,7 @@ int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 
 int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime)
 {
-    auto *condList=reinterpret_cast<IntrusiveList<CondData>*>(cond);
-
-    long long timeout=timespec2ll(abstime);
-    //Disallow absolute sleeps with negative or too low values, as the ns2tick()
-    //algorithm in TimeConversion can't handle negative values and may undeflow
-    //even with very low values due to a negative adjustOffsetNs. As an unlikely
-    //side effect, very shor sleeps done very early at boot will be extended.
-    timeout=std::max(timeout,100000LL);
-    FastInterruptDisableLock dLock;
-    Thread *p=Thread::IRQgetCurrentThread();
-    CondData listItem;
-    listItem.thread=p;
-    condList->push_back(&listItem); //Putting this thread last on the list (lifo policy)
-    SleepData sleepData;
-    sleepData.p=p;
-    sleepData.wakeupTime=timeout;
-    IRQaddToSleepingList(&sleepData); //Putting this thread on the sleeping list too
-    p->flags.IRQsetCondWait(true);
-
-    unsigned int depth=IRQdoMutexUnlockAllDepthLevels(mutex);
-    {
-        FastInterruptEnableLock eLock(dLock);
-        Thread::yield(); //Here the wait becomes effective
-    }
-    //Ensure that the thread is removed from both list, as it can be woken by
-    //either a signal/broadcast (that removes it from condList) or by
-    //IRQwakeThreads (that removes it from sleeping list).
-    bool removed=condList->removeFast(&listItem);
-    IRQremoveFromSleepingList(&sleepData);
-
-    IRQdoMutexLockToDepth(mutex,dLock,depth);
-
-    //If the thread was still in the cond variable list, it was woken up by a timeout
-    if(removed) return ETIMEDOUT;
-    return 0;
+    return pthreadCondTimedWaitImpl(cond,mutex,timespec2ll(abstime));
 }
 
 int pthread_cond_signal(pthread_cond_t *cond)
@@ -473,3 +439,44 @@ int pthread_once(pthread_once_t *once, void (*func)())
 int pthread_setcancelstate(int state, int *oldstate) { return 0; } //Stub
 
 } //extern "C"
+
+namespace miosix {
+
+int pthreadCondTimedWaitImpl(pthread_cond_t *cond, pthread_mutex_t *mutex, long long absTime)
+{
+    auto *condList=reinterpret_cast<IntrusiveList<CondData>*>(cond);
+
+    //Disallow absolute sleeps with negative or too low values, as the ns2tick()
+    //algorithm in TimeConversion can't handle negative values and may undeflow
+    //even with very low values due to a negative adjustOffsetNs. As an unlikely
+    //side effect, very shor sleeps done very early at boot will be extended.
+    absTime=std::max(absTime,100000LL);
+    FastInterruptDisableLock dLock;
+    Thread *p=Thread::IRQgetCurrentThread();
+    CondData listItem;
+    listItem.thread=p;
+    condList->push_back(&listItem); //Putting this thread last on the list (lifo policy)
+    SleepData sleepData;
+    sleepData.p=p;
+    sleepData.wakeupTime=absTime;
+    IRQaddToSleepingList(&sleepData); //Putting this thread on the sleeping list too
+    p->flags.IRQsetCondWait(true);
+
+    unsigned int depth=IRQdoMutexUnlockAllDepthLevels(mutex);
+    {
+        FastInterruptEnableLock eLock(dLock);
+        Thread::yield(); //Here the wait becomes effective
+    }
+    //Ensure that the thread is removed from both list, as it can be woken by
+    //either a signal/broadcast (that removes it from condList) or by
+    //IRQwakeThreads (that removes it from sleeping list).
+    bool removed=condList->removeFast(&listItem);
+    IRQremoveFromSleepingList(&sleepData);
+
+    IRQdoMutexLockToDepth(mutex,dLock,depth);
+
+    //If the thread was still in the cond variable list, it was woken up by a timeout
+    return removed ? ETIMEDOUT : 0;
+}
+
+} //namespace miosix

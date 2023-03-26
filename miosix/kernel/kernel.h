@@ -1039,18 +1039,18 @@ private:
     
     //friend functions
     //Need access to status
-    friend void IRQaddToSleepingList(SleepData *x);
+    friend void IRQaddToSleepingList(SleepData *);
     //Need access to status
-    friend void IRQremoveFromSleepingList(SleepData *x);
+    friend void IRQremoveFromSleepingList(SleepData *);
     //Needs access to status
-    friend bool IRQwakeThreads(long long currentTick);
+    friend bool IRQwakeThreads(long long);
     //Needs access to watermark, status, next
-    friend void *idleThread(void *argv);
+    friend void *idleThread(void *);
     //Needs to create the idle thread
     friend void startKernel();
     //Needs threadLauncher
-    friend void miosix_private::initCtxsave(unsigned int *ctxsave,
-            void *(*pc)(void *), unsigned int *sp, void *argv);
+    friend void miosix_private::initCtxsave(unsigned int *, void *(*)(void *),
+            unsigned int *, void *);
     //Needs access to priority, savedPriority, mutexLocked and flags.
     friend class Mutex;
     //Needs access to flags
@@ -1062,13 +1062,13 @@ private:
     //Needs access to flags, schedData
     friend class EDFScheduler;
     //Needs access to flags
-    friend int ::pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+    friend int ::pthread_cond_wait(pthread_cond_t *, pthread_mutex_t *);
     //Needs access to flags
-    friend int ::pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime);
+    friend int pthreadCondTimedWaitImpl(pthread_cond_t *, pthread_mutex_t *, long long);
     //Needs access to flags
-    friend int ::pthread_cond_signal(pthread_cond_t *cond);
+    friend int ::pthread_cond_signal(pthread_cond_t *);
     //Needs access to flags
-    friend int ::pthread_cond_broadcast(pthread_cond_t *cond);
+    friend int ::pthread_cond_broadcast(pthread_cond_t *);
     //Needs access to cppReent
     friend class CppReentrancyAccessor;
     #ifdef WITH_PROCESSES

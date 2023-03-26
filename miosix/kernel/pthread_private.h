@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011 by Terraneo Federico                               *
+ *   Copyright (C) 2011-2023 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -33,6 +33,7 @@
 #include <pthread.h>
 #include "kernel.h"
 #include "intrusive.h"
+#include "sync.h"
 
 namespace miosix {
 
@@ -219,15 +220,6 @@ static inline unsigned int IRQdoMutexUnlockAllDepthLevels(pthread_mutex_t *mutex
     return result;
 }
 
-/**
- * \internal
- * \struct CondData
- * This struct is used to make a list of threads that are waiting on a condition
- * variable. It is used by the kernel, and should not be used by end users.
- */
-struct CondData : public IntrusiveListItem
-{
-    Thread *thread; ///<\internal Thread that is waiting
-};
+int pthreadCondTimedWaitImpl(pthread_cond_t *cond, pthread_mutex_t *mutex, long long absTime);
 
 } //namespace miosix
