@@ -375,6 +375,36 @@ int main()
     emptyCheck(list);
     emptyCheck(c);
 
+    //
+    // Testing removeFast
+    //
+    assert(list.removeFast(&a)==false); //Not present, list empty
+    emptyCheck(list);
+    emptyCheck(a);
+    list.push_front(&a);
+    assert(list.removeFast(&b)==false); //Not present, list not empty
+    oneItemCheck(list,a);
+    emptyCheck(b);
+    assert(list.removeFast(&a)==true); //Present, only element
+    emptyCheck(list);
+    emptyCheck(a);
+    list.push_front(&c);
+    list.push_front(&b);
+    list.push_front(&a);
+    assert(list.removeFast(&a)==true); //Present, at list head
+    twoItemCheck(list,b,c);
+    emptyCheck(a);
+    list.push_front(&a);
+    assert(list.removeFast(&b)==true); //Present, at in the middle
+    twoItemCheck(list,a,c);
+    emptyCheck(b);
+    assert(list.removeFast(&c)==true); //Present, at list tail
+    oneItemCheck(list,a);
+    emptyCheck(c);
+    list.pop_front(); //Just to end with empty list
+    emptyCheck(list);
+    emptyCheck(a);
+
     cout<<"Test passed"<<endl;
     return 0;
 }
