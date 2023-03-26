@@ -444,9 +444,9 @@ public:
      * \return whether the return was due to a timout or wakeup
      */
     template<typename T>
-    TimedWaitResult wait(Lock<T>& l, long long absTime)
+    TimedWaitResult timedWait(Lock<T>& l, long long absTime)
     {
-        return timedWait(l.get());
+        return timedWait(l.get(),absTime);
     }
 
     /**
