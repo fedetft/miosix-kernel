@@ -1,6 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015          *
- *   by Terraneo Federico                                                  *
+ *   Copyright (C) 2008-2023 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -34,10 +33,9 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <reent.h>
-#include <sys/time.h>
-#include <sys/times.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
+#include <sys/times.h>
 //// Settings
 #include "config/miosix_settings.h"
 //// Filesystem
@@ -899,52 +897,11 @@ int getdents(unsigned int fd, struct dirent *dirp, unsigned int count)
  * - timer_create -> ? 
  */
 
-static constexpr int nsPerSec = 1000000000;
-
-/**
- * Convert from timespec to the Miosix representation of time
- * \param tp input timespec, must not be nullptr and be a valid pointer
- * \return Miosix nanoseconds
- */
-inline long long timespec2ll(const struct timespec *tp)
-{
-    //NOTE: the cast is required to prevent overflow with older versions
-    //of the Miosix compiler where tv_sec is int and not long long
-    return static_cast<long long>(tp->tv_sec) * nsPerSec + tp->tv_nsec;
-}
-
-/**
- * Convert from the Miosix representation of time to a timespec
- * \param ns input Miosix nanoseconds
- * \param tp output timespec, must not be nullptr and be a valid pointer
- */
-inline void ll2timespec(long long ns, struct timespec *tp)
-{
-    #ifdef __ARM_EABI__
-    // Despite there being a single intrinsic, __aeabi_ldivmod, that computes
-    // both the result of the / and % operator, GCC 9.2.0 isn't smart enough and
-    // calls the intrinsic twice. This asm implementation takes ~188 cycles
-    // instead of ~316 by calling it once. Sadly, I had to use asm as the
-    // calling conventions of the intrinsic appear to be nonstandard.
-    // NOTE: actually a and b, by being 64 bit numbers, occupy register pairs
-    register long long a asm("r0") = ns;
-    register long long b asm("r2") = nsPerSec;
-    // NOTE: clobbering lr to mark function not leaf due to the bl
-    asm volatile("bl	__aeabi_ldivmod" : "+r"(a), "+r"(b) :: "lr");
-    tp->tv_sec = a;
-    tp->tv_nsec = static_cast<long>(b);
-    #else //__ARM_EABI__
-    #warning Warning POSIX time API not optimized for this platform
-    tp->tv_sec = ns / nsPerSec;
-    tp->tv_nsec = static_cast<long>(ns % nsPerSec);
-    #endif //__ARM_EABI__
-}
-
 int clock_gettime(clockid_t clock_id, struct timespec *tp)
 {
     if(tp==nullptr) return -1;
     //TODO: support CLOCK_REALTIME
-    ll2timespec(miosix::getTime(),tp);
+    miosix::ll2timespec(miosix::getTime(),tp);
     return 0;
 }
 
@@ -960,7 +917,7 @@ int clock_getres(clockid_t clock_id, struct timespec *res)
     //TODO: support CLOCK_REALTIME
 
     //Integer division with round-to-nearest for better accuracy
-    int resolution=2*nsPerSec/miosix::internal::osTimerGetFrequency();
+    int resolution=2*miosix::nsPerSec/miosix::internal::osTimerGetFrequency();
     resolution=(resolution & 1) ? resolution/2+1 : resolution/2;
 
     res->tv_sec=0;
@@ -973,7 +930,7 @@ int clock_nanosleep(clockid_t clock_id, int flags,
 {
     if(req==nullptr) return -1;
     //TODO: support CLOCK_REALTIME
-    long long timeNs=timespec2ll(req);
+    long long timeNs=miosix::timespec2ll(req);
     if(flags!=TIMER_ABSTIME) timeNs+=miosix::getTime();
     miosix::Thread::nanoSleepUntil(timeNs);
     return 0;

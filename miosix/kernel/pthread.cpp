@@ -38,15 +38,19 @@
 #include "kernel.h"
 #include "error.h"
 #include "pthread_private.h"
-#include "timeconversion.h"
+#include "stdlib_integration/libc_integration.h"
 
 using namespace miosix;
+
+namespace miosix {
+void IRQaddToSleepingList(SleepData *x);
+void IRQremoveFromSleepingList(SleepData *x);
+} //namespace miosix
 
 //
 // Newlib's pthread.h has been patched since Miosix 1.68 to contain a definition
 // for pthread_mutex_t and pthread_cond_t that allows a fast implementation
-// of mutexes and condition variables. This *requires* to use gcc 4.5.2 with
-// Miosix specific patches.
+// of mutexes and condition variables. This *requires* to use an up-to-date gcc.
 //
 
 //These functions needs to be callable from C
@@ -289,35 +293,30 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
 // Condition variable API
 //
 
+static_assert(sizeof(IntrusiveList<CondData>)==sizeof(pthread_cond_t),"Invalid pthread_cond_t size");
+
 int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
 {
     //attr is currently not considered
-    static_assert(sizeof(IntrusiveList<CondData>)==sizeof(*cond), "Invalid pthread_cond_t size");
-
-    // Using placement mechanism to instantiate an IntrusiveList inside the cond variable
-    new (cond) IntrusiveList<CondData>;
+    new (cond) IntrusiveList<CondData>; //Placement new as cond is a C type
     return 0;
 }
 
 int pthread_cond_destroy(pthread_cond_t *cond)
 {
-    static_assert(sizeof(IntrusiveList<CondData>)==sizeof(*cond), "Invalid pthread_cond_t size");
-    auto *condList = reinterpret_cast<IntrusiveList<CondData>*>(cond);
-
+    auto *condList=reinterpret_cast<IntrusiveList<CondData>*>(cond);
     if(!condList->empty()) return EBUSY;
-    // Placement destroy
-    condList->~IntrusiveList<CondData>();
+    condList->~IntrusiveList<CondData>(); //Call destructor manually
     return 0;
 }
 
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
-    static_assert(sizeof(IntrusiveList<CondData>)==sizeof(*cond), "Invalid pthread_cond_t size");
     auto *condList=reinterpret_cast<IntrusiveList<CondData>*>(cond);
 
     FastInterruptDisableLock dLock;
     Thread *p=Thread::IRQgetCurrentThread();
-    CondData listItem; //Element of a linked list on stack
+    CondData listItem;
     listItem.thread=p;
     condList->push_back(&listItem); //Putting this thread last on the list (lifo policy)
     p->flags.IRQsetCondWait(true);
@@ -331,21 +330,24 @@ int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
     return 0;
 }
 
-int	pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime)
+int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime)
 {
-    if (abstime->tv_nsec<=0)
-        return EINVAL;
-    static_assert(sizeof(IntrusiveList<CondData>)==sizeof(*cond), "Invalid pthread_cond_t size");
     auto *condList=reinterpret_cast<IntrusiveList<CondData>*>(cond);
-    
+
+    long long timeout=timespec2ll(abstime);
+    //Disallow absolute sleeps with negative or too low values, as the ns2tick()
+    //algorithm in TimeConversion can't handle negative values and may undeflow
+    //even with very low values due to a negative adjustOffsetNs. As an unlikely
+    //side effect, very shor sleeps done very early at boot will be extended.
+    timeout=std::max(timeout,100000LL);
     FastInterruptDisableLock dLock;
     Thread *p=Thread::IRQgetCurrentThread();
-    CondData listItem; //Element of a linked list on stack
+    CondData listItem;
     listItem.thread=p;
     condList->push_back(&listItem); //Putting this thread last on the list (lifo policy)
-    SleepData sleepData; //Element to put in the sleepingList
+    SleepData sleepData;
     sleepData.p=p;
-    sleepData.wakeupTime=mul32x32to64(abstime->tv_sec, 1000000000) + abstime->tv_nsec;
+    sleepData.wakeupTime=timeout;
     IRQaddToSleepingList(&sleepData); //Putting this thread on the sleeping list too
     p->flags.IRQsetCondWait(true);
 
@@ -354,8 +356,9 @@ int	pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const s
         FastInterruptEnableLock eLock(dLock);
         Thread::yield(); //Here the wait becomes effective
     }
-    //Ensure that the thread is removed from both list, as it can be woken by either
-    //a signal/broadcast (that removes it from condList) or by IRQwakeThreads (that removes it from sleeping list).
+    //Ensure that the thread is removed from both list, as it can be woken by
+    //either a signal/broadcast (that removes it from condList) or by
+    //IRQwakeThreads (that removes it from sleeping list).
     bool removed=condList->removeFast(&listItem);
     IRQremoveFromSleepingList(&sleepData);
 
@@ -368,7 +371,6 @@ int	pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const s
 
 int pthread_cond_signal(pthread_cond_t *cond)
 {
-    static_assert(sizeof(IntrusiveList<CondData>)==sizeof(*cond), "Invalid pthread_cond_t size");
     auto *condList=reinterpret_cast<IntrusiveList<CondData>*>(cond);
 
     #ifdef SCHED_TYPE_EDF
@@ -379,13 +381,12 @@ int pthread_cond_signal(pthread_cond_t *cond)
         if(condList->empty()) return 0;
 
         Thread *t=condList->front()->thread;
-        t->flags.IRQsetCondWait(false);
         condList->pop_front();
-        //Need to reset the sleep flag to ensure wakeup of threads in timedwait
-        t->flags.IRQsetSleep(false);
+        t->flags.IRQsetCondWait(false);
+        t->flags.IRQsetSleep(false); //Needed due to timedwait
 
         #ifdef SCHED_TYPE_EDF
-        if(t->IRQgetPriority() >Thread::IRQgetCurrentThread()->IRQgetPriority())
+        if(t->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
             hppw=true;
         #endif //SCHED_TYPE_EDF
     }
@@ -398,7 +399,6 @@ int pthread_cond_signal(pthread_cond_t *cond)
 
 int pthread_cond_broadcast(pthread_cond_t *cond)
 {
-    static_assert(sizeof(IntrusiveList<CondData>)==sizeof(*cond), "Invalid pthread_cond_t size");
     auto *condList=reinterpret_cast<IntrusiveList<CondData>*>(cond);
 
     #ifdef SCHED_TYPE_EDF
@@ -409,14 +409,13 @@ int pthread_cond_broadcast(pthread_cond_t *cond)
         while(!condList->empty())
         {
             Thread *t=condList->front()->thread;
-            t->flags.IRQsetCondWait(false);
             condList->pop_front();
-            //Need to reset the sleep flag to ensure wakeup of threads in timedwait
-            t->flags.IRQsetSleep(false);
+            t->flags.IRQsetCondWait(false);
+            t->flags.IRQsetSleep(false); //Needed due to timedwait
 
             #ifdef SCHED_TYPE_EDF
-            if(t->IRQgetPriority() >
-                    Thread::IRQgetCurrentThread()->IRQgetPriority()) hppw=true;
+            if(t->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+                hppw=true;
             #endif //SCHED_TYPE_EDF
         }
     }

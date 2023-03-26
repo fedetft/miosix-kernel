@@ -420,8 +420,6 @@ struct SleepData;
 class MemoryProfiling;
 class Mutex;
 class ConditionVariable;
-void IRQaddToSleepingList(SleepData *x);
-void IRQremoveFromSleepingList(SleepData *x);
 #ifdef WITH_PROCESSES
 class ProcessBase;
 #endif //WITH_PROCESSES

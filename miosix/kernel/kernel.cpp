@@ -384,12 +384,11 @@ bool Thread::testTerminate()
 
 void Thread::sleep(unsigned int ms)
 {
-    nanoSleep(mul32x32to64(ms,1000000));
+    nanoSleepUntil(getTime()+mul32x32to64(ms,1000000));
 }
 
 void Thread::nanoSleep(long long ns)
 {
-    if(ns<=0) return;
     nanoSleepUntil(getTime()+ns);
 }
 
