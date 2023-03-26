@@ -266,7 +266,7 @@ bool isKernelRunning()
  */
 void IRQaddToSleepingList(SleepData *x)
 {
-    x->p->flags.IRQsetSleep(true);
+    x->thread->flags.IRQsetSleep(true);
     if(sleepingList.empty() || sleepingList.front()->wakeupTime>=x->wakeupTime)
     {
         sleepingList.push_front(x);
@@ -309,12 +309,12 @@ bool IRQwakeThreads(long long currentTime)
     for(auto it=sleepingList.begin();it!=sleepingList.end();)
     {
         if(currentTime<(*it)->wakeupTime) break;
-        if((*it)->p==nullptr) ++it; //Only csRecord has p==nullptr
+        if((*it)->thread==nullptr) ++it; //Only csRecord has p==nullptr
         else {
-            (*it)->p->flags.IRQsetSleep(false); //Wake thread
+            (*it)->thread->flags.IRQsetSleep(false); //Wake thread
             //Reset cond wait flag to wakeup threads in pthread_cond_timedwait() too
-            (*it)->p->flags.IRQsetCondWait(false);
-            if(const_cast<Thread*>(runningThread)->getPriority()<(*it)->p->getPriority())
+            (*it)->thread->flags.IRQsetCondWait(false);
+            if(const_cast<Thread*>(runningThread)->getPriority()<(*it)->thread->getPriority())
                 result=true;
             it=sleepingList.erase(it);
         }
@@ -402,13 +402,11 @@ void Thread::nanoSleepUntil(long long absoluteTimeNs)
     //The SleepData variable has to be in scope till Thread::yield() returns
     //as IRQaddToSleepingList() makes it part of a linked list till the
     //thread wakes up (i.e: after Thread::yield() returns)
-    SleepData d;
+    SleepData d(const_cast<Thread*>(runningThread),absoluteTimeNs);
     //pauseKernel() here is not enough since even if the kernel is stopped
     //the timer isr will wake threads, modifying the sleepingList
     {
         FastInterruptDisableLock lock;
-        d.p=const_cast<Thread*>(runningThread);
-        d.wakeupTime=absoluteTimeNs;
         IRQaddToSleepingList(&d);//Also sets SLEEP_FLAG
     }
     // NOTE: There is no need to synchronize the timer (calling IRQsetNextInterrupt)

@@ -401,17 +401,14 @@ TimedWaitResult ConditionVariable::timedWait(Mutex& m, long long absTime)
     Thread *t=Thread::getCurrentThread();
     CondData listItem(t);
     condList.push_back(&listItem); //Add entry to tail of list
-    SleepData sleepData;
-    sleepData.p=t;
-    sleepData.wakeupTime=absTime;
-
-    //Unlock mutex and wait
+    SleepData sleepData(t,absTime);
     {
         FastInterruptDisableLock l;
         IRQaddToSleepingList(&sleepData); //Putting this thread on the sleeping list too
         t->flags.IRQsetCondWait(true);
     }
 
+    //Unlock mutex and wait
     unsigned int depth=m.PKunlockAllDepthLevels(dLock);
     {
         RestartKernelLock eLock(dLock);

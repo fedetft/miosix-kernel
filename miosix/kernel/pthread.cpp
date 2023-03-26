@@ -454,9 +454,7 @@ int pthreadCondTimedWaitImpl(pthread_cond_t *cond, pthread_mutex_t *mutex, long 
     Thread *t=Thread::IRQgetCurrentThread();
     CondData listItem(t);
     condList->push_back(&listItem); //Putting this thread last on the list (lifo policy)
-    SleepData sleepData;
-    sleepData.p=t;
-    sleepData.wakeupTime=absTime;
+    SleepData sleepData(t,absTime);
     IRQaddToSleepingList(&sleepData); //Putting this thread on the sleeping list too
     t->flags.IRQsetCondWait(true);
 

@@ -416,7 +416,7 @@ long long getTime() noexcept;
 long long IRQgetTime() noexcept;
 
 //Forwrd declaration
-struct SleepData;
+class SleepData;
 class MemoryProfiling;
 class Mutex;
 class ConditionVariable;
@@ -1102,14 +1102,17 @@ public:
 
 /**
  * \internal
- * \struct Sleep_data
- * This struct is used to make a list of sleeping threads.
+ * This class is used to make a list of sleeping threads.
  * It is used by the kernel, and should not be used by end users.
  */
-struct SleepData : public IntrusiveListItem
+class SleepData : public IntrusiveListItem
 {
+public:
+    SleepData(Thread *thread, long long wakeupTime)
+        : thread(thread), wakeupTime(wakeupTime) {}
+
     ///\internal Thread that is sleeping
-    Thread *p;
+    Thread *thread;
     
     ///\internal When this number becomes equal to the kernel tick,
     ///the thread will wake
