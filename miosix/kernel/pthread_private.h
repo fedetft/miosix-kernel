@@ -28,8 +28,11 @@
 //This file contains private implementation details of mutexes, it's not
 //meant to be used by end users
 
-#ifndef PTHREAD_PRIVATE_H
-#define	PTHREAD_PRIVATE_H
+#pragma once
+
+#include <pthread.h>
+#include "kernel.h"
+#include "intrusive.h"
 
 namespace miosix {
 
@@ -43,7 +46,7 @@ static inline void IRQdoMutexLock(pthread_mutex_t *mutex,
         FastInterruptDisableLock& d)
 {
     void *p=reinterpret_cast<void*>(Thread::IRQgetCurrentThread());
-    if(mutex->owner==0)
+    if(mutex->owner==nullptr)
     {
         mutex->owner=p;
         return;
@@ -63,8 +66,8 @@ static inline void IRQdoMutexLock(pthread_mutex_t *mutex,
 
     WaitingList waiting; //Element of a linked list on stack
     waiting.thread=p;
-    waiting.next=0; //Putting this thread last on the list (lifo policy)
-    if(mutex->first==0)
+    waiting.next=nullptr; //Putting this thread last on the list (lifo policy)
+    if(mutex->first==nullptr)
     {
         mutex->first=&waiting;
         mutex->last=&waiting;
@@ -101,7 +104,7 @@ static inline void IRQdoMutexLockToDepth(pthread_mutex_t *mutex,
         FastInterruptDisableLock& d, unsigned int depth)
 {
     void *p=reinterpret_cast<void*>(Thread::IRQgetCurrentThread());
-    if(mutex->owner==0)
+    if(mutex->owner==nullptr)
     {
         mutex->owner=p;
         if(mutex->recursive>=0) mutex->recursive=depth;
@@ -122,8 +125,8 @@ static inline void IRQdoMutexLockToDepth(pthread_mutex_t *mutex,
 
     WaitingList waiting; //Element of a linked list on stack
     waiting.thread=p;
-    waiting.next=0; //Putting this thread last on the list (lifo policy)
-    if(mutex->first==0)
+    waiting.next=nullptr; //Putting this thread last on the list (lifo policy)
+    if(mutex->first==nullptr)
     {
         mutex->first=&waiting;
         mutex->last=&waiting;
@@ -164,7 +167,7 @@ static inline bool IRQdoMutexUnlock(pthread_mutex_t *mutex)
         mutex->recursive--;
         return false;
     }
-    if(mutex->first!=0)
+    if(mutex->first!=nullptr)
     {
         Thread *t=reinterpret_cast<Thread*>(mutex->first->thread);
         t->IRQwakeup();
@@ -177,7 +180,7 @@ static inline bool IRQdoMutexUnlock(pthread_mutex_t *mutex)
         #endif //SCHED_TYPE_EDF
         return false;
     }
-    mutex->owner=0;
+    mutex->owner=nullptr;
     return false;
 }
 
@@ -195,7 +198,7 @@ static inline unsigned int IRQdoMutexUnlockAllDepthLevels(pthread_mutex_t *mutex
 //    Safety check removed for speed reasons
 //    if(mutex->owner!=reinterpret_cast<void*>(Thread::IRQgetCurrentThread()))
 //        return false;
-    if(mutex->first!=0)
+    if(mutex->first!=nullptr)
     {
         Thread *t=reinterpret_cast<Thread*>(mutex->first->thread);
         t->IRQwakeup();
@@ -208,7 +211,7 @@ static inline unsigned int IRQdoMutexUnlockAllDepthLevels(pthread_mutex_t *mutex
         return result;
     }
     
-    mutex->owner=0;
+    mutex->owner=nullptr;
     
     if(mutex->recursive<0) return 0;
     unsigned int result=mutex->recursive;
@@ -228,5 +231,3 @@ struct CondData : public IntrusiveListItem
 };
 
 } //namespace miosix
-
-#endif //PTHREAD_PRIVATE_H

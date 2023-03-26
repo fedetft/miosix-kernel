@@ -30,12 +30,10 @@
  * posix thread API to the Miosix thread API.
  */
 
-#include <pthread.h>
 #include <sched.h>
 #include <errno.h>
 #include <stdexcept>
 #include <algorithm>
-#include "kernel.h"
 #include "error.h"
 #include "pthread_private.h"
 #include "stdlib_integration/libc_integration.h"
