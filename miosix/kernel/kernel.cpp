@@ -309,7 +309,6 @@ bool IRQwakeThreads(long long currentTime)
     for(auto it=sleepingList.begin();it!=sleepingList.end();)
     {
         if(currentTime<(*it)->wakeupTime) break;
-        if((*it)->thread==nullptr) ++it; //Only csRecord has p==nullptr
         else {
             (*it)->thread->flags.IRQsetSleep(false); //Wake thread
             //Reset cond wait flag to wakeup threads in pthread_cond_timedwait() too
