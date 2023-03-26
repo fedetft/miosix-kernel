@@ -1,0 +1,12 @@
+
+Update sys/lock.h make pthread_mutex_t compatible with future decisions to
+replace the custom list with IntrusiveList.
+Update _pthreadtypes.h removing the forward declaration of WaitingList and
+change pthread_cond_t to be two opaque pointers, comment that it should have
+a memory layout compatible with IntrusiveList.
+
+In libstdc++ header condition_variable the __wait_until_impl checks for timeout
+in this way:
+__gthread_cond_timedwait(&_M_cond, __lock.mutex()->native_handle(), &__ts);
+return (__clock_t::now() < __atime ? cv_status::no_timeout : cv_status::timeout);
+use the return value of pthread_cond_timedwait instead to optimize code
