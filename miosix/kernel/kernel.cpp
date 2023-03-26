@@ -299,9 +299,7 @@ void IRQremoveFromSleepingList(SleepData *x)
  */
 bool IRQwakeThreads(long long currentTime)
 {
-    //If no item in list, return
-    if(sleepingList.empty())
-        return false;
+    if(sleepingList.empty()) return false; //If no item in list, return
     
     bool result=false;
     //Since list is sorted, if we don't need to wake the first element
@@ -309,14 +307,12 @@ bool IRQwakeThreads(long long currentTime)
     for(auto it=sleepingList.begin();it!=sleepingList.end();)
     {
         if(currentTime<(*it)->wakeupTime) break;
-        else {
-            (*it)->thread->flags.IRQsetSleep(false); //Wake thread
-            //Reset cond wait flag to wakeup threads in pthread_cond_timedwait() too
-            (*it)->thread->flags.IRQsetCondWait(false);
-            if(const_cast<Thread*>(runningThread)->getPriority()<(*it)->thread->getPriority())
-                result=true;
-            it=sleepingList.erase(it);
-        }
+        (*it)->thread->flags.IRQsetSleep(false); //Wake thread
+        //Reset cond wait flag to wakeup threads in pthread_cond_timedwait() too
+        (*it)->thread->flags.IRQsetCondWait(false);
+        if(const_cast<Thread*>(runningThread)->getPriority()<(*it)->thread->getPriority())
+            result=true;
+        it=sleepingList.erase(it);
     }
     return result;
 }
