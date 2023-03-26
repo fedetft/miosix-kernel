@@ -372,8 +372,7 @@ void ConditionVariable::wait(Mutex& m)
 {
     PauseKernelLock dLock;
     Thread *t=Thread::getCurrentThread();
-    CondData listItem;
-    listItem.thread=t;
+    CondData listItem(t);
     condList.push_back(&listItem); //Add entry to tail of list
 
     //Unlock mutex and wait
@@ -400,8 +399,7 @@ TimedWaitResult ConditionVariable::timedWait(Mutex& m, long long absTime)
 
     PauseKernelLock dLock;
     Thread *t=Thread::getCurrentThread();
-    CondData listItem;
-    listItem.thread=t;
+    CondData listItem(t);
     condList.push_back(&listItem); //Add entry to tail of list
     SleepData sleepData;
     sleepData.p=t;

@@ -313,11 +313,10 @@ int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
     auto *condList=reinterpret_cast<IntrusiveList<CondData>*>(cond);
 
     FastInterruptDisableLock dLock;
-    Thread *p=Thread::IRQgetCurrentThread();
-    CondData listItem;
-    listItem.thread=p;
+    Thread *t=Thread::IRQgetCurrentThread();
+    CondData listItem(t);
     condList->push_back(&listItem); //Putting this thread last on the list (lifo policy)
-    p->flags.IRQsetCondWait(true);
+    t->flags.IRQsetCondWait(true);
 
     unsigned int depth=IRQdoMutexUnlockAllDepthLevels(mutex);
     {
@@ -452,15 +451,14 @@ int pthreadCondTimedWaitImpl(pthread_cond_t *cond, pthread_mutex_t *mutex, long 
     //side effect, very shor sleeps done very early at boot will be extended.
     absTime=std::max(absTime,100000LL);
     FastInterruptDisableLock dLock;
-    Thread *p=Thread::IRQgetCurrentThread();
-    CondData listItem;
-    listItem.thread=p;
+    Thread *t=Thread::IRQgetCurrentThread();
+    CondData listItem(t);
     condList->push_back(&listItem); //Putting this thread last on the list (lifo policy)
     SleepData sleepData;
-    sleepData.p=p;
+    sleepData.p=t;
     sleepData.wakeupTime=absTime;
     IRQaddToSleepingList(&sleepData); //Putting this thread on the sleeping list too
-    p->flags.IRQsetCondWait(true);
+    t->flags.IRQsetCondWait(true);
 
     unsigned int depth=IRQdoMutexUnlockAllDepthLevels(mutex);
     {
