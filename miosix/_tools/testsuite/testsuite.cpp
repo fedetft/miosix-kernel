@@ -3695,7 +3695,7 @@ static void test_24()
     dtorCalled=false;
     {
         intrusive_ref_ptr<Base0> ptr1;
-        assert(ptr1==0);
+        assert(!ptr1);
     }
     assert(dtorCalled==false);
     
@@ -3814,7 +3814,7 @@ static void test_24()
         {
             intrusive_ref_ptr<Derived1> ptr2=
                 dynamic_pointer_cast<Derived1>(ptr1);
-            assert(ptr2==0);
+            assert(!ptr2);
         }
         assert(dtorCalled==false);
     }
@@ -3844,7 +3844,7 @@ static void test_24()
         intrusive_ref_ptr<Base0> ptr1(new Base0);
         ptr1.reset();
         assert(dtorCalled);
-        assert(ptr1==0);
+        assert(!ptr1);
     }
     
     // Reset, on a shared pointer
@@ -3854,8 +3854,8 @@ static void test_24()
         {
             intrusive_ref_ptr<Base0> ptr2(ptr1);
             ptr1.reset();
-            assert(ptr1==0);
-            assert(ptr2!=0);
+            assert(!ptr1);
+            assert(ptr2);
             ptr2->check();
         }
         assert(dtorCalled);

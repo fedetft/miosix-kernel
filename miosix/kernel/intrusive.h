@@ -183,7 +183,7 @@ public:
     /**
      * Default constructor
      */
-    intrusive_ref_ptr() : object(0) {}
+    intrusive_ref_ptr() : object(nullptr) {}
     
     /**
      * Constructor, with raw pointer
@@ -292,9 +292,9 @@ public:
     void reset()
     {
         if(decrementRefCount()) delete object;
-        // Object needs to be set to 0 regardless
+        // Object needs to be set to nullptr regardless
         // of whether the object is deleted
-        object=0;
+        object=nullptr;
     }
     
     /**
@@ -347,7 +347,7 @@ private:
      */
     bool decrementRefCount()
     {
-        if(object==0) return false;
+        if(object==nullptr) return false;
         return atomicAddExchange(&object->intrusive.referenceCount,-1)==1;
     }
 
@@ -393,7 +393,7 @@ intrusive_ref_ptr<T>& intrusive_ref_ptr<T>::operator= (T* o)
 template<typename T>
 intrusive_ref_ptr<T> intrusive_ref_ptr<T>::atomic_load() const
 {
-    intrusive_ref_ptr<T> result; // This gets initialized with 0
+    intrusive_ref_ptr<T> result; // This gets initialized with nullptr
     
     // According to the C++ standard, this causes undefined behaviour if
     // T has virtual functions, but GCC (and clang) have an implementation
@@ -440,7 +440,7 @@ intrusive_ref_ptr<T> intrusive_ref_ptr<T>::atomic_exchange(
     volatile int *objectAddrInt=reinterpret_cast<volatile int*>(&object);
     temp=reinterpret_cast<T*>(atomicSwap(objectAddrInt,tempInt));
     
-    intrusive_ref_ptr<T> result; // This gets initialized with 0
+    intrusive_ref_ptr<T> result; // This gets initialized with nullptr
     // This does not increment referenceCount, as the pointer was swapped
     result.object=temp;
     return result;
@@ -593,7 +593,7 @@ intrusive_ref_ptr<T> const_pointer_cast(const intrusive_ref_ptr<U>& r)
 template<typename T>
 intrusive_ref_ptr<T> atomic_load(const intrusive_ref_ptr<T> *p)
 {
-    if(p==0) return intrusive_ref_ptr<T>();
+    if(p==nullptr) return intrusive_ref_ptr<T>();
     return p->atomic_load();
 }
 
@@ -628,7 +628,7 @@ template<typename T>
 intrusive_ref_ptr<T> atomic_exchange(intrusive_ref_ptr<T> *p,
         intrusive_ref_ptr<T> r)
 {
-    if(p==0) return intrusive_ref_ptr<T>();
+    if(p==nullptr) return intrusive_ref_ptr<T>();
     return p->atomic_exchange(r);
 }
 
