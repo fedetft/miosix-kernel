@@ -872,12 +872,26 @@ public:
     /**
      * \return a pointer to the first item. List must not be empty
      */
-    T* front() { return static_cast<T*>(IntrusiveListBase::front()); }
+    T* front()
+    {
+        auto result=IntrusiveListBase::front();
+        #ifdef INTRUSIVE_LIST_ERROR_CHECK
+        if(result==nullptr) fail();
+        #endif //INTRUSIVE_LIST_ERROR_CHECK
+        return static_cast<T*>(result);
+    }
     
     /**
      * \return a pointer to the last item. List must not be empty
      */
-    T* back() { return static_cast<T*>(IntrusiveListBase::back()); }
+    T* back()
+    {
+        auto result=IntrusiveListBase::back();
+        #ifdef INTRUSIVE_LIST_ERROR_CHECK
+        if(result==nullptr) fail();
+        #endif //INTRUSIVE_LIST_ERROR_CHECK
+        return static_cast<T*>(result);
+    }
     
     /**
      * \return true if the list is empty
