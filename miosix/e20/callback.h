@@ -175,17 +175,13 @@ public:
     {
         operation(any,0,CALL);
     }
-
-    //Safe bool idiom
-    struct SafeBoolStruct { void* b; };
-    typedef void* SafeBoolStruct::* SafeBool;
     
     /**
      * \return true if the object contains a callback
      */
-    operator SafeBool() const
+    explicit operator bool() const
     {
-        return operation==0 ? 0 : &SafeBoolStruct::b;
+        return operation!=nullptr;
     }
 
     /**

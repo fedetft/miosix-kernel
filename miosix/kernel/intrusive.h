@@ -269,17 +269,13 @@ public:
      * \return a pointer to the managed object
      */
     T *operator->() const { return object; }
-    
-    //Safe bool idiom
-    struct SafeBoolStruct { void* b; };
-    typedef void* SafeBoolStruct::* SafeBool;
 
     /**
      * \return true if the object contains a callback
      */
-    operator SafeBool() const
+    explicit operator bool() const
     {
-        return object==0 ? 0 : &SafeBoolStruct::b;
+        return object!=nullptr;
     }
     
     /**
