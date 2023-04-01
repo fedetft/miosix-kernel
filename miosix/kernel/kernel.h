@@ -33,10 +33,7 @@
 #include "stdlib_integration/libstdcpp_integration.h"
 #include "intrusive.h"
 #include "cpu_time_counter_types.h"
-#include <cstdlib>
-#include <new>
 #include <functional>
-#include <pthread.h> // some pthread functions are friends of Thread
 
 /**
  * \namespace miosix
