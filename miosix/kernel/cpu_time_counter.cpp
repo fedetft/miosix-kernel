@@ -26,6 +26,7 @@
  ***************************************************************************/
 
 #include "cpu_time_counter.h"
+#include "cpu_time_counter_private.h"
 #include "kernel/kernel.h"
 
 #ifdef WITH_CPU_TIME_COUNTER
@@ -35,6 +36,18 @@ using namespace miosix;
 Thread *CPUTimeCounter::head = nullptr;
 Thread *CPUTimeCounter::tail = nullptr;
 volatile unsigned int CPUTimeCounter::nThreads = 0;
+
+long long CPUTimeCounter::getActiveThreadTime()
+{
+    long long curTime, usedTime, lastAct;
+    {
+        PauseKernelLock pk;
+        curTime = IRQgetTime();
+        usedTime = runningThread->timeCounterData.usedCpuTime;
+        lastAct = runningThread->timeCounterData.lastActivation;
+    }
+    return usedTime + (curTime - lastAct);
+}
 
 void CPUTimeCounter::PKremoveDeadThreads()
 {

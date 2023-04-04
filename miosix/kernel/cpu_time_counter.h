@@ -148,6 +148,12 @@ public:
         return iterator(nullptr);
     }
 
+    /**
+     * \returns the amount of CPU run-time consumed up to now by the currently
+     * active thread.
+     */
+    static long long getActiveThreadTime();
+
 private:
     // The following methods are called from basic_scheduler to notify
     // CPUTimeCounter of various events.
