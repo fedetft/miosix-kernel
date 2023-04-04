@@ -174,6 +174,26 @@ long long CPUProfiler::update()
     return snapshots[lastSnapshotIndex].time;
 }
 
+static void printSingleThreadInfo(
+    Thread *self, Thread *thread,
+    long long approxDt, long long newTime, long long oldTime, bool isIdleThread,
+    bool isNewThread)
+{
+    long long threadDt = newTime - oldTime;
+    long perc = (long)(threadDt >> 16) * 100 / approxDt;
+    iprintf("%p %10lld ns (%2ld.%1ld%%)", thread, threadDt, perc / 10, perc % 10);
+    if (isIdleThread) {
+        iprintf(" (idle)");
+        isIdleThread = false;
+    } else if (thread == self) {
+        iprintf(" (cur)");
+    }
+    if (isNewThread) {
+        iprintf(" new");
+    }
+    iprintf("\n");
+}
+
 void CPUProfiler::print()
 {
     Snapshot& oldSnap = snapshots[lastSnapshotIndex ^ 1];
@@ -198,28 +218,23 @@ void CPUProfiler::print()
             oldIt++;
         }
         // Found a thread that exists in both lists
-        long long threadDt = newIt->usedCpuTime - oldIt->usedCpuTime;
-        long perc = (long)(threadDt >> 16) * 100 / approxDt;
-        iprintf("%p %10lld ns (%2ld.%1ld%%)", newIt->thread, threadDt, perc / 10, perc % 10);
-        if (isIdleThread) {
-            iprintf(" (idle)\n");
-            isIdleThread = false;
-        } else if (newIt->thread == self) {
-            iprintf(" (cur)\n");
-        } else {
-            iprintf("\n");
-        }
+        printSingleThreadInfo(self, newIt->thread, approxDt, newIt->usedCpuTime,
+            oldIt->usedCpuTime, isIdleThread, false);
+        isIdleThread = false;
         newIt++;
         oldIt++;
     }
     // Skip last killed threads
     while (oldIt != oldInfo.end()) {
         iprintf("%p killed\n", oldIt->thread);
+        isIdleThread = false;
         oldIt++;
     }
-    // Skip newly created threads
+    // Print info about newly created threads
     while (newIt != newInfo.end()) {
-        iprintf("%p new\n", newIt->thread);
+        printSingleThreadInfo(self, newIt->thread, approxDt, newIt->usedCpuTime,
+            0, isIdleThread, true);
+        isIdleThread = false;
         newIt++;
     }
 }
@@ -265,11 +280,13 @@ void CPUProfiler::Snapshot::collect()
 void CPUProfiler::thread(long long nsInterval)
 {
     CPUProfiler profiler;
+    long long t = profiler.update();
     while (!Thread::testTerminate()) {
-        long long t = profiler.update();
+        t += nsInterval;
+        Thread::nanoSleepUntil(t);
+        profiler.update();
         profiler.print();
         iprintf("\n");
-        Thread::nanoSleepUntil(t + nsInterval);
     }
 }
 

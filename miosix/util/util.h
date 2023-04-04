@@ -123,11 +123,13 @@ void memDump(const void *start, int len);
  * and then invoking the update() and print() methods at regular intervals:
  * 
  *      CPUProfiler p;
+ *      long long t = p.update();
  *      while (...) {
- *          long long t = p.update();
+ *          t += 1000000000LL;
+ *          Thread::nanoSleepUntil(t);
+ *          p.update();
  *          p.print();
  *          ...
- *          Thread::nanoSleepUntil(t + 1000000000LL);
  *      }
  * 
  * The profiler will automatically keep track of the actual update period.
