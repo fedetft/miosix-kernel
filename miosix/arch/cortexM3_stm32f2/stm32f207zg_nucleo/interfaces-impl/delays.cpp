@@ -34,7 +34,7 @@ void delayMs(unsigned int mseconds)
     #ifndef __CODE_IN_XRAM
 
     #ifdef SYSCLK_FREQ_120MHz
-    register const unsigned int count=29999;
+    register const unsigned int count=29998;
     #else
     #warning "Delays are uncalibrated for this clock frequency"    
     #endif
@@ -43,11 +43,11 @@ void delayMs(unsigned int mseconds)
     {
         // This delay has been calibrated to take 1 millisecond
         // It is written in assembler to be independent on compiler optimization
-        asm volatile("           mov   r1, #0     \n"
-                     "___loop_m: cmp   r1, %0     \n"
-                     "           itt   lo         \n"
-                     "           addlo r1, r1, #1 \n"
-                     "           blo   ___loop_m  \n"::"r"(count):"r1");
+        asm volatile("   mov   r1, #0     \n"
+                     "1: cmp   r1, %0     \n"
+                     "   itt   lo         \n"
+                     "   addlo r1, r1, #1 \n"
+                     "   blo   1b  \n"::"r"(count):"r1");
     }
 
     #else //__CODE_IN_XRAM
@@ -61,13 +61,13 @@ void delayUs(unsigned int useconds)
 
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimization
-    asm volatile("           mov   r1, #30    \n"
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+    asm volatile("   mov   r1, #30    \n"
+                 "   mul   r2, %0, r1 \n"
+                 "   mov   r1, #0     \n"
+                 "1: cmp   r1, r2     \n"
+                 "   itt   lo         \n"
+                 "   addlo r1, r1, #1 \n"
+                 "   blo   1b  \n"::"r"(useconds):"r1","r2");
 
     #else //__CODE_IN_XRAM
     #error "No delays"
