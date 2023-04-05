@@ -53,13 +53,12 @@ void CPUTimeCounter::PKremoveDeadThreads()
 {
     Thread *prev = nullptr;
     Thread *cur = head;
-    while (cur) {
-        if (cur->flags.isDeleted()) {
-            if (prev) {
-                prev->timeCounterData.next = cur->timeCounterData.next;
-            } else {
-                head = cur->timeCounterData.next;
-            }
+    while(cur)
+    {
+        if(cur->flags.isDeleted())
+        {
+            if(prev) prev->timeCounterData.next = cur->timeCounterData.next;
+            else head = cur->timeCounterData.next;
             nThreads--;
         } else {
             prev = cur;

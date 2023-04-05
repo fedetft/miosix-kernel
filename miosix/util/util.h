@@ -124,7 +124,8 @@ void memDump(const void *start, int len);
  * 
  *      CPUProfiler p;
  *      long long t = p.update();
- *      while (...) {
+ *      while (...)
+ *      {
  *          t += 1000000000LL;
  *          Thread::nanoSleepUntil(t);
  *          p.update();
@@ -150,7 +151,7 @@ public:
     /**
      * Construct a new profiler object.
      */
-    CPUProfiler() {};
+    CPUProfiler() {}
 
     /**
      * Update the profiler status with the latest information about all
@@ -180,7 +181,8 @@ private:
      * Structure containing a snapshot of the CPU data information returned
      * by CPUTimeCounter for each thread.
      */
-    struct Snapshot {
+    struct Snapshot
+    {
         /// The thread data objects, one per thread
         std::vector<CPUTimeCounter::Data> threadData;
         /// The time (in ns) at which the snapshot was collected

@@ -163,6 +163,24 @@ void memDump(const void *start, int len)
 
 #ifdef WITH_CPU_TIME_COUNTER
 
+static void printSingleThreadInfo(Thread *self, Thread *thread,
+    int approxDt, long long newTime, long long oldTime, bool isIdleThread,
+    bool isNewThread)
+{
+    long long threadDt = newTime - oldTime;
+    int perc = static_cast<int>(threadDt >> 16) * 100 / approxDt;
+    iprintf("%p %10lld ns (%2d.%1d%%)", thread, threadDt, perc / 10, perc % 10);
+    if(isIdleThread)
+    {
+        iprintf(" (idle)");
+        isIdleThread = false;
+    } else if(thread == self) {
+        iprintf(" (cur)");
+    }
+    if(isNewThread) iprintf(" new");
+    iprintf("\n");
+}
+
 //
 // CPUProfiler class
 //
@@ -174,26 +192,6 @@ long long CPUProfiler::update()
     return snapshots[lastSnapshotIndex].time;
 }
 
-static void printSingleThreadInfo(
-    Thread *self, Thread *thread,
-    long long approxDt, long long newTime, long long oldTime, bool isIdleThread,
-    bool isNewThread)
-{
-    long long threadDt = newTime - oldTime;
-    long perc = (long)(threadDt >> 16) * 100 / approxDt;
-    iprintf("%p %10lld ns (%2ld.%1ld%%)", thread, threadDt, perc / 10, perc % 10);
-    if (isIdleThread) {
-        iprintf(" (idle)");
-        isIdleThread = false;
-    } else if (thread == self) {
-        iprintf(" (cur)");
-    }
-    if (isNewThread) {
-        iprintf(" new");
-    }
-    iprintf("\n");
-}
-
 void CPUProfiler::print()
 {
     Snapshot& oldSnap = snapshots[lastSnapshotIndex ^ 1];
@@ -201,7 +199,7 @@ void CPUProfiler::print()
     std::vector<CPUTimeCounter::Data>& oldInfo = oldSnap.threadData;
     std::vector<CPUTimeCounter::Data>& newInfo = newSnap.threadData;
     long long dt = newSnap.time - oldSnap.time;
-    long approxDt = (long)(dt >> 16) / 10;
+    int approxDt = static_cast<int>(dt >> 16) / 10;
     Thread *self = Thread::getCurrentThread();
 
     iprintf("%d threads, last interval %lld ns\n", newInfo.size(), dt);
@@ -211,9 +209,11 @@ void CPUProfiler::print()
     auto newIt = newInfo.begin();
     // CPUTimeCounter always returns the idle thread as the first thread
     bool isIdleThread = true;
-    while (newIt != newInfo.end() && oldIt != oldInfo.end()) {
+    while(newIt != newInfo.end() && oldIt != oldInfo.end())
+    {
         // Skip old threads that were killed
-        while (newIt->thread != oldIt->thread) {
+        while(newIt->thread != oldIt->thread)
+        {
             iprintf("%p killed\n", oldIt->thread);
             oldIt++;
         }
@@ -225,13 +225,15 @@ void CPUProfiler::print()
         oldIt++;
     }
     // Skip last killed threads
-    while (oldIt != oldInfo.end()) {
+    while(oldIt != oldInfo.end())
+    {
         iprintf("%p killed\n", oldIt->thread);
         isIdleThread = false;
         oldIt++;
     }
     // Print info about newly created threads
-    while (newIt != newInfo.end()) {
+    while(newIt != newInfo.end())
+    {
         printSingleThreadInfo(self, newIt->thread, approxDt, newIt->usedCpuTime,
             0, isIdleThread, true);
         isIdleThread = false;
@@ -257,7 +259,7 @@ void CPUProfiler::Snapshot::collect()
 
             // If the number of threads changed, try again
             unsigned int nThreads2 = CPUTimeCounter::getThreadCount();
-            if (nThreads2 != nThreads)
+            if(nThreads2 != nThreads)
                 continue;
             // Otherwise, stop trying
             success = true;
@@ -272,16 +274,17 @@ void CPUProfiler::Snapshot::collect()
             auto i2 = CPUTimeCounter::PKbegin();
             do
                 *i1++ = *i2++;
-            while (i2 != CPUTimeCounter::PKend());
+            while(i2 != CPUTimeCounter::PKend());
         }
-    } while (!success);
+    } while(!success);
 }
 
 void CPUProfiler::thread(long long nsInterval)
 {
     CPUProfiler profiler;
     long long t = profiler.update();
-    while (!Thread::testTerminate()) {
+    while(!Thread::testTerminate())
+    {
         t += nsInterval;
         Thread::nanoSleepUntil(t);
         profiler.update();
