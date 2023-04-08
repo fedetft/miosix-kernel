@@ -410,7 +410,7 @@ TimedWaitResult ConditionVariable::timedWait(Mutex& m, long long absTime)
     //Disallow absolute sleeps with negative or too low values, as the ns2tick()
     //algorithm in TimeConversion can't handle negative values and may undeflow
     //even with very low values due to a negative adjustOffsetNs. As an unlikely
-    //side effect, very shor sleeps done very early at boot will be extended.
+    //side effect, very short sleeps done very early at boot will be extended.
     absTime=std::max(absTime,100000LL);
 
     PauseKernelLock dLock;
@@ -451,7 +451,7 @@ TimedWaitResult ConditionVariable::timedWait(pthread_mutex_t *m, long long absTi
     //Disallow absolute sleeps with negative or too low values, as the ns2tick()
     //algorithm in TimeConversion can't handle negative values and may undeflow
     //even with very low values due to a negative adjustOffsetNs. As an unlikely
-    //side effect, very shor sleeps done very early at boot will be extended.
+    //side effect, very short sleeps done very early at boot will be extended.
     absTime=std::max(absTime,100000LL);
     FastInterruptDisableLock dLock;
     Thread *t=Thread::IRQgetCurrentThread();
@@ -523,6 +523,115 @@ void ConditionVariable::broadcast()
     //If at least one of the woken thread has higher priority than our priority,
     //yield
     if(hppw) Thread::yield();
+}
+
+//
+// class Semaphore
+//
+
+Thread *Semaphore::IRQsignalNoPreempt()
+{
+    //Check if somebody is waiting
+    if(fifo.empty())
+    {
+        //Nobody there, just increment the counter
+        count++;
+        return nullptr;
+    }
+    CondData *cd=fifo.front();
+    Thread *t=cd->thread;
+    fifo.pop_front();
+    t->flags.IRQsetCondWait(false);
+    t->flags.IRQsetSleep(false); //Needed due to timedwait
+    return t;
+}
+
+void Semaphore::IRQsignal()
+{
+    //Update the state of the FIFO and the counter
+    Thread *t=IRQsignalNoPreempt();
+    if(t==nullptr) return;
+    //If the woken thread has higher priority trigger a reschedule
+    if(Thread::IRQgetCurrentThread()->IRQgetPriority()<t->IRQgetPriority())
+        Scheduler::IRQfindNextThread();
+}
+
+void Semaphore::signal()
+{
+    bool hppw=false;
+    {
+        //Global interrupt lock because Semaphore is IRQ-safe
+        FastInterruptDisableLock dLock;
+        //Update the state of the FIFO and the counter
+        Thread *t=IRQsignalNoPreempt();
+        if(t)
+        {
+            //If the woken thread has higher priority trigger a yield
+            if(Thread::IRQgetCurrentThread()->IRQgetPriority()<t->IRQgetPriority())
+                hppw=true;
+        }
+    }
+    if(hppw) Thread::yield();
+}
+
+void Semaphore::wait()
+{
+    //Global interrupt lock because Semaphore is IRQ-safe
+    FastInterruptDisableLock dLock;
+    //If the counter is positive, decrement it and we're done
+    if(count>0)
+    {
+        count--;
+        return;
+    }
+    //Otherwise put ourselves in queue and wait
+    Thread *t=Thread::getCurrentThread();
+    CondData listItem(t);
+    fifo.push_back(&listItem); //Add entry to tail of list
+    t->flags.IRQsetCondWait(true);
+    {
+        FastInterruptEnableLock eLock(dLock);
+        //The wait becomes effective here
+        Thread::yield();
+    }
+}
+
+TimedWaitResult Semaphore::timedWait(long long absTime)
+{
+    //Disallow absolute sleeps with negative or too low values, as the ns2tick()
+    //algorithm in TimeConversion can't handle negative values and may undeflow
+    //even with very low values due to a negative adjustOffsetNs. As an unlikely
+    //side effect, very short sleeps done very early at boot will be extended.
+    absTime=std::max(absTime,100000LL);
+
+    //Global interrupt lock because Semaphore is IRQ-safe
+    FastInterruptDisableLock dLock;
+    //If the counter is positive, decrement it and we're done
+    if(count>0)
+    {
+        count--;
+        return TimedWaitResult::NoTimeout;
+    }
+    //Otherwise put ourselves in queue...
+    Thread *t=Thread::getCurrentThread();
+    CondData listItem(t);
+    fifo.push_back(&listItem);
+    //...and simultaneously to sleep
+    SleepData sleepData(t,absTime);
+    IRQaddToSleepingList(&sleepData);
+    t->flags.IRQsetCondWait(true);
+    {
+        FastInterruptEnableLock eLock(dLock);
+        //Wait/sleep becomes effective here
+        Thread::yield();
+    }
+    
+    //We got woken up by either the sleep or the wait. Ensure that the thread
+    //is removed from both the wait list and the sleep list.
+    bool removed=fifo.removeFast(&listItem);
+    IRQremoveFromSleepingList(&sleepData);
+    //If we were still in the fifo, we were woken up by a timeout
+    return removed ? TimedWaitResult::Timeout : TimedWaitResult::NoTimeout;
 }
 
 } //namespace miosix

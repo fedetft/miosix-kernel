@@ -1052,6 +1052,8 @@ private:
     friend class Mutex;
     //Needs access to flags
     friend class ConditionVariable;
+    //Needs access to flags
+    friend class Semaphore;
     //Needs access to flags, schedData
     friend class PriorityScheduler;
     //Needs access to flags, schedData
