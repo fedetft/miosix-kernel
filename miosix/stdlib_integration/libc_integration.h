@@ -82,8 +82,8 @@ inline void ll2timespec(long long ns, struct timespec *tp)
     // Despite there being a single intrinsic, __aeabi_ldivmod, that computes
     // both the result of the / and % operator, GCC 9.2.0 isn't smart enough and
     // calls the intrinsic twice. This asm implementation takes ~188 cycles
-    // instead of ~316 by calling it once. Sadly, I had to use asm as the
-    // calling conventions of the intrinsic appear to be nonstandard.
+    // instead of ~316 by calling it once. Sadly I had to use asm, as the
+    // calling convention of the intrinsic appears to be nonstandard.
     // NOTE: actually a and b, by being 64 bit numbers, occupy register pairs
     register long long a asm("r0") = ns;
     register long long b asm("r2") = nsPerSec;

@@ -244,7 +244,7 @@ private:
     bool PKunlock(PauseKernelLock& dLock);
     
     /**
-     * Unlock mutex all levels of a recursive mutex, can be called only with
+     * Unlock all levels of a recursive mutex, can be called only with
      * kernel paused one level deep (pauseKernel calls can be nested).<br>
      * \param dLock the PauseKernelLock instance that paused the kernel.
      * \return the mutex recursive depth (how many times it was locked by the
@@ -314,7 +314,7 @@ private:
 };
 
 /**
- * This class allows to temporarily re unlock a mutex in a scope where
+ * This class allows to temporarily re-unlock a mutex in a scope where
  * it is locked <br>
  * Example:
  * \code
@@ -409,7 +409,7 @@ enum class TimedWaitResult
  * A condition variable class for thread synchronization, available from
  * Miosix 1.53.<br>
  * One or more threads can wait on the condition variable, and the signal()
- * and broadcast() allow to wake ne or all the waiting threads.<br>
+ * and broadcast() methods allow to wake one or all the waiting threads.<br>
  * This class is meant to be a static or global class. Dynamically creating a
  * ConditionVariable with new or on the stack must be done with care, to avoid
  * deleting a ConditionVariable while some threads are waiting, and to avoid

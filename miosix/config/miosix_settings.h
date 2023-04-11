@@ -78,8 +78,8 @@ namespace miosix {
 
 /// \def WITH_CPU_TIME_COUNTER
 /// Allows to enable/disable CPUTimeCounter to save code size and remove its
-/// overhead from the scheduling process. By default it is defined
-/// (CPUTimeCounter is enabled).
+/// overhead from the scheduling process. By default it is not defined
+/// (CPUTimeCounter is disabled).
 //#define WITH_CPU_TIME_COUNTER
 
 //
