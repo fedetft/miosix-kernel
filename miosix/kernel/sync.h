@@ -388,12 +388,13 @@ private:
 /**
  * \internal
  * This class is used to make a list of threads that are waiting on a condition
- * variable. It is used by the kernel, and should not be used by end users.
+ * variable or on a semaphore. It is used by the kernel, and should not be used
+ * by end users.
  */
-class CondData : public IntrusiveListItem
+class WaitToken : public IntrusiveListItem
 {
 public:
-    CondData(Thread *thread) : thread(thread) {}
+    WaitToken(Thread *thread) : thread(thread) {}
     Thread *thread; ///<\internal Thread that is waiting
 };
 
@@ -530,7 +531,7 @@ private:
     friend int ::pthread_cond_destroy(pthread_cond_t *cond);
 
     //Memory layout must be kept in sync with pthread_cond, see pthread.cpp
-    IntrusiveList<CondData> condList;
+    IntrusiveList<WaitToken> condList;
 };
 
 /**
@@ -634,7 +635,7 @@ private:
     inline Thread *IRQsignalNoPreempt();
 
     volatile unsigned int count; ///< Counter of the semaphore
-    IntrusiveList<CondData> fifo; ///< List of waiting threads
+    IntrusiveList<WaitToken> fifo; ///< List of waiting threads
 };
 
 /**

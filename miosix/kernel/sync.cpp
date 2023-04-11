@@ -372,7 +372,7 @@ void ConditionVariable::wait(Mutex& m)
 {
     PauseKernelLock dLock;
     Thread *t=Thread::getCurrentThread();
-    CondData listItem(t);
+    WaitToken listItem(t);
     condList.push_back(&listItem); //Add entry to tail of list
 
     //Unlock mutex and wait
@@ -393,7 +393,7 @@ void ConditionVariable::wait(pthread_mutex_t *m)
 {
     FastInterruptDisableLock dLock;
     Thread *t=Thread::IRQgetCurrentThread();
-    CondData listItem(t);
+    WaitToken listItem(t);
     condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
     t->flags.IRQsetCondWait(true);
 
@@ -415,7 +415,7 @@ TimedWaitResult ConditionVariable::timedWait(Mutex& m, long long absTime)
 
     PauseKernelLock dLock;
     Thread *t=Thread::getCurrentThread();
-    CondData listItem(t);
+    WaitToken listItem(t);
     condList.push_back(&listItem); //Add entry to tail of list
     SleepData sleepData(t,absTime);
     {
@@ -455,7 +455,7 @@ TimedWaitResult ConditionVariable::timedWait(pthread_mutex_t *m, long long absTi
     absTime=std::max(absTime,100000LL);
     FastInterruptDisableLock dLock;
     Thread *t=Thread::IRQgetCurrentThread();
-    CondData listItem(t);
+    WaitToken listItem(t);
     condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
     SleepData sleepData(t,absTime);
     IRQaddToSleepingList(&sleepData); //Putting this thread on the sleeping list too
@@ -538,7 +538,7 @@ Thread *Semaphore::IRQsignalNoPreempt()
         count++;
         return nullptr;
     }
-    CondData *cd=fifo.front();
+    WaitToken *cd=fifo.front();
     Thread *t=cd->thread;
     fifo.pop_front();
     t->flags.IRQsetCondWait(false);
@@ -586,7 +586,7 @@ void Semaphore::wait()
     }
     //Otherwise put ourselves in queue and wait
     Thread *t=Thread::getCurrentThread();
-    CondData listItem(t);
+    WaitToken listItem(t);
     fifo.push_back(&listItem); //Add entry to tail of list
     t->flags.IRQsetCondWait(true);
     {
@@ -614,7 +614,7 @@ TimedWaitResult Semaphore::timedWait(long long absTime)
     }
     //Otherwise put ourselves in queue...
     Thread *t=Thread::getCurrentThread();
-    CondData listItem(t);
+    WaitToken listItem(t);
     fifo.push_back(&listItem);
     //...and simultaneously to sleep
     SleepData sleepData(t,absTime);
