@@ -365,7 +365,7 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
 // class ConditionVariable
 //
 
-//Memory layout must be kept in sync with pthread_cond, see wait(FastMutex& m)
+//Memory layout must be kept in sync with pthread_cond, see pthread.cpp
 static_assert(sizeof(ConditionVariable)==sizeof(pthread_cond_t),"");
 
 void ConditionVariable::wait(Mutex& m)
@@ -387,6 +387,22 @@ void ConditionVariable::wait(Mutex& m)
         Thread::yield(); //Here the wait becomes effective
     }
     m.PKlockToDepth(dLock,depth);
+}
+
+void ConditionVariable::wait(pthread_mutex_t *m)
+{
+    FastInterruptDisableLock dLock;
+    Thread *t=Thread::IRQgetCurrentThread();
+    CondData listItem(t);
+    condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
+    t->flags.IRQsetCondWait(true);
+
+    unsigned int depth=IRQdoMutexUnlockAllDepthLevels(m);
+    {
+        FastInterruptEnableLock eLock(dLock);
+        Thread::yield(); //Here the wait becomes effective
+    }
+    IRQdoMutexLockToDepth(m,dLock,depth);
 }
 
 TimedWaitResult ConditionVariable::timedWait(Mutex& m, long long absTime)
@@ -430,10 +446,36 @@ TimedWaitResult ConditionVariable::timedWait(Mutex& m, long long absTime)
     return removed ? TimedWaitResult::Timeout : TimedWaitResult::NoTimeout;
 }
 
-TimedWaitResult ConditionVariable::timedWait(FastMutex& m, long long absTime)
+TimedWaitResult ConditionVariable::timedWait(pthread_mutex_t *m, long long absTime)
 {
-    return pthreadCondTimedWaitImpl(reinterpret_cast<pthread_cond_t*>(this),
-            m.get(),absTime)==ETIMEDOUT ? TimedWaitResult::Timeout : TimedWaitResult::NoTimeout;
+    //Disallow absolute sleeps with negative or too low values, as the ns2tick()
+    //algorithm in TimeConversion can't handle negative values and may undeflow
+    //even with very low values due to a negative adjustOffsetNs. As an unlikely
+    //side effect, very shor sleeps done very early at boot will be extended.
+    absTime=std::max(absTime,100000LL);
+    FastInterruptDisableLock dLock;
+    Thread *t=Thread::IRQgetCurrentThread();
+    CondData listItem(t);
+    condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
+    SleepData sleepData(t,absTime);
+    IRQaddToSleepingList(&sleepData); //Putting this thread on the sleeping list too
+    t->flags.IRQsetCondWait(true);
+
+    unsigned int depth=IRQdoMutexUnlockAllDepthLevels(m);
+    {
+        FastInterruptEnableLock eLock(dLock);
+        Thread::yield(); //Here the wait becomes effective
+    }
+    //Ensure that the thread is removed from both list, as it can be woken by
+    //either a signal/broadcast (that removes it from condList) or by
+    //IRQwakeThreads (that removes it from sleeping list).
+    bool removed=condList.removeFast(&listItem);
+    IRQremoveFromSleepingList(&sleepData);
+
+    IRQdoMutexLockToDepth(m,dLock,depth);
+
+    //If the thread was still in the cond variable list, it was woken up by a timeout
+    return removed ? TimedWaitResult::Timeout : TimedWaitResult::NoTimeout;
 }
 
 void ConditionVariable::signal()

@@ -461,14 +461,20 @@ public:
      * Unlock the FastMutex and wait.
      * If more threads call wait() they must do so specifying the same mutex,
      * otherwise the behaviour is undefined.
-     * \param m a locked Mutex
+     * \param m a locked FastMutex
      */
     void wait(FastMutex& m)
     {
-        //Memory layout of ConditionVariable is the same of pthread_cond_t and
-        //the algorithm would be exactly the same
-        pthread_cond_wait(reinterpret_cast<pthread_cond_t*>(this),m.get());
+        wait(m.get());
     }
+
+    /**
+     * Unlock the pthread_mutex_t and wait.
+     * If more threads call wait() they must do so specifying the same mutex,
+     * otherwise the behaviour is undefined.
+     * \param m a locked pthread_mutex_t
+     */
+    void wait(pthread_mutex_t *m);
 
     /**
      * Unlock the Mutex and wait until woken up or timeout occurs.
@@ -484,11 +490,24 @@ public:
      * Unlock the FastMutex and wait until woken up or timeout occurs.
      * If more threads call wait() they must do so specifying the same mutex,
      * otherwise the behaviour is undefined.
-     * \param m a locked Mutex
+     * \param m a locked FastMutex
      * \param absTime absolute timeout time in nanoseconds
      * \return whether the return was due to a timout or wakeup
      */
-    TimedWaitResult timedWait(FastMutex& m, long long absTime);
+    TimedWaitResult timedWait(FastMutex& m, long long absTime)
+    {
+        return timedWait(m.get(), absTime);
+    }
+
+    /**
+     * Unlock the pthread_mutex_t and wait until woken up or timeout occurs.
+     * If more threads call wait() they must do so specifying the same mutex,
+     * otherwise the behaviour is undefined.
+     * \param m a locked pthread_mutex_t
+     * \param absTime absolute timeout time in nanoseconds
+     * \return whether the return was due to a timout or wakeup
+     */
+    TimedWaitResult timedWait(pthread_mutex_t *m, long long absTime);
 
     /**
      * Wakeup one waiting thread.
@@ -503,10 +522,13 @@ public:
 
 private:
     //Unwanted methods
-    ConditionVariable(const ConditionVariable& );
-    ConditionVariable& operator= (const ConditionVariable& );
+    ConditionVariable(const ConditionVariable&);
+    ConditionVariable& operator= (const ConditionVariable&);
 
-    //Memory layout must be kept in sync with pthread_cond, see wait(FastMutex& m)
+    //Needs direct access to condList to check if it is empty
+    friend int ::pthread_cond_destroy(pthread_cond_t *cond);
+
+    //Memory layout must be kept in sync with pthread_cond, see pthread.cpp
     IntrusiveList<CondData> condList;
 };
 
