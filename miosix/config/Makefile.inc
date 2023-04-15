@@ -51,6 +51,7 @@
 #OPT_BOARD := stm32l476rg_nucleo
 #OPT_BOARD := atsam4lc2aa_generic
 #OPT_BOARD := stm32f411ce_blackpill
+#OPT_BOARD := stm32f103c8_bluepill
 
 ##
 ## Optimization flags, choose one.
@@ -617,6 +618,14 @@ endif
 
 # No options
 
+##---------------------------------------------------------------------------
+## stm32f103c8_bluepill
+##
+
+# No options
+
+##---------------------------------------------------------------------------
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -712,6 +721,8 @@ else ifeq ($(OPT_BOARD),atsam4lc2aa_generic)
     ARCH := cortexM4_atsam4l
 else ifeq ($(OPT_BOARD),stm32f411ce_blackpill)
     ARCH := cortexM4_stm32f4
+else ifeq ($(OPT_BOARD),stm32f103c8_bluepill)
+    ARCH := cortexM3_stm32
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -1259,6 +1270,38 @@ else ifeq ($(ARCH),cortexM3_stm32)
         ## board.
         PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB0
 
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f103c8_bluepill
+    ##
+    else ifeq ($(OPT_BOARD),stm32f103c8_bluepill)
+
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_stm32/stm32f103c8_bluepill
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o        
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+20k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp         \
+        arch/common/drivers/servo_stm32.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32F103C8_BLUEPILL -DSTM32F10X_MD
+        CXXFLAGS_BASE += -D_BOARD_STM32F103C8_BLUEPILL -DSTM32F10X_MD
+       
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        #PROGRAM_CMDLINE := sudo vsprog -cstm32_vl -ms -I main.hex -oe -owf -ovf
+        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
+        
     ##-------------------------------------------------------------------------
     ## End of board list
     ##
