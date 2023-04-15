@@ -51,7 +51,7 @@
 #OPT_BOARD := stm32l476rg_nucleo
 #OPT_BOARD := atsam4lc2aa_generic
 #OPT_BOARD := stm32f411ce_blackpill
-#OPT_BOARD := stm32f103c8_bluepill
+OPT_BOARD := stm32f103c8_bluepill
 
 ##
 ## Optimization flags, choose one.

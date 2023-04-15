@@ -34,7 +34,7 @@
 // The PARSING_FROM_IDE is because Netbeans gets confused by this, it is never
 // defined when compiling the code.
 #ifndef PARSING_FROM_IDE
-#error This error is a reminder that you have not edited miosix_settings.h yet.
+//#error This error is a reminder that you have not edited miosix_settings.h yet.
 #endif //PARSING_FROM_IDE
 
 /**
@@ -149,7 +149,7 @@ const unsigned char MAX_OPEN_FILES=8;
  * mode, so to use debugging it is necessary to disable sleep in the idle thread.
  * By default it is not defined (idle thread calls sleep).
  */
-//#define JTAG_DISABLE_SLEEP
+#define JTAG_DISABLE_SLEEP
 
 /// Minimum stack size (MUST be divisible by 4)
 const unsigned int STACK_MIN=256;
