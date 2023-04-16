@@ -449,7 +449,7 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
             #endif //!defined(_ARCH_CORTEXM0_STM32F0)            
             break;
     }
-    #endif //_ARCH_CORTEXM3_STM32
+    #endif //_ARCH_CORTEXM3_STM32F1
     
     switch(id)
     {
@@ -703,11 +703,11 @@ void STM32Serial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
     }
     //Quirk: stm32f1 rx pin has to be in input mode, while stm32f2 and up want
     //it in ALTERNATE mode. Go figure...
-    #ifdef _ARCH_CORTEXM3_STM32
+    #ifdef _ARCH_CORTEXM3_STM32F1
     Mode::Mode_ rxPinMode=Mode::INPUT;
-    #else //_ARCH_CORTEXM3_STM32
+    #else //_ARCH_CORTEXM3_STM32F1
     Mode::Mode_ rxPinMode=Mode::ALTERNATE;
-    #endif //_ARCH_CORTEXM3_STM32
+    #endif //_ARCH_CORTEXM3_STM32F1
     tx.mode(Mode::ALTERNATE);
     rx.mode(rxPinMode);
     if(flowControl)
@@ -844,10 +844,10 @@ void STM32Serial::IRQwrite(const char *str)
         constexpr unsigned int DMA_CCR4_EN = DMA_CCR_EN;
         #endif
         while((dmaTx->CCR & DMA_CCR4_EN) && !(DMA1->ISR & irqMask[getId()-1])) ;
-        #else //_ARCH_CORTEXM3_STM32
+        #else //_ARCH_CORTEXM3_STM32F1
         //Wait until DMA xfer ends. EN bit is cleared by hardware on transfer end
         while(dmaTx->CR & DMA_SxCR_EN) ;
-        #endif //_ARCH_CORTEXM3_STM32
+        #endif //_ARCH_CORTEXM3_STM32F1
     }
     #endif //SERIAL_DMA
     while(*str)
@@ -1158,7 +1158,7 @@ void STM32Serial::writeDma(const char *buffer, size_t size)
                    | DMA_SxCR_DMEIE   //Interrupt on direct mode error
                    | DMA_SxCR_EN;     //Start the DMA
     #endif //_ARCH_CORTEXM4_STM32F3
-    #endif //_ARCH_CORTEXM3_STM32
+    #endif //_ARCH_CORTEXM3_STM32F1
 }
 
 void STM32Serial::IRQreadDma()
@@ -1208,7 +1208,7 @@ void STM32Serial::IRQdmaReadStart()
                    | DMA_SxCR_DMEIE   //Interrupt on direct mode error
                    | DMA_SxCR_EN;     //Start the DMA
     #endif //_ARCH_CORTEXM4_STM32F3
-    #endif //_ARCH_CORTEXM3_STM32
+    #endif //_ARCH_CORTEXM3_STM32F1
 }
 
 int STM32Serial::IRQdmaReadStop()
@@ -1224,7 +1224,7 @@ int STM32Serial::IRQdmaReadStop()
     };
     DMA1->IFCR=irqMask[getId()-1];
     return rxQueueMin-dmaRx->CNDTR;
-    #else //_ARCH_CORTEXM3_STM32
+    #else //_ARCH_CORTEXM3_STM32F1
     //Stop DMA and wait for it to actually stop
     dmaRx->CR &= ~DMA_SxCR_EN;
     while(dmaRx->CR & DMA_SxCR_EN) ;
@@ -1242,7 +1242,7 @@ int STM32Serial::IRQdmaReadStop()
     };
     *irqRegs[getId()-1]=irqMask[getId()-1];
     return rxQueueMin-dmaRx->NDTR;
-    #endif //_ARCH_CORTEXM3_STM32
+    #endif //_ARCH_CORTEXM3_STM32F1
 }
 #endif //SERIAL_DMA
 

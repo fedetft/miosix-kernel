@@ -98,7 +98,7 @@ void SynchronizedServo::enable(int channel)
                 TIM4->CCER |= TIM_CCER_CC1E;
                 #ifndef _ARCH_CORTEXM3_STM32F1 //Only stm32f2 and stm32f4 have it
                 servo1out::alternateFunction(2);
-                #endif //_ARCH_CORTEXM3_STM32
+                #endif //_ARCH_CORTEXM3_STM32F1
                 servo1out::mode(Mode::ALTERNATE);
                 break;
             case 1:
@@ -106,7 +106,7 @@ void SynchronizedServo::enable(int channel)
                 TIM4->CCER |= TIM_CCER_CC2E;
                 #ifndef _ARCH_CORTEXM3_STM32F1 //Only stm32f2 and stm32f4 have it
                 servo2out::alternateFunction(2);
-                #endif //_ARCH_CORTEXM3_STM32
+                #endif //_ARCH_CORTEXM3_STM32F1
                 servo2out::mode(Mode::ALTERNATE);
                 break;
             case 2:
@@ -114,7 +114,7 @@ void SynchronizedServo::enable(int channel)
                 TIM4->CCER |= TIM_CCER_CC3E;
                 #ifndef _ARCH_CORTEXM3_STM32F1 //Only stm32f2 and stm32f4 have it
                 servo3out::alternateFunction(2);
-                #endif //_ARCH_CORTEXM3_STM32
+                #endif //_ARCH_CORTEXM3_STM32F1
                 servo3out::mode(Mode::ALTERNATE);
                 break;
             case 3:
@@ -122,7 +122,7 @@ void SynchronizedServo::enable(int channel)
                 TIM4->CCER |= TIM_CCER_CC4E;
                 #ifndef _ARCH_CORTEXM3_STM32F1 //Only stm32f2 and stm32f4 have it
                 servo4out::alternateFunction(2);
-                #endif //_ARCH_CORTEXM3_STM32
+                #endif //_ARCH_CORTEXM3_STM32F1
                 servo4out::mode(Mode::ALTERNATE);
                 break;
         }
@@ -321,7 +321,7 @@ unsigned int SynchronizedServo::getPrescalerInputFrequency()
     unsigned int freq=SystemCoreClock;
     
     //The position of the PPRE1 bit in RCC->CFGR is different in some stm32
-    #ifdef _ARCH_CORTEXM3_STM32
+    #ifdef _ARCH_CORTEXM3_STM32F1
     const unsigned int ppre1=8;
     #else //stm32f2 and f4
     const unsigned int ppre1=10;
