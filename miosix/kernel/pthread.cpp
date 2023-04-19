@@ -331,14 +331,46 @@ int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const s
 int pthread_cond_signal(pthread_cond_t *cond)
 {
     auto *impl=reinterpret_cast<ConditionVariable*>(cond);
-    impl->signal();
+    bool hppw=impl->doSignal();
+    (void)hppw;
+    /*
+     * A note on the conditional yield. Doing a pthread_cond_signal/broadcast is
+     * permitted either with the mutex locked or not. If we're calling signal
+     * with the mutex locked, yielding isn't a good idea even if we woke up a
+     * higher priority thread as we "bounce back" since the woken thread will
+     * block trying to lock the mutex we're holding. Also, the mutex unlock
+     * will yield anyway and immediately switch to the higher priority thread.
+     * The issue is, within signal/broadcast, we don't know if we're being
+     * called with the mutex locked or not.
+     * So, we implement the following design choice:
+     * - in the ConditionVariable class we unconditionally yield. Since
+     *   ConditionVariable can also be used with priority inheritance mutexes,
+     *   we assume that we really care about minimizing latency in waking up
+     *   higher priority threads, and we take the bounce back overhead if the
+     *   signal was called with the mutex locked.
+     * - in pthread_cond_singal/broadcast we don't yield since they can only be
+     *   used with non-priority-inheritance-mutexes, and if the signal is
+     *   called with no mutex locked, the actual context switch to the higher
+     *   priority thread will be delayed to the next preemption. Except with
+     *   EDF though, as it does not preempt after a time quantum so the delay
+     *   could be indefinitely long. In that case, we always yield.
+     */
+    #ifdef SCHED_TYPE_EDF
+    //If the woken thread has higher priority than our priority, yield
+    if(hppw) Thread::yield();
+    #endif //SCHED_TYPE_EDF
     return 0;
 }
 
 int pthread_cond_broadcast(pthread_cond_t *cond)
 {
     auto *impl=reinterpret_cast<ConditionVariable*>(cond);
-    impl->broadcast();
+    bool hppw=impl->doBroadcast();
+    (void)hppw;
+    #ifdef SCHED_TYPE_EDF
+    //If at least one woken thread has higher priority than our priority, yield
+    if(hppw) Thread::yield();
+    #endif //SCHED_TYPE_EDF
     return 0;
 }
 

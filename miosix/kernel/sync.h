@@ -515,20 +515,43 @@ public:
      * Wakeup one waiting thread.
      * Currently implemented policy is fifo.
      */
-    void signal();
+    void signal()
+    {
+        //If the woken thread has higher priority than our priority, yield
+        if(doSignal()) Thread::yield();
+    }
 
     /**
      * Wakeup all waiting threads.
      */
-    void broadcast();
+    void broadcast()
+    {
+        //If at least one woken thread has higher priority than our priority, yield
+        if(doBroadcast()) Thread::yield();
+    }
 
 private:
-    //Unwanted methods
-    ConditionVariable(const ConditionVariable&);
-    ConditionVariable& operator= (const ConditionVariable&);
+    /**
+     * Wakeup one waiting thread.
+     * Currently implemented policy is fifo.
+     * \return true if the woken thread has higher priority than the current one
+     */
+    bool doSignal();
 
-    //Needs direct access to condList to check if it is empty
-    friend int ::pthread_cond_destroy(pthread_cond_t *cond);
+    /**
+     * Wakeup all waiting threads.
+     * \return true if at least one of the woken threads has higher priority
+     * than the current one
+     */
+    bool doBroadcast();
+
+    //Unwanted methods
+    ConditionVariable(const ConditionVariable&) = delete;
+    ConditionVariable& operator= (const ConditionVariable&) = delete;
+
+    friend int ::pthread_cond_destroy(pthread_cond_t *);   //Needs condList
+    friend int ::pthread_cond_signal(pthread_cond_t *);    //Needs doSignal()
+    friend int ::pthread_cond_broadcast(pthread_cond_t *); //Needs doBroadcast()
 
     //Memory layout must be kept in sync with pthread_cond, see pthread.cpp
     IntrusiveList<WaitToken> condList;

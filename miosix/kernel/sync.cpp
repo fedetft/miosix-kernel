@@ -478,7 +478,7 @@ TimedWaitResult ConditionVariable::timedWait(pthread_mutex_t *m, long long absTi
     return removed ? TimedWaitResult::Timeout : TimedWaitResult::NoTimeout;
 }
 
-void ConditionVariable::signal()
+bool ConditionVariable::doSignal()
 {
     bool hppw=false;
     {
@@ -486,7 +486,7 @@ void ConditionVariable::signal()
         //that can only be called with irq disabled, othrwise we would use
         //PauseKernelLock
         FastInterruptDisableLock lock;
-        if(condList.empty()) return;
+        if(condList.empty()) return false;
         //Remove from list and wakeup
         Thread *t=condList.front()->thread;
         condList.pop_front();
@@ -496,11 +496,10 @@ void ConditionVariable::signal()
         if(t->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
             hppw=true;
     }
-    //If the woken thread has higher priority than our priority, yield
-    if(hppw) Thread::yield();
+    return hppw;
 }
 
-void ConditionVariable::broadcast()
+bool ConditionVariable::doBroadcast()
 {
     bool hppw=false;
     {
@@ -520,9 +519,7 @@ void ConditionVariable::broadcast()
                 hppw=true;
         }
     }
-    //If at least one of the woken thread has higher priority than our priority,
-    //yield
-    if(hppw) Thread::yield();
+    return hppw;
 }
 
 //
