@@ -498,18 +498,6 @@ public:
     static void yield();
 
     /**
-     * This method needs to be called periodically inside the thread's main
-     * loop.
-     * \return true if somebody outside the thread called terminate() on this
-     * thread.
-     *
-     * If it returns true the thread must free all resources and terminate by
-     * returning from its main function.
-     * <br>Can be called when the kernel is paused.
-     */
-    static bool testTerminate();
-
-    /**
      * Put the thread to sleep for a number of milliseconds.
      * <br>The actual precision depends on the underlying hardware timer.
      * \param ms the number of milliseconds. If it is ==0 this method will
@@ -551,6 +539,50 @@ public:
      * CANNOT be called when the kernel is paused.
      */
     static void nanoSleepUntil(long long absoluteTimeNs);
+
+    /**
+     * This method stops the thread until another thread calls wakeup() on this
+     * thread.<br>Calls to wait are not cumulative. If wait() is called two
+     * times, only one call to wakeup() is needed to wake the thread.
+     * <br>CANNOT be called when the kernel is paused.
+     */
+    static void wait();
+
+    /**
+     * Same as wait(), but is meant to be used only inside an IRQ or when
+     * interrupts are disabled.<br>
+     * Note: this method is meant to put the current thread in wait status in a
+     * piece of code where interrupts are disbled; it returns immediately, so
+     * the user is responsible for re-enabling interrupts and calling yield to
+     * effectively put the thread in wait status.
+     *
+     * \code
+     * disableInterrupts();
+     * ...
+     * Thread::IRQwait();//Return immediately
+     * enableInterrupts();
+     * Thread::yield();//After this, thread is in wait status
+     * \endcode
+     */
+    static void IRQwait();
+
+    /**
+     * Wakeup a thread.
+     * <br>CANNOT be called when the kernel is paused.
+     */
+    void wakeup();
+
+    /**
+     * Wakeup a thread.
+     * <br>Can be called when the kernel is paused.
+     */
+    void PKwakeup();
+
+    /**
+     * Same as wakeup(), but is meant to be used only inside an IRQ or when
+     * interrupts are disabled.
+     */
+    void IRQwakeup();
     
     /**
      * Return a pointer to the Thread class of the current thread.
@@ -560,6 +592,12 @@ public:
      * Returns a valid pointer also if called before the kernel is started.
      */
     static Thread *getCurrentThread();
+
+    /**
+     * Same as get_current_thread(), but meant to be used insida an IRQ, when
+     * interrupts are disabled or when the kernel is paused.
+     */
+    static Thread *IRQgetCurrentThread();
 
     /**
      * Check if a thread exists
@@ -574,6 +612,12 @@ public:
     static bool exists(Thread *p);
 
     /**
+     * Same as exists() but is meant to be called only inside an IRQ or when
+     * interrupts are disabled.
+     */
+    static bool IRQexists(Thread *p);
+
+    /**
      * Returns the priority of a thread.<br>
      * To get the priority of the current thread use:
      * \code Thread::getCurrentThread()->getPriority(); \endcode
@@ -585,6 +629,12 @@ public:
      * Can be called when the kernel is paused.
      */
     Priority getPriority();
+
+    /**
+     * Same as getPriority(), but meant to be used inside an IRQ, when
+     * interrupts are disabled or when the kernel is paused.
+     */
+    Priority IRQgetPriority();
 
     /**
      * Set the priority of this thread.<br>
@@ -610,24 +660,16 @@ public:
     void terminate();
 
     /**
-     * This method stops the thread until another thread calls wakeup() on this
-     * thread.<br>Calls to wait are not cumulative. If wait() is called two
-     * times, only one call to wakeup() is needed to wake the thread.
-     * <br>CANNOT be called when the kernel is paused.
-     */
-    static void wait();
-
-    /**
-     * Wakeup a thread.
-     * <br>CANNOT be called when the kernel is paused.
-     */
-    void wakeup();
-
-    /**
-     * Wakeup a thread.
+     * This method needs to be called periodically inside the thread's main
+     * loop.
+     * \return true if somebody outside the thread called terminate() on this
+     * thread.
+     *
+     * If it returns true the thread must free all resources and terminate by
+     * returning from its main function.
      * <br>Can be called when the kernel is paused.
      */
-    void PKwakeup();
+    static bool testTerminate();
 
     /**
      * Detach the thread if it was joinable, otherwise do nothing.<br>
@@ -662,48 +704,6 @@ public:
     bool join(void** result=nullptr);
 
     /**
-     * Same as get_current_thread(), but meant to be used insida an IRQ, when
-     * interrupts are disabled or when the kernel is paused.
-     */
-    static Thread *IRQgetCurrentThread();
-
-    /**
-     * Same as getPriority(), but meant to be used inside an IRQ, when
-     * interrupts are disabled or when the kernel is paused.
-     */
-    Priority IRQgetPriority();
-
-    /**
-     * Same as wait(), but is meant to be used only inside an IRQ or when
-     * interrupts are disabled.<br>
-     * Note: this method is meant to put the current thread in wait status in a
-     * piece of code where interrupts are disbled; it returns immediately, so
-     * the user is responsible for re-enabling interrupts and calling yield to
-     * effectively put the thread in wait status.
-     *
-     * \code
-     * disableInterrupts();
-     * ...
-     * Thread::IRQwait();//Return immediately
-     * enableInterrupts();
-     * Thread::yield();//After this, thread is in wait status
-     * \endcode
-     */
-    static void IRQwait();
-
-    /**
-     * Same as wakeup(), but is meant to be used only inside an IRQ or when
-     * interrupts are disabled.
-     */
-    void IRQwakeup();
-
-    /**
-     * Same as exists() but is meant to be called only inside an IRQ or when
-     * interrupts are disabled.
-     */
-    static bool IRQexists(Thread *p);
-
-    /**
      * \internal
      * This method is only meant to implement functions to check the available
      * stack in a thread. Returned pointer is constant because modifying the
@@ -717,6 +717,13 @@ public:
      * \return the size of the stack of the current thread.
      */
     static int getStackSize();
+
+    /**
+     * \internal
+     * Used before every context switch to check if the stack of the thread
+     * being preempted has overflowed
+     */
+    static void IRQstackOverflowCheck();
     
     #ifdef WITH_PROCESSES
 
@@ -744,18 +751,14 @@ public:
     
     #endif //WITH_PROCESSES
 
-    /**
-     * \internal
-     * Used before every context switch to check if the stack of the thread
-     * being preempted has overflowed
-     */
-    static void IRQstackOverflowCheck();
+    //Unwanted methods
+    Thread(const Thread& p) = delete;
+    Thread& operator = (const Thread& p) = delete;
 
 private:
-    //Unwanted methods
-    Thread(const Thread& p);///< No public copy constructor
-    Thread& operator = (const Thread& p);///< No publc operator =
-    
+    /**
+     * Curren thread status
+     */
     class ThreadFlags
     {
     public:
@@ -878,6 +881,7 @@ private:
         bool isInUserspace() const { return flags & USERSPACE; }
 
         Thread* t;
+
     private:
         ///\internal Thread is in the wait status. A call to wakeup will change
         ///this
@@ -968,7 +972,7 @@ private:
      * resources to create one.
      */
     static Thread *doCreate(void *(*startfunc)(void *), unsigned int stacksize,
-					void *argv, unsigned short options, bool defaultReent);
+                            void *argv, unsigned short options, bool defaultReent);
 
     /**
      * Thread launcher, all threads start from this member function, which calls
