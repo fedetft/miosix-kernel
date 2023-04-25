@@ -40,11 +40,6 @@
 
 using namespace miosix;
 
-namespace miosix {
-void IRQaddToSleepingList(SleepData *x);
-void IRQremoveFromSleepingList(SleepData *x);
-} //namespace miosix
-
 //
 // Newlib's pthread.h has been patched since Miosix 1.68 to contain a definition
 // for pthread_mutex_t and pthread_cond_t that allows a fast implementation
