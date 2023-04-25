@@ -399,15 +399,6 @@ public:
 };
 
 /**
- * Possible return values of timedWait
- */
-enum class TimedWaitResult
-{
-    NoTimeout,
-    Timeout
-};
-
-/**
  * A condition variable class for thread synchronization, available from
  * Miosix 1.53.<br>
  * One or more threads can wait on the condition variable, and the signal()

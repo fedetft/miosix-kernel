@@ -260,13 +260,10 @@ bool isKernelRunning()
  * Used by Thread::sleep() and pthread_cond_timedwait() to add a thread to
  * sleeping list. The list is sorted by the wakeupTime field to reduce time
  * required to wake threads during context switch.
- * Also sets thread SLEEP_FLAG. It is labeled IRQ not because it is meant to be
- * used inside an IRQ, but because interrupts must be disabled prior to calling
- * this function.
+ * Interrupts must be disabled prior to calling this function.
  */
-void IRQaddToSleepingList(SleepData *x)
+static void IRQaddToSleepingList(SleepData *x)
 {
-    x->thread->flags.IRQsetSleep(true);
     if(sleepingList.empty() || sleepingList.front()->wakeupTime>=x->wakeupTime)
     {
         sleepingList.push_front(x);
@@ -275,19 +272,6 @@ void IRQaddToSleepingList(SleepData *x)
         while(it!=sleepingList.end() && (*it)->wakeupTime<x->wakeupTime) ++it;
         sleepingList.insert(it,x);
     }
-}
-
-/**
- * \internal
- * Used by pthread_cond_timedwait() to remove a thread from sleeping list in case that it
- * is woke up by a signal or broadcast.
- * It is labeled IRQ not because it is meant to be
- * used inside an IRQ, but because interrupts must be disabled prior to calling
- * this function.
- */
-void IRQremoveFromSleepingList(SleepData *x)
-{
-    sleepingList.removeFast(x);
 }
 
 /**
@@ -307,9 +291,8 @@ bool IRQwakeThreads(long long currentTime)
     for(auto it=sleepingList.begin();it!=sleepingList.end();)
     {
         if(currentTime<(*it)->wakeupTime) break;
-        (*it)->thread->flags.IRQsetSleep(false); //Wake thread
-        //Reset cond wait flag to wakeup threads in pthread_cond_timedwait() too
-        (*it)->thread->flags.IRQsetCondWait(false);
+        //Wake both threads doing absoluteSleep() and timedWait()
+        (*it)->thread->flags.IRQexitSleepAndWait();
         if(const_cast<Thread*>(runningThread)->getPriority()<(*it)->thread->getPriority())
             result=true;
         it=sleepingList.erase(it);
@@ -396,7 +379,8 @@ void Thread::nanoSleepUntil(long long absoluteTimeNs)
     //the timer isr will wake threads, modifying the sleepingList
     {
         FastInterruptDisableLock lock;
-        IRQaddToSleepingList(&d);//Also sets SLEEP_FLAG
+        d.thread->flags.IRQsetSleep(true); //Sleeping thread: set sleep flag
+        IRQaddToSleepingList(&d);
     }
     // NOTE: There is no need to synchronize the timer (calling IRQsetNextInterrupt)
     // with the list at this point. Because, Thread::yield will make a supervisor
@@ -420,6 +404,32 @@ void Thread::wait()
 void Thread::IRQwait()
 {
     const_cast<Thread*>(runningThread)->flags.IRQsetWait(true);
+}
+
+void Thread::PKrestartKernelAndWait(PauseKernelLock& dLock)
+{
+    (void)dLock;
+    //Implemented by upgrading the lock to an interrupt disable one
+    FastInterruptDisableLock dLockIrq;
+    auto savedNesting=kernelRunning;
+    kernelRunning=0;
+    IRQenableIrqAndWaitImpl();
+    if(kernelRunning!=0) errorHandler(UNEXPECTED);
+    kernelRunning=savedNesting;
+}
+
+TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
+        long long absoluteTimeNs)
+{
+    (void)dLock;
+    //Implemented by upgrading the lock to an interrupt disable one
+    FastInterruptDisableLock dLockIrq;
+    auto savedNesting=kernelRunning;
+    kernelRunning=0;
+    auto result=IRQenableIrqAndTimedWaitImpl(absoluteTimeNs);
+    if(kernelRunning!=0) errorHandler(UNEXPECTED);
+    kernelRunning=savedNesting;
+    return result;
 }
 
 void Thread::wakeup()
@@ -446,18 +456,14 @@ void Thread::IRQwakeup()
     this->flags.IRQsetWait(false);
 }
 
-Thread *Thread::getCurrentThread()
-{
-    Thread *result=const_cast<Thread*>(runningThread);
-    if(result) return result;
-    //This function must always return a pointer to a valid thread. The first
-    //time this is called before the kernel is started, however, runningThread
-    //is nullptr, thus we allocate the idle thread and return a pointer to that.
-    return allocateIdleThread();
-}
-
 Thread *Thread::IRQgetCurrentThread()
 {
+    //NOTE: this code is currently safe to be called either with interrupt
+    //enabed or not, and with the kernel paused or not, as well as before the
+    //kernel is started, so getCurrentThread() and PKgetCurrentThread() all
+    //directly call here. If introducing changes that break this property, these
+    //three functions may need to be split
+
     //Implementation is the same as getCurrentThread, but to keep a consistent
     //interface this method is duplicated
     Thread *result=const_cast<Thread*>(runningThread);
@@ -823,6 +829,37 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
     errorHandler(UNEXPECTED);
 }
 
+void Thread::IRQenableIrqAndWaitImpl()
+{
+    const_cast<Thread*>(runningThread)->flags.IRQsetWait(true);
+    auto savedNesting=interruptDisableNesting; //For InterruptDisableLock
+    interruptDisableNesting=0;
+    miosix_private::doEnableInterrupts();
+    Thread::yield(); //Here the wait becomes effective
+    miosix_private::doDisableInterrupts();
+    if(interruptDisableNesting!=0) errorHandler(UNEXPECTED);
+    interruptDisableNesting=savedNesting;
+}
+
+TimedWaitResult Thread::IRQenableIrqAndTimedWaitImpl(long long absoluteTimeNs)
+{
+    absoluteTimeNs=std::max(absoluteTimeNs,100000LL);
+    Thread *t=const_cast<Thread*>(runningThread);
+    SleepData sleepData(t,absoluteTimeNs);
+    t->flags.IRQsetWait(true); //timedWait thread: set wait flag
+    IRQaddToSleepingList(&sleepData);
+    auto savedNesting=interruptDisableNesting; //For InterruptDisableLock
+    interruptDisableNesting=0;
+    miosix_private::doEnableInterrupts();
+    Thread::yield(); //Here the wait becomes effective
+    miosix_private::doDisableInterrupts();
+    if(interruptDisableNesting!=0) errorHandler(UNEXPECTED);
+    interruptDisableNesting=savedNesting;
+    bool removed=sleepingList.removeFast(&sleepData);
+    //If the thread was still in the sleeping list, it was woken up by a wakeup()
+    return removed ? TimedWaitResult::NoTimeout : TimedWaitResult::Timeout;
+}
+
 Thread *Thread::allocateIdleThread()
 {
     //NOTE: this function is only called once before the kernel is started, so
@@ -852,21 +889,21 @@ void Thread::ThreadFlags::IRQsetWait(bool waiting)
     Scheduler::IRQwaitStatusHook(this->t);
 }
 
-void Thread::ThreadFlags::IRQsetJoinWait(bool waiting)
-{
-    if(waiting) flags |= WAIT_JOIN; else flags &= ~WAIT_JOIN;
-    Scheduler::IRQwaitStatusHook(this->t);
-}
-
-void Thread::ThreadFlags::IRQsetCondWait(bool waiting)
-{
-    if(waiting) flags |= WAIT_COND; else flags &= ~WAIT_COND;
-    Scheduler::IRQwaitStatusHook(this->t);
-}
-
 void Thread::ThreadFlags::IRQsetSleep(bool sleeping)
 {
     if(sleeping) flags |= SLEEP; else flags &= ~SLEEP;
+    Scheduler::IRQwaitStatusHook(this->t);
+}
+
+void Thread::ThreadFlags::IRQexitSleepAndWait()
+{
+    flags &= ~(WAIT | SLEEP);
+    Scheduler::IRQwaitStatusHook(this->t);
+}
+
+void Thread::ThreadFlags::IRQsetJoinWait(bool waiting)
+{
+    if(waiting) flags |= WAIT_JOIN; else flags &= ~WAIT_JOIN;
     Scheduler::IRQwaitStatusHook(this->t);
 }
 

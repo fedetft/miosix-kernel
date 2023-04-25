@@ -36,9 +36,6 @@ using namespace std;
 
 namespace miosix {
 
-void IRQaddToSleepingList(SleepData *x);
-void IRQremoveFromSleepingList(SleepData *x);
-
 //
 // class Mutex
 //
@@ -50,7 +47,7 @@ Mutex::Mutex(Options opt): owner(nullptr), next(nullptr), waiting()
 
 void Mutex::PKlock(PauseKernelLock& dLock)
 {
-    Thread *p=Thread::getCurrentThread();
+    Thread *p=Thread::PKgetCurrentThread();
     if(owner==nullptr)
     {
         owner=p;
@@ -118,7 +115,7 @@ void Mutex::PKlock(PauseKernelLock& dLock)
 
 void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
 {
-    Thread *p=Thread::getCurrentThread();
+    Thread *p=Thread::PKgetCurrentThread();
     if(owner==nullptr)
     {
         owner=p;
@@ -188,7 +185,7 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
 
 bool Mutex::PKtryLock(PauseKernelLock& dLock)
 {
-    Thread *p=Thread::getCurrentThread();
+    Thread *p=Thread::PKgetCurrentThread();
     if(owner==nullptr)
     {
         owner=p;
@@ -210,7 +207,7 @@ bool Mutex::PKtryLock(PauseKernelLock& dLock)
 
 bool Mutex::PKunlock(PauseKernelLock& dLock)
 {
-    Thread *p=Thread::getCurrentThread();
+    Thread *p=Thread::PKgetCurrentThread();
     if(owner!=p) return false;
 
     if(recursiveDepth>0)
@@ -288,7 +285,7 @@ bool Mutex::PKunlock(PauseKernelLock& dLock)
 
 unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
 {
-    Thread *p=Thread::getCurrentThread();
+    Thread *p=Thread::PKgetCurrentThread();
     if(owner!=p) return 0;
 
     //Remove this mutex from the list of mutexes locked by the owner
@@ -324,8 +321,8 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
         while(walk!=nullptr)
         {
             if(walk->waiting.empty()==false)
-                if (pr.mutexLessOp(walk->waiting.front()->getPriority()))
-                    pr = walk->waiting.front()->getPriority();
+                if(pr.mutexLessOp(walk->waiting.front()->getPriority()))
+                    pr=walk->waiting.front()->getPriority();
             walk=walk->next;
         }
         if(pr!=owner->getPriority()) Scheduler::PKsetPriority(owner,pr);
@@ -370,154 +367,74 @@ static_assert(sizeof(ConditionVariable)==sizeof(pthread_cond_t),"");
 
 void ConditionVariable::wait(Mutex& m)
 {
+    WaitToken listItem(Thread::getCurrentThread());
     PauseKernelLock dLock;
-    Thread *t=Thread::getCurrentThread();
-    WaitToken listItem(t);
-    condList.push_back(&listItem); //Add entry to tail of list
-
-    //Unlock mutex and wait
-    {
-        FastInterruptDisableLock l;
-        t->flags.IRQsetCondWait(true);
-    }
-
     unsigned int depth=m.PKunlockAllDepthLevels(dLock);
-    {
-        RestartKernelLock eLock(dLock);
-        Thread::yield(); //Here the wait becomes effective
-    }
+    condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
+    Thread::PKrestartKernelAndWait(dLock);
+    condList.removeFast(&listItem); //In case of timeout or spurious wakeup
     m.PKlockToDepth(dLock,depth);
 }
 
 void ConditionVariable::wait(pthread_mutex_t *m)
 {
+    WaitToken listItem(Thread::getCurrentThread());
     FastInterruptDisableLock dLock;
-    Thread *t=Thread::IRQgetCurrentThread();
-    WaitToken listItem(t);
-    condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
-    t->flags.IRQsetCondWait(true);
-
     unsigned int depth=IRQdoMutexUnlockAllDepthLevels(m);
-    {
-        FastInterruptEnableLock eLock(dLock);
-        Thread::yield(); //Here the wait becomes effective
-    }
+    condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
+    Thread::IRQenableIrqAndWait(dLock);
+    condList.removeFast(&listItem); //In case of spurious wakeup
     IRQdoMutexLockToDepth(m,dLock,depth);
 }
 
 TimedWaitResult ConditionVariable::timedWait(Mutex& m, long long absTime)
 {
-    //Disallow absolute sleeps with negative or too low values, as the ns2tick()
-    //algorithm in TimeConversion can't handle negative values and may undeflow
-    //even with very low values due to a negative adjustOffsetNs. As an unlikely
-    //side effect, very short sleeps done very early at boot will be extended.
-    absTime=std::max(absTime,100000LL);
-
+    WaitToken listItem(Thread::getCurrentThread());
     PauseKernelLock dLock;
-    Thread *t=Thread::getCurrentThread();
-    WaitToken listItem(t);
-    condList.push_back(&listItem); //Add entry to tail of list
-    SleepData sleepData(t,absTime);
-    {
-        FastInterruptDisableLock l;
-        IRQaddToSleepingList(&sleepData); //Putting this thread on the sleeping list too
-        t->flags.IRQsetCondWait(true);
-    }
-
-    //Unlock mutex and wait
     unsigned int depth=m.PKunlockAllDepthLevels(dLock);
-    {
-        RestartKernelLock eLock(dLock);
-        Thread::yield(); //Here the wait becomes effective
-    }
-
-    //Ensure that the thread is removed from both list, as it can be woken by
-    //either a signal/broadcast (that removes it from condList) or by
-    //IRQwakeThreads (that removes it from sleeping list).
-    bool removed=condList.removeFast(&listItem);
-    {
-        FastInterruptDisableLock l;
-        IRQremoveFromSleepingList(&sleepData);
-    }
-
+    condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
+    auto result=Thread::PKrestartKernelAndTimedWait(dLock,absTime);
+    condList.removeFast(&listItem); //In case of timeout or spurious wakeup
     m.PKlockToDepth(dLock,depth);
-
-    //If the thread was still in the cond variable list, it was woken up by a timeout
-    return removed ? TimedWaitResult::Timeout : TimedWaitResult::NoTimeout;
+    return result;
 }
 
 TimedWaitResult ConditionVariable::timedWait(pthread_mutex_t *m, long long absTime)
 {
-    //Disallow absolute sleeps with negative or too low values, as the ns2tick()
-    //algorithm in TimeConversion can't handle negative values and may undeflow
-    //even with very low values due to a negative adjustOffsetNs. As an unlikely
-    //side effect, very short sleeps done very early at boot will be extended.
-    absTime=std::max(absTime,100000LL);
+    WaitToken listItem(Thread::getCurrentThread());
     FastInterruptDisableLock dLock;
-    Thread *t=Thread::IRQgetCurrentThread();
-    WaitToken listItem(t);
-    condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
-    SleepData sleepData(t,absTime);
-    IRQaddToSleepingList(&sleepData); //Putting this thread on the sleeping list too
-    t->flags.IRQsetCondWait(true);
-
     unsigned int depth=IRQdoMutexUnlockAllDepthLevels(m);
-    {
-        FastInterruptEnableLock eLock(dLock);
-        Thread::yield(); //Here the wait becomes effective
-    }
-    //Ensure that the thread is removed from both list, as it can be woken by
-    //either a signal/broadcast (that removes it from condList) or by
-    //IRQwakeThreads (that removes it from sleeping list).
-    bool removed=condList.removeFast(&listItem);
-    IRQremoveFromSleepingList(&sleepData);
-
+    condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
+    auto result=Thread::IRQenableIrqAndTimedWait(dLock,absTime);
+    condList.removeFast(&listItem); //In case of timeout or spurious wakeup
     IRQdoMutexLockToDepth(m,dLock,depth);
-
-    //If the thread was still in the cond variable list, it was woken up by a timeout
-    return removed ? TimedWaitResult::Timeout : TimedWaitResult::NoTimeout;
+    return result;
 }
 
 bool ConditionVariable::doSignal()
 {
     bool hppw=false;
-    {
-        //Using interruptDisableLock because we need to call IRQsetCondWait
-        //that can only be called with irq disabled, othrwise we would use
-        //PauseKernelLock
-        FastInterruptDisableLock lock;
-        if(condList.empty()) return false;
-        //Remove from list and wakeup
-        Thread *t=condList.front()->thread;
-        condList.pop_front();
-        t->flags.IRQsetCondWait(false);
-        t->flags.IRQsetSleep(false); //Needed due to timedwait
-        //Check for priority issues
-        if(t->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
-            hppw=true;
-    }
+    FastInterruptDisableLock lock; //TODO: Can we pause kernel here?
+    if(condList.empty()) return false;
+    Thread *t=condList.front()->thread;
+    condList.pop_front();
+    t->IRQwakeup();
+    if(t->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+        hppw=true;
     return hppw;
 }
 
 bool ConditionVariable::doBroadcast()
 {
     bool hppw=false;
+    FastInterruptDisableLock lock; //TODO: Can we pause kernel here?
+    while(!condList.empty())
     {
-        //Using interruptDisableLock because we need to call IRQsetCondWait
-        //that can only be called with irq disabled, othrwise we would use
-        //PauseKernelLock
-        FastInterruptDisableLock lock;
-        while(!condList.empty())
-        {
-            //Remove from list and wakeup
-            Thread *t=condList.front()->thread;
-            condList.pop_front();
-            t->flags.IRQsetCondWait(false);
-            t->flags.IRQsetSleep(false); //Needed due to timedwait
-            //Check for priority issues
-            if(t->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
-                hppw=true;
-        }
+        Thread *t=condList.front()->thread;
+        condList.pop_front();
+        t->IRQwakeup();
+        if(t->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+            hppw=true;
     }
     return hppw;
 }
@@ -538,8 +455,7 @@ Thread *Semaphore::IRQsignalNoPreempt()
     WaitToken *cd=fifo.front();
     Thread *t=cd->thread;
     fifo.pop_front();
-    t->flags.IRQsetCondWait(false);
-    t->flags.IRQsetSleep(false); //Needed due to timedwait
+    t->IRQwakeup();
     return t;
 }
 
@@ -582,25 +498,14 @@ void Semaphore::wait()
         return;
     }
     //Otherwise put ourselves in queue and wait
-    Thread *t=Thread::getCurrentThread();
-    WaitToken listItem(t);
+    WaitToken listItem(Thread::IRQgetCurrentThread());
     fifo.push_back(&listItem); //Add entry to tail of list
-    t->flags.IRQsetCondWait(true);
-    {
-        FastInterruptEnableLock eLock(dLock);
-        //The wait becomes effective here
-        Thread::yield();
-    }
+    Thread::IRQenableIrqAndWait(dLock);
+    fifo.removeFast(&listItem); //In case of spurious wakeup
 }
 
 TimedWaitResult Semaphore::timedWait(long long absTime)
 {
-    //Disallow absolute sleeps with negative or too low values, as the ns2tick()
-    //algorithm in TimeConversion can't handle negative values and may undeflow
-    //even with very low values due to a negative adjustOffsetNs. As an unlikely
-    //side effect, very short sleeps done very early at boot will be extended.
-    absTime=std::max(absTime,100000LL);
-
     //Global interrupt lock because Semaphore is IRQ-safe
     FastInterruptDisableLock dLock;
     //If the counter is positive, decrement it and we're done
@@ -609,26 +514,12 @@ TimedWaitResult Semaphore::timedWait(long long absTime)
         count--;
         return TimedWaitResult::NoTimeout;
     }
-    //Otherwise put ourselves in queue...
-    Thread *t=Thread::getCurrentThread();
-    WaitToken listItem(t);
-    fifo.push_back(&listItem);
-    //...and simultaneously to sleep
-    SleepData sleepData(t,absTime);
-    IRQaddToSleepingList(&sleepData);
-    t->flags.IRQsetCondWait(true);
-    {
-        FastInterruptEnableLock eLock(dLock);
-        //Wait/sleep becomes effective here
-        Thread::yield();
-    }
-    
-    //We got woken up by either the sleep or the wait. Ensure that the thread
-    //is removed from both the wait list and the sleep list.
-    bool removed=fifo.removeFast(&listItem);
-    IRQremoveFromSleepingList(&sleepData);
-    //If we were still in the fifo, we were woken up by a timeout
-    return removed ? TimedWaitResult::Timeout : TimedWaitResult::NoTimeout;
+    //Otherwise put ourselves in queue and wait
+    WaitToken listItem(Thread::IRQgetCurrentThread());
+    fifo.push_back(&listItem); //Add entry to tail of list
+    auto result=Thread::IRQenableIrqAndTimedWait(dLock,absTime);
+    fifo.removeFast(&listItem); //In case of timeout or spurious wakeup
+    return result;
 }
 
 } //namespace miosix

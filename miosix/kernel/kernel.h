@@ -412,6 +412,15 @@ long long getTime() noexcept;
  */
 long long IRQgetTime() noexcept;
 
+/**
+ * Possible return values of timedWait
+ */
+enum class TimedWaitResult
+{
+    NoTimeout,
+    Timeout
+};
+
 //Forwrd declaration
 class SleepData;
 class MemoryProfiling;
@@ -541,16 +550,19 @@ public:
     static void nanoSleepUntil(long long absoluteTimeNs);
 
     /**
-     * This method stops the thread until another thread calls wakeup() on this
-     * thread.<br>Calls to wait are not cumulative. If wait() is called two
-     * times, only one call to wakeup() is needed to wake the thread.
-     * <br>CANNOT be called when the kernel is paused.
+     * This method stops the thread until wakeup() is called.
+     * Ths method is useful to implement any kind of blocking primitive,
+     * including device drivers.
+     *
+     * CANNOT be called when the kernel is paused.
      */
     static void wait();
 
     /**
-     * Same as wait(), but is meant to be used only inside an IRQ or when
-     * interrupts are disabled.<br>
+     * This method stops the thread until wakeup() is called.
+     * Ths method is useful to implement any kind of blocking primitive,
+     * including device drivers.
+     *
      * Note: this method is meant to put the current thread in wait status in a
      * piece of code where interrupts are disbled; it returns immediately, so
      * the user is responsible for re-enabling interrupts and calling yield to
@@ -559,12 +571,147 @@ public:
      * \code
      * disableInterrupts();
      * ...
-     * Thread::IRQwait();//Return immediately
+     * Thread::IRQwait(); //Return immediately
      * enableInterrupts();
-     * Thread::yield();//After this, thread is in wait status
+     * Thread::yield(); //After this, thread is in wait status
      * \endcode
+     *
+     * Consider using IRQenableIrqAndWait() instead.
      */
     static void IRQwait();
+
+    /**
+     * This method stops the thread until wakeup() is called.
+     * Ths method is useful to implement any kind of blocking primitive,
+     * including device drivers.
+     *
+     * NOTE: this method is meant to put the current thread in wait status in a
+     * piece of code where the kernel is paused (preemption disabled).
+     * Preemption will be enabled during the waiting period, and disabled back
+     * before this method returns.
+     *
+     * \param dLock the PauseKernelLock object that was used to disable
+     * preemption in the current context.
+     */
+    static void PKrestartKernelAndWait(PauseKernelLock& dLock);
+
+    /**
+     * This method stops the thread until wakeup() is called.
+     * Ths method is useful to implement any kind of blocking primitive,
+     * including device drivers.
+     *
+     * NOTE: this method is meant to put the current thread in wait status in a
+     * piece of code where interrupts are disbled, interrupts will be enabled
+     * during the waiting period, and disabled back before this method returns.
+     *
+     * \param dLock the InterruptDisableLock object that was used to disable
+     * interrupts in the current context.
+     */
+    static void IRQenableIrqAndWait(InterruptDisableLock& dLock)
+    {
+        (void)dLock; //Common implementation doesn't need it
+        return IRQenableIrqAndWaitImpl();
+    }
+
+    /**
+     * This method stops the thread until wakeup() is called.
+     * Ths method is useful to implement any kind of blocking primitive,
+     * including device drivers.
+     *
+     * NOTE: this method is meant to put the current thread in wait status in a
+     * piece of code where interrupts are disbled, interrupts will be enabled
+     * during the waiting period, and disabled back before this method returns.
+     *
+     * \param dLock the FastInterruptDisableLock object that was used to disable
+     * interrupts in the current context.
+     */
+    static void IRQenableIrqAndWait(FastInterruptDisableLock& dLock)
+    {
+        (void)dLock; //Common implementation doesn't need it
+        return IRQenableIrqAndWaitImpl();
+    }
+
+    /**
+     * This method stops the thread until wakeup() is called or the specified
+     * absolute time in nanoseconds is reached.
+     * Ths method is thus a combined IRQwait() and absoluteSleep(), and is
+     * useful to implement any kind of blocking primitive with timeout,
+     * including device drivers.
+     *
+     * \param absoluteTimeoutNs absolute time after which the wait times out
+     * \return TimedWaitResult::Timeout if the wait timed out
+     */
+    static TimedWaitResult timedWait(long long absoluteTimeNs)
+    {
+        FastInterruptDisableLock dLock;
+        return IRQenableIrqAndTimedWaitImpl(absoluteTimeNs);
+    }
+
+    /**
+     * This method stops the thread until wakeup() is called or the specified
+     * absolute time in nanoseconds is reached.
+     * Ths method is thus a combined IRQwait() and absoluteSleep(), and is
+     * useful to implement any kind of blocking primitive with timeout,
+     * including device drivers.
+     *
+     * NOTE: this method is meant to put the current thread in wait status in a
+     * piece of code where the kernel is paused (preemption disabled).
+     * Preemption will be enabled during the waiting period, and disabled back
+     * before this method returns.
+     *
+     * \param dLock the PauseKernelLock object that was used to disable
+     * preemption in the current context.
+     * \param absoluteTimeoutNs absolute time after which the wait times out
+     * \return TimedWaitResult::Timeout if the wait timed out
+     */
+    static TimedWaitResult PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
+            long long absoluteTimeNs);
+
+    /**
+     * This method stops the thread until wakeup() is called or the specified
+     * absolute time in nanoseconds is reached.
+     * Ths method is thus a combined IRQwait() and absoluteSleep(), and is
+     * useful to implement any kind of blocking primitive with timeout,
+     * including device drivers.
+     *
+     * NOTE: this method is meant to put the current thread in wait status in a
+     * piece of code where interrupts are disbled, interrupts will be enabled
+     * during the waiting period, and disabled back before this method returns.
+     *
+     * \param dLock the InterruptDisableLock object that was used to disable
+     * interrupts in the current context.
+     * \param absoluteTimeoutNs absolute time after which the wait times out
+     * \return TimedWaitResult::Timeout if the wait timed out
+     */
+    static TimedWaitResult IRQenableIrqAndTimedWait(InterruptDisableLock& dLock,
+            long long absoluteTimeNs)
+    {
+        (void)dLock; //Common implementation doesn't need it
+        return IRQenableIrqAndTimedWaitImpl(absoluteTimeNs);
+    }
+
+    /**
+     * This method stops the thread until wakeup() is called or the specified
+     * absolute time in nanoseconds is reached.
+     * Ths method is thus a combined IRQwait() and absoluteSleep(), and is
+     * useful to implement any kind of blocking primitive with timeout,
+     * including device drivers.
+     *
+     * NOTE: this method is meant to put the current thread in wait status in a
+     * piece of code where interrupts are disbled, interrupts will be enabled
+     * during the waiting period, and disabled back before this method returns.
+     *
+     * \param dLock the FastInterruptDisableLock object that was used to disable
+     * interrupts in the current context.
+     * \param absoluteTimeoutNs absolute time after which the wait times out
+     * \return TimedWaitResult::Timeout if the wait timed out
+     */
+    static TimedWaitResult IRQenableIrqAndTimedWait(FastInterruptDisableLock& dLock,
+            long long absoluteTimeNs)
+    {
+        (void)dLock; //Common implementation doesn't need it
+        return IRQenableIrqAndTimedWaitImpl(absoluteTimeNs);
+    }
 
     /**
      * Wakeup a thread.
@@ -574,28 +721,42 @@ public:
 
     /**
      * Wakeup a thread.
-     * <br>Can be called when the kernel is paused.
+     * <br>Can only be called when the kernel is paused.
      */
     void PKwakeup();
 
     /**
-     * Same as wakeup(), but is meant to be used only inside an IRQ or when
-     * interrupts are disabled.
+     * Wakeup a thread.
+     * <br>Can only be called inside an IRQ or when interrupts are disabled.
      */
     void IRQwakeup();
     
     /**
-     * Return a pointer to the Thread class of the current thread.
      * \return a pointer to the current thread.
      *
-     * Can be called when the kernel is paused.
      * Returns a valid pointer also if called before the kernel is started.
      */
-    static Thread *getCurrentThread();
+    static Thread *getCurrentThread()
+    {
+        //Safe to call without disabling IRQ, see implementation
+        return IRQgetCurrentThread();
+    }
 
     /**
-     * Same as get_current_thread(), but meant to be used insida an IRQ, when
-     * interrupts are disabled or when the kernel is paused.
+     * \return a pointer to the current thread.
+     *
+     * Returns a valid pointer also if called before the kernel is started.
+     */
+    static Thread *PKgetCurrentThread()
+    {
+        //Safe to call without disabling IRQ, see implementation
+        return IRQgetCurrentThread();
+    }
+
+    /**
+     * \return a pointer to the current thread.
+     *
+     * Returns a valid pointer also if called before the kernel is started.
      */
     static Thread *IRQgetCurrentThread();
 
@@ -775,25 +936,25 @@ private:
         void IRQsetWait(bool waiting);
 
         /**
-         * Set the wait_join flag of the thread.
-         * Can only be called with interrupts disabled or within an interrupt.
-         * \param waiting if true the flag will be set, otherwise cleared
-         */
-        void IRQsetJoinWait(bool waiting);
-
-        /**
-         * Set wait_cond flag of the thread.
-         * Can only be called with interrupts disabled or within an interrupt.
-         * \param waiting if true the flag will be set, otherwise cleared
-         */
-        void IRQsetCondWait(bool waiting);
-
-        /**
          * Set the sleep flag of the thread.
          * Can only be called with interrupts disabled or within an interrupt.
          * \param sleeping if true the flag will be set, otherwise cleared
          */
         void IRQsetSleep(bool sleeping);
+
+        /**
+         * Shorthand for IRQsetWait(false); IRQsetSleep(false);
+         * Used by IRQwakeThreads to wake both threads doing absoluteSleep()
+         * and timedWait()
+         */
+        void IRQexitSleepAndWait();
+
+        /**
+         * Set the wait_join flag of the thread.
+         * Can only be called with interrupts disabled or within an interrupt.
+         * \param waiting if true the flag will be set, otherwise cleared
+         */
+        void IRQsetJoinWait(bool waiting);
 
         /**
          * Set the deleted flag of the thread. This flag can't be cleared.
@@ -858,7 +1019,7 @@ private:
         /**
          * \return true if the thread is in the ready status
          */
-        bool isReady() const { return (flags & 0x67)==0; }
+        bool isReady() const { return (flags & 0x27)==0; }
 
         /**
          * \return true if the thread is detached
@@ -869,11 +1030,6 @@ private:
          * \return true if the thread is waiting a join
          */
         bool isWaitingJoin() const { return flags & WAIT_JOIN; }
-
-        /**
-         * \return true if the thread is waiting on a condition variable
-         */
-        bool isWaitingCond() const { return flags & WAIT_COND; }
         
         /**
          * \return true if the thread is running unprivileged inside a process.
@@ -903,14 +1059,11 @@ private:
 
         ///\internal Thread is waiting for a join
         static const unsigned int WAIT_JOIN=1<<5;
-
-        ///\internal Thread is waiting on a condition variable
-        static const unsigned int WAIT_COND=1<<6;
         
         ///\internal Thread is running in userspace
-        static const unsigned int USERSPACE=1<<7;
+        static const unsigned int USERSPACE=1<<6;
 
-        unsigned short flags;///<\internal flags are stored here
+        unsigned char flags;///<\internal flags are stored here
     };
     
     #ifdef WITH_PROCESSES
@@ -986,6 +1139,16 @@ private:
     static void threadLauncher(void *(*threadfunc)(void*), void *argv);
 
     /**
+     * Common implementation of all IRQenableIrqAndWait calls
+     */
+    static void IRQenableIrqAndWaitImpl();
+
+    /**
+     * Common implementation of all timedWait calls
+     */
+    static TimedWaitResult IRQenableIrqAndTimedWaitImpl(long long absoluteTimeNs);
+
+    /**
      * Allocates the idle thread and makes cur point to it
      * Can only be called before the kernel is started, is called exactly once
      * so that getCurrentThread() always returns a pointer to a valid thread or
@@ -1039,14 +1202,8 @@ private:
     #endif //WITH_CPU_TIME_COUNTER
     
     //friend functions
-    //Need access to status
-    friend void IRQaddToSleepingList(SleepData *);
-    //Need access to status
-    friend void IRQremoveFromSleepingList(SleepData *);
-    //Needs access to status
+    //Needs access to flags
     friend bool IRQwakeThreads(long long);
-    //Needs access to watermark, status, next
-    friend void *idleThread(void *);
     //Needs to create the idle thread
     friend void startKernel();
     //Needs threadLauncher
@@ -1054,24 +1211,12 @@ private:
             unsigned int *, void *);
     //Needs access to priority, savedPriority, mutexLocked and flags.
     friend class Mutex;
-    //Needs access to flags
-    friend class ConditionVariable;
-    //Needs access to flags
-    friend class Semaphore;
     //Needs access to flags, schedData
     friend class PriorityScheduler;
     //Needs access to flags, schedData
     friend class ControlScheduler;
     //Needs access to flags, schedData
     friend class EDFScheduler;
-    //Needs access to flags
-    friend int ::pthread_cond_wait(pthread_cond_t *, pthread_mutex_t *);
-    //Needs access to flags
-    friend int pthreadCondTimedWaitImpl(pthread_cond_t *, pthread_mutex_t *, long long);
-    //Needs access to flags
-    friend int ::pthread_cond_signal(pthread_cond_t *);
-    //Needs access to flags
-    friend int ::pthread_cond_broadcast(pthread_cond_t *);
     //Needs access to cppReent
     friend class CppReentrancyAccessor;
     #ifdef WITH_PROCESSES
