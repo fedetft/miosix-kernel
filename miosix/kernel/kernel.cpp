@@ -292,7 +292,7 @@ bool IRQwakeThreads(long long currentTime)
     {
         if(currentTime<(*it)->wakeupTime) break;
         //Wake both threads doing absoluteSleep() and timedWait()
-        (*it)->thread->flags.IRQexitSleepAndWait();
+        (*it)->thread->flags.IRQclearSleepAndWait();
         if(const_cast<Thread*>(runningThread)->getPriority()<(*it)->thread->getPriority())
             result=true;
         it=sleepingList.erase(it);
@@ -379,7 +379,7 @@ void Thread::nanoSleepUntil(long long absoluteTimeNs)
     //the timer isr will wake threads, modifying the sleepingList
     {
         FastInterruptDisableLock lock;
-        d.thread->flags.IRQsetSleep(true); //Sleeping thread: set sleep flag
+        d.thread->flags.IRQsetSleep(); //Sleeping thread: set sleep flag
         IRQaddToSleepingList(&d);
     }
     // NOTE: There is no need to synchronize the timer (calling IRQsetNextInterrupt)
@@ -889,13 +889,13 @@ void Thread::ThreadFlags::IRQsetWait(bool waiting)
     Scheduler::IRQwaitStatusHook(this->t);
 }
 
-void Thread::ThreadFlags::IRQsetSleep(bool sleeping)
+void Thread::ThreadFlags::IRQsetSleep()
 {
-    if(sleeping) flags |= SLEEP; else flags &= ~SLEEP;
+    flags |= SLEEP;
     Scheduler::IRQwaitStatusHook(this->t);
 }
 
-void Thread::ThreadFlags::IRQexitSleepAndWait()
+void Thread::ThreadFlags::IRQclearSleepAndWait()
 {
     flags &= ~(WAIT | SLEEP);
     Scheduler::IRQwaitStatusHook(this->t);

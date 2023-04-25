@@ -938,16 +938,14 @@ private:
         /**
          * Set the sleep flag of the thread.
          * Can only be called with interrupts disabled or within an interrupt.
-         * \param sleeping if true the flag will be set, otherwise cleared
          */
-        void IRQsetSleep(bool sleeping);
+        void IRQsetSleep();
 
         /**
-         * Shorthand for IRQsetWait(false); IRQsetSleep(false);
-         * Used by IRQwakeThreads to wake both threads doing absoluteSleep()
-         * and timedWait()
+         * Used by IRQwakeThreads to clear both the sleep and wait flags,
+         * waking threads doing absoluteSleep() as well as timedWait()
          */
-        void IRQexitSleepAndWait();
+        void IRQclearSleepAndWait();
 
         /**
          * Set the wait_join flag of the thread.
