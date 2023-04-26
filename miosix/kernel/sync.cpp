@@ -454,6 +454,7 @@ Thread *Semaphore::IRQsignalNoPreempt()
     }
     WaitToken *cd=fifo.front();
     Thread *t=cd->thread;
+    cd->thread=nullptr; //Thread pointer doubles as flag against spurious wakeup
     fifo.pop_front();
     t->IRQwakeup();
     return t;
@@ -500,8 +501,8 @@ void Semaphore::wait()
     //Otherwise put ourselves in queue and wait
     WaitToken listItem(Thread::IRQgetCurrentThread());
     fifo.push_back(&listItem); //Add entry to tail of list
-    Thread::IRQenableIrqAndWait(dLock);
-    fifo.removeFast(&listItem); //In case of spurious wakeup
+    while(listItem.thread) Thread::IRQenableIrqAndWait(dLock);
+    //Spurious wakeup handled by while loop, listItem already removed from fifo
 }
 
 TimedWaitResult Semaphore::timedWait(long long absTime)
@@ -517,9 +518,15 @@ TimedWaitResult Semaphore::timedWait(long long absTime)
     //Otherwise put ourselves in queue and wait
     WaitToken listItem(Thread::IRQgetCurrentThread());
     fifo.push_back(&listItem); //Add entry to tail of list
-    auto result=Thread::IRQenableIrqAndTimedWait(dLock,absTime);
-    fifo.removeFast(&listItem); //In case of timeout or spurious wakeup
-    return result;
+    while(listItem.thread)
+    {
+        if(Thread::IRQenableIrqAndTimedWait(dLock,absTime)==TimedWaitResult::Timeout)
+        {
+            fifo.removeFast(&listItem); //Remove fifo entry in case of timeout
+            return TimedWaitResult::Timeout;
+        }
+    }
+    return TimedWaitResult::NoTimeout;
 }
 
 } //namespace miosix
