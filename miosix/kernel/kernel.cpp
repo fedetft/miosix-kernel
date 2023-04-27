@@ -293,7 +293,7 @@ bool IRQwakeThreads(long long currentTime)
         if(currentTime<(*it)->wakeupTime) break;
         //Wake both threads doing absoluteSleep() and timedWait()
         (*it)->thread->flags.IRQclearSleepAndWait();
-        if(const_cast<Thread*>(runningThread)->getPriority()<(*it)->thread->getPriority())
+        if(const_cast<Thread*>(runningThread)->IRQgetPriority()<(*it)->thread->IRQgetPriority())
             result=true;
         it=sleepingList.erase(it);
     }
