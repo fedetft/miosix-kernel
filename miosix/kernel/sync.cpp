@@ -414,7 +414,8 @@ TimedWaitResult ConditionVariable::timedWait(pthread_mutex_t *m, long long absTi
 bool ConditionVariable::doSignal()
 {
     bool hppw=false;
-    FastInterruptDisableLock lock; //TODO: Can we pause kernel here?
+    // We could just pause the kernel but it's faster to disable interrupts
+    FastInterruptDisableLock dLock;
     if(condList.empty()) return false;
     Thread *t=condList.front()->thread;
     condList.pop_front();
@@ -427,13 +428,15 @@ bool ConditionVariable::doSignal()
 bool ConditionVariable::doBroadcast()
 {
     bool hppw=false;
-    FastInterruptDisableLock lock; //TODO: Can we pause kernel here?
+    // Disabling interrupts would be faster but pausing kernel is an opportunity
+    // to reduce interrupt latency
+    PauseKernelLock dLock;
     while(!condList.empty())
     {
         Thread *t=condList.front()->thread;
         condList.pop_front();
-        t->IRQwakeup();
-        if(t->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
+        t->PKwakeup();
+        if(t->getPriority()>Thread::PKgetCurrentThread()->getPriority())
             hppw=true;
     }
     return hppw;
