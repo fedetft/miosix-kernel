@@ -926,7 +926,7 @@ private:
         /**
          * Constructor, sets flags to default.
          */
-        ThreadFlags() : flags(0) {}
+        ThreadFlags(Thread *t) : t(t), flags(0) {}
 
         /**
          * Set the wait flag of the thread.
@@ -1034,7 +1034,9 @@ private:
          */
         bool isInUserspace() const { return flags & USERSPACE; }
 
-        Thread* t;
+        //Unwanted methods
+        ThreadFlags(const ThreadFlags& p) = delete;
+        ThreadFlags& operator = (const ThreadFlags& p) = delete;
 
     private:
         ///\internal Thread is in the wait status. A call to wakeup will change
@@ -1061,6 +1063,7 @@ private:
         ///\internal Thread is running in userspace
         static const unsigned int USERSPACE=1<<6;
 
+        Thread* t; ///<\internal pointer to the thread to which the flags belong
         unsigned char flags;///<\internal flags are stored here
     };
     

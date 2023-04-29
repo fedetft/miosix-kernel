@@ -717,7 +717,7 @@ void Thread::setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
 #endif //WITH_PROCESSES
 
 Thread::Thread(unsigned int *watermark, unsigned int stacksize,
-               bool defaultReent) : schedData(), flags(), savedPriority(0),
+               bool defaultReent) : schedData(), flags(this), savedPriority(0),
                mutexLocked(nullptr), mutexWaiting(nullptr), watermark(watermark),
                ctxsave(), stacksize(stacksize)
 {
@@ -782,7 +782,6 @@ Thread *Thread::doCreate(void*(*startfunc)(void*) , unsigned int stacksize,
             reinterpret_cast<unsigned int*>(thread),argv);
 
     if((options & JOINABLE)==0) thread->flags.IRQsetDetached();
-    thread->flags.t = thread;
     return thread;
 }
 
