@@ -202,6 +202,4 @@ static inline unsigned int IRQdoMutexUnlockAllDepthLevels(pthread_mutex_t *mutex
     return result;
 }
 
-int pthreadCondTimedWaitImpl(pthread_cond_t *cond, pthread_mutex_t *mutex, long long absTime);
-
 } //namespace miosix
