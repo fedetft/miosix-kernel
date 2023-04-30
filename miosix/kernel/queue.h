@@ -89,39 +89,11 @@ public:
     void waitUntilNotFull();
 
     /**
-     * Get an element from the queue. If the queue is empty, then sleep until
-     * an element becomes available.
-     * \param elem an element from the queue
-     */
-    void get(T& elem);
-
-    /**
      * Put an element to the queue. If the queue is full, then sleep until a
      * place becomes available.
      * \param elem element to add to the queue
      */
     void put(const T& elem);
-
-    /**
-     * Get an element from the queue, only if the queue is not empty.<br>
-     * Can ONLY be used inside an IRQ, or when interrupts are disabled.
-     * \param elem an element from the queue. The element is valid only if the
-     * return value is true
-     * \return true if the queue was not empty
-     */
-    bool IRQget(T& elem);
-
-    /**
-     * Get an element from the queue, only if the queue is not empty.<br>
-     * Can ONLY be used inside an IRQ, or when interrupts are disabled.
-     * \param elem an element from the queue. The element is valid only if the
-     * return value is true
-     * \param hppw is not modified if no thread is woken or if the woken thread
-     * has a lower or equal priority than the currently running thread, else is
-     * set to true
-     * \return true if the queue was not empty
-     */
-    bool IRQget(T& elem, bool& hppw);
 
     /**
      * Put an element to the queue, only if th queue is not full.<br>
@@ -143,6 +115,34 @@ public:
      * \return true if the queue was not full.
      */
     bool IRQput(const T& elem, bool& hppw);
+
+    /**
+     * Get an element from the queue. If the queue is empty, then sleep until
+     * an element becomes available.
+     * \param elem an element from the queue
+     */
+    void get(T& elem);
+
+    /**
+     * Get an element from the queue, only if the queue is not empty.<br>
+     * Can ONLY be used inside an IRQ, or when interrupts are disabled.
+     * \param elem an element from the queue. The element is valid only if the
+     * return value is true
+     * \return true if the queue was not empty
+     */
+    bool IRQget(T& elem);
+
+    /**
+     * Get an element from the queue, only if the queue is not empty.<br>
+     * Can ONLY be used inside an IRQ, or when interrupts are disabled.
+     * \param elem an element from the queue. The element is valid only if the
+     * return value is true
+     * \param hppw is not modified if no thread is woken or if the woken thread
+     * has a lower or equal priority than the currently running thread, else is
+     * set to true
+     * \return true if the queue was not empty
+     */
+    bool IRQget(T& elem, bool& hppw);
 
     /**
      * Clear all items in the queue.<br>
@@ -215,22 +215,6 @@ void Queue<T,len>::waitUntilNotFull()
 }
 
 template <typename T, unsigned int len>
-void Queue<T,len>::get(T& elem)
-{
-    FastInterruptDisableLock dLock;
-    IRQwakeWaitingThread();
-    while(isEmpty())
-    {
-        waiting=Thread::IRQgetCurrentThread();
-        Thread::IRQenableIrqAndWait(dLock);
-        IRQwakeWaitingThread();
-    }
-    numElem--;
-    elem=buffer[getPos];
-    if(++getPos==len) getPos=0;
-}
-
-template <typename T, unsigned int len>
 void Queue<T,len>::put(const T& elem)
 {
     FastInterruptDisableLock dLock;
@@ -244,30 +228,6 @@ void Queue<T,len>::put(const T& elem)
     numElem++;
     buffer[putPos]=elem;
     if(++putPos==len) putPos=0;
-}
-
-template <typename T, unsigned int len>
-bool Queue<T,len>::IRQget(T& elem)
-{
-    IRQwakeWaitingThread();
-    if(isEmpty()) return false;
-    numElem--;
-    elem=buffer[getPos];
-    if(++getPos==len) getPos=0;
-    return true;
-}
-
-template <typename T, unsigned int len>
-bool Queue<T,len>::IRQget(T& elem, bool& hppw)
-{
-    if(waiting && (Thread::IRQgetCurrentThread()->IRQgetPriority()) < 
-            waiting->IRQgetPriority()) hppw=true;
-    IRQwakeWaitingThread();
-    if(isEmpty()) return false;
-    numElem--;
-    elem=buffer[getPos];
-    if(++getPos==len) getPos=0;
-    return true;
 }
 
 template <typename T, unsigned int len>
@@ -291,6 +251,46 @@ bool Queue<T,len>::IRQput(const T& elem, bool& hppw)
     numElem++;
     buffer[putPos]=elem;
     if(++putPos==len) putPos=0;
+    return true;
+}
+
+template <typename T, unsigned int len>
+void Queue<T,len>::get(T& elem)
+{
+    FastInterruptDisableLock dLock;
+    IRQwakeWaitingThread();
+    while(isEmpty())
+    {
+        waiting=Thread::IRQgetCurrentThread();
+        Thread::IRQenableIrqAndWait(dLock);
+        IRQwakeWaitingThread();
+    }
+    numElem--;
+    elem=buffer[getPos];
+    if(++getPos==len) getPos=0;
+}
+
+template <typename T, unsigned int len>
+bool Queue<T,len>::IRQget(T& elem)
+{
+    IRQwakeWaitingThread();
+    if(isEmpty()) return false;
+    numElem--;
+    elem=buffer[getPos];
+    if(++getPos==len) getPos=0;
+    return true;
+}
+
+template <typename T, unsigned int len>
+bool Queue<T,len>::IRQget(T& elem, bool& hppw)
+{
+    if(waiting && (Thread::IRQgetCurrentThread()->IRQgetPriority()) < 
+            waiting->IRQgetPriority()) hppw=true;
+    IRQwakeWaitingThread();
+    if(isEmpty()) return false;
+    numElem--;
+    elem=buffer[getPos];
+    if(++getPos==len) getPos=0;
     return true;
 }
 
