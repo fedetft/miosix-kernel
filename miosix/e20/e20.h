@@ -99,16 +99,17 @@ public:
         return events.empty();
     }
 
-private:
-    EventQueue(const EventQueue&);
-    EventQueue& operator= (const EventQueue&);
+    EventQueue(const EventQueue&) = delete;
+    EventQueue& operator= (const EventQueue&) = delete;
 
+private:
     std::list<std::function<void ()>> events; ///< Event queue
     mutable FastMutex m; ///< Mutex for synchronisation
     ConditionVariable cv; ///< Condition variable for synchronisation
 };
 
 /**
+ * \internal
  * This class is to extract from FixedEventQueue code that
  * does not depend on the NumSlots template parameters.
  */
@@ -427,10 +428,10 @@ public:
         return this->sizeImpl()==0;
     }
 
-private:
-    FixedEventQueue(const FixedEventQueue&);
-    FixedEventQueue& operator= (const FixedEventQueue&);
+    FixedEventQueue(const FixedEventQueue&) = delete;
+    FixedEventQueue& operator= (const FixedEventQueue&) = delete;
 
+private:
     Callback<SlotSize> events[NumSlots]; ///< Fixed size queue of events
 };
 
