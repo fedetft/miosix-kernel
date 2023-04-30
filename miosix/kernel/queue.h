@@ -192,12 +192,10 @@ template <typename T, unsigned int len>
 void Queue<T,len>::waitUntilNotEmpty()
 {
     FastInterruptDisableLock dLock;
-    IRQwakeWaitingThread();
     while(isEmpty())
     {
         waiting=Thread::IRQgetCurrentThread();
         Thread::IRQenableIrqAndWait(dLock);
-        IRQwakeWaitingThread();
     }
 }
 
@@ -205,12 +203,10 @@ template <typename T, unsigned int len>
 void Queue<T,len>::waitUntilNotFull()
 {
     FastInterruptDisableLock dLock;
-    IRQwakeWaitingThread();
     while(isFull())
     {
         waiting=Thread::IRQgetCurrentThread();
         Thread::IRQenableIrqAndWait(dLock);
-        IRQwakeWaitingThread();
     }
 }
 
