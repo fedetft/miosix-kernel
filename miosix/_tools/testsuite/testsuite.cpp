@@ -1688,9 +1688,9 @@ Queue::put()
 Queue::get()
 Queue::reset()
 Queue::IRQput()
-Queue::waitUntilNotFull()
+Queue::IRQputBlocking()
 Queue::IRQget()
-Queue::waitUntilNotEmpty()
+Queue::IRQgetBlocking()
 FIXME: The overloaded versions of IRQput and IRQget are not tested
 */
 
@@ -1772,52 +1772,41 @@ static void test_8()
             read++;
         }
     }
-    //Test waitUntilNotFull and IRQput
+    //Test IRQputBlocking
     t8_q1.reset();
     t8_q2.reset();
     write='A';
     read='A';
-    disableInterrupts();//
-    for(j=0;j<8;j++)
     {
-        if(t8_q1.isFull())
+        FastInterruptDisableLock dLock;
+        for(j=0;j<8;j++)
         {
-            enableInterrupts();//
-            t8_q1.waitUntilNotFull();
-            disableInterrupts();//
+            t8_q1.IRQputBlocking(write,dLock);
+            write++;//Advance to next char, to check order
         }
-        if(t8_q1.isFull()) fail("waitUntilNotFull()");
-        if(t8_q1.IRQput(write)==false) fail("IRQput (1)");
-        write++;//Advance to next char, to check order
     }
-    enableInterrupts();//
     for(j=0;j<8;j++)
     {
         char c;
         t8_q2.get(c);
-        if(c!=read) fail("IRQput (2)");
+        if(c!=read) fail("IRQputBlocking");
         read++;
     }
-    //Test waitUntilNotEmpty and IRQget
+    //Test IRQgetBlocking
     t8_q1.reset();
     t8_q2.reset();
     write='A';
     read='A';
     for(j=0;j<8;j++)
     {
-        disableInterrupts();//
+        FastInterruptDisableLock dLock;
         t8_q1.IRQput(write);
         write++;
         if(t8_q2.isEmpty()==false) fail("Unexpected");
-        enableInterrupts();//
-        t8_q2.waitUntilNotEmpty();
-        disableInterrupts();//
-        if(t8_q2.isEmpty()==true) fail("waitUntilNotEmpty()");
         char c='\0';
-        if(t8_q2.IRQget(c)==false) fail("IRQget (1)");
-        if(c!=read) fail("IRQget (2)");
+        t8_q2.IRQgetBlocking(c,dLock);
+        if(c!=read) fail("IRQgetBlocking");
         read++;
-        enableInterrupts();//
     }
     p->terminate();
     t8_q1.put('0');

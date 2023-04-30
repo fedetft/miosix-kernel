@@ -46,6 +46,11 @@ namespace miosix {
  * Dynamically creating a queue with new or on the stack must be done with care,
  * to avoid deleting a queue with a waiting thread, and to avoid situations
  * where a thread tries to access a deleted queue.
+ *
+ * \warning the type T most not have a copy constructor or operator= that
+ * allocate memory, as allocating memory in FastInterruptDisableLock context
+ * and within interrupt handlers is not possible.
+ *
  * \tparam T the type of elements in the queue
  * \tparam len the length of the Queue. Value 0 is forbidden
  */
@@ -77,35 +82,36 @@ public:
      * \return the maximum number of elements the queue can hold
      */
     unsigned int capacity() const { return len; }
-	
-    /**
-     * If a queue is empty, waits until the queue is not empty.
-     */
-    void waitUntilNotEmpty();
-	
-    /**
-     * If a queue is full, waits until the queue is not full
-     */
-    void waitUntilNotFull();
 
     /**
-     * Put an element to the queue. If the queue is full, then sleep until a
+     * Put an element to the queue. If the queue is full, then wait until a
      * place becomes available.
      * \param elem element to add to the queue
      */
     void put(const T& elem);
 
     /**
-     * Put an element to the queue, only if th queue is not full.<br>
+     * Put an element to the queue. If the queue is full, then use the dLock
+     * parameter to enable interrupts and wait until a place becomes available.
+     * Being a blocking call, it cannot be called inside an IRQ, it can only be
+     * called when interrupts are disabled.
+     * \param elem element to add to the queue
+     * \param dLock the FastInterruptDisableLock object that was used to disable
+     * interrupts in the current context.
+     */
+    void IRQputBlocking(const T& elem, FastInterruptDisableLock& dLock);
+
+    /**
+     * Put an element to the queue, only if the queue is not full.<br>
      * Can ONLY be used inside an IRQ, or when interrupts are disabled.
      * \param elem element to add. The element has been added only if the
      * return value is true
      * \return true if the queue was not full.
      */
-    bool IRQput(const T& elem);
+    bool IRQput(const T& elem) { return IRQput(elem,nullptr); }
 
     /**
-     * Put an element to the queue, only if th queue is not full.<br>
+     * Put an element to the queue, only if the queue is not full.<br>
      * Can ONLY be used inside an IRQ, or when interrupts are disabled.
      * \param elem element to add. The element has been added only if the
      * return value is true
@@ -114,7 +120,7 @@ public:
      * set to true
      * \return true if the queue was not full.
      */
-    bool IRQput(const T& elem, bool& hppw);
+    bool IRQput(const T& elem, bool& hppw) { return IRQput(elem,&hppw); }
 
     /**
      * Get an element from the queue. If the queue is empty, then sleep until
@@ -124,13 +130,24 @@ public:
     void get(T& elem);
 
     /**
+     * Get an element from the queue. If the queue is empty, then use the dLock
+     * parameter to enable interrupts and wait until a place becomes available.
+     * Being a blocking call, it cannot be called inside an IRQ, it can only be
+     * called when interrupts are disabled.
+     * \param elem an element from the queue
+     * \param dLock the FastInterruptDisableLock object that was used to disable
+     * interrupts in the current context.
+     */
+    void IRQgetBlocking(T& elem, FastInterruptDisableLock& dLock);
+
+    /**
      * Get an element from the queue, only if the queue is not empty.<br>
      * Can ONLY be used inside an IRQ, or when interrupts are disabled.
      * \param elem an element from the queue. The element is valid only if the
      * return value is true
      * \return true if the queue was not empty
      */
-    bool IRQget(T& elem);
+    bool IRQget(T& elem) { return IRQget(elem,nullptr); }
 
     /**
      * Get an element from the queue, only if the queue is not empty.<br>
@@ -142,7 +159,7 @@ public:
      * set to true
      * \return true if the queue was not empty
      */
-    bool IRQget(T& elem, bool& hppw);
+    bool IRQget(T& elem, bool& hppw) { return IRQget(elem,&hppw); }
 
     /**
      * Clear all items in the queue.<br>
@@ -170,6 +187,28 @@ public:
 
 private:
     /**
+     * Put an element to the queue, only if the queue is not full.
+     * \param elem element to add. The element has been added only if the
+     * return value is true
+     * \param hppw is not modified if nullptr or no thread is woken or if the
+     * woken thread has a lower or equal priority than the currently running
+     * thread, else is set to true
+     * \return true if the queue was not full
+     */
+    bool IRQput(const T& elem, bool *hppw);
+
+    /**
+     * Get an element from the queue, only if the queue is not empty.
+     * \param elem an element from the queue. The element is valid only if the
+     * return value is true
+     * \param hppw is not modified if nullptr or no thread is woken or if the
+     * woken thread has a lower or equal priority than the currently running
+     * thread, else is set to true
+     * \return true if the queue was not empty
+     */
+    bool IRQget(T& elem, bool *hppw);
+
+    /**
      * Wake an eventual waiting thread.
      * Must be called when interrupts are disabled
      */
@@ -189,28 +228,6 @@ private:
 };
 
 template <typename T, unsigned int len>
-void Queue<T,len>::waitUntilNotEmpty()
-{
-    FastInterruptDisableLock dLock;
-    while(isEmpty())
-    {
-        waiting=Thread::IRQgetCurrentThread();
-        Thread::IRQenableIrqAndWait(dLock);
-    }
-}
-
-template <typename T, unsigned int len>
-void Queue<T,len>::waitUntilNotFull()
-{
-    FastInterruptDisableLock dLock;
-    while(isFull())
-    {
-        waiting=Thread::IRQgetCurrentThread();
-        Thread::IRQenableIrqAndWait(dLock);
-    }
-}
-
-template <typename T, unsigned int len>
 void Queue<T,len>::put(const T& elem)
 {
     FastInterruptDisableLock dLock;
@@ -222,27 +239,13 @@ void Queue<T,len>::put(const T& elem)
 }
 
 template <typename T, unsigned int len>
-bool Queue<T,len>::IRQput(const T& elem)
+void Queue<T,len>::IRQputBlocking(const T& elem, FastInterruptDisableLock& dLock)
 {
-    IRQwakeWaitingThread();
-    if(isFull()) return false;
-    numElem++;
-    buffer[putPos]=elem;
-    if(++putPos==len) putPos=0;
-    return true;
-}
-
-template <typename T, unsigned int len>
-bool Queue<T,len>::IRQput(const T& elem, bool& hppw)
-{
-    if(waiting && (Thread::IRQgetCurrentThread()->IRQgetPriority() <
-            waiting->IRQgetPriority())) hppw=true;
-    IRQwakeWaitingThread();
-    if(isFull()) return false;
-    numElem++;
-    buffer[putPos]=elem;
-    if(++putPos==len) putPos=0;
-    return true;
+    while(IRQput(elem)==false)
+    {
+        waiting=Thread::IRQgetCurrentThread();
+        Thread::IRQenableIrqAndWait(dLock);
+    }
 }
 
 template <typename T, unsigned int len>
@@ -257,21 +260,33 @@ void Queue<T,len>::get(T& elem)
 }
 
 template <typename T, unsigned int len>
-bool Queue<T,len>::IRQget(T& elem)
+void Queue<T,len>::IRQgetBlocking(T& elem, FastInterruptDisableLock& dLock)
 {
+    while(IRQget(elem)==false)
+    {
+        waiting=Thread::IRQgetCurrentThread();
+        Thread::IRQenableIrqAndWait(dLock);
+    }
+}
+
+template <typename T, unsigned int len>
+bool Queue<T,len>::IRQput(const T& elem, bool *hppw)
+{
+    if(hppw && waiting && (Thread::IRQgetCurrentThread()->IRQgetPriority() <
+            waiting->IRQgetPriority())) *hppw=true;
     IRQwakeWaitingThread();
-    if(isEmpty()) return false;
-    numElem--;
-    elem=buffer[getPos];
-    if(++getPos==len) getPos=0;
+    if(isFull()) return false;
+    numElem++;
+    buffer[putPos]=elem;
+    if(++putPos==len) putPos=0;
     return true;
 }
 
 template <typename T, unsigned int len>
-bool Queue<T,len>::IRQget(T& elem, bool& hppw)
+bool Queue<T,len>::IRQget(T& elem, bool *hppw)
 {
-    if(waiting && (Thread::IRQgetCurrentThread()->IRQgetPriority()) < 
-            waiting->IRQgetPriority()) hppw=true;
+    if(hppw && waiting && (Thread::IRQgetCurrentThread()->IRQgetPriority()) <
+            waiting->IRQgetPriority()) *hppw=true;
     IRQwakeWaitingThread();
     if(isEmpty()) return false;
     numElem--;
