@@ -61,8 +61,8 @@ void Mutex::PKlock(PauseKernelLock& dLock)
     }
 
     //This check is very important. Without this attempting to lock the same
-    //mutex twice won't cause a deadlock because the Thread::IRQwait() is
-    //enclosed in a while(owner!=p) which is immeditely false.
+    //mutex twice won't cause a deadlock because the wait is enclosed in a
+    //while(owner!=p) which is immeditely false.
     if(owner==p)
     {
         if(recursiveDepth>=0)
@@ -80,7 +80,7 @@ void Mutex::PKlock(PauseKernelLock& dLock)
     //Handle priority inheritance
     if(p->mutexWaiting!=nullptr) errorHandler(UNEXPECTED);
     p->mutexWaiting=this;
-    if (owner->getPriority().mutexLessOp(p->getPriority()))
+    if(owner->getPriority().mutexLessOp(p->getPriority()))
     {
         Thread *walk=owner;
         for(;;)
@@ -93,24 +93,8 @@ void Mutex::PKlock(PauseKernelLock& dLock)
         }
     }
 
-    //The while is necessary because some other thread might call wakeup()
-    //on this thread. So the thread can wakeup also for other reasons not
-    //related to the mutex becoming free
-    while(owner!=p)
-    {
-        //Wait can only be called with kernel started, while IRQwait can
-        //only be called with interupts disabled, so that's why interrupts
-        //are disabled
-        {
-            FastInterruptDisableLock l;
-            Thread::IRQwait();//Return immediately
-        }
-        {
-            RestartKernelLock eLock(dLock);
-            //Now the IRQwait becomes effective
-            Thread::yield();
-        }
-    }
+    //The while is necessary to protect against spurious wakeups
+    while(owner!=p) Thread::PKrestartKernelAndWait(dLock);
 }
 
 void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
@@ -130,8 +114,8 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
     }
 
     //This check is very important. Without this attempting to lock the same
-    //mutex twice won't cause a deadlock because the Thread::IRQwait() is
-    //enclosed in a while(owner!=p) which is immeditely false.
+    //mutex twice won't cause a deadlock because the wait is enclosed in a
+    //while(owner!=p) which is immeditely false.
     if(owner==p)
     {
         if(recursiveDepth>=0)
@@ -149,7 +133,7 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
     //Handle priority inheritance
     if(p->mutexWaiting!=nullptr) errorHandler(UNEXPECTED);
     p->mutexWaiting=this;
-    if (owner->getPriority().mutexLessOp(p->getPriority()))
+    if(owner->getPriority().mutexLessOp(p->getPriority()))
     {
         Thread *walk=owner;
         for(;;)
@@ -162,24 +146,8 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
         }
     }
 
-    //The while is necessary because some other thread might call wakeup()
-    //on this thread. So the thread can wakeup also for other reasons not
-    //related to the mutex becoming free
-    while(owner!=p)
-    {
-        //Wait can only be called with kernel started, while IRQwait can
-        //only be called with interupts disabled, so that's why interrupts
-        //are disabled
-        {
-            FastInterruptDisableLock l;
-            Thread::IRQwait();//Return immediately
-        }
-        {
-            RestartKernelLock eLock(dLock);
-            //Now the IRQwait becomes effective
-            Thread::yield();
-        }
-    }
+    //The while is necessary to protect against spurious wakeups
+    while(owner!=p) Thread::PKrestartKernelAndWait(dLock);
     if(recursiveDepth>=0) recursiveDepth=depth;
 }
 

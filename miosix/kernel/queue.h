@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2014 by Terraneo Federico                               *
+ *   Copyright (C) 2014 - 2023 by Terraneo Federico                        *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef QUEUE_H
-#define	QUEUE_H
+#pragma once
 
 #include "kernel.h"
 #include "error.h"
@@ -57,7 +56,7 @@ public:
     /**
      * Constructor, create a new empty queue.
      */
-    Queue() : waiting(0), numElem(0), putPos(0), getPos(0) {}
+    Queue() : waiting(nullptr), numElem(0), putPos(0), getPos(0) {}
 
     /**
      * \return true if the queue is empty
@@ -178,7 +177,7 @@ private:
     {
         if(!waiting) return;
         waiting->IRQwakeup();//Wakeup eventual waiting thread
-        waiting=0;
+        waiting=nullptr;
     }
 
     //Queue data
@@ -197,11 +196,7 @@ void Queue<T,len>::waitUntilNotEmpty()
     while(isEmpty())
     {
         waiting=Thread::IRQgetCurrentThread();
-        Thread::IRQwait();
-        {
-            FastInterruptEnableLock eLock(dLock);
-            Thread::yield();
-        }
+        Thread::IRQenableIrqAndWait(dLock);
         IRQwakeWaitingThread();
     }
 }
@@ -214,11 +209,7 @@ void Queue<T,len>::waitUntilNotFull()
     while(isFull())
     {
         waiting=Thread::IRQgetCurrentThread();
-        Thread::IRQwait();
-        {
-            FastInterruptEnableLock eLock(dLock);
-            Thread::yield();
-        }
+        Thread::IRQenableIrqAndWait(dLock);
         IRQwakeWaitingThread();
     }
 }
@@ -231,11 +222,7 @@ void Queue<T,len>::get(T& elem)
     while(isEmpty())
     {
         waiting=Thread::IRQgetCurrentThread();
-        Thread::IRQwait();
-        {
-            FastInterruptEnableLock eLock(dLock);
-            Thread::yield();
-        }
+        Thread::IRQenableIrqAndWait(dLock);
         IRQwakeWaitingThread();
     }
     numElem--;
@@ -251,11 +238,7 @@ void Queue<T,len>::put(const T& elem)
     while(isFull())
     {
         waiting=Thread::IRQgetCurrentThread();
-        Thread::IRQwait();
-        {
-            FastInterruptEnableLock eLock(dLock);
-            Thread::yield();
-        }
+        Thread::IRQenableIrqAndWait(dLock);
         IRQwakeWaitingThread();
     }
     numElem++;
@@ -550,5 +533,3 @@ template<typename T, unsigned int size> class BufferQueue<T,size,1> {};
  */
 
 } //namespace miosix
-
-#endif //QUEUE_H

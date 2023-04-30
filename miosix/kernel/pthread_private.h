@@ -54,8 +54,8 @@ static inline void IRQdoMutexLock(pthread_mutex_t *mutex,
     }
 
     //This check is very important. Without this attempting to lock the same
-    //mutex twice won't cause a deadlock because the Thread::IRQwait() is
-    //enclosed in a while(owner!=p) which is immeditely false.
+    //mutex twice won't cause a deadlock because the wait is enclosed in a
+    //while(owner!=p) which is immeditely false.
     if(mutex->owner==p)
     {
         if(mutex->recursive>=0)
@@ -77,17 +77,8 @@ static inline void IRQdoMutexLock(pthread_mutex_t *mutex,
         mutex->last=&waiting;
     }
 
-    //The while is necessary because some other thread might call wakeup()
-    //on this thread. So the thread can wakeup also for other reasons not
-    //related to the mutex becoming free
-    while(mutex->owner!=p)
-    {
-        Thread::IRQwait();//Returns immediately
-        {
-            FastInterruptEnableLock eLock(d);
-            Thread::yield(); //Now the IRQwait becomes effective
-        }
-    }
+    //The while is necessary to protect against spurious wakeups
+    while(mutex->owner!=p) Thread::IRQenableIrqAndWait(d);
 }
 
 /**
@@ -113,8 +104,8 @@ static inline void IRQdoMutexLockToDepth(pthread_mutex_t *mutex,
     }
 
     //This check is very important. Without this attempting to lock the same
-    //mutex twice won't cause a deadlock because the Thread::IRQwait() is
-    //enclosed in a while(owner!=p) which is immeditely false.
+    //mutex twice won't cause a deadlock because the wait is enclosed in a
+    //while(owner!=p) which is immeditely false.
     if(mutex->owner==p)
     {
         if(mutex->recursive>=0)
@@ -136,17 +127,8 @@ static inline void IRQdoMutexLockToDepth(pthread_mutex_t *mutex,
         mutex->last=&waiting;
     }
 
-    //The while is necessary because some other thread might call wakeup()
-    //on this thread. So the thread can wakeup also for other reasons not
-    //related to the mutex becoming free
-    while(mutex->owner!=p)
-    {
-        Thread::IRQwait();//Returns immediately
-        {
-            FastInterruptEnableLock eLock(d);
-            Thread::yield(); //Now the IRQwait becomes effective
-        }
-    }
+    //The while is necessary to protect against spurious wakeups
+    while(mutex->owner!=p) Thread::IRQenableIrqAndWait(d);
     if(mutex->recursive>=0) mutex->recursive=depth;
 }
 
