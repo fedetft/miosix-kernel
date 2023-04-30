@@ -218,16 +218,11 @@ template <typename T, unsigned int len>
 void Queue<T,len>::put(const T& elem)
 {
     FastInterruptDisableLock dLock;
-    IRQwakeWaitingThread();
-    while(isFull())
+    while(IRQput(elem)==false)
     {
         waiting=Thread::IRQgetCurrentThread();
         Thread::IRQenableIrqAndWait(dLock);
-        IRQwakeWaitingThread();
     }
-    numElem++;
-    buffer[putPos]=elem;
-    if(++putPos==len) putPos=0;
 }
 
 template <typename T, unsigned int len>
@@ -258,16 +253,11 @@ template <typename T, unsigned int len>
 void Queue<T,len>::get(T& elem)
 {
     FastInterruptDisableLock dLock;
-    IRQwakeWaitingThread();
-    while(isEmpty())
+    while(IRQget(elem)==false)
     {
         waiting=Thread::IRQgetCurrentThread();
         Thread::IRQenableIrqAndWait(dLock);
-        IRQwakeWaitingThread();
     }
-    numElem--;
-    elem=buffer[getPos];
-    if(++getPos==len) getPos=0;
 }
 
 template <typename T, unsigned int len>
