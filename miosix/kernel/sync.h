@@ -115,10 +115,10 @@ public:
         pthread_mutex_destroy(&impl);
     }
 
-private:
-    FastMutex(const FastMutex&);
-    FastMutex& operator= (const FastMutex&);
+    FastMutex(const FastMutex&) = delete;
+    FastMutex& operator= (const FastMutex&) = delete;
 
+private:
     pthread_mutex_t impl;
 };
 
@@ -195,13 +195,12 @@ public:
         }
         #endif //SCHED_TYPE_EDF
     }
-	
-private:
-    //Unwanted methods
-    Mutex(const Mutex& s);///< No public copy constructor
-    Mutex& operator = (const Mutex& s);///< No publc operator =
-    //Uses default destructor
 
+    //Unwanted methods
+    Mutex(const Mutex& s) = delete;
+    Mutex& operator= (const Mutex& s) = delete;
+
+private:
     /**
      * Lock mutex, can be called only with kernel paused one level deep
      * (pauseKernel calls can be nested). If another thread holds the mutex,
@@ -306,11 +305,11 @@ public:
         return mutex;
     }
 
-private:
     //Unwanted methods
-    Lock(const Lock& l);///< No public copy constructor
-    Lock& operator = (const Lock& l);///< No publc operator =
+    Lock(const Lock& l) = delete;
+    Lock& operator= (const Lock& l) = delete;
 
+private:
     T& mutex;///< Reference to locked mutex
 };
 
@@ -377,10 +376,11 @@ public:
         return mutex;
     }
 
-private:
     //Unwanted methods
-    Unlock(const Unlock& l);
-    Unlock& operator= (const Unlock& l);
+    Unlock(const Unlock& l) = delete;
+    Unlock& operator= (const Unlock& l) = delete;
+
+private:
 
     T& mutex;///< Reference to locked mutex
 };

@@ -163,12 +163,12 @@ public:
         IRQwakeWaitingThread();
         putPos=getPos=numElem=0;
     }
-	
-private:
-    //Unwanted methods
-    Queue(const Queue& s);///< No public copy constructor
-    Queue& operator = (const Queue& s);///< No publc operator =
 
+    //Unwanted methods
+    Queue(const Queue& s) = delete;
+    Queue& operator= (const Queue& s) = delete;
+
+private:
     /**
      * Wake an eventual waiting thread.
      * Must be called when interrupts are disabled
@@ -359,11 +359,12 @@ public:
      * Destructor
      */
     ~DynUnsyncQueue() { delete[] data; }
-    
+
+    //Unwanted methods
+    DynUnsyncQueue(const DynUnsyncQueue&) = delete;
+    DynUnsyncQueue& operator=(const DynUnsyncQueue&) = delete;
+
 private:
-    DynUnsyncQueue(const DynUnsyncQueue&);
-    DynUnsyncQueue& operator=(const DynUnsyncQueue&);
-    
     T *data;
     unsigned int putPos,getPos;
     volatile unsigned int queueSize;
@@ -510,11 +511,11 @@ public:
         put=get=cnt=0;
     }
 
-private:
     //Unwanted methods
-    BufferQueue(const BufferQueue&);
-    BufferQueue& operator=(const BufferQueue&);
+    BufferQueue(const BufferQueue&) = delete;
+    BufferQueue& operator=(const BufferQueue&) = delete;
 
+private:
     T buf[numbuf][size]; // The buffers
     unsigned int bufSize[numbuf]; //To handle partially empty buffers
     unsigned char put; //Put pointer
