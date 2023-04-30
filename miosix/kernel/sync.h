@@ -391,12 +391,12 @@ private:
  * variable or on a semaphore. It is used by the kernel, and should not be used
  * by end users.
  */
-class WaitToken : public IntrusiveListItem
-{
-public:
-    WaitToken(Thread *thread) : thread(thread) {}
-    Thread *thread; ///<\internal Thread that is waiting
-};
+// class WaitToken : public IntrusiveListItem
+// {
+// public:
+//     WaitToken(Thread *thread) : thread(thread) {}
+//     Thread *thread; ///<\internal Thread that is waiting
+// };
 
 /**
  * A condition variable class for thread synchronization, available from
@@ -521,7 +521,21 @@ public:
         if(doBroadcast()) Thread::yield();
     }
 
+    //Unwanted methods
+    ConditionVariable(const ConditionVariable&) = delete;
+    ConditionVariable& operator= (const ConditionVariable&) = delete;
+
 private:
+    /**
+     * \internal Element of a thread waiting list
+     */
+    class WaitToken : public IntrusiveListItem
+    {
+    public:
+        WaitToken(Thread *thread) : thread(thread) {}
+        Thread *thread; ///<\internal Waiting thread
+    };
+
     /**
      * Wakeup one waiting thread.
      * Currently implemented policy is fifo.
@@ -535,10 +549,6 @@ private:
      * than the current one
      */
     bool doBroadcast();
-
-    //Unwanted methods
-    ConditionVariable(const ConditionVariable&) = delete;
-    ConditionVariable& operator= (const ConditionVariable&) = delete;
 
     friend int ::pthread_cond_destroy(pthread_cond_t *);   //Needs condList
     friend int ::pthread_cond_signal(pthread_cond_t *);    //Needs doSignal()
@@ -636,10 +646,20 @@ public:
      */
     unsigned int getCount() { return count; }
 
-private:
     // Disallow copies
     Semaphore(const Semaphore&) = delete;
     Semaphore& operator= (const Semaphore&) = delete;
+
+private:
+    /**
+     * \internal Element of a thread waiting list
+     */
+    class WaitToken : public IntrusiveListItem
+    {
+    public:
+        WaitToken(Thread *thread) : thread(thread) {}
+        Thread *thread; ///<\internal Waiting thread and spurious wakeup token
+    };
 
     /**
      * \internal
