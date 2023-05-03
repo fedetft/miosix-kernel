@@ -386,19 +386,6 @@ private:
 };
 
 /**
- * \internal
- * This class is used to make a list of threads that are waiting on a condition
- * variable or on a semaphore. It is used by the kernel, and should not be used
- * by end users.
- */
-// class WaitToken : public IntrusiveListItem
-// {
-// public:
-//     WaitToken(Thread *thread) : thread(thread) {}
-//     Thread *thread; ///<\internal Thread that is waiting
-// };
-
-/**
  * A condition variable class for thread synchronization, available from
  * Miosix 1.53.<br>
  * One or more threads can wait on the condition variable, and the signal()
