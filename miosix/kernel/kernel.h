@@ -772,12 +772,6 @@ public:
     static bool exists(Thread *p);
 
     /**
-     * Same as exists() but is meant to be called only inside an IRQ or when
-     * interrupts are disabled.
-     */
-    static bool IRQexists(Thread *p);
-
-    /**
      * Returns the priority of a thread.<br>
      * To get the priority of the current thread use:
      * \code Thread::getCurrentThread()->getPriority(); \endcode
@@ -1156,6 +1150,12 @@ private:
      * Common implementation of all timedWait calls
      */
     static TimedWaitResult IRQenableIrqAndTimedWaitImpl(long long absoluteTimeNs);
+
+    /**
+     * Same as exists() but is meant to be called only inside an IRQ or when
+     * interrupts are disabled.
+     */
+    static bool IRQexists(Thread *p);
 
     /**
      * Allocates the idle thread and makes cur point to it

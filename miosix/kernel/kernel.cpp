@@ -481,14 +481,6 @@ bool Thread::exists(Thread *p)
     return Scheduler::PKexists(p);
 }
 
-bool Thread::IRQexists(Thread* p)
-{
-    if(p==nullptr) return false;
-    //NOTE: the code in all schedulers is currently safe to be called also with
-    //interrupts disabled
-    return Scheduler::PKexists(p);
-}
-
 Priority Thread::getPriority()
 {
     //NOTE: the code in all schedulers is currently safe to be called either
@@ -858,6 +850,14 @@ TimedWaitResult Thread::IRQenableIrqAndTimedWaitImpl(long long absoluteTimeNs)
     bool removed=sleepingList.removeFast(&sleepData);
     //If the thread was still in the sleeping list, it was woken up by a wakeup()
     return removed ? TimedWaitResult::NoTimeout : TimedWaitResult::Timeout;
+}
+
+bool Thread::IRQexists(Thread* p)
+{
+    if(p==nullptr) return false;
+    //NOTE: the code in all schedulers is currently safe to be called also with
+    //interrupts disabled
+    return Scheduler::PKexists(p);
 }
 
 Thread *Thread::allocateIdleThread()
