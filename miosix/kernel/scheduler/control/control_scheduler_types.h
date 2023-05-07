@@ -139,9 +139,11 @@ inline bool operator<(ControlSchedulerPriority a, ControlSchedulerPriority b)
     #ifdef SCHED_CONTROL_MULTIBURST
     //rule 1) Idle thread should be always preempted by any thread!
     //rule 2) Only REALTIME_PRIORITY_IMMEDIATE threads can preempt other threads
-    //right away, for other real-time priorities, the scheduler does not
-    //require to be called before the end of the current burst!
-    return a.get()==-1 ||
+    //      a\b  idle  normal   immedaite
+    // idle       f       T       T
+    // normal     f       f       T
+    // immediate  f       f       f
+    return (a.get()==-1 && b.get()!=-1) ||
         (a.getRealtime()!=ControlRealtimePriority::REALTIME_PRIORITY_IMMEDIATE &&
          b.getRealtime()==ControlRealtimePriority::REALTIME_PRIORITY_IMMEDIATE);
     #else
@@ -149,14 +151,48 @@ inline bool operator<(ControlSchedulerPriority a, ControlSchedulerPriority b)
     #endif
 }
 
+inline bool operator<=(ControlSchedulerPriority a, ControlSchedulerPriority b)
+{
+    #ifdef SCHED_CONTROL_MULTIBURST
+    //      a\b  idle  normal   immedaite
+    // idle       T       T       T
+    // normal     f       T       T
+    // immediate  f       f       T
+    return (a.get()==-1 || b.get()!=-1) &&
+        (a.getRealtime()!=ControlRealtimePriority::REALTIME_PRIORITY_IMMEDIATE ||
+         b.getRealtime()==ControlRealtimePriority::REALTIME_PRIORITY_IMMEDIATE);
+    #else
+    return a.get()<=b.get();
+    #endif
+}
+
 inline bool operator>(ControlSchedulerPriority a, ControlSchedulerPriority b)
 {
     #ifdef SCHED_CONTROL_MULTIBURST
-    return b.get()==-1 ||
+    //      a\b  idle  normal   immedaite
+    // idle       f       f       f
+    // normal     T       f       f
+    // immediate  T       T       f
+    return (a.get()!=-1 && b.get()==-1) ||
         (a.getRealtime()==ControlRealtimePriority::REALTIME_PRIORITY_IMMEDIATE &&
          b.getRealtime()!=ControlRealtimePriority::REALTIME_PRIORITY_IMMEDIATE);
     #else
     return a.get()>b.get();
+    #endif
+}
+
+inline bool operator>=(ControlSchedulerPriority a, ControlSchedulerPriority b)
+{
+    #ifdef SCHED_CONTROL_MULTIBURST
+    //      a\b  idle  normal   immedaite
+    // idle       T       f       f
+    // normal     T       T       f
+    // immediate  T       T       T
+    return (a.get()!=-1 || b.get()==-1) &&
+        (a.getRealtime()==ControlRealtimePriority::REALTIME_PRIORITY_IMMEDIATE ||
+         b.getRealtime()!=ControlRealtimePriority::REALTIME_PRIORITY_IMMEDIATE);
+    #else
+    return a.get()>=b.get();
     #endif
 }
 
