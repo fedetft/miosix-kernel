@@ -91,9 +91,19 @@ inline bool operator<(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
     return a.get() < b.get();
 }
 
+inline bool operator<=(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
+{
+    return a.get() <= b.get();
+}
+
 inline bool operator>(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
 {
     return a.get() > b.get();
+}
+
+inline bool operator>=(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
+{
+    return a.get() >= b.get();
 }
 
 inline bool operator==(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
