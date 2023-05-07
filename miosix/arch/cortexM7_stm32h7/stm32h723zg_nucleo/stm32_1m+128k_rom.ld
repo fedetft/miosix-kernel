@@ -52,7 +52,7 @@ MEMORY
     flash(rx)   : ORIGIN = 0x08000000, LENGTH = 1M
 
     /* NOTE: for now we support only the AXI SRAM */
-    ram(wx)     : ORIGIN = _main_stack_top, LENGTH =  128K-_main_stack_size
+    ram(wrx)     : ORIGIN = _main_stack_top, LENGTH =  128K-_main_stack_size
 }
 
 /* now define the output sections  */
