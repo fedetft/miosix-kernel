@@ -36,6 +36,17 @@ using namespace std;
 
 namespace miosix {
 
+/**
+ * Helper lambda to sort threads in a min heap to implement priority inheritance
+ * \param lhs first thread to compare
+ * \param rhs second thread to compare
+ * \return true if lhs->getPriority() < rhs->getPriority()
+ */
+static auto PKlowerPriority=[](Thread *lhs, Thread *rhs)
+{
+    return lhs->PKgetPriority().mutexLessOp(rhs->PKgetPriority());
+};
+
 //
 // class Mutex
 //
@@ -74,8 +85,7 @@ void Mutex::PKlock(PauseKernelLock& dLock)
 
     //Add thread to mutex' waiting queue
     waiting.push_back(p);
-    LowerPriority l;
-    push_heap(waiting.begin(),waiting.end(),l);
+    push_heap(waiting.begin(),waiting.end(),PKlowerPriority);
 
     //Handle priority inheritance
     if(p->mutexWaiting!=nullptr) errorHandler(UNEXPECTED);
@@ -88,7 +98,7 @@ void Mutex::PKlock(PauseKernelLock& dLock)
             Scheduler::PKsetPriority(walk,p->PKgetPriority());
             if(walk->mutexWaiting==nullptr) break;
             make_heap(walk->mutexWaiting->waiting.begin(),
-                      walk->mutexWaiting->waiting.end(),l);
+                      walk->mutexWaiting->waiting.end(),PKlowerPriority);
             walk=walk->mutexWaiting->owner;
         }
     }
@@ -127,8 +137,7 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
 
     //Add thread to mutex' waiting queue
     waiting.push_back(p);
-    LowerPriority l;
-    push_heap(waiting.begin(),waiting.end(),l);
+    push_heap(waiting.begin(),waiting.end(),PKlowerPriority);
 
     //Handle priority inheritance
     if(p->mutexWaiting!=nullptr) errorHandler(UNEXPECTED);
@@ -141,7 +150,7 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
             Scheduler::PKsetPriority(walk,p->PKgetPriority());
             if(walk->mutexWaiting==nullptr) break;
             make_heap(walk->mutexWaiting->waiting.begin(),
-                      walk->mutexWaiting->waiting.end(),l);
+                      walk->mutexWaiting->waiting.end(),PKlowerPriority);
             walk=walk->mutexWaiting->owner;
         }
     }
@@ -229,8 +238,7 @@ bool Mutex::PKunlock(PauseKernelLock& dLock)
     {
         //There is at least another thread waiting
         owner=waiting.front();
-        LowerPriority l;
-        pop_heap(waiting.begin(),waiting.end(),l);
+        pop_heap(waiting.begin(),waiting.end(),PKlowerPriority);
         waiting.pop_back();
         if(owner->mutexWaiting!=this) errorHandler(UNEXPECTED);
         owner->mutexWaiting=nullptr;
@@ -301,8 +309,7 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
     {
         //There is at least another thread waiting
         owner=waiting.front();
-        LowerPriority l;
-        pop_heap(waiting.begin(),waiting.end(),l);
+        pop_heap(waiting.begin(),waiting.end(),PKlowerPriority);
         waiting.pop_back();
         if(owner->mutexWaiting!=this) errorHandler(UNEXPECTED);
         owner->mutexWaiting=nullptr;

@@ -33,7 +33,6 @@
 #include "stdlib_integration/libstdcpp_integration.h"
 #include "intrusive.h"
 #include "cpu_time_counter_types.h"
-#include <functional>
 
 /**
  * \namespace miosix
@@ -1237,26 +1236,6 @@ private:
     //Needs access to timeCounterData
     friend class CPUTimeCounter;
     #endif //WITH_CPU_TIME_COUNTER
-};
-
-/**
- * Function object to compare the priority of two threads.
- */
-class LowerPriority: public std::binary_function<Thread*,Thread*,bool>
-{
-public:
-    /**
-     * \param a first thread to compare
-     * \param b second thread to compare
-     * \return true if a->getPriority() < b->getPriority()
-     *
-     * Can be called when the kernel is paused. or with interrupts disabled
-     */
-    bool operator() (Thread* a, Thread *b)
-    {
-        //Relying on PKgetPriority and IRQgetPriority being the same
-        return a->getPriority().mutexLessOp(b->getPriority());
-    }
 };
 
 /**
