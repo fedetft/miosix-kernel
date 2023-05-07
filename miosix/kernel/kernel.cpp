@@ -484,17 +484,18 @@ bool Thread::exists(Thread *p)
 bool Thread::IRQexists(Thread* p)
 {
     if(p==nullptr) return false;
+    //NOTE: the code in all schedulers is currently safe to be called also with
+    //interrupts disabled
     return Scheduler::PKexists(p);
 }
 
 Priority Thread::getPriority()
 {
+    //NOTE: the code in all schedulers is currently safe to be called either
+    //with interrupt enabed or not, and with the kernel paused or not, so
+    //PKgetPriority() and IRQgetPriority() directly call here. If introducing
+    //changes that break this property, these functions may need to be split
     return Scheduler::getPriority(this);
-}
-
-Priority Thread::IRQgetPriority()
-{
-    return Scheduler::IRQgetPriority(this);
 }
 
 void Thread::setPriority(Priority pr)
@@ -502,7 +503,7 @@ void Thread::setPriority(Priority pr)
     if(pr.validate()==false) return;
     PauseKernelLock lock;
 
-    Thread *running=getCurrentThread();
+    Thread *running=PKgetCurrentThread();
     //If thread is locking at least one mutex
     if(running->mutexLocked!=nullptr)
     {   
@@ -516,13 +517,13 @@ void Thread::setPriority(Priority pr)
         while(walk!=nullptr)
         {
             if(walk->waiting.empty()==false)
-                pr=std::max(pr,walk->waiting.front()->getPriority());
+                pr=std::max(pr,walk->waiting.front()->PKgetPriority());
             walk=walk->next;
         }
     }
     
     //If old priority == desired priority, nothing to do.
-    if(pr==running->getPriority()) return;
+    if(pr==running->PKgetPriority()) return;
     Scheduler::PKsetPriority(running,pr);
     #ifdef SCHED_TYPE_EDF
     if(isKernelRunning()) yield(); //Another thread might have a closer deadline

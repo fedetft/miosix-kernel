@@ -442,7 +442,7 @@ static IntrusiveList<ThreadsListItem>::iterator curInRound=activeThreads.end();
 static inline void addThreadToActiveList(ThreadsListItem *atlEntry)
 {
     
-    switch(atlEntry->t->getPriority().getRealtime())
+    switch(atlEntry->t->IRQgetPriority().getRealtime())
     {
         case ControlRealtimePriority::REALTIME_PRIORITY_IMMEDIATE:
             activeThreads.insert(curInRound,atlEntry);

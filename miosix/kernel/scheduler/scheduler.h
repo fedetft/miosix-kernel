@@ -115,7 +115,8 @@ public:
 
     /**
      * \internal
-     * Get the priority of a thread.
+     * Get the priority of a thread. Must be callable also with kernel paused
+     * or IRQ disabled.
      * Note that the meaning of priority is scheduler specific.
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
@@ -123,17 +124,6 @@ public:
     static Priority getPriority(Thread *thread)
     {
         return T::getPriority(thread);
-    }
-
-    /**
-     * \internal
-     * Same as getPriority, but meant to be called with interrupts disabled.
-     * \param thread thread whose priority needs to be queried.
-     * \return the priority of thread.
-     */
-    static Priority IRQgetPriority(Thread *thread)
-    {
-        return T::IRQgetPriority(thread);
     }
 
     /**

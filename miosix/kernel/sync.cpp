@@ -53,7 +53,7 @@ void Mutex::PKlock(PauseKernelLock& dLock)
         owner=p;
         //Save original thread priority, if the thread has not yet locked
         //another mutex
-        if(owner->mutexLocked==nullptr) owner->savedPriority=owner->getPriority();
+        if(owner->mutexLocked==nullptr) owner->savedPriority=owner->PKgetPriority();
         //Add this mutex to the list of mutexes locked by owner
         this->next=owner->mutexLocked;
         owner->mutexLocked=this;
@@ -80,12 +80,12 @@ void Mutex::PKlock(PauseKernelLock& dLock)
     //Handle priority inheritance
     if(p->mutexWaiting!=nullptr) errorHandler(UNEXPECTED);
     p->mutexWaiting=this;
-    if(owner->getPriority().mutexLessOp(p->getPriority()))
+    if(owner->PKgetPriority().mutexLessOp(p->PKgetPriority()))
     {
         Thread *walk=owner;
         for(;;)
         {
-            Scheduler::PKsetPriority(walk,p->getPriority());
+            Scheduler::PKsetPriority(walk,p->PKgetPriority());
             if(walk->mutexWaiting==nullptr) break;
             make_heap(walk->mutexWaiting->waiting.begin(),
                       walk->mutexWaiting->waiting.end(),l);
@@ -106,7 +106,7 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
         if(recursiveDepth>=0) recursiveDepth=depth;
         //Save original thread priority, if the thread has not yet locked
         //another mutex
-        if(owner->mutexLocked==nullptr) owner->savedPriority=owner->getPriority();
+        if(owner->mutexLocked==nullptr) owner->savedPriority=owner->PKgetPriority();
         //Add this mutex to the list of mutexes locked by owner
         this->next=owner->mutexLocked;
         owner->mutexLocked=this;
@@ -133,12 +133,12 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
     //Handle priority inheritance
     if(p->mutexWaiting!=nullptr) errorHandler(UNEXPECTED);
     p->mutexWaiting=this;
-    if(owner->getPriority().mutexLessOp(p->getPriority()))
+    if(owner->PKgetPriority().mutexLessOp(p->PKgetPriority()))
     {
         Thread *walk=owner;
         for(;;)
         {
-            Scheduler::PKsetPriority(walk,p->getPriority());
+            Scheduler::PKsetPriority(walk,p->PKgetPriority());
             if(walk->mutexWaiting==nullptr) break;
             make_heap(walk->mutexWaiting->waiting.begin(),
                       walk->mutexWaiting->waiting.end(),l);
@@ -159,7 +159,7 @@ bool Mutex::PKtryLock(PauseKernelLock& dLock)
         owner=p;
         //Save original thread priority, if the thread has not yet locked
         //another mutex
-        if(owner->mutexLocked==nullptr) owner->savedPriority=owner->getPriority();
+        if(owner->mutexLocked==nullptr) owner->savedPriority=owner->PKgetPriority();
         //Add this mutex to the list of mutexes locked by owner
         this->next=owner->mutexLocked;
         owner->mutexLocked=this;
@@ -207,7 +207,7 @@ bool Mutex::PKunlock(PauseKernelLock& dLock)
     if(owner->mutexLocked==nullptr)
     {
         //Not locking any other mutex
-        if(owner->savedPriority!=owner->getPriority())
+        if(owner->savedPriority!=owner->PKgetPriority())
             Scheduler::PKsetPriority(owner,owner->savedPriority);
     } else {
         Priority pr=owner->savedPriority;
@@ -217,11 +217,11 @@ bool Mutex::PKunlock(PauseKernelLock& dLock)
         while(walk!=nullptr)
         {
             if(walk->waiting.empty()==false)
-                if (pr.mutexLessOp(walk->waiting.front()->getPriority()))
-                    pr = walk->waiting.front()->getPriority();
+                if(pr.mutexLessOp(walk->waiting.front()->PKgetPriority()))
+                    pr=walk->waiting.front()->PKgetPriority();
             walk=walk->next;
         }
-        if(pr!=owner->getPriority()) Scheduler::PKsetPriority(owner,pr);
+        if(pr!=owner->PKgetPriority()) Scheduler::PKsetPriority(owner,pr);
     }
 
     //Choose next thread to lock the mutex
@@ -235,15 +235,15 @@ bool Mutex::PKunlock(PauseKernelLock& dLock)
         if(owner->mutexWaiting!=this) errorHandler(UNEXPECTED);
         owner->mutexWaiting=nullptr;
         owner->PKwakeup();
-        if(owner->mutexLocked==nullptr) owner->savedPriority=owner->getPriority();
+        if(owner->mutexLocked==nullptr) owner->savedPriority=owner->PKgetPriority();
         //Add this mutex to the list of mutexes locked by owner
         this->next=owner->mutexLocked;
         owner->mutexLocked=this;
         //Handle priority inheritance of new owner
         if(waiting.empty()==false &&
-                owner->getPriority().mutexLessOp(waiting.front()->getPriority()))
-                Scheduler::PKsetPriority(owner,waiting.front()->getPriority());
-        return p->getPriority().mutexLessOp(owner->getPriority());
+                owner->PKgetPriority().mutexLessOp(waiting.front()->PKgetPriority()))
+                Scheduler::PKsetPriority(owner,waiting.front()->PKgetPriority());
+        return p->PKgetPriority().mutexLessOp(owner->PKgetPriority());
     } else {
         owner=nullptr; //No threads waiting
         std::vector<Thread *>().swap(waiting); //Save some RAM
@@ -279,7 +279,7 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
     if(owner->mutexLocked==nullptr)
     {
         //Not locking any other mutex
-        if(owner->savedPriority!=owner->getPriority())
+        if(owner->savedPriority!=owner->PKgetPriority())
             Scheduler::PKsetPriority(owner,owner->savedPriority);
     } else {
         Priority pr=owner->savedPriority;
@@ -289,11 +289,11 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
         while(walk!=nullptr)
         {
             if(walk->waiting.empty()==false)
-                if(pr.mutexLessOp(walk->waiting.front()->getPriority()))
-                    pr=walk->waiting.front()->getPriority();
+                if(pr.mutexLessOp(walk->waiting.front()->PKgetPriority()))
+                    pr=walk->waiting.front()->PKgetPriority();
             walk=walk->next;
         }
-        if(pr!=owner->getPriority()) Scheduler::PKsetPriority(owner,pr);
+        if(pr!=owner->PKgetPriority()) Scheduler::PKsetPriority(owner,pr);
     }
 
     //Choose next thread to lock the mutex
@@ -307,14 +307,14 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
         if(owner->mutexWaiting!=this) errorHandler(UNEXPECTED);
         owner->mutexWaiting=nullptr;
         owner->PKwakeup();
-        if(owner->mutexLocked==nullptr) owner->savedPriority=owner->getPriority();
+        if(owner->mutexLocked==nullptr) owner->savedPriority=owner->PKgetPriority();
         //Add this mutex to the list of mutexes locked by owner
         this->next=owner->mutexLocked;
         owner->mutexLocked=this;
         //Handle priority inheritance of new owner
         if(waiting.empty()==false &&
-                owner->getPriority().mutexLessOp(waiting.front()->getPriority()))
-                Scheduler::PKsetPriority(owner,waiting.front()->getPriority());
+                owner->PKgetPriority().mutexLessOp(waiting.front()->PKgetPriority()))
+                Scheduler::PKsetPriority(owner,waiting.front()->PKgetPriority());
     } else {
         owner=nullptr; //No threads waiting
         std::vector<Thread *>().swap(waiting); //Save some RAM
@@ -404,7 +404,7 @@ bool ConditionVariable::doBroadcast()
         Thread *t=condList.front()->thread;
         condList.pop_front();
         t->PKwakeup();
-        if(t->getPriority()>Thread::PKgetCurrentThread()->getPriority())
+        if(t->PKgetPriority()>Thread::PKgetCurrentThread()->PKgetPriority())
             hppw=true;
     }
     return hppw;

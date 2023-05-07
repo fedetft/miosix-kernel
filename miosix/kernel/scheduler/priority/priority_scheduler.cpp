@@ -140,7 +140,7 @@ void PriorityScheduler::PKremoveDeadThreads()
 void PriorityScheduler::PKsetPriority(Thread *thread,
         PrioritySchedulerPriority newPriority)
 {
-    PrioritySchedulerPriority oldPriority=getPriority(thread);
+    PrioritySchedulerPriority oldPriority=thread->PKgetPriority();
     //First set priority to the new value
     thread->schedData.priority=newPriority;
     //Then remove the thread from its old list

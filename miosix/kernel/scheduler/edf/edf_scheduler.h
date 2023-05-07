@@ -85,22 +85,13 @@ public:
 
     /**
      * \internal
-     * Get the priority of a thread.
+     * Get the priority of a thread. Must be callable also with kernel paused
+     * or IRQ disabled.
      * Note that the meaning of priority is scheduler specific.
      * \param thread thread whose priority needs to be queried.
      * \return the priority of thread.
      */
     static EDFSchedulerPriority getPriority(Thread *thread)
-    {
-        return thread->schedData.deadline;
-    }
-
-    /**
-     * Same as getPriority, but meant to be called with interrupts disabled.
-     * \param thread thread whose priority needs to be queried.
-     * \return the priority of thread.
-     */
-    static EDFSchedulerPriority IRQgetPriority(Thread *thread)
     {
         return thread->schedData.deadline;
     }

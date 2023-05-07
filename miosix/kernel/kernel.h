@@ -786,16 +786,25 @@ public:
      * function returns the current priority, which can be higher than the
      * original priority due to priority inheritance.
      * \return current priority of the thread
-     *
-     * Can be called when the kernel is paused.
      */
     Priority getPriority();
 
     /**
-     * Same as getPriority(), but meant to be used inside an IRQ, when
-     * interrupts are disabled or when the kernel is paused.
+     * Same as getPriority(), but meant to be used when the kernel is paused.
      */
-    Priority IRQgetPriority();
+    Priority PKgetPriority()
+    {
+        return getPriority(); //Safe to call directly, see implementation
+    }
+
+    /**
+     * Same as getPriority(), but meant to be used inside an IRQ, or when
+     * interrupts are disabled.
+     */
+    Priority IRQgetPriority()
+    {
+        return getPriority(); //Safe to call directly, see implementation
+    }
 
     /**
      * Set the priority of this thread.<br>
@@ -1245,6 +1254,7 @@ public:
      */
     bool operator() (Thread* a, Thread *b)
     {
+        //Relying on PKgetPriority and IRQgetPriority being the same
         return a->getPriority().mutexLessOp(b->getPriority());
     }
 };
