@@ -58,14 +58,20 @@ public:
         unsigned int result=SystemCoreClock;
 
         // The timer frequency may however be a submultiple of the CPU frequency,
-        // due to the bus at whch the periheral is connected being slower. The
+        // due to the bus at which the peripheral is connected being slower. The
         // RCC->CFGR register tells us how slower the APB1 bus is running.
         // This formula takes into account that if the APB1 clock is divided by a
         // factor of two or greater, the timer is clocked at twice the bus
         // interface. After this, the freq variable contains the frequency in Hz
         // at which the timer prescaler is clocked.
         #if defined(_ARCH_CORTEXM7_STM32H7)
-        if(RCC->D2CFGR & RCC_D2CFGR_D2PPRE1_2) result/=1<<((RCC->D2CFGR>>4) & 0x3);
+        #if defined(_BOARD_STM32H723ZG_NUCLEO)
+        // In stm32h723zg MCUs there isn't any prescaler 2x, for this reason when the 
+        // prescaler is enabled we will have to divide it for 2^PPRE and not for 2^(PPRE-1)
+        if(RCC->D2CFGR & RCC_D2CFGR_D2PPRE1_2) result/=(2<<((RCC->D2CFGR>>4) & 0x3));
+        #else
+        if(RCC->D2CFGR & RCC_D2CFGR_D2PPRE1_2) result/=(1<<((RCC->D2CFGR>>4) & 0x3));
+        #endif
         #else
         if(RCC->CFGR & RCC_CFGR_PPRE1_2) result/=1<<((RCC->CFGR>>10) & 0x3);
         #endif
