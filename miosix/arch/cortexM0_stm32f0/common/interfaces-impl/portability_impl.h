@@ -80,12 +80,12 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
                  "mrs   r1,  psp         \n\t" /*get PROCESS stack pointer*/  \
                  "ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
                  "ldr   r0,  [r0]        \n\t"                                \
-                 "stmia r0,  {r1,r4-r7}  \n\t" /*save PROCESS sp + r4-r7*/    \
+                 "stmia r0!, {r1,r4-r7}  \n\t" /*save PROCESS sp + r4-r7*/    \
                  "mov   r4,  r8          \n\t"                                \
                  "mov   r5,  r9          \n\t"                                \
                  "mov   r6,  r10         \n\t"                                \
                  "mov   r7,  r11         \n\t"                                \
-                 "stmia r0,  {r4-r7}     \n\t"                                \
+                 "stmia r0!, {r4-r7}     \n\t"                                \
                  "dmb                    \n\t"                                \
                  );                                                           \
 }
@@ -101,12 +101,12 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
 {                                                                             \
     asm volatile("ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
                  "ldr   r0,  [r0]        \n\t"                                \
-                 "ldmia r0,  {r1,r4-r7}  \n\t" /*pop r8-r11 saving in r4-r7*/ \
+                 "ldmia r0!, {r1,r4-r7}  \n\t" /*pop r8-r11 saving in r4-r7*/ \
                  "msr   psp, r1          \n\t" /*restore PROCESS sp*/         \
-                 "ldmia r0!, {r0-r3}     \n\t"                                \
-                 "mov   r9,  r0          \n\t"                                \
-                 "mov   r10, r1          \n\t"                                \
-                 "mov   r11, r2          \n\t"                                \
+                 "ldmia r0,  {r0-r3}     \n\t"                                \
+                 "mov   r8,  r0          \n\t"                                \
+                 "mov   r9,  r1          \n\t"                                \
+                 "mov   r10, r2          \n\t"                                \
                  "mov   r11, r3          \n\t"                                \
                  "pop   {pc}             \n\t" /*return*/                     \
                  );                                                           \
