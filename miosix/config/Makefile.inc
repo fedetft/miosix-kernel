@@ -2562,7 +2562,7 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
     CFLAGS_BASE   += -D_ARCH_CORTEXM0_STM32F0 $(CLOCK_FREQ) -mcpu=cortex-m0    \
                      -mthumb $(OPT_OPTIMIZATION) -c
     CXXFLAGS_BASE += -D_ARCH_CORTEXM0_STM32F0 $(CLOCK_FREQ) -mcpu=cortex-m0    \
-                     -mthumb $(OPT_OPTIMIZATION) -c
+                     $(OPT_EXCEPT) -mthumb $(OPT_OPTIMIZATION) -c
     LFLAGS_BASE   := -mcpu=cortex-m0 -mthumb -Wl,--gc-sections,-Map,main.map   \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)             \
                      $(OPT_OPTIMIZATION) -nostdlib
