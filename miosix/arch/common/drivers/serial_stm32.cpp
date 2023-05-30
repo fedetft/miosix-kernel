@@ -141,6 +141,11 @@ void __attribute__((noinline)) usart1txDmaImpl()
      || defined(_ARCH_CORTEXM4_STM32L4)
     DMA1->IFCR=DMA_IFCR_CGIF4;
     DMA1_Channel4->CCR=0; //Disable DMA
+    #elif defined(_ARCH_CORTEXM7_STM32H7) //stm32f2 and f4
+    DMA1->HIFCR=DMA_HIFCR_CTCIF7
+              | DMA_HIFCR_CTEIF7
+              | DMA_HIFCR_CDMEIF7
+              | DMA_HIFCR_CFEIF7;
     #else //stm32f2 and f4
     DMA2->HIFCR=DMA_HIFCR_CTCIF7
               | DMA_HIFCR_CTEIF7
@@ -183,9 +188,9 @@ void __attribute__((naked)) DMA1_Channel5_IRQHandler()
 #else //stm32f2 and stm32f4
 
 /**
- * \internal DMA2 stream 7 IRQ (configured as USART1 TX)
+ * \internal DMA1 stream 7 IRQ (configured as USART1 TX)
  */
-void __attribute__((naked)) DMA2_Stream7_IRQHandler()
+void __attribute__((naked)) DMA1_Stream7_IRQHandler()
 {
     saveContext();
     asm volatile("bl _Z15usart1txDmaImplv");
@@ -193,9 +198,9 @@ void __attribute__((naked)) DMA2_Stream7_IRQHandler()
 }
 
 /**
- * \internal DMA2 stream 5 IRQ (configured as USART1 RX)
+ * \internal DMA1 stream 5 IRQ (configured as USART1 RX)
  */
-void __attribute__((naked)) DMA2_Stream5_IRQHandler()
+void __attribute__((naked)) DMA1_Stream5_IRQHandler()
 {
     saveContext();
     asm volatile("bl _Z15usart1rxDmaImplv");
@@ -532,6 +537,84 @@ void STM32Serial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
             NVIC_SetPriority(DMA1_Channel5_IRQn,14);
             NVIC_EnableIRQ(DMA1_Channel5_IRQn);
             dmaRx=DMA1_Channel5;
+            #elif defined(_ARCH_CORTEXM7_STM32H7) 
+            RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN; // enabling DMA1 clock
+            RCC_SYNC();
+
+            // enabling interrupts
+            dmaRx=DMA1_Stream5;
+            NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+            NVIC_SetPriority(DMA1_Stream5_IRQn,14);
+
+            dmaTx=DMA1_Stream7;
+            NVIC_EnableIRQ(DMA1_Stream7_IRQn);
+            NVIC_SetPriority(DMA1_Stream7_IRQn,14);
+        
+            NVIC_EnableIRQ(USART1_IRQn);
+            NVIC_SetPriority(USART1_IRQn,15);
+
+            // INIT
+            // Configuring DMA
+            // Stream 1: Rx
+            dmaRx->CR &= ~((DMA_SxCR_CT)    |
+                                (DMA_SxCR_PL)    |
+                                (DMA_SxCR_MSIZE) |
+                                (DMA_SxCR_PSIZE) |
+                                (DMA_SxCR_MINC)  |
+                                (DMA_SxCR_CIRC)  |
+                                (DMA_SxCR_DIR)   |
+                                (DMA_SxCR_PFCTRL)|
+                                (DMA_SxCR_TCIE)  |
+                                (DMA_SxCR_HTIE));
+        
+            dmaRx->CR |= (0)                           |   // [DMA_SxCR_CT_MEM0] addressed by the DMA_SxM0AR pointer
+                                (DMA_SxCR_PL_1)              |   // Priority level high
+                                (0)                           |   // [DMA_SxCR_MSIZE] Memory data size: 8Bit
+                                (0)                           |   // [DMA_SxCR_PSIZE] Peripheral data size: 8Bit
+                                (DMA_SxCR_CIRC)              |   // Circular mode enabled
+                                (0)                           |   // [DMA_SxCR_PFCTRL_DMA_FLOW] DMA is the flow controller
+                                (DMA_SxCR_TCIE);                 // Transfer complete interrupt enable
+        
+        
+            // Stream 3: Tx
+            dmaTx->CR &= ~((DMA_SxCR_CT)    |
+                                (DMA_SxCR_PL)    |
+                                (DMA_SxCR_MSIZE) |
+                                (DMA_SxCR_PSIZE) |
+                                (DMA_SxCR_MINC)  |
+                                (DMA_SxCR_CIRC)  |
+                                (DMA_SxCR_DIR)   |
+                                (DMA_SxCR_PFCTRL)|
+                                (DMA_SxCR_TCIE)  |
+                                (DMA_SxCR_HTIE));
+        
+            dmaTx->CR |= (0)                          |   // [DMA_SxCR_CT_MEM0] addressed by the DMA_SxM0AR pointer
+                                (DMA_SxCR_PL_1)              |   // Priority level high
+                                (0)                           |   // [DMA_SxCR_MSIZE] Memory data size: 8Bit
+                                (0)                           |   // [DMA_SxCR_PSIZE] Peripheral data size: 8Bit
+                                (DMA_SxCR_CIRC)              |   // Circular mode enabled
+                                (0)                           |   // [DMA_SxCR_PFCTRL_DMA_FLOW] DMA is the flow controller
+                                (DMA_SxCR_TCIE);                 // Transfer complete interrupt enable
+
+            // Configuring DMAMUX            
+            DMAMUX1_Channel5->CCR &= ~(DMAMUX_CxCR_DMAREQ_ID);
+	        DMAMUX1_Channel5->CCR |=  (DMAMUX_CxCR_DMAREQ_ID_0 | 
+                                        DMAMUX_CxCR_DMAREQ_ID_3 | 
+                                        DMAMUX_CxCR_DMAREQ_ID_5); // 41
+  
+	        DMAMUX1_Channel7->CCR &= ~(DMAMUX_CxCR_DMAREQ_ID);
+	        DMAMUX1_Channel7->CCR |=  (DMAMUX_CxCR_DMAREQ_ID_1 | 
+                                        DMAMUX_CxCR_DMAREQ_ID_3 | 
+                                        DMAMUX_CxCR_DMAREQ_ID_5); // 42
+
+
+            // TRANSACTION
+            // DMA_SxPAR: loading from the peripheral data register
+            // DMA_SxCR->DIR: Direction of the transfer [617]
+            // DMA_SxCR->PSIZE: data width to be sent [618]
+            // Enable stream
+
+            
             #else //stm32f2, stm32f4
             RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
             RCC_SYNC();
@@ -1099,6 +1182,11 @@ STM32Serial::~STM32Serial()
                 NVIC_ClearPendingIRQ(DMA1_Channel4_IRQn);
                 NVIC_DisableIRQ(DMA1_Channel5_IRQn);
                 NVIC_ClearPendingIRQ(DMA1_Channel5_IRQn);
+                #elif defined(_ARCH_CORTEXM7_STM32H7)
+                NVIC_DisableIRQ(DMA1_Stream7_IRQn);
+                NVIC_ClearPendingIRQ(DMA1_Stream7_IRQn);
+                NVIC_DisableIRQ(DMA1_Stream5_IRQn);
+                NVIC_ClearPendingIRQ(DMA1_Stream5_IRQn);
                 #else //stm32f2, stm32f4
                 NVIC_DisableIRQ(DMA2_Stream7_IRQn);
                 NVIC_ClearPendingIRQ(DMA2_Stream7_IRQn);
@@ -1359,12 +1447,21 @@ int STM32Serial::IRQdmaReadStop()
         (DMA_HIFCR_CTCIF5 | DMA_HIFCR_CHTIF5 | DMA_HIFCR_CTEIF5 | DMA_HIFCR_CDMEIF5 | DMA_HIFCR_CFEIF5),
         (DMA_LIFCR_CTCIF1 | DMA_LIFCR_CHTIF1 | DMA_LIFCR_CTEIF1 | DMA_LIFCR_CDMEIF1 | DMA_LIFCR_CFEIF1)
     };
+    #ifdef _ARCH_CORTEXM7_STM32H7
+    static volatile unsigned long * const irqRegs[]=
+    {
+        &DMA1->HIFCR,
+        &DMA1->HIFCR,
+        &DMA1->LIFCR
+    };
+    #else
     static volatile unsigned long * const irqRegs[]=
     {
         &DMA2->HIFCR,
         &DMA1->HIFCR,
         &DMA1->LIFCR
     };
+    #endif
     *irqRegs[getId()-1]=irqMask[getId()-1];
     return rxQueueMin-dmaRx->NDTR;
     #endif //_ARCH_CORTEXM3_STM32F1
