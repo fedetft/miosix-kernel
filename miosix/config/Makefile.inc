@@ -2248,6 +2248,7 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/drivers/serial_efm32.cpp                     \
+    $(ARCH_INC)/drivers/adc.cpp                              \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
