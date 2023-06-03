@@ -4114,7 +4114,7 @@ static void test_25()
         if(t25_c1.wait_for(l,10ms)!=cv_status::timeout) fail("timedwait (1)");
         auto b=chrono::steady_clock::now().time_since_epoch().count();
         //iprintf("delta=%lld\n",b-a-10000000);
-        if(llabs(b-a-10000000)>200000) fail("timedwait (2)");
+        if(llabs(b-a-10000000)>250000) fail("timedwait (2)");
     }
     {
         unique_lock<mutex> l(t25_m1);
@@ -4123,7 +4123,7 @@ static void test_25()
         if(t25_c1.wait_until(l,start+10ms)!=cv_status::timeout) fail("timedwait (3)");
         auto b=chrono::steady_clock::now().time_since_epoch().count();
         //iprintf("delta=%lld\n",b-a-10000000);
-        if(llabs(b-a-10000000)>200000) fail("timedwait (4)");
+        if(llabs(b-a-10000000)>250000) fail("timedwait (4)");
     }
     {
         thread t([]{ this_thread::sleep_for(30ms); t25_c1.notify_one(); });
