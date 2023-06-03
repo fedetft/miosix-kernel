@@ -27,18 +27,14 @@
 
 #include "interfaces/delays.h"
 
+#warning "TODO Delays only coarsely calibrated"
+
 namespace miosix {
 
 void delayMs(unsigned int mseconds)
 {    
-    #ifdef SYSCLK_FREQ_48MHz
-    register const unsigned int count=9600;
-    #elif SYSCLK_FREQ_36MHz
-    register const unsigned int count=7200;
-    #elif SYSCLK_FREQ_24MHz
-    register const unsigned int count=6000;
-    #else
-    register const unsigned int count=2016;
+    #ifdef SYSCLK_FREQ_32MHz
+    register const unsigned int count=6400;
     #endif
     
     for(unsigned int i=0;i<mseconds;i++)
@@ -58,16 +54,8 @@ void delayUs(unsigned int useconds)
 {
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimizations    
-    #ifdef SYSCLK_FREQ_48MHz
-    #error "delayUs not implemented"
-
-    #elif SYSCLK_FREQ_36MHz
-    #error "delayUs not implemented"
-
-    #elif SYSCLK_FREQ_24MHz
-    #error "delayUs not implemented"
-    #else
-    asm volatile("              mov   r1, #2       \n"
+    #ifdef SYSCLK_FREQ_32MHz
+    asm volatile("              mov   r1, #3       \n"
                  "              mul   r1, %0, r1   \n"
                  "              mov   r2, #0       \n"
                  "___loop_u:    cmp   r2, r1       \n"
@@ -75,6 +63,8 @@ void delayUs(unsigned int useconds)
                  "              add   r2, r2, #1   \n"
                  "              b     ___loop_u    \n"
                  "__loop_u_exit:                   \n"::"r"(useconds):"r1","r2");
+    #else
+    #error "delayUs not implemented"
     #endif    
 }
 

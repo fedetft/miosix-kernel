@@ -2530,7 +2530,7 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
         CXXFLAGS_BASE += -D_BOARD_STM32F072RB_DISCO -DSTM32F072xB
 
         ## Select clock frequency
-        CLOCK_FREQ := -DHSI_VALUE=8000000 -DSYSCLK_FREQ_8MHz=8000000
+        CLOCK_FREQ := -DSYSCLK_FREQ_32MHz=32000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types

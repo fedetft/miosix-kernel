@@ -99,7 +99,11 @@
                is no need to call the 2 first functions listed above, since SystemCoreClock
                variable is updated automatically.
   */
+#ifdef SYSCLK_FREQ_32MHz
+uint32_t SystemCoreClock = 32000000;
+#else
 uint32_t SystemCoreClock = 8000000;
+#endif
 
 const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
 const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
@@ -127,6 +131,22 @@ const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
   */
 void SystemInit(void)
 {
+    //TODO: support more clocking options
+    #ifdef SYSCLK_FREQ_32MHz
+    RCC->CR |= RCC_CR_HSION;
+    while((RCC->CR & RCC_CR_HSIRDY)==0) ;
+    RCC->CR &= ~RCC_CR_PLLON;
+    while(RCC->CR & RCC_CR_PLLRDY) ;
+    RCC->CFGR &= ~RCC_CFGR_SW; //Selects HSI
+    RCC->CFGR = RCC_CFGR_PLLMUL4 //4*8=32MHz
+              | RCC_CFGR_PLLSRC_HSI_PREDIV;
+    RCC->CR |= RCC_CR_PLLON;
+    while((RCC->CR & RCC_CR_PLLRDY)==0) ;
+    FLASH->ACR &= ~FLASH_ACR_LATENCY;
+    FLASH->ACR |= 1; //1 wait state for freq > 24MHz
+    RCC->CFGR |= RCC_CFGR_SW_PLL;
+    #endif
+
   /* NOTE :SystemInit(): This function is called at startup just after reset and 
                          before branch to main program. This call is made inside
                          the "startup_stm32f0xx.s" file.
