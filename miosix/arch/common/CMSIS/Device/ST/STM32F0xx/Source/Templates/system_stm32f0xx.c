@@ -132,6 +132,9 @@ const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
 void SystemInit(void)
 {
     //TODO: support more clocking options
+    #ifndef RUN_WITH_HSI
+    #error "Implement HSE support"
+    #endif
     #ifdef SYSCLK_FREQ_32MHz
     RCC->CR |= RCC_CR_HSION;
     while((RCC->CR & RCC_CR_HSIRDY)==0) ;
@@ -145,6 +148,8 @@ void SystemInit(void)
     FLASH->ACR &= ~FLASH_ACR_LATENCY;
     FLASH->ACR |= 1; //1 wait state for freq > 24MHz
     RCC->CFGR |= RCC_CFGR_SW_PLL;
+    #else
+    //Run @ 8MHz
     #endif
 
   /* NOTE :SystemInit(): This function is called at startup just after reset and 
