@@ -3401,7 +3401,12 @@ static void test_22()
     bool error=false;
     Thread *t2=Thread::create(t22_t2,STACK_MIN,0,0,Thread::JOINABLE);
     {
+        #if __CORTEX_M != 0x00
         FastInterruptDisableLock dLock;
+        #else
+        //Cortex M0 does not have atomic ops, they are emulated by disabling IRQ
+        InterruptDisableLock dLock;
+        #endif
         t22_v5=false;
 
         int x=10;

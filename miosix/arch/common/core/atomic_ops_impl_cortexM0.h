@@ -51,7 +51,7 @@ inline int atomicSwap(volatile int *p, int v)
     int result = *p;
     *p = v;
     enableInterrupts();
-
+    asm volatile("":::"memory");
     return result;
 }
 
@@ -60,6 +60,7 @@ inline void atomicAdd(volatile int *p, int incr)
     disableInterrupts();
     *p += incr;
     enableInterrupts();
+    asm volatile("":::"memory");
 }
 
 inline int atomicAddExchange(volatile int *p, int incr)
@@ -68,7 +69,7 @@ inline int atomicAddExchange(volatile int *p, int incr)
     int result = *p;
     *p += incr;
     enableInterrupts();
-
+    asm volatile("":::"memory");
     return result;
 }
 
@@ -78,7 +79,7 @@ inline int atomicCompareAndSwap(volatile int *p, int prev, int next)
     int result = *p;
     if(*p == prev) *p = next;
     enableInterrupts();
-
+    asm volatile("":::"memory");
     return result;
 }
 
@@ -95,6 +96,7 @@ inline void *atomicFetchAndIncrement(void * const volatile * p, int offset,
     volatile uint32_t *pt = reinterpret_cast<uint32_t*>(result) + offset;
     *pt += incr;
     enableInterrupts();
+    asm volatile("":::"memory");
 
     return result;
 }
