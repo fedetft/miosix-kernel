@@ -354,22 +354,36 @@ private:
     RestartKernelLock& operator= (const RestartKernelLock& l);
 };
 
-/*Increment the deepSleepCounter variable, enabling deep sleep of MCU if the variable
- * holds a positive value*/ 
+/**
+ * Prevent the microcontroller from entering a deep sleep state. Most commonly
+ * used by device drivers requiring clocks or power rails that would be disabled
+ * when entering deep sleep to perform blocking operations while informing the
+ * scheduler that deep sleep is currently not possible.
+ * Can be nested multiple times and called by different device drivers
+ * simultaneously. If N calls to deepSleepLock() are made, then N calls to
+ * deepSleepUnlock() need to be made before deep sleep is enabled back.
+ */
 void deepSleepLock();
 
-/*Decrement the deepSleepCounter variable, disabling deep sleep of MCU if the variable
- * becomes a positive value*/ 
+/**
+ * Used to signal the scheduler that a critical section where deep sleep should
+ * not be entered has completed. If N calls to deepSleepLock() are made, then N
+ * calls to deepSleepUnlock() need to be made before deep sleep is enabled back.
+ */
 void deepSleepUnlock();
 
+/**
+ * This class is a RAII lock for temporarily prevent entering deep sleep.
+ * This call avoids the error of not reenabling deep sleep capability since it
+ * is done automatically.
+ */
 class DeepSleepLock
 {
 public:       
-    DeepSleepLock(){deepSleepLock();}
+    DeepSleepLock() { deepSleepLock(); }
 
-    ~DeepSleepLock(){deepSleepUnlock();}
+    ~DeepSleepLock() { deepSleepUnlock(); }
 
-    // Copy Class 
 private: 
     DeepSleepLock(const DeepSleepLock&);
     DeepSleepLock& operator= (const DeepSleepLock&);
