@@ -34,6 +34,7 @@ SUDO=sudo
 # final install directory, but when this script does "make install" files are
 # copied with $DESTDIR as prefix. When doing a redistibutable build you also
 # have to specify HOST or (on Mac OS), BUILD, see below.
+# When compiling the Windows installer, do not change the default values!
 #PREFIX=/opt/arm-miosix-eabi
 #DESTDIR=`pwd`/dist
 #SUDO=
@@ -47,7 +48,8 @@ HOST=
 #BUILD=
 #HOST=x86_64-linux-gnu
 # Uncomment if targeting windows 64 bit (distributable)
-# you have to run this script from Linux anyway (see canadian cross compiling)
+# You have to run this script from Linux anyway (see canadian cross compiling).
+# Must first install the mingw-w64 toolchain.
 #BUILD=
 #HOST=x86_64-w64-mingw32
 # Uncomment if targeting macOS 64 bit Intel (distributable), compiling on Linux
@@ -214,6 +216,14 @@ mkdir log
 
 cd $GMP
 
+if [[ $HOST ]]; then
+	# GMP's configure script is bugged and does not properly handle canadian cross
+	# compiling, so we need to properly inform it manually by setting these
+	# environment variables. See also: https://gmplib.org/list-archives/gmp-discuss/2020-July/006519.html
+	export CC_FOR_BUILD='gcc'
+	export CPP_FOR_BUILD='g++'
+fi
+
 ./configure \
 	--build=$BUILD \
 	--host=$HOST \
@@ -229,6 +239,11 @@ if [[ ! $HOST ]]; then
 fi
 
 make install 2>../log/z.gmp.d.txt			|| quit ":: Error installing gmp"
+
+if [[ $HOST ]]; then
+	unset CC_FOR_BUILD
+	unset CPP_FOR_BUILD
+fi
 
 cd ..
 
