@@ -858,7 +858,7 @@ static void test_3()
     iprintf("%lld\n",delta);
     //10% tolerance
     auto m=MAX_TIME_IRQ_DISABLED*1000;
-    if(delta<(m-m/10) || delta>(m+m/10)) fail("getTime and delayMs don't agree");
+    if(delta<(m-m/10) || delta>(m+m/10)) fail("getTime and delayUs don't agree");
     Thread *p=Thread::create(t3_p1,STACK_SMALL,0,NULL,Thread::JOINABLE);
     for(int i=0;i<4;i++)
     {

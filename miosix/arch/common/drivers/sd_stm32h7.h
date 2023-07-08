@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2018-2021 by Terraneo Federico                          *
+ *   Copyright (C) 2014 by Terraneo Federico                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,40 +25,40 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#pragma once
+#ifndef SD_STM32H7_H
+#define	SD_STM32H7_H
 
-/**
- * \internal
- * Versioning for board_settings.h for out of git tree projects
- */
-#define BOARD_SETTINGS_VERSION 300
+#include "kernel/sync.h"
+#include "filesystem/devfs/devfs.h"
+#include "filesystem/ioctl.h"
 
 namespace miosix {
 
 /**
- * \addtogroup Settings
- * \{
+ * Driver for the SDIO peripheral in STM32F2 and F4 microcontrollers
  */
-
-/// Size of stack for main().
-/// The C standard library is stack-heavy (iprintf requires 1KB)
-const unsigned int MAIN_STACK_SIZE=4*1024;
-
-/// Serial port
-//This board only exposes USART1, without flow control
-const unsigned int defaultSerialSpeed=115200;
-const unsigned int defaultSerialPort=3;
-// #define SERIAL_1_DMA //TODO: serial port DMA
-// #define SERIAL_2_DMA
-// #define SERIAL_3_DMA
-
-//SD card driver
-static const unsigned char sdVoltage=33; //Board powered @ 3.3V
-#define SD_SDMMC 1 //Select either SDMMC1 or SDMMC2
-#define SD_ONE_BIT_DATABUS //For now we'll use 1 bit bus
-
-/**
- * \}
- */
+class SDIODriver : public Device
+{
+public:
+    /**
+     * \return an instance to this class, singleton
+     */
+    static intrusive_ref_ptr<SDIODriver> instance();
+    
+    virtual ssize_t readBlock(void *buffer, size_t size, off_t where);
+    
+    virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where);
+    
+    virtual int ioctl(int cmd, void *arg);
+private:
+    /**
+     * Constructor
+     */
+    SDIODriver();
+    
+    FastMutex mutex;
+};
 
 } //namespace miosix
+
+#endif //SD_STM32F2_F4_H
