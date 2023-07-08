@@ -175,25 +175,30 @@ extract()
 {
 	label=$1
 	filename=$2
-	patchfile=$3
+	shift 2
 	directory=${filename%.tar*}
 	
 	if [[ -e $directory ]]; then
 		echo "Skipping extraction/patching of $label, directory $directory exists"
 	else
 		echo "Extracting $label..."
-		tar -xf downloaded/$2 || quit ":: Error extracting $label"
-		if [[ ! -z "$patchfile" ]]; then
+		tar -xf "downloaded/$filename" || quit ":: Error extracting $label"
+		for patchfile in $@; do
+			echo "Applying ${patchfile}..."
 			patch -p0 < "$patchfile" || quit ":: Failed patching $label"
-		fi
+		done
 	fi
 }
 
 extract 'binutils' $BINUTILS.tar.xz patches/binutils.patch
-extract 'gcc' $GCC.tar.xz patches/gcc.patch
+if [[ ( $(uname -s) == 'Darwin' ) && ( $(uname -m) == 'arm64' ) ]]; then
+	extract 'gcc' $GCC.tar.xz patches/gcc.patch patches/gcc_mac_arm64.patch
+else
+	extract 'gcc' $GCC.tar.xz patches/gcc.patch
+fi
 extract 'newlib' $NEWLIB.tar.gz patches/newlib.patch
 extract 'gdb' $GDB.tar.xz patches/gdb.patch
-extract 'gmp' $GMP.tar.xz
+extract 'gmp' $GMP.tar.xz patches/gmp_arm64.patch
 extract 'mpfr' $MPFR.tar.xz
 extract 'mpc' $MPC.tar.gz
 
