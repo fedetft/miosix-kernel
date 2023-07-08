@@ -56,17 +56,23 @@ HOST=
 # Must first install the osxcross toolchain
 #BUILD=
 #HOST=x86_64-apple-darwin18
-# Uncomment if targeting macOS 64 bit Intel (distributable), compiling on macOS
+# Uncomment if targeting macOS 64 bit Intel (distributable), compiling on macOS.
 # The script must be run under macOS and without canadian cross compiling
 # because it confuses autotools's configuration scripts. Instead we set the
 # compiler options for macOS minimum version and architecture in order to be
 # able to deploy the binaries on older machines and OS versions. We also must
 # force --build and --host to specify a x86_64 cpu to avoid
 # architecture-dependent code.
-#BUILD=x86_64-apple-darwin17 # No macs exist with a cpu older than a Core 2
+#BUILD=x86_64-apple-darwin17
 #HOST=
 #export CFLAGS='-mmacos-version-min=10.13 -O3'
 #export CXXFLAGS='-mmacos-version-min=10.13 -O3'
+# Uncomment if targeting macOS 64 bit ARM64 (distributable).
+# Run the script under arm64 macOS.
+#BUILD=aarch64-apple-darwin20
+#HOST=
+#export CFLAGS='-mmacos-version-min=11.0 -O3'
+#export CXXFLAGS='-mmacos-version-min=11.0 -O3'
 
 #### Configuration tunables -- end ####
 
