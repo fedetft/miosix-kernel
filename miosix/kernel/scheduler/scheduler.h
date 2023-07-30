@@ -31,7 +31,7 @@
 #include "kernel/scheduler/priority/priority_scheduler.h"
 #include "kernel/scheduler/control/control_scheduler.h"
 #include "kernel/scheduler/edf/edf_scheduler.h"
-#include "kernel/cpu_time_counter_private.h"
+#include "kernel/cpu_time_counter.h"
 
 namespace miosix {
 
@@ -165,13 +165,7 @@ public:
      */
     static void IRQfindNextThread()
     {
-        #ifdef WITH_CPU_TIME_COUNTER
-        long long t=CPUTimeCounter::IRQwillSwitchContext();
-        #endif
         T::IRQfindNextThread();
-        #ifdef WITH_CPU_TIME_COUNTER
-        CPUTimeCounter::IRQdidSwitchContext(t);
-        #endif
     }
     
     /**

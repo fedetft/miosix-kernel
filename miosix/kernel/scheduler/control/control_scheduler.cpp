@@ -51,7 +51,9 @@ static inline void IRQsetNextPreemptionForIdle()
 {
     if(sleepingList.empty()) nextPreemption=numeric_limits<long long>::max();
     else nextPreemption=sleepingList.front()->wakeupTime;
-
+    #ifdef WITH_CPU_TIME_COUNTER
+    burstStart=IRQgetTime();
+    #endif // WITH_CPU_TIME_COUNTER
     //We could not set an interrupt if the sleeping list is empty but there's
     //no such hurry to run idle anyway, so why bother?
     internal::IRQosTimerSetInterrupt(nextPreemption);
@@ -183,6 +185,9 @@ long long ControlScheduler::IRQgetNextPreemption()
 void ControlScheduler::IRQfindNextThread()
 {
     if(kernelRunning!=0) return;//If kernel is paused, do nothing
+    #ifdef WITH_CPU_TIME_COUNTER
+    Thread *prev=const_cast<Thread*>(runningThread);
+    #endif // WITH_CPU_TIME_COUNTER
 
     if(runningThread!=idle)
     {
@@ -235,6 +240,10 @@ void ControlScheduler::IRQfindNextThread()
                 miosix_private::MPUConfiguration::IRQdisable();
                 #endif
                 IRQsetNextPreemptionForIdle();
+                #ifdef WITH_CPU_TIME_COUNTER
+                IRQprofileContextSwitch(prev->timeCounterData,
+                                        idle->timeCounterData,burstStart);
+                #endif //WITH_CPU_TIME_COUNTER
                 return;
             }
 
@@ -261,6 +270,10 @@ void ControlScheduler::IRQfindNextThread()
             ctxsave=runningThread->ctxsave;
             #endif //WITH_PROCESSES
             IRQsetNextPreemption(curInRound->schedData.bo/multFactor);
+            #ifdef WITH_CPU_TIME_COUNTER
+            IRQprofileContextSwitch(prev->timeCounterData,
+                                    curInRound->timeCounterData,burstStart);
+            #endif //WITH_CPU_TIME_COUNTER
             return;
         } else {
             //If we get here we have a non ready thread that cannot run,
@@ -585,6 +598,9 @@ long long ControlScheduler::IRQgetNextPreemption()
 void ControlScheduler::IRQfindNextThread()
 {
     if(kernelRunning!=0) return;//If kernel is paused, do nothing
+    #ifdef WITH_CPU_TIME_COUNTER
+    Thread *prev=const_cast<Thread*>(runningThread);
+    #endif // WITH_CPU_TIME_COUNTER
 
     if(runningThread!=idle)
     {
@@ -632,6 +648,10 @@ void ControlScheduler::IRQfindNextThread()
                 MPUConfiguration::IRQdisable();
                 #endif
                 IRQsetNextPreemptionForIdle();
+                #ifdef WITH_CPU_TIME_COUNTER
+                IRQprofileContextSwitch(prev->timeCounterData,
+                                        idle->timeCounterData,burstStart);
+                #endif //WITH_CPU_TIME_COUNTER
                 return;
             }
 
@@ -658,6 +678,10 @@ void ControlScheduler::IRQfindNextThread()
             ctxsave=runningThread->ctxsave;
             #endif //WITH_PROCESSES
             IRQsetNextPreemption(runningThread->schedData.bo/multFactor);
+            #ifdef WITH_CPU_TIME_COUNTER
+            IRQprofileContextSwitch(prev->timeCounterData,
+                                    (*curInRound)->t->timeCounterData,burstStart);
+            #endif //WITH_CPU_TIME_COUNTER
             return;
         } else {
             //Error: a not ready thread end up in the ready list

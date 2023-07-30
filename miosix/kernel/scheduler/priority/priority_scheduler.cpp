@@ -203,23 +203,28 @@ long long PriorityScheduler::IRQgetNextPreemption()
     return nextPeriodicPreemption;
 }
 
-static void IRQsetNextPreemption(bool runningIdleThread)
+static long long IRQsetNextPreemption(bool runningIdleThread)
 {
     long long first;
     if(sleepingList.empty()) first=std::numeric_limits<long long>::max();
     else first=sleepingList.front()->wakeupTime;
 
+    long long t=IRQgetTime();
     if(runningIdleThread) nextPeriodicPreemption=first;
-    else nextPeriodicPreemption=std::min(first,IRQgetTime()+MAX_TIME_SLICE);
+    else nextPeriodicPreemption=std::min(first,t+MAX_TIME_SLICE);
 
     //We could not set an interrupt if the sleeping list is empty and runningThread
     //is idle but there's no such hurry to run idle anyway, so why bother?
     internal::IRQosTimerSetInterrupt(nextPeriodicPreemption);
+    return t;
 }
 
 void PriorityScheduler::IRQfindNextThread()
 {
     if(kernelRunning!=0) return;//If kernel is paused, do nothing
+    #ifdef WITH_CPU_TIME_COUNTER
+    Thread *prev=const_cast<Thread*>(runningThread);
+    #endif // WITH_CPU_TIME_COUNTER
     for(int i=PRIORITY_MAX-1;i>=0;i--)
     {
         if(threadList[i]==nullptr) continue;
@@ -246,7 +251,12 @@ void PriorityScheduler::IRQfindNextThread()
                 //Rotate to next thread so that next time the list is walked
                 //a different thread, if available, will be chosen first
                 threadList[i]=temp;
+                #ifndef WITH_CPU_TIME_COUNTER
                 IRQsetNextPreemption(false);
+                #else //WITH_CPU_TIME_COUNTER
+                auto t=IRQsetNextPreemption(false);
+                IRQprofileContextSwitch(prev->timeCounterData,temp->timeCounterData,t);
+                #endif //WITH_CPU_TIME_COUNTER
                 return;
             } else temp=temp->schedData.next;
             if(temp==threadList[i]->schedData.next) break;
@@ -258,7 +268,12 @@ void PriorityScheduler::IRQfindNextThread()
     #ifdef WITH_PROCESSES
     MPUConfiguration::IRQdisable();
     #endif //WITH_PROCESSES
+    #ifndef WITH_CPU_TIME_COUNTER
     IRQsetNextPreemption(true);
+    #else //WITH_CPU_TIME_COUNTER
+    auto t=IRQsetNextPreemption(true);
+    IRQprofileContextSwitch(prev->timeCounterData,idle->timeCounterData,t);
+    #endif //WITH_CPU_TIME_COUNTER
 }
 
 Thread *PriorityScheduler::threadList[PRIORITY_MAX]={nullptr};

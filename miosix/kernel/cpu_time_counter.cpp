@@ -26,7 +26,6 @@
  ***************************************************************************/
 
 #include "cpu_time_counter.h"
-#include "cpu_time_counter_private.h"
 #include "kernel/kernel.h"
 
 #ifdef WITH_CPU_TIME_COUNTER
@@ -43,8 +42,9 @@ long long CPUTimeCounter::getActiveThreadTime()
     {
         PauseKernelLock pk;
         curTime = IRQgetTime();
-        usedTime = runningThread->timeCounterData.usedCpuTime;
-        lastAct = runningThread->timeCounterData.lastActivation;
+        auto cur = Thread::PKgetCurrentThread();
+        usedTime = cur->timeCounterData.usedCpuTime;
+        lastAct = cur->timeCounterData.lastActivation;
     }
     return usedTime + (curTime - lastAct);
 }

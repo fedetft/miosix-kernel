@@ -193,25 +193,25 @@ private:
      * threads.
      */
     static void PKremoveDeadThreads();
-
-    /**
-     * \internal
-     * Notify that a context switch is about to happen.
-     * \returns The current time.
-     */
-    static inline long long IRQwillSwitchContext();
-
-    /**
-     * \internal
-     * Notify that a context switch has just happened.
-     * \param t The time of the context switch.
-     */
-    static inline void IRQdidSwitchContext(long long t);
     
     static Thread *head; ///< Head of the thread list
     static Thread *tail; ///< Tail of the thread list
     static volatile unsigned int nThreads; ///< Number of threads in the list
 };
+
+/**
+ * Function to be called in the context switch code to profile threads
+ * \param prev time count struct of previously running thread
+ * \param prev time count struct of thread to be scheduled next
+ * \param t (approximate) current time, a time point taken somewhere during
+ * the context switch code
+ */
+static inline void IRQprofileContextSwitch(CPUTimeCounterPrivateThreadData& prev,
+    CPUTimeCounterPrivateThreadData& next, long long t)
+{
+    prev.usedCpuTime += t - prev.lastActivation;
+    next.lastActivation = t;
+}
 
 /**
  * \}

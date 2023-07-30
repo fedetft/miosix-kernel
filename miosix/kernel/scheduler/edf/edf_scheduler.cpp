@@ -129,6 +129,9 @@ static void IRQsetNextPreemption()
 void EDFScheduler::IRQfindNextThread()
 {
     if(kernelRunning!=0) return;//If kernel is paused, do nothing
+    #ifdef WITH_CPU_TIME_COUNTER
+    Thread *prev=const_cast<Thread*>(runningThread);
+    #endif // WITH_CPU_TIME_COUNTER
     Thread *walk=head;
     for(;;)
     {
@@ -150,6 +153,10 @@ void EDFScheduler::IRQfindNextThread()
             ctxsave=runningThread->ctxsave;
             #endif //WITH_PROCESSES
             IRQsetNextPreemption();
+            #ifdef WITH_CPU_TIME_COUNTER
+            IRQprofileContextSwitch(prev->timeCounterData,walk->timeCounterData,
+                                    IRQgetTime());
+            #endif //WITH_CPU_TIME_COUNTER
             return;
         }
         walk=walk->schedData.next;
