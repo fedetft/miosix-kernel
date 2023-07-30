@@ -1734,7 +1734,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+        PROGRAM_CMDLINE := dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D main.bin
 
     ##-------------------------------------------------------------------------
     ## End of board list
