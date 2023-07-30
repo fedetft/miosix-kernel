@@ -36,14 +36,14 @@ namespace miosix {
 // Declared in kernel.cpp
 extern volatile Thread *runningThread;
 
-long long CPUTimeCounter::PKwillSwitchContext()
+long long CPUTimeCounter::IRQwillSwitchContext()
 {
     long long t=IRQgetTime();
     runningThread->timeCounterData.usedCpuTime+=t-runningThread->timeCounterData.lastActivation;
     return t;
 }
 
-void CPUTimeCounter::PKdidSwitchContext(long long t)
+void CPUTimeCounter::IRQdidSwitchContext(long long t)
 {
     runningThread->timeCounterData.lastActivation=t;
 }

@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef CPU_TIME_COUNTER_TYPES_H
-#define CPU_TIME_COUNTER_TYPES_H
+#pragma once
 
 #include "config/miosix_settings.h"
 
@@ -53,5 +52,3 @@ struct CPUTimeCounterPrivateThreadData
 }
 
 #endif // WITH_CPU_TIME_COUNTER
-
-#endif

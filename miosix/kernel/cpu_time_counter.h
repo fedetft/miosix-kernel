@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef CPU_TIME_COUNTER_H
-#define CPU_TIME_COUNTER_H
+#pragma once
 
 #include "kernel.h"
 #include "cpu_time_counter_types.h"
@@ -167,12 +166,11 @@ private:
      * Add the idle thread to the list of threads tracked by CPUTimeCounter.
      * \param thread The idle thread.
      */
-    static inline void PKaddIdleThread(Thread *thread)
+    static inline void IRQaddIdleThread(Thread *thread)
     {
         thread->timeCounterData.next = head;
         head = thread;
-        if (!tail)
-            tail = thread;
+        if(!tail) tail = thread;
         nThreads++;
     }
 
@@ -185,8 +183,7 @@ private:
     {
         tail->timeCounterData.next = thread;
         tail = thread;
-        if (!head)
-            head = thread;
+        if(!head) head = thread;
         nThreads++;
     }
 
@@ -202,14 +199,14 @@ private:
      * Notify that a context switch is about to happen.
      * \returns The current time.
      */
-    static inline long long PKwillSwitchContext();
+    static inline long long IRQwillSwitchContext();
 
     /**
      * \internal
      * Notify that a context switch has just happened.
      * \param t The time of the context switch.
      */
-    static inline void PKdidSwitchContext(long long t);
+    static inline void IRQdidSwitchContext(long long t);
     
     static Thread *head; ///< Head of the thread list
     static Thread *tail; ///< Tail of the thread list
@@ -223,5 +220,3 @@ private:
 }
 
 #endif // WITH_CPU_TIME_COUNTER
-
-#endif

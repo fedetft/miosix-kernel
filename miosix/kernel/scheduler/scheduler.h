@@ -135,7 +135,7 @@ public:
     static void IRQsetIdleThread(Thread *idleThread)
     {
         #ifdef WITH_CPU_TIME_COUNTER
-        CPUTimeCounter::PKaddIdleThread(idleThread);
+        CPUTimeCounter::IRQaddIdleThread(idleThread);
         #endif
         return T::IRQsetIdleThread(idleThread);
     }
@@ -166,11 +166,11 @@ public:
     static void IRQfindNextThread()
     {
         #ifdef WITH_CPU_TIME_COUNTER
-        long long t=CPUTimeCounter::PKwillSwitchContext();
+        long long t=CPUTimeCounter::IRQwillSwitchContext();
         #endif
         T::IRQfindNextThread();
         #ifdef WITH_CPU_TIME_COUNTER
-        CPUTimeCounter::PKdidSwitchContext(t);
+        CPUTimeCounter::IRQdidSwitchContext(t);
         #endif
     }
     
