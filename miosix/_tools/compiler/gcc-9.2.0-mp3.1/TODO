@@ -10,3 +10,63 @@ in this way:
 __gthread_cond_timedwait(&_M_cond, __lock.mutex()->native_handle(), &__ts);
 return (__clock_t::now() < __atime ? cv_status::no_timeout : cv_status::timeout);
 use the return value of pthread_cond_timedwait instead to optimize code
+
+In libstdc++ header condition_variable condition_variable::wait_for calls both clock_gettime(CLOCK_REALTIME... and clock_gettime(CLOCK_MONOTONIC...
+This is not needed as pthread_cond_timedwait in Miosix refuses to follow the
+(broken) standard on purpose and accepts the timeout directly in terms of
+CLOCK_MONOTONIC.
+defiitions are in time.h, CLOCK_REALTIME is 1, wile CLOCK_MONOTONIC is 4
+Some test code:
+
+#include <cstdio>
+#include <cstring>
+#include <chrono>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include "miosix.h"
+
+using namespace std;
+using namespace std::chrono;
+using namespace miosix;
+
+mutex t25_m1;
+condition_variable t25_c1;
+
+void fail(const char *s) { iprintf("Fail %s\n",s); for(;;) ; }
+
+int main()
+{
+    {
+        unique_lock<mutex> l(t25_m1);
+        auto a=chrono::steady_clock::now().time_since_epoch().count();
+        if(t25_c1.wait_for(l,10ms)!=cv_status::timeout) fail("timedwait (1)");
+        auto b=chrono::steady_clock::now().time_since_epoch().count();
+        //iprintf("delta=%lld\n",b-a-10000000);
+        if(llabs(b-a-10000000)>200000) fail("timedwait (2)");
+    }
+    {
+        unique_lock<mutex> l(t25_m1);
+        auto start=chrono::steady_clock::now();
+        auto a=start.time_since_epoch().count();
+        if(t25_c1.wait_until(l,start+10ms)!=cv_status::timeout) fail("timedwait (3)");
+        auto b=chrono::steady_clock::now().time_since_epoch().count();
+        //iprintf("delta=%lld\n",b-a-10000000);
+        if(llabs(b-a-10000000)>200000) fail("timedwait (4)");
+    }
+    {
+        thread t([]{
+            this_thread::sleep_for(30ms);
+            t25_c1.notify_one();
+        });
+        auto a=chrono::steady_clock::now().time_since_epoch().count();
+        unique_lock<mutex> l(t25_m1);
+        if(t25_c1.wait_for(l,100ms)!=cv_status::no_timeout) fail("timedwait (5)");
+        auto b=chrono::steady_clock::now().time_since_epoch().count();
+        //iprintf("delta=%lld\n",b-a-30000000);
+        if(llabs(b-a-30000000)>500000) fail("timedwait (6)");
+        t.join();
+    }
+
+    for(;;) ;
+}
