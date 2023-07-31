@@ -175,11 +175,7 @@ public:
      * Same as reset(), but to be used only inside IRQs or when interrupts are
      * disabled.
      */
-    void IRQreset()
-    {
-        IRQwakeWaitingThread();
-        putPos=getPos=numElem=0;
-    }
+    void IRQreset();
 
     //Unwanted methods
     Queue(const Queue& s) = delete;
@@ -290,9 +286,26 @@ bool Queue<T,len>::IRQget(T& elem, bool *hppw)
     IRQwakeWaitingThread();
     if(isEmpty()) return false;
     numElem--;
-    elem=buffer[getPos];
+    elem=std::move(buffer[getPos]);
     if(++getPos==len) getPos=0;
     return true;
+}
+
+template <typename T, unsigned int len>
+void Queue<T,len>::IRQreset()
+{
+    IRQwakeWaitingThread();
+    //Relying on constant folding to omit this code for trivial types
+    if(std::is_trivially_destructible<T>::value==false)
+    {
+        while(!isEmpty())
+        {
+            numElem--;
+            buffer[getPos].~T();
+            if(++getPos==len) getPos=0;
+        }
+    }
+    putPos=getPos=numElem=0;
 }
 
 //This partial specialization is meant to to produce compiler errors in case an
