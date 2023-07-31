@@ -817,10 +817,10 @@ static void t3_p1(void *argv)
     const int SLEEP_TIME=100;//ms
     for(;;)
     {
-        if(Thread::testTerminate()) break;
         //Test that Thread::sleep sleeps the desired time
         long long x1=getTime(); //getTime returns passed time in ns
         Thread::sleep(SLEEP_TIME);
+        if(Thread::testTerminate()) break;
         long long x2=getTime();
         if(llabs((x2-x1)/1000000-SLEEP_TIME)>0) //Max tolerated error is 1ms
             fail("Thread::sleep() or getTime()");

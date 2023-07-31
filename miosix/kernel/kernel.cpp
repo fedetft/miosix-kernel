@@ -369,25 +369,22 @@ void Thread::nanoSleepUntil(long long absoluteTimeNs)
     //Disallow absolute sleeps with negative or too low values, as the ns2tick()
     //algorithm in TimeConversion can't handle negative values and may undeflow
     //even with very low values due to a negative adjustOffsetNs. As an unlikely
-    //side effect, very shor sleeps done very early at boot will be extended.
+    //side effect, very short sleeps done very early at boot will be extended.
     absoluteTimeNs=std::max(absoluteTimeNs,100000LL);
-    //The SleepData variable has to be in scope till Thread::yield() returns
-    //as IRQaddToSleepingList() makes it part of a linked list till the
-    //thread wakes up (i.e: after Thread::yield() returns)
-    SleepData d(const_cast<Thread*>(runningThread),absoluteTimeNs);
     //pauseKernel() here is not enough since even if the kernel is stopped
     //the timer isr will wake threads, modifying the sleepingList
     {
-        FastInterruptDisableLock lock;
+        FastInterruptDisableLock dLock;
+        SleepData d(const_cast<Thread*>(runningThread),absoluteTimeNs);
         d.thread->flags.IRQsetSleep(); //Sleeping thread: set sleep flag
         IRQaddToSleepingList(&d);
+        {
+            FastInterruptEnableLock eLock(dLock);
+            Thread::yield();
+        }
+        //Only required for interruptibility when terminate is called
+        sleepingList.removeFast(&d);
     }
-    // NOTE: There is no need to synchronize the timer (calling IRQsetNextInterrupt)
-    // with the list at this point. Because, Thread::yield will make a supervisor
-    // call and subsequently it will call the IRQfindNextThread. IRQfindNextThread
-    // keeps the timer synchronized with the sleeping list head and beginning of
-    // next burst time. See ISR_yield() in portability.cpp
-    Thread::yield();
 }
 
 void Thread::wait()
@@ -527,7 +524,9 @@ void Thread::terminate()
     //doing a read-modify-write operation on this->status, so pauseKernel is
     //not enough, we need to disable interrupts
     FastInterruptDisableLock lock;
+    if(this->flags.isDeleting()) return; //Prevent sleep interruption abuse
     this->flags.IRQsetDeleting();
+    this->flags.IRQclearSleepAndWait(); //Interruptibility
 }
 
 bool Thread::testTerminate()

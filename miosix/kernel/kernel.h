@@ -832,7 +832,9 @@ public:
      * terminate. The user is responsible for implementing correctly this
      * functionality.<br>Thread termination is implemented like this to give
      * time to a thread to deallocate resources, close files... before
-     * terminating. <br>Can be called when the kernel is paused.
+     * terminating.<br>The first call to terminate on a thread will make it
+     * return prematurely form wait(), sleep() and timedWait() call, but only
+     * once.<br>Can be called when the kernel is paused.
      */
     void terminate();
 
