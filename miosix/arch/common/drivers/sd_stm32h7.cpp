@@ -47,11 +47,11 @@ void debugThread(void *){
 //Note: enabling debugging might cause deadlock when using sleep() or reboot()
 //The bug won't be fixed because debugging is only useful for driver development
 ///\internal Debug macro, for normal conditions
-// #define DBG iprintf
-#define DBG(x,...) do {} while(0)
+#define DBG iprintf
+// #define DBG(x,...) do {} while(0)
 ///\internal Debug macro, for errors only
-// #define DBGERR iprintf
-#define DBGERR(x,...) do {} while(0)
+#define DBGERR iprintf
+// #define DBGERR(x,...) do {} while(0)
 
 #if SD_SDMMC==1
 #define SDMMC                 SDMMC1
@@ -230,8 +230,9 @@ public:
     static bool isGoodBuffer(const void *x)
     {
         // TODO check if this range is correct for H7
-        unsigned int ptr=reinterpret_cast<const unsigned int>(x);
-        return (ptr<0x10000000) || (ptr>=(0x10000000+64*1024));
+        //unsigned int ptr=reinterpret_cast<const unsigned int>(x);
+        // return (ptr<0x10000000) || (ptr>=(0x10000000+64*1024));
+        return true;
     }
 
     /**
@@ -724,8 +725,8 @@ private:
      */
     static void setClockSpeed(unsigned int clkdiv);
     
-    static const unsigned int SDMMCCLK=204000000; //On stm32f2 SDMMCCLK is always 48MHz
-    static const unsigned int CLOCK_400KHz=50; //48MHz/(118+2)=400KHz
+    static const unsigned int SDMMCCLK=137500000; //On stm32f2 SDMMCCLK is always 48MHz
+    static const unsigned int CLOCK_400KHz=174; //48MHz/(118+2)=400KHz
     #ifdef OVERRIDE_SD_CLOCK_DIVIDER_MAX
     //Some boards using SDRAM cause SDMMC TX Underrun occasionally
     static const unsigned int CLOCK_MAX=OVERRIDE_SD_CLOCK_DIVIDER_MAX;
@@ -866,7 +867,7 @@ static void displayBlockTransferError()
  * memory transfer size based on buffer alignment
  * \return the best DMA transfer size for a given buffer alignment 
  */
-static unsigned int dmaTransferCommonSetup(const unsigned char *buffer)
+static void dmaTransferCommonSetup(const unsigned char *buffer)
 {
     //Clear both SDMMC and DMA interrupt flags
     SDMMC->ICR=ICR_FLAGS_CLR;
@@ -875,15 +876,7 @@ static unsigned int dmaTransferCommonSetup(const unsigned char *buffer)
     transferError=false;
     dmaFlags=sdmmcFlags=0;
     waiting=Thread::getCurrentThread();
-    
-    //Select DMA transfer size based on buffer alignment. Best performance
-    //is achieved when the buffer is aligned on a 4 byte boundary
-    switch(reinterpret_cast<unsigned int>(buffer) & 0x3)
-    {
-        case 0:  return DMA_SxCR_MSIZE_1; //DMA reads 32bit at a time
-        case 2:  return DMA_SxCR_MSIZE_0; //DMA reads 16bit at a time
-        default: return 0;                //DMA reads  8bit at a time
-    }
+
 }
 
 /**
@@ -910,7 +903,7 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
     
     if(cardType!=SDHC) lba*=512; // Convert to byte address if not SDHC
     
-    unsigned int memoryTransferSize=dmaTransferCommonSetup(buffer);
+    dmaTransferCommonSetup(buffer);
     
     //Data transfer is considered complete once the DMA transfer complete
     //interrupt occurs, that happens when the last data was written in the
@@ -925,7 +918,8 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
     SDMMC->CMD |= SDMMC_CMD_CMDTRANS;
 
     SDMMC->IDMABASE0 = (uint32_t)buffer;
-    SDMMC->IDMACTRL = SDMMC_IDMA_IDMAEN;
+    SDMMC->IDMACTRL &= ~SDMMC_IDMA_IDMABMODE;
+    SDMMC->IDMACTRL |= SDMMC_IDMA_IDMAEN;
     
     SDMMC->DLEN=nblk*512;
 
@@ -938,7 +932,7 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
     if(cr.validateR1Response())
     {
         //Block size 512 bytes, block data xfer, from card to controller
-        SDMMC->DCTRL=(9<<4) | SDMMC_DCTRL_DTDIR | SDMMC_DCTRL_DTEN;
+        SDMMC->DCTRL=(9<<4) | SDMMC_DCTRL_DTDIR | SDMMC_DCTRL_DTEN | SDMMC_DCTRL_DTMODE_0;
         FastInterruptDisableLock dLock;
         while(waiting)
         {
@@ -1004,7 +998,7 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
         if(cr.validateR1Response()==false) return false;
     }
     
-    unsigned int memoryTransferSize=dmaTransferCommonSetup(buffer);
+    dmaTransferCommonSetup(buffer);
     
     //Data transfer is considered complete once the SDMMC transfer complete
     //interrupt occurs, that happens when the last data was written to the SDMMC
