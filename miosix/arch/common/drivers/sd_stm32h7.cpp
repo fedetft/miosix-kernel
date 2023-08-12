@@ -47,11 +47,11 @@ void debugThread(void *){
 //Note: enabling debugging might cause deadlock when using sleep() or reboot()
 //The bug won't be fixed because debugging is only useful for driver development
 ///\internal Debug macro, for normal conditions
-#define DBG iprintf
-// #define DBG(x,...) do {} while(0)
+// #define DBG iprintf
+#define DBG(x,...) do {} while(0)
 ///\internal Debug macro, for errors only
-#define DBGERR iprintf
-// #define DBGERR(x,...) do {} while(0)
+// #define DBGERR iprintf
+#define DBGERR(x,...) do {} while(0)
 
 #if SD_SDMMC==1
 #define SDMMC                 SDMMC1
@@ -777,12 +777,12 @@ void ClockController::calibrateClockSpeed(SDIODriver *sdmmc)
         else maxFreq=selected;
     }
     //Last round of algorithm
-    setClockSpeed(maxFreq);
+    setClockSpeed(2);
     if(sdmmc->readBlock(reinterpret_cast<unsigned char*>(buffer),512,0)==512)
     {
         DBG("Optimal CLKCR=%d\n",maxFreq);
     } else {
-        setClockSpeed(minFreq);
+        setClockSpeed(2);
         DBG("Optimal CLKCR=%d\n",minFreq);
     }
 
@@ -932,7 +932,7 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
     if(cr.validateR1Response())
     {
         //Block size 512 bytes, block data xfer, from card to controller
-        SDMMC->DCTRL=(9<<4) | SDMMC_DCTRL_DTDIR | SDMMC_DCTRL_DTEN | SDMMC_DCTRL_DTMODE_0;
+        SDMMC->DCTRL=(9<<4) | SDMMC_DCTRL_DTDIR | SDMMC_DCTRL_DTEN;
         FastInterruptDisableLock dLock;
         while(waiting)
         {
