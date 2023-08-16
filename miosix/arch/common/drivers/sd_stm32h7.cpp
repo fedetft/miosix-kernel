@@ -65,40 +65,6 @@ void debugThread(void *){
 #error SD_SDMMC undefined or not in range
 #endif
 
-// #define SDMMC_STA_STBITERR    0 //This bit has been removed
-// #define SDMMC_STA_RXOVERR     SDMMC_STA_RXOVERR
-// #define SDMMC_STA_TXUNDERR    SDMMC_STA_TXUNDERR
-// #define SDMMC_STA_DTIMEOUT    SDMMC_STA_DTIMEOUT
-// #define SDMMC_STA_DCRCFAIL    SDMMC_STA_DCRCFAIL
-// #define SDMMC_STA_CMDSENT     SDMMC_STA_CMDSENT
-// #define SDMMC_STA_CMDREND     SDMMC_STA_CMDREND
-// #define SDMMC_STA_CCRCFAIL    SDMMC_STA_CCRCFAIL
-// #define SDMMC_STA_CTIMEOUT    SDMMC_STA_CTIMEOUT
-
-// #define SDMMC_CMD_CPSMEN      SDMMC_CMD_CPSMEN
-// #define SDMMC_CMD_WAITRESP_0  SDMMC_CMD_WAITRESP_0
-// #define SDMMC_CMD_WAITRESP_1  SDMMC_CMD_WAITRESP_1
-
-// #define SDMMC_ICR_CTIMEOUTC   SDMMC_ICR_CTIMEOUTC
-// #define SDMMC_ICR_CCRCFAILC   SDMMC_ICR_CCRCFAILC
-
-// #define SDMMC_CLKCR_CLKEN     0
-// #define SDMMC_CLKCR_PWRSAV    SDMMC_CLKCR_PWRSAV
-// #define SDMMC_CLKCR_PWRSAV    SDMMC_CLKCR_PWRSAV
-// #define SDMMC_CLKCR_WIDBUS_0  SDMMC_CLKCR_WIDBUS_0
-
-// #define SDMMC_MASK_STBITERRIE 0 //This bit has been removed
-// #define SDMMC_MASK_RXOVERRIE  SDMMC_MASK_RXOVERRIE
-// #define SDMMC_MASK_TXUNDERRIE SDMMC_MASK_TXUNDERRIE
-// #define SDMMC_MASK_DCRCFAILIE SDMMC_MASK_DCRCFAILIE
-// #define SDMMC_MASK_DTIMEOUTIE SDMMC_MASK_DTIMEOUTIE
-// #define SDMMC_MASK_DATAENDIE  SDMMC_MASK_DATAENDIE
-
-// #define SDMMC_DCTRL_DTDIR     SDMMC_DCTRL_DTDIR
-// #define SDMMC_DCTRL_DTEN      SDMMC_DCTRL_DTEN
-
-// #define SDMMC_POWER_PWRCTRL_1 SDMMC_POWER_PWRCTRL_1
-// #define SDMMC_POWER_PWRCTRL_0 SDMMC_POWER_PWRCTRL_0
 
 constexpr int ICR_FLAGS_CLR=0x5ff;
 
@@ -122,7 +88,6 @@ namespace miosix {
 
 static volatile bool transferError; ///< \internal DMA or SDMMC transfer error
 static Thread *waiting;             ///< \internal Thread waiting for transfer
-static unsigned int dmaFlags;       ///< \internal DMA status flags
 static unsigned int sdmmcFlags;      ///< \internal SDMMC status flags
 
 
@@ -185,151 +150,6 @@ typedef Gpio<GPIOC_BASE,11> sdD3;
 typedef Gpio<GPIOC_BASE,12> sdCLK;
 typedef Gpio<GPIOD_BASE,2>  sdCMD;
 #endif
-
-
-//
-// Class BufferConverter
-//
-
-/**
- * \internal
- * After fixing the FSMC bug in the stm32f1, ST decided to willingly introduce
- * another quirk in the stm32f4. They introduced a core coupled memory that is
- * not accessible by the DMA. While from an hardware perspective it may make
- * sense, it is a bad design decision when viewed from the software side.
- * This is because if application code allocates a buffer in the core coupled
- * memory and passes that to an fread() or fwrite() call, that buffer is
- * forwarded here, and this driver is DMA-based... Now, in an OS such as Miosix
- * that tries to shield the application developer from such quirks, it is
- * unacceptable to fail to work in such an use case, so this class exists to
- * try and work around this.
- * In essence, the first "bad buffer" that is passed to a readBlock() or
- * writeBlock() causes the allocation on the heap (which Miosix guarantees
- * is not allocated in the core coupled memory) of a 512 byte buffer which is
- * then never deallocated and always reused to deal with these bad buffers.
- * While this works, performance suffers for two reasons: first, when dealing
- * with those bad buffers, the filesystem code is no longer zero copy, and
- * second because multiple block read/writes between bad buffers and the SD
- * card are implemented as a sequence of single block read/writes.
- * If you're an application developer and care about speed, try to allocate
- * your buffers in the heap if you're coding for the STM32F4.
- */
-class BufferConverter
-{
-public:
-    /**
-     * \internal
-     * The buffer will be of this size only.
-     */
-    static const int BUFFER_SIZE=512;
-
-    /**
-     * \internal
-     * \return true if the pointer is not inside the CCM
-     */
-    static bool isGoodBuffer(const void *x)
-    {
-        // TODO check if this range is correct for H7
-        //unsigned int ptr=reinterpret_cast<const unsigned int>(x);
-        // return (ptr<0x10000000) || (ptr>=(0x10000000+64*1024));
-        return true;
-    }
-
-    /**
-     * \internal
-     * Convert from a constunsigned char* buffer of size BUFFER_SIZE to a
-     * const unsigned int* word aligned buffer.
-     * If the original buffer is already word aligned it only does a cast,
-     * otherwise it copies the data on the original buffer to a word aligned
-     * buffer. Useful if subseqent code will read from the buffer.
-     * \param a buffer of size BUFFER_SIZE. Can be word aligned or not.
-     * \return a word aligned buffer with the same data of the given buffer
-     */
-    static const unsigned char *toWordAligned(const unsigned char *buffer);
-
-    /**
-     * \internal
-     * Convert from an unsigned char* buffer of size BUFFER_SIZE to an
-     * unsigned int* word aligned buffer.
-     * If the original buffer is already word aligned it only does a cast,
-     * otherwise it returns a new buffer which *does not* contain the data
-     * on the original buffer. Useful if subseqent code will write to the
-     * buffer. To move the written data to the original buffer, use
-     * toOriginalBuffer()
-     * \param a buffer of size BUFFER_SIZE. Can be word aligned or not.
-     * \return a word aligned buffer with undefined content.
-     */
-    static unsigned char *toWordAlignedWithoutCopy(unsigned char *buffer);
-
-    /**
-     * \internal
-     * Convert the buffer got through toWordAlignedWithoutCopy() to the
-     * original buffer. If the original buffer was word aligned, nothing
-     * happens, otherwise a memcpy is done.
-     * Note that this function does not work on buffers got through
-     * toWordAligned().
-     */
-    static void toOriginalBuffer();
-
-    /**
-     * \internal
-     * Can be called to deallocate the buffer
-     */
-    static void deallocateBuffer();
-
-private:
-    static unsigned char *originalBuffer;
-    static unsigned char *wordAlignedBuffer;
-};
-
-const unsigned char *BufferConverter::toWordAligned(const unsigned char *buffer)
-{
-    originalBuffer=0; //Tell toOriginalBuffer() that there's nothing to do
-    if(isGoodBuffer(buffer))
-    {
-        return buffer;
-    } else {
-        if(wordAlignedBuffer==0)
-            wordAlignedBuffer=new unsigned char[BUFFER_SIZE];
-        std::memcpy(wordAlignedBuffer,buffer,BUFFER_SIZE);
-        return wordAlignedBuffer;
-    }
-}
-
-unsigned char *BufferConverter::toWordAlignedWithoutCopy(
-    unsigned char *buffer)
-{
-    if(isGoodBuffer(buffer))
-    {
-        originalBuffer=0; //Tell toOriginalBuffer() that there's nothing to do
-        return buffer;
-    } else {
-        originalBuffer=buffer; //Save original pointer for toOriginalBuffer()
-        if(wordAlignedBuffer==0)
-            wordAlignedBuffer=new unsigned char[BUFFER_SIZE];
-        return wordAlignedBuffer;
-    }
-}
-
-void BufferConverter::toOriginalBuffer()
-{
-    if(originalBuffer==0) return;
-    std::memcpy(originalBuffer,wordAlignedBuffer,BUFFER_SIZE);
-    originalBuffer=0;
-}
-
-void BufferConverter::deallocateBuffer()
-{
-    originalBuffer=0; //Invalidate also original buffer
-    if(wordAlignedBuffer!=0)
-    {
-        delete[] wordAlignedBuffer;
-        wordAlignedBuffer=0;
-    }
-}
-
-unsigned char *BufferConverter::originalBuffer=0;
-unsigned char *BufferConverter::wordAlignedBuffer=0;
 
 //
 // Class CmdResult
@@ -726,7 +546,7 @@ private:
     static void setClockSpeed(unsigned int clkdiv);
     
     static const unsigned int SDMMCCLK=137500000; //On stm32f2 SDMMCCLK is always 48MHz
-    static const unsigned int CLOCK_400KHz=174; //48MHz/(118+2)=400KHz
+    static const unsigned int CLOCK_400KHz=171; //48MHz/(118+2)=400KHz
     #ifdef OVERRIDE_SD_CLOCK_DIVIDER_MAX
     //Some boards using SDRAM cause SDMMC TX Underrun occasionally
     static const unsigned int CLOCK_MAX=OVERRIDE_SD_CLOCK_DIVIDER_MAX;
@@ -767,22 +587,25 @@ void ClockController::calibrateClockSpeed(SDIODriver *sdmmc)
     unsigned int minFreq=CLOCK_400KHz;
     unsigned int maxFreq=CLOCK_MAX;
     unsigned int selected;
-    while(minFreq-maxFreq>1)
-    {
+    while(minFreq-maxFreq>1){
         selected=(minFreq+maxFreq)/2;
         DBG("Trying CLKCR=%d\n",selected);
         setClockSpeed(selected);
+        //must read 2 times because it blocks just the second time
+        sdmmc->readBlock(reinterpret_cast<unsigned char*>(buffer),512,0);
         if(sdmmc->readBlock(reinterpret_cast<unsigned char*>(buffer),512,0)==512)
             minFreq=selected;
         else maxFreq=selected;
     }
+
     //Last round of algorithm
-    setClockSpeed(2);
+    setClockSpeed(maxFreq+1);
+    sdmmc->readBlock(reinterpret_cast<unsigned char*>(buffer),512,0);
     if(sdmmc->readBlock(reinterpret_cast<unsigned char*>(buffer),512,0)==512)
     {
-        DBG("Optimal CLKCR=%d\n",maxFreq);
+        DBG("Optimal CLKCR=%d\n",maxFreq+1);
     } else {
-        setClockSpeed(2);
+        setClockSpeed(minFreq);
         DBG("Optimal CLKCR=%d\n",minFreq);
     }
 
@@ -806,6 +629,7 @@ bool ClockController::reduceClockSpeed()
     if(currentClkcr<10) currentClkcr++;
     else currentClkcr+=2;
 
+    DBG("New clock speed %d\n", currentClkcr);
     setClockSpeed(currentClkcr);
     return true;
 }
@@ -863,18 +687,16 @@ static void displayBlockTransferError()
 /**
  * \internal
  * Contains initial common code between multipleBlockRead and multipleBlockWrite
- * to clear interrupt and error flags, set the waiting thread and compute the
- * memory transfer size based on buffer alignment
- * \return the best DMA transfer size for a given buffer alignment 
+ * to clear interrupt and error flags, set the waiting thread 
  */
-static void dmaTransferCommonSetup(const unsigned char *buffer)
+static void transferCommonSetup(const unsigned char *buffer)
 {
-    //Clear both SDMMC and DMA interrupt flags
+    //Clear SDMMC interrupt flags
     SDMMC->ICR=ICR_FLAGS_CLR;
     
 
     transferError=false;
-    dmaFlags=sdmmcFlags=0;
+    sdmmcFlags=0;
     waiting=Thread::getCurrentThread();
 
 }
@@ -903,7 +725,7 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
     
     if(cardType!=SDHC) lba*=512; // Convert to byte address if not SDHC
     
-    dmaTransferCommonSetup(buffer);
+    transferCommonSetup(buffer);
     
     //Data transfer is considered complete once the DMA transfer complete
     //interrupt occurs, that happens when the last data was written in the
@@ -942,9 +764,9 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
                 Thread::yield();
             }
         }
-
-        // while(SDMMC->STA & SDMMC_STA_IDMABTC)
-        //     ;
+        //TODO
+        while(SDMMC->STA & SDMMC_STA_IDMABTC)
+            ;
         
     } else transferError=true;
   
@@ -961,6 +783,7 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
         return false;
     }
     
+    //TODO WHY??
     //Read ok, deal with cache coherence
     markBufferAfterDmaRead(buffer,nblk*512);
     return true;
@@ -998,7 +821,7 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
         if(cr.validateR1Response()==false) return false;
     }
     
-    dmaTransferCommonSetup(buffer);
+    transferCommonSetup(buffer);
     
     //Data transfer is considered complete once the SDMMC transfer complete
     //interrupt occurs, that happens when the last data was written to the SDMMC
@@ -1114,19 +937,19 @@ static void initSDMMCPeripheral()
         #if SD_SDMMC==1
         RCC->AHB3ENR |= RCC_AHB3ENR_SDMMC1EN;
         #else
-        RCC->AHB2ENR |= RCC_AHB2ENR_SDMMC1EN;
+        RCC->AHB2ENR |= RCC_AHB2ENR_SDMMC2EN;
         #endif
         RCC_SYNC();
         #if SD_SDMMC==2
         sdD0::mode(Mode::ALTERNATE);
-        sdD0::alternateFunction(11);
+        sdD0::alternateFunction(9);
         #ifndef SD_ONE_BIT_DATABUS
         sdD1::mode(Mode::ALTERNATE);
-        sdD1::alternateFunction(11);
+        sdD1::alternateFunction(9);
         sdD2::mode(Mode::ALTERNATE);
-        sdD2::alternateFunction(10);
+        sdD2::alternateFunction(9);
         sdD3::mode(Mode::ALTERNATE);
-        sdD3::alternateFunction(10);
+        sdD3::alternateFunction(9);
         #endif // SD_ONE_BIT_DATABUS
         sdCLK::mode(Mode::ALTERNATE);
         sdCLK::alternateFunction(11);
@@ -1286,8 +1109,6 @@ ssize_t SDIODriver::readBlock(void* buffer, size_t size, off_t where)
     unsigned int nSectors=size/512;
     Lock<FastMutex> l(mutex);
     DBG("SDIODriver::readBlock(): nSectors=%d\n",nSectors);
-    bool goodBuffer=BufferConverter::isGoodBuffer(buffer);
-    if(goodBuffer==false) DBG("Buffer inside CCM\n");
     
     for(int i=0;i<ClockController::getRetryCount();i++)
     {
@@ -1295,27 +1116,11 @@ ssize_t SDIODriver::readBlock(void* buffer, size_t size, off_t where)
         if(selector.succeded()==false) continue;
         bool error=false;
         
-        if(goodBuffer)
-        {
-            if(multipleBlockRead(reinterpret_cast<unsigned char*>(buffer),
-                nSectors,lba)==false) error=true;
-        } else {
-            //Fallback code to work around CCM
-            unsigned char *tempBuffer=reinterpret_cast<unsigned char*>(buffer);
-            unsigned int tempLba=lba;
-            for(unsigned int j=0;j<nSectors;j++)
-            {
-                unsigned char* b=BufferConverter::toWordAlignedWithoutCopy(tempBuffer);
-                if(multipleBlockRead(b,1,tempLba)==false)
-                {
-                    error=true;
-                    break;
-                }
-                BufferConverter::toOriginalBuffer();
-                tempBuffer+=512;
-                tempLba++;
-            }
-        }
+       
+        if(multipleBlockRead(reinterpret_cast<unsigned char*>(buffer),
+            nSectors,lba)==false) error=true;
+        
+        
         
         if(error==false)
         {
@@ -1333,8 +1138,6 @@ ssize_t SDIODriver::writeBlock(const void* buffer, size_t size, off_t where)
     unsigned int nSectors=size/512;
     Lock<FastMutex> l(mutex);
     DBG("SDIODriver::writeBlock(): nSectors=%d\n",nSectors);
-    bool goodBuffer=BufferConverter::isGoodBuffer(buffer);
-    if(goodBuffer==false) DBG("Buffer inside CCM\n");
     
     for(int i=0;i<ClockController::getRetryCount();i++)
     {
@@ -1342,27 +1145,11 @@ ssize_t SDIODriver::writeBlock(const void* buffer, size_t size, off_t where)
         if(selector.succeded()==false) continue;
         bool error=false;
         
-        if(goodBuffer)
-        {
-            if(multipleBlockWrite(reinterpret_cast<const unsigned char*>(buffer),
-                nSectors,lba)==false) error=true;
-        } else {
-            //Fallback code to work around CCM
-            const unsigned char *tempBuffer=
-                reinterpret_cast<const unsigned char*>(buffer);
-            unsigned int tempLba=lba;
-            for(unsigned int j=0;j<nSectors;j++)
-            {
-                const unsigned char* b=BufferConverter::toWordAligned(tempBuffer);
-                if(multipleBlockWrite(b,1,tempLba)==false)
-                {
-                    error=true;
-                    break;
-                }
-                tempBuffer+=512;
-                tempLba++;
-            }
-        }
+        
+        if(multipleBlockWrite(reinterpret_cast<const unsigned char*>(buffer),
+            nSectors,lba)==false) error=true;
+        
+        
         
         if(error==false)
         {
