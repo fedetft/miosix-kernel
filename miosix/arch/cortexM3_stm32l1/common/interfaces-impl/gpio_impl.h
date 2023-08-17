@@ -57,14 +57,22 @@ public:
      */
     enum Mode_
     {
-        INPUT              =  0, ///Floating Input       (MODE=00 TYPE=0 PUP=00)
-        INPUT_PULL_UP      =  1, ///Pullup   Input       (MODE=00 TYPE=0 PUP=01)
-        INPUT_PULL_DOWN    =  2, ///Pulldown Input       (MODE=00 TYPE=0 PUP=10)
-        INPUT_ANALOG       = 24, ///Analog   Input       (MODE=11 TYPE=0 PUP=00)
-        OUTPUT             =  8, ///Push Pull  Output    (MODE=01 TYPE=0 PUP=00)
-        OPEN_DRAIN         = 12, ///Open Drain Output    (MODE=01 TYPE=1 PUP=00)
-        ALTERNATE          = 16, ///Alternate function   (MODE=10 TYPE=0 PUP=00)
-        ALTERNATE_OD       = 20, ///Alternate Open Drain (MODE=10 TYPE=1 PUP=00)
+        INPUT_ANALOG           = 0b11000, ///Input Analog            (MODE=11 TYPE=0 PUP=00)
+        INPUT                  = 0b00000, ///Input Floating          (MODE=00 TYPE=0 PUP=00)
+        INPUT_PULL_UP          = 0b00001, ///Input PullUp            (MODE=00 TYPE=0 PUP=01)
+        INPUT_PULL_DOWN        = 0b00010, ///Input PullDown          (MODE=00 TYPE=0 PUP=10)
+        OUTPUT                 = 0b01000, ///Push Pull  Output       (MODE=01 TYPE=0 PUP=00)
+        OUTPUT_PULL_UP         = 0b01001, ///Push Pull  Output PU    (MODE=01 TYPE=0 PUP=01)
+        OUTPUT_PULL_DOWN       = 0b01010, ///Push Pull  Output PD    (MODE=01 TYPE=0 PUP=10)
+        OPEN_DRAIN             = 0b01100, ///Open Drain Output       (MODE=01 TYPE=1 PUP=00)
+        OPEN_DRAIN_PULL_UP     = 0b01101, ///Open Drain Output PU    (MODE=01 TYPE=1 PUP=01)
+        OPEN_DRAIN_PULL_DOWN   = 0b01110, ///Open Drain Output PD    (MODE=01 TYPE=1 PUP=10)
+        ALTERNATE              = 0b10000, ///Alternate function      (MODE=10 TYPE=0 PUP=00)
+        ALTERNATE_PULL_UP      = 0b10001, ///Alternate function PU   (MODE=10 TYPE=0 PUP=01)
+        ALTERNATE_PULL_DOWN    = 0b10010, ///Alternate function PD   (MODE=10 TYPE=0 PUP=10)
+        ALTERNATE_OD           = 0b10100, ///Alternate Open Drain    (MODE=10 TYPE=1 PUP=00)
+        ALTERNATE_OD_PULL_UP   = 0b10101, ///Alternate Open Drain PU (MODE=10 TYPE=1 PUP=01)
+        ALTERNATE_OD_PULL_DOWN = 0b10110, ///Alternate Open Drain PD (MODE=10 TYPE=1 PUP=10)
     };
 private:
     Mode(); //Just a wrapper class, disallow creating instances
