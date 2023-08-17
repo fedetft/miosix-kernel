@@ -942,10 +942,10 @@ static void initSDMMCPeripheral()
         RCC_SYNC();
         #if SD_SDMMC==2
         sdD0::mode(Mode::ALTERNATE);
-        sdD0::alternateFunction(9);
+        sdD0::alternateFunction(11);
         #ifndef SD_ONE_BIT_DATABUS
         sdD1::mode(Mode::ALTERNATE);
-        sdD1::alternateFunction(9);
+        sdD1::alternateFunction(11);
         sdD2::mode(Mode::ALTERNATE);
         sdD2::alternateFunction(9);
         sdD3::mode(Mode::ALTERNATE);
