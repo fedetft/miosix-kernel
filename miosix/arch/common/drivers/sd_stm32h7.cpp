@@ -36,13 +36,6 @@
 #include <cstdio>
 #include <cstring>
 #include <errno.h>
-#include <e20/e20.h>
-
-miosix::FixedEventQueue<10, 20> eventQueue;
-
-void debugThread(void *){
-    // eventQueue.run();
-}
 
 //Note: enabling debugging might cause deadlock when using sleep() or reboot()
 //The bug won't be fixed because debugging is only useful for driver development
@@ -94,9 +87,6 @@ static unsigned int sdmmcFlags;      ///< \internal SDMMC status flags
 void __attribute__((used)) SDirqImpl()
 {
     sdmmcFlags=SDMMC->STA;
-    eventQueue.IRQpost([=](){
-        printf("sdmmcFlags = %x\n", sdmmcFlags);
-    });
     if(sdmmcFlags & (SDMMC_STA_RXOVERR  |
                     SDMMC_STA_TXUNDERR | SDMMC_STA_DTIMEOUT | SDMMC_STA_DCRCFAIL))
         transferError=true;
@@ -739,7 +729,7 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
     
     SDMMC->CMD |= SDMMC_CMD_CMDTRANS;
 
-    SDMMC->IDMABASE0 = (uint32_t)buffer;
+    SDMMC->IDMABASE0 = reinterpret_cast<unsigned int>(buffer);
     SDMMC->IDMACTRL &= ~SDMMC_IDMA_IDMABMODE;
     SDMMC->IDMACTRL |= SDMMC_IDMA_IDMAEN;
     
@@ -764,7 +754,10 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
                 Thread::yield();
             }
         }
-        //TODO
+
+        // This while has been benchmarked and it runs for less then 200 ns for
+        // every read issued. It is needed to wait for the IDMA transfer complete 
+        // after the wakeup to confirm that the data is consistent.
         while(SDMMC->STA & SDMMC_STA_IDMABTC)
             ;
         
@@ -782,10 +775,10 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
         ClockController::reduceClockSpeed();
         return false;
     }
-    
-    //TODO WHY??
+
     //Read ok, deal with cache coherence
     markBufferAfterDmaRead(buffer,nblk*512);
+
     return true;
 }
 
@@ -834,7 +827,7 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
                SDMMC_MASK_DCRCFAILIE | //Interrupt on data CRC fail
                SDMMC_MASK_DTIMEOUTIE;  //Interrupt on data timeout
 
-    SDMMC->IDMABASE0 = (uint32_t)buffer;
+    SDMMC->IDMABASE0 = reinterpret_cast<unsigned int>(buffer);
     SDMMC->IDMACTRL = SDMMC_IDMA_IDMAEN;
     
     SDMMC->DLEN=nblk*512;
@@ -1172,8 +1165,6 @@ int SDIODriver::ioctl(int cmd, void* arg)
 
 SDIODriver::SDIODriver() : Device(Device::BLOCK)
 {
-    Thread::create(debugThread, 2048); 
-
     initSDMMCPeripheral();
 
     // This is more important than it seems, since CMD55 requires the card's RCA
