@@ -185,7 +185,7 @@ void __attribute__((naked)) DMA1_Channel5_IRQHandler()
     restoreContext();
 }
 
-#else //stm32f2 and stm32f4
+#elif defined(_ARCH_CORTEXM7_STM32H7)
 
 /**
  * \internal DMA1 stream 7 IRQ (configured as USART1 TX)
@@ -201,6 +201,28 @@ void __attribute__((naked)) DMA1_Stream7_IRQHandler()
  * \internal DMA1 stream 5 IRQ (configured as USART1 RX)
  */
 void __attribute__((naked)) DMA1_Stream5_IRQHandler()
+{
+    saveContext();
+    asm volatile("bl _Z15usart1rxDmaImplv");
+    restoreContext();
+}
+
+#else //stm32f2 and stm32f4
+
+/**
+ * \internal DMA2 stream 7 IRQ (configured as USART1 TX)
+ */
+void __attribute__((naked)) DMA2_Stream7_IRQHandler()
+{
+    saveContext();
+    asm volatile("bl _Z15usart1txDmaImplv");
+    restoreContext();
+}
+
+/**
+ * \internal DMA2 stream 5 IRQ (configured as USART1 RX)
+ */
+void __attribute__((naked)) DMA2_Stream5_IRQHandler()
 {
     saveContext();
     asm volatile("bl _Z15usart1rxDmaImplv");
@@ -259,7 +281,7 @@ void __attribute__((naked)) DMA1_Channel6_IRQHandler()
     restoreContext();
 }
 
-#else //stm32f2 and stm32f4
+#elif defined(_ARCH_CORTEXM7_STM32H7)
 
 /**
  * \internal DMA1 stream 6 IRQ (configured as USART2 TX)
@@ -275,6 +297,28 @@ void __attribute__((naked)) DMA1_Stream6_IRQHandler()
  * \internal DMA1 stream 4 IRQ (configured as USART2 RX)
  */
 void __attribute__((naked)) DMA1_Stream4_IRQHandler()
+{
+    saveContext();
+    asm volatile("bl _Z15usart2rxDmaImplv");
+    restoreContext();
+}
+
+#else //stm32f2 and stm32f4
+
+/**
+ * \internal DMA1 stream 6 IRQ (configured as USART2 TX)
+ */
+void __attribute__((naked)) DMA1_Stream6_IRQHandler()
+{
+    saveContext();
+    asm volatile("bl _Z15usart2txDmaImplv");
+    restoreContext();
+}
+
+/**
+ * \internal DMA1 stream 5 IRQ (configured as USART2 RX)
+ */
+void __attribute__((naked)) DMA1_Stream5_IRQHandler()
 {
     saveContext();
     asm volatile("bl _Z15usart2rxDmaImplv");
