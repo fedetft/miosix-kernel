@@ -1492,7 +1492,7 @@ void STM32Serial::IRQdmaReadStart()
                    | DMA_SxCR_DMEIE   //Interrupt on direct mode error
                    | DMA_SxCR_EN;     //Start the DMA
     #else
-   dmaRx->CR=DMA_SxCR_MINC    //Increment RAM pointer
+    dmaRx->CR=DMA_SxCR_MINC    //Increment RAM pointer
                    | 0                //Peripheral to memory
                    | DMA_SxCR_HTIE    //Interrupt on half transfer
                    | DMA_SxCR_TEIE    //Interrupt on transfer error

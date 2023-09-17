@@ -577,7 +577,8 @@ void ClockController::calibrateClockSpeed(SDIODriver *sdmmc)
     unsigned int minFreq=CLOCK_400KHz;
     unsigned int maxFreq=CLOCK_MAX;
     unsigned int selected;
-    while(minFreq-maxFreq>1){
+    while(minFreq-maxFreq>1)
+    {
         selected=(minFreq+maxFreq)/2;
         DBG("Trying CLKCR=%d\n",selected);
         setClockSpeed(selected);
