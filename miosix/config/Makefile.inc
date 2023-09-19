@@ -55,6 +55,7 @@
 #OPT_BOARD := stm32l4r9zi_sensortile
 #OPT_BOARD := stm32f767zi_nucleo
 #OPT_BOARD := stm32f769ni_discovery
+#OPT_BOARD := stm32f415vg_st25dvdiscovery
 
 ##
 ## Optimization flags, choose one.
@@ -650,6 +651,12 @@ ifeq ($(OPT_BOARD),stm32l4r9zi_sensortile)
 
 endif
 
+##---------------------------------------------------------------------------
+## stm32f415vg_st25dvdiscovery
+##
+
+# No options
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -753,6 +760,8 @@ else ifeq ($(OPT_BOARD),stm32f767zi_nucleo)
     ARCH := cortexM7_stm32f7
 else ifeq ($(OPT_BOARD),stm32f769ni_discovery)
     ARCH := cortexM7_stm32f7
+else ifeq ($(OPT_BOARD),stm32f415vg_st25dvdiscovery)
+    ARCH := cortexM4_stm32f4
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -1735,6 +1744,39 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## error message saying that 'make program' is not supported for that
         ## board.
         PROGRAM_CMDLINE := dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D main.bin
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f415vg_st25dvdiscovery
+    ##
+    else ifeq ($(OPT_BOARD),stm32f415vg_st25dvdiscovery)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM4_stm32f4/stm32f415vg_st25dvdiscovery
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+192k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        arch/common/drivers/stm32_hardware_rng.cpp   \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32F415VG_ST25DVDISCOVERY
+        CXXFLAGS_BASE += -D_BOARD_STM32F415VG_ST25DVDISCOVERY
+
+        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
+        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := st-flash --reset write "main.bin" 0x8000000
 
     ##-------------------------------------------------------------------------
     ## End of board list
