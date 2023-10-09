@@ -57,6 +57,7 @@
 #OPT_BOARD := stm32f767zi_nucleo
 #OPT_BOARD := stm32f769ni_discovery
 #OPT_BOARD := stm32f415vg_st25dvdiscovery
+#OPT_BOARD := efm32g222f128_generic
 
 ##
 ## Optimization flags, choose one.
@@ -673,6 +674,12 @@ endif
 
 # No options
 
+##---------------------------------------------------------------------------
+## efm32g222f128_generic
+##
+
+# No options
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -780,6 +787,8 @@ else ifeq ($(OPT_BOARD),stm32f769ni_discovery)
     ARCH := cortexM7_stm32f7
 else ifeq ($(OPT_BOARD),stm32f415vg_st25dvdiscovery)
     ARCH := cortexM4_stm32f4
+else ifeq ($(OPT_BOARD),efm32g222f128_generic)
+    ARCH := cortexM3_efm32g
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -2937,6 +2946,82 @@ else ifeq ($(ARCH),cortexM4_atsam4l)
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
     $(ARCH_INC)/interfaces-impl/delays.cpp
     
+##-----------------------------------------------------------------------------
+## ARCHITECTURE: cortexM3_efm32g
+##
+else ifeq ($(ARCH),cortexM3_efm32g)
+    ## Base directory with else header files for this board
+    ARCH_INC := arch/cortexM3_efm32g/common
+
+    ifeq ($(OPT_BOARD),efm32g222f128_generic)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM3_efm32g/efm32g222f128_generic
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/efm32_128k+16k_rom_bootloader.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                                 \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -DEFM32G222F128
+        CXXFLAGS_BASE += -DEFM32G222F128
+
+        ## Clock frequency
+        CLOCK_FREQ := -DEFM32_HFRCO_FREQ=28000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := echo 'make program not supported.'
+
+    ##-------------------------------------------------------------------------
+    ## End of board list
+    ##
+    endif
+
+    ## Select compiler
+    PREFIX=arm-miosix-eabi-
+
+    ## From compiler prefix form the name of the compiler and other tools
+    CC  := $(PREFIX)gcc
+    CXX := $(PREFIX)g++
+    LD  := $(PREFIX)ld
+    AR  := $(PREFIX)ar
+    AS  := $(PREFIX)as
+    CP  := $(PREFIX)objcopy
+    OD  := $(PREFIX)objdump
+    SZ  := $(PREFIX)size
+
+    ## Select appropriate compiler flags for both ASM/C/C++/linker
+    AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
+    CFLAGS_BASE   += -D_ARCH_CORTEXM3_EFM32G $(CLOCK_FREQ)                   \
+                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION) -c
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_EFM32G $(CLOCK_FREQ)                   \
+                     $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
+                     $(OPT_OPTIMIZATION) -c
+    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+                     $(OPT_OPTIMIZATION) -nostdlib
+
+    ## Select architecture specific files
+    ## These are the files in arch/<arch name>/common
+    ARCH_SRC +=                                              \
+    arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/core/efm32_os_timer.cpp                      \
+    arch/common/drivers/serial_efm32.cpp                     \
+    $(ARCH_INC)/drivers/adc.cpp                              \
+    $(ARCH_INC)/interfaces-impl/portability.cpp              \
+    $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
+    $(ARCH_INC)/interfaces-impl/delays.cpp                   \
+    arch/common/CMSIS/Device/SiliconLabs/EFM32G/Source/system_efm32g.c
 
 ##-----------------------------------------------------------------------------
 ## end of architecture list

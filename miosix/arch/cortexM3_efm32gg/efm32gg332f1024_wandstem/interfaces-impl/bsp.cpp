@@ -55,6 +55,8 @@ namespace miosix {
 
 void IRQbspInit()
 {
+    MSC->CTRL=0; //Generate bus fault on access to unmapped areas
+
     //
     // Setup GPIOs
     //
