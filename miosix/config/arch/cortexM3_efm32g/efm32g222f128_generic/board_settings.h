@@ -41,7 +41,7 @@ namespace miosix {
  */
 
 /// Size of stack for main().
-const unsigned int MAIN_STACK_SIZE=4096;
+const unsigned int MAIN_STACK_SIZE=2048;
 
 /// Serial port
 const unsigned int defaultSerial=0;

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2015 by Terraneo Federico                               *
+ *   Copyright (C) 2015-2023 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef SERIAL_EFM32_H
-#define SERIAL_EFM32_H
+#pragma once
 
 #include "filesystem/console/console_device.h"
 #include "kernel/sync.h"
@@ -38,7 +37,6 @@ namespace miosix {
  * Serial port class for EFM32 microcontrollers.
  * 
  * This is a simple implementation with the following limitations:
- * -only supports USART0
  * -no DMA, TX uses polling, while RX is interrupt-based
  * 
  * Classes of this type are reference counted, must be allocated on the heap
@@ -134,5 +132,3 @@ private:
 };
 
 } //namespace miosix
-
-#endif //SERIAL_EFM32_H

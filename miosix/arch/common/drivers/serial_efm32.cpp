@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2015 by Terraneo Federico                               *
+ *   Copyright (C) 2015-2023 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -39,22 +39,23 @@
 using namespace std;
 using namespace miosix;
 
-static const int numPorts=1; //Supporting only USART0 for now
+// NOTE: In the efm32 USART peripherals are either used as serial port or SPI
+// and there are no dedicated SPI peripherals. If a port is used somewhere
+// else as SPI with interrupts, the declaration of the interrupt routine here
+// would conflict. So we add the option to disable unused ports.
+#ifndef DISABLE_USART0_DRIVER
 
-//Hope GPIO mapping doesn't change among EFM32 microcontrollers, otherwise
-//we'll fix that with #ifdefs
-typedef Gpio<GPIOE_BASE,10> u0tx;
-typedef Gpio<GPIOE_BASE,11> u0rx;
-
-/// Pointer to serial port classes to let interrupts access the classes
-static EFM32Serial *ports[numPorts]={0};
+using u0tx=Gpio<GPIOE_BASE,10>; //Hardcoding location 0 for now
+using u0rx=Gpio<GPIOE_BASE,11>;
+/// Pointer to serial port class to let interrupts access the class
+static EFM32Serial *port0=nullptr;
 
 /**
  * \internal interrupt routine for usart0 rx actual implementation
  */
 void __attribute__((noinline)) usart0rxIrqImpl()
 {
-   if(ports[0]) ports[0]->IRQhandleInterrupt();
+   if(port0) port0->IRQhandleInterrupt();
 }
 
 /**
@@ -66,6 +67,35 @@ void __attribute__((naked)) USART0_RX_IRQHandler()
     asm volatile("bl _Z15usart0rxIrqImplv");
     restoreContext();
 }
+
+#endif //DISABLE_USART0_DRIVER
+
+#ifndef DISABLE_USART1_DRIVER
+
+using u1tx=Gpio<GPIOC_BASE,0>; //Hardcoding location 0 for now
+using u1rx=Gpio<GPIOC_BASE,1>;
+/// Pointer to serial port class to let interrupts access the class
+static EFM32Serial *port1=nullptr;
+
+/**
+ * \internal interrupt routine for usart1 rx actual implementation
+ */
+void __attribute__((noinline)) usart1rxIrqImpl()
+{
+   if(port1) port1->IRQhandleInterrupt();
+}
+
+/**
+ * \internal interrupt routine for usart1 rx
+ */
+void __attribute__((naked)) USART1_RX_IRQHandler()
+{
+    saveContext();
+    asm volatile("bl _Z15usart1rxIrqImplv");
+    restoreContext();
+}
+
+#endif //DISABLE_USART0_DRIVER
 
 namespace miosix {
 
@@ -80,34 +110,45 @@ EFM32Serial::EFM32Serial(int id, int baudrate)
         : Device(Device::TTY), rxQueue(rxQueueMin+baudrate/500), rxWaiting(0),
         portId(id), baudrate(baudrate)
 {
-    if(id<0 || id>=numPorts || ports[id]!=0) errorHandler(UNEXPECTED);
-    
     {
         InterruptDisableLock dLock;
-        ports[id]=this;
-        
         switch(id)
         {
+            #ifndef DISABLE_USART0_DRIVER
             case 0:
+                port0=this;
+                port=USART0;
                 u0tx::mode(Mode::OUTPUT_HIGH);
                 u0rx::mode(Mode::INPUT_PULL_UP_FILTER);
-                
                 CMU->HFPERCLKEN0|=CMU_HFPERCLKEN0_USART0;
-                port=USART0;
-                
-                port->IEN=USART_IEN_RXDATAV;
-                port->IRCTRL=0; //USART0 also has IrDA mode
-                
                 NVIC_SetPriority(USART0_RX_IRQn,15);//Lowest priority for serial
                 NVIC_EnableIRQ(USART0_RX_IRQn);
+
+                port->IRCTRL=0; //USART0 also has IrDA mode
                 break;
+            #endif //DISABLE_USART0_DRIVER
+            #ifndef DISABLE_USART1_DRIVER
+            case 1:
+                port1=this;
+                port=USART1;
+                u1tx::mode(Mode::OUTPUT_HIGH);
+                u1rx::mode(Mode::INPUT_PULL_UP_FILTER);
+                CMU->HFPERCLKEN0|=CMU_HFPERCLKEN0_USART1;
+                NVIC_SetPriority(USART1_RX_IRQn,15);//Lowest priority for serial
+                NVIC_EnableIRQ(USART1_RX_IRQn);
+                break;
+            #endif //DISABLE_USART0_DRIVER
+            default:
+                InterruptEnableLock eLock(dLock);
+                errorHandler(UNEXPECTED);
         }
     }
     
+    port->IEN=USART_IEN_RXDATAV;
     port->CTRL=USART_CTRL_TXBIL_HALFFULL; //Use the buffer more efficiently
     port->FRAME=USART_FRAME_STOPBITS_ONE
-            | USART_FRAME_PARITY_NONE
-            | USART_FRAME_DATABITS_EIGHT;
+              | USART_FRAME_PARITY_NONE
+              | USART_FRAME_DATABITS_EIGHT;
     port->TRIGCTRL=0;
     #ifdef _ARCH_CORTEXM3_EFM32GG
     port->INPUT=0;
@@ -245,23 +286,32 @@ EFM32Serial::~EFM32Serial()
 {
     waitSerialTxFifoEmpty();
     
+    InterruptDisableLock dLock;
     port->CMD=USART_CMD_TXDIS
             | USART_CMD_RXDIS;
     port->ROUTE=0;
-
-    InterruptDisableLock dLock;
-    ports[portId]=0;
     switch(portId)
     {
+        #ifndef DISABLE_USART0_DRIVER
         case 0:
+            port0=nullptr;
             NVIC_DisableIRQ(USART0_RX_IRQn);
             NVIC_ClearPendingIRQ(USART0_RX_IRQn);
-            
             u0tx::mode(Mode::DISABLED);
             u0rx::mode(Mode::DISABLED);
-            
             CMU->HFPERCLKEN0 &= ~CMU_HFPERCLKEN0_USART0;
             break;
+        #endif //DISABLE_USART0_DRIVER
+        #ifndef DISABLE_USART1_DRIVER
+        case 1:
+            port1=nullptr;
+            NVIC_DisableIRQ(USART1_RX_IRQn);
+            NVIC_ClearPendingIRQ(USART1_RX_IRQn);
+            u1tx::mode(Mode::DISABLED);
+            u1rx::mode(Mode::DISABLED);
+            CMU->HFPERCLKEN0 &= ~CMU_HFPERCLKEN0_USART1;
+            break;
+        #endif //DISABLE_USART0_DRIVER
     }
 }
 
