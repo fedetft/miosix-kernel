@@ -32,6 +32,7 @@
 #include "console/console_device.h"
 #include "mountpointfs/mountpointfs.h"
 #include "fat32/fat32.h"
+#include "littlefs/lfs_miosix.h"
 #include "kernel/logging.h"
 #ifdef WITH_PROCESSES
 #include "kernel/process.h"
@@ -692,6 +693,58 @@ short int FilesystemManager::getFilesystemId()
 
 int FilesystemManager::devCount=1;
 
+/// @brief Try to mount a filesystem in "/sd"
+/// @tparam T type of filesystem to mount
+/// @param dev Reference to the device to mount
+/// @param rootFs Reference to root file system
+/// @param devfs Reference to devfs
+/// @return `true` if mount was successful, `false` otherwise
+template <class T>
+bool tryMount(intrusive_ref_ptr<Device> dev,
+intrusive_ref_ptr<FilesystemBase> rootFs
+#ifdef WITH_DEVFS
+                   ,
+                   intrusive_ref_ptr<DevFs> devfs
+#endif
+) {
+  bootlog("Mounting % as /sd ... ", typeid(T).name());
+  intrusive_ref_ptr<FileBase> disk;
+  FilesystemManager& fsm=FilesystemManager::instance();
+#ifdef WITH_DEVFS
+  if (dev) {
+    devfs->addDevice("sda", dev);
+  }
+  StringPart sda("sda");
+  if (devfs->open(disk, sda, O_RDWR, 0) < 0) {
+    bootlog("Failed\n");
+    return false;
+  }
+#else  // WITH_DEVFS
+  if (dev &&
+      dev->open(disk, intrusive_ref_ptr<FilesystemBase>(0), O_RDWR, 0) < 0) {
+    bootlog("Failed\n");
+    return false;
+  }
+#endif // WITH_DEVFS
+
+
+  intrusive_ref_ptr<T> fsImpl;
+  fsImpl = new T(disk);
+  if (fsImpl->mountFailed()) {
+    bootlog("Failed\n");
+    return false;
+  }
+  StringPart sd("sd");
+  if (rootFs->mkdir(sd, 0755) != 0 ||
+      fsm.kmount("/sd", fsImpl) != 0) {
+    bootlog("Failed\n");
+    return false;
+  }
+
+  bootlog("Ok\n");
+  return true;
+}
+
 #ifdef WITH_DEVFS
 intrusive_ref_ptr<DevFs> //return value is a pointer to DevFs
 #else //WITH_DEVFS
@@ -716,34 +769,15 @@ basicFilesystemSetup(intrusive_ref_ptr<Device> dev)
     fsm.setDevFs(devfs);
     #endif //WITH_DEVFS
     
-    bootlog("Mounting Fat32Fs as /sd ... ");
-    bool fat32failed=false;
-    intrusive_ref_ptr<FileBase> disk;
     #ifdef WITH_DEVFS
-    if(dev) devfs->addDevice("sda",dev);
-    StringPart sda("sda");
-    if(devfs->open(disk,sda,O_RDWR,0)<0) fat32failed=true;
-    #else //WITH_DEVFS
-    if(dev && dev->open(disk,intrusive_ref_ptr<FilesystemBase>(0),O_RDWR,0)<0)
-        fat32failed=true;
-    #endif //WITH_DEVFS
-    
-    intrusive_ref_ptr<Fat32Fs> fat32;
-    if(fat32failed==false)
-    {
-        fat32=new Fat32Fs(disk);
-        if(fat32->mountFailed()) fat32failed=true;
+    if (tryMount<Fat32Fs>(dev, rootFs, devfs) == false) {
+        tryMount<LittleFS>(dev, rootFs, devfs);
     }
-    if(fat32failed==false)
-    {
-        StringPart sd("sd");
-        fat32failed=rootFs->mkdir(sd,0755)!=0;
-        fat32failed=fsm.kmount("/sd",fat32)!=0;
-    }
-    bootlog(fat32failed==0 ? "Ok\n" : "Failed\n");
-    
-    #ifdef WITH_DEVFS
     return devfs;
+    #else 
+    if (tryMountFat32(dev, rootFs) == false) {
+        tryMount<LittleFS>(dev, rootFs);
+    }
     #endif //WITH_DEVFS
 }
 
