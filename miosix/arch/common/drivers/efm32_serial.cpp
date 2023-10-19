@@ -29,7 +29,7 @@
 #include <cstring>
 #include <errno.h>
 #include <termios.h>
-#include "serial_efm32.h"
+#include "efm32_serial.h"
 #include "kernel/sync.h"
 #include "kernel/scheduler/scheduler.h"
 #include "interfaces/portability.h"

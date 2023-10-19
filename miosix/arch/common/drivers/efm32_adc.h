@@ -39,7 +39,7 @@
  *      expansion::gpio1::mode(Mode::OUTPUT_HIGH);
  *  }
  *  auto& adc=Adc::instance();
- *  adc.powerMode(Adc::OnDemand);
+ *  adc.setPowerMode(Adc::OnDemand);
  *  for(;;)
  *  {
  *      iprintf("%d\n",adc.readChannel(3));
@@ -53,9 +53,25 @@ public:
     /** 
      * Possible ADC power modes
      */
-    enum AdcPowerMode
+    enum PowerMode
     {
         Off, On, OnDemand
+    };
+
+    enum VoltageRef
+    {
+        I1V25=0, I2V5=1, VDD=2, DIFF5V=3, EXTSINGLE=4, EXTDIFF2X=5, VDD2X=6
+    };
+
+    enum AcquisitionTime
+    {
+        c1=0, c2=1, c4=2, c8=3, c16=4, c32=5, c64=6, c128=7, c256=8
+    };
+
+    enum Oversampling
+    {
+        x1=0, x2=1, x4=2, x8=3, x16=4, x32=5, x64=6, x128=7, x256=8, x512=9,
+        x1024=10, x2048=11, x4096=12
     };
     
     /**
@@ -65,9 +81,27 @@ public:
     
     /**
      * Change the ADC power mode
-     * \param mode power mode
+     * \param mode power mode, default is OnDemand
      */
-    void powerMode(AdcPowerMode mode);
+    void setPowerMode(PowerMode mode);
+
+    /**
+     * Change ADC acquisition time
+     * \param at acquisition time, default 256 cycles
+     */
+    void setAcquisitionTime(AcquisitionTime at);
+
+    /**
+     * Change ADC voltage reference
+     * \param ref voltage reference selection, default is VDD
+     */
+    void setReference(VoltageRef ref);
+
+    /**
+     * Change ADC oversampling
+     * \param ovs oversampling level, default is x1
+     */
+    void setOversampling(Oversampling ovs);
     
     /**
      * Read an ADC channel

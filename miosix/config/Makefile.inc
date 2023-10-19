@@ -2316,8 +2316,8 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
-    arch/common/drivers/serial_efm32.cpp                     \
-    $(ARCH_INC)/drivers/adc.cpp                              \
+    arch/common/drivers/efm32_serial.cpp                     \
+    arch/common/drivers/efm32_adc.cpp                        \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
@@ -3016,8 +3016,8 @@ else ifeq ($(ARCH),cortexM3_efm32g)
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/efm32_os_timer.cpp                      \
-    arch/common/drivers/serial_efm32.cpp                     \
-    $(ARCH_INC)/drivers/adc.cpp                              \
+    arch/common/drivers/efm32_serial.cpp                     \
+    arch/common/drivers/efm32_adc.cpp                        \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \

@@ -10,7 +10,7 @@
    || defined(_ARCH_CORTEXM4_STM32L4)
 #include "serial_stm32.h"
 #elif defined(_ARCH_CORTEXM3_EFM32GG) || defined(_ARCH_CORTEXM3_EFM32G)
-#include "serial_efm32.h"
+#include "efm32_serial.h"
 #elif defined(_ARCH_CORTEXM4_ATSAM4L)
 #include "serial_atsam4l.h"
 #else
