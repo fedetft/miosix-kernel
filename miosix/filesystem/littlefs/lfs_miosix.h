@@ -31,6 +31,7 @@
 #include "config/miosix_settings.h"
 #include "filesystem/file.h"
 #include "kernel/sync.h"
+#include "lfs.h"
 
 namespace miosix {
 
@@ -100,16 +101,57 @@ public:
   /**
    * \return true if the filesystem failed to mount
    */
-  bool mountFailed() const { return isMountFailed; }
+  bool mountFailed() const { return mountError != 0; }
 
   /**
    * Destructor
    */
   ~LittleFS();
 
+  lfs_t *getLfs() { return &lfs; }
+
 private:
-  bool isMountFailed; ///< Failed to mount
+  miosix::intrusive_ref_ptr<miosix::FileBase> drv; /* drive device */
+  int mountError;                                  ///< Mount error code
+
+  lfs_t lfs;
+  lfs_file_t file;
 };
+
+class LittleFSFile : public FileBase {
+public:
+  LittleFSFile(intrusive_ref_ptr<LittleFS> parentFS, lfs_file_t file)
+      : FileBase(parentFS), file(file) {}
+
+  virtual int read(void *buf, size_t count) override;
+  virtual int write(const void *buf, size_t count) override;
+  virtual off_t lseek(off_t pos, int whence) override;
+  virtual int fstat(struct stat *pstat) const override;
+
+private:
+  lfs_file_t file;
+};
+
+/**
+ * Convert the error flag given by LittleFS into a POSIX error code
+ * \param lfs_err the error flag given by LittleFS
+ * \return the respective POSIX error code
+ */
+int convert_lfs_error_into_posix(int lfs_err);
+
+// * Wrappers for LFS block device operations
+int miosix_block_device_read(FileBase *disk, const struct lfs_config *c,
+                             lfs_block_t block, lfs_off_t off, void *buffer,
+                             lfs_size_t size);
+
+int miosix_block_device_prog(FileBase *disk, const struct lfs_config *c,
+                             lfs_block_t block, lfs_off_t off,
+                             const void *buffer, lfs_size_t size);
+
+int miosix_block_device_erase(FileBase *disk, const struct lfs_config *c,
+                              lfs_block_t block);
+
+int miosix_block_device_sync(FileBase *disk, const struct lfs_config *c);
 
 #endif // WITH_FILESYSTEM
 

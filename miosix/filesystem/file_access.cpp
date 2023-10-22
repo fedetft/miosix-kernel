@@ -775,7 +775,7 @@ basicFilesystemSetup(intrusive_ref_ptr<Device> dev)
     }
     return devfs;
     #else 
-    if (tryMountFat32(dev, rootFs) == false) {
+    if (tryMount<Fat32Fs>(dev, rootFs) == false) {
         tryMount<LittleFS>(dev, rootFs);
     }
     #endif //WITH_DEVFS
