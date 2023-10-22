@@ -120,16 +120,24 @@ private:
 
 class LittleFSFile : public FileBase {
 public:
-  LittleFSFile(intrusive_ref_ptr<LittleFS> parentFS, lfs_file_t file)
-      : FileBase(parentFS), file(file) {}
+  LittleFSFile(intrusive_ref_ptr<LittleFS> parentFS, lfs_file_t file,
+               bool forceSync)
+      : FileBase(parentFS), file(file), forceSync(forceSync) {}
 
   virtual int read(void *buf, size_t count) override;
   virtual int write(const void *buf, size_t count) override;
   virtual off_t lseek(off_t pos, int whence) override;
   virtual int fstat(struct stat *pstat) const override;
 
+  ~LittleFSFile() {
+    LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
+    lfs_file_close(lfs_driver->getLfs(), &file);
+  }
+
 private:
   lfs_file_t file;
+  /// Force the file to be synced on every write
+  bool forceSync;
 };
 
 /**
@@ -140,18 +148,16 @@ private:
 int convert_lfs_error_into_posix(int lfs_err);
 
 // * Wrappers for LFS block device operations
-int miosix_block_device_read(FileBase *disk, const struct lfs_config *c,
-                             lfs_block_t block, lfs_off_t off, void *buffer,
+int miosix_block_device_read(const struct lfs_config *c, lfs_block_t block,
+                             lfs_off_t off, void *buffer, lfs_size_t size);
+
+int miosix_block_device_prog(const struct lfs_config *c, lfs_block_t block,
+                             lfs_off_t off, const void *buffer,
                              lfs_size_t size);
 
-int miosix_block_device_prog(FileBase *disk, const struct lfs_config *c,
-                             lfs_block_t block, lfs_off_t off,
-                             const void *buffer, lfs_size_t size);
+int miosix_block_device_erase(const struct lfs_config *c, lfs_block_t block);
 
-int miosix_block_device_erase(FileBase *disk, const struct lfs_config *c,
-                              lfs_block_t block);
-
-int miosix_block_device_sync(FileBase *disk, const struct lfs_config *c);
+int miosix_block_device_sync(const struct lfs_config *c);
 
 #endif // WITH_FILESYSTEM
 
