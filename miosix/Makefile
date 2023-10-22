@@ -37,6 +37,8 @@ filesystem/fat32/diskio.cpp                                                \
 filesystem/fat32/wtoupper.cpp                                              \
 filesystem/fat32/ccsbcs.cpp                                                \
 filesystem/littlefs/lfs_miosix.cpp                                         \
+filesystem/littlefs/lfs.c                                                  \
+filesystem/littlefs/lfs_util.c                                             \
 stdlib_integration/libc_integration.cpp                                    \
 stdlib_integration/libstdcpp_integration.cpp                               \
 e20/e20.cpp                                                                \
