@@ -1,5 +1,6 @@
 #include "lfs_miosix.h"
 #include "filesystem/stringpart.h"
+#include "kernel/logging.h"
 
 #include <fcntl.h>
 
@@ -73,21 +74,80 @@ int miosix::LittleFS::open(intrusive_ref_ptr<FileBase> &file, StringPart &name,
 }
 
 int miosix::LittleFS::lstat(StringPart &name, struct stat *pstat) {
-  return EPERM;
+  if (mountFailed())
+    return -ENOENT;
+
+  memset(pstat, 0, sizeof(struct stat));
+  pstat->st_dev = filesystemId;
+  pstat->st_nlink = 1;
+  pstat->st_blksize = LITTLEFS_CONFIG.block_size;
+
+  if (name.empty()) {
+    // Root directory
+    // TODO: Check this is true?
+    pstat->st_ino = 1;               // Root inode is 1 by convention
+    pstat->st_mode = S_IFDIR | 0755; // drwxr-xr-x
+    return 0;
+  }
+
+  struct lfs_info lfsStat;
+
+  int err = lfs_stat(&lfs, name.c_str(), &lfsStat);
+  if (err)
+    return convert_lfs_error_into_posix(err);
+
+  pstat->st_ino = -1; // TODO: Implement inode number on lfs
+  pstat->st_mode = lfsStat.type == LFS_TYPE_DIR ? S_IFDIR | 0755  // drwxr-xr-x
+                                                : S_IFREG | 0755; // -rwxr-xr-x
+  pstat->st_size = lfsStat.size;
+  pstat->st_blocks = (lfsStat.size + LITTLEFS_CONFIG.block_size - 1) /
+                     LITTLEFS_CONFIG.block_size;
+
+  return 0;
 }
 
-int miosix::LittleFS::unlink(StringPart &name) { return EPERM; }
+int miosix::LittleFS::unlink(StringPart &name) {
+  if (mountFailed())
+    return -ENOENT;
+
+  int err = lfs_remove(&lfs, name.c_str());
+  return convert_lfs_error_into_posix(err);
+}
 
 int miosix::LittleFS::rename(StringPart &oldName, StringPart &newName) {
-  return EPERM;
+  if (mountFailed())
+    return -ENOENT;
+
+  int err = lfs_rename(&lfs, oldName.c_str(), newName.c_str());
+  return convert_lfs_error_into_posix(err);
 }
 
-int miosix::LittleFS::mkdir(StringPart &name, int mode) { return EPERM; }
+int miosix::LittleFS::mkdir(StringPart &name, int mode) {
+  if (mountFailed())
+    return -ENOENT;
 
-int miosix::LittleFS::rmdir(StringPart &name) { return EPERM; }
+  // TODO: What to do with mode? Ignore it? Check that it is 0755?
+
+  int err = lfs_mkdir(&lfs, name.c_str());
+  return convert_lfs_error_into_posix(err);
+}
+
+int miosix::LittleFS::rmdir(StringPart &name) {
+  if (mountFailed())
+    return -ENOENT;
+
+  int err = lfs_remove(&lfs, name.c_str());
+  return convert_lfs_error_into_posix(err);
+}
 
 miosix::LittleFS::~LittleFS() {
-  // Implement close
+  if (mountFailed())
+    return;
+  int err = lfs_unmount(&lfs);
+  err = convert_lfs_error_into_posix(err);
+
+  if (err)
+    bootlog("Unmounted LittleFS with error code %d\n", mountError);
 }
 
 int miosix::convert_lfs_error_into_posix(int lfs_err) {
