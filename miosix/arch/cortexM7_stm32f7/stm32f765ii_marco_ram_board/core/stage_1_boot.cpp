@@ -6,6 +6,7 @@
 #include "interfaces/arch_registers.h"
 #include "interfaces/bsp.h"
 #include "kernel/stage_2_boot.h"
+#include "interfaces/delays.h"
 
 /*
  * startup.cpp
@@ -15,6 +16,88 @@
  * Developed by Terraneo Federico, based on ST startup code.
  * Additionally modified to boot Miosix.
  */
+
+void configureSDRAM()
+{
+    // Enable all gpios used by the FMC
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIODEN | RCC_AHB1ENR_GPIOEEN |
+                    RCC_AHB1ENR_GPIOFEN | RCC_AHB1ENR_GPIOGEN |
+                    RCC_AHB1ENR_GPIOHEN | RCC_AHB1ENR_GPIOIEN;
+    RCC_SYNC();
+    // Set FMC GPIO speed to 100MHz
+    //            port  F  E  D  C  B  A  9  8  7  6  5  4  3  2  1  0
+    GPIOD->OSPEEDR = 0b11'11'00'00'00'11'11'11'00'00'00'00'00'00'11'11;
+    GPIOE->OSPEEDR = 0b11'11'11'11'11'11'11'11'11'00'00'00'00'00'11'11;
+    GPIOF->OSPEEDR = 0b11'11'11'11'11'00'00'00'00'00'11'11'11'11'11'11;
+    GPIOG->OSPEEDR = 0b11'00'00'00'00'00'00'11'00'00'11'11'00'11'11'11;
+    GPIOH->OSPEEDR = 0b11'11'11'11'11'11'11'11'11'11'11'00'11'11'00'10;
+    GPIOI->OSPEEDR = 0b00'00'00'00'00'00'11'00'11'11'11'11'11'11'11'11; // FIXME PI10 should have been D31 but is wired to LED0
+    // Set FMC GPIO to alternate mode
+    //            port  F  E  D  C  B  A  9  8  7  6  5  4  3  2  1  0
+    GPIOD->MODER   = 0b10'10'00'00'00'10'10'10'00'00'00'00'00'00'10'10;
+    GPIOE->MODER   = 0b10'10'10'10'10'10'10'10'10'00'00'00'00'00'10'10;
+    GPIOF->MODER   = 0b10'10'10'10'10'00'00'00'00'00'10'10'10'10'10'10;
+    GPIOG->MODER   = 0b10'00'00'00'00'00'00'10'00'00'10'10'00'10'10'10;
+    GPIOH->MODER   = 0b10'10'10'10'10'10'10'10'10'10'10'00'10'10'00'10;
+    GPIOI->MODER   = 0b00'00'00'00'00'00'10'00'10'10'10'10'10'10'10'10; // FIXME PI10 should have been D31 but is wired to LED0
+    // No need to update PUPD as the default of zero is already correct.
+    // Set FMC GPIO alternate modes
+    //         port   FEDCBA98                    76543210
+    GPIOD->AFR[1] = 0xcc000ccc; GPIOD->AFR[0] = 0x000000cc;
+    GPIOE->AFR[1] = 0xcccccccc; GPIOE->AFR[0] = 0xc00000cc;
+    GPIOF->AFR[1] = 0xccccc000; GPIOF->AFR[0] = 0x00cccccc;
+    GPIOG->AFR[1] = 0xc000000c; GPIOG->AFR[0] = 0x00cc0ccc;
+    GPIOH->AFR[1] = 0xcccccccc; GPIOH->AFR[0] = 0xccc0cc0c;
+    GPIOI->AFR[1] = 0x000000c0; GPIOI->AFR[0] = 0xcccccccc;  // FIXME PI10 should have been D31 but is wired to LED0
+
+    // Power on FMC
+    RCC->AHB3ENR = RCC_AHB3ENR_FMCEN;
+    RCC_SYNC();
+    // Program memory device features and timings for 8 paralleled
+    // IS42S86400D-7TLI chips
+    uint32_t sdcr =
+          (3 << FMC_SDCR1_NC_Pos)       // 11 column address bits
+        | (2 << FMC_SDCR1_NR_Pos)       // 13 row address bits
+        | (2 << FMC_SDCR1_MWID_Pos)     // 32 bit data bus
+        | (1 << FMC_SDCR1_NB_Pos)       // 4 internal banks
+        | (2 << FMC_SDCR1_CAS_Pos)      // 2 cycle CAS latency
+        | (0 << FMC_SDCR1_WP_Pos)       // write allowed
+        | (3 << FMC_SDCR1_SDCLK_Pos)    // HCLK / 3 clock (FIXME: conservative)
+        | (0 << FMC_SDCR1_RBURST_Pos)   // no burst mode on single read requests (FIXME: conservative)
+        | (0 << FMC_SDCR1_RPIPE_Pos);   // 0 delay after reading
+    FMC_Bank5_6->SDCR[0] = sdcr;
+    FMC_Bank5_6->SDCR[1] = sdcr;
+    // FIXME: these timings are copied from stm32f769ni_discovery!
+    // To be fair it's the same brand of ram and a similar type but they need to
+    // be checked. ATM they probably are conservative because we are running
+    // the RAM at a slower clock (HCLK/3 rather than HCLK/2)
+    uint32_t sdtr =
+          (2 - 1) << FMC_SDTR1_TRCD_Pos   // 2 cycles TRCD (18.52ns > 18ns)
+        | (2 - 1) << FMC_SDTR1_TRP_Pos    // 2 cycles TRP  (18.52ns > 18ns)
+        | (2 - 1) << FMC_SDTR1_TWR_Pos    // 2 cycles TWR  (18.52ns > 12ns)
+        | (7 - 1) << FMC_SDTR1_TRC_Pos    // 7 cycles TRC  (64.82ns > 60ns)
+        | (5 - 1) << FMC_SDTR1_TRAS_Pos   // 5 cycles TRAS (46.3ns  > 42ns)
+        | (8 - 1) << FMC_SDTR1_TXSR_Pos   // 8 cycles TXSR (74.08ns > 70ns)
+        | (2 - 1) << FMC_SDTR1_TMRD_Pos;  // 2 cycles TMRD (18.52ns > 12ns)
+    FMC_Bank5_6->SDTR[0] = sdtr;
+    FMC_Bank5_6->SDTR[1] = sdtr;
+    // Send init command and wait for powerup
+    FMC_Bank5_6->SDCMR = (1 << FMC_SDCMR_MODE_Pos) | FMC_SDCMR_CTB1 | FMC_SDCMR_CTB2;
+    while (FMC_Bank5_6->SDSR & FMC_SDSR_BUSY) ;
+    miosix::delayUs(200); // see RAM datasheet p.21 for wait time
+    // Precharge all banks
+    FMC_Bank5_6->SDCMR = (2 << FMC_SDCMR_MODE_Pos) | FMC_SDCMR_CTB1 | FMC_SDCMR_CTB2;
+    while (FMC_Bank5_6->SDSR & FMC_SDSR_BUSY) ;
+    // Issue 8 auto-refresh commands (see RAM datasheet p.21 for number of refreshes)
+    FMC_Bank5_6->SDCMR = (3 << FMC_SDCMR_MODE_Pos) | (7 << FMC_SDCMR_NRFS_Pos) | FMC_SDCMR_CTB1 | FMC_SDCMR_CTB2;
+    while (FMC_Bank5_6->SDSR & FMC_SDSR_BUSY) ;
+    // Issue mode register set command
+    uint32_t mrd = 0b1'00'010'0'000; // TODO: check bit 9, "Write Burst Mode", stm32f769 sets it to 1 but what controls this on STM32 side?
+    FMC_Bank5_6->SDCMR = (4 << FMC_SDCMR_MODE_Pos) | (mrd << FMC_SDCMR_MRD_Pos) | FMC_SDCMR_CTB1 | FMC_SDCMR_CTB2;
+    while (FMC_Bank5_6->SDSR & FMC_SDSR_BUSY) ;
+    // Program refresh rate
+    FMC_Bank5_6->SDRTR = 300 << FMC_SDRTR_COUNT_Pos; // TODO: conservative
+}
 
 /**
  * Called by Reset_Handler, performs initialization and calls main.
@@ -40,6 +123,8 @@ void program_startup()
      *    instead of 8MHz
      */
     SystemInit();
+
+    configureSDRAM();
 
     miosix::IRQconfigureCache();
 

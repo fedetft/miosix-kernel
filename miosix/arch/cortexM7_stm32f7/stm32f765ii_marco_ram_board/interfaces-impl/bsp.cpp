@@ -67,15 +67,17 @@ void IRQbspInit()
                     RCC_AHB1ENR_GPIOIEN;
     RCC_SYNC();
 
-    // Default to 50MHz speed for all GPIOS
-    GPIOA->OSPEEDR = 0xaaaaaaaa;
-    GPIOB->OSPEEDR = 0xaaaaaaaa;
-    GPIOC->OSPEEDR = 0xaaaaaaaa;
-    GPIOD->OSPEEDR = 0xaaaaaaaa;
-    GPIOE->OSPEEDR = 0xaaaaaaaa;
-    GPIOF->OSPEEDR = 0xaaaaaaaa;
-    GPIOH->OSPEEDR = 0xaaaaaaaa;
-    GPIOI->OSPEEDR = 0xaaaaaaaa;
+    // Default to 50MHz speed for all GPIOS except FMC
+    //              port F  E  D  C  B  A  9  8  7  6  5  4  3  2  1  0
+    GPIOA->OSPEEDR  = 0b10'10'10'10'10'10'10'10'10'10'10'10'10'10'10'10;
+    GPIOB->OSPEEDR  = 0b10'10'10'10'10'10'10'10'10'10'10'10'10'10'10'10;
+    GPIOC->OSPEEDR  = 0b10'10'10'10'10'10'10'10'10'10'10'10'10'10'10'10;
+    GPIOD->OSPEEDR |= 0b00'00'10'10'10'00'00'00'10'10'10'10'10'10'00'00;
+    GPIOE->OSPEEDR |= 0b00'00'00'00'00'00'00'00'00'10'10'10'10'10'00'00;
+    GPIOF->OSPEEDR |= 0b00'00'00'00'00'10'10'10'10'10'00'00'00'00'00'00;
+    GPIOG->OSPEEDR |= 0b00'10'10'10'10'10'10'10'10'10'00'00'10'00'00'00;
+    GPIOH->OSPEEDR |= 0b00'00'00'00'00'00'00'00'00'00'00'10'00'00'10'10;
+    GPIOI->OSPEEDR |= 0b10'10'10'10'10'10'00'00'00'00'00'00'00'00'00'00;
 
     led1::mode(Mode::OUTPUT);
     led2::mode(Mode::OUTPUT);
