@@ -47,14 +47,14 @@ namespace miosix {
  * \internal
  * Board pin definition
  */
-typedef Gpio<GPIOI_BASE,10> led1;
-typedef Gpio<GPIOI_BASE,11> led2;
-typedef Gpio<GPIOF_BASE,9> btn0;
-typedef Gpio<GPIOF_BASE,8> btn1;
-typedef Gpio<GPIOF_BASE,7> btn2;
-typedef Gpio<GPIOF_BASE,6> btn3;
-typedef Gpio<GPIOC_BASE,6> sdmmcCD;
-typedef Gpio<GPIOC_BASE,7> sdmmcWP;
+using led1 = Gpio<GPIOI_BASE,8>;
+using led2 = Gpio<GPIOI_BASE,11>;
+using btn0 = Gpio<GPIOF_BASE,9>; // SW504
+using btn1 = Gpio<GPIOF_BASE,8>; // SW503
+using btn2 = Gpio<GPIOF_BASE,7>; // SW502
+using btn3 = Gpio<GPIOF_BASE,6>; // SW501
+using sdmmcCD = Gpio<GPIOC_BASE,6>;
+using sdmmcWP = Gpio<GPIOC_BASE,7>;
 
 inline void ledOn()
 {
