@@ -8,8 +8,8 @@
 #ifndef LFS_RAMBD_H
 #define LFS_RAMBD_H
 
-#include "lfs.h"
-#include "lfs_util.h"
+#include "../lfs.h"
+#include "../lfs_util.h"
 
 #ifdef __cplusplus
 extern "C"
