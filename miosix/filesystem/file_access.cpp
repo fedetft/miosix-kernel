@@ -707,7 +707,7 @@ intrusive_ref_ptr<FilesystemBase> rootFs
                    intrusive_ref_ptr<DevFs> devfs
 #endif
 ) {
-  bootlog("Mounting % as /sd ... ", typeid(T).name());
+  bootlog("Mounting %s as /sd ... ", typeid(T).name());
   intrusive_ref_ptr<FileBase> disk;
   FilesystemManager& fsm=FilesystemManager::instance();
 #ifdef WITH_DEVFS

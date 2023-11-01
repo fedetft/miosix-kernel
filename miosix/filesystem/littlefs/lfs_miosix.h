@@ -28,6 +28,7 @@
 #ifndef LFS_MIOSIX_H
 #define LFS_MIOSIX_H
 
+#include "bd/lfs_rambd.h"
 #include "config/miosix_settings.h"
 #include "filesystem/file.h"
 #include "kernel/sync.h"
@@ -111,8 +112,34 @@ public:
   lfs_t *getLfs() { return &lfs; }
 
 private:
+  /**
+   * Specialization of LittleFS::open for directories only
+   * \param directory the file object will be stored here, if the call succeeds
+   * \param name the name of the directory to open, relative to the local
+   * filesystem
+   * \param flags file flags (open for reading, writing, ...)
+   * \param mode file permissions
+   * \return 0 on success, or a negative number on failure
+   */
+  int open_directory(intrusive_ref_ptr<FileBase> &directory, StringPart &name,
+                     int flags, int mode);
+  /**
+   * Specialization of LittleFS::open for files only
+   * \param file the file object will be stored here, if the call succeeds
+   * \param name the name of the file to open, relative to the local
+   * filesystem
+   * \param flags file flags (open for reading, writing, ...)
+   * \param mode file permissions
+   * \return 0 on success, or a negative number on failure
+   */
+  int open_file(intrusive_ref_ptr<FileBase> &file, StringPart &name, int flags,
+                int mode);
+
   miosix::intrusive_ref_ptr<miosix::FileBase> drv; /* drive device */
   int mountError;                                  ///< Mount error code
+
+  struct lfs_config config;
+  lfs_rambd_t rambd;
 
   lfs_t lfs;
   lfs_file_t file;
@@ -120,9 +147,17 @@ private:
 
 class LittleFSFile : public FileBase {
 public:
-  LittleFSFile(intrusive_ref_ptr<LittleFS> parentFS, lfs_file_t file,
-               bool forceSync)
-      : FileBase(parentFS), file(file), forceSync(forceSync) {}
+  /**
+   * @brief Constructs a LittleFSFile object.
+   *
+   * @param parentFS A reference to the parent LittleFS object.
+   * @param file A pointer to the underlying lfs_file_t object. This object
+   * takes ownership of the pointer.
+   * @param forceSync A boolean indicating whether to force synchronization
+   * after writes
+   */
+  LittleFSFile(intrusive_ref_ptr<LittleFS> parentFS, bool forceSync)
+      : FileBase(parentFS), forceSync(forceSync) {}
 
   virtual int read(void *buf, size_t count) override;
   virtual int write(const void *buf, size_t count) override;
@@ -130,14 +165,54 @@ public:
   virtual int fstat(struct stat *pstat) const override;
 
   ~LittleFSFile() {
+    if (!isOpen)
+      return;
     LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
     lfs_file_close(lfs_driver->getLfs(), &file);
   }
 
+  lfs_file_t *getFileReference() { return &file; }
+
+  void setAsOpen() { this->isOpen = true; }
+
 private:
+  bool isOpen = false;
+
   lfs_file_t file;
   /// Force the file to be synced on every write
   bool forceSync;
+};
+
+class LittleFSDirectory : public DirectoryBase {
+public:
+  LittleFSDirectory(intrusive_ref_ptr<LittleFS> parentFS)
+      : DirectoryBase(parentFS) {}
+
+  /**
+   * Also directories can be opened as files. In this case, this system call
+   * allows to retrieve directory entries.
+   * \param dp pointer to a memory buffer where one or more struct dirent
+   * will be placed. dp must be four words aligned.
+   * \param len memory buffer size.
+   * \return the number of bytes read on success, or a negative number on
+   * failure.
+   */
+  virtual int getdents(void *dp, int len);
+
+  ~LittleFSDirectory() {
+    if (!isOpen)
+      return;
+    LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
+    lfs_dir_close(lfs_driver->getLfs(), &dir);
+  };
+
+  lfs_dir_t *getDirReference() { return &dir; }
+
+  void setAsOpen() { this->isOpen = true; }
+
+private:
+  bool isOpen = false;
+  lfs_dir_t dir;
 };
 
 /**
@@ -146,6 +221,13 @@ private:
  * \return the respective POSIX error code
  */
 int convert_lfs_error_into_posix(int lfs_err);
+
+/**
+ * Convert a POSIX open flag into a LittleFS open flag
+ * \param posix_flags POSIX open flag
+ * \return LittleFS open flag
+ */
+int convert_posix_open_to_lfs_flags(int posix_flags);
 
 // * Wrappers for LFS block device operations
 int miosix_block_device_read(const struct lfs_config *c, lfs_block_t block,
