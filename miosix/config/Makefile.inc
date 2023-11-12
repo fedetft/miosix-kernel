@@ -58,6 +58,7 @@
 #OPT_BOARD := stm32f769ni_discovery
 #OPT_BOARD := stm32f415vg_st25dvdiscovery
 #OPT_BOARD := efm32g222f128_generic
+#OPT_BOARD := stm32l053r8_nucleo
 
 ##
 ## Optimization flags, choose one.
@@ -680,6 +681,12 @@ endif
 
 # No options
 
+##---------------------------------------------------------------------------
+## stm32l053r8_nucleo
+##
+
+# No options
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -789,6 +796,8 @@ else ifeq ($(OPT_BOARD),stm32f415vg_st25dvdiscovery)
     ARCH := cortexM4_stm32f4
 else ifeq ($(OPT_BOARD),efm32g222f128_generic)
     ARCH := cortexM3_efm32g
+else ifeq ($(OPT_BOARD),stm32l053r8_nucleo)
+    ARCH := cortexM0plus_stm32l0
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -3022,6 +3031,86 @@ else ifeq ($(ARCH),cortexM3_efm32g)
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/CMSIS/Device/SiliconLabs/EFM32G/Source/system_efm32g.c
+
+##-----------------------------------------------------------------------------
+## ARCHITECTURE: cortexM0plus_stm32l0
+##
+else ifeq ($(ARCH),cortexM0plus_stm32l0)
+    ## Base directory with else header files for this board
+    ARCH_INC := arch/cortexM0plus_stm32l0/common
+
+    ifeq ($(OPT_BOARD),stm32l053r8_nucleo)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM0plus_stm32l0/stm32l053r8_nucleo
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+8k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                                 \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -DBOARD_STM32L053R8_NUCLEO -DSTM32L053xx
+        CXXFLAGS_BASE += -DBOARD_STM32L053R8_NUCLEO -DSTM32L053xx
+
+        ## Clock frequency
+        ## External clock is 8Mhz provided from MCO output of ST-LINK. Actual
+        ## HSE crystal (X3) is not fitted.
+        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_32MHz=32000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := echo 'make program not supported.'
+
+    ##-------------------------------------------------------------------------
+    ## End of board list
+    ##
+    endif
+
+    ## Select compiler
+    PREFIX=arm-miosix-eabi-
+
+    ## From compiler prefix form the name of the compiler and other tools
+    CC  := $(PREFIX)gcc
+    CXX := $(PREFIX)g++
+    LD  := $(PREFIX)ld
+    AR  := $(PREFIX)ar
+    AS  := $(PREFIX)as
+    CP  := $(PREFIX)objcopy
+    OD  := $(PREFIX)objdump
+    SZ  := $(PREFIX)size
+
+    ## Select appropriate compiler flags for both ASM/C/C++/linker
+    AFLAGS_BASE   := -mcpu=cortex-m0plus -mthumb
+    CFLAGS_BASE   += -D_ARCH_CORTEXM0PLUS_STM32L0 $(CLOCK_FREQ)        \
+                     -mcpu=cortex-m0plus -mthumb $(OPT_OPTIMIZATION) -c
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM0PLUS_STM32L0 $(CLOCK_FREQ)        \
+                     -mcpu=cortex-m0plus $(OPT_EXCEPT) -mthumb     \
+                     $(OPT_OPTIMIZATION) -c
+    LFLAGS_BASE   := -mcpu=cortex-m0 -mthumb                       \
+                     -Wl,--gc-sections,-Map,main.map               \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
+                     $(OPT_OPTIMIZATION) -nostdlib
+
+    ## Select architecture specific files
+    ## These are the files in arch/<arch name>/common    
+
+    ARCH_SRC +=                                              \
+    arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/drivers/serial_stm32.cpp                     \
+    $(ARCH_INC)/interfaces-impl/portability.cpp              \
+    $(ARCH_INC)/interfaces-impl/delays.cpp                   \
+    $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
+    arch/common/core/stm32l0_os_timer.cpp                    \
+    arch/common/CMSIS/Device/ST/STM32L0xx/Source/Templates/system_stm32l0xx.c
 
 ##-----------------------------------------------------------------------------
 ## end of architecture list
