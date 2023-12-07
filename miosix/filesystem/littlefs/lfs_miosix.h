@@ -37,6 +37,15 @@ namespace miosix {
 
 #ifdef WITH_FILESYSTEM
 
+struct lfs_driver_context {
+
+public:
+  lfs_driver_context(FileBase *disk) : disk(disk), mutex(Mutex::DEFAULT) {}
+
+  FileBase *disk;
+  Mutex mutex;
+};
+
 /**
  * LittleFS Filesystem.
  */
@@ -141,6 +150,8 @@ private:
 
   lfs_t lfs;
   lfs_file_t file;
+
+  lfs_driver_context context;
 };
 
 class LittleFSFile : public FileBase {
@@ -238,6 +249,14 @@ int miosix_block_device_prog(const struct lfs_config *c, lfs_block_t block,
 int miosix_block_device_erase(const struct lfs_config *c, lfs_block_t block);
 
 int miosix_block_device_sync(const struct lfs_config *c);
+
+// Lock the underlying block device. Negative error codes
+// are propagated to the user.
+int miosix_lfs_lock(const struct lfs_config *c);
+
+// Unlock the underlying block device. Negative error codes
+// are propagated to the user.
+int miosix_lfs_unlock(const struct lfs_config *c);
 
 #endif // WITH_FILESYSTEM
 
