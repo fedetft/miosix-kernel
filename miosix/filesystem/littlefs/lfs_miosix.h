@@ -28,7 +28,6 @@
 #ifndef LFS_MIOSIX_H
 #define LFS_MIOSIX_H
 
-#include "bd/lfs_rambd.h"
 #include "config/miosix_settings.h"
 #include "filesystem/file.h"
 #include "kernel/sync.h"
@@ -139,7 +138,6 @@ private:
   int mountError;                                  ///< Mount error code
 
   struct lfs_config config;
-  lfs_rambd_t rambd;
 
   lfs_t lfs;
   lfs_file_t file;
