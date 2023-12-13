@@ -32,6 +32,7 @@
 #include "filesystem/file.h"
 #include "kernel/sync.h"
 #include "lfs.h"
+#include <memory>
 
 namespace miosix {
 
@@ -165,8 +166,9 @@ public:
    * @param forceSync A boolean indicating whether to force synchronization
    * after writes
    */
-  LittleFSFile(intrusive_ref_ptr<LittleFS> parentFS, bool forceSync)
-      : FileBase(parentFS), forceSync(forceSync) {}
+  LittleFSFile(intrusive_ref_ptr<LittleFS> parentFS,
+               std::unique_ptr<lfs_file_t> file, bool forceSync)
+      : FileBase(parentFS), file(std::move(file)), forceSync(forceSync) {}
 
   virtual int read(void *buf, size_t count) override;
   virtual int write(const void *buf, size_t count) override;
@@ -174,28 +176,25 @@ public:
   virtual int fstat(struct stat *pstat) const override;
 
   ~LittleFSFile() {
-    if (!isOpen)
-      return;
-    LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
-    lfs_file_close(lfs_driver->getLfs(), &file);
+    if (isOpen()) {
+      LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
+      lfs_file_close(lfs_driver->getLfs(), file.get());
+    }
   }
 
-  lfs_file_t *getFileReference() { return &file; }
-
-  void setAsOpen() { this->isOpen = true; }
+  bool isOpen() const { return file != nullptr; }
 
 private:
-  bool isOpen = false;
-
-  lfs_file_t file;
+  std::unique_ptr<lfs_file_t> file;
   /// Force the file to be synced on every write
   bool forceSync;
 };
 
 class LittleFSDirectory : public DirectoryBase {
 public:
-  LittleFSDirectory(intrusive_ref_ptr<LittleFS> parentFS)
-      : DirectoryBase(parentFS) {}
+  LittleFSDirectory(intrusive_ref_ptr<LittleFS> parentFS,
+                    std::unique_ptr<lfs_dir_t> dir)
+      : DirectoryBase(parentFS), dir(std::move(dir)) {}
 
   /**
    * Also directories can be opened as files. In this case, this system call
@@ -209,19 +208,16 @@ public:
   virtual int getdents(void *dp, int len);
 
   ~LittleFSDirectory() {
-    if (!isOpen)
+    if (!isOpen())
       return;
     LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
-    lfs_dir_close(lfs_driver->getLfs(), &dir);
+    lfs_dir_close(lfs_driver->getLfs(), dir.get());
   };
 
-  lfs_dir_t *getDirReference() { return &dir; }
-
-  void setAsOpen() { this->isOpen = true; }
+  bool isOpen() const { return dir != nullptr; }
 
 private:
-  bool isOpen = false;
-  lfs_dir_t dir;
+  std::unique_ptr<lfs_dir_t> dir;
 };
 
 /**
