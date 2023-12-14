@@ -217,8 +217,50 @@ int miosix::LittleFSFile::write(const void *buf, size_t count) {
 
 off_t miosix::LittleFSFile::lseek(off_t pos, int whence) {
   assert(isOpen());
-  // TODO: Implement using lfs APIs
-  return -ENOENT;
+  
+  // off_t offset;                                                                        // le ho lasciate solo perchè sono partito da come era fatto in FAT32
+  // switch(whence)                                                                       // poi ho visto che potevo farlo in modo diverso
+  // {                                                                                    // se dici che è ok, elimino tutti questi commenti
+  //     case SEEK_CUR:
+  //         offset=static_cast<off_t>(lfs_file_tell(fs_driver->getLfs(), &file))+pos;
+  //         break;
+  //     case SEEK_SET:
+  //         offset=pos;
+  //         break;
+  //     case SEEK_END:
+  //         offset=static_cast<off_t>(lfs_file_size(fs_driver->getLfs(), &file))+pos;
+  //         break;
+  //     default:
+  //         return -EINVAL;
+  // }
+
+  lfs_whence_flags whence_lfs;
+  switch (whence)
+  {
+  case SEEK_CUR:
+    whence_lfs = LFS_SEEK_CUR;
+    break; 
+  case SEEK_SET:
+    whence_lfs = LFS_SEEK_SET;
+    break;
+  case SEEK_END:
+    whence_lfs = LFS_SEEK_END;
+    break;
+  default:
+    return -EINVAL;
+    break;
+  }
+
+  // if(offset<0 || offset>static_cast<off_t>(lfs_file_size(fs_driver->getLfs(), &file))) return -EOVERFLOW;
+
+  LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
+  off_t lfs_off = static_cast<off_t>(lfs_file_seek(lfs_driver->getLfs(), file.get(), static_cast<lfs_off_t>(pos), whence_lfs));
+
+  // if(int result=translateError(
+  //       f_lseek(&file,static_cast<unsigned long>(offset)))) return result;
+  //   return offset;
+
+  return lfs_off;
 }
 
 int miosix::LittleFSFile::fstat(struct stat *pstat) const {
