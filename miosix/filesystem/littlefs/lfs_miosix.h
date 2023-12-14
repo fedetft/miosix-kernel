@@ -167,8 +167,10 @@ public:
    * after writes
    */
   LittleFSFile(intrusive_ref_ptr<LittleFS> parentFS,
-               std::unique_ptr<lfs_file_t> file, bool forceSync, StringPart& name)
-      : FileBase(parentFS), file(std::move(file)), forceSync(forceSync), name(name) {}
+               std::unique_ptr<lfs_file_t> file, bool forceSync,
+               StringPart &name)
+      : FileBase(parentFS), file(std::move(file)), forceSync(forceSync),
+        name(name) {}
 
   virtual int read(void *buf, size_t count) override;
   virtual int write(const void *buf, size_t count) override;
@@ -187,9 +189,9 @@ public:
 private:
   std::unique_ptr<lfs_file_t> file;
 
-  StringPart& name;
   /// Force the file to be synced on every write
   bool forceSync;
+  StringPart &name;
 };
 
 class LittleFSDirectory : public DirectoryBase {
@@ -220,6 +222,12 @@ public:
 
 private:
   std::unique_ptr<lfs_dir_t> dir;
+  // Used for when `getdents` does not give enough memory to store the whole
+  // directory childrens
+  bool directoryTraversalUnfinished = false;
+
+  // Where to place a children info
+  lfs_info dirInfo;
 };
 
 /**
