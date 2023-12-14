@@ -167,8 +167,8 @@ public:
    * after writes
    */
   LittleFSFile(intrusive_ref_ptr<LittleFS> parentFS,
-               std::unique_ptr<lfs_file_t> file, bool forceSync)
-      : FileBase(parentFS), file(std::move(file)), forceSync(forceSync) {}
+               std::unique_ptr<lfs_file_t> file, bool forceSync, StringPart& name)
+      : FileBase(parentFS), file(std::move(file)), forceSync(forceSync), name(name) {}
 
   virtual int read(void *buf, size_t count) override;
   virtual int write(const void *buf, size_t count) override;
@@ -186,6 +186,8 @@ public:
 
 private:
   std::unique_ptr<lfs_file_t> file;
+
+  StringPart& name;
   /// Force the file to be synced on every write
   bool forceSync;
 };
