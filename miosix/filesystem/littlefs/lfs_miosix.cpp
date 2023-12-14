@@ -219,11 +219,10 @@ off_t miosix::LittleFSFile::lseek(off_t pos, int whence) {
   assert(isOpen());
 
   lfs_whence_flags whence_lfs;
-  switch (whence)
-  {
+  switch (whence) {
   case SEEK_CUR:
     whence_lfs = LFS_SEEK_CUR;
-    break; 
+    break;
   case SEEK_SET:
     whence_lfs = LFS_SEEK_SET;
     break;
@@ -236,14 +235,16 @@ off_t miosix::LittleFSFile::lseek(off_t pos, int whence) {
   }
 
   LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
-  off_t lfs_off = static_cast<off_t>(lfs_file_seek(lfs_driver->getLfs(), file.get(), static_cast<lfs_off_t>(pos), whence_lfs));
+  off_t lfs_off = static_cast<off_t>(
+      lfs_file_seek(lfs_driver->getLfs(), file.get(),
+                    static_cast<lfs_off_t>(pos), whence_lfs));
 
   return lfs_off;
 }
 
 int miosix::LittleFSFile::fstat(struct stat *pstat) const {
   assert(isOpen());
-  
+
   LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
   lfs_driver->lstat(this->name, pstat);
 
@@ -257,19 +258,31 @@ int miosix::LittleFSDirectory::getdents(void *dp, int len) {
   }
 
   LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
-  lfs_info dirInfo;
 
   char *bufferBegin = static_cast<char *>(dp);
   char *bufferEnd = bufferBegin + len;
   char *bufferCurPos = bufferBegin; // Current position in the buffer
 
   int dirReadResult;
+
+  if (directoryTraversalUnfinished) {
+    // Last time we did not have enough memory to store all the directory,
+    // continue from where we left
+    directoryTraversalUnfinished = false;
+    if (addEntry(&bufferCurPos, bufferEnd, -10,
+                 dirInfo.type == LFS_TYPE_REG ? DT_REG : DT_DIR,
+                 StringPart(dirInfo.name)) < 0) {
+      // ??? How is it possible that not even a single entry fits the buffer ???
+      return -ENOMEM;
+    }
+  }
+
   while ((dirReadResult =
               lfs_dir_read(lfs_driver->getLfs(), dir.get(), &dirInfo)) >= 0) {
     if (dirReadResult == 0) {
       // No more entries
       if (addTerminatingEntry(&bufferCurPos, bufferEnd) < 0) {
-        // The terminating entry does not fit in the buffer
+        // ??? The terminating entry does not fit in the buffer ???
         return -ENOMEM;
       }
       break;
@@ -279,8 +292,9 @@ int miosix::LittleFSDirectory::getdents(void *dp, int len) {
     if (addEntry(&bufferCurPos, bufferEnd, -10,
                  dirInfo.type == LFS_TYPE_REG ? DT_REG : DT_DIR,
                  StringPart(dirInfo.name)) < 0) {
-      // The entry does not fit in the buffer
-      return -ENOMEM;
+      // The entry does not fit in the buffer. Signal that we did not finish
+      directoryTraversalUnfinished = true;
+      return bufferCurPos - bufferBegin;
     }
   };
 
