@@ -246,7 +246,8 @@ int miosix::LittleFSFile::fstat(struct stat *pstat) const {
   assert(isOpen());
 
   LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
-  lfs_driver->lstat(this->name, pstat);
+  StringPart &nameClone = const_cast<StringPart &>(name);
+  lfs_driver->lstat(nameClone, pstat);
 
   return 0;
 }
@@ -281,10 +282,7 @@ int miosix::LittleFSDirectory::getdents(void *dp, int len) {
               lfs_dir_read(lfs_driver->getLfs(), dir.get(), &dirInfo)) >= 0) {
     if (dirReadResult == 0) {
       // No more entries
-      if (addTerminatingEntry(&bufferCurPos, bufferEnd) < 0) {
-        // ??? The terminating entry does not fit in the buffer ???
-        return -ENOMEM;
-      }
+      addTerminatingEntry(&bufferCurPos, bufferEnd);
       break;
     }
 
