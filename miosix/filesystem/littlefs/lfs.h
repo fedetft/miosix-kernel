@@ -290,6 +290,10 @@ struct lfs_info {
     // reduce RAM. LFS_NAME_MAX is stored in superblock and must be
     // respected by other littlefs drivers.
     char name[LFS_NAME_MAX+1];
+
+    // Block, used for inode number
+    // [!] Added for Miosix inode simulation
+    lfs_off_t block;
 };
 
 // Filesystem info structure
@@ -363,6 +367,7 @@ typedef struct lfs_mdir {
     lfs_block_t pair[2];
     uint32_t rev;
     lfs_off_t off;
+    lfs_off_t lastOffRead; // [!] Added for Miosix inode simulation
     uint32_t etag;
     uint16_t count;
     bool erased;

@@ -131,7 +131,7 @@ private:
    * \param mode file permissions
    * \return 0 on success, or a negative number on failure
    */
-  int open_directory(intrusive_ref_ptr<FileBase> &directory, StringPart &name,
+  int openDirectory(intrusive_ref_ptr<FileBase> &directory, StringPart &name,
                      int flags, int mode);
   /**
    * Specialization of LittleFS::open for files only
@@ -142,7 +142,7 @@ private:
    * \param mode file permissions
    * \return 0 on success, or a negative number on failure
    */
-  int open_file(intrusive_ref_ptr<FileBase> &file, StringPart &name, int flags,
+  int openFile(intrusive_ref_ptr<FileBase> &file, StringPart &name, int flags,
                 int mode);
 
   miosix::intrusive_ref_ptr<miosix::FileBase> drv; /* drive device */
@@ -179,13 +179,9 @@ public:
   virtual int fstat(struct stat *pstat) const override;
 
   ~LittleFSFile() {
-    if (isOpen()) {
-      LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
-      lfs_file_close(lfs_driver->getLfs(), file.get());
-    }
+    LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
+    lfs_file_close(lfs_driver->getLfs(), file.get());
   }
-
-  bool isOpen() const { return file != nullptr; }
 
 private:
   std::unique_ptr<lfs_file_t> file;
@@ -213,13 +209,9 @@ public:
   virtual int getdents(void *dp, int len);
 
   ~LittleFSDirectory() {
-    if (!isOpen())
-      return;
     LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
     lfs_dir_close(lfs_driver->getLfs(), dir.get());
   };
-
-  bool isOpen() const { return dir != nullptr; }
 
 private:
   std::unique_ptr<lfs_dir_t> dir;
@@ -236,34 +228,34 @@ private:
  * \param lfs_err the error flag given by LittleFS
  * \return the respective POSIX error code
  */
-int convert_lfs_error_into_posix(int lfs_err);
+int lfsErrorToPosix(int lfs_err);
 
 /**
  * Convert a POSIX open flag into a LittleFS open flag
  * \param posix_flags POSIX open flag
  * \return LittleFS open flag
  */
-int convert_posix_open_to_lfs_flags(int posix_flags);
+int posixOpenToLfsFlags(int posix_flags);
 
 // * Wrappers for LFS block device operations
-int miosix_block_device_read(const struct lfs_config *c, lfs_block_t block,
+int miosixBlockDeviceRead(const struct lfs_config *c, lfs_block_t block,
                              lfs_off_t off, void *buffer, lfs_size_t size);
 
-int miosix_block_device_prog(const struct lfs_config *c, lfs_block_t block,
+int miosixBlockDeviceProg(const struct lfs_config *c, lfs_block_t block,
                              lfs_off_t off, const void *buffer,
                              lfs_size_t size);
 
-int miosix_block_device_erase(const struct lfs_config *c, lfs_block_t block);
+int miosixBlockDeviceErase(const struct lfs_config *c, lfs_block_t block);
 
-int miosix_block_device_sync(const struct lfs_config *c);
+int miosixBlockDeviceSync(const struct lfs_config *c);
 
 // Lock the underlying block device. Negative error codes
 // are propagated to the user.
-int miosix_lfs_lock(const struct lfs_config *c);
+int miosixLfsLock(const struct lfs_config *c);
 
 // Unlock the underlying block device. Negative error codes
 // are propagated to the user.
-int miosix_lfs_unlock(const struct lfs_config *c);
+int miosixLfsUnlock(const struct lfs_config *c);
 
 #endif // WITH_FILESYSTEM
 
