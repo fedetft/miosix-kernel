@@ -683,7 +683,7 @@ static int lfs_alloc(lfs_t *lfs, lfs_block_t *block) {
 #endif
 
 /// Metadata pair and directory operations ///
-static lfs_stag_t lfs_dir_getslice(lfs_t *lfs, const lfs_mdir_t *dir,
+static lfs_stag_t lfs_dir_getslice(lfs_t *lfs, lfs_mdir_t *dir,
         lfs_tag_t gmask, lfs_tag_t gtag,
         lfs_off_t goff, void *gbuffer, lfs_size_t gsize) {
     lfs_off_t off = dir->off;
@@ -729,6 +729,7 @@ static lfs_stag_t lfs_dir_getslice(lfs_t *lfs, const lfs_mdir_t *dir,
             }
 
             lfs_size_t diff = lfs_min(lfs_tag_size(tag), gsize);
+            dir->lastOffRead = off; // [!] Added for Miosix inode simulation
             err = lfs_bd_read(lfs,
                     NULL, &lfs->rcache, diff,
                     dir->pair[0], off+sizeof(tag)+goff, gbuffer, diff);
@@ -3812,7 +3813,12 @@ static int lfs_rawstat(lfs_t *lfs, const char *path, struct lfs_info *info) {
         return (int)tag;
     }
 
-    return lfs_dir_getinfo(lfs, &cwd, lfs_tag_id(tag), info);
+    // [!] Begin section modified for Miosix inode simulation
+    int err = lfs_dir_getinfo(lfs, &cwd, lfs_tag_id(tag), info);
+
+    info->block = cwd.lastOffRead;
+    return err;
+    // [!] End section modified for Miosix inode simulation
 }
 
 #ifndef LFS_READONLY
@@ -6158,6 +6164,7 @@ int lfs_dir_read(lfs_t *lfs, lfs_dir_t *dir, struct lfs_info *info) {
             (void*)lfs, (void*)dir, (void*)info);
 
     err = lfs_dir_rawread(lfs, dir, info);
+    info->block = dir->m.lastOffRead; // [!] Added for Miosix inode simulation
 
     LFS_TRACE("lfs_dir_read -> %d", err);
     LFS_UNLOCK(lfs->cfg);
