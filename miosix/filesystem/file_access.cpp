@@ -700,49 +700,40 @@ int FilesystemManager::devCount=1;
 /// @param devfs Reference to devfs
 /// @return `true` if mount was successful, `false` otherwise
 template <class T>
+#ifdef WITH_DEVFS
 bool tryMount(intrusive_ref_ptr<Device> dev,
-intrusive_ref_ptr<FilesystemBase> rootFs
-#ifdef WITH_DEVFS
-                   ,
-                   intrusive_ref_ptr<DevFs> devfs
+    intrusive_ref_ptr<FilesystemBase> rootFs, intrusive_ref_ptr<DevFs> devfs)
+#else
+bool tryMount(intrusive_ref_ptr<Device> dev,
+    intrusive_ref_ptr<FilesystemBase> rootFs)
 #endif
-) {
-  bootlog("Mounting %s as /sd ... ", typeid(T).name());
-  intrusive_ref_ptr<FileBase> disk;
-  FilesystemManager& fsm=FilesystemManager::instance();
-#ifdef WITH_DEVFS
-  if (dev) {
-    devfs->addDevice("sda", dev);
-  }
-  StringPart sda("sda");
-  if (devfs->open(disk, sda, O_RDWR, 0) < 0) {
-    bootlog("Failed\n");
-    return false;
-  }
-#else  // WITH_DEVFS
-  if (dev &&
-      dev->open(disk, intrusive_ref_ptr<FilesystemBase>(0), O_RDWR, 0) < 0) {
-    bootlog("Failed\n");
-    return false;
-  }
-#endif // WITH_DEVFS
+{
+    bootlog("Mounting %s as /sd ... ",typeid(T).name());
+    intrusive_ref_ptr<FileBase> disk;
+    FilesystemManager& fsm=FilesystemManager::instance();
 
+    #ifdef WITH_DEVFS
+    if(dev) devfs->addDevice("sda", dev);
+    StringPart sda("sda");
+    if(devfs->open(disk, sda, O_RDWR, 0) < 0)
+    #else // WITH_DEVFS
+    if(dev && dev->open(disk,intrusive_ref_ptr<FilesystemBase>(0),O_RDWR,0)<0)
+    #endif // WITH_DEVFS
+    {
+        bootlog("Failure\n");
+        return false;
+    }
 
-  intrusive_ref_ptr<T> fsImpl;
-  fsImpl = new T(disk);
-  if (fsImpl->mountFailed()) {
-    bootlog("Failed\n");
-    return false;
-  }
-  StringPart sd("sd");
-  if (rootFs->mkdir(sd, 0755) != 0 ||
-      fsm.kmount("/sd", fsImpl) != 0) {
-    bootlog("Failed\n");
-    return false;
-  }
-
-  bootlog("Ok\n");
-  return true;
+    intrusive_ref_ptr<T> fsImpl(new T(disk));
+    if(fsImpl->mountFailed()) { bootlog("Failure\n"); return false; }
+    StringPart sd("sd");
+    if(rootFs->mkdir(sd, 0755)!=0 || fsm.kmount("/sd", fsImpl)!=0)
+    {
+        bootlog("Failure\n");
+        return false;
+    }
+    bootlog("Ok\n");
+    return true;
 }
 
 #ifdef WITH_DEVFS
