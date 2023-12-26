@@ -746,14 +746,14 @@ static lfs_stag_t lfs_dir_getslice(lfs_t *lfs, lfs_mdir_t *dir,
     return LFS_ERR_NOENT;
 }
 
-static lfs_stag_t lfs_dir_get(lfs_t *lfs, const lfs_mdir_t *dir,
+static lfs_stag_t lfs_dir_get(lfs_t *lfs, lfs_mdir_t *dir,
         lfs_tag_t gmask, lfs_tag_t gtag, void *buffer) {
     return lfs_dir_getslice(lfs, dir,
             gmask, gtag,
             0, buffer, lfs_tag_size(gtag));
 }
 
-static int lfs_dir_getread(lfs_t *lfs, const lfs_mdir_t *dir,
+static int lfs_dir_getread(lfs_t *lfs, lfs_mdir_t *dir,
         const lfs_cache_t *pcache, lfs_cache_t *rcache, lfs_size_t hint,
         lfs_tag_t gmask, lfs_tag_t gtag,
         lfs_off_t off, void *buffer, lfs_size_t size) {
@@ -1357,7 +1357,7 @@ static int lfs_dir_fetch(lfs_t *lfs,
             (lfs_tag_t)-1, (lfs_tag_t)-1, NULL, NULL, NULL);
 }
 
-static int lfs_dir_getgstate(lfs_t *lfs, const lfs_mdir_t *dir,
+static int lfs_dir_getgstate(lfs_t *lfs, lfs_mdir_t *dir,
         lfs_gstate_t *gstate) {
     lfs_gstate_t temp;
     lfs_stag_t res = lfs_dir_get(lfs, dir, LFS_MKTAG(0x7ff, 0, 0),
