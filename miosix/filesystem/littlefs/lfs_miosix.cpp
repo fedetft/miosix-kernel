@@ -303,7 +303,7 @@ int miosix::LittleFSDirectory::getdents(void *dp, int len) {
       directoryTraversalUnfinished = true;
       return bufferCurPos - bufferBegin;
     }
-  };
+  }
 
   // We did not naturally reach the end, but a read error occurred
   if (dirReadResult < 0) {
@@ -348,19 +348,6 @@ int miosix::miosixBlockDeviceProg(const lfs_config *c, lfs_block_t block,
 }
 
 int miosix::miosixBlockDeviceErase(const lfs_config *c, lfs_block_t block) {
-  FileBase *drv = GET_DRIVER_FROM_LFS_CONTEXT(c);
-
-  std::unique_ptr<int> buffer(new int[c->block_size]);
-  memset(buffer.get(), 0, c->block_size);
-
-  if (drv->lseek(static_cast<off_t>((block)*c->block_size), SEEK_SET) < 0) {
-    return LFS_ERR_IO;
-  }
-  if (drv->write(buffer.get(), c->block_size) !=
-      static_cast<ssize_t>(c->block_size)) {
-    return LFS_ERR_IO;
-  }
-
   return LFS_ERR_OK;
 }
 
