@@ -701,14 +701,14 @@ int FilesystemManager::devCount=1;
 /// @return `true` if mount was successful, `false` otherwise
 template <class T>
 #ifdef WITH_DEVFS
-bool tryMount(intrusive_ref_ptr<Device> dev,
+static inline bool tryMount(const char *name, intrusive_ref_ptr<Device> dev,
     intrusive_ref_ptr<FilesystemBase> rootFs, intrusive_ref_ptr<DevFs> devfs)
 #else
-bool tryMount(intrusive_ref_ptr<Device> dev,
+static inline bool tryMount(const char *name, intrusive_ref_ptr<Device> dev,
     intrusive_ref_ptr<FilesystemBase> rootFs)
 #endif
 {
-    bootlog("Mounting %s as /sd ... ",typeid(T).name());
+    bootlog("Mounting %s as /sd ... ",name);
     intrusive_ref_ptr<FileBase> disk;
     FilesystemManager& fsm=FilesystemManager::instance();
 
@@ -759,17 +759,19 @@ basicFilesystemSetup(intrusive_ref_ptr<Device> dev)
     if(!devFsOk) return devfs;
     fsm.setDevFs(devfs);
     #endif //WITH_DEVFS
+
+    #ifdef WITH_DEVFS
+    #define TRY_MOUNT(x) if (tryMount<x>(#x, dev, rootFs, devfs)) return devfs
+    #else
+    #define TRY_MOUNT(x) if (tryMount<x>(#x, dev, rootFs)) return
+    #endif
+    TRY_MOUNT(Fat32Fs);
+    TRY_MOUNT(LittleFS);
+    #undef TRY_MOUNT
     
     #ifdef WITH_DEVFS
-    if (tryMount<Fat32Fs>(dev, rootFs, devfs) == false) {
-        tryMount<LittleFS>(dev, rootFs, devfs);
-    }
     return devfs;
-    #else 
-    if (tryMount<Fat32Fs>(dev, rootFs) == false) {
-        tryMount<LittleFS>(dev, rootFs);
-    }
-    #endif //WITH_DEVFS
+    #endif
 }
 
 FileDescriptorTable& getFileDescriptorTable()
