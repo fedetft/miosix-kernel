@@ -32,7 +32,112 @@
 #include <fcntl.h>
 #include <memory>
 
-miosix::LittleFS::LittleFS(intrusive_ref_ptr<FileBase> disk)
+namespace miosix {
+
+#ifdef WITH_FILESYSTEM
+
+/**
+ * Convert the error flag given by LittleFS into a POSIX error code
+ * \param lfs_err the error flag given by LittleFS
+ * \return the respective POSIX error code
+ */
+static int lfsErrorToPosix(int lfs_err);
+
+/**
+ * Convert a POSIX open flag into a LittleFS open flag
+ * \param posix_flags POSIX open flag
+ * \return LittleFS open flag
+ */
+static int posixOpenToLfsFlags(int posix_flags);
+
+// * Wrappers for LFS block device operations
+static int miosixBlockDeviceRead(const struct lfs_config *c, lfs_block_t block,
+                             lfs_off_t off, void *buffer, lfs_size_t size);
+
+static int miosixBlockDeviceProg(const struct lfs_config *c, lfs_block_t block,
+                             lfs_off_t off, const void *buffer,
+                             lfs_size_t size);
+
+static int miosixBlockDeviceErase(const struct lfs_config *c, lfs_block_t block);
+
+static int miosixBlockDeviceSync(const struct lfs_config *c);
+
+// Lock the underlying block device. Negative error codes
+// are propagated to the user.
+static int miosixLfsLock(const struct lfs_config *c);
+
+// Unlock the underlying block device. Negative error codes
+// are propagated to the user.
+static int miosixLfsUnlock(const struct lfs_config *c);
+
+class LittleFSFile : public FileBase {
+public:
+  /**
+   * @brief Constructs a LittleFSFile object.
+   *
+   * @param parentFS A reference to the parent LittleFS object.
+   * @param file A pointer to the underlying lfs_file_t object. This object
+   * takes ownership of the pointer.
+   * @param forceSync A boolean indicating whether to force synchronization
+   * after writes
+   */
+  LittleFSFile(intrusive_ref_ptr<LittleFS> parentFS,
+               std::unique_ptr<lfs_file_t> file, bool forceSync,
+               StringPart &name)
+      : FileBase(parentFS), file(std::move(file)), forceSync(forceSync),
+        name(name) {}
+
+  virtual int read(void *buf, size_t count) override;
+  virtual int write(const void *buf, size_t count) override;
+  virtual off_t lseek(off_t pos, int whence) override;
+  virtual int fstat(struct stat *pstat) const override;
+
+  ~LittleFSFile() {
+    LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
+    lfs_file_close(lfs_driver->getLfs(), file.get());
+  }
+
+private:
+  std::unique_ptr<lfs_file_t> file;
+
+  /// Force the file to be synced on every write
+  bool forceSync;
+  StringPart name;
+};
+
+class LittleFSDirectory : public DirectoryBase {
+public:
+  LittleFSDirectory(intrusive_ref_ptr<LittleFS> parentFS,
+                    std::unique_ptr<lfs_dir_t> dir)
+      : DirectoryBase(parentFS), dir(std::move(dir)) {}
+
+  /**
+   * Also directories can be opened as files. In this case, this system call
+   * allows to retrieve directory entries.
+   * \param dp pointer to a memory buffer where one or more struct dirent
+   * will be placed. dp must be four words aligned.
+   * \param len memory buffer size.
+   * \return the number of bytes read on success, or a negative number on
+   * failure.
+   */
+  virtual int getdents(void *dp, int len);
+
+  ~LittleFSDirectory() {
+    LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
+    lfs_dir_close(lfs_driver->getLfs(), dir.get());
+  };
+
+private:
+  std::unique_ptr<lfs_dir_t> dir;
+  // Used for when `getdents` does not give enough memory to store the whole
+  // directory childrens
+  bool directoryTraversalUnfinished = false;
+  
+  // Where to place a children info
+  lfs_info dirInfo;
+};
+
+LittleFS::LittleFS(intrusive_ref_ptr<FileBase> disk)
     : // Put the drive instance into the config context. Note that a raw pointer
       // is passed, but the object is kept alive by the intrusive_ref_ptr in the
       // drv member variable. Hence, the object is deleted when the LittleFS
@@ -63,7 +168,7 @@ miosix::LittleFS::LittleFS(intrusive_ref_ptr<FileBase> disk)
   mountError = lfsErrorToPosix(err);
 }
 
-int miosix::LittleFS::open(intrusive_ref_ptr<FileBase> &file, StringPart &name,
+int LittleFS::open(intrusive_ref_ptr<FileBase> &file, StringPart &name,
                            int flags, int mode) {
   if (mountFailed())
     return -ENOENT;
@@ -76,7 +181,7 @@ int miosix::LittleFS::open(intrusive_ref_ptr<FileBase> &file, StringPart &name,
   }
 }
 
-int miosix::LittleFS::openDirectory(intrusive_ref_ptr<FileBase> &directory,
+int LittleFS::openDirectory(intrusive_ref_ptr<FileBase> &directory,
                                     StringPart &name, int flags, int mode) {
   auto dir = std::make_unique<lfs_dir_t>();
 
@@ -91,7 +196,7 @@ int miosix::LittleFS::openDirectory(intrusive_ref_ptr<FileBase> &directory,
   return 0;
 }
 
-int miosix::LittleFS::openFile(intrusive_ref_ptr<FileBase> &file,
+int LittleFS::openFile(intrusive_ref_ptr<FileBase> &file,
                                StringPart &name, int flags, int mode) {
   auto lfs_file_obj = std::make_unique<lfs_file_t>();
 
@@ -108,7 +213,7 @@ int miosix::LittleFS::openFile(intrusive_ref_ptr<FileBase> &file,
   return 0;
 }
 
-int miosix::LittleFS::lstat(StringPart &name, struct stat *pstat) {
+int LittleFS::lstat(StringPart &name, struct stat *pstat) {
   if (mountFailed())
     return -ENOENT;
 
@@ -139,7 +244,7 @@ int miosix::LittleFS::lstat(StringPart &name, struct stat *pstat) {
   return 0;
 }
 
-int miosix::LittleFS::unlink(StringPart &name) {
+int LittleFS::unlink(StringPart &name) {
   if (mountFailed())
     return -ENOENT;
 
@@ -147,7 +252,7 @@ int miosix::LittleFS::unlink(StringPart &name) {
   return lfsErrorToPosix(err);
 }
 
-int miosix::LittleFS::rename(StringPart &oldName, StringPart &newName) {
+int LittleFS::rename(StringPart &oldName, StringPart &newName) {
   if (mountFailed())
     return -ENOENT;
 
@@ -155,7 +260,7 @@ int miosix::LittleFS::rename(StringPart &oldName, StringPart &newName) {
   return lfsErrorToPosix(err);
 }
 
-int miosix::LittleFS::mkdir(StringPart &name, int mode) {
+int LittleFS::mkdir(StringPart &name, int mode) {
   if (mountFailed())
     return -ENOENT;
 
@@ -163,7 +268,7 @@ int miosix::LittleFS::mkdir(StringPart &name, int mode) {
   return lfsErrorToPosix(err);
 }
 
-int miosix::LittleFS::rmdir(StringPart &name) {
+int LittleFS::rmdir(StringPart &name) {
   if (mountFailed())
     return -ENOENT;
 
@@ -171,7 +276,7 @@ int miosix::LittleFS::rmdir(StringPart &name) {
   return lfsErrorToPosix(err);
 }
 
-miosix::LittleFS::~LittleFS() {
+LittleFS::~LittleFS() {
   if (mountFailed())
     return;
   int err = lfs_unmount(&lfs);
@@ -181,7 +286,7 @@ miosix::LittleFS::~LittleFS() {
     bootlog("Unmounted LittleFS with error code %d\n", mountError);
 }
 
-int miosix::lfsErrorToPosix(int lfs_err) {
+int lfsErrorToPosix(int lfs_err) {
   if (lfs_err) {
     if (lfs_err == LFS_ERR_CORRUPT)
       return -EIO;
@@ -194,7 +299,7 @@ int miosix::lfsErrorToPosix(int lfs_err) {
   return lfs_err;
 }
 
-int miosix::posixOpenToLfsFlags(int posix_flags) {
+int posixOpenToLfsFlags(int posix_flags) {
   int lfsFlags = 0;
 
   if ((posix_flags & O_RDONLY) == O_RDONLY)
@@ -212,14 +317,14 @@ int miosix::posixOpenToLfsFlags(int posix_flags) {
   return lfsFlags;
 }
 
-int miosix::LittleFSFile::read(void *buf, size_t count) {
+int LittleFSFile::read(void *buf, size_t count) {
   // Get the LittleFS driver istance using getParent()
   LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
   auto readSize = lfs_file_read(lfs_driver->getLfs(), file.get(), buf, count);
   return readSize;
 }
 
-int miosix::LittleFSFile::write(const void *buf, size_t count) {
+int LittleFSFile::write(const void *buf, size_t count) {
   LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
   auto writeSize = lfs_file_write(lfs_driver->getLfs(), file.get(), buf, count);
   if (forceSync)
@@ -227,7 +332,7 @@ int miosix::LittleFSFile::write(const void *buf, size_t count) {
   return writeSize;
 }
 
-off_t miosix::LittleFSFile::lseek(off_t pos, int whence) {
+off_t LittleFSFile::lseek(off_t pos, int whence) {
 
   lfs_whence_flags whence_lfs;
   switch (whence) {
@@ -253,7 +358,7 @@ off_t miosix::LittleFSFile::lseek(off_t pos, int whence) {
   return lfs_off;
 }
 
-int miosix::LittleFSFile::fstat(struct stat *pstat) const {
+int LittleFSFile::fstat(struct stat *pstat) const {
 
   LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
   StringPart &nameClone = const_cast<StringPart &>(name);
@@ -262,7 +367,7 @@ int miosix::LittleFSFile::fstat(struct stat *pstat) const {
   return 0;
 }
 
-int miosix::LittleFSDirectory::getdents(void *dp, int len) {
+int LittleFSDirectory::getdents(void *dp, int len) {
 
   if (len < minimumBufferSize) {
     return -EINVAL;
@@ -317,7 +422,7 @@ int miosix::LittleFSDirectory::getdents(void *dp, int len) {
   static_cast<FileBase *>(                                                     \
       static_cast<lfs_driver_context *>(config->context)->disk);
 
-int miosix::miosixBlockDeviceRead(const lfs_config *c, lfs_block_t block,
+int miosixBlockDeviceRead(const lfs_config *c, lfs_block_t block,
                                   lfs_off_t off, void *buffer,
                                   lfs_size_t size) {
   FileBase *drv = GET_DRIVER_FROM_LFS_CONTEXT(c);
@@ -332,7 +437,7 @@ int miosix::miosixBlockDeviceRead(const lfs_config *c, lfs_block_t block,
   return LFS_ERR_OK;
 }
 
-int miosix::miosixBlockDeviceProg(const lfs_config *c, lfs_block_t block,
+int miosixBlockDeviceProg(const lfs_config *c, lfs_block_t block,
                                   lfs_off_t off, const void *buffer,
                                   lfs_size_t size) {
   FileBase *drv = GET_DRIVER_FROM_LFS_CONTEXT(c);
@@ -347,11 +452,11 @@ int miosix::miosixBlockDeviceProg(const lfs_config *c, lfs_block_t block,
   return LFS_ERR_OK;
 }
 
-int miosix::miosixBlockDeviceErase(const lfs_config *c, lfs_block_t block) {
+int miosixBlockDeviceErase(const lfs_config *c, lfs_block_t block) {
   return LFS_ERR_OK;
 }
 
-int miosix::miosixBlockDeviceSync(const lfs_config *c) {
+int miosixBlockDeviceSync(const lfs_config *c) {
   FileBase *drv = GET_DRIVER_FROM_LFS_CONTEXT(c);
 
   if (drv->ioctl(IOCTL_SYNC, nullptr) != 0) {
@@ -360,16 +465,19 @@ int miosix::miosixBlockDeviceSync(const lfs_config *c) {
   return -LFS_ERR_OK;
 }
 
-#define GET_MUTEX_FROM_LFS_CONTEXT(config)                                     \
-  static_cast<miosix::Mutex *>(                                                \
-      &static_cast<lfs_driver_context *>(config->context)->mutex)
+#define GET_MUTEX_FROM_LFS_CONTEXT(config)  \
+  static_cast<Mutex *>(&static_cast<lfs_driver_context *>(config->context)->mutex)
 
-int miosix::miosixLfsLock(const lfs_config *c) {
+int miosixLfsLock(const lfs_config *c) {
   GET_MUTEX_FROM_LFS_CONTEXT(c)->lock();
   return LFS_ERR_OK;
 }
 
-int miosix::miosixLfsUnlock(const lfs_config *c) {
+int miosixLfsUnlock(const lfs_config *c) {
   GET_MUTEX_FROM_LFS_CONTEXT(c)->unlock();
   return LFS_ERR_OK;
 }
+
+#endif //WITH_FILESYSTEM
+
+} //namespace miosix
