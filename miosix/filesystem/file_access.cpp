@@ -765,8 +765,12 @@ basicFilesystemSetup(intrusive_ref_ptr<Device> dev)
     #else
     #define TRY_MOUNT(x) if (tryMount<x>(#x, dev, rootFs)) return
     #endif
+    #ifdef WITH_FATFS
     TRY_MOUNT(Fat32Fs);
+    #endif
+    #ifdef WITH_LITTLEFS
     TRY_MOUNT(LittleFS);
+    #endif
     #undef TRY_MOUNT
     
     #ifdef WITH_DEVFS
