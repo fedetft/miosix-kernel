@@ -107,9 +107,16 @@ private:
 
 class LittleFSDirectory : public DirectoryBase {
 public:
+  enum Level {
+    RootDirectory,
+    ChildOfRootDirectory,
+    OtherDirectory,
+  };
+
   LittleFSDirectory(intrusive_ref_ptr<LittleFS> parentFS,
-                    std::unique_ptr<lfs_dir_t> dir)
-      : DirectoryBase(parentFS), dir(std::move(dir)) {}
+                    std::unique_ptr<lfs_dir_t> dir,
+                    LittleFSDirectory::Level level)
+      : DirectoryBase(parentFS), dir(std::move(dir)), level(level) {}
 
   /**
    * Also directories can be opened as files. In this case, this system call
@@ -132,9 +139,13 @@ private:
   // Used for when `getdents` does not give enough memory to store the whole
   // directory childrens
   bool directoryTraversalUnfinished = false;
-  
-  // Where to place a children info
+  // Level of this directory relative to the root; used by getdents.
+  Level level;
+  // Last children directory info retrieved
   lfs_info dirInfo;
+
+  // Helper method that adds the current `dirInfo` to a given dents buffer
+  int addLastLFSDirEntry(char **pos, char *end);
 };
 
 LittleFS::LittleFS(intrusive_ref_ptr<FileBase> disk)
@@ -189,9 +200,17 @@ int LittleFS::openDirectory(intrusive_ref_ptr<FileBase> &directory,
   if (err) {
     return lfsErrorToPosix(err);
   }
+  LittleFSDirectory::Level lvl;
+  if (name.empty()) {
+    lvl = LittleFSDirectory::Level::RootDirectory;
+  } else if (name.findLastOf('/')==std::string::npos) {
+    lvl = LittleFSDirectory::Level::ChildOfRootDirectory;
+  } else {
+    lvl = LittleFSDirectory::Level::OtherDirectory;
+  }
 
-  directory = intrusive_ref_ptr<LittleFSDirectory>(
-      new LittleFSDirectory(intrusive_ref_ptr<LittleFS>(this), std::move(dir)));
+  directory = intrusive_ref_ptr<LittleFSDirectory>(new LittleFSDirectory(
+      intrusive_ref_ptr<LittleFS>(this), std::move(dir), lvl));
 
   return 0;
 }
@@ -318,7 +337,7 @@ int posixOpenToLfsFlags(int posix_flags) {
 }
 
 int LittleFSFile::read(void *buf, size_t count) {
-  // Get the LittleFS driver istance using getParent()
+  // Get the LittleFS driver instance using getParent()
   LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
   auto readSize = lfs_file_read(lfs_driver->getLfs(), file.get(), buf, count);
   return readSize;
@@ -367,11 +386,20 @@ int LittleFSFile::fstat(struct stat *pstat) const {
   return 0;
 }
 
-int LittleFSDirectory::getdents(void *dp, int len) {
-
-  if (len < minimumBufferSize) {
-    return -EINVAL;
+int LittleFSDirectory::addLastLFSDirEntry(char **pos, char *end) {
+  int ino;
+  if (level == ChildOfRootDirectory && strcmp(dirInfo.name, "..") == 0) {
+    ino = 1;
+  } else {
+    ino = dirInfo.block;
   }
+  int type = dirInfo.type == LFS_TYPE_REG ? DT_REG : DT_DIR;
+  return addEntry(pos, end, ino, type, StringPart(dirInfo.name));
+}
+
+int LittleFSDirectory::getdents(void *dp, int len) {
+  if (len < minimumBufferSize)
+    return -EINVAL;
 
   LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
 
@@ -379,42 +407,42 @@ int LittleFSDirectory::getdents(void *dp, int len) {
   char *bufferEnd = bufferBegin + len;
   char *bufferCurPos = bufferBegin; // Current position in the buffer
 
-  int dirReadResult;
+  if (!directoryTraversalUnfinished && level == RootDirectory) {
+    // LittleFS does not provide . and .. entries for the root directory,
+    // we need to add them manually
+    int myIno = 1;
+    int parentIno = lfs_driver->parentFsMountpointInode;
+    addDefaultEntries(&bufferCurPos, myIno, parentIno);
+  }
 
   if (directoryTraversalUnfinished) {
     // Last time we did not have enough memory to store all the directory,
     // continue from where we left
     directoryTraversalUnfinished = false;
-    if (addEntry(&bufferCurPos, bufferEnd, dirInfo.block,
-                 dirInfo.type == LFS_TYPE_REG ? DT_REG : DT_DIR,
-                 StringPart(dirInfo.name)) < 0) {
-      // ??? How is it possible that not even a single entry fits the buffer ???
-      return -ENOMEM;
+    if (addLastLFSDirEntry(&bufferCurPos, bufferEnd) < 0) {
+      // If we arrive here, somebody is being really stingy with the bytes!
+      // TODO: Are we really sure we shouldn't give them another chance?
+      return -EINVAL;
     }
   }
 
-  while ((dirReadResult =
-              lfs_dir_read(lfs_driver->getLfs(), dir.get(), &dirInfo)) >= 0) {
-    if (dirReadResult == 0) {
-      // No more entries
-      addTerminatingEntry(&bufferCurPos, bufferEnd);
-      break;
-    }
-
-    if (addEntry(&bufferCurPos, bufferEnd, dirInfo.block,
-                 dirInfo.type == LFS_TYPE_REG ? DT_REG : DT_DIR,
-                 StringPart(dirInfo.name)) < 0) {
+  int dirReadResult = lfs_dir_read(lfs_driver->getLfs(), dir.get(), &dirInfo);
+  while (dirReadResult > 0) {
+    if (addLastLFSDirEntry(&bufferCurPos, bufferEnd) < 0) {
       // The entry does not fit in the buffer. Signal that we did not finish
       directoryTraversalUnfinished = true;
       return bufferCurPos - bufferBegin;
     }
+    dirReadResult = lfs_dir_read(lfs_driver->getLfs(), dir.get(), &dirInfo);
   }
 
-  // We did not naturally reach the end, but a read error occurred
   if (dirReadResult < 0) {
+    // We did not naturally reach the end, but a read error occurred
     return lfsErrorToPosix(dirReadResult);
   }
 
+  // dirReadResult == 0; no more entries
+  addTerminatingEntry(&bufferCurPos, bufferEnd);
   return bufferCurPos - bufferBegin;
 }
 

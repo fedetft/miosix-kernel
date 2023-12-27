@@ -39,6 +39,8 @@ namespace miosix {
 
 #ifdef WITH_FILESYSTEM
 
+class LittleFSDirectory;
+
 struct lfs_driver_context {
 
 public:
@@ -122,6 +124,9 @@ public:
   lfs_t *getLfs() { return &lfs; }
 
 private:
+  // Used to access members of this class in getdents
+  friend LittleFSDirectory;
+
   /**
    * Specialization of LittleFS::open for directories only
    * \param directory the file object will be stored here, if the call succeeds
