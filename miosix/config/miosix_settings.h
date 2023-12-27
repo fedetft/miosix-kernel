@@ -95,7 +95,17 @@ namespace miosix {
 /// Allows to enable/disable DevFs support to save code size
 /// By default it is defined (DevFs is enabled)
 #define WITH_DEVFS
-    
+
+/// \def WITH_LITTLEFS
+/// Allows to enable/disable FATFS support to save code size
+/// By default it is defined (FATFS is enabled)
+#define WITH_FATFS
+
+/// \def WITH_LITTLEFS
+/// Allows to enable/disable LittleFS support to save code size
+/// By default it is not defined (LittleFS is disabled)
+//#define WITH_LITTLEFS
+
 /// \def SYNC_AFTER_WRITE
 /// Increases filesystem write robustness. After each write operation the
 /// filesystem is synced so that a power failure happens data is not lost
