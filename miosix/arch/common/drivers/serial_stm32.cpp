@@ -434,6 +434,12 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
         : Device(Device::TTY), rxQueue(rxQueueMin+baudrate/500),
           flowControl(flowControl==RTSCTS), portId(id)
 {
+    //stm32f1 alternate function mapping does not work like later stm32 chips,
+    //its only purpose is to change the GPIO pins allocated to a peripherals.
+    //There is no AF register per pin, but an AF register per peripheral
+    //with several mutually exclusive mapping options. 
+    //Therefore we don't need to configure AF on stm32f1 for the serial to work
+    #if !defined(_ARCH_CORTEXM3_STM32F1)
     //stm32f2, f4, l4, l1, f7, h7, l0 require alternate function mapping
     //stm32f0/l0 family has different alternate function mapping
     //with respect to the other families
@@ -474,6 +480,7 @@ STM32Serial::STM32Serial(int id, int baudrate, FlowCtrl flowControl)
             }
             break;
     }
+    #endif
     
     switch(id)
     {
