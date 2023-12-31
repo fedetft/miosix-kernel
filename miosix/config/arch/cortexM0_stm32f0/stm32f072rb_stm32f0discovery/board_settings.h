@@ -42,16 +42,16 @@ namespace miosix {
 
 /// Size of stack for main().
 /// The C standard library is stack-heavy (iprintf requires 1KB) but the
-/// STM32F100C8 only has 8KB of RAM so the stack is only 1.5KB.
+/// STM32F072RB only has 16KB of RAM so the stack is only 1.5KB.
 const unsigned int MAIN_STACK_SIZE=1024+512;
 
 /// Serial port
 const unsigned int defaultSerial=1;
 const unsigned int defaultSerialSpeed=19200;
 const bool defaultSerialFlowctrl=false;
-#define SERIAL_1_DMA
-//#define SERIAL_2_DMA //Serial 2 is not used, so not enabling DMA
-//#define SERIAL_3_DMA //Serial 3 is not used, so not enabling DMA
+//#define SERIAL_1_DMA //Serial DMA not supported yet on STM32F0
+//#define SERIAL_2_DMA //Serial DMA not supported yet on STM32F0
+//#define SERIAL_3_DMA //Serial DMA not supported yet on STM32F0
 
 /**
  * \}
