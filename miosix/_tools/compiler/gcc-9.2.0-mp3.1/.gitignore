@@ -1,0 +1,16 @@
+downloaded
+objdir
+newlib-obj
+lib
+gcc
+dist
+log
+binutils-*
+gcc-*
+gdb-*
+gmp-*
+mpc-*
+mpfr-*
+newlib-*
+expat-*
+lpc21isp.c
