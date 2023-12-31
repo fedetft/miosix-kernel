@@ -29,20 +29,20 @@
 #include "pll.h"
 
 #if (HSE_VALUE == 25000000)
-static constexpr M=5;   // M=5 25MHz/5=5MHz
+static constexpr int M=5;   // M=5 25MHz/5=5MHz
 #ifdef SYSCLK_FREQ_550MHz
-static constexpr N=220; // N=220 = 1100MHz
+static constexpr int N=220; // N=220 = 1100MHz
 #elif defined(SYSCLK_FREQ_400MHz)
-static constexpr N=160; // N=160 = 800MHz
+static constexpr int N=160; // N=160 = 800MHz
 #else
 #error "SYSCLK value not supported!"
 #endif
 #elif (HSE_VALUE == 8000000)
-static constexpr M=2;   // M=2 8MHz/2=4MHz
+static constexpr int M=2;   // M=2 8MHz/2=4MHz
 #ifdef SYSCLK_FREQ_550MHz
-static constexpr N=275; // N=275 = 1100MHz
+static constexpr int N=275; // N=275 = 1100MHz
 #elif defined(SYSCLK_FREQ_400MHz)
-static constexpr N=200; // N=200 = 800MHz
+static constexpr int N=200; // N=200 = 800MHz
 #else
 #error "SYSCLK value not supported!"
 #endif
