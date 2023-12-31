@@ -15,10 +15,9 @@ This patch does the following:
 4) It adds gcc/config/arm/miosix-eabi.h which defines the builtin _MIOSIX and
    the miosix patch version.
 
-5) It adds gcc/config/arm/t-arm-miosix to enable multilibs for the thumb2
-   instruction set which are disabled by default. This is required to build
-   code for Cortex M0/M3/M4/M7. It also enables fpie/msingle-pic-base multilibs
-   where applicable to implement processes.
+5) It adds gcc/config/arm/t-arm-miosix to enable multilibs for
+   fpie/msingle-pic-base to implement processes. It also enables multilibs for
+   ARM architecture variants relevant for microcontrollers.
 
 6) Given that Miosix does not have a thread local storage API, but it is
    required in a couple of places related to C++ exception handling

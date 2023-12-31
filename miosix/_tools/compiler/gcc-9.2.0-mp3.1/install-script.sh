@@ -457,13 +457,32 @@ $SUDO make install DESTDIR=$DESTDIR 2>../log/k.txt || quit ":: Error installing 
 cd ..
 
 #
-# Part 8: check that all multilibs have been built.
+# Part 8: Fixup and verify multilibs
+#
+
+# 8A: remove root multilib.
+# GCC apparently assumes that when no appropriate multilib is found, it is
+# always safe to link without multilibs (i.e. with the libraries found directly
+# in /lib). However, for the ARM architecture this assumption is completely
+# wrong, due to (1) the presence of 3 mutually incompatible instruction sets
+# (ARM, Thumb and Thumb2) and (2) the fact that the default compilation options
+# build for an extremely old configuration (-mcpu=arm7tdmi -marm) which produces
+# code not runnable on any modern ARM microcontroller CPU.
+# This line removes all the libraries not included in a multilib to prevent
+# GCC from producing broken binaries silently.
+# As a result, the use of compilation options not supported by the toolchain
+# will result in a link-time failure to find the libraries, hinting that
+# something is wrong.
+
+find "$DESTDIR$PREFIX/arm-miosix-eabi/lib" -mindepth 1 ! -path '*/arm/*' ! -path '*/thumb/*' -print -delete
+
+# 8B: check that all multilibs have been built.
 # This check has been added after an attempt to build arm-miosix-eabi-gcc on Fedora
 # where newlib's multilibs were not built. Gcc produced binaries that failed on
 # Cortex M3 because the first call to a libc function was a blx into ARM instruction
 # set, but since Cortex M3 only has the thumb2 instruction set, the CPU locked.
 # By checking that all multilibs are correctly built, this error can be spotted
-# immediately instead of leaving a gcc that produces wrong code in the wild. 
+# immediately instead of leaving a gcc that produces wrong code in the wild.
 
 check_multilibs() {
 	if [[ ! -f $1/libc.a ]]; then
@@ -486,14 +505,22 @@ check_multilibs() {
 	fi 
 }
 
-check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib
-check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/cm0
-check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/cm3
-check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/cm4/hardfp/fpv4sp
-check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/cm7/hardfp/fpv5
-check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/cm3/pie/single-pic-base
-check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/cm4/hardfp/fpv4sp/pie/single-pic-base
-check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/cm7/hardfp/fpv5/pie/single-pic-base
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/arm/v4t/nofp
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v4t/nofp
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v6-m/nofp
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7-m/nofp
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+dp/hard
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+fp/hard
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.base/nofp
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+dp/hard
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+fp/hard
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v6-m/nofp/pie/single-pic-base
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7-m/nofp/pie/single-pic-base
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+dp/hard/pie/single-pic-base
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+fp/hard/pie/single-pic-base
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.base/nofp/pie/single-pic-base
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+dp/hard/pie/single-pic-base
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+fp/hard/pie/single-pic-base
 echo "::All multilibs have been built. OK"
 
 #

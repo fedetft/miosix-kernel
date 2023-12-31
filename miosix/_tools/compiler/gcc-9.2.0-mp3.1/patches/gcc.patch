@@ -322,16 +322,23 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/miosix-eabi.h gcc-9.2.0/gcc/config/arm/mi
 +    } while(false)
 diff -ruN gcc-9.2.0-old/gcc/config/arm/t-arm-miosix gcc-9.2.0/gcc/config/arm/t-arm-miosix
 --- gcc-9.2.0-old/gcc/config/arm/t-arm-miosix	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-9.2.0/gcc/config/arm/t-arm-miosix	2020-07-18 19:02:13.469006131 +0200
-@@ -0,0 +1,49 @@
++++ gcc-9.2.0/gcc/config/arm/t-arm-miosix	2024-01-03 16:01:15.000000000 +0100
+@@ -0,0 +1,101 @@
 +
-+## RATIONALE: build multilibs for ARM, Cortex-Mx, and the pie versions
++## RATIONALE: build multilibs for all microcontroller-relevant ARM architectures
++## with and without `-fpie -msingle-pic-base' (for processes).
++## If processes were not required, we could have simply set the option
++## --with-multilib-list=rmprofile, which builds multilibs for exactly the
++## architectures we are interested in.
 +
-+## To update this file, first have a look in t-arm-elf to see if some new
-+## variable has been added
-+## According to https://gcc.gnu.org/onlinedocs/gccint/Target-Fragment.html
-+## MULTILIB_REQUIRED has been introduced replacing the awkwardly long
-+## MULTILIB_EXCEPTIONS list.
++## To update this file, have a look in t-multilib and t-rmprofile and bring over
++## new architectures/variants. Note that we are not building softfp ABI and
++## the directory structure is different than what is setup by t-rmprofile
++## (`-mfloat-abi=soft' is in the root directory, while rmprofile puts it in
++## the `soft' directory).
++##
++## Documentation for the variables set in this file are in
++##    https://gcc.gnu.org/onlinedocs/gccint/Target-Fragment.html
 +
 +MULTILIB_OPTIONS     =
 +MULTILIB_DIRNAMES    =
@@ -340,39 +347,84 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/t-arm-miosix gcc-9.2.0/gcc/config/arm/t-a
 +MULTILIB_REQUIRED    =
 +MULTILIB_REUSE       =
 +
-+MULTILIB_OPTIONS    += mthumb
-+MULTILIB_DIRNAMES   += thumb
++# explicit default is -marm
++MULTILIB_OPTIONS    += marm/mthumb
++MULTILIB_DIRNAMES   += arm thumb
 +
-+MULTILIB_OPTIONS    += mcpu=cortex-m0/mcpu=cortex-m3/mcpu=cortex-m4/mcpu=cortex-m7
-+MULTILIB_DIRNAMES   += cm0 cm3 cm4 cm7
++# implicit default is set to armv4t (because explicit defualt -mcpu=arm7tdmi)
++MULTILIB_OPTIONS    += march=armv4t/march=armv6s-m/march=armv7-m/march=armv7e-m/march=armv7e-m+fp/march=armv7e-m+fp.dp/march=armv8-m.base/march=armv8-m.main/march=armv8-m.main+fp/march=armv8-m.main+fp.dp
++MULTILIB_DIRNAMES   += v4t v6-m v7-m v7e-m v7e-m+fp v7e-m+dp v8-m.base v8-m.main v8-m.main+fp v8-m.main+dp
 +
-+MULTILIB_OPTIONS    += mfloat-abi=hard
-+MULTILIB_DIRNAMES   += hardfp
-+
-+MULTILIB_OPTIONS    += mfpu=fpv4-sp-d16/mfpu=fpv5-d16
-+MULTILIB_DIRNAMES   += fpv4sp fpv5
++# implicit default is -mfloat-abi=soft due to the fallback value of the TARGET_DEFAULT_FLOAT_ABI define
++MULTILIB_OPTIONS    += mfloat-abi=soft/mfloat-abi=hard
++MULTILIB_DIRNAMES   += nofp hard
 +
 +MULTILIB_OPTIONS    += fpie msingle-pic-base
 +MULTILIB_DIRNAMES   += pie single-pic-base
 +
-+## The following multilibs will be built:
-+MULTILIB_REQUIRED   += mthumb/mcpu=cortex-m0
-+MULTILIB_REQUIRED   += mthumb/mcpu=cortex-m3
-+MULTILIB_REQUIRED   += mthumb/mcpu=cortex-m4/mfloat-abi=hard/mfpu=fpv4-sp-d16
-+MULTILIB_REQUIRED   += mthumb/mcpu=cortex-m7/mfloat-abi=hard/mfpu=fpv5-d16
-+MULTILIB_REQUIRED   += mthumb/mcpu=cortex-m3/fpie/msingle-pic-base
-+MULTILIB_REQUIRED   += mthumb/mcpu=cortex-m4/mfloat-abi=hard/mfpu=fpv4-sp-d16/fpie/msingle-pic-base
-+MULTILIB_REQUIRED   += mthumb/mcpu=cortex-m7/mfloat-abi=hard/mfpu=fpv5-d16/fpie/msingle-pic-base
++## Multilibs to build:
 +
-+# The output produced by 'arm-miosix-eabi-gcc --print-multi-lib' is
-+# .;
-+# thumb/cm0;@mthumb@mcpu=cortex-m0
-+# thumb/cm3;@mthumb@mcpu=cortex-m3
-+# thumb/cm3/pie/single-pic-base;@mthumb@mcpu=cortex-m3@fpie@msingle-pic-base
-+# thumb/cm4/hardfp/fpv4sp;@mthumb@mcpu=cortex-m4@mfloat-abi=hard@mfpu=fpv4-sp-d16
-+# thumb/cm4/hardfp/fpv4sp/pie/single-pic-base;@mthumb@mcpu=cortex-m4@mfloat-abi=hard@mfpu=fpv4-sp-d16@fpie@msingle-pic-base
-+# thumb/cm7/hardfp/fpv5;@mthumb@mcpu=cortex-m7@mfloat-abi=hard@mfpu=fpv5-d16
-+# thumb/cm7/hardfp/fpv5/pie/single-pic-base;@mthumb@mcpu=cortex-m7@mfloat-abi=hard@mfpu=fpv5-d16@fpie@msingle-pic-base
++# Armv4 (ARM7TDMI, no FP)
++MULTILIB_REQUIRED	+= marm/march=armv4t/mfloat-abi=soft
++MULTILIB_REQUIRED	+= mthumb/march=armv4t/mfloat-abi=soft
++
++# Armv6 (Cortex-M0, M0+, M1, no FP)
++MULTILIB_REQUIRED	+= mthumb/march=armv6s-m/mfloat-abi=soft
++MULTILIB_REQUIRED	+= mthumb/march=armv6s-m/mfloat-abi=soft/fpie/msingle-pic-base
++
++# Armv7-M (Cortex-M3, M4, M7, no FP)
++MULTILIB_REQUIRED	+= mthumb/march=armv7-m/mfloat-abi=soft
++MULTILIB_REQUIRED	+= mthumb/march=armv7-m/mfloat-abi=soft/fpie/msingle-pic-base
++
++# Armv7e-M (Cortex-M4, M7 with FP single and double precision)
++MULTILIB_REQUIRED	+= mthumb/march=armv7e-m+fp/mfloat-abi=hard
++MULTILIB_REQUIRED	+= mthumb/march=armv7e-m+fp/mfloat-abi=hard/fpie/msingle-pic-base
++MULTILIB_REQUIRED	+= mthumb/march=armv7e-m+fp.dp/mfloat-abi=hard
++MULTILIB_REQUIRED	+= mthumb/march=armv7e-m+fp.dp/mfloat-abi=hard/fpie/msingle-pic-base
++
++# Armv8-m baseline (Cortex-M23, no FP)
++MULTILIB_REQUIRED	+= mthumb/march=armv8-m.base/mfloat-abi=soft
++MULTILIB_REQUIRED	+= mthumb/march=armv8-m.base/mfloat-abi=soft/fpie/msingle-pic-base
++
++# Armv8-m mainline (Cortex-M33, M35P with FP single and double precision)
++MULTILIB_REQUIRED	+= mthumb/march=armv8-m.main+fp/mfloat-abi=hard
++MULTILIB_REQUIRED	+= mthumb/march=armv8-m.main+fp/mfloat-abi=hard/fpie/msingle-pic-base
++MULTILIB_REQUIRED	+= mthumb/march=armv8-m.main+fp.dp/mfloat-abi=hard
++MULTILIB_REQUIRED	+= mthumb/march=armv8-m.main+fp.dp/mfloat-abi=hard/fpie/msingle-pic-base
++
++## Aliases
++
++# Once upon a time, Armv6 had a variant Armv6s with support for the SVC
++# instruction, but it was an undocumented variant which then got merged in the
++# base Armv6 standard. This rule always aliases armv6 to armv6s as they are
++# equivalent for all intents and purposes
++MULTILIB_MATCHES	+= march?armv6s-m=march?armv6-m
++
++# Map v7e no FPU to v7
++MULTILIB_MATCHES        += march?armv7-m=march?armv7e-m
++
++# Map v8.main no FPU to v8.base
++MULTILIB_MATCHES        += march?armv8-m.base=march?armv8-m.main
++
++# Map all v8-m.main+dsp FP variants down the the variant without DSP.
++MULTILIB_MATCHES	+= march?armv8-m.main=march?armv8-m.main+dsp
++MULTILIB_MATCHES	+= $(foreach FP, +fp +fp.dp, march?armv8-m.main$(FP)=march?armv8-m.main+dsp$(FP))
++
++# For single-precision only fpv5, use the base fp libraries
++MULTILIB_MATCHES	+= march?armv7e-m+fp=march?armv7e-m+fpv5
++
++# For architectures with no FPU, map unspecified -mfloat-abi to soft
++# Note: the t-rmprofile fragment does not do this, even though it is required,
++# because the main makefile (config.gcc) special-cases this by setting
++# with_float="soft" which results in all invocations to have the default
++# option "--with-float=soft"
++MULTILIB_REUSE		+= mthumb/march.armv4t/mfloat-abi.soft=mthumb/march.armv4t
++MULTILIB_REUSE		+= marm/march.armv4t/mfloat-abi.soft=marm/march.armv4t
++MULTILIB_REUSE		+= $(foreach ARCH, armv6s-m armv7-m armv8-m\.base, \
++			mthumb/march.$(ARCH)/mfloat-abi.soft=mthumb/march.$(ARCH))
++MULTILIB_REUSE		+= $(foreach ARCH, armv6s-m armv7-m armv8-m\.base, \
++			mthumb/march.$(ARCH)/mfloat-abi.soft/fpie/msingle-pic-base=mthumb/march.$(ARCH)/fpie/msingle-pic-base)
++
 diff -ruN gcc-9.2.0-old/gcc/config.gcc gcc-9.2.0/gcc/config.gcc
 --- gcc-9.2.0-old/gcc/config.gcc	2019-08-03 22:16:22.000000000 +0200
 +++ gcc-9.2.0/gcc/config.gcc	2020-07-18 19:02:13.469006131 +0200
