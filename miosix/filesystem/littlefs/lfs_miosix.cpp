@@ -88,8 +88,8 @@ public:
         : FileBase(parentFS), file(std::move(file)), forceSync(forceSync),
           name(name) {}
 
-    virtual int read(void *buf, size_t count) override;
-    virtual int write(const void *buf, size_t count) override;
+    virtual ssize_t write(const void *buf, size_t count) override;
+    virtual ssize_t read(void *buf, size_t count) override;
     virtual off_t lseek(off_t pos, int whence) override;
     virtual int fstat(struct stat *pstat) const override;
 
@@ -331,19 +331,19 @@ int posixOpenToLfsFlags(int posix_flags)
     return lfsFlags;
 }
 
-int LittleFSFile::read(void *buf, size_t count)
-{
-    // Get the LittleFS driver instance using getParent()
-    LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
-    return lfs_file_read(lfs_driver->getLfs(), file.get(), buf, count);
-}
-
-int LittleFSFile::write(const void *buf, size_t count)
+ssize_t LittleFSFile::write(const void *buf, size_t count)
 {
     LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
     auto writeSize = lfs_file_write(lfs_driver->getLfs(), file.get(), buf, count);
     if(forceSync) lfs_file_sync(lfs_driver->getLfs(), file.get());
     return writeSize;
+}
+
+ssize_t LittleFSFile::read(void *buf, size_t count)
+{
+    // Get the LittleFS driver instance using getParent()
+    LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
+    return lfs_file_read(lfs_driver->getLfs(), file.get(), buf, count);
 }
 
 off_t LittleFSFile::lseek(off_t pos, int whence)
@@ -380,16 +380,6 @@ int LittleFSFile::fstat(struct stat *pstat) const
     lfs_driver->lstat(nameClone, pstat);
 
     return 0;
-}
-
-int LittleFSDirectory::addLastLFSDirEntry(char **pos, char *end)
-{
-    int ino;
-    if(level == ChildOfRootDirectory && strcmp(dirInfo.name, "..") == 0) ino = 1;
-    else ino = dirInfo.block;
-
-    int type = dirInfo.type == LFS_TYPE_REG ? DT_REG : DT_DIR;
-    return addEntry(pos, end, ino, type, StringPart(dirInfo.name));
 }
 
 int LittleFSDirectory::getdents(void *dp, int len)
@@ -445,6 +435,16 @@ int LittleFSDirectory::getdents(void *dp, int len)
     // dirReadResult == 0; no more entries
     addTerminatingEntry(&bufferCurPos, bufferEnd);
     return bufferCurPos - bufferBegin;
+}
+
+int LittleFSDirectory::addLastLFSDirEntry(char **pos, char *end)
+{
+    int ino;
+    if(level == ChildOfRootDirectory && strcmp(dirInfo.name, "..") == 0) ino = 1;
+    else ino = dirInfo.block;
+
+    int type = dirInfo.type == LFS_TYPE_REG ? DT_REG : DT_DIR;
+    return addEntry(pos, end, ino, type, StringPart(dirInfo.name));
 }
 
 #define GET_DRIVER_FROM_LFS_CONTEXT(config)                                    \
