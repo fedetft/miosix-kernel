@@ -693,12 +693,14 @@ short int FilesystemManager::getFilesystemId()
 
 int FilesystemManager::devCount=1;
 
-/// @brief Try to mount a filesystem in "/sd"
-/// @tparam T type of filesystem to mount
-/// @param dev Reference to the device to mount
-/// @param rootFs Reference to root file system
-/// @param devfs Reference to devfs
-/// @return `true` if mount was successful, `false` otherwise
+/**
+ * \brief Try to mount a filesystem in "/sd"
+ * \tparam T type of filesystem to mount
+ * \param dev Reference to the device to mount
+ * \param rootFs Reference to root file system
+ * \param devfs Reference to devfs
+ * \return `true` if mount was successful, `false` otherwise
+ */
 template <class T>
 #ifdef WITH_DEVFS
 static inline bool tryMount(const char *name, intrusive_ref_ptr<Device> dev,
@@ -725,11 +727,11 @@ static inline bool tryMount(const char *name, intrusive_ref_ptr<Device> dev,
     }
 
     intrusive_ref_ptr<T> fsImpl(new T(disk));
-    if(fsImpl->mountFailed()) { bootlog("Failure\n"); return false; }
+    if(fsImpl->mountFailed()) { bootlog("Failed\n"); return false; }
     StringPart sd("sd");
     if(rootFs->mkdir(sd, 0755)!=0 || fsm.kmount("/sd", fsImpl)!=0)
     {
-        bootlog("Failure\n");
+        bootlog("Failed\n");
         return false;
     }
     bootlog("Ok\n");
