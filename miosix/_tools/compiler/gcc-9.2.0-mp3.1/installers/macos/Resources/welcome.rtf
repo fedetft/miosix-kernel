@@ -1,5 +1,6 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2707
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica-Bold;\f1\fswiss\fcharset0 Helvetica;}
+{\rtf1\ansi\ansicpg1252\cocoartf2759
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica-Bold;\f1\fswiss\fcharset0 Helvetica;\f2\fmodern\fcharset238 Courier;
+\f3\fswiss\fcharset0 Helvetica-Oblique;}
 {\colortbl;\red255\green255\blue255;}
 {\*\expandedcolortbl;;}
 {\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}}
@@ -12,7 +13,9 @@
 \fs24 (GCC 9.2.0-mp3.1)
 \f1\b0 \
 \
-This package will install:\
+This package will install the following components to the "
+\f2 \\opt\\arm-miosix-eabi
+\f1 " directory:\
 \pard\tx220\tx720\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\li720\fi-720\pardirnatural\partightenfactor0
 \ls1\ilvl0\cf0 {\listtext	\uc0\u8226 	}GNU GCC with Miosix-specific patches\
 {\listtext	\uc0\u8226 	}GNU Binutils\
@@ -21,4 +24,16 @@ This package will install:\
 {\listtext	\uc0\u8226 	}Newlib\
 {\listtext	\uc0\u8226 	}lpc21isp\
 {\listtext	\uc0\u8226 	}mx-postlinker\
+\pard\tx220\tx720\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\li720\fi-720\pardirnatural\partightenfactor0
+\cf0 \
+\pard\tx220\tx720\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+\cf0 It will also update the current user's shell profile script in order to add "
+\f2 \\opt\\arm-miosix-eabi\\bin
+\f1 " to the PATH (only if the user's shell is 
+\f3\i bash
+\f1\i0 , 
+\f3\i zsh
+\f1\i0  or 
+\f3\i tcsh
+\f1\i0 ).\
 }

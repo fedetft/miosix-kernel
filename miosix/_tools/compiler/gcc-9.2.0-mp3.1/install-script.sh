@@ -700,18 +700,27 @@ if [[ $DESTDIR ]]; then
 		#   DeveloperTools/Reference/DistributionDefinitionRef/Chapters/
 		#   Introduction.html#//apple_ref/doc/uid/TP40005370-CH1-SW1
 		# Also see `man productbuild` and `man pkgbuild`.
+		min_osx_ver='10.13'
+		distr_script='installers/macos/Distribution_Intel.xml'
+		suffix='Intel'
+		if [[ $BUILD == aarch64* ]]; then
+		        min_osx_ver='11.0'
+		        distr_script='installers/macos/Distribution_ARM.xml'
+		        suffix='ARM'
+		fi
 		pkgbuild \
 			--identifier 'org.miosix.toolchain.gcc-9.2.0-mp3.1' \
-			--version '9.2.0.3.1' \
+			--version '9.2.0.3.1.1' \
+			--min-os-version ${min_osx_ver} \
 			--install-location / \
 			--scripts installers/macos/Scripts \
 			--root $DESTDIR \
 			'gcc-9.2.0-mp3.1.pkg'
 		productbuild \
-			--distribution installers/macos/Distribution.xml \
+			--distribution ${distr_script} \
 			--resources installers/macos/Resources \
 			--package-path ./ \
-			'./MiosixToolchainInstaller9.2.0mp3.1.pkg'
+			"./MiosixToolchainInstaller9.2.0mp3.1_${suffix}.pkg"
 	fi
 else
 	# Install the uninstaller too
