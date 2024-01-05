@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef DEVFS_H
-#define	DEVFS_H
+#pragma once
 
 #include <map>
 #include "filesystem/file.h"
@@ -50,8 +49,8 @@ namespace miosix {
  * Classes of this type are reference counted, must be allocated on the heap
  * and managed through intrusive_ref_ptr<FileBase>
  * 
- * This class is defined also if WITH_DEVFS is not defined as it is used by the
- * Console interface, but in this case the interface is reduced to a minimum
+ * This class is defined also if WITH_FILESYSTEM is not defined as it is used by
+ * the Console interface, but in this case the interface is reduced to a minimum
  */
 class Device : public IntrusiveRefCounted,
         public IntrusiveRefCountedSharedFromThis<Device>
@@ -72,6 +71,8 @@ public:
      */
     Device(DeviceType d) : seekable(d==BLOCK), block(d==BLOCK), tty(d==TTY)
     {}
+
+    #if defined(WITH_FILESYSTEM) || defined(WITH_DEVFS)
     
     /**
      * Return an instance of the file type managed by this Device
@@ -82,7 +83,7 @@ public:
      * \return 0 on success, or a negative number on failure
      */
     int open(intrusive_ref_ptr<FileBase>& file,
-            intrusive_ref_ptr<FilesystemBase> fs, int flags, int mode);
+             intrusive_ref_ptr<FilesystemBase> fs, int flags, int mode);
     
     /**
      * Obtain information for the file type managed by this Device
@@ -97,6 +98,8 @@ public:
      * case of errors
      */
     virtual int isatty() const;
+
+    #endif //WITH_FILESYSTEM || WITH_DEVFS
     
     #ifdef WITH_DEVFS
     
@@ -268,5 +271,3 @@ private:
 #endif //WITH_DEVFS
 
 } //namespace miosix
-
-#endif //DEVFS_H
