@@ -918,8 +918,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_STM3210E_EVAL -DSTM32F10X_HD
-        CXXFLAGS_BASE += -D_BOARD_STM3210E_EVAL -DSTM32F10X_HD
+        CFLAGS_BASE   += -D_BOARD_STM3210E_EVAL -DSTM32F103xE
+        CXXFLAGS_BASE += -D_BOARD_STM3210E_EVAL -DSTM32F103xE
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -954,8 +954,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_MP3V2 -DSTM32F10X_HD
-        CXXFLAGS_BASE += -D_BOARD_MP3V2 -DSTM32F10X_HD
+        CFLAGS_BASE   += -D_BOARD_MP3V2 -DSTM32F103xE
+        CXXFLAGS_BASE += -D_BOARD_MP3V2 -DSTM32F103xE
 
         ## Clock frequency
         CLOCK_FREQ := -DSYSCLK_FREQ_72MHz=72000000
@@ -993,8 +993,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         arch/common/drivers/servo_stm32.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_STM32VLDISCOVERY -DSTM32F10X_MD_VL 
-        CXXFLAGS_BASE += -D_BOARD_STM32VLDISCOVERY -DSTM32F10X_MD_VL
+        CFLAGS_BASE   += -D_BOARD_STM32VLDISCOVERY -DSTM32F100xB
+        CXXFLAGS_BASE += -D_BOARD_STM32VLDISCOVERY -DSTM32F100xB
 
         ## Clock frequency
         CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000
@@ -1028,8 +1028,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         arch/common/drivers/servo_stm32.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_SOLERTEGIARD -DSTM32F10X_HD_VL 
-        CXXFLAGS_BASE += -D_BOARD_SOLERTEGIARD -DSTM32F10X_HD_VL
+        CFLAGS_BASE   += -D_BOARD_SOLERTEGIARD -DSTM32F100xE
+        CXXFLAGS_BASE += -D_BOARD_SOLERTEGIARD -DSTM32F100xE
 
         ## Clock frequency
         CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000
@@ -1064,8 +1064,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_STRIVE_MINI -DSTM32F10X_HD
-        CXXFLAGS_BASE += -D_BOARD_STRIVE_MINI -DSTM32F10X_HD
+        CFLAGS_BASE   += -D_BOARD_STRIVE_MINI -DSTM32F103xE
+        CXXFLAGS_BASE += -D_BOARD_STRIVE_MINI -DSTM32F103xE
 
         ## Clock frequency
         CLOCK_FREQ := -DSYSCLK_FREQ_72MHz=72000000
@@ -1098,8 +1098,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_REDBULL_V2 -DSTM32F10X_HD
-        CXXFLAGS_BASE += -D_BOARD_REDBULL_V2 -DSTM32F10X_HD
+        CFLAGS_BASE   += -D_BOARD_REDBULL_V2 -DSTM32F103xE
+        CXXFLAGS_BASE += -D_BOARD_REDBULL_V2 -DSTM32F103xE
 
         ## Clock frequency
         CLOCK_FREQ := -DSYSCLK_FREQ_72MHz=72000000
@@ -1133,8 +1133,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_ALS_MAINBOARD_REV2 -DSTM32F10X_MD
-        CXXFLAGS_BASE += -D_BOARD_ALS_MAINBOARD_REV2 -DSTM32F10X_MD
+        CFLAGS_BASE   += -D_BOARD_ALS_MAINBOARD_REV2 -DSTM32F103xB
+        CXXFLAGS_BASE += -D_BOARD_ALS_MAINBOARD_REV2 -DSTM32F103xB
 
         ## Clock frequency
         # Not defining anything results in HSI being used
@@ -1167,8 +1167,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_TEMPSENSOR -DSTM32F10X_MD_VL 
-        CXXFLAGS_BASE += -D_BOARD_TEMPSENSOR -DSTM32F10X_MD_VL
+        CFLAGS_BASE   += -D_BOARD_TEMPSENSOR -DSTM32F100xB
+        CXXFLAGS_BASE += -D_BOARD_TEMPSENSOR -DSTM32F100xB
 
         ## Clock frequency
         # Not defining anything results in HSI being used
@@ -1202,8 +1202,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         arch/common/drivers/servo_stm32.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_STM32F103C8_BREAKOUT -DSTM32F10X_MD
-        CXXFLAGS_BASE += -D_BOARD_STM32F103C8_BREAKOUT -DSTM32F10X_MD
+        CFLAGS_BASE   += -D_BOARD_STM32F103C8_BREAKOUT -DSTM32F103xB
+        CXXFLAGS_BASE += -D_BOARD_STM32F103C8_BREAKOUT -DSTM32F103xB
        
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -1234,8 +1234,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         arch/common/drivers/stm32_rtc.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_MICROBOARD -DSTM32F10X_MD_VL 
-        CXXFLAGS_BASE += -D_BOARD_MICROBOARD -DSTM32F10X_MD_VL
+        CFLAGS_BASE   += -D_BOARD_MICROBOARD -DSTM32F100xB
+        CXXFLAGS_BASE += -D_BOARD_MICROBOARD -DSTM32F100xB
 
         ## Clock frequency
         # Not defining anything results in HSI being used
@@ -1269,8 +1269,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         arch/common/drivers/stm32_rtc.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_STM32F103CX_GENERIC -DSTM32F10X_MD 
-        CXXFLAGS_BASE += -D_BOARD_STM32F103CX_GENERIC -DSTM32F10X_MD
+        CFLAGS_BASE   += -D_BOARD_STM32F103CX_GENERIC -DSTM32F103xB
+        CXXFLAGS_BASE += -D_BOARD_STM32F103CX_GENERIC -DSTM32F103xB
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -1300,8 +1300,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         arch/common/drivers/stm32_rtc.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_STM32F100CX_GENERIC -DSTM32F10X_MD
-        CXXFLAGS_BASE += -D_BOARD_STM32F100CX_GENERIC -DSTM32F10X_MD
+        CFLAGS_BASE   += -D_BOARD_STM32F100CX_GENERIC -DSTM32F100xB
+        CXXFLAGS_BASE += -D_BOARD_STM32F100CX_GENERIC -DSTM32F100xB
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -1330,8 +1330,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_VAISALA_RS41 -DSTM32F10X_MD_VL
-        CXXFLAGS_BASE += -D_BOARD_VAISALA_RS41 -DSTM32F10X_MD_VL
+        CFLAGS_BASE   += -D_BOARD_VAISALA_RS41 -DSTM32F100xB
+        CXXFLAGS_BASE += -D_BOARD_VAISALA_RS41 -DSTM32F100xB
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -1380,7 +1380,7 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
     $(ARCH_INC)/interfaces-impl/delays.cpp       \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp    \
     arch/common/core/stm32f1_l1_os_timer.cpp     \
-    arch/common/CMSIS/Device/ST/STM32F10x/Source/Templates/system_stm32f10x.c
+    arch/common/CMSIS/Device/ST/STM32F1xx/Source/Templates/system_stm32f1xx.c
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM4_stm32f4
