@@ -188,7 +188,7 @@ void shutdown()
     
     EXTI->IMR=0;                       //All IRQs masked
     EXTI->PR=0x7fffff;                 //Clear eventual pending request
-    SCB->SCR |= SCB_SCR_SLEEPDEEP;     //Select stop mode
+    SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk; //Select stop mode
     __WFI(); //And it goes to sleep till a reset
     //Should never reach here
 	miosix_private::IRQsystemReboot();

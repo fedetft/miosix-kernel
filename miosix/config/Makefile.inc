@@ -2186,8 +2186,8 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -D_BOARD_ALS_MAINBOARD
-        CXXFLAGS_BASE += -D_BOARD_ALS_MAINBOARD
+        CFLAGS_BASE   += -D_BOARD_ALS_MAINBOARD -DSTM32L151xB
+        CXXFLAGS_BASE += -D_BOARD_ALS_MAINBOARD -DSTM32L151xB
 
         ## Clock frequency
         CLOCK_FREQ := -DSYSCLK_FREQ_16MHz=16000000

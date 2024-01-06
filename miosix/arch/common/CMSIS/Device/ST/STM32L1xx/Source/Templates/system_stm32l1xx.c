@@ -147,14 +147,33 @@
 /** @addtogroup STM32L1xx_System_Private_Variables
   * @{
   */
+
+// Miosix begin
+// These defines used to be in stm32l1xx.h
+#if !defined  (HSE_VALUE)
+#define HSE_VALUE    ((uint32_t)8000000) /*!< Value of the External oscillator in Hz */
+#endif
+#if !defined  (HSE_STARTUP_TIMEOUT)
+#define HSE_STARTUP_TIMEOUT   ((uint16_t)0x0500) /*!< Time out for HSE start up */
+#endif
+#if !defined  (HSI_STARTUP_TIMEOUT)
+#define HSI_STARTUP_TIMEOUT   ((uint16_t)0x0500) /*!< Time out for HSI start up */
+#endif
+#if !defined  (HSI_VALUE)
+#define HSI_VALUE  ((uint32_t)16000000) /*!< Value of the Internal High Speed oscillator in Hz.
+                                             The real value may vary depending on the variations
+                                             in voltage and temperature.  */
+#endif
+// Miosix end
+
 //By TFT: we want to run the ALS_MAINBOARD at a lower clock to save power
 #ifdef _BOARD_ALS_MAINBOARD
 uint32_t SystemCoreClock    = 16000000;
 #else //_BOARD_ALS_MAINBOARD
 uint32_t SystemCoreClock    = 32000000;
 #endif //_BOARD_ALS_MAINBOARD
-__I uint8_t PLLMulTable[9] = {3, 4, 6, 8, 12, 16, 24, 32, 48};
-__I uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
+const uint8_t PLLMulTable[9] = {3, 4, 6, 8, 12, 16, 24, 32, 48};
+const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
 
 /**
   * @}
@@ -176,6 +195,8 @@ static void SetSysClock(void);
 /** @addtogroup STM32L1xx_System_Private_Functions
   * @{
   */
+
+extern void _ZN6miosix7delayUsEj(unsigned int useconds);
 
 /**
   * @brief  Setup the microcontroller system.
