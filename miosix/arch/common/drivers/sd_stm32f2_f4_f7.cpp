@@ -192,8 +192,15 @@ void __attribute__((used)) SDDMAirqImpl()
 void __attribute__((used)) SDirqImpl()
 {
     sdioFlags=SDIO->STA;
-    if(sdioFlags & (SDIO_STA_STBITERR | SDIO_STA_RXOVERR  |
-                    SDIO_STA_TXUNDERR | SDIO_STA_DTIMEOUT | SDIO_STA_DCRCFAIL))
+
+    #ifdef SDIO_STA_STBITERR
+    //Some STM32 chips leave this flag reserved, in that case it's left
+    //undefined in the CMSIS headers
+    if(sdioFlags & SDIO_STA_STBITERR)
+        transferError=true;
+    #endif
+    if(sdioFlags & (SDIO_STA_RXOVERR  | SDIO_STA_TXUNDERR | 
+                    SDIO_STA_DTIMEOUT | SDIO_STA_DCRCFAIL))
         transferError=true;
     
     SDIO->ICR=ICR_FLAGS_CLR; //Clear flags
@@ -914,7 +921,9 @@ static void displayBlockTransferError()
     if(dmaFlags & DMA_LISR_TEIF3)     DBGERR("* DMA Transfer error\n");
     if(dmaFlags & DMA_LISR_DMEIF3)    DBGERR("* DMA Direct mode error\n");
     if(dmaFlags & DMA_LISR_FEIF3)     DBGERR("* DMA Fifo error\n");
+    #ifdef SDIO_STA_STBITERR
     if(sdioFlags & SDIO_STA_STBITERR) DBGERR("* SDIO Start bit error\n");
+    #endif
     if(sdioFlags & SDIO_STA_RXOVERR)  DBGERR("* SDIO RX Overrun\n");
     if(sdioFlags & SDIO_STA_TXUNDERR) DBGERR("* SDIO TX Underrun error\n");
     if(sdioFlags & SDIO_STA_DCRCFAIL) DBGERR("* SDIO Data CRC fail\n");
@@ -986,11 +995,14 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
     //Data transfer is considered complete once the DMA transfer complete
     //interrupt occurs, that happens when the last data was written in the
     //buffer. Both SDIO and DMA error interrupts are active to catch errors
-    SDIO->MASK=SDIO_MASK_STBITERRIE | //Interrupt on start bit error
-               SDIO_MASK_RXOVERRIE  | //Interrupt on rx underrun
-               SDIO_MASK_TXUNDERRIE | //Interrupt on tx underrun
-               SDIO_MASK_DCRCFAILIE | //Interrupt on data CRC fail
-               SDIO_MASK_DTIMEOUTIE;  //Interrupt on data timeout
+    int32_t t=SDIO_MASK_RXOVERRIE  | //Interrupt on rx underrun
+              SDIO_MASK_TXUNDERRIE | //Interrupt on tx underrun
+              SDIO_MASK_DCRCFAILIE | //Interrupt on data CRC fail
+              SDIO_MASK_DTIMEOUTIE;  //Interrupt on data timeout
+    #ifdef SDIO_MASK_STBITERRIE
+    t|=SDIO_MASK_STBITERRIE; //Interrupt on start bit error
+    #endif
+    SDIO->MASK=t;
     DMA_Stream->PAR=reinterpret_cast<unsigned int>(&SDIO->FIFO);
     DMA_Stream->M0AR=reinterpret_cast<unsigned int>(buffer);
     //Note: DMA_Stream->NDTR is don't care in peripheral flow control mode
@@ -1092,12 +1104,15 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
     //Data transfer is considered complete once the SDIO transfer complete
     //interrupt occurs, that happens when the last data was written to the SDIO
     //Both SDIO and DMA error interrupts are active to catch errors
-    SDIO->MASK=SDIO_MASK_DATAENDIE  | //Interrupt on data end
-               SDIO_MASK_STBITERRIE | //Interrupt on start bit error
+    uint32_t t=SDIO_MASK_DATAENDIE  | //Interrupt on data end
                SDIO_MASK_RXOVERRIE  | //Interrupt on rx underrun
                SDIO_MASK_TXUNDERRIE | //Interrupt on tx underrun
                SDIO_MASK_DCRCFAILIE | //Interrupt on data CRC fail
                SDIO_MASK_DTIMEOUTIE;  //Interrupt on data timeout
+    #ifdef SDIO_MASK_STBITERRIE
+    t|=SDIO_MASK_STBITERRIE; //Interrupt on start bit error
+    #endif
+    SDIO->MASK=t;
     DMA_Stream->PAR=reinterpret_cast<unsigned int>(&SDIO->FIFO);
     DMA_Stream->M0AR=reinterpret_cast<unsigned int>(buffer);
     //Note: DMA_Stream->NDTR is don't care in peripheral flow control mode
