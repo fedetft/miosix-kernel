@@ -1217,14 +1217,14 @@ static bool multipleBlockRead(unsigned int *buffer, unsigned int nblk,
     DMA2_Channel4->CPAR=reinterpret_cast<unsigned int>(&SDIO->FIFO);
     DMA2_Channel4->CMAR=reinterpret_cast<unsigned int>(buffer);
 	DMA2_Channel4->CNDTR=nblk*512/sizeof(unsigned int);
-    DMA2_Channel4->CCR=DMA_CCR4_PL_1      | //High priority DMA stream
-                       DMA_CCR4_MSIZE_1   | //Write 32bit at a time to RAM
-					   DMA_CCR4_PSIZE_1   | //Read 32bit at a time from SDIO
-				       DMA_CCR4_MINC      | //Increment RAM pointer
-			           0                  | //Peripheral to memory direction
-			           DMA_CCR4_TCIE      | //Interrupt on transfer complete
-                       DMA_CCR4_TEIE      | //Interrupt on transfer error
-			  	       DMA_CCR4_EN;         //Start the DMA
+    DMA2_Channel4->CCR=DMA_CCR_PL_1      | //High priority DMA stream
+                       DMA_CCR_MSIZE_1   | //Write 32bit at a time to RAM
+					   DMA_CCR_PSIZE_1   | //Read 32bit at a time from SDIO
+				       DMA_CCR_MINC      | //Increment RAM pointer
+			           0                 | //Peripheral to memory direction
+			           DMA_CCR_TCIE      | //Interrupt on transfer complete
+                       DMA_CCR_TEIE      | //Interrupt on transfer error
+			  	       DMA_CCR_EN;         //Start the DMA
     
     SDIO->DLEN=nblk*512;
     if(waiting==0)
@@ -1248,7 +1248,7 @@ static bool multipleBlockRead(unsigned int *buffer, unsigned int nblk,
         }
     } else transferError=true;
     DMA2_Channel4->CCR=0;
-    while(DMA2_Channel4->CCR & DMA_CCR4_EN) ; //DMA may take time to stop
+    while(DMA2_Channel4->CCR & DMA_CCR_EN) ; //DMA may take time to stop
     SDIO->DCTRL=0; //Disable data path state machine
     SDIO->MASK=0;
 
@@ -1312,13 +1312,13 @@ static bool multipleBlockWrite(const unsigned int *buffer, unsigned int nblk,
 	DMA2_Channel4->CPAR=reinterpret_cast<unsigned int>(&SDIO->FIFO);
 	DMA2_Channel4->CMAR=reinterpret_cast<unsigned int>(buffer);
 	DMA2_Channel4->CNDTR=nblk*512/sizeof(unsigned int);
-	DMA2_Channel4->CCR=DMA_CCR4_PL_1      | //High priority DMA stream
-                       DMA_CCR4_MSIZE_1   | //Read 32bit at a time from RAM
-					   DMA_CCR4_PSIZE_1   | //Write 32bit at a time to SDIO
-				       DMA_CCR4_MINC      | //Increment RAM pointer
-			           DMA_CCR4_DIR       | //Memory to peripheral direction
-                       DMA_CCR4_TEIE      | //Interrupt on transfer error
-                       DMA_CCR4_EN;         //Start the DMA
+	DMA2_Channel4->CCR=DMA_CCR_PL_1      | //High priority DMA stream
+                       DMA_CCR_MSIZE_1   | //Read 32bit at a time from RAM
+					   DMA_CCR_PSIZE_1   | //Write 32bit at a time to SDIO
+				       DMA_CCR_MINC      | //Increment RAM pointer
+			           DMA_CCR_DIR       | //Memory to peripheral direction
+                       DMA_CCR_TEIE      | //Interrupt on transfer error
+                       DMA_CCR_EN;         //Start the DMA
     
     SDIO->DLEN=nblk*512;
     if(waiting==0)
@@ -1342,7 +1342,7 @@ static bool multipleBlockWrite(const unsigned int *buffer, unsigned int nblk,
         }
     } else transferError=true;
     DMA2_Channel4->CCR=0;
-    while(DMA2_Channel4->CCR & DMA_CCR4_EN) ; //DMA may take time to stop
+    while(DMA2_Channel4->CCR & DMA_CCR_EN) ; //DMA may take time to stop
     SDIO->DCTRL=0; //Disable data path state machine
     SDIO->MASK=0;
 

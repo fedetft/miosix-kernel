@@ -107,7 +107,7 @@ void shutdown()
 
     disableInterrupts();
 
-    SCB->SCR |= SCB_SCR_SLEEPDEEP;
+    SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
     PWR->CR |= PWR_CR_PDDS; //Select standby mode
     PWR->CR |= PWR_CR_CWUF;
     __NOP();

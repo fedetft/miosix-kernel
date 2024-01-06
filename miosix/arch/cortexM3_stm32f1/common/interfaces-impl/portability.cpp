@@ -114,12 +114,12 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
 void IRQportableStartKernel()
 {
     //Enable fault handlers
-    SCB->SHCSR |= SCB_SHCSR_USGFAULTENA | SCB_SHCSR_BUSFAULTENA
-            | SCB_SHCSR_MEMFAULTENA;
+    SCB->SHCSR |= SCB_SHCSR_USGFAULTENA_Msk | SCB_SHCSR_BUSFAULTENA_Msk
+            | SCB_SHCSR_MEMFAULTENA_Msk;
     //Enable traps for division by zero. Trap for unaligned memory access
     //was removed as gcc starting from 4.7.2 generates unaligned accesses by
     //default (https://www.gnu.org/software/gcc/gcc-4.7/changes.html)
-    SCB->CCR |= SCB_CCR_DIV_0_TRP;
+    SCB->CCR |= SCB_CCR_DIV_0_TRP_Msk;
     NVIC_SetPriorityGrouping(7);//This should disable interrupt nesting
     NVIC_SetPriority(SVCall_IRQn,3);//High priority for SVC (Max=0, min=15)
     

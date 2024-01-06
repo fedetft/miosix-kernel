@@ -1000,8 +1000,13 @@ void STM32Serial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
     }
     const unsigned int quot=2*freq/baudrate; //2*freq for round to nearest
     port->BRR=quot/2 + (quot & 1);           //Round to nearest
+    //Quirk: some stm32 do not have onebit mode (stm32f101,f102,f103)
+    #ifdef USART_CR3_ONEBIT
     if(flowControl==false) port->CR3 |= USART_CR3_ONEBIT;
     else port->CR3 |= USART_CR3_ONEBIT | USART_CR3_RTSE | USART_CR3_CTSE;
+    #else
+    if(flowControl) port->CR3 |= USART_CR3_RTSE | USART_CR3_CTSE;
+    #endif
     //Enabled, 8 data bit, no parity, interrupt on character rx
     #ifdef SERIAL_DMA
     if(dmaTx)
@@ -1125,7 +1130,7 @@ void STM32Serial::IRQwrite(const char *str)
             (DMA_ISR_TCIF7 | DMA_ISR_TEIF7),
             (DMA_ISR_TCIF2 | DMA_ISR_TEIF2)
         };
-        #if defined(_ARCH_CORTEXM4_STM32F3) || defined(_ARCH_CORTEXM4_STM32L4)
+        #if !defined(_ARCH_CORTEXM3_STM32L1)
         // Workaround for ST messing up with flag definitions...
         constexpr unsigned int DMA_CCR4_EN = DMA_CCR_EN;
         #endif
@@ -1418,18 +1423,13 @@ void STM32Serial::writeDma(const char *buffer, size_t size)
     #endif //_ARCH_CORTEXM7_STM32F7/H7
     
     dmaTxInProgress=true;
+    #if defined(_ARCH_CORTEXM3_STM32F1) || defined(_ARCH_CORTEXM4_STM32F3) || \
+        defined(_ARCH_CORTEXM4_STM32L4)
     #if defined(_ARCH_CORTEXM3_STM32F1)
     dmaTx->CPAR=reinterpret_cast<unsigned int>(&port->DR);
-    dmaTx->CMAR=reinterpret_cast<unsigned int>(buffer);
-    dmaTx->CNDTR=size;
-    dmaTx->CCR=DMA_CCR4_MINC  //Increment RAM pointer
-             | DMA_CCR4_DIR   //Memory to peripheral
-             | DMA_CCR4_TEIE  //Interrupt on transfer error
-             | DMA_CCR4_TCIE  //Interrupt on transfer complete
-             | DMA_CCR4_EN;   //Start DMA
     #else
-    #if defined(_ARCH_CORTEXM4_STM32F3) || defined(_ARCH_CORTEXM4_STM32L4)
     dmaTx->CPAR=reinterpret_cast<unsigned int>(&port->TDR);
+    #endif
     dmaTx->CMAR=reinterpret_cast<unsigned int>(buffer);
     dmaTx->CNDTR=size;
     dmaTx->CCR=DMA_CCR_MINC  //Increment RAM pointer
@@ -1468,7 +1468,6 @@ void STM32Serial::writeDma(const char *buffer, size_t size)
                    | DMA_SxCR_EN;     //Start the DMA
     #endif //_ARCH_CORTEXM7_STM32H7
     #endif //_ARCH_CORTEXM4_STM32F3
-    #endif //_ARCH_CORTEXM3_STM32F1
 }
 
 void STM32Serial::IRQreadDma()
@@ -1482,18 +1481,13 @@ void STM32Serial::IRQreadDma()
 
 void STM32Serial::IRQdmaReadStart()
 {
+    #if defined(_ARCH_CORTEXM3_STM32F1) || defined(_ARCH_CORTEXM4_STM32F3) || \
+        defined(_ARCH_CORTEXM4_STM32L4)
     #if defined(_ARCH_CORTEXM3_STM32F1)
-    dmaRx->CPAR=reinterpret_cast<unsigned int>(&port->DR);
-    dmaRx->CMAR=reinterpret_cast<unsigned int>(rxBuffer);
-    dmaRx->CNDTR=rxQueueMin;
-    dmaRx->CCR=DMA_CCR4_MINC  //Increment RAM pointer
-             | 0              //Peripheral to memory
-             | DMA_CCR4_TEIE  //Interrupt on transfer error
-             | DMA_CCR4_TCIE  //Interrupt on transfer complete
-             | DMA_CCR4_EN;   //Start DMA
+    dmaTx->CPAR=reinterpret_cast<unsigned int>(&port->DR);
     #else
-    #if defined(_ARCH_CORTEXM4_STM32F3) || defined(_ARCH_CORTEXM4_STM32L4)
-    dmaRx->CPAR=reinterpret_cast<unsigned int>(&port->RDR);
+    dmaTx->CPAR=reinterpret_cast<unsigned int>(&port->RDR);
+    #endif
     dmaRx->CMAR=reinterpret_cast<unsigned int>(rxBuffer);
     dmaRx->CNDTR=rxQueueMin;
     dmaRx->CCR=DMA_CCR_MINC  //Increment RAM pointer
@@ -1527,7 +1521,6 @@ void STM32Serial::IRQdmaReadStart()
                    | DMA_SxCR_EN;     //Start the DMA
     #endif // _ARCH_CORTEXM7_STM32H7
     #endif //_ARCH_CORTEXM4_STM32F3
-    #endif //_ARCH_CORTEXM3_STM32F1
 }
 
 int STM32Serial::IRQdmaReadStop()
