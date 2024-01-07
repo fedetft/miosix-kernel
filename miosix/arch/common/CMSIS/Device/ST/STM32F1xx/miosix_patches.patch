@@ -1,0 +1,248 @@
+diff -Naur Include.orig/stm32f100xb.h Include/stm32f100xb.h
+--- Include.orig/stm32f100xb.h	2023-05-23 17:01:35
++++ Include/stm32f100xb.h	2024-01-06 18:23:14
+@@ -126,7 +126,7 @@
+   * @}
+   */
+ 
+-#include "core_cm3.h"
++#include <CMSIS/Include/core_cm3.h>
+ #include "system_stm32f1xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f100xe.h Include/stm32f100xe.h
+--- Include.orig/stm32f100xe.h	2023-05-23 17:01:35
++++ Include/stm32f100xe.h	2024-01-06 18:23:14
+@@ -141,7 +141,7 @@
+   * @}
+   */
+ 
+-#include "core_cm3.h"
++#include <CMSIS/Include/core_cm3.h>
+ #include "system_stm32f1xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f101x6.h Include/stm32f101x6.h
+--- Include.orig/stm32f101x6.h	2023-05-23 17:01:35
++++ Include/stm32f101x6.h	2024-01-06 18:23:14
+@@ -114,7 +114,7 @@
+   * @}
+   */
+ 
+-#include "core_cm3.h"
++#include <CMSIS/Include/core_cm3.h>
+ #include "system_stm32f1xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f101xb.h Include/stm32f101xb.h
+--- Include.orig/stm32f101xb.h	2023-05-23 17:01:35
++++ Include/stm32f101xb.h	2024-01-06 18:23:14
+@@ -119,7 +119,7 @@
+   * @}
+   */
+ 
+-#include "core_cm3.h"
++#include <CMSIS/Include/core_cm3.h>
+ #include "system_stm32f1xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f101xe.h Include/stm32f101xe.h
+--- Include.orig/stm32f101xe.h	2023-05-23 17:01:35
++++ Include/stm32f101xe.h	2024-01-06 18:23:14
+@@ -130,7 +130,7 @@
+   * @}
+   */
+ 
+-#include "core_cm3.h"
++#include <CMSIS/Include/core_cm3.h>
+ #include "system_stm32f1xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f101xg.h Include/stm32f101xg.h
+--- Include.orig/stm32f101xg.h	2023-05-23 17:01:35
++++ Include/stm32f101xg.h	2024-01-06 18:23:14
+@@ -136,7 +136,7 @@
+   * @}
+   */
+ 
+-#include "core_cm3.h"
++#include <CMSIS/Include/core_cm3.h>
+ #include "system_stm32f1xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f102x6.h Include/stm32f102x6.h
+--- Include.orig/stm32f102x6.h	2023-05-23 17:01:35
++++ Include/stm32f102x6.h	2024-01-06 18:23:14
+@@ -117,7 +117,7 @@
+   * @}
+   */
+ 
+-#include "core_cm3.h"
++#include <CMSIS/Include/core_cm3.h>
+ #include "system_stm32f1xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f102xb.h Include/stm32f102xb.h
+--- Include.orig/stm32f102xb.h	2023-05-23 17:01:35
++++ Include/stm32f102xb.h	2024-01-06 18:23:14
+@@ -122,7 +122,7 @@
+   * @}
+   */
+ 
+-#include "core_cm3.h"
++#include <CMSIS/Include/core_cm3.h>
+ #include "system_stm32f1xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f103x6.h Include/stm32f103x6.h
+--- Include.orig/stm32f103x6.h	2023-05-23 17:01:35
++++ Include/stm32f103x6.h	2024-01-06 18:23:14
+@@ -123,7 +123,7 @@
+   * @}
+   */
+ 
+-#include "core_cm3.h"
++#include <CMSIS/Include/core_cm3.h>
+ #include "system_stm32f1xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f103xb.h Include/stm32f103xb.h
+--- Include.orig/stm32f103xb.h	2023-05-23 17:01:35
++++ Include/stm32f103xb.h	2024-01-06 18:23:14
+@@ -128,7 +128,7 @@
+   * @}
+   */
+ 
+-#include "core_cm3.h"
++#include <CMSIS/Include/core_cm3.h>
+ #include "system_stm32f1xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f103xe.h Include/stm32f103xe.h
+--- Include.orig/stm32f103xe.h	2023-05-23 17:01:35
++++ Include/stm32f103xe.h	2024-01-06 18:23:14
+@@ -145,7 +145,7 @@
+   * @}
+   */
+ 
+-#include "core_cm3.h"
++#include <CMSIS/Include/core_cm3.h>
+ #include "system_stm32f1xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f103xg.h Include/stm32f103xg.h
+--- Include.orig/stm32f103xg.h	2023-05-23 17:01:35
++++ Include/stm32f103xg.h	2024-01-06 18:23:14
+@@ -145,7 +145,7 @@
+   * @}
+   */
+ 
+-#include "core_cm3.h"
++#include <CMSIS/Include/core_cm3.h>
+ #include "system_stm32f1xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f105xc.h Include/stm32f105xc.h
+--- Include.orig/stm32f105xc.h	2023-05-23 17:01:35
++++ Include/stm32f105xc.h	2024-01-06 18:23:14
+@@ -144,7 +144,7 @@
+   * @}
+   */
+ 
+-#include "core_cm3.h"
++#include <CMSIS/Include/core_cm3.h>
+ #include "system_stm32f1xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f107xc.h Include/stm32f107xc.h
+--- Include.orig/stm32f107xc.h	2023-05-23 17:01:35
++++ Include/stm32f107xc.h	2024-01-06 18:23:14
+@@ -146,7 +146,7 @@
+   * @}
+   */
+ 
+-#include "core_cm3.h"
++#include <CMSIS/Include/core_cm3.h>
+ #include "system_stm32f1xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f1xx.h Include/stm32f1xx.h
+--- Include.orig/stm32f1xx.h	2023-05-23 17:01:35
++++ Include/stm32f1xx.h	2024-01-06 18:55:56
+@@ -108,33 +108,76 @@
+   * @{
+   */
+ 
++// Miosix begin
++// Old STM32F10X_... define naming scheme
++  /* #define STM32F10X_LD */     /*!< STM32F10X_LD: STM32 Low density devices */
++  /* #define STM32F10X_LD_VL */  /*!< STM32F10X_LD_VL: STM32 Low density Value Line devices */  
++  /* #define STM32F10X_MD */     /*!< STM32F10X_MD: STM32 Medium density devices */
++  /* #define STM32F10X_MD_VL */  /*!< STM32F10X_MD_VL: STM32 Medium density Value Line devices */  
++  /* #define STM32F10X_HD */     /*!< STM32F10X_HD: STM32 High density devices */
++  /* #define STM32F10X_HD_VL */  /*!< STM32F10X_HD_VL: STM32 High density value line devices */  
++  /* #define STM32F10X_XL */     /*!< STM32F10X_XL: STM32 XL-density devices */
++  /* #define STM32F10X_CL */     /*!< STM32F10X_CL: STM32 Connectivity line devices */
++/* 
++ - Low-density devices are STM32F101xx, STM32F102xx and STM32F103xx microcontrollers
++   where the Flash memory density ranges between 16 and 32 Kbytes.
++ - Low-density value line devices are STM32F100xx microcontrollers where the Flash
++   memory density ranges between 16 and 32 Kbytes.
++ - Medium-density devices are STM32F101xx, STM32F102xx and STM32F103xx microcontrollers
++   where the Flash memory density ranges between 64 and 128 Kbytes.
++ - Medium-density value line devices are STM32F100xx microcontrollers where the 
++   Flash memory density ranges between 64 and 128 Kbytes.   
++ - High-density devices are STM32F101xx and STM32F103xx microcontrollers where
++   the Flash memory density ranges between 256 and 512 Kbytes.
++ - High-density value line devices are STM32F100xx microcontrollers where the 
++   Flash memory density ranges between 256 and 512 Kbytes.   
++ - XL-density devices are STM32F101xx and STM32F103xx microcontrollers where
++   the Flash memory density ranges between 512 and 1024 Kbytes.
++ - Connectivity line devices are STM32F105xx and STM32F107xx microcontrollers.
++  */
++// Miosix end
++
+ #if defined(STM32F100xB)
++  #define STM32F10X_MD_VL  // Miosix: added back-compat with old ST arch defines
+   #include "stm32f100xb.h"
+ #elif defined(STM32F100xE)
++  #define STM32F10X_HD_VL  // Miosix: added back-compat with old ST arch defines
+   #include "stm32f100xe.h"
+ #elif defined(STM32F101x6)
++  #define STM32F10X_LD     // Miosix: added back-compat with old ST arch defines
+   #include "stm32f101x6.h"
+ #elif defined(STM32F101xB)
++  #define STM32F10X_MD     // Miosix: added back-compat with old ST arch defines
+   #include "stm32f101xb.h"
+ #elif defined(STM32F101xE)
++  #define STM32F10X_HD     // Miosix: added back-compat with old ST arch defines
+   #include "stm32f101xe.h"
+ #elif defined(STM32F101xG)
++  #define STM32F10X_XL     // Miosix: added back-compat with old ST arch defines
+   #include "stm32f101xg.h"
+ #elif defined(STM32F102x6)
++  #define STM32F10X_LD     // Miosix: added back-compat with old ST arch defines
+   #include "stm32f102x6.h"
+ #elif defined(STM32F102xB)
++  #define STM32F10X_MD     // Miosix: added back-compat with old ST arch defines
+   #include "stm32f102xb.h"
+ #elif defined(STM32F103x6)
++  #define STM32F10X_LD     // Miosix: added back-compat with old ST arch defines
+   #include "stm32f103x6.h"
+ #elif defined(STM32F103xB)
++  #define STM32F10X_MD     // Miosix: added back-compat with old ST arch defines
+   #include "stm32f103xb.h"
+ #elif defined(STM32F103xE)
++  #define STM32F10X_HD     // Miosix: added back-compat with old ST arch defines
+   #include "stm32f103xe.h"
+ #elif defined(STM32F103xG)
++  #define STM32F10X_XL     // Miosix: added back-compat with old ST arch defines
+   #include "stm32f103xg.h"
+ #elif defined(STM32F105xC)
++  #define STM32F10X_CL     // Miosix: added back-compat with old ST arch defines
+   #include "stm32f105xc.h"
+ #elif defined(STM32F107xC)
++  #define STM32F10X_CL     // Miosix: added back-compat with old ST arch defines
+   #include "stm32f107xc.h"
+ #else
+  #error "Please select first the target STM32F1xx device used in your application (in stm32f1xx.h file)"

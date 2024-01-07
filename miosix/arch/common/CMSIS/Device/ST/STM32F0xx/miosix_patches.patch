@@ -1,0 +1,192 @@
+diff -Naur Include.orig/stm32f030x6.h Include/stm32f030x6.h
+--- Include.orig/stm32f030x6.h	2023-05-23 17:01:32
++++ Include/stm32f030x6.h	2023-12-25 16:07:02
+@@ -99,7 +99,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0.h"            /* Cortex-M0 processor and core peripherals */
++#include <CMSIS/Include/core_cm0.h> //Fixed path, by redman
+ #include "system_stm32f0xx.h"    /* STM32F0xx System Header */
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f030x8.h Include/stm32f030x8.h
+--- Include.orig/stm32f030x8.h	2023-05-23 17:01:32
++++ Include/stm32f030x8.h	2023-12-25 16:07:02
+@@ -104,7 +104,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0.h"            /* Cortex-M0 processor and core peripherals */
++#include <CMSIS/Include/core_cm0.h> //Fixed path, by redman
+ #include "system_stm32f0xx.h"    /* STM32F0xx System Header */
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f030xc.h Include/stm32f030xc.h
+--- Include.orig/stm32f030xc.h	2023-05-23 17:01:32
++++ Include/stm32f030xc.h	2023-12-25 16:07:02
+@@ -106,7 +106,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0.h"            /* Cortex-M0 processor and core peripherals */
++#include <CMSIS/Include/core_cm0.h> //Fixed path, by redman
+ #include "system_stm32f0xx.h"    /* STM32F0xx System Header */
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f031x6.h Include/stm32f031x6.h
+--- Include.orig/stm32f031x6.h	2023-05-23 17:01:32
++++ Include/stm32f031x6.h	2023-12-25 16:07:02
+@@ -101,7 +101,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0.h"            /* Cortex-M0 processor and core peripherals */
++#include <CMSIS/Include/core_cm0.h> //Fixed path, by redman
+ #include "system_stm32f0xx.h"    /* STM32F0xx System Header */
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f038xx.h Include/stm32f038xx.h
+--- Include.orig/stm32f038xx.h	2023-05-23 17:01:32
++++ Include/stm32f038xx.h	2023-12-25 16:07:02
+@@ -100,7 +100,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0.h"            /* Cortex-M0 processor and core peripherals */
++#include <CMSIS/Include/core_cm0.h> //Fixed path, by redman
+ #include "system_stm32f0xx.h"    /* STM32F0xx System Header */
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f042x6.h Include/stm32f042x6.h
+--- Include.orig/stm32f042x6.h	2023-05-23 17:01:32
++++ Include/stm32f042x6.h	2023-12-25 16:07:02
+@@ -106,7 +106,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0.h"            /* Cortex-M0 processor and core peripherals */
++#include <CMSIS/Include/core_cm0.h> //Fixed path, by redman
+ #include "system_stm32f0xx.h"    /* STM32F0xx System Header */
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f048xx.h Include/stm32f048xx.h
+--- Include.orig/stm32f048xx.h	2023-05-23 17:01:32
++++ Include/stm32f048xx.h	2023-12-25 16:07:02
+@@ -106,7 +106,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0.h"            /* Cortex-M0 processor and core peripherals */
++#include <CMSIS/Include/core_cm0.h> //Fixed path, by redman
+ #include "system_stm32f0xx.h"    /* STM32F0xx System Header */
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f051x8.h Include/stm32f051x8.h
+--- Include.orig/stm32f051x8.h	2023-05-23 17:01:32
++++ Include/stm32f051x8.h	2023-12-25 16:07:02
+@@ -108,7 +108,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0.h"            /* Cortex-M0 processor and core peripherals */
++#include <CMSIS/Include/core_cm0.h> //Fixed path, by redman
+ #include "system_stm32f0xx.h"    /* STM32F0xx System Header */
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f058xx.h Include/stm32f058xx.h
+--- Include.orig/stm32f058xx.h	2023-05-23 17:01:32
++++ Include/stm32f058xx.h	2023-12-25 16:07:02
+@@ -107,7 +107,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0.h"            /* Cortex-M0 processor and core peripherals */
++#include <CMSIS/Include/core_cm0.h> //Fixed path, by redman
+ #include "system_stm32f0xx.h"    /* STM32F0xx System Header */
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f070x6.h Include/stm32f070x6.h
+--- Include.orig/stm32f070x6.h	2023-05-23 17:01:32
++++ Include/stm32f070x6.h	2023-12-25 16:07:02
+@@ -101,7 +101,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0.h"            /* Cortex-M0 processor and core peripherals */
++#include <CMSIS/Include/core_cm0.h> //Fixed path, by redman
+ #include "system_stm32f0xx.h"    /* STM32F0xx System Header */
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f070xb.h Include/stm32f070xb.h
+--- Include.orig/stm32f070xb.h	2023-05-23 17:01:32
++++ Include/stm32f070xb.h	2023-12-25 16:07:02
+@@ -107,7 +107,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0.h"            /* Cortex-M0 processor and core peripherals */
++#include <CMSIS/Include/core_cm0.h> //Fixed path, by redman
+ #include "system_stm32f0xx.h"    /* STM32F0xx System Header */
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f071xb.h Include/stm32f071xb.h
+--- Include.orig/stm32f071xb.h	2023-05-23 17:01:32
++++ Include/stm32f071xb.h	2023-12-25 16:07:02
+@@ -110,7 +110,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0.h"            /* Cortex-M0 processor and core peripherals */
++#include <CMSIS/Include/core_cm0.h> //Fixed path, by redman
+ #include "system_stm32f0xx.h"    /* STM32F0xx System Header */
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f072xb.h Include/stm32f072xb.h
+--- Include.orig/stm32f072xb.h	2023-05-23 17:01:32
++++ Include/stm32f072xb.h	2023-12-25 16:07:02
+@@ -111,7 +111,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0.h"            /* Cortex-M0 processor and core peripherals */
++#include <CMSIS/Include/core_cm0.h> //Fixed path, by redman
+ #include "system_stm32f0xx.h"    /* STM32F0xx System Header */
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f078xx.h Include/stm32f078xx.h
+--- Include.orig/stm32f078xx.h	2023-05-23 17:01:32
++++ Include/stm32f078xx.h	2023-12-25 16:07:02
+@@ -111,7 +111,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0.h"            /* Cortex-M0 processor and core peripherals */
++#include <CMSIS/Include/core_cm0.h> //Fixed path, by redman
+ #include "system_stm32f0xx.h"    /* STM32F0xx System Header */
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f091xc.h Include/stm32f091xc.h
+--- Include.orig/stm32f091xc.h	2023-05-23 17:01:32
++++ Include/stm32f091xc.h	2023-12-25 16:07:02
+@@ -110,7 +110,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0.h"            /* Cortex-M0 processor and core peripherals */
++#include <CMSIS/Include/core_cm0.h> //Fixed path, by redman
+ #include "system_stm32f0xx.h"    /* STM32F0xx System Header */
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32f098xx.h Include/stm32f098xx.h
+--- Include.orig/stm32f098xx.h	2023-05-23 17:01:32
++++ Include/stm32f098xx.h	2023-12-25 16:07:02
+@@ -110,7 +110,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0.h"            /* Cortex-M0 processor and core peripherals */
++#include <CMSIS/Include/core_cm0.h> //Fixed path, by redman
+ #include "system_stm32f0xx.h"    /* STM32F0xx System Header */
+ #include <stdint.h>
+ 

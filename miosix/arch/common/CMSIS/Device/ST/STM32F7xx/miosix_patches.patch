@@ -1,0 +1,168 @@
+diff -Naur Include.orig/stm32f722xx.h Include/stm32f722xx.h
+--- Include.orig/stm32f722xx.h	2023-05-24 10:09:51
++++ Include/stm32f722xx.h	2024-01-06 18:10:33
+@@ -158,7 +158,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                      /*!< Cortex-M7 processor and core peripherals      */
++#include <CMSIS/Include/core_cm7.h>                      /*!< Cortex-M7 processor and core peripherals      */
+ 
+ 
+ #include "system_stm32f7xx.h"
+diff -Naur Include.orig/stm32f723xx.h Include/stm32f723xx.h
+--- Include.orig/stm32f723xx.h	2023-05-24 10:09:51
++++ Include/stm32f723xx.h	2024-01-06 18:10:33
+@@ -158,7 +158,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                      /*!< Cortex-M7 processor and core peripherals      */
++#include <CMSIS/Include/core_cm7.h>                      /*!< Cortex-M7 processor and core peripherals      */
+ 
+ 
+ #include "system_stm32f7xx.h"
+diff -Naur Include.orig/stm32f730xx.h Include/stm32f730xx.h
+--- Include.orig/stm32f730xx.h	2023-05-24 10:09:51
++++ Include/stm32f730xx.h	2024-01-06 18:10:33
+@@ -159,7 +159,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                      /*!< Cortex-M7 processor and core peripherals      */
++#include <CMSIS/Include/core_cm7.h>                      /*!< Cortex-M7 processor and core peripherals      */
+ 
+ 
+ #include "system_stm32f7xx.h"
+diff -Naur Include.orig/stm32f732xx.h Include/stm32f732xx.h
+--- Include.orig/stm32f732xx.h	2023-05-24 10:09:51
++++ Include/stm32f732xx.h	2024-01-06 18:10:34
+@@ -159,7 +159,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                      /*!< Cortex-M7 processor and core peripherals      */
++#include <CMSIS/Include/core_cm7.h>                      /*!< Cortex-M7 processor and core peripherals      */
+ 
+ 
+ #include "system_stm32f7xx.h"
+diff -Naur Include.orig/stm32f733xx.h Include/stm32f733xx.h
+--- Include.orig/stm32f733xx.h	2023-05-24 10:09:51
++++ Include/stm32f733xx.h	2024-01-06 18:10:34
+@@ -159,7 +159,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                      /*!< Cortex-M7 processor and core peripherals      */
++#include <CMSIS/Include/core_cm7.h>                      /*!< Cortex-M7 processor and core peripherals      */
+ 
+ 
+ #include "system_stm32f7xx.h"
+diff -Naur Include.orig/stm32f745xx.h Include/stm32f745xx.h
+--- Include.orig/stm32f745xx.h	2023-05-24 10:09:51
++++ Include/stm32f745xx.h	2024-01-06 18:10:34
+@@ -168,7 +168,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                      /*!< Cortex-M7 processor and core peripherals      */
++#include <CMSIS/Include/core_cm7.h>                      /*!< Cortex-M7 processor and core peripherals      */
+ 
+ 
+ #include "system_stm32f7xx.h"
+diff -Naur Include.orig/stm32f746xx.h Include/stm32f746xx.h
+--- Include.orig/stm32f746xx.h	2023-05-24 10:09:51
++++ Include/stm32f746xx.h	2024-01-06 18:10:34
+@@ -170,7 +170,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                      /*!< Cortex-M7 processor and core peripherals      */
++#include <CMSIS/Include/core_cm7.h>                      /*!< Cortex-M7 processor and core peripherals      */
+ 
+ 
+ #include "system_stm32f7xx.h"
+diff -Naur Include.orig/stm32f750xx.h Include/stm32f750xx.h
+--- Include.orig/stm32f750xx.h	2023-05-24 10:09:51
++++ Include/stm32f750xx.h	2024-01-06 18:10:34
+@@ -171,7 +171,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                      /*!< Cortex-M7 processor and core peripherals      */
++#include <CMSIS/Include/core_cm7.h>                      /*!< Cortex-M7 processor and core peripherals      */
+ 
+ 
+ #include "system_stm32f7xx.h"
+diff -Naur Include.orig/stm32f756xx.h Include/stm32f756xx.h
+--- Include.orig/stm32f756xx.h	2023-05-24 10:09:51
++++ Include/stm32f756xx.h	2024-01-06 18:10:34
+@@ -171,7 +171,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                      /*!< Cortex-M7 processor and core peripherals      */
++#include <CMSIS/Include/core_cm7.h>                      /*!< Cortex-M7 processor and core peripherals      */
+ 
+ 
+ #include "system_stm32f7xx.h"
+diff -Naur Include.orig/stm32f765xx.h Include/stm32f765xx.h
+--- Include.orig/stm32f765xx.h	2023-05-24 10:09:51
++++ Include/stm32f765xx.h	2024-01-06 18:10:34
+@@ -178,7 +178,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                      /*!< Cortex-M7 processor and core peripherals      */
++#include <CMSIS/Include/core_cm7.h>                      /*!< Cortex-M7 processor and core peripherals      */
+ 
+ 
+ #include "system_stm32f7xx.h"
+diff -Naur Include.orig/stm32f767xx.h Include/stm32f767xx.h
+--- Include.orig/stm32f767xx.h	2023-05-24 10:09:51
++++ Include/stm32f767xx.h	2024-01-06 18:10:34
+@@ -181,7 +181,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                      /*!< Cortex-M7 processor and core peripherals      */
++#include <CMSIS/Include/core_cm7.h>                      /*!< Cortex-M7 processor and core peripherals      */
+ 
+ 
+ #include "system_stm32f7xx.h"
+diff -Naur Include.orig/stm32f769xx.h Include/stm32f769xx.h
+--- Include.orig/stm32f769xx.h	2023-05-24 10:09:51
++++ Include/stm32f769xx.h	2024-01-06 18:10:34
+@@ -182,7 +182,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                      /*!< Cortex-M7 processor and core peripherals      */
++#include <CMSIS/Include/core_cm7.h>                      /*!< Cortex-M7 processor and core peripherals      */
+ 
+ 
+ #include "system_stm32f7xx.h"
+diff -Naur Include.orig/stm32f777xx.h Include/stm32f777xx.h
+--- Include.orig/stm32f777xx.h	2023-05-24 10:09:51
++++ Include/stm32f777xx.h	2024-01-06 18:10:34
+@@ -182,7 +182,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                      /*!< Cortex-M7 processor and core peripherals      */
++#include <CMSIS/Include/core_cm7.h>                      /*!< Cortex-M7 processor and core peripherals      */
+ 
+ 
+ #include "system_stm32f7xx.h"
+diff -Naur Include.orig/stm32f779xx.h Include/stm32f779xx.h
+--- Include.orig/stm32f779xx.h	2023-05-24 10:09:51
++++ Include/stm32f779xx.h	2024-01-06 18:10:34
+@@ -183,7 +183,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                      /*!< Cortex-M7 processor and core peripherals      */
++#include <CMSIS/Include/core_cm7.h>                      /*!< Cortex-M7 processor and core peripherals      */
+ 
+ 
+ #include "system_stm32f7xx.h"

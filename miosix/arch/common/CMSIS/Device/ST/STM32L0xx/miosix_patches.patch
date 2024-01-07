@@ -1,0 +1,228 @@
+diff -Naur Include.orig/stm32l010x4.h Include/stm32l010x4.h
+--- Include.orig/stm32l010x4.h	2023-05-24 10:10:04
++++ Include/stm32l010x4.h	2023-12-25 16:07:02
+@@ -100,7 +100,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l010x6.h Include/stm32l010x6.h
+--- Include.orig/stm32l010x6.h	2023-05-24 10:10:04
++++ Include/stm32l010x6.h	2023-12-25 16:07:02
+@@ -100,7 +100,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l010x8.h Include/stm32l010x8.h
+--- Include.orig/stm32l010x8.h	2023-05-24 10:10:04
++++ Include/stm32l010x8.h	2023-12-25 16:07:02
+@@ -100,7 +100,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l010xb.h Include/stm32l010xb.h
+--- Include.orig/stm32l010xb.h	2023-05-24 10:10:04
++++ Include/stm32l010xb.h	2023-12-25 16:07:02
+@@ -101,7 +101,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l011xx.h Include/stm32l011xx.h
+--- Include.orig/stm32l011xx.h	2023-05-24 10:10:04
++++ Include/stm32l011xx.h	2023-12-25 16:07:02
+@@ -101,7 +101,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l021xx.h Include/stm32l021xx.h
+--- Include.orig/stm32l021xx.h	2023-05-24 10:10:04
++++ Include/stm32l021xx.h	2023-12-25 16:07:02
+@@ -101,7 +101,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l031xx.h Include/stm32l031xx.h
+--- Include.orig/stm32l031xx.h	2023-05-24 10:10:04
++++ Include/stm32l031xx.h	2023-12-25 16:07:02
+@@ -102,7 +102,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l041xx.h Include/stm32l041xx.h
+--- Include.orig/stm32l041xx.h	2023-05-24 10:10:04
++++ Include/stm32l041xx.h	2023-12-25 16:07:03
+@@ -102,7 +102,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l051xx.h Include/stm32l051xx.h
+--- Include.orig/stm32l051xx.h	2023-05-24 10:10:04
++++ Include/stm32l051xx.h	2023-12-25 16:07:03
+@@ -106,7 +106,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l052xx.h Include/stm32l052xx.h
+--- Include.orig/stm32l052xx.h	2023-05-24 10:10:04
++++ Include/stm32l052xx.h	2023-12-25 16:07:03
+@@ -108,7 +108,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l053xx.h Include/stm32l053xx.h
+--- Include.orig/stm32l053xx.h	2023-05-24 10:10:04
++++ Include/stm32l053xx.h	2023-12-25 16:07:03
+@@ -109,7 +109,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l062xx.h Include/stm32l062xx.h
+--- Include.orig/stm32l062xx.h	2023-05-24 10:10:04
++++ Include/stm32l062xx.h	2023-12-25 16:07:03
+@@ -108,7 +108,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l063xx.h Include/stm32l063xx.h
+--- Include.orig/stm32l063xx.h	2023-05-24 10:10:04
++++ Include/stm32l063xx.h	2023-12-25 16:07:03
+@@ -109,7 +109,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l071xx.h Include/stm32l071xx.h
+--- Include.orig/stm32l071xx.h	2023-05-24 10:10:04
++++ Include/stm32l071xx.h	2023-12-25 16:07:03
+@@ -110,7 +110,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l072xx.h Include/stm32l072xx.h
+--- Include.orig/stm32l072xx.h	2023-05-24 10:10:04
++++ Include/stm32l072xx.h	2023-12-25 16:07:03
+@@ -112,7 +112,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l073xx.h Include/stm32l073xx.h
+--- Include.orig/stm32l073xx.h	2023-05-24 10:10:04
++++ Include/stm32l073xx.h	2023-12-25 16:07:03
+@@ -113,7 +113,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l081xx.h Include/stm32l081xx.h
+--- Include.orig/stm32l081xx.h	2023-05-24 10:10:04
++++ Include/stm32l081xx.h	2023-12-25 16:07:03
+@@ -110,7 +110,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l082xx.h Include/stm32l082xx.h
+--- Include.orig/stm32l082xx.h	2023-05-24 10:10:04
++++ Include/stm32l082xx.h	2023-12-25 16:07:03
+@@ -112,7 +112,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 
+diff -Naur Include.orig/stm32l083xx.h Include/stm32l083xx.h
+--- Include.orig/stm32l083xx.h	2023-05-24 10:10:04
++++ Include/stm32l083xx.h	2023-12-25 16:07:03
+@@ -113,7 +113,7 @@
+   * @}
+   */
+ 
+-#include "core_cm0plus.h"
++#include <CMSIS/Include/core_cm0plus.h> // Miosix: Changed path
+ #include "system_stm32l0xx.h"
+ #include <stdint.h>
+ 

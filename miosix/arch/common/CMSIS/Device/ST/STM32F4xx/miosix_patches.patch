@@ -1,0 +1,690 @@
+diff -Naur Include.orig/stm32f401xc.h Include/stm32f401xc.h
+--- Include.orig/stm32f401xc.h	2023-11-08 11:17:42
++++ Include/stm32f401xc.h	2024-01-06 17:15:20
+@@ -136,7 +136,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -269,7 +269,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f401xe.h Include/stm32f401xe.h
+--- Include.orig/stm32f401xe.h	2023-11-08 11:17:42
++++ Include/stm32f401xe.h	2024-01-06 17:21:29
+@@ -136,7 +136,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -269,7 +269,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f405xx.h Include/stm32f405xx.h
+--- Include.orig/stm32f405xx.h	2023-11-08 11:17:42
++++ Include/stm32f405xx.h	2024-01-06 17:21:30
+@@ -160,7 +160,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -435,7 +435,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f407xx.h Include/stm32f407xx.h
+--- Include.orig/stm32f407xx.h	2023-11-08 11:17:42
++++ Include/stm32f407xx.h	2024-01-06 17:18:51
+@@ -163,7 +163,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -531,7 +531,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f410cx.h Include/stm32f410cx.h
+--- Include.orig/stm32f410cx.h	2023-11-08 11:17:42
++++ Include/stm32f410cx.h	2024-01-06 17:18:51
+@@ -132,7 +132,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -287,7 +287,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f410rx.h Include/stm32f410rx.h
+--- Include.orig/stm32f410rx.h	2023-11-08 11:17:42
++++ Include/stm32f410rx.h	2024-01-06 17:18:51
+@@ -132,7 +132,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -287,7 +287,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f410tx.h Include/stm32f410tx.h
+--- Include.orig/stm32f410tx.h	2023-11-08 11:17:42
++++ Include/stm32f410tx.h	2024-01-06 17:18:51
+@@ -129,7 +129,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -284,7 +284,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f411xe.h Include/stm32f411xe.h
+--- Include.orig/stm32f411xe.h	2023-11-08 11:17:42
++++ Include/stm32f411xe.h	2024-01-06 17:18:50
+@@ -137,7 +137,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -270,7 +270,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f412cx.h Include/stm32f412cx.h
+--- Include.orig/stm32f412cx.h	2023-11-08 11:17:42
++++ Include/stm32f412cx.h	2024-01-06 17:18:51
+@@ -157,7 +157,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -390,7 +390,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f412rx.h Include/stm32f412rx.h
+--- Include.orig/stm32f412rx.h	2023-11-08 11:17:42
++++ Include/stm32f412rx.h	2024-01-06 17:18:51
+@@ -158,7 +158,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -410,7 +410,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f412vx.h Include/stm32f412vx.h
+--- Include.orig/stm32f412vx.h	2023-11-08 11:17:42
++++ Include/stm32f412vx.h	2024-01-06 17:18:51
+@@ -158,7 +158,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -410,7 +410,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f412zx.h Include/stm32f412zx.h
+--- Include.orig/stm32f412zx.h	2023-11-08 11:17:42
++++ Include/stm32f412zx.h	2024-01-06 17:18:52
+@@ -158,7 +158,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -410,7 +410,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f413xx.h Include/stm32f413xx.h
+--- Include.orig/stm32f413xx.h	2023-11-08 11:17:42
++++ Include/stm32f413xx.h	2024-01-06 17:18:51
+@@ -174,7 +174,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -448,7 +448,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f415xx.h Include/stm32f415xx.h
+--- Include.orig/stm32f415xx.h	2023-11-08 11:17:42
++++ Include/stm32f415xx.h	2024-01-06 17:18:51
+@@ -159,7 +159,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -434,7 +434,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f417xx.h Include/stm32f417xx.h
+--- Include.orig/stm32f417xx.h	2023-11-08 11:17:42
++++ Include/stm32f417xx.h	2024-01-06 17:18:51
+@@ -162,7 +162,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -530,7 +530,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f423xx.h Include/stm32f423xx.h
+--- Include.orig/stm32f423xx.h	2023-11-08 11:17:42
++++ Include/stm32f423xx.h	2024-01-06 17:18:52
+@@ -175,7 +175,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -449,7 +449,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f427xx.h Include/stm32f427xx.h
+--- Include.orig/stm32f427xx.h	2023-11-08 11:17:42
++++ Include/stm32f427xx.h	2024-01-06 17:18:52
+@@ -168,7 +168,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -577,7 +577,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f429xx.h Include/stm32f429xx.h
+--- Include.orig/stm32f429xx.h	2023-11-08 11:17:42
++++ Include/stm32f429xx.h	2024-01-06 17:18:51
+@@ -170,7 +170,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -579,7 +579,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f437xx.h Include/stm32f437xx.h
+--- Include.orig/stm32f437xx.h	2023-11-08 11:17:42
++++ Include/stm32f437xx.h	2024-01-06 17:18:52
+@@ -169,7 +169,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -578,7 +578,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f439xx.h Include/stm32f439xx.h
+--- Include.orig/stm32f439xx.h	2023-11-08 11:17:42
++++ Include/stm32f439xx.h	2024-01-06 17:18:51
+@@ -171,7 +171,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -580,7 +580,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f446xx.h Include/stm32f446xx.h
+--- Include.orig/stm32f446xx.h	2023-11-08 11:17:42
++++ Include/stm32f446xx.h	2024-01-06 17:18:51
+@@ -166,7 +166,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -463,7 +463,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f469xx.h Include/stm32f469xx.h
+--- Include.orig/stm32f469xx.h	2023-11-08 11:17:42
++++ Include/stm32f469xx.h	2024-01-06 17:18:51
+@@ -172,7 +172,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -642,7 +642,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
+diff -Naur Include.orig/stm32f479xx.h Include/stm32f479xx.h
+--- Include.orig/stm32f479xx.h	2023-11-08 11:17:42
++++ Include/stm32f479xx.h	2024-01-06 17:18:51
+@@ -173,7 +173,7 @@
+   * @}
+   */
+ 
+-#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
++#include <CMSIS/Include/core_cm4.h>             /* Cortex-M4 processor and core peripherals */
+ #include "system_stm32f4xx.h"
+ #include <stdint.h>
+ 
+@@ -643,7 +643,16 @@
+   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
+   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
+   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
+-  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++// Miosix -- begin
++// Make available both the new-style single BSRR and the old-style separate BSRRL/H
++  union {
++    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
++    struct {
++      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
++      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
++    };
++  };
++// Miosix -- end
+   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
+   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
+ } GPIO_TypeDef;
