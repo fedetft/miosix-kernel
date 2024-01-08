@@ -1,5 +1,5 @@
 
-#include "gpio_impl.h"
+#include "stm32f1_gpio.h"
 
 namespace miosix {
 
