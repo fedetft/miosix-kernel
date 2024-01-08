@@ -527,18 +527,6 @@ void STM32Serial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
     if(id<1|| id>numPorts || ports[id-1]!=0) errorHandler(UNEXPECTED);
     ports[id-1]=this;
     unsigned int freq=SystemCoreClock;
-    //Quirk the position of the PPRE1 and PPRE2 bitfields in RCC->CFGR changes
-    //STM32F0 does not have ppre1 and ppre2, in this case the variables are not
-    //defined in order to avoid "unused variable" warning
-    #if defined(_ARCH_CORTEXM3_STM32F1) || defined(_ARCH_CORTEXM3_STM32L1) \
-     || defined(_ARCH_CORTEXM4_STM32F3) || defined(_ARCH_CORTEXM4_STM32L4) \
-     || defined(_ARCH_CORTEXM0PLUS_STM32L0)
-    const unsigned int ppre1=8;
-    const unsigned int ppre2=11;
-    #elif !defined(_ARCH_CORTEXM7_STM32H7) && !defined(_ARCH_CORTEXM0_STM32F0)
-    const unsigned int ppre1=10;
-    const unsigned int ppre2=13;
-    #endif
     switch(id)
     {
         case 1:
@@ -659,10 +647,10 @@ void STM32Serial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
             NVIC_SetPriority(USART1_IRQn,15);//Lowest priority for serial
             NVIC_EnableIRQ(USART1_IRQn);
             #if !defined(_ARCH_CORTEXM7_STM32H7) && !defined(_ARCH_CORTEXM0_STM32F0)
-            if(RCC->CFGR & RCC_CFGR_PPRE2_2) freq/=1<<(((RCC->CFGR>>ppre2) & 0x3)+1);
+            if(RCC->CFGR & RCC_CFGR_PPRE2_2) freq/=1<<(((RCC->CFGR>>RCC_CFGR_PPRE2_Pos) & 0x3)+1);
             #elif defined(_ARCH_CORTEXM0_STM32F0)
             // STM32F0 family has only PPRE2 register
-            if(RCC->CFGR & RCC_CFGR_PPRE_2) freq/=1<<(((RCC->CFGR>>8) & 0x3)+1);
+            if(RCC->CFGR & RCC_CFGR_PPRE_2) freq/=1<<(((RCC->CFGR>>RCC_CFGR_PPRE_Pos) & 0x3)+1);
             #else
             //rcc_hclk3 = SystemCoreClock / HPRE
             //rcc_pclk2 = rcc_hclk1 / D2PPRE2
@@ -803,10 +791,10 @@ void STM32Serial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
             NVIC_SetPriority(USART2_IRQn,15);//Lowest priority for serial
             NVIC_EnableIRQ(USART2_IRQn);
             #if !defined(_ARCH_CORTEXM7_STM32H7) && !defined(_ARCH_CORTEXM0_STM32F0)
-            if(RCC->CFGR & RCC_CFGR_PPRE1_2) freq/=1<<(((RCC->CFGR>>ppre1) & 0x3)+1);
+            if(RCC->CFGR & RCC_CFGR_PPRE1_2) freq/=1<<(((RCC->CFGR>>RCC_CFGR_PPRE1_Pos) & 0x3)+1);
             #elif defined(_ARCH_CORTEXM0_STM32F0)
             // STM32F0 family has only PPRE2 register
-            if(RCC->CFGR & RCC_CFGR_PPRE_2) freq/=1<<(((RCC->CFGR>>8) & 0x3)+1);
+            if(RCC->CFGR & RCC_CFGR_PPRE_2) freq/=1<<(((RCC->CFGR>>RCC_CFGR_PPRE_Pos) & 0x3)+1);
             #else //_ARCH_CORTEXM7_STM32H7
             //rcc_hclk3 = SystemCoreClock / HPRE
             //rcc_pclk1 = rcc_hclk1 / D2PPRE1
@@ -966,10 +954,10 @@ void STM32Serial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
             NVIC_EnableIRQ(USART3_4_IRQn);
             #endif //STM32F072xB
             #if !defined(_ARCH_CORTEXM7_STM32H7) && !defined(_ARCH_CORTEXM0_STM32F0)
-            if(RCC->CFGR & RCC_CFGR_PPRE1_2) freq/=1<<(((RCC->CFGR>>ppre1) & 0x3)+1);
+            if(RCC->CFGR & RCC_CFGR_PPRE1_2) freq/=1<<(((RCC->CFGR>>RCC_CFGR_PPRE1_Pos) & 0x3)+1);
             #elif defined(_ARCH_CORTEXM0_STM32F0)
             // STM32F0 family has only PPRE2 register
-            if(RCC->CFGR & RCC_CFGR_PPRE_2) freq/=1<<(((RCC->CFGR>>8) & 0x3)+1);
+            if(RCC->CFGR & RCC_CFGR_PPRE_2) freq/=1<<(((RCC->CFGR>>RCC_CFGR_PPRE_Pos) & 0x3)+1);
             #else //_ARCH_CORTEXM7_STM32H7
             //rcc_hclk3 = SystemCoreClock / HPRE
             //rcc_pclk1 = rcc_hclk1 / D2PPRE1
