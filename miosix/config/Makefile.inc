@@ -2328,7 +2328,7 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
     arch/common/drivers/efm32_serial.cpp                     \
     arch/common/drivers/efm32_adc.cpp                        \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
-    $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
+    arch/common/drivers/efm32_gpio.cpp                       \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/CMSIS/Device/SiliconLabs/EFM32GG/Source/system_efm32gg.c
 
@@ -3028,7 +3028,7 @@ else ifeq ($(ARCH),cortexM3_efm32g)
     arch/common/drivers/efm32_serial.cpp                     \
     arch/common/drivers/efm32_adc.cpp                        \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
-    $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
+    arch/common/drivers/efm32_gpio.cpp                       \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/CMSIS/Device/SiliconLabs/EFM32G/Source/system_efm32g.c
 

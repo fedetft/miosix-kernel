@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "gpio_impl.h"
+#include "efm32_gpio.h"
 
 namespace miosix {
 
