@@ -46,15 +46,18 @@ namespace miosix {
 const unsigned int MAIN_STACK_SIZE=4*1024;
 
 /// Serial port
-const unsigned int defaultSerial=3;
+const unsigned int defaultSerial=2;
 const unsigned int defaultSerialSpeed=19200;
 const bool defaultSerialFlowctrl=false;
-//#define SERIAL_1_DMA //Serial 1 is not used, so not enabling DMA
-//#define SERIAL_2_DMA //Serial 2 DMA conflicts with I2S driver in the examples
-#define SERIAL_3_DMA
+//#define SERIAL_1_DMA
+#define SERIAL_2_DMA
+//#define SERIAL_3_DMA
 
 //SD card driver
-static const unsigned char sdVoltage=30; //Board powered @ 3.0V
+//TODO: this board does not have an SD card connector and does not have any
+//GPIO breakout pins for an external connector, so it makes no sense to support
+//filesystem functionality for it
+static const unsigned char sdVoltage=33; //Board powered @ 3.3V
 #define SD_ONE_BIT_DATABUS //Can't use 4 bit databus due to pin conflicts
 
 /**
