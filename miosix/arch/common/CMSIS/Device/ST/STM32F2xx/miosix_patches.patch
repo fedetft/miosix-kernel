@@ -1,7 +1,7 @@
 diff -Naur Include.orig/stm32f205xx.h Include/stm32f205xx.h
---- Include.orig/stm32f205xx.h	2021-06-07 17:20:25
-+++ Include/stm32f205xx.h	2024-01-09 15:24:39
-@@ -158,7 +158,7 @@
+--- Include.orig/stm32f205xx.h	2023-04-28 12:30:55
++++ Include/stm32f205xx.h	2024-01-09 15:34:59
+@@ -157,7 +157,7 @@
    * @}
    */
  
@@ -11,9 +11,9 @@ diff -Naur Include.orig/stm32f205xx.h Include/stm32f205xx.h
  #include <stdint.h>
  
 diff -Naur Include.orig/stm32f207xx.h Include/stm32f207xx.h
---- Include.orig/stm32f207xx.h	2021-06-07 17:20:25
-+++ Include/stm32f207xx.h	2024-01-09 15:24:39
-@@ -161,7 +161,7 @@
+--- Include.orig/stm32f207xx.h	2023-04-28 12:30:55
++++ Include/stm32f207xx.h	2024-01-09 15:34:59
+@@ -160,7 +160,7 @@
    * @}
    */
  
@@ -23,9 +23,9 @@ diff -Naur Include.orig/stm32f207xx.h Include/stm32f207xx.h
  #include <stdint.h>
  
 diff -Naur Include.orig/stm32f215xx.h Include/stm32f215xx.h
---- Include.orig/stm32f215xx.h	2021-06-07 17:20:25
-+++ Include/stm32f215xx.h	2024-01-09 15:24:39
-@@ -159,7 +159,7 @@
+--- Include.orig/stm32f215xx.h	2023-04-28 12:30:55
++++ Include/stm32f215xx.h	2024-01-09 15:34:59
+@@ -158,7 +158,7 @@
    * @}
    */
  
@@ -35,9 +35,9 @@ diff -Naur Include.orig/stm32f215xx.h Include/stm32f215xx.h
  #include <stdint.h>
  
 diff -Naur Include.orig/stm32f217xx.h Include/stm32f217xx.h
---- Include.orig/stm32f217xx.h	2021-06-07 17:20:25
-+++ Include/stm32f217xx.h	2024-01-09 15:24:39
-@@ -162,7 +162,7 @@
+--- Include.orig/stm32f217xx.h	2023-04-28 12:30:55
++++ Include/stm32f217xx.h	2024-01-09 15:34:59
+@@ -161,7 +161,7 @@
    * @}
    */
  
