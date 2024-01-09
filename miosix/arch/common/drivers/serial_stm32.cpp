@@ -38,6 +38,17 @@
 using namespace std;
 using namespace miosix;
 
+//Work around ST renaming register fields for some STM32L4
+#if defined(USART_CR1_RXNEIE_RXFNEIE) && !defined(USART_CR1_RXNEIE)
+#define USART_CR1_RXNEIE    USART_CR1_RXNEIE_RXFNEIE
+#endif
+#if defined(USART_ISR_RXNE_RXFNE) && !defined(USART_ISR_RXNE)
+#define USART_ISR_RXNE      USART_ISR_RXNE_RXFNE
+#endif
+#if defined(USART_ISR_TXE_TXFNF) && !defined(USART_ISR_TXE)
+#define USART_ISR_TXE       USART_ISR_TXE_TXFNF
+#endif
+
 static const int numPorts=3; //Supporting only USART1, USART2, USART3
 
 //A nice feature of the stm32 is that the USART are connected to the same

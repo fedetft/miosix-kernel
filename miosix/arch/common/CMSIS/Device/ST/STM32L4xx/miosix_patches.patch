@@ -1,6 +1,6 @@
 diff -Naur Include.orig/stm32l412xx.h Include/stm32l412xx.h
 --- Include.orig/stm32l412xx.h	2023-07-11 17:35:44
-+++ Include/stm32l412xx.h	2024-01-06 20:37:25
++++ Include/stm32l412xx.h	2024-01-07 16:19:27
 @@ -137,7 +137,7 @@
    * @}
    */
@@ -12,7 +12,7 @@ diff -Naur Include.orig/stm32l412xx.h Include/stm32l412xx.h
  
 diff -Naur Include.orig/stm32l422xx.h Include/stm32l422xx.h
 --- Include.orig/stm32l422xx.h	2023-07-11 17:35:44
-+++ Include/stm32l422xx.h	2024-01-06 20:37:25
++++ Include/stm32l422xx.h	2024-01-07 16:19:27
 @@ -138,7 +138,7 @@
    * @}
    */
@@ -24,7 +24,7 @@ diff -Naur Include.orig/stm32l422xx.h Include/stm32l422xx.h
  
 diff -Naur Include.orig/stm32l431xx.h Include/stm32l431xx.h
 --- Include.orig/stm32l431xx.h	2023-07-11 17:35:44
-+++ Include/stm32l431xx.h	2024-01-06 20:37:25
++++ Include/stm32l431xx.h	2024-01-07 16:19:27
 @@ -145,7 +145,7 @@
    * @}
    */
@@ -36,7 +36,7 @@ diff -Naur Include.orig/stm32l431xx.h Include/stm32l431xx.h
  
 diff -Naur Include.orig/stm32l432xx.h Include/stm32l432xx.h
 --- Include.orig/stm32l432xx.h	2023-07-11 17:35:44
-+++ Include/stm32l432xx.h	2024-01-06 20:37:25
++++ Include/stm32l432xx.h	2024-01-07 16:19:27
 @@ -141,7 +141,7 @@
    * @}
    */
@@ -48,7 +48,7 @@ diff -Naur Include.orig/stm32l432xx.h Include/stm32l432xx.h
  
 diff -Naur Include.orig/stm32l433xx.h Include/stm32l433xx.h
 --- Include.orig/stm32l433xx.h	2023-07-11 17:35:44
-+++ Include/stm32l433xx.h	2024-01-06 20:37:25
++++ Include/stm32l433xx.h	2024-01-07 16:19:27
 @@ -147,7 +147,7 @@
    * @}
    */
@@ -60,7 +60,7 @@ diff -Naur Include.orig/stm32l433xx.h Include/stm32l433xx.h
  
 diff -Naur Include.orig/stm32l442xx.h Include/stm32l442xx.h
 --- Include.orig/stm32l442xx.h	2023-07-11 17:35:44
-+++ Include/stm32l442xx.h	2024-01-06 20:37:25
++++ Include/stm32l442xx.h	2024-01-07 16:19:27
 @@ -142,7 +142,7 @@
    * @}
    */
@@ -72,7 +72,7 @@ diff -Naur Include.orig/stm32l442xx.h Include/stm32l442xx.h
  
 diff -Naur Include.orig/stm32l443xx.h Include/stm32l443xx.h
 --- Include.orig/stm32l443xx.h	2023-07-11 17:35:44
-+++ Include/stm32l443xx.h	2024-01-06 20:37:25
++++ Include/stm32l443xx.h	2024-01-07 16:19:27
 @@ -148,7 +148,7 @@
    * @}
    */
@@ -84,7 +84,7 @@ diff -Naur Include.orig/stm32l443xx.h Include/stm32l443xx.h
  
 diff -Naur Include.orig/stm32l451xx.h Include/stm32l451xx.h
 --- Include.orig/stm32l451xx.h	2023-07-11 17:35:44
-+++ Include/stm32l451xx.h	2024-01-06 20:37:25
++++ Include/stm32l451xx.h	2024-01-07 16:19:27
 @@ -149,7 +149,7 @@
    * @}
    */
@@ -96,7 +96,7 @@ diff -Naur Include.orig/stm32l451xx.h Include/stm32l451xx.h
  
 diff -Naur Include.orig/stm32l452xx.h Include/stm32l452xx.h
 --- Include.orig/stm32l452xx.h	2023-07-11 17:35:44
-+++ Include/stm32l452xx.h	2024-01-06 20:37:25
++++ Include/stm32l452xx.h	2024-01-07 16:19:27
 @@ -150,7 +150,7 @@
    * @}
    */
@@ -108,7 +108,7 @@ diff -Naur Include.orig/stm32l452xx.h Include/stm32l452xx.h
  
 diff -Naur Include.orig/stm32l462xx.h Include/stm32l462xx.h
 --- Include.orig/stm32l462xx.h	2023-07-11 17:35:44
-+++ Include/stm32l462xx.h	2024-01-06 20:37:25
++++ Include/stm32l462xx.h	2024-01-07 16:19:27
 @@ -151,7 +151,7 @@
    * @}
    */
@@ -120,7 +120,7 @@ diff -Naur Include.orig/stm32l462xx.h Include/stm32l462xx.h
  
 diff -Naur Include.orig/stm32l471xx.h Include/stm32l471xx.h
 --- Include.orig/stm32l471xx.h	2023-07-11 17:35:44
-+++ Include/stm32l471xx.h	2024-01-06 20:37:25
++++ Include/stm32l471xx.h	2024-01-07 16:19:27
 @@ -160,7 +160,7 @@
    * @}
    */
@@ -132,7 +132,7 @@ diff -Naur Include.orig/stm32l471xx.h Include/stm32l471xx.h
  
 diff -Naur Include.orig/stm32l475xx.h Include/stm32l475xx.h
 --- Include.orig/stm32l475xx.h	2023-07-11 17:35:44
-+++ Include/stm32l475xx.h	2024-01-06 20:37:25
++++ Include/stm32l475xx.h	2024-01-07 16:19:27
 @@ -161,7 +161,7 @@
    * @}
    */
@@ -144,7 +144,7 @@ diff -Naur Include.orig/stm32l475xx.h Include/stm32l475xx.h
  
 diff -Naur Include.orig/stm32l476xx.h Include/stm32l476xx.h
 --- Include.orig/stm32l476xx.h	2023-07-11 17:35:44
-+++ Include/stm32l476xx.h	2024-01-06 20:37:25
++++ Include/stm32l476xx.h	2024-01-07 16:19:27
 @@ -162,7 +162,7 @@
    * @}
    */
@@ -156,7 +156,7 @@ diff -Naur Include.orig/stm32l476xx.h Include/stm32l476xx.h
  
 diff -Naur Include.orig/stm32l485xx.h Include/stm32l485xx.h
 --- Include.orig/stm32l485xx.h	2023-07-11 17:35:44
-+++ Include/stm32l485xx.h	2024-01-06 20:37:25
++++ Include/stm32l485xx.h	2024-01-07 16:19:27
 @@ -162,7 +162,7 @@
    * @}
    */
@@ -168,7 +168,7 @@ diff -Naur Include.orig/stm32l485xx.h Include/stm32l485xx.h
  
 diff -Naur Include.orig/stm32l486xx.h Include/stm32l486xx.h
 --- Include.orig/stm32l486xx.h	2023-07-11 17:35:44
-+++ Include/stm32l486xx.h	2024-01-06 20:37:25
++++ Include/stm32l486xx.h	2024-01-07 16:19:27
 @@ -163,7 +163,7 @@
    * @}
    */
@@ -180,7 +180,7 @@ diff -Naur Include.orig/stm32l486xx.h Include/stm32l486xx.h
  
 diff -Naur Include.orig/stm32l496xx.h Include/stm32l496xx.h
 --- Include.orig/stm32l496xx.h	2023-07-11 17:35:44
-+++ Include/stm32l496xx.h	2024-01-06 20:37:25
++++ Include/stm32l496xx.h	2024-01-07 16:19:27
 @@ -171,7 +171,7 @@
    * @}
    */
@@ -192,7 +192,7 @@ diff -Naur Include.orig/stm32l496xx.h Include/stm32l496xx.h
  
 diff -Naur Include.orig/stm32l4a6xx.h Include/stm32l4a6xx.h
 --- Include.orig/stm32l4a6xx.h	2023-07-11 17:35:44
-+++ Include/stm32l4a6xx.h	2024-01-06 20:37:25
++++ Include/stm32l4a6xx.h	2024-01-07 16:19:27
 @@ -172,7 +172,7 @@
    * @}
    */
@@ -204,7 +204,7 @@ diff -Naur Include.orig/stm32l4a6xx.h Include/stm32l4a6xx.h
  
 diff -Naur Include.orig/stm32l4p5xx.h Include/stm32l4p5xx.h
 --- Include.orig/stm32l4p5xx.h	2023-07-11 17:35:44
-+++ Include/stm32l4p5xx.h	2024-01-06 20:50:59
++++ Include/stm32l4p5xx.h	2024-01-09 14:46:55
 @@ -167,7 +167,7 @@
    * @}
    */
@@ -214,32 +214,9 @@ diff -Naur Include.orig/stm32l4p5xx.h Include/stm32l4p5xx.h
  #include "system_stm32l4xx.h"
  #include <stdint.h>
  
-@@ -18599,6 +18599,7 @@
- #define USART_CR1_RXNEIE_RXFNEIE_Pos   (5U)
- #define USART_CR1_RXNEIE_RXFNEIE_Msk   (0x1UL << USART_CR1_RXNEIE_RXFNEIE_Pos) /*!< 0x00000020 */
- #define USART_CR1_RXNEIE_RXFNEIE       USART_CR1_RXNEIE_RXFNEIE_Msk            /*!< RXNE/RXFIFO not empty Interrupt Enable */
-+#define USART_CR1_RXNEIE              USART_CR1_RXNEIE_RXFNEIE                 /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_CR1_TCIE_Pos            (6U)
- #define USART_CR1_TCIE_Msk            (0x1UL << USART_CR1_TCIE_Pos)            /*!< 0x00000040 */
- #define USART_CR1_TCIE                USART_CR1_TCIE_Msk                       /*!< Transmission Complete Interrupt Enable */
-@@ -18878,12 +18879,14 @@
- #define USART_ISR_RXNE_RXFNE_Pos      (5U)
- #define USART_ISR_RXNE_RXFNE_Msk      (0x1UL << USART_ISR_RXNE_RXFNE_Pos)      /*!< 0x00000020 */
- #define USART_ISR_RXNE_RXFNE           USART_ISR_RXNE_RXFNE_Msk                /*!< Read Data Register Not Empty/RXFIFO Not Empty */
-+#define USART_ISR_RXNE                 USART_ISR_RXNE_RXFNE                    /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_ISR_TC_Pos              (6U)
- #define USART_ISR_TC_Msk              (0x1UL << USART_ISR_TC_Pos)              /*!< 0x00000040 */
- #define USART_ISR_TC                  USART_ISR_TC_Msk                         /*!< Transmission Complete */
- #define USART_ISR_TXE_TXFNF_Pos       (7U)
- #define USART_ISR_TXE_TXFNF_Msk       (0x1UL << USART_ISR_TXE_TXFNF_Pos)       /*!< 0x00000080 */
- #define USART_ISR_TXE_TXFNF           USART_ISR_TXE_TXFNF_Msk                  /*!< Transmit Data Register Empty/TXFIFO Not Full */
-+#define USART_ISR_TXE                 USART_ISR_TXE_TXFNF                      /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_ISR_LBDF_Pos            (8U)
- #define USART_ISR_LBDF_Msk            (0x1UL << USART_ISR_LBDF_Pos)            /*!< 0x00000100 */
- #define USART_ISR_LBDF                USART_ISR_LBDF_Msk                       /*!< LIN Break Detection Flag */
 diff -Naur Include.orig/stm32l4q5xx.h Include/stm32l4q5xx.h
 --- Include.orig/stm32l4q5xx.h	2023-07-11 17:35:44
-+++ Include/stm32l4q5xx.h	2024-01-06 20:50:59
++++ Include/stm32l4q5xx.h	2024-01-09 14:46:55
 @@ -169,7 +169,7 @@
    * @}
    */
@@ -249,32 +226,9 @@ diff -Naur Include.orig/stm32l4q5xx.h Include/stm32l4q5xx.h
  #include "system_stm32l4xx.h"
  #include <stdint.h>
  
-@@ -19110,6 +19110,7 @@
- #define USART_CR1_RXNEIE_RXFNEIE_Pos   (5U)
- #define USART_CR1_RXNEIE_RXFNEIE_Msk   (0x1UL << USART_CR1_RXNEIE_RXFNEIE_Pos) /*!< 0x00000020 */
- #define USART_CR1_RXNEIE_RXFNEIE       USART_CR1_RXNEIE_RXFNEIE_Msk            /*!< RXNE/RXFIFO not empty Interrupt Enable */
-+#define USART_CR1_RXNEIE              USART_CR1_RXNEIE_RXFNEIE                 /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_CR1_TCIE_Pos            (6U)
- #define USART_CR1_TCIE_Msk            (0x1UL << USART_CR1_TCIE_Pos)            /*!< 0x00000040 */
- #define USART_CR1_TCIE                USART_CR1_TCIE_Msk                       /*!< Transmission Complete Interrupt Enable */
-@@ -19389,12 +19390,14 @@
- #define USART_ISR_RXNE_RXFNE_Pos      (5U)
- #define USART_ISR_RXNE_RXFNE_Msk      (0x1UL << USART_ISR_RXNE_RXFNE_Pos)      /*!< 0x00000020 */
- #define USART_ISR_RXNE_RXFNE           USART_ISR_RXNE_RXFNE_Msk                /*!< Read Data Register Not Empty/RXFIFO Not Empty */
-+#define USART_ISR_RXNE                 USART_ISR_RXNE_RXFNE                    /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_ISR_TC_Pos              (6U)
- #define USART_ISR_TC_Msk              (0x1UL << USART_ISR_TC_Pos)              /*!< 0x00000040 */
- #define USART_ISR_TC                  USART_ISR_TC_Msk                         /*!< Transmission Complete */
- #define USART_ISR_TXE_TXFNF_Pos       (7U)
- #define USART_ISR_TXE_TXFNF_Msk       (0x1UL << USART_ISR_TXE_TXFNF_Pos)       /*!< 0x00000080 */
- #define USART_ISR_TXE_TXFNF           USART_ISR_TXE_TXFNF_Msk                  /*!< Transmit Data Register Empty/TXFIFO Not Full */
-+#define USART_ISR_TXE                 USART_ISR_TXE_TXFNF                      /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_ISR_LBDF_Pos            (8U)
- #define USART_ISR_LBDF_Msk            (0x1UL << USART_ISR_LBDF_Pos)            /*!< 0x00000100 */
- #define USART_ISR_LBDF                USART_ISR_LBDF_Msk                       /*!< LIN Break Detection Flag */
 diff -Naur Include.orig/stm32l4r5xx.h Include/stm32l4r5xx.h
 --- Include.orig/stm32l4r5xx.h	2023-07-11 17:35:44
-+++ Include/stm32l4r5xx.h	2024-01-06 20:50:59
++++ Include/stm32l4r5xx.h	2024-01-09 14:46:55
 @@ -166,7 +166,7 @@
    * @}
    */
@@ -284,32 +238,9 @@ diff -Naur Include.orig/stm32l4r5xx.h Include/stm32l4r5xx.h
  #include "system_stm32l4xx.h"
  #include <stdint.h>
  
-@@ -17562,6 +17562,7 @@
- #define USART_CR1_RXNEIE_RXFNEIE_Pos   (5U)
- #define USART_CR1_RXNEIE_RXFNEIE_Msk   (0x1UL << USART_CR1_RXNEIE_RXFNEIE_Pos) /*!< 0x00000020 */
- #define USART_CR1_RXNEIE_RXFNEIE       USART_CR1_RXNEIE_RXFNEIE_Msk            /*!< RXNE/RXFIFO not empty Interrupt Enable */
-+#define USART_CR1_RXNEIE              USART_CR1_RXNEIE_RXFNEIE                 /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_CR1_TCIE_Pos            (6U)
- #define USART_CR1_TCIE_Msk            (0x1UL << USART_CR1_TCIE_Pos)            /*!< 0x00000040 */
- #define USART_CR1_TCIE                USART_CR1_TCIE_Msk                       /*!< Transmission Complete Interrupt Enable */
-@@ -17841,12 +17842,14 @@
- #define USART_ISR_RXNE_RXFNE_Pos      (5U)
- #define USART_ISR_RXNE_RXFNE_Msk      (0x1UL << USART_ISR_RXNE_RXFNE_Pos)      /*!< 0x00000020 */
- #define USART_ISR_RXNE_RXFNE           USART_ISR_RXNE_RXFNE_Msk                /*!< Read Data Register Not Empty/RXFIFO Not Empty */
-+#define USART_ISR_RXNE                 USART_ISR_RXNE_RXFNE                    /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_ISR_TC_Pos              (6U)
- #define USART_ISR_TC_Msk              (0x1UL << USART_ISR_TC_Pos)              /*!< 0x00000040 */
- #define USART_ISR_TC                  USART_ISR_TC_Msk                         /*!< Transmission Complete */
- #define USART_ISR_TXE_TXFNF_Pos       (7U)
- #define USART_ISR_TXE_TXFNF_Msk       (0x1UL << USART_ISR_TXE_TXFNF_Pos)       /*!< 0x00000080 */
- #define USART_ISR_TXE_TXFNF           USART_ISR_TXE_TXFNF_Msk                  /*!< Transmit Data Register Empty/TXFIFO Not Full */
-+#define USART_ISR_TXE                 USART_ISR_TXE_TXFNF                      /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_ISR_LBDF_Pos            (8U)
- #define USART_ISR_LBDF_Msk            (0x1UL << USART_ISR_LBDF_Pos)            /*!< 0x00000100 */
- #define USART_ISR_LBDF                USART_ISR_LBDF_Msk                       /*!< LIN Break Detection Flag */
 diff -Naur Include.orig/stm32l4r7xx.h Include/stm32l4r7xx.h
 --- Include.orig/stm32l4r7xx.h	2023-07-11 17:35:44
-+++ Include/stm32l4r7xx.h	2024-01-06 20:50:59
++++ Include/stm32l4r7xx.h	2024-01-09 14:46:55
 @@ -169,7 +169,7 @@
    * @}
    */
@@ -319,32 +250,9 @@ diff -Naur Include.orig/stm32l4r7xx.h Include/stm32l4r7xx.h
  #include "system_stm32l4xx.h"
  #include <stdint.h>
  
-@@ -18061,6 +18061,7 @@
- #define USART_CR1_RXNEIE_RXFNEIE_Pos   (5U)
- #define USART_CR1_RXNEIE_RXFNEIE_Msk   (0x1UL << USART_CR1_RXNEIE_RXFNEIE_Pos) /*!< 0x00000020 */
- #define USART_CR1_RXNEIE_RXFNEIE       USART_CR1_RXNEIE_RXFNEIE_Msk            /*!< RXNE/RXFIFO not empty Interrupt Enable */
-+#define USART_CR1_RXNEIE              USART_CR1_RXNEIE_RXFNEIE                 /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_CR1_TCIE_Pos            (6U)
- #define USART_CR1_TCIE_Msk            (0x1UL << USART_CR1_TCIE_Pos)            /*!< 0x00000040 */
- #define USART_CR1_TCIE                USART_CR1_TCIE_Msk                       /*!< Transmission Complete Interrupt Enable */
-@@ -18340,12 +18341,14 @@
- #define USART_ISR_RXNE_RXFNE_Pos      (5U)
- #define USART_ISR_RXNE_RXFNE_Msk      (0x1UL << USART_ISR_RXNE_RXFNE_Pos)      /*!< 0x00000020 */
- #define USART_ISR_RXNE_RXFNE           USART_ISR_RXNE_RXFNE_Msk                /*!< Read Data Register Not Empty/RXFIFO Not Empty */
-+#define USART_ISR_RXNE                 USART_ISR_RXNE_RXFNE                    /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_ISR_TC_Pos              (6U)
- #define USART_ISR_TC_Msk              (0x1UL << USART_ISR_TC_Pos)              /*!< 0x00000040 */
- #define USART_ISR_TC                  USART_ISR_TC_Msk                         /*!< Transmission Complete */
- #define USART_ISR_TXE_TXFNF_Pos       (7U)
- #define USART_ISR_TXE_TXFNF_Msk       (0x1UL << USART_ISR_TXE_TXFNF_Pos)       /*!< 0x00000080 */
- #define USART_ISR_TXE_TXFNF           USART_ISR_TXE_TXFNF_Msk                  /*!< Transmit Data Register Empty/TXFIFO Not Full */
-+#define USART_ISR_TXE                 USART_ISR_TXE_TXFNF                      /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_ISR_LBDF_Pos            (8U)
- #define USART_ISR_LBDF_Msk            (0x1UL << USART_ISR_LBDF_Pos)            /*!< 0x00000100 */
- #define USART_ISR_LBDF                USART_ISR_LBDF_Msk                       /*!< LIN Break Detection Flag */
 diff -Naur Include.orig/stm32l4r9xx.h Include/stm32l4r9xx.h
 --- Include.orig/stm32l4r9xx.h	2023-07-11 17:35:44
-+++ Include/stm32l4r9xx.h	2024-01-06 20:50:59
++++ Include/stm32l4r9xx.h	2024-01-09 14:46:55
 @@ -170,7 +170,7 @@
    * @}
    */
@@ -354,32 +262,9 @@ diff -Naur Include.orig/stm32l4r9xx.h Include/stm32l4r9xx.h
  #include "system_stm32l4xx.h"
  #include <stdint.h>
  
-@@ -21193,6 +21193,7 @@
- #define USART_CR1_RXNEIE_RXFNEIE_Pos   (5U)
- #define USART_CR1_RXNEIE_RXFNEIE_Msk   (0x1UL << USART_CR1_RXNEIE_RXFNEIE_Pos) /*!< 0x00000020 */
- #define USART_CR1_RXNEIE_RXFNEIE       USART_CR1_RXNEIE_RXFNEIE_Msk            /*!< RXNE/RXFIFO not empty Interrupt Enable */
-+#define USART_CR1_RXNEIE              USART_CR1_RXNEIE_RXFNEIE                 /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_CR1_TCIE_Pos            (6U)
- #define USART_CR1_TCIE_Msk            (0x1UL << USART_CR1_TCIE_Pos)            /*!< 0x00000040 */
- #define USART_CR1_TCIE                USART_CR1_TCIE_Msk                       /*!< Transmission Complete Interrupt Enable */
-@@ -21472,12 +21473,14 @@
- #define USART_ISR_RXNE_RXFNE_Pos      (5U)
- #define USART_ISR_RXNE_RXFNE_Msk      (0x1UL << USART_ISR_RXNE_RXFNE_Pos)      /*!< 0x00000020 */
- #define USART_ISR_RXNE_RXFNE           USART_ISR_RXNE_RXFNE_Msk                /*!< Read Data Register Not Empty/RXFIFO Not Empty */
-+#define USART_ISR_RXNE                 USART_ISR_RXNE_RXFNE                    /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_ISR_TC_Pos              (6U)
- #define USART_ISR_TC_Msk              (0x1UL << USART_ISR_TC_Pos)              /*!< 0x00000040 */
- #define USART_ISR_TC                  USART_ISR_TC_Msk                         /*!< Transmission Complete */
- #define USART_ISR_TXE_TXFNF_Pos       (7U)
- #define USART_ISR_TXE_TXFNF_Msk       (0x1UL << USART_ISR_TXE_TXFNF_Pos)       /*!< 0x00000080 */
- #define USART_ISR_TXE_TXFNF           USART_ISR_TXE_TXFNF_Msk                  /*!< Transmit Data Register Empty/TXFIFO Not Full */
-+#define USART_ISR_TXE                 USART_ISR_TXE_TXFNF                      /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_ISR_LBDF_Pos            (8U)
- #define USART_ISR_LBDF_Msk            (0x1UL << USART_ISR_LBDF_Pos)            /*!< 0x00000100 */
- #define USART_ISR_LBDF                USART_ISR_LBDF_Msk                       /*!< LIN Break Detection Flag */
 diff -Naur Include.orig/stm32l4s5xx.h Include/stm32l4s5xx.h
 --- Include.orig/stm32l4s5xx.h	2023-07-11 17:35:44
-+++ Include/stm32l4s5xx.h	2024-01-06 20:50:59
++++ Include/stm32l4s5xx.h	2024-01-09 14:46:55
 @@ -167,7 +167,7 @@
    * @}
    */
@@ -389,32 +274,9 @@ diff -Naur Include.orig/stm32l4s5xx.h Include/stm32l4s5xx.h
  #include "system_stm32l4xx.h"
  #include <stdint.h>
  
-@@ -17909,6 +17909,7 @@
- #define USART_CR1_RXNEIE_RXFNEIE_Pos   (5U)
- #define USART_CR1_RXNEIE_RXFNEIE_Msk   (0x1UL << USART_CR1_RXNEIE_RXFNEIE_Pos) /*!< 0x00000020 */
- #define USART_CR1_RXNEIE_RXFNEIE       USART_CR1_RXNEIE_RXFNEIE_Msk            /*!< RXNE/RXFIFO not empty Interrupt Enable */
-+#define USART_CR1_RXNEIE              USART_CR1_RXNEIE_RXFNEIE                 /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_CR1_TCIE_Pos            (6U)
- #define USART_CR1_TCIE_Msk            (0x1UL << USART_CR1_TCIE_Pos)            /*!< 0x00000040 */
- #define USART_CR1_TCIE                USART_CR1_TCIE_Msk                       /*!< Transmission Complete Interrupt Enable */
-@@ -18188,12 +18189,14 @@
- #define USART_ISR_RXNE_RXFNE_Pos      (5U)
- #define USART_ISR_RXNE_RXFNE_Msk      (0x1UL << USART_ISR_RXNE_RXFNE_Pos)      /*!< 0x00000020 */
- #define USART_ISR_RXNE_RXFNE           USART_ISR_RXNE_RXFNE_Msk                /*!< Read Data Register Not Empty/RXFIFO Not Empty */
-+#define USART_ISR_RXNE                 USART_ISR_RXNE_RXFNE                    /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_ISR_TC_Pos              (6U)
- #define USART_ISR_TC_Msk              (0x1UL << USART_ISR_TC_Pos)              /*!< 0x00000040 */
- #define USART_ISR_TC                  USART_ISR_TC_Msk                         /*!< Transmission Complete */
- #define USART_ISR_TXE_TXFNF_Pos       (7U)
- #define USART_ISR_TXE_TXFNF_Msk       (0x1UL << USART_ISR_TXE_TXFNF_Pos)       /*!< 0x00000080 */
- #define USART_ISR_TXE_TXFNF           USART_ISR_TXE_TXFNF_Msk                  /*!< Transmit Data Register Empty/TXFIFO Not Full */
-+#define USART_ISR_TXE                 USART_ISR_TXE_TXFNF                      /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_ISR_LBDF_Pos            (8U)
- #define USART_ISR_LBDF_Msk            (0x1UL << USART_ISR_LBDF_Pos)            /*!< 0x00000100 */
- #define USART_ISR_LBDF                USART_ISR_LBDF_Msk                       /*!< LIN Break Detection Flag */
 diff -Naur Include.orig/stm32l4s7xx.h Include/stm32l4s7xx.h
 --- Include.orig/stm32l4s7xx.h	2023-07-11 17:35:44
-+++ Include/stm32l4s7xx.h	2024-01-06 20:50:59
++++ Include/stm32l4s7xx.h	2024-01-09 14:46:55
 @@ -170,7 +170,7 @@
    * @}
    */
@@ -424,32 +286,9 @@ diff -Naur Include.orig/stm32l4s7xx.h Include/stm32l4s7xx.h
  #include "system_stm32l4xx.h"
  #include <stdint.h>
  
-@@ -18408,6 +18408,7 @@
- #define USART_CR1_RXNEIE_RXFNEIE_Pos   (5U)
- #define USART_CR1_RXNEIE_RXFNEIE_Msk   (0x1UL << USART_CR1_RXNEIE_RXFNEIE_Pos) /*!< 0x00000020 */
- #define USART_CR1_RXNEIE_RXFNEIE       USART_CR1_RXNEIE_RXFNEIE_Msk            /*!< RXNE/RXFIFO not empty Interrupt Enable */
-+#define USART_CR1_RXNEIE              USART_CR1_RXNEIE_RXFNEIE                 /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_CR1_TCIE_Pos            (6U)
- #define USART_CR1_TCIE_Msk            (0x1UL << USART_CR1_TCIE_Pos)            /*!< 0x00000040 */
- #define USART_CR1_TCIE                USART_CR1_TCIE_Msk                       /*!< Transmission Complete Interrupt Enable */
-@@ -18687,12 +18688,14 @@
- #define USART_ISR_RXNE_RXFNE_Pos      (5U)
- #define USART_ISR_RXNE_RXFNE_Msk      (0x1UL << USART_ISR_RXNE_RXFNE_Pos)      /*!< 0x00000020 */
- #define USART_ISR_RXNE_RXFNE           USART_ISR_RXNE_RXFNE_Msk                /*!< Read Data Register Not Empty/RXFIFO Not Empty */
-+#define USART_ISR_RXNE                 USART_ISR_RXNE_RXFNE                    /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_ISR_TC_Pos              (6U)
- #define USART_ISR_TC_Msk              (0x1UL << USART_ISR_TC_Pos)              /*!< 0x00000040 */
- #define USART_ISR_TC                  USART_ISR_TC_Msk                         /*!< Transmission Complete */
- #define USART_ISR_TXE_TXFNF_Pos       (7U)
- #define USART_ISR_TXE_TXFNF_Msk       (0x1UL << USART_ISR_TXE_TXFNF_Pos)       /*!< 0x00000080 */
- #define USART_ISR_TXE_TXFNF           USART_ISR_TXE_TXFNF_Msk                  /*!< Transmit Data Register Empty/TXFIFO Not Full */
-+#define USART_ISR_TXE                 USART_ISR_TXE_TXFNF                      /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_ISR_LBDF_Pos            (8U)
- #define USART_ISR_LBDF_Msk            (0x1UL << USART_ISR_LBDF_Pos)            /*!< 0x00000100 */
- #define USART_ISR_LBDF                USART_ISR_LBDF_Msk                       /*!< LIN Break Detection Flag */
 diff -Naur Include.orig/stm32l4s9xx.h Include/stm32l4s9xx.h
 --- Include.orig/stm32l4s9xx.h	2023-07-11 17:35:44
-+++ Include/stm32l4s9xx.h	2024-01-06 20:50:59
++++ Include/stm32l4s9xx.h	2024-01-09 14:46:55
 @@ -171,7 +171,7 @@
    * @}
    */
@@ -459,26 +298,3 @@ diff -Naur Include.orig/stm32l4s9xx.h Include/stm32l4s9xx.h
  #include "system_stm32l4xx.h"
  #include <stdint.h>
  
-@@ -21540,6 +21540,7 @@
- #define USART_CR1_RXNEIE_RXFNEIE_Pos   (5U)
- #define USART_CR1_RXNEIE_RXFNEIE_Msk   (0x1UL << USART_CR1_RXNEIE_RXFNEIE_Pos) /*!< 0x00000020 */
- #define USART_CR1_RXNEIE_RXFNEIE       USART_CR1_RXNEIE_RXFNEIE_Msk            /*!< RXNE/RXFIFO not empty Interrupt Enable */
-+#define USART_CR1_RXNEIE              USART_CR1_RXNEIE_RXFNEIE                 /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_CR1_TCIE_Pos            (6U)
- #define USART_CR1_TCIE_Msk            (0x1UL << USART_CR1_TCIE_Pos)            /*!< 0x00000040 */
- #define USART_CR1_TCIE                USART_CR1_TCIE_Msk                       /*!< Transmission Complete Interrupt Enable */
-@@ -21819,12 +21820,14 @@
- #define USART_ISR_RXNE_RXFNE_Pos      (5U)
- #define USART_ISR_RXNE_RXFNE_Msk      (0x1UL << USART_ISR_RXNE_RXFNE_Pos)      /*!< 0x00000020 */
- #define USART_ISR_RXNE_RXFNE           USART_ISR_RXNE_RXFNE_Msk                /*!< Read Data Register Not Empty/RXFIFO Not Empty */
-+#define USART_ISR_RXNE                 USART_ISR_RXNE_RXFNE                    /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_ISR_TC_Pos              (6U)
- #define USART_ISR_TC_Msk              (0x1UL << USART_ISR_TC_Pos)              /*!< 0x00000040 */
- #define USART_ISR_TC                  USART_ISR_TC_Msk                         /*!< Transmission Complete */
- #define USART_ISR_TXE_TXFNF_Pos       (7U)
- #define USART_ISR_TXE_TXFNF_Msk       (0x1UL << USART_ISR_TXE_TXFNF_Pos)       /*!< 0x00000080 */
- #define USART_ISR_TXE_TXFNF           USART_ISR_TXE_TXFNF_Msk                  /*!< Transmit Data Register Empty/TXFIFO Not Full */
-+#define USART_ISR_TXE                 USART_ISR_TXE_TXFNF                      /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
- #define USART_ISR_LBDF_Pos            (8U)
- #define USART_ISR_LBDF_Msk            (0x1UL << USART_ISR_LBDF_Pos)            /*!< 0x00000100 */
- #define USART_ISR_LBDF                USART_ISR_LBDF_Msk                       /*!< LIN Break Detection Flag */

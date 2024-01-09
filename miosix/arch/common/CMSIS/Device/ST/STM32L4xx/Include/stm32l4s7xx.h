@@ -18408,7 +18408,6 @@ typedef struct
 #define USART_CR1_RXNEIE_RXFNEIE_Pos   (5U)
 #define USART_CR1_RXNEIE_RXFNEIE_Msk   (0x1UL << USART_CR1_RXNEIE_RXFNEIE_Pos) /*!< 0x00000020 */
 #define USART_CR1_RXNEIE_RXFNEIE       USART_CR1_RXNEIE_RXFNEIE_Msk            /*!< RXNE/RXFIFO not empty Interrupt Enable */
-#define USART_CR1_RXNEIE              USART_CR1_RXNEIE_RXFNEIE                 /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
 #define USART_CR1_TCIE_Pos            (6U)
 #define USART_CR1_TCIE_Msk            (0x1UL << USART_CR1_TCIE_Pos)            /*!< 0x00000040 */
 #define USART_CR1_TCIE                USART_CR1_TCIE_Msk                       /*!< Transmission Complete Interrupt Enable */
@@ -18688,14 +18687,12 @@ typedef struct
 #define USART_ISR_RXNE_RXFNE_Pos      (5U)
 #define USART_ISR_RXNE_RXFNE_Msk      (0x1UL << USART_ISR_RXNE_RXFNE_Pos)      /*!< 0x00000020 */
 #define USART_ISR_RXNE_RXFNE           USART_ISR_RXNE_RXFNE_Msk                /*!< Read Data Register Not Empty/RXFIFO Not Empty */
-#define USART_ISR_RXNE                 USART_ISR_RXNE_RXFNE                    /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
 #define USART_ISR_TC_Pos              (6U)
 #define USART_ISR_TC_Msk              (0x1UL << USART_ISR_TC_Pos)              /*!< 0x00000040 */
 #define USART_ISR_TC                  USART_ISR_TC_Msk                         /*!< Transmission Complete */
 #define USART_ISR_TXE_TXFNF_Pos       (7U)
 #define USART_ISR_TXE_TXFNF_Msk       (0x1UL << USART_ISR_TXE_TXFNF_Pos)       /*!< 0x00000080 */
 #define USART_ISR_TXE_TXFNF           USART_ISR_TXE_TXFNF_Msk                  /*!< Transmit Data Register Empty/TXFIFO Not Full */
-#define USART_ISR_TXE                 USART_ISR_TXE_TXFNF                      /*!< BUGFIX Equivalent declaration for L4 and L4+ serial driver compatibility*/
 #define USART_ISR_LBDF_Pos            (8U)
 #define USART_ISR_LBDF_Msk            (0x1UL << USART_ISR_LBDF_Pos)            /*!< 0x00000100 */
 #define USART_ISR_LBDF                USART_ISR_LBDF_Msk                       /*!< LIN Break Detection Flag */
