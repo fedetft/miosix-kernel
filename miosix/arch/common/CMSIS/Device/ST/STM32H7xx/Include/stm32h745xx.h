@@ -227,7 +227,7 @@ typedef enum
 #define __Vendor_SysTickConfig    0U       /*!< Set to 1 if different SysTick Config is used  */
 #define __FPU_PRESENT             1U       /*!< FPU present                                   */
 
-#include "core_cm4.h"                     /*!< Cortex-M4 processor and core peripherals      */
+#include <CMSIS/Include/core_cm4.h>        /*!< Cortex-M4 processor and core peripherals      */
 #else  /* CORE_CM7 */
 #ifdef CORE_CM7
 #define __CM7_REV               0x0100U   /*!< Cortex-M7 revision r1p0                       */
@@ -237,7 +237,7 @@ typedef enum
 #define __FPU_PRESENT             1U       /*!< FPU present                                   */
 #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
 #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
-#include "core_cm7.h"                 /*!< Cortex-M7 processor and core peripherals          */
+#include <CMSIS/Include/core_cm7.h>        /*!< Cortex-M7 processor and core peripherals          */
 #else  /* UNKNOWN_CORE */
 #error Please #define CORE_CM4 or CORE_CM7
 #endif /* CORE_CM7 */
@@ -1077,16 +1077,7 @@ typedef struct
   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
-// Miosix -- begin
-// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-  union {
-    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-    struct {
-      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-    };
-  };
-// Miosix -- end
+  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
 } GPIO_TypeDef;

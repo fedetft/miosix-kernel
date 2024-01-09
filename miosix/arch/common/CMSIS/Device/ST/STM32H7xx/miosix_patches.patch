@@ -1,6 +1,6 @@
 diff -Naur Include.orig/stm32h723xx.h Include/stm32h723xx.h
 --- Include.orig/stm32h723xx.h	2022-12-07 11:24:01
-+++ Include/stm32h723xx.h	2024-01-08 23:25:04
++++ Include/stm32h723xx.h	2024-01-09 15:09:21
 @@ -218,7 +218,7 @@
  #define __FPU_PRESENT             1U       /*!< FPU present                                   */
  #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
@@ -10,27 +10,9 @@ diff -Naur Include.orig/stm32h723xx.h Include/stm32h723xx.h
  
  /**
    * @}
-@@ -1070,7 +1070,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
 diff -Naur Include.orig/stm32h725xx.h Include/stm32h725xx.h
 --- Include.orig/stm32h725xx.h	2022-12-07 11:24:01
-+++ Include/stm32h725xx.h	2024-01-08 23:25:04
++++ Include/stm32h725xx.h	2024-01-09 15:09:34
 @@ -219,7 +219,7 @@
  #define __FPU_PRESENT             1U       /*!< FPU present                                   */
  #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
@@ -40,27 +22,9 @@ diff -Naur Include.orig/stm32h725xx.h Include/stm32h725xx.h
  
  /**
    * @}
-@@ -1071,7 +1071,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
 diff -Naur Include.orig/stm32h730xx.h Include/stm32h730xx.h
 --- Include.orig/stm32h730xx.h	2022-12-07 11:24:01
-+++ Include/stm32h730xx.h	2024-01-08 23:25:04
++++ Include/stm32h730xx.h	2024-01-09 15:09:39
 @@ -221,7 +221,7 @@
  #define __FPU_PRESENT             1U       /*!< FPU present                                   */
  #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
@@ -70,27 +34,9 @@ diff -Naur Include.orig/stm32h730xx.h Include/stm32h730xx.h
  
  /**
    * @}
-@@ -1073,7 +1073,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
 diff -Naur Include.orig/stm32h730xxq.h Include/stm32h730xxq.h
 --- Include.orig/stm32h730xxq.h	2022-12-07 11:24:01
-+++ Include/stm32h730xxq.h	2024-01-08 23:25:04
++++ Include/stm32h730xxq.h	2024-01-09 15:09:44
 @@ -222,7 +222,7 @@
  #define __FPU_PRESENT             1U       /*!< FPU present                                   */
  #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
@@ -100,27 +46,9 @@ diff -Naur Include.orig/stm32h730xxq.h Include/stm32h730xxq.h
  
  /**
    * @}
-@@ -1074,7 +1074,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
 diff -Naur Include.orig/stm32h733xx.h Include/stm32h733xx.h
 --- Include.orig/stm32h733xx.h	2022-12-07 11:24:01
-+++ Include/stm32h733xx.h	2024-01-08 23:25:04
++++ Include/stm32h733xx.h	2024-01-09 15:09:51
 @@ -221,7 +221,7 @@
  #define __FPU_PRESENT             1U       /*!< FPU present                                   */
  #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
@@ -130,27 +58,9 @@ diff -Naur Include.orig/stm32h733xx.h Include/stm32h733xx.h
  
  /**
    * @}
-@@ -1073,7 +1073,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
 diff -Naur Include.orig/stm32h735xx.h Include/stm32h735xx.h
 --- Include.orig/stm32h735xx.h	2022-12-07 11:24:01
-+++ Include/stm32h735xx.h	2024-01-08 23:25:04
++++ Include/stm32h735xx.h	2024-01-09 15:09:56
 @@ -222,7 +222,7 @@
  #define __FPU_PRESENT             1U       /*!< FPU present                                   */
  #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
@@ -160,27 +70,9 @@ diff -Naur Include.orig/stm32h735xx.h Include/stm32h735xx.h
  
  /**
    * @}
-@@ -1074,7 +1074,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
 diff -Naur Include.orig/stm32h742xx.h Include/stm32h742xx.h
 --- Include.orig/stm32h742xx.h	2022-12-07 11:24:01
-+++ Include/stm32h742xx.h	2024-01-08 23:25:04
++++ Include/stm32h742xx.h	2024-01-09 15:10:00
 @@ -217,7 +217,7 @@
  #define __FPU_PRESENT             1U       /*!< FPU present                                   */
  #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
@@ -190,27 +82,9 @@ diff -Naur Include.orig/stm32h742xx.h Include/stm32h742xx.h
  
  /**
    * @}
-@@ -1028,7 +1028,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
 diff -Naur Include.orig/stm32h743xx.h Include/stm32h743xx.h
 --- Include.orig/stm32h743xx.h	2022-12-07 11:24:01
-+++ Include/stm32h743xx.h	2024-01-08 23:25:04
++++ Include/stm32h743xx.h	2024-01-09 15:10:04
 @@ -220,7 +220,7 @@
  #define __FPU_PRESENT             1U       /*!< FPU present                                   */
  #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
@@ -220,111 +94,93 @@ diff -Naur Include.orig/stm32h743xx.h Include/stm32h743xx.h
  
  /**
    * @}
-@@ -1031,7 +1031,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
 diff -Naur Include.orig/stm32h745xg.h Include/stm32h745xg.h
 --- Include.orig/stm32h745xg.h	2022-12-07 11:24:01
-+++ Include/stm32h745xg.h	2024-01-08 23:25:04
-@@ -1077,7 +1077,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
++++ Include/stm32h745xg.h	2024-01-09 15:10:12
+@@ -227,7 +227,7 @@
+ #define __Vendor_SysTickConfig    0U       /*!< Set to 1 if different SysTick Config is used  */
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ 
+-#include "core_cm4.h"                     /*!< Cortex-M4 processor and core peripherals      */
++#include <CMSIS/Include/core_cm4.h>        /*!< Cortex-M4 processor and core peripherals      */
+ #else  /* CORE_CM7 */
+ #ifdef CORE_CM7
+ #define __CM7_REV               0x0100U   /*!< Cortex-M7 revision r1p0                       */
+@@ -237,7 +237,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                 /*!< Cortex-M7 processor and core peripherals          */
++#include <CMSIS/Include/core_cm7.h>        /*!< Cortex-M7 processor and core peripherals          */
+ #else  /* UNKNOWN_CORE */
+ #error Please #define CORE_CM4 or CORE_CM7
+ #endif /* CORE_CM7 */
 diff -Naur Include.orig/stm32h745xx.h Include/stm32h745xx.h
 --- Include.orig/stm32h745xx.h	2022-12-07 11:24:01
-+++ Include/stm32h745xx.h	2024-01-08 23:25:04
-@@ -1077,7 +1077,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
++++ Include/stm32h745xx.h	2024-01-09 15:11:23
+@@ -227,7 +227,7 @@
+ #define __Vendor_SysTickConfig    0U       /*!< Set to 1 if different SysTick Config is used  */
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ 
+-#include "core_cm4.h"                     /*!< Cortex-M4 processor and core peripherals      */
++#include <CMSIS/Include/core_cm4.h>        /*!< Cortex-M4 processor and core peripherals      */
+ #else  /* CORE_CM7 */
+ #ifdef CORE_CM7
+ #define __CM7_REV               0x0100U   /*!< Cortex-M7 revision r1p0                       */
+@@ -237,7 +237,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                 /*!< Cortex-M7 processor and core peripherals          */
++#include <CMSIS/Include/core_cm7.h>        /*!< Cortex-M7 processor and core peripherals          */
+ #else  /* UNKNOWN_CORE */
+ #error Please #define CORE_CM4 or CORE_CM7
+ #endif /* CORE_CM7 */
 diff -Naur Include.orig/stm32h747xg.h Include/stm32h747xg.h
 --- Include.orig/stm32h747xg.h	2022-12-07 11:24:01
-+++ Include/stm32h747xg.h	2024-01-08 23:25:04
-@@ -1158,7 +1158,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
++++ Include/stm32h747xg.h	2024-01-09 15:11:34
+@@ -228,7 +228,7 @@
+ #define __Vendor_SysTickConfig    0U       /*!< Set to 1 if different SysTick Config is used  */
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ 
+-#include "core_cm4.h"                     /*!< Cortex-M4 processor and core peripherals      */
++#include <CMSIS/Include/core_cm4.h>        /*!< Cortex-M4 processor and core peripherals      */
+ #else  /* CORE_CM7 */
+ #ifdef CORE_CM7
+ #define __CM7_REV               0x0100U   /*!< Cortex-M7 revision r1p0                       */
+@@ -238,7 +238,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                 /*!< Cortex-M7 processor and core peripherals          */
++#include <CMSIS/Include/core_cm7.h>        /*!< Cortex-M7 processor and core peripherals          */
+ #else  /* UNKNOWN_CORE */
+ #error Please #define CORE_CM4 or CORE_CM7
+ #endif /* CORE_CM7 */
 diff -Naur Include.orig/stm32h747xx.h Include/stm32h747xx.h
 --- Include.orig/stm32h747xx.h	2022-12-07 11:24:01
-+++ Include/stm32h747xx.h	2024-01-08 23:25:04
-@@ -1158,7 +1158,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
++++ Include/stm32h747xx.h	2024-01-09 15:11:41
+@@ -228,7 +228,7 @@
+ #define __Vendor_SysTickConfig    0U       /*!< Set to 1 if different SysTick Config is used  */
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ 
+-#include "core_cm4.h"                     /*!< Cortex-M4 processor and core peripherals      */
++#include <CMSIS/Include/core_cm4.h>        /*!< Cortex-M4 processor and core peripherals      */
+ #else  /* CORE_CM7 */
+ #ifdef CORE_CM7
+ #define __CM7_REV               0x0100U   /*!< Cortex-M7 revision r1p0                       */
+@@ -238,7 +238,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                 /*!< Cortex-M7 processor and core peripherals          */
++#include <CMSIS/Include/core_cm7.h>        /*!< Cortex-M7 processor and core peripherals          */
+ #else  /* UNKNOWN_CORE */
+ #error Please #define CORE_CM4 or CORE_CM7
+ #endif /* CORE_CM7 */
 diff -Naur Include.orig/stm32h750xx.h Include/stm32h750xx.h
 --- Include.orig/stm32h750xx.h	2022-12-07 11:24:01
-+++ Include/stm32h750xx.h	2024-01-08 23:25:04
++++ Include/stm32h750xx.h	2024-01-09 15:11:59
 @@ -221,7 +221,7 @@
  #define __FPU_PRESENT             1U       /*!< FPU present                                   */
  #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
@@ -334,101 +190,63 @@ diff -Naur Include.orig/stm32h750xx.h Include/stm32h750xx.h
  
  /**
    * @}
-@@ -1032,7 +1032,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
 diff -Naur Include.orig/stm32h753xx.h Include/stm32h753xx.h
 --- Include.orig/stm32h753xx.h	2022-12-07 11:24:01
-+++ Include/stm32h753xx.h	2024-01-08 23:25:04
-@@ -221,8 +221,9 @@
++++ Include/stm32h753xx.h	2024-01-09 15:12:03
+@@ -221,7 +221,7 @@
  #define __FPU_PRESENT             1U       /*!< FPU present                                   */
  #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
  #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
 -#include "core_cm7.h"                     /*!< Cortex-M7 processor and core peripherals      */
- 
 +#include <CMSIS/Include/core_cm7.h>        /*!< Cortex-M7 processor and core peripherals      */
-+
+ 
  /**
    * @}
-   */
-@@ -1032,7 +1033,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
 diff -Naur Include.orig/stm32h755xx.h Include/stm32h755xx.h
 --- Include.orig/stm32h755xx.h	2022-12-07 11:24:01
-+++ Include/stm32h755xx.h	2024-01-08 23:25:04
-@@ -1078,7 +1078,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
++++ Include/stm32h755xx.h	2024-01-09 15:12:10
+@@ -228,7 +228,7 @@
+ #define __Vendor_SysTickConfig    0U       /*!< Set to 1 if different SysTick Config is used  */
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ 
+-#include "core_cm4.h"                     /*!< Cortex-M4 processor and core peripherals      */
++#include <CMSIS/Include/core_cm4.h>        /*!< Cortex-M4 processor and core peripherals      */
+ #else  /* CORE_CM7 */
+ #ifdef CORE_CM7
+ #define __CM7_REV               0x0100U   /*!< Cortex-M7 revision r1p0                       */
+@@ -238,7 +238,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                 /*!< Cortex-M7 processor and core peripherals          */
++#include <CMSIS/Include/core_cm7.h>        /*!< Cortex-M7 processor and core peripherals          */
+ #else  /* UNKNOWN_CORE */
+ #error Please #define CORE_CM4 or CORE_CM7
+ #endif /* CORE_CM7 */
 diff -Naur Include.orig/stm32h757xx.h Include/stm32h757xx.h
 --- Include.orig/stm32h757xx.h	2022-12-07 11:24:01
-+++ Include/stm32h757xx.h	2024-01-08 23:25:04
-@@ -1159,7 +1159,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
++++ Include/stm32h757xx.h	2024-01-09 15:12:16
+@@ -229,7 +229,7 @@
+ #define __Vendor_SysTickConfig    0U       /*!< Set to 1 if different SysTick Config is used  */
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ 
+-#include "core_cm4.h"                     /*!< Cortex-M4 processor and core peripherals      */
++#include <CMSIS/Include/core_cm4.h>        /*!< Cortex-M4 processor and core peripherals      */
+ #else  /* CORE_CM7 */
+ #ifdef CORE_CM7
+ #define __CM7_REV               0x0100U   /*!< Cortex-M7 revision r1p0                       */
+@@ -239,7 +239,7 @@
+ #define __FPU_PRESENT             1U       /*!< FPU present                                   */
+ #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
+ #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
+-#include "core_cm7.h"                 /*!< Cortex-M7 processor and core peripherals          */
++#include <CMSIS/Include/core_cm7.h>        /*!< Cortex-M7 processor and core peripherals          */
+ #else  /* UNKNOWN_CORE */
+ #error Please #define CORE_CM4 or CORE_CM7
+ #endif /* CORE_CM7 */
 diff -Naur Include.orig/stm32h7a3xx.h Include/stm32h7a3xx.h
 --- Include.orig/stm32h7a3xx.h	2022-12-07 11:24:01
-+++ Include/stm32h7a3xx.h	2024-01-08 23:25:04
++++ Include/stm32h7a3xx.h	2024-01-09 15:12:23
 @@ -215,7 +215,7 @@
  #define __FPU_PRESENT             1U       /*!< FPU present                                   */
  #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
@@ -438,27 +256,9 @@ diff -Naur Include.orig/stm32h7a3xx.h Include/stm32h7a3xx.h
  
  /**
    * @}
-@@ -898,7 +898,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
 diff -Naur Include.orig/stm32h7a3xxq.h Include/stm32h7a3xxq.h
 --- Include.orig/stm32h7a3xxq.h	2022-12-07 11:24:01
-+++ Include/stm32h7a3xxq.h	2024-01-08 23:25:04
++++ Include/stm32h7a3xxq.h	2024-01-09 15:12:28
 @@ -216,7 +216,7 @@
  #define __FPU_PRESENT             1U       /*!< FPU present                                   */
  #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
@@ -468,27 +268,9 @@ diff -Naur Include.orig/stm32h7a3xxq.h Include/stm32h7a3xxq.h
  
  /**
    * @}
-@@ -899,7 +899,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
 diff -Naur Include.orig/stm32h7b0xx.h Include/stm32h7b0xx.h
 --- Include.orig/stm32h7b0xx.h	2022-12-07 11:24:01
-+++ Include/stm32h7b0xx.h	2024-01-08 23:25:04
++++ Include/stm32h7b0xx.h	2024-01-09 15:12:33
 @@ -218,7 +218,7 @@
  #define __FPU_PRESENT             1U       /*!< FPU present                                   */
  #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
@@ -498,27 +280,9 @@ diff -Naur Include.orig/stm32h7b0xx.h Include/stm32h7b0xx.h
  
  /**
    * @}
-@@ -901,7 +901,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
 diff -Naur Include.orig/stm32h7b0xxq.h Include/stm32h7b0xxq.h
 --- Include.orig/stm32h7b0xxq.h	2022-12-07 11:24:01
-+++ Include/stm32h7b0xxq.h	2024-01-08 23:25:04
++++ Include/stm32h7b0xxq.h	2024-01-09 15:12:37
 @@ -219,7 +219,7 @@
  #define __FPU_PRESENT             1U       /*!< FPU present                                   */
  #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
@@ -528,27 +292,9 @@ diff -Naur Include.orig/stm32h7b0xxq.h Include/stm32h7b0xxq.h
  
  /**
    * @}
-@@ -902,7 +902,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
 diff -Naur Include.orig/stm32h7b3xx.h Include/stm32h7b3xx.h
 --- Include.orig/stm32h7b3xx.h	2022-12-07 11:24:01
-+++ Include/stm32h7b3xx.h	2024-01-08 23:25:04
++++ Include/stm32h7b3xx.h	2024-01-09 15:12:41
 @@ -218,7 +218,7 @@
  #define __FPU_PRESENT             1U       /*!< FPU present                                   */
  #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
@@ -558,27 +304,9 @@ diff -Naur Include.orig/stm32h7b3xx.h Include/stm32h7b3xx.h
  
  /**
    * @}
-@@ -901,7 +901,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
 diff -Naur Include.orig/stm32h7b3xxq.h Include/stm32h7b3xxq.h
 --- Include.orig/stm32h7b3xxq.h	2022-12-07 11:24:01
-+++ Include/stm32h7b3xxq.h	2024-01-08 23:25:04
++++ Include/stm32h7b3xxq.h	2024-01-09 15:12:45
 @@ -219,7 +219,7 @@
  #define __FPU_PRESENT             1U       /*!< FPU present                                   */
  #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
@@ -588,21 +316,3 @@ diff -Naur Include.orig/stm32h7b3xxq.h Include/stm32h7b3xxq.h
  
  /**
    * @}
-@@ -902,7 +902,16 @@
-   __IO uint32_t PUPDR;    /*!< GPIO port pull-up/pull-down register,  Address offset: 0x0C      */
-   __IO uint32_t IDR;      /*!< GPIO port input data register,         Address offset: 0x10      */
-   __IO uint32_t ODR;      /*!< GPIO port output data register,        Address offset: 0x14      */
--  __IO uint32_t BSRR;     /*!< GPIO port bit set/reset,               Address offset: 0x18      */
-+// Miosix -- begin
-+// Make available both the new-style single BSRR and the old-style separate BSRRL/H
-+  union {
-+    __IO uint32_t BSRR;   /*!< GPIO port bit set/reset register,      Address offset: 0x18      */
-+    struct {
-+      __IO uint16_t BSRRL;/*!< GPIO port bit set/reset low register,  Address offset: 0x18      */
-+      __IO uint16_t BSRRH;/*!< GPIO port bit set/reset high register, Address offset: 0x1A      */
-+    };
-+  };
-+// Miosix -- end
-   __IO uint32_t LCKR;     /*!< GPIO port configuration lock register, Address offset: 0x1C      */
-   __IO uint32_t AFR[2];   /*!< GPIO alternate function registers,     Address offset: 0x20-0x24 */
- } GPIO_TypeDef;
