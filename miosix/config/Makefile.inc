@@ -1378,8 +1378,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
     arch/common/drivers/dcc.cpp                  \
     $(ARCH_INC)/interfaces-impl/portability.cpp  \
     $(ARCH_INC)/interfaces-impl/delays.cpp       \
-    arch/common/drivers/stm32f1_gpio.cpp    \
-    arch/common/core/stm32f1_l1_os_timer.cpp     \
+    arch/common/drivers/stm32f1_gpio.cpp         \
+    arch/common/core/stm32_16bit_os_timer.cpp    \
     arch/common/CMSIS/Device/ST/STM32F1xx/Source/Templates/system_stm32f1xx.c
 
 ##-----------------------------------------------------------------------------
@@ -2237,7 +2237,7 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     arch/common/drivers/stm32_gpio.cpp                       \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
-    arch/common/core/stm32f1_l1_os_timer.cpp                 \
+    arch/common/core/stm32_16bit_os_timer.cpp                \
     arch/common/CMSIS/Device/ST/STM32L1xx/Source/Templates/system_stm32l1xx.c
 
 ##-----------------------------------------------------------------------------
@@ -3110,7 +3110,7 @@ else ifeq ($(ARCH),cortexM0plus_stm32l0)
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/drivers/stm32_gpio.cpp                       \
-    arch/common/core/stm32l0_os_timer.cpp                    \
+    arch/common/core/stm32_16bit_os_timer.cpp                \
     arch/common/CMSIS/Device/ST/STM32L0xx/Source/Templates/system_stm32l0xx.c
 
 ##-----------------------------------------------------------------------------
