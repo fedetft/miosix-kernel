@@ -32,6 +32,12 @@
 using namespace std;
 using namespace miosix;
 
+// Define this macro if interrupts cannot be left disabled for extended periods
+// of time. This is necessary for platforms where the hardware timer
+// would overflow more than once during a delay test, but causes a noticeable
+// skew in the test results.
+//#define NO_INT_DISABLE_DURING_TEST
+
 void chronometerTest();
 void delayUsTest();
 void delayMsTest();
@@ -88,11 +94,17 @@ void chronometerTest()
 
 void delayUsTest()
 {
+    #ifdef NO_INT_DISABLE_DURING_TEST
+    puts("WARNING: results may be inaccurate due to interrupt handling\n"
+         "overhead. Use delay_test (the one requiring an oscilloscope) instead!");
+    #endif
     for(int i=0; i<10000; i+=100)
     {
         long long delta;
         {
+            #ifndef NO_INT_DISABLE_DURING_TEST
             FastInterruptDisableLock dLock;
+            #endif
             auto start=IRQgetTime();
             delayUs(i);
             delta=IRQgetTime()-start;
@@ -112,11 +124,17 @@ void delayUsTest()
 
 void delayMsTest()
 {
+    #ifdef NO_INT_DISABLE_DURING_TEST
+    puts("WARNING: results may be inaccurate due to interrupt handling\n"
+         "overhead. Use delay_test (the one requiring an oscilloscope) instead!");
+    #endif
     for(int i=0; i<1000; i+=50)
     {
         long long delta;
         {
+            #ifndef NO_INT_DISABLE_DURING_TEST
             FastInterruptDisableLock dLock;
+            #endif
             auto start=IRQgetTime();
             delayMs(i);
             delta=IRQgetTime()-start;
