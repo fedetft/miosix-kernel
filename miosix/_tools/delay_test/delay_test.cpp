@@ -1,5 +1,7 @@
+// This tool is meant to test delays using an oscilloscope connected to a GPIO
+// of the chip.
 
-#include <stdio.h>
+#include <cstdio>
 #include "miosix.h"
 
 using namespace miosix;
@@ -51,6 +53,6 @@ int main()
     int n;
     out::mode(Mode::OUTPUT);
     iprintf("Delay test\nEnter value in us\n");
-    scanf("%d",&n);
+    iscanf("%d",&n);
     if(n>=1000) tdms(n/1000); else tdus(n);
 }
