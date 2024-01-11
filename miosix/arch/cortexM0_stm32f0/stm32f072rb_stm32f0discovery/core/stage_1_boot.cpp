@@ -12,6 +12,26 @@
  * Additionally modified to boot Miosix.
  */
 
+void setupClockTree()
+{
+    #if defined(RUN_WITH_HSI) && defined(SYSCLK_FREQ_32MHz)
+    RCC->CR |= RCC_CR_HSION;
+    while((RCC->CR & RCC_CR_HSIRDY)==0) ;
+    RCC->CR &= ~RCC_CR_PLLON;
+    while(RCC->CR & RCC_CR_PLLRDY) ;
+    RCC->CFGR &= ~RCC_CFGR_SW; //Selects HSI
+    RCC->CFGR = RCC_CFGR_PLLMUL4 //4*8=32MHz
+              | RCC_CFGR_PLLSRC_HSI_PREDIV;
+    RCC->CR |= RCC_CR_PLLON;
+    while((RCC->CR & RCC_CR_PLLRDY)==0) ;
+    FLASH->ACR &= ~FLASH_ACR_LATENCY;
+    FLASH->ACR |= 1; //1 wait state for freq > 24MHz
+    RCC->CFGR |= RCC_CFGR_SW_PLL;
+    #else
+    #error "Unsupported clock configuration"
+    #endif
+}
+
 /**
  * Called by Reset_Handler, performs initialization and calls main.
  * Never returns.
@@ -34,6 +54,7 @@ void program_startup()
 	//.data and zeros .bss now run with the CPU at full speed instead of 8MHz
     
     SystemInit();
+    setupClockTree();
 
 	//These are defined in the linker script
 	extern unsigned char _etext asm("_etext");

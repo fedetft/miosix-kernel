@@ -131,27 +131,6 @@ const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
   */
 void SystemInit(void)
 {
-    //TODO: support more clocking options
-    #ifndef RUN_WITH_HSI
-    #error "Implement HSE support"
-    #endif
-    #ifdef SYSCLK_FREQ_32MHz
-    RCC->CR |= RCC_CR_HSION;
-    while((RCC->CR & RCC_CR_HSIRDY)==0) ;
-    RCC->CR &= ~RCC_CR_PLLON;
-    while(RCC->CR & RCC_CR_PLLRDY) ;
-    RCC->CFGR &= ~RCC_CFGR_SW; //Selects HSI
-    RCC->CFGR = RCC_CFGR_PLLMUL4 //4*8=32MHz
-              | RCC_CFGR_PLLSRC_HSI_PREDIV;
-    RCC->CR |= RCC_CR_PLLON;
-    while((RCC->CR & RCC_CR_PLLRDY)==0) ;
-    FLASH->ACR &= ~FLASH_ACR_LATENCY;
-    FLASH->ACR |= 1; //1 wait state for freq > 24MHz
-    RCC->CFGR |= RCC_CFGR_SW_PLL;
-    #else
-    //Run @ 8MHz
-    #endif
-
   /* NOTE :SystemInit(): This function is called at startup just after reset and 
                          before branch to main program. This call is made inside
                          the "startup_stm32f0xx.s" file.
