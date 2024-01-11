@@ -49,6 +49,11 @@ using namespace miosix;
 #define USART_ISR_TXE       USART_ISR_TXE_TXFNF
 #endif
 
+#ifdef STM32F030x8
+// On this chip only USART1 exists
+#define STM32_NO_SERIAL_2_3
+#endif
+
 static const int numPorts=3; //Supporting only USART1, USART2, USART3
 
 //A nice feature of the stm32 is that the USART are connected to the same

@@ -32,7 +32,30 @@
 
 namespace miosix {
 
-#if defined(_ARCH_CORTEXM0PLUS_STM32L0)
+#if defined(STM32F030x8)
+
+class STM32Timer14HW
+{
+public:
+    static inline TIM_TypeDef *get() { return TIM14; }
+    static inline IRQn_Type getIRQn() { return TIM14_IRQn; }
+    static inline unsigned int IRQgetClock()
+    {
+        unsigned int timerInputFreq=SystemCoreClock;
+        if(RCC->CFGR & RCC_CFGR_PPRE_2) timerInputFreq/=1<<((RCC->CFGR>>RCC_CFGR_PPRE_Pos) & 0x3);
+        return timerInputFreq;
+    }
+    static inline void IRQenable()
+    {
+        RCC->APB1ENR |= RCC_APB1ENR_TIM14EN;
+        RCC_SYNC();
+        DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_TIM14_STOP; //Stop while debugging
+    }
+};
+#define IRQ_HANDLER_NAME TIM14_IRQHandler
+#define TIMER_HW_CLASS STM32Timer14HW
+
+#elif defined(_ARCH_CORTEXM0PLUS_STM32L0)
 
 class STM32Timer22HW
 {

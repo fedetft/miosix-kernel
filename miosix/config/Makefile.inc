@@ -59,6 +59,7 @@
 #OPT_BOARD := stm32f415vg_st25dvdiscovery
 #OPT_BOARD := efm32g222f128_generic
 #OPT_BOARD := stm32l053r8_nucleo
+#OPT_BOARD := stm32f030r8_stm32f0discovery
 
 ##
 ## Optimization flags, choose one.
@@ -687,6 +688,12 @@ endif
 
 # No options
 
+##---------------------------------------------------------------------------
+## stm32f030r8_stm32f0discovery
+##
+
+# No options
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -798,6 +805,8 @@ else ifeq ($(OPT_BOARD),efm32g222f128_generic)
     ARCH := cortexM3_efm32g
 else ifeq ($(OPT_BOARD),stm32l053r8_nucleo)
     ARCH := cortexM0plus_stm32l0
+else ifeq ($(OPT_BOARD),stm32f030r8_stm32f0discovery)
+    ARCH := cortexM0_stm32f0
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -2635,7 +2644,8 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/interfaces-impl/bsp.cpp
+        $(BOARD_INC)/interfaces-impl/bsp.cpp         \
+        arch/common/core/stm32_32bit_os_timer.cpp
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32F072RB_DISCO -DSTM32F072xB
@@ -2643,6 +2653,39 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
 
         ## Select clock frequency
         CLOCK_FREQ := -DSYSCLK_FREQ_32MHz=32000000 -DRUN_WITH_HSI
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := st-flash --reset write main.bin 0x8000000
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32f030r8_stm32f0discovery
+    ##
+    else ifeq ($(OPT_BOARD),stm32f030r8_stm32f0discovery)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM0_stm32f0/stm32f030r8_stm32f0discovery
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+8k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp         \
+        arch/common/core/stm32_16bit_os_timer.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32F030R8_DISCO -DSTM32F030x8
+        CXXFLAGS_BASE += -D_BOARD_STM32F030R8_DISCO -DSTM32F030x8
+
+        ## Select clock frequency
+        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_32MHz=32000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -2689,7 +2732,6 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/drivers/stm32_gpio.cpp                       \
-    arch/common/core/stm32_32bit_os_timer.cpp                \
     arch/common/CMSIS/Device/ST/STM32F0xx/Source/Templates/system_stm32f0xx.c
 
 ##-----------------------------------------------------------------------------
