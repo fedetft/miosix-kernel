@@ -39,6 +39,7 @@ filesystem/fat32/ccsbcs.cpp                                                \
 filesystem/littlefs/lfs_miosix.cpp                                         \
 filesystem/littlefs/lfs.c                                                  \
 filesystem/littlefs/lfs_util.c                                             \
+filesystem/romfs/romfs.cpp                                                 \
 stdlib_integration/libc_integration.cpp                                    \
 stdlib_integration/libstdcpp_integration.cpp                               \
 e20/e20.cpp                                                                \

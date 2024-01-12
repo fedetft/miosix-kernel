@@ -48,7 +48,7 @@ static const unsigned int romFsFileMax=23; ///< Max len of RomFsFileInfo.name
  */
 struct RomFsFileInfo
 {
-    unsigned int start;             ///< File start offset, little endian
-    unsigned int length;            ///< File length, little endian
+    unsigned int start;        ///< File start offset, little endian
+    unsigned int length;       ///< File length, little endian
     char name[romFsFileMax+1]; ///< File name, null teminated
 };

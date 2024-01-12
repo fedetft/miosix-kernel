@@ -30,20 +30,23 @@
 #include <errno.h>
 #include <fcntl.h>
 #include "filesystem/stringpart.h"
+#include "kernel/logging.h"
+
+#ifdef WITH_FILESYSTEM
 
 using namespace std;
 
 namespace miosix {
 
-static void fillStatHelper(struct stat* pstat, unsigned int st_ino,
-                           short st_dev, unsigned int size)
+static void fillStatHelper(struct stat* pstat, ino_t st_ino, dev_t st_dev,
+                           mode_t st_mode, off_t st_size)
 {
     memset(pstat,0,sizeof(struct stat));
     pstat->st_ino=st_ino;
     pstat->st_dev=st_dev;
-    pstat->st_mode=S_IFREG | 0755; //-rwxr-xr-x
+    pstat->st_mode=st_mode;
     pstat->st_nlink=1;
-    pstat->st_size=size;
+    pstat->st_size=st_size;
     pstat->st_blksize=1;
     pstat->st_blocks=st_size;
 }
@@ -62,8 +65,8 @@ public:
      * \param inode inode number
      */
     MemoryMappedRomFsFile(intrusive_ref_ptr<FilesystemBase> fs,
-            const char *base, int len, int inode) : FileBase(fs), base(base),
-            len(len), inode(inode), seekPoint(0) {}
+            const char *base, unsigned int length, int inode) : FileBase(fs),
+            base(base), length(length), inode(inode), seekPoint(0) {}
 
     /**
      * Write data to the file, if the file supports writing.
@@ -102,17 +105,17 @@ public:
 
 private:
     const char *base;
-    int len;
+    unsigned int length;
     int inode;
     off_t seekPoint; ///< Seek point (note that off_t is 64bit)
 };
 
-ssize_t DevFsFile::write(const void *data, size_t len) { return -EINVAL; }
+ssize_t MemoryMappedRomFsFile::write(const void *data, size_t len) { return -EINVAL; }
 
 ssize_t MemoryMappedRomFsFile::read(void *data, size_t len)
 {
-    if(seekPoint>=len) return 0;
-    int toRead=min(len,len-seekPoint);
+    if(seekPoint>=length) return 0;
+    size_t toRead=min<size_t>(length,length-seekPoint);
     memcpy(data,base+seekPoint,toRead);
     seekPoint+=toRead;
     return toRead;
@@ -130,7 +133,7 @@ off_t MemoryMappedRomFsFile::lseek(off_t pos, int whence)
             newSeekPoint=pos;
             break;
         case SEEK_END:
-            newSeekPoint=len-pos;
+            newSeekPoint=length+pos;
         default:
             return -EINVAL;
     }
@@ -141,7 +144,8 @@ off_t MemoryMappedRomFsFile::lseek(off_t pos, int whence)
 
 int MemoryMappedRomFsFile::fstat(struct stat *pstat) const
 {
-    fillStatHelper(pstat,inode,parent->getFsId(),len)
+    fillStatHelper(pstat,inode,getParent()->getFsId(),S_IFREG | 0755,length); //-rwxr-xr-x
+    return 0;
 }
 
 /**
@@ -154,7 +158,7 @@ public:
      * \param parent parent filesystem
      */
     MemoryMappedRomFsDirectory(intrusive_ref_ptr<FilesystemBase> parent)
-            : DirectoryBase(parent), index(-1) {}
+            : DirectoryBase(parent) {}
 
     /**
      * Also directories can be opened as files. In this case, this system
@@ -168,29 +172,29 @@ public:
     virtual int getdents(void *dp, int len);
 
 private:
-    int index; ///< First unhandled item in directory
+    unsigned int index=0; ///< First unhandled directory entry
+    bool first=true;
 };
 
 int MemoryMappedRomFsDirectory::getdents(void *dp, int len)
 {
     if(len<minimumBufferSize) return -EINVAL;
-    if(index>=parent.header->fileCount) return 0;
     
     char *begin=reinterpret_cast<char*>(dp);
     char *buffer=begin;
     char *end=buffer+len;
-    if(index==-1)
+    auto parent=dynamic_pointer_cast<MemoryMappedRomFs>(getParent());
+    if(!parent) return -EBADF;
+    if(first)
     {
-        index=0;
+        first=false;
         addDefaultEntries(&buffer,MemoryMappedRomFs::rootDirInode,
-                          parent.parentFsMountpointInode);
+                          parent->getParentFsMountpointInode());
     }
-    for(;index<parent.header->fileCount;index++)
+    for(;index<parent->header->fileCount;index++)
     {
-        StringPart name(parent->files[i].name);
-        if(addEntry(&buffer,end,index+1,S_IFREG | 0755,name)>0) continue;
-        //Buffer finished
-        index++;
+        StringPart name(parent->files[index].name); //TODO: make addEntry take char*?
+        if(addEntry(&buffer,end,index+1,DT_REG,name)>0) continue;
         return buffer-begin;
     }
     addTerminatingEntry(&buffer,end);
@@ -202,12 +206,13 @@ int MemoryMappedRomFsDirectory::getdents(void *dp, int len)
 //
 
 MemoryMappedRomFs::MemoryMappedRomFs(const void *baseAddress)
-    : header(reinterpret_cast<RomFsHeader>(baseAddress)),
-      files(reinterpret_cast<RomFsFileInfo>(
-          reinterpret_cast<char*>(baseAddress+sizeof(RomFsHeader))), failed(false)
+    : header(reinterpret_cast<const RomFsHeader*>(baseAddress)),
+      files(reinterpret_cast<const RomFsFileInfo*>(
+          reinterpret_cast<const char*>(baseAddress)+sizeof(RomFsHeader))),
+      failed(false)
 {
     for(int i=0;i<32;i++) if(header->marker[i]!='w') failed=true;
-    if(strncmp(header->fsName,"RomFs 1.01"),16)
+    if(strncmp(header->fsName,"RomFs 1.01",16))
     {
         errorLog("Unexpected FS version %s\n",header->fsName);
         failed=true;
@@ -221,15 +226,15 @@ int MemoryMappedRomFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
     if(flags & (O_APPEND | O_EXCL | O_WRONLY | O_RDWR)) return -EROFS;
     if(name.empty()) //Trying to open the root directory of the fs
     {
-        file=intrusive_ref_ptr<FileBase>(new MemoryMappedRomFsDirectory(shared_from_this());
+        file=intrusive_ref_ptr<FileBase>(new MemoryMappedRomFsDirectory(shared_from_this()));
         return 0;
     }
     int inode;
-    RomFsFileInfo *info=findFile(name.c_str(),inode);
+    const RomFsFileInfo *info=findFile(name.c_str(),&inode);
     if(info==nullptr) return -ENOENT;
     file=intrusive_ref_ptr<FileBase>(new MemoryMappedRomFsFile(
-        shared_from_this(),reinterpret_cast<char*>(header)+info->start,
-        info->length,inode);
+        shared_from_this(),reinterpret_cast<const char*>(header)+info->start,
+        info->length,inode));
     return 0;
 }
 
@@ -238,13 +243,13 @@ int MemoryMappedRomFs::lstat(StringPart& name, struct stat *pstat)
     if(failed) return -ENOENT;
     if(name.empty())
     {
-        fillStatHelper(pstat,rootDirInode,filesystemId,S_IFDIR | 0755);//drwxr-xr-x
+        fillStatHelper(pstat,rootDirInode,getFsId(),S_IFDIR | 0755,0); //drwxr-xr-x
         return 0;
     }
     int inode;
-    RomFsFileInfo *info=findFile(name.c_str(),inode);
+    const RomFsFileInfo *info=findFile(name.c_str(),&inode);
     if(info==nullptr) return -ENOENT;
-    fillStatHelper(pstat,inode,getFsId(),info->size)
+    fillStatHelper(pstat,inode,getFsId(),S_IFREG | 0755,info->length); //-rwxr-xr-x
     return 0;
 }
 
@@ -255,7 +260,8 @@ int MemoryMappedRomFs::rmdir(StringPart& name) { return -EROFS; }
 
 const RomFsFileInfo *MemoryMappedRomFs::findFile(const char *name, int *inode)
 {
-    for(int i=0;i<header->fileCount;i++)
+    if(strlen(name)>romFsFileMax) return nullptr;
+    for(unsigned int i=0;i<header->fileCount;i++)
     {
         if(strncmp(name,files[i].name,romFsFileMax)) continue;
         if(inode) *inode=i+1;
@@ -265,3 +271,5 @@ const RomFsFileInfo *MemoryMappedRomFs::findFile(const char *name, int *inode)
 }
 
 } //namespace miosix
+
+#endif //WITH_FILESYSTEM

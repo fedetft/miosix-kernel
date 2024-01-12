@@ -353,6 +353,11 @@ public:
     void setParentFsMountpointInode(int inode) { parentFsMountpointInode=inode; }
     
     /**
+     * \return the inode of the directory in the parent fs
+     */
+    int getParentFsMountpointInode() const { return parentFsMountpointInode; }
+
+    /**
      * \return filesystem id
      */
     short int getFsId() const { return filesystemId; }

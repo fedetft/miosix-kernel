@@ -29,9 +29,10 @@
 
 #include "filesystem/file.h"
 #include "filesystem/stringpart.h"
-#include "kernel/sync.h"
 #include "config/miosix_settings.h"
 #include "romfs_types.h"
+
+#ifdef WITH_FILESYSTEM
 
 namespace miosix {
 
@@ -123,6 +124,6 @@ private:
     static const int rootDirInode=1;
 };
 
-#endif //WITH_DEVFS
-
 } //namespace miosix
+
+#endif //WITH_FILESYSTEM
