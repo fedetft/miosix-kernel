@@ -67,7 +67,6 @@
 #include "kernel/elf_program.h"
 #include "kernel/process.h"
 #include "kernel/process_pool.h"
-#include "kernel/SystemMap.h"
 
 #include "syscall_testsuite/includes.h"
 #include "elf_testsuite/includes.h"
@@ -154,7 +153,6 @@ static void exception_test();
 #ifdef WITH_PROCESSES
 void syscall_test_sleep();
 void process_test_process_ret();
-void syscall_test_system();
 #ifdef WITH_FILESYSTEM
 void syscall_test_files();
 void process_test_file_concurrency();
@@ -301,7 +299,6 @@ int main()
                 #endif //WITH_FILESYSTEM
 
                 syscall_test_sleep();
-                syscall_test_system();
                 #else //WITH_PROCESSES
                 iprintf("Error, process support is disabled\n");
                 #endif //WITH_PROCESSES
@@ -495,46 +492,6 @@ void syscall_test_mpu_write()
     iprintf("Returned value is %d\n", ret);
     if(WTERMSIG(ret) != SIGSYS) fail("0x00000000 is not a valid address!");
     pass();
-}
-
-void syscall_test_system()
-{
-    test_name("system");
-	if(SystemMap::instance().getElfCount() != 0)
-		fail("The system lookup table should be empty");
-	else
-		iprintf("The system lookup table is empty. Correct.\n");
-	
-	SystemMap::instance().addElfProgram("test", reinterpret_cast<const unsigned int*>(testsuite_simple_elf), testsuite_simple_elf_len);
-	
-	if(SystemMap::instance().getElfCount() != 1)
-		fail("Now the system lookup table should contain 1 program");
-	else
-		iprintf("The system lookup table contain one program. Correct.\n");
-	
-	std::pair<const unsigned int*, unsigned int> sysret = SystemMap::instance().getElfProgram("test");
-	
-	if(sysret.first == 0 || sysret.second == 0)
-		fail("The system lookup table has returned an invalid process size or an invalid elf pointer for the process");
-	
-	ElfProgram prog(reinterpret_cast<const unsigned int*>(testsuite_system_elf), testsuite_system_elf_len);
-	
-	int ret = 0;
-	pid_t p = Process::create(prog);
-	Process::waitpid(p, &ret, 0);
-	
-	if(WEXITSTATUS(ret) != 42)
-    {
-		iprintf("Host process returned: %d\n", WEXITSTATUS(ret));
-		fail("The system inside a process has failed");
-	}
-
-	SystemMap::instance().removeElfProgram("test");
-	
-	if(SystemMap::instance().getElfCount() != 0)
-		fail("The system lookup table now should be empty.\n");
-	
-	pass();
 }
 
 void syscall_test_sleep()

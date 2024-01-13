@@ -47,7 +47,17 @@ class StringPart;
  */
 struct MemoryMappedFile
 {
+    /**
+     * Constructor
+     * \param data pointer to first byte of file content
+     * \param size file size in bytes
+     */
     MemoryMappedFile(const void *data, unsigned int size) : data(data), size(size) {}
+
+    /**
+     * \return true if the object refers to a valid file
+     */
+    bool isValid() const { return data!=nullptr && size>0; }
 
     const void *data;  ///< Pointer to first byte of file content
     unsigned int size; ///< File size in bytes

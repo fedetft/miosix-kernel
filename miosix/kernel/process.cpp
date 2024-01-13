@@ -41,7 +41,6 @@
 #include "sync.h"
 #include "process_pool.h"
 #include "process.h"
-#include "SystemMap.h"
 
 using namespace std;
 
@@ -125,6 +124,22 @@ pid_t Process::create(const ElfProgram& program)
     pid_t result=proc->pid;
     proc.release(); //Do not delete the pointer
     return result;
+}
+
+pid_t Process::spawn(const char *path)
+{
+    if(path==0 || path[0]=='\0') return -EFAULT;
+    string filePath=path; //TODO: expand ./program using cwd of correct file descriptor table
+    ResolvedPath openData=FilesystemManager::instance().resolvePath(filePath);
+    if(openData.result<0) return -ENOENT;
+    StringPart relativePath(filePath,string::npos,openData.off);
+    intrusive_ref_ptr<FileBase> file;
+    if(int res=openData.fs->open(file,relativePath,O_RDONLY,0)<0) return res;
+    MemoryMappedFile mmFile=file->getFileFromMemory();
+    if(mmFile.isValid()==false) return -EFAULT;
+    if(reinterpret_cast<unsigned int>(mmFile.data) & 0x3) return -ENOEXEC;
+    ElfProgram prog(reinterpret_cast<const unsigned int*>(mmFile.data),mmFile.size);
+    return Process::create(prog);
 }
 
 pid_t Process::getppid(pid_t proc)
@@ -337,19 +352,13 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             }
             case SYS_SYSTEM:
             {
-                const char *str;
-                str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                const char *str=reinterpret_cast<const char*>(sp.getFirstParameter());
                 if(mpu.withinForReading(str))
                 {
-                    std::pair<const unsigned int*,unsigned int> res;
-                    res=SystemMap::instance().getElfProgram(str);
-                    if(res.first==0 || res.second==0)
-                    {
-                        sp.setReturnValue(-1);
-                    } else {
-                        ElfProgram program(res.first,res.second);
+                    pid_t child=Process::spawn(str);
+                    if(child<0) sp.setReturnValue(child);
+                    else {
                         int ret=0;
-                        pid_t child=Process::create(program);
                         Process::waitpid(child,&ret,0);
                         sp.setReturnValue(WEXITSTATUS(ret));
                     }

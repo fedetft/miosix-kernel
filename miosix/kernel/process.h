@@ -133,6 +133,15 @@ public:
      * not emough memory to spawn the process
      */
     static pid_t create(const ElfProgram& program);
+
+    /**
+     * Create a new process from a file in the filesystem
+     * \param program path file path of the program to spawn
+     * \return the pid of the newly created process
+     * \throws std::exception or a subclass in case of errors, including
+     * not emough memory to spawn the process
+     */
+    static pid_t spawn(const char *path);
     
     /**
      * Given a process, returns the pid of its parent.
