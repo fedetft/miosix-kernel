@@ -73,6 +73,11 @@ int FileBase::getdents(void *dp, int len)
     return -EBADF;
 }
 
+MemoryMappedFile FileBase::getFileFromMemory()
+{
+    return MemoryMappedFile(nullptr,0); //Not supported
+}
+
 #endif //WITH_FILESYSTEM
 
 FileBase::~FileBase()

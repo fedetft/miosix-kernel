@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef IOCTL_H
-#define	IOCTL_H
+#pragma once
 
 namespace miosix {
 
@@ -41,5 +40,3 @@ enum Ioctl
 };
 
 }
-
-#endif //IOCTL_H

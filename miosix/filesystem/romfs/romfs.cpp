@@ -123,6 +123,16 @@ public:
      */
     virtual int fstat(struct stat *pstat) const;
 
+    /**
+     * For filesystems whose backing storage is memory-mapped and additionally
+     * for files that are stored as a contiguous block, allow access to the
+     * underlying storage. Mostly used for execute-in-place of processes.
+     *
+     * \return information about the in-memory storage of the file, or return
+     * {nullptr,0} if this feature is not supported.
+     */
+    virtual MemoryMappedFile getFileFromMemory();
+
 private:
     const char *base;
     unsigned int length;
@@ -166,6 +176,11 @@ int MemoryMappedRomFsFile::fstat(struct stat *pstat) const
 {
     fillStatHelper(pstat,inode,getParent()->getFsId(),S_IFREG | 0755,length); //-rwxr-xr-x
     return 0;
+}
+
+MemoryMappedFile MemoryMappedRomFsFile::getFileFromMemory()
+{
+    return MemoryMappedFile(base,length);
 }
 
 /**

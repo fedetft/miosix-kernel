@@ -40,6 +40,20 @@ class FilesystemBase;
 class StringPart;
 
 /**
+ * Return value of FileBase::getFileFromMemory()
+ * For filesystems whose backing storage is memory-mapped and additionally for
+ * files that are stored as a contiguous block, allow access to the underlying
+ * storage. Mostly used for execute-in-place of processes.
+ */
+struct MemoryMappedFile
+{
+    MemoryMappedFile(const void *data, unsigned int size) : data(data), size(size) {}
+
+    const void *data;  ///< Pointer to first byte of file content
+    unsigned int size; ///< File size in bytes
+};
+
+/**
  * The unix file abstraction. Also some device drivers are seen as files.
  * Classes of this type are reference counted, must be allocated on the heap
  * and managed through intrusive_ref_ptr<FileBase>
@@ -123,7 +137,17 @@ public:
      * failure.
      */
     virtual int getdents(void *dp, int len);
-    
+
+    /**
+     * For filesystems whose backing storage is memory-mapped and additionally
+     * for files that are stored as a contiguous block, allow access to the
+     * underlying storage. Mostly used for execute-in-place of processes.
+     *
+     * \return information about the in-memory storage of the file, or return
+     * {nullptr,0} if this feature is not supported.
+     */
+    virtual MemoryMappedFile getFileFromMemory();
+
     /**
      * \return a pointer to the parent filesystem
      */
