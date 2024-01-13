@@ -104,10 +104,9 @@ int DirectoryBase::fstat(struct stat *pstat) const
     return -EBADF;
 }
 
-int DirectoryBase::addEntry(char **pos, char *end, int ino, char type,
-        const StringPart& n)
+int DirectoryBase::addEntry(char **pos, char *end, int ino, char type, const char *n)
 {
-    int reclen=direntHeaderSizeNoPadding+n.length()+1;
+    int reclen=direntHeaderSizeNoPadding+strlen(n)+1;
     reclen=(reclen+3) & ~0x3; //Align to 4 bytes
     if(reclen>end-*pos) return -1;
     
@@ -116,7 +115,7 @@ int DirectoryBase::addEntry(char **pos, char *end, int ino, char type,
     data->d_off=0;
     data->d_reclen=reclen;
     data->d_type=type;
-    strcpy(data->d_name,n.c_str());
+    strcpy(data->d_name,n);
     
     (*pos)+=reclen;
     return reclen;

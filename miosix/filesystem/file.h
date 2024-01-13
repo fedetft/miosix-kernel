@@ -203,8 +203,7 @@ protected:
      * \param name file name to append after the DirentHeader
      * \return the number of bytes written or -1 on failure (no space in buffer)
      */
-    static int addEntry(char **pos, char *end, int ino, char type,
-            const StringPart& n);
+    static int addEntry(char **pos, char *end, int ino, char type, const char *n);
     
     /**
      * Helper function to add the default directory entries . and .. to a buffer

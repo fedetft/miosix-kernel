@@ -213,8 +213,7 @@ int MemoryMappedRomFsDirectory::getdents(void *dp, int len)
     }
     for(;index<parent->header->fileCount;index++)
     {
-        StringPart name(parent->files[index].name); //TODO: make addEntry take char*?
-        if(addEntry(&buffer,end,index+2,DT_REG,name)>0) continue;
+        if(addEntry(&buffer,end,index+2,DT_REG,parent->files[index].name)>0) continue;
         return buffer-begin;
     }
     addTerminatingEntry(&buffer,end);

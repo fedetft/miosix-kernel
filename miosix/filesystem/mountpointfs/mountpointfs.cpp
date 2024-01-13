@@ -108,7 +108,7 @@ int MountpointFsDirectory::getdents(void *dp, int len)
         if(it==dirs.end()) return -EBADF;
         for(;it!=dirs.end();++it)
         {
-            if(addEntry(&buffer,end,it->second,DT_DIR,it->first)>0) continue;
+            if(addEntry(&buffer,end,it->second,DT_DIR,it->first.c_str())>0) continue;
             //Buffer finished
             currentItem=it->first.c_str();
             return buffer-begin;

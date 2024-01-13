@@ -444,7 +444,7 @@ int LittleFSDirectory::addLastLFSDirEntry(char **pos, char *end)
     else ino = dirInfo.block;
 
     int type = dirInfo.type == LFS_TYPE_REG ? DT_REG : DT_DIR;
-    return addEntry(pos, end, ino, type, StringPart(dirInfo.name));
+    return addEntry(pos, end, ino, type, dirInfo.name);
 }
 
 #define GET_DRIVER_FROM_LFS_CONTEXT(config)                                    \

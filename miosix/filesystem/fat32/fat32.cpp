@@ -152,8 +152,7 @@ int Fat32Directory::getdents(void *dp, int len)
     {
         unfinished=false;
         char type=fi.fattrib & AM_DIR ? DT_DIR : DT_REG;
-        StringPart name(fi.lfname);
-        if(addEntry(&buffer,end,fi.inode,type,name)<0) return -EINVAL;
+        if(addEntry(&buffer,end,fi.inode,type,fi.lfname)<0) return -EINVAL;
     }
     for(;;)
     {
@@ -164,8 +163,7 @@ int Fat32Directory::getdents(void *dp, int len)
             return buffer-begin;
         }
         char type=fi.fattrib & AM_DIR ? DT_DIR : DT_REG;
-        StringPart name(fi.lfname);
-        if(addEntry(&buffer,end,fi.inode,type,name)<0)
+        if(addEntry(&buffer,end,fi.inode,type,fi.lfname)<0)
         {
             unfinished=true;
             return buffer-begin;

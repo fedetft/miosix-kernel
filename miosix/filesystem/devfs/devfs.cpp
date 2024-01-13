@@ -297,7 +297,7 @@ int DevFsDirectory::getdents(void *dp, int len)
         {
             struct stat st;
             it->second->fstat(&st);
-            if(addEntry(&buffer,end,st.st_ino,st.st_mode>>12,it->first)>0)
+            if(addEntry(&buffer,end,st.st_ino,st.st_mode>>12,it->first.c_str())>0)
                 continue;
             //Buffer finished
             currentItem=it->first.c_str();
