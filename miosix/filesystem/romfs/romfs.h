@@ -36,7 +36,15 @@
 
 namespace miosix {
 
+//Forward decl
 class MemoryMappedRomFsDirectory;
+
+/**
+ * Assuming a firmware is made where the RomFs is appended after the kernel,
+ * try to find the address of the first byte of the RomFs image
+ * \return the address of the RomFs image, or nullptr in case of errors
+ */
+const void *getRomFsAddressAfterKernel();
 
 /**
  * MemoryMappedRomFs allows to mount a portion of a microcontroller

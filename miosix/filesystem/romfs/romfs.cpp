@@ -31,12 +31,32 @@
 #include <fcntl.h>
 #include "filesystem/stringpart.h"
 #include "kernel/logging.h"
+#include "util/util.h"
 
 #ifdef WITH_FILESYSTEM
 
 using namespace std;
 
 namespace miosix {
+
+const void *getRomFsAddressAfterKernel()
+{
+    // We don't (yet) have a symbol marking the end of the kernel, but we can
+    // compute it
+    extern char _data asm("_data");
+    extern char _edata asm("_edata");
+    extern char _etext asm("_etext");
+    const char *kernelEnd=&_etext+(&_edata-&_data);
+    bool valid=true;
+    if(reinterpret_cast<unsigned int>(kernelEnd) & 0x3) valid=false;
+    for(int i=0;i<32;i++) if(kernelEnd[i]!='w') valid=false;
+    if(valid) return kernelEnd;
+    errorLog("Error finding RomFs, expecting it @ %p\n",kernelEnd);
+    #ifdef WITH_ERRLOG
+    memDump(kernelEnd-32,64);
+    #endif //WITH_ERRLOG
+    return nullptr;
+}
 
 static void fillStatHelper(struct stat* pstat, ino_t st_ino, dev_t st_dev,
                            mode_t st_mode, off_t st_size)
@@ -194,7 +214,7 @@ int MemoryMappedRomFsDirectory::getdents(void *dp, int len)
     for(;index<parent->header->fileCount;index++)
     {
         StringPart name(parent->files[index].name); //TODO: make addEntry take char*?
-        if(addEntry(&buffer,end,index+1,DT_REG,name)>0) continue;
+        if(addEntry(&buffer,end,index+2,DT_REG,name)>0) continue;
         return buffer-begin;
     }
     addTerminatingEntry(&buffer,end);
@@ -264,7 +284,7 @@ const RomFsFileInfo *MemoryMappedRomFs::findFile(const char *name, int *inode)
     for(unsigned int i=0;i<header->fileCount;i++)
     {
         if(strncmp(name,files[i].name,romFsFileMax)) continue;
-        if(inode) *inode=i+1;
+        if(inode) *inode=i+2;
         return &files[i];
     }
     return nullptr;

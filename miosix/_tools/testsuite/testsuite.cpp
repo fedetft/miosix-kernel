@@ -4865,6 +4865,7 @@ unsigned int checkInodes(const char *dir, unsigned int curInode,
         
         struct stat st;
         if(stat(de->d_name,&st)) fail("stat");
+        printf("inode=%lu dev=%d %s\n",st.st_ino,st.st_dev,de->d_name);
         
         if(de->d_ino!=st.st_ino) fail("inode mismatch");
         
@@ -4907,8 +4908,6 @@ unsigned int checkInodes(const char *dir, unsigned int curInode,
         {
             if(inodes.insert(st.st_ino).second==false) fail("duplicate inode");
         }
-        
-        printf("inode=%lu dev=%d %s\n",st.st_ino,st.st_dev,de->d_name);
     }
     closedir(d);
     
@@ -4919,8 +4918,8 @@ unsigned int checkInodes(const char *dir, unsigned int curInode,
 static void fs_test_4()
 {
     test_name("Directory listing");
-    unsigned int curInode=0, parentInode=0, devFsInode=0, sdInode=0;
-    short curDevice=0, devDevice=0, sdDevice=0;
+    unsigned int curInode=0, parentInode=0, devFsInode=0, binFsInode=0, sdInode=0;
+    short curDevice=0, devDevice=0, binDevice=0, sdDevice=0;
     DIR *d=opendir("/");
     if(d==NULL) fail("opendir");
     puts("/");
@@ -4954,6 +4953,10 @@ static void fs_test_4()
             if(de->d_type!=DT_DIR) fail("d_type");
             devFsInode=st.st_ino;
             devDevice=st.st_dev;
+        } else if(!strcmp(de->d_name,"bin")) {
+            if(de->d_type!=DT_DIR) fail("d_type");
+            binFsInode=st.st_ino;
+            binDevice=st.st_dev;
         } else if(!strcmp(de->d_name,"sd")) {
             if(de->d_type!=DT_DIR) fail("d_type");
             sdInode=st.st_ino;
@@ -4970,6 +4973,9 @@ static void fs_test_4()
     if(devFsInode==0 || devDevice==0) fail("dev");
     checkInodes("/dev",devFsInode,curInode,devDevice,curDevice);
     #endif //WITH_DEVFS
+    ///bin may not exist, so if they're both zero it's not an error
+    if((binFsInode==0) ^ (binDevice==0)) fail("bin");
+    if(binFsInode!=0) checkInodes("/bin",binFsInode,curInode,binDevice,curDevice);
     if(sdInode==0 || sdDevice==0) fail("sd");
     int testdirIno=checkInodes("/sd",sdInode,curInode,sdDevice,curDevice);
     if(testdirIno==0) fail("no testdir");

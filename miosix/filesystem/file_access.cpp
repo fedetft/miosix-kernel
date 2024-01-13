@@ -31,6 +31,7 @@
 #include <fcntl.h>
 #include "console/console_device.h"
 #include "mountpointfs/mountpointfs.h"
+#include "filesystem/romfs/romfs.h"
 #include "fat32/fat32.h"
 #include "littlefs/lfs_miosix.h"
 #include "kernel/logging.h"
@@ -722,7 +723,7 @@ static inline bool tryMount(const char *name, intrusive_ref_ptr<Device> dev,
     if(dev && dev->open(disk,intrusive_ref_ptr<FilesystemBase>(0),O_RDWR,0)<0)
     #endif // WITH_DEVFS
     {
-        bootlog("Failure\n");
+        bootlog("Failed\n");
         return false;
     }
 
@@ -753,7 +754,7 @@ basicFilesystemSetup(intrusive_ref_ptr<Device> dev)
     #ifdef WITH_DEVFS
     bootlog("Mounting DevFs as /dev ... ");
     StringPart sp("dev");
-    int r1=rootFs->mkdir(sp,0755); 
+    int r1=rootFs->mkdir(sp,0755);
     intrusive_ref_ptr<DevFs> devfs(new DevFs);
     int r2=fsm.kmount("/dev",devfs);
     bool devFsOk=(r1==0 && r2==0);
@@ -761,6 +762,25 @@ basicFilesystemSetup(intrusive_ref_ptr<Device> dev)
     if(!devFsOk) return devfs;
     fsm.setDevFs(devfs);
     #endif //WITH_DEVFS
+
+    #ifdef WITH_PROCESSES
+    {
+        bootlog("Mounting RomFs as /bin ... ");
+        StringPart sp("bin");
+        bool ok=false;
+        if(rootFs->mkdir(sp,0755)==0)
+        {
+            const void *base=getRomFsAddressAfterKernel();
+            if(base)
+            {
+                intrusive_ref_ptr<MemoryMappedRomFs> bin(new MemoryMappedRomFs(base));
+                if(!bin->mountFailed())
+                    if(fsm.kmount("/bin",bin)==0) ok=true;
+            }
+        }
+        bootlog(ok ? "Ok\n" : "Failed\n");
+    }
+    #endif //WITH_PROCESSES
 
     #ifdef WITH_DEVFS
     #define TRY_MOUNT(x) if (tryMount<x>(#x, dev, rootFs, devfs)) return devfs
