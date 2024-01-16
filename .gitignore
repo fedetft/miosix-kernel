@@ -10,6 +10,9 @@ main.map
 *.a
 *.d
 
+# Exclude build directories
+miosix/_tools/filesystem/build
+
 # Exclude Mac OS X temporary
 ._*
 .DS_Store

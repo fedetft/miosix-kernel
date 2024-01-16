@@ -60,8 +60,8 @@ int main(int argc, char *argv[])
 {
     if(argc!=3)
     {
-        cerr<<"buildromfs v1.01"<<endl;
-        cerr<<"use: buildromfs <source directory> <target file>"<<endl;
+        cerr<<"Miosix buildromfs utility v1.01"<<endl
+            <<"use: buildromfs <source directory> <target file>"<<endl;
         return 1;
     }
     if(is_directory(argv[1])==false)
