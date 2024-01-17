@@ -47,8 +47,12 @@ const void *getRomFsAddressAfterKernel()
     extern char _edata asm("_edata");
     extern char _etext asm("_etext");
     const char *kernelEnd=&_etext+(&_edata-&_data);
+    // Align the resulting pointer
+    constexpr unsigned int align=8;
+    kernelEnd=reinterpret_cast<const char*>(
+             (reinterpret_cast<unsigned int>(kernelEnd)+align-1) & (0-align));
+    // Check for romfs start marker
     bool valid=true;
-    if(reinterpret_cast<unsigned int>(kernelEnd) & 0x3) valid=false;
     for(int i=0;i<32;i++) if(kernelEnd[i]!='w') valid=false;
     if(valid) return kernelEnd;
     errorLog("Error finding RomFs, expecting it @ %p\n",kernelEnd);
@@ -67,8 +71,9 @@ static void fillStatHelper(struct stat* pstat, ino_t st_ino, dev_t st_dev,
     pstat->st_mode=st_mode;
     pstat->st_nlink=1;
     pstat->st_size=st_size;
-    pstat->st_blksize=1;
-    pstat->st_blocks=st_size;
+    pstat->st_blksize=0; //If zero means file buffer equals to BUFSIZ
+    //NOTE: st_blocks should be number of 512 byte blocks regardless of st_blksize
+    pstat->st_blocks=st_size/512;
 }
 
 /**
