@@ -73,7 +73,7 @@ static void fillStatHelper(struct stat* pstat, ino_t st_ino, dev_t st_dev,
     pstat->st_size=st_size;
     pstat->st_blksize=0; //If zero means file buffer equals to BUFSIZ
     //NOTE: st_blocks should be number of 512 byte blocks regardless of st_blksize
-    pstat->st_blocks=st_size/512;
+    pstat->st_blocks=(st_size+512-1)/512;
 }
 
 /**

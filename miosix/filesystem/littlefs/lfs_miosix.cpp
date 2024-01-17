@@ -260,7 +260,8 @@ int LittleFS::lstat(StringPart &name, struct stat *pstat)
     pstat->st_mode = lfsStat.type == LFS_TYPE_DIR ? S_IFDIR | 0755  // drwxr-xr-x
                                                   : S_IFREG | 0755; // -rwxr-xr-x
     pstat->st_size = lfsStat.size;
-    pstat->st_blocks = (lfsStat.size + config.block_size - 1) / config.block_size;
+    //NOTE: st_blocks should be number of 512 byte blocks regardless of st_blksize
+    pstat->st_blocks = (lfsStat.size + 512 - 1) / 512;
 
     return 0;
 }
