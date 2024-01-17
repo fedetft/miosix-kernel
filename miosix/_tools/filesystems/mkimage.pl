@@ -88,3 +88,5 @@ for(my $i=1; $i<$#ARGV+1; $i++) {
         reset_options();
     }
 }
+
+print("Image size $out_pos\n");

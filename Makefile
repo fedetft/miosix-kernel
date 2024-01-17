@@ -29,6 +29,11 @@ LIBS :=
 ##
 INCLUDE_DIRS :=
 
+##
+## Attach a romfs filesystem image after the kernel
+##
+ROMFS_DIR :=
+
 ##############################################################################
 ## You should not need to modify anything below                             ##
 ##############################################################################
@@ -60,12 +65,25 @@ DFLAGS   := -MMD -MP
 STDLIBS  := -lmiosix -lstdc++ -lc -lm -lgcc -latomic
 LINK_LIBS := $(LIBS) -L$(KPATH) -Wl,--start-group $(STDLIBS) -Wl,--end-group
 
-all: all-recursive main
+TOOLS_DIR := miosix/_tools/filesystems
+
+all: all-recursive main $(if $(ROMFS_DIR), image)
 
 clean: clean-recursive clean-topdir
 
 program:
 	$(PROGRAM_CMDLINE)
+
+image: main $(TOOLS_DIR)/build/buildromfs
+	$(ECHO) "[FS  ] romfs.bin"
+	$(Q)./$(TOOLS_DIR)/build/buildromfs romfs.bin $(ROMFS_DIR)
+	$(ECHO) "[IMG ] image.bin"
+	$(Q)perl $(TOOLS_DIR)/mkimage.pl image.bin main.bin romfs.bin
+
+$(TOOLS_DIR)/build/buildromfs:
+	$(ECHO) "[HOST] buildromfs"
+	$(Q)mkdir $(TOOLS_DIR)/build
+	$(Q)cd $(TOOLS_DIR)/build && cmake --log-level=ERROR .. && $(MAKE) -s
 
 all-recursive:
 	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i)                               \
@@ -80,7 +98,8 @@ clean-recursive:
 	  clean || exit 1;)
 
 clean-topdir:
-	-rm -f $(OBJ) main.elf main.hex main.bin main.map $(OBJ:.o=.d)
+	-rm -rf $(OBJ) main.elf main.hex main.bin main.map image.bin romfs.bin \
+	    $(OBJ:.o=.d) $(TOOLS_DIR)/build
 
 main: main.elf
 	$(ECHO) "[CP  ] main.hex"

@@ -61,17 +61,17 @@ int main(int argc, char *argv[])
     if(argc!=3)
     {
         cerr<<"Miosix buildromfs utility v1.01"<<endl
-            <<"use: buildromfs <source directory> <target file>"<<endl;
+            <<"use: buildromfs <target file> <source directory>"<<endl;
         return 1;
     }
-    if(is_directory(argv[1])==false)
+    if(is_directory(argv[2])==false)
     {
-        cerr<<argv[1]<<": source directory not found"<<endl;
+        cerr<<argv[2]<<": source directory not found"<<endl;
         return 1;
     }
 
     //Traverse the input directory storing path of files
-    path inDir(argv[1]);
+    path inDir(argv[2]);
     directory_iterator end;
     vector<path> files;
     for(directory_iterator it(inDir);it!=end;++it)
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
     header.fileCount=toLittleEndian(files.size());
 
     // Building the output filesystem
-    ofstream out(argv[2],ios::binary);
+    ofstream out(argv[1],ios::binary);
     if(!out)
     {
         cerr<<"Can't open otput file"<<endl;
@@ -123,5 +123,7 @@ int main(int argc, char *argv[])
     out.seekp(sizeof(RomFsHeader),ios::beg); //Get back to after the header and write inodes
     for(int i=0;i<fileInfos.size();i++)
         out.write((char*)&fileInfos[i],sizeof(RomFsFileInfo));
+    out.seekp(0,ios::end);
+    cout<<"RomFs size "<<out.tellp()<<endl;
     return 0;
 }
