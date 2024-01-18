@@ -55,7 +55,6 @@ namespace miosix {
 
 void IRQbspInit()
 {
-    for (;;) {}
     //Enable all gpios
     //RCC->IOPENR |= RCC_IOPENR_GPIOAEN | RCC_IOPENR_GPIOBEN |
     //               RCC_IOPENR_GPIOCEN | RCC_IOPENR_GPIODEN |
