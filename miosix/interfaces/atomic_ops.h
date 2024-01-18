@@ -163,7 +163,8 @@ inline void *atomicFetchAndIncrement(void * const volatile * p, int offset,
    || defined(_ARCH_CORTEXM4_STM32L4) || defined(_ARCH_CORTEXM4_ATSAM4L) \
    || defined(_ARCH_CORTEXM3_EFM32G)
 #include "core/atomic_ops_impl_cortexMx.h"
-#elif defined(_ARCH_CORTEXM0_STM32F0) || defined(_ARCH_CORTEXM0PLUS_STM32L0)
+#elif defined(_ARCH_CORTEXM0_STM32F0) || defined(_ARCH_CORTEXM0PLUS_STM32L0) \
+   || defined(_ARCH_CORTEXM0PLUS_RP2040)
 #include "core/atomic_ops_impl_cortexM0.h"
 #else
 #error "No atomic ops for this architecture"

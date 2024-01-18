@@ -61,6 +61,7 @@
 #OPT_BOARD := stm32l053r8_nucleo
 #OPT_BOARD := stm32f030r8_stm32f0discovery
 #OPT_BOARD := stm32f765ii_marco_ram_board
+#OPT_BOARD := rp2040_raspberry_pi_pico
 
 ##
 ## Optimization flags, choose one.
@@ -737,6 +738,12 @@ ifeq ($(OPT_BOARD),stm32f765ii_marco_ram_board)
 
 endif
 
+##
+## rp2040_raspberry_pi_pico
+##
+
+# No options
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -852,6 +859,8 @@ else ifeq ($(OPT_BOARD),stm32f030r8_stm32f0discovery)
     ARCH := cortexM0_stm32f0
 else ifeq ($(OPT_BOARD),stm32f765ii_marco_ram_board)
     ARCH := cortexM7_stm32f7
+else ifeq ($(OPT_BOARD),rp2040_raspberry_pi_pico)
+    ARCH := cortexM0plus_rp2040
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -3233,6 +3242,82 @@ else ifeq ($(ARCH),cortexM0plus_stm32l0)
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/core/stm32_16bit_os_timer.cpp                \
     arch/common/CMSIS/Device/ST/STM32L0xx/Source/Templates/system_stm32l0xx.c
+
+##-----------------------------------------------------------------------------
+## ARCHITECTURE: cortexM0plus_rp2040
+##
+else ifeq ($(ARCH),cortexM0plus_rp2040)
+    ## Base directory with else header files for this board
+    ARCH_INC := arch/cortexM0plus_rp2040/common
+
+    ifeq ($(OPT_BOARD),rp2040_raspberry_pi_pico)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM0plus_rp2040/rp2040_raspberry_pi_pico
+
+        ## Select linker script and boot file
+        ## Their path must be relative to the miosix directory.
+        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        LINKER_SCRIPT := $(BOARD_INC)/rp2040_2M+264k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                                 \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -DBOARD_RP2040_RASPBERRY_PI_PICO
+        CXXFLAGS_BASE += -DBOARD_RP2040_RASPBERRY_PI_PICO
+
+        ## Clock frequency
+        CLOCK_FREQ := -DXOSC_FREQ=12000000 -DCLK_SYS_FREQ=133000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROGRAM_CMDLINE := echo 'make program not supported.'
+
+    ##-------------------------------------------------------------------------
+    ## End of board list
+    ##
+    endif
+
+    ## Select compiler
+    PREFIX=arm-miosix-eabi-
+
+    ## From compiler prefix form the name of the compiler and other tools
+    CC  := $(PREFIX)gcc
+    CXX := $(PREFIX)g++
+    LD  := $(PREFIX)ld
+    AR  := $(PREFIX)ar
+    AS  := $(PREFIX)as
+    CP  := $(PREFIX)objcopy
+    OD  := $(PREFIX)objdump
+    SZ  := $(PREFIX)size
+
+    ## Select appropriate compiler flags for both ASM/C/C++/linker
+    AFLAGS_BASE   := -mcpu=cortex-m0plus -mthumb
+    CFLAGS_BASE   += -D_ARCH_CORTEXM0PLUS_RP2040 $(CLOCK_FREQ)        \
+                     -mcpu=cortex-m0plus -mthumb $(OPT_OPTIMIZATION) -c
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM0PLUS_RP2040 $(CLOCK_FREQ)        \
+                     -mcpu=cortex-m0plus $(OPT_EXCEPT) -mthumb     \
+                     $(OPT_OPTIMIZATION) -c
+    LFLAGS_BASE   := -mcpu=cortex-m0 -mthumb                       \
+                     -Wl,--gc-sections,-Map,main.map               \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
+                     $(OPT_OPTIMIZATION) -nostdlib
+
+    ## Select architecture specific files
+    ## These are the files in arch/<arch name>/common    
+
+    ARCH_SRC +=                                              \
+    arch/common/core/interrupts_cortexMx.cpp                 \
+    $(ARCH_INC)/interfaces-impl/portability.cpp              \
+    $(ARCH_INC)/interfaces-impl/delays.cpp                   \
+    arch/common/core/rp2040_os_timer.cpp                     \
+    arch/common/CMSIS/Device/RaspberryPi/RP2040/Source/system_RP2040.c
 
 ##-----------------------------------------------------------------------------
 ## end of architecture list
