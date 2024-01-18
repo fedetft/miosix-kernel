@@ -26,6 +26,7 @@
  ***************************************************************************/
 
 #include "kernel/kernel.h"
+#include "interfaces/delays.h"
 #include "interfaces/os_timer.h"
 #include "interfaces/arch_registers.h"
 
@@ -36,6 +37,11 @@ namespace internal {
 static TimeConversion tc(48000000);
 static uint64_t lastAlarmTicks;
 
+/**
+ * \internal
+ * Get raw tick count from the timer.
+ * \returns the current tick count.
+ */
 static inline uint64_t IRQgetTicks() noexcept
 {
     //Latching reads: order matters!
@@ -58,6 +64,11 @@ void IRQosTimerInit()
     NVIC_SetPriority(TIMER_IRQ_0_IRQn, 3);
     NVIC_EnableIRQ(TIMER_IRQ_0_IRQn);
     timer_hw->inte = TIMER_INTE_ALARM_0_BITS;
+    //Toggle debug sleep mode. Works around a bug where the timer does not
+    //start counting if it was reset while it was paused due to debug mode.
+    timer_hw->dbgpause = 0;
+    delayUs(1);
+    timer_hw->dbgpause = 3;
 }
 
 /**
@@ -82,6 +93,11 @@ void IRQosTimerSetInterrupt(long long ns) noexcept
     if(IRQgetTicks() >= lastAlarmTicks) NVIC_SetPendingIRQ(TIMER_IRQ_0_IRQn);
 }
 
+/**
+ * \internal
+ * Handles the timer interrupt, checking if the alarm period is indeed
+ * elapsed and calling the kernel if so.
+ */
 void IRQtimerInterruptHandler()
 {
     //Clear the timer IRQ (register is write clear (WC)!)
