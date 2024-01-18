@@ -40,7 +40,11 @@ extern volatile bool pendingWakeup;///\internal Do not use outside the kernel
 extern bool IRQwakeThreads(long long currentTime);///\internal Do not use outside the kernel
 
 /**
- * \param currentTime time in nanoseconds when the timer interrupt fired
+ * Performs thread wakeup and preemption in response to a scheduled timer
+ * alarm interrupt.
+ * \param currentTime time in nanoseconds when the timer interrupt fired.
+ * \warning currentTime cannot be earlier than the last deadline actually
+ * programmed by the kernel!
  */
 inline void IRQtimerInterrupt(long long currentTime)
 {
