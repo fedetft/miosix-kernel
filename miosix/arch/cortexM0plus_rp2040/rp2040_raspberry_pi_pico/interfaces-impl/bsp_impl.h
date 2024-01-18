@@ -43,6 +43,9 @@ namespace miosix {
 \{
 */
 
+using uart_tx = Gpio<GPIOA_BASE, 0>;
+using uart_rx = Gpio<GPIOA_BASE, 1>;
+
 /**
  * \internal
  * used by the ledOn() and ledOff() implementation

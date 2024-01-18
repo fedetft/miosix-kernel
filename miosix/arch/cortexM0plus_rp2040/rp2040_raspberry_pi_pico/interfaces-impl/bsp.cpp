@@ -55,23 +55,29 @@ namespace miosix {
 
 void IRQbspInit()
 {
-    //Enable all gpios
+    //Enable all gpios and UART
     unreset_block_wait(RESETS_RESET_PADS_BANK0_BITS | 
         RESETS_RESET_IO_BANK0_BITS);
     sio_hw->gpio_oe_set = SIO_GPIO_OE_SET_BITS;
+
     //Blink the LED
     led::function(Function::GPIO);
     led::mode(Mode::OUTPUT);
     ledOn();
     delayMs(100);
     ledOff();
-    //DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
-    //#ifndef STDOUT_REDIRECTED_TO_DCC
-    //    new STM32Serial(defaultSerial,defaultSerialSpeed,
-    //    defaultSerialFlowctrl ? STM32Serial::RTSCTS : STM32Serial::NOFLOWCTRL)));
-    //#else //STDOUT_REDIRECTED_TO_DCC
-    //    new ARMDCC));
-    //#endif //STDOUT_REDIRECTED_TO_DCC
+
+    //Configure serial
+    uart_tx::function(Function::UART);
+    uart_tx::mode(Mode::OUTPUT);
+    uart_rx::function(Function::UART);
+    uart_rx::mode(Mode::INPUT);
+    DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
+    #ifndef STDOUT_REDIRECTED_TO_DCC
+        new RP2040PL011Serial<RP2040UART0>(defaultSerialSpeed)));
+    #else //STDOUT_REDIRECTED_TO_DCC
+        new ARMDCC));
+    #endif //STDOUT_REDIRECTED_TO_DCC
 }
 
 void bspInit2()

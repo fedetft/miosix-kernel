@@ -30,22 +30,22 @@
 #include "filesystem/console/console_device.h"
 #include "kernel/sync.h"
 #include "kernel/queue.h"
+#include "interfaces/arch_registers.h"
 
 namespace miosix {
 
-struct PL011SerialDevice;
-
 class RP2040UART0
 {
-    static inline PL011SerialDevice *get()
+public:
+    static inline uart_hw_t *get() { return uart0_hw; }
+    static inline void enable()
     {
-        return reinterpret_cast<PL011SerialDevice *>(uart0_hw);
+        unreset_block_wait(RESETS_RESET_UART0_BITS);
     }
-    static inline int getID() { return 0; }
 };
 
-template<class T>
-class PL011Serial : public Device
+template <typename T>
+class RP2040PL011Serial : public Device
 {
 public:
     /**
@@ -54,10 +54,19 @@ public:
      * attempting to construct multiple objects with the same id. That is,
      * it is possible to instantiate only one instance of this class for each
      * hardware USART.
-     * \param id a number to select the USART
      * \param baudrate serial port baudrate
      */
-    PL011Serial(int baudrate) {};
+    RP2040PL011Serial(int baudrate) : Device(Device::TTY)
+    {
+        T::enable();
+        int rate = 16 * baudrate;
+        int div = CLK_SYS_FREQ / rate;
+        int frac = (rate * 64) / (CLK_SYS_FREQ % rate);
+        T::get()->ibrd = div;
+        T::get()->fbrd = frac;
+        T::get()->lcr_h = (3 << UART_UARTLCR_H_WLEN_LSB) | UART_UARTLCR_H_FEN_BITS;
+        T::get()->cr = UART_UARTCR_UARTEN_BITS | UART_UARTCR_TXE_BITS | UART_UARTCR_RXE_BITS;
+    }
     
     /**
      * Read a block of data
@@ -68,7 +77,26 @@ public:
      * it is normal for this function to return less character than the amount
      * asked
      */
-    ssize_t readBlock(void *buffer, size_t size, off_t where) { return 0; };
+    ssize_t readBlock(void *buffer, size_t size, off_t where)
+    {
+        if (size == 0) return 0;
+        Lock<FastMutex> lock(rxMutex);
+        uint8_t *bytes = reinterpret_cast<uint8_t *>(buffer);
+        while (T::get()->fr & UART_UARTFR_RXFE_BITS) {}
+        size_t i = 0;
+        bytes[i++] = (uint8_t)T::get()->dr;
+        while (i<size) {
+            //Wait a bit for next character, but just a bit
+            for (int j=0; j<20; j++) {
+                if (!(T::get()->fr & UART_UARTFR_RXFE_BITS))
+                    break;
+            }
+            if (T::get()->fr & UART_UARTFR_RXFE_BITS)
+                break;
+            bytes[i++] = (uint8_t)T::get()->dr;
+        }
+        return i;
+    }
     
     /**
      * Write a block of data
@@ -77,7 +105,17 @@ public:
      * \param where where to write to
      * \return number of bytes written or a negative number on failure
      */
-    ssize_t writeBlock(const void *buffer, size_t size, off_t where) { return 0; };
+    ssize_t writeBlock(const void *buffer, size_t size, off_t where)
+    {
+        Lock<FastMutex> lock(txMutex);
+        const uint8_t *bytes = reinterpret_cast<const uint8_t *>(buffer);
+        for (size_t i=0; i<size; i++)
+        {
+            while (T::get()->fr & UART_UARTFR_TXFF_BITS) {}
+            T::get()->dr = bytes[i];
+        }
+        return size;
+    }
     
     /**
      * Write a string.
@@ -89,7 +127,14 @@ public:
      * an interrupt. This default implementation ignores writes.
      * \param str the string to write. The string must be NUL terminated.
      */
-    void IRQwrite(const char *str) {};
+    void IRQwrite(const char *str)
+    {
+        for (int i=0; str[i] != '\0'; i++)
+        {
+            while (T::get()->fr & UART_UARTFR_TXFF_BITS) {}
+            T::get()->dr = str[i];
+        }
+    }
     
     /**
      * Performs device-specific operations
@@ -100,16 +145,13 @@ public:
     int ioctl(int cmd, void *arg) { return 0; };
     
     /**
-     * \return port id, 0 for USART0, ... 
-     */
-    int getId() const { return T::getID(); }
-    
-    /**
      * Destructor
      */
-    ~PL011Serial() {};
+    ~RP2040PL011Serial() {};
     
 private:
+    FastMutex txMutex;                ///< Mutex locked during transmission
+    FastMutex rxMutex;                ///< Mutex locked during reception
 };
 
 } //namespace miosix

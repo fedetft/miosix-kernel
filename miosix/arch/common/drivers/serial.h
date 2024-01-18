@@ -14,7 +14,7 @@
 #elif defined(_ARCH_CORTEXM4_ATSAM4L)
 #include "serial_atsam4l.h"
 #elif defined(_ARCH_CORTEXM0PLUS_RP2040)
-#include "pl011_serial.h"
+#include "rp2040_serial.h"
 #else
 #error "Unknown arch"
 #endif

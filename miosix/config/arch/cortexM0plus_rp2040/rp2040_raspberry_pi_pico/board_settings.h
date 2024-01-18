@@ -45,6 +45,9 @@ namespace miosix {
 /// RP2040 has 264KB of RAM so there is room for a big 4K stack.
 const unsigned int MAIN_STACK_SIZE=4*1024;
 
+/// Serial port
+const unsigned int defaultSerialSpeed=19200;
+
 /**
  * \}
  */
