@@ -30,29 +30,9 @@
 
 namespace miosix {
 
-void delayMs(unsigned int ms)
+static inline __attribute__((always_inline)) void delayUsImpl(unsigned int us)
 {
-#if CLK_SYS_FREQ == 133000000
-    while (ms != 0)
-    {
-        uint32_t iter_count = 1000 * 19;
-        asm volatile(
-            ".align 2      \n"
-            "1:  nop       \n"
-            "    nop       \n"
-            "    nop       \n"
-            "    sub %0, #1\n"
-            "    cmp %0, #0\n"
-            "    bne 1b    \n":"+r"(iter_count)::);
-        ms--;
-    }
-#else
-    #error "Unsupported sys_clk"
-#endif
-}
-
-void delayUs(unsigned int us)
-{
+    if (us == 0) return;
 #if CLK_SYS_FREQ == 133000000
     // 7 cycles per iteration @ 133 MHz = 1/19 us per iteration
     uint32_t iter_count = us * 19;
@@ -64,9 +44,28 @@ void delayUs(unsigned int us)
         "    sub %0, #1\n"
         "    cmp %0, #0\n"
         "    bne 1b    \n":"+r"(iter_count)::);
+#elif CLK_SYS_FREQ == 125000000
+    // 5 cycles per iteration @ 125 MHz = 1/25 us per iteration
+    uint32_t iter_count = us * 25;
+    asm volatile(
+        ".align 2      \n"
+        "1:  nop       \n"
+        "    sub %0, #1\n"
+        "    cmp %0, #0\n"
+        "    bne 1b    \n":"+r"(iter_count)::);
 #else
     #error "Unsupported sys_clk"
 #endif
+}
+
+void delayUs(unsigned int us)
+{
+    delayUsImpl(us);
+}
+
+void delayMs(unsigned int ms)
+{
+    for (; ms!=0; ms--) delayUsImpl(1000);
 }
 
 } //namespace miosix

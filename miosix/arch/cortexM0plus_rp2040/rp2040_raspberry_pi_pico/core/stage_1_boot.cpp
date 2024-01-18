@@ -150,7 +150,7 @@ void program_startup()
     memset(bss_start, 0, bss_end-bss_start);
 
     // Update SystemCoreClock
-    SystemCoreClock = 133000000;
+    SystemCoreClock = CLK_SYS_FREQ;
 
     //Move on to stage 2
     _init();
@@ -330,7 +330,7 @@ void clock_configure(void)
 
     // Configure system PLL to run at 133 MHz
     // 12MHz * 133 / 6 / 2 = 133 MHz
-    pll_init(pll_sys_hw, 1, 133, 6, 2);
+    pll_init(pll_sys_hw, 1, CLK_SYS_FREQ / 1000000, 6, 2);
     // Configure USB PLL to run at 48 MHz
     // 12MHz * 64 / 4 / 4 = 48 MHz
     pll_init(pll_usb_hw, 1, 64, 4, 4);
