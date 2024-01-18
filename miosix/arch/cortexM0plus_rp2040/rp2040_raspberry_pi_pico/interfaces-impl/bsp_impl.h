@@ -46,18 +46,27 @@ namespace miosix {
 /**
  * \internal
  * used by the ledOn() and ledOff() implementation
+ * \note Doesn't work on Pico W, as the LED is controlled by the WiFi chip.
  */
-//using led = Gpio<GPIOA_BASE,5>;
-//
-//inline void ledOn()
-//{
-//    led::high();
-//}
-//
-//inline void ledOff()
-//{
-//    led::low();
-//}
+using led = Gpio<GPIOA_BASE, 2>;
+
+/**
+ * Turn on the board LED.
+ * \note Doesn't work on Pico W, as the LED is controlled by the WiFi chip.
+ */
+inline void ledOn()
+{
+    led::high();
+}
+
+/**
+ * Turn off the board LED.
+ * \note Doesn't work on Pico W, as the LED is controlled by the WiFi chip.
+ */
+inline void ledOff()
+{
+    led::low();
+}
 
 /**
 \}

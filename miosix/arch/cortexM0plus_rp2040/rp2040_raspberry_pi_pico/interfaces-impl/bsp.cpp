@@ -56,19 +56,15 @@ namespace miosix {
 void IRQbspInit()
 {
     //Enable all gpios
-    //RCC->IOPENR |= RCC_IOPENR_GPIOAEN | RCC_IOPENR_GPIOBEN |
-    //               RCC_IOPENR_GPIOCEN | RCC_IOPENR_GPIODEN |
-    //               RCC_IOPENR_GPIOHEN;
-    //RCC_SYNC();
-    //GPIOA->OSPEEDR=0xffffffff; //Default to 50MHz speed for all GPIOS
-    //GPIOB->OSPEEDR=0xffffffff;
-    //GPIOC->OSPEEDR=0xffffffff;
-    //GPIOD->OSPEEDR=0xffffffff;
-    //GPIOH->OSPEEDR=0xffffffff;
-    //led::mode(Mode::OUTPUT);
-    //ledOn();
-    //delayMs(100);
-    //ledOff();
+    unreset_block_wait(RESETS_RESET_PADS_BANK0_BITS | 
+        RESETS_RESET_IO_BANK0_BITS);
+    sio_hw->gpio_oe_set = SIO_GPIO_OE_SET_BITS;
+    //Blink the LED
+    led::function(Function::GPIO);
+    led::mode(Mode::OUTPUT);
+    ledOn();
+    delayMs(100);
+    ledOff();
     //DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
     //#ifndef STDOUT_REDIRECTED_TO_DCC
     //    new STM32Serial(defaultSerial,defaultSerialSpeed,

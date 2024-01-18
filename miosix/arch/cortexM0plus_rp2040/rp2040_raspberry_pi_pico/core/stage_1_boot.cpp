@@ -163,25 +163,6 @@ void program_startup()
 #define PICO_XOSC_STARTUP_DELAY_MULTIPLIER 1
 #define STARTUP_DELAY (((12000 + 128) / 256) * PICO_XOSC_STARTUP_DELAY_MULTIPLIER)
 
-/*! \brief Reset the specified HW blocks
- *  \ingroup hardware_resets
- *
- * \param bits Bit pattern indicating blocks to reset. See \ref reset_bitmask
- */
-static inline void reset_block(uint32_t bits) {
-    hw_set_bits(&resets_hw->reset, bits);
-}
-
-/*! \brief Bring specified HW blocks out of reset and wait for completion
- *  \ingroup hardware_resets
- *
- * \param bits Bit pattern indicating blocks to unreset. See \ref reset_bitmask
- */
-static inline void unreset_block_wait(uint32_t bits) {
-    hw_clear_bits(&resets_hw->reset, bits);
-    while (~resets_hw->reset_done & bits) {}
-}
-
 static void xosc_init(void) {
     // Assumes 1-15 MHz input, checked above.
     xosc_hw->ctrl = XOSC_CTRL_FREQ_RANGE_VALUE_1_15MHZ;
@@ -396,8 +377,7 @@ void clock_configure(void)
 
     // Peripheral clocks should now all be running
     unreset_block_wait(RESETS_RESET_SYSINFO_BITS | 
-        RESETS_RESET_SYSCFG_BITS | RESETS_RESET_PADS_BANK0_BITS | 
-        RESETS_RESET_IO_BANK0_BITS | RESETS_RESET_BUSCTRL_BITS);
+        RESETS_RESET_SYSCFG_BITS | RESETS_RESET_BUSCTRL_BITS);
 }
 
 /**

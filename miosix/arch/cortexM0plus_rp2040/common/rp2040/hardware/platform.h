@@ -79,6 +79,25 @@ __STATIC_FORCEINLINE void hw_write_masked(io_rw_32 *addr, uint32_t values, uint3
     hw_xor_bits(addr, (*addr ^ values) & write_mask);
 }
 
+/*! \brief Reset the specified HW blocks
+ *  \ingroup hardware_resets
+ *
+ * \param bits Bit pattern indicating blocks to reset. See \ref reset_bitmask
+ */
+__STATIC_FORCEINLINE void reset_block(uint32_t bits) {
+    hw_set_bits(&resets_hw->reset, bits);
+}
+
+/*! \brief Bring specified HW blocks out of reset and wait for completion
+ *  \ingroup hardware_resets
+ *
+ * \param bits Bit pattern indicating blocks to unreset. See \ref reset_bitmask
+ */
+__STATIC_FORCEINLINE void unreset_block_wait(uint32_t bits) {
+    hw_clear_bits(&resets_hw->reset, bits);
+    while (~resets_hw->reset_done & bits) {}
+}
+
 /*! \brief Returns the RP2040 chip revision number
  *  \ingroup pico_platform
  * @return the RP2040 chip revision number (1 for B0/B1, 2 for B2)
