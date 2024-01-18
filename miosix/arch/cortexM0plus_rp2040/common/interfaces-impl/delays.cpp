@@ -35,7 +35,7 @@ static inline __attribute__((always_inline)) void delayUsImpl(unsigned int us)
     if (us == 0) return;
 #if CLK_SYS_FREQ == 133000000
     // 7 cycles per iteration @ 133 MHz = 1/19 us per iteration
-    uint32_t iter_count = us * 19;
+    uint32_t iter_count = us*19-2;
     asm volatile(
         ".align 2      \n"
         "1:  nop       \n"
@@ -46,7 +46,7 @@ static inline __attribute__((always_inline)) void delayUsImpl(unsigned int us)
         "    bne 1b    \n":"+r"(iter_count)::);
 #elif CLK_SYS_FREQ == 125000000
     // 5 cycles per iteration @ 125 MHz = 1/25 us per iteration
-    uint32_t iter_count = us * 25;
+    uint32_t iter_count = us*25-2;
     asm volatile(
         ".align 2      \n"
         "1:  nop       \n"

@@ -55,13 +55,13 @@ namespace miosix {
 
 void IRQbspInit()
 {
-    //Enable all gpios and UART
-    unreset_block_wait(RESETS_RESET_PADS_BANK0_BITS | 
-        RESETS_RESET_IO_BANK0_BITS);
+    //Enable all gpios
+    unreset_block_wait(RESETS_RESET_PADS_BANK0_BITS | RESETS_RESET_IO_BANK0_BITS);
     sio_hw->gpio_oe_set = SIO_GPIO_OE_SET_BITS;
+    //Initialize GPIO functions
+    for(int i=0;i<NUM_BANK0_GPIOS;i++) iobank0_hw->io[i].ctrl=Function::GPIO;
 
     //Blink the LED
-    led::function(Function::GPIO);
     led::mode(Mode::OUTPUT);
     ledOn();
     delayMs(100);
