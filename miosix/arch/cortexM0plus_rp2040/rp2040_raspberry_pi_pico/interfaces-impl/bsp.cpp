@@ -59,7 +59,8 @@ void IRQbspInit()
     unreset_block_wait(RESETS_RESET_PADS_BANK0_BITS | RESETS_RESET_IO_BANK0_BITS);
     sio_hw->gpio_oe_set = SIO_GPIO_OE_SET_BITS;
     //Initialize GPIO functions
-    for(int i=0;i<NUM_BANK0_GPIOS;i++) iobank0_hw->io[i].ctrl=Function::GPIO;
+    for(unsigned int i=0; i<NUM_BANK0_GPIOS; i++)
+        iobank0_hw->io[i].ctrl=Function::GPIO;
 
     //Blink the LED
     led::mode(Mode::OUTPUT);
@@ -74,7 +75,7 @@ void IRQbspInit()
     uart_rx::mode(Mode::INPUT);
     DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
     #ifndef STDOUT_REDIRECTED_TO_DCC
-        new RP2040PL011Serial<RP2040UART0>(defaultSerialSpeed)));
+        new RP2040PL011Serial0(defaultSerialSpeed)));
     #else //STDOUT_REDIRECTED_TO_DCC
         new ARMDCC));
     #endif //STDOUT_REDIRECTED_TO_DCC
