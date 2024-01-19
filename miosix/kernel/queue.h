@@ -104,21 +104,30 @@ public:
     /**
      * Put an element to the queue, only if the queue is not full.<br>
      * Can ONLY be used inside an IRQ, or when interrupts are disabled.
+     * Puts any waiting thread out of sleep state, but doesn't cause any
+     * preemption, and threads won't immediately wakeup.
      * \param elem element to add. The element has been added only if the
      * return value is true
      * \return true if the queue was not full.
+     * \note This method is meant as a non-blocking version of put() to use
+     * in a thread context with interrupts disabled. For enqueuing data from
+     * an interrupt, use IRQput(elem, hppw).
      */
     bool IRQput(const T& elem) { return IRQput(elem,nullptr); }
 
     /**
      * Put an element to the queue, only if the queue is not full.<br>
      * Can ONLY be used inside an IRQ, or when interrupts are disabled.
+     * Puts any waiting thread out of sleep state, but doesn't cause any
+     * preemption, and threads won't immediately wakeup.
      * \param elem element to add. The element has been added only if the
      * return value is true
-     * \param hppw is not modified if no thread is woken or if the woken thread
-     * has a lower or equal priority than the currently running thread, else is
-     * set to true
+     * \param hppw is set to `true' if a scheduler update is necessary to
+     * wake up a formerly sleeping thread with `Scheduler::IRQfindNextThread()`.
+     * Otherwise it is not modified.
      * \return true if the queue was not full.
+     * \note This method is meant as a non-blocking version of put() to use
+     * in an IRQ context.
      */
     bool IRQput(const T& elem, bool& hppw) { return IRQput(elem,&hppw); }
 
