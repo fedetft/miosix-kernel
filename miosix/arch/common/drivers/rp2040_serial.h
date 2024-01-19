@@ -34,6 +34,16 @@
 
 namespace miosix {
 
+class RP2040PL011Serial0;
+class RP2040PL011Serial1;
+
+namespace internal {
+
+extern RP2040PL011Serial0 *uart0Handler;
+extern RP2040PL011Serial1 *uart1Handler;
+
+} // namespace internal
+
 class RP2040PL011SerialBase : public Device
 {
 public:
@@ -45,7 +55,8 @@ public:
      * hardware USART.
      * \param baudrate serial port baudrate
      */
-    RP2040PL011SerialBase(uart_hw_t *uart) : Device(Device::TTY), uart(uart) {}
+    RP2040PL011SerialBase(uart_hw_t *uart) : Device(Device::TTY), 
+        uart(uart), txLowWaterFlag(1) {}
     
     /**
      * Read a block of data
@@ -86,11 +97,21 @@ public:
      * \return the exact return value depends on CMD, -1 is returned on error
      */
     int ioctl(int cmd, void *arg);
+
+    /**
+     * \internal the serial port interrupts call this member function.
+     * Never call this from user code.
+     */
+    void IRQhandleInterrupt();
     
     /**
      * Destructor
      */
-    ~RP2040PL011SerialBase() {};
+    ~RP2040PL011SerialBase()
+    {
+        //Disable UART operation
+        uart->cr = 0;
+    }
     
 protected:
     // Initialize the serial port for a given baud rate. This function is in the
@@ -98,11 +119,16 @@ protected:
     // inlining
     void init(int baudrate)
     {
+        //Configure interrupts
+        uart->ifls = (2 << UART_UARTIFLS_RXIFLSEL_MSB) | (2 << UART_UARTIFLS_TXIFLSEL_LSB);
+        uart->imsc = UART_UARTIMSC_RTIM_BITS | UART_UARTIMSC_RXIM_BITS | UART_UARTIMSC_TXIM_BITS;
+        //Setup baud rate
         int rate = 16 * baudrate;
         int div = CLK_SYS_FREQ / rate;
         int frac = (rate * 64) / (CLK_SYS_FREQ % rate);
         uart->ibrd = div;
         uart->fbrd = frac;
+        //Line configuration and UART enable
         uart->lcr_h = (3 << UART_UARTLCR_H_WLEN_LSB) | UART_UARTLCR_H_FEN_BITS;
         uart->cr = UART_UARTCR_UARTEN_BITS | UART_UARTCR_TXE_BITS | UART_UARTCR_RXE_BITS;
     }
@@ -111,6 +137,8 @@ private:
     uart_hw_t * const uart;
     FastMutex txMutex;                ///< Mutex locked during transmission
     FastMutex rxMutex;                ///< Mutex locked during reception
+    Semaphore txLowWaterFlag;
+    Queue<uint8_t, 256> rxQueue;
 };
 
 class RP2040PL011Serial0 : public RP2040PL011SerialBase
@@ -118,8 +146,20 @@ class RP2040PL011Serial0 : public RP2040PL011SerialBase
 public:
     RP2040PL011Serial0(int baudrate) : RP2040PL011SerialBase(uart0_hw)
     {
+        assert(internal::uart0Handler == nullptr);
+        internal::uart0Handler = this;
         unreset_block_wait(RESETS_RESET_UART0_BITS);
         init(baudrate);
+        //UART IRQ saves context: its priority must be the lowest possible
+        NVIC_SetPriority(UART0_IRQ_IRQn, 3);
+        NVIC_EnableIRQ(UART0_IRQ_IRQn);
+    }
+
+    ~RP2040PL011Serial0()
+    {
+        NVIC_DisableIRQ(UART0_IRQ_IRQn);
+        NVIC_ClearPendingIRQ(UART0_IRQ_IRQn);
+        internal::uart0Handler = nullptr;
     }
 };
 
@@ -128,8 +168,20 @@ class RP2040PL011Serial1 : public RP2040PL011SerialBase
 public:
     RP2040PL011Serial1(int baudrate) : RP2040PL011SerialBase(uart1_hw)
     {
+        assert(internal::uart1Handler == nullptr);
+        internal::uart1Handler = this;
         unreset_block_wait(RESETS_RESET_UART1_BITS);
         init(baudrate);
+        //UART IRQ saves context: its priority must be the lowest possible
+        NVIC_SetPriority(UART1_IRQ_IRQn, 3);
+        NVIC_EnableIRQ(UART1_IRQ_IRQn);
+    }
+
+    ~RP2040PL011Serial1()
+    {
+        NVIC_DisableIRQ(UART1_IRQ_IRQn);
+        NVIC_ClearPendingIRQ(UART1_IRQ_IRQn);
+        internal::uart1Handler = nullptr;
     }
 };
 

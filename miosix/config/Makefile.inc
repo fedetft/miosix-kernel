@@ -3317,6 +3317,7 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/core/rp2040_os_timer.cpp                     \
+    arch/common/drivers/rp2040_serial.cpp                    \
     arch/common/CMSIS/Device/RaspberryPi/RP2040/Source/system_RP2040.c
 
 ##-----------------------------------------------------------------------------
