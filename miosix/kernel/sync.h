@@ -619,6 +619,29 @@ public:
     }
 
     /**
+     * Resets the counter to zero, and returns the old count. Only for use in
+     * IRQ handlers or with interrupts disabled.
+     * \return The previous counter value.
+     */
+    inline int IRQreset()
+    {
+        int old=count;
+        count=0;
+        return old;
+    }
+
+    /**
+     * Decrement the counter only if it is positive.
+     * \return true if the counter was positive.
+     */
+    int reset()
+    {
+        // Global interrupt lock because Semaphore is IRQ-safe
+        FastInterruptDisableLock dLock;
+        return IRQreset();
+    }
+
+    /**
      * \return the current semaphore counter.
      */
     unsigned int getCount() { return count; }
