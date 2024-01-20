@@ -259,6 +259,14 @@ protected:
      * \return the number of bytes written or -1 on failure (no space in buffer)
      */
     static int addTerminatingEntry(char **pos, char *end);
+
+    /**
+     * Convert an st_mode as found in a struct stat to a d_type as found in a
+     * struct dirent
+     * \param mode file mode (st_mode encoding)
+     * \return file type (d_type encoding)
+     */
+    static unsigned char modeToType(unsigned short mode);
     
     ///Size of struct dirent excluding d_name. That is, the size of d_ino,
     ///d_off, d_reclen and d_type.  Notice that there are 4 bytes of padding

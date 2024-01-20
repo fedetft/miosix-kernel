@@ -157,6 +157,21 @@ int DirectoryBase::addTerminatingEntry(char **pos, char *end)
     return direntHeaderSize;
 }
 
+unsigned char DirectoryBase::modeToType(unsigned short mode)
+{
+    switch(mode & S_IFMT)
+    {
+        case S_IFREG: return DT_REG;
+        case S_IFLNK: return DT_LNK;
+        case S_IFDIR: return DT_DIR;
+        case S_IFIFO: return DT_FIFO;
+        case S_IFCHR: return DT_CHR;
+        case S_IFBLK: return DT_BLK;
+        case S_IFSOCK: return DT_SOCK;
+        default: return DT_UNKNOWN;
+    }
+}
+
 //
 // class FilesystemBase
 //
