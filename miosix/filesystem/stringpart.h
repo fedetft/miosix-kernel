@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef STRINGPART_H
-#define	STRINGPART_H
+#pragma once
 
 #include <string>
 #include <cstring>
@@ -118,9 +117,54 @@ public:
      * therefore the newly created object will share the same string pointer
      * as rhs. Useful for making substrings of a substring without memory
      * allocation.
+     *
+     * NOTE: this constructor is useful to create a new string that does not
+     * already exist with shallow copy
+     * \code
+     * StringPart sp=...
+     * StringPart substr(sp,idx,off);
+     * \endcode
+     * If the string already exist, use the substr() member function instead.
+     * Avoid writing code that reassigns an existing StringPart such as
+     * \code
+     * StringPart sp=... , substring;
+     * substring=StringPart(sp,idx,off);
+     * \endcode
+     * as this code causes the creation of a temporary followed by operator=
+     * that performs an unwanted deep copy.
+     *
      * \param rhs a StringPart
+     * \param idx this class becomes an in-place substring of the original
+     * string. Otherwise, this class will store the entire string passed.
+     * In this case, the original string will not be modified.
+     * \param off if this parameter is given, the first off characters of the
+     * string are skipped. Note that idx calculations take place <b>before</b>
+     * offset computation, so idx is relative to the original string.
      */
     StringPart(StringPart& rhs, size_t idx, size_t off=0);
+
+    /**
+     * Create a subtring with shallow copy. Unlike the same member function
+     * in std::string:
+     * - the returned substring is passed as a reference parameter to avoid
+     *   operator= and deep copy
+     * - the idx and off are swapped, and the behavior of idx is different
+     *   from std::string len parameter
+     * so this is not a drop-in replacement of std::string::substr
+     *
+     * The newly target object will share the same string pointer with the
+     * string substr is called with, with consequent lifetime considerations.
+     * Useful for making substrings of a substring without memory allocation.
+     * \param target the requested substring will be placed in this object
+     * \param idx if this parameter is given, this class becomes an in-place
+     * substring of the original string. Otherwise, this class will store the
+     * entire string passed. In this case, the original string will not be
+     * modified.
+     * \param off if this parameter is given, the first off characters of the
+     * string are skipped. Note that idx calculations take place <b>before</b>
+     * offset computation, so idx is relative to the original string.
+     */
+    void substr(StringPart& target, size_t idx=std::string::npos, size_t off=0);
     
     /**
      * Copy constructor. Note that deep copying is used, so that the newly
@@ -153,6 +197,13 @@ public:
      * \return true if this starts with rhs
      */
     bool startsWith(const StringPart& rhs) const;
+
+    /**
+     * \param c char to find in the string
+     * \param pos search is started from here
+     * \return the index of the first occurrence of c, or string::npos
+     */
+    size_t findFirstOf(char c, size_t pos=0) const;
     
     /**
      * \param c char to find in the string, starting from the end
@@ -193,7 +244,8 @@ public:
     
 private:
     /**
-     * To implement copy constructor and operator=. *this must be empty.
+     * To implement copy constructor and operator=. *this must be empty and
+     * type must already be set to CSTR
      * \param rhs other StringPart that is assigned to *this.
      */
     void assign(const StringPart& rhs);
@@ -212,5 +264,3 @@ private:
 };
 
 } //namespace miosix
-
-#endif //STRINGPART_H

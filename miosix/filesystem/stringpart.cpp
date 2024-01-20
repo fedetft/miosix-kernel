@@ -32,6 +32,10 @@
 #include "stringpart.h"
 #include <cassert>
 
+#ifdef TEST_ALGORITHM
+#include <cstdio>
+#endif //TEST_ALGORITHM
+
 using namespace std;
 
 namespace miosix {
@@ -74,39 +78,45 @@ StringPart::StringPart(const char* s)
 }
 
 StringPart::StringPart(StringPart& rhs, size_t idx, size_t off)
-        : saved('\0'), owner(false), type(rhs.type)
+      : cstr(&saved), index(0), offset(0), saved('\0'), owner(false), type(CSTR)
 {
+    rhs.substr(*this,idx,off);
+}
+
+void StringPart::substr(StringPart& target, size_t idx, size_t off)
+{
+    target.clear();
+    target.type=type;
     switch(type)
     {
         case CSTR:
-            this->cstr=rhs.cstr;
+            target.cstr=cstr;
             break;
         case CCSTR:
-            type=CSTR; //To make a substring of a CCSTR we need to make a copy
-            if(rhs.empty()==false) assign(rhs); else cstr=&saved;
+            target.type=CSTR; //To make a substring of a CCSTR we need to make a copy
+            if(empty()==false) target.assign(*this);
             break;
         case CPPSTR:
-            this->str=rhs.str;
+            target.str=str;
             break;
     }
-    if(idx!=string::npos && idx<rhs.length())
+    if(idx!=string::npos && idx<length())
     {
-        index=rhs.offset+idx;//Make index relative to beginning of original str
-        if(type==CPPSTR)
+        target.index=offset+idx;//Make index relative to beginning of original str
+        if(target.type==CPPSTR)
         {
-            saved=(*str)[index];
-            (*str)[index]='\0';
+            target.saved=(*target.str)[target.index];
+            (*target.str)[target.index]='\0';
         } else {
-            saved=cstr[index];
-            cstr[index]='\0';
+            target.saved=target.cstr[target.index];
+            target.cstr[target.index]='\0';
         }
-    } else index=rhs.index;
-    offset=min(rhs.offset+off,index); //Works for CCSTR as offset is always zero
+    } else target.index=index;
+    target.offset=min(offset+off,target.index); //Works for CCSTR as offset is always zero
 }
 
 StringPart::StringPart(const StringPart& rhs)
-        : cstr(&saved), index(0), offset(0), saved('\0'), owner(false),
-          type(CSTR)
+      : cstr(&saved), index(0), offset(0), saved('\0'), owner(false), type(CSTR)
 {
     if(rhs.empty()==false) assign(rhs);
 }
@@ -127,13 +137,23 @@ bool StringPart::startsWith(const StringPart& rhs) const
     return memcmp(this->c_str(),rhs.c_str(),rhs.length())==0;
 }
 
+size_t StringPart::findFirstOf(char c, size_t pos) const
+{
+    size_t l=length();
+    if(pos>=l) return std::string::npos;
+    const char *begin=c_str();
+    const void *index=memchr(begin+pos,c,l-pos);
+    if(index==nullptr) return std::string::npos;
+    return reinterpret_cast<const char*>(index)-begin;
+}
+
 size_t StringPart::findLastOf(char c) const
 {
     const char *begin=c_str();
     //Not strrchr() to take advantage of knowing the string length
-    void *index=memrchr(begin,c,length());
-    if(index==0) return std::string::npos;
-    return reinterpret_cast<char*>(index)-begin;
+    const void *index=memrchr(begin,c,length());
+    if(index==nullptr) return std::string::npos;
+    return reinterpret_cast<const char*>(index)-begin;
 }
 
 const char *StringPart::c_str() const
@@ -164,7 +184,7 @@ void StringPart::clear()
         if(owner) delete[] cstr;
     } else if(type==CPPSTR) {
         if(index!=str->length()) (*str)[index]=saved;
-        if(owner) delete str;
+        //assert(owner==false);
     } //For CCSTR there's nothing to do
     cstr=&saved; //Reusing saved as an empty string
     saved='\0';
@@ -183,3 +203,287 @@ void StringPart::assign(const StringPart& rhs)
 }
 
 } //namespace miosix
+
+#ifdef TEST_ALGORITHM
+
+// g++ -Wall -fsanitize=address -DTEST_ALGORITHM -o t stringpart.cpp && ./t
+
+using namespace std;
+using namespace miosix;
+
+int main()
+{
+    //Empty class
+    {
+        StringPart sp;
+        assert(sp.empty());
+        assert(sp.length()==0);
+        assert(sp[0]=='\0');
+        assert(sp.c_str()[0]=='\0');
+    }
+    //Construction from std::string
+    {
+        string s="0123456789";
+        string reference=s;
+        {
+            StringPart sp(s);
+            assert(sp.empty()==false);
+            assert(sp.length()==10);
+            assert(strcmp(sp.c_str(),reference.c_str())==0);
+            assert(s==reference);
+            assert(sp[0]=='0');
+        }
+        assert(s==reference);
+        {
+            StringPart sp(s,5);
+            assert(sp.empty()==false);
+            assert(sp.length()==5);
+            assert(strcmp(sp.c_str(),"01234")==0);
+            assert(strcmp(s.c_str(),"01234")==0); //Should have done shallow copy
+            assert(sp[0]=='0');
+        }
+        assert(s==reference);
+        {
+            StringPart sp(s,5,2);
+            assert(sp.empty()==false);
+            assert(sp.length()==3);
+            assert(strcmp(sp.c_str(),"234")==0);
+            assert(strcmp(s.c_str(),"01234")==0); //Should have done shallow copy
+            assert(sp[0]=='2');
+        }
+        assert(s==reference);
+        {
+            StringPart sp(s,5,5);
+            assert(sp.empty());
+            assert(sp.length()==0);
+            assert(strcmp(sp.c_str(),"")==0);
+            assert(strcmp(s.c_str(),"01234")==0); //Should have done shallow copy
+            assert(sp[0]=='\0');
+        }
+        assert(s==reference);
+    }
+    //Construction from char *
+    {
+        char s[32], reference[32];
+        strcpy(s,"0123456789");
+        strcpy(reference,s);
+        {
+            StringPart sp(s);
+            assert(sp.empty()==false);
+            assert(sp.length()==10);
+            assert(strcmp(sp.c_str(),reference)==0);
+            assert(strcmp(s,reference)==0);
+            assert(sp[0]=='0');
+        }
+        assert(strcmp(s,reference)==0);
+        {
+            StringPart sp(s,5);
+            assert(sp.empty()==false);
+            assert(sp.length()==5);
+            assert(strcmp(sp.c_str(),"01234")==0);
+            assert(strcmp(s,"01234")==0); //Should have done shallow copy
+            assert(sp[0]=='0');
+        }
+        assert(strcmp(s,reference)==0);
+        {
+            StringPart sp(s,5,2);
+            assert(sp.empty()==false);
+            assert(sp.length()==3);
+            assert(strcmp(sp.c_str(),"234")==0);
+            assert(strcmp(s,"01234")==0); //Should have done shallow copy
+            assert(sp[0]=='2');
+        }
+        assert(strcmp(s,reference)==0);
+        {
+            StringPart sp(s,5,5);
+            assert(sp.empty());
+            assert(sp.length()==0);
+            assert(strcmp(sp.c_str(),"")==0);
+            assert(strcmp(s,"01234")==0); //Should have done shallow copy
+            assert(sp[0]=='\0');
+        }
+        assert(strcmp(s,reference)==0);
+    }
+    //Construction from const char *
+    {
+        const char s[]="0123456789";
+        const char reference[]="0123456789";
+        {
+            StringPart sp(s);
+            assert(sp.empty()==false);
+            assert(sp.length()==10);
+            assert(strcmp(sp.c_str(),reference)==0);
+            assert(strcmp(s,reference)==0);
+            assert(sp[0]=='0');
+        }
+        assert(strcmp(s,reference)==0);
+    }
+    //Substring from std::string
+    {
+        string s="0123456789";
+        string reference=s;
+        //Direct substring
+        {
+            StringPart sp(s);
+            StringPart sp2(sp,5,2);
+            assert(sp2.empty()==false);
+            assert(sp2.length()==3);
+            assert(strcmp(sp2.c_str(),"234")==0);
+            assert(strcmp(s.c_str(),"01234")==0); //Should have done shallow copy
+            assert(sp2[0]=='2');
+        }
+        assert(s==reference);
+        {
+            StringPart sp(s);
+            string other="Hello";
+            StringPart sp2(other,3);
+            sp.substr(sp2,5,2);
+            assert(other=="Hello");
+            assert(sp2.empty()==false);
+            assert(sp2.length()==3);
+            assert(strcmp(sp2.c_str(),"234")==0);
+            assert(strcmp(s.c_str(),"01234")==0); //Should have done shallow copy
+            assert(sp2[0]=='2');
+        }
+        assert(s==reference);
+        //Substring of a substring
+        {
+            StringPart sp(s,8,1);
+            StringPart sp2(sp,5,2);
+            assert(sp2.empty()==false);
+            assert(sp2.length()==3);
+            assert(strcmp(sp2.c_str(),"345")==0);
+            assert(strcmp(s.c_str(),"012345")==0); //Should have done shallow copy
+            assert(sp2[0]=='3');
+        }
+        assert(s==reference);
+        {
+            StringPart sp(s,8,1);
+            string other="Hello";
+            StringPart sp2(other,3);
+            sp.substr(sp2,5,2);
+            assert(other=="Hello");
+            assert(sp2.empty()==false);
+            assert(sp2.length()==3);
+            assert(strcmp(sp2.c_str(),"345")==0);
+            assert(strcmp(s.c_str(),"012345")==0); //Should have done shallow copy
+            assert(sp2[0]=='3');
+        }
+        assert(s==reference);
+    }
+    //Substring from char *
+    {
+        char s[32], reference[32];
+        strcpy(s,"0123456789");
+        strcpy(reference,s);
+        //Direct substring
+        {
+            StringPart sp(s);
+            StringPart sp2(sp,5,2);
+            assert(sp2.empty()==false);
+            assert(sp2.length()==3);
+            assert(strcmp(sp2.c_str(),"234")==0);
+            assert(strcmp(s,"01234")==0); //Should have done shallow copy
+            assert(sp2[0]=='2');
+        }
+        assert(strcmp(s,reference)==0);
+        {
+            StringPart sp(s);
+            string other="Hello";
+            StringPart sp2(other,3);
+            sp.substr(sp2,5,2);
+            assert(other=="Hello");
+            assert(sp2.empty()==false);
+            assert(sp2.length()==3);
+            assert(strcmp(sp2.c_str(),"234")==0);
+            assert(strcmp(s,"01234")==0); //Should have done shallow copy
+            assert(sp2[0]=='2');
+        }
+        assert(strcmp(s,reference)==0);
+        //Substring of a substring
+        {
+            StringPart sp(s,8,1);
+            StringPart sp2(sp,5,2);
+            assert(sp2.empty()==false);
+            assert(sp2.length()==3);
+            assert(strcmp(sp2.c_str(),"345")==0);
+            assert(strcmp(s,"012345")==0); //Should have done shallow copy
+            assert(sp2[0]=='3');
+        }
+        assert(strcmp(s,reference)==0);
+        {
+            StringPart sp(s,8,1);
+            string other="Hello";
+            StringPart sp2(other,3);
+            sp.substr(sp2,5,2);
+            assert(other=="Hello");
+            assert(sp2.empty()==false);
+            assert(sp2.length()==3);
+            assert(strcmp(sp2.c_str(),"345")==0);
+            assert(strcmp(s,"012345")==0); //Should have done shallow copy
+            assert(sp2[0]=='3');
+        }
+        assert(strcmp(s,reference)==0);
+    }
+    //Substring from const char *
+    {
+        const char s[]="0123456789";
+        const char reference[]="0123456789";
+        //Direct substring
+        {
+            StringPart sp(s);
+            StringPart sp2(sp,5,2);
+            assert(sp2.empty()==false);
+            assert(sp2.length()==3);
+            assert(strcmp(sp2.c_str(),"234")==0);
+            assert(strcmp(s,reference)==0); //Should have done deep copy
+            assert(sp2[0]=='2');
+        }
+        assert(strcmp(s,reference)==0);
+        {
+            StringPart sp(s);
+            string other="Hello";
+            StringPart sp2(other,3);
+            sp.substr(sp2,5,2);
+            assert(other=="Hello");
+            assert(sp2.empty()==false);
+            assert(sp2.length()==3);
+            assert(strcmp(sp2.c_str(),"234")==0);
+            assert(strcmp(s,reference)==0); //Should have done deep copy
+            assert(sp2[0]=='2');
+        }
+        assert(strcmp(s,reference)==0);
+        //Substring of an empty const char * corner case
+        {
+            const char s[]="";
+            StringPart sp(s);
+            string other="Hello";
+            StringPart sp2(other,3);
+            sp.substr(sp2,5,2);
+            assert(other=="Hello");
+            assert(sp2.empty());
+            assert(sp2.length()==0);
+            assert(strcmp(sp2.c_str(),"")==0);
+            assert(sp2[0]=='\0');
+        }
+    }
+    //startsWith, findFirstOf, findLastOf
+    {
+        string s="/dir1/dir2/dir3/dir4/dir5";
+        string reference=s;
+        {
+            StringPart sp(s,19,6); //"dir2/dir3/dir"
+            assert(sp.startsWith(StringPart("dir2"))==true);
+            assert(sp.startsWith(StringPart("dir3"))==false);
+            assert(sp.findFirstOf('/')==4);
+            assert(sp.findFirstOf('/',5)==9);
+            assert(sp.findFirstOf('0')==string::npos);
+            assert(sp.findLastOf('/')==9);
+            assert(sp.findLastOf('0')==string::npos);
+        }
+        assert(s==reference);
+    }
+    printf("Test passed\n");
+}
+
+#endif //TEST_ALGORITHM
