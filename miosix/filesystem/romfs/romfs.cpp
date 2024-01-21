@@ -273,7 +273,7 @@ int MemoryMappedRomFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
     if(flags & (O_APPEND | O_EXCL | O_WRONLY | O_RDWR)) return -EROFS;
     const RomFsDirectoryEntry *entry=findFile(name);
     if(entry==nullptr) return -ENOENT;
-    switch(mode & S_IFMT)
+    switch(entry->mode & S_IFMT)
     {
         case S_IFREG:
             file=intrusive_ref_ptr<FileBase>(new MemoryMappedRomFsFile(
