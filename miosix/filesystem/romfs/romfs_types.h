@@ -34,21 +34,37 @@
  */
 struct RomFsHeader
 {
-    char marker[32];        ///< 32 'w' characters, not null terminated
-    char fsName[16];        ///< "RomFs 1.01", null terminated
-    char osName[8];         ///< "Miosix", null terminated
-    unsigned int fileCount; ///< # of files in the filesystem, little endian
-    unsigned int unused;    ///< Unused.
+    char marker[6];            ///< 5 'w' characters, null terminated
+    char fsName[11];           ///< "RomFs 2.00", null terminated
+    char osName[7];            ///< "Miosix", null terminated
+    unsigned int imageSize;    ///< Size of the entire filesystem image
+    unsigned int unused;       ///< Reserved for future use, set as 0 for now
 };
-
-static const unsigned int romFsFileMax=23; ///< Max len of RomFsFileInfo.name
 
 /**
- * One instance of this struct per file, stored after the header
+ * Every directory starts with an entry of this type
  */
-struct RomFsFileInfo
+struct RomFsFirstEntry
 {
-    unsigned int start;        ///< File start offset, little endian
-    unsigned int length;       ///< File length, little endian
-    char name[romFsFileMax+1]; ///< File name, null teminated
+    unsigned int parentInode; ///< Inode of the parent directory, 0 if root dir
 };
+
+/**
+ * Regualr directory entry
+ */
+struct __attribute__((packed)) RomFsDirectoryEntry
+{
+    unsigned int inode;       ///< File/directory content start offset
+    unsigned int size;        ///< File size
+    unsigned short mode;      ///< Type reg/dir/symlink and permissions
+    unsigned short uid, gid;  ///< File owner and group
+    char name[];              ///< File name, null teminated
+};
+
+const unsigned int romFsStructAlignment=4; ///< Alignment of all structs
+const unsigned int romFsFileAlignment=8;   ///< Alignment of all file contents
+const unsigned int romFsImageAlignment=8;  ///< Alignment of image start and end
+
+static_assert(sizeof(RomFsHeader)==32,"");
+static_assert(sizeof(RomFsFirstEntry)==4,"");
+static_assert(sizeof(RomFsDirectoryEntry)==14,"");

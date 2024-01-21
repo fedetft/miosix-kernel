@@ -115,21 +115,26 @@ public:
      * \return true if the filesystem failed to mount
      */
     bool mountFailed() const { return failed; }
+
+    /**
+     * \internal
+     * Convert a filesystem offset to the corresponding pointer
+     * \param offset filesystem offset 0=first byte of the filesystem image...
+     * \return pointer to the corresponding byte in the address space
+     */
+    const char *ptr(unsigned int offset) { return base+offset; }
     
 private:
-    friend class MemoryMappedRomFsDirectory;
+    //friend class MemoryMappedRomFsDirectory;
 
     /**
      * \param name file name
-     * \param pointer to where inode number is returned
-     * \return pointer to file info or nullptr if not found
+     * \return corresponding directory entry if found, or nullptr
      */
-    const RomFsFileInfo *findFile(const char *name, int *inode);
+    const RomFsDirectoryEntry *findFile(StringPart& name);
 
-    const RomFsHeader * const header;
-    const RomFsFileInfo * const files;
+    const char * const base;
     bool failed; ///< Failed to mount
-    static const int rootDirInode=1;
 };
 
 } //namespace miosix

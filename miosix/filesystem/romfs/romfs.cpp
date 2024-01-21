@@ -29,7 +29,7 @@
 #include <string>
 #include <errno.h>
 #include <fcntl.h>
-#include "filesystem/stringpart.h"
+#include "filesystem/path.h"
 #include "kernel/logging.h"
 #include "util/util.h"
 
@@ -48,12 +48,12 @@ const void *getRomFsAddressAfterKernel()
     extern char _etext asm("_etext");
     const char *kernelEnd=&_etext+(&_edata-&_data);
     // Align the resulting pointer
-    constexpr unsigned int align=8;
+    const unsigned int align=romFsImageAlignment;
     kernelEnd=reinterpret_cast<const char*>(
              (reinterpret_cast<unsigned int>(kernelEnd)+align-1) & (0-align));
     // Check for romfs start marker
     bool valid=true;
-    for(int i=0;i<32;i++) if(kernelEnd[i]!='w') valid=false;
+    for(int i=0;i<5;i++) if(kernelEnd[i]!='w') valid=false;
     if(valid) return kernelEnd;
     errorLog("Error finding RomFs, expecting it @ %p\n",kernelEnd);
     #ifdef WITH_ERRLOG
@@ -62,36 +62,42 @@ const void *getRomFsAddressAfterKernel()
     return nullptr;
 }
 
-static void fillStatHelper(struct stat* pstat, ino_t st_ino, dev_t st_dev,
-                           mode_t st_mode, off_t st_size)
+/**
+ * Fill a struct stat
+ * \param pstat struct stat to fill
+ * \param entry Directory entry of file/directory to stat
+ * \param dev Id of current filesystem
+ */
+static void fillStatHelper(struct stat* pstat, const RomFsDirectoryEntry *entry,
+                           unsigned short dev)
 {
     memset(pstat,0,sizeof(struct stat));
-    pstat->st_ino=st_ino;
-    pstat->st_dev=st_dev;
-    pstat->st_mode=st_mode;
+    pstat->st_dev=dev;
+    pstat->st_ino=entry->inode;
+    pstat->st_mode=entry->mode;
     pstat->st_nlink=1;
-    pstat->st_size=st_size;
+    pstat->st_uid=entry->uid;
+    pstat->st_gid=entry->gid;
+    pstat->st_size=entry->size;
     pstat->st_blksize=0; //If zero means file buffer equals to BUFSIZ
     //NOTE: st_blocks should be number of 512 byte blocks regardless of st_blksize
-    pstat->st_blocks=(st_size+512-1)/512;
+    pstat->st_blocks=(entry->size+512-1)/512;
 }
 
 /**
- * This file type is for reading and writing from devices
+ * File class for MemoryMappedRomFs
  */
 class MemoryMappedRomFsFile : public FileBase
 {
 public:
     /**
      * Constructor
-     * \param fs pointer to DevFs
-     * \param base pointer to first byte of file
-     * \param len file length
-     * \param inode inode number
+     * \param parent pointer to parent filesystem
+     * \param entry directory entry containing the file information
      */
-    MemoryMappedRomFsFile(intrusive_ref_ptr<FilesystemBase> fs,
-            const char *base, unsigned int length, int inode) : FileBase(fs),
-            base(base), length(length), inode(inode), seekPoint(0) {}
+    MemoryMappedRomFsFile(intrusive_ref_ptr<FilesystemBase> parent,
+            const RomFsDirectoryEntry *entry) : FileBase(parent), entry(entry),
+            seekPoint(0) {}
 
     /**
      * Write data to the file, if the file supports writing.
@@ -139,9 +145,7 @@ public:
     virtual MemoryMappedFile getFileFromMemory();
 
 private:
-    const char *base;
-    unsigned int length;
-    int inode;
+    const RomFsDirectoryEntry * const entry;
     off_t seekPoint; ///< Seek point (note that off_t is 64bit)
 };
 
@@ -149,9 +153,10 @@ ssize_t MemoryMappedRomFsFile::write(const void *data, size_t len) { return -EIN
 
 ssize_t MemoryMappedRomFsFile::read(void *data, size_t len)
 {
-    if(seekPoint>=length) return 0;
-    size_t toRead=min<size_t>(length,length-seekPoint);
-    memcpy(data,base+seekPoint,toRead);
+    if(seekPoint>=entry->size) return 0;
+    size_t toRead=min<size_t>(len,entry->size-seekPoint);
+    auto parent=dynamic_pointer_cast<MemoryMappedRomFs>(getParent());
+    memcpy(data,parent->ptr(entry->inode)+seekPoint,toRead);
     seekPoint+=toRead;
     return toRead;
 }
@@ -168,7 +173,7 @@ off_t MemoryMappedRomFsFile::lseek(off_t pos, int whence)
             newSeekPoint=pos;
             break;
         case SEEK_END:
-            newSeekPoint=length+pos;
+            newSeekPoint=entry->size+pos;
         default:
             return -EINVAL;
     }
@@ -179,26 +184,29 @@ off_t MemoryMappedRomFsFile::lseek(off_t pos, int whence)
 
 int MemoryMappedRomFsFile::fstat(struct stat *pstat) const
 {
-    fillStatHelper(pstat,inode,getParent()->getFsId(),S_IFREG | 0755,length); //-rwxr-xr-x
+    fillStatHelper(pstat,entry,getParent()->getFsId());
     return 0;
 }
 
 MemoryMappedFile MemoryMappedRomFsFile::getFileFromMemory()
 {
-    return MemoryMappedFile(base,length);
+    auto parent=dynamic_pointer_cast<MemoryMappedRomFs>(getParent());
+    return MemoryMappedFile(parent->ptr(entry->inode),entry->size);
 }
 
 /**
- * Directory class for DevFs 
+ * Directory class for MemoryMappedRomFs
  */
 class MemoryMappedRomFsDirectory : public DirectoryBase
 {
 public:
     /**
-     * \param parent parent filesystem
+     * Constructor
+     * \param parent pointer to parent filesystem
+     * \param entry directory entry containing the directory information
      */
-    MemoryMappedRomFsDirectory(intrusive_ref_ptr<FilesystemBase> parent)
-            : DirectoryBase(parent) {}
+    MemoryMappedRomFsDirectory(intrusive_ref_ptr<FilesystemBase> parent,
+            const RomFsDirectoryEntry *entry) : DirectoryBase(parent), entry(entry) {}
 
     /**
      * Also directories can be opened as files. In this case, this system
@@ -212,8 +220,8 @@ public:
     virtual int getdents(void *dp, int len);
 
 private:
+    const RomFsDirectoryEntry * const entry;
     unsigned int index=0; ///< First unhandled directory entry
-    bool first=true;
 };
 
 int MemoryMappedRomFsDirectory::getdents(void *dp, int len)
@@ -225,15 +233,19 @@ int MemoryMappedRomFsDirectory::getdents(void *dp, int len)
     char *end=buffer+len;
     auto parent=dynamic_pointer_cast<MemoryMappedRomFs>(getParent());
     if(!parent) return -EBADF;
-    if(first)
+
+    if(index==0)
     {
-        first=false;
-        addDefaultEntries(&buffer,MemoryMappedRomFs::rootDirInode,
-                          parent->getParentFsMountpointInode());
+        auto f=reinterpret_cast<const RomFsFirstEntry*>(parent->ptr(entry->inode));
+        int upIno=f->parentInode;
+        if(upIno==0) upIno=parent->getParentFsMountpointInode(); //Root dir?
+        addDefaultEntries(&buffer,entry->inode,upIno);
+        index=entry->inode+sizeof(RomFsFirstEntry);
     }
-    for(;index<parent->header->fileCount;index++)
+    for(;index<entry->inode+entry->size;index+=sizeof(RomFsDirectoryEntry))
     {
-        if(addEntry(&buffer,end,index+2,DT_REG,parent->files[index].name)>0) continue;
+        auto e=reinterpret_cast<const RomFsDirectoryEntry*>(parent->ptr(index));
+        if(addEntry(&buffer,end,e->inode,modeToType(e->mode),e->name)>0) continue;
         return buffer-begin;
     }
     addTerminatingEntry(&buffer,end);
@@ -241,21 +253,16 @@ int MemoryMappedRomFsDirectory::getdents(void *dp, int len)
 }
 
 //
-// class DevFs
+// class MemoryMappedRomFs
 //
 
 MemoryMappedRomFs::MemoryMappedRomFs(const void *baseAddress)
-    : header(reinterpret_cast<const RomFsHeader*>(baseAddress)),
-      files(reinterpret_cast<const RomFsFileInfo*>(
-          reinterpret_cast<const char*>(baseAddress)+sizeof(RomFsHeader))),
-      failed(false)
+    : base(reinterpret_cast<const char*>(baseAddress)), failed(false)
 {
-    for(int i=0;i<32;i++) if(header->marker[i]!='w') failed=true;
-    if(strncmp(header->fsName,"RomFs 1.01",16))
-    {
-        errorLog("Unexpected FS version %s\n",header->fsName);
-        failed=true;
-    }
+    auto header=reinterpret_cast<const RomFsHeader*>(base);
+    if(strncmp(header->fsName,"RomFs 2.00",11)==0) return;
+    errorLog("Unexpected FS version %s\n",header->fsName);
+    failed=true;
 }
 
 int MemoryMappedRomFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
@@ -263,32 +270,32 @@ int MemoryMappedRomFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
 {
     if(failed) return -ENOENT;
     if(flags & (O_APPEND | O_EXCL | O_WRONLY | O_RDWR)) return -EROFS;
-    if(name.empty()) //Trying to open the root directory of the fs
+    const RomFsDirectoryEntry *entry=findFile(name);
+    if(entry==nullptr) return -ENOENT;
+    switch(mode & S_IFMT)
     {
-        file=intrusive_ref_ptr<FileBase>(new MemoryMappedRomFsDirectory(shared_from_this()));
-        return 0;
+        case S_IFREG:
+            file=intrusive_ref_ptr<FileBase>(new MemoryMappedRomFsFile(
+                shared_from_this(),entry));
+            break;
+        case S_IFDIR:
+            file=intrusive_ref_ptr<FileBase>(new MemoryMappedRomFsDirectory(
+                shared_from_this(),entry));
+            break;
+//         case S_IFLNK: //FIXME
+//             break;
+        default:
+            return -ENOENT;
     }
-    int inode;
-    const RomFsFileInfo *info=findFile(name.c_str(),&inode);
-    if(info==nullptr) return -ENOENT;
-    file=intrusive_ref_ptr<FileBase>(new MemoryMappedRomFsFile(
-        shared_from_this(),reinterpret_cast<const char*>(header)+info->start,
-        info->length,inode));
     return 0;
 }
 
 int MemoryMappedRomFs::lstat(StringPart& name, struct stat *pstat)
 {
     if(failed) return -ENOENT;
-    if(name.empty())
-    {
-        fillStatHelper(pstat,rootDirInode,getFsId(),S_IFDIR | 0755,0); //drwxr-xr-x
-        return 0;
-    }
-    int inode;
-    const RomFsFileInfo *info=findFile(name.c_str(),&inode);
-    if(info==nullptr) return -ENOENT;
-    fillStatHelper(pstat,inode,getFsId(),S_IFREG | 0755,info->length); //-rwxr-xr-x
+    const RomFsDirectoryEntry *entry=findFile(name);
+    if(entry==nullptr) return -ENOENT;
+    fillStatHelper(pstat,entry,getFsId());
     return 0;
 }
 
@@ -297,16 +304,38 @@ int MemoryMappedRomFs::rename(StringPart& oldName, StringPart& newName) { return
 int MemoryMappedRomFs::mkdir(StringPart& name, int mode) { return -EROFS; }
 int MemoryMappedRomFs::rmdir(StringPart& name) { return -EROFS; }
 
-const RomFsFileInfo *MemoryMappedRomFs::findFile(const char *name, int *inode)
+/**
+ * Compute address of next RomFsDirectoryEntry entry
+ * \param entry current directory entry
+ * \return pointer to next entry.
+ * Note, if entry was the last one, the returned pointer is one past the last one
+ */
+const RomFsDirectoryEntry *nextEntry(const RomFsDirectoryEntry *entry)
 {
-    if(strlen(name)>romFsFileMax) return nullptr;
-    for(unsigned int i=0;i<header->fileCount;i++)
+    unsigned int last=reinterpret_cast<unsigned int>(entry->name+strlen(entry->name)+1);
+    return reinterpret_cast<const RomFsDirectoryEntry *>(
+        (last+romFsStructAlignment-1) & (0-romFsStructAlignment));
+}
+
+const RomFsDirectoryEntry *MemoryMappedRomFs::findFile(StringPart& name)
+{
+    auto entry=reinterpret_cast<const RomFsDirectoryEntry *>(ptr(sizeof(RomFsHeader)));
+    if(name.empty()) return entry;
+    const int off=sizeof(RomFsFirstEntry);
+    NormalizedPathWalker pw(name);
+    while(auto element=pw.next())
     {
-        if(strncmp(name,files[i].name,romFsFileMax)) continue;
-        if(inode) *inode=i+2;
-        return &files[i];
+        if((entry->mode & S_IFMT)!=S_IFDIR) return nullptr; //Intermediate not a dir
+        const void *end=ptr(entry->inode+entry->size);
+        entry=reinterpret_cast<const RomFsDirectoryEntry *>(ptr(entry->inode+off));
+        while(entry<end)
+        {
+            if(strcmp(element->c_str(),entry->name)==0) break;
+            entry=nextEntry(entry);
+        }
+        if(entry>=end) return nullptr; //Not found
     }
-    return nullptr;
+    return entry;
 }
 
 } //namespace miosix

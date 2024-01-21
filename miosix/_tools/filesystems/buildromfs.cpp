@@ -23,107 +23,42 @@
  
 #include <iostream>
 #include <fstream>
-#include <cstring>
-#include <vector>
-#include <algorithm>
-#include <filesystem>
-#include "romfs_types.h"
+#include "tree.h"
+#include "romfs.h"
 
 using namespace std;
-using namespace std::filesystem;
-
-/**
- * \param an unsigned int
- * \return the same int forced into little endian representation
- */
-unsigned int toLittleEndian(unsigned int x)
-{
-    static bool first=true, little;
-    union {
-        unsigned int a;
-        unsigned char b[4];
-    } endian;
-    if(first)
-    {
-        endian.a=0x12;
-        little=endian.b[0]==0x12;
-        first=false;
-    }
-    if(little) return x;
-    endian.a=x;
-    swap(endian.b[0],endian.b[3]);
-    swap(endian.b[1],endian.b[2]);
-    return endian.a;
-}
 
 int main(int argc, char *argv[])
 {
-    if(argc!=3)
+    if(argc<4)
     {
-        cerr<<"Miosix buildromfs utility v1.01"<<endl
-            <<"use: buildromfs <target file> <source directory>"<<endl;
-        return 1;
-    }
-    if(is_directory(argv[2])==false)
-    {
-        cerr<<argv[2]<<": source directory not found"<<endl;
+        cerr<<"Miosix buildromfs utility v2.00"<<endl
+            <<"use: buildromfs <target file> --from-directory <source directory>"<<endl;
         return 1;
     }
 
-    //Traverse the input directory storing path of files
-    path inDir(argv[2]);
-    directory_iterator end;
-    vector<path> files;
-    for(directory_iterator it(inDir);it!=end;++it)
+    // Build the tree of files and directories that compose the image
+    string mode=argv[2];
+    FilesystemEntry root;
+    int uidGidOverride=0; //TODO: for now force all uid and gid to 0 (root)
+    if(mode=="--from-directory")
     {
-        if(is_directory(it->status()))
-        {
-            cerr<<"Warning: ignoring subdirectory \""<<it->path()<<"\""<<endl;
-        } else if(it->path().filename().string().length()>romFsFileMax)
-        {
-            cerr<<"Error: file name \""<<it->path().filename()<<"\" is too long"<<endl;
-            return 1;
-        } else files.push_back(it->path());
-    }
-
-    // Constructing the filesystem header
-    RomFsHeader header;
-    memset(&header,0,sizeof(RomFsHeader));
-    memcpy(header.marker,"wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",32);
-    strncpy(header.fsName,"RomFs 1.01",16);
-    strncpy(header.osName,"Miosix",8);
-    header.fileCount=toLittleEndian(files.size());
-
-    // Building the output filesystem
-    ofstream out(argv[1],ios::binary);
-    if(!out)
-    {
-        cerr<<"Can't open otput file"<<endl;
+        if(int result=buildFromDir(root,argv[3],uidGidOverride)!=0) return result;
+    } else {
+        cerr<<argv[2]<<": unsupported option"<<endl;
         return 1;
     }
-    out.write((char*)&header,sizeof(RomFsHeader)); //Write header
-    int start=sizeof(RomFsHeader)+sizeof(RomFsFileInfo)*files.size();
-    out.seekp(start,ios::beg); //Skip inodes and write individual file contents
-    vector<RomFsFileInfo> fileInfos;
-    for(int i=0;i<files.size();i++)
+
+    // Open the output image
+    fstream io(argv[1], ios::in | ios::out | ios::trunc | ios::binary);
+    if(!io)
     {
-        ifstream in(files[i].string().c_str(),ios::binary);
-        RomFsFileInfo file;
-        memset(&file,0,sizeof(RomFsFileInfo));
-        file.start=toLittleEndian(start);
-        in.seekg(0,ios::end);
-        file.length=toLittleEndian(in.tellg());
-        start+=in.tellg();
-        strcpy(file.name,files[i].filename().c_str());
-        fileInfos.push_back(file);
-        in.seekg(0,ios::beg);
-        out<<in.rdbuf();
+        cerr<<"Can't open otput file "<<argv[1]<<endl;
+        return 1;
     }
 
-    out.seekp(sizeof(RomFsHeader),ios::beg); //Get back to after the header and write inodes
-    for(int i=0;i<fileInfos.size();i++)
-        out.write((char*)&fileInfos[i],sizeof(RomFsFileInfo));
-    out.seekp(0,ios::end);
-    cout<<"RomFs size "<<out.tellp()<<endl;
+    // Build the image and write it to file
+    MkRomFs img(io,root);
+    cout<<"RomFs size "<<img.size()<<endl;
     return 0;
 }

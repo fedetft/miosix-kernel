@@ -6,12 +6,14 @@ main.elf
 main.bin
 main.hex
 main.map
+romfs.bin
+image.bin
 *.o
 *.a
 *.d
 
 # Exclude build directories
-miosix/_tools/filesystem/build
+miosix/_tools/filesystems/build
 
 # Exclude Mac OS X temporary
 ._*
