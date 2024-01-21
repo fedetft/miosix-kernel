@@ -32,6 +32,7 @@
 #include "filesystem/path.h"
 #include "kernel/logging.h"
 #include "util/util.h"
+#include "romfs_types.h"
 
 #ifdef WITH_FILESYSTEM
 

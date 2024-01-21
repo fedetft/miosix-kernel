@@ -30,14 +30,13 @@
 #include "filesystem/file.h"
 #include "filesystem/stringpart.h"
 #include "config/miosix_settings.h"
-#include "romfs_types.h"
 
 #ifdef WITH_FILESYSTEM
 
-namespace miosix {
-
 //Forward decl
-class MemoryMappedRomFsDirectory;
+struct RomFsDirectoryEntry;
+
+namespace miosix {
 
 /**
  * Assuming a firmware is made where the RomFs is appended after the kernel,
@@ -125,8 +124,6 @@ public:
     const char *ptr(unsigned int offset) { return base+offset; }
     
 private:
-    //friend class MemoryMappedRomFsDirectory;
-
     /**
      * \param name file name
      * \return corresponding directory entry if found, or nullptr
