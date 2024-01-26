@@ -31,6 +31,7 @@
 #include <fcntl.h>
 #include "filesystem/path.h"
 #include "kernel/logging.h"
+#include "interfaces/endianness.h"
 #include "util/util.h"
 #include "romfs_types.h"
 
@@ -83,6 +84,19 @@ static void fillStatHelper(struct stat* pstat, const RomFsDirectoryEntry *entry,
     pstat->st_blksize=0; //If zero means file buffer equals to BUFSIZ
     //NOTE: st_blocks should be number of 512 byte blocks regardless of st_blksize
     pstat->st_blocks=(pstat->st_size+512-1)/512;
+}
+
+/**
+ * Compute address of next RomFsDirectoryEntry entry
+ * \param entry current directory entry
+ * \return pointer to next entry.
+ * Note, if entry was the last one, the returned pointer is one past the last one
+ */
+static const RomFsDirectoryEntry *nextEntry(const RomFsDirectoryEntry *entry)
+{
+    unsigned int last=reinterpret_cast<unsigned int>(entry->name+strlen(entry->name)+1);
+    return reinterpret_cast<const RomFsDirectoryEntry *>(
+        (last+romFsStructAlignment-1) & (0-romFsStructAlignment));
 }
 
 /**
@@ -246,14 +260,16 @@ int MemoryMappedRomFsDirectory::getdents(void *dp, int len)
         addDefaultEntries(&buffer,inode,upIno);
         index=inode+sizeof(RomFsFirstEntry);
     }
-    unsigned int size=fromLittleEndian32(entry->size);
-    for(;index<inode+size;index+=sizeof(RomFsDirectoryEntry))
+    unsigned int last=inode+fromLittleEndian32(entry->size);
+    while(index<last)
     {
         auto e=reinterpret_cast<const RomFsDirectoryEntry*>(parent->ptr(index));
         unsigned int entryInode=fromLittleEndian32(e->inode);
         unsigned char entryMode=modeToType(fromLittleEndian16(e->mode));
-        if(addEntry(&buffer,end,entryInode,entryMode,e->name)>0) continue;
-        return buffer-begin;
+        if(addEntry(&buffer,end,entryInode,entryMode,e->name)<0)
+            return buffer-begin;
+        index+=sizeof(RomFsDirectoryEntry)+strlen(e->name)+1;
+        index=(index+romFsStructAlignment-1) & (0-romFsStructAlignment);
     }
     addTerminatingEntry(&buffer,end);
     return buffer-begin;
@@ -310,19 +326,6 @@ int MemoryMappedRomFs::unlink(StringPart& name) { return -EROFS; }
 int MemoryMappedRomFs::rename(StringPart& oldName, StringPart& newName) { return -EROFS; }
 int MemoryMappedRomFs::mkdir(StringPart& name, int mode) { return -EROFS; }
 int MemoryMappedRomFs::rmdir(StringPart& name) { return -EROFS; }
-
-/**
- * Compute address of next RomFsDirectoryEntry entry
- * \param entry current directory entry
- * \return pointer to next entry.
- * Note, if entry was the last one, the returned pointer is one past the last one
- */
-const RomFsDirectoryEntry *nextEntry(const RomFsDirectoryEntry *entry)
-{
-    unsigned int last=reinterpret_cast<unsigned int>(entry->name+strlen(entry->name)+1);
-    return reinterpret_cast<const RomFsDirectoryEntry *>(
-        (last+romFsStructAlignment-1) & (0-romFsStructAlignment));
-}
 
 const RomFsDirectoryEntry *MemoryMappedRomFs::findFile(StringPart& name)
 {
