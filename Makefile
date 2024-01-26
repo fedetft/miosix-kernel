@@ -76,7 +76,7 @@ program:
 
 image: main $(TOOLS_DIR)/build/buildromfs
 	$(ECHO) "[FS  ] romfs.bin"
-	$(Q)./$(TOOLS_DIR)/build/buildromfs romfs.bin $(ROMFS_DIR)
+	$(Q)./$(TOOLS_DIR)/build/buildromfs romfs.bin --from-directory $(ROMFS_DIR)
 	$(ECHO) "[IMG ] image.bin"
 	$(Q)perl $(TOOLS_DIR)/mkimage.pl image.bin main.bin romfs.bin
 
