@@ -29,31 +29,36 @@
 #include "image.h"
 #include "romfs_types.h"
 
-//TODO endianness
 /**
  * \param an unsigned int
  * \return the same int forced into little endian representation
  */
-// unsigned int toLittleEndian(unsigned int x)
-// {
-//     using namespace std;
-//     static bool first=true, little;
-//     union {
-//         unsigned int a;
-//         unsigned char b[4];
-//     } endian;
-//     if(first)
-//     {
-//         endian.a=0x12;
-//         little=endian.b[0]==0x12;
-//         first=false;
-//     }
-//     if(little) return x;
-//     endian.a=x;
-//     swap(endian.b[0],endian.b[3]);
-//     swap(endian.b[1],endian.b[2]);
-//     return endian.a;
-// }
+template<typename T>
+T toLittleEndian(T x)
+{
+    using namespace std;
+    static bool first=true, little;
+    union {
+        T a;
+        unsigned char b[sizeof(T)];
+    } endian;
+    if(first)
+    {
+        endian.a=0x12;
+        little=endian.b[0]==0x12;
+        first=false;
+    }
+    if(little) return x;
+    endian.a=x;
+    for(int i=0;i<sizeof(T)/2;i++)
+    {
+        swap(endian.b[i],endian.b[sizeof(T)-1-i]);
+    }
+    return endian.a;
+}
+
+auto toLittleEndian16=toLittleEndian<unsigned short>;
+auto toLittleEndian32=toLittleEndian<unsigned int>;
 
 /**
  * Create a RomFs image from a directory tree
@@ -82,23 +87,23 @@ public:
         memset(&rootDir,0,sizeof(RomFsDirectoryEntry));
         //rootDir.inode still unknown at this point
         //rootDir.size still unknown at this point
-        rootDir.mode=root.mode;
-        rootDir.uid=root.uid;
-        rootDir.gid=root.gid;
+        rootDir.mode=toLittleEndian16(root.mode);
+        rootDir.uid=toLittleEndian16(root.uid);
+        rootDir.gid=toLittleEndian16(root.gid);
         auto rootOffset=img.append(rootDir,romFsStructAlignment);
         img.appendString(""); //Root dir name is always empty
         auto info=addDirectoryInode(root,0); //prevInode of root dir always 0
 
         // Go back and update rootDir
-        rootDir.inode=info.inode;
-        rootDir.size=info.size;
+        rootDir.inode=toLittleEndian32(info.inode);
+        rootDir.size=toLittleEndian32(info.size);
         img.put(rootDir,rootOffset);
 
         // Final alignment
         img.align(romFsImageAlignment);
 
         // Go back and update header
-        header.imageSize=img.size();
+        header.imageSize=toLittleEndian32(img.size());
         img.put(header,headerOffset);
     }
 
@@ -134,7 +139,7 @@ private:
         // Write first entry
         RomFsFirstEntry prev;
         memset(&prev,0,sizeof(RomFsFirstEntry));
-        prev.parentInode=prevInode;
+        prev.parentInode=toLittleEndian32(prevInode);
         auto inode=img.append(prev,romFsStructAlignment);
 
         // Write entries
@@ -145,9 +150,9 @@ private:
             memset(&de,0,sizeof(RomFsDirectoryEntry));
             //de.inode still unknown at this point
             //de.size still unknown at this point
-            de.mode=d.mode;
-            de.uid=d.uid;
-            de.gid=d.gid;
+            de.mode=toLittleEndian16(d.mode);
+            de.uid=toLittleEndian16(d.uid);
+            de.gid=toLittleEndian16(d.gid);
             entryOffsets.push_back(img.append(de,romFsStructAlignment));
             img.appendString(d.name);
         }
@@ -182,8 +187,8 @@ private:
         for(; o!= end(entryOffsets) && c!= end(entryContent); ++o, ++c)
         {
             auto de=img.get<RomFsDirectoryEntry>(*o);
-            de.inode=c->inode;
-            de.size=c->size;
+            de.inode=toLittleEndian32(c->inode);
+            de.size=toLittleEndian32(c->size);
             img.put(de,*o);
         }
         return InodeInfo(inode,size);
