@@ -27,6 +27,8 @@
 
 #pragma once
 
+#include "interfaces/gpio.h"
+
 /**
  * \internal
  * Versioning for board_settings.h for out of git tree projects
@@ -47,6 +49,14 @@ const unsigned int MAIN_STACK_SIZE=4*1024;
 
 /// Serial port
 const unsigned int defaultSerialSpeed=115200;
+// Uncomment to use UART 0
+#define DEFAULT_SERIAL_ID 0
+using uart_tx = Gpio<GPIOA_BASE, 0>;
+using uart_rx = Gpio<GPIOA_BASE, 1>;
+// Uncomment to use UART 1
+//#define DEFAULT_SERIAL_ID 1
+//using uart_tx = Gpio<GPIOA_BASE, 4>;
+//using uart_rx = Gpio<GPIOA_BASE, 5>;
 
 /**
  * \}

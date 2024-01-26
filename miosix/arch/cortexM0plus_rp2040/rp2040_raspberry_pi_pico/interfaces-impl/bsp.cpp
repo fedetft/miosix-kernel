@@ -62,11 +62,13 @@ void IRQbspInit()
     for(unsigned int i=0; i<NUM_BANK0_GPIOS; i++)
         iobank0_hw->io[i].ctrl=Function::GPIO;
 
-    //Blink the LED
+    //Blink the LED, but only on standard pico (not Pico W)
+    #ifdef PICO_DEFAULT_LED_PIN
     led::mode(Mode::OUTPUT);
     ledOn();
     delayMs(100);
     ledOff();
+    #endif
 
     //Configure serial
     uart_tx::function(Function::UART);
@@ -74,11 +76,16 @@ void IRQbspInit()
     uart_rx::function(Function::UART);
     uart_rx::mode(Mode::INPUT);
     DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
-    #ifndef STDOUT_REDIRECTED_TO_DCC
-        new RP2040PL011Serial0(defaultSerialSpeed)));
-    #else //STDOUT_REDIRECTED_TO_DCC
-        new ARMDCC));
-    #endif //STDOUT_REDIRECTED_TO_DCC
+#if defined(STDOUT_REDIRECTED_TO_DCC)
+        new ARMDCC
+#elif DEFAULT_SERIAL_ID == 0
+        new RP2040PL011Serial0(defaultSerialSpeed)
+#elif DEFAULT_SERIAL_ID == 1
+        new RP2040PL011Serial1(defaultSerialSpeed)
+#else
+#error "No default serial port selected"
+#endif
+    ));
 }
 
 void bspInit2()

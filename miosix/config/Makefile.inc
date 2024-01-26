@@ -643,6 +643,8 @@ endif
 ## atsam4lc2aa_generic
 ##
 
+# No options
+
 ##---------------------------------------------------------------------------
 ## stm32f411ce_blackpill
 ##
@@ -742,7 +744,18 @@ endif
 ## rp2040_raspberry_pi_pico
 ##
 
-# No options
+ifeq ($(OPT_BOARD),rp2040_raspberry_pi_pico)
+
+    # Board variant for selecting either the "plain" Pico or Pico W
+    #BOARD_VARIANT := BOARD_VARIANT_PICO
+    BOARD_VARIANT := BOARD_VARIANT_PICO_W
+
+    # Clock frequency option. The Raspberry Pi Pico boards have a 12MHz
+    # external oscillator.
+    CLOCK_FREQ := -DXOSC_FREQ=12000000 -DCLK_SYS_FREQ=133000000
+    #CLOCK_FREQ := -DXOSC_FREQ=12000000 -DCLK_SYS_FREQ=125000000
+
+endif
 
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
@@ -3265,11 +3278,8 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
-        CFLAGS_BASE   += -DBOARD_RP2040_RASPBERRY_PI_PICO
-        CXXFLAGS_BASE += -DBOARD_RP2040_RASPBERRY_PI_PICO
-
-        ## Clock frequency
-        CLOCK_FREQ := -DXOSC_FREQ=12000000 -DCLK_SYS_FREQ=133000000
+        CFLAGS_BASE   += -DBOARD_RP2040_RASPBERRY_PI_PICO -D$(BOARD_VARIANT)
+        CXXFLAGS_BASE += -DBOARD_RP2040_RASPBERRY_PI_PICO -D$(BOARD_VARIANT)
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types

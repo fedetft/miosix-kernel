@@ -43,15 +43,15 @@ namespace miosix {
 \{
 */
 
-using uart_tx = Gpio<GPIOA_BASE, 0>;
-using uart_rx = Gpio<GPIOA_BASE, 1>;
 
+#ifdef PICO_DEFAULT_LED_PIN
 /**
  * \internal
  * used by the ledOn() and ledOff() implementation
  * \note Doesn't work on Pico W, as the LED is controlled by the WiFi chip.
  */
-using led = Gpio<GPIOA_BASE, 2>;
+using led = Gpio<GPIOA_BASE, PICO_DEFAULT_LED_PIN>;
+#endif
 
 /**
  * Turn on the board LED.
@@ -59,7 +59,9 @@ using led = Gpio<GPIOA_BASE, 2>;
  */
 inline void ledOn()
 {
+#ifdef PICO_DEFAULT_LED_PIN
     led::high();
+#endif
 }
 
 /**
@@ -68,7 +70,9 @@ inline void ledOn()
  */
 inline void ledOff()
 {
+#ifdef PICO_DEFAULT_LED_PIN
     led::low();
+#endif
 }
 
 /**
