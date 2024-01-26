@@ -254,7 +254,7 @@ int MemoryMappedRomFsDirectory::getdents(void *dp, int len)
     unsigned int inode=fromLittleEndian32(entry->inode);
     if(index==0)
     {
-        auto first=reinterpret_cast<const RomFsFirstEntry*>(parent->ptr(inode));
+        auto first=parent->ptr<const RomFsFirstEntry*>(inode);
         int upIno=first->parentInode;
         if(upIno==0) upIno=parent->getParentFsMountpointInode(); //Root dir?
         addDefaultEntries(&buffer,inode,upIno);
@@ -263,7 +263,7 @@ int MemoryMappedRomFsDirectory::getdents(void *dp, int len)
     unsigned int last=inode+fromLittleEndian32(entry->size);
     while(index<last)
     {
-        auto e=reinterpret_cast<const RomFsDirectoryEntry*>(parent->ptr(index));
+        auto e=parent->ptr<const RomFsDirectoryEntry*>(index);
         unsigned int entryInode=fromLittleEndian32(e->inode);
         unsigned char entryMode=modeToType(fromLittleEndian16(e->mode));
         if(addEntry(&buffer,end,entryInode,entryMode,e->name)<0)
@@ -282,7 +282,7 @@ int MemoryMappedRomFsDirectory::getdents(void *dp, int len)
 MemoryMappedRomFs::MemoryMappedRomFs(const void *baseAddress)
     : base(reinterpret_cast<const char*>(baseAddress)), failed(false)
 {
-    auto header=reinterpret_cast<const RomFsHeader*>(base);
+    auto header=ptr<const RomFsHeader*>(0);
     if(strncmp(header->fsName,"RomFs 2.00",11)==0) return;
     errorLog("Unexpected FS version %s\n",header->fsName);
     failed=true;
@@ -329,16 +329,15 @@ int MemoryMappedRomFs::rmdir(StringPart& name) { return -EROFS; }
 
 const RomFsDirectoryEntry *MemoryMappedRomFs::findFile(StringPart& name)
 {
-    auto entry=reinterpret_cast<const RomFsDirectoryEntry *>(ptr(sizeof(RomFsHeader)));
+    auto entry=ptr<const RomFsDirectoryEntry *>(sizeof(RomFsHeader));
     if(name.empty()) return entry;
-    const int off=sizeof(RomFsFirstEntry);
     NormalizedPathWalker pw(name);
     while(auto element=pw.next())
     {
         if((fromLittleEndian16(entry->mode) & S_IFMT)!=S_IFDIR) return nullptr;
         unsigned int inode=fromLittleEndian32(entry->inode);
         const void *end=ptr(inode+fromLittleEndian32(entry->size));
-        entry=reinterpret_cast<const RomFsDirectoryEntry *>(ptr(inode+off));
+        entry=ptr<const RomFsDirectoryEntry *>(inode+sizeof(RomFsFirstEntry));
         while(entry<end)
         {
             if(strcmp(element->c_str(),entry->name)==0) break;

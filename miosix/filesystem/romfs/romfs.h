@@ -121,7 +121,8 @@ public:
      * \param offset filesystem offset 0=first byte of the filesystem image...
      * \return pointer to the corresponding byte in the address space
      */
-    const char *ptr(unsigned int offset) { return base+offset; }
+    template<typename T=const char*>
+    T ptr(unsigned int offset) { return reinterpret_cast<T>(base+offset); }
     
 private:
     /**
