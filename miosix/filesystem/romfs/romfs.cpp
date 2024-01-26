@@ -94,7 +94,7 @@ static void fillStatHelper(struct stat* pstat, const RomFsDirectoryEntry *entry,
  */
 static const RomFsDirectoryEntry *nextEntry(const RomFsDirectoryEntry *entry)
 {
-    unsigned int last=reinterpret_cast<unsigned int>(entry->name+strlen(entry->name)+1);
+    auto last=reinterpret_cast<unsigned int>(entry->name+strlen(entry->name)+1);
     return reinterpret_cast<const RomFsDirectoryEntry *>(
         (last+romFsStructAlignment-1) & (0-romFsStructAlignment));
 }
@@ -268,7 +268,7 @@ int MemoryMappedRomFsDirectory::getdents(void *dp, int len)
         unsigned char entryMode=modeToType(fromLittleEndian16(e->mode));
         if(addEntry(&buffer,end,entryInode,entryMode,e->name)<0)
             return buffer-begin;
-        index+=sizeof(RomFsDirectoryEntry)+strlen(e->name)+1;
+        index+=sizeof(RomFsDirectoryEntry)+strlen(e->name)+1; // +1 for the \0
         index=(index+romFsStructAlignment-1) & (0-romFsStructAlignment);
     }
     addTerminatingEntry(&buffer,end);

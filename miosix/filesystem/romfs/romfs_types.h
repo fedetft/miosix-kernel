@@ -30,7 +30,7 @@
 #pragma once
 
 /**
- * Filesystem header, stored @ address 0
+ * Filesystem header, stored @ offset 0 from the filesystem image start
  */
 struct RomFsHeader
 {
@@ -61,6 +61,7 @@ struct __attribute__((packed)) RomFsDirectoryEntry
     char name[];              ///< File name, null teminated
 };
 
+// All alignments must be power of 2
 const unsigned int romFsStructAlignment=4; ///< Alignment of all structs
 const unsigned int romFsFileAlignment=8;   ///< Alignment of all file contents
 const unsigned int romFsImageAlignment=8;  ///< Alignment of image start and end
