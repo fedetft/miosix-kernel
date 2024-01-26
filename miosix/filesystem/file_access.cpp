@@ -168,9 +168,11 @@ int FileDescriptorTable::chdir(const char* name)
     ResolvedPath openData=FilesystemManager::instance().resolvePath(newCwd);
     if(openData.result<0) return openData.result;
     struct stat st;
-    StringPart sp(newCwd,string::npos,openData.off);
-    if(int result=openData.fs->lstat(sp,&st)) return result;
-    if(!S_ISDIR(st.st_mode)) return -ENOTDIR;
+    {
+        StringPart sp(newCwd,string::npos,openData.off);
+        if(int result=openData.fs->lstat(sp,&st)) return result;
+        if(!S_ISDIR(st.st_mode)) return -ENOTDIR;
+    }
     //NOTE: put after resolvePath() as it strips trailing /
     //Also put after lstat() as it fails if path has a trailing slash
     newCwd+='/';
