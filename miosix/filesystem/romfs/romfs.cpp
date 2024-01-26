@@ -74,15 +74,15 @@ static void fillStatHelper(struct stat* pstat, const RomFsDirectoryEntry *entry,
 {
     memset(pstat,0,sizeof(struct stat));
     pstat->st_dev=dev;
-    pstat->st_ino=entry->inode;
-    pstat->st_mode=entry->mode;
+    pstat->st_ino=fromLittleEndian32(entry->inode);
+    pstat->st_mode=fromLittleEndian16(entry->mode);
     pstat->st_nlink=1;
-    pstat->st_uid=entry->uid;
-    pstat->st_gid=entry->gid;
-    pstat->st_size=entry->size;
+    pstat->st_uid=fromLittleEndian16(entry->uid);
+    pstat->st_gid=fromLittleEndian16(entry->gid);
+    pstat->st_size=fromLittleEndian32(entry->size);
     pstat->st_blksize=0; //If zero means file buffer equals to BUFSIZ
     //NOTE: st_blocks should be number of 512 byte blocks regardless of st_blksize
-    pstat->st_blocks=(entry->size+512-1)/512;
+    pstat->st_blocks=(pstat->st_size+512-1)/512;
 }
 
 /**
@@ -154,10 +154,11 @@ ssize_t MemoryMappedRomFsFile::write(const void *data, size_t len) { return -EIN
 
 ssize_t MemoryMappedRomFsFile::read(void *data, size_t len)
 {
-    if(seekPoint>=entry->size) return 0;
-    size_t toRead=min<size_t>(len,entry->size-seekPoint);
+    unsigned int size=fromLittleEndian32(entry->size);
+    if(seekPoint>=size) return 0;
+    size_t toRead=min<size_t>(len,size-seekPoint);
     auto parent=dynamic_pointer_cast<MemoryMappedRomFs>(getParent());
-    memcpy(data,parent->ptr(entry->inode)+seekPoint,toRead);
+    memcpy(data,parent->ptr(fromLittleEndian32(entry->inode))+seekPoint,toRead);
     seekPoint+=toRead;
     return toRead;
 }
@@ -174,7 +175,7 @@ off_t MemoryMappedRomFsFile::lseek(off_t pos, int whence)
             newSeekPoint=pos;
             break;
         case SEEK_END:
-            newSeekPoint=entry->size+pos;
+            newSeekPoint=fromLittleEndian32(entry->size)+pos;
         default:
             return -EINVAL;
     }
@@ -192,7 +193,8 @@ int MemoryMappedRomFsFile::fstat(struct stat *pstat) const
 MemoryMappedFile MemoryMappedRomFsFile::getFileFromMemory()
 {
     auto parent=dynamic_pointer_cast<MemoryMappedRomFs>(getParent());
-    return MemoryMappedFile(parent->ptr(entry->inode),entry->size);
+    return MemoryMappedFile(parent->ptr(fromLittleEndian32(entry->inode)),
+                            fromLittleEndian32(entry->size));
 }
 
 /**
@@ -235,18 +237,22 @@ int MemoryMappedRomFsDirectory::getdents(void *dp, int len)
     auto parent=dynamic_pointer_cast<MemoryMappedRomFs>(getParent());
     if(!parent) return -EBADF;
 
+    unsigned int inode=fromLittleEndian32(entry->inode);
     if(index==0)
     {
-        auto f=reinterpret_cast<const RomFsFirstEntry*>(parent->ptr(entry->inode));
-        int upIno=f->parentInode;
+        auto first=reinterpret_cast<const RomFsFirstEntry*>(parent->ptr(inode));
+        int upIno=first->parentInode;
         if(upIno==0) upIno=parent->getParentFsMountpointInode(); //Root dir?
-        addDefaultEntries(&buffer,entry->inode,upIno);
-        index=entry->inode+sizeof(RomFsFirstEntry);
+        addDefaultEntries(&buffer,inode,upIno);
+        index=inode+sizeof(RomFsFirstEntry);
     }
-    for(;index<entry->inode+entry->size;index+=sizeof(RomFsDirectoryEntry))
+    unsigned int size=fromLittleEndian32(entry->size);
+    for(;index<inode+size;index+=sizeof(RomFsDirectoryEntry))
     {
         auto e=reinterpret_cast<const RomFsDirectoryEntry*>(parent->ptr(index));
-        if(addEntry(&buffer,end,e->inode,modeToType(e->mode),e->name)>0) continue;
+        unsigned int entryInode=fromLittleEndian32(e->inode);
+        unsigned char entryMode=modeToType(fromLittleEndian16(e->mode));
+        if(addEntry(&buffer,end,entryInode,entryMode,e->name)>0) continue;
         return buffer-begin;
     }
     addTerminatingEntry(&buffer,end);
@@ -273,7 +279,7 @@ int MemoryMappedRomFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
     if(flags & (O_APPEND | O_EXCL | O_WRONLY | O_RDWR)) return -EROFS;
     const RomFsDirectoryEntry *entry=findFile(name);
     if(entry==nullptr) return -ENOENT;
-    switch(entry->mode & S_IFMT)
+    switch(fromLittleEndian16(entry->mode) & S_IFMT)
     {
         case S_IFREG:
             file=intrusive_ref_ptr<FileBase>(new MemoryMappedRomFsFile(
@@ -326,9 +332,10 @@ const RomFsDirectoryEntry *MemoryMappedRomFs::findFile(StringPart& name)
     NormalizedPathWalker pw(name);
     while(auto element=pw.next())
     {
-        if((entry->mode & S_IFMT)!=S_IFDIR) return nullptr; //Intermediate not a dir
-        const void *end=ptr(entry->inode+entry->size);
-        entry=reinterpret_cast<const RomFsDirectoryEntry *>(ptr(entry->inode+off));
+        if((fromLittleEndian16(entry->mode) & S_IFMT)!=S_IFDIR) return nullptr;
+        unsigned int inode=fromLittleEndian32(entry->inode);
+        const void *end=ptr(inode+fromLittleEndian32(entry->size));
+        entry=reinterpret_cast<const RomFsDirectoryEntry *>(ptr(inode+off));
         while(entry<end)
         {
             if(strcmp(element->c_str(),entry->name)==0) break;
