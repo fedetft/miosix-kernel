@@ -55,8 +55,9 @@ public:
      * hardware USART.
      * \param baudrate serial port baudrate
      */
-    RP2040PL011SerialBase(uart_hw_t *uart) : Device(Device::TTY), 
-        uart(uart), txLowWaterFlag(1) {}
+    RP2040PL011SerialBase(uart_hw_t *uart, unsigned int queueSize) :
+        Device(Device::TTY), uart(uart), txLowWaterFlag(1), rxQueue(queueSize)
+        {}
     
     /**
      * Read a block of data
@@ -138,13 +139,13 @@ private:
     FastMutex txMutex;                ///< Mutex locked during transmission
     FastMutex rxMutex;                ///< Mutex locked during reception
     Semaphore txLowWaterFlag;
-    Queue<uint8_t, 256> rxQueue;
+    DynQueue<uint8_t> rxQueue;
 };
 
 class RP2040PL011Serial0 : public RP2040PL011SerialBase
 {
 public:
-    RP2040PL011Serial0(int baudrate) : RP2040PL011SerialBase(uart0_hw)
+    RP2040PL011Serial0(int baudrate) : RP2040PL011SerialBase(uart0_hw, 32+baudrate/500)
     {
         assert(internal::uart0Handler == nullptr);
         internal::uart0Handler = this;
@@ -166,7 +167,7 @@ public:
 class RP2040PL011Serial1 : public RP2040PL011SerialBase
 {
 public:
-    RP2040PL011Serial1(int baudrate) : RP2040PL011SerialBase(uart1_hw)
+    RP2040PL011Serial1(int baudrate) : RP2040PL011SerialBase(uart1_hw, 32+baudrate/500)
     {
         assert(internal::uart1Handler == nullptr);
         internal::uart1Handler = this;
