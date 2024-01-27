@@ -37,31 +37,64 @@ namespace miosix {
  * \{
  */
 
+namespace internal {
+
 /**
- * A queue, used to transfer data between TWO threads, or between ONE thread
- * and an IRQ.<br>
- * If you need to tranfer data between more than two threads, you need to
- * use mutexes to ensure that only one thread at a time calls get, and only one
- * thread at a time calls put.<br>
- * Dynamically creating a queue with new or on the stack must be done with care,
- * to avoid deleting a queue with a waiting thread, and to avoid situations
- * where a thread tries to access a deleted queue.
- *
- * \warning the type T most not have a copy constructor or operator= that
- * allocate memory, as allocating memory in FastInterruptDisableLock context
- * and within interrupt handlers is not possible.
- *
- * \tparam T the type of elements in the queue
- * \tparam len the length of the Queue. Value 0 is forbidden
+ * \internal
+ * Allocator class used to implement queues with a constant compile-time-defined
+ * length.
  */
-template <typename T, unsigned int len>
-class Queue
+template<typename T, unsigned int len>
+class StaticQueueBuffer
+{
+public:
+    T data[len];
+    inline unsigned int size() const { return len; }
+};
+
+//This partial specialization is meant to to produce compiler errors in case an
+//attempt is made to instantiate a Queue with zero size, as it is forbidden
+template<typename T> class StaticQueueBuffer<T,0> {};
+
+/**
+ * \internal
+ * Allocator class used to implement queues with a fixed run-time-defined
+ * length.
+ */
+template<typename T>
+class DynamicQueueBuffer
+{
+public:
+    DynamicQueueBuffer(int len): data(new T[len]), len(len) {}
+    T *data;
+    inline unsigned int size() const { return len; }
+    ~DynamicQueueBuffer() { delete data; }
+private:
+    unsigned int len;
+};
+
+/**
+ * Base class for a queue used to transfer data between TWO threads, or between
+ * ONE thread and an IRQ.
+ * 
+ * \tparam T the type of elements in the queue
+ * \tparam BufferT the allocator for the queue
+ */
+template <typename T, typename BufferT>
+class QueueBase
 {
 public:
     /**
      * Constructor, create a new empty queue.
      */
-    Queue() : waiting(nullptr), numElem(0), putPos(0), getPos(0) {}
+    QueueBase() : waiting(nullptr), numElem(0), putPos(0), getPos(0) {}
+
+    /**
+     * Constructor, create a new empty queue.
+     * \param len The length of the queue.
+     */
+    QueueBase(unsigned int len) : buffer(len), waiting(nullptr), numElem(0),
+        putPos(0), getPos(0) {}
 
     /**
      * \return true if the queue is empty
@@ -71,7 +104,7 @@ public:
     /**
      * \return true if the queue is full
      */
-    bool isFull() const { return numElem==len; }
+    bool isFull() const { return numElem==buffer.size(); }
     
     /**
      * \return the number of elements currently in the queue
@@ -81,7 +114,7 @@ public:
     /**
      * \return the maximum number of elements the queue can hold
      */
-    unsigned int capacity() const { return len; }
+    unsigned int capacity() const { return buffer.size(); }
 
     /**
      * Put an element to the queue. If the queue is full, then wait until a
@@ -187,8 +220,8 @@ public:
     void IRQreset();
 
     //Unwanted methods
-    Queue(const Queue& s) = delete;
-    Queue& operator= (const Queue& s) = delete;
+    QueueBase(const QueueBase& s) = delete;
+    QueueBase& operator= (const QueueBase& s) = delete;
 
 private:
     /**
@@ -225,15 +258,15 @@ private:
     }
 
     //Queue data
-    T buffer[len];///< queued elements are put here. Used as a ring buffer
+    BufferT buffer;///< queued elements are put here. Used as a ring buffer
     Thread *waiting;///< If not null holds the thread waiting
     volatile unsigned int numElem;///< nuber of elements in the queue
     volatile unsigned int putPos; ///< index of buffer where to get next element
     volatile unsigned int getPos; ///< index of buffer where to put next element
 };
 
-template <typename T, unsigned int len>
-void Queue<T,len>::put(const T& elem)
+template <typename T, typename BufferT>
+void QueueBase<T,BufferT>::put(const T& elem)
 {
     FastInterruptDisableLock dLock;
     while(IRQput(elem)==false)
@@ -243,8 +276,8 @@ void Queue<T,len>::put(const T& elem)
     }
 }
 
-template <typename T, unsigned int len>
-void Queue<T,len>::IRQputBlocking(const T& elem, FastInterruptDisableLock& dLock)
+template <typename T, typename BufferT>
+void QueueBase<T,BufferT>::IRQputBlocking(const T& elem, FastInterruptDisableLock& dLock)
 {
     while(IRQput(elem)==false)
     {
@@ -253,8 +286,8 @@ void Queue<T,len>::IRQputBlocking(const T& elem, FastInterruptDisableLock& dLock
     }
 }
 
-template <typename T, unsigned int len>
-void Queue<T,len>::get(T& elem)
+template <typename T, typename BufferT>
+void QueueBase<T,BufferT>::get(T& elem)
 {
     FastInterruptDisableLock dLock;
     while(IRQget(elem)==false)
@@ -264,8 +297,8 @@ void Queue<T,len>::get(T& elem)
     }
 }
 
-template <typename T, unsigned int len>
-void Queue<T,len>::IRQgetBlocking(T& elem, FastInterruptDisableLock& dLock)
+template <typename T, typename BufferT>
+void QueueBase<T,BufferT>::IRQgetBlocking(T& elem, FastInterruptDisableLock& dLock)
 {
     while(IRQget(elem)==false)
     {
@@ -274,34 +307,34 @@ void Queue<T,len>::IRQgetBlocking(T& elem, FastInterruptDisableLock& dLock)
     }
 }
 
-template <typename T, unsigned int len>
-bool Queue<T,len>::IRQput(const T& elem, bool *hppw)
+template <typename T, typename BufferT>
+bool QueueBase<T,BufferT>::IRQput(const T& elem, bool *hppw)
 {
     if(hppw && waiting && (Thread::IRQgetCurrentThread()->IRQgetPriority() <
             waiting->IRQgetPriority())) *hppw=true;
     IRQwakeWaitingThread();
     if(isFull()) return false;
     numElem++;
-    buffer[putPos]=elem;
-    if(++putPos==len) putPos=0;
+    buffer.data[putPos]=elem;
+    if(++putPos==buffer.size()) putPos=0;
     return true;
 }
 
-template <typename T, unsigned int len>
-bool Queue<T,len>::IRQget(T& elem, bool *hppw)
+template <typename T, typename BufferT>
+bool QueueBase<T,BufferT>::IRQget(T& elem, bool *hppw)
 {
     if(hppw && waiting && (Thread::IRQgetCurrentThread()->IRQgetPriority()) <
             waiting->IRQgetPriority()) *hppw=true;
     IRQwakeWaitingThread();
     if(isEmpty()) return false;
     numElem--;
-    elem=std::move(buffer[getPos]);
-    if(++getPos==len) getPos=0;
+    elem=std::move(buffer.data[getPos]);
+    if(++getPos==buffer.size()) getPos=0;
     return true;
 }
 
-template <typename T, unsigned int len>
-void Queue<T,len>::IRQreset()
+template <typename T, typename BufferT>
+void QueueBase<T,BufferT>::IRQreset()
 {
     IRQwakeWaitingThread();
     //Relying on constant folding to omit this code for trivial types
@@ -310,16 +343,54 @@ void Queue<T,len>::IRQreset()
         while(!isEmpty())
         {
             numElem--;
-            buffer[getPos].~T();
-            if(++getPos==len) getPos=0;
+            buffer.data[getPos].~T();
+            if(++getPos==buffer.size()) getPos=0;
         }
     }
     putPos=getPos=numElem=0;
 }
 
-//This partial specialization is meant to to produce compiler errors in case an
-//attempt is made to instantiate a Queue with zero size, as it is forbidden
-template<typename T> class Queue<T,0> {};
+} // namespace internal
+
+/**
+ * A queue used to transfer data between TWO threads, or between ONE thread and
+ * an IRQ. The capacity of the queue is fixed and determined at compile
+ * time.<br>
+ * If you need to tranfer data between more than two threads, you need to
+ * use mutexes to ensure that only one thread at a time calls get, and only one
+ * thread at a time calls put.<br>
+ * Dynamically creating a queue with new or on the stack must be done with care,
+ * to avoid deleting a queue with a waiting thread, and to avoid situations
+ * where a thread tries to access a deleted queue.
+ *
+ * \warning the type T most not have a copy constructor or operator= that
+ * allocate memory, as allocating memory in FastInterruptDisableLock context
+ * and within interrupt handlers is not possible.
+ *
+ * \tparam T the type of elements in the queue
+ * \tparam len the length of the Queue. Value 0 is forbidden
+ */
+template<typename T, unsigned int len>
+using Queue = internal::QueueBase<T,internal::StaticQueueBuffer<T,len>>;
+
+/**
+ * A queue, used to transfer data between TWO threads, or between ONE thread
+ * and an IRQ. The capacity of the queue is fixed after instantiation.<br>
+ * If you need to tranfer data between more than two threads, you need to
+ * use mutexes to ensure that only one thread at a time calls get, and only one
+ * thread at a time calls put.<br>
+ * Dynamically creating a queue with new or on the stack must be done with care,
+ * to avoid deleting a queue with a waiting thread, and to avoid situations
+ * where a thread tries to access a deleted queue.
+ *
+ * \warning the type T most not have a copy constructor or operator= that
+ * allocate memory, as allocating memory in FastInterruptDisableLock context
+ * and within interrupt handlers is not possible.
+ *
+ * \tparam T the type of elements in the queue
+ */
+template<typename T>
+using DynQueue = internal::QueueBase<T,internal::DynamicQueueBuffer<T>>;
 
 /**
  * An unsynchronized circular buffer data structure with the storage dynamically
