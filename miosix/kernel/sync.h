@@ -29,6 +29,7 @@
 #pragma once
 
 #include "kernel.h"
+#include "kernel/scheduler/scheduler.h"
 #include "intrusive.h"
 #include <vector>
 
@@ -565,12 +566,29 @@ public:
     Semaphore(unsigned int initialCount=0) : count(initialCount) {}
 
     /**
+     * Increment the semaphore counter, putting threads out of sleep without
+     * triggering a reschedule.
+     * Only for use in IRQ handlers.
+     * \param hppw is set to `true' if a scheduler update is necessary to
+     * wake up a formerly sleeping thread with `Scheduler::IRQfindNextThread()`.
+     * Otherwise it is not modified.
+     * \warning Use in a thread context with interrupts disabled or with the
+     * kernel paused is forbidden.
+     */
+    void IRQsignal(bool& hppw);
+
+    /**
      * Increment the semaphore counter, waking up at most one waiting thread.
      * Only for use in IRQ handlers.
      * \warning Use in a thread context with interrupts disabled or with the
      * kernel paused is forbidden.
      */
-    void IRQsignal();
+    void IRQsignal()
+    {
+        bool hppw=false;
+        IRQsignal(hppw);
+        if(hppw) Scheduler::IRQfindNextThread();
+    }
 
     /**
      * Increment the semaphore counter, waking up at most one waiting thread.

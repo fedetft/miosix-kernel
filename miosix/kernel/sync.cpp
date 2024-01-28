@@ -27,7 +27,6 @@
 
 #include "sync.h"
 #include "kernel.h"
-#include "kernel/scheduler/scheduler.h"
 #include "error.h"
 #include "pthread_private.h"
 #include <algorithm>
@@ -454,14 +453,14 @@ Thread *Semaphore::IRQsignalNoPreempt()
     return t;
 }
 
-void Semaphore::IRQsignal()
+void Semaphore::IRQsignal(bool& hppw)
 {
     //Update the state of the FIFO and the counter
     Thread *t=IRQsignalNoPreempt();
     if(t==nullptr) return;
     //If the woken thread has higher priority trigger a reschedule
     if(Thread::IRQgetCurrentThread()->IRQgetPriority()<t->IRQgetPriority())
-        Scheduler::IRQfindNextThread();
+        hppw=true;
 }
 
 void Semaphore::signal()
