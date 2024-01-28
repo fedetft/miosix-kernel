@@ -118,23 +118,36 @@ protected:
     // Initialize the serial port for a given baud rate. This function is in the
     // header to allow compile-time computation of the baud rate through
     // inlining
-    void init(int baudrate)
+    void init(int baudrate, bool rts, bool cts)
     {
         //Configure interrupts
-        uart->ifls = (2 << UART_UARTIFLS_RXIFLSEL_MSB) | (2 << UART_UARTIFLS_TXIFLSEL_LSB);
-        uart->imsc = UART_UARTIMSC_RTIM_BITS | UART_UARTIMSC_RXIM_BITS | UART_UARTIMSC_TXIM_BITS;
+        uart->ifls = (2<<UART_UARTIFLS_RXIFLSEL_LSB) | (2<<UART_UARTIFLS_TXIFLSEL_LSB);
+        enableAllInterrupts();
         //Setup baud rate
         int rate = 16 * baudrate;
         int div = CLK_SYS_FREQ / rate;
-        int frac = (rate * 64) / (CLK_SYS_FREQ % rate);
+        int frac = ((rate * 128) / (CLK_SYS_FREQ % rate) + 1) / 2;
         uart->ibrd = div;
         uart->fbrd = frac;
         //Line configuration and UART enable
         uart->lcr_h = (3 << UART_UARTLCR_H_WLEN_LSB) | UART_UARTLCR_H_FEN_BITS;
-        uart->cr = UART_UARTCR_UARTEN_BITS | UART_UARTCR_TXE_BITS | UART_UARTCR_RXE_BITS;
+        uart->cr = UART_UARTCR_UARTEN_BITS | UART_UARTCR_TXE_BITS |
+                UART_UARTCR_RXE_BITS | (rts ? UART_UARTCR_RTSEN_BITS : 0) |
+                (cts ? UART_UARTCR_CTSEN_BITS : 0);
     }
 
 private:
+    inline void disableRXInterrupts()
+    {
+        uart->imsc = UART_UARTIMSC_TXIM_BITS;
+    }
+
+    inline void enableAllInterrupts()
+    {
+        uart->imsc = UART_UARTIMSC_RTIM_BITS | UART_UARTIMSC_RXIM_BITS | 
+                UART_UARTIMSC_TXIM_BITS;
+    }
+
     uart_hw_t * const uart;
     FastMutex txMutex;                ///< Mutex locked during transmission
     FastMutex rxMutex;                ///< Mutex locked during reception
@@ -145,12 +158,13 @@ private:
 class RP2040PL011Serial0 : public RP2040PL011SerialBase
 {
 public:
-    RP2040PL011Serial0(int baudrate) : RP2040PL011SerialBase(uart0_hw, 32+baudrate/500)
+    RP2040PL011Serial0(int baudrate, bool rts=false, bool cts=false) 
+        : RP2040PL011SerialBase(uart0_hw, 32+baudrate/500)
     {
         assert(internal::uart0Handler == nullptr);
         internal::uart0Handler = this;
         unreset_block_wait(RESETS_RESET_UART0_BITS);
-        init(baudrate);
+        init(baudrate, rts, cts);
         //UART IRQ saves context: its priority must be the lowest possible
         NVIC_SetPriority(UART0_IRQ_IRQn, 3);
         NVIC_EnableIRQ(UART0_IRQ_IRQn);
@@ -167,12 +181,13 @@ public:
 class RP2040PL011Serial1 : public RP2040PL011SerialBase
 {
 public:
-    RP2040PL011Serial1(int baudrate) : RP2040PL011SerialBase(uart1_hw, 32+baudrate/500)
+    RP2040PL011Serial1(int baudrate, bool rts=false, bool cts=false)
+        : RP2040PL011SerialBase(uart1_hw, 32+baudrate/500)
     {
         assert(internal::uart1Handler == nullptr);
         internal::uart1Handler = this;
         unreset_block_wait(RESETS_RESET_UART1_BITS);
-        init(baudrate);
+        init(baudrate, rts, cts);
         //UART IRQ saves context: its priority must be the lowest possible
         NVIC_SetPriority(UART1_IRQ_IRQn, 3);
         NVIC_EnableIRQ(UART1_IRQ_IRQn);

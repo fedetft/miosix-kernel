@@ -75,13 +75,22 @@ void IRQbspInit()
     uart_tx::mode(Mode::OUTPUT);
     uart_rx::function(Function::UART);
     uart_rx::mode(Mode::INPUT);
+    if(defaultSerialFlowctrl)
+    {
+        uart_cts::function(Function::UART);
+        uart_cts::mode(Mode::INPUT);
+        uart_rts::function(Function::UART);
+        uart_rts::mode(Mode::OUTPUT);
+    }
     DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
 #if defined(STDOUT_REDIRECTED_TO_DCC)
-        new ARMDCC
+        new ARMDCC()
 #elif DEFAULT_SERIAL_ID == 0
-        new RP2040PL011Serial0(defaultSerialSpeed)
+        new RP2040PL011Serial0(defaultSerialSpeed,
+        defaultSerialFlowctrl, defaultSerialFlowctrl)
 #elif DEFAULT_SERIAL_ID == 1
-        new RP2040PL011Serial1(defaultSerialSpeed)
+        new RP2040PL011Serial1(defaultSerialSpeed,
+        defaultSerialFlowctrl, defaultSerialFlowctrl)
 #else
 #error "No default serial port selected"
 #endif

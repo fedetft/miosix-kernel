@@ -60,12 +60,17 @@ ssize_t RP2040PL011SerialBase::readBlock(void *buffer, size_t size, off_t where)
     size_t i = 0;
     // Block until we can read the first byte
     rxQueue.get(bytes[i++]);
-    // Get bytes from the queue as long as the hardware FIFO is not empty or
-    // there are bytes enqueued.
+    // Get bytes as long as there are bytes in the software queue or the
+    // hardware FIFO.
     // As the interrupt handler never empties the FIFO unless the line is idle,
-    // this tells us if the line is really idle right now.
+    // this also tells us if the line is idle and we should stop.
     while(i<size && (!(uart->fr & UART_UARTFR_RXFE_BITS) || !rxQueue.isEmpty()))
+    {
         rxQueue.get(bytes[i++]);
+        // Ensure the read interrupts can be serviced to read the next byte.
+        // The interrupt routine disables them on sw queue full.
+        if (rxQueue.free()>=32) enableAllInterrupts();
+    }
     return i;
 }
 
@@ -125,22 +130,28 @@ void RP2040PL011SerialBase::IRQwrite(const char *str)
 
 void RP2040PL011SerialBase::IRQhandleInterrupt()
 {
+    bool hppw=false;
     uint32_t flags = uart->mis;
     if(flags & UART_UARTMIS_TXMIS_BITS)
     {
-        //Wake up the thread currently writing and clear interrupt status
-        txLowWaterFlag.IRQsignal();
+        // Wake up the thread currently writing and clear interrupt status
+        txLowWaterFlag.IRQsignal(hppw);
         uart->icr = UART_UARTICR_TXIC_BITS;
     }
-    if((flags & UART_UARTMIS_RXMIS_BITS) || (flags & UART_UARTMIS_RTMIS_BITS))
+    if(flags & (UART_UARTMIS_RXMIS_BITS|UART_UARTMIS_RTMIS_BITS))
     {
-        bool hppw=false;
-        //Read enough data to clear the interrupt status
-        while(uart->mis & (UART_UARTMIS_RXMIS_BITS | UART_UARTMIS_RTMIS_BITS))
+        // Read enough data to clear the interrupt status,
+        // or until the software-side queue is full
+        while((uart->mis & (UART_UARTMIS_RXMIS_BITS|UART_UARTMIS_RTMIS_BITS))
+                && !rxQueue.isFull())
             rxQueue.IRQput((uint8_t)uart->dr, hppw);
-        if (hppw) Scheduler::IRQfindNextThread();
-        uart->icr = UART_UARTMIS_RXMIS_BITS | UART_UARTMIS_RTMIS_BITS;
+        // If the sw queue is full, mask RX interrupts temporarily. The
+        // device read handler will re-enable them when the queue has some
+        // space again
+        if(rxQueue.isFull()) disableRXInterrupts();
     }
+    // Reschedule if needed
+    if(hppw) Scheduler::IRQfindNextThread();
 }
 
 int RP2040PL011SerialBase::ioctl(int cmd, void *arg)
