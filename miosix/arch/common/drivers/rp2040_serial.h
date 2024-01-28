@@ -48,12 +48,10 @@ class RP2040PL011SerialBase : public Device
 {
 public:
     /**
-     * Constructor, initializes the serial port.
-     * Calls errorHandler(UNEXPECTED) if id is not in the correct range, or when
-     * attempting to construct multiple objects with the same id. That is,
-     * it is possible to instantiate only one instance of this class for each
-     * hardware USART.
-     * \param baudrate serial port baudrate
+     * \internal
+     * Internal PL011 driver base class constructor
+     * \param uart Pointer to the hardware registers
+     * \param queueSize Size of the RX queue
      */
     RP2040PL011SerialBase(uart_hw_t *uart, unsigned int queueSize) :
         Device(Device::TTY), uart(uart), txLowWaterFlag(1), rxQueue(queueSize)
@@ -137,39 +135,54 @@ protected:
     }
 
 private:
+    // Internal function to disable RX interrupts when the buffer is full
     inline void disableRXInterrupts()
     {
         uart->imsc = UART_UARTIMSC_TXIM_BITS;
     }
 
+    // Internal function to enable RX and TX interrupts for normal operation
     inline void enableAllInterrupts()
     {
         uart->imsc = UART_UARTIMSC_RTIM_BITS | UART_UARTIMSC_RXIM_BITS | 
                 UART_UARTIMSC_TXIM_BITS;
     }
 
-    uart_hw_t * const uart;
+    uart_hw_t * const uart;           ///< Pointer to the hardware registers
     FastMutex txMutex;                ///< Mutex locked during transmission
     FastMutex rxMutex;                ///< Mutex locked during reception
+    /// Semaphore flagged when the hardware TX FIFO is ready to receive bytes
     Semaphore txLowWaterFlag;
+    /// Software queue used for buffering bytes from the hardware RX FIFO
     DynQueue<uint8_t> rxQueue;
 };
 
 class RP2040PL011Serial0 : public RP2040PL011SerialBase
 {
 public:
+    /**
+     * Constructor, initializes the serial port.
+     * Calls errorHandler(UNEXPECTED) if the port is already being used by
+     * another instance of this driver.
+     * \param baudrate serial port baudrate
+     * \param rts true to enable the RTS flow control signal
+     * \param rts true to enable the CTS flow control signal
+     */
     RP2040PL011Serial0(int baudrate, bool rts=false, bool cts=false) 
         : RP2040PL011SerialBase(uart0_hw, 32+baudrate/500)
     {
-        assert(internal::uart0Handler == nullptr);
+        if(internal::uart0Handler != nullptr) errorHandler(UNEXPECTED);
         internal::uart0Handler = this;
         unreset_block_wait(RESETS_RESET_UART0_BITS);
         init(baudrate, rts, cts);
-        //UART IRQ saves context: its priority must be the lowest possible
+        // UART IRQ saves context: its priority must be 3 (see portability.cpp)
         NVIC_SetPriority(UART0_IRQ_IRQn, 3);
         NVIC_EnableIRQ(UART0_IRQ_IRQn);
     }
 
+    /**
+     * Destructor
+     */
     ~RP2040PL011Serial0()
     {
         NVIC_DisableIRQ(UART0_IRQ_IRQn);
@@ -181,18 +194,29 @@ public:
 class RP2040PL011Serial1 : public RP2040PL011SerialBase
 {
 public:
+    /**
+     * Constructor, initializes the serial port.
+     * Calls errorHandler(UNEXPECTED) if the port is already being used by
+     * another instance of this driver.
+     * \param baudrate serial port baudrate
+     * \param rts true to enable the RTS flow control signal
+     * \param rts true to enable the CTS flow control signal
+     */
     RP2040PL011Serial1(int baudrate, bool rts=false, bool cts=false)
         : RP2040PL011SerialBase(uart1_hw, 32+baudrate/500)
     {
-        assert(internal::uart1Handler == nullptr);
+        if(internal::uart1Handler != nullptr) errorHandler(UNEXPECTED);
         internal::uart1Handler = this;
         unreset_block_wait(RESETS_RESET_UART1_BITS);
         init(baudrate, rts, cts);
-        //UART IRQ saves context: its priority must be the lowest possible
+        // UART IRQ saves context: its priority must be 3 (see portability.cpp)
         NVIC_SetPriority(UART1_IRQ_IRQn, 3);
         NVIC_EnableIRQ(UART1_IRQ_IRQn);
     }
 
+    /**
+     * Destructor
+     */
     ~RP2040PL011Serial1()
     {
         NVIC_DisableIRQ(UART1_IRQ_IRQn);

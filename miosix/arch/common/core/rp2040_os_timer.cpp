@@ -61,7 +61,7 @@ void IRQosTimerInit()
     resets_hw->reset = resets_hw->reset & ~RESETS_RESET_TIMER_BITS;
     while (~resets_hw->reset_done & RESETS_RESET_TIMER_BITS) {}
     //Enable timer interrupt
-    //Timer IRQ saves context: its priority must be the lowest possible
+    //Timer IRQ saves context: its priority must be 3 (see portability.cpp)
     NVIC_SetPriority(TIMER_IRQ_0_IRQn, 3);
     NVIC_EnableIRQ(TIMER_IRQ_0_IRQn);
     timer_hw->inte = TIMER_INTE_ALARM_0_BITS;
