@@ -2,7 +2,7 @@
 
 use warnings;
 use strict;
-use File::Slurp qw(read_file);
+use File::Slurp qw(read_file); # apt install libfile-slurp-perl
 
 if($#ARGV+1 < 2 || $ARGV[0] eq "--help") {
     print("Miosix mkimage utility v1.00\n");
