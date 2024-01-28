@@ -110,6 +110,11 @@ public:
      * \return the number of elements currently in the queue
      */
     unsigned int size() const { return numElem; }
+
+    /**
+     * \return how many elements can be enqueued before the queue is full
+     */
+    unsigned int free() const { return buffer.size()-numElem; }
     
     /**
      * \return the maximum number of elements the queue can hold
