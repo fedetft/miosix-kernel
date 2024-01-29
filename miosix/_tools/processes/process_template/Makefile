@@ -2,6 +2,8 @@
 ## Makefile for writing PROCESSES for the Miosix embedded OS
 ##
 
+BIN := example_program
+
 SRC := \
 main.cpp
 
@@ -25,15 +27,14 @@ DFLAGS    := -MMD -MP
 LINK_LIBS := -Wl,--start-group -lstdc++ -lc -lm -lgcc -Wl,--end-group
 
 all: $(OBJ) crt0.o crt1.o
-	$(CXX) $(LFLAGS) -o main.elf $(OBJ) crt0.o crt1.o $(LINK_LIBS)
-	$(SZ)  main.elf
+	$(CXX) $(LFLAGS) -o $(BIN) $(OBJ) crt0.o crt1.o $(LINK_LIBS)
+	$(SZ)  $(BIN)
 # 	@arm-miosix-eabi-objdump -Dslx main.elf > main.txt
-	@arm-miosix-eabi-strip main.elf
-	@mx-postlinker main.elf --ramsize=16384 --stacksize=2048 --strip-sectheader
-	@xxd -i main.elf | sed 's/unsigned char/const unsigned char __attribute__((aligned(8)))/' > proc.h
+	@arm-miosix-eabi-strip $(BIN)
+	@mx-postlinker $(BIN) --ramsize=16384 --stacksize=2048 --strip-sectheader
 
 clean:
-	-rm -f $(OBJ) crt0.o crt1.o crt1.d main.elf main.map main.txt $(OBJ:.o=.d)
+	-rm -f $(OBJ) crt0.o crt1.o crt1.d $(BIN) main.map main.txt $(OBJ:.o=.d)
 
 %.o: %.s
 	$(AS) $(AFLAGS) $< -o $@

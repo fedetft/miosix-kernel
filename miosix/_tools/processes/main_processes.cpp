@@ -5,8 +5,6 @@
 #include "miosix.h"
 #include "kernel/process.h"
 
-#include "process_template/proc.h"
-
 using namespace std;
 using namespace miosix;
 
@@ -25,16 +23,14 @@ int main()
 {
     Thread::create(ledThread,STACK_MIN);
     
-    ElfProgram prog(reinterpret_cast<const unsigned int*>(main_elf),main_elf_len);
-    for(int i=0;;i++)
+    for(;;)
     {
+        iprintf("Type enter to start process\n");
         getchar();
-        pid_t child=Process::create(prog);
+        pid_t child=Process::spawn("/bin/example_program");
         int ec;
-        pid_t pid;
-        if(i%2==0) pid=Process::wait(&ec);
-        else pid=Process::waitpid(child,&ec,0);
-        iprintf("Process %d terminated\n",pid);
+        pid_t pid=Process::wait(&ec);
+        iprintf("Process %d started, %d terminated\n",child,pid);
         if(WIFEXITED(ec))
         {
             iprintf("Exit code is %d\n",WEXITSTATUS(ec));
