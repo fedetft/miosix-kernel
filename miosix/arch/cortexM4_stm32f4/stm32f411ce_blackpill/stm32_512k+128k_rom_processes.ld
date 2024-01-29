@@ -40,8 +40,15 @@ _main_stack_size = 0x00000200;                     /* main stack = 512Bytes */
 _main_stack_top  = 0x20000000 + _main_stack_size;
 ASSERT(_main_stack_size   % 8 == 0, "MAIN stack size error");
 
-/* end of the heap on 128KB microcontrollers */
-_heap_end = 0x20020000;                            /* end of available ram  */
+/* Mapping the heap into the bottom 32KB of the RAM */
+_heap_end = 0x20008000;
+/* Mapping the process pool into the upper 96KB of the RAM */
+_process_pool_start = _heap_end;
+_process_pool_end = 0x20020000;                    /* end of available ram  */
+
+/* TODO: for now, leave the whole FLASH readable by processes */
+_elf_pool_start = 0x08000000;
+_elf_pool_end   = 0x08000000+512*1024; 
 
 /* identify the Entry Point  */
 ENTRY(_Z13Reset_Handlerv)
@@ -55,7 +62,7 @@ MEMORY
      * Note, the ram starts at 0x20000000 but it is necessary to add the size
      * of the main stack, so it is 0x20000200.
      */
-    ram(wx)     : ORIGIN = 0x20000200, LENGTH =  128K-0x200
+    ram(wx)     : ORIGIN = 0x20000200, LENGTH =  32K-0x200
 }
 
 /* now define the output sections  */
