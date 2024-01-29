@@ -60,7 +60,7 @@ unsigned long long mul64x32d32(unsigned long long a,
                                unsigned int bi, unsigned int bf) noexcept
 {
     /*
-     * The implemntation is a standard multiplication algorithm:
+     * The implementation is a standard multiplication algorithm:
      *                               | 64bit         | 32bit         | Frac part
      * ----------------------------------------------------------------------
      *                               |  hi(a)        | lo(a)         | 0    x
@@ -86,9 +86,13 @@ unsigned long long mul64x32d32(unsigned long long a,
      * on Cortex-A9 (arm/thumb2), Cortex-M3 (thumb2), Cortex-M4 (thumb2),
      * ARM7TDMI (arm), with GCC 4.7.3 and optimization levels -Os, -O2, -O3.
      * 
-     * TODO: this code is *much* slower with architectures missing a 32x32
-     * multiplication with 64 bit result, probably in the thousands of clock
-     * cycles. An example arch is the Cortex-M0. How to deal with those arch?
+     * It is slower on architectures missing a 32x32 multiplication with 64 bit
+     * result, such as the Cortex-M0(+). In this case, optimized versions of
+     * mul32x32to64() are provided. On a Cortex-M0+ with a single-cycle
+     * multiplier, this code has been timed to take about 120 cycles with
+     * GCC 9.2.0, optimization level -O2, and the assembly implementation of
+     * mul32x32to64(). Of course the cycle count will be much worse if the CPU's
+     * multiplier is slow, potentially reaching 500-600 cycles.
      */
 
     unsigned int aLo=lo(a);

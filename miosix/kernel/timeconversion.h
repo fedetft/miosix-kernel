@@ -29,7 +29,7 @@
 #define TIMECONVERSION_H
 
 namespace miosix {
-    
+
 /**
  * \param a 32 bit unsigned number
  * \param b 32 bit unsigned number
@@ -37,9 +37,51 @@ namespace miosix {
  */
 inline unsigned long long mul32x32to64(unsigned int a, unsigned int b)
 {
+#if defined(__thumb__) && !defined(__thumb2__)
+#ifdef NO_ASM
+    //Optimized version for CPUs without native 32x32=64 multiplication.
+    //Just casting to long long uses __aeabi_lmul which is a full 64x64=64 bit
+    //multiplication.
+    unsigned int t0=(a&0xFFFF)*(b&0xFFFF);
+    unsigned int t1=(a>>16)*(b>>16);
+    unsigned long long res=t0|(static_cast<unsigned long long>(t1)<<32);
+    res+=static_cast<unsigned long long>((a>>16)*(b&0xFFFF))<<16;
+    res+=static_cast<unsigned long long>((a&0xFFFF)*(b>>16))<<16;
+    return res;
+#else
+    //Optimized assembly version for ARM CPUs supporting only Thumb mode.
+    //On a Cortex-M0+ takes about 19 to 21 cycles, depending if it's inlined
+    //or not.
+    unsigned int t0=a, t1=b, t2, t3, t4;
+    asm(
+        ".syntax unified\n"
+        "lsls %3, %0, #16\n"
+        "lsrs %3, %3, #16\n" // t3 = a & 0xFFFF
+        "lsls %4, %1, #16\n"
+        "lsrs %4, %4, #16\n" // t4 = b & 0xFFFF
+        "movs %2, %3\n"
+        "muls %2, %4\n"      // t2 = t3 * t4 = (a & 0xFFFF) * (b & 0xFFFF)
+        "lsrs %0, %0, #16\n" // t0 = a >> 16
+        "muls %4, %0\n"      // t4 = t4 * t0 = (a >> 16) * (b & 0xFFFF)
+        "lsrs %1, %1, #16\n" // t1 = b >> 16
+        "muls %3, %1\n"      // t3 = t3 * t1 = (a & 0xFFFF) * (b >> 16)
+        "muls %1, %0\n"      // t1 = t1 * t0 = (a >> 16) * (b >> 16)
+        "lsls %0, %4, #16\n" // t0 = lo(((a >> 16) * (b & 0xFFFF)) << 16)
+        "lsrs %4, %4, #16\n" // t4 = hi(((a >> 16) * (b & 0xFFFF)) << 16)
+        "adds %0, %2\n"
+        "adcs %1, %4\n"      // t1,t0 += t4,t2
+        "lsls %2, %3, #16\n"
+        "lsrs %3, %3, #16\n" // t3,t2 = ((a & 0xFFFF) * (b >> 16)) << 16
+        "adds %0, %2\n"
+        "adcs %1, %3\n"      // t1,t0 += t3,t2
+        :"+l"(t0),"+l"(t1),"=l"(t2),"=l"(t3),"=l"(t4)::);
+    return static_cast<unsigned long long>(t0)|(static_cast<unsigned long long>(t1)<<32);
+#endif
+#else
     //Casts are to produce a 64 bit result. Compiles to a single asm instruction
     //in processors having 32x32 multiplication with 64 bit result
     return static_cast<unsigned long long>(a)*static_cast<unsigned long long>(b);
+#endif
 }
 
 /**
