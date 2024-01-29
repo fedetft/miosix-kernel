@@ -27,7 +27,7 @@
 
 /* 
  * System initialization code for RP2040
- * Partially based on the Raspberry Pi Pico SDK
+ * Partially based on code from the Raspberry Pi Pico SDK
  * 
  * The RP2040 boot process consists of three stages:
  *  Stage 1: Bootloader in ROM does basic system initialization. If BOOTSEL is
@@ -47,14 +47,14 @@
 #include <string.h>
 
 void Reset_Handler() __attribute__((__interrupt__, naked, noreturn));
-void program_startup() __attribute__((noreturn));
-void clock_configure();
+void programStartup() __attribute__((noreturn));
+void clockTreeSetup();
 
 /**
  * ELF entry point. Goes back through bootrom + boot2 to properly initialise
  * flash from scratch.
  */
-extern "C" __attribute__((naked, noreturn)) void entry_point()
+extern "C" __attribute__((naked, noreturn)) void entryPoint()
 {
     asm volatile(
         "movs r0, #0           \n"
@@ -104,21 +104,21 @@ void Reset_Handler()
         "isb                          \n"
         :::"r0");
 
-    program_startup();
+    programStartup();
 }
 
 /**
  * Called by Reset_Handler, performs initialization and calls main.
  * Never returns.
  */
-void program_startup()
+void programStartup()
 {
     //Cortex-M0 appears to get out of reset with interrupts already enabled.
     //Amazingly, even though we went through the bootrom and the flash
     //bootloader, interrupts are STILL enabled!
     __disable_irq();
 
-    //SystemInit() is called *before* initializing .data and zeroing .bss.
+    //Initialize the system *before* initializing .data and zeroing .bss.
     //Usually the opposite is done, as there is no guarantee C code works
     //properly if those memory areas are not properly initialized.
     //However, there are three good reasons to do so:
@@ -129,9 +129,31 @@ void program_startup()
     //enables xram, before touching .data and .bss
     //Third, this is a performance improvement since the loops that initialize
     //.data and zeros .bss now run with the CPU at full speed
+
+    //On RP2040 this function is empty, as they do not really support CMSIS
+    //properly. We do everyting ourselves.
+    //SystemInit();
+
+    // Reset all peripherals to put system into a known state,
+    // - except for QSPI pads and the XIP IO bank, as this is fatal if running from flash
+    // - and the PLLs, as this is fatal if clock muxing has not been reset on this boot
+    // - and USB, syscfg, as this disturbs USB-to-SWD on core 1
+    reset_block(~(RESETS_RESET_IO_QSPI_BITS | RESETS_RESET_PADS_QSPI_BITS |
+            RESETS_RESET_PLL_USB_BITS | RESETS_RESET_USBCTRL_BITS |
+            RESETS_RESET_SYSCFG_BITS | RESETS_RESET_PLL_SYS_BITS));
+    // Remove reset from peripherals which are clocked only by clk_sys and
+    // clk_ref. Other peripherals stay in reset until we've configured clocks.
+    unreset_block_wait(RESETS_RESET_BITS & ~(RESETS_RESET_ADC_BITS |
+            RESETS_RESET_RTC_BITS | RESETS_RESET_SPI0_BITS |
+            RESETS_RESET_SPI1_BITS | RESETS_RESET_UART0_BITS |
+            RESETS_RESET_UART1_BITS | RESETS_RESET_USBCTRL_BITS));
     
-    SystemInit();
-    clock_configure();
+    // Setup clock generation
+    clockTreeSetup();
+
+    // Peripheral clocks should now all be running, turn on basic peripherals
+    unreset_block_wait(RESETS_RESET_SYSINFO_BITS | 
+        RESETS_RESET_SYSCFG_BITS | RESETS_RESET_BUSCTRL_BITS);
 
     //These are defined in the linker script
     extern unsigned char _etext asm("_etext");
@@ -160,107 +182,80 @@ void program_startup()
     for(;;) ;
 }
 
-#define PICO_XOSC_STARTUP_DELAY_MULTIPLIER 1
-#define STARTUP_DELAY (((12000 + 128) / 256) * PICO_XOSC_STARTUP_DELAY_MULTIPLIER)
-
-static void xosc_init(void) {
-    // Assumes 1-15 MHz input, checked above.
+/// Configure the XOSC peripheral
+static void xoscInit(void)
+{
     xosc_hw->ctrl = XOSC_CTRL_FREQ_RANGE_VALUE_1_15MHZ;
-
-    // Set xosc startup delay
-    xosc_hw->startup = STARTUP_DELAY;
-
-    // Set the enable bit now that we have set freq range and startup delay
-    hw_set_bits(&xosc_hw->ctrl, XOSC_CTRL_ENABLE_VALUE_ENABLE << XOSC_CTRL_ENABLE_LSB);
-
+    xosc_hw->startup = ((XOSC_FREQ / 1000) + 128) / 256; // Startup wait ~= 1ms
+    hw_set_bits(&xosc_hw->ctrl, XOSC_CTRL_ENABLE_VALUE_ENABLE<<XOSC_CTRL_ENABLE_LSB);
     // Wait for XOSC to be stable
     while(!(xosc_hw->status & XOSC_STATUS_STABLE_BITS));
 }
 
-static void pll_init(pll_hw_t *pll, uint32_t refdiv, uint32_t fbdiv, uint32_t post_div1, uint32_t post_div2)
+/// Configure a specific PLL
+static void pllInit(pll_hw_t *pll, uint32_t refdiv, uint32_t fbdiv,
+        uint32_t post_div1, uint32_t post_div2)
 {
-    // div1 feeds into div2 so if div1 is 5 and div2 is 2 then you get a divide by 10
-    uint32_t pdiv = (post_div1 << PLL_PRIM_POSTDIV1_LSB) |
-                    (post_div2 << PLL_PRIM_POSTDIV2_LSB);
-
-    if ((pll->cs & PLL_CS_LOCK_BITS) &&
-        (refdiv == (pll->cs & PLL_CS_REFDIV_BITS)) &&
-        (fbdiv  == (pll->fbdiv_int & PLL_FBDIV_INT_BITS)) &&
-        (pdiv   == (pll->prim & (PLL_PRIM_POSTDIV1_BITS | PLL_PRIM_POSTDIV2_BITS)))) {
-        // do not disrupt PLL that is already correctly configured and operating
-        return;
-    }
-
-    uint32_t pll_reset = (pll_usb_hw == pll) ? RESETS_RESET_PLL_USB_BITS : RESETS_RESET_PLL_SYS_BITS;
+    // Reset the PLL
+    uint32_t pll_reset = (pll_usb_hw==pll)? RESETS_RESET_PLL_USB_BITS:
+                                            RESETS_RESET_PLL_SYS_BITS;
     reset_block(pll_reset);
     unreset_block_wait(pll_reset);
-
     // Load VCO-related dividers before starting VCO
     pll->cs = refdiv;
     pll->fbdiv_int = fbdiv;
-
     // Turn on PLL
-    uint32_t power = PLL_PWR_PD_BITS | // Main power
-                     PLL_PWR_VCOPD_BITS; // VCO Power
-
-    hw_clear_bits(&pll->pwr, power);
-
+    hw_clear_bits(&pll->pwr, PLL_PWR_PD_BITS | PLL_PWR_VCOPD_BITS);
     // Wait for PLL to lock
-    while (!(pll->cs & PLL_CS_LOCK_BITS)) {}
-
-    // Set up post dividers
-    pll->prim = pdiv;
-
-    // Turn on post divider
+    while (!(pll->cs & PLL_CS_LOCK_BITS));
+    // Setup and turn on post divider
+    pll->prim = (post_div1<<PLL_PRIM_POSTDIV1_LSB) |
+                (post_div2<<PLL_PRIM_POSTDIV2_LSB);
     hw_clear_bits(&pll->pwr, PLL_PWR_POSTDIVPD_BITS);
 }
 
-static void glitchless_clock_configure(enum clock_index clk_index, uint32_t src, uint32_t auxsrc, uint32_t div)
+/// Configure a clock generator device with glitchless mux
+static void glitchlessClockInit(enum clock_index clk_index,
+        uint32_t src, uint32_t auxsrc, uint32_t div)
 {
     clock_hw_t *clock = &clocks_hw->clk[clk_index];
     div = div << CLOCKS_CLK_GPOUT0_DIV_INT_LSB;
-
     // If increasing divisor, set divisor before source. Otherwise set source
     // before divisor. This avoids a momentary overspeed when e.g. switching
     // to a faster source and increasing divisor to compensate.
     if (div > clock->div)
         clock->div = div;
-
     // If switching a glitchless slice (ref or sys) to an aux source, switch
     // away from aux *first* to avoid passing glitches when changing aux mux.
     // Assume (!!!) glitchless source 0 is no faster than the aux source.
-    if (src == CLOCKS_CLK_SYS_CTRL_SRC_VALUE_CLKSRC_CLK_SYS_AUX) {
+    if (src == CLOCKS_CLK_SYS_CTRL_SRC_VALUE_CLKSRC_CLK_SYS_AUX)
+    {
         hw_clear_bits(&clock->ctrl, CLOCKS_CLK_REF_CTRL_SRC_BITS);
         while (!(clock->selected & 1u)) {}
     }
-
     // Set aux mux first, and then glitchless mux
     hw_write_masked(&clock->ctrl,
         (auxsrc << CLOCKS_CLK_SYS_CTRL_AUXSRC_LSB),
-        CLOCKS_CLK_SYS_CTRL_AUXSRC_BITS
-    );
+        CLOCKS_CLK_SYS_CTRL_AUXSRC_BITS);
     hw_write_masked(&clock->ctrl,
         src << CLOCKS_CLK_REF_CTRL_SRC_LSB,
-        CLOCKS_CLK_REF_CTRL_SRC_BITS
-    );
+        CLOCKS_CLK_REF_CTRL_SRC_BITS);
     while (!(clock->selected & (1u << src))) {}
-
     // Now that the source is configured, we can trust that the user-supplied
     // divisor is a safe value.
     clock->div = div;
 }
 
-static void normal_clock_configure(enum clock_index clk_index, uint32_t auxsrc, uint32_t div)
+/// Configure a clock generator device without glitchless mux
+static void clockInit(enum clock_index clk_index, uint32_t auxsrc, uint32_t div)
 {
     clock_hw_t *clock = &clocks_hw->clk[clk_index];
     div = div << CLOCKS_CLK_GPOUT0_DIV_INT_LSB;
-
     // If increasing divisor, set divisor before source. Otherwise set source
     // before divisor. This avoids a momentary overspeed when e.g. switching
     // to a faster source and increasing divisor to compensate.
     if (div > clock->div)
         clock->div = div;
-
     // Cleanly stop the clock to avoid glitches propagating when
     // changing aux mux.
     hw_clear_bits(&clock->ctrl, CLOCKS_CLK_GPOUT0_CTRL_ENABLE_BITS);
@@ -268,116 +263,56 @@ static void normal_clock_configure(enum clock_index clk_index, uint32_t auxsrc, 
     // We consider a worst case scenario where the CPU clock is clocked at the
     // full 125MHz and the clock to configure is clocked at 1MHz
     for (int i=0; i<200; i++) asm("");
-
     // Set aux mux
     hw_write_masked(&clock->ctrl,
         (auxsrc << CLOCKS_CLK_SYS_CTRL_AUXSRC_LSB),
-        CLOCKS_CLK_SYS_CTRL_AUXSRC_BITS
-    );
-
+        CLOCKS_CLK_SYS_CTRL_AUXSRC_BITS);
     // Enable clock.
     hw_set_bits(&clock->ctrl, CLOCKS_CLK_GPOUT0_CTRL_ENABLE_BITS);
-
     // Now that the source is configured, we can trust that the user-supplied
     // divisor is a safe value.
     clock->div = div;
 }
 
-void clock_configure(void)
+void clockTreeSetup(void)
 {
-    // Reset all peripherals to put system into a known state,
-    // - except for QSPI pads and the XIP IO bank, as this is fatal if running from flash
-    // - and the PLLs, as this is fatal if clock muxing has not been reset on this boot
-    // - and USB, syscfg, as this disturbs USB-to-SWD on core 1
-    reset_block(~(
-            RESETS_RESET_IO_QSPI_BITS |
-            RESETS_RESET_PADS_QSPI_BITS |
-            RESETS_RESET_PLL_USB_BITS |
-            RESETS_RESET_USBCTRL_BITS |
-            RESETS_RESET_SYSCFG_BITS |
-            RESETS_RESET_PLL_SYS_BITS
-    ));
-
-    // Remove reset from peripherals which are clocked only by clk_sys and
-    // clk_ref. Other peripherals stay in reset until we've configured clocks.
-    unreset_block_wait(RESETS_RESET_BITS & ~(
-            RESETS_RESET_ADC_BITS |
-            RESETS_RESET_RTC_BITS |
-            RESETS_RESET_SPI0_BITS |
-            RESETS_RESET_SPI1_BITS |
-            RESETS_RESET_UART0_BITS |
-            RESETS_RESET_UART1_BITS |
-            RESETS_RESET_USBCTRL_BITS
-    ));
-
-    // pre-init runs really early since we need it even for memcpy and divide!
-    // (basically anything in aeabi that uses bootrom)
-
-    // After calling preinit we have enough runtime to do the exciting maths
-    // in clocks_init
-
-    // Disable resus that may be enabled from previous software
+    // Disable "resuscitator" and enable xosc
     clocks_hw->resus.ctrl = 0;
-
-    // Enable the xosc
-    xosc_init();
+    xoscInit();
 
     // Before we touch PLLs, switch sys and ref cleanly away from their aux sources.
     hw_clear_bits(&clocks_hw->clk[clk_sys].ctrl, CLOCKS_CLK_SYS_CTRL_SRC_BITS);
-    while (clocks_hw->clk[clk_sys].selected != 0x1) {}
+    while (clocks_hw->clk[clk_sys].selected != 0x1);
     hw_clear_bits(&clocks_hw->clk[clk_ref].ctrl, CLOCKS_CLK_REF_CTRL_SRC_BITS);
-    while (clocks_hw->clk[clk_ref].selected != 0x1) {}
+    while (clocks_hw->clk[clk_ref].selected != 0x1);
+    // Setup SYS PLL to CLK_SYS_FREQ rounded to the nearest MHz
+    // VCO frequency (fb_div * XOSC_FREQ) must be >= 750MHz
+    static_assert((CLK_SYS_FREQ / 1000000) * XOSC_FREQ >= 750, "CLK_SYS_FREQ too slow");
+    // SYS PLL = 12MHz * (CLK_SYS_FREQ/1000000) / 6 / 2 ~= CLK_SYS_FREQ
+    pllInit(pll_sys_hw, 1, CLK_SYS_FREQ/1000000, 6, 2);
+    // USB PLL = 12MHz * 64 / 4 / 4 = 48 MHz
+    pllInit(pll_usb_hw, 1, 64, 4, 4);
 
-    // Configure system PLL to run at 133 MHz
-    // 12MHz * 133 / 6 / 2 = 133 MHz
-    pll_init(pll_sys_hw, 1, CLK_SYS_FREQ / 1000000, 6, 2);
-    // Configure USB PLL to run at 48 MHz
-    // 12MHz * 64 / 4 / 4 = 48 MHz
-    pll_init(pll_usb_hw, 1, 64, 4, 4);
-
-    // Configure clocks
+    // Configure clocks:
     // CLK_REF = XOSC (usually) 12MHz / 1 = 12MHz
-    glitchless_clock_configure(clk_ref,
-                    CLOCKS_CLK_REF_CTRL_SRC_VALUE_CLKSRC_CLK_REF_AUX,
-                    CLOCKS_CLK_REF_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB,
-                    1);
-    
-    // Enable watchdog tick timer
+    glitchlessClockInit(clk_ref,
+            CLOCKS_CLK_REF_CTRL_SRC_VALUE_CLKSRC_CLK_REF_AUX,
+            CLOCKS_CLK_REF_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB, 1);
+    // Enable watchdog tick timer (also used by timer peripheral)
     // Frequency: 12MHz (clk_ref) / 12 = 1MHz
     watchdog_hw->tick = WATCHDOG_TICK_ENABLE_BITS | 1;
-
-    /// \tag::configure_clk_sys[]
     // CLK SYS = PLL SYS (usually) 125MHz / 1 = 125MHz
-    glitchless_clock_configure(clk_sys,
-                    CLOCKS_CLK_SYS_CTRL_SRC_VALUE_CLKSRC_CLK_SYS_AUX,
-                    CLOCKS_CLK_SYS_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS,
-                    1);
-    /// \end::configure_clk_sys[]
-
+    glitchlessClockInit(clk_sys,
+            CLOCKS_CLK_SYS_CTRL_SRC_VALUE_CLKSRC_CLK_SYS_AUX,
+            CLOCKS_CLK_SYS_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, 1);
     // CLK USB = PLL USB 48MHz / 1 = 48MHz
-    normal_clock_configure(clk_usb,
-                    CLOCKS_CLK_USB_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB,
-                    1);
-
+    clockInit(clk_usb, CLOCKS_CLK_USB_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB, 1);
     // CLK ADC = PLL USB 48MHZ / 1 = 48MHz
-    normal_clock_configure(clk_adc,
-                    CLOCKS_CLK_ADC_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB,
-                    1);
-
+    clockInit(clk_adc, CLOCKS_CLK_ADC_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB, 1);
     // CLK RTC = PLL USB 48MHz / 1024 = 46875Hz
-    normal_clock_configure(clk_rtc,
-                    CLOCKS_CLK_RTC_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB,
-                    1024);
-
-    // CLK PERI = clk_sys. Used as reference clock for Peripherals. No dividers so just select and enable
-    // Normally choose clk_sys or clk_usb
-    normal_clock_configure(clk_peri,
-                    CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
-                    1);
-
-    // Peripheral clocks should now all be running
-    unreset_block_wait(RESETS_RESET_SYSINFO_BITS | 
-        RESETS_RESET_SYSCFG_BITS | RESETS_RESET_BUSCTRL_BITS);
+    clockInit(clk_rtc, CLOCKS_CLK_RTC_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB, 1024);
+    // CLK PERI = clk_sys.
+    clockInit(clk_peri, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS, 1);
 }
 
 /**

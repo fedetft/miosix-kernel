@@ -44,7 +44,7 @@ _heap_end = 0x20042000;                            /* end of available ram  */
 /* Entry point. This is effectively used only by the "run" command of a
  * debugger. We do not use the same symbol as the reset handler because we
  * want to go back to the bootrom to re-do the whole boot process cleanly. */
-ENTRY(entry_point)
+ENTRY(entryPoint)
 
 /* specify the memory areas  */
 MEMORY
