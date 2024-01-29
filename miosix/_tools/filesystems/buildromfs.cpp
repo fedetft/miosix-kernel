@@ -24,7 +24,7 @@
 #include <iostream>
 #include <fstream>
 #include "tree.h"
-#include "romfs.h"
+#include "mkromfs.h"
 
 using namespace std;
 

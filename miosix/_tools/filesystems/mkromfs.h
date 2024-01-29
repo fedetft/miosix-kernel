@@ -77,7 +77,7 @@ public:
         RomFsHeader header;
         memset(&header,0,sizeof(RomFsHeader));
         strncpy(header.marker,"wwwww",6);
-        strncpy(header.fsName,"RomFs 2.00",11);
+        strncpy(header.fsName,"RomFs 2.01",11);
         strncpy(header.osName,"Miosix",7);
         //header.imageSize still unknown at this point
         auto headerOffset=img.append(header,romFsStructAlignment);
@@ -219,7 +219,8 @@ private:
     InodeInfo addSymlinkInode(const FilesystemEntry& link)
     {
         assert(link.isLink());
-        auto inode=img.appendString(link.path); //Symlinks are not aligned
+        //Symlinks are not aligned nor terminated with \0
+        auto inode=img.appendString(link.path,false);
 
         // Compute the entire directory inode size
         auto size=img.size()-inode; //inode is also address of first byte

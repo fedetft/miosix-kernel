@@ -111,6 +111,22 @@ public:
     virtual int rmdir(StringPart& name);
 
     /**
+     * Follows a symbolic link
+     * \param path path identifying a symlink, relative to the local filesystem
+     * \param target the link target is returned here if the call succeeds.
+     * Note that the returned path is not relative to this filesystem, and can
+     * be either relative or absolute.
+     * \return 0 on success, a negative number on failure
+     */
+    virtual int readlink(StringPart& name, std::string& target);
+
+    /**
+     * \return true if the filesystem supports symbolic links.
+     * In this case, the filesystem should override readlink
+     */
+    virtual bool supportsSymlinks() const;
+
+    /**
      * \return true if the filesystem failed to mount
      */
     bool mountFailed() const { return failed; }
@@ -126,10 +142,10 @@ public:
     
 private:
     /**
-     * \param name file name
-     * \return corresponding directory entry if found, or nullptr
+     * \param name file/directory/symlink name
+     * \return corresponding entry if found, or nullptr
      */
-    const RomFsDirectoryEntry *findFile(StringPart& name);
+    const RomFsDirectoryEntry *findEntry(StringPart& name);
 
     const char * const base;
     bool failed; ///< Failed to mount

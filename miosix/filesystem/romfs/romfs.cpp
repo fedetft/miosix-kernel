@@ -283,7 +283,7 @@ MemoryMappedRomFs::MemoryMappedRomFs(const void *baseAddress)
     : base(reinterpret_cast<const char*>(baseAddress)), failed(false)
 {
     auto header=ptr<const RomFsHeader*>(0);
-    if(strncmp(header->fsName,"RomFs 2.00",11)==0) return;
+    if(strncmp(header->fsName,"RomFs 2.01",11)==0) return;
     errorLog("Unexpected FS version %s\n",header->fsName);
     failed=true;
 }
@@ -293,7 +293,7 @@ int MemoryMappedRomFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
 {
     if(failed) return -ENOENT;
     if(flags & (O_APPEND | O_EXCL | O_WRONLY | O_RDWR)) return -EROFS;
-    const RomFsDirectoryEntry *entry=findFile(name);
+    const RomFsDirectoryEntry *entry=findEntry(name);
     if(entry==nullptr) return -ENOENT;
     switch(fromLittleEndian16(entry->mode) & S_IFMT)
     {
@@ -305,8 +305,8 @@ int MemoryMappedRomFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
             file=intrusive_ref_ptr<FileBase>(new MemoryMappedRomFsDirectory(
                 shared_from_this(),entry));
             break;
-//         case S_IFLNK: //FIXME
-//             break;
+        case S_IFLNK:
+            return -EFAULT; // We should not arrive at open with a symlink
         default:
             return -ENOENT;
     }
@@ -316,7 +316,7 @@ int MemoryMappedRomFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
 int MemoryMappedRomFs::lstat(StringPart& name, struct stat *pstat)
 {
     if(failed) return -ENOENT;
-    const RomFsDirectoryEntry *entry=findFile(name);
+    const RomFsDirectoryEntry *entry=findEntry(name);
     if(entry==nullptr) return -ENOENT;
     fillStatHelper(pstat,entry,getFsId());
     return 0;
@@ -327,7 +327,19 @@ int MemoryMappedRomFs::rename(StringPart& oldName, StringPart& newName) { return
 int MemoryMappedRomFs::mkdir(StringPart& name, int mode) { return -EROFS; }
 int MemoryMappedRomFs::rmdir(StringPart& name) { return -EROFS; }
 
-const RomFsDirectoryEntry *MemoryMappedRomFs::findFile(StringPart& name)
+int MemoryMappedRomFs::readlink(StringPart& name, string& target)
+{
+    if(failed) return -ENOENT;
+    const RomFsDirectoryEntry *entry=findEntry(name);
+    if(entry==nullptr) return -ENOENT;
+    if((fromLittleEndian16(entry->mode) & S_IFMT)!=S_IFLNK) return -EINVAL;
+    target.assign(ptr(fromLittleEndian32(entry->inode)),fromLittleEndian32(entry->size));
+    return 0;
+}
+
+bool MemoryMappedRomFs::supportsSymlinks() const { return true; }
+
+const RomFsDirectoryEntry *MemoryMappedRomFs::findEntry(StringPart& name)
 {
     auto entry=ptr<const RomFsDirectoryEntry *>(sizeof(RomFsHeader));
     if(name.empty()) return entry;
