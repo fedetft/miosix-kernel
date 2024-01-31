@@ -202,6 +202,36 @@ system:
 	blt  syscallfailed
 	bx   lr
 
+/**
+ * fstat
+ * \param fd file descriptor
+ * \param pstat pointer to struct stat
+ */
+.section .text.fstat
+.global fstat
+.type fstat, %function
+fstat:
+	movs r3, #10
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed
+	bx   lr
+
+/**
+ * isatty
+ * \param fd file descriptor
+ * \return 1 if fd is associated with a terminal
+ */
+.section .text.isatty
+.global isatty
+.type isatty, %function
+isatty:
+	movs r3, #11
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed
+	bx   lr
+
 .section .text.__seterrno
 /* common jump target for all failing syscalls */
 syscallfailed:
