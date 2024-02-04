@@ -100,7 +100,7 @@ void configureSDRAM()
                     RCC_AHB1ENR_GPIOFEN | RCC_AHB1ENR_GPIOGEN |
                     RCC_AHB1ENR_GPIOHEN | RCC_AHB1ENR_GPIOIEN;
     // Enable SYSCFG
-    //RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+    RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
     RCC_SYNC();
     // Enable compensation cell
     //SYSCFG->CMPCR = SYSCFG_CMPCR_CMP_PD;
@@ -136,8 +136,8 @@ void configureSDRAM()
     RCC_SYNC();
     // Program memory device features and timings for 8 paralleled
     // IS42S86400D-7TLI chips
-    constexpr int clockDiv = 2;
-    constexpr int casLatency = 3;
+    constexpr int clockDiv = 3;
+    constexpr int casLatency = 2;
     uint32_t sdcr =
           (3 << FMC_SDCR1_NC_Pos)       // 11 column address bits
         | (2 << FMC_SDCR1_NR_Pos)       // 13 row address bits
