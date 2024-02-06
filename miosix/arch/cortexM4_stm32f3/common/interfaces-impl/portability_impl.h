@@ -184,9 +184,20 @@ inline unsigned int SyscallParameters::getThirdParameter() const
     return registers[2];
 }
 
+inline unsigned int SyscallParameters::getFourthParameter() const
+{
+    return registers[4];
+}
+
 inline void SyscallParameters::setReturnValue(unsigned int ret)
 {
     registers[0]=ret;
+}
+
+inline void SyscallParameters::setReturnValueLongLong(unsigned long long ret)
+{
+    registers[0]=ret & 0xffffffff;
+    registers[1]=ret>>32;
 }
 
 inline void portableSwitchToUserspace()

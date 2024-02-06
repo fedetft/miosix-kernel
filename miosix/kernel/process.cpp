@@ -343,11 +343,11 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             }
             case SYS_LSEEK:
             {
-                //FIXME: need to pass and return a 64 bit parameter,
-                //now it is truncated to 32 bit but this is wrong
-                off_t result=fileTable.lseek(sp.getFirstParameter(),
-                    sp.getSecondParameter(),sp.getThirdParameter());
-                sp.setReturnValue(result);
+                off_t pos=sp.getThirdParameter();
+                pos|=static_cast<off_t>(sp.getSecondParameter())<<32;
+                off_t result=fileTable.lseek(sp.getFirstParameter(),pos,
+                    sp.getFourthParameter());
+                sp.setReturnValueLongLong(result);
                 break;
             }
             case SYS_SYSTEM:

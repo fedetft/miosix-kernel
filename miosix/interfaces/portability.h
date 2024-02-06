@@ -150,14 +150,28 @@ public:
      * only if the syscall (identified through its id) has three parameters
      */
     unsigned int getThirdParameter() const;
+
+    /**
+     * \return the fourth syscall parameter. The returned result is meaningful
+     * only if the syscall (identified through its id) has four parameters
+     */
+    unsigned int getFourthParameter() const;
     
     /**
-     * Set the value that will be returned by the syscall.
+     * Set the value that will be returned by the syscall, for 32 bit values.
      * Invalidates parameters so must be called only after the syscall
      * parameteres have been read.
      * \param ret value that will be returned by the syscall.
      */
     void setReturnValue(unsigned int ret);
+
+    /**
+     * Set the value that will be returned by the syscall, for 64 bit values.
+     * Invalidates parameters so must be called only after the syscall
+     * parameteres have been read.
+     * \param ret value that will be returned by the syscall.
+     */
+    void setReturnValueLongLong(unsigned long long ret);
     
 private:
     unsigned int *registers;

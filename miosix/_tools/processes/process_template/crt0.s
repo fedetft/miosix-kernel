@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2012-2020 by Terraneo Federico                          *
+ *   Copyright (C) 2012-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -110,7 +110,7 @@ write:
 	movs r3, #3
 	svc  0
 	cmp  r0, #0
-	blt  syscallfailed
+	blt  syscallfailed32
 	bx   lr
 
 /**
@@ -127,7 +127,7 @@ read:
 	movs r3, #4
 	svc  0
 	cmp  r0, #0
-	blt  syscallfailed
+	blt  syscallfailed32
 	bx   lr
 
 /**
@@ -157,7 +157,7 @@ open:
 	movs r3, #6
 	svc  0
 	cmp  r0, #0
-	blt  syscallfailed
+	blt  syscallfailed32
 	bx   lr
 
 /**
@@ -174,18 +174,21 @@ close:
 
 /**
  * lseek
- * \param fd file descriptor
- * \param pos moving offset
- * \param start position, SEEK_SET, SEEK_CUR or SEEK_END
+ * \param fd file descriptor, passed in r0
+ * \param pos moving offset, passed in r3,r2 as it is a long long
+ * \param whence, SEEK_SET, SEEK_CUR or SEEK_END, passed in the stack
  */
 .section .text.lseek
 .global lseek
 .type lseek, %function
 lseek:
+	ldr  r12, [sp] /* Whence moved to 4th syscall parameter (r12) */
+	movs r1, r3    /* Upper 32bit of pos moved to 2nd syscall parameter (r1) */
 	movs r3, #8
 	svc  0
 	cmp  r0, #0
-	blt  syscallfailed
+	sbcs r3, r1, #0 /* 64 bit negative check */
+	blt  syscallfailed64
 	bx   lr
 
 /**
@@ -199,7 +202,7 @@ system:
 	movs r3, #9
 	svc  0
 	cmp  r0, #0
-	blt  syscallfailed
+	blt  syscallfailed32
 	bx   lr
 
 /**
@@ -214,7 +217,7 @@ fstat:
 	movs r3, #10
 	svc  0
 	cmp  r0, #0
-	blt  syscallfailed
+	blt  syscallfailed32
 	bx   lr
 
 /**
@@ -229,13 +232,19 @@ isatty:
 	movs r3, #11
 	svc  0
 	cmp  r0, #0
-	blt  syscallfailed
+	blt  syscallfailed32
 	bx   lr
 
-.section .text.__seterrno
-/* common jump target for all failing syscalls */
-syscallfailed:
+/* common jump target for all failing syscalls with 32 bit return value */
+.section .text.__seterrno32
+syscallfailed32:
 	/* tail call */
-	b    __seterrno
+	b    __seterrno32
+
+/* common jump target for all failing syscalls with 64 bit return value */
+.section .text.__seterrno64
+syscallfailed64:
+	/* tail call */
+	b    __seterrno64
 
 .end

@@ -46,7 +46,20 @@ extern "C" {
  * \param ec the failed syscall error code
  * \return -1, the syscall return value upon failure
  */
-int __seterrno(int ec)
+int __seterrno32(int ec)
+{
+    errno=-ec;
+    return -1;
+}
+
+/**
+ * \internal
+ * This function is called from crt0.s when syscalls fail.
+ * It should set errno to the corresponding error code
+ * \param ec the failed syscall error code
+ * \return -1, the syscall return value upon failure
+ */
+long long __seterrno64(long long ec)
 {
     errno=-ec;
     return -1;
