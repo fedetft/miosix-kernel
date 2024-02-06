@@ -705,6 +705,38 @@ endif
 
 # No options
 
+##---------------------------------------------------------------------------
+## stm32f765ii_marco_ram_board
+##
+
+ifeq ($(OPT_BOARD),stm32f765ii_marco_ram_board)
+
+    ## Linker script type
+    ## 1) stm32_2M+384k_ram.ld
+    ##      - .text                      internal Flash
+    ##      - IRQ stack                  internal SRAM
+    ##      - .data, .bss                internal SRAM
+    ##      - Heap (and thread stacks)   internal SRAM
+    ##    The most common choice, available for all microcontrollers
+    ## 2) stm32_2M+384k_xram-heap_256M.ld
+    ##      - .text                      internal Flash
+    ##      - IRQ stack                  internal SRAM
+    ##      - .data, .bss                internal SRAM
+    ##      - Heap (and thread stacks)   external SDRAM
+    ##    For application with small static buffers. Only uses SDRAM bank 1.
+    ## 3) stm32_2M+384k_xram_256M.ld
+    ##      - .text                      internal Flash
+    ##      - IRQ stack                  internal SRAM
+    ##      - .data, .bss                external SDRAM
+    ##      - Heap (and thread stacks)   external SDRAM
+    ##    For application with large static buffers. Only uses SDRAM bank 1.
+    LINKER_SCRIPT_PATH := arch/cortexM7_stm32f7/stm32f765ii_marco_ram_board
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_2M+384k_ram.ld
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_2M+384k_xram-heap_256M.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_2M+384k_xram_256M.ld
+
+endif
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -2487,7 +2519,6 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## Select linker script and boot file
         ## Their path must be relative to the miosix directory.
         BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
-        LINKER_SCRIPT := $(BOARD_INC)/stm32_2m+384k_ram.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>

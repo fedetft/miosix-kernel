@@ -1,5 +1,5 @@
 /*
- * C++ enabled linker script for stm32f765ii (2M FLASH, 384K RAM)
+ * C++ enabled linker script for stm32f765ii (2M FLASH, 384K RAM) + 256MB xram
  * Developed by TFT: Terraneo Federico Technologies
  * Optimized for use with the Miosix kernel
  */
@@ -7,8 +7,9 @@
 /*
  * This linker script puts:
  * - read only data and code (.text, .rodata, .eh_*) in FLASH
- * - the 512Byte main (IRQ) stack in the DTCM 128KB RAM
- * - .data, .bss, heap (and stacks) in SRAM1 (384kB) and SRAM2 (16kB)
+ * - the 512Byte main (IRQ) stack, .data and .bss in the DTCM 128KB RAM
+ * - .data and .bss in SRAM1 (384kB) and SRAM2 (16kB)
+ * - heap (and stacks) in external SDRAM bank 1 (256MB)
  */
 
 /*
@@ -41,11 +42,12 @@ _main_stack_size = 512;                             /* main stack = 512Bytes */
 _main_stack_top  = 0x20000000 + _main_stack_size;
 ASSERT(_main_stack_size   % 8 == 0, "MAIN stack size error");
 
-/* Mapping the heap to the end of SRAM2 */
-_heap_end = 0x20000000 + 512K;                       /* end of available ram */
+/* Mapping the heap to XRAM bank 1 */
+_end      = 0xd0000000;     /* start of heap */
+_heap_end = 0xe0000000;     /* end of heap */
 
 /* Establish a temporary location for a temporary stack used at boot time */
-_boot_stack_top = _heap_end;
+_boot_stack_top = 0x20000000 + 512K;
 
 /* Identify the Entry Point  */
 ENTRY(_Z13Reset_Handlerv)
@@ -176,6 +178,8 @@ SECTIONS
     } > sram
     _bss_end = .;
 
+    /*
     _end = .;
     PROVIDE(end = .);
+    */
 }

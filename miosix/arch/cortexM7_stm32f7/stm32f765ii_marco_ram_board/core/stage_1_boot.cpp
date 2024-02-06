@@ -255,7 +255,7 @@ void Reset_Handler()
      * current thread's stack.
      */
     asm volatile(
-        "ldr r0,  =_heap_end          \n\t"
+        "ldr r0,  =_boot_stack_top    \n\t"
         "msr psp, r0                  \n\t"
         "movw r0, #2                  \n\n"  // Set the control register to use
         "msr control, r0              \n\t"  // the process stack

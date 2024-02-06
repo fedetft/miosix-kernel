@@ -1,5 +1,5 @@
 /*
- * C++ enabled linker script for stm32f765ii (2M FLASH, 384K RAM)
+ * C++ enabled linker script for stm32f765ii (2M FLASH, 384K RAM) + 256MB xram
  * Developed by TFT: Terraneo Federico Technologies
  * Optimized for use with the Miosix kernel
  */
@@ -8,7 +8,7 @@
  * This linker script puts:
  * - read only data and code (.text, .rodata, .eh_*) in FLASH
  * - the 512Byte main (IRQ) stack in the DTCM 128KB RAM
- * - .data, .bss, heap (and stacks) in SRAM1 (384kB) and SRAM2 (16kB)
+ * - .data, .bss, heap (and stacks) in external SDRAM (256MB)
  */
 
 /*
@@ -37,34 +37,25 @@
  * the MEMORY definitions below accordingly.
  */
 
-_main_stack_size = 512;                             /* main stack = 512Bytes */
+_main_stack_size = 512;     /* main stack = 512Bytes */
 _main_stack_top  = 0x20000000 + _main_stack_size;
 ASSERT(_main_stack_size   % 8 == 0, "MAIN stack size error");
 
 /* Mapping the heap to the end of SRAM2 */
-_heap_end = 0x20000000 + 512K;                       /* end of available ram */
+_heap_end = 0xe0000000;     /* end of available ram */
 
 /* Establish a temporary location for a temporary stack used at boot time */
-_boot_stack_top = _heap_end;
+_boot_stack_top = 0x20000000 + 512K;
 
 /* Identify the Entry Point  */
 ENTRY(_Z13Reset_Handlerv)
 
-/*
- * Specify the memory areas
- *
- * NOTE: starting at 0x20000000 there's 128KB of DTCM (Data Tightly Coupled
- * Memory). Technically, we could use this as normal RAM as there's a way for
- * the DMA to access it, but the datasheet is unclear about performance
- * penalties for doing so. To avoid nonuniform DMA memory access latencies,
- * we leave this 128KB DTCM unused except for the first 512Bytes which are for
- * the interrupt stack. This leaves us with 384KB of RAM
- */
 MEMORY
 {
-    sram(wx)  : ORIGIN = 0x20020000, LENGTH = 384K
-    dtcm(wx)  : ORIGIN = 0x20000000, LENGTH = 128K    /* Used for main stack */
-    flash(rx) : ORIGIN = 0x08000000, LENGTH =   2M
+    xram(wx)  : ORIGIN = 0xd0000000, LENGTH = 256M    /* everything else */
+    sram(wx)  : ORIGIN = 0x20020000, LENGTH = 384K    /* unused */
+    dtcm(wx)  : ORIGIN = 0x20000000, LENGTH = 128K    /* main stack */
+    flash(rx) : ORIGIN = 0x08000000, LENGTH =   2M    /* constant data/code */
 }
 
 /* now define the output sections  */
@@ -162,7 +153,7 @@ SECTIONS
         *(.gnu.linkonce.d.*)
         . = ALIGN(8);
         _edata = .;
-    } > sram AT > flash
+    } > xram AT > flash
     _etext = LOADADDR(.data);
 
     /* .bss section: uninitialized global variables go to sram */
@@ -173,7 +164,7 @@ SECTIONS
         *(.bss.*)
         *(.gnu.linkonce.b.*)
         . = ALIGN(8);
-    } > sram
+    } > xram
     _bss_end = .;
 
     _end = .;
