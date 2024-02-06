@@ -103,8 +103,8 @@ void configureSDRAM()
     RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
     RCC_SYNC();
     // Enable compensation cell
-    //SYSCFG->CMPCR = SYSCFG_CMPCR_CMP_PD;
-    //while (!(SYSCFG->CMPCR & SYSCFG_CMPCR_READY_Msk)) ;
+    SYSCFG->CMPCR = SYSCFG_CMPCR_CMP_PD;
+    while (!(SYSCFG->CMPCR & SYSCFG_CMPCR_READY_Msk)) ;
     // Set FMC GPIO speed to 100MHz
     //            port  F  E  D  C  B  A  9  8  7  6  5  4  3  2  1  0
     GPIOD->OSPEEDR = 0b11'11'00'00'00'11'11'11'00'00'00'00'00'00'11'11;
@@ -213,10 +213,8 @@ void program_startup()
      *    instead of 8MHz
      */
     SystemInit();
-
     configureSDRAM();
-
-    miosix::IRQconfigureCache();
+    miosix::IRQconfigureCache((const unsigned int *)(0xC0000000), 0x20000000U);
 
     // These are defined in the linker script
     extern unsigned char _etext asm("_etext");
