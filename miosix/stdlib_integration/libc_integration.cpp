@@ -504,6 +504,39 @@ int stat(const char *file, struct stat *pstat)
 
 /**
  * \internal
+ * _lstat_r, collect data about a file
+ */
+int _lstat_r(struct _reent *ptr, const char *file, struct stat *pstat)
+{
+    #ifdef WITH_FILESYSTEM
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().lstat(file,pstat);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_FILESYSTEM
+    ptr->_errno=ENOENT;
+    return -1;
+    #endif //WITH_FILESYSTEM
+}
+
+int lstat(const char *file, struct stat *pstat)
+{
+    return _lstat_r(miosix::getReent(),file,pstat);
+}
+
+/**
+ * \internal
  * isatty, returns 1 if fd is associated with a terminal
  */
 int _isatty_r(struct _reent *ptr, int fd)
