@@ -88,6 +88,7 @@ _start:
 /**
  * _exit, terminate process
  * \param v exit value 
+ * This syscall does not return
  */
 .section .text._exit
 .global _exit
@@ -131,6 +132,7 @@ read:
 	bx   lr
 
 /**
+ * Deprecated, to be removed
  * usleep, sleep a specified number of microseconds
  * \param us number of microseconds to sleep
  * \return 0 on success or -1 if errors
@@ -163,6 +165,7 @@ open:
 /**
  * close, close a file
  * \param fd file descriptor
+ * \return 0 on success, -1 on failure
  */
 .section .text.close
 .global close
@@ -170,6 +173,8 @@ open:
 close:
 	movs r3, #7
 	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
 	bx   lr
 
 /**
@@ -177,6 +182,7 @@ close:
  * \param fd file descriptor, passed in r0
  * \param pos moving offset, passed in r3,r2 as it is a long long
  * \param whence, SEEK_SET, SEEK_CUR or SEEK_END, passed in the stack
+ * \return absolute position after seek on success, -1LL on failure
  */
 .section .text.lseek
 .global lseek
@@ -192,6 +198,7 @@ lseek:
 	bx   lr
 
 /**
+ * Deprecated, to be removed
  * system, fork and execture a program, blocking
  * \param program to execute
  */
@@ -209,6 +216,7 @@ system:
  * fstat
  * \param fd file descriptor
  * \param pstat pointer to struct stat
+ * \return 0 on success, -1 on failure
  */
 .section .text.fstat
 .global fstat
@@ -223,13 +231,79 @@ fstat:
 /**
  * isatty
  * \param fd file descriptor
- * \return 1 if fd is associated with a terminal
+ * \return 1 if fd is associated with a terminal, 0 if not, -1 on failure
  */
 .section .text.isatty
 .global isatty
 .type isatty, %function
 isatty:
 	movs r3, #11
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * stat
+ * \param path path to file or directory
+ * \param pstat pointer to struct stat
+ * \return 0 on success, -1 on failure
+ */
+.section .text.stat
+.global stat
+.type stat, %function
+stat:
+	movs r3, #12
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * lstat
+ * \param path path to file or directory
+ * \param pstat pointer to struct stat
+ * \return 0 on success, -1 on failure
+ */
+.section .text.lstat
+.global lstat
+.type lstat, %function
+lstat:
+	movs r3, #13
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * fcntl
+ * \param fd file descriptor
+ * \param cmd operation to perform
+ * \param opt optional third parameter
+ * \return -1 on failure, an operation dependent return value otherwise
+ */
+.section .text.fcntl
+.global fcntl
+.type fcntl, %function
+fcntl:
+	movs r3, #14
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * ioctl
+ * \param fd file descriptor
+ * \param cmd operation to perform
+ * \param arg optional third parameter
+ * \return -1 on failure, an operation dependent return value otherwise
+ */
+.section .text.ioctl
+.global ioctl
+.type ioctl, %function
+ioctl:
+	movs r3, #15
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32

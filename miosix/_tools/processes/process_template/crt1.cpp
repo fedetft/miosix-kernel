@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2012-2020 by Terraneo Federico                          *
+ *   Copyright (C) 2012-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -34,6 +34,7 @@
 #include <sys/times.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
+#include <sys/ioctl.h>
 #include <reent.h>
 #include <cxxabi.h>
 
@@ -192,7 +193,7 @@ off_t _lseek_r(struct _reent *ptr, int fd, off_t pos, int whence)
 
 int _fstat_r(struct _reent *ptr, int fd, struct stat *pstat)
 {
-    return fstat(fd, pstat);
+    return fstat(fd,pstat);
 }
 
 int _isatty_r(struct _reent *ptr, int fd)
@@ -200,14 +201,31 @@ int _isatty_r(struct _reent *ptr, int fd)
     return isatty(fd);
 }
 
-int _stat_r(struct _reent *ptr, const char *file, struct stat *pstat) { return -1; }
-int mkdir(const char *path, mode_t mode) { return -1; }
+int _stat_r(struct _reent *ptr, const char *file, struct stat *pstat)
+{
+    return stat(file,pstat);
+}
+
+// TODO: add this when the corresponding function prototype is added to newlib
+// int _lstat_r(struct _reent *ptr, const char *file, struct stat *pstat)
+// {
+//     return lstat(file,pstat);
+// }
+
+int _fcntl_r(struct _reent *ptr, int fd, int cmd, int opt)
+{
+    return fcntl(fd,cmd,opt);
+}
+
+int _ioctl_r(struct _reent *ptr, int fd, int cmd, void *arg)
+{
+    return ioctl(fd,cmd,arg);
+}
+
 int _unlink_r(struct _reent *ptr, const char *file) { return -1; }
 clock_t _times_r(struct _reent *ptr, struct tms *tim) { return -1; }
 int _link_r(struct _reent *ptr, const char *f_old, const char *f_new) { return -1; }
-int _kill(int pid, int sig) { return -1; }
 int _kill_r(struct _reent* ptr, int pid, int sig) { return -1; }
-int _getpid() { return 1; }
 int _getpid_r(struct _reent* ptr) { return 1; }
 int _fork_r(struct _reent *ptr) { return -1; }
 int _wait_r(struct _reent *ptr, int *status) { return -1; }

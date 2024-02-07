@@ -318,6 +318,7 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             }
             case SYS_USLEEP:
             {
+                //Deprecated, to be removed
                 sp.setReturnValue(usleep(sp.getFirstParameter()));
                 break;
             }
@@ -350,6 +351,7 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             }
             case SYS_SYSTEM:
             {
+                //Deprecated, to be removed
                 const char *str=reinterpret_cast<const char*>(sp.getFirstParameter());
                 if(mpu.withinForReading(str))
                 {
@@ -403,14 +405,28 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             }
             case SYS_FCNTL:
             {
-                int result=fileTable.fcntl(sp.getFirstParameter(),
-                    sp.getSecondParameter(),sp.getThirdParameter());
+                //NOTE: some fcntl operations have an optional third parameter
+                //which can also be a pointer, and we need to validate it in
+                //this case. Only some fcntl are supported for now, but we err
+                //on the side of safety by rejecting the unsupported ones here
+                //until we have them, so we don't forget to add the pointer
+                //validation code here
+                int result,cmd=sp.getSecondParameter();
+                switch(cmd)
+                {
+                    case F_SETFD: //Third parameter is int, no validation needed
+                        result=fileTable.fcntl(sp.getFirstParameter(),cmd,
+                                               sp.getThirdParameter());
+                    default:
+                        result=-EBADF;
+                }
                 sp.setReturnValue(result);
                 break;
             }
             case SYS_IOCTL:
             {
-                //TODO: need a way to validate ARG
+                //TODO: need a way to validate ARG, for now we reject it
+                sp.setReturnValue(-EFAULT);
                 break;
             }
             case SYS_GETDENTS:
