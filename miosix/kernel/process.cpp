@@ -80,8 +80,8 @@ private:
         assert(kernel->getPid()==0);
         processes[0]=kernel;
     }
-    Processes(const Processes&);
-    Processes& operator=(const Processes&);
+    Processes(const Processes&)=delete;
+    Processes& operator=(const Processes&)=delete;
 };
 
 Processes& Processes::instance()
@@ -106,9 +106,8 @@ pid_t Process::create(const ElfProgram& program)
         parent->childs.push_back(proc.get());
         p.processes[proc->pid]=proc.get();
     }
-    Thread *thr;
-    thr=Thread::createUserspace(Process::start,0,Thread::DEFAULT,proc.get());
-    if(thr==0)
+    auto thr=Thread::createUserspace(Process::start,0,Thread::DEFAULT,proc.get());
+    if(thr==nullptr)
     {
         Lock<Mutex> l(p.procMutex);
         p.processes.erase(proc->pid);
@@ -128,7 +127,7 @@ pid_t Process::create(const ElfProgram& program)
 
 pid_t Process::spawn(const char *path)
 {
-    if(path==0 || path[0]=='\0') return -EFAULT;
+    if(path==nullptr || path[0]=='\0') return -EFAULT;
     string filePath=path; //TODO: expand ./program using cwd of correct file descriptor table
     ResolvedPath openData=FilesystemManager::instance().resolvePath(filePath);
     if(openData.result<0) return -ENOENT;
@@ -237,7 +236,7 @@ void *Process::start(void *argv)
 {
     //This function is never called with a kernel thread, so the cast is safe
     Process *proc=static_cast<Process*>(Thread::getCurrentThread()->proc);
-    if(proc==0) errorHandler(UNEXPECTED);
+    if(proc==nullptr) errorHandler(UNEXPECTED);
     unsigned int entry=proc->program.getEntryPoint();
     Thread::setupUserspaceContext(entry,proc->image.getProcessBasePointer(),
         proc->image.getProcessImageSize());
@@ -324,8 +323,7 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             }
             case SYS_OPEN:
             {
-                const char *str;
-                str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto str=reinterpret_cast<const char*>(sp.getFirstParameter());
                 int flags=sp.getSecondParameter();
                 if(mpu.withinForReading(str))
                 {
@@ -367,8 +365,7 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             }
             case SYS_FSTAT:
             {
-                struct stat *pstat;
-                pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
+                auto pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
                 if(mpu.withinForWriting(pstat,sizeof(struct stat)) && aligned(pstat))
                 {
                     int result=fileTable.fstat(sp.getFirstParameter(),pstat);
@@ -384,10 +381,8 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             }
             case SYS_STAT:
             {
-                const char *str;
-                str=reinterpret_cast<const char*>(sp.getFirstParameter());
-                struct stat *pstat;
-                pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
+                auto str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
                 if(mpu.withinForReading(str) &&
                    mpu.withinForWriting(pstat,sizeof(struct stat)) && aligned(pstat))
                 {
@@ -397,10 +392,8 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             }
             case SYS_LSTAT:
             {
-                const char *str;
-                str=reinterpret_cast<const char*>(sp.getFirstParameter());
-                struct stat *pstat;
-                pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
+                auto str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
                 if(mpu.withinForReading(str) &&
                    mpu.withinForWriting(pstat,sizeof(struct stat)) && aligned(pstat))
                 {
@@ -445,8 +438,7 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             }
             case SYS_CHDIR:
             {
-                const char *str;
-                str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto str=reinterpret_cast<const char*>(sp.getFirstParameter());
                 if(mpu.withinForReading(str))
                 {
                     int result=fileTable.chdir(str);
@@ -456,8 +448,7 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             }
             case SYS_MKDIR:
             {
-                const char *str;
-                str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto str=reinterpret_cast<const char*>(sp.getFirstParameter());
                 if(mpu.withinForReading(str))
                 {
                     int result=fileTable.mkdir(str,sp.getSecondParameter());
@@ -467,8 +458,7 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             }
             case SYS_RMDIR:
             {
-                const char *str;
-                str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto str=reinterpret_cast<const char*>(sp.getFirstParameter());
                 if(mpu.withinForReading(str))
                 {
                     int result=fileTable.rmdir(str);
@@ -478,8 +468,7 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             }
             case SYS_UNLINK:
             {
-                const char *str;
-                str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto str=reinterpret_cast<const char*>(sp.getFirstParameter());
                 if(mpu.withinForReading(str))
                 {
                     int result=fileTable.unlink(str);
@@ -489,9 +478,8 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             }
             case SYS_RENAME:
             {
-                const char *oldName, *newName;
-                oldName=reinterpret_cast<const char*>(sp.getFirstParameter());
-                newName=reinterpret_cast<const char*>(sp.getSecondParameter());
+                auto oldName=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto newName=reinterpret_cast<const char*>(sp.getSecondParameter());
                 if(mpu.withinForReading(oldName) &&
                    mpu.withinForReading(newName))
                 {
@@ -515,7 +503,7 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
 
 pid_t Process::getNewPid()
 {
-    Processes& p=Processes::instance();
+    auto& p=Processes::instance();
     for(;;p.pidCounter++)
     {
         if(p.pidCounter<0) p.pidCounter=1;

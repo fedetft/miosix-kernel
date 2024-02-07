@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/ 
 
-#ifndef PROCESS_H
-#define	PROCESS_H
+#pragma once
 
 #include <vector>
 #include <map>
@@ -113,8 +112,8 @@ protected:
     FileDescriptorTable fileTable; ///<The file descriptor table
     
 private:
-    ProcessBase(const ProcessBase&);
-    ProcessBase& operator= (const ProcessBase&);
+    ProcessBase(const ProcessBase&)=delete;
+    ProcessBase& operator= (const ProcessBase&)=delete;
     
     friend class Process;
 };
@@ -234,5 +233,3 @@ private:
 } //namespace miosix
 
 #endif //WITH_PROCESSES
-
-#endif //PROCESS_H
