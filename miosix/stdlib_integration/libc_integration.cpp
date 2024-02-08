@@ -812,6 +812,21 @@ int link(const char *f_old, const char *f_new)
 
 /**
  * \internal
+ * _symlink_r: create hardlinks
+ */
+int _symlink_r(struct _reent *ptr, const char *target, const char *linkpath)
+{
+    ptr->_errno=ENOENT; //Unimplemented at the moment
+    return -1;
+}
+
+int symlink(const char *target, const char *linkpath)
+{
+    return _symlink_r(miosix::getReent(),target,linkpath);
+}
+
+/**
+ * \internal
  * _unlink_r, remove a file
  */
 int _unlink_r(struct _reent *ptr, const char *file)

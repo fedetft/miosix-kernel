@@ -253,7 +253,7 @@ int _link_r(struct _reent *ptr, const char *f_old, const char *f_new)
     return link(f_old,f_new);
 }
 
-// int symlink_r(struct _reent *ptr, const char *target, const char *linkpath)
+// int _symlink_r(struct _reent *ptr, const char *target, const char *linkpath)
 
 int _unlink_r(struct _reent *ptr, const char *file)
 {
