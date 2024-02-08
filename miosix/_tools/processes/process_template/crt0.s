@@ -86,28 +86,31 @@ _start:
 	.word	__init_array_end(GOT)
 
 /**
- * _exit, terminate process
- * \param v exit value 
- * This syscall does not return
+ * open, open a file
+ * \param path file name
+ * \param file access mode
+ * \param mode access permisions
+ * \return file descriptor or -1 if errors
  */
-.section .text._exit
-.global _exit
-.type _exit, %function
-_exit:
+.section .text.open
+.global open
+.type open, %function
+open:
 	movs r3, #2
 	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
 
 /**
- * write, write to file
+ * close, close a file
  * \param fd file descriptor
- * \param buf data to be written
- * \param len buffer length
- * \return number of written bytes or -1 if errors
+ * \return 0 on success, -1 on failure
  */
-.section .text.write
-.global	write
-.type	write, %function
-write:
+.section .text.close
+.global close
+.type close, %function
+close:
 	movs r3, #3
 	svc  0
 	cmp  r0, #0
@@ -132,46 +135,17 @@ read:
 	bx   lr
 
 /**
- * Deprecated, to be removed
- * usleep, sleep a specified number of microseconds
- * \param us number of microseconds to sleep
- * \return 0 on success or -1 if errors
- */
-.section .text.usleep
-.global	usleep
-.type	usleep, %function
-usleep:
-	movs r3, #5
-	svc  0
-	bx   lr
-
-/**
- * open, open a file
- * \param path file name
- * \param file access mode
- * \param mode access permisions
- * \return file descriptor or -1 if errors
- */
-.section .text.open
-.global open
-.type open, %function
-open:
-	movs r3, #6
-	svc  0
-	cmp  r0, #0
-	blt  syscallfailed32
-	bx   lr
-
-/**
- * close, close a file
+ * write, write to file
  * \param fd file descriptor
- * \return 0 on success, -1 on failure
+ * \param buf data to be written
+ * \param len buffer length
+ * \return number of written bytes or -1 if errors
  */
-.section .text.close
-.global close
-.type close, %function
-close:
-	movs r3, #7
+.section .text.write
+.global	write
+.type	write, %function
+write:
+	movs r3, #5
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
@@ -190,57 +164,11 @@ close:
 lseek:
 	ldr  r12, [sp] /* Whence moved to 4th syscall parameter (r12) */
 	movs r1, r3    /* Upper 32bit of pos moved to 2nd syscall parameter (r1) */
-	movs r3, #8
+	movs r3, #6
 	svc  0
 	cmp  r0, #0
 	sbcs r3, r1, #0 /* 64 bit negative check */
 	blt  syscallfailed64
-	bx   lr
-
-/**
- * Deprecated, to be removed
- * system, fork and execture a program, blocking
- * \param program to execute
- */
-.section .text.system
-.global system
-.type system, %function
-system:
-	movs r3, #9
-	svc  0
-	cmp  r0, #0
-	blt  syscallfailed32
-	bx   lr
-
-/**
- * fstat
- * \param fd file descriptor
- * \param pstat pointer to struct stat
- * \return 0 on success, -1 on failure
- */
-.section .text.fstat
-.global fstat
-.type fstat, %function
-fstat:
-	movs r3, #10
-	svc  0
-	cmp  r0, #0
-	blt  syscallfailed32
-	bx   lr
-
-/**
- * isatty
- * \param fd file descriptor
- * \return 1 if fd is associated with a terminal, 0 if not, -1 on failure
- */
-.section .text.isatty
-.global isatty
-.type isatty, %function
-isatty:
-	movs r3, #11
-	svc  0
-	cmp  r0, #0
-	blt  syscallfailed32
 	bx   lr
 
 /**
@@ -253,7 +181,7 @@ isatty:
 .global stat
 .type stat, %function
 stat:
-	movs r3, #12
+	movs r3, #7
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
@@ -269,7 +197,23 @@ stat:
 .global lstat
 .type lstat, %function
 lstat:
-	movs r3, #13
+	movs r3, #8
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * fstat
+ * \param fd file descriptor
+ * \param pstat pointer to struct stat
+ * \return 0 on success, -1 on failure
+ */
+.section .text.fstat
+.global fstat
+.type fstat, %function
+fstat:
+	movs r3, #9
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
@@ -286,7 +230,7 @@ lstat:
 .global fcntl
 .type fcntl, %function
 fcntl:
-	movs r3, #14
+	movs r3, #10
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
@@ -303,24 +247,22 @@ fcntl:
 .global ioctl
 .type ioctl, %function
 ioctl:
-	movs r3, #15
+	movs r3, #11
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
 	bx   lr
 
 /**
- * getdents
+ * isatty
  * \param fd file descriptor
- * \param buf pointer to buffer where directory entries will be written
- * \param size buffer size
- * \return number of bytes wrtten, 0 on end of directory, -1 on failure
+ * \return 1 if fd is associated with a terminal, 0 if not, -1 on failure
  */
-.section .text.getdents
-.global getdents
-.type getdents, %function
-getdents:
-	movs r3, #16
+.section .text.isatty
+.global isatty
+.type isatty, %function
+isatty:
+	movs r3, #12
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
@@ -337,7 +279,7 @@ getdents:
 .global getcwd
 .type getcwd, %function
 getcwd:
-	movs r3, #17
+	movs r3, #13
 	svc  0
 	cmp  r0, #0
 	blt  .L300
@@ -355,7 +297,24 @@ getcwd:
 .global chdir
 .type chdir, %function
 chdir:
-	movs r3, #18
+	movs r3, #14
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * getdents
+ * \param fd file descriptor
+ * \param buf pointer to buffer where directory entries will be written
+ * \param size buffer size
+ * \return number of bytes wrtten, 0 on end of directory, -1 on failure
+ */
+.section .text.getdents
+.global getdents
+.type getdents, %function
+getdents:
+	movs r3, #15
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
@@ -371,7 +330,7 @@ chdir:
 .global mkdir
 .type mkdir, %function
 mkdir:
-	movs r3, #19
+	movs r3, #16
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
@@ -386,7 +345,7 @@ mkdir:
 .global rmdir
 .type rmdir, %function
 rmdir:
-	movs r3, #20
+	movs r3, #17
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
@@ -402,7 +361,22 @@ rmdir:
 .global link
 .type link, %function
 link:
-	movs r3, #21
+	movs r3, #18
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * unlink
+ * \param path path of file/directory to remove
+ * \return 0 on success, -1 on failure
+ */
+.section .text.unlink
+.global unlink
+.type unlink, %function
+unlink:
+	movs r3, #19
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
@@ -418,26 +392,13 @@ link:
 .global symlink
 .type symlink, %function
 symlink:
-	movs r3, #22
+	movs r3, #20
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
 	bx   lr
 
-/**
- * unlink
- * \param path path of file/directory to remove
- * \return 0 on success, -1 on failure
- */
-.section .text.unlink
-.global unlink
-.type unlink, %function
-unlink:
-	movs r3, #23
-	svc  0
-	cmp  r0, #0
-	blt  syscallfailed32
-	bx   lr
+/* TODO: readlink */
 
 /**
  * rename
@@ -449,11 +410,25 @@ unlink:
 .global rename
 .type rename, %function
 rename:
-	movs r3, #24
+	movs r3, #22
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
 	bx   lr
+
+/* TODO: missing syscalls */
+
+/**
+ * _exit, terminate process
+ * \param v exit value
+ * This syscall does not return
+ */
+.section .text._exit
+.global _exit
+.type _exit, %function
+_exit:
+	movs r3, #37
+	svc  0
 
 /* common jump target for all failing syscalls with 32 bit return value */
 .section .text.__seterrno32

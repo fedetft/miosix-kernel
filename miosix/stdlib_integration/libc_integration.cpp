@@ -895,7 +895,7 @@ int rename(const char *f_old, const char *f_new)
  * \internal
  * getdents, allows to list the content of a directory
  */
-int getdents(unsigned int fd, struct dirent *dirp, unsigned int count)
+int getdents(int fd, struct dirent *dirp, unsigned int count)
 {
     #ifdef WITH_FILESYSTEM
 

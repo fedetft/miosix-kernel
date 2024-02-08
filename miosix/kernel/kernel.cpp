@@ -630,7 +630,7 @@ void Thread::IRQstackOverflowCheck()
 void Thread::IRQhandleSvc(unsigned int svcNumber)
 {
     if(runningThread->proc==kernel) errorHandler(UNEXPECTED);
-    if(svcNumber==SYS_USERSPACE)
+    if(svcNumber==static_cast<unsigned int>(Syscall::USERSPACE))
     {
         const_cast<Thread*>(runningThread)->flags.IRQsetUserspace(true);
         ::ctxsave=runningThread->userCtxsave;

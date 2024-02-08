@@ -136,7 +136,7 @@ void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr)
     static char *curHeapEnd=&_end;
     //This holds the previous end of the heap
     char *prevHeapEnd;
-    
+
     prevHeapEnd=curHeapEnd;
     curHeapEnd+=incr;
     return reinterpret_cast<void*>(prevHeapEnd);
@@ -186,29 +186,19 @@ int _close_r(struct _reent *ptr, int fd)
     return close(fd);
 }
 
-int _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
-{
-    return write(fd,buf,cnt);
-}
-
 int _read_r(struct _reent *ptr, int fd, void *buf, size_t cnt)
 {
     return read(fd,buf,cnt);
 }
 
+int _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
+{
+    return write(fd,buf,cnt);
+}
+
 off_t _lseek_r(struct _reent *ptr, int fd, off_t pos, int whence)
 {
     return lseek(fd,pos,whence);
-}
-
-int _fstat_r(struct _reent *ptr, int fd, struct stat *pstat)
-{
-    return fstat(fd,pstat);
-}
-
-int _isatty_r(struct _reent *ptr, int fd)
-{
-    return isatty(fd);
 }
 
 int _stat_r(struct _reent *ptr, const char *file, struct stat *pstat)
@@ -217,6 +207,14 @@ int _stat_r(struct _reent *ptr, const char *file, struct stat *pstat)
 }
 
 // int _lstat_r(struct _reent *ptr, const char *file, struct stat *pstat)
+// {
+//     return lstat(file,pstat);
+// }
+
+int _fstat_r(struct _reent *ptr, int fd, struct stat *pstat)
+{
+    return fstat(fd,pstat);
+}
 
 int _fcntl_r(struct _reent *ptr, int fd, int cmd, int opt)
 {
@@ -228,6 +226,11 @@ int _ioctl_r(struct _reent *ptr, int fd, int cmd, void *arg)
     return ioctl(fd,cmd,arg);
 }
 
+int _isatty_r(struct _reent *ptr, int fd)
+{
+    return isatty(fd);
+}
+
 char *_getcwd_r(struct _reent *ptr, char *buf, size_t size)
 {
     return getcwd(buf,size);
@@ -237,6 +240,11 @@ int _chdir_r(struct _reent *ptr, const char *path)
 {
     return chdir(path);
 }
+
+// int _getdents_r(struct _reent *ptr, int fd, struct dirent *dirp, unsigned int count)
+// {
+//     return getdents(fd,dirp,count);
+// }
 
 int _mkdir_r(struct _reent *ptr, const char *path, int mode)
 {
@@ -253,11 +261,19 @@ int _link_r(struct _reent *ptr, const char *f_old, const char *f_new)
     return link(f_old,f_new);
 }
 
-// int _symlink_r(struct _reent *ptr, const char *target, const char *linkpath)
-
 int _unlink_r(struct _reent *ptr, const char *file)
 {
     return unlink(file);
+}
+
+int _symlink_r(struct _reent *ptr, const char *target, const char *linkpath)
+{
+    return symlink(target,linkpath);
+}
+
+int _readlink_r(struct _reent *ptr, const char *path, char *buf, size_t size)
+{
+    return readlink(path,buf,size);
 }
 
 int _rename_r(struct _reent *ptr, const char *f_old, const char *f_new)
@@ -265,11 +281,9 @@ int _rename_r(struct _reent *ptr, const char *f_old, const char *f_new)
     return rename(f_old,f_new);
 }
 
-clock_t _times_r(struct _reent *ptr, struct tms *tim) { return -1; }
-int _kill_r(struct _reent* ptr, int pid, int sig) { return -1; }
-int _getpid_r(struct _reent* ptr) { return 1; }
-int _fork_r(struct _reent *ptr) { return -1; }
-int _wait_r(struct _reent *ptr, int *status) { return -1; }
+// int _kill_r(struct _reent* ptr, int pid, int sig) { return -1; }
+// int _wait_r(struct _reent *ptr, int *status) { return -1; }
+// int _getpid_r(struct _reent* ptr) { return 1; }
 
 // TODO: implement when processes can spawn threads
 int pthread_mutex_unlock(pthread_mutex_t *mutex)  { return 0; }

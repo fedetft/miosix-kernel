@@ -102,7 +102,7 @@ void ISR_yield()
     //at this time we do not know if the active context is user or kernel
     unsigned int threadSp=ctxsave[0];
     unsigned int *processStack=reinterpret_cast<unsigned int*>(threadSp);
-    if(processStack[3]!=miosix::SYS_YIELD)
+    if(processStack[3]!=static_cast<unsigned int>(miosix::Syscall::YIELD))
         miosix::Thread::IRQhandleSvc(processStack[3]);
     else miosix::Scheduler::IRQfindNextThread();
     #else //WITH_PROCESSES

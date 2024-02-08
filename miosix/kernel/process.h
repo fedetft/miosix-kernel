@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2012 by Terraneo Federico                               *
+ *   Copyright (C) 2012-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -41,48 +41,6 @@
 #ifdef WITH_PROCESSES
 
 namespace miosix {
-
-/**
- * List of Miosix syscalls
- */
-enum Syscalls
-{
-    // Yield. Can be called both by kernel threads and process threads both in
-    // userspace and kernelspace mode. It causes the scheduler to switch to
-    // another thread. It is the only SVC that is available also when processes
-    // are disabled in miosix_config.h. No parameters, no return value.
-    SYS_YIELD=0,
-    // Back to userspace. It is used by process threads running in kernelspace
-    // mode to return to userspace mode after completing an SVC. If called by a
-    // process thread already in userspace mode it does nothing. Use of this
-    // SVC by kernel threads is forbidden. No parameters, no return value.
-    SYS_USERSPACE=1,
-    
-    // Standard unix syscalls. Use of these SVC by kernel threads is forbidden.
-    SYS_EXIT=2,
-    SYS_WRITE=3,
-    SYS_READ=4,
-    SYS_USLEEP=5,
-    SYS_OPEN=6,
-    SYS_CLOSE=7,
-    SYS_LSEEK=8,
-    SYS_SYSTEM=9,
-    SYS_FSTAT=10,
-    SYS_ISATTY=11,
-    SYS_STAT=12,
-    SYS_LSTAT=13,
-    SYS_FCNTL=14,
-    SYS_IOCTL=15,
-    SYS_GETDENTS=16,
-    SYS_GETCWD=17,
-    SYS_CHDIR=18,
-    SYS_MKDIR=19,
-    SYS_RMDIR=20,
-    SYS_LINK=21,
-    SYS_SYMLINK=22,
-    SYS_UNLINK=23,
-    SYS_RENAME=24
-};
 
 //Forware decl
 class Process;
@@ -230,6 +188,86 @@ private:
     friend class ControlScheduler;
     //Needs access to mpu
     friend class EDFScheduler;
+};
+
+/**
+ * List of Miosix syscalls
+ */
+enum class Syscall
+{
+    // Yield. Can be called both by kernel threads and process threads both in
+    // userspace and kernelspace mode. It causes the scheduler to switch to
+    // another thread. It is the only SVC that is available also when processes
+    // are disabled in miosix_config.h. No parameters, no return value.
+    YIELD=0,
+    // Back to userspace. It is used by process threads running in kernelspace
+    // mode to return to userspace mode after completing an SVC. If called by a
+    // process thread already in userspace mode it does nothing. Use of this
+    // SVC by kernel threads is forbidden. No parameters, no return value.
+    USERSPACE=1,
+
+    // All other syscalls. Use of these SVC by kernel threads is forbidden.
+    // Kernel should just call the functions with the corresponding name
+    // (kercalls) in stdlib_integration
+
+    // File/directory syscalls
+    OPEN      = 2,
+    CLOSE     = 3,
+    READ      = 4,
+    WRITE     = 5,
+    LSEEK     = 6,
+    STAT      = 7,
+    LSTAT     = 8,
+    FSTAT     = 9,
+    FCNTL     = 10,
+    IOCTL     = 11,
+    ISATTY    = 12,
+    GETCWD    = 13,
+    CHDIR     = 14,
+    GETDENTS  = 15,
+    MKDIR     = 16,
+    RMDIR     = 17,
+    LINK      = 18,
+    UNLINK    = 19,
+    SYMLINK   = 20,
+    READLINK  = 21,
+    RENAME    = 22,
+    CHMOD     = 23,
+    FCHMOD    = 24,
+    CHOWN     = 25,
+    FCHOWN    = 26,
+    LCHOWN    = 27,
+    DUP       = 28,
+    DUP2      = 29,
+    PIPE      = 30,
+    ACCESS    = 31,
+
+    // Time syscalls
+    GETTIME   = 32,
+    SETTIME   = 33,
+    NANOSLEEP = 34,
+    GETRES    = 35,
+    ADJTIME   = 36,
+
+    // Process syscalls
+    EXIT      = 37,
+    EXECVE    = 38,
+    SPAWN     = 39,
+    KILL      = 40,
+    WAITPID   = 41,
+    GETPID    = 42,
+    GETPPID   = 43,
+    GETUID    = 44,
+    GETGID    = 45,
+    GETEUID   = 46,
+    GETEGID   = 47,
+    SETUID    = 48,
+    SETGID    = 49,
+
+    // Filesystem syscalls
+    MOUNT     = 50,
+    UMOUNT    = 51,
+    MKFS      = 52, //Moving filesystem creation code to kernel
 };
 
 } //namespace miosix
