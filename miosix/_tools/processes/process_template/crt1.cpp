@@ -42,7 +42,7 @@ extern "C" {
 
 /**
  * \internal
- * This function is called from crt0.s when syscalls fail.
+ * This function is called from crt0.s when syscalls returning a 32 bit int fail.
  * It should set errno to the corresponding error code
  * \param ec the failed syscall error code
  * \return -1, the syscall return value upon failure
@@ -55,7 +55,7 @@ int __seterrno32(int ec)
 
 /**
  * \internal
- * This function is called from crt0.s when syscalls fail.
+ * This function is called from crt0.s when syscalls returning a 64 bit int fail.
  * It should set errno to the corresponding error code
  * \param ec the failed syscall error code
  * \return -1, the syscall return value upon failure
@@ -64,6 +64,16 @@ long long __seterrno64(long long ec)
 {
     errno=-ec;
     return -1;
+}
+
+/**
+ * \internal
+ * getcwd returns NULL on failure instead of -1, so __seterrno32 can't be used
+ */
+char *__getcwdfailed(int ec)
+{
+    errno=-ec;
+    return NULL;
 }
 
 
@@ -206,11 +216,7 @@ int _stat_r(struct _reent *ptr, const char *file, struct stat *pstat)
     return stat(file,pstat);
 }
 
-// TODO: add this when the corresponding function prototype is added to newlib
 // int _lstat_r(struct _reent *ptr, const char *file, struct stat *pstat)
-// {
-//     return lstat(file,pstat);
-// }
 
 int _fcntl_r(struct _reent *ptr, int fd, int cmd, int opt)
 {
@@ -222,9 +228,44 @@ int _ioctl_r(struct _reent *ptr, int fd, int cmd, void *arg)
     return ioctl(fd,cmd,arg);
 }
 
-int _unlink_r(struct _reent *ptr, const char *file) { return -1; }
+char *_getcwd_r(struct _reent *ptr, char *buf, size_t size)
+{
+    return getcwd(buf,size);
+}
+
+int _chdir_r(struct _reent *ptr, const char *path)
+{
+    return chdir(path);
+}
+
+int _mkdir_r(struct _reent *ptr, const char *path, int mode)
+{
+    return mkdir(path,mode);
+}
+
+int _rmdir_r(struct _reent *ptr, const char *path)
+{
+    return rmdir(path);
+}
+
+int _link_r(struct _reent *ptr, const char *f_old, const char *f_new)
+{
+    return link(f_old,f_new);
+}
+
+// int symlink_r(struct _reent *ptr, const char *target, const char *linkpath)
+
+int _unlink_r(struct _reent *ptr, const char *file)
+{
+    return unlink(file);
+}
+
+int _rename_r(struct _reent *ptr, const char *f_old, const char *f_new)
+{
+    return rename(f_old,f_new);
+}
+
 clock_t _times_r(struct _reent *ptr, struct tms *tim) { return -1; }
-int _link_r(struct _reent *ptr, const char *f_old, const char *f_new) { return -1; }
 int _kill_r(struct _reent* ptr, int pid, int sig) { return -1; }
 int _getpid_r(struct _reent* ptr) { return 1; }
 int _fork_r(struct _reent *ptr) { return -1; }

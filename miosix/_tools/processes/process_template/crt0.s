@@ -309,6 +309,152 @@ ioctl:
 	blt  syscallfailed32
 	bx   lr
 
+/**
+ * getdents
+ * \param fd file descriptor
+ * \param buf pointer to buffer where directory entries will be written
+ * \param size buffer size
+ * \return number of bytes wrtten, 0 on end of directory, -1 on failure
+ */
+.section .text.getdents
+.global getdents
+.type getdents, %function
+getdents:
+	movs r3, #16
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * getcwd
+ * \param fd file descriptor
+ * \param buf pointer to buffer where current directory will be written
+ * \param size buffer size
+ * \return pointer on success, NULL on failure
+ */
+.section .text.getcwd
+.global getcwd
+.type getcwd, %function
+getcwd:
+	movs r3, #17
+	svc  0
+	cmp  r0, #0
+	blt  .L300
+	bx   lr
+.L300:
+	/* tail call */
+	b    __getcwdfailed
+
+/**
+ * chdir
+ * \param path pointer to path where to change directory
+ * \return 0 on success, -1 on failure
+ */
+.section .text.chdir
+.global chdir
+.type chdir, %function
+chdir:
+	movs r3, #18
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * mkdir
+ * \param path pointer to path of directory to create
+ * \param mode directory mode
+ * \return 0 on success, -1 on failure
+ */
+.section .text.mkdir
+.global mkdir
+.type mkdir, %function
+mkdir:
+	movs r3, #19
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * rmdir
+ * \param path pointer to path of directory to remove
+ * \return 0 on success, -1 on failure
+ */
+.section .text.rmdir
+.global rmdir
+.type rmdir, %function
+rmdir:
+	movs r3, #20
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * link
+ * \param oldpath existing file path
+ * \param newpath new file path
+ * \return 0 on success, -1 on failure
+ */
+.section .text.link
+.global link
+.type link, %function
+link:
+	movs r3, #21
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * symlink
+ * \param target symlink destination
+ * \param linkpath file name of symlink to be created
+ * \return 0 on success, -1 on failure
+ */
+.section .text.symlink
+.global symlink
+.type symlink, %function
+symlink:
+	movs r3, #22
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * unlink
+ * \param path path of file/directory to remove
+ * \return 0 on success, -1 on failure
+ */
+.section .text.unlink
+.global unlink
+.type unlink, %function
+unlink:
+	movs r3, #23
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * rename
+ * \param oldpath existing file path
+ * \param newpath new file path
+ * \return 0 on success, -1 on failure
+ */
+.section .text.rename
+.global rename
+.type rename, %function
+rename:
+	movs r3, #24
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
 /* common jump target for all failing syscalls with 32 bit return value */
 .section .text.__seterrno32
 syscallfailed32:

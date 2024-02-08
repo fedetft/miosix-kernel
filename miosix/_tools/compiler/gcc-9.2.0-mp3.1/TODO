@@ -1,4 +1,8 @@
 
+Make ino_t a long long, to support, e.g, greater than 128GByte SD cards.
+Would require changes to the filesystems meant to support very large disks, such
+as fat32 too.
+
 Fix newlib so that the lstat syscall function prototype is made available,
 and maybe add prototype for _lstat_r too
 

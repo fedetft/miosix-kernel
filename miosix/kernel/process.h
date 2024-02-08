@@ -78,8 +78,10 @@ enum Syscalls
     SYS_CHDIR=18,
     SYS_MKDIR=19,
     SYS_RMDIR=20,
-    SYS_UNLINK=21,
-    SYS_RENAME=22
+    SYS_LINK=21,
+    SYS_SYMLINK=22,
+    SYS_UNLINK=23,
+    SYS_RENAME=24
 };
 
 //Forware decl

@@ -482,6 +482,30 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
                 } else sp.setReturnValue(-EFAULT);
                 break;
             }
+            case SYS_LINK:
+            {
+//                 auto oldp=reinterpret_cast<const char*>(sp.getFirstParameter());
+//                 auto newp=reinterpret_cast<const char*>(sp.getSecondParameter());
+//                 if(mpu.withinForReading(oldp) && mpu.withinForReading(newp))
+//                 {
+//                     int result=fileTable.link(oldp,newp);
+//                     sp.setReturnValue(result);
+//                 } else sp.setReturnValue(-EFAULT);
+                sp.setReturnValue(-ENOENT); //Currently no fs supports hardlinks
+                break;
+            }
+            case SYS_SYMLINK:
+            {
+//                 auto tgt=reinterpret_cast<const char*>(sp.getFirstParameter());
+//                 auto link=reinterpret_cast<const char*>(sp.getSecondParameter());
+//                 if(mpu.withinForReading(tgt) && mpu.withinForReading(link))
+//                 {
+//                     int result=fileTable.symlink(tgt,link);
+//                     sp.setReturnValue(result);
+//                 } else sp.setReturnValue(-EFAULT);
+                sp.setReturnValue(-ENOENT); //Currently no writable fs supports symlinks
+                break;
+            }
             case SYS_UNLINK:
             {
                 auto str=reinterpret_cast<const char*>(sp.getFirstParameter());
@@ -494,12 +518,11 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             }
             case SYS_RENAME:
             {
-                auto oldName=reinterpret_cast<const char*>(sp.getFirstParameter());
-                auto newName=reinterpret_cast<const char*>(sp.getSecondParameter());
-                if(mpu.withinForReading(oldName) &&
-                   mpu.withinForReading(newName))
+                auto oldp=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto newp=reinterpret_cast<const char*>(sp.getSecondParameter());
+                if(mpu.withinForReading(oldp) && mpu.withinForReading(newp))
                 {
-                    int result=fileTable.rename(oldName,newName);
+                    int result=fileTable.rename(oldp,newp);
                     sp.setReturnValue(result);
                 } else sp.setReturnValue(-EFAULT);
                 break;
