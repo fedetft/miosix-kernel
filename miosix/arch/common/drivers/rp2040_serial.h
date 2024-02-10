@@ -42,6 +42,9 @@ namespace internal {
 extern RP2040PL011Serial0 *uart0Handler;
 extern RP2040PL011Serial1 *uart1Handler;
 
+void uart0IrqImpl();
+void uart1IrqImpl();
+
 } // namespace internal
 
 class RP2040PL011SerialBase : public Device
@@ -96,12 +99,6 @@ public:
      * \return the exact return value depends on CMD, -1 is returned on error
      */
     int ioctl(int cmd, void *arg);
-
-    /**
-     * \internal the serial port interrupts call this member function.
-     * Never call this from user code.
-     */
-    void IRQhandleInterrupt();
     
     /**
      * Destructor
@@ -135,6 +132,15 @@ protected:
     }
 
 private:
+    friend void internal::uart0IrqImpl();
+    friend void internal::uart1IrqImpl();
+
+    /**
+     * \internal the serial port interrupts call this member function.
+     * Never call this from user code.
+     */
+    void IRQhandleInterrupt();
+
     // Internal function to disable RX interrupts when the buffer is full
     inline void disableRXInterrupts()
     {

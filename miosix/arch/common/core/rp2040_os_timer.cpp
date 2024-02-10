@@ -171,6 +171,6 @@ long long IRQgetTime() noexcept
 void __attribute__((naked)) TIMER_IRQ_0_Handler()
 {
     saveContext();
-    miosix::internal::IRQtimerInterruptHandler();
+    asm volatile("bl %a0"::"i"(miosix::internal::IRQtimerInterruptHandler):);
     restoreContext();
 }

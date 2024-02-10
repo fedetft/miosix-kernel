@@ -37,20 +37,34 @@ miosix::RP2040PL011Serial1 *miosix::internal::uart1Handler;
 void __attribute__((naked)) UART0_IRQ_Handler()
 {
     saveContext();
-    if (miosix::internal::uart0Handler)
-        miosix::internal::uart0Handler->IRQhandleInterrupt();
+    asm volatile("bl %a0"::"i"(miosix::internal::uart0IrqImpl):);
     restoreContext();
 }
 
 void __attribute__((naked)) UART1_IRQ_Handler()
 {
     saveContext();
-    if (miosix::internal::uart1Handler)
-        miosix::internal::uart1Handler->IRQhandleInterrupt();
+    asm volatile("bl %a0"::"i"(miosix::internal::uart1IrqImpl):);
     restoreContext();
 }
 
 namespace miosix {
+
+namespace internal {
+
+void uart0IrqImpl()
+{
+    if (miosix::internal::uart0Handler)
+        miosix::internal::uart0Handler->IRQhandleInterrupt();
+}
+
+void uart1IrqImpl()
+{
+    if (miosix::internal::uart1Handler)
+        miosix::internal::uart1Handler->IRQhandleInterrupt();
+}
+
+}
 
 ssize_t RP2040PL011SerialBase::readBlock(void *buffer, size_t size, off_t where)
 {
