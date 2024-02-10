@@ -160,8 +160,12 @@ void RP2040PL011SerialBase::IRQhandleInterrupt()
                 && !rxQueue.isFull())
             rxQueue.IRQput((uint8_t)uart->dr, hppw);
         // If the sw queue is full, mask RX interrupts temporarily. The
-        // device read handler will re-enable them when the queue has some
-        // space again
+        // device read handler will un-mask them when the queue has some
+        // space again. If there was more data to read and hence the interrupt
+        // flag was not cleared, un-masking the interrupts causes the immediate
+        // reentry in this interrupt handler, which allows to finish the work
+        // without losing the line idle status information (which only exists
+        // in the interrupt flags).
         if(rxQueue.isFull()) disableRXInterrupts();
     }
     // Reschedule if needed
