@@ -327,21 +327,8 @@ TimeConversion::TimeConversion() noexcept
       lastAdjustTimeNs(0), adjustOffsetNs(0)
 {}
 
-TimeConversion::TimeConversion(unsigned int hz) noexcept
-    : lastAdjustTimeNs(0), adjustOffsetNs(0)
+void TimeConversion::oneTimeOptimizeCoefficients() noexcept
 {
-    //
-    // As a first part, compute the initial toNs and toTick coefficients
-    //
-    float hzf=static_cast<float>(hz);
-    toNs=floatToFactor(1e9f/hzf);
-    toTick=floatToFactor(hzf/1e9f);
-
-
-    //
-    // Then perform the bisection algorithm to optimize toTick offline
-    //
-
     /*
      * For choosing the time point on which to do the toTick coefficient
      * optimization, we need both an as high as possible number, but also
@@ -440,14 +427,6 @@ long long TimeConversion::computeRoundTripError(unsigned long long tick,
     unsigned long long ns=convert(tick,toNs);
     unsigned long long roundTrip=convert(ns,adjustedToTick);
     return static_cast<long long>(tick-roundTrip);
-}
-
-TimeConversionFactor TimeConversion::floatToFactor(float x) noexcept
-{
-    const float twoPower32=4294967296.f; //2^32 as a float
-    unsigned int i=x;
-    unsigned int f=(x-i)*twoPower32;
-    return TimeConversionFactor(i,f);
 }
 
 } //namespace miosix

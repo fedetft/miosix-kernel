@@ -108,6 +108,17 @@ public:
      * Default constructor. Leaves the factors unintialized.
      */
     TimeConversionFactor() {}
+
+    /**
+     * Constructor
+     * \param x floating point representation
+     */
+    TimeConversionFactor(float x) noexcept
+    {
+        const float twoPower32=4294967296.f; //2^32 as a float
+        i=x;
+        f=(x-i)*twoPower32;
+    }
     
     /**
      * Constructor
@@ -157,7 +168,16 @@ public:
      * supported is 10KHz to 1GHz. The algorithms in this class may not work
      * outside this range
      */
-    TimeConversion(unsigned int hz) noexcept;
+    TimeConversion(unsigned int hz) noexcept
+        : lastAdjustTimeNs(0), adjustOffsetNs(0)
+    {
+        // Compute the initial toNs and toTick coefficients
+        float hzf=static_cast<float>(hz);
+        toNs=TimeConversionFactor(1e9f/hzf);
+        toTick=TimeConversionFactor(hzf/1e9f);
+        // Then perform the bisection algorithm to optimize toTick offline
+        oneTimeOptimizeCoefficients();
+    }
     
     /**
      * \param tick time point in timer ticks
@@ -208,6 +228,10 @@ public:
     long long getAdjustOffset() const { return adjustOffsetNs; }
     
 private:
+    /**
+     * Perform offline optimization of the coefficients.
+     */
+    void oneTimeOptimizeCoefficients() noexcept;
 
     /**
      * Compute the error in ticks of an unadjusted conversion from tick to ns
@@ -232,13 +256,6 @@ private:
     {
         return mul64x32d32(x,tcf.integerPart(),tcf.fractionalPart());
     }
-    
-    /**
-     * \param float a floar number
-     * \return the number in 32.32 fixed point format
-     */
-    static TimeConversionFactor __attribute__((noinline))
-    floatToFactor(float x) noexcept;
 
     TimeConversionFactor toNs, toTick;
     unsigned long long adjustIntervalNs, lastAdjustTimeNs;
