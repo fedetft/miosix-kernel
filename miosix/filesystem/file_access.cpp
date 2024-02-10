@@ -210,6 +210,21 @@ int FileDescriptorTable::unlink(const char *name)
     return FilesystemManager::instance().unlinkHelper(path);
 }
 
+ssize_t FileDescriptorTable::readlink(const char *name, char *buf, size_t size)
+{
+    if(name==nullptr || name[0]=='\0' || buf==nullptr) return -EFAULT;
+    string path=absolutePath(name);
+    if(path.empty()) return -ENAMETOOLONG;
+    ResolvedPath openData=FilesystemManager::instance().resolvePath(path,false);
+    if(openData.result<0) return openData.result;
+    StringPart sp(path,string::npos,openData.off);
+    string target;
+    if(int result=openData.fs->readlink(sp,target)<0) return result;
+    int result=min(size,target.size());
+    memcpy(buf,target.data(),result);
+    return result;
+}
+
 int FileDescriptorTable::rename(const char *oldName, const char *newName)
 {
     if(oldName==0 || oldName[0]=='\0') return -EFAULT;

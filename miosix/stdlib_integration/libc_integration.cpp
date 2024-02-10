@@ -812,21 +812,6 @@ int link(const char *f_old, const char *f_new)
 
 /**
  * \internal
- * _symlink_r: create hardlinks
- */
-int _symlink_r(struct _reent *ptr, const char *target, const char *linkpath)
-{
-    ptr->_errno=ENOENT; //Unimplemented at the moment
-    return -1;
-}
-
-int symlink(const char *target, const char *linkpath)
-{
-    return _symlink_r(miosix::getReent(),target,linkpath);
-}
-
-/**
- * \internal
  * _unlink_r, remove a file
  */
 int _unlink_r(struct _reent *ptr, const char *file)
@@ -856,6 +841,54 @@ int _unlink_r(struct _reent *ptr, const char *file)
 int unlink(const char *file)
 {
     return _unlink_r(miosix::getReent(),file);
+}
+
+/**
+ * \internal
+ * _symlink_r: create hardlinks
+ */
+int _symlink_r(struct _reent *ptr, const char *target, const char *linkpath)
+{
+    ptr->_errno=ENOENT; //Unimplemented at the moment
+    return -1;
+}
+
+int symlink(const char *target, const char *linkpath)
+{
+    return _symlink_r(miosix::getReent(),target,linkpath);
+}
+
+/**
+ * \internal
+ * _readlink_r: read symlinks
+ */
+ssize_t _readlink_r(struct _reent *ptr, const char *path, char *buf, size_t size)
+{
+    #ifdef WITH_FILESYSTEM
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().readlink(path,buf,size);
+        if(result>=0) return result;
+        ptr->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        ptr->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_FILESYSTEM
+    ptr->_errno=ENOENT;
+    return -1;
+    #endif //WITH_FILESYSTEM
+}
+
+ssize_t readlink(const char *path, char *buf, size_t size)
+{
+    return _readlink_r(miosix::getReent(),path,buf,size);
 }
 
 /**

@@ -301,6 +301,15 @@ public:
      * \return 0 on success, or a negative number on failure
      */
     int unlink(const char *name);
+
+    /**
+     * Read symlinks
+     * \param name path to the symlink
+     * \param buf pointer where the symlink target will be stored
+     * \param size buffer size
+     * \return 0 on success, or a negative number on failure
+     */
+    ssize_t readlink(const char *name, char *buf, size_t size);
     
     /**
      * Rename a file or directory

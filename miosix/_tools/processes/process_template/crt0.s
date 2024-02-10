@@ -398,7 +398,22 @@ symlink:
 	blt  syscallfailed32
 	bx   lr
 
-/* TODO: readlink */
+/**
+ * readlink
+ * \param path path to the symlink
+ * \param buf pointer where the symlink target will be stored
+ * \param size buffer size
+ * \return 0 on success, -1 on failure
+ */
+.section .text.readlink
+.global readlink
+.type readlink, %function
+readlink:
+	movs r3, #21
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
 
 /**
  * rename

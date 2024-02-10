@@ -271,7 +271,7 @@ int _symlink_r(struct _reent *ptr, const char *target, const char *linkpath)
     return symlink(target,linkpath);
 }
 
-int _readlink_r(struct _reent *ptr, const char *path, char *buf, size_t size)
+ssize_t _readlink_r(struct _reent *ptr, const char *path, char *buf, size_t size)
 {
     return readlink(path,buf,size);
 }

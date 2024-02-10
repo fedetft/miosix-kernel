@@ -507,7 +507,15 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
 
             case Syscall::READLINK:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                auto path=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto buf=reinterpret_cast<char*>(sp.getSecondParameter());
+                size_t size=sp.getThirdParameter();
+                if(mpu.withinForReading(path) &&
+                   mpu.withinForWriting(buf,size))
+                {
+                    int result=fileTable.readlink(path,buf,size);
+                    sp.setReturnValue(result);
+                } else sp.setReturnValue(-EFAULT);
                 break;
             }
 
