@@ -289,11 +289,11 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
         {
             case Syscall::OPEN:
             {
-                auto str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto name=reinterpret_cast<const char*>(sp.getFirstParameter());
                 int flags=sp.getSecondParameter();
-                if(mpu.withinForReading(str))
+                if(mpu.withinForReading(name))
                 {
-                    int fd=fileTable.open(str,flags,
+                    int fd=fileTable.open(name,flags,
                         (flags & O_CREAT) ? sp.getThirdParameter() : 0);
                     sp.setReturnValue(fd);
                 } else sp.setReturnValue(-EFAULT);
@@ -345,24 +345,24 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
 
             case Syscall::STAT:
             {
-                auto str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto file=reinterpret_cast<const char*>(sp.getFirstParameter());
                 auto pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
-                if(mpu.withinForReading(str) &&
+                if(mpu.withinForReading(file) &&
                    mpu.withinForWriting(pstat,sizeof(struct stat)) && aligned(pstat))
                 {
-                    int result=fileTable.stat(str,pstat);
+                    int result=fileTable.stat(file,pstat);
                     sp.setReturnValue(result);
                 } else sp.setReturnValue(-EFAULT);
             }
 
             case Syscall::LSTAT:
             {
-                auto str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto file=reinterpret_cast<const char*>(sp.getFirstParameter());
                 auto pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
-                if(mpu.withinForReading(str) &&
+                if(mpu.withinForReading(file) &&
                    mpu.withinForWriting(pstat,sizeof(struct stat)) && aligned(pstat))
                 {
-                    int result=fileTable.lstat(str,pstat);
+                    int result=fileTable.lstat(file,pstat);
                     sp.setReturnValue(result);
                 } else sp.setReturnValue(-EFAULT);
             }
@@ -381,19 +381,21 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             case Syscall::FCNTL:
             {
                 //NOTE: some fcntl operations have an optional third parameter
-                //which can also be a pointer, and we need to validate it in
-                //this case. Only some fcntl are supported for now, but we err
-                //on the side of safety by rejecting the unsupported ones here
-                //until we have them, so we don't forget to add the pointer
-                //validation code here
+                //which can be either missing, an int or a pointer.
+                //Currenlty we do not support any with a pointer third arg, but
+                //we arr on the side of safety and either pass the int or pass
+                //zero. When we'll support those with the pointer, we'll
+                //validate it here.
                 int result,cmd=sp.getSecondParameter();
                 switch(cmd)
                 {
-                    case F_SETFD: //Third parameter is int, no validation needed
+                    case F_DUPFD: //Third parameter is int, no validation needed
+                    case F_SETFD:
+                    case F_SETFL:
                         result=fileTable.fcntl(sp.getFirstParameter(),cmd,
                                                sp.getThirdParameter());
                     default:
-                        result=-EBADF;
+                        result=fileTable.fcntl(sp.getFirstParameter(),cmd,0);
                 }
                 sp.setReturnValue(result);
                 break;
@@ -441,11 +443,11 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             case Syscall::GETDENTS:
             {
                 int fd=sp.getFirstParameter();
-                void *ptr=reinterpret_cast<void*>(sp.getSecondParameter());
+                void *buf=reinterpret_cast<void*>(sp.getSecondParameter());
                 size_t size=sp.getThirdParameter();
-                if(mpu.withinForWriting(ptr,size))
+                if(mpu.withinForWriting(buf,size))
                 {
-                    int result=fileTable.getdents(fd,ptr,size);
+                    int result=fileTable.getdents(fd,buf,size);
                     sp.setReturnValue(result);
                 } else sp.setReturnValue(-EFAULT);
                 break;
@@ -453,10 +455,10 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
 
             case Syscall::MKDIR:
             {
-                auto str=reinterpret_cast<const char*>(sp.getFirstParameter());
-                if(mpu.withinForReading(str))
+                auto path=reinterpret_cast<const char*>(sp.getFirstParameter());
+                if(mpu.withinForReading(path))
                 {
-                    int result=fileTable.mkdir(str,sp.getSecondParameter());
+                    int result=fileTable.mkdir(path,sp.getSecondParameter());
                     sp.setReturnValue(result);
                 } else sp.setReturnValue(-EFAULT);
                 break;
@@ -481,10 +483,10 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
 
             case Syscall::UNLINK:
             {
-                auto str=reinterpret_cast<const char*>(sp.getFirstParameter());
-                if(mpu.withinForReading(str))
+                auto file=reinterpret_cast<const char*>(sp.getFirstParameter());
+                if(mpu.withinForReading(file))
                 {
-                    int result=fileTable.unlink(str);
+                    int result=fileTable.unlink(file);
                     sp.setReturnValue(result);
                 } else sp.setReturnValue(-EFAULT);
                 break;

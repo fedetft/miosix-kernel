@@ -314,14 +314,14 @@ int close(int fd)
  * \internal
  * _write_r, write to a file
  */
-int _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
+ssize_t _write_r(struct _reent *ptr, int fd, const void *buf, size_t size)
 {    
     #ifdef WITH_FILESYSTEM
 
     #ifndef __NO_EXCEPTIONS
     try {
     #endif //__NO_EXCEPTIONS
-        int result=miosix::getFileDescriptorTable().write(fd,buf,cnt);
+        ssize_t result=miosix::getFileDescriptorTable().write(fd,buf,size);
         if(result>=0) return result;
         ptr->_errno=-result;
         return -1;
@@ -335,7 +335,7 @@ int _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
     #else //WITH_FILESYSTEM
     if(fd==STDOUT_FILENO || fd==STDERR_FILENO)
     {
-        int result=miosix::DefaultConsole::instance().getTerminal()->write(buf,cnt);
+        ssize_t result=miosix::DefaultConsole::instance().getTerminal()->write(buf,size);
         if(result>=0) return result;
         ptr->_errno=-result;
         return -1;
@@ -346,23 +346,23 @@ int _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
     #endif //WITH_FILESYSTEM
 }
 
-int write(int fd, const void *buf, size_t cnt)
+ssize_t write(int fd, const void *buf, size_t size)
 {
-    return _write_r(miosix::getReent(),fd,buf,cnt);
+    return _write_r(miosix::getReent(),fd,buf,size);
 }
 
 /**
  * \internal
  * _read_r, read from a file
  */
-int _read_r(struct _reent *ptr, int fd, void *buf, size_t cnt)
+ssize_t _read_r(struct _reent *ptr, int fd, void *buf, size_t size)
 {
     #ifdef WITH_FILESYSTEM
 
     #ifndef __NO_EXCEPTIONS
     try {
     #endif //__NO_EXCEPTIONS
-        int result=miosix::getFileDescriptorTable().read(fd,buf,cnt);
+        ssize_t result=miosix::getFileDescriptorTable().read(fd,buf,size);
         if(result>=0) return result;
         ptr->_errno=-result;
         return -1;
@@ -376,7 +376,7 @@ int _read_r(struct _reent *ptr, int fd, void *buf, size_t cnt)
     #else //WITH_FILESYSTEM
     if(fd==STDIN_FILENO)
     {
-        int result=miosix::DefaultConsole::instance().getTerminal()->read(buf,cnt);
+        ssize_t result=miosix::DefaultConsole::instance().getTerminal()->read(buf,size);
         if(result>=0) return result;
         ptr->_errno=-result;
         return -1;
@@ -387,9 +387,9 @@ int _read_r(struct _reent *ptr, int fd, void *buf, size_t cnt)
     #endif //WITH_FILESYSTEM
 }
 
-int read(int fd, void *buf, size_t cnt)
+ssize_t read(int fd, void *buf, size_t size)
 {
-    return _read_r(miosix::getReent(),fd,buf,cnt);
+    return _read_r(miosix::getReent(),fd,buf,size);
 }
 
 /**
@@ -895,14 +895,14 @@ int rename(const char *f_old, const char *f_new)
  * \internal
  * getdents, allows to list the content of a directory
  */
-int getdents(int fd, struct dirent *dirp, unsigned int count)
+int getdents(int fd, struct dirent *buf, unsigned int size)
 {
     #ifdef WITH_FILESYSTEM
 
     #ifndef __NO_EXCEPTIONS
     try {
     #endif //__NO_EXCEPTIONS
-        int result=miosix::getFileDescriptorTable().getdents(fd,dirp,count);
+        int result=miosix::getFileDescriptorTable().getdents(fd,buf,size);
         if(result>=0) return result;
         miosix::getReent()->_errno=-result;
         return -1;

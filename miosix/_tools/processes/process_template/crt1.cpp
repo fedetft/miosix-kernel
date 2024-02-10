@@ -178,7 +178,7 @@ struct _reent *__getreent()
 
 int _open_r(struct _reent *ptr, const char *name, int flags, int mode)
 {
-    return open(name, flags, mode);
+    return open(name,flags,mode);
 }
 
 int _close_r(struct _reent *ptr, int fd)
@@ -186,14 +186,14 @@ int _close_r(struct _reent *ptr, int fd)
     return close(fd);
 }
 
-int _read_r(struct _reent *ptr, int fd, void *buf, size_t cnt)
+ssize_t _read_r(struct _reent *ptr, int fd, void *buf, size_t size)
 {
-    return read(fd,buf,cnt);
+    return read(fd,buf,size);
 }
 
-int _write_r(struct _reent *ptr, int fd, const void *buf, size_t cnt)
+ssize_t _write_r(struct _reent *ptr, int fd, const void *buf, size_t size)
 {
-    return write(fd,buf,cnt);
+    return write(fd,buf,size);
 }
 
 off_t _lseek_r(struct _reent *ptr, int fd, off_t pos, int whence)
@@ -241,9 +241,9 @@ int _chdir_r(struct _reent *ptr, const char *path)
     return chdir(path);
 }
 
-// int _getdents_r(struct _reent *ptr, int fd, struct dirent *dirp, unsigned int count)
+// int _getdents_r(struct _reent *ptr, int fd, struct dirent *buf, unsigned int size)
 // {
-//     return getdents(fd,dirp,count);
+//     return getdents(fd,buf,size);
 // }
 
 int _mkdir_r(struct _reent *ptr, const char *path, int mode)

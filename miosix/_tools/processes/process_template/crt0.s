@@ -121,7 +121,7 @@ close:
  * read, read from file
  * \param fd file descriptor
  * \param buf data to be read
- * \param len buffer length
+ * \param size buffer length
  * \return number of read bytes or -1 if errors
  */
 .section .text.read
@@ -138,7 +138,7 @@ read:
  * write, write to file
  * \param fd file descriptor
  * \param buf data to be written
- * \param len buffer length
+ * \param size buffer length
  * \return number of written bytes or -1 if errors
  */
 .section .text.write
