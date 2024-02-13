@@ -105,20 +105,17 @@ int FileDescriptorTable::open(const char* name, int flags, int mode)
 {
     if(name==0 || name[0]=='\0') return -EFAULT;
     Lock<FastMutex> l(mutex);
-    for(int i=3;i<MAX_OPEN_FILES;i++)
-    {
-        if(files[i]) continue;
-        //Found an empty file descriptor
-        string path=absolutePath(name);
-        if(path.empty()) return -ENAMETOOLONG;
-        ResolvedPath openData=FilesystemManager::instance().resolvePath(path);
-        if(openData.result<0) return openData.result;
-        StringPart sp(path,string::npos,openData.off);
-        int result=openData.fs->open(files[i],sp,flags,mode);
-        if(result==0) return i; //The file descriptor
-        else return result; //The error code
-    }
-    return -ENFILE;
+    int fd=getAvailableFd();
+    if(fd<0) return fd;
+    //Found an empty file descriptor
+    string path=absolutePath(name);
+    if(path.empty()) return -ENAMETOOLONG;
+    ResolvedPath openData=FilesystemManager::instance().resolvePath(path);
+    if(openData.result<0) return openData.result;
+    StringPart sp(path,string::npos,openData.off);
+    int result=openData.fs->open(files[fd],sp,flags,mode);
+    if(result==0) return fd; //The file descriptor
+    else return result; //The error code
 }
 
 int FileDescriptorTable::close(int fd)
@@ -259,6 +256,12 @@ string FileDescriptorTable::absolutePath(const char* path)
     Lock<FastMutex> l(mutex);
     if(len+cwd.length()>PATH_MAX) return "";
     return cwd+path;
+}
+
+int FileDescriptorTable::getAvailableFd()
+{
+    for(int i=0;i<MAX_OPEN_FILES;i++) if(!files[i]) return i;
+    return -EMFILE;
 }
 
 /**

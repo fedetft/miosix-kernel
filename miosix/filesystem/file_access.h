@@ -355,6 +355,13 @@ private:
      * \return 0 on success, or a negative number on failure
      */
     int statImpl(const char *name, struct stat *pstat, bool f);
+
+    /**
+     * Get the first available file descriptor. Must be called with mutex locked
+     * to avoid race conditions.
+     * \return a file descriptor, or -EMFILE if all file descriptors are used
+     */
+    int getAvailableFd();
     
     FastMutex mutex; ///< Locks on writes to file object pointers, not on accesses
     
