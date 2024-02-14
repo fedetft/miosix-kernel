@@ -98,9 +98,12 @@ public:
     /**
      * Operator=
      * \param rhs object to copy from
-     * \return *this 
+     * \return *this
+     * NOTE: this is not needed, and would require locking both rhs and lhs
+     * mutex to copy cwd, and locking multiple mutexes must always be done in
+     * the same order, requiring to pull in std::lock
      */
-    FileDescriptorTable& operator=(const FileDescriptorTable& rhs);
+    FileDescriptorTable& operator=(const FileDescriptorTable& rhs)=delete;
     
     /**
      * Open a file
@@ -379,7 +382,7 @@ private:
      */
     int getAvailableFd();
     
-    FastMutex mutex; ///< Locks on writes to file object pointers, not on accesses
+    mutable FastMutex mutex; ///< Locks on writes to file object pointers, not on accesses
     
     std::string cwd; ///< Current working directory
     

@@ -84,21 +84,16 @@ FileDescriptorTable::FileDescriptorTable()
 }
 
 FileDescriptorTable::FileDescriptorTable(const FileDescriptorTable& rhs)
-    : mutex(FastMutex::RECURSIVE), cwd(rhs.cwd)
+    : mutex(FastMutex::RECURSIVE)
 {
-    //No need to lock the mutex since we are in a constructor and there can't
+    //No need to lock this->mutex since we are in a constructor and there can't
     //be pointers to this in other threads yet
-    for(int i=0;i<MAX_OPEN_FILES;i++) this->files[i]=atomic_load(&rhs.files[i]);
+    {
+        Lock<FastMutex> l(rhs.mutex);
+        cwd=rhs.cwd;
+    }
+    for(int i=0;i<MAX_OPEN_FILES;i++) this->files[i]=atomic_load(rhs.files+i);
     FilesystemManager::instance().addFileDescriptorTable(this);
-}
-
-FileDescriptorTable& FileDescriptorTable::operator=(
-        const FileDescriptorTable& rhs)
-{
-    Lock<FastMutex> l(mutex);
-    for(int i=0;i<MAX_OPEN_FILES;i++)
-        atomic_store(&this->files[i],atomic_load(&rhs.files[i]));
-    return *this;
 }
 
 int FileDescriptorTable::open(const char* name, int flags, int mode)
@@ -122,8 +117,7 @@ int FileDescriptorTable::close(int fd)
 {
     //No need to lock the mutex when deleting
     if(fd<0 || fd>=MAX_OPEN_FILES) return -EBADF;
-    intrusive_ref_ptr<FileBase> toClose;
-    toClose=atomic_exchange(files+fd,intrusive_ref_ptr<FileBase>());
+    auto toClose=atomic_exchange(files+fd,intrusive_ref_ptr<FileBase>());
     if(!toClose) return -EBADF; //File entry was not open
     return 0;
 }
@@ -235,11 +229,12 @@ int FileDescriptorTable::rename(const char *oldName, const char *newName)
 int FileDescriptorTable::dup(int fd)
 {
     if(fd<0 || fd>=MAX_OPEN_FILES) return -EBADF;
+    auto file=atomic_load(files+fd);
+    if(!file) return -EBADF;
     Lock<FastMutex> l(mutex);
-    if(!files[fd]) return -EBADF;
     int newFd=getAvailableFd();
     if(newFd<0) return newFd;
-    files[newFd]=files[fd];
+    files[newFd]=file; //files[newFd] is guaranteed empty, assignment enough
     return newFd;
 }
 
@@ -248,9 +243,11 @@ int FileDescriptorTable::dup2(int oldFd, int newFd)
     if(oldFd<0 || oldFd>=MAX_OPEN_FILES) return -EBADF;
     if(newFd<0 || newFd>=MAX_OPEN_FILES) return -EBADF;
     if(oldFd==newFd) return newFd;
+    auto file=atomic_load(files+oldFd);
+    if(!file) return -EBADF;
+    //Need to lock on writes so as not to race with getAvailableFd() elsewhere
     Lock<FastMutex> l(mutex);
-    if(!files[oldFd]) return -EBADF;
-    files[newFd]=files[oldFd];
+    atomic_store(files+newFd,file); //May race with concurrent close, need atomic
     return newFd;
 }
 
