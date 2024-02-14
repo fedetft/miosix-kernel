@@ -232,6 +232,28 @@ int FileDescriptorTable::rename(const char *oldName, const char *newName)
     return FilesystemManager::instance().renameHelper(oldPath,newPath);
 }
 
+int FileDescriptorTable::dup(int fd)
+{
+    if(fd<0 || fd>=MAX_OPEN_FILES) return -EBADF;
+    Lock<FastMutex> l(mutex);
+    if(!files[fd]) return -EBADF;
+    int newFd=getAvailableFd();
+    if(newFd<0) return newFd;
+    files[newFd]=files[fd];
+    return newFd;
+}
+
+int FileDescriptorTable::dup2(int oldFd, int newFd)
+{
+    if(oldFd<0 || oldFd>=MAX_OPEN_FILES) return -EBADF;
+    if(newFd<0 || newFd>=MAX_OPEN_FILES) return -EBADF;
+    if(oldFd==newFd) return newFd;
+    Lock<FastMutex> l(mutex);
+    if(!files[oldFd]) return -EBADF;
+    files[newFd]=files[oldFd];
+    return newFd;
+}
+
 int FileDescriptorTable::statImpl(const char* name, struct stat* pstat, bool f)
 {
     if(name==0 || name[0]=='\0' || pstat==0) return -EFAULT;

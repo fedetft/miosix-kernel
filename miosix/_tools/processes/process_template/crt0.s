@@ -434,6 +434,39 @@ rename:
 /* TODO: missing syscalls */
 
 /**
+ * dup
+ * \param fd file descriptor to duplicate
+ * \return the new file descriptor on success, -1 on failure
+ */
+.section .text.dup
+.global dup
+.type dup, %function
+dup:
+	movs r3, #28
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * dup2
+ * \param oldfd file descriptor to duplicate
+ * \param newfd old file descriptor will be duplicated to this file descriptor
+ * \return the new file descriptor on success, -1 on failure
+ */
+.section .text.dup2
+.global dup2
+.type dup2, %function
+dup2:
+	movs r3, #29
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/* TODO: missing syscalls */
+
+/**
  * _exit, terminate process
  * \param v exit value
  * This syscall does not return

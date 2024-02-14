@@ -318,6 +318,22 @@ public:
      * \return 0 on success, or a negative number on failure
      */
     int rename(const char *oldName, const char *newName);
+
+    /**
+     * Duplicate file descriptor to the lowest available file descriptor
+     * \param fd file descriptor to duplicate
+     * \return the new file descriptor, or a negative number on failure
+     */
+    int dup(int fd);
+
+    /**
+     * Duplicate file descriptor oldFd to the new file descriptor newFd, closing
+     * it if it was open.
+     * \param oldFd file descriptor to duplicate
+     * \param newFd file descriptor will be duplicated here
+     * \return the new file descriptor, or a negative number on failure
+     */
+    int dup2(int oldFd, int newFd);
     
     /**
      * Retrieves an entry in the file descriptor table

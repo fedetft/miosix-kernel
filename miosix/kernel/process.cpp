@@ -563,13 +563,17 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
 
             case Syscall::DUP:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                int result=fileTable.dup(sp.getFirstParameter());
+                sp.setReturnValue(result);
                 break;
             }
 
             case Syscall::DUP2:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                int oldfd=sp.getFirstParameter();
+                int newfd=sp.getSecondParameter();
+                int result=fileTable.dup2(oldfd,newfd);
+                sp.setReturnValue(result);
                 break;
             }
 

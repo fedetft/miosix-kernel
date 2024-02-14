@@ -952,8 +952,53 @@ int getdents(int fd, struct dirent *buf, unsigned int size)
     #endif //WITH_FILESYSTEM
 }
 
+int dup(int fd)
+{
+    #ifdef WITH_FILESYSTEM
 
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().dup(fd);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
 
+    #else //WITH_FILESYSTEM
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_FILESYSTEM
+}
+
+int dup2(int oldfd, int newfd)
+{
+    #ifdef WITH_FILESYSTEM
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().dup2(oldfd,newfd);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_FILESYSTEM
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_FILESYSTEM
+}
 
 /*
  * Time API in Miosix
