@@ -132,47 +132,25 @@ public:
      * \return the syscall id, used to identify individual system calls
      */
     int getSyscallId() const;
-    
-    /**
-     * \return the first syscall parameter. The returned result is meaningful
-     * only if the syscall (identified through its id) has one or more parameters
-     */
-    unsigned int getFirstParameter() const;
-    
-    /**
-     * \return the second syscall parameter. The returned result is meaningful
-     * only if the syscall (identified through its id) has two or more parameters
-     */
-    unsigned int getSecondParameter() const;
-    
-    /**
-     * \return the third syscall parameter. The returned result is meaningful
-     * only if the syscall (identified through its id) has three parameters
-     */
-    unsigned int getThirdParameter() const;
 
     /**
-     * \return the fourth syscall parameter. The returned result is meaningful
-     * only if the syscall (identified through its id) has four parameters
+     * \param index 0=first syscall parameter, 1=second syscall parameter, ...
+     * The maximum number of syscall parameters is architecture dependent
+     * \return the syscall parameter. The returned result is meaningful
+     * only if the syscall (identified through its id) has the requested parameter
      */
-    unsigned int getFourthParameter() const;
+    unsigned int getParameter(unsigned int index) const;
     
     /**
-     * Set the value that will be returned by the syscall, for 32 bit values.
-     * Invalidates parameters so must be called only after the syscall
-     * parameteres have been read.
-     * \param ret value that will be returned by the syscall.
+     * Set the value that will be returned by the syscall.
+     * Invalidates the corresponding parameter so must be called only after the
+     * syscall parameteres have been read.
+     * \param index 0=first syscall parameter, 1=second syscall parameter, ...
+     * The maximum number of syscall parameters is architecture dependent
+     * \param value value that will be returned by the syscall.
      */
-    void setReturnValue(unsigned int ret);
+    void setParameter(unsigned int index, unsigned int value);
 
-    /**
-     * Set the value that will be returned by the syscall, for 64 bit values.
-     * Invalidates parameters so must be called only after the syscall
-     * parameteres have been read.
-     * \param ret value that will be returned by the syscall.
-     */
-    void setReturnValueLongLong(unsigned long long ret);
-    
 private:
     unsigned int *registers;
 };

@@ -464,6 +464,26 @@ dup2:
 	blt  syscallfailed32
 	bx   lr
 
+/**
+ * pipe
+ * \param fds[2] file descriptors
+ * \return 0 on success, -1 on failure
+ */
+.section .text.pipe
+.global pipe
+.type pipe, %function
+pipe:
+	movs r3, #30
+	svc  0
+	cmp  r1, #0
+	blt  .L400
+	str  r2, [r0]
+	str  r12, [r0, #4]
+	bx   lr
+.L400:
+	movs r0, r1
+	b    syscallfailed32
+
 /* TODO: missing syscalls */
 
 /**

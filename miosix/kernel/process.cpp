@@ -289,92 +289,93 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
         {
             case Syscall::OPEN:
             {
-                auto name=reinterpret_cast<const char*>(sp.getFirstParameter());
-                int flags=sp.getSecondParameter();
+                auto name=reinterpret_cast<const char*>(sp.getParameter(0));
+                int flags=sp.getParameter(1);
                 if(mpu.withinForReading(name))
                 {
                     int fd=fileTable.open(name,flags,
-                        (flags & O_CREAT) ? sp.getThirdParameter() : 0);
-                    sp.setReturnValue(fd);
-                } else sp.setReturnValue(-EFAULT);
+                        (flags & O_CREAT) ? sp.getParameter(2) : 0);
+                    sp.setParameter(0,fd);
+                } else sp.setParameter(0,-EFAULT);
                 break;
             }
 
             case Syscall::CLOSE:
             {
-                int result=fileTable.close(sp.getFirstParameter());
-                sp.setReturnValue(result);
+                int result=fileTable.close(sp.getParameter(0));
+                sp.setParameter(0,result);
                 break;
             }
 
             case Syscall::READ:
             {
-                int fd=sp.getFirstParameter();
-                void *ptr=reinterpret_cast<void*>(sp.getSecondParameter());
-                size_t size=sp.getThirdParameter();
+                int fd=sp.getParameter(0);
+                void *ptr=reinterpret_cast<void*>(sp.getParameter(1));
+                size_t size=sp.getParameter(2);
                 if(mpu.withinForWriting(ptr,size))
                 {
                     ssize_t result=fileTable.read(fd,ptr,size);
-                    sp.setReturnValue(result);
-                } else sp.setReturnValue(-EFAULT);
+                    sp.setParameter(0,result);
+                } else sp.setParameter(0,-EFAULT);
                 break;
             }
 
             case Syscall::WRITE:
             {
-                int fd=sp.getFirstParameter();
-                void *ptr=reinterpret_cast<void*>(sp.getSecondParameter());
-                size_t size=sp.getThirdParameter();
+                int fd=sp.getParameter(0);
+                void *ptr=reinterpret_cast<void*>(sp.getParameter(1));
+                size_t size=sp.getParameter(2);
                 if(mpu.withinForReading(ptr,size))
                 {
                     ssize_t result=fileTable.write(fd,ptr,size);
-                    sp.setReturnValue(result);
-                } else sp.setReturnValue(-EFAULT);
+                    sp.setParameter(0,result);
+                } else sp.setParameter(0,-EFAULT);
                 break;
             }
 
             case Syscall::LSEEK:
             {
-                off_t pos=sp.getThirdParameter();
-                pos|=static_cast<off_t>(sp.getSecondParameter())<<32;
-                off_t result=fileTable.lseek(sp.getFirstParameter(),pos,
-                    sp.getFourthParameter());
-                sp.setReturnValueLongLong(result);
+                off_t pos=sp.getParameter(2);
+                pos|=static_cast<off_t>(sp.getParameter(1))<<32;
+                off_t result=fileTable.lseek(sp.getParameter(0),pos,
+                    sp.getParameter(3));
+                sp.setParameter(0,result & 0xffffffff);
+                sp.setParameter(1,result>>32);
                 break;
             }
 
             case Syscall::STAT:
             {
-                auto file=reinterpret_cast<const char*>(sp.getFirstParameter());
-                auto pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
+                auto file=reinterpret_cast<const char*>(sp.getParameter(0));
+                auto pstat=reinterpret_cast<struct stat*>(sp.getParameter(1));
                 if(mpu.withinForReading(file) &&
                    mpu.withinForWriting(pstat,sizeof(struct stat)) && aligned(pstat))
                 {
                     int result=fileTable.stat(file,pstat);
-                    sp.setReturnValue(result);
-                } else sp.setReturnValue(-EFAULT);
+                    sp.setParameter(0,result);
+                } else sp.setParameter(0,-EFAULT);
             }
 
             case Syscall::LSTAT:
             {
-                auto file=reinterpret_cast<const char*>(sp.getFirstParameter());
-                auto pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
+                auto file=reinterpret_cast<const char*>(sp.getParameter(0));
+                auto pstat=reinterpret_cast<struct stat*>(sp.getParameter(1));
                 if(mpu.withinForReading(file) &&
                    mpu.withinForWriting(pstat,sizeof(struct stat)) && aligned(pstat))
                 {
                     int result=fileTable.lstat(file,pstat);
-                    sp.setReturnValue(result);
-                } else sp.setReturnValue(-EFAULT);
+                    sp.setParameter(0,result);
+                } else sp.setParameter(0,-EFAULT);
             }
 
             case Syscall::FSTAT:
             {
-                auto pstat=reinterpret_cast<struct stat*>(sp.getSecondParameter());
+                auto pstat=reinterpret_cast<struct stat*>(sp.getParameter(1));
                 if(mpu.withinForWriting(pstat,sizeof(struct stat)) && aligned(pstat))
                 {
-                    int result=fileTable.fstat(sp.getFirstParameter(),pstat);
-                    sp.setReturnValue(result);
-                } else sp.setReturnValue(-EFAULT);
+                    int result=fileTable.fstat(sp.getParameter(0),pstat);
+                    sp.setParameter(0,result);
+                } else sp.setParameter(0,-EFAULT);
                 break;
             }
 
@@ -386,18 +387,18 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
                 //we arr on the side of safety and either pass the int or pass
                 //zero. When we'll support those with the pointer, we'll
                 //validate it here.
-                int result,cmd=sp.getSecondParameter();
+                int result,cmd=sp.getParameter(1);
                 switch(cmd)
                 {
                     case F_DUPFD: //Third parameter is int, no validation needed
                     case F_SETFD:
                     case F_SETFL:
-                        result=fileTable.fcntl(sp.getFirstParameter(),cmd,
-                                               sp.getThirdParameter());
+                        result=fileTable.fcntl(sp.getParameter(0),cmd,
+                                               sp.getParameter(2));
                     default:
-                        result=fileTable.fcntl(sp.getFirstParameter(),cmd,0);
+                        result=fileTable.fcntl(sp.getParameter(0),cmd,0);
                 }
-                sp.setReturnValue(result);
+                sp.setParameter(0,result);
                 break;
             }
 
@@ -406,317 +407,316 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
                 //TODO: need a way to validate ARG, for now we reject it
                 //Not easy to move checks forward down filesystem code as that
                 //code can also be called through kercalls from kthreads
-                sp.setReturnValue(-EFAULT);
+                sp.setParameter(0,-EFAULT);
                 break;
             }
 
             case Syscall::ISATTY:
             {
-                int result=fileTable.isatty(sp.getFirstParameter());
-                sp.setReturnValue(result);
+                int result=fileTable.isatty(sp.getParameter(0));
+                sp.setParameter(0,result);
                 break;
             }
 
             case Syscall::GETCWD:
             {
-                char *buf=reinterpret_cast<char*>(sp.getFirstParameter());
-                size_t size=sp.getSecondParameter();
+                char *buf=reinterpret_cast<char*>(sp.getParameter(0));
+                size_t size=sp.getParameter(1);
                 if(mpu.withinForWriting(buf,size))
                 {
                     int result=fileTable.getcwd(buf,size);
-                    sp.setReturnValue(result);
-                } else sp.setReturnValue(-EFAULT);
+                    sp.setParameter(0,result);
+                } else sp.setParameter(0,-EFAULT);
                 break;
             }
 
             case Syscall::CHDIR:
             {
-                auto str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto str=reinterpret_cast<const char*>(sp.getParameter(0));
                 if(mpu.withinForReading(str))
                 {
                     int result=fileTable.chdir(str);
-                    sp.setReturnValue(result);
-                } else sp.setReturnValue(-EFAULT);
+                    sp.setParameter(0,result);
+                } else sp.setParameter(0,-EFAULT);
                 break;
             }
 
             case Syscall::GETDENTS:
             {
-                int fd=sp.getFirstParameter();
-                void *buf=reinterpret_cast<void*>(sp.getSecondParameter());
-                size_t size=sp.getThirdParameter();
+                int fd=sp.getParameter(0);
+                void *buf=reinterpret_cast<void*>(sp.getParameter(1));
+                size_t size=sp.getParameter(2);
                 if(mpu.withinForWriting(buf,size))
                 {
                     int result=fileTable.getdents(fd,buf,size);
-                    sp.setReturnValue(result);
-                } else sp.setReturnValue(-EFAULT);
+                    sp.setParameter(0,result);
+                } else sp.setParameter(0,-EFAULT);
                 break;
             }
 
             case Syscall::MKDIR:
             {
-                auto path=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto path=reinterpret_cast<const char*>(sp.getParameter(0));
                 if(mpu.withinForReading(path))
                 {
-                    int result=fileTable.mkdir(path,sp.getSecondParameter());
-                    sp.setReturnValue(result);
-                } else sp.setReturnValue(-EFAULT);
+                    int result=fileTable.mkdir(path,sp.getParameter(1));
+                    sp.setParameter(0,result);
+                } else sp.setParameter(0,-EFAULT);
                 break;
             }
 
             case Syscall::RMDIR:
             {
-                auto str=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto str=reinterpret_cast<const char*>(sp.getParameter(0));
                 if(mpu.withinForReading(str))
                 {
                     int result=fileTable.rmdir(str);
-                    sp.setReturnValue(result);
-                } else sp.setReturnValue(-EFAULT);
+                    sp.setParameter(0,result);
+                } else sp.setParameter(0,-EFAULT);
                 break;
             }
 
             case Syscall::LINK:
             {
-                sp.setReturnValue(-EMLINK); //Currently no fs supports hardlinks
+                sp.setParameter(0,-EMLINK); //Currently no fs supports hardlinks
                 break;
             }
 
             case Syscall::UNLINK:
             {
-                auto file=reinterpret_cast<const char*>(sp.getFirstParameter());
+                auto file=reinterpret_cast<const char*>(sp.getParameter(0));
                 if(mpu.withinForReading(file))
                 {
                     int result=fileTable.unlink(file);
-                    sp.setReturnValue(result);
-                } else sp.setReturnValue(-EFAULT);
+                    sp.setParameter(0,result);
+                } else sp.setParameter(0,-EFAULT);
                 break;
             }
 
             case Syscall::SYMLINK:
             {
-//                 auto tgt=reinterpret_cast<const char*>(sp.getFirstParameter());
-//                 auto link=reinterpret_cast<const char*>(sp.getSecondParameter());
+//                 auto tgt=reinterpret_cast<const char*>(sp.getParameter(0));
+//                 auto link=reinterpret_cast<const char*>(sp.getParameter(1));
 //                 if(mpu.withinForReading(tgt) && mpu.withinForReading(link))
 //                 {
 //                     int result=fileTable.symlink(tgt,link);
-//                     sp.setReturnValue(result);
-//                 } else sp.setReturnValue(-EFAULT);
-                sp.setReturnValue(-ENOENT); //Currently no writable fs supports symlinks
+//                     sp.setParameter(0,result);
+//                 } else sp.setParameter(0,-EFAULT);
+                sp.setParameter(0,-ENOENT); //Currently no writable fs supports symlinks
                 break;
             }
 
             case Syscall::READLINK:
             {
-                auto path=reinterpret_cast<const char*>(sp.getFirstParameter());
-                auto buf=reinterpret_cast<char*>(sp.getSecondParameter());
-                size_t size=sp.getThirdParameter();
+                auto path=reinterpret_cast<const char*>(sp.getParameter(0));
+                auto buf=reinterpret_cast<char*>(sp.getParameter(1));
+                size_t size=sp.getParameter(2);
                 if(mpu.withinForReading(path) &&
                    mpu.withinForWriting(buf,size))
                 {
                     int result=fileTable.readlink(path,buf,size);
-                    sp.setReturnValue(result);
-                } else sp.setReturnValue(-EFAULT);
+                    sp.setParameter(0,result);
+                } else sp.setParameter(0,-EFAULT);
                 break;
             }
 
             case Syscall::RENAME:
             {
-                auto oldp=reinterpret_cast<const char*>(sp.getFirstParameter());
-                auto newp=reinterpret_cast<const char*>(sp.getSecondParameter());
+                auto oldp=reinterpret_cast<const char*>(sp.getParameter(0));
+                auto newp=reinterpret_cast<const char*>(sp.getParameter(1));
                 if(mpu.withinForReading(oldp) && mpu.withinForReading(newp))
                 {
                     int result=fileTable.rename(oldp,newp);
-                    sp.setReturnValue(result);
-                } else sp.setReturnValue(-EFAULT);
+                    sp.setParameter(0,result);
+                } else sp.setParameter(0,-EFAULT);
                 break;
             }
 
             case Syscall::CHMOD:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::FCHMOD:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::CHOWN:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::FCHOWN:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::LCHOWN:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::DUP:
             {
-                int result=fileTable.dup(sp.getFirstParameter());
-                sp.setReturnValue(result);
+                int result=fileTable.dup(sp.getParameter(0));
+                sp.setParameter(0,result);
                 break;
             }
 
             case Syscall::DUP2:
             {
-                int oldfd=sp.getFirstParameter();
-                int newfd=sp.getSecondParameter();
+                int oldfd=sp.getParameter(0);
+                int newfd=sp.getParameter(1);
                 int result=fileTable.dup2(oldfd,newfd);
-                sp.setReturnValue(result);
+                sp.setParameter(0,result);
                 break;
             }
 
             case Syscall::PIPE:
             {
-//                 int fds[2];
-//                 int result=fileTable.pipe(fds);
-//                 sp.setReturnValue(result);
-//                 sp.setSecondParameter(fds[0]);
-//                 sp.setThirdParameter(fds[1]);
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                int fds[2];
+                int result=fileTable.pipe(fds);
+                sp.setParameter(1,result); //Does not overwrite r0 on purpose
+                sp.setParameter(2,fds[0]);
+                sp.setParameter(3,fds[1]);
                 break;
             }
 
             case Syscall::ACCESS:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::GETTIME:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::SETTIME:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::NANOSLEEP:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::GETRES:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::ADJTIME:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::EXIT:
             {
-                exitCode=(sp.getFirstParameter() & 0xff)<<8;
+                exitCode=(sp.getParameter(0) & 0xff)<<8;
                 return false;
             }
 
             case Syscall::EXECVE:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::SPAWN:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::KILL:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::WAITPID:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::GETPID:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::GETPPID:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::GETUID:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::GETGID:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::GETEUID:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::GETEGID:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::SETUID:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::SETGID:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::MOUNT:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::UMOUNT:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
             case Syscall::MKFS:
             {
-                sp.setReturnValue(-EFAULT); //TODO: stub
+                sp.setParameter(0,-EFAULT); //TODO: stub
                 break;
             }
 
@@ -728,7 +728,7 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
                 return false;
         }
     } catch(exception& e) {
-        sp.setReturnValue(-ENOMEM);
+        sp.setParameter(0,-ENOMEM);
     }
     return true;
 }
