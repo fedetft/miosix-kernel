@@ -337,6 +337,13 @@ public:
      * \return the new file descriptor, or a negative number on failure
      */
     int dup2(int oldFd, int newFd);
+
+    /**
+     * Create a pipe
+     * \param fds array returning the two pipe file descriptors
+     * \return 0 on success, or a negative number on failure
+     */
+    int pipe(int fds[2]);
     
     /**
      * Retrieves an entry in the file descriptor table

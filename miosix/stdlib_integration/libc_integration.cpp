@@ -1000,6 +1000,30 @@ int dup2(int oldfd, int newfd)
     #endif //WITH_FILESYSTEM
 }
 
+int pipe(int fds[2])
+{
+    #ifdef WITH_FILESYSTEM
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().pipe(fds);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_FILESYSTEM
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_FILESYSTEM
+}
+
 /*
  * Time API in Miosix
  * ==================

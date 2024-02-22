@@ -34,6 +34,7 @@
 #include "filesystem/romfs/romfs.h"
 #include "fat32/fat32.h"
 #include "littlefs/lfs_miosix.h"
+#include "pipe/pipe.h"
 #include "kernel/logging.h"
 #ifdef WITH_PROCESSES
 #include "kernel/process.h"
@@ -249,6 +250,23 @@ int FileDescriptorTable::dup2(int oldFd, int newFd)
     Lock<FastMutex> l(mutex);
     atomic_store(files+newFd,file); //May race with concurrent close, need atomic
     return newFd;
+}
+
+int FileDescriptorTable::pipe(int fds[2])
+{
+    if(fds==nullptr) return -EFAULT;
+    Lock<FastMutex> l(mutex);
+    int availableFds=0;
+    for(int i=0;i<MAX_OPEN_FILES;i++) if(!files[i]) if(++availableFds>=2) break;
+    if(availableFds<2) return -EMFILE;
+    fds[0]=getAvailableFd();
+    fds[1]=getAvailableFd();
+    assert(fds[0]>=0);
+    assert(fds[1]>=0);
+    intrusive_ref_ptr<FileBase> pipe(new Pipe);
+    files[fds[0]]=pipe;
+    files[fds[1]]=pipe;
+    return 0;
 }
 
 int FileDescriptorTable::statImpl(const char* name, struct stat* pstat, bool f)

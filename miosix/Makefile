@@ -28,6 +28,7 @@ filesystem/file_access.cpp                                                 \
 filesystem/file.cpp                                                        \
 filesystem/path.cpp                                                        \
 filesystem/stringpart.cpp                                                  \
+filesystem/pipe/pipe.cpp                                                   \
 filesystem/console/console_device.cpp                                      \
 filesystem/mountpointfs/mountpointfs.cpp                                   \
 filesystem/devfs/devfs.cpp                                                 \

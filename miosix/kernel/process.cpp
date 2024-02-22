@@ -579,6 +579,11 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
 
             case Syscall::PIPE:
             {
+//                 int fds[2];
+//                 int result=fileTable.pipe(fds);
+//                 sp.setReturnValue(result);
+//                 sp.setSecondParameter(fds[0]);
+//                 sp.setThirdParameter(fds[1]);
                 sp.setReturnValue(-EFAULT); //TODO: stub
                 break;
             }
