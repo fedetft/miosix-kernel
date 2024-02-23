@@ -259,12 +259,12 @@ int FileDescriptorTable::pipe(int fds[2])
     int availableFds=0;
     for(int i=0;i<MAX_OPEN_FILES;i++) if(!files[i]) if(++availableFds>=2) break;
     if(availableFds<2) return -EMFILE;
-    fds[0]=getAvailableFd();
-    fds[1]=getAvailableFd();
-    assert(fds[0]>=0);
-    assert(fds[1]>=0);
     intrusive_ref_ptr<FileBase> pipe(new Pipe);
+    fds[0]=getAvailableFd();
+    assert(fds[0]>=0);
     files[fds[0]]=pipe;
+    fds[1]=getAvailableFd();
+    assert(fds[1]>=0);
     files[fds[1]]=pipe;
     return 0;
 }
