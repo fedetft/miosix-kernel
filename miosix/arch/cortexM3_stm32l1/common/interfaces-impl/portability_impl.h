@@ -74,15 +74,13 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
  * running on the stm32f429zi_stm32f4discovery.
  */
 #define saveContext()                                                        \
-{                                                                             \
     asm volatile("stmdb sp!, {lr}        \n\t" /*save lr on MAIN stack*/      \
                  "mrs   r1,  psp         \n\t" /*get PROCESS stack pointer*/  \
                  "ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
                  "ldr   r0,  [r0]        \n\t"                                \
                  "stmia r0,  {r1,r4-r11} \n\t" /*save PROCESS sp + r4-r11*/   \
                  "dmb                    \n\t"                                \
-                 );                                                           \
-}
+                 );
 
 /**
  * \def restoreContext()
@@ -91,14 +89,12 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
  * prevent the compiler from generating context restore.
  */
 #define restoreContext()                                                     \
-{                                                                             \
     asm volatile("ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
                  "ldr   r0,  [r0]        \n\t"                                \
                  "ldmia r0,  {r1,r4-r11} \n\t" /*restore r4-r11 + r1=psp*/    \
                  "msr   psp, r1          \n\t" /*restore PROCESS sp*/         \
                  "ldmia sp!, {pc}        \n\t" /*return*/                     \
-                 );                                                           \
-}
+                 );
 
 /**
  * \}

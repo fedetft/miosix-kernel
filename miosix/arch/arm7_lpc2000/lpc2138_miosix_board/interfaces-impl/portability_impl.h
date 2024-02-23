@@ -71,7 +71,6 @@ const int stackPtrOffsetInCtxsave=13; ///< Allows to locate the stack pointer
  * It is used by the kernel, and should not be used by end users.
  */
 #define saveContextFromSwi()                                                 \
-{                                                                               \
     asm volatile(   /*push lr on stack, to use it as a general purpose reg.*/   \
                     "stmfd	sp!,{lr}		\n\t"                   \
                     /*load ctxsave and dereference the pointer*/                \
@@ -87,8 +86,7 @@ const int stackPtrOffsetInCtxsave=13; ///< Allows to locate the stack pointer
                     "stmia	r0!,{lr}		\n\t"                   \
                     /*save spsr on top of ctxsave*/                             \
                     "mrs	r1,spsr			\n\t"                   \
-                    "stmia	r0,{r1}			\n\t");                 \
-}
+                    "stmia	r0,{r1}			\n\t");
 
 /**
  * \def saveContextFromIrq()
@@ -97,11 +95,9 @@ const int stackPtrOffsetInCtxsave=13; ///< Allows to locate the stack pointer
  * The IRQ must be "naked" to prevent the compiler from generating context save.
  */
 #define saveContextFromIrq()                                                 \
-{                                                                               \
 	asm volatile(	/*Adjust lr, because the return address in a ISR has a 4 bytes offset*/ \
                     "sub	lr,lr,#4		\n\t");                 \
-	saveContextFromSwi();                                                \
-}
+	saveContextFromSwi();
 
 /**
  * \def restoreContext()
@@ -111,7 +107,6 @@ const int stackPtrOffsetInCtxsave=13; ///< Allows to locate the stack pointer
  * from generating context restore.
  */
 #define restoreContext()                                                       \
-{                                                                               \
 	asm volatile(	/*load ctxsave and dereference the pointer*/            \
                     /*also add 64 to make it point to "top of stack"*/          \
                     "ldr	lr,=ctxsave		\n\t"                   \
@@ -127,8 +122,7 @@ const int stackPtrOffsetInCtxsave=13; ///< Allows to locate the stack pointer
                     "nop                                \n\t"                   \
                     /*now that lr points to return address, return from interrupt*/         \
                     "ldr	lr,[lr]			\n\t"                   \
-                    "movs	pc,lr			\n\t");                 \
-}
+                    "movs	pc,lr			\n\t");
 
 /**
  * Enable interrupts (both irq and fiq)<br>
@@ -148,26 +142,22 @@ const int stackPtrOffsetInCtxsave=13; ///< Allows to locate the stack pointer
  * peripheral is associated with FIQ, so no FIQ interrupts will occur.
  */
 #define enableIRQandFIQ()                                                       \
-{                                                                               \
- asm volatile(".set  I_BIT, 0x80			\n\t"                   \
-              ".set  F_BIT, 0x40                        \n\t"                   \
-              "mrs r0, cpsr                             \n\t"                   \
-              "and r0, r0, #~(I_BIT|F_BIT)              \n\t"                   \
-              "msr cpsr_c, r0				\n\t"                   \
-              :::"r0");                                                         \
-}
+    asm volatile(".set  I_BIT, 0x80			\n\t"                   \
+                ".set  F_BIT, 0x40                        \n\t"                   \
+                "mrs r0, cpsr                             \n\t"                   \
+                "and r0, r0, #~(I_BIT|F_BIT)              \n\t"                   \
+                "msr cpsr_c, r0				\n\t"                   \
+                :::"r0");
 
 ///Disable interrupts (both irq and fiq)<br>
 ///If you are not using FIQ you should use enableInterrupts()
 #define disableIRQandFIQ()                                                      \
-{                                                                               \
- asm volatile(".set  I_BIT, 0x80			\n\t"                   \
-              ".set  F_BIT, 0x40			\n\t"                   \
-              "mrs r0, cpsr				\n\t"                   \
-              "orr r0, r0, #I_BIT|F_BIT                 \n\t"                   \
-              "msr cpsr_c, r0				\n\t"                   \
-              :::"r0");                                                         \
-}
+    asm volatile(".set  I_BIT, 0x80			\n\t"                   \
+                ".set  F_BIT, 0x40			\n\t"                   \
+                "mrs r0, cpsr				\n\t"                   \
+                "orr r0, r0, #I_BIT|F_BIT                 \n\t"                   \
+                "msr cpsr_c, r0				\n\t"                   \
+                :::"r0");
 
 /**
  * \}

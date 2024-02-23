@@ -75,7 +75,6 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
  */
 
 #define saveContext()                                                        \
-{                                                                             \
     asm volatile("push  {lr}             \n\t" /*save lr on MAIN stack*/      \
                  "mrs   r1,  psp         \n\t" /*get PROCESS stack pointer*/  \
                  "ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
@@ -87,8 +86,7 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
                  "mov   r7,  r11         \n\t"                                \
                  "stmia r0!, {r4-r7}     \n\t"                                \
                  "dmb                    \n\t"                                \
-                 );                                                           \
-}
+                 );
 
 /**
  * \def restoreContext()
@@ -98,7 +96,6 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
  */
 
 #define restoreContext()                                                     \
-{                                                                             \
     asm volatile("ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
                  "ldr   r0,  [r0]        \n\t"                                \
                  "ldmia r0!, {r1,r4-r7}  \n\t" /*pop r8-r11 saving in r4-r7*/ \
@@ -109,8 +106,7 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
                  "mov   r10, r2          \n\t"                                \
                  "mov   r11, r3          \n\t"                                \
                  "pop   {pc}             \n\t" /*return*/                     \
-                 );                                                           \
-}
+                 );
 
 /**
  * \}
