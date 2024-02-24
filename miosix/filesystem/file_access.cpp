@@ -257,14 +257,17 @@ int FileDescriptorTable::pipe(int fds[2])
     if(fds==nullptr) return -EFAULT;
     Lock<FastMutex> l(mutex);
     int availableFds=0;
-    for(int i=0;i<MAX_OPEN_FILES;i++) if(!files[i]) if(++availableFds>=2) break;
+    for(int i=0;i<MAX_OPEN_FILES;i++)
+    {
+        if(!files[i])
+        {
+            fds[availableFds]=i;
+            if(++availableFds>=2) break;
+        }
+    }
     if(availableFds<2) return -EMFILE;
     intrusive_ref_ptr<FileBase> pipe(new Pipe);
-    fds[0]=getAvailableFd();
-    assert(fds[0]>=0);
     files[fds[0]]=pipe;
-    fds[1]=getAvailableFd();
-    assert(fds[1]>=0);
     files[fds[1]]=pipe;
     return 0;
 }

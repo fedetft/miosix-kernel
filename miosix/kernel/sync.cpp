@@ -48,6 +48,22 @@ static auto PKlowerPriority=[](Thread *lhs, Thread *rhs)
 };
 
 //
+// class FastMutex
+//
+
+FastMutex::FastMutex(Options opt)
+{
+    if(opt==RECURSIVE)
+    {
+        pthread_mutexattr_t temp;
+        pthread_mutexattr_init(&temp);
+        pthread_mutexattr_settype(&temp,PTHREAD_MUTEX_RECURSIVE);
+        pthread_mutex_init(&impl,&temp);
+        pthread_mutexattr_destroy(&temp);
+    } else pthread_mutex_init(&impl,nullptr);
+}
+
+//
 // class Mutex
 //
 

@@ -58,17 +58,7 @@ public:
     /**
      * Constructor, initializes the mutex.
      */
-    FastMutex(Options opt=DEFAULT)
-    {
-        if(opt==RECURSIVE)
-        {
-            pthread_mutexattr_t temp;
-            pthread_mutexattr_init(&temp);
-            pthread_mutexattr_settype(&temp,PTHREAD_MUTEX_RECURSIVE);
-            pthread_mutex_init(&impl,&temp);
-            pthread_mutexattr_destroy(&temp);
-        } else pthread_mutex_init(&impl,nullptr);
-    }
+    FastMutex(Options opt=DEFAULT);
 
     /**
      * Locks the critical section. If the critical section is already locked,
