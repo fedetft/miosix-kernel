@@ -3521,7 +3521,7 @@ private:
     int a;
 };
 
-class Middle1 : public Base1, public IntrusiveRefCounted
+class Middle1 : public Base1, public IntrusiveRefCounted<Middle1>
 {
 public:
     Middle1() : b(0) {}
@@ -3561,7 +3561,7 @@ private:
     int e;
 };
 
-class Base0 : public IntrusiveRefCounted
+class Base0 : public IntrusiveRefCounted<Base0>
 {
 public:
     Base0() : f(0) {}

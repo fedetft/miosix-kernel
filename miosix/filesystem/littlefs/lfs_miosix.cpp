@@ -213,7 +213,7 @@ int LittleFS::openDirectory(intrusive_ref_ptr<FileBase> &directory,
     }
 
     directory = intrusive_ref_ptr<LittleFSDirectory>(new LittleFSDirectory(
-        intrusive_ref_ptr<LittleFS>(this), std::move(dir), lvl));
+        intrusive_ref_ptr<LittleFS>(this), std::move(dir), lvl)); //FIXME: use shared_from_this
 
     return 0;
 }
@@ -228,7 +228,7 @@ int LittleFS::openFile(intrusive_ref_ptr<FileBase> &file,
     if(err) return lfsErrorToPosix(err);
 
     file = intrusive_ref_ptr<LittleFSFile>(
-        new LittleFSFile(intrusive_ref_ptr<LittleFS>(this),
+        new LittleFSFile(intrusive_ref_ptr<LittleFS>(this), //FIXME: use shared_from_this
                          std::move(lfs_file_obj), flags & O_SYNC, name));
 
     return 0;

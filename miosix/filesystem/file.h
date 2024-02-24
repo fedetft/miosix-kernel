@@ -68,7 +68,7 @@ struct MemoryMappedFile
  * Classes of this type are reference counted, must be allocated on the heap
  * and managed through intrusive_ref_ptr<FileBase>
  */
-class FileBase : public IntrusiveRefCounted
+class FileBase : public IntrusiveRefCounted<FileBase>
 {
 public:
     /**
@@ -288,8 +288,7 @@ protected:
  * counted, must be allocated on the heap and managed through
  * intrusive_ref_ptr<FilesystemBase>
  */
-class FilesystemBase : public IntrusiveRefCounted,
-        public IntrusiveRefCountedSharedFromThis<FilesystemBase>
+class FilesystemBase : public IntrusiveRefCounted<FilesystemBase>
 {
 public:
     /**

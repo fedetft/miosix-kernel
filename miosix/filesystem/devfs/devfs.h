@@ -52,8 +52,7 @@ namespace miosix {
  * This class is defined also if WITH_FILESYSTEM is not defined as it is used by
  * the Console interface, but in this case the interface is reduced to a minimum
  */
-class Device : public IntrusiveRefCounted,
-        public IntrusiveRefCountedSharedFromThis<Device>
+class Device : public IntrusiveRefCounted<Device>
 {
 public:
     /**

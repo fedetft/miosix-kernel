@@ -61,8 +61,16 @@ protected:
 };
 
 /**
- * Derive from this class to support intrusive reference counting
+ * Derive from this class to support intrusive reference counting.
+ * This class also provides an implementation of 20.7.2.4 enable_shared_from_this
+ * as it can be done at no extra overhead when the reference count is intrusive.
+ * \tparam T this class uses the CRTP, so if class Foo derives from
+ * IntrusiveRefCounted, T must be Foo.
+ * \code
+ * class Foo : public IntrusiveRefCounted<Foo> {};
+ * \endcode
  */
+template<typename T>
 class IntrusiveRefCounted : public Intrusive
 {
 protected:
@@ -93,30 +101,6 @@ protected:
         // separate, so do nothing in operator=
         return *this;
     }
-    
-    // No destructor
-
-private:
-    template<typename T>
-    friend class intrusive_ref_ptr; ///< To access the reference count
-};
-
-/**
- * An implementation of 20.7.2.4 enable_shared_from_this for IntrusiveRefCounted
- * \param T this class uses the CRTP, just like enable_shared_from_this, so if
- * class Foo derives from IntrusiveRefCountedSharedFromThis, T has to be Foo.
- */
-template<typename T>
-class IntrusiveRefCountedSharedFromThis
-{
-public:
-    /**
-     * Constructor
-     */
-    IntrusiveRefCountedSharedFromThis()
-    {
-        static_assert(std::is_base_of<IntrusiveRefCounted,T>::value,"");
-    }
 
     /**
      * \return an intrusive_ref_ptr to this. In this respect,
@@ -126,40 +110,26 @@ public:
     {
         // Simply making an intrusive_ref_ptr from this works as the reference
         // count is intrusive
-        #ifndef __NO_EXCEPTIONS
-        T* result=dynamic_cast<T*>(this);
-        assert(result);
-        #else //__NO_EXCEPTIONS
-        T* result=static_cast<T*>(this);
-        #endif //__NO_EXCEPTIONS
-        return intrusive_ref_ptr<T>(result);
+        return intrusive_ref_ptr<T>(static_cast<T*>(this));
     }
-    
+
     /**
-     * \return an intrusive_ref_ptr to this In this respect,
+     * \return an intrusive_ref_ptr to this. In this respect,
      * IntrusiveRefCounted also behaves like enable_shared_from_this
      */
     intrusive_ref_ptr<const T> shared_from_this() const
     {
         // Simply making an intrusive_ref_ptr from this works as the reference
         // count is intrusive
-        #ifndef __NO_EXCEPTIONS
-        const T* result=dynamic_cast<const T*>(this);
-        assert(result);
-        #else //__NO_EXCEPTIONS
-        const T* result=static_cast<const T*>(this);
-        #endif //__NO_EXCEPTIONS
-        return intrusive_ref_ptr<const T>(result);
+        return intrusive_ref_ptr<const T>(static_cast<const T*>(this));
     }
     
-    /**
-     * Destructor
-     */
-    virtual ~IntrusiveRefCountedSharedFromThis();
-};
+    // No destructor
 
-template<typename T>
-IntrusiveRefCountedSharedFromThis<T>::~IntrusiveRefCountedSharedFromThis() {}
+private:
+    template<typename U>
+    friend class intrusive_ref_ptr; ///< To access the reference count
+};
 
 /**
  * Reference counted pointer to intrusively reference counted objects.

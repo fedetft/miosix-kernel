@@ -45,7 +45,7 @@ namespace miosix {
  * interchangeably as read/write end. Code that uses those file descriptor in a
  * standard compliant way won't notice the difference.
  */
-class Pipe : public FileBase, public IntrusiveRefCountedSharedFromThis<Pipe>
+class Pipe : public FileBase
 {
 public:
     /**
