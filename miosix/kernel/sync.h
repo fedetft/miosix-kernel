@@ -649,8 +649,8 @@ public:
     }
 
     /**
-     * Decrement the counter only if it is positive.
-     * \return true if the counter was positive.
+     * Resets the counter to zero, and returns the old count.
+     * \return The previous counter value.
      */
     int reset()
     {
