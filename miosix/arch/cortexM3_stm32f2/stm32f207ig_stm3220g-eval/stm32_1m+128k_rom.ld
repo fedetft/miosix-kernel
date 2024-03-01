@@ -49,7 +49,7 @@ ENTRY(_Z13Reset_Handlerv)
 /* specify the memory areas  */
 MEMORY
 {
-    flash(rx)   : ORIGIN = 0,          LENGTH = 1M
+    flash(rx)   : ORIGIN = 0x08000000, LENGTH = 1M
 
     /*
      * Note, the ram starts at 0x20000000 but it is necessary to add the size
