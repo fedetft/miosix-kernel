@@ -487,6 +487,47 @@ pipe:
 /* TODO: missing syscalls */
 
 /**
+ * miosix::getTime, nonstandard syscall
+ * \return long long time in nanoseconds
+ */
+.section .text._ZN6miosix7getTimeEv
+.global _ZN6miosix7getTimeEv
+.type _ZN6miosix7getTimeEv, %function
+_ZN6miosix7getTimeEv:
+	movs r0, #0
+	movs r3, #32
+	svc  0
+	bx   lr
+
+/**
+ * clock_gettime
+ * \param clockid which clock
+ * \param tp struct timespec*
+ * \return in Miosix this syscall always returns 0, if the clockid is wrong
+ * the default clock is returned
+ */
+.section .text.clock_gettime
+.global clock_gettime
+.type clock_gettime, %function
+clock_gettime:
+	push {r4, lr}
+	movs r4, r1
+	movs r3, #32
+	svc  0
+	adr  r3, .L500
+	ldrd r2, [r3]
+	bl   __aeabi_ldivmod
+	strd r0, [r4]
+	str  r2, [r4, #8]
+	movs r0, #0
+	pop  {r4, pc}
+.L500:
+	.word 1000000000
+	.word 0
+
+/* TODO: missing syscalls */
+
+/**
  * _exit, terminate process
  * \param v exit value
  * This syscall does not return

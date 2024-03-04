@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2012 by Terraneo Federico                               *
+ *   Copyright (C) 2012-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -596,7 +596,10 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
 
             case Syscall::GETTIME:
             {
-                sp.setParameter(0,-EFAULT); //TODO: stub
+                //TODO: sp.getParameter(0) is clockid_t by there's no support yet
+                long long t=getTime();
+                sp.setParameter(0,t & 0xffffffff);
+                sp.setParameter(1,t>>32);
                 break;
             }
 
