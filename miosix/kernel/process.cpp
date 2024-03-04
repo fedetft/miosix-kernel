@@ -605,7 +605,10 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
 
             case Syscall::SETTIME:
             {
-                sp.setParameter(0,-EFAULT); //TODO: stub
+//                 int clockid=sp.getParameter(0);
+//                 long long t=sp.getParameter(2);
+//                 t|=static_cast<long long>(sp.getParameter(1))<<32;
+                sp.setParameter(0,EFAULT); //NOTE: positive error codes
                 break;
             }
 

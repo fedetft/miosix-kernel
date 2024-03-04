@@ -521,9 +521,36 @@ clock_gettime:
 	str  r2, [r4, #8]
 	movs r0, #0
 	pop  {r4, pc}
+	.align 2
 .L500:
 	.word 1000000000
 	.word 0
+
+/**
+ * clock_settime
+ * \param clockid which clock
+ * \param tp struct timespec*
+ * \return 0 on success or a positive error code
+ */
+.section .text.clock_settime
+.global clock_settime
+.type clock_settime, %function
+clock_settime:
+	push {r4}
+	ldr  r4, .L600
+	ldrd r2, [r1]
+	umull r2, r12, r2, r4
+	ldr  r1, [r1, #8]
+	mla  r3, r3, r4, r12
+	adds r2, r2, r1
+	adc  r1, r3, r1, asr #31
+	movs r3, #33
+	svc  0
+	pop  {r4}
+	bx   lr
+	.align 2
+.L600:
+	.word 1000000000
 
 /* TODO: missing syscalls */
 
