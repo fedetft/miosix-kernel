@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/time.h>
 #include <sys/times.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
@@ -281,9 +282,56 @@ int _rename_r(struct _reent *ptr, const char *f_old, const char *f_new)
     return rename(f_old,f_new);
 }
 
+clock_t _times_r(struct _reent *ptr, struct tms *tim)
+{
+    return times(tim);
+}
+
+int _gettimeofday_r(struct _reent *ptr, struct timeval *tv, void *tz)
+{
+    return gettimeofday(tv,tz);
+}
+
 // int _kill_r(struct _reent* ptr, int pid, int sig) { return -1; }
 // int _wait_r(struct _reent *ptr, int *status) { return -1; }
 // int _getpid_r(struct _reent* ptr) { return 1; }
+
+clock_t times(struct tms *tim)
+{
+    struct timespec tp;
+    //No CLOCK_PROCESS_CPUTIME_ID support, use CLOCK_MONOTONIC
+    if(clock_gettime(CLOCK_MONOTONIC,&tp)) return static_cast<clock_t>(-1);
+    constexpr int divFactor=1000000000/CLOCKS_PER_SEC;
+    clock_t utime=tp.tv_sec*CLOCKS_PER_SEC + tp.tv_nsec/divFactor;
+
+    //Actually, we should return tim.utime or -1 on failure, but clock_t is
+    //unsigned, so if we return tim.utime and someone calls _times_r in an
+    //unlucky moment where tim.utime is 0xffffffff it would be interpreted as -1
+    //IMHO, the specifications are wrong since returning an unsigned leaves
+    //no value left to return in case of errors. Thus 0 is returned if a valid
+    //pointer is passed, and tim.utime if the pointer is null
+    if(tim==nullptr) return utime;
+    tim->tms_utime=utime;
+    tim->tms_stime=0;
+    tim->tms_cutime=0;
+    tim->tms_cstime=0;
+    return 0;
+}
+
+int gettimeofday(struct timeval *tv, void *tz)
+{
+    if(tv==nullptr || tz!=nullptr) return -1;
+    struct timespec tp;
+    if(clock_gettime(CLOCK_REALTIME,&tp)) return -1;
+    tv->tv_sec=tp.tv_sec;
+    tv->tv_usec=tp.tv_nsec/1000;
+    return 0;
+}
+
+int nanosleep(const struct timespec *req, struct timespec *rem)
+{
+    return clock_nanosleep(CLOCK_MONOTONIC,0,req,rem);
+}
 
 // TODO: implement when processes can spawn threads
 int pthread_mutex_unlock(pthread_mutex_t *mutex)  { return 0; }
