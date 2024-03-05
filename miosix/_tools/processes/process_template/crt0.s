@@ -626,6 +626,49 @@ _exit:
 	movs r3, #37
 	svc  0
 
+/* TODO: missing syscalls */
+
+/**
+ * waitpid, wait for process termination
+ * \param pid pid to wait for
+ * \param wstatus pointer to return code
+ * \param options wait options
+ * \return 0 on success, -1 on failure
+ */
+.section .text.waitpid
+.global waitpid
+.type waitpid, %function
+waitpid:
+	movs r3, #41
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * getpid
+ * \return the pid of the current process
+ */
+.section .text.getpid
+.global getpid
+.type getpid, %function
+getpid:
+	movs r3, #42
+	svc  0
+	bx   lr
+
+/**
+ * getppid
+ * \return the pid of the parent process
+ */
+.section .text.getppid
+.global getppid
+.type getppid, %function
+getppid:
+	movs r3, #43
+	svc  0
+	bx   lr
+
 /* common jump target for all failing syscalls with 32 bit return value */
 .section .text.__seterrno32
 syscallfailed32:

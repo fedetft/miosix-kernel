@@ -161,14 +161,14 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
         if(self->zombies.empty() && (options & WNOHANG)) return 0;
         while(self->zombies.empty())
         {
-            if(self->childs.empty()) return -1;
+            if(self->childs.empty()) return -ECHILD;
             p.genericWaiting.wait(l);
         }
         Process *joined=self->zombies.front();
         self->zombies.pop_front();
         p.processes.erase(joined->pid);
         if(joined->waitCount!=0) errorHandler(UNEXPECTED);
-        if(exit!=0) *exit=joined->exitCode;
+        if(exit!=nullptr) *exit=joined->exitCode;
         pid_t result=joined->pid;
         delete joined;
         return result;
@@ -176,7 +176,7 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
         //Wait on a specific child process
         map<pid_t,ProcessBase *>::iterator it=p.processes.find(pid);
         if(it==p.processes.end() || it->second->ppid!=self->pid
-                || pid==self->pid) return -1;
+                || pid==self->pid) return -ECHILD;
         //Since the case when pid==0 has been singled out, this cast is safe
         Process *joined=static_cast<Process*>(it->second);
         if(joined->zombie==false)
@@ -193,7 +193,7 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
         if(joined->waitCount==0)
         {
             result=joined->pid;
-            if(exit!=0) *exit=joined->exitCode;
+            if(exit!=nullptr) *exit=joined->exitCode;
             self->zombies.remove(joined);
             p.processes.erase(joined->pid);
             delete joined;
@@ -665,19 +665,26 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
 
             case Syscall::WAITPID:
             {
-                sp.setParameter(0,-EFAULT); //TODO: stub
+                int pid=sp.getParameter(0);
+                auto wstatus=reinterpret_cast<int*>(sp.getParameter(1));
+                int options=sp.getParameter(2);
+                if(mpu.withinForWriting(wstatus,sizeof(int)) && aligned(wstatus))
+                {
+                    int result=Process::waitpid(pid,wstatus,options);
+                    sp.setParameter(0,result);
+                } else sp.setParameter(0,-EFAULT);
                 break;
             }
 
             case Syscall::GETPID:
             {
-                sp.setParameter(0,-EFAULT); //TODO: stub
+                sp.setParameter(0,this->pid);
                 break;
             }
 
             case Syscall::GETPPID:
             {
-                sp.setParameter(0,-EFAULT); //TODO: stub
+                sp.setParameter(0,this->ppid);
                 break;
             }
 

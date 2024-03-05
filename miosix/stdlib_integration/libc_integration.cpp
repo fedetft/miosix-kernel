@@ -44,6 +44,7 @@
 #include "kernel/logging.h"
 //// kernel interface
 #include "kernel/kernel.h"
+#include "kernel/process.h"
 #include "interfaces/bsp.h"
 #include "interfaces/os_timer.h"
 
@@ -1148,7 +1149,7 @@ int nanosleep(const struct timespec *req, struct timespec *rem)
  */
 int _kill_r(struct _reent* ptr, int pid, int sig)
 {
-    if(pid==0) _exit(1); //pid=1 means the only running process
+    if(pid==0) _exit(1); //pid 0 is the kernel
     else return -1;
 }
 
@@ -1159,7 +1160,7 @@ int kill(int pid, int sig)
 
 /**
  * \internal
- * _getpid_r, there is only one process in Miosix (but multiple threads)
+ * _getpid_r, the kernel has pid 0 so getpid return 0 in the kernel
  */
 int _getpid_r(struct _reent* ptr)
 {
@@ -1168,25 +1169,57 @@ int _getpid_r(struct _reent* ptr)
 
 /**
  * \internal
- * getpid, there is only one process in Miosix (but multiple threads)
+ * getpid, the kernel has pid 0 so getpid return 0 in the kernel
  */
 int getpid()
 {
-    return _getpid_r(miosix::getReent());
+    return 0;
 }
 
 /**
  * \internal
- * _wait_r, unimpemented because processes are not supported in Miosix
+ * getppid, the kernel has no parent, in the kernel getppid returns 0
+ */
+int getppid()
+{
+    return 0;
+}
+
+/**
+ * \internal
+ * _wait_r, wait for process termination
  */
 int _wait_r(struct _reent *ptr, int *status)
 {
+    #ifdef WITH_PROCESSES
+    int result=miosix::Process::wait(status);
+    if(result>=0) return result;
+    ptr->_errno=-result;
     return -1;
+    #else //WITH_PROCESSES
+    return -1;
+    #endif //WITH_PROCESSES
 }
 
-int wait(int *status)
+pid_t wait(int *status)
 {
     return _wait_r(miosix::getReent(),status);
+}
+
+/**
+ * \internal
+ * waitpid, wait for process termination
+ */
+pid_t waitpid(pid_t pid, int *status, int options)
+{
+    #ifdef WITH_PROCESSES
+    int result=miosix::Process::waitpid(pid,status,options);
+    if(result>=0) return result;
+    errno=-result;
+    return -1;
+    #else //WITH_PROCESSES
+    return -1;
+    #endif //WITH_PROCESSES
 }
 
 /**

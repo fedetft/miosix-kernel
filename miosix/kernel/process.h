@@ -114,7 +114,7 @@ public:
      * Wait for child process termination
      * \param exit the process exit code will be returned here, if the pointer
      * is not null
-     * \return the pid of the terminated process, or -1 in case of errors
+     * \return the pid of the terminated process, or an error code
      */
     static pid_t wait(int *exit) { return waitpid(-1,exit,0); }
     
@@ -124,7 +124,7 @@ public:
      * \param exit the process exit code will be returned here, if the pointer
      * is not null
      * \param options only 0 and WNOHANG are supported
-     * \return the pid of the terminated process, or -1 in case of errors. In
+     * \return the pid of the terminated process, or an error code. In
      * case WNOHANG  is specified and the specified process has not terminated,
      * 0 is returned
      */

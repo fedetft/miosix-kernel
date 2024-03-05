@@ -36,6 +36,7 @@
 #include <sys/stat.h>
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/wait.h>
 #include <reent.h>
 #include <cxxabi.h>
 
@@ -293,8 +294,16 @@ int _gettimeofday_r(struct _reent *ptr, struct timeval *tv, void *tz)
 }
 
 // int _kill_r(struct _reent* ptr, int pid, int sig) { return -1; }
-// int _wait_r(struct _reent *ptr, int *status) { return -1; }
-// int _getpid_r(struct _reent* ptr) { return 1; }
+
+int _wait_r(struct _reent *ptr, int *status)
+{
+    return waitpid(-1,status,0);
+}
+
+int _getpid_r(struct _reent* ptr)
+{
+    return getpid();
+}
 
 clock_t times(struct tms *tim)
 {
@@ -331,6 +340,11 @@ int gettimeofday(struct timeval *tv, void *tz)
 int nanosleep(const struct timespec *req, struct timespec *rem)
 {
     return clock_nanosleep(CLOCK_MONOTONIC,0,req,rem);
+}
+
+pid_t wait(int *status)
+{
+    return waitpid(-1,status,0);
 }
 
 // TODO: implement when processes can spawn threads
