@@ -488,13 +488,13 @@ pipe:
 
 /**
  * miosix::getTime, nonstandard syscall
- * \return long long time in nanoseconds
+ * \return long long time in nanoseconds, relative to clock monotonic
  */
 .section .text._ZN6miosix7getTimeEv
 .global _ZN6miosix7getTimeEv
 .type _ZN6miosix7getTimeEv, %function
 _ZN6miosix7getTimeEv:
-	movs r0, #0
+	movs r0, #4
 	movs r3, #32
 	svc  0
 	bx   lr
@@ -551,6 +551,66 @@ clock_settime:
 	.align 2
 .L600:
 	.word 1000000000
+
+/**
+ * miosix::nanoSleepUntil, nonstandard syscall
+ * \param absolute sleep time in nanoseconds, relative to clock monotonic
+ */
+.section .text._ZN6miosix14nanoSleepUntilEx
+.global _ZN6miosix14nanoSleepUntilEx
+.type _ZN6miosix14nanoSleepUntilEx, %function
+_ZN6miosix14nanoSleepUntilEx:
+	mov  r12, #260
+	movs r3, #33
+	svc  0
+	bx   lr
+
+/**
+ * clock_nanosleep
+ * \param clockid which clock
+ * \param flags absolute or relative
+ * \param req struct timespec* with sleep time
+ * \param rem ignored
+ * \return 0 on success or a positive error code
+ */
+.section .text.clock_nanosleep
+.global clock_nanosleep
+.type clock_nanosleep, %function
+clock_nanosleep:
+	push {r4}
+	orr  r12, r0, r1, lsl #6
+	ldr  r4, .L700
+	ldrd r0, [r2]
+	umull r0, r3, r0, r4
+	ldr  r2, [r2, #8]
+	mla  r1, r1, r4, r3
+	adds r0, r0, r2
+	adc  r1, r1, r2, asr #31
+	movs r3, #34
+	svc  0
+	pop  {r4}
+	bx   lr
+	.align 2
+.L700:
+	.word 1000000000
+
+/**
+ * clock_getres
+ * \param clockid which clock
+ * \param req struct timespec* resolution
+ * \return 0 on success or a positive error code
+ */
+.section .text.clock_getres
+.global clock_getres
+.type clock_getres, %function
+clock_getres:
+	movs r3, #35
+	svc  0
+	str  r2, [r1, #8]
+	movs r2, #0
+	movs r3, #0
+	strd r2, [r1]
+	bx   lr
 
 /* TODO: missing syscalls */
 

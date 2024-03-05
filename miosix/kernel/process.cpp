@@ -614,13 +614,22 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
 
             case Syscall::NANOSLEEP:
             {
-                sp.setParameter(0,-EFAULT); //TODO: stub
+                int clockidAndFlags=sp.getParameter(3);
+                long long t=sp.getParameter(0);
+                t|=static_cast<long long>(sp.getParameter(1))<<32;
+                //TODO support for clockid is not implemented yet
+                if((clockidAndFlags & (1<<8))==0) t+=getTime(); //Relative sleep?
+                Thread::nanoSleepUntil(t);
+                sp.setParameter(0,0);
                 break;
             }
 
             case Syscall::GETRES:
             {
-                sp.setParameter(0,-EFAULT); //TODO: stub
+                struct timespec tv;
+                sp.setParameter(0,clock_getres(sp.getParameter(0),&tv));
+                //tv_sec not returned, clock resolutions >=1 second unsupported
+                sp.setParameter(2,tv.tv_nsec);
                 break;
             }
 
