@@ -74,6 +74,103 @@ static int validateStringArray(MPUConfiguration& mpu, char* const* a)
 }
 
 /**
+ * Class used to create a copy of the argv and envp data during calls such as
+ * execve
+ */
+class ArgBlock
+{
+public:
+    /**
+     * Default constructor, yields an invalid object
+     */
+    ArgBlock() {}
+
+    /**
+     * Constructor
+     * \param argv argv array
+     * \param envp env array
+     * \param narg number of elements of argv array
+     * \param nenv number of elements of envp array
+     */
+    ArgBlock(char* const* argv, char* const* envp, int narg, int nenv);
+
+    /**
+     * \return true if the object is valid
+     */
+    bool valid() const { return block!=nullptr; }
+
+    /**
+     * \return the pointer to the arg block data
+     */
+    const char *data() const { return block; }
+
+    /**
+     * \return the arg block size
+     */
+    unsigned int size() const { return blockSize; }
+
+    /**
+     * \return the position in the arg block of the argv array
+     * block()+getArgIndex() is the argv array
+     */
+    unsigned int getArgIndex() const { return 0; /* Always at the start */ }
+
+    /**
+     * \return the position in the arg block of the envp array
+     * block()+getArgIndex() is the envp array
+     */
+    unsigned int getEnvIndex() const { return envArrayIndex; }
+
+    /**
+     * Destructor
+     */
+    ~ArgBlock();
+
+    ArgBlock(const ArgBlock&)=delete;
+    ArgBlock& operator=(const ArgBlock&)=delete;
+
+private:
+    char *block=nullptr;
+    unsigned int blockSize=0;
+    unsigned int envArrayIndex=0;
+};
+
+ArgBlock::ArgBlock(char* const* argv, char* const* envp, int narg, int nenv)
+{
+    //TODO: optimization: we may omit copying the strings that are in flash
+    constexpr int maxArg=16;
+    constexpr unsigned int maxArgBlockSize=512;
+    //Long long to prevent malicious overflows
+    unsigned long long arrayBlockSize=sizeof(char*)*(narg+nenv+2);
+    unsigned long long argBlockSize=arrayBlockSize;
+    for(int i=0;i<narg;i++) argBlockSize+=strlen(argv[i])+1;
+    for(int i=0;i<nenv;i++) argBlockSize+=strlen(envp[i])+1;
+    if(narg>maxArg || nenv>maxArg || argBlockSize>maxArgBlockSize) return;
+    block=new char[argBlockSize];
+    blockSize=argBlockSize;
+    envArrayIndex=sizeof(char*)*(narg+1);
+    char **arrayBlock=reinterpret_cast<char**>(block);
+    char *stringBlock=block+arrayBlockSize;
+    auto add=[&](char* const* a, int n)
+    {
+        for(int i=0;i<n;i++)
+        {
+            *arrayBlock++=stringBlock;
+            strcpy(stringBlock,a[i]);
+            stringBlock+=strlen(a[i])+1;
+        }
+        *arrayBlock++=nullptr;
+    };
+    add(argv,narg);
+    add(envp,nenv);
+}
+
+ArgBlock::~ArgBlock()
+{
+    if(block) delete[] block;
+}
+
+/**
  * This class contains information on all the processes in the system
  */
 class Processes
@@ -674,12 +771,11 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
                 int nenv=validateStringArray(mpu,envp);
                 if(mpu.withinForReading(path) && narg>=0 && nenv>=0)
                 {
-                    //TODO
-                    iprintf("execve:\npath=%s\nargv[%d]={",path,narg);
-                    for(int i=0;i<narg;i++) iprintf("%s,",argv[i]);
-                    iprintf("nullptr}\nenvp[%d]={",nenv);
-                    for(int i=0;i<nenv;i++) iprintf("%s,",envp[i]);
-                    iprintf("nullptr}\n");
+                    ArgBlock ab(argv,envp,narg,nenv);
+                    if(ab.valid())
+                    {
+                        //TODO
+                    } else sp.setParameter(0,-E2BIG);
                 } else sp.setParameter(0,-EFAULT);
                 break;
             }
