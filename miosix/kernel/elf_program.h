@@ -49,7 +49,8 @@ public:
      * class. This is done to allow passing a pointer directly to a location
      * in the microcontroller's FLASH memory, in order to avoid copying the
      * elf in RAM
-     * \param size size of the content of the elf file
+     * \param size size in bytes (despite elf is an unsigned int*) of the
+     * content of the elf file
      */
     ElfProgram(const unsigned int *elf, unsigned int size);
     
@@ -96,7 +97,7 @@ public:
     }
     
     /**
-     * \return the size of the elf file, as passed in the class' constructor
+     * \return the size in bytes of the elf file, as passed in the constructor
      */
     unsigned int getElfSize() const
     {
@@ -134,7 +135,7 @@ private:
     static bool isUnaligned8(unsigned int x) { return x & 0b111; }
     
     const unsigned int * const elf; ///<Pointer to the content of the elf file
-    unsigned int size; ///< Size of the elf file
+    unsigned int size; ///< Size in bytes of the elf file
 };
 
 /**
@@ -161,7 +162,8 @@ public:
     unsigned int *getProcessBasePointer() const { return image; }
     
     /**
-     * \return the size of the process image, or zero if it is not valid 
+     * \return the size in bytes (despite getProcessBasePointer() returns an
+     * unsigned int*) of the process image, or zero if it is not valid
      */
     unsigned int getProcessImageSize() const { return size; }
     
@@ -180,7 +182,7 @@ private:
     ProcessImage& operator= (const ProcessImage&);
     
     unsigned int *image; //Pointer to the process image in RAM
-    unsigned int size;   //Size of the process image
+    unsigned int size;   //Size in bytes of the process image
 };
 
 } //namespace miosix

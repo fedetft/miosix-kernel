@@ -39,8 +39,8 @@ ProcessPool& ProcessPool::instance()
 {
     #ifndef TEST_ALLOC
     //These are defined in the linker script
-	extern unsigned int _process_pool_start asm("_process_pool_start");
-	extern unsigned int _process_pool_end asm("_process_pool_end");
+    extern unsigned int _process_pool_start asm("_process_pool_start");
+    extern unsigned int _process_pool_end asm("_process_pool_end");
     static ProcessPool pool(&_process_pool_start,
         reinterpret_cast<unsigned int>(&_process_pool_end)-
         reinterpret_cast<unsigned int>(&_process_pool_start));
@@ -112,9 +112,13 @@ ProcessPool::~ProcessPool()
     delete[] bitmap;
 }
 
+} //namespace miosix
+
 #ifdef TEST_ALLOC
+//g++ -m32 -o pp -DTEST_ALLOC -DWITH_PROCESSES process_pool.cpp && ./pp
 int main()
 {
+    using namespace miosix;
     ProcessPool& pool=ProcessPool::instance();
     while(1)
     {
@@ -148,11 +152,9 @@ int main()
             default:
                 cout<<"Incorrect option"<<endl;
                 break;
-        }          
+        }
     }
 }
 #endif //TEST_ALLOC
-
-} //namespace miosix
 
 #endif //WITH_PROCESSES

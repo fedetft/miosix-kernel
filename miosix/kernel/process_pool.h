@@ -56,8 +56,9 @@ public:
     
     /**
      * Allocate memory inside the process pool.
-     * \param size size of the requested memory, must be a power of two,
-     * and be grater or equal to blockSize.
+     * \param size size in bytes (despite the returned pointer is an
+     * unsigned int*) of the requested memory, must be a power of
+     * two, and be grater or equal to blockSize.
      * \return a pointer to the allocated memory. Note that the pointer is
      * size-aligned, so that for example if a 16KByte block is requested,
      * the returned pointer is aligned on a 16KB boundary. This is so to
