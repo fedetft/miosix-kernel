@@ -54,6 +54,26 @@ namespace miosix {
 static bool aligned(void *x) { return (reinterpret_cast<unsigned>(x) & 0b11)==0; }
 
 /**
+ * Validate that a string array parameter, such as the one passed to the execve
+ * syscall belongs to the process memory.
+ * \param mpu mpu object knowing the valid memory regions for the current process
+ * \param a string array
+ * \return the number of strings or -1 on failure
+ */
+static int validateStringArray(MPUConfiguration& mpu, char* const* a)
+{
+    for(int i=0;;i++)
+    {
+        //Is the array element safe to dereference?
+        if(mpu.withinForReading(a+i,sizeof(char*))==false) return -1;
+        //Is the char * contained in the array element the end of the array?
+        if(a[i]==nullptr) return i;
+        //Is the char * contained in the array a safe to dereference string?
+        if(mpu.withinForReading(a[i])==false) return -1;
+    }
+}
+
+/**
  * This class contains information on all the processes in the system
  */
 class Processes
@@ -647,7 +667,20 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
 
             case Syscall::EXECVE:
             {
-                sp.setParameter(0,-EFAULT); //TODO: stub
+                auto path=reinterpret_cast<const char*>(sp.getParameter(0));
+                auto argv=reinterpret_cast<char* const*>(sp.getParameter(1));
+                auto envp=reinterpret_cast<char* const*>(sp.getParameter(2));
+                int narg=validateStringArray(mpu,argv);
+                int nenv=validateStringArray(mpu,envp);
+                if(mpu.withinForReading(path) && narg>=0 && nenv>=0)
+                {
+                    //TODO
+                    iprintf("execve:\npath=%s\nargv[%d]={",path,narg);
+                    for(int i=0;i<narg;i++) iprintf("%s,",argv[i]);
+                    iprintf("nullptr}\nenvp[%d]={",nenv);
+                    for(int i=0;i<nenv;i++) iprintf("%s,",envp[i]);
+                    iprintf("nullptr}\n");
+                } else sp.setParameter(0,-EFAULT);
                 break;
             }
 

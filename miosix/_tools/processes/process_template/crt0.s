@@ -431,7 +431,7 @@ rename:
 	blt  syscallfailed32
 	bx   lr
 
-/* TODO: missing syscalls */
+/* TODO: missing syscalls: chmod, fchmod, chown, fchown, lchown */
 
 /**
  * dup
@@ -484,7 +484,7 @@ pipe:
 	movs r0, r1
 	b    syscallfailed32
 
-/* TODO: missing syscalls */
+/* TODO: missing syscalls: access */
 
 /**
  * miosix::getTime, nonstandard syscall
@@ -561,7 +561,7 @@ clock_settime:
 .type _ZN6miosix14nanoSleepUntilEx, %function
 _ZN6miosix14nanoSleepUntilEx:
 	mov  r12, #260
-	movs r3, #33
+	movs r3, #34
 	svc  0
 	bx   lr
 
@@ -612,7 +612,7 @@ clock_getres:
 	strd r2, [r1]
 	bx   lr
 
-/* TODO: missing syscalls */
+/* TODO: missing syscalls: clock_adjtime */
 
 /**
  * _exit, terminate process
@@ -625,6 +625,22 @@ clock_getres:
 _exit:
 	movs r3, #37
 	svc  0
+
+/**
+ * execve, run a different program
+ * \param path program to run
+ * \param argv program arguments
+ * \param envp program environment variables
+ * \return -1 on failure. Does not return on success
+ */
+.section .text.execve
+.global execve
+.type execve, %function
+execve:
+	movs r3, #38
+	svc  0
+	/* if execve returns, then it failed */
+	b    __seterrno32
 
 /* TODO: missing syscalls */
 
@@ -668,6 +684,8 @@ getppid:
 	movs r3, #43
 	svc  0
 	bx   lr
+
+/* TODO: missing syscalls: getuid, getgid, geteuid, getegid, setuid, setgid */
 
 /* common jump target for all failing syscalls with 32 bit return value */
 .section .text.__seterrno32
