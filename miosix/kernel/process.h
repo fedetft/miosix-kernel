@@ -261,6 +261,15 @@ public:
     unsigned int getEnvIndex() const { return envArrayIndex; }
 
     /**
+     * Copy the args block to a target destination, performing a fixup of the
+     * pointers so that the target args block contains the argv and envp array
+     * whose pointers point to the target args block, not the source one.
+     * \param target pointer to a memory area whose size is at least size()
+     * bytes where the args block will be copied and relocated
+     */
+    void relocateTo(char *target);
+
+    /**
      * Destructor
      */
     ~ArgsBlock();

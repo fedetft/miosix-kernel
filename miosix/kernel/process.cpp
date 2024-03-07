@@ -244,7 +244,7 @@ Process::Process(const ElfProgram& program, ArgsBlock&& args)
     image.load(program);
     auto ptr=reinterpret_cast<char*>(image.getProcessBasePointer());
     ptr+=image.getProcessImageSize()-args.size();
-    memcpy(ptr,args.data(),args.size());
+    args.relocateTo(ptr);
     argc=args.getNumberOfArguments();
     argvSp=ptr; //Argument array is at the start of the args block
     envp=ptr+args.getEnvIndex();
@@ -848,6 +848,19 @@ ArgsBlock::ArgsBlock(char* const* argv, char* const* envp, int narg, int nenv) :
     };
     add(argv,narg);
     add(envp,nenv);
+}
+
+void ArgsBlock::relocateTo(char *target)
+{
+    memcpy(target,block,blockSize);
+    auto relocate=[=](char *a)
+    {
+        char **element=reinterpret_cast<char**>(a);
+        for(;*element!=nullptr;element++) *element=*element-block+target;
+    };
+    relocate(target);
+    relocate(target+envArrayIndex);
+    //memDump(target,blockSize); //For debugging
 }
 
 ArgsBlock::~ArgsBlock()
