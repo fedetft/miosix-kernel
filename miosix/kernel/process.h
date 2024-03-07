@@ -44,6 +44,7 @@ namespace miosix {
 
 //Forware decl
 class Process;
+class ArgBlock;
 
 /**
  * This class contains the fields that are in common between the kernel and
@@ -87,20 +88,38 @@ public:
     /**
      * Create a new process
      * \param program Program that the process will execute
+     * \param args program arguments and environment variables
      * \return the pid of the newly created process
      * \throws std::exception or a subclass in case of errors, including
      * not emough memory to spawn the process
      */
-    static pid_t create(const ElfProgram& program);
+    static pid_t create(const ElfProgram& program, ArgBlock&& args);
 
     /**
      * Create a new process from a file in the filesystem
-     * \param program path file path of the program to spawn
+     * \param path file path of the program to spawn
+     * \param argv program arguments
+     * \param envp program environment variables
+     * \param narg number of arguments
+     * \param nenv number of environment variables
      * \return the pid of the newly created process
      * \throws std::exception or a subclass in case of errors, including
      * not emough memory to spawn the process
      */
-    static pid_t spawn(const char *path);
+    static pid_t spawn(const char *path, char* const* argv, char* const* envp,
+                       int narg, int nenv);
+
+    /**
+     * Create a new process from a file in the filesystem
+     * \param path file path of the program to spawn
+     * \param argv program arguments
+     * \param envp program environment variables
+     * \return the pid of the newly created process
+     * \throws std::exception or a subclass in case of errors, including
+     * not emough memory to spawn the process
+     */
+    static pid_t spawn(const char *path, char* const* argv=nullptr,
+                       char* const* envp=nullptr);
     
     /**
      * Given a process, returns the pid of its parent.
@@ -140,8 +159,9 @@ private:
     /**
      * Constructor
      * \param program program that will be executed by the process
+     * \param args program arguments and environment variables
      */
-    Process(const ElfProgram& program);
+    Process(const ElfProgram& program, ArgBlock&& args);
     
     /**
      * Contains the process' main loop. 
@@ -168,6 +188,9 @@ private:
     ProcessImage image; ///<The RAM image of a process
     miosix_private::FaultData fault; ///< Contains information about faults
     MPUConfiguration mpu; ///<Memory protection data
+    int argc;   ///< Process argument count
+    void *argv; ///< Pointer to the argument array within the ProcessImage
+    void *envp; ///< Pointer to the environment array within the ProcessImage
     
     std::vector<Thread *> threads; ///<Threads that belong to the process
     
@@ -188,6 +211,74 @@ private:
     friend class ControlScheduler;
     //Needs access to mpu
     friend class EDFScheduler;
+};
+
+/**
+ * Class used to create a copy of the argv and envp data during calls such as
+ * execve
+ */
+class ArgBlock
+{
+public:
+    /**
+     * Default constructor, yields an invalid object
+     */
+    ArgBlock() {}
+
+    /**
+     * Constructor
+     * \param argv argv array
+     * \param envp env array
+     * \param narg number of elements of argv array
+     * \param nenv number of elements of envp array
+     */
+    ArgBlock(char* const* argv, char* const* envp, int narg, int nenv);
+
+    /**
+     * \return true if the object is valid
+     */
+    bool valid() const { return block!=nullptr; }
+
+    /**
+     * \return the pointer to the arg block data
+     */
+    const char *data() const { return block; }
+
+    /**
+     * \return the arg block size
+     */
+    unsigned int size() const { return blockSize; }
+
+    /**
+     * \return the position in the arg block of the argv array
+     * block()+getArgIndex() is the argv array
+     */
+    unsigned int getArgIndex() const { return 0; /* Always at the start */ }
+
+    /**
+     * \return the number of arguments
+     */
+    int getNumberOfArguments() const { return narg; }
+
+    /**
+     * \return the position in the arg block of the envp array
+     * block()+getArgIndex() is the envp array
+     */
+    unsigned int getEnvIndex() const { return envArrayIndex; }
+
+    /**
+     * Destructor
+     */
+    ~ArgBlock();
+
+    ArgBlock(const ArgBlock&)=delete;
+    ArgBlock& operator=(const ArgBlock&)=delete;
+
+private:
+    char *block=nullptr;
+    unsigned int blockSize=0;
+    unsigned int envArrayIndex=0;
+    int narg=0;
 };
 
 /**

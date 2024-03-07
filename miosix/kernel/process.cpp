@@ -74,103 +74,6 @@ static int validateStringArray(MPUConfiguration& mpu, char* const* a)
 }
 
 /**
- * Class used to create a copy of the argv and envp data during calls such as
- * execve
- */
-class ArgBlock
-{
-public:
-    /**
-     * Default constructor, yields an invalid object
-     */
-    ArgBlock() {}
-
-    /**
-     * Constructor
-     * \param argv argv array
-     * \param envp env array
-     * \param narg number of elements of argv array
-     * \param nenv number of elements of envp array
-     */
-    ArgBlock(char* const* argv, char* const* envp, int narg, int nenv);
-
-    /**
-     * \return true if the object is valid
-     */
-    bool valid() const { return block!=nullptr; }
-
-    /**
-     * \return the pointer to the arg block data
-     */
-    const char *data() const { return block; }
-
-    /**
-     * \return the arg block size
-     */
-    unsigned int size() const { return blockSize; }
-
-    /**
-     * \return the position in the arg block of the argv array
-     * block()+getArgIndex() is the argv array
-     */
-    unsigned int getArgIndex() const { return 0; /* Always at the start */ }
-
-    /**
-     * \return the position in the arg block of the envp array
-     * block()+getArgIndex() is the envp array
-     */
-    unsigned int getEnvIndex() const { return envArrayIndex; }
-
-    /**
-     * Destructor
-     */
-    ~ArgBlock();
-
-    ArgBlock(const ArgBlock&)=delete;
-    ArgBlock& operator=(const ArgBlock&)=delete;
-
-private:
-    char *block=nullptr;
-    unsigned int blockSize=0;
-    unsigned int envArrayIndex=0;
-};
-
-ArgBlock::ArgBlock(char* const* argv, char* const* envp, int narg, int nenv)
-{
-    //TODO: optimization: we may omit copying the strings that are in flash
-    constexpr int maxArg=16;
-    constexpr unsigned int maxArgBlockSize=512;
-    //Long long to prevent malicious overflows
-    unsigned long long arrayBlockSize=sizeof(char*)*(narg+nenv+2);
-    unsigned long long argBlockSize=arrayBlockSize;
-    for(int i=0;i<narg;i++) argBlockSize+=strlen(argv[i])+1;
-    for(int i=0;i<nenv;i++) argBlockSize+=strlen(envp[i])+1;
-    if(narg>maxArg || nenv>maxArg || argBlockSize>maxArgBlockSize) return;
-    block=new char[argBlockSize];
-    blockSize=argBlockSize;
-    envArrayIndex=sizeof(char*)*(narg+1);
-    char **arrayBlock=reinterpret_cast<char**>(block);
-    char *stringBlock=block+arrayBlockSize;
-    auto add=[&](char* const* a, int n)
-    {
-        for(int i=0;i<n;i++)
-        {
-            *arrayBlock++=stringBlock;
-            strcpy(stringBlock,a[i]);
-            stringBlock+=strlen(a[i])+1;
-        }
-        *arrayBlock++=nullptr;
-    };
-    add(argv,narg);
-    add(envp,nenv);
-}
-
-ArgBlock::~ArgBlock()
-{
-    if(block) delete[] block;
-}
-
-/**
  * This class contains information on all the processes in the system
  */
 class Processes
@@ -211,11 +114,11 @@ Processes& Processes::instance()
 // class Process
 //
 
-pid_t Process::create(const ElfProgram& program)
+pid_t Process::create(const ElfProgram& program, ArgBlock&& args)
 {
     Processes& p=Processes::instance();
     ProcessBase *parent=Thread::getCurrentThread()->proc;
-    unique_ptr<Process> proc(new Process(program));
+    unique_ptr<Process> proc(new Process(program,std::move(args)));
     {   
         Lock<Mutex> l(p.procMutex);
         proc->pid=getNewPid();
@@ -223,7 +126,7 @@ pid_t Process::create(const ElfProgram& program)
         parent->childs.push_back(proc.get());
         p.processes[proc->pid]=proc.get();
     }
-    auto thr=Thread::createUserspace(Process::start,0,Thread::DEFAULT,proc.get());
+    auto thr=Thread::createUserspace(Process::start,nullptr,Thread::DEFAULT,proc.get());
     if(thr==nullptr)
     {
         Lock<Mutex> l(p.procMutex);
@@ -242,7 +145,8 @@ pid_t Process::create(const ElfProgram& program)
     return result;
 }
 
-pid_t Process::spawn(const char *path)
+pid_t Process::spawn(const char *path, char* const* argv, char* const* envp,
+                     int narg, int nenv)
 {
     if(path==nullptr || path[0]=='\0') return -EFAULT;
     string filePath=path; //TODO: expand ./program using cwd of correct file descriptor table
@@ -255,7 +159,16 @@ pid_t Process::spawn(const char *path)
     if(mmFile.isValid()==false) return -EFAULT;
     if(reinterpret_cast<unsigned int>(mmFile.data) & 0x3) return -ENOEXEC;
     ElfProgram prog(reinterpret_cast<const unsigned int*>(mmFile.data),mmFile.size);
-    return Process::create(prog);
+    ArgBlock args(argv,envp,narg,nenv);
+    return Process::create(prog,std::move(args));
+}
+
+pid_t Process::spawn(const char *path, char* const* argv, char* const* envp)
+{
+    int narg=0,nenv=0;
+    if(argv) while(argv[narg]) narg++;
+    if(envp) while(envp[nenv]) nenv++;
+    return Process::spawn(path,argv,envp,narg,nenv);
 }
 
 pid_t Process::getppid(pid_t proc)
@@ -321,14 +234,20 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
 
 Process::~Process() {}
 
-Process::Process(const ElfProgram& program) : program(program), waitCount(0),
-        zombie(false)
+Process::Process(const ElfProgram& program, ArgBlock&& args)
+    : program(program), waitCount(0), zombie(false)
 {
     //This is required so that bad_alloc can never be thrown when the first
     //thread of the process will be stored in this vector
     threads.reserve(1);
     //Done here so if not enough memory the new process is not even created
     image.load(program);
+    auto ptr=reinterpret_cast<char*>(image.getProcessBasePointer());
+    ptr+=image.getProcessImageSize()-args.size();
+    memcpy(ptr,args.data(),args.size());
+    argc=args.getNumberOfArguments();
+    argv=ptr+args.getArgIndex();
+    envp=ptr+args.getEnvIndex();
     unsigned int elfSize=program.getElfSize();
     unsigned int roundedSize=elfSize;
     if(elfSize<ProcessPool::blockSize) roundedSize=ProcessPool::blockSize;
@@ -349,7 +268,7 @@ Process::Process(const ElfProgram& program) : program(program), waitCount(0),
 //            image.getProcessBasePointer(),image.getProcessImageSize());
 }
 
-void *Process::start(void *argv)
+void *Process::start(void *)
 {
     //This function is never called with a kernel thread, so the cast is safe
     Process *proc=static_cast<Process*>(Thread::getCurrentThread()->proc);
@@ -771,8 +690,8 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
                 int nenv=validateStringArray(mpu,envp);
                 if(mpu.withinForReading(path) && narg>=0 && nenv>=0)
                 {
-                    ArgBlock ab(argv,envp,narg,nenv);
-                    if(ab.valid())
+                    ArgBlock args(argv,envp,narg,nenv);
+                    if(args.valid())
                     {
                         //TODO
                     } else sp.setParameter(0,-E2BIG);
@@ -895,6 +814,45 @@ pid_t Process::getNewPid()
         if(it!=p.processes.end()) continue; //Pid number already used
         return p.pidCounter++;
     }
+}
+
+//
+// class ArgBlock
+//
+
+ArgBlock::ArgBlock(char* const* argv, char* const* envp, int narg, int nenv) : narg(narg)
+{
+    //TODO: optimization: we may omit copying the strings that are in flash
+    constexpr int maxArg=16;
+    constexpr unsigned int maxArgBlockSize=512;
+    //Long long to prevent malicious overflows
+    unsigned long long arrayBlockSize=sizeof(char*)*(narg+nenv+2);
+    unsigned long long argBlockSize=arrayBlockSize;
+    for(int i=0;i<narg;i++) argBlockSize+=strlen(argv[i])+1;
+    for(int i=0;i<nenv;i++) argBlockSize+=strlen(envp[i])+1;
+    if(narg>maxArg || nenv>maxArg || argBlockSize>maxArgBlockSize) return;
+    block=new char[argBlockSize];
+    blockSize=argBlockSize;
+    envArrayIndex=sizeof(char*)*(narg+1);
+    char **arrayBlock=reinterpret_cast<char**>(block);
+    char *stringBlock=block+arrayBlockSize;
+    auto add=[&](char* const* a, int n)
+    {
+        for(int i=0;i<n;i++)
+        {
+            *arrayBlock++=stringBlock;
+            strcpy(stringBlock,a[i]);
+            stringBlock+=strlen(a[i])+1;
+        }
+        *arrayBlock++=nullptr;
+    };
+    add(argv,narg);
+    add(envp,nenv);
+}
+
+ArgBlock::~ArgBlock()
+{
+    if(block) delete[] block;
 }
 
 } //namespace miosix
