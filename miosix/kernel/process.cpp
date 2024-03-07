@@ -145,8 +145,8 @@ pid_t Process::create(const ElfProgram& program, ArgsBlock&& args)
     return result;
 }
 
-pid_t Process::spawn(const char *path, char* const* argv, char* const* envp,
-                     int narg, int nenv)
+pid_t Process::spawn(const char *path, const char* const* argv,
+        const char* const* envp, int narg, int nenv)
 {
     if(path==nullptr || path[0]=='\0') return -EFAULT;
     string filePath=path; //TODO: expand ./program using cwd of correct file descriptor table
@@ -163,7 +163,8 @@ pid_t Process::spawn(const char *path, char* const* argv, char* const* envp,
     return Process::create(prog,std::move(args));
 }
 
-pid_t Process::spawn(const char *path, char* const* argv, char* const* envp)
+pid_t Process::spawn(const char *path, const char* const* argv,
+        const char* const* envp)
 {
     int narg=0,nenv=0;
     if(argv) while(argv[narg]) narg++;
@@ -819,7 +820,8 @@ pid_t Process::getNewPid()
 // class ArgsBlock
 //
 
-ArgsBlock::ArgsBlock(char* const* argv, char* const* envp, int narg, int nenv) : narg(narg)
+ArgsBlock::ArgsBlock(const char* const* argv, const char* const* envp, int narg,
+        int nenv) : narg(narg)
 {
     //TODO: optimization: we may omit copying the strings that are in flash
     constexpr int maxArg=MAX_PROCESS_ARGS;
@@ -836,7 +838,7 @@ ArgsBlock::ArgsBlock(char* const* argv, char* const* envp, int narg, int nenv) :
     char **arrayBlock=reinterpret_cast<char**>(block);
     char *stringBlock=block+arrayBlockSize;
     //NOTE: even though not strictly required, also arg array ends with nullptr
-    auto add=[&](char* const* a, int n)
+    auto add=[&](const char* const* a, int n)
     {
         for(int i=0;i<n;i++)
         {

@@ -106,8 +106,8 @@ public:
      * \throws std::exception or a subclass in case of errors, including
      * not emough memory to spawn the process
      */
-    static pid_t spawn(const char *path, char* const* argv, char* const* envp,
-                       int narg, int nenv);
+    static pid_t spawn(const char *path, const char* const* argv,
+            const char* const* envp, int narg, int nenv);
 
     /**
      * Create a new process from a file in the filesystem
@@ -118,8 +118,8 @@ public:
      * \throws std::exception or a subclass in case of errors, including
      * not emough memory to spawn the process
      */
-    static pid_t spawn(const char *path, char* const* argv=nullptr,
-                       char* const* envp=nullptr);
+    static pid_t spawn(const char *path, const char* const* argv=nullptr,
+                       const char* const* envp=nullptr);
     
     /**
      * Given a process, returns the pid of its parent.
@@ -232,7 +232,7 @@ public:
      * \param narg number of elements of argv array
      * \param nenv number of elements of envp array
      */
-    ArgsBlock(char* const* argv, char* const* envp, int narg, int nenv);
+    ArgsBlock(const char* const* argv, const char* const* envp, int narg, int nenv);
 
     /**
      * \return true if the object is valid
