@@ -1111,12 +1111,17 @@ private:
      * Setup the userspace context of the thread, so that it can be later
      * switched to userspace. Must be called only once for each thread instance
      * \param entry userspace entry point
+     * \param argc number of arguments
+     * \param argvSp pointer to arguments array. Since the args block is stored
+     * above the stack and this is the pointer into the first byte of the args
+     * block, this pointer doubles as the initial stack pointer when the process
+     * is started.
+     * \param envp pointer to environment variables
      * \param gotBase base address of the GOT, also corresponding to the start
      * of the RAM image of the process
-     * \param ramImageSize size of the process ram image
      */
-    static void setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
-        unsigned int ramImageSize);
+    static void setupUserspaceContext(unsigned int entry, int argc, void *argvSp,
+        void *envp, unsigned int *gotBase);
     
     #endif //WITH_PROCESSES
 

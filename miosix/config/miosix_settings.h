@@ -183,7 +183,7 @@ const unsigned int STACK_IDLE=256;
 
 /// Default stack size for pthread_create.
 /// The chosen value is enough to call C standard library functions
-/// such as printf/fopen which are stack-heavy
+/// such as printf/fopen which are stack-heavy (MUST be divisible by 4)
 const unsigned int STACK_DEFAULT_FOR_PTHREAD=2048;
 
 /// Maximum size of the RAM image of a process. If a program requires more
@@ -192,13 +192,27 @@ const unsigned int MAX_PROCESS_IMAGE_SIZE=64*1024;
 
 /// Minimum size of the stack for a process. If a program specifies a lower
 /// size the kernel will not run it (MUST be divisible by 4)
-const unsigned int MIN_PROCESS_STACK_SIZE=STACK_MIN;
+const unsigned int MIN_PROCESS_STACK_SIZE=1024;
 
 /// Every userspace thread has two stacks, one for when it is running in
 /// userspace and one for when it is running in kernelspace (that is, while it
 /// is executing system calls). This is the size of the stack for when the
 /// thread is running in kernelspace (MUST be divisible by 4)
-const unsigned int SYSTEM_MODE_PROCESS_STACK_SIZE=2*1024;
+const unsigned int SYSTEM_MODE_PROCESS_STACK_SIZE=2048;
+
+/// Maximum number of arguments passed through argv to a process
+/// Also maximum number of environment variables passed through envp to a process
+const unsigned int MAX_PROCESS_ARGS=16;
+
+/// Maximum size of the memory area at the top of the stack for arguments and
+/// environment variables. Must be at most 1/2 of the entire stack size
+const unsigned int MAX_PROCESS_ARGS_BLOCK_SIZE=512;
+
+static_assert(STACK_IDLE>=STACK_MIN,"");
+static_assert(STACK_DEFAULT_FOR_PTHREAD>=STACK_MIN,"");
+static_assert(MIN_PROCESS_STACK_SIZE>=STACK_MIN,"");
+static_assert(SYSTEM_MODE_PROCESS_STACK_SIZE>=STACK_MIN,"");
+static_assert(MAX_PROCESS_ARGS_BLOCK_SIZE<=MIN_PROCESS_STACK_SIZE/2,"");
 
 /// Number of priorities (MUST be >1)
 /// PRIORITY_MAX-1 is the highest priority, 0 is the lowest. -1 is reserved as

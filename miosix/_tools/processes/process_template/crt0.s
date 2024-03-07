@@ -56,6 +56,8 @@ call:
 .global _start
 .type _start, %function
 _start:
+	/* save argc, argv, envp for when we call main */
+	push {r0,r1,r2}
 	/* call C++ global constructors */
 	ldr  r0, .L200
 	ldr  r1, .L200+4
@@ -67,6 +69,11 @@ _start:
 	ldr  r4, [r9, r0]
 	ldr  r5, [r9, r1]
 	bl   call
+	/* get back argc,argv,envp and store envp in the environ variable */
+	pop  {r0,r1,r2}
+	ldr  r3, .L200+16
+	ldr  r3, [r9, r3]
+	str  r2, [r3]
 	/* call main */
 	bl   main
 	mov  r6, r0
@@ -84,6 +91,7 @@ _start:
 	.word	__preinit_array_start(GOT)
 	.word	__init_array_start(GOT)
 	.word	__init_array_end(GOT)
+	.word	environ(GOT)
 
 /**
  * open, open a file

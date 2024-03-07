@@ -199,17 +199,19 @@ private:
  * It is used by the kernel, and should not be used by end users.
  * \param ctxsave a pointer to a field ctxsave inside a Thread class that need
  * to be filled
- * \param pc starting program counter of newly created thread, used to
- * initialize ctxsave
- * \param sp starting stack pointer of newly created thread, used to initialize
- * ctxsave
- * \param argv starting data passed to newly created thread, used to initialize
- * ctxsave
+ * \param pc starting program counter of newly created thread
+ * \param sp starting stack pointer of newly created thread
+ * \param argc number of arguments passed to main
+ * \param argvSp pointer to argument array. Since the args block is stored
+ * above the stack and this is the pointer into the first byte of the args
+ * block, this pointer doubles as the initial stack pointer when the process
+ * is started.
+ * \param envp pointer to environment variables
  * \param gotBase base address of the global offset table, for userspace
  * processes
  */
-void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
-        void *argv, unsigned int *gotBase);
+void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), int argc,
+        void *argvSp, void *envp, unsigned int *gotBase);
 
 /**
  * \internal

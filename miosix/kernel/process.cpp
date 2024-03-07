@@ -114,7 +114,7 @@ Processes& Processes::instance()
 // class Process
 //
 
-pid_t Process::create(const ElfProgram& program, ArgBlock&& args)
+pid_t Process::create(const ElfProgram& program, ArgsBlock&& args)
 {
     Processes& p=Processes::instance();
     ProcessBase *parent=Thread::getCurrentThread()->proc;
@@ -159,7 +159,7 @@ pid_t Process::spawn(const char *path, char* const* argv, char* const* envp,
     if(mmFile.isValid()==false) return -EFAULT;
     if(reinterpret_cast<unsigned int>(mmFile.data) & 0x3) return -ENOEXEC;
     ElfProgram prog(reinterpret_cast<const unsigned int*>(mmFile.data),mmFile.size);
-    ArgBlock args(argv,envp,narg,nenv);
+    ArgsBlock args(argv,envp,narg,nenv);
     return Process::create(prog,std::move(args));
 }
 
@@ -234,7 +234,7 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
 
 Process::~Process() {}
 
-Process::Process(const ElfProgram& program, ArgBlock&& args)
+Process::Process(const ElfProgram& program, ArgsBlock&& args)
     : program(program), waitCount(0), zombie(false)
 {
     //This is required so that bad_alloc can never be thrown when the first
@@ -246,7 +246,7 @@ Process::Process(const ElfProgram& program, ArgBlock&& args)
     ptr+=image.getProcessImageSize()-args.size();
     memcpy(ptr,args.data(),args.size());
     argc=args.getNumberOfArguments();
-    argv=ptr+args.getArgIndex();
+    argvSp=ptr; //Argument array is at the start of the args block
     envp=ptr+args.getEnvIndex();
     unsigned int elfSize=program.getElfSize();
     unsigned int roundedSize=elfSize;
@@ -272,10 +272,9 @@ void *Process::start(void *)
 {
     //This function is never called with a kernel thread, so the cast is safe
     Process *proc=static_cast<Process*>(Thread::getCurrentThread()->proc);
-    if(proc==nullptr) errorHandler(UNEXPECTED);
     unsigned int entry=proc->program.getEntryPoint();
-    Thread::setupUserspaceContext(entry,proc->image.getProcessBasePointer(),
-        proc->image.getProcessImageSize());
+    Thread::setupUserspaceContext(entry,proc->argc,proc->argvSp,proc->envp,
+        proc->image.getProcessBasePointer());
     bool running=true;
     do {
         miosix_private::SyscallParameters sp=Thread::switchToUserspace();
@@ -690,7 +689,7 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
                 int nenv=validateStringArray(mpu,envp);
                 if(mpu.withinForReading(path) && narg>=0 && nenv>=0)
                 {
-                    ArgBlock args(argv,envp,narg,nenv);
+                    ArgsBlock args(argv,envp,narg,nenv);
                     if(args.valid())
                     {
                         //TODO
@@ -817,25 +816,26 @@ pid_t Process::getNewPid()
 }
 
 //
-// class ArgBlock
+// class ArgsBlock
 //
 
-ArgBlock::ArgBlock(char* const* argv, char* const* envp, int narg, int nenv) : narg(narg)
+ArgsBlock::ArgsBlock(char* const* argv, char* const* envp, int narg, int nenv) : narg(narg)
 {
     //TODO: optimization: we may omit copying the strings that are in flash
-    constexpr int maxArg=16;
-    constexpr unsigned int maxArgBlockSize=512;
+    constexpr int maxArg=MAX_PROCESS_ARGS;
+    constexpr unsigned int maxArgsBlockSize=MAX_PROCESS_ARGS_BLOCK_SIZE;
     //Long long to prevent malicious overflows
     unsigned long long arrayBlockSize=sizeof(char*)*(narg+nenv+2);
     unsigned long long argBlockSize=arrayBlockSize;
     for(int i=0;i<narg;i++) argBlockSize+=strlen(argv[i])+1;
     for(int i=0;i<nenv;i++) argBlockSize+=strlen(envp[i])+1;
-    if(narg>maxArg || nenv>maxArg || argBlockSize>maxArgBlockSize) return;
+    if(narg>maxArg || nenv>maxArg || argBlockSize>maxArgsBlockSize) return;
     block=new char[argBlockSize];
     blockSize=argBlockSize;
     envArrayIndex=sizeof(char*)*(narg+1);
     char **arrayBlock=reinterpret_cast<char**>(block);
     char *stringBlock=block+arrayBlockSize;
+    //NOTE: even though not strictly required, also arg array ends with nullptr
     auto add=[&](char* const* a, int n)
     {
         for(int i=0;i<n;i++)
@@ -850,7 +850,7 @@ ArgBlock::ArgBlock(char* const* argv, char* const* envp, int narg, int nenv) : n
     add(envp,nenv);
 }
 
-ArgBlock::~ArgBlock()
+ArgsBlock::~ArgsBlock()
 {
     if(block) delete[] block;
 }

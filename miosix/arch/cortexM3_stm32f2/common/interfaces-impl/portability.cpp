@@ -186,23 +186,25 @@ void FaultData::print() const
     }
 }
 
-void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
-        void *argv, unsigned int *gotBase)
+void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), int argc,
+    void *argvSp, void *envp, unsigned int *gotBase)
 {
-    unsigned int *stackPtr=sp;
+    unsigned int *stackPtr=reinterpret_cast<unsigned int*>(argvSp);
     stackPtr--; //Stack is full descending, so decrement first
     *stackPtr=0x01000000; stackPtr--;                                 //--> xPSR
     *stackPtr=reinterpret_cast<unsigned long>(pc); stackPtr--;        //--> pc
     *stackPtr=0xffffffff; stackPtr--;                                 //--> lr
     *stackPtr=0; stackPtr--;                                          //--> r12
     *stackPtr=0; stackPtr--;                                          //--> r3
-    *stackPtr=0; stackPtr--;                                          //--> r2
-    *stackPtr=0; stackPtr--;                                          //--> r1
-    *stackPtr=reinterpret_cast<unsigned long >(argv);                 //--> r0
+    *stackPtr=reinterpret_cast<unsigned long>(envp); stackPtr--;      //--> r2
+    *stackPtr=reinterpret_cast<unsigned long>(argvSp); stackPtr--;    //--> r1
+    *stackPtr=argc;                                                   //--> r0
 
     ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
-    ctxsave[6]=reinterpret_cast<unsigned long>(gotBase);              //--> r9                                               //--> r9
+    ctxsave[6]=reinterpret_cast<unsigned long>(gotBase);              //--> r9
     //leaving the content of r4-r8,r10-r11 uninitialized
+    ctxsave[9]=0xfffffffd; //EXC_RETURN=thread mode, use psp, no floating ops
+    //leaving the content of s16-s31 uninitialized
 }
 
 #endif //WITH_PROCESSES

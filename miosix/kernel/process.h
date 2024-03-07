@@ -44,7 +44,7 @@ namespace miosix {
 
 //Forware decl
 class Process;
-class ArgBlock;
+class ArgsBlock;
 
 /**
  * This class contains the fields that are in common between the kernel and
@@ -93,7 +93,7 @@ public:
      * \throws std::exception or a subclass in case of errors, including
      * not emough memory to spawn the process
      */
-    static pid_t create(const ElfProgram& program, ArgBlock&& args);
+    static pid_t create(const ElfProgram& program, ArgsBlock&& args);
 
     /**
      * Create a new process from a file in the filesystem
@@ -161,7 +161,7 @@ private:
      * \param program program that will be executed by the process
      * \param args program arguments and environment variables
      */
-    Process(const ElfProgram& program, ArgBlock&& args);
+    Process(const ElfProgram& program, ArgsBlock&& args);
     
     /**
      * Contains the process' main loop. 
@@ -189,7 +189,7 @@ private:
     miosix_private::FaultData fault; ///< Contains information about faults
     MPUConfiguration mpu; ///<Memory protection data
     int argc;   ///< Process argument count
-    void *argv; ///< Pointer to the argument array within the ProcessImage
+    void *argvSp; ///< Ptr to argument array within ProcessImage and initial sp
     void *envp; ///< Pointer to the environment array within the ProcessImage
     
     std::vector<Thread *> threads; ///<Threads that belong to the process
@@ -217,13 +217,13 @@ private:
  * Class used to create a copy of the argv and envp data during calls such as
  * execve
  */
-class ArgBlock
+class ArgsBlock
 {
 public:
     /**
      * Default constructor, yields an invalid object
      */
-    ArgBlock() {}
+    ArgsBlock() {}
 
     /**
      * Constructor
@@ -232,7 +232,7 @@ public:
      * \param narg number of elements of argv array
      * \param nenv number of elements of envp array
      */
-    ArgBlock(char* const* argv, char* const* envp, int narg, int nenv);
+    ArgsBlock(char* const* argv, char* const* envp, int narg, int nenv);
 
     /**
      * \return true if the object is valid
@@ -250,12 +250,6 @@ public:
     unsigned int size() const { return blockSize; }
 
     /**
-     * \return the position in the arg block of the argv array
-     * block()+getArgIndex() is the argv array
-     */
-    unsigned int getArgIndex() const { return 0; /* Always at the start */ }
-
-    /**
      * \return the number of arguments
      */
     int getNumberOfArguments() const { return narg; }
@@ -269,16 +263,16 @@ public:
     /**
      * Destructor
      */
-    ~ArgBlock();
+    ~ArgsBlock();
 
-    ArgBlock(const ArgBlock&)=delete;
-    ArgBlock& operator=(const ArgBlock&)=delete;
+    ArgsBlock(const ArgsBlock&)=delete;
+    ArgsBlock& operator=(const ArgsBlock&)=delete;
 
 private:
-    char *block=nullptr;
-    unsigned int blockSize=0;
-    unsigned int envArrayIndex=0;
-    int narg=0;
+    char *block=nullptr;          ///< Buffer where args/env are packed
+    unsigned int blockSize=0;     ///< Size of buffer
+    unsigned int envArrayIndex=0; ///< Offset into buffer of env array
+    int narg=0;                   ///< Number of args
 };
 
 /**

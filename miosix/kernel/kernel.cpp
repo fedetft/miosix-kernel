@@ -698,12 +698,11 @@ Thread *Thread::createUserspace(void *(*startfunc)(void *), void *argv,
     return thread;
 }
 
-void Thread::setupUserspaceContext(unsigned int entry, unsigned int *gotBase,
-    unsigned int ramImageSize)
+void Thread::setupUserspaceContext(unsigned int entry, int argc, void *argvSp,
+    void *envp, unsigned int *gotBase)
 {
     void *(*startfunc)(void*)=reinterpret_cast<void *(*)(void*)>(entry);
-    unsigned int *ep=gotBase+ramImageSize/sizeof(int);
-    miosix_private::initCtxsave(runningThread->userCtxsave,startfunc,ep,nullptr,gotBase);
+    miosix_private::initCtxsave(runningThread->userCtxsave,startfunc,argc,argvSp,envp,gotBase);
 }
 
 #endif //WITH_PROCESSES
