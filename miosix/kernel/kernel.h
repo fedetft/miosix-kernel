@@ -1215,7 +1215,8 @@ private:
     struct _reent *cReentrancyData;
     CppReentrancyData cppReentrancyData;
     #ifdef WITH_PROCESSES
-    ///Process to which this thread belongs. Null if it is a kernel thread.
+    ///Process to which this thread belongs. Kernel threads point to a special
+    ///ProcessBase that represents the kernel.
     ProcessBase *proc;
     ///Pointer to the set of saved registers for when the thread is running in
     ///user mode. For kernel threads (i.e, threads where proc==kernel) this
