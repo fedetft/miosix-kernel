@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2012 by Terraneo Federico                               *
+ *   Copyright (C) 2012-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -49,13 +49,14 @@ static const unsigned int DATA_BASE=0x40000000;
 //
 
 ElfProgram::ElfProgram(const unsigned int *elf, unsigned int size)
-    : elf(elf), size(size)
+    : elf(elf), size(size), valid(false)
 {
     //Trying to follow the "full recognition before processing" approach,
     //(http://www.cs.dartmouth.edu/~sergey/langsec/occupy/FullRecognition.jpg)
     //all of the elf fields that will later be used are checked in advance.
     //Unused fields are unchecked, so when using new fields, add new checks
     if(validateHeader()==false) throw runtime_error("Bad file");
+    valid=true;
 }
 
 bool ElfProgram::validateHeader()

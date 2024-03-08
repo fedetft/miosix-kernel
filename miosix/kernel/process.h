@@ -162,6 +162,20 @@ private:
      * \param args program arguments and environment variables
      */
     Process(const ElfProgram& program, ArgsBlock&& args);
+
+    /**
+     * Load the a program into memory to be run as a process
+     * \param program program that will be executed by the process
+     * \param args program arguments and environment variables
+     */
+    void load(const ElfProgram& program, ArgsBlock&& args);
+
+    /**
+     * Lookup for an executable file on the filesystem
+     * \param path executable file path
+     * \return a pair with an elf program and an error code
+     */
+    static std::pair<ElfProgram,int> lookup(const char *path);
     
     /**
      * Contains the process' main loop. 
@@ -169,6 +183,14 @@ private:
      * \return null
      */
     static void *start(void *argv);
+
+    enum SvcResult
+    {
+        Resume=0,   ///< Process can switch to userspace and resume operation
+        Exit=1,     ///< Process exited
+        Execve=2,   ///< Process can resume, but the program has been switched
+        Segfault=3  ///< Unrecoverable error occurred
+    };
     
     /**
      * Handle a supervisor call
@@ -176,7 +198,7 @@ private:
      * \return true if the process can continue running, false if it has
      * terminated
      */
-    bool handleSvc(miosix_private::SyscallParameters sp);
+    SvcResult handleSvc(miosix_private::SyscallParameters sp);
     
     /**
      * \return an unique pid that is not zero and is not already in use in the

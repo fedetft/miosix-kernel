@@ -1224,32 +1224,23 @@ pid_t waitpid(pid_t pid, int *status, int options)
 
 /**
  * \internal
- * _execve_r, unimpemented because processes are not supported in Miosix
+ * _execve_r, always fails when called from kernelspace because the kernel
+ * cannot be switched for another program
  */
 int _execve_r(struct _reent *ptr, const char *path, char *const argv[],
         char *const env[])
 {
+    #ifdef WITH_PROCESSES
+    ptr->_errno=-EFAULT;
     return -1;
+    #else //WITH_PROCESSES
+    return -1;
+    #endif //WITH_PROCESSES
 }
 
 int execve(const char *path, char *const argv[], char *const env[])
 {
     return _execve_r(miosix::getReent(),path,argv,env);
-}
-
-/**
- * \internal
- * _forkexecve_r, reserved for future use
- */
-pid_t _forkexecve_r(struct _reent *ptr, const char *path, char *const argv[],
-        char *const env[])
-{
-    return -1;
-}
-
-pid_t forkexecve(const char *path, char *const argv[], char *const env[])
-{
-    return _forkexecve_r(miosix::getReent(),path,argv,env);
 }
 
 #ifdef __cplusplus

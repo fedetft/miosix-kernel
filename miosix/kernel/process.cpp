@@ -148,19 +148,11 @@ pid_t Process::create(const ElfProgram& program, ArgsBlock&& args)
 pid_t Process::spawn(const char *path, const char* const* argv,
         const char* const* envp, int narg, int nenv)
 {
-    if(path==nullptr || path[0]=='\0') return -EFAULT;
-    string filePath=path; //TODO: expand ./program using cwd of correct file descriptor table
-    ResolvedPath openData=FilesystemManager::instance().resolvePath(filePath);
-    if(openData.result<0) return -ENOENT;
-    StringPart relativePath(filePath,string::npos,openData.off);
-    intrusive_ref_ptr<FileBase> file;
-    if(int res=openData.fs->open(file,relativePath,O_RDONLY,0)<0) return res;
-    MemoryMappedFile mmFile=file->getFileFromMemory();
-    if(mmFile.isValid()==false) return -EFAULT;
-    if(reinterpret_cast<unsigned int>(mmFile.data) & 0x3) return -ENOEXEC;
-    ElfProgram prog(reinterpret_cast<const unsigned int*>(mmFile.data),mmFile.size);
     ArgsBlock args(argv,envp,narg,nenv);
-    return Process::create(prog,std::move(args));
+    if(args.valid()==false) return -E2BIG;
+    auto prog=lookup(path);
+    if(prog.second) return prog.second;
+    return Process::create(prog.first,std::move(args));
 }
 
 pid_t Process::spawn(const char *path, const char* const* argv,
@@ -236,20 +228,26 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
 Process::~Process() {}
 
 Process::Process(const ElfProgram& program, ArgsBlock&& args)
-    : program(program), waitCount(0), zombie(false)
+    : waitCount(0), zombie(false)
 {
     //This is required so that bad_alloc can never be thrown when the first
     //thread of the process will be stored in this vector
     threads.reserve(1);
+    load(program,std::move(args));
+}
+
+void Process::load(const ElfProgram& program, ArgsBlock&& args)
+{
+    this->program=program;
     //Done here so if not enough memory the new process is not even created
-    image.load(program);
+    image.load(this->program);
     auto ptr=reinterpret_cast<char*>(image.getProcessBasePointer());
     ptr+=image.getProcessImageSize()-args.size();
     args.relocateTo(ptr);
     argc=args.getNumberOfArguments();
     argvSp=ptr; //Argument array is at the start of the args block
     envp=ptr+args.getEnvIndex();
-    unsigned int elfSize=program.getElfSize();
+    unsigned int elfSize=this->program.getElfSize();
     unsigned int roundedSize=elfSize;
     if(elfSize<ProcessPool::blockSize) roundedSize=ProcessPool::blockSize;
     roundedSize=MPUConfiguration::roundSizeForMPU(roundedSize);
@@ -265,35 +263,63 @@ Process::Process(const ElfProgram& program, ArgsBlock&& args)
     elfPoolSize=MPUConfiguration::roundSizeForMPU(elfPoolSize);
     mpu=MPUConfiguration(start,elfPoolSize,
             image.getProcessBasePointer(),image.getProcessImageSize());
-//    mpu=MPUConfiguration(program.getElfBase(),roundedSize,
+//    mpu=MPUConfiguration(this->program.getElfBase(),roundedSize,
 //            image.getProcessBasePointer(),image.getProcessImageSize());
+}
+
+pair<ElfProgram,int> Process::lookup(const char *path)
+{
+    if(path==nullptr || path[0]=='\0') return make_pair(ElfProgram(),-EFAULT);
+    //TODO: expand ./program using cwd of correct file descriptor table
+    string filePath=path;
+    ResolvedPath openData=FilesystemManager::instance().resolvePath(filePath);
+    if(openData.result<0) return make_pair(ElfProgram(),-ENOENT);
+    StringPart relativePath(filePath,string::npos,openData.off);
+    intrusive_ref_ptr<FileBase> file;
+    if(int res=openData.fs->open(file,relativePath,O_RDONLY,0)<0)
+        return make_pair(ElfProgram(),res);
+    MemoryMappedFile mmFile=file->getFileFromMemory();
+    if(mmFile.isValid()==false) return make_pair(ElfProgram(),-EFAULT);
+    if(reinterpret_cast<unsigned int>(mmFile.data) & 0x3)
+        return make_pair(ElfProgram(),-ENOEXEC);
+    ElfProgram prog(reinterpret_cast<const unsigned int*>(mmFile.data),mmFile.size);
+    if(prog.isValid()==false) return make_pair(ElfProgram(),-EINVAL);
+    return make_pair(std::move(prog),0);
 }
 
 void *Process::start(void *)
 {
     //This function is never called with a kernel thread, so the cast is safe
     Process *proc=static_cast<Process*>(Thread::getCurrentThread()->proc);
-    unsigned int entry=proc->program.getEntryPoint();
-    Thread::setupUserspaceContext(entry,proc->argc,proc->argvSp,proc->envp,
-        proc->image.getProcessBasePointer());
     bool running=true;
     do {
-        miosix_private::SyscallParameters sp=Thread::switchToUserspace();
-        if(proc->fault.faultHappened())
-        {
-            running=false;
-            proc->exitCode=SIGSEGV; //Segfault
-            #ifdef WITH_ERRLOG
-            iprintf("Process %d terminated due to a fault\n"
-                    "* Code base address was 0x%x\n"
-                    "* Data base address was %p\n",proc->pid,
-                    proc->program.getElfBase(),
-                    proc->image.getProcessBasePointer());
-            proc->mpu.dumpConfiguration();
-            proc->fault.print();
-            #endif //WITH_ERRLOG
-        } else running=proc->handleSvc(sp);
-        if(Thread::testTerminate()) running=false;
+        unsigned int entry=proc->program.getEntryPoint();
+        Thread::setupUserspaceContext(entry,proc->argc,proc->argvSp,proc->envp,
+            proc->image.getProcessBasePointer());
+        SvcResult svcResult=Resume;
+        do {
+            miosix_private::SyscallParameters sp=Thread::switchToUserspace();
+
+            bool fault=proc->fault.faultHappened();
+            //Handle svc only if no fault occurred
+            if(fault==false) svcResult=proc->handleSvc(sp);
+
+            if(Thread::testTerminate() || svcResult==Exit) running=false;
+            if(fault || svcResult==Segfault)
+            {
+                running=false;
+                proc->exitCode=SIGSEGV; //Segfault
+                #ifdef WITH_ERRLOG
+                iprintf("Process %d terminated due to a fault\n"
+                        "* Code base address was 0x%x\n"
+                        "* Data base address was %p\n",proc->pid,
+                        proc->program.getElfBase(),
+                        proc->image.getProcessBasePointer());
+                proc->mpu.dumpConfiguration();
+                if(fault) proc->fault.print();
+                #endif //WITH_ERRLOG
+            }
+        } while(running && svcResult!=Execve);
     } while(running);
     {
         Processes& p=Processes::instance();
@@ -318,7 +344,7 @@ void *Process::start(void *)
     return 0;
 }
 
-bool Process::handleSvc(miosix_private::SyscallParameters sp)
+Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
 {
     try {
         switch(static_cast<Syscall>(sp.getSyscallId()))
@@ -678,7 +704,7 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
             case Syscall::EXIT:
             {
                 exitCode=(sp.getParameter(0) & 0xff)<<8;
-                return false;
+                return Exit;
             }
 
             case Syscall::EXECVE:
@@ -693,7 +719,26 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
                     ArgsBlock args(argv,envp,narg,nenv);
                     if(args.valid())
                     {
-                        //TODO
+                        auto prog=lookup(path);
+                        if(prog.second==0)
+                        {
+                            try {
+                                //TODO: when threads within processes are
+                                //implemented, kill all other threads
+                                load(prog.first,std::move(args));
+                            } catch(exception& e) {
+                                //TODO currently load causes the old process
+                                //ram to be deallocated before allocating the
+                                //new one. If the new allocation fails, then
+                                //we should get back to the old process with an
+                                //error code but we can't because its memory is
+                                //gone. Until a safe realloc function is
+                                //implemented in the process pool, we have to
+                                //segfault here
+                                return Segfault;
+                            }
+                            return Execve;
+                        } else sp.setParameter(0,prog.second);
                     } else sp.setParameter(0,-E2BIG);
                 } else sp.setParameter(0,-EFAULT);
                 break;
@@ -795,12 +840,12 @@ bool Process::handleSvc(miosix_private::SyscallParameters sp)
                 #ifdef WITH_ERRLOG
                 iprintf("Unexpected syscall number %d\n",sp.getSyscallId());
                 #endif //WITH_ERRLOG
-                return false;
+                return Segfault;
         }
     } catch(exception& e) {
         sp.setParameter(0,-ENOMEM);
     }
-    return true;
+    return Resume;
 }
 
 pid_t Process::getNewPid()
@@ -823,7 +868,6 @@ pid_t Process::getNewPid()
 ArgsBlock::ArgsBlock(const char* const* argv, const char* const* envp, int narg,
         int nenv) : narg(narg)
 {
-    //TODO: optimization: we may omit copying the strings that are in flash
     constexpr int maxArg=MAX_PROCESS_ARGS;
     constexpr unsigned int maxArgsBlockSize=MAX_PROCESS_ARGS_BLOCK_SIZE;
     //Long long to prevent malicious overflows
@@ -832,8 +876,20 @@ ArgsBlock::ArgsBlock(const char* const* argv, const char* const* envp, int narg,
     for(int i=0;i<narg;i++) argBlockSize+=strlen(argv[i])+1;
     for(int i=0;i<nenv;i++) argBlockSize+=strlen(envp[i])+1;
     if(narg>maxArg || nenv>maxArg || argBlockSize>maxArgsBlockSize) return;
-    block=new char[argBlockSize];
     blockSize=argBlockSize;
+
+    //The args block is essentially the first stack frame, and as such it
+    //defines the initial stack pointer value when the process starts.
+    //As such, its size must be aligned to the platform-defined alignment
+    unsigned int blockSizeBeforeAlign=blockSize;
+    blockSize+=CTXSAVE_STACK_ALIGNMENT-1;
+    blockSize/=CTXSAVE_STACK_ALIGNMENT;
+    blockSize*=CTXSAVE_STACK_ALIGNMENT;
+
+    block=new char[blockSize];
+    //Zero the adding introduced for alignment
+    memset(block+blockSizeBeforeAlign,0,blockSize-blockSizeBeforeAlign);
+
     envArrayIndex=sizeof(char*)*(narg+1);
     char **arrayBlock=reinterpret_cast<char**>(block);
     char *stringBlock=block+arrayBlockSize;

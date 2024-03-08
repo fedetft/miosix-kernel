@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2012 by Terraneo Federico                               *
+ *   Copyright (C) 2012-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef ELF_PROGRAM_H
-#define	ELF_PROGRAM_H
+#pragma once
 
 #include <utility>
 #include "elf_types.h"
@@ -43,6 +42,11 @@ class ElfProgram
 {
 public:
     /**
+     * Default constructor
+     */
+    ElfProgram() : elf(nullptr), size(0), valid(false) {}
+
+    /**
      * Constructor
      * \param elf pointer to the elf file's content. Ownership of the data
      * remains of the caller, that is, the pointer is not deleted by this
@@ -53,6 +57,11 @@ public:
      * content of the elf file
      */
     ElfProgram(const unsigned int *elf, unsigned int size);
+
+    /**
+     * \return true if this is a valid elf file
+     */
+    bool isValid() const { return valid; }
     
     /**
      * \return the a pointer to the elf header
@@ -134,8 +143,9 @@ private:
      */
     static bool isUnaligned8(unsigned int x) { return x & 0b111; }
     
-    const unsigned int * const elf; ///<Pointer to the content of the elf file
+    const unsigned int *elf; ///<Pointer to the content of the elf file
     unsigned int size; ///< Size in bytes of the elf file
+    bool valid; ///< All checks passed
 };
 
 /**
@@ -147,7 +157,12 @@ public:
     /**
      * Constructor, creates an empty process image.
      */
-    ProcessImage() : image(0), size(0) {}
+    ProcessImage() : image(nullptr), size(0) {}
+
+    /**
+     * \return true if this is a valid process image
+     */
+    bool isValid() const { return image!=nullptr; }
     
     /**
      * Starting from the content of the elf program, create an image in RAM of
@@ -168,11 +183,6 @@ public:
     unsigned int getProcessImageSize() const { return size; }
     
     /**
-     * \return true if this is a valid process image 
-     */
-    bool isValid() const { return image!=0; }
-    
-    /**
      * Destructor. Deletes the process image memory.
      */
     ~ProcessImage();
@@ -188,5 +198,3 @@ private:
 } //namespace miosix
 
 #endif //WITH_PROCESSES
-
-#endif //ELF_PROGRAM_H
