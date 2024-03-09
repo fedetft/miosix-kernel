@@ -650,6 +650,31 @@ execve:
 	/* if execve returns, then it failed */
 	b    __seterrno32
 
+/**
+ * posix_spawn, start a new process running the given program
+ * \param pid pid of running program will be stored here
+ * \param path program to run
+ * \param file_actions optional actions (not supported, must be nullptr)
+ * \param attrp more options            (not supported, must be nullptr)
+ * \param argv program arguments
+ * \param envp program environment variables
+ * \return an error code on failure, 0 on success
+ */
+.section .text.posix_spawn
+.global posix_spawn
+.type posix_spawn, %function
+posix_spawn:
+	cbnz r2, .L800
+	cbnz r3, .L800
+	ldrd r2, r3, [sp]
+	mov  r12, r3
+	movs r3, #39
+	svc  0
+	bx   lr
+.L800:
+	movs r0, #14 /* EFAULT */
+	bx   lr
+
 /* TODO: missing syscalls */
 
 /**

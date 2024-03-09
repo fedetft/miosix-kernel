@@ -746,7 +746,22 @@ Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
 
             case Syscall::SPAWN:
             {
-                sp.setParameter(0,-EFAULT); //TODO: stub
+                auto pidp=reinterpret_cast<pid_t*>(sp.getParameter(0));
+                auto path=reinterpret_cast<const char*>(sp.getParameter(1));
+                auto argv=reinterpret_cast<char* const*>(sp.getParameter(2));
+                auto envp=reinterpret_cast<char* const*>(sp.getParameter(3));
+                int narg=validateStringArray(mpu,argv);
+                int nenv=validateStringArray(mpu,envp);
+                if(mpu.withinForWriting(pidp,sizeof(pid_t)) &&
+                   mpu.withinForReading(path) && narg>=0 && nenv>=0)
+                {
+                    auto pid=Process::spawn(path,argv,envp,narg,nenv);
+                    if(pid>=0)
+                    {
+                        *pidp=pid;
+                        sp.setParameter(0,0);
+                    } else sp.setParameter(0,-pid); //NOTE: positive error codes
+                } else sp.setParameter(0,EFAULT); //NOTE: positive error codes
                 break;
             }
 
