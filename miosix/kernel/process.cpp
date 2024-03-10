@@ -118,7 +118,7 @@ pid_t Process::create(const ElfProgram& program, ArgsBlock&& args)
 {
     Processes& p=Processes::instance();
     ProcessBase *parent=Thread::getCurrentThread()->proc;
-    unique_ptr<Process> proc(new Process(program,std::move(args)));
+    unique_ptr<Process> proc(new Process(parent->fileTable,program,std::move(args)));
     {   
         Lock<Mutex> l(p.procMutex);
         proc->pid=getNewPid();
@@ -227,8 +227,8 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
 
 Process::~Process() {}
 
-Process::Process(const ElfProgram& program, ArgsBlock&& args)
-    : waitCount(0), zombie(false)
+Process::Process(const FileDescriptorTable& fdt, const ElfProgram& program,
+        ArgsBlock&& args) : ProcessBase(fdt), waitCount(0), zombie(false)
 {
     //This is required so that bad_alloc can never be thrown when the first
     //thread of the process will be stored in this vector

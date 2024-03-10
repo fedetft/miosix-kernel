@@ -55,8 +55,19 @@ class ProcessBase
 public:
     /**
      * Constructor
+     * A ProcessBase is constructed with a default-constructed file descriptor
+     * table. The kernel itself (which is process 0 and is the only ProcessBase
+     * that is not also a Process derived class) is constructed this way.
      */
-    ProcessBase() : pid(0), ppid(0) {}
+    ProcessBase() {}
+
+    /**
+     * Constructor
+     * Constrcts a ProcessBase so that it inherits the file descriptor table
+     * from the parent process.
+     * \param fdt file descriptor table of the parent process
+     */
+    ProcessBase(const FileDescriptorTable& fdt) : fileTable(fdt) {}
     
     /**
      * \return the process' pid 
@@ -66,8 +77,8 @@ public:
     FileDescriptorTable& getFileTable() { return fileTable; }
     
 protected:
-    pid_t pid;  ///<The pid of this process
-    pid_t ppid; ///<The parent pid of this process
+    pid_t pid=0;  ///<The pid of this process
+    pid_t ppid=0; ///<The parent pid of this process
     std::list<Process *> childs;   ///<Living child processes are stored here
     std::list<Process *> zombies;  ///<Dead child processes are stored here
     FileDescriptorTable fileTable; ///<The file descriptor table
@@ -158,10 +169,12 @@ private:
     
     /**
      * Constructor
+     * \param fdt file descriptor table of the parent process
      * \param program program that will be executed by the process
      * \param args program arguments and environment variables
      */
-    Process(const ElfProgram& program, ArgsBlock&& args);
+    Process(const FileDescriptorTable& fdt, const ElfProgram& program,
+            ArgsBlock&& args);
 
     /**
      * Load the a program into memory to be run as a process
