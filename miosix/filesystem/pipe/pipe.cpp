@@ -102,11 +102,17 @@ Pipe::~Pipe() { delete[] buffer; }
 
 bool Pipe::unconnected()
 {
-    //To get the reference count, we need to get the intrusive_shared_ptr first
-    //as a temporary and this adds to the reference count, so we check for 2
-    //instead of 1. This should be done with the mutex locked to prevent
-    //concurrent calls from not spotting that the reference count dropped to 1
-    return shared_from_this().use_count()==2;
+    //How many references does an unconnected pipe have? One in the file
+    //descriptor table. Then, since we check whether we are unconnected within
+    //either a read or write operation, either FileDescriptorTable::read or
+    //FileDescriptorTable::write hold a temporary reference to make sure a
+    //concurrent close doesn't lead to a dangling pointer in the middle of a
+    //syscall, bringing the reference count to 2. Finally, to get the reference
+    //count, we need to get the intrusive_shared_ptr first as a temporary through
+    //shared_from_this() and this adds to the reference count, reaching 3.
+    //This should be done with the mutex locked to prevent concurrent calls from
+    //not spotting that we are unconnected
+    return shared_from_this().use_count()<=3;
 }
 
 } //namespace miosix

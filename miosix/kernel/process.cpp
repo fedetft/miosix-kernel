@@ -321,6 +321,7 @@ void *Process::start(void *)
             }
         } while(running && svcResult!=Execve);
     } while(running);
+    proc->fileTable.closeAll();
     {
         Processes& p=Processes::instance();
         Lock<Mutex> l(p.procMutex);
