@@ -10,10 +10,12 @@
  * probably doing the obvious thing would have made writing code too easy...
  * Anyway, since hardware can't be changed, we've got to live with that and
  * try to make use of both RAMs.
+ * On top of that the board does not boot if the stack is placed in the small
+ * RAM, which is even more puzzling.
  * 
  * Given the constraints above, this linker script puts:
  * - read only data and code (.text, .rodata, .eh_*) in FLASH
- * - the 512Byte main (IRQ) stack, .data and .bss in the "small" 64KB RAM
+ * - the 512Byte main (IRQ) stack, .data and .bss in the "large" 320KB RAM
  * - .data, .bss, stacks and heap in the external 12MB SDRAM.
  * Note that the SDRAM is 16MB, but this linker script only uses the lower 12.
  * The upper 4MB are reserved as framebuffers for the LCD. Notice that the
@@ -48,7 +50,7 @@
  * the MEMORY definitions below accordingly.
  */
 _main_stack_size = 0x00000200;                     /* main stack = 512Bytes */
-_main_stack_top  = 0x10000000 + _main_stack_size;
+_main_stack_top  = 0x20000000 + _main_stack_size;
 ASSERT(_main_stack_size   % 8 == 0, "MAIN stack size error");
 
 /* Mapping the heap into XRAM */
@@ -61,12 +63,12 @@ ENTRY(_Z13Reset_Handlerv)
 MEMORY
 {
     flash(rx)    : ORIGIN = 0x08000000, LENGTH =   2M
+    smallram(wx) : ORIGIN = 0x10000000, LENGTH =  64K
     /*
-     * Note, the small ram starts at 0x10000000 but it is necessary to add the
-     * size of the main stack, so it is 0x10000200.
+     * Note, the large ram starts at 0x20000000 but it is necessary to add the
+     * size of the main stack, so it is 0x20000200.
      */
-    smallram(wx) : ORIGIN = 0x10000200, LENGTH =  64K-0x200 
-    largeram(wx) : ORIGIN = 0x20000000, LENGTH = 320K
+    largeram(wx) : ORIGIN = 0x20000200, LENGTH = 320K-0x200
     xram(wx)     : ORIGIN = 0xc0000000, LENGTH =  12M
     lcdram(wx)   : ORIGIN = 0xc0c00000, LENGTH =   4M
 }

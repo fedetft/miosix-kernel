@@ -16,7 +16,7 @@
  * Given the constraints above, this linker script puts:
  * - read only data and code (.text, .rodata, .eh_*) in FLASH
  * - the 512Byte main (IRQ) stack, .data and .bss in the "large" 320KB RAM
- * - .data, .bss, stacks and heap in the external 16MB SDRAM.
+ * - stacks and heap in the "large" 128KB RAM.
  */
 
 /*
@@ -48,8 +48,16 @@ _main_stack_size = 0x00000200;                     /* main stack = 512Bytes */
 _main_stack_top  = 0x20000000 + _main_stack_size;
 ASSERT(_main_stack_size   % 8 == 0, "MAIN stack size error");
 
-/* Mapping the heap into XRAM */
-_heap_end = 0xc1000000;                            /* end of available ram  */
+/* Mapping the heap into the large ram */
+_end =      0x20000200;
+_heap_end = 0x20050000;
+/* Mapping the process pool into the xram */
+_process_pool_start = 0xc0000000;
+_process_pool_end =   0xc1000000;
+
+/* TODO: for now, leave the whole FLASH readable by processes */
+_elf_pool_start = 0x08000000;
+_elf_pool_end   = 0x08000000+2*1024*1024;
 
 /* identify the Entry Point  */
 ENTRY(_Z13Reset_Handlerv)
@@ -160,7 +168,7 @@ SECTIONS
         *(.gnu.linkonce.d.*)
         . = ALIGN(8);
         _edata = .;
-    } > xram AT > flash
+    } > smallram AT > flash
     _etext = LOADADDR(.data);
 
     /* .bss section: uninitialized global variables go to ram */
@@ -171,9 +179,9 @@ SECTIONS
         *(.bss.*)
         *(.gnu.linkonce.b.*)
         . = ALIGN(8);
-    } > xram
+    } > smallram
     _bss_end = .;
 
-    _end = .;
-    PROVIDE(end = .);
+    /*_end = .;*/
+    /*PROVIDE(end = .);*/
 }

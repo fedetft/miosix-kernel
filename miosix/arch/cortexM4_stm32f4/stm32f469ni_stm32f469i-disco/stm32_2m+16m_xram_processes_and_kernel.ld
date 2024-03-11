@@ -16,7 +16,7 @@
  * Given the constraints above, this linker script puts:
  * - read only data and code (.text, .rodata, .eh_*) in FLASH
  * - the 512Byte main (IRQ) stack, .data and .bss in the "large" 320KB RAM
- * - .data, .bss, stacks and heap in the external 16MB SDRAM.
+ * - stacks and heap in the "large" 128KB RAM.
  */
 
 /*
@@ -48,8 +48,15 @@ _main_stack_size = 0x00000200;                     /* main stack = 512Bytes */
 _main_stack_top  = 0x20000000 + _main_stack_size;
 ASSERT(_main_stack_size   % 8 == 0, "MAIN stack size error");
 
-/* Mapping the heap into XRAM */
-_heap_end = 0xc1000000;                            /* end of available ram  */
+/* Mapping the heap into the bottom 512KB of the xram */
+_heap_end = 0xc0080000;
+/* Mapping the process pool into the rest of the xram */
+_process_pool_start = _heap_end;
+_process_pool_end =   0xc1000000;
+
+/* TODO: for now, leave the whole FLASH readable by processes */
+_elf_pool_start = 0x08000000;
+_elf_pool_end   = 0x08000000+2*1024*1024;
 
 /* identify the Entry Point  */
 ENTRY(_Z13Reset_Handlerv)

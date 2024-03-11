@@ -307,6 +307,7 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
 	OTG_HS_WKUP_IRQHandler,
 	OTG_HS_IRQHandler,
 	DCMI_IRQHandler,
+	0,
 	HASH_RNG_IRQHandler,
 	FPU_IRQHandler,
 	UART7_IRQHandler,

@@ -445,6 +445,8 @@ ifeq ($(OPT_BOARD),stm32f469ni_stm32f469i-disco)
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+384k_rom.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+16m_xram.ld
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+12m_xram.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+16m_xram_processes.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+16m_xram_processes_and_kernel.ld
 
     ## Uncommenting __ENABLE_XRAM enables the initialization of the external
     ## 16MB SDRAM memory. Do not uncomment this even if you don't use a linker
