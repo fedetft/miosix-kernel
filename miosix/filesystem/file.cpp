@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Terraneo Federico                               *
+ *   Copyright (C) 2013-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -36,12 +36,14 @@ using namespace std;
 
 namespace miosix {
 
-//This is a static assert. The filesystem code assumes off_t is 64bit.
-typedef char check_sizeof_off_t[sizeof(off_t)==8 ? 1 : -1];
+//The filesystem code assumes off_t is 64bit.
+static_assert(sizeof(off_t)==8,"");
 
 //
 // class FileBase
 //
+
+#ifdef WITH_FILESYSTEM
 
 FileBase::FileBase(intrusive_ref_ptr<FilesystemBase> parent, int flags)
         : parent(parent), flags(flags)
@@ -49,7 +51,10 @@ FileBase::FileBase(intrusive_ref_ptr<FilesystemBase> parent, int flags)
     if(parent) parent->newFileOpened();
 }
 
-#ifdef WITH_FILESYSTEM
+FileBase::~FileBase()
+{
+    if(parent) parent->fileCloseHook();
+}
 
 int FileBase::isatty() const
 {
@@ -84,13 +89,6 @@ int FileBase::getdents(void *dp, int len)
 MemoryMappedFile FileBase::getFileFromMemory()
 {
     return MemoryMappedFile(nullptr,0); //Not supported
-}
-
-#endif //WITH_FILESYSTEM
-
-FileBase::~FileBase()
-{
-    if(parent) parent->fileCloseHook();
 }
 
 //
@@ -185,11 +183,7 @@ unsigned char DirectoryBase::modeToType(unsigned short mode)
 //
 
 FilesystemBase::FilesystemBase() :
-#ifdef WITH_FILESYSTEM
-        filesystemId(FilesystemManager::getFilesystemId()), 
-#else //WITH_FILESYSTEM
-        filesystemId(0),
-#endif //WITH_FILESYSTEM
+        filesystemId(FilesystemManager::getFilesystemId()),
         parentFsMountpointInode(1), openFileCount(0) {}
 
 int FilesystemBase::readlink(StringPart& name, string& target)
@@ -212,5 +206,7 @@ void FilesystemBase::fileCloseHook()
 }
 
 FilesystemBase::~FilesystemBase() {}
+
+#endif //WITH_FILESYSTEM
 
 } //namespace miosix

@@ -71,12 +71,30 @@ struct MemoryMappedFile
 class FileBase : public IntrusiveRefCounted<FileBase>
 {
 public:
+    FileBase(const FileBase&)=delete;
+    FileBase& operator=(const FileBase&)=delete;
+
     /**
      * Constructor
      * \param parent the filesystem to which this file belongs
      * \param flags file open flags
      */
-    FileBase(intrusive_ref_ptr<FilesystemBase> parent, int flags);
+    FileBase(intrusive_ref_ptr<FilesystemBase> parent, int flags)
+    #ifdef WITH_FILESYSTEM
+    ;
+    #else //WITH_FILESYSTEM
+    {}
+    #endif //WITH_FILESYSTEM
+
+    /**
+     * File destructor
+     */
+    virtual ~FileBase()
+    #ifdef WITH_FILESYSTEM
+    ;
+    #else //WITH_FILESYSTEM
+    {}
+    #endif //WITH_FILESYSTEM
     
     /**
      * Write data to the file, if the file supports writing.
@@ -164,22 +182,15 @@ public:
      */
     const intrusive_ref_ptr<FilesystemBase> getParent() const { return parent; }
     
-    #endif //WITH_FILESYSTEM
-    
-    /**
-     * File destructor
-     */
-    virtual ~FileBase();
-
 private:
-    FileBase(const FileBase&);
-    FileBase& operator=(const FileBase&);
-    
     intrusive_ref_ptr<FilesystemBase> parent; ///< Files may have a parent fs
 
 protected:
     int flags; ///< File open flags (O_RDONLY, O_WRONLY, ...)
+    #endif //WITH_FILESYSTEM
 };
+
+#ifdef WITH_FILESYSTEM
 
 /**
  * Directories are a special kind of files that implement the getdents() call
@@ -422,5 +433,14 @@ private:
     
     volatile int openFileCount; ///< Number of open files
 };
+
+#else //WITH_FILESYSTEM
+
+/**
+ * Stub version of FilesystemBase in case the kernel is built without filesystem
+ */
+class FilesystemBase : public IntrusiveRefCounted<FilesystemBase> {};
+
+#endif //WITH_FILESYSTEM
 
 } //namespace miosix
