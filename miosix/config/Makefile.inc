@@ -210,6 +210,8 @@ ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
     ##    to configure the kernel with "#define WITH_PROCESSES"
     ## 5) Code in FLASH, kernel stack+heap in internal RAM, ELF pool in Flash
     ##    and process pool in external RAM.
+    ## 6) Code in FLASH, kernel heap, data and bss in external RAM. Kernel heap
+    ##    (used for boot and IRQs) in internal RAM.
     ## Warning! enable external ram if you use a linker script that requires it
     ## (see the XRAM flag below)
     LINKER_SCRIPT_PATH := arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/
@@ -218,6 +220,7 @@ ifeq ($(OPT_BOARD),stm32f207ig_stm3220g-eval)
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram_processes.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram_processes.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram-data-bss-heap.ld
 
     ## Enable/disable initialization of external RAM at boot. Three options:
     ## __ENABLE_XRAM : If you want the heap in xram (with an appropriate linker
