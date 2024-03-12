@@ -63,8 +63,8 @@ public:
      * \param flags file open flags (_FREAD, _FWRITE, ...)
      */
     DevFsFile(intrusive_ref_ptr<FilesystemBase> fs,
-            intrusive_ref_ptr<Device> dev, int flags) : FileBase(fs),
-            dev(dev), seekPoint(0), flags(flags) {}
+            intrusive_ref_ptr<Device> dev, int flags) : FileBase(fs,flags),
+            dev(dev), seekPoint(0) {}
 
     /**
      * Write data to the file, if the file supports writing.
@@ -119,7 +119,6 @@ public:
 private:
     intrusive_ref_ptr<Device> dev; ///< Device file
     off_t seekPoint;               ///< Seek point (note that off_t is 64bit)
-    int flags;                     ///< File open flags
 };
 
 ssize_t DevFsFile::write(const void *data, size_t len)

@@ -77,15 +77,16 @@ public:
      * @brief Constructs a LittleFSFile object.
      *
      * @param parentFS A reference to the parent LittleFS object.
+     * \param flags file open flags
      * @param file A pointer to the underlying lfs_file_t object. This object
      * takes ownership of the pointer.
      * @param forceSync A boolean indicating whether to force synchronization
      * after writes
      */
-    LittleFSFile(intrusive_ref_ptr<LittleFS> parentFS,
+    LittleFSFile(intrusive_ref_ptr<LittleFS> parentFS, int flags,
                  std::unique_ptr<lfs_file_t> file, bool forceSync,
                  StringPart &name)
-        : FileBase(parentFS), file(std::move(file)), forceSync(forceSync),
+        : FileBase(parentFS,flags), file(std::move(file)), forceSync(forceSync),
           name(name) {}
 
     virtual ssize_t write(const void *buf, size_t count) override;
@@ -229,7 +230,7 @@ int LittleFS::openFile(intrusive_ref_ptr<FileBase> &file,
 
     file = intrusive_ref_ptr<LittleFSFile>(
         new LittleFSFile(intrusive_ref_ptr<LittleFS>(this), //FIXME: use shared_from_this
-                         std::move(lfs_file_obj), flags & O_SYNC, name));
+                         flags, std::move(lfs_file_obj), flags & O_SYNC, name));
 
     return 0;
 }

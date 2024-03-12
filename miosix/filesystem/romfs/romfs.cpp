@@ -108,11 +108,12 @@ public:
     /**
      * Constructor
      * \param parent pointer to parent filesystem
+     * \param flags file open flags
      * \param entry directory entry containing the file information
      */
-    MemoryMappedRomFsFile(intrusive_ref_ptr<FilesystemBase> parent,
-            const RomFsDirectoryEntry *entry) : FileBase(parent), entry(entry),
-            seekPoint(0) {}
+    MemoryMappedRomFsFile(intrusive_ref_ptr<FilesystemBase> parent, int flags,
+            const RomFsDirectoryEntry *entry) : FileBase(parent,flags),
+            entry(entry), seekPoint(0) {}
 
     /**
      * Write data to the file, if the file supports writing.
@@ -299,7 +300,7 @@ int MemoryMappedRomFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
     {
         case S_IFREG:
             file=intrusive_ref_ptr<FileBase>(new MemoryMappedRomFsFile(
-                shared_from_this(),entry));
+                shared_from_this(),flags,entry));
             break;
         case S_IFDIR:
             file=intrusive_ref_ptr<FileBase>(new MemoryMappedRomFsDirectory(

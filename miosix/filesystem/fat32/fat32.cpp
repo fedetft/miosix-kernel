@@ -186,8 +186,9 @@ public:
     /**
      * Constructor
      * \param parent the filesystem to which this file belongs
+     * \param flags file open flags
      */
-    Fat32File(intrusive_ref_ptr<FilesystemBase> parent, FastMutex& mutex);
+    Fat32File(intrusive_ref_ptr<FilesystemBase> parent, int flags, FastMutex& mutex);
     
     /**
      * Write data to the file, if the file supports writing.
@@ -257,8 +258,8 @@ private:
 // class Fat32File
 //
 
-Fat32File::Fat32File(intrusive_ref_ptr<FilesystemBase> parent, FastMutex& mutex)
-        : FileBase(parent), mutex(mutex), inode(0) {}
+Fat32File::Fat32File(intrusive_ref_ptr<FilesystemBase> parent, int flags, FastMutex& mutex)
+        : FileBase(parent,flags), mutex(mutex), inode(0) {}
 
 ssize_t Fat32File::write(const void *data, size_t len)
 {
@@ -373,7 +374,7 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         else if(flags & _FCREAT) openflags|=FA_OPEN_ALWAYS;//If !exists create
         else openflags|=FA_OPEN_EXISTING;//If not exists fail
 
-        intrusive_ref_ptr<Fat32File> f(new Fat32File(shared_from_this(),mutex));
+        intrusive_ref_ptr<Fat32File> f(new Fat32File(shared_from_this(),flags-1,mutex));
         Lock<FastMutex> l(mutex);
         if(int res=translateError(f_open(&filesystem,f->fil(),name.c_str(),openflags)))
             return res;

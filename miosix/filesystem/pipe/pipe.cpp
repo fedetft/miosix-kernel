@@ -34,8 +34,8 @@ using namespace std;
 
 namespace miosix {
 
-Pipe::Pipe() : FileBase(intrusive_ref_ptr<FilesystemBase>()), put(0), get(0),
-    size(0), capacity(defaultSize), buffer(new char[defaultSize]) {}
+Pipe::Pipe() : FileBase(intrusive_ref_ptr<FilesystemBase>(),O_RDWR), put(0),
+    get(0), size(0), capacity(defaultSize), buffer(new char[defaultSize]) {}
 
 ssize_t Pipe::write(const void *data, size_t len)
 {

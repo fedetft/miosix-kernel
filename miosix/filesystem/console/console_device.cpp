@@ -39,7 +39,7 @@ namespace miosix {
 //
 
 TerminalDevice::TerminalDevice(intrusive_ref_ptr<Device> device)
-        : FileBase(intrusive_ref_ptr<FilesystemBase>()), device(device),
+        : FileBase(intrusive_ref_ptr<FilesystemBase>(),O_RDWR), device(device),
           mutex(), echo(true), binary(false), skipNewline(false) {}
 
 ssize_t TerminalDevice::write(const void *data, size_t length)

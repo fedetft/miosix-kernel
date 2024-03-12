@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Terraneo Federico                               *
+ *   Copyright (C) 2013-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,13 +25,13 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include <fcntl.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include "kernel/intrusive.h"
 #include "config/miosix_settings.h"
 
-#ifndef FILE_H
-#define	FILE_H
+#pragma once
 
 namespace miosix {
 
@@ -74,8 +74,9 @@ public:
     /**
      * Constructor
      * \param parent the filesystem to which this file belongs
+     * \param flags file open flags
      */
-    FileBase(intrusive_ref_ptr<FilesystemBase> parent);
+    FileBase(intrusive_ref_ptr<FilesystemBase> parent, int flags);
     
     /**
      * Write data to the file, if the file supports writing.
@@ -169,12 +170,15 @@ public:
      * File destructor
      */
     virtual ~FileBase();
-    
+
 private:
     FileBase(const FileBase&);
     FileBase& operator=(const FileBase&);
     
     intrusive_ref_ptr<FilesystemBase> parent; ///< Files may have a parent fs
+
+protected:
+    int flags; ///< File open flags (O_RDONLY, O_WRONLY, ...)
 };
 
 /**
@@ -189,7 +193,7 @@ public:
      * Constructor
      * \param parent the filesystem to which this file belongs
      */
-    DirectoryBase(intrusive_ref_ptr<FilesystemBase> parent) : FileBase(parent) {}
+    DirectoryBase(intrusive_ref_ptr<FilesystemBase> parent) : FileBase(parent,O_RDONLY) {}
     
     /**
      * Write data to the file, if the file supports writing.
@@ -420,5 +424,3 @@ private:
 };
 
 } //namespace miosix
-
-#endif //FILE_H

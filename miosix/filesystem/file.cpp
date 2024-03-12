@@ -43,7 +43,8 @@ typedef char check_sizeof_off_t[sizeof(off_t)==8 ? 1 : -1];
 // class FileBase
 //
 
-FileBase::FileBase(intrusive_ref_ptr<FilesystemBase> parent) : parent(parent)
+FileBase::FileBase(intrusive_ref_ptr<FilesystemBase> parent, int flags)
+        : parent(parent), flags(flags)
 {
     if(parent) parent->newFileOpened();
 }
@@ -57,9 +58,16 @@ int FileBase::isatty() const
 
 int FileBase::fcntl(int cmd, int opt)
 {
-    //Newlib makes some calls to fcntl, for example in opendir(). CLOEXEC isn't
-    //supported, but for now we lie and return 0
-    if(cmd==F_SETFD && (opt==FD_CLOEXEC || opt==0)) return 0;
+    switch(cmd)
+    {
+        case F_SETFD:
+            //Newlib makes some calls to fcntl, for example in opendir(). CLOEXEC isn't
+            //supported, but for now we lie and return 0
+            if(opt==FD_CLOEXEC || opt==0) return 0;
+            break;
+        case F_GETFL:
+            return flags;
+    }
     return -EBADF;
 }
 
