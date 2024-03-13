@@ -418,6 +418,7 @@ Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
                     int result=fileTable.stat(file,pstat);
                     sp.setParameter(0,result);
                 } else sp.setParameter(0,-EFAULT);
+                break;
             }
 
             case Syscall::LSTAT:
@@ -430,6 +431,7 @@ Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
                     int result=fileTable.lstat(file,pstat);
                     sp.setParameter(0,result);
                 } else sp.setParameter(0,-EFAULT);
+                break;
             }
 
             case Syscall::FSTAT:
@@ -459,6 +461,7 @@ Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
                     case F_SETFL:
                         result=fileTable.fcntl(sp.getParameter(0),cmd,
                                                sp.getParameter(2));
+                        break;
                     default:
                         result=fileTable.fcntl(sp.getParameter(0),cmd,0);
                 }
