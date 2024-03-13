@@ -65,12 +65,8 @@ int FileBase::fcntl(int cmd, int opt)
 {
     switch(cmd)
     {
-        case F_SETFD:
-            //Newlib makes some calls to fcntl, for example in opendir(). CLOEXEC isn't
-            //supported, but for now we lie and return 0
-            if(opt==FD_CLOEXEC || opt==0) return 0;
-            break;
-        case F_GETFL:
+        case F_GETFD:
+        case F_GETFL: //TODO: also return file access mode
             return flags;
     }
     return -EBADF;

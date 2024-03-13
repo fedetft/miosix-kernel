@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Terraneo Federico                               *
+ *   Copyright (C) 2013-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -92,8 +92,10 @@ FileDescriptorTable::FileDescriptorTable(const FileDescriptorTable& rhs)
     {
         Lock<FastMutex> l(rhs.mutex);
         cwd=rhs.cwd;
+        for(int i=0;i<MAX_OPEN_FILES;i++)
+            if(rhs.filesCloexec[i]==false)
+                this->files[i]=atomic_load(rhs.files+i);
     }
-    for(int i=0;i<MAX_OPEN_FILES;i++) this->files[i]=atomic_load(rhs.files+i);
     FilesystemManager::instance().addFileDescriptorTable(this);
 }
 
@@ -104,6 +106,7 @@ int FileDescriptorTable::open(const char* name, int flags, int mode)
     int fd=getAvailableFd();
     if(fd<0) return fd;
     //Found an empty file descriptor
+    filesCloexec[fd]=(flags & O_CLOEXEC)!=0;
     string path=absolutePath(name);
     if(path.empty()) return -ENAMETOOLONG;
     ResolvedPath openData=FilesystemManager::instance().resolvePath(path);
@@ -123,10 +126,31 @@ int FileDescriptorTable::close(int fd)
     return 0;
 }
 
+void FileDescriptorTable::cloexec()
+{
+    Lock<FastMutex> l(mutex);
+    for(int i=0;i<MAX_OPEN_FILES;i++)
+        if(filesCloexec[i])
+            atomic_exchange(files+i,intrusive_ref_ptr<FileBase>());
+}
+
 void FileDescriptorTable::closeAll()
 {
     for(int i=0;i<MAX_OPEN_FILES;i++)
         atomic_exchange(files+i,intrusive_ref_ptr<FileBase>());
+}
+
+int FileDescriptorTable::fcntl(int fd, int cmd, int opt)
+{
+    intrusive_ref_ptr<FileBase> file=getFile(fd);
+    if(!file) return -EBADF;
+    //Handle CLOEXEC as it'a a property of the file descriptor, not the file
+    if(cmd==F_SETFD && (opt==FD_CLOEXEC || opt==0))
+    {
+        Lock<FastMutex> l(mutex);
+        filesCloexec[fd]= opt==FD_CLOEXEC;
+        return 0;
+    } else return file->fcntl(cmd,opt);
 }
 
 int FileDescriptorTable::getcwd(char *buf, size_t len)
@@ -236,6 +260,7 @@ int FileDescriptorTable::dup(int fd)
     int newFd=getAvailableFd();
     if(newFd<0) return newFd;
     files[newFd]=file; //files[newFd] is guaranteed empty, assignment enough
+    filesCloexec[newFd]=false;
     return newFd;
 }
 
@@ -249,6 +274,7 @@ int FileDescriptorTable::dup2(int oldFd, int newFd)
     //Need to lock on writes so as not to race with getAvailableFd() elsewhere
     Lock<FastMutex> l(mutex);
     atomic_store(files+newFd,file); //May race with concurrent close, need atomic
+    filesCloexec[newFd]=false;
     return newFd;
 }
 
@@ -269,6 +295,8 @@ int FileDescriptorTable::pipe(int fds[2])
     intrusive_ref_ptr<FileBase> pipe(new Pipe);
     files[fds[0]]=pipe;
     files[fds[1]]=pipe;
+    filesCloexec[fds[0]]=false;
+    filesCloexec[fds[1]]=false;
     return 0;
 }
 

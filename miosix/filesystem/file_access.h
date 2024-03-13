@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Terraneo Federico                               *
+ *   Copyright (C) 2013-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,12 +25,12 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef FILE_ACCESS_H
-#define FILE_ACCESS_H
+#pragma once
 
 #include <map>
 #include <list>
 #include <string>
+#include <bitset>
 #include <errno.h>
 #include <sys/stat.h>
 #include "file.h"
@@ -120,6 +120,11 @@ public:
      * \return 0 on success or a negative number on failure
      */
     int close(int fd);
+
+    /**
+     * Close all files marked O_CLOEXEC, to be used during an execve syscall
+     */
+    void cloexec();
     
     /**
      * Close all files
@@ -230,12 +235,7 @@ public:
      * \param opt optional argument that some operation require
      * \return the exact return value depends on CMD, -1 is returned on error
      */
-    int fcntl(int fd, int cmd, int opt)
-    {
-        intrusive_ref_ptr<FileBase> file=getFile(fd);
-        if(!file) return -EBADF;
-        return file->fcntl(cmd,opt);
-    }
+    int fcntl(int fd, int cmd, int opt);
     
     /**
      * Perform various operations on a file descriptor
@@ -395,6 +395,8 @@ private:
     
     /// Holds the mapping between fd and file objects
     intrusive_ref_ptr<FileBase> files[MAX_OPEN_FILES];
+    /// Contains meaningful data only for open files
+    std::bitset<MAX_OPEN_FILES> filesCloexec;
 };
 
 /**
@@ -591,5 +593,3 @@ FileDescriptorTable& getFileDescriptorTable();
 } //namespace miosix
 
 #endif //WITH_FILESYSTEM
-
-#endif //FILE_ACCESS_H

@@ -320,6 +320,7 @@ void *Process::start(void *)
                 #endif //WITH_ERRLOG
             }
         } while(running && svcResult!=Execve);
+        if(svcResult==Execve) proc->fileTable.cloexec();
     } while(running);
     proc->fileTable.closeAll();
     {
