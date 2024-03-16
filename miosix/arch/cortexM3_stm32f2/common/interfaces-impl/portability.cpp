@@ -203,6 +203,7 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), int argc,
     ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
     ctxsave[6]=reinterpret_cast<unsigned long>(gotBase);              //--> r9
     //leaving the content of r4-r8,r10-r11 uninitialized
+    //NOTE: Cortex M3 differs from Cortex M4/M7 as ctxsave does not contain lr
 }
 
 #endif //WITH_PROCESSES
