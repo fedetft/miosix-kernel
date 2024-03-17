@@ -275,15 +275,18 @@ ssize_t Fat32File::write(const void *data, size_t len)
     //to fill the gap
     if(seekPastEnd>0)
     {
+        //If filling the gap would overflow we should not even start
+        if(seekPastEnd+static_cast<off_t>(f_size(&file))+len>0xffffffff)
+            return -EOVERFLOW;
         //To write zeros efficiently we have to allocate a buffer of zeros
-        constexpr int maxBufSize=512;
-        int bufSize=min<int>(seekPastEnd,maxBufSize);
+        constexpr unsigned int maxBufSize=512;
+        unsigned int bufSize=min<unsigned int>(seekPastEnd,maxBufSize);
         unique_ptr<char,decltype(&free)> buffer(
             reinterpret_cast<char*>(calloc(1,bufSize)),&free);
         if(buffer.get()==nullptr) return -ENOMEM; //Not enough memory
         while(seekPastEnd>0)
         {
-            int toWrite=min<int>(seekPastEnd,bufSize);
+            unsigned int toWrite=min<unsigned int>(seekPastEnd,bufSize);
             int res=translateError(f_write(&file,buffer.get(),toWrite,&bytesWritten));
             if(res || bytesWritten==0) return res; //Error while filling the gap
             seekPastEnd-=bytesWritten;
@@ -325,8 +328,7 @@ off_t Fat32File::lseek(off_t pos, int whence)
         default:
             return -EINVAL;
     }
-    //Maximum file size is 4Gbyte for FAT32
-    if(offset<0 || offset>0xffffffff) return -EOVERFLOW;
+    if(offset<0) return -EOVERFLOW;
     //Checks passed, now we do the actual seek
     if(offset>fileSize)
     {
