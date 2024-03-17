@@ -35,6 +35,7 @@
 #include <cstring>
 #include <string>
 #include <cstdio>
+#include <memory>
 #include "filesystem/stringpart.h"
 #include "filesystem/ioctl.h"
 #include "util/unicode.h"
@@ -251,7 +252,10 @@ public:
 private:
     FIL file;
     FastMutex& mutex;
-    int inode;
+    int inode=0;
+    /// Used to map FatFs behavior into POSIX. Variable is 0 as long as we seek
+    /// within, contains by how many bytes we seeked past the end otherwise
+    off_t seekPastEnd=0;
 };
 
 //
@@ -259,12 +263,32 @@ private:
 //
 
 Fat32File::Fat32File(intrusive_ref_ptr<FilesystemBase> parent, int flags, FastMutex& mutex)
-        : FileBase(parent,flags), mutex(mutex), inode(0) {}
+        : FileBase(parent,flags), mutex(mutex) {}
 
 ssize_t Fat32File::write(const void *data, size_t len)
 {
     Lock<FastMutex> l(mutex);
     unsigned int bytesWritten;
+    //NOTE: if we lseek'd past the end, we f_lseek'd to the end and seekPastEnd
+    //is >0. We need to handle this special case by filling the gap with zeros
+    //Note that in this case write should not return the number of bytes written
+    //to fill the gap
+    if(seekPastEnd>0)
+    {
+        //To write zeros efficiently we have to allocate a buffer of zeros
+        constexpr int maxBufSize=512;
+        int bufSize=min<int>(seekPastEnd,maxBufSize);
+        unique_ptr<char,decltype(&free)> buffer(
+            reinterpret_cast<char*>(calloc(1,bufSize)),&free);
+        if(buffer.get()==nullptr) return -ENOMEM; //Not enough memory
+        while(seekPastEnd>0)
+        {
+            int toWrite=min<int>(seekPastEnd,bufSize);
+            int res=translateError(f_write(&file,buffer.get(),toWrite,&bytesWritten));
+            if(res || bytesWritten==0) return res; //Error while filling the gap
+            seekPastEnd-=bytesWritten;
+        }
+    }
     if(int res=translateError(f_write(&file,data,len,&bytesWritten))) return res;
     #ifdef SYNC_AFTER_WRITE
     if(f_sync(&file)!=FR_OK) return -EIO;
@@ -276,6 +300,9 @@ ssize_t Fat32File::read(void *data, size_t len)
 {
     Lock<FastMutex> l(mutex);
     unsigned int bytesRead;
+    //NOTE: if we lseek'd past the end, we f_lseek'd to the end and seekPastEnd
+    //is >0. Either reading at the end or past the end shall return 0 (eof), so
+    //there's no need to handle the read past the end case specially
     if(int res=translateError(f_read(&file,data,len,&bytesRead))) return res;
     return static_cast<int>(bytesRead);
 }
@@ -283,26 +310,39 @@ ssize_t Fat32File::read(void *data, size_t len)
 off_t Fat32File::lseek(off_t pos, int whence)
 {
     Lock<FastMutex> l(mutex);
-    off_t offset;
+    off_t offset, fileSize=static_cast<off_t>(f_size(&file));
     switch(whence)
     {
         case SEEK_CUR:
-            offset=static_cast<off_t>(f_tell(&file))+pos;
+            offset=static_cast<off_t>(f_tell(&file))+seekPastEnd+pos;
             break;
         case SEEK_SET:
             offset=pos;
             break;
         case SEEK_END:
-            offset=static_cast<off_t>(f_size(&file))+pos;
+            offset=fileSize+pos;
             break;
         default:
             return -EINVAL;
     }
-    //We don't support seek past EOF for Fat32
-    if(offset<0 || offset>static_cast<off_t>(f_size(&file))) return -EOVERFLOW;
+    //Maximum file size is 4Gbyte for FAT32
+    if(offset<0 || offset>0xffffffff) return -EOVERFLOW;
+    //Checks passed, now we do the actual seek
+    if(offset>fileSize)
+    {
+        //We can't f_lseek past the end of the file as FatFs deviates from POSIX.
+        //f_lseek would preallocate seekPastEnd bytes immediately, leaving them
+        //uninitialized, while POSIX specifies that no data should be added to
+        //the file unless an actual write occurs at the past the end location,
+        //and that the gap should be filled with zeros. For this reason, we seek
+        //at the end instead, and remember by how many bytes we are past the end
+        //in the seekPastEnd variable
+        seekPastEnd=offset-fileSize;
+        offset=fileSize;
+    } else seekPastEnd=0;
     if(int result=translateError(
         f_lseek(&file,static_cast<unsigned long>(offset)))) return result;
-    return offset;
+    return offset+seekPastEnd;
 }
 
 int Fat32File::fstat(struct stat *pstat) const

@@ -367,6 +367,7 @@ off_t LittleFSFile::lseek(off_t pos, int whence)
             break;
     }
 
+    //TODO: check seek past the end behavior
     LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
     off_t lfs_off = static_cast<off_t>(
         lfs_file_seek(lfs_driver->getLfs(), file.get(),

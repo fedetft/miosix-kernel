@@ -190,7 +190,7 @@ off_t MemoryMappedRomFsFile::lseek(off_t pos, int whence)
             newSeekPoint=pos;
             break;
         case SEEK_END:
-            newSeekPoint=fromLittleEndian32(entry->size)+pos;
+            newSeekPoint=pos+fromLittleEndian32(entry->size);
         default:
             return -EINVAL;
     }

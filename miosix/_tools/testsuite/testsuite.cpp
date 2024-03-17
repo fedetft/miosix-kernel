@@ -139,6 +139,7 @@ static void fs_test_1();
 static void fs_test_2();
 static void fs_test_3();
 static void fs_test_4();
+static void fs_test_5();
 #endif //WITH_FILESYSTEM
 //Benchmark functions
 static void benchmark_1();
@@ -252,6 +253,7 @@ int main()
                 fs_test_2();
                 fs_test_3();
                 fs_test_4();
+                fs_test_5();
                 #else //WITH_FILESYSTEM
                 iprintf("Error, filesystem support is disabled\n");
                 #endif //WITH_FILESYSTEM
@@ -4937,6 +4939,140 @@ static void fs_test_4()
     int testdirIno=checkInodes("/sd",sdInode,curInode,sdDevice,curDevice);
     if(testdirIno==0) fail("no testdir");
     checkInodes("/sd/testdir",testdirIno,sdInode,sdDevice,sdDevice);
+    pass();
+}
+
+
+//
+// Filesystem test 5
+//
+/*
+tests:
+POSIX behavior when seeking past the end
+*/
+
+static void fs_t5_p1(int nChunks)
+{
+    const char file[]="/sd/seek.dat";
+    constexpr int chunkSize=32;
+    char chunk[chunkSize];
+    int fd;
+    off_t pos;
+    size_t count;
+    //Remove previous file if present
+    fd=open(file,O_RDONLY);
+    if(fd>=0)
+    {
+        close(fd);
+        if(unlink(file)!=0) fail("unlink");
+    }
+    //Open for writing, seek past the end, don't write anything, check file size
+    fd=open(file,O_WRONLY|O_CREAT,0777);
+    if(fd<0) fail("open 1");
+    pos=lseek(fd,nChunks*chunkSize,SEEK_SET);
+    if(pos!=nChunks*chunkSize) fail("lseek");
+    pos=lseek(fd,0,SEEK_END);
+    if(pos!=0) fail("lseek modified size");
+    close(fd);
+    //Open for reading, seek past the end, check file size again
+    fd=open(file,O_RDONLY);
+    if(fd<0) fail("open");
+    pos=lseek(fd,nChunks*chunkSize,SEEK_SET);
+    if(pos!=nChunks*chunkSize) fail("lseek");
+    count=read(fd,chunk,chunkSize);
+    if(count!=0) fail("read");
+    pos=lseek(fd,0,SEEK_END);
+    if(pos!=0) fail("lseek modified size");
+    close(fd);
+    //Open for writing, seek past the end and write, check file size
+    fd=open(file,O_WRONLY|O_CREAT,0777);
+    if(fd<0) fail("open");
+    pos=lseek(fd,nChunks*chunkSize,SEEK_SET);
+    if(pos!=nChunks*chunkSize) fail("lseek");
+    memset(chunk,1,chunkSize);
+    count=write(fd,chunk,chunkSize);
+    if(count!=chunkSize) fail("write");
+    pos=lseek(fd,0,SEEK_END);
+    if(pos!=(nChunks+1)*chunkSize) fail("lseek modified size");
+    close(fd);
+    //Open for reading, seek past the end, check file size again, check content
+    fd=open(file,O_RDONLY);
+    if(fd<0) fail("open");
+    pos=lseek(fd,2*nChunks*chunkSize,SEEK_SET);
+    if(pos!=2*nChunks*chunkSize) fail("lseek");
+    pos=lseek(fd,0,SEEK_END);
+    if(pos!=(nChunks+1)*chunkSize) fail("lseek modified size");
+    pos=lseek(fd,0,SEEK_SET);
+    if(pos!=0) fail("lseek");
+    for(int i=0;i<nChunks;i++)
+    {
+        memset(chunk,2,chunkSize);
+        count=read(fd,chunk,chunkSize);
+        if(count!=chunkSize) fail("read");
+        for(int j=0;j<chunkSize;j++) if(chunk[j]!=0) fail("gap not zeroed");
+    }
+    memset(chunk,2,chunkSize);
+    count=read(fd,chunk,chunkSize);
+    if(count!=chunkSize) fail("read");
+    for(int j=0;j<chunkSize;j++) if(chunk[j]!=1) fail("write/read fail");
+    memset(chunk,2,chunkSize);
+    count=read(fd,chunk,chunkSize);
+    if(count!=0) fail("read past eof");
+    for(int j=0;j<chunkSize;j++) if(chunk[j]!=2) fail("buffer altered");
+    close(fd);
+    //Open for read/write a non-empty file, mix and match of the above
+    fd=open(file,O_RDWR);
+    if(fd<0) fail("open");
+    pos=lseek(fd,2*nChunks*chunkSize,SEEK_SET);
+    if(pos!=2*nChunks*chunkSize) fail("lseek");
+    count=read(fd,chunk,chunkSize);
+    if(count!=0) fail("read");
+    pos=lseek(fd,0,SEEK_CUR);
+    if(pos!=2*nChunks*chunkSize) fail("read modified pos");
+    pos=lseek(fd,0,SEEK_END);
+    if(pos!=(nChunks+1)*chunkSize) fail("lseek modified size");
+    pos=lseek(fd,2*nChunks*chunkSize,SEEK_SET);
+    if(pos!=2*nChunks*chunkSize) fail("lseek");
+    memset(chunk,1,chunkSize);
+    count=write(fd,chunk,chunkSize);
+    if(count!=chunkSize) fail("write");
+    pos=lseek(fd,0,SEEK_END);
+    if(pos!=(2*nChunks+1)*chunkSize) fail("lseek modified size");
+    pos=lseek(fd,0,SEEK_SET);
+    if(pos!=0) fail("lseek");
+    for(int i=0;i<nChunks;i++)
+    {
+        memset(chunk,2,chunkSize);
+        count=read(fd,chunk,chunkSize);
+        if(count!=chunkSize) fail("read");
+        for(int j=0;j<chunkSize;j++) if(chunk[j]!=0) fail("gap not zeroed");
+    }
+    memset(chunk,2,chunkSize);
+    count=read(fd,chunk,chunkSize);
+    if(count!=chunkSize) fail("read");
+    for(int i=0;i<nChunks-1;i++)
+    {
+        memset(chunk,2,chunkSize);
+        count=read(fd,chunk,chunkSize);
+        if(count!=chunkSize) fail("read");
+        for(int j=0;j<chunkSize;j++) if(chunk[j]!=0) fail("gap not zeroed");
+    }
+    memset(chunk,2,chunkSize);
+    count=read(fd,chunk,chunkSize);
+    if(count!=chunkSize) fail("read");
+    for(int j=0;j<chunkSize;j++) if(chunk[j]!=1) fail("write/read fail");
+    memset(chunk,2,chunkSize);
+    count=read(fd,chunk,chunkSize);
+    if(count!=0) fail("read past eof");
+    close(fd);
+}
+
+static void fs_test_5()
+{
+    test_name("Seek past the end");
+    fs_t5_p1(1);  //Less than a sector
+    fs_t5_p1(16); //Exactly a sector
+    fs_t5_p1(60); //More than a sector
     pass();
 }
 #endif //WITH_FILESYSTEM
