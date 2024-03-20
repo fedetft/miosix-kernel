@@ -307,7 +307,10 @@ void ProcessImage::load(const ElfProgram& program)
     char *dataSegmentInMem=reinterpret_cast<char*>(image);
     memcpy(dataSegmentInMem,dataSegmentInFile,dataSegment->p_filesz);
     dataSegmentInMem+=dataSegment->p_filesz;
-    memset(dataSegmentInMem,0,dataSegment->p_memsz-dataSegment->p_filesz);
+    //Zero only .bss section (faster but processes leak data to other processes)
+    //memset(dataSegmentInMem,0,dataSegment->p_memsz-dataSegment->p_filesz);
+    //Zero the entire process image (minus .data) to prevent data leakage
+    memset(dataSegmentInMem,0,size-dataSegment->p_filesz);
     if(hasRelocs)
     {
         const Elf32_Rel *rel=reinterpret_cast<const Elf32_Rel*>(base+dtRel);
