@@ -1959,7 +1959,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         PROGRAM_CMDLINE := $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
         /dev/ttyUSB0 main.bin
         else
-            PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+            PROGRAM_CMDLINE := st-flash --reset write ./main.bin 0x8000000
         endif
 
     ##-------------------------------------------------------------------------
