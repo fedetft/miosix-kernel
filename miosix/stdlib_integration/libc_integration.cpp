@@ -802,7 +802,7 @@ int rmdir(const char *path)
  */
 int _link_r(struct _reent *ptr, const char *f_old, const char *f_new)
 {
-    ptr->_errno=ENOENT; //Unimplemented at the moment
+    ptr->_errno=EMFILE; //Currently no fs supports hardlinks
     return -1;
 }
 
