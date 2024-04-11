@@ -360,6 +360,8 @@ enum class Syscall
     UNLINK    = 19,
     SYMLINK   = 20,
     READLINK  = 21,
+    TRUNCATE  = 98, //TODO renumber
+    FTRUNCATE = 99, //TODO renumber
     RENAME    = 22,
     CHMOD     = 23,
     FCHMOD    = 24,

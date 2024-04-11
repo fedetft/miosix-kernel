@@ -241,6 +241,18 @@ ssize_t FileDescriptorTable::readlink(const char *name, char *buf, size_t size)
     return result;
 }
 
+int FileDescriptorTable::truncate(const char *name, off_t size)
+{
+
+    return -ENOENT;
+}
+
+int FileDescriptorTable::ftruncate(int fd, off_t size)
+{
+
+    return -EBADF;
+}
+
 int FileDescriptorTable::rename(const char *oldName, const char *newName)
 {
     if(oldName==0 || oldName[0]=='\0') return -EFAULT;

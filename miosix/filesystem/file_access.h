@@ -313,6 +313,22 @@ public:
      * \return 0 on success, or a negative number on failure
      */
     ssize_t readlink(const char *name, char *buf, size_t size);
+
+    /**
+     * Change file size
+     * \param name file to truncate
+     * \param size new file size
+     * \return 0 on success, or a negative number on failure
+     */
+    int truncate(const char *name, off_t size);
+
+    /**
+     * Change file size
+     * \param fd file descriptor
+     * \param size new file size
+     * \return 0 on success, or a negative number on failure
+     */
+    int ftruncate(int fd, off_t size);
     
     /**
      * Rename a file or directory

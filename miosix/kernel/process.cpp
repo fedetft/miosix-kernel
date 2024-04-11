@@ -587,6 +587,28 @@ Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
                 break;
             }
 
+            case Syscall::TRUNCATE:
+            {
+                auto path=reinterpret_cast<const char*>(sp.getParameter(0));
+                off_t size=sp.getParameter(2);
+                size|=static_cast<off_t>(sp.getParameter(1))<<32;
+                if(mpu.withinForReading(path))
+                {
+                    int result=fileTable.truncate(path,size);
+                    sp.setParameter(0,result);
+                } else sp.setParameter(0,-EFAULT);
+                break;
+            }
+
+            case Syscall::FTRUNCATE:
+            {
+                off_t size=sp.getParameter(2);
+                size|=static_cast<off_t>(sp.getParameter(1))<<32;
+                int result=fileTable.ftruncate(sp.getParameter(0),size);
+                sp.setParameter(0,result);
+                break;
+            }
+
             case Syscall::RENAME:
             {
                 auto oldp=reinterpret_cast<const char*>(sp.getParameter(0));

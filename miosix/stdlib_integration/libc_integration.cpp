@@ -894,6 +894,62 @@ ssize_t readlink(const char *path, char *buf, size_t size)
 
 /**
  * \internal
+ * truncate, change file size
+ */
+int truncate(const char *path, off_t size)
+{
+    #ifdef WITH_FILESYSTEM
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().truncate(path,size);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_FILESYSTEM
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_FILESYSTEM
+}
+
+/**
+ * \internal
+ * ftruncate, change file size
+ */
+int ftruncate(int fd, off_t size)
+{
+    #ifdef WITH_FILESYSTEM
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().ftruncate(fd,size);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_FILESYSTEM
+    miosix::getReent()->_errno=EBADF;
+    return -1;
+    #endif //WITH_FILESYSTEM
+}
+
+/**
+ * \internal
  * _rename_r, rename a file or directory
  */
 int _rename_r(struct _reent *ptr, const char *f_old, const char *f_new)

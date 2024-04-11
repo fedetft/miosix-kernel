@@ -424,6 +424,40 @@ readlink:
 	bx   lr
 
 /**
+ * truncate
+ * \param path path to the file
+ * \param size new file size
+ * \return 0 on success, -1 on failure
+ */
+.section .text.truncate
+.global truncate
+.type truncate, %function
+truncate:
+	movs r1, r3
+	movs r3, #98
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
+ * ftruncate
+ * \param fd file descriptor
+ * \param size new file size
+ * \return 0 on success, -1 on failure
+ */
+.section .text.ftruncate
+.global ftruncate
+.type ftruncate, %function
+ftruncate:
+	movs r1, r3
+	movs r3, #99
+	svc  0
+	cmp  r0, #0
+	blt  syscallfailed32
+	bx   lr
+
+/**
  * rename
  * \param oldpath existing file path
  * \param newpath new file path
