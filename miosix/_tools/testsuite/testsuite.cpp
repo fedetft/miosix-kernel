@@ -140,6 +140,7 @@ static void fs_test_2();
 static void fs_test_3();
 static void fs_test_4();
 static void fs_test_5();
+static void fs_test_6();
 #endif //WITH_FILESYSTEM
 //Benchmark functions
 static void benchmark_1();
@@ -254,6 +255,7 @@ int main()
                 fs_test_3();
                 fs_test_4();
                 fs_test_5();
+                fs_test_6();
                 #else //WITH_FILESYSTEM
                 iprintf("Error, filesystem support is disabled\n");
                 #endif //WITH_FILESYSTEM
@@ -5073,6 +5075,145 @@ static void fs_test_5()
     fs_t5_p1(1);  //Less than a sector
     fs_t5_p1(16); //Exactly a sector
     fs_t5_p1(60); //More than a sector
+    pass();
+}
+
+//
+// Filesystem test 6
+//
+/*
+tests:
+truncate
+ftruncate
+*/
+
+void writeFile(FILE *f, unsigned int length)
+{
+    constexpr unsigned int chunksize=64;
+    char chunk[chunksize];
+    char c=0;
+    while(length>0)
+    {
+        unsigned int size=min(length,chunksize);
+        for(unsigned int i=0;i<size;i++) chunk[i]=c++;
+        if(fwrite(chunk,1,size,f)!=size) fail("fwrite");
+        length-=size;
+    }
+}
+
+void writeFile(const char *name, unsigned int length)
+{
+    FILE *f=fopen(name,"wb");
+    if(f==NULL)
+    {
+        string s=string("writeFile: ")+name;
+        fail(s.c_str());
+    }
+    writeFile(f,length);
+    fclose(f);
+}
+
+void checkFile(FILE *f, unsigned int length, unsigned int padlength)
+{
+    rewind(f);
+    constexpr unsigned int chunksize=64;
+    char chunk[chunksize];
+    char c=0;
+    while(length>0)
+    {
+        unsigned int size=min(length,chunksize);
+        if(fread(chunk,1,size,f)!=size) fail("file too short");
+        for(unsigned int i=0;i<size;i++) if(chunk[i]!=c++) fail("file content");
+        length-=size;
+    }
+    while(padlength>0)
+    {
+        unsigned int size=min(padlength,chunksize);
+        if(fread(chunk,1,size,f)!=size) fail("file too short");
+        for(unsigned int i=0;i<size;i++) if(chunk[i]!=0) fail("file padding");
+        padlength-=size;
+    }
+    if(fgetc(f)!=EOF) fail("file too long");
+}
+
+void checkFile(const char *name, unsigned int length, unsigned int padlength)
+{
+    FILE *f=fopen(name,"rb");
+    if(f==NULL)
+    {
+        string s=string("checkFile: ")+name;
+        fail(s.c_str());
+    }
+    checkFile(f,length,padlength);
+    fclose(f);
+}
+
+void truncateTest(const char *name, unsigned int origsize,
+                  unsigned int largesize, unsigned int smallsize)
+{
+    unlink(name);
+    writeFile(name,origsize);
+    //Invalid size
+    int result=truncate(name,-1);
+    if(result!=-1 || errno!=EINVAL) fail("truncate neg");
+    checkFile(name,origsize,0);
+    //Same size
+    if(truncate(name,origsize)!=0) fail("truncate same");
+    checkFile(name,origsize,0);
+    //First enlarge, then shrink (opposite pattern in ftruncateTest)
+    //Larger size
+    if(truncate(name,largesize)!=0) fail("truncate large");
+    checkFile(name,origsize,largesize-origsize);
+    //Smaller size
+    if(truncate(name,smallsize)!=0) fail("truncate large");
+    checkFile(name,smallsize,0);
+}
+
+void ftruncateTest(const char *name, unsigned int origsize,
+                  unsigned int largesize, unsigned int smallsize)
+{
+    unlink(name);
+    FILE *f=fopen(name,"w+b");
+    if(f==NULL)
+    {
+        string s=string("ftruncateTest: ")+name;
+        fail(s.c_str());
+    }
+    writeFile(f,origsize);
+    //Invalid size
+    int result=ftruncate(fileno(f),-1);
+    if(result!=-1 || errno!=EINVAL) fail("truncate neg");
+    checkFile(f,origsize,0);
+    //Same size
+    if(ftruncate(fileno(f),origsize)!=0) fail("truncate same");
+    checkFile(f,origsize,0);
+    //First shrink, then enlarge (opposite pattern in truncateTest)
+    //Smaller size
+    if(ftruncate(fileno(f),smallsize)!=0) fail("truncate large");
+    checkFile(f,smallsize,0);
+    //Larger size
+    if(ftruncate(fileno(f),largesize)!=0) fail("truncate large");
+    checkFile(f,smallsize,largesize-smallsize);
+    fclose(f);
+}
+
+static void fs_test_6()
+{
+    test_name("Truncate");
+    truncateTest("/sd/trunctest1.txt",100,200,50);        //All within a sector
+    truncateTest("/sd/trunctest2.txt",4096,8192,2048);    //Sector boundaries
+    truncateTest("/sd/trunctest3.txt",40000,60000,30000); //Large & unaligned
+    ftruncateTest("/sd/trunctest4.txt",100,200,50);        //All within a sector
+    ftruncateTest("/sd/trunctest5.txt",4096,8192,2048);    //Sector boundaries
+    ftruncateTest("/sd/trunctest6.txt",40000,60000,30000); //Large & unaligned
+    int result=truncate("/sd/file_does_not_exist.txt",100);
+    if(result!=-1 || errno!=ENOENT) fail("truncate missing file");
+    FILE *f=fopen("/sd/trunctest1.txt","rb"); //Reuse previously made file
+    if(f==NULL) fail("fopen");
+    result=ftruncate(fileno(f),0);
+    if(result!=-1 || (errno!=EINVAL && errno!=EBADF)) fail("ftrncate open for reading");
+    checkFile(f,50,0);
+    fclose(f);
     pass();
 }
 #endif //WITH_FILESYSTEM
