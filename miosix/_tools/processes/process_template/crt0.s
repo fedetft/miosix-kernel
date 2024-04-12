@@ -434,7 +434,7 @@ readlink:
 .type truncate, %function
 truncate:
 	movs r1, r3
-	movs r3, #98
+	movs r3, #22
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
@@ -451,7 +451,7 @@ truncate:
 .type ftruncate, %function
 ftruncate:
 	movs r1, r3
-	movs r3, #99
+	movs r3, #23
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
@@ -467,7 +467,7 @@ ftruncate:
 .global rename
 .type rename, %function
 rename:
-	movs r3, #22
+	movs r3, #24
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
@@ -484,7 +484,7 @@ rename:
 .global dup
 .type dup, %function
 dup:
-	movs r3, #28
+	movs r3, #30
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
@@ -500,7 +500,7 @@ dup:
 .global dup2
 .type dup2, %function
 dup2:
-	movs r3, #29
+	movs r3, #31
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
@@ -515,7 +515,7 @@ dup2:
 .global pipe
 .type pipe, %function
 pipe:
-	movs r3, #30
+	movs r3, #32
 	svc  0
 	cmp  r1, #0
 	blt  .L400
@@ -537,7 +537,7 @@ pipe:
 .type _ZN6miosix7getTimeEv, %function
 _ZN6miosix7getTimeEv:
 	movs r0, #4
-	movs r3, #32
+	movs r3, #38
 	svc  0
 	bx   lr
 
@@ -554,7 +554,7 @@ _ZN6miosix7getTimeEv:
 clock_gettime:
 	push {r4, lr}
 	movs r4, r1
-	movs r3, #32
+	movs r3, #38
 	svc  0
 	adr  r3, .L500
 	ldrd r2, [r3]
@@ -586,7 +586,7 @@ clock_settime:
 	mla  r3, r3, r4, r12
 	adds r2, r2, r1
 	adc  r1, r3, r1, asr #31
-	movs r3, #33
+	movs r3, #39
 	svc  0
 	pop  {r4}
 	bx   lr
@@ -603,7 +603,7 @@ clock_settime:
 .type _ZN6miosix14nanoSleepUntilEx, %function
 _ZN6miosix14nanoSleepUntilEx:
 	mov  r12, #260
-	movs r3, #34
+	movs r3, #40
 	svc  0
 	bx   lr
 
@@ -628,7 +628,7 @@ clock_nanosleep:
 	mla  r1, r1, r4, r3
 	adds r0, r0, r2
 	adc  r1, r1, r2, asr #31
-	movs r3, #34
+	movs r3, #40
 	svc  0
 	pop  {r4}
 	bx   lr
@@ -646,7 +646,7 @@ clock_nanosleep:
 .global clock_getres
 .type clock_getres, %function
 clock_getres:
-	movs r3, #35
+	movs r3, #41
 	svc  0
 	str  r2, [r1, #8]
 	movs r2, #0
@@ -665,7 +665,7 @@ clock_getres:
 .global _exit
 .type _exit, %function
 _exit:
-	movs r3, #37
+	movs r3, #43
 	svc  0
 
 /**
@@ -679,7 +679,7 @@ _exit:
 .global execve
 .type execve, %function
 execve:
-	movs r3, #38
+	movs r3, #44
 	svc  0
 	/* if execve returns, then it failed */
 	b    __seterrno32
@@ -702,7 +702,7 @@ posix_spawn:
 	cbnz r3, .L800
 	ldrd r2, r3, [sp]
 	mov  r12, r3
-	movs r3, #39
+	movs r3, #45
 	svc  0
 	bx   lr
 .L800:
@@ -722,7 +722,7 @@ posix_spawn:
 .global waitpid
 .type waitpid, %function
 waitpid:
-	movs r3, #41
+	movs r3, #47
 	svc  0
 	cmp  r0, #0
 	blt  syscallfailed32
@@ -736,7 +736,7 @@ waitpid:
 .global getpid
 .type getpid, %function
 getpid:
-	movs r3, #42
+	movs r3, #48
 	svc  0
 	bx   lr
 
@@ -748,7 +748,7 @@ getpid:
 .global getppid
 .type getppid, %function
 getppid:
-	movs r3, #43
+	movs r3, #49
 	svc  0
 	bx   lr
 
