@@ -127,6 +127,13 @@ public:
     virtual off_t lseek(off_t pos, int whence)=0;
     
     /**
+     * Truncate the file
+     * \param size new file size
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int ftruncate(off_t size)=0;
+
+    /**
      * Return file information.
      * \param pstat pointer to stat struct
      * \return 0 on success, or a negative number on failure
@@ -233,6 +240,13 @@ public:
      * completed, or a negative number in case of errors
      */
     virtual off_t lseek(off_t pos, int whence);
+
+    /**
+     * Truncate the file
+     * \param size new file size
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int ftruncate(off_t size);
     
     /**
      * Return file information.
@@ -331,6 +345,14 @@ public:
      * \return 0 on success, or a negative number on failure
      */
     virtual int lstat(StringPart& name, struct stat *pstat)=0;
+
+    /**
+     * Change file size
+     * \param name path name, relative to the local filesystem
+     * \param size new file size
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int truncate(StringPart& name, off_t size)=0;
     
     /**
      * Remove a file or directory

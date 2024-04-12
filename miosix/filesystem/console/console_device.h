@@ -76,6 +76,13 @@ public:
      * completed, or a negative number in case of errors
      */
     virtual off_t lseek(off_t pos, int whence);
+
+    /**
+     * Truncate the file
+     * \param size new file size
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int ftruncate(off_t size);
     
     /**
      * Return file information.

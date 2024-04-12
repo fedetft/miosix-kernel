@@ -93,6 +93,13 @@ public:
      * completed, or a negative number in case of errors
      */
     virtual off_t lseek(off_t pos, int whence);
+
+    /**
+     * Truncate the file
+     * \param size new file size
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int ftruncate(off_t size);
     
     /**
      * Return file information.
@@ -161,6 +168,8 @@ off_t DevFsFile::lseek(off_t pos, int whence)
     seekPoint=newSeekPoint;
     return seekPoint;
 }
+
+int DevFsFile::ftruncate(off_t size) { return -EINVAL; }
 
 int DevFsFile::fstat(struct stat *pstat) const
 {
@@ -371,6 +380,8 @@ int DevFs::lstat(StringPart& name, struct stat *pstat)
     if(it==files.end()) return -ENOENT;
     return it->second->fstat(pstat);
 }
+
+int DevFs::truncate(StringPart& name, off_t size) { return -EINVAL; }
 
 int DevFs::unlink(StringPart& name)
 {

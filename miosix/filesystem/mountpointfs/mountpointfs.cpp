@@ -163,6 +163,11 @@ int MountpointFs::lstat(StringPart& name, struct stat *pstat)
     return 0;
 }
 
+int MountpointFs::truncate(StringPart& name, off_t size)
+{
+    return -ENOENT;
+}
+
 int MountpointFs::unlink(StringPart& name)
 {
     return -ENOENT;

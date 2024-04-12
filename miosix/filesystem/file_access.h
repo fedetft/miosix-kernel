@@ -328,7 +328,13 @@ public:
      * \param size new file size
      * \return 0 on success, or a negative number on failure
      */
-    int ftruncate(int fd, off_t size);
+    int ftruncate(int fd, off_t size)
+    {
+        if(size<0) return -EINVAL;
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->ftruncate(size);
+    }
     
     /**
      * Rename a file or directory

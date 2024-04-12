@@ -92,6 +92,7 @@ public:
     virtual ssize_t write(const void *buf, size_t count) override;
     virtual ssize_t read(void *buf, size_t count) override;
     virtual off_t lseek(off_t pos, int whence) override;
+    virtual int ftruncate(off_t size) override;
     virtual int fstat(struct stat *pstat) const override;
 
     ~LittleFSFile()
@@ -267,6 +268,11 @@ int LittleFS::lstat(StringPart &name, struct stat *pstat)
     return 0;
 }
 
+int LittleFS::truncate(StringPart& name, off_t size)
+{
+    return -EINVAL; //TODO
+}
+
 int LittleFS::unlink(StringPart &name)
 {
     if(mountFailed()) return -ENOENT;
@@ -374,6 +380,11 @@ off_t LittleFSFile::lseek(off_t pos, int whence)
                       static_cast<lfs_off_t>(pos), whence_lfs));
 
     return lfs_off;
+}
+
+int LittleFSFile::ftruncate(off_t size)
+{
+    return -EINVAL; //TODO
 }
 
 int LittleFSFile::fstat(struct stat *pstat) const

@@ -88,6 +88,8 @@ ssize_t Pipe::read(void *data, size_t len)
 
 off_t Pipe::lseek(off_t pos, int whence) { return -ESPIPE; }
 
+int Pipe::ftruncate(off_t size) { return -EINVAL; }
+
 int Pipe::fstat(struct stat *pstat) const
 {
     return -EFAULT; //TODO

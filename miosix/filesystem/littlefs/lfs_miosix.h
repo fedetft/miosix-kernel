@@ -82,6 +82,14 @@ public:
     virtual int lstat(StringPart &name, struct stat *pstat);
 
     /**
+     * Change file size
+     * \param name path name, relative to the local filesystem
+     * \param size new file size
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int truncate(StringPart& name, off_t size);
+
+    /**
      * Remove a file or directory
      * \param name path name of file or directory to remove
      * \return 0 on success, or a negative number on failure

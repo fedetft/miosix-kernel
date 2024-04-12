@@ -82,6 +82,13 @@ public:
     virtual off_t lseek(off_t pos, int whence);
 
     /**
+     * Truncate the file
+     * \param size new file size
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int ftruncate(off_t size);
+
+    /**
      * Return file information.
      * \param pstat pointer to stat struct
      * \return 0 on success, or a negative number on failure

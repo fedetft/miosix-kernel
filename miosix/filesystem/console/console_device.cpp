@@ -95,10 +95,9 @@ ssize_t TerminalDevice::read(void *data, size_t length)
 
 #ifdef WITH_FILESYSTEM
 
-off_t TerminalDevice::lseek(off_t pos, int whence)
-{
-    return -EBADF;
-}
+off_t TerminalDevice::lseek(off_t pos, int whence) { return -EBADF; }
+
+int TerminalDevice::ftruncate(off_t size) { return -EINVAL; }
 
 int TerminalDevice::fstat(struct stat *pstat) const
 {

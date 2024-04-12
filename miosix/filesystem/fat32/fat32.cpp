@@ -61,7 +61,7 @@ static int translateError(int ec)
         case FR_NO_PATH:
             return -ENOENT;
         case FR_DENIED:
-            return -ENOSPC;
+            return -EINVAL;
         case FR_EXIST:
             return -EEXIST;
         case FR_WRITE_PROTECTED:
@@ -218,6 +218,13 @@ public:
      * completed, or a negative number in case of errors
      */
     virtual off_t lseek(off_t pos, int whence);
+
+    /**
+     * Truncate the file
+     * \param size new file size
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int ftruncate(off_t size);
     
     /**
      * Return file information.
@@ -347,6 +354,32 @@ off_t Fat32File::lseek(off_t pos, int whence)
     return offset+seekPastEnd;
 }
 
+int Fat32File::ftruncate(off_t size)
+{
+    Lock<FastMutex> l(mutex);
+    off_t fileSize=static_cast<off_t>(f_size(&file));
+    if(size==fileSize) return 0; //Nothing to do
+    off_t curPos=static_cast<off_t>(f_tell(&file))+seekPastEnd;
+
+    int result=0;
+    if(size<fileSize)
+    {
+        //Shrinking, FatFs f_truncate truncates to the current file position
+        int r=translateError(f_lseek(&file,static_cast<unsigned long>(size)));
+        if(r) return r;
+        result=translateError(f_truncate(&file));
+    } else {
+        //Enlarging, can't use f_truncate so seek past the end an write
+        off_t r=lseek(size,SEEK_SET);
+        if(r<0) return r;
+        result=write(nullptr,0);
+    }
+    //Restore previous file position and return
+    off_t r=lseek(curPos,SEEK_SET);
+    if(r<0) return r;
+    return result;
+}
+
 int Fat32File::fstat(struct stat *pstat) const
 {
     memset(pstat,0,sizeof(struct stat));
@@ -427,6 +460,7 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         }
         f->setInode(st.st_ino);
 
+        //TODO: is this check still relevant?
         //Can't open files larger than INT_MAX
         if(static_cast<int>(f_size(f->fil()))<0) return -EOVERFLOW;
 
@@ -439,7 +473,6 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
             if(f_lseek(f->fil(),f_size(f->fil()))!=FR_OK) return -EFAULT;
 
         file=f;
-        return 0;
     } else {
         //About to open a directory
         if(flags & (_FWRITE | _FAPPEND | _FCREAT | _FTRUNC)) return -EISDIR;
@@ -465,9 +498,9 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         if(int res=translateError(f_opendir(&filesystem,d->directory(),name.c_str())))
             return res;
          
-         file=d;
-         return 0;
+        file=d;
     }
+    return 0;
 }
 
 int Fat32Fs::lstat(StringPart& name, struct stat *pstat)
@@ -499,6 +532,14 @@ int Fat32Fs::lstat(StringPart& name, struct stat *pstat)
     pstat->st_size=info.fsize;
     pstat->st_blocks=(info.fsize+511)/512;
     return 0;
+}
+
+int Fat32Fs::truncate(StringPart& name, off_t size)
+{
+    //FatFs does not have a truncate, so we need to open the file and ftruncate
+    intrusive_ref_ptr<FileBase> file;
+    if(int result=open(file,name,O_WRONLY,0)) return result;
+    return file->ftruncate(size);
 }
 
 int Fat32Fs::unlink(StringPart& name)

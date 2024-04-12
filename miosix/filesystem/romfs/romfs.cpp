@@ -142,6 +142,13 @@ public:
      * completed, or a negative number in case of errors
      */
     virtual off_t lseek(off_t pos, int whence);
+
+    /**
+     * Truncate the file
+     * \param size new file size
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int ftruncate(off_t size);
     
     /**
      * Return file information.
@@ -198,6 +205,8 @@ off_t MemoryMappedRomFsFile::lseek(off_t pos, int whence)
     seekPoint=newSeekPoint;
     return seekPoint;
 }
+
+int MemoryMappedRomFsFile::ftruncate(off_t size) { return -EROFS; }
 
 int MemoryMappedRomFsFile::fstat(struct stat *pstat) const
 {
@@ -323,6 +332,7 @@ int MemoryMappedRomFs::lstat(StringPart& name, struct stat *pstat)
     return 0;
 }
 
+int MemoryMappedRomFs::truncate(StringPart& name, off_t size) { return -EROFS; }
 int MemoryMappedRomFs::unlink(StringPart& name) { return -EROFS; }
 int MemoryMappedRomFs::rename(StringPart& oldName, StringPart& newName) { return -EROFS; }
 int MemoryMappedRomFs::mkdir(StringPart& name, int mode) { return -EROFS; }

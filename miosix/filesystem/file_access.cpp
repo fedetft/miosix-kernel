@@ -243,14 +243,14 @@ ssize_t FileDescriptorTable::readlink(const char *name, char *buf, size_t size)
 
 int FileDescriptorTable::truncate(const char *name, off_t size)
 {
-
-    return -ENOENT;
-}
-
-int FileDescriptorTable::ftruncate(int fd, off_t size)
-{
-
-    return -EBADF;
+    if(size<0) return -EINVAL;
+    if(name==nullptr || name[0]=='\0') return -EFAULT;
+    string path=absolutePath(name);
+    if(path.empty()) return -ENAMETOOLONG;
+    ResolvedPath openData=FilesystemManager::instance().resolvePath(path);
+    if(openData.result<0) return openData.result;
+    StringPart sp(path,string::npos,openData.off);
+    return openData.fs->truncate(sp,size);
 }
 
 int FileDescriptorTable::rename(const char *oldName, const char *newName)

@@ -106,6 +106,11 @@ off_t DirectoryBase::lseek(off_t pos, int whence)
     return -EBADF;
 }
 
+int DirectoryBase::ftruncate(off_t size)
+{
+    return -EBADF;
+}
+
 int DirectoryBase::fstat(struct stat *pstat) const
 {
     return -EBADF;
