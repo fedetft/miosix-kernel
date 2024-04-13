@@ -929,13 +929,13 @@ ArgsBlock::ArgsBlock(const char* const* argv, const char* const* envp, int narg,
     blockSize*=CTXSAVE_STACK_ALIGNMENT;
 
     block=new char[blockSize];
-    //Zero the adding introduced for alignment
+    //Zero the padding introduced for alignment
     memset(block+blockSizeBeforeAlign,0,blockSize-blockSizeBeforeAlign);
 
     envArrayIndex=sizeof(char*)*(narg+1);
     char **arrayBlock=reinterpret_cast<char**>(block);
     char *stringBlock=block+arrayBlockSize;
-    //NOTE: even though not strictly required, also arg array ends with nullptr
+    //NOTE: also arg array ends with nullptr
     auto add=[&](const char* const* a, int n)
     {
         for(int i=0;i<n;i++)
