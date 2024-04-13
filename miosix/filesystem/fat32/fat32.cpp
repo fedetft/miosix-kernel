@@ -460,10 +460,6 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         }
         f->setInode(st.st_ino);
 
-        //TODO: is this check still relevant?
-        //Can't open files larger than INT_MAX
-        if(static_cast<int>(f_size(f->fil()))<0) return -EOVERFLOW;
-
         #ifdef SYNC_AFTER_WRITE
         if(f_sync(f->fil())!=FR_OK) return -EFAULT;
         #endif //SYNC_AFTER_WRITE
