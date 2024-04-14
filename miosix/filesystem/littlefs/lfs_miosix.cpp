@@ -330,8 +330,10 @@ int posixOpenToLfsFlags(int posix_flags)
 {
     int lfsFlags = 0;
 
+    //TODO: find more optimized way
     if((posix_flags & O_RDONLY) == O_RDONLY) lfsFlags |= LFS_O_RDONLY;
     if((posix_flags & O_WRONLY) == O_WRONLY) lfsFlags |= LFS_O_WRONLY;
+    if((posix_flags & O_RDWR)   == O_RDWR)   lfsFlags |= LFS_O_RDWR;
     if((posix_flags & O_APPEND) == O_APPEND) lfsFlags |= LFS_O_APPEND;
     if((posix_flags & O_CREAT) == O_CREAT)   lfsFlags |= LFS_O_CREAT;
     if((posix_flags & O_TRUNC) == O_TRUNC)   lfsFlags |= LFS_O_TRUNC;
