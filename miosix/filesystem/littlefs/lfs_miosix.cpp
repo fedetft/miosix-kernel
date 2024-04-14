@@ -270,7 +270,10 @@ int LittleFS::lstat(StringPart &name, struct stat *pstat)
 
 int LittleFS::truncate(StringPart& name, off_t size)
 {
-    return -EINVAL; //TODO
+    //LittleFs does not have a truncate, so we need to open the file and ftruncate
+    intrusive_ref_ptr<FileBase> file;
+    if(int result=open(file,name,O_WRONLY,0)) return result;
+    return file->ftruncate(size);
 }
 
 int LittleFS::unlink(StringPart &name)
@@ -386,7 +389,10 @@ off_t LittleFSFile::lseek(off_t pos, int whence)
 
 int LittleFSFile::ftruncate(off_t size)
 {
-    return -EINVAL; //TODO
+    LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
+    int err=lfs_file_truncate(lfs_driver->getLfs(),file.get(),
+                                 static_cast<lfs_off_t>(size));
+    return lfsErrorToPosix(err);
 }
 
 int LittleFSFile::fstat(struct stat *pstat) const
