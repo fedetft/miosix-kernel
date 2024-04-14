@@ -319,6 +319,7 @@ LittleFS::~LittleFS()
 
 int lfsErrorToPosix(int lfs_err)
 {
+    //TODO double check
     if(lfs_err)
     {
         if(lfs_err == LFS_ERR_CORRUPT) return -EIO;
@@ -347,16 +348,19 @@ int posixOpenToLfsFlags(int posix_flags)
 ssize_t LittleFSFile::write(const void *buf, size_t count)
 {
     LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
-    auto writeSize = lfs_file_write(lfs_driver->getLfs(), file.get(), buf, count);
+    auto result=lfs_file_write(lfs_driver->getLfs(), file.get(), buf, count);
     if(forceSync) lfs_file_sync(lfs_driver->getLfs(), file.get());
-    return writeSize;
+    if(result>=0) return result;
+    return lfsErrorToPosix(result);
 }
 
 ssize_t LittleFSFile::read(void *buf, size_t count)
 {
     // Get the LittleFS driver instance using getParent()
     LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
-    return lfs_file_read(lfs_driver->getLfs(), file.get(), buf, count);
+    auto result=lfs_file_read(lfs_driver->getLfs(), file.get(), buf, count);
+    if(result>=0) return result;
+    return lfsErrorToPosix(result);
 }
 
 off_t LittleFSFile::lseek(off_t pos, int whence)
@@ -380,11 +384,11 @@ off_t LittleFSFile::lseek(off_t pos, int whence)
 
     //TODO: check seek past the end behavior
     LittleFS *lfs_driver = static_cast<LittleFS *>(getParent().get());
-    off_t lfs_off = static_cast<off_t>(
+    off_t result = static_cast<off_t>(
         lfs_file_seek(lfs_driver->getLfs(), file.get(),
                       static_cast<lfs_off_t>(pos), whence_lfs));
-
-    return lfs_off;
+    if(result>=0) return result;
+    return lfsErrorToPosix(result);
 }
 
 int LittleFSFile::ftruncate(off_t size)
