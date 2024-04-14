@@ -511,7 +511,7 @@ static
 BYTE CurrVol;			/* Current drive */
 #endif
 
-#if _FS_LOCK
+#ifdef _FS_LOCK
 //static
 //FILESEM	Files[_FS_LOCK];	/* Open object lock semaphores */
 #endif
@@ -660,7 +660,7 @@ void unlock_fs (
 /*-----------------------------------------------------------------------*/
 /* File lock control functions                                           */
 /*-----------------------------------------------------------------------*/
-#if _FS_LOCK
+#ifdef _FS_LOCK
 
 static
 FRESULT chk_lock (	/* Check if the file can be accessed */
@@ -671,7 +671,7 @@ FRESULT chk_lock (	/* Check if the file can be accessed */
 	UINT i, be;
 
 	/* Search file semaphore table */
-	for (i = be = 0; i < _FS_LOCK; i++) {
+	for (i = be = 0; i < miosix::FATFS_MAX_OPEN_FILES; i++) {
 		if (dp->fs->Files[i].fs) {	/* Existing entry */
 			if (dp->fs->Files[i].fs == dp->fs &&	 	/* Check if the object matched with an open object */
 				dp->fs->Files[i].clu == dp->sclust &&
@@ -680,7 +680,7 @@ FRESULT chk_lock (	/* Check if the file can be accessed */
 			be = 1;
 		}
 	}
-	if (i == _FS_LOCK)	/* The object is not opened */
+	if (i == miosix::FATFS_MAX_OPEN_FILES)	/* The object is not opened */
 		return (be || acc == 2) ? FR_OK : FR_TOO_MANY_OPEN_FILES;	/* Is there a blank entry for new object? */
 
 	/* The object has been opened. Reject any open against writing file and all write mode open */
@@ -693,8 +693,8 @@ int enq_lock (FATFS *fs)	/* Check if an entry is available for a new object */
 {
 	UINT i;
 
-	for (i = 0; i < _FS_LOCK && fs->Files[i].fs; i++) ;
-	return (i == _FS_LOCK) ? 0 : 1;
+	for (i = 0; i < miosix::FATFS_MAX_OPEN_FILES && fs->Files[i].fs; i++) ;
+	return (i == miosix::FATFS_MAX_OPEN_FILES) ? 0 : 1;
 }
 
 
@@ -707,15 +707,15 @@ UINT inc_lock (	/* Increment object open counter and returns its index (0:Intern
 	UINT i;
 
 
-	for (i = 0; i < _FS_LOCK; i++) {	/* Find the object */
+	for (i = 0; i < miosix::FATFS_MAX_OPEN_FILES; i++) {	/* Find the object */
 		if (dp->fs->Files[i].fs == dp->fs &&
 			dp->fs->Files[i].clu == dp->sclust &&
 			dp->fs->Files[i].idx == dp->index) break;
 	}
 
-	if (i == _FS_LOCK) {				/* Not opened. Register it as new. */
-		for (i = 0; i < _FS_LOCK && dp->fs->Files[i].fs; i++) ;
-		if (i == _FS_LOCK) return 0;	/* No free entry to register (int err) */
+	if (i == miosix::FATFS_MAX_OPEN_FILES) {				/* Not opened. Register it as new. */
+		for (i = 0; i < miosix::FATFS_MAX_OPEN_FILES && dp->fs->Files[i].fs; i++) ;
+		if (i == miosix::FATFS_MAX_OPEN_FILES) return 0;	/* No free entry to register (int err) */
 		dp->fs->Files[i].fs = dp->fs;
 		dp->fs->Files[i].clu = dp->sclust;
 		dp->fs->Files[i].idx = dp->index;
@@ -740,7 +740,7 @@ FRESULT dec_lock (	/* Decrement object open counter */
 	FRESULT res;
 
 
-	if (--i < _FS_LOCK) {	/* Shift index number origin from 0 */
+	if (--i < miosix::FATFS_MAX_OPEN_FILES) {	/* Shift index number origin from 0 */
 		n = fs->Files[i].ctr;
 		if (n == 0x100) n = 0;		/* If write mode open, delete the entry */
 		if (n) n--;					/* Decrement read mode open count */
@@ -761,7 +761,7 @@ void clear_lock (	/* Clear lock entries of the volume */
 {
 	UINT i;
 
-	for (i = 0; i < _FS_LOCK; i++) {
+	for (i = 0; i < miosix::FATFS_MAX_OPEN_FILES; i++) {
 		if (fs->Files[i].fs == fs) fs->Files[i].fs = 0;
 	}
 }
@@ -2320,7 +2320,7 @@ FRESULT find_volume (	/* FR_OK(0): successful, !=0: any error occurred */
 #if _FS_RPATH
 	fs->cdir = 0;		/* Current directory (root dir) */
 #endif
-#if _FS_LOCK			/* Clear file lock semaphores */
+#ifdef _FS_LOCK			/* Clear file lock semaphores */
 	clear_lock(fs);
 #endif
 
@@ -2385,7 +2385,7 @@ FRESULT f_mount (
 	cfs = fs;//FatFs[vol];					/* Pointer to fs object */
 
 	if (/*cfs*/umount) {
-#if _FS_LOCK
+#ifdef _FS_LOCK
 		clear_lock(cfs);
 #endif
 #if _FS_REENTRANT						/* Discard sync object of the current volume */
@@ -2449,7 +2449,7 @@ FRESULT f_open (
 		if (res == FR_OK) {
 			if (!dir)	/* Default directory itself */
 				res = FR_INVALID_NAME;
-#if _FS_LOCK
+#ifdef _FS_LOCK
 			else
 				res = chk_lock(&dj, (mode & ~FA_READ) ? 1 : 0);
 #endif
@@ -2460,7 +2460,7 @@ FRESULT f_open (
 
 			if (res != FR_OK) {					/* No file, create new */
 				if (res == FR_NO_FILE)			/* There is no file to open, create a new entry */
-#if _FS_LOCK
+#ifdef _FS_LOCK
 					res = enq_lock(dj.fs) ? dir_register(&dj) : FR_TOO_MANY_OPEN_FILES;
 #else
 					res = dir_register(&dj);
@@ -2509,7 +2509,7 @@ FRESULT f_open (
 				mode |= FA__WRITTEN;
 			fp->dir_sect = dj.fs->winsect;		/* Pointer to the directory entry */
 			fp->dir_ptr = dir;
-#if _FS_LOCK
+#ifdef _FS_LOCK
 			fp->lockid = inc_lock(&dj, (mode & ~FA_READ) ? 1 : 0);
 			if (!fp->lockid) res = FR_INT_ERR;
 #endif
@@ -2843,7 +2843,7 @@ FRESULT f_close (
 	}
 #else
 	res = f_sync(fp);					/* Flush cached data */
-#if _FS_LOCK
+#ifdef _FS_LOCK
 	if (res == FR_OK) {					/* Decrement open counter */
 #if _FS_REENTRANT
 		res = validate(fp);
@@ -3195,7 +3195,7 @@ FRESULT f_opendir (
 			if (res == FR_OK) {
 				dp->id = fs->id;
 				res = dir_sdi(dp, 0);			/* Rewind directory */
-#if _FS_LOCK
+#ifdef _FS_LOCK
 				if (res == FR_OK) {
 					if (dp->sclust) {
 						dp->lockid = inc_lock(dp, 0);	/* Lock the sub directory */
@@ -3230,7 +3230,7 @@ FRESULT f_closedir (
 
 
 	res = validate(dp);
-#if _FS_LOCK
+#ifdef _FS_LOCK
 	if (res == FR_OK) {				/* Decrement open counter */
 		if (dp->lockid)
 			res = dec_lock(dp->fs,dp->lockid);
@@ -3473,7 +3473,7 @@ FRESULT f_unlink (
 		res = follow_path(&dj, path);		/* Follow the file path */
 		if (_FS_RPATH && res == FR_OK && (dj.fn[NS] & NS_DOT))
 			res = FR_INVALID_NAME;			/* Cannot remove dot entry */
-#if _FS_LOCK
+#ifdef _FS_LOCK
 		if (res == FR_OK) res = chk_lock(&dj, 2);	/* Cannot remove open file */
 #endif
 		if (res == FR_OK) {					/* The object is accessible */
@@ -3712,7 +3712,7 @@ FRESULT f_rename (
 		res = follow_path(&djo, path_old);		/* Check old object */
 		if (_FS_RPATH && res == FR_OK && (djo.fn[NS] & NS_DOT))
 			res = FR_INVALID_NAME;
-#if _FS_LOCK
+#ifdef _FS_LOCK
 		if (res == FR_OK) res = chk_lock(&djo, 2);
 #endif
 		if (res == FR_OK) {						/* Old object is found */

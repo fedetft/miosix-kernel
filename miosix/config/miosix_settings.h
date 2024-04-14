@@ -100,6 +100,18 @@ namespace miosix {
 /// Allows to enable/disable FATFS support to save code size
 /// By default it is defined (FATFS is enabled)
 #define WITH_FATFS
+/// Maxium number of files that can be opened on a mounted FATFS partition.
+/// Must be greater than 0
+constexpr unsigned char FATFS_MAX_OPEN_FILES=8;
+/// The truncate/ftruncate operations, and seeking past the end of the file are
+/// two patterns for zero-filling a file. This requires a buffer to be done
+/// efficiently, and the size of the buffer impacts performance. To save RAM the
+/// suggested value is 512 byte, for performance 4096 or even 16384 are better.
+/// Note that no buffer is allocated unless required, the buffer is deallocated
+/// afterwards, and the worst case memory required is one buffer per mounted
+/// FATFS partition if one concurrent truncate/write past the end per partition
+/// occurs.
+constexpr unsigned int FATFS_EXTEND_BUFFER=512;
 
 /// \def WITH_LITTLEFS
 /// Allows to enable/disable LittleFS support to save code size
@@ -114,8 +126,10 @@ namespace miosix {
 /// By default it is defined (slow but safe)
 #define SYNC_AFTER_WRITE
 
-/// Maximum number of open files. Trying to open more will fail.
-/// Cannot be lower than 3, as the first three are stdin, stdout, stderr
+/// Maximum number of files a single process (or the kernel) can open. This
+/// constant is used to size file descriptor tables. Individual filesystems can
+/// introduce futher limitations. Cannot be less than 3, as the first three are
+/// stdin, stdout, stderr, and in this case no additional files can be opened.
 const unsigned char MAX_OPEN_FILES=8;
 
 /// \def WITH_PROCESSES

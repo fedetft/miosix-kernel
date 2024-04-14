@@ -286,8 +286,7 @@ ssize_t Fat32File::write(const void *data, size_t len)
         if(seekPastEnd+static_cast<off_t>(f_size(&file))+len>0xffffffff)
             return -EOVERFLOW;
         //To write zeros efficiently we have to allocate a buffer of zeros
-        constexpr unsigned int maxBufSize=512;
-        unsigned int bufSize=min<unsigned int>(seekPastEnd,maxBufSize);
+        unsigned int bufSize=min<unsigned int>(seekPastEnd,FATFS_EXTEND_BUFFER);
         unique_ptr<char,decltype(&free)> buffer(
             reinterpret_cast<char*>(calloc(1,bufSize)),&free);
         if(buffer.get()==nullptr) return -ENOMEM; //Not enough memory

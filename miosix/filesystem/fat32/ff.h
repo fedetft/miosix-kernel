@@ -90,7 +90,7 @@ typedef char TCHAR;
 #endif
 
 /* File access control feature */
-#if _FS_LOCK
+#ifdef _FS_LOCK
 #if _FS_READONLY
 #error _FS_LOCK must be 0 at read-only cfg.
 #endif
@@ -140,8 +140,8 @@ struct FATFS {
 #if _USE_LFN == 1
     WCHAR LfnBuf[_MAX_LFN+1];
 #endif
-#if _FS_LOCK
-    FILESEM	Files[_FS_LOCK];/* Open object lock semaphores */
+#ifdef _FS_LOCK
+    FILESEM	Files[miosix::FATFS_MAX_OPEN_FILES];/* Open object lock semaphores */
 #endif
     miosix::intrusive_ref_ptr<miosix::FileBase> drv; /* drive device */
 };
@@ -167,7 +167,7 @@ typedef struct {
 #if _USE_FASTSEEK
 	DWORD*	cltbl;			/* Pointer to the cluster link map table (Nulled on file open) */
 #endif
-#if _FS_LOCK
+#ifdef _FS_LOCK
 	UINT	lockid;			/* File lock ID (index of file semaphore table Files[]) */
 #endif
 #if !_FS_TINY
@@ -188,7 +188,7 @@ typedef struct {
 	DWORD	sect;			/* Current sector */
 	BYTE*	dir;			/* Pointer to the current SFN entry in the win[] */
 	BYTE*	fn;				/* Pointer to the SFN (in/out) {file[8],ext[3],status[1]} */
-#if _FS_LOCK
+#ifdef _FS_LOCK
 	UINT	lockid;			/* File lock ID (index of file semaphore table Files[]) */
 #endif
 #if _USE_LFN

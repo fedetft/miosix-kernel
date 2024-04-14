@@ -212,7 +212,7 @@
 
 //Note by TFT: this is very useful, as it avoids the danger of opening the same
 //file for writing multiple times
-#define	_FS_LOCK	8	/* 0:Disable or >=1:Enable */
+#define	_FS_LOCK	/* 0:Disable or >=1:Enable */
 /* To enable file lock control feature, set _FS_LOCK to 1 or greater.
    The value defines how many files can be opened simultaneously. */
 
