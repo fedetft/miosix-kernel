@@ -11,14 +11,25 @@
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
  *   GNU General Public License for more details.                          *
  *                                                                         *
+ *   As a special exception, if other files instantiate templates or use   *
+ *   macros or inline functions from this file, or you compile this file   *
+ *   and link it with other works to produce a work based on this file,    *
+ *   this file does not by itself cause the resulting work to be covered   *
+ *   by the GNU General Public License. However the source code for this   *
+ *   file must still be made available in accordance with the GNU General  *
+ *   Public License. This exception does not invalidate any other reasons  *
+ *   why a work based on this file might be covered by the GNU General     *
+ *   Public License.                                                       *
+ *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef ELF_TYPES_H
-#define	ELF_TYPES_H
+#pragma once
 
 #include <inttypes.h>
+
+namespace miosix {
 
 // elf-specific types
 typedef uint32_t Elf32_Word;
@@ -65,8 +76,10 @@ const Elf32_Word EV_CURRENT = 1;
 const Elf32_Half EM_ARM  = 0x28;
 
 // Values for e_flags
-const Elf32_Word EF_ARM_EABI_MASK = 0x05000000;
-const Elf32_Word EF_HAS_ENTRY_POINT = 2;
+const Elf32_Word EF_ARM_EABIMASK   = 0xff000000;
+const Elf32_Word EF_ARM_EABI_VER5  = 0x05000000;
+const Elf32_Word EF_ARM_VFP_FLOAT  = 0x400;
+const Elf32_Word EF_ARM_SOFT_FLOAT = 0x200;
 
 /*
  * Elf program header
@@ -161,7 +174,7 @@ const unsigned char R_ARM_RELATIVE = 23;
  * Elf Section header
  */
 struct Elf32_Shdr
-{  
+{
   Elf32_Word sh_name;
   Elf32_Word sh_type;
   Elf32_Word sh_flags;
@@ -174,10 +187,10 @@ struct Elf32_Shdr
   Elf32_Word sh_entsize;
 };
 
-// sh_type 
+// sh_type
 const int SHT_NULL     =   0;               /* inactive */
 const int SHT_PROGBITS =   1;               /* program defined information */
-const int SHT_SYMTAB   =   2;               /* symbol table section */   
+const int SHT_SYMTAB   =   2;               /* symbol table section */
 const int SHT_STRTAB   =   3;               /* string table section */
 const int SHT_RELA     =   4;               /* relocation section with addends*/
 const int SHT_HASH     =   5;               /* symbol hash table section */
@@ -192,4 +205,4 @@ const int SHT_HIPROC   =   0x7fffffff;      /* specific section header types */
 const int SHT_LOUSER   =   0x80000000;      /* reserved range for application */
 const int SHT_HIUSER   =   0xffffffff;      /* specific indexes */
 
-#endif //ELF_TYPES_H
+} //namespace miosix

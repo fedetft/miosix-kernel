@@ -25,13 +25,9 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef ELF_TYPES_H
-#define	ELF_TYPES_H
+#pragma once
 
 #include <inttypes.h>
-#include "config/miosix_settings.h"
-
-#ifdef WITH_PROCESSES
 
 namespace miosix {
 
@@ -169,14 +165,44 @@ struct Elf32_Rel
 #define ELF32_R_SYM(i) ((i)>>8)
 #define ELF32_R_TYPE(i) ((unsigned char)(i))
 
-
 // Possible values for ELF32_R_TYPE(r_info)
 const unsigned char R_ARM_NONE     = 0;
 const unsigned char R_ARM_ABS32    = 2;
 const unsigned char R_ARM_RELATIVE = 23;
 
+/*
+ * Elf Section header
+ */
+struct Elf32_Shdr
+{
+  Elf32_Word sh_name;
+  Elf32_Word sh_type;
+  Elf32_Word sh_flags;
+  Elf32_Addr sh_addr;
+  Elf32_Off  sh_offset;
+  Elf32_Word sh_size;
+  Elf32_Word sh_link;
+  Elf32_Word sh_info;
+  Elf32_Word sh_addralign;
+  Elf32_Word sh_entsize;
+};
+
+// sh_type
+const int SHT_NULL     =   0;               /* inactive */
+const int SHT_PROGBITS =   1;               /* program defined information */
+const int SHT_SYMTAB   =   2;               /* symbol table section */
+const int SHT_STRTAB   =   3;               /* string table section */
+const int SHT_RELA     =   4;               /* relocation section with addends*/
+const int SHT_HASH     =   5;               /* symbol hash table section */
+const int SHT_DYNAMIC  =   6;               /* dynamic section */
+const int SHT_NOTE     =   7;               /* note section */
+const int SHT_NOBITS   =   8;               /* no space section */
+const int SHT_REL      =   9;               /* relation section without addends */
+const int SHT_SHLIB    =   10;              /* reserved - purpose unknown */
+const int SHT_DYNSYM   =   11;              /* dynamic symbol table section */
+const int SHT_LOPROC   =   0x70000000;      /* reserved range for processor */
+const int SHT_HIPROC   =   0x7fffffff;      /* specific section header types */
+const int SHT_LOUSER   =   0x80000000;      /* reserved range for application */
+const int SHT_HIUSER   =   0xffffffff;      /* specific indexes */
+
 } //namespace miosix
-
-#endif //WITH_PROCESSES
-
-#endif //ELF_TYPES_H

@@ -18,7 +18,7 @@
 #ifndef POSTLINKER_H
 #define	POSTLINKER_H
 
-#include "ELF.h"
+#include "elf_types.h"
 #include <cstring>
 #include <iostream>
 #include <exception>
@@ -26,6 +26,8 @@
 #include <utility>
 #include <cstdlib>
 #include <fstream>
+
+using namespace miosix;
 
 /**
  * This class performs transformations on an elf file,
