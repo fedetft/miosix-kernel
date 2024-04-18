@@ -28,6 +28,7 @@
 #include "tree.h"
 #include "image.h"
 #include "romfs_types.h"
+#include "elf_types.h"
 
 /**
  * \param an unsigned int
@@ -202,9 +203,19 @@ private:
     InodeInfo addFileInode(const FilesystemEntry& file)
     {
         assert(file.isFile());
-        std::ifstream in(file.path);
+        std::ifstream in(file.path, std::ios::binary);
         if(!in) throw std::runtime_error(file.path+": file not found");
-        auto inode=img.appendStream(in,romFsFileAlignment);
+        unsigned int fileAlignment=getFileAlignment(file.path,in);
+        fileAlignment=std::max(fileAlignment,romFsFileAlignment);
+        if(fileAlignment>romFsImageAlignment)
+        {
+            throw std::runtime_error(file.path+" alignment ("
+                +std::to_string(fileAlignment)
+                +"Byte) exceeds RomFs maximum configured alignment ("
+                +std::to_string(romFsImageAlignment)+"Byte)");
+        }
+        in.seekg(0); //Make sure we write the whole file
+        auto inode=img.appendStream(in,fileAlignment);
 
         // Compute the entire directory inode size
         auto size=img.size()-inode; //inode is also address of first byte
@@ -225,6 +236,40 @@ private:
         // Compute the entire directory inode size
         auto size=img.size()-inode; //inode is also address of first byte
         return InodeInfo(inode,size);
+    }
+
+    /**
+     * Inspect the file looking for alignment requirements
+     * Currently, only elf files are checked to support XIP
+     * \param in istream to access file content
+     * \return alignment requirements
+     */
+    unsigned int getFileAlignment(const std::string& name, std::istream& in)
+    {
+        using namespace miosix;
+        unsigned int result=1; //Default alignment
+
+        //Check whether the file is an elf
+        Elf32_Ehdr elfHeader;
+        static const char magic[EI_NIDENT]={0x7f,'E','L','F',1,1,1};
+        in.read(reinterpret_cast<char*>(&elfHeader),sizeof(elfHeader));
+        if(in.eof() || in.fail() || memcmp(elfHeader.e_ident,magic,EI_NIDENT))
+        {
+            in.clear(); //Clear eof bit
+            return result;
+        }
+
+        //We have an elf, pick maximum between segment alignments
+        in.seekg(elfHeader.e_phoff);
+        for(int i=0;i<elfHeader.e_phnum;i++)
+        {
+            Elf32_Phdr pHeader;
+            in.read(reinterpret_cast<char*>(&pHeader),sizeof(pHeader));
+            if(in.eof() || in.fail())
+                throw std::runtime_error(name+": corrupt elf file");
+            result=std::max<unsigned int>(result,pHeader.p_align);
+        }
+        return result;
     }
 
     Image<unsigned int> img; ///< Backing storage

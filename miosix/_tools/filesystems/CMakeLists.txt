@@ -7,5 +7,6 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_definitions(-UNDEBUG)
 
-include_directories(../../filesystem/romfs)
+include_directories(../../filesystem/romfs) # For romfs_types.h
+include_directories(../../kernel)           # For elf_types.h
 add_executable(buildromfs buildromfs.cpp)

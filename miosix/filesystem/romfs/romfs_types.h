@@ -61,11 +61,20 @@ struct __attribute__((packed)) RomFsDirectoryEntry
     char name[];              ///< File name, null teminated
 };
 
-// All alignments must be power of 2
-const unsigned int romFsStructAlignment=4; ///< Alignment of all structs
-const unsigned int romFsFileAlignment=8;   ///< Alignment of all file contents
-const unsigned int romFsImageAlignment=8;  ///< Alignment of image start and end
+/// Alignment of all filesystem data structures. Must be a power of 2. Chosen as
+/// 4 bytes for compatibility to architectures without unaligned memory accesses
+const unsigned int romFsStructAlignment=4;
+/// Minimum alignment of files stored in the filesystem. Must be a power of 2.
+/// Chosen as 8 bytes since most elf files require 8 byte alignment, and some
+/// binary data files may contain 64 bit types.
+const unsigned int romFsFileAlignment=8;
+/// Alignment of filesystem image start and end. Must be a power of 2 and
+/// greater or equal than romFsStructAlignment and romFsFileAlignment.
+/// See elf_program.cpp for the choice of 64 bytes alignment.
+const unsigned int romFsImageAlignment=64;
 
+static_assert(romFsImageAlignment>=romFsFileAlignment,"");
+static_assert(romFsImageAlignment>=romFsStructAlignment,"");
 static_assert(sizeof(RomFsHeader)==32,"");
 static_assert(sizeof(RomFsFirstEntry)==4,"");
 static_assert(sizeof(RomFsDirectoryEntry)==14,"");

@@ -5,7 +5,7 @@ use strict;
 use File::Slurp qw(read_file); # apt install libfile-slurp-perl
 
 if($#ARGV+1 < 2 || $ARGV[0] eq "--help") {
-    print("Miosix mkimage utility v1.00\n");
+    print("Miosix mkimage utility v1.01\n");
     print("Use: mkimage <output image> [<options> <inputimage>]+\n\n");
     print("Options are only valid for the next input image, can be repeated\n");
     print("if multiple images require the same options.\n\n");
@@ -14,7 +14,7 @@ if($#ARGV+1 < 2 || $ARGV[0] eq "--help") {
     print("                       instead of after the previous image\n");
     print("    --align=<number>   Align the next image so that the start byte\n");
     print("                       is at an integer multiple of the requested\n");
-    print("                       alignment (default alignment = 8 Bytes)\n");
+    print("                       alignment (default alignment = 64 Bytes)\n");
     print("    --pad=<hex number> When padding to meet offset/alignment,\n");
     print("                       choose the byte filler (default = 0x00)\n");
     exit(1);
@@ -27,7 +27,7 @@ open(my $out, '>:raw', $ARGV[0]) or die "Error: can't open output file $ARGV[0]"
 my $offset, my $align, my $pad_byte;
 sub reset_options {
     $offset=0;
-    $align=8;
+    $align=64;
     $pad_byte="\0";
 }
 reset_options();
@@ -58,15 +58,14 @@ for(my $i=1; $i<$#ARGV+1; $i++) {
         # Unknown option
         die "Error: unrecognized option $arg";
     } else {
-        # Arg is an input file, handle offset and alignment
+        # Arg is an input file, handle offset/alignment
         if($offset > 0) {
             my $pad_size=$offset-$out_pos;
             die "Unexpcted" unless($pad_size>=0);
             my $pad=$pad_byte x $pad_size;
             print $out $pad;
             $out_pos=$offset;
-        }
-        if($align>0) {
+        } elsif($align>0) {
             my $prev_out_pos=$out_pos;
             {
                 use integer; # Makes division integer

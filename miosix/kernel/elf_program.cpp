@@ -63,7 +63,7 @@ bool ElfProgram::validateHeader()
 {
     //Validate ELF header
     //Note: this code assumes a little endian elf and a little endian ARM CPU
-    if(isUnaligned8(getElfBase()))
+    if(isUnaligned(getElfBase(),8))
         throw runtime_error("Elf file load address alignment error");
     if(size<sizeof(Elf32_Ehdr)) return false;
     const Elf32_Ehdr *ehdr=getElfHeader();
@@ -75,7 +75,7 @@ bool ElfProgram::validateHeader()
     if(ehdr->e_version!=EV_CURRENT) return false;
     if(ehdr->e_entry>=size) return false;
     if(ehdr->e_phoff>=size-sizeof(Elf32_Phdr)) return false;
-    if(isUnaligned4(ehdr->e_phoff)) return false;
+    if(isUnaligned(ehdr->e_phoff,4)) return false;
     // Old GCC 4.7.3 used to set bit 0x2 (EF_ARM_HASENTRY) but there's no trace
     // of this requirement in the current ELF spec for ARM.
     if((ehdr->e_flags & EF_ARM_EABIMASK) != EF_ARM_EABI_VER5) return false;
@@ -103,12 +103,31 @@ bool ElfProgram::validateHeader()
         if(phdr->p_offset+phdr->p_filesz>size) return false;
         switch(phdr->p_align)
         {
+            case 0: break;
             case 1: break;
+            //NOTE: the elf spec states explicitly p_align must be a power of 2,
+            //and the isUnaligned function only works if the alignment is a
+            //power of 2. On top of that, we also want to whitelist the
+            //supported alignments. Increasing alignment requires to also
+            //increase the RomFs image alignment in romfs_types.h and mkimage.pl
+            //The choice to support up to 64 bytes is because some ARM
+            //architectures, such as Cortex-M4 result in elf files with the text
+            //segment requiring 64 byte alignment. This was traced to some
+            //library functions, such as strlen and strcmp whose code is
+            //specified to require up to 64 byte alignment. Some tests were made
+            //with strlen and it looks like the code works also unaligned, so
+            //maybe the devs of that code (ARM) wanted to align it to the cache
+            //line of *their* machine? In any case elf files end up exisitng
+            //whose text segments have up to 64 byte aligment and to play it
+            //safe we support that.
+            case 2:
             case 4:
-                if(isUnaligned4(phdr->p_offset)) return false;
-                break;
             case 8:
-                if(isUnaligned8(phdr->p_offset)) return false;
+            case 16:
+            case 32:
+            case 64:
+                if(isUnaligned(phdr->p_offset,phdr->p_align))
+                    throw runtime_error("Alignment error");
                 break;
             default:
                 throw runtime_error("Unsupported segment alignment");
@@ -226,7 +245,7 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
         if(dtRel>=size) return false;
         if(dtRelsz>=size) return false;
         if(dtRel+dtRelsz>size) return false;
-        if(isUnaligned4(dtRel)) return false;
+        if(isUnaligned(dtRel,4)) return false;
         
         const Elf32_Rel *rel=reinterpret_cast<const Elf32_Rel*>(base+dtRel);
         const int relSize=dtRelsz/sizeof(Elf32_Rel);
