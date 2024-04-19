@@ -3,8 +3,6 @@
 ## This makefile builds libtinyusb.a
 ##
 MAKEFILE_VERSION := 1.10
-GCCMAJOR := $(shell arm-miosix-eabi-gcc --version | \
-                    perl -e '$$_=<>;/\(GCC\) (\d+)/;print "$$1"')
 ## KPATH and CONFPATH are forwarded by the parent Makefile
 include $(CONFPATH)/config/Makefile.inc
 
