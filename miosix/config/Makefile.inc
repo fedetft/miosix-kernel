@@ -955,12 +955,12 @@ ifeq ($(ARCH),arm7_lpc2000)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    AFLAGS_BASE   := -mcpu=arm7tdmi -mapcs-32 -mfloat-abi=soft
-    CFLAGS_BASE   += -D_ARCH_ARM7_LPC2000 -mcpu=arm7tdmi $(OPT_OPTIMIZATION) -c
-    CXXFLAGS_BASE += -D_ARCH_ARM7_LPC2000 -mcpu=arm7tdmi $(OPT_OPTIMIZATION) \
-                     $(OPT_EXCEPT) -c
-    LFLAGS_BASE   := -mcpu=arm7tdmi -Wl,--gc-sections,-Map,main.map          \
-                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+    CPU := -mcpu=arm7tdmi
+    AFLAGS_BASE   := $(CPU) -mapcs-32 -mfloat-abi=soft
+    CFLAGS_BASE   += -D_ARCH_ARM7_LPC2000 $(CPU) $(OPT_OPTIMIZATION) -c
+    CXXFLAGS_BASE += -D_ARCH_ARM7_LPC2000 $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT) -c
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
                       $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -1444,14 +1444,14 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
-    CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32F1 $(CLOCK_FREQ) $(XRAM)          \
-                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION) -c 
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32F1 $(CLOCK_FREQ) $(XRAM)          \
-                     $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
+    CPU := -mcpu=cortex-m3 -mthumb
+    AFLAGS_BASE   := $(CPU)
+    CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32F1 $(CLOCK_FREQ) $(XRAM) $(CPU) \
                      $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
-                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32F1 $(CLOCK_FREQ) $(XRAM) $(CPU) \
+                     $(OPT_OPTIMIZATION) $(OPT_EXCEPT) -c
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -1916,16 +1916,14 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    AFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
-    CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
-                     -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-                     $(OPT_OPTIMIZATION) -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
-                     -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-                     $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-                     -Wl,--gc-sections,-Map,main.map                            \
-                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)              \
+    CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+    AFLAGS_BASE   := $(CPU)
+    CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(XRAM) \
+                     $(SRAM_BOOT) $(CPU) $(OPT_OPTIMIZATION) -c
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(XRAM) \
+                     $(SRAM_BOOT) $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT) -c
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -2221,14 +2219,14 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
-    CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32F2 $(CLOCK_FREQ) $(XRAM)          \
-                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION) -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32F2 $(CLOCK_FREQ) $(XRAM)          \
-                     $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
+    CPU := -mcpu=cortex-m3 -mthumb
+    AFLAGS_BASE   := $(CPU)
+    CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32F2 $(CLOCK_FREQ) $(XRAM) $(CPU) \
                      $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
-                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32F2 $(CLOCK_FREQ) $(XRAM) $(CPU) \
+                     $(OPT_OPTIMIZATION) $(OPT_EXCEPT) -c
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map         \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)  \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -2302,14 +2300,14 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
-    CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32L1 $(CLOCK_FREQ) $(XRAM)          \
-                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION) -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32L1 $(CLOCK_FREQ) $(XRAM)          \
-                     $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
+    CPU := -mcpu=cortex-m3 -mthumb
+    AFLAGS_BASE   := $(CPU)
+    CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32L1 $(CLOCK_FREQ) $(XRAM) $(CPU) \
                      $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
-                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32L1 $(CLOCK_FREQ) $(XRAM) $(CPU) \
+                     $(OPT_OPTIMIZATION) $(OPT_EXCEPT) -c
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map         \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)  \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -2394,14 +2392,14 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
-    CFLAGS_BASE   += -D_ARCH_CORTEXM3_EFM32GG $(CLOCK_FREQ)                  \
-                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION) -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_EFM32GG $(CLOCK_FREQ)                  \
-                     $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
+    CPU := -mcpu=cortex-m3 -mthumb
+    AFLAGS_BASE   := $(CPU)
+    CFLAGS_BASE   += -D_ARCH_CORTEXM3_EFM32GG $(CLOCK_FREQ) $(CPU) \
                      $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
-                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_EFM32GG $(CLOCK_FREQ) $(CPU) \
+                     $(OPT_OPTIMIZATION) $(OPT_EXCEPT) -c
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -2426,10 +2424,8 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     ## BOARD: stm32f746zg_nucleo
     ##
     ifeq ($(OPT_BOARD),stm32f746zg_nucleo)
-        ## Select appropriate compiler flags for both ASM/C/C++/linker
-        ## Not all stm32f7 have the double precision FPU. Those that only
-        ## support single precision are built as cortex m4
-        ARCHOPTS := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+        ## The stm32f746 lacks the double precision FPU, so we will build for m4
+        CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
     
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM7_stm32f7/stm32f746zg_nucleo
@@ -2464,9 +2460,8 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     ## BOARD: stm32f767zi_nucleo
     ##
     else ifeq ($(OPT_BOARD),stm32f767zi_nucleo)
-        ## Select appropriate compiler flags for both ASM/C/C++/linker
         ## The stm32f767 has the double precision FPU, so we will build for m7
-        ARCHOPTS := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
+        CPU := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
     
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM7_stm32f7/stm32f767zi_nucleo
@@ -2500,9 +2495,8 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     ## BOARD: stm32f769ni_discovery
     ##
     else ifeq ($(OPT_BOARD),stm32f769ni_discovery)
-        ## Select appropriate compiler flags for both ASM/C/C++/linker
         ## The stm32f769 has the double precision FPU, so we will build for m7
-        ARCHOPTS := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
+        CPU := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
     
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM7_stm32f7/stm32f769ni_discovery
@@ -2539,9 +2533,8 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     ## BOARD: stm32f765ii_marco_ram_board
     ##
     else ifeq ($(OPT_BOARD),stm32f765ii_marco_ram_board)
-        ## Select appropriate compiler flags for both ASM/C/C++/linker
         ## The stm32f767 has the double precision FPU, so we will build for m7
-        ARCHOPTS := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
+        CPU := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
     
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM7_stm32f7/stm32f765ii_marco_ram_board
@@ -2588,13 +2581,14 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     OD  := $(PREFIX)objdump
     SZ  := $(PREFIX)size
 
-    AFLAGS_BASE   := $(ARCHOPTS)
-    CFLAGS_BASE   += -D_ARCH_CORTEXM7_STM32F7 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
-                     $(ARCHOPTS) $(OPT_OPTIMIZATION) -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM7_STM32F7 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
-                     $(ARCHOPTS) $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := $(ARCHOPTS) -Wl,--gc-sections,-Map,main.map                \
-                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)              \
+    ## Select appropriate compiler flags for both ASM/C/C++/linker
+    AFLAGS_BASE   := $(CPU)
+    CFLAGS_BASE   += -D_ARCH_CORTEXM7_STM32F7 $(CLOCK_FREQ) $(XRAM) \
+                     $(SRAM_BOOT) $(CPU) $(OPT_OPTIMIZATION) -c
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM7_STM32F7 $(CLOCK_FREQ) $(XRAM) \
+                     $(SRAM_BOOT) $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT) -c
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map         \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)  \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -2702,16 +2696,15 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
     OD  := $(PREFIX)objdump
     SZ  := $(PREFIX)size
 
-    AFLAGS_BASE   := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
-    CFLAGS_BASE   += -D_ARCH_CORTEXM7_STM32H7 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
-                     -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16    \
-                     $(OPT_OPTIMIZATION) -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM7_STM32H7 $(CLOCK_FREQ) $(XRAM) $(SRAM_BOOT)\
-                     -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16    \
-                     $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16    \
-                     -Wl,--gc-sections,-Map,main.map                            \
-                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)              \
+    ## Select appropriate compiler flags for both ASM/C/C++/linker
+    CPU := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
+    AFLAGS_BASE   := $(CPU)
+    CFLAGS_BASE   += -D_ARCH_CORTEXM7_STM32H7 $(CLOCK_FREQ) $(XRAM) \
+                     $(SRAM_BOOT) $(CPU) $(OPT_OPTIMIZATION) -c
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM7_STM32H7 $(CLOCK_FREQ) $(XRAM) \
+                     $(SRAM_BOOT) $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT) -c
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map         \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)  \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -2823,13 +2816,14 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    AFLAGS_BASE   := -mcpu=cortex-m0 -mthumb
-    CFLAGS_BASE   += -D_ARCH_CORTEXM0_STM32F0 $(CLOCK_FREQ) -mcpu=cortex-m0    \
-                     -mthumb $(OPT_OPTIMIZATION) -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM0_STM32F0 $(CLOCK_FREQ) -mcpu=cortex-m0    \
-                     $(OPT_EXCEPT) -mthumb $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := -mcpu=cortex-m0 -mthumb -Wl,--gc-sections,-Map,main.map   \
-                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)             \
+    CPU := -mcpu=cortex-m0 -mthumb
+    AFLAGS_BASE   := $(CPU)
+    CFLAGS_BASE   += -D_ARCH_CORTEXM0_STM32F0 $(CLOCK_FREQ) $(CPU) \
+                     $(OPT_OPTIMIZATION) -c
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM0_STM32F0 $(CLOCK_FREQ) $(CPU) \
+                     $(OPT_OPTIMIZATION) $(OPT_EXCEPT) -c
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -2898,16 +2892,14 @@ else ifeq ($(ARCH),cortexM4_stm32f3)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    AFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
-    CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32F3 $(CLOCK_FREQ) $(XRAM)             \
-                     -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
+    CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+    AFLAGS_BASE   := $(CPU)
+    CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32F3 $(CLOCK_FREQ) $(XRAM) $(CPU) \
                      $(OPT_OPTIMIZATION) -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32F3 $(CLOCK_FREQ) $(XRAM)             \
-                     -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-                     $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-                     -Wl,--gc-sections,-Map,main.map                            \
-                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)              \
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32F3 $(CLOCK_FREQ) $(XRAM) $(CPU) \
+                     $(OPT_OPTIMIZATION) $(OPT_EXCEPT) -c
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map                \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)         \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -3006,16 +2998,14 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    AFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
-    CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32L4 $(CLOCK_FREQ) $(XRAM)             \
-                     -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
+    CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+    AFLAGS_BASE   := $(CPU)
+    CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32L4 $(CLOCK_FREQ) $(XRAM) $(CPU) \
                      $(OPT_OPTIMIZATION) -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32L4 $(CLOCK_FREQ) $(XRAM)             \
-                     -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-                     $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
-                     -Wl,--gc-sections,-Map,main.map                            \
-                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)              \
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32L4 $(CLOCK_FREQ) $(XRAM) $(CPU) \
+                     $(OPT_OPTIMIZATION) $(OPT_EXCEPT) -c
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map                \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)         \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -3086,13 +3076,13 @@ else ifeq ($(ARCH),cortexM4_atsam4l)
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     ## NOTE: although the atsam4l are cortex M4, they have no FPU, so the
     ## closest multilib we have is cortex M3, and that's basically what they are
-    AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
-    CFLAGS_BASE   += -D_ARCH_CORTEXM4_ATSAM4L -mcpu=cortex-m3 -mthumb           \
-                     $(OPT_OPTIMIZATION) -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_ATSAM4L -mcpu=cortex-m3 -mthumb           \
-                     $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map    \
-                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)              \
+    CPU := -mcpu=cortex-m3 -mthumb
+    AFLAGS_BASE   := $(CPU)
+    CFLAGS_BASE   += -D_ARCH_CORTEXM4_ATSAM4L $(CPU) $(OPT_OPTIMIZATION) -c
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_ATSAM4L $(CPU) $(OPT_OPTIMIZATION) \
+                     $(OPT_EXCEPT) -c
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map         \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)  \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -3162,14 +3152,14 @@ else ifeq ($(ARCH),cortexM3_efm32g)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    AFLAGS_BASE   := -mcpu=cortex-m3 -mthumb
-    CFLAGS_BASE   += -D_ARCH_CORTEXM3_EFM32G $(CLOCK_FREQ)                   \
-                     -mcpu=cortex-m3 -mthumb $(OPT_OPTIMIZATION) -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_EFM32G $(CLOCK_FREQ)                   \
-                     $(OPT_EXCEPT) -mcpu=cortex-m3 -mthumb                   \
+    CPU := -mcpu=cortex-m3 -mthumb
+    AFLAGS_BASE   := $(CPU)
+    CFLAGS_BASE   += -D_ARCH_CORTEXM3_EFM32G $(CLOCK_FREQ) $(CPU) \
                      $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := -mcpu=cortex-m3 -mthumb -Wl,--gc-sections,-Map,main.map \
-                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)           \
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM3_EFM32G $(CLOCK_FREQ) $(CPU) \
+                     $(OPT_OPTIMIZATION) $(OPT_EXCEPT) -c
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
                      $(OPT_OPTIMIZATION) -nostdlib
 
     ## Select architecture specific files
@@ -3241,14 +3231,13 @@ else ifeq ($(ARCH),cortexM0plus_stm32l0)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    AFLAGS_BASE   := -mcpu=cortex-m0plus -mthumb
-    CFLAGS_BASE   += -D_ARCH_CORTEXM0PLUS_STM32L0 $(CLOCK_FREQ)        \
-                     -mcpu=cortex-m0plus -mthumb $(OPT_OPTIMIZATION) -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM0PLUS_STM32L0 $(CLOCK_FREQ)        \
-                     -mcpu=cortex-m0plus $(OPT_EXCEPT) -mthumb     \
+    CPU := -mcpu=cortex-m0plus -mthumb
+    AFLAGS_BASE   := $(CPU)
+    CFLAGS_BASE   += -D_ARCH_CORTEXM0PLUS_STM32L0 $(CLOCK_FREQ) $(CPU) \
                      $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := -mcpu=cortex-m0 -mthumb                       \
-                     -Wl,--gc-sections,-Map,main.map               \
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM0PLUS_STM32L0 $(CLOCK_FREQ) $(CPU) \
+                     $(OPT_OPTIMIZATION) $(OPT_EXCEPT) -c
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
                      $(OPT_OPTIMIZATION) -nostdlib
 
@@ -3316,14 +3305,13 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
     SZ  := $(PREFIX)size
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    AFLAGS_BASE   := -mcpu=cortex-m0plus -mthumb
-    CFLAGS_BASE   += -D_ARCH_CORTEXM0PLUS_RP2040 $(CLOCK_FREQ)        \
-                     -mcpu=cortex-m0plus -mthumb $(OPT_OPTIMIZATION) -c
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM0PLUS_RP2040 $(CLOCK_FREQ)        \
-                     -mcpu=cortex-m0plus $(OPT_EXCEPT) -mthumb     \
+    CPU := -mcpu=cortex-m0plus -mthumb
+    AFLAGS_BASE   := $(CPU)
+    CFLAGS_BASE   += -D_ARCH_CORTEXM0PLUS_RP2040 $(CLOCK_FREQ) $(CPU) \
                      $(OPT_OPTIMIZATION) -c
-    LFLAGS_BASE   := -mcpu=cortex-m0 -mthumb                       \
-                     -Wl,--gc-sections,-Map,main.map               \
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM0PLUS_RP2040 $(CLOCK_FREQ) $(CPU) \
+                     $(OPT_OPTIMIZATION) $(OPT_EXCEPT) -c
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
                      $(OPT_OPTIMIZATION) -nostdlib
 
