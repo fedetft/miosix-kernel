@@ -956,7 +956,7 @@ ifeq ($(ARCH),arm7_lpc2000)
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=arm7tdmi
-    AFLAGS_BASE   := $(CPU) -mapcs-32 -mfloat-abi=soft
+    AFLAGS_BASE   := $(CPU)
     CFLAGS_BASE   += -D_ARCH_ARM7_LPC2000 $(CPU) $(OPT_OPTIMIZATION) -c
     CXXFLAGS_BASE += -D_ARCH_ARM7_LPC2000 $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT) -c
     LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
