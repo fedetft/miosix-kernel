@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <reent.h>
+#include <spawn.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
 #include <sys/times.h>
@@ -1297,6 +1298,38 @@ int _execve_r(struct _reent *ptr, const char *path, char *const argv[],
 int execve(const char *path, char *const argv[], char *const env[])
 {
     return _execve_r(miosix::getReent(),path,argv,env);
+}
+
+/**
+ * \internal
+ * posix_spawn, spawn child processes
+ */
+int posix_spawn(pid_t *pid, const char *path,
+        const posix_spawn_file_actions_t *a, const posix_spawnattr_t *s,
+        char *const argv[], char *const envp[])
+{
+    #ifdef WITH_PROCESSES
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        if(a!=nullptr || s!=nullptr) return EFAULT; //Not supported yet
+        pid_t result=miosix::Process::spawn(path,argv,envp);
+        if(result>=0)
+        {
+            *pid=result;
+            return 0;
+        }
+        return -result;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        return ENOMEM;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_PROCESSES
+    return 1;
+    #endif //WITH_PROCESSES
 }
 
 #ifdef __cplusplus
