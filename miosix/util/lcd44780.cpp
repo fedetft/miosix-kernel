@@ -120,7 +120,34 @@ void Lcd44780::setCgram(int charCode, const unsigned char font[8])
 
 void Lcd44780::init()
 {
+    //On reset the HD44780 controller sets the bus interface to 8 bit mode,
+    //and we need to switch it to 4 bit mode.
+    //  However we cannot be sure that the controller has not been set to 4 bit
+    //mode before (for example if the MCU was reset but not the display).
+    //In that case, if we send a 8 bit wide command, it will be interpreted as
+    //the first half of a 4 bit command, desynchronizing the bus interface.
+    //  As a result we must first ensure the controller is in 8 bit mode.
+    //There are 3 different cases:
+    //(1) The controller is in 8 bit mode already (default at reset):
+    //    - The controller receives three 0x3F, 0x3F, 0x3F commands, which all
+    //      set the interface mode to 8 bit. Therefore nothing changes.
+    //(2) The controller is in 4 bit mode:
+    //    - The controller receives a 0x33 command in 4 bit mode, which sets
+    //      the interface to 8 bit mode. Then in 8 bit mode it receives a 0x3F
+    //      command and stays in 8 bit mode.
+    //(3) The controller is in 4 bit mode and the last byte sent was incomplete
+    //    (just the first nybble was received):
+    //    - The controller receives two commands in 4 bit mode: 0x-3, 0x33.
+    //      The upper nybble of the first command is undefined. However the
+    //      second command switches the controller to 8 bit mode.
     rs.low();
+    half(CMD_FUNC_SET(1,0,0));
+    delayUs(50);
+    half(CMD_FUNC_SET(1,0,0));
+    delayUs(50);
+    half(CMD_FUNC_SET(1,0,0));
+    delayUs(50);
+    // Now we can safely switch the controller to 4 bit mode
     half(CMD_FUNC_SET(0,0,0));
     rs.high();
     delayUs(50);
