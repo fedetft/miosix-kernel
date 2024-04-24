@@ -1,4 +1,6 @@
 
+// Kernel-side program to start a userspace process
+
 #include <cstdio>
 #include <sys/wait.h>
 #include <signal.h>
@@ -9,7 +11,7 @@ using namespace std;
 int main()
 {
     pid_t pid;
-    const char *arg[] = { "/bin/example_program", nullptr };
+    const char *arg[] = { "/bin/hello", nullptr };
     const char *env[] = { nullptr };
     int ec=posix_spawn(&pid,arg[0],NULL,NULL,(char* const*)arg,(char* const*)env);
     if(ec!=0)

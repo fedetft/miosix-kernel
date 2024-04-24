@@ -1,0 +1,41 @@
+##
+## Common code for building Miosix processes
+##
+
+## KPATH and CONFPATH should be forwarded by the parent Makefile
+ifeq ($(KPATH),)
+    $(info Error: KPATH not specified)
+    $(error Error)
+endif
+ifeq ($(CONFPATH),)
+    $(info Error: CONFPATH not specified)
+    $(error Error)
+endif
+
+MAKEFILE_VERSION := 1.11
+include $(CONFPATH)/config/Makefile.inc
+
+DFLAGS   := -MMD -MP
+AFLAGS   := $(CPU)
+CFLAGS   := $(CPU) -fpie -msingle-pic-base -ffunction-sections -Wall \
+            -Werror=return-type -D_DEFAULT_SOURCE=1 $(OPT_OPTIMIZATION) -g -c
+CXXFLAGS := -std=c++14 $(OPT_EXCEPT) $(CFLAGS)
+LFLAGS   := $(CPU) -fpie -msingle-pic-base -nostdlib -Wl,--gc-sections \
+            -Wl,-Map,main.map,-T$(KPATH)/libsyscalls/miosix.ld,-n,-pie \
+            -Wl,--spare-dynamic-tags,3,--target2=mx-data-rel
+STDLIBS  := -lsyscalls -lstdc++ -lc -lm -lgcc -latomic
+LINK_LIBS := -L$(KPATH)/libsyscalls -Wl,--start-group $(STDLIBS) -Wl,--end-group
+
+OBJ ?= $(addsuffix .o, $(basename $(SRC)))
+
+%.o : %.cpp
+	$(ECHO) "[CXX ] $<"
+	$(Q)$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
+
+%.o : %.c
+	$(ECHO) "[CC  ] $<"
+	$(Q)$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
+
+%.o: %.s
+	$(ECHO) "[AS  ] $<"
+	$(Q)$(AS)  $(AFLAGS) $< -o $@

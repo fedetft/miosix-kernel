@@ -1,7 +1,7 @@
 ##
 ## Makefile for Miosix embedded OS
 ##
-MAKEFILE_VERSION := 1.10
+MAKEFILE_VERSION := 1.11
 ## Path to kernel directory (edited by init_project_out_of_git_repo.pl)
 KPATH := miosix
 ## Path to config directory (edited by init_project_out_of_git_repo.pl)
@@ -58,6 +58,10 @@ STDLIBS  := -lmiosix -lstdc++ -lc -lm -lgcc -latomic
 LINK_LIBS := $(LIBS) -L$(KPATH) -Wl,--start-group $(STDLIBS) -Wl,--end-group
 
 TOOLS_DIR := miosix/_tools/filesystems
+
+ifneq ($(POSTLD),)
+	SUBDIRS += $(KPATH)/libsyscalls
+endif
 
 all: all-recursive main $(if $(ROMFS_DIR), image)
 
