@@ -942,17 +942,9 @@ ifeq ($(ARCH),arm7_lpc2000)
     endif
 
     ## Select compiler
-    PREFIX=arm-miosix-eabi-
-
-    ## From compiler prefix form the name of the compiler and other tools
-    CC  := $(PREFIX)gcc
-    CXX := $(PREFIX)g++
-    LD  := $(PREFIX)ld
-    AR  := $(PREFIX)ar
-    AS  := $(PREFIX)as
-    CP  := $(PREFIX)objcopy
-    OD  := $(PREFIX)objdump
-    SZ  := $(PREFIX)size
+    PREFIX := arm-miosix-eabi-
+    ## This architecture does not support processes
+    #POSTLD :=
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=arm7tdmi
@@ -1432,16 +1424,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
 
     ## Select compiler
     PREFIX := arm-miosix-eabi-
-
-    ## From compiler prefix form the name of the compiler and other tools
-    CC  := $(PREFIX)gcc
-    CXX := $(PREFIX)g++
-    LD  := $(PREFIX)ld
-    AR  := $(PREFIX)ar
-    AS  := $(PREFIX)as
-    CP  := $(PREFIX)objcopy
-    OD  := $(PREFIX)objdump
-    SZ  := $(PREFIX)size
+    ## This architecture supports processes
+    POSTLD := mx-postlinker
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m3 -mthumb
@@ -1904,16 +1888,8 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
 
     ## Select compiler
     PREFIX := arm-miosix-eabi-
-
-    ## From compiler prefix form the name of the compiler and other tools
-    CC  := $(PREFIX)gcc
-    CXX := $(PREFIX)g++
-    LD  := $(PREFIX)ld
-    AR  := $(PREFIX)ar
-    AS  := $(PREFIX)as
-    CP  := $(PREFIX)objcopy
-    OD  := $(PREFIX)objdump
-    SZ  := $(PREFIX)size
+    ## This architecture supports processes
+    POSTLD := mx-postlinker
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
@@ -2206,17 +2182,9 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     endif
 
     ## Select compiler
-    PREFIX=arm-miosix-eabi-
-
-    ## From compiler prefix form the name of the compiler and other tools
-    CC  := $(PREFIX)gcc
-    CXX := $(PREFIX)g++
-    LD  := $(PREFIX)ld
-    AR  := $(PREFIX)ar
-    AS  := $(PREFIX)as
-    CP  := $(PREFIX)objcopy
-    OD  := $(PREFIX)objdump
-    SZ  := $(PREFIX)size
+    PREFIX := arm-miosix-eabi-
+    ## This architecture supports processes
+    POSTLD := mx-postlinker
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m3 -mthumb
@@ -2287,17 +2255,9 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
     endif
 
     ## Select compiler
-    PREFIX=arm-miosix-eabi-
-
-    ## From compiler prefix form the name of the compiler and other tools
-    CC  := $(PREFIX)gcc
-    CXX := $(PREFIX)g++
-    LD  := $(PREFIX)ld
-    AR  := $(PREFIX)ar
-    AS  := $(PREFIX)as
-    CP  := $(PREFIX)objcopy
-    OD  := $(PREFIX)objdump
-    SZ  := $(PREFIX)size
+    PREFIX := arm-miosix-eabi-
+    ## This architecture does not support processes
+    #POSTLD :=
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m3 -mthumb
@@ -2379,17 +2339,9 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
     endif
 
     ## Select compiler
-    PREFIX=arm-miosix-eabi-
-
-    ## From compiler prefix form the name of the compiler and other tools
-    CC  := $(PREFIX)gcc
-    CXX := $(PREFIX)g++
-    LD  := $(PREFIX)ld
-    AR  := $(PREFIX)ar
-    AS  := $(PREFIX)as
-    CP  := $(PREFIX)objcopy
-    OD  := $(PREFIX)objdump
-    SZ  := $(PREFIX)size
+    PREFIX := arm-miosix-eabi-
+    ## This architecture supports processes
+    POSTLD := mx-postlinker
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m3 -mthumb
@@ -2570,16 +2522,8 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
 
     ## Select compiler
     PREFIX := arm-miosix-eabi-
-
-    ## From compiler prefix form the name of the compiler and other tools
-    CC  := $(PREFIX)gcc
-    CXX := $(PREFIX)g++
-    LD  := $(PREFIX)ld
-    AR  := $(PREFIX)ar
-    AS  := $(PREFIX)as
-    CP  := $(PREFIX)objcopy
-    OD  := $(PREFIX)objdump
-    SZ  := $(PREFIX)size
+    ## This architecture supports processes
+    POSTLD := mx-postlinker
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := $(CPU)
@@ -2685,16 +2629,8 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
 
     ## Select compiler
     PREFIX := arm-miosix-eabi-
-
-    ## From compiler prefix form the name of the compiler and other tools
-    CC  := $(PREFIX)gcc
-    CXX := $(PREFIX)g++
-    LD  := $(PREFIX)ld
-    AR  := $(PREFIX)ar
-    AS  := $(PREFIX)as
-    CP  := $(PREFIX)objcopy
-    OD  := $(PREFIX)objdump
-    SZ  := $(PREFIX)size
+    ## This architecture supports processes
+    POSTLD := mx-postlinker
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
@@ -2804,16 +2740,8 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
 
     ## Select compiler
     PREFIX := arm-miosix-eabi-
-
-    ## From compiler prefix form the name of the compiler and other tools
-    CC  := $(PREFIX)gcc
-    CXX := $(PREFIX)g++
-    LD  := $(PREFIX)ld
-    AR  := $(PREFIX)ar
-    AS  := $(PREFIX)as
-    CP  := $(PREFIX)objcopy
-    OD  := $(PREFIX)objdump
-    SZ  := $(PREFIX)size
+    ## This architecture does not support processes
+    #POSTLD :=
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m0 -mthumb
@@ -2879,17 +2807,9 @@ else ifeq ($(ARCH),cortexM4_stm32f3)
     endif
 
     ## Select compiler
-    PREFIX=arm-miosix-eabi-
-
-    ## From compiler prefix form the name of the compiler and other tools
-    CC  := $(PREFIX)gcc
-    CXX := $(PREFIX)g++
-    LD  := $(PREFIX)ld
-    AR  := $(PREFIX)ar
-    AS  := $(PREFIX)as
-    CP  := $(PREFIX)objcopy
-    OD  := $(PREFIX)objdump
-    SZ  := $(PREFIX)size
+    PREFIX := arm-miosix-eabi-
+    ## This architecture supports processes
+    POSTLD := mx-postlinker
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
@@ -2985,17 +2905,9 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
     endif
 
     ## Select compiler
-    PREFIX=arm-miosix-eabi-
-
-    ## From compiler prefix form the name of the compiler and other tools
-    CC  := $(PREFIX)gcc
-    CXX := $(PREFIX)g++
-    LD  := $(PREFIX)ld
-    AR  := $(PREFIX)ar
-    AS  := $(PREFIX)as
-    CP  := $(PREFIX)objcopy
-    OD  := $(PREFIX)objdump
-    SZ  := $(PREFIX)size
+    PREFIX := arm-miosix-eabi-
+    ## This architecture supports processes
+    POSTLD := mx-postlinker
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
@@ -3061,17 +2973,9 @@ else ifeq ($(ARCH),cortexM4_atsam4l)
     endif
 
     ## Select compiler
-    PREFIX=arm-miosix-eabi-
-
-    ## From compiler prefix form the name of the compiler and other tools
-    CC  := $(PREFIX)gcc
-    CXX := $(PREFIX)g++
-    LD  := $(PREFIX)ld
-    AR  := $(PREFIX)ar
-    AS  := $(PREFIX)as
-    CP  := $(PREFIX)objcopy
-    OD  := $(PREFIX)objdump
-    SZ  := $(PREFIX)size
+    PREFIX := arm-miosix-eabi-
+    ## This architecture supports processes
+    POSTLD := mx-postlinker
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     ## NOTE: although the atsam4l are cortex M4, they have no FPU, so the
@@ -3139,17 +3043,9 @@ else ifeq ($(ARCH),cortexM3_efm32g)
     endif
 
     ## Select compiler
-    PREFIX=arm-miosix-eabi-
-
-    ## From compiler prefix form the name of the compiler and other tools
-    CC  := $(PREFIX)gcc
-    CXX := $(PREFIX)g++
-    LD  := $(PREFIX)ld
-    AR  := $(PREFIX)ar
-    AS  := $(PREFIX)as
-    CP  := $(PREFIX)objcopy
-    OD  := $(PREFIX)objdump
-    SZ  := $(PREFIX)size
+    PREFIX := arm-miosix-eabi-
+    ## This architecture supports processes
+    POSTLD := mx-postlinker
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m3 -mthumb
@@ -3218,17 +3114,9 @@ else ifeq ($(ARCH),cortexM0plus_stm32l0)
     endif
 
     ## Select compiler
-    PREFIX=arm-miosix-eabi-
-
-    ## From compiler prefix form the name of the compiler and other tools
-    CC  := $(PREFIX)gcc
-    CXX := $(PREFIX)g++
-    LD  := $(PREFIX)ld
-    AR  := $(PREFIX)ar
-    AS  := $(PREFIX)as
-    CP  := $(PREFIX)objcopy
-    OD  := $(PREFIX)objdump
-    SZ  := $(PREFIX)size
+    PREFIX := arm-miosix-eabi-
+    ## This architecture does not support processes
+    #POSTLD :=
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m0plus -mthumb
@@ -3292,17 +3180,9 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
     endif
 
     ## Select compiler
-    PREFIX=arm-miosix-eabi-
-
-    ## From compiler prefix form the name of the compiler and other tools
-    CC  := $(PREFIX)gcc
-    CXX := $(PREFIX)g++
-    LD  := $(PREFIX)ld
-    AR  := $(PREFIX)ar
-    AS  := $(PREFIX)as
-    CP  := $(PREFIX)objcopy
-    OD  := $(PREFIX)objdump
-    SZ  := $(PREFIX)size
+    PREFIX := arm-miosix-eabi-
+    ## This architecture does not support processes
+    #POSTLD :=
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m0plus -mthumb
@@ -3330,3 +3210,14 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
 ## end of architecture list
 ##
 endif
+
+## From compiler prefix form the name of the compiler and other tools
+CC     := $(PREFIX)gcc
+CXX    := $(PREFIX)g++
+LD     := $(PREFIX)ld
+AR     := $(PREFIX)ar
+AS     := $(PREFIX)as
+CP     := $(PREFIX)objcopy
+OD     := $(PREFIX)objdump
+SZ     := $(PREFIX)size
+STRIP  := $(PREFIX)strip
