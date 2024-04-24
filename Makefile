@@ -38,14 +38,6 @@ ROMFS_DIR :=
 ## You should not need to modify anything below                             ##
 ##############################################################################
 
-ifeq ("$(VERBOSE)","1")
-Q := 
-ECHO := @true
-else
-Q := @
-ECHO := @echo
-endif
-
 ## Replaces both "foo.cpp"-->"foo.o" and "foo.c"-->"foo.o"
 OBJ := $(addsuffix .o, $(basename $(SRC)))
 

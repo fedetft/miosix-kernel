@@ -3221,3 +3221,11 @@ CP     := $(PREFIX)objcopy
 OD     := $(PREFIX)objdump
 SZ     := $(PREFIX)size
 STRIP  := $(PREFIX)strip
+
+ifeq ("$(VERBOSE)","1")
+Q :=
+ECHO := @true
+else
+Q := @
+ECHO := @echo
+endif

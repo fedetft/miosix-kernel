@@ -56,14 +56,6 @@ util/lcd44780.cpp
 ## architecture/board is selected in config/Makefile.inc
 SRC += $(ARCH_SRC)
 
-ifeq ("$(VERBOSE)","1")
-Q :=
-ECHO := @true
-else
-Q := @
-ECHO := @echo
-endif
-
 ## Replaces both "foo.cpp"-->"foo.o" and "foo.c"-->"foo.o"
 OBJ := $(addsuffix .o, $(basename $(SRC)))
 
