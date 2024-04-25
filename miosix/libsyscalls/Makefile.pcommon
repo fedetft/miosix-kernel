@@ -20,9 +20,9 @@ AFLAGS   := $(CPU)
 CFLAGS   := $(CPU) -fpie -msingle-pic-base -ffunction-sections -Wall \
             -Werror=return-type -D_DEFAULT_SOURCE=1 $(OPT_OPTIMIZATION) -g -c
 CXXFLAGS := -std=c++14 $(OPT_EXCEPT) $(CFLAGS)
-LFLAGS   := $(CPU) -fpie -msingle-pic-base -nostdlib -Wl,--gc-sections \
-            -Wl,-Map,main.map,-T$(KPATH)/libsyscalls/miosix.ld,-n,-pie \
-            -Wl,--spare-dynamic-tags,3,--target2=mx-data-rel
+LFLAGS   ?= $(CPU) -fpie -msingle-pic-base -nostdlib -Wl,--gc-sections      \
+            -Wl,-Map,$(notdir $(BIN)).map,-T$(KPATH)/libsyscalls/process.ld \
+            -Wl,-n,-pie,--spare-dynamic-tags,3,--target2=mx-data-rel
 STDLIBS  := -lsyscalls -lstdc++ -lc -lm -lgcc -latomic
 LINK_LIBS := -L$(KPATH)/libsyscalls -Wl,--start-group $(STDLIBS) -Wl,--end-group
 

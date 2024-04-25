@@ -18,6 +18,6 @@ all: $(OBJ)
 	$(Q)$(POSTLD) $(BIN) --ramsize=16384 --stacksize=2048 --strip-sectheader
 
 clean:
-	-rm -f $(OBJ) $(OBJ:.o=.d) $(BIN) main.map
+	-rm -f $(OBJ) $(OBJ:.o=.d) $(BIN) $(notdir $(BIN)).map
 
 -include $(OBJ:.o=.d)
