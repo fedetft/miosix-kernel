@@ -57,14 +57,14 @@ DFLAGS   := -MMD -MP
 STDLIBS  := -lmiosix -lstdc++ -lc -lm -lgcc -latomic
 LINK_LIBS := $(LIBS) -L$(KPATH) -Wl,--start-group $(STDLIBS) -Wl,--end-group
 
-TOOLS_DIR := miosix/_tools/filesystems
+TOOLS_DIR := $(KPATH)/_tools/filesystems
 
 ifneq ($(POSTLD),)
 	SUBDIRS := $(KPATH)/libsyscalls $(SUBDIRS)
 endif
 SUBDIRS := $(KPATH) $(SUBDIRS)
 
-all: all-recursive main $(if $(ROMFS_DIR), image)
+all: $(if $(ROMFS_DIR), image, main)
 
 clean: clean-recursive clean-topdir
 
