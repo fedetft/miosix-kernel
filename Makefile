@@ -11,7 +11,7 @@ include $(CONFPATH)/config/Makefile.inc
 ##
 ## List here subdirectories which contains makefiles
 ##
-SUBDIRS := $(KPATH)
+SUBDIRS :=
 
 ##
 ## List here your source files (both .s, .c and .cpp)
@@ -60,8 +60,9 @@ LINK_LIBS := $(LIBS) -L$(KPATH) -Wl,--start-group $(STDLIBS) -Wl,--end-group
 TOOLS_DIR := miosix/_tools/filesystems
 
 ifneq ($(POSTLD),)
-	SUBDIRS += $(KPATH)/libsyscalls
+	SUBDIRS := $(KPATH)/libsyscalls $(SUBDIRS)
 endif
+SUBDIRS := $(KPATH) $(SUBDIRS)
 
 all: all-recursive main $(if $(ROMFS_DIR), image)
 
