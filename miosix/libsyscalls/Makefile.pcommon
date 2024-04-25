@@ -12,7 +12,6 @@ ifeq ($(CONFPATH),)
     $(error Error)
 endif
 
-MAKEFILE_VERSION := 1.11
 include $(CONFPATH)/config/Makefile.inc
 
 DFLAGS   := -MMD -MP
