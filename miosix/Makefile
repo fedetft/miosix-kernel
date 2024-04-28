@@ -70,7 +70,6 @@ all: $(OBJ) $(BOOT_FILE)
 	$(Q)$(AR) rcs libmiosix.a $(OBJ)
 
 clean:
-	-rm -f $(OBJ) $(BOOT_FILE) libmiosix.a $(OBJ:.o=.d)
-	-rm -f $(BOOT_FILE:.o=.d)
+	-rm -f $(OBJ) $(OBJ:.o=.d) $(BOOT_FILE) $(BOOT_FILE:.o=.d) libmiosix.a
 
 -include $(OBJ:.o=.d)
