@@ -4,7 +4,7 @@
 ##
 
 ## KPATH and CONFPATH should be forwarded by the parent makefile
-MAKEFILE_VERSION := 1.11
+MAKEFILE_VERSION := 1.12
 include Makefile.pcommon
 
 SRC := crt0.s crt1.cpp

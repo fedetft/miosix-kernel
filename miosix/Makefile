@@ -2,9 +2,10 @@
 ## Makefile for Miosix embedded OS
 ## This makefile builds the whole kernel
 ##
-MAKEFILE_VERSION := 1.11
+
 ## KPATH and CONFPATH are forwarded by the parent Makefile
-include $(CONFPATH)/config/Makefile.inc
+MAKEFILE_VERSION := 1.12
+include $(KPATH)/Makefile.kcommon
 
 ## List of all Miosix OS source files that have no special requirements
 ## and that must be built for each architecture (both .c and .cpp)
@@ -56,17 +57,8 @@ util/lcd44780.cpp
 ## architecture/board is selected in config/Makefile.inc
 SRC += $(ARCH_SRC)
 
-## Replaces both "foo.cpp"-->"foo.o" and "foo.c"-->"foo.o"
-OBJ := $(addsuffix .o, $(basename $(SRC)))
-
-## Includes the miosix base directory for C/C++
-## Always include CONFPATH first, as it overrides the config file location
-CXXFLAGS := $(CXXFLAGS_BASE) -I$(CONFPATH) -I$(CONFPATH)/config/$(BOARD_INC)  \
-            -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC) -DCOMPILING_MIOSIX
-CFLAGS   := $(CFLAGS_BASE)   -I$(CONFPATH) -I$(CONFPATH)/config/$(BOARD_INC)  \
-            -I. -Iarch/common -I$(ARCH_INC) -I$(BOARD_INC) -DCOMPILING_MIOSIX
-AFLAGS   := $(AFLAGS_BASE)
-DFLAGS    := -MMD -MP
+CFLAGS   += -DCOMPILING_MIOSIX
+CXXFLAGS += -DCOMPILING_MIOSIX
 
 ## Build libmiosix.a and stage_1_boot.o (whose path is in BOOT_FILE)
 ## The file stage_1_boot.o is compiled separately because
@@ -81,17 +73,4 @@ clean:
 	-rm -f $(OBJ) $(BOOT_FILE) libmiosix.a $(OBJ:.o=.d)
 	-rm -f $(BOOT_FILE:.o=.d)
 
-%.o: %.s
-	$(ECHO) "[AS  ] $<"
-	$(Q)$(AS)  $(AFLAGS) $< -o $@
-
-%.o : %.c
-	$(ECHO) "[CC  ] $<"
-	$(Q)$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
-
-%.o : %.cpp
-	$(ECHO) "[CXX ] $<"
-	$(Q)$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
-
-#pull in dependecy info for existing .o files
 -include $(OBJ:.o=.d)

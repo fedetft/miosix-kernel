@@ -1,0 +1,79 @@
+##
+## Common code for building the Miosix kernel
+##
+
+## KPATH and CONFPATH should be forwarded by the parent Makefile
+ifeq ($(KPATH),)
+    $(info Error: KPATH not specified)
+    $(error Error)
+endif
+ifeq ($(CONFPATH),)
+    $(info Error: CONFPATH not specified)
+    $(error Error)
+endif
+
+include $(CONFPATH)/config/Makefile.inc
+
+## Includes the miosix base directory for C/C++
+## Always include CONFPATH first, as it overrides the config file location
+DFLAGS   := -MMD -MP
+AFLAGS   ?= $(AFLAGS_BASE)
+CFLAGS   ?= $(CFLAGS_BASE)   -I$(CONFPATH) -I$(CONFPATH)/config/$(BOARD_INC)  \
+            -I. -I$(KPATH) -I$(KPATH)/arch/common -I$(KPATH)/$(ARCH_INC)      \
+            -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS)
+CXXFLAGS ?= $(CXXFLAGS_BASE) -I$(CONFPATH) -I$(CONFPATH)/config/$(BOARD_INC)  \
+            -I. -I$(KPATH) -I$(KPATH)/arch/common -I$(KPATH)/$(ARCH_INC)      \
+            -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS)
+LFLAGS   ?= $(LFLAGS_BASE)
+STDLIBS  := -lmiosix -lstdc++ -lc -lm -lgcc -latomic
+LINK_LIBS ?= $(LIBS) -L$(KPATH) -Wl,--start-group $(STDLIBS) -Wl,--end-group
+
+OBJ ?= $(addsuffix .o, $(basename $(SRC)))
+
+SUBDIRS := $(KPATH)
+ifneq ($(POSTLD),)
+	SUBDIRS += $(KPATH)/libsyscalls
+endif
+
+TOOLS_DIR := $(KPATH)/_tools/filesystems
+
+.DEFAULT_GOAL := all
+
+program:
+	$(PROGRAM_CMDLINE)
+
+image: main $(TOOLS_DIR)/build/buildromfs
+	$(ECHO) "[FS  ] romfs.bin"
+	$(Q)./$(TOOLS_DIR)/build/buildromfs romfs.bin --from-directory $(ROMFS_DIR)
+	$(ECHO) "[IMG ] image.bin"
+	$(Q)perl $(TOOLS_DIR)/mkimage.pl image.bin main.bin romfs.bin
+
+$(TOOLS_DIR)/build/buildromfs:
+	$(ECHO) "[HOST] buildromfs"
+	$(Q)mkdir $(TOOLS_DIR)/build
+	$(Q)cd $(TOOLS_DIR)/build && cmake --log-level=ERROR .. && $(MAKE) -s
+
+all-recursive:
+	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i)                               \
+	  KPATH=$(shell perl $(KPATH)/_tools/relpath.pl $(i) $(KPATH))       \
+	  CONFPATH=$(shell perl $(KPATH)/_tools/relpath.pl $(i) $(CONFPATH)) \
+	  || exit 1;)
+
+clean-recursive:
+	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i)                               \
+	  KPATH=$(shell perl $(KPATH)/_tools/relpath.pl $(i) $(KPATH))       \
+	  CONFPATH=$(shell perl $(KPATH)/_tools/relpath.pl $(i) $(CONFPATH)) \
+	  clean || exit 1;)
+	-rm -rf image.bin romfs.bin $(TOOLS_DIR)/build
+
+%.o : %.cpp
+	$(ECHO) "[CXX ] $<"
+	$(Q)$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
+
+%.o : %.c
+	$(ECHO) "[CC  ] $<"
+	$(Q)$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
+
+%.o: %.s
+	$(ECHO) "[AS  ] $<"
+	$(Q)$(AS)  $(AFLAGS) $< -o $@
