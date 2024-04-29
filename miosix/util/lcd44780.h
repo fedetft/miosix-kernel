@@ -16,7 +16,7 @@ public:
     /**
      * Cursor options
      */
-    enum Cursor { CURSOR_OFF=0, CURSOR_ON=2, CURSOR_BLINK=3 };
+    enum Cursor { CURSOR_OFF=0, CURSOR_ON=2, CURSOR_BLINK=1 };
 
     /**
      * Constructor, initializes the display
