@@ -771,7 +771,7 @@ endif
 ## a new board or porting Miosix to a new architecture                    ##
 ############################################################################
 
-ifneq ($(MAKEFILE_VERSION),1.12)
+ifneq ($(MAKEFILE_VERSION),1.13)
     $(info You are using an incompatible makefile. Make sure it matches \
       the one distributed with the current version of the kernel)
     $(error Error)
@@ -918,14 +918,13 @@ ifeq ($(ARCH),arm7_lpc2000)
         ## Base directory with header files for this board
         BOARD_INC := arch/arm7_lpc2000/lpc2138_miosix_board
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := arch/arm7_lpc2000/lpc2138_miosix_board/miosix.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.s             \
         $(BOARD_INC)/interfaces-impl/portability.cpp \
         $(BOARD_INC)/interfaces-impl/os_timer.cpp    \
         arch/common/drivers/sd_lpc2000.cpp           \
@@ -982,14 +981,13 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f1/stm32f103ze_stm3210e-eval
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/sd_stm32f1.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -1018,14 +1016,13 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f1/stm32f103ve_mp3v2
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/sd_stm32f1.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -1056,14 +1053,13 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f1/stm32f100rb_stm32vldiscovery
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_128k+8k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp         \
         arch/common/drivers/stm32_rtc.cpp            \
         arch/common/drivers/servo_stm32.cpp
@@ -1092,14 +1088,13 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f1/stm32f100rc_solertegiard
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_256k+24k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp         \
         arch/common/drivers/servo_stm32.cpp
 
@@ -1128,14 +1123,13 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f1/stm32f103ve_strive_mini
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_512k+64k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/sd_stm32f1.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -1162,14 +1156,13 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f1/stm32f103ze_redbull_v2
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_512k+64k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/sd_stm32f1.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -1198,14 +1191,13 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f1/stm32f103cb_als_mainboard_rev2
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_128k+20k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -1232,14 +1224,13 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f1/stm32f100cb_tempsensor
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_127k+8k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -1266,14 +1257,13 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f1/stm32f103c8_breakout
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o        
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+20k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp         \
         arch/common/drivers/servo_stm32.cpp
 
@@ -1298,14 +1288,13 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f1/stm32f100c8_microboard
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_63k+8k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp         \
         arch/common/drivers/stm32_rtc.cpp
 
@@ -1333,14 +1322,13 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f1/stm32f103cx_generic
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp         \
         arch/common/drivers/stm32_rtc.cpp
 
@@ -1364,14 +1352,13 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f1/stm32f100cx_generic
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp         \
         arch/common/drivers/stm32_rtc.cpp
 
@@ -1395,14 +1382,13 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f1/stm32f100c8_vaisala_rs41
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+8k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -1464,14 +1450,13 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/stm32f2_f4_i2c.cpp       \
         arch/common/drivers/stm32_hardware_rng.cpp   \
         arch/common/drivers/servo_stm32.cpp          \
@@ -1499,14 +1484,13 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_stm32f4/stm32f407vg_bitsboard
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+192k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/stm32_hardware_rng.cpp   \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -1533,14 +1517,13 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/stm32f2_f4_i2c.cpp       \
         arch/common/drivers/stm32_hardware_rng.cpp   \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
@@ -1565,14 +1548,13 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_stm32f4/stm32f429zi_oledboard2
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/stm32_hardware_rng.cpp   \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -1596,14 +1578,13 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_stm32f4/stm32f411re_nucleo
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_512k+128k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -1626,14 +1607,13 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_stm32f4/stm32f429zi_skyward_anakin
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/stm32f2_f4_i2c.cpp       \
         arch/common/drivers/stm32_hardware_rng.cpp   \
         arch/common/drivers/stm32_sgm.cpp            \
@@ -1660,14 +1640,13 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_stm32f4/stm32f401vc_stm32f4discovery
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_256k+64k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/stm32f2_f4_i2c.cpp       \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -1694,14 +1673,13 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_stm32f4/stm32f469ni_stm32f469i-disco
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/stm32f2_f4_i2c.cpp       \
         arch/common/drivers/stm32_hardware_rng.cpp   \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
@@ -1726,14 +1704,13 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_stm32f4/stm32f429zi_skyward_homeone
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/stm32f2_f4_i2c.cpp       \
         arch/common/drivers/stm32_hardware_rng.cpp   \
         arch/common/drivers/stm32_sgm.cpp            \
@@ -1760,14 +1737,13 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_stm32f4/stm32f401re_nucleo
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_512k+96k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -1792,14 +1768,13 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_stm32f4/stm32f407vg_thermal_test_chip
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+192k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -1824,13 +1799,13 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_stm32f4/stm32f411ce_blackpill
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
+        #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -1855,14 +1830,13 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_stm32f4/stm32f415vg_st25dvdiscovery
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+192k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/stm32_hardware_rng.cpp   \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -1930,14 +1904,13 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/sd_stm32f2_f4_f7.cpp     \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
@@ -1969,14 +1942,13 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/sd_stm32f2_f4_f7.cpp     \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
@@ -2011,14 +1983,13 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f2/stm32f207zg_nucleo
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+128k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/sd_stm32f2_f4_f7.cpp     \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
@@ -2047,14 +2018,13 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f2/stm32f207ze_als_camboard
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+128k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -2083,14 +2053,13 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f2/stm32f205rg_sony-newman
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_1M+128k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/stm32f2_f4_i2c.cpp       \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
@@ -2121,14 +2090,13 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f2/stm32f205rc_skyward_stormtrooper
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_512k+128k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/stm32f2_f4_i2c.cpp       \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
@@ -2147,14 +2115,13 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32f2/stm32f205_generic
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+128k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/sd_stm32f2_f4_f7.cpp     \
         arch/common/drivers/stm32f2_f4_i2c.cpp       \
         arch/common/drivers/servo_stm32.cpp          \
@@ -2224,14 +2191,13 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_stm32l1/stm32l151c8_als_mainboard
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+10k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -2295,14 +2261,13 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_efm32gg/efm32gg332f1024_wandstem
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/efm32_1M+128k_rom_usbbootloader.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                                 \
+        $(BOARD_INC)/core/stage_1_boot.cpp                          \
         $(BOARD_INC)/interfaces-impl/bsp.cpp                        \
         $(BOARD_INC)/interfaces-impl/spi.cpp                        \
         $(BOARD_INC)/interfaces-impl/power_manager.cpp              \
@@ -2382,14 +2347,13 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM7_stm32f7/stm32f746zg_nucleo
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+256k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/stm32_hardware_rng.cpp   \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -2418,14 +2382,13 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM7_stm32f7/stm32f767zi_nucleo
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_2m+384k_ram.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                           \
+        $(BOARD_INC)/core/stage_1_boot.cpp    \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -2453,15 +2416,14 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM7_stm32f7/stm32f769ni_discovery
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
-        # LINKER_SCRIPT := $(BOARD_INC)/stm32_s2m+384k_ram.ld
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_2m+16m_xram.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
-        ARCH_SRC := $(BOARD_INC)/interfaces-impl/bsp.cpp
+        ARCH_SRC :=                           \
+        $(BOARD_INC)/core/stage_1_boot.cpp    \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32F769NI_DISCO
@@ -2491,13 +2453,13 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM7_stm32f7/stm32f765ii_marco_ram_board
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
+        #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                           \
+        $(BOARD_INC)/core/stage_1_boot.cpp    \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -2564,14 +2526,13 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM7_stm32h7/stm32h753xi_eval
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/stm32_hardware_rng.cpp   \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -2597,14 +2558,13 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM7_stm32h7/stm32h723zg_nucleo
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/stm32_hardware_rng.cpp   \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -2674,14 +2634,13 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM0_stm32f0/stm32f072rb_stm32f0discovery
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_128k+16k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp         \
         arch/common/core/stm32_32bit_os_timer.cpp
 
@@ -2707,14 +2666,13 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM0_stm32f0/stm32f030r8_stm32f0discovery
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+8k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp         \
         arch/common/core/stm32_16bit_os_timer.cpp
 
@@ -2779,14 +2737,13 @@ else ifeq ($(ARCH),cortexM4_stm32f3)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_stm32f3/stm32f303vc_stm32f3discovery
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_256k+48k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -2847,14 +2804,13 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_stm32l4/stm32l476rg_nucleo
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+128k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -2876,14 +2832,13 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_stm32l4/stm32l4r9zi_sensortile
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_2m+640k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp         \
         arch/common/drivers/sd_stm32l4.cpp
 
@@ -2945,14 +2900,13 @@ else ifeq ($(ARCH),cortexM4_atsam4l)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_atsam4l/atsam4lc2aa_generic
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/atsam_112k+32k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -3012,14 +2966,13 @@ else ifeq ($(ARCH),cortexM3_efm32g)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_efm32g/efm32g222f128_generic
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/efm32_128k+16k_rom_bootloader.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                                 \
+        $(BOARD_INC)/core/stage_1_boot.cpp                          \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -3081,14 +3034,13 @@ else ifeq ($(ARCH),cortexM0plus_stm32l0)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM0plus_stm32l0/stm32l053r8_nucleo
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+8k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                                 \
+        $(BOARD_INC)/core/stage_1_boot.cpp                          \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -3152,14 +3104,13 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM0plus_rp2040/rp2040_raspberry_pi_pico
 
-        ## Select linker script and boot file
-        ## Their path must be relative to the miosix directory.
-        BOOT_FILE := $(BOARD_INC)/core/stage_1_boot.o
+        ## Select linker script
         LINKER_SCRIPT := $(BOARD_INC)/rp2040_2M+264k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                                 \
+        $(BOARD_INC)/core/stage_1_boot.cpp                          \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name

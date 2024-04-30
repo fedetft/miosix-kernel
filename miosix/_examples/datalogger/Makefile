@@ -5,7 +5,7 @@
 ## Path to kernel/config directories (edited by init_project_out_of_git_repo.pl)
 KPATH := miosix
 CONFPATH := $(KPATH)
-MAKEFILE_VERSION := 1.12
+MAKEFILE_VERSION := 1.13
 include $(KPATH)/Makefile.kcommon
 
 ##
@@ -47,6 +47,6 @@ main: main.elf
 
 main.elf: $(OBJ) all-recursive
 	$(ECHO) "[LD  ] main.elf"
-	$(Q)$(CXX) $(LFLAGS) -o main.elf $(OBJ) $(KPATH)/$(BOOT_FILE) $(LINK_LIBS)
+	$(Q)$(CXX) $(LFLAGS) -o main.elf $(OBJ) $(LINK_LIBS)
 
 -include $(OBJ:.o=.d)

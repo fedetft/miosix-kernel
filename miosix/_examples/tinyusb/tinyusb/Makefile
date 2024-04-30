@@ -4,7 +4,7 @@
 ##
 
 ## KPATH and CONFPATH are forwarded by the parent Makefile
-MAKEFILE_VERSION := 1.12
+MAKEFILE_VERSION := 1.13
 include $(KPATH)/Makefile.kcommon
 
 ## List of all tinyusb source files (both .c and .cpp)

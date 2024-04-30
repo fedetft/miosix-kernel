@@ -4,7 +4,7 @@
 ##
 
 ## KPATH and CONFPATH are forwarded by the parent Makefile
-MAKEFILE_VERSION := 1.12
+MAKEFILE_VERSION := 1.13
 include $(KPATH)/Makefile.kcommon
 
 ## List of all Miosix OS source files that have no special requirements
@@ -60,16 +60,13 @@ SRC += $(ARCH_SRC)
 CFLAGS   += -DCOMPILING_MIOSIX
 CXXFLAGS += -DCOMPILING_MIOSIX
 
-## Build libmiosix.a and stage_1_boot.o (whose path is in BOOT_FILE)
-## The file stage_1_boot.o is compiled separately because
-## it must not end up in libmiosix.a
-all: $(OBJ) $(BOOT_FILE)
+all: $(OBJ)
 	$(ECHO) "[PERL] Checking global objects"
 	$(Q)perl _tools/kernel_global_objects.pl $(OBJ)
 	$(ECHO) "[AR  ] libmiosix.a"
 	$(Q)$(AR) rcs libmiosix.a $(OBJ)
 
 clean:
-	-rm -f $(OBJ) $(OBJ:.o=.d) $(BOOT_FILE) $(BOOT_FILE:.o=.d) libmiosix.a
+	-rm -f $(OBJ) $(OBJ:.o=.d) libmiosix.a
 
 -include $(OBJ:.o=.d)

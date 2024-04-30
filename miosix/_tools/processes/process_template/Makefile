@@ -5,7 +5,7 @@
 ## KPATH and CONFPATH can be specified here or forwarded by the parent makefile
 KPATH := ../../..
 CONFPATH := ../../..
-MAKEFILE_VERSION := 1.12
+MAKEFILE_VERSION := 1.13
 include $(KPATH)/libsyscalls/Makefile.pcommon
 
 BIN := hello
