@@ -410,12 +410,6 @@ endif
 ## stm32f103c8_breakout
 ##
 ifeq ($(OPT_BOARD),stm32f103c8_breakout)
-
-    ## Linker script type, there are two options
-    ## 1) Code in FLASH, stack + heap in RAM
-    ## 2) Code in FLASH, stack + heap in RAM flashing with bootloader
-    
-    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_64k+20k_bootloader.ld    
     
     ## Select clock frequency
     CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000
