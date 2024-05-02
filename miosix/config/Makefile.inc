@@ -958,7 +958,7 @@ ifeq ($(ARCH),arm7_lpc2000)
     ## This is the program that is invoked when the user types 'make program'
     ## The command must provide a way to program the board, or print an error
     ## message saying that 'make program' is not supported for that board.
-    PROGRAM_CMDLINE := lpc21isp -verify main.hex /dev/ttyUSB0 115200 14746
+    PROG ?= lpc21isp -verify main.hex /dev/ttyUSB0 115200 14746
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM3_stm32f1
@@ -996,10 +996,11 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## error message saying that 'make program' is not supported for that
         ## board.
         ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_512k+64k_all_in_xram.ld)
-        PROGRAM_CMDLINE := $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
-        /dev/ttyUSB0 main.bin
+            PROG ?= $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
+                    /dev/ttyUSB0 main.bin
         else
-        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB0
+            PROG ?= st-flash --connect-under-reset --reset write \
+                    $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
         endif
 
     ##-------------------------------------------------------------------------
@@ -1034,9 +1035,9 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## error message saying that 'make program' is not supported for that
         ## board.
         ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_512k+64k_ram.ld)
-        PROGRAM_CMDLINE := mp3v2_bootloader --ram main.bin
+            PROG ?= mp3v2_bootloader --ram main.bin
         else
-        PROGRAM_CMDLINE := mp3v2_bootloader --code main.bin
+            PROG ?= mp3v2_bootloader --code $(if $(ROMFS_DIR), image.bin, main.bin)
         endif
 
     ##-------------------------------------------------------------------------
@@ -1071,8 +1072,7 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        #PROGRAM_CMDLINE := sudo vsprog -cstm32_vl -ms -I main.hex -oe -owf -ovf
-        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
+        PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
         
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f100rc_solertegiard
@@ -1105,8 +1105,7 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        #PROGRAM_CMDLINE := sudo vsprog -cstm32_vl -ms -I main.hex -oe -owf -ovf
-        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
+        PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
             
 
     ##-------------------------------------------------------------------------
@@ -1140,8 +1139,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := "c:/Program Files/STMicroelectronics/STM32 ST-LINK Utility/ST-LINK Utility/ST-LINK_CLI.exe" \
-        -c JTAG -Rst -P main.hex 0x08000000 -Run
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## BOARD: HY RedBull V2 (or V1)
@@ -1173,10 +1172,8 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := "C:/Program Files/SEGGER/JLinkARM_V434d/JFlashARM.exe" \
-        -openprjSTM32F10xxE.jflash -openmain.hex -auto -exit
-        #PROGRAM_CMDLINE := "c:/Program Files/STMicroelectronics/STM32 ST-LINK Utility/ST-LINK Utility/ST-LINK_CLI.exe" \
-        #-c JTAG -Rst -P main.hex 0x08000000 -Run
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
         
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f103cb_als_mainboard_rev2
@@ -1208,7 +1205,7 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := stm32flash -w main.bin -v /dev/ttyUSB1
+        PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
     
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f100cb_tempsensor
@@ -1241,7 +1238,7 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
+        PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
         
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f103c8_breakout
@@ -1271,8 +1268,7 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        #PROGRAM_CMDLINE := sudo vsprog -cstm32_vl -ms -I main.hex -oe -owf -ovf
-        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
+        PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
         
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f100c8_microboard
@@ -1306,7 +1302,7 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB0
+        PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
         
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f103cx_generic
@@ -1336,7 +1332,7 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB0
+        PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f100cx_generic
@@ -1366,7 +1362,7 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB0
+        PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
     
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f100c8_vaisala_rs41
@@ -1395,7 +1391,7 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB0
+        PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -1468,7 +1464,8 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f4bitsboard
@@ -1501,7 +1498,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := stm32flash -w ./main.bin -v /dev/ttyUSB1
+        PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
         
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f429zi_stm32f4discovery
@@ -1532,7 +1529,8 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f429zi_oledboard2
@@ -1562,7 +1560,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := stm32flash -w main.bin -v /dev/ttyUSB1
+        PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f411re_nucleo
@@ -1591,7 +1589,8 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## stm32f429zi_skyward_anakin
@@ -1624,7 +1623,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := stm32flash -w main.bin -v /dev/ttyUSB0
+        PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 
     ##-------------------------------------------------------------------------
     ## stm32f401vc_stm32f4discovery
@@ -1657,7 +1656,8 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f469ni_stm32f469i-disco
@@ -1688,7 +1688,8 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f429zi_skyward_homeone
@@ -1721,7 +1722,8 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f401re_nucleo
@@ -1753,7 +1755,8 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
         
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f407vg_thermal_test_chip
@@ -1784,7 +1787,8 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f411ce_blackpill
@@ -1815,7 +1819,8 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D main.bin
+        PROG ?= dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D \
+                $(if $(ROMFS_DIR), image.bin, main.bin)
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f415vg_st25dvdiscovery
@@ -1847,7 +1852,8 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := st-flash --reset write "main.bin" 0x8000000
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -1923,10 +1929,11 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## error message saying that 'make program' is not supported for that
         ## board.
         ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld)
-        PROGRAM_CMDLINE := $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
-        /dev/ttyUSB0 main.bin
+            PROG ?= $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
+                    /dev/ttyUSB0 main.bin
         else
-            PROGRAM_CMDLINE := st-flash --reset write ./main.bin 0x8000000
+            PROG ?= st-flash --connect-under-reset --reset write \
+                    $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
         endif
 
     ##-------------------------------------------------------------------------
@@ -1964,10 +1971,10 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## error message saying that 'make program' is not supported for that
         ## board.
         ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_1m+128k_code_in_xram.ld)
-        PROGRAM_CMDLINE := $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
-        /dev/ttyUSB1 main.bin
+            PROG ?= $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
+                    /dev/ttyUSB0 main.bin
         else
-        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
+            PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
         endif
 
     ##-------------------------------------------------------------------------
@@ -2003,7 +2010,8 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := st-flash --reset write "main.bin" 0x8000000
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f207ze_als_camboard
@@ -2038,7 +2046,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB1
+        PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f205rg_sony-newman
@@ -2072,10 +2080,10 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## error message saying that 'make program' is not supported for that
         ## board.
         ## The magic.bin is somewhat used by the bootloader to detect a good fw
-        PROGRAM_CMDLINE := perl -e 'print "\xe7\x91\x11\xc0"' > magic.bin; \
-            dfu-util -d 0fce:f0fa -a 0 -i 0 -s 0x08040000 -D main.bin;     \
-            dfu-util -d 0fce:f0fa -a 0 -i 0 -s 0x080ffffc -D magic.bin;    \
-            rm magic.bin
+        PROG ?= perl -e 'print "\xe7\x91\x11\xc0"' > magic.bin; \
+                dfu-util -d 0fce:f0fa -a 0 -i 0 -s 0x08040000 -D main.bin;  \
+                dfu-util -d 0fce:f0fa -a 0 -i 0 -s 0x080ffffc -D magic.bin; \
+                rm magic.bin
             
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f205rc_skyward_stormtrooper
@@ -2135,7 +2143,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := stm32flash -w main.hex -v /dev/ttyUSB0
+        PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -2207,7 +2215,7 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := stm32flash -w main.bin -v /dev/ttyUSB1
+        PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -2290,7 +2298,7 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := echo 'make program not supported.'
+        PROG ?= wandstem-flash -m u -f $(if $(ROMFS_DIR), image.bin, main.bin)
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -2364,7 +2372,8 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := echo 'make program not supported.'
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f767zi_nucleo
@@ -2398,7 +2407,8 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := st-flash --reset write "main.bin" 0x8000000
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f769ni_discovery
@@ -2435,7 +2445,8 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := st-flash --reset write "main.bin" 0x8000000
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
     
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f765ii_marco_ram_board
@@ -2469,7 +2480,7 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := echo 'make program not supported.'
+        PROG ?= echo 'make program not supported.'
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -2543,7 +2554,8 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := echo 'make program not supported.'
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32h723zg_nucleo
@@ -2575,7 +2587,8 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := echo 'make program not supported.'
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
     ##-------------------------------------------------------------------------
     ## End of board list
     ##
@@ -2651,7 +2664,8 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := st-flash --reset write main.bin 0x8000000
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32f030r8_stm32f0discovery
@@ -2683,7 +2697,8 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := st-flash --reset write main.bin 0x8000000
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -2750,7 +2765,8 @@ else ifeq ($(ARCH),cortexM4_stm32f3)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := qstlink2 -cqewV ./main.bin
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -2817,7 +2833,8 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := echo 'make program not supported.'
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## BOARD: stm32l4r9zi_sensortile
@@ -2846,7 +2863,8 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := st-flash --reset write "main.bin" 0x8000000
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -2913,7 +2931,7 @@ else ifeq ($(ARCH),cortexM4_atsam4l)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := echo 'make program not supported.'
+        PROG ?= echo 'make program not supported.'
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -2982,7 +3000,7 @@ else ifeq ($(ARCH),cortexM3_efm32g)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := echo 'make program not supported.'
+        PROG ?= echo 'make program not supported.'
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -3052,7 +3070,8 @@ else ifeq ($(ARCH),cortexM0plus_stm32l0)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := echo 'make program not supported.'
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
     ##-------------------------------------------------------------------------
     ## End of board list
@@ -3117,7 +3136,7 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROGRAM_CMDLINE := echo 'make program not supported.'
+        PROG ?= echo 'make program not supported.'
 
     ##-------------------------------------------------------------------------
     ## End of board list

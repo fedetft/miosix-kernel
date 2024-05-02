@@ -40,7 +40,7 @@ TOOLS_DIR := $(KPATH)/_tools/filesystems
 .DEFAULT_GOAL := all
 
 program:
-	$(PROGRAM_CMDLINE)
+	$(PROG)
 
 image: main $(TOOLS_DIR)/build/buildromfs
 	$(ECHO) "[FS  ] romfs.bin"
