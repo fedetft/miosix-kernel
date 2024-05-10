@@ -219,14 +219,14 @@ const unsigned int SYSTEM_MODE_PROCESS_STACK_SIZE=2048;
 const unsigned int MAX_PROCESS_ARGS=16;
 
 /// Maximum size of the memory area at the top of the stack for arguments and
-/// environment variables. Must be at most 1/2 of the entire stack size
+/// environment variables. This area is not considered part of the stack and
+/// does not contribute to the stack size.
 const unsigned int MAX_PROCESS_ARGS_BLOCK_SIZE=512;
 
 static_assert(STACK_IDLE>=STACK_MIN,"");
 static_assert(STACK_DEFAULT_FOR_PTHREAD>=STACK_MIN,"");
 static_assert(MIN_PROCESS_STACK_SIZE>=STACK_MIN,"");
 static_assert(SYSTEM_MODE_PROCESS_STACK_SIZE>=STACK_MIN,"");
-static_assert(MAX_PROCESS_ARGS_BLOCK_SIZE<=MIN_PROCESS_STACK_SIZE/2,"");
 
 /// Number of priorities (MUST be >1)
 /// PRIORITY_MAX-1 is the highest priority, 0 is the lowest. -1 is reserved as
