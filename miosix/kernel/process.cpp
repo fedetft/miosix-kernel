@@ -280,8 +280,6 @@ pair<ElfProgram,int> Process::lookup(const char *path)
         return make_pair(ElfProgram(),res);
     MemoryMappedFile mmFile=file->getFileFromMemory();
     if(mmFile.isValid()==false) return make_pair(ElfProgram(),-EFAULT);
-    if(reinterpret_cast<unsigned int>(mmFile.data) & 0x3)
-        return make_pair(ElfProgram(),-ENOEXEC);
     ElfProgram prog(reinterpret_cast<const unsigned int*>(mmFile.data),mmFile.size);
     if(prog.isValid()==false) return make_pair(ElfProgram(),-EINVAL);
     return make_pair(std::move(prog),0);
