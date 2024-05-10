@@ -1251,7 +1251,7 @@ private:
     //Needs access to cppReent
     friend class CppReentrancyAccessor;
     #ifdef WITH_PROCESSES
-    //Needs PKcreateUserspace(), setupUserspaceContext(), switchToUserspace()
+    //Needs createUserspace(), setupUserspaceContext(), switchToUserspace()
     friend class Process;
     #endif //WITH_PROCESSES
     #ifdef WITH_CPU_TIME_COUNTER
