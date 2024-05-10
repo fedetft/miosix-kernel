@@ -126,7 +126,7 @@ pid_t Process::create(const ElfProgram& program, ArgsBlock&& args)
         parent->childs.push_back(proc.get());
         p.processes[proc->pid]=proc.get();
     }
-    auto thr=Thread::createUserspace(Process::start,nullptr,Thread::DEFAULT,proc.get());
+    auto thr=Thread::createUserspace(Process::start,proc.get());
     if(thr==nullptr)
     {
         Lock<Mutex> l(p.procMutex);
@@ -278,6 +278,7 @@ pair<ElfProgram,int> Process::lookup(const char *path)
     intrusive_ref_ptr<FileBase> file;
     if(int res=openData.fs->open(file,relativePath,O_RDONLY,0)<0)
         return make_pair(ElfProgram(),res);
+    //TODO: load to RAM for filesystems incapable of XIP
     MemoryMappedFile mmFile=file->getFileFromMemory();
     if(mmFile.isValid()==false) return make_pair(ElfProgram(),-EFAULT);
     ElfProgram prog(reinterpret_cast<const unsigned int*>(mmFile.data),mmFile.size);
@@ -341,7 +342,7 @@ void *Process::start(void *)
             p.genericWaiting.broadcast();
         }
     }
-    return 0;
+    return nullptr;
 }
 
 Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)

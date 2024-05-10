@@ -662,11 +662,10 @@ miosix_private::SyscallParameters Thread::switchToUserspace()
     return result;
 }
 
-Thread *Thread::createUserspace(void *(*startfunc)(void *), void *argv,
-                    unsigned short options, Process *proc)
+Thread *Thread::createUserspace(void *(*startfunc)(void *), Process *proc)
 {
-    Thread *thread=doCreate(startfunc,SYSTEM_MODE_PROCESS_STACK_SIZE,argv,
-            options,false);
+    Thread *thread=doCreate(startfunc,SYSTEM_MODE_PROCESS_STACK_SIZE,nullptr,
+            Thread::DEFAULT,false);
     if(thread==nullptr) return nullptr;
 
     unsigned int *base=thread->watermark;
