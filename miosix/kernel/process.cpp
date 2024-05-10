@@ -918,13 +918,15 @@ ArgsBlock::ArgsBlock(const char* const* argv, const char* const* envp, int narg,
     if(narg>maxArg || nenv>maxArg || argBlockSize>maxArgsBlockSize) return;
     blockSize=argBlockSize;
 
-    //The args block is essentially the first stack frame, and as such it
+    //Although the args block is is not considered part of the stack, it
     //defines the initial stack pointer value when the process starts.
     //As such, its size must be aligned to the platform-defined alignment
     unsigned int blockSizeBeforeAlign=blockSize;
     blockSize+=CTXSAVE_STACK_ALIGNMENT-1;
     blockSize/=CTXSAVE_STACK_ALIGNMENT;
     blockSize*=CTXSAVE_STACK_ALIGNMENT;
+    //May exceed max size because of alignment
+    if(blockSize>maxArgsBlockSize) return;
 
     block=new char[blockSize];
     //Zero the padding introduced for alignment
