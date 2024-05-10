@@ -179,6 +179,11 @@ public:
      * unsigned int*) of the process image, or zero if it is not valid
      */
     unsigned int getProcessImageSize() const { return size; }
+
+    /**
+     * \return the size in bytes of the main stack, excluding the watermark area
+     */
+    unsigned int getMainStackSize() const { return mainStackSize; }
     
     /**
      * Destructor. Deletes the process image memory.
@@ -189,8 +194,9 @@ private:
     ProcessImage(const ProcessImage&);
     ProcessImage& operator= (const ProcessImage&);
     
-    unsigned int *image; //Pointer to the process image in RAM
-    unsigned int size;   //Size in bytes of the process image
+    unsigned int *image;        ///< Pointer to the process image in RAM
+    unsigned int size;          ///< Size in bytes of the process image
+    unsigned int mainStackSize; ///< Size of the main stack
 };
 
 } //namespace miosix

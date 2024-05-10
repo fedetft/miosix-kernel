@@ -230,12 +230,17 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
         throw runtime_error("Requested stack is too small");
     if(ramSize>MAX_PROCESS_IMAGE_SIZE)
         throw runtime_error("Requested image size is too large");
+    //NOTE: this check can only guarantee that statically data and stack fit
+    //in the ram size. However the size for argv and envp that are pushed before
+    //the stack (without contributing to the stack size) isn't known at this
+    //point, so the memory can still be insufficient. Usually this is not an
+    //issue since the ram size is oversized to leave room for the heap.
     if((stackSize & 0x3) ||
        (ramSize & 0x3) ||
        (ramSize < ProcessPool::blockSize) ||
        (stackSize>MAX_PROCESS_IMAGE_SIZE) ||
        (dataSegmentSize>MAX_PROCESS_IMAGE_SIZE) ||
-       (dataSegmentSize+stackSize>ramSize))
+       (dataSegmentSize+stackSize+WATERMARK_LEN>ramSize))
         throw runtime_error("Invalid stack or RAM size");
     
     if(hasRelocs!=0 && hasRelocs!=0x7) return false;
@@ -310,6 +315,9 @@ void ProcessImage::load(const ElfProgram& program)
                             size=dyn->d_un.d_val;
                             image=ProcessPool::instance()
                                     .allocate(dyn->d_un.d_val);
+                        case DT_MX_STACKSIZE:
+                            mainStackSize=dyn->d_un.d_val;
+                            break;
                         default:
                             break;
                     }
