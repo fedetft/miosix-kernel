@@ -58,6 +58,10 @@ call:
 _start:
 	/* save argc, argv, envp for when we call main */
 	push {r0,r1,r2}
+	/* store the heap end in the appropriate variable */
+	ldr  r0, .L200+16
+	ldr  r0, [r9, r0]
+	str  r3, [r0]
 	/* call C++ global constructors */
 	ldr  r0, .L200
 	ldr  r1, .L200+4
@@ -71,7 +75,7 @@ _start:
 	bl   call
 	/* get back argc,argv,envp and store envp in the environ variable */
 	pop  {r0,r1,r2}
-	ldr  r3, .L200+16
+	ldr  r3, .L200+20
 	ldr  r3, [r9, r3]
 	str  r2, [r3]
 	/* call main */
@@ -91,6 +95,7 @@ _start:
 	.word	__preinit_array_start(GOT)
 	.word	__init_array_start(GOT)
 	.word	__init_array_end(GOT)
+	.word	__processHeapEnd(GOT)
 	.word	environ(GOT)
 
 /**

@@ -70,12 +70,12 @@ long long __seterrno64(long long ec)
 
 /**
  * \internal
- * getcwd returns NULL on failure instead of -1, so __seterrno32 can't be used
+ * getcwd returns nullptr on failure instead of -1, so __seterrno32 can't be used
  */
 char *__getcwdfailed(int ec)
 {
     errno=-ec;
-    return NULL;
+    return nullptr;
 }
 
 
@@ -123,8 +123,8 @@ void __call_exitprocs(int code, void *d)
  */
 void *__dso_handle=(void*) &__dso_handle;
 
-
-
+// initialized in crt0.s
+char *__processHeapEnd;
 
 /**
  * \internal
@@ -140,6 +140,19 @@ void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr)
     char *prevHeapEnd;
 
     prevHeapEnd=curHeapEnd;
+    if(curHeapEnd+incr>__processHeapEnd)
+    {
+        //bad, heap overflow
+        #ifdef __NO_EXCEPTIONS
+        // When exceptions are disabled operator new would return nullptr, which
+        // would cause undefined behaviour. So when exceptions are disabled,
+        // a heap overflow terminates the process.
+        write(STDERR_FILENO,"Heap overflow\n",14);
+        _exit(1);
+        #else //__NO_EXCEPTIONS
+        return reinterpret_cast<void*>(-1);
+        #endif //__NO_EXCEPTIONS
+    }
     curHeapEnd+=incr;
     return reinterpret_cast<void*>(prevHeapEnd);
 }
@@ -318,7 +331,7 @@ clock_t times(struct tms *tim)
     //unlucky moment where tim.utime is 0xffffffff it would be interpreted as -1
     //IMHO, the specifications are wrong since returning an unsigned leaves
     //no value left to return in case of errors. Thus 0 is returned if a valid
-    //pointer is passed, and tim.utime if the pointer is null
+    //pointer is passed, and tim.utime if the pointer is nullptr
     if(tim==nullptr) return utime;
     tim->tms_utime=utime;
     tim->tms_stime=0;

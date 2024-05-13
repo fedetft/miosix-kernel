@@ -165,21 +165,21 @@ void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr)
     //This is the absolute end of the heap
     extern char _heap_end asm("_heap_end"); //defined in the linker script
     //This holds the current end of the heap (static)
-    static char *curHeapEnd=NULL;
+    static char *curHeapEnd=nullptr;
     //This holds the previous end of the heap
     char *prevHeapEnd;
 
     //Check if it's first time called
-    if(curHeapEnd==NULL) curHeapEnd=&_end;
+    if(curHeapEnd==nullptr) curHeapEnd=&_end;
 
     prevHeapEnd=curHeapEnd;
     if((curHeapEnd+incr)>&_heap_end)
     {
         //bad, heap overflow
         #ifdef __NO_EXCEPTIONS
-        // When exceptions are disabled operator new would return 0, which would
-        // cause undefined behaviour. So when exceptions are disabled, a heap
-        // overflow causes a reboot.
+        // When exceptions are disabled operator new would return nullptr, which
+        // would cause undefined behaviour. So when exceptions are disabled,
+        // a heap overflow causes a reboot.
         errorLog("\n***Heap overflow\n");
         _exit(1);
         #else //__NO_EXCEPTIONS
@@ -679,17 +679,17 @@ char *_getcwd_r(struct _reent *ptr, char *buf, size_t size)
         int result=miosix::getFileDescriptorTable().getcwd(buf,size);
         if(result>=0) return buf;
         ptr->_errno=-result;
-        return NULL;
+        return nullptr;
     #ifndef __NO_EXCEPTIONS
     } catch(exception& e) {
         ptr->_errno=ENOMEM;
-        return NULL;
+        return nullptr;
     }
     #endif //__NO_EXCEPTIONS
     
     #else //WITH_FILESYSTEM
     ptr->_errno=ENOENT;
-    return NULL;
+    return nullptr;
     #endif //WITH_FILESYSTEM
 }
 
@@ -1161,7 +1161,7 @@ clock_t _times_r(struct _reent *ptr, struct tms *tim)
     //unlucky moment where tim.utime is 0xffffffff it would be interpreted as -1
     //IMHO, the specifications are wrong since returning an unsigned leaves
     //no value left to return in case of errors. Thus 0 is returned if a valid
-    //pointer is passed, and tim.utime if the pointer is null
+    //pointer is passed, and tim.utime if the pointer is nullptr
     if(tim==nullptr) return utime;
     tim->tms_utime=utime;
     tim->tms_stime=0;
