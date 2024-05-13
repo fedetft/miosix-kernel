@@ -617,14 +617,8 @@ int Thread::getStackSize()
 void Thread::IRQstackOverflowCheck()
 {
     const unsigned int watermarkSize=WATERMARK_LEN/sizeof(unsigned int);
-    for(unsigned int i=0;i<watermarkSize;i++)
-        if(runningThread->watermark[i]!=WATERMARK_FILL) errorHandler(STACK_OVERFLOW);
-
-    if(runningThread->ctxsave[stackPtrOffsetInCtxsave] <
-        reinterpret_cast<unsigned int>(runningThread->watermark+watermarkSize))
-        errorHandler(STACK_OVERFLOW);
     #ifdef WITH_PROCESSES
-    if(runningThread->userCtxsave)
+    if(const_cast<Thread*>(runningThread)->flags.isInUserspace())
     {
         bool overflow=false;
         for(unsigned int i=0;i<watermarkSize;i++)
@@ -633,6 +627,14 @@ void Thread::IRQstackOverflowCheck()
             reinterpret_cast<unsigned int>(runningThread->userWatermark+watermarkSize))
             overflow=true;
         if(overflow) IRQreportFault(miosix_private::FaultData(STACKOVERFLOW,0));
+    } else {
+    #endif //WITH_PROCESSES
+    for(unsigned int i=0;i<watermarkSize;i++)
+        if(runningThread->watermark[i]!=WATERMARK_FILL) errorHandler(STACK_OVERFLOW);
+    if(runningThread->ctxsave[stackPtrOffsetInCtxsave] <
+        reinterpret_cast<unsigned int>(runningThread->watermark+watermarkSize))
+        errorHandler(STACK_OVERFLOW);
+    #ifdef WITH_PROCESSES
     }
     #endif //WITH_PROCESSES
 }
