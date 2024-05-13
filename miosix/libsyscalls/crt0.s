@@ -56,12 +56,18 @@ call:
 .global _start
 .type _start, %function
 _start:
-	/* save argc, argv, envp for when we call main */
+	/* save argc, argv, envp for later. Saving 3*4=12byte + additional 4bytes */
+	/* in call respects 8 byte stack alignment in the called C++ constructors */
+	/* while call itself uses nonstandard calling conventions anyway */
 	push {r0,r1,r2}
 	/* store the heap end in the appropriate variable */
 	ldr  r0, .L200+16
 	ldr  r0, [r9, r0]
 	str  r3, [r0]
+	/* store envp in the appropriate variable */
+	ldr  r0, .L200+20
+	ldr  r0, [r9, r0]
+	str  r2, [r0]
 	/* call C++ global constructors */
 	ldr  r0, .L200
 	ldr  r1, .L200+4
@@ -73,11 +79,8 @@ _start:
 	ldr  r4, [r9, r0]
 	ldr  r5, [r9, r1]
 	bl   call
-	/* get back argc,argv,envp and store envp in the environ variable */
+	/* get back argc,argv,envp */
 	pop  {r0,r1,r2}
-	ldr  r3, .L200+20
-	ldr  r3, [r9, r3]
-	str  r2, [r3]
 	/* call main */
 	bl   main
 	mov  r6, r0
