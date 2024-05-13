@@ -1116,9 +1116,10 @@ private:
      * \param envp pointer to environment variables
      * \param gotBase base address of the GOT, also corresponding to the start
      * of the RAM image of the process
+     * \param stackSize size of the userspace stack, used for bound checking
      */
     static void setupUserspaceContext(unsigned int entry, int argc, void *argvSp,
-        void *envp, unsigned int *gotBase);
+        void *envp, unsigned int *gotBase, unsigned int stackSize);
     
     #endif //WITH_PROCESSES
 
@@ -1224,6 +1225,7 @@ private:
     ///user mode. For kernel threads (i.e, threads where proc==kernel) this
     ///pointer is null
     unsigned int *userCtxsave;
+    unsigned int *userWatermark;
     #endif //WITH_PROCESSES
     #ifdef WITH_CPU_TIME_COUNTER
     CPUTimeCounterPrivateThreadData timeCounterData;

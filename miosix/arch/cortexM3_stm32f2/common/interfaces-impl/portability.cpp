@@ -181,13 +181,16 @@ void FaultData::print() const
             iprintf("* Busfault @ 0x%x (PC was 0x%x)\n",arg,pc);
             break;
         case BF_NOADDR:
-            iprintf("*Busfault (PC was 0x%x)\n",pc);
+            iprintf("* Busfault (PC was 0x%x)\n",pc);
+            break;
+        case STACKOVERFLOW:
+            iprintf("* Stack overflow\n");
             break;
     }
 }
 
 void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), int argc,
-    void *argvSp, void *envp, unsigned int *gotBase)
+    void *argvSp, void *envp, unsigned int *gotBase, unsigned int *heapEnd)
 {
     unsigned int *stackPtr=reinterpret_cast<unsigned int*>(argvSp);
     stackPtr--; //Stack is full descending, so decrement first
@@ -195,9 +198,9 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), int argc,
     *stackPtr=reinterpret_cast<unsigned long>(pc); stackPtr--;        //--> pc
     *stackPtr=0xffffffff; stackPtr--;                                 //--> lr
     *stackPtr=0; stackPtr--;                                          //--> r12
-    *stackPtr=0; stackPtr--;                                          //--> r3
-    *stackPtr=reinterpret_cast<unsigned long>(envp); stackPtr--;      //--> r2
-    *stackPtr=reinterpret_cast<unsigned long>(argvSp); stackPtr--;    //--> r1
+    *stackPtr=reinterpret_cast<unsigned long>(heapEnd); stackPtr--;   //--> r3
+    *stackPtr=reinterpret_cast<unsigned long>(envp);    stackPtr--;   //--> r2
+    *stackPtr=reinterpret_cast<unsigned long>(argvSp);  stackPtr--;   //--> r1
     *stackPtr=argc;                                                   //--> r0
 
     ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp

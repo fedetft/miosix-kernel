@@ -241,7 +241,21 @@ void Process::load(const ElfProgram& program, ArgsBlock&& args)
     this->program=program;
     //Done here so if not enough memory the new process is not even created
     image.load(this->program);
+    //Do the final size check that could not be done when validating the elf
+    //file alone because the size of the args block was unknown.
+    //The args block is not considered part of the stack, so it pushes the main
+    //stack down and eats away from the heap. This check should only fail if
+    //the area reserved for the heap is so small that becomes negative
+    if(image.getDataBssSize()+WATERMARK_LEN+image.getMainStackSize()+args.size()
+        > image.getProcessImageSize()) throw runtime_error("Args block overflow");
     auto ptr=reinterpret_cast<char*>(image.getProcessBasePointer());
+    //iprintf("image    addr = %p size = %d\n",ptr,image.getProcessImageSize());
+    //iprintf("data/bss addr = %p size = %d\n",ptr,image.getDataBssSize());
+    //iprintf("stack    addr = %p size = %d\n",ptr+image.getProcessImageSize()
+    //    -args.size()-image.getMainStackSize()-WATERMARK_LEN,
+    //    image.getMainStackSize());
+    //iprintf("args     addr = %p size = %d\n",ptr+image.getProcessImageSize()
+    //    -args.size(),args.size());
     ptr+=image.getProcessImageSize()-args.size();
     args.relocateTo(ptr);
     argc=args.getNumberOfArguments();
@@ -294,7 +308,7 @@ void *Process::start(void *)
     do {
         unsigned int entry=proc->program.getEntryPoint();
         Thread::setupUserspaceContext(entry,proc->argc,proc->argvSp,proc->envp,
-            proc->image.getProcessBasePointer());
+            proc->image.getProcessBasePointer(),proc->image.getMainStackSize());
         SvcResult svcResult=Resume;
         do {
             miosix_private::SyscallParameters sp=Thread::switchToUserspace();

@@ -235,7 +235,7 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
     //the stack (without contributing to the stack size) isn't known at this
     //point, so the memory can still be insufficient. Usually this is not an
     //issue since the ram size is oversized to leave room for the heap.
-    if((stackSize & 0x3) ||
+    if((stackSize & (CTXSAVE_STACK_ALIGNMENT-1)) ||
        (ramSize & 0x3) ||
        (ramSize < ProcessPool::blockSize) ||
        (stackSize>MAX_PROCESS_IMAGE_SIZE) ||
@@ -282,7 +282,7 @@ void ProcessImage::load(const ElfProgram& program)
     if(image) ProcessPool::instance().deallocate(image);
     const unsigned int base=program.getElfBase();
     const Elf32_Phdr *phdr=program.getProgramHeaderTable();
-    const Elf32_Phdr *dataSegment=0;
+    const Elf32_Phdr *dataSegment=nullptr;
     Elf32_Addr dtRel=0;
     Elf32_Word dtRelsz=0;
     bool hasRelocs=false;
@@ -336,8 +336,13 @@ void ProcessImage::load(const ElfProgram& program)
     dataSegmentInMem+=dataSegment->p_filesz;
     //Zero only .bss section (faster but processes leak data to other processes)
     //memset(dataSegmentInMem,0,dataSegment->p_memsz-dataSegment->p_filesz);
-    //Zero the entire process image (minus .data) to prevent data leakage
-    memset(dataSegmentInMem,0,size-dataSegment->p_filesz);
+    //Zero the entire process image to prevent data leakage, exclude .data as
+    //it is initialized, and the stack size since it will be filled later
+    //NOTE: as the args block size isn't known here, we can't account for that.
+    //This is not an issue though, we may just unnecessary fill with zeros up to
+    //MAX_PROCESS_ARGS_BLOCK_SIZE bytes into the stack
+    memset(dataSegmentInMem,0,size-dataSegment->p_filesz-mainStackSize-WATERMARK_LEN);
+    dataBssSize=dataSegment->p_memsz;
     if(hasRelocs)
     {
         const Elf32_Rel *rel=reinterpret_cast<const Elf32_Rel*>(base+dtRel);

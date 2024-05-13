@@ -184,6 +184,11 @@ public:
      * \return the size in bytes of the main stack, excluding the watermark area
      */
     unsigned int getMainStackSize() const { return mainStackSize; }
+
+    /**
+     * \return the size in bytes of the .data and .bss sections
+     */
+    unsigned int getDataBssSize() const { return dataBssSize; }
     
     /**
      * Destructor. Deletes the process image memory.
@@ -197,6 +202,7 @@ private:
     unsigned int *image;        ///< Pointer to the process image in RAM
     unsigned int size;          ///< Size in bytes of the process image
     unsigned int mainStackSize; ///< Size of the main stack
+    unsigned int dataBssSize;   ///< Combined size of .data and .bss
 };
 
 } //namespace miosix

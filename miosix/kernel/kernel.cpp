@@ -43,6 +43,7 @@
 #include <string.h>
 #include <reent.h>
 #include "interfaces/deep_sleep.h"
+#include "core/interrupts.h"
 
 /*
  * Used by assembler context switch macros
@@ -617,12 +618,23 @@ void Thread::IRQstackOverflowCheck()
 {
     const unsigned int watermarkSize=WATERMARK_LEN/sizeof(unsigned int);
     for(unsigned int i=0;i<watermarkSize;i++)
-    {
         if(runningThread->watermark[i]!=WATERMARK_FILL) errorHandler(STACK_OVERFLOW);
-    }
+
     if(runningThread->ctxsave[stackPtrOffsetInCtxsave] <
         reinterpret_cast<unsigned int>(runningThread->watermark+watermarkSize))
         errorHandler(STACK_OVERFLOW);
+    #ifdef WITH_PROCESSES
+    if(runningThread->userCtxsave)
+    {
+        bool overflow=false;
+        for(unsigned int i=0;i<watermarkSize;i++)
+            if(runningThread->userWatermark[i]!=WATERMARK_FILL) overflow=true;
+        if(runningThread->userCtxsave[stackPtrOffsetInCtxsave] <
+            reinterpret_cast<unsigned int>(runningThread->userWatermark+watermarkSize))
+            overflow=true;
+        if(overflow) IRQreportFault(miosix_private::FaultData(STACKOVERFLOW,0));
+    }
+    #endif //WITH_PROCESSES
 }
 
 #ifdef WITH_PROCESSES
@@ -698,10 +710,21 @@ Thread *Thread::createUserspace(void *(*startfunc)(void *), Process *proc)
 }
 
 void Thread::setupUserspaceContext(unsigned int entry, int argc, void *argvSp,
-    void *envp, unsigned int *gotBase)
+    void *envp, unsigned int *gotBase, unsigned int stackSize)
 {
+    //Fill watermark and stack
+    char *base=reinterpret_cast<char*>(argvSp)-stackSize-WATERMARK_LEN;
+    memset(base, WATERMARK_FILL, WATERMARK_LEN);
+    memset(base+WATERMARK_LEN, STACK_FILL, stackSize);
+    runningThread->userWatermark=reinterpret_cast<unsigned int*>(base);
+    //Initialize registers
     void *(*startfunc)(void*)=reinterpret_cast<void *(*)(void*)>(entry);
-    miosix_private::initCtxsave(runningThread->userCtxsave,startfunc,argc,argvSp,envp,gotBase);
+    //NOTE: for the main thread in a process userWatermark is also the end of
+    //the heap, used by _sbrk_r. When we'll implement threads in processes that
+    //pointer will just point to the watermark end of the thread, but userspace
+    //threads can just ignore that value so we'll pass it unconditionally
+    miosix_private::initCtxsave(runningThread->userCtxsave,startfunc,
+        argc,argvSp,envp,gotBase,runningThread->userWatermark);
 }
 
 #endif //WITH_PROCESSES

@@ -209,9 +209,13 @@ private:
  * \param envp pointer to environment variables
  * \param gotBase base address of the global offset table, for userspace
  * processes
+ * \param heapEnd when creating the main thread in a process, pass the pointer
+ * to the end of the heap area. When creating additional threads in the process,
+ * this value is irrelevant. In Miosix sbrk is not a syscall for processes as
+ * the memory area allocated to a process is fixed at process creation
  */
 void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), int argc,
-        void *argvSp, void *envp, unsigned int *gotBase);
+        void *argvSp, void *envp, unsigned int *gotBase, unsigned int *heapEnd);
 
 /**
  * \internal
