@@ -82,6 +82,9 @@ OPT_OPTIMIZATION := -O2
 ##
 #OPT_EXCEPT := -fno-exceptions -fno-rtti -D__NO_EXCEPTIONS
 
+## C++ Exception/rtti support disable flags for userspace processes
+#PROC_OPT_EXCEPT := -fno-exceptions -fno-rtti -D__NO_EXCEPTIONS
+
 #############################################################################
 ## Board specific options
 #############################################################################
