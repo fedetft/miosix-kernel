@@ -86,7 +86,7 @@ void ISR_yield()
     if(SCB->SHCSR & (1<<13))
     {
         if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
-            MP,0,0)))
+            fault::MP,0,0)))
         {
             SCB->SHCSR &= ~(1<<13); //Clear MEMFAULTPENDED bit
             return;
@@ -142,6 +142,7 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
 
 void FaultData::print() const
 {
+    using namespace fault;
     switch(id)
     {
         case MP:

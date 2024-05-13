@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012, 2013, 2014 by Terraneo Federico       *
+ *   Copyright (C) 2010 - 2024 by Terraneo Federico                        *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef INTERRUPTS_H
-#define	INTERRUPTS_H
+#pragma once
 
 /**
  * Called when an unexpected interrupt occurs.
@@ -34,9 +33,13 @@
  */
 void unexpectedInterrupt();
 
+namespace fault {
 /**
  * Possible kind of faults that the Cortex-M3 can report.
- * They are used to print debug information if a process causes a fault
+ * They are used to print debug information if a process causes a fault.
+ * This is a regular enum enclosed in a namespace instead of an enum class
+ * as due to the need to loosely couple fault types for different architectures
+ * the arch-independent code uses int to store generic fault types.
  */
 enum FaultType
 {
@@ -56,4 +59,4 @@ enum FaultType
     STACKOVERFLOW=14 //Stack overflow
 };
 
-#endif	//INTERRUPTS_H
+} //namespace proc

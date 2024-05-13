@@ -626,7 +626,7 @@ void Thread::IRQstackOverflowCheck()
         if(runningThread->userCtxsave[stackPtrOffsetInCtxsave] <
             reinterpret_cast<unsigned int>(runningThread->userWatermark+watermarkSize))
             overflow=true;
-        if(overflow) IRQreportFault(miosix_private::FaultData(STACKOVERFLOW,0));
+        if(overflow) IRQreportFault(miosix_private::FaultData(fault::STACKOVERFLOW,0));
     } else {
     #endif //WITH_PROCESSES
     for(unsigned int i=0;i<watermarkSize;i++)
