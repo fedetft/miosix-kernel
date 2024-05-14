@@ -27,6 +27,7 @@
 
 #include "elf_program.h"
 #include "process_pool.h"
+#include "filesystem/file_access.h"
 #include <stdexcept>
 #include <cstring>
 #include <cstdio>
@@ -48,46 +49,89 @@ static const unsigned int DATA_BASE=0x40000000;
 // class ElfProgram
 //
 
-ElfProgram::ElfProgram(const unsigned int *elf, unsigned int size)
-    : elf(elf), size(size), valid(false)
+ElfProgram::ElfProgram(const char *path) : elf(nullptr), size(0), ec(-ENOEXEC)
 {
-    //Trying to follow the "full recognition before processing" approach,
-    //(http://www.cs.dartmouth.edu/~sergey/langsec/occupy/FullRecognition.jpg)
-    //all of the elf fields that will later be used are checked in advance.
-    //Unused fields are unchecked, so when using new fields, add new checks
-    if(validateHeader()==false) throw runtime_error("Bad file");
-    valid=true;
+    if(path==nullptr || path[0]=='\0')
+    {
+        ec=-EFAULT;
+        return;
+    }
+    //TODO: expand ./program using cwd of correct file descriptor table
+    string filePath=path;
+    ResolvedPath openData=FilesystemManager::instance().resolvePath(filePath);
+    if(openData.result<0)
+    {
+        ec=-ENOENT;
+        return;
+    }
+    StringPart relativePath(filePath,string::npos,openData.off);
+    intrusive_ref_ptr<FileBase> file;
+    if(int res=openData.fs->open(file,relativePath,O_RDONLY,0)<0)
+    {
+        ec=res;
+        return;
+    }
+    MemoryMappedFile mmFile=file->getFileFromMemory();
+    if(mmFile.isValid()==false)
+    {
+        //TODO: load to RAM for filesystems incapable of XIP
+        ec=-EFAULT;
+        return;
+    }
+    elf=reinterpret_cast<const unsigned int*>(mmFile.data);
+    size=mmFile.size;
+    validateHeader();
 }
 
-bool ElfProgram::validateHeader()
+ElfProgram::ElfProgram(const unsigned int *elf, unsigned int size)
+    : elf(elf), size(size), ec(-ENOEXEC)
+{
+    validateHeader();
+}
+
+void ElfProgram::validateHeader()
 {
     //Validate ELF header
     //Note: this code assumes a little endian elf and a little endian ARM CPU
     if(isUnaligned(getElfBase(),8))
-        throw runtime_error("Elf file load address alignment error");
-    if(size<sizeof(Elf32_Ehdr)) return false;
+    {
+        DBG("Elf file load address alignment error");
+        return;
+    }
+    if(size<sizeof(Elf32_Ehdr)) return;
     const Elf32_Ehdr *ehdr=getElfHeader();
     static const char magic[EI_NIDENT]={0x7f,'E','L','F',1,1,1};
     if(memcmp(ehdr->e_ident,magic,EI_NIDENT))
-        throw runtime_error("Unrecognized format");
-    if(ehdr->e_type!=ET_EXEC) throw runtime_error("Not an executable");
-    if(ehdr->e_machine!=EM_ARM) throw runtime_error("Wrong CPU arch");
-    if(ehdr->e_version!=EV_CURRENT) return false;
-    if(ehdr->e_entry>=size) return false;
-    if(ehdr->e_phoff>=size-sizeof(Elf32_Phdr)) return false;
-    if(isUnaligned(ehdr->e_phoff,4)) return false;
+    {
+        DBG("Unrecognized format");
+        return;
+    }
+    if(ehdr->e_type!=ET_EXEC) return;
+    if(ehdr->e_machine!=EM_ARM)
+    {
+        DBG("Wrong CPU arch");
+        return;
+    }
+    if(ehdr->e_version!=EV_CURRENT) return;
+    if(ehdr->e_entry>=size) return;
+    if(ehdr->e_phoff>=size-sizeof(Elf32_Phdr)) return;
+    if(isUnaligned(ehdr->e_phoff,4)) return;
     // Old GCC 4.7.3 used to set bit 0x2 (EF_ARM_HASENTRY) but there's no trace
     // of this requirement in the current ELF spec for ARM.
-    if((ehdr->e_flags & EF_ARM_EABIMASK) != EF_ARM_EABI_VER5) return false;
+    if((ehdr->e_flags & EF_ARM_EABIMASK) != EF_ARM_EABI_VER5) return;
     #if !defined(__FPU_USED) || __FPU_USED==0
-    if(ehdr->e_flags & EF_ARM_VFP_FLOAT) throw runtime_error("FPU required");
+    if(ehdr->e_flags & EF_ARM_VFP_FLOAT)
+    {
+        DBG("FPU required");
+        return;
+    }
     #endif
-    if(ehdr->e_ehsize!=sizeof(Elf32_Ehdr)) return false;
-    if(ehdr->e_phentsize!=sizeof(Elf32_Phdr)) return false;
+    if(ehdr->e_ehsize!=sizeof(Elf32_Ehdr)) return;
+    if(ehdr->e_phentsize!=sizeof(Elf32_Phdr)) return;
     //This to avoid that the next condition could pass due to 32bit wraparound
     //20 is an arbitrary number, could be increased if required
-    if(ehdr->e_phnum>20) throw runtime_error("Too many segments");
-    if(ehdr->e_phoff+(ehdr->e_phnum*sizeof(Elf32_Phdr))>size) return false;
+    if(ehdr->e_phnum>20) return;
+    if(ehdr->e_phoff+(ehdr->e_phnum*sizeof(Elf32_Phdr))>size) return;
     
     //Validate program header table
     bool codeSegmentPresent=false;
@@ -98,9 +142,9 @@ bool ElfProgram::validateHeader()
     for(int i=0;i<getNumOfProgramHeaderEntries();i++,phdr++)
     {
         //The third condition does not imply the other due to 32bit wraparound
-        if(phdr->p_offset>=size) return false;
-        if(phdr->p_filesz>=size) return false;
-        if(phdr->p_offset+phdr->p_filesz>size) return false;
+        if(phdr->p_offset>=size) return;
+        if(phdr->p_filesz>=size) return;
+        if(phdr->p_offset+phdr->p_filesz>size) return;
         switch(phdr->p_align)
         {
             case 0: break;
@@ -127,55 +171,65 @@ bool ElfProgram::validateHeader()
             case 32:
             case 64:
                 if(isUnaligned(phdr->p_offset,phdr->p_align))
-                    throw runtime_error("Alignment error");
+                {
+                    DBG("Alignment error");
+                    return;
+                }
                 break;
             default:
-                throw runtime_error("Unsupported segment alignment");
+                DBG("Unsupported segment alignment");
+                return;
         }
         
         switch(phdr->p_type)
         {
             case PT_LOAD:
-                if(phdr->p_flags & ~(PF_R | PF_W | PF_X)) return false;
-                if(!(phdr->p_flags & PF_R)) return false;
+                if(phdr->p_flags & ~(PF_R | PF_W | PF_X)) return;
+                if(!(phdr->p_flags & PF_R)) return;
                 if((phdr->p_flags & PF_W) && (phdr->p_flags & PF_X))
-                    throw runtime_error("File violates W^X");
+                {
+                    DBG("File violates W^X");
+                    return;
+                }
                 if(phdr->p_flags & PF_X)
                 {
-                    if(codeSegmentPresent) return false; //Can't apper twice
+                    if(codeSegmentPresent) return; //Can't apper twice
                     codeSegmentPresent=true;
                     if(ehdr->e_entry<phdr->p_offset ||
                        ehdr->e_entry>phdr->p_offset+phdr->p_filesz ||
-                       phdr->p_filesz!=phdr->p_memsz) return false;
+                       phdr->p_filesz!=phdr->p_memsz) return;
                 }
                 if((phdr->p_flags & PF_W) && !(phdr->p_flags & PF_X))
                 {
-                    if(dataSegmentPresent) return false; //Two data segments?
+                    if(dataSegmentPresent) return; //Two data segments?
                     dataSegmentPresent=true;
-                    if(phdr->p_memsz<phdr->p_filesz) return false;
+                    if(phdr->p_memsz<phdr->p_filesz) return;
                     unsigned int maxSize=MAX_PROCESS_IMAGE_SIZE-
                         MIN_PROCESS_STACK_SIZE;
                     if(phdr->p_memsz>=maxSize)
-                        throw runtime_error("Data segment too big");
+                    {
+                        DBG("Data segment too big");
+                        return;
+                    }
                     dataSegmentSize=phdr->p_memsz;
                 }
                 break;
             case PT_DYNAMIC:
-                if(dynamicSegmentPresent) return false; //Two dynamic segments?
+                if(dynamicSegmentPresent) return; //Two dynamic segments?
                 dynamicSegmentPresent=true;
                 //DYNAMIC segment *must* come after data segment
-                if(dataSegmentPresent==false) return false;
-                if(phdr->p_align<4) return false;
-                if(validateDynamicSegment(phdr,dataSegmentSize)==false)
-                    return false;
+                if(dataSegmentPresent==false) return;
+                if(phdr->p_align<4) return;
+                if(validateDynamicSegment(phdr,dataSegmentSize)==false) return;
                 break;
             default:
                 //Ignoring other segments
                 break;
         }
     }
-    if(codeSegmentPresent==false) return false; //Can't not have code segment
-    return true;
+    if(codeSegmentPresent==false) return; //Can't not have code segment
+    // All checks passed setting error code to 0
+    ec=0;
 }
 
 bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
@@ -208,7 +262,10 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
                 break;  
             case DT_MX_ABI:
                 if(dyn->d_un.d_val==DV_MX_ABI_V1) miosixTagFound=true;
-                else throw runtime_error("Unknown/unsupported DT_MX_ABI");
+                else {
+                    DBG("Unknown/unsupported DT_MX_ABI");
+                    return false;
+                }
                 break;
             case DT_MX_RAMSIZE:
                 ramSize=dyn->d_un.d_val;
@@ -219,17 +276,28 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
             case DT_RELA:
             case DT_RELASZ:
             case DT_RELAENT:
-                throw runtime_error("RELA relocations unsupported");
+                DBG("RELA relocations unsupported");
+                return false;
             default:
                 //Ignore other entries
                 break;
         }
     }
-    if(miosixTagFound==false) throw runtime_error("Not a Miosix executable");
+    if(miosixTagFound==false)
+    {
+        DBG("Not a Miosix executable");
+        return false;
+    }
     if(stackSize<MIN_PROCESS_STACK_SIZE)
-        throw runtime_error("Requested stack is too small");
+    {
+        DBG("Requested stack is too small");
+        return false;
+    }
     if(ramSize>MAX_PROCESS_IMAGE_SIZE)
-        throw runtime_error("Requested image size is too large");
+    {
+        DBG("Requested image size is too large");
+        return false;
+    }
     //NOTE: this check can only guarantee that statically data and stack fit
     //in the ram size. However the size for argv and envp that are pushed before
     //the stack (without contributing to the stack size) isn't known at this
@@ -241,7 +309,10 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
        (stackSize>MAX_PROCESS_IMAGE_SIZE) ||
        (dataSegmentSize>MAX_PROCESS_IMAGE_SIZE) ||
        (dataSegmentSize+stackSize+WATERMARK_LEN>ramSize))
-        throw runtime_error("Invalid stack or RAM size");
+    {
+        DBG("Invalid stack or RAM size");
+        return false;
+    }
     
     if(hasRelocs!=0 && hasRelocs!=0x7) return false;
     if(hasRelocs)
@@ -266,7 +337,8 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
                     if(rel->r_offset & 0x3) return false;
                     break;
                 default:
-                    throw runtime_error("Unexpected relocation type");
+                    DBG("Unexpected relocation type");
+                    return false;
             }
         }
     }
@@ -278,11 +350,11 @@ ElfProgram& ElfProgram::operator= (ElfProgram&& rhs)
     //Move rhs fields into *this
     elf=rhs.elf;
     size=rhs.size;
-    valid=rhs.valid;
+    ec=rhs.ec;
     //Invalidate rhs
     rhs.elf=nullptr;
     rhs.size=0;
-    rhs.valid=false;
+    rhs.ec=-ENOEXEC;
     return *this;
 }
 

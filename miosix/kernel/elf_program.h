@@ -28,6 +28,7 @@
 #pragma once
 
 #include <utility>
+#include <cerrno>
 #include "elf_types.h"
 #include "config/miosix_settings.h"
 
@@ -44,24 +45,40 @@ public:
     /**
      * Default constructor
      */
-    ElfProgram() : elf(nullptr), size(0), valid(false) {}
+    ElfProgram() : elf(nullptr), size(0), ec(-ENOEXEC) {}
 
     /**
-     * Constructor
+     * Constructor from file.
+     *
+     * The loading operation can fail if the file could not be found, is not a
+     * valid elf file or not enough memory was available to complete the
+     * operation. Use errorCode() to check for errors
+     *
+     * \param path executable file path
+     */
+    ElfProgram(const char *path);
+
+    /**
+     * Constructor from already mapped memory, usually the microcontroller's
+     * FLASH memory, in order to support XIP and avoid copying the elf in RAM.
+     * Note that if the program is in a XIP capable filesystem a better way
+     * is to just call the constructor from file.
+     *
+     * The operation can fail if the memory area is not a valid elf file.
+     * Use errorCode() to check for errors
+     *
      * \param elf pointer to the elf file's content. Ownership of the data
      * remains of the caller, that is, the pointer is not deleted by this
-     * class. This is done to allow passing a pointer directly to a location
-     * in the microcontroller's FLASH memory, in order to avoid copying the
-     * elf in RAM
+     * class.
      * \param size size in bytes (despite elf is an unsigned int*) of the
      * content of the elf file
      */
     ElfProgram(const unsigned int *elf, unsigned int size);
 
     /**
-     * \return true if this is a valid elf file
+     * \return 0 if this is a valid elf file, or an error code on failure
      */
-    bool isValid() const { return valid; }
+    int errorCode() const { return ec; }
     
     /**
      * \return the a pointer to the elf header
@@ -122,18 +139,19 @@ public:
 private:
 
     /**
-     * \param size elf file size
-     * \return false if the file is not valid
-     * \throws runtime_error for selected specific types of errors 
+     * Validate elf header, setting ec to 0 if all checks pass.
+     * Trying to follow the "full recognition before processing" approach,
+     * (http://www.cs.dartmouth.edu/~sergey/langsec/occupy/FullRecognition.jpg)
+     * all of the elf fields that will later be used are checked in advance.
+     * Unused fields are unchecked, so when using new fields, add new checks.
      */
-    bool validateHeader();
+    void validateHeader();
     
     /**
      * \param dynamic pointer to dynamic segment
      * \param size elf file size
      * \param dataSegmentSize size of data segment in memory
      * \return false if the dynamic segment is not valid
-     * \throws runtime_error for selected specific types of errors 
      */
     bool validateDynamicSegment(const Elf32_Phdr *dynamic,
             unsigned int dataSegmentSize);
@@ -150,7 +168,7 @@ private:
     
     const unsigned int *elf; ///<Pointer to the content of the elf file
     unsigned int size; ///< Size in bytes of the elf file
-    bool valid; ///< All checks passed
+    int ec; ///< Error code
 };
 
 /**

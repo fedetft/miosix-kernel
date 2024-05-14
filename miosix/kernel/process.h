@@ -182,14 +182,6 @@ private:
      * \param args program arguments and environment variables
      */
     void load(ElfProgram&& program, ArgsBlock&& args);
-
-    /**
-     * Lookup for an executable file on the filesystem
-     * \param path executable file path
-     * \param program the program, if found, will be stored here
-     * \return error code
-     */
-    static int lookup(const char *path, ElfProgram& program);
     
     /**
      * Contains the process' main loop. 

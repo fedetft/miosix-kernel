@@ -116,6 +116,7 @@ Processes& Processes::instance()
 
 pid_t Process::create(ElfProgram&& program, ArgsBlock&& args)
 {
+    if(program.errorCode()) return program.errorCode();
     Processes& p=Processes::instance();
     ProcessBase *parent=Thread::getCurrentThread()->proc;
     unique_ptr<Process> proc(new Process(parent->fileTable,
@@ -151,8 +152,7 @@ pid_t Process::spawn(const char *path, const char* const* argv,
 {
     ArgsBlock args(argv,envp,narg,nenv);
     if(args.valid()==false) return -E2BIG;
-    ElfProgram program;
-    if(int ec=lookup(path,program)) return ec;
+    ElfProgram program(path);
     return Process::create(std::move(program),std::move(args));
 }
 
@@ -280,25 +280,6 @@ void Process::load(ElfProgram&& program, ArgsBlock&& args)
             image.getProcessBasePointer(),image.getProcessImageSize());
 //    mpu=MPUConfiguration(this->program.getElfBase(),roundedSize,
 //            image.getProcessBasePointer(),image.getProcessImageSize());
-}
-
-int Process::lookup(const char *path, ElfProgram& program)
-{
-    if(path==nullptr || path[0]=='\0') return -EFAULT;
-    //TODO: expand ./program using cwd of correct file descriptor table
-    string filePath=path;
-    ResolvedPath openData=FilesystemManager::instance().resolvePath(filePath);
-    if(openData.result<0) return -ENOENT;
-    StringPart relativePath(filePath,string::npos,openData.off);
-    intrusive_ref_ptr<FileBase> file;
-    if(int res=openData.fs->open(file,relativePath,O_RDONLY,0)<0) return res;
-    //TODO: load to RAM for filesystems incapable of XIP
-    MemoryMappedFile mmFile=file->getFileFromMemory();
-    if(mmFile.isValid()==false) return -EFAULT;
-    ElfProgram prog(reinterpret_cast<const unsigned int*>(mmFile.data),mmFile.size);
-    if(prog.isValid()==false) return -EINVAL;
-    program=std::move(prog);
-    return 0;
 }
 
 void *Process::start(void *)
@@ -760,9 +741,8 @@ Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
                     ArgsBlock args(argv,envp,narg,nenv);
                     if(args.valid())
                     {
-                        ElfProgram program;
-                        int ec=lookup(path,program);
-                        if(ec==0)
+                        ElfProgram program(path);
+                        if(program.errorCode()==0)
                         {
                             try {
                                 //TODO: when threads within processes are
@@ -780,7 +760,7 @@ Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
                                 return Segfault;
                             }
                             return Execve;
-                        } else sp.setParameter(0,ec);
+                        } else sp.setParameter(0,program.errorCode());
                     } else sp.setParameter(0,-E2BIG);
                 } else sp.setParameter(0,-EFAULT);
                 break;
