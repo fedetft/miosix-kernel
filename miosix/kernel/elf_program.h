@@ -113,7 +113,14 @@ public:
         return size;
     }
     
+    /*
+     * ElfProgram class is not copyable, but is move assignable
+     */
+    ElfProgram(const ElfProgram&) = delete;
+    ElfProgram& operator= (const ElfProgram&) = delete;
+    ElfProgram& operator= (ElfProgram&& rhs);
 private:
+
     /**
      * \param size elf file size
      * \return false if the file is not valid
@@ -195,9 +202,9 @@ public:
      */
     ~ProcessImage();
     
+    ProcessImage(const ProcessImage&) = delete;
+    ProcessImage& operator= (const ProcessImage&) = delete;
 private:
-    ProcessImage(const ProcessImage&);
-    ProcessImage& operator= (const ProcessImage&);
     
     unsigned int *image;        ///< Pointer to the process image in RAM
     unsigned int size;          ///< Size in bytes of the process image

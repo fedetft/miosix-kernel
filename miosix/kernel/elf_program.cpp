@@ -273,6 +273,19 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
     return true;
 }
 
+ElfProgram& ElfProgram::operator= (ElfProgram&& rhs)
+{
+    //Move rhs fields into *this
+    elf=rhs.elf;
+    size=rhs.size;
+    valid=rhs.valid;
+    //Invalidate rhs
+    rhs.elf=nullptr;
+    rhs.size=0;
+    rhs.valid=false;
+    return *this;
+}
+
 //
 // class ProcessImage
 //

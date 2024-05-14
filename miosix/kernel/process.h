@@ -104,7 +104,7 @@ public:
      * \throws std::exception or a subclass in case of errors, including
      * not emough memory to spawn the process
      */
-    static pid_t create(const ElfProgram& program, ArgsBlock&& args);
+    static pid_t create(ElfProgram&& program, ArgsBlock&& args);
 
     /**
      * Create a new process from a file in the filesystem
@@ -173,7 +173,7 @@ private:
      * \param program program that will be executed by the process
      * \param args program arguments and environment variables
      */
-    Process(const FileDescriptorTable& fdt, const ElfProgram& program,
+    Process(const FileDescriptorTable& fdt, ElfProgram&& program,
             ArgsBlock&& args);
 
     /**
@@ -181,14 +181,15 @@ private:
      * \param program program that will be executed by the process
      * \param args program arguments and environment variables
      */
-    void load(const ElfProgram& program, ArgsBlock&& args);
+    void load(ElfProgram&& program, ArgsBlock&& args);
 
     /**
      * Lookup for an executable file on the filesystem
      * \param path executable file path
-     * \return a pair with an elf program and an error code
+     * \param program the program, if found, will be stored here
+     * \return error code
      */
-    static std::pair<ElfProgram,int> lookup(const char *path);
+    static int lookup(const char *path, ElfProgram& program);
     
     /**
      * Contains the process' main loop. 

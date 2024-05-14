@@ -114,11 +114,12 @@ Processes& Processes::instance()
 // class Process
 //
 
-pid_t Process::create(const ElfProgram& program, ArgsBlock&& args)
+pid_t Process::create(ElfProgram&& program, ArgsBlock&& args)
 {
     Processes& p=Processes::instance();
     ProcessBase *parent=Thread::getCurrentThread()->proc;
-    unique_ptr<Process> proc(new Process(parent->fileTable,program,std::move(args)));
+    unique_ptr<Process> proc(new Process(parent->fileTable,
+                                         std::move(program),std::move(args)));
     {   
         Lock<Mutex> l(p.procMutex);
         proc->pid=getNewPid();
@@ -150,9 +151,9 @@ pid_t Process::spawn(const char *path, const char* const* argv,
 {
     ArgsBlock args(argv,envp,narg,nenv);
     if(args.valid()==false) return -E2BIG;
-    auto prog=lookup(path);
-    if(prog.second) return prog.second;
-    return Process::create(prog.first,std::move(args));
+    ElfProgram program;
+    if(int ec=lookup(path,program)) return ec;
+    return Process::create(std::move(program),std::move(args));
 }
 
 pid_t Process::spawn(const char *path, const char* const* argv,
@@ -227,18 +228,18 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
 
 Process::~Process() {}
 
-Process::Process(const FileDescriptorTable& fdt, const ElfProgram& program,
+Process::Process(const FileDescriptorTable& fdt, ElfProgram&& program,
         ArgsBlock&& args) : ProcessBase(fdt), waitCount(0), zombie(false)
 {
     //This is required so that bad_alloc can never be thrown when the first
     //thread of the process will be stored in this vector
     threads.reserve(1);
-    load(program,std::move(args));
+    load(std::move(program),std::move(args));
 }
 
-void Process::load(const ElfProgram& program, ArgsBlock&& args)
+void Process::load(ElfProgram&& program, ArgsBlock&& args)
 {
-    this->program=program;
+    this->program=std::move(program);
     //Done here so if not enough memory the new process is not even created
     image.load(this->program);
     //Do the final size check that could not be done when validating the elf
@@ -281,23 +282,23 @@ void Process::load(const ElfProgram& program, ArgsBlock&& args)
 //            image.getProcessBasePointer(),image.getProcessImageSize());
 }
 
-pair<ElfProgram,int> Process::lookup(const char *path)
+int Process::lookup(const char *path, ElfProgram& program)
 {
-    if(path==nullptr || path[0]=='\0') return make_pair(ElfProgram(),-EFAULT);
+    if(path==nullptr || path[0]=='\0') return -EFAULT;
     //TODO: expand ./program using cwd of correct file descriptor table
     string filePath=path;
     ResolvedPath openData=FilesystemManager::instance().resolvePath(filePath);
-    if(openData.result<0) return make_pair(ElfProgram(),-ENOENT);
+    if(openData.result<0) return -ENOENT;
     StringPart relativePath(filePath,string::npos,openData.off);
     intrusive_ref_ptr<FileBase> file;
-    if(int res=openData.fs->open(file,relativePath,O_RDONLY,0)<0)
-        return make_pair(ElfProgram(),res);
+    if(int res=openData.fs->open(file,relativePath,O_RDONLY,0)<0) return res;
     //TODO: load to RAM for filesystems incapable of XIP
     MemoryMappedFile mmFile=file->getFileFromMemory();
-    if(mmFile.isValid()==false) return make_pair(ElfProgram(),-EFAULT);
+    if(mmFile.isValid()==false) return -EFAULT;
     ElfProgram prog(reinterpret_cast<const unsigned int*>(mmFile.data),mmFile.size);
-    if(prog.isValid()==false) return make_pair(ElfProgram(),-EINVAL);
-    return make_pair(std::move(prog),0);
+    if(prog.isValid()==false) return -EINVAL;
+    program=std::move(prog);
+    return 0;
 }
 
 void *Process::start(void *)
@@ -759,13 +760,14 @@ Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
                     ArgsBlock args(argv,envp,narg,nenv);
                     if(args.valid())
                     {
-                        auto prog=lookup(path);
-                        if(prog.second==0)
+                        ElfProgram program;
+                        int ec=lookup(path,program);
+                        if(ec==0)
                         {
                             try {
                                 //TODO: when threads within processes are
                                 //implemented, kill all other threads
-                                load(prog.first,std::move(args));
+                                load(std::move(program),std::move(args));
                             } catch(exception& e) {
                                 //TODO currently load causes the old process
                                 //ram to be deallocated before allocating the
@@ -778,7 +780,7 @@ Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
                                 return Segfault;
                             }
                             return Execve;
-                        } else sp.setParameter(0,prog.second);
+                        } else sp.setParameter(0,ec);
                     } else sp.setParameter(0,-E2BIG);
                 } else sp.setParameter(0,-EFAULT);
                 break;
