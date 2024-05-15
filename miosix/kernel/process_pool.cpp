@@ -105,7 +105,11 @@ void ProcessPool::deallocate(unsigned int *ptr)
     #endif //TEST_ALLOC
     map<unsigned int*, unsigned int>::iterator it= allocatedBlocks.find(ptr);
     if(it==allocatedBlocks.end())
+    #ifndef TEST_ALLOC
+        errorHandler(UNEXPECTED);
+    #else //TEST_ALLOC
         throw runtime_error("ProcessPool::deallocate corrupted pointer");
+    #endif //TEST_ALLOC
     unsigned int size =(it->second)/blockSize;
     unsigned int firstBit=(reinterpret_cast<unsigned int>(ptr)-
                            reinterpret_cast<unsigned int>(poolBase))/blockSize;
