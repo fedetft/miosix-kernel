@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2012 by Terraneo Federico and Luigi Rucco               *
+ *   Copyright (C) 2012 - 2024 by Terraneo Federico and Luigi Rucco        *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -28,12 +28,22 @@
 #include "process_pool.h"
 #include <stdexcept>
 #include <cstring>
+#include <algorithm>
+#ifndef TEST_ALLOC
+#include "core/memory_protection.h"
+#endif //TEST_ALLOC
 
 using namespace std;
 
 #ifdef WITH_PROCESSES
 
 namespace miosix {
+
+///This constant specifies the size of the minimum allocatable block,
+///in bits. So for example 10 is 1KB.
+static const unsigned int blockBits=10;
+///This constant is the the size of the minimum allocatable block, in bytes.
+static const unsigned int blockSize=1<<blockBits;
 
 ProcessPool& ProcessPool::instance()
 {
@@ -51,14 +61,17 @@ ProcessPool& ProcessPool::instance()
     #endif //TEST_ALLOC
 }
     
-unsigned int *ProcessPool::allocate(unsigned int size)
+pair<unsigned int *, unsigned int> ProcessPool::allocate(unsigned int size)
 {
     #ifndef TEST_ALLOC
     miosix::Lock<miosix::FastMutex> l(mutex);
+    size=MPUConfiguration::roundSizeForMPU(max(size,blockSize));
+    #else //TEST_ALLOC
+    //Size adjustment not supported during test_alloc due to missing mpu header
+    if((size & (size - 1)) || size<blockSize)
+            throw runtime_error("ProcessPool::allocate unsupported size");
     #endif //TEST_ALLOC
-    //If size is not a power of two, or too big or small
-    if((size & (size - 1)) || size>poolSize || size<blockSize)
-            throw runtime_error("");
+    if(size>poolSize) throw bad_alloc();
     
     unsigned int offset=0;
     if(reinterpret_cast<unsigned int>(poolBase) % size)
@@ -80,7 +93,7 @@ unsigned int *ProcessPool::allocate(unsigned int size)
         for(unsigned int j=0;j<sizeBit;j++) setBit(i+j);
         unsigned int *result=poolBase+i*blockSize/sizeof(unsigned int);
         allocatedBlocks[result]=size;
-        return result;
+        return make_pair(result,size);
     }
     throw bad_alloc();
 }
@@ -91,7 +104,8 @@ void ProcessPool::deallocate(unsigned int *ptr)
     miosix::Lock<miosix::FastMutex> l(mutex);
     #endif //TEST_ALLOC
     map<unsigned int*, unsigned int>::iterator it= allocatedBlocks.find(ptr);
-    if(it==allocatedBlocks.end())throw runtime_error("");
+    if(it==allocatedBlocks.end())
+        throw runtime_error("ProcessPool::deallocate corrupted pointer");
     unsigned int size =(it->second)/blockSize;
     unsigned int firstBit=(reinterpret_cast<unsigned int>(ptr)-
                            reinterpret_cast<unsigned int>(poolBase))/blockSize;

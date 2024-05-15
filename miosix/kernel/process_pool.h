@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2012 by Terraneo Federico and Luigi Rucco               *
+ *   Copyright (C) 2012 - 2024 by Terraneo Federico and Luigi Rucco        *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,10 +25,10 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/ 
 
-#ifndef PROCESS_POOL
-#define PROCESS_POOL
+#pragma once
 
 #include <map>
+#include <utility>
 
 #ifndef TEST_ALLOC
 #include <miosix.h>
@@ -57,16 +57,16 @@ public:
     /**
      * Allocate memory inside the process pool.
      * \param size size in bytes (despite the returned pointer is an
-     * unsigned int*) of the requested memory, must be a power of
-     * two, and be grater or equal to blockSize.
-     * \return a pointer to the allocated memory. Note that the pointer is
+     * unsigned int*) of the requested memory
+     * \return a pair with the pointer to the allocated memory and the actual
+     * allocated size, which could be greater or equal than the requested size
+     * to accomodate limitations in the allocator and memory protection unit.
+     * Note that due to memory protection unit limitations the pointer is
      * size-aligned, so that for example if a 16KByte block is requested,
-     * the returned pointer is aligned on a 16KB boundary. This is so to
-     * allow using the MPU of the Cortex-M3.
-     * \throws runtime_error in case the requested allocation is invalid,
-     * or bad_alloc if out of memory
+     * the returned pointer is aligned on a 16KB boundary.
+     * \throws bad_alloc if out of memory
      */
-    unsigned int *allocate(unsigned int size);
+    std::pair<unsigned int *, unsigned int> allocate(unsigned int size);
     
     /**
      * Deallocate a memory block.
@@ -106,12 +106,6 @@ public:
         }  
     }
     #endif //TEST_ALLOC
-    
-    ///This constant specifies the size of the minimum allocatable block,
-    ///in bits. So for example 10 is 1KB.
-    static const unsigned int blockBits=10;
-    ///This constant is the the size of the minimum allocatable block, in bytes.
-    static const unsigned int blockSize=1<<blockBits;
     
 private:
     ProcessPool(const ProcessPool&);
@@ -170,5 +164,3 @@ private:
 } //namespace miosix
 
 #endif //WITH_PROCESSES
-
-#endif //PROCESS_POOL

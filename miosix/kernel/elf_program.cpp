@@ -305,7 +305,6 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
     //issue since the ram size is oversized to leave room for the heap.
     if((stackSize & (CTXSAVE_STACK_ALIGNMENT-1)) ||
        (ramSize & 0x3) ||
-       (ramSize < ProcessPool::blockSize) ||
        (stackSize>MAX_PROCESS_IMAGE_SIZE) ||
        (dataSegmentSize>MAX_PROCESS_IMAGE_SIZE) ||
        (dataSegmentSize+stackSize+WATERMARK_LEN>ramSize))
@@ -397,8 +396,7 @@ void ProcessImage::load(const ElfProgram& program)
                             dtRelsz=dyn->d_un.d_val;
                             break;
                         case DT_MX_RAMSIZE:
-                            size=dyn->d_un.d_val;
-                            image=ProcessPool::instance()
+                            tie(image,size)=ProcessPool::instance()
                                     .allocate(dyn->d_un.d_val);
                         case DT_MX_STACKSIZE:
                             mainStackSize=dyn->d_un.d_val;

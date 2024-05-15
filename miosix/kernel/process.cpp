@@ -262,10 +262,6 @@ void Process::load(ElfProgram&& program, ArgsBlock&& args)
     argc=args.getNumberOfArguments();
     argvSp=ptr; //Argument array is at the start of the args block
     envp=ptr+args.getEnvIndex();
-    unsigned int elfSize=this->program.getElfSize();
-    unsigned int roundedSize=elfSize;
-    if(elfSize<ProcessPool::blockSize) roundedSize=ProcessPool::blockSize;
-    roundedSize=MPUConfiguration::roundSizeForMPU(roundedSize);
     //TODO: Till a flash file system that ensures proper alignment of the
     //programs loaded in flash is implemented, make the whole flash visible as
     //a big MPU region. This allows a program to read and execute parts of
@@ -278,8 +274,12 @@ void Process::load(ElfProgram&& program, ArgsBlock&& args)
     elfPoolSize=MPUConfiguration::roundSizeForMPU(elfPoolSize);
     mpu=MPUConfiguration(start,elfPoolSize,
             image.getProcessBasePointer(),image.getProcessImageSize());
-//    mpu=MPUConfiguration(this->program.getElfBase(),roundedSize,
-//            image.getProcessBasePointer(),image.getProcessImageSize());
+//     unsigned int elfSize=this->program.getElfSize();
+//     unsigned int roundedSize=elfSize;
+//     if(elfSize<ProcessPool::blockSize) roundedSize=ProcessPool::blockSize;
+//     roundedSize=MPUConfiguration::roundSizeForMPU(roundedSize);
+//     mpu=MPUConfiguration(this->program.getElfBase(),roundedSize,
+//             image.getProcessBasePointer(),image.getProcessImageSize());
 }
 
 void *Process::start(void *)
