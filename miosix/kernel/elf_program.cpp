@@ -31,6 +31,7 @@
 #include <stdexcept>
 #include <cstring>
 #include <cstdio>
+#include <memory>
 
 using namespace std;
 
@@ -49,7 +50,8 @@ static const unsigned int DATA_BASE=0x40000000;
 // class ElfProgram
 //
 
-ElfProgram::ElfProgram(const char *path) : elf(nullptr), size(0), ec(-ENOEXEC)
+ElfProgram::ElfProgram(const char *path)
+    : elf(nullptr), size(0), ec(-ENOEXEC), copiedInRam(false)
 {
     if(path==nullptr || path[0]=='\0')
     {
@@ -72,19 +74,52 @@ ElfProgram::ElfProgram(const char *path) : elf(nullptr), size(0), ec(-ENOEXEC)
         return;
     }
     MemoryMappedFile mmFile=file->getFileFromMemory();
-    if(mmFile.isValid()==false)
+    if(mmFile.isValid())
     {
-        //TODO: load to RAM for filesystems incapable of XIP
-        ec=-EFAULT;
-        return;
+        elf=reinterpret_cast<const unsigned int*>(mmFile.data);
+        size=mmFile.size;
+    } else {
+        //Seek to the end to get file size, then seek back to the start
+        off_t fileSize=file->lseek(0,SEEK_END);
+        off_t error=file->lseek(0,SEEK_SET);
+        if(fileSize<0 || error!=0)
+        {
+            ec=-EFAULT;
+            return;
+        }
+        //File sizes can be 64 bit, but executable files can't
+        if(fileSize & 0xffffffff00000000ull)
+        {
+            ec=-ENOMEM;
+            return;
+        }
+        //Allocate a RAM block in the process pool
+        unsigned int *ramPointer;
+        unsigned int ramSize;
+        tie(ramPointer,ramSize)=ProcessPool::instance().allocate(fileSize);
+        //Protect agains exceptions being thrown from here on
+        auto finalize=[](unsigned int *p){ ProcessPool::instance().deallocate(p); };
+        unique_ptr<unsigned int,decltype(finalize)> finalizer(ramPointer,finalize);
+        //Copy the file content into RAM
+        ssize_t readSize=file->read(ramPointer,fileSize);
+        if(readSize!=fileSize)
+        {
+            ec=-EFAULT;
+            return;
+        }
+        //Zero the eventual slack size
+        memset(reinterpret_cast<unsigned char*>(ramPointer)+fileSize,0,ramSize-fileSize);
+        //Success
+        elf=ramPointer;
+        size=ramSize;
+        copiedInRam=true;
+        finalizer.release();
     }
-    elf=reinterpret_cast<const unsigned int*>(mmFile.data);
-    size=mmFile.size;
     validateHeader();
 }
 
 ElfProgram::ElfProgram(const unsigned int *elf, unsigned int size)
-    : elf(elf), size(size), ec(-ENOEXEC)
+    : elf(elf), size(size), ec(-ENOEXEC), copiedInRam(false)
 {
     validateHeader();
 }
@@ -346,15 +381,26 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
 
 ElfProgram& ElfProgram::operator= (ElfProgram&& rhs)
 {
+    //Deallocate *this if needed
+    if(copiedInRam)
+        ProcessPool::instance().deallocate(const_cast<unsigned int*>(elf));
     //Move rhs fields into *this
     elf=rhs.elf;
     size=rhs.size;
     ec=rhs.ec;
+    copiedInRam=rhs.copiedInRam;
     //Invalidate rhs
     rhs.elf=nullptr;
     rhs.size=0;
     rhs.ec=-ENOEXEC;
+    rhs.copiedInRam=false;
     return *this;
+}
+
+ElfProgram::~ElfProgram()
+{
+    if(copiedInRam)
+        ProcessPool::instance().deallocate(const_cast<unsigned int*>(elf));
 }
 
 //

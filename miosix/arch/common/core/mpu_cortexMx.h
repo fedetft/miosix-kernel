@@ -71,8 +71,8 @@ public:
      * \param imageBase base address of the Process RAM image
      * \param imageSize size of the Process RAM image
      */
-    MPUConfiguration(unsigned int *elfBase, unsigned int elfSize,
-            unsigned int *imageBase, unsigned int imageSize);
+    MPUConfiguration(const unsigned int *elfBase, unsigned int elfSize,
+            const unsigned int *imageBase, unsigned int imageSize);
     
     /**
      * \internal

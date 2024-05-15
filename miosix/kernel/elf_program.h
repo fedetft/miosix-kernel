@@ -45,10 +45,14 @@ public:
     /**
      * Default constructor
      */
-    ElfProgram() : elf(nullptr), size(0), ec(-ENOEXEC) {}
+    ElfProgram() : elf(nullptr), size(0), ec(-ENOEXEC), copiedInRam(false) {}
 
     /**
      * Constructor from file.
+     * This constructor may allocate memory to store the content of the elf file
+     * if the file is not in a XIP capable filesystem.
+     * In this case the resulting ElfProgram class will retain ownership of the
+     * allocated memory and deallocate it in the destructor.
      *
      * The loading operation can fail if the file could not be found, is not a
      * valid elf file or not enough memory was available to complete the
@@ -79,6 +83,12 @@ public:
      * \return 0 if this is a valid elf file, or an error code on failure
      */
     int errorCode() const { return ec; }
+
+    /**
+     * \return true if the elf file resided in a non-XIP capable filesystem,
+     * and thus it was required to copy the file content in RAM
+     */
+    bool isCopiedInRam() const { return copiedInRam; }
     
     /**
      * \return the a pointer to the elf header
@@ -136,6 +146,12 @@ public:
     ElfProgram(const ElfProgram&) = delete;
     ElfProgram& operator= (const ElfProgram&) = delete;
     ElfProgram& operator= (ElfProgram&& rhs);
+
+    /**
+     * Destructor
+     */
+    ~ElfProgram();
+
 private:
 
     /**
@@ -167,8 +183,9 @@ private:
     }
     
     const unsigned int *elf; ///<Pointer to the content of the elf file
-    unsigned int size; ///< Size in bytes of the elf file
-    int ec; ///< Error code
+    unsigned int size;  ///< Size in bytes of the elf file
+    int ec;             ///< Error code
+    bool copiedInRam; ///< If true, elf is allocated in RAM and *this owns it
 };
 
 /**

@@ -46,8 +46,8 @@ unsigned int sizeToMpu(unsigned int size)
 // class MPUConfiguration
 //
 
-MPUConfiguration::MPUConfiguration(unsigned int *elfBase, unsigned int elfSize,
-        unsigned int *imageBase, unsigned int imageSize)
+MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elfSize,
+        const unsigned int *imageBase, unsigned int imageSize)
 {
     // NOTE: The ARM documentation is unclear about the effect of the shareable
     // bit on a single core architecture. Experimental evidence on an STM32F476
