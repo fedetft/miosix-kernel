@@ -379,13 +379,7 @@ public:
         if(fd<0 || fd>=MAX_OPEN_FILES) return intrusive_ref_ptr<FileBase>();
         return atomic_load(files+fd);
     }
-    
-    /**
-     * Destructor
-     */
-    ~FileDescriptorTable();
-    
-private:
+
     /**
      * Append cwd to path if it is not an absolute path
      * \param path an absolute or relative path, must not be null
@@ -393,6 +387,13 @@ private:
      * PATH_MAX
      */
     std::string absolutePath(const char *path);
+    
+    /**
+     * Destructor
+     */
+    ~FileDescriptorTable();
+    
+private:
     
     /**
      * Return file information (implements both stat and lstat)

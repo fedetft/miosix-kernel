@@ -26,6 +26,7 @@
  ***************************************************************************/
 
 #include "elf_program.h"
+#include "process.h"
 #include "process_pool.h"
 #include "filesystem/file_access.h"
 #include <stdexcept>
@@ -50,23 +51,27 @@ static const unsigned int DATA_BASE=0x40000000;
 // class ElfProgram
 //
 
-ElfProgram::ElfProgram(const char *path)
+ElfProgram::ElfProgram(const char *name)
     : elf(nullptr), size(0), ec(-ENOEXEC), copiedInRam(false)
 {
-    if(path==nullptr || path[0]=='\0')
+    if(name==nullptr || name[0]=='\0')
     {
         ec=-EFAULT;
         return;
     }
-    //TODO: expand ./program using cwd of correct file descriptor table
-    string filePath=path;
-    ResolvedPath openData=FilesystemManager::instance().resolvePath(filePath);
+    string path=getFileDescriptorTable().absolutePath(name);
+    if(path.empty())
+    {
+        ec=-ENAMETOOLONG;
+        return;
+    }
+    ResolvedPath openData=FilesystemManager::instance().resolvePath(path);
     if(openData.result<0)
     {
         ec=-ENOENT;
         return;
     }
-    StringPart relativePath(filePath,string::npos,openData.off);
+    StringPart relativePath(path,string::npos,openData.off);
     intrusive_ref_ptr<FileBase> file;
     if(int res=openData.fs->open(file,relativePath,O_RDONLY,0)<0)
     {

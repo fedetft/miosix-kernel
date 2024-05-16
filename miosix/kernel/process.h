@@ -74,6 +74,9 @@ public:
      */
     pid_t getPid() const { return pid; }
     
+    /**
+     * \return the process file descriptor table
+     */
     FileDescriptorTable& getFileTable() { return fileTable; }
     
 protected:

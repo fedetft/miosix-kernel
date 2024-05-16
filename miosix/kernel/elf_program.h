@@ -58,9 +58,9 @@ public:
      * valid elf file or not enough memory was available to complete the
      * operation. Use errorCode() to check for errors
      *
-     * \param path executable file path
+     * \param name executable file name
      */
-    ElfProgram(const char *path);
+    ElfProgram(const char *name);
 
     /**
      * Constructor from already mapped memory, usually the microcontroller's

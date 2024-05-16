@@ -101,7 +101,7 @@ FileDescriptorTable::FileDescriptorTable(const FileDescriptorTable& rhs)
 
 int FileDescriptorTable::open(const char* name, int flags, int mode)
 {
-    if(name==0 || name[0]=='\0') return -EFAULT;
+    if(name==nullptr || name[0]=='\0') return -EFAULT;
     Lock<FastMutex> l(mutex);
     int fd=getAvailableFd();
     if(fd<0) return fd;
@@ -320,14 +320,6 @@ int FileDescriptorTable::statImpl(const char* name, struct stat* pstat, bool f)
     return FilesystemManager::instance().statHelper(path,pstat,f);
 }
 
-FileDescriptorTable::~FileDescriptorTable()
-{
-    FilesystemManager::instance().removeFileDescriptorTable(this);
-    //There's no need to lock the mutex and explicitly close files eventually
-    //left open, because if there are other threads accessing this while we are
-    //being deleted we have bigger problems anyway
-}
-
 string FileDescriptorTable::absolutePath(const char* path)
 {
     size_t len=strlen(path);
@@ -336,6 +328,14 @@ string FileDescriptorTable::absolutePath(const char* path)
     Lock<FastMutex> l(mutex);
     if(len+cwd.length()>PATH_MAX) return "";
     return cwd+path;
+}
+
+FileDescriptorTable::~FileDescriptorTable()
+{
+    FilesystemManager::instance().removeFileDescriptorTable(this);
+    //There's no need to lock the mutex and explicitly close files eventually
+    //left open, because if there are other threads accessing this while we are
+    //being deleted we have bigger problems anyway
 }
 
 int FileDescriptorTable::getAvailableFd()
