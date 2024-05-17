@@ -217,8 +217,11 @@ private:
         in.seekg(0); //Make sure we write the whole file
         auto inode=img.appendStream(in,fileAlignment);
 
-        // Compute the entire directory inode size
+        // Compute the file inode size. If it is zero, append one dummy extra
+        // byte to the output stream to ensure the next file has a different
+        // inode regardless of its alignment.
         auto size=img.size()-inode; //inode is also address of first byte
+        if(size==0) img.append<unsigned char>(0xFE,1);
         return InodeInfo(inode,size);
     }
 
