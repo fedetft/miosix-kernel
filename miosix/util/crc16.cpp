@@ -5,7 +5,7 @@ namespace miosix {
 
 /**
  * 16 bit ccitt crc calculation
- * \param crc the firs time the function is called, pass 0xffff, all the other
+ * \param crc The first time the function is called, pass 0xffff, all the other
  * times, pass the previous value. The value returned after the last call is
  * the desired crc
  * \param data a byte of the message
