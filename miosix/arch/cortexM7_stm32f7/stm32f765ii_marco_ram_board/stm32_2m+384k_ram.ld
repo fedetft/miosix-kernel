@@ -8,7 +8,7 @@
  * This linker script puts:
  * - read only data and code (.text, .rodata, .eh_*) in FLASH
  * - the 512Byte main (IRQ) stack in the DTCM 128KB RAM
- * - .data, .bss, heap (and stacks) in SRAM1 (384kB) and SRAM2 (16kB)
+ * - .data, .bss, heap (and stacks) in SRAM1 (368kB) and SRAM2 (16kB)
  */
 
 /*
