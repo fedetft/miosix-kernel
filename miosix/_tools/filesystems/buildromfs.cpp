@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
     fstream io(argv[1], ios::in | ios::out | ios::trunc | ios::binary);
     if(!io)
     {
-        cerr<<"Can't open otput file "<<argv[1]<<endl;
+        cerr<<"Can't open output file "<<argv[1]<<endl;
         return 1;
     }
 
