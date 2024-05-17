@@ -5438,7 +5438,7 @@ static void benchmark_3()
 //
 /*
 tests:
-Mutex lonk/unlock time
+Mutex lock/unlock time
 */
 
 volatile bool b4_end=false;
