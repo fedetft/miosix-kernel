@@ -50,7 +50,7 @@ image: main $(TOOLS_DIR)/build/buildromfs
 
 $(TOOLS_DIR)/build/buildromfs:
 	$(ECHO) "[HOST] buildromfs"
-	$(Q)mkdir $(TOOLS_DIR)/build
+	$(Q)mkdir -p $(TOOLS_DIR)/build
 	$(Q)cd $(TOOLS_DIR)/build && cmake --log-level=ERROR .. && $(MAKE) -s
 
 all-recursive:
