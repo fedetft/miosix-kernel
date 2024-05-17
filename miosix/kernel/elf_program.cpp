@@ -47,6 +47,164 @@ namespace miosix {
 ///By convention, in an elf file for Miosix, the data segment starts @ this addr
 static const unsigned int DATA_BASE=0x40000000;
 
+/**
+ * Cache of programs loaded in RAM, to allow sharing memory for the code part
+ * of loaded programs
+ */
+class ProgramCache
+{
+public:
+    /**
+     * Load a program
+     * \param name file name
+     * \param elf, if the load was successful, the pointer to the memory region
+     * where the program is loaded is stored here
+     * \param size, if the loa was successful, the memory region size in bytes
+     * (despite the pointer is to unsigned in) is stored here
+     * \param needUnload if true, the requested program is in a non-XIP capable
+     * filesystem, so it was needed to load it in RAM and a call to unload is
+     * required to unload the program when no longer needed. If false, the
+     * requested program is in a XIP capable filesystem, so the pointer returned
+     * is to a memory area that does not need unloading, and calling unload is
+     * not required.
+     * \return 0 on success, an error code on error
+     */
+    static int load(const char *name, const unsigned int *& elf,
+             unsigned int& size, bool& needUnload);
+
+    /**
+     * Unload a program that was loaded in RAM
+     * \param elf pointer to the program to unload
+     */
+    static void unload(const unsigned int *elf);
+
+private:
+    /**
+     * An entry into the cache of programs loaded in RAM
+     */
+    class Entry
+    {
+    public:
+        /**
+         * Constructor
+         * \param inode inode of file on disk, used as key
+         * \param device filesystem id, used as key
+         * \param elf pointer to the program RAM allocated memory region
+         * \param size memory region size
+         */
+        Entry(ino_t inode, dev_t device, unsigned int *elf, unsigned int size)
+            : inode(inode), device(device), elf(elf), size(size), useCount(1) {}
+        ino_t inode;
+        dev_t device;
+        unsigned int *elf;
+        unsigned int size;
+        int useCount; ///< Used for reference counting the cache entry
+    };
+
+    static FastMutex m; ///< Protect programs against concurrent accesses
+    static list<Entry> programs; ///< Cache entries
+};
+
+//
+// class ProgramCache
+//
+int ProgramCache::load(const char *name, const unsigned int *& elf,
+                       unsigned int& size, bool& needUnload)
+{
+    if(name==nullptr || name[0]=='\0') return -EFAULT;
+    string path=getFileDescriptorTable().absolutePath(name);
+    if(path.empty()) return -ENAMETOOLONG;
+    ResolvedPath openData=FilesystemManager::instance().resolvePath(path);
+    if(openData.result<0) return -ENOENT;
+    StringPart relativePath(path,string::npos,openData.off);
+    intrusive_ref_ptr<FileBase> file;
+    if(int res=openData.fs->open(file,relativePath,O_RDONLY,0)<0) return res;
+    MemoryMappedFile mmFile=file->getFileFromMemory();
+    //Program is in a XIP-capable filesystem, pass the pointer directly
+    if(mmFile.isValid())
+    {
+        elf=reinterpret_cast<const unsigned int*>(mmFile.data);
+        size=mmFile.size;
+        needUnload=false;
+        DBG("ProgramCache::load(%s): found %p in XIP fs\n",name,elf);
+        return 0;
+    }
+    //Search program in cache
+    //NOTE: if the program is modified on disk in a way that the inode does not
+    //change and at least one instance of the program is running, subsequent
+    //attempts to run the same program will hit the cache and return the old
+    //version, i.e. the one that was overwritten on disk. We would need some
+    //kind of inotify framework to invalidate the cache...
+    struct stat s;
+    if(file->fstat(&s)) return -EFAULT;
+    Lock<FastMutex> l(m);
+    //I know, lookup is O(n), but we need to index the cache by <inode,dev>
+    //when loading, and index it by pointer when unloading, while also caring
+    //about code size. On top of that, we don't expect many loaded programs
+    //and spawning a process is already a heavy operation so this won't be
+    //the bottleneck anyway
+    for(auto& p : programs)
+    {
+        if(p.inode!=s.st_ino || p.device!=s.st_dev) continue;
+        //Found, increment use count and return
+        p.useCount++;
+        elf=p.elf;
+        size=p.size;
+        needUnload=true;
+        DBG("ProgramCache::load(%s): found %p in cache use count %d\n",
+            name,elf,p.useCount);
+        return 0;
+    }
+    //Not found, load program in cache
+    //Seek to the end to get file size, then seek back to the start
+    off_t fileSize=file->lseek(0,SEEK_END);
+    off_t error=file->lseek(0,SEEK_SET);
+    if(fileSize<0 || error!=0) return -EFAULT;
+    //File sizes can be 64 bit, but executable files can't
+    if(fileSize & 0xffffffff00000000ull) return -ENOMEM;
+    //Allocate a RAM block in the process pool
+    unsigned int *ramPointer;
+    unsigned int ramSize;
+    tie(ramPointer,ramSize)=ProcessPool::instance().allocate(fileSize);
+    //Protect agains exceptions being thrown from here on
+    auto finalize=[](unsigned int *p){ ProcessPool::instance().deallocate(p); };
+    unique_ptr<unsigned int,decltype(finalize)> finalizer(ramPointer,finalize);
+    //Copy the file content into RAM
+    ssize_t readSize=file->read(ramPointer,fileSize);
+    if(readSize!=fileSize) return -EFAULT;
+    //Zero the eventual slack size
+    memset(reinterpret_cast<unsigned char*>(ramPointer)+fileSize,0,ramSize-fileSize);
+    //Success
+    programs.push_front(Entry(s.st_ino,s.st_dev,ramPointer,ramSize));
+    elf=ramPointer;
+    size=ramSize;
+    needUnload=true;
+    finalizer.release();
+    DBG("ProgramCache::load(%s): added %p in cache\n",name,elf);
+    return 0;
+}
+
+void ProgramCache::unload(const unsigned int *elf)
+{
+    Lock<FastMutex> l(m);
+    for(auto it=begin(programs);it!=end(programs);++it)
+    {
+        if(it->elf!=elf) continue;
+        DBG("ProgramCache::unload(%p): use count %d\n",elf,it->useCount);
+        if(--it->useCount<=0)
+        {
+            DBG("ProgramCache::unload(%p): deallocate\n",elf);
+            ProcessPool::instance().deallocate(it->elf);
+            programs.erase(it);
+        }
+        return;
+    }
+    DBG("ProgramCache::unload(%p): bug: not in cache\n",elf);
+}
+
+FastMutex ProgramCache::m;
+list<ProgramCache::Entry> ProgramCache::programs;
+
 //
 // class ElfProgram
 //
@@ -54,79 +212,8 @@ static const unsigned int DATA_BASE=0x40000000;
 ElfProgram::ElfProgram(const char *name)
     : elf(nullptr), size(0), ec(-ENOEXEC), copiedInRam(false)
 {
-    if(name==nullptr || name[0]=='\0')
-    {
-        ec=-EFAULT;
-        return;
-    }
-    string path=getFileDescriptorTable().absolutePath(name);
-    if(path.empty())
-    {
-        ec=-ENAMETOOLONG;
-        return;
-    }
-    ResolvedPath openData=FilesystemManager::instance().resolvePath(path);
-    if(openData.result<0)
-    {
-        ec=-ENOENT;
-        return;
-    }
-    StringPart relativePath(path,string::npos,openData.off);
-    intrusive_ref_ptr<FileBase> file;
-    if(int res=openData.fs->open(file,relativePath,O_RDONLY,0)<0)
-    {
-        ec=res;
-        return;
-    }
-    MemoryMappedFile mmFile=file->getFileFromMemory();
-    if(mmFile.isValid())
-    {
-        elf=reinterpret_cast<const unsigned int*>(mmFile.data);
-        size=mmFile.size;
-    } else {
-        //Seek to the end to get file size, then seek back to the start
-        off_t fileSize=file->lseek(0,SEEK_END);
-        off_t error=file->lseek(0,SEEK_SET);
-        if(fileSize<0 || error!=0)
-        {
-            ec=-EFAULT;
-            return;
-        }
-        //File sizes can be 64 bit, but executable files can't
-        if(fileSize & 0xffffffff00000000ull)
-        {
-            ec=-ENOMEM;
-            return;
-        }
-        //Allocate a RAM block in the process pool
-        unsigned int *ramPointer;
-        unsigned int ramSize;
-        tie(ramPointer,ramSize)=ProcessPool::instance().allocate(fileSize);
-        //Protect agains exceptions being thrown from here on
-        auto finalize=[](unsigned int *p){ ProcessPool::instance().deallocate(p); };
-        unique_ptr<unsigned int,decltype(finalize)> finalizer(ramPointer,finalize);
-        //Copy the file content into RAM
-        ssize_t readSize=file->read(ramPointer,fileSize);
-        if(readSize!=fileSize)
-        {
-            ec=-EFAULT;
-            return;
-        }
-        //Zero the eventual slack size
-        memset(reinterpret_cast<unsigned char*>(ramPointer)+fileSize,0,ramSize-fileSize);
-        //Success
-        elf=ramPointer;
-        size=ramSize;
-        copiedInRam=true;
-        finalizer.release();
-    }
-    validateHeader();
-}
-
-ElfProgram::ElfProgram(const unsigned int *elf, unsigned int size)
-    : elf(elf), size(size), ec(-ENOEXEC), copiedInRam(false)
-{
-    validateHeader();
+    if(int ec=ProgramCache::load(name,elf,size,copiedInRam)) this->ec=ec;
+    else validateHeader();
 }
 
 void ElfProgram::validateHeader()
@@ -387,8 +474,7 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
 ElfProgram& ElfProgram::operator= (ElfProgram&& rhs)
 {
     //Deallocate *this if needed
-    if(copiedInRam)
-        ProcessPool::instance().deallocate(const_cast<unsigned int*>(elf));
+    if(copiedInRam) ProgramCache::unload(elf);
     //Move rhs fields into *this
     elf=rhs.elf;
     size=rhs.size;
@@ -404,8 +490,7 @@ ElfProgram& ElfProgram::operator= (ElfProgram&& rhs)
 
 ElfProgram::~ElfProgram()
 {
-    if(copiedInRam)
-        ProcessPool::instance().deallocate(const_cast<unsigned int*>(elf));
+    if(copiedInRam) ProgramCache::unload(elf);
 }
 
 //

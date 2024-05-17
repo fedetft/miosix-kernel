@@ -77,7 +77,11 @@ public:
      * \param size size in bytes (despite elf is an unsigned int*) of the
      * content of the elf file
      */
-    ElfProgram(const unsigned int *elf, unsigned int size);
+    ElfProgram(const unsigned int *elf, unsigned int size)
+        : elf(elf), size(size), ec(-ENOEXEC), copiedInRam(false)
+    {
+        validateHeader();
+    }
 
     /**
      * \return 0 if this is a valid elf file, or an error code on failure
@@ -185,7 +189,7 @@ private:
     const unsigned int *elf; ///<Pointer to the content of the elf file
     unsigned int size;  ///< Size in bytes of the elf file
     int ec;             ///< Error code
-    bool copiedInRam; ///< If true, elf is allocated in RAM and *this owns it
+    bool copiedInRam;   ///< If true, elf is allocated in RAM and *this owns it
 };
 
 /**
