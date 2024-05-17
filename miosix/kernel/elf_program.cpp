@@ -567,7 +567,7 @@ void ProcessImage::load(const ElfProgram& program)
         const Elf32_Rel *rel=reinterpret_cast<const Elf32_Rel*>(base+dtRel);
         const int relSize=dtRelsz/sizeof(Elf32_Rel);
         const unsigned int ramBase=reinterpret_cast<unsigned int>(image);
-        DBG("Relocations -- start (code base @0x%x, data base @ 0x%x)\n",base,ramBase);
+        //DBG("Relocations -- start (code base @0x%x, data base @ 0x%x)\n",base,ramBase);
         for(int i=0;i<relSize;i++,rel++)
         {
             unsigned int offset=(rel->r_offset-DATA_BASE)/4;
@@ -576,12 +576,12 @@ void ProcessImage::load(const ElfProgram& program)
                 case R_ARM_RELATIVE:
                     if(image[offset]>=DATA_BASE)
                     {
-                        DBG("R_ARM_RELATIVE offset 0x%x from 0x%x to 0x%x\n",
-                            offset*4,image[offset],image[offset]+ramBase-DATA_BASE);
+                        //DBG("R_ARM_RELATIVE offset 0x%x from 0x%x to 0x%x\n",
+                        //    offset*4,image[offset],image[offset]+ramBase-DATA_BASE);
                         image[offset]+=ramBase-DATA_BASE;
                     } else {
-                        DBG("R_ARM_RELATIVE offset 0x%x from 0x%x to 0x%x\n",
-                            offset*4,image[offset],image[offset]+base);
+                        //DBG("R_ARM_RELATIVE offset 0x%x from 0x%x to 0x%x\n",
+                        //    offset*4,image[offset],image[offset]+base);
                         image[offset]+=base;
                     }
                     break;
@@ -589,7 +589,7 @@ void ProcessImage::load(const ElfProgram& program)
                     break;
             }
         }
-        DBG("Relocations -- end\n");
+        //DBG("Relocations -- end\n");
     }
 }
 
