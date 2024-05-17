@@ -70,6 +70,8 @@ public:
         align(alignment);
         unsigned int offset=totalSize;
         io<<is.rdbuf();
+        // Clear the fail bit on the output if the input was empty
+        if(io.fail() && is.good()) io.clear();
         totalSize=io.tellp();
         return offset;
     }
