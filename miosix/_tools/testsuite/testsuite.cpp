@@ -37,16 +37,12 @@
 #include <stdexcept>
 #include <algorithm>
 #include <vector>
-#include <set>
 #include <cassert>
 #include <functional>
-#include <fcntl.h>
-#include <sys/stat.h>
 #include <sys/wait.h>
 #include <signal.h>
 #include <pthread.h>
-#include <errno.h>
-#include <dirent.h>
+#include <cerrno>
 #include <ext/atomicity.h>
 #include <thread>
 #include <mutex>
@@ -54,6 +50,7 @@
 #include <future>
 #include <chrono>
 #include <atomic>
+#include <spawn.h>
 
 #include "miosix.h"
 #include "config/miosix_settings.h"
@@ -126,6 +123,9 @@ static void test_27();
 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
 void testCacheAndDMA();
 #endif //_ARCH_CORTEXM7_STM32F7/H7
+#ifdef WITH_PROCESSES
+void test_syscalls();
+#endif //WITH_PROCESSES
 //Benchmark functions
 static void benchmark_1();
 static void benchmark_2();
@@ -148,6 +148,7 @@ int main()
         iprintf("Type:\n"
                 " 't' for kernel test\n"
                 " 'k' for kercall test (includes filesystem)\n"
+                " 'c' for syscall test (requires processes)\n"
                 " 'x' for exception test\n"
                 " 'b' for benchmarks\n"
                 " 's' for shutdown\n");
@@ -201,6 +202,13 @@ int main()
                 break;
             case 'k':
                 test_calls();
+                break;
+            case 'c':
+                #ifdef WITH_PROCESSES
+                test_syscalls();
+                #else // WITH_PROCESSES
+                iprintf("Error, process support is disabled\n");
+                #endif // WITH_PROCESSES
                 break;
             case 'x':
                 #ifndef __NO_EXCEPTIONS
@@ -4114,6 +4122,37 @@ void testCacheAndDMA()
 #endif //_ARCH_CORTEXM7_STM32F7/H7
 
 //
+// Kercalls test (in a separate file, shared with syscalls)
+//
+
+#include "test_calls.cpp"
+
+//
+// Syscall test (executed in a separate process)
+//
+
+void test_syscalls()
+{
+    test_name("syscalls");
+    pid_t pid;
+    const char *arg[] = { "/bin/test_process", nullptr };
+    const char *env[] = { nullptr };
+    int ec=posix_spawn(&pid,arg[0],NULL,NULL,(char* const*)arg,(char* const*)env);
+    if(ec!=0) fail("posix_spawn");
+    pid=wait(&ec);
+    iprintf("pid %d exited\n",pid);
+    if(WIFEXITED(ec) && WEXITSTATUS(ec)!=0)
+    {
+        iprintf("Exit code is %d\n",WEXITSTATUS(ec));
+        fail("non-zero exit code");
+    } else if(WIFSIGNALED(ec)) {
+        if(WTERMSIG(ec)==SIGSEGV) fail("Process segfaulted");
+        else fail("Process terminated due to an error\n");
+    }
+    pass();
+}
+
+//
 // C++ exceptions thread safety test
 //
 
@@ -4429,5 +4468,3 @@ static void benchmark_4()
     }
     iprintf("%d fast disable/enable interrupts pairs per second\n",i);
 }
-
-#include "test_calls.cpp"

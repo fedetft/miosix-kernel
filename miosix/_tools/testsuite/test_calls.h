@@ -31,4 +31,14 @@
 
 #pragma once
 
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cerrno>
+#include <string>
+#include <dirent.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <set>
+
 void test_calls(void);

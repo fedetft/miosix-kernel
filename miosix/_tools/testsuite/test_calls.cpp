@@ -40,7 +40,9 @@ static void fs_test_6();
 
 void test_calls(void)
 {
+    #ifndef IN_PROCESS
     ledOn();
+    #endif
     #ifdef WITH_FILESYSTEM
     fs_test_1();
     fs_test_2();
@@ -51,8 +53,10 @@ void test_calls(void)
     #else //WITH_FILESYSTEM
     iprintf("Filesystem tests skipped, filesystem support is disabled\n");
     #endif //WITH_FILESYSTEM
+    #ifndef IN_PROCESS
     ledOff();
     Thread::sleep(500);//Ensure all threads are deleted.
+    #endif
     iprintf("\n*** All tests were successful\n\n");
 }
 
@@ -193,6 +197,7 @@ static void fs_test_1()
                 iprintf("mkdir returned %d\n",result);
                 fail("Directory::mkdir()");
     }
+    #ifndef IN_PROCESS
     //Test concurrent file write access
     fs_1_error=false;
     Thread *t1=Thread::create(fs_t1_p1,2048+512,1,NULL,Thread::JOINABLE);
@@ -202,6 +207,13 @@ static void fs_test_1()
     t2->join();
     t3->join();
     if(fs_1_error) fail("Concurrent write");
+    #else
+    //TODO: threads are not supported inside processes, run tests serially
+    fs_t1_p1(NULL);
+    fs_t1_p2(NULL);
+    fs_t1_p3(NULL);
+    if(fs_1_error) fail("write");
+    #endif
     //Testing file read
     char *buf=new char[1024];
     int i,j,k;
@@ -514,8 +526,12 @@ unsigned int checkInodes(const char *dir, unsigned int curInode,
 static void fs_test_4()
 {
     test_name("Directory listing");
-    unsigned int curInode=0, parentInode=0, devFsInode=0, binFsInode=0, sdInode=0;
-    short curDevice=0, devDevice=0, binDevice=0, sdDevice=0;
+    unsigned int curInode=0, parentInode=0, binFsInode=0, sdInode=0;
+    short curDevice=0, binDevice=0, sdDevice=0;
+    #ifdef WITH_DEVFS
+    unsigned int devFsInode=0;
+    short devDevice=0;
+    #endif
     DIR *d=opendir("/");
     if(d==NULL) fail("opendir");
     puts("/");
@@ -546,9 +562,13 @@ static void fs_test_4()
             st.st_dev=curDevice;
             parentInode=de->d_ino;
         } else if(!strcmp(de->d_name,"dev")) {
+            #ifdef WITH_DEVFS
             if(de->d_type!=DT_DIR) fail("d_type");
             devFsInode=st.st_ino;
             devDevice=st.st_dev;
+            #else //WITH_DEVFS
+            fail("dev mountpoint exists but WITH_DEVFS is not configured");
+            #endif
         } else if(!strcmp(de->d_name,"bin")) {
             if(de->d_type!=DT_DIR) fail("d_type");
             binFsInode=st.st_ino;
