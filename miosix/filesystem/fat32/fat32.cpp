@@ -163,6 +163,7 @@ int Fat32Directory::getdents(void *dp, int len)
             addTerminatingEntry(&buffer,end);
             return buffer-begin;
         }
+        if(fi.fattrib & AM_VOL) continue; // Ignore volume labels
         char type=fi.fattrib & AM_DIR ? DT_DIR : DT_REG;
         if(addEntry(&buffer,end,fi.inode,type,fi.lfname)<0)
         {
