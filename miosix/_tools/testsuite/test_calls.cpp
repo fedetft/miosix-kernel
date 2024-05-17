@@ -866,7 +866,7 @@ static void fs_test_6()
     FILE *f=fopen("/sd/trunctest1.txt","rb"); //Reuse previously made file
     if(f==NULL) fail("fopen");
     result=ftruncate(fileno(f),0);
-    if(result!=-1 || (errno!=EINVAL && errno!=EBADF)) fail("ftrncate open for reading");
+    if(result!=-1 || (errno!=EINVAL && errno!=EBADF)) fail("ftruncate open for reading");
     checkFile(f,50,0);
     fclose(f);
     pass();
