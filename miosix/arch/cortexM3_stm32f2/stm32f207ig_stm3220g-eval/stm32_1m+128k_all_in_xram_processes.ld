@@ -28,10 +28,6 @@ _heap_end = _main_stack_top - _main_stack_size;
 _process_pool_start = _main_stack_top;
 _process_pool_end = 0x64200000;
 
-/* TODO: for now, leave the whole RAM readable by processes */
-_elf_pool_start = 0x64000000;
-_elf_pool_end   = 0x64000000+1024*1024; 
-
 /* identify the Entry Point  */
 ENTRY(_Z13Reset_Handlerv)
 

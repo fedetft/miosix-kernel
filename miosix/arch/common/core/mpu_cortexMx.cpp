@@ -26,9 +26,12 @@
  ***************************************************************************/
 
 #include "mpu_cortexMx.h"
+#include "kernel/error.h"
 #include <cstdio>
 #include <cstring>
 #include <cassert>
+
+using namespace std;
 
 namespace miosix {
 
@@ -84,6 +87,37 @@ void MPUConfiguration::dumpConfiguration()
 unsigned int MPUConfiguration::roundSizeForMPU(unsigned int size)
 {
     return 1<<(sizeToMpu(size)+1);
+}
+
+pair<const unsigned int*, unsigned int> MPUConfiguration::roundRegionForMPU(
+    const unsigned int *ptr, unsigned int size)
+{
+    constexpr unsigned int maxSize=0x80000000;
+    //NOTE: worst case is p=2147483632 size=32, a memory block in the middle of
+    //the 2GB mark. To meet the constraint of returning a pointer aligned to its
+    //size we would need to return 0 as pointer, and 4GB as size, the whole
+    //address space. This is however not possible as 4GB does not fit in an
+    //unsigned int and would overflow size. To prevent an infinite loop, the
+    //returned aligned size is limited to less than 2GB, thereby preventing
+    //cases when the algorithm would reach 2GB and try to increase it further.
+    //Note that the algorithm would fail not only in the impossible worst case
+    //but also in cases where a 2GB size would be enough. This is not a concern
+    //as in practical applications memory blocks are within the microcontroller
+    //flash memory, and the memory is always aligned to its size, so the maximum
+    //aligned block this algorithm would return is just the entire flash memory,
+    //whose size is far less than 2GB in modern microcontrollers.
+    unsigned int p=reinterpret_cast<unsigned int>(ptr);
+    unsigned int x=roundSizeForMPU(size);
+    for(;;)
+    {
+        if(x>=maxSize) errorHandler(UNEXPECTED);
+        unsigned int ap=p & (~(x-1));
+        unsigned int addsz=p-ap;
+        unsigned int y=roundSizeForMPU(size+addsz);
+        //iprintf("ap=%u addsz=%u x=%u y=%u\n",ap,addsz,x,y);
+        if(y==x) return {reinterpret_cast<const unsigned int*>(ap),x};
+        x=y;
+    }
 }
 
 bool MPUConfiguration::withinForReading(const void *ptr, size_t size) const

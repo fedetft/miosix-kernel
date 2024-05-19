@@ -262,31 +262,16 @@ void Process::load(ElfProgram&& program, ArgsBlock&& args)
     argc=args.getNumberOfArguments();
     argvSp=ptr; //Argument array is at the start of the args block
     envp=ptr+args.getEnvIndex();
-    const unsigned int *elfBase;
-    unsigned int elfSize;
-    if(this->program.isCopiedInRam())
-    {
-        elfBase=reinterpret_cast<unsigned int*>(this->program.getElfBase());
-        elfSize=this->program.getElfSize();
-    } else {
-        //TODO: Till a flash file system that ensures proper alignment of the
-        //programs loaded in flash is implemented, make the whole flash visible
-        //as a big MPU region. This allows a program to read and execute parts
-        //of other programs but not to write anything.
-        extern unsigned char _elf_pool_start asm("_elf_pool_start");
-        extern unsigned char _elf_pool_end asm("_elf_pool_end");
-        unsigned int *start=reinterpret_cast<unsigned int*>(&_elf_pool_start);
-        unsigned int *end=reinterpret_cast<unsigned int*>(&_elf_pool_end);
-        unsigned int elfPoolSize=(end-start)*sizeof(int);
-        elfBase=start;
-        elfSize=MPUConfiguration::roundSizeForMPU(elfPoolSize);
-        //unsigned int elfSize=this->program.getElfSize();
-        //unsigned int roundedSize=elfSize;
-        //if(elfSize<ProcessPool::blockSize) roundedSize=ProcessPool::blockSize;
-        //roundedSize=MPUConfiguration::roundSizeForMPU(roundedSize);
-        //elfBase=this->program.getElfBase();
-        //elfSize=roundedSize;
-    }
+    auto elfBase=reinterpret_cast<const unsigned int*>(this->program.getElfBase());
+    unsigned int elfSize=this->program.getElfSize();
+    //XIP filesystems may store elf programs without the required alignment to
+    //support MPU operation, thus round up the elf region so it fits the minimum
+    //MPU-capable region. This makes it possible for a process in a XIP
+    //filesystem to access more than the elf itself, but since the access is
+    //read-only, memory protection is preserved. TODO: use ARM MPU sub-region
+    //disable feature to further limit region size
+    if(this->program.isCopiedInRam()==false)
+        tie(elfBase,elfSize)=MPUConfiguration::roundRegionForMPU(elfBase,elfSize);
     mpu=MPUConfiguration(elfBase,elfSize,
             image.getProcessBasePointer(),image.getProcessImageSize());
 }
