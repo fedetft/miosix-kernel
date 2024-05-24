@@ -363,18 +363,24 @@ clock_t times(struct tms *tim)
     constexpr int divFactor=1000000000/CLOCKS_PER_SEC;
     clock_t utime=tp.tv_sec*CLOCKS_PER_SEC + tp.tv_nsec/divFactor;
 
-    //Actually, we should return tim.utime or -1 on failure, but clock_t is
-    //unsigned, so if we return tim.utime and someone calls _times_r in an
-    //unlucky moment where tim.utime is 0xffffffff it would be interpreted as -1
-    //IMHO, the specifications are wrong since returning an unsigned leaves
-    //no value left to return in case of errors. Thus 0 is returned if a valid
-    //pointer is passed, and tim.utime if the pointer is nullptr
-    if(tim==nullptr) return utime;
-    tim->tms_utime=utime;
-    tim->tms_stime=0;
-    tim->tms_cutime=0;
-    tim->tms_cstime=0;
-    return 0;
+    //Unfortunately, the behavior of _times_r is poorly specified and ambiguous.
+    //The return value is either tim.utime or -1 on failure, but clock_t is
+    //unsigned. If someone calls _times_r in an unlucky moment where tim.utime
+    //is 0xffffffff it could be interpreted as the -1 error code even if there
+    //is no error.
+    //This is not as unlikely as it seems because CLOCKS_PER_SEC is a relatively
+    //huge number (100 for Miosix's implementation).
+    //To solve the ambiguity Miosix never returns 0xffffffff except in case of
+    //error. If tim.utime happens to be 0xffffffff, _times_r returns 0 instead.
+    //We also implement the Linux extension where tim can be NULL.
+    if(tim!=nullptr)
+    {
+        tim->tms_utime=utime;
+        tim->tms_stime=0;
+        tim->tms_cutime=0;
+        tim->tms_cstime=0;
+    }
+    return utime==static_cast<clock_t>(-1)?0:utime;
 }
 
 int gettimeofday(struct timeval *tv, void *tz)
