@@ -2497,7 +2497,11 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROG ?= echo 'make program not supported.'
+        PROG_BIN = $(if $(ROMFS_DIR),image.bin,main.bin)
+        PROG ?= openocd \
+                -f '$(KPATH)/$(BOARD_INC)/openocd.cfg' \
+                -c 'program $(PROG_BIN) 0x8000000 verify reset' \
+                -c shutdown
 
     ##-------------------------------------------------------------------------
     ## End of board list
