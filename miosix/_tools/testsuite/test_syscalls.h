@@ -40,5 +40,9 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <set>
+#include <time.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <sys/times.h>
 
 void test_syscalls(void);
