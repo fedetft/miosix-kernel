@@ -69,7 +69,7 @@
 static_assert(sizeof(time_t)==8,"time_t is not 64 bit");
 
 // Kercalls tests (shared with syscalls)
-#include "test_calls.h"
+#include "test_syscalls.h"
 
 using namespace std;
 using namespace miosix;
@@ -124,7 +124,7 @@ static void test_27();
 void testCacheAndDMA();
 #endif //_ARCH_CORTEXM7_STM32F7/H7
 #ifdef WITH_PROCESSES
-void test_syscalls();
+void test_syscalls_process();
 #endif //WITH_PROCESSES
 //Benchmark functions
 static void benchmark_1();
@@ -201,11 +201,11 @@ int main()
                 //} //Testing
                 break;
             case 'k':
-                test_calls();
+                test_syscalls(); //Actually kercalls
                 break;
             case 'c':
                 #ifdef WITH_PROCESSES
-                test_syscalls();
+                test_syscalls_process();
                 #else // WITH_PROCESSES
                 iprintf("Error, process support is disabled\n");
                 #endif // WITH_PROCESSES
@@ -4125,13 +4125,13 @@ void testCacheAndDMA()
 // Kercalls test (in a separate file, shared with syscalls)
 //
 
-#include "test_calls.cpp"
+#include "test_syscalls.cpp"
 
 //
 // Syscall test (executed in a separate process)
 //
 
-void test_syscalls()
+void test_syscalls_process()
 {
     test_name("syscalls");
     pid_t pid;

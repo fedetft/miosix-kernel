@@ -41,4 +41,4 @@
 #include <sys/stat.h>
 #include <set>
 
-void test_calls(void);
+void test_syscalls(void);

@@ -38,7 +38,7 @@ static void fs_test_5();
 static void fs_test_6();
 #endif //WITH_FILESYSTEM
 
-void test_calls(void)
+void test_syscalls(void)
 {
     #ifndef IN_PROCESS
     ledOn();

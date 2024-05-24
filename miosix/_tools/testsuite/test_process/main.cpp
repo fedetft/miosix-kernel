@@ -18,11 +18,11 @@ static void pass();
 static void fail(const char *cause);
 
 // Syscalls tests (shared with kercalls)
-#include "../test_calls.h"
+#include "../test_syscalls.h"
 
 int main()
 {
-    test_calls();
+    test_syscalls();
     return 0;
 }
 
@@ -79,4 +79,4 @@ unsigned short crc16(const void *message, unsigned int length)
     return result;
 }
 
-#include "../test_calls.cpp"
+#include "../test_syscalls.cpp"
