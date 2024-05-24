@@ -4134,6 +4134,7 @@ void testCacheAndDMA()
 void test_syscalls_process()
 {
     test_name("syscalls");
+    ledOn();
     pid_t pid;
     const char *arg[] = { "/bin/test_process", nullptr };
     const char *env[] = { nullptr };
@@ -4149,6 +4150,7 @@ void test_syscalls_process()
         if(WTERMSIG(ec)==SIGSEGV) fail("Process segfaulted");
         else fail("Process terminated due to an error\n");
     }
+    ledOff();
     pass();
 }
 
