@@ -628,18 +628,18 @@ _ZN6miosix14nanoSleepUntilEx:
 .type clock_nanosleep, %function
 clock_nanosleep:
 	push {r4}
-	orr  r12, r0, r1, lsl #6
+	orr  r12, r0, r1, lsl #6    @ Pack clockid and flags
 	ldr  r4, .L700
-	ldrd r0, [r2]
-	umull r0, r3, r0, r4
-	ldr  r2, [r2, #8]
-	mla  r1, r1, r4, r3
+	ldrd r0, [r2]               @ Read tv_sec field of req in r0, r1
+	umull r0, r3, r0, r4        @ Compute low half of tv_sec * 1000000000 in r0
+	ldr  r2, [r2, #8]           @ Load tv_nsec field
+	mla  r1, r1, r4, r3         @ Compute high half of tv_sec * 1000000000 in r1
 	adds r0, r0, r2
-	adc  r1, r1, r2, asr #31
+	adc  r1, r1, r2, asr #31    @ Add tv_nsec
 	movs r3, #40
-	svc  0
+	svc  0                      @ Invoke syscall 40 (GETTIME)
 	pop  {r4}
-	bx   lr
+	bx   lr                     @ Epilogue
 	.align 2
 .L700:
 	.word 1000000000
