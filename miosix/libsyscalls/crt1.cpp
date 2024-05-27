@@ -92,6 +92,18 @@ char *__getcwdfailed(int ec)
     return nullptr;
 }
 
+/**
+ * \internal
+ * isatty is weird, errors do not return -1 but 0. The case in which the file
+ * descriptor is valid but is not a TTY can be distinguished from the error
+ * case by looking at errno.
+ */
+int __isattyfailed(int ec)
+{
+    if(ec==0) errno=ENOTTY;
+    else errno=-ec;
+    return 0;
+}
 
 
 

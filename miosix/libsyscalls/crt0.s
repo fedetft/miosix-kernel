@@ -272,7 +272,8 @@ ioctl:
 /**
  * isatty
  * \param fd file descriptor
- * \return 1 if fd is associated with a terminal, 0 if not, -1 on failure
+ * \return 1 if fd is associated with a terminal, 0 if not, or also on failure.
+ * When fd is valid but not a terminal, errno is set to ENOTTY.
  */
 .section .text.isatty
 .global isatty
@@ -281,7 +282,7 @@ isatty:
 	movs r3, #12
 	svc  0
 	cmp  r0, #0
-	blt  syscallfailed32
+	ble  __isattyfailed @ tail call
 	bx   lr
 
 /**

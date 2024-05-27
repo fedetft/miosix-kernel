@@ -549,13 +549,14 @@ int _isatty_r(struct _reent *ptr, int fd)
     try {
     #endif //__NO_EXCEPTIONS
         int result=miosix::getFileDescriptorTable().isatty(fd);
-        if(result>=0) return result;
-        ptr->_errno=-result;
-        return -1;
+        if(result>0) return result;
+        if(result==0) ptr->_errno=ENOTTY;
+        else ptr->_errno=-result;
+        return 0;
     #ifndef __NO_EXCEPTIONS
     } catch(exception& e) {
         ptr->_errno=ENOMEM;
-        return -1;
+        return 0;
     }
     #endif //__NO_EXCEPTIONS
     
@@ -567,6 +568,7 @@ int _isatty_r(struct _reent *ptr, int fd)
         case STDERR_FILENO:
             return 1;
         default:
+            ptr->_errno=ENOTTY;
             return 0;
     }
     #endif //WITH_FILESYSTEM
