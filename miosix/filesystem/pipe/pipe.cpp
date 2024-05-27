@@ -69,8 +69,8 @@ ssize_t Pipe::read(void *data, size_t len)
     Lock<FastMutex> l(m);
     for(;;)
     {
-        if(unconnected()) return 0;
         int readable=min<int>(len,size);
+        if(unconnected() && readable==0) return 0;
         //HACK: if the other end of the pipe is closed after we wait on the
         //condition variable, we'll wait forever. To fix that, we set a timeout
         if(readable==0) cv.timedWait(l,getTime()+pollTime);
