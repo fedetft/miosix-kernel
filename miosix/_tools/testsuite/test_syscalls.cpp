@@ -36,6 +36,7 @@ static void fs_test_3();
 static void fs_test_4();
 static void fs_test_5();
 static void fs_test_6();
+static void fs_test_7();
 #endif //WITH_FILESYSTEM
 static void sys_test_time();
 
@@ -51,6 +52,7 @@ void test_syscalls(void)
     fs_test_4();
     fs_test_5();
     fs_test_6();
+    fs_test_7();
     #else //WITH_FILESYSTEM
     iprintf("Filesystem tests skipped, filesystem support is disabled\n");
     #endif //WITH_FILESYSTEM
@@ -873,6 +875,30 @@ static void fs_test_6()
     fclose(f);
     pass();
 }
+
+//
+// Filesystem test 7
+//
+/*
+tests:
+Non-existent files in mountpointfs
+*/
+
+static void fs_test_7()
+{
+    test_name("mountpointfs");
+    struct stat statbuf;
+    int res=open("/this_file_should_not_exist",O_RDONLY);
+    if(res!=-1) fail("could open file in root");
+    res=stat("/this_file_should_not_exist",&statbuf);
+    if(res!=-1) fail("could stat file in root");
+    res=open("/non_existent_directory/non_existent_file",O_RDONLY);
+    if(res!=-1) fail("could open file in subdirectory in root");
+    res=stat("/non_existent_directory/non_existent_file",&statbuf);
+    if(res!=-1) fail("could stat file in subdirectory in root");
+    pass();
+}
+
 #endif //WITH_FILESYSTEM
 
 //
