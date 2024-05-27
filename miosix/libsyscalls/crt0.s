@@ -529,6 +529,7 @@ pipe:
 	blt  .L400
 	str  r2, [r0]
 	str  r12, [r0, #4]
+	movs r0, r1
 	bx   lr
 .L400:
 	movs r0, r1
