@@ -40,6 +40,7 @@ static void fs_test_7();
 #endif //WITH_FILESYSTEM
 static void sys_test_time();
 static void sys_test_getpid();
+static void sys_test_isatty();
 
 void test_syscalls(void)
 {
@@ -57,6 +58,7 @@ void test_syscalls(void)
     #else //WITH_FILESYSTEM
     iprintf("Filesystem tests skipped, filesystem support is disabled\n");
     #endif //WITH_FILESYSTEM
+    sys_test_isatty();
     sys_test_time();
     sys_test_getpid();
     #ifndef IN_PROCESS
@@ -1118,6 +1120,29 @@ void sys_test_getpid()
     if(WEXITSTATUS(ec)!=0) fail("process return value not zero");
     if(ppidFromChild!=myPid) fail("wrong parent pid in child");
     if(pidFromChild!=childPid) fail("wrong child pid in parent");
+    #endif
+    pass();
+}
+
+//
+// isatty test
+//
+
+static void sys_test_isatty()
+{
+    test_name("isatty");
+    if(isatty(STDIN_FILENO)!=1) fail("default stdin not a tty");
+    if(isatty(STDOUT_FILENO)!=1) fail("default stdout not a tty");
+    if(isatty(STDERR_FILENO)!=1) fail("default stderr not a tty");
+    if(isatty(0x7FFFFFFF)!=0) fail("isatty of non-existent fd (return value)");
+    if(errno!=EBADF) fail("isatty of non-existent fd (errno)");
+    #ifdef WITH_FILESYSTEM
+    int fd=open("/",O_SEARCH); // the root directory is guaranteed to exist
+    if(fd==-1) fail("open of /");
+    if(isatty(fd)!=0) fail("isatty of a directory (return value)");
+    if(errno!=ENOTTY) fail("isatty of a directory (errno)");
+    int res=close(fd);
+    if(res!=0) fail("close of /");
     #endif
     pass();
 }
