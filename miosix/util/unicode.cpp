@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Terraneo Federico                               *
+ *   Copyright (C) 2013 - 2024 by Terraneo Federico                        *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -138,6 +138,13 @@ pair<bool,int> Unicode::validateUtf8(const char* str)
         if(codePoint==0) return make_pair(true,iter-str);
         if(codePoint==invalid) return make_pair(false,iter-str);
     }
+}
+
+int Unicode::countCodePoints(const char *str)
+{
+    int result=0;
+    while(miosix::Unicode::nextUtf8(str)) result++;
+    return result;
 }
 
 } //namespace miosix

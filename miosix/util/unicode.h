@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Terraneo Federico                               *
+ *   Copyright (C) 2013 - 2024 by Terraneo Federico                        *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,17 +25,10 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#pragma once
+
 #include <stdint.h>
 #include <utility>
-
-#ifndef UNICODE_H
-#define UNICODE_H
-
-#if __cplusplus <= 199711L
-//These are builtin types in C++11, add them if compiling in C++03 mode
-typedef uint16_t char16_t;
-typedef uint32_t char32_t;
-#endif // !c++11
 
 namespace miosix {
 
@@ -127,6 +120,13 @@ public:
      */
     static std::pair<bool,int> validateUtf8(const char *str);
 
+    /**
+     * \param str an utf8 encoded string
+     * \return the number of code points in the string. Effectively, this is a
+     * strlen replacements that counts code points instead of bytes.
+     */
+    static int countCodePoints(const char *str);
+
 private:
     /**
      * Common implementation of nextUtf8
@@ -193,6 +193,3 @@ char32_t Unicode::nextUtf8(Iter& it, Iter end, bool checkEnd)
 }
 
 } //namespace miosix
-
-#endif //UNICODE_H
-
