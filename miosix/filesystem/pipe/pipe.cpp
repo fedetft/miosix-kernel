@@ -97,7 +97,13 @@ int Pipe::fstat(struct stat *pstat) const
 
 int Pipe::fcntl(int cmd, int opt)
 {
-    return -EFAULT; //TODO
+    switch(cmd)
+    {
+        case F_GETFD:
+        case F_GETFL: //TODO: also return file access mode
+            return O_RDWR;
+    }
+    return -EBADF;
 }
 
 Pipe::~Pipe() { delete[] buffer; }
