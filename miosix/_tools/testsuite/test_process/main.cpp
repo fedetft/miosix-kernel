@@ -9,6 +9,7 @@ using namespace std;
 // Processes implies filesystem & DevFs
 #define WITH_FILESYSTEM
 #define WITH_DEVFS
+#define WITH_PROCESSES
 // Define for tests to distinguish whether we are compiling in a process
 #define IN_PROCESS
 
@@ -20,9 +21,16 @@ static void fail(const char *cause);
 // Syscalls tests (shared with kercalls)
 #include "../test_syscalls.h"
 
-int main()
+static int sys_test_getpid_child(int argc, char *argv[]);
+
+int main(int argc, char *argv[])
 {
-    test_syscalls();
+    if(argc < 2) test_syscalls();
+    else
+    {
+        if(strcmp("sys_test_getpid_child", argv[1])==0)
+            return sys_test_getpid_child(argc, argv);
+    }
     return 0;
 }
 

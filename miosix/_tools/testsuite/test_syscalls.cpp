@@ -39,6 +39,7 @@ static void fs_test_6();
 static void fs_test_7();
 #endif //WITH_FILESYSTEM
 static void sys_test_time();
+static void sys_test_getpid();
 
 void test_syscalls(void)
 {
@@ -57,11 +58,56 @@ void test_syscalls(void)
     iprintf("Filesystem tests skipped, filesystem support is disabled\n");
     #endif //WITH_FILESYSTEM
     sys_test_time();
+    sys_test_getpid();
     #ifndef IN_PROCESS
     ledOff();
     Thread::sleep(500);//Ensure all threads are deleted.
     #endif
     iprintf("\n*** All tests were successful\n\n");
+}
+
+int spawnAndWait(const char *arg[])
+{
+    const char *env[] = { nullptr };
+    pid_t pid;
+    int ec=posix_spawn(&pid,arg[0],NULL,NULL,(char* const*)arg,(char* const*)env);
+    if(ec!=0) fail("spawnAndWait posix_spawn");
+    pid_t pid2=wait(&ec);
+    if(pid!=pid2) fail("spawnAndWait wrong pid from wait");
+    if(!WIFEXITED(ec)) fail("spawnAndWait process returned due to error");
+    return WEXITSTATUS(ec);
+}
+
+pid_t spawnWithPipe(const char *arg[], int& pipeFdOut)
+{
+    //TODO: use posix_spawn arguments to set the stdout fd of the child
+    const char *env[] = { nullptr };
+    //Replace stdout with the write end of a pipe:
+    //dup() stdout to save it
+    int oldStdout=dup(STDOUT_FILENO);
+    if(oldStdout==-1) fail("spawnWithPipe dup");
+    //Create the pipe
+    int pipeFds[2];
+    int res=pipe(pipeFds);
+    if(res!=0) {printf("errno=%d\n", errno); fail("spawnWithPipe pipe");}
+    //Do the actual replacement of the stdout fd
+    res=dup2(pipeFds[1],STDOUT_FILENO);
+    if(res==-1) fail("spawnWithPipe dup2 (set)");
+    //Close the original file write-end descriptor
+    close(pipeFds[1]);
+    //Spawn the process which will inherit the pipe's write end as the stdout
+    pid_t pid;
+    int ec=posix_spawn(&pid,arg[0],NULL,NULL,(char* const*)arg,(char* const*)env);
+    if(ec!=0) fail("spawnWithPipe posix_spawn");
+    //Restore stdout
+    res=dup2(oldStdout,STDOUT_FILENO);
+    if(res==-1) fail("spawnWithPipe dup2 (restore)");
+    //Close dup'd stdout
+    res=close(oldStdout);
+    if(res!=0) fail("spawnWithPipe close (stdout duplicate)");
+    //Return read end of the pipe and child pid
+    pipeFdOut=pipeFds[0];
+    return pid;
 }
 
 #ifdef WITH_FILESYSTEM
@@ -902,7 +948,7 @@ static void fs_test_7()
 #endif //WITH_FILESYSTEM
 
 //
-// Syscall test 1: Time
+// Time and sleep syscalls
 //
 /*
 tests:
@@ -1006,5 +1052,53 @@ void sys_test_time()
     if (!(900000000<=dt&&dt<=1100000000))
         fail("usleep and clock_gettime do not agree");
 
+    pass();
+}
+
+//
+// PID test
+//
+/*
+tests:
+getpid
+getppid
+*/
+
+#ifdef IN_PROCESS
+int sys_test_getpid_child(int argc, char *argv[])
+{
+    printf("%d %d\n",getppid(),getpid());
+    fflush(stdout);
+    return 0;
+}
+#endif
+
+void sys_test_getpid()
+{
+    test_name("getpid/getppid");
+    pid_t myPid=getpid();
+    #ifndef IN_PROCESS
+    if(myPid!=0) fail("getpid");
+    #endif
+    if(getppid()!=0) fail("getppid (kernel parent)");
+    #ifdef WITH_PROCESSES
+    const char *args[]={"/bin/test_process","sys_test_getpid_child",nullptr};
+    int readFd;
+    pid_t childPid=spawnWithPipe(args,readFd);
+    FILE *fp=fdopen(readFd,"r");
+    if(!fp) {printf("errno=%d\n", errno); fail("fdopen");}
+    int ppidFromChild,pidFromChild;
+    int res=fscanf(fp,"%d%d\n",&ppidFromChild,&pidFromChild);
+    if(res!=2) fail("fscanf from process");
+    res=fclose(fp);
+    if(res!=0) fail("fclose");
+    int ec;
+    pid_t childPid2=wait(&ec);
+    if(childPid!=childPid2) fail("wrong pid from wait");
+    if(!WIFEXITED(ec)) fail("process returned due to error");
+    if(WEXITSTATUS(ec)!=0) fail("process return value not zero");
+    if(ppidFromChild!=myPid) fail("wrong parent pid in child");
+    if(pidFromChild!=childPid) fail("wrong child pid in parent");
+    #endif
     pass();
 }

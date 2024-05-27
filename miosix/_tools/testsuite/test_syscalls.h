@@ -44,5 +44,14 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <sys/times.h>
+#include <spawn.h>
+#include <sys/wait.h>
+
+int spawnAndWait(const char *arg[]);
+pid_t spawnWithPipe(const char *arg[], int& pipeFdOut);
 
 void test_syscalls(void);
+
+#ifdef IN_PROCESS
+static int sys_test_getpid_child(int argc, char *argv[]);
+#endif

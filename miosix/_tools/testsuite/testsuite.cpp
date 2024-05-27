@@ -4135,21 +4135,9 @@ void test_syscalls_process()
 {
     test_name("syscalls");
     ledOn();
-    pid_t pid;
     const char *arg[] = { "/bin/test_process", nullptr };
-    const char *env[] = { nullptr };
-    int ec=posix_spawn(&pid,arg[0],NULL,NULL,(char* const*)arg,(char* const*)env);
-    if(ec!=0) fail("posix_spawn");
-    pid=wait(&ec);
-    iprintf("pid %d exited\n",pid);
-    if(WIFEXITED(ec) && WEXITSTATUS(ec)!=0)
-    {
-        iprintf("Exit code is %d\n",WEXITSTATUS(ec));
-        fail("non-zero exit code");
-    } else if(WIFSIGNALED(ec)) {
-        if(WTERMSIG(ec)==SIGSEGV) fail("Process segfaulted");
-        else fail("Process terminated due to an error\n");
-    }
+    int exitcode=spawnAndWait(arg);
+    if(exitcode!=0) fail("non-zero exit code");
     ledOff();
     pass();
 }
