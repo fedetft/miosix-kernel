@@ -481,8 +481,9 @@ Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
                 if(mpu.withinForWriting(buf,size))
                 {
                     int result=fileTable.getcwd(buf,size);
-                    sp.setParameter(0,result);
-                } else sp.setParameter(0,-EFAULT);
+                    // Do not overwrite r0 on purpose to preserve the pointer
+                    sp.setParameter(1,result);
+                } else sp.setParameter(1,-EFAULT);
                 break;
             }
 

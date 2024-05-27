@@ -297,12 +297,12 @@ isatty:
 getcwd:
 	movs r3, #13
 	svc  0
-	cmp  r0, #0
+	cmp  r1, #0
 	blt  .L300
 	bx   lr
 .L300:
-	/* tail call */
-	b    __getcwdfailed
+	movs r0, r1
+	b    __getcwdfailed @ tail call
 
 /**
  * chdir
