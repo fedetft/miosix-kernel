@@ -118,7 +118,7 @@ int ProgramCache::load(const char *name, const unsigned int *& elf,
     if(openData.result<0) return -ENOENT;
     StringPart relativePath(path,string::npos,openData.off);
     intrusive_ref_ptr<FileBase> file;
-    if(int res=openData.fs->open(file,relativePath,O_RDONLY,0)<0) return res;
+    if(int res=openData.fs->open(file,relativePath,O_RDONLY,0)) return res;
     MemoryMappedFile mmFile=file->getFileFromMemory();
     //Program is in a XIP-capable filesystem, pass the pointer directly
     if(mmFile.isValid())
