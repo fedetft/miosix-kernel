@@ -378,7 +378,10 @@ static void fs_test_1()
 //
 /*
 tests:
-mkdir/unlink/rename
+mkdir
+rmdir
+unlink
+rename
 */
 
 /**
@@ -440,7 +443,7 @@ static void checkInDir(const std::string& d, bool createFile)
 
 static void fs_test_2()
 {
-    test_name("mkdir/rename/unlink");
+    test_name("mkdir/rmdir/rename/unlink");
     checkInDir("/",false);
     DIR *d=opendir("/sd");
     if(d!=NULL)
@@ -503,13 +506,29 @@ static void fs_test_3()
 //
 /*
 tests:
-opendir()/readdir()
+opendir
+readdir
+chdir
+getcwd
+stat/fstat
 */
 
 unsigned int checkInodes(const char *dir, unsigned int curInode,
         unsigned int parentInode, short curDev, short parentDev)
 {
+    size_t getcwdBufSz=256;//strlen(dir)+1;
+    char *getcwdBuf=new char[getcwdBufSz];
+    if(!getcwdBuf) fail("getcwd buffer new");
+    char *getcwdRes=getcwd(getcwdBuf,getcwdBufSz);
+    if(getcwdRes!=getcwdBuf) fail("getcwd result (1)");
+    if(strcmp(getcwdBuf,"/")!=0) fail("getcwd (1)");
+
     if(chdir(dir)) fail("chdir");
+    
+    getcwdRes=getcwd(getcwdBuf,getcwdBufSz);
+    if(getcwdRes!=getcwdBuf) fail("getcwd result (1)");
+    if(strcmp(getcwdBuf,dir)!=0) fail("getcwd (2)");
+    delete getcwdBuf;
     
     DIR *d=opendir(".");
     if(d==NULL) fail("opendir");
