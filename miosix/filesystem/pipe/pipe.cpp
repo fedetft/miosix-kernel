@@ -46,7 +46,9 @@ ssize_t Pipe::write(const void *data, size_t len)
     {
         if(unconnected()) return -EPIPE;
         int writable=min<int>(len,capacity-size);
-        if(writable==0) cv.wait(l);
+        //HACK: if the other end of the pipe is closed after we wait on the
+        //condition variable, we'll wait forever. To fix that, we set a timeout
+        if(writable==0) cv.timedWait(l,getTime()+pollTime);
         else {
             for(int i=0;i<writable;i++)
             {
@@ -57,6 +59,7 @@ ssize_t Pipe::write(const void *data, size_t len)
             d+=writable;
             len-=writable;
             written+=writable;
+            cv.broadcast();
         }
     }
     return written;
@@ -81,6 +84,7 @@ ssize_t Pipe::read(void *data, size_t len)
                 if(++get>=capacity) get=0;
             }
             size-=readable;
+            cv.broadcast();
             return readable;
         }
     }
