@@ -39,6 +39,7 @@ static void fs_test_6();
 static void fs_test_7();
 #endif //WITH_FILESYSTEM
 static void sys_test_time();
+static void sys_test_pipe();
 static void sys_test_getpid();
 static void sys_test_isatty();
 
@@ -58,9 +59,10 @@ void test_syscalls(void)
     #else //WITH_FILESYSTEM
     iprintf("Filesystem tests skipped, filesystem support is disabled\n");
     #endif //WITH_FILESYSTEM
-    sys_test_isatty();
     sys_test_time();
+    sys_test_pipe();
     sys_test_getpid();
+    sys_test_isatty();
     #ifndef IN_PROCESS
     ledOff();
     Thread::sleep(500);//Ensure all threads are deleted.
@@ -1072,6 +1074,120 @@ void sys_test_time()
     //iprintf("clock_gettime dt=%lld ns\n",dt);
     if (!(900000000<=dt&&dt<=1100000000))
         fail("usleep and clock_gettime do not agree");
+
+    pass();
+}
+
+//
+// Pipe test
+//
+/*
+tests:
+dup
+dup2
+pipe
+*/
+
+static void sys_test_pipe_tryReadAndWrite(int readFd, int writeFd, char c)
+{
+    if(write(writeFd,&c,1)!=1) fail("write");
+    char d;
+    if(read(readFd,&d,1)!=1) fail("read");
+    if(c!=d) fail("read output");
+}
+
+#ifndef IN_PROCESS
+static void sys_test_pipe_largeWrite_thread(int wrFd, size_t wrSz, size_t rdSz)
+{
+    unsigned char *buf=new unsigned char[wrSz];
+    if(buf==nullptr) fail("buffer allocation");
+    for(size_t i=0; i<wrSz; i++) buf[i]=static_cast<unsigned char>(i&0xFF);
+    for(size_t i=0; i<wrSz;)
+    {
+        ssize_t wr=write(wrFd,buf+i,wrSz-i);
+        if(wr<=0 && rdSz>=wrSz) fail("write (large) unexpected eof");
+        if(wr<=0) 
+        {
+            if(errno!=EPIPE) fail("EPIPE");
+            break;
+        }
+        i+=wr;
+    }
+    delete[] buf;
+    if(close(wrFd)!=0) fail("close (write end)");
+}
+
+static void sys_test_pipe_tryLargeReadAndWrite(size_t rdSz, size_t wrSz)
+{
+    int fds[2];
+    if(pipe(fds)!=0) fail("pipe");
+
+    std::thread t(sys_test_pipe_largeWrite_thread, fds[1], wrSz, rdSz);
+
+    unsigned char *buf=new unsigned char[rdSz];
+    if(buf==nullptr) fail("buffer allocation");
+    size_t i;
+    for(i=0; i<rdSz;)
+    {
+        ssize_t rd=read(fds[0],buf+i,rdSz-i);
+        if(rd<0) fail("read (large)");
+        if(rd==0 && wrSz>=rdSz) fail("read (large) unexpected eof");
+        if(rd==0) break;
+        i+=rd;
+    }
+    for(size_t j=0; j<i; j++)
+    {
+        unsigned char expected=static_cast<unsigned char>(j&0xFF);
+        if(buf[j]!=expected) fail("read data not matching");
+    }
+    delete[] buf;
+
+    if(close(fds[0])!=0) fail("close (read end)");
+    t.join();
+}
+#endif
+
+static void sys_test_pipe()
+{
+    test_name("pipes");
+    int pipeFds[2];
+    if(pipe(pipeFds)!=0) fail("pipe");
+
+    sys_test_pipe_tryReadAndWrite(pipeFds[0], pipeFds[1], '1');
+
+    int dupWriteFd=dup(pipeFds[1]);
+    if(dupWriteFd<0) fail("dup (1)");
+    sys_test_pipe_tryReadAndWrite(pipeFds[0], dupWriteFd, '2');
+
+    int dupReadFd=dup(pipeFds[0]);
+    if(dupReadFd<0) fail("dup (2)");
+    sys_test_pipe_tryReadAndWrite(dupReadFd, dupWriteFd, '3');
+    sys_test_pipe_tryReadAndWrite(dupReadFd, pipeFds[1], '4');
+
+    // We need a dummy file descriptor. Open the root directory as it is
+    // guaranteed to exist
+    int dupReadFd2=open("/",O_SEARCH);
+    if(dupReadFd2==-1) fail("open of /");
+    if(dupReadFd2!=dup2(dupReadFd,dupReadFd2)) fail("dup2");
+    sys_test_pipe_tryReadAndWrite(dupReadFd2, dupWriteFd, '5');
+    sys_test_pipe_tryReadAndWrite(dupReadFd2, pipeFds[1], '6');
+    if(close(dupReadFd2)!=0) fail("close (1)");
+
+    if(close(pipeFds[0])!=0) fail("close (2)");
+    sys_test_pipe_tryReadAndWrite(dupReadFd, dupWriteFd, '7');
+    sys_test_pipe_tryReadAndWrite(dupReadFd, pipeFds[1], '8');
+
+    if(close(pipeFds[1])!=0) fail("close (3)");
+    sys_test_pipe_tryReadAndWrite(dupReadFd, dupWriteFd, '9');
+
+    if(close(dupReadFd)!=0) fail("close (4)");
+    if(close(dupWriteFd)!=0) fail("close (5)");
+
+    #ifndef IN_PROCESS
+    sys_test_pipe_tryLargeReadAndWrite(100, 512);
+    sys_test_pipe_tryLargeReadAndWrite(512, 512);
+    sys_test_pipe_tryLargeReadAndWrite(512, 100);
+    #endif
 
     pass();
 }

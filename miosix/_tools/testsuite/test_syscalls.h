@@ -46,6 +46,9 @@
 #include <sys/times.h>
 #include <spawn.h>
 #include <sys/wait.h>
+#ifndef IN_PROCESS
+#include <thread>
+#endif
 
 int spawnAndWait(const char *arg[]);
 pid_t spawnWithPipe(const char *arg[], int& pipeFdOut);
