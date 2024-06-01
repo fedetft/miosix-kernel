@@ -1563,14 +1563,14 @@ int STM32Serial::IRQdmaReadStop()
     #endif
 
     #ifdef _ARCH_CORTEXM7_STM32H7
-    static volatile unsigned long * const irqRegs[]=
+    static volatile unsigned int * const irqRegs[]=
     {
         &DMA1->HIFCR,
         &DMA1->HIFCR,
         &DMA1->LIFCR
     };
     #else
-    static volatile unsigned long * const irqRegs[]=
+    static volatile unsigned int * const irqRegs[]=
     {
         &DMA2->HIFCR,
         &DMA1->HIFCR,
