@@ -568,7 +568,7 @@ int _isatty_r(struct _reent *ptr, int fd)
         case STDERR_FILENO:
             return 1;
         default:
-            ptr->_errno=ENOTTY;
+            ptr->_errno=EBADF;
             return 0;
     }
     #endif //WITH_FILESYSTEM
