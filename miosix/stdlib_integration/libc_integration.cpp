@@ -117,7 +117,7 @@ extern "C" {
  * library loaded dynamically, unused since Miosix does not support shared libs
  * \return 0 on success
  */
-int __register_exitproc(int type, void (*fn)(void), void *arg, void *d)
+int __register_exitproc(int type, void (*fn)(void*), void *arg, void *d)
 {
     return 0;
 }

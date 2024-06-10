@@ -40,6 +40,20 @@
 #include <reent.h>
 #include <cxxabi.h>
 
+constexpr int numAtexitEntries=2; ///< Number of entries per AtexitBlock
+
+/**
+ * Struct to store global destructors
+ */
+struct AtexitBlock
+{
+    void (*fns[numAtexitEntries])(void*); ///< Destructor, nullptr if empty
+    void *args[numAtexitEntries];         ///< Destructor arg, if any
+    AtexitBlock *next;                    ///< Next block, nullptr if last
+};
+
+static AtexitBlock head = {}; ///< Head of the AtexitBlock list
+
 extern "C" {
 
 /**
@@ -100,9 +114,20 @@ char *__getcwdfailed(int ec)
  * library loaded dynamically, unused since Miosix does not support shared libs
  * \return 0 on success
  */
-int __register_exitproc(int type, void (*fn)(void), void *arg, void *d)
+int __register_exitproc(int type, void (*fn)(void*), void *arg, void *d)
 {
-    //FIXME: implement me
+    //iprintf("__register_exitproc(%d,%p,%p,%p)\n",type,fn,arg,d);
+    AtexitBlock *walk=&head;
+    int index=0;
+    while(walk->fns[index])
+    {
+        if(++index<numAtexitEntries) continue;
+        index=0;
+        walk->next=(AtexitBlock *)calloc(1,sizeof(AtexitBlock));
+        break;
+    }
+    walk->fns[index]=fn;
+    walk->args[index]=arg;
     return 0;
 }
 
@@ -113,7 +138,17 @@ int __register_exitproc(int type, void (*fn)(void), void *arg, void *d)
  */
 void __call_exitprocs(int code, void *d)
 {
-    //FIXME: implement me
+    //NOTE: we are not deallocating the linked list not to pull in free if the
+    //program never calls __register_exitproc, and also because the process is
+    //going to terminate anyway
+    int index=0;
+    for(AtexitBlock *walk=&head;walk && walk->fns[index];)
+    {
+        walk->fns[index](walk->args[index]);
+        if(++index<numAtexitEntries) continue;
+        index=0;
+        walk=walk->next;
+    }
 }
 
 /**
