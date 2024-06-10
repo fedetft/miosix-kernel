@@ -1325,7 +1325,7 @@ int posix_spawn(pid_t *pid, const char *path,
         pid_t result=miosix::Process::spawn(path,argv,envp);
         if(result>=0)
         {
-            *pid=result;
+            if(pid) *pid=result;
             return 0;
         }
         return -result;

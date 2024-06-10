@@ -709,14 +709,14 @@ execve:
 .type posix_spawn, %function
 posix_spawn:
 	cbnz r2, .L800
-	cbnz r3, .L800
+	cbnz r3, .L800      @ Fail on file_actions/attrp != 0
 	ldrd r2, r3, [sp]
-	mov  r12, r3
+	mov  r12, r3        @ Move argv, envp pointers to r2, 12 respectively
 	movs r3, #45
-	svc  0
+	svc  0              @ Invoke syscall 45 (SPAWN)
 	bx   lr
 .L800:
-	movs r0, #14 /* EFAULT */
+	movs r0, #14        @ EFAULT
 	bx   lr
 
 /* TODO: missing syscalls */
