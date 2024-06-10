@@ -26,7 +26,7 @@ LIBS :=
 ##
 ## List here subdirectories which contains makefiles
 ##
-SUBDIRS += test_process
+SUBDIRS += test_process test_execve
 
 ##
 ## Attach a romfs filesystem image after the kernel

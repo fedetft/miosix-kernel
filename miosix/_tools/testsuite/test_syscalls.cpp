@@ -42,6 +42,7 @@ static void sys_test_time();
 static void sys_test_pipe();
 static void sys_test_getpid();
 static void sys_test_isatty();
+static void sys_test_spawn();
 
 void test_syscalls(void)
 {
@@ -63,6 +64,9 @@ void test_syscalls(void)
     sys_test_pipe();
     sys_test_getpid();
     sys_test_isatty();
+    #ifdef WITH_PROCESSES
+    sys_test_spawn();
+    #endif
     #ifndef IN_PROCESS
     ledOff();
     Thread::sleep(500);//Ensure all threads are deleted.
@@ -1243,6 +1247,10 @@ void sys_test_getpid()
 //
 // isatty test
 //
+/*
+tests:
+isatty
+*/
 
 static void sys_test_isatty()
 {
@@ -1262,3 +1270,102 @@ static void sys_test_isatty()
     #endif
     pass();
 }
+
+#ifdef WITH_PROCESSES
+
+//
+// Process spawning test
+//
+/*
+tests:
+posix_spawn
+exit
+wait
+waitpid
+execve
+*/
+
+static void sys_test_spawn()
+{
+    test_name("process spawning/exiting");
+    const char *arg0[] = { "/non_existing_file", nullptr };
+    const char *env[] = { nullptr };
+    pid_t pid,pid2;
+    int ec;
+    ec=posix_spawn(&pid,arg0[0],NULL,NULL,(char* const*)arg0,(char* const*)env);
+    if(ec!=EACCES) fail("posix_spawn of non-existing file (return value)");
+
+    const char *arg1[] = { "/bin/test_process", "exit_123", nullptr };
+    ec=posix_spawn(nullptr,arg1[0],NULL,NULL,(char* const*)arg1,(char* const*)env);
+    if(ec!=0) fail("posix_spawn (1)");
+    int pstat;
+    pid=wait(&pstat);
+    if(pid<=0) fail("wait");
+    if(!WIFEXITED(pstat)) fail("WIFEXITED (1)");
+    if(WIFSIGNALED(pstat)) fail("WIFSIGNALED (1)");
+    if(WIFSTOPPED(pstat)) fail("WIFSTOPPED (1)");
+    if(WEXITSTATUS(pstat) != 123) fail("WEXITSTATUS (1)");
+
+    ec=posix_spawn(&pid,arg1[0],NULL,NULL,(char* const*)arg1,(char* const*)env);
+    if(ec!=0) fail("posix_spawn (2)");
+    const char *arg2[] = { "/bin/test_process", "sleep_and_exit_234", nullptr };
+    ec=posix_spawn(&pid2,arg1[0],NULL,NULL,(char* const*)arg2,(char* const*)env);
+    if(ec!=0) fail("posix_spawn (3)");
+    // The second process we launched should still be in its sleep(1) here
+    pid_t pid3=waitpid(pid2,&pstat,WNOHANG);
+    if(pid3!=0) fail("waitpid WNOHANG");
+    pid3=waitpid(pid,&pstat,0);
+    if(pid3!=pid) fail("waitpid (1)");
+    if(!WIFEXITED(pstat)) fail("WIFEXITED (2)");
+    if(WIFSIGNALED(pstat)) fail("WIFSIGNALED (2)");
+    if(WIFSTOPPED(pstat)) fail("WIFSTOPPED (2)");
+    if(WEXITSTATUS(pstat) != 123) fail("WEXITSTATUS (2)");
+    pid3=waitpid(pid2,&pstat,0);
+    if(pid3!=pid2) fail("waitpid (2)");
+    if(!WIFEXITED(pstat)) fail("WIFEXITED (3)");
+    if(WIFSIGNALED(pstat)) fail("WIFSIGNALED (3)");
+    if(WIFSTOPPED(pstat)) fail("WIFSTOPPED (3)");
+    if(WEXITSTATUS(pstat) != 234) fail("WEXITSTATUS (3)");
+
+    const char *arg3[] = { "/bin/test_process", "environ_check", nullptr };
+    const char *env1[] = { "TEST=test", nullptr };
+    ec=posix_spawn(&pid,arg3[0],NULL,NULL,(char* const*)arg3,(char* const*)env1);
+    if(ec!=0) fail("posix_spawn (4)");
+    wait(&pstat);
+    if(!WIFEXITED(pstat)) fail("WIFEXITED (4)");
+    if(WIFSIGNALED(pstat)) fail("WIFSIGNALED (4)");
+    if(WIFSTOPPED(pstat)) fail("WIFSTOPPED (4)");
+    if(WEXITSTATUS(pstat)!=0) fail("environ");
+
+    // The sigsegv process is only compiled in the kernel tests because
+    // otherwise we can't detect if we have an MPU or not.
+    #if !defined(IN_PROCESS) && __MPU_PRESENT
+    const char *arg4[] = { "/bin/test_process", "sigsegv", nullptr };
+    iprintf("A process will terminate due to a null pointer dereference...\n");
+    ec=posix_spawn(nullptr,arg4[0],NULL,NULL,(char* const*)arg4,(char* const*)env);
+    if(ec!=0) fail("posix_spawn (5)");
+    wait(&pstat);
+    if(WIFEXITED(pstat)) fail("WIFEXITED (5)");
+    if(!WIFSIGNALED(pstat)) fail("WIFSIGNALED (5)");
+    if(WIFSTOPPED(pstat)) fail("WIFSTOPPED (5)");
+    if(WTERMSIG(pstat)!=SIGSEGV) fail("WTERMSIG (5)");
+    #endif // !defined(IN_PROCESS) && __MPU_PRESENT
+
+    const char *arg5[] = { "/bin/test_process", "execve", nullptr };
+    ec=posix_spawn(nullptr,arg5[0],NULL,NULL,(char* const*)arg5,(char* const*)env);
+    if(ec!=0) fail("posix_spawn (6)");
+    wait(&pstat);
+    if(!WIFEXITED(pstat)) fail("WIFEXITED (6)");
+    if(WIFSIGNALED(pstat)) fail("WIFSIGNALED (6)");
+    if(WIFSTOPPED(pstat)) fail("WIFSTOPPED (6)");
+    if(WEXITSTATUS(pstat)!=66 && WEXITSTATUS(pstat)!=77) fail("execve");
+    if(WEXITSTATUS(pstat)==66) fail("execve'd process argc/argv/environ");
+    
+    ec=wait(&pstat);
+    if(ec!=-1) fail("wait with no children (return value)");
+    if(errno!=ECHILD) fail("wait with no children (errno)");
+
+    pass();
+}
+
+#endif // WITH_PROCESSES

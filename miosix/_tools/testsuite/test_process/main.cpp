@@ -6,6 +6,8 @@
 
 using namespace std;
 
+extern char **environ;
+
 // Processes implies filesystem & DevFs
 #define WITH_FILESYSTEM
 #define WITH_DEVFS
@@ -23,14 +25,53 @@ static void fail(const char *cause);
 
 static int sys_test_getpid_child(int argc, char *argv[]);
 
-int main(int argc, char *argv[])
+int main(int argc, char *argv[], char *envp[])
 {
-    if(argc < 2) test_syscalls();
-    else
+    if(argc == 0) return 1;
+    else if(argc == 1) test_syscalls();
+    else if(argc == 2)
     {
         if(strcmp("sys_test_getpid_child", argv[1])==0)
             return sys_test_getpid_child(argc, argv);
+        if(strcmp("exit_123", argv[1])==0)
+            exit(123);
+        if(strcmp("sleep_and_exit_234", argv[1])==0)
+        {
+            sleep(1);
+            exit(234);
+        }
+        if(strcmp("environ_check", argv[1])==0)
+        {
+            if(environ!=envp) return 1;
+            if(environ[0]==nullptr) return 1;
+            if(environ[1]!=nullptr) return 1;
+            if(strcmp(environ[0],"TEST=test")!=0) return 1;
+            return 0;
+        }
+        if(strcmp("execve", argv[1])==0)
+        {
+            // For some weird reason, execve signature allows the pointers to
+            // be constant but not the strings.
+            char arg_path[]="/bin/test_execve";
+            char env_entry[]="TEST_ENVP=test";
+            char *arg[] = { arg_path, nullptr };
+            char *env[] = { env_entry, nullptr };
+            execve(arg[0],arg,env);
+            return 99;
+        }
+        if(strcmp("sigsegv", argv[1])==0)
+        {
+            uint32_t *ptr=nullptr;
+            // Fool the compiler in believing the ptr may not be null
+            // If we don't do this, the compiler is allowed to consider this
+            // code to always have undefined behavior and transform it to
+            // something we don't want (clang is known to pull this kind of
+            // tricks)
+            asm volatile("":"+r"(ptr)::);
+            *ptr=12345;
+        }
     }
+    else return 1;
     return 0;
 }
 
