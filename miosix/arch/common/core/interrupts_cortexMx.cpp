@@ -355,6 +355,8 @@ void DebugMon_Handler()
     miosix_private::IRQsystemReboot();
 }
 
+#endif // !defined(_ARCH_CORTEXM0_STM32F0) && !defined(_ARCH_CORTEXM0_STM32G0) && !defined(_ARCH_CORTEXM0PLUS_STM32L0) && !defined(_ARCH_CORTEXM0PLUS_RP2040)
+
 void SVC_Handler()
 {
     #ifdef WITH_PROCESSES
@@ -403,8 +405,6 @@ void SVC_Handler()
     miosix_private::IRQsystemReboot();
     #endif //WITH_PROCESSES
 }
-
-#endif // !defined(_ARCH_CORTEXM0_STM32F0) && !defined(_ARCH_CORTEXM0_STM32G0) && !defined(_ARCH_CORTEXM0PLUS_STM32L0) && !defined(_ARCH_CORTEXM0PLUS_RP2040)
 
 /**
  * \internal
@@ -494,7 +494,7 @@ struct InterruptTable
 
 __attribute__((section(".isr_vector"))) const InterruptTable systemInterruptTable
 (
-    #if __CORTEX_M != 0
+    #if !defined(_ARCH_CORTEXM0_STM32F0) && !defined(_ARCH_CORTEXM0_STM32G0) && !defined(_ARCH_CORTEXM0PLUS_STM32L0) && !defined(_ARCH_CORTEXM0PLUS_RP2040)
         &_main_stack_top,    // Stack pointer
         Reset_Handler,       // Reset Handler
         NMI_Handler,         // NMI Handler
@@ -511,7 +511,7 @@ __attribute__((section(".isr_vector"))) const InterruptTable systemInterruptTabl
         nullptr,             // Reserved
         PendSV_Handler,      // PendSV Handler
         nullptr,             // SysTick Handler (Miosix does not use it)
-    #else //__CORTEX_M != 0
+    #else // !defined(_ARCH_CORTEXM0_STM32F0) && !defined(_ARCH_CORTEXM0_STM32G0) && !defined(_ARCH_CORTEXM0PLUS_STM32L0) && !defined(_ARCH_CORTEXM0PLUS_RP2040)
         &_main_stack_top,    // Stack pointer
         Reset_Handler,       // Reset Handler
         NMI_Handler,         // NMI Handler
@@ -528,7 +528,7 @@ __attribute__((section(".isr_vector"))) const InterruptTable systemInterruptTabl
         nullptr,             // Reserved
         PendSV_Handler,      // PendSV Handler
         nullptr,             // SysTick Handler (Miosix does not use it)
-    #endif //__CORTEX_M != 0
+    #endif // !defined(_ARCH_CORTEXM0_STM32F0) && !defined(_ARCH_CORTEXM0_STM32G0) && !defined(_ARCH_CORTEXM0PLUS_STM32L0) && !defined(_ARCH_CORTEXM0PLUS_RP2040)
     TableGenerator<numInterrupts>::table
 );
 
