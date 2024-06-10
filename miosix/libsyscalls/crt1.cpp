@@ -123,7 +123,9 @@ int __register_exitproc(int type, void (*fn)(void*), void *arg, void *d)
     {
         if(++index<numAtexitEntries) continue;
         index=0;
-        walk->next=(AtexitBlock *)calloc(1,sizeof(AtexitBlock));
+        void *ptr=calloc(1,sizeof(AtexitBlock));
+        if(ptr==nullptr) return 1;
+        walk->next=(AtexitBlock *)ptr;
         break;
     }
     walk->fns[index]=fn;
