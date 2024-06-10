@@ -4133,13 +4133,11 @@ void testCacheAndDMA()
 
 void test_syscalls_process()
 {
-    test_name("syscalls");
     ledOn();
     const char *arg[] = { "/bin/test_process", nullptr };
     int exitcode=spawnAndWait(arg);
-    if(exitcode!=0) fail("non-zero exit code");
+    if(exitcode!=0) fail("test process has exited with a non-zero exit code");
     ledOff();
-    pass();
 }
 
 //
