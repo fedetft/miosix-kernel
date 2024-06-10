@@ -83,16 +83,13 @@ _start:
 	pop  {r0,r1,r2}
 	/* call main */
 	bl   main
-	mov  r6, r0
-	/* atexit */
-	bl   __call_exitprocs
-	/* for now we don't call function pointers in __fini_array as nobody seems
-	   to use these. Even C++ global destructors are registered through atexit
-	   and the implementation of exit() in newlib doesn't touch __fini_array
-	   either, so doing it here would even be inconsistent with exit() */
-	/* terminate the program */
-	mov  r0, r6
-	b    _exit
+	/* Terminate the program, simply by calling exit().
+     * Note: a previous version of _start manually called __call_exitprocs()
+     * followed by _exit(), but it forgot to also call __stdio_exit_handler(),
+     * which caused stdout to not be flushed on exit.
+     * The standard exit() function does everything that needs to be done, 
+     * and is perfectly fine to call here, so we might as well use it! */
+	b    exit
 .L200:
 	.word	__preinit_array_end(GOT)
 	.word	__preinit_array_start(GOT)
