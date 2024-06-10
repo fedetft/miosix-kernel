@@ -37,12 +37,14 @@ static void fs_test_4();
 static void fs_test_5();
 static void fs_test_6();
 static void fs_test_7();
+static void sys_test_pipe();
 #endif //WITH_FILESYSTEM
 static void sys_test_time();
-static void sys_test_pipe();
 static void sys_test_getpid();
 static void sys_test_isatty();
+#ifdef WITH_PROCESSES
 static void sys_test_spawn();
+#endif
 
 void test_syscalls(void)
 {
@@ -57,11 +59,11 @@ void test_syscalls(void)
     fs_test_5();
     fs_test_6();
     fs_test_7();
+    sys_test_pipe();
     #else //WITH_FILESYSTEM
     iprintf("Filesystem tests skipped, filesystem support is disabled\n");
     #endif //WITH_FILESYSTEM
     sys_test_time();
-    sys_test_pipe();
     sys_test_getpid();
     sys_test_isatty();
     #ifdef WITH_PROCESSES
@@ -972,116 +974,6 @@ static void fs_test_7()
     pass();
 }
 
-#endif //WITH_FILESYSTEM
-
-//
-// Time and sleep syscalls
-//
-/*
-tests:
-miosix::getTime
-clock_gettime
-times
-gettimeofday
-miosix::nanoSleepUntil
-clock_nanosleep/nanosleep
-usleep
-*/
-
-#ifdef IN_PROCESS
-namespace miosix {
-extern long long getTime();
-extern void nanoSleepUntil(long long t);
-}
-#else
-namespace miosix {
-static inline void nanoSleepUntil(long long t)
-{
-    Thread::nanoSleepUntil(t);
-}
-}
-#endif
-
-void sys_test_time()
-{
-    long long t0,dt;
-    int res;
-    test_name("Time and sleep syscalls");
-
-    //First, test lower level APIs
-    t0 = miosix::getTime();
-    miosix::nanoSleepUntil(t0+100000000);
-    dt = miosix::getTime()-t0;
-    //iprintf("miosix::getTime dt=%lld ns\n",dt);
-    if (!(90000000<=dt&&dt<=110000000))
-        fail("nanoSleepUntil and getTime do not agree");
-    
-    //clock_nanosleep
-    //In Miosix this syscall never fails
-    struct timespec ts;
-    ts.tv_sec = 0;
-    ts.tv_nsec = 100000000;
-    t0 = miosix::getTime();
-    if(nanosleep(&ts,nullptr)!=0)
-        fail("nanosleep");
-    dt = miosix::getTime()-t0;
-    //iprintf("miosix::getTime dt=%lld ns\n",dt);
-    if (!(90000000<=dt&&dt<=110000000))
-        fail("nanosleep and getTime do not agree");
-    
-    //usleep
-    t0 = miosix::getTime();
-    usleep(100000);
-    dt = miosix::getTime()-t0;
-    //iprintf("miosix::getTime dt=%lld ns\n",dt);
-    if (!(90000000<=dt&&dt<=110000000))
-        fail("usleep and getTime do not agree");
-
-    //gettimeofday
-    struct timeval tv0,tv1;
-    res=gettimeofday(&tv0,nullptr);
-    if(res) fail("gettimeofday");
-    usleep(1100000);  //Slightly over 1 second to test rollover to tv_sec
-    res=gettimeofday(&tv1,nullptr);
-    if(res) fail("gettimeofday");
-    t0=(long long)tv0.tv_sec*1000000LL+(long long)tv0.tv_usec;
-    dt=((long long)tv1.tv_sec*1000000LL+(long long)tv1.tv_usec)-t0;
-    //iprintf("gettimeofday dt=%lld us\n",dt);
-    if (!(1000000<=dt&&dt<=1200000))
-        fail("usleep and gettimeofday do not agree");
-
-    //times
-    struct tms tms0,tms1;
-    clock_t clk0=times(&tms0);
-    usleep(1000000);
-    clock_t clk1=times(&tms1);
-    if(clk0==static_cast<clock_t>(-1)||clk1==static_cast<clock_t>(-1))
-        fail("times");
-    if(tms0.tms_utime!=static_cast<clock_t>(-1) && tms0.tms_utime!=clk0)
-        fail("times result does not agree with struct (1)");
-    if(tms1.tms_utime!=static_cast<clock_t>(-1) && tms1.tms_utime!=clk1)
-        fail("times result does not agree with struct (2)");
-    dt=(unsigned long long)(tms1.tms_utime-tms0.tms_utime);
-    //iprintf("times dt=%lld CLOCKS_PER_SEC\n",dt);
-    if(!(CLOCKS_PER_SEC*9/10<=dt&&dt<=CLOCKS_PER_SEC*11/10))
-        fail("usleep and times do not agree");
-    
-    //clock_gettime
-    struct timespec ts0,ts1;
-    res=clock_gettime(CLOCK_MONOTONIC,&ts0);
-    if(res) fail("gettimeofday");
-    usleep(1000000);
-    res=clock_gettime(CLOCK_MONOTONIC,&ts1);
-    if(res) fail("gettimeofday");
-    t0=(long long)ts0.tv_sec*1000000000LL+(long long)ts0.tv_nsec;
-    dt=((long long)ts1.tv_sec*1000000000LL+(long long)ts1.tv_nsec)-t0;
-    //iprintf("clock_gettime dt=%lld ns\n",dt);
-    if (!(900000000<=dt&&dt<=1100000000))
-        fail("usleep and clock_gettime do not agree");
-
-    pass();
-}
-
 //
 // Pipe test
 //
@@ -1192,6 +1084,116 @@ static void sys_test_pipe()
     sys_test_pipe_tryLargeReadAndWrite(512, 512);
     sys_test_pipe_tryLargeReadAndWrite(512, 100);
     #endif
+
+    pass();
+}
+
+#endif //WITH_FILESYSTEM
+
+//
+// Time and sleep syscalls
+//
+/*
+tests:
+miosix::getTime
+clock_gettime
+times
+gettimeofday
+miosix::nanoSleepUntil
+clock_nanosleep/nanosleep
+usleep
+*/
+
+#ifdef IN_PROCESS
+namespace miosix {
+extern long long getTime();
+extern void nanoSleepUntil(long long t);
+}
+#else
+namespace miosix {
+static inline void nanoSleepUntil(long long t)
+{
+    Thread::nanoSleepUntil(t);
+}
+}
+#endif
+
+void sys_test_time()
+{
+    long long t0,dt;
+    int res;
+    test_name("Time and sleep syscalls");
+
+    //First, test lower level APIs
+    t0 = miosix::getTime();
+    miosix::nanoSleepUntil(t0+100000000);
+    dt = miosix::getTime()-t0;
+    //iprintf("miosix::getTime dt=%lld ns\n",dt);
+    if (!(90000000<=dt&&dt<=110000000))
+        fail("nanoSleepUntil and getTime do not agree");
+    
+    //clock_nanosleep
+    //In Miosix this syscall never fails
+    struct timespec ts;
+    ts.tv_sec = 0;
+    ts.tv_nsec = 100000000;
+    t0 = miosix::getTime();
+    if(nanosleep(&ts,nullptr)!=0)
+        fail("nanosleep");
+    dt = miosix::getTime()-t0;
+    //iprintf("miosix::getTime dt=%lld ns\n",dt);
+    if (!(90000000<=dt&&dt<=110000000))
+        fail("nanosleep and getTime do not agree");
+    
+    //usleep
+    t0 = miosix::getTime();
+    usleep(100000);
+    dt = miosix::getTime()-t0;
+    //iprintf("miosix::getTime dt=%lld ns\n",dt);
+    if (!(90000000<=dt&&dt<=110000000))
+        fail("usleep and getTime do not agree");
+
+    //gettimeofday
+    struct timeval tv0,tv1;
+    res=gettimeofday(&tv0,nullptr);
+    if(res) fail("gettimeofday");
+    usleep(1100000);  //Slightly over 1 second to test rollover to tv_sec
+    res=gettimeofday(&tv1,nullptr);
+    if(res) fail("gettimeofday");
+    t0=(long long)tv0.tv_sec*1000000LL+(long long)tv0.tv_usec;
+    dt=((long long)tv1.tv_sec*1000000LL+(long long)tv1.tv_usec)-t0;
+    //iprintf("gettimeofday dt=%lld us\n",dt);
+    if (!(1000000<=dt&&dt<=1200000))
+        fail("usleep and gettimeofday do not agree");
+
+    //times
+    struct tms tms0,tms1;
+    clock_t clk0=times(&tms0);
+    usleep(1000000);
+    clock_t clk1=times(&tms1);
+    if(clk0==static_cast<clock_t>(-1)||clk1==static_cast<clock_t>(-1))
+        fail("times");
+    if(tms0.tms_utime!=static_cast<clock_t>(-1) && tms0.tms_utime!=clk0)
+        fail("times result does not agree with struct (1)");
+    if(tms1.tms_utime!=static_cast<clock_t>(-1) && tms1.tms_utime!=clk1)
+        fail("times result does not agree with struct (2)");
+    dt=(unsigned long long)(tms1.tms_utime-tms0.tms_utime);
+    //iprintf("times dt=%lld CLOCKS_PER_SEC\n",dt);
+    if(!(CLOCKS_PER_SEC*9/10<=dt&&dt<=CLOCKS_PER_SEC*11/10))
+        fail("usleep and times do not agree");
+    
+    //clock_gettime
+    struct timespec ts0,ts1;
+    res=clock_gettime(CLOCK_MONOTONIC,&ts0);
+    if(res) fail("gettimeofday");
+    usleep(1000000);
+    res=clock_gettime(CLOCK_MONOTONIC,&ts1);
+    if(res) fail("gettimeofday");
+    t0=(long long)ts0.tv_sec*1000000000LL+(long long)ts0.tv_nsec;
+    dt=((long long)ts1.tv_sec*1000000000LL+(long long)ts1.tv_nsec)-t0;
+    //iprintf("clock_gettime dt=%lld ns\n",dt);
+    if (!(900000000<=dt&&dt<=1100000000))
+        fail("usleep and clock_gettime do not agree");
 
     pass();
 }
