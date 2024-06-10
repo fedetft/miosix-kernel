@@ -1,3 +1,4 @@
 testsuite_romfs/test_process
 testsuite_romfs/test_execve
+testsuite_romfs/test_global_dtor_ctor
 *.map

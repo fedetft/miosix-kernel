@@ -148,7 +148,7 @@ int main()
         iprintf("Type:\n"
                 " 't' for kernel test\n"
                 " 'k' for kercall test (includes filesystem)\n"
-                " 'c' for syscall test (requires processes)\n"
+                " 'p' for syscall/processes test\n"
                 " 'x' for exception test\n"
                 " 'b' for benchmarks\n"
                 " 's' for shutdown\n");
@@ -203,7 +203,7 @@ int main()
             case 'k':
                 test_syscalls(); //Actually kercalls
                 break;
-            case 'c':
+            case 'p':
                 #ifdef WITH_PROCESSES
                 test_syscalls_process();
                 #else // WITH_PROCESSES

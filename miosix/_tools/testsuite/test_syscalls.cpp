@@ -44,6 +44,9 @@ static void sys_test_getpid();
 static void sys_test_isatty();
 #ifdef WITH_PROCESSES
 static void sys_test_spawn();
+#ifdef IN_PROCESS
+static void proc_test_global_ctor_dtor();
+#endif
 #endif
 
 void test_syscalls(void)
@@ -68,6 +71,9 @@ void test_syscalls(void)
     sys_test_isatty();
     #ifdef WITH_PROCESSES
     sys_test_spawn();
+    #ifdef IN_PROCESS
+    proc_test_global_ctor_dtor();
+    #endif
     #endif
     #ifndef IN_PROCESS
     ledOff();
@@ -82,7 +88,7 @@ int spawnAndWait(const char *arg[])
     pid_t pid;
     int ec=posix_spawn(&pid,arg[0],NULL,NULL,(char* const*)arg,(char* const*)env);
     if(ec!=0) fail("spawnAndWait posix_spawn");
-    pid_t pid2=wait(&ec);
+    pid_t pid2=waitpid(pid,&ec,0);
     if(pid!=pid2) fail("spawnAndWait wrong pid from wait");
     if(!WIFEXITED(ec)) fail("spawnAndWait process returned due to error");
     return WEXITSTATUS(ec);
@@ -1369,5 +1375,45 @@ static void sys_test_spawn()
 
     pass();
 }
+
+#ifdef IN_PROCESS
+
+//
+// Process global constructor/destructor
+//
+
+static void proc_test_global_ctor_dtor()
+{
+    test_name("Global constructors/destructors in processes");
+
+    const char *args[]={"/bin/test_global_dtor_ctor",nullptr};
+    int readFd;
+    pid_t pid=spawnWithPipe(args,readFd);
+    FILE *fp=fdopen(readFd,"r");
+    if(!fp) {printf("errno=%d\n", errno); fail("fdopen");}
+
+    char buffer[64];
+    if(fiscanf(fp,"%s",buffer)!=1) fail("fiscanf (1)");
+    if(strcmp(buffer,"ctor")!=0) fail("global constructor not called");
+    if(fiscanf(fp,"%s",buffer)!=1) fail("fiscanf (2)");
+    if(strcmp(buffer,"member_ok")!=0) fail("member variables not correctly initialized");
+    if(fiscanf(fp,"%s",buffer)!=1) fail("global destructor not called");
+    if(strcmp(buffer,"dtor")!=0) fail("global destructor not called");
+    if(fiscanf(fp,"%s",buffer)==1)
+    {
+        if(strcmp(buffer,"dtor")==0) fail("global destructors called twice");
+        fail("fiscanf (4)");
+    }
+    fclose(fp);
+
+    int pstat;
+    pid_t exitPid=waitpid(pid,&pstat,0);
+    if(exitPid!=pid) fail("waitpid");
+    if(!WIFEXITED(pstat)) fail("test process not exited correctly");
+
+    pass();
+}
+
+#endif // IN_PROCESS
 
 #endif // WITH_PROCESSES
