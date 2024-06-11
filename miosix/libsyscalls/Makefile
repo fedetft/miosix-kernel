@@ -7,7 +7,7 @@
 MAKEFILE_VERSION := 1.13
 include Makefile.pcommon
 
-SRC := crt0.s crt1.cpp
+SRC := crt0.s crt1.cpp memoryprofiling.cpp
 
 all: $(OBJ)
 	$(ECHO) "[AR  ] libsyscalls.a"

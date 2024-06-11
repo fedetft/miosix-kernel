@@ -172,8 +172,11 @@ void __call_exitprocs(int code, void *d)
  */
 void *__dso_handle=(void*) &__dso_handle;
 
-// initialized in crt0.s
-char *__processHeapEnd;
+// initialized in crt0.s, used also by memoryprofiling
+const char *__processHeapEnd;
+const char *__processStackEnd;
+// used by memoryprofiling
+const char *__maxUsedHeap=nullptr;
 
 /**
  * \internal
@@ -203,6 +206,7 @@ void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr)
         #endif //__NO_EXCEPTIONS
     }
     curHeapEnd+=incr;
+    if(curHeapEnd>__maxUsedHeap) __maxUsedHeap=curHeapEnd;
     return reinterpret_cast<void*>(prevHeapEnd);
 }
 

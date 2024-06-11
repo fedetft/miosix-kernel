@@ -56,6 +56,10 @@ call:
 .global _start
 .type _start, %function
 _start:
+	/* store the stack end (for profiling purposes) */
+	ldr  r4, .L200+20
+	ldr  r4, [r9, r4]
+	str  sp, [r4]
 	/* save argc, argv, envp for later. Saving 3*4=12byte + additional 4bytes */
 	/* in call respects 8 byte stack alignment in the called C++ constructors */
 	/* while call itself uses nonstandard calling conventions anyway */
@@ -65,7 +69,7 @@ _start:
 	ldr  r0, [r9, r0]
 	str  r3, [r0]
 	/* store envp in the appropriate variable */
-	ldr  r0, .L200+20
+	ldr  r0, .L200+24
 	ldr  r0, [r9, r0]
 	str  r2, [r0]
 	/* call C++ global constructors */
@@ -96,6 +100,7 @@ _start:
 	.word	__init_array_start(GOT)
 	.word	__init_array_end(GOT)
 	.word	__processHeapEnd(GOT)
+	.word	__processStackEnd(GOT)
 	.word	environ(GOT)
 
 /**
