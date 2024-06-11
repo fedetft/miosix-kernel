@@ -45,7 +45,6 @@
  */
 #include "arch_settings.h"
 #include "board_settings.h"
-#include "util/version.h"
 
 /**
  * \internal
