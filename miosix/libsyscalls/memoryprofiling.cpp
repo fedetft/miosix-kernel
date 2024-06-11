@@ -29,13 +29,7 @@
 #include <cstdio>
 #include <malloc.h>
 #include <reent.h>
-
-//FIXME: not accounting for ctxsave size
-const unsigned int CTXSAVE_ON_STACK=0;
-//TODO: these are defined in miosix_settings.h
-const unsigned int WATERMARK_LEN=16;
-const unsigned int WATERMARK_FILL=0xaaaaaaaa;
-const unsigned int STACK_FILL=0xbbbbbbbb;
+#include <config/miosix_settings.h>
 
 // declared in crt1.cpp
 extern const char *__processHeapEnd;
