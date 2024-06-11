@@ -49,7 +49,7 @@ static void proc_test_global_ctor_dtor();
 #endif
 #endif
 
-void test_syscalls(void)
+void test_syscalls()
 {
     #ifndef IN_PROCESS
     ledOn();
