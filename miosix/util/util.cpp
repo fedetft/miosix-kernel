@@ -106,9 +106,9 @@ unsigned int MemoryProfiling::getHeapSize()
 {
     //These extern variables are defined in the linker script
     //Pointer to begin of heap
-    extern const char _end asm("_end");
+    extern char _end asm("_end");
     //Pointer to end of heap
-    extern const char _heap_end asm("_heap_end");
+    extern char _heap_end asm("_heap_end");
 
     return reinterpret_cast<unsigned int>(&_heap_end)
          - reinterpret_cast<unsigned int>(&_end);
@@ -118,7 +118,7 @@ unsigned int MemoryProfiling::getAbsoluteFreeHeap()
 {
     //This extern variable is defined in the linker script
     //Pointer to end of heap
-    extern const char _heap_end asm("_heap_end");
+    extern char _heap_end asm("_heap_end");
 
     unsigned int maxHeap=getMaxHeap();
 
