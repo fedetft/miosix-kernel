@@ -32,11 +32,8 @@
 
 namespace miosix {
 
-//These are a couple of global variables and a function that are part of the
-//internal implementation of the kernel and are defined in kernel.cpp
-//User code should not know about these nor try to use them.
-extern volatile int kernelRunning;///\internal Do not use outside the kernel
-extern volatile bool pendingWakeup;///\internal Do not use outside the kernel
+//This is a function that is part of the internal implementation of the kernel
+//and is defined in kernel.cpp. User code should not know about these nor try to use them.
 extern bool IRQwakeThreads(long long currentTime);///\internal Do not use outside the kernel
 
 /**
@@ -54,7 +51,6 @@ inline void IRQtimerInterrupt(long long currentTime)
     {
         //End of the burst || a higher priority thread has woken up
         Scheduler::IRQfindNextThread();//If the kernel is running, preempt
-        if(kernelRunning!=0) pendingWakeup=true;
     }
 }
 

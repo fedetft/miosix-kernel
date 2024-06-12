@@ -40,6 +40,7 @@ namespace miosix {
 //These are defined in kernel.cpp
 extern volatile Thread *runningThread;
 extern volatile int kernelRunning;
+extern volatile bool pendingWakeup;
 extern IntrusiveList<SleepData> sleepingList;
 
 //Static members
@@ -128,7 +129,11 @@ static void IRQsetNextPreemption()
 
 void EDFScheduler::IRQfindNextThread()
 {
-    if(kernelRunning!=0) return;//If kernel is paused, do nothing
+    if(kernelRunning!=0) //If kernel is paused, do nothing
+    {
+        pendingWakeup=true;
+        return;
+    }
     #ifdef WITH_CPU_TIME_COUNTER
     Thread *prev=const_cast<Thread*>(runningThread);
     #endif // WITH_CPU_TIME_COUNTER
