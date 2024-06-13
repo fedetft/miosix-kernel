@@ -179,7 +179,11 @@ ssize_t MemoryMappedRomFsFile::read(void *data, size_t len)
     unsigned int size=fromLittleEndian32(entry->size);
     if(seekPoint>=size) return 0;
     size_t toRead=min<size_t>(len,size-seekPoint);
+    #ifdef __NO_EXCEPTIONS
+    auto parent=static_pointer_cast<MemoryMappedRomFs>(getParent());
+    #else
     auto parent=dynamic_pointer_cast<MemoryMappedRomFs>(getParent());
+    #endif
     memcpy(data,parent->ptr(fromLittleEndian32(entry->inode))+seekPoint,toRead);
     seekPoint+=toRead;
     return toRead;
@@ -216,7 +220,11 @@ int MemoryMappedRomFsFile::fstat(struct stat *pstat) const
 
 MemoryMappedFile MemoryMappedRomFsFile::getFileFromMemory()
 {
+    #ifdef __NO_EXCEPTIONS
+    auto parent=static_pointer_cast<MemoryMappedRomFs>(getParent());
+    #else
     auto parent=dynamic_pointer_cast<MemoryMappedRomFs>(getParent());
+    #endif
     return MemoryMappedFile(parent->ptr(fromLittleEndian32(entry->inode)),
                             fromLittleEndian32(entry->size));
 }
@@ -258,7 +266,11 @@ int MemoryMappedRomFsDirectory::getdents(void *dp, int len)
     char *begin=reinterpret_cast<char*>(dp);
     char *buffer=begin;
     char *end=buffer+len;
+    #ifdef __NO_EXCEPTIONS
+    auto parent=static_pointer_cast<MemoryMappedRomFs>(getParent());
+    #else
     auto parent=dynamic_pointer_cast<MemoryMappedRomFs>(getParent());
+    #endif
     if(!parent) return -EBADF;
 
     unsigned int inode=fromLittleEndian32(entry->inode);
