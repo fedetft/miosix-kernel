@@ -178,7 +178,20 @@ void restartKernel()
     //are disabled with an InterruptDisableLock
     if(interruptDisableNesting==0)
     {
-        //If we missed preemptions yield immediately
+        //If we missed a preemption yield immediately. This mechanism works the
+        //same way as the hardware implementation of interrupts that remain
+        //pending if they occur while interrupts are disabled.
+        //This is important to make sure context switches to a higher priority
+        //thread happen in a timely fashion.
+        //It is important that pendingWakeup is set to true any time the
+        //scheduler is called but it could not run due to the kernel being
+        //paused regardless of whether the scheduler has been called by the
+        //timer irq or any peripheral irq.
+        //With the tickless kernel, this is also important to prevent deadlocks
+        //as the idle thread is no longer periodically interrupted by timer
+        //ticks and it does pause the kernel. If the interrupt that wakes up
+        //a thread fails to call the scheduler since the idle thread paused the
+        //kernel and pendingWakeup is not set, this could cause a deadlock.
         if(old==1 && pendingWakeup)
         { 
             pendingWakeup=false;
