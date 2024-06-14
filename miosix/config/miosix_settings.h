@@ -138,18 +138,6 @@ const unsigned char MAX_OPEN_FILES=8;
 /// isolation of processes
 //#define WITH_PROCESSES
 
-#if defined(WITH_PROCESSES) && defined(__NO_EXCEPTIONS)
-#error Processes require C++ exception support
-#endif //defined(WITH_PROCESSES) && defined(__NO_EXCEPTIONS)
-
-#if defined(WITH_PROCESSES) && !defined(WITH_FILESYSTEM)
-#error Processes require filesystem support
-#endif //defined(WITH_PROCESSES) && !defined(WITH_FILESYSTEM)
-
-#if defined(WITH_PROCESSES) && !defined(WITH_DEVFS)
-#error Processes require devfs support
-#endif //defined(WITH_PROCESSES) && !defined(WITH_DEVFS)
-
 //
 // C/C++ standard library I/O (stdin, stdout and stderr related)
 //

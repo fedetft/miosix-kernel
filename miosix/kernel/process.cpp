@@ -46,6 +46,18 @@ using namespace std;
 
 #ifdef WITH_PROCESSES
 
+#ifdef __NO_EXCEPTIONS
+#error Processes require C++ exception support
+#endif //__NO_EXCEPTIONS
+
+#ifndef WITH_FILESYSTEM
+#error Processes require filesystem support
+#endif //WITH_FILESYSTEM
+
+#ifndef WITH_DEVFS
+#error Processes require devfs support
+#endif //WITH_DEVFS
+
 namespace miosix {
 
 /**
