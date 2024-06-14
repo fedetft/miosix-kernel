@@ -2823,6 +2823,7 @@ else ifeq ($(ARCH),cortexM4_stm32f3)
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/drivers/serial_stm32.cpp                     \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     arch/common/drivers/stm32_gpio.cpp                       \
@@ -2989,6 +2990,7 @@ else ifeq ($(ARCH),cortexM4_atsam4l)
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/drivers/serial_atsam4l.cpp                   \
     $(ARCH_INC)/drivers/clock.cpp                            \
     $(ARCH_INC)/drivers/lcd.cpp                              \
