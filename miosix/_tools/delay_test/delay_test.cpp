@@ -34,7 +34,11 @@ void tdms(int n)
 
 int main()
 {
-//    //STM32-specific: enable PLL freq to be output on PA8
+//    //STM32f1-specific: enable PLL freq to be output on PA8
+//    using mco = Gpio<GPIOA_BASE,8>;
+//    mco::mode(Mode::ALTERNATE);
+//    RCC->CFGR |= (0x7<<24);
+//    //STM32f?-specific: enable PLL freq to be output on PA8
 //    using mco = Gpio<GPIOA_BASE,8>;
 //    mco::speed(Speed::_100MHz);
 //    mco::mode(Mode::ALTERNATE);
@@ -45,11 +49,11 @@ int main()
 //    using gclk0 = Gpio<GPIOA_BASE,2>;
 //    gclk0::mode(Mode::ALTERNATE);
 //    gclk0::alternateFunction('A');
-//     //EFM32-specific: output HFCLK/2 clock on PA2
-//     using clkOut0 = Gpio<GPIOA_BASE,2>;
-//     clkOut0::mode(Mode::OUTPUT);
-//     CMU->CTRL |= CMU_CTRL_CLKOUTSEL0_HFCLK2;
-//     CMU->ROUTE |= CMU_ROUTE_CLKOUT0PEN;
+//    //EFM32-specific: output HFCLK/2 clock on PA2
+//    using clkOut0 = Gpio<GPIOA_BASE,2>;
+//    clkOut0::mode(Mode::OUTPUT);
+//    CMU->CTRL |= CMU_CTRL_CLKOUTSEL0_HFCLK2;
+//    CMU->ROUTE |= CMU_ROUTE_CLKOUT0PEN;
     int n;
     out::mode(Mode::OUTPUT);
     iprintf("Delay test\nEnter value in us\n");
