@@ -658,7 +658,17 @@ endif
 ## atsam4lc2aa_generic
 ##
 
-# No options
+ifeq ($(OPT_BOARD),atsam4lc2aa_generic)
+
+    ## Linker script type, there are two options
+    ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
+    ## 2) Same as 1) but space has been reserved for a process pool, allowing
+    ##    to configure the kernel with "#define WITH_PROCESSES"
+    LINKER_SCRIPT_PATH := arch/cortexM4_atsam4l/atsam4lc2aa_generic/
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)atsam_112k+32k_rom.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)atsam_112k+32k_rom_processes.ld
+
+endif
 
 ##---------------------------------------------------------------------------
 ## stm32f411ce_blackpill
@@ -2942,9 +2952,6 @@ else ifeq ($(ARCH),cortexM4_atsam4l)
     ifeq ($(OPT_BOARD),atsam4lc2aa_generic)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM4_atsam4l/atsam4lc2aa_generic
-
-        ## Select linker script
-        LINKER_SCRIPT := $(BOARD_INC)/atsam_112k+32k_rom.ld
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>

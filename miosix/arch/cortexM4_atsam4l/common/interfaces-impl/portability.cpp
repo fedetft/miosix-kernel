@@ -30,7 +30,12 @@
 #include "kernel/error.h"
 #include "interfaces/bsp.h"
 #include "kernel/scheduler/scheduler.h"
+#include "core/interrupts.h"
+#include "kernel/process.h"
 #include <algorithm>
+#include <cstdio>
+#include <cstring>
+#include <cassert>
 
 extern void (* const __Vectors[])();
 
@@ -62,8 +67,49 @@ namespace miosix_private {
 void ISR_yield() __attribute__((noinline));
 void ISR_yield()
 {
+    #ifdef WITH_PROCESSES
+    // WARNING: Temporary fix. Rationale:
+    // This fix is intended to avoid kernel or process faulting due to
+    // another process actions. Consider the case in which a process statically
+    // allocates a big array such that there is no space left for saving
+    // context data. If the process issues a system call, in the following
+    // interrupt the context is saved, but since there is no memory available
+    // for all the context data, a mem manage interrupt is set to 'pending'. Then,
+    // a fake syscall is issued, based on the value read on the stack (which
+    // the process hasn't set due to the memory fault and is likely to be 0);
+    // this syscall is usually a yield (due to the value of 0 above),
+    // which can cause the scheduling of the kernel thread. At this point,
+    // the pending mem fault is issued from the kernel thread, causing the
+    // kernel fault and reboot. This is caused by the mem fault interrupt
+    // having less priority of the other interrupts.
+    // This fix checks if there is a mem fault interrupt pending, and, if so,
+    // it clears it and returns before calling the previously mentioned fake
+    // syscall.
+    if(SCB->SHCSR & (1<<13))
+    {
+        if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
+            fault::MP,0,0)))
+        {
+            SCB->SHCSR &= ~(1<<13); //Clear MEMFAULTPENDED bit
+            return;
+        }
+    }
+    #endif // WITH_PROCESSES
     miosix::Thread::IRQstackOverflowCheck();
+    
+    #ifdef WITH_PROCESSES
+    //If processes are enabled, check the content of r3. If zero then it
+    //it is a simple yield, otherwise handle the syscall
+    //Note that it is required to use ctxsave and not cur->ctxsave because
+    //at this time we do not know if the active context is user or kernel
+    unsigned int threadSp=ctxsave[0];
+    unsigned int *processStack=reinterpret_cast<unsigned int*>(threadSp);
+    if(processStack[3]!=static_cast<unsigned int>(miosix::Syscall::YIELD))
+        miosix::Thread::IRQhandleSvc(processStack[3]);
+    else miosix::Scheduler::IRQfindNextThread();
+    #else //WITH_PROCESSES
     miosix::Scheduler::IRQfindNextThread();
+    #endif //WITH_PROCESSES
 }
 
 void IRQsystemReboot()
@@ -90,13 +136,93 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     //leaving the content of r4-r11 uninitialized
 }
 
+#ifdef WITH_PROCESSES
+
+//
+// class FaultData
+//
+
+void FaultData::print() const
+{
+    using namespace fault;
+    switch(id)
+    {
+        case MP:
+            iprintf("* Attempted data access @ 0x%x (PC was 0x%x)\n",arg,pc);
+            break;
+        case MP_NOADDR:
+            iprintf("* Invalid data access (PC was 0x%x)\n",pc);
+            break;
+        case MP_XN:
+            iprintf("* Attempted instruction fetch @ 0x%x\n",pc);
+            break;
+        case UF_DIVZERO:
+            iprintf("* Dvide by zero (PC was 0x%x)\n",pc);
+            break;
+        case UF_UNALIGNED:
+            iprintf("* Unaligned memory access (PC was 0x%x)\n",pc);
+            break;
+        case UF_COPROC:
+            iprintf("* Attempted coprocessor access (PC was 0x%x)\n",pc);
+            break;
+        case UF_EXCRET:
+            iprintf("* Invalid exception return sequence (PC was 0x%x)\n",pc);
+            break;
+        case UF_EPSR:
+            iprintf("* Attempted access to the EPSR (PC was 0x%x)\n",pc);
+            break;
+        case UF_UNDEF:
+            iprintf("* Undefined instruction (PC was 0x%x)\n",pc);
+            break;
+        case UF_UNEXP:
+            iprintf("* Unexpected usage fault (PC was 0x%x)\n",pc);
+            break;
+        case HARDFAULT:
+            iprintf("* Hardfault (PC was 0x%x)\n",pc);
+            break;
+        case BF:
+            iprintf("* Busfault @ 0x%x (PC was 0x%x)\n",arg,pc);
+            break;
+        case BF_NOADDR:
+            iprintf("* Busfault (PC was 0x%x)\n",pc);
+            break;
+        case STACKOVERFLOW:
+            iprintf("* Stack overflow\n");
+            break;
+    }
+}
+
+void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), int argc,
+    void *argvSp, void *envp, unsigned int *gotBase, unsigned int *heapEnd)
+{
+    unsigned int *stackPtr=reinterpret_cast<unsigned int*>(argvSp);
+    stackPtr--; //Stack is full descending, so decrement first
+    *stackPtr=0x01000000; stackPtr--;                                 //--> xPSR
+    *stackPtr=reinterpret_cast<unsigned long>(pc); stackPtr--;        //--> pc
+    *stackPtr=0xffffffff; stackPtr--;                                 //--> lr
+    *stackPtr=0; stackPtr--;                                          //--> r12
+    *stackPtr=reinterpret_cast<unsigned long>(heapEnd); stackPtr--;   //--> r3
+    *stackPtr=reinterpret_cast<unsigned long>(envp);    stackPtr--;   //--> r2
+    *stackPtr=reinterpret_cast<unsigned long>(argvSp);  stackPtr--;   //--> r1
+    *stackPtr=argc;                                                   //--> r0
+
+    ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
+    ctxsave[6]=reinterpret_cast<unsigned long>(gotBase);              //--> r9
+    //leaving the content of r4-r8,r10-r11 uninitialized
+    //NOTE: Cortex M3 differs from Cortex M4/M7 as ctxsave does not contain lr
+    //NOTE: Although the atsam4l core is a Cortex M4, it does not have an FPU,
+    //so we use the ctxsave layout of a Cortex M3
+}
+
+#endif //WITH_PROCESSES
+
 void IRQportableStartKernel()
 {
     //NOTE: the SAM-BA bootloader does not relocate the vector table offset,
     //so any interrupt would call the SAM-BA IRQ handler, not the application
     //ones.
     SCB->VTOR = reinterpret_cast<unsigned int>(&__Vectors);
-    
+
     //Enable fault handlers
     SCB->SHCSR |= SCB_SHCSR_USGFAULTENA_Msk | SCB_SHCSR_BUSFAULTENA_Msk
             | SCB_SHCSR_MEMFAULTENA_Msk;
@@ -106,6 +232,11 @@ void IRQportableStartKernel()
     SCB->CCR |= SCB_CCR_DIV_0_TRP_Msk;
     NVIC_SetPriorityGrouping(7);//This should disable interrupt nesting
     NVIC_SetPriority(SVCall_IRQn,3);//High priority for SVC (Max=0, min=15)
+    NVIC_SetPriority(MemoryManagement_IRQn,2);//Higher priority for MemoryManagement (Max=0, min=15)
+
+    #ifdef WITH_PROCESSES
+    miosix::IRQenableMPUatBoot();
+    #endif //WITH_PROCESSES
 
     //create a temporary space to save current registers. This data is useless
     //since there's no way to stop the sheduler, but we need to save it anyway.
