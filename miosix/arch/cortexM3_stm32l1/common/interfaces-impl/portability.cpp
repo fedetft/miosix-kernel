@@ -88,29 +88,6 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     //leaving the content of r4-r11 uninitialized
 }
 
-#ifdef WITH_PROCESSES
-
-void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
-        void *argv, unsigned int *gotBase)
-{
-    unsigned int *stackPtr=sp;
-    stackPtr--; //Stack is full descending, so decrement first
-    *stackPtr=0x01000000; stackPtr--;                                 //--> xPSR
-    *stackPtr=reinterpret_cast<unsigned long>(pc); stackPtr--;        //--> pc
-    *stackPtr=0xffffffff; stackPtr--;                                 //--> lr
-    *stackPtr=0; stackPtr--;                                          //--> r12
-    *stackPtr=0; stackPtr--;                                          //--> r3
-    *stackPtr=0; stackPtr--;                                          //--> r2
-    *stackPtr=0; stackPtr--;                                          //--> r1
-    *stackPtr=reinterpret_cast<unsigned long >(argv);                 //--> r0
-
-    ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
-    ctxsave[6]=reinterpret_cast<unsigned long>(gotBase);              //--> r9 
-    //leaving the content of r4-r8,r10-r11 uninitialized
-}
-
-#endif //WITH_PROCESSES
-
 void IRQportableStartKernel()
 {
     //Enable fault handlers
