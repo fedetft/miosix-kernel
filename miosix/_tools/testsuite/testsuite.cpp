@@ -531,6 +531,7 @@ static void test_3()
     //Testing Thread::sleep() again
     t3_v2=false;
     p=Thread::create(t3_p2,STACK_SMALL,0,NULL,Thread::JOINABLE);
+    if(!p) fail("thread creation (1)");
     //t3_p2 sleeps for 15ms, then sets t3_v2. We sleep for 20ms so t3_v2 should
     //be true
     Thread::sleep(20);
@@ -547,6 +548,7 @@ static void test_3()
     //Creating another instance of t3_p2 to check what happens when 3 threads
     //are sleeping
     Thread *p2=Thread::create(t3_p2,STACK_SMALL,0,NULL,Thread::JOINABLE);
+    if(!p2) fail("thread creation (2)");
     //p will wake @ t=45, main will wake @ t=47 and p2 @ t=50ms
     //this will test proper sorting of sleeping_list in the kernel
     Thread::sleep(12);
@@ -560,7 +562,7 @@ static void test_3()
     t3_deleted=false;
     p2->terminate();
     p2->join();
-    if(Thread::exists(p)) fail("multiple instances (3)");
+    if(Thread::exists(p2)) fail("multiple instances (3)");
     if(t3_deleted==false) fail("multiple instances (4)");
     //Testing Thread::nanoSleepUntil()
     long long time;
