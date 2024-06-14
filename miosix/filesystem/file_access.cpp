@@ -882,18 +882,21 @@ basicFilesystemSetup(intrusive_ref_ptr<Device> dev)
     }
     #endif //WITH_PROCESSES
 
-    #ifdef WITH_DEVFS
-    #define TRY_MOUNT(x) if (tryMount<x>(#x, dev, rootFs, devfs)) return devfs
-    #else
-    #define TRY_MOUNT(x) if (tryMount<x>(#x, dev, rootFs)) return
-    #endif
-    #ifdef WITH_FATFS
-    TRY_MOUNT(Fat32Fs);
-    #endif
-    #ifdef WITH_LITTLEFS
-    TRY_MOUNT(LittleFS);
-    #endif
-    #undef TRY_MOUNT
+    if(dev)
+    {
+        #ifdef WITH_DEVFS
+        #define TRY_MOUNT(x) if (tryMount<x>(#x, dev, rootFs, devfs)) return devfs
+        #else
+        #define TRY_MOUNT(x) if (tryMount<x>(#x, dev, rootFs)) return
+        #endif
+        #ifdef WITH_FATFS
+        TRY_MOUNT(Fat32Fs);
+        #endif
+        #ifdef WITH_LITTLEFS
+        TRY_MOUNT(LittleFS);
+        #endif
+        #undef TRY_MOUNT
+    }
     
     #ifdef WITH_DEVFS
     return devfs;
