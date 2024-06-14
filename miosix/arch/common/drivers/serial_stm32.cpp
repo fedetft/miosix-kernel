@@ -1414,9 +1414,9 @@ void STM32Serial::IRQdmaReadStart()
     #if defined(_ARCH_CORTEXM3_STM32F1) || defined(_ARCH_CORTEXM4_STM32F3) || \
         defined(_ARCH_CORTEXM4_STM32L4)
     #if defined(_ARCH_CORTEXM3_STM32F1)
-    dmaTx->CPAR=reinterpret_cast<unsigned int>(&port->DR);
+    dmaRx->CPAR=reinterpret_cast<unsigned int>(&port->DR);
     #else
-    dmaTx->CPAR=reinterpret_cast<unsigned int>(&port->RDR);
+    dmaRx->CPAR=reinterpret_cast<unsigned int>(&port->RDR);
     #endif
     dmaRx->CMAR=reinterpret_cast<unsigned int>(rxBuffer);
     dmaRx->CNDTR=rxQueueMin;
