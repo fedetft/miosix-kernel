@@ -66,7 +66,10 @@ void IRQbspInit()
 
 void bspInit2()
 {
-    
+    #ifdef WITH_FILESYSTEM
+    //Passing an empty device won't mount fat32, but will mount romfs and devfs
+    basicFilesystemSetup(intrusive_ref_ptr<Device>());
+    #endif //WITH_FILESYSTEM
 }
 
 //
