@@ -180,9 +180,10 @@ void bspInit2()
     #ifndef DISABLE_FLOPSYNCVHT
     VHT::instance().start();
     #endif //DISABLE_FLOPSYNCVHT
-//     #ifdef WITH_FILESYSTEM
-//     basicFilesystemSetup();
-//     #endif //WITH_FILESYSTEM
+    #ifdef WITH_FILESYSTEM
+    //Passing an empty device won't mount fat32, but will mount romfs and devfs
+    basicFilesystemSetup(intrusive_ref_ptr<Device>());
+    #endif //WITH_FILESYSTEM
 }
 
 //

@@ -361,8 +361,17 @@ endif
 ##---------------------------------------------------------------------------
 ## efm32gg332f1024_wandstem
 ##
+ifeq ($(OPT_BOARD),efm32gg332f1024_wandstem)
 
-# No options
+    ## Linker script type, there are two options
+    ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
+    ## 2) Same as 1) but space has been reserved for a process pool, allowing
+    ##    to configure the kernel with "#define WITH_PROCESSES"
+    LINKER_SCRIPT_PATH := arch/cortexM3_efm32gg/efm32gg332f1024_wandstem/
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)efm32_1M+128k_rom_usbbootloader.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)efm32_1M+128k_rom_usbbootloader_processes.ld
+
+endif
 
 ##---------------------------------------------------------------------------
 ## stm32f411re_nucleo
@@ -2280,9 +2289,6 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM3_efm32gg/efm32gg332f1024_wandstem
 
-        ## Select linker script
-        LINKER_SCRIPT := $(BOARD_INC)/efm32_1M+128k_rom_usbbootloader.ld
-
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                                 \
@@ -2342,6 +2348,7 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/drivers/efm32_serial.cpp                     \
     arch/common/drivers/efm32_adc.cpp                        \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
