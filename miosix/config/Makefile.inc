@@ -117,6 +117,7 @@ ifeq ($(OPT_BOARD),stm32f103ze_stm3210e-eval)
     LINKER_SCRIPT_PATH := arch/cortexM3_stm32f1/stm32f103ze_stm3210e-eval/
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_rom.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_xram.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_xram_processes.ld
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_all_in_xram.ld
 
     ## Enable/disable initialization of external RAM at boot. Three options:
@@ -1444,6 +1445,7 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                  \
     arch/common/core/interrupts_cortexMx.cpp     \
+    arch/common/core/mpu_cortexMx.cpp            \
     arch/common/drivers/serial_stm32.cpp         \
     arch/common/drivers/dcc.cpp                  \
     $(ARCH_INC)/interfaces-impl/portability.cpp  \
