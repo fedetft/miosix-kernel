@@ -1044,10 +1044,9 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## board.
         ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_512k+64k_all_in_xram.ld)
             PROG ?= $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
-                    /dev/ttyUSB0 main.bin
+                    /dev/ttyUSB0 $(if $(ROMFS_DIR), image.bin, main.bin)
         else
-            PROG ?= st-flash --connect-under-reset --reset write \
-                    $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
+            PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
         endif
 
     ##-------------------------------------------------------------------------
