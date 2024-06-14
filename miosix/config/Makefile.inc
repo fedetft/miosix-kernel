@@ -3057,6 +3057,7 @@ else ifeq ($(ARCH),cortexM3_efm32g)
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/core/efm32_os_timer.cpp                      \
     arch/common/drivers/efm32_serial.cpp                     \
     arch/common/drivers/efm32_adc.cpp                        \
