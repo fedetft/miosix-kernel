@@ -41,8 +41,11 @@ _main_stack_size = 512;                             /* main stack = 512Bytes */
 _main_stack_top  = 0x20000000 + _main_stack_size;
 ASSERT(_main_stack_size   % 8 == 0, "MAIN stack size error");
 
-/* Mapping the heap to the end of SRAM2 */
-_heap_end = 0x20000000 + 320K;                       /* end of available ram */
+/* Mapping the heap to the dtcm */
+_heap_end = 0x20000000 + 64K;
+/* Mapping the process pool into the upper 96KB of the RAM */
+_process_pool_start = _heap_end;
+_process_pool_end = 0x20000000 + 320K;              /* end of available ram  */
 
 /* Identify the Entry Point  */
 ENTRY(_Z13Reset_Handlerv)
@@ -51,18 +54,14 @@ ENTRY(_Z13Reset_Handlerv)
  * Specify the memory areas
  *
  * NOTE: starting at 0x20000000 there's 64KB of DTCM (Data Tightly Coupled
- * Memory). Technically, we could use this as normal RAM as there's a way for
- * the DMA to access it, but the datasheet is unclear about performance
- * penalties for doing so. To avoid nonuniform DMA memory access latencies,
- * we leave this 64KB DTCM unused except for the first 512Bytes which are for
- * the interrupt stack. This leaves us with 256KB of RAM
- * TODO: in the processes linker script the entire kernel was moved in the
- * dtcm and it worked, maybe reconsider using the dtcm someday
+ * Memory). We use this to store the kernel as there's a way for the DMA to
+ * access it, even though the datasheet is unclear about performance
+ * penalties for doing so. This leaves us with 256KB of RAM for the process pool
  */
 MEMORY
 {
     sram(wx)  : ORIGIN = 0x20010000, LENGTH = 256K
-    dtcm(wx)  : ORIGIN = 0x20000000, LENGTH = 64K     /* Used for main stack */
+    dtcm(wx)  : ORIGIN = 0x20000200, LENGTH = 64K-0x200
     flash(rx) : ORIGIN = 0x08000000, LENGTH = 1M
 }
 
@@ -161,7 +160,7 @@ SECTIONS
         *(.gnu.linkonce.d.*)
         . = ALIGN(8);
         _edata = .;
-    } > sram AT > flash
+    } > dtcm AT > flash
     _etext = LOADADDR(.data);
 
     /* .bss section: uninitialized global variables go to sram */
@@ -172,7 +171,7 @@ SECTIONS
         *(.bss.*)
         *(.gnu.linkonce.b.*)
         . = ALIGN(8);
-    } > sram
+    } > dtcm
     _bss_end = .;
 
     _end = .;
