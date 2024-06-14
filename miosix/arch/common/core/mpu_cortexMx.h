@@ -47,7 +47,9 @@ unsigned int sizeToMpu(unsigned int size);
  */
 inline void IRQenableMPUatBoot()
 {
+    #if __MPU_PRESENT==1
     MPU->CTRL=MPU_CTRL_PRIVDEFENA_Msk | MPU_CTRL_ENABLE_Msk;
+    #endif //__MPU_PRESENT==1
 }
 
 #ifdef WITH_PROCESSES
@@ -82,12 +84,14 @@ public:
      */
     void IRQenable()
     {
-       MPU->RBAR=regValues[0];
-       MPU->RASR=regValues[1];
-       MPU->RBAR=regValues[2];
-       MPU->RASR=regValues[3];
-       __set_CONTROL(3); 
-   }
+        #if __MPU_PRESENT==1
+        MPU->RBAR=regValues[0];
+        MPU->RASR=regValues[1];
+        MPU->RBAR=regValues[2];
+        MPU->RASR=regValues[3];
+        __set_CONTROL(3);
+        #endif //__MPU_PRESENT==1
+    }
     
     /**
      * \internal
@@ -97,7 +101,9 @@ public:
      */
     static void IRQdisable()
     {
+        #if __MPU_PRESENT==1
         __set_CONTROL(2);
+        #endif //__MPU_PRESENT==1
     }
     
     /**

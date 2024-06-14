@@ -52,6 +52,7 @@ unsigned int sizeToMpu(unsigned int size)
 MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elfSize,
         const unsigned int *imageBase, unsigned int imageSize)
 {
+    #if __MPU_PRESENT==1
     // NOTE: The ARM documentation is unclear about the effect of the shareable
     // bit on a single core architecture. Experimental evidence on an STM32F476
     // shows that setting it in IRQconfigureCache for the internal RAM region
@@ -70,10 +71,14 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
                | MPU_RASR_C_Msk
                | 1 //Enable bit
                | sizeToMpu(imageSize)<<1;
+    #else //__MPU_PRESENT==1
+    #warning architecture lacks MPU, memory protection for processes unsupported
+    #endif //__MPU_PRESENT==1
 }
 
 void MPUConfiguration::dumpConfiguration()
 {
+    #if __MPU_PRESENT==1
     for(int i=0;i<2;i++)
     {
         unsigned int base=regValues[2*i] & (~0x1f);
@@ -82,6 +87,9 @@ void MPUConfiguration::dumpConfiguration()
         char x=regValues[2*i+1] & MPU_RASR_XN_Msk ? '-' : 'x';
         iprintf("* MPU region %d 0x%08x-0x%08x r%c%c\n",i+6,base,end,w,x);
     }
+    #else //__MPU_PRESENT==1
+    iprintf("* architecture lacks MPU\n");
+    #endif //__MPU_PRESENT==1
 }
 
 unsigned int MPUConfiguration::roundSizeForMPU(unsigned int size)
