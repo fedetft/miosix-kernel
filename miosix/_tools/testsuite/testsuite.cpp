@@ -1041,13 +1041,16 @@ static void test_6()
     seq.clear();
     #ifndef SCHED_TYPE_CONTROL_BASED
     //Create first thread
-    Thread::create(t6_p1,STACK_SMALL,priorityAdapter(0),NULL);
+    if (!Thread::create(t6_p1,STACK_SMALL,priorityAdapter(0),NULL))
+        fail("thread creation (1)");
     Thread::sleep(20);
     //Create second thread
-    Thread::create(t6_p2,STACK_SMALL,priorityAdapter(1),NULL);
+    if (!Thread::create(t6_p2,STACK_SMALL,priorityAdapter(1),NULL))
+        fail("thread creation (2)");
     Thread::sleep(20);
     //Create third thread
-    Thread::create(t6_p3,STACK_SMALL,priorityAdapter(2),NULL);
+    if (!Thread::create(t6_p3,STACK_SMALL,priorityAdapter(2),NULL))
+        fail("thread creation (3)");
     Thread::sleep(20);
     t6_m1.lock();
     /*
@@ -1791,27 +1794,33 @@ void test_14()
 
     //Test 1: detached thread that returns void*
     Thread *t=Thread::create(t14_p1,STACK_SMALL,0,0);
+    if(!t) fail("thread creation (1)");
     t->terminate();
     Thread::sleep(10);
     if(Thread::exists(t)) fail("detached thread");
     //Test 2: joining a not deleted thread
     t=Thread::create(t14_p2,STACK_SMALL,0,0,Thread::JOINABLE);
+    if(!t) fail("thread creation (2)");
     t->join();
     Thread::sleep(10);
     //Test 3: detaching a thread while not deleted
     t=Thread::create(t14_p2,STACK_SMALL,0,0,Thread::JOINABLE);
+    if(!t) fail("thread creation (3)");
     Thread::yield();
     t->detach();
     Thread::sleep(10);
     //Test 4: detaching a deleted thread
     t=Thread::create(t14_p1,STACK_SMALL,0,0,Thread::JOINABLE);
+    if(!t) fail("thread creation (4)");
     t->terminate();
     Thread::sleep(10);
     t->detach();
     Thread::sleep(10);
     //Test 5: detaching a thread on which some other thread called join
     t=Thread::create(t14_p2,STACK_SMALL,0,0,Thread::JOINABLE);
-    Thread::create(t14_p3,STACK_SMALL,0,reinterpret_cast<void*>(t));
+    if(!t) fail("thread creation (5)");
+    if(!Thread::create(t14_p3,STACK_SMALL,0,reinterpret_cast<void*>(t)))
+        fail("thread creation (6)");
     if(t->join()==true) fail("thread not detached (1)");
 
     //
@@ -1822,6 +1831,7 @@ void test_14()
     //Test 1: join on joinable, not already deleted
     void *result=0;
     t=Thread::create(t14_p2,STACK_SMALL,0,(void*)0xdeadbeef,Thread::JOINABLE);
+    if(!t) fail("thread creation (7)");
     Thread::yield();
     if(t->join(&result)==false) fail("Thread::join (1)");
     if(Thread::exists(t)) fail("Therad::exists (1)");
@@ -1830,6 +1840,7 @@ void test_14()
 
     //Test 2: join on joinable, but detach called before
     t=Thread::create(t14_p2,STACK_SMALL,0,0,Thread::JOINABLE);
+    if(!t) fail("thread creation (8)");
     Thread::yield();
     t->detach();
     if(t->join()==true) fail("Thread::join (2)");
@@ -1837,6 +1848,7 @@ void test_14()
 
     //Test 3: join on joinable, but detach called after
     t=Thread::create(t14_p1,STACK_SMALL,0,0,Thread::JOINABLE);
+    if(!t) fail("thread creation (9)");
     Thread::create(t14_p3,STACK_SMALL,0,reinterpret_cast<void*>(t));
     if(t->join()==true) fail("Thread::join (3)");
     t->terminate();
@@ -1844,6 +1856,7 @@ void test_14()
 
     //Test 4: join on detached, not already deleted
     t=Thread::create(t14_p1,STACK_SMALL,0,0);
+    if(!t) fail("thread creation (9)");
     if(t->join()==true) fail("Thread::join (4)");
     t->terminate();
     Thread::sleep(10);
@@ -1855,6 +1868,7 @@ void test_14()
     //Test 6: join on already deleted
     result=0;
     t=Thread::create(t14_p1,STACK_SMALL,0,(void*)0xdeadbeef,Thread::JOINABLE);
+    if(!t) fail("thread creation (10)");
     t->terminate();
     Thread::sleep(10);
     if(Thread::exists(t)==false) fail("Therad::exists (2)");
@@ -1865,6 +1879,7 @@ void test_14()
 
     //Test 7: join on already detached and deleted
     t=Thread::create(t14_p1,STACK_SMALL,0,0,Thread::JOINABLE);
+    if(!t) fail("thread creation (11)");
     t->detach();
     t->terminate();
     Thread::sleep(10);
