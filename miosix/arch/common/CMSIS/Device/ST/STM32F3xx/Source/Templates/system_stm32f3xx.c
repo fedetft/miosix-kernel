@@ -389,16 +389,17 @@ static void SetSysClockToHSE(void)
     /* Enable Prefetch Buffer */
     FLASH->ACR |= FLASH_ACR_PRFTBE;
 
-    /* Flash 0 wait state */
-    FLASH->ACR &= (uint32_t)((uint32_t)~FLASH_ACR_LATENCY);
-
     if (HSE_VALUE <= 24000000)
 	{
-      FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_0; // one wait state
+        //NOTE: the value of the constant FLASH_ACR_LATENCY_0 changed from meaning
+        //"0 wait states" to meaning "bit 0", thus 1 wait states, so don't use it!
+        FLASH->ACR = (FLASH->ACR & ~FLASH_ACR_LATENCY_Msk) | (0<<FLASH_ACR_LATENCY_Pos);
 	}
 	else
 	{
-      FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_1; // two wait states
+        //NOTE: the value of the constant FLASH_ACR_LATENCY_1 changed from meaning
+        //"1 wait states" to meaning "bit 1", thus 2 wait states, so don't use it!
+        FLASH->ACR = (FLASH->ACR & ~FLASH_ACR_LATENCY_Msk) | (1<<FLASH_ACR_LATENCY_Pos);
 	}
  
     /* HCLK = SYSCLK */
@@ -465,8 +466,9 @@ static void SetSysClockTo24(void)
     FLASH->ACR |= FLASH_ACR_PRFTBE;
 
     /* Flash 0 wait state */
-    FLASH->ACR &= (uint32_t)((uint32_t)~FLASH_ACR_LATENCY);
-    FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_0;
+    //NOTE: the value of the constant FLASH_ACR_LATENCY_0 changed from meaning
+    //"0 wait states" to meaning "bit 0", thus 1 wait states, so don't use it!
+    FLASH->ACR = (FLASH->ACR & ~FLASH_ACR_LATENCY_Msk) | (0<<FLASH_ACR_LATENCY_Pos);
  
     /* HCLK = SYSCLK */
     RCC->CFGR |= (uint32_t)RCC_CFGR_HPRE_DIV1;
@@ -553,8 +555,9 @@ static void SetSysClockTo36(void)
     FLASH->ACR |= FLASH_ACR_PRFTBE;
 
     /* Flash 1 wait state */
-    FLASH->ACR &= (uint32_t)((uint32_t)~FLASH_ACR_LATENCY);
-    FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_1;
+    //NOTE: the value of the constant FLASH_ACR_LATENCY_1 changed from meaning
+    //"1 wait states" to meaning "bit 1", thus 2 wait states, so don't use it!
+    FLASH->ACR = (FLASH->ACR & ~FLASH_ACR_LATENCY_Msk) | (1<<FLASH_ACR_LATENCY_Pos);
  
     /* HCLK = SYSCLK */
     RCC->CFGR |= (uint32_t)RCC_CFGR_HPRE_DIV1;
@@ -641,8 +644,9 @@ static void SetSysClockTo48(void)
     FLASH->ACR |= FLASH_ACR_PRFTBE;
 
     /* Flash 1 wait state */
-    FLASH->ACR &= (uint32_t)((uint32_t)~FLASH_ACR_LATENCY);
-    FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_1;
+    //NOTE: the value of the constant FLASH_ACR_LATENCY_1 changed from meaning
+    //"1 wait states" to meaning "bit 1", thus 2 wait states, so don't use it!
+    FLASH->ACR = (FLASH->ACR & ~FLASH_ACR_LATENCY_Msk) | (1<<FLASH_ACR_LATENCY_Pos);
  
     /* HCLK = SYSCLK */
     RCC->CFGR |= (uint32_t)RCC_CFGR_HPRE_DIV1;
@@ -732,8 +736,9 @@ static void SetSysClockTo56(void)
     FLASH->ACR |= FLASH_ACR_PRFTBE;
 
     /* Flash 2 wait state */
-    FLASH->ACR &= (uint32_t)((uint32_t)~FLASH_ACR_LATENCY);
-    FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_2;    
+    //NOTE: the value of the constant FLASH_ACR_LATENCY_2 changed from meaning
+    //"2 wait states" to meaning "bit 2", thus 4 wait states, so don't use it!
+    FLASH->ACR = (FLASH->ACR & ~FLASH_ACR_LATENCY_Msk) | (2<<FLASH_ACR_LATENCY_Pos);
  
     /* HCLK = SYSCLK */
     RCC->CFGR |= (uint32_t)RCC_CFGR_HPRE_DIV1;
@@ -825,8 +830,9 @@ static void SetSysClockTo72(void)
     FLASH->ACR |= FLASH_ACR_PRFTBE;
 
     /* Flash 2 wait state */
-    FLASH->ACR &= (uint32_t)((uint32_t)~FLASH_ACR_LATENCY);
-    FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_2;    
+    //NOTE: the value of the constant FLASH_ACR_LATENCY_2 changed from meaning
+    //"2 wait states" to meaning "bit 2", thus 4 wait states, so don't use it!
+    FLASH->ACR = (FLASH->ACR & ~FLASH_ACR_LATENCY_Msk) | (2<<FLASH_ACR_LATENCY_Pos);
 
  
     /* HCLK = SYSCLK */
