@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by Terraneo Federico                               *
+ *   Copyright (C) 2010-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -33,42 +33,43 @@ void delayMs(unsigned int mseconds)
 {
     #ifndef __CODE_IN_XRAM
     #ifdef SYSCLK_FREQ_72MHz
-    register const unsigned int count=12000;
+    register const unsigned int count=12000; //Flash 2 wait state
     #elif SYSCLK_FREQ_56MHz
-    register const unsigned int count=11200;
+    register const unsigned int count=9333;  //Flash 2 wait state
     #elif SYSCLK_FREQ_48MHz
-    register const unsigned int count=9600;
+    register const unsigned int count=12000; //Flash 1 wait state
     #elif SYSCLK_FREQ_36MHz
-    register const unsigned int count=7200;
+    register const unsigned int count=9000;  //Flash 1 wait state
     #elif SYSCLK_FREQ_24MHz
-    register const unsigned int count=6000;
+    register const unsigned int count=8000;  //Flash 0 wait state
     #else
-    register const unsigned int count=2016;
+    register const unsigned int count=2678;  //Flash 0 wait state
     #endif
     #else //__CODE_IN_XRAM
+    //These delays are calibrated on an stm3210e-eval, and are only correct when
+    //running from ram memories with similar access timings
     #ifdef SYSCLK_FREQ_72MHz
-    register const unsigned int count=1265;
+    register const unsigned int count=1889; //Linear scaling, factor 26.236
     #elif SYSCLK_FREQ_56MHz
-    register const unsigned int count=981;
+    register const unsigned int count=1469;
     #elif SYSCLK_FREQ_48MHz
-    register const unsigned int count=841;
+    register const unsigned int count=1259;
     #elif SYSCLK_FREQ_36MHz
-    register const unsigned int count=628;
+    register const unsigned int count=945;
     #elif SYSCLK_FREQ_24MHz
-    register const unsigned int count=417;
+    register const unsigned int count=630;
     #else
-    register const unsigned int count=103;
+    register const unsigned int count=210;
     #endif
     #endif //__CODE_IN_XRAM
     for(unsigned int i=0;i<mseconds;i++)
     {
         // This delay has been calibrated to take 1 millisecond
         // It is written in assembler to be independent on compiler optimizations
-        asm volatile("           mov   r1, #0     \n"
-                     "___loop_m: cmp   r1, %0     \n"
-                     "           itt   lo         \n"
-                     "           addlo r1, r1, #1 \n"
-                     "           blo   ___loop_m  \n"::"r"(count):"r1");
+        asm volatile("    movs  r1, %0     \n"
+                     "    .align 2         \n" //4-byte aligned inner loop
+                     "1:  subs  r1, r1, #1 \n"
+                     "    bpl   1b         \n"::"r"(count):"r1");
     }
 }
 
@@ -78,128 +79,78 @@ void delayUs(unsigned int useconds)
     // It is written in assembler to be independent on compiler optimizations
     #ifndef __CODE_IN_XRAM
     #ifdef SYSCLK_FREQ_72MHz
-    asm volatile("           mov   r2, #14    \n"//Preloop, constant delay
-                 "           mov   r1, #0     \n"
-                 "__loop_u2: cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   __loop_u2  \n"
-                 "           mov   r1, #8     \n"//Same delay as with 56MHz
-                 "           mul   r2, %0, r1 \n"//No idea why, but works and
-                 "           mov   r1, #0     \n"//is precise...
-                 "___loop_u: nop              \n"
-                 "           cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+    asm volatile("    movs  r1, #12    \n"
+                 "    mul   r1, r1, %0 \n"
+                 "    .align 2         \n" //4-byte aligned inner loop
+                 "1:  subs  r1, r1, #1 \n"
+                 "    bpl   1b         \n"::"r"(useconds):"r1");
     #elif SYSCLK_FREQ_56MHz
-    asm volatile("           mov   r2, #10    \n"//Preloop, constant delay
-                 "           mov   r1, #0     \n"
-                 "__loop_u2: cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   __loop_u2  \n"
-                 "           mov   r1, #8     \n"//Actual loop
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: nop              \n"
-                 "           cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+    asm volatile("    movs  r1, #10    \n"
+                 "    mul   r1, r1, %0 \n"
+                 "    .align 2         \n" //4-byte aligned inner loop
+                 "1:  subs  r1, r1, #1 \n"
+                 "    bpl   1b         \n"::"r"(useconds):"r1");
     #elif SYSCLK_FREQ_48MHz
-    asm volatile("           mov   r2, #6     \n"//Preloop, constant delay
-                 "           mov   r1, #0     \n"
-                 "__loop_u2: cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   __loop_u2  \n"
-                 "           mov   r1, #7     \n"//Actual loop
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: nop              \n"
-                 "           cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+    asm volatile("    movs  r1, #12    \n"
+                 "    mul   r1, r1, %0 \n"
+                 "    .align 2         \n" //4-byte aligned inner loop
+                 "1:  subs  r1, r1, #1 \n"
+                 "    bpl   1b         \n"::"r"(useconds):"r1");
     #elif SYSCLK_FREQ_36MHz
-    asm volatile("           mov   r1, #5     \n"
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: nop              \n"
-                 "           nop              \n"
-                 "           cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+    asm volatile("    movs  r1, #9     \n"
+                 "    mul   r1, r1, %0 \n"
+                 "    .align 2         \n" //4-byte aligned inner loop
+                 "1:  subs  r1, r1, #1 \n"
+                 "    bpl   1b         \n"::"r"(useconds):"r1");
     #elif SYSCLK_FREQ_24MHz
-    asm volatile("           mov   r1, #5     \n"
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: nop              \n"
-                 "           cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+    asm volatile("    movs  r1, #8     \n"
+                 "    mul   r1, r1, %0 \n"
+                 "    .align 2         \n" //4-byte aligned inner loop
+                 "1:  subs  r1, r1, #1 \n"
+                 "    bpl   1b         \n"::"r"(useconds):"r1");
     #else
-    asm volatile("           mov   r1, #2     \n"
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+    //+13% error for a 100us delay
+    asm volatile("    movs  r1, #3     \n"
+                 "    mul   r1, r1, %0 \n"
+                 "    .align 2         \n" //4-byte aligned inner loop
+                 "1:  subs  r1, r1, #1 \n"
+                 "    bpl   1b         \n"::"r"(useconds):"r1");
     #endif
     #else //__CODE_IN_XRAM
+    //These delays are calibrated on an stm3210e-eval, and are only correct when
+    //running from ram memories with similar access timings
     #ifdef SYSCLK_FREQ_72MHz
-    //These are not as precise as the ones with code running from FLASH
-    asm volatile("           mov   r1, #0     \n"
-                 "___loop_u: nop              \n"
-                 "           cmp   r1, %0     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1");
+    asm volatile("    movs  r1, #2     \n"
+                 "    mul   r1, r1, %0 \n"
+                 "    .align 2         \n" //4-byte aligned inner loop
+                 "1:  subs  r1, r1, #1 \n"
+                 "    bpl   1b         \n"::"r"(useconds):"r1");
     #elif SYSCLK_FREQ_56MHz
-    asm volatile("           mov   r1, #0     \n"
-                 "___loop_u: cmp   r1, %0     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1");
+    asm volatile("    .align 2         \n" //4-byte aligned inner loop
+                 "1:  subs  %0, %0, #1 \n"
+                 "    nop              \n"
+                 "    bpl   1b         \n"::"r"(useconds));
     #elif SYSCLK_FREQ_48MHz
-    asm volatile("           lsr   %0, %0, 1  \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: nop              \n"
-                 "           nop              \n"
-                 "           nop              \n"
-                 "           cmp   r1, %0     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1");
+    asm volatile("    adds  %0, %0, %0, lsr 2 \n"
+                 "    .align 2                \n" //4-byte aligned inner loop
+                 "1:  subs  %0, %0, #1        \n"
+                 "    bpl   1b                \n"::"r"(useconds));
     #elif SYSCLK_FREQ_36MHz
-    asm volatile("           lsr   %0, %0, 1  \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: nop              \n"
-                 "           nop              \n"
-                 "           cmp   r1, %0     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1");
+    asm volatile("    .align 2         \n" //4-byte aligned inner loop
+                 "1:  subs  %0, %0, #1 \n"
+                 "    bpl   1b         \n"::"r"(useconds));
     #elif SYSCLK_FREQ_24MHz
-    asm volatile("           lsr   %0, %0, 1  \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: cmp   r1, %0     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1");
+    asm volatile("    adds  %0, %0, %0, lsr 2 \n"
+                 "    lsrs  %0, %0, 1         \n"
+                 "    .align 2                \n" //4-byte aligned inner loop
+                 "1:  subs  %0, %0, #1        \n"
+                 "    bpl   1b                \n"::"r"(useconds));
     #else
-    //This is extremely imprecise
-    asm volatile("           lsr   %0, %0, 4  \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: nop              \n"
-                 "           cmp   r1, %0     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1");
+    //+35% error for a 100us delay
+    asm volatile("    lsrs  %0, %0, 2  \n"
+                 "    .align 2         \n" //4-byte aligned inner loop
+                 "1:  subs  %0, %0, #1 \n"
+                 "    bpl   1b         \n"::"r"(useconds));
     #endif
     #endif //__CODE_IN_XRAM
 }
