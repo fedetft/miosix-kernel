@@ -73,6 +73,12 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
                | sizeToMpu(imageSize)<<1;
     #else //__MPU_PRESENT==1
     #warning architecture lacks MPU, memory protection for processes unsupported
+    //Although we have no MPU, store enough information to still enable checking
+    //syscall parameters in withinForReading()/withinForWriting()
+    regValues[0]=(reinterpret_cast<unsigned int>(elfBase) & (~0x1f));
+    regValues[2]=(reinterpret_cast<unsigned int>(imageBase) & (~0x1f));
+    regValues[1]=sizeToMpu(elfSize)<<1;
+    regValues[3]=sizeToMpu(imageSize)<<1;
     #endif //__MPU_PRESENT==1
 }
 
@@ -88,7 +94,13 @@ void MPUConfiguration::dumpConfiguration()
         iprintf("* MPU region %d 0x%08x-0x%08x r%c%c\n",i+6,base,end,w,x);
     }
     #else //__MPU_PRESENT==1
-    iprintf("* architecture lacks MPU\n");
+    iprintf("* Architecture lacks MPU\n");
+    for(int i=0;i<2;i++)
+    {
+        unsigned int base=regValues[2*i] & (~0x1f);
+        unsigned int end=base+(1<<(((regValues[2*i+1]>>1) & 31)+1));
+        iprintf("* MPU region %d 0x%08x-0x%08x rwx\n",i+6,base,end);
+    }
     #endif //__MPU_PRESENT==1
 }
 
