@@ -1,0 +1,34 @@
+This compile_all_boards.sh script contained in this directory attempts to
+compile the top-level template project in the Miosix repository for all the
+supported boards listed in Makefile.inc.
+
+This is useful to ensure that a change in common header/configuration files
+does not break compilation on a different board than the one currently being
+tested.
+
+To use the script you must first remember to manually modify the
+miosix/config/miosix_settings.h file to set the desired options.
+Then you can run it from the script's directory or from any other directory of
+your choice.
+Regardless of where the current working directory is at invocation time, the
+script will always move the build products to its directory (the one where this
+README is also located).
+
+To build Miosix for all boards, invoke the script with no options, i.e.:
+
+  ./compile_all_boards.sh
+  
+To remove all existing build product, pass "clean" as the only option:
+
+  ./compile_all_boards.sh clean
+
+The files produced for each board are the following:
+
+  [board name].elf            main.elf for that board
+  [board name].bin            main.bin for that board
+  [board name].asm            disassembly of main.elf (useful for diffing)
+  [board name]_size.txt       output of `size` for main.elf
+  [board name].log            verbose compilation output
+
+If compilation fails for a given board, only the .log file will be available
+and the script will proceed to the next one.
