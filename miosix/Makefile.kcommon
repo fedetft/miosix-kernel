@@ -81,10 +81,10 @@ clean-recursive:
 	  KPATH=$(shell perl $(KPATH)/_tools/relpath.pl $(i) $(KPATH))       \
 	  CONFPATH=$(shell perl $(KPATH)/_tools/relpath.pl $(i) $(CONFPATH)) \
 	  clean || exit 1;)
-	-rm -rf image.bin romfs.bin
-	-rm -rf $(TOOLS_DIR)/filesystems/build $(TOOLS_DIR)/filesystems/buildromfs
-	-rm -rf main.uf2 image.uf2
-	-rm -rf $(TOOLS_DIR)/bin2uf2/build $(TOOLS_DIR)/bin2uf2/bin2uf2
+	-rm -f image.bin romfs.bin $(TOOLS_DIR)/filesystems/buildromfs
+	-rm -rf $(TOOLS_DIR)/filesystems/build
+	-rm -f main.uf2 image.uf2 $(TOOLS_DIR)/bin2uf2/bin2uf2
+	-rm -rf $(TOOLS_DIR)/bin2uf2/build
 
 %.uf2: %.bin $(TOOLS_DIR)/bin2uf2/bin2uf2
 	$(ECHO) '[UF2 ] $@'
