@@ -1959,7 +1959,6 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ARCH_SRC :=                                  \
         $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/sd_stm32f2_f4_f7.cpp     \
-        $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -1998,7 +1997,6 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ARCH_SRC :=                                  \
         $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/sd_stm32f2_f4_f7.cpp     \
-        $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -2039,7 +2037,6 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ARCH_SRC :=                                  \
         $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/sd_stm32f2_f4_f7.cpp     \
-        $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -2074,7 +2071,6 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
         $(BOARD_INC)/core/stage_1_boot.cpp           \
-        $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -2110,7 +2106,6 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ARCH_SRC :=                                  \
         $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/stm32f2_f4_i2c.cpp       \
-        $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -2147,7 +2142,6 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         ARCH_SRC :=                                  \
         $(BOARD_INC)/core/stage_1_boot.cpp           \
         arch/common/drivers/stm32f2_f4_i2c.cpp       \
-        $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -2174,7 +2168,6 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
         arch/common/drivers/sd_stm32f2_f4_f7.cpp     \
         arch/common/drivers/stm32f2_f4_i2c.cpp       \
         arch/common/drivers/servo_stm32.cpp          \
-        $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
 
         ## Add a #define to allow querying board name
@@ -2222,6 +2215,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     arch/common/drivers/dcc.cpp                              \
     arch/common/drivers/stm32_hardware_rng.cpp               \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
+    $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/core/stm32_32bit_os_timer.cpp                \
     arch/common/CMSIS/Device/ST/STM32F2xx/Source/Templates/system_stm32f2xx.c

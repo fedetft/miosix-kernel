@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
+ *   Copyright (C) 2010-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -34,69 +34,78 @@ void delayMs(unsigned int mseconds)
     #ifndef __CODE_IN_XRAM
 
     #ifdef SYSCLK_FREQ_120MHz
-    register const unsigned int count=29999;
-    #else
-    #warning "Delays are uncalibrated for this clock frequency"    
-    #endif
-    
-    for(unsigned int i=0;i<mseconds;i++)
-    {
-        // This delay has been calibrated to take 1 millisecond
-        // It is written in assembler to be independent on compiler optimization
-        asm volatile("   mov   r1, #0     \n"
-                     "1: cmp   r1, %0     \n"
-                     "   itt   lo         \n"
-                     "   addlo r1, r1, #1 \n"
-                     "   blo   1b         \n"::"r"(count):"r1");
-    }
+    register const unsigned int count=40000; //Flash 3 wait state
+    #else //SYSCLK_FREQ_120MHz
+    #error "Delays are uncalibrated for this clock frequency"
+    #endif //SYSCLK_FREQ_120MHz
 
     #else //__CODE_IN_XRAM
 
     #ifdef SYSCLK_FREQ_120MHz
-    register const unsigned int count=4998;
+
+    //When running code from external RAM delays depend on the RAM timings
+    #if defined(_BOARD_STM3220G_EVAL)
+    register const unsigned int count=5000;
+    #elif defined(_BOARD_ETHBOARDV2)
+    register const unsigned int count=6000;
     #else
-    #warning "Delays are uncalibrated for this clock frequency"    
+    #error "Delays are uncalibrated for this clock board"
     #endif
-    
+
+    #else //SYSCLK_FREQ_120MHz
+    #error "Delays are uncalibrated for this clock frequency"
+    #endif //SYSCLK_FREQ_120MHz
+
+    #endif //__CODE_IN_XRAM
+
     for(unsigned int i=0;i<mseconds;i++)
     {
         // This delay has been calibrated to take 1 millisecond
-        // It is written in assembler to be independent on compiler optimization
-        asm volatile("   mov   r1, %0     \n"
-                     "   .align 2         \n" // <- important!
-                     "1: subs  r1, r1, #1 \n"
-                     "   bpl   1b         \n"::"r"(count):"r1");
+        // It is written in assembler to be independent on compiler optimizations
+        asm volatile("    movs  r1, %0     \n"
+                     "    .align 2         \n" //4-byte aligned inner loop
+                     "1:  subs  r1, r1, #1 \n"
+                     "    bpl   1b         \n"::"r"(count):"r1");
     }
-
-    #endif //__CODE_IN_XRAM
 }
 
 void delayUs(unsigned int useconds)
 {
+    // This delay has been calibrated to take x microseconds
+    // It is written in assembler to be independent on compiler optimizations
     #ifndef __CODE_IN_XRAM
 
-    // This delay has been calibrated to take x microseconds
-    // It is written in assembler to be independent on compiler optimization
-    asm volatile("   mov   r1, #30    \n"
-                 "   mul   r2, %0, r1 \n"
-                 "   mov   r1, #0     \n"
-                 "1: cmp   r1, r2     \n"
-                 "   itt   lo         \n"
-                 "   addlo r1, r1, #1 \n"
-                 "   blo   1b         \n"::"r"(useconds):"r1","r2");
+    #ifdef SYSCLK_FREQ_120MHz
+    asm volatile("    movs  r1, #40    \n"
+                 "    mul   r1, r1, %0 \n"
+                 "    .align 2         \n" //4-byte aligned inner loop
+                 "1:  subs  r1, r1, #1 \n"
+                 "    bpl   1b         \n"::"r"(useconds):"r1");
+    #endif //SYSCLK_FREQ_120MHz
 
     #else //__CODE_IN_XRAM
 
-    // This delay has been calibrated to take x microseconds
-    // It is written in assembler to be independent on compiler optimization
-    asm volatile("   mov   r1, #5     \n"
-                 "   mul   r1, %0, r1 \n"
-                 "   sub   r1, r1, #1 \n"
-                 "   .align 2         \n" // <- important!
-                 "1: subs  r1, r1, #1 \n"
-                 "   bpl   1b      \n"::"r"(useconds):"r1");
-    
+    #ifdef SYSCLK_FREQ_120MHz
+
+    //When running code from external RAM delays depend on the RAM timings
+    #if defined(_BOARD_STM3220G_EVAL)
+    asm volatile("    movs  r1, #5     \n"
+                 "    mul   r1, r1, %0 \n"
+                 "    .align 2         \n" //4-byte aligned inner loop
+                 "1:  subs  r1, r1, #1 \n"
+                 "    bpl   1b         \n"::"r"(useconds):"r1");
+    #elif defined(_BOARD_ETHBOARDV2)
+    asm volatile("    movs  r1, #6     \n"
+                 "    mul   r1, r1, %0 \n"
+                 "    .align 2         \n" //4-byte aligned inner loop
+                 "1:  subs  r1, r1, #1 \n"
+                 "    bpl   1b         \n"::"r"(useconds):"r1");
+    #endif
+
+    #endif //SYSCLK_FREQ_120MHz
+
     #endif //__CODE_IN_XRAM
 }
 
 } //namespace miosix
+
