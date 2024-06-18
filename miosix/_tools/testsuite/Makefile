@@ -5,7 +5,7 @@
 ## Path to kernel/config directories (edited by init_project_out_of_git_repo.pl)
 KPATH := ../..
 CONFPATH := ../..
-MAKEFILE_VERSION := 1.13
+MAKEFILE_VERSION := 1.14
 include $(KPATH)/Makefile.kcommon
 
 ##
@@ -33,16 +33,12 @@ SUBDIRS += test_process test_execve test_global_dtor_ctor
 ##
 ROMFS_DIR := testsuite_romfs
 
-all: $(if $(ROMFS_DIR), image, main)
+all: main $(if $(ROMFS_DIR), image)
 
 clean: clean-recursive
 	-rm -f $(OBJ) $(OBJ:.o=.d) main.elf main.hex main.bin main.map
 
-main: main.elf
-	$(ECHO) "[CP  ] main.hex"
-	$(Q)$(CP) -O ihex   main.elf main.hex
-	$(ECHO) "[CP  ] main.bin"
-	$(Q)$(CP) -O binary main.elf main.bin
+main: main.hex main.bin main.elf
 	$(Q)$(SZ) main.elf
 
 main.elf: $(OBJ) all-recursive
