@@ -33,7 +33,7 @@ SUBDIRS +=
 ##
 ROMFS_DIR :=
 
-all: $(if $(ROMFS_DIR), image, main)
+all: main $(if $(ROMFS_DIR), image)
 
 clean: clean-recursive
 	-rm -f $(OBJ) $(OBJ:.o=.d) main.elf main.hex main.bin main.map
