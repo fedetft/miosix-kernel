@@ -863,7 +863,7 @@ basicFilesystemSetup(intrusive_ref_ptr<Device> dev)
     fsm.setDevFs(devfs);
     #endif //WITH_DEVFS
 
-    #ifdef WITH_PROCESSES
+    #ifdef WITH_ROMFS
     {
         bootlog("Mounting RomFs as /bin ... ");
         StringPart sp("bin");
@@ -880,7 +880,7 @@ basicFilesystemSetup(intrusive_ref_ptr<Device> dev)
         }
         bootlog(ok ? "Ok\n" : "Failed\n");
     }
-    #endif //WITH_PROCESSES
+    #endif //WITH_ROMFS
 
     if(dev)
     {

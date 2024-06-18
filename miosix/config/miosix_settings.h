@@ -117,6 +117,11 @@ constexpr unsigned int FATFS_EXTEND_BUFFER=512;
 /// By default it is not defined (LittleFS is disabled)
 //#define WITH_LITTLEFS
 
+/// \def WITH_ROMFS
+/// Allows to enable/disable RomFS support to save code size
+/// By default it is not defined (RomFS is disabled)
+//#define WITH_ROMFS
+
 /// \def SYNC_AFTER_WRITE
 /// Increases filesystem write robustness. After each write operation the
 /// filesystem is synced so that a power failure happens data is not lost
@@ -137,6 +142,11 @@ const unsigned char MAX_OPEN_FILES=8;
 /// call service and, if the hardware supports it, the MPU to provide memory
 /// isolation of processes
 //#define WITH_PROCESSES
+/// RomFS is enabled by default when using processes. Comment the following
+/// lines if you want to use processes without RomFS.
+#if defined(WITH_PROCESSES) && !defined(WITH_ROMFS)
+#define WITH_ROMFS
+#endif
 
 //
 // C/C++ standard library I/O (stdin, stdout and stderr related)
