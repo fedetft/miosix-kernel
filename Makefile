@@ -38,12 +38,16 @@ all: $(if $(ROMFS_DIR), image, main)
 clean: clean-recursive
 	-rm -f $(OBJ) $(OBJ:.o=.d) main.elf main.hex main.bin main.map
 
-main: main.elf
+main: main.hex main.bin main.elf
+	$(Q)$(SZ) main.elf
+
+main.hex: main.elf
 	$(ECHO) "[CP  ] main.hex"
 	$(Q)$(CP) -O ihex   main.elf main.hex
+
+main.bin: main.elf
 	$(ECHO) "[CP  ] main.bin"
 	$(Q)$(CP) -O binary main.elf main.bin
-	$(Q)$(SZ) main.elf
 
 main.elf: $(OBJ) all-recursive
 	$(ECHO) "[LD  ] main.elf"
