@@ -10,3 +10,6 @@ add_definitions(-UNDEBUG)
 include_directories(../../filesystem/romfs) # For romfs_types.h
 include_directories(../../kernel)           # For elf_types.h
 add_executable(buildromfs buildromfs.cpp)
+
+# put binary in the same directory of the source code
+set_target_properties(buildromfs PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}")

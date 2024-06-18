@@ -35,23 +35,25 @@ ifneq ($(POSTLD),)
 	SUBDIRS += $(KPATH)/libsyscalls
 endif
 
-TOOLS_DIR := $(KPATH)/_tools/filesystems
+TOOLS_DIR := $(KPATH)/_tools
 
 .DEFAULT_GOAL := all
 
 program:
 	$(PROG)
 
-image: main $(TOOLS_DIR)/build/buildromfs
+image: main $(TOOLS_DIR)/filesystems/buildromfs
 	$(ECHO) "[FS  ] romfs.bin"
-	$(Q)./$(TOOLS_DIR)/build/buildromfs romfs.bin --from-directory $(ROMFS_DIR)
+	$(Q)./$(TOOLS_DIR)/filesystems/buildromfs romfs.bin \
+	  --from-directory $(ROMFS_DIR)
 	$(ECHO) "[IMG ] image.bin"
-	$(Q)perl $(TOOLS_DIR)/mkimage.pl image.bin main.bin romfs.bin
+	$(Q)perl $(TOOLS_DIR)/filesystems/mkimage.pl image.bin main.bin romfs.bin
 
-$(TOOLS_DIR)/build/buildromfs:
+$(TOOLS_DIR)/filesystems/buildromfs:
 	$(ECHO) "[HOST] buildromfs"
-	$(Q)mkdir -p $(TOOLS_DIR)/build
-	$(Q)cd $(TOOLS_DIR)/build && cmake --log-level=ERROR .. && $(MAKE) -s
+	$(Q)mkdir -p $(TOOLS_DIR)/filesystems/build
+	$(Q)cd $(TOOLS_DIR)/filesystems/build         \
+	  && cmake --log-level=ERROR .. && $(MAKE) -s
 
 all-recursive:
 	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i)                               \
@@ -64,7 +66,8 @@ clean-recursive:
 	  KPATH=$(shell perl $(KPATH)/_tools/relpath.pl $(i) $(KPATH))       \
 	  CONFPATH=$(shell perl $(KPATH)/_tools/relpath.pl $(i) $(CONFPATH)) \
 	  clean || exit 1;)
-	-rm -rf image.bin romfs.bin $(TOOLS_DIR)/build
+	-rm -rf image.bin romfs.bin
+	-rm -rf $(TOOLS_DIR)/filesystems/build $(TOOLS_DIR)/filesystems/buildromfs
 
 %.o : %.cpp
 	$(ECHO) "[CXX ] $<"

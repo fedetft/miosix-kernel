@@ -12,8 +12,9 @@ image.bin
 *.a
 *.d
 
-# Exclude build directories
+# Exclude build directories and host executables
 miosix/_tools/filesystems/build
+miosix/_tools/filesystems/buildromfs
 
 # Exclude Mac OS X temporary
 ._*
