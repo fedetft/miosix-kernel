@@ -95,7 +95,7 @@ namespace miosix {
 /// By default it is defined (DevFs is enabled)
 #define WITH_DEVFS
 
-/// \def WITH_LITTLEFS
+/// \def WITH_FATFS
 /// Allows to enable/disable FATFS support to save code size
 /// By default it is defined (FATFS is enabled)
 #define WITH_FATFS
