@@ -72,7 +72,8 @@ struct UF2Block
     {
         assert(blockSize > 0 && blockSize <= maxSize);
         size = fread(buffer, 1, blockSize, fp);
-        if (size == 0) fail("unable to read (%s)\n", strerror(errno));
+        if (size == 0 && ferror(fp))
+            fail("unable to read (%s)\n", strerror(errno));
         if (pad) size = blockSize;
     }
 
