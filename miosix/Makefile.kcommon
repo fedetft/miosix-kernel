@@ -90,6 +90,14 @@ clean-recursive:
 	$(ECHO) '[UF2 ] $@'
 	$(Q)./$(TOOLS_DIR)/bin2uf2/bin2uf2 $(UF2FLAGS) $< -o $@
 
+%.hex: %.elf
+	$(ECHO) '[CP  ] $@'
+	$(Q)$(CP) -O ihex $< $@
+
+%.bin: %.elf
+	$(ECHO) '[CP  ] $@'
+	$(Q)$(CP) -O binary $< $@
+
 %.o : %.cpp
 	$(ECHO) "[CXX ] $<"
 	$(Q)$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
