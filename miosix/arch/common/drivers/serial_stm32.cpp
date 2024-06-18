@@ -577,44 +577,7 @@ void STM32Serial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
             NVIC_SetPriority(DMA1_Stream5_IRQn,14);
             dmaTx=DMA1_Stream7;
             NVIC_EnableIRQ(DMA1_Stream7_IRQn);
-            NVIC_SetPriority(DMA1_Stream7_IRQn,14);
-            NVIC_EnableIRQ(USART1_IRQn);
-            NVIC_SetPriority(USART1_IRQn,15);
-            //TODO: do we need to initialize dmaRx->CR/dmaTx->CR?
-            dmaRx->CR &= ~(DMA_SxCR_CT
-                         | DMA_SxCR_PL
-                         | DMA_SxCR_MSIZE
-                         | DMA_SxCR_PSIZE
-                         | DMA_SxCR_MINC
-                         | DMA_SxCR_CIRC
-                         | DMA_SxCR_DIR
-                         | DMA_SxCR_PFCTRL
-                         | DMA_SxCR_TCIE
-                         | DMA_SxCR_HTIE);
-            dmaRx->CR |= 0              // [DMA_SxCR_CT_MEM0] addressed by the DMA_SxM0AR pointer
-                       | DMA_SxCR_PL_1  // Priority level high
-                       | 0              // [DMA_SxCR_MSIZE] Memory data size: 8Bit
-                       | 0              // [DMA_SxCR_PSIZE] Peripheral data size: 8Bit
-                       | DMA_SxCR_CIRC  // Circular mode enabled
-                       | 0              // [DMA_SxCR_PFCTRL_DMA_FLOW] DMA is the flow controller
-                       | DMA_SxCR_TCIE; // Transfer complete interrupt enable
-            dmaTx->CR &= ~(DMA_SxCR_CT
-                         | DMA_SxCR_PL
-                         | DMA_SxCR_MSIZE
-                         | DMA_SxCR_PSIZE
-                         | DMA_SxCR_MINC
-                         | DMA_SxCR_CIRC
-                         | DMA_SxCR_DIR
-                         | DMA_SxCR_PFCTRL
-                         | DMA_SxCR_TCIE
-                         | DMA_SxCR_HTIE);
-            dmaTx->CR |= 0              // [DMA_SxCR_CT_MEM0] addressed by the DMA_SxM0AR pointer
-                       | DMA_SxCR_PL_1  // Priority level high
-                       | 0              // [DMA_SxCR_MSIZE] Memory data size: 8Bit
-                       | 0              // [DMA_SxCR_PSIZE] Peripheral data size: 8Bit
-                       | DMA_SxCR_CIRC  // Circular mode enabled
-                       | 0              // [DMA_SxCR_PFCTRL_DMA_FLOW] DMA is the flow controller
-                       | DMA_SxCR_TCIE; // Transfer complete interrupt enable
+            NVIC_SetPriority(DMA1_Stream7_IRQn,15);
             // Configuring DMAMUX            
             DMAMUX1_Channel5->CCR &= ~DMAMUX_CxCR_DMAREQ_ID;
             DMAMUX1_Channel5->CCR |= DMAMUX_CxCR_DMAREQ_ID_0
@@ -698,44 +661,7 @@ void STM32Serial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
             NVIC_SetPriority(DMA1_Stream4_IRQn,14);
             dmaTx=DMA1_Stream6;
             NVIC_EnableIRQ(DMA1_Stream6_IRQn);
-            NVIC_SetPriority(DMA1_Stream6_IRQn,14);
-            NVIC_EnableIRQ(USART1_IRQn);
-            NVIC_SetPriority(USART1_IRQn,15);
-            //TODO: do we need to initialize dmaRx->CR/dmaTx->CR?
-            dmaRx->CR &= ~(DMA_SxCR_CT
-                         | DMA_SxCR_PL
-                         | DMA_SxCR_MSIZE
-                         | DMA_SxCR_PSIZE
-                         | DMA_SxCR_MINC
-                         | DMA_SxCR_CIRC
-                         | DMA_SxCR_DIR
-                         | DMA_SxCR_PFCTRL
-                         | DMA_SxCR_TCIE
-                         | DMA_SxCR_HTIE);
-            dmaRx->CR |= 0              // [DMA_SxCR_CT_MEM0] addressed by the DMA_SxM0AR pointer
-                       | DMA_SxCR_PL_1  // Priority level high
-                       | 0              // [DMA_SxCR_MSIZE] Memory data size: 8Bit
-                       | 0              // [DMA_SxCR_PSIZE] Peripheral data size: 8Bit
-                       | DMA_SxCR_CIRC  // Circular mode enabled
-                       | 0              // [DMA_SxCR_PFCTRL_DMA_FLOW] DMA is the flow controller
-                       | DMA_SxCR_TCIE; // Transfer complete interrupt enable
-            dmaTx->CR &= ~(DMA_SxCR_CT
-                         | DMA_SxCR_PL
-                         | DMA_SxCR_MSIZE
-                         | DMA_SxCR_PSIZE
-                         | DMA_SxCR_MINC
-                         | DMA_SxCR_CIRC
-                         | DMA_SxCR_DIR
-                         | DMA_SxCR_PFCTRL
-                         | DMA_SxCR_TCIE
-                         | DMA_SxCR_HTIE);
-            dmaTx->CR |= 0              // [DMA_SxCR_CT_MEM0] addressed by the DMA_SxM0AR pointer
-                       | DMA_SxCR_PL_1  // Priority level high
-                       | 0              // [DMA_SxCR_MSIZE] Memory data size: 8Bit
-                       | 0              // [DMA_SxCR_PSIZE] Peripheral data size: 8Bit
-                       | DMA_SxCR_CIRC  // Circular mode enabled
-                       | 0              // [DMA_SxCR_PFCTRL_DMA_FLOW] DMA is the flow controller
-                       | DMA_SxCR_TCIE; // Transfer complete interrupt enable
+            NVIC_SetPriority(DMA1_Stream6_IRQn,15);
             // Configuring DMAMUX            
             DMAMUX1_Channel4->CCR &= ~DMAMUX_CxCR_DMAREQ_ID;
             DMAMUX1_Channel4->CCR |= DMAMUX_CxCR_DMAREQ_ID_0
@@ -814,55 +740,12 @@ void STM32Serial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
             RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN; // enabling DMA1 clock
             RCC_SYNC();
             // enabling interrupts
+            dmaRx=DMA1_Stream1;
             NVIC_EnableIRQ(DMA1_Stream1_IRQn);
             NVIC_SetPriority(DMA1_Stream1_IRQn,14);
-            dmaRx=DMA1_Stream1;
+            dmaTx=DMA1_Stream3;
             NVIC_EnableIRQ(DMA1_Stream3_IRQn);
             NVIC_SetPriority(DMA1_Stream3_IRQn,15);
-            dmaTx=DMA1_Stream3;
-            NVIC_EnableIRQ(USART3_IRQn);
-            NVIC_SetPriority(USART3_IRQn,15);
-            //TODO: do we need to initialize dmaRx->CR/dmaTx->CR?
-            dmaRx->CR &= ~(DMA_SxCR_MBURST
-                         | DMA_SxCR_PBURST
-                         | DMA_SxCR_PL
-                         | DMA_SxCR_MSIZE
-                         | DMA_SxCR_PSIZE
-                         | DMA_SxCR_MINC
-                         | DMA_SxCR_PINC
-                         | DMA_SxCR_CIRC
-                         | DMA_SxCR_DIR
-                         | DMA_SxCR_CT
-                         | DMA_SxCR_DBM);
-            dmaRx->CR |= 0              // [DMA_SxCR_CT_MEM0] addressed by the DMA_SxM0AR pointer
-                       | DMA_SxCR_PL_1  // Priority level high
-                       | 0              // [DMA_SxCR_MSIZE] Memory data size: 8Bit
-                       | 0              // [DMA_SxCR_PSIZE] Peripheral data size: 8Bit
-                       | DMA_SxCR_CIRC  // Circular mode enabled
-                       | 0              // [DMA_SxCR_PFCTRL_DMA_FLOW] DMA is the flow controller
-                       | DMA_SxCR_TCIE; // Transfer complete interrupt enable
-            //TODO: why usart1/usart2 don't set FCR?
-            dmaRx->FCR &= ~(DMA_SxFCR_DMDIS | DMA_SxFCR_FTH);
-            dmaTx->CR &= ~(DMA_SxCR_MBURST
-                         | DMA_SxCR_PBURST
-                         | DMA_SxCR_PL
-                         | DMA_SxCR_MSIZE
-                         | DMA_SxCR_PSIZE
-                         | DMA_SxCR_MINC
-                         | DMA_SxCR_PINC
-                         | DMA_SxCR_CIRC
-                         | DMA_SxCR_DIR
-                         | DMA_SxCR_CT
-                         | DMA_SxCR_DBM);
-            dmaTx->CR |= 0              // [DMA_SxCR_CT_MEM0] addressed by the DMA_SxM0AR pointer
-                       | 0              // Priority level high TODO: why not DMA_SxCR_PL_1 like all other channels?
-                       | 0              // [DMA_SxCR_MSIZE] Memory data size: 8Bit
-                       | 0              // [DMA_SxCR_PSIZE] Peripheral data size: 8Bit
-                       | DMA_SxCR_CIRC  // Circular mode enabled
-                       | 0              // [DMA_SxCR_PFCTRL_DMA_FLOW] DMA is the flow controller
-                       | DMA_SxCR_TCIE;
-            //TODO: why usart1/usart2 don't set FCR?
-            dmaTx->FCR &= ~(DMA_SxFCR_DMDIS | DMA_SxFCR_FTH);
             // Configuring DMAMUX            
             DMAMUX1_Channel1->CCR &= ~DMAMUX_CxCR_DMAREQ_ID;
             DMAMUX1_Channel1->CCR |= DMAMUX_CxCR_DMAREQ_ID_0
