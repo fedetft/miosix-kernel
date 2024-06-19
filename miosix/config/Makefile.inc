@@ -2673,7 +2673,7 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
         ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
         ## While the chip can run up to 480MHz, the board uses the SMPS feature
         ## that limits clock speed to 400MHz
-        CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_400MHz=400000000
+        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_400MHz=400000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
+ *   Copyright (C) 2010-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -31,49 +31,44 @@ namespace miosix {
 
 void delayMs(unsigned int mseconds)
 {
-    #ifdef SYSCLK_FREQ_400MHz
-    register const unsigned int count=133000;
-    #elif defined(SYSCLK_FREQ_550MHz)
-    register const unsigned int count=182875;
+    //Note: flash wait state don't matter because of icache
+    #ifdef SYSCLK_FREQ_550MHz
+    register const unsigned int count=550000;
+    #elif defined(SYSCLK_FREQ_400MHz)
+    register const unsigned int count=400000;
     #else
-    #warning "Delays are uncalibrated for this clock frequency"
+    #error "Delays are uncalibrated for this clock frequency"
     #endif
-    
+
     for(unsigned int i=0;i<mseconds;i++)
     {
         // This delay has been calibrated to take 1 millisecond
-        // It is written in assembler to be independent on compiler optimization
-        asm volatile("           mov   r1, #0     \n"
-                     "___loop_m: cmp   r1, %0     \n"
-                     "           itt   lo         \n"
-                     "           addlo r1, r1, #1 \n"
-                     "           blo   ___loop_m  \n"::"r"(count):"r1");
+        // It is written in assembler to be independent on compiler optimizations
+        asm volatile("    movs  r1, %0     \n"
+                     "    .align 2         \n" //4-byte aligned inner loop
+                     "1:  subs  r1, r1, #1 \n"
+                     "    bpl   1b         \n"::"r"(count):"r1");
     }
 }
 
 void delayUs(unsigned int useconds)
 {
     // This delay has been calibrated to take x microseconds
-    // It is written in assembler to be independent on compiler optimization
-    #ifdef SYSCLK_FREQ_400MHz
-    asm volatile("           mov   r1, #133   \n"
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
-    
-    #elif defined(SYSCLK_FREQ_550MHz)
-    asm volatile("           mov   r1, #183   \n"
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
-    
+    // It is written in assembler to be independent on compiler optimizations
+    #ifdef SYSCLK_FREQ_550MHz
+    asm volatile("    movs  r1, #550   \n"
+                 "    mul   r1, r1, %0 \n"
+                 "    .align 2         \n" //4-byte aligned inner loop
+                 "1:  subs  r1, r1, #1 \n"
+                 "    bpl   1b         \n"::"r"(useconds):"r1");
+    #elif defined(SYSCLK_FREQ_400MHz)
+    asm volatile("    movs  r1, #400   \n"
+                 "    mul   r1, r1, %0 \n"
+                 "    .align 2         \n" //4-byte aligned inner loop
+                 "1:  subs  r1, r1, #1 \n"
+                 "    bpl   1b         \n"::"r"(useconds):"r1");
     #endif
 }
 
 } //namespace miosix
+
