@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2018 by Terraneo Federico                               *
+ *   Copyright (C) 2018-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -28,21 +28,40 @@
 #include "interfaces/arch_registers.h"
 #include "pll.h"
 
+//Constraints:
+//PLL input  between 2MHz   and 16MHz (wide range PLL can't run with <2MHz)
+//PLL output between 192MHz and 836MHz(h723/h743) 960MHz(h755)
 #if (HSE_VALUE == 25000000)
-static constexpr int M=5;   // M=5 25MHz/5=5MHz
+static constexpr unsigned int rge=0b10; //4..8MHz
+static constexpr unsigned int M=5;   // 25MHz/M=5MHz
 #ifdef SYSCLK_FREQ_550MHz
-static constexpr int N=220; // N=220 = 1100MHz
+static constexpr unsigned int N=110; // 5MHz*N=550MHz
+static constexpr unsigned int P=1;   // 550MHz/P=550MHz
+static constexpr unsigned int Q=5;   // 550MHz/P=110MHz
+static constexpr unsigned int R=1;   // 550MHz/P=550MHz
 #elif defined(SYSCLK_FREQ_400MHz)
-static constexpr int N=160; // N=160 = 800MHz
+static constexpr unsigned int N=160; // 5MHz*N=800MHz
+static constexpr unsigned int P=2;   // 800MHz/P=400MHz
+static constexpr unsigned int Q=8;   // 800MHz/P=100MHz
+static constexpr unsigned int R=2;   // 800MHz/P=400MHz
 #else
 #error "SYSCLK value not supported!"
 #endif
 #elif (HSE_VALUE == 8000000)
-static constexpr int M=2;   // M=2 8MHz/2=4MHz
 #ifdef SYSCLK_FREQ_550MHz
-static constexpr int N=275; // N=275 = 1100MHz
+static constexpr unsigned int rge=0b01; //2..4MHz
+static constexpr unsigned int M=4;   // 8MHz/M=2MHz
+static constexpr unsigned int N=275; // 2MHz*N=550MHz
+static constexpr unsigned int P=1;   // 550MHz/P=550MHz
+static constexpr unsigned int Q=5;   // 550MHz/P=110MHz
+static constexpr unsigned int R=1;   // 550MHz/P=550MHz
 #elif defined(SYSCLK_FREQ_400MHz)
-static constexpr int N=200; // N=200 = 800MHz
+static constexpr unsigned int rge=0b01; //2..4MHz
+static constexpr unsigned int M=2;   // 8MHz/M=4MHz
+static constexpr unsigned int N=200; // 4MHz*N=800MHz
+static constexpr unsigned int P=2;   // 800MHz/P=400MHz
+static constexpr unsigned int Q=8;   // 800MHz/P=100MHz
+static constexpr unsigned int R=2;   // 800MHz/P=400MHz
 #else
 #error "SYSCLK value not supported!"
 #endif
@@ -52,13 +71,32 @@ static constexpr int N=200; // N=200 = 800MHz
 
 void startPll()
 {
-    //In the STM32H7 DVFS was introduced (chapter 6, Power control)
-    //The default voltage is the lowest, switch to highest to run @ 400MHz
+    #ifdef _BOARD_STM32H755ZI_NUCLEO
+    //This board is configured to use the SMPS instead of the LDO, and requires
+    //hardware rewiring to change that. So use the SMPS.
+    //As a consequence, the maximum frequency is 400MHz instead of 480MHz...
+    PWR->CR3 &= ~PWR_CR3_LDOEN;
+    #endif //_BOARD_STM32H755ZI_NUCLEO
+
+    #ifndef STM32H755xx
     //QUIRK: it looks like VOS can only be set by first setting SCUEN to 0.
-    //This isn't documented anywhere in the reference manual
+    //This isn't documented anywhere in the reference manual.
+    //And some chips lack this bit
     PWR->CR3 &= ~PWR_CR3_SCUEN;
-    PWR->D3CR = PWR_D3CR_VOS_1 | PWR_D3CR_VOS_0;
+    #endif
+
+    //In the STM32H7 DVFS was introduced (chapter 6, Power control)
+    //Switch to highest possible voltage to run at the max freq
+    #ifdef SYSCLK_FREQ_550MHz
+    PWR->D3CR = 0b00<<PWR_D3CR_VOS_Pos; //VOS0
     while((PWR->D3CR & PWR_D3CR_VOSRDY)==0) ; //Wait
+    RCC->APB4ENR |= RCC_APB4ENR_SYSCFGEN;
+    RCC_SYNC();
+    SYSCFG->UR18 |= SYSCFG_UR18_CPU_FREQ_BOOST; //TODO: docs say it's read-only??
+    #else
+    PWR->D3CR = 0b11<<PWR_D3CR_VOS_Pos; //VOS1
+    while((PWR->D3CR & PWR_D3CR_VOSRDY)==0) ; //Wait
+    #endif
     
     //Enable HSE oscillator
     RCC->CR |= RCC_CR_HSEON;
@@ -68,12 +106,12 @@ void startPll()
     RCC->PLLCKSELR |= M<<RCC_PLLCKSELR_DIVM1_Pos
                     | RCC_PLLCKSELR_PLLSRC_HSE; //HSE selected as PLL source
 
-    RCC->PLL1DIVR = (2-1)<<RCC_PLL1DIVR_R1_Pos // R=2
-                  | (8-1)<<RCC_PLL1DIVR_Q1_Pos // Q=8
-                  | (2-1)<<RCC_PLL1DIVR_P1_Pos // P=2
+    RCC->PLL1DIVR = (R-1)<<RCC_PLL1DIVR_R1_Pos
+                  | (Q-1)<<RCC_PLL1DIVR_Q1_Pos
+                  | (P-1)<<RCC_PLL1DIVR_P1_Pos
                   | (N-1)<<RCC_PLL1DIVR_N1_Pos;
 
-    RCC->PLLCFGR |= RCC_PLLCFGR_PLL1RGE_2 // Pll ref clock between 4 and 8MHz
+    RCC->PLLCFGR |= rge<<RCC_PLLCFGR_PLL1RGE_Pos // Pll ref clock range
                   | RCC_PLLCFGR_DIVP1EN   // Enable output P
                   | RCC_PLLCFGR_DIVQ1EN   // Enable output Q
                   | RCC_PLLCFGR_DIVR1EN;  // Enable output R
@@ -89,9 +127,17 @@ void startPll()
     RCC->D3CFGR = RCC_D3CFGR_D3PPRE_DIV2; //D3 APB4   /2
     
     //And increase FLASH wait states
-    FLASH->ACR = FLASH_ACR_WRHIGHFREQ_1   //Settings for FLASH freq=200MHz
-               | FLASH_ACR_LATENCY_3WS;
-    
+    #ifdef SYSCLK_FREQ_550MHz
+    //Only STM32H723xx supports 550MHz
+    #ifdef STM32H723xx
+    FLASH->ACR = 0b11<<FLASH_ACR_WRHIGHFREQ_Pos | FLASH_ACR_LATENCY_3WS;
+    #else
+    #error "Unsupported frequency for this MCU"
+    #endif
+    #elif defined(SYSCLK_FREQ_400MHz)
+    //At 400MHz all MCUs require 2 wait states
+    FLASH->ACR = 0b10<<FLASH_ACR_WRHIGHFREQ_Pos | FLASH_ACR_LATENCY_2WS;
+    #endif
     //Finally, increase frequency
     RCC->CFGR |= RCC_CFGR_SW_PLL1;
     while((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL1) ; //Wait

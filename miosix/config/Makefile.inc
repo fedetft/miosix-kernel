@@ -62,6 +62,7 @@
 #OPT_BOARD := stm32f030r8_stm32f0discovery
 #OPT_BOARD := stm32f765ii_marco_ram_board
 #OPT_BOARD := rp2040_raspberry_pi_pico
+#OPT_BOARD := stm32h755zi_nucleo
 
 ##
 ## Optimization flags, choose one.
@@ -805,6 +806,23 @@ ifeq ($(OPT_BOARD),rp2040_raspberry_pi_pico)
 
 endif
 
+##---------------------------------------------------------------------------
+## stm32h755zi_nucleo
+##
+
+ifeq ($(OPT_BOARD),stm32h755zi_nucleo)
+
+    ## Linker script type, there are two options
+    ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
+    ## 2) Same as 1) but space has been reserved for a process pool, allowing
+    ##    to configure the kernel with "#define WITH_PROCESSES"
+    LINKER_SCRIPT_PATH := arch/cortexM7_stm32h7/stm32h755zi_nucleo/
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1M+512k_rom.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1M+512k_rom_processes.ld
+
+endif
+
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -922,6 +940,8 @@ else ifeq ($(OPT_BOARD),stm32f765ii_marco_ram_board)
     ARCH := cortexM7_stm32f7
 else ifeq ($(OPT_BOARD),rp2040_raspberry_pi_pico)
     ARCH := cortexM0plus_rp2040
+else ifeq ($(OPT_BOARD),stm32h755zi_nucleo)
+    ARCH := cortexM7_stm32h7
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -2628,6 +2648,42 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
         ## board.
         PROG ?= st-flash --connect-under-reset --reset write \
                 $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
+
+    ##-------------------------------------------------------------------------
+    ## BOARD: stm32h755zi_nucleo
+    ##
+    else ifeq ($(OPT_BOARD),stm32h755zi_nucleo)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM7_stm32h7/stm32h755zi_nucleo
+
+        ## Select linker script
+        #LINKER_SCRIPT := already selected in board options
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/core/stage_1_boot.cpp           \
+        arch/common/drivers/stm32_hardware_rng.cpp   \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32H755ZI_NUCLEO
+        CXXFLAGS_BASE += -D_BOARD_STM32H755ZI_NUCLEO
+
+        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
+        ## While the chip can run up to 480MHz, the board uses the SMPS feature
+        ## that limits clock speed to 400MHz
+        CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_400MHz=400000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROG ?= st-flash --connect-under-reset --reset write \
+                $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
+
     ##-------------------------------------------------------------------------
     ## End of board list
     ##
