@@ -3123,7 +3123,8 @@ else ifeq ($(ARCH),cortexM0plus_stm32l0)
     #POSTLD :=
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    CPU := -mcpu=cortex-m0plus -mthumb
+    # TODO arch is actually -mcpu=cortex-m0plus but compiler doesn't support it yet
+    CPU := -mcpu=cortex-m0 -mthumb
     AFLAGS_BASE   := $(CPU)
     CFLAGS_BASE   += -D_ARCH_CORTEXM0PLUS_STM32L0 $(CLOCK_FREQ) $(CPU) \
                      $(OPT_OPTIMIZATION) -c
@@ -3192,6 +3193,7 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
     #POSTLD :=
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
+    # TODO arch is actually -mcpu=cortex-m0plus but compiler doesn't support it yet
     CPU := -mcpu=cortex-m0 -mthumb
     AFLAGS_BASE   := $(CPU)
     CFLAGS_BASE   += -D_ARCH_CORTEXM0PLUS_RP2040 $(CLOCK_FREQ) $(CPU) \
