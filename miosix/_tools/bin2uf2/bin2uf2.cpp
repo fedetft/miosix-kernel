@@ -29,6 +29,8 @@
 #include <cstdlib>
 #include <cstdint>
 #include <cstdarg>
+#include <cstring>
+#include <cerrno>
 #include <cassert>
 #include <unistd.h>
 #include <getopt.h>
