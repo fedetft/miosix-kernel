@@ -3192,7 +3192,7 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
     #POSTLD :=
 
     ## Select appropriate compiler flags for both ASM/C/C++/linker
-    CPU := -mcpu=cortex-m0plus -mthumb
+    CPU := -mcpu=cortex-m0 -mthumb
     AFLAGS_BASE   := $(CPU)
     CFLAGS_BASE   += -D_ARCH_CORTEXM0PLUS_RP2040 $(CLOCK_FREQ) $(CPU) \
                      $(OPT_OPTIMIZATION) -c
