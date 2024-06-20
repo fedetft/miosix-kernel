@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2023 by Terraneo Federico                               *
+ *   Copyright (C) 2010-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -30,39 +30,37 @@
 namespace miosix {
 
 void delayMs(unsigned int mseconds)
-{    
+{
     #ifdef SYSCLK_FREQ_32MHz
-    register const unsigned int count=3205;
+    register const unsigned int count=4000;
+    #else
+    #error "Delays are uncalibrated for this clock frequency"
     #endif
-    
+
     for(unsigned int i=0;i<mseconds;i++)
     {
         // This delay has been calibrated to take 1 millisecond
         // It is written in assembler to be independent on compiler optimizations
-        asm volatile("   mov   r1, #0     \n"
-                     "1: cmp   r1, %0     \n"
-                     "   bge   2f         \n"
-                     "   add   r1, r1, #1 \n"
-                     "   b     1b         \n"
-                     "2:                  \n"::"r"(count):"r1");
+        asm volatile("    movs  r1, %0     \n"
+                     "    .align 2         \n" //4-byte aligned inner loop
+                     "1:  nop              \n" //Bring the loop time to 8 cycles
+                     "    sub   r1, r1, #1 \n" //sub does update condition code
+                     "    bpl   1b         \n"::"r"(count):"r1");
     }
 }
 
 void delayUs(unsigned int useconds)
 {
     // This delay has been calibrated to take x microseconds
-    // It is written in assembler to be independent on compiler optimizations    
+    // It is written in assembler to be independent on compiler optimizations
     #ifdef SYSCLK_FREQ_32MHz
-    asm volatile("   mov   r1, #4     \n"
-                 "   mul   r1, %0, r1 \n"
-                 "   sub   r1, r1, #1 \n"
-                 "   .align 2         \n" // <- important!
-                 "1: sub   r1, r1, #1 \n"
-                 "   cmp   r1, #0     \n" //No subs instruction in cortex m0
-                 "   bpl   1b         \n"::"r"(useconds):"r1");
-    #else
-    #error "delayUs not implemented"
-    #endif    
+    asm volatile("    movs  r1, #4     \n"
+                 "    mul   r1, r1, %0 \n"
+                 "    .align 2         \n" //4-byte aligned inner loop
+                 "1:  nop              \n" //Bring the loop time to 8 cycles
+                 "    sub   r1, r1, #1 \n" //sub does update condition code
+                 "    bpl   1b         \n"::"r"(useconds):"r1");
+    #endif
 }
 
 } //namespace miosix
