@@ -29,6 +29,8 @@
 
 namespace miosix {
 
+//TODO: these need to be updated and recalibrated, but I don't have the board
+
 void delayMs(unsigned int mseconds)
 {
     #ifdef SYSCLK_FREQ_72MHz

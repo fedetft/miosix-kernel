@@ -14,6 +14,7 @@
 
 void setupClockTree()
 {
+    //TODO: shouldn't we select voltage range 1 too? Don't have this board so can't test
     static_assert(HSE_VALUE==8000000,"Unsupported HSE oscillator frequency");
     static_assert(SYSCLK_FREQ_32MHz==32000000,"Unsupported target SYSCLK");
 
