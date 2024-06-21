@@ -535,7 +535,7 @@ static void SetSysClockTo24(void)
 
     RCC->PLLCFGR = 0;
     RCC->PLLCFGR |= (uint32_t)(24 << RCC_PLLCFGR_PLLN_Pos);
-    RCC->PLLCFGR |= (uint32_t)RCC_PLLCFGR_PLLR_0;   /* PLLR = 10 -> divide by four */
+    RCC->PLLCFGR |= (uint32_t)RCC_PLLCFGR_PLLR_0;   /* PLLR -> divide by four */
     RCC->PLLCFGR |= RCC_PLLCFGR_PLLQEN | RCC_PLLCFGR_PLLREN;
 
     #ifdef HSE_VALUE
@@ -620,13 +620,13 @@ static void SetSysClockTo36(void)
      * 
      * - Fpll = 72MHz
      * - R = 2
-     * - Q -> 48MHz clock shut down
+     * - Q = 2 -> 48MHz clock is 36MHz instead
      * - N = 18 -> PLL input frequency has to be 4MHz
      */
 
     RCC->PLLCFGR = 0;
     RCC->PLLCFGR |= (uint32_t)(18 << RCC_PLLCFGR_PLLN_Pos);
-    RCC->PLLCFGR |= RCC_PLLCFGR_PLLREN;
+    RCC->PLLCFGR |= RCC_PLLCFGR_PLLQEN | RCC_PLLCFGR_PLLREN;
 
     #ifdef HSE_VALUE
     RCC->PLLCFGR |= ((HSE_VALUE/1000000)/4-1)<<RCC_PLLCFGR_PLLM_Pos;
@@ -801,13 +801,14 @@ static void SetSysClockTo56(void)
      * 
      * - Fpll = 112MHz
      * - R = 2
-     * - Q -> 48MHz clock cannot be used
+     * - Q = 4 -> 48MHz clock is 28MHz instead
      * - N = 28 -> PLL input frequency has to be 4MHz
      */
 
     RCC->PLLCFGR = 0;
     RCC->PLLCFGR |= (uint32_t)(28 << RCC_PLLCFGR_PLLN_Pos);
-    RCC->PLLCFGR |= RCC_PLLCFGR_PLLREN;
+    RCC->PLLCFGR |= (uint32_t)RCC_PLLCFGR_PLLQ_0;   /* PLLQ -> divide by four */
+    RCC->PLLCFGR |= RCC_PLLCFGR_PLLQEN | RCC_PLLCFGR_PLLREN;
 
     #ifdef HSE_VALUE
     RCC->PLLCFGR |= ((HSE_VALUE/1000000)/4-1)<<RCC_PLLCFGR_PLLM_Pos;
@@ -892,13 +893,15 @@ static void SetSysClockTo80(void)
      * 
      * - Fpll = 160MHz
      * - R = 2
-     * - Q -> 48MHz clock cannot be used
+     * - Q = 4 -> 48MHz clock is 40MHz instead
      * - N = 40 -> PLL input frequency has to be 4MHz
      */
 
     RCC->PLLCFGR = 0;
     RCC->PLLCFGR |= (uint32_t)(40 << RCC_PLLCFGR_PLLN_Pos);
     RCC->PLLCFGR |= RCC_PLLCFGR_PLLREN;
+    RCC->PLLCFGR |= (uint32_t)RCC_PLLCFGR_PLLQ_0;   /* PLLQ -> divide by four */
+    RCC->PLLCFGR |= RCC_PLLCFGR_PLLQEN | RCC_PLLCFGR_PLLREN;
 
     #ifdef HSE_VALUE
     RCC->PLLCFGR |= ((HSE_VALUE/1000000)/4-1)<<RCC_PLLCFGR_PLLM_Pos;
