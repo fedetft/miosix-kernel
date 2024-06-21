@@ -389,7 +389,12 @@ void SetSysClk(void)
   if(timeout != 0)
   {
     /* Configure Flash prefetch, Instruction cache, Data cache and wait state */
+    #ifdef SYSCLK_FREQ_216MHz
     FLASH->ACR = FLASH_ACR_LATENCY_7WS;
+    #else
+    #error No wait state info for this clock frequency
+    #endif
+
     
     /* Select the main PLL as system clock source */
     RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));
