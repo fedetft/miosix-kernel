@@ -89,7 +89,8 @@ ATSAMSerial::ATSAMSerial(int id, int baudrate)
         NVIC_EnableIRQ(USART2_IRQn);
     }
 
-    port->US_BRGR = ((SystemCoreClock/baudrate/4)+1)/2; //TODO: fractional part
+    unsigned int div=(SystemCoreClock+baudrate/2)/baudrate;
+    port->US_BRGR = div>>3 | (div & 0x7)<<16;
     port->US_MR = US_MR_FILTER      // Filter input with majority of 3 samples
                 | US_MR_OVER        // 8 cycles oversample
                 | US_MR_PAR_NONE    // No parity

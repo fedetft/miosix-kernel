@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2015-2021 by Terraneo Federico                          *
+ *   Copyright (C) 2010-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -26,7 +26,6 @@
  ***************************************************************************/
 
 #include "interfaces/delays.h"
-#include "interfaces/arch_registers.h"
 #include "board_settings.h"
 
 namespace miosix {
@@ -38,49 +37,41 @@ void delayMs(unsigned int mseconds)
     for(unsigned int i=0;i<mseconds;i++)
     {
         // This delay has been calibrated to take 1 millisecond
-        // It is written in assembler to be independent on compiler optimization
-        asm volatile("           mov   r1, #0     \n"
-                     "___loop_m: cmp   r1, %0     \n"
-                     "           itt   lo         \n"
-                     "           addlo r1, r1, #1 \n"
-                     "           blo   ___loop_m  \n"::"r"(count):"r1");
+        // It is written in assembler to be independent on compiler optimizations
+        asm volatile("    movs  r1, %0     \n"
+                     "    .align 2         \n" //4-byte aligned inner loop
+                     "1:  nop              \n" //Bring the loop time to 4 cycles
+                     "    subs  r1, r1, #1 \n"
+                     "    bpl   1b         \n"::"r"(count):"r1");
     }
 }
 
 void delayUs(unsigned int useconds)
-{   
+{
+    // This delay has been calibrated to take x microseconds
+    // It is written in assembler to be independent on compiler optimization
     if(bootClock==12000000)
     {
-        // This delay has been calibrated to take x microseconds
-        // It is written in assembler to be independent on compiler optimization
-        asm volatile("           mov   r1, #3     \n"
-                     "           mul   r2, %0, r1 \n"
-                     "           mov   r1, #0     \n"
-                     "___loop_u: cmp   r1, r2     \n"
-                     "           itt   lo         \n"
-                     "           addlo r1, r1, #1 \n"
-                     "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+        asm volatile("    movs  r1, #3     \n"
+                     "    mul   r1, r1, %0 \n"
+                     "    .align 2         \n" //4-byte aligned inner loop
+                     "1:  nop              \n" //Bring the loop time to 4 cycles
+                     "    subs  r1, r1, #1 \n"
+                     "    bpl   1b         \n"::"r"(useconds):"r1");
     } else if(bootClock==8000000) {
-        // This delay has been calibrated to take x microseconds
-        // It is written in assembler to be independent on compiler optimization
-        asm volatile("           mov   r1, #2     \n"
-                     "           mul   r2, %0, r1 \n"
-                     "           mov   r1, #0     \n"
-                     "___loop_u: cmp   r1, r2     \n"
-                     "           ittt  lo         \n"
-                     "           noplo            \n"
-                     "           addlo r1, r1, #1 \n"
-                     "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+        asm volatile("    movs  r1, #2     \n"
+                     "    mul   r1, r1, %0 \n"
+                     "    .align 2         \n" //4-byte aligned inner loop
+                     "1:  nop              \n" //Bring the loop time to 4 cycles
+                     "    subs  r1, r1, #1 \n"
+                     "    bpl   1b         \n"::"r"(useconds):"r1");
     } else {
-        // This delay has been calibrated to take x microseconds
-        // It is written in assembler to be independent on compiler optimization
-        asm volatile("           mov   r1, #0     \n"
-                     "___loop_u: cmp   r1, %0     \n"
-                     "           ittt  lo         \n"
-                     "           noplo            \n"
-                     "           addlo r1, r1, #1 \n"
-                     "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+        asm volatile("    .align 2         \n" //4-byte aligned inner loop
+                     "1:  nop              \n" //Bring the loop time to 4 cycles
+                     "    subs  %0, %0, #1 \n"
+                     "    bpl   1b         \n"::"r"(useconds):"r1");
     }
 }
 
 } //namespace miosix
+
