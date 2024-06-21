@@ -57,28 +57,27 @@ static void IRQsetSystemClock()
     while((RCC->CFGR & RCC_CFGR_SWS ) != RCC_CFGR_SWS_HSI) ;
 
     //Configure PLL and turn it on
+    #ifdef SYSCLK_FREQ_168MHz
     const int m=HSE_VALUE/1000000;
     const int n=336;
     const int p=2;
     const int q=7;
+    #else
+    #error No PLL config for this clock frequency
+    #endif
     RCC->PLLCFGR=m | (n<<6) | (((p/2)-1)<<16) | RCC_PLLCFGR_PLLSRC_HSE | (q<<24);
     RCC->CR |= RCC_CR_PLLON;
     while((RCC->CR & RCC_CR_PLLRDY)==0) ;
 
     RCC->CFGR &= ~(RCC_CFGR_HPRE | RCC_CFGR_PPRE1 | RCC_CFGR_PPRE2);
-    FLASH->ACR &= ~FLASH_ACR_LATENCY;
 
     RCC->CFGR |= RCC_CFGR_HPRE_DIV1;
     RCC->CFGR |= RCC_CFGR_PPRE2_DIV2;
     RCC->CFGR |= RCC_CFGR_PPRE1_DIV4;
 
-    FLASH->ACR= FLASH_ACR_ICEN
-              | FLASH_ACR_DCEN
-              | FLASH_ACR_LATENCY_5WS;
-
-    /* Select the main PLL as system clock source */
     RCC->CFGR |= RCC_CFGR_SW_PLL;
 
+    //NOTE: FLASH->ACR is preserved, no need to reconfigure wait states
     while((RCC->CFGR & RCC_CFGR_SWS ) != RCC_CFGR_SWS_PLL) ;
 }
   
