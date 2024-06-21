@@ -99,9 +99,10 @@
 //By Silvano Seva: was #include "stm32l4xx.h"
 #include "interfaces/arch_registers.h"
 
-#if !defined  (HSE_VALUE)
-  #define HSE_VALUE    8000000U  /*!< Value of the External oscillator in Hz */
-#endif /* HSE_VALUE */
+//We use HSE_VALUE to decide whether to run with HSE or not, so don't force it
+// #if !defined  (HSE_VALUE)
+//   #define HSE_VALUE    8000000U  /*!< Value of the External oscillator in Hz */
+// #endif /* HSE_VALUE */
 
 #if !defined  (MSI_VALUE)
   #define MSI_VALUE    4000000U  /*!< Value of the Internal oscillator in Hz*/
@@ -162,20 +163,24 @@
   */
   
   // Added by silseva
-  #ifdef SYSCLK_FREQ_HSE
-  uint32_t SystemCoreClock         = SYSCLK_FREQ_HSE;        /*!< System Clock Frequency (Core Clock) */
-  #elif defined SYSCLK_FREQ_24MHz
+  #if defined(SYSCLK_FREQ_24MHz)
   uint32_t SystemCoreClock         = SYSCLK_FREQ_24MHz;        /*!< System Clock Frequency (Core Clock) */
-  #elif defined SYSCLK_FREQ_36MHz
+  #elif defined(SYSCLK_FREQ_36MHz)
   uint32_t SystemCoreClock         = SYSCLK_FREQ_36MHz;        /*!< System Clock Frequency (Core Clock) */
-  #elif defined SYSCLK_FREQ_48MHz
+  #elif defined(SYSCLK_FREQ_48MHz)
   uint32_t SystemCoreClock         = SYSCLK_FREQ_48MHz;        /*!< System Clock Frequency (Core Clock) */
-  #elif defined SYSCLK_FREQ_56MHz
+  #elif defined(SYSCLK_FREQ_56MHz)
   uint32_t SystemCoreClock         = SYSCLK_FREQ_56MHz;        /*!< System Clock Frequency (Core Clock) */
-  #elif defined SYSCLK_FREQ_80MHz
+  #elif defined(SYSCLK_FREQ_80MHz)
   uint32_t SystemCoreClock         = SYSCLK_FREQ_80MHz;        /*!< System Clock Frequency (Core Clock) */
-  #else /*!< MSI Selected as System Clock source */
+  #elif defined(HSE_VALUE)
+  uint32_t SystemCoreClock         = HSE_VALUE;                /*!< System Clock Frequency (Core Clock) */
+  #elif defined(RUN_WITH_HSI)
+  uint32_t SystemCoreClock         = HSI_VALUE;                /*!< System Clock Frequency (Core Clock) */
+  #elif defined(RUN_WITH_MSI)
   uint32_t SystemCoreClock         = MSI_VALUE;        /*!< System Clock Frequency (Core Clock) */
+  #else
+  #error Clock not configured
   #endif
   
   //uint32_t SystemCoreClock = 4000000U;
@@ -195,18 +200,18 @@
 // Added by silseva
 static void SetSysClock(void);
 
-#ifdef SYSCLK_FREQ_HSE
-  static void SetSysClockToHSE(void);
-#elif defined SYSCLK_FREQ_24MHz
+#if defined(SYSCLK_FREQ_24MHz)
   static void SetSysClockTo24(void);
-#elif defined SYSCLK_FREQ_36MHz
+#elif defined(SYSCLK_FREQ_36MHz)
   static void SetSysClockTo36(void);
-#elif defined SYSCLK_FREQ_48MHz
+#elif defined(SYSCLK_FREQ_48MHz)
   static void SetSysClockTo48(void);
-#elif defined SYSCLK_FREQ_56MHz
+#elif defined(SYSCLK_FREQ_56MHz)
   static void SetSysClockTo56(void);
-#elif defined SYSCLK_FREQ_80MHz
+#elif defined(SYSCLK_FREQ_80MHz)
   static void SetSysClockTo80(void);
+#elif defined(HSE_VALUE)
+  static void SetSysClockToHSE(void);
 #endif
 
 /**
@@ -331,9 +336,11 @@ void SystemCoreClockUpdate(void)
       SystemCoreClock = HSI_VALUE;
       break;
 
+#ifdef HSE_VALUE
     case 0x08:  /* HSE used as system clock source */
       SystemCoreClock = HSE_VALUE;
       break;
+#endif
 
     case 0x0C:  /* PLL used as system clock  source */
       /* PLL_VCO = (HSE_VALUE or HSI_VALUE or MSI_VALUE/ PLLM) * PLLN
@@ -348,9 +355,11 @@ void SystemCoreClockUpdate(void)
           pllvco = (HSI_VALUE / pllm);
           break;
 
+#ifdef HSE_VALUE
         case 0x03:  /* HSE used as PLL clock source */
           pllvco = (HSE_VALUE / pllm);
           break;
+#endif
 
         default:    /* MSI used as PLL clock source */
           pllvco = (msirange / pllm);
@@ -374,7 +383,7 @@ void SystemCoreClockUpdate(void)
 
 // Added by silseva
 
-#ifdef RUN_WITH_HSE
+#ifdef HSE_VALUE
 
 /**
  * @brief Activates HSE oscillator and waits until is ready
@@ -452,91 +461,27 @@ static uint32_t EnableHSI()
   */
 static void SetSysClock(void)
 {
-#ifdef SYSCLK_FREQ_HSE
-  SetSysClockToHSE();
-#elif defined SYSCLK_FREQ_24MHz
+#if defined(SYSCLK_FREQ_24MHz)
   SetSysClockTo24();
-#elif defined SYSCLK_FREQ_36MHz
+#elif defined(SYSCLK_FREQ_36MHz)
   SetSysClockTo36();
-#elif defined SYSCLK_FREQ_48MHz
+#elif defined(SYSCLK_FREQ_48MHz)
   SetSysClockTo48();
-#elif defined SYSCLK_FREQ_56MHz
+#elif defined(SYSCLK_FREQ_56MHz)
   SetSysClockTo56();  
-#elif defined SYSCLK_FREQ_80MHz
+#elif defined(SYSCLK_FREQ_80MHz)
   SetSysClockTo80();
+#elif defined(HSE_VALUE)
+  SetSysClockToHSE();
+#elif defined(RUN_WITH_HSI)
+#error missing code to set sysclock to HSI without PLL
 #endif
  
  /* If none of the define above is enabled, the HSI is used as System clock
     source (default after reset) */ 
 }
 
-
-#ifdef SYSCLK_FREQ_HSE
-/**
-  * @brief  Selects HSE as System clock source and configure HCLK, PCLK2
-  *         and PCLK1 prescalers.
-  * @note   This function should be used only after reset.
-  * @param  None
-  * @retval None
-  */
-static void SetSysClockToHSE(void)
-{
-  __IO uint32_t StartUpCounter = 0, HSEStatus = 0;
-  
-  /* Enable HSE and wait till is ready and if Time out is reached exit */
-  HSEStatus = EnableHSE();
-
-  if (HSEStatus == (uint32_t)0x01)
-  {
-
-    /* Enable Prefetch Buffer */
-    FLASH->ACR |= FLASH_ACR_PRFTEN;
-
-    /* Flash 0 wait state */
-    FLASH->ACR &= (uint32_t)((uint32_t)~FLASH_ACR_LATENCY);
-
-    /* See RM0394 at page 79 */
-	if ((HSE_VALUE > 16000000) && (HSE_VALUE <= 32000000))
-	{
-      FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_1WS; // one wait states
-	}
-	else if ((HSE_VALUE > 32000000) && (HSE_VALUE <= 48000000))
-    {
-      FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_2WS; // two wait states
-	}
-    else if ((HSE_VALUE > 48000000) && (HSE_VALUE <= 64000000))
-    {
-      FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_3WS  // three wait states
-	}
-    else if ((HSE_VALUE > 64000000) && (HSE_VALUE <= 80000000))
-    {
-      FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_4WS; // four wait states
-	}
- 
-    /* HCLK = SYSCLK */
-    RCC->CFGR |= (uint32_t)RCC_CFGR_HPRE_DIV1;
-      
-    /* PCLK2 = HCLK */
-    RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE2_DIV1;
-    
-    /* PCLK1 = HCLK */
-    RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV1;
-    
-    /* Select HSE as system clock source */
-    RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));
-    RCC->CFGR |= (uint32_t)RCC_CFGR_SW_HSE;    
-
-    /* Wait till HSE is used as system clock source */
-    while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != (uint32_t)0x08)
-    {
-    }
-  }
-  else
-  { /* If HSE fails to start-up, the application will have wrong clock 
-         configuration. User can add here some code to deal with this error */
-  }  
-}
-#elif defined SYSCLK_FREQ_24MHz
+#if defined(SYSCLK_FREQ_24MHz)
 /**
   * @brief  Sets System clock frequency to 24MHz and configure HCLK, PCLK2 
   *         and PCLK1 prescalers.
@@ -549,7 +494,7 @@ static void SetSysClockTo24(void)
   __IO uint32_t StartUpCounter = 0, HSEStatus = 0x01; //By TFT: was 0
   (void)StartUpCounter;
 
-  #ifdef RUN_WITH_HSE //By silseva
+  #ifdef HSE_VALUE //By silseva
   HSEStatus = EnableHSE();
   #elif defined(RUN_WITH_HSI)
   HSEStatus = EnableHSI();
@@ -593,14 +538,12 @@ static void SetSysClockTo24(void)
     RCC->PLLCFGR |= (uint32_t)RCC_PLLCFGR_PLLR_0;   /* PLLR = 10 -> divide by four */
     RCC->PLLCFGR |= RCC_PLLCFGR_PLLQEN | RCC_PLLCFGR_PLLREN;
 
-    #ifdef RUN_WITH_HSE
-    /* 8MHz HSE -> M = 2 */
-    RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLM_0);
+    #ifdef HSE_VALUE
+    RCC->PLLCFGR |= ((HSE_VALUE/1000000)/4-1)<<RCC_PLLCFGR_PLLM_Pos;
     RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLSRC_HSE);
     #elif defined RUN_WITH_HSI
     /* 16MHz HSI -> M = 4 */
-    RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLM_1)
-                 |  (uint32_t)(RCC_PLLCFGR_PLLM_0);
+    RCC->PLLCFGR |= (4-1)<<RCC_PLLCFGR_PLLM_Pos;
     RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLSRC_HSI);
     #else
     /* 4MHz MSI -> M = 1 */
@@ -629,7 +572,7 @@ static void SetSysClockTo24(void)
          configuration. User can add here some code to deal with this error */
   } 
 }
-#elif defined SYSCLK_FREQ_36MHz
+#elif defined(SYSCLK_FREQ_36MHz)
 /**
   * @brief  Sets System clock frequency to 36MHz and configure HCLK, PCLK2 
   *         and PCLK1 prescalers. 
@@ -642,7 +585,7 @@ static void SetSysClockTo36(void)
   __IO uint32_t StartUpCounter = 0, HSEStatus = 0x01; //By TFT: was 0
   (void)StartUpCounter;
   
-  #ifdef RUN_WITH_HSE //By silseva
+  #ifdef HSE_VALUE //By silseva
   HSEStatus = EnableHSE();
   #elif defined RUN_WITH_HSI
   HSEStatus = EnableHSI();
@@ -685,14 +628,12 @@ static void SetSysClockTo36(void)
     RCC->PLLCFGR |= (uint32_t)(18 << RCC_PLLCFGR_PLLN_Pos);
     RCC->PLLCFGR |= RCC_PLLCFGR_PLLREN;
 
-    #ifdef RUN_WITH_HSE
-    /* 8MHz HSE -> M = 2 */
-    RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLM_0);
+    #ifdef HSE_VALUE
+    RCC->PLLCFGR |= ((HSE_VALUE/1000000)/4-1)<<RCC_PLLCFGR_PLLM_Pos;
     RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLSRC_HSE);
     #elif defined RUN_WITH_HSI
     /* 16MHz HSI -> M = 4 */
-    RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLM_1)
-                 |  (uint32_t)(RCC_PLLCFGR_PLLM_0);
+    RCC->PLLCFGR |= (4-1)<<RCC_PLLCFGR_PLLM_Pos;
     RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLSRC_HSI);
     #else
     /* 4MHz MSI -> M = 1 */
@@ -721,7 +662,7 @@ static void SetSysClockTo36(void)
          configuration. User can add here some code to deal with this error */
   } 
 }
-#elif defined SYSCLK_FREQ_48MHz
+#elif defined(SYSCLK_FREQ_48MHz)
 /**
   * @brief  Sets System clock frequency to 48MHz and configure HCLK, PCLK2 
   *         and PCLK1 prescalers. 
@@ -734,7 +675,7 @@ static void SetSysClockTo48(void)
   __IO uint32_t StartUpCounter = 0, HSEStatus = 0x01; //By TFT: was 0
   (void)StartUpCounter;
   
-  #ifdef RUN_WITH_HSE //By silseva
+  #ifdef HSE_VALUE //By silseva
   HSEStatus = EnableHSE();
   #elif defined RUN_WITH_HSI
   HSEStatus = EnableHSI();
@@ -777,14 +718,12 @@ static void SetSysClockTo48(void)
     RCC->PLLCFGR |= (uint32_t)(24 << RCC_PLLCFGR_PLLN_Pos);
     RCC->PLLCFGR |= RCC_PLLCFGR_PLLQEN | RCC_PLLCFGR_PLLREN;
 
-    #ifdef RUN_WITH_HSE
-    /* 8MHz HSE -> M = 2 */
-    RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLM_0);
+    #ifdef HSE_VALUE
+    RCC->PLLCFGR |= ((HSE_VALUE/1000000)/4-1)<<RCC_PLLCFGR_PLLM_Pos;
     RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLSRC_HSE);
     #elif defined RUN_WITH_HSI
     /* 16MHz HSI -> M = 4 */
-    RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLM_1)
-                 |  (uint32_t)(RCC_PLLCFGR_PLLM_0);
+    RCC->PLLCFGR |= (4-1)<<RCC_PLLCFGR_PLLM_Pos;
     RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLSRC_HSI);
     #else
     /* 4MHz MSI -> M = 1 */
@@ -814,7 +753,7 @@ static void SetSysClockTo48(void)
   } 
 }
 
-#elif defined SYSCLK_FREQ_56MHz
+#elif defined(SYSCLK_FREQ_56MHz)
 /**
   * @brief  Sets System clock frequency to 56MHz and configure HCLK, PCLK2 
   *         and PCLK1 prescalers. 
@@ -827,7 +766,7 @@ static void SetSysClockTo56(void)
   __IO uint32_t StartUpCounter = 0, HSEStatus = 0x01; //By TFT: was 0
   (void)StartUpCounter;
   
-  #ifdef RUN_WITH_HSE //By silseva
+  #ifdef HSE_VALUE //By silseva
   HSEStatus = EnableHSE();
   #elif defined RUN_WITH_HSI
   HSEStatus = EnableHSI();
@@ -870,14 +809,12 @@ static void SetSysClockTo56(void)
     RCC->PLLCFGR |= (uint32_t)(28 << RCC_PLLCFGR_PLLN_Pos);
     RCC->PLLCFGR |= RCC_PLLCFGR_PLLREN;
 
-    #ifdef RUN_WITH_HSE
-    /* 8MHz HSE -> M = 2 */
-    RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLM_0);
+    #ifdef HSE_VALUE
+    RCC->PLLCFGR |= ((HSE_VALUE/1000000)/4-1)<<RCC_PLLCFGR_PLLM_Pos;
     RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLSRC_HSE);
     #elif defined RUN_WITH_HSI
     /* 16MHz HSI -> M = 4 */
-    RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLM_1)
-                 |  (uint32_t)(RCC_PLLCFGR_PLLM_0);
+    RCC->PLLCFGR |= (4-1)<<RCC_PLLCFGR_PLLM_Pos;
     RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLSRC_HSI);
     #else
     /* 4MHz MSI -> M = 1 */
@@ -907,7 +844,7 @@ static void SetSysClockTo56(void)
   } 
 }
 
-#elif defined SYSCLK_FREQ_80MHz
+#elif defined(SYSCLK_FREQ_80MHz)
 /**
   * @brief  Sets System clock frequency to 80MHz and configure HCLK, PCLK2 
   *         and PCLK1 prescalers. 
@@ -920,7 +857,7 @@ static void SetSysClockTo80(void)
   __IO uint32_t StartUpCounter = 0, HSEStatus = 0x01; //By TFT: was 0
   (void)StartUpCounter;
   
-  #ifdef RUN_WITH_HSE //By silseva
+  #ifdef HSE_VALUE //By silseva
   HSEStatus = EnableHSE();
   #elif defined RUN_WITH_HSI
   HSEStatus = EnableHSI();
@@ -963,14 +900,12 @@ static void SetSysClockTo80(void)
     RCC->PLLCFGR |= (uint32_t)(40 << RCC_PLLCFGR_PLLN_Pos);
     RCC->PLLCFGR |= RCC_PLLCFGR_PLLREN;
 
-    #ifdef RUN_WITH_HSE
-    /* 8MHz HSE -> M = 2 */
-    RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLM_0);
+    #ifdef HSE_VALUE
+    RCC->PLLCFGR |= ((HSE_VALUE/1000000)/4-1)<<RCC_PLLCFGR_PLLM_Pos;
     RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLSRC_HSE);
     #elif defined RUN_WITH_HSI
     /* 16MHz HSI -> M = 4 */
-    RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLM_1)
-                 |  (uint32_t)(RCC_PLLCFGR_PLLM_0);
+    RCC->PLLCFGR |= (4-1)<<RCC_PLLCFGR_PLLM_Pos;
     RCC->PLLCFGR |= (uint32_t)(RCC_PLLCFGR_PLLSRC_HSI);
     #else
     /* 4MHz MSI -> M = 1 */
@@ -996,6 +931,65 @@ static void SetSysClockTo80(void)
   }
   else
   { /* If HSE fails to start-up, the application will have wrong clock 
+         configuration. User can add here some code to deal with this error */
+  }
+}
+
+#elif defined(HSE_VALUE)
+/**
+  * @brief  Selects HSE as System clock source and configure HCLK, PCLK2
+  *         and PCLK1 prescalers.
+  * @note   This function should be used only after reset.
+  * @param  None
+  * @retval None
+  */
+static void SetSysClockToHSE(void)
+{
+  __IO uint32_t StartUpCounter = 0, HSEStatus = 0;
+
+  /* Enable HSE and wait till is ready and if Time out is reached exit */
+  HSEStatus = EnableHSE();
+
+  if (HSEStatus == (uint32_t)0x01)
+  {
+
+    /* Enable Prefetch Buffer */
+    FLASH->ACR |= FLASH_ACR_PRFTEN;
+
+    /* Flash 0 wait state */
+    FLASH->ACR &= (uint32_t)((uint32_t)~FLASH_ACR_LATENCY);
+
+    /* See RM0394 at page 79 */
+    #if (HSE_VALUE > 16000000) && (HSE_VALUE <= 32000000)
+    FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_1WS;
+    #elif (HSE_VALUE > 32000000) && (HSE_VALUE <= 48000000)
+    FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_2WS;
+    #elif (HSE_VALUE > 48000000) && (HSE_VALUE <= 64000000)
+    FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_3WS;
+    #elif (HSE_VALUE > 64000000) && (HSE_VALUE <= 80000000)
+    FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_4WS;
+    #endif
+
+    /* HCLK = SYSCLK */
+    RCC->CFGR |= (uint32_t)RCC_CFGR_HPRE_DIV1;
+
+    /* PCLK2 = HCLK */
+    RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE2_DIV1;
+
+    /* PCLK1 = HCLK */
+    RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV1;
+
+    /* Select HSE as system clock source */
+    RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));
+    RCC->CFGR |= (uint32_t)RCC_CFGR_SW_HSE;
+
+    /* Wait till HSE is used as system clock source */
+    while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != (uint32_t)0x08)
+    {
+    }
+  }
+  else
+  { /* If HSE fails to start-up, the application will have wrong clock
          configuration. User can add here some code to deal with this error */
   }
 }
