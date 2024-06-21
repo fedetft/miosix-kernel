@@ -701,6 +701,14 @@ endif
 
 ifeq ($(OPT_BOARD),stm32l4r9zi_sensortile)
 
+    ## Linker script type, there are two options
+    ## 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
+    ## 2) Same as 1) but space has been reserved for a process pool, allowing
+    ##    to configure the kernel with "#define WITH_PROCESSES"
+    LINKER_SCRIPT_PATH := arch/cortexM4_stm32l4/stm32l4r9zi_sensortile/
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+640k_rom.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+640k_rom_processes.ld
+
     ## Select clock frequency (8MHz HSE)
     #CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000 -DHSE_VALUE=16000000
     #CLOCK_FREQ := -DSYSCLK_FREQ_36MHz=36000000 -DHSE_VALUE=16000000
@@ -2945,7 +2953,7 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
         BOARD_INC := arch/cortexM4_stm32l4/stm32l4r9zi_sensortile
 
         ## Select linker script
-        LINKER_SCRIPT := $(BOARD_INC)/stm32_2m+640k_rom.ld
+        #LINKER_SCRIPT := already selected in board options
 
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
@@ -2992,6 +3000,7 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/drivers/serial_stm32.cpp                     \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     arch/common/drivers/stm32_gpio.cpp                       \
