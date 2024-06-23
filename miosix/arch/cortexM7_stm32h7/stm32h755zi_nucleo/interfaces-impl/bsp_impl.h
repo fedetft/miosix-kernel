@@ -51,13 +51,12 @@ typedef Gpio<GPIOB_BASE,14> _led;
 
 inline void ledOn()
 {
-    //Led is connected to VCC, so to turn it on the GPIO has to be low
-    _led::low();
+    _led::high();
 }
 
 inline void ledOff()
 {
-    _led::high();
+    _led::low();
 }
 
 /**
