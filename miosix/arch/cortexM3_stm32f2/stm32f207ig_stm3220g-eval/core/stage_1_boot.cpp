@@ -2,6 +2,7 @@
 #include "interfaces/arch_registers.h"
 #include "core/interrupts.h" //For the unexpected interrupt call
 #include "kernel/stage_2_boot.h"
+#include "interfaces/gpio.h"
 #include <string.h>
 
 /*
@@ -99,6 +100,12 @@ void Reset_Handler()
 	 * at _heap_end can be unavailable until the external RAM is initialized.
 	 */
     SystemInit();
+    // Force PG10 high to ensure the display does not receive any spurious
+    // commands until it is correctly setup. Not doing this causes random
+    // hard-to-reproduce timing-dependent display glitches.
+    miosix::Gpio<GPIOG_BASE,10>::speed(miosix::Speed::VERY_HIGH);
+    miosix::Gpio<GPIOG_BASE,10>::high();
+    miosix::Gpio<GPIOG_BASE,10>::mode(miosix::Mode::OUTPUT);
 
     /*
      * Initialize process stack and switch to it.
