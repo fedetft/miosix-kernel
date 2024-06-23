@@ -491,7 +491,6 @@ public:
         // Set low clock speed 400KHz
         SDMMC->CLKCR=CLOCK_400KHz;
         SDMMC->DTIMER=240000; //Timeout 600ms expressed in SD_CK cycles
-        // SDMMC->DTIMER=2400000; //Timeout 600ms expressed in SD_CK cycles
     }
 
     /**
@@ -535,13 +534,13 @@ private:
      */
     static void setClockSpeed(unsigned int clkdiv);
     
-    static const unsigned int SDMMCCLK=137500000; //On stm32f2 SDMMCCLK is always 48MHz
-    static const unsigned int CLOCK_400KHz=171; //48MHz/(118+2)=400KHz
+    static const unsigned int SDMMCCLK=100000000;
+    static const unsigned int CLOCK_400KHz=125; //100MHz / (2*125) = 400kHz
     #ifdef OVERRIDE_SD_CLOCK_DIVIDER_MAX
     //Some boards using SDRAM cause SDMMC TX Underrun occasionally
     static const unsigned int CLOCK_MAX=OVERRIDE_SD_CLOCK_DIVIDER_MAX;
     #else //OVERRIDE_SD_CLOCK_DIVIDER_MAX
-    static const unsigned int CLOCK_MAX=0;      //48MHz/(0+2)  =24MHz
+    static const unsigned int CLOCK_MAX=1;      ////100MHz / (2*1) = 50MHz
     #endif //OVERRIDE_SD_CLOCK_DIVIDER_MAX
 
     #ifdef SD_ONE_BIT_DATABUS
@@ -629,10 +628,10 @@ void ClockController::setClockSpeed(unsigned int clkdiv)
 {
     SDMMC->CLKCR=clkdiv | CLKCR_FLAGS;
     //Timeout 600ms expressed in SD_CK cycles
-    SDMMC->DTIMER=(6*SDMMCCLK)/((clkdiv+2)*10);
+    SDMMC->DTIMER=(6*SDMMCCLK)/((clkdiv+2)*10); //BUG: needs updating
 }
 
-unsigned char ClockController::clockReductionAvailable=false;
+unsigned char ClockController::clockReductionAvailable=0;
 unsigned char ClockController::retries=ClockController::MAX_RETRY;
 
 //
@@ -975,11 +974,7 @@ static void initSDMMCPeripheral()
     SDMMC->CLKCR=0;
     SDMMC->CMD=0;
     SDMMC->DCTRL=0;
-    #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
     SDMMC->ICR=0x4005ff;
-    #else
-    SDMMC->ICR=0xc007ff;
-    #endif
     SDMMC->POWER=SDMMC_POWER_PWRCTRL_1 | SDMMC_POWER_PWRCTRL_0; //Power on state
     //This delay is particularly important: when setting the POWER register a
     //glitch on the CMD pin happens. This glitch has a fast fall time and a slow
