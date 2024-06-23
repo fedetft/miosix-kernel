@@ -69,8 +69,8 @@ public:
     {
         unsigned int result=SystemCoreClock;
         #if defined(_ARCH_CORTEXM7_STM32H7)
-        #if defined(_BOARD_STM32H723ZG_NUCLEO)
-        // In stm32h723zg MCUs there isn't any prescaler 2x, for this reason when the 
+        #ifndef STM32H753xx
+        // In stm32h723/h755 MCUs there isn't any prescaler 2x, for this reason when the
         // prescaler is enabled we will have to divide it for 2^PPRE and not for 2^(PPRE-1)
         if(RCC->D2CFGR & RCC_D2CFGR_D2PPRE1_2) result/=(2<<((RCC->D2CFGR>>4) & 0x3));
         #else
