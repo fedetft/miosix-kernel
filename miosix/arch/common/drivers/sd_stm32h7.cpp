@@ -530,17 +530,25 @@ public:
 private:
     /**
      * Set SDMMC clock speed
-     * \param clkdiv speed is SDMMCCLK/(clkdiv+2) 
+     * \param clkdiv speed is clkdiv==0 ? SDMMCCLK : SDMMCCLK/(2*clkdiv)
      */
     static void setClockSpeed(unsigned int clkdiv);
     
+    #ifdef SYSCLK_FREQ_550MHz
     static const unsigned int SDMMCCLK=100000000;
-    static const unsigned int CLOCK_400KHz=125; //100MHz / (2*125) = 400kHz
+    #elif defined(SYSCLK_FREQ_400MHz)
+    static const unsigned int SDMMCCLK=91666666;
+    #else
+    #error "Unknown frequency for PLL Q output"
+    #endif
+
+    static const unsigned int CLOCK_400KHz=SDMMCCLK/(2*400000);
+    static_assert(CLOCK_400KHz>0,"");
     #ifdef OVERRIDE_SD_CLOCK_DIVIDER_MAX
     //Some boards using SDRAM cause SDMMC TX Underrun occasionally
     static const unsigned int CLOCK_MAX=OVERRIDE_SD_CLOCK_DIVIDER_MAX;
     #else //OVERRIDE_SD_CLOCK_DIVIDER_MAX
-    static const unsigned int CLOCK_MAX=1;      ////100MHz / (2*1) = 50MHz
+    static const unsigned int CLOCK_MAX=1; ////Should be <=50MHz
     #endif //OVERRIDE_SD_CLOCK_DIVIDER_MAX
 
     #ifdef SD_ONE_BIT_DATABUS
@@ -611,7 +619,7 @@ bool ClockController::reduceClockSpeed()
     if(clockReductionAvailable==0) return false;
     clockReductionAvailable--;
 
-    unsigned int currentClkcr=SDMMC->CLKCR & 0xff;
+    unsigned int currentClkcr=SDMMC->CLKCR & 0x3ff;
     if(currentClkcr==CLOCK_400KHz) return false; //No lower than this value
 
     //If the value of clockcr is low, increasing it by one is enough since
@@ -628,7 +636,8 @@ void ClockController::setClockSpeed(unsigned int clkdiv)
 {
     SDMMC->CLKCR=clkdiv | CLKCR_FLAGS;
     //Timeout 600ms expressed in SD_CK cycles
-    SDMMC->DTIMER=(6*SDMMCCLK)/((clkdiv+2)*10); //BUG: needs updating
+    if(clkdiv==0) SDMMC->DTIMER=6*SDMMCCLK/10; //No clock division if clockdiv=0
+    else SDMMC->DTIMER=6*SDMMCCLK/(10*2*clkdiv);
 }
 
 unsigned char ClockController::clockReductionAvailable=0;

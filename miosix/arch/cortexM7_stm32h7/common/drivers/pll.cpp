@@ -37,12 +37,12 @@ static constexpr unsigned int M=5;   // 25MHz/M=5MHz
 #ifdef SYSCLK_FREQ_550MHz
 static constexpr unsigned int N=110; // 5MHz*N=550MHz
 static constexpr unsigned int P=1;   // 550MHz/P=550MHz
-static constexpr unsigned int Q=5;   // 550MHz/P=110MHz
+static constexpr unsigned int Q=6;   // 550MHz/P=91.66MHz (<=100MHz for SDMMC)
 static constexpr unsigned int R=1;   // 550MHz/P=550MHz
 #elif defined(SYSCLK_FREQ_400MHz)
 static constexpr unsigned int N=160; // 5MHz*N=800MHz
 static constexpr unsigned int P=2;   // 800MHz/P=400MHz
-static constexpr unsigned int Q=8;   // 800MHz/P=100MHz
+static constexpr unsigned int Q=8;   // 800MHz/P=100MHz (for SDMMC)
 static constexpr unsigned int R=2;   // 800MHz/P=400MHz
 #else
 #error "SYSCLK value not supported!"
@@ -53,14 +53,14 @@ static constexpr unsigned int rge=0b01; //2..4MHz
 static constexpr unsigned int M=4;   // 8MHz/M=2MHz
 static constexpr unsigned int N=275; // 2MHz*N=550MHz
 static constexpr unsigned int P=1;   // 550MHz/P=550MHz
-static constexpr unsigned int Q=5;   // 550MHz/P=110MHz
+static constexpr unsigned int Q=6;   // 550MHz/P=91.66MHz (<=100MHz for SDMMC)
 static constexpr unsigned int R=1;   // 550MHz/P=550MHz
 #elif defined(SYSCLK_FREQ_400MHz)
 static constexpr unsigned int rge=0b01; //2..4MHz
 static constexpr unsigned int M=2;   // 8MHz/M=4MHz
 static constexpr unsigned int N=200; // 4MHz*N=800MHz
 static constexpr unsigned int P=2;   // 800MHz/P=400MHz
-static constexpr unsigned int Q=8;   // 800MHz/P=100MHz
+static constexpr unsigned int Q=8;   // 800MHz/P=100MHz (for SDMMC)
 static constexpr unsigned int R=2;   // 800MHz/P=400MHz
 #else
 #error "SYSCLK value not supported!"
