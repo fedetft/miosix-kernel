@@ -618,14 +618,15 @@ static void SetSysClockTo36(void)
      * 
      * To go @36MHz we set:
      * 
-     * - Fpll = 72MHz
-     * - R = 2
-     * - Q = 2 -> 48MHz clock is 36MHz instead
-     * - N = 18 -> PLL input frequency has to be 4MHz
+     * - Fpll = 144MHz (must be >=96MHz due to errata)
+     * - R = 4
+     * - Q = 4 -> 48MHz clock is 36MHz instead
+     * - N = 36 -> PLL input frequency has to be 4MHz
      */
 
     RCC->PLLCFGR = 0;
-    RCC->PLLCFGR |= (uint32_t)(18 << RCC_PLLCFGR_PLLN_Pos);
+    RCC->PLLCFGR |= (uint32_t)(36 << RCC_PLLCFGR_PLLN_Pos);
+    RCC->PLLCFGR |= (uint32_t)RCC_PLLCFGR_PLLQ_0 | (uint32_t)RCC_PLLCFGR_PLLR_0;
     RCC->PLLCFGR |= RCC_PLLCFGR_PLLQEN | RCC_PLLCFGR_PLLREN;
 
     #ifdef HSE_VALUE
