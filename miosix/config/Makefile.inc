@@ -3248,10 +3248,6 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
         ## board.
         PROG ?= picotool load -x $(if $(ROMFS_DIR), image.bin, main.bin)
 
-        ## Select UF2 binary image format
-        IMAGE_FORMAT := uf2
-        UF2FLAGS := -s 0x10000000 -f 0xe48bff56 -p
-
     ##-------------------------------------------------------------------------
     ## End of board list
     ##

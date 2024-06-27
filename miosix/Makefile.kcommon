@@ -30,8 +30,6 @@ LINK_LIBS ?= $(LIBS) -L$(KPATH) -Wl,--start-group $(STDLIBS) -Wl,--end-group
 
 OBJ ?= $(addsuffix .o, $(basename $(SRC)))
 
-IMAGE_FORMAT ?= bin
-
 SUBDIRS := $(KPATH)
 ifneq ($(POSTLD),)
 	SUBDIRS += $(KPATH)/libsyscalls
@@ -46,11 +44,6 @@ program:
 
 image: image.bin
 
-ifeq ($(IMAGE_FORMAT),uf2)
-image: image.uf2
-main: main.uf2
-endif
-
 image.bin: main.bin $(TOOLS_DIR)/filesystems/buildromfs
 	$(ECHO) "[FS  ] romfs.bin"
 	$(Q)./$(TOOLS_DIR)/filesystems/buildromfs romfs.bin \
@@ -62,12 +55,6 @@ $(TOOLS_DIR)/filesystems/buildromfs:
 	$(ECHO) "[HOST] buildromfs"
 	$(Q)mkdir -p $(TOOLS_DIR)/filesystems/build
 	$(Q)cd $(TOOLS_DIR)/filesystems/build         \
-	  && cmake --log-level=ERROR .. && $(MAKE) -s
-
-$(TOOLS_DIR)/bin2uf2/bin2uf2:
-	$(ECHO) "[HOST] bin2uf2"
-	$(Q)mkdir -p $(TOOLS_DIR)/bin2uf2/build
-	$(Q)cd $(TOOLS_DIR)/bin2uf2/build             \
 	  && cmake --log-level=ERROR .. && $(MAKE) -s
 
 all-recursive:
@@ -83,12 +70,6 @@ clean-recursive:
 	  clean || exit 1;)
 	-rm -f image.bin romfs.bin $(TOOLS_DIR)/filesystems/buildromfs
 	-rm -rf $(TOOLS_DIR)/filesystems/build
-	-rm -f main.uf2 image.uf2 $(TOOLS_DIR)/bin2uf2/bin2uf2
-	-rm -rf $(TOOLS_DIR)/bin2uf2/build
-
-%.uf2: %.bin $(TOOLS_DIR)/bin2uf2/bin2uf2
-	$(ECHO) '[UF2 ] $@'
-	$(Q)./$(TOOLS_DIR)/bin2uf2/bin2uf2 $(UF2FLAGS) $< -o $@
 
 %.hex: %.elf
 	$(ECHO) '[CP  ] $@'
