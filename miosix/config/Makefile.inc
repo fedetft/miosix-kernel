@@ -3246,7 +3246,7 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
         ## The command must provide a way to program the board, or print an
         ## error message saying that 'make program' is not supported for that
         ## board.
-        PROG ?= echo 'make program not supported.'
+        PROG ?= picotool load -x $(if $(ROMFS_DIR), image.bin, main.bin)
 
         ## Select UF2 binary image format
         IMAGE_FORMAT := uf2
