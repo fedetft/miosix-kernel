@@ -32,9 +32,8 @@ TOOLS_DIR := $(KPATH)/_tools
 OBJ ?= $(addsuffix .o, $(basename $(SRC)))
 
 SUBDIRS := $(KPATH)
-ifneq ($(POSTLD),)
-	SUBDIRS += $(KPATH)/libsyscalls
-endif
+# Not adding libsyscalls to SUBDIRS because it ha to be built before
+LIBSYS  := $(KPATH)/libsyscalls
 
 .DEFAULT_GOAL := all
 
@@ -51,17 +50,27 @@ $(TOOLS_DIR)/filesystems/buildromfs:
 	$(Q)cd $(TOOLS_DIR)/filesystems/build         \
 	  && cmake --log-level=ERROR .. && $(MAKE) -s
 
-all-recursive:
-	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i)                               \
-	  KPATH=$(shell perl $(KPATH)/_tools/relpath.pl $(i) $(KPATH))       \
-	  CONFPATH=$(shell perl $(KPATH)/_tools/relpath.pl $(i) $(CONFPATH)) \
+all-recursive: $(if $(POSTLD), $(LIBSYS)/libsyscalls.a)
+	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i)                                 \
+	  KPATH=$(shell perl $(TOOLS_DIR)/relpath.pl $(i) $(KPATH))            \
+	  CONFPATH=$(shell perl $(TOOLS_DIR)/relpath.pl $(i) $(CONFPATH))      \
 	  || exit 1;)
 
+$(LIBSYS)/libsyscalls.a:
+	$(Q)$(MAKE) -C $(LIBSYS)                                               \
+	KPATH=$(shell perl $(TOOLS_DIR)/relpath.pl $(LIBSYS) $(KPATH))         \
+	CONFPATH=$(shell perl $(TOOLS_DIR)/relpath.pl $(LIBSYS) $(CONFPATH))   \
+	|| exit 1;
+
 clean-recursive:
-	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i)                               \
-	  KPATH=$(shell perl $(KPATH)/_tools/relpath.pl $(i) $(KPATH))       \
-	  CONFPATH=$(shell perl $(KPATH)/_tools/relpath.pl $(i) $(CONFPATH)) \
+	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i)                                 \
+	  KPATH=$(shell perl $(TOOLS_DIR)/relpath.pl $(i) $(KPATH))            \
+	  CONFPATH=$(shell perl $(TOOLS_DIR)/relpath.pl $(i) $(CONFPATH))      \
 	  clean || exit 1;)
+	$(Q)$(MAKE) -C $(LIBSYS)                                               \
+	KPATH=$(shell perl $(TOOLS_DIR)/relpath.pl $(LIBSYS) $(KPATH))         \
+	CONFPATH=$(shell perl $(TOOLS_DIR)/relpath.pl $(LIBSYS) $(CONFPATH))   \
+	clean || exit 1;
 	-rm -f image.bin romfs.bin $(TOOLS_DIR)/filesystems/buildromfs
 	-rm -rf $(TOOLS_DIR)/filesystems/build
 
