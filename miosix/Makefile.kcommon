@@ -27,6 +27,7 @@ CXXFLAGS ?= $(CXXFLAGS_BASE) -I$(CONFPATH) -I$(CONFPATH)/config/$(BOARD_INC)  \
 LFLAGS   ?= $(LFLAGS_BASE)
 STDLIBS  := -lmiosix -lstdc++ -lc -lm -lgcc -latomic
 LINK_LIBS ?= $(LIBS) -L$(KPATH) -Wl,--start-group $(STDLIBS) -Wl,--end-group
+TOOLS_DIR := $(KPATH)/_tools
 
 OBJ ?= $(addsuffix .o, $(basename $(SRC)))
 
@@ -35,16 +36,9 @@ ifneq ($(POSTLD),)
 	SUBDIRS += $(KPATH)/libsyscalls
 endif
 
-TOOLS_DIR := $(KPATH)/_tools
-
 .DEFAULT_GOAL := all
 
-program:
-	$(PROG)
-
-image: image.bin
-
-image.bin: main.bin $(TOOLS_DIR)/filesystems/buildromfs
+image: main $(TOOLS_DIR)/filesystems/buildromfs
 	$(ECHO) "[FS  ] romfs.bin"
 	$(Q)./$(TOOLS_DIR)/filesystems/buildromfs romfs.bin \
 	  --from-directory $(ROMFS_DIR)
@@ -71,13 +65,8 @@ clean-recursive:
 	-rm -f image.bin romfs.bin $(TOOLS_DIR)/filesystems/buildromfs
 	-rm -rf $(TOOLS_DIR)/filesystems/build
 
-%.hex: %.elf
-	$(ECHO) '[CP  ] $@'
-	$(Q)$(CP) -O ihex $< $@
-
-%.bin: %.elf
-	$(ECHO) '[CP  ] $@'
-	$(Q)$(CP) -O binary $< $@
+program:
+	$(PROG)
 
 %.o : %.cpp
 	$(ECHO) "[CXX ] $<"

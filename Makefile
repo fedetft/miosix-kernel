@@ -33,16 +33,18 @@ SUBDIRS +=
 ##
 ROMFS_DIR :=
 
-all: main $(if $(ROMFS_DIR), image)
+all: $(if $(ROMFS_DIR), image, main)
+
+main: $(OBJ) all-recursive
+	$(ECHO) "[LD  ] main.elf"
+	$(Q)$(CXX) $(LFLAGS) -o main.elf $(OBJ) $(LINK_LIBS)
+	$(ECHO) "[CP  ] main.hex"
+	$(Q)$(CP) -O ihex   main.elf main.hex
+	$(ECHO) "[CP  ] main.bin"
+	$(Q)$(CP) -O binary main.elf main.bin
+	$(Q)$(SZ) main.elf
 
 clean: clean-recursive
 	-rm -f $(OBJ) $(OBJ:.o=.d) main.elf main.hex main.bin main.map
-
-main: main.hex main.bin main.elf
-	$(Q)$(SZ) main.elf
-
-main.elf: $(OBJ) all-recursive
-	$(ECHO) "[LD  ] main.elf"
-	$(Q)$(CXX) $(LFLAGS) -o main.elf $(OBJ) $(LINK_LIBS)
 
 -include $(OBJ:.o=.d)
