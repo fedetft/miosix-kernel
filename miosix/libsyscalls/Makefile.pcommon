@@ -14,28 +14,27 @@ endif
 
 include $(CONFPATH)/config/Makefile.inc
 
-DFLAGS   := -MMD -MP
 AFLAGS   ?= $(CPU)
-CFLAGS   ?= $(CPU) -fpie -msingle-pic-base -ffunction-sections -Wall        \
-            -Werror=return-type -D_DEFAULT_SOURCE=1 $(OPT_OPTIMIZATION)     \
+CFLAGS   ?= -MMD -MP $(CPU) -fpie -msingle-pic-base -ffunction-sections -Wall  \
+            -Werror=return-type -D_DEFAULT_SOURCE=1 $(OPT_OPTIMIZATION)        \
             $(INCLUDE_DIRS) -g -c
 CXXFLAGS ?= -std=c++14 $(PROC_OPT_EXCEPT) $(CFLAGS)
-LFLAGS   ?= $(CPU) -fpie -msingle-pic-base -nostdlib -Wl,--gc-sections      \
-            -Wl,-Map,$(notdir $(BIN)).map,-T$(KPATH)/libsyscalls/process.ld \
+LFLAGS   ?= $(CPU) -fpie -msingle-pic-base -nostdlib -Wl,--gc-sections         \
+            -Wl,-Map,$(notdir $(BIN)).map,-T$(KPATH)/libsyscalls/process.ld    \
             -Wl,-n,-pie,--spare-dynamic-tags,3,--target2=mx-data-rel
 STDLIBS  := -lsyscalls -lstdc++ -lc -lm -lgcc -latomic
-LINK_LIBS ?= $(LIBS) -L$(KPATH)/libsyscalls -Wl,--start-group $(STDLIBS)    \
+LINK_LIBS ?= $(LIBS) -L$(KPATH)/libsyscalls -Wl,--start-group $(STDLIBS)       \
              -Wl,--end-group
 
 OBJ ?= $(addsuffix .o, $(basename $(SRC)))
 
 %.o : %.cpp
 	$(ECHO) "[CXX ] $<"
-	$(Q)$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
+	$(Q)$(CXX) $(CXXFLAGS) $< -o $@
 
 %.o : %.c
 	$(ECHO) "[CC  ] $<"
-	$(Q)$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
+	$(Q)$(CC)  $(CFLAGS) $< -o $@
 
 %.o: %.s
 	$(ECHO) "[AS  ] $<"

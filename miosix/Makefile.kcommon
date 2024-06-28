@@ -16,14 +16,13 @@ include $(CONFPATH)/config/Makefile.inc
 
 ## Includes the miosix base directory for C/C++
 ## Always include CONFPATH first, as it overrides the config file location
-DFLAGS   := -MMD -MP
 AFLAGS   ?= $(AFLAGS_BASE)
 CFLAGS   ?= $(CFLAGS_BASE)   -I$(CONFPATH) -I$(CONFPATH)/config/$(BOARD_INC)  \
             -I. -I$(KPATH) -I$(KPATH)/arch/common -I$(KPATH)/$(ARCH_INC)      \
-            -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS)
+            -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS) -MMD -MP
 CXXFLAGS ?= $(CXXFLAGS_BASE) -I$(CONFPATH) -I$(CONFPATH)/config/$(BOARD_INC)  \
             -I. -I$(KPATH) -I$(KPATH)/arch/common -I$(KPATH)/$(ARCH_INC)      \
-            -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS)
+            -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS) -MMD -MP
 LFLAGS   ?= $(LFLAGS_BASE)
 STDLIBS  := -lmiosix -lstdc++ -lc -lm -lgcc -latomic
 LINK_LIBS ?= $(LIBS) -L$(KPATH) -Wl,--start-group $(STDLIBS) -Wl,--end-group
@@ -79,11 +78,11 @@ program:
 
 %.o : %.cpp
 	$(ECHO) "[CXX ] $<"
-	$(Q)$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
+	$(Q)$(CXX) $(CXXFLAGS) $< -o $@
 
 %.o : %.c
 	$(ECHO) "[CC  ] $<"
-	$(Q)$(CC)  $(DFLAGS) $(CFLAGS) $< -o $@
+	$(Q)$(CC)  $(CFLAGS) $< -o $@
 
 %.o: %.s
 	$(ECHO) "[AS  ] $<"

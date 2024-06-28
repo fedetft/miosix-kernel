@@ -90,6 +90,6 @@ clean:
 # without becoming crazy
 %.o : %.c
 	$(ECHO) "[CXX ] $<"
-	$(Q)$(CXX) $(DFLAGS) $(CXXFLAGS) $< -o $@
+	$(Q)$(CXX) $(CXXFLAGS) $< -o $@
 
 -include $(OBJ:.o=.d)
