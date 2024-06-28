@@ -26,7 +26,10 @@ LIBS :=
 ##
 ## List here subdirectories which contains makefiles
 ##
+# Only build processes if the architecture supports them
+ifneq ($(POSTLD),)
 SUBDIRS += test_process test_execve test_global_dtor_ctor
+endif
 
 ##
 ## Attach a romfs filesystem image after the kernel
