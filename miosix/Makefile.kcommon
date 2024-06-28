@@ -31,7 +31,7 @@ TOOLS_DIR := $(KPATH)/_tools
 OBJ ?= $(addsuffix .o, $(basename $(SRC)))
 
 SUBDIRS := $(KPATH)
-# Not adding libsyscalls to SUBDIRS because it ha to be built before
+# Not adding libsyscalls to SUBDIRS because it has to be built before
 LIBSYS  := $(KPATH)/libsyscalls
 
 .DEFAULT_GOAL := all

@@ -5,7 +5,7 @@
 ## Path to kernel/config directories (edited by init_project_out_of_git_repo.pl)
 KPATH := miosix
 CONFPATH := $(KPATH)
-MAKEFILE_VERSION := 1.14
+MAKEFILE_VERSION := 1.15
 include $(KPATH)/Makefile.kcommon
 
 ##
@@ -33,16 +33,18 @@ SUBDIRS += tinyusb
 ##
 ROMFS_DIR :=
 
-all: main $(if $(ROMFS_DIR), image)
+all: $(if $(ROMFS_DIR), image, main)
 
-clean: clean-recursive
-	-rm -f $(OBJ) $(OBJ:.o=.d) main.elf main.hex main.bin main.map
-
-main: main.hex main.bin main.elf
-	$(Q)$(SZ) main.elf
-
-main.elf: $(OBJ) all-recursive
+main: $(OBJ) all-recursive
 	$(ECHO) "[LD  ] main.elf"
 	$(Q)$(CXX) $(LFLAGS) -o main.elf $(OBJ) $(LINK_LIBS)
+	$(ECHO) "[CP  ] main.hex"
+	$(Q)$(CP) -O ihex   main.elf main.hex
+	$(ECHO) "[CP  ] main.bin"
+	$(Q)$(CP) -O binary main.elf main.bin
+	$(Q)$(SZ) main.elf
+
+clean: clean-recursive
+	$(Q)rm -f $(OBJ) $(OBJ:.o=.d) main.elf main.hex main.bin main.map
 
 -include $(OBJ:.o=.d)

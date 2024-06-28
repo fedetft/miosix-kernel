@@ -3,7 +3,7 @@
 ##
 
 ## KPATH and CONFPATH can be specified here or forwarded by the parent makefile
-MAKEFILE_VERSION := 1.14
+MAKEFILE_VERSION := 1.15
 include $(KPATH)/libsyscalls/Makefile.pcommon
 
 BIN := ../testsuite_romfs/test_process
