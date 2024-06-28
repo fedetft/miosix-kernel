@@ -67,6 +67,6 @@ all: $(OBJ)
 	$(Q)$(AR) rcs libmiosix.a $(OBJ)
 
 clean:
-	-rm -f $(OBJ) $(OBJ:.o=.d) libmiosix.a
+	$(Q)rm -f $(OBJ) $(OBJ:.o=.d) libmiosix.a
 
 -include $(OBJ:.o=.d)

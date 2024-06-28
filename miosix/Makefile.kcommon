@@ -71,8 +71,8 @@ clean-recursive:
 	KPATH=$(shell perl $(TOOLS_DIR)/relpath.pl $(LIBSYS) $(KPATH))         \
 	CONFPATH=$(shell perl $(TOOLS_DIR)/relpath.pl $(LIBSYS) $(CONFPATH))   \
 	clean || exit 1;
-	-rm -f image.bin romfs.bin $(TOOLS_DIR)/filesystems/buildromfs
-	-rm -rf $(TOOLS_DIR)/filesystems/build
+	$(Q)rm -f image.bin romfs.bin $(TOOLS_DIR)/filesystems/buildromfs
+	$(Q)rm -rf $(TOOLS_DIR)/filesystems/build
 
 program:
 	$(PROG)

@@ -19,6 +19,6 @@ all: $(OBJ)
 	$(Q)$(AR) rcs libsyscalls.a $(OBJ)
 
 clean:
-	-rm -f $(OBJ) $(OBJ:.o=.d) libsyscalls.a
+	$(Q)rm -f $(OBJ) $(OBJ:.o=.d) libsyscalls.a
 
 -include $(OBJ:.o=.d)

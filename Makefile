@@ -45,6 +45,6 @@ main: $(OBJ) all-recursive
 	$(Q)$(SZ) main.elf
 
 clean: clean-recursive
-	-rm -f $(OBJ) $(OBJ:.o=.d) main.elf main.hex main.bin main.map
+	$(Q)rm -f $(OBJ) $(OBJ:.o=.d) main.elf main.hex main.bin main.map
 
 -include $(OBJ:.o=.d)
