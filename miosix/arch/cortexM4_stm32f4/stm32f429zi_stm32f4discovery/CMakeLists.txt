@@ -87,4 +87,4 @@ list(APPEND CXXFLAGS_BASE -D_BOARD_STM32F429ZI_STM32F4DISCOVERY)
 # built. Use <binary> or <hex> as placeolders, they will be replaced by the
 # build systems with the binary or hex file path repectively.
 # If a command is not specified, the build system will fallback to st-flash
-set(PROGRAM_CMDLINE qstlink2 -cqewV <binary>)
+# set(PROGRAM_CMDLINE st-flash --connect-under-reset --reset write <binary> 0x8000000)
