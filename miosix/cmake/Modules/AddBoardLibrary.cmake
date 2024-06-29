@@ -28,51 +28,51 @@
 # Required variables:
 # - KPATH: Path to the kernel (.../miosix-kernel/miosix)
 # Adds:
-# - miosix-${BOARD_NAME}
-function(miosix_add_board_library BOARD_OPTIONS_FILE)
+# - miosix-${OPT_BOARD}
+function(miosix_add_board_library OPT_BOARD)
     if(NOT KPATH)
         message(FATAL_ERROR "KPATH must be defined to be the path to the miosix-kernel/miosix directory")
     endif()
 
-    include(${BOARD_OPTIONS_FILE})
+    include(${KPATH}/arch/CMakeLists.txt)
 
     miosix_check_board_options_variables()
 
-    miosix_add_miosix_library(${BOARD_NAME})
+    miosix_add_miosix_library(${OPT_BOARD})
 endfunction()
 
 # Aborts if the required variables to generate the libraries are missing
 function(miosix_check_board_options_variables)
     set(VARIABLES
-        BOARD_NAME
-        ARCH_PATH
-        BOARD_PATH
-        BOARD_CONFIG_PATH
+        OPT_BOARD
+        ARCH_INC
+        BOARD_INC
+        BOARD_CONFIG_INC
         LINKER_SCRIPT
-        AFLAGS
-        LFLAGS
-        CFLAGS
-        CXXFLAGS
+        AFLAGS_BASE
+        CFLAGS_BASE
+        CXXFLAGS_BASE
+        LFLAGS_BASE
         ARCH_SRC
     )
     foreach(VARIABLE ${VARIABLES})
         if(NOT DEFINED ${VARIABLE})
-            message(FATAL_ERROR "You must define ${VARIABLE} in your board_options.cmake file")
+            message(FATAL_ERROR "Board support package must define ${VARIABLE}")
         endif()
     endforeach()
 endfunction()
 
-# Add a library with all the kernel source code called miosix-${BOARD_NAME}
-function(miosix_add_miosix_library BOARD_NAME)
-    set(MIOSIX_LIB miosix-${BOARD_NAME})
+# Add a library with all the kernel source code called miosix-${OPT_BOARD}
+function(miosix_add_miosix_library OPT_BOARD)
+    set(MIOSIX_LIB miosix-${OPT_BOARD})
     add_library(${MIOSIX_LIB} STATIC ${KERNEL_SRC} ${ARCH_SRC})
 
     target_include_directories(${MIOSIX_LIB} PUBLIC
         ${KPATH}
         ${KPATH}/arch/common
-        ${ARCH_PATH}
-        ${BOARD_PATH}
-        ${BOARD_CONFIG_PATH}
+        ${ARCH_INC}
+        ${BOARD_INC}
+        ${BOARD_CONFIG_INC}
     )
 
     # The user can set a custom path for miosix_settings.h
@@ -85,9 +85,9 @@ function(miosix_add_miosix_library BOARD_NAME)
 
     # Configure compiler flags
     target_compile_options(${MIOSIX_LIB} PUBLIC
-        $<$<COMPILE_LANGUAGE:ASM>:${AFLAGS}>
-        $<$<COMPILE_LANGUAGE:C>:${DFLAGS} ${CFLAGS}>
-        $<$<COMPILE_LANGUAGE:CXX>:${DFLAGS} ${CXXFLAGS}>
+        $<$<COMPILE_LANGUAGE:ASM>:${AFLAGS_BASE}>
+        $<$<COMPILE_LANGUAGE:C>:${CFLAGS_BASE}>
+        $<$<COMPILE_LANGUAGE:CXX>:${CXXFLAGS_BASE}>
     )
 
     # Configure program command
@@ -98,7 +98,7 @@ function(miosix_add_miosix_library BOARD_NAME)
 
     # Configure linker file and options
     set_property(TARGET ${MIOSIX_LIB} PROPERTY LINK_DEPENDS ${LINKER_SCRIPT})
-    target_link_options(${MIOSIX_LIB} PUBLIC ${LFLAGS})
+    target_link_options(${MIOSIX_LIB} PUBLIC ${LFLAGS_BASE})
 
     add_custom_command(
         TARGET ${MIOSIX_LIB} PRE_LINK
