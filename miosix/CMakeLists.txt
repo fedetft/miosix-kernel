@@ -32,11 +32,57 @@ project(Miosix
     LANGUAGES C CXX
 )
 
-# Load in KPATH the project path
 set(KPATH ${CMAKE_CURRENT_LIST_DIR})
 
+set(KERNEL_SRC
+    ${KPATH}/kernel/kernel.cpp
+    ${KPATH}/kernel/sync.cpp
+    ${KPATH}/kernel/error.cpp
+    ${KPATH}/kernel/pthread.cpp
+    ${KPATH}/kernel/stage_2_boot.cpp
+    ${KPATH}/kernel/elf_program.cpp
+    ${KPATH}/kernel/process.cpp
+    ${KPATH}/kernel/process_pool.cpp
+    ${KPATH}/kernel/timeconversion.cpp
+    ${KPATH}/kernel/intrusive.cpp
+    ${KPATH}/kernel/cpu_time_counter.cpp
+    ${KPATH}/kernel/scheduler/priority/priority_scheduler.cpp
+    ${KPATH}/kernel/scheduler/control/control_scheduler.cpp
+    ${KPATH}/kernel/scheduler/edf/edf_scheduler.cpp
+    ${KPATH}/filesystem/file_access.cpp
+    ${KPATH}/filesystem/file.cpp
+    ${KPATH}/filesystem/path.cpp
+    ${KPATH}/filesystem/stringpart.cpp
+    ${KPATH}/filesystem/pipe/pipe.cpp
+    ${KPATH}/filesystem/console/console_device.cpp
+    ${KPATH}/filesystem/mountpointfs/mountpointfs.cpp
+    ${KPATH}/filesystem/devfs/devfs.cpp
+    ${KPATH}/filesystem/fat32/fat32.cpp
+    ${KPATH}/filesystem/fat32/ff.cpp
+    ${KPATH}/filesystem/fat32/diskio.cpp
+    ${KPATH}/filesystem/fat32/wtoupper.cpp
+    ${KPATH}/filesystem/fat32/ccsbcs.cpp
+    ${KPATH}/filesystem/littlefs/lfs_miosix.cpp
+    ${KPATH}/filesystem/littlefs/lfs.c
+    ${KPATH}/filesystem/littlefs/lfs_util.c
+    ${KPATH}/filesystem/romfs/romfs.cpp
+    ${KPATH}/stdlib_integration/libc_integration.cpp
+    ${KPATH}/stdlib_integration/libstdcpp_integration.cpp
+    ${KPATH}/e20/e20.cpp
+    ${KPATH}/e20/unmember.cpp
+    ${KPATH}/util/util.cpp
+    ${KPATH}/util/unicode.cpp
+    ${KPATH}/util/version.cpp
+    ${KPATH}/util/crc16.cpp
+    ${KPATH}/util/lcd44780.cpp
+)
+
+set(MIOSIX_BOARDS_OPTIONS_FILES
+    ${KPATH}/config/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/board_options.cmake
+    ${KPATH}/config/arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery/board_options.cmake
+)
+
 # Create libraries for each board
-include(${KPATH}/cmake/boards.cmake)
 include(${KPATH}/cmake/miosix_add_board_library.cmake)
 foreach(BOARD_OPTIONS_FILE ${MIOSIX_BOARDS_OPTIONS_FILES})
     miosix_add_board_library(${BOARD_OPTIONS_FILE})

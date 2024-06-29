@@ -35,7 +35,6 @@ function(miosix_add_board_library BOARD_OPTIONS_FILE)
     endif()
 
     include(${BOARD_OPTIONS_FILE})
-    include(${KPATH}/cmake/kernel_sources.cmake)
 
     miosix_check_board_options_variables()
 
