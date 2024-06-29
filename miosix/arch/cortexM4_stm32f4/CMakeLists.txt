@@ -27,7 +27,7 @@
 set(ARCH_INC ${KPATH}/arch/${ARCH_NAME}/common)
 
 # Including board specific options
-include(${KPATH}/arch/${ARCH_NAME}/${OPT_BOARD}/CMakeLists.txt)
+include(${KPATH}/arch/${ARCH_NAME}/${MIOSIX_OPT_BOARD}/CMakeLists.txt)
 
 # Automatically transform the architecture name into upper cases
 string(TOUPPER ${ARCH_NAME} ARCH_NAME_UPPER)

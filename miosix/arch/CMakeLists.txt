@@ -24,19 +24,19 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 # First, auto guess architecture name from board name
-if(OPT_BOARD STREQUAL stm32f407vg_stm32f4discovery)
+if(MIOSIX_OPT_BOARD STREQUAL stm32f407vg_stm32f4discovery)
     set(ARCH_NAME cortexM4_stm32f4)
-elseif(OPT_BOARD STREQUAL stm32f429zi_stm32f4discovery)
+elseif(MIOSIX_OPT_BOARD STREQUAL stm32f429zi_stm32f4discovery)
     set(ARCH_NAME cortexM4_stm32f4)
 endif()
 
 # Then, initialize C/C++ flags
 set(CFLAGS_BASE
-    -D_MIOSIX_BOARDNAME="${OPT_BOARD}" -D_DEFAULT_SOURCE=1
+    -D_MIOSIX_BOARDNAME="${MIOSIX_OPT_BOARD}" -D_DEFAULT_SOURCE=1
     -ffunction-sections -Wall -Werror=return-type -g
 )
 set(CXXFLAGS_BASE
-    -D_MIOSIX_BOARDNAME="${OPT_BOARD}" -D_DEFAULT_SOURCE=1
+    -D_MIOSIX_BOARDNAME="${MIOSIX_OPT_BOARD}" -D_DEFAULT_SOURCE=1
     -std=c++14 -ffunction-sections -Wall -Werror=return-type -g
 )
 
