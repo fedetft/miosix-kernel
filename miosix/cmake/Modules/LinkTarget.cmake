@@ -24,7 +24,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 # Creates a custom target to program the board
-function(miosix_add_program_target TARGET)
+function(miosix_add_program_target TARGET OPT_BOARD)
     get_target_property(PROGRAM_CMDLINE miosix-${OPT_BOARD} PROGRAM_CMDLINE)
     if(PROGRAM_CMDLINE STREQUAL "PROGRAM_CMDLINE-NOTFOUND")
         set(PROGRAM_CMDLINE st-flash --reset write <binary> 0x8000000)
@@ -41,8 +41,8 @@ endfunction()
 
 # Function to link the Miosix libraries to a target and register the build command
 function(miosix_link_target TARGET OPT_BOARD)
-    if(NOT DEFINED OPT_BOARD)
-        message(FATAL_ERROR "No board selected")
+    if (NOT TARGET miosix-${OPT_BOARD})
+        message(FATAL_ERROR "The board you selected is not supported")
     endif()
 
     # Linker script and linking options are eredited from miosix libraries
@@ -63,5 +63,5 @@ function(miosix_link_target TARGET OPT_BOARD)
     )
 
     # Generate custom build command to flash the target
-    miosix_add_program_target(${TARGET})
+    miosix_add_program_target(${TARGET} ${OPT_BOARD})
 endfunction()
