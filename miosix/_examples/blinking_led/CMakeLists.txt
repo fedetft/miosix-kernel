@@ -33,7 +33,6 @@ add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX>:PARSING_FROM_IDE>)
 set(MIOSIX_OPT_BOARD stm32f429zi_stm32f4discovery CACHE STRING "Target board")
 add_subdirectory(../.. miosix EXCLUDE_FROM_ALL)
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/../../cmake/Modules)
 include(LinkTarget)
 
 add_executable(blinking_led simple.cpp)
