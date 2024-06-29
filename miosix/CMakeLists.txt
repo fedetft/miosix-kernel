@@ -32,6 +32,9 @@ project(Miosix
     LANGUAGES C CXX
 )
 
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake/modules)
+include(AddBoardLibrary)
+
 set(KPATH ${CMAKE_CURRENT_LIST_DIR})
 
 set(KERNEL_SRC
@@ -83,7 +86,6 @@ set(MIOSIX_BOARDS_OPTIONS_FILES
 )
 
 # Create libraries for each board
-include(${KPATH}/cmake/miosix_add_board_library.cmake)
 foreach(BOARD_OPTIONS_FILE ${MIOSIX_BOARDS_OPTIONS_FILES})
     miosix_add_board_library(${BOARD_OPTIONS_FILE})
 endforeach()

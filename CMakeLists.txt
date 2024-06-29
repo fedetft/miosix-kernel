@@ -28,7 +28,9 @@ cmake_minimum_required(VERSION 3.16)
 project(Main C CXX ASM)
 
 add_subdirectory(miosix EXCLUDE_FROM_ALL)
-include(miosix/cmake/miosix_link_target.cmake)
+
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/miosix/cmake/modules)
+include(LinkTarget)
 
 add_executable(main main.cpp)
 miosix_link_target(main stm32f407vg_stm32f4discovery)
