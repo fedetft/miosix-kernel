@@ -24,10 +24,10 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 # Directory with header files for this board
-set(BOARD_INC ${KPATH}/arch/${ARCH_NAME}/${OPT_BOARD})
+set(BOARD_INC ${KPATH}/arch/${ARCH_NAME}/${MIOSIX_OPT_BOARD})
 
 # Directory with board setting header file
-set(BOARD_CONFIG_INC ${KPATH}/config/arch/${ARCH_NAME}/${OPT_BOARD})
+set(BOARD_CONFIG_INC ${KPATH}/config/arch/${ARCH_NAME}/${MIOSIX_OPT_BOARD})
 
 # Include user configurable options
 include(${BOARD_CONFIG_INC}/board_settings.cmake)

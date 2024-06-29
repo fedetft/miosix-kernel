@@ -32,8 +32,16 @@ project(Miosix
     LANGUAGES C CXX
 )
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake/Modules)
-include(AddBoardLibrary)
+set(BOARDS
+    stm32f407vg_stm32f4discovery
+    stm32f429zi_stm32f4discovery
+)
+
+set(MIOSIX_OPT_BOARD NOT_SET CACHE STRING "Target board")
+set_property(CACHE MIOSIX_OPT_BOARD PROPERTY STRINGS ${BOARDS})
+if(MIOSIX_OPT_BOARD STREQUAL NOT_SET)
+    message(FATAL_ERROR "You must specify a target board with MIOSIX_OPT_BOARD")
+endif()
 
 set(KPATH ${CMAKE_CURRENT_LIST_DIR})
 
@@ -80,20 +88,74 @@ set(KERNEL_SRC
     ${KPATH}/util/lcd44780.cpp
 )
 
-set(BOARDS
-    stm32f407vg_stm32f4discovery
-    stm32f429zi_stm32f4discovery
+# Include the architecture options
+include(${KPATH}/arch/CMakeLists.txt)
+
+# Verify that all the required variables have been defined, otherwise abort
+set(VARIABLES
+    MIOSIX_OPT_BOARD
+    ARCH_INC
+    BOARD_INC
+    BOARD_CONFIG_INC
+    LINKER_SCRIPT
+    AFLAGS_BASE
+    CFLAGS_BASE
+    CXXFLAGS_BASE
+    LFLAGS_BASE
+    ARCH_SRC
+)
+foreach(VARIABLE ${VARIABLES})
+    if(NOT DEFINED ${VARIABLE})
+        message(FATAL_ERROR "Board support package must define ${VARIABLE}")
+    endif()
+endforeach()
+
+# Define the miosix library with kernel and architecture sources
+add_library(miosix STATIC ${KERNEL_SRC} ${ARCH_SRC})
+target_include_directories(miosix PUBLIC
+    ${KPATH}
+    ${KPATH}/arch/common
+    ${ARCH_INC}
+    ${BOARD_INC}
+    ${BOARD_CONFIG_INC}
 )
 
-# Create a library for each board
-foreach(OPT_BOARD ${BOARDS})
-    miosix_add_board_library(${OPT_BOARD})
-endforeach()
+# The user can set a custom path for miosix_settings.h
+if(DEFINED CUSTOM_MIOSIX_SETTINGS_PATH)
+    target_include_directories(miosix PUBLIC ${CUSTOM_MIOSIX_SETTINGS_PATH})
+else()
+    # By default miosix/default/config/miosix_settings.h is used
+    target_include_directories(miosix PUBLIC ${KPATH}/default)
+endif()
+
+# Configure compiler flags
+target_compile_options(miosix PUBLIC
+    $<$<COMPILE_LANGUAGE:ASM>:${AFLAGS_BASE}>
+    $<$<COMPILE_LANGUAGE:C>:${CFLAGS_BASE}>
+    $<$<COMPILE_LANGUAGE:CXX>:${CXXFLAGS_BASE}>
+)
+
+# Configure program command
+set_property(TARGET miosix PROPERTY PROGRAM_CMDLINE ${PROGRAM_CMDLINE})
+
+# Add COMPILING_MIOSIX define for private headers
+target_compile_definitions(miosix PRIVATE $<$<COMPILE_LANGUAGE:C,CXX>:COMPILING_MIOSIX>)
+
+# Configure linker file and options
+set_property(TARGET miosix PROPERTY LINK_DEPENDS ${LINKER_SCRIPT})
+target_link_options(miosix PUBLIC ${LFLAGS_BASE})
+
+add_custom_command(
+    TARGET miosix PRE_LINK
+    COMMAND perl ${KPATH}/_tools/kernel_global_objects.pl $<TARGET_OBJECTS:miosix>
+    VERBATIM
+    COMMAND_EXPAND_LISTS
+)
 
 option(MIOSIX_PRINT_BOARD_LIST "Prints a list of the available boards" OFF)
 if(MIOSIX_PRINT_BOARD_LIST)
     message(STATUS "Available boards:")
-    foreach(OPT_BOARD ${BOARDS})
-        message(STATUS "\t${OPT_BOARD}")
+    foreach(MIOSIX_OPT_BOARD ${BOARDS})
+        message(STATUS "\t${MIOSIX_OPT_BOARD}")
     endforeach()
 endif()

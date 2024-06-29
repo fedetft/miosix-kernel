@@ -24,8 +24,8 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 # Creates a custom target to program the board
-function(miosix_add_program_target TARGET OPT_BOARD)
-    get_target_property(PROGRAM_CMDLINE miosix-${OPT_BOARD} PROGRAM_CMDLINE)
+function(miosix_add_program_target TARGET)
+    get_target_property(PROGRAM_CMDLINE miosix PROGRAM_CMDLINE)
     if(PROGRAM_CMDLINE STREQUAL "PROGRAM_CMDLINE-NOTFOUND")
         set(PROGRAM_CMDLINE st-flash --reset write <binary> 0x8000000)
     endif()
@@ -33,15 +33,15 @@ function(miosix_add_program_target TARGET OPT_BOARD)
     list(TRANSFORM PROGRAM_CMDLINE REPLACE <binary> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}.bin)
     list(TRANSFORM PROGRAM_CMDLINE REPLACE <hex> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}.hex)
 
-    add_custom_target(program-${TARGET} ${PROGRAM_CMDLINE}
+    add_custom_target(program ${PROGRAM_CMDLINE}
         DEPENDS ${TARGET}
         VERBATIM
     )
 endfunction()
 
 # Function to link the Miosix libraries to a target and register the build command
-function(miosix_link_target TARGET OPT_BOARD)
-    if (NOT TARGET miosix-${OPT_BOARD})
+function(miosix_link_target TARGET)
+    if (NOT TARGET miosix)
         message(FATAL_ERROR "The board you selected is not supported")
     endif()
 
@@ -49,7 +49,7 @@ function(miosix_link_target TARGET OPT_BOARD)
 
     # Link libraries
     target_link_libraries(${TARGET} PRIVATE
-        -Wl,--start-group miosix-${OPT_BOARD} stdc++ c m gcc atomic -Wl,--end-group
+        -Wl,--start-group miosix stdc++ c m gcc atomic -Wl,--end-group
     )
 
     # Add a post build command to create the hex file to flash on the board
@@ -63,5 +63,5 @@ function(miosix_link_target TARGET OPT_BOARD)
     )
 
     # Generate custom build command to flash the target
-    miosix_add_program_target(${TARGET} ${OPT_BOARD})
+    miosix_add_program_target(${TARGET})
 endfunction()
