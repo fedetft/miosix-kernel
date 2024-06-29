@@ -27,7 +27,7 @@
 function(miosix_add_program_target TARGET)
     get_target_property(PROGRAM_CMDLINE miosix PROGRAM_CMDLINE)
     if(PROGRAM_CMDLINE STREQUAL "PROGRAM_CMDLINE-NOTFOUND")
-        set(PROGRAM_CMDLINE st-flash --reset write <binary> 0x8000000)
+        set(PROGRAM_CMDLINE st-flash --connect-under-reset --reset write <binary> 0x8000000)
     endif()
 
     list(TRANSFORM PROGRAM_CMDLINE REPLACE <binary> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}.bin)
