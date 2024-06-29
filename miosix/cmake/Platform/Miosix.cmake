@@ -23,21 +23,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
-# This is a platform definition file for platforms without
-# operating system, typically embedded platforms.
-# It is used when CMAKE_SYSTEM_NAME is set to "Generic"
-#
-# It is intentionally empty, since nothing is known
-# about the platform. So everything has to be specified
-# in the system/compiler files ${CMAKE_SYSTEM_NAME}-<compiler_basename>.cmake
-# and/or ${CMAKE_SYSTEM_NAME}-<compiler_basename>-${CMAKE_SYSTEM_PROCESSOR}.cmake
-
-# Miosix don't support shared libraries
+# Miosix does not support shared libraries
 set_property(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS FALSE)
 
-# BFile extensions
-set(CMAKE_A_OUTPUT_EXTENSION ".o")
-set(CMAKE_C_OUTPUT_EXTENSION ".o")
-set(CMAKE_CXX_OUTPUT_EXTENSION ".o")
-set(CMAKE_STATIC_LIBRARY_SUFFIX ".a")
-set(CMAKE_EXECUTABLE_SUFFIX ".elf")
+# File extensions
+set(CMAKE_ASM_OUTPUT_EXTENSION .o)
+set(CMAKE_C_OUTPUT_EXTENSION .o)
+set(CMAKE_CXX_OUTPUT_EXTENSION .o)
+set(CMAKE_STATIC_LIBRARY_SUFFIX .a)
+set(CMAKE_EXECUTABLE_SUFFIX .elf)
