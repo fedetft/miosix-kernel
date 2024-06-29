@@ -49,7 +49,7 @@ function(miosix_link_target TARGET OPT_BOARD)
 
     # Link libraries
     target_link_libraries(${TARGET} PRIVATE
-        $<LINK_GROUP:RESCAN,miosix-${OPT_BOARD},stdc++,c,m,gcc,atomic>
+        -Wl,--start-group miosix-${OPT_BOARD} stdc++ c m gcc atomic -Wl,--end-group
     )
 
     # Add a post build command to create the hex file to flash on the board
