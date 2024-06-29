@@ -27,10 +27,20 @@ cmake_minimum_required(VERSION 3.16)
 
 project(Main C CXX ASM)
 
+# Set here your board of choice
 set(MIOSIX_OPT_BOARD NOT_SET CACHE STRING "Target board")
+
 add_subdirectory(miosix EXCLUDE_FROM_ALL)
 
 include(LinkTarget)
 
+# List here your source files (.s, .c and .cpp)
 add_executable(main main.cpp)
+
+# List here additional include directories
+# target_include_directories(main PRIVATE here_your_includes)
+
+# List here additional static libraries
+# target_link_libraries(main PRIVATE here_your_libraries)
+
 miosix_link_target(main)

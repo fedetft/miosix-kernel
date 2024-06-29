@@ -86,7 +86,7 @@ set(KERNEL_SRC
 include(${KPATH}/arch/CMakeLists.txt)
 
 # Verify that all the required variables have been defined, otherwise abort
-set(VARIABLES
+set(REQUIRED_VARIABLES
     MIOSIX_OPT_BOARD
     ARCH_INC
     BOARD_INC
@@ -98,7 +98,7 @@ set(VARIABLES
     LFLAGS_BASE
     ARCH_SRC
 )
-foreach(VARIABLE ${VARIABLES})
+foreach(VARIABLE ${REQUIRED_VARIABLES})
     if(NOT DEFINED ${VARIABLE})
         message(FATAL_ERROR "Board support package must define ${VARIABLE}")
     endif()
@@ -109,6 +109,7 @@ set(MIOSIX_SETTINGS_PATH ${KPATH}/default CACHE PATH "Include directory for mios
 
 # Define the miosix library with kernel and architecture sources
 add_library(miosix STATIC ${KERNEL_SRC} ${ARCH_SRC})
+
 target_include_directories(miosix PUBLIC
     ${KPATH}
     ${KPATH}/arch/common
@@ -118,14 +119,13 @@ target_include_directories(miosix PUBLIC
     ${MIOSIX_SETTINGS_PATH}
 )
 
-# Configure compiler flags
 target_compile_options(miosix PUBLIC
     $<$<COMPILE_LANGUAGE:ASM>:${AFLAGS_BASE}>
     $<$<COMPILE_LANGUAGE:C>:${CFLAGS_BASE}>
     $<$<COMPILE_LANGUAGE:CXX>:${CXXFLAGS_BASE}>
 )
 
-# Configure program command
+# Configure program command as a propery of the miosix library
 set_property(TARGET miosix PROPERTY PROGRAM_CMDLINE ${PROGRAM_CMDLINE})
 
 # Add COMPILING_MIOSIX define for private headers
@@ -135,6 +135,7 @@ target_compile_definitions(miosix PRIVATE $<$<COMPILE_LANGUAGE:C,CXX>:COMPILING_
 set_property(TARGET miosix PROPERTY LINK_DEPENDS ${MIOSIX_LINKER_SCRIPT})
 target_link_options(miosix PUBLIC ${LFLAGS_BASE})
 
+# Run the kernel_global_objects.pl script on all kernel objects
 add_custom_command(
     TARGET miosix PRE_LINK
     COMMAND perl ${KPATH}/_tools/kernel_global_objects.pl $<TARGET_OBJECTS:miosix>
@@ -142,6 +143,7 @@ add_custom_command(
     COMMAND_EXPAND_LISTS
 )
 
+# Optionally print the board list
 option(MIOSIX_PRINT_BOARD_LIST "Prints a list of the available boards" OFF)
 if(MIOSIX_PRINT_BOARD_LIST)
     message(STATUS "Available boards:")
