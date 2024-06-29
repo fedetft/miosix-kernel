@@ -32,7 +32,7 @@ add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX>:PARSING_FROM_IDE>)
 
 add_subdirectory(../.. miosix EXCLUDE_FROM_ALL)
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/../../cmake/modules)
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/../../cmake/Modules)
 include(LinkTarget)
 
 add_executable(blinking_led simple.cpp)

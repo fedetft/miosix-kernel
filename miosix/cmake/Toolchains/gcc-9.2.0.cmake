@@ -23,14 +23,35 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
-cmake_minimum_required(VERSION 3.16)
+# Add the miosix/cmake path to find the Miosix.cmake platform file
+# that defines the Miosix system name 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/..)
 
-project(Main C CXX ASM)
+# Tell CMake that we are building for an embedded ARM system
+set(CMAKE_SYSTEM_NAME Miosix)
 
-add_subdirectory(miosix EXCLUDE_FROM_ALL)
+# Select compiler
+set(PREFIX arm-miosix-eabi-)
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/miosix/cmake/Modules)
-include(LinkTarget)
+# From compiler prefix form the name of the compiler and other tools
+set(CMAKE_ASM_COMPILER ${PREFIX}as)
+set(CMAKE_C_COMPILER   ${PREFIX}gcc)
+set(CMAKE_CXX_COMPILER ${PREFIX}g++)
+set(CMAKE_AR           ${PREFIX}ar)
+set(CMAKE_OBJCOPY      ${PREFIX}objcopy)
+set(CMAKE_OBJDUMP      ${PREFIX}objdump)
+set(CMAKE_SIZE         ${PREFIX}size)
 
-add_executable(main main.cpp)
-miosix_link_target(main stm32f407vg_stm32f4discovery)
+# Optimization flags for each language and build configuration
+set(CMAKE_ASM_FLAGS_DEBUG "")
+set(CMAKE_C_FLAGS_DEBUG "-Og -g")
+set(CMAKE_CXX_FLAGS_DEBUG "-Og -g")
+set(CMAKE_ASM_FLAGS_RELEASE "")
+set(CMAKE_C_FLAGS_RELEASE "-O2")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+set(CMAKE_ASM_FLAGS_RELWITHDEBINFO "")
+set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
+set(CMAKE_ASM_FLAGS_MINSIZEREL "")
+set(CMAKE_C_FLAGS_MINSIZEREL "-Os")
+set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os")
