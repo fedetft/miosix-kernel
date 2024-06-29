@@ -37,7 +37,7 @@ set(KPATH ${CMAKE_CURRENT_LIST_DIR})
 
 # Create libraries for each board
 include(${KPATH}/cmake/boards.cmake)
-include(${KPATH}/cmake/miosix_add_board_libraries.cmake)
+include(${KPATH}/cmake/miosix_add_board_library.cmake)
 foreach(BOARD_OPTIONS_FILE ${MIOSIX_BOARDS_OPTIONS_FILES})
-    miosix_add_board_libraries(${BOARD_OPTIONS_FILE})
+    miosix_add_board_library(${BOARD_OPTIONS_FILE})
 endforeach()
