@@ -23,7 +23,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
-# First, auto guess architecture name from board name
+# Target board option, this also implicitly select the target architecture
+set(MIOSIX_OPT_BOARD NOT_SET CACHE STRING "Target board")
+set_property(CACHE MIOSIX_OPT_BOARD PROPERTY STRINGS ${BOARDS})
+if(MIOSIX_OPT_BOARD STREQUAL NOT_SET)
+    message(FATAL_ERROR "You must specify a target board with MIOSIX_OPT_BOARD")
+endif()
+
+# Optimization flag is set with CMAKE_<LANG>_FLAGS_<CONFIG>
+# The default values are in the toolchain file
+
+# C++ Exception/rtti support disable flags.
+# To save code size if not using C++ exceptions (nor some STL code which
+# implicitly uses it) uncomment this option.
+# -D__NO_EXCEPTIONS is used by Miosix to know if exceptions are used.
+option(MIOSIX_DISABLE_EXEPTIONS "Disables C++ exceptions/rtti support" OFF)
+if(MIOSIX_DISABLE_EXEPTIONS)
+    set(OPT_EXCEPT -fno-exceptions -fno-rtti -D__NO_EXCEPTIONS)
+endif()
+
+# Auto guess architecture name from board name
 if(MIOSIX_OPT_BOARD STREQUAL stm32f407vg_stm32f4discovery)
     set(ARCH_NAME cortexM4_stm32f4)
 elseif(MIOSIX_OPT_BOARD STREQUAL stm32f429zi_stm32f4discovery)
@@ -40,7 +59,7 @@ set(CXXFLAGS_BASE
     -std=c++14 -ffunction-sections -Wall -Werror=return-type -g
 )
 
-# Now include the architecture specific CMakeLists that sets common things for
-# all boards in the architecture and that includes the board specific
-# CMakeLists, where all board specific options are set.
+# Now include the architecture specific CMakeLists that will:
+# - Sets common things for all boards of that specific architecture
+# - Includes the board specific CMakeLists
 include(${KPATH}/arch/${ARCH_NAME}/CMakeLists.txt)

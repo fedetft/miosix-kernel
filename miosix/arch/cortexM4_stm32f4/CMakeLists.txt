@@ -36,16 +36,16 @@ string(TOUPPER ${ARCH_NAME} ARCH_NAME_UPPER)
 set(CPU -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16)
 set(AFLAGS_BASE ${CPU})
 list(APPEND CFLAGS_BASE
-    -D_ARCH_${ARCH_NAME_UPPER} ${CLOCK_FREQ} ${XRAM}
+    -D_ARCH_${ARCH_NAME_UPPER} ${MIOSIX_HSE_VALUE} ${MIOSIX_SYSCLK_FREQ} ${XRAM}
     ${SRAM_BOOT} ${CPU} -c
 )
 list(APPEND CXXFLAGS_BASE
-    -D_ARCH_${ARCH_NAME_UPPER} ${CLOCK_FREQ} ${XRAM}
+    -D_ARCH_${ARCH_NAME_UPPER} ${MIOSIX_HSE_VALUE} ${MIOSIX_SYSCLK_FREQ} ${XRAM}
     ${SRAM_BOOT} ${CPU} ${OPT_EXCEPT} -c
 )
 set(LFLAGS_BASE
     ${CPU} -Wl,--gc-sections,-Map,main.map
-    -Wl,-T${LINKER_SCRIPT} ${OPT_EXCEPT} -nostdlib
+    -Wl,-T${MIOSIX_LINKER_SCRIPT} ${OPT_EXCEPT} -nostdlib
 )
 
 # Select architecture specific files
