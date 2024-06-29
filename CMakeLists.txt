@@ -30,7 +30,6 @@ project(Main C CXX ASM)
 set(MIOSIX_OPT_BOARD NOT_SET CACHE STRING "Target board")
 add_subdirectory(miosix EXCLUDE_FROM_ALL)
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/miosix/cmake/Modules)
 include(LinkTarget)
 
 add_executable(main main.cpp)
