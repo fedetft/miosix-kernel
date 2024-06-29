@@ -37,12 +37,6 @@ set(BOARDS
     stm32f429zi_stm32f4discovery
 )
 
-set(MIOSIX_OPT_BOARD NOT_SET CACHE STRING "Target board")
-set_property(CACHE MIOSIX_OPT_BOARD PROPERTY STRINGS ${BOARDS})
-if(MIOSIX_OPT_BOARD STREQUAL NOT_SET)
-    message(FATAL_ERROR "You must specify a target board with MIOSIX_OPT_BOARD")
-endif()
-
 set(KPATH ${CMAKE_CURRENT_LIST_DIR})
 
 set(KERNEL_SRC
@@ -96,8 +90,8 @@ set(VARIABLES
     MIOSIX_OPT_BOARD
     ARCH_INC
     BOARD_INC
-    BOARD_CONFIG_INC
-    LINKER_SCRIPT
+    MIOSIX_BOARD_CONFIG_INC
+    MIOSIX_LINKER_SCRIPT
     AFLAGS_BASE
     CFLAGS_BASE
     CXXFLAGS_BASE
@@ -110,6 +104,9 @@ foreach(VARIABLE ${VARIABLES})
     endif()
 endforeach()
 
+# The user can set a custom path for miosix_settings.h
+set(MIOSIX_SETTINGS_PATH ${KPATH}/default CACHE PATH "Include directory for miosix_settings.h")
+
 # Define the miosix library with kernel and architecture sources
 add_library(miosix STATIC ${KERNEL_SRC} ${ARCH_SRC})
 target_include_directories(miosix PUBLIC
@@ -117,16 +114,9 @@ target_include_directories(miosix PUBLIC
     ${KPATH}/arch/common
     ${ARCH_INC}
     ${BOARD_INC}
-    ${BOARD_CONFIG_INC}
+    ${MIOSIX_BOARD_CONFIG_INC}
+    ${MIOSIX_SETTINGS_PATH}
 )
-
-# The user can set a custom path for miosix_settings.h
-if(DEFINED CUSTOM_MIOSIX_SETTINGS_PATH)
-    target_include_directories(miosix PUBLIC ${CUSTOM_MIOSIX_SETTINGS_PATH})
-else()
-    # By default miosix/default/config/miosix_settings.h is used
-    target_include_directories(miosix PUBLIC ${KPATH}/default)
-endif()
 
 # Configure compiler flags
 target_compile_options(miosix PUBLIC
@@ -142,7 +132,7 @@ set_property(TARGET miosix PROPERTY PROGRAM_CMDLINE ${PROGRAM_CMDLINE})
 target_compile_definitions(miosix PRIVATE $<$<COMPILE_LANGUAGE:C,CXX>:COMPILING_MIOSIX>)
 
 # Configure linker file and options
-set_property(TARGET miosix PROPERTY LINK_DEPENDS ${LINKER_SCRIPT})
+set_property(TARGET miosix PROPERTY LINK_DEPENDS ${MIOSIX_LINKER_SCRIPT})
 target_link_options(miosix PUBLIC ${LFLAGS_BASE})
 
 add_custom_command(

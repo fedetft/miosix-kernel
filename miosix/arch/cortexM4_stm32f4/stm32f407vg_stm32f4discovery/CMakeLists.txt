@@ -26,14 +26,39 @@
 # Directory with header files for this board
 set(BOARD_INC ${KPATH}/arch/${ARCH_NAME}/${MIOSIX_OPT_BOARD})
 
-# Directory with board setting header file
-set(BOARD_CONFIG_INC ${KPATH}/config/arch/${ARCH_NAME}/${MIOSIX_OPT_BOARD})
+# The user can set a custom path for board_settings.h
+set(MIOSIX_BOARD_CONFIG_INC ${KPATH}/config/arch/${ARCH_NAME}/${MIOSIX_OPT_BOARD} CACHE PATH "Include directory for board_settings.h")
 
-# Include user configurable options
-include(${BOARD_CONFIG_INC}/board_settings.cmake)
+# Linker script options:
+# 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
+# 2) Code + stack + heap in internal RAM (file *_ram.ld)
+# 3) Same as 1) but space has been reserved for a process pool, allowing
+#    to configure the kernel with "#define WITH_PROCESSES"
+set(MIOSIX_LINKER_SCRIPT ${BOARD_INC}/stm32_1m+192k_rom.ld CACHE FILEPATH "Linker script")
+# set(MIOSIX_LINKER_SCRIPT ${BOARD_INC}/stm32_1m+192k_ram.ld CACHE FILEPATH "Linker script")
+# set(MIOSIX_LINKER_SCRIPT ${BOARD_INC}/stm32_1m+192k_rom_processes.ld CACHE FILEPATH "Linker script")
 
-# Select linker script
-# set(LINKER_SCRIPT already selected in board options)
+# This causes the interrupt vector table to be relocated in SRAM, must be
+# uncommented when using the ram linker script
+option(MIOSIX_SRAM_BOOT "This causes the interrupt vector table to be relocated in SRAM" OFF)
+if(MIOSIX_SRAM_BOOT)
+    set(SRAM_BOOT -DVECT_TAB_SRAM)
+elseif(MIOSIX_LINKER_SCRIPT STREQUAL ${BOARD_INC}/stm32_1m+192k_ram.ld)
+    message(WARNING "You are relocating the interrupt vector table in SRAM but you are not using the ram linker script")
+endif()
+
+# Select HSE clock frequency (external clock on board, fixed)
+set(MIOSIX_HSE_VALUE -DHSE_VALUE=8000000 CACHE STRING "HSE clock frequency (external clock on board, fixed)")
+
+# Select clock frequency (HSE_VALUE is the xtal on board, fixed)
+set(MIOSIX_SYSCLK_FREQ -DSYSCLK_FREQ_168MHz=168000000 CACHE STRING "Clock frenquency")
+# set(SYSCLK_FREQ -DSYSCLK_FREQ_100MHz=100000000 CACHE STRING "Clock frenquency")
+# set(SYSCLK_FREQ -DSYSCLK_FREQ_84MHz=84000000 CACHE STRING "Clock frenquency")
+set_property(CACHE MIOSIX_SYSCLK_FREQ PROPERTY STRINGS
+    -DSYSCLK_FREQ_168MHz=168000000
+    -DSYSCLK_FREQ_100MHz=100000000
+    -DSYSCLK_FREQ_84MHz=84000000
+)
 
 # Select architecture specific files
 set(ARCH_SRC
