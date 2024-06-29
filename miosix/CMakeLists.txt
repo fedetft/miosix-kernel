@@ -80,12 +80,12 @@ set(KERNEL_SRC
     ${KPATH}/util/lcd44780.cpp
 )
 
-set(MIOSIX_BOARDS_OPTIONS_FILES
-    ${KPATH}/config/arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/board_options.cmake
-    ${KPATH}/config/arch/cortexM4_stm32f4/stm32f429zi_stm32f4discovery/board_options.cmake
+set(BOARDS
+    stm32f407vg_stm32f4discovery
+    stm32f429zi_stm32f4discovery
 )
 
 # Create libraries for each board
-foreach(BOARD_OPTIONS_FILE ${MIOSIX_BOARDS_OPTIONS_FILES})
-    miosix_add_board_library(${BOARD_OPTIONS_FILE})
+foreach(OPT_BOARD ${BOARDS})
+    miosix_add_board_library(${OPT_BOARD})
 endforeach()
