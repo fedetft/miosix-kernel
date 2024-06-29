@@ -23,32 +23,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
-# Tell CMake that we are building for an embedded ARM system
-set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_SYSTEM_PROCESSOR arm)
+# This is a platform definition file for platforms without
+# operating system, typically embedded platforms.
+# It is used when CMAKE_SYSTEM_NAME is set to "Generic"
+#
+# It is intentionally empty, since nothing is known
+# about the platform. So everything has to be specified
+# in the system/compiler files ${CMAKE_SYSTEM_NAME}-<compiler_basename>.cmake
+# and/or ${CMAKE_SYSTEM_NAME}-<compiler_basename>-${CMAKE_SYSTEM_PROCESSOR}.cmake
 
-# Select compiler
-set(PREFIX arm-miosix-eabi-)
+# Miosix don't support shared libraries
+set_property(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS FALSE)
 
-# From compiler prefix form the name of the compiler and other tools
-set(CMAKE_ASM_COMPILER ${PREFIX}as)
-set(CMAKE_C_COMPILER   ${PREFIX}gcc)
-set(CMAKE_CXX_COMPILER ${PREFIX}g++)
-set(CMAKE_AR           ${PREFIX}ar)
-set(CMAKE_OBJCOPY      ${PREFIX}objcopy)
-set(CMAKE_OBJDUMP      ${PREFIX}objdump)
-set(CMAKE_SIZE         ${PREFIX}size)
-
-# Optimization flags for each language and build configuration
-set(CMAKE_ASM_FLAGS_DEBUG "")
-set(CMAKE_C_FLAGS_DEBUG "-Og -g")
-set(CMAKE_CXX_FLAGS_DEBUG "-Og -g")
-set(CMAKE_ASM_FLAGS_RELEASE "")
-set(CMAKE_C_FLAGS_RELEASE "-O2")
-set(CMAKE_CXX_FLAGS_RELEASE "-O2")
-set(CMAKE_ASM_FLAGS_RELWITHDEBINFO "")
-set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
-set(CMAKE_ASM_FLAGS_MINSIZEREL "")
-set(CMAKE_C_FLAGS_MINSIZEREL "-Os")
-set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os")
+# BFile extensions
+set(CMAKE_A_OUTPUT_EXTENSION ".o")
+set(CMAKE_C_OUTPUT_EXTENSION ".o")
+set(CMAKE_CXX_OUTPUT_EXTENSION ".o")
+set(CMAKE_STATIC_LIBRARY_SUFFIX ".a")
+set(CMAKE_EXECUTABLE_SUFFIX ".elf")

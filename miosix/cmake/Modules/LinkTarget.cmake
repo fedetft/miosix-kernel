@@ -55,9 +55,10 @@ function(miosix_link_target TARGET OPT_BOARD)
     # Add a post build command to create the hex file to flash on the board
     add_custom_command(
         TARGET ${TARGET} POST_BUILD
-        COMMAND ${CMAKE_OBJCOPY} -O ihex ${TARGET} ${TARGET}.hex
-        COMMAND ${CMAKE_OBJCOPY} -O binary ${TARGET} ${TARGET}.bin
+        COMMAND ${CMAKE_OBJCOPY} -O ihex ${TARGET}.elf ${TARGET}.hex
+        COMMAND ${CMAKE_OBJCOPY} -O binary ${TARGET}.elf ${TARGET}.bin
         BYPRODUCTS ${TARGET}.hex ${TARGET}.bin
+        COMMENT "Creating ${TARGET}.hex and ${TARGET}.bin"
         VERBATIM
     )
 
