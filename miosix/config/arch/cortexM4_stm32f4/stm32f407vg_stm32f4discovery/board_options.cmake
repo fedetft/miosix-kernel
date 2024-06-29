@@ -31,9 +31,6 @@ set(ARCH_PATH ${KPATH}/arch/${ARCH_NAME}/common)
 set(BOARD_PATH ${KPATH}/arch/${ARCH_NAME}/${BOARD_NAME})
 set(BOARD_CONFIG_PATH ${KPATH}/config/arch/${ARCH_NAME}/${BOARD_NAME})
 
-# Boot file
-set(BOOT_FILE ${BOARD_PATH}/core/stage_1_boot.cpp)
-
 # Linker script options:
 # 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
 # 2) Code + stack + heap in internal RAM (file *_ram.ld)
@@ -84,6 +81,8 @@ set(CXXFLAGS ${CFLAGS} -std=c++14 ${OPT_EXCEPT})
 
 # Select architecture specific files
 set(ARCH_SRC
+    ${BOARD_PATH}/core/stage_1_boot.cpp
+
     ${KPATH}/arch/common/drivers/stm32f2_f4_i2c.cpp
     ${KPATH}/arch/common/drivers/stm32_hardware_rng.cpp
     ${KPATH}/arch/common/drivers/servo_stm32.cpp

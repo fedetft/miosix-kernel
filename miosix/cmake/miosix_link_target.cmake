@@ -25,7 +25,7 @@
 
 # Creates a custom target to program the board
 function(miosix_add_program_target TARGET)
-    get_target_property(PROGRAM_CMDLINE Miosix::interface-${OPT_BOARD} PROGRAM_CMDLINE)
+    get_target_property(PROGRAM_CMDLINE miosix-${OPT_BOARD} PROGRAM_CMDLINE)
     if(PROGRAM_CMDLINE STREQUAL "PROGRAM_CMDLINE-NOTFOUND")
         set(PROGRAM_CMDLINE st-flash --reset write <binary> 0x8000000)
     endif()
@@ -49,8 +49,7 @@ function(miosix_link_target TARGET OPT_BOARD)
 
     # Link libraries
     target_link_libraries(${TARGET} PRIVATE
-        $<TARGET_OBJECTS:Miosix::boot-${OPT_BOARD}>
-        $<LINK_GROUP:RESCAN,Miosix::miosix-${OPT_BOARD},stdc++,c,m,gcc,atomic>
+        $<LINK_GROUP:RESCAN,miosix-${OPT_BOARD},stdc++,c,m,gcc,atomic>
     )
 
     # Add a post build command to create the hex file to flash on the board

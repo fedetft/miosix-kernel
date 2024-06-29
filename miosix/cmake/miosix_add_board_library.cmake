@@ -27,11 +27,9 @@
 # - The path to the bps board_options.cmake file
 # Required variables:
 # - KPATH: Path to the kernel (.../miosix-kernel/miosix)
-# Creates three libraries:
-# - Miosix::interface-${BOARD_NAME}
-# - Miosix::boot-${BOARD_NAME}
-# - Miosix::miosix-${BOARD_NAME}
-function(miosix_add_board_libraries BOARD_OPTIONS_FILE)
+# Adds:
+# - miosix-${BOARD_NAME}
+function(miosix_add_board_library BOARD_OPTIONS_FILE)
     if(NOT KPATH)
         message(FATAL_ERROR "KPATH must be defined to be the path to the miosix-kernel/miosix directory")
     endif()
@@ -41,8 +39,6 @@ function(miosix_add_board_libraries BOARD_OPTIONS_FILE)
 
     miosix_check_board_options_variables()
 
-    miosix_add_interface_library(${BOARD_NAME})
-    miosix_add_boot_library(${BOARD_NAME})
     miosix_add_miosix_library(${BOARD_NAME})
 endfunction()
 
@@ -53,7 +49,6 @@ function(miosix_check_board_options_variables)
         ARCH_PATH
         BOARD_PATH
         BOARD_CONFIG_PATH
-        BOOT_FILE
         LINKER_SCRIPT
         AFLAGS
         LFLAGS
@@ -68,13 +63,12 @@ function(miosix_check_board_options_variables)
     endforeach()
 endfunction()
 
-# Adds an interface library with all the include directories and compile options needed to compile kernel code 
-function(miosix_add_interface_library BOARD_NAME)
-    set(INTERFACE_LIB interface-${BOARD_NAME})
-    add_library(${INTERFACE_LIB} INTERFACE EXCLUDE_FROM_ALL)
-    add_library(Miosix::${INTERFACE_LIB} ALIAS ${INTERFACE_LIB})
+# Add a library with all the kernel source code called miosix-${BOARD_NAME}
+function(miosix_add_miosix_library BOARD_NAME)
+    set(MIOSIX_LIB miosix-${BOARD_NAME})
+    add_library(${MIOSIX_LIB} STATIC ${KERNEL_SRC} ${ARCH_SRC})
 
-    target_include_directories(${INTERFACE_LIB} INTERFACE
+    target_include_directories(${MIOSIX_LIB} PUBLIC
         ${KPATH}
         ${KPATH}/arch/common
         ${ARCH_PATH}
@@ -84,46 +78,27 @@ function(miosix_add_interface_library BOARD_NAME)
 
     # The user can set a custom path for miosix_settings.h
     if(DEFINED CUSTOM_MIOSIX_SETTINGS_PATH)
-        target_include_directories(${INTERFACE_LIB} INTERFACE ${CUSTOM_MIOSIX_SETTINGS_PATH})
+        target_include_directories(${MIOSIX_LIB} PUBLIC ${CUSTOM_MIOSIX_SETTINGS_PATH})
     else()
         # By default miosix/default/config/miosix_settings.h is used
-        target_include_directories(${INTERFACE_LIB} INTERFACE ${KPATH}/default)
+        target_include_directories(${MIOSIX_LIB} PUBLIC ${KPATH}/default)
     endif()
 
     # Configure compiler flags
-    target_compile_options(${INTERFACE_LIB} INTERFACE
+    target_compile_options(${MIOSIX_LIB} PUBLIC
         $<$<COMPILE_LANGUAGE:ASM>:${AFLAGS}>
         $<$<COMPILE_LANGUAGE:C>:${DFLAGS} ${CFLAGS}>
         $<$<COMPILE_LANGUAGE:CXX>:${DFLAGS} ${CXXFLAGS}>
     )
 
     # Configure program command
-    set_property(TARGET ${INTERFACE_LIB} PROPERTY PROGRAM_CMDLINE ${PROGRAM_CMDLINE})
-endfunction()
-
-# Add an object library with only the boot file called boot-${BOARD_NAME}
-function(miosix_add_boot_library BOARD_NAME)
-    set(BOOT_LIB boot-${BOARD_NAME})
-    add_library(${BOOT_LIB} OBJECT ${BOOT_FILE})
-    add_library(Miosix::${BOOT_LIB} ALIAS ${BOOT_LIB})
-    target_link_libraries(${BOOT_LIB} PUBLIC Miosix::interface-${BOARD_NAME})
-
-    # Add COMPILING_MIOSIX define for private headers
-    target_compile_definitions(${BOOT_LIB} PRIVATE $<$<COMPILE_LANGUAGE:C,CXX>:COMPILING_MIOSIX>)
-endfunction()
-
-# Add a library with all the kernel source code called miosix-${BOARD_NAME}
-function(miosix_add_miosix_library BOARD_NAME)
-    set(MIOSIX_LIB miosix-${BOARD_NAME})
-    add_library(${MIOSIX_LIB} STATIC ${KERNEL_SRC} ${ARCH_SRC})
-    add_library(Miosix::${MIOSIX_LIB} ALIAS ${MIOSIX_LIB})
-    target_link_libraries(${MIOSIX_LIB} PUBLIC Miosix::interface-${BOARD_NAME})
+    set_property(TARGET ${MIOSIX_LIB} PROPERTY PROGRAM_CMDLINE ${PROGRAM_CMDLINE})
 
     # Add COMPILING_MIOSIX define for private headers
     target_compile_definitions(${MIOSIX_LIB} PRIVATE $<$<COMPILE_LANGUAGE:C,CXX>:COMPILING_MIOSIX>)
 
     # Configure linker file and options
-    set_property(TARGET ${INTERFACE_LIB} PROPERTY LINK_DEPENDS ${LINKER_SCRIPT})
+    set_property(TARGET ${MIOSIX_LIB} PROPERTY LINK_DEPENDS ${LINKER_SCRIPT})
     target_link_options(${MIOSIX_LIB} PUBLIC ${LFLAGS})
 
     add_custom_command(
