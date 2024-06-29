@@ -15,10 +15,11 @@ image.uf2
 *.d
 
 # Exclude build directories and host executables
-miosix/_tools/filesystems/build
 miosix/_tools/filesystems/buildromfs
-miosix/_tools/bin2uf2/build
 miosix/_tools/bin2uf2/bin2uf2
+
+# Exclude all build directories
+build
 
 # Exclude Mac OS X temporary
 ._*
