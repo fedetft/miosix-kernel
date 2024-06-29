@@ -85,7 +85,7 @@ set(BOARDS
     stm32f429zi_stm32f4discovery
 )
 
-# Create libraries for each board
+# Create a library for each board
 foreach(OPT_BOARD ${BOARDS})
     miosix_add_board_library(${OPT_BOARD})
 endforeach()

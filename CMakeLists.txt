@@ -33,4 +33,4 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/miosix/cmake/Modules)
 include(LinkTarget)
 
 add_executable(main main.cpp)
-miosix_link_target(main stm32f407vg_stm32f4discovery)
+miosix_link_target(main SET_HERE_YOUR_BOARD)
