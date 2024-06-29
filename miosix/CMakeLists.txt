@@ -89,3 +89,11 @@ set(BOARDS
 foreach(OPT_BOARD ${BOARDS})
     miosix_add_board_library(${OPT_BOARD})
 endforeach()
+
+option(MIOSIX_PRINT_BOARD_LIST "Prints a list of the available boards" OFF)
+if(MIOSIX_PRINT_BOARD_LIST)
+    message(STATUS "Available boards:")
+    foreach(OPT_BOARD ${BOARDS})
+        message(STATUS "\t${OPT_BOARD}")
+    endforeach()
+endif()
