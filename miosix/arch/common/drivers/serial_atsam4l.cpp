@@ -110,6 +110,7 @@ ssize_t ATSAMSerial::readBlock(void *buffer, size_t size, off_t where)
     char *buf=reinterpret_cast<char*>(buffer);
     size_t result=0;
     FastInterruptDisableLock dLock;
+    DeepSleepLock dpLock;
     for(;;)
     {
         //Try to get data from the queue
