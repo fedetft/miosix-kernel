@@ -63,7 +63,7 @@ extern "C" __attribute__((naked, noreturn)) void entryPoint()
         "ldmia r0!, {r1, r2}   \n" // Load initial entry point and SP in R1,R2
         "msr msp, r1           \n" // Reset stack pointer
         "bx r2                 \n" // Jump to ROM
-        :::"r0","r1","r2");
+        :::"r0","r1","r2","cc");
 }
 
 /**
@@ -88,7 +88,7 @@ void Reset_Handler()
         "   blx r3                      \n" // Call rom_func_lookup, returns address of _wait_for_vector in R0
         "   bx r0                       \n" // Jump to _wait_for_vector. Does not return
         "1:                             \n"
-        :::"r0");
+        :::"r0","cc");
     /*
      * Initialize process stack and switch to it.
      * This is required for booting Miosix, a small portion of the top of the
@@ -102,7 +102,7 @@ void Reset_Handler()
         "movs r0, #2                  \n" //Privileged, process stack
         "msr control, r0              \n"
         "isb                          \n"
-        :::"r0");
+        :::"r0","cc");
 
     programStartup();
 }

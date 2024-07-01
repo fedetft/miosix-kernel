@@ -120,7 +120,7 @@ void Reset_Handler()
                  "msr psp, r0                  \n\t"
                  "movs r0, #2                  \n\n" //Privileged, process stack
                  "msr control, r0              \n\t"
-                 "isb                          \n\t":::"r0");
+                 "isb                          \n\t":::"r0","cc");
 
     program_startup();
 }
