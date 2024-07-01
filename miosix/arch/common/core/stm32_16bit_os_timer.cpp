@@ -30,6 +30,8 @@
 #include "interfaces/arch_registers.h"
 #include "kernel/logging.h"
 
+#ifndef WITH_RTC_AS_OS_TIMER
+
 namespace miosix {
 
 #if defined(STM32F030x8)
@@ -205,3 +207,5 @@ void __attribute__((used)) osTimerImpl()
 {
     miosix::timer.IRQhandler();
 }
+
+#endif //#ifndef WITH_RTC_AS_OS_TIMER

@@ -1503,6 +1503,7 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
     $(ARCH_INC)/interfaces-impl/delays.cpp       \
     arch/common/drivers/stm32f1_gpio.cpp         \
     arch/common/core/stm32_16bit_os_timer.cpp    \
+    arch/common/core/stm32_rtc_os_timer.cpp      \
     arch/common/CMSIS/Device/ST/STM32F1xx/Source/Templates/system_stm32f1xx.c
 
 ##-----------------------------------------------------------------------------

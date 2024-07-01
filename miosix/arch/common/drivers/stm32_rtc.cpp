@@ -30,6 +30,8 @@
 #include <sys/ioctl.h>
 #include <kernel/scheduler/scheduler.h>
 
+#ifndef WITH_RTC_AS_OS_TIMER
+
 using namespace miosix;
 
 namespace {
@@ -320,3 +322,5 @@ Rtc::Rtc() : tc(getTickFrequency())
 }
 
 } //namespace miosix
+
+#endif //WITH_RTC_AS_OS_TIMER

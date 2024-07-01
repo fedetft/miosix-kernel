@@ -29,6 +29,9 @@
 #define RTC_H
 
 #include <kernel/timeconversion.h>
+#include "config/miosix_settings.h"
+
+#ifndef WITH_RTC_AS_OS_TIMER
 
 namespace miosix {
 
@@ -111,5 +114,7 @@ private:
 };
 
 } //namespace miosix
+
+#endif //WITH_RTC_AS_OS_TIMER
 
 #endif //RTC_H
