@@ -47,7 +47,7 @@ void delayMs(unsigned int mseconds)
                      "___loop_m: cmp   r1, %0     \n"
                      "           itt   lo         \n"
                      "           addlo r1, r1, #1 \n"
-                     "           blo   ___loop_m  \n"::"r"(count):"r1");
+                     "           blo   ___loop_m  \n"::"r"(count):"r1","cc");
     }
 
     #else //__CODE_IN_XRAM
@@ -67,7 +67,7 @@ void delayUs(unsigned int useconds)
                  "___loop_u: cmp   r1, r2     \n"
                  "           itt   lo         \n"
                  "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
 
     #else //__CODE_IN_XRAM
     #error "No delays"

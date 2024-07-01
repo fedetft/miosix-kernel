@@ -45,7 +45,7 @@ void delayMs(unsigned int mseconds)
                      "    .align 2         \n" //4-byte aligned inner loop
                      "1:  nop              \n" //Bring the loop time to 8 cycles
                      "    sub   r1, r1, #1 \n" //sub does update condition code
-                     "    bpl   1b         \n"::"r"(count):"r1");
+                     "    bpl   1b         \n"::"r"(count):"r1","cc");
     }
 }
 
@@ -59,7 +59,7 @@ void delayUs(unsigned int useconds)
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 8 cycles
                  "    sub   r1, r1, #1 \n" //sub does update condition code
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #endif
 }
 

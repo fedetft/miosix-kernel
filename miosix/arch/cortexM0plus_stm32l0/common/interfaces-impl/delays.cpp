@@ -48,7 +48,7 @@ void delayUs(unsigned int useconds)
                  "   .align 2         \n" // <- important!
                  "1: sub   r1, r1, #1 \n"
                  "   cmp   r1, #0     \n" //No subs instruction in cortex m0
-                 "   bpl   1b         \n"::"r"(useconds):"r1");
+                 "   bpl   1b         \n"::"r"(useconds):"r1","cc");
     #else
     #error "delayUs not implemented"
     #endif

@@ -69,7 +69,7 @@ void delayMs(unsigned int mseconds)
         asm volatile("    movs  r1, %0     \n"
                      "    .align 2         \n" //4-byte aligned inner loop
                      "1:  subs  r1, r1, #1 \n"
-                     "    bpl   1b         \n"::"r"(count):"r1");
+                     "    bpl   1b         \n"::"r"(count):"r1","cc");
     }
 }
 
@@ -83,38 +83,38 @@ void delayUs(unsigned int useconds)
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #elif SYSCLK_FREQ_56MHz
     asm volatile("    movs  r1, #10    \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #elif SYSCLK_FREQ_48MHz
     asm volatile("    movs  r1, #12    \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #elif SYSCLK_FREQ_36MHz
     asm volatile("    movs  r1, #9     \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #elif SYSCLK_FREQ_24MHz
     asm volatile("    movs  r1, #8     \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #else
     //+13% error for a 100us delay
     asm volatile("    movs  r1, #3     \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #endif
     #else //__CODE_IN_XRAM
     //These delays are calibrated on an stm3210e-eval, and are only correct when
@@ -124,17 +124,17 @@ void delayUs(unsigned int useconds)
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #elif SYSCLK_FREQ_56MHz
     asm volatile("    .align 2         \n" //4-byte aligned inner loop
                  "1:  subs  %0, %0, #1 \n"
                  "    nop              \n"
-                 "    bpl   1b         \n"::"r"(useconds));
+                 "    bpl   1b         \n"::"r"(useconds):"cc");
     #elif SYSCLK_FREQ_48MHz
     asm volatile("    adds  %0, %0, %0, lsr 2 \n"
                  "    .align 2                \n" //4-byte aligned inner loop
                  "1:  subs  %0, %0, #1        \n"
-                 "    bpl   1b                \n"::"r"(useconds));
+                 "    bpl   1b                \n"::"r"(useconds):"cc");
     #elif SYSCLK_FREQ_36MHz
     asm volatile("    .align 2         \n" //4-byte aligned inner loop
                  "1:  subs  %0, %0, #1 \n"
@@ -144,13 +144,13 @@ void delayUs(unsigned int useconds)
                  "    lsrs  %0, %0, 1         \n"
                  "    .align 2                \n" //4-byte aligned inner loop
                  "1:  subs  %0, %0, #1        \n"
-                 "    bpl   1b                \n"::"r"(useconds));
+                 "    bpl   1b                \n"::"r"(useconds):"cc");
     #else
     //+35% error for a 100us delay
     asm volatile("    lsrs  %0, %0, 2  \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  subs  %0, %0, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds));
+                 "    bpl   1b         \n"::"r"(useconds):"cc");
     #endif
     #endif //__CODE_IN_XRAM
 }

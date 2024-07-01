@@ -50,7 +50,7 @@ void delayMs(unsigned int mseconds)
                      "    .align 2         \n" //4-byte aligned inner loop
                      "1:  nop              \n" //Bring the loop time to 4 cycles
                      "    subs  r1, r1, #1 \n"
-                     "    bpl   1b         \n"::"r"(count):"r1");
+                     "    bpl   1b         \n"::"r"(count):"r1","cc");
     }
 }
 
@@ -64,7 +64,7 @@ void delayUs(unsigned int useconds)
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #else
     #error "Delays are uncalibrated for this clock frequency"
     #endif

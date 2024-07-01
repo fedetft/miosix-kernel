@@ -61,7 +61,7 @@ void delayMs(unsigned int mseconds)
                      "    .align 2         \n" //4-byte aligned inner loop
                      "1:  nop              \n" //Bring the loop time to 4 cycles
                      "    subs  r1, r1, #1 \n"
-                     "    bpl   1b         \n"::"r"(count):"r1");
+                     "    bpl   1b         \n"::"r"(count):"r1","cc");
     }
 }
 
@@ -75,61 +75,61 @@ void delayUs(unsigned int useconds)
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #elif defined(SYSCLK_FREQ_56MHz)
     asm volatile("    movs  r1, #14    \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #elif defined(SYSCLK_FREQ_48MHz)
     asm volatile("    movs  r1, #12    \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #elif defined(SYSCLK_FREQ_36MHz)
     asm volatile("    movs  r1, #9     \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #elif defined(SYSCLK_FREQ_24MHz)
     asm volatile("    movs  r1, #6     \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #elif defined(HSE_VALUE) && HSE_VALUE==16000000
     asm volatile("    movs  r1, #4     \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #elif defined(HSE_VALUE) && HSE_VALUE==8000000
     asm volatile("    movs  r1, #2     \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #elif defined(RUN_WITH_HSI)
     asm volatile("    movs  r1, #4     \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #elif defined(RUN_WITH_MSI)
     asm volatile("    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  %0, %0, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #endif
 }
 

@@ -43,7 +43,7 @@ static inline __attribute__((always_inline)) void delayUsImpl(unsigned int us)
         "    nop       \n"
         "    sub %0, #1\n"
         "    cmp %0, #0\n"
-        "    bne 1b    \n":"+r"(iter_count)::);
+        "    bne 1b    \n":"+r"(iter_count)::"cc");
 #elif CLK_SYS_FREQ == 125000000
     // 5 cycles per iteration @ 125 MHz = 1/25 us per iteration
     uint32_t iter_count = us*25-2;
@@ -52,7 +52,7 @@ static inline __attribute__((always_inline)) void delayUsImpl(unsigned int us)
         "1:  nop       \n"
         "    sub %0, #1\n"
         "    cmp %0, #0\n"
-        "    bne 1b    \n":"+r"(iter_count)::);
+        "    bne 1b    \n":"+r"(iter_count)::"cc");
 #else
     #error "Unsupported sys_clk"
 #endif

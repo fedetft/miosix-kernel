@@ -45,7 +45,7 @@ void delayMs(unsigned int mseconds)
         asm volatile("    movs  r1, %0     \n"
                      "    .align 2         \n" //4-byte aligned inner loop
                      "1:  subs  r1, r1, #1 \n"
-                     "    bpl   1b         \n"::"r"(count):"r1");
+                     "    bpl   1b         \n"::"r"(count):"r1","cc");
     }
 }
 
@@ -58,7 +58,7 @@ void delayUs(unsigned int useconds)
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #endif
 }
 

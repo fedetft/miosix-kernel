@@ -56,7 +56,7 @@ void delayMs(unsigned int mseconds)
                      "___loop_m: cmp   r1, %0     \n"
                      "           itt   lo         \n"
                      "           addlo r1, r1, #1 \n"
-                     "           blo   ___loop_m  \n"::"r"(count):"r1");
+                     "           blo   ___loop_m  \n"::"r"(count):"r1","cc");
     }
 }
 
@@ -80,7 +80,7 @@ void delayUs(unsigned int useconds)
                  "           cmp   r1, r2     \n"
                  "           itt   lo         \n"
                  "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
     #elif SYSCLK_FREQ_56MHz
     asm volatile("           mov   r2, #166   \n"//Preloop, constant delay
                  "           mov   r1, #0     \n"
@@ -96,7 +96,7 @@ void delayUs(unsigned int useconds)
                  "           cmp   r1, r2     \n"
                  "           itt   lo         \n"
                  "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
     #elif SYSCLK_FREQ_48MHz
     asm volatile("           mov   r2, #166   \n"//Preloop, constant delay
                  "           mov   r1, #0     \n"
@@ -112,7 +112,7 @@ void delayUs(unsigned int useconds)
                  "           cmp   r1, r2     \n"
                  "           itt   lo         \n"
                  "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
     #elif SYSCLK_FREQ_36MHz
     asm volatile("           mov   r1, #4     \n"
                  "           mul   r2, %0, r1 \n"
@@ -122,7 +122,7 @@ void delayUs(unsigned int useconds)
                  "           cmp   r1, r2     \n"
                  "           itt   lo         \n"
                  "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
     #elif SYSCLK_FREQ_24MHz
     asm volatile("           mov   r1, #4     \n"
                  "           mul   r2, %0, r1 \n"
@@ -131,7 +131,7 @@ void delayUs(unsigned int useconds)
                  "___loop_u: cmp   r1, r2     \n"
                  "           itt   lo         \n"
                  "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
     #else   // 8MHz clock
     asm volatile("           mov   r1, #2     \n"
                  "           mul   r2, %0, r1 \n"
@@ -139,7 +139,7 @@ void delayUs(unsigned int useconds)
                  "___loop_u: cmp   r1, r2     \n"
                  "           itt   lo         \n"
                  "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2");
+                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
     #endif
 }
 

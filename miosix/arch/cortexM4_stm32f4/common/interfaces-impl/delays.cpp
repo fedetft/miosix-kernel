@@ -51,7 +51,7 @@ void delayMs(unsigned int mseconds)
                      "    .align 2         \n" //4-byte aligned inner loop
                      "1:  nop              \n" //Bring the loop time to 4 cycles
                      "    subs  r1, r1, #1 \n"
-                     "    bpl   1b         \n"::"r"(count):"r1");
+                     "    bpl   1b         \n"::"r"(count):"r1","cc");
     }
 }
 
@@ -65,28 +65,28 @@ void delayUs(unsigned int useconds)
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #elif defined(SYSCLK_FREQ_168MHz)
     asm volatile("    movs  r1, #42    \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #elif defined(SYSCLK_FREQ_100MHz)
     asm volatile("    movs  r1, #25    \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #else //SYSCLK_FREQ_84MHz
     asm volatile("    movs  r1, #21    \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1");
+                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #endif
 }
 
