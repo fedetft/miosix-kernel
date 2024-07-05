@@ -1501,6 +1501,7 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
     arch/common/drivers/dcc.cpp                  \
     $(ARCH_INC)/interfaces-impl/portability.cpp  \
     $(ARCH_INC)/interfaces-impl/delays.cpp       \
+    $(ARCH_INC)/interfaces-impl/deep_sleep.cpp   \
     arch/common/drivers/stm32f1_gpio.cpp         \
     arch/common/core/stm32_16bit_os_timer.cpp    \
     arch/common/core/stm32_rtc_os_timer.cpp      \
