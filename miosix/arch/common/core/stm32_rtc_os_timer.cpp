@@ -141,7 +141,7 @@ public:
         //Interrupt on overflow or match
         RTC->CRH=RTC_CRH_OWIE | RTC_CRH_ALRIE;
 
-        //Initialize prescaler, conter and match register
+        //Initialize prescaler, counter and match register
         {
             ScopedCnf cnf;
             RTC->PRLH=0; RTC->PRLL=1; //Minimum allowed prescaler

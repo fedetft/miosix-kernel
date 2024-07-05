@@ -48,8 +48,9 @@ bool IRQdeepSleep(long long int abstime)
      * whenever we enter deep sleep, as the scheduler already does, and there
      * is also no need to resynchronize the OS timer to the RTC because the
      * OS timer doesn't stop counting while we are in deep sleep.
-     * The only disadvantage is that the OS timer resolution is rather coarse,
-     * 1/32768Hz is ~30.5us, but this is good enough for many use cases.
+     * The only disadvantage on this platform is that the OS timer resolution is
+     * rather coarse, 1/16384Hz is ~61us, but this is good enough for many use
+     * cases.
      *
      * This is why this code ignores the wakeup absolute time parameter, and the
      * only task is to write the proper sequence to enter the deep sleep state
