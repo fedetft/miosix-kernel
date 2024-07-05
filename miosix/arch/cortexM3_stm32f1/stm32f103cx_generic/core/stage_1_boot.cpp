@@ -146,7 +146,7 @@ void __attribute__((weak)) USART1_IRQHandler();
 void __attribute__((weak)) USART2_IRQHandler();
 void __attribute__((weak)) USART3_IRQHandler();
 void __attribute__((weak)) EXTI15_10_IRQHandler();
-void __attribute__((weak)) RTCAlarm_IRQHandler();
+void __attribute__((weak)) RTC_Alarm_IRQHandler();
 void __attribute__((weak)) USBWakeUp_IRQHandler();
 
 //Stack top, defined in the linker script
@@ -216,7 +216,7 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
     USART2_IRQHandler,
     USART3_IRQHandler,
     EXTI15_10_IRQHandler,
-    RTCAlarm_IRQHandler,
+    RTC_Alarm_IRQHandler,
     USBWakeUp_IRQHandler,
     0,0,0,0,0,0,0,
     reinterpret_cast<void (*)()>(0xF108F85F)
@@ -266,5 +266,5 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
 #pragma weak USART2_IRQHandler = Default_Handler
 #pragma weak USART3_IRQHandler = Default_Handler
 #pragma weak EXTI15_10_IRQHandler = Default_Handler
-#pragma weak RTCAlarm_IRQHandler = Default_Handler
+#pragma weak RTC_Alarm_IRQHandler = Default_Handler
 #pragma weak USBWakeUp_IRQHandler = Default_Handler

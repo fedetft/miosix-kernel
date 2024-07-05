@@ -139,7 +139,7 @@ void __attribute__((weak)) USART1_IRQHandler();
 void __attribute__((weak)) USART2_IRQHandler();
 void __attribute__((weak)) USART3_IRQHandler();
 void __attribute__((weak)) EXTI15_10_IRQHandler();
-void __attribute__((weak)) RTCAlarm_IRQHandler();
+void __attribute__((weak)) RTC_Alarm_IRQHandler();
 void __attribute__((weak)) CEC_IRQHandler();
 void __attribute__((weak)) TIM6_DAC_IRQHandler();
 void __attribute__((weak)) TIM7_IRQHandler();
@@ -211,7 +211,7 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
 	USART2_IRQHandler,
 	USART3_IRQHandler,
 	EXTI15_10_IRQHandler,
-	RTCAlarm_IRQHandler,
+	RTC_Alarm_IRQHandler,
 	CEC_IRQHandler,
 	0,
 	0,
@@ -275,7 +275,7 @@ void (* const __Vectors[])() __attribute__ ((section(".isr_vector"))) =
 #pragma weak USART2_IRQHandler = Default_Handler
 #pragma weak USART3_IRQHandler = Default_Handler
 #pragma weak EXTI15_10_IRQHandler = Default_Handler
-#pragma weak RTCAlarm_IRQHandler = Default_Handler
+#pragma weak RTC_Alarm_IRQHandler = Default_Handler
 #pragma weak CEC_IRQHandler = Default_Handler
 #pragma weak TIM6_DAC_IRQHandler = Default_Handler
 #pragma weak TIM7_IRQHandler = Default_Handler
