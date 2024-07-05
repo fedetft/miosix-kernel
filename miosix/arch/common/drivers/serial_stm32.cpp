@@ -903,6 +903,14 @@ ssize_t STM32Serial::writeBlock(const void *buffer, size_t size, off_t where)
             buf+=transferSize;
             remaining-=transferSize;
         }
+        #ifdef WITH_DEEP_SLEEP
+        //The serial driver by default can return even though the last part of
+        //the data is still being transmitted by the DMA. When using deep sleep
+        //however the DMA operation needs to be fully enclosed by a deep sleep
+        //lock to prevent the scheduler from stopping peripheral clocks.
+        waitDmaTxCompletion();
+        waitSerialTxFifoEmpty(); //TODO: optimize by doing it only when entering deep sleep
+        #endif //WITH_DEEP_SLEEP
         return size;
     }
     #endif //SERIAL_DMA
