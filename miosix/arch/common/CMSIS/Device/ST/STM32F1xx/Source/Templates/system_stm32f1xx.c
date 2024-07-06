@@ -200,7 +200,7 @@ const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 
   * @{
   */
 
-static void SetSysClock(void);
+/*static*/ void SetSysClock(void);
 
 #ifdef SYSCLK_FREQ_HSE
   static void SetSysClockToHSE(void);
@@ -443,7 +443,7 @@ void SystemCoreClockUpdate (void)
   * @param  None
   * @retval None
   */
-static void SetSysClock(void)
+/*static*/ void SetSysClock(void)
 {
 #ifdef SYSCLK_FREQ_HSE
   SetSysClockToHSE();

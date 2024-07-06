@@ -33,6 +33,9 @@
 
 #ifdef WITH_RTC_AS_OS_TIMER
 
+// Defined in system_stm32f1xx.c TODO replace with miosix-specific PLL code
+extern "C" void SetSysClock();
+
 // NOTE: using the RTC as OS timer is currently only supported on STM32F1, the
 // stm32f2/f4 RTC design makes this impossible. TODO: check stm32l4 RTC
 
@@ -227,7 +230,6 @@ bool IRQdeepSleep(long long int abstime)
 
 bool IRQdeepSleep()
 {
-    #ifdef RUN_WITH_HSI
     /*
      * NOTE: The RTC causes two separate IRQs, the RTC IRQ, and the RTC_Alarm
      * IRQ. This second interrupt is only caused by the alarm condition, not by
@@ -260,8 +262,13 @@ bool IRQdeepSleep()
 
     NVIC_DisableIRQ(RTC_Alarm_IRQn);
 
-    //Wait RSF, until this is done RTC registers can't be read
+    //Wait RSF part 1, until this is done RTC registers can't be read
     RTC->CRL=(RTC->CRL | 0xf) & ~RTC_CRL_RSF;
+
+    //Try to save time by restarting the clock in the meantime
+    SetSysClock();
+
+    //Wait RSF part 2, until this is done RTC registers can't be read
     while((RTC->CRL & RTC_CRL_RSF)==0) ;
 
     // Workaround for hardware bug! The RTC overflow flag is not set if the
@@ -276,10 +283,6 @@ bool IRQdeepSleep()
         timer.IRQquirkIncrementUpperCounter();
 
     return true;
-
-    #else //RUN_WITH_HSI
-    #error TODO not yet implemented
-    #endif //RUN_WITH_HSI
 }
 
 #endif //WITH_DEEP_SLEEP
