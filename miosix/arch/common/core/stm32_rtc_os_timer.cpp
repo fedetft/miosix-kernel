@@ -28,6 +28,7 @@
 #include "kernel/kernel.h"
 #include "interfaces/os_timer.h"
 #include "interfaces/arch_registers.h"
+#include "interfaces/deep_sleep.h"
 #include "kernel/logging.h"
 
 #ifdef WITH_RTC_AS_OS_TIMER
@@ -196,6 +197,92 @@ public:
 
 static STM32F1RTC_Timer timer;
 DEFAULT_OS_TIMER_INTERFACE_IMPLMENTATION(timer);
+
+#ifdef WITH_DEEP_SLEEP
+
+void IRQdeepSleepInit()
+{
+    EXTI->RTSR |= EXTI_RTSR_TR17;
+    EXTI->IMR  |= EXTI_IMR_MR17; //enable wakeup interrupt
+}
+
+bool IRQdeepSleep(long long int abstime)
+{
+    /*
+     * NOTE: The simplest way to support deep sleep is to use the RTC as the
+     * OS timer. By doing so, there is no need to set the RTC wakeup time
+     * whenever we enter deep sleep, as the scheduler already does, and there
+     * is also no need to resynchronize the OS timer to the RTC because the
+     * OS timer doesn't stop counting while we are in deep sleep.
+     * The only disadvantage on this platform is that the OS timer resolution is
+     * rather coarse, 1/16384Hz is ~61us, but this is good enough for many use
+     * cases.
+     *
+     * This is why this code ignores the wakeup absolute time parameter, and the
+     * only task is to write the proper sequence to enter the deep sleep state
+     * instead of the sleep state.
+     */
+    return IRQdeepSleep();
+}
+
+bool IRQdeepSleep()
+{
+    #ifdef RUN_WITH_HSI
+    /*
+     * NOTE: The RTC causes two separate IRQs, the RTC IRQ, and the RTC_Alarm
+     * IRQ. This second interrupt is only caused by the alarm condition, not by
+     * e.g. a counter overflow, and is the only interrupt that can wake the MCU
+     * from deep sleep (stop mode). The RTC interrupt doesn't.
+     * We don't need an IRQ handler for the RTC_Alarm, as all interrupt code is
+     * already handled by the RTC IRQ, but we need to enable it here just to
+     * wake from deep sleep. Since when the RTC IRQ fires, the RTC_Alarm becomes
+     * pending, we almost certain arrive here with the RTC_Alarm already pending
+     * which would prevent deep sleep. Clearing this pending IRQ does not cause
+     * a race condition if the RTC event already happened, as in that case also
+     * the RTC IRQ is pending, and while this IRQ can't wake us from deep sleep,
+     * it does prevent us from entring deep sleep.
+     */
+    EXTI->PR = EXTI_PR_PR17;
+    NVIC_ClearPendingIRQ(RTC_Alarm_IRQn);
+    NVIC_EnableIRQ(RTC_Alarm_IRQn);
+
+    unsigned int lowerTickBefore=timer.IRQgetTimerCounter();
+
+    //Ensure the RTC alarm register has been written
+    while((RTC->CRL & RTC_CRL_RTOFF)==0) ;
+
+    PWR->CR |= PWR_CR_LPDS;
+    SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+    __DSB();
+    __WFI();
+    SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
+    PWR->CR &= ~PWR_CR_LPDS;
+
+    NVIC_DisableIRQ(RTC_Alarm_IRQn);
+
+    //Wait RSF, until this is done RTC registers can't be read
+    RTC->CRL=(RTC->CRL | 0xf) & ~RTC_CRL_RSF;
+    while((RTC->CRL & RTC_CRL_RSF)==0) ;
+
+    // Workaround for hardware bug! The RTC overflow flag is not set if the
+    // overflow occurs while we are in deep sleep. It is just lost. Of course,
+    // we should also handle the case in which we didn't enter deep sleep
+    // because of a pending interrupt, so we also check that OWF really isn't 1
+    // TODO: last thing I'm not sure is if this works for very long sleeps
+    // spanning multiple overflows, just don't sleep for more than 72 hours
+    // to be sure
+    unsigned int lowerTickAfter=timer.IRQgetTimerCounter();
+    if(lowerTickAfter<lowerTickBefore && !(RTC->CRL & RTC_CRL_OWF))
+        timer.IRQquirkIncrementUpperCounter();
+
+    return true;
+
+    #else //RUN_WITH_HSI
+    #error TODO not yet implemented
+    #endif //RUN_WITH_HSI
+}
+
+#endif //WITH_DEEP_SLEEP
 
 /*
 // Test code for checking the presence of the race condition. Call from main.

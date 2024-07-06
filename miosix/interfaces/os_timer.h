@@ -326,6 +326,17 @@ public:
             upperTimeTick += upperIncr;
         }
     }
+
+    /**
+     * Some weird timers forget to set the overflow flag when in deep sleep,
+     * (stm32f1 is an example), so provide a way to increment the upper part
+     * manually. You shouldn't need to call this unless you're dealing with a
+     * bug in a timer.
+     */
+    void IRQquirkIncrementUpperCounter()
+    {
+        upperTimeTick += upperIncr;
+    }
     
     /**
      * Initializes and starts the timer.
