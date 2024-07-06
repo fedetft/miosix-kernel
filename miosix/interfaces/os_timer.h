@@ -326,6 +326,18 @@ public:
             upperTimeTick += upperIncr;
         }
     }
+    
+    /**
+     * Initializes and starts the timer.
+     */
+    void IRQinit()
+    {
+        D::IRQinitTimer();
+        tc=TimeConversion(D::IRQTimerFrequency());
+        D::IRQstartTimer();
+    }
+
+    //From here, member functions only useful for specific type of drivers
 
     /**
      * Some weird timers forget to set the overflow flag when in deep sleep,
@@ -337,15 +349,16 @@ public:
     {
         upperTimeTick += upperIncr;
     }
-    
+
     /**
-     * Initializes and starts the timer.
+     * \param counter hardware timer value
+     * \return the current time in ticks, starting from the lower part
      */
-    void IRQinit()
+    inline long long IRQgetTimeTickFromCounter(unsigned int counter)
     {
-        D::IRQinitTimer();
-        tc=TimeConversion(D::IRQTimerFrequency());
-        D::IRQstartTimer();
+        if(D::IRQgetOverflowFlag() && D::IRQgetTimerCounter()>=counter)
+            return (upperTimeTick | static_cast<long long>(counter)) + upperIncr;
+        return upperTimeTick | static_cast<long long>(counter);
     }
 };
 

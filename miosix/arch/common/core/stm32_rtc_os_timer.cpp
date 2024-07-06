@@ -209,27 +209,45 @@ void IRQdeepSleepInit()
     EXTI->IMR  |= EXTI_IMR_MR17; //enable wakeup interrupt
 }
 
-bool IRQdeepSleep(long long int abstime)
+static bool IRQdeepSleepImpl(bool withTimeout)
 {
-    /*
-     * NOTE: The simplest way to support deep sleep is to use the RTC as the
-     * OS timer. By doing so, there is no need to set the RTC wakeup time
-     * whenever we enter deep sleep, as the scheduler already does, and there
-     * is also no need to resynchronize the OS timer to the RTC because the
-     * OS timer doesn't stop counting while we are in deep sleep.
-     * The only disadvantage on this platform is that the OS timer resolution is
-     * rather coarse, 1/16384Hz is ~61us, but this is good enough for many use
-     * cases.
-     *
-     * This is why this code ignores the wakeup absolute time parameter, and the
-     * only task is to write the proper sequence to enter the deep sleep state
-     * instead of the sleep state.
+    unsigned int lowerTickBefore=timer.IRQgetTimerCounter();
+    #ifndef RUN_WITH_HSI
+    // The HSI oscillator, even with PLL, starts so fast that it does not impact
+    // lag from returining from application sleeps that resulted in deep sleep.
+    // The HSE, however, takes up to 10 ticks to restart. In this case we want
+    // to check whether the wakeup time is too close, and in that case not even
+    // enter deep sleep. If the sleep is longer, we wakeup in advance and then
+    // sleep the rest of the time.
+    /* Test code, put in main()
+    const long long period=1000000000ll;
+    long long t=getTime();
+    for(;;)
+    {
+        t+=period;
+        Thread::nanoSleepUntil(t);
+        long long t2=getTime();
+        iprintf("deep sleep %lld\n",t2-t);
+        {
+            DeepSleepLock sl;
+            t+=period;
+            Thread::nanoSleepUntil(t);
+            long long t2=getTime();
+            iprintf("     sleep %lld\n",t2-t);
+        }
+    }
      */
-    return IRQdeepSleep();
-}
+    const unsigned int minTicks=13;//TODO: increasing it further does not improve
+    long long irqTick;
+    if(withTimeout)
+    {
+        long long tick=timer.IRQgetTimeTickFromCounter(lowerTickBefore);
+        irqTick=timer.IRQgetIrqTick();
+        if(irqTick-tick<minTicks) return false; //Not enough time for deep sleep
+        timer.IRQsetIrqTick(irqTick-minTicks+1);
+    }
+    #endif //RUN_WITH_HSI
 
-bool IRQdeepSleep()
-{
     /*
      * NOTE: The RTC causes two separate IRQs, the RTC IRQ, and the RTC_Alarm
      * IRQ. This second interrupt is only caused by the alarm condition, not by
@@ -247,8 +265,6 @@ bool IRQdeepSleep()
     EXTI->PR = EXTI_PR_PR17;
     NVIC_ClearPendingIRQ(RTC_Alarm_IRQn);
     NVIC_EnableIRQ(RTC_Alarm_IRQn);
-
-    unsigned int lowerTickBefore=timer.IRQgetTimerCounter();
 
     //Ensure the RTC alarm register has been written
     while((RTC->CRL & RTC_CRL_RTOFF)==0) ;
@@ -282,7 +298,36 @@ bool IRQdeepSleep()
     if(lowerTickAfter<lowerTickBefore && !(RTC->CRL & RTC_CRL_OWF))
         timer.IRQquirkIncrementUpperCounter();
 
+    #ifndef RUN_WITH_HSI
+    if(withTimeout)
+    {
+        //Restore the previous interrupt time and return false so we consume the
+        //slack time in (non deep) sleep
+        timer.IRQsetIrqTick(irqTick);
+        return false;
+    }
+    #endif //RUN_WITH_HSI
     return true;
+}
+
+bool IRQdeepSleep(long long int abstime)
+{
+    /*
+     * NOTE: The simplest way to support deep sleep is to use the RTC as the
+     * OS timer. By doing so, there is no need to set the RTC wakeup time
+     * whenever we enter deep sleep, as the scheduler already does, and there
+     * is also no need to resynchronize the OS timer to the RTC because the
+     * OS timer doesn't stop counting while we are in deep sleep.
+     * The only disadvantage on this platform is that the OS timer resolution is
+     * rather coarse, 1/16384Hz is ~61us, but this is good enough for many use
+     * cases.
+     */
+    return IRQdeepSleepImpl(true);
+}
+
+bool IRQdeepSleep()
+{
+    return IRQdeepSleepImpl(false);
 }
 
 #endif //WITH_DEEP_SLEEP
