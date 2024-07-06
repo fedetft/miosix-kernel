@@ -202,7 +202,7 @@ public:
     static inline unsigned int IRQgetTimerCounter()
     {
         while(AST->AST_SR & AST_SR_BUSY) ;
-        // Workaround for hardware bug! The pending bit is asserted earler than
+        // Workaround for hardware bug! The pending bit is asserted earlier than
         // the observable counter rollover, actually in the middle of the timer
         // counting 0xfffffffe. Solution: return counter value +1 so 0xffffffff
         // becomes 0x0 which makes it in sync, if reading 0xfffffffe wait till
