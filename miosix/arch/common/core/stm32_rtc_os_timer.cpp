@@ -218,25 +218,7 @@ static bool IRQdeepSleepImpl(bool withTimeout)
     // The HSE, however, takes up to 10 ticks to restart. In this case we want
     // to check whether the wakeup time is too close, and in that case not even
     // enter deep sleep. If the sleep is longer, we wakeup in advance and then
-    // sleep the rest of the time.
-    /* Test code, put in main()
-    const long long period=1000000000ll;
-    long long t=getTime();
-    for(;;)
-    {
-        t+=period;
-        Thread::nanoSleepUntil(t);
-        long long t2=getTime();
-        iprintf("deep sleep %lld\n",t2-t);
-        {
-            DeepSleepLock sl;
-            t+=period;
-            Thread::nanoSleepUntil(t);
-            long long t2=getTime();
-            iprintf("     sleep %lld\n",t2-t);
-        }
-    }
-     */
+    // sleep the rest of the time. Tested with _tools/delay_test/os_timer_test.cpp
     const unsigned int minTicks=13;//TODO: increasing it further does not improve
     long long irqTick;
     if(withTimeout)
