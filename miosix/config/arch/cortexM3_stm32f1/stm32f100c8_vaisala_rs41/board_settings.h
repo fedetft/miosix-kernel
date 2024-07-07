@@ -40,6 +40,13 @@ namespace miosix {
  * \{
  */
 
+/// Use RTC as os_timer. This requires a 32kHz crystal to be connected to the
+/// board, reduces timing resolution to only 16kHz and makes context switches
+/// much slower (due to RTC limitations, minimum time beween two context
+/// switches becomes 91us), but the os can keep precise time even when the CPU
+/// is clocked with an RC oscillator and time is kept across deep sleep
+//#define WITH_RTC_AS_OS_TIMER
+
 /// Size of stack for main().
 /// The C standard library is stack-heavy (iprintf requires 1KB) but the
 /// STM32F100C8 only has 8KB of RAM so the stack is only 1.5KB.
