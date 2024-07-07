@@ -43,7 +43,7 @@ extern bool IRQwakeThreads(long long currentTime);///\internal Do not use outsid
  * \warning currentTime cannot be earlier than the last deadline actually
  * programmed by the kernel!
  */
-inline void IRQtimerInterrupt(long long currentTime)
+inline bool IRQtimerInterrupt(long long currentTime)
 {
     Thread::IRQstackOverflowCheck();
     bool hptw = IRQwakeThreads(currentTime);
@@ -51,7 +51,9 @@ inline void IRQtimerInterrupt(long long currentTime)
     {
         //End of the burst || a higher priority thread has woken up
         Scheduler::IRQfindNextThread();//If the kernel is running, preempt
+        return false;
     }
+    return true;
 }
 
 } //namespace miosix
