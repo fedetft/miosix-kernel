@@ -1983,6 +1983,12 @@ static void test_15()
         fail("Threads not deleted (2)");
 
     //testing timedWait
+    long long timeout1=200000;
+    long long timeout2=500000;
+    #ifdef WITH_RTC_AS_OS_TIMER
+    timeout1+=200000;
+    timeout2+=250000;
+    #endif
     long long b,a=getTime()+10000000; //10ms
     {
         Lock<Mutex> l(t15_m1);
@@ -1990,7 +1996,7 @@ static void test_15()
         b=getTime();
     }
     //iprintf("delta=%lld\n",b-a);
-    if(llabs(b-a)>200000) fail("timedwait (2)");
+    if(llabs(b-a)>timeout1) fail("timedwait (2)");
     Thread::create(t15_p3,STACK_SMALL,0);
     a=getTime()+100000000; //100ms
     {
@@ -1998,8 +2004,8 @@ static void test_15()
         if(t15_c1.timedWait(l,a)!=TimedWaitResult::NoTimeout) fail("timedwait (1)");
         b=getTime();
     }
-    //iprintf("delta=%lld\n",b-a);
-    if(llabs(b-a+70000000)>500000) fail("timedwait (4)");
+    //iprintf("delta=%lld\n",b-a+70000000);
+    if(llabs(b-a+70000000)>timeout2) fail("timedwait (4)");
     Thread::sleep(10);
     pass();
 }
@@ -2291,6 +2297,12 @@ static void test_16()
     Thread::sleep(10);
     if(pthread_cond_destroy(&t16_c2)!=0) fail("cond destroy");
     //testing pthread_cond_timedwait
+    long long timeout1=200000;
+    long long timeout2=500000;
+    #ifdef WITH_RTC_AS_OS_TIMER
+    timeout1+=200000;
+    timeout2+=250000;
+    #endif
     timespec a,b;
     clock_gettime(CLOCK_MONOTONIC,&a);
     timespecAdd(&a,10000000); //10ms
@@ -2299,7 +2311,7 @@ static void test_16()
     clock_gettime(CLOCK_MONOTONIC,&b);
     if(pthread_mutex_unlock(&t16_m1)!=0) fail("mutex unlock (7)"); //<---
     //iprintf("delta=%lld\n",timespecDelta(&b,&a));
-    if(llabs(timespecDelta(&b,&a))>200000) fail("timedwait (2)");
+    if(llabs(timespecDelta(&b,&a))>timeout1) fail("timedwait (2)");
     if(pthread_create(&thread,NULL,t16_p3,NULL)!=0) fail("pthread_create (10)");
     clock_gettime(CLOCK_MONOTONIC,&a);
     timespecAdd(&a,100000000); //100ms
@@ -2309,8 +2321,8 @@ static void test_16()
     clock_gettime(CLOCK_MONOTONIC,&b);
     if(t16_v1==false) fail("did not really wait");
     if(pthread_mutex_unlock(&t16_m1)!=0) fail("mutex unlock (8)"); //<---
-    //iprintf("delta=%lld\n",timespecDelta(&b,&a));
-    if(llabs(timespecDelta(&b,&a)+70000000)>500000) fail("timedwait (4)");
+    //iprintf("delta=%lld\n",timespecDelta(&b,&a)+70000000);
+    if(llabs(timespecDelta(&b,&a)+70000000)>timeout2) fail("timedwait (4)");
     pthread_join(thread,NULL);
     Thread::sleep(10);
     //
@@ -3792,12 +3804,16 @@ static void test_25()
     // Testing condition_variable timed wait
     //
     #ifndef __CODE_IN_XRAM
-    constexpr long long timeout1=250000;
-    constexpr long long timeout2=500000;
+    long long timeout1=250000;
+    long long timeout2=500000;
     #else //__CODE_IN_XRAM
-    constexpr long long timeout1=350000;
-    constexpr long long timeout2=750000;
+    long long timeout1=350000;
+    long long timeout2=750000;
     #endif //__CODE_IN_XRAM
+    #ifdef WITH_RTC_AS_OS_TIMER
+    timeout1+=200000;
+    timeout2+=250000;
+    #endif
     {
         unique_lock<mutex> l(t25_m1);
         auto a=chrono::steady_clock::now().time_since_epoch().count();
