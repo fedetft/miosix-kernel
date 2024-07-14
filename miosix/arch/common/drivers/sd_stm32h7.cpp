@@ -535,9 +535,9 @@ private:
     static void setClockSpeed(unsigned int clkdiv);
     
     #ifdef SYSCLK_FREQ_550MHz
-    static const unsigned int SDMMCCLK=100000000;
-    #elif defined(SYSCLK_FREQ_400MHz)
     static const unsigned int SDMMCCLK=91666666;
+    #elif defined(SYSCLK_FREQ_400MHz)
+    static const unsigned int SDMMCCLK=100000000;
     #else
     #error "Unknown frequency for PLL Q output"
     #endif
