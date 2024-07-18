@@ -382,6 +382,8 @@ static void SetSysClock(void)
     /* Select regulator voltage output Scale 1 mode, System frequency up to 168 MHz */
     RCC->APB1ENR |= RCC_APB1ENR_PWREN;
     RCC_SYNC();
+    //NOTE: this is a 1-bit field in stm32f405/407, and a 2-bit field in stm32f42x
+    //but in both cases the PWR_CR_VOS mask sets both bits to get the highest scaling
     PWR->CR |= PWR_CR_VOS;
 
     /* HCLK = SYSCLK / 1*/
@@ -399,6 +401,16 @@ static void SetSysClock(void)
 
     /* Enable the main PLL */
     RCC->CR |= RCC_CR_PLLON;
+
+    #ifdef SYSCLK_FREQ_180MHz
+    //NOTE: stm32f42x can run up to 180MHz but require the regulator to switch
+    //to "overdrive mode". Stm32f405/7 don't have these registers but can't run
+    //at 180MHz anyway
+    PWR->CR |= PWR_CR_ODEN;
+    while((PWR->CSR & PWR_CSR_ODRDY)==0) ;
+    PWR->CR |= PWR_CR_ODSWEN;
+    while((PWR->CSR & PWR_CSR_ODSWRDY)==0) ;
+    #endif
 
     /* Wait till the main PLL is ready */
     while((RCC->CR & RCC_CR_PLLRDY) == 0)
