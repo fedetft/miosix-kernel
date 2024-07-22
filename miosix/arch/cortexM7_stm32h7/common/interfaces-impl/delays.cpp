@@ -56,7 +56,9 @@ void delayUs(unsigned int useconds)
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimizations
     #ifdef SYSCLK_FREQ_550MHz
-    asm volatile("    movs  r1, #550   \n"
+    //NOTE: can't use movs because some compilers (GCC on windows but not GCC on
+    //Linux) can't produce the opcode to move a 16bit immediate, go figure...
+    asm volatile("    mov   r1, #550   \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  subs  r1, r1, #1 \n"
