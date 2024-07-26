@@ -849,7 +849,7 @@ basicFilesystemSetup(intrusive_ref_ptr<Device> dev)
     bootlog("Mounting MountpointFs as / ... ");
     FilesystemManager& fsm=FilesystemManager::instance();
     intrusive_ref_ptr<FilesystemBase> rootFs(new MountpointFs);
-    bootlog(fsm.kmount("/",rootFs)==0 ? "Ok\n" : "Failed\n");
+    if(fsm.kmount("/",rootFs)==0) bootlog("Ok\n"); else bootlog("Failed\n");
     
     #ifdef WITH_DEVFS
     bootlog("Mounting DevFs as /dev ... ");

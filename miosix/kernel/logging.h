@@ -48,7 +48,7 @@ inline void bootlog(const char *fmt, ...)
     va_end(arg);
 }
 #else //WITH_BOOTLOG
-#define bootlog(x,...) ;
+#define bootlog(x,...)
 #endif //WITH_BOOTLOG
 
 /**
@@ -62,7 +62,7 @@ inline void IRQbootlog(const char *string)
     miosix::DefaultConsole::instance().IRQget()->IRQwrite(string);
 }
 #else //WITH_BOOTLOG
-#define IRQbootlog(x) ;
+#define IRQbootlog(x)
 #endif //WITH_BOOTLOG
 
 /**
@@ -80,7 +80,7 @@ inline void errorLog(const char *fmt, ...)
     va_end(arg);
 }
 #else //WITH_ERRLOG
-#define errorLog(x,...) ;
+#define errorLog(x,...)
 #endif //WITH_ERRLOG
 
 /**
@@ -94,7 +94,7 @@ inline void IRQerrorLog(const char *string)
     miosix::DefaultConsole::instance().IRQget()->IRQwrite(string);
 }
 #else //WITH_ERRLOG
-#define IRQerrorLog(x) ;
+#define IRQerrorLog(x)
 #endif //WITH_ERRLOG
 
 #endif	/* LOGGING_H */
