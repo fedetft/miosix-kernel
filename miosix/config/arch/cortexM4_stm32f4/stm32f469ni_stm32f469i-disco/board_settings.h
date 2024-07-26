@@ -56,8 +56,7 @@ const bool defaultSerialFlowctrl=false;
 #define SERIAL_3_DMA
 
 //SD card driver
-static const unsigned char sdVoltage=30; //Board powered @ 3.0V
-#define SD_ONE_BIT_DATABUS //Can't use 4 bit databus due to pin conflicts
+static const unsigned char sdVoltage=33; //Board powered @ 3.3V
 
 /**
  * \}
