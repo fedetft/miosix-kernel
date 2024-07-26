@@ -49,7 +49,7 @@ const unsigned int MAIN_STACK_SIZE=4*1024;
 /// Using the Serial port 3 because it is the virtual serial port available 
 /// through ST-LINK on the stm32f469i-disco board  
 const unsigned int defaultSerial=3;
-const unsigned int defaultSerialSpeed=19200;
+const unsigned int defaultSerialSpeed=115200;
 const bool defaultSerialFlowctrl=false;
 //#define SERIAL_1_DMA //Serial 1 is not used, so not enabling DMA
 //#define SERIAL_2_DMA //Serial 2 is not used, so not enabling DMA
