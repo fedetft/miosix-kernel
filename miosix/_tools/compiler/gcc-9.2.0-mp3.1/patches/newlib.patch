@@ -664,6 +664,182 @@ diff -ruN newlib-3.1.0-old/newlib/libc/posix/telldir.c newlib-3.1.0/newlib/libc/
  		prevlp = &dd_hash[LOCHASH(loc)];
  		lp = *prevlp;
  		while (lp != NULL) {
+diff -ruN newlib-3.1.0-old/newlib/libc/stdio/fread.c newlib-3.1.0/newlib/libc/stdio/fread.c
+--- newlib-3.1.0-old/newlib/libc/stdio/fread.c	2019-01-01 05:40:11.000000000 +0100
++++ newlib-3.1.0/newlib/libc/stdio/fread.c	2024-07-28 11:45:00.366996203 +0200
+@@ -84,6 +84,8 @@
+ #include <stdio.h>
+ #include <string.h>
+ #include <malloc.h>
++#include <limits.h>
++#include <errno.h>
+ #include "local.h"
+ 
+ #ifdef __IMPL_UNLOCKED__
+@@ -91,6 +93,8 @@
+ #define fread fread_unlocked
+ #endif
+ 
++#define	MIN(a, b) ((a) < (b) ? (a) : (b))
++
+ #ifdef __SCLE
+ static size_t
+ crlf_r (struct _reent * ptr,
+@@ -166,23 +170,77 @@
+ 
+ #if !defined(PREFER_SIZE_OVER_SPEED) && !defined(__OPTIMIZE_SIZE__)
+ 
+-  /* Optimize unbuffered I/O.  */
++  int buffer_size;
+   if (fp->_flags & __SNBF)
++    buffer_size = 1; /* Unbuffered file, buffer_size is 1 see __smakebuf_r */
++  else
++    {
++      if (fp->_bf._base == NULL)
++        __smakebuf_r (ptr, fp);
++      buffer_size = fp->_bf._size; /* fp->_bf._size is zero until __smakebuf_r */
++    }
++
++  /* Optimize unbuffered I/O and large reads. */
++  if (resid >= buffer_size)
+     {
+-      /* First copy any available characters from ungetc buffer.  */
+-      int copy_size = resid > fp->_r ? fp->_r : resid;
+-      (void) memcpy ((void *) p, (void *) fp->_p, (size_t) copy_size);
+-      fp->_p += copy_size;
+-      fp->_r -= copy_size;
+-      p += copy_size;
+-      resid -= copy_size;
+-
+-      /* If still more data needed, free any allocated ungetc buffer.  */
+-      if (HASUB (fp) && resid > 0)
+-	FREEUB (ptr, fp);
++      /* If we were writing, need to flush in case the file was buffered.
++         This code was taken from __srefill_r */
++      if ((fp->_flags & __SRD) == 0)
++        {
++          if ((fp->_flags & __SRW) == 0)
++            {
++              ptr->_errno = EBADF;
++              fp->_flags |= __SERR;
++              _newlib_flockfile_exit (fp);
++              return 0;
++            }
++          /* switch to reading */
++          if (fp->_flags & __SWR)
++            {
++              if (__sflush_r (ptr, fp))
++                {
++                  _newlib_flockfile_exit (fp);
++                  return 0;
++                }
++              fp->_flags &= ~__SWR;
++              fp->_w = 0;
++              fp->_lbfsize = 0;
++            }
++          fp->_flags |= __SRD;
++        }
++      else
++        {
++          /*
++           * We were reading. There may be data in up to two buffers, the
++           * file buffer if this is a buffered file, and the ungetc buffer,
++           * that can exist also in unbuffered files.
++           * This loop can iterate at most twice, the first time when we consume
++           * the ungetc buffer and restore the file buffer, and the second time
++           * when we consume the file buffer.
++           */
++          int copy_size;
++          while ((copy_size = resid > fp->_r ? fp->_r : resid) > 0)
++            {
++              (void) memcpy ((void *) p, (void *) fp->_p, (size_t) copy_size);
++              fp->_p += copy_size;
++              fp->_r -= copy_size;
++              p += copy_size;
++              resid -= copy_size;
++
++              /* If still more data needed, free any allocated ungetc buffer.  */
++              if (HASUB (fp) && resid > 0)
++                {
++                  FREEUB (ptr, fp);
++                  /* Code taken from __srefill_r, does anybody know why we don't
++                   * unconditionally restore fp->_p? */
++                  if ((fp->_r = fp->_ur) != 0)
++                    fp->_p = fp->_up;
++                }
++            }
++        }
+ 
+       /* Finally read directly into user's buffer if needed.  */
+-      while (resid > 0)
++      while (resid >= buffer_size)
+ 	{
+ 	  int rc = 0;
+ 	  /* save fp buffering state */
+@@ -191,7 +249,7 @@
+ 	  int old_size = fp->_bf._size;
+ 	  /* allow __refill to use user's buffer */
+ 	  fp->_bf._base = (unsigned char *) p;
+-	  fp->_bf._size = resid;
++	  fp->_bf._size = ((int)MIN (resid, INT_MAX)) / buffer_size * buffer_size;
+ 	  fp->_p = (unsigned char *) p;
+ 	  rc = __srefill_r (ptr, fp);
+ 	  /* restore fp buffering back to original state */
+@@ -215,34 +273,31 @@
+ 	    }
+ 	}
+     }
+-  else
+ #endif /* !PREFER_SIZE_OVER_SPEED && !__OPTIMIZE_SIZE__ */
++  while (resid > (r = fp->_r))
+     {
+-      while (resid > (r = fp->_r))
+-	{
+-	  (void) memcpy ((void *) p, (void *) fp->_p, (size_t) r);
+-	  fp->_p += r;
+-	  /* fp->_r = 0 ... done in __srefill */
+-	  p += r;
+-	  resid -= r;
+-	  if (__srefill_r (ptr, fp))
+-	    {
+-	      /* no more input: return partial result */
++	(void) memcpy ((void *) p, (void *) fp->_p, (size_t) r);
++	fp->_p += r;
++	/* fp->_r = 0 ... done in __srefill */
++	p += r;
++	resid -= r;
++	if (__srefill_r (ptr, fp))
++	  {
++	    /* no more input: return partial result */
+ #ifdef __SCLE
+-	      if (fp->_flags & __SCLE)
+-		{
+-		  _newlib_flockfile_exit (fp);
+-		  return crlf_r (ptr, fp, buf, total-resid, 1) / size;
+-		}
++	    if (fp->_flags & __SCLE)
++            {
++              _newlib_flockfile_exit (fp);
++              return crlf_r (ptr, fp, buf, total-resid, 1) / size;
++            }
+ #endif
+-	      _newlib_flockfile_exit (fp);
+-	      return (total - resid) / size;
+-	    }
+-	}
+-      (void) memcpy ((void *) p, (void *) fp->_p, resid);
+-      fp->_r -= resid;
+-      fp->_p += resid;
++          _newlib_flockfile_exit (fp);
++          return (total - resid) / size;
++        }
+     }
++  (void) memcpy ((void *) p, (void *) fp->_p, resid);
++  fp->_r -= resid;
++  fp->_p += resid;
+ 
+   /* Perform any CR/LF clean-up if necessary.  */
+ #ifdef __SCLE
 diff -ruN newlib-3.1.0-old/newlib/libc/stdlib/__atexit.c newlib-3.1.0/newlib/libc/stdlib/__atexit.c
 --- newlib-3.1.0-old/newlib/libc/stdlib/__atexit.c	2019-01-01 05:40:11.000000000 +0100
 +++ newlib-3.1.0/newlib/libc/stdlib/__atexit.c	2020-03-07 08:54:35.002943194 +0100
