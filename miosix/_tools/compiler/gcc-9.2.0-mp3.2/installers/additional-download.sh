@@ -19,8 +19,6 @@ $WGET https://github.com/megastep/makeself/releases/download/release-2.4.5/makes
 
 # Windows
 $WGET https://ftpmirror.gnu.org/make/make-4.2.1.tar.gz
-$WGET https://github.com/fpoussin/QStlink2/releases/download/v1.2.2/qstlink2_1.2.2.exe
-mv qstlink2_1.2.2.exe qstlink2.exe
 $WGET https://jrsoftware.org/download.php/is.exe
 mv is.exe innosetup.exe
 

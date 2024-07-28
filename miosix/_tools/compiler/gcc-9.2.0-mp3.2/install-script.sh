@@ -127,7 +127,7 @@ if [[ $DESTDIR ]]; then
 		 	$m=$1 if(/_MIOSIX_GCC_PATCH_MINOR (\d+)/);
 		 }
 		 print "mp$M.$m";'`;
-    __GCCPATCUR='mp3.1'; # Can't autodetect this one easily from gcc.patch
+    __GCCPATCUR='mp3.2'; # Can't autodetect this one easily from gcc.patch
 	if [[ ($__GCCVER != $GCC) || ($__GCCPAT != $__GCCPATCUR) ]]; then
 		quit ":: Error must first install $GCC$__GCCPATCUR system-wide"
 	fi
@@ -511,16 +511,16 @@ check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v6-m/nofp
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7-m/nofp
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+dp/hard
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+fp/hard
-check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.base/nofp
-check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+dp/hard
-check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+fp/hard
+#check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.base/nofp
+#check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+dp/hard
+#check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+fp/hard
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v6-m/nofp/pie/single-pic-base
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7-m/nofp/pie/single-pic-base
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+dp/hard/pie/single-pic-base
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+fp/hard/pie/single-pic-base
-check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.base/nofp/pie/single-pic-base
-check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+dp/hard/pie/single-pic-base
-check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+fp/hard/pie/single-pic-base
+#check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.base/nofp/pie/single-pic-base
+#check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+dp/hard/pie/single-pic-base
+#check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+fp/hard/pie/single-pic-base
 echo "::All multilibs have been built. OK"
 
 #
@@ -640,8 +640,6 @@ if [[ $HOST == *mingw* ]]; then
 	$HOSTCC -o rm$EXT -O2 installers/windows/rm.c || quit ":: Error compiling rm"
 
 	mv rm$EXT $DESTDIR$PREFIX/bin || quit ":: Error installing rm"
-
-	cp downloaded/qstlink2.exe $DESTDIR$PREFIX/bin || quit ":: Error installing qstlink2"
 fi
 
 #
@@ -673,8 +671,8 @@ if [[ $DESTDIR ]]; then
 		# permissions to group and other, resulting in an unusable installation
 		./$MAKESELF/makeself.sh --xz --keep-umask \
 			$DESTDIR$PREFIX \
-			MiosixToolchainInstaller9.2.0mp3.1.run \
-			"Miosix toolchain for Linux (GCC 9.2.0-mp3.1)" \
+			MiosixToolchainInstaller9.2.0mp3.2.run \
+			"Miosix toolchain for Linux (GCC 9.2.0-mp3.2)" \
 			"./installer.sh"
 	elif [[ ( $(uname -s) == 'Linux' ) && ( $HOST == *mingw* ) ]]; then
 		# Build an executable installer for Windows
@@ -709,18 +707,18 @@ if [[ $DESTDIR ]]; then
 		        suffix='ARM'
 		fi
 		pkgbuild \
-			--identifier 'org.miosix.toolchain.gcc-9.2.0-mp3.1' \
-			--version '9.2.0.3.1.1' \
+			--identifier 'org.miosix.toolchain.gcc-9.2.0-mp3.2' \
+			--version '9.2.0.3.2' \
 			--min-os-version ${min_osx_ver} \
 			--install-location / \
 			--scripts installers/macos/Scripts \
 			--root $DESTDIR \
-			'gcc-9.2.0-mp3.1.pkg'
+			'gcc-9.2.0-mp3.2.pkg'
 		productbuild \
 			--distribution ${distr_script} \
 			--resources installers/macos/Resources \
 			--package-path ./ \
-			"./MiosixToolchainInstaller9.2.0mp3.1_${suffix}.pkg"
+			"./MiosixToolchainInstaller9.2.0mp3.2_${suffix}.pkg"
 	fi
 else
 	# Install the uninstaller too

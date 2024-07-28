@@ -25,11 +25,11 @@
     <license file="license.txt" uti="public.text"/>
     
     <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
-    <pkg-ref id="org.miosix.toolchain.gcc-9.2.0-mp3.1" onConclusion="none">gcc-9.2.0-mp3.1.pkg</pkg-ref>
-    <choice id="org.miosix.toolchain.gcc-9.2.0-mp3.1" visible="false">
-        <pkg-ref id="org.miosix.toolchain.gcc-9.2.0-mp3.1"/>
+    <pkg-ref id="org.miosix.toolchain.gcc-9.2.0-mp3.2" onConclusion="none">gcc-9.2.0-mp3.2.pkg</pkg-ref>
+    <choice id="org.miosix.toolchain.gcc-9.2.0-mp3.2" visible="false">
+        <pkg-ref id="org.miosix.toolchain.gcc-9.2.0-mp3.2"/>
     </choice>
     <choices-outline>
-        <line choice="org.miosix.toolchain.gcc-9.2.0-mp3.1"/>
+        <line choice="org.miosix.toolchain.gcc-9.2.0-mp3.2"/>
     </choices-outline>
 </installer-gui-script>

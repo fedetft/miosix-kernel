@@ -317,13 +317,13 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/miosix-eabi.h gcc-9.2.0/gcc/config/arm/mi
 +        TARGET_BPABI_CPP_BUILTINS();     \
 +        builtin_define("_MIOSIX");       \
 +        builtin_define("_MIOSIX_GCC_PATCH_MAJOR=3"); \
-+        builtin_define("_MIOSIX_GCC_PATCH_MINOR=1"); \
++        builtin_define("_MIOSIX_GCC_PATCH_MINOR=2"); \
 +        builtin_assert("system=miosix"); \
 +    } while(false)
 diff -ruN gcc-9.2.0-old/gcc/config/arm/t-arm-miosix gcc-9.2.0/gcc/config/arm/t-arm-miosix
 --- gcc-9.2.0-old/gcc/config/arm/t-arm-miosix	1970-01-01 01:00:00.000000000 +0100
 +++ gcc-9.2.0/gcc/config/arm/t-arm-miosix	2024-01-03 16:01:15.000000000 +0100
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,110 @@
 +
 +## RATIONALE: build multilibs for all microcontroller-relevant ARM architectures
 +## with and without `-fpie -msingle-pic-base' (for processes).
@@ -343,7 +343,7 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/t-arm-miosix gcc-9.2.0/gcc/config/arm/t-a
 +MULTILIB_OPTIONS     =
 +MULTILIB_DIRNAMES    =
 +MULTILIB_MATCHES     =
-+MULTILIB_EXCEPTIONS  = 
++MULTILIB_EXCEPTIONS  =
 +MULTILIB_REQUIRED    =
 +MULTILIB_REUSE       =
 +
@@ -383,14 +383,16 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/t-arm-miosix gcc-9.2.0/gcc/config/arm/t-a
 +MULTILIB_REQUIRED	+= mthumb/march=armv7e-m+fp.dp/mfloat-abi=hard/fpie/msingle-pic-base
 +
 +# Armv8-m baseline (Cortex-M23, no FP)
-+MULTILIB_REQUIRED	+= mthumb/march=armv8-m.base/mfloat-abi=soft
-+MULTILIB_REQUIRED	+= mthumb/march=armv8-m.base/mfloat-abi=soft/fpie/msingle-pic-base
++# Currently disabled to limit compiler bloat
++#MULTILIB_REQUIRED	+= mthumb/march=armv8-m.base/mfloat-abi=soft
++#MULTILIB_REQUIRED	+= mthumb/march=armv8-m.base/mfloat-abi=soft/fpie/msingle-pic-base
 +
 +# Armv8-m mainline (Cortex-M33, M35P with FP single and double precision)
-+MULTILIB_REQUIRED	+= mthumb/march=armv8-m.main+fp/mfloat-abi=hard
-+MULTILIB_REQUIRED	+= mthumb/march=armv8-m.main+fp/mfloat-abi=hard/fpie/msingle-pic-base
-+MULTILIB_REQUIRED	+= mthumb/march=armv8-m.main+fp.dp/mfloat-abi=hard
-+MULTILIB_REQUIRED	+= mthumb/march=armv8-m.main+fp.dp/mfloat-abi=hard/fpie/msingle-pic-base
++# Currently disabled to limit compiler bloat
++#MULTILIB_REQUIRED	+= mthumb/march=armv8-m.main+fp/mfloat-abi=hard
++#MULTILIB_REQUIRED	+= mthumb/march=armv8-m.main+fp/mfloat-abi=hard/fpie/msingle-pic-base
++#MULTILIB_REQUIRED	+= mthumb/march=armv8-m.main+fp.dp/mfloat-abi=hard
++#MULTILIB_REQUIRED	+= mthumb/march=armv8-m.main+fp.dp/mfloat-abi=hard/fpie/msingle-pic-base
 +
 +## Aliases
 +
@@ -404,11 +406,13 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/t-arm-miosix gcc-9.2.0/gcc/config/arm/t-a
 +MULTILIB_MATCHES        += march?armv7-m=march?armv7e-m
 +
 +# Map v8.main no FPU to v8.base
-+MULTILIB_MATCHES        += march?armv8-m.base=march?armv8-m.main
++# Currently disabled to limit compiler bloat
++#MULTILIB_MATCHES        += march?armv8-m.base=march?armv8-m.main
 +
 +# Map all v8-m.main+dsp FP variants down the the variant without DSP.
-+MULTILIB_MATCHES	+= march?armv8-m.main=march?armv8-m.main+dsp
-+MULTILIB_MATCHES	+= $(foreach FP, +fp +fp.dp, march?armv8-m.main$(FP)=march?armv8-m.main+dsp$(FP))
++# Currently disabled to limit compiler bloat
++#MULTILIB_MATCHES	+= march?armv8-m.main=march?armv8-m.main+dsp
++#MULTILIB_MATCHES	+= $(foreach FP, +fp +fp.dp, march?armv8-m.main$(FP)=march?armv8-m.main+dsp$(FP))
 +
 +# For single-precision only fpv5, use the base fp libraries
 +MULTILIB_MATCHES	+= march?armv7e-m+fp=march?armv7e-m+fpv5
@@ -420,9 +424,14 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/t-arm-miosix gcc-9.2.0/gcc/config/arm/t-a
 +# option "--with-float=soft"
 +MULTILIB_REUSE		+= mthumb/march.armv4t/mfloat-abi.soft=mthumb/march.armv4t
 +MULTILIB_REUSE		+= marm/march.armv4t/mfloat-abi.soft=marm/march.armv4t
-+MULTILIB_REUSE		+= $(foreach ARCH, armv6s-m armv7-m armv8-m\.base, \
++# Currently disabled to limit compiler bloat
++#MULTILIB_REUSE		+= $(foreach ARCH, armv6s-m armv7-m armv8-m\.base, \
 +			mthumb/march.$(ARCH)/mfloat-abi.soft=mthumb/march.$(ARCH))
-+MULTILIB_REUSE		+= $(foreach ARCH, armv6s-m armv7-m armv8-m\.base, \
++#MULTILIB_REUSE		+= $(foreach ARCH, armv6s-m armv7-m armv8-m\.base, \
++			mthumb/march.$(ARCH)/mfloat-abi.soft/fpie/msingle-pic-base=mthumb/march.$(ARCH)/fpie/msingle-pic-base)
++MULTILIB_REUSE		+= $(foreach ARCH, armv6s-m armv7-m, \
++			mthumb/march.$(ARCH)/mfloat-abi.soft=mthumb/march.$(ARCH))
++MULTILIB_REUSE		+= $(foreach ARCH, armv6s-m armv7-m, \
 +			mthumb/march.$(ARCH)/mfloat-abi.soft/fpie/msingle-pic-base=mthumb/march.$(ARCH)/fpie/msingle-pic-base)
 +
 diff -ruN gcc-9.2.0-old/gcc/config.gcc gcc-9.2.0/gcc/config.gcc

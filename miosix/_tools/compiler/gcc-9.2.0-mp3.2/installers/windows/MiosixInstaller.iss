@@ -1,6 +1,6 @@
 
 #define MyAppName "Miosix Toolchain"
-#define MyAppVersion "GCC 9.2.0mp3.1"
+#define MyAppVersion "GCC 9.2.0mp3.2"
 #define MyAppURL "https://miosix.org"
 #define MyAppGUID "{{5270879A-9707-4BCB-930F-2FC7B5621061}"
 
@@ -19,8 +19,8 @@ DisableDirPage=yes
 DefaultGroupName={#MyAppName}
 ; Allow user to disable adding stuff to the start menu
 AllowNoIcons=yes
-; Produce an installer named MiosixToolchainInstaller9.2.0mp3.1.exe
-OutputBaseFilename=MiosixToolchainInstaller9.2.0mp3.1
+; Produce an installer named MiosixToolchainInstaller9.2.0mp3.2.exe
+OutputBaseFilename=MiosixToolchainInstaller9.2.0mp3.2
 Compression=lzma
 ; Compress everything into one lzma stream
 SolidCompression=yes
@@ -38,7 +38,6 @@ Source: "..\..\dist\opt\arm-miosix-eabi\*"; DestDir: "{app}"; Flags: ignoreversi
 
 [Icons]
 ; Add stuff to the start menu
-Name: "{group}\QSTlink2"; Filename: "{app}\bin\qstlink2.exe"; WorkingDir: "{userdocs}"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 
 ; Add C:\arm-miosix-eabi to %PATH%, found on stackoverflow
