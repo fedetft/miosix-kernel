@@ -1308,6 +1308,8 @@ static void initSDIOPeripheral()
     //eliminate the glitch.
     delayUs(10);
     ClockController::setLowSpeedClock();
+    //Wait at least 74 clock cycles before first command
+    Thread::nanoSleep(250000);
 }
 
 /**
