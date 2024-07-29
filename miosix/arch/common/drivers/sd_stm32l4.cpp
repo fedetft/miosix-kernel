@@ -605,6 +605,13 @@ static bool waitForCardReady()
         if(cr.validateR1Response()==false) return false;
         //Bit 8 in R1 response means ready for data.
         if(cr.getResponse() & (1<<8)) return true;
+        #ifndef SD_ONE_BIT_DATABUS
+        if(cr.getState()==8) //8=Dis state
+        {
+            DBGERR("READY_FOR_DATA stuck\n");
+            return true;
+        }
+        #endif //SD_ONE_BIT_DATABUS
         Thread::sleep(sleepTime);
     }
     DBGERR("Timeout waiting card ready\n");
