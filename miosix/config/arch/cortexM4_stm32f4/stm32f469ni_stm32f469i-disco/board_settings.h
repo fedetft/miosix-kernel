@@ -57,6 +57,7 @@ const bool defaultSerialFlowctrl=false;
 
 //SD card driver
 static const unsigned char sdVoltage=33; //Board powered @ 3.3V
+#define SD_KEEP_CARD_SELECTED
 
 /**
  * \}

@@ -898,6 +898,7 @@ bool ClockController::IRQreduceClockSpeed()
 
 void ClockController::setClockSpeed(unsigned int clkdiv)
 {
+    //Don't enable hardware flow control even if SD_KEEP_CARD_SELECTED on stm32f1
     SDIO->CLKCR=clkdiv | CLKCR_FLAGS;
     //Timeout 600ms expressed in SD_CK cycles
     SDIO->DTIMER=(6*SystemCoreClock)/((clkdiv+2)*10);
@@ -926,11 +927,6 @@ static bool waitForCardReady()
         if(cr.validateR1Response()==false) return false;
         //Bit 8 in R1 response means ready for data.
         if(cr.getResponse() & (1<<8)) return true;
-        if(cr.getState()==8) //8=Dis state
-        {
-            DBGERR("READY_FOR_DATA stuck\n");
-            return true;
-        }
         Thread::sleep(sleepTime);
     }
     DBGERR("Timeout waiting card ready\n");
@@ -1368,6 +1364,7 @@ static bool multipleBlockWrite(const unsigned int *buffer, unsigned int nblk,
 // Class CardSelector
 //
 
+#ifndef SD_KEEP_CARD_SELECTED
 /**
  * \internal
  * Simple RAII class for selecting an SD/MMC card an automatically deselect it
@@ -1406,6 +1403,7 @@ public:
 private:
     bool success;
 };
+#endif //SD_KEEP_CARD_SELECTED
 
 //
 // Initialization helper functions
@@ -1577,9 +1575,10 @@ ssize_t SDIODriver::readBlock(void* buffer, size_t size, off_t where)
 
     for(int i=0;i<ClockController::getRetryCount();i++)
     {
-        //Select card
+        #ifndef SD_KEEP_CARD_SELECTED
         CardSelector selector;
         if(selector.succeded()==false) continue;
+        #endif //SD_KEEP_CARD_SELECTED
         bool error=false;
         
         #ifdef __ENABLE_XRAM
@@ -1646,9 +1645,10 @@ ssize_t SDIODriver::writeBlock(const void* buffer, size_t size, off_t where)
 
     for(int i=0;i<ClockController::getRetryCount();i++)
     {
-        //Select card
+        #ifndef SD_KEEP_CARD_SELECTED
         CardSelector selector;
         if(selector.succeded()==false) continue;
+        #endif //SD_KEEP_CARD_SELECTED
         bool error=false;
 
         #ifdef __ENABLE_XRAM
@@ -1752,8 +1752,14 @@ SDIODriver::SDIODriver() : Device(Device::BLOCK)
 
     //Lastly, try selecting the card and configure the latest bits
     {
+        #ifndef SD_KEEP_CARD_SELECTED
         CardSelector selector;
         if(selector.succeded()==false) return;
+        #else //SD_KEEP_CARD_SELECTED
+        //Select card here, and keep it selected indefinitely
+        r=Command::send(Command::CMD7,Command::getRca()<<16);
+        if(r.validateR1Response()==false) return;
+        #endif //SD_KEEP_CARD_SELECTED
 
         r=Command::send(Command::CMD13,Command::getRca()<<16);//Get status
         if(r.validateR1Response()==false) return;

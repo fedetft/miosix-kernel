@@ -634,7 +634,11 @@ bool ClockController::reduceClockSpeed()
 
 void ClockController::setClockSpeed(unsigned int clkdiv)
 {
+    #ifndef SD_KEEP_CARD_SELECTED
     SDMMC->CLKCR=clkdiv | CLKCR_FLAGS;
+    #else //SD_KEEP_CARD_SELECTED
+    SDMMC->CLKCR=clkdiv | CLKCR_FLAGS | SDMMC_CLKCR_HWFC_EN;
+    #endif //SD_KEEP_CARD_SELECTED
     //Timeout 600ms expressed in SD_CK cycles
     if(clkdiv==0) SDMMC->DTIMER=6*SDMMCCLK/10; //No clock division if clockdiv=0
     else SDMMC->DTIMER=6*SDMMCCLK/(10*2*clkdiv);
@@ -663,13 +667,6 @@ static bool waitForCardReady()
         if(cr.validateR1Response()==false) return false;
         //Bit 8 in R1 response means ready for data.
         if(cr.getResponse() & (1<<8)) return true;
-        #ifndef SD_ONE_BIT_DATABUS
-        if(cr.getState()==8) //8=Dis state
-        {
-            DBGERR("READY_FOR_DATA stuck\n");
-            return true;
-        }
-        #endif //SD_ONE_BIT_DATABUS
         Thread::sleep(sleepTime);
     }
     DBGERR("Timeout waiting card ready\n");
@@ -887,6 +884,7 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
 // Class CardSelector
 //
 
+#ifndef SD_KEEP_CARD_SELECTED
 /**
  * \internal
  * Simple RAII class for selecting an SD/MMC card an automatically deselect it
@@ -925,6 +923,7 @@ public:
 private:
     bool success;
 };
+#endif //SD_KEEP_CARD_SELECTED
 
 //
 // Initialization helper functions
@@ -1119,8 +1118,10 @@ ssize_t SDIODriver::readBlock(void* buffer, size_t size, off_t where)
     
     for(int i=0;i<ClockController::getRetryCount();i++)
     {
+        #ifndef SD_KEEP_CARD_SELECTED
         CardSelector selector;
         if(selector.succeded()==false) continue;
+        #endif //SD_KEEP_CARD_SELECTED
         bool error=false;
         
        
@@ -1148,8 +1149,10 @@ ssize_t SDIODriver::writeBlock(const void* buffer, size_t size, off_t where)
     
     for(int i=0;i<ClockController::getRetryCount();i++)
     {
+        #ifndef SD_KEEP_CARD_SELECTED
         CardSelector selector;
         if(selector.succeded()==false) continue;
+        #endif //SD_KEEP_CARD_SELECTED
         bool error=false;
         
         
@@ -1216,8 +1219,14 @@ SDIODriver::SDIODriver() : Device(Device::BLOCK)
 
     //Lastly, try selecting the card and configure the latest bits
     {
+        #ifndef SD_KEEP_CARD_SELECTED
         CardSelector selector;
         if(selector.succeded()==false) return;
+        #else //SD_KEEP_CARD_SELECTED
+        //Select card here, and keep it selected indefinitely
+        r=Command::send(Command::CMD7,Command::getRca()<<16);
+        if(r.validateR1Response()==false) return;
+        #endif //SD_KEEP_CARD_SELECTED
 
         r=Command::send(Command::CMD13,Command::getRca()<<16);//Get status
         if(r.validateR1Response()==false) return;
