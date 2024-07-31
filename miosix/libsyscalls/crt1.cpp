@@ -52,7 +52,7 @@ struct AtexitBlock
     AtexitBlock *next;                    ///< Next block, nullptr if last
 };
 
-static AtexitBlock head = {}; ///< Head of the AtexitBlock list
+static AtexitBlock *head = nullptr; ///< Head of the AtexitBlock list
 
 /// Mutex to protect the heap
 static pthread_mutex_t mallocMutex=PTHREAD_MUTEX_RECURSIVE_INITIALIZER_NP;
@@ -136,21 +136,23 @@ int __isattyfailed(int ec)
 int __register_exitproc(int type, void (*fn)(void*), void *arg, void *d)
 {
     //iprintf("__register_exitproc(%d,%p,%p,%p)\n",type,fn,arg,d);
-    AtexitBlock *walk=&head;
+    AtexitBlock *walk=head;
     int index=0;
-    while(walk->fns[index])
+    bool needAlloc=false;
+    if(walk==nullptr) needAlloc=true;
+    else while(walk->fns[index])
     {
         if(++index<numAtexitEntries) continue;
         index=0;
-        if(walk->next)
-        {
-            walk=walk->next;
-            continue;
-        }
-        void *ptr=calloc(1,sizeof(AtexitBlock));
-        if(ptr==nullptr) return 1;
-        walk->next=static_cast<AtexitBlock *>(ptr);
+        needAlloc=true;
         break;
+    }
+    if(needAlloc)
+    {
+        auto *ptr=static_cast<AtexitBlock *>(calloc(1,sizeof(AtexitBlock)));
+        if(ptr==nullptr) return 1;
+        ptr->next=walk;
+        head=walk=ptr;
     }
     walk->fns[index]=fn;
     walk->args[index]=arg;
@@ -167,12 +169,11 @@ void __call_exitprocs(int code, void *d)
     //NOTE: we are not deallocating the linked list not to pull in free if the
     //program never calls __register_exitproc, and also because the process is
     //going to terminate anyway
-    int index=0;
-    for(AtexitBlock *walk=&head;walk && walk->fns[index];)
+    AtexitBlock *walk=head;
+    while(walk)
     {
-        walk->fns[index](walk->args[index]);
-        if(++index<numAtexitEntries) continue;
-        index=0;
+        for(int index=numAtexitEntries-1;index>=0;index--)
+            if(walk->fns[index]) walk->fns[index](walk->args[index]);
         walk=walk->next;
     }
 }
