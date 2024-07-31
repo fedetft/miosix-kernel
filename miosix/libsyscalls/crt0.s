@@ -104,6 +104,19 @@ _start:
 	.word	environ(GOT)
 
 /**
+ * pthread_yield
+ * \return 0 (success)
+ */
+.section .text.pthread_yield
+.global pthread_yield
+.type pthread_yield, %function
+pthread_yield:
+	movs r3, #0
+	svc  0
+	movs r0, #0
+	bx   lr
+
+/**
  * open, open a file
  * \param path file name
  * \param file access mode

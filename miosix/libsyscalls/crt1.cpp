@@ -54,6 +54,13 @@ struct AtexitBlock
 
 static AtexitBlock head = {}; ///< Head of the AtexitBlock list
 
+/// Mutex to protect the heap
+static pthread_mutex_t mallocMutex=PTHREAD_MUTEX_RECURSIVE_INITIALIZER_NP;
+
+/// TODO: to avoid mutex contention we'll need to extend the pthread_mutex_t
+/// struct with a per-mutex flag
+static int globalFlag=0;
+
 extern "C" {
 
 /**
@@ -221,7 +228,7 @@ void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr)
  */
 void __malloc_lock()
 {
-    // For now processes can't have threads, so do nothing
+    pthread_mutex_lock(&mallocMutex);
 }
 
 /**
@@ -230,7 +237,7 @@ void __malloc_lock()
  */
 void __malloc_unlock()
 {
-    // For now processes can't have threads, so do nothing
+    pthread_mutex_unlock(&mallocMutex);
 }
 
 /**
@@ -424,9 +431,140 @@ pid_t wait(int *status)
     return waitpid(-1,status,0);
 }
 
-// TODO: implement when processes can spawn threads
-int pthread_mutex_unlock(pthread_mutex_t *mutex)  { return 0; }
-int pthread_mutex_lock(pthread_mutex_t *mutex)    { return 0; }
+static int __LDREXW(volatile int *addr)
+{
+    int result;
+    asm volatile("ldrex %0, %1" : "=r" (result) : "Q" (*addr));
+    return result;
+}
+
+static int __STREXW(int value, volatile int *addr)
+{
+    int result;
+    asm volatile("strex %0, %2, %1" : "=&r" (result), "=Q" (*addr) : "r" (value));
+    return result;
+}
+
+static int atomicCompareAndSwap(volatile int *p, int prev, int next)
+{
+    int result;
+    do {
+        result=__LDREXW(p);
+        if(result!=prev)
+        {
+            asm volatile("clrex":::"memory");
+            return result;
+        }
+    } while(__STREXW(next,p));
+    asm volatile("":::"memory");
+    return result;
+}
+
+static void enterCriticalSection(pthread_mutex_t *m)
+{
+    //TODO: when we add the flag in the mutex stop using the global flag
+    while(atomicCompareAndSwap(&globalFlag,0,1)!=0) pthread_yield();
+}
+
+static void leaveCriticalSection(pthread_mutex_t *m)
+{
+    //TODO: when we add the flag in the mutex stop using the global flag
+    globalFlag=0;
+    asm volatile("":::"memory");
+}
+
+class CriticalSectionUnlock; //Forward decl
+
+class CriticalSectionLock
+{
+public:
+    CriticalSectionLock(pthread_mutex_t *mutex) : m(mutex) { enterCriticalSection(m); }
+    ~CriticalSectionLock() { leaveCriticalSection(m); }
+private:
+    friend class CriticalSectionUnlock;
+    pthread_mutex_t *m;
+};
+
+class CriticalSectionUnlock
+{
+public:
+    CriticalSectionUnlock(CriticalSectionLock l) :m(l.m) { leaveCriticalSection(m); }
+    ~CriticalSectionUnlock() { enterCriticalSection(m); }
+private:
+    pthread_mutex_t *m;
+};
+
+void *getCurrentThread()
+{
+    return reinterpret_cast<void*>(1); //TODO: stub we need a syscall for that
+}
+
+int pthread_mutex_lock(pthread_mutex_t *mutex)
+{
+    CriticalSectionLock lock(mutex);
+    void *p=getCurrentThread();
+    if(mutex->owner==nullptr)
+    {
+        mutex->owner=p;
+        return 0;
+    }
+
+    //This check is very important. Without this attempting to lock the same
+    //mutex twice won't cause a deadlock because the wait is enclosed in a
+    //while(owner!=p) which is immeditely false.
+    if(mutex->owner==p)
+    {
+        if(mutex->recursive>=0)
+        {
+            mutex->recursive++;
+            return 0;
+        } else exit(1); //Bad, deadlock
+    }
+
+    WaitingList waiting; //Element of a linked list on stack
+    waiting.thread=p;
+    waiting.next=nullptr; //Putting this thread last on the list (lifo policy)
+    if(mutex->first==nullptr)
+    {
+        mutex->first=&waiting;
+        mutex->last=&waiting;
+    } else {
+        mutex->last->next=&waiting;
+        mutex->last=&waiting;
+    }
+
+    //The while is necessary to protect against spurious wakeups
+    while(mutex->owner!=p)
+    {
+        CriticalSectionUnlock unlock(lock);
+        //TODO: to improve performance we need
+        //1) a syscall to ask the OS to block the thread
+        //2) a way to atomically exit the critical section and block, otherwise
+        //   we have a race condition if the wakeup occurs in between
+        pthread_yield();
+    }
+    return 0;
+}
+int pthread_mutex_unlock(pthread_mutex_t *mutex)
+{
+    CriticalSectionLock lock(mutex);
+    if(mutex->recursive>0)
+    {
+        mutex->recursive--;
+        return 0;
+    }
+    if(mutex->first!=nullptr)
+    {
+        //TODO: once the code to block a thread in pthread_mutex_lock is added
+        //here we need to call the syscall to wake it up
+        mutex->owner=mutex->first->thread;
+        mutex->first=mutex->first->next;
+        return 0;
+    }
+    mutex->owner=nullptr;
+    return 0;
+}
+
 int pthread_mutex_destroy(pthread_mutex_t *mutex) { return 0; }
 int pthread_setcancelstate(int state, int *oldstate) { return 0; }
 
