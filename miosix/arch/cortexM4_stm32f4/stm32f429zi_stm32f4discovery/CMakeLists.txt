@@ -1,7 +1,7 @@
 # Copyright (C) 2024 by Skyward
 #
-# This program is free software; you can redistribute it and/or 
-# it under the terms of the GNU General Public License as published 
+# This program is free software; you can redistribute it and/or
+# it under the terms of the GNU General Public License as published
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 #
@@ -15,8 +15,8 @@
 # and link it with other works to produce a work based on this file,
 # this file does not by itself cause the resulting work to be covered
 # by the GNU General Public License. However the source code for this
-# file must still be made available in accordance with the GNU 
-# Public License. This exception does not invalidate any other 
+# file must still be made available in accordance with the GNU
+# Public License. This exception does not invalidate any other
 # why a work based on this file might be covered by the GNU General
 # Public License.
 #
@@ -27,7 +27,14 @@
 set(BOARD_INC ${KPATH}/arch/${ARCH_NAME}/${MIOSIX_OPT_BOARD})
 
 # The user can set a custom path for board_settings.h
-set(MIOSIX_BOARD_CONFIG_INC ${KPATH}/config/arch/${ARCH_NAME}/${MIOSIX_OPT_BOARD} CACHE PATH "Include directory for board_settings.h")
+set(MIOSIX_CUSTOM_BOARD_SETTINGS_INC "" CACHE PATH "Include directory for custom board_settings.h")
+mark_as_advanced(MIOSIX_CUSTOM_BOARD_SETTINGS_INC)
+if(MIOSIX_CUSTOM_BOARD_SETTINGS_INC)
+    set(MIOSIX_BOARD_SETTINGS_INC ${MIOSIX_CUSTOM_BOARD_SETTINGS_INC})
+    message(NOTICE "You have set a custom path for board_settings.h")
+else()
+    set(MIOSIX_BOARD_SETTINGS_INC ${KPATH}/config/arch/${ARCH_NAME}/${MIOSIX_OPT_BOARD})
+endif()
 
 # Linker script type, there are three options
 # 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
@@ -36,35 +43,44 @@ set(MIOSIX_BOARD_CONFIG_INC ${KPATH}/config/arch/${ARCH_NAME}/${MIOSIX_OPT_BOARD
 #    You must uncomment -D__ENABLE_XRAM below in this case.
 # 3) Code in FLASH, stack + heap in external RAM (file *6m_xram.ld)
 #    Same as above, but leaves the upper 2MB of RAM for the LCD.
-# set(MIOSIX_LINKER_SCRIPT ${BOARD_INC}/stm32_2m+256k_rom.ld CACHE FILEPATH "Linker script")
-# set(MIOSIX_LINKER_SCRIPT ${BOARD_INC}/stm32_2m+8m_xram.ld CACHE FILEPATH "Linker script")
-set(MIOSIX_LINKER_SCRIPT ${BOARD_INC}/stm32_2m+6m_xram.ld CACHE FILEPATH "Linker script")
+set(MIOSIX_LINKER_SCRIPT_LIST
+    stm32_2m+256k_rom.ld
+    stm32_2m+8m_xram.ld
+    stm32_2m+6m_xram.ld
+)
+if(NOT MIOSIX_LINKER_SCRIPT IN_LIST MIOSIX_LINKER_SCRIPT_LIST)
+    # If there is no cached value, or the cached value is not in the list, set a default value
+    set(MIOSIX_LINKER_SCRIPT stm32_2m+6m_xram.ld CACHE STRING "Linker script" FORCE)
+endif()
+set_property(CACHE MIOSIX_LINKER_SCRIPT PROPERTY STRINGS ${MIOSIX_LINKER_SCRIPT_LIST})
 
 # Uncommenting __ENABLE_XRAM enables the initialization of the external
 # 8MB SDRAM memory. Do not uncomment this even if you don't use a linker
 # script that requires it, as it is used for the LCD framebuffer.
 option(MIOSIX_ENABLE_XRAM "Enables the initialization of the external 16MB SDRAM memory" ON)
 if(MIOSIX_ENABLE_XRAM)
-    set(XRAM -D__ENABLE_XRAM)
+    set(XRAM -D__ENABLE_XRAM) # TODO: Change to an always defined flag
 else()
-    message(NOTICE "You have disabled the XRAM, make sure that your linker script does not use it")
+    message(NOTICE "You have disabled the XRAM, make sure that the selected linker script does not use it")
 endif()
 
 # Select HSE clock frequency (external clock on board, fixed)
-set(MIOSIX_HSE_VALUE -DHSE_VALUE=8000000 CACHE STRING "HSE clock frequency (external clock on board, fixed)")
+set(MIOSIX_HSE_VALUE -DHSE_VALUE=8000000)
 
 # Select clock frequency.
 # Warning: due to a limitation in the PLL, it is not possible to generate
 # a precise 48MHz output when running the core at 180MHz. If 180MHz is
 # chosen the SDIO and RNG will run ~6% slower (45MHz insteand of 48MHz)
-# set(MIOSIX_SYSCLK_FREQ -DSYSCLK_FREQ_180MHz=180000000 CACHE STRING "Clock frenquency")
-set(MIOSIX_SYSCLK_FREQ -DSYSCLK_FREQ_168MHz=168000000 CACHE STRING "Clock frenquency")
-# set(SYSCLK_FREQ -DSYSCLK_FREQ_100MHz=100000000 CACHE STRING "Clock frenquency")
-set_property(CACHE MIOSIX_SYSCLK_FREQ PROPERTY STRINGS
+set(MIOSIX_SYSCLK_FREQ_LIST
     -DSYSCLK_FREQ_180MHz=180000000
     -DSYSCLK_FREQ_168MHz=168000000
     -DSYSCLK_FREQ_100MHz=100000000
 )
+if(NOT MIOSIX_SYSCLK_FREQ IN_LIST MIOSIX_SYSCLK_FREQ_LIST)
+    # If there is no cached value, or the cached value is not in the list, set a default value
+    set(MIOSIX_SYSCLK_FREQ -DSYSCLK_FREQ_168MHz=168000000 CACHE STRING "Clock frenquency" FORCE)
+endif()
+set_property(CACHE MIOSIX_SYSCLK_FREQ PROPERTY STRINGS ${MIOSIX_SYSCLK_FREQ_LIST})
 
 if(MIOSIX_SYSCLK_FREQ STREQUAL -DSYSCLK_FREQ_180MHz=180000000)
     message(NOTICE "The clock frequency has been set to 180MHz, the SDIO and RNG will run ~6% slower (45MHz insteand of 48MHz)")

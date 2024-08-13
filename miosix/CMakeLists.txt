@@ -1,7 +1,7 @@
 # Copyright (C) 2024 by Skyward
 #
-# This program is free software; you can redistribute it and/or 
-# it under the terms of the GNU General Public License as published 
+# This program is free software; you can redistribute it and/or
+# it under the terms of the GNU General Public License as published
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 #
@@ -15,8 +15,8 @@
 # and link it with other works to produce a work based on this file,
 # this file does not by itself cause the resulting work to be covered
 # by the GNU General Public License. However the source code for this
-# file must still be made available in accordance with the GNU 
-# Public License. This exception does not invalidate any other 
+# file must still be made available in accordance with the GNU
+# Public License. This exception does not invalidate any other
 # why a work based on this file might be covered by the GNU General
 # Public License.
 #
@@ -37,7 +37,7 @@ set(BOARDS
     stm32f429zi_stm32f4discovery
 )
 
-set(KPATH ${CMAKE_CURRENT_LIST_DIR})
+set(KPATH ${CMAKE_CURRENT_LIST_DIR} CACHE PATH "Path to the miosix kernel")
 
 set(KERNEL_SRC
     ${KPATH}/kernel/kernel.cpp
@@ -90,7 +90,7 @@ set(REQUIRED_VARIABLES
     MIOSIX_OPT_BOARD
     ARCH_INC
     BOARD_INC
-    MIOSIX_BOARD_CONFIG_INC
+    MIOSIX_BOARD_SETTINGS_INC
     MIOSIX_LINKER_SCRIPT
     AFLAGS_BASE
     CFLAGS_BASE
@@ -105,7 +105,14 @@ foreach(VARIABLE ${REQUIRED_VARIABLES})
 endforeach()
 
 # The user can set a custom path for miosix_settings.h
-set(MIOSIX_SETTINGS_PATH ${KPATH}/default CACHE PATH "Include directory for miosix_settings.h")
+set(MIOSIX_CUSTOM_SETTINGS_INC "" CACHE PATH "Include directory for custom miosix_settings.h")
+mark_as_advanced(MIOSIX_CUSTOM_SETTINGS_INC)
+if(MIOSIX_CUSTOM_SETTINGS_INC)
+    set(MIOSIX_SETTINGS_PATH ${MIOSIX_CUSTOM_SETTINGS_INC})
+    message(NOTICE "You have set a custom path for miosix_settings.h")
+else()
+    set(MIOSIX_SETTINGS_PATH ${KPATH}/default)
+endif()
 
 # Define the miosix library with kernel and architecture sources
 add_library(miosix STATIC ${KERNEL_SRC} ${ARCH_SRC})
@@ -115,7 +122,7 @@ target_include_directories(miosix PUBLIC
     ${KPATH}/arch/common
     ${ARCH_INC}
     ${BOARD_INC}
-    ${MIOSIX_BOARD_CONFIG_INC}
+    ${MIOSIX_BOARD_SETTINGS_INC}
     ${MIOSIX_SETTINGS_PATH}
 )
 
@@ -132,7 +139,7 @@ set_property(TARGET miosix PROPERTY PROGRAM_CMDLINE ${PROGRAM_CMDLINE})
 target_compile_definitions(miosix PRIVATE $<$<COMPILE_LANGUAGE:C,CXX>:COMPILING_MIOSIX>)
 
 # Configure linker file and options
-set_property(TARGET miosix PROPERTY LINK_DEPENDS ${MIOSIX_LINKER_SCRIPT})
+set_property(TARGET miosix PROPERTY LINK_DEPENDS ${BOARD_INC}/${MIOSIX_LINKER_SCRIPT})
 target_link_options(miosix PUBLIC ${LFLAGS_BASE})
 
 # Run the kernel_global_objects.pl script on all kernel objects

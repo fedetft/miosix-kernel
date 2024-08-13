@@ -1,7 +1,7 @@
 # Copyright (C) 2024 by Skyward
 #
-# This program is free software; you can redistribute it and/or 
-# it under the terms of the GNU General Public License as published 
+# This program is free software; you can redistribute it and/or
+# it under the terms of the GNU General Public License as published
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 #
@@ -15,8 +15,8 @@
 # and link it with other works to produce a work based on this file,
 # this file does not by itself cause the resulting work to be covered
 # by the GNU General Public License. However the source code for this
-# file must still be made available in accordance with the GNU 
-# Public License. This exception does not invalidate any other 
+# file must still be made available in accordance with the GNU
+# Public License. This exception does not invalidate any other
 # why a work based on this file might be covered by the GNU General
 # Public License.
 #
@@ -27,38 +27,54 @@
 set(BOARD_INC ${KPATH}/arch/${ARCH_NAME}/${MIOSIX_OPT_BOARD})
 
 # The user can set a custom path for board_settings.h
-set(MIOSIX_BOARD_CONFIG_INC ${KPATH}/config/arch/${ARCH_NAME}/${MIOSIX_OPT_BOARD} CACHE PATH "Include directory for board_settings.h")
+set(MIOSIX_CUSTOM_BOARD_SETTINGS_INC "" CACHE PATH "Include directory for custom board_settings.h")
+mark_as_advanced(MIOSIX_CUSTOM_BOARD_SETTINGS_INC)
+if(MIOSIX_CUSTOM_BOARD_SETTINGS_INC)
+    set(MIOSIX_BOARD_SETTINGS_INC ${MIOSIX_CUSTOM_BOARD_SETTINGS_INC})
+    message(NOTICE "You have set a custom path for board_settings.h")
+else()
+    set(MIOSIX_BOARD_SETTINGS_INC ${KPATH}/config/arch/${ARCH_NAME}/${MIOSIX_OPT_BOARD})
+endif()
 
 # Linker script options:
 # 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
 # 2) Code + stack + heap in internal RAM (file *_ram.ld)
 # 3) Same as 1) but space has been reserved for a process pool, allowing
 #    to configure the kernel with "#define WITH_PROCESSES"
-set(MIOSIX_LINKER_SCRIPT ${BOARD_INC}/stm32_1m+192k_rom.ld CACHE FILEPATH "Linker script")
-# set(MIOSIX_LINKER_SCRIPT ${BOARD_INC}/stm32_1m+192k_ram.ld CACHE FILEPATH "Linker script")
-# set(MIOSIX_LINKER_SCRIPT ${BOARD_INC}/stm32_1m+192k_rom_processes.ld CACHE FILEPATH "Linker script")
+set(MIOSIX_LINKER_SCRIPT_LIST
+    stm32_1m+192k_rom.ld
+    stm32_1m+192k_ram.ld
+    stm32_1m+192k_rom_processes.ld
+)
+if(NOT MIOSIX_LINKER_SCRIPT IN_LIST MIOSIX_LINKER_SCRIPT_LIST)
+    # If there is no cached value, or the cached value is not in the list, set a default value
+    set(MIOSIX_LINKER_SCRIPT stm32_1m+192k_rom.ld CACHE STRING "Linker script" FORCE)
+endif()
+set_property(CACHE MIOSIX_LINKER_SCRIPT PROPERTY STRINGS ${MIOSIX_LINKER_SCRIPT_LIST})
 
 # This causes the interrupt vector table to be relocated in SRAM, must be
 # uncommented when using the ram linker script
 option(MIOSIX_SRAM_BOOT "This causes the interrupt vector table to be relocated in SRAM" OFF)
 if(MIOSIX_SRAM_BOOT)
-    set(SRAM_BOOT -DVECT_TAB_SRAM)
+    set(SRAM_BOOT -DVECT_TAB_SRAM) # TODO: Change to an always defined flag
 elseif(MIOSIX_LINKER_SCRIPT STREQUAL ${BOARD_INC}/stm32_1m+192k_ram.ld)
     message(WARNING "You are relocating the interrupt vector table in SRAM but you are not using the ram linker script")
 endif()
 
 # Select HSE clock frequency (external clock on board, fixed)
-set(MIOSIX_HSE_VALUE -DHSE_VALUE=8000000 CACHE STRING "HSE clock frequency (external clock on board, fixed)")
+set(MIOSIX_HSE_VALUE -DHSE_VALUE=8000000)
 
 # Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-set(MIOSIX_SYSCLK_FREQ -DSYSCLK_FREQ_168MHz=168000000 CACHE STRING "Clock frenquency")
-# set(SYSCLK_FREQ -DSYSCLK_FREQ_100MHz=100000000 CACHE STRING "Clock frenquency")
-# set(SYSCLK_FREQ -DSYSCLK_FREQ_84MHz=84000000 CACHE STRING "Clock frenquency")
-set_property(CACHE MIOSIX_SYSCLK_FREQ PROPERTY STRINGS
+set(MIOSIX_SYSCLK_FREQ_LIST
     -DSYSCLK_FREQ_168MHz=168000000
     -DSYSCLK_FREQ_100MHz=100000000
     -DSYSCLK_FREQ_84MHz=84000000
 )
+if(NOT MIOSIX_SYSCLK_FREQ IN_LIST MIOSIX_SYSCLK_FREQ_LIST)
+    # If there is no cached value, or the cached value is not in the list, set a default value
+    set(MIOSIX_SYSCLK_FREQ -DSYSCLK_FREQ_168MHz=168000000 CACHE STRING "Clock frenquency" FORCE)
+endif()
+set_property(CACHE MIOSIX_SYSCLK_FREQ PROPERTY STRINGS ${MIOSIX_SYSCLK_FREQ_LIST})
 
 # Select architecture specific files
 set(ARCH_SRC

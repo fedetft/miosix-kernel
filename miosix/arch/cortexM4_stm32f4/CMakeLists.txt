@@ -1,7 +1,7 @@
 # Copyright (C) 2024 by Skyward
 #
-# This program is free software; you can redistribute it and/or 
-# it under the terms of the GNU General Public License as published 
+# This program is free software; you can redistribute it and/or
+# it under the terms of the GNU General Public License as published
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 #
@@ -15,8 +15,8 @@
 # and link it with other works to produce a work based on this file,
 # this file does not by itself cause the resulting work to be covered
 # by the GNU General Public License. However the source code for this
-# file must still be made available in accordance with the GNU 
-# Public License. This exception does not invalidate any other 
+# file must still be made available in accordance with the GNU
+# Public License. This exception does not invalidate any other
 # why a work based on this file might be covered by the GNU General
 # Public License.
 #
@@ -26,7 +26,7 @@
 # Base directory with common header files for this board
 set(ARCH_INC ${KPATH}/arch/${ARCH_NAME}/common)
 
-# Including board specific options
+# Include board specific options
 include(${KPATH}/arch/${ARCH_NAME}/${MIOSIX_OPT_BOARD}/CMakeLists.txt)
 
 # Automatically transform the architecture name into upper cases
@@ -44,8 +44,8 @@ list(APPEND CXXFLAGS_BASE
     ${SRAM_BOOT} ${CPU} ${OPT_EXCEPT} -c
 )
 set(LFLAGS_BASE
-    ${CPU} -Wl,--gc-sections,-Map,main.map
-    -Wl,-T${MIOSIX_LINKER_SCRIPT} ${OPT_EXCEPT} -nostdlib
+    ${CPU} -Wl,--gc-sections,-Map,main.map # TODO: Check main.map
+    -Wl,-T${BOARD_INC}/${MIOSIX_LINKER_SCRIPT} ${OPT_EXCEPT} -nostdlib
 )
 
 # Select architecture specific files
