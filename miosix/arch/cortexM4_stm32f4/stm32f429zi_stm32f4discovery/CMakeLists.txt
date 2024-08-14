@@ -24,7 +24,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 # Directory with header files for this board
-set(BOARD_INC ${KPATH}/arch/${ARCH_NAME}/${MIOSIX_OPT_BOARD})
+set(MIOSIX_BOARD_INC ${MIOSIX_KPATH}/arch/${MIOSIX_ARCH_NAME}/${MIOSIX_OPT_BOARD})
 
 # The user can set a custom path for board_settings.h
 set(MIOSIX_CUSTOM_BOARD_SETTINGS_INC "" CACHE PATH "Include directory for custom board_settings.h")
@@ -33,7 +33,7 @@ if(MIOSIX_CUSTOM_BOARD_SETTINGS_INC)
     set(MIOSIX_BOARD_SETTINGS_INC ${MIOSIX_CUSTOM_BOARD_SETTINGS_INC})
     message(NOTICE "You have set a custom path for board_settings.h")
 else()
-    set(MIOSIX_BOARD_SETTINGS_INC ${KPATH}/config/arch/${ARCH_NAME}/${MIOSIX_OPT_BOARD})
+    set(MIOSIX_BOARD_SETTINGS_INC ${MIOSIX_KPATH}/config/arch/${MIOSIX_ARCH_NAME}/${MIOSIX_OPT_BOARD})
 endif()
 
 # Linker script type, there are three options
@@ -87,16 +87,16 @@ if(MIOSIX_SYSCLK_FREQ STREQUAL -DSYSCLK_FREQ_180MHz=180000000)
 endif()
 
 # Select architecture specific files
-set(ARCH_SRC
-    ${BOARD_INC}/core/stage_1_boot.cpp
-    ${KPATH}/arch/common/drivers/stm32f2_f4_i2c.cpp
-    ${KPATH}/arch/common/drivers/stm32_hardware_rng.cpp
-    ${BOARD_INC}/interfaces-impl/bsp.cpp
+set(MIOSIX_ARCH_SRC
+    ${MIOSIX_BOARD_INC}/core/stage_1_boot.cpp
+    ${MIOSIX_KPATH}/arch/common/drivers/stm32f2_f4_i2c.cpp
+    ${MIOSIX_KPATH}/arch/common/drivers/stm32_hardware_rng.cpp
+    ${MIOSIX_BOARD_INC}/interfaces-impl/bsp.cpp
 )
 
 # Add a #define to allow querying board name
-list(APPEND CFLAGS_BASE -D_BOARD_STM32F429ZI_STM32F4DISCOVERY)
-list(APPEND CXXFLAGS_BASE -D_BOARD_STM32F429ZI_STM32F4DISCOVERY)
+list(APPEND MIOSIX_CFLAGS -D_BOARD_STM32F429ZI_STM32F4DISCOVERY)
+list(APPEND MIOSIX_CXX_FLAGS -D_BOARD_STM32F429ZI_STM32F4DISCOVERY)
 
 # Specify a custom flash command
 # This is the program that is invoked when the program-<target_name> target is
