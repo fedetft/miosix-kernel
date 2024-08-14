@@ -26,6 +26,7 @@
 set(MIOSIX_BOARDS
     stm32f407vg_stm32f4discovery
     stm32f429zi_stm32f4discovery
+    stm32f767zi_nucleo
 )
 
 # Target board option, this also implicitly select the target architecture
@@ -56,6 +57,12 @@ if(
     MIOSIX_OPT_BOARD STREQUAL stm32f429zi_stm32f4discovery
 )
     set(MIOSIX_ARCH_NAME cortexM4_stm32f4)
+elseif(
+    MIOSIX_OPT_BOARD STREQUAL stm32f767zi_nucleo
+)
+    set(MIOSIX_ARCH_NAME cortexM7_stm32f7)
+else()
+    message(FATAL_ERROR "Unknown architecture for board ${MIOSIX_OPT_BOARD}")
 endif()
 
 # Then, initialize C/C++ flags
