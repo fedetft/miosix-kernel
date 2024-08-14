@@ -25,11 +25,11 @@
 
 # Target board option, this also implicitly select the target architecture
 set(MIOSIX_OPT_BOARD NOT_SET CACHE STRING "Target board")
-set_property(CACHE MIOSIX_OPT_BOARD PROPERTY STRINGS ${BOARDS})
+set_property(CACHE MIOSIX_OPT_BOARD PROPERTY STRINGS ${MIOSIX_BOARDS})
 if(MIOSIX_OPT_BOARD STREQUAL NOT_SET)
     message(FATAL_ERROR "You must specify a target board with MIOSIX_OPT_BOARD")
-elseif(NOT MIOSIX_OPT_BOARD IN_LIST BOARDS)
-    message(FATAL_ERROR "Selected board is not in the BOARDS list")
+elseif(NOT MIOSIX_OPT_BOARD IN_LIST MIOSIX_BOARDS)
+    message(FATAL_ERROR "Selected board is not in the MIOSIX_BOARDS list")
 endif()
 
 # Optimization flags are set with CMAKE_<LANG>_FLAGS_<CONFIG>
@@ -49,15 +49,15 @@ if(
     MIOSIX_OPT_BOARD STREQUAL stm32f407vg_stm32f4discovery OR
     MIOSIX_OPT_BOARD STREQUAL stm32f429zi_stm32f4discovery
 )
-    set(ARCH_NAME cortexM4_stm32f4)
+    set(MIOSIX_ARCH_NAME cortexM4_stm32f4)
 endif()
 
 # Then, initialize C/C++ flags
-set(CFLAGS_BASE
+set(MIOSIX_CFLAGS
     -D_MIOSIX_BOARDNAME="${MIOSIX_OPT_BOARD}" -D_DEFAULT_SOURCE=1
     -ffunction-sections -Wall -Werror=return-type -g
 )
-set(CXXFLAGS_BASE
+set(MIOSIX_CXX_FLAGS
     -D_MIOSIX_BOARDNAME="${MIOSIX_OPT_BOARD}" -D_DEFAULT_SOURCE=1
     -std=c++14 -ffunction-sections -Wall -Werror=return-type -g
 )
@@ -65,4 +65,4 @@ set(CXXFLAGS_BASE
 # Now include the architecture specific CMakeLists that will:
 # - Sets common things for all boards of that specific architecture
 # - Includes the board specific CMakeLists file
-include(${KPATH}/arch/${ARCH_NAME}/CMakeLists.txt)
+include(${MIOSIX_KPATH}/arch/${MIOSIX_ARCH_NAME}/CMakeLists.txt)
