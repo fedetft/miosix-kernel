@@ -130,9 +130,9 @@ set_property(TARGET miosix PROPERTY PROGRAM_CMDLINE ${PROGRAM_CMDLINE})
 # Add COMPILING_MIOSIX define for private headers
 target_compile_definitions(miosix PRIVATE $<$<COMPILE_LANGUAGE:C,CXX>:COMPILING_MIOSIX>)
 
-# Configure linker file and options
+# Configure linker file and options needed to link agains this library
 set_property(TARGET miosix PROPERTY LINK_DEPENDS ${MIOSIX_BOARD_INC}/${MIOSIX_LINKER_SCRIPT})
-target_link_options(miosix PUBLIC ${MIOSIX_L_FLAGS})
+target_link_options(miosix INTERFACE ${MIOSIX_L_FLAGS})
 
 # Run the kernel_global_objects.pl script on all kernel objects
 add_custom_command(

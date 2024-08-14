@@ -47,7 +47,6 @@ set(MIOSIX_L_FLAGS
     ${MIOSIX_CPU_FLAGS} -Wl,--gc-sections,-Map,main.map # TODO: Check main.map
     -Wl,-T${MIOSIX_BOARD_INC}/${MIOSIX_LINKER_SCRIPT} ${MIOSIX_OPT_EXCEPT} -nostdlib
 )
-message("MIOSIX_L_FLAGS: ${MIOSIX_L_FLAGS}")
 
 # Select architecture specific files
 list(APPEND MIOSIX_ARCH_SRC

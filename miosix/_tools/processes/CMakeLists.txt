@@ -27,29 +27,29 @@ cmake_minimum_required(VERSION 3.16)
 
 project(ProcessesExamples C CXX ASM)
 
-# Bypass the ckeck in miosix_settings.h
+# Set Miosix definitions and options
 add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX>:PARSING_FROM_IDE>)
-
-# Enable processes
 add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX>:WITH_PROCESSES>)
-
-# Set here your board of choice
 set(MIOSIX_OPT_BOARD stm32f429zi_stm32f4discovery CACHE STRING "Target board")
-
-# Select processes ready linker script
 set(MIOSIX_LINKER_SCRIPT stm32_2m+256k_rom_processes.ld CACHE FILEPATH "Linker script")
 
 add_subdirectory(../.. miosix EXCLUDE_FROM_ALL)
-add_subdirectory(process_template)
+add_subdirectory(../../libsyscalls libsyscalls EXCLUDE_FROM_ALL)
 
 include(LinkTarget)
+include(AddProcess)
 
-# List here your source files (.s, .c and .cpp)
+# Kernel level program
 add_executable(main start_process.cpp)
 
+# Processes
+miosix_add_process(hello process_template/main.cpp)
+
+# Link targets
 miosix_link_target(main)
 add_dependencies(main hello)
 
+# Add buildromfs as a dependency
 include(ExternalProject)
 ExternalProject_Add(buildromfs
     SOURCE_DIR ${MIOSIX_KPATH}/_tools/filesystems
@@ -57,14 +57,17 @@ ExternalProject_Add(buildromfs
 )
 add_dependencies(main buildromfs)
 
-# TODO: Add dependency to build buildromfs
+# Build RomFS image and combine main.bin and romfs.bin into image.bin
 add_custom_command(
-    TARGET main POST_BUILD
+    OUTPUT ${PROJECT_BINARY_DIR}/romfs.bin
+    DEPENDS hello
     COMMAND ${MIOSIX_KPATH}/_tools/filesystems/buildromfs romfs.bin --from-directory bin
     COMMENT "Built romfs.bin from bin directory"
 )
 add_custom_command(
-    TARGET main POST_BUILD
+    OUTPUT ${PROJECT_BINARY_DIR}/image.bin
+    DEPENDS ${PROJECT_BINARY_DIR}/main.bin ${PROJECT_BINARY_DIR}/romfs.bin
     COMMAND perl ${MIOSIX_KPATH}/_tools/filesystems/mkimage.pl image.bin main.bin romfs.bin
     COMMENT "Built image.bin from main.bin and romfs.bin"
 )
+add_custom_target(image ALL DEPENDS ${PROJECT_BINARY_DIR}/image.bin)
