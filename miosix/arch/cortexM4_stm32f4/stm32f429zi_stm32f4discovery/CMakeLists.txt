@@ -45,6 +45,7 @@ endif()
 #    Same as above, but leaves the upper 2MB of RAM for the LCD.
 set(MIOSIX_LINKER_SCRIPT_LIST
     stm32_2m+256k_rom.ld
+    stm32_2m+256k_rom_processes.ld
     stm32_2m+8m_xram.ld
     stm32_2m+6m_xram.ld
 )
@@ -95,7 +96,7 @@ set(MIOSIX_ARCH_SRC
 )
 
 # Add a #define to allow querying board name
-list(APPEND MIOSIX_CFLAGS -D_BOARD_STM32F429ZI_STM32F4DISCOVERY)
+list(APPEND MIOSIX_C_FLAGS -D_BOARD_STM32F429ZI_STM32F4DISCOVERY)
 list(APPEND MIOSIX_CXX_FLAGS -D_BOARD_STM32F429ZI_STM32F4DISCOVERY)
 
 # Specify a custom flash command

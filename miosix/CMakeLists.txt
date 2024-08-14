@@ -32,11 +32,6 @@ project(Miosix
     LANGUAGES C CXX
 )
 
-set(MIOSIX_BOARDS
-    stm32f407vg_stm32f4discovery
-    stm32f429zi_stm32f4discovery
-)
-
 set(MIOSIX_KPATH ${CMAKE_CURRENT_LIST_DIR} CACHE PATH "Path to the miosix kernel")
 
 set(MIOSIX_KERNEL_SRC
@@ -93,25 +88,22 @@ set(REQUIRED_VARIABLES
     MIOSIX_BOARD_SETTINGS_INC
     MIOSIX_LINKER_SCRIPT
     MIOSIX_A_FLAGS
-    MIOSIX_CFLAGS
+    MIOSIX_C_FLAGS
     MIOSIX_CXX_FLAGS
     MIOSIX_L_FLAGS
     MIOSIX_ARCH_SRC
 )
 foreach(VARIABLE ${REQUIRED_VARIABLES})
     if(NOT DEFINED ${VARIABLE})
-        message(FATAL_ERROR "Board support package must define ${VARIABLE}")
+        message(FATAL_ERROR "arch/CMakeLists.txt must define ${VARIABLE}")
     endif()
 endforeach()
 
 # The user can set a custom path for miosix_settings.h
-set(MIOSIX_CUSTOM_SETTINGS_INC "" CACHE PATH "Include directory for custom miosix_settings.h")
-mark_as_advanced(MIOSIX_CUSTOM_SETTINGS_INC)
-if(MIOSIX_CUSTOM_SETTINGS_INC)
-    set(MIOSIX_SETTINGS_PATH ${MIOSIX_CUSTOM_SETTINGS_INC})
+set(MIOSIX_SETTINGS_PATH ${MIOSIX_KPATH}/default CACHE PATH "Include directory for miosix_settings.h")
+mark_as_advanced(MIOSIX_SETTINGS_PATH)
+if(NOT MIOSIX_SETTINGS_PATH STREQUAL ${MIOSIX_KPATH}/default)
     message(NOTICE "You have set a custom path for miosix_settings.h")
-else()
-    set(MIOSIX_SETTINGS_PATH ${MIOSIX_KPATH}/default)
 endif()
 
 # Define the miosix library with kernel and architecture sources
@@ -128,7 +120,7 @@ target_include_directories(miosix PUBLIC
 
 target_compile_options(miosix PUBLIC
     $<$<COMPILE_LANGUAGE:ASM>:${MIOSIX_A_FLAGS}>
-    $<$<COMPILE_LANGUAGE:C>:${MIOSIX_CFLAGS}>
+    $<$<COMPILE_LANGUAGE:C>:${MIOSIX_C_FLAGS}>
     $<$<COMPILE_LANGUAGE:CXX>:${MIOSIX_CXX_FLAGS}>
 )
 

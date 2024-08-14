@@ -35,18 +35,19 @@ string(TOUPPER ${MIOSIX_ARCH_NAME} MIOSIX_ARCH_NAME_UPPER)
 # Select appropriate compiler flags for both ASM/C/C++/linker
 set(MIOSIX_CPU_FLAGS -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16)
 set(MIOSIX_A_FLAGS ${MIOSIX_CPU_FLAGS})
-list(APPEND MIOSIX_CFLAGS
+list(APPEND MIOSIX_C_FLAGS
     -D_ARCH_${MIOSIX_ARCH_NAME_UPPER} ${MIOSIX_HSE_VALUE} ${MIOSIX_SYSCLK_FREQ} ${XRAM}
     ${SRAM_BOOT} ${MIOSIX_CPU_FLAGS} -c
 )
 list(APPEND MIOSIX_CXX_FLAGS
     -D_ARCH_${MIOSIX_ARCH_NAME_UPPER} ${MIOSIX_HSE_VALUE} ${MIOSIX_SYSCLK_FREQ} ${XRAM}
-    ${SRAM_BOOT} ${MIOSIX_CPU_FLAGS} ${OPT_EXCEPT} -c
+    ${SRAM_BOOT} ${MIOSIX_CPU_FLAGS} ${MIOSIX_OPT_EXCEPT} -c
 )
 set(MIOSIX_L_FLAGS
     ${MIOSIX_CPU_FLAGS} -Wl,--gc-sections,-Map,main.map # TODO: Check main.map
-    -Wl,-T${MIOSIX_BOARD_INC}/${MIOSIX_LINKER_SCRIPT} ${OPT_EXCEPT} -nostdlib
+    -Wl,-T${MIOSIX_BOARD_INC}/${MIOSIX_LINKER_SCRIPT} ${MIOSIX_OPT_EXCEPT} -nostdlib
 )
+message("MIOSIX_L_FLAGS: ${MIOSIX_L_FLAGS}")
 
 # Select architecture specific files
 list(APPEND MIOSIX_ARCH_SRC

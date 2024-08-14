@@ -23,6 +23,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
+set(MIOSIX_BOARDS
+    stm32f407vg_stm32f4discovery
+    stm32f429zi_stm32f4discovery
+)
+
 # Target board option, this also implicitly select the target architecture
 set(MIOSIX_OPT_BOARD NOT_SET CACHE STRING "Target board")
 set_property(CACHE MIOSIX_OPT_BOARD PROPERTY STRINGS ${MIOSIX_BOARDS})
@@ -30,6 +35,7 @@ if(MIOSIX_OPT_BOARD STREQUAL NOT_SET)
     message(FATAL_ERROR "You must specify a target board with MIOSIX_OPT_BOARD")
 elseif(NOT MIOSIX_OPT_BOARD IN_LIST MIOSIX_BOARDS)
     message(FATAL_ERROR "Selected board is not in the MIOSIX_BOARDS list")
+    message(MIOSIX_BOARDS)
 endif()
 
 # Optimization flags are set with CMAKE_<LANG>_FLAGS_<CONFIG>
@@ -41,7 +47,7 @@ endif()
 # -D__NO_EXCEPTIONS is used by Miosix to know if exceptions are used.
 option(MIOSIX_DISABLE_EXEPTIONS "Disables C++ exceptions/rtti support" OFF)
 if(MIOSIX_DISABLE_EXEPTIONS)
-    set(OPT_EXCEPT -fno-exceptions -fno-rtti -D__NO_EXCEPTIONS)
+    set(MIOSIX_OPT_EXCEPT -fno-exceptions -fno-rtti -D__NO_EXCEPTIONS)
 endif()
 
 # Auto guess architecture name from board name
@@ -53,7 +59,7 @@ if(
 endif()
 
 # Then, initialize C/C++ flags
-set(MIOSIX_CFLAGS
+set(MIOSIX_C_FLAGS
     -D_MIOSIX_BOARDNAME="${MIOSIX_OPT_BOARD}" -D_DEFAULT_SOURCE=1
     -ffunction-sections -Wall -Werror=return-type -g
 )

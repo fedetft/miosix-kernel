@@ -88,7 +88,7 @@ set(MIOSIX_ARCH_SRC
 )
 
 # Add a #define to allow querying board name
-list(APPEND MIOSIX_CFLAGS -D_BOARD_STM32F4DISCOVERY)
+list(APPEND MIOSIX_C_FLAGS -D_BOARD_STM32F4DISCOVERY)
 list(APPEND MIOSIX_CXX_FLAGS -D_BOARD_STM32F4DISCOVERY)
 
 # Specify a custom flash command
