@@ -27,7 +27,9 @@ cmake_minimum_required(VERSION 3.16)
 
 project(LibSyscalls C CXX ASM)
 
-# Include the architecture options
+# syscalls is the library with userspace syscalls for processes
+
+# Include the architecture options, we need the variables listed below
 include(${MIOSIX_KPATH}/arch/CMakeLists.txt)
 
 # Verify that all the required variables have been defined, otherwise abort
@@ -43,7 +45,7 @@ foreach(VARIABLE ${REQUIRED_VARIABLES})
     endif()
 endforeach()
 
-# Define the syscalls library to link with processes
+# Define the syscalls library
 add_library(syscalls STATIC crt0.s crt1.cpp memoryprofiling.cpp)
 
 target_include_directories(syscalls PUBLIC
@@ -56,7 +58,7 @@ target_include_directories(syscalls PUBLIC
 )
 
 # ASM/C/C++ flags for processes
-# NOTE: The important flags the the CPU ones, -fpie and -msingle-pic-base
+# The important flags are the CPU ones, -fpie and -msingle-pic-base
 set(MIOSIX_PROCESSES_A_FLAGS ${MIOSIX_CPU_FLAGS})
 set(MIOSIX_PROCESSES_C_FLAGS
     ${MIOSIX_CPU_FLAGS} -fpie -msingle-pic-base -ffunction-sections -Wall
@@ -69,11 +71,11 @@ target_compile_options(syscalls PUBLIC
     $<$<COMPILE_LANGUAGE:CXX>:${MIOSIX_PROCESSES_CXX_FLAGS}>
 )
 
-# Configure linker file and options
+# Configure linker file and options needed to link agains this library
 set(MIOSIX_PROCESSES_L_FLAGS
     ${MIOSIX_CPU_FLAGS} -fpie -msingle-pic-base -nostdlib -Wl,--gc-sections
     -Wl,-Map,process.map,-T${MIOSIX_KPATH}/libsyscalls/process.ld # TODO: Check process.map
     -Wl,-n,-pie,--spare-dynamic-tags,3,--target2=mx-data-rel
 )
 set_property(TARGET syscalls PROPERTY LINK_DEPENDS ${MIOSIX_KPATH}/libsyscalls/process.ld)
-target_link_options(syscalls PUBLIC ${MIOSIX_PROCESSES_L_FLAGS})
+target_link_options(syscalls INTERFACE ${MIOSIX_PROCESSES_L_FLAGS})
