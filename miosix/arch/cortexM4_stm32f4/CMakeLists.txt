@@ -44,7 +44,7 @@ list(APPEND MIOSIX_CXX_FLAGS
     ${SRAM_BOOT} ${MIOSIX_CPU_FLAGS} ${MIOSIX_OPT_EXCEPT} -c
 )
 set(MIOSIX_L_FLAGS
-    ${MIOSIX_CPU_FLAGS} -Wl,--gc-sections,-Map,main.map # TODO: Check main.map
+    ${MIOSIX_CPU_FLAGS} -Wl,--gc-sections
     -Wl,-T${MIOSIX_BOARD_INC}/${MIOSIX_LINKER_SCRIPT} ${MIOSIX_OPT_EXCEPT} -nostdlib
 )
 

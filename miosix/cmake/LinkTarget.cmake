@@ -1,7 +1,7 @@
 # Copyright (C) 2024 by Skyward
 #
-# This program is free software; you can redistribute it and/or 
-# it under the terms of the GNU General Public License as published 
+# This program is free software; you can redistribute it and/or
+# it under the terms of the GNU General Public License as published
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 #
@@ -15,8 +15,8 @@
 # and link it with other works to produce a work based on this file,
 # this file does not by itself cause the resulting work to be covered
 # by the GNU General Public License. However the source code for this
-# file must still be made available in accordance with the GNU 
-# Public License. This exception does not invalidate any other 
+# file must still be made available in accordance with the GNU
+# Public License. This exception does not invalidate any other
 # why a work based on this file might be covered by the GNU General
 # Public License.
 #
@@ -51,6 +51,9 @@ function(miosix_link_target TARGET)
     target_link_libraries(${TARGET} PRIVATE
         -Wl,--start-group miosix stdc++ c m gcc atomic -Wl,--end-group
     )
+
+    # Tell the linker to produce the map file
+    target_link_options(${TARGET} PRIVATE -Wl,-Map,$<TARGET_FILE_DIR:${TARGET}>/$<TARGET_FILE_BASE_NAME:${TARGET}>.map)
 
     # Add a post build command to create the hex file to flash on the board
     add_custom_command(
