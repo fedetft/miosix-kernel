@@ -74,7 +74,7 @@ target_compile_options(syscalls PUBLIC
 # Configure linker file and options needed to link agains this library
 set(MIOSIX_PROCESSES_L_FLAGS
     ${MIOSIX_CPU_FLAGS} -fpie -msingle-pic-base -nostdlib -Wl,--gc-sections
-    -Wl,-Map,process.map,-T${MIOSIX_KPATH}/libsyscalls/process.ld # TODO: Check process.map
+    -Wl,-T${MIOSIX_KPATH}/libsyscalls/process.ld
     -Wl,-n,-pie,--spare-dynamic-tags,3,--target2=mx-data-rel
 )
 set_property(TARGET syscalls PROPERTY LINK_DEPENDS ${MIOSIX_KPATH}/libsyscalls/process.ld)

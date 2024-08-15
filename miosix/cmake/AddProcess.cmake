@@ -33,6 +33,9 @@ function(miosix_add_process TARGET SOURCES)
         -Wl,--start-group syscalls stdc++ c m gcc atomic -Wl,--end-group
     )
 
+    # Tell the linker to produce the map file
+    target_link_options(${TARGET} PRIVATE -Wl,-Map,$<TARGET_FILE_DIR:${TARGET}>/$<TARGET_FILE_BASE_NAME:${TARGET}>.map)
+
     # Strin unnecessary sections from the ELF
     add_custom_command(
         TARGET ${TARGET} POST_BUILD
