@@ -40,7 +40,7 @@ function(miosix_add_process TARGET SOURCES)
     add_custom_command(
         TARGET ${TARGET} POST_BUILD
         COMMAND arm-miosix-eabi-strip $<TARGET_FILE:${TARGET}>
-        COMMENT "Stripped $<TARGET_FILE_NAME:${TARGET}>"
+        COMMENT "Stripping $<TARGET_FILE_NAME:${TARGET}>"
     )
 
     # Run mx-postlinker to strip the section header, string table and
@@ -48,13 +48,7 @@ function(miosix_add_process TARGET SOURCES)
     add_custom_command(
         TARGET ${TARGET} POST_BUILD
         COMMAND mx-postlinker $<TARGET_FILE:${TARGET}> --ramsize=16384 --stacksize=2048 --strip-sectheader
-        COMMENT "Runned mx-postlinker on $<TARGET_FILE_NAME:${TARGET}>"
-    )
-
-    # Move the ELF into the bin directory
-    add_custom_command(
-        TARGET ${TARGET} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${TARGET}> ${CMAKE_BINARY_DIR}/bin/$<TARGET_FILE_BASE_NAME:${TARGET}>
-        COMMENT "Moved $<TARGET_FILE_NAME:${TARGET}> into bin directory"
+        # BYPRODUCTS $<TARGET_FILE:${TARGET}>
+        COMMENT "Running mx-postlinker on $<TARGET_FILE_NAME:${TARGET}>"
     )
 endfunction()

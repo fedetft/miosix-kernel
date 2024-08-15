@@ -38,36 +38,19 @@ add_subdirectory(../../libsyscalls libsyscalls EXCLUDE_FROM_ALL)
 
 include(LinkTarget)
 include(AddProcess)
+include(RomFS)
 
 # Kernel level program
 add_executable(main start_process.cpp)
+miosix_link_target(main)
 
 # Processes
 miosix_add_process(hello process_template/main.cpp)
 
-# Link targets
-miosix_link_target(main)
-add_dependencies(main hello)
-
-# Add buildromfs as a dependency
-include(ExternalProject)
-ExternalProject_Add(buildromfs
-    SOURCE_DIR ${MIOSIX_KPATH}/_tools/filesystems
-    INSTALL_COMMAND "" # Skip install
+# RomFS image
+miosix_add_romfs_image(
+    IMAGE_NAME image
+    DIR_NAME bin
+    KERNEL main
+    PROCESSES hello
 )
-add_dependencies(main buildromfs)
-
-# Build RomFS image and combine main.bin and romfs.bin into image.bin
-add_custom_command(
-    OUTPUT ${PROJECT_BINARY_DIR}/romfs.bin
-    DEPENDS hello
-    COMMAND ${MIOSIX_KPATH}/_tools/filesystems/buildromfs romfs.bin --from-directory bin
-    COMMENT "Built romfs.bin from bin directory"
-)
-add_custom_command(
-    OUTPUT ${PROJECT_BINARY_DIR}/image.bin
-    DEPENDS ${PROJECT_BINARY_DIR}/main.bin ${PROJECT_BINARY_DIR}/romfs.bin
-    COMMAND perl ${MIOSIX_KPATH}/_tools/filesystems/mkimage.pl image.bin main.bin romfs.bin
-    COMMENT "Built image.bin from main.bin and romfs.bin"
-)
-add_custom_target(image ALL DEPENDS ${PROJECT_BINARY_DIR}/image.bin)
