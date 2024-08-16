@@ -38,7 +38,7 @@ add_subdirectory(../../libsyscalls libsyscalls EXCLUDE_FROM_ALL)
 
 include(LinkTarget)
 include(AddProcess)
-include(RomFS)
+include(AddRomfsImage)
 
 # Kernel level program
 add_executable(main main.cpp)

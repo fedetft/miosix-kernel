@@ -23,34 +23,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
-cmake_minimum_required(VERSION 3.16)
+function(miosix_create_processes_dir)
+    cmake_parse_arguments(PROCS "" "DIR_NAME" "PROCESSES" ${ARGN})
 
-project(ProcessesExamples C CXX ASM)
+    # Copy all processes binaries to a single directory
+    foreach(ROMFS_PROCESS ${ROMFS_PROCESSES})
+        add_custom_command(
+            OUTPUT ${PROJECT_BINARY_DIR}/${ROMFS_DIR_NAME}/${ROMFS_PROCESS}
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${ROMFS_PROCESS}> ${PROJECT_BINARY_DIR}/${ROMFS_DIR_NAME}/${ROMFS_PROCESS}
+            COMMENT "Copying process $<TARGET_FILE_BASE_NAME:${ROMFS_PROCESS}> into ${ROMFS_DIR_NAME} directory"
+        )
+        list(APPEND MIOSIX_${PROCS_DIR_NAME}_FILES ${PROJECT_BINARY_DIR}/${ROMFS_DIR_NAME}/${ROMFS_PROCESS})
+    endforeach()
 
-# Set Miosix definitions and options
-add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX>:PARSING_FROM_IDE>)
-add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX>:WITH_PROCESSES>)
-set(MIOSIX_OPT_BOARD stm32f429zi_stm32f4discovery CACHE STRING "Target board")
-set(MIOSIX_LINKER_SCRIPT stm32_2m+256k_rom_processes.ld CACHE FILEPATH "Linker script")
-
-add_subdirectory(../.. miosix EXCLUDE_FROM_ALL)
-add_subdirectory(../../libsyscalls libsyscalls EXCLUDE_FROM_ALL)
-
-include(LinkTarget)
-include(AddProcess)
-include(AddRomfsImage)
-
-# Kernel level program
-add_executable(main start_process.cpp)
-miosix_link_target(main)
-
-# Processes
-miosix_add_process(hello process_template/main.cpp)
-
-# RomFS image
-miosix_add_romfs_image(
-    IMAGE_NAME image
-    DIR_NAME bin
-    KERNEL main
-    PROCESSES hello
-)
+    # Move the list variable in the parent scope
+    set(MIOSIX_${PROCS_DIR_NAME}_FILES ${MIOSIX_${PROCS_DIR_NAME}_FILES} PARENT_SCOPE)
+endfunction()
