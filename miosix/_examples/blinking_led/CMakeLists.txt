@@ -1,7 +1,7 @@
 # Copyright (C) 2024 by Skyward
 #
-# This program is free software; you can redistribute it and/or 
-# it under the terms of the GNU General Public License as published 
+# This program is free software; you can redistribute it and/or
+# it under the terms of the GNU General Public License as published
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 #
@@ -15,8 +15,8 @@
 # and link it with other works to produce a work based on this file,
 # this file does not by itself cause the resulting work to be covered
 # by the GNU General Public License. However the source code for this
-# file must still be made available in accordance with the GNU 
-# Public License. This exception does not invalidate any other 
+# file must still be made available in accordance with the GNU
+# Public License. This exception does not invalidate any other
 # why a work based on this file might be covered by the GNU General
 # Public License.
 #
@@ -27,10 +27,10 @@ cmake_minimum_required(VERSION 3.16)
 
 project(BlinkingLED C CXX ASM)
 
-# Bypass the ckeck in miosix_settings.h
+# Set Miosix definitions and options
 add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX>:PARSING_FROM_IDE>)
-
 set(MIOSIX_OPT_BOARD stm32f429zi_stm32f4discovery CACHE STRING "Target board")
+
 add_subdirectory(../.. miosix EXCLUDE_FROM_ALL)
 
 include(LinkTarget)
