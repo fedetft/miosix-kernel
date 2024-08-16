@@ -32,6 +32,20 @@ ExternalProject_Add(buildromfs
     INSTALL_COMMAND "" # Skip install
 )
 
+# Create a target that builds the romfs image and combines it the kernel into a single binary image
+#
+#   miosix_add_romfs_image(
+#     IMAGE_NAME <name>
+#     KERNEL <kernel>
+#     DIR_NAME <dir_name>
+#     PROCESSES <process1> <process2> ...
+#   )
+#
+# What it does:
+# - Copies all processes binaries to a single directory named <dir_name>
+# - Creates a romfs image with of the directory <dir_name>
+# - Combines the kernel and the romfs image into a single binary image
+# - Registers a custom target (named <dir_name>) with to run the above steps
 function(miosix_add_romfs_image)
     cmake_parse_arguments(ROMFS "" "IMAGE_NAME;KERNEL;DIR_NAME" "PROCESSES" ${ARGN})
 
