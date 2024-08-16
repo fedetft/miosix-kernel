@@ -40,6 +40,14 @@ function(miosix_add_program_target TARGET)
 endfunction()
 
 # Function to link the Miosix libraries to a target and register the build command
+#
+#   miosix_link_target(<target>)
+#
+# What it does:
+# - Links the Miosix libraries to the target
+# - Tells the linker to generate the map file
+# - Registers custom targets to create the hex and bin files (${TARGET}_bin and ${TARGET}_hex)
+# - Registers a custom target to flash the program to the board (${TARGET}_program)
 function(miosix_link_target TARGET)
     if (NOT TARGET miosix)
         message(FATAL_ERROR "The board you selected is not supported")

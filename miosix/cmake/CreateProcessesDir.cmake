@@ -23,6 +23,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
+# Copies processes binaries into a single directory
+#
+#   miosix_create_processes_dir(
+#     DIR_NAME <dir_name>
+#     PROCESSES <process1> <process2> ...
+#   )
+#
+# This function addresses two use cases:
+# - When you need to build a romfs image, you need all processes into a single directory
+# - If you want to load processes on to an SD card for example, is useful to have all processes grouped togheter
 function(miosix_create_processes_dir)
     cmake_parse_arguments(PROCS "" "DIR_NAME" "PROCESSES" ${ARGN})
 

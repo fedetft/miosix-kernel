@@ -23,7 +23,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
-# Function to link the Miosix libraries to a target and register the build command
+# Function to create a Miosix process
+#
+#   miosix_add_process(<target> <source1> <source2> ...)
+#
+# What is does:
+# - Create an executable target with the given sources
+# - Link the libraries required by processes
+# - Tell the linker to produce a map file
+# - Run strip and mx-postlinker on the executable
 function(miosix_add_process TARGET SOURCES)
     # Define the executable with its sources
     add_executable(${TARGET} ${SOURCES})
