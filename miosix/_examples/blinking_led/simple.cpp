@@ -1,24 +1,21 @@
 #include <cstdio>
-#include <unistd.h>
+
 #include "miosix.h"
 
-using namespace std;
 using namespace miosix;
-
-typedef Gpio<GPIOC_BASE,7>  led;
 
 int main()
 {
-  
-  led::mode(Mode::OUTPUT);
-  
-  for(;;) {
-    led::high();
-    sleep(1);
-    led::low();
-    sleep(1);
-  }
-  
-  return 0;
-  
+    while(true)
+    {
+        ledOn();
+        printf("Led on\n");
+        sleep(1);
+
+        ledOff();
+        printf("Led off\n");
+        sleep(1);
+    }
+
+    return 0;
 }
