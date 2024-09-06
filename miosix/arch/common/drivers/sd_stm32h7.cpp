@@ -659,16 +659,26 @@ unsigned char ClockController::retries=ClockController::MAX_RETRY;
  */
 static bool waitForCardReady()
 {
-    const int timeout=1500; //Timeout 1.5 second
-    const int sleepTime=2;
-    for(int i=0;i<timeout/sleepTime;i++) 
-    {
+    //The card may remain busy for up to 500ms and there appears to be no way
+    //to set an interrupt to wait until it becomes ready again. We can't just
+    //poll for that long as if a high priority thread is stuck polling all lower
+    //priority threads block, so we are forced to do a sleep. The initial value
+    //of 2ms was found to be impacting performance excessively, so we take
+    //advantage of high resolution timers by sleeping for 200us, and fallback to
+    //the previous value only for slow configurations
+    #if !defined(__CODE_IN_XRAM)
+    const long long sleepTime=200000;
+    #else
+    const long long sleepTime=2000000;
+    #endif
+    long long timeout=getTime()+1500000000; //Timeout 1.5 second
+    do {
         CmdResult cr=Command::send(Command::CMD13,Command::getRca()<<16);
         if(cr.validateR1Response()==false) return false;
         //Bit 8 in R1 response means ready for data.
         if(cr.getResponse() & (1<<8)) return true;
-        Thread::sleep(sleepTime);
-    }
+        Thread::nanoSleep(sleepTime);
+    } while(getTime()<timeout);
     DBGERR("Timeout waiting card ready\n");
     return false;
 }
