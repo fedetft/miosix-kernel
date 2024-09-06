@@ -128,7 +128,7 @@ constexpr unsigned int FATFS_EXTEND_BUFFER=512;
 /// (unless power failure happens exactly between the write and the sync)
 /// Unfortunately write latency and throughput becomes twice as worse
 /// By default it is defined (slow but safe)
-#define SYNC_AFTER_WRITE
+//#define SYNC_AFTER_WRITE
 
 /// Maximum number of files a single process (or the kernel) can open. This
 /// constant is used to size file descriptor tables. Individual filesystems can
