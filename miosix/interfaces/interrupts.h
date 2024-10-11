@@ -93,6 +93,7 @@ void IRQunregisterIrq(unsigned int id) noexcept;
 bool IRQisIrqRegistered(unsigned int id) noexcept;
 
 /**
+ * This function is used to develop interrupt driven peripheral drivers.<br>
  * This function can be called from within an interrupt or with interrupts
  * disabled to invoke the scheduler. The request is not performed immediately,
  * it is performed as soon as the interrupt returns or the interrupts are

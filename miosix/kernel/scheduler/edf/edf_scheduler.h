@@ -113,16 +113,11 @@ public:
     static void IRQwaitStatusHook(Thread *t) {}
 
     /**
-     * This function is used to develop interrupt driven peripheral drivers.<br>
-     * Can be used ONLY inside an IRQ (and not when interrupts are disabled) to
-     * find next thread in READY status. If the kernel is paused, does nothing.
-     * Can be used for example if an IRQ causes a higher priority thread to be
-     * woken, to change context. Note that to use this function the IRQ must
-     * use the macros to save/restore context defined in portability.h
-     *
-     * If the kernel is paused does nothing.
-     * It's behaviour is to modify the global variable miosix::cur which always
-     * points to the currently running thread.
+     * \internal
+     * This function is used only by the kernel code to run the scheduler.
+     * It finds the next thread in READY status. If the kernel is paused,
+     * does nothing. It's behaviour is to modify the global variable
+     * miosix::runningThread which always points to the currently running thread.
      */
     static void IRQrunScheduler();
 
