@@ -51,12 +51,13 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
 
 inline void doYield()
 {
+    //NOTE: before Miosix 3 we used "svc 0" as yield also within the kernel, but
+    //now we have the dedicated PendSV IRQ to call the scheduler, so use that.
+    //Can't use NVIC_SetPendingIRQ as PendSV is an exception, not an IRQ
     SCB->ICSR=SCB_ICSR_PENDSVSET_Msk;
+    //NOTE: due to the write buffer while doing the store to the SCB->ICSR,
+    //the CPU could execute ahead of the yield. Use dmb to prevent
     asm volatile("dmb":::"memory");
-    //NVIC_SetPendingIRQ(PendSV_IRQn);
-//     asm volatile("movs r3, #0\n\t"
-//                  "svc  0"
-//                  :::"r3");
 }
 
 inline void doDisableInterrupts()
