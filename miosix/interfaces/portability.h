@@ -92,13 +92,6 @@ void IRQsystemReboot();
 
 /**
  * \internal
- * Cause a context switch.
- * It is used by the kernel, and should not be used by end users.
- */
-// inline void doYield();
-
-/**
- * \internal
  * Initializes a ctxsave array when a thread is created.
  * It is used by the kernel, and should not be used by end users.
  * \param ctxsave a pointer to a field ctxsave inside a Thread class that need
@@ -253,30 +246,6 @@ void IRQportableStartKernel();
  * 3) miosix::Thread::yield();
  */
 void IRQportableFinishKernelStartup();
-
-/**
- * \internal
- * This function disables interrupts.
- * This is used by the kernel to implement disableInterrupts() and
- * enableInterrupts(). You should never need to call these functions directly.
- */
-// inline void doDisableInterrupts();
-
-/**
- * \internal
- * This function enables interrupts.
- * This is used by the kernel to implement disableInterrupts() and
- * enableInterrupts(). You should never need to call these functions directly.
- */
-// inline void doEnableInterrupts();
-
-/**
- * \internal
- * This is used by the kernel to implement areInterruptsEnabled()
- * You should never need to call this function directly.
- * \return true if interrupts are enabled
- */
-// inline bool checkAreInterruptsEnabled();
 
 /**
  * \internal
