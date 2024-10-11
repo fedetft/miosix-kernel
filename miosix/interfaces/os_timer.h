@@ -154,7 +154,7 @@ unsigned int osTimerGetFrequency();
  * 
  *     static unsigned int IRQTimerFrequency() {}
  * 
- *     static void IRQinitTimer(TimerAdapter<MyHwTimer,bits> *) {}
+ *     void IRQinitTimer() {}
  * };
  * \endcode
  * 
@@ -343,7 +343,7 @@ public:
      */
     void IRQinit()
     {
-        D::IRQinitTimer(this);
+        static_cast<D*>(this)->IRQinitTimer();
         tc=TimeConversion(D::IRQTimerFrequency());
         D::IRQstartTimer();
     }

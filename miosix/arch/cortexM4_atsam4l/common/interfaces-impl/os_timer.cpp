@@ -143,7 +143,7 @@ public:
         return timerFrequency;
     }
     
-    static void IRQinitTimer(TimerAdapter<ATSAM_TC1_Timer,16> *instance)
+    void IRQinitTimer()
     {
         int timerInputFreq = SystemCoreClock / 2;
         
@@ -169,10 +169,8 @@ public:
         TC1->TC_CHANNEL[0].TC_CMR = TC_CMR_WAVE | TC_CMR_CAPTURE_TCCLKS(0); //CLOCK=GCLK8
         TC1->TC_CHANNEL[0].TC_IER = TC_IER_CPCS | TC_IER_COVFS;
         
-        //FIXME: probably the "this" line below works just as well
-        IRQregisterIrq(TC10_IRQn,&TimerAdapter<ATSAM_TC1_Timer,16>::IRQhandler,instance);
-//         IRQregisterIrq(TC10_IRQn,&ATSAM_TC1_Timer::IRQhandler,
-//             static_cast<TimerAdapter<ATSAM_TC1_Timer, 16>*>(this));
+        IRQregisterIrq(TC10_IRQn,&TimerAdapter<ATSAM_TC1_Timer,16>::IRQhandler,
+                       static_cast<TimerAdapter<ATSAM_TC1_Timer, 16>*>(this));
         NVIC_SetPriority(TC10_IRQn,3);
         NVIC_EnableIRQ(TC10_IRQn);
     }
@@ -282,12 +280,12 @@ public:
         AST->AST_WER=AST_WER_ALARM0 | AST_WER_OVF;
         
         //High priority for AST (Max=0, min=15)
-        IRQregisterIrq(AST_ALARM_IRQn,&ATSAM_AST_Timer::IRQhandler,
-            static_cast<TimerAdapter<ATSAM_AST_Timer, 32, 2>*>(this));
+        IRQregisterIrq(AST_ALARM_IRQn,&TimerAdapter<ATSAM_AST_Timer,32,2>::IRQhandler,
+                       static_cast<TimerAdapter<ATSAM_AST_Timer,32,2>*>(this));
         NVIC_SetPriority(AST_ALARM_IRQn,3); 
         NVIC_EnableIRQ(AST_ALARM_IRQn);
-        IRQregisterIrq(AST_OVF_IRQn,&ATSAM_AST_Timer::IRQhandler,
-            static_cast<TimerAdapter<ATSAM_AST_Timer, 32, 2>*>(this));
+        IRQregisterIrq(AST_OVF_IRQn,&TimerAdapter<ATSAM_AST_Timer,32,2>::IRQhandler,
+                       static_cast<TimerAdapter<ATSAM_AST_Timer,32,2>*>(this));
         NVIC_SetPriority(AST_OVF_IRQn,3);
         NVIC_EnableIRQ(AST_OVF_IRQn);
     }
