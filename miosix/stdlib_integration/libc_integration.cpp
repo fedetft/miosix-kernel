@@ -149,7 +149,7 @@ void *__dso_handle=(void*) &__dso_handle;
  */
 void _exit(int n)
 {
-    miosix::reboot();
+    miosix::shutdown();
     //Never reach here
     for(;;) ; //Required to avoid a warning about noreturn functions
 }
