@@ -34,14 +34,14 @@
 #include <cstdlib>
 #include <inttypes.h>
 #include <sys/ioctl.h>
-#include "interfaces/bsp.h"
+#include "interfaces_private/bsp.h"
 #include "core/interrupts.h"
 #include "interfaces/delays.h"
 #include "drivers/serial.h"
 #include "drivers/sd_lpc2000.h"
 #include "kernel/kernel.h"
 #include "kernel/sync.h"
-#include "interfaces/portability.h"
+#include "interfaces_private/portability.h"
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"
 #include "filesystem/file_access.h"

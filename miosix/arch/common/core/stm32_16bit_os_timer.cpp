@@ -26,8 +26,8 @@
  ***************************************************************************/
 
 #include "kernel/kernel.h"
-#include "interfaces/os_timer.h"
 #include "interfaces/arch_registers.h"
+#include "interfaces_private/os_timer.h"
 #include "kernel/logging.h"
 
 #ifndef WITH_RTC_AS_OS_TIMER

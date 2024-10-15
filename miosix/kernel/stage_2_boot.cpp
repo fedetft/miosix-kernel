@@ -35,9 +35,9 @@ start the kernel and filesystem.
 #include <cstdio>
 #include <stdexcept>
 // Low level hardware functionalities
-#include "interfaces/bsp.h"
-#include "interfaces/os_timer.h"
-#include "interfaces/deep_sleep.h"
+#include "interfaces_private/bsp.h"
+#include "interfaces_private/os_timer.h"
+#include "interfaces_private/deep_sleep.h"
 // Miosix kernel
 #include "kernel.h"
 #include "filesystem/file_access.h"

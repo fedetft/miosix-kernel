@@ -26,8 +26,6 @@
  ***************************************************************************/ 
 
 #include "kernel.h"
-#include "interfaces/portability.h"
-#include "interfaces/atomic_ops.h"
 #include "error.h"
 #include "logging.h"
 #include "sync.h"
@@ -35,14 +33,16 @@
 #include "process.h"
 #include "kernel/scheduler/scheduler.h"
 #include "stdlib_integration/libc_integration.h"
-#include "interfaces/os_timer.h"
+#include "interfaces/atomic_ops.h"
+#include "interfaces_private/os_timer.h"
+#include "interfaces_private/deep_sleep.h"
+#include "interfaces_private/portability.h"
 #include "timeconversion.h"
 #include <stdexcept>
 #include <algorithm>
 #include <limits>
 #include <string.h>
 #include <reent.h>
-#include "interfaces/deep_sleep.h"
 #include "core/interrupts.h"
 
 /*

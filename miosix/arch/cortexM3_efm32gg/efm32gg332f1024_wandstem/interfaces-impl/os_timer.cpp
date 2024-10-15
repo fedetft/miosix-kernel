@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "interfaces/os_timer.h"
+#include "interfaces_private/os_timer.h"
 #include "kernel/timeconversion.h"
 #include "vht.h"
 #include "virtual_clock.h"

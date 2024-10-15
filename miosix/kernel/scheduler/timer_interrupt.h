@@ -28,7 +28,7 @@
 #pragma once
 
 #include "interfaces/interrupts.h"
-#include "interfaces/portability.h"
+#include "interfaces_private/portability.h"
 #include "scheduler.h"
 
 namespace miosix {

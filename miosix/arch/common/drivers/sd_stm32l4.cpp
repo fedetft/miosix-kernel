@@ -1,6 +1,6 @@
 
 #include "sd_stm32l4.h"
-#include "interfaces/bsp.h"
+#include "interfaces_private/bsp.h"
 #include "interfaces/arch_registers.h"
 #include "core/cache_cortexMx.h"
 #include "kernel/scheduler/scheduler.h"

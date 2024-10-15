@@ -34,11 +34,11 @@
 #include <cstdlib>
 #include <inttypes.h>
 #include <sys/ioctl.h>
-#include "interfaces/bsp.h"
+#include "interfaces_private/bsp.h"
 #include "kernel/kernel.h"
 #include "kernel/sync.h"
 #include "interfaces/delays.h"
-#include "interfaces/portability.h"
+#include "interfaces_private/portability.h"
 #include "interfaces/arch_registers.h"
 #include "config/miosix_settings.h"
 #include "kernel/logging.h"

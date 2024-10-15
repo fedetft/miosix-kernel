@@ -30,7 +30,7 @@
 #define PORTABILITY_IMPL_H
 
 #include "interfaces/arch_registers.h"
-#include "interfaces/portability.h"
+#include "interfaces_private/portability.h"
 #include "config/miosix_settings.h"
 #include <cassert>
 

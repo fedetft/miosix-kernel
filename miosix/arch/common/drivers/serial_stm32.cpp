@@ -31,7 +31,7 @@
 #include "serial_stm32.h"
 #include "kernel/sync.h"
 #include "kernel/scheduler/scheduler.h"
-#include "interfaces/portability.h"
+#include "interfaces_private/portability.h"
 #include "filesystem/ioctl.h"
 #include "core/cache_cortexMx.h"
 

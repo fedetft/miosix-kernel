@@ -27,8 +27,7 @@
 
 #include "error.h"
 #include "kernel.h"
-#include "interfaces/portability.h"
-#include "interfaces/bsp.h"
+#include "interfaces_private/portability.h"
 #include "logging.h"
 
 namespace miosix {

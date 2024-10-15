@@ -28,7 +28,7 @@
 #include "power_manager.h"
 #include "board_settings.h"
 #include "transceiver.h"
-#include "interfaces/bsp.h"
+#include "interfaces_private/bsp.h"
 #include <stdexcept>
 #include <sys/ioctl.h>
 #include "stdio.h"

@@ -26,10 +26,10 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/ 
 
-#include "interfaces/deep_sleep.h"
-#include "interfaces/os_timer.h"
-#include "interfaces/portability.h"
 #include "interfaces/arch_registers.h"
+#include "interfaces_private/deep_sleep.h"
+#include "interfaces_private/os_timer.h"
+#include "interfaces_private/portability.h"
 #include "drivers/rtc.h"
 #include "miosix.h"
 #include <algorithm>

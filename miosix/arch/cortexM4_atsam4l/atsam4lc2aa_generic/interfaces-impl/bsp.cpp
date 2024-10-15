@@ -33,7 +33,7 @@
 #include <utility>
 #include <sys/ioctl.h>
 #include "interfaces/gpio.h"
-#include "interfaces/bsp.h"
+#include "interfaces_private/bsp.h"
 #include "interfaces/delays.h"
 #include "interfaces/arch_registers.h"
 #include "config/miosix_settings.h"

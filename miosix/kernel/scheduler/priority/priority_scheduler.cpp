@@ -28,7 +28,7 @@
 #include "priority_scheduler.h"
 #include "kernel/error.h"
 #include "kernel/process.h"
-#include "interfaces/os_timer.h"
+#include "interfaces_private/os_timer.h"
 #include <limits>
 
 #ifdef SCHED_TYPE_PRIORITY

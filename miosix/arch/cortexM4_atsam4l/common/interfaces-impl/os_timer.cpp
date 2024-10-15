@@ -27,10 +27,10 @@
 
 #include "config/miosix_settings.h"
 #include "kernel/kernel.h"
-#include "interfaces/os_timer.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces/delays.h"
 #include "interfaces/interrupts.h"
+#include "interfaces_private/os_timer.h"
 #include "kernel/logging.h"
 
 /*

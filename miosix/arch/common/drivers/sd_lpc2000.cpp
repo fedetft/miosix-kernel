@@ -4,7 +4,7 @@
  */
 
 #include "sd_lpc2000.h"
-#include "interfaces/bsp.h"
+#include "interfaces_private/bsp.h"
 #include "LPC213x.h"
 #include "board_settings.h" //For sdVoltage
 #include <cstdio>

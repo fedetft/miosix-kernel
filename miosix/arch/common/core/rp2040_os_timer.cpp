@@ -27,8 +27,8 @@
 
 #include "kernel/kernel.h"
 #include "interfaces/delays.h"
-#include "interfaces/os_timer.h"
 #include "interfaces/arch_registers.h"
+#include "interfaces_private/os_timer.h"
 
 namespace miosix {
 

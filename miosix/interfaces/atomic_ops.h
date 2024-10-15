@@ -154,6 +154,7 @@ inline void *atomicFetchAndIncrement(void * const volatile * p, int offset,
  * \}
  */
 
+//TODO: refactor -I options so this is not needed
 #ifdef _ARCH_ARM7_LPC2000
 #include "core/atomic_ops_impl_arm7.h"
 #elif defined(_ARCH_CORTEXM3_STM32F1) || defined(_ARCH_CORTEXM3_STM32F2) \

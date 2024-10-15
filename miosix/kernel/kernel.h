@@ -28,7 +28,6 @@
 #pragma once
 
 #include "config/miosix_settings.h"
-#include "interfaces/portability.h"
 #include "core/interrupts.h"
 #include "kernel/scheduler/sched_types.h"
 #include "stdlib_integration/libstdcpp_integration.h"

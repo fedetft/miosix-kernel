@@ -28,7 +28,7 @@
 #include "control_scheduler.h"
 #include "kernel/error.h"
 #include "kernel/process.h"
-#include "interfaces/os_timer.h"
+#include "interfaces_private/os_timer.h"
 #include <limits>
 
 using namespace std;

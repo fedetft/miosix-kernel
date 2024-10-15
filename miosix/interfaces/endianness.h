@@ -27,6 +27,7 @@
 
 #pragma once
 
+//TODO: refactor -I options so this is not needed
 #ifdef _ARCH_ARM7_LPC2000
 #include "core/endianness_impl_arm7.h"
 #elif defined(_ARCH_CORTEXM0_STM32F0) || defined(_ARCH_CORTEXM3_STM32F1) \

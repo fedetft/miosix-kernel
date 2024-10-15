@@ -26,7 +26,7 @@
  ***************************************************************************/ 
 
 #include "miosix.h"
-#include "interfaces/deep_sleep.h"
+#include "interfaces_private/deep_sleep.h"
 
 #ifdef WITH_DEEP_SLEEP
 

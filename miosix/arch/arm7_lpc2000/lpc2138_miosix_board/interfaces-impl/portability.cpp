@@ -26,7 +26,7 @@
  ***************************************************************************/ 
 
 #include "LPC213x.h"
-#include "interfaces/portability.h"
+#include "interfaces_private/portability.h"
 #include "interfaces/delays.h"
 #include "kernel/kernel.h"
 #include "kernel/error.h"

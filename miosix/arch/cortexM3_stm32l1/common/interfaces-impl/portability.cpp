@@ -25,10 +25,10 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "interfaces/portability.h"
+#include "interfaces_private/portability.h"
 #include "kernel/kernel.h"
 #include "kernel/error.h"
-#include "interfaces/bsp.h"
+#include "interfaces_private/bsp.h"
 #include "kernel/scheduler/scheduler.h"
 #include <algorithm>
 
