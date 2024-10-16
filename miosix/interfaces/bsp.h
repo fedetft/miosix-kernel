@@ -36,35 +36,54 @@ namespace miosix {
 
 /**
  * \file bsp.h
- * This file provides architecture specific initialization code that the kernel
- * will call.
- * It must provide these functions:
+ * This file contains architecture specific board support package.
+ * It must at least provide these functions:
  *
- * IRQbspInit(), to initialize the board to a known state early in the boot
- * process (before the kernel is started, and when interrupts are disabled)
+ * shutdown(), for system shutdown. This function is called in case main()
+ * returns, and is available to be called by user code.
  *
- * bspInit2(), to perform the remaining part of the initialization, once the
- * kernel is started
+ * reboot(), a function that can be called to reboot the system under normal
+ * (non error) conditions. It should sync and unmount the filesystem, and
+ * perform a reboot. This function is available for user code.
+ *
+ * Other than this, the board support package might contain other functions,
+ * classes, macros etc. to support peripherals and or board hardware.
  */
 
 /**
- * \internal
- * Initializes the I/O pins, and put system peripherals to a known state.<br>
- * Must be called before starting kernel. Interrupts must be disabled.<br>
- * This function is used by the kernel and should not be called by user code.
+ * This function disables filesystem (if enabled), serial port (if enabled) and
+ * shuts down the system, usually by putting the procesor in a deep sleep
+ * state.<br>
+ * The action to start a new boot is system-specific, can be for example a
+ * reset, powercycle or a special GPIO configured to wakeup the processor from
+ * deep sleep.<br>
+ * This function does not return.<br>
+ * WARNING: close all files before using this function, since it unmounts the
+ * filesystem.<br>
  */
-void IRQbspInit();
+void shutdown();
 
 /**
- * \internal
- * Performs the part of initialization that must be done after the kernel is
- * started.<br>
- * This function is used by the kernel and should not be called by user code.
+ * The difference between this function and miosix_private::IRQsystemReboot()
+ * is that this function disables filesystem (if enabled), serial port
+ * (if enabled) while miosix_private::system_reboot() does not do all these
+ * things. miosix_private::IRQsystemReboot() is designed to reboot the system
+ * when an unrecoverable error occurs, and is used primarily in kernel code,
+ * reboot() is designed to reboot the system in normal conditions.<br>
+ * This function does not return.<br>
+ * WARNING: close all files before using this function, since it unmounts the
+ * filesystem.
  */
-void bspInit2();
+void reboot();
 
 /**
  * \}
  */
 
 } //namespace miosix
+
+/*
+ * Since the architecture specific board support package can declare other
+ * functions and macros, include this header.
+ */
+#include "interfaces-impl/bsp_impl.h"

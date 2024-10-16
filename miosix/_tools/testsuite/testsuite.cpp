@@ -56,6 +56,7 @@
 #include "config/miosix_settings.h"
 #include "interfaces/atomic_ops.h"
 #include "interfaces/endianness.h"
+#include "interfaces/bsp.h"
 #include "e20/e20.h"
 #include "kernel/intrusive.h"
 #include "util/crc16.h"

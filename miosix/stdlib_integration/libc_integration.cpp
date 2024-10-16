@@ -46,7 +46,7 @@
 //// kernel interface
 #include "kernel/kernel.h"
 #include "kernel/process.h"
-#include "interfaces_private/bsp.h"
+#include "interfaces/bsp.h"
 #include "interfaces_private/os_timer.h"
 
 using namespace std;

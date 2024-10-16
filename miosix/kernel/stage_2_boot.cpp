@@ -35,6 +35,7 @@ start the kernel and filesystem.
 #include <cstdio>
 #include <stdexcept>
 // Low level hardware functionalities
+#include "interfaces/bsp.h"
 #include "interfaces_private/bsp.h"
 #include "interfaces_private/os_timer.h"
 #include "interfaces_private/deep_sleep.h"
