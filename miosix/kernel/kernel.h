@@ -1236,9 +1236,6 @@ private:
     friend bool IRQwakeThreads(long long);
     //Needs to create the idle thread
     friend void startKernel();
-    //Needs threadLauncher
-    friend void miosix_private::initCtxsave(unsigned int *, void *(*)(void *),
-            unsigned int *, void *);
     //Needs access to priority, savedPriority, mutexLocked and flags.
     friend class Mutex;
     //Needs access to flags, schedData

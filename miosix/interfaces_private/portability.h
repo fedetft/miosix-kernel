@@ -71,8 +71,6 @@ class Process; //Forward decl
  * the functions in kernel.h because:<br>
  * - to port the kernel to another processor you only need to rewrite these
  *   functions.
- * - these functions are only useful for writing hardare drivers, most user code
- *  does not need them.
  */
 namespace miosix_private {
 
@@ -92,19 +90,22 @@ void IRQsystemReboot();
 
 /**
  * \internal
- * Initializes a ctxsave array when a thread is created.
- * It is used by the kernel, and should not be used by end users.
+ * Initializes the context of a new thread that is being created.
  * \param ctxsave a pointer to a field ctxsave inside a Thread class that need
  * to be filled
- * \param pc starting program counter of newly created thread, used to
- * initialize ctxsave
- * \param sp starting stack pointer of newly created thread, used to initialize
- * ctxsave
- * \param argv starting data passed to newly created thread, used to initialize
- * ctxsave
+ * \param sp starting stack pointer of newly created thread. For architectures
+ * that save all registers in ctxsave, this value will be used to initialize the
+ * stack pointer register in ctxsave. Additionally, for architectures that save
+ * some of the registers on the stack, this function will need to push on the
+ * stack a frame with the initial values of the stack-saved registers
+ * \param pc starting program counter of newly created thread, corresponds to
+ * the entry point of a function taking two arguments
+ * \param arg0 first argument of the thread entry function
+ * \param arg1 second argument of the thread entry function
  */
-void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
-        void *argv);
+void initCtxsave(unsigned int *ctxsave, unsigned int *sp,
+                 void (*pc)(void *(*)(void*),void*),
+                 void *(*arg0)(void*), void *arg1);
 
 #ifdef WITH_PROCESSES
 
@@ -193,7 +194,6 @@ private:
  * \param ctxsave a pointer to a field ctxsave inside a Thread class that need
  * to be filled
  * \param pc starting program counter of newly created thread
- * \param sp starting stack pointer of newly created thread
  * \param argc number of arguments passed to main
  * \param argvSp pointer to argument array. Since the args block is stored
  * above the stack and this is the pointer into the first byte of the args

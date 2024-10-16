@@ -806,8 +806,8 @@ Thread *Thread::doCreate(void*(*startfunc)(void*) , unsigned int stacksize,
 
     //On some architectures some registers are saved on the stack, therefore
     //initCtxsave *must* be called after filling the stack.
-    miosix_private::initCtxsave(thread->ctxsave,startfunc,
-            reinterpret_cast<unsigned int*>(thread),argv);
+    miosix_private::initCtxsave(thread->ctxsave,reinterpret_cast<unsigned int*>(thread),
+                                &Thread::threadLauncher,startfunc,argv);
 
     if((options & JOINABLE)==0) thread->flags.IRQsetDetached();
     return thread;

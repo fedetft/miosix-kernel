@@ -44,22 +44,22 @@ void IRQsystemReboot()
     NVIC_SystemReset();
 }
 
-void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
-        void *argv)
+void initCtxsave(unsigned int *ctxsave, unsigned int *sp,
+                 void (*pc)(void *(*)(void*),void*),
+                 void *(*arg0)(void*), void *arg1)
 {
     unsigned int *stackPtr=sp;
-    stackPtr--; //Stack is full descending, so decrement first
-    *stackPtr=0x01000000; stackPtr--;                                 //--> xPSR
-    *stackPtr=reinterpret_cast<unsigned long>(
-            &miosix::Thread::threadLauncher); stackPtr--;             //--> pc
-    *stackPtr=0xffffffff; stackPtr--;                                 //--> lr
-    *stackPtr=0; stackPtr--;                                          //--> r12
-    *stackPtr=0; stackPtr--;                                          //--> r3
-    *stackPtr=0; stackPtr--;                                          //--> r2
-    *stackPtr=reinterpret_cast<unsigned long >(argv); stackPtr--;     //--> r1
-    *stackPtr=reinterpret_cast<unsigned long >(pc);                   //--> r0
+    //Stack is full descending, so decrement first
+    stackPtr--; *stackPtr=0x01000000;                                 //--> xPSR
+    stackPtr--; *stackPtr=reinterpret_cast<unsigned int>(pc);         //--> pc
+    stackPtr--; *stackPtr=0xffffffff;                                 //--> lr
+    stackPtr--; *stackPtr=0;                                          //--> r12
+    stackPtr--; *stackPtr=0;                                          //--> r3
+    stackPtr--; *stackPtr=0;                                          //--> r2
+    stackPtr--; *stackPtr=reinterpret_cast<unsigned int>(arg1);       //--> r1
+    stackPtr--; *stackPtr=reinterpret_cast<unsigned int>(arg0);       //--> r0
 
-    ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
+    ctxsave[0]=reinterpret_cast<unsigned int>(stackPtr);              //--> psp
     //leaving the content of r4-r11 uninitialized
 }
 
