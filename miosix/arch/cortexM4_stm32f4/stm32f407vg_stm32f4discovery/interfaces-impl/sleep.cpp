@@ -27,7 +27,7 @@
  ***************************************************************************/ 
 
 #include "interfaces/arch_registers.h"
-#include "interfaces_private/deep_sleep.h"
+#include "interfaces_private/sleep.h"
 #include "interfaces_private/os_timer.h"
 #include "interfaces_private/portability.h"
 #include "drivers/rtc.h"

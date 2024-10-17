@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2018-2021 by Terraneo Federico, Daniele Marsella        *
+ *   Copyright (C) 2018-2024 by Terraneo Federico, Daniele Marsella        *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -33,18 +33,39 @@
  */
 
 /**
- * \file deep_sleep.h
- * This file contains required functions to implement automatic deep sleep state
- * switch.
+ * \file sleep.h
+ * This file contains required functions to implement automatic sleep and
+ * deep sleep state switch.
  * 
- * This solution on supported hardware allows to power off also the peripherals
- * when the system is in idle state and doesn't require any peripheral action.
+ * Sleep support allows the kernel idle thread to stop the CPU when no ready
+ * thread exists, while leaving al peripherals running. It is a simple
+ * optimization supported on almost all processors and is easy to implement,
+ * requiring only to implement the sleepCpu() function calling the appropriate
+ * machine instruction.
+ *
+ * Deep sleep support allows to power off also the peripherals when no ready
+ * threads exist and the system doesn't require any peripheral to be active
+ * (at least, no peripheral that can function also in the deep sleep state).
+ * It is a more involved optimization, requiring all peripheral drivers to use
+ * DeepSleepLock classes to mark code regions where peripherals are used, and
+ * requires to write device specific code to wakeup from deep sleep after a
+ * given time to support delays in threads, usually by means of the RTC or a
+ * timer that can function also in the deep sleep state.
  * 
  * NOTE: this interface is meant to be used only by the kernel and not by user
  * code. When automatic deep sleep is enabled, it is transparent to applications.
  */
 
 namespace miosix {
+
+/**
+ * \internal
+ * Used by the idle thread to put cpu in low power mode
+ * Function must be callable both with interrupts enabled and disabled,
+ * the implementation is expected to be just a single machine-specific asm
+ * instruction to sleep the CPU
+ */
+void sleepCpu();
 
 /**
  * \internal

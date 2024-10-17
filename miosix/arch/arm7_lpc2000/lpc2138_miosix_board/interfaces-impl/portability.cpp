@@ -108,12 +108,4 @@ void IRQportableStartKernel()
     //Never reaches here
 }
 
-//IDL bit in PCON register
-#define IDL (1<<0)
-
-void sleepCpu()
-{
-    PCON|=IDL;
-}
-
 } //namespace miosix_private

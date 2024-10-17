@@ -248,12 +248,6 @@ void IRQportableStartKernel();
 void IRQportableFinishKernelStartup();
 
 /**
- * \internal
- * used by the idle thread to put cpu in low power mode
- */
-void sleepCpu();
-
-/**
  * \}
  */
 

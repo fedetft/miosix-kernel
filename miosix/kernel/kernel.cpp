@@ -35,7 +35,7 @@
 #include "stdlib_integration/libc_integration.h"
 #include "interfaces/atomic_ops.h"
 #include "interfaces_private/os_timer.h"
-#include "interfaces_private/deep_sleep.h"
+#include "interfaces_private/sleep.h"
 #include "interfaces_private/portability.h"
 #include "timeconversion.h"
 #include <stdexcept>
@@ -109,10 +109,7 @@ void *idleThread(void *argv)
             existDeleted=false;
             Scheduler::PKremoveDeadThreads();
         }
-        #ifndef JTAG_DISABLE_SLEEP
-        //JTAG debuggers lose communication with the device if it enters sleep
-        //mode, so to use debugging it is necessary to remove this instruction
-        
+        #ifdef WITH_SLEEP
         #ifdef WITH_DEEP_SLEEP
         {
             FastInterruptDisableLock lock;
@@ -129,13 +126,12 @@ void *idleThread(void *argv)
             //preemption occurs from when we take the decision to sleep till
             //we actually do sleep. Wakeup interrupt will be run when we enable
             //back interrupts
-            if(sleep) miosix_private::sleepCpu();
+            if(sleep) sleepCpu();
         }
         #else //WITH_DEEP_SLEEP
-        miosix_private::sleepCpu();
+        sleepCpu();
         #endif //WITH_DEEP_SLEEP
-        
-        #endif //JTAG_DISABLE_SLEEP
+        #endif //WITH_SLEEP
     }
     return 0; //Just to avoid a compiler warning
 }

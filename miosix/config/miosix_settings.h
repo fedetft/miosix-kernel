@@ -168,22 +168,24 @@ const unsigned char MAX_OPEN_FILES=8;
 // Kernel related options (stack sizes, priorities)
 //
 
+/// \def WITH_SLEEP
+/// Enable sleep support. If enabled, the idle thread will stop the CPU whenever
+/// no ready thread exists to save power.
+/// In general, you should keep this option enabled, the only reason to disable
+/// this option is that on some architectures debuggers lose communication with
+/// the device if it enters sleep mode, so to use debugging it is necessary to
+/// disable sleep support. For this reason, the option used to be called JTAG_DISABLE_SLEEP
+#define WITH_SLEEP
+
 /// \def WITH_DEEP_SLEEP 
-/// Adds interfaces and required variables to support deep sleep state switch
-/// automatically when peripherals are not required
+/// Adds interfaces and required variables to support entering deep sleep and
+/// thus turning off also peripherals when possible. Saves much more energy but
+/// requires device drivers to support this option.
 //#define WITH_DEEP_SLEEP
 
-/**
- * \def JTAG_DISABLE_SLEEP
- * JTAG debuggers lose communication with the device if it enters sleep
- * mode, so to use debugging it is necessary to disable sleep in the idle thread.
- * By default it is not defined (idle thread calls sleep).
- */
-//#define JTAG_DISABLE_SLEEP
-
-#if defined(WITH_DEEP_SLEEP) && defined(JTAG_DISABLE_SLEEP)
-#error Deep sleep cannot work together with jtag
-#endif //defined(WITH_PROCESSES) && !defined(WITH_DEVFS)
+#if defined(WITH_DEEP_SLEEP) && !defined(WITH_SLEEP)
+#error Deep sleep requires sleep support
+#endif //defined(WITH_DEEP_SLEEP) && !defined(WITH_SLEEP)
 
 /// Minimum stack size (MUST be divisible by 4)
 const unsigned int STACK_MIN=256;

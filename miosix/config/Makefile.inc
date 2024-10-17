@@ -998,6 +998,7 @@ ifeq ($(ARCH),arm7_lpc2000)
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
         $(BOARD_INC)/core/stage_1_boot.s             \
+        $(BOARD_INC)/interfaces-impl/sleep.cpp       \
         $(BOARD_INC)/interfaces-impl/portability.cpp \
         $(BOARD_INC)/interfaces-impl/os_timer.cpp    \
         arch/common/drivers/sd_lpc2000.cpp           \
@@ -1497,11 +1498,12 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
     ARCH_SRC +=                                  \
     arch/common/core/interrupts_cortexMx.cpp     \
     arch/common/core/mpu_cortexMx.cpp            \
+    arch/common/core/sleep_cortexMx.cpp          \
     arch/common/drivers/serial_stm32.cpp         \
     arch/common/drivers/dcc.cpp                  \
     $(ARCH_INC)/interfaces-impl/portability.cpp  \
     $(ARCH_INC)/interfaces-impl/delays.cpp       \
-    $(ARCH_INC)/interfaces-impl/deep_sleep.cpp   \
+    $(ARCH_INC)/interfaces-impl/sleep.cpp        \
     arch/common/drivers/stm32f1_gpio.cpp         \
     arch/common/core/stm32_16bit_os_timer.cpp    \
     arch/common/core/stm32_rtc_os_timer.cpp      \
@@ -1532,7 +1534,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         arch/common/drivers/stm32_hardware_rng.cpp   \
         arch/common/drivers/servo_stm32.cpp          \
         $(BOARD_INC)/drivers/rtc.cpp                 \
-        $(BOARD_INC)/interfaces-impl/deep_sleep.cpp  \
+        $(BOARD_INC)/interfaces-impl/sleep.cpp       \
         $(BOARD_INC)/interfaces-impl/bsp.cpp    
 
         ## Add a #define to allow querying board name
@@ -1962,6 +1964,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
+    arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
     arch/common/drivers/dcc.cpp                              \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
@@ -2245,6 +2248,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
+    arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
     arch/common/drivers/dcc.cpp                              \
     arch/common/drivers/stm32_hardware_rng.cpp               \
@@ -2317,6 +2321,7 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     arch/common/drivers/stm32_gpio.cpp                       \
@@ -2398,6 +2403,7 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
+    arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/efm32_serial.cpp                     \
     arch/common/drivers/efm32_adc.cpp                        \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
@@ -2581,6 +2587,7 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
+    arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/core/cache_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
     arch/common/drivers/sd_stm32f2_f4_f7.cpp                 \
@@ -2725,6 +2732,7 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
+    arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
     arch/common/drivers/sd_stm32h7.cpp                       \
     arch/common/core/cache_cortexMx.cpp                      \
@@ -2836,6 +2844,7 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
 
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
@@ -2904,6 +2913,7 @@ else ifeq ($(ARCH),cortexM4_stm32f3)
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
+    arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     arch/common/drivers/stm32_gpio.cpp                       \
@@ -3003,6 +3013,7 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
+    arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     arch/common/drivers/stm32_gpio.cpp                       \
@@ -3073,12 +3084,13 @@ else ifeq ($(ARCH),cortexM4_atsam4l)
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
+    arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_atsam4l.cpp                   \
     $(ARCH_INC)/drivers/clock.cpp                            \
     $(ARCH_INC)/drivers/lcd.cpp                              \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/os_timer.cpp                 \
-    $(ARCH_INC)/interfaces-impl/deep_sleep.cpp               \
+    $(ARCH_INC)/interfaces-impl/sleep.cpp                    \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
     $(ARCH_INC)/interfaces-impl/delays.cpp
     
@@ -3143,6 +3155,7 @@ else ifeq ($(ARCH),cortexM3_efm32g)
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
+    arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/core/efm32_os_timer.cpp                      \
     arch/common/drivers/efm32_serial.cpp                     \
     arch/common/drivers/efm32_adc.cpp                        \
@@ -3216,6 +3229,7 @@ else ifeq ($(ARCH),cortexM0plus_stm32l0)
 
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
@@ -3282,6 +3296,7 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
 
     ARCH_SRC +=                                              \
     arch/common/core/interrupts_cortexMx.cpp                 \
+    arch/common/core/sleep_cortexMx.cpp                      \
     $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/core/rp2040_os_timer.cpp                     \

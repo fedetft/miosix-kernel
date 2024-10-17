@@ -247,9 +247,4 @@ void IRQportableStartKernel()
     //Never reaches here
 }
 
-void sleepCpu()
-{
-    __WFI();
-}
-
 } //namespace miosix_private
