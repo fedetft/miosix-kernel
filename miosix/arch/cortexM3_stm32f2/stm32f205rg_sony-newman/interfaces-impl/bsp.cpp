@@ -36,7 +36,7 @@
 #include "interfaces/delays.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces_private/os_timer.h"
-#include "interfaces_private/portability.h"
+#include "interfaces_private/cpu.h"
 #include "config/miosix_settings.h"
 #include <algorithm>
 

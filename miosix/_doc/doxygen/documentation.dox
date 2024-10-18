@@ -40,20 +40,20 @@ Interfaces between kernel and architecture specific code.
 
 Starting from Miosix 1.53 all calls from kernel to architecture specific code
 is done through a set of functions, classes and macros grouped in a set of
-header files in the miosix/interfaces folder.
+header files in the miosix/interfaces and miosix/interfaaces_private folders.
 There are multiple implementations of these functions/classes, one for each
 architecture supported by Miosix. This eases portability since adding a new
 architecture is done by implementing a well defined set of interfaces.
 
-Some of these functions are not designed to be accessed by user code, for
-example the functions in portability.h are used by the kernel to create
-threads and perform context switching, while the Disk class in disk.h is used
-by the filesystem module to read and write from disk.
+Some of these functions are not designed to be accessed by user code, and are
+placed in the interfaces_private folder. These are used exclusively by the
+kernel to provide higher-level functionalities such as creating threads and
+performing context switching.
 Such functions are marked as \\internal and therefore are not visible by default
 in this doxygen documentation, because are useless for application developers.
 If there is the need to port Miosix to another platform it is always possible
 to build the doxygen documentation manually including \\internal functions.
-Using functions which are marked as \\internal in user code might lead to
+Using functions which are marked as \\internal in user code leads to
 undefined behaviour.
 */
 

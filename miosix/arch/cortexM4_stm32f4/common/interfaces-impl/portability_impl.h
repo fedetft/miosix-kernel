@@ -30,7 +30,7 @@
 #define PORTABILITY_IMPL_H
 
 #include "interfaces/arch_registers.h"
-#include "interfaces_private/portability.h"
+#include "interfaces_private/cpu.h"
 #include "config/miosix_settings.h"
 #include <cassert>
 
@@ -88,7 +88,7 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
                  "   bmi    0f                  \n"                            \
                  "   vstmia.32 r0, {s16-s31}    \n"/*save s16-s31 if we need*/ \
                  "0: dmb                        \n"                            \
-                 );                                                            
+                 );
 
 /**
  * \def restoreContext()

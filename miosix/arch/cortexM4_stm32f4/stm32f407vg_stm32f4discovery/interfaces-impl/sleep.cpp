@@ -29,7 +29,7 @@
 #include "interfaces/arch_registers.h"
 #include "interfaces_private/sleep.h"
 #include "interfaces_private/os_timer.h"
-#include "interfaces_private/portability.h"
+#include "interfaces_private/cpu.h"
 #include "drivers/rtc.h"
 #include "miosix.h"
 #include <algorithm>

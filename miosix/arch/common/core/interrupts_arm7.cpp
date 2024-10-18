@@ -26,7 +26,7 @@
  ***************************************************************************/ 
 
 #include "kernel/logging.h"
-#include "interfaces_private/portability.h"
+#include "interfaces_private/cpu.h"
 #include "config/miosix_settings.h"
 #include "interrupts.h"
 

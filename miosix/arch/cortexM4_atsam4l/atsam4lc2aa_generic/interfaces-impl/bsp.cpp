@@ -37,7 +37,7 @@
 #include "interfaces/arch_registers.h"
 #include "interfaces/bsp.h"
 #include "interfaces_private/bsp.h"
-#include "interfaces_private/portability.h"
+#include "interfaces_private/cpu.h"
 #include "config/miosix_settings.h"
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"

@@ -34,9 +34,9 @@
 #include "kernel/scheduler/scheduler.h"
 #include "stdlib_integration/libc_integration.h"
 #include "interfaces/atomic_ops.h"
+#include "interfaces_private/cpu.h"
 #include "interfaces_private/os_timer.h"
 #include "interfaces_private/sleep.h"
-#include "interfaces_private/portability.h"
 #include "timeconversion.h"
 #include <stdexcept>
 #include <algorithm>

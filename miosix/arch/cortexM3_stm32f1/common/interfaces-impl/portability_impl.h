@@ -30,7 +30,6 @@
 #define PORTABILITY_IMPL_H
 
 #include "interfaces/arch_registers.h"
-#include "interfaces_private/portability.h"
 #include "config/miosix_settings.h"
 #include <cassert>
 
@@ -45,7 +44,7 @@
  * context switch. It requires C linkage to be used inside asm statement.
  * Registers are saved in the following order:
  * *ctxsave+32 --> r11
- * *ctxsave+28 --> r10        
+ * *ctxsave+28 --> r10
  * *ctxsave+24 --> r9
  * *ctxsave+20 --> r8
  * *ctxsave+16 --> r7

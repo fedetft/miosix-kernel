@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "interfaces_private/portability.h"
+#include "interfaces_private/cpu.h"
 #include "kernel/kernel.h"
 #include "kernel/error.h"
 #include "interfaces_private/bsp.h"

@@ -46,7 +46,7 @@
 #include "filesystem/file_access.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces/delays.h"
-#include "interfaces_private/portability.h"
+#include "interfaces_private/cpu.h"
 #include "kernel/kernel.h"
 #include "kernel/logging.h"
 #include "kernel/sync.h"

@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "interfaces_private/portability.h"
+#include "interfaces_private/cpu.h"
 #include "kernel/kernel.h"
 #include "kernel/error.h"
 #include "interfaces_private/bsp.h"
@@ -207,7 +207,7 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), int argc,
     *stackPtr=argc;                                                   //--> r0
 
     ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
-    ctxsave[6]=reinterpret_cast<unsigned long>(gotBase);              //--> r9 
+    ctxsave[6]=reinterpret_cast<unsigned long>(gotBase);              //--> r9
     //leaving the content of r4-r8,r10-r11 uninitialized
     ctxsave[9]=0xfffffffd; //EXC_RETURN=thread mode, use psp, no floating ops
     //leaving the content of s16-s31 uninitialized
@@ -229,6 +229,9 @@ void IRQportableStartKernel()
     NVIC_SetPriority(MemoryManagement_IRQn,2);//Higher priority for MemoryManagement (Max=0, min=15)
 
     #ifdef WITH_PROCESSES
+    //NOTE: For Corte-M7, if caches are enabled, the MPU will be enabled also
+    //if processes are not enabled, but this code is still needed also for
+    //Cortex-M7 for the rare configuration of caches disabled but processes enabled
     miosix::IRQenableMPUatBoot();
     #endif //WITH_PROCESSES
 
