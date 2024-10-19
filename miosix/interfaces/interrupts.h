@@ -106,4 +106,12 @@ bool IRQisIrqRegistered(unsigned int id) noexcept;
  */
 void IRQinvokeScheduler() noexcept;
 
+inline void doDisableInterrupts() noexcept;
+
+inline void doEnableInterrupts() noexcept;
+
+inline bool checkAreInterruptsEnabled() noexcept;
+
 } //namespace miosix
+
+#include "interfaces-impl/interrupts_impl.h"

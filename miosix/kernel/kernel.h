@@ -28,11 +28,11 @@
 #pragma once
 
 #include "config/miosix_settings.h"
-#include "core/interrupts.h"
 #include "kernel/scheduler/sched_types.h"
 #include "stdlib_integration/libstdcpp_integration.h"
 #include "intrusive.h"
 #include "cpu_time_counter_types.h"
+#include "interfaces/interrupts.h"
 #include "interfaces/cpu_const.h"
 
 /**

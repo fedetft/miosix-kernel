@@ -31,7 +31,7 @@
 #include "config/miosix_settings.h"
 
 /**
- * \addtogroup Drivers
+ * \addtogroup Interfaces
  * \{
  */
 
@@ -111,7 +111,7 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
 namespace miosix {
     
 /**
- * \addtogroup Drivers
+ * \addtogroup Interfaces
  * \{
  */
 
@@ -124,33 +124,6 @@ inline void doYield()
     //NOTE: due to the write buffer while doing the store to the SCB->ICSR,
     //the CPU could execute ahead of the yield. Use dmb to prevent
     asm volatile("dmb":::"memory");
-}
-
-inline void doDisableInterrupts()
-{
-    // Documentation says __disable_irq() disables all interrupts with
-    // configurable priority, so also SysTick and SVC.
-    // No need to disable faults with __disable_fault_irq()
-    __disable_irq();
-    //The new fastDisableInterrupts/fastEnableInterrupts are inline, so there's
-    //the need for a memory barrier to avoid aggressive reordering
-    asm volatile("":::"memory");
-}
-
-inline void doEnableInterrupts()
-{
-    __enable_irq();
-    //The new fastDisableInterrupts/fastEnableInterrupts are inline, so there's
-    //the need for a memory barrier to avoid aggressive reordering
-    asm volatile("":::"memory");
-}
-
-inline bool checkAreInterruptsEnabled()
-{
-    register int i;
-    asm volatile("mrs   %0, primask    \n\t":"=r"(i));
-    if(i!=0) return false;
-    return true;
 }
 
 /**

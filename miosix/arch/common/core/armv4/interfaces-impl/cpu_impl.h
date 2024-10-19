@@ -30,7 +30,7 @@
 #include "config/miosix_settings.h"
 
 /**
- * \addtogroup Drivers
+ * \addtogroup Interfaces
  * \{
  */
 
@@ -164,7 +164,7 @@ const int stackPtrOffsetInCtxsave=13; ///< Allows to locate the stack pointer
 namespace miosix {
     
 /**
- * \addtogroup Drivers
+ * \addtogroup Interfaces
  * \{
  */
 
@@ -174,36 +174,6 @@ inline void doYield()
     asm volatile("movs  r3, #0\n\t"
                  "swi   0"
                  :::"r3");
-}
-
-inline void doDisableInterrupts()
-{
-    asm volatile(".set  I_BIT, 0x80     \n\t"
-                 "mrs r0, cpsr          \n\t"
-                 "orr r0, r0, #I_BIT    \n\t"
-                 "msr cpsr_c, r0        \n\t":::"r0");
-    //The new fastDisableInterrupts/fastEnableInterrupts are inline, so there's
-    //the need for a memory barrier to avoid aggressive reordering
-    asm volatile("":::"memory");
-}
-
-inline void doEnableInterrupts()
-{
-    asm volatile(".set  I_BIT, 0x80     \n\t"
-                 "mrs r0, cpsr          \n\t"
-                 "and r0, r0, #~(I_BIT) \n\t"
-                 "msr cpsr_c, r0        \n\t":::"r0");
-    //The new fastDisableInterrupts/fastEnableInterrupts are inline, so there's
-    //the need for a memory barrier to avoid aggressive reordering
-    asm volatile("":::"memory");
-}
-
-inline bool checkAreInterruptsEnabled()
-{
-    int i;
-    asm volatile("mrs %0, cpsr	":"=r" (i));
-    if(i & 0x80) return false;
-    return true;
 }
 
 /**
