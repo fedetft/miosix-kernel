@@ -23,21 +23,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
-# Creates a custom target to program the board
-function(miosix_add_program_target TARGET)
-    get_target_property(PROGRAM_CMDLINE miosix PROGRAM_CMDLINE)
-    if(PROGRAM_CMDLINE STREQUAL "PROGRAM_CMDLINE-NOTFOUND")
-        set(PROGRAM_CMDLINE st-flash --connect-under-reset --reset write <binary> 0x8000000)
-    endif()
-
-    list(TRANSFORM PROGRAM_CMDLINE REPLACE <binary> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}.bin)
-    list(TRANSFORM PROGRAM_CMDLINE REPLACE <hex> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}.hex)
-
-    add_custom_target(${TARGET}_program ${PROGRAM_CMDLINE}
-        DEPENDS ${TARGET}_bin ${TARGET}_hex
-        VERBATIM
-    )
-endfunction()
+include(AddProgramTarget)
 
 # Function to link the Miosix libraries to a target and register the build command
 #

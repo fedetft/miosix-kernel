@@ -24,6 +24,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 include(ExternalProject)
+include(AddProgramTarget)
 include(CreateProcessesDir)
 
 # Create a target that builds the buildromfs tool
@@ -79,4 +80,7 @@ function(miosix_add_romfs_image)
 
     # Create the custom romfs target
     add_custom_target(${ROMFS_IMAGE_NAME} ALL DEPENDS ${PROJECT_BINARY_DIR}/${ROMFS_IMAGE_NAME}.bin)
+
+    # And a target to flash the image
+    miosix_add_program_target(${ROMFS_IMAGE_NAME} TARGETS ${ROMFS_IMAGE_NAME})
 endfunction()
