@@ -33,6 +33,7 @@
 #include "stdlib_integration/libstdcpp_integration.h"
 #include "intrusive.h"
 #include "cpu_time_counter_types.h"
+#include "interfaces/cpu_const.h"
 
 /**
  * \namespace miosix

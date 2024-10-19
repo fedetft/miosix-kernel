@@ -29,64 +29,6 @@
 
 #include "interfaces/arch_registers.h"
 
-/*
- * This pointer is used by the kernel, and should not be used by end users.
- * this is a pointer to a location where to store the thread's registers during
- * context switch. It requires C linkage to be used inside asm statement.
- * Registers are saved in the following order:
- * *ctxsave+32 --> r11
- * *ctxsave+28 --> r10
- * *ctxsave+24 --> r9
- * *ctxsave+20 --> r8
- * *ctxsave+16 --> r7
- * *ctxsave+12 --> r6
- * *ctxsave+8  --> r5
- * *ctxsave+4  --> r4
- * *ctxsave+0  --> psp
- */
-extern "C" {
-extern volatile unsigned int *ctxsave;
-}
-const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
-
-inline void doYield()
-{
-    //NOTE: before Miosix 3 we used "svc 0" as yield also within the kernel, but
-    //now we have the dedicated PendSV IRQ to call the scheduler, so use that.
-    //Can't use NVIC_SetPendingIRQ as PendSV is an exception, not an IRQ
-    SCB->ICSR=SCB_ICSR_PENDSVSET_Msk;
-    //NOTE: due to the write buffer while doing the store to the SCB->ICSR,
-    //the CPU could execute ahead of the yield. Use dmb to prevent
-    asm volatile("dmb":::"memory");
-}
-
-inline void doDisableInterrupts()
-{
-    // Documentation says __disable_irq() disables all interrupts with
-    // configurable priority, so also SysTick and SVC.
-    // No need to disable faults with __disable_fault_irq()
-    __disable_irq();
-    //The new fastDisableInterrupts/fastEnableInterrupts are inline, so there's
-    //the need for a memory barrier to avoid aggressive reordering
-    asm volatile("":::"memory");
-}
-
-inline void doEnableInterrupts()
-{
-    __enable_irq();
-    //The new fastDisableInterrupts/fastEnableInterrupts are inline, so there's
-    //the need for a memory barrier to avoid aggressive reordering
-    asm volatile("":::"memory");
-}
-
-inline bool checkAreInterruptsEnabled()
-{
-    register int i;
-    asm volatile("mrs   %0, primask    \n\t":"=r"(i));
-    if(i!=0) return false;
-    return true;
-}
-
 namespace fault {
 /**
  * Possible kind of faults that the Cortex-M3 can report.

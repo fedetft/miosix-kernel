@@ -28,6 +28,7 @@
 #include "priority_scheduler.h"
 #include "kernel/error.h"
 #include "kernel/process.h"
+#include "interfaces_private/cpu.h"
 #include "interfaces_private/os_timer.h"
 #include <limits>
 

@@ -5,7 +5,7 @@
 ## Path to kernel/config directories (edited by init_project_out_of_git_repo.pl)
 KPATH := miosix
 CONFPATH := $(KPATH)
-MAKEFILE_VERSION := 1.15
+MAKEFILE_VERSION := 1.16
 include $(KPATH)/Makefile.kcommon
 
 ##

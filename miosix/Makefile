@@ -4,7 +4,7 @@
 ##
 
 ## KPATH and CONFPATH are forwarded by the parent Makefile
-MAKEFILE_VERSION := 1.15
+MAKEFILE_VERSION := 1.16
 include $(KPATH)/Makefile.kcommon
 
 ## List of all Miosix OS source files that have no special requirements

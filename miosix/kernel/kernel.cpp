@@ -253,7 +253,7 @@ void startKernel()
     
     // Dispatch the task to the architecture-specific function
     kernelStarted=true;
-    miosix_private::IRQportableStartKernel();
+    IRQportableStartKernel();
 }
 
 bool isKernelRunning()
@@ -734,8 +734,8 @@ void Thread::setupUserspaceContext(unsigned int entry, int argc, void *argvSp,
     //the heap, used by _sbrk_r. When we'll implement threads in processes that
     //pointer will just point to the watermark end of the thread, but userspace
     //threads can just ignore that value so we'll pass it unconditionally
-    miosix_private::initCtxsave(runningThread->userCtxsave,startfunc,
-        argc,argvSp,envp,gotBase,runningThread->userWatermark);
+    initCtxsave(runningThread->userCtxsave,startfunc,argc,argvSp,envp,gotBase,
+                runningThread->userWatermark);
 }
 
 #endif //WITH_PROCESSES
@@ -802,8 +802,8 @@ Thread *Thread::doCreate(void*(*startfunc)(void*) , unsigned int stacksize,
 
     //On some architectures some registers are saved on the stack, therefore
     //initCtxsave *must* be called after filling the stack.
-    miosix_private::initCtxsave(thread->ctxsave,reinterpret_cast<unsigned int*>(thread),
-                                &Thread::threadLauncher,startfunc,argv);
+    initCtxsave(thread->ctxsave,reinterpret_cast<unsigned int*>(thread),
+                &Thread::threadLauncher,startfunc,argv);
 
     if((options & JOINABLE)==0) thread->flags.IRQsetDetached();
     return thread;

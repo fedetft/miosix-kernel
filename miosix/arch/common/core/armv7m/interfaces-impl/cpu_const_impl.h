@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2012-2021 by Terraneo Federico                          *
+ *   Copyright (C) 2010-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -34,24 +34,18 @@ namespace miosix {
  * \{
  */
 
-/// \internal size of vector to store registers during ctx switch
-/// ((10+16)*4=104Bytes). Only sp, r4-r11, EXC_RETURN and s16-s31 are saved
-/// here, since r0-r3,r12,lr,pc,xPSR, old sp and s0-s15,fpscr are saved by
-/// hardware on the process stack on Cortex M4F CPUs. EXC_RETURN, or the lr, 
-/// value to use to return from the exception is necessary to know if the
-/// thread has used fp regs, as an extension specific to Cortex-M4F CPUs.
-const unsigned char CTXSAVE_SIZE=10+16;
+/// \internal Size in words of vector to store CPU context during context switch
+/// (9*4=36Bytes). Only sp and r4-r11 are saved here, since r0-r3,r12,lr,pc,xPSR
+/// and old sp are saved by hardware on the process stack on armv7m CPUs.
+const unsigned char CTXSAVE_SIZE=9;
 
-/// \internal some architectures save part of the context on their stack.
-/// ((8+17)*4=100Bytes). This constant is used to increase the stack size by
-/// the size of context save frame. If zero, this architecture does not save
-/// anything on stack during context save. Size is in bytes, not words.
-///  8 registers=r0-r3,r12,lr,pc,xPSR
-/// 17 registers=s0-s15,fpscr
-/// MUST be divisible by 4.
-const unsigned int CTXSAVE_ON_STACK=(8+17)*4;
+/// \internal Size of additional context saved on the stack during context switch.
+/// If zero, this architecture does not save anything on stack during context
+/// save. Size is in bytes, not words. MUST be divisible by 4. This constant is
+/// used to increase the stack size by the size of context save frame.
+const unsigned int CTXSAVE_ON_STACK=32;
 
-/// \internal stack alignment for this specific architecture
+/// \internal Stack alignment required by the CPU
 const unsigned int CTXSAVE_STACK_ALIGNMENT=8;
 
 /**

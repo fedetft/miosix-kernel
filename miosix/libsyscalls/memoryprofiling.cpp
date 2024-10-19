@@ -30,6 +30,7 @@
 #include <malloc.h>
 #include <reent.h>
 #include <config/miosix_settings.h>
+#include <interfaces/cpu_const.h>
 
 // declared in crt1.cpp
 extern const char *__processHeapEnd;

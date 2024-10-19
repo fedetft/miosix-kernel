@@ -32,59 +32,29 @@
 #include "kernel/scheduler/scheduler.h"
 #include <algorithm>
 
-/**
- * \internal
- * software interrupt routine.
- * Since inside naked functions only assembler code is allowed, this function
- * only calls the ctxsave/ctxrestore macros (which are in assembler), and calls
- * the implementation code in ISR_yield()
- */
-void SVC_Handler() __attribute__((naked));
-void SVC_Handler()
-{
-    saveContext();
-    //Call ISR_yield(). Name is a C++ mangled name.
-    asm volatile("bl _ZN14miosix_private9ISR_yieldEv");
-    restoreContext();
-}
-
-namespace miosix_private {
-
-/**
- * \internal
- * Called by the software interrupt, yield to next thread
- * Declared noinline to avoid the compiler trying to inline it into the caller,
- * which would violate the requirement on naked functions. Function is not
- * static because otherwise the compiler optimizes it out...
- */
-void ISR_yield() __attribute__((noinline));
-void ISR_yield()
-{
-    miosix::Thread::IRQstackOverflowCheck();
-    miosix::Scheduler::IRQfindNextThread();
-}
+namespace miosix {
 
 void IRQsystemReboot()
 {
     NVIC_SystemReset();
 }
 
-void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
-        void *argv)
+void initCtxsave(unsigned int *ctxsave, unsigned int *sp,
+                 void (*pc)(void *(*)(void*),void*),
+                 void *(*arg0)(void*), void *arg1)
 {
     unsigned int *stackPtr=sp;
-    stackPtr--; //Stack is full descending, so decrement first
-    *stackPtr=0x01000000; stackPtr--;                                 //--> xPSR
-    *stackPtr=reinterpret_cast<unsigned long>(
-            &miosix::Thread::threadLauncher); stackPtr--;             //--> pc
-    *stackPtr=0xffffffff; stackPtr--;                                 //--> lr
-    *stackPtr=0; stackPtr--;                                          //--> r12
-    *stackPtr=0; stackPtr--;                                          //--> r3
-    *stackPtr=0; stackPtr--;                                          //--> r2
-    *stackPtr=reinterpret_cast<unsigned long >(argv); stackPtr--;     //--> r1
-    *stackPtr=reinterpret_cast<unsigned long >(pc);                   //--> r0
+    //Stack is full descending, so decrement first
+    stackPtr--; *stackPtr=0x01000000;                                 //--> xPSR
+    stackPtr--; *stackPtr=reinterpret_cast<unsigned int>(pc);         //--> pc
+    stackPtr--; *stackPtr=0xffffffff;                                 //--> lr
+    stackPtr--; *stackPtr=0;                                          //--> r12
+    stackPtr--; *stackPtr=0;                                          //--> r3
+    stackPtr--; *stackPtr=0;                                          //--> r2
+    stackPtr--; *stackPtr=reinterpret_cast<unsigned int>(arg1);       //--> r1
+    stackPtr--; *stackPtr=reinterpret_cast<unsigned int>(arg0);       //--> r0
 
-    ctxsave[0]=reinterpret_cast<unsigned long>(stackPtr);             //--> psp
+    ctxsave[0]=reinterpret_cast<unsigned int>(stackPtr);              //--> psp
     //leaving the content of r4-r11 uninitialized
 }
 
@@ -105,11 +75,12 @@ void IRQportableStartKernel()
     //since there's no way to stop the sheduler, but we need to save it anyway.
     unsigned int s_ctxsave[miosix::CTXSAVE_SIZE];
     ctxsave=s_ctxsave;//make global ctxsave point to it
-    //Note, we can't use enableInterrupts() now since the call is not mathced
+    //Note, we can't use enableInterrupts() now since the call is not matched
     //by a call to disableInterrupts()
+    //FIXME: there's no __enable_fault_irq(); is this right?
     __enable_irq();
     miosix::Thread::yield();
     //Never reaches here
 }
 
-} //namespace miosix_private
+} //namespace miosix

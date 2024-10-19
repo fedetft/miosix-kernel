@@ -88,7 +88,7 @@ void reboot()
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
 
     disableInterrupts();
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 } //namespace miosix

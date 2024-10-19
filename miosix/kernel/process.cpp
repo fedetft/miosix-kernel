@@ -41,6 +41,7 @@
 #include "sync.h"
 #include "process_pool.h"
 #include "process.h"
+#include "interfaces/cpu_const.h"
 
 using namespace std;
 

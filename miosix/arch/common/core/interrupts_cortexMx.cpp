@@ -46,7 +46,7 @@ static void unexpectedInterrupt(void*)
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected Peripheral interrupt\r\n");
     #endif //WITH_ERRLOG
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 const unsigned int numInterrupts=MIOSIX_NUM_PERIPHERAL_IRQ;
@@ -197,14 +197,13 @@ static unsigned int getProgramCounter()
 void NMI_Handler()
 {
     IRQerrorLog("\r\n***Unexpected NMI\r\n");
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 void HardFault_Handler()
 {
     #ifdef WITH_PROCESSES
-    if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
-        fault::HARDFAULT,getProgramCounter())))
+    if(Thread::IRQreportFault(FaultData(fault::HARDFAULT,getProgramCounter())))
     {
         IRQinvokeScheduler();
         return;
@@ -221,7 +220,7 @@ void HardFault_Handler()
         IRQerrorLog("A BusFault occurred during a vector table read\r\n");
     #endif // !_ARCH_CORTEXM0_STM32F0 && !_ARCH_CORTEXM0_STM32G0 && !_ARCH_CORTEXM0PLUS_STM32L0
     #endif //WITH_ERRLOG
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 // Cortex M0/M0+ architecture does not have the interrupts handled by code
@@ -238,8 +237,7 @@ void MemManage_Handler()
     if(cfsr & 0x00000001) id=fault::MP_XN;
     else if(cfsr & 0x00000080) { id=fault::MP; arg=SCB->MMFAR; }
     else id=fault::MP_NOADDR;
-    if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
-        id,getProgramCounter(),arg)))
+    if(Thread::IRQreportFault(FaultData(id,getProgramCounter(),arg)))
     {
         SCB->SHCSR &= ~(1<<13); //Clear MEMFAULTPENDED bit
         IRQinvokeScheduler();
@@ -263,7 +261,7 @@ void MemManage_Handler()
     if(cfsr & 0x00000001) //SCB_CFSR_IACCVIOL
         IRQerrorLog("Fault was caused by attempted execution from XN area\r\n");
     #endif //WITH_ERRLOG
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 void BusFault_Handler()
@@ -275,8 +273,7 @@ void BusFault_Handler()
     int id, arg=0;
     if(cfsr & 0x00008000) { id=fault::BF; arg=SCB->BFAR; }
     else id=fault::BF_NOADDR;
-    if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
-        id,getProgramCounter(),arg)))
+    if(Thread::IRQreportFault(FaultData(id,getProgramCounter(),arg)))
     {
         SCB->SHCSR &= ~(1<<14); //Clear BUSFAULTPENDED bit
         IRQinvokeScheduler();
@@ -302,7 +299,7 @@ void BusFault_Handler()
     if(cfsr & 0x00000100) //SCB_CFSR_IBUSERR
         IRQerrorLog("Fault happened during instruction fetch\r\n");
     #endif //WITH_ERRLOG
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 void UsageFault_Handler()
@@ -319,8 +316,7 @@ void UsageFault_Handler()
     else if(cfsr & 0x00020000) id=fault::UF_EPSR;
     else if(cfsr & 0x00010000) id=fault::UF_UNDEF;
     else id=fault::UF_UNEXP;
-    if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
-        id,getProgramCounter())))
+    if(Thread::IRQreportFault(FaultData(id,getProgramCounter())))
     {
         SCB->SHCSR &= ~(1<<12); //Clear USGFAULTPENDED bit
         IRQinvokeScheduler();
@@ -343,7 +339,7 @@ void UsageFault_Handler()
     if(cfsr & 0x00010000) //SCB_CFSR_UNDEFINSTR
         IRQerrorLog("Undefined instruction\r\n");
     #endif //WITH_ERRLOG
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 void DebugMon_Handler()
@@ -352,7 +348,7 @@ void DebugMon_Handler()
     IRQerrorLog("\r\n***Unexpected DebugMon @ ");
     printUnsignedInt(getProgramCounter());
     #endif //WITH_ERRLOG
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 #endif // !defined(_ARCH_CORTEXM0_STM32F0) && !defined(_ARCH_CORTEXM0_STM32G0) && !defined(_ARCH_CORTEXM0PLUS_STM32L0) && !defined(_ARCH_CORTEXM0PLUS_RP2040)
@@ -379,14 +375,13 @@ void SVC_Handler()
     // syscall.
     if(SCB->SHCSR & (1<<13))
     {
-        if(miosix::Thread::IRQreportFault(miosix_private::FaultData(
-            fault::MP,0,0)))
+        if(Thread::IRQreportFault(FaultData(fault::MP,0,0)))
         {
             SCB->SHCSR &= ~(1<<13); //Clear MEMFAULTPENDED bit
             return;
         }
     }
-    miosix::Thread::IRQstackOverflowCheck(); //BUG! here we check the stack but we haven't saved the context!
+    Thread::IRQstackOverflowCheck(); //BUG! here we check the stack but we haven't saved the context!
 
     //If processes are enabled, check the content of r3. If zero then it
     //it is a simple yield, otherwise handle the syscall
@@ -394,56 +389,17 @@ void SVC_Handler()
     //at this time we do not know if the active context is user or kernel
     unsigned int threadSp=ctxsave[0];
     unsigned int *processStack=reinterpret_cast<unsigned int*>(threadSp);
-    if(processStack[3]!=static_cast<unsigned int>(miosix::Syscall::YIELD))
-        miosix::Thread::IRQhandleSvc(processStack[3]);
+    if(processStack[3]!=static_cast<unsigned int>(Syscall::YIELD))
+        Thread::IRQhandleSvc(processStack[3]);
     IRQinvokeScheduler(); //TODO: is it right to invoke the scheduler always? Check
     #else //WITH_PROCESSES
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected SVC @ ");
     printUnsignedInt(getProgramCounter());
     #endif //WITH_ERRLOG
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
     #endif //WITH_PROCESSES
 }
-
-/**
- * \internal
- * \def saveContext()
- * Save context from an interrupt<br>
- * Must be the first line of an IRQ where a context switch can happen.
- * The IRQ must be "naked" to prevent the compiler from generating context save.
- *
- * A note on the dmb instruction, without it a race condition was observed
- * between pauseKernel() and IRQfindNextThread(). pauseKernel() uses an strex
- * instruction to store a value in the global variable kernel_running which is
- * tested by the context switch code in IRQfindNextThread(). Without the memory
- * barrier IRQfindNextThread() would occasionally read the previous value and
- * perform a context switch while the kernel was paused, leading to deadlock.
- * The failure was only observed within the exception_test() in the testsuite
- * running on the stm32f429zi_stm32f4discovery.
- */
-#define saveContext()                                                        \
-    asm volatile("stmdb sp!, {lr}        \n\t" /*save lr on MAIN stack*/      \
-                 "mrs   r1,  psp         \n\t" /*get PROCESS stack pointer*/  \
-                 "ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
-                 "ldr   r0,  [r0]        \n\t"                                \
-                 "stmia r0,  {r1,r4-r11} \n\t" /*save PROCESS sp + r4-r11*/   \
-                 "dmb                    \n\t"                                \
-                 );
-
-/**
- * \def restoreContext()
- * Restore context in an IRQ where saveContext() is used. Must be the last line
- * of an IRQ where a context switch can happen. The IRQ must be "naked" to
- * prevent the compiler from generating context restore.
- */
-#define restoreContext()                                                     \
-    asm volatile("ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
-                 "ldr   r0,  [r0]        \n\t"                                \
-                 "ldmia r0,  {r1,r4-r11} \n\t" /*restore r4-r11 + r1=psp*/    \
-                 "msr   psp, r1          \n\t" /*restore PROCESS sp*/         \
-                 "ldmia sp!, {pc}        \n\t" /*return*/                     \
-                 );
 
 void PendSV_Handler() __attribute__((naked));
 void PendSV_Handler()
@@ -464,8 +420,8 @@ void PendSV_Handler()
 void ISR_yield() __attribute__((noinline));
 void ISR_yield()
 {
-    miosix::Thread::IRQstackOverflowCheck();
-    miosix::Scheduler::IRQrunScheduler();
+    Thread::IRQstackOverflowCheck();
+    Scheduler::IRQrunScheduler();
 }
 
 

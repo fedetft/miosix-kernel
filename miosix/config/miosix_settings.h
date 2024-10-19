@@ -40,10 +40,8 @@
  * NOTE: this file contains ONLY configuration options that are not dependent
  * on architecture specific details. The other options are in the following
  * files which are included here:
- * miosix/arch/architecture name/common/arch_settings.h
  * miosix/config/arch/architecture name/board name/board_settings.h
  */
-#include "arch_settings.h"
 #include "board_settings.h"
 
 /**

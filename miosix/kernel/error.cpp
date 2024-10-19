@@ -73,7 +73,7 @@ void errorHandler(Error e)
         default:
             break;
     }
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 
     //if(interrupts) enableInterrupts(); // Not needed since no recoverable errors
 }

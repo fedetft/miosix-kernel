@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010, 2011, 2012 by Terraneo Federico       *
+ *   Copyright (C) 2008-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -24,10 +24,8 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
-//Miosix kernel
 
-#ifndef PORTABILITY_IMPL_H
-#define PORTABILITY_IMPL_H
+#pragma once
 
 #include "config/miosix_settings.h"
 
@@ -71,22 +69,22 @@ const int stackPtrOffsetInCtxsave=13; ///< Allows to locate the stack pointer
  * It is used by the kernel, and should not be used by end users.
  */
 #define saveContextFromSwi()                                                 \
-    asm volatile(   /*push lr on stack, to use it as a general purpose reg.*/   \
-                    "stmfd	sp!,{lr}		\n\t"                   \
-                    /*load ctxsave and dereference the pointer*/                \
-                    "ldr	lr,=ctxsave		\n\t"                   \
-                    "ldr	lr,[lr]			\n\t"                   \
-                    /*save all thread registers except pc*/                     \
-                    "stmia	lr,{r0-lr}^		\n\t"                   \
-                    /*add a nop as required after stm ^ (read ARM reference about stm(2))*/ \
-                    "nop				\n\t"                   \
-                    /*move lr to r0, restore original lr (return address) and save it*/     \
-                    "add	r0,lr,#60		\n\t"                   \
-                    "ldmfd	sp!,{lr}		\n\t"                   \
-                    "stmia	r0!,{lr}		\n\t"                   \
-                    /*save spsr on top of ctxsave*/                             \
-                    "mrs	r1,spsr			\n\t"                   \
-                    "stmia	r0,{r1}			\n\t");
+    asm volatile(/*push lr on stack, to use it as a general purpose reg.*/   \
+                 "stmfd  sp!,{lr}        \n\t"                               \
+                 /*load ctxsave and dereference the pointer*/                \
+                 "ldr    lr,=ctxsave     \n\t"                               \
+                 "ldr    lr,[lr]         \n\t"                               \
+                 /*save all thread registers except pc*/                     \
+                 "stmia  lr,{r0-lr}^     \n\t"                               \
+                 /*add a nop as required after stm ^ (ARM reference stm 2)*/ \
+                 "nop                    \n\t"                               \
+                 /*move lr to r0, restore original lr and save it*/          \
+                 "add    r0,lr,#60       \n\t"                               \
+                 "ldmfd  sp!,{lr}        \n\t"                               \
+                 "stmia  r0!,{lr}        \n\t"                               \
+                 /*save spsr on top of ctxsave*/                             \
+                 "mrs    r1,spsr         \n\t"                               \
+                 "stmia  r0,{r1}         \n\t");
 
 /**
  * \def saveContextFromIrq()
@@ -95,9 +93,9 @@ const int stackPtrOffsetInCtxsave=13; ///< Allows to locate the stack pointer
  * The IRQ must be "naked" to prevent the compiler from generating context save.
  */
 #define saveContextFromIrq()                                                 \
-	asm volatile(	/*Adjust lr, because the return address in a ISR has a 4 bytes offset*/ \
-                    "sub	lr,lr,#4		\n\t");                 \
-	saveContextFromSwi();
+    asm volatile(/*Adjust lr, return address in a ISR has a 4 bytes offset*/ \
+                 "sub    lr,lr,#4        \n\t");                             \
+    saveContextFromSwi();
 
 /**
  * \def restoreContext()
@@ -106,23 +104,23 @@ const int stackPtrOffsetInCtxsave=13; ///< Allows to locate the stack pointer
  * a context switch can happen. The IRQ must be "naked" to prevent the compiler
  * from generating context restore.
  */
-#define restoreContext()                                                       \
-	asm volatile(	/*load ctxsave and dereference the pointer*/            \
-                    /*also add 64 to make it point to "top of stack"*/          \
-                    "ldr	lr,=ctxsave		\n\t"                   \
-                    "ldr	lr,[lr]			\n\t"                   \
-                    "add	lr,lr,#64		\n\t"                   \
-                    /*restore spsr*/                                            \
-                    /*after this instructions, lr points to ctxsave[15] (return address)*/  \
-                    "ldmda	lr!,{r1}		\n\t"                   \
-                    "msr	spsr,r1			\n\t"                   \
-                    /*restore all thread registers except pc*/                  \
-                    "ldmdb	lr,{r0-lr}^		\n\t"                   \
-                    /*add a nop as required after ldm ^ (read ARM reference about ldm(2))*/ \
-                    "nop                                \n\t"                   \
-                    /*now that lr points to return address, return from interrupt*/         \
-                    "ldr	lr,[lr]			\n\t"                   \
-                    "movs	pc,lr			\n\t");
+#define restoreContext()                                                     \
+    asm volatile(/*load ctxsave and dereference the pointer*/                \
+                 /*also add 64 to make it point to "top of stack"*/          \
+                 "ldr   lr,=ctxsave     \n\t"                                \
+                 "ldr   lr,[lr]         \n\t"                                \
+                 "add   lr,lr,#64       \n\t"                                \
+                 /*restore spsr*/                                            \
+                 /*after this instructions, lr points to ctxsave[15]*/       \
+                 "ldmda lr!,{r1}        \n\t"                                \
+                 "msr   spsr,r1         \n\t"                                \
+                 /*restore all thread registers except pc*/                  \
+                 "ldmdb lr,{r0-lr}^     \n\t"                                \
+                 /*add a nop as required after ldm ^ (ARM reference ldm 2)*/ \
+                 "nop                   \n\t"                                \
+                 /*lr points to return address, return from interrupt*/      \
+                 "ldr   lr,[lr]         \n\t"                                \
+                 "movs  pc,lr           \n\t");
 
 /**
  * Enable interrupts (both irq and fiq)<br>
@@ -141,29 +139,29 @@ const int stackPtrOffsetInCtxsave=13; ///< Allows to locate the stack pointer
  * defined in miosix/drivers/interrupts.cpp<br>By default FIQ are enabled but no
  * peripheral is associated with FIQ, so no FIQ interrupts will occur.
  */
-#define enableIRQandFIQ()                                                       \
-    asm volatile(".set  I_BIT, 0x80			\n\t"                   \
-                ".set  F_BIT, 0x40                        \n\t"                   \
-                "mrs r0, cpsr                             \n\t"                   \
-                "and r0, r0, #~(I_BIT|F_BIT)              \n\t"                   \
-                "msr cpsr_c, r0				\n\t"                   \
-                :::"r0");
+#define enableIRQandFIQ()                                                     \
+    asm volatile(".set  I_BIT, 0x80           \n\t"                           \
+                 ".set  F_BIT, 0x40           \n\t"                           \
+                 "mrs r0, cpsr                \n\t"                           \
+                 "and r0, r0, #~(I_BIT|F_BIT) \n\t"                           \
+                 "msr cpsr_c, r0              \n\t"                           \
+                 :::"r0");
 
 ///Disable interrupts (both irq and fiq)<br>
 ///If you are not using FIQ you should use enableInterrupts()
-#define disableIRQandFIQ()                                                      \
-    asm volatile(".set  I_BIT, 0x80			\n\t"                   \
-                ".set  F_BIT, 0x40			\n\t"                   \
-                "mrs r0, cpsr				\n\t"                   \
-                "orr r0, r0, #I_BIT|F_BIT                 \n\t"                   \
-                "msr cpsr_c, r0				\n\t"                   \
-                :::"r0");
+#define disableIRQandFIQ()                                                    \
+    asm volatile(".set  I_BIT, 0x80           \n\t"                           \
+                 ".set  F_BIT, 0x40           \n\t"                           \
+                 "mrs r0, cpsr                \n\t"                           \
+                 "orr r0, r0, #I_BIT|F_BIT    \n\t"                           \
+                 "msr cpsr_c, r0              \n\t"                           \
+                 :::"r0");
 
 /**
  * \}
  */
 
-namespace miosix_private {
+namespace miosix {
     
 /**
  * \addtogroup Drivers
@@ -172,6 +170,7 @@ namespace miosix_private {
 
 inline void doYield()
 {
+    #error TODO update yield code with PendSV equivalent for ARM7
     asm volatile("movs  r3, #0\n\t"
                  "swi   0"
                  :::"r3");
@@ -191,9 +190,9 @@ inline void doDisableInterrupts()
 inline void doEnableInterrupts()
 {
     asm volatile(".set  I_BIT, 0x80     \n\t"
-                     "mrs r0, cpsr          \n\t"
-                     "and r0, r0, #~(I_BIT) \n\t"
-                     "msr cpsr_c, r0        \n\t":::"r0");
+                 "mrs r0, cpsr          \n\t"
+                 "and r0, r0, #~(I_BIT) \n\t"
+                 "msr cpsr_c, r0        \n\t":::"r0");
     //The new fastDisableInterrupts/fastEnableInterrupts are inline, so there's
     //the need for a memory barrier to avoid aggressive reordering
     asm volatile("":::"memory");
@@ -211,6 +210,4 @@ inline bool checkAreInterruptsEnabled()
  * \}
  */
 
-} //namespace miosix_private
-
-#endif //PORTABILITY_IMPL_H
+} //namespace miosix

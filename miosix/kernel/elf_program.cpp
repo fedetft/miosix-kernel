@@ -29,6 +29,7 @@
 #include "process.h"
 #include "process_pool.h"
 #include "filesystem/file_access.h"
+#include "interfaces/cpu_const.h"
 #include <stdexcept>
 #include <cstring>
 #include <cstdio>

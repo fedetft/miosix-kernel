@@ -842,7 +842,7 @@ endif
 ## a new board or porting Miosix to a new architecture                    ##
 ############################################################################
 
-ifneq ($(MAKEFILE_VERSION),1.15)
+ifneq ($(MAKEFILE_VERSION),1.16)
     $(info You are using an incompatible makefile. Make sure it matches \
       the one distributed with the current version of the kernel)
     $(error Error)
@@ -999,7 +999,6 @@ ifeq ($(ARCH),arm7_lpc2000)
         ARCH_SRC :=                                  \
         $(BOARD_INC)/core/stage_1_boot.s             \
         $(BOARD_INC)/interfaces-impl/sleep.cpp       \
-        $(BOARD_INC)/interfaces-impl/portability.cpp \
         $(BOARD_INC)/interfaces-impl/os_timer.cpp    \
         arch/common/drivers/sd_lpc2000.cpp           \
         $(BOARD_INC)/interfaces-impl/delays.cpp      \
@@ -1019,6 +1018,7 @@ ifeq ($(ARCH),arm7_lpc2000)
     ## This architecture does not support processes
     #POSTLD :=
 
+    CPU_INC := arch/common/core/armv4
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=arm7tdmi
     AFLAGS_BASE   := $(CPU)
@@ -1030,8 +1030,9 @@ ifeq ($(ARCH),arm7_lpc2000)
 
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
-    ARCH_SRC +=                                  \
-    arch/common/core/interrupts_arm7.cpp         \
+    ARCH_SRC +=                                    \
+    arch/common/core/armv4/interfaces-impl/cpu.cpp \
+    arch/common/core/interrupts_arm7.cpp           \
     arch/common/drivers/serial_lpc2000.cpp
 
     ## Select programmer command line
@@ -1482,6 +1483,7 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
     ## This architecture supports processes
     POSTLD := mx-postlinker
 
+    CPU_INC := arch/common/core/armv7m
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m3 -mthumb
     AFLAGS_BASE   := $(CPU)
@@ -1495,18 +1497,18 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
 
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
-    ARCH_SRC +=                                  \
-    arch/common/core/interrupts_cortexMx.cpp     \
-    arch/common/core/mpu_cortexMx.cpp            \
-    arch/common/core/sleep_cortexMx.cpp          \
-    arch/common/drivers/serial_stm32.cpp         \
-    arch/common/drivers/dcc.cpp                  \
-    $(ARCH_INC)/interfaces-impl/portability.cpp  \
-    $(ARCH_INC)/interfaces-impl/delays.cpp       \
-    $(ARCH_INC)/interfaces-impl/sleep.cpp        \
-    arch/common/drivers/stm32f1_gpio.cpp         \
-    arch/common/core/stm32_16bit_os_timer.cpp    \
-    arch/common/core/stm32_rtc_os_timer.cpp      \
+    ARCH_SRC +=                                     \
+    arch/common/core/armv7m/interfaces-impl/cpu.cpp \
+    arch/common/core/interrupts_cortexMx.cpp        \
+    arch/common/core/mpu_cortexMx.cpp               \
+    arch/common/core/sleep_cortexMx.cpp             \
+    arch/common/drivers/serial_stm32.cpp            \
+    arch/common/drivers/dcc.cpp                     \
+    $(ARCH_INC)/interfaces-impl/delays.cpp          \
+    $(ARCH_INC)/interfaces-impl/sleep.cpp           \
+    arch/common/drivers/stm32f1_gpio.cpp            \
+    arch/common/core/stm32_16bit_os_timer.cpp       \
+    arch/common/core/stm32_rtc_os_timer.cpp         \
     arch/common/CMSIS/Device/ST/STM32F1xx/Source/Templates/system_stm32f1xx.c
 
 ##-----------------------------------------------------------------------------
@@ -1948,6 +1950,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     ## This architecture supports processes
     POSTLD := mx-postlinker
 
+    CPU_INC := arch/common/core/armv7m_fpu
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
     AFLAGS_BASE   := $(CPU)
@@ -1962,12 +1965,12 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
+    arch/common/core/armv7m_fpu/interfaces-impl/cpu.cpp      \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
     arch/common/drivers/dcc.cpp                              \
-    $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/drivers/sd_stm32f2_f4_f7.cpp                 \
@@ -2232,6 +2235,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     ## This architecture supports processes
     POSTLD := mx-postlinker
 
+    CPU_INC := arch/common/core/armv7m
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m3 -mthumb
     AFLAGS_BASE   := $(CPU)
@@ -2246,13 +2250,13 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
+    arch/common/core/armv7m/interfaces-impl/cpu.cpp          \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
     arch/common/drivers/dcc.cpp                              \
     arch/common/drivers/stm32_hardware_rng.cpp               \
-    $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/core/stm32_32bit_os_timer.cpp                \
@@ -2306,6 +2310,7 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
     ## This architecture does not support processes
     #POSTLD :=
 
+    CPU_INC := arch/common/core/armv7m
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m3 -mthumb
     AFLAGS_BASE   := $(CPU)
@@ -2320,10 +2325,10 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
+    arch/common/core/armv7m/interfaces-impl/cpu.cpp          \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
-    $(ARCH_INC)/interfaces-impl/portability.cpp              \
     arch/common/drivers/stm32_gpio.cpp                       \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/core/stm32_16bit_os_timer.cpp                \
@@ -2387,6 +2392,7 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
     ## This architecture supports processes
     POSTLD := mx-postlinker
 
+    CPU_INC := arch/common/core/armv7m
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m3 -mthumb
     AFLAGS_BASE   := $(CPU)
@@ -2401,12 +2407,12 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
+    arch/common/core/armv7m/interfaces-impl/cpu.cpp          \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/efm32_serial.cpp                     \
     arch/common/drivers/efm32_adc.cpp                        \
-    $(ARCH_INC)/interfaces-impl/portability.cpp              \
     arch/common/drivers/efm32_gpio.cpp                       \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/CMSIS/Device/SiliconLabs/EFM32GG/Source/system_efm32gg.c
@@ -2572,6 +2578,7 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     ## This architecture supports processes
     POSTLD := mx-postlinker
 
+    CPU_INC := arch/common/core/armv7m_fpu
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := $(CPU)
     CFLAGS_BASE   += -D_ARCH_CORTEXM7_STM32F7 $(CLOCK_FREQ) $(XRAM) \
@@ -2585,6 +2592,7 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
+    arch/common/core/armv7m_fpu/interfaces-impl/cpu.cpp      \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/core/sleep_cortexMx.cpp                      \
@@ -2592,7 +2600,6 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     arch/common/drivers/serial_stm32.cpp                     \
     arch/common/drivers/sd_stm32f2_f4_f7.cpp                 \
     arch/common/drivers/dcc.cpp                              \
-    $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/core/stm32_32bit_os_timer.cpp                \
@@ -2716,6 +2723,7 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
     ## This architecture supports processes
     POSTLD := mx-postlinker
 
+    CPU_INC := arch/common/core/armv7m_fpu
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
     AFLAGS_BASE   := $(CPU)
@@ -2730,6 +2738,7 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
+    arch/common/core/armv7m_fpu/interfaces-impl/cpu.cpp      \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/core/sleep_cortexMx.cpp                      \
@@ -2739,7 +2748,6 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
     arch/common/drivers/serial_stm32.cpp                     \
     arch/common/drivers/dcc.cpp                              \
     $(ARCH_INC)/drivers/pll.cpp                              \
-    $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/core/stm32_32bit_os_timer.cpp                \
@@ -2828,6 +2836,7 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
     ## This architecture does not support processes
     #POSTLD :=
 
+    CPU_INC := arch/common/core/armv6m
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m0 -mthumb
     AFLAGS_BASE   := $(CPU)
@@ -2843,10 +2852,10 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
     ## These are the files in arch/<arch name>/common    
 
     ARCH_SRC +=                                              \
+    arch/common/core/armv6m/interfaces-impl/cpu.cpp          \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
-    $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/CMSIS/Device/ST/STM32F0xx/Source/Templates/system_stm32f0xx.c
@@ -2897,6 +2906,7 @@ else ifeq ($(ARCH),cortexM4_stm32f3)
     ## This architecture supports processes
     POSTLD := mx-postlinker
 
+    CPU_INC := arch/common/core/armv7m_fpu
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
     AFLAGS_BASE   := $(CPU)
@@ -2911,11 +2921,11 @@ else ifeq ($(ARCH),cortexM4_stm32f3)
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
+    arch/common/core/armv7m_fpu/interfaces-impl/cpu.cpp      \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
-    $(ARCH_INC)/interfaces-impl/portability.cpp              \
     arch/common/drivers/stm32_gpio.cpp                       \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/core/stm32_32bit_os_timer.cpp                \
@@ -2997,6 +3007,7 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
     ## This architecture supports processes
     POSTLD := mx-postlinker
 
+    CPU_INC := arch/common/core/armv7m_fpu
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
     AFLAGS_BASE   := $(CPU)
@@ -3011,11 +3022,11 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
+    arch/common/core/armv7m_fpu/interfaces-impl/cpu.cpp      \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
-    $(ARCH_INC)/interfaces-impl/portability.cpp              \
     arch/common/drivers/stm32_gpio.cpp                       \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/core/stm32_32bit_os_timer.cpp                \
@@ -3067,6 +3078,7 @@ else ifeq ($(ARCH),cortexM4_atsam4l)
     ## This architecture supports processes
     POSTLD := mx-postlinker
 
+    CPU_INC := arch/common/core/armv7m
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     ## NOTE: although the atsam4l are cortex M4, they have no FPU, so the
     ## closest multilib we have is cortex M3, and that's basically what they are
@@ -3082,13 +3094,13 @@ else ifeq ($(ARCH),cortexM4_atsam4l)
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
+    arch/common/core/armv7m/interfaces-impl/cpu.cpp          \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_atsam4l.cpp                   \
     $(ARCH_INC)/drivers/clock.cpp                            \
     $(ARCH_INC)/drivers/lcd.cpp                              \
-    $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/os_timer.cpp                 \
     $(ARCH_INC)/interfaces-impl/sleep.cpp                    \
     $(ARCH_INC)/interfaces-impl/gpio_impl.cpp                \
@@ -3139,6 +3151,7 @@ else ifeq ($(ARCH),cortexM3_efm32g)
     ## This architecture supports processes
     POSTLD := mx-postlinker
 
+    CPU_INC := arch/common/core/armv7m
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m3 -mthumb
     AFLAGS_BASE   := $(CPU)
@@ -3153,13 +3166,13 @@ else ifeq ($(ARCH),cortexM3_efm32g)
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
+    arch/common/core/armv7m/interfaces-impl/cpu.cpp          \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/mpu_cortexMx.cpp                        \
     arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/core/efm32_os_timer.cpp                      \
     arch/common/drivers/efm32_serial.cpp                     \
     arch/common/drivers/efm32_adc.cpp                        \
-    $(ARCH_INC)/interfaces-impl/portability.cpp              \
     arch/common/drivers/efm32_gpio.cpp                       \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/CMSIS/Device/SiliconLabs/EFM32G/Source/system_efm32g.c
@@ -3212,6 +3225,7 @@ else ifeq ($(ARCH),cortexM0plus_stm32l0)
     ## This architecture does not support processes
     #POSTLD :=
 
+    CPU_INC := arch/common/core/armv6m
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     # TODO arch is actually -mcpu=cortex-m0plus but compiler doesn't support it yet
     CPU := -mcpu=cortex-m0 -mthumb
@@ -3228,10 +3242,10 @@ else ifeq ($(ARCH),cortexM0plus_stm32l0)
     ## These are the files in arch/<arch name>/common    
 
     ARCH_SRC +=                                              \
+    arch/common/core/armv6m/interfaces-impl/cpu.cpp          \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
-    $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/core/stm32_16bit_os_timer.cpp                \
@@ -3279,6 +3293,7 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
     ## This architecture does not support processes
     #POSTLD :=
 
+    CPU_INC := arch/common/core/armv6m
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     # TODO arch is actually -mcpu=cortex-m0plus but compiler doesn't support it yet
     CPU := -mcpu=cortex-m0 -mthumb
@@ -3295,9 +3310,9 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
     ## These are the files in arch/<arch name>/common    
 
     ARCH_SRC +=                                              \
+    arch/common/core/armv6m/interfaces-impl/cpu.cpp          \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/sleep_cortexMx.cpp                      \
-    $(ARCH_INC)/interfaces-impl/portability.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     arch/common/core/rp2040_os_timer.cpp                     \
     arch/common/drivers/rp2040_serial.cpp                    \

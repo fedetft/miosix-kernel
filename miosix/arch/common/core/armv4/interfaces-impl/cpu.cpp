@@ -25,19 +25,13 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/ 
 
-#include "LPC213x.h"
 #include "interfaces_private/cpu.h"
-#include "interfaces/delays.h"
 #include "kernel/kernel.h"
 #include "kernel/error.h"
-#include "miosix.h"
-#include "portability_impl.h"
 #include "kernel/scheduler/scheduler.h"
 #include <algorithm>
 
-using namespace std;
-
-namespace miosix_private {
+namespace miosix {
 
 /**
  * \internal
@@ -75,11 +69,12 @@ void IRQsystemReboot()
     asm volatile("ldr pc, =0"::);
 }
 
-void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
-            void *argv)
+void initCtxsave(unsigned int *ctxsave, unsigned int *sp,
+                 void (*pc)(void *(*)(void*),void*),
+                 void *(*arg0)(void*), void *arg1)
 {
-    ctxsave[0]=reinterpret_cast<unsigned int>(pc);// First function arg is passed in r0
-    ctxsave[1]=reinterpret_cast<unsigned int>(argv);
+    ctxsave[0]=reinterpret_cast<unsigned int>(arg0);
+    ctxsave[1]=reinterpret_cast<unsigned int>(arg1);
     ctxsave[2]=0;
     ctxsave[3]=0;
     ctxsave[4]=0;
@@ -91,10 +86,9 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), unsigned int *sp,
     ctxsave[10]=0;
     ctxsave[11]=0;
     ctxsave[12]=0;
-    ctxsave[13]=reinterpret_cast<unsigned int>(sp);//Initialize the thread's stack pointer
+    ctxsave[13]=reinterpret_cast<unsigned int>(sp);//Thread stack pointer
     ctxsave[14]=0xffffffff;//threadLauncher never returns, so lr is not important
-    //Initialize the thread's program counter to the beginning of the entry point
-    ctxsave[15]=reinterpret_cast<unsigned int>(&miosix::Thread::threadLauncher);
+    ctxsave[15]=reinterpret_cast<unsigned int>(pc);//Thread pc=entry point
     ctxsave[16]=0x1f;//thread starts in system mode with irq and fiq enabled.
 }
 
@@ -108,4 +102,4 @@ void IRQportableStartKernel()
     //Never reaches here
 }
 
-} //namespace miosix_private
+} //namespace miosix

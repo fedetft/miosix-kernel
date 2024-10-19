@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
+ *   Copyright (C) 2010-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -24,15 +24,11 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
-//Miosix kernel
 
-#ifndef PORTABILITY_IMPL_H
-#define PORTABILITY_IMPL_H
+#pragma once
 
 #include "interfaces/arch_registers.h"
-#include "interfaces_private/cpu.h"
 #include "config/miosix_settings.h"
-#include <cassert>
 
 /**
  * \addtogroup Drivers
@@ -44,19 +40,15 @@
  * this is a pointer to a location where to store the thread's registers during
  * context switch. It requires C linkage to be used inside asm statement.
  * Registers are saved in the following order:
- * *ctxsave+100 --> s31
- * ...
- * *ctxsave+40  --> s16
- * *ctxsave+36  --> lr (contains EXC_RETURN whose bit #4 tells if fpu is used)
- * *ctxsave+32  --> r11
- * *ctxsave+28  --> r10
- * *ctxsave+24  --> r9
- * *ctxsave+20  --> r8
- * *ctxsave+16  --> r7
- * *ctxsave+12  --> r6
- * *ctxsave+8   --> r5
- * *ctxsave+4   --> r4
- * *ctxsave+0   --> psp
+ * *ctxsave+32 --> r11
+ * *ctxsave+28 --> r10
+ * *ctxsave+24 --> r9
+ * *ctxsave+20 --> r8
+ * *ctxsave+16 --> r7
+ * *ctxsave+12 --> r6
+ * *ctxsave+8  --> r5
+ * *ctxsave+4  --> r4
+ * *ctxsave+0  --> psp
  */
 extern "C" {
 extern volatile unsigned int *ctxsave;
@@ -79,15 +71,18 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
  * The failure was only observed within the exception_test() in the testsuite
  * running on the stm32f429zi_stm32f4discovery.
  */
-#define saveContext()                                                         \
-    asm volatile("   mrs    r1,  psp            \n"/*get PROCESS stack ptr  */ \
-                 "   ldr    r0,  =ctxsave       \n"/*get current context    */ \
-                 "   ldr    r0,  [r0]           \n"                            \
-                 "   stmia  r0!, {r1,r4-r11,lr} \n"/*save r1(psp),r4-r11,lr */ \
-                 "   lsls   r2,  lr,  #27       \n"/*check if bit #4 is set */ \
-                 "   bmi    0f                  \n"                            \
-                 "   vstmia.32 r0, {s16-s31}    \n"/*save s16-s31 if we need*/ \
-                 "0: dmb                        \n"                            \
+#define saveContext()                                                        \
+    asm volatile("push  {lr}             \n\t" /*save lr on MAIN stack*/      \
+                 "mrs   r1,  psp         \n\t" /*get PROCESS stack pointer*/  \
+                 "ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
+                 "ldr   r0,  [r0]        \n\t"                                \
+                 "stmia r0!, {r1,r4-r7}  \n\t" /*save PROCESS sp + r4-r7*/    \
+                 "mov   r4,  r8          \n\t"                                \
+                 "mov   r5,  r9          \n\t"                                \
+                 "mov   r6,  r10         \n\t"                                \
+                 "mov   r7,  r11         \n\t"                                \
+                 "stmia r0!, {r4-r7}     \n\t"                                \
+                 "dmb                    \n\t"                                \
                  );
 
 /**
@@ -96,22 +91,24 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
  * of an IRQ where a context switch can happen. The IRQ must be "naked" to
  * prevent the compiler from generating context restore.
  */
-#define restoreContext()                                                      \
-    asm volatile("   ldr    r0,  =ctxsave       \n"/*get current context    */ \
-                 "   ldr    r0,  [r0]           \n"                            \
-                 "   ldmia  r0!, {r1,r4-r11,lr} \n"/*load r1(psp),r4-r11,lr */ \
-                 "   lsls   r2,  lr,  #27       \n"/*check if bit #4 is set */ \
-                 "   bmi    0f                  \n"                            \
-                 "   vldmia.32 r0, {s16-s31}    \n"/*restore s16-s31 if need*/ \
-                 "0: msr    psp, r1             \n"/*restore PROCESS sp*/      \
-                 "   bx     lr                  \n"/*return*/                  \
+#define restoreContext()                                                     \
+    asm volatile("ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
+                 "ldr   r0,  [r0]        \n\t"                                \
+                 "ldmia r0!, {r1,r4-r7}  \n\t" /*pop r8-r11 saving in r4-r7*/ \
+                 "msr   psp, r1          \n\t" /*restore PROCESS sp*/         \
+                 "ldmia r0,  {r0-r3}     \n\t"                                \
+                 "mov   r8,  r0          \n\t"                                \
+                 "mov   r9,  r1          \n\t"                                \
+                 "mov   r10, r2          \n\t"                                \
+                 "mov   r11, r3          \n\t"                                \
+                 "pop   {pc}             \n\t" /*return*/                     \
                  );
 
 /**
  * \}
  */
 
-namespace miosix_private {
+namespace miosix {
     
 /**
  * \addtogroup Drivers
@@ -120,9 +117,13 @@ namespace miosix_private {
 
 inline void doYield()
 {
-    asm volatile("movs r3, #0\n\t"
-                 "svc  0"
-                 :::"r3");
+    //NOTE: before Miosix 3 we used "svc 0" as yield also within the kernel, but
+    //now we have the dedicated PendSV IRQ to call the scheduler, so use that.
+    //Can't use NVIC_SetPendingIRQ as PendSV is an exception, not an IRQ
+    SCB->ICSR=SCB_ICSR_PENDSVSET_Msk;
+    //NOTE: due to the write buffer while doing the store to the SCB->ICSR,
+    //the CPU could execute ahead of the yield. Use dmb to prevent
+    asm volatile("dmb":::"memory");
 }
 
 inline void doDisableInterrupts()
@@ -152,58 +153,8 @@ inline bool checkAreInterruptsEnabled()
     return true;
 }
 
-#ifdef WITH_PROCESSES
-
-namespace {
-/*
- * ARM syscall parameter mapping
- * Syscall id is r3, saved at registers[3]
- *
- * Parameter 1 is r0, saved at registers[0]
- * Parameter 2 is r1, saved at registers[1]
- * Parameter 3 is r2, saved at registers[2]
- * Parameter 4 is r12, saved at registers[4]
- */
-constexpr unsigned int armSyscallMapping[]={0,1,2,4};
-}
-
-//
-// class SyscallParameters
-//
-
-inline SyscallParameters::SyscallParameters(unsigned int *context) :
-        registers(reinterpret_cast<unsigned int*>(context[0])) {}
-
-inline int SyscallParameters::getSyscallId() const
-{
-    return registers[3];
-}
-
-inline unsigned int SyscallParameters::getParameter(unsigned int index) const
-{
-    assert(index<4);
-    return registers[armSyscallMapping[index]];
-}
-
-inline void SyscallParameters::setParameter(unsigned int index, unsigned int value)
-{
-    assert(index<4);
-    registers[armSyscallMapping[index]]=value;
-}
-
-inline void portableSwitchToUserspace()
-{
-    asm volatile("movs r3, #1\n\t"
-                 "svc  0"
-                 :::"r3");
-}
-
-#endif //WITH_PROCESSES
-
 /**
  * \}
  */
 
-} //namespace miosix_private
-
-#endif //PORTABILITY_IMPL_H
+} //namespace miosix
