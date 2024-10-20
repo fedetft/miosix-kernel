@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011-2021 by Terraneo Federico                          *
+ *   Copyright (C) 2011-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -27,21 +27,6 @@
 
 #pragma once
 
-//TODO: refactor -I options so this is not needed
-#ifdef _ARCH_ARM7_LPC2000
-#include "core/endianness_impl_arm7.h"
-#elif defined(_ARCH_CORTEXM0_STM32F0) || defined(_ARCH_CORTEXM3_STM32F1) \
-   || defined(_ARCH_CORTEXM4_STM32F4) || defined(_ARCH_CORTEXM3_STM32F2) \
-   || defined(_ARCH_CORTEXM3_STM32L1) || defined(_ARCH_CORTEXM7_STM32F7) \
-   || defined(_ARCH_CORTEXM7_STM32H7) || defined(_ARCH_CORTEXM3_EFM32GG) \
-   || defined(_ARCH_CORTEXM4_STM32F3) || defined(_ARCH_CORTEXM4_STM32L4) \
-   || defined(_ARCH_CORTEXM4_ATSAM4L) || defined(_ARCH_CORTEXM3_EFM32G) \
-   || defined(_ARCH_CORTEXM0PLUS_STM32L0) || defined(_ARCH_CORTEXM0PLUS_RP2040)
-#include "core/endianness_impl_cortexMx.h"
-#else
-#error "No endianness code for this architecture"
-#endif
-
 /**
  * \addtogroup Interfaces
  * \{
@@ -53,7 +38,10 @@
  * endianness to little or big endian, as well as to perform byte swapping.
  */
 
-// Implementation of these functions is in endianness_impl.h
+#ifndef MIOSIX_BIG_ENDIAN
+//This target is little endian
+#define MIOSIX_LITTLE_ENDIAN
+#endif //MIOSIX_BIG_ENDIAN
 
 #ifdef __cplusplus
 #define __MIOSIX_INLINE inline
@@ -151,6 +139,8 @@ __MIOSIX_INLINE unsigned long long swapBytes64(unsigned long long x);
 #else
 #error "endianness_impl.h does not define endianness"
 #endif
+
+#include "interfaces-impl/endianness_impl.h"
 
 /**
  * \}

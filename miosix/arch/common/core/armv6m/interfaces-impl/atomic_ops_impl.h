@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013, 2014, 2015 by Terraneo Federico                   *
+ *   Copyright (C) 2013-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef ATOMIC_OPS_IMPL_M0_H
-#define	ATOMIC_OPS_IMPL_M0_H
+#pragma once
 
 /**
  * Cortex M0/M0+ architectures does not support __LDREXW, __STREXW and __CLREX
@@ -102,5 +101,3 @@ inline void *atomicFetchAndIncrement(void * const volatile * p, int offset,
 }
 
 } //namespace miosix
-
-#endif //ATOMIC_OPS_IMPL_M0_H

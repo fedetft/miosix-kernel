@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011 by Terraneo Federico                               *
+ *   Copyright (C) 2011-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,20 +25,13 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef ENDIANNESS_IMPL_H
-#define	ENDIANNESS_IMPL_H
-
-#ifndef MIOSIX_BIG_ENDIAN
-//This target is little endian
-#define MIOSIX_LITTLE_ENDIAN
-#endif //MIOSIX_BIG_ENDIAN
+#pragma once
 
 #ifdef __cplusplus
 #define __MIOSIX_INLINE inline
 #else //__cplusplus
 #define __MIOSIX_INLINE static inline
 #endif //__cplusplus
-
 
 __MIOSIX_INLINE unsigned short swapBytes16(unsigned short x)
 {
@@ -74,5 +67,3 @@ __MIOSIX_INLINE unsigned long long swapBytes64(unsigned long long x)
 }
 
 #undef __MIOSIX_INLINE
-
-#endif //ENDIANNESS_IMPL_H
