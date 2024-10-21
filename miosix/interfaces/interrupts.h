@@ -106,11 +106,48 @@ bool IRQisIrqRegistered(unsigned int id) noexcept;
  */
 void IRQinvokeScheduler() noexcept;
 
-inline void doDisableInterrupts() noexcept;
+/**
+ * This function serves the double purpose of being a user-available function
+ * to disable interrupts with the lowest possible overhead, and as the building
+ * block upon which all kernel code and APIs that disable interrupts are built
+ * upon, such as \code disableInterrupts() \endcode.
+ *
+ * Despite being the fastest option, it has a couple of preconditions:
+ * - calls to fastDisableInterrupts() can't be nested unlike with
+ *   disableInterrupts(). That is, you can't call fastDisableInterrupts()
+ *   multiple times and then expect interrupts to be enabled back only ather the
+ *   same number of times fastEnableInterrupts() is called.
+ * - it can't be used in code that is called before the kernel is started
+ */
+inline void fastDisableInterrupts() noexcept;
 
-inline void doEnableInterrupts() noexcept;
+/**
+ * This function serves the double purpose of being a user-available function
+ * to enable back interruptsthat have been disabled after a call to
+ * \code fastDisableInterrupts() \endcode, and as the building
+ * block upon which all kernel code and APIs that enable interrupts are built
+ * upon, such as \code enableInterrupts() \endcode.
+ *
+ * Fast version of enableInterrupts().<br>
+ * Despite faster, it has a couple of preconditions:
+ * - calls to fastEnableInterrupts() can't be nested
+ * - it can't be used in code that is called before the kernel is started,
+ * because it will (incorrectly) lead to interrupts being enabled before the
+ * kernel is started.
+ *
+ * NOTE: if you disable interrupts with fastDisableInterrupts() then you
+ * must enable them back with fastEnableInterrupts(), while if you disable
+ * interrupts with disableInterrupts() then you must enable them back with
+ * enableInterrupts().
+ */
+inline void fastEnableInterrupts() noexcept;
 
-inline bool checkAreInterruptsEnabled() noexcept;
+/**
+ * Provides a way to know if interrupts are enabled or not.
+ *
+ * \return true if interrupts are enabled
+ */
+bool areInterruptsEnabled() noexcept;
 
 } //namespace miosix
 

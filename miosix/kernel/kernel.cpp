@@ -140,7 +140,7 @@ void disableInterrupts()
 {
     //Before the kernel is started interrupts are disabled,
     //so disabling them again won't hurt
-    doDisableInterrupts();
+    fastDisableInterrupts();
     if(interruptDisableNesting==0xff) errorHandler(NESTING_OVERFLOW);
     interruptDisableNesting++;
 }
@@ -155,7 +155,7 @@ void enableInterrupts()
     interruptDisableNesting--;
     if(interruptDisableNesting==0 && kernelStarted==true)
     {
-        doEnableInterrupts();
+        fastEnableInterrupts();
     }
 }
 
@@ -194,11 +194,6 @@ void restartKernel()
             Thread::yield();
         }
     }
-}
-
-bool areInterruptsEnabled()
-{
-    return checkAreInterruptsEnabled();
 }
 
 void deepSleepLock()
@@ -857,9 +852,9 @@ void Thread::IRQenableIrqAndWaitImpl()
     const_cast<Thread*>(runningThread)->flags.IRQsetWait(true);
     auto savedNesting=interruptDisableNesting; //For InterruptDisableLock
     interruptDisableNesting=0;
-    doEnableInterrupts();
+    fastEnableInterrupts();
     Thread::yield(); //Here the wait becomes effective
-    doDisableInterrupts();
+    fastDisableInterrupts();
     if(interruptDisableNesting!=0) errorHandler(UNEXPECTED);
     interruptDisableNesting=savedNesting;
 }
@@ -873,9 +868,9 @@ TimedWaitResult Thread::IRQenableIrqAndTimedWaitImpl(long long absoluteTimeNs)
     IRQaddToSleepingList(&sleepData);
     auto savedNesting=interruptDisableNesting; //For InterruptDisableLock
     interruptDisableNesting=0;
-    doEnableInterrupts();
+    fastEnableInterrupts();
     Thread::yield(); //Here the wait becomes effective
-    doDisableInterrupts();
+    fastDisableInterrupts();
     if(interruptDisableNesting!=0) errorHandler(UNEXPECTED);
     interruptDisableNesting=savedNesting;
     bool removed=sleepingList.removeFast(&sleepData);

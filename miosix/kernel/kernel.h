@@ -74,30 +74,6 @@ void disableInterrupts();
 void enableInterrupts();
 
 /**
- * Fast version of disableInterrupts().<br>
- * Despite faster, it has a couple of preconditions:
- * - calls to fastDisableInterrupts() can't be nested
- * - it can't be used in code that is called before the kernel is started
- */
-inline void fastDisableInterrupts()
-{
-    doDisableInterrupts();
-}
-
-/**
- * Fast version of enableInterrupts().<br>
- * Despite faster, it has a couple of preconditions:
- * - calls to fastDisableInterrupts() can't be nested
- * - it can't be used in code that is called before the kernel is started,
- * because it will (incorreclty) lead to interrupts being enabled before the
- * kernel is started
- */
-inline void fastEnableInterrupts()
-{
-    doEnableInterrupts();
-}
-
-/**
  * This class is a RAII lock for disabling interrupts. This call avoids
  * the error of not reenabling interrupts since it is done automatically.
  */
@@ -266,11 +242,6 @@ void pauseKernel();
  * case it has no effect.
  */
 void restartKernel();
-
-/**
- * \return true if interrupts are enabled
- */
-bool areInterruptsEnabled();
 
 /**
  * This class is a RAII lock for pausing the kernel. This call avoids

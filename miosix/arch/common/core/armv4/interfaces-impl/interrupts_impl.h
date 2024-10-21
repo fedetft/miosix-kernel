@@ -34,7 +34,7 @@ namespace miosix {
  * \{
  */
 
-inline void doDisableInterrupts() noexcept
+inline void fastDisableInterrupts() noexcept
 {
     asm volatile(".set  I_BIT, 0x80     \n\t"
                  "mrs r0, cpsr          \n\t"
@@ -45,7 +45,7 @@ inline void doDisableInterrupts() noexcept
     asm volatile("":::"memory");
 }
 
-inline void doEnableInterrupts() noexcept
+inline void fastEnableInterrupts() noexcept
 {
     asm volatile(".set  I_BIT, 0x80     \n\t"
                  "mrs r0, cpsr          \n\t"
@@ -56,7 +56,7 @@ inline void doEnableInterrupts() noexcept
     asm volatile("":::"memory");
 }
 
-inline bool checkAreInterruptsEnabled() noexcept
+inline bool areInterruptsEnabled() noexcept
 {
     int i;
     asm volatile("mrs %0, cpsr	":"=r" (i));
