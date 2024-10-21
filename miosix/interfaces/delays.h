@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010-2021 by Terraneo Federico                          *
+ *   Copyright (C) 2010-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -38,6 +38,23 @@ namespace miosix {
  * \file delays.h
  * This file contains two functions, delayMs() and delayUs() which implement
  * busy wait delays.
+ *
+ * NOTE: The kernel provides the possibility for a thread to sleep while leaving
+ * the CPU free to use by to other threads, through the follwing functions:
+ * \code
+ * Thread::sleep();          //Milliseconds granularity, relative sleep time
+ * Thread::nanoSleep();      //Nanosecond granularity, relative sleep time
+ * Thread::nanoSleepUntil(); //Nanosecond granularity to an absolute time point
+ * \endcode
+ * and additionally the Miosix-specific functions mentioned above are wrapped
+ * in POSIX-compliant versions (\code clock_nanosleep() \endcode) and C++
+ * standard versions (\code this_thread::sleep_for() \endcode and \code
+ * this_thread::sleep_until \endcode).
+ *
+ * The functions in this header are instead implemented using busy-wait, thus
+ * they waste CPU cycles and are generally less precise as the thread can be
+ * preempted, lengthening the sleep time. You should thus only use these
+ * functions if you have a specific reason to do so.
  */
 
 /**
@@ -47,8 +64,9 @@ namespace miosix {
  * running due to time spent in interrupts and due to preemption.<br>
  * It is implemented using busy wait, so can be safely used even when the
  * kernel is paused or interrupts are disabled.<br>
- * If the kernel is running it is *highly* recomended to use Thread::sleep since
- * it gives CPU time to other threads and/or it puts the CPU in low power mode.
+ * If the kernel is running it is *highly* recomended to use Thread::sleep()
+ * since it gives CPU time to other threads and/or it puts the CPU in low power
+ * mode.
  * \param mseconds milliseconds to wait
  */
 void delayMs(unsigned int mseconds);
