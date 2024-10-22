@@ -63,7 +63,7 @@ static void printUnsignedInt(unsigned int x)
 void default_IRQ_Routine()
 {
     IRQerrorLog("\r\n***Unexpected IRQ\r\n");
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 /**
@@ -78,7 +78,7 @@ void default_IRQ_Routine()
 extern "C" void FIQ_Routine() 
 {
     IRQerrorLog("\r\n***Unexpected FIQ\r\n");
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 /**
@@ -102,7 +102,7 @@ extern "C" void UNDEF_Routine()
 
     IRQerrorLog("\r\n***Unexpected UNDEF @ ");
     printUnsignedInt(returnAddress);
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 /**
@@ -126,7 +126,7 @@ extern "C" void DABT_Routine()
 
     IRQerrorLog("\r\n***Unexpected data abort @ ");
     printUnsignedInt(returnAddress);
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 /**
@@ -150,5 +150,5 @@ extern "C" void PABT_Routine()
 
     IRQerrorLog("\r\n***Unexpected prefetch abort @ ");
     printUnsignedInt(returnAddress);
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }

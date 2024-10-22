@@ -325,7 +325,7 @@ static void _shutdown(bool and_return, Time *t)
     }
     #endif//WAKEUP_DELAY
 
-    if(and_return==false) miosix_private::IRQsystemReboot();
+    if(and_return==false) IRQsystemReboot();
 
     //Initialize the system PLL (Power down mode resets pll to 1x)
     setPllFreq(PLL_4X);//Set cpu freq. through pll @ 14.7456MHz * 4 = 59MHz
@@ -388,7 +388,7 @@ void reboot()
     IODIR0=((IODIR0 & GPIO_0_MASK) | (IODIR0_failsafe & (~GPIO_0_MASK)));
     //Not changing IODIR1, IOCLR1 and IOSET1 because are all gpio
     delayMs(100);
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 //

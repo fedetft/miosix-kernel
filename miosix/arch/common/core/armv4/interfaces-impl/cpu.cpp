@@ -59,7 +59,7 @@ extern "C" void kernel_SWI_Routine()
 {
     saveContextFromSwi();
     //Call ISR_yield(). Name is a C++ mangled name.
-    asm volatile("bl _ZN14miosix_private9ISR_yieldEv");
+    asm volatile("bl _ZN6miosix9ISR_yieldEv");
     restoreContext();
 }
 

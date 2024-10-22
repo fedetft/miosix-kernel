@@ -209,7 +209,7 @@ void shutdown()
         EMU->CTRL=3<<2;
     }
     //Should never reach here
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 void reboot()
@@ -217,7 +217,7 @@ void reboot()
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
 
     disableInterrupts();
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 } //namespace miosix

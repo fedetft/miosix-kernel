@@ -191,7 +191,7 @@ void shutdown()
     SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk; //Select stop mode
     __WFI(); //And it goes to sleep till a reset
     //Should never reach here
-	miosix_private::IRQsystemReboot();
+	IRQsystemReboot();
 }
 
 void reboot()
@@ -199,7 +199,7 @@ void reboot()
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
 
     disableInterrupts();
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 } //namespace miosix

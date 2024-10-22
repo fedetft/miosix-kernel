@@ -898,7 +898,7 @@ public:
      * \param fault data about the occurred fault
      * \return true if the fault was caused by a process, false otherwise.
      */
-    static bool IRQreportFault(const miosix_private::FaultData& fault);
+    static bool IRQreportFault(const FaultData& fault);
     
     #endif //WITH_PROCESSES
 
@@ -1066,7 +1066,7 @@ private:
      * a syscall or faults.
      * \return the syscall parameters used to serve the system call.
      */
-    static miosix_private::SyscallParameters switchToUserspace();
+    static SyscallParameters switchToUserspace();
 
     /**
      * Create a thread to be used inside a process. The thread is created in

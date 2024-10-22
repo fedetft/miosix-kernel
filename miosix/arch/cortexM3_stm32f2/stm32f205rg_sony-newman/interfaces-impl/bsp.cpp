@@ -204,7 +204,7 @@ void shutdown()
 void reboot()
 {
     disableInterrupts();
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 //

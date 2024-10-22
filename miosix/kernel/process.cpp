@@ -300,7 +300,7 @@ void *Process::start(void *)
             proc->image.getProcessBasePointer(),proc->image.getMainStackSize());
         SvcResult svcResult=Resume;
         do {
-            miosix_private::SyscallParameters sp=Thread::switchToUserspace();
+            SyscallParameters sp=Thread::switchToUserspace();
 
             bool fault=proc->fault.faultHappened();
             //Handle svc only if no fault occurred
@@ -348,7 +348,7 @@ void *Process::start(void *)
     return nullptr;
 }
 
-Process::SvcResult Process::handleSvc(miosix_private::SyscallParameters sp)
+Process::SvcResult Process::handleSvc(SyscallParameters sp)
 {
     try {
         switch(static_cast<Syscall>(sp.getSyscallId()))

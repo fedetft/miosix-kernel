@@ -630,7 +630,7 @@ void Thread::IRQstackOverflowCheck()
         if(runningThread->userCtxsave[stackPtrOffsetInCtxsave] <
             reinterpret_cast<unsigned int>(runningThread->userWatermark+watermarkSize))
             overflow=true;
-        if(overflow) IRQreportFault(miosix_private::FaultData(fault::STACKOVERFLOW,0));
+        if(overflow) IRQreportFault(FaultData(fault::STACKOVERFLOW,0));
     } else {
     #endif //WITH_PROCESSES
     for(unsigned int i=0;i<watermarkSize;i++)
@@ -661,7 +661,7 @@ void Thread::IRQhandleSvc(unsigned int svcNumber)
     }
 }
 
-bool Thread::IRQreportFault(const miosix_private::FaultData& fault)
+bool Thread::IRQreportFault(const FaultData& fault)
 {
     if(const_cast<Thread*>(runningThread)->flags.isInUserspace()==false
         || runningThread->proc==kernel) return false;
@@ -673,10 +673,10 @@ bool Thread::IRQreportFault(const miosix_private::FaultData& fault)
     return true;
 }
 
-miosix_private::SyscallParameters Thread::switchToUserspace()
+SyscallParameters Thread::switchToUserspace()
 {
-    miosix_private::portableSwitchToUserspace();
-    miosix_private::SyscallParameters result(runningThread->userCtxsave);
+    portableSwitchToUserspace();
+    SyscallParameters result(runningThread->userCtxsave);
     return result;
 }
 

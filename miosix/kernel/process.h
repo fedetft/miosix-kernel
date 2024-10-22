@@ -207,7 +207,7 @@ private:
      * \return true if the process can continue running, false if it has
      * terminated
      */
-    SvcResult handleSvc(miosix_private::SyscallParameters sp);
+    SvcResult handleSvc(SyscallParameters sp);
     
     /**
      * \return an unique pid that is not zero and is not already in use in the
@@ -217,7 +217,7 @@ private:
     
     ElfProgram program; ///<The program that is running inside the process
     ProcessImage image; ///<The RAM image of a process
-    miosix_private::FaultData fault; ///< Contains information about faults
+    FaultData fault; ///< Contains information about faults
     MPUConfiguration mpu; ///<Memory protection data
     int argc;   ///< Process argument count
     void *argvSp; ///< Ptr to argument array within ProcessImage and initial sp

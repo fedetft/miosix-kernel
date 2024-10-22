@@ -64,10 +64,10 @@ namespace miosix {
 void shutdown();
 
 /**
- * The difference between this function and miosix_private::IRQsystemReboot()
+ * The difference between this function and IRQsystemReboot()
  * is that this function disables filesystem (if enabled), serial port
- * (if enabled) while miosix_private::system_reboot() does not do all these
- * things. miosix_private::IRQsystemReboot() is designed to reboot the system
+ * (if enabled) while system_reboot() does not do all these
+ * things. IRQsystemReboot() is designed to reboot the system
  * when an unrecoverable error occurs, and is used primarily in kernel code,
  * reboot() is designed to reboot the system in normal conditions.<br>
  * This function does not return.<br>

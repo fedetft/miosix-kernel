@@ -243,7 +243,7 @@ void ControlScheduler::IRQrunScheduler()
                 runningThread=idle;
                 ctxsave=runningThread->ctxsave;
                 #ifdef WITH_PROCESSES
-                miosix_private::MPUConfiguration::IRQdisable();
+                MPUConfiguration::IRQdisable();
                 #endif
                 IRQsetNextPreemptionForIdle();
                 #ifdef WITH_CPU_TIME_COUNTER
@@ -266,7 +266,7 @@ void ControlScheduler::IRQrunScheduler()
             if(const_cast<Thread*>(runningThread)->flags.isInUserspace()==false)
             {
                 ctxsave=runningThread->ctxsave;
-                miosix_private::MPUConfiguration::IRQdisable();
+                MPUConfiguration::IRQdisable();
             } else {
                 ctxsave=runningThread->userCtxsave;
                 //A kernel thread is never in userspace, so the cast is safe

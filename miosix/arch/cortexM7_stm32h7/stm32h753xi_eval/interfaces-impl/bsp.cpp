@@ -117,7 +117,7 @@ void reboot()
     #endif //WITH_FILESYSTEM
 
     disableInterrupts();
-    miosix_private::IRQsystemReboot();
+    IRQsystemReboot();
 }
 
 } //namespace miosix
