@@ -27,11 +27,7 @@
 
 #pragma once
 
-//For SCHED_TYPE_* config options
 #include "config/miosix_settings.h"
-//For MPUConfiguration
-#include "core/memory_protection.h"
-#include <cstddef>
 
 /**
  * \addtogroup Interfaces
@@ -108,8 +104,6 @@ void initCtxsave(unsigned int *ctxsave, unsigned int *sp,
                  void *(*arg0)(void*), void *arg1);
 
 #ifdef WITH_PROCESSES
-
-class Process; //Forward decl
 
 /**
  * This class allows to access the parameters that a process passed to
@@ -227,5 +221,4 @@ inline void portableSwitchToUserspace();
  * \}
  */
 
-// This contains the macros and the implementation of inline functions
 #include "interfaces-impl/cpu_impl.h"

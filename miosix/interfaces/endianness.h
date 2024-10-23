@@ -137,11 +137,11 @@ __MIOSIX_INLINE unsigned long long swapBytes64(unsigned long long x);
 #define fromBigEndian32(x)    (x)
 #define fromBigEndian64(x)    (x)
 #else
-#error "endianness_impl.h does not define endianness"
+#error "endianness not defined"
 #endif
-
-#include "interfaces-impl/endianness_impl.h"
 
 /**
  * \}
  */
+
+#include "interfaces-impl/endianness_impl.h"

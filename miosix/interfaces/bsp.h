@@ -27,8 +27,6 @@
 
 #pragma once
 
-namespace miosix {
-
 /**
  * \addtogroup Interfaces
  * \{
@@ -49,6 +47,8 @@ namespace miosix {
  * Other than this, the board support package might contain other functions,
  * classes, macros etc. to support peripherals and or board hardware.
  */
+
+namespace miosix {
 
 /**
  * This function disables filesystem (if enabled), serial port (if enabled) and
@@ -76,14 +76,10 @@ void shutdown();
  */
 void reboot();
 
+} //namespace miosix
+
 /**
  * \}
  */
 
-} //namespace miosix
-
-/*
- * Since the architecture specific board support package can declare other
- * functions and macros, include this header.
- */
 #include "interfaces-impl/bsp_impl.h"

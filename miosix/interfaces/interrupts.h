@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2023 by Terraneo Federico                               *
+ *   Copyright (C) 2023-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -28,6 +28,11 @@
 #pragma once
 
 #include "e20/unmember.h"
+
+/**
+ * \addtogroup Interfaces
+ * \{
+ */
 
 namespace miosix {
 
@@ -150,5 +155,9 @@ inline void fastEnableInterrupts() noexcept;
 bool areInterruptsEnabled() noexcept;
 
 } //namespace miosix
+
+/**
+ * \}
+ */
 
 #include "interfaces-impl/interrupts_impl.h"

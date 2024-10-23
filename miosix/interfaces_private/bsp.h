@@ -27,8 +27,6 @@
 
 #pragma once
 
-namespace miosix {
-
 /**
  * \addtogroup Interfaces
  * \{
@@ -47,6 +45,8 @@ namespace miosix {
  * kernel is started
  */
 
+namespace miosix {
+
 /**
  * \internal
  * Initializes the I/O pins, and put system peripherals to a known state.<br>
@@ -63,8 +63,8 @@ void IRQbspInit();
  */
 void bspInit2();
 
+} //namespace miosix
+
 /**
  * \}
  */
-
-} //namespace miosix

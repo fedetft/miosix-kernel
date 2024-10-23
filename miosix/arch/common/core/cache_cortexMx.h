@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2018 by Terraneo Federico                               *
+ *   Copyright (C) 2018-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef CACHE_CORTEX_MX_H
-#define CACHE_CORTEX_MX_H
+#pragma once
 
 /*
  * README: Essentials about how cache support is implemented.
@@ -44,7 +43,7 @@
  * After a DMA read from a peripheral to a memory buffer has completed,
  * call markBufferAfterDmaRead(). These take care of keeping the DMA operations
  * in sync with the cache. These become no-ops for other architectures, so you
- * can freely put the in any driver.
+ * can freely put them in any driver.
  */
 
 /*
@@ -149,5 +148,3 @@ inline void markBufferAfterDmaRead(void *buffer, int size) {}
 #endif
 
 } //namespace miosix
-
-#endif //CACHE_CORTEX_MX_H

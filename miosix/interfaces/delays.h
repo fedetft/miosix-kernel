@@ -27,8 +27,6 @@
 
 #pragma once
 
-namespace miosix {
-
 /**
  * \addtogroup Interfaces
  * \{
@@ -57,6 +55,8 @@ namespace miosix {
  * functions if you have a specific reason to do so.
  */
 
+namespace miosix {
+
 /**
  * Delay function. Accuracy depends on the underlying implementation which is
  * architecture specific.<br>
@@ -83,8 +83,8 @@ void delayMs(unsigned int mseconds);
  */
 void delayUs(unsigned int useconds);
 
+} //namespace miosix
+
 /**
  * \}
  */
-
-}
