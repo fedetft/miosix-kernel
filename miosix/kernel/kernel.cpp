@@ -43,7 +43,6 @@
 #include <limits>
 #include <string.h>
 #include <reent.h>
-#include "core/interrupts.h"
 
 /*
  * Used by assembler context switch macros

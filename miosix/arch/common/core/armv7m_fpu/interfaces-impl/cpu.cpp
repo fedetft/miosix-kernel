@@ -30,7 +30,6 @@
 #include "kernel/error.h"
 #include "interfaces_private/bsp.h"
 #include "kernel/scheduler/scheduler.h"
-#include "core/interrupts.h"
 #include "kernel/process.h"
 #include <algorithm>
 #include <cstdio>

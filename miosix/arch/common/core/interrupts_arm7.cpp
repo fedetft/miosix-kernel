@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008, 2009, 2010 by Terraneo Federico                   *
+ *   Copyright (C) 2008-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -28,7 +28,6 @@
 #include "kernel/logging.h"
 #include "interfaces_private/cpu.h"
 #include "config/miosix_settings.h"
-#include "interrupts.h"
 
 using namespace miosix;
 
@@ -52,6 +51,12 @@ static void printUnsignedInt(unsigned int x)
     }
     IRQerrorLog(result);
 }
+
+void default_IRQ_Routine()      __attribute__ ((interrupt("IRQ")));
+extern "C" void FIQ_Routine()   __attribute__ ((interrupt("FIQ")));
+extern "C" void UNDEF_Routine() __attribute__ ((interrupt("UNDEF")));
+extern "C" void DABT_Routine()  __attribute__ ((interrupt("DABT")));
+extern "C" void PABT_Routine()  __attribute__ ((interrupt("PABT")));
 
 /**
  * \internal

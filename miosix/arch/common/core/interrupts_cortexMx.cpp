@@ -25,7 +25,6 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "interrupts_cortexMx.h"
 #include "kernel/logging.h"
 #include "kernel/kernel.h"
 #include "kernel/error.h"

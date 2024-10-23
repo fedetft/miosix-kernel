@@ -35,7 +35,6 @@
 #include <inttypes.h>
 #include <sys/ioctl.h>
 #include "interfaces_private/bsp.h"
-#include "core/interrupts.h"
 #include "interfaces/delays.h"
 #include "drivers/serial.h"
 #include "drivers/sd_lpc2000.h"
