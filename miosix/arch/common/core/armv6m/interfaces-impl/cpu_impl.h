@@ -28,32 +28,11 @@
 #pragma once
 
 #include "interfaces/arch_registers.h"
-#include "config/miosix_settings.h"
 
 /**
  * \addtogroup Interfaces
  * \{
  */
-
-/*
- * This pointer is used by the kernel, and should not be used by end users.
- * this is a pointer to a location where to store the thread's registers during
- * context switch. It requires C linkage to be used inside asm statement.
- * Registers are saved in the following order:
- * *ctxsave+32 --> r11
- * *ctxsave+28 --> r10
- * *ctxsave+24 --> r9
- * *ctxsave+20 --> r8
- * *ctxsave+16 --> r7
- * *ctxsave+12 --> r6
- * *ctxsave+8  --> r5
- * *ctxsave+4  --> r4
- * *ctxsave+0  --> psp
- */
-extern "C" {
-extern volatile unsigned int *ctxsave;
-}
-const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
 
 /**
  * \internal
@@ -104,16 +83,7 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
                  "pop   {pc}             \n\t" /*return*/                     \
                  );
 
-/**
- * \}
- */
-
 namespace miosix {
-    
-/**
- * \addtogroup Interfaces
- * \{
- */
 
 inline void doYield()
 {
@@ -127,7 +97,25 @@ inline void doYield()
 }
 
 /**
- * \}
+ * \internal
+ * Allows to retrieve the saved stack pointer in a portable way as
+ * ctxsave[stackPtrOffsetInCtxsave]
+ *
+ * In this architecture, registers are saved in the following order:
+ * *ctxsave+32 --> r11
+ * *ctxsave+28 --> r10
+ * *ctxsave+24 --> r9
+ * *ctxsave+20 --> r8
+ * *ctxsave+16 --> r7
+ * *ctxsave+12 --> r6
+ * *ctxsave+8  --> r5
+ * *ctxsave+4  --> r4
+ * *ctxsave+0  --> psp
  */
+const int stackPtrOffsetInCtxsave=0;
 
 } //namespace miosix
+
+/**
+ * \}
+ */

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010-2021 by Terraneo Federico                          *
+ *   Copyright (C) 2010-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -26,11 +26,8 @@
  ***************************************************************************/
 
 #include "interfaces_private/cpu.h"
+#include "interfaces/arch_registers.h"
 #include "kernel/kernel.h"
-#include "kernel/error.h"
-#include "interfaces_private/bsp.h"
-#include "kernel/scheduler/scheduler.h"
-#include <algorithm>
 
 namespace miosix {
 
@@ -56,6 +53,7 @@ void initCtxsave(unsigned int *ctxsave, unsigned int *sp,
 
     ctxsave[0]=reinterpret_cast<unsigned int>(stackPtr);              //--> psp
     //leaving the content of r4-r11 uninitialized
+    //NOTE: on armv6m ctxsave does not contain lr
 }
 
 void IRQportableStartKernel()

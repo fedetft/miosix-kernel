@@ -27,40 +27,10 @@
 
 #pragma once
 
-#include "config/miosix_settings.h"
-
 /**
  * \addtogroup Interfaces
  * \{
  */
-
-/*
- * This pointer is used by the kernel, and should not be used by end users.
- * this is a pointer to a location where to store the thread's registers during
- * context switch. It requires C linkage to be used inside asm statement.
- * Registers are saved in the following order:
- * *ctxsave+64 --> cpsr
- * *ctxsave+60 --> pc (return address)
- * *ctxsave+56 --> lr
- * *ctxsave+52 --> sp
- * *ctxsave+48 --> r12
- * *ctxsave+44 --> r11
- * *ctxsave+40 --> r10
- * *ctxsave+36 --> r9
- * *ctxsave+32 --> r8
- * *ctxsave+28 --> r7
- * *ctxsave+24 --> r6
- * *ctxsave+20 --> r5
- * *ctxsave+16 --> r4
- * *ctxsave+12 --> r3
- * *ctxsave+8  --> r2
- * *ctxsave+4  --> r1
- * *ctxsave+0  --> r0
- */
-extern "C" {
-extern volatile unsigned int *ctxsave;
-}
-const int stackPtrOffsetInCtxsave=13; ///< Allows to locate the stack pointer
 
 /**
  * \internal
@@ -157,16 +127,7 @@ const int stackPtrOffsetInCtxsave=13; ///< Allows to locate the stack pointer
                  "msr cpsr_c, r0              \n\t"                           \
                  :::"r0");
 
-/**
- * \}
- */
-
 namespace miosix {
-    
-/**
- * \addtogroup Interfaces
- * \{
- */
 
 inline void doYield()
 {
@@ -177,7 +138,33 @@ inline void doYield()
 }
 
 /**
- * \}
+ * \internal
+ * Allows to retrieve the saved stack pointer in a portable way as
+ * ctxsave[stackPtrOffsetInCtxsave]
+ *
+ * In this architecture, registers are saved in the following order:
+ * *ctxsave+64 --> cpsr
+ * *ctxsave+60 --> pc (return address)
+ * *ctxsave+56 --> lr
+ * *ctxsave+52 --> sp
+ * *ctxsave+48 --> r12
+ * *ctxsave+44 --> r11
+ * *ctxsave+40 --> r10
+ * *ctxsave+36 --> r9
+ * *ctxsave+32 --> r8
+ * *ctxsave+28 --> r7
+ * *ctxsave+24 --> r6
+ * *ctxsave+20 --> r5
+ * *ctxsave+16 --> r4
+ * *ctxsave+12 --> r3
+ * *ctxsave+8  --> r2
+ * *ctxsave+4  --> r1
+ * *ctxsave+0  --> r0
  */
+const int stackPtrOffsetInCtxsave=13;
 
 } //namespace miosix
+
+/**
+ * \}
+ */

@@ -30,7 +30,7 @@
 #include <cstring>
 #include <algorithm>
 #ifndef TEST_ALLOC
-#include "core/memory_protection.h"
+#include "interfaces_private/userspace.h"
 #endif //TEST_ALLOC
 
 using namespace std;

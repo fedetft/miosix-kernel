@@ -27,8 +27,6 @@
 
 #pragma once
 
-#include "config/miosix_settings.h"
-
 /**
  * \addtogroup Interfaces
  * \{
@@ -36,31 +34,66 @@
 
 /**
  * \file cpu.h
- * This file is the interface from the Miosix kernel to the hardware.
- * It ccontains what is required to perform a context switch, disable
- * interrupts, set up the stack frame and registers of a newly created thread,
- * and contains iterrupt handlers for preemption and yield.
+ * This file contains cpu-specific functions used by the kernel to implement
+ * multithreading.
  *
- * Since some of the functions in this file must be inline for speed reasons,
- * and context switch code must be macros, at the end of this file the file
- * portability_impl.h is included.
- * This file should contain the implementation of those inline functions.
+ * In addition to implementing all the functions in this header, architecture
+ * specific code in cpu_impl.h shall provide the following:
+ *
+ * \code
+ * //Save context from an interrupt
+ * #define saveContext()
+ *
+ * //Restore context in an IRQ where saveContext() is used
+ * #define restoreContext()
+ *
+ * namespace miosix {
+ * ///Allows to retrieve the saved stack pointer in a portable way as
+ * ///ctxsave[stackPtrOffsetInCtxsave]
+ * const int stackPtrOffsetInCtxsave=...;
+ * }
+ * \endcode
  */
+
+/**
+ * This global variable is used to point to the context of the currently running
+ * thread. It is kept even though global variables are generally bad due to
+ * performance reasons. It is used by
+ * - saveContext() / restoreContext(), to perform context switches
+ * - the schedulers, to set the newly running thread before a context switch
+ * - IRQportableStartKernel(), to perform the first context switch
+ * It is declared in kernel.cpp
+ */
+extern "C" {
+extern volatile unsigned int *ctxsave;
+}
 
 namespace miosix {
-  
-/**
- * \internal
- * Used after an unrecoverable error condition to restart the system, even from
- * within an interrupt routine.
- */
-void IRQsystemReboot();
 
 /**
  * \internal
- * Called by miosix::start_kernel to handle the architecture-specific part of
- * initialization. It is used by the kernel, and should not be used by end users.
- *
+ * Initializes the context of a new kernel thread or kernelspace side of a
+ * userspace thread that is being created.
+ * \param ctxsave a pointer to a field ctxsave inside a Thread class that need
+ * to be filled
+ * \param sp starting stack pointer of newly created thread. For architectures
+ * that save all registers in ctxsave, this value will be used to initialize the
+ * stack pointer register in ctxsave. Additionally, for architectures that save
+ * some of the registers on the stack, this function will need to push on the
+ * stack a frame with the initial values of the stack-saved registers
+ * \param pc starting program counter of newly created kernel thread,
+ * corresponds to the entry point of a function taking two arguments
+ * \param arg0 first argument of the thread entry function
+ * \param arg1 second argument of the thread entry function
+ */
+void initCtxsave(unsigned int *ctxsave, unsigned int *sp,
+                 void (*pc)(void *(*)(void*),void*),
+                 void *(*arg0)(void*), void *arg1);
+
+/**
+ * \internal
+ * Handle the architecture-specific part of starting the kernel. It is used by
+ * the kernel, and should not be called by end users.
  * This function should at minimum enable interrupts and perform the first
  * context switch.
  *
@@ -75,134 +108,16 @@ void IRQportableStartKernel();
 
 /**
  * \internal
- * Initializes the context of a new thread that is being created.
- * \param ctxsave a pointer to a field ctxsave inside a Thread class that need
- * to be filled
- * \param sp starting stack pointer of newly created thread. For architectures
- * that save all registers in ctxsave, this value will be used to initialize the
- * stack pointer register in ctxsave. Additionally, for architectures that save
- * some of the registers on the stack, this function will need to push on the
- * stack a frame with the initial values of the stack-saved registers
- * \param pc starting program counter of newly created thread, corresponds to
- * the entry point of a function taking two arguments
- * \param arg0 first argument of the thread entry function
- * \param arg1 second argument of the thread entry function
+ * Architecture-specific way to perform a context switch
  */
-void initCtxsave(unsigned int *ctxsave, unsigned int *sp,
-                 void (*pc)(void *(*)(void*),void*),
-                 void *(*arg0)(void*), void *arg1);
-
-#ifdef WITH_PROCESSES
-
-/**
- * This class allows to access the parameters that a process passed to
- * the operating system as part of a system call
- */
-class SyscallParameters
-{
-public:
-    /**
-     * Constructor, initialize the class starting from the thread's userspace
-     * context
-     */
-    SyscallParameters(unsigned int *context);
-    
-    /**
-     * \return the syscall id, used to identify individual system calls
-     */
-    int getSyscallId() const;
-
-    /**
-     * \param index 0=first syscall parameter, 1=second syscall parameter, ...
-     * The maximum number of syscall parameters is architecture dependent
-     * \return the syscall parameter. The returned result is meaningful
-     * only if the syscall (identified through its id) has the requested parameter
-     */
-    unsigned int getParameter(unsigned int index) const;
-    
-    /**
-     * Set the value that will be returned by the syscall.
-     * Invalidates the corresponding parameter so must be called only after the
-     * syscall parameteres have been read.
-     * \param index 0=first syscall parameter, 1=second syscall parameter, ...
-     * The maximum number of syscall parameters is architecture dependent
-     * \param value value that will be returned by the syscall.
-     */
-    void setParameter(unsigned int index, unsigned int value);
-
-private:
-    unsigned int *registers;
-};
-
-/**
- * This class contains information about whether a fault occurred in a process.
- * It is used to terminate processes that fault.
- */
-class FaultData
-{
-public:
-    /**
-     * Constructor, initializes the object
-     */
-    FaultData() : id(0) {}
-    
-    /**
-     * Constructor, initializes a FaultData object
-     * \param id id of the fault
-     * \param pc program counter at the moment of the fault
-     * \param arg eventual additional argument, depending on the fault id
-     */
-    FaultData(int id, unsigned int pc, unsigned int arg=0)
-            : id(id), pc(pc), arg(arg) {}
-    
-    /**
-     * \return true if a fault happened within a process
-     */
-    bool faultHappened() const { return id!=0; }
-    
-    /**
-     * Print information about the occurred fault
-     */
-    void print() const;
-    
-private:
-    int id; ///< Id of the fault or zero if no faults
-    unsigned int pc; ///< Program counter value at the time of the fault
-    unsigned int arg;///< Eventual argument, valid only for some id values
-};
+inline void doYield();
 
 /**
  * \internal
- * Initializes a ctxsave array when a thread is created.
- * This version is to initialize the userspace context of processes.
- * It is used by the kernel, and should not be used by end users.
- * \param ctxsave a pointer to a field ctxsave inside a Thread class that need
- * to be filled
- * \param pc starting program counter of newly created thread
- * \param argc number of arguments passed to main
- * \param argvSp pointer to argument array. Since the args block is stored
- * above the stack and this is the pointer into the first byte of the args
- * block, this pointer doubles as the initial stack pointer when the process
- * is started.
- * \param envp pointer to environment variables
- * \param gotBase base address of the global offset table, for userspace
- * processes
- * \param heapEnd when creating the main thread in a process, pass the pointer
- * to the end of the heap area. When creating additional threads in the process,
- * this value is irrelevant. In Miosix sbrk is not a syscall for processes as
- * the memory area allocated to a process is fixed at process creation
+ * Used after an unrecoverable error condition to restart the system, even from
+ * within an interrupt routine.
  */
-void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), int argc,
-        void *argvSp, void *envp, unsigned int *gotBase, unsigned int *heapEnd);
-
-/**
- * \internal
- * Cause a supervisor call that will switch the thread back to kernelspace
- * It is used by the kernel, and should not be used by end users.
- */
-inline void portableSwitchToUserspace();
-
-#endif //WITH_PROCESSES
+void IRQsystemReboot();
 
 } //namespace miosix
 

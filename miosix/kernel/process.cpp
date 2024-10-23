@@ -42,6 +42,7 @@
 #include "process_pool.h"
 #include "process.h"
 #include "interfaces/cpu_const.h"
+#include "interfaces_private/userspace.h"
 
 using namespace std;
 

@@ -35,6 +35,7 @@
 #include "stdlib_integration/libc_integration.h"
 #include "interfaces/atomic_ops.h"
 #include "interfaces_private/cpu.h"
+#include "interfaces_private/userspace.h"
 #include "interfaces_private/os_timer.h"
 #include "interfaces_private/sleep.h"
 #include "timeconversion.h"
@@ -45,8 +46,13 @@
 #include <reent.h>
 
 /*
- * Used by assembler context switch macros
- * This variable is set by miosix::IRQfindNextThread in file kernel.cpp
+ * This global variable is used to point to the context of the currently running
+ * thread. It is kept even though global variables are generally bad due to
+ * performance reasons. It is used by
+ * - saveContext() / restoreContext(), to perform context switches
+ * - the schedulers, to set the newly running thread before a context switch
+ * - IRQportableStartKernel(), to perform the first context switch
+ * It is defined in the header interfaces_private/cpu.h
  */
 extern "C" {
 volatile unsigned int *ctxsave;

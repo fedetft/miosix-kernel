@@ -28,33 +28,11 @@
 #pragma once
 
 #include "interfaces/arch_registers.h"
-#include "config/miosix_settings.h"
-#include <cassert>
 
 /**
  * \addtogroup Interfaces
  * \{
  */
-
-/*
- * This pointer is used by the kernel, and should not be used by end users.
- * this is a pointer to a location where to store the thread's registers during
- * context switch. It requires C linkage to be used inside asm statement.
- * Registers are saved in the following order:
- * *ctxsave+32 --> r11
- * *ctxsave+28 --> r10
- * *ctxsave+24 --> r9
- * *ctxsave+20 --> r8
- * *ctxsave+16 --> r7
- * *ctxsave+12 --> r6
- * *ctxsave+8  --> r5
- * *ctxsave+4  --> r4
- * *ctxsave+0  --> psp
- */
-extern "C" {
-extern volatile unsigned int *ctxsave;
-}
-const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
 
 /**
  * \internal
@@ -95,16 +73,7 @@ const int stackPtrOffsetInCtxsave=0; ///< Allows to locate the stack pointer
                  "ldmia sp!, {pc}        \n\t" /*return*/                     \
                  );
 
-/**
- * \}
- */
-
 namespace miosix {
-    
-/**
- * \addtogroup Interfaces
- * \{
- */
 
 inline void doYield()
 {
@@ -117,84 +86,26 @@ inline void doYield()
     asm volatile("dmb":::"memory");
 }
 
-#ifdef WITH_PROCESSES
-
-namespace {
-/*
- * ARM syscall parameter mapping
- * Syscall id is r3, saved at registers[3]
- *
- * Parameter 1 is r0, saved at registers[0]
- * Parameter 2 is r1, saved at registers[1]
- * Parameter 3 is r2, saved at registers[2]
- * Parameter 4 is r12, saved at registers[4]
- */
-constexpr unsigned int armSyscallMapping[]={0,1,2,4};
-}
-
-//
-// class SyscallParameters
-//
-
-inline SyscallParameters::SyscallParameters(unsigned int *context) :
-        registers(reinterpret_cast<unsigned int*>(context[0])) {}
-
-inline int SyscallParameters::getSyscallId() const
-{
-    return registers[3];
-}
-
-inline unsigned int SyscallParameters::getParameter(unsigned int index) const
-{
-    assert(index<4);
-    return registers[armSyscallMapping[index]];
-}
-
-inline void SyscallParameters::setParameter(unsigned int index, unsigned int value)
-{
-    assert(index<4);
-    registers[armSyscallMapping[index]]=value;
-}
-
-inline void portableSwitchToUserspace()
-{
-    asm volatile("movs r3, #1\n\t"
-                 "svc  0"
-                 :::"r3");
-}
-
-namespace fault {
 /**
- * Possible kind of faults that the Cortex-M3 can report.
- * They are used to print debug information if a process causes a fault.
- * This is a regular enum enclosed in a namespace instead of an enum class
- * as due to the need to loosely couple fault types for different architectures
- * the arch-independent code uses int to store generic fault types.
+ * \internal
+ * Allows to retrieve the saved stack pointer in a portable way as
+ * ctxsave[stackPtrOffsetInCtxsave]
+ *
+ * In this architecture, registers are saved in the following order:
+ * *ctxsave+32 --> r11
+ * *ctxsave+28 --> r10
+ * *ctxsave+24 --> r9
+ * *ctxsave+20 --> r8
+ * *ctxsave+16 --> r7
+ * *ctxsave+12 --> r6
+ * *ctxsave+8  --> r5
+ * *ctxsave+4  --> r4
+ * *ctxsave+0  --> psp
  */
-enum FaultType
-{
-    MP=1,            //Process attempted data access outside its memory
-    MP_NOADDR=2,     //Process attempted data access outside its memory (missing addr)
-    MP_XN=3,         //Process attempted code access outside its memory
-    UF_DIVZERO=4,    //Process attempted to divide by zero
-    UF_UNALIGNED=5,  //Process attempted unaligned memory access
-    UF_COPROC=6,     //Process attempted a coprocessor access
-    UF_EXCRET=7,     //Process attempted an exception return
-    UF_EPSR=8,       //Process attempted to access the EPSR
-    UF_UNDEF=9,      //Process attempted to execute an invalid instruction
-    UF_UNEXP=10,     //Unexpected usage fault
-    HARDFAULT=11,    //Hardfault (for example process executed a BKPT instruction)
-    BF=12,           //Busfault
-    BF_NOADDR=13,    //Busfault (missing addr)
-    STACKOVERFLOW=14 //Stack overflow
-};
+const int stackPtrOffsetInCtxsave=0;
 
-} //namespace fault
-
-#endif //WITH_PROCESSES
+} //namespace miosix
 
 /**
  * \}
  */
-
-} //namespace miosix

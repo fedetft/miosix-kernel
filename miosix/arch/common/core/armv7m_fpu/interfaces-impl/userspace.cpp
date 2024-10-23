@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2018 by Terraneo Federico                               *
+ *   Copyright (C) 2018-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "mpu_cortexMx.h"
+#include "interfaces_private/userspace.h"
 #include "kernel/error.h"
 #include <cstdio>
 #include <cstring>
@@ -35,15 +35,83 @@ using namespace std;
 
 namespace miosix {
 
-unsigned int sizeToMpu(unsigned int size)
+#ifdef WITH_PROCESSES
+
+void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), int argc,
+    void *argvSp, void *envp, unsigned int *gotBase, unsigned int *heapEnd)
 {
-    assert(size>=32);
-    unsigned int result=30-__builtin_clz(size);
-    if(size & (size-1)) result++;
-    return result;
+    unsigned int *stackPtr=reinterpret_cast<unsigned int*>(argvSp);
+    //Stack is full descending, so decrement first
+    stackPtr--; *stackPtr=0x01000000;                                 //--> xPSR
+    stackPtr--; *stackPtr=reinterpret_cast<unsigned int>(pc);         //--> pc
+    stackPtr--; *stackPtr=0xffffffff;                                 //--> lr
+    stackPtr--; *stackPtr=0;                                          //--> r12
+    stackPtr--; *stackPtr=reinterpret_cast<unsigned int>(heapEnd);    //--> r3
+    stackPtr--; *stackPtr=reinterpret_cast<unsigned int>(envp);       //--> r2
+    stackPtr--; *stackPtr=reinterpret_cast<unsigned int>(argvSp);     //--> r1
+    stackPtr--; *stackPtr=argc;                                       //--> r0
+
+    ctxsave[0]=reinterpret_cast<unsigned int>(stackPtr);              //--> psp
+    ctxsave[6]=reinterpret_cast<unsigned int>(gotBase);               //--> r9
+    //leaving the content of r4-r8,r10-r11 uninitialized
+    ctxsave[9]=0xfffffffd; //EXC_RETURN=thread mode, use psp, no floating ops
+    //leaving the content of s16-s31 uninitialized
 }
 
-#ifdef WITH_PROCESSES
+//
+// class FaultData
+//
+
+void FaultData::print() const
+{
+    using namespace fault;
+    switch(id)
+    {
+        case NONE: break;
+        case STACKOVERFLOW:
+            iprintf("* Stack overflow\n");
+            break;
+        case MP:
+            iprintf("* Attempted data access @ 0x%x (PC was 0x%x)\n",arg,pc);
+            break;
+        case MP_NOADDR:
+            iprintf("* Invalid data access (PC was 0x%x)\n",pc);
+            break;
+        case MP_XN:
+            iprintf("* Attempted instruction fetch @ 0x%x\n",pc);
+            break;
+        case UF_DIVZERO:
+            iprintf("* Dvide by zero (PC was 0x%x)\n",pc);
+            break;
+        case UF_UNALIGNED:
+            iprintf("* Unaligned memory access (PC was 0x%x)\n",pc);
+            break;
+        case UF_COPROC:
+            iprintf("* Attempted coprocessor access (PC was 0x%x)\n",pc);
+            break;
+        case UF_EXCRET:
+            iprintf("* Invalid exception return sequence (PC was 0x%x)\n",pc);
+            break;
+        case UF_EPSR:
+            iprintf("* Attempted access to the EPSR (PC was 0x%x)\n",pc);
+            break;
+        case UF_UNDEF:
+            iprintf("* Undefined instruction (PC was 0x%x)\n",pc);
+            break;
+        case UF_UNEXP:
+            iprintf("* Unexpected usage fault (PC was 0x%x)\n",pc);
+            break;
+        case HARDFAULT:
+            iprintf("* Hardfault (PC was 0x%x)\n",pc);
+            break;
+        case BF:
+            iprintf("* Busfault @ 0x%x (PC was 0x%x)\n",arg,pc);
+            break;
+        case BF_NOADDR:
+            iprintf("* Busfault (PC was 0x%x)\n",pc);
+            break;
+    }
+}
 
 //
 // class MPUConfiguration
@@ -176,5 +244,13 @@ bool MPUConfiguration::withinForReading(const char* str) const
 }
 
 #endif //WITH_PROCESSES
+
+unsigned int sizeToMpu(unsigned int size)
+{
+    assert(size>=32);
+    unsigned int result=30-__builtin_clz(size);
+    if(size & (size-1)) result++;
+    return result;
+}
 
 } //namespace miosix

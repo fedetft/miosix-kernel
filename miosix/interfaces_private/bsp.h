@@ -35,31 +35,30 @@
 /**
  * \file bsp.h
  * This file provides architecture specific initialization code that the kernel
- * will call.
- * It must provide these functions:
- *
- * IRQbspInit(), to initialize the board to a known state early in the boot
- * process (before the kernel is started, and when interrupts are disabled)
- *
- * bspInit2(), to perform the remaining part of the initialization, once the
- * kernel is started
+ * will call during boot.
  */
 
 namespace miosix {
 
 /**
  * \internal
- * Initializes the I/O pins, and put system peripherals to a known state.<br>
- * Must be called before starting kernel. Interrupts must be disabled.<br>
- * This function is used by the kernel and should not be called by user code.
+ * First part of BSP initialization. This function should perform the initial
+ * board initialization. This function is called during boot before the kernel
+ * is started, while interrupts are still disabled.
+ *
+ * After this function is called, the kernel will start printing boot logs, so
+ * the console device should be initialized here, typically writing to a serial
+ * port.
  */
 void IRQbspInit();
 
 /**
  * \internal
- * Performs the part of initialization that must be done after the kernel is
- * started.<br>
- * This function is used by the kernel and should not be called by user code.
+ * Second part of BSP initialization. This function should complete the board
+ * initialization with the steps that requires the kernel to be started and
+ * interrupts to be enabled.
+ *
+ * Typically, filesystem initialization and mounting partitions goes here.
  */
 void bspInit2();
 

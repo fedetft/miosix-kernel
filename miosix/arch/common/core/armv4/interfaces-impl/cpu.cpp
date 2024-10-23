@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008-2021 by Terraneo Federico                          *
+ *   Copyright (C) 2008-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -23,13 +23,10 @@
  *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
- ***************************************************************************/ 
+ ***************************************************************************/
 
 #include "interfaces_private/cpu.h"
 #include "kernel/kernel.h"
-#include "kernel/error.h"
-#include "kernel/scheduler/scheduler.h"
-#include <algorithm>
 
 namespace miosix {
 

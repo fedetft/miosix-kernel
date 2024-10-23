@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010-2021 by Terraneo Federico                          *
+ *   Copyright (C) 2010-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -26,15 +26,8 @@
  ***************************************************************************/
 
 #include "interfaces_private/cpu.h"
+#include "interfaces/arch_registers.h"
 #include "kernel/kernel.h"
-#include "kernel/error.h"
-#include "interfaces_private/bsp.h"
-#include "kernel/scheduler/scheduler.h"
-#include "kernel/process.h"
-#include <algorithm>
-#include <cstdio>
-#include <cstring>
-#include <cassert>
 
 namespace miosix {
 
@@ -60,85 +53,8 @@ void initCtxsave(unsigned int *ctxsave, unsigned int *sp,
 
     ctxsave[0]=reinterpret_cast<unsigned int>(stackPtr);              //--> psp
     //leaving the content of r4-r11 uninitialized
-}
-
-#ifdef WITH_PROCESSES
-
-//
-// class FaultData
-//
-
-void FaultData::print() const
-{
-    using namespace fault;
-    switch(id)
-    {
-        case MP:
-            iprintf("* Attempted data access @ 0x%x (PC was 0x%x)\n",arg,pc);
-            break;
-        case MP_NOADDR:
-            iprintf("* Invalid data access (PC was 0x%x)\n",pc);
-            break;
-        case MP_XN:
-            iprintf("* Attempted instruction fetch @ 0x%x\n",pc);
-            break;
-        case UF_DIVZERO:
-            iprintf("* Dvide by zero (PC was 0x%x)\n",pc);
-            break;
-        case UF_UNALIGNED:
-            iprintf("* Unaligned memory access (PC was 0x%x)\n",pc);
-            break;
-        case UF_COPROC:
-            iprintf("* Attempted coprocessor access (PC was 0x%x)\n",pc);
-            break;
-        case UF_EXCRET:
-            iprintf("* Invalid exception return sequence (PC was 0x%x)\n",pc);
-            break;
-        case UF_EPSR:
-            iprintf("* Attempted access to the EPSR (PC was 0x%x)\n",pc);
-            break;
-        case UF_UNDEF:
-            iprintf("* Undefined instruction (PC was 0x%x)\n",pc);
-            break;
-        case UF_UNEXP:
-            iprintf("* Unexpected usage fault (PC was 0x%x)\n",pc);
-            break;
-        case HARDFAULT:
-            iprintf("* Hardfault (PC was 0x%x)\n",pc);
-            break;
-        case BF:
-            iprintf("* Busfault @ 0x%x (PC was 0x%x)\n",arg,pc);
-            break;
-        case BF_NOADDR:
-            iprintf("* Busfault (PC was 0x%x)\n",pc);
-            break;
-        case STACKOVERFLOW:
-            iprintf("* Stack overflow\n");
-            break;
-    }
-}
-
-void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), int argc,
-    void *argvSp, void *envp, unsigned int *gotBase, unsigned int *heapEnd)
-{
-    unsigned int *stackPtr=reinterpret_cast<unsigned int*>(argvSp);
-    //Stack is full descending, so decrement first
-    stackPtr--; *stackPtr=0x01000000;                                 //--> xPSR
-    stackPtr--; *stackPtr=reinterpret_cast<unsigned int>(pc);         //--> pc
-    stackPtr--; *stackPtr=0xffffffff;                                 //--> lr
-    stackPtr--; *stackPtr=0;                                          //--> r12
-    stackPtr--; *stackPtr=reinterpret_cast<unsigned int>(heapEnd);    //--> r3
-    stackPtr--; *stackPtr=reinterpret_cast<unsigned int>(envp);       //--> r2
-    stackPtr--; *stackPtr=reinterpret_cast<unsigned int>(argvSp);     //--> r1
-    stackPtr--; *stackPtr=argc;                                       //--> r0
-
-    ctxsave[0]=reinterpret_cast<unsigned int>(stackPtr);              //--> psp
-    ctxsave[6]=reinterpret_cast<unsigned int>(gotBase);               //--> r9
-    //leaving the content of r4-r8,r10-r11 uninitialized
     //NOTE: on armv7m without fpu ctxsave does not contain lr
 }
-
-#endif //WITH_PROCESSES
 
 void IRQportableStartKernel()
 {
