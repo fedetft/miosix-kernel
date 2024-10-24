@@ -29,10 +29,65 @@
 
 #include "interfaces/arch_registers.h"
 
+#ifndef __FPU_PRESENT
+#error "__FPU_PRESENT should be either 0 or 1"
+#endif
+#if (__FPU_PRESENT!=0) && (__FPU_USED!=1)
+#error "__FPU_USED should be 1"
+#endif
+
 /**
  * \addtogroup Interfaces
  * \{
  */
+
+#if __FPU_PRESENT==1
+
+/**
+ * \internal
+ * \def saveContext()
+ * Save context from an interrupt<br>
+ * Must be the first line of an IRQ where a context switch can happen.
+ * The IRQ must be "naked" to prevent the compiler from generating context save.
+ *
+ * A note on the dmb instruction, without it a race condition was observed
+ * between pauseKernel() and IRQfindNextThread(). pauseKernel() uses an strex
+ * instruction to store a value in the global variable kernel_running which is
+ * tested by the context switch code in IRQfindNextThread(). Without the memory
+ * barrier IRQfindNextThread() would occasionally read the previous value and
+ * perform a context switch while the kernel was paused, leading to deadlock.
+ * The failure was only observed within the exception_test() in the testsuite
+ * running on the stm32f429zi_stm32f4discovery.
+ */
+#define saveContext()                                                         \
+    asm volatile("   mrs    r1,  psp            \n"/*get PROCESS stack ptr  */ \
+                 "   ldr    r0,  =ctxsave       \n"/*get current context    */ \
+                 "   ldr    r0,  [r0]           \n"                            \
+                 "   stmia  r0!, {r1,r4-r11,lr} \n"/*save r1(psp),r4-r11,lr */ \
+                 "   lsls   r2,  lr,  #27       \n"/*check if bit #4 is set */ \
+                 "   bmi    0f                  \n"                            \
+                 "   vstmia.32 r0, {s16-s31}    \n"/*save s16-s31 if we need*/ \
+                 "0: dmb                        \n"                            \
+                 );
+
+/**
+ * \def restoreContext()
+ * Restore context in an IRQ where saveContext() is used. Must be the last line
+ * of an IRQ where a context switch can happen. The IRQ must be "naked" to
+ * prevent the compiler from generating context restore.
+ */
+#define restoreContext()                                                      \
+    asm volatile("   ldr    r0,  =ctxsave       \n"/*get current context    */ \
+                 "   ldr    r0,  [r0]           \n"                            \
+                 "   ldmia  r0!, {r1,r4-r11,lr} \n"/*load r1(psp),r4-r11,lr */ \
+                 "   lsls   r2,  lr,  #27       \n"/*check if bit #4 is set */ \
+                 "   bmi    0f                  \n"                            \
+                 "   vldmia.32 r0, {s16-s31}    \n"/*restore s16-s31 if need*/ \
+                 "0: msr    psp, r1             \n"/*restore PROCESS sp*/      \
+                 "   bx     lr                  \n"/*return*/                  \
+                 );
+
+#else //__FPU_PRESENT==1
 
 /**
  * \internal
@@ -73,6 +128,8 @@
                  "ldmia sp!, {pc}        \n\t" /*return*/                     \
                  );
 
+#endif //__FPU_PRESENT==1
+
 namespace miosix {
 
 inline void doYield()
@@ -85,6 +142,32 @@ inline void doYield()
     //the CPU could execute ahead of the yield. Use dmb to prevent
     asm volatile("dmb":::"memory");
 }
+
+#if __FPU_PRESENT==1
+
+/**
+ * \internal
+ * Allows to retrieve the saved stack pointer in a portable way as
+ * ctxsave[stackPtrOffsetInCtxsave]
+ *
+ * In this architecture, registers are saved in the following order:
+ * *ctxsave+100 --> s31
+ * ...
+ * *ctxsave+40  --> s16
+ * *ctxsave+36  --> lr (contains EXC_RETURN whose bit #4 tells if fpu is used)
+ * *ctxsave+32  --> r11
+ * *ctxsave+28  --> r10
+ * *ctxsave+24  --> r9
+ * *ctxsave+20  --> r8
+ * *ctxsave+16  --> r7
+ * *ctxsave+12  --> r6
+ * *ctxsave+8   --> r5
+ * *ctxsave+4   --> r4
+ * *ctxsave+0   --> psp
+ */
+const int stackPtrOffsetInCtxsave=0;
+
+#else //__FPU_PRESENT==1
 
 /**
  * \internal
@@ -103,6 +186,8 @@ inline void doYield()
  * *ctxsave+0  --> psp
  */
 const int stackPtrOffsetInCtxsave=0;
+
+#endif //__FPU_PRESENT==1
 
 } //namespace miosix
 

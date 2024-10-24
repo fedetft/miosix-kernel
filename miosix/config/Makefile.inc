@@ -1950,7 +1950,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     ## This architecture supports processes
     POSTLD := mx-postlinker
 
-    CPU_INC := arch/cpu/armv7m_fpu
+    CPU_INC := arch/cpu/armv7m
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
     AFLAGS_BASE   := $(CPU)
@@ -1965,8 +1965,8 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                               \
-    arch/cpu/armv7m_fpu/interfaces-impl/cpu.cpp               \
-    arch/cpu/armv7m_fpu/interfaces-impl/userspace.cpp         \
+    arch/cpu/armv7m/interfaces-impl/cpu.cpp                   \
+    arch/cpu/armv7m/interfaces-impl/userspace.cpp             \
     arch/common/core/interrupts_cortexMx.cpp                  \
     arch/common/core/sleep_cortexMx.cpp                       \
     arch/common/drivers/serial_stm32.cpp                      \
@@ -2578,7 +2578,7 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     ## This architecture supports processes
     POSTLD := mx-postlinker
 
-    CPU_INC := arch/cpu/armv7m_fpu
+    CPU_INC := arch/cpu/armv7m
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := $(CPU)
     CFLAGS_BASE   += -D_ARCH_CORTEXM7_STM32F7 $(CLOCK_FREQ) $(XRAM) \
@@ -2592,8 +2592,8 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
-    arch/cpu/armv7m_fpu/interfaces-impl/cpu.cpp              \
-    arch/cpu/armv7m_fpu/interfaces-impl/userspace.cpp        \
+    arch/cpu/armv7m/interfaces-impl/cpu.cpp                  \
+    arch/cpu/armv7m/interfaces-impl/userspace.cpp            \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/core/cache_cortexMx.cpp                      \
@@ -2723,7 +2723,7 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
     ## This architecture supports processes
     POSTLD := mx-postlinker
 
-    CPU_INC := arch/cpu/armv7m_fpu
+    CPU_INC := arch/cpu/armv7m
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
     AFLAGS_BASE   := $(CPU)
@@ -2738,8 +2738,8 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
-    arch/cpu/armv7m_fpu/interfaces-impl/cpu.cpp              \
-    arch/cpu/armv7m_fpu/interfaces-impl/userspace.cpp        \
+    arch/cpu/armv7m/interfaces-impl/cpu.cpp                  \
+    arch/cpu/armv7m/interfaces-impl/userspace.cpp            \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
@@ -2906,7 +2906,7 @@ else ifeq ($(ARCH),cortexM4_stm32f3)
     ## This architecture supports processes
     POSTLD := mx-postlinker
 
-    CPU_INC := arch/cpu/armv7m_fpu
+    CPU_INC := arch/cpu/armv7m
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
     AFLAGS_BASE   := $(CPU)
@@ -2921,8 +2921,8 @@ else ifeq ($(ARCH),cortexM4_stm32f3)
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
-    arch/cpu/armv7m_fpu/interfaces-impl/cpu.cpp              \
-    arch/cpu/armv7m_fpu/interfaces-impl/userspace.cpp        \
+    arch/cpu/armv7m/interfaces-impl/cpu.cpp                  \
+    arch/cpu/armv7m/interfaces-impl/userspace.cpp            \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \
@@ -3007,7 +3007,7 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
     ## This architecture supports processes
     POSTLD := mx-postlinker
 
-    CPU_INC := arch/cpu/armv7m_fpu
+    CPU_INC := arch/cpu/armv7m
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
     AFLAGS_BASE   := $(CPU)
@@ -3022,8 +3022,8 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
     ## Select architecture specific files
     ## These are the files in arch/<arch name>/common
     ARCH_SRC +=                                              \
-    arch/cpu/armv7m_fpu/interfaces-impl/cpu.cpp              \
-    arch/cpu/armv7m_fpu/interfaces-impl/userspace.cpp        \
+    arch/cpu/armv7m/interfaces-impl/cpu.cpp                  \
+    arch/cpu/armv7m/interfaces-impl/userspace.cpp            \
     arch/common/core/interrupts_cortexMx.cpp                 \
     arch/common/core/sleep_cortexMx.cpp                      \
     arch/common/drivers/serial_stm32.cpp                     \

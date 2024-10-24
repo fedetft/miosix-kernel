@@ -54,7 +54,11 @@ void initCtxsave(unsigned int *ctxsave, void *(*pc)(void *), int argc,
     ctxsave[0]=reinterpret_cast<unsigned int>(stackPtr);              //--> psp
     ctxsave[6]=reinterpret_cast<unsigned int>(gotBase);               //--> r9
     //leaving the content of r4-r8,r10-r11 uninitialized
-    //NOTE: on armv7m without fpu ctxsave does not contain lr
+#if __FPU_PRESENT==1
+    //NOTE: only armv7m with fpu has lr in ctxsave
+    ctxsave[9]=0xfffffffd; //EXC_RETURN=thread mode, use psp, no floating ops
+    //leaving the content of s16-s31 uninitialized
+#endif //__FPU_PRESENT==1
 }
 
 //
