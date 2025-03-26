@@ -373,6 +373,7 @@ void Thread::PKrestartKernelAndWait(PauseKernelLock& dLock)
     //Implemented by upgrading the lock to an interrupt disable one
     FastGlobalIrqLock dLockIrq;
     auto savedNesting=kernelRunning;
+    if(savedNesting==0) errorHandler(UNEXPECTED);
     kernelRunning=0;
     #ifdef WITH_SMP
     globalPkNestLockHoldingCore=0xff;
@@ -396,6 +397,7 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
     //Implemented by upgrading the lock to an interrupt disable one
     FastGlobalIrqLock dLockIrq;
     auto savedNesting=kernelRunning;
+    if(savedNesting==0) errorHandler(UNEXPECTED);
     kernelRunning=0;
     #ifdef WITH_SMP
     globalPkNestLockHoldingCore=0xff;
@@ -866,8 +868,13 @@ void Thread::IRQglobalIrqUnlockAndWaitImpl()
     Thread::yield(); //Here the wait becomes effective
     fastGlobalIrqLock();
     #ifdef WITH_SMP
-    if(globalIntrNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
-    globalIntrNestLockHoldingCore=getCurrentCoreId();
+    if(savedNesting)
+    {
+        // The GIL may have been taken with the "fast" primitives that don't
+        // set the core ID here
+        if(globalIntrNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
+        globalIntrNestLockHoldingCore=getCurrentCoreId();
+    }
     #endif
     if(globalLockNesting!=0) errorHandler(UNEXPECTED);
     globalLockNesting=savedNesting;
@@ -889,8 +896,13 @@ TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTim
     Thread::yield(); //Here the wait becomes effective
     fastGlobalIrqLock();
     #ifdef WITH_SMP
-    if(globalIntrNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
-    globalIntrNestLockHoldingCore=getCurrentCoreId();
+    if(savedNesting)
+    {
+        // The GIL may have been taken with the "fast" primitives that don't
+        // set the core ID here
+        if(globalIntrNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
+        globalIntrNestLockHoldingCore=getCurrentCoreId();
+    }
     #endif
     if(globalLockNesting!=0) errorHandler(UNEXPECTED);
     globalLockNesting=savedNesting;
