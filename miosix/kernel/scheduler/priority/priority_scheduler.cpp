@@ -122,6 +122,11 @@ void PriorityScheduler::IRQsetIdleThread(int whichCore, Thread *idleThread)
 
 void PriorityScheduler::IRQwokenThread(Thread* thread)
 {
+    //TODO: understand why can this happen, how can a thread transition to ready
+    //while being running
+    for(int i=0;i<CPU_NUM_CORES;i++)
+        if(runningThread[i]==thread) return;
+
     notReadyThreads.removeFast(thread);
     readyThreads[thread->schedData.priority.get()].push_back(thread);
 }
