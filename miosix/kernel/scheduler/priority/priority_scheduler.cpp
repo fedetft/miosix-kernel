@@ -120,14 +120,8 @@ void PriorityScheduler::IRQsetIdleThread(int whichCore, Thread *idleThread)
     nextPeriodicPreemption[whichCore]=std::numeric_limits<long long>::max();
 }
 
-void PriorityScheduler::IRQwaitStatusHook(Thread* thread)
+void PriorityScheduler::IRQwokenThread(Thread* thread)
 {
-    // If the thread was just made sleeping, waiting or deleted do nothing as
-    // it's still running. The scheduler will move it to the appropriate list
-    // at the next preemption. If instead was just made ready again, than we
-    // must move it to the ready list here
-    if(thread->flags.isReady()==false) return;
-    //BUG: calling wakeup multiple times may corrupt the list?
     notReadyThreads.removeFast(thread);
     readyThreads[thread->schedData.priority.get()].push_back(thread);
 }

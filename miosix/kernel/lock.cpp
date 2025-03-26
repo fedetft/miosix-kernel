@@ -106,17 +106,20 @@ void globalIrqUnlock() noexcept
 void pauseKernel() noexcept
 {
     #ifdef WITH_SMP
+    fastDisableIrq();
     unsigned char state=globalPkNestLockHoldingCore;
     if(state==getCurrentCoreId())
     {
         if(kernelRunning==0xff) errorHandler(NESTING_OVERFLOW);
         kernelRunning++;
     } else {
+        //BUG: here we may wait for a long time and with interrupts disabled!!
         IRQhwSpinlockAcquire(RP2040HwSpinlocks::PK); //TODO: need generic API
         globalPkNestLockHoldingCore=getCurrentCoreId();
         if(kernelRunning!=0) errorHandler(PAUSE_KERNEL_NESTING);
         kernelRunning=1;
     }
+    fastEnableIrq();
     #else //WITH_SMP
     int old=atomicAddExchange(&kernelRunning,1);
     if(old>=0xff) errorHandler(NESTING_OVERFLOW);
@@ -126,12 +129,14 @@ void pauseKernel() noexcept
 void restartKernel() noexcept
 {
     #ifdef WITH_SMP
+    fastDisableIrq();
     int old=kernelRunning--;
     if(kernelRunning==0)
     {
         globalPkNestLockHoldingCore=0xff;
         IRQhwSpinlockRelease(RP2040HwSpinlocks::PK); //TODO: need generic API
     }
+    fastEnableIrq();
     #else //WITH_SMP
     int old=atomicAddExchange(&kernelRunning,-1);
     #endif //WITH_SMP

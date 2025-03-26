@@ -148,9 +148,19 @@ public:
      * its running status. For example when a thread become sleeping, waiting,
      * deleted or if it exits the sleeping or waiting status
      */
-    static void IRQwaitStatusHook(Thread *t)
+    static void IRQwaitStatusHook(Thread *thread)
     {
-        T::IRQwaitStatusHook(t);
+        T::IRQwaitStatusHook(thread);
+    }
+    
+    /**
+     * \internal
+     * Called when a thread transitions from waiting/sleeping to ready.
+     * Must not be called if the thread is already ready.
+     */
+    static void IRQwokenThread(Thread* thread)
+    {
+        T::IRQwokenThread(thread);
     }
 
     /**

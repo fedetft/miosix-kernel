@@ -85,6 +85,7 @@ extern volatile int kernelRunning;
 extern unsigned char globalLockNesting;
 #ifdef WITH_SMP
 extern unsigned char globalIntrNestLockHoldingCore;
+extern unsigned char globalPkNestLockHoldingCore;
 #endif
 
 /**
@@ -373,7 +374,18 @@ void Thread::PKrestartKernelAndWait(PauseKernelLock& dLock)
     FastGlobalIrqLock dLockIrq;
     auto savedNesting=kernelRunning;
     kernelRunning=0;
+    #ifdef WITH_SMP
+    auto savedHoldingCore=globalPkNestLockHoldingCore;
+    globalPkNestLockHoldingCore=0xff;
+    IRQhwSpinlockRelease(RP2040HwSpinlocks::PK); //TODO: need generic API
+    #endif
     IRQglobalIrqUnlockAndWaitImpl();
+    #ifdef WITH_SMP
+    //BUG: here we may wait for a long time and with interrupts disabled!!
+    IRQhwSpinlockAcquire(RP2040HwSpinlocks::PK); //TODO: need generic API
+    if(globalPkNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
+    globalPkNestLockHoldingCore=savedHoldingCore;
+    #endif
     if(kernelRunning!=0) errorHandler(UNEXPECTED);
     kernelRunning=savedNesting;
 }
@@ -386,7 +398,18 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
     FastGlobalIrqLock dLockIrq;
     auto savedNesting=kernelRunning;
     kernelRunning=0;
+    #ifdef WITH_SMP
+    auto savedHoldingCore=globalPkNestLockHoldingCore;
+    globalPkNestLockHoldingCore=0xff;
+    IRQhwSpinlockRelease(RP2040HwSpinlocks::PK); //TODO: need generic API
+    #endif
     auto result=IRQglobalIrqUnlockAndTimedWaitImpl(absoluteTimeNs);
+    #ifdef WITH_SMP
+    //BUG: here we may wait for a long time and with interrupts disabled!!
+    IRQhwSpinlockAcquire(RP2040HwSpinlocks::PK); //TODO: need generic API
+    if(globalPkNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
+    globalPkNestLockHoldingCore=savedHoldingCore;
+    #endif
     if(kernelRunning!=0) errorHandler(UNEXPECTED);
     kernelRunning=savedNesting;
     return result;
@@ -912,7 +935,12 @@ struct _reent *Thread::getCReent()
 
 void Thread::ThreadFlags::IRQsetWait(Thread *self, bool waiting)
 {
-    if(waiting) flags |= WAIT; else flags &= ~WAIT;
+    bool wasReady=isReady();
+    if(waiting) flags |= WAIT;
+    else {
+        flags &= ~WAIT;
+        if(wasReady==false && isReady()) Scheduler::IRQwokenThread(self);
+    }
     Scheduler::IRQwaitStatusHook(self);
 }
 
@@ -924,13 +952,20 @@ void Thread::ThreadFlags::IRQsetSleep(Thread *self)
 
 void Thread::ThreadFlags::IRQclearSleepAndWait(Thread *self)
 {
+    bool wasReady=isReady();
     flags &= ~(WAIT | SLEEP);
+    if(wasReady==false && isReady()) Scheduler::IRQwokenThread(self);
     Scheduler::IRQwaitStatusHook(self);
 }
 
 void Thread::ThreadFlags::IRQsetJoinWait(Thread *self, bool waiting)
 {
-    if(waiting) flags |= WAIT_JOIN; else flags &= ~WAIT_JOIN;
+    bool wasReady=isReady();
+    if(waiting) flags |= WAIT_JOIN;
+    else {
+        flags &= ~WAIT_JOIN;
+        if(wasReady==false && isReady()) Scheduler::IRQwokenThread(self);
+    }
     Scheduler::IRQwaitStatusHook(self);
 }
 
