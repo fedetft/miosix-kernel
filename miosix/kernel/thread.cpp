@@ -375,7 +375,6 @@ void Thread::PKrestartKernelAndWait(PauseKernelLock& dLock)
     auto savedNesting=kernelRunning;
     kernelRunning=0;
     #ifdef WITH_SMP
-    auto savedHoldingCore=globalPkNestLockHoldingCore;
     globalPkNestLockHoldingCore=0xff;
     IRQhwSpinlockRelease(RP2040HwSpinlocks::PK); //TODO: need generic API
     #endif
@@ -384,7 +383,7 @@ void Thread::PKrestartKernelAndWait(PauseKernelLock& dLock)
     //BUG: here we may wait for a long time and with interrupts disabled!!
     IRQhwSpinlockAcquire(RP2040HwSpinlocks::PK); //TODO: need generic API
     if(globalPkNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
-    globalPkNestLockHoldingCore=savedHoldingCore;
+    globalPkNestLockHoldingCore=getCurrentCoreId();
     #endif
     if(kernelRunning!=0) errorHandler(UNEXPECTED);
     kernelRunning=savedNesting;
@@ -399,7 +398,6 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
     auto savedNesting=kernelRunning;
     kernelRunning=0;
     #ifdef WITH_SMP
-    auto savedHoldingCore=globalPkNestLockHoldingCore;
     globalPkNestLockHoldingCore=0xff;
     IRQhwSpinlockRelease(RP2040HwSpinlocks::PK); //TODO: need generic API
     #endif
@@ -408,7 +406,7 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
     //BUG: here we may wait for a long time and with interrupts disabled!!
     IRQhwSpinlockAcquire(RP2040HwSpinlocks::PK); //TODO: need generic API
     if(globalPkNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
-    globalPkNestLockHoldingCore=savedHoldingCore;
+    globalPkNestLockHoldingCore=getCurrentCoreId();
     #endif
     if(kernelRunning!=0) errorHandler(UNEXPECTED);
     kernelRunning=savedNesting;
@@ -862,7 +860,6 @@ void Thread::IRQglobalIrqUnlockAndWaitImpl()
     auto savedNesting=globalLockNesting; //For GlobalIrqLock
     globalLockNesting=0;
     #ifdef WITH_SMP
-    auto savedHoldingCore=globalIntrNestLockHoldingCore;
     globalIntrNestLockHoldingCore=0xff;
     #endif
     fastGlobalIrqUnlock();
@@ -870,7 +867,7 @@ void Thread::IRQglobalIrqUnlockAndWaitImpl()
     fastGlobalIrqLock();
     #ifdef WITH_SMP
     if(globalIntrNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
-    globalIntrNestLockHoldingCore=savedHoldingCore;
+    globalIntrNestLockHoldingCore=getCurrentCoreId();
     #endif
     if(globalLockNesting!=0) errorHandler(UNEXPECTED);
     globalLockNesting=savedNesting;
@@ -886,7 +883,6 @@ TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTim
     auto savedNesting=globalLockNesting; //For GlobalIrqLock
     globalLockNesting=0;
     #ifdef WITH_SMP
-    auto savedHoldingCore=globalIntrNestLockHoldingCore;
     globalIntrNestLockHoldingCore=0xff;
     #endif
     fastGlobalIrqUnlock();
@@ -894,7 +890,7 @@ TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTim
     fastGlobalIrqLock();
     #ifdef WITH_SMP
     if(globalIntrNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
-    globalIntrNestLockHoldingCore=savedHoldingCore;
+    globalIntrNestLockHoldingCore=getCurrentCoreId();
     #endif
     if(globalLockNesting!=0) errorHandler(UNEXPECTED);
     globalLockNesting=savedNesting;
