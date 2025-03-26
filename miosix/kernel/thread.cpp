@@ -81,7 +81,7 @@ static ProcessBase *kernel=nullptr;
 #endif //WITH_PROCESSES
 
 //Variable shared with lock.cpp for performance and encapsulation reasons
-extern volatile int kernelRunning;
+extern volatile int pauseKernelNesting;
 extern unsigned char globalLockNesting;
 #ifdef WITH_SMP
 extern unsigned char globalIntrNestLockHoldingCore;
@@ -372,9 +372,9 @@ void Thread::PKrestartKernelAndWait(PauseKernelLock& dLock)
     (void)dLock;
     //Implemented by upgrading the lock to an interrupt disable one
     FastGlobalIrqLock dLockIrq;
-    auto savedNesting=kernelRunning;
+    auto savedNesting=pauseKernelNesting;
     if(savedNesting==0) errorHandler(UNEXPECTED);
-    kernelRunning=0;
+    pauseKernelNesting=0;
     #ifdef WITH_SMP
     globalPkNestLockHoldingCore=0xff;
     IRQhwSpinlockRelease(RP2040HwSpinlocks::PK); //TODO: need generic API
@@ -386,8 +386,8 @@ void Thread::PKrestartKernelAndWait(PauseKernelLock& dLock)
     if(globalPkNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
     globalPkNestLockHoldingCore=getCurrentCoreId();
     #endif
-    if(kernelRunning!=0) errorHandler(UNEXPECTED);
-    kernelRunning=savedNesting;
+    if(pauseKernelNesting!=0) errorHandler(UNEXPECTED);
+    pauseKernelNesting=savedNesting;
 }
 
 TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
@@ -396,9 +396,9 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
     (void)dLock;
     //Implemented by upgrading the lock to an interrupt disable one
     FastGlobalIrqLock dLockIrq;
-    auto savedNesting=kernelRunning;
+    auto savedNesting=pauseKernelNesting;
     if(savedNesting==0) errorHandler(UNEXPECTED);
-    kernelRunning=0;
+    pauseKernelNesting=0;
     #ifdef WITH_SMP
     globalPkNestLockHoldingCore=0xff;
     IRQhwSpinlockRelease(RP2040HwSpinlocks::PK); //TODO: need generic API
@@ -410,8 +410,8 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
     if(globalPkNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
     globalPkNestLockHoldingCore=getCurrentCoreId();
     #endif
-    if(kernelRunning!=0) errorHandler(UNEXPECTED);
-    kernelRunning=savedNesting;
+    if(pauseKernelNesting!=0) errorHandler(UNEXPECTED);
+    pauseKernelNesting=savedNesting;
     return result;
 }
 

@@ -38,7 +38,7 @@ namespace miosix {
 
 //These are defined in thread.cpp / lock.cpp
 extern volatile Thread *runningThread[CPU_NUM_CORES];
-extern volatile int kernelRunning;
+extern volatile int pauseKernelNesting;
 extern unsigned char globalPkNestLockHoldingCore;
 extern volatile bool pendingWakeup;
 extern IntrusiveList<SleepData> sleepingList;
@@ -158,7 +158,7 @@ void PriorityScheduler::IRQrunScheduler()
 {
     int coreId=getCurrentCoreId();
     bool forceRunIdle=false;
-    if(kernelRunning!=0) //If kernel is paused, preemption is disabled
+    if(pauseKernelNesting!=0) //If kernel is paused, preemption is disabled
     {
         pendingWakeup=true;
         #ifndef WITH_SMP

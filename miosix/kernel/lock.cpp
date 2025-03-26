@@ -33,7 +33,7 @@
 namespace miosix {
 
 ///\internal !=0 after pauseKernel(), ==0 after restartKernel()
-volatile int kernelRunning=0;
+volatile int pauseKernelNesting=0;
 
 /// This is used by globalIrqLock() and globalIrqUnlock() to allow nested
 /// calls to these functions.
@@ -110,14 +110,14 @@ void pauseKernel() noexcept
     unsigned char state=globalPkNestLockHoldingCore;
     if(state==getCurrentCoreId())
     {
-        if(kernelRunning==0xff) errorHandler(NESTING_OVERFLOW);
-        kernelRunning++;
+        if(pauseKernelNesting==0xff) errorHandler(NESTING_OVERFLOW);
+        pauseKernelNesting++;
     } else {
         //BUG: here we may wait for a long time and with interrupts disabled!!
         IRQhwSpinlockAcquire(RP2040HwSpinlocks::PK); //TODO: need generic API
         globalPkNestLockHoldingCore=getCurrentCoreId();
-        if(kernelRunning!=0) errorHandler(PAUSE_KERNEL_NESTING);
-        kernelRunning=1;
+        if(pauseKernelNesting!=0) errorHandler(PAUSE_KERNEL_NESTING);
+        pauseKernelNesting=1;
     }
     fastEnableIrq();
     #else //WITH_SMP
@@ -130,15 +130,15 @@ void restartKernel() noexcept
 {
     #ifdef WITH_SMP
     fastDisableIrq();
-    int old=kernelRunning--;
-    if(kernelRunning==0)
+    int old=pauseKernelNesting--;
+    if(pauseKernelNesting==0)
     {
         globalPkNestLockHoldingCore=0xff;
         IRQhwSpinlockRelease(RP2040HwSpinlocks::PK); //TODO: need generic API
     }
     fastEnableIrq();
     #else //WITH_SMP
-    int old=atomicAddExchange(&kernelRunning,-1);
+    int old=atomicAddExchange(&pauseKernelNesting,-1);
     #endif //WITH_SMP
     if(old<=0) errorHandler(PAUSE_KERNEL_NESTING);
     
@@ -170,7 +170,7 @@ void restartKernel() noexcept
 
 bool isKernelRunning() noexcept
 {
-    return (kernelRunning==0) && kernelStarted;
+    return (pauseKernelNesting==0) && kernelStarted;
 }
 
 void deepSleepLock() noexcept
