@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
+ *   Copyright (C) 2010-2025 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -50,46 +50,50 @@ static long long nextPeriodicPreemption[CPU_NUM_CORES];
 // class PriorityScheduler
 //
 
-bool PriorityScheduler::PKaddThread(Thread *thread,
+bool PriorityScheduler::IRQaddThread(Thread *thread,
         PrioritySchedulerPriority priority)
 {
     thread->schedData.priority=priority;
-    threadList[priority.get()].push_back(thread);
+    readyThreads[priority.get()].push_back(thread);
     return true;
 }
 
-bool PriorityScheduler::PKexists(Thread *thread)
+bool PriorityScheduler::IRQexists(Thread *thread)
 {
     for(int i=0;i<CPU_NUM_CORES;i++)
-        if(runningThread[i]==thread) return true; //Running thread is not in any list
+        if(runningThread[i]==thread) return true; //Running threads are not in list
     for(int i=PRIORITY_MAX-1;i>=0;i--)
-        for(auto t : threadList[i]) if(t==thread) return !t->flags.isDeleted();
+        for(auto t : readyThreads[i]) if(t==thread) return true;
+    for(auto t : notReadyThreads) if(t==thread) return !t->flags.isDeleted();
     return false;
 }
 
-void PriorityScheduler::PKremoveDeadThreads()
+void PriorityScheduler::removeDeadThreads()
 {
-    //TODO: create a separate list for threads to be deleted
-    for(int i=PRIORITY_MAX-1;i>=0;i--)
+    for(;;)
     {
-        auto t=threadList[i].begin(), e=threadList[i].end();
-        while(t!=e)
+        Thread *t;
         {
-            if((*t)->flags.isDeleted())
-            {
-                void *base=(*t)->watermark;
-                (*t)->~Thread();//Call destructor manually because of placement new
-                free(base);  //Delete ALL thread memory
-                t=threadList[i].erase(t);
-            } else ++t;
+            FastGlobalIrqLock dLock;
+            if(notReadyThreads.empty()) return;
+            t=notReadyThreads.back();
+            // All deleted threads are at the bottom of the list, so the first
+            // not deleted we found means there are no more
+            if(t->flags.isDeleted()==false) return;
+            notReadyThreads.pop_back();
         }
+        //Optimization: don't keep the lock while thread is being deleted
+        void *base=t->watermark;
+        t->~Thread();//Call destructor manually because of placement new
+        free(base);  //Delete ALL thread memory
     }
 }
 
-void PriorityScheduler::PKsetPriority(Thread *thread,
+void PriorityScheduler::IRQsetPriority(Thread *thread,
         PrioritySchedulerPriority newPriority)
 {
-    //If thread is running it is not in any list, only change priority value
+    if(thread->flags.isDeleted()) errorHandler(UNEXPECTED); //TODO remove
+    // If thread is running it is not in any list, only change priority value
     for(int i=0;i<CPU_NUM_CORES;i++)
     {
         if(thread==runningThread[i])
@@ -98,12 +102,15 @@ void PriorityScheduler::PKsetPriority(Thread *thread,
             return;
         }
     }
-    //Thread isn't running, remove the thread from its old list
-    threadList[thread->schedData.priority.get()].removeFast(thread);
-    //Set priority to the new value
+    // Thread isn't running, remove the thread from its old list
+    if(thread->flags.isReady()==false) notReadyThreads.removeFast(thread);
+    else readyThreads[thread->schedData.priority.get()].removeFast(thread);
+    // Set priority to the new value
     thread->schedData.priority=newPriority;
-    //Last insert the thread in the new list
-    threadList[newPriority.get()].push_back(thread);
+    // Last insert the thread in the new list
+    // NOTE: notReadyThreads must be pushed front to keep invariant
+    if(thread->flags.isReady()==false) notReadyThreads.push_front(thread);
+    else readyThreads[newPriority.get()].push_back(thread);
 }
 
 void PriorityScheduler::IRQsetIdleThread(int whichCore, Thread *idleThread)
@@ -111,6 +118,18 @@ void PriorityScheduler::IRQsetIdleThread(int whichCore, Thread *idleThread)
     idleThread->schedData.priority=-1;
     idle[whichCore]=idleThread;
     nextPeriodicPreemption[whichCore]=std::numeric_limits<long long>::max();
+}
+
+void PriorityScheduler::IRQwaitStatusHook(Thread* thread)
+{
+    // If the thread was just made sleeping, waiting or deleted do nothing as
+    // it's still running. The scheduler will move it to the appropriate list
+    // at the next preemption. If instead was just made ready again, than we
+    // must move it to the ready list here
+    if(thread->flags.isReady()==false) return;
+    //BUG: calling wakeup multiple times may corrupt the list?
+    notReadyThreads.removeFast(thread);
+    readyThreads[thread->schedData.priority.get()].push_back(thread);
 }
 
 long long PriorityScheduler::IRQgetNextPreemption()
@@ -140,7 +159,7 @@ void PriorityScheduler::IRQrunScheduler()
 {
     int coreId=getCurrentCoreId();
     bool forceRunIdle=false;
-    if(kernelRunning!=0) //If kernel is paused, do nothing
+    if(kernelRunning!=0) //If kernel is paused, preemption is disabled
     {
         pendingWakeup=true;
         #ifndef WITH_SMP
@@ -159,15 +178,21 @@ void PriorityScheduler::IRQrunScheduler()
         forceRunIdle=true;
         #endif //WITH_SMP
     }
-    //Add the previous thread to the back of the priority list (round-robin)
+    //If the previously running thread is not idle, we need to put it in a list
     Thread *prev=const_cast<Thread*>(runningThread[coreId]);
-    int prevPriority=prev->schedData.priority.get();
-    if(prevPriority!=-1) threadList[prevPriority].push_back(prev);
+    if(prev!=idle[coreId])
+    {
+        // NOTE: notReadyThreads must be pushed back if deleted, front if not
+        // while if ready always back (round-robin)
+        if(prev->flags.isDeleted()) notReadyThreads.push_back(prev);
+        else if(prev->flags.isReady()==false) notReadyThreads.push_front(prev);
+        else readyThreads[prev->schedData.priority.get()].push_back(prev);
+    }
     if(forceRunIdle==false)
     {
         for(int i=PRIORITY_MAX-1;i>=0;i--)
         {
-            for(auto next : threadList[i])
+            for(auto next : readyThreads[i])
             {
                 if(next->flags.isReady()==false) continue;
                 //Found a READY thread, so run this one
@@ -193,7 +218,7 @@ void PriorityScheduler::IRQrunScheduler()
                 #endif //WITH_CPU_TIME_COUNTER
                 //Remove the selected thread from the list. This invalidates
                 //iterators sho it should be done last
-                threadList[i].removeFast(next);
+                readyThreads[i].removeFast(next);
                 #ifdef WITH_SMP
                 //TODO also reschedule if other core has lower priority
                 if(runningThread[1-coreId]==idle[1-coreId])
@@ -217,7 +242,8 @@ void PriorityScheduler::IRQrunScheduler()
     #endif //WITH_CPU_TIME_COUNTER
 }
 
-IntrusiveList<Thread> PriorityScheduler::threadList[PRIORITY_MAX];
+IntrusiveList<Thread> PriorityScheduler::readyThreads[PRIORITY_MAX];
+IntrusiveList<Thread> PriorityScheduler::notReadyThreads;
 Thread *PriorityScheduler::idle[CPU_NUM_CORES]={nullptr};
 
 } //namespace miosix

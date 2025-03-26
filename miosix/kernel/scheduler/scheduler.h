@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011 by Terraneo Federico                         *
+ *   Copyright (C) 2010-2025 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -54,7 +54,7 @@ public:
      * Add a new thread to the scheduler.
      * \param thread a pointer to a valid thread instance.
      * The behaviour is undefined if a thread is added multiple timed to the
-     * scheduler, or if thread is NULL.
+     * scheduler, or if thread is nullptr.
      * \param priority the priority of the new thread.
      * Priority must be a positive value.
      * Note that the meaning of priority is scheduler specific.
@@ -64,11 +64,11 @@ public:
      * Note: this member function is called also before the kernel is started
      * to add the main and idle thread.
      */
-    static bool PKaddThread(Thread *thread, Priority priority)
+    static bool IRQaddThread(Thread *thread, Priority priority)
     {
-        bool res=T::PKaddThread(thread,priority);
+        bool res=T::IRQaddThread(thread,priority);
         #ifdef WITH_CPU_TIME_COUNTER
-        if(res) CPUTimeCounter::PKaddThread(thread);
+        if(res) CPUTimeCounter::IRQaddThread(thread);
         #endif
         return res;
     }
@@ -79,12 +79,10 @@ public:
      * deleted. A joinable thread is considered existing until it has been
      * joined, even if it returns from its entry point (unless it is detached
      * and terminates).
-     *
-     * Can be called both with the kernel paused and with interrupts disabled.
      */
-    static bool PKexists(Thread *thread)
+    static bool IRQexists(Thread *thread)
     {
-        return T::PKexists(thread);
+        return T::IRQexists(thread);
     }
 
     /**
@@ -92,12 +90,12 @@ public:
      * Called when there is at least one dead thread to be removed from the
      * scheduler
      */
-    static void PKremoveDeadThreads()
+    static void removeDeadThreads()
     {
         #ifdef WITH_CPU_TIME_COUNTER
-        CPUTimeCounter::PKremoveDeadThreads();
+        CPUTimeCounter::removeDeadThreads();
         #endif
-        T::PKremoveDeadThreads();
+        T::removeDeadThreads();
     }
 
     /**
@@ -108,9 +106,9 @@ public:
      * \param newPriority new thread priority.
      * Priority must be a positive value.
      */
-    static void PKsetPriority(Thread *thread, Priority newPriority)
+    static void IRQsetPriority(Thread *thread, Priority newPriority)
     {
-        T::PKsetPriority(thread,newPriority);
+        T::IRQsetPriority(thread,newPriority);
     }
 
     /**

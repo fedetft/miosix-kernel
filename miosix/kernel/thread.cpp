@@ -69,7 +69,7 @@ namespace miosix {
 volatile Thread *runningThread[CPU_NUM_CORES]={nullptr};///<\internal Threads currently running
 
 ///\internal True if there are threads in the DELETED status. Used by idle thread
-static volatile bool existDeleted=false;
+static volatile int existDeleted=0;
 
 IntrusiveList<SleepData> sleepingList;///list of sleeping threads
 
@@ -96,12 +96,7 @@ void *idleThreadCore0(void *argv)
 {
     for(;;)
     {
-        if(existDeleted)
-        {
-            PauseKernelLock lock;
-            existDeleted=false;
-            Scheduler::PKremoveDeadThreads();
-        }
+        if(atomicSwap(&existDeleted,0)) Scheduler::removeDeadThreads();
         #ifdef WITH_SLEEP
         #ifdef WITH_DEEP_SLEEP
         {
@@ -181,7 +176,7 @@ void IRQstartKernel()
     Thread *main;
     main=Thread::doCreate(mainLoader,MAIN_STACK_SIZE,nullptr,Thread::DEFAULT,true);
     if(main==nullptr) errorHandler(OUT_OF_MEMORY);
-    if(Scheduler::PKaddThread(main,MAIN_PRIORITY)==false) errorHandler(UNEXPECTED);
+    if(Scheduler::IRQaddThread(main,MAIN_PRIORITY)==false) errorHandler(UNEXPECTED);
 
     // Idle thread needs to be set after main (see control_scheduler.cpp)
     Scheduler::IRQsetIdleThread(0,idle);
@@ -294,17 +289,18 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
     if(thread==nullptr) return nullptr;
     
     //Add thread to thread list
+    bool result;
     {
-        //Handling the list of threads, critical section is required
-        PauseKernelLock lock;
-        if(Scheduler::PKaddThread(thread,priority)==false)
-        {
-            //Reached limit on number of threads
-            unsigned int *base=thread->watermark;
-            thread->~Thread();
-            free(base); //Delete ALL thread memory
-            return nullptr;
-        }
+        FastGlobalIrqLock lock;
+        result=Scheduler::IRQaddThread(thread,priority);
+    }
+    if(result==false)
+    {
+        //Reached limit on number of threads
+        unsigned int *base=thread->watermark;
+        thread->~Thread();
+        free(base); //Delete ALL thread memory
+        return nullptr;
     }
     #ifdef SCHED_TYPE_EDF
     if(isKernelRunning()) yield(); //The new thread might have a closer deadline
@@ -433,8 +429,8 @@ Thread *Thread::IRQgetCurrentThread()
 bool Thread::exists(Thread *p)
 {
     if(p==nullptr) return false;
-    PauseKernelLock lock;
-    return Scheduler::PKexists(p);
+    GlobalIrqLock lock;
+    return Scheduler::IRQexists(p);
 }
 
 Priority Thread::getPriority()
@@ -450,9 +446,9 @@ void Thread::setPriority(Priority pr)
 {
     if(pr.validate()==false) return;
     {
-        PauseKernelLock lock;
+        GlobalIrqLock lock;
 
-        Thread *running=PKgetCurrentThread();
+        Thread *running=IRQgetCurrentThread();
         //If thread is locking at least one mutex
         if(running->mutexLocked!=nullptr)
         {
@@ -466,14 +462,14 @@ void Thread::setPriority(Priority pr)
             while(walk!=nullptr)
             {
                 if(walk->waiting.empty()==false)
-                    pr=std::max(pr,walk->waiting.front()->PKgetPriority());
+                    pr=std::max(pr,walk->waiting.front()->IRQgetPriority());
                 walk=walk->next;
             }
         }
 
         //If old priority == desired priority, nothing to do.
-        if(pr==running->PKgetPriority()) return;
-        Scheduler::PKsetPriority(running,pr);
+        if(pr==running->IRQgetPriority()) return;
+        Scheduler::IRQsetPriority(running,pr);
     }
     #ifdef SCHED_TYPE_EDF
     if(isKernelRunning()) yield(); //Another thread might have a closer deadline
@@ -504,7 +500,7 @@ void Thread::detach()
     this->flags.IRQsetDetached();
     
     //we detached a terminated thread, so its memory needs to be deallocated
-    if(this->flags.isDeletedJoin()) existDeleted=true;
+    if(this->flags.isDeletedJoin()) atomicSwap(&existDeleted,1);
 
     //Corner case: detaching a thread, but somebody else already called join
     //on it. This makes join return false instead of deadlocking
@@ -559,12 +555,9 @@ bool Thread::join(void** result)
         this->flags.IRQsetDetached();
         if(result!=nullptr) *result=this->joinData.result;
     }
-    {
-        PauseKernelLock lock;
-        //Since there is surely one dead thread, deallocate it immediately
-        //to free its memory as soon as possible
-        Scheduler::PKremoveDeadThreads();
-    }
+    //Since there is surely one dead thread, deallocate it immediately
+    //to free its memory as soon as possible
+    Scheduler::removeDeadThreads();
     return true;
 }
 
@@ -676,17 +669,18 @@ Thread *Thread::createUserspace(void *(*startfunc)(void *), Process *proc)
     thread->flags.IRQsetWait(thread,true); //Thread is not yet ready
     
     //Add thread to thread list
+    bool result;
     {
-        //Handling the list of threads, critical section is required
-        PauseKernelLock lock;
-        if(Scheduler::PKaddThread(thread,MAIN_PRIORITY)==false)
-        {
-            //Reached limit on number of threads
-            base=thread->watermark;
-            thread->~Thread();
-            free(base); //Delete ALL thread memory
-            return nullptr;
-        }
+        FastGlobalIrqLock dLock;
+        result=Scheduler::IRQaddThread(thread,MAIN_PRIORITY);
+    }
+    if(result==false)
+    {
+        //Reached limit on number of threads
+        base=thread->watermark;
+        thread->~Thread();
+        free(base); //Delete ALL thread memory
+        return nullptr;
     }
 
     return thread;
@@ -830,7 +824,7 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
             cur->joinData.result=result;
         } else {
             //If thread is detached, memory can be deallocated immediately
-            existDeleted=true;
+            atomicSwap(&existDeleted,1);
         }
     }
     Thread::yield();//Since the thread is now deleted, yield immediately.
@@ -889,9 +883,7 @@ TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTim
 bool Thread::IRQexists(Thread* p)
 {
     if(p==nullptr) return false;
-    //NOTE: the code in all schedulers is currently safe to be called also with
-    //interrupts disabled
-    return Scheduler::PKexists(p);
+    return Scheduler::IRQexists(p);
 }
 
 Thread *Thread::allocateIdleThread()

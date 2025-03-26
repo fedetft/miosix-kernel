@@ -110,7 +110,11 @@ void Mutex::PKlock(PauseKernelLock& dLock)
         Thread *walk=owner;
         for(;;)
         {
-            Scheduler::PKsetPriority(walk,p->PKgetPriority());
+            auto prio=p->PKgetPriority();
+            {
+                FastGlobalIrqLock irqLock;
+                Scheduler::IRQsetPriority(walk,prio);
+            }
             if(walk->mutexWaiting==nullptr) break;
             make_heap(walk->mutexWaiting->waiting.begin(),
                       walk->mutexWaiting->waiting.end(),PKlowerPriority);
@@ -162,7 +166,11 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
         Thread *walk=owner;
         for(;;)
         {
-            Scheduler::PKsetPriority(walk,p->PKgetPriority());
+            auto prio=p->PKgetPriority();
+            {
+                FastGlobalIrqLock irqLock;
+                Scheduler::IRQsetPriority(walk,prio);
+            }
             if(walk->mutexWaiting==nullptr) break;
             make_heap(walk->mutexWaiting->waiting.begin(),
                       walk->mutexWaiting->waiting.end(),PKlowerPriority);
@@ -232,7 +240,10 @@ bool Mutex::PKunlock(PauseKernelLock& dLock)
     {
         //Not locking any other mutex
         if(owner->savedPriority!=owner->PKgetPriority())
-            Scheduler::PKsetPriority(owner,owner->savedPriority);
+        {
+            FastGlobalIrqLock irqLock;
+            Scheduler::IRQsetPriority(owner,owner->savedPriority);
+        }
     } else {
         Priority pr=owner->savedPriority;
         //Calculate new priority of thread, which is
@@ -245,7 +256,11 @@ bool Mutex::PKunlock(PauseKernelLock& dLock)
                     pr=walk->waiting.front()->PKgetPriority();
             walk=walk->next;
         }
-        if(pr!=owner->PKgetPriority()) Scheduler::PKsetPriority(owner,pr);
+        if(pr!=owner->PKgetPriority())
+        {
+            FastGlobalIrqLock irqLock;
+            Scheduler::IRQsetPriority(owner,pr);
+        }
     }
 
     //Choose next thread to lock the mutex
@@ -265,7 +280,13 @@ bool Mutex::PKunlock(PauseKernelLock& dLock)
         //Handle priority inheritance of new owner
         if(waiting.empty()==false &&
                 owner->PKgetPriority().mutexLessOp(waiting.front()->PKgetPriority()))
-                Scheduler::PKsetPriority(owner,waiting.front()->PKgetPriority());
+        {
+            auto prio=waiting.front()->PKgetPriority();
+            {
+                FastGlobalIrqLock irqLock;
+                Scheduler::IRQsetPriority(owner,prio);
+            }
+        }
         return p->PKgetPriority().mutexLessOp(owner->PKgetPriority());
     } else {
         owner=nullptr; //No threads waiting
@@ -303,7 +324,10 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
     {
         //Not locking any other mutex
         if(owner->savedPriority!=owner->PKgetPriority())
-            Scheduler::PKsetPriority(owner,owner->savedPriority);
+        {
+            FastGlobalIrqLock irqLock;
+            Scheduler::IRQsetPriority(owner,owner->savedPriority);
+        }
     } else {
         Priority pr=owner->savedPriority;
         //Calculate new priority of thread, which is
@@ -316,7 +340,11 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
                     pr=walk->waiting.front()->PKgetPriority();
             walk=walk->next;
         }
-        if(pr!=owner->PKgetPriority()) Scheduler::PKsetPriority(owner,pr);
+        if(pr!=owner->PKgetPriority())
+        {
+            FastGlobalIrqLock irqLock;
+            Scheduler::IRQsetPriority(owner,pr);
+        }
     }
 
     //Choose next thread to lock the mutex
@@ -336,7 +364,13 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
         //Handle priority inheritance of new owner
         if(waiting.empty()==false &&
                 owner->PKgetPriority().mutexLessOp(waiting.front()->PKgetPriority()))
-                Scheduler::PKsetPriority(owner,waiting.front()->PKgetPriority());
+        {
+            auto prio=waiting.front()->PKgetPriority();
+            {
+                FastGlobalIrqLock irqLock;
+                Scheduler::IRQsetPriority(owner,prio);
+            }
+        }
     } else {
         owner=nullptr; //No threads waiting
         std::vector<Thread *>().swap(waiting); //Save some RAM

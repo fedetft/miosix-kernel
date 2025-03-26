@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011 by Terraneo Federico                         *
+ *   Copyright (C) 2010-2025 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -49,12 +49,17 @@ public:
      * This is called when a thread is created.
      * \param thread a pointer to a valid thread instance.
      * The behaviour is undefined if a thread is added multiple timed to the
-     * scheduler, or if thread is NULL.
+     * scheduler, or if thread is nullptr.
      * \param priority the priority of the new thread.
      * Priority must be a positive value.
      * Note that the meaning of priority is scheduler specific.
+     * \return false if an error occurred and the thread could not be added to
+     * the scheduler
+     *
+     * Note: this member function is called also before the kernel is started
+     * to add the main and idle thread.
      */
-    static bool PKaddThread(Thread *thread, PrioritySchedulerPriority priority);
+    static bool IRQaddThread(Thread *thread, PrioritySchedulerPriority priority);
 
     /**
      * \internal
@@ -62,17 +67,15 @@ public:
      * deleted. A joinable thread is considered existing until it has been
      * joined, even if it returns from its entry point (unless it is detached
      * and terminates).
-     *
-     * Can be called both with the kernel paused and with interrupts disabled.
      */
-    static bool PKexists(Thread *thread);
+    static bool IRQexists(Thread *thread);
 
     /**
      * \internal
      * Called when there is at least one dead thread to be removed from the
      * scheduler
      */
-    static void PKremoveDeadThreads();
+    static void removeDeadThreads();
 
     /**
      * \internal
@@ -82,7 +85,7 @@ public:
      * \param newPriority new thread priority.
      * Priority must be a positive value.
      */
-    static void PKsetPriority(Thread *thread,
+    static void IRQsetPriority(Thread *thread,
             PrioritySchedulerPriority newPriority);
 
     /**
@@ -116,7 +119,7 @@ public:
      * its running status. For example when a thread become sleeping, waiting,
      * deleted or if it exits the sleeping or waiting status
      */
-    static void IRQwaitStatusHook(Thread* t) {}
+    static void IRQwaitStatusHook(Thread* thread);
 
     /**
      * \internal
@@ -138,7 +141,10 @@ private:
 
     ///\internal Vector of lists of threads, there's one list for each priority
     ///Each list s a circular list.
-    static IntrusiveList<Thread> threadList[PRIORITY_MAX];
+    static IntrusiveList<Thread> readyThreads[PRIORITY_MAX];
+    ///\internal List of threads that are not ready.
+    ///Keep the invariant that deleted threads are pushed to the back!
+    static IntrusiveList<Thread> notReadyThreads;
 
     ///\internal idle thread
     static Thread *idle[CPU_NUM_CORES];
