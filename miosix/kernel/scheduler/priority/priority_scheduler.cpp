@@ -36,14 +36,15 @@
 #ifdef SCHED_TYPE_PRIORITY
 namespace miosix {
 
-//These are defined in thread.cpp
+//These are defined in thread.cpp / lock.cpp
 extern volatile Thread *runningThread[CPU_NUM_CORES];
 extern volatile int kernelRunning;
+extern unsigned char globalPkNestLockHoldingCore;
 extern volatile bool pendingWakeup;
 extern IntrusiveList<SleepData> sleepingList;
 
 //Internal data
-static long long nextPeriodicPreemption=std::numeric_limits<long long>::max();
+static long long nextPeriodicPreemption[CPU_NUM_CORES];
 
 //
 // class PriorityScheduler
@@ -68,6 +69,7 @@ bool PriorityScheduler::PKexists(Thread *thread)
 
 void PriorityScheduler::PKremoveDeadThreads()
 {
+    //TODO: create a separate list for threads to be deleted
     for(int i=PRIORITY_MAX-1;i>=0;i--)
     {
         auto t=threadList[i].begin(), e=threadList[i].end();
@@ -108,76 +110,97 @@ void PriorityScheduler::IRQsetIdleThread(int whichCore, Thread *idleThread)
 {
     idleThread->schedData.priority=-1;
     idle[whichCore]=idleThread;
+    nextPeriodicPreemption[whichCore]=std::numeric_limits<long long>::max();
 }
 
 long long PriorityScheduler::IRQgetNextPreemption()
 {
-    return nextPeriodicPreemption;
+    return nextPeriodicPreemption[getCurrentCoreId()];
 }
 
-static long long IRQsetNextPreemption(bool runningIdleThread)
+static long long IRQsetNextPreemption(int coreId, bool runningIdleThread)
 {
+    //TODO: only set wakeup interrupts on core 1?
+    //but need to consider the pause kernel issue below
     long long first;
     if(sleepingList.empty()) first=std::numeric_limits<long long>::max();
     else first=sleepingList.front()->wakeupTime;
 
     long long t=IRQgetTime();
-    if(runningIdleThread) nextPeriodicPreemption=first;
-    else nextPeriodicPreemption=std::min(first,t+MAX_TIME_SLICE);
+    if(runningIdleThread) nextPeriodicPreemption[coreId]=first;
+    else nextPeriodicPreemption[coreId]=std::min(first,t+MAX_TIME_SLICE);
 
     //We could not set an interrupt if the sleeping list is empty and runningThread
     //is idle but there's no such hurry to run idle anyway, so why bother?
-    IRQosTimerSetInterrupt(nextPeriodicPreemption);
+    IRQosTimerSetInterrupt(nextPeriodicPreemption[coreId]);
     return t;
 }
 
 void PriorityScheduler::IRQrunScheduler()
 {
+    int coreId=getCurrentCoreId();
+    bool forceRunIdle=false;
     if(kernelRunning!=0) //If kernel is paused, do nothing
     {
         pendingWakeup=true;
+        #ifndef WITH_SMP
         return;
+        #else //WITH_SMP
+        // In a multi core environment one core can take the pause kernel lock
+        // while another core can attempt a context switch. The issue is, we
+        // cannot really deny this and forcedly give back the CPU to that thread,
+        // as it may be a thread that just terminated and would crash if given
+        // back the CPU, or a thread sleeping or waiting for I/O that would crash
+        // if given back the CPU before tha wakeup condition occurred.
+        // Thus, we switch to the idle thread. Of course we must not do so for
+        // the core that is currently holding the pause kernel lock or it would
+        // deadlock
+        if(globalPkNestLockHoldingCore==coreId) return;
+        forceRunIdle=true;
+        #endif //WITH_SMP
     }
-    int coreId=getCurrentCoreId();
     //Add the previous thread to the back of the priority list (round-robin)
     Thread *prev=const_cast<Thread*>(runningThread[coreId]);
     int prevPriority=prev->schedData.priority.get();
     if(prevPriority!=-1) threadList[prevPriority].push_back(prev);
-    for(int i=PRIORITY_MAX-1;i>=0;i--)
+    if(forceRunIdle==false)
     {
-        for(auto next : threadList[i])
+        for(int i=PRIORITY_MAX-1;i>=0;i--)
         {
-            if(next->flags.isReady()==false) continue;
-            //Found a READY thread, so run this one
-            runningThread[coreId]=next;
-            #ifdef WITH_PROCESSES
-            if(next->flags.isInUserspace()==false)
+            for(auto next : threadList[i])
             {
+                if(next->flags.isReady()==false) continue;
+                //Found a READY thread, so run this one
+                runningThread[coreId]=next;
+                #ifdef WITH_PROCESSES
+                if(next->flags.isInUserspace()==false)
+                {
+                    ctxsave[coreId]=next->ctxsave;
+                    MPUConfiguration::IRQdisable();
+                } else {
+                    ctxsave[coreId]=next->userCtxsave;
+                    //A kernel thread is never in userspace, so the cast is safe
+                    static_cast<Process*>(next->proc)->mpu.IRQenable();
+                }
+                #else //WITH_PROCESSES
                 ctxsave[coreId]=next->ctxsave;
-                MPUConfiguration::IRQdisable();
-            } else {
-                ctxsave[coreId]=next->userCtxsave;
-                //A kernel thread is never in userspace, so the cast is safe
-                static_cast<Process*>(next->proc)->mpu.IRQenable();
+                #endif //WITH_PROCESSES
+                #ifndef WITH_CPU_TIME_COUNTER
+                IRQsetNextPreemption(coreId,false);
+                #else //WITH_CPU_TIME_COUNTER
+                auto t=IRQsetNextPreemption(coreId,false);
+                IRQprofileContextSwitch(prev->timeCounterData,next->timeCounterData,t);
+                #endif //WITH_CPU_TIME_COUNTER
+                //Remove the selected thread from the list. This invalidates
+                //iterators sho it should be done last
+                threadList[i].removeFast(next);
+                #ifdef WITH_SMP
+                //TODO also reschedule if other core has lower priority
+                if(runningThread[1-coreId]==idle[1-coreId])
+                    IRQcallOnCore(1-coreId,reinterpret_cast<void (*)(void*)>(IRQinvokeScheduler),nullptr);
+                #endif //WITH_SMP
+                return;
             }
-            #else //WITH_PROCESSES
-            ctxsave[coreId]=next->ctxsave;
-            #endif //WITH_PROCESSES
-            #ifndef WITH_CPU_TIME_COUNTER
-            IRQsetNextPreemption(false);
-            #else //WITH_CPU_TIME_COUNTER
-            auto t=IRQsetNextPreemption(false);
-            IRQprofileContextSwitch(prev->timeCounterData,next->timeCounterData,t);
-            #endif //WITH_CPU_TIME_COUNTER
-            //Remove the selected thread from the list. This invalidates
-            //iterators sho it should be done last
-            threadList[i].removeFast(next);
-            #ifdef WITH_SMP
-            //TODO also reschedule if other core has lower priority
-            if(runningThread[1-coreId]==idle[1-coreId])
-                IRQcallOnCore(1-coreId,reinterpret_cast<void (*)(void*)>(IRQinvokeScheduler),nullptr);
-            #endif //WITH_SMP
-            return;
         }
     }
     //No thread found, run the idle thread
@@ -187,9 +210,9 @@ void PriorityScheduler::IRQrunScheduler()
     MPUConfiguration::IRQdisable();
     #endif //WITH_PROCESSES
     #ifndef WITH_CPU_TIME_COUNTER
-    IRQsetNextPreemption(true);
+    IRQsetNextPreemption(coreId,true);
     #else //WITH_CPU_TIME_COUNTER
-    auto t=IRQsetNextPreemption(true);
+    auto t=IRQsetNextPreemption(coreId,true);
     IRQprofileContextSwitch(prev->timeCounterData,idle->timeCounterData,t);
     #endif //WITH_CPU_TIME_COUNTER
 }
