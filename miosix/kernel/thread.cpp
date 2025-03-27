@@ -427,8 +427,10 @@ void Thread::PKwakeup()
 void Thread::IRQwakeup()
 {
     this->flags.IRQsetWait(this,false);
-    if(this->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
-        IRQinvokeScheduler();
+    auto wokenPrio=this->IRQgetPriority();
+    for(int i=0;i<CPU_NUM_CORES;i++)
+            if(const_cast<Thread*>(runningThread[i])->IRQgetPriority()<wokenPrio)
+                IRQinvokeScheduler(); //TODO: we could use IRQinvokeSchedulerOnCore(i)
 }
 
 Thread *Thread::IRQgetCurrentThread()
