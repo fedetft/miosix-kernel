@@ -76,14 +76,13 @@ static unsigned long fifoReceive()
 void IRQinterProcessorInterruptHandler()
 {
     FastGlobalLockFromIrq dLock;
-    unsigned long fifoState=sio_hw->fifo_st;
-    if(fifoState & (SIO_FIFO_ST_ROE_BITS|SIO_FIFO_ST_WOF_BITS))
+    if(sio_hw->fifo_st & (SIO_FIFO_ST_ROE_BITS|SIO_FIFO_ST_WOF_BITS))
     {
         // interrupt was triggered by a fifo error, clear the error
         // TODO: this should not happen, we should call errorHandler(UNEXPECTED) here
-        sio_hw->fifo_st=0;
+        sio_hw->fifo_st &= ~(SIO_FIFO_ST_ROE_BITS|SIO_FIFO_ST_WOF_BITS);
     }
-    if(fifoState & SIO_FIFO_ST_VLD_BITS)
+    while(sio_hw->fifo_st & SIO_FIFO_ST_VLD_BITS)
     {
         // When we manage to take the GIL, the other CPU must have already finished
         // sending the data so we can read both pointers without checking
