@@ -123,8 +123,6 @@ public:
      * \param options thread options, such ad Thread::JOINABLE
      * \return a reference to the thread created, that can be used, for example,
      * to delete it, or nullptr in case of errors.
-     *
-     * Can be called when the kernel is paused.
      */
     static Thread *create(void *(*startfunc)(void *), unsigned int stacksize,
                             Priority priority=Priority(), void *argv=nullptr,

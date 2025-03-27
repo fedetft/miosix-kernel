@@ -283,6 +283,7 @@ Memory layout for a thread
 Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
                        Priority priority, void *argv, unsigned short options)
 {
+    if(isKernelRunning()==false) errorHandler(UNEXPECTED);
     //Check to see if input parameters are valid
     if(priority.validate()==false || stacksize<STACK_MIN) return nullptr;
     
@@ -294,6 +295,17 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
     {
         FastGlobalIrqLock lock;
         result=Scheduler::IRQaddThread(thread,priority);
+        if(result)
+        {
+            for(int i=0;i<CPU_NUM_CORES;i++)
+            {
+                if(const_cast<Thread*>(runningThread[i])->IRQgetPriority()<priority)
+                {
+                    IRQinvokeSchedulerOnCore(i);
+                    break;
+                }
+            }
+        }
     }
     if(result==false)
     {
@@ -303,9 +315,6 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
         free(base); //Delete ALL thread memory
         return nullptr;
     }
-    #ifdef SCHED_TYPE_EDF
-    if(isKernelRunning()) yield(); //The new thread might have a closer deadline
-    #endif //SCHED_TYPE_EDF
     return thread;
 }
 
