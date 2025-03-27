@@ -29,6 +29,8 @@
 
 #ifdef WITH_SMP
 
+#include "kernel/scheduler/scheduler.h"
+#include "kernel/thread.h"
 #include "interfaces_private/os_timer.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces/cpu_const.h"
@@ -73,30 +75,53 @@ static unsigned long fifoReceive()
     return r;
 }
 
+struct IPIFlags
+{
+    enum
+    {
+        InvokeScheduler = 1,
+        CallOnCore = 2,
+        HangUp = 4
+    };
+};
+struct IPICall
+{
+    void (*func)(void *);
+    void *arg;
+    Thread *waiting;
+};
+unsigned char flags[2];
+IPICall invocations[2];
+
 void IRQinterProcessorInterruptHandler()
 {
     FastGlobalLockFromIrq dLock;
     if(sio_hw->fifo_st & (SIO_FIFO_ST_ROE_BITS|SIO_FIFO_ST_WOF_BITS))
     {
-        // interrupt was triggered by a fifo error, clear the error
-        // TODO: this should not happen, we should call errorHandler(UNEXPECTED) here
+        // Interrupt was triggered by a fifo error, clear the error.
+        // This can happen if IRQinvokeSchedulerOnCore() is called way too
+        // many times in rapid succession.
         sio_hw->fifo_st &= ~(SIO_FIFO_ST_ROE_BITS|SIO_FIFO_ST_WOF_BITS);
     }
-    while(sio_hw->fifo_st & SIO_FIFO_ST_VLD_BITS)
+    // Flush the FIFO
+    fifoDrain();
+    // Check what we have to do
+    unsigned char coreId = getCurrentCoreId();
+    if(flags[coreId] & IPIFlags::InvokeScheduler) IRQinvokeScheduler();
+    if(flags[coreId] & IPIFlags::CallOnCore)
     {
-        // When we manage to take the GIL, the other CPU must have already finished
-        // sending the data so we can read both pointers without checking
-        void (*f)(void *)=reinterpret_cast<void (*)(void *)>(sio_hw->fifo_rd);
-        // Lockup requested? Spin here
-        if(f==nullptr)
-        {
-            FastGlobalUnlockFromIrq dUnlock(dLock);
-            for(;;) ;
-        }
-        // if(!(sio_hw->fifo_st & SIO_FIFO_ST_VLD_BITS)) errorHandler(UNEXPECTED);
-        void *arg=reinterpret_cast<void *>(sio_hw->fifo_rd);
-        f(arg);
+        IPICall& inv=invocations[coreId];
+        inv.func(inv.arg);
+        inv.waiting->IRQwakeup();
+        inv.waiting=nullptr;
     }
+    if(flags[coreId] & IPIFlags::HangUp)
+    {
+        FastGlobalUnlockFromIrq dUnlock(dLock);
+        for(;;) ;
+    }
+    // Clear the flags
+    flags[coreId]=0;
 }
 
 __attribute__((naked)) void initCore1()
@@ -181,23 +206,41 @@ void IRQinitSMP(void *const stackPtrs[], void (*const mains[])()) noexcept
     sio_hw->spinlock[RP2040HwSpinlocks::InitCoreSync]=1;
 }
 
-void IRQcallOnCore(unsigned char core, void (*f)(void *), void *arg) noexcept
+void IRQinvokeSchedulerOnCore(unsigned char core) noexcept
 {
-    if(core==getCurrentCoreId()) { f(arg); return; }
-    while(!(sio_hw->fifo_st & SIO_FIFO_ST_RDY_BITS)) ;
-    sio_hw->fifo_wr=reinterpret_cast<unsigned long>(f);
-    while(!(sio_hw->fifo_st & SIO_FIFO_ST_RDY_BITS)) ;
-    sio_hw->fifo_wr=reinterpret_cast<unsigned long>(arg);
+    // Is this already the right core?
+    if(core==getCurrentCoreId()) { IRQinvokeScheduler(); return; }
+    // If not, trigger the IPI
+    flags[core]|=IPIFlags::InvokeScheduler;
+    __DSB();
+    sio_hw->fifo_wr=0;
 }
 
-void lockupOtherCores()
+void IRQcallOnCore(GlobalIrqLock& lock, unsigned char core, void (*f)(void *),
+                   void *arg) noexcept
 {
-    // Do not wait for the FIFO is ready to receive bytes. If the FIFO is full
-    // chances are that the other core is crashed already and cannot empty
-    // the FIFO anyway.
-    // To lockup, write a 0 to the FIFO. The IPI handler will read the zero
-    // and hang up for us.
-    if(sio_hw->fifo_st & SIO_FIFO_ST_RDY_BITS) sio_hw->fifo_wr=0;
+    // Is this already the right core?
+    if(core==getCurrentCoreId()) { f(arg); return; }
+    // If there is a pending call on core, panic because this is impossible
+    if(flags[core]&IPIFlags::CallOnCore) errorHandler(UNEXPECTED);
+    // Save the invocation which will be read by the call on core later
+    invocations[core].func=f;
+    invocations[core].arg=arg;
+    invocations[core].waiting=Thread::getCurrentThread();
+    // Trigger the IPI and wait for it to be served
+    flags[core]|=IPIFlags::CallOnCore;
+    __DSB();
+    sio_hw->fifo_wr=0;
+    do {
+        Thread::IRQglobalIrqUnlockAndWait(lock);
+    } while(invocations[core].waiting);
+}
+
+void IRQlockupOtherCores()
+{
+    flags[1-getCurrentCoreId()]|=IPIFlags::HangUp;
+    __DSB();
+    sio_hw->fifo_wr=0;
 }
 
 } // namespace miosix

@@ -45,7 +45,7 @@ void errorHandler(Error e)
     // other one. This could cause problems of course but this is an emergency
     // situation anyway. The only real risk is corruption on the serial while
     // logging.
-    lockupOtherCores();
+    IRQlockupOtherCores();
     #endif
     
     //Unrecoverable errors

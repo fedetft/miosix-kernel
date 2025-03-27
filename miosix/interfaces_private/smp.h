@@ -65,39 +65,34 @@ namespace miosix {
 void IRQinitSMP(void *const stackPtrs[], void (*const mains[])()) noexcept;
 
 /**
- * Executes a given function on a specific core within an interrupt context.
- * This function must be called while holding the global interrupt lock (GIL).
- * The function executed will also be run while holding the GIL. There is no
- * wait for the function to complete, except implicitly if the function runs
- * in the context of the same core where IRQcallOnCore() is executed.
- * 
- * \param core The core ID where to execute the function.
- * \param f    The function to execute on the core.
- * \param arg  The argument to pass to the function.
+ * Asynchronously call IRQinvokeScheduler on the specified core.
+ * Note that if this function is called very frequently and the target processor
+ * is very busy, multiple calls to IRQinvokeScheduler may be coalesced into one.
  */
-void IRQcallOnCore(unsigned char core, void (*f)(void *), void *arg) noexcept;
+void IRQinvokeSchedulerOnCore(unsigned char core) noexcept;
 
 /**
- * Executes a given function on a specific core within an interrupt context.
- * The function executed will be run while holding the GIL. There is no
- * wait for the function to complete, except implicitly if the function runs
- * in the context of the same core where callOnCore() is executed.
+ * Synchronously executes a given function on a specific core within an
+ * interrupt context.
+ * This function must be called while holding the global interrupt lock (GIL)
+ * but it will release the GIL while waiting for the function to complete.
+ * The function executed will also be run while holding the GIL.
  * 
+ * \param lock A GlobalIrqLock (GIL) lock that must be already taken here.
  * \param core The core ID where to execute the function.
  * \param f    The function to execute on the core.
  * \param arg  The argument to pass to the function.
  */
-inline void callOnCore(unsigned char core, void (*f)(void *), void *arg) noexcept
-{
-    FastGlobalIrqLock dLock;
-    IRQcallOnCore(core,f,arg);
-}
+void IRQcallOnCore(GlobalIrqLock& lock, unsigned char core, void (*f)(void *),
+                   void *arg) noexcept;
 
 /**
  * Stops SMP support, for example because an unrecoverable system error
  * happened, by stopping all cores except the current one.
+ * This function may be also called with interrupts locally disabled and the
+ * GIL not yet taken.
  */
-void lockupOtherCores();
+void IRQlockupOtherCores();
 
 #endif //WITH_SMP
 

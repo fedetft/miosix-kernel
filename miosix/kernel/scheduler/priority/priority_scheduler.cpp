@@ -221,7 +221,7 @@ void PriorityScheduler::IRQrunScheduler()
                 #ifdef WITH_SMP
                 //TODO also reschedule if other core has lower priority
                 if(runningThread[1-coreId]==idle[1-coreId])
-                    IRQcallOnCore(1-coreId,reinterpret_cast<void (*)(void*)>(IRQinvokeScheduler),nullptr);
+                    IRQinvokeSchedulerOnCore(1-coreId);
                 #endif //WITH_SMP
                 return;
             }
