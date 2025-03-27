@@ -342,6 +342,11 @@ static void t1_f1(Thread *p)
         t1_v1=false;
         #ifndef SCHED_TYPE_EDF
         Thread::yield();//run t1_p1
+        #ifdef WITH_SMP
+        //With a multi core CPU both threads run in parallel and yield returns
+        //immediately. TODO: pin tasks on a single core for this test
+        delayUs(100);
+        #endif //WITH_SMP
         #else //SCHED_TYPE_EDF
         Thread::sleep(15);
         #endif //SCHED_TYPE_EDF
@@ -462,6 +467,8 @@ static void test_2()
     t2_p_v1->terminate();
     t2_p_v1->join();
     
+    #ifndef WITH_SMP
+    //TODO: pin tasks on a single core for this test
     t2_p_v1=Thread::create(t2_p2,STACK_SMALL,0,NULL,Thread::JOINABLE);
     for(int i=0;i<5;i++)
     {
@@ -487,6 +494,7 @@ static void test_2()
     t2_p_v1->wakeup();
     #endif
     t2_p_v1->join();
+    #endif //WITH_SMP
     pass();
 }
 
@@ -635,7 +643,14 @@ static void t4_p1(void *argv)
     for(;;)
     {
         if(Thread::testTerminate()) break;
+        #ifdef WITH_SMP
+        //TODO: pin tasks on a single core for this test
+        globalIrqLock();
+        #endif //WITH_SMP
         t4_v1=true;
+        #ifdef WITH_SMP
+        globalIrqUnlock();
+        #endif //WITH_SMP
         #ifdef SCHED_TYPE_EDF
         Thread::sleep(5);
         #endif //SCHED_TYPE_EDF
@@ -715,7 +730,8 @@ static void test_4()
     Thread::setPriority(1);
     if(Thread::getCurrentThread()->getPriority()!=1)
         fail("setPriority (0)");
-    #if !defined(SCHED_TYPE_CONTROL_BASED) && !defined(SCHED_TYPE_EDF)
+    #if !defined(SCHED_TYPE_CONTROL_BASED) && !defined(SCHED_TYPE_EDF) && !defined(WITH_SMP)
+    //TODO in the SMP case create a number of higher priority threads equal to the number of cores
     //Since priority is higher, the other thread must not run
     //Of course this is not true for the control based scheduler
     t4_v1=false;
@@ -3816,6 +3832,11 @@ static void test_25()
         Thread::sleep(10); //Get the other thread ready
         enable=true;
         this_thread::yield();
+        #ifdef WITH_SMP
+        //With a multi core CPU both threads run in parallel and yield returns
+        //immediately. TODO: pin tasks on a single core for this test
+        delayUs(100);
+        #endif //WITH_SMP
         if(flag==false) fail("this_thread::yield");
         thr.join();
     }
