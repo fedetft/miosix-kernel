@@ -415,13 +415,18 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
     return result;
 }
 
-void Thread::PKwakeup()
+bool Thread::PKwakeup()
 {
     //pausing the kernel is not enough because of IRQwait and IRQwakeup
     //DO NOT refactor this code by calling IRQwakeup() as IRQwakeup can cause
     //the scheduler interrupt to be called something we should avoid doing here
     FastGlobalIrqLock lock;
     this->flags.IRQsetWait(this,false);
+    auto wokenPrio=this->IRQgetPriority();
+    for(int i=0;i<CPU_NUM_CORES;i++)
+        if(const_cast<Thread*>(runningThread[i])->IRQgetPriority()<wokenPrio)
+            return true;
+    return false;
 }
 
 void Thread::IRQwakeup()
@@ -429,8 +434,8 @@ void Thread::IRQwakeup()
     this->flags.IRQsetWait(this,false);
     auto wokenPrio=this->IRQgetPriority();
     for(int i=0;i<CPU_NUM_CORES;i++)
-            if(const_cast<Thread*>(runningThread[i])->IRQgetPriority()<wokenPrio)
-                IRQinvokeScheduler(); //TODO: we could use IRQinvokeSchedulerOnCore(i)
+        if(const_cast<Thread*>(runningThread[i])->IRQgetPriority()<wokenPrio)
+            IRQinvokeScheduler(); //TODO: we could use IRQinvokeSchedulerOnCore(i)
 }
 
 Thread *Thread::IRQgetCurrentThread()

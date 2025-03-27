@@ -272,7 +272,7 @@ bool Mutex::PKunlock(PauseKernelLock& dLock)
         waiting.pop_back();
         if(owner->mutexWaiting!=this) errorHandler(UNEXPECTED);
         owner->mutexWaiting=nullptr;
-        owner->PKwakeup();
+        owner->PKwakeup(); //TODO: we may have woken a highr priority thread than the currently running one
         if(owner->mutexLocked==nullptr) owner->savedPriority=owner->PKgetPriority();
         //Add this mutex to the list of mutexes locked by owner
         this->next=owner->mutexLocked;
@@ -356,7 +356,7 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
         waiting.pop_back();
         if(owner->mutexWaiting!=this) errorHandler(UNEXPECTED);
         owner->mutexWaiting=nullptr;
-        owner->PKwakeup();
+        owner->PKwakeup(); //TODO: we may have woken a highr priority thread than the currently running one
         if(owner->mutexLocked==nullptr) owner->savedPriority=owner->PKgetPriority();
         //Add this mutex to the list of mutexes locked by owner
         this->next=owner->mutexLocked;
@@ -472,9 +472,7 @@ void ConditionVariable::broadcast()
         {
             Thread *t=condList.front()->thread;
             condList.pop_front();
-            t->PKwakeup();
-            if(t->PKgetPriority()>Thread::PKgetCurrentThread()->PKgetPriority())
-                hppw=true;
+            hppw=t->PKwakeup();
         }
     }
     //PKwakeup() does NOT make the scheduler IRQ pending, we need to do it here
