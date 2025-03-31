@@ -93,7 +93,7 @@ extern unsigned char globalPkNestLockHoldingCore;
  * Idle thread. Created when the kernel is started, it physically deallocates
  * memory for deleted threads, and puts the cpu in sleep mode.
  */
-void *idleThreadCore0(void *argv)
+void *idleThreadCore0(void *)
 {
     for(;;)
     {
@@ -122,7 +122,6 @@ void *idleThreadCore0(void *argv)
         #endif //WITH_DEEP_SLEEP
         #endif //WITH_SLEEP
     }
-    return 0; //Just to avoid a compiler warning
 }
 
 #ifdef WITH_SMP
@@ -130,7 +129,7 @@ void *idleThreadCore0(void *argv)
  * \internal
  * Idle thread for cores other than the core 0, does even less
  */
-void *idleThreadOtherCores(void *argv)
+void *idleThreadOtherCores(void *)
 {
     for(;;)
     {
