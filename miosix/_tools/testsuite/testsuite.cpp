@@ -2205,7 +2205,7 @@ static void test_16()
     if(temp2!=STACK_DEFAULT_FOR_PTHREAD) fail("attr_getstacksize (1)");
     if(pthread_attr_getdetachstate(&attr,&temp)!=0)
         fail("attr_getdetachstate (1)");
-    if(temp!=PTHREAD_CREATE_JOINABLE) fail("attr_getdetahstate (1)");
+    if(temp!=PTHREAD_CREATE_JOINABLE) fail("attr_getdetachstate (1)");
     //setstacksize should fail for anything below STACK_SMALL
     if(pthread_attr_setstacksize(&attr,STACK_MIN-4)!=EINVAL)
         fail("stacks < STACK_MIN allowed");
@@ -2220,10 +2220,10 @@ static void test_16()
     if(temp2!=STACK_MIN) fail("attr_getstacksize (3)");
     //now try setting detach state
     if(pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED)!=0)
-        fail("attr_stedetachstate return value (1)");
+        fail("attr_setdetachstate return value (1)");
     if(pthread_attr_getdetachstate(&attr,&temp)!=0)
         fail("attr_getdetachstate (2)");
-    if(temp!=PTHREAD_CREATE_DETACHED) fail("attr_getdetahstate (2)");
+    if(temp!=PTHREAD_CREATE_DETACHED) fail("attr_getdetachstate (2)");
     //
     // Test pthread_create, pthread_self, pthread_equal, pthread_attr_destroy
     //
