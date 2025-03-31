@@ -4009,10 +4009,10 @@ static void test_27()
     CHECK_AVAIL_HEAP(EST_THREAD_HEAP_USAGE(STACK_SMALL)*5);
     t27_data data;
 
-    Thread *thd=Thread::create(t27_t1,STACK_SMALL,MAIN_PRIORITY,reinterpret_cast<void*>(&data),Thread::JOINABLE);
     for(int i=0; i<5; i++) data.producer.wait();
     if(data.producer.getCount() != 0)
         fail("wait to zero with counter >= 0 not working");
+    Thread *thd=Thread::create(t27_t1,STACK_SMALL,MAIN_PRIORITY,reinterpret_cast<void*>(&data),Thread::JOINABLE);
     for(int i=0; i<10; i++)
     {
         data.producer.wait();
