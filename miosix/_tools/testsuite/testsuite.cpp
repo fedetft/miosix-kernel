@@ -1544,7 +1544,14 @@ void t9_p1(void*)
     for(;;)
     {
         if(Thread::testTerminate()) break;
+        //TODO: pin tasks on a single core for this test
+        #ifdef WITH_SMP
+        globalIrqLock();
+        #endif //WITH_SMP
         t9_v1=true;
+        #ifdef WITH_SMP
+        globalIrqUnlock();
+        #endif //WITH_SMP
         #ifdef SCHED_TYPE_EDF
         Thread::sleep(1);
         #endif //SCHED_TYPE_EDF
