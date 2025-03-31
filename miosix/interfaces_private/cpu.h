@@ -32,6 +32,7 @@
 #error "If your code depends on a private header, it IS broken."
 #endif //COMPILING_MIOSIX
 
+#include "config/miosix_settings.h"
 #include "interfaces/cpu_const.h"
 
 /**
@@ -89,7 +90,7 @@ namespace miosix {
  * \param arg1 second argument of the thread entry function
  */
 void initKernelThreadCtxsave(unsigned int *ctxsave, void (*pc)(void *(*)(void*),void*),
-                             unsigned int *sp, void *(*arg0)(void*), void *arg1);
+                             unsigned int *sp, void *(*arg0)(void*), void *arg1) noexcept;
 
 /**
  * \internal
@@ -105,13 +106,27 @@ void initKernelThreadCtxsave(unsigned int *ctxsave, void (*pc)(void *(*)(void*),
  * code that uses GlobalIrqLock, such as general purpose driver classes
  * that would be ran either before or after start of the kernel.
  */
-void IRQportableStartKernel();
+void IRQportableStartKernel() noexcept;
 
 /**
  * \internal
  * Architecture-specific way to perform a context switch
+ * Must be callable both with and without the global lock. If called with the
+ * global lock, the scheduler is called as soon as interrupts are enabled again
  */
-inline void doYield();
+inline void IRQinvokeScheduler() noexcept;
+
+#ifndef WITH_SMP
+/**
+ * \internal
+ * On single core architectures IRQinvokeSchedulerOnCore falls back to a simple
+ * IRQinvokeScheduler, otherwise this function must be provided in smp.h
+ */
+inline void IRQinvokeSchedulerOnCore(unsigned char) noexcept
+{
+    IRQinvokeScheduler();
+}
+#endif //WITH_SMP
 
 } //namespace miosix
 

@@ -265,29 +265,6 @@ inline void unregisterIrq(unsigned int id, void (T::*mfn)(), T *object) noexcept
  * @}
  */
 
-/**
- * @name Primitives for Interrupt Handlers
- * @{
- */
-
-/**
- * This function is used to develop interrupt driven peripheral drivers.<br>
- * This function can be called from within an interrupt or with interrupts
- * disabled to invoke the scheduler. The request is not performed immediately,
- * it is performed as soon as the interrupt returns or the interrupts are
- * enabled again.
- *
- * As a special exception despite the name, the function is also safe to be
- * called with interrupts enabled, even though you should call Thread::yield()
- * in this case. This function is however NOT safe to be called when the kernel
- * is paused as it will lead to an unwanted context switch and likely a deadlock.
- */
-void IRQinvokeScheduler() noexcept;
-
-/**
- * @}
- */
-
 } //namespace miosix
 
 /**

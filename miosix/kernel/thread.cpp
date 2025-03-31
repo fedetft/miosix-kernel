@@ -328,7 +328,9 @@ Thread *Thread::create(void (*startfunc)(void *), unsigned int stacksize,
 
 void Thread::yield()
 {
-    doYield();
+    // NOTE: IRQinvokeScheduler is currently safe to be called also without the
+    // global lock. If this property changes, we'll need to take the lock
+    IRQinvokeScheduler();
 }
 
 void Thread::sleep(unsigned int ms)

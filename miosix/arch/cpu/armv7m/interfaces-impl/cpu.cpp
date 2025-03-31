@@ -28,12 +28,11 @@
 #include "interfaces_private/cpu.h"
 #include "interfaces_private/userspace.h"
 #include "interfaces/arch_registers.h"
-#include "kernel/thread.h"
 
 namespace miosix {
 
 void initKernelThreadCtxsave(unsigned int *ctxsave, void (*pc)(void *(*)(void*),void*),
-                             unsigned int *sp, void *(*arg0)(void*), void *arg1)
+                             unsigned int *sp, void *(*arg0)(void*), void *arg1) noexcept
 {
     unsigned int *stackPtr=sp;
     //Stack is full descending, so decrement first
@@ -55,7 +54,7 @@ void initKernelThreadCtxsave(unsigned int *ctxsave, void (*pc)(void *(*)(void*),
 #endif //__FPU_PRESENT==1
 }
 
-void IRQportableStartKernel()
+void IRQportableStartKernel() noexcept
 {
     //Enable fault handlers
     SCB->SHCSR |= SCB_SHCSR_USGFAULTENA_Msk | SCB_SHCSR_BUSFAULTENA_Msk
@@ -76,9 +75,9 @@ void IRQportableStartKernel()
     //since there's no way to stop the sheduler, but we need to save it anyway.
     unsigned int s_ctxsave[miosix::CTXSAVE_SIZE];
     ctxsave[getCurrentCoreId()]=s_ctxsave;//make global ctxsave point to it
+    IRQinvokeScheduler();
     __enable_fault_irq();
     __enable_irq();
-    miosix::Thread::yield();
     //Never reaches here
 }
 

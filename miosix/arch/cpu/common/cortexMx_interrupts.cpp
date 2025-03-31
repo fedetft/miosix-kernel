@@ -308,11 +308,6 @@ void unregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexcept
     IRQunregisterIrq(id,handler,arg);
 }
 
-void IRQinvokeScheduler() noexcept
-{
-    doYield();
-}
-
 //
 // Support functions to implement interrupt handlers
 //

@@ -148,7 +148,7 @@
 
 namespace miosix {
 
-inline void doYield()
+inline void IRQinvokeScheduler() noexcept
 {
     #error TODO update yield code with PendSV equivalent for ARM7
     asm volatile("movs  r3, #0\n\t"

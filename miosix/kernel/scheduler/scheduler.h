@@ -171,13 +171,8 @@ public:
      *
      * In Miosix 3.0 IRQwakeup() automatically sets the scheduler interrupt to
      * become pending if the priority of the woken thread is higher than the
-     * current one, so in 99% of cases you only need to call IRQwakeup().
-     * In the remaining cases where you absolutely need to set the scheduler
-     * interrupt to be pending you can use IRQinvokeScheduler() found in
-     * \code
-     * #include <interfaces/interrupts.h>
-     * \endcode
-     * so stop including scheduler.h in your device drivers altogether!
+     * current one, so you only need to call IRQwakeup(), so stop including
+     * scheduler.h in your device drivers altogether!
      *
      * This function is used only by the kernel code to run the scheduler.
      * It finds the next thread in READY status. If the kernel is paused,

@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "interfaces/interrupts.h"
+#include "interfaces_private/cpu.h"
 #include "scheduler.h"
 
 namespace miosix {

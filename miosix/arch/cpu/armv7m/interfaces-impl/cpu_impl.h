@@ -159,7 +159,7 @@
 
 namespace miosix {
 
-inline void doYield()
+inline void IRQinvokeScheduler() noexcept
 {
     //NOTE: before Miosix 3 we used "svc 0" as yield also within the kernel, but
     //now we have the dedicated PendSV IRQ to call the scheduler, so use that.

@@ -27,12 +27,11 @@
 
 #include "interfaces_private/cpu.h"
 #include "interfaces/arch_registers.h"
-#include "kernel/thread.h"
 
 namespace miosix {
 
 void initKernelThreadCtxsave(unsigned int *ctxsave, void (*pc)(void *(*)(void*),void*),
-                             unsigned int *sp, void *(*arg0)(void*), void *arg1)
+                             unsigned int *sp, void *(*arg0)(void*), void *arg1) noexcept
 {
     unsigned int *stackPtr=sp;
     //Stack is full descending, so decrement first
@@ -50,15 +49,15 @@ void initKernelThreadCtxsave(unsigned int *ctxsave, void (*pc)(void *(*)(void*),
     //NOTE: on armv6m ctxsave does not contain lr
 }
 
-void IRQportableStartKernel()
+void IRQportableStartKernel() noexcept
 {
     //create a temporary space to save current registers. This data is useless
     //since there's no way to stop the sheduler, but we need to save it anyway.
     unsigned int s_ctxsave[miosix::CTXSAVE_SIZE];
     ctxsave[getCurrentCoreId()]=s_ctxsave;//make global ctxsave point to it
     //There's no __enable_fault_irq() in ARMv6M
+    IRQinvokeScheduler();
     __enable_irq();
-    miosix::Thread::yield();
     //Never reaches here
 }
 

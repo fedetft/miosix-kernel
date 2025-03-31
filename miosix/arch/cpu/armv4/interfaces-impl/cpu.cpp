@@ -61,7 +61,7 @@ extern "C" void kernel_SWI_Routine()
 }
 
 void initKernelThreadCtxsave(unsigned int *ctxsave, void (*pc)(void *(*)(void*),void*),
-                             unsigned int *sp, void *(*arg0)(void*), void *arg1)
+                             unsigned int *sp, void *(*arg0)(void*), void *arg1) noexcept
 {
     ctxsave[0]=reinterpret_cast<unsigned int>(arg0);
     ctxsave[1]=reinterpret_cast<unsigned int>(arg1);
@@ -82,13 +82,14 @@ void initKernelThreadCtxsave(unsigned int *ctxsave, void (*pc)(void *(*)(void*),
     ctxsave[16]=0x1f;//thread starts in system mode with irq and fiq enabled.
 }
 
-void IRQportableStartKernel()
+void IRQportableStartKernel() noexcept
 {
     //create a temporary space to save current registers. This data is useless
     //since there's no way to stop the sheduler, but we need to save it anyway.
     unsigned int s_ctxsave[miosix::CTXSAVE_SIZE];
     ctxsave[getCurrentCoreId()]=s_ctxsave;//make global ctxsave point to it
-    miosix::Thread::yield();//Note that this automatically enables interrupts
+    IRQinvokeScheduler();
+#warning the first yield used to automatically enable interrupts but this is no longer true, enable interrupts here
     //Never reaches here
 }
 
