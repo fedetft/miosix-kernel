@@ -243,13 +243,13 @@ static void IRQaddToSleepingList(SleepData *x)
  * Called to check if it's time to wake some thread.
  * Takes care of clearing SLEEP_FLAG.
  * It is used by the kernel, and should not be used by end users.
- * \return true if some thread with higher priority of current thread is woken.
+ * \return true if the scheduler was not invoked
+ * \warning currentTime cannot be earlier than the last deadline actually
+ * programmed by the kernel!
  */
 bool IRQwakeThreads(long long currentTime)
 {
-    if(sleepingList.empty()) return false; //If no item in list, return
-    
-    bool result=false;
+    bool hptw=false;
     for(auto it=sleepingList.begin();it!=sleepingList.end();)
     {
         // List is sorted, if we don't need to wake one element, we don't need
@@ -260,11 +260,24 @@ bool IRQwakeThreads(long long currentTime)
         t->flags.IRQclearSleepAndWait(t);
         auto wokenPrio=t->IRQgetPriority();
         for(int i=0;i<CPU_NUM_CORES;i++)
+        {
             if(const_cast<Thread*>(runningThreads[i])->IRQgetPriority()<wokenPrio)
-                result=true;
+            {
+                if(getCurrentCoreId()==i) hptw=true;
+                else IRQinvokeSchedulerOnCore(i);
+                break;
+            }
+        }
         it=sleepingList.erase(it);
     }
-    return result;
+    if(hptw || currentTime >= Scheduler::IRQgetNextPreemption())
+    {
+        //End of the burst || a higher priority thread has woken up
+        IRQinvokeScheduler(); //If the kernel is running, preempt
+        return false;
+    }
+    return true;
+    
 }
 
 /*

@@ -217,11 +217,12 @@ void PriorityScheduler::IRQrunScheduler()
                 IRQprofileContextSwitch(prev->timeCounterData,next->timeCounterData,t);
                 #endif //WITH_CPU_TIME_COUNTER
                 //Remove the selected thread from the list. This invalidates
-                //iterators sho it should be done last
+                //iterators so it should be done last
                 readyThreads[i].removeFast(next);
                 #ifdef WITH_SMP
-                //TODO also reschedule if other core has lower priority
-                if(runningThreads[1-coreId]==idle[1-coreId])
+                //TODO relax dual-core assumption
+                //TODO maybe check if there's a ready thread that can run
+                if(const_cast<Thread*>(runningThreads[1-coreId])->IRQgetPriority()<i)
                     IRQinvokeSchedulerOnCore(1-coreId);
                 #endif //WITH_SMP
                 return;

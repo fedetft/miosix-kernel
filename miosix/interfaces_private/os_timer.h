@@ -34,7 +34,6 @@
 
 #include "config/miosix_settings.h"
 #include "kernel/timeconversion.h"
-#include "kernel/scheduler/timer_interrupt.h"
 
 /**
  * \addtogroup Interfaces
@@ -63,6 +62,10 @@
  */
 
 namespace miosix {
+
+//This is a function that is part of the internal implementation of the kernel
+//and is defined in thread.cpp. User code should not know about this nor try to use it.
+extern bool IRQwakeThreads(long long currentTime);///\internal Do not use outside the kernel
 
 // The os timer platform-specific implementation shall provide these two
 // functions, although they are not declared here, but in thread.h, as
@@ -100,9 +103,9 @@ void IRQosTimerInitSMP();
  * \param ns the absolute time when the interrupt will be fired, in nanoseconds.
  * When the interrupt fires, it shall call the
  * \code
- * void IRQtimerInterrupt(long long currentTime);
+ * bool IRQwakeThreads(long long currentTime);
  * \endcode
- * function defined in kernel/scheduler/timer_interrupt.h
+ * function defined in thread.cpp
  */
 void IRQosTimerSetInterrupt(long long ns) noexcept;
 
@@ -332,14 +335,14 @@ public:
             {
                 lateIrq=false;
                 #ifndef WITH_RTC_AS_OS_TIMER
-                IRQtimerInterrupt(tc.tick2ns(tick));
+                IRQwakeThreads(tc.tick2ns(tick));
                 #else //WITH_RTC_AS_OS_TIMER
                 //timeconversion error is less than 2 ticks, but with the low
                 //frequency of the RTC this error occasionally causes a too
                 //early wakeup, in this case retry the next tick
                 //When developing new os_timer drivers remove this code to
                 //make sure it does not happen systematically
-                bool tooEarly=IRQtimerInterrupt(tc.tick2ns(tick));
+                bool tooEarly=IRQwakeThreads(tc.tick2ns(tick));
                 if(tooEarly) IRQsetIrqTick(tick+1);
                 #endif //WITH_RTC_AS_OS_TIMER
             }

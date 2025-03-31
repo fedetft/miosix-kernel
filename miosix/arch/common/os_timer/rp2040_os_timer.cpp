@@ -76,7 +76,7 @@ static void IRQtimerInterruptHandler()
     //as the previously set alarm is about to trigger. In this case the previous
     //timer interrupt clears the armed flag thus the next interrupt set with
     //IRQosTimerSetInterrupt would not occur unless rearmed.
-    if(twake<=tnow) IRQtimerInterrupt(tc.tick2ns(tnow));
+    if(twake<=tnow) IRQwakeThreads(tc.tick2ns(tnow));
     else timer_hw->alarm[AlarmId]=static_cast<unsigned int>(twake & 0xffffffff);
 }
 
@@ -144,9 +144,9 @@ void IRQosTimerInitSMP()
  * \param ns the absolute time when the interrupt will be fired, in nanoseconds.
  * When the interrupt fires, it shall call the
  * \code
- * void IRQtimerInterrupt(long long currentTime);
+ * bool IRQwakeThreads(long long currentTime);
  * \endcode
- * function defined in kernel/scheduler/timer_interrupt.h
+ * function defined in thread.cpp
  */
 void IRQosTimerSetInterrupt(long long ns) noexcept
 {

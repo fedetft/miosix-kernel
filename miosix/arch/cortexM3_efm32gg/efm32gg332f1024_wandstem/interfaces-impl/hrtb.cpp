@@ -27,7 +27,7 @@
 
 #include "kernel/thread.h"
 #include "interfaces/interrupts.h"
-#include "kernel/scheduler/timer_interrupt.h"
+#include "interfaces_private/os_timer.h"
 #include "hrtb.h"
 #include "kernel/timeconversion.h"
 #include "gpio_timer.h"
@@ -134,7 +134,7 @@ static  void callScheduler(){
     TIMER3->IFC = TIMER_IFC_CC1;
     //This line takes about 7.7microseconds
     long long ns = tc->tick2ns(vt->uncorrected2corrected(IRQgetTickCorrectedVht()));
-    IRQtimerInterrupt(ns);
+    IRQwakeThreads(ns);
 }
 
 static void setupTimers(){
