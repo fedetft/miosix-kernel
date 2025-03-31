@@ -37,7 +37,7 @@
 namespace miosix {
 
 //These are defined in thread.cpp / lock.cpp
-extern volatile Thread *runningThread[CPU_NUM_CORES];
+extern volatile Thread *runningThreads[CPU_NUM_CORES];
 extern volatile int pauseKernelNesting;
 extern unsigned char globalPkNestLockHoldingCore;
 extern volatile bool pendingWakeup;
@@ -61,7 +61,7 @@ bool PriorityScheduler::IRQaddThread(Thread *thread,
 bool PriorityScheduler::IRQexists(Thread *thread)
 {
     for(int i=0;i<CPU_NUM_CORES;i++)
-        if(runningThread[i]==thread) return true; //Running threads are not in list
+        if(runningThreads[i]==thread) return true; //Running threads are not in list
     for(int i=PRIORITY_MAX-1;i>=0;i--)
         for(auto t : readyThreads[i]) if(t==thread) return true;
     for(auto t : notReadyThreads) if(t==thread) return !t->flags.isDeleted();
@@ -96,7 +96,7 @@ void PriorityScheduler::IRQsetPriority(Thread *thread,
     // If thread is running it is not in any list, only change priority value
     for(int i=0;i<CPU_NUM_CORES;i++)
     {
-        if(thread==runningThread[i])
+        if(thread==runningThreads[i])
         {
             thread->schedData.priority=newPriority;
             return;
@@ -125,7 +125,7 @@ void PriorityScheduler::IRQwokenThread(Thread* thread)
     //TODO: understand why can this happen, how can a thread transition to ready
     //while being running
     for(int i=0;i<CPU_NUM_CORES;i++)
-        if(runningThread[i]==thread) return;
+        if(runningThreads[i]==thread) return;
 
     notReadyThreads.removeFast(thread);
     readyThreads[thread->schedData.priority.get()].push_back(thread);
@@ -148,8 +148,9 @@ static long long IRQsetNextPreemption(int coreId, bool runningIdleThread)
     if(runningIdleThread) nextPeriodicPreemption[coreId]=first;
     else nextPeriodicPreemption[coreId]=std::min(first,t+MAX_TIME_SLICE);
 
-    //We could not set an interrupt if the sleeping list is empty and runningThread
-    //is idle but there's no such hurry to run idle anyway, so why bother?
+    // We could avoid setting an interrupt if the sleeping list is empty and
+    // runningThreads[coreId] is idle but there's no such hurry to run idle
+    // anyway, so why bother?
     IRQosTimerSetInterrupt(nextPeriodicPreemption[coreId]);
     return t;
 }
@@ -178,7 +179,7 @@ void PriorityScheduler::IRQrunScheduler()
         #endif //WITH_SMP
     }
     //If the previously running thread is not idle, we need to put it in a list
-    Thread *prev=const_cast<Thread*>(runningThread[coreId]);
+    Thread *prev=const_cast<Thread*>(runningThreads[coreId]);
     if(prev!=idle[coreId])
     {
         // NOTE: notReadyThreads must be pushed back if deleted, front if not
@@ -195,7 +196,7 @@ void PriorityScheduler::IRQrunScheduler()
             {
                 if(next->flags.isReady()==false) continue;
                 //Found a READY thread, so run this one
-                runningThread[coreId]=next;
+                runningThreads[coreId]=next;
                 #ifdef WITH_PROCESSES
                 if(next->flags.isInUserspace()==false)
                 {
@@ -220,7 +221,7 @@ void PriorityScheduler::IRQrunScheduler()
                 readyThreads[i].removeFast(next);
                 #ifdef WITH_SMP
                 //TODO also reschedule if other core has lower priority
-                if(runningThread[1-coreId]==idle[1-coreId])
+                if(runningThreads[1-coreId]==idle[1-coreId])
                     IRQinvokeSchedulerOnCore(1-coreId);
                 #endif //WITH_SMP
                 return;
@@ -228,7 +229,7 @@ void PriorityScheduler::IRQrunScheduler()
         }
     }
     //No thread found, run the idle thread
-    runningThread[coreId]=idle[coreId];
+    runningThreads[coreId]=idle[coreId];
     ctxsave[coreId]=idle[coreId]->ctxsave;
     #ifdef WITH_PROCESSES
     MPUConfiguration::IRQdisable();
