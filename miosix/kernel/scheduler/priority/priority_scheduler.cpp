@@ -89,7 +89,6 @@ void PriorityScheduler::removeDeadThreads()
 void PriorityScheduler::IRQsetPriority(Thread *thread,
         PrioritySchedulerPriority newPriority)
 {
-    if(thread->flags.isDeleted()) errorHandler(UNEXPECTED); //TODO remove
     // If thread is running it is not in any list, only change priority value
     for(int i=0;i<CPU_NUM_CORES;i++)
     {
@@ -106,6 +105,7 @@ void PriorityScheduler::IRQsetPriority(Thread *thread,
     thread->schedData.priority=newPriority;
     // Last insert the thread in the new list
     // NOTE: notReadyThreads must be pushed front to keep invariant
+    //if(thread->flags.isDeleted()) errorHandler(UNEXPECTED);
     if(thread->flags.isReady()==false) notReadyThreads.push_front(thread);
     else readyThreads[newPriority.get()].push_back(thread);
 }
