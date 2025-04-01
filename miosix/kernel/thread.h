@@ -913,7 +913,7 @@ private:
     
     //friend functions
     //Needs access to flags
-    friend bool IRQwakeThreads(long long);
+    friend void IRQwakeThreads(long long);
     //Needs to create the idle thread
     friend void IRQstartKernel();
     //Needs access to priority, savedPriority, mutexLocked and flags.

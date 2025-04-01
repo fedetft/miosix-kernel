@@ -243,11 +243,10 @@ static void IRQaddToSleepingList(SleepData *x)
  * Called to check if it's time to wake some thread.
  * Takes care of clearing SLEEP_FLAG.
  * It is used by the kernel, and should not be used by end users.
- * \return true if the scheduler was not invoked
  * \warning currentTime cannot be earlier than the last deadline actually
  * programmed by the kernel!
  */
-bool IRQwakeThreads(long long currentTime)
+void IRQwakeThreads(long long currentTime)
 {
     bool hptw=false;
     for(auto it=sleepingList.begin();it!=sleepingList.end();)
@@ -274,10 +273,7 @@ bool IRQwakeThreads(long long currentTime)
     {
         //End of the burst || a higher priority thread has woken up
         IRQinvokeScheduler(); //If the kernel is running, preempt
-        return false;
     }
-    return true;
-    
 }
 
 /*

@@ -63,9 +63,9 @@
 
 namespace miosix {
 
-//This is a function that is part of the internal implementation of the kernel
-//and is defined in thread.cpp. User code should not know about this nor try to use it.
-extern bool IRQwakeThreads(long long currentTime);///\internal Do not use outside the kernel
+// This is a function that is part of the internal implementation of the kernel
+// defined in thread.cpp. User code should not know about this nor try to use it
+extern void IRQwakeThreads(long long currentTime);
 
 // The os timer platform-specific implementation shall provide these two
 // functions, although they are not declared here, but in thread.h, as
@@ -91,7 +91,7 @@ void IRQosTimerInit();
  * On non-SMP platforms it is not called.
  */
 void IRQosTimerInitSMP();
-#endif
+#endif //WITH_SMP
 
 /**
  * \internal
@@ -103,9 +103,13 @@ void IRQosTimerInitSMP();
  * \param ns the absolute time when the interrupt will be fired, in nanoseconds.
  * When the interrupt fires, it shall call the
  * \code
- * bool IRQwakeThreads(long long currentTime);
+ * void IRQwakeThreads(long long currentTime);
  * \endcode
  * function defined in thread.cpp
+ * \warning IRQwakeThreads must NOT be called before the time specified in ns
+ * is reached. Thus, the parameter currentTime passed to IRQwakeThreads must
+ * be equal or greater than ns. A device driver that implements the os_timer and
+ * fails to meet this requirement will break the scheduler!
  */
 void IRQosTimerSetInterrupt(long long ns) noexcept;
 
@@ -192,6 +196,9 @@ public:
     
     long long upperTimeTick = 0; //Extended timer counter (upper bits)
     long long upperIrqTick = 0;  //Extended interrupt time point (upper bits)
+    #ifdef WITH_RTC_AS_OS_TIMER
+    long long irqNs = 0;
+    #endif //WITH_RTC_AS_OS_TIMER
     miosix::TimeConversion tc;
     bool lateIrq=false;
     
@@ -296,7 +303,14 @@ public:
     }
     
     /**
+     * \internal
      * Schedule the next os interrupt
+     *
+     * \warning this function is only provided to implement some low-level
+     * driver related to deep sleep, and should not be called directly to set
+     * the next interrupt for the scheduler, as it sidesteps setting the irqNs
+     * variable which is fundamental for the scheduler to function with low
+     * speed timers
      * \param ns absolute time in ticks, must be > 0
      */
     inline void IRQsetIrqTick(long long tick)
@@ -318,6 +332,9 @@ public:
     inline void IRQsetIrqNs(long long ns)
     {
         IRQsetIrqTick(tc.ns2tick(ns));
+        #ifdef WITH_RTC_AS_OS_TIMER
+        irqNs=ns;
+        #endif //WITH_RTC_AS_OS_TIMER
     }
     
     /**
@@ -334,16 +351,17 @@ public:
             if(tick >= IRQgetIrqTick() || lateIrq)
             {
                 lateIrq=false;
+                long long now=tc.tick2ns(tick);
                 #ifndef WITH_RTC_AS_OS_TIMER
-                IRQwakeThreads(tc.tick2ns(tick));
+                IRQwakeThreads(now);
                 #else //WITH_RTC_AS_OS_TIMER
-                //timeconversion error is less than 2 ticks, but with the low
-                //frequency of the RTC this error occasionally causes a too
-                //early wakeup, in this case retry the next tick
-                //When developing new os_timer drivers remove this code to
-                //make sure it does not happen systematically
-                bool tooEarly=IRQwakeThreads(tc.tick2ns(tick));
-                if(tooEarly) IRQsetIrqTick(tick+1);
+                // Timeconversion error is less than 2 ticks, but with the low
+                // frequency of the RTC this error occasionally causes an early
+                // wakeup. In this case retry the next tick
+                // When developing new os_timer drivers remove this code to
+                // make sure it does not happen systematically
+                if(now>=irqNs) IRQwakeThreads(now);
+                else IRQsetIrqTick(tick+1);
                 #endif //WITH_RTC_AS_OS_TIMER
             }
         }

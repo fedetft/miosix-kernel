@@ -144,7 +144,7 @@ void IRQosTimerInitSMP()
  * \param ns the absolute time when the interrupt will be fired, in nanoseconds.
  * When the interrupt fires, it shall call the
  * \code
- * bool IRQwakeThreads(long long currentTime);
+ * void IRQwakeThreads(long long currentTime);
  * \endcode
  * function defined in thread.cpp
  */
