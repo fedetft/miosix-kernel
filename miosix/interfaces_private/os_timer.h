@@ -91,6 +91,22 @@ void IRQosTimerInit();
  * On non-SMP platforms it is not called.
  */
 void IRQosTimerInitSMP();
+
+/**
+ * \internal
+ * Set the next preemption on cores that are not WAKEUP_HANDLING_CORE.
+ * It is used by the kernel, and should not be used by end users.
+ * Can be called with interrupts disabled or within an interrupt.
+ * In the SMP case one core, WAKEUP_HANDLING_CORE, is dedicated to handling
+ * thread wakeup, while the other only use the timer for preemption.
+ * The timer interrupt for the WAKEUP_HANDLING_CORE must call IRQwakeThreads,
+ * while on all other cores must call IRQinvokeScheduler
+ * \param ns the absolute time when the interrupt will be fired on the core
+ * that is calling this function. On architectures with more than 2 cores,
+ * this function must set a separate timer for every core that is not
+ * WAKEUP_HANDLING_CORE
+ */
+void IRQosTimerSetPreemption(long long ns) noexcept;
 #endif //WITH_SMP
 
 /**

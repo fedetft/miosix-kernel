@@ -56,12 +56,18 @@
  * 
  * Number of cores (must not be defined when WITH_SMP is not defined)
  * const unsigned char CPU_NUM_CORES=...;
+ *
+ * Which core is given the task to handle the wakeup from the list of sleeping
+ * threads (must not be defined when WITH_SMP is not defined)
+ * const unsigned char WAKEUP_HANDLING_CORE=...;
  */
 
 namespace miosix {
 
 #ifndef WITH_SMP
 const unsigned char CPU_NUM_CORES=1;
+
+const unsigned char WAKEUP_HANDLING_CORE=0;
 #endif
 
 /**

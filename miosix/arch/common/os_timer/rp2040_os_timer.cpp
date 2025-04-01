@@ -31,6 +31,7 @@
 #include "interfaces/delays.h"
 #include "interfaces/interrupts.h"
 #include "interfaces_private/os_timer.h"
+#include "interfaces_private/cpu.h"
 
 namespace miosix {
 
@@ -68,6 +69,7 @@ template<unsigned char AlarmId>
 static void IRQtimerInterruptHandler()
 {
     FastGlobalLockFromIrq irq;
+    timer_hw->intf &= ~(1<<AlarmId);
     timer_hw->intr=1<<AlarmId; //Bit is write-clear
     auto tnow=IRQgetTicks(), twake=lastAlarmTicks[AlarmId];
     //Check the full 64 bits. If the alarm deadline has passed, call the kernel.
@@ -76,7 +78,13 @@ static void IRQtimerInterruptHandler()
     //as the previously set alarm is about to trigger. In this case the previous
     //timer interrupt clears the armed flag thus the next interrupt set with
     //IRQosTimerSetInterrupt would not occur unless rearmed.
-    if(twake<=tnow) IRQwakeThreads(tc.tick2ns(tnow));
+    if(twake<=tnow)
+    {
+        // On multi core platforms if the interrupt is not fired from
+        // WAKEUP_HANDLING_CORE we just need to call the scheduler
+        if(AlarmId==WAKEUP_HANDLING_CORE) IRQwakeThreads(tc.tick2ns(tnow));
+        else IRQinvokeScheduler();
+    }
     else timer_hw->alarm[AlarmId]=static_cast<unsigned int>(twake & 0xffffffff);
 }
 
@@ -132,6 +140,20 @@ void IRQosTimerInitSMP()
         IRQregisterIrq(TIMER_IRQ_1_IRQn,IRQtimerInterruptHandler<1>);
     }
 }
+
+void IRQosTimerSetPreemption(long long ns) noexcept
+{
+    int coreId=getCurrentCoreId();
+    auto twake=tc.ns2tick(ns);
+    lastAlarmTicks[coreId]=twake;
+    //Writing to the ALARM register also enables the timer
+    timer_hw->alarm[coreId]=static_cast<unsigned int>(twake & 0xffffffff);
+    if(twake<=IRQgetTicks())
+    {
+        if(coreId==0) NVIC_SetPendingIRQ(TIMER_IRQ_0_IRQn);
+        else NVIC_SetPendingIRQ(TIMER_IRQ_1_IRQn);
+    }
+}
 #endif
 
 /**
@@ -150,15 +172,17 @@ void IRQosTimerInitSMP()
  */
 void IRQosTimerSetInterrupt(long long ns) noexcept
 {
-    unsigned char core=getCurrentCoreId();
     auto twake=tc.ns2tick(ns);
-    lastAlarmTicks[core]=twake;
+    lastAlarmTicks[WAKEUP_HANDLING_CORE]=twake;
     //Writing to the ALARM register also enables the timer
-    timer_hw->alarm[core]=static_cast<unsigned int>(twake & 0xffffffff);
+    timer_hw->alarm[WAKEUP_HANDLING_CORE]=static_cast<unsigned int>(twake & 0xffffffff);
     if(twake<=IRQgetTicks())
     {
-        if(core==0) NVIC_SetPendingIRQ(TIMER_IRQ_0_IRQn);
-        else NVIC_SetPendingIRQ(TIMER_IRQ_1_IRQn);
+        // NOTE: can't use NVIC_SetPendingIRQ as this function can be used for
+        // another core to set the interrupt of the WAKEUP_HANDLING_CORE, and
+        // the NVIC is per-core
+        if(WAKEUP_HANDLING_CORE==0) timer_hw->intf|=1<<0;
+        else timer_hw->intf|=1<<1;
     }
 }
 

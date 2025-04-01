@@ -218,8 +218,6 @@ void PriorityScheduler::IRQrunScheduler()
 
 long long PriorityScheduler::IRQsetNextPreemption(int coreId, bool runningIdleThread)
 {
-    //TODO: only set wakeup interrupts on core 1?
-    //but need to consider the pause kernel issue below
     long long firstWakeup;
     if(sleepingList.empty()) firstWakeup=std::numeric_limits<long long>::max();
     else firstWakeup=sleepingList.front()->wakeupTime;
@@ -232,13 +230,29 @@ long long PriorityScheduler::IRQsetNextPreemption(int coreId, bool runningIdleTh
     // We could avoid setting an interrupt if the sleeping list is empty and
     // runningThreads[coreId] is idle but there's no such hurry to run idle
     // anyway, so why bother?
+    #ifdef WITH_SMP
+    if(coreId!=WAKEUP_HANDLING_CORE)
+    {
+        IRQosTimerSetPreemption(nextPreempt);
+        // NOTE: even if we're not on the WAKEUP_HANDLING_CORE, the thread we
+        // just preempted may have started a sleep whose wakeup is earlier than
+        // any other sleep, thus we should check and modify the preemption of
+        // the WAKEUP_HANDLING_CORE
+        if(firstWakeup<nextPreemption[WAKEUP_HANDLING_CORE])
+            IRQosTimerSetInterrupt(firstWakeup);
+    } else {
+        IRQosTimerSetInterrupt(std::min(firstWakeup,nextPreempt));
+    }
+    #else //WITH_SMP
     IRQosTimerSetInterrupt(std::min(firstWakeup,nextPreempt));
+    #endif //WITH_SMP
     return t;
 }
 
 IntrusiveList<Thread> PriorityScheduler::readyThreads[PRIORITY_MAX];
 IntrusiveList<Thread> PriorityScheduler::notReadyThreads;
 Thread *PriorityScheduler::idle[CPU_NUM_CORES]={nullptr};
+//TODO: we may only need to remember the next preemption on WAKEUP_HANDLING_CORE
 long long PriorityScheduler::nextPreemption[CPU_NUM_CORES];
 
 } //namespace miosix
