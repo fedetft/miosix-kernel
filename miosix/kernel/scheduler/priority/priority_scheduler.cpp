@@ -43,9 +43,6 @@ extern unsigned char globalPkNestLockHoldingCore;
 extern volatile bool pendingWakeup;
 extern IntrusiveList<SleepData> sleepingList;
 
-//Internal data
-static long long nextPeriodicPreemption[CPU_NUM_CORES];
-
 //
 // class PriorityScheduler
 //
@@ -117,7 +114,7 @@ void PriorityScheduler::IRQsetIdleThread(int whichCore, Thread *idleThread)
 {
     idleThread->schedData.priority=-1;
     idle[whichCore]=idleThread;
-    nextPeriodicPreemption[whichCore]=std::numeric_limits<long long>::max();
+    nextPreemption[whichCore]=std::numeric_limits<long long>::max();
 }
 
 void PriorityScheduler::IRQwokenThread(Thread* thread)
@@ -129,30 +126,6 @@ void PriorityScheduler::IRQwokenThread(Thread* thread)
 
     notReadyThreads.removeFast(thread);
     readyThreads[thread->schedData.priority.get()].push_back(thread);
-}
-
-long long PriorityScheduler::IRQgetNextPreemption()
-{
-    return nextPeriodicPreemption[getCurrentCoreId()];
-}
-
-static long long IRQsetNextPreemption(int coreId, bool runningIdleThread)
-{
-    //TODO: only set wakeup interrupts on core 1?
-    //but need to consider the pause kernel issue below
-    long long first;
-    if(sleepingList.empty()) first=std::numeric_limits<long long>::max();
-    else first=sleepingList.front()->wakeupTime;
-
-    long long t=IRQgetTime();
-    if(runningIdleThread) nextPeriodicPreemption[coreId]=first;
-    else nextPeriodicPreemption[coreId]=std::min(first,t+MAX_TIME_SLICE);
-
-    // We could avoid setting an interrupt if the sleeping list is empty and
-    // runningThreads[coreId] is idle but there's no such hurry to run idle
-    // anyway, so why bother?
-    IRQosTimerSetInterrupt(nextPeriodicPreemption[coreId]);
-    return t;
 }
 
 void PriorityScheduler::IRQrunScheduler()
@@ -243,9 +216,30 @@ void PriorityScheduler::IRQrunScheduler()
     #endif //WITH_CPU_TIME_COUNTER
 }
 
+long long PriorityScheduler::IRQsetNextPreemption(int coreId, bool runningIdleThread)
+{
+    //TODO: only set wakeup interrupts on core 1?
+    //but need to consider the pause kernel issue below
+    long long firstWakeup;
+    if(sleepingList.empty()) firstWakeup=std::numeric_limits<long long>::max();
+    else firstWakeup=sleepingList.front()->wakeupTime;
+
+    long long t=IRQgetTime(), nextPreempt;
+    if(runningIdleThread==false) nextPreempt=t+MAX_TIME_SLICE;
+    else nextPreempt=std::numeric_limits<long long>::max();
+    nextPreemption[coreId]=nextPreempt;
+
+    // We could avoid setting an interrupt if the sleeping list is empty and
+    // runningThreads[coreId] is idle but there's no such hurry to run idle
+    // anyway, so why bother?
+    IRQosTimerSetInterrupt(std::min(firstWakeup,nextPreempt));
+    return t;
+}
+
 IntrusiveList<Thread> PriorityScheduler::readyThreads[PRIORITY_MAX];
 IntrusiveList<Thread> PriorityScheduler::notReadyThreads;
 Thread *PriorityScheduler::idle[CPU_NUM_CORES]={nullptr};
+long long PriorityScheduler::nextPreemption[CPU_NUM_CORES];
 
 } //namespace miosix
 

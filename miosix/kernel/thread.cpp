@@ -240,14 +240,27 @@ static void IRQaddToSleepingList(SleepData *x)
 
 /**
  * \internal
- * Called to check if it's time to wake some thread.
- * Takes care of clearing SLEEP_FLAG.
- * It is used by the kernel, and should not be used by end users.
- * \warning currentTime cannot be earlier than the last deadline actually
- * programmed by the kernel!
+ * This is the OS timer interrupt. It is set aperiodically by the scheduler to
+ * both wake sleeping threads and to handle preemption
+ * \warning currentTime cannot be earlier than the last timer interrupt actually
+ * programmed by the scheduler!
  */
 void IRQwakeThreads(long long currentTime)
 {
+    // Condition
+    // A woken higher priority thread than running on another core
+    // B woken higher priority thread than running on the current core
+    // C time to preempt task on the current core
+    // Truth table
+    // A B C
+    // 0 0 0 osTimerSetInterrupt(min(firstWakeup,nextPreempt))
+    // 0 0 1 invokeScheduler
+    // 0 1 0 invokeScheduler
+    // 0 1 1 invokeScheduler
+    // 1 0 0 invokeSchedulerOnCore + osTimerSetInterrupt(min(firstWakeup,nextPreempt))
+    // 1 0 1 invokeSchedulerOnCore + invokeScheduler
+    // 1 1 0 invokeSchedulerOnCore + invokeScheduler
+    // 1 1 1 invokeSchedulerOnCore + invokeScheduler
     bool hptw=false;
     for(auto it=sleepingList.begin();it!=sleepingList.end();)
     {
@@ -258,21 +271,28 @@ void IRQwakeThreads(long long currentTime)
         Thread *t=(*it)->thread;
         t->flags.IRQclearSleepAndWait(t);
         auto wokenPrio=t->IRQgetPriority();
+        int coreId=getCurrentCoreId();
         for(int i=0;i<CPU_NUM_CORES;i++)
         {
             if(const_cast<Thread*>(runningThreads[i])->IRQgetPriority()<wokenPrio)
             {
-                if(getCurrentCoreId()==i) hptw=true;
+                if(coreId==i) hptw=true;
                 else IRQinvokeSchedulerOnCore(i);
                 break;
             }
         }
         it=sleepingList.erase(it);
     }
-    if(hptw || currentTime >= Scheduler::IRQgetNextPreemption())
-    {
-        //End of the burst || a higher priority thread has woken up
-        IRQinvokeScheduler(); //If the kernel is running, preempt
+    if(hptw) IRQinvokeScheduler();
+    else {
+        long long nextPreempt=Scheduler::IRQgetNextPreemption();
+        if(currentTime>=nextPreempt) IRQinvokeScheduler();
+        else {
+            long long firstWakeup;
+            if(sleepingList.empty()) firstWakeup=std::numeric_limits<long long>::max();
+            else firstWakeup=sleepingList.front()->wakeupTime;
+            IRQosTimerSetInterrupt(std::min(firstWakeup,nextPreempt));
+        }
     }
 }
 

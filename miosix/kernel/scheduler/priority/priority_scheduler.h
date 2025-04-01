@@ -142,9 +142,19 @@ public:
      * \return the next scheduled preemption set by the scheduler
      * In case no preemption is set returns numeric_limits<long long>::max()
      */
-    static long long IRQgetNextPreemption();
+    static long long IRQgetNextPreemption()
+    {
+        return nextPreemption[getCurrentCoreId()];
+    }
 
 private:
+
+    /**
+     * \param coreId id of the core the preemption needs to be set for
+     * \param runningIdleThread true if we're about to run the idle thread
+     * \return the current time in nanoseconds
+     */
+    static long long IRQsetNextPreemption(int coreId, bool runningIdleThread);
 
     ///\internal Vector of lists of threads, there's one list for each priority
     ///Each list s a circular list.
@@ -155,6 +165,9 @@ private:
 
     ///\internal idle thread
     static Thread *idle[CPU_NUM_CORES];
+
+    ///\internal end of the time quantum (preemption) for all running threads
+    static long long nextPreemption[CPU_NUM_CORES];
 };
 
 } //namespace miosix
