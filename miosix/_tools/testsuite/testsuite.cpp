@@ -1124,18 +1124,18 @@ static void test_6()
     //
 
     //This thread will hold the lock until we terminate it
-    Thread *t=Thread::create(t6_p4,STACK_SMALL,0);
+    Thread *t=Thread::create(t6_p4,STACK_SMALL,0,nullptr,Thread::JOINABLE);
+    #ifdef WITH_SMP
+    //With a multi core CPU both threads run in parallel and yield returns
+    //immediately. TODO: pin tasks on a single core for this test
+    delayUs(100);
+    #endif //WITH_SMP
     Thread::yield();
     if(t6_m1.tryLock()==true) fail("Mutex::tryLock() (1)");
     Thread::sleep(10);
     if(t6_m1.tryLock()==true) fail("Mutex::tryLock() (2)");
     t->terminate();
-    #ifndef SCHED_TYPE_EDF
-    Thread::yield();
-    Thread::yield();//Ensuring the other thread is deleted
-    #else //SCHED_TYPE_EDF
-    Thread::sleep(15);
-    #endif //SCHED_TYPE_EDF
+    t->join();
     if(t6_m1.tryLock()==false) fail("Mutex::tryLock() (3)");
     t6_m1.unlock();
     t6_v1=false;
