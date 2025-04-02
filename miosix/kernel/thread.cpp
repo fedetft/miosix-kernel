@@ -419,22 +419,51 @@ void Thread::PKrestartKernelAndWait(PauseKernelLock& dLock)
     (void)dLock;
     //Implemented by upgrading the lock to an interrupt disable one
     FastGlobalIrqLock dLockIrq;
-    auto savedNesting=pauseKernelNesting;
-    if(savedNesting==0) errorHandler(UNEXPECTED);
+    auto savedPauseKernelNesting=pauseKernelNesting;
+    if(savedPauseKernelNesting==0) errorHandler(UNEXPECTED);
     pauseKernelNesting=0;
     #ifdef WITH_SMP
     globalPkNestLockHoldingCore=0xff;
     IRQhwSpinlockRelease(RP2040HwSpinlocks::PK); //TODO: need generic API
-    #endif
-    IRQglobalIrqUnlockAndWaitImpl();
-    #ifdef WITH_SMP
+    // NOTE: we cannot call IRQglobalIrqUnlockAndWaitImpl() in the multi core
+    // case as the global lock and the pauseKernel lock are two separate locks
+    // and when taking both we must always take the puseKernel first to avoid
+    // a deadlock. This does not happen on a single core since the global lock
+    // disables interrupts on the only core, serializing the code.
+    
+    // Code of IRQglobalIrqUnlockAndWaitImpl() -- begin
+    Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
+    cur->flags.IRQsetWait(cur,true);
+    auto savedNesting=globalLockNesting; //For GlobalIrqLock
+    globalLockNesting=0;
+    globalIntrNestLockHoldingCore=0xff;
+    fastGlobalIrqUnlock();
+    Thread::yield(); //Here the wait becomes effective
+    
+    //Critical part to avoid the deadlock: take the pauseKernel lock first!
+    fastDisableIrq();
     //BUG: here we may wait for a long time and with interrupts disabled!!
     IRQhwSpinlockAcquire(RP2040HwSpinlocks::PK); //TODO: need generic API
     if(globalPkNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
     globalPkNestLockHoldingCore=getCurrentCoreId();
-    #endif
+    
+    fastGlobalIrqLock();
+    if(savedNesting)
+    {
+        // The GIL may have been taken with the "fast" primitives that don't
+        // set the core ID here
+        if(globalIntrNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
+        globalIntrNestLockHoldingCore=getCurrentCoreId();
+    }
+    if(globalLockNesting!=0) errorHandler(UNEXPECTED);
+    globalLockNesting=savedNesting;
+    // Code of IRQglobalIrqUnlockAndWaitImpl() -- end
+    #else //WITH_SMP
+    // In the single core case we can just call the IRQ version
+    IRQglobalIrqUnlockAndWaitImpl();
+    #endif //WITH_SMP
     if(pauseKernelNesting!=0) errorHandler(UNEXPECTED);
-    pauseKernelNesting=savedNesting;
+    pauseKernelNesting=savedPauseKernelNesting;
 }
 
 TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
@@ -443,22 +472,61 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
     (void)dLock;
     //Implemented by upgrading the lock to an interrupt disable one
     FastGlobalIrqLock dLockIrq;
-    auto savedNesting=pauseKernelNesting;
-    if(savedNesting==0) errorHandler(UNEXPECTED);
+    auto savedPauseKernelNesting=pauseKernelNesting;
+    if(savedPauseKernelNesting==0) errorHandler(UNEXPECTED);
     pauseKernelNesting=0;
     #ifdef WITH_SMP
     globalPkNestLockHoldingCore=0xff;
     IRQhwSpinlockRelease(RP2040HwSpinlocks::PK); //TODO: need generic API
-    #endif
-    auto result=IRQglobalIrqUnlockAndTimedWaitImpl(absoluteTimeNs);
+    // NOTE: we cannot call IRQglobalIrqUnlockAndWaitImpl() in the multi core
+    // case as the global lock and the pauseKernel lock are two separate locks
+    // and when taking both we must always take the puseKernel first to avoid
+    // a deadlock. This does not happen on a single core since the global lock
+    // disables interrupts on the only core, serializing the code.
+    
+    // Code of IRQglobalIrqUnlockAndWaitImpl() -- begin
+    absoluteTimeNs=max(absoluteTimeNs,100000LL);
+    Thread *t=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
+    SleepData sleepData(t,absoluteTimeNs);
+    t->flags.IRQsetWait(t,true); //timedWait thread: set wait flag
+    IRQaddToSleepingList(&sleepData);
+    auto savedNesting=globalLockNesting; //For GlobalIrqLock
+    globalLockNesting=0;
     #ifdef WITH_SMP
+    globalIntrNestLockHoldingCore=0xff;
+    #endif
+    fastGlobalIrqUnlock();
+    Thread::yield(); //Here the wait becomes effective
+    
+    //Critical part to avoid the deadlock: take the pauseKernel lock first!
+    fastDisableIrq();
     //BUG: here we may wait for a long time and with interrupts disabled!!
     IRQhwSpinlockAcquire(RP2040HwSpinlocks::PK); //TODO: need generic API
     if(globalPkNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
     globalPkNestLockHoldingCore=getCurrentCoreId();
+    
+    fastGlobalIrqLock();
+    #ifdef WITH_SMP
+    if(savedNesting)
+    {
+        // The GIL may have been taken with the "fast" primitives that don't
+        // set the core ID here
+        if(globalIntrNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
+        globalIntrNestLockHoldingCore=getCurrentCoreId();
+    }
     #endif
+    if(globalLockNesting!=0) errorHandler(UNEXPECTED);
+    globalLockNesting=savedNesting;
+    bool removed=sleepingList.removeFast(&sleepData);
+    //If the thread was still in the sleeping list, it was woken up by a wakeup()
+    auto result=removed ? TimedWaitResult::NoTimeout : TimedWaitResult::Timeout;
+    // Code of IRQglobalIrqUnlockAndWaitImpl() -- end
+    #else //WITH_SMP
+    // In the single core case we can just call the IRQ version
+    auto result=IRQglobalIrqUnlockAndTimedWaitImpl(absoluteTimeNs);
+    #endif //WITH_SMP
     if(pauseKernelNesting!=0) errorHandler(UNEXPECTED);
-    pauseKernelNesting=savedNesting;
+    pauseKernelNesting=savedPauseKernelNesting;
     return result;
 }
 
