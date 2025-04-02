@@ -41,10 +41,11 @@ void errorHandler(Error e)
     fastDisableIrq();
     #ifdef WITH_SMP
     // On multicore try to make the other cores hang up. Do NOT take the GIL,
-    // that may cause a deadlock if it is already taken by this core or the
-    // other one. This could cause problems of course but this is an emergency
-    // situation anyway. The only real risk is corruption on the serial while
-    // logging.
+    // as it could cause a deadlock if it is already taken by this core, or any
+    // other ones if they are waiting for some peripheral interrupt that will
+    // never happen. This is not strictly correct, of course, but this is an
+    // emergency situation anyway.
+    // The only real risk is corruption on the serial while logging.
     IRQlockupOtherCores();
     #endif
     
