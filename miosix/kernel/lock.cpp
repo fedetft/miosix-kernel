@@ -106,20 +106,26 @@ void globalIrqUnlock() noexcept
 void pauseKernel() noexcept
 {
     #ifdef WITH_SMP
-    fastDisableIrq();
-    unsigned char state=globalPkNestLockHoldingCore;
-    if(state==getCurrentCoreId())
+    if(globalPkNestLockHoldingCore==getCurrentCoreId())
     {
         if(pauseKernelNesting==0xff) errorHandler(NESTING_OVERFLOW);
         pauseKernelNesting++;
     } else {
-        //BUG: here we may wait for a long time and with interrupts disabled!!
-        IRQhwSpinlockAcquire(RP2040HwSpinlocks::PK); //TODO: need generic API
-        globalPkNestLockHoldingCore=getCurrentCoreId();
-        if(pauseKernelNesting!=0) errorHandler(PAUSE_KERNEL_NESTING);
-        pauseKernelNesting=1;
+        for(;;)
+        {
+            //TODO: it's a spinlock, not a sleeplock
+            GlobalIrqLock dLock;
+            if(globalPkNestLockHoldingCore!=0xff) continue;
+            // NOTE: we can't just use an
+            // atomicExchange(&globalPkNestLockHoldingCore,getCurrentCoreId())
+            // since the scheduler may move us from one core to another between
+            // the getCurrentCoreId() and setting of the variable
+            globalPkNestLockHoldingCore=getCurrentCoreId();
+            if(pauseKernelNesting!=0) errorHandler(PAUSE_KERNEL_NESTING);
+            pauseKernelNesting=1;
+            break;
+        }
     }
-    fastEnableIrq();
     #else //WITH_SMP
     int old=atomicAddExchange(&kernelRunning,1);
     if(old>=0xff) errorHandler(NESTING_OVERFLOW);
@@ -129,19 +135,18 @@ void pauseKernel() noexcept
 void restartKernel() noexcept
 {
     #ifdef WITH_SMP
-    fastDisableIrq();
     int old=pauseKernelNesting--;
     if(pauseKernelNesting==0)
     {
         globalPkNestLockHoldingCore=0xff;
-        IRQhwSpinlockRelease(RP2040HwSpinlocks::PK); //TODO: need generic API
+        __DSB(); //TODO: arch-specific, need portable wrapper
     }
-    fastEnableIrq();
     #else //WITH_SMP
     int old=atomicAddExchange(&pauseKernelNesting,-1);
     #endif //WITH_SMP
     if(old<=0) errorHandler(PAUSE_KERNEL_NESTING);
     
+    //TODO is it still needed?
     //Check globalLockNesting to allow pauseKernel() while interrupts
     //are disabled with a GlobalIrqLock
     if(globalLockNesting==0)

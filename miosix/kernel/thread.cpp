@@ -317,7 +317,11 @@ Memory layout for a thread
 Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
                        Priority priority, void *argv, unsigned short options)
 {
+    //TODO: the concept of isKernelRunning() needs to be updated since
+    //taking the pauseKernel on a core does not make the kernel not running
+    #ifndef WITH_SMP
     if(isKernelRunning()==false) errorHandler(UNEXPECTED);
+    #endif //WITH_SMP
     //Check to see if input parameters are valid
     if(priority.validate()==false || stacksize<STACK_MIN) return nullptr;
     
@@ -424,7 +428,6 @@ void Thread::PKrestartKernelAndWait(PauseKernelLock& dLock)
     pauseKernelNesting=0;
     #ifdef WITH_SMP
     globalPkNestLockHoldingCore=0xff;
-    IRQhwSpinlockRelease(RP2040HwSpinlocks::PK); //TODO: need generic API
     // NOTE: we cannot call IRQglobalIrqUnlockAndWaitImpl() in the multi core
     // case as the global lock and the pauseKernel lock are two separate locks
     // and when taking both we must always take the puseKernel first to avoid
@@ -441,11 +444,21 @@ void Thread::PKrestartKernelAndWait(PauseKernelLock& dLock)
     Thread::yield(); //Here the wait becomes effective
     
     //Critical part to avoid the deadlock: take the pauseKernel lock first!
-    fastDisableIrq();
-    //BUG: here we may wait for a long time and with interrupts disabled!!
-    IRQhwSpinlockAcquire(RP2040HwSpinlocks::PK); //TODO: need generic API
-    if(globalPkNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
-    globalPkNestLockHoldingCore=getCurrentCoreId();
+    //TODO: optimize
+    for(;;)
+    {
+        //TODO: it's a spinlock, not a sleeplock
+        FastGlobalIrqLock dLock;
+        if(globalPkNestLockHoldingCore!=0xff) continue;
+        // NOTE: we can't just use an
+        // atomicExchange(&globalPkNestLockHoldingCore,getCurrentCoreId())
+        // since the scheduler may move us from one core to another between
+        // the getCurrentCoreId() and setting of the variable
+        globalPkNestLockHoldingCore=getCurrentCoreId();
+        if(pauseKernelNesting!=0) errorHandler(PAUSE_KERNEL_NESTING);
+        //TODO pauseKernelNesting=1;
+        break;
+    }
     
     fastGlobalIrqLock();
     if(savedNesting)
@@ -492,21 +505,28 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
     IRQaddToSleepingList(&sleepData);
     auto savedNesting=globalLockNesting; //For GlobalIrqLock
     globalLockNesting=0;
-    #ifdef WITH_SMP
     globalIntrNestLockHoldingCore=0xff;
-    #endif
     fastGlobalIrqUnlock();
     Thread::yield(); //Here the wait becomes effective
     
     //Critical part to avoid the deadlock: take the pauseKernel lock first!
-    fastDisableIrq();
-    //BUG: here we may wait for a long time and with interrupts disabled!!
-    IRQhwSpinlockAcquire(RP2040HwSpinlocks::PK); //TODO: need generic API
-    if(globalPkNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
-    globalPkNestLockHoldingCore=getCurrentCoreId();
+    //TODO: optimize
+    for(;;)
+    {
+        //TODO: it's a spinlock, not a sleeplock
+        FastGlobalIrqLock dLock;
+        if(globalPkNestLockHoldingCore!=0xff) continue;
+        // NOTE: we can't just use an
+        // atomicExchange(&globalPkNestLockHoldingCore,getCurrentCoreId())
+        // since the scheduler may move us from one core to another between
+        // the getCurrentCoreId() and setting of the variable
+        globalPkNestLockHoldingCore=getCurrentCoreId();
+        if(pauseKernelNesting!=0) errorHandler(PAUSE_KERNEL_NESTING);
+        //TODO pauseKernelNesting=1;
+        break;
+    }
     
     fastGlobalIrqLock();
-    #ifdef WITH_SMP
     if(savedNesting)
     {
         // The GIL may have been taken with the "fast" primitives that don't
@@ -514,7 +534,6 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
         if(globalIntrNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
         globalIntrNestLockHoldingCore=getCurrentCoreId();
     }
-    #endif
     if(globalLockNesting!=0) errorHandler(UNEXPECTED);
     globalLockNesting=savedNesting;
     bool removed=sleepingList.removeFast(&sleepData);
