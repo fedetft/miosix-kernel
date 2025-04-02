@@ -40,8 +40,11 @@ namespace miosix {
 
 //These are defined in thread.cpp / lock.cpp
 extern volatile Thread *runningThreads[CPU_NUM_CORES];
-extern volatile int pauseKernelNesting;
+#ifdef WITH_SMP
 extern unsigned char globalPkNestLockHoldingCore;
+#else //WITH_SMP
+extern volatile int pauseKernelNesting;
+#endif //WITH_SMP
 extern volatile bool pendingWakeup;
 extern IntrusiveList<SleepData> sleepingList;
 
@@ -134,25 +137,23 @@ void PriorityScheduler::IRQwokenThread(Thread* thread)
 void PriorityScheduler::IRQrunScheduler()
 {
     int coreId=getCurrentCoreId();
+
+    #ifdef WITH_SMP
+    // In a multi core environment pauseKernel disables preemption only on
+    // the core that paused the kernel, all other cores can preempt just
+    // fine. Of course, only one core at a time can call pauseKernel, if
+    // another core attempts it, then it just waits to protect shared
+    // variables modified within a pause kernel lock.
+    // Thus, only disable preemption on the core that is holding the lock
+    if(globalPkNestLockHoldingCore==coreId)
+    #else //WITH_SMP
     if(pauseKernelNesting!=0) //If kernel is paused, preemption is disabled
+    #endif //WITH_SMP
     {
-        #ifndef WITH_SMP
         pendingWakeup=true;
         return;
-        #else //WITH_SMP
-        // In a multi core environment pauseKernel disables preemption only on
-        // the core that paused the kernel, all other cores can preempt just
-        // fine. Of course, only one core at a time can call pauseKernel, if
-        // another core attempts it, then it just waits to protect shared
-        // variables modified within a pause kernel lock.
-        // Thus, only disable preemption on the core that is holding the lock
-        if(globalPkNestLockHoldingCore==coreId)
-        {
-            pendingWakeup=true;
-            return;
-        }
-        #endif //WITH_SMP
     }
+    
     //If the previously running thread is not idle, we need to put it in a list
     Thread *prev=const_cast<Thread*>(runningThreads[coreId]);
     if(prev!=idle[coreId])
