@@ -120,11 +120,13 @@ void PriorityScheduler::IRQsetIdleThread(int whichCore, Thread *idleThread)
 
 void PriorityScheduler::IRQwokenThread(Thread* thread)
 {
-    //TODO: understand why can this happen, how can a thread transition to ready
-    //while being running
+    // NOTE: this check is necessary as there is the corner case of a thread
+    // that has just set itself to sleeping/waiting but it gets woken up before
+    // the scheduler has a chance to run. Thus it is both awakened and running,
+    // and we must not call notReadyThreads.removeFast(thread) if it's not in
+    // that list as it causes undefined behavior
     for(int i=0;i<CPU_NUM_CORES;i++)
         if(runningThreads[i]==thread) return;
-
     notReadyThreads.removeFast(thread);
     readyThreads[thread->schedData.priority.get()].push_back(thread);
 }
