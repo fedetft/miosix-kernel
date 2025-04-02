@@ -166,38 +166,37 @@ void PriorityScheduler::IRQrunScheduler()
     {
         for(int i=PRIORITY_MAX-1;i>=0;i--)
         {
-            for(auto next : readyThreads[i])
+            if(readyThreads[i].empty()==false)
             {
-                if(next->flags.isReady()==false) continue;
-                //Found a READY thread, so run this one
-                runningThreads[coreId]=next;
+                Thread *t=readyThreads[i].front();
+                readyThreads[i].pop_front(); //Remove selected thread from list
+                runningThreads[coreId]=t;
                 #ifdef WITH_PROCESSES
-                if(next->flags.isInUserspace()==false)
+                if(t->flags.isInUserspace()==false)
                 {
-                    ctxsave[coreId]=next->ctxsave;
+                    ctxsave[coreId]=t->ctxsave;
                     MPUConfiguration::IRQdisable();
                 } else {
-                    ctxsave[coreId]=next->userCtxsave;
+                    ctxsave[coreId]=t->userCtxsave;
                     //A kernel thread is never in userspace, so the cast is safe
-                    static_cast<Process*>(next->proc)->mpu.IRQenable();
+                    static_cast<Process*>(t->proc)->mpu.IRQenable();
                 }
                 #else //WITH_PROCESSES
-                ctxsave[coreId]=next->ctxsave;
+                ctxsave[coreId]=t->ctxsave;
                 #endif //WITH_PROCESSES
                 #ifndef WITH_CPU_TIME_COUNTER
                 IRQcomputePreemption(coreId,false);
                 #else //WITH_CPU_TIME_COUNTER
                 auto t=IRQcomputePreemption(coreId,false);
-                IRQprofileContextSwitch(prev->timeCounterData,next->timeCounterData,t);
+                IRQprofileContextSwitch(prev->timeCounterData,t->timeCounterData,t);
                 #endif //WITH_CPU_TIME_COUNTER
-                //Remove the selected thread from the list. This invalidates
-                //iterators so it should be done last
-                readyThreads[i].removeFast(next);
                 #ifdef WITH_SMP
-                //TODO relax dual-core assumption
                 //TODO maybe check if there's a ready thread that can run
-                if(const_cast<Thread*>(runningThreads[1-coreId])->IRQgetPriority()<i)
-                    IRQinvokeSchedulerOnCore(1-coreId);
+                for(int j=0;j<CPU_NUM_CORES;j++)
+                {
+                    if(const_cast<Thread*>(runningThreads[j])->schedData.priority<i)
+                    IRQinvokeSchedulerOnCore(j);
+                }
                 #endif //WITH_SMP
                 return;
             }
