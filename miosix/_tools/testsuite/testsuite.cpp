@@ -3032,7 +3032,10 @@ static void t22_t2(void *argv)
 {
     while(Thread::testTerminate()==false)
     {
-        t22_v5=true;
+        {
+            FastGlobalIrqLock dLock;
+            t22_v5=true;
+        }
         #ifndef SCHED_TYPE_EDF
         Thread::yield();
         #else //SCHED_TYPE_EDF
