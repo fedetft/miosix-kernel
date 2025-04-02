@@ -65,9 +65,9 @@
 namespace miosix {
 
 #ifndef WITH_SMP
-const unsigned char CPU_NUM_CORES=1;
+const unsigned char CPU_NUM_CORES=1; //Only one core
 
-const unsigned char WAKEUP_HANDLING_CORE=0;
+const unsigned char WAKEUP_HANDLING_CORE=0; //No choice, pick the only core
 #endif
 
 /**

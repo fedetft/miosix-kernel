@@ -275,7 +275,9 @@ void IRQwakeThreads(long long currentTime)
         Thread *t=(*it)->thread;
         t->flags.IRQclearSleepAndWait(t);
         auto wokenPrio=t->IRQgetPriority();
-        for(int i=0;i<CPU_NUM_CORES;i++)
+        // Heuristic load balancing: threads waking from sleep get preferentially
+        // allocated to higher core numbers
+        for(int i=CPU_NUM_CORES-1;i>=0;i--)
         {
             if(const_cast<Thread*>(runningThreads[i])->IRQgetPriority()<wokenPrio)
             {
@@ -329,7 +331,9 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
         result=Scheduler::IRQaddThread(thread,priority);
         if(result)
         {
-            for(int i=0;i<CPU_NUM_CORES;i++)
+            // Heuristic load balancing: threads just created get preferentially
+            // allocated to higher core numbers
+            for(int i=CPU_NUM_CORES-1;i>=0;i--)
             {
                 if(const_cast<Thread*>(runningThreads[i])->IRQgetPriority()<priority)
                 {
@@ -466,6 +470,8 @@ bool Thread::PKwakeup()
     FastGlobalIrqLock lock;
     this->flags.IRQsetWait(this,false);
     auto wokenPrio=this->IRQgetPriority();
+    // Heuristic load balancing: threads waking from mutexes get preferentially
+    // allocated to lower core numbers
     for(int i=0;i<CPU_NUM_CORES;i++)
         if(const_cast<Thread*>(runningThreads[i])->IRQgetPriority()<wokenPrio)
             return true;
@@ -476,6 +482,8 @@ void Thread::IRQwakeup()
 {
     this->flags.IRQsetWait(this,false);
     auto wokenPrio=this->IRQgetPriority();
+    // Heuristic load balancing: threads waking from I/O get preferentially
+    // allocated to lower core numbers
     for(int i=0;i<CPU_NUM_CORES;i++)
     {
         if(const_cast<Thread*>(runningThreads[i])->IRQgetPriority()<wokenPrio)

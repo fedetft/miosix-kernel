@@ -33,9 +33,9 @@ namespace miosix {
 
 const unsigned char CPU_NUM_CORES=2;
 
-// Core 0 already handles most peripheral interrupts, let's handle wakeups
-// from core 1
-const unsigned char WAKEUP_HANDLING_CORE=1;
+// Pick the last core for heuristic load balancing: Core 0 already handles most
+// peripheral interrupts, let's handle wakeups from core 1
+const unsigned char WAKEUP_HANDLING_CORE=CPU_NUM_CORES-1;
 
 //TODO: move elsewhere?
 inline unsigned char getCurrentCoreId()
