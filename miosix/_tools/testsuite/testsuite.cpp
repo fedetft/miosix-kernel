@@ -420,7 +420,9 @@ static void t2_p1(void *argv)
         if(Thread::testTerminate()) break;
         if(Thread::getCurrentThread()!=t2_p_v1)
             fail("Thread::getCurrentThread()");
+        pauseKernel();//
         t2_v1=true;
+        restartKernel();//
         #ifdef SCHED_TYPE_EDF
         Thread::sleep(5);
         #endif //SCHED_TYPE_EDF
