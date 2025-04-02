@@ -132,7 +132,20 @@ public:
     
     /**
      * \internal
-     * \return the next scheduled preemption set by the scheduler
+     * On single core CPUs, the hardware timer is set considering both the
+     * earliest thread wakeup from sleep and and the end of the time quantum
+     * (preemption) of the currently running thread. This function returns the
+     * next preemption time, if any, of the currently running thread. If there
+     * are threads with a wakeup time earlier than the next preemption, they are
+     * not considered by this function that only returns the next preemption.
+     *
+     * On multi core CPUs this function returns the next preemption time for the
+     * WAKEUP_HANDLING_CORE, the only core that performs the wakeup from sleep
+     * logic. All other cores only set their timer to schedule preemptions, and
+     * there is currently no getter for this value.
+     *
+     * \return the next scheduled preemption set by the scheduler for the
+     * WAKEUP_HANDLING_CORE.
      * In case no preemption is set returns numeric_limits<long long>::max()
      */
     static long long IRQgetNextPreemption();

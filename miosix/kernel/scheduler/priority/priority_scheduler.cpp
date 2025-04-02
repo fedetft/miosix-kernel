@@ -33,6 +33,8 @@
 #include "interfaces_private/smp.h"
 #include <limits>
 
+using namespace std;
+
 #ifdef SCHED_TYPE_PRIORITY
 namespace miosix {
 
@@ -114,7 +116,6 @@ void PriorityScheduler::IRQsetIdleThread(int whichCore, Thread *idleThread)
 {
     idleThread->schedData.priority=-1;
     idle[whichCore]=idleThread;
-    nextPreemption[whichCore]=std::numeric_limits<long long>::max();
 }
 
 void PriorityScheduler::IRQwokenThread(Thread* thread)
@@ -184,9 +185,9 @@ void PriorityScheduler::IRQrunScheduler()
                 ctxsave[coreId]=next->ctxsave;
                 #endif //WITH_PROCESSES
                 #ifndef WITH_CPU_TIME_COUNTER
-                IRQsetNextPreemption(coreId,false);
+                IRQcomputePreemption(coreId,false);
                 #else //WITH_CPU_TIME_COUNTER
-                auto t=IRQsetNextPreemption(coreId,false);
+                auto t=IRQcomputePreemption(coreId,false);
                 IRQprofileContextSwitch(prev->timeCounterData,next->timeCounterData,t);
                 #endif //WITH_CPU_TIME_COUNTER
                 //Remove the selected thread from the list. This invalidates
@@ -209,23 +210,22 @@ void PriorityScheduler::IRQrunScheduler()
     MPUConfiguration::IRQdisable();
     #endif //WITH_PROCESSES
     #ifndef WITH_CPU_TIME_COUNTER
-    IRQsetNextPreemption(coreId,true);
+    IRQcomputePreemption(coreId,true);
     #else //WITH_CPU_TIME_COUNTER
-    auto t=IRQsetNextPreemption(coreId,true);
+    auto t=IRQcomputePreemption(coreId,true);
     IRQprofileContextSwitch(prev->timeCounterData,idle->timeCounterData,t);
     #endif //WITH_CPU_TIME_COUNTER
 }
 
-long long PriorityScheduler::IRQsetNextPreemption(int coreId, bool runningIdleThread)
+long long PriorityScheduler::IRQcomputePreemption(int coreId, bool runningIdleThread)
 {
     long long firstWakeup;
-    if(sleepingList.empty()) firstWakeup=std::numeric_limits<long long>::max();
+    if(sleepingList.empty()) firstWakeup=numeric_limits<long long>::max();
     else firstWakeup=sleepingList.front()->wakeupTime;
 
     long long t=IRQgetTime(), nextPreempt;
     if(runningIdleThread==false) nextPreempt=t+MAX_TIME_SLICE;
-    else nextPreempt=std::numeric_limits<long long>::max();
-    nextPreemption[coreId]=nextPreempt;
+    else nextPreempt=numeric_limits<long long>::max();
 
     // We could avoid setting an interrupt if the sleeping list is empty and
     // runningThreads[coreId] is idle but there's no such hurry to run idle
@@ -233,27 +233,30 @@ long long PriorityScheduler::IRQsetNextPreemption(int coreId, bool runningIdleTh
     #ifdef WITH_SMP
     if(coreId!=WAKEUP_HANDLING_CORE)
     {
+        // IRQosTimerSetPreemption is to be used by all cores that are not
+        // WAKEUP_HANDLING_CORE
         IRQosTimerSetPreemption(nextPreempt);
         // NOTE: even if we're not on the WAKEUP_HANDLING_CORE, the thread we
         // just preempted may have started a sleep whose wakeup is earlier than
         // any other sleep, thus we should check and modify the preemption of
         // the WAKEUP_HANDLING_CORE
-        if(firstWakeup<nextPreemption[WAKEUP_HANDLING_CORE])
+        if(firstWakeup<nextPreemptionWakeupCore)
             IRQosTimerSetInterrupt(firstWakeup);
     } else {
-        IRQosTimerSetInterrupt(std::min(firstWakeup,nextPreempt));
+        nextPreemptionWakeupCore=nextPreempt;
+        IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
     }
     #else //WITH_SMP
-    IRQosTimerSetInterrupt(std::min(firstWakeup,nextPreempt));
+    nextPreemptionWakeupCore=nextPreempt;
+    IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
     #endif //WITH_SMP
     return t;
 }
 
+long long PriorityScheduler::nextPreemptionWakeupCore=numeric_limits<long long>::max();
 IntrusiveList<Thread> PriorityScheduler::readyThreads[PRIORITY_MAX];
 IntrusiveList<Thread> PriorityScheduler::notReadyThreads;
 Thread *PriorityScheduler::idle[CPU_NUM_CORES]={nullptr};
-//TODO: we may only need to remember the next preemption on WAKEUP_HANDLING_CORE
-long long PriorityScheduler::nextPreemption[CPU_NUM_CORES];
 
 } //namespace miosix
 

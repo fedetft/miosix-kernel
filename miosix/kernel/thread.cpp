@@ -46,6 +46,8 @@
 #include <string.h>
 #include <reent.h>
 
+using namespace std;
+
 /*
  * This global variable is used to point to the context of the currently running
  * thread. It is kept even though global variables are generally bad due to
@@ -240,8 +242,10 @@ static void IRQaddToSleepingList(SleepData *x)
 
 /**
  * \internal
- * This is the OS timer interrupt. It is set aperiodically by the scheduler to
- * both wake sleeping threads and to handle preemption
+ * This is the OS timer interrupt for WAKEUP_HANDLING_CORE, the only core that
+ * is assigned the task to handle the wakeup of sleeping threads. The OS timer
+ * is set aperiodically by the scheduler to both wake sleeping threads and to
+ * handle preemption on that core.
  * \warning currentTime cannot be earlier than the last timer interrupt actually
  * programmed by the scheduler!
  */
@@ -249,8 +253,8 @@ void IRQwakeThreads(long long currentTime)
 {
     // Condition
     // A woken higher priority thread than running on another core
-    // B woken higher priority thread than running on the current core
-    // C time to preempt task on the current core
+    // B woken higher priority thread than running on WAKEUP_HANDLING_CORE
+    // C time to preempt task on WAKEUP_HANDLING_CORE
     // Truth table
     // A B C
     // 0 0 0 osTimerSetInterrupt(min(firstWakeup,nextPreempt))
@@ -271,12 +275,11 @@ void IRQwakeThreads(long long currentTime)
         Thread *t=(*it)->thread;
         t->flags.IRQclearSleepAndWait(t);
         auto wokenPrio=t->IRQgetPriority();
-        int coreId=getCurrentCoreId();
         for(int i=0;i<CPU_NUM_CORES;i++)
         {
             if(const_cast<Thread*>(runningThreads[i])->IRQgetPriority()<wokenPrio)
             {
-                if(coreId==i) hptw=true;
+                if(i==WAKEUP_HANDLING_CORE) hptw=true;
                 else IRQinvokeSchedulerOnCore(i);
                 break;
             }
@@ -289,9 +292,9 @@ void IRQwakeThreads(long long currentTime)
         if(currentTime>=nextPreempt) IRQinvokeScheduler();
         else {
             long long firstWakeup;
-            if(sleepingList.empty()) firstWakeup=std::numeric_limits<long long>::max();
+            if(sleepingList.empty()) firstWakeup=numeric_limits<long long>::max();
             else firstWakeup=sleepingList.front()->wakeupTime;
-            IRQosTimerSetInterrupt(std::min(firstWakeup,nextPreempt));
+            IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
         }
     }
 }
@@ -378,7 +381,7 @@ void Thread::nanoSleepUntil(long long absoluteTimeNs)
     //algorithm in TimeConversion can't handle negative values and may undeflow
     //even with very low values due to a negative adjustOffsetNs. As an unlikely
     //side effect, very short sleeps done very early at boot will be extended.
-    absoluteTimeNs=std::max(absoluteTimeNs,100000LL);
+    absoluteTimeNs=max(absoluteTimeNs,100000LL);
     //pauseKernel() here is not enough since even if the kernel is stopped
     //the timer isr will wake threads, modifying the sleepingList
     {
@@ -537,7 +540,7 @@ void Thread::setPriority(Priority pr)
             while(walk!=nullptr)
             {
                 if(walk->waiting.empty()==false)
-                    pr=std::max(pr,walk->waiting.front()->IRQgetPriority());
+                    pr=max(pr,walk->waiting.front()->IRQgetPriority());
                 walk=walk->next;
             }
         }
@@ -734,7 +737,7 @@ Thread *Thread::createUserspace(void *(*startfunc)(void *), Process *proc)
     unsigned int *base=thread->watermark;
     try {
         thread->userCtxsave=new unsigned int[CTXSAVE_SIZE];
-    } catch(std::bad_alloc&) {
+    } catch(bad_alloc&) {
         thread->~Thread();
         free(base); //Delete ALL thread memory
         return nullptr;//Error
@@ -866,7 +869,7 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
     } catch(PthreadExitException& e) {
         result=e.getReturnValue();
     #endif //WITH_PTHREAD_EXIT
-    } catch(std::exception& e) {
+    } catch(exception& e) {
         errorLog("***An exception propagated through a thread\n");
         errorLog("what():%s\n",e.what());
     } catch(...) {
@@ -933,7 +936,7 @@ void Thread::IRQglobalIrqUnlockAndWaitImpl()
 
 TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTimeNs)
 {
-    absoluteTimeNs=std::max(absoluteTimeNs,100000LL);
+    absoluteTimeNs=max(absoluteTimeNs,100000LL);
     Thread *t=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
     SleepData sleepData(t,absoluteTimeNs);
     t->flags.IRQsetWait(t,true); //timedWait thread: set wait flag
