@@ -191,6 +191,10 @@ void PriorityScheduler::IRQrunScheduler()
                 IRQprofileContextSwitch(prev->timeCounterData,t->timeCounterData,t);
                 #endif //WITH_CPU_TIME_COUNTER
                 #ifdef WITH_SMP
+                // In case multiple tasks are woken at the same time, we may
+                // have to schedule more than one higher priority task than
+                // currently running. When this happens, we need to call the
+                // scheduler again on more than one core
                 //TODO maybe check if there's a ready thread that can run
                 for(int j=0;j<CPU_NUM_CORES;j++)
                 {
