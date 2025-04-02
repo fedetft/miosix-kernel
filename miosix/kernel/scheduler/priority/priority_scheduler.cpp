@@ -134,24 +134,23 @@ void PriorityScheduler::IRQwokenThread(Thread* thread)
 void PriorityScheduler::IRQrunScheduler()
 {
     int coreId=getCurrentCoreId();
-    bool forceRunIdle=false;
     if(pauseKernelNesting!=0) //If kernel is paused, preemption is disabled
     {
-        pendingWakeup=true;
         #ifndef WITH_SMP
+        pendingWakeup=true;
         return;
         #else //WITH_SMP
-        // In a multi core environment one core can take the pause kernel lock
-        // while another core can attempt a context switch. The issue is, we
-        // cannot really deny this and forcedly give back the CPU to that thread,
-        // as it may be a thread that just terminated and would crash if given
-        // back the CPU, or a thread sleeping or waiting for I/O that would crash
-        // if given back the CPU before tha wakeup condition occurred.
-        // Thus, we switch to the idle thread. Of course we must not do so for
-        // the core that is currently holding the pause kernel lock or it would
-        // deadlock
-        if(globalPkNestLockHoldingCore==coreId) return;
-        forceRunIdle=true;
+        // In a multi core environment pauseKernel disables preemption only on
+        // the core that paused the kernel, all other cores can preempt just
+        // fine. Of course, only one core at a time can call pauseKernel, if
+        // another core attempts it, then it just waits to protect shared
+        // variables modified within a pause kernel lock.
+        // Thus, only disable preemption on the core that is holding the lock
+        if(globalPkNestLockHoldingCore==coreId)
+        {
+            pendingWakeup=true;
+            return;
+        }
         #endif //WITH_SMP
     }
     //If the previously running thread is not idle, we need to put it in a list
@@ -164,48 +163,45 @@ void PriorityScheduler::IRQrunScheduler()
         else if(prev->flags.isReady()==false) notReadyThreads.push_front(prev);
         else readyThreads[prev->schedData.priority.get()].push_back(prev);
     }
-    if(forceRunIdle==false)
+    for(int i=PRIORITY_MAX-1;i>=0;i--)
     {
-        for(int i=PRIORITY_MAX-1;i>=0;i--)
+        if(readyThreads[i].empty()==false)
         {
-            if(readyThreads[i].empty()==false)
+            Thread *t=readyThreads[i].front();
+            readyThreads[i].pop_front(); //Remove selected thread from list
+            runningThreads[coreId]=t;
+            #ifdef WITH_PROCESSES
+            if(t->flags.isInUserspace()==false)
             {
-                Thread *t=readyThreads[i].front();
-                readyThreads[i].pop_front(); //Remove selected thread from list
-                runningThreads[coreId]=t;
-                #ifdef WITH_PROCESSES
-                if(t->flags.isInUserspace()==false)
-                {
-                    ctxsave[coreId]=t->ctxsave;
-                    MPUConfiguration::IRQdisable();
-                } else {
-                    ctxsave[coreId]=t->userCtxsave;
-                    //A kernel thread is never in userspace, so the cast is safe
-                    static_cast<Process*>(t->proc)->mpu.IRQenable();
-                }
-                #else //WITH_PROCESSES
                 ctxsave[coreId]=t->ctxsave;
-                #endif //WITH_PROCESSES
-                #ifndef WITH_CPU_TIME_COUNTER
-                IRQcomputePreemption(coreId,false);
-                #else //WITH_CPU_TIME_COUNTER
-                auto t=IRQcomputePreemption(coreId,false);
-                IRQprofileContextSwitch(prev->timeCounterData,t->timeCounterData,t);
-                #endif //WITH_CPU_TIME_COUNTER
-                #ifdef WITH_SMP
-                // In case multiple tasks are woken at the same time, we may
-                // have to schedule more than one higher priority task than
-                // currently running. When this happens, we need to call the
-                // scheduler again on more than one core
-                //TODO maybe check if there's a ready thread that can run
-                for(int j=0;j<CPU_NUM_CORES;j++)
-                {
-                    if(const_cast<Thread*>(runningThreads[j])->schedData.priority<i)
-                    IRQinvokeSchedulerOnCore(j);
-                }
-                #endif //WITH_SMP
-                return;
+                MPUConfiguration::IRQdisable();
+            } else {
+                ctxsave[coreId]=t->userCtxsave;
+                //A kernel thread is never in userspace, so the cast is safe
+                static_cast<Process*>(t->proc)->mpu.IRQenable();
             }
+            #else //WITH_PROCESSES
+            ctxsave[coreId]=t->ctxsave;
+            #endif //WITH_PROCESSES
+            #ifndef WITH_CPU_TIME_COUNTER
+            IRQcomputePreemption(coreId,false);
+            #else //WITH_CPU_TIME_COUNTER
+            auto t=IRQcomputePreemption(coreId,false);
+            IRQprofileContextSwitch(prev->timeCounterData,t->timeCounterData,t);
+            #endif //WITH_CPU_TIME_COUNTER
+            #ifdef WITH_SMP
+            // In case multiple tasks are woken at the same time, we may
+            // have to schedule more than one higher priority task than
+            // currently running. When this happens, we need to call the
+            // scheduler again on more than one core
+            //TODO maybe check if there's a ready thread that can run
+            for(int j=0;j<CPU_NUM_CORES;j++)
+            {
+                if(const_cast<Thread*>(runningThreads[j])->schedData.priority<i)
+                IRQinvokeSchedulerOnCore(j);
+            }
+            #endif //WITH_SMP
+            return;
         }
     }
     //No thread found, run the idle thread
