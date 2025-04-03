@@ -3409,7 +3409,6 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
     arch/common/drivers/rp2040_serial.cpp                    \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/smp.cpp                      \
-    $(ARCH_INC)/interfaces-impl/hw_spinlock.cpp              \
 	$(ARCH_INC)/interfaces-impl/atomic_ops_smp_impl.cpp      \
 	$(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
     arch/common/CMSIS/Device/RaspberryPi/RP2040/Source/system_RP2040.c

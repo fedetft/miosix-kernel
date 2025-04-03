@@ -28,11 +28,26 @@
 #pragma once
 
 #include "interfaces-impl/lock_impl.h"
+#include "interfaces/arch_registers.h"
 
 namespace miosix {
 
-void IRQhwSpinlockAcquire(unsigned char i) noexcept;
-void IRQhwSpinlockRelease(unsigned char i) noexcept;
+static inline void IRQhwSpinlockAcquire(unsigned char i) noexcept
+{
+    for(;;)
+    {
+        if(sio_hw->spinlock[i]) break;
+        __WFE();
+    }
+    __DSB();
+}
+
+static inline void IRQhwSpinlockRelease(unsigned char i) noexcept
+{
+    __DSB();
+    sio_hw->spinlock[i]=1;
+    __SEV();
+}
 
 // Definition of statically allocated spinlocks
 struct RP2040HwSpinlocks
