@@ -44,9 +44,23 @@ static inline void IRQhwSpinlockAcquire(unsigned char i) noexcept
 
 static inline void IRQhwSpinlockRelease(unsigned char i) noexcept
 {
-    __DSB();
     sio_hw->spinlock[i]=1;
+    __DSB();
     __SEV();
+    // Put a compiler memory barrier after SEV for good measure
+    asm volatile("":::"memory");
+    // A word of warning. GCC 9.2.0 has been observed reordering
+    //   __DSB();
+    //   sio_hw->spinlock[i]=1;
+    //   __SEV();
+    //   fastEnableIrq();
+    // into
+    //   __SEV();
+    //   fastEnableIrq();
+    //   sio_hw->spinlock[i]=1;
+    //   __DSB();
+    // which is weird because both __DSB() and fastEnableIrq() clobber memory
+    // and thus should prevent reordering.
 }
 
 // Definition of statically allocated spinlocks
