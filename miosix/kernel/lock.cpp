@@ -26,6 +26,7 @@
  ***************************************************************************/ 
 
 #include "lock.h"
+#include "lock_private.h"
 #include "error.h"
 #include "thread.h"
 #include "interfaces/atomic_ops.h"
@@ -33,15 +34,16 @@
 namespace miosix {
 
 ///\internal !=0 after pauseKernel(), ==0 after restartKernel()
-volatile int pauseKernelNesting=0;
+int pauseKernelNesting=0;
+#ifdef WITH_SMP
+unsigned char globalPkNestLockHoldingCore=0xff;
+#endif //WITH_SMP
 
 /// This is used by globalIrqLock() and globalIrqUnlock() to allow nested
 /// calls to these functions.
 unsigned char globalLockNesting=0;
-
 #ifdef WITH_SMP
 unsigned char globalIntrNestLockHoldingCore=0xff;
-unsigned char globalPkNestLockHoldingCore=0xff;
 #endif //WITH_SMP
 
 ///\internal true if a thread wakeup occurs while the kernel is paused
@@ -93,10 +95,7 @@ void globalIrqLock() noexcept
         //      running. But if we are running simultaneously to that other
         //      thread, we must be on a different core, and the condition is
         //      still false.
-        fastGlobalIrqLock();
-        globalIntrNestLockHoldingCore=getCurrentCoreId();
-        if(globalLockNesting!=0) errorHandler(GLOBAL_LOCK_NESTING);
-        globalLockNesting=1;
+        globalIrqForceLockToDepth(1);
     }
     #else //WITH_SMP
     fastGlobalIrqLock();
@@ -131,6 +130,7 @@ void globalIrqUnlock() noexcept
     }
 }
 
+// TODO: rename to globalPreemptionLock?
 void pauseKernel() noexcept
 {
     #ifdef WITH_SMP
@@ -169,33 +169,7 @@ void pauseKernel() noexcept
         if(pauseKernelNesting==0xff) errorHandler(NESTING_OVERFLOW);
         pauseKernelNesting++;
     } else {
-        // An important difference from globalIrqLock/Unlock is that instead of
-        // disabling interrupts for ensuring no preemption occurs, we are
-        // setting globalPkNestLockHoldingCore.
-        //   This MUST HAPPEN ATOMICALLY from the point of view of the scheduler
-        // though, so we must use atomics or the GIL to do it.
-        //   Of course we can't just disable interrupts locally because another
-        // core might be trying to acquire the pause kernel lock concurrently.
-        //   We cannot even use atomics unfortunately. I.e. if we did a
-        // atomicExchange(&globalPkNestLockHoldingCore,getCurrentCoreId())
-        // the scheduler might still move us from one core to another between
-        // the call to getCurrentCoreId() and the (atomic) setting of the
-        // variable.
-        FastGlobalIrqLock lock;
-        for(;;)
-        {
-            if(globalPkNestLockHoldingCore!=0xff)
-            {
-                FastGlobalIrqUnlock unlock(lock);
-                __WFE(); // TODO: arch-specific
-                continue;
-            }
-            // If we get here, we have decided we can take the lock.
-            globalPkNestLockHoldingCore=getCurrentCoreId();
-            if(pauseKernelNesting!=0) errorHandler(PAUSE_KERNEL_NESTING);
-            pauseKernelNesting=1;
-            break;
-        }
+        pauseKernelForceToDepth(1);
     }
     #else //WITH_SMP
     int old=atomicAddExchange(&pauseKernelNesting,1);
@@ -203,6 +177,7 @@ void pauseKernel() noexcept
     #endif //WITH_SMP
 }
 
+// TODO: rename to globalPreemptionUnlock?
 void restartKernel() noexcept
 {
     #ifdef WITH_SMP

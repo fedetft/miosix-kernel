@@ -29,6 +29,7 @@
 #include "error.h"
 #include "logging.h"
 #include "sync.h"
+#include "lock_private.h"
 #include "boot.h"
 #include "process.h"
 #include "kernel/scheduler/scheduler.h"
@@ -82,14 +83,6 @@ bool kernelStarted=false;///<\internal becomes true after IRQstartKernel.
 /// The proc field of the Thread class for kernel threads points to this object
 static ProcessBase *kernel=nullptr;
 #endif //WITH_PROCESSES
-
-//Variable shared with lock.cpp for performance and encapsulation reasons
-extern volatile int pauseKernelNesting;
-extern unsigned char globalLockNesting;
-#ifdef WITH_SMP
-extern unsigned char globalIntrNestLockHoldingCore;
-extern unsigned char globalPkNestLockHoldingCore;
-#endif
 
 /**
  * \internal
@@ -423,68 +416,7 @@ void Thread::PKrestartKernelAndWait(PauseKernelLock& dLock)
     (void)dLock;
     //Implemented by upgrading the lock to an interrupt disable one
     FastGlobalIrqLock dLockIrq;
-    auto savedPauseKernelNesting=pauseKernelNesting;
-    if(savedPauseKernelNesting==0) errorHandler(UNEXPECTED);
-    pauseKernelNesting=0;
-    #ifdef WITH_SMP
-    globalPkNestLockHoldingCore=0xff;
-    __DSB(); // TODO: arch specific
-    __SEV(); // TODO: arch specific
-    // NOTE: we cannot call IRQglobalIrqUnlockAndWaitImpl() in the multi core
-    // case as the global lock and the pauseKernel lock are two separate locks
-    // and when taking both we must always take the pauseKernel first to avoid
-    // a deadlock. This does not happen on a single core since the global lock
-    // disables interrupts on the only core, serializing the code.
-    
-    // Code of IRQglobalIrqUnlockAndWaitImpl() -- begin
-    Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
-    cur->flags.IRQsetWait(cur,true);
-    auto savedNesting=globalLockNesting; //For GlobalIrqLock
-    globalLockNesting=0;
-    globalIntrNestLockHoldingCore=0xff;
-    fastGlobalIrqUnlock();
-    Thread::yield(); //Here the wait becomes effective
-    
-    //Critical part to avoid the deadlock: take the pauseKernel lock first!
-    //TODO: optimize
-    {
-        FastGlobalIrqLock lock;
-        for(;;)
-        {
-            if(globalPkNestLockHoldingCore!=0xff)
-            {
-                FastGlobalIrqUnlock unlock(lock);
-                __WFE(); // TODO: arch-specific
-                continue;
-            }
-            // NOTE: we can't just use an
-            // atomicExchange(&globalPkNestLockHoldingCore,getCurrentCoreId())
-            // since the scheduler may move us from one core to another between
-            // the getCurrentCoreId() and setting of the variable
-            globalPkNestLockHoldingCore=getCurrentCoreId();
-            if(pauseKernelNesting!=0) errorHandler(PAUSE_KERNEL_NESTING);
-            //TODO pauseKernelNesting=1; // restored later
-            break;
-        }
-    }
-    
-    fastGlobalIrqLock();
-    if(savedNesting)
-    {
-        // The GIL may have been taken with the "fast" primitives that don't
-        // set the core ID here
-        if(globalIntrNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
-        globalIntrNestLockHoldingCore=getCurrentCoreId();
-    }
-    if(globalLockNesting!=0) errorHandler(UNEXPECTED);
-    globalLockNesting=savedNesting;
-    // Code of IRQglobalIrqUnlockAndWaitImpl() -- end
-    #else //WITH_SMP
-    // In the single core case we can just call the IRQ version
     IRQglobalIrqUnlockAndWaitImpl();
-    #endif //WITH_SMP
-    if(pauseKernelNesting!=0) errorHandler(UNEXPECTED);
-    pauseKernelNesting=savedPauseKernelNesting;
 }
 
 TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
@@ -493,75 +425,7 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
     (void)dLock;
     //Implemented by upgrading the lock to an interrupt disable one
     FastGlobalIrqLock dLockIrq;
-    auto savedPauseKernelNesting=pauseKernelNesting;
-    if(savedPauseKernelNesting==0) errorHandler(UNEXPECTED);
-    pauseKernelNesting=0;
-    #ifdef WITH_SMP
-    globalPkNestLockHoldingCore=0xff;
-    __DSB(); // TODO: arch specific
-    __SEV(); // TODO: arch specific
-    // NOTE: we cannot call IRQglobalIrqUnlockAndWaitImpl() in the multi core
-    // case as the global lock and the pauseKernel lock are two separate locks
-    // and when taking both we must always take the pauseKernel first to avoid
-    // a deadlock. This does not happen on a single core since the global lock
-    // disables interrupts on the only core, serializing the code.
-    
-    // Code of IRQglobalIrqUnlockAndWaitImpl() -- begin
-    absoluteTimeNs=max(absoluteTimeNs,100000LL);
-    Thread *t=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
-    SleepData sleepData(t,absoluteTimeNs);
-    t->flags.IRQsetWait(t,true); //timedWait thread: set wait flag
-    IRQaddToSleepingList(&sleepData);
-    auto savedNesting=globalLockNesting; //For GlobalIrqLock
-    globalLockNesting=0;
-    globalIntrNestLockHoldingCore=0xff;
-    fastGlobalIrqUnlock();
-    Thread::yield(); //Here the wait becomes effective
-    
-    //Critical part to avoid the deadlock: take the pauseKernel lock first!
-    //TODO: optimize
-    {
-        FastGlobalIrqLock lock;
-        for(;;)
-        {
-            if(globalPkNestLockHoldingCore!=0xff)
-            {
-                FastGlobalIrqUnlock unlock(lock);
-                __WFE(); // TODO: arch-specific
-                continue;
-            }
-            // NOTE: we can't just use an
-            // atomicExchange(&globalPkNestLockHoldingCore,getCurrentCoreId())
-            // since the scheduler may move us from one core to another between
-            // the getCurrentCoreId() and setting of the variable
-            globalPkNestLockHoldingCore=getCurrentCoreId();
-            if(pauseKernelNesting!=0) errorHandler(PAUSE_KERNEL_NESTING);
-            //TODO pauseKernelNesting=1; // restored later
-            break;
-        }
-    }
-    
-    fastGlobalIrqLock();
-    if(savedNesting)
-    {
-        // The GIL may have been taken with the "fast" primitives that don't
-        // set the core ID here
-        if(globalIntrNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
-        globalIntrNestLockHoldingCore=getCurrentCoreId();
-    }
-    if(globalLockNesting!=0) errorHandler(UNEXPECTED);
-    globalLockNesting=savedNesting;
-    bool removed=sleepingList.removeFast(&sleepData);
-    //If the thread was still in the sleeping list, it was woken up by a wakeup()
-    auto result=removed ? TimedWaitResult::NoTimeout : TimedWaitResult::Timeout;
-    // Code of IRQglobalIrqUnlockAndWaitImpl() -- end
-    #else //WITH_SMP
-    // In the single core case we can just call the IRQ version
-    auto result=IRQglobalIrqUnlockAndTimedWaitImpl(absoluteTimeNs);
-    #endif //WITH_SMP
-    if(pauseKernelNesting!=0) errorHandler(UNEXPECTED);
-    pauseKernelNesting=savedPauseKernelNesting;
-    return result;
+    return IRQglobalIrqUnlockAndTimedWaitImpl(absoluteTimeNs);
 }
 
 bool Thread::PKwakeup()
@@ -1023,25 +887,15 @@ void Thread::IRQglobalIrqUnlockAndWaitImpl()
 {
     Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
     cur->flags.IRQsetWait(cur,true);
-    auto savedNesting=globalLockNesting; //For GlobalIrqLock
-    globalLockNesting=0;
-    #ifdef WITH_SMP
-    globalIntrNestLockHoldingCore=0xff;
-    #endif
-    fastGlobalIrqUnlock();
+
+    // We need to save both GIL lock and PK lock state because the thread might
+    // have upgraded a PK lock to a GIL lock!
+    auto savedGILNesting=globalIrqForceUnlock();
+    auto savedPKNesting=restartKernelForce();
     Thread::yield(); //Here the wait becomes effective
-    fastGlobalIrqLock();
-    #ifdef WITH_SMP
-    if(savedNesting)
-    {
-        // The GIL may have been taken with the "fast" primitives that don't
-        // set the core ID here
-        if(globalIntrNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
-        globalIntrNestLockHoldingCore=getCurrentCoreId();
-    }
-    #endif
-    if(globalLockNesting!=0) errorHandler(UNEXPECTED);
-    globalLockNesting=savedNesting;
+    if(savedPKNesting) pauseKernelForceToDepth(savedPKNesting);
+    if(savedGILNesting) globalIrqForceLockToDepth(savedGILNesting);
+    else fastGlobalIrqLock();
 }
 
 TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTimeNs)
@@ -1051,25 +905,16 @@ TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTim
     SleepData sleepData(t,absoluteTimeNs);
     t->flags.IRQsetWait(t,true); //timedWait thread: set wait flag
     IRQaddToSleepingList(&sleepData);
-    auto savedNesting=globalLockNesting; //For GlobalIrqLock
-    globalLockNesting=0;
-    #ifdef WITH_SMP
-    globalIntrNestLockHoldingCore=0xff;
-    #endif
-    fastGlobalIrqUnlock();
+
+    // We need to save both GIL lock and PK lock state because the thread might
+    // have upgraded a PK lock to a GIL lock!
+    auto savedGILNesting=globalIrqForceUnlock();
+    auto savedPKNesting=restartKernelForce();
     Thread::yield(); //Here the wait becomes effective
-    fastGlobalIrqLock();
-    #ifdef WITH_SMP
-    if(savedNesting)
-    {
-        // The GIL may have been taken with the "fast" primitives that don't
-        // set the core ID here
-        if(globalIntrNestLockHoldingCore!=0xff) errorHandler(UNEXPECTED);
-        globalIntrNestLockHoldingCore=getCurrentCoreId();
-    }
-    #endif
-    if(globalLockNesting!=0) errorHandler(UNEXPECTED);
-    globalLockNesting=savedNesting;
+    if(savedPKNesting) pauseKernelForceToDepth(savedPKNesting);
+    if(savedGILNesting) globalIrqForceLockToDepth(savedGILNesting);
+    else fastGlobalIrqLock();
+
     bool removed=sleepingList.removeFast(&sleepData);
     //If the thread was still in the sleeping list, it was woken up by a wakeup()
     return removed ? TimedWaitResult::NoTimeout : TimedWaitResult::Timeout;
