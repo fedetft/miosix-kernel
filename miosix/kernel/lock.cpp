@@ -184,9 +184,14 @@ void restartKernel() noexcept
     int old=pauseKernelNesting--;
     if(pauseKernelNesting==0)
     {
+        fastDisableIrq();
         globalPkNestLockHoldingCore=0xff;
-        __DSB(); //TODO: arch-specific, need portable wrapper
-        __SEV();
+        // We disable local interrupts because if the scheduler decides to
+        // reschedule us here, any other thread that tries to take the PK lock
+        // will have to wait until we are rescheduled to release the spinlock,
+        // and this is clearly undesirable.
+        hwSpinlockRelease(RP2040HwSpinlocks::PK);
+        fastEnableIrq();
     }
     #else //WITH_SMP
     int old=atomicAddExchange(&pauseKernelNesting,-1);

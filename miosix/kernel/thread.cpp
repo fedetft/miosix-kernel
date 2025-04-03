@@ -413,19 +413,63 @@ void Thread::wait()
 
 void Thread::PKrestartKernelAndWait(PauseKernelLock& dLock)
 {
+    // WARNING: The implementation of this function must remain synchronized
+    // with its IRQ-based counterpart (IRQglobalIrqUnlockAndWaitImpl)
     (void)dLock;
-    //Implemented by upgrading the lock to an interrupt disable one
-    FastGlobalIrqLock dLockIrq;
-    IRQglobalIrqUnlockAndWaitImpl();
+    fastDisableIrq();
+
+    // Put the thread the sleep. We could get the current thread by calling
+    // Thread::IRQgetCurrentThread but there is logic there that we want to
+    // avoid.
+    Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
+    fastGlobalLockFromIrq();
+    cur->flags.IRQsetWait(cur,true);
+    fastGlobalUnlockFromIrq();
+    
+    // Save Pk lock state, yield, and restore lock state.
+    // We do not save/restore the state of the GIL because it's not taken
+    // (if it was, somebody is violating the constraints on when a PK function
+    // can be called).
+    auto savedPkNesting=restartKernelForce(); // this must be nonzero!
+    fastEnableIrq();
+    Thread::yield(); //Here the wait becomes effective
+    pauseKernelForceToDepth(savedPkNesting);
 }
 
 TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
         long long absoluteTimeNs)
 {
+    // WARNING: The implementation of this function must remain synchronized
+    // with its IRQ-based counterpart (IRQglobalIrqUnlockAndTimedWaitImpl)
     (void)dLock;
-    //Implemented by upgrading the lock to an interrupt disable one
-    FastGlobalIrqLock dLockIrq;
-    return IRQglobalIrqUnlockAndTimedWaitImpl(absoluteTimeNs);
+    fastDisableIrq();
+
+    // Put the thread to sleep.
+    absoluteTimeNs=max(absoluteTimeNs,100000LL);
+    Thread *t=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
+    SleepData sleepData(t,absoluteTimeNs);
+    fastGlobalLockFromIrq();
+    t->flags.IRQsetWait(t,true); //timedWait thread: set wait flag
+    IRQaddToSleepingList(&sleepData);
+    fastGlobalUnlockFromIrq();
+
+    // Save Pk lock state, yield, and restore lock state.
+    // We do not save/restore the state of the GIL because it's not taken
+    // (if it was, somebody is violating the constraints on when a PK function
+    // can be called)
+    auto savedPkNesting=restartKernelForce(); // this must be nonzero!
+    fastEnableIrq();
+    Thread::yield(); //Here the wait becomes effective
+    fastDisableIrq();
+    irqDisabledPauseKernelForceToDepth(savedPkNesting);
+
+    // Remove us from the sleeping list and check how we were woken up.
+    // If the thread was still in the sleeping list, it was woken up by a wakeup()
+    fastGlobalLockFromIrq();
+    auto removed=sleepingList.removeFast(&sleepData);
+    fastGlobalUnlockFromIrq();
+    fastEnableIrq();
+    return removed ? TimedWaitResult::NoTimeout : TimedWaitResult::Timeout;
 }
 
 bool Thread::PKwakeup()
@@ -885,38 +929,42 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
 
 void Thread::IRQglobalIrqUnlockAndWaitImpl()
 {
+    // Put the thread the sleep. We could get the current thread by calling
+    // Thread::IRQgetCurrentThread but there is logic there that we want to
+    // avoid.
     Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
     cur->flags.IRQsetWait(cur,true);
 
-    // We need to save both GIL lock and PK lock state because the thread might
-    // have upgraded a PK lock to a GIL lock!
+    // Save GIL state, yield, and restore the state.
+    // Note that we are not sure here whether we have taken the PK lock or not.
+    // If the PK lock appears taken, it might be currently taken by another core
+    // and as a result we cannot touch it!
+    // So better to leave it alone. But as a side-effect we cannot upgrade a PK
+    // lock to a GIL and then use this function!
     auto savedGILNesting=globalIrqForceUnlock();
-    auto savedPKNesting=restartKernelForce();
     Thread::yield(); //Here the wait becomes effective
-    if(savedPKNesting) pauseKernelForceToDepth(savedPKNesting);
     if(savedGILNesting) globalIrqForceLockToDepth(savedGILNesting);
-    else fastGlobalIrqLock();
+    else fastGlobalIrqLock(); //The GIL was taken using the fast primitives
 }
 
 TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTimeNs)
 {
+    // Put the thread to sleep.
     absoluteTimeNs=max(absoluteTimeNs,100000LL);
     Thread *t=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
     SleepData sleepData(t,absoluteTimeNs);
     t->flags.IRQsetWait(t,true); //timedWait thread: set wait flag
     IRQaddToSleepingList(&sleepData);
 
-    // We need to save both GIL lock and PK lock state because the thread might
-    // have upgraded a PK lock to a GIL lock!
+    // Save GIL state, yield, and restore the state.
     auto savedGILNesting=globalIrqForceUnlock();
-    auto savedPKNesting=restartKernelForce();
     Thread::yield(); //Here the wait becomes effective
-    if(savedPKNesting) pauseKernelForceToDepth(savedPKNesting);
     if(savedGILNesting) globalIrqForceLockToDepth(savedGILNesting);
-    else fastGlobalIrqLock();
+    else fastGlobalIrqLock(); //The GIL was taken using the fast primitives
 
+    // Remove us from the sleeping list and check how we were woken up.
+    // If the thread was still in the sleeping list, it was woken up by a wakeup()
     bool removed=sleepingList.removeFast(&sleepData);
-    //If the thread was still in the sleeping list, it was woken up by a wakeup()
     return removed ? TimedWaitResult::NoTimeout : TimedWaitResult::Timeout;
 }
 

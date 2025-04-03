@@ -158,6 +158,9 @@ __attribute__((noreturn)) void IRQcontinueInitCore1()
     // interrupts on core 1 side
     sio_hw->fifo_st=0;
     NVIC_ClearPendingIRQ(SIO_IRQ_PROC1_IRQn);
+    // Enable SEVONPEND for core 1, needed for spinlocks that still allow
+    // for interrupt servicing
+    SCB->SCR|=SCB_SCR_SEVONPEND_Msk;
     // Signal to the other core that we are done with setup
     __DSB();
     (unsigned long)sio_hw->spinlock[RP2040HwSpinlocks::InitCoreSync];
@@ -200,6 +203,9 @@ void IRQinitSMP(void *const stackPtrs[], void (*const mains[])()) noexcept
     // interrupts on core 0 side
     sio_hw->fifo_st=0;
     NVIC_ClearPendingIRQ(SIO_IRQ_PROC0_IRQn);
+    // Enable SEVONPEND for core 0, needed for spinlocks that still allow
+    // for interrupt servicing
+    SCB->SCR|=SCB_SCR_SEVONPEND_Msk;
     // Wait until core 1 is done
     __DSB();
     while(!(sio_hw->spinlock_st & (1<<RP2040HwSpinlocks::InitCoreSync))) ;

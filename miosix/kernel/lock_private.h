@@ -53,6 +53,7 @@ extern unsigned char globalIntrNestLockHoldingCore;
 
 /**
  * \internal Lock the Global Irq Lock to a specified recursion depth.
+ * Must be called with the lock not yet taken by the current thread.
  * 
  * \param savedNesting The lock recursion depth to set.
  */
@@ -69,6 +70,8 @@ inline void globalIrqForceLockToDepth(unsigned char savedNesting)
 /**
  * \internal Fully unlock the Global Irq Lock and return the previous recursion
  * level of the lock.
+ * Must be called with the lock currently being taken by the current thread,
+ * either through the fast primitives or not.
  */
 inline unsigned char globalIrqForceUnlock()
 {
@@ -83,10 +86,14 @@ inline unsigned char globalIrqForceUnlock()
 
 /**
  * \internal Lock the pause kernel lock to the specified nesting level.
+ * Must be called with the pause kernel lock not taken by the current thread,
+ * and local interrupts disabled.
+ * The GIL spinlock must *not* be taken, this is why this function
+ * does not have the IRQ prefix even though it appears it should.
  * 
  * \param The lock recursion depth to set.
  */
-inline void pauseKernelForceToDepth(unsigned char savedNesting)
+inline void irqDisabledPauseKernelForceToDepth(unsigned char savedNesting)
 {
     #ifdef WITH_SMP
     // An important difference from globalIrqLock/Unlock is that instead of
@@ -101,21 +108,10 @@ inline void pauseKernelForceToDepth(unsigned char savedNesting)
     // the scheduler might still move us from one core to another between
     // the call to getCurrentCoreId() and the (atomic) setting of the
     // variable.
-    FastGlobalIrqLock lock;
-    for(;;)
-    {
-        if(globalPkNestLockHoldingCore!=0xff)
-        {
-            FastGlobalIrqUnlock unlock(lock);
-            __WFE(); // TODO: arch-specific
-            continue;
-        }
-        // If we get here, we have decided we can take the lock.
-        globalPkNestLockHoldingCore=getCurrentCoreId();
-        if(pauseKernelNesting!=0) errorHandler(PAUSE_KERNEL_NESTING);
-        pauseKernelNesting=savedNesting;
-        break;
-    }
+    irqDisabledHwSpinlockAcquire(RP2040HwSpinlocks::PK);
+    globalPkNestLockHoldingCore=getCurrentCoreId();
+    if(pauseKernelNesting!=0) errorHandler(PAUSE_KERNEL_NESTING);
+    pauseKernelNesting=savedNesting;
     #else
     int old=atomicCompareAndSwap(&pauseKernelNesting,0,savedNesting);
     if(old!=0) errorHandler(UNEXPECTED);
@@ -123,18 +119,41 @@ inline void pauseKernelForceToDepth(unsigned char savedNesting)
 }
 
 /**
+ * \internal Lock the pause kernel lock to the specified nesting level.
+ * Must be called with the pause kernel lock not taken by the current thread.
+ * 
+ * \param The lock recursion depth to set.
+ */
+inline void pauseKernelForceToDepth(unsigned char savedNesting)
+{
+    #ifdef WITH_SMP
+    fastDisableIrq();
+    #endif
+    irqDisabledPauseKernelForceToDepth(savedNesting);
+    #ifdef WITH_SMP
+    fastEnableIrq();
+    #endif
+}
+
+/**
  * \internal Fully unlock the pause kernel lock and return the previous 
  * recursion level of the lock.
+ * Must be called with the pause kernel lock currently being taken by the
+ * current thread.
  */
 inline int restartKernelForce()
 {
+    #ifdef WITH_SMP
     auto savedPauseKernelNesting=pauseKernelNesting;
     pauseKernelNesting=0;
-    #ifdef WITH_SMP
     globalPkNestLockHoldingCore=0xff;
-    __DSB(); // TODO: arch specific
-    __SEV(); // TODO: arch specific
+    hwSpinlockRelease(RP2040HwSpinlocks::PK);
+    return savedPauseKernelNesting;
+    #else
+    auto savedPauseKernelNesting=pauseKernelNesting;
+    pauseKernelNesting=0;
     #endif
+    if(savedPauseKernelNesting==0) errorHandler(PAUSE_KERNEL_NESTING);
     return savedPauseKernelNesting;
 }
 
