@@ -198,7 +198,7 @@ void pauseKernel() noexcept
         }
     }
     #else //WITH_SMP
-    int old=atomicAddExchange(&kernelRunning,1);
+    int old=atomicAddExchange(&pauseKernelNesting,1);
     if(old>=0xff) errorHandler(NESTING_OVERFLOW);
     #endif //WITH_SMP
 }
