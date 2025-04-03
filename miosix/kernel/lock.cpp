@@ -59,12 +59,40 @@ extern bool kernelStarted;
 void globalIrqLock() noexcept
 {
     #ifdef WITH_SMP
-    unsigned char state=globalIntrNestLockHoldingCore;
-    if(state==getCurrentCoreId())
+    // Is the current core the one holding the global lock?
+    if(globalIntrNestLockHoldingCore==getCurrentCoreId())
     {
+        // Yes. If we arrive here we are sure we already have interrupts
+        // disabled and the GIL taken, just increase nesting level.
+        // We cannot be rescheduled to another core because interrupts are
+        // disabled.
         if(globalLockNesting==0xff) errorHandler(NESTING_OVERFLOW);
         globalLockNesting++;
     } else {
+        // No we are not holding the GIL. Try to take it then!
+        // Note that even if we are rescheduled to a different core right here
+        // the condition state==getCurrentCoreId() will continue to be false,
+        // and we correctly deduce we don't have the GIL (which is what
+        // matters).
+        // The following are the important cases:
+        // - Another thread has the GIL and won't release it before we attempt
+        //   to take it
+        //   => That thread won't change core because it has interrupts
+        //      disabled, so we cannot be scheduled to that core, but that's
+        //      the only way to make the condition true
+        // - Another thread held the GIL but has just released it now after the
+        //   check
+        //   => When the other thread has released the GIL, they always set
+        //      globalIntrNestLockHoldingCore global to 0xFF, which ensures the
+        //      condition of the `if' is false for all cores.
+        // - Another thread is holding the GIL in a non-recursive way
+        //   => Same case as above but because globalIntrNestLockHoldingCore is
+        //      0xFF even with the lock taken
+        // - Another thread has taken the GIL since the check
+        //   => If the GIL is taken by another thread, that thread MUST be
+        //      running. But if we are running simultaneously to that other
+        //      thread, we must be on a different core, and the condition is
+        //      still false.
         fastGlobalIrqLock();
         globalIntrNestLockHoldingCore=getCurrentCoreId();
         if(globalLockNesting!=0) errorHandler(GLOBAL_LOCK_NESTING);
@@ -106,20 +134,63 @@ void globalIrqUnlock() noexcept
 void pauseKernel() noexcept
 {
     #ifdef WITH_SMP
+    if(!kernelStarted)
+    {
+        // If we are here and the kernel is not yet started, then we are
+        // presumably in IRQbspInit() or in the malloc that allocates heap
+        // space for the first thread, before SMP is even set up.
+        //   We cannot enable interrupts here, but we are also sure that we
+        // are executing on core 0 with interrupts disabled. So we really
+        // don't need to do anything. We could exit here but for the sake of
+        // robustness let's update the lock state anyway.
+        //   This could be implemented by using globalIrqLock/Unlock elsewhere
+        // but that completely tanks performance and makes pauseKernel slower
+        // than a non-recursive conventional mutex.
+        if(globalPkNestLockHoldingCore!=0)
+        {
+            globalPkNestLockHoldingCore=0;
+            pauseKernelNesting=1;
+        } else {
+            // If the kernel is not yet fully booted, the serial driver may not
+            // be completely initialized yet. Due to this, errorHandler() would
+            // fail causing a null pointer dereference and thus a HardFault,
+            // which in itself would try to print to the serial again...
+            // In other words calling errorHandler() here makes no sense.
+            // Should we even bother checking pauseKernelNesting then?
+            //if(pauseKernelNesting==0xff) errorHandler(NESTING_OVERFLOW);
+            pauseKernelNesting++;
+        }
+        return;
+    }
+    // The logic mirrors the one in globalIrqLock/Unlock, see the comments
+    // there for an explanation.
     if(globalPkNestLockHoldingCore==getCurrentCoreId())
     {
         if(pauseKernelNesting==0xff) errorHandler(NESTING_OVERFLOW);
         pauseKernelNesting++;
     } else {
+        // An important difference from globalIrqLock/Unlock is that instead of
+        // disabling interrupts for ensuring no preemption occurs, we are
+        // setting globalPkNestLockHoldingCore.
+        //   This MUST HAPPEN ATOMICALLY from the point of view of the scheduler
+        // though, so we must use atomics or the GIL to do it.
+        //   Of course we can't just disable interrupts locally because another
+        // core might be trying to acquire the pause kernel lock concurrently.
+        //   We cannot even use atomics unfortunately. I.e. if we did a
+        // atomicExchange(&globalPkNestLockHoldingCore,getCurrentCoreId())
+        // the scheduler might still move us from one core to another between
+        // the call to getCurrentCoreId() and the (atomic) setting of the
+        // variable.
+        FastGlobalIrqLock lock;
         for(;;)
         {
-            //TODO: it's a spinlock, not a sleeplock
-            GlobalIrqLock dLock;
-            if(globalPkNestLockHoldingCore!=0xff) continue;
-            // NOTE: we can't just use an
-            // atomicExchange(&globalPkNestLockHoldingCore,getCurrentCoreId())
-            // since the scheduler may move us from one core to another between
-            // the getCurrentCoreId() and setting of the variable
+            if(globalPkNestLockHoldingCore!=0xff)
+            {
+                FastGlobalIrqUnlock unlock(lock);
+                __WFE(); // TODO: arch-specific
+                continue;
+            }
+            // If we get here, we have decided we can take the lock.
             globalPkNestLockHoldingCore=getCurrentCoreId();
             if(pauseKernelNesting!=0) errorHandler(PAUSE_KERNEL_NESTING);
             pauseKernelNesting=1;
@@ -140,6 +211,7 @@ void restartKernel() noexcept
     {
         globalPkNestLockHoldingCore=0xff;
         __DSB(); //TODO: arch-specific, need portable wrapper
+        __SEV();
     }
     #else //WITH_SMP
     int old=atomicAddExchange(&pauseKernelNesting,-1);

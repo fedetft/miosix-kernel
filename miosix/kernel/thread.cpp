@@ -428,9 +428,11 @@ void Thread::PKrestartKernelAndWait(PauseKernelLock& dLock)
     pauseKernelNesting=0;
     #ifdef WITH_SMP
     globalPkNestLockHoldingCore=0xff;
+    __DSB(); // TODO: arch specific
+    __SEV(); // TODO: arch specific
     // NOTE: we cannot call IRQglobalIrqUnlockAndWaitImpl() in the multi core
     // case as the global lock and the pauseKernel lock are two separate locks
-    // and when taking both we must always take the puseKernel first to avoid
+    // and when taking both we must always take the pauseKernel first to avoid
     // a deadlock. This does not happen on a single core since the global lock
     // disables interrupts on the only core, serializing the code.
     
@@ -445,19 +447,25 @@ void Thread::PKrestartKernelAndWait(PauseKernelLock& dLock)
     
     //Critical part to avoid the deadlock: take the pauseKernel lock first!
     //TODO: optimize
-    for(;;)
     {
-        //TODO: it's a spinlock, not a sleeplock
-        FastGlobalIrqLock dLock;
-        if(globalPkNestLockHoldingCore!=0xff) continue;
-        // NOTE: we can't just use an
-        // atomicExchange(&globalPkNestLockHoldingCore,getCurrentCoreId())
-        // since the scheduler may move us from one core to another between
-        // the getCurrentCoreId() and setting of the variable
-        globalPkNestLockHoldingCore=getCurrentCoreId();
-        if(pauseKernelNesting!=0) errorHandler(PAUSE_KERNEL_NESTING);
-        //TODO pauseKernelNesting=1;
-        break;
+        FastGlobalIrqLock lock;
+        for(;;)
+        {
+            if(globalPkNestLockHoldingCore!=0xff)
+            {
+                FastGlobalIrqUnlock unlock(lock);
+                __WFE(); // TODO: arch-specific
+                continue;
+            }
+            // NOTE: we can't just use an
+            // atomicExchange(&globalPkNestLockHoldingCore,getCurrentCoreId())
+            // since the scheduler may move us from one core to another between
+            // the getCurrentCoreId() and setting of the variable
+            globalPkNestLockHoldingCore=getCurrentCoreId();
+            if(pauseKernelNesting!=0) errorHandler(PAUSE_KERNEL_NESTING);
+            //TODO pauseKernelNesting=1; // restored later
+            break;
+        }
     }
     
     fastGlobalIrqLock();
@@ -490,10 +498,11 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
     pauseKernelNesting=0;
     #ifdef WITH_SMP
     globalPkNestLockHoldingCore=0xff;
-    IRQhwSpinlockRelease(RP2040HwSpinlocks::PK); //TODO: need generic API
+    __DSB(); // TODO: arch specific
+    __SEV(); // TODO: arch specific
     // NOTE: we cannot call IRQglobalIrqUnlockAndWaitImpl() in the multi core
     // case as the global lock and the pauseKernel lock are two separate locks
-    // and when taking both we must always take the puseKernel first to avoid
+    // and when taking both we must always take the pauseKernel first to avoid
     // a deadlock. This does not happen on a single core since the global lock
     // disables interrupts on the only core, serializing the code.
     
@@ -511,19 +520,25 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
     
     //Critical part to avoid the deadlock: take the pauseKernel lock first!
     //TODO: optimize
-    for(;;)
     {
-        //TODO: it's a spinlock, not a sleeplock
-        FastGlobalIrqLock dLock;
-        if(globalPkNestLockHoldingCore!=0xff) continue;
-        // NOTE: we can't just use an
-        // atomicExchange(&globalPkNestLockHoldingCore,getCurrentCoreId())
-        // since the scheduler may move us from one core to another between
-        // the getCurrentCoreId() and setting of the variable
-        globalPkNestLockHoldingCore=getCurrentCoreId();
-        if(pauseKernelNesting!=0) errorHandler(PAUSE_KERNEL_NESTING);
-        //TODO pauseKernelNesting=1;
-        break;
+        FastGlobalIrqLock lock;
+        for(;;)
+        {
+            if(globalPkNestLockHoldingCore!=0xff)
+            {
+                FastGlobalIrqUnlock unlock(lock);
+                __WFE(); // TODO: arch-specific
+                continue;
+            }
+            // NOTE: we can't just use an
+            // atomicExchange(&globalPkNestLockHoldingCore,getCurrentCoreId())
+            // since the scheduler may move us from one core to another between
+            // the getCurrentCoreId() and setting of the variable
+            globalPkNestLockHoldingCore=getCurrentCoreId();
+            if(pauseKernelNesting!=0) errorHandler(PAUSE_KERNEL_NESTING);
+            //TODO pauseKernelNesting=1; // restored later
+            break;
+        }
     }
     
     fastGlobalIrqLock();
