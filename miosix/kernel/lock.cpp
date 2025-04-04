@@ -130,40 +130,15 @@ void globalIrqUnlock() noexcept
     }
 }
 
-// TODO: rename to globalPreemptionLock?
+// TODO: rename to preemptionLock/preemptionUnlock? and change PK prefix to PL,
+// globalPlNestLockHoldingCore, preemptionLockNesting
 void pauseKernel() noexcept
 {
     #ifdef WITH_SMP
-    if(!kernelStarted)
-    {
-        // If we are here and the kernel is not yet started, then we are
-        // presumably in IRQbspInit() or in the malloc that allocates heap
-        // space for the first thread, before SMP is even set up.
-        //   We cannot enable interrupts here, but we are also sure that we
-        // are executing on core 0 with interrupts disabled. So we really
-        // don't need to do anything. We could exit here but for the sake of
-        // robustness let's update the lock state anyway.
-        //   This could be implemented by using globalIrqLock/Unlock elsewhere
-        // but that completely tanks performance and makes pauseKernel slower
-        // than a non-recursive conventional mutex.
-        if(globalPkNestLockHoldingCore!=0)
-        {
-            globalPkNestLockHoldingCore=0;
-            pauseKernelNesting=1;
-        } else {
-            // If the kernel is not yet fully booted, the serial driver may not
-            // be completely initialized yet. Due to this, errorHandler() would
-            // fail causing a null pointer dereference and thus a HardFault,
-            // which in itself would try to print to the serial again...
-            // In other words calling errorHandler() here makes no sense.
-            // Should we even bother checking pauseKernelNesting then?
-            //if(pauseKernelNesting==0xff) errorHandler(NESTING_OVERFLOW);
-            pauseKernelNesting++;
-        }
-        return;
-    }
-    // The logic mirrors the one in globalIrqLock/Unlock, see the comments
-    // there for an explanation.
+    // NOTE: the code below would disable and then enable interrupts, so isn't
+    // safe to be called before the kernel is started. However, ther's no need
+    // for locking before the kernel is started, so do nothing
+    if(kernelStarted==false) return;
     if(globalPkNestLockHoldingCore==getCurrentCoreId())
     {
         if(pauseKernelNesting==0xff) errorHandler(NESTING_OVERFLOW);
@@ -177,10 +152,13 @@ void pauseKernel() noexcept
     #endif //WITH_SMP
 }
 
-// TODO: rename to globalPreemptionUnlock?
 void restartKernel() noexcept
 {
     #ifdef WITH_SMP
+    // NOTE: the code below would disable and then enable interrupts, so isn't
+    // safe to be called before the kernel is started. However, ther's no need
+    // for locking before the kernel is started, so do nothing
+    if(kernelStarted==false) return;
     int old=pauseKernelNesting--;
     if(pauseKernelNesting==0)
     {
@@ -197,31 +175,27 @@ void restartKernel() noexcept
     int old=atomicAddExchange(&pauseKernelNesting,-1);
     #endif //WITH_SMP
     if(old<=0) errorHandler(PAUSE_KERNEL_NESTING);
-    
-    //TODO is it still needed?
-    //Check globalLockNesting to allow pauseKernel() while interrupts
-    //are disabled with a GlobalIrqLock
-    if(globalLockNesting==0)
-    {
-        //If we missed a preemption yield immediately. This mechanism works the
-        //same way as the hardware implementation of interrupts that remain
-        //pending if they occur while interrupts are disabled.
-        //This is important to make sure context switches to a higher priority
-        //thread happen in a timely fashion.
-        //It is important that pendingWakeup is set to true any time the
-        //scheduler is called but it could not run due to the kernel being
-        //paused regardless of whether the scheduler has been called by the
-        //timer irq or any peripheral irq.
-        //With the tickless kernel, this is also important to prevent deadlocks
-        //as the idle thread is no longer periodically interrupted by timer
-        //ticks and it does pause the kernel. If the interrupt that wakes up
-        //a thread fails to call the scheduler since the idle thread paused the
-        //kernel and pendingWakeup is not set, this could cause a deadlock.
-        if(old==1 && pendingWakeup)
-        { 
-            pendingWakeup=false;
-            Thread::yield();
-        }
+
+    // If we missed a preemption yield immediately. This mechanism works the
+    // same way as the hardware implementation of interrupts that remain
+    // pending if they occur while interrupts are disabled.
+    // This is important to make sure context switches to a higher priority
+    // thread happen in a timely fashion.
+    // It is important that pendingWakeup is set to true any time the
+    // scheduler is called but it could not run due to the kernel being
+    // paused regardless of whether the scheduler has been called by the
+    // timer irq or any peripheral irq.
+    // With the tickless kernel, this is also important to prevent deadlocks
+    // as the idle thread is no longer periodically interrupted by timer
+    // ticks and it does pause the kernel. If the interrupt that wakes up
+    // a thread fails to call the scheduler since the idle thread paused the
+    // kernel and pendingWakeup is not set, this could cause a deadlock.
+    // This code cannot trigger a yield before the kernel is started since only
+    // the scheduler sets pendingWakeup
+    if(old==1 && pendingWakeup)
+    { 
+        pendingWakeup=false;
+        Thread::yield();
     }
 }
 
