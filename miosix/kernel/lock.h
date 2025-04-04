@@ -326,24 +326,31 @@ public:
 };
 
 /**
- * Pause the kernel.<br>Interrupts will continue to occur, but no preemption is
- * possible. Call to this function are cumulative: if you call pauseKernel()
- * two times, you need to call restartKernel() two times.<br>Pausing the kernel
- * must be avoided if possible because it is easy to cause deadlock. Calling
- * file related functions (fopen, Directory::open() ...), serial port related
- * functions (printf ...) or kernel functions that cannot be called when the
- * kernel is paused will cause deadlock. Therefore, if possible, it is better to
- * use a Mutex instead of pausing the kernel<br>This function is safe to be
- * called even before the kernel is started. In this case it has no effect.
+ * This is a global lock in the sense that only one thread on one core can take
+ * the lock, that additionally disabled preemption on the core where the lock is
+ * taken. Interrupts will continue to occur on all cores, and preemption is
+ * still possible on other cores, but attempting to take the pauseKernel lock
+ * from another core will block until the lock is released.
+ * Call to this function are cumulative: if you call pauseKernel() two times,
+ * you need to call restartKernel() two times.
+ * 
+ * Calling blocking functions (printf/fopen/...) including device drivers
+ * implemented in terms of IRQglobalIrqUnlockAndWait() or sleeping while holding
+ * this lock will cause deadlock.
+ * 
+ * The main purpose of this lock is for the kernel to implement mutexes.
+ * 
+ * This function is safe to be called even before the kernel is started.
+ * In this case it has no effect.
  */
 void pauseKernel() noexcept;
 
 /**
- * Restart the kernel.<br>This function will yield immediately if a tick has
- * been missed. Since calls to pauseKernel() are cumulative, if you call
- * pauseKernel() two times, you need to call restartKernel() two times.<br>
- * This function is safe to be called even before the kernel is started. In this
- * case it has no effect.
+ * Release the lock. This function will yield immediately if a preemption should
+ * have occurred while holding the lock but it has been prevented.
+ * 
+ * This function is safe to be called even before the kernel is started.
+ * In this case it has no effect.
  */
 void restartKernel() noexcept;
 
