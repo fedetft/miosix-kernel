@@ -107,7 +107,6 @@ void IRQkernelBootEntryPoint()
         extern unsigned long __miosix_init_array_end asm("__miosix_init_array_end");
         callConstructors(&__miosix_init_array_start, &__miosix_init_array_end);
 
-        if(areInterruptsEnabled()) errorHandler(INTERRUPTS_ENABLED_AT_BOOT);
         IRQbspInit();
         IRQosTimerInit();
         #ifdef WITH_DEEP_SLEEP
@@ -115,6 +114,7 @@ void IRQkernelBootEntryPoint()
         #endif // WITH_DEEP_SLEEP
         //After IRQbspInit() serial port is initialized, so we can use IRQbootlog
         IRQbootlog("Starting Kernel... ");
+        if(areInterruptsEnabled()) errorHandler(INTERRUPTS_ENABLED_AT_BOOT);
         IRQstartKernel();
     #ifndef __NO_EXCEPTIONS
     } catch(...) {}
