@@ -231,6 +231,10 @@ public:
      * NOTE: this method is meant to put the current thread in wait status in a
      * piece of code where interrupts are disbled, interrupts will be enabled
      * during the waiting period, and disabled back before this method returns.
+     * NOTE: it's not possible to firt take a PauseKernelLock, then take a
+     * GlobalIrqLock and call this function. When this function is called,
+     * no PauseKernelLock should be taken, cosider using PKrestartKernelAndWait
+     * without taking the GlobalIrqLock instead.
      *
      * \param dLock the GlobalIrqLock object that was used to disable
      * interrupts in the current context.
@@ -252,6 +256,10 @@ public:
      * NOTE: this method is meant to put the current thread in wait status in a
      * piece of code where interrupts are disbled, interrupts will be enabled
      * during the waiting period, and disabled back before this method returns.
+     * NOTE: it's not possible to firt take a PauseKernelLock, then take a
+     * FastGlobalIrqLock and call this function. When this function is called,
+     * no PauseKernelLock should be taken, cosider using PKrestartKernelAndWait
+     * without taking the FastGlobalIrqLock instead.
      *
      * \param dLock the FastGlobalIrqLock object that was used to disable
      * interrupts in the current context.
@@ -311,6 +319,10 @@ public:
      * NOTE: this method is meant to put the current thread in wait status in a
      * piece of code where interrupts are disbled, interrupts will be enabled
      * during the waiting period, and disabled back before this method returns.
+     * NOTE: it's not possible to firt take a PauseKernelLock, then take a
+     * GlobalIrqLock and call this function. When this function is called,
+     * no PauseKernelLock should be taken, cosider using PKrestartKernelAndTimedWait
+     * without taking the GlobalIrqLock instead.
      *
      * \param dLock the GlobalIrqLock object that was used to disable
      * interrupts in the current context.
@@ -336,6 +348,10 @@ public:
      * NOTE: this method is meant to put the current thread in wait status in a
      * piece of code where interrupts are disbled, interrupts will be enabled
      * during the waiting period, and disabled back before this method returns.
+     * NOTE: it's not possible to firt take a PauseKernelLock, then take a
+     * FastGlobalIrqLock and call this function. When this function is called,
+     * no PauseKernelLock should be taken, cosider using PKrestartKernelAndTimedWait
+     * without taking the FastGlobalIrqLock instead.
      *
      * \param dLock the FastGlobalIrqLock object that was used to disable
      * interrupts in the current context.

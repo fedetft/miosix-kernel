@@ -430,7 +430,7 @@ void Thread::PKrestartKernelAndWait(PauseKernelLock& dLock)
     // We do not save/restore the state of the GIL because it's not taken
     // (if it was, somebody is violating the constraints on when a PK function
     // can be called).
-    auto savedPkNesting=restartKernelForce(); // this must be nonzero!
+    auto savedPkNesting=irqDisabledRestartKernelForce(); // this must be nonzero!
     fastEnableIrq();
     Thread::yield(); //Here the wait becomes effective
     pauseKernelForceToDepth(savedPkNesting);
@@ -457,7 +457,7 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
     // We do not save/restore the state of the GIL because it's not taken
     // (if it was, somebody is violating the constraints on when a PK function
     // can be called)
-    auto savedPkNesting=restartKernelForce(); // this must be nonzero!
+    auto savedPkNesting=irqDisabledRestartKernelForce(); // this must be nonzero!
     fastEnableIrq();
     Thread::yield(); //Here the wait becomes effective
     fastDisableIrq();

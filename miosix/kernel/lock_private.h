@@ -110,14 +110,14 @@ inline void irqDisabledPauseKernelForceToDepth(unsigned char savedNesting)
     // variable.
     irqDisabledHwSpinlockAcquire(RP2040HwSpinlocks::PK);
     globalPkNestLockHoldingCore=getCurrentCoreId();
-    if(pauseKernelNesting!=0) errorHandler(PAUSE_KERNEL_NESTING);
-    pauseKernelNesting=savedNesting;
-    #else
-    int old=atomicCompareAndSwap(&pauseKernelNesting,0,savedNesting);
-    if(old!=0) errorHandler(UNEXPECTED);
     #endif
+    // NOTE: in the single core case we could do a compare and swap but since
+    // we already disabled interrupts it's not necessary
+    if(pauseKernelNesting!=0) errorHandler(UNEXPECTED);
+    pauseKernelNesting=savedNesting;
 }
 
+#ifdef WITH_SMP
 /**
  * \internal Lock the pause kernel lock to the specified nesting level.
  * Must be called with the pause kernel lock not taken by the current thread.
@@ -126,14 +126,11 @@ inline void irqDisabledPauseKernelForceToDepth(unsigned char savedNesting)
  */
 inline void pauseKernelForceToDepth(unsigned char savedNesting)
 {
-    #ifdef WITH_SMP
     fastDisableIrq();
-    #endif
     irqDisabledPauseKernelForceToDepth(savedNesting);
-    #ifdef WITH_SMP
     fastEnableIrq();
-    #endif
 }
+#endif
 
 /**
  * \internal Fully unlock the pause kernel lock and return the previous 
@@ -141,7 +138,7 @@ inline void pauseKernelForceToDepth(unsigned char savedNesting)
  * Must be called with the pause kernel lock currently being taken by the
  * current thread.
  */
-inline int restartKernelForce()
+inline int irqDisabledRestartKernelForce()
 {
     #ifdef WITH_SMP
     auto savedPauseKernelNesting=pauseKernelNesting;
