@@ -128,8 +128,7 @@ void PriorityScheduler::IRQwokenThread(Thread* thread)
     // the scheduler has a chance to run. Thus it is both awakened and running,
     // and we must not call notReadyThreads.removeFast(thread) if it's not in
     // that list as it causes undefined behavior
-    for(int i=0;i<CPU_NUM_CORES;i++)
-        if(runningThreads[i]==thread) return;
+    for(int i=0;i<CPU_NUM_CORES;i++) if(runningThreads[i]==thread) return;
     notReadyThreads.removeFast(thread);
     readyThreads[thread->schedData.priority.get()].push_back(thread);
 }
@@ -166,44 +165,42 @@ void PriorityScheduler::IRQrunScheduler()
     }
     for(int i=PRIORITY_MAX-1;i>=0;i--)
     {
-        if(readyThreads[i].empty()==false)
+        if(readyThreads[i].empty()) continue;
+        Thread *t=readyThreads[i].front();
+        readyThreads[i].pop_front(); //Remove selected thread from list
+        runningThreads[coreId]=t;
+        #ifdef WITH_PROCESSES
+        if(t->flags.isInUserspace()==false)
         {
-            Thread *t=readyThreads[i].front();
-            readyThreads[i].pop_front(); //Remove selected thread from list
-            runningThreads[coreId]=t;
-            #ifdef WITH_PROCESSES
-            if(t->flags.isInUserspace()==false)
-            {
-                ctxsave[coreId]=t->ctxsave;
-                MPUConfiguration::IRQdisable();
-            } else {
-                ctxsave[coreId]=t->userCtxsave;
-                //A kernel thread is never in userspace, so the cast is safe
-                static_cast<Process*>(t->proc)->mpu.IRQenable();
-            }
-            #else //WITH_PROCESSES
             ctxsave[coreId]=t->ctxsave;
-            #endif //WITH_PROCESSES
-            #ifndef WITH_CPU_TIME_COUNTER
-            IRQcomputePreemption(coreId,false);
-            #else //WITH_CPU_TIME_COUNTER
-            auto t=IRQcomputePreemption(coreId,false);
-            IRQprofileContextSwitch(prev->timeCounterData,t->timeCounterData,t);
-            #endif //WITH_CPU_TIME_COUNTER
-            #ifdef WITH_SMP
-            // In case multiple tasks are woken at the same time, we may
-            // have to schedule more than one higher priority task than
-            // currently running. When this happens, we need to call the
-            // scheduler again on more than one core
-            //TODO maybe check if there's a ready thread that can run
-            for(int j=0;j<CPU_NUM_CORES;j++)
-            {
-                if(const_cast<Thread*>(runningThreads[j])->schedData.priority<i)
-                IRQinvokeSchedulerOnCore(j);
-            }
-            #endif //WITH_SMP
-            return;
+            MPUConfiguration::IRQdisable();
+        } else {
+            ctxsave[coreId]=t->userCtxsave;
+            //A kernel thread is never in userspace, so the cast is safe
+            static_cast<Process*>(t->proc)->mpu.IRQenable();
         }
+        #else //WITH_PROCESSES
+        ctxsave[coreId]=t->ctxsave;
+        #endif //WITH_PROCESSES
+        #ifndef WITH_CPU_TIME_COUNTER
+        IRQcomputePreemption(coreId,false);
+        #else //WITH_CPU_TIME_COUNTER
+        auto t=IRQcomputePreemption(coreId,false);
+        IRQprofileContextSwitch(prev->timeCounterData,t->timeCounterData,t);
+        #endif //WITH_CPU_TIME_COUNTER
+        #ifdef WITH_SMP
+        // In case multiple tasks are woken at the same time, we may
+        // have to schedule more than one higher priority thread than
+        // currently running. When this happens, we need to call the
+        // scheduler again on more than one core
+        //TODO maybe check if there's a ready thread that can run first
+        for(int j=0;j<CPU_NUM_CORES;j++)
+        {
+            if(const_cast<Thread*>(runningThreads[j])->schedData.priority<i)
+            IRQinvokeSchedulerOnCore(j);
+        }
+        #endif //WITH_SMP
+        return;
     }
     //No thread found, run the idle thread
     runningThreads[coreId]=idle[coreId];
