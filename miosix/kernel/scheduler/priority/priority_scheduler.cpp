@@ -63,10 +63,10 @@ bool PriorityScheduler::IRQaddThread(Thread *thread,
 bool PriorityScheduler::IRQexists(Thread *thread)
 {
     for(int i=0;i<CPU_NUM_CORES;i++)
-        if(runningThreads[i]==thread) return true; //Running threads are not in list
+        if(runningThreads[i]==thread) return !thread->flags.isDeleted();
     for(int i=PRIORITY_MAX-1;i>=0;i--)
         for(auto t : readyThreads[i]) if(t==thread) return true;
-    for(auto t : notReadyThreads) if(t==thread) return !t->flags.isDeleted();
+    for(auto t : notReadyThreads) if(t==thread) return !thread->flags.isDeleted();
     return false;
 }
 
