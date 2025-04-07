@@ -242,7 +242,7 @@ void IRQcallOnCore(GlobalIrqLock& lock, unsigned char core, void (*f)(void *),
     } while(invocations[core].waiting);
 }
 
-void IRQlockupOtherCores()
+void IRQlockupOtherCores() noexcept
 {
     flags[1-getCurrentCoreId()]|=IPIFlags::HangUp;
     __DSB();

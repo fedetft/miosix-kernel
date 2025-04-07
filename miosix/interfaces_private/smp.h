@@ -92,7 +92,7 @@ void IRQcallOnCore(GlobalIrqLock& lock, unsigned char core, void (*f)(void *),
  * This function may be also called with interrupts locally disabled and the
  * GIL not yet taken.
  */
-void IRQlockupOtherCores();
+void IRQlockupOtherCores() noexcept;
 
 #endif //WITH_SMP
 
