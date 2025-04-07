@@ -272,7 +272,7 @@ bool Mutex::PKunlock(PauseKernelLock& dLock)
         waiting.pop_back();
         if(owner->mutexWaiting!=this) errorHandler(UNEXPECTED);
         owner->mutexWaiting=nullptr;
-        owner->PKwakeup(); //TODO: we may have woken a highr priority thread than the currently running one
+        owner->PKwakeup();
         if(owner->mutexLocked==nullptr) owner->savedPriority=owner->PKgetPriority();
         //Add this mutex to the list of mutexes locked by owner
         this->next=owner->mutexLocked;
@@ -356,7 +356,7 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
         waiting.pop_back();
         if(owner->mutexWaiting!=this) errorHandler(UNEXPECTED);
         owner->mutexWaiting=nullptr;
-        owner->PKwakeup(); //TODO: we may have woken a highr priority thread than the currently running one
+        owner->PKwakeup();
         if(owner->mutexLocked==nullptr) owner->savedPriority=owner->PKgetPriority();
         //Add this mutex to the list of mutexes locked by owner
         this->next=owner->mutexLocked;
@@ -403,10 +403,16 @@ void ConditionVariable::wait(Mutex& m)
 void ConditionVariable::wait(pthread_mutex_t *m)
 {
     WaitToken listItem(Thread::getCurrentThread());
+    #ifdef WITH_SMP
+    // In multi core CPUs one core could take the GlobalIrqLock and the other the
+    // PauseKernelLock, but to interact with this kind of mutex we really need to
+    // need to take the GlobalIrqLock so we need to take both
+    //PauseKernelLock pkLock; FIX BUG FIRST
+    #endif //WITH_SMP
     FastGlobalIrqLock dLock;
     unsigned int depth=IRQdoMutexUnlockAllDepthLevels(m);
     condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
-    Thread::IRQglobalIrqUnlockAndWait(dLock);
+    Thread::IRQglobalIrqUnlockAndWait(dLock); //BUG we're also holding the PK lock
     condList.removeFast(&listItem); //In case of spurious wakeup
     IRQdoMutexLockToDepth(m,dLock,depth);
 }
@@ -426,10 +432,16 @@ TimedWaitResult ConditionVariable::timedWait(Mutex& m, long long absTime)
 TimedWaitResult ConditionVariable::timedWait(pthread_mutex_t *m, long long absTime)
 {
     WaitToken listItem(Thread::getCurrentThread());
+    #ifdef WITH_SMP
+    // In multi core CPUs one core could take the GlobalIrqLock and the other the
+    // PauseKernelLock, but to interact with this kind of mutex we really need to
+    // need to take the GlobalIrqLock so we need to take both
+    //PauseKernelLock pkLock; FIX BUG FIRST
+    #endif //WITH_SMP
     FastGlobalIrqLock dLock;
     unsigned int depth=IRQdoMutexUnlockAllDepthLevels(m);
     condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
-    auto result=Thread::IRQglobalIrqUnlockAndTimedWait(dLock,absTime);
+    auto result=Thread::IRQglobalIrqUnlockAndTimedWait(dLock,absTime); //BUG we're also holding the PK lock
     condList.removeFast(&listItem); //In case of timeout or spurious wakeup
     IRQdoMutexLockToDepth(m,dLock,depth);
     return result;
@@ -437,12 +449,23 @@ TimedWaitResult ConditionVariable::timedWait(pthread_mutex_t *m, long long absTi
 
 void ConditionVariable::signal()
 {
+    #ifdef WITH_SMP
+    // In multi core CPUs one core could take the GlobalIrqLock and the other the
+    // PauseKernelLock. In this case there's no compelling reason to take also
+    // the GlobalIrqLock so we'll take only the PauseKernelLock
+    PauseKernelLock dLock;
+    #else //WITH_SMP
     // We could just pause the kernel but it's faster to disable interrupts
     FastGlobalIrqLock dLock;
+    #endif //WITH_SMP
     if(condList.empty()) return;
     Thread *t=condList.front()->thread;
     condList.pop_front();
+    #ifdef WITH_SMP
+    t->PKwakeup();
+    #else //WITH_SMP
     t->IRQwakeup();
+    #endif //WITH_SMP
     /*
      * A note on whether we should yield if waking a higher priority thread.
      * Doing a signal()/broadcast() is permitted either with the mutex locked
@@ -463,20 +486,15 @@ void ConditionVariable::signal()
 
 void ConditionVariable::broadcast()
 {
-    bool hppw=false;
     // Disabling interrupts would be faster but pausing kernel is an opportunity
     // to reduce interrupt latency in case we loop a large number of iterations
+    PauseKernelLock dLock;
+    while(!condList.empty())
     {
-        PauseKernelLock dLock;
-        while(!condList.empty())
-        {
-            Thread *t=condList.front()->thread;
-            condList.pop_front();
-            hppw=t->PKwakeup();
-        }
+        Thread *t=condList.front()->thread;
+        condList.pop_front();
+        t->PKwakeup();
     }
-    //PKwakeup() does NOT make the scheduler IRQ pending, we need to do it here
-    if(hppw) Thread::yield();
 }
 
 //

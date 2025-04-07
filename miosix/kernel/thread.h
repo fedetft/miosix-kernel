@@ -382,14 +382,20 @@ public:
 
     /**
      * Wakeup a thread.
-     * This function does NOT cause a context switch if the woken thread
-     * priority is higher than the one that is currently running on at least
-     * one core, as this would be unsafe in this context.
-     * <br>Can only be called when the kernel is paused.
-     * \return true if the priority of the woken thread is higher than the
-     * one that is currently running on at least one core
+     * Starting from Miosix 3 this function handles internally the check if the
+     * woken thread priority is higher than the one running on at least one core.
+     * If a core is found which is running a lower priority thread, then if
+     * this core is the same as the one that took the pauseKernel, no preemption
+     * is caused but pendingWakeup is set to a context switch will occur
+     * immediately when releasing the pauseKernel lock. This is the only case
+     * that can happen on a single core CPU. On a multi core CPU, however, the
+     * core running a lower priority thread may be another core. In this case,
+     * a preemption is caused immediately as the pauseKernel lock only disables
+     * preemption on the core that took the lock.
+     * 
+     * Can only be called when the kernel is paused.
      */
-    bool PKwakeup();
+    void PKwakeup();
 
     /**
      * Wakeup a thread.
@@ -397,7 +403,8 @@ public:
      * become pending if the woken thread priorirty is higher than the one that
      * is currently running on at least one core. A context switch will thus
      * occur as soon as interrupts are enabled again.
-     * <br>Can only be called inside an IRQ or when interrupts are disabled.
+     * 
+     * Can only be called inside an IRQ or when interrupts are disabled.
      */
     void IRQwakeup();
     

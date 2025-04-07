@@ -79,6 +79,9 @@ IntrusiveList<SleepData> sleepingList;///list of sleeping threads
 
 bool kernelStarted=false;///<\internal becomes true after IRQstartKernel.
 
+///Variables shared with lock.cpp for performance and encapsulation reasons
+extern volatile bool pendingWakeup;
+
 #ifdef WITH_PROCESSES
 /// The proc field of the Thread class for kernel threads points to this object
 static ProcessBase *kernel=nullptr;
@@ -472,20 +475,31 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
     return removed ? TimedWaitResult::NoTimeout : TimedWaitResult::Timeout;
 }
 
-bool Thread::PKwakeup()
+void Thread::PKwakeup()
 {
     //pausing the kernel is not enough because of IRQwait and IRQwakeup
     //DO NOT refactor this code by calling IRQwakeup() as IRQwakeup can cause
-    //the scheduler interrupt to be called something we should avoid doing here
+    //the scheduler interrupt to be called on the current core
     FastGlobalIrqLock lock;
     this->flags.IRQsetWait(this,false);
     auto wokenPrio=this->IRQgetPriority();
+    int coreId=getCurrentCoreId();
     // Heuristic load balancing: threads waking from mutexes get preferentially
-    // allocated to lower core numbers
+    // allocated to lower core numbers. Also, check first the cores that are
+    // not the one that took the lock
     for(int i=0;i<CPU_NUM_CORES;i++)
-        if(const_cast<Thread*>(runningThreads[i])->IRQgetPriority()<wokenPrio)
-            return true;
-    return false;
+    {
+        if(i!=coreId &&
+           const_cast<Thread*>(runningThreads[i])->IRQgetPriority()<wokenPrio)
+        {
+            IRQinvokeSchedulerOnCore(i);
+            return;
+        }
+    }
+    // If we get here all the cores that did not take the lock don't run lower
+    // priority threads. Check the core that is taking the lock
+    if(const_cast<Thread*>(runningThreads[coreId])->IRQgetPriority()<wokenPrio)
+        pendingWakeup=true;
 }
 
 void Thread::IRQwakeup()
