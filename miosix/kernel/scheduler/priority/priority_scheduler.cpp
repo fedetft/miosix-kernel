@@ -110,7 +110,7 @@ void PriorityScheduler::IRQsetPriority(Thread *thread,
     thread->schedData.priority=newPriority;
     // Last insert the thread in the new list
     // NOTE: notReadyThreads must be pushed front to keep invariant
-    //if(thread->flags.isDeleted()) errorHandler(UNEXPECTED);
+    //if(thread->flags.isZombie()) errorHandler(UNEXPECTED);
     if(thread->flags.isReady()==false) notReadyThreads.push_front(thread);
     else readyThreads[newPriority.get()].push_back(thread);
 }
@@ -159,7 +159,7 @@ void PriorityScheduler::IRQrunScheduler()
     {
         // NOTE: notReadyThreads must be pushed back if deleted, front if not
         // while if ready always back (round-robin)
-        if(prev->flags.isDeleted()) notReadyThreads.push_back(prev);
+        if(prev->flags.isZombie()) notReadyThreads.push_back(prev);
         else if(prev->flags.isReady()==false) notReadyThreads.push_front(prev);
         else readyThreads[prev->schedData.priority.get()].push_back(prev);
     }

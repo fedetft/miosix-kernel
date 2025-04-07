@@ -596,7 +596,7 @@ void Thread::detach()
     this->flags.IRQsetDetached();
     
     //we detached a terminated thread, so its memory needs to be deallocated
-    if(this->flags.isDeletedJoin()) atomicSwap(&existDeleted,1);
+    if(this->flags.isZombie()) atomicSwap(&existDeleted,1);
 
     //Corner case: detaching a thread, but somebody else already called join
     //on it. This makes join return false instead of deadlocking
@@ -605,7 +605,7 @@ void Thread::detach()
     {
         //joinData is an union, so its content can be an invalid thread
         //this happens if detaching a thread that has already terminated
-        if(this->flags.isDeletedJoin()==false)
+        if(this->flags.isZombie()==false)
         {
             //Wake thread, or it might sleep forever
             t->flags.IRQsetJoinWait(t,false);
@@ -626,7 +626,7 @@ bool Thread::join(void** result)
         if(this==cur) return false;
         if(Thread::IRQexists(this)==false) return false;
         if(this->flags.isDetached()) return false;
-        if(this->flags.isDeletedJoin()==false)
+        if(this->flags.isZombie()==false)
         {
             //Another thread already called join on toJoin
             if(this->joinData.waitingForJoin!=nullptr) return false;
@@ -642,7 +642,7 @@ bool Thread::join(void** result)
                 }
                 if(Thread::IRQexists(this)==false) return false;
                 if(this->flags.isDetached()) return false;
-                if(this->flags.isDeletedJoin()) break;
+                if(this->flags.isZombie()) break;
             }
         }
         //Thread deleted, complete join procedure

@@ -667,6 +667,8 @@ private:
         /**
          * Set the deleted flag of the thread. This flag can't be cleared.
          * Can only be called with interrupts disabled or within an interrupt.
+         * If the thread is joinable, it is not actually set to DELETED yet, but
+         * to ZOMBIE until it has either been joined or detached.
          * \param self thread whose status changed
          */
         void IRQsetDeleted(Thread *self);
@@ -711,6 +713,7 @@ private:
 
         /**
          * \return true if the deleted and the detached flags are set
+         * Deleted thrad can be deallocated immediately.
          */
         bool isDeleted() const { return (flags & 0x14)==0x14; }
 
@@ -718,7 +721,7 @@ private:
          * \return true if the thread has been deleted, but its resources cannot
          * be reclaimed because it has not yet been joined
          */
-        bool isDeletedJoin() const { return flags & DELETED; }
+        bool isZombie() const { return flags & DELETED; }
 
         /**
          * \return true if the deleting flag is set
