@@ -1072,7 +1072,7 @@ ifeq ($(ARCH),arm7_lpc2000)
     arch/common/sleep/lpc2000_sleep.cpp            \
     arch/common/drivers/serial_lpc2000.cpp         \
     arch/common/drivers/sd_lpc2000.cpp             \
-	$(ARCH_INC)/interfaces-impl/poweroff.cpp
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp
 
     ## Select programmer command line
     ## This is the program that is invoked when the user types 'make program'
@@ -1549,7 +1549,7 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
     arch/common/drivers/dcc.cpp                           \
     $(ARCH_INC)/interfaces-impl/delays.cpp                \
     $(ARCH_INC)/interfaces-impl/sleep.cpp                 \
-	$(ARCH_INC)/interfaces-impl/poweroff.cpp              \
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp              \
     arch/common/CMSIS/Device/ST/STM32F1xx/Source/Templates/system_stm32f1xx.c
 
 ##-----------------------------------------------------------------------------
@@ -1997,9 +1997,9 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
     AFLAGS_BASE   := $(CPU)
     CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(XRAM) \
-                     $(SRAM_BOOT) $(CPU) $(OPT_OPTIMIZATION)
+                     $(CPU) $(OPT_OPTIMIZATION)
     CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32F4 $(CLOCK_FREQ) $(XRAM) \
-                     $(SRAM_BOOT) $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
+                     $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
     LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
                      $(OPT_OPTIMIZATION) -nostdlib
@@ -2018,7 +2018,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     arch/common/drivers/dcc.cpp                               \
     arch/common/drivers/sd_stm32f2_f4_f7.cpp                  \
     $(ARCH_INC)/interfaces-impl/delays.cpp                    \
-	$(ARCH_INC)/interfaces-impl/poweroff.cpp                  \
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp                  \
     arch/common/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
 
 ##-----------------------------------------------------------------------------
@@ -2305,7 +2305,7 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     arch/common/drivers/dcc.cpp                              \
     arch/common/drivers/stm32_hardware_rng.cpp               \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
-	$(ARCH_INC)/interfaces-impl/poweroff.cpp                  \
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
     arch/common/CMSIS/Device/ST/STM32F2xx/Source/Templates/system_stm32f2xx.c
 
 ##-----------------------------------------------------------------------------
@@ -2406,7 +2406,7 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
     arch/common/drivers/stm32f1_f2_f4_serial.cpp             \
     arch/common/drivers/stm32_serial_common.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
-	$(ARCH_INC)/interfaces-impl/poweroff.cpp
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM3_efm32gg
@@ -2484,7 +2484,7 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
     arch/common/drivers/efm32_serial.cpp                     \
     arch/common/drivers/efm32_adc.cpp                        \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
-	$(ARCH_INC)/interfaces-impl/poweroff.cpp
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM7_stm32f7
@@ -2651,9 +2651,9 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := $(CPU)
     CFLAGS_BASE   += -D_ARCH_CORTEXM7_STM32F7 $(CLOCK_FREQ) $(XRAM) \
-                     $(SRAM_BOOT) $(CPU) $(OPT_OPTIMIZATION)
+                     $(CPU) $(OPT_OPTIMIZATION)
     CXXFLAGS_BASE += -D_ARCH_CORTEXM7_STM32F7 $(CLOCK_FREQ) $(XRAM) \
-                     $(SRAM_BOOT) $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
+                     $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
     LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map         \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)  \
                      $(OPT_OPTIMIZATION) -nostdlib
@@ -2673,7 +2673,7 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     arch/common/drivers/dcc.cpp                              \
     arch/common/drivers/sd_stm32f2_f4_f7.cpp                 \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
-	$(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
     arch/common/CMSIS/Device/ST/STM32F7xx/Source/Templates/system_stm32f7xx.c
 
 ##-----------------------------------------------------------------------------
@@ -2799,9 +2799,9 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
     CPU := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
     AFLAGS_BASE   := $(CPU)
     CFLAGS_BASE   += -D_ARCH_CORTEXM7_STM32H7 $(CLOCK_FREQ) $(XRAM) \
-                     $(SRAM_BOOT) $(CPU) $(OPT_OPTIMIZATION)
+                     $(CPU) $(OPT_OPTIMIZATION)
     CXXFLAGS_BASE += -D_ARCH_CORTEXM7_STM32H7 $(CLOCK_FREQ) $(XRAM) \
-                     $(SRAM_BOOT) $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
+                     $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
     LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map         \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)  \
                      $(OPT_OPTIMIZATION) -nostdlib
@@ -2822,7 +2822,7 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
     arch/common/drivers/sd_stm32h7.cpp                       \
     $(ARCH_INC)/drivers/pll.cpp                              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
-	$(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
     arch/common/CMSIS/Device/ST/STM32H7xx/Source/Templates/system_stm32h7xx.c
 
 ##-----------------------------------------------------------------------------
@@ -2931,7 +2931,7 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
     arch/common/drivers/stm32f7_serial.cpp                   \
     arch/common/drivers/stm32_serial_common.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
-	$(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
     arch/common/CMSIS/Device/ST/STM32F0xx/Source/Templates/system_stm32f0xx.c
 
 ##-----------------------------------------------------------------------------
@@ -3004,7 +3004,7 @@ else ifeq ($(ARCH),cortexM4_stm32f3)
     arch/common/drivers/stm32f7_serial.cpp                   \
     arch/common/drivers/stm32_serial_common.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
-	$(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
     arch/common/CMSIS/Device/ST/STM32F3xx/Source/Templates/system_stm32f3xx.c
 
 ##-----------------------------------------------------------------------------
@@ -3107,7 +3107,7 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
     arch/common/drivers/stm32f7_serial.cpp                   \
     arch/common/drivers/stm32_serial_common.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
-	$(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
     arch/common/CMSIS/Device/ST/STM32L4xx/Source/Templates/system_stm32l4xx.c
 
 ##-----------------------------------------------------------------------------
@@ -3181,7 +3181,7 @@ else ifeq ($(ARCH),cortexM4_atsam4l)
     $(ARCH_INC)/interfaces-impl/sleep.cpp                    \
     $(ARCH_INC)/interfaces-impl/gpio.cpp                     \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
-	$(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp
     
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM3_efm32g
@@ -3243,7 +3243,7 @@ else ifeq ($(ARCH),cortexM3_efm32g)
     arch/common/drivers/efm32_serial.cpp                     \
     arch/common/drivers/efm32_adc.cpp                        \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
-	$(ARCH_INC)/interfaces-impl/poweroff.cpp
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM0plus_stm32l0
@@ -3349,7 +3349,7 @@ else ifeq ($(ARCH),cortexM0plus_stm32l0)
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/drivers/stm32f7_serial.cpp                   \
     arch/common/drivers/stm32_serial_common.cpp              \
-	$(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
     arch/common/CMSIS/Device/ST/STM32L0xx/Source/Templates/system_stm32l0xx.c
 
 ##-----------------------------------------------------------------------------
@@ -3418,8 +3418,8 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
     arch/common/drivers/rp2040_serial.cpp                    \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/smp.cpp                      \
-	$(ARCH_INC)/interfaces-impl/atomic_ops_smp_impl.cpp      \
-	$(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+    $(ARCH_INC)/interfaces-impl/atomic_ops_smp_impl.cpp      \
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
     arch/common/CMSIS/Device/RaspberryPi/RP2040/Source/system_RP2040.c
 
 ##-----------------------------------------------------------------------------
@@ -3478,9 +3478,9 @@ else ifeq ($(ARCH),cortexM33_stm32h5)
     CPU := -mcpu=cortex-m33 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
     AFLAGS_BASE   := $(CPU)
     CFLAGS_BASE   += -D_ARCH_CORTEXM33_STM32H5 $(CLOCK_FREQ) $(XRAM) \
-                     $(SRAM_BOOT) $(CPU) $(OPT_OPTIMIZATION)
+                     $(CPU) $(OPT_OPTIMIZATION)
     CXXFLAGS_BASE += -D_ARCH_CORTEXM33_STM32H5 $(CLOCK_FREQ) $(XRAM) \
-                     $(SRAM_BOOT) $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
+                     $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
     LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map         \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)  \
                      $(OPT_OPTIMIZATION) -nostdlib
