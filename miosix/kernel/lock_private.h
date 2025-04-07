@@ -117,7 +117,6 @@ inline void irqDisabledPauseKernelForceToDepth(unsigned char savedNesting)
     pauseKernelNesting=savedNesting;
 }
 
-#ifdef WITH_SMP
 /**
  * \internal Lock the pause kernel lock to the specified nesting level.
  * Must be called with the pause kernel lock not taken by the current thread.
@@ -126,11 +125,15 @@ inline void irqDisabledPauseKernelForceToDepth(unsigned char savedNesting)
  */
 inline void pauseKernelForceToDepth(unsigned char savedNesting)
 {
+    #ifdef WITH_SMP
     fastDisableIrq();
     irqDisabledPauseKernelForceToDepth(savedNesting);
     fastEnableIrq();
+    #else
+    int old=atomicCompareAndSwap(&pauseKernelNesting,0,savedNesting);
+    if(old!=0) errorHandler(UNEXPECTED);
+    #endif
 }
-#endif
 
 /**
  * \internal Fully unlock the pause kernel lock and return the previous 
