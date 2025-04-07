@@ -66,6 +66,7 @@
 #OPT_BOARD := stm32l152re_nucleo
 #OPT_BOARD := stm32l010rb_nucleo
 #OPT_BOARD := stm32h503rb_generic
+#OPT_BOARD := nrf52840_generic
 
 ##
 ## Optimization flags, choose one.
@@ -857,6 +858,12 @@ endif
 
 # No options
 
+##---------------------------------------------------------------------------
+## nrf52840_generic
+##
+
+# No options
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -982,6 +989,8 @@ else ifeq ($(OPT_BOARD),stm32l010rb_nucleo)
     ARCH := cortexM0plus_stm32l0
 else ifeq ($(OPT_BOARD),stm32h503rb_generic)
     ARCH := cortexM33_stm32h5
+else ifeq ($(OPT_BOARD),nrf52840_generic)
+    ARCH := cortexM4_nrf52
 else
     $(info Error: no board specified in miosix/config/Makefile.inc)
     $(error Error)
@@ -3490,8 +3499,73 @@ else ifeq ($(ARCH),cortexM33_stm32h5)
     arch/common/drivers/stm32_serial_common.cpp              \
     arch/common/drivers/dcc.cpp                              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
-	$(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
     arch/common/CMSIS/Device/ST/STM32H5xx/Source/Templates/system_stm32h5xx.c
+
+##-----------------------------------------------------------------------------
+## ARCHITECTURE: cortexM4_nrf52
+##
+else ifeq ($(ARCH),cortexM4_nrf52)
+    ## Base directory with else header files for this board
+    ARCH_INC := arch/cortexM4_nrf52/common
+
+    ifeq ($(OPT_BOARD),nrf52840_generic)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM4_nrf52/nrf52840_generic
+
+        ## Select linker script
+        LINKER_SCRIPT := $(BOARD_INC)/nrf_1024k+256k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_NRF52840_GENERIC
+        CXXFLAGS_BASE += -D_BOARD_NRF52840_GENERIC
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        PROG ?= echo 'make program not supported.'
+
+    ##-------------------------------------------------------------------------
+    ## End of board list
+    ##
+    endif
+
+    ## Select compiler
+    PREFIX := arm-miosix-eabi-
+    ## This architecture supports processes
+    POSTLD := mx-postlinker
+
+    CPU_INC := arch/cpu/armv7m
+    ## Select appropriate compiler flags for both ASM/C/C++/linker
+    CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+    AFLAGS_BASE   := $(CPU)
+    CFLAGS_BASE   += -D_ARCH_CORTEXM4_NRF52 $(CPU) $(OPT_OPTIMIZATION)
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_NRF52 $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map         \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)  \
+                     $(OPT_OPTIMIZATION) -nostdlib
+
+    ## Select architecture specific files
+    ## These are the files in arch/<arch name>/common
+    ARCH_SRC +=                                              \
+    arch/cpu/armv7m/interfaces-impl/cpu.cpp                  \
+    arch/cpu/common/cortexMx_interrupts.cpp                  \
+    arch/cpu/common/cortexMx_userspace.cpp                   \
+    arch/common/os_timer/nrf52_os_timer.cpp                  \
+    arch/common/sleep/cortexMx_sleep.cpp                     \
+    arch/common/drivers/dcc.cpp                              \
+    $(ARCH_INC)/drivers/clock.cpp                            \
+    $(ARCH_INC)/interfaces-impl/delays.cpp                   \
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+    $(ARCH_INC)/interfaces-impl/gpio.cpp
 
 ##-----------------------------------------------------------------------------
 ## end of architecture list
