@@ -28,6 +28,7 @@
 #pragma once
 
 #include "config/miosix_settings.h"
+#include "kernel/lock_private.h"
 #include "kernel/scheduler/priority/priority_scheduler.h"
 #include "kernel/scheduler/control/control_scheduler.h"
 #include "kernel/scheduler/edf/edf_scheduler.h"
@@ -179,9 +180,11 @@ public:
      * does nothing. It's behaviour is to modify the global variable
      * miosix::runningThread which always points to the currently running thread.
      */
-    static void IRQrunScheduler()
+    static void IRQrunScheduler() noexcept
     {
-        T::IRQrunScheduler();
+        //If kernel is paused, preemption is disabled
+        if(kernelPaused()) pendingWakeup=true;
+        else T::IRQrunScheduler();
     }
     
     /**

@@ -186,11 +186,6 @@ long long ControlScheduler::IRQgetNextPreemption()
 
 void ControlScheduler::IRQrunScheduler()
 {
-    if(pauseKernelNesting!=0) //If kernel is paused, do nothing
-    {
-        pendingWakeup=true;
-        return;
-    }
     #ifdef WITH_CPU_TIME_COUNTER
     Thread *prev=const_cast<Thread*>(runningThread);
     #endif // WITH_CPU_TIME_COUNTER

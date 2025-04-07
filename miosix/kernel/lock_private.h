@@ -51,6 +51,8 @@ extern unsigned char globalLockNesting;
 extern unsigned char globalIntrNestLockHoldingCore;
 #endif //WITH_SMP
 
+extern volatile bool pendingWakeup;
+
 /**
  * \internal Lock the Global Irq Lock to a specified recursion depth.
  * Must be called with the lock not yet taken by the current thread.
@@ -155,6 +157,23 @@ inline int irqDisabledRestartKernelForce()
     #endif
     if(savedPauseKernelNesting==0) errorHandler(PAUSE_KERNEL_NESTING);
     return savedPauseKernelNesting;
+}
+
+/**
+ * \internal Returns whether the kernel is paused or not.
+ */
+inline bool kernelPaused() noexcept
+{
+    #ifdef WITH_SMP
+    // In a multi core environment pauseKernel disables preemption only on
+    // the core that paused the kernel, all other cores can preempt just
+    // fine. Of course, only one core at a time can call pauseKernel, if
+    // another core attempts it, then it just waits to protect shared
+    // variables modified within a pause kernel lock.
+    return globalPkNestLockHoldingCore==getCurrentCoreId();
+    #else //WITH_SMP
+    return pauseKernelNesting!=0;
+    #endif //WITH_SMP
 }
 
 } //namespace miosix
