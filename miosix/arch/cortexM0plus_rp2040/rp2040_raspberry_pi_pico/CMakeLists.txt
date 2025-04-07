@@ -51,15 +51,6 @@ if(NOT MIOSIX_LINKER_SCRIPT IN_LIST MIOSIX_LINKER_SCRIPT_LIST)
 endif()
 set_property(CACHE MIOSIX_LINKER_SCRIPT PROPERTY STRINGS ${MIOSIX_LINKER_SCRIPT_LIST})
 
-# This causes the interrupt vector table to be relocated in SRAM, must be
-# uncommented when using the ram linker script
-option(MIOSIX_SRAM_BOOT "This causes the interrupt vector table to be relocated in SRAM" OFF)
-if(MIOSIX_SRAM_BOOT)
-    set(SRAM_BOOT -DVECT_TAB_SRAM) # TODO: Change to an always defined flag
-elseif(MIOSIX_LINKER_SCRIPT STREQUAL ${MIOSIX_BOARD_INC}/stm32_1m+192k_ram.ld)
-    message(WARNING "You are relocating the interrupt vector table in SRAM but you are not using the ram linker script")
-endif()
-
 # Select HSE clock frequency (external clock on board, fixed)
 set(MIOSIX_HSE_VALUE -DHSE_VALUE=8000000)
 
