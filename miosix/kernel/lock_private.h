@@ -160,21 +160,4 @@ inline int irqDisabledRestartKernelForce()
     return savedPauseKernelNesting;
 }
 
-/**
- * \internal Returns whether the kernel is paused or not.
- */
-inline bool kernelPaused() noexcept
-{
-    #ifdef WITH_SMP
-    // In a multi core environment pauseKernel disables preemption only on
-    // the core that paused the kernel, all other cores can preempt just
-    // fine. Of course, only one core at a time can call pauseKernel, if
-    // another core attempts it, then it just waits to protect shared
-    // variables modified within a pause kernel lock.
-    return globalPkNestLockHoldingCore==getCurrentCoreId();
-    #else //WITH_SMP
-    return pauseKernelNesting!=0;
-    #endif //WITH_SMP
-}
-
 } //namespace miosix

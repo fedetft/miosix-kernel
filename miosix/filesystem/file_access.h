@@ -44,6 +44,9 @@
 
 namespace miosix {
 
+// needed in addFileDescriptorTable
+extern bool kernelStarted;
+
 /**
  * The result of resolvePath().
  */
@@ -531,7 +534,7 @@ public:
     void addFileDescriptorTable(FileDescriptorTable *fdt)
     {
         #ifdef WITH_PROCESSES
-        if(isKernelRunning())
+        if(kernelStarted)
         {
             Lock<FastMutex> l(mutex);
             fileTables.push_back(fdt);

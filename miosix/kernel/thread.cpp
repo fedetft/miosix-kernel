@@ -325,11 +325,6 @@ Memory layout for a thread
 Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
                        Priority priority, void *argv, unsigned short options)
 {
-    //TODO: the concept of isKernelRunning() needs to be updated since
-    //taking the pauseKernel on a core does not make the kernel not running
-    #ifndef WITH_SMP
-    if(isKernelRunning()==false) errorHandler(UNEXPECTED);
-    #endif //WITH_SMP
     //Check to see if input parameters are valid
     if(priority.validate()==false || stacksize<STACK_MIN) return nullptr;
     
@@ -594,7 +589,11 @@ void Thread::setPriority(Priority pr)
         Scheduler::IRQsetPriority(running,pr);
     }
     #ifdef SCHED_TYPE_EDF
-    if(isKernelRunning()) yield(); //Another thread might have a closer deadline
+    yield(); //Another thread might have a closer deadline
+    // TODO: the above yield, if executed with preemption disabled, causes the
+    // whole overhead of handling the PendSV just to set pendingWakeup.
+    // Do we care about optimizing this? Or it's infrequent enough we don't
+    // care?
     #endif //SCHED_TYPE_EDF
 }
 

@@ -183,7 +183,7 @@ public:
     static void IRQrunScheduler() noexcept
     {
         //If kernel is paused, preemption is disabled
-        if(kernelPaused()) pendingWakeup=true;
+        if(isKernelPaused()) pendingWakeup=true;
         else T::IRQrunScheduler();
     }
     
