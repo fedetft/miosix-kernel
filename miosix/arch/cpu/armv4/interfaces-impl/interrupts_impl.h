@@ -34,7 +34,7 @@ namespace miosix {
  * \{
  */
 
-//This architecture has no inerrupt priorities
+//This architecture has no interrupt priorities
 
 /**
  * \}

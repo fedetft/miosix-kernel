@@ -900,7 +900,7 @@ private:
     ///all mutexes. This is because when a thread locks a mutex its priority
     ///can change due to priority inheritance.
     Priority savedPriority;
-    ///List of mutextes locked by this thread
+    ///List of mutexes locked by this thread
     Mutex *mutexLocked;
     ///If the thread is waiting on a Mutex, mutexWaiting points to that Mutex
     Mutex *mutexWaiting;
