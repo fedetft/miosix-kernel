@@ -30,11 +30,32 @@
 
 #ifdef WITH_SMP
 
-#include "hw_spinlock.h"
+#include "kernel/lock.h"
 
 namespace miosix {
 
-using AtomicsLock = FastHwSpinLock<RP2040HwSpinlocks::Atomics>;
+class AtomicsLock
+{
+public:
+    AtomicsLock()
+    {
+        prevState=areInterruptsEnabled();
+        fastDisableIrq();
+        irqDisabledHwIrqLockAcquire(HwLocks::RP2040Atomics);
+    }
+
+    ~AtomicsLock()
+    {
+        irqDisabledHwIrqLockRelease(HwLocks::RP2040Atomics);
+        if(prevState) fastEnableIrq();
+    }
+
+    AtomicsLock(const AtomicsLock&)=delete;
+    AtomicsLock& operator= (const AtomicsLock&)=delete;
+
+private:
+    bool prevState;
+};
 
 int atomicSwapImpl(volatile int *p, int v)
 {

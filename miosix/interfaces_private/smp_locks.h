@@ -53,15 +53,17 @@ namespace miosix {
 
 /// \internal
 /// Definition of statically allocated hardware locks
-struct HwLocks
+/// In a namespace to allow extension while keeping enum-class-like syntax
+namespace HwLocks
 {
-    enum ID: unsigned char
+    using ID = unsigned char;
+    enum
     {
         GIL = 0,        /// Global interrupt lock
         PK,             /// Pause kernel lock
-        _Max
+        KernelMax
     };
-};
+}
 
 /**
  * \internal

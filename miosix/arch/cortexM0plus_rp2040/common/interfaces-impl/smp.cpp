@@ -163,7 +163,7 @@ __attribute__((noreturn)) void IRQcontinueInitCore1()
     SCB->SCR|=SCB_SCR_SEVONPEND_Msk;
     // Signal to the other core that we are done with setup
     __DSB();
-    (unsigned long)sio_hw->spinlock[RP2040HwSpinlocks::InitCoreSync];
+    (unsigned long)sio_hw->spinlock[HwLocks::RP2040InitCoreSync];
     // Call the main function, which shouldn't return. If it does, hang up
     f();
     for(;;) ;
@@ -172,7 +172,7 @@ __attribute__((noreturn)) void IRQcontinueInitCore1()
 void IRQinitSMP(void *const stackPtrs[], void (*const mains[])()) noexcept
 {
     // Ensure the core setup end spinlock is not taken
-    sio_hw->spinlock[RP2040HwSpinlocks::InitCoreSync]=1;
+    sio_hw->spinlock[HwLocks::RP2040InitCoreSync]=1;
     __DSB();
     // Send FIFO commands for the bootrom core idling mechanism
     for(;;)
@@ -208,8 +208,8 @@ void IRQinitSMP(void *const stackPtrs[], void (*const mains[])()) noexcept
     SCB->SCR|=SCB_SCR_SEVONPEND_Msk;
     // Wait until core 1 is done
     __DSB();
-    while(!(sio_hw->spinlock_st & (1<<RP2040HwSpinlocks::InitCoreSync))) ;
-    sio_hw->spinlock[RP2040HwSpinlocks::InitCoreSync]=1;
+    while(!(sio_hw->spinlock_st & (1<<HwLocks::RP2040InitCoreSync))) ;
+    sio_hw->spinlock[HwLocks::RP2040InitCoreSync]=1;
 }
 
 void IRQinvokeSchedulerOnCore(unsigned char core) noexcept
