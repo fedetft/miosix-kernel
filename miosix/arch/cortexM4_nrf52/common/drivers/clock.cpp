@@ -25,11 +25,49 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include <config/miosix_settings.h>
+#include <interfaces/arch_registers.h>
+#include <interfaces/delays.h>
+
 namespace miosix {
 
 void IRQmemoryAndClockInit()
 {
-    //TODO configure oscillators and PLL
+    NRF_NVMC->ICACHECNF=1; // Enable FLASH cache
+
+    // Added for safety to connect debugger if wrong options selected
+    delayMs(1000);
+
+    switch(oscillatorType)
+    {
+        case OscillatorType::HFINT: break; // Default option at boot
+        case OscillatorType::HFXO:
+            NRF_CLOCK->EVENTS_HFCLKSTARTED=0;
+            NRF_CLOCK->TASKS_HFCLKSTART=1;
+            while(NRF_CLOCK->EVENTS_HFCLKSTARTED==0) ;
+            break;
+    }
+    NRF_CLOCK->TASKS_LFCLKSTOP=1;
+    switch(rtcOscillatorType)
+    {
+        case RtcOscillatorType::NONE: break;
+        case RtcOscillatorType::LFRC:   NRF_CLOCK->LFCLKSRC=0; break;
+        case RtcOscillatorType::LFXO:   NRF_CLOCK->LFCLKSRC=1; break;
+        case RtcOscillatorType::LFSYNT: NRF_CLOCK->LFCLKSRC=2; break;
+    }
+    if(rtcOscillatorType!=RtcOscillatorType::NONE)
+    {
+        NRF_CLOCK->EVENTS_LFCLKSTARTED=0;
+        NRF_CLOCK->TASKS_LFCLKSTART=1;
+        while(NRF_CLOCK->EVENTS_LFCLKSTARTED==0) ;
+    }
+    switch(vregType)
+    {
+        case VoltageRegulatorType::LDO: break; // Default option at boot
+        case VoltageRegulatorType::SWITCHING:
+            NRF_POWER->DCDCEN=1;
+            break;
+    }
 }
 
 } // namespace miosix

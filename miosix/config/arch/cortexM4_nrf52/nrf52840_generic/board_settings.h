@@ -47,13 +47,18 @@ const unsigned int MAIN_STACK_SIZE=4*1024;
 
 /// Clock options
 enum class OscillatorType { HFINT, HFXO };
-constexpr auto oscillatorType=OscillatorType::HFINT;
+constexpr auto oscillatorType=OscillatorType::HFXO;
 constexpr unsigned int oscillatorFrequency=64000000;
 constexpr unsigned int cpuFrequency=oscillatorFrequency;
 constexpr unsigned int peripheralFrequency=oscillatorFrequency;
-enum class RtcOscillatorType { NONE, LFRC, LFXO };
-constexpr auto rtcOscillatorType=RtcOscillatorType::NONE;
+enum class RtcOscillatorType { NONE, LFRC, LFXO, LFSYNT };
+constexpr auto rtcOscillatorType=RtcOscillatorType::LFRC;
 constexpr unsigned int rtcOscillatorFrequency=32768;
+
+/// Power options
+enum class VoltageRegulatorType { LDO, SWITCHING };
+constexpr auto vregType=VoltageRegulatorType::SWITCHING;
+//TODO: second voltage regulator configuration currently unsupported
 
 /// Serial port TODO
 // const unsigned int defaultSerial=0;
