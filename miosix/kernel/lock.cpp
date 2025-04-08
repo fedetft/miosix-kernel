@@ -168,7 +168,7 @@ void restartKernel() noexcept
         // reschedule us here, any other thread that tries to take the PK lock
         // will have to wait until we are rescheduled to release the spinlock,
         // and this is clearly undesirable.
-        hwSpinlockRelease(RP2040HwSpinlocks::PK);
+        irqDisabledHwLockRelease(HwLocks::PK);
         fastEnableIrq();
     }
     #else //WITH_SMP

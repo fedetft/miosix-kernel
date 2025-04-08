@@ -36,6 +36,7 @@
 #include "config/miosix_settings.h"
 #include "interfaces/cpu_const.h"
 #include "interfaces/atomic_ops.h"
+#include "interfaces_private/smp.h"
 #include "lock.h"
 #include "error.h"
 
@@ -110,7 +111,7 @@ inline void irqDisabledPauseKernelForceToDepth(unsigned char savedNesting)
     // the scheduler might still move us from one core to another between
     // the call to getCurrentCoreId() and the (atomic) setting of the
     // variable.
-    irqDisabledHwSpinlockAcquire(RP2040HwSpinlocks::PK);
+    irqDisabledHwLockAcquire(HwLocks::PK);
     globalPkNestLockHoldingCore=getCurrentCoreId();
     #endif
     // NOTE: in the single core case we could do a compare and swap but since
@@ -149,7 +150,7 @@ inline int irqDisabledRestartKernelForce()
     auto savedPauseKernelNesting=pauseKernelNesting;
     pauseKernelNesting=0;
     globalPkNestLockHoldingCore=0xff;
-    hwSpinlockRelease(RP2040HwSpinlocks::PK);
+    irqDisabledHwLockRelease(HwLocks::PK);
     return savedPauseKernelNesting;
     #else
     auto savedPauseKernelNesting=pauseKernelNesting;
