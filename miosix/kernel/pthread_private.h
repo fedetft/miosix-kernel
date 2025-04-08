@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011-2023 by Terraneo Federico                          *
+ *   Copyright (C) 2011-2025 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -39,13 +39,13 @@ namespace miosix {
 
 /**
  * \internal
- * Implementation code to lock a mutex. Must be called with interrupts disabled
+ * Implementation code to lock a mutex. Must be called with the kernel paused
  * \param mutex mutex to be locked
- * \param d The instance of FastGlobalIrqLock used to disable interrupts
+ * \param d The instance of PauseKernelLock
  */
-static inline void IRQdoMutexLock(pthread_mutex_t *mutex, FastGlobalIrqLock& d)
+static inline void PKdoMutexLock(pthread_mutex_t *mutex, PauseKernelLock& d)
 {
-    void *p=reinterpret_cast<void*>(Thread::IRQgetCurrentThread());
+    void *p=reinterpret_cast<void*>(Thread::PKgetCurrentThread());
     if(mutex->owner==nullptr)
     {
         mutex->owner=p;
@@ -77,24 +77,24 @@ static inline void IRQdoMutexLock(pthread_mutex_t *mutex, FastGlobalIrqLock& d)
     }
 
     //The while is necessary to protect against spurious wakeups
-    while(mutex->owner!=p) Thread::IRQglobalIrqUnlockAndWait(d);
+    while(mutex->owner!=p) Thread::PKrestartKernelAndWait(d);
 }
 
 /**
  * \internal
  * Implementation code to lock a mutex to a specified depth level.
- * Must be called with interrupts disabled. If the mutex is not recursive the
+ * Must be called with the kernel paused. If the mutex is not recursive the
  * mutex is locked only one level deep regardless of the depth value.
  * \param mutex mutex to be locked
- * \param d The instance of FastGlobalIrqLock used to disable interrupts
+ * \param d The instance of PauseKernelLock
  * \param depth recursive depth at which the mutex will be locked. Zero
  * means the mutex is locked one level deep (as if lock() was called once),
  * one means two levels deep, etc. 
  */
-static inline void IRQdoMutexLockToDepth(pthread_mutex_t *mutex,
-        FastGlobalIrqLock& d, unsigned int depth)
+static inline void PKdoMutexLockToDepth(pthread_mutex_t *mutex,
+        PauseKernelLock& d, unsigned int depth)
 {
-    void *p=reinterpret_cast<void*>(Thread::IRQgetCurrentThread());
+    void *p=reinterpret_cast<void*>(Thread::PKgetCurrentThread());
     if(mutex->owner==nullptr)
     {
         mutex->owner=p;
@@ -127,28 +127,28 @@ static inline void IRQdoMutexLockToDepth(pthread_mutex_t *mutex,
     }
 
     //The while is necessary to protect against spurious wakeups
-    while(mutex->owner!=p) Thread::IRQglobalIrqUnlockAndWait(d);
+    while(mutex->owner!=p) Thread::PKrestartKernelAndWait(d);
     if(mutex->recursive>=0) mutex->recursive=depth;
 }
 
 /**
  * \internal
  * Implementation code to unlock all depth levels of a mutex.
- * Must be called with interrupts disabled
+ * Must be called with the kernel paused
  * \param mutex mutex to unlock
  * \return the mutex recursive depth (how many times it was locked by the
  * owner). Zero means the mutex is locked one level deep (lock() was called
  * once), one means two levels deep, etc. 
  */
-static inline unsigned int IRQdoMutexUnlockAllDepthLevels(pthread_mutex_t *mutex)
+static inline unsigned int PKdoMutexUnlockAllDepthLevels(pthread_mutex_t *mutex)
 {
 //    Safety check removed for speed reasons
-//    if(mutex->owner!=reinterpret_cast<void*>(Thread::IRQgetCurrentThread()))
+//    if(mutex->owner!=reinterpret_cast<void*>(Thread::PKgetCurrentThread()))
 //        return false;
     if(mutex->first!=nullptr)
     {
         Thread *t=reinterpret_cast<Thread*>(mutex->first->thread);
-        t->IRQwakeup();
+        t->PKwakeup();
         mutex->owner=mutex->first->thread;
         mutex->first=mutex->first->next;
 

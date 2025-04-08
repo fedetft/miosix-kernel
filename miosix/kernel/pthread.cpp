@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010-2023 by Terraneo Federico                          *
+ *   Copyright (C) 2010-2025 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -224,10 +224,10 @@ int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int kind)
 
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
 {
-    mutex->owner=0;
-    mutex->first=0;
+    mutex->owner=nullptr;
+    mutex->first=nullptr;
     //No need to initialize mutex->last
-    if(attr!=0)
+    if(attr!=nullptr)
     {
         mutex->recursive= attr->recursive==PTHREAD_MUTEX_RECURSIVE ? 0 : -1;
     } else mutex->recursive=-1;
@@ -236,22 +236,22 @@ int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
 
 int pthread_mutex_destroy(pthread_mutex_t *mutex)
 {
-    if(mutex->owner!=0) return EBUSY;
+    if(mutex->owner!=nullptr) return EBUSY;
     return 0;
 }
 
 int pthread_mutex_lock(pthread_mutex_t *mutex)
 {
-    FastGlobalIrqLock dLock;
-    IRQdoMutexLock(mutex,dLock);
+    PauseKernelLock dLock;
+    PKdoMutexLock(mutex,dLock);
     return 0;
 }
 
 int pthread_mutex_trylock(pthread_mutex_t *mutex)
 {
-    FastGlobalIrqLock dLock;
-    void *p=reinterpret_cast<void*>(Thread::IRQgetCurrentThread());
-    if(mutex->owner==0)
+    PauseKernelLock dLock;
+    void *p=reinterpret_cast<void*>(Thread::PKgetCurrentThread());
+    if(mutex->owner==nullptr)
     {
         mutex->owner=p;
         return 0;
@@ -266,9 +266,9 @@ int pthread_mutex_trylock(pthread_mutex_t *mutex)
 
 int pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
-    FastGlobalIrqLock dLock;
+    PauseKernelLock dLock;
 //    Safety check removed for speed reasons
-//    if(mutex->owner!=reinterpret_cast<void*>(Thread::IRQgetCurrentThread()))
+//    if(mutex->owner!=reinterpret_cast<void*>(Thread::PKgetCurrentThread()))
 //        return 0;
     if(mutex->recursive>0)
     {
@@ -278,7 +278,7 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
     if(mutex->first!=nullptr)
     {
         Thread *t=reinterpret_cast<Thread*>(mutex->first->thread);
-        t->IRQwakeup();
+        t->PKwakeup();
         mutex->owner=mutex->first->thread;
         mutex->first=mutex->first->next;
         return 0;
