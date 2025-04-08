@@ -183,8 +183,14 @@ public:
     static void IRQrunScheduler() noexcept
     {
         //If kernel is paused, preemption is disabled
-        if(isKernelPaused()) pendingWakeup=true;
+        #ifdef WITH_SMP
+        auto coreId=getCurrentCoreId();
+        if(globalPkNestLockHoldingCore==coreId) pendingWakeup=true;
+        else T::IRQrunScheduler(coreId);
+        #else
+        if(pauseKernelNesting) pendingWakeup=true;
         else T::IRQrunScheduler();
+        #endif
     }
     
     /**

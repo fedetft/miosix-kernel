@@ -135,7 +135,11 @@ public:
      * does nothing. It's behaviour is to modify the global variable
      * miosix::runningThread which always points to the currently running thread.
      */
+    #ifdef WITH_SMP
+    static void IRQrunScheduler(unsigned char coreId);
+    #else
     static void IRQrunScheduler();
+    #endif
     
     /**
      * \internal
@@ -161,6 +165,9 @@ public:
     }
 
 private:
+    /// \internal Internal implementation of IRQrunScheduler
+    /// \param coreId ID of the current core
+    static inline void IRQrunSchedulerImpl(unsigned char coreId);
 
     /**
      * \param coreId id of the core the preemption needs to be set for

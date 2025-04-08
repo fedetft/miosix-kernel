@@ -127,9 +127,22 @@ void PriorityScheduler::IRQwokenThread(Thread* thread)
     readyThreads[thread->schedData.priority.get()].push_back(thread);
 }
 
+#ifdef WITH_SMP
+void PriorityScheduler::IRQrunScheduler(unsigned char coreId)
+{
+    IRQrunSchedulerImpl(coreId);
+}
+#else
 void PriorityScheduler::IRQrunScheduler()
 {
-    int coreId=getCurrentCoreId();
+    // Thanks to the magic of compilers this should elide a lot of pointer
+    // arithmetic
+    IRQrunSchedulerImpl(0);
+}
+#endif
+
+inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
+{
     
     //If the previously running thread is not idle, we need to put it in a list
     Thread *prev=const_cast<Thread*>(runningThreads[coreId]);
