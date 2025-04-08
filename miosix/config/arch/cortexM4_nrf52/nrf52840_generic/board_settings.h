@@ -40,13 +40,20 @@ namespace miosix {
  * \{
  */
 
-/// TODO
-constexpr unsigned int bootClock=12000000;
-
 /// Size of stack for main().
 /// The C standard library is stack-heavy (iprintf requires 1KB) but the
 /// nrf52840 has 256KB of RAM so there is room for a big 4K stack.
 const unsigned int MAIN_STACK_SIZE=4*1024;
+
+/// Clock options
+enum class OscillatorType { HFINT, HFXO };
+constexpr auto oscillatorType=OscillatorType::HFINT;
+constexpr unsigned int oscillatorFrequency=64000000;
+constexpr unsigned int cpuFrequency=oscillatorFrequency;
+constexpr unsigned int peripheralFrequency=oscillatorFrequency;
+enum class RtcOscillatorType { NONE, LFRC, LFXO };
+constexpr auto rtcOscillatorType=RtcOscillatorType::NONE;
+constexpr unsigned int rtcOscillatorFrequency=32768;
 
 /// Serial port TODO
 // const unsigned int defaultSerial=0;

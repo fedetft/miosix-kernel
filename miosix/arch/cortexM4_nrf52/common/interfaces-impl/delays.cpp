@@ -28,13 +28,13 @@
 #include "interfaces/delays.h"
 #include "board_settings.h"
 
-#warning "TODO calibrate"
-
 namespace miosix {
+
+static_assert(cpuFrequency==64000000 || cpuFrequency==32000000,"Uncalibrated delay");
 
 void delayMs(unsigned int mseconds)
 {
-    const unsigned int count = bootClock / 4000;
+    const unsigned int count = cpuFrequency / 4000;
 
     for(unsigned int i=0;i<mseconds;i++)
     {
@@ -52,26 +52,19 @@ void delayUs(unsigned int useconds)
 {
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimization
-    if(bootClock==12000000)
+    if(cpuFrequency==64000000)
     {
-        asm volatile("    movs  r1, #3     \n"
-                     "    mul   r1, r1, %0 \n"
+        asm volatile("    lsls  %0, %0, 4  \n"
                      "    .align 2         \n" //4-byte aligned inner loop
-                     "1:  nop              \n" //Bring the loop time to 4 cycles
-                     "    subs  r1, r1, #1 \n"
-                     "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    } else if(bootClock==8000000) {
-        asm volatile("    movs  r1, #2     \n"
-                     "    mul   r1, r1, %0 \n"
-                     "    .align 2         \n" //4-byte aligned inner loop
-                     "1:  nop              \n" //Bring the loop time to 4 cycles
-                     "    subs  r1, r1, #1 \n"
-                     "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    } else {
-        asm volatile("    .align 2         \n" //4-byte aligned inner loop
                      "1:  nop              \n" //Bring the loop time to 4 cycles
                      "    subs  %0, %0, #1 \n"
-                     "    bpl   1b         \n"::"r"(useconds):"r1","cc");
+                     "    bpl   1b         \n":"=r"(useconds):"0"(useconds):"cc");
+    } else {
+        asm volatile("    lsls  %0, %0, 3  \n"
+                     "    .align 2         \n" //4-byte aligned inner loop
+                     "1:  nop              \n" //Bring the loop time to 4 cycles
+                     "    subs  %0, %0, #1 \n"
+                     "    bpl   1b         \n":"=r"(useconds):"0"(useconds):"cc");
     }
 }
 
