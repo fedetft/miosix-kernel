@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "interfaces-impl/lock_impl.h"
+#include "interfaces/interrupts.h"
 #include "interfaces/arch_registers.h"
 
 namespace miosix {

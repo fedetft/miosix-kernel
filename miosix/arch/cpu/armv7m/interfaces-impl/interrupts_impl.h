@@ -52,6 +52,28 @@ constexpr int defaultIrqPriority=(0.75f*(1<<__NVIC_PRIO_BITS))-1;
 /// Minimum interrupt priority that the hardware provides
 constexpr int minimumIrqPriority=(1<<__NVIC_PRIO_BITS)-1;
 
+inline void fastDisableIrq() noexcept
+{
+    //Since this function is inline there's the need for a memory barrier to
+    //avoid aggressive reordering
+    asm volatile("cpsid i":::"memory");
+}
+
+inline void fastEnableIrq() noexcept
+{
+    //Since this function is inline there's the need for a memory barrier to
+    //avoid aggressive reordering
+    asm volatile("cpsie i":::"memory");
+}
+
+inline bool areInterruptsEnabled() noexcept
+{
+    int i;
+    asm volatile("mrs   %0, primask    \n\t":"=r"(i));
+    if(i!=0) return false;
+    return true;
+}
+
 /**
  * \}
  */

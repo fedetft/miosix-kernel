@@ -482,45 +482,4 @@ public:
     DeepSleepLock& operator= (const DeepSleepLock&)=delete;
 };
 
-/**
- * \internal
- * Disable interrupts only on the core it is called from.
- *
- * This is currently meant to be an implementation detail used to implement the
- * global lock and we don't expect it to be useful for other uses, that's why
- * we're currently not providing RAII-style lock classes, though this may change
- * in the future if some use case for this function is found.
- *
- * \note If you're trying to use this function for driver development maybe
- * you're looking for fastGlobalIrqLock() instead?
- */
-inline void fastDisableIrq() noexcept;
-
-/**
- * \internal
- * Enable back interrupts on the core it was called from, after they have been
- * disabled by a call to fastDisableIrq().
- *
- * This is currently meant to be an implementation detail used to implement the
- * global lock and we don't expect it to be useful for other uses, that's why
- * we're currently not providing RAII-style lock classes, though this may change
- * in the future if some use case for this function is found.
- *
- * \note If you're trying to use this function for driver development maybe
- * you're looking for fastGlobalIrqUnlock() instead?
- */
-inline void fastEnableIrq() noexcept;
-
-/**
- * \internal
- * Provides a way to know if interrupts are enabled or not.
- *
- * \return true if interrupts are enabled
- * \warning Using this function is discouraged
- */
-inline bool areInterruptsEnabled() noexcept;
-
 } //namespace miosix
-
-
-#include "interfaces-impl/lock_impl.h"
