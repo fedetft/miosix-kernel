@@ -99,6 +99,18 @@ void *idleThreadCore0(void *)
         if(atomicSwap(&existDeleted,0)) Scheduler::removeDeadThreads();
         #ifdef WITH_SLEEP
         #ifdef WITH_DEEP_SLEEP
+        #ifdef WITH_SMP
+        #error Deep sleep not yet supported in SMP kernel
+        // TODO: deep sleep turns off clock to all peripherals and cpus, so it
+        // can be entered only when all cpus are idle.
+        // To implement this the following are needed:
+        //  - The scheduler needs to expose a global counting how many cores
+        //    are idle
+        //  - The deep sleep check/enter logic here needs to run on all cores
+        //    (not just core 0)
+        //  - Deep sleep is entered when deepSleepCounter==0 and the cpu idle
+        //    global reaches the core count
+        #endif
         {
             FastGlobalIrqLock lock;
             bool sleep;
