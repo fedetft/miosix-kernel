@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2025 by Federico Terraneo, Daniele Cattaneo             *
+ *   Copyright (C) 2025 by Daniele Cattaneo                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -27,18 +27,46 @@
 
 #pragma once
 
+#include "config/miosix_settings.h"
+
+#ifdef WITH_SMP
+
 #include "hw_spinlock.h"
 
 namespace miosix {
 
-inline void fastGlobalLockFromIrq() noexcept
+inline void irqDisabledHwIrqLockAcquire(HwLocks::ID i) noexcept
 {
-    IRQhwSpinlockAcquire(RP2040HwSpinlocks::GIL);
+    IRQhwSpinlockAcquire(i);
 }
 
-inline void fastGlobalUnlockFromIrq() noexcept
+inline void irqDisabledHwIrqLockRelease(HwLocks::ID i) noexcept
 {
-    IRQhwSpinlockRelease(RP2040HwSpinlocks::GIL);
+    IRQhwSpinlockRelease(i);
+}
+
+inline void irqDisabledHwLockAcquire(HwLocks::ID i) noexcept
+{
+    irqDisabledHwSpinlockAcquire(i);
+}
+
+inline void irqDisabledHwLockRelease(HwLocks::ID i) noexcept
+{
+    hwSpinlockRelease(i);
+}
+
+inline void hwLockAcquire(HwLocks::ID i) noexcept
+{
+    fastDisableIrq();
+    irqDisabledHwSpinlockAcquire(i);
+    fastEnableIrq();
+}
+
+inline void hwLockRelease(HwLocks::ID i) noexcept
+{
+    hwSpinlockRelease(i);
 }
 
 } // namespace miosix
+
+#endif // WITH_SMP

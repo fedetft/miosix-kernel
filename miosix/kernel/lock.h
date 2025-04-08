@@ -29,6 +29,7 @@
 
 #include "config/miosix_settings.h"
 #include "interfaces/interrupts.h"
+#include "interfaces_private/smp_locks.h"
 
 namespace miosix {
 
@@ -249,18 +250,30 @@ public:
  * global lock even from interrupt context, hence the global name.
  */
 #ifdef WITH_SMP
-inline void fastGlobalLockFromIrq() noexcept;
+inline void fastGlobalLockFromIrq() noexcept
+{
+    irqDisabledHwIrqLockAcquire(HwLocks::GIL);
+}
 #else //WITH_SMP
-inline void fastGlobalLockFromIrq() noexcept {} //Not needed in single core CPUs
+inline void fastGlobalLockFromIrq() noexcept
+{
+    //Not needed in single core CPUs
+}
 #endif //WITH_SMP
 
 /**
  * See the documentation for fastGlobalLockFromIrq()
  */
 #ifdef WITH_SMP
-inline void fastGlobalUnlockFromIrq() noexcept;
+inline void fastGlobalUnlockFromIrq() noexcept
+{
+    irqDisabledHwIrqLockRelease(HwLocks::GIL);
+}
 #else //WITH_SMP
-inline void fastGlobalUnlockFromIrq() noexcept {} //Not needed in single core CPUs
+inline void fastGlobalUnlockFromIrq() noexcept
+{
+    //Not needed in single core CPUs
+}
 #endif //WITH_SMP
 
 /**
@@ -511,7 +524,3 @@ inline bool areInterruptsEnabled() noexcept;
 
 
 #include "interfaces-impl/lock_impl.h"
-
-#ifdef WITH_SMP
-#include "interfaces-impl/lock_smp_impl.h"
-#endif

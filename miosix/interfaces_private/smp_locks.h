@@ -28,22 +28,16 @@
 #pragma once
 
 #include "config/miosix_settings.h"
-#include "interfaces_private/smp_locks.h"
-#include "kernel/lock.h"
-
-#ifndef COMPILING_MIOSIX
-#error "This is header is private, it can't be used outside Miosix itself."
-#error "If your code depends on a private header, it IS broken."
-#endif //COMPILING_MIOSIX
 
 /**
  * \addtogroup Interfaces
  * \{
  */
 
-/**
- * \file smp.h
- * This file defines the functions required to support multi-core platforms.
+ /**
+ * \file smp_locks.h
+ * This file defines the functions required to support locking on multi-core
+ * platforms.
  * These functions only exist if the WITH_SMP macro is defined in the kernel
  * settings.
  */
@@ -53,65 +47,75 @@ namespace miosix {
 #ifdef WITH_SMP
 
 /**
- * \name SMP setup and teardown
+ * \name Inter-processor hardware locking
  * \{
  */
 
-/**
- * \internal
- * Starts symmetric multi-processing (SMP) support, enabling all cores and
- * initializing their state. This function must be called while holding the
- * Global Irq Lock (GIL). The main functions for the other cores will start
- * executing with interrupts disabled, but with the GIL not taken.
- * 
- * \param stackPtrs An array with one initial process stack pointer
- *                  for each core except core 0.
- * \param mains     An array with one pointer to a main function
- *                  for each core except core 0.
- */
-void IRQinitSMP(void *const stackPtrs[], void (*const mains[])()) noexcept;
+/// \internal
+/// Definition of statically allocated hardware locks
+struct HwLocks
+{
+    enum ID: unsigned char
+    {
+        GIL = 0,        /// Global interrupt lock
+        PK,             /// Pause kernel lock
+        _Max
+    };
+};
 
 /**
  * \internal
- * Stops SMP support, for example because an unrecoverable system error
- * happened, by stopping all cores except the current one.
- * This function may be also called with interrupts locally disabled and the
- * GIL not yet taken.
+ * Acquire an Hardware Irq Lock, meant to synchronize between threads and
+ * interrupt handler on SMP platforms. This will be typically implemented in a
+ * spinlock-like way.
+ * This function can be called:
+ *  - outside an interrupt handler, but with local interrupts disabled,
+ *  - inside an interrupt handler.
+ * \param i The ID of the lock.
  */
-void IRQlockupOtherCores() noexcept;
-
-/**
- * \}
- */
-
-/**
- * \name Inter-processor operations
- * \{
- */
+inline void irqDisabledHwIrqLockAcquire(HwLocks::ID i) noexcept;
 
 /**
  * \internal
- * Asynchronously call IRQinvokeScheduler on the specified core.
- * Note that if this function is called very frequently and the target processor
- * is very busy, multiple calls to IRQinvokeScheduler may be coalesced into one.
+ * Releases the specified Hardware Irq Lock.
+ * \param i The ID of the lock.
  */
-void IRQinvokeSchedulerOnCore(unsigned char core) noexcept;
+inline void irqDisabledHwIrqLockRelease(HwLocks::ID i) noexcept;
+
 
 /**
  * \internal
- * Synchronously executes a given function on a specific core within an
- * interrupt context.
- * This function must be called while holding the global interrupt lock (GIL)
- * but it will release the GIL while waiting for the function to complete.
- * The function executed will also be run while holding the GIL.
- * 
- * \param lock A GlobalIrqLock (GIL) lock that must be already taken here.
- * \param core The core ID where to execute the function.
- * \param f    The function to execute on the core.
- * \param arg  The argument to pass to the function.
+ * Acquire an Hardware Lock, meant to synchronize between threads only
+ * on SMP platforms. This will be typically implemented in a
+ * spinlock-like way. The difference from a Hardware *Irq* Lock is that
+ * this lock allows peripheral interrupts to be served during the wait.
+ * This function can be called only outside an interrupt handler, but with
+ * local interrupts disabled.
+ * \param i The ID of the lock.
  */
-void IRQcallOnCore(GlobalIrqLock& lock, unsigned char core, void (*f)(void *),
-                   void *arg) noexcept;
+inline void irqDisabledHwLockAcquire(HwLocks::ID i) noexcept;
+
+/**
+ * \internal
+ * Releases the specified Hardware  Lock.
+ * \param i The ID of the lock.
+ */
+inline void irqDisabledHwLockRelease(HwLocks::ID i) noexcept;
+
+
+/**
+ * \internal
+ * Same as irqDisabledHwLockAcquire but local interrupts do not need to be
+ * disabled.
+ */
+inline void hwLockAcquire(HwLocks::ID i) noexcept;
+
+/**
+ * \internal
+ * Same as irqDisabledHwLockRelease but local interrupts do not need to be
+ * disabled.
+ */
+inline void hwLockRelease(HwLocks::ID i) noexcept;
 
 /**
  * \}
@@ -124,3 +128,8 @@ void IRQcallOnCore(GlobalIrqLock& lock, unsigned char core, void (*f)(void *),
 /**
  * \}
  */
+
+#ifdef WITH_SMP
+#include "interfaces-impl/smp_locks_impl.h"
+#endif
+    
