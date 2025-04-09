@@ -64,7 +64,6 @@ list(APPEND MIOSIX_ARCH_SRC
     ${MIOSIX_KPATH}/arch/common/drivers/rp2040_serial.cpp
     ${MIOSIX_ARCH_INC}/interfaces-impl/delays.cpp
     ${MIOSIX_ARCH_INC}/interfaces-impl/smp.cpp
-    ${MIOSIX_ARCH_INC}/interfaces-impl/hw_spinlock.cpp
     ${MIOSIX_ARCH_INC}/interfaces-impl/atomic_ops_smp_impl.cpp
     ${MIOSIX_ARCH_INC}/interfaces-impl/poweroff.cpp
     ${MIOSIX_KPATH}/arch/common/CMSIS/Device/RaspberryPi/RP2040/Source/system_RP2040.c
