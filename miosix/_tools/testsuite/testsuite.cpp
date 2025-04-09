@@ -1535,7 +1535,7 @@ static void test_8()
 //
 /*
 tests:
-isKernelRunning()
+isKernelPaused()
 areInterruptsEnabled()
 */
 
@@ -1562,31 +1562,31 @@ void t9_p1(void*)
 
 static void test_9()
 {
-    test_name("isKernelRunning and save/restore interrupts");
+    test_name("isKernelPaused and save/restore interrupts");
     //Testing kernel_running with nested pause_kernel()
     Thread *p=Thread::create(t9_p1,STACK_SMALL,0,NULL,Thread::JOINABLE);
-    if(isKernelRunning()==false) fail("isKernelRunning() (1)");
+    if(isKernelPaused()==true) fail("isKernelPaused() (1)");
     pauseKernel();//1
-    if(isKernelRunning()==true)
+    if(isKernelPaused()==false)
     {
         restartKernel();
-        fail("isKernelRunning() (2)");
+        fail("isKernelPaused() (2)");
     }
     pauseKernel();//2
-    if(isKernelRunning()==true)
+    if(isKernelPaused()==false)
     {
         restartKernel();
         restartKernel();
-        fail("isKernelRunning() (3)");
+        fail("isKernelPaused() (3)");
     }
     restartKernel();//2
-    if(isKernelRunning()==true)
+    if(isKernelPaused()==false)
     {
         restartKernel();
-        fail("isKernelRunning() (4)");
+        fail("isKernelPaused() (4)");
     }
     restartKernel();//1
-    if(isKernelRunning()==false) fail("isKernelRunning() (5)");
+    if(isKernelPaused()==true) fail("isKernelRunning() (5)");
     //Testing nesting of globalIrqLock()
     if(areInterruptsEnabled()==false) fail("areInterruptsEnabled() (1)");
     globalIrqLock();//Now interrupts should be disabled
