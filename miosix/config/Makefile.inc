@@ -3101,6 +3101,7 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
     arch/cpu/armv7m/interfaces-impl/cpu.cpp                  \
     arch/cpu/common/cortexMx_interrupts.cpp                  \
     arch/cpu/common/cortexMx_userspace.cpp                   \
+    arch/common/cache/cortexMx_cache.cpp                     \
     arch/common/os_timer/stm32_32bit_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/drivers/stm32_gpio.cpp                       \

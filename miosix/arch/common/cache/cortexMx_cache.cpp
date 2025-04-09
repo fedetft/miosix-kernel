@@ -48,7 +48,7 @@ static const unsigned int cacheLine=32; //Cortex-M7 cache line size
  * the next power of 2
  */
 static void IRQconfigureCacheability(unsigned int region, unsigned int base,
-                                     unsigned int size)
+                                     unsigned int size, bool executePermitted)
 {
     // NOTE: The ARM documentation is unclear about the effect of the shareable
     // bit on a single core architecture. Experimental evidence on an STM32F476
@@ -56,9 +56,10 @@ static void IRQconfigureCacheability(unsigned int region, unsigned int base,
     // causes the boot to fail.
     // For this reason, all regions are marked as not shareable
     MPU->RBAR=(base & (~(cacheLine-1))) | MPU_RBAR_VALID_Msk | region;
-    MPU->RASR=1<<MPU_RASR_AP_Pos //Privileged: RW, unprivileged: no access
-               | MPU_RASR_C_Msk  //Cacheable, write through
-               | 1               //Enable bit
+    MPU->RASR=(executePermitted ? 0 : 1<<MPU_RASR_XN_Pos)
+               | 1<<MPU_RASR_AP_Pos //Privileged: RW, unprivileged: no access
+               | MPU_RASR_C_Msk     //Cacheable, write through
+               | 1                  //Enable bit
                | sizeToMpu(size)<<1;
 }
 
@@ -69,14 +70,16 @@ void IRQconfigureCache(const unsigned int *xramBase, unsigned int xramSize)
     // The lower regions are used by the kernel and by default forbid access to
     // unprivileged code, while the higher numbered ones are used by processes
     // to override the default deny policy for the process-specific memory.
-    IRQconfigureCacheability(0,0x00000000,0x20000000);
-    IRQconfigureCacheability(1,0x20000000,0x20000000);
+    IRQconfigureCacheability(0,0x00000000,0x20000000,true);
+    IRQconfigureCacheability(1,0x20000000,0x20000000,false);
     if(xramSize)
-        IRQconfigureCacheability(2,reinterpret_cast<unsigned int>(xramBase),xramSize);
+        IRQconfigureCacheability(2,reinterpret_cast<unsigned int>(xramBase),xramSize,false);
     IRQenableMPUatBoot();
     
+    #if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT==1)
     SCB_EnableICache();
     SCB_EnableDCache();
+    #endif
 }
 
 #if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT==1)
