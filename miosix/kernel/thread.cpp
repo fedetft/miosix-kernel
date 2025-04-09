@@ -87,6 +87,11 @@ extern volatile bool pendingWakeup;
 static ProcessBase *kernel=nullptr;
 #endif //WITH_PROCESSES
 
+bool isKernelStarted()
+{
+    return kernelStarted;
+}
+
 /**
  * \internal
  * Idle thread. Created when the kernel is started, it physically deallocates

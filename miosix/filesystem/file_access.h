@@ -38,14 +38,12 @@
 #include "devfs/devfs.h"
 #include "kernel/sync.h"
 #include "kernel/intrusive.h"
+#include "kernel/thread.h"
 #include "config/miosix_settings.h"
 
 #ifdef WITH_FILESYSTEM
 
 namespace miosix {
-
-// needed in addFileDescriptorTable
-extern bool kernelStarted;
 
 /**
  * The result of resolvePath().
@@ -534,7 +532,7 @@ public:
     void addFileDescriptorTable(FileDescriptorTable *fdt)
     {
         #ifdef WITH_PROCESSES
-        if(kernelStarted)
+        if(isKernelStarted())
         {
             Lock<FastMutex> l(mutex);
             fileTables.push_back(fdt);
