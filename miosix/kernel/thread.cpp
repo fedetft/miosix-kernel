@@ -593,13 +593,8 @@ void Thread::setPriority(Priority pr)
         if(pr==running->IRQgetPriority()) return;
         Scheduler::IRQsetPriority(running,pr);
     }
-    #ifdef SCHED_TYPE_EDF
-    yield(); //Another thread might have a closer deadline
-    // TODO: the above yield, if executed with preemption disabled, causes the
-    // whole overhead of handling the PendSV just to set pendingWakeup.
-    // Do we care about optimizing this? Or it's infrequent enough we don't
-    // care?
-    #endif //SCHED_TYPE_EDF
+    // TODO we may yield only if the priority was lowered
+    yield();
 }
 
 void Thread::terminate()
