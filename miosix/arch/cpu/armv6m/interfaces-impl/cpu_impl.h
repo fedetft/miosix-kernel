@@ -65,11 +65,12 @@
  */
 #warning adapted only works for rp2040
 #define saveContext()                                                        \
-    asm volatile("push  {lr}             \n\t" /*save lr on MAIN stack*/      \
+    asm volatile(".syntax unified        \n\t"                                \
+                 "push  {lr}             \n\t" /*save lr on MAIN stack*/      \
                  "mrs   r1,  psp         \n\t" /*get PROCESS stack pointer*/  \
                  "ldr   r2,  =0xd0000000 \n\t" /* CPUID */                    \
                  "ldr   r2,  [r2]        \n\t"                                \
-                 "lsl   r2,  #2          \n\r"                                \
+                 "lsls  r2,  #2          \n\r"                                \
                  "ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
                  "ldr   r0,  [r0, r2]    \n\t"                                \
                  "stmia r0!, {r1,r4-r7}  \n\t" /*save PROCESS sp + r4-r7*/    \
@@ -88,9 +89,10 @@
  * prevent the compiler from generating context restore.
  */
 #define restoreContext()                                                     \
-    asm volatile("ldr   r2,  =0xd0000000 \n\t" /* CPUID */                    \
+    asm volatile(".syntax unified        \n\t"                                \
+                 "ldr   r2,  =0xd0000000 \n\t" /* CPUID */                    \
                  "ldr   r2,  [r2]        \n\t"                                \
-                 "lsl   r2,  #2          \n\r"                                \
+                 "lsls  r2,  #2          \n\r"                                \
                  "ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
                  "ldr   r0,  [r0, r2]    \n\t"                                \
                  "ldmia r0!, {r1,r4-r7}  \n\t" /*pop r8-r11 saving in r4-r7*/ \
