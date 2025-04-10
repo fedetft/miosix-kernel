@@ -399,10 +399,8 @@ public:
         restartKernel();
     }
 
-private:
-    //Unwanted methods
-    PauseKernelLock(const PauseKernelLock& l);
-    PauseKernelLock& operator= (const PauseKernelLock& l);
+    PauseKernelLock(const PauseKernelLock&)=delete;
+    PauseKernelLock& operator= (const PauseKernelLock&)=delete;
 };
 
 /**
