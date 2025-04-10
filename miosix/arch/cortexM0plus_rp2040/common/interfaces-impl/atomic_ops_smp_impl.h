@@ -33,8 +33,6 @@
  * instructions, so we have to redefine the atomic operations using functions
  * that disable the interrupts and take a spinlock to prevent multicore race
  * conditions.
- * 
- * TODO: actually this implementation is not very efficient
  */
 
 namespace miosix {
