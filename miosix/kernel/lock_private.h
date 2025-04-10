@@ -65,7 +65,7 @@ inline void globalIrqForceLockToDepth(unsigned char savedNesting)
     fastGlobalIrqLock();
     #ifdef WITH_SMP
     globalIntrNestLockHoldingCore=getCurrentCoreId();
-    #endif
+    #endif //WITH_SMP
     if(globalLockNesting!=0) errorHandler(GLOBAL_LOCK_NESTING);
     globalLockNesting=savedNesting;
 }
@@ -82,7 +82,7 @@ inline unsigned char globalIrqForceUnlock()
     globalLockNesting=0;
     #ifdef WITH_SMP
     globalIntrNestLockHoldingCore=0xff;
-    #endif
+    #endif //WITH_SMP
     fastGlobalIrqUnlock();
     return savedNesting;
 }
@@ -113,7 +113,7 @@ inline void irqDisabledPauseKernelForceToDepth(unsigned char savedNesting)
     // variable.
     irqDisabledHwLockAcquire(HwLocks::PK);
     globalPkNestLockHoldingCore=getCurrentCoreId();
-    #endif
+    #endif //WITH_SMP
     // NOTE: in the single core case we could do a compare and swap but since
     // we already disabled interrupts it's not necessary
     if(pauseKernelNesting!=0) errorHandler(UNEXPECTED);
@@ -132,10 +132,10 @@ inline void pauseKernelForceToDepth(unsigned char savedNesting)
     fastDisableIrq();
     irqDisabledPauseKernelForceToDepth(savedNesting);
     fastEnableIrq();
-    #else
+    #else //WITH_SMP
     int old=atomicCompareAndSwap(&pauseKernelNesting,0,savedNesting);
     if(old!=0) errorHandler(UNEXPECTED);
-    #endif
+    #endif //WITH_SMP
 }
 
 /**
@@ -146,16 +146,12 @@ inline void pauseKernelForceToDepth(unsigned char savedNesting)
  */
 inline int irqDisabledRestartKernelForce()
 {
-    #ifdef WITH_SMP
     auto savedPauseKernelNesting=pauseKernelNesting;
     pauseKernelNesting=0;
+    #ifdef WITH_SMP
     globalPkNestLockHoldingCore=0xff;
     irqDisabledHwLockRelease(HwLocks::PK);
-    return savedPauseKernelNesting;
-    #else
-    auto savedPauseKernelNesting=pauseKernelNesting;
-    pauseKernelNesting=0;
-    #endif
+    #endif //WITH_SMP
     if(savedPauseKernelNesting==0) errorHandler(PAUSE_KERNEL_NESTING);
     return savedPauseKernelNesting;
 }
