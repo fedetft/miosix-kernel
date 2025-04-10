@@ -143,7 +143,6 @@ void PriorityScheduler::IRQrunScheduler()
 
 inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
 {
-    
     //If the previously running thread is not idle, we need to put it in a list
     Thread *prev=const_cast<Thread*>(runningThreads[coreId]);
     if(prev!=idle[coreId])
@@ -184,11 +183,27 @@ inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
         // have to schedule more than one higher priority thread than
         // currently running. When this happens, we need to call the
         // scheduler again on more than one core
-        //TODO maybe check if there's a ready thread that can run first
-        for(int j=0;j<CPU_NUM_CORES;j++)
+        signed char minRunningPriority=
+            const_cast<Thread*>(runningThreads[0])->schedData.priority.get();
+        int coreRunningMinPriorityThread=0;
+        for(int j=1;j<CPU_NUM_CORES;j++)
         {
-            if(const_cast<Thread*>(runningThreads[j])->schedData.priority<i)
-            IRQinvokeSchedulerOnCore(j);
+            signed char p=
+                const_cast<Thread*>(runningThreads[j])->schedData.priority.get();
+            if(p<minRunningPriority)
+            {
+                minRunningPriority=p;
+                coreRunningMinPriorityThread=j;
+            }
+        }
+        // This is a loop in a loop with the same variable to continue from
+        // where we left, but we'll never go back to the outer loop
+        for(;i>=0;i--)
+        {
+            if(i<=minRunningPriority) break;
+            if(readyThreads[i].empty()) continue;
+            IRQinvokeSchedulerOnCore(coreRunningMinPriorityThread);
+            break;
         }
         #endif //WITH_SMP
         return;
