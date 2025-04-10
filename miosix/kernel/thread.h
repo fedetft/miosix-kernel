@@ -84,6 +84,7 @@ class ConditionVariable;
 class GlobalIrqLock;
 class FastGlobalIrqLock;
 class PauseKernelLock;
+class FastPauseKernelLock;
 #ifdef WITH_PROCESSES
 class ProcessBase;
 class Process;
@@ -230,7 +231,30 @@ public:
      * \param dLock the PauseKernelLock object that was used to disable
      * preemption in the current context.
      */
-    static void PKrestartKernelAndWait(PauseKernelLock& dLock);
+    static void PKrestartKernelAndWait(PauseKernelLock& dLock)
+    {
+        (void)dLock; //Common implementation doesn't need it
+        return PKrestartKernelAndWaitImpl();
+    }
+
+    /**
+     * This method stops the thread until wakeup() is called.
+     * Ths method is useful to implement any kind of blocking primitive,
+     * including device drivers.
+     *
+     * NOTE: this method is meant to put the current thread in wait status in a
+     * piece of code where the kernel is paused (preemption disabled).
+     * Preemption will be enabled during the waiting period, and disabled back
+     * before this method returns.
+     *
+     * \param dLock the FastPauseKernelLock object that was used to disable
+     * preemption in the current context.
+     */
+    static void PKrestartKernelAndWait(FastPauseKernelLock& dLock)
+    {
+        (void)dLock; //Common implementation doesn't need it
+        return PKrestartKernelAndWaitImpl();
+    }
 
     /**
      * This method stops the thread until wakeup() is called.
@@ -312,7 +336,35 @@ public:
      * \return TimedWaitResult::Timeout if the wait timed out
      */
     static TimedWaitResult PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
-            long long absoluteTimeNs);
+            long long absoluteTimeNs)
+    {
+        (void)dLock; //Common implementation doesn't need it
+        return PKrestartKernelAndTimedWaitImpl(absoluteTimeNs);
+    }
+
+    /**
+     * This method stops the thread until wakeup() is called or the specified
+     * absolute time in nanoseconds is reached.
+     * Ths method is thus a combined IRQwait() and absoluteSleep(), and is
+     * useful to implement any kind of blocking primitive with timeout,
+     * including device drivers.
+     *
+     * NOTE: this method is meant to put the current thread in wait status in a
+     * piece of code where the kernel is paused (preemption disabled).
+     * Preemption will be enabled during the waiting period, and disabled back
+     * before this method returns.
+     *
+     * \param dLock the FastPauseKernelLock object that was used to disable
+     * preemption in the current context.
+     * \param absoluteTimeoutNs absolute time after which the wait times out
+     * \return TimedWaitResult::Timeout if the wait timed out
+     */
+    static TimedWaitResult PKrestartKernelAndTimedWait(FastPauseKernelLock& dLock,
+            long long absoluteTimeNs)
+    {
+        (void)dLock; //Common implementation doesn't need it
+        return PKrestartKernelAndTimedWaitImpl(absoluteTimeNs);
+    }
 
     /**
      * This method stops the thread until wakeup() is called or the specified
@@ -863,12 +915,22 @@ private:
     static void threadLauncher(void *(*threadfunc)(void*), void *argv);
 
     /**
+     * Common implementation of all PKglobalIrqUnlockAndWait calls
+     */
+    static void PKrestartKernelAndWaitImpl();
+
+    /**
      * Common implementation of all IRQglobalIrqUnlockAndWait calls
      */
     static void IRQglobalIrqUnlockAndWaitImpl();
 
     /**
-     * Common implementation of all timedWait calls
+     * Common implementation of all PK timedWait calls
+     */
+    static TimedWaitResult PKrestartKernelAndTimedWaitImpl(long long absoluteTimeNs);
+
+    /**
+     * Common implementation of all IRQ timedWait calls
      */
     static TimedWaitResult IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTimeNs);
 

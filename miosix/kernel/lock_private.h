@@ -37,6 +37,7 @@
 #include "interfaces/cpu_const.h"
 #include "interfaces/atomic_ops.h"
 #include "interfaces_private/smp.h"
+#include "thread.h"
 #include "lock.h"
 #include "error.h"
 
@@ -45,6 +46,7 @@ namespace miosix {
 extern int pauseKernelNesting;
 #ifdef WITH_SMP
 extern unsigned char globalPkNestLockHoldingCore;
+extern bool kernelStarted;
 #endif //WITH_SMP
 
 extern unsigned char globalLockNesting;
@@ -86,6 +88,78 @@ inline unsigned char globalIrqForceUnlock()
     fastGlobalIrqUnlock();
     return savedNesting;
 }
+
+/**
+ * Fast, non recursive version of pauseKernel
+ */
+inline void fastPauseKernel() noexcept
+{
+    #ifdef WITH_SMP
+    // NOTE: the code below would disable and then enable interrupts, so isn't
+    // safe to be called before the kernel is started. However, ther's no need
+    // for locking before the kernel is started, so do nothing
+    if(kernelStarted==false) return;
+    fastDisableIrq();
+    irqDisabledHwLockAcquire(HwLocks::PK);
+    globalPkNestLockHoldingCore=getCurrentCoreId();
+    // pauseKernelNesting=1; //Not needed, removed as an optimization
+    fastEnableIrq();
+    #else //WITH_SMP
+    pauseKernelNesting=1;
+    asm volatile("":::"memory");
+    #endif //WITH_SMP
+}
+
+/**
+ * Fast, non recursive version of restartKernel
+ */
+inline void fastRestartKernel() noexcept
+{
+    #ifdef WITH_SMP
+    // NOTE: the code below would disable and then enable interrupts, so isn't
+    // safe to be called before the kernel is started. However, ther's no need
+    // for locking before the kernel is started, so do nothing
+    if(kernelStarted==false) return;
+    // pauseKernelNesting=0; //Not needed, removed as an optimization
+    fastDisableIrq();
+    globalPkNestLockHoldingCore=0xff;
+    irqDisabledHwLockRelease(HwLocks::PK);
+    fastEnableIrq();
+    #else //WITH_SMP
+    asm volatile("":::"memory");
+    pauseKernelNesting=0;
+    #endif //WITH_SMP
+
+    // See restartKernel()
+    if(pendingWakeup)
+    { 
+        pendingWakeup=false;
+        Thread::yield();
+    }
+}
+
+class FastPauseKernelLock
+{
+public:
+    /**
+     * Constructor, pauses the kernel.
+     */
+    FastPauseKernelLock()
+    {
+        fastPauseKernel();
+    }
+
+    /**
+     * Destructor, restarts the kernel
+     */
+    ~FastPauseKernelLock()
+    {
+        fastRestartKernel();
+    }
+
+    FastPauseKernelLock(const FastPauseKernelLock&)=delete;
+    FastPauseKernelLock& operator= (const FastPauseKernelLock&)=delete;
+};
 
 /**
  * \internal Lock the pause kernel lock to the specified nesting level.
@@ -152,7 +226,6 @@ inline int irqDisabledRestartKernelForce()
     globalPkNestLockHoldingCore=0xff;
     irqDisabledHwLockRelease(HwLocks::PK);
     #endif //WITH_SMP
-    if(savedPauseKernelNesting==0) errorHandler(PAUSE_KERNEL_NESTING);
     return savedPauseKernelNesting;
 }
 
