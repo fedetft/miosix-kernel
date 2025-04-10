@@ -41,9 +41,9 @@ namespace miosix {
  * \internal
  * Implementation code to lock a mutex. Must be called with the kernel paused
  * \param mutex mutex to be locked
- * \param d The instance of PauseKernelLock
+ * \param d The instance of FastPauseKernelLock
  */
-static inline void PKdoMutexLock(pthread_mutex_t *mutex, PauseKernelLock& d)
+static inline void PKdoMutexLock(pthread_mutex_t *mutex, FastPauseKernelLock& d)
 {
     void *p=reinterpret_cast<void*>(Thread::PKgetCurrentThread());
     if(mutex->owner==nullptr)

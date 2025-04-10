@@ -36,6 +36,7 @@
 #include <algorithm>
 #include "error.h"
 #include "pthread_private.h"
+#include "lock_private.h"
 #include "stdlib_integration/libc_integration.h"
 
 using namespace miosix;
@@ -242,14 +243,14 @@ int pthread_mutex_destroy(pthread_mutex_t *mutex)
 
 int pthread_mutex_lock(pthread_mutex_t *mutex)
 {
-    PauseKernelLock dLock;
+    FastPauseKernelLock dLock;
     PKdoMutexLock(mutex,dLock);
     return 0;
 }
 
 int pthread_mutex_trylock(pthread_mutex_t *mutex)
 {
-    PauseKernelLock dLock;
+    FastPauseKernelLock dLock;
     void *p=reinterpret_cast<void*>(Thread::PKgetCurrentThread());
     if(mutex->owner==nullptr)
     {
@@ -266,7 +267,7 @@ int pthread_mutex_trylock(pthread_mutex_t *mutex)
 
 int pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
-    PauseKernelLock dLock;
+    FastPauseKernelLock dLock;
 //    Safety check removed for speed reasons
 //    if(mutex->owner!=reinterpret_cast<void*>(Thread::PKgetCurrentThread()))
 //        return 0;
