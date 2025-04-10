@@ -403,7 +403,7 @@ void ConditionVariable::wait(Mutex& m)
 void ConditionVariable::wait(pthread_mutex_t *m)
 {
     WaitToken listItem(Thread::getCurrentThread());
-    PauseKernelLock dLock;
+    FastPauseKernelLock dLock;
     unsigned int depth=PKdoMutexUnlockAllDepthLevels(m);
     condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
     Thread::PKrestartKernelAndWait(dLock);
@@ -426,7 +426,7 @@ TimedWaitResult ConditionVariable::timedWait(Mutex& m, long long absTime)
 TimedWaitResult ConditionVariable::timedWait(pthread_mutex_t *m, long long absTime)
 {
     WaitToken listItem(Thread::getCurrentThread());
-    PauseKernelLock dLock;
+    FastPauseKernelLock dLock;
     unsigned int depth=PKdoMutexUnlockAllDepthLevels(m);
     condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
     auto result=Thread::PKrestartKernelAndTimedWait(dLock,absTime);
@@ -437,7 +437,7 @@ TimedWaitResult ConditionVariable::timedWait(pthread_mutex_t *m, long long absTi
 
 void ConditionVariable::signal()
 {
-    PauseKernelLock dLock;
+    FastPauseKernelLock dLock;
     if(condList.empty()) return;
     Thread *t=condList.front()->thread;
     condList.pop_front();
@@ -462,9 +462,7 @@ void ConditionVariable::signal()
 
 void ConditionVariable::broadcast()
 {
-    // Disabling interrupts would be faster but pausing kernel is an opportunity
-    // to reduce interrupt latency in case we loop a large number of iterations
-    PauseKernelLock dLock;
+    FastPauseKernelLock dLock;
     while(!condList.empty())
     {
         Thread *t=condList.front()->thread;

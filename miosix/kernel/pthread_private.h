@@ -86,13 +86,13 @@ static inline void PKdoMutexLock(pthread_mutex_t *mutex, FastPauseKernelLock& d)
  * Must be called with the kernel paused. If the mutex is not recursive the
  * mutex is locked only one level deep regardless of the depth value.
  * \param mutex mutex to be locked
- * \param d The instance of PauseKernelLock
+ * \param d The instance of FastPauseKernelLock
  * \param depth recursive depth at which the mutex will be locked. Zero
  * means the mutex is locked one level deep (as if lock() was called once),
  * one means two levels deep, etc. 
  */
 static inline void PKdoMutexLockToDepth(pthread_mutex_t *mutex,
-        PauseKernelLock& d, unsigned int depth)
+        FastPauseKernelLock& d, unsigned int depth)
 {
     void *p=reinterpret_cast<void*>(Thread::PKgetCurrentThread());
     if(mutex->owner==nullptr)
