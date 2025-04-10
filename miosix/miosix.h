@@ -35,6 +35,7 @@
 #include <interfaces/delays.h>
 /* Miosix kernel */
 #include <kernel/thread.h>
+#include <kernel/lock.h>
 #include <kernel/sync.h>
 #include <kernel/queue.h>
 #include <kernel/cpu_time_counter.h>

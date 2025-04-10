@@ -26,7 +26,7 @@
  ***************************************************************************/
 
 #include "config/miosix_settings.h"
-#include "kernel/thread.h"
+#include "kernel/lock.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces/delays.h"
 #include "interfaces/interrupts.h"

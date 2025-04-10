@@ -28,7 +28,7 @@
 
 #pragma once
 
-#include "thread.h"
+#include "lock.h"
 #include "interfaces/interrupts.h"
 #include "intrusive.h"
 #include <vector>
@@ -39,6 +39,10 @@ namespace miosix {
  * \addtogroup Sync
  * \{
  */
+
+//Forwrd declaration
+class Thread;
+enum class TimedWaitResult;
 
 /**
  * Fast mutex without support for priority inheritance

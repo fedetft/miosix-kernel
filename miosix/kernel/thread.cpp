@@ -451,6 +451,12 @@ void Thread::PKrestartKernelAndWait(PauseKernelLock& dLock)
     pauseKernelForceToDepth(savedPkNesting);
 }
 
+TimedWaitResult Thread::timedWait(long long absoluteTimeNs)
+{
+    FastGlobalIrqLock dLock;
+    return IRQglobalIrqUnlockAndTimedWaitImpl(absoluteTimeNs);
+}
+
 TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
         long long absoluteTimeNs)
 {
@@ -485,6 +491,13 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWait(PauseKernelLock& dLock,
     fastGlobalUnlockFromIrq();
     fastEnableIrq();
     return removed ? TimedWaitResult::NoTimeout : TimedWaitResult::Timeout;
+}
+
+void Thread::wakeup()
+{
+    //pausing the kernel is not enough because of IRQwait and IRQwakeup
+    FastGlobalIrqLock lock;
+    IRQwakeup();
 }
 
 void Thread::PKwakeup()

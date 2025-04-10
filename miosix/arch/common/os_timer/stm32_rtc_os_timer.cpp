@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "kernel/thread.h"
+#include "kernel/lock.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces_private/os_timer.h"
 #include "interfaces_private/sleep.h"

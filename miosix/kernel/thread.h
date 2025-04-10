@@ -33,7 +33,6 @@
 #include "intrusive.h"
 #include "cpu_time_counter_types.h"
 #include "interfaces/cpu_const.h"
-#include "lock.h"
 
 /**
  * \namespace miosix
@@ -82,6 +81,9 @@ enum class TimedWaitResult
 class MemoryProfiling;
 class Mutex;
 class ConditionVariable;
+class GlobalIrqLock;
+class FastGlobalIrqLock;
+class PauseKernelLock;
 #ifdef WITH_PROCESSES
 class ProcessBase;
 class Process;
@@ -290,11 +292,7 @@ public:
      * \param absoluteTimeoutNs absolute time after which the wait times out
      * \return TimedWaitResult::Timeout if the wait timed out
      */
-    static TimedWaitResult timedWait(long long absoluteTimeNs)
-    {
-        FastGlobalIrqLock dLock;
-        return IRQglobalIrqUnlockAndTimedWaitImpl(absoluteTimeNs);
-    }
+    static TimedWaitResult timedWait(long long absoluteTimeNs);
 
     /**
      * This method stops the thread until wakeup() is called or the specified
@@ -380,12 +378,7 @@ public:
      * higher than the one that is currently running one on at least one core.
      * <br>CANNOT be called when the kernel is paused.
      */
-    void wakeup()
-    {
-        //pausing the kernel is not enough because of IRQwait and IRQwakeup
-        FastGlobalIrqLock lock;
-        IRQwakeup();
-    }
+    void wakeup();
 
     /**
      * Wakeup a thread.

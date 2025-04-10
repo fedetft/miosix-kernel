@@ -26,6 +26,7 @@
  ***************************************************************************/
 
 #include "pipe.h"
+#include "kernel/thread.h"
 #include <algorithm>
 
 using namespace std;
