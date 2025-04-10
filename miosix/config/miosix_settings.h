@@ -230,9 +230,9 @@ static_assert(SYSTEM_MODE_PROCESS_STACK_SIZE>=STACK_MIN,"");
 /// PRIORITY_MAX-1 is the highest priority, 0 is the lowest. -1 is reserved as
 /// the priority of the idle thread.
 /// Can be modified, but a high value makes context switches more expensive
-const short int PRIORITY_MAX=4;
+const signed char PRIORITY_MAX=4;
 /// Priority of main()
-const unsigned char MAIN_PRIORITY=1;
+const signed char MAIN_PRIORITY=1;
 #elif defined(SCHED_TYPE_CONTROL_BASED)
 /// The constant PRIORITY_MAX defines the number of priorities (MUST be >1)
 /// PRIORITY_MAX-1 is the highest priority, 0 is the lowest. -1 is reserved as
@@ -241,7 +241,7 @@ const unsigned char MAIN_PRIORITY=1;
 /// It's not needed for if floating point is selected, but kept for consistency
 const short int PRIORITY_MAX=64;
 /// Priority of main()
-const unsigned char MAIN_PRIORITY=1;
+const short int MAIN_PRIORITY=1;
 #else //SCHED_TYPE_EDF
 /// The EDF scheduler redefines priorities as the thread absolute deadline.
 /// Additionally, the constant MAIN_PRIORITY is the default priority value for

@@ -37,7 +37,7 @@ class Thread; //Forward declaration
 
 /**
  * This class models the concept of priority for the priority scheduler.
- * In this scheduler the priority is simply a short int with values ranging
+ * In this scheduler the priority is simply a signed char with values ranging
  * from 0 to PRIORITY_MAX-1, higher values mean higher priority, and the special
  * value -1 reserved for the idle thread.
  */
@@ -48,7 +48,7 @@ public:
      * Constructor. Not explicit for backward compatibility.
      * \param priority the desired priority value.
      */
-    PrioritySchedulerPriority(short int priority) : priority(priority) {}
+    PrioritySchedulerPriority(signed char priority) : priority(priority) {}
 
     /**
      * Default constructor.
@@ -58,7 +58,7 @@ public:
     /**
      * \return the priority value
      */
-    short int get() const { return priority; }
+    signed char get() const { return priority; }
 
     /**
      * \return true if this objects represents a valid priority.
@@ -83,7 +83,7 @@ public:
     }
 
 private:
-    short int priority;///< The priority value
+    signed char priority;///< The priority value
 };
 
 inline bool operator<(PrioritySchedulerPriority a, PrioritySchedulerPriority b)
