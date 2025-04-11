@@ -153,11 +153,7 @@ public:
      * Locks the critical section. If the critical section is already locked,
      * the thread will be queued in a wait list.
      */
-    void lock()
-    {
-        PauseKernelLock dLock;
-        PKlock(dLock);
-    }
+    void lock();
 	
     /**
      * Acquires the lock only if the critical section is not already locked by
@@ -165,12 +161,8 @@ public:
      * the mutex' lock count will not be incremented.
      * \return true if the lock was acquired
      */
-    bool tryLock()
-    {
-        PauseKernelLock dLock;
-        return PKtryLock(dLock);
-    }
-    
+    bool tryLock();
+
     /**
      * Unlocks the critical section.
      */
@@ -197,15 +189,6 @@ public:
 
 private:
     /**
-     * Lock mutex, can be called only with kernel paused one level deep
-     * (pauseKernel calls can be nested). If another thread holds the mutex,
-     * this call will restart the kernel and wait (that's why the kernel must
-     * be paused one level deep).<br>
-     * \param dLock the PauseKernelLock instance that paused the kernel.
-     */
-    void PKlock(PauseKernelLock& dLock);
-    
-    /**
      * Lock mutex to a given depth, can be called only with kernel paused one
      * level deep (pauseKernel calls can be nested). If another thread holds the
      * mutex, this call will restart the kernel and wait (that's why the kernel
@@ -218,17 +201,6 @@ private:
      * one means two levels deep, etc. 
      */
     void PKlockToDepth(PauseKernelLock& dLock, unsigned int depth);
-
-    /**
-     * Acquires the lock only if the critical section is not already locked by
-     * other threads. Attempting to lock again a recursive mutex will fail, and
-     * the mutex' lock count will not be incremented.<br>
-     * Can be called only with kernel paused one level deep.
-     * (pauseKernel calls can be nested).
-     * \param dLock the PauseKernelLock instance that paused the kernel.
-     * \return true if the lock was acquired
-     */
-    bool PKtryLock(PauseKernelLock& dLock);
 
     /**
      * Unlock mutex, can be called only with kernel paused one level deep
