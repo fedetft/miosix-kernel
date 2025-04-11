@@ -50,6 +50,11 @@ bool PriorityScheduler::IRQaddThread(Thread *thread,
         PrioritySchedulerPriority priority)
 {
     thread->schedData.priority=priority;
+    #ifdef WITH_PROCESSES
+    // Check isReady() as processes are initially created in not ready state
+    if(thread->flags.isReady()==false) notReadyThreads.push_front(thread);
+    else
+    #endif //WITH_PROCESSES
     readyThreads[priority.get()].push_back(thread);
     return true;
 }
