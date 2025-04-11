@@ -40,7 +40,7 @@ namespace miosix {
 
 // NOTE: workaround for weird compiler bug. See header file for an explanation.
 #ifndef __OPTIMIZE__
-void __attribute__((naked)) portableSwitchToUserspace()
+void __attribute__((naked,used)) portableSwitchToUserspace()
 {
     // It gets worse, the r7 error pops up at random even when not inlining, the
     // function, so switch to a naked function
