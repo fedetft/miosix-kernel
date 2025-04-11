@@ -681,7 +681,9 @@ void Thread::IRQhandleSvc()
 
     //Note that it is required to use ctxsave and not cur->ctxsave because
     //at this time we do not know if the active context is user or kernel
-    switch(static_cast<Syscall>(peekSyscallId(const_cast<unsigned int*>(::ctxsave))))
+    int coreId=getCurrentCoreId();
+    switch(static_cast<Syscall>(peekSyscallId(
+        const_cast<unsigned int*>(::ctxsave[coreId]))))
     {
         case Syscall::YIELD:
             //Yield syscall is handled here in the IRQ by calling the scheduler
@@ -690,13 +692,13 @@ void Thread::IRQhandleSvc()
         case Syscall::USERSPACE:
             //Userspace syscall is handled here in the IRQ by switching to userspace
             cur->flags.IRQsetUserspace(true);
-            ::ctxsave=cur->userCtxsave;
+            ::ctxsave[coreId]=cur->userCtxsave;
             proc->mpu.IRQenable();
             break;
         default:
             //All other syscalls are handled by switching to kernelspace
             cur->flags.IRQsetUserspace(false);
-            ::ctxsave=cur->ctxsave;
+            ::ctxsave[coreId]=cur->ctxsave;
             MPUConfiguration::IRQdisable();
             break;
     }
@@ -711,7 +713,7 @@ bool Thread::IRQreportFault(const FaultData& fault)
     proc->fault=fault;
     proc->fault.IRQtryAddProgramCounter(cur->userCtxsave,proc->mpu);
     cur->flags.IRQsetUserspace(false);
-    ::ctxsave=cur->ctxsave;
+    ::ctxsave[getCurrentCoreId()]=cur->ctxsave;
     MPUConfiguration::IRQdisable();
     return true;
 }
@@ -766,7 +768,7 @@ void Thread::setupUserspaceContext(unsigned int entry, int argc, void *argvSp,
     char *base=reinterpret_cast<char*>(argvSp)-stackSize-WATERMARK_LEN;
     memset(base, WATERMARK_FILL, WATERMARK_LEN);
     memset(base+WATERMARK_LEN, STACK_FILL, stackSize);
-    Thread *cur=runningThreads[getCurrentCoreId()];
+    Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
     cur->userWatermark=reinterpret_cast<unsigned int*>(base);
     //Initialize registers
     //NOTE: for the main thread in a process userWatermark is also the end of
@@ -774,7 +776,7 @@ void Thread::setupUserspaceContext(unsigned int entry, int argc, void *argvSp,
     //pointer will just point to the watermark end of the thread, but userspace
     //threads can just ignore that value so we'll pass it unconditionally
     initUserThreadCtxsave(cur->userCtxsave,entry,argc,argvSp,envp,
-                          gotBase,runningThreads->userWatermark);
+                          gotBase,cur->userWatermark);
 }
 
 #endif //WITH_PROCESSES

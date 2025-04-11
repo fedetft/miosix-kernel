@@ -480,8 +480,11 @@ void MemManage_Handler()
     int id, arg=0;
     if(cfsr & 0x00000001) id=fault::MP_XN;
     else if(cfsr & 0x00000080) { id=fault::MP; arg=SCB->MMFAR; }
-    else if(cfsr & 0x00000010) { id=fault::MP_STACK; arg=ctxsave[STACK_OFFSET_IN_CTXSAVE]; }
-    else id=fault::MP_NOADDR;
+    else if(cfsr & 0x00000010)
+    { 
+        id=fault::MP_STACK;
+        arg=ctxsave[getCurrentCoreId()][STACK_OFFSET_IN_CTXSAVE];
+    } else id=fault::MP_NOADDR;
     if(Thread::IRQreportFault(FaultData(id,arg)))
     {
         //Clear MMARVALID, MLSPERR, MSTKERR, MUNSTKERR, DACCVIOL, IACCVIOL
