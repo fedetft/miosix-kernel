@@ -1078,6 +1078,41 @@ bool checkIft6_m5aIsLocked()
     return reinterpret_cast<int>(result)==0 ? false : true;
 }
 
+void t6_tp3(void*)
+{
+    Thread::setPriority(3);
+    t6_m3.lock();
+    Thread::sleep(60);
+    //This is the main check of thhis part of the test, a thread has priority 3
+    //and is should not be downgraded when t6_tp2 locks t6_m4
+    if(Thread::getCurrentThread()->getPriority()!=3) fail("inheritance 1");
+    t6_m3.unlock();
+    if(Thread::getCurrentThread()->getPriority()!=3) fail("inheritance");
+}
+
+void t6_tp1(void*)
+{
+    Thread::setPriority(1);
+    t6_m4.lock();
+    Thread::sleep(20);
+    t6_m3.lock();
+    if(Thread::getCurrentThread()->getPriority()!=2) fail("inheritance");
+    t6_m3.unlock();
+    if(Thread::getCurrentThread()->getPriority()!=2) fail("inheritance");
+    t6_m4.unlock();
+    if(Thread::getCurrentThread()->getPriority()!=1) fail("inheritance");
+}
+
+void t6_tp2(void*)
+{
+    Thread::setPriority(2);
+    Thread::sleep(40);
+    t6_m4.lock();
+    if(Thread::getCurrentThread()->getPriority()!=2) fail("inheritance");
+    t6_m4.unlock();
+    if(Thread::getCurrentThread()->getPriority()!=2) fail("inheritance");
+}
+
 static void test_6()
 {
     test_name("Mutex class");
@@ -1222,6 +1257,15 @@ static void test_6()
     t3->join();
     t4->join();
     Thread::sleep(10);
+    //
+    // Testing priority inheritance doesn't downgrade a thread priority
+    //
+    Thread *a=Thread::create(t6_tp3,STACK_SMALL,0,nullptr,Thread::JOINABLE);
+    Thread *b=Thread::create(t6_tp1,STACK_SMALL,0,nullptr,Thread::JOINABLE);
+    Thread *c=Thread::create(t6_tp2,STACK_SMALL,0,nullptr,Thread::JOINABLE);
+    a->join();
+    b->join();
+    c->join();
     //
     // Testing recursive mutexes
     //
