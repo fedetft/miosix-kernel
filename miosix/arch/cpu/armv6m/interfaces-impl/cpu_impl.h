@@ -47,6 +47,61 @@
  * *ctxsave+0  --> psp
  */
 
+#ifndef WITH_SMP
+
+/**
+ * \internal
+ * \def saveContext()
+ * Save context from an interrupt<br>
+ * Must be the first line of an IRQ where a context switch can happen.
+ * The IRQ must be "naked" to prevent the compiler from generating context save.
+ *
+ * A note on the dmb instruction, without it a race condition was observed
+ * between pauseKernel() and IRQrunScheduler(). pauseKernel() uses an strex
+ * instruction to store a value in the global variable kernel_running which is
+ * tested by the context switch code in IRQrunScheduler(). Without the memory
+ * barrier IRQrunScheduler() would occasionally read the previous value and
+ * perform a context switch while the kernel was paused, leading to deadlock.
+ * The failure was only observed within the exception_test() in the testsuite
+ * running on the stm32f429zi_stm32f4discovery.
+ */
+#define saveContext()                                                        \
+    asm volatile(".syntax unified        \n\t"                                \
+                 "push  {lr}             \n\t" /*save lr on MAIN stack*/      \
+                 "mrs   r1,  psp         \n\t" /*get PROCESS stack pointer*/  \
+                 "ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
+                 "ldr   r0,  [r0]        \n\t"                                \
+                 "stmia r0!, {r1,r4-r7}  \n\t" /*save PROCESS sp + r4-r7*/    \
+                 "mov   r4,  r8          \n\t"                                \
+                 "mov   r5,  r9          \n\t"                                \
+                 "mov   r6,  r10         \n\t"                                \
+                 "mov   r7,  r11         \n\t"                                \
+                 "stmia r0!, {r4-r7}     \n\t"                                \
+                 "dmb                    \n\t"                                \
+                 );
+
+/**
+ * \def restoreContext()
+ * Restore context in an IRQ where saveContext() is used. Must be the last line
+ * of an IRQ where a context switch can happen. The IRQ must be "naked" to
+ * prevent the compiler from generating context restore.
+ */
+#define restoreContext()                                                     \
+    asm volatile(".syntax unified        \n\t"                                \
+                 "ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
+                 "ldr   r0,  [r0]        \n\t"                                \
+                 "ldmia r0!, {r1,r4-r7}  \n\t" /*pop r8-r11 saving in r4-r7*/ \
+                 "msr   psp, r1          \n\t" /*restore PROCESS sp*/         \
+                 "ldmia r0,  {r0-r3}     \n\t"                                \
+                 "mov   r8,  r0          \n\t"                                \
+                 "mov   r9,  r1          \n\t"                                \
+                 "mov   r10, r2          \n\t"                                \
+                 "mov   r11, r3          \n\t"                                \
+                 "pop   {pc}             \n\t" /*return*/                     \
+                 );
+
+#elif defined(_ARCH_CORTEXM0PLUS_RP2040)
+
 /**
  * \internal
  * \def saveContext()
@@ -63,7 +118,6 @@
  * The failure was only observed within the exception_test() in the testsuite
  * running on the stm32f429zi_stm32f4discovery.
  */
-#warning adapted only works for rp2040
 #define saveContext()                                                        \
     asm volatile(".syntax unified        \n\t"                                \
                  "push  {lr}             \n\t" /*save lr on MAIN stack*/      \
@@ -104,6 +158,10 @@
                  "mov   r11, r3          \n\t"                                \
                  "pop   {pc}             \n\t" /*return*/                     \
                  );
+
+#else
+#error "No context switch code for this SMP architecture"
+#endif
 
 namespace miosix {
 
