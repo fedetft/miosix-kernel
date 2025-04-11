@@ -532,15 +532,10 @@ public:
     void addFileDescriptorTable(FileDescriptorTable *fdt)
     {
         #ifdef WITH_PROCESSES
-        if(isKernelStarted())
-        {
-            Lock<FastMutex> l(mutex);
-            fileTables.push_back(fdt);
-        } else {
-            //This function is also called before the kernel is started,
-            //and in this case it is forbidden to lock mutexes
-            fileTables.push_back(fdt);
-        }
+        // This function is also called before the kernel is started, but in
+        // Miosix 3 locking a mutex before the kernel is started does nothing
+        Lock<FastMutex> l(mutex);
+        fileTables.push_back(fdt);
         #endif //WITH_PROCESSES
     }
     

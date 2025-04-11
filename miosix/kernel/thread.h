@@ -46,13 +46,6 @@ namespace miosix {
  */
 
 /**
- * This function returns false during the early boot stage before the kernel
- * is started, and true after the first context switch occurs
- * \return true if the kernel is started
- */
-bool isKernelStarted();
-
-/**
  * Returns OS time, which is a monotonic clock started when the OS booted.<br>
  * Warning! This function replaces the getTick() in previous versions of the
  * kernel, but unlike getTick(), getTime() cannot be called with interrupts
