@@ -514,34 +514,40 @@ Priority Thread::getPriority()
 void Thread::setPriority(Priority pr)
 {
     if(pr.validate()==false) return;
+
+    PauseKernelLock dLock;
+    Thread *cur=PKgetCurrentThread();
+    //If thread is locking at least one mutex
+    if(cur->mutexLocked!=nullptr)
     {
-        GlobalIrqLock lock;
+        //savedPriority must always be changed, when all mutexes are eventually
+        //unlocked the final thread priority must be the one we set here
+        if(cur->savedPriority==pr) return;
+        cur->savedPriority=pr;
 
-        Thread *running=IRQgetCurrentThread();
-        //If thread is locking at least one mutex
-        if(running->mutexLocked!=nullptr)
+        //Calculate new thread priority as max(savedPriority, inheritedPriority)
+        //We could perform this computation only if(pr<oldActualPrio) since
+        //we need to care about inheritedPriority only when lowering our
+        //priority but it's a minor optimization and would increase code size...
+        Mutex *walk=cur->mutexLocked;
+        while(walk!=nullptr)
         {
-            //savedPriority always changes, since when all mutexes are unlocked
-            //setPriority() must become effective
-            if(running->savedPriority==pr) return;
-            running->savedPriority=pr;
-            //Calculate new priority of thread, which is
-            //max(savedPriority, inheritedPriority)
-            Mutex *walk=running->mutexLocked;
-            while(walk!=nullptr)
-            {
-                if(walk->waiting.empty()==false)
-                    pr=max(pr,walk->waiting.front()->IRQgetPriority());
-                walk=walk->next;
-            }
+            if(walk->waiting.empty()==false)
+                pr=max(pr,walk->waiting.front()->PKgetPriority());
+            walk=walk->next;
         }
-
-        //If old priority == desired priority, nothing to do.
-        if(pr==running->IRQgetPriority()) return;
-        Scheduler::IRQsetPriority(running,pr);
     }
-    // TODO we may yield only if the priority was lowered
-    yield();
+
+    //If old actual priority == desired priority, nothing more to do.
+    Priority oldActualPrio=cur->PKgetPriority();
+    if(pr==oldActualPrio) return;
+    {
+        FastGlobalIrqLock irqLock;
+        Scheduler::IRQsetPriority(cur,pr);
+        //We're also in a PauseKernelLock, don't waste time calling the
+        //scheduler just for it to set pendingWakeup and bounce back, set it
+        if(pr<oldActualPrio) pendingWakeup=true;
+    }
 }
 
 void Thread::terminate()
