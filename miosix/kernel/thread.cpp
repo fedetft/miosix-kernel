@@ -520,6 +520,37 @@ void Thread::setPriority(Priority pr)
     //If thread is locking at least one mutex
     if(cur->mutexLocked!=nullptr)
     {
+        /*
+         * The following algorithm may look simple but it's not, as setting a
+         * thread priority when it's locking one or more mutexes with priority
+         * inheritance requires to consider 4 variables:
+         * A savedPriority: final priority when unlocking all mutexes
+         * B inheritedPriority: max priority of all threads waiting on all
+         *   mutexes this thread is locking
+         * C actualPriority: the current priority of the thread as seen by the
+         *   scheduler that already takes into account inheritance so far
+         * D newPriority: the priority we want to set through this function
+         *
+         * Here are some test cases to wrap your head around:
+         * A B C D corresponding action we want to do in this function
+         * 3 1 3 0 savedPriority=0; IRQsetPriority(1); yield();
+         * 3 1 3 1 savedPriority=1; IRQsetPriority(1); yield();
+         * 3 1 3 2 savedPriority=2; IRQsetPriority(2); yield();
+         * 3 1 3 3 -
+         * 3 1 3 4 savedPriority=4; IRQsetPriority(4);
+         * 1 2 2 1 -
+         * 1 2 2 2 savedPriority=2;
+         * 1 2 2 3 savedPriority=3; IRQsetPriority(3);
+         * 2 2 2 1 savedPriority=1;
+         * 2 2 2 2 -
+         * 2 2 2 3 savedPriority=3; IRQsetPriority(3);
+         * 2 - 2 1 savedPriority=1; IRQsetPriority(1); yield();
+         * 2 - 2 2 -
+         * 2 - 2 3 savedPriority=3; IRQsetPriority(3);
+         * NOTE: inheritedPriority can not have a defined value if the current
+         * thread is locking mutexes but no threads are waiting on them
+         */
+
         //savedPriority must always be changed, when all mutexes are eventually
         //unlocked the final thread priority must be the one we set here
         if(cur->savedPriority==pr) return;
@@ -546,6 +577,11 @@ void Thread::setPriority(Priority pr)
         Scheduler::IRQsetPriority(cur,pr);
         //We're also in a PauseKernelLock, don't waste time calling the
         //scheduler just for it to set pendingWakeup and bounce back, set it
+        //here. With the current implementation of the priority scheduler
+        //there's a possible spurious yield here, since we'll be put to the back
+        //of the scheduling queue even if there's no higher priority thread than
+        //our new (lowered) priority, but there's no way of knowing unless we
+        //peek at the scheduler data structures here which we don't want to
         if(pr<oldActualPrio) pendingWakeup=true;
     }
 }
