@@ -244,7 +244,39 @@ int pthread_mutex_destroy(pthread_mutex_t *mutex)
 int pthread_mutex_lock(pthread_mutex_t *mutex)
 {
     FastPauseKernelLock dLock;
-    PKdoMutexLock(mutex,dLock);
+    void *p=reinterpret_cast<void*>(Thread::PKgetCurrentThread());
+    if(mutex->owner==nullptr)
+    {
+        mutex->owner=p;
+        return 0;
+    }
+
+    //This check is very important. Without this attempting to lock the same
+    //mutex twice won't cause a deadlock because the wait is enclosed in a
+    //while(owner!=p) which is immeditely false.
+    if(mutex->owner==p)
+    {
+        if(mutex->recursive>=0)
+        {
+            mutex->recursive++;
+            return 0;
+        } else errorHandler(MUTEX_DEADLOCK); //Bad, deadlock
+    }
+
+    WaitingList waiting; //Element of a linked list on stack
+    waiting.thread=p;
+    waiting.next=nullptr; //Putting this thread last on the list (lifo policy)
+    if(mutex->first==nullptr)
+    {
+        mutex->first=&waiting;
+        mutex->last=&waiting;
+    } else {
+        mutex->last->next=&waiting;
+        mutex->last=&waiting;
+    }
+
+    //The while is necessary to protect against spurious wakeups
+    while(mutex->owner!=p) Thread::PKrestartKernelAndWait(dLock);
     return 0;
 }
 
