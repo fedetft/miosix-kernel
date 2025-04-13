@@ -262,7 +262,11 @@ inline void Mutex::chooseNextOwner()
         //thread there, it would have been chosen as the owner
     } else {
         owner=nullptr; //No threads waiting
-        std::vector<Thread *>().swap(waiting); //Save some RAM
+        //Here we could either recalim some RAM (by uncommenting this line) or
+        //boost performance since especially with periodic tasks locking mutexes
+        //in the same pattern leaving the vector capacity allows the mutex to
+        //reach a steady state where no more memory allocations occur
+        // std::vector<Thread *>().swap(waiting);
     }
 }
 
