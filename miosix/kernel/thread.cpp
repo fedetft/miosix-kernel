@@ -556,20 +556,10 @@ void Thread::setPriority(Priority pr)
         if(cur->savedPriority==pr) return;
         cur->savedPriority=pr;
 
-        //Calculate new thread priority as max(savedPriority, inheritedPriority)
         //We could perform this computation only if(pr<oldActualPrio) since
         //we need to care about inheritedPriority only when lowering our
         //priority but it's a minor optimization and would increase code size...
-        Mutex *walk=cur->mutexLocked;
-        while(walk!=nullptr)
-        {
-            if(walk->waiting.empty()==false)
-            {
-                Priority inheritedPr=walk->waiting.front()->PKgetPriority();
-                if(pr.mutexLessOp(inheritedPr)) pr=inheritedPr;
-            }
-            walk=walk->next;
-        }
+        pr=Mutex::inheritPriorityFromLockedList(cur,pr);
     }
 
     //If old actual priority == desired priority, nothing more to do.

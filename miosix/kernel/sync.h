@@ -30,6 +30,7 @@
 
 #include "lock.h"
 #include "intrusive.h"
+#include "kernel/scheduler/sched_types.h"
 #include <vector>
 
 namespace miosix {
@@ -195,6 +196,37 @@ private:
      * once), one means two levels deep, etc. 
      */
     unsigned int PKunlockAllDepthLevels(PauseKernelLock& dLock);
+
+    /**
+     * \param t a thread
+     * \return true if the thread's list of locked mutexes with priority
+     * inheritance is empty
+     */
+    static inline bool lockedListEmpty(Thread *t);
+
+    /**
+     * Add this mutex to the list of locked mutex with priority inheritance
+     * \param t thread to which the current mutex will be added
+     */
+    inline void addToLockedList(Thread *t);
+
+    /**
+     * Remove this mutex from the list of locked mutex with priority inheritance
+     * \param t thread from which the current mutex will be removed
+     */
+    inline void removeFromLockedList(Thread *t);
+
+    /**
+     * Check the list of all mutexes with priority inheritance a thread is
+     * locking and update the given priority to be the maximum between the
+     * initial value and the one of the highest priority thread waiting on
+     * said mutexes
+     * \param t thread whose list of locked mutex with priority inheritance
+     * needs to be checked
+     * \param pr initial priority to boost with priority inheritance
+     * \return the boosted priority
+     */
+    static Priority inheritPriorityFromLockedList(Thread *t, Priority pr);
 
     /// Thread currently inside critical section, if NULL the critical section
     /// is free

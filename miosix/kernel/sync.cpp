@@ -83,10 +83,8 @@ void Mutex::lock()
         owner=cur;
         //Save original thread priority, if the thread has not yet locked
         //another mutex
-        if(owner->mutexLocked==nullptr) owner->savedPriority=owner->PKgetPriority();
-        //Add this mutex to the list of mutexes locked by owner
-        this->next=owner->mutexLocked;
-        owner->mutexLocked=this;
+        if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
+        this->addToLockedList(owner);
         return;
     }
 
@@ -146,10 +144,8 @@ bool Mutex::tryLock()
         owner=cur;
         //Save original thread priority, if the thread has not yet locked
         //another mutex
-        if(owner->mutexLocked==nullptr) owner->savedPriority=owner->PKgetPriority();
-        //Add this mutex to the list of mutexes locked by owner
-        this->next=owner->mutexLocked;
-        owner->mutexLocked=this;
+        if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
+        this->addToLockedList(owner);
         return true;
     }
     if(owner==cur && recursiveDepth>=0)
@@ -169,10 +165,8 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
         if(recursiveDepth>=0) recursiveDepth=depth;
         //Save original thread priority, if the thread has not yet locked
         //another mutex
-        if(owner->mutexLocked==nullptr) owner->savedPriority=owner->PKgetPriority();
-        //Add this mutex to the list of mutexes locked by owner
-        this->next=owner->mutexLocked;
-        owner->mutexLocked=this;
+        if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
+        this->addToLockedList(owner);
         return;
     }
 
@@ -226,28 +220,11 @@ void Mutex::unlock()
         return;
     }
 
-    //Remove this mutex from the list of mutexes locked by the owner
-    if(owner->mutexLocked==this)
-    {
-        owner->mutexLocked=owner->mutexLocked->next;
-    } else {
-        Mutex *walk=owner->mutexLocked;
-        for(;;)
-        {
-            //this Mutex not in owner's list? impossible
-            if(walk->next==nullptr) errorHandler(UNEXPECTED);
-            if(walk->next==this)
-            {
-                walk->next=walk->next->next;
-                break;
-            }
-            walk=walk->next;
-        }
-    }
+    this->removeFromLockedList(owner);
 
     bool loweredPriority=false; // True if priority of cur thread was lowered
     //Handle priority inheritance
-    if(owner->mutexLocked==nullptr)
+    if(lockedListEmpty(owner))
     {
         //Not locking any other mutex
         if(owner->savedPriority!=owner->PKgetPriority())
@@ -258,18 +235,7 @@ void Mutex::unlock()
         }
     } else {
         Priority pr=owner->savedPriority;
-        //Calculate new priority of thread, which is
-        //max(savedPriority, inheritedPriority)
-        Mutex *walk=owner->mutexLocked;
-        while(walk!=nullptr)
-        {
-            if(walk->waiting.empty()==false)
-            {
-                Priority inheritedPr=walk->waiting.front()->PKgetPriority();
-                if(pr.mutexLessOp(inheritedPr)) pr=inheritedPr;
-            }
-            walk=walk->next;
-        }
+        pr=inheritPriorityFromLockedList(owner,pr);
         if(pr!=owner->PKgetPriority())
         {
             loweredPriority=true;
@@ -288,10 +254,8 @@ void Mutex::unlock()
         if(owner->mutexWaiting!=this) errorHandler(UNEXPECTED);
         owner->mutexWaiting=nullptr;
         owner->PKwakeup();
-        if(owner->mutexLocked==nullptr) owner->savedPriority=owner->PKgetPriority();
-        //Add this mutex to the list of mutexes locked by owner
-        this->next=owner->mutexLocked;
-        owner->mutexLocked=this;
+        if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
+        this->addToLockedList(owner);
         //Handle priority inheritance of new owner
         if(waiting.empty()==false &&
                 owner->PKgetPriority().mutexLessOp(waiting.front()->PKgetPriority()))
@@ -326,27 +290,10 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
     Thread *cur=Thread::PKgetCurrentThread();
     if(owner!=cur) errorHandler(MUTEX_ERROR);
 
-    //Remove this mutex from the list of mutexes locked by the owner
-    if(owner->mutexLocked==this)
-    {
-        owner->mutexLocked=owner->mutexLocked->next;
-    } else {
-        Mutex *walk=owner->mutexLocked;
-        for(;;)
-        {
-            //this Mutex not in owner's list? impossible
-            if(walk->next==nullptr) errorHandler(UNEXPECTED);
-            if(walk->next==this)
-            {
-                walk->next=walk->next->next;
-                break;
-            }
-            walk=walk->next;
-        }
-    }
+    this->removeFromLockedList(owner);
 
     //Handle priority inheritance
-    if(owner->mutexLocked==nullptr)
+    if(lockedListEmpty(owner))
     {
         //Not locking any other mutex
         if(owner->savedPriority!=owner->PKgetPriority())
@@ -356,18 +303,7 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
         }
     } else {
         Priority pr=owner->savedPriority;
-        //Calculate new priority of thread, which is
-        //max(savedPriority, inheritedPriority)
-        Mutex *walk=owner->mutexLocked;
-        while(walk!=nullptr)
-        {
-            if(walk->waiting.empty()==false)
-            {
-                Priority inheritedPr=walk->waiting.front()->PKgetPriority();
-                if(pr.mutexLessOp(inheritedPr)) pr=inheritedPr;
-            }
-            walk=walk->next;
-        }
+        pr=inheritPriorityFromLockedList(owner,pr);
         if(pr!=owner->PKgetPriority())
         {
             FastGlobalIrqLock irqLock;
@@ -385,10 +321,8 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
         if(owner->mutexWaiting!=this) errorHandler(UNEXPECTED);
         owner->mutexWaiting=nullptr;
         owner->PKwakeup();
-        if(owner->mutexLocked==nullptr) owner->savedPriority=owner->PKgetPriority();
-        //Add this mutex to the list of mutexes locked by owner
-        this->next=owner->mutexLocked;
-        owner->mutexLocked=this;
+        if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
+        this->addToLockedList(owner);
         //Handle priority inheritance of new owner
         if(waiting.empty()==false &&
                 owner->PKgetPriority().mutexLessOp(waiting.front()->PKgetPriority()))
@@ -411,6 +345,65 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
     unsigned int result=recursiveDepth;
     recursiveDepth=0;
     return result;
+}
+
+/*
+ * A note about the following functions: the list of mutexes with priority
+ * inheritance a thread is locking is implemented intrusively partly in
+ * class Thread (the list head is Thread::mutexLocked), and partly in
+ * class Mutex (Mutex::next). Using an intrusive singly linked list provides
+ * optimal performance and mininal RAM requirements as mutexes should be
+ * unlocked in reverse order and lifo insert/removal from a singly linked list
+ * is O(1).
+ * However, while from a software engineering standpoint list handling functions
+ * would belong to class Thread (the thread has a list of locked mutexes, not
+ * the other way), they are implemented in class Mutex as they are mostly used
+ * here and moving them to class Thread would prevent inlining them as they
+ * can't be in the header file without creating an #include loop.
+ */
+
+inline bool Mutex::lockedListEmpty(Thread *t) { return t->mutexLocked==nullptr; }
+
+inline void Mutex::addToLockedList(Thread *t)
+{
+    next=t->mutexLocked;
+    t->mutexLocked=this;
+}
+
+inline void Mutex::removeFromLockedList(Thread *t)
+{
+    //If mutexes are unlocked in reverse order (as they should) we always take
+    //the fast path
+    if(t->mutexLocked==this)
+    {
+        t->mutexLocked=t->mutexLocked->next;
+    } else {
+        for(Mutex *walk=t->mutexLocked;;walk=walk->next)
+        {
+            //this Mutex not in owner's list? impossible
+            if(walk->next==nullptr) errorHandler(UNEXPECTED);
+            if(walk->next==this)
+            {
+                walk->next=walk->next->next;
+                break;
+            }
+        }
+    }
+}
+
+Priority Mutex::inheritPriorityFromLockedList(Thread *t, Priority pr)
+{
+    Mutex *walk=t->mutexLocked;
+    while(walk!=nullptr)
+    {
+        if(walk->waiting.empty()==false)
+        {
+            Priority inheritedPr=walk->waiting.front()->PKgetPriority();
+            if(pr.mutexLessOp(inheritedPr)) pr=inheritedPr;
+        }
+        walk=walk->next;
+    }
+    return pr;
 }
 
 //
