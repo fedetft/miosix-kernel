@@ -77,10 +77,10 @@ Mutex::Mutex(Options opt): owner(nullptr), next(nullptr)
 void Mutex::lock()
 {
     PauseKernelLock dLock;
-    Thread *t=Thread::PKgetCurrentThread();
+    Thread *cur=Thread::PKgetCurrentThread();
     if(owner==nullptr)
     {
-        owner=t;
+        owner=cur;
         //Save original thread priority, if the thread has not yet locked
         //another mutex
         if(owner->mutexLocked==nullptr) owner->savedPriority=owner->PKgetPriority();
@@ -92,8 +92,8 @@ void Mutex::lock()
 
     //This check is very important. Without this attempting to lock the same
     //mutex twice won't cause a deadlock because the wait is enclosed in a
-    //while(owner!=t) which is immeditely false.
-    if(owner==t)
+    //while(owner!=cur) which is immeditely false.
+    if(owner==cur)
     {
         if(recursiveDepth>=0)
         {
@@ -103,13 +103,13 @@ void Mutex::lock()
     }
 
     //Add thread to mutex' waiting queue
-    waiting.push_back(t);
+    waiting.push_back(cur);
     push_heap(waiting.begin(),waiting.end(),PKlowerPriority);
 
     //Handle priority inheritance
-    if(t->mutexWaiting!=nullptr) errorHandler(UNEXPECTED);
-    t->mutexWaiting=this;
-    auto prio=t->PKgetPriority();
+    if(cur->mutexWaiting!=nullptr) errorHandler(UNEXPECTED);
+    cur->mutexWaiting=this;
+    auto prio=cur->PKgetPriority();
     Thread *walk=owner;
     while(walk->PKgetPriority().mutexLessOp(prio))
     {
@@ -134,16 +134,16 @@ void Mutex::lock()
     }
 
     //The while is necessary to protect against spurious wakeups
-    while(owner!=t) Thread::PKrestartKernelAndWait(dLock);
+    while(owner!=cur) Thread::PKrestartKernelAndWait(dLock);
 }
 
 bool Mutex::tryLock()
 {
     PauseKernelLock dLock;
-    Thread *t=Thread::PKgetCurrentThread();
+    Thread *cur=Thread::PKgetCurrentThread();
     if(owner==nullptr)
     {
-        owner=t;
+        owner=cur;
         //Save original thread priority, if the thread has not yet locked
         //another mutex
         if(owner->mutexLocked==nullptr) owner->savedPriority=owner->PKgetPriority();
@@ -152,7 +152,7 @@ bool Mutex::tryLock()
         owner->mutexLocked=this;
         return true;
     }
-    if(owner==t && recursiveDepth>=0)
+    if(owner==cur && recursiveDepth>=0)
     {
         recursiveDepth++;
         return true;
@@ -162,10 +162,10 @@ bool Mutex::tryLock()
 
 void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
 {
-    Thread *t=Thread::PKgetCurrentThread();
+    Thread *cur=Thread::PKgetCurrentThread();
     if(owner==nullptr)
     {
-        owner=t;
+        owner=cur;
         if(recursiveDepth>=0) recursiveDepth=depth;
         //Save original thread priority, if the thread has not yet locked
         //another mutex
@@ -178,8 +178,8 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
 
     //This check is very important. Without this attempting to lock the same
     //mutex twice won't cause a deadlock because the wait is enclosed in a
-    //while(owner!=t) which is immeditely false.
-    if(owner==t)
+    //while(owner!=cur) which is immeditely false.
+    if(owner==cur)
     {
         if(recursiveDepth>=0)
         {
@@ -189,13 +189,13 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
     }
 
     //Add thread to mutex' waiting queue
-    waiting.push_back(t);
+    waiting.push_back(cur);
     push_heap(waiting.begin(),waiting.end(),PKlowerPriority);
 
     //Handle priority inheritance
-    if(t->mutexWaiting!=nullptr) errorHandler(UNEXPECTED);
-    t->mutexWaiting=this;
-    auto prio=t->PKgetPriority();
+    if(cur->mutexWaiting!=nullptr) errorHandler(UNEXPECTED);
+    cur->mutexWaiting=this;
+    auto prio=cur->PKgetPriority();
     Thread *walk=owner;
     while(walk->PKgetPriority().mutexLessOp(prio))
     {
@@ -210,15 +210,15 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
     }
 
     //The while is necessary to protect against spurious wakeups
-    while(owner!=t) Thread::PKrestartKernelAndWait(dLock);
+    while(owner!=cur) Thread::PKrestartKernelAndWait(dLock);
     if(recursiveDepth>=0) recursiveDepth=depth;
 }
 
 void Mutex::unlock()
 {
     PauseKernelLock dLock;
-    Thread *t=Thread::PKgetCurrentThread();
-    if(owner!=t) return;
+    Thread *cur=Thread::PKgetCurrentThread();
+    if(owner!=cur) return;
 
     if(recursiveDepth>0)
     {
@@ -321,8 +321,8 @@ void Mutex::unlock()
 
 unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
 {
-    Thread *t=Thread::PKgetCurrentThread();
-    if(owner!=t) return 0;
+    Thread *cur=Thread::PKgetCurrentThread();
+    if(owner!=cur) return 0;
 
     //Remove this mutex from the list of mutexes locked by the owner
     if(owner->mutexLocked==this)
