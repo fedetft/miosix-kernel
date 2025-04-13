@@ -254,21 +254,12 @@ inline void Mutex::chooseNextOwner()
         owner->PKwakeup();
         if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
         this->addToLockedList(owner);
-        //Handle priority inheritance of new owner
-        if(waiting.empty()==false)
-        {
-            Priority prio=waiting.front()->PKgetPriority();
-            if(owner->PKgetPriority().mutexLessOp(prio))
-            {
-                FastGlobalIrqLock irqLock;
-                Scheduler::IRQsetPriority(owner,prio);
-                //A new thread was woken up and its priority boosted, but its
-                //priority can be at most the one we had while locking the mutex
-                //either because cur is a thread with the same priority or it
-                //was boosted too. So there's no need to preempt in this case,
-                //the preemption condition is whether cur priority was lowered
-            }
-        }
+        //NOTE: since we always pick the highest priority waiting thread
+        //(and this priority includes priority inheritance while waiting, see
+        //Mutex::inheritPriorityTowardsMutexOwner) to become the new mutex owner
+        //there's no need to make the new owner inherit priority from the other
+        //waiting threads on the same mutex. If there were a higher priority
+        //thread there, it would have been chosen as the owner
     } else {
         owner=nullptr; //No threads waiting
         std::vector<Thread *>().swap(waiting); //Save some RAM
