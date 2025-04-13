@@ -255,10 +255,10 @@ inline void Mutex::chooseNextOwner()
         if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
         this->addToLockedList(owner);
         //Handle priority inheritance of new owner
-        if(waiting.empty()==false &&
-           owner->PKgetPriority().mutexLessOp(waiting.front()->PKgetPriority()))
+        if(waiting.empty()==false)
         {
-            auto prio=waiting.front()->PKgetPriority();
+            Priority prio=waiting.front()->PKgetPriority();
+            if(owner->PKgetPriority().mutexLessOp(prio))
             {
                 FastGlobalIrqLock irqLock;
                 Scheduler::IRQsetPriority(owner,prio);
