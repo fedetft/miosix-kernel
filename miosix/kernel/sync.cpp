@@ -99,7 +99,7 @@ void Mutex::lock()
         {
             recursiveDepth++;
             return;
-        } else errorHandler(MUTEX_DEADLOCK); //Bad, deadlock
+        } else errorHandler(MUTEX_ERROR); //Bad, deadlock
     }
 
     //Add thread to mutex' waiting queue
@@ -185,7 +185,7 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
         {
             recursiveDepth=depth;
             return;
-        } else errorHandler(MUTEX_DEADLOCK); //Bad, deadlock
+        } else errorHandler(MUTEX_ERROR); //Bad, deadlock
     }
 
     //Add thread to mutex' waiting queue
@@ -218,7 +218,7 @@ void Mutex::unlock()
 {
     PauseKernelLock dLock;
     Thread *cur=Thread::PKgetCurrentThread();
-    if(owner!=cur) return;
+    if(owner!=cur) errorHandler(MUTEX_ERROR);
 
     if(recursiveDepth>0)
     {
@@ -322,7 +322,7 @@ void Mutex::unlock()
 unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
 {
     Thread *cur=Thread::PKgetCurrentThread();
-    if(owner!=cur) return 0;
+    if(owner!=cur) errorHandler(MUTEX_ERROR);
 
     //Remove this mutex from the list of mutexes locked by the owner
     if(owner->mutexLocked==this)

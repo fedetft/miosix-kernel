@@ -260,7 +260,7 @@ int pthread_mutex_lock(pthread_mutex_t *mutex)
         {
             mutex->recursive++;
             return 0;
-        } else errorHandler(MUTEX_DEADLOCK); //Bad, deadlock
+        } else errorHandler(MUTEX_ERROR); //Bad, deadlock
     }
 
     WaitingList waiting; //Element of a linked list on stack
@@ -302,7 +302,7 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
     FastPauseKernelLock dLock;
 //    Safety check removed for speed reasons
 //    if(mutex->owner!=reinterpret_cast<void*>(Thread::PKgetCurrentThread()))
-//        return 0;
+//        errorHandler(MUTEX_ERROR);
     if(mutex->recursive>0)
     {
         mutex->recursive--;

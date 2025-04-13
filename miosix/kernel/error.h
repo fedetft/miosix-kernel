@@ -53,9 +53,9 @@ enum Error
     /// to globalIrqLock<br>Error is UNRECOVERABLE
     GLOBAL_LOCK_NESTING,
 
-    /// An attempt to lock twice a non recursive mutex happened.<br>
-    /// Error is UNRECOVERABLE
-    MUTEX_DEADLOCK,
+    /// A mutex related error such as a deadlock or unlock while not being the
+    /// owner happened.<br>Error is UNRECOVERABLE
+    MUTEX_ERROR,
 
     /// The calls to pauseKernel or globalIrqLock were nested too
     ///much. Error is UNRECOVERABLE

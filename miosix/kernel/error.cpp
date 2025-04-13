@@ -68,8 +68,8 @@ void errorHandler(Error e)
         case GLOBAL_LOCK_NESTING:
             IRQerrorLog("\r\n***Global lock nesting\r\n");
             break;
-        case MUTEX_DEADLOCK:
-            IRQerrorLog("\r\n***Deadlock\r\n");
+        case MUTEX_ERROR:
+            IRQerrorLog("\r\n***Mutex error\r\n");
             break;
         case NESTING_OVERFLOW:
             IRQerrorLog("\r\n***Nesting overflow\r\n"); 

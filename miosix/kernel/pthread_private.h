@@ -68,7 +68,7 @@ static inline void PKdoMutexLockToDepth(pthread_mutex_t *mutex,
         {
             mutex->recursive=depth;
             return;
-        } else errorHandler(MUTEX_DEADLOCK); //Bad, deadlock
+        } else errorHandler(MUTEX_ERROR); //Bad, deadlock
     }
 
     WaitingList waiting; //Element of a linked list on stack
@@ -101,7 +101,7 @@ static inline unsigned int PKdoMutexUnlockAllDepthLevels(pthread_mutex_t *mutex)
 {
 //    Safety check removed for speed reasons
 //    if(mutex->owner!=reinterpret_cast<void*>(Thread::PKgetCurrentThread()))
-//        return false;
+//        errorHandler(MUTEX_ERROR);
     if(mutex->first!=nullptr)
     {
         Thread *t=reinterpret_cast<Thread*>(mutex->first->thread);
