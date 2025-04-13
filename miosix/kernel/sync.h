@@ -166,22 +166,7 @@ public:
     /**
      * Unlocks the critical section.
      */
-    void unlock()
-    {
-        #ifdef SCHED_TYPE_EDF
-        bool hppw;
-        {
-            PauseKernelLock dLock;
-            hppw=PKunlock(dLock);
-        }
-        if(hppw) Thread::yield();//The other thread might have a closer deadline
-        #else
-        {
-            PauseKernelLock dLock;
-            PKunlock(dLock);
-        }
-        #endif //SCHED_TYPE_EDF
-    }
+    void unlock();
 
     //Unwanted methods
     Mutex(const Mutex& s) = delete;
@@ -201,14 +186,6 @@ private:
      * one means two levels deep, etc. 
      */
     void PKlockToDepth(PauseKernelLock& dLock, unsigned int depth);
-
-    /**
-     * Unlock mutex, can be called only with kernel paused one level deep
-     * (pauseKernel calls can be nested).<br>
-     * \param dLock the PauseKernelLock instance that paused the kernel.
-     * \return true if a higher priority thread was woken
-     */
-    bool PKunlock(PauseKernelLock& dLock);
     
     /**
      * Unlock all levels of a recursive mutex, can be called only with

@@ -35,6 +35,9 @@ using namespace std;
 
 namespace miosix {
 
+///Variable shared with lock.cpp for performance and encapsulation reasons
+extern volatile bool pendingWakeup;
+
 /**
  * Helper lambda to sort threads in a min heap to implement priority inheritance
  * \param lhs first thread to compare
@@ -211,15 +214,16 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
     if(recursiveDepth>=0) recursiveDepth=depth;
 }
 
-bool Mutex::PKunlock(PauseKernelLock& dLock)
+void Mutex::unlock()
 {
+    PauseKernelLock dLock;
     Thread *t=Thread::PKgetCurrentThread();
-    if(owner!=t) return false;
+    if(owner!=t) return;
 
     if(recursiveDepth>0)
     {
         recursiveDepth--;
-        return false;
+        return;
     }
 
     //Remove this mutex from the list of mutexes locked by the owner
@@ -241,12 +245,14 @@ bool Mutex::PKunlock(PauseKernelLock& dLock)
         }
     }
 
+    bool loweredPriority=false; // True if priority of cur thread was lowered
     //Handle priority inheritance
     if(owner->mutexLocked==nullptr)
     {
         //Not locking any other mutex
         if(owner->savedPriority!=owner->PKgetPriority())
         {
+            loweredPriority=true;
             FastGlobalIrqLock irqLock;
             Scheduler::IRQsetPriority(owner,owner->savedPriority);
         }
@@ -264,6 +270,7 @@ bool Mutex::PKunlock(PauseKernelLock& dLock)
         }
         if(pr!=owner->PKgetPriority())
         {
+            loweredPriority=true;
             FastGlobalIrqLock irqLock;
             Scheduler::IRQsetPriority(owner,pr);
         }
@@ -291,14 +298,25 @@ bool Mutex::PKunlock(PauseKernelLock& dLock)
             {
                 FastGlobalIrqLock irqLock;
                 Scheduler::IRQsetPriority(owner,prio);
+                //A new thread was woken up and its priority boosted, but its
+                //priority can be at most the one we had while locking the mutex
+                //either because cur is a thread with the same priority or it
+                //was boosted too. So there's no need to preempt in this case,
+                //the preemption condition is whether cur priority was lowered
             }
         }
-        return t->PKgetPriority().mutexLessOp(owner->PKgetPriority());
     } else {
         owner=nullptr; //No threads waiting
         std::vector<Thread *>().swap(waiting); //Save some RAM
-        return false;
     }
+    //We're in a PauseKernelLock, don't waste time calling the
+    //scheduler just for it to set pendingWakeup and bounce back, set it
+    //here. With the current implementation of the priority scheduler
+    //there's a possible spurious yield here, since we'll be put to the back
+    //of the scheduling queue even if there's no higher priority thread than
+    //our new (lowered) priority, but there's no way of knowing unless we
+    //peek at the scheduler data structures here which we don't want to
+    if(loweredPriority) pendingWakeup=true;
 }
 
 unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
@@ -382,6 +400,9 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
         std::vector<Thread *>().swap(waiting); //Save some RAM
     }
     
+    //NOTE: unlike in Mutex::unlock() there's no need to keep track of whether
+    //we need to preempt or not, as this function is only used to wait in
+    //condition variables, and after this call the current thread is descheduled
     if(recursiveDepth<0) return 0;
     unsigned int result=recursiveDepth;
     recursiveDepth=0;
