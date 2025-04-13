@@ -564,7 +564,8 @@ void Thread::setPriority(Priority pr)
         while(walk!=nullptr)
         {
             if(walk->waiting.empty()==false)
-                pr=max(pr,walk->waiting.front()->PKgetPriority());
+                if(pr.mutexLessOp(walk->waiting.front()->PKgetPriority()))
+                    pr=walk->waiting.front()->PKgetPriority();
             walk=walk->next;
         }
     }
