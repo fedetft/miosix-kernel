@@ -107,29 +107,7 @@ void Mutex::lock()
     //Handle priority inheritance
     if(cur->mutexWaiting!=nullptr) errorHandler(UNEXPECTED);
     cur->mutexWaiting=this;
-    auto prio=cur->PKgetPriority();
-    Thread *walk=owner;
-    while(walk->PKgetPriority().mutexLessOp(prio))
-    {
-        //NOTE: even though we may change the priority of one or more
-        //threads there's no need to check if a high priority thread needs
-        //to be scheduled on some core and call the scheduler, as at the end
-        //of this algorithm we call Thread::PKrestartKernelAndWait that will
-        //take care of calling the scheduler
-        {
-            FastGlobalIrqLock irqLock;
-            Scheduler::IRQsetPriority(walk,prio);
-        }
-        if(walk->mutexWaiting==nullptr) break;
-        //We upgraded the priority of the thread that is currently the owner
-        //of the mutex we want to lock, but unfortunately the owner is stuck
-        //waiting on another mutex. Thus, we need to update the min heap of
-        //the other mutex so it is kept sorted, and then continue down the
-        //chain to find who's the owner of that mutex
-        make_heap(walk->mutexWaiting->waiting.begin(),
-                  walk->mutexWaiting->waiting.end(),PKlowerPriority);
-        walk=walk->mutexWaiting->owner;
-    }
+    inheritPriorityTowardsMutexOwner(cur->PKgetPriority());
 
     //The while is necessary to protect against spurious wakeups
     while(owner!=cur) Thread::PKrestartKernelAndWait(dLock);
@@ -189,19 +167,7 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
     //Handle priority inheritance
     if(cur->mutexWaiting!=nullptr) errorHandler(UNEXPECTED);
     cur->mutexWaiting=this;
-    auto prio=cur->PKgetPriority();
-    Thread *walk=owner;
-    while(walk->PKgetPriority().mutexLessOp(prio))
-    {
-        {
-            FastGlobalIrqLock irqLock;
-            Scheduler::IRQsetPriority(walk,prio);
-        }
-        if(walk->mutexWaiting==nullptr) break;
-        make_heap(walk->mutexWaiting->waiting.begin(),
-                  walk->mutexWaiting->waiting.end(),PKlowerPriority);
-        walk=walk->mutexWaiting->owner;
-    }
+    inheritPriorityTowardsMutexOwner(cur->PKgetPriority());
 
     //The while is necessary to protect against spurious wakeups
     while(owner!=cur) Thread::PKrestartKernelAndWait(dLock);
@@ -345,6 +311,32 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
     unsigned int result=recursiveDepth;
     recursiveDepth=0;
     return result;
+}
+
+void Mutex::inheritPriorityTowardsMutexOwner(Priority prio)
+{
+    //NOTE: even though here we may change the priority of one or more
+    //threads there's no need to check if a high priority thread needs
+    //to be scheduled on some core and call the scheduler, as at the end
+    //of this algorithm we call Thread::PKrestartKernelAndWait that will
+    //take care of calling the scheduler
+    Thread *walk=owner;
+    while(walk->PKgetPriority().mutexLessOp(prio))
+    {
+        {
+            FastGlobalIrqLock irqLock;
+            Scheduler::IRQsetPriority(walk,prio);
+        }
+        if(walk->mutexWaiting==nullptr) break;
+        //We upgraded the priority of the thread that is currently the owner
+        //of the mutex we want to lock, but unfortunately the owner is stuck
+        //waiting on another mutex. Thus, we need to update the min heap of
+        //the other mutex so it is kept sorted, and then continue down the
+        //chain to find who's the owner of that mutex
+        make_heap(walk->mutexWaiting->waiting.begin(),
+                  walk->mutexWaiting->waiting.end(),PKlowerPriority);
+        walk=walk->mutexWaiting->owner;
+    }
 }
 
 /*

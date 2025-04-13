@@ -198,6 +198,15 @@ private:
     unsigned int PKunlockAllDepthLevels(PauseKernelLock& dLock);
 
     /**
+     * Inherit the given priority towards the thread that is the owner of the
+     * locked mutex we're about to lock. Additionally, recursively check if the
+     * mutex owner is locked on another mutex and propagate the inheritance
+     * as needed
+     * \param prio priority to propagate
+     */
+    void inheritPriorityTowardsMutexOwner(Priority prio);
+
+    /**
      * \param t a thread
      * \return true if the thread's list of locked mutexes with priority
      * inheritance is empty
