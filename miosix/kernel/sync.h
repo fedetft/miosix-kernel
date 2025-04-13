@@ -29,7 +29,6 @@
 #pragma once
 
 #include "lock.h"
-#include "interfaces/interrupts.h"
 #include "intrusive.h"
 #include <vector>
 
