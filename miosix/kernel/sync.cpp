@@ -146,61 +146,8 @@ void Mutex::unlock()
         return;
     }
 
-    this->removeFromLockedList(owner);
-
-    bool loweredPriority=false; // True if priority of cur thread was lowered
-    //Handle priority inheritance
-    if(lockedListEmpty(owner))
-    {
-        //Not locking any other mutex
-        if(owner->savedPriority!=owner->PKgetPriority())
-        {
-            loweredPriority=true;
-            FastGlobalIrqLock irqLock;
-            Scheduler::IRQsetPriority(owner,owner->savedPriority);
-        }
-    } else {
-        Priority pr=owner->savedPriority;
-        pr=inheritPriorityFromLockedList(owner,pr);
-        if(pr!=owner->PKgetPriority())
-        {
-            loweredPriority=true;
-            FastGlobalIrqLock irqLock;
-            Scheduler::IRQsetPriority(owner,pr);
-        }
-    }
-
-    //Choose next thread to lock the mutex
-    if(waiting.empty()==false)
-    {
-        //There is at least another thread waiting
-        owner=waiting.front();
-        pop_heap(waiting.begin(),waiting.end(),PKlowerPriority);
-        waiting.pop_back();
-        if(owner->mutexWaiting!=this) errorHandler(UNEXPECTED);
-        owner->mutexWaiting=nullptr;
-        owner->PKwakeup();
-        if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
-        this->addToLockedList(owner);
-        //Handle priority inheritance of new owner
-        if(waiting.empty()==false &&
-                owner->PKgetPriority().mutexLessOp(waiting.front()->PKgetPriority()))
-        {
-            auto prio=waiting.front()->PKgetPriority();
-            {
-                FastGlobalIrqLock irqLock;
-                Scheduler::IRQsetPriority(owner,prio);
-                //A new thread was woken up and its priority boosted, but its
-                //priority can be at most the one we had while locking the mutex
-                //either because cur is a thread with the same priority or it
-                //was boosted too. So there's no need to preempt in this case,
-                //the preemption condition is whether cur priority was lowered
-            }
-        }
-    } else {
-        owner=nullptr; //No threads waiting
-        std::vector<Thread *>().swap(waiting); //Save some RAM
-    }
+    bool loweredPriority=deInheritPriority();
+    chooseNextOwner();
     //We're in a PauseKernelLock, don't waste time calling the
     //scheduler just for it to set pendingWakeup and bounce back, set it
     //here. With the current implementation of the priority scheduler
@@ -256,14 +203,28 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
     Thread *cur=Thread::PKgetCurrentThread();
     if(owner!=cur) errorHandler(MUTEX_ERROR);
 
-    this->removeFromLockedList(owner);
+    //NOTE: unlike in Mutex::unlock() there's no need to keep track of whether
+    //we need to preempt or not, as this function is only used to wait in
+    //condition variables, and after this call the current thread is descheduled
+    deInheritPriority();
+    chooseNextOwner();
 
-    //Handle priority inheritance
+    if(recursiveDepth<0) return 0;
+    unsigned int result=recursiveDepth;
+    recursiveDepth=0;
+    return result;
+}
+
+inline bool Mutex::deInheritPriority()
+{
+    bool loweredPriority=false; // True if priority of cur thread was lowered
+    this->removeFromLockedList(owner);
     if(lockedListEmpty(owner))
     {
         //Not locking any other mutex
         if(owner->savedPriority!=owner->PKgetPriority())
         {
+            loweredPriority=true;
             FastGlobalIrqLock irqLock;
             Scheduler::IRQsetPriority(owner,owner->savedPriority);
         }
@@ -272,12 +233,16 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
         pr=inheritPriorityFromLockedList(owner,pr);
         if(pr!=owner->PKgetPriority())
         {
+            loweredPriority=true;
             FastGlobalIrqLock irqLock;
             Scheduler::IRQsetPriority(owner,pr);
         }
     }
+    return loweredPriority;
+}
 
-    //Choose next thread to lock the mutex
+inline void Mutex::chooseNextOwner()
+{
     if(waiting.empty()==false)
     {
         //There is at least another thread waiting
@@ -291,26 +256,23 @@ unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
         this->addToLockedList(owner);
         //Handle priority inheritance of new owner
         if(waiting.empty()==false &&
-                owner->PKgetPriority().mutexLessOp(waiting.front()->PKgetPriority()))
+           owner->PKgetPriority().mutexLessOp(waiting.front()->PKgetPriority()))
         {
             auto prio=waiting.front()->PKgetPriority();
             {
                 FastGlobalIrqLock irqLock;
                 Scheduler::IRQsetPriority(owner,prio);
+                //A new thread was woken up and its priority boosted, but its
+                //priority can be at most the one we had while locking the mutex
+                //either because cur is a thread with the same priority or it
+                //was boosted too. So there's no need to preempt in this case,
+                //the preemption condition is whether cur priority was lowered
             }
         }
     } else {
         owner=nullptr; //No threads waiting
         std::vector<Thread *>().swap(waiting); //Save some RAM
     }
-    
-    //NOTE: unlike in Mutex::unlock() there's no need to keep track of whether
-    //we need to preempt or not, as this function is only used to wait in
-    //condition variables, and after this call the current thread is descheduled
-    if(recursiveDepth<0) return 0;
-    unsigned int result=recursiveDepth;
-    recursiveDepth=0;
-    return result;
 }
 
 void Mutex::inheritPriorityTowardsMutexOwner(Priority prio)

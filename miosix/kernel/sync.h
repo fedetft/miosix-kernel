@@ -198,6 +198,21 @@ private:
     unsigned int PKunlockAllDepthLevels(PauseKernelLock& dLock);
 
     /**
+     * First part of unlocking a mutex. Remove the mutex from the owner's list
+     * of locked mutexes and reduce priority if the current priority was due to
+     * having locked this mutex
+     * \return true if the current mutex owner priority was reduced
+     */
+    inline bool deInheritPriority();
+
+    /**
+     * Second part of unlocking a mutex. Switch the current mutex owner with
+     * the highest priority waiting thread, or leave the mutex without owner
+     * if there are no more waiting threads
+     */
+    inline void chooseNextOwner();
+
+    /**
      * Inherit the given priority towards the thread that is the owner of the
      * locked mutex we're about to lock. Additionally, recursively check if the
      * mutex owner is locked on another mutex and propagate the inheritance
