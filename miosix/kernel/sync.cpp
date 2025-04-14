@@ -148,13 +148,14 @@ void Mutex::unlock()
 
     bool loweredPriority=deInheritPriority();
     chooseNextOwner();
+    //NOTE: there's no spurious yield possibility here as the only reason we
+    //lowered our priority is that it was inherited from one or more higher
+    //priority threads waiting on the mutex we were locking, the highest
+    //priority of which was woken up and made the new owner, if loweredPriority
+    // is true there is surely a higher priority thread to context switch to.
     //We're in a PauseKernelLock, don't waste time calling the
     //scheduler just for it to set pendingWakeup and bounce back, set it
-    //here. With the current implementation of the priority scheduler
-    //there's a possible spurious yield here, since we'll be put to the back
-    //of the scheduling queue even if there's no higher priority thread than
-    //our new (lowered) priority, but there's no way of knowing unless we
-    //peek at the scheduler data structures here which we don't want to
+    //here.
     if(loweredPriority) pendingWakeup=true;
 }
 
