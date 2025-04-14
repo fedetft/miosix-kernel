@@ -147,7 +147,8 @@ public:
     /**
      * Constructor, initializes the mutex.
      */
-    Mutex(Options opt=DEFAULT);
+    Mutex(Options opt=DEFAULT) : owner(nullptr),
+        recursiveDepth(opt==RECURSIVE ? 0 : -1), next(nullptr) {}
 
     /**
      * Locks the critical section. If the critical section is already locked,
@@ -256,15 +257,15 @@ private:
     /// is free
     Thread *owner;
 
+    /// Used to hold nesting depth for recursive mutexes, -1 if not recursive
+    int recursiveDepth;
+
     /// If this mutex is locked, it is added to a list of mutexes held by the
     /// thread that owns this mutex. This field is necessary to make the list.
     Mutex *next;
 
     /// Waiting thread are stored in this min-heap, sorted by priority
     std::vector<Thread *> waiting;
-
-    /// Used to hold nesting depth for recursive mutexes, -1 if not recursive
-    int recursiveDepth;
 
     //Friends
     friend class ConditionVariable;

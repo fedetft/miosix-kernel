@@ -69,11 +69,6 @@ FastMutex::FastMutex(Options opt)
 // class Mutex
 //
 
-Mutex::Mutex(Options opt): owner(nullptr), next(nullptr)
-{
-    recursiveDepth= opt==RECURSIVE ? 0 : -1;
-}
-
 void Mutex::lock()
 {
     PauseKernelLock dLock;
