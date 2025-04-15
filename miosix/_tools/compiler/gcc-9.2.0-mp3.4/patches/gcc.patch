@@ -299,7 +299,7 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/arm.h gcc-9.2.0/gcc/config/arm/arm.h
  /* ttype entries (the only interesting data references used)
 diff -ruN gcc-9.2.0-old/gcc/config/arm/miosix-eabi.h gcc-9.2.0/gcc/config/arm/miosix-eabi.h
 --- gcc-9.2.0-old/gcc/config/arm/miosix-eabi.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-9.2.0/gcc/config/arm/miosix-eabi.h	2025-01-25 00:08:11.910192205 +0100
++++ gcc-9.2.0/gcc/config/arm/miosix-eabi.h	2025-04-15 12:00:12.425281284 +0200
 @@ -0,0 +1,19 @@
 +
 +/*
@@ -317,7 +317,7 @@ diff -ruN gcc-9.2.0-old/gcc/config/arm/miosix-eabi.h gcc-9.2.0/gcc/config/arm/mi
 +        TARGET_BPABI_CPP_BUILTINS();     \
 +        builtin_define("_MIOSIX");       \
 +        builtin_define("_MIOSIX_GCC_PATCH_MAJOR=3"); \
-+        builtin_define("_MIOSIX_GCC_PATCH_MINOR=3"); \
++        builtin_define("_MIOSIX_GCC_PATCH_MINOR=4"); \
 +        builtin_assert("system=miosix"); \
 +    } while(false)
 diff -ruN gcc-9.2.0-old/gcc/config/arm/t-arm-miosix gcc-9.2.0/gcc/config/arm/t-arm-miosix

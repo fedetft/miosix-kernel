@@ -2440,7 +2440,6 @@ static void test_16()
     if(t16_v2!=1) fail("pthread_once 2");
     if(pthread_once(&t16_o1,t16_f1)!=0) fail("pthread_once 2");
     if(t16_v2!=1) fail("pthread_once 3");
-    if(sizeof(pthread_once_t)!=2) fail("pthread_once 4");
     t16_v2=0;
     Thread::create(t16_p5,STACK_MIN);
     Thread::sleep(50);
