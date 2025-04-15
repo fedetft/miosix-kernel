@@ -49,45 +49,7 @@ extern unsigned char globalPkNestLockHoldingCore;
 extern bool kernelStarted;
 #endif //WITH_SMP
 
-extern unsigned char globalLockNesting;
-#ifdef WITH_SMP
-extern unsigned char globalIntrNestLockHoldingCore;
-#endif //WITH_SMP
-
 extern volatile bool pendingWakeup;
-
-/**
- * \internal Lock the Global Irq Lock to a specified recursion depth.
- * Must be called with the lock not yet taken by the current thread.
- * 
- * \param savedNesting The lock recursion depth to set.
- */
-inline void globalIrqForceLockToDepth(unsigned char savedNesting)
-{
-    fastGlobalIrqLock();
-    #ifdef WITH_SMP
-    globalIntrNestLockHoldingCore=getCurrentCoreId();
-    #endif //WITH_SMP
-    if(globalLockNesting!=0) errorHandler(GLOBAL_LOCK_NESTING);
-    globalLockNesting=savedNesting;
-}
-
-/**
- * \internal Fully unlock the Global Irq Lock and return the previous recursion
- * level of the lock.
- * Must be called with the lock currently being taken by the current thread,
- * either through the fast primitives or not.
- */
-inline unsigned char globalIrqForceUnlock()
-{
-    unsigned char savedNesting=globalLockNesting;
-    globalLockNesting=0;
-    #ifdef WITH_SMP
-    globalIntrNestLockHoldingCore=0xff;
-    #endif //WITH_SMP
-    fastGlobalIrqUnlock();
-    return savedNesting;
-}
 
 /**
  * Fast, non recursive version of pauseKernel

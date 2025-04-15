@@ -33,17 +33,12 @@
 
 namespace miosix {
 
+unsigned char GlobalIrqLock::holdingCore=0xff;
+
 ///\internal !=0 after pauseKernel(), ==0 after restartKernel()
 int pauseKernelNesting=0;
 #ifdef WITH_SMP
 unsigned char globalPkNestLockHoldingCore=0xff;
-#endif //WITH_SMP
-
-/// This is used by globalIrqLock() and globalIrqUnlock() to allow nested
-/// calls to these functions.
-unsigned char globalLockNesting=0;
-#ifdef WITH_SMP
-unsigned char globalIntrNestLockHoldingCore=0xff;
 #endif //WITH_SMP
 
 ///\internal true if a thread wakeup occurs while the kernel is paused
@@ -57,78 +52,6 @@ static int deepSleepCounter=0;
 
 //Variables shared with thread.cpp for performance and encapsulation reasons
 extern bool kernelStarted;
-
-void globalIrqLock() noexcept
-{
-    #ifdef WITH_SMP
-    // Is the current core the one holding the global lock?
-    if(globalIntrNestLockHoldingCore==getCurrentCoreId())
-    {
-        // Yes. If we arrive here we are sure we already have interrupts
-        // disabled and the GIL taken, just increase nesting level.
-        // We cannot be rescheduled to another core because interrupts are
-        // disabled.
-        if(globalLockNesting==0xff) errorHandler(NESTING_OVERFLOW);
-        globalLockNesting++;
-    } else {
-        // No we are not holding the GIL. Try to take it then!
-        // Note that even if we are rescheduled to a different core right here
-        // the condition state==getCurrentCoreId() will continue to be false,
-        // and we correctly deduce we don't have the GIL (which is what
-        // matters).
-        // The following are the important cases:
-        // - Another thread has the GIL and won't release it before we attempt
-        //   to take it
-        //   => That thread won't change core because it has interrupts
-        //      disabled, so we cannot be scheduled to that core, but that's
-        //      the only way to make the condition true
-        // - Another thread held the GIL but has just released it now after the
-        //   check
-        //   => When the other thread has released the GIL, they always set
-        //      globalIntrNestLockHoldingCore global to 0xFF, which ensures the
-        //      condition of the `if' is false for all cores.
-        // - Another thread is holding the GIL in a non-recursive way
-        //   => Same case as above but because globalIntrNestLockHoldingCore is
-        //      0xFF even with the lock taken
-        // - Another thread has taken the GIL since the check
-        //   => If the GIL is taken by another thread, that thread MUST be
-        //      running. But if we are running simultaneously to that other
-        //      thread, we must be on a different core, and the condition is
-        //      still false.
-        globalIrqForceLockToDepth(1);
-    }
-    #else //WITH_SMP
-    fastGlobalIrqLock();
-    if(globalLockNesting==0xff) errorHandler(NESTING_OVERFLOW);
-    globalLockNesting++;
-    #endif //WITH_SMP
-}
-
-void globalIrqUnlock() noexcept
-{
-    if(globalLockNesting==0)
-    {
-        //Bad, globalIrqUnlock was called one time more than globalIrqLock
-        errorHandler(GLOBAL_LOCK_NESTING);
-    }
-    globalLockNesting--;
-    if(globalLockNesting==0)
-    {
-        #ifdef WITH_SMP
-        globalIntrNestLockHoldingCore=0xff;
-        #endif //WITH_SMP
-        // This function must be safe to call even at the early boot stage
-        // before the kernel is fully initialized. Thus, code will take the
-        // lock and release it, but we do not want to enable interrupts
-        if(kernelStarted==true) fastGlobalIrqUnlock();
-        else {
-            //We must not enable interrupts since we're in the boot stage where
-            //interrupts should be disabled, but we need to release the spinlock
-            //and this can be done with the irq-context unlock call
-            fastGlobalUnlockFromIrq();
-        }
-    }
-}
 
 // TODO: rename to preemptionLock/preemptionUnlock? and change PK prefix to PL,
 // globalPlNestLockHoldingCore, preemptionLockNesting

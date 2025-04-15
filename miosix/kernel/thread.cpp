@@ -968,16 +968,17 @@ void Thread::IRQglobalIrqUnlockAndWaitImpl()
     Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
     cur->flags.IRQsetWait(cur,true);
 
-    // Save GIL state, yield, and restore the state.
+    // Unlock GIL, yield, and relock again
     // Note that we are not sure here whether we have taken the PK lock or not.
     // If the PK lock appears taken, it might be currently taken by another core
     // and as a result we cannot touch it!
     // So better to leave it alone. But as a side-effect we cannot upgrade a PK
     // lock to a GIL and then use this function!
-    auto savedGILNesting=globalIrqForceUnlock();
+    auto gilTakenRecursively=GlobalIrqLock::inLockedSection();
+    GlobalIrqLock::unlock();
     Thread::yield(); //Here the wait becomes effective
-    if(savedGILNesting) globalIrqForceLockToDepth(savedGILNesting);
-    else fastGlobalIrqLock(); //The GIL was taken using the fast primitives
+    if(gilTakenRecursively) GlobalIrqLock::lock();
+    else FastGlobalIrqLock::lock(); //The GIL was taken using the fast primitives
 }
 
 TimedWaitResult Thread::PKrestartKernelAndTimedWaitImpl(long long absoluteTimeNs)
@@ -1023,11 +1024,12 @@ TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTim
     t->flags.IRQsetWait(t,true); //timedWait thread: set wait flag
     IRQaddToSleepingList(&sleepData);
 
-    // Save GIL state, yield, and restore the state.
-    auto savedGILNesting=globalIrqForceUnlock();
+    // Unlock GIL, yield, and relock again
+    auto gilTakenRecursively=GlobalIrqLock::inLockedSection();
+    GlobalIrqLock::unlock();
     Thread::yield(); //Here the wait becomes effective
-    if(savedGILNesting) globalIrqForceLockToDepth(savedGILNesting);
-    else fastGlobalIrqLock(); //The GIL was taken using the fast primitives
+    if(gilTakenRecursively) GlobalIrqLock::lock();
+    else FastGlobalIrqLock::lock(); //The GIL was taken using the fast primitives
 
     // Remove us from the sleeping list and check how we were woken up.
     // If the thread was still in the sleeping list, it was woken up by a wakeup()

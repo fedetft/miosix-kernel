@@ -29,19 +29,138 @@
 
 #include "config/miosix_settings.h"
 #include "interfaces/interrupts.h"
+#include "interfaces/cpu_const.h"
 #include "interfaces_private/smp_locks.h"
 
 namespace miosix {
 
+extern bool kernelStarted;
+
 /**
- * Acquire the global lock from interrupt context, can only be called inside an
- * interrupt service routine. The global lock is a fine-grained lock that is
- * used to protect kernel data structures. You should try to keep the critical
- * sections that hold this lock as short as possible. Holding this lock grants
- * you the capability to call kernel function whose function name starts with
- * the IRQ prefix.
+ * \defgroup lock Low-level locking
+ * \brief Global Irq Lock, Pause Kernel lock
+ * 
+ * These classes define two global locks used for synchronization in the Miosix
+ * kernel, the Global Irq Lock (GIL) and the Pause Kernel lock.
+ * 
+ * The GIL is used to ensure mutual exclusion between threads and interrupt
+ * handlers. It is also used by the kernel to protect its data structures.
+ * In single core platforms it is implemented by disabling and enabling
+ * interrupts, while in multicore (SMP) platforms it is implemented as a
+ * hardware spinlock or sleep lock.
+ * Taking this core also has the effect of disabling preemption, therefore
+ * you should try to keep the critical sections that hold this lock as short as
+ * possible.
+ * Holding this lock grants the capability to call kernel functions whose name
+ * starts with the IRQ prefix.
+ * 
+ * The Pause Kernel lock is a global lock in the sense that only one thread on
+ * one core can take the lock.
+ * On the core which takes the lock preemption is disabled, but interrupts will
+ * continue to occur. Attempting to take the pauseKernel lock from another core
+ * will block until the lock is released.
+ * Calling blocking functions (printf/fopen/...) including device drivers
+ * implemented in terms of IRQglobalIrqUnlockAndWait() or sleeping while holding
+ * this lock will cause deadlock.
+ * The main purpose of this lock is for the kernel to implement mutexes.
+ * 
+ * Since these locks are both global, they have a high rate of contention, but
+ * by converse they are very fast to take and release.
+ */
+
+/**
+ * \private Base class used for implementing RAII-based locking.
+ */
+template<class T>
+class FastLockMixin
+{
+public:
+    /**
+     * Constructor, acquire the lock
+     */
+    FastLockMixin() { T::lock(); }
+
+    /**
+     * Destructor, release the lock
+     */
+    ~FastLockMixin() { T::unlock(); }
+
+    FastLockMixin(const FastLockMixin&)=delete;
+    FastLockMixin& operator= (const FastLockMixin&)=delete;
+};
+
+/**
+ * \private Base class used for implementing RAII-based recursive locking.
+ */
+template<class T>
+class LockMixin
+{
+public:
+    /**
+     * Constructor, acquire the lock if the current thread is not already
+     * holding it
+     */
+    LockMixin()
+    {
+        if(T::inLockedSection()) wasLocked=true;
+        else {
+            wasLocked=false;
+            T::lock();
+        }
+    }
+
+    /**
+     * Destructor, release the lock if this object was the one acquiring it
+     * in the first place
+     */
+    ~LockMixin()
+    {
+        if(!wasLocked) T::unlock();
+    }
+
+    LockMixin(const LockMixin&)=delete;
+    LockMixin& operator= (const LockMixin&)=delete;
+private:
+    bool wasLocked;
+};
+
+/**
+ * \private Base class used for implementing RAII-based unlock.
+ */
+template<class T>
+class UnlockBase
+{
+public:
+    /**
+     * Constructor, release the lock
+     * \param l the object that was used to acquire the lock
+     */
+    UnlockBase(T& l) { (void)l; T::unlock(); }
+
+    /**
+     * Destructor.
+     * Acquire back the lock.
+     */
+    ~UnlockBase() { { T::lock(); } }
+
+    UnlockBase(const UnlockBase&)=delete;
+    UnlockBase& operator= (const UnlockBase&)=delete;
+};
+
+/**
+ * \name Global Interrupt Lock
+ * \{
+ */
+
+/**
+ * Class for acquiring/releasing the global lock from interrupt context.
+ * Can only be used inside an interrupt service routine.
+ * The static methods of the class can be used to take/release the lock
+ * manually.
+ * Alternatively, it can be instantiated, to act as a RAII lock which releases
+ * the lock automatically when it goes out of scope.
  *
- * NOTE: fastGlobalLockFromIrq() cannot be nested and cannot be used before the
+ * NOTE: FastGlobalLockFromIrq cannot be nested and cannot be used before the
  * kernel is started (well, interrupts cannot occur before the kernel is started
  * so this can't happen unless you do the mistake of using this lock outside of
  * interrupt context...) Attempting to do so will lead to undefined behavior.
@@ -53,57 +172,43 @@ namespace miosix {
  * mechanism is used to guarantee that only one core at a time can hold the
  * global lock even from interrupt context, hence the global name.
  */
-#ifdef WITH_SMP
-inline void fastGlobalLockFromIrq() noexcept
-{
-    irqDisabledHwIrqLockAcquire(HwLocks::GIL);
-}
-#else //WITH_SMP
-inline void fastGlobalLockFromIrq() noexcept
-{
-    //Not needed in single core CPUs
-}
-#endif //WITH_SMP
-
-/**
- * See the documentation for fastGlobalLockFromIrq()
- */
-#ifdef WITH_SMP
-inline void fastGlobalUnlockFromIrq() noexcept
-{
-    irqDisabledHwIrqLockRelease(HwLocks::GIL);
-}
-#else //WITH_SMP
-inline void fastGlobalUnlockFromIrq() noexcept
-{
-    //Not needed in single core CPUs
-}
-#endif //WITH_SMP
-
-/**
- * This class is a RAII lock for holding the global lock.
- * This class automatically releases the lock when it goes out of scope.
- */
-class FastGlobalLockFromIrq
+class FastGlobalLockFromIrq: public FastLockMixin<FastGlobalLockFromIrq>
 {
 public:
     /**
-     * Constructor, acquire the lock
+     * Acquire the global lock from an IRQ context.
      */
-    FastGlobalLockFromIrq() { fastGlobalLockFromIrq(); }
+    static inline void lock()
+    {
+        #ifdef WITH_SMP
+        irqDisabledHwIrqLockAcquire(HwLocks::GIL);
+        #endif
+    }
 
     /**
-     * Destructor, release the lock
+     * Release the global lock from an IRQ context.
      */
-    ~FastGlobalLockFromIrq() { fastGlobalUnlockFromIrq(); }
-
-    FastGlobalLockFromIrq(const FastGlobalLockFromIrq&)=delete;
-    FastGlobalLockFromIrq& operator= (const FastGlobalLockFromIrq&)=delete;
+    static inline void unlock()
+    {
+        #ifdef WITH_SMP
+        irqDisabledHwIrqLockRelease(HwLocks::GIL);
+        #endif
+    }
 };
+
+inline void fastGlobalLockFromIrq() noexcept
+{
+    FastGlobalLockFromIrq::lock();
+}
+
+inline void fastGlobalUnlockFromIrq() noexcept
+{
+    FastGlobalLockFromIrq::unlock();
+}
 
 /**
  * This class allows to temporarily release the global lock in a scope it was
- * held using a FastGlobalLockFromIrq
+ * held using a FastGlobalLockFromIrq.
  *
  * Example:
  * \code
@@ -119,91 +224,69 @@ public:
  * //Finally lock released
  * \endcode
  */
-class FastGlobalUnlockFromIrq
-{
-public:
-    /**
-     * Constructor, release the lock
-     * \param l the GlobalIrqLock that was used to acquire the lock
-     */
-    FastGlobalUnlockFromIrq(FastGlobalLockFromIrq& l)
-    {
-        (void)l;
-        fastGlobalUnlockFromIrq();
-    }
+using FastGlobalUnlockFromIrq = UnlockBase<FastGlobalLockFromIrq>;
 
-    /**
-     * Destructor.
-     * Acquire back the lock.
-     */
-    ~FastGlobalUnlockFromIrq() { fastGlobalLockFromIrq(); }
-
-    FastGlobalUnlockFromIrq(const FastGlobalUnlockFromIrq&)=delete;
-    FastGlobalUnlockFromIrq& operator= (const FastGlobalUnlockFromIrq&)=delete;
-};
 
 /**
- * Acquire the global lock from non-interrupt context. The global lock is a
- * fine-grained lock that is used to protect kernel data structures.
+ * Class for acquiring/releasing the global lock.
+ * The static methods of the class can be used to take/release the lock
+ * manually.
+ * Alternatively, it can be instantiated, to act as a RAII lock which releases
+ * the lock automatically when it goes out of scope.
+ *
  * You should try to keep the critical sections that hold this lock as short
  * as possible. Holding this lock grants you the capability to call kernel
  * function whose function name starts with the IRQ prefix.
  *
- * NOTE: fastGlobalIrqLock() cannot be nested and cannot be used before the
+ * NOTE: FastGlobalIrqLock cannot be nested and cannot be used before the
  * kernel is started! Attempting to do so will lead to undefined behavior.
- * For such cases, use globalIrqLock() instead.
- *
- * On single core architectures, the global lock is implemented by disabling
+ * For such cases, use GlobalIrqLock instead.
+ * 
+ * On single core architectures, this lock is implemented by disabling
  * interrupts, while on multi core architectures interrupts on the core that
  * acquired the lock are disabled and an implementation-defined mechanism is
  * used to guarantee that only one core at a time can hold the global lock,
  * hence the global name.
  *
- * \note This function replaces the fastDisableInterrupts() function in Miosix v2.x
- */
-inline void fastGlobalIrqLock() noexcept
-{
-    fastDisableIrq();
-    fastGlobalLockFromIrq();
-}
-
-/**
- * See the documentation for fastGlobalIrqLock()
- *
- * \note This function replaces the fastEnableInterrupts() function in Miosix v2.x
- */
-inline void fastGlobalIrqUnlock() noexcept
-{
-    fastGlobalUnlockFromIrq();
-    fastEnableIrq();
-}
-
-/**
- * This class is a RAII lock for holding the global lock.
- * This class automatically releases the lock when it goes out of scope.
- *
  * \note This class replaces the FastInterruptDisableLock class in Miosix v2.x
  */
-class FastGlobalIrqLock
+class FastGlobalIrqLock: public FastLockMixin<FastGlobalIrqLock>
 {
 public:
     /**
-     * Constructor, acquire the lock
+     * Acquire the global lock.
+     * \note This method replaces fastDisableInterrupts() from Miosix v2.x
      */
-    FastGlobalIrqLock() { fastGlobalIrqLock(); }
+    static inline void lock() noexcept
+    {
+        fastDisableIrq();
+        FastGlobalLockFromIrq::lock();
+    }
 
     /**
-     * Destructor, release the lock
+     * Release the global lock.
+     * \note This method replaces fastEnableInterrupts() from Miosix v2.x
      */
-    ~FastGlobalIrqLock() { fastGlobalIrqUnlock(); }
-
-    FastGlobalIrqLock(const FastGlobalIrqLock&)=delete;
-    FastGlobalIrqLock& operator= (const FastGlobalIrqLock&)=delete;
+    static inline void unlock() noexcept
+    {
+        FastGlobalLockFromIrq::unlock();
+        fastEnableIrq();
+    }
 };
+
+inline void fastGlobalIrqLock() noexcept
+{
+    FastGlobalIrqLock::lock();
+}
+
+inline void fastGlobalIrqUnlock() noexcept
+{
+    FastGlobalIrqLock::unlock();
+}
 
 /**
  * This class allows to temporarily release the global lock in a scope it was
- * held using a FastGlobalIrqLock
+ * held using a FastGlobalIrqLock.
  *
  * Example:
  * \code
@@ -221,37 +304,20 @@ public:
  *
  * \note This class replaces the FastInterruptEnableLock class in Miosix v2.x
  */
-class FastGlobalIrqUnlock
-{
-public:
-    /**
-     * Constructor, release the lock
-     * \param l the GlobalIrqLock that was used to acquire the lock
-     */
-    FastGlobalIrqUnlock(FastGlobalIrqLock& l) { (void)l; fastGlobalIrqUnlock(); }
+using FastGlobalIrqUnlock = UnlockBase<FastGlobalIrqLock>;
 
-    /**
-     * Destructor.
-     * Acquire back the lock.
-     */
-    ~FastGlobalIrqUnlock() { fastGlobalIrqLock(); }
-
-    FastGlobalIrqUnlock(const FastGlobalIrqUnlock&)=delete;
-    FastGlobalIrqUnlock& operator= (const FastGlobalIrqUnlock&)=delete;
-};
 
 /**
- * Acquire the global lock from non-interrupt context. The global lock is a
- * fine-grained lock that is used to protect kernel data structures.
+ * RAII lock for recursively acquiring/releasing the global lock.
+ * 
  * You should try to keep the critical sections that hold this lock as short
  * as possible. Holding this lock grants you the capability to call kernel
  * function whose function name starts with the IRQ prefix.
- *
- * globalIrqLock() can be nested, like recursive mutexes. If you call this
- * function multiple times, the lock will be released only when an equal number
- * of globalIrqUnlock() calls is made. This function is also safe to be called
- * before the kernel is started, and in this case it does nothing, since
- * interrupts aren't yet enabled and only one core is running.
+ * 
+ * GlobalIrqLock can be nested, like recursive mutexes. 
+ * It is also safe for use before the kernel is started, and in this case it
+ * does nothing, since interrupts aren't yet enabled and only one core is
+ * running.
  *
  * On single core architectures, the global lock is implemented by disabling
  * interrupts, while on multi core architectures interrupts on the core that
@@ -259,38 +325,51 @@ public:
  * used to guarantee that only one core at a time can hold the global lock,
  * hence the global name.
  *
- * \note This function replaces the disableInterrupts() function in Miosix v2.x
- */
-void globalIrqLock() noexcept;
-
-/**
- * See the documentation for globalIrqLock()
- *
- * \note This function replaces the enableInterrupts() function in Miosix v2.x
- */
-void globalIrqUnlock() noexcept;
-
-/**
- * This class is a RAII lock for holding the global lock.
- * This class automatically releases the lock when it goes out of scope.
- *
  * \note This class replaces the InterruptDisableLock class in Miosix v2.x
+ * There are no replacements for the disableInterrupts() and enableInterrupts()
+ * functions in Miosix v2.x, use the class GlobalIrqLock as a RAII lock
+ * instead.
  */
-class GlobalIrqLock
+class GlobalIrqLock: public LockMixin<GlobalIrqLock>
 {
-public:
+private:
     /**
-     * Constructor, acquire the lock
+     * \private Take the lock
      */
-    GlobalIrqLock() { globalIrqLock(); }
+    static inline void lock() noexcept
+    {
+        FastGlobalIrqLock::lock();
+        holdingCore=getCurrentCoreId();
+    }
 
     /**
-     * Destructor, release the lock
+     * \private Returns if we are within a critical section protected by this
+     * lock. This only returns true for the thread that is currently holding
+     * the lock.
+     * This primitive is used to implement recursion (see the LockMixin<> class)
      */
-    ~GlobalIrqLock() { globalIrqUnlock(); }
+    static inline bool inLockedSection() noexcept
+    {
+        return holdingCore==getCurrentCoreId();
+    }
 
-    GlobalIrqLock(const GlobalIrqLock&)=delete;
-    GlobalIrqLock& operator= (const GlobalIrqLock&)=delete;
+    /**
+     * \private Release the lock
+     */
+    static void unlock() noexcept
+    {
+        if(kernelStarted) FastGlobalIrqLock::unlock();
+        else FastGlobalLockFromIrq::unlock(); // cannot disable interrupts yet
+        holdingCore=0xFF;
+    }
+
+    /// These kernel classes and functions need to access lock/unlock
+    friend class LockMixin<GlobalIrqLock>;
+    friend class UnlockBase<GlobalIrqLock>;
+    friend class Thread;
+    friend class LibAtomicQuickLock;
+    /// The core currently holding the global lock
+    static unsigned char holdingCore;
 };
 
 /**
@@ -313,24 +392,16 @@ public:
  *
  * \note This class replaces the InterruptEnableLock class in Miosix v2.x
  */
-class GlobalIrqUnlock
-{
-public:
-    /**
-     * Constructor, release the lock
-     * \param l the GlobalIrqLock that was used to acquire the lock
-     */
-    GlobalIrqUnlock(GlobalIrqLock& l) { (void)l; globalIrqUnlock(); }
+using GlobalIrqUnlock = UnlockBase<GlobalIrqLock>;
 
-    /**
-     * Destructor.
-     * Acquire back the lock.
-     */
-    ~GlobalIrqUnlock() { globalIrqLock(); }
+/**
+ * \}
+ */
 
-    GlobalIrqUnlock(const GlobalIrqUnlock&)=delete;
-    GlobalIrqUnlock& operator= (const GlobalIrqUnlock&)=delete;
-};
+/**
+ * \name Pause Kernel Lock
+ * \{
+ */
 
 /**
  * This is a global lock in the sense that only one thread on one core can take
@@ -439,6 +510,15 @@ public:
 };
 
 /**
+ * \}
+ */
+
+/**
+ * \name Deep Sleep Lock
+ * \{
+ */
+
+/**
  * Prevent the microcontroller from entering a deep sleep state. Most commonly
  * used by device drivers requiring clocks or power rails that would be disabled
  * when entering deep sleep to perform blocking operations while informing the
@@ -471,5 +551,9 @@ public:
     DeepSleepLock(const DeepSleepLock&)=delete;
     DeepSleepLock& operator= (const DeepSleepLock&)=delete;
 };
+
+/**
+ * \}
+ */
 
 } //namespace miosix

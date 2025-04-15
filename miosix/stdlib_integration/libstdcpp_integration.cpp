@@ -36,6 +36,7 @@
 #include "kernel/logging.h"
 //// kernel interface
 #include "kernel/thread.h"
+#include "kernel/lock.h"
 
 using namespace std;
 
@@ -359,15 +360,35 @@ extern "C" void __cxa_guard_abort(__guard *g) noexcept
 
 // Not using the fast version, as these may be used before the kernel is started
 
+namespace miosix {
+
+// This is in a class only such that it can be friends with GlobalIrqLock.
+class LibAtomicQuickLock
+{
+public:
+    static inline unsigned int lock()
+    {
+        if(!kernelStarted || GlobalIrqLock::inLockedSection()) return 1;
+        FastGlobalIrqLock::lock();
+        return 0;
+    }
+
+    static inline void unlock(unsigned int token)
+    {
+        if(token==0) FastGlobalIrqLock::unlock();
+    }
+};
+
+}
+
 extern "C" unsigned int libat_quick_lock_n(void *ptr)
 {
-    miosix::globalIrqLock();
-    return 0;
+    return miosix::LibAtomicQuickLock::lock();
 }
 
 extern "C" void libat_quick_unlock_n(void *ptr, unsigned int token)
 {
-    miosix::globalIrqUnlock();
+    miosix::LibAtomicQuickLock::unlock(token);
 }
 
 // These are to implement "heavy" atomic operations, which are not used in
