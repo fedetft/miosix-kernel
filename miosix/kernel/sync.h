@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008-2023 by Terraneo Federico                          *
+ *   Copyright (C) 2008-2025 by Terraneo Federico                          *
  *   Copyright (C) 2023 by Daniele Cattaneo                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -42,6 +42,8 @@ namespace miosix {
 
 //Forwrd declaration
 class Thread;
+class ConditionVariable;
+class FastPauseKernelLock;
 enum class TimedWaitResult;
 
 /**
@@ -63,16 +65,14 @@ public:
     /**
      * Constructor, initializes the mutex.
      */
-    FastMutex(Options opt=DEFAULT);
+    FastMutex(Options opt=DEFAULT) : owner(nullptr),
+        recursiveDepth(opt==RECURSIVE ? 0 : -1), first(nullptr), last(nullptr) {}
 
     /**
      * Locks the critical section. If the critical section is already locked,
      * the thread will be queued in a wait list.
      */
-    void lock()
-    {
-        pthread_mutex_lock(&impl);
-    }
+    void lock();
 
     /**
      * Acquires the lock only if the critical section is not already locked by
@@ -80,45 +80,64 @@ public:
      * the mutex' lock count will not be incremented.
      * \return true if the lock was acquired
      */
-    bool tryLock()
-    {
-        return pthread_mutex_trylock(&impl)==0;
-    }
+    bool tryLock();
 
     /**
      * Unlocks the critical section.
      */
-    void unlock()
-    {
-        pthread_mutex_unlock(&impl);
-    }
+    void unlock();
 
     /**
      * \internal
-     * \return the FastMutex implementation defined mutex type
+     * \return true if mutex is locked
      */
-    pthread_mutex_t *get()
-    {
-        return &impl;
-    }
+    bool isLocked() const { return owner!=nullptr; }
 
-    /**
-     * Destructor
-     */
-    ~FastMutex()
-    {
-        pthread_mutex_destroy(&impl);
-    }
-
+    //Unwanted methods
     FastMutex(const FastMutex&) = delete;
     FastMutex& operator= (const FastMutex&) = delete;
 
 private:
-    pthread_mutex_t impl;
-};
+    /**
+     * Implementation code to lock a mutex to a specified depth level.
+     * Must be called with the kernel paused. If the mutex is not recursive the
+     * mutex is locked only one level deep regardless of the depth value.
+     * \param dLock The instance of FastPauseKernelLock
+     * \param depth recursive depth at which the mutex will be locked. Zero
+     * means the mutex is locked one level deep (as if lock() was called once),
+     * one means two levels deep, etc.
+     */
+    inline void PKlockToDepth(FastPauseKernelLock& dLock, unsigned int depth);
 
-//Forward declaration
-class ConditionVariable;
+    /**
+     * Implementation code to unlock all depth levels of a mutex.
+     * Must be called with the kernel paused
+     * \param mutex mutex to unlock
+     * \return the mutex recursive depth (how many times it was locked by the
+     * owner). Zero means the mutex is locked one level deep (lock() was called
+     * once), one means two levels deep, etc.
+     */
+    inline unsigned int PKunlockAllDepthLevels();
+
+    struct WaitingList
+    {
+        Thread *thread;
+        struct WaitingList *next;
+    };
+
+    /// Thread currently inside critical section, if NULL the critical section
+    /// is free
+    Thread *owner;
+
+    /// Used to hold nesting depth for recursive mutexes, -1 if not recursive
+    int recursiveDepth;
+
+    struct WaitingList *first; ///< First entry in fifo singly linked waiting list
+    struct WaitingList *last;  ///< Last entry in fifo singly linked waiting list
+
+    //Friends
+    friend class ConditionVariable;
+};
 
 /**
  * A mutex class with support for priority inheritance. If a thread tries to
@@ -169,6 +188,12 @@ public:
      */
     void unlock();
 
+    /**
+     * \internal
+     * \return true if mutex is locked
+     */
+    bool isLocked() const { return owner!=nullptr; }
+
     //Unwanted methods
     Mutex(const Mutex& s) = delete;
     Mutex& operator= (const Mutex& s) = delete;
@@ -191,12 +216,11 @@ private:
     /**
      * Unlock all levels of a recursive mutex, can be called only with
      * kernel paused one level deep (pauseKernel calls can be nested).<br>
-     * \param dLock the PauseKernelLock instance that paused the kernel.
      * \return the mutex recursive depth (how many times it was locked by the
      * owner). Zero means the mutex is locked one level deep (lock() was called
      * once), one means two levels deep, etc. 
      */
-    unsigned int PKunlockAllDepthLevels(PauseKernelLock& dLock);
+    unsigned int PKunlockAllDepthLevels();
 
     /**
      * First part of unlocking a mutex. Remove the mutex from the owner's list
@@ -443,18 +467,7 @@ public:
      * otherwise the behaviour is undefined.
      * \param m a locked FastMutex
      */
-    void wait(FastMutex& m)
-    {
-        wait(m.get());
-    }
-
-    /**
-     * Unlock the pthread_mutex_t and wait.
-     * If more threads call wait() they must do so specifying the same mutex,
-     * otherwise the behaviour is undefined.
-     * \param m a locked pthread_mutex_t
-     */
-    void wait(pthread_mutex_t *m);
+    void wait(FastMutex& m);
 
     /**
      * Unlock the Mutex and wait until woken up or timeout occurs.
@@ -474,20 +487,7 @@ public:
      * \param absTime absolute timeout time in nanoseconds
      * \return whether the return was due to a timout or wakeup
      */
-    TimedWaitResult timedWait(FastMutex& m, long long absTime)
-    {
-        return timedWait(m.get(), absTime);
-    }
-
-    /**
-     * Unlock the pthread_mutex_t and wait until woken up or timeout occurs.
-     * If more threads call wait() they must do so specifying the same mutex,
-     * otherwise the behaviour is undefined.
-     * \param m a locked pthread_mutex_t
-     * \param absTime absolute timeout time in nanoseconds
-     * \return whether the return was due to a timout or wakeup
-     */
-    TimedWaitResult timedWait(pthread_mutex_t *m, long long absTime);
+    TimedWaitResult timedWait(FastMutex& m, long long absTime);
 
     /**
      * Wakeup one waiting thread.

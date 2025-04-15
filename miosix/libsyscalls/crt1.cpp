@@ -544,6 +544,12 @@ void *getCurrentThread()
     return reinterpret_cast<void*>(1); //TODO: stub we need a syscall for that
 }
 
+struct WaitingList
+{
+    void *thread;
+    WaitingList *next;
+};
+
 int pthread_mutex_lock(pthread_mutex_t *mutex)
 {
     CriticalSectionLock lock(mutex);
@@ -559,9 +565,9 @@ int pthread_mutex_lock(pthread_mutex_t *mutex)
     //while(owner!=p) which is immeditely false.
     if(mutex->owner==p)
     {
-        if(mutex->recursive>=0)
+        if(mutex->recursiveDepth>=0)
         {
-            mutex->recursive++;
+            mutex->recursiveDepth++;
             return 0;
         } else exit(1); //Bad, deadlock
     }
@@ -569,13 +575,13 @@ int pthread_mutex_lock(pthread_mutex_t *mutex)
     WaitingList waiting; //Element of a linked list on stack
     waiting.thread=p;
     waiting.next=nullptr; //Putting this thread last on the list (lifo policy)
-    if(mutex->first==nullptr)
+    if(mutex->field1==nullptr)
     {
-        mutex->first=&waiting;
-        mutex->last=&waiting;
+        mutex->field1=&waiting;
+        mutex->field2=&waiting;
     } else {
-        mutex->last->next=&waiting;
-        mutex->last=&waiting;
+        reinterpret_cast<WaitingList*>(mutex->field2)->next=&waiting;
+        mutex->field2=&waiting;
     }
 
     //The while is necessary to protect against spurious wakeups
@@ -593,17 +599,17 @@ int pthread_mutex_lock(pthread_mutex_t *mutex)
 int pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
     CriticalSectionLock lock(mutex);
-    if(mutex->recursive>0)
+    if(mutex->recursiveDepth>0)
     {
-        mutex->recursive--;
+        mutex->recursiveDepth--;
         return 0;
     }
-    if(mutex->first!=nullptr)
+    if(mutex->field1!=nullptr)
     {
         //TODO: once the code to block a thread in pthread_mutex_lock is added
         //here we need to call the syscall to wake it up
-        mutex->owner=mutex->first->thread;
-        mutex->first=mutex->first->next;
+        mutex->owner=reinterpret_cast<WaitingList*>(mutex->field1)->thread;
+        mutex->field1=reinterpret_cast<WaitingList*>(mutex->field1)->next;
         return 0;
     }
     mutex->owner=nullptr;

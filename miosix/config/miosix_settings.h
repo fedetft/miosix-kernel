@@ -295,7 +295,7 @@ const unsigned int WATERMARK_FILL=0xaaaaaaaa;
 const unsigned int STACK_FILL=0xbbbbbbbb;
 
 // Compiler version checks
-#if !defined(_MIOSIX_GCC_PATCH_MAJOR) || _MIOSIX_GCC_PATCH_MAJOR < 3
+#if !defined(_MIOSIX_GCC_PATCH_MAJOR) || _MIOSIX_GCC_PATCH_MAJOR < 3 || _MIOSIX_GCC_PATCH_MINOR < 4
 #error "You are using a too old or unsupported compiler. Get the latest one from https://miosix.org/wiki/index.php?title=Miosix_Toolchain"
 #endif
 #if _MIOSIX_GCC_PATCH_MAJOR > 3

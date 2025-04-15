@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008-2023 by Terraneo Federico                          *
+ *   Copyright (C) 2008-2025 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -27,7 +27,7 @@
 
 #include "sync.h"
 #include "error.h"
-#include "pthread_private.h"
+#include "lock_private.h"
 #include "kernel/scheduler/scheduler.h"
 #include <algorithm>
 
@@ -53,16 +53,144 @@ static auto PKlowerPriority=[](Thread *lhs, Thread *rhs)
 // class FastMutex
 //
 
-FastMutex::FastMutex(Options opt)
+void FastMutex::lock()
 {
-    if(opt==RECURSIVE)
+    FastPauseKernelLock dLock;
+    Thread *cur=Thread::PKgetCurrentThread();
+    if(owner==nullptr)
     {
-        pthread_mutexattr_t temp;
-        pthread_mutexattr_init(&temp);
-        pthread_mutexattr_settype(&temp,PTHREAD_MUTEX_RECURSIVE);
-        pthread_mutex_init(&impl,&temp);
-        pthread_mutexattr_destroy(&temp);
-    } else pthread_mutex_init(&impl,nullptr);
+        owner=cur;
+        return;
+    }
+
+    //This check is very important. Without this attempting to lock the same
+    //mutex twice won't cause a deadlock because the wait is enclosed in a
+    //while(owner!=cur) which is immeditely false.
+    if(owner==cur)
+    {
+        if(recursiveDepth>=0)
+        {
+            recursiveDepth++;
+            return;
+        } else errorHandler(MUTEX_ERROR); //Bad, deadlock
+    }
+
+    WaitingList waiting; //Element of a linked list on stack
+    waiting.thread=cur;
+    waiting.next=nullptr; //Putting this thread last on the list (lifo policy)
+    if(first==nullptr)
+    {
+        first=&waiting;
+        last=&waiting;
+    } else {
+        last->next=&waiting;
+        last=&waiting;
+    }
+
+    //The while is necessary to protect against spurious wakeups
+    while(owner!=cur) Thread::PKrestartKernelAndWait(dLock);
+}
+
+bool FastMutex::tryLock()
+{
+    FastPauseKernelLock dLock;
+    Thread *cur=Thread::PKgetCurrentThread();
+    if(owner==nullptr)
+    {
+        owner=cur;
+        return true;
+    }
+    if(owner==cur && recursiveDepth>=0)
+    {
+        recursiveDepth++;
+        return true;
+    }
+    return false;
+}
+
+void FastMutex::unlock()
+{
+    FastPauseKernelLock dLock;
+//    Safety check removed for speed reasons
+//    if(owner!=Thread::PKgetCurrentThread()) errorHandler(MUTEX_ERROR);
+    if(recursiveDepth>0)
+    {
+        recursiveDepth--;
+        return;
+    }
+    if(first!=nullptr)
+    {
+        Thread *t=first->thread;
+        first=first->next;
+        owner=t;
+        t->PKwakeup();
+        return;
+    }
+    owner=nullptr;
+}
+
+inline void FastMutex::PKlockToDepth(FastPauseKernelLock& dLock, unsigned int depth)
+{
+    Thread *cur=Thread::PKgetCurrentThread();
+    if(owner==nullptr)
+    {
+        owner=cur;
+        if(recursiveDepth>=0) recursiveDepth=depth;
+        return;
+    }
+
+    //This check is very important. Without this attempting to lock the same
+    //mutex twice won't cause a deadlock because the wait is enclosed in a
+    //while(owner!=cur) which is immeditely false.
+    if(owner==cur)
+    {
+        if(recursiveDepth>=0)
+        {
+            recursiveDepth=depth;
+            return;
+        } else errorHandler(MUTEX_ERROR); //Bad, deadlock
+    }
+
+    WaitingList waiting; //Element of a linked list on stack
+    waiting.thread=cur;
+    waiting.next=nullptr; //Putting this thread last on the list (lifo policy)
+    if(first==nullptr)
+    {
+        first=&waiting;
+        last=&waiting;
+    } else {
+        last->next=&waiting;
+        last=&waiting;
+    }
+
+    //The while is necessary to protect against spurious wakeups
+    while(owner!=cur) Thread::PKrestartKernelAndWait(dLock);
+    if(recursiveDepth>=0) recursiveDepth=depth;
+}
+
+inline unsigned int FastMutex::PKunlockAllDepthLevels()
+{
+//    Safety check removed for speed reasons
+//    if(owner!=Thread::PKgetCurrentThread()) errorHandler(MUTEX_ERROR);
+    if(first!=nullptr)
+    {
+        Thread *t=first->thread;
+        first=first->next;
+        owner=t;
+        t->PKwakeup();
+
+        if(recursiveDepth<0) return 0;
+        unsigned int result=recursiveDepth;
+        recursiveDepth=0;
+        return result;
+    }
+
+    owner=nullptr;
+
+    if(recursiveDepth<0) return 0;
+    unsigned int result=recursiveDepth;
+    recursiveDepth=0;
+    return result;
 }
 
 //
@@ -194,7 +322,7 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
     if(recursiveDepth>=0) recursiveDepth=depth;
 }
 
-unsigned int Mutex::PKunlockAllDepthLevels(PauseKernelLock& dLock)
+unsigned int Mutex::PKunlockAllDepthLevels()
 {
     Thread *cur=Thread::PKgetCurrentThread();
     if(owner!=cur) errorHandler(MUTEX_ERROR);
@@ -362,29 +490,29 @@ void ConditionVariable::wait(Mutex& m)
 {
     WaitToken listItem(Thread::getCurrentThread());
     PauseKernelLock dLock;
-    unsigned int depth=m.PKunlockAllDepthLevels(dLock);
+    unsigned int depth=m.PKunlockAllDepthLevels();
     condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
     Thread::PKrestartKernelAndWait(dLock);
     condList.removeFast(&listItem); //In case of timeout or spurious wakeup
     m.PKlockToDepth(dLock,depth);
 }
 
-void ConditionVariable::wait(pthread_mutex_t *m)
+void ConditionVariable::wait(FastMutex& m)
 {
     WaitToken listItem(Thread::getCurrentThread());
     FastPauseKernelLock dLock;
-    unsigned int depth=PKdoMutexUnlockAllDepthLevels(m);
+    unsigned int depth=m.PKunlockAllDepthLevels();
     condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
     Thread::PKrestartKernelAndWait(dLock);
     condList.removeFast(&listItem); //In case of spurious wakeup
-    PKdoMutexLockToDepth(m,dLock,depth);
+    m.PKlockToDepth(dLock,depth);
 }
 
 TimedWaitResult ConditionVariable::timedWait(Mutex& m, long long absTime)
 {
     WaitToken listItem(Thread::getCurrentThread());
     PauseKernelLock dLock;
-    unsigned int depth=m.PKunlockAllDepthLevels(dLock);
+    unsigned int depth=m.PKunlockAllDepthLevels();
     condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
     auto result=Thread::PKrestartKernelAndTimedWait(dLock,absTime);
     condList.removeFast(&listItem); //In case of timeout or spurious wakeup
@@ -392,15 +520,15 @@ TimedWaitResult ConditionVariable::timedWait(Mutex& m, long long absTime)
     return result;
 }
 
-TimedWaitResult ConditionVariable::timedWait(pthread_mutex_t *m, long long absTime)
+TimedWaitResult ConditionVariable::timedWait(FastMutex& m, long long absTime)
 {
     WaitToken listItem(Thread::getCurrentThread());
     FastPauseKernelLock dLock;
-    unsigned int depth=PKdoMutexUnlockAllDepthLevels(m);
+    unsigned int depth=m.PKunlockAllDepthLevels();
     condList.push_back(&listItem); //Putting this thread last on the list (lifo policy)
     auto result=Thread::PKrestartKernelAndTimedWait(dLock,absTime);
     condList.removeFast(&listItem); //In case of timeout or spurious wakeup
-    PKdoMutexLockToDepth(m,dLock,depth);
+    m.PKlockToDepth(dLock,depth);
     return result;
 }
 
