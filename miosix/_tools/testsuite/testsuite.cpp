@@ -645,14 +645,13 @@ static void t4_p1(void *argv)
     for(;;)
     {
         if(Thread::testTerminate()) break;
-        #ifdef WITH_SMP
-        //TODO: pin tasks on a single core for this test
-        globalIrqLock();
-        #endif //WITH_SMP
-        t4_v1=true;
-        #ifdef WITH_SMP
-        globalIrqUnlock();
-        #endif //WITH_SMP
+        {
+            #ifdef WITH_SMP
+            //TODO: pin tasks on a single core for this test
+            GlobalIrqLock lock;
+            #endif //WITH_SMP
+            t4_v1=true;
+        }
         #ifdef SCHED_TYPE_EDF
         Thread::sleep(5);
         #endif //SCHED_TYPE_EDF
@@ -686,19 +685,20 @@ static void test_4()
     //Check that getCurrentThread() and IRQgetCurrentThread() return the
     //same value
     Thread *q=Thread::getCurrentThread();
-    globalIrqLock();//
-    if(q!=Thread::IRQgetCurrentThread()) fail("IRQgetCurrentThread");
-    //Check IRQgetPriority
-    if(p->IRQgetPriority()!=0) fail("IRQgetPriority");
-    //Check that t4_v1 is not updated
-    t4_v1=false;
-    delayUs(MAX_TIME_IRQ_DISABLED);
-    if(t4_v1)
     {
-        globalIrqUnlock();//
-        fail("globalIrqLock");
+        GlobalIrqLock lock;
+        if(q!=Thread::IRQgetCurrentThread()) fail("IRQgetCurrentThread");
+        //Check IRQgetPriority
+        if(p->IRQgetPriority()!=0) fail("IRQgetPriority");
+        //Check that t4_v1 is not updated
+        t4_v1=false;
+        delayUs(MAX_TIME_IRQ_DISABLED);
+        if(t4_v1)
+        {
+            GlobalIrqUnlock unlock(lock);
+            fail("globalIrqLock");
+        }
     }
-    globalIrqUnlock();//
     #ifndef SCHED_TYPE_EDF
     Thread::yield();
     #else //SCHED_TYPE_EDF
@@ -824,10 +824,11 @@ static void test_5()
         Thread::sleep(100);
         if(t5_v1==true) fail("Thread::IRQglobalIrqUnlockAndWait");
     }
-    globalIrqLock();
-    p->IRQwakeup();
-    t5_v1=false;
-    globalIrqUnlock();
+    {
+        GlobalIrqLock lock;
+        p->IRQwakeup();
+        t5_v1=false;
+    }
     //Now that is still running, must update the variable
     Thread::sleep(5);
     if(t5_v1==false) fail("Thread::IRQwakeup");
@@ -1590,14 +1591,13 @@ void t9_p1(void*)
     for(;;)
     {
         if(Thread::testTerminate()) break;
-        //TODO: pin tasks on a single core for this test
-        #ifdef WITH_SMP
-        globalIrqLock();
-        #endif //WITH_SMP
-        t9_v1=true;
-        #ifdef WITH_SMP
-        globalIrqUnlock();
-        #endif //WITH_SMP
+        {
+            //TODO: pin tasks on a single core for this test
+            #ifdef WITH_SMP
+            GlobalIrqLock lock;
+            #endif //WITH_SMP
+            t9_v1=true;
+        }
         #ifdef SCHED_TYPE_EDF
         Thread::sleep(1);
         #endif //SCHED_TYPE_EDF
@@ -1633,46 +1633,48 @@ static void test_9()
     if(isKernelPaused()==true) fail("isKernelRunning() (5)");
     //Testing nesting of globalIrqLock()
     if(areInterruptsEnabled()==false) fail("areInterruptsEnabled() (1)");
-    globalIrqLock();//Now interrupts should be disabled
+    {
+        GlobalIrqLock lock;//This should disable interrupts
     t9_v1=false;
     delayUs(MAX_TIME_IRQ_DISABLED/3);
     if(t9_v1)
     {
-        globalIrqUnlock();
+            GlobalIrqUnlock unlock(lock);
         fail("globalIrqLock() nesting (1)");
     }
     if(areInterruptsEnabled()==true)
     {
-        globalIrqUnlock();
+            GlobalIrqUnlock unlock(lock);
         fail("areInterruptsEnabled() (2)");
     }
-    globalIrqLock();//Interrupts already disabled
+        {
+            GlobalIrqLock lock;//Interrupts already disabled
     delayUs(MAX_TIME_IRQ_DISABLED/3);
     if(t9_v1)
     {
-        globalIrqUnlock();
-        globalIrqUnlock();
+                GlobalIrqUnlock unlock(lock);//This unlocks all nesting levels
         fail("globalIrqLock() nesting (2)");
     }
     if(areInterruptsEnabled()==true)
     {
-        globalIrqUnlock();
-        globalIrqUnlock();
+                GlobalIrqUnlock unlock(lock);//This unlocks all nesting levels
         fail("areInterruptsEnabled() (3)");
     }
-    globalIrqUnlock();//Now interrupts should remain disabled
+        }
+        //Interrupts should still be disabled
     delayUs(MAX_TIME_IRQ_DISABLED/3);
     if(t9_v1)
     {
-        globalIrqUnlock();
+            GlobalIrqUnlock unlock(lock);//This unlocks all nesting levels
         fail("globalIrqUnlock() nesting (1)");
     }
     if(areInterruptsEnabled()==true)
     {
-        globalIrqUnlock();
+            GlobalIrqUnlock unlock(lock);//This unlocks all nesting levels
         fail("areInterruptsEnabled() (4)");
     }
-    globalIrqUnlock();//Now interrupts should be enabled
+    }
+    //Now interrupts should be enabled
     delayMs(10);
     if(t9_v1==false)
     {
@@ -4678,8 +4680,10 @@ static void benchmark_4()
     i=0;
     while(b4_end==false)
     {
-        globalIrqLock();
-        globalIrqUnlock();
+        {
+            GlobalIrqLock lock;
+            asm volatile("");
+        }
         i++;
     }
     iprintf("%d disable/enable interrupts pairs per second\n",i);
