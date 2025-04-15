@@ -40,7 +40,6 @@ namespace miosix {
 
 //These are defined in thread.cpp
 extern volatile Thread *runningThread;
-extern volatile bool pendingWakeup;
 extern IntrusiveList<SleepData> sleepingList;
 
 //Internal
