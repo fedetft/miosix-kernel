@@ -420,9 +420,10 @@ static void t2_p1(void *argv)
         if(Thread::testTerminate()) break;
         if(Thread::getCurrentThread()!=t2_p_v1)
             fail("Thread::getCurrentThread()");
-        pauseKernel();//
-        t2_v1=true;
-        restartKernel();//
+        {
+            PauseKernelLock lock;
+            t2_v1=true;
+        }
         #ifdef SCHED_TYPE_EDF
         Thread::sleep(5);
         #endif //SCHED_TYPE_EDF
@@ -446,15 +447,16 @@ static void test_2()
 {
     test_name("pause/restart kernel");
     t2_p_v1=Thread::create(t2_p1,STACK_SMALL,0,NULL,Thread::JOINABLE);
-    pauseKernel();//
-    t2_v1=false;
-    //If the kernel is stopped, t2_v1 must not be updated
-    for(int i=0;i<10;i++)
     {
-        delayMs(20);
-        if(t2_v1==true) { restartKernel(); fail("pauseKernel"); }
+        PauseKernelLock lock;
+        t2_v1=false;
+        //If the kernel is stopped, t2_v1 must not be updated
+        for(int i=0;i<10;i++)
+        {
+            delayMs(20);
+            if(t2_v1==true) { PauseKernelUnlock unlock(lock); fail("pauseKernel"); }
+        }
     }
-    restartKernel();//
     //If the kernel is started, t2_v1 must be updated
     for(int i=0;i<10;i++)
     {
@@ -1610,26 +1612,27 @@ static void test_9()
     //Testing kernel_running with nested pause_kernel()
     Thread *p=Thread::create(t9_p1,STACK_SMALL,0,NULL,Thread::JOINABLE);
     if(isKernelPaused()==true) fail("isKernelPaused() (1)");
-    pauseKernel();//1
-    if(isKernelPaused()==false)
     {
-        restartKernel();
-        fail("isKernelPaused() (2)");
+        PauseKernelLock lock;//1
+        if(isKernelPaused()==false)
+        {
+            PauseKernelUnlock unlock(lock);
+            fail("isKernelPaused() (2)");
+        }
+        {
+            PauseKernelLock lock;//2
+            if(isKernelPaused()==false)
+            {
+                PauseKernelUnlock unlock(lock);// unlocks all levels
+                fail("isKernelPaused() (3)");
+            }
+        }
+        if(isKernelPaused()==false)
+        {
+            PauseKernelUnlock unlock(lock);
+            fail("isKernelPaused() (4)");
+        }
     }
-    pauseKernel();//2
-    if(isKernelPaused()==false)
-    {
-        restartKernel();
-        restartKernel();
-        fail("isKernelPaused() (3)");
-    }
-    restartKernel();//2
-    if(isKernelPaused()==false)
-    {
-        restartKernel();
-        fail("isKernelPaused() (4)");
-    }
-    restartKernel();//1
     if(isKernelPaused()==true) fail("isKernelRunning() (5)");
     //Testing nesting of globalIrqLock()
     if(areInterruptsEnabled()==false) fail("areInterruptsEnabled() (1)");
@@ -4664,8 +4667,10 @@ static void benchmark_4()
     i=0;
     while(b4_end==false)
     {
-        pauseKernel();
-        restartKernel();
+        {
+            PauseKernelLock lock;
+            asm volatile("");
+        }
         i++;
     }
     iprintf("%d pause/restart kernel pairs per second\n",i);

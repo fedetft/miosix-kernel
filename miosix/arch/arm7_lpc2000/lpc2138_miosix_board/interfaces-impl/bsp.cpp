@@ -240,110 +240,110 @@ static void _shutdown(bool and_return, Time *t)
     if(and_return==false) FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
-    pauseKernel();
-
-    //wait button release
-    while(buttonEnter()) delayMs(20);
-
-    //sleep 100ms
-    delayMs(100);
-
-    //Disable interrupts
     {
-        GlobalIrqLock lock;
-        
-        //Clearing PINSEL registers. All pin are GPIO by default
-        PINSEL0=0;
-        PINSEL1=0;
-        //Restore failsafe pin state (only non-gpio pin)
-        IOSET0=IOSET0_failsafe & (~GPIO_0_MASK);
-        IOCLR0=IOCLR0_failsafe & (~GPIO_0_MASK);
-        IODIR0=((IODIR0 & GPIO_0_MASK) | (IODIR0_failsafe & (~GPIO_0_MASK)));
-        //Not changing IODIR1, IOCLR1 and IOSET1 because are all gpio
+        PauseKernelLock lock;
 
-        IODIR0|=(1<<18);//making p0.18 uSD miso an output, so if no card present it
-        //is not floating
-        
-        //Set wakup time
-        #ifdef WITH_RTC
-        if(t!=NULL)
+        //wait button release
+        while(buttonEnter()) delayMs(20);
+
+        //sleep 100ms
+        delayMs(100);
+
+        //Disable interrupts
         {
-            unsigned char tmp=((t->wakeup_mask) & 0xf);//sec, min, hour, day
-            tmp|=(1<<4) | (1<<5);//Day of month and day of year not compared for alarm
-            if((t->wakeup_mask) & (1<<4)) tmp|=(1<<6);//month
-            if((t->wakeup_mask) & (1<<5)) tmp|=(1<<7);//year
-            AMR=tmp;
-            ALSEC=(int)(t->sec);
-            ALMIN=(int)(t->min);
-            ALHOUR=(int)(t->hour);
-            ALDOM=(int)(t->day);
-            ALDOW=0;//Not used
-            ALDOY=0;//Not used
-            ALMON=(int)(t->month);
-            ALYEAR=(int)(t->year);
-        } else {
-            AMR=0xff;//Time wakeup disabled
-        }
-        ILR=0x3;//Clear RTC alarm interrupt flag
-        #endif //WITH_RTC
+            GlobalIrqLock lock;
+            
+            //Clearing PINSEL registers. All pin are GPIO by default
+            PINSEL0=0;
+            PINSEL1=0;
+            //Restore failsafe pin state (only non-gpio pin)
+            IOSET0=IOSET0_failsafe & (~GPIO_0_MASK);
+            IOCLR0=IOCLR0_failsafe & (~GPIO_0_MASK);
+            IODIR0=((IODIR0 & GPIO_0_MASK) | (IODIR0_failsafe & (~GPIO_0_MASK)));
+            //Not changing IODIR1, IOCLR1 and IOSET1 because are all gpio
 
-        #ifdef WAKEUP_DELAY
-        bool skip_delay=false;
-        sleep_again: //We jump here if WAKEUP_DELAY is #define'd and we do not hold
-        //down p0.14 enough
-        #endif //WAKEUP_DELAY
-
-        //now power down system
-        PCON=BODPDM;//Disable BOD to save power
-        #ifdef WITH_RTC
-        INTWAKE=(1<<1) | (1<<15);//EINT1 (p0.14) + RTC selected
-        #else //WITH_RTC
-        INTWAKE=(1<<1);//EINT1 (p0.14) selected
-        #endif //WITH_RTC
-        EXTMODE=0;//Interrupt level sensitive
-        EXTPOLAR=0;//Interrupt is active low
-        EXTINT=(1<<1);//Clear flag for int1
-        PINSEL0|=(1<<29);//p0.14 external interrupt
-        goPowerDown();
-        PINSEL0&=~(1<<29);//p0.14 standard I/O
-
-        #if defined(WITH_RTC) && defined(WAKEUP_DELAY)
-        //If we woke because of a RTC timeout, no button delay
-        if(ILR & (1<<1)) skip_delay=true;
-        #endif //WITH_RTC
-
-        #ifdef WAKEUP_DELAY
-        if(skip_delay==false)
-        {
-            //user must hold down enter button for 2 seconds
-            int i;
-            for(i=0;i<20;i++)
+            IODIR0|=(1<<18);//making p0.18 uSD miso an output, so if no card present it
+            //is not floating
+            
+            //Set wakup time
+            #ifdef WITH_RTC
+            if(t!=NULL)
             {
-                //Waiting 100/4 because PLL is not yet enabled, clock frequency is low
-                delayMs(100/4);
-                if(!buttonEnter()) goto sleep_again;
+                unsigned char tmp=((t->wakeup_mask) & 0xf);//sec, min, hour, day
+                tmp|=(1<<4) | (1<<5);//Day of month and day of year not compared for alarm
+                if((t->wakeup_mask) & (1<<4)) tmp|=(1<<6);//month
+                if((t->wakeup_mask) & (1<<5)) tmp|=(1<<7);//year
+                AMR=tmp;
+                ALSEC=(int)(t->sec);
+                ALMIN=(int)(t->min);
+                ALHOUR=(int)(t->hour);
+                ALDOM=(int)(t->day);
+                ALDOW=0;//Not used
+                ALDOY=0;//Not used
+                ALMON=(int)(t->month);
+                ALYEAR=(int)(t->year);
+            } else {
+                AMR=0xff;//Time wakeup disabled
             }
+            ILR=0x3;//Clear RTC alarm interrupt flag
+            #endif //WITH_RTC
+
+            #ifdef WAKEUP_DELAY
+            bool skip_delay=false;
+            sleep_again: //We jump here if WAKEUP_DELAY is #define'd and we do not hold
+            //down p0.14 enough
+            #endif //WAKEUP_DELAY
+
+            //now power down system
+            PCON=BODPDM;//Disable BOD to save power
+            #ifdef WITH_RTC
+            INTWAKE=(1<<1) | (1<<15);//EINT1 (p0.14) + RTC selected
+            #else //WITH_RTC
+            INTWAKE=(1<<1);//EINT1 (p0.14) selected
+            #endif //WITH_RTC
+            EXTMODE=0;//Interrupt level sensitive
+            EXTPOLAR=0;//Interrupt is active low
+            EXTINT=(1<<1);//Clear flag for int1
+            PINSEL0|=(1<<29);//p0.14 external interrupt
+            goPowerDown();
+            PINSEL0&=~(1<<29);//p0.14 standard I/O
+
+            #if defined(WITH_RTC) && defined(WAKEUP_DELAY)
+            //If we woke because of a RTC timeout, no button delay
+            if(ILR & (1<<1)) skip_delay=true;
+            #endif //WITH_RTC
+
+            #ifdef WAKEUP_DELAY
+            if(skip_delay==false)
+            {
+                //user must hold down enter button for 2 seconds
+                int i;
+                for(i=0;i<20;i++)
+                {
+                    //Waiting 100/4 because PLL is not yet enabled, clock frequency is low
+                    delayMs(100/4);
+                    if(!buttonEnter()) goto sleep_again;
+                }
+            }
+            #endif//WAKEUP_DELAY
+
+            if(and_return==false) IRQsystemReboot();
+
+            //Initialize the system PLL (Power down mode resets pll to 1x)
+            setPllFreq(PLL_4X);//Set cpu freq. through pll @ 14.7456MHz * 4 = 59MHz
+            set_apb_ratio(APB_DIV_4);//Set peripheral clock ratio 1:4
+
+            IODIR0&=~(1<<18);//restoring p0.18 uSD miso as input.
+
+            //Now wait 50ms
+            ledOn();
+            delayMs(50);
+            ledOff();
+            //Enable 3v subsystem
+            subsystem_3v_on();
+            delayMs(50);
         }
-        #endif//WAKEUP_DELAY
-
-        if(and_return==false) IRQsystemReboot();
-
-        //Initialize the system PLL (Power down mode resets pll to 1x)
-        setPllFreq(PLL_4X);//Set cpu freq. through pll @ 14.7456MHz * 4 = 59MHz
-        set_apb_ratio(APB_DIV_4);//Set peripheral clock ratio 1:4
-
-        IODIR0&=~(1<<18);//restoring p0.18 uSD miso as input.
-
-        //Now wait 50ms
-        ledOn();
-        delayMs(50);
-        ledOff();
-        //Enable 3v subsystem
-        subsystem_3v_on();
-        delayMs(50);
     }
-
-    restartKernel();
 }
 
 void sleep(Time *t)
