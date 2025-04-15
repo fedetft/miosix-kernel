@@ -109,7 +109,7 @@ void shutdown()
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
-    globalIrqLock();
+    fastGlobalIrqLock();
 
     /*
     Removed because low power mode causes issues with SWD programming
@@ -134,7 +134,7 @@ void reboot()
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
-    globalIrqLock();
+    fastGlobalIrqLock();
     IRQsystemReboot();
 }
 

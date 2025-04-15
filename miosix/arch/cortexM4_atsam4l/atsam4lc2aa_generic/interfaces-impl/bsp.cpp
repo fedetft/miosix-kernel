@@ -87,7 +87,7 @@ void reboot()
 {
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
 
-    globalIrqLock();
+    fastGlobalIrqLock();
     IRQsystemReboot();
 }
 

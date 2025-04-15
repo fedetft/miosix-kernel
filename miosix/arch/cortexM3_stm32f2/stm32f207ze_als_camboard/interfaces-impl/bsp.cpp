@@ -85,7 +85,7 @@ void shutdown()
 {
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
 
-    globalIrqLock();
+    fastGlobalIrqLock();
     for(;;) __WFI();
 }
 
@@ -93,7 +93,7 @@ void reboot()
 {
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
 
-    globalIrqLock();
+    fastGlobalIrqLock();
     IRQsystemReboot();
 }
 

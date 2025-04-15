@@ -313,8 +313,7 @@ void shutdown()
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
-    globalIrqLock();
-
+    fastGlobalIrqLock();
     for(;;) ;
 }
 
@@ -326,7 +325,7 @@ void reboot()
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
-    globalIrqLock();
+    fastGlobalIrqLock();
     IRQsystemReboot();
 }
 

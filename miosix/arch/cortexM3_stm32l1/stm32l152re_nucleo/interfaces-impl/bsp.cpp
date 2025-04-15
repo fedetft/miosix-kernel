@@ -98,7 +98,7 @@ static void tearDown()
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
-    globalIrqLock();
+    fastGlobalIrqLock();
 }
 
 void shutdown()

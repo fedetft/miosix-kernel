@@ -196,7 +196,7 @@ void reboot()
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
-    globalIrqLock();
+    fastGlobalIrqLock();
     IRQsystemReboot();
 }
 

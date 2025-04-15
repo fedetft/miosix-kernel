@@ -281,7 +281,7 @@ void shutdown()
 {
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
 
-    globalIrqLock();
+    fastGlobalIrqLock();
     
     //Serial port is causing some residual consumption
     USART0->CMD=USART_CMD_TXDIS | USART_CMD_RXDIS;
@@ -303,7 +303,7 @@ void reboot()
 {
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
 
-    globalIrqLock();
+    fastGlobalIrqLock();
     IRQsystemReboot();
 }
 

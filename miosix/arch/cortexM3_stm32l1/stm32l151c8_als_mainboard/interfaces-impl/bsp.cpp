@@ -167,7 +167,7 @@ void shutdown()
 {
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
 
-    globalIrqLock();
+    fastGlobalIrqLock();
     
     //Put outputs in low power mode
     led::low();
@@ -201,7 +201,7 @@ void reboot()
 {
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
 
-    globalIrqLock();
+    fastGlobalIrqLock();
     IRQsystemReboot();
 }
 

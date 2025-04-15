@@ -110,7 +110,7 @@ void shutdown()
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
-    globalIrqLock();
+    fastGlobalIrqLock();
     //The display could be damaged if left on but without refreshing it
 	typedef Gpio<GPIOB_BASE,8>  dispoff;//DISPOFF signal to display
 	dispoff::high();
@@ -126,7 +126,7 @@ void reboot()
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
-    globalIrqLock();
+    fastGlobalIrqLock();
     IRQsystemReboot();
 }
 
