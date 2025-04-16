@@ -77,7 +77,7 @@ namespace miosix {
 //
 
 FileDescriptorTable::FileDescriptorTable()
-    : mutex(FastMutex::RECURSIVE), cwd("/")
+    : mutex(MutexOptions::RECURSIVE), cwd("/")
 {
     FilesystemManager::instance().addFileDescriptorTable(this);
     files[0]=files[1]=files[2]=intrusive_ref_ptr<FileBase>(
@@ -85,12 +85,12 @@ FileDescriptorTable::FileDescriptorTable()
 }
 
 FileDescriptorTable::FileDescriptorTable(const FileDescriptorTable& rhs)
-    : mutex(FastMutex::RECURSIVE)
+    : mutex(MutexOptions::RECURSIVE)
 {
     //No need to lock this->mutex since we are in a constructor and there can't
     //be pointers to this in other threads yet
     {
-        Lock<FastMutex> l(rhs.mutex);
+        Lock<KernelMutex> l(rhs.mutex);
         cwd=rhs.cwd;
         for(int i=0;i<MAX_OPEN_FILES;i++)
             if(rhs.filesCloexec[i]==false)
@@ -102,7 +102,7 @@ FileDescriptorTable::FileDescriptorTable(const FileDescriptorTable& rhs)
 int FileDescriptorTable::open(const char* name, int flags, int mode)
 {
     if(name==nullptr || name[0]=='\0') return -EFAULT;
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     int fd=getAvailableFd();
     if(fd<0) return fd;
     //Found an empty file descriptor
@@ -128,7 +128,7 @@ int FileDescriptorTable::close(int fd)
 
 void FileDescriptorTable::cloexec()
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     for(int i=0;i<MAX_OPEN_FILES;i++)
         if(filesCloexec[i])
             atomic_exchange(files+i,intrusive_ref_ptr<FileBase>());
@@ -147,7 +147,7 @@ int FileDescriptorTable::fcntl(int fd, int cmd, int opt)
     //Handle CLOEXEC as it'a a property of the file descriptor, not the file
     if(cmd==F_SETFD && (opt==FD_CLOEXEC || opt==0))
     {
-        Lock<FastMutex> l(mutex);
+        Lock<KernelMutex> l(mutex);
         filesCloexec[fd]= opt==FD_CLOEXEC;
         return 0;
     } else return file->fcntl(cmd,opt);
@@ -156,7 +156,7 @@ int FileDescriptorTable::fcntl(int fd, int cmd, int opt)
 int FileDescriptorTable::getcwd(char *buf, size_t len)
 {
     if(buf==0 || len<2) return -EINVAL; //We don't support the buf==0 extension
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     struct stat st;
     if(stat(".",&st) || !S_ISDIR(st.st_mode)) return -ENOENT;
     if(cwd.length()>len) return -ERANGE;
@@ -170,7 +170,7 @@ int FileDescriptorTable::chdir(const char* name)
     if(name==0 || name[0]=='\0') return -EFAULT;
     size_t len=strlen(name);
     if(name[len-1]!='/') len++; //Reserve room for trailing slash
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(name[0]!='/') len+=cwd.length();
     if(len>PATH_MAX) return -ENAMETOOLONG;
     
@@ -268,7 +268,7 @@ int FileDescriptorTable::dup(int fd)
     if(fd<0 || fd>=MAX_OPEN_FILES) return -EBADF;
     auto file=atomic_load(files+fd);
     if(!file) return -EBADF;
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     int newFd=getAvailableFd();
     if(newFd<0) return newFd;
     files[newFd]=file; //files[newFd] is guaranteed empty, assignment enough
@@ -284,7 +284,7 @@ int FileDescriptorTable::dup2(int oldFd, int newFd)
     auto file=atomic_load(files+oldFd);
     if(!file) return -EBADF;
     //Need to lock on writes so as not to race with getAvailableFd() elsewhere
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     atomic_store(files+newFd,file); //May race with concurrent close, need atomic
     filesCloexec[newFd]=false;
     return newFd;
@@ -293,7 +293,7 @@ int FileDescriptorTable::dup2(int oldFd, int newFd)
 int FileDescriptorTable::pipe(int fds[2])
 {
     if(fds==nullptr) return -EFAULT;
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     int availableFds=0;
     for(int i=0;i<MAX_OPEN_FILES;i++)
     {
@@ -325,7 +325,7 @@ string FileDescriptorTable::absolutePath(const char* path)
     size_t len=strlen(path);
     if(len>PATH_MAX) return "";
     if(path[0]=='/') return path;
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(len+cwd.length()>PATH_MAX) return "";
     return cwd+path;
 }
@@ -610,7 +610,7 @@ FilesystemManager& FilesystemManager::instance()
 int FilesystemManager::kmount(const char* path, intrusive_ref_ptr<FilesystemBase> fs)
 {
     if(path==0 || path[0]=='\0' || !fs) return -EFAULT;
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     size_t len=strlen(path);
     if(len>PATH_MAX) return -ENAMETOOLONG;
     string temp(path);
@@ -637,7 +637,7 @@ int FilesystemManager::umount(const char* path, bool force)
     if(path==0 || path[0]=='\0') return -ENOENT;
     size_t len=strlen(path);
     if(len>PATH_MAX) return -ENAMETOOLONG;
-    Lock<FastMutex> l(mutex); //A reader-writer lock would be better
+    Lock<KernelMutex> l(mutex); //A reader-writer lock would be better
     fsIt it=filesystems.find(StringPart(path));
     if(it==filesystems.end()) return -EINVAL;
     
@@ -720,7 +720,7 @@ int FilesystemManager::umount(const char* path, bool force)
 
 void FilesystemManager::umountAll()
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     #ifdef WITH_PROCESSES
     list<FileDescriptorTable*>::iterator it;
     for(it=fileTables.begin();it!=fileTables.end();++it) (*it)->closeAll();
@@ -737,7 +737,7 @@ ResolvedPath FilesystemManager::resolvePath(string& path, bool followLastSymlink
     if(path.length()>PATH_MAX) return ResolvedPath(-ENAMETOOLONG);
     if(path.empty() || path[0]!='/') return ResolvedPath(-ENOENT);
 
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     PathResolution pr(filesystems);
     return pr.resolvePath(path,followLastSymlink);
 }
@@ -746,7 +746,7 @@ int FilesystemManager::unlinkHelper(string& path)
 {
     //Do everything while keeping the mutex locked to prevent someone to
     //concurrently mount a filesystem on the directory we're unlinking
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     ResolvedPath openData=resolvePath(path,true);
     if(openData.result<0) return openData.result;
     //After resolvePath() so path is in canonical form and symlinks are followed
@@ -767,7 +767,7 @@ int FilesystemManager::renameHelper(string& oldPath, string& newPath)
 {
     //Do everything while keeping the mutex locked to prevent someone to
     //concurrently mount a filesystem on the directory we're renaming
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     ResolvedPath oldOpenData=resolvePath(oldPath,true);
     if(oldOpenData.result<0) return oldOpenData.result;
     ResolvedPath newOpenData=resolvePath(newPath,true);

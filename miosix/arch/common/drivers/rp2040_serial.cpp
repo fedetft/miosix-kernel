@@ -62,7 +62,7 @@ RP2040PL011Serial::RP2040PL011Serial(int number, int baudrate, GpioPin tx, GpioP
 ssize_t RP2040PL011Serial::readBlock(void *buffer, size_t size, off_t where)
 {
     if(size == 0) return 0;
-    Lock<FastMutex> lock(rxMutex);
+    Lock<KernelMutex> lock(rxMutex);
     auto bytes = reinterpret_cast<unsigned char *>(buffer);
     size_t i = 0;
     // Block until we can read the first byte
@@ -84,7 +84,7 @@ ssize_t RP2040PL011Serial::readBlock(void *buffer, size_t size, off_t where)
 ssize_t RP2040PL011Serial::writeBlock(const void *buffer, size_t size, off_t where)
 {
     if(size == 0) return 0;
-    Lock<FastMutex> lock(txMutex);
+    Lock<KernelMutex> lock(txMutex);
     auto bytes = reinterpret_cast<const unsigned char *>(buffer);
     size_t i=0;
     // Clear the low water semaphore in case it has been left set by a previous

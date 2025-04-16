@@ -472,7 +472,7 @@ inline void STM32SerialBase::waitSerialTxFifoEmpty()
 
 ssize_t STM32SerialBase::readFromRxQueue(void *buffer, size_t size)
 {
-    Lock<FastMutex> l(rxMutex);
+    Lock<KernelMutex> l(rxMutex);
     char *buf=reinterpret_cast<char*>(buffer);
     size_t result=0;
     FastGlobalIrqLock dLock;
@@ -569,7 +569,7 @@ ssize_t STM32Serial::readBlock(void *buffer, size_t size, off_t where)
 
 ssize_t STM32Serial::writeBlock(const void *buffer, size_t size, off_t where)
 {
-    Lock<FastMutex> l(txMutex);
+    Lock<KernelMutex> l(txMutex);
     DeepSleepLock dpLock;
     const char *buf=reinterpret_cast<const char*>(buffer);
     for(size_t i=0;i<size;i++)
@@ -668,7 +668,7 @@ void STM32DMASerial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
 
 ssize_t STM32DMASerial::writeBlock(const void *buffer, size_t size, off_t where)
 {
-    Lock<FastMutex> l(txMutex);
+    Lock<KernelMutex> l(txMutex);
     DeepSleepLock dpLock;
     const char *buf=reinterpret_cast<const char*>(buffer);
     size_t remaining=size;

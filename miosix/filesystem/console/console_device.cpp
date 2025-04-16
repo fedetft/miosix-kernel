@@ -80,7 +80,7 @@ ssize_t TerminalDevice::read(void *data, size_t length)
         if(echo && result>0) device->writeBlock(data,result,0);//Ignore write errors
         return result;
     }
-    Lock<FastMutex> l(mutex); //Reads are serialized
+    Lock<KernelMutex> l(mutex); //Reads are serialized
     char *buffer=static_cast<char*>(data);
     size_t readBytes=0;
     for(;;)

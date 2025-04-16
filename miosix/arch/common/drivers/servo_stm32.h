@@ -188,7 +188,7 @@ private:
     
     float minWidth, maxWidth; ///< Minimum and maximum pulse widths
     float a, b;               ///< Precomputed coefficients
-    FastMutex mutex;          ///< Mutex to protect from concurrent access
+    KernelMutex mutex;        ///< Mutex to protect from concurrent access
     enum {
         STOPPED,  ///< Timer is stopped
         STARTED   ///< Timer is started

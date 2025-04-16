@@ -43,7 +43,7 @@ ssize_t ARMDCC::readBlock(void* buffer, size_t size, off_t where)
 
 ssize_t ARMDCC::writeBlock(const void* buffer, size_t size, off_t where)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     debugStr(reinterpret_cast<const char*>(buffer),size);
     return size;
 }

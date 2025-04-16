@@ -56,7 +56,7 @@ private:
      */
     SPISDDriver();
     
-    FastMutex mutex;
+    KernelMutex mutex;
 };
 
 } //namespace miosix

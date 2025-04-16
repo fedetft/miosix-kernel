@@ -53,7 +53,7 @@ inline void ledOff() {}
  * different purposes (touchscreen, accelerometer, PMU). If you don't do it,
  * your application will crash sooner or later.
  */
-FastMutex& i2cMutex();
+KernelMutex& i2cMutex();
 
 enum {
      PMU_I2C_ADDRESS=0x90,  ///< I2C Address of the PMU
@@ -274,7 +274,7 @@ private:
     bool chargingAllowed;
     bool wakeOnButton;
     CoreFrequency coreFreq;
-    FastMutex powerManagementMutex;
+    KernelMutex powerManagementMutex;
 //    std::list<std::function<void (bool)> > notifier;
 };
 

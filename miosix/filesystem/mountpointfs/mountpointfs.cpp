@@ -52,13 +52,13 @@ public:
      * \param parentInode inode of the parent directory
      */
     MountpointFsDirectory(intrusive_ref_ptr<FilesystemBase> parent,
-            FastMutex& mutex, map<StringPart,int>& dirs, bool root,
+            KernelMutex& mutex, map<StringPart,int>& dirs, bool root,
             int currentInode, int parentInode)
             : DirectoryBase(parent), mutex(mutex), dirs(dirs),
               currentInode(currentInode), parentInode(parentInode),
               first(true), last(false)
     {
-        Lock<FastMutex> l(mutex);
+        Lock<KernelMutex> l(mutex);
         if(root && dirs.empty()==false) currentItem=dirs.begin()->first.c_str();
     }
     
@@ -74,7 +74,7 @@ public:
     virtual int getdents(void *dp, int len);
     
 private:
-    FastMutex& mutex;                 ///< Mutex of parent class
+    KernelMutex& mutex;                 ///< Mutex of parent class
     std::map<StringPart,int>& dirs;   ///< Directory entries of parent class
     string currentItem;               ///< First unhandled item in directory
     int currentInode,parentInode;     ///< Inodes of . and ..
@@ -92,7 +92,7 @@ int MountpointFsDirectory::getdents(void *dp, int len)
     if(len<minimumBufferSize) return -EINVAL;
     if(last) return 0;
     
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     char *begin=reinterpret_cast<char*>(dp);
     char *buffer=begin;
     char *end=buffer+len;
@@ -129,7 +129,7 @@ int MountpointFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
     if(flags & (O_WRONLY | O_RDWR | O_APPEND | O_CREAT | O_TRUNC))
         return -EACCES;
     
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     int currentInode=rootDirInode;
     int parentInode=parentFsMountpointInode;
     if(name.empty()==false)
@@ -147,7 +147,7 @@ int MountpointFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
 
 int MountpointFs::lstat(StringPart& name, struct stat *pstat)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     map<StringPart,int>::iterator it;
     if(name.empty()==false)
     {
@@ -175,7 +175,7 @@ int MountpointFs::unlink(StringPart& name)
 
 int MountpointFs::rename(StringPart& oldName, StringPart& newName)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     map<StringPart,int>::iterator it=dirs.find(oldName);
     if(it==dirs.end()) return -ENOENT;
     for(unsigned int i=0;i<newName.length();i++)
@@ -191,7 +191,7 @@ int MountpointFs::mkdir(StringPart& name, int mode)
     for(unsigned int i=0;i<name.length();i++)
         if(name[i]=='/')
             return -EACCES; //MountpointFs does not support subdirectories
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(dirs.insert(make_pair(name,inodeCount)).second==false) return -EEXIST;
     inodeCount++;
     return 0;
@@ -199,7 +199,7 @@ int MountpointFs::mkdir(StringPart& name, int mode)
 
 int MountpointFs::rmdir(StringPart& name)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(dirs.erase(name)==1) return 0;
     return -ENOENT;
 }

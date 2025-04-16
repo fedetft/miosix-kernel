@@ -366,9 +366,9 @@ static bool tx_datablock (const unsigned char *buf, unsigned char token)
 
 intrusive_ref_ptr<SPISDDriver> SPISDDriver::instance()
 {
-    static FastMutex m;
+    static KernelMutex m;
     static intrusive_ref_ptr<SPISDDriver> instance;
-    Lock<FastMutex> l(m);
+    Lock<KernelMutex> l(m);
     if(!instance) instance=new SPISDDriver();
     return instance;
 }
@@ -379,7 +379,7 @@ ssize_t SPISDDriver::readBlock(void* buffer, size_t size, off_t where)
     unsigned int lba=where/512;
     unsigned int nSectors=size/512;
     unsigned char *buf=reinterpret_cast<unsigned char*>(buffer);
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     DBG("SPISDDriver::readBlock(): nSectors=%d\n",nSectors);
     if(!(cardType & 8)) lba*=512;	// Convert to byte address if needed
     unsigned char result;
@@ -429,7 +429,7 @@ ssize_t SPISDDriver::writeBlock(const void* buffer, size_t size, off_t where)
     unsigned int lba=where/512;
     unsigned int nSectors=size/512;
     const unsigned char *buf=reinterpret_cast<const unsigned char*>(buffer);
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     DBG("SPISDDriver::writeBlock(): nSectors=%d\n",nSectors);
     if(!(cardType & 8)) lba*=512;	// Convert to byte address if needed
     unsigned char result;
@@ -477,7 +477,7 @@ int SPISDDriver::ioctl(int cmd, void* arg)
 {
     DBG("SPISDDriver::ioctl()\n");
     if(cmd!=IOCTL_SYNC) return -ENOTTY;
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     CS_LOW();
     unsigned char result=wait_ready();
     CS_HIGH();

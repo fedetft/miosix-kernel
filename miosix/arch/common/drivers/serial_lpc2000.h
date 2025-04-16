@@ -166,8 +166,8 @@ private:
     static const int hwTxQueueLen=16;
     static const int hwRxQueueLen=8;
 
-    FastMutex txMutex;///< Mutex used to guard the tx queue
-    FastMutex rxMutex;///< Mutex used to guard the rx queue
+    KernelMutex txMutex;///< Mutex used to guard the tx queue
+    KernelMutex rxMutex;///< Mutex used to guard the rx queue
 
     DynUnsyncQueue<char>  txQueue;///< Rx software queue
     DynUnsyncQueue<char>  rxQueue;///< Rx software queue

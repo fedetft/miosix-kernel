@@ -212,9 +212,9 @@ void reboot()
 // Other board specific stuff
 //
 
-FastMutex& i2cMutex()
+KernelMutex& i2cMutex()
 {
-    static FastMutex mutex;
+    static KernelMutex mutex;
     return mutex;
 }
 
@@ -335,7 +335,7 @@ bool PowerManagement::isUsbConnected() const
 bool PowerManagement::isCharging()
 {
     if(isUsbConnected()==false) return false;
-    Lock<FastMutex> l(i2cMutex());
+    Lock<KernelMutex> l(i2cMutex());
     unsigned char chgstatus;
     //During testing the i2c command never failed. If it does, we lie and say
     //we're not charging
@@ -352,7 +352,7 @@ int PowerManagement::getBatteryStatus()
 
 int PowerManagement::getBatteryVoltage()
 {
-    Lock<FastMutex> l(powerManagementMutex);
+    Lock<KernelMutex> l(powerManagementMutex);
     power::BATT_V_ON_Pin::high(); //Enable battry measure circuitry
     ADC1->CR2=ADC_CR2_ADON; //Turn ADC ON
     Thread::sleep(5); //Wait for voltage to stabilize
@@ -368,9 +368,9 @@ void PowerManagement::setCoreFrequency(CoreFrequency cf)
 {
     if(cf==coreFreq) return;
     
-    Lock<FastMutex> l(powerManagementMutex);
+    Lock<KernelMutex> l(powerManagementMutex);
     //We need to reconfigure I2C for the new frequency 
-    Lock<FastMutex> l2(i2cMutex());
+    Lock<KernelMutex> l2(i2cMutex());
     
     {
         FastGlobalIrqLock dLock;
@@ -426,10 +426,10 @@ void PowerManagement::goDeepSleep(int ms)
         return;
     }
     
-    Lock<FastMutex> l(powerManagementMutex);
+    Lock<KernelMutex> l(powerManagementMutex);
     //We don't use I2C, but we don't want other thread to mess with
     //the hardware while the microcontroller is going in deep sleep
-    Lock<FastMutex> l2(i2cMutex());
+    Lock<KernelMutex> l2(i2cMutex());
     
     {
         FastGlobalIrqLock dLock;
@@ -474,7 +474,7 @@ void PowerManagement::goDeepSleep(int ms)
 
 PowerManagement::PowerManagement() : i2c(new I2C1Master(i2c::I2C_SDA_Pin::getPin(),
         i2c::I2C_SCL_Pin::getPin(),100)), chargingAllowed(true), wakeOnButton(false),
-        coreFreq(FREQ_120MHz), powerManagementMutex(FastMutex::RECURSIVE)
+        coreFreq(FREQ_120MHz), powerManagementMutex(MutexOptions::RECURSIVE)
 {
     {
         FastGlobalIrqLock dLock;
@@ -509,7 +509,7 @@ PowerManagement::PowerManagement() : i2c(new I2C1Master(i2c::I2C_SDA_Pin::getPin
                         | VBAT_COMP_ENABLE;
     unsigned char defdcdc=DCDC_DISCH
                         | DCDC1_DEFAULT;
-    Lock<FastMutex> l(i2cMutex());
+    Lock<KernelMutex> l(i2cMutex());
     bool error=false;
     if(i2cWriteReg(i2c,PMU_I2C_ADDRESS,CHGCONFIG0,config0)==false) error=true;
     if(i2cWriteReg(i2c,PMU_I2C_ADDRESS,CHGCONFIG1,config1)==false) error=true;

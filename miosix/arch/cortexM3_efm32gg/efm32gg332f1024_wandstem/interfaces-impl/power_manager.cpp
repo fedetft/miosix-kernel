@@ -74,7 +74,7 @@ void PowerManager::deepSleepUntil(long long int when/*, Unit unit*/)
     
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
     
-    Lock<FastMutex> l(powerMutex);  //To access reference counts freely
+    Lock<KernelMutex> l(powerMutex);  //To access reference counts freely
     PauseKernelLock pkLock;         //To run unexpected IRQs without context switch
     FastGlobalIrqLock dLock; //To do everything else atomically
 
@@ -185,7 +185,7 @@ void PowerManager::deepSleepUntil(long long int when/*, Unit unit*/)
 
 void PowerManager::enableTransceiverPowerDomain()
 {   
-    Lock<FastMutex> l(powerMutex);
+    Lock<KernelMutex> l(powerMutex);
     if(transceiverPowerDomainRefCount==0)
     {
         //Enable power domain
@@ -212,7 +212,7 @@ void PowerManager::enableTransceiverPowerDomain()
 
 void PowerManager::disableTransceiverPowerDomain()
 {
-    Lock<FastMutex> l(powerMutex);
+    Lock<KernelMutex> l(powerMutex);
     transceiverPowerDomainRefCount--;
     if(transceiverPowerDomainRefCount==0)
     {
@@ -239,7 +239,7 @@ bool PowerManager::isTransceiverPowerDomainEnabled() const
 void PowerManager::enableSensorPowerDomain()
 {
     #if WANDSTEM_HW_REV>13
-    Lock<FastMutex> l(powerMutex);
+    Lock<KernelMutex> l(powerMutex);
     if(sensorPowerDomainRefCount==0)
     {
         powerSwitch::high();
@@ -254,7 +254,7 @@ void PowerManager::enableSensorPowerDomain()
 void PowerManager::disableSensorPowerDomain()
 {
     #if WANDSTEM_HW_REV>13
-    Lock<FastMutex> l(powerMutex);
+    Lock<KernelMutex> l(powerMutex);
     sensorPowerDomainRefCount--;
     if(sensorPowerDomainRefCount==0)
     {
@@ -282,7 +282,7 @@ void PowerManager::enableHighRegulatorVoltage()
 {
     //Nodes prior to rev 1.3 have no switching voltage regulator
     #if WANDSTEM_HW_REV>12
-    Lock<FastMutex> l(powerMutex);
+    Lock<KernelMutex> l(powerMutex);
     if(regulatorVoltageRefCount==0)
     {
         voltageSelect::high();
@@ -300,7 +300,7 @@ void PowerManager::disableHighRegulatorVoltage()
 {
     //Nodes prior to rev 1.3 have no switching voltage regulator
     #if WANDSTEM_HW_REV>12
-    Lock<FastMutex> l(powerMutex);
+    Lock<KernelMutex> l(powerMutex);
     regulatorVoltageRefCount--;
     if(regulatorVoltageRefCount==0)
     {

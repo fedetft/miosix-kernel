@@ -45,7 +45,7 @@ HardwareRng& HardwareRng::instance()
 
 unsigned int HardwareRng::get()
 {
-    miosix::Lock<miosix::FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     PeripheralEnable pe;
     return getImpl();
 }
@@ -53,7 +53,7 @@ unsigned int HardwareRng::get()
 void HardwareRng::get(void* buf, unsigned int size)
 {
     unsigned char *buffer=reinterpret_cast<unsigned char*>(buf);
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     PeripheralEnable pe;
     union Cast
     {

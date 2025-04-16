@@ -184,7 +184,7 @@ private:
     int transceiverPowerDomainRefCount;
     int sensorPowerDomainRefCount;
     int regulatorVoltageRefCount;
-    FastMutex powerMutex;
+    KernelMutex powerMutex;
     bool wasTransceiverTurnedOn;
     bool transceiverPowerDomainExplicitDelayNeeded;
     Spi& spi;

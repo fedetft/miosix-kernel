@@ -122,7 +122,7 @@ private:
     int unlinkRmdirHelper(StringPart& name, bool delDir);
     
     FATFS filesystem;
-    FastMutex mutex;
+    KernelMutex mutex;
     bool failed; ///< Failed to mount
 };
 

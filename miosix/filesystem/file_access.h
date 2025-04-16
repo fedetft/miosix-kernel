@@ -413,7 +413,7 @@ private:
      */
     int getAvailableFd();
     
-    mutable FastMutex mutex; ///< Locks on writes to file object pointers, not on accesses
+    mutable KernelMutex mutex; ///< Locks on writes to file object pointers, not on accesses
     
     std::string cwd; ///< Current working directory
     
@@ -534,7 +534,7 @@ public:
         #ifdef WITH_PROCESSES
         // This function is also called before the kernel is started, but in
         // Miosix 3 locking a mutex before the kernel is started does nothing
-        Lock<FastMutex> l(mutex);
+        Lock<KernelMutex> l(mutex);
         fileTables.push_back(fdt);
         #endif //WITH_PROCESSES
     }
@@ -547,7 +547,7 @@ public:
     void removeFileDescriptorTable(FileDescriptorTable *fdt)
     {
         #ifdef WITH_PROCESSES
-        Lock<FastMutex> l(mutex);
+        Lock<KernelMutex> l(mutex);
         fileTables.remove(fdt);
         #endif //WITH_PROCESSES
     }
@@ -563,12 +563,12 @@ private:
     /**
      * Constructor, private as it is a singleton
      */
-    FilesystemManager() : mutex(FastMutex::RECURSIVE) {}
+    FilesystemManager() : mutex(MutexOptions::RECURSIVE) {}
     
     FilesystemManager(const FilesystemManager&);
     FilesystemManager& operator=(const FilesystemManager&);
     
-    FastMutex mutex; ///< To protect against concurrent access
+    KernelMutex mutex; ///< To protect against concurrent access
     
     /// Mounted filesystem
     std::map<StringPart,intrusive_ref_ptr<FilesystemBase> > filesystems;

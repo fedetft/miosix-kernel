@@ -37,21 +37,21 @@ namespace miosix {
 
 void EventQueue::post(function<void ()> event)
 {
-    Lock<FastMutex> l(m);
+    Lock<KernelMutex> l(m);
     events.push_back(event);
     cv.signal();
 }
 
 void EventQueue::run()
 {
-    Lock<FastMutex> l(m);
+    Lock<KernelMutex> l(m);
     for(;;)
     {
         while(events.empty()) cv.wait(l);
         function<void ()> f=events.front();
         events.pop_front();
         {
-            Unlock<FastMutex> u(l);
+            Unlock<KernelMutex> u(l);
             f();
         }
     }
@@ -61,7 +61,7 @@ void EventQueue::runOne()
 {
     function<void ()> f;
     {
-        Lock<FastMutex> l(m);
+        Lock<KernelMutex> l(m);
         if(events.empty()) return;
         f=events.front();
         events.pop_front();

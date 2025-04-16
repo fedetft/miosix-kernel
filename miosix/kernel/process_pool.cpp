@@ -64,7 +64,7 @@ ProcessPool& ProcessPool::instance()
 pair<unsigned int *, unsigned int> ProcessPool::allocate(unsigned int size)
 {
     #ifndef TEST_ALLOC
-    miosix::Lock<miosix::FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     size=MPUConfiguration::roundSizeForMPU(max(size,blockSize));
     #else //TEST_ALLOC
     //Size adjustment not supported during test_alloc due to missing mpu header
@@ -101,7 +101,7 @@ pair<unsigned int *, unsigned int> ProcessPool::allocate(unsigned int size)
 void ProcessPool::deallocate(unsigned int *ptr)
 {
     #ifndef TEST_ALLOC
-    miosix::Lock<miosix::FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     #endif //TEST_ALLOC
     map<unsigned int*, unsigned int>::iterator it= allocatedBlocks.find(ptr);
     if(it==allocatedBlocks.end())

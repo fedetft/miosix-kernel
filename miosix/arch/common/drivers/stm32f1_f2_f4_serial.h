@@ -136,7 +136,7 @@ private:
     const bool flowControl;           ///< True if flow control GPIOs enabled
     const unsigned char portId;       ///< 1 for USART1, 2 for USART2, ...
 
-    FastMutex rxMutex;                ///< Mutex locked during reception
+    KernelMutex rxMutex;              ///< Mutex locked during reception
     DynUnsyncQueue<char> rxQueue;     ///< Receiving queue
     static const unsigned int rxQueueMin=16; ///< Minimum queue size
     Thread *rxWaiting=nullptr;        ///< Thread waiting for rx, or 0
@@ -239,7 +239,7 @@ private:
      */
     void IRQhandleInterrupt();
 
-    FastMutex txMutex;                ///< Mutex locked during transmission
+    KernelMutex txMutex;              ///< Mutex locked during transmission
 };
 
 /**
@@ -397,7 +397,7 @@ private:
         return (ptr>=0x10000000) && (ptr<(0x10000000+64*1024));
     }
 
-    FastMutex txMutex;                ///< Mutex locked during transmission
+    KernelMutex txMutex;              ///< Mutex locked during transmission
 
     Thread *txWaiting=nullptr;        ///< Thread waiting for tx, or 0
     static const unsigned int txBufferSize=16; ///< Size of DMA tx buffer

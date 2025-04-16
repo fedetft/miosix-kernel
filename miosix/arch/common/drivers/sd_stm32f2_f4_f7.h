@@ -55,7 +55,7 @@ private:
      */
     SDIODriver();
     
-    FastMutex mutex;
+    KernelMutex mutex;
 };
 
 } //namespace miosix

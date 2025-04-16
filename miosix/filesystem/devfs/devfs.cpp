@@ -249,14 +249,14 @@ public:
      * \param parentInode inode of the parent directory
      */
     DevFsDirectory(intrusive_ref_ptr<FilesystemBase> parent,
-            FastMutex& mutex,
+            KernelMutex& mutex,
             map<StringPart,intrusive_ref_ptr<Device> >& files,
             int currentInode, int parentInode)
             : DirectoryBase(parent), mutex(mutex), files(files),
               currentInode(currentInode), parentInode(parentInode),
               first(true), last(false)
     {
-        Lock<FastMutex> l(mutex);
+        Lock<KernelMutex> l(mutex);
         if(files.empty()==false) currentItem=files.begin()->first.c_str();
     }
 
@@ -272,7 +272,7 @@ public:
     virtual int getdents(void *dp, int len);
 
 private:
-    FastMutex& mutex;                 ///< Mutex of parent class
+    KernelMutex& mutex;                 ///< Mutex of parent class
     map<StringPart,intrusive_ref_ptr<Device> >& files; ///< Directory entries
     string currentItem;               ///< First unhandled item in directory
     int currentInode,parentInode;     ///< Inodes of . and ..
@@ -286,7 +286,7 @@ int DevFsDirectory::getdents(void *dp, int len)
     if(len<minimumBufferSize) return -EINVAL;
     if(last) return 0;
     
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     char *begin=reinterpret_cast<char*>(dp);
     char *buffer=begin;
     char *end=buffer+len;
@@ -321,7 +321,7 @@ int DevFsDirectory::getdents(void *dp, int len)
 // class DevFs
 //
 
-DevFs::DevFs() : mutex(FastMutex::RECURSIVE), inodeCount(rootDirInode+1)
+DevFs::DevFs() : mutex(MutexOptions::RECURSIVE), inodeCount(rootDirInode+1)
 {
     addDevice("null",intrusive_ref_ptr<Device>(new Device(Device::STREAM)));
     addDevice("zero",intrusive_ref_ptr<Device>(new Device(Device::STREAM)));
@@ -332,7 +332,7 @@ bool DevFs::addDevice(const char *name, intrusive_ref_ptr<Device> dev)
     if(name==0 || name[0]=='\0') return false;
     int len=strlen(name);
     for(int i=0;i<len;i++) if(name[i]=='/') return false;
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     bool result=files.insert(make_pair(StringPart(name),dev)).second;
     //Assign inode to the file
     if(result) dev->setFileInfo(atomicAddExchange(&inodeCount,1),filesystemId);
@@ -342,7 +342,7 @@ bool DevFs::addDevice(const char *name, intrusive_ref_ptr<Device> dev)
 bool DevFs::remove(const char* name)
 {
     if(name==0 || name[0]=='\0') return false;
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     map<StringPart,intrusive_ref_ptr<Device> >::iterator it;
     it=files.find(StringPart(name));
     if(it==files.end()) return false;
@@ -354,7 +354,7 @@ int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         int flags, int mode)
 {
     if(flags & (O_APPEND | O_EXCL)) return -EACCES;
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(name.empty()) //Trying to open the root directory of the fs
     {
         if(flags & (O_WRONLY | O_RDWR)) return -EACCES;
@@ -370,7 +370,7 @@ int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
 
 int DevFs::lstat(StringPart& name, struct stat *pstat)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(name.empty())
     {
         fillStatHelper(pstat,rootDirInode,filesystemId,S_IFDIR | 0755);//drwxr-xr-x
@@ -385,14 +385,14 @@ int DevFs::truncate(StringPart& name, off_t size) { return -EINVAL; }
 
 int DevFs::unlink(StringPart& name)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(files.erase(name)==1) return 0;
     return -ENOENT;
 }
 
 int DevFs::rename(StringPart& oldName, StringPart& newName)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     map<StringPart,intrusive_ref_ptr<Device> >::iterator it=files.find(oldName);
     if(it==files.end()) return -ENOENT;
     for(unsigned int i=0;i<newName.length();i++)

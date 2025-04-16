@@ -43,10 +43,10 @@ class LittleFSDirectory;
 struct lfs_driver_context
 {
 public:
-    lfs_driver_context(FileBase *disk) : disk(disk), mutex(Mutex::DEFAULT) {}
+    lfs_driver_context(FileBase *disk) : disk(disk), mutex(MutexOptions::DEFAULT) {}
 
     FileBase *disk;
-    Mutex mutex;
+    KernelMutex mutex;
 };
 
 /**

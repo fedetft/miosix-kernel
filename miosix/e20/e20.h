@@ -86,7 +86,7 @@ public:
      */
     unsigned int size() const
     {
-        Lock<FastMutex> l(m);
+        Lock<KernelMutex> l(m);
         return events.size();
     }
     
@@ -95,7 +95,7 @@ public:
      */
     bool empty() const
     {
-        Lock<FastMutex> l(m);
+        Lock<KernelMutex> l(m);
         return events.empty();
     }
 
@@ -104,7 +104,7 @@ public:
 
 private:
     std::list<std::function<void ()>> events; ///< Event queue
-    mutable FastMutex m; ///< Mutex for synchronisation
+    mutable KernelMutex m; ///< Mutex for synchronisation
     ConditionVariable cv; ///< Condition variable for synchronisation
 };
 

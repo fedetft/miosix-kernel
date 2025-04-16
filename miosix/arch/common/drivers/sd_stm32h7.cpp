@@ -1079,9 +1079,9 @@ static CardType detectCardType()
 
 intrusive_ref_ptr<SDIODriver> SDIODriver::instance()
 {
-    static FastMutex m;
+    static KernelMutex m;
     static intrusive_ref_ptr<SDIODriver> instance;
-    Lock<FastMutex> l(m);
+    Lock<KernelMutex> l(m);
     
     if(!instance) instance=new SDIODriver();
     return instance;
@@ -1092,7 +1092,7 @@ ssize_t SDIODriver::readBlock(void* buffer, size_t size, off_t where)
     if(where % 512 || size % 512) return -EFAULT;
     unsigned int lba=where/512;
     unsigned int nSectors=size/512;
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     DBG("SDIODriver::readBlock(): nSectors=%d\n",nSectors);
     
     for(int i=0;i<ClockController::getRetryCount();i++)
@@ -1123,7 +1123,7 @@ ssize_t SDIODriver::writeBlock(const void* buffer, size_t size, off_t where)
     if(where % 512 || size % 512) return -EFAULT;
     unsigned int lba=where/512;
     unsigned int nSectors=size/512;
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     DBG("SDIODriver::writeBlock(): nSectors=%d\n",nSectors);
     
     for(int i=0;i<ClockController::getRetryCount();i++)
@@ -1153,7 +1153,7 @@ int SDIODriver::ioctl(int cmd, void* arg)
 {
     DBG("SDIODriver::ioctl()\n");
     if(cmd!=IOCTL_SYNC) return -ENOTTY;
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     //Note: no need to select card, since status can be queried even with card
     //not selected.
     return waitForCardReady() ? 0 : -EFAULT;

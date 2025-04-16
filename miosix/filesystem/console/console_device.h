@@ -153,7 +153,7 @@ private:
     void echoBack(const char *chunkEnd, const char *sep=0, size_t sepLen=0);
     
     intrusive_ref_ptr<Device> device; ///< Underlying TTY device
-    FastMutex mutex;                  ///< Mutex to serialze concurrent reads
+    KernelMutex mutex;                ///< Mutex to serialze concurrent reads
     const char *chunkStart;           ///< First character to echo in echoBack()
     bool echo;                        ///< True if echo enabled
     bool binary;                      ///< True if binary mode enabled

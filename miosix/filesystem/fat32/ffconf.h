@@ -198,7 +198,7 @@
 
 //Note by TFT: the reentrant option uses just one big lock for each FATFS, so
 //given there's no concurrency advantage in using this option, we're just using
-//an ordinary FastMutex in class Fat32Fs and locking it before calling FatFs.
+//an ordinary KernelMutex in class Fat32Fs and locking it before calling FatFs.
 #define _FS_REENTRANT	0		/* 0:Disable or 1:Enable */
 #define _FS_TIMEOUT		1000	/* Timeout period in unit of time ticks */
 #define	_SYNC_t			HANDLE	/* O/S dependent type of sync object. e.g. HANDLE, OS_EVENT*, ID and etc.. */

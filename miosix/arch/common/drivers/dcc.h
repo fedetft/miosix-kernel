@@ -96,7 +96,7 @@ private:
      */
     static void debugStr(const char *str, int length);
 
-    FastMutex mutex;
+    KernelMutex mutex;
 };
 
 } //namespace miosix

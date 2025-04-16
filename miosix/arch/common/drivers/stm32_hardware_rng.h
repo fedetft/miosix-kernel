@@ -68,7 +68,7 @@ private:
      */
     HardwareRng() : old(0)
     {
-        miosix::FastGlobalIrqLock dLock;
+        FastGlobalIrqLock dLock;
         RCC->AHB2ENR |= RCC_AHB2ENR_RNGEN;
         RCC_SYNC();
     }
@@ -89,7 +89,7 @@ private:
         ~PeripheralEnable() { RNG->CR=0; }
     };
     
-    miosix::FastMutex mutex; ///< To protect against concurrent access
+    KernelMutex mutex; ///< To protect against concurrent access
     unsigned int old; ///< Previously read value
 };
 

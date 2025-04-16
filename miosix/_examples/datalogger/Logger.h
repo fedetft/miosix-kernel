@@ -197,7 +197,7 @@ private:
     miosix::Queue<Record *, numRecords> emptyQueue;       ///< Empty Records
     std::queue<Buffer *, std::list<Buffer *>> fullList;   ///< Full buffers
     std::queue<Buffer *, std::list<Buffer *>> emptyList;  ///< Empty buffers
-    miosix::FastMutex mutex;  ///< To allow concurrent access to the queues
+    miosix::KernelMutex mutex;///< To allow concurrent access to the queues
     miosix::ConditionVariable cond;  ///< To lock when buffers are all empty
 
     miosix::Thread *packT;   ///< Thread packing logged data

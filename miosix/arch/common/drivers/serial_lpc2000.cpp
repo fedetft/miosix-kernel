@@ -130,7 +130,7 @@ LPC2000Serial::LPC2000Serial(int id, int baudrate) : Device(Device::TTY),
 
 ssize_t LPC2000Serial::readBlock(void *buffer, size_t size, off_t where)
 {
-    Lock<FastMutex> l(rxMutex);
+    Lock<KernelMutex> l(rxMutex);
     char *buf=reinterpret_cast<char*>(buffer);
     size_t result=0;
     FastGlobalIrqLock dLock;
@@ -154,7 +154,7 @@ ssize_t LPC2000Serial::readBlock(void *buffer, size_t size, off_t where)
 
 ssize_t LPC2000Serial::writeBlock(const void *buffer, size_t size, off_t where)
 {
-    Lock<FastMutex> l(txMutex);
+    Lock<KernelMutex> l(txMutex);
     FastGlobalIrqLock dLock;
     size_t len=size;
     const char *buf=reinterpret_cast<const char*>(buffer);

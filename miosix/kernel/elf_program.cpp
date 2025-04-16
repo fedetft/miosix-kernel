@@ -102,7 +102,7 @@ private:
         int useCount; ///< Used for reference counting the cache entry
     };
 
-    static FastMutex m; ///< Protect programs against concurrent accesses
+    static KernelMutex m; ///< Protect programs against concurrent accesses
     static list<Entry> programs; ///< Cache entries
 };
 
@@ -138,7 +138,7 @@ int ProgramCache::load(const char *name, const unsigned int *& elf,
     //kind of inotify framework to invalidate the cache...
     struct stat s;
     if(file->fstat(&s)) return -EFAULT;
-    Lock<FastMutex> l(m);
+    Lock<KernelMutex> l(m);
     //I know, lookup is O(n), but we need to index the cache by <inode,dev>
     //when loading, and index it by pointer when unloading, while also caring
     //about code size. On top of that, we don't expect many loaded programs
@@ -187,7 +187,7 @@ int ProgramCache::load(const char *name, const unsigned int *& elf,
 
 void ProgramCache::unload(const unsigned int *elf)
 {
-    Lock<FastMutex> l(m);
+    Lock<KernelMutex> l(m);
     for(auto it=begin(programs);it!=end(programs);++it)
     {
         if(it->elf!=elf) continue;
@@ -203,7 +203,7 @@ void ProgramCache::unload(const unsigned int *elf)
     DBG("ProgramCache::unload(%p): bug: not in cache\n",elf);
 }
 
-FastMutex ProgramCache::m;
+KernelMutex ProgramCache::m;
 list<ProgramCache::Entry> ProgramCache::programs;
 
 //

@@ -132,7 +132,7 @@ private:
     ///Lists all allocated blocks, allows to retrieve their sizes
     std::map<unsigned int*,unsigned int> allocatedBlocks;
     #ifndef TEST_ALLOC
-    miosix::FastMutex mutex; ///< Mutex to guard concurrent access
+    KernelMutex mutex;      ///< Mutex to guard concurrent access
     #endif //TEST_ALLOC
 };
 

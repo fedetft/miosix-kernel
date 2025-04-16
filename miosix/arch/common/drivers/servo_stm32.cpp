@@ -60,7 +60,7 @@ SynchronizedServo& SynchronizedServo::instance()
 
 void SynchronizedServo::enable(int channel)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(status!=STOPPED) return; // If timer enabled ignore the call
     
     {
@@ -107,7 +107,7 @@ void SynchronizedServo::enable(int channel)
 
 void SynchronizedServo::disable(int channel)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(status!=STOPPED) return; // If timer enabled ignore the call
     
     {
@@ -138,7 +138,7 @@ void SynchronizedServo::disable(int channel)
 
 void SynchronizedServo::setPosition(int channel, float value)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(status!=STARTED) return; // If timer disabled ignore the call
     
     value=min(1.0f,max(0.0f,value));
@@ -178,7 +178,7 @@ float SynchronizedServo::getPosition(int channel)
 
 void SynchronizedServo::start()
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(status!=STOPPED) return; // If timer enabled ignore the call
     
     // While status is starting neither memeber function callable with timer
@@ -191,7 +191,7 @@ void SynchronizedServo::start()
 
 void SynchronizedServo::stop()
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(status!=STARTED) return; // If timer disabled ignore the call
     
     status=STOPPED;
@@ -225,7 +225,7 @@ bool SynchronizedServo::waitForCycleBegin()
 
 void SynchronizedServo::setFrequency(unsigned int frequency)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(status!=STOPPED) return; // If timer enabled ignore the call
     
     TIM4->PSC=divideRoundToNearest(getPrescalerInputFrequency(),frequency*65536)-1;
@@ -240,7 +240,7 @@ float SynchronizedServo::getFrequency() const
 
 void SynchronizedServo::setMinPulseWidth(float minPulse)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(status!=STOPPED) return; // If timer enabled ignore the call
     
     minWidth=1e-6f*min(1300.0f,max(500.0f,minPulse));
@@ -249,7 +249,7 @@ void SynchronizedServo::setMinPulseWidth(float minPulse)
 
 void SynchronizedServo::setMaxPulseWidth(float maxPulse)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(status!=STOPPED) return; // If timer enabled ignore the call
     
     maxWidth=1e-6f*min(2500.0f,max(1700.0f,maxPulse));

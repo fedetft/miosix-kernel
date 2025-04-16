@@ -116,7 +116,7 @@ public:
     ///Maps the pid to the Process instance. Includes zombie processes
     map<pid_t,ProcessBase *> processes;
     ///Uset to guard access to processes and pidCounter
-    Mutex procMutex;
+    KernelMutex procMutex;
     ///Used to wait on process termination
     ConditionVariable genericWaiting;
     
@@ -149,7 +149,7 @@ pid_t Process::create(ElfProgram&& program, ArgsBlock&& args)
     unique_ptr<Process> proc(new Process(parent->fileTable,
                                          std::move(program),std::move(args)));
     {   
-        Lock<Mutex> l(p.procMutex);
+        Lock<KernelMutex> l(p.procMutex);
         proc->pid=getNewPid();
         proc->ppid=parent->pid;
         parent->childs.push_back(proc.get());
@@ -158,7 +158,7 @@ pid_t Process::create(ElfProgram&& program, ArgsBlock&& args)
     auto thr=Thread::createUserspace(Process::start,proc.get());
     if(thr==nullptr)
     {
-        Lock<Mutex> l(p.procMutex);
+        Lock<KernelMutex> l(p.procMutex);
         p.processes.erase(proc->pid);
         parent->childs.remove(proc.get());
         throw runtime_error("Thread creation failed");
@@ -195,7 +195,7 @@ pid_t Process::spawn(const char *path, const char* const* argv,
 pid_t Process::getppid(pid_t proc)
 {
     Processes& p=Processes::instance();
-    Lock<Mutex> l(p.procMutex);
+    Lock<KernelMutex> l(p.procMutex);
     map<pid_t,ProcessBase *>::iterator it=p.processes.find(proc);
     if(it==p.processes.end()) return -1;
     return it->second->ppid;
@@ -204,7 +204,7 @@ pid_t Process::getppid(pid_t proc)
 pid_t Process::waitpid(pid_t pid, int* exit, int options)
 {
     Processes& p=Processes::instance();
-    Lock<Mutex> l(p.procMutex);
+    Lock<KernelMutex> l(p.procMutex);
     ProcessBase *self=Thread::getCurrentThread()->proc;
     if(pid<=0)
     {
@@ -342,7 +342,7 @@ void *Process::start(void *)
     proc->fileTable.closeAll();
     {
         Processes& p=Processes::instance();
-        Lock<Mutex> l(p.procMutex);
+        Lock<KernelMutex> l(p.procMutex);
         proc->zombie=true;
         list<Process*>::iterator it;
         for(it=proc->childs.begin();it!=proc->childs.end();++it) (*it)->ppid=0;

@@ -47,26 +47,26 @@ class FastPauseKernelLock;
 enum class TimedWaitResult;
 
 /**
+ * Mutex options, passed to the constructor to set additional options.
+ */
+enum MutexOptions
+{
+    DEFAULT,    ///< Default non-recursive mutex
+    RECURSIVE   ///< Mutex is recursive
+};
+
+/**
  * Fast mutex without support for priority inheritance
  */
 class FastMutex
 {
 public:
     /**
-     * Mutex options, passed to the constructor to set additional options.<br>
-     * The DEFAULT option indicates the default Mutex type.
-     */
-    enum Options
-    {
-        DEFAULT,    ///< Default mutex
-        RECURSIVE   ///< Mutex is recursive
-    };
-
-    /**
      * Constructor, initializes the mutex.
      */
-    FastMutex(Options opt=DEFAULT) : owner(nullptr),
-        recursiveDepth(opt==RECURSIVE ? 0 : -1), first(nullptr), last(nullptr) {}
+    FastMutex(MutexOptions opt=MutexOptions::DEFAULT) : owner(nullptr),
+        recursiveDepth(opt==MutexOptions::RECURSIVE ? 0 : -1), first(nullptr),
+        last(nullptr) {}
 
     /**
      * Locks the critical section. If the critical section is already locked,
@@ -154,27 +154,17 @@ class Mutex
 {
 public:
     /**
-     * Mutex options, passed to the constructor to set additional options.<br>
-     * The DEFAULT option indicates the default Mutex type.
-     */
-    enum Options
-    {
-        DEFAULT,    ///< Default mutex
-        RECURSIVE   ///< Mutex is recursive
-    };
-
-    /**
      * Constructor, initializes the mutex.
      */
-    Mutex(Options opt=DEFAULT) : owner(nullptr),
-        recursiveDepth(opt==RECURSIVE ? 0 : -1), next(nullptr) {}
+    Mutex(MutexOptions opt=MutexOptions::DEFAULT) : owner(nullptr),
+        recursiveDepth(opt==MutexOptions::RECURSIVE ? 0 : -1), next(nullptr) {}
 
     /**
      * Locks the critical section. If the critical section is already locked,
      * the thread will be queued in a wait list.
      */
     void lock();
-	
+
     /**
      * Acquires the lock only if the critical section is not already locked by
      * other threads. Attempting to lock again a recursive mutex will fail, and
@@ -295,6 +285,14 @@ private:
     friend class ConditionVariable;
     friend class Thread;
 };
+
+#if KERNEL_USE_PRIORITY_INHERITANCE_MUTEX==1
+using KernelMutex = Mutex;
+#elif KERNEL_USE_PRIORITY_INHERITANCE_MUTEX==0
+using KernelMutex = FastMutex;
+#else
+#error "Wrong KERNEL_USE_PRIORITY_INHERITANCE_MUTEX"
+#endif
 
 /**
  * Very simple RAII style class to lock a mutex in an exception-safe way.

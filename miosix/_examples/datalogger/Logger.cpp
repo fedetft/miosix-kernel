@@ -201,7 +201,7 @@ void Logger::packThread()
         {
             Buffer* buffer = nullptr;
             {
-                Lock<FastMutex> l(mutex);
+                Lock<KernelMutex> l(mutex);
                 // Get an empty buffer, wait if none is available
                 while (emptyList.empty())
                     cond.wait(l);
@@ -218,7 +218,7 @@ void Logger::packThread()
                 // When stop() is called, it pushes a nullptr signaling to stop
                 if (record == nullptr)
                 {
-                    Lock<FastMutex> l(mutex);
+                    Lock<KernelMutex> l(mutex);
                     fullList.push(buffer);   // Don't lose the buffer
                     fullList.push(nullptr);  // Signal writeThread to stop
                     cond.broadcast();
@@ -232,7 +232,7 @@ void Logger::packThread()
             } while (bufferSize - buffer->size >= maxRecordSize);
 
             {
-                Lock<FastMutex> l(mutex);
+                Lock<KernelMutex> l(mutex);
                 // Put back full buffer
                 fullList.push(buffer);
                 cond.broadcast();
@@ -254,7 +254,7 @@ void Logger::writeThread()
         {
             Buffer* buffer = nullptr;
             {
-                Lock<FastMutex> l(mutex);
+                Lock<KernelMutex> l(mutex);
                 // Get a full buffer, wait if none is available
                 while (fullList.empty())
                     cond.wait(l);
@@ -287,7 +287,7 @@ void Logger::writeThread()
             s.statMaxWriteTime = max(s.statMaxWriteTime, s.statWriteTime);
 
             {
-                Lock<FastMutex> l(mutex);
+                Lock<KernelMutex> l(mutex);
                 // Put back empty buffer
                 emptyList.push(buffer);
                 cond.broadcast();

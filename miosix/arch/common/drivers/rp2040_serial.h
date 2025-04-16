@@ -131,8 +131,8 @@ private:
 
     uart_hw_t *uart;                  ///< Pointer to the hardware registers
     IRQn_Type irqn;                   ///< Interrupt number
-    FastMutex txMutex;                ///< Mutex locked during transmission
-    FastMutex rxMutex;                ///< Mutex locked during reception
+    KernelMutex txMutex;              ///< Mutex locked during transmission
+    KernelMutex rxMutex;              ///< Mutex locked during reception
     /// Semaphore flagged when the hardware TX FIFO is ready to receive bytes
     Semaphore txLowWaterFlag;
     /// Software queue used for buffering bytes from the hardware RX FIFO

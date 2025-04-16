@@ -47,7 +47,7 @@ public:
     /**
      * Constructor
      */
-    MountpointFs() : mutex(FastMutex::RECURSIVE), inodeCount(rootDirInode+1) {}
+    MountpointFs() : mutex(MutexOptions::RECURSIVE), inodeCount(rootDirInode+1) {}
     
     /**
      * Open a file
@@ -109,7 +109,7 @@ public:
     virtual int rmdir(StringPart& name);
     
 private:
-    FastMutex mutex;
+    KernelMutex mutex;
     std::map<StringPart,int> dirs;
     int inodeCount;
     static const int rootDirInode=1;

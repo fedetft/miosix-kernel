@@ -268,7 +268,7 @@ public:
     
 private:
     
-    FastMutex mutex;
+    KernelMutex mutex;
     std::map<StringPart,intrusive_ref_ptr<Device> > files;
     int inodeCount;
     static const int rootDirInode=1;

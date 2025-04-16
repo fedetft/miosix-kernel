@@ -1045,8 +1045,8 @@ static void t6_p6a(void *argv)
     }
 }
 
-static Mutex t6_m5(Mutex::RECURSIVE);
-static FastMutex t6_m5a(FastMutex::RECURSIVE);
+static Mutex t6_m5(MutexOptions::RECURSIVE);
+static FastMutex t6_m5a(MutexOptions::RECURSIVE);
 
 static void *t6_p7(void *argv)
 {
@@ -3282,10 +3282,10 @@ static void test_22()
 tests:
 interaction between condition variables and recursive mutexes
 */
-static Mutex t23_m1(Mutex::RECURSIVE);
+static Mutex t23_m1(MutexOptions::RECURSIVE);
 static ConditionVariable t23_c1;
 
-static FastMutex t23_m2(FastMutex::RECURSIVE);
+static FastMutex t23_m2(MutexOptions::RECURSIVE);
 static ConditionVariable t23_c2;
 
 static pthread_mutex_t t23_m3=PTHREAD_MUTEX_RECURSIVE_INITIALIZER_NP;

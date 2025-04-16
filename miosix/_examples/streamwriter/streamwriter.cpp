@@ -56,7 +56,7 @@ static Queue<Record,fifoSize/sizeof(Record)> queuedSamples;
 
 static list<Record *> fullList;       ///< Buffers between packThread() and writeThread()
 static list<Record *> emptyList;      ///< Buffers between packThread() and writeThread()
-static FastMutex listHandlingMutex;   ///< To allow concurrent access to the lists
+static KernelMutex listHandlingMutex; ///< To allow concurrent access to the lists
 static ConditionVariable listWaiting; ///< To lock when buffers are all full/empty
 
 static Thread *statsT;           ///< Thred printing stats
@@ -116,7 +116,7 @@ void packThread(void *argv)
             //Get an empty buffer, wait if none is available
             Record *buffer;
             {
-                Lock<FastMutex> l(listHandlingMutex);
+                Lock<KernelMutex> l(listHandlingMutex);
                 while(emptyList.empty())
                 {
                     if(stopSensing) return;
@@ -141,7 +141,7 @@ void packThread(void *argv)
             
             //Pass the buffer to the writeThread()
             {
-                Lock<FastMutex> l(listHandlingMutex);
+                Lock<KernelMutex> l(listHandlingMutex);
                 fullList.push_back(buffer);
                 listWaiting.broadcast();
             }
@@ -162,7 +162,7 @@ void writeThread(void *argv)
             //Get a full buffer, wait if none is available
             Record *buffer;
             {
-                Lock<FastMutex> l(listHandlingMutex);
+                Lock<KernelMutex> l(listHandlingMutex);
                 while(fullList.empty())
                 {
                     if(stopSensing) return;
@@ -184,7 +184,7 @@ void writeThread(void *argv)
             
             //Return the buffer to the packThread()
             {
-                Lock<FastMutex> l(listHandlingMutex);
+                Lock<KernelMutex> l(listHandlingMutex);
                 emptyList.push_back(buffer);
                 listWaiting.broadcast();
             }
@@ -259,7 +259,7 @@ void stopSensingChain()
         queuedSamples.IRQput(record);
     }
     {
-        Lock<FastMutex> l(listHandlingMutex);
+        Lock<KernelMutex> l(listHandlingMutex);
         listWaiting.broadcast();
     }
     statsT->join();

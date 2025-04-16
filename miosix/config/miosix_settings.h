@@ -254,6 +254,38 @@ const long long MAIN_PRIORITY=std::numeric_limits<long long>::max()-2;
 const unsigned int MAX_TIME_SLICE=1000000;
 #endif //SCHED_TYPE_PRIORITY
 
+/// Select the implementation of pthread_mutex_t. Three options:
+/// 1) pthreadMutexProtocolOverride=DYNAMIC;
+/// Allow the type of each pthread_mutex_t to be selected on a per-mutex basis
+/// with pthread_mutexattr_setprotocol(). This is the implementation POSIX
+/// intended, but it has considerable drawbacks:
+/// - POSIX does not allow to set the mutex protocol for statically allocated
+///   mutexes, only mutexes created with pthread_mutex_init can have inheritance
+/// - The C standard library and some other libraries such as OpenMP use
+///   mutexes without setting priority inheritance, thus real-time code can
+///   incur in priority inversion on those mutexes
+/// - There is no way to alter the protocol of C++ std::mutex, although it is
+///   implemented on top of pthread_mutex_t
+/// - there is a performance penalty in checking the mutex type at every
+///   lock/unlock
+/// 2) pthreadMutexProtocolOverride=FORCE_PRIO_INHERIT;
+/// All pthread_mutex_t, regardless of calls to pthread_mutexattr_setprotocol()
+/// are forced to use the priority inheritance implementation. Allows to avoid
+/// priority inversion also in the C standard library, using C++ mutexes and
+/// OpenMP. Implementation is also slightly faster due to not having to check
+/// the mutex type at every lock/unlock
+/// 3) pthreadMutexProtocolOverride=FORCE_PRIO_NONE;
+/// Backwards compatibility with the Miosix 2 behavior. All pthread_mutex_t do
+/// not enforce priority inheritance. The kernel still provides a mutex type
+/// with priority inheritance but it is the Miosix-specific claass Mutex.
+/// This option provides the fastest pthread_mutex_t implementation.
+enum class PthreadMutexProtocol { DYNAMIC, FORCE_PRIO_INHERIT, FORCE_PRIO_NONE };
+constexpr auto pthreadMutexProtocolOverride=PthreadMutexProtocol::DYNAMIC;
+
+/// Set to 1 to change mutex types used by the kernel and device drivers to the
+/// priority inheritance type
+#define KERNEL_USE_PRIORITY_INHERITANCE_MUTEX 0
+
 /// pthread_exit() is a dangerous function. To understand why, let's first
 /// discuss how Linux implements it. On the surface, it looks like it neatly
 /// works with C++ as it is implemented by throwing a special ForcedUnwind

@@ -89,7 +89,7 @@ public:
      * \param currentInode inode value for '.' entry
      * \param parentInode inode value for '..' entry
      */
-    Fat32Directory(intrusive_ref_ptr<FilesystemBase> parent, FastMutex& mutex,
+    Fat32Directory(intrusive_ref_ptr<FilesystemBase> parent, KernelMutex& mutex,
             int currentInode, int parentInode) : DirectoryBase(parent),
             mutex(mutex), currentInode(currentInode), parentInode(parentInode),
             first(true), unfinished(false)
@@ -122,7 +122,7 @@ public:
     virtual ~Fat32Directory();
     
 private:
-    FastMutex& mutex;  ///< Parent filesystem's mutex
+    KernelMutex& mutex;  ///< Parent filesystem's mutex
     DIR_ dir;          ///< Directory object
     FILINFO fi;        ///< Information on a file
     int currentInode;  ///< Inode of '.'
@@ -143,7 +143,7 @@ int Fat32Directory::getdents(void *dp, int len)
     char *buffer=begin;
     char *end=buffer+len;
     
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(first)
     {
         first=false;
@@ -175,7 +175,7 @@ int Fat32Directory::getdents(void *dp, int len)
 
 Fat32Directory::~Fat32Directory()
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     f_closedir(&dir);
 }
 
@@ -190,7 +190,7 @@ public:
      * \param parent the filesystem to which this file belongs
      * \param flags file open flags
      */
-    Fat32File(intrusive_ref_ptr<FilesystemBase> parent, int flags, FastMutex& mutex);
+    Fat32File(intrusive_ref_ptr<FilesystemBase> parent, int flags, KernelMutex& mutex);
     
     /**
      * Write data to the file, if the file supports writing.
@@ -259,7 +259,7 @@ public:
     
 private:
     FIL file;
-    FastMutex& mutex;
+    KernelMutex& mutex;
     int inode=0;
     /// Used to map FatFs behavior into POSIX. Variable is 0 as long as we seek
     /// within, contains by how many bytes we seeked past the end otherwise
@@ -270,12 +270,12 @@ private:
 // class Fat32File
 //
 
-Fat32File::Fat32File(intrusive_ref_ptr<FilesystemBase> parent, int flags, FastMutex& mutex)
+Fat32File::Fat32File(intrusive_ref_ptr<FilesystemBase> parent, int flags, KernelMutex& mutex)
         : FileBase(parent,flags), mutex(mutex) {}
 
 ssize_t Fat32File::write(const void *data, size_t len)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     unsigned int bytesWritten;
     //NOTE: if we lseek'd past the end, we f_lseek'd to the end and seekPastEnd
     //is >0. We need to handle this special case by filling the gap with zeros
@@ -308,7 +308,7 @@ ssize_t Fat32File::write(const void *data, size_t len)
 
 ssize_t Fat32File::read(void *data, size_t len)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     unsigned int bytesRead;
     //NOTE: if we lseek'd past the end, we f_lseek'd to the end and seekPastEnd
     //is >0. Either reading at the end or past the end shall return 0 (eof), so
@@ -319,7 +319,7 @@ ssize_t Fat32File::read(void *data, size_t len)
 
 off_t Fat32File::lseek(off_t pos, int whence)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     off_t offset, fileSize=static_cast<off_t>(f_size(&file));
     switch(whence)
     {
@@ -356,7 +356,7 @@ off_t Fat32File::lseek(off_t pos, int whence)
 
 int Fat32File::ftruncate(off_t size)
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     off_t fileSize=static_cast<off_t>(f_size(&file));
     if(size==fileSize) return 0; //Nothing to do
     off_t curPos=static_cast<off_t>(f_tell(&file))+seekPastEnd;
@@ -396,13 +396,13 @@ int Fat32File::fstat(struct stat *pstat) const
 int Fat32File::ioctl(int cmd, void *arg)
 {
     if(cmd!=IOCTL_SYNC) return -ENOTTY;
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     return translateError(f_sync(&file));
 }
 
 Fat32File::~Fat32File()
 {
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(inode) f_close(&file); //TODO: what to do with error code?
 }
 
@@ -411,7 +411,7 @@ Fat32File::~Fat32File()
 //
 
 Fat32Fs::Fat32Fs(intrusive_ref_ptr<FileBase> disk)
-        : mutex(FastMutex::RECURSIVE), failed(true)
+        : mutex(MutexOptions::RECURSIVE), failed(true)
 {
     filesystem.drv=disk;
     failed=f_mount(&filesystem,1,false)!=FR_OK;
@@ -450,7 +450,7 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         else openflags|=FA_OPEN_EXISTING;//If not exists fail
 
         intrusive_ref_ptr<Fat32File> f(new Fat32File(shared_from_this(),flags-1,mutex));
-        Lock<FastMutex> l(mutex);
+        Lock<KernelMutex> l(mutex);
         if(int res=translateError(f_open(&filesystem,f->fil(),name.c_str(),openflags)))
             return res;
         if(statFailed)
@@ -490,7 +490,7 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         intrusive_ref_ptr<Fat32Directory> d(
             new Fat32Directory(shared_from_this(),mutex,st.st_ino,parentInode));
          
-        Lock<FastMutex> l(mutex);
+        Lock<KernelMutex> l(mutex);
         if(int res=translateError(f_opendir(&filesystem,d->directory(),name.c_str())))
             return res;
          
@@ -507,7 +507,7 @@ int Fat32Fs::lstat(StringPart& name, struct stat *pstat)
     pstat->st_nlink=1;
     pstat->st_blksize=512;
     
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     if(name.empty())
     {
         //We are asked to stat the filesystem's root directory
@@ -546,14 +546,14 @@ int Fat32Fs::unlink(StringPart& name)
 int Fat32Fs::rename(StringPart& oldName, StringPart& newName)
 {
     if(failed) return -ENOENT;
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     return translateError(f_rename(&filesystem,oldName.c_str(),newName.c_str()));
 }
 
 int Fat32Fs::mkdir(StringPart& name, int mode)
 {
     if(failed) return -ENOENT;
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     return translateError(f_mkdir(&filesystem,name.c_str()));
 }
 
@@ -573,7 +573,7 @@ Fat32Fs::~Fat32Fs()
 int Fat32Fs::unlinkRmdirHelper(StringPart& name, bool delDir)
 {
     if(failed) return -ENOENT;
-    Lock<FastMutex> l(mutex);
+    Lock<KernelMutex> l(mutex);
     struct stat st;
     if(int result=lstat(name,&st)) return result;
     if(delDir)

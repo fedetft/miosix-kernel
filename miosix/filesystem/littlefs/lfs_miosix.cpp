@@ -523,7 +523,7 @@ int miosixBlockDeviceSync(const lfs_config *c)
 }
 
 #define GET_MUTEX_FROM_LFS_CONTEXT(config)  \
-  static_cast<Mutex *>(&static_cast<lfs_driver_context *>(config->context)->mutex)
+  static_cast<KernelMutex *>(&static_cast<lfs_driver_context *>(config->context)->mutex)
 
 int miosixLfsLock(const lfs_config *c)
 {

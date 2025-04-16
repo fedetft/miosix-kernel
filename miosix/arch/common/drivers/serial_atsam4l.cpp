@@ -80,7 +80,7 @@ ATSAMSerial::ATSAMSerial(int id, int baudrate)
 
 ssize_t ATSAMSerial::readBlock(void *buffer, size_t size, off_t where)
 {
-    Lock<FastMutex> l(rxMutex);
+    Lock<KernelMutex> l(rxMutex);
     char *buf=reinterpret_cast<char*>(buffer);
     size_t result=0;
     FastGlobalIrqLock dLock;
@@ -105,7 +105,7 @@ ssize_t ATSAMSerial::readBlock(void *buffer, size_t size, off_t where)
 
 ssize_t ATSAMSerial::writeBlock(const void *buffer, size_t size, off_t where)
 {
-    Lock<FastMutex> l(txMutex);
+    Lock<KernelMutex> l(txMutex);
     const char *buf=reinterpret_cast<const char*>(buffer);
     for(size_t i=0;i<size;i++)
     {

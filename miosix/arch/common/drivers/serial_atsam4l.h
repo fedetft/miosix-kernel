@@ -117,8 +117,8 @@ private:
      */
     void waitSerialTxFifoEmpty();
 
-    FastMutex txMutex;                ///< Mutex locked during transmission
-    FastMutex rxMutex;                ///< Mutex locked during reception
+    KernelMutex txMutex;              ///< Mutex locked during transmission
+    KernelMutex rxMutex;              ///< Mutex locked during reception
     
     DynUnsyncQueue<char> rxQueue;     ///< Receiving queue
     static const unsigned int rxQueueMin=1; ///< Minimum queue size

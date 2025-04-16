@@ -41,7 +41,7 @@ Pipe::Pipe() : FileBase(intrusive_ref_ptr<FilesystemBase>(),O_RDWR), put(0),
 ssize_t Pipe::write(const void *data, size_t len)
 {
     auto d=reinterpret_cast<const char*>(data);
-    Lock<FastMutex> l(m);
+    Lock<KernelMutex> l(m);
     ssize_t written=0;
     while(len>0)
     {
@@ -70,7 +70,7 @@ ssize_t Pipe::read(void *data, size_t len)
 {
     if(len==0) return 0;
     auto d=reinterpret_cast<char*>(data);
-    Lock<FastMutex> l(m);
+    Lock<KernelMutex> l(m);
     for(;;)
     {
         int readable=min<int>(len,size);
