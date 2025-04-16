@@ -298,25 +298,26 @@ int pthread_mutex_destroy(pthread_mutex_t *mutex)
 
 int pthread_mutex_lock(pthread_mutex_t *mutex)
 {
-    if(hasPriorityInheritance(mutex->type))
-         reinterpret_cast<Mutex*>(mutex)->lock();
-    else reinterpret_cast<FastMutex*>(mutex)->lock();
-    return 0;
+    //NOTE: Handling FastMutex first speeds up the likely case
+    if(hasPriorityInheritance(mutex->type)==false)
+         return reinterpret_cast<FastMutex*>(mutex)->lock();
+    else return reinterpret_cast<Mutex*>(mutex)->lock();
 }
 
 int pthread_mutex_trylock(pthread_mutex_t *mutex)
 {
-    if(hasPriorityInheritance(mutex->type))
-         return reinterpret_cast<Mutex*>(mutex)->tryLock() ? 0 : EBUSY;
-    else return reinterpret_cast<FastMutex*>(mutex)->tryLock() ? 0 : EBUSY;
+    //NOTE: Handling FastMutex first speeds up the likely case
+    if(hasPriorityInheritance(mutex->type)==false)
+         return reinterpret_cast<FastMutex*>(mutex)->tryLock() ? 0 : EBUSY;
+    else return reinterpret_cast<Mutex*>(mutex)->tryLock() ? 0 : EBUSY;
 }
 
 int pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
-    if(hasPriorityInheritance(mutex->type))
-         reinterpret_cast<Mutex*>(mutex)->unlock();
-    else reinterpret_cast<FastMutex*>(mutex)->unlock();
-    return 0;
+    //NOTE: Handling FastMutex first speeds up the likely case
+    if(hasPriorityInheritance(mutex->type)==false)
+         return reinterpret_cast<FastMutex*>(mutex)->unlock();
+    else return reinterpret_cast<Mutex*>(mutex)->unlock();
 }
 
 //
@@ -348,9 +349,10 @@ int pthread_cond_destroy(pthread_cond_t *cond)
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
     auto *impl=reinterpret_cast<ConditionVariable*>(cond);
-    if(hasPriorityInheritance(mutex->type))
-         impl->wait(*reinterpret_cast<Mutex*>(mutex));
-    else impl->wait(*reinterpret_cast<FastMutex*>(mutex));
+    //NOTE: Handling FastMutex first speeds up the likely case
+    if(hasPriorityInheritance(mutex->type)==false)
+         impl->wait(*reinterpret_cast<FastMutex*>(mutex));
+    else impl->wait(*reinterpret_cast<Mutex*>(mutex));
     return 0;
 }
 
@@ -358,9 +360,10 @@ int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const s
 {
     auto *impl=reinterpret_cast<ConditionVariable*>(cond);
     TimedWaitResult res;
-    if(hasPriorityInheritance(mutex->type))
-         res=impl->timedWait(*reinterpret_cast<Mutex*>(mutex),timespec2ll(abstime));
-    else res=impl->timedWait(*reinterpret_cast<FastMutex*>(mutex),timespec2ll(abstime));
+    //NOTE: Handling FastMutex first speeds up the likely case
+    if(hasPriorityInheritance(mutex->type)==false)
+         res=impl->timedWait(*reinterpret_cast<FastMutex*>(mutex),timespec2ll(abstime));
+    else res=impl->timedWait(*reinterpret_cast<Mutex*>(mutex),timespec2ll(abstime));
     return res == TimedWaitResult::Timeout ? ETIMEDOUT : 0;
 }
 

@@ -53,14 +53,14 @@ static auto PKlowerPriority=[](Thread *lhs, Thread *rhs)
 // class FastMutex
 //
 
-void FastMutex::lock()
+int FastMutex::lock()
 {
     FastPauseKernelLock dLock;
     Thread *cur=Thread::PKgetCurrentThread();
     if(owner==nullptr)
     {
         owner=cur;
-        return;
+        return 0;
     }
 
     //This check is very important. Without this attempting to lock the same
@@ -71,7 +71,7 @@ void FastMutex::lock()
         if(recursiveDepth>=0)
         {
             recursiveDepth++;
-            return;
+            return 0;
         } else errorHandler(MUTEX_ERROR); //Bad, deadlock
     }
 
@@ -89,6 +89,7 @@ void FastMutex::lock()
 
     //The while is necessary to protect against spurious wakeups
     while(owner!=cur) Thread::PKrestartKernelAndWait(dLock);
+    return 0;
 }
 
 bool FastMutex::tryLock()
@@ -108,7 +109,7 @@ bool FastMutex::tryLock()
     return false;
 }
 
-void FastMutex::unlock()
+int FastMutex::unlock()
 {
     FastPauseKernelLock dLock;
 //    Safety check removed for speed reasons
@@ -116,7 +117,7 @@ void FastMutex::unlock()
     if(recursiveDepth>0)
     {
         recursiveDepth--;
-        return;
+        return 0;
     }
     if(first!=nullptr)
     {
@@ -124,9 +125,10 @@ void FastMutex::unlock()
         first=first->next;
         owner=t;
         t->PKwakeup();
-        return;
+        return 0;
     }
     owner=nullptr;
+    return 0;
 }
 
 inline void FastMutex::PKlockToDepth(FastPauseKernelLock& dLock, unsigned int depth)
@@ -197,7 +199,7 @@ inline unsigned int FastMutex::PKunlockAllDepthLevels()
 // class Mutex
 //
 
-void Mutex::lock()
+int Mutex::lock()
 {
     PauseKernelLock dLock;
     Thread *cur=Thread::PKgetCurrentThread();
@@ -208,7 +210,7 @@ void Mutex::lock()
         //another mutex
         if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
         this->addToLockedList(owner);
-        return;
+        return 0;
     }
 
     //This check is very important. Without this attempting to lock the same
@@ -219,7 +221,7 @@ void Mutex::lock()
         if(recursiveDepth>=0)
         {
             recursiveDepth++;
-            return;
+            return 0;
         } else errorHandler(MUTEX_ERROR); //Bad, deadlock
     }
 
@@ -234,6 +236,7 @@ void Mutex::lock()
 
     //The while is necessary to protect against spurious wakeups
     while(owner!=cur) Thread::PKrestartKernelAndWait(dLock);
+    return 0;
 }
 
 bool Mutex::tryLock()
@@ -257,7 +260,7 @@ bool Mutex::tryLock()
     return false;
 }
 
-void Mutex::unlock()
+int Mutex::unlock()
 {
     PauseKernelLock dLock;
     Thread *cur=Thread::PKgetCurrentThread();
@@ -266,7 +269,7 @@ void Mutex::unlock()
     if(recursiveDepth>0)
     {
         recursiveDepth--;
-        return;
+        return 0;
     }
 
     bool loweredPriority=deInheritPriority();
@@ -280,6 +283,7 @@ void Mutex::unlock()
     //scheduler just for it to set pendingWakeup and bounce back, set it
     //here.
     if(loweredPriority) pendingWakeup=true;
+    return 0;
 }
 
 void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)

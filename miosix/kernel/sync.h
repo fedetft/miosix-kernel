@@ -71,8 +71,10 @@ public:
     /**
      * Locks the critical section. If the critical section is already locked,
      * the thread will be queued in a wait list.
+     * \return always returns 0, to allow tail call optimization when used to
+     * implement pthread_mutex_t
      */
-    void lock();
+    int lock();
 
     /**
      * Acquires the lock only if the critical section is not already locked by
@@ -84,8 +86,10 @@ public:
 
     /**
      * Unlocks the critical section.
+     * \return always returns 0, to allow tail call optimization when used to
+     * implement pthread_mutex_t
      */
-    void unlock();
+    int unlock();
 
     /**
      * \internal
@@ -162,8 +166,10 @@ public:
     /**
      * Locks the critical section. If the critical section is already locked,
      * the thread will be queued in a wait list.
+     * \return always returns 0, to allow tail call optimization when used to
+     * implement pthread_mutex_t
      */
-    void lock();
+    int lock();
 
     /**
      * Acquires the lock only if the critical section is not already locked by
@@ -175,8 +181,10 @@ public:
 
     /**
      * Unlocks the critical section.
+     * \return always returns 0, to allow tail call optimization when used to
+     * implement pthread_mutex_t
      */
-    void unlock();
+    int unlock();
 
     /**
      * \internal
