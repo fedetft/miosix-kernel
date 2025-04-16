@@ -232,13 +232,52 @@ void __verbose_terminate_handler()
 // C++ static constructors support, to achieve thread safety
 // =========================================================
 
-//This is weird, despite almost everywhere in GCC's documentation it is said
-//that __guard is 8 bytes, it is actually only four.
-union MiosixGuard
+// __guard serves the double task of being the waiting list head, and being the
+// flag to signal that the object is initialized or not.
+// This is because, despite almost everywhere in GCC's documentation it is said
+// that __guard is 8 bytes, it is actually only 4 so we fit a two bit flag in
+// the two least significant bits and a pointer in the other bits.
+// Additionally, the compiler adds some instructions to check __guard too, so we
+// MUST use bit 0 of __guard to signal that the object is initialized (1) or
+// not (0). This implementation works on the assumption that the pointer to list
+// item don't use bits 0 and 1, hence the alignas requirement to be extra sure
+struct alignas(4) MiosixGuardListItem
 {
-    miosix::Thread *owner;
-    unsigned int flag;
+    miosix::Thread *t;
+    MiosixGuardListItem *next;
 };
+
+static unsigned int flagGet(__cxxabiv1::__guard *g)
+{
+    return *reinterpret_cast<unsigned int*>(g) & 0b11;
+}
+
+static void flagSet(__cxxabiv1::__guard *g, unsigned int flag)
+{
+    // NOTE: in the code path following a __cxa_guard_abort the first thread in
+    // the list is awakened, but there may be more, so use read-modify-write to
+    // set flag bits without losing the list head
+    unsigned int *data=reinterpret_cast<unsigned int*>(g);
+    *data = (*data & ~0b11) | (flag & 0b11);
+}
+
+static void flagSetAndClearListHead(__cxxabiv1::__guard *g, unsigned int flag)
+{
+    unsigned int *data=reinterpret_cast<unsigned int*>(g);
+    *data = flag & 0b11;
+}
+
+static MiosixGuardListItem *listHeadGet(__cxxabiv1::__guard *g)
+{
+    unsigned int *data=reinterpret_cast<unsigned int*>(g);
+    return reinterpret_cast<MiosixGuardListItem*>((*data) & ~0b11);
+}
+
+static void listHeadSet(__cxxabiv1::__guard *g, MiosixGuardListItem *head)
+{
+    unsigned int *data=reinterpret_cast<unsigned int*>(g);
+    *data = (*data & 0b11) | (reinterpret_cast<unsigned int>(head) & ~0b11);
+}
 
 namespace __cxxabiv1
 {
@@ -250,41 +289,33 @@ namespace __cxxabiv1
  */
 extern "C" int __cxa_guard_acquire(__guard *g)
 {
-    miosix::GlobalIrqLock dLock;
-    volatile MiosixGuard *guard=reinterpret_cast<volatile MiosixGuard*>(g);
+    miosix::PauseKernelLock dLock;
     for(;;)
     {
-        if(guard->flag==1) return 0; //Object already initialized, good
+        auto flag=flagGet(g);
+        if(flag==1) return 0; // Object already initialized, good
         
-        if(guard->flag==0)
+        if(flag==0)
         {
-            //Object uninitialized, and no other thread trying to initialize it
-            guard->owner=miosix::Thread::IRQgetCurrentThread();
-
-            //guard->owner serves the double task of being the thread id of
-            //the thread initializing the object, and being the flag to signal
-            //that the object is initialized or not. If bit #0 of guard->owner
-            //is @ 1 the object is initialized. All this works on the assumption
-            //that Thread* pointers never have bit #0 @ 1, and this assetion
-            //checks that this condition really holds
-            if(guard->flag & 1) miosix::errorHandler(miosix::UNEXPECTED);
+            // Object uninitialized, and no other thread trying to initialize it
+            flagSet(g,2);
             return 1;
         }
-
-        //If we get here, the object is being initialized by another thread
-        if(guard->owner==miosix::Thread::IRQgetCurrentThread())
-        {
-            //Wait, the other thread initializing the object is this thread?!?
-            //We have a recursive initialization error. Not throwing an
-            //exception to avoid pulling in exceptions even with -fno-exception
-            IRQerrorLog("Recursive initialization\r\n");
-            _exit(1);
-        }
-
-        {
-            miosix::GlobalIrqUnlock eLock(dLock);
-            miosix::Thread::yield(); //Sort of a spinlock, a "yieldlock"...
-        }
+        // If we get here, the object is being initialized by another thread,
+        // so we need to wait.
+        MiosixGuardListItem item;
+        item.t=miosix::Thread::PKgetCurrentThread();
+        // NOTE: we could sort the list of waiting threads by priority but the
+        // most common case is that the object initialization completes
+        // successfully and in this case all waiting threads are awakend at the
+        // same time, so lifo order is chosen to have O(1) insertion/removal.
+        // Moreover, if in the future we really want to sort the list by
+        // priority we must re-sort it if a thread waiting here has also locked
+        // a mutex with priority inheritance and its priority got boosted...
+        item.next=listHeadGet(g);
+        listHeadSet(g,&item);
+        // While loop to protect against spurious wakeups
+        while(item.t!=nullptr) item.t->PKrestartKernelAndWait(dLock);
     }
 }
 
@@ -294,9 +325,13 @@ extern "C" int __cxa_guard_acquire(__guard *g)
  */
 extern "C" void __cxa_guard_release(__guard *g) noexcept
 {
-    miosix::GlobalIrqLock dLock;
-    MiosixGuard *guard=reinterpret_cast<MiosixGuard*>(g);
-    guard->flag=1;
+    miosix::PauseKernelLock dLock;
+    for(auto *walk=listHeadGet(g);walk!=nullptr;walk=walk->next)
+    {
+        walk->t->PKwakeup();
+        walk->t=nullptr;
+    }
+    flagSetAndClearListHead(g,1); //All threads awakened, also clear list ptr
 }
 
 /**
@@ -305,9 +340,15 @@ extern "C" void __cxa_guard_release(__guard *g) noexcept
  */
 extern "C" void __cxa_guard_abort(__guard *g) noexcept
 {
-    miosix::GlobalIrqLock dLock;
-    MiosixGuard *guard=reinterpret_cast<MiosixGuard*>(g);
-    guard->flag=0;
+    miosix::PauseKernelLock dLock;
+    auto *head=listHeadGet(g);
+    if(head!=nullptr)
+    {
+        head->t->PKwakeup();
+        head->t=nullptr;
+        listHeadSet(g,head->next);
+    }
+    flagSet(g,0);
 }
 
 } //namespace __cxxabiv1
