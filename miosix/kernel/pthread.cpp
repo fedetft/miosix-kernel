@@ -327,7 +327,7 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
 //The pthread_cond_t API is implemented simply as a wrapper around the native
 //Miosix C++ ConditionVariable. Therefore the memory layout of pthread_cond_t
 //and of ConditionVariable must be exactly the same.
-static_assert(sizeof(ConditionVariable)==sizeof(pthread_cond_t),"Invalid pthread_cond_t size");
+static_assert(sizeof(ConditionVariable)<=sizeof(pthread_cond_t),"Invalid pthread_cond_t size");
 
 int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
 {

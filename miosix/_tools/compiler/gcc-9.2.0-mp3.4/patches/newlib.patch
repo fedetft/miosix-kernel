@@ -151,7 +151,7 @@ diff -ruN newlib-3.1.0-old/newlib/libc/include/sys/features.h newlib-3.1.0/newli
  #ifdef __rtems__
 diff -ruN newlib-3.1.0-old/newlib/libc/include/sys/_pthreadtypes.h newlib-3.1.0/newlib/libc/include/sys/_pthreadtypes.h
 --- newlib-3.1.0-old/newlib/libc/include/sys/_pthreadtypes.h	2019-01-01 05:40:11.000000000 +0100
-+++ newlib-3.1.0/newlib/libc/include/sys/_pthreadtypes.h	2025-04-15 11:49:00.263074161 +0200
++++ newlib-3.1.0/newlib/libc/include/sys/_pthreadtypes.h	2025-04-16 15:31:12.712632770 +0200
 @@ -143,6 +143,8 @@
  
  #endif /* !defined(_UNIX98_THREAD_MUTEX_ATTRIBUTES) */
@@ -161,7 +161,7 @@ diff -ruN newlib-3.1.0-old/newlib/libc/include/sys/_pthreadtypes.h newlib-3.1.0/
  #if defined(__XMK__)
  typedef unsigned int pthread_mutex_t;    /* identify a mutex */
  
-@@ -171,11 +173,44 @@
+@@ -171,11 +173,45 @@
  
  #define _PTHREAD_MUTEX_INITIALIZER ((pthread_mutex_t) 0xFFFFFFFF)
  
@@ -174,9 +174,9 @@ diff -ruN newlib-3.1.0-old/newlib/libc/include/sys/_pthreadtypes.h newlib-3.1.0/
 + *   in sys/lock.h would have caused a cycle of #includes
 + */
 +typedef struct {
-+  int is_initialized;
-+  int prio;
-+  int recursive;
++  char is_initialized;
++  char prio;
++  char recursive;
 +} pthread_mutexattr_t;
 +
 +#define _PTHREAD_MUTEX_INITIALIZER {0,-1,0,0,0,0,0}
@@ -199,9 +199,10 @@ diff -ruN newlib-3.1.0-old/newlib/libc/include/sys/_pthreadtypes.h newlib-3.1.0/
 +{
 +    void *field1; /* Opaque fields */
 +    void *field2; /* Opaque fields */
++    void *field3; /* Opaque fields */
 +} pthread_cond_t;
 +
-+#define _PTHREAD_COND_INITIALIZER {0,0}
++#define _PTHREAD_COND_INITIALIZER {0,0,0}
 +#endif /* _MIOSIX */
  
  typedef struct {

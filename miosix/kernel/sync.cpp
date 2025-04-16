@@ -487,9 +487,6 @@ Priority Mutex::inheritPriorityFromLockedList(Thread *t, Priority pr)
 // class ConditionVariable
 //
 
-//Memory layout must be kept in sync with pthread_cond, see pthread.cpp
-static_assert(sizeof(ConditionVariable)==sizeof(pthread_cond_t),"");
-
 void ConditionVariable::wait(Mutex& m)
 {
     WaitToken listItem(Thread::getCurrentThread());
