@@ -72,6 +72,11 @@
  * perform a context switch while the kernel was paused, leading to deadlock.
  * The failure was only observed within the exception_test() in the testsuite
  * running on the stm32f429zi_stm32f4discovery.
+ * TODO: According to ARM's docs, the DMB should probably have been a CLREX.
+ * On SMP, the DMB should be a CLREX followed by a DSB, because DMB just
+ * ensures no reordering, while DSB also stalls until all writes have been
+ * committed. This is important to ensure the state of the thread stays
+ * consistent if it's moved to another core.
  */
 #define saveContext()                                                         \
     asm volatile("   mrs    r1,  psp            \n"/*get PROCESS stack ptr  */ \
