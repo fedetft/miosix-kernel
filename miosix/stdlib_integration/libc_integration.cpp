@@ -201,6 +201,8 @@ void *sbrk(ptrdiff_t incr)
     return _sbrk_r(miosix::getReent(),incr);
 }
 
+bool _mallocLockWasLocked=false;
+
 /**
  * \internal
  * __malloc_lock, called by malloc to ensure no context switch happens during
@@ -215,7 +217,9 @@ void *sbrk(ptrdiff_t incr)
  */
 void __malloc_lock()
 {
-    miosix::pauseKernel();
+    bool s=miosix::FastPauseKernelLock::inLockedSection();
+    if(!s) miosix::FastPauseKernelLock::lock();
+    _mallocLockWasLocked=s;
 }
 
 /**
@@ -224,7 +228,7 @@ void __malloc_lock()
  */
 void __malloc_unlock()
 {
-    miosix::restartKernel();
+    if(!_mallocLockWasLocked) miosix::FastPauseKernelLock::unlock();
 }
 
 /**

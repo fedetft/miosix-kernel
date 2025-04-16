@@ -185,10 +185,10 @@ public:
         //If kernel is paused, preemption is disabled
         #ifdef WITH_SMP
         auto coreId=getCurrentCoreId();
-        if(globalPkNestLockHoldingCore==coreId) pendingWakeup=true;
+        if(FastPauseKernelLock::holdingCore==coreId) FastPauseKernelLock::pendingWakeup=true;
         else T::IRQrunScheduler(coreId);
         #else
-        if(pauseKernelNesting) pendingWakeup=true;
+        if(FastPauseKernelLock::holdingCore==0) FastPauseKernelLock::pendingWakeup=true;
         else T::IRQrunScheduler();
         #endif
     }

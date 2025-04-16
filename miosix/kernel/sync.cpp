@@ -35,9 +35,6 @@ using namespace std;
 
 namespace miosix {
 
-///Variable shared with lock.cpp for performance and encapsulation reasons
-extern volatile bool pendingWakeup;
-
 /**
  * Helper lambda to sort threads in a min heap to implement priority inheritance
  * \param lhs first thread to compare
@@ -282,7 +279,7 @@ int Mutex::unlock()
     //We're in a PauseKernelLock, don't waste time calling the
     //scheduler just for it to set pendingWakeup and bounce back, set it
     //here.
-    if(loweredPriority) pendingWakeup=true;
+    if(loweredPriority) FastPauseKernelLock::pendingWakeup=true;
     return 0;
 }
 

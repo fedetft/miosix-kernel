@@ -31,6 +31,7 @@
 #include "interfaces/interrupts.h"
 #include "interfaces/cpu_const.h"
 #include "interfaces_private/smp_locks.h"
+#include "thread.h"
 
 namespace miosix {
 
@@ -378,39 +379,179 @@ using GlobalIrqUnlock = UnlockBase<GlobalIrqLock>;
  * \}
  */
 
+
 /**
  * \name Pause Kernel Lock
  * \{
  */
 
 /**
- * This is a global lock in the sense that only one thread on one core can take
- * the lock, that additionally disabled preemption on the core where the lock is
- * taken. Interrupts will continue to occur on all cores, and preemption is
- * still possible on other cores, but attempting to take the pauseKernel lock
- * from another core will block until the lock is released.
- * Call to this function are cumulative: if you call pauseKernel() two times,
- * you need to call restartKernel() two times.
+ * RAII lock for acquiring/releasing the pause kernel lock.
+ * It is also safe for use before the kernel is started, and in this case it
+ * does nothing, since interrupts aren't yet enabled and only one core is
+ * running.
  * 
- * Calling blocking functions (printf/fopen/...) including device drivers
- * implemented in terms of IRQglobalIrqUnlockAndWait() or sleeping while holding
- * this lock will cause deadlock.
- * 
- * The main purpose of this lock is for the kernel to implement mutexes.
- * 
- * This function is safe to be called even before the kernel is started.
- * In this case it has no effect.
+ * NOTE: FastPauseKernelLock cannot be nested and cannot be used before the
+ * kernel is started! Attempting to do so will lead to undefined behavior.
+ * For such cases, use PauseKernelLock instead.
  */
-void pauseKernel() noexcept;
+class FastPauseKernelLock: public FastLockMixin<FastPauseKernelLock>
+{
+public:
+    /**
+     * Take the lock.
+     * \note This method is not a replacement for pauseKernel() because it
+     * does not allow recursive locking. Use PauseKernelLock instead.
+     */
+    static inline void lock() noexcept
+    {
+        #ifdef WITH_SMP
+        // The SMP implementation needs to disable local interrupts when
+        // changing the lock's state to prevent the scheduler running in between
+        // taking/releasing the HW lock and setting the holdingCore variable.
+        //   If it did, and it put us back in ready state, anyone else trying to
+        // take the lock would have to wait in the spinlock even if the lock
+        // isn't really taken.
+        //   However, this means it cannot run if the kernel is not yet started.
+        // So we also check for that and bail out early if so.
+        //   These comments also apply to unlock().
+        if(kernelStarted==false) return;
+        fastDisableIrq();
+        irqDisabledHwLockAcquire(HwLocks::PK);
+        holdingCore=getCurrentCoreId();
+        fastEnableIrq();
+        #else
+        holdingCore=0;
+        asm volatile("":::"memory");
+        #endif
+    }
+
+    /**
+     * Return true if the pause kernel lock is currently taken, false otherwise.
+     *
+     * \note Acquiring the global lock or disabling interrupts does not affect
+     * the result returned by this function.
+     * This function replaces isKernelPaused() from Miosix v2.x.
+     * \return true if preemption is disabled on the current core.
+     */
+    static inline bool inLockedSection()
+    {
+        return holdingCore==getCurrentCoreId();
+    }
+
+    /**
+     * Release the lock.
+     * \note This method is not a replacement for restartKernel() because it
+     * does not allow recursive locking. Use PauseKernelLock instead.
+     */
+    static inline void unlock() noexcept
+    {
+        #ifdef WITH_SMP
+        // See comments in lock().
+        if(kernelStarted==false) return;
+        fastDisableIrq();
+        holdingCore=0xff;
+        irqDisabledHwLockRelease(HwLocks::PK);
+        fastEnableIrq();
+        #else //WITH_SMP
+        holdingCore=0xff;
+        asm volatile("":::"memory");
+        #endif //WITH_SMP
+    
+        // If we missed a preemption, yield. This mechanism works the
+        // same way as the hardware implementation of interrupts that remain
+        // pending if they occur while interrupts are disabled.
+        // The scheduler sets pendingWakeup to true any time it is called but it
+        // could not run due to the lock being taken.
+        // With the tickless kernel, this is also important to prevent deadlocks
+        // as the idle thread is no longer periodically interrupted by timer
+        // ticks and it does pause the kernel. If the interrupt that wakes up
+        // a thread fails to call the scheduler since the idle thread paused the
+        // kernel and pendingWakeup is not set, this could cause a deadlock.
+        if(pendingWakeup)
+        {
+            pendingWakeup=false;
+            Thread::yield();
+        }
+    }
+
+private:
+    /**
+     * \private Lock the Pause Kernel lock when interrupts are disabled.
+     * This is used when the thread holding the lock is exiting from a wait.
+     */
+    static inline void irqDisabledFastLock() noexcept
+    {
+        #ifdef WITH_SMP
+        irqDisabledHwLockAcquire(HwLocks::PK);
+        holdingCore=getCurrentCoreId();
+        #else
+        holdingCore=0;
+        #endif
+    }
+
+    /**
+     * \private Lock the Pause Kernel lock when interrupts are disabled.
+     * This is used when the thread holding the lock is entering a wait.
+     */
+    static inline void irqDisabledFastUnlock() noexcept
+    {
+        holdingCore=0xff;
+        #ifdef WITH_SMP
+        irqDisabledHwLockRelease(HwLocks::PK);
+        #endif
+    }
+
+    /// The scheduler needs to set pendingWakeup if it is called within a
+    /// pauseKernel.
+    template<typename T> friend class basic_scheduler;
+    /// The Mutex class sets pendingWakeup to quickly trigger a reschedule
+    /// if the thread priorities changed. This is a performance optimization.
+    friend class Mutex;
+    /// Thread wait primitives use irqDisabledFastLock() and
+    /// irqDisabledFastUnlock().
+    friend class Thread;
+    /// The core holding the lock or 0xff.
+    static unsigned char holdingCore;
+    /// Whether the scheduler was invoked while the lock is taken.
+    static bool pendingWakeup;
+};
 
 /**
- * Release the lock. This function will yield immediately if a preemption should
- * have occurred while holding the lock but it has been prevented.
+ * RAII lock for recursively acquiring/releasing the pause kernel lock.
+ * PauseKernelLock can be nested, like recursive mutexes.
+ * It is also safe for use before the kernel is started, and in this case it
+ * does nothing, since interrupts aren't yet enabled and only one core is
+ * running.
  * 
- * This function is safe to be called even before the kernel is started.
- * In this case it has no effect.
+ * \note There are no replacements for the pauseKernel() and enableKernel()
+ * functions in Miosix v2.x, use the class PauseKernelLock instead.
  */
-void restartKernel() noexcept;
+class PauseKernelLock: public LockMixin<PauseKernelLock>
+{
+private:
+    /**
+     * \private Take the lock.
+     */
+    static void lock();
+
+    /**
+     * \private Release the lock.
+     */
+    static void unlock();
+
+    /**
+     * \private Are we in a code region protected by this lock?
+     */
+    static inline bool inLockedSection()
+    {
+        return FastPauseKernelLock::inLockedSection();
+    }
+
+    /// These classes need to access lock/unlock
+    friend class LockMixin<PauseKernelLock>;
+    friend class UnlockBase<PauseKernelLock>;
+};
 
 /**
  * Return true if the pause kernel lock is currently taken, false otherwise.
@@ -419,34 +560,10 @@ void restartKernel() noexcept;
  * result returned by this function.
  * \return true if preemption is disabled on the current core.
  */
-bool isKernelPaused() noexcept;
-
-/**
- * This class is a RAII lock for pausing the kernel. This call avoids
- * the error of not restarting the kernel since it is done automatically.
- */
-class PauseKernelLock
+inline bool isKernelPaused() noexcept
 {
-public:
-    /**
-     * Constructor, pauses the kernel.
-     */
-    PauseKernelLock()
-    {
-        pauseKernel();
-    }
-
-    /**
-     * Destructor, restarts the kernel
-     */
-    ~PauseKernelLock()
-    {
-        restartKernel();
-    }
-
-    PauseKernelLock(const PauseKernelLock&)=delete;
-    PauseKernelLock& operator= (const PauseKernelLock&)=delete;
-};
+    return FastPauseKernelLock::inLockedSection();
+}
 
 /**
  * This class allows to temporarily restart kernel in a scope where it is
@@ -470,24 +587,7 @@ public:
  *
  * \note This class replaces the RestartKernelLock class in Miosix v2.x
  */
-class PauseKernelUnlock
-{
-public:
-    /**
-     * Constructor, restarts kernel.
-     * \param l the PauseKernelLock that disabled interrupts
-     */
-    PauseKernelUnlock(PauseKernelLock& l) { (void)l; restartKernel(); }
-
-    /**
-     * Destructor.
-     * Disable back interrupts.
-     */
-    ~PauseKernelUnlock() { pauseKernel(); }
-
-    PauseKernelUnlock(const PauseKernelUnlock&)=delete;
-    PauseKernelUnlock& operator= (const PauseKernelUnlock&)=delete;
-};
+using PauseKernelUnlock = UnlockBase<PauseKernelLock>;
 
 /**
  * \}

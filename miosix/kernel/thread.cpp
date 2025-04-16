@@ -79,9 +79,6 @@ IntrusiveList<SleepData> sleepingList;///list of sleeping threads
 
 bool kernelStarted=false;///<\internal becomes true after IRQstartKernel.
 
-///Variables shared with lock.cpp for performance and encapsulation reasons
-extern volatile bool pendingWakeup;
-
 #ifdef WITH_PROCESSES
 /// The proc field of the Thread class for kernel threads points to this object
 static ProcessBase *kernel=nullptr;
@@ -458,7 +455,7 @@ void Thread::PKwakeup()
     // If we get here all the cores that did not take the lock don't run lower
     // priority threads. Check the core that is taking the lock
     if(const_cast<Thread*>(runningThreads[coreId])->IRQgetPriority()<wokenPrio)
-        pendingWakeup=true;
+        FastPauseKernelLock::pendingWakeup=true;
 }
 
 void Thread::IRQwakeup()
@@ -575,7 +572,7 @@ void Thread::setPriority(Priority pr)
         //of the scheduling queue even if there's no higher priority thread than
         //our new (lowered) priority, but there's no way of knowing unless we
         //peek at the scheduler data structures here which we don't want to
-        if(pr<oldActualPrio) pendingWakeup=true;
+        if(pr<oldActualPrio) FastPauseKernelLock::pendingWakeup=true;
     }
 }
 
@@ -955,10 +952,10 @@ void Thread::PKrestartKernelAndWaitImpl()
     // We do not save/restore the state of the GIL because it's not taken
     // (if it was, somebody is violating the constraints on when a PK function
     // can be called).
-    auto savedPkNesting=irqDisabledRestartKernelForce();
+    FastPauseKernelLock::irqDisabledFastUnlock();
     fastEnableIrq();
     Thread::yield(); //Here the wait becomes effective
-    pauseKernelForceToDepth(savedPkNesting);
+    FastPauseKernelLock::lock();
 }
 
 void Thread::IRQglobalIrqUnlockAndWaitImpl()
@@ -1002,11 +999,11 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWaitImpl(long long absoluteTimeNs
     // We do not save/restore the state of the GIL because it's not taken
     // (if it was, somebody is violating the constraints on when a PK function
     // can be called)
-    auto savedPkNesting=irqDisabledRestartKernelForce();
+    FastPauseKernelLock::irqDisabledFastUnlock();
     fastEnableIrq();
     Thread::yield(); //Here the wait becomes effective
     fastDisableIrq();
-    irqDisabledPauseKernelForceToDepth(savedPkNesting);
+    FastPauseKernelLock::irqDisabledFastLock();
 
     // Remove us from the sleeping list and check how we were woken up.
     // If the thread was still in the sleeping list, it was woken up by a wakeup()
