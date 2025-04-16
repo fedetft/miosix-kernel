@@ -345,7 +345,11 @@ private:
 
 /**
  * This class allows to temporarily re-unlock a mutex in a scope where
- * it is locked <br>
+ * it is locked
+ *
+ * \warning This class can only unlock a recursive mutex that has been locked
+ * ONE level deep, so be careful when using it.
+ *
  * Example:
  * \code
  * Mutex m;
