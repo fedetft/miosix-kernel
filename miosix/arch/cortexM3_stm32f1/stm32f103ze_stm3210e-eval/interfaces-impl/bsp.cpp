@@ -108,7 +108,7 @@ void shutdown()
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
-    fastGlobalIrqLock();
+    FastGlobalIrqLock::lock();
 
     SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
     PWR->CR |= PWR_CR_PDDS; //Select standby mode
@@ -130,7 +130,7 @@ void reboot()
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
-    fastGlobalIrqLock();
+    FastGlobalIrqLock::lock();
     IRQsystemReboot();
 }
 

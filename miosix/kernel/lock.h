@@ -196,16 +196,6 @@ public:
     }
 };
 
-inline void fastGlobalLockFromIrq() noexcept
-{
-    FastGlobalLockFromIrq::lock();
-}
-
-inline void fastGlobalUnlockFromIrq() noexcept
-{
-    FastGlobalLockFromIrq::unlock();
-}
-
 /**
  * This class allows to temporarily release the global lock in a scope it was
  * held using a FastGlobalLockFromIrq.
@@ -273,16 +263,6 @@ public:
         fastEnableIrq();
     }
 };
-
-inline void fastGlobalIrqLock() noexcept
-{
-    FastGlobalIrqLock::lock();
-}
-
-inline void fastGlobalIrqUnlock() noexcept
-{
-    FastGlobalIrqLock::unlock();
-}
 
 /**
  * This class allows to temporarily release the global lock in a scope it was

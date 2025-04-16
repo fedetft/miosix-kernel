@@ -187,7 +187,7 @@ void bspInit2()
 void shutdown()
 {
     // Taken from underverk's SmartWatch_Toolchain/src/Arduino/Arduino.cpp
-    fastGlobalIrqLock();
+    FastGlobalIrqLock::lock();
     BUZER_PWM_Pin::high();
     delayMs(200);
     BUZER_PWM_Pin::low();
@@ -204,7 +204,7 @@ void shutdown()
 
 void reboot()
 {
-    fastGlobalIrqLock();
+    FastGlobalIrqLock::lock();
     IRQsystemReboot();
 }
 

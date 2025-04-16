@@ -82,7 +82,7 @@ namespace miosix {
  * in the future if some use case for this function is found.
  *
  * \note If you're trying to use this function for driver development maybe
- * you're looking for fastGlobalIrqLock() instead?
+ * you're looking for FastGlobalIrqLock::lock() instead?
  */
 inline void fastDisableIrq() noexcept;
 
@@ -97,7 +97,7 @@ inline void fastDisableIrq() noexcept;
  * in the future if some use case for this function is found.
  *
  * \note If you're trying to use this function for driver development maybe
- * you're looking for fastGlobalIrqUnlock() instead?
+ * you're looking for FastGlobalIrqLock::unlock() instead?
  */
 inline void fastEnableIrq() noexcept;
 

@@ -634,10 +634,8 @@ static void test_3()
 //
 /*
 tests:
-globalIrqLock
-globalIrqUnlock
-fastGlobalIrqLock
-fastGlobalIrqUnlock
+GlobalIrqLock
+FastGlobalIrqLock
 Thread::getPriority
 Thread::setPriority
 Thread::IRQgetCurrentThread
@@ -713,16 +711,16 @@ static void test_4()
     //Should not happen, since already tested
     if(t4_v1==false) fail("variable not updated");
 
-    fastGlobalIrqLock();//
+    FastGlobalIrqLock::lock();//
     //Check that t4_v1 is not updated
     t4_v1=false;
     delayUs(MAX_TIME_IRQ_DISABLED);
     if(t4_v1)
     {
-        fastGlobalIrqUnlock();//
+        FastGlobalIrqLock::unlock();//
         fail("globalIrqLock");
     }
-    fastGlobalIrqUnlock();//
+    FastGlobalIrqLock::unlock();//
     #ifndef SCHED_TYPE_EDF
     Thread::yield();
     #else //SCHED_TYPE_EDF
@@ -4726,8 +4724,8 @@ static void benchmark_4()
     i=0;
     while(b4_end==false)
     {
-        fastGlobalIrqLock();
-        fastGlobalIrqUnlock();
+        FastGlobalIrqLock::lock();
+        FastGlobalIrqLock::unlock();
         i++;
     }
     iprintf("%10d FastGlobalIrqLock lock/unlock pairs per second\n",i);

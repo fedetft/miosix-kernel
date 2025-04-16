@@ -103,7 +103,7 @@ bool I2C1Master::recv(unsigned char address, void *data, int len)
     address |= 0x01;
     if(startWorkaround(address,len)==false || I2C1->SR2 & I2C_SR2_TRA)
     {
-        fastGlobalIrqUnlock(); //HACK Workaround critical section end
+        FastGlobalIrqLock::unlock(); //HACK Workaround critical section end
         stop();
         return false;
     }
@@ -126,7 +126,7 @@ bool I2C1Master::recv(unsigned char address, void *data, int len)
                    | DMA_SxCR_DMEIE   //Interrupt on direct mode error
                    | DMA_SxCR_EN;     //Start DMA
 
-    fastGlobalIrqUnlock(); //HACK Workaround critical section end
+    FastGlobalIrqLock::unlock(); //HACK Workaround critical section end
 
     {
         FastGlobalIrqLock dLock;
@@ -254,7 +254,7 @@ bool I2C1Master::startWorkaround(unsigned char address, int len)
     if(!waitStatus1()) return false;
     //If the transfer is single byte, then ACK must be reset before EV6 cleared
     if(len==1) I2C1->CR1 &= ~I2C_CR1_ACK;
-    fastGlobalIrqLock(); //HACK Workaround critical section start
+    FastGlobalIrqLock::lock(); //HACK Workaround critical section start
     bool result=true;
     //EV6: Must read SR1 and SR2 to clear ADDR
     if(I2C1->SR1 & I2C_SR1_AF) result=false;

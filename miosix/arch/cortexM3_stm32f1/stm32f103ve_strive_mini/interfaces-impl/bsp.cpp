@@ -134,7 +134,7 @@ void shutdown()
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
-    fastGlobalIrqLock();
+    FastGlobalIrqLock::lock();
 
     NVIC_SystemReset();
     for(;;) ; //Never reach here
@@ -148,7 +148,7 @@ void reboot()
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
-    fastGlobalIrqLock();
+    FastGlobalIrqLock::lock();
     IRQsystemReboot();
 }
 

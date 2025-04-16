@@ -377,7 +377,7 @@ void reboot()
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
-    fastGlobalIrqLock();
+    FastGlobalIrqLock::lock();
 
     //Clearing PINSEL registers. All pin are GPIO by default
     PINSEL0=0;

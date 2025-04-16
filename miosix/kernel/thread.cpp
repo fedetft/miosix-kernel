@@ -946,9 +946,10 @@ void Thread::PKrestartKernelAndWaitImpl()
     // Thread::IRQgetCurrentThread but there is logic there that we want to
     // avoid.
     Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
-    fastGlobalLockFromIrq();
-    cur->flags.IRQsetWait(cur,true);
-    fastGlobalUnlockFromIrq();
+    {
+        FastGlobalLockFromIrq lock;
+        cur->flags.IRQsetWait(cur,true);
+    }
 
     // Save Pk lock state, yield, and restore lock state.
     // We do not save/restore the state of the GIL because it's not taken
@@ -991,10 +992,11 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWaitImpl(long long absoluteTimeNs
     absoluteTimeNs=max(absoluteTimeNs,100000LL);
     Thread *t=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
     SleepData sleepData(t,absoluteTimeNs);
-    fastGlobalLockFromIrq();
-    t->flags.IRQsetWait(t,true); //timedWait thread: set wait flag
-    IRQaddToSleepingList(&sleepData);
-    fastGlobalUnlockFromIrq();
+    {
+        FastGlobalLockFromIrq lock;
+        t->flags.IRQsetWait(t,true); //timedWait thread: set wait flag
+        IRQaddToSleepingList(&sleepData);
+    }
 
     // Save Pk lock state, yield, and restore lock state.
     // We do not save/restore the state of the GIL because it's not taken
@@ -1008,9 +1010,11 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWaitImpl(long long absoluteTimeNs
 
     // Remove us from the sleeping list and check how we were woken up.
     // If the thread was still in the sleeping list, it was woken up by a wakeup()
-    fastGlobalLockFromIrq();
-    auto removed=sleepingList.removeFast(&sleepData);
-    fastGlobalUnlockFromIrq();
+    bool removed;
+    {
+        FastGlobalLockFromIrq lock;
+        removed=sleepingList.removeFast(&sleepData);
+    }
     fastEnableIrq();
     return removed ? TimedWaitResult::NoTimeout : TimedWaitResult::Timeout;
 }
