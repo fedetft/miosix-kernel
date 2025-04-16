@@ -28,7 +28,6 @@
 #pragma once
 
 #include "config/miosix_settings.h"
-#include "kernel/lock_private.h"
 #include "kernel/scheduler/priority/priority_scheduler.h"
 #include "kernel/scheduler/control/control_scheduler.h"
 #include "kernel/scheduler/edf/edf_scheduler.h"

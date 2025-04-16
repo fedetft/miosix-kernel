@@ -29,7 +29,6 @@
 #include "error.h"
 #include "logging.h"
 #include "sync.h"
-#include "lock_private.h"
 #include "boot.h"
 #include "process.h"
 #include "kernel/scheduler/scheduler.h"

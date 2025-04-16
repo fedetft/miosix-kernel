@@ -61,9 +61,6 @@
 #include "e20/e20.h"
 #include "kernel/intrusive.h"
 #include "util/crc16.h"
-#define COMPILING_MIOSIX
-#include "kernel/lock_private.h"
-#undef COMPILING_MIOSIX
 
 
 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)

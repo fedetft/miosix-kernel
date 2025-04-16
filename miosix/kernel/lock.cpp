@@ -26,7 +26,6 @@
  ***************************************************************************/ 
 
 #include "lock.h"
-#include "lock_private.h"
 #include "error.h"
 #include "thread.h"
 #include "interfaces/atomic_ops.h"

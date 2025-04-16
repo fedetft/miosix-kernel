@@ -27,7 +27,6 @@
 
 #include "sync.h"
 #include "error.h"
-#include "lock_private.h"
 #include "kernel/scheduler/scheduler.h"
 #include <algorithm>
 
