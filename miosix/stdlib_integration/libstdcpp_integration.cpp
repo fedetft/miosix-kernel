@@ -368,7 +368,7 @@ class LibAtomicQuickLock
 public:
     static inline unsigned int lock()
     {
-        if(!kernelStarted || GlobalIrqLock::inLockedSection()) return 1;
+        if(GlobalIrqLock::inLockedSection()) return 1;
         FastGlobalIrqLock::lock();
         return 0;
     }

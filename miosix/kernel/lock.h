@@ -35,8 +35,6 @@
 
 namespace miosix {
 
-extern bool kernelStarted;
-
 /**
  * \defgroup lock Low-level locking
  * \brief Global Irq Lock, Pause Kernel lock
@@ -339,9 +337,8 @@ private:
      */
     static void unlock() noexcept
     {
-        if(kernelStarted) FastGlobalIrqLock::unlock();
-        else FastGlobalLockFromIrq::unlock(); // cannot disable interrupts yet
         holdingCore=0xFF;
+        FastGlobalIrqLock::unlock();
     }
 
     /// These kernel classes and functions need to access lock/unlock
@@ -349,6 +346,9 @@ private:
     friend class UnlockBase<GlobalIrqLock>;
     friend class Thread;
     friend class LibAtomicQuickLock;
+    /// The lock is actually initialized in IRQstartKernel(); when the boot
+    /// process is complete
+    friend void IRQstartKernel();
     /// The core currently holding the global lock
     static unsigned char holdingCore;
 };
@@ -415,7 +415,6 @@ public:
         //   However, this means it cannot run if the kernel is not yet started.
         // So we also check for that and bail out early if so.
         //   These comments also apply to unlock().
-        if(kernelStarted==false) return;
         fastDisableIrq();
         irqDisabledHwLockAcquire(HwLocks::PK);
         holdingCore=getCurrentCoreId();
@@ -448,7 +447,6 @@ public:
     {
         #ifdef WITH_SMP
         // See comments in lock().
-        if(kernelStarted==false) return;
         fastDisableIrq();
         holdingCore=0xff;
         irqDisabledHwLockRelease(HwLocks::PK);
@@ -511,6 +509,9 @@ private:
     /// Thread wait primitives use irqDisabledFastLock() and
     /// irqDisabledFastUnlock().
     friend class Thread;
+    /// The lock is actually initialized in IRQstartKernel(); when the boot
+    /// process is complete
+    friend void IRQstartKernel();
     /// The core holding the lock or 0xff.
     static unsigned char holdingCore;
     /// Whether the scheduler was invoked while the lock is taken.

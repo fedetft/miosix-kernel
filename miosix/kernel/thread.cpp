@@ -77,8 +77,6 @@ static volatile int existDeleted=0;
 
 IntrusiveList<SleepData> sleepingList;///list of sleeping threads
 
-bool kernelStarted=false;///<\internal becomes true after IRQstartKernel.
-
 #ifdef WITH_PROCESSES
 /// The proc field of the Thread class for kernel threads points to this object
 static ProcessBase *kernel=nullptr;
@@ -214,8 +212,10 @@ void IRQstartKernel()
     // Make the C standard library use per-thread reeentrancy structure
     setCReentrancyCallback(Thread::getCReent);
     
-    // Boot the other cores, and this core.
-    kernelStarted=true;
+    // Initialize the global locks
+    GlobalIrqLock::holdingCore=0xff;
+    FastPauseKernelLock::holdingCore=0xff;
+    // Boot the other cores, and then this core.
     #ifdef WITH_SMP
     IRQinitSMP(coreBootStacks,coreBootEntryPoints);
     #endif //WITH_SMP

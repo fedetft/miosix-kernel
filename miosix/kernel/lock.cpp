@@ -33,9 +33,11 @@
 
 namespace miosix {
 
-unsigned char GlobalIrqLock::holdingCore=0xff;
+// Initialize as locked because the kernel starts with interrupts disabled
+unsigned char GlobalIrqLock::holdingCore=0;
 
-unsigned char FastPauseKernelLock::holdingCore=0xff;
+// Initialize as locked because the kernel starts with interrupts disabled
+unsigned char FastPauseKernelLock::holdingCore=0;
 bool FastPauseKernelLock::pendingWakeup=false;
 
 #ifdef WITH_DEEP_SLEEP
@@ -43,9 +45,6 @@ bool FastPauseKernelLock::pendingWakeup=false;
 /// If it 0 then the system can enter the deep sleep state
 static int deepSleepCounter=0;
 #endif //WITH_DEEP_SLEEP
-
-//Variables shared with thread.cpp for performance and encapsulation reasons
-extern bool kernelStarted;
 
 void PauseKernelLock::lock()
 {
