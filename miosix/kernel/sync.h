@@ -545,6 +545,14 @@ private:
  * \note As with all other synchronization primitives, Semaphores are inherently
  * shared between multiple threads, therefore special care must be taken in
  * managing their lifetime and ownership.
+ *
+ * \warning Although multiple threads can wait on the same semaphore, they are
+ * awakened in fifo order, thus using only a Sempahore in device driver can
+ * cause priority inversion. It is suggested for device drivers which are
+ * expected to be called concurrently by multiple threads to first lock a
+ * KernelMutex to handle thread synchronization and allow kernel builds with
+ * full priority inheritance, and then use the Semaphore only to synchronize the
+ * single thread that locked the mutex with interrupts.
  * \since Miosix 2.5
  */
 class Semaphore
