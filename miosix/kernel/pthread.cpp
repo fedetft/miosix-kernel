@@ -194,19 +194,35 @@ int sched_yield()
 
 //The pthread_cond_t API is implemented simply as a wrapper around the native
 //Miosix C++ Mutex or FastMutex. Therefore the memory layout of pthread_cond_t
-//should be emough to hold either of these pus an int to differentiate what kind
-//of mutex it is
+//should be emough to hold either of these plus an int to differentiate what
+//kind of mutex it is
 static_assert(sizeof(pthread_mutex_t)>=sizeof(FastMutex)+sizeof(int),"Invalid pthread_mutex_t size");
 static_assert(sizeof(pthread_mutex_t)>=sizeof(Mutex)+sizeof(int),"Invalid pthread_mutex_t size");
 
-int	pthread_mutexattr_init(pthread_mutexattr_t *attr)
+/**
+ * Decide whether the pthread_mutex_t has priority inheritance depending on
+ * compile-time overrides or the dynamic (run-time) type. We rely on compiler
+ * optimizations to remove dead code when using compile-time overrides.
+ * \param type dynamic type, either PTHREAD_PRIO_NONE or PTHREAD_PRIO_INHERIT
+ * \return true if the mutex has priority inheritance
+ */
+static inline bool hasPriorityInheritance(int type)
+{
+    if(pthreadMutexProtocolOverride==PthreadMutexProtocol::FORCE_PRIO_INHERIT)
+        return true;
+    else if(pthreadMutexProtocolOverride==PthreadMutexProtocol::FORCE_PRIO_NONE)
+        return false;
+    else return type!=PTHREAD_PRIO_NONE;
+}
+
+int pthread_mutexattr_init(pthread_mutexattr_t *attr)
 {
     attr->recursive=PTHREAD_MUTEX_DEFAULT;
     attr->prio=PTHREAD_PRIO_NONE;
     return 0;
 }
 
-int	pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
+int pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
 {
     return 0; //Do nothing
 }
@@ -244,85 +260,62 @@ int pthread_mutexattr_setprotocol(pthread_mutexattr_t *attr, int protocol)
     }
 }
 
+int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr, int *protocol)
+{
+    *protocol=attr->prio;
+    return 0;
+}
+
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
 {
-    #ifndef PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-    if(attr->prio==PTHREAD_PRIO_NONE)
+    auto option=MutexOptions::DEFAULT;
+    if(attr->recursive==PTHREAD_MUTEX_RECURSIVE) option=MutexOptions::RECURSIVE;
+    if(hasPriorityInheritance(attr->prio))
     {
-        mutex->type=0;
-        auto recursive=attr->recursive==PTHREAD_MUTEX_RECURSIVE ?
-        FastMutex::RECURSIVE : FastMutex::DEFAULT;
-        new (mutex) FastMutex(recursive);
-        return 0;
+        mutex->type=PTHREAD_PRIO_INHERIT;
+        new (mutex) Mutex(option);
+    } else {
+        mutex->type=PTHREAD_PRIO_NONE;
+        new (mutex) FastMutex(option);
     }
-    mutex->type=1;
-    #endif //PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-    auto recursive=attr->recursive==PTHREAD_MUTEX_RECURSIVE ?
-        Mutex::RECURSIVE : Mutex::DEFAULT;
-    new (mutex) Mutex(recursive);
     return 0;
 }
 
 int pthread_mutex_destroy(pthread_mutex_t *mutex)
 {
-    #ifndef PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-    if(mutex->type==0)
+    if(hasPriorityInheritance(mutex->type))
     {
-        auto *impl=reinterpret_cast<FastMutex*>(mutex);
-        if(impl->isLocked()) return EBUSY;
-        impl->~FastMutex(); //Call destructor manually
-    } else {
-    #endif //PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
         auto *impl=reinterpret_cast<Mutex*>(mutex);
         if(impl->isLocked()) return EBUSY;
         impl->~Mutex(); //Call destructor manually
-    #ifndef PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
+    } else {
+        auto *impl=reinterpret_cast<FastMutex*>(mutex);
+        if(impl->isLocked()) return EBUSY;
+        impl->~FastMutex(); //Call destructor manually
     }
-    #endif //PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
     return 0;
 }
 
 int pthread_mutex_lock(pthread_mutex_t *mutex)
 {
-    #ifndef PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-    if(mutex->type==0)
-    {
-        reinterpret_cast<FastMutex*>(mutex)->lock();
-    } else {
-    #endif //PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-        reinterpret_cast<Mutex*>(mutex)->lock();
-    #ifndef PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-    }
-    #endif //PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
+    if(hasPriorityInheritance(mutex->type))
+         reinterpret_cast<Mutex*>(mutex)->lock();
+    else reinterpret_cast<FastMutex*>(mutex)->lock();
     return 0;
 }
 
 int pthread_mutex_trylock(pthread_mutex_t *mutex)
 {
-    #ifndef PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-    if(mutex->type==0)
-    {
-        return reinterpret_cast<FastMutex*>(mutex)->tryLock() ? 0 : EBUSY;
-    } else {
-    #endif //PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-        return reinterpret_cast<Mutex*>(mutex)->tryLock() ? 0 : EBUSY;
-    #ifndef PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-    }
-    #endif //PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
+    if(hasPriorityInheritance(mutex->type))
+         return reinterpret_cast<Mutex*>(mutex)->tryLock() ? 0 : EBUSY;
+    else return reinterpret_cast<FastMutex*>(mutex)->tryLock() ? 0 : EBUSY;
 }
 
 int pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
-    #ifndef PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-    if(mutex->type==0)
-    {
-        reinterpret_cast<FastMutex*>(mutex)->unlock();
-    } else {
-    #endif //PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-        reinterpret_cast<Mutex*>(mutex)->unlock();
-    #ifndef PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-    }
-    #endif //PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
+    if(hasPriorityInheritance(mutex->type))
+         reinterpret_cast<Mutex*>(mutex)->unlock();
+    else reinterpret_cast<FastMutex*>(mutex)->unlock();
     return 0;
 }
 
@@ -355,16 +348,9 @@ int pthread_cond_destroy(pthread_cond_t *cond)
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
     auto *impl=reinterpret_cast<ConditionVariable*>(cond);
-    #ifndef PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-    if(mutex->type==0)
-    {
-        impl->wait(*reinterpret_cast<FastMutex*>(mutex));
-    } else {
-    #endif //PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-        impl->wait(*reinterpret_cast<Mutex*>(mutex));
-    #ifndef PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-    }
-    #endif //PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
+    if(hasPriorityInheritance(mutex->type))
+         impl->wait(*reinterpret_cast<Mutex*>(mutex));
+    else impl->wait(*reinterpret_cast<FastMutex*>(mutex));
     return 0;
 }
 
@@ -372,16 +358,9 @@ int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const s
 {
     auto *impl=reinterpret_cast<ConditionVariable*>(cond);
     TimedWaitResult res;
-    #ifndef PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-    if(mutex->type==0)
-    {
-        res=impl->timedWait(*reinterpret_cast<FastMutex*>(mutex),timespec2ll(abstime));
-    } else {
-    #endif //PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-        res=impl->timedWait(*reinterpret_cast<Mutex*>(mutex),timespec2ll(abstime));
-    #ifndef PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
-    }
-    #endif //PTHREAD_MUTEX_FORCE_PRIORITY_INHERITANCE
+    if(hasPriorityInheritance(mutex->type))
+         res=impl->timedWait(*reinterpret_cast<Mutex*>(mutex),timespec2ll(abstime));
+    else res=impl->timedWait(*reinterpret_cast<FastMutex*>(mutex),timespec2ll(abstime));
     return res == TimedWaitResult::Timeout ? ETIMEDOUT : 0;
 }
 
