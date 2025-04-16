@@ -34,6 +34,7 @@
 #include <errno.h>
 #include <stdexcept>
 #include <algorithm>
+#include <cxxabi.h> //for __cxxabiv1::__guard
 #include "thread.h"
 #include "sync.h"
 #include "error.h"
@@ -387,41 +388,23 @@ int pthread_once(pthread_once_t *once, void (*func)())
 {
     if(once==nullptr || func==nullptr || once->is_initialized!=1) return EINVAL;
 
-    bool again;
-    do {
-        {
-            FastGlobalIrqLock dLock;
-            switch(once->init_executed)
-            {
-                case 0: //We're the first ones (or previous call has thrown)
-                    once->init_executed=1;
-                    again=false;
-                    break;
-                case 1: //Call started but not ended
-                    again=true;
-                    break;
-                default: //Already called, return immediately
-                    return 0;
-            }
-        }
-        #ifndef SCHED_TYPE_EDF
-        if(again) Thread::yield(); //Yield and let other thread complete
-        #else //SCHED_TYPE_EDF
-        if(again) Thread::sleep(1); //Can't yield with EDF, this may be slow
-        #endif //SCHED_TYPE_EDF
-    } while(again);
-
+    // Miosix provides a custom optimized implementation of the __cxa_guard_*
+    // functions to initialize static C++ objects, which happens to fit also
+    // for this use case, so reuse it
+    if(once->init_executed==1) return 0;
+    auto *guard=reinterpret_cast<__cxxabiv1::__guard*>(&once->init_executed);
+    if(__cxxabiv1::__cxa_guard_acquire(guard)==0) return 0;
     #ifdef __NO_EXCEPTIONS
     func();
     #else //__NO_EXCEPTIONS
     try {
         func();
     } catch(...) {
-        once->init_executed=0; //We failed, let some other thread try
+        __cxxabiv1::__cxa_guard_abort(guard);
         throw;
     }
     #endif //__NO_EXCEPTIONS
-    once->init_executed=2; //We succeeded
+    __cxxabiv1::__cxa_guard_release(guard);
     return 0;
 }
 
