@@ -213,7 +213,9 @@ void IRQstartKernel()
     setCReentrancyCallback(Thread::getCReent);
     
     // Initialize the global locks
+    #ifdef WITH_SMP
     GlobalIrqLock::holdingCore=0xff;
+    #endif
     FastPauseKernelLock::holdingCore=0xff;
     // Boot the other cores, and then this core.
     #ifdef WITH_SMP

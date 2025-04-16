@@ -318,7 +318,9 @@ private:
     static inline void lock() noexcept
     {
         FastGlobalIrqLock::lock();
+        #ifdef WITH_SMP
         holdingCore=getCurrentCoreId();
+        #endif
     }
 
     /**
@@ -329,7 +331,11 @@ private:
      */
     static inline bool inLockedSection() noexcept
     {
+        #ifdef WITH_SMP
         return holdingCore==getCurrentCoreId();
+        #else
+        return !areInterruptsEnabled();
+        #endif
     }
 
     /**
@@ -337,7 +343,9 @@ private:
      */
     static void unlock() noexcept
     {
+        #ifdef WITH_SMP
         holdingCore=0xFF;
+        #endif
         FastGlobalIrqLock::unlock();
     }
 
@@ -349,8 +357,10 @@ private:
     /// The lock is actually initialized in IRQstartKernel(); when the boot
     /// process is complete
     friend void IRQstartKernel();
+    #ifdef WITH_SMP
     /// The core currently holding the global lock
     static unsigned char holdingCore;
+    #endif
 };
 
 /**

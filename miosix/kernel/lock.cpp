@@ -33,8 +33,10 @@
 
 namespace miosix {
 
+#ifdef WITH_SMP
 // Initialize as locked because the kernel starts with interrupts disabled
 unsigned char GlobalIrqLock::holdingCore=0;
+#endif
 
 // Initialize as locked because the kernel starts with interrupts disabled
 unsigned char FastPauseKernelLock::holdingCore=0;
