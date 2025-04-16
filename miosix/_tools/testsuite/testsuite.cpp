@@ -4593,7 +4593,6 @@ void b4_t1(void *argv)
 static void benchmark_4()
 {
     Mutex m;
-    pthread_mutex_t m1=PTHREAD_MUTEX_INITIALIZER;
     b4_end=false;
     #ifndef SCHED_TYPE_EDF
     Thread::create(b4_t1,STACK_SMALL);
@@ -4610,6 +4609,7 @@ static void benchmark_4()
     }
     iprintf("%d Mutex lock/unlock pairs per second\n",i);
 
+    FastMutex fm;
     b4_end=false;
     #ifndef SCHED_TYPE_EDF
     Thread::create(b4_t1,STACK_SMALL);
@@ -4620,11 +4620,37 @@ static void benchmark_4()
     i=0;
     while(b4_end==false)
     {
-        pthread_mutex_lock(&m1);
-        pthread_mutex_unlock(&m1);
+        fm.lock();
+        fm.unlock();
         i++;
     }
-    iprintf("%d pthread_mutex lock/unlock pairs per second\n",i);
+    iprintf("%d FastMutex lock/unlock pairs per second\n",i);
+
+    pthread_mutex_t pm=PTHREAD_MUTEX_INITIALIZER;
+    b4_end=false;
+    #ifndef SCHED_TYPE_EDF
+    Thread::create(b4_t1,STACK_SMALL);
+    #else
+    Thread::create(b4_t1,STACK_SMALL,0);
+    #endif
+    Thread::yield();
+    i=0;
+    while(b4_end==false)
+    {
+        pthread_mutex_lock(&pm);
+        pthread_mutex_unlock(&pm);
+        i++;
+    }
+    iprintf("%d pthread_mutex lock/unlock pairs per second ",i);
+    switch(pthreadMutexProtocolOverride)
+    {
+        case PthreadMutexProtocol::DYNAMIC:
+            puts("(protocol=DYNAMIC)"); break;
+        case PthreadMutexProtocol::FORCE_PRIO_INHERIT:
+            puts("(protocol=FORCE_PRIO_INHERIT)"); break;
+        case PthreadMutexProtocol::FORCE_PRIO_NONE:
+            puts("(protocol=FORCE_PRIO_NONE)"); break;
+    }
 
     b4_end=false;
     #ifndef SCHED_TYPE_EDF
