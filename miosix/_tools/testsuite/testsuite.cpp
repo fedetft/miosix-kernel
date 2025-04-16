@@ -61,6 +61,10 @@
 #include "e20/e20.h"
 #include "kernel/intrusive.h"
 #include "util/crc16.h"
+#define COMPILING_MIOSIX
+#include "kernel/lock_private.h"
+#undef COMPILING_MIOSIX
+
 
 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
 #include <interfaces/interrupts.h>
@@ -4612,7 +4616,7 @@ static void benchmark_4()
         m.unlock();
         i++;
     }
-    iprintf("%d Mutex lock/unlock pairs per second\n",i);
+    iprintf("%10d Mutex lock/unlock pairs per second\n",i);
 
     FastMutex fm;
     b4_end=false;
@@ -4629,7 +4633,7 @@ static void benchmark_4()
         fm.unlock();
         i++;
     }
-    iprintf("%d FastMutex lock/unlock pairs per second\n",i);
+    iprintf("%10d FastMutex lock/unlock pairs per second\n",i);
 
     pthread_mutex_t pm=PTHREAD_MUTEX_INITIALIZER;
     b4_end=false;
@@ -4646,7 +4650,7 @@ static void benchmark_4()
         pthread_mutex_unlock(&pm);
         i++;
     }
-    iprintf("%d pthread_mutex lock/unlock pairs per second ",i);
+    iprintf("%10d pthread_mutex lock/unlock pairs per second ",i);
     switch(pthreadMutexProtocolOverride)
     {
         case PthreadMutexProtocol::DYNAMIC:
@@ -4673,7 +4677,26 @@ static void benchmark_4()
         }
         i++;
     }
-    iprintf("%d pause/restart kernel pairs per second\n",i);
+    iprintf("%10d PauseKernelLock lock/unlock pairs per second\n",i);
+
+    b4_end=false;
+    #ifndef SCHED_TYPE_EDF
+    Thread::create(b4_t1,STACK_SMALL);
+    #else
+    Thread::create(b4_t1,STACK_SMALL,0);
+    #endif
+    Thread::yield();
+    i=0;
+    while(b4_end==false)
+    {
+        {
+            FastPauseKernelLock lock;
+            asm volatile("");
+        }
+        i++;
+    }
+    iprintf("%10d FastPauseKernelLock lock/unlock pairs per second\n",i);
+
 
     b4_end=false;
     #ifndef SCHED_TYPE_EDF
@@ -4691,7 +4714,7 @@ static void benchmark_4()
         }
         i++;
     }
-    iprintf("%d disable/enable interrupts pairs per second\n",i);
+    iprintf("%10d GlobalIrqLock lock/unlock pairs per second\n",i);
 
     b4_end=false;
     #ifndef SCHED_TYPE_EDF
@@ -4707,5 +4730,21 @@ static void benchmark_4()
         fastGlobalIrqUnlock();
         i++;
     }
-    iprintf("%d fast disable/enable interrupts pairs per second\n",i);
+    iprintf("%10d FastGlobalIrqLock lock/unlock pairs per second\n",i);
+
+    b4_end=false;
+    #ifndef SCHED_TYPE_EDF
+    Thread::create(b4_t1,STACK_SMALL);
+    #else
+    Thread::create(b4_t1,STACK_SMALL,0);
+    #endif
+    Thread::yield();
+    i=0;
+    while(b4_end==false)
+    {
+        fastDisableIrq();
+        fastEnableIrq();
+        i++;
+    }
+    iprintf("%10d enable/disable irq pairs per second\n",i);
 }
