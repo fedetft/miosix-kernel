@@ -201,7 +201,7 @@ void *sbrk(ptrdiff_t incr)
     return _sbrk_r(miosix::getReent(),incr);
 }
 
-bool _mallocLockWasLocked=false;
+static bool mallocLockWasLocked=false;
 
 /**
  * \internal
@@ -219,7 +219,7 @@ void __malloc_lock()
 {
     bool s=miosix::FastPauseKernelLock::inLockedSection();
     if(!s) miosix::FastPauseKernelLock::lock();
-    _mallocLockWasLocked=s;
+    mallocLockWasLocked=s;
 }
 
 /**
@@ -228,7 +228,7 @@ void __malloc_lock()
  */
 void __malloc_unlock()
 {
-    if(!_mallocLockWasLocked) miosix::FastPauseKernelLock::unlock();
+    if(!mallocLockWasLocked) miosix::FastPauseKernelLock::unlock();
 }
 
 /**
