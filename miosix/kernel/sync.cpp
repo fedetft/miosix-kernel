@@ -120,7 +120,7 @@ int FastMutex::unlock()
         Thread *t=first->thread;
         first=first->next;
         owner=t;
-        t->PKwakeup();
+        t->PKwakeup(); //Also sets pendingWakeup if higher priority thread woken
         return 0;
     }
     owner=nullptr;
@@ -175,6 +175,9 @@ inline unsigned int FastMutex::PKunlockAllDepthLevels()
         Thread *t=first->thread;
         first=first->next;
         owner=t;
+        //NOTE: unlike FastMutex::unlock() this function is only used to wait in
+        //condition variables, after this call the current thread is descheduled
+        //so it's irrelevant whether we woke a higher priority thread
         t->PKwakeup();
 
         if(recursiveDepth<0) return 0;
@@ -386,7 +389,7 @@ inline void Mutex::chooseNextOwner()
         //thread there, it would have been chosen as the owner
     } else {
         owner=nullptr; //No threads waiting
-        //Here we could either recalim some RAM (by uncommenting this line) or
+        //Here we could either reclaim some RAM (by uncommenting this line) or
         //boost performance since especially with periodic tasks locking mutexes
         //in the same pattern leaving the vector capacity allows the mutex to
         //reach a steady state where no more memory allocations occur
@@ -535,7 +538,7 @@ void ConditionVariable::signal()
     if(condList.empty()) return;
     Thread *t=condList.front()->thread;
     condList.pop_front();
-    t->PKwakeup();
+    t->PKwakeup(); //Also sets pendingWakeup if higher priority thread woken
     /*
      * A note on whether we should yield if waking a higher priority thread.
      * Doing a signal()/broadcast() is permitted either with the mutex locked
@@ -543,14 +546,9 @@ void ConditionVariable::signal()
      * woke up a higher priority thread causes a "bounce back" since the woken
      * thread will block trying to lock the mutex we're holding.
      * The issue is, within signal()/broadcast(), we don't know if we're being
-     * called with the mutex locked or not.
-     * We used to only yield in ConditionVariable and not in pthread_cond_singal
-     * as only the former can be used with priority inheritance mutexes, relying
-     * in the latter case on the higher priority thread being scheduled anyway
-     * at the end of the scheduling time quantum, but we changed this policy in
-     * Miosix 3 and yield always. Note that even though there's no explicit
-     * yield code, PKwakeup() is where it's hidden. This new behavior is better
-     * for real-time but does incur the bounce back penalty. Tradeoffs.
+     * called with the mutex locked or not. In Miosix 3 we always yield if a
+     * higher priority thread is awakened. This new behavior is better for
+     * real-time but does incur the bounce back penalty. Tradeoffs.
      */
 }
 
@@ -561,7 +559,7 @@ void ConditionVariable::broadcast()
     {
         Thread *t=condList.front()->thread;
         condList.pop_front();
-        t->PKwakeup();
+        t->PKwakeup(); //Also sets pendingWakeup if higher priority thread woken
     }
 }
 
