@@ -89,6 +89,10 @@ extern int deepSleepCounter; ///< Shared with lock.cpp
  * \internal
  * Idle thread. Created when the kernel is started, it physically deallocates
  * memory for deleted threads, and puts the cpu in sleep mode.
+ *
+ * \warning Code called from the idle thread must not use C library functions
+ * that require locking since the idle thread shares the same C reentrancy
+ * structure with main.
  */
 void *idleThreadCore0(void *)
 {
@@ -137,6 +141,11 @@ void *idleThreadCore0(void *)
 /**
  * \internal
  * Idle thread for cores other than the core 0, does even less
+ *
+ * \warning Code called from the idle thread must not use C library functions
+ * that require locking since the idle thread shares the same C reentrancy
+ * structure with main. This is not a problem as this idle thread at most
+ * calls the assembly instruction to sleep the CPU
  */
 void *idleThreadOtherCores(void *)
 {
