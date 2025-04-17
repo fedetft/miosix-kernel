@@ -271,17 +271,8 @@ int Mutex::unlock()
         return 0;
     }
 
-    bool loweredPriority=deInheritPriority();
+    deInheritPriority();
     chooseNextOwner();
-    //NOTE: there's no spurious yield possibility here as the only reason we
-    //lowered our priority is that it was inherited from one or more higher
-    //priority threads waiting on the mutex we were locking, the highest
-    //priority of which was woken up and made the new owner, if loweredPriority
-    // is true there is surely a higher priority thread to context switch to.
-    //We're in a PauseKernelLock, don't waste time calling the
-    //scheduler just for it to set pendingWakeup and bounce back, set it
-    //here.
-    if(loweredPriority) FastPauseKernelLock::pendingWakeup=true;
     return 0;
 }
 
@@ -330,9 +321,9 @@ unsigned int Mutex::PKunlockAllDepthLevels()
     Thread *cur=Thread::PKgetCurrentThread();
     if(owner!=cur) errorHandler(MUTEX_ERROR);
 
-    //NOTE: unlike in Mutex::unlock() there's no need to keep track of whether
-    //we need to preempt or not, as this function is only used to wait in
-    //condition variables, and after this call the current thread is descheduled
+    //NOTE: unlike Mutex::unlock() this function is only used to wait in
+    //condition variables, after this call the current thread is descheduled
+    //so it's irrelevant whether we woke a higher priority thread
     deInheritPriority();
     chooseNextOwner();
 
@@ -342,30 +333,16 @@ unsigned int Mutex::PKunlockAllDepthLevels()
     return result;
 }
 
-inline bool Mutex::deInheritPriority()
+inline void Mutex::deInheritPriority()
 {
-    bool loweredPriority=false; // True if priority of cur thread was lowered
     this->removeFromLockedList(owner);
-    if(lockedListEmpty(owner))
+    Priority pr=owner->savedPriority;
+    if(lockedListEmpty(owner)==false) pr=inheritPriorityFromLockedList(owner,pr);
+    if(pr!=owner->PKgetPriority())
     {
-        //Not locking any other mutex
-        if(owner->savedPriority!=owner->PKgetPriority())
-        {
-            loweredPriority=true;
-            FastGlobalIrqLock irqLock;
-            Scheduler::IRQsetPriority(owner,owner->savedPriority);
-        }
-    } else {
-        Priority pr=owner->savedPriority;
-        pr=inheritPriorityFromLockedList(owner,pr);
-        if(pr!=owner->PKgetPriority())
-        {
-            loweredPriority=true;
-            FastGlobalIrqLock irqLock;
-            Scheduler::IRQsetPriority(owner,pr);
-        }
+        FastGlobalIrqLock irqLock;
+        Scheduler::IRQsetPriority(owner,pr);
     }
-    return loweredPriority;
 }
 
 inline void Mutex::chooseNextOwner()
@@ -378,7 +355,7 @@ inline void Mutex::chooseNextOwner()
         waiting.pop_back();
         if(owner->mutexWaiting!=this) errorHandler(UNEXPECTED);
         owner->mutexWaiting=nullptr;
-        owner->PKwakeup();
+        owner->PKwakeup(); //Also sets pendingWakeup if higher priority thread woken
         if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
         this->addToLockedList(owner);
         //NOTE: since we always pick the highest priority waiting thread

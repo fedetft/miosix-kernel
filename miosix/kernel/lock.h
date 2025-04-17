@@ -514,9 +514,6 @@ private:
     /// The scheduler needs to set pendingWakeup if it is called within a
     /// pauseKernel.
     template<typename T> friend class basic_scheduler;
-    /// The Mutex class sets pendingWakeup to quickly trigger a reschedule
-    /// if the thread priorities changed. This is a performance optimization.
-    friend class Mutex;
     /// Thread wait primitives use irqDisabledFastLock() and
     /// irqDisabledFastUnlock().
     friend class Thread;

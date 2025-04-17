@@ -224,9 +224,8 @@ private:
      * First part of unlocking a mutex. Remove the mutex from the owner's list
      * of locked mutexes and reduce priority if the current priority was due to
      * having locked this mutex
-     * \return true if the current mutex owner priority was reduced
      */
-    inline bool deInheritPriority();
+    inline void deInheritPriority();
 
     /**
      * Second part of unlocking a mutex. Switch the current mutex owner with
