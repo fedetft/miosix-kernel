@@ -42,12 +42,6 @@ unsigned char GlobalIrqLock::holdingCore=0;
 unsigned char FastPauseKernelLock::holdingCore=0;
 bool FastPauseKernelLock::pendingWakeup=false;
 
-#ifdef WITH_DEEP_SLEEP
-///  This variable is used to keep count of how many peripherals are actually used.
-/// If it 0 then the system can enter the deep sleep state. Shared with thread.cpp
-int deepSleepCounter=0;
-#endif //WITH_DEEP_SLEEP
-
 void PauseKernelLock::lock()
 {
     FastPauseKernelLock::lock();
@@ -58,18 +52,20 @@ void PauseKernelLock::unlock()
     FastPauseKernelLock::unlock();
 }
 
+#ifdef WITH_DEEP_SLEEP
+/// This variable is used to keep count of how many peripherals are actually used.
+/// If it 0 then the system can enter the deep sleep state. Shared with thread.cpp
+int deepSleepCounter=0;
+
 void deepSleepLock() noexcept
 {
-    #ifdef WITH_DEEP_SLEEP
     atomicAdd(&deepSleepCounter,1);
-    #endif //WITH_DEEP_SLEEP
 }
 
 void deepSleepUnlock() noexcept
 {
-    #ifdef WITH_DEEP_SLEEP
     atomicAdd(&deepSleepCounter,-1);
-    #endif //WITH_DEEP_SLEEP
 }
+#endif //WITH_DEEP_SLEEP
 
 } //namespace miosix

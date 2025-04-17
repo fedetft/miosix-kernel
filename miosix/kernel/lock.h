@@ -619,14 +619,22 @@ using PauseKernelUnlock = UnlockBase<PauseKernelLock>;
  * simultaneously. If N calls to deepSleepLock() are made, then N calls to
  * deepSleepUnlock() need to be made before deep sleep is enabled back.
  */
+#ifdef WITH_DEEP_SLEEP
 void deepSleepLock() noexcept;
+#else //WITH_DEEP_SLEEP
+inline void deepSleepLock() noexcept {} //Nothing to do
+#endif //WITH_DEEP_SLEEP
 
 /**
  * Used to signal the scheduler that a critical section where deep sleep should
  * not be entered has completed. If N calls to deepSleepLock() are made, then N
  * calls to deepSleepUnlock() need to be made before deep sleep is enabled back.
  */
+#ifdef WITH_DEEP_SLEEP
 void deepSleepUnlock() noexcept;
+#else //WITH_DEEP_SLEEP
+inline void deepSleepUnlock() noexcept {} //Nothing to do
+#endif //WITH_DEEP_SLEEP
 
 /**
  * This class is a RAII lock for temporarily prevent entering deep sleep.
