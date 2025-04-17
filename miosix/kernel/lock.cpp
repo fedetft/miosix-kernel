@@ -44,8 +44,8 @@ bool FastPauseKernelLock::pendingWakeup=false;
 
 #ifdef WITH_DEEP_SLEEP
 ///  This variable is used to keep count of how many peripherals are actually used.
-/// If it 0 then the system can enter the deep sleep state
-static int deepSleepCounter=0;
+/// If it 0 then the system can enter the deep sleep state. Shared with thread.cpp
+int deepSleepCounter=0;
 #endif //WITH_DEEP_SLEEP
 
 void PauseKernelLock::lock()

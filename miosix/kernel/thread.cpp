@@ -65,7 +65,7 @@ volatile unsigned int *ctxsave[miosix::CPU_NUM_CORES];
 namespace miosix {
 
 //Global variables used by thread.cpp. Those that are not static are also used
-//in portability.cpp, lock.cpp and by the schedulers.
+//in lock.cpp and by the schedulers.
 //These variables MUST NOT be used outside of those files
 
 ///\internal Threads currently running on all CPU cores
@@ -80,6 +80,10 @@ IntrusiveList<SleepData> sleepingList;///list of sleeping threads
 /// The proc field of the Thread class for kernel threads points to this object
 static ProcessBase *kernel=nullptr;
 #endif //WITH_PROCESSES
+
+#ifdef WITH_DEEP_SLEEP
+extern int deepSleepCounter; ///< Shared with lock.cpp
+#endif //WITH_DEEP_SLEEP
 
 /**
  * \internal
