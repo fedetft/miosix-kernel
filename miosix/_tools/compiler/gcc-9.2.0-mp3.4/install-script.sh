@@ -22,7 +22,7 @@
 
 #### Configuration tunables -- begin ####
 
-__GCCPATCUR='mp3.4' # Can't autodetect this one easily from gcc.patch
+__GCCPATCUR='3.4' # Can't autodetect this one easily from gcc.patch
 
 # Uncomment if installing globally on this system
 PREFIX=/opt/arm-miosix-eabi
@@ -131,11 +131,11 @@ if [[ $DESTDIR ]]; then
 		 	$m=$1 if(/_MIOSIX_GCC_PATCH_MINOR (\d+)/);
 		 }
 		 print "mp$M.$m";'`;
-	if [[ ($__GCCVER != $GCC) || ($__GCCPAT != $__GCCPATCUR) ]]; then
-		quit ":: Error must first install $GCC$__GCCPATCUR system-wide"
+	if [[ ($__GCCVER != $GCC) || ($__GCCPAT != "mp${__GCCPATCUR}") ]]; then
+		quit ":: Error must first install ${GCC}mp${__GCCPATCUR} system-wide"
 	fi
 	if [[ ! -e $PREFIX/bin/arm-miosix-eabi-gcc ]]; then
-		quit ":: Error To use \$DESTDIR you must first install $GCC$__GCCPATCUR in the same prefix"
+		quit ":: Error To use \$DESTDIR you must first install ${GCC}mp${__GCCPATCUR} in the same prefix"
 	fi
 else
 	if [[ $HOST || $BUILD ]]; then
@@ -709,19 +709,20 @@ if [[ $DESTDIR ]]; then
 		        distr_script='installers/macos/Distribution_ARM.xml'
 		        suffix='ARM'
 		fi
+		
 		pkgbuild \
-			--identifier 'org.miosix.toolchain.gcc-9.2.0-mp3.4' \
-			--version '9.2.0.3.4' \
+			--identifier 'org.miosix.toolchain.gcc-9.2.0' \
+			--version "9.2.0.${__GCCPATCUR}" \
 			--min-os-version ${min_osx_ver} \
 			--install-location / \
 			--scripts installers/macos/Scripts \
 			--root $DESTDIR \
-			'gcc-9.2.0-mp3.4.pkg'
+			"gcc-9.2.0-mp${__GCCPATCUR}.pkg"
 		productbuild \
 			--distribution ${distr_script} \
 			--resources installers/macos/Resources \
 			--package-path ./ \
-			"./MiosixToolchainInstaller9.2.0mp3.4_${suffix}.pkg"
+			"./MiosixToolchainInstaller9.2.0mp${__GCCPATCUR}_${suffix}.pkg"
 	fi
 else
 	# Install the uninstaller too
