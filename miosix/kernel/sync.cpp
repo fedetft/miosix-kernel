@@ -262,8 +262,8 @@ bool Mutex::tryLock()
 int Mutex::unlock()
 {
     PauseKernelLock dLock;
-    Thread *cur=Thread::PKgetCurrentThread();
-    if(owner!=cur) errorHandler(MUTEX_ERROR);
+//    Safety check removed for speed reasons
+//    if(owner!=Thread::PKgetCurrentThread()) errorHandler(MUTEX_ERROR);
 
     if(recursiveDepth>0)
     {
@@ -318,8 +318,8 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
 
 unsigned int Mutex::PKunlockAllDepthLevels()
 {
-    Thread *cur=Thread::PKgetCurrentThread();
-    if(owner!=cur) errorHandler(MUTEX_ERROR);
+//    Safety check removed for speed reasons
+//    if(owner!=Thread::PKgetCurrentThread()) errorHandler(MUTEX_ERROR);
 
     //NOTE: unlike Mutex::unlock() this function is only used to wait in
     //condition variables, after this call the current thread is descheduled
