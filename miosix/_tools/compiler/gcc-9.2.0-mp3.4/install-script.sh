@@ -381,6 +381,7 @@ $SUDO ../$GCC/configure \
 	--disable-wchar_t \
 	--with-newlib \
 	${__GCC_CONF_HEADERS_PARAM} \
+	--with-pkgversion="GCC_mp${__GCCPATCUR}" \
 	2>../log/d.txt							|| quit ":: Error configuring gcc-start"
 
 $SUDO make all-gcc $PARALLEL 2>../log/e.txt || quit ":: Error compiling gcc-start"
