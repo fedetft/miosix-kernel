@@ -484,7 +484,7 @@ public:
      * otherwise the behaviour is undefined.
      * \param m a locked Mutex
      * \param absTime absolute timeout time in nanoseconds
-     * \return whether the return was due to a timout or wakeup
+     * \return whether the return was due to a timeout or wakeup
      */
     TimedWaitResult timedWait(Mutex& m, long long absTime);
 
@@ -494,13 +494,13 @@ public:
      * otherwise the behaviour is undefined.
      * \param m a locked FastMutex
      * \param absTime absolute timeout time in nanoseconds
-     * \return whether the return was due to a timout or wakeup
+     * \return whether the return was due to a timeout or wakeup
      */
     TimedWaitResult timedWait(FastMutex& m, long long absTime);
 
     /**
-     * Wakeup one waiting thread.
-     * Currently implemented policy is fifo.
+     * Wakeup one waiting thread, chosen based on a wakeup policy that can be
+     * chosen at compile time in miosix_settings.h
      */
     void signal();
 
@@ -508,6 +508,19 @@ public:
      * Wakeup all waiting threads.
      */
     void broadcast();
+
+    /**
+     * \internal
+     * \return true if no thread is waiting on the condition variable
+     */
+    bool isEmpty() const;
+
+    #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
+    /**
+     * Destructor
+     */
+    ~ConditionVariable();
+    #endif
 
     //Unwanted methods
     ConditionVariable(const ConditionVariable&) = delete;
@@ -520,14 +533,27 @@ private:
     class WaitToken : public IntrusiveListItem
     {
     public:
-        WaitToken(Thread *thread) : thread(thread) {}
-        Thread *thread; ///<\internal Waiting thread
+        WaitToken(Thread *t) : t(t) {}
+        Thread *t; ///<\internal Waiting thread
     };
 
-    friend int ::pthread_cond_destroy(pthread_cond_t *);   //Needs condList
+    /**
+     * Add the current thread to the queue of waiting threads
+     * \param item WaitToken intrusive list item
+     */
+    inline void addToWaitQueue(WaitToken *item);
 
-    //Memory layout must be kept in sync with pthread_cond, see pthread.cpp
+    /**
+     * Remove the current thread to the queue of waiting threads
+     * \param item WaitToken intrusive list item
+     */
+    inline void removeFromWaitQueue(WaitToken *item);
+
+    #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
+    IntrusiveList<WaitToken> *condLists=nullptr; //Array of lists
+    #else
     IntrusiveList<WaitToken> condList;
+    #endif
 };
 
 /**

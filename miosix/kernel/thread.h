@@ -950,11 +950,12 @@ private:
     //Thread data
     SchedulerData schedData; ///< Scheduler data, only used by class Scheduler
     ThreadFlags flags;///< thread status
-    ///Saved priority. When not locking any Mutex, must be equal to the actual
-    ///priority as seen by the scheduler, see ConditionVariable.
+    ///Saved priority.
     ///When mutexLocked!=nullptr it stores the value of priority that this
     ///thread will have when it unlocks all mutexes. This is because when a
     ///thread locks a mutex its priority can change due to priority inheritance.
+    ///When not locking any Mutex,may need to be kept equal to the actual
+    ///priority, see ConditionVariable.
     Priority savedPriority;
     ///List of mutexes locked by this thread
     Mutex *mutexLocked;
@@ -998,8 +999,10 @@ private:
     friend void IRQwakeThreads(long long);
     //Needs to create the idle thread
     friend void IRQstartKernel();
-    //Needs access to priority, savedPriority, mutexLocked and flags.
+    //Needs access to savedPriority, mutexLocked and flags.
     friend class Mutex;
+    //Needs access to savedPriority
+    friend class ConditionVariable;
     //Needs access to flags, schedData
     friend class PriorityScheduler;
     //Needs access to flags, schedData

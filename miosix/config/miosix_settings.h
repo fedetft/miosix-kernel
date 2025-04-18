@@ -288,6 +288,14 @@ constexpr auto pthreadMutexProtocolOverride=PthreadMutexProtocol::DYNAMIC;
 /// higher overhead
 #define KERNEL_USE_PRIORITY_INHERITANCE_MUTEX 0
 
+/// For priority scheduler: if set when multiple threads are waiting on a
+/// condition variable, the higher priority ones are awakened first, threads
+/// with the same priority are awakened in fifo order. If not defined, threads
+/// are awakened in strict fifo order regardless of their priority
+/// For EDF scheduler: this option has no effect, multiple threads waiting on a
+/// condition variable are always awakened in earliest deadline order
+#define CONDVAR_WAKEUP_BY_PRIORITY
+
 /// pthread_exit() is a dangerous function. To understand why, let's first
 /// discuss how Linux implements it. On the surface, it looks like it neatly
 /// works with C++ as it is implemented by throwing a special ForcedUnwind

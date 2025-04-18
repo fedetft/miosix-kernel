@@ -342,7 +342,7 @@ int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
 int pthread_cond_destroy(pthread_cond_t *cond)
 {
     auto *impl=reinterpret_cast<ConditionVariable*>(cond);
-    if(!impl->condList.empty()) return EBUSY;
+    if(!impl->isEmpty()) return EBUSY;
     impl->~ConditionVariable(); //Call destructor manually
     return 0;
 }
