@@ -709,19 +709,24 @@ if [[ $DESTDIR ]]; then
 		#   DeveloperTools/Reference/DistributionDefinitionRef/Chapters/
 		#   Introduction.html#//apple_ref/doc/uid/TP40005370-CH1-SW1
 		# Also see `man productbuild` and `man pkgbuild`.
-		min_osx_ver='10.13'
 		distr_script='installers/macos/Distribution_Intel.xml'
 		suffix='Intel'
 		if [[ $BUILD == aarch64* ]]; then
-		        min_osx_ver='11.0'
-		        distr_script='installers/macos/Distribution_ARM.xml'
-		        suffix='ARM'
+		  distr_script='installers/macos/Distribution_ARM.xml'
+		  suffix='ARM'
+		fi
+		# Detect selected minimum OS version from $CFLAGS
+		min_os_ver=$(echo "$CFLAGS" | sed -E 's/.*-mmacos-version-min=([^ ]+).*/\1/g')
+		if [[ -z "${min_os_ver}" ]]; then
+		  # Not specified in $CFLAGS: use the OS version associated to the SDK
+		  # we are using
+		  min_os_ver="$(xcrun --show-sdk-version)"
 		fi
 		
 		pkgbuild \
 			--identifier 'org.miosix.toolchain.gcc' \
 			--version "9.2.0.${__GCCPATCUR}" \
-			--min-os-version ${min_osx_ver} \
+			--min-os-version "${min_os_ver}" \
 			--install-location / \
 			--scripts installers/macos/Scripts \
 			--root $DESTDIR \
