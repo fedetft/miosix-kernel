@@ -478,7 +478,14 @@ cd ..
 # will result in a link-time failure to find the libraries, hinting that
 # something is wrong.
 
-find "$DESTDIR$PREFIX/arm-miosix-eabi/lib" -mindepth 1 ! -path '*/arm/*' ! -path '*/thumb/*' -print -delete
+echo "::Deleting root multilibs"
+$SUDO rm "$DESTDIR$PREFIX/arm-miosix-eabi/lib"/*.specs
+$SUDO rm "$DESTDIR$PREFIX/arm-miosix-eabi/lib"/*.o
+$SUDO rm "$DESTDIR$PREFIX/arm-miosix-eabi/lib"/*.a
+$SUDO rm "$DESTDIR$PREFIX/arm-miosix-eabi/lib"/*.ld
+$SUDO rm -rf "$DESTDIR$PREFIX/arm-miosix-eabi/lib/cpu-init"
+$SUDO rm "$DESTDIR$PREFIX/lib/gcc/arm-miosix-eabi/9.2.0"/*.o
+$SUDO rm "$DESTDIR$PREFIX/lib/gcc/arm-miosix-eabi/9.2.0"/*.a
 
 # 8B: check that all multilibs have been built.
 # This check has been added after an attempt to build arm-miosix-eabi-gcc on Fedora
