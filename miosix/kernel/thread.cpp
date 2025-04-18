@@ -249,14 +249,9 @@ void IRQstartKernel()
  */
 static void IRQaddToSleepingList(SleepData *x)
 {
-    if(sleepingList.empty() || sleepingList.front()->wakeupTime>=x->wakeupTime)
-    {
-        sleepingList.push_front(x);
-    } else {
-        auto it=sleepingList.begin();
-        while(it!=sleepingList.end() && (*it)->wakeupTime<x->wakeupTime) ++it;
-        sleepingList.insert(it,x);
-    }
+    auto it=sleepingList.begin();
+    while(it!=sleepingList.end() && (*it)->wakeupTime<x->wakeupTime) ++it;
+    sleepingList.insert(it,x);
 }
 
 /**
