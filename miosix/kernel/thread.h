@@ -950,10 +950,11 @@ private:
     //Thread data
     SchedulerData schedData; ///< Scheduler data, only used by class Scheduler
     ThreadFlags flags;///< thread status
-    ///Saved priority. Its value is relevant only if mutexLockedCount>0; it
-    ///stores the value of priority that this thread will have when it unlocks
-    ///all mutexes. This is because when a thread locks a mutex its priority
-    ///can change due to priority inheritance.
+    ///Saved priority. When not locking any Mutex, must be equal to the actual
+    ///priority as seen by the scheduler, see ConditionVariable.
+    ///When mutexLocked!=nullptr it stores the value of priority that this
+    ///thread will have when it unlocks all mutexes. This is because when a
+    ///thread locks a mutex its priority can change due to priority inheritance.
     Priority savedPriority;
     ///List of mutexes locked by this thread
     Mutex *mutexLocked;

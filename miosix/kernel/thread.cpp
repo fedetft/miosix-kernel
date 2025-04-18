@@ -572,6 +572,8 @@ void Thread::setPriority(Priority pr)
     Priority oldActualPrio=cur->PKgetPriority();
     if(pr==oldActualPrio) return;
     {
+        //If not locking any mutex priority and savedPriority must be the same
+        if(cur->mutexLocked==nullptr) cur->savedPriority=pr;
         FastGlobalIrqLock irqLock;
         Scheduler::IRQsetPriority(cur,pr);
         //We're also in a PauseKernelLock, don't waste time calling the
