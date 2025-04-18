@@ -712,13 +712,13 @@ if [[ $DESTDIR ]]; then
 		fi
 		
 		pkgbuild \
-			--identifier 'org.miosix.toolchain.gcc-9.2.0' \
+			--identifier 'org.miosix.toolchain.gcc' \
 			--version "9.2.0.${__GCCPATCUR}" \
 			--min-os-version ${min_osx_ver} \
 			--install-location / \
 			--scripts installers/macos/Scripts \
 			--root $DESTDIR \
-			"gcc-9.2.0-mp${__GCCPATCUR}.pkg"
+			"gcc.pkg"
 		productbuild \
 			--distribution ${distr_script} \
 			--resources installers/macos/Resources \
