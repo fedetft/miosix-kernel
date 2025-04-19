@@ -41,6 +41,7 @@
 #include "pthread_private.h"
 #include "stdlib_integration/libc_integration.h"
 
+using namespace std;
 using namespace miosix;
 
 //
@@ -64,15 +65,10 @@ int pthread_create(pthread_t *pthread, const pthread_attr_t *attr,
     Priority priority=DEFAULT_PRIORITY;
     if(attr!=NULL)
     {
-        if(attr->detachstate==PTHREAD_CREATE_DETACHED)
-            opt=Thread::DEFAULT;
+        if(attr->detachstate==PTHREAD_CREATE_DETACHED) opt=Thread::DEFAULT;
         stacksize=attr->stacksize;
         #ifndef SCHED_TYPE_EDF
-        // Cap priority value in the range between 0 and NUM_PRIORITIES-1
-        int prio=std::min(std::max(0,attr->schedparam.sched_priority),
-                          NUM_PRIORITIES-1);
-        // Swap unix-based priority back to the miosix one.
-        priority=(NUM_PRIORITIES-1)-prio;
+        priority=max(0,min(NUM_PRIORITIES-1,attr->schedparam.sched_priority));
         #endif //SCHED_TYPE_EDF
     }
     Thread *result=Thread::create(start,stacksize,priority,arg,opt);
@@ -111,9 +107,8 @@ int pthread_attr_init(pthread_attr_t *attr)
     //We only use three fields of pthread_attr_t so initialize only these
     attr->detachstate=PTHREAD_CREATE_JOINABLE;
     attr->stacksize=STACK_DEFAULT_FOR_PTHREAD;
-    //Default priority level is one above minimum.
     #ifndef SCHED_TYPE_EDF
-    attr->schedparam.sched_priority=NUM_PRIORITIES-1-DEFAULT_PRIORITY;
+    attr->schedparam.sched_priority=DEFAULT_PRIORITY;
     #endif //SCHED_TYPE_EDF
     return 0;
 }
@@ -168,18 +163,14 @@ int pthread_attr_setschedparam(pthread_attr_t *attr,
 int sched_get_priority_max(int policy)
 {
     (void)policy;
-
-    // Unix-like thread priorities: max priority is zero.
-    return 0;
+    // The value for NUM_PRIORITIES is configured in miosix_settings.h
+    return NUM_PRIORITIES - 1;
 }
 
 int sched_get_priority_min(int policy)
 {
     (void)policy;
-
-    // Unix-like thread priorities: min priority is a value above zero.
-    // The value for NUM_PRIORITIES is configured in miosix_settings.h
-    return NUM_PRIORITIES - 1;
+    return 0;
 }
 #endif //SCHED_TYPE_EDF
 
