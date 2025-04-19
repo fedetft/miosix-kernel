@@ -239,7 +239,7 @@ void startSensingChain()
     statsT=Thread::create(statsThread,4096,1,0,Thread::JOINABLE);
     writeT=Thread::create(writeThread,4096,1,0,Thread::JOINABLE);
     packT= Thread::create(packThread, 4096,1,0,Thread::JOINABLE);
-    senseT=Thread::create(senseThread,4096,PRIORITY_MAX-1,0,Thread::JOINABLE);
+    senseT=Thread::create(senseThread,4096,NUM_PRIORITIES-1,0,Thread::JOINABLE);
     if(statsT==0 || writeT==0 || packT==0 || senseT==0)
         printf("Error: thread creation failure\n");
 }

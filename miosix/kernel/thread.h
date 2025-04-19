@@ -119,8 +119,8 @@ public:
      * STACK_MIN.
      * The size of the stack must be divisible by 4, otherwise it will be
      * rounded to a number divisible by 4.
-     * \param priority the thread's priority, between 0 (lower) and
-     * PRIORITY_MAX-1 (higher)
+     * \param priority the thread's priority, whose range depends on the
+     * selected scheduler, see miosix_settings.h
      * \param argv a void* pointer that is passed as pararmeter to the entry
      * point function
      * \param options thread options, such ad Thread::JOINABLE
@@ -140,8 +140,8 @@ public:
      * STACK_MIN.
      * The size of the stack must be divisible by 4, otherwise it will be
      * rounded to a number divisible by 4.
-     * \param priority the thread's priority, between 0 (lower) and
-     * PRIORITY_MAX-1 (higher)
+     * \param priority the thread's priority, whose range depends on the
+     * selected scheduler, see miosix_settings.h
      * \param argv a void* pointer that is passed as pararmeter to the entry
      * point function
      * \param options thread options, such ad Thread::JOINABLE
@@ -527,9 +527,8 @@ public:
      * This member function changed from previous Miosix versions since it is
      * now static. This implies a thread can no longer set the priority of
      * another thread.
-     * \param pr desired priority. Must be 0<=pr<PRIORITY_MAX
-     *
-     * Can be called when the kernel is paused.
+     * \param priority the thread's priority, whose range depends on the
+     * selected scheduler, see miosix_settings.h
      */
     static void setPriority(Priority pr);
 

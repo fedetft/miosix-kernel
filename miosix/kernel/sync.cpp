@@ -525,7 +525,7 @@ void ConditionVariable::signal()
     FastPauseKernelLock dLock;
     #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
     if(condLists==nullptr) return;
-    for(int i=PRIORITY_MAX-1;i>=0;i--)
+    for(int i=NUM_PRIORITIES-1;i>=0;i--)
     {
         if(condLists[i].empty()) continue;
         //Also sets pendingWakeup if higher priority thread woken
@@ -546,7 +546,7 @@ void ConditionVariable::broadcast()
     FastPauseKernelLock dLock;
     #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
     if(condLists==nullptr) return;
-    for(int i=PRIORITY_MAX-1;i>=0;i--)
+    for(int i=NUM_PRIORITIES-1;i>=0;i--)
     {
         while(!condLists[i].empty())
         {
@@ -569,7 +569,7 @@ bool ConditionVariable::isEmpty() const
 {
     #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
     if(condLists==nullptr) return true;
-    for(int i=PRIORITY_MAX-1;i>=0;i--) if(condLists[i].empty()==false) return false;
+    for(int i=NUM_PRIORITIES-1;i>=0;i--) if(condLists[i].empty()==false) return false;
     return true;
     #else
     return condList.empty();
@@ -661,7 +661,7 @@ inline void ConditionVariable::addToWaitQueue(WaitToken *item)
      *   kernel code.
      */
     if(item->t->savedPriority<0) errorHandler(UNEXPECTED); //Idle can't wait
-    if(condLists==nullptr) condLists=new IntrusiveList<WaitToken>[PRIORITY_MAX];
+    if(condLists==nullptr) condLists=new IntrusiveList<WaitToken>[NUM_PRIORITIES];
     condLists[item->t->savedPriority.get()].push_back(item);
     #else
     condList.push_back(item); //fallback is simple fifo policy

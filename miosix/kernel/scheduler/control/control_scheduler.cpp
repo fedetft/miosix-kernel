@@ -293,8 +293,8 @@ void ControlScheduler::IRQwaitStatusHook(Thread* t)
 void ControlScheduler::IRQrecalculateAlfa()
 {
     //Sum of all priorities of all threads
-    //Note that since priority goes from 0 to PRIORITY_MAX-1
-    //but priorities we need go from 1 to PRIORITY_MAX we need to add one
+    //Note that since priority goes from 0 to NUM_PRIORITIES-1
+    //but priorities we need go from 1 to NUM_PRIORITIES we need to add one
     unsigned int sumPriority=0;
     for(Thread *it=threadList;it!=nullptr;it=it->schedData.next)
     {
@@ -709,8 +709,8 @@ void ControlScheduler::IRQwaitStatusHook(Thread* t)
 void ControlScheduler::IRQrecalculateAlfa()
 {
     //Sum of all priorities of all threads
-    //Note that since priority goes from 0 to PRIORITY_MAX-1
-    //but priorities we need go from 1 to PRIORITY_MAX we need to add one
+    //Note that since priority goes from 0 to NUM_PRIORITIES-1
+    //but priorities we need go from 1 to NUM_PRIORITIES we need to add one
     unsigned int sumPriority=0;
     for(auto it=activeThreads.begin();it!=activeThreads.end();++it)
     {

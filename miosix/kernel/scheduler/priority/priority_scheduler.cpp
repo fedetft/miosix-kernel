@@ -66,7 +66,7 @@ bool PriorityScheduler::IRQexists(Thread *thread)
 {
     for(int i=0;i<CPU_NUM_CORES;i++)
         if(runningThreads[i]==thread) return !thread->flags.isDeleted();
-    for(int i=PRIORITY_MAX-1;i>=0;i--)
+    for(int i=NUM_PRIORITIES-1;i>=0;i--)
         for(auto t : readyThreads[i]) if(t==thread) return true;
     for(auto t : notReadyThreads) if(t==thread) return !thread->flags.isDeleted();
     return false;
@@ -164,7 +164,7 @@ inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
         else if(prev->flags.isReady()==false) notReadyThreads.push_front(prev);
         else readyThreads[prev->schedData.priority.get()].push_back(prev);
     }
-    for(int i=PRIORITY_MAX-1;i>=0;i--)
+    for(int i=NUM_PRIORITIES-1;i>=0;i--)
     {
         if(readyThreads[i].empty()) continue;
         Thread *t=readyThreads[i].front();
@@ -270,7 +270,7 @@ long long PriorityScheduler::IRQcomputePreemption(int coreId, bool runningIdleTh
 }
 
 long long PriorityScheduler::nextPreemptionWakeupCore=numeric_limits<long long>::max();
-IntrusiveList<Thread> PriorityScheduler::readyThreads[PRIORITY_MAX];
+IntrusiveList<Thread> PriorityScheduler::readyThreads[NUM_PRIORITIES];
 IntrusiveList<Thread> PriorityScheduler::notReadyThreads;
 Thread *PriorityScheduler::idle[CPU_NUM_CORES]={nullptr};
 

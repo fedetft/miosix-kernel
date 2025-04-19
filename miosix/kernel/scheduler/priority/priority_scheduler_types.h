@@ -38,8 +38,8 @@ class Thread; //Forward declaration
 /**
  * This class models the concept of priority for the priority scheduler.
  * In this scheduler the priority is simply a signed char with values ranging
- * from 0 to PRIORITY_MAX-1, higher values mean higher priority, and the special
- * value -1 reserved for the idle thread.
+ * from 0 to NUM_PRIORITIES-1, higher values mean higher priority, and the
+ * special value -1 reserved for the idle thread.
  */
 class PrioritySchedulerPriority
 {
@@ -67,7 +67,7 @@ public:
      */
     bool validate() const
     {
-        return this->priority>=0 && this->priority<PRIORITY_MAX;
+        return this->priority>=0 && this->priority<NUM_PRIORITIES;
     }
     
     /**

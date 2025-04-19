@@ -68,11 +68,11 @@ int pthread_create(pthread_t *pthread, const pthread_attr_t *attr,
             opt=Thread::DEFAULT;
         stacksize=attr->stacksize;
         #ifndef SCHED_TYPE_EDF
-        // Cap priority value in the range between 0 and PRIORITY_MAX-1
+        // Cap priority value in the range between 0 and NUM_PRIORITIES-1
         int prio=std::min(std::max(0,attr->schedparam.sched_priority),
-                          PRIORITY_MAX-1);
+                          NUM_PRIORITIES-1);
         // Swap unix-based priority back to the miosix one.
-        priority=(PRIORITY_MAX-1)-prio;
+        priority=(NUM_PRIORITIES-1)-prio;
         #endif //SCHED_TYPE_EDF
     }
     Thread *result=Thread::create(start,stacksize,priority,arg,opt);
@@ -113,7 +113,7 @@ int pthread_attr_init(pthread_attr_t *attr)
     attr->stacksize=STACK_DEFAULT_FOR_PTHREAD;
     //Default priority level is one above minimum.
     #ifndef SCHED_TYPE_EDF
-    attr->schedparam.sched_priority=PRIORITY_MAX-1-MAIN_PRIORITY;
+    attr->schedparam.sched_priority=NUM_PRIORITIES-1-MAIN_PRIORITY;
     #endif //SCHED_TYPE_EDF
     return 0;
 }
@@ -178,8 +178,8 @@ int sched_get_priority_min(int policy)
     (void)policy;
 
     // Unix-like thread priorities: min priority is a value above zero.
-    // The value for PRIORITY_MAX is configured in miosix_settings.h
-    return PRIORITY_MAX - 1;
+    // The value for NUM_PRIORITIES is configured in miosix_settings.h
+    return NUM_PRIORITIES - 1;
 }
 #endif //SCHED_TYPE_EDF
 

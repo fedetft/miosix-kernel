@@ -71,7 +71,7 @@ int main()
 {
     puts("Type enter to start logger demo");
     getchar();
-    auto t=Thread::create(loggerDemo,2048,PRIORITY_MAX-1,nullptr,Thread::JOINABLE);
+    auto t=Thread::create(loggerDemo,2048,NUM_PRIORITIES-1,nullptr,Thread::JOINABLE);
     puts("Type enter to stop logger demo");
     getchar();
     stop=true;

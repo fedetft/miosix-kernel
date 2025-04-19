@@ -226,26 +226,36 @@ static_assert(SYSTEM_MODE_PROCESS_STACK_SIZE>=STACK_MIN,"");
 
 // The meaning of a thread's priority depends on the chosen scheduler.
 #ifdef SCHED_TYPE_PRIORITY
-/// The constant PRIORITY_MAX defines the number of priorities (MUST be >1)
-/// PRIORITY_MAX-1 is the highest priority, 0 is the lowest. -1 is reserved as
+/// The constant NUM_PRIORITIES defines the number of priorities (MUST be >=1)
+/// NUM_PRIORITIES-1 is the highest priority, 0 is the lowest. -1 is reserved as
 /// the priority of the idle thread.
 /// Can be modified, but a high value makes context switches more expensive
-const signed char PRIORITY_MAX=4;
-/// Priority of main()
+/// If set to 1, the scheduler becomes a pure round robin without priorities
+const signed char NUM_PRIORITIES=4;
+/// Default priority. Priority of main() and threads created with PTHREAD/C++11
 const signed char MAIN_PRIORITY=1;
+static_assert(MAIN_PRIORITY>=0 && MAIN_PRIORITY<NUM_PRIORITIES,"");
 #elif defined(SCHED_TYPE_CONTROL_BASED)
-/// The constant PRIORITY_MAX defines the number of priorities (MUST be >1)
-/// PRIORITY_MAX-1 is the highest priority, 0 is the lowest. -1 is reserved as
+/// The constant NUM_PRIORITIES defines the number of priorities (MUST be >=1)
+/// NUM_PRIORITIES-1 is the highest priority, 0 is the lowest. -1 is reserved as
 /// the priority of the idle thread.
 /// Don't change this value, the limit is due to the fixed point implementation
 /// It's not needed for if floating point is selected, but kept for consistency
-const short int PRIORITY_MAX=64;
-/// Priority of main()
+const short int NUM_PRIORITIES=64;
+/// Default priority. Priority of main() and threads created with PTHREAD/C++11
 const short int MAIN_PRIORITY=1;
+static_assert(MAIN_PRIORITY>=0 && MAIN_PRIORITY<NUM_PRIORITIES,"");
 #else //SCHED_TYPE_EDF
 /// The EDF scheduler redefines priorities as the thread absolute deadline.
 /// Additionally, the constant MAIN_PRIORITY is the default priority value for
-/// main() and all non-real-time tasks, which are scheduled using round-robin
+/// main() and threads created with PTHREAD/C++11. This priority level
+/// corrsponds to non real-time threads, which are scheduled using round-robin.
+/// A thread can, at any moment, set its own priority to an absolute deadline
+/// time and in this case it is scheduled using EDF. From there, it can either
+/// keep setting a new absolute deadline in the future, or return to the non
+/// real-time level by using the MAIN_PRIORITY to be scheduled again using
+/// round robin. Ready tasks with a deadline will always preempt non real-time
+/// taks whose priority is MAIN_PRIORITY
 const long long MAIN_PRIORITY=std::numeric_limits<long long>::max()-2;
 #endif
 

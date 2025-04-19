@@ -68,8 +68,8 @@ enum class ControlRealtimePriority : unsigned char
 /**
  * This class models the concept of priority for the control based scheduler.
  * In this scheduler the priority is simply a short int with values ranging
- * from 0 to PRIORITY_MAX-1, higher values mean higher priority, and the special
- * value -1 reserved for the idle thread.
+ * from 0 to NUM_PRIORITIES-1, higher values mean higher priority, and the
+ * special value -1 reserved for the idle thread.
  * Higher values of priority mean that the scheduler assigns a larger fraction
  * of the round time to the thread.
  */
@@ -113,7 +113,7 @@ public:
      */
     bool validate() const
     {
-        return priority>=0 && priority<PRIORITY_MAX &&
+        return priority>=0 && priority<NUM_PRIORITIES &&
                static_cast<unsigned char>(realtime)<3;
     }
     

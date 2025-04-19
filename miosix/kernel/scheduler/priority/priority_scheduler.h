@@ -182,7 +182,7 @@ private:
 
     ///\internal Vector of lists of threads, there's one list for each priority
     ///Each list s a circular list.
-    static IntrusiveList<Thread> readyThreads[PRIORITY_MAX];
+    static IntrusiveList<Thread> readyThreads[NUM_PRIORITIES];
     ///\internal List of threads that are not ready.
     ///Keep the invariant that deleted threads are pushed to the back!
     static IntrusiveList<Thread> notReadyThreads;
