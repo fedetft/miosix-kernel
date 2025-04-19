@@ -150,10 +150,10 @@ void *mainLoader(void *argv)
     
     //Run application code
     #ifdef __NO_EXCEPTIONS
-    main(0,NULL);
+    main(0,nullptr);
     #else //__NO_EXCEPTIONS
     try {
-        main(0,NULL);
+        main(0,nullptr);
     #ifdef WITH_PTHREAD_EXIT
     } catch(PthreadExitException&) {
         errorLog("***Attempting to pthread_exit from main\n");

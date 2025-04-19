@@ -1176,7 +1176,7 @@ clock_t _times_r(struct _reent *ptr, struct tms *tim)
     //huge number (100 for Miosix's implementation).
     //To solve the ambiguity Miosix never returns 0xffffffff except in case of
     //error. If tim.utime happens to be 0xffffffff, _times_r returns 0 instead.
-    //We also implement the Linux extension where tim can be NULL.
+    //We also implement the Linux extension where tim can be nullptr.
     if(tim!=nullptr)
     {
         tim->tms_utime=utime;

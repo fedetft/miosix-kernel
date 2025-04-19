@@ -63,7 +63,7 @@ int pthread_create(pthread_t *pthread, const pthread_attr_t *attr,
     Thread::Options opt=Thread::JOINABLE;
     unsigned int stacksize=STACK_DEFAULT_FOR_PTHREAD;
     Priority priority=DEFAULT_PRIORITY;
-    if(attr!=NULL)
+    if(attr!=nullptr)
     {
         if(attr->detachstate==PTHREAD_CREATE_DETACHED) opt=Thread::DEFAULT;
         stacksize=attr->stacksize;

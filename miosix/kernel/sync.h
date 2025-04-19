@@ -129,7 +129,7 @@ private:
         struct WaitingList *next;
     };
 
-    /// Thread currently inside critical section, if NULL the critical section
+    /// Thread currently inside critical section, if nullptr the critical section
     /// is free
     Thread *owner;
 
@@ -274,7 +274,7 @@ private:
      */
     static Priority inheritPriorityFromLockedList(Thread *t, Priority pr);
 
-    /// Thread currently inside critical section, if NULL the critical section
+    /// Thread currently inside critical section, if nullptr the critical section
     /// is free
     Thread *owner;
 
