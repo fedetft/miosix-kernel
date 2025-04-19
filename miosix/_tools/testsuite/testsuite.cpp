@@ -3748,12 +3748,12 @@ void t25_p3(int i)
 static void test_25()
 {
     /*
-     * C++11 threads run with MAIN_PRIORITY, so to avoid deadlocks or other
-     * artifacts, we restore main't priority to the default, and set it back
+     * C++11 threads run with DEFAULT_PRIORITY, so to avoid deadlocks or other
+     * artifacts, we restore main's priority to the default, and set it back
      * to 0 at the end of this test, as the rest of the testsuite runs with
      * lowest priority
      */
-    Thread::setPriority(MAIN_PRIORITY);
+    Thread::setPriority(DEFAULT_PRIORITY);
     test_name("C++11 threads");
     //
     // Test thread::thread, native_handle, get_id, detach, joinable
@@ -4064,7 +4064,8 @@ static void test_27()
     for(int i=0; i<5; i++) data.producer.wait();
     if(data.producer.getCount() != 0)
         fail("wait to zero with counter >= 0 not working");
-    Thread *thd=Thread::create(t27_t1,STACK_SMALL,MAIN_PRIORITY,reinterpret_cast<void*>(&data),Thread::JOINABLE);
+    Thread *thd=Thread::create(t27_t1,STACK_SMALL,DEFAULT_PRIORITY,
+                               reinterpret_cast<void*>(&data),Thread::JOINABLE);
     for(int i=0; i<10; i++)
     {
         data.producer.wait();
@@ -4074,7 +4075,8 @@ static void test_27()
     if(data.producer.getCount() != 0 && data.consumer.getCount() != 0)
         fail("wait with counter == 0 not working");
     
-    Thread *thd2=Thread::create(t27_t2,STACK_SMALL,MAIN_PRIORITY,reinterpret_cast<void*>(&data),Thread::JOINABLE);
+    Thread *thd2=Thread::create(t27_t2,STACK_SMALL,DEFAULT_PRIORITY,
+                                reinterpret_cast<void*>(&data),Thread::JOINABLE);
     auto res = data.producer.timedWait(getTime()+200*1000000LL);
     if(res == TimedWaitResult::Timeout)
         fail("timedWait did not return the first time without timeout, timebase incorrect?");
@@ -4101,11 +4103,12 @@ static void test_27()
     Thread *thds[3];
     for(int i=0; i<3; i++)
     {
-        //Priority is > than MAIN_PRIORITY to ensure all the threads get stuck
+        //Priority is > than DEFAULT_PRIORITY to ensure all the threads get stuck
         //at the `data->consumer.wait();` line and not earlier.
         //This test is disabled on EDF scheduler to avoid having to fudge with
         //deadlines to make this happen.
-        thds[i] = Thread::create(t27_t3,STACK_SMALL,MAIN_PRIORITY+1,reinterpret_cast<void*>(&data),Thread::JOINABLE);
+        thds[i] = Thread::create(t27_t3,STACK_SMALL,DEFAULT_PRIORITY+1,
+                                 reinterpret_cast<void*>(&data),Thread::JOINABLE);
         data.producer.wait();
     }
     for(int i=0; i<3; i++) data.consumer.signal();

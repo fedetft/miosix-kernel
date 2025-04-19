@@ -53,7 +53,7 @@ public:
     /**
      * Default constructor.
      */
-    EDFSchedulerPriority() : deadline(MAIN_PRIORITY) {}
+    EDFSchedulerPriority() : deadline(DEFAULT_PRIORITY) {}
 
     /**
      * \return the priority value

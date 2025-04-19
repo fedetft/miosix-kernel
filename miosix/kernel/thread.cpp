@@ -194,7 +194,7 @@ void IRQstartKernel()
     Thread *main;
     main=Thread::doCreate(mainLoader,MAIN_STACK_SIZE,nullptr,Thread::DEFAULT,true);
     if(main==nullptr) errorHandler(OUT_OF_MEMORY);
-    if(Scheduler::IRQaddThread(main,MAIN_PRIORITY)==false) errorHandler(UNEXPECTED);
+    if(Scheduler::IRQaddThread(main,DEFAULT_PRIORITY)==false) errorHandler(UNEXPECTED);
 
     // Idle thread needs to be set after main (see control_scheduler.cpp)
     Scheduler::IRQsetIdleThread(0,idle);
@@ -787,7 +787,7 @@ Thread *Thread::createUserspace(void *(*startfunc)(void *), Process *proc)
     bool result;
     {
         FastGlobalIrqLock dLock;
-        result=Scheduler::IRQaddThread(thread,MAIN_PRIORITY);
+        result=Scheduler::IRQaddThread(thread,DEFAULT_PRIORITY);
     }
     if(result==false)
     {

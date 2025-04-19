@@ -53,7 +53,7 @@ public:
     /**
      * Default constructor.
      */
-    PrioritySchedulerPriority() : priority(MAIN_PRIORITY) {}
+    PrioritySchedulerPriority() : priority(DEFAULT_PRIORITY) {}
 
     /**
      * \return the priority value

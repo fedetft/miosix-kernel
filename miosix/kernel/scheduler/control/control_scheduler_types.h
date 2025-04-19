@@ -93,7 +93,7 @@ public:
     /**
      * Default constructor.
      */
-    ControlSchedulerPriority() : priority(MAIN_PRIORITY),
+    ControlSchedulerPriority() : priority(DEFAULT_PRIORITY),
             realtime(ControlRealtimePriority::REALTIME_PRIORITY_END_OF_ROUND) {}
 
     /**

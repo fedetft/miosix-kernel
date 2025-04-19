@@ -62,8 +62,8 @@ int main()
     Thread* rt1 = Thread::create(rt_task_func1, 2048, param, nullptr);
     Thread* rt2 = Thread::create(rt_task_func2, 2048, param, nullptr);
 
-    Thread* nrt1 = Thread::create(nrt_task_func, 2048, MAIN_PRIORITY, nullptr);
-    Thread* nrt2 = Thread::create(nrt_task_func, 2048, MAIN_PRIORITY, nullptr);
+    Thread* nrt1 = Thread::create(nrt_task_func, 2048, DEFAULT_PRIORITY, nullptr);
+    Thread* nrt2 = Thread::create(nrt_task_func, 2048, DEFAULT_PRIORITY, nullptr);
     
     printf("Threads created. Running test...\n");
 

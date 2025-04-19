@@ -61,7 +61,7 @@ int pthread_create(pthread_t *pthread, const pthread_attr_t *attr,
 {
     Thread::Options opt=Thread::JOINABLE;
     unsigned int stacksize=STACK_DEFAULT_FOR_PTHREAD;
-    Priority priority=MAIN_PRIORITY;
+    Priority priority=DEFAULT_PRIORITY;
     if(attr!=NULL)
     {
         if(attr->detachstate==PTHREAD_CREATE_DETACHED)
@@ -113,7 +113,7 @@ int pthread_attr_init(pthread_attr_t *attr)
     attr->stacksize=STACK_DEFAULT_FOR_PTHREAD;
     //Default priority level is one above minimum.
     #ifndef SCHED_TYPE_EDF
-    attr->schedparam.sched_priority=NUM_PRIORITIES-1-MAIN_PRIORITY;
+    attr->schedparam.sched_priority=NUM_PRIORITIES-1-DEFAULT_PRIORITY;
     #endif //SCHED_TYPE_EDF
     return 0;
 }
