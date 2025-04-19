@@ -292,11 +292,11 @@ const unsigned int MAX_TIME_SLICE=1000000;
 enum class PthreadMutexProtocol { DYNAMIC, FORCE_PRIO_INHERIT, FORCE_PRIO_NONE };
 constexpr auto pthreadMutexProtocolOverride=PthreadMutexProtocol::DYNAMIC;
 
-/// Set to 1 to change the mutex types used by the kernel and device drivers
-/// KernelMutex to the priority inheritance type. Prevents priority inversion
-/// when accessing kernel code and device driver at the cost of a slightly
-/// higher overhead
-#define KERNEL_USE_PRIORITY_INHERITANCE_MUTEX 0
+/// Adding this definition changes the mutex types used by the kernel and device
+/// drivers (KernelMutex) to the priority inheritance type. Prevents priority
+/// inversion when accessing kernel code and device drivers at the cost of a
+/// slightly higher overhead
+//#define KERNEL_MUTEX_WITH_PRIORITY_INHERITANCE
 
 /// For priority scheduler: if set when multiple threads are waiting on a
 /// condition variable, the higher priority ones are awakened first, threads

@@ -293,13 +293,11 @@ private:
     friend class Thread;
 };
 
-#if KERNEL_USE_PRIORITY_INHERITANCE_MUTEX==1
+#ifdef KERNEL_MUTEX_WITH_PRIORITY_INHERITANCE
 using KernelMutex = Mutex;
-#elif KERNEL_USE_PRIORITY_INHERITANCE_MUTEX==0
+#else //KERNEL_MUTEX_WITH_PRIORITY_INHERITANCE
 using KernelMutex = FastMutex;
-#else
-#error "Wrong KERNEL_USE_PRIORITY_INHERITANCE_MUTEX"
-#endif
+#endif //KERNEL_MUTEX_WITH_PRIORITY_INHERITANCE
 
 /**
  * Very simple RAII style class to lock a mutex in an exception-safe way.
