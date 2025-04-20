@@ -68,6 +68,9 @@ void IRQmemoryAndClockInit()
             NRF_POWER->DCDCEN=1;
             break;
     }
+
+    //See Cortex M4 TRM: enable the FPU in privileged and user mode
+    SCB->CPACR |= 0xf<<20;
 }
 
 } // namespace miosix
