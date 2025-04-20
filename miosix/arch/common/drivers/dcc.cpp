@@ -78,8 +78,6 @@ void ARMDCC::debugStr(const char *str, int length)
     if((CoreDebug->DEMCR & CoreDebug_DEMCR_TRCENA_Msk)==0) return;
 
     if(length<0) length=strlen(str);
-    if(length>0 && str[0]=='\r') str++, length--; //TODO: better \r\n removal
-    if(length>0 && str[0]=='\n') str++, length--;
     if(length==0) return;
     send(1); //1=sending a string
     send(0);

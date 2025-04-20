@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
  
-#ifndef DCC_H
-#define DCC_H
+#pragma once
 
 #include "filesystem/console/console_device.h"
 #include "kernel/sync.h"
@@ -37,6 +36,11 @@ namespace miosix {
  * This class exposes the ARM debug communication channel through the Device
  * interface, to allow redirecting stdin and stdout to the DCC for boards that
  * have JTAG/SWD but no serial port
+ *
+ * To use it you have to add the following two commands to a GDB session after
+ * connecting with openocd and make the output appear inside gdb:
+ * monitor target_request debugmsgs enable
+ * monitor trace point 1
  */
 class ARMDCC : public Device
 {
@@ -100,5 +104,3 @@ private:
 };
 
 } //namespace miosix
-
-#endif //DCC_H
