@@ -67,8 +67,24 @@ int ARMDCC::ioctl(int cmd, void* arg)
 
 void ARMDCC::send(unsigned char c)
 {
+    if(disconnected) return;
     const unsigned int busy=1;
-    while(CoreDebug->DCRDR & busy) ;
+    const long long timeout=1000000000ll;
+    long long start;
+    {
+        //NOTE: not calling getTime() as this function can be called also early
+        //at boot from of IRQwrite and
+        GlobalIrqLock dLock;
+        start=IRQgetTime();
+    }
+    while(CoreDebug->DCRDR & busy)
+    {
+        //Polling loop with timeout setting the disconnected flag
+        GlobalIrqLock dLock;
+        if(IRQgetTime()-start<timeout) continue;
+        disconnected=true;
+        return;
+    }
     CoreDebug->DCRDR=(static_cast<unsigned int>(c)<<8) | busy;
 }
 

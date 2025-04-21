@@ -91,16 +91,17 @@ private:
     /**
      * Send data to the host
      */
-    static void send(unsigned char c);
+    void send(unsigned char c);
     
     /**
      * Send a line of text to the host.
      * OpenOCD will insert a \n after each line, unfortunately,
      * as this complicates things.
      */
-    static void debugStr(const char *str, int length);
+    void debugStr(const char *str, int length);
 
     KernelMutex mutex;
+    bool disconnected=false;
 };
 
 } //namespace miosix
