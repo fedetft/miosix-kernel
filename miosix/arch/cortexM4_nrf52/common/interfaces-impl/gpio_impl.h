@@ -46,7 +46,7 @@ enum class Mode : unsigned int
     OFF                 = 0b00000000010, ///< Disconnected
     INPUT               = 0b00000000000, ///< Floating input
     INPUT_PULL_DOWN     = 0b00000000100, ///< Pulldown Input
-    INPUT_PULL_UP       = 0b00000001000, ///< Pullup   Input
+    INPUT_PULL_UP       = 0b00000001100, ///< Pullup   Input
     OUTPUT              = 0b00000000001, ///< Push Pull Output
     OUTPUT_OS           = 0b10000000001, ///< Output open source
     OUTPUT_OD           = 0b11000000001, ///< Output open drain
