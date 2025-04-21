@@ -69,7 +69,14 @@ void bspInit2()
 
 void shutdown()
 {
-    reboot(); //This board has no shutdown support, so we reboot on shutdown
+    ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
+
+    FastGlobalIrqLock::lock();
+    //NOTE: application can configure one or more GPIO to cause a reboot on pin
+    //change using the SENSE bits in PIN_CNF
+    NRF_POWER->SYSTEMOFF=1;
+    //We never reach here unless a debugger is connected. In this case we reboot
+    IRQsystemReboot();
 }
 
 void reboot()
