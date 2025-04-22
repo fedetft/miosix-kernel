@@ -118,11 +118,6 @@ public:
     void driveStrength(int s) { strengthImpl(ptr(),getNumber(),s); }
 
     /**
-     * TODO alternate functions
-     */
-    // void alternateFunction(char af) { afImpl(ptr(),getNumber(),af); }
-
-    /**
      * Set the pin to 1, if it is an output
      */
     void high() { ptr()->OUTSET=1<<getNumber(); }
@@ -142,6 +137,14 @@ public:
      * \return the pin port. One of the constants P0, P1, ...
      */
     inline unsigned int getPort() const { return packed & ~0x1f; }
+
+    /**
+     * \return 0 if the GPIO belongs to P0, or 1 if it belongs to P1
+     */
+    inline unsigned int getPortNumber() const
+    {
+        if((packed & ~0x1f)==P0) return 0; else return 1;
+    }
 
     /**
      * \return the pin number, from 0 to 31
@@ -197,11 +200,6 @@ public:
     static void driveStrength(int s) { strengthImpl(ptr(),getNumber(),s); }
 
     /**
-     * TODO alternate functions
-     */
-    // static void alternateFunction(char af) { afImpl(ptr(),getNumber(),af); }
-
-    /**
      * Set the pin to 1, if it is an output
      */
     static void high() { ptr()->OUTSET=1<<getNumber(); }
@@ -226,6 +224,14 @@ public:
      * \return the pin port. One of the constants P0, P1, ...
      */
     static inline unsigned int getPort() { return P; }
+
+    /**
+     * \return 0 if the GPIO belongs to P0, or 1 if it belongs to P1
+     */
+    inline unsigned int getPortNumber() const
+    {
+        if(P==P0) return 0; else return 1;
+    }
     
     /**
      * \return the pin number, from 0 to 31
