@@ -3978,7 +3978,7 @@ void *t26_t1(void*)
 {
     for(int i=0;i<10;i++)
     {
-        if(errno!=0) fail("errno");
+        if(errno!=0) fail("errno 1");
         Thread::sleep(1);
     }
     return nullptr;
@@ -3994,7 +3994,7 @@ static void test_26()
     {
         errno=-i-1;
         Thread::sleep(1);
-        if(errno!=-i-1) fail("errno");
+        if(errno!=-i-1) fail("errno 2");
     }
     pthread_join(t,0);
     pass();
