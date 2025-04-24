@@ -1,0 +1,197 @@
+Rationale for gcc patch
+-----------------------
+
+This patch does the following:
+
+1) It modifies the config/gthr.m4 and libgcc/configure files to add
+   gthr-miosix.h to the build system.
+
+2) It modifies gcc/config.gcc to add the miosix-eabi.h file and t-arm-miosix to
+   the build system.
+
+3) It modifies gcc/configure and gcc/configure.ac to accept the parameter
+   --enable-threads=miosix
+
+4) It adds gcc/config/arm/miosix-eabi.h which defines the builtin _MIOSIX and
+   the miosix patch version.
+
+5) It adds gcc/config/arm/t-arm-miosix to enable multilibs for
+   fpie/msingle-pic-base to implement processes. It also enables multilibs for
+   ARM architecture variants relevant for microcontrollers.
+
+6) Given that Miosix does not have a thread local storage API, but it is
+   required in a couple of places related to C++ exception handling
+   (that is, gcc/unwind-sjlj.c and libsupc++/eh_globals.cc), those files have
+   been modified removing functions to get/set the thread-local variables.
+   Those functions are now implemented within Miosix, in kernel/syscalls.cpp
+
+7) It adds the gcc/gthr-miosix.h specifying the miosix thread model, basically
+   telling the compiler that threadsafe code is required and pointing it to
+   the routines it needs to do so (standard posix routines). Without this
+   modification, arm-miosix-eabi-gcc -v would report "Thread model: single"
+   and generate thread unsafe code.
+
+8) The thread safe initialization of C++ static objects can be implemented
+   more efficiently using the Miosix API rather than the POSIX one, so the
+   functions __cxa_guard_[acquire|release|abort] have been removed from
+   libsupc++/guard.cc and implemented in miosix/kernel/syscalls.cpp
+
+9) It reduces the size of the emergency buffer in
+   libstdc++-v3/libsupc++/eh_alloc.cc, which is used for allocating the
+   std::bad_alloc exception that operator new should throw when the heap is
+   full. By default it is set to a conservative value that is too large when
+   compared with the RAM size of microcontrollers.
+
+10) It makes the verbose terminate handler a weak symbol to save code size.
+
+11) It adds __attribute__((weak)) to some functions that pull in exception
+   support to make them overridable by miosix when compiling without exceptions
+   to minimize code size. The only ones which are not made weak are:
+   - ios_failure: already large code size, so might as well not disable exceptions
+   - regex: same as above
+   - occurrences of _GLIBCXX_THROW_OR_ABORT in headers. Don't know how to fix
+     those, if they are ever used inside a .cc file within libstdc++ itself.
+
+12) It moves some functions from a .cc file within libstdc++ to the header file,
+  as when libstdc++ is compiled, exceptions are enabled. This code then pulls
+  in exception support (and its code size penalty) even when Miosix is built
+  with exceptions disabled. string, condition_variable and thread have
+  been patched to avoid this. For string, removing template instantiation
+  prevention code for basic_string was needed to generate non-exception code
+  that is preferentially linked instead of the one in libstdc++ forcedly
+  instantiated in libstdc++.
+
+NOTES
+-----
+
+Atomicity of libstdc++
+----------------------
+from objdir/arm-miosix-eabi/<arch>/libstdc++-v3/config.log
+                               ARM CM0 CM3 CM4 CM7
+atomic builtins for bool        -   -   Y   Y   Y
+atomic builtins for short       -   -   Y   Y   Y
+atomic builtins for int         -   -   Y   Y   Y
+atomic builtins for long long   -   -   -   -   -
+lock policy for shared_ptr      F   F   Y*  Y*  Y*
+* configure:15883: result: atomic
+Note that:
+- atomic_store still uses mutex anyway, see bits/shared_ptr_atomic.h
+
+Autotools issue
+---------------
+Some configure checks fail because in order to check for the presence of a
+particular function, a sample C program is compiled AND LINKED. Now, the
+GCC for miosix is meant to work if linked to libmiosix.a which isn't there yet,
+so code depending on syscalls causes "undefined reference" link failures.
+Do check the output of configure (configure.log) for check failures and
+add stubs to newlib accordingly.
+Note: look for configure.log in objdir/arm-miosix-eabi subdirectories,
+which curently are libatomic, libgcc, libquadmath and libstdc++-v3.
+The one that does more syscall-dependent configure checks is libstdc++
+
+Checks
+------
+thread_local is not supported, check that an example with thread_local produces
+compile-time errors to avoid giving the false impression that it works.
+
+Types to watch out
+------------------
+Some unexported types are copy-pasted in the kernel, and need to be kept consistent
+struct __cxa_eh_globals in miosix/stdlib_integration/libstdcpp_integration.h
+
+
+Program to check how atomic ops are handled
+-------------------------------------------
+//test code -- begin
+//libsupc++/eh_atomics.h is worth a look
+#include <bits/c++config.h>
+#include <bits/atomic_word.h>
+#include <bits/atomic_lockfree_defines.h>
+_Atomic_word theInt;
+void inc()
+{
+    __atomic_add_fetch (&theInt, 1, __ATOMIC_ACQ_REL);
+}
+bool decTest()
+{
+    return __atomic_sub_fetch (&theInt, 1, __ATOMIC_ACQ_REL) == 0;
+}
+//arm-miosix-eabi-g++ -mthumb -mcpu=cortex-m3 -std=c++11 -O2 -S test.cpp
+// _Z3incv:
+//     dmb    ish
+//     ldr    r3, .L4
+// .L2:
+//     ldrex    r2, [r3]
+//     adds    r2, r2, #1
+//     strex    r1, r2, [r3]
+//     cmp    r1, #0
+//     bne    .L2
+//     dmb    ish
+//     bx    lr
+//arm-miosix-eabi-g++ -mthumb -mcpu=cortex-m0 -std=c++11 -O2 -S test.cpp
+// _Z3incv:
+//     push    {r4, lr}
+//     movs    r2, #4
+//     movs    r1, #1
+//     ldr    r0, .L3
+//     bl    __atomic_fetch_add_4
+//     pop    {r4, pc}
+//test code -- end
+
+
+Calculations to minimize the emergency buffer for throwing std::bad_alloc.
+--------------------------------------------------------------------------
+# Sample program to do the computation -- begin
+//Requires to copy-paste unwind-cxx.h from libsupc++
+#include <stdio.h>
+#include <unwind.h>
+#include "unwind-cxx.h"
+#include <stdexcept>
+int main()
+{
+    printf("sizeof(_Unwind_Exception) %d\n",sizeof(_Unwind_Exception));
+    printf("sizeof(_Atomic_word) %d\n",sizeof(_Atomic_word));
+    printf("sizeof(__cxa_exception) %d\n",sizeof(__cxxabiv1::__cxa_exception));
+    printf("sizeof(__cxa_refcounted_exception) %d\n",sizeof(__cxxabiv1::__cxa_refcounted_exception));
+    printf("sizeof(std::bad_alloc) %d\n",sizeof(std::bad_alloc));
+    printf("sizeof(std::logic_error) %d\n",sizeof(std::logic_error));
+    throw std::bad_alloc();
+}
+# Sample program to do the computation -- end
+
+unwind-cxx.h declares __cxa_refcounted_exception, while unwind-arm-common.h
+declares _Unwind_Exception. Size computations as of Sep 1, 2019.
+
+The size of __cxa_refcounted_exception on ARM is:
+sizeof(_Unwind_Exception) 88
+sizeof(_Atomic_word) 4
+sizeof(__cxa_exception) 120
+sizeof(__cxa_refcounted_exception) 128
+sizeof(std::bad_alloc) 4
+sizeof(std::logic_error) 8
+
+While on other archs is (commenting #ifdef __ARM_EABI_UNWINDER__ part in unwind-cxx.h)
+sizeof(_Unwind_Exception) 88
+sizeof(_Atomic_word) 4
+sizeof(__cxa_exception) 136
+sizeof(__cxa_refcounted_exception) 144
+sizeof(std::bad_alloc) 4
+sizeof(std::logic_error) 8
+
+Thus allocating bad_alloc takes 132Bytes on ARM, and 148Bytes on other archs.
+
+It is recomended to leave some space just in case a different exception is
+thrown, like logic_error or runtime_error and there is no heap to allocate it.
+By seeing stdexcept and stdexcept.cc these classes only contain a string object,
+and sizeof(logic_error) returns 8 bytes (4=vptr 4=string).
+
+Note Jul 5, 2010.
+A testcase started to fail, JTAG debugging found that a bad_alloc was allocated
+that required 132Bytes. Expanding EMERGENCY_OBJ_SIZE to 160 bytes (128+32) to leave
+some margin.
+Note Sep 1, 2019.
+Apparently, nothing changed in 9 years, as bad_alloc still requires 132Bytes.
+
+Conclusion:
+Looks like EMERGENCY_OBJ_SIZE can be shrinked from 512 to 160bytes, for 32bit systems.
+For EMRGENCY_OBJ_COUNT, 3 is good.
