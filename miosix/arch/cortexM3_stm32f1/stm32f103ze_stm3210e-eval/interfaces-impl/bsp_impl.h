@@ -47,7 +47,7 @@ namespace miosix {
  * \internal
  * used by the ledOn() and ledOff() implementation
  */
-typedef Gpio<GPIOF_BASE,8> _led;
+typedef Gpio<PF,8> _led;
 
 inline void ledOn()
 {
@@ -60,7 +60,7 @@ inline void ledOff()
 }
 
 ///\internal Pin connected to SD card detect
-typedef Gpio<GPIOF_BASE,11> sdCardDetect;
+typedef Gpio<PF,11> sdCardDetect;
 
 /**
  * Polls the SD card sense GPIO

@@ -53,7 +53,7 @@ void showNumber(float number);
  */
 void showLowVoltageIndicator();
 
-typedef Gpio<GPIOA_BASE,4> cs; ///< For low-level SPI access
+typedef Gpio<PA,4> cs; ///< For low-level SPI access
 
 /**
  * Send a single byte to SPI, requires to pull cs low first

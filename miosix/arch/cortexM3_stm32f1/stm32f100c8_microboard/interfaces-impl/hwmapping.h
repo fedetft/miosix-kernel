@@ -31,22 +31,22 @@
 
 namespace miosix {
 
-typedef Gpio<GPIOB_BASE,9> redLed;
-typedef Gpio<GPIOB_BASE,7> yellowLed;
+typedef Gpio<PB,9> redLed;
+typedef Gpio<PB,7> yellowLed;
 
 namespace expansion {
-typedef Gpio<GPIOA_BASE, 0> io0;
-typedef Gpio<GPIOA_BASE, 1> io1;
-typedef Gpio<GPIOA_BASE, 2> io2;
-typedef Gpio<GPIOA_BASE, 3> io3;
-typedef Gpio<GPIOA_BASE, 4> io4;
-typedef Gpio<GPIOA_BASE, 5> io5;
-typedef Gpio<GPIOA_BASE, 6> io6;
-typedef Gpio<GPIOA_BASE, 7> io7;
-typedef Gpio<GPIOB_BASE, 0> io8;
-typedef Gpio<GPIOB_BASE, 1> io9;
-typedef Gpio<GPIOB_BASE,10> io10;
-typedef Gpio<GPIOB_BASE,11> io11;
+typedef Gpio<PA, 0> io0;
+typedef Gpio<PA, 1> io1;
+typedef Gpio<PA, 2> io2;
+typedef Gpio<PA, 3> io3;
+typedef Gpio<PA, 4> io4;
+typedef Gpio<PA, 5> io5;
+typedef Gpio<PA, 6> io6;
+typedef Gpio<PA, 7> io7;
+typedef Gpio<PB, 0> io8;
+typedef Gpio<PB, 1> io9;
+typedef Gpio<PB,10> io10;
+typedef Gpio<PB,11> io11;
 }
 
 } //namespace miosix

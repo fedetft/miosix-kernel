@@ -35,75 +35,75 @@
 //
 
 //LED
-//typedef Gpio<GPIOB_BASE,5> hwled; //Active high
+//typedef Gpio<PB,5> hwled; //Active high
 
 namespace miosix {
 
 //Display interface
 namespace disp {
-typedef Gpio<GPIOD_BASE, 13> ncpEn;
-typedef Gpio<GPIOE_BASE, 1>  reset;
+typedef Gpio<PD, 13> ncpEn;
+typedef Gpio<PE, 1>  reset;
 
-typedef Gpio<GPIOD_BASE, 4>  rd;
-typedef Gpio<GPIOD_BASE, 5>  wr;
+typedef Gpio<PD, 4>  rd;
+typedef Gpio<PD, 5>  wr;
 
-typedef Gpio<GPIOD_BASE, 7>  cs;
-typedef Gpio<GPIOD_BASE, 11> rs;
+typedef Gpio<PD, 7>  cs;
+typedef Gpio<PD, 11> rs;
 
-typedef Gpio<GPIOD_BASE, 14> d0;
-typedef Gpio<GPIOD_BASE, 15> d1;
-typedef Gpio<GPIOD_BASE, 0>  d2;
-typedef Gpio<GPIOD_BASE, 1>  d3;
-typedef Gpio<GPIOE_BASE, 7>  d4;
-typedef Gpio<GPIOE_BASE, 8>  d5;
-typedef Gpio<GPIOE_BASE, 9>  d6;
-typedef Gpio<GPIOE_BASE, 10> d7;
-typedef Gpio<GPIOE_BASE, 11> d8;
-typedef Gpio<GPIOE_BASE, 12> d9;
-typedef Gpio<GPIOE_BASE, 13> d10;
-typedef Gpio<GPIOE_BASE, 14> d11;
-typedef Gpio<GPIOE_BASE, 15> d12;
-typedef Gpio<GPIOD_BASE, 8>  d13;
-typedef Gpio<GPIOD_BASE, 9>  d14;
-typedef Gpio<GPIOD_BASE, 10> d15;
+typedef Gpio<PD, 14> d0;
+typedef Gpio<PD, 15> d1;
+typedef Gpio<PD, 0>  d2;
+typedef Gpio<PD, 1>  d3;
+typedef Gpio<PE, 7>  d4;
+typedef Gpio<PE, 8>  d5;
+typedef Gpio<PE, 9>  d6;
+typedef Gpio<PE, 10> d7;
+typedef Gpio<PE, 11> d8;
+typedef Gpio<PE, 12> d9;
+typedef Gpio<PE, 13> d10;
+typedef Gpio<PE, 14> d11;
+typedef Gpio<PE, 15> d12;
+typedef Gpio<PD, 8>  d13;
+typedef Gpio<PD, 9>  d14;
+typedef Gpio<PD, 10> d15;
 }
 //MicroSD connections
 namespace sd {
-//typedef Gpio<GPIOA_BASE,8>  cardDetect; -- is absent on Strive board
-typedef Gpio<GPIOC_BASE,8>  d0;  //Handled by hardware (SDIO)
-typedef Gpio<GPIOC_BASE,9>  d1;  //Handled by hardware (SDIO)
-typedef Gpio<GPIOC_BASE,10> d2;  //Handled by hardware (SDIO)
-typedef Gpio<GPIOC_BASE,11> d3;  //Handled by hardware (SDIO)
-typedef Gpio<GPIOC_BASE,12> clk; //Handled by hardware (SDIO)
-typedef Gpio<GPIOD_BASE,2>  cmd; //Handled by hardware (SDIO), 100k to +3v3b
+//typedef Gpio<PA,8>  cardDetect; -- is absent on Strive board
+typedef Gpio<PC,8>  d0;  //Handled by hardware (SDIO)
+typedef Gpio<PC,9>  d1;  //Handled by hardware (SDIO)
+typedef Gpio<PC,10> d2;  //Handled by hardware (SDIO)
+typedef Gpio<PC,11> d3;  //Handled by hardware (SDIO)
+typedef Gpio<PC,12> clk; //Handled by hardware (SDIO)
+typedef Gpio<PD,2>  cmd; //Handled by hardware (SDIO), 100k to +3v3b
 }
 
 //USB connections
 namespace usb {
-typedef Gpio<GPIOA_BASE,11> dm;     //Handled by hardware (USB) D-
-typedef Gpio<GPIOA_BASE,12> dp;     //Handled by hardware (USB) D+
-typedef Gpio<GPIOC_BASE,13> detect; //1K pullup connected to 3.3V via bipolar PNP.
+typedef Gpio<PA,11> dm;     //Handled by hardware (USB) D-
+typedef Gpio<PA,12> dp;     //Handled by hardware (USB) D+
+typedef Gpio<PC,13> detect; //1K pullup connected to 3.3V via bipolar PNP.
                                     //Pull this pin down to enable detection!!!
 }
 
 namespace spi1 {
-typedef Gpio<GPIOA_BASE,5> sck;
-typedef Gpio<GPIOA_BASE,6> miso;
-typedef Gpio<GPIOA_BASE,7> mosi;
-typedef Gpio<GPIOA_BASE,4> nflashss;   //used only to select serial flash
-typedef Gpio<GPIOB_BASE,7> ntouchss;  //used to select touch screen controller
-typedef Gpio<GPIOB_BASE,6> touchint; //touchscreen controller interrupt
+typedef Gpio<PA,5> sck;
+typedef Gpio<PA,6> miso;
+typedef Gpio<PA,7> mosi;
+typedef Gpio<PA,4> nflashss;   //used only to select serial flash
+typedef Gpio<PB,7> ntouchss;  //used to select touch screen controller
+typedef Gpio<PB,6> touchint; //touchscreen controller interrupt
 };
 
 //Debug/bootloader serial port
 namespace boot {
-typedef Gpio<GPIOB_BASE,2>  detect; //BOOT1 (10k to ground)
-typedef Gpio<GPIOA_BASE,9>  tx;     //Handled by hardware (USART1)
-typedef Gpio<GPIOA_BASE,10> rx;     //Handled by hardware (USART1)
+typedef Gpio<PB,2>  detect; //BOOT1 (10k to ground)
+typedef Gpio<PA,9>  tx;     //Handled by hardware (USART1)
+typedef Gpio<PA,10> rx;     //Handled by hardware (USART1)
 }
 
 namespace buttons {
-    typedef Gpio<GPIOB_BASE,15> button1;
+    typedef Gpio<PB,15> button1;
 }
 
 } //namespace miosix

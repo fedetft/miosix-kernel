@@ -31,57 +31,57 @@
 
 namespace miosix {
 
-typedef Gpio<GPIOA_BASE, 5>  vbat;
-typedef Gpio<GPIOA_BASE, 6>  pushbutton;
-typedef Gpio<GPIOA_BASE, 12> poweroff;
+typedef Gpio<PA, 5>  vbat;
+typedef Gpio<PA, 6>  pushbutton;
+typedef Gpio<PA, 12> poweroff;
 
-typedef Gpio<GPIOB_BASE, 7> greenLed;
-typedef Gpio<GPIOB_BASE, 8> redLed;
+typedef Gpio<PB, 7> greenLed;
+typedef Gpio<PB, 8> redLed;
 
 namespace frontend
 {
-    typedef Gpio<GPIOA_BASE, 1> meas_out;
-    typedef Gpio<GPIOA_BASE, 2> pullup_hygro;
-    typedef Gpio<GPIOA_BASE, 3> spst2_2;
-    typedef Gpio<GPIOA_BASE, 4> frontend_unk_1;
-    typedef Gpio<GPIOA_BASE, 7> heat_hum_1;
+    typedef Gpio<PA, 1> meas_out;
+    typedef Gpio<PA, 2> pullup_hygro;
+    typedef Gpio<PA, 3> spst2_2;
+    typedef Gpio<PA, 4> frontend_unk_1;
+    typedef Gpio<PA, 7> heat_hum_1;
 
-    typedef Gpio<GPIOB_BASE, 1> frontend_unk_2;
-    typedef Gpio<GPIOB_BASE, 3> spdt1_2;
-    typedef Gpio<GPIOB_BASE, 4> spdt2_2;
-    typedef Gpio<GPIOB_BASE, 5> spdt3_2;
-    typedef Gpio<GPIOB_BASE, 6> spst1_2;
-    typedef Gpio<GPIOB_BASE, 9> heat_hum_2;
+    typedef Gpio<PB, 1> frontend_unk_2;
+    typedef Gpio<PB, 3> spdt1_2;
+    typedef Gpio<PB, 4> spdt2_2;
+    typedef Gpio<PB, 5> spdt3_2;
+    typedef Gpio<PB, 6> spst1_2;
+    typedef Gpio<PB, 9> heat_hum_2;
 
-    typedef Gpio<GPIOB_BASE, 12> pullup_temp;
+    typedef Gpio<PB, 12> pullup_temp;
 
-    typedef Gpio<GPIOC_BASE, 14> spst3_2;
-    typedef Gpio<GPIOC_BASE, 15> spst4_2;
+    typedef Gpio<PC, 14> spst3_2;
+    typedef Gpio<PC, 15> spst4_2;
 }
 
 namespace nfc
 {
-    typedef Gpio<GPIOA_BASE, 11> in1;
-    typedef Gpio<GPIOA_BASE, 0>  in2;
-    typedef Gpio<GPIOB_BASE, 0>  out;
+    typedef Gpio<PA, 11> in1;
+    typedef Gpio<PA, 0>  in2;
+    typedef Gpio<PB, 0>  out;
 }
 
 namespace gps
 {
-    typedef Gpio<GPIOA_BASE, 9>  rxd;
-    typedef Gpio<GPIOA_BASE, 10> txd;
-    typedef Gpio<GPIOA_BASE, 15> nReset;
+    typedef Gpio<PA, 9>  rxd;
+    typedef Gpio<PA, 10> txd;
+    typedef Gpio<PA, 15> nReset;
 }
 
 namespace spi
 {
-    typedef Gpio<GPIOB_BASE, 13> sclk;
-    typedef Gpio<GPIOB_BASE, 14> miso;
-    typedef Gpio<GPIOB_BASE, 15> mosi;
+    typedef Gpio<PB, 13> sclk;
+    typedef Gpio<PB, 14> miso;
+    typedef Gpio<PB, 15> mosi;
 
-    typedef Gpio<GPIOA_BASE, 8>  csBaro;
-    typedef Gpio<GPIOB_BASE, 2>  csEeprom;
-    typedef Gpio<GPIOC_BASE, 13> csRadio;
+    typedef Gpio<PA, 8>  csBaro;
+    typedef Gpio<PB, 2>  csEeprom;
+    typedef Gpio<PC, 13> csRadio;
 };
 
 } //namespace miosix

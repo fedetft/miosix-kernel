@@ -34,75 +34,75 @@ namespace miosix {
 
 namespace gpio {
     
-    typedef Gpio<GPIOC_BASE,10> gpio0;
-    typedef Gpio<GPIOA_BASE,15> gpio1;
-    typedef Gpio<GPIOA_BASE,14> gpio2;    
-    typedef Gpio<GPIOB_BASE,12> gpio3;
+    typedef Gpio<PC,10> gpio0;
+    typedef Gpio<PA,15> gpio1;
+    typedef Gpio<PA,14> gpio2;    
+    typedef Gpio<PB,12> gpio3;
     
-    typedef Gpio<GPIOC_BASE,0> ai0;
-    typedef Gpio<GPIOC_BASE,1> ai1;
-    typedef Gpio<GPIOC_BASE,2> ai2;
-    typedef Gpio<GPIOC_BASE,3> ai3;
-    typedef Gpio<GPIOC_BASE,4> ai4;
-    typedef Gpio<GPIOC_BASE,5> ai5;
-    typedef Gpio<GPIOB_BASE,0> ai6;
-    typedef Gpio<GPIOB_BASE,1> ai7;
+    typedef Gpio<PC,0> ai0;
+    typedef Gpio<PC,1> ai1;
+    typedef Gpio<PC,2> ai2;
+    typedef Gpio<PC,3> ai3;
+    typedef Gpio<PC,4> ai4;
+    typedef Gpio<PC,5> ai5;
+    typedef Gpio<PB,0> ai6;
+    typedef Gpio<PB,1> ai7;
 }        
 
 namespace display {
        
-    typedef Gpio<GPIOB_BASE,4> lcd_e;
-    typedef Gpio<GPIOC_BASE,13> lcd_rs;
-    typedef Gpio<GPIOA_BASE,7> lcd_d4;
-    typedef Gpio<GPIOB_BASE,3> lcd_d5;
-    typedef Gpio<GPIOC_BASE,12> lcd_d6;
-    typedef Gpio<GPIOC_BASE,11> lcd_d7;    
+    typedef Gpio<PB,4> lcd_e;
+    typedef Gpio<PC,13> lcd_rs;
+    typedef Gpio<PA,7> lcd_d4;
+    typedef Gpio<PB,3> lcd_d5;
+    typedef Gpio<PC,12> lcd_d6;
+    typedef Gpio<PC,11> lcd_d7;    
 }
 
 namespace buttons {
     
-    typedef Gpio<GPIOA_BASE,0> btn1;
-    typedef Gpio<GPIOA_BASE,1> btn2;
-    typedef Gpio<GPIOA_BASE,2> btn3;
-    typedef Gpio<GPIOA_BASE,3> btn4;
-    typedef Gpio<GPIOA_BASE,4> btn5;
-    typedef Gpio<GPIOA_BASE,5> btn6;
-    typedef Gpio<GPIOA_BASE,6> btn7;
+    typedef Gpio<PA,0> btn1;
+    typedef Gpio<PA,1> btn2;
+    typedef Gpio<PA,2> btn3;
+    typedef Gpio<PA,3> btn4;
+    typedef Gpio<PA,4> btn5;
+    typedef Gpio<PA,5> btn6;
+    typedef Gpio<PA,6> btn7;
 }
 
 namespace spi {
     
-    typedef Gpio<GPIOB_BASE,13> sck;
-    typedef Gpio<GPIOB_BASE,14> miso;
-    typedef Gpio<GPIOB_BASE,15> mosi;
+    typedef Gpio<PB,13> sck;
+    typedef Gpio<PB,14> miso;
+    typedef Gpio<PB,15> mosi;
 }
 
 namespace i2c {
     //Is I2C2
-    typedef Gpio<GPIOB_BASE,10> scl;
-    typedef Gpio<GPIOB_BASE,11> sda;
+    typedef Gpio<PB,10> scl;
+    typedef Gpio<PB,11> sda;
 }
 
 namespace valves {
     
-    typedef Gpio<GPIOC_BASE,6> valv1;
-    typedef Gpio<GPIOC_BASE,7> valv2;
-    typedef Gpio<GPIOC_BASE,8> valv3;
-    typedef Gpio<GPIOC_BASE,9> valv4;
-    typedef Gpio<GPIOB_BASE,6> valv5;
-    typedef Gpio<GPIOB_BASE,7> valv6;
-    typedef Gpio<GPIOB_BASE,8> valv7;
-    typedef Gpio<GPIOB_BASE,9> valv8;    
+    typedef Gpio<PC,6> valv1;
+    typedef Gpio<PC,7> valv2;
+    typedef Gpio<PC,8> valv3;
+    typedef Gpio<PC,9> valv4;
+    typedef Gpio<PB,6> valv5;
+    typedef Gpio<PB,7> valv6;
+    typedef Gpio<PB,8> valv7;
+    typedef Gpio<PB,9> valv8;    
 }
 
-// typedef Gpio<GPIOA_BASE,8> 
-typedef Gpio<GPIOA_BASE,9> tx;
-typedef Gpio<GPIOA_BASE,10> rx;
-// typedef Gpio<GPIOA_BASE,11>
-// typedef Gpio<GPIOA_BASE,12>
-// typedef Gpio<GPIOA_BASE,13>
-// typedef Gpio<GPIOB_BASE,2>
-typedef Gpio<GPIOB_BASE,5> powerSw;
+// typedef Gpio<PA,8> 
+typedef Gpio<PA,9> tx;
+typedef Gpio<PA,10> rx;
+// typedef Gpio<PA,11>
+// typedef Gpio<PA,12>
+// typedef Gpio<PA,13>
+// typedef Gpio<PB,2>
+typedef Gpio<PB,5> powerSw;
     
 } //namespace miosix
 
