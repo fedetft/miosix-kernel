@@ -150,7 +150,12 @@ public:
      */
     static Thread *create(void (*startfunc)(void *), unsigned int stacksize,
                             Priority priority=Priority(), void *argv=nullptr,
-                            unsigned short options=DEFAULT);
+                            unsigned short options=DEFAULT)
+    {
+        //Just call the other version with a cast.
+        return Thread::create(reinterpret_cast<void *(*)(void*)>(startfunc),
+            stacksize,priority,argv,options);
+    }
 
     /**
      * When called, suggests the kernel to pause the current thread, and run

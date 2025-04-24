@@ -367,14 +367,6 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
     return thread;
 }
 
-Thread *Thread::create(void (*startfunc)(void *), unsigned int stacksize,
-                       Priority priority, void *argv, unsigned short options)
-{
-    //Just call the other version with a cast.
-    return Thread::create(reinterpret_cast<void *(*)(void*)>(startfunc),
-            stacksize,priority,argv,options);
-}
-
 void Thread::yield()
 {
     // NOTE: IRQinvokeScheduler is currently safe to be called also without the
