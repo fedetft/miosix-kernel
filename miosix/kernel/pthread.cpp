@@ -174,6 +174,11 @@ int sched_get_priority_min(int policy)
 }
 #endif //SCHED_TYPE_EDF
 
+void pthread_yield()
+{
+    Thread::yield();
+}
+
 int sched_yield()
 {
     Thread::yield();

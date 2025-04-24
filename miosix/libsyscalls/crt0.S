@@ -113,12 +113,25 @@ __call_ctor:
 
 /**
  * pthread_yield
- * \return 0 (success)
+ * At least on newlib, this function does not return a value
  */
 .section .text.pthread_yield
 .global pthread_yield
 .type pthread_yield, %function
 pthread_yield:
+	push {r7,lr}
+	movs r7, #0
+	svc  0
+	pop  {r7,pc}
+
+/**
+ * sched_yield
+ * \return 0 (success)
+ */
+.section .text.sched_yield
+.global sched_yield
+.type sched_yield, %function
+sched_yield:
 	push {r7,lr}
 	movs r7, #0
 	svc  0
