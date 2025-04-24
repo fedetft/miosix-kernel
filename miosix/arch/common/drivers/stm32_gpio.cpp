@@ -32,30 +32,24 @@ namespace miosix {
 void GpioBase::modeImpl(unsigned int p, unsigned char n, Mode m)
 {
     const unsigned int mm=static_cast<unsigned int>(m);
-    GPIO_TypeDef* gpio=reinterpret_cast<GPIO_TypeDef*>(p);
+    auto ptr=reinterpret_cast<GPIO_TypeDef*>(p);
 
-    gpio->MODER  &= ~(3<<(n*2));
-    gpio->OTYPER &= ~(1<<n);
-    gpio->PUPDR  &= ~(3<<(n*2));
-
-    gpio->MODER  |= (mm>>3)<<(n*2);
-    gpio->OTYPER |= ((mm>>2) & 1)<<n;
-    gpio->PUPDR  |= (mm & 3)<<(n*2);
+    ptr->MODER  = (ptr->MODER  & ~(3<<(n*2))) | (mm>>3)<<(n*2);
+    ptr->OTYPER = (ptr->OTYPER &     ~(1<<n)) | ((mm>>2) & 1)<<n;
+    ptr->PUPDR  = (ptr->PUPDR  & ~(3<<(n*2))) | (mm & 3)<<(n*2);
 }
 
 void GpioBase::afImpl(unsigned int p, unsigned char n, unsigned char af)
 {
-    GPIO_TypeDef* gpio=reinterpret_cast<GPIO_TypeDef*>(p);
+    auto ptr=reinterpret_cast<GPIO_TypeDef*>(p);
     af &= 0xf;
     
     if(n<8)
     {
-        gpio->AFR[0] &= ~(0xf<<(n*4));
-        gpio->AFR[0] |=    af<<(n*4);
+        ptr->AFR[0] = (ptr->AFR[0] & ~(0xf<<(n*4))) | af<<(n*4);
     } else {
         n-=8;
-        gpio->AFR[1] &= ~(0xf<<(n*4));
-        gpio->AFR[1] |=    af<<(n*4);
+        ptr->AFR[1] = (ptr->AFR[1] & ~(0xf<<(n*4))) | af<<(n*4);
     }
 }
 

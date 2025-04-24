@@ -31,6 +31,41 @@
 
 namespace miosix {
 
+//Provide shorthands for GPIO port names (PA instead of GPIOA_BASE)
+#ifdef GPIOA_BASE
+constexpr unsigned int PA = GPIOA_BASE;
+#endif
+#ifdef GPIOB_BASE
+constexpr unsigned int PB = GPIOB_BASE;
+#endif
+#ifdef GPIOC_BASE
+constexpr unsigned int PC = GPIOC_BASE;
+#endif
+#ifdef GPIOD_BASE
+constexpr unsigned int PD = GPIOD_BASE;
+#endif
+#ifdef GPIOE_BASE
+constexpr unsigned int PE = GPIOE_BASE;
+#endif
+#ifdef GPIOF_BASE
+constexpr unsigned int PF = GPIOF_BASE;
+#endif
+#ifdef GPIOG_BASE
+constexpr unsigned int PG = GPIOG_BASE;
+#endif
+#ifdef GPIOH_BASE
+constexpr unsigned int PH = GPIOH_BASE;
+#endif
+#ifdef GPIOI_BASE
+constexpr unsigned int PI = GPIOI_BASE;
+#endif
+#ifdef GPIOJ_BASE
+constexpr unsigned int PJ = GPIOJ_BASE;
+#endif
+#ifdef GPIOK_BASE
+constexpr unsigned int PK = GPIOK_BASE;
+#endif
+
 /**
  * GPIO mode (INPUT, OUTPUT, ...)
  * \code pin::mode(Mode::INPUT);\endcode
@@ -89,6 +124,7 @@ enum class Speed
 inline auto toUint(Speed s) { return static_cast<unsigned int>(s); }
 
 /**
+ * \internal
  * Base class to implement non template-dependent functions that, if inlined,
  * would significantly increase code size
  */
@@ -109,12 +145,24 @@ class GpioPin : private GpioBase
 {
 public:
     /**
+     * Default constructor
+     * Produces an invalid pin that shall not be used. The only safe method to
+     * call is isValid() which returns false on a default constructed GpioPin
+     */
+    GpioPin() : p(pack(PA,0xff)) {}
+
+    /**
      * Constructor
-     * \param p GPIOA_BASE, GPIOB_BASE, ... as #define'd in stm32f2xx.h
+     * \param p PA, PB, ... as #define'd in stm32f2xx.h
      * \param n which pin (0 to 15)
      */
     GpioPin(unsigned int p, unsigned char n)
         : p(pack(p, n)) {}
+
+    /**
+     * \retrun whether the GpioPin is valid
+     */
+    bool isValid() const { return getNumber()<16; }
     
     /**
      * Set the GPIO to the desired mode (INPUT, OUTPUT, ...)
@@ -131,8 +179,8 @@ public:
      */
     void speed(Speed s)
     {
-        getPortDevice()->OSPEEDR &= ~(3<<(getNumber()*2));
-        getPortDevice()->OSPEEDR |= toUint(s)<<(getNumber()*2);
+        auto ptr=getPortDevice();
+        ptr->OSPEEDR=(ptr->OSPEEDR & ~(3<<(getNumber()*2))) | toUint(s)<<(getNumber()*2);
     }
     
     /**
@@ -173,14 +221,14 @@ public:
     /**
      * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
      */
-    unsigned int getPort() const { return p & ~0xF; }
+    unsigned int getPort() const { return p & ~0xff; }
     
     /**
      * \return the pin number, from 0 to 15
      */
     unsigned char getNumber() const
     {
-        return static_cast<unsigned char>(p & 0xF);
+        return static_cast<unsigned char>(p & 0xff);
     }
     
 private:
@@ -201,7 +249,7 @@ private:
 
 /**
  * Gpio template class
- * \param P GPIOA_BASE, GPIOB_BASE, ... as #define'd in stm32f2xx.h
+ * \param P PA, PB, ... as #define'd in stm32f2xx.h
  * \param N which pin (0 to 15)
  * The intended use is to make a typedef to this class with a meaningful name.
  * \code
@@ -229,8 +277,8 @@ public:
      */
     static void speed(Speed s)
     {
-        reinterpret_cast<GPIO_TypeDef*>(P)->OSPEEDR &= ~(3<<(N*2));
-        reinterpret_cast<GPIO_TypeDef*>(P)->OSPEEDR |= toUint(s)<<(N*2);
+        auto ptr=reinterpret_cast<GPIO_TypeDef*>(P);
+        ptr->OSPEEDR=(ptr->OSPEEDR & ~(3<<(N*2))) | toUint(s)<<(N*2);
     }
     
     /**
@@ -286,8 +334,7 @@ public:
      */
     unsigned char getNumber() const { return N; }
 
-private:
-    Gpio();//Only static member functions, disallow creating instances
+    Gpio() = delete; //Only static member functions, disallow creating instances
 };
 
 } //namespace miosix
