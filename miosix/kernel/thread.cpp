@@ -398,9 +398,10 @@ void Thread::nanoSleepUntil(long long absoluteTimeNs)
         SleepData d(const_cast<Thread*>(runningThreads[getCurrentCoreId()]),absoluteTimeNs);
         d.thread->flags.IRQsetSleep(d.thread); //Sleeping thread: set sleep flag
         IRQaddToSleepingList(&d);
+        IRQinvokeScheduler();
         {
             FastGlobalIrqUnlock eLock(dLock);
-            Thread::yield();
+            //Interrupts are enabled, context switch happens, return after wakeup
         }
         //Only required for interruptibility when terminate is called
         sleepingList.removeFast(&d);
@@ -414,9 +415,9 @@ void Thread::wait()
         FastGlobalIrqLock lock;
         Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
         cur->flags.IRQsetWait(cur,true);
+        IRQinvokeScheduler();
     }
-    Thread::yield();
-    //Return here after wakeup
+    //Interrupts are enabled, context switch happens, return after wakeup
 }
 
 TimedWaitResult Thread::timedWait(long long absoluteTimeNs)
@@ -645,9 +646,10 @@ bool Thread::join(void** result)
             {
                 //Wait
                 cur->flags.IRQsetJoinWait(cur,true);
+                IRQinvokeScheduler();
                 {
                     FastGlobalIrqUnlock eLock(dLock);
-                    Thread::yield();
+                    //Interrupts are enabled, context switch happens
                 }
                 if(Thread::IRQexists(this)==false) return false;
                 if(this->flags.isDetached()) return false;
@@ -932,9 +934,11 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
             //If thread is detached, memory can be deallocated immediately
             atomicSwap(&existDeleted,1);
         }
+        IRQinvokeScheduler();
     }
-    Thread::yield();//Since the thread is now deleted, yield immediately.
-    //Will never reach here
+    //When interrupts are enabled back, the IRQinvokeScheduler becomes
+    //effective and the scheduler is called. Since the thread is now deleted
+    //will never reach here
     errorHandler(Error::UNEXPECTED);
 }
 
@@ -958,8 +962,9 @@ void Thread::PKrestartKernelAndWaitImpl()
     // (if it was, somebody is violating the constraints on when a PK function
     // can be called).
     FastPauseKernelLock::irqDisabledFastUnlock();
+    IRQinvokeScheduler();
     fastEnableIrq();
-    Thread::yield(); //Here the wait becomes effective
+    //Interrupts are enabled, context switch happens, return after wakeup
     FastPauseKernelLock::lock();
 }
 
@@ -978,8 +983,9 @@ void Thread::IRQglobalIrqUnlockAndWaitImpl()
     // So better to leave it alone. But as a side-effect we cannot upgrade a PK
     // lock to a GIL and then use this function!
     auto gilTakenRecursively=GlobalIrqLock::inLockedSection();
+    IRQinvokeScheduler();
     GlobalIrqLock::unlock();
-    Thread::yield(); //Here the wait becomes effective
+    //Interrupts are enabled, context switch happens, return after wakeup
     if(gilTakenRecursively) GlobalIrqLock::lock();
     else FastGlobalIrqLock::lock(); //The GIL was taken using the fast primitives
 }
@@ -1005,8 +1011,9 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWaitImpl(long long absoluteTimeNs
     // (if it was, somebody is violating the constraints on when a PK function
     // can be called)
     FastPauseKernelLock::irqDisabledFastUnlock();
+    IRQinvokeScheduler();
     fastEnableIrq();
-    Thread::yield(); //Here the wait becomes effective
+    //Interrupts are enabled, context switch happens, return after wakeup
     fastDisableIrq();
     FastPauseKernelLock::irqDisabledFastLock();
 
@@ -1032,8 +1039,9 @@ TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTim
 
     // Unlock GIL, yield, and relock again
     auto gilTakenRecursively=GlobalIrqLock::inLockedSection();
+    IRQinvokeScheduler();
     GlobalIrqLock::unlock();
-    Thread::yield(); //Here the wait becomes effective
+    //Interrupts are enabled, context switch happens, return after wakeup
     if(gilTakenRecursively) GlobalIrqLock::lock();
     else FastGlobalIrqLock::lock(); //The GIL was taken using the fast primitives
 
