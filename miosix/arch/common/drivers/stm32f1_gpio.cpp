@@ -6,14 +6,12 @@ namespace miosix {
 void GpioPin::mode(Mode m)
 {
     unsigned char n=getNumber();
-    GPIO_TypeDef *d=getPortDevice();
+    auto ptr=getPortDevice();
     if(n<8)
     {
-        d->CRL &= ~(0xf<<(n*4));
-        d->CRL |= toUint(m)<<(n*4);
+        ptr->CRL = (ptr->CRL & ~(0xf<<(n*4))) | toUint(m)<<(n*4);
     } else {
-        d->CRH &= ~(0xf<<((n-8)*4));
-        d->CRH |= toUint(m)<<((n-8)*4);
+        ptr->CRH = (ptr->CRH & ~(0xf<<((n-8)*4))) | toUint(m)<<((n-8)*4);
     }
 }
 

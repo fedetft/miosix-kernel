@@ -31,6 +31,29 @@
 
 namespace miosix {
 
+//Provide shorthands for GPIO port names (PA instead of GPIOA_BASE)
+#ifdef GPIOA_BASE
+constexpr unsigned int PA = GPIOA_BASE;
+#endif
+#ifdef GPIOB_BASE
+constexpr unsigned int PB = GPIOB_BASE;
+#endif
+#ifdef GPIOC_BASE
+constexpr unsigned int PC = GPIOC_BASE;
+#endif
+#ifdef GPIOD_BASE
+constexpr unsigned int PD = GPIOD_BASE;
+#endif
+#ifdef GPIOE_BASE
+constexpr unsigned int PE = GPIOE_BASE;
+#endif
+#ifdef GPIOF_BASE
+constexpr unsigned int PF = GPIOF_BASE;
+#endif
+#ifdef GPIOG_BASE
+constexpr unsigned int PG = GPIOG_BASE;
+#endif
+
 /**
  * GPIO mode (INPUT, OUTPUT, ...)
  * \code pin::mode(Mode::INPUT);\endcode
@@ -62,8 +85,8 @@ struct GpioMode
 {
     inline static void mode(Mode m)
     {
-        reinterpret_cast<GPIO_TypeDef*>(P)->CRH &= ~(0xf<<((N-8)*4));
-        reinterpret_cast<GPIO_TypeDef*>(P)->CRH |= toUint(m)<<((N-8)*4);
+        auto ptr=reinterpret_cast<GPIO_TypeDef*>(P);
+        ptr->CRH=(ptr->CRH & ~(0xf<<((N-8)*4))) | toUint(m)<<((N-8)*4);
     }
 };
 
@@ -72,8 +95,8 @@ struct GpioMode<P, N, false>
 {
     inline static void mode(Mode m)
     {
-        reinterpret_cast<GPIO_TypeDef*>(P)->CRL &= ~(0xf<<(N*4));
-        reinterpret_cast<GPIO_TypeDef*>(P)->CRL |= toUint(m)<<(N*4);
+        auto ptr=reinterpret_cast<GPIO_TypeDef*>(P);
+        ptr->CRL=(ptr->CRL & ~(0xf<<(N*4))) | toUint(m)<<(N*4);
     }
 };
 
@@ -87,12 +110,24 @@ class GpioPin
 {
 public:
     /**
+     * Default constructor
+     * Produces an invalid pin that shall not be used. The only safe method to
+     * call is isValid() which returns false on a default constructed GpioPin
+     */
+    GpioPin() : p(pack(PA,0xff)) {}
+
+    /**
      * Constructor
-     * \param p GPIOA_BASE, GPIOB_BASE, ... as #define'd in stm32f10x.h
+     * \param p PA, PB, ... as #define'd in stm32f10x.h
      * \param n which pin (0 to 15)
      */
     GpioPin(unsigned int p, unsigned char n)
         : p(pack(p, n)) {}
+
+    /**
+     * \retrun whether the GpioPin is valid
+     */
+    bool isValid() const { return getNumber()<16; }
         
     /**
      * Set the GPIO to the desired mode (INPUT, OUTPUT, ...)
@@ -144,14 +179,14 @@ public:
     /**
      * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
      */
-    unsigned int getPort() const { return p & ~0xF; }
+    unsigned int getPort() const { return p & ~0xff; }
     
     /**
      * \return the pin number, from 0 to 15
      */
     unsigned char getNumber() const
     {
-        return static_cast<unsigned char>(p & 0xF);
+        return static_cast<unsigned char>(p & 0xff);
     }
 
 private:
@@ -162,7 +197,7 @@ private:
     
     static inline unsigned long pack(unsigned long p, unsigned long n)
     {
-        //We use the fact that GPIO device pointers are always 16-byte aligned
+        //We use the fact that GPIO device pointers are always 256-byte aligned
         //to binpack the port number together with the pointer
         return p | n;
     }
@@ -172,7 +207,7 @@ private:
 
 /**
  * Gpio template class
- * \param P GPIOA_BASE, GPIOB_BASE, ... as #define'd in stm32f10x.h
+ * \param P PA, PB, ... as #define'd in stm32f10x.h
  * \param N which pin (0 to 15)
  * The intended use is to make a typedef to this class with a meaningful name.
  * \code
@@ -253,8 +288,7 @@ public:
      */
     unsigned char getNumber() const { return N; }
 
-private:
-    Gpio();//Only static member functions, disallow creating instances
+    Gpio() = delete; //Only static member functions, disallow creating instances
 };
 
 } //namespace miosix
