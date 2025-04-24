@@ -388,10 +388,10 @@ static void test_1()
     y--;//Now should point to last word of watermark
     if(*y!=WATERMARK_FILL) fail("getStackBottom() (2)");
     //Testing thread termination
-    Thread *p=Thread::create(t1_p1,STACK_SMALL,0,NULL);
+    Thread *p=Thread::create(t1_p1,STACK_SMALL,0,nullptr,Thread::DETACHED);
     t1_f1(p);
     //Testing argv passing
-    p=Thread::create(t1_p3,STACK_SMALL,0,reinterpret_cast<void*>(0xdeadbeef));
+    p=Thread::create(t1_p3,STACK_SMALL,0,reinterpret_cast<void*>(0xdeadbeef),Thread::DETACHED);
     Thread::sleep(5);
     
     if(Thread::exists(p)) fail("thread not deleted (2)");
@@ -447,7 +447,7 @@ static void t2_p2(void *argv)
 static void test_2()
 {
     test_name("pause/restart kernel");
-    t2_p_v1=Thread::create(t2_p1,STACK_SMALL,0,NULL,Thread::JOINABLE);
+    t2_p_v1=Thread::create(t2_p1,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     {
         PauseKernelLock lock;
         t2_v1=false;
@@ -474,7 +474,7 @@ static void test_2()
     
     #ifndef WITH_SMP
     //TODO: pin tasks on a single core for this test
-    t2_p_v1=Thread::create(t2_p2,STACK_SMALL,0,NULL,Thread::JOINABLE);
+    t2_p_v1=Thread::create(t2_p2,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     for(int i=0;i<5;i++)
     {
         bool failed=false;
@@ -562,7 +562,7 @@ static void test_3()
     //10% tolerance
     auto m=MAX_TIME_IRQ_DISABLED*1000;
     if(delta<(m-m/10) || delta>(m+m/10)) fail("getTime and delayUs don't agree");
-    Thread *p=Thread::create(t3_p1,STACK_SMALL,0,NULL,Thread::JOINABLE);
+    Thread *p=Thread::create(t3_p1,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     for(int i=0;i<4;i++)
     {
         //The other thread is running time test
@@ -572,7 +572,7 @@ static void test_3()
     p->join();
     //Testing Thread::sleep() again
     t3_v2=false;
-    p=Thread::create(t3_p2,STACK_SMALL,0,NULL,Thread::JOINABLE);
+    p=Thread::create(t3_p2,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     if(!p) fail("thread creation (1)");
     //t3_p2 sleeps for 15ms, then sets t3_v2. We sleep for 20ms so t3_v2 should
     //be true
@@ -589,7 +589,7 @@ static void test_3()
     t3_v2=false;
     //Creating another instance of t3_p2 to check what happens when 3 threads
     //are sleeping
-    Thread *p2=Thread::create(t3_p2,STACK_SMALL,0,NULL,Thread::JOINABLE);
+    Thread *p2=Thread::create(t3_p2,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     if(!p2) fail("thread creation (2)");
     //p will wake @ t=45, main will wake @ t=47 and p2 @ t=50ms
     //this will test proper sorting of sleeping_list in the kernel
@@ -680,7 +680,7 @@ static void t4_p2(void *argv)
 static void test_4()
 {
     test_name("globalIrqLock and priority");
-    Thread *p=Thread::create(t4_p1,STACK_SMALL,0,NULL);
+    Thread *p=Thread::create(t4_p1,STACK_SMALL,0,nullptr,Thread::DETACHED);
     //Check getPriority()
     if(p->getPriority()!=0) fail("getPriority (0)");
     //Check that getCurrentThread() and IRQgetCurrentThread() return the
@@ -749,7 +749,7 @@ static void test_4()
     p->terminate();
     Thread::sleep(10);
     #ifdef SCHED_TYPE_EDF
-    Thread::create(t4_p2,STACK_SMALL);
+    Thread::create(t4_p2,STACK_SMALL,MAIN_PRIORITY,nullptr,Thread::DETACHED);
     const int period=50000000;//ms
     long long time=getTime();
     //This takes .024/.05=48% of CPU time
@@ -800,7 +800,7 @@ static void test_5()
     test_name("wait, wakeup, IRQglobalIrqUnlockAndWait, IRQwakeup");
     t5_v2=false;//Testing wait
     t5_v1=false;
-    Thread *p=Thread::create(t5_p1,STACK_SMALL,0,NULL);
+    Thread *p=Thread::create(t5_p1,STACK_SMALL,0,nullptr,Thread::DETACHED);
     //Should not happen, since already tested
     Thread::sleep(5);
     if(t5_v1==false) fail("variable not updated");
@@ -1059,7 +1059,7 @@ static void *t6_p7(void *argv)
 
 bool checkIft6_m5IsLocked()
 {
-    Thread *t=Thread::create(t6_p7,STACK_SMALL,0,0,Thread::JOINABLE);
+    Thread *t=Thread::create(t6_p7,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     void *result;
     t->join(&result);
     return reinterpret_cast<int>(result)==0 ? false : true;
@@ -1074,7 +1074,7 @@ static void *t6_p7a(void *argv)
 
 bool checkIft6_m5aIsLocked()
 {
-    Thread *t=Thread::create(t6_p7a,STACK_SMALL,0,0,Thread::JOINABLE);
+    Thread *t=Thread::create(t6_p7a,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     void *result;
     t->join(&result);
     return reinterpret_cast<int>(result)==0 ? false : true;
@@ -1125,15 +1125,15 @@ static void test_6()
     seq.clear();
     #ifndef SCHED_TYPE_CONTROL_BASED
     //Create first thread
-    if (!Thread::create(t6_p1,STACK_SMALL,priorityAdapter(0),NULL))
+    if (!Thread::create(t6_p1,STACK_SMALL,priorityAdapter(0),nullptr,Thread::DETACHED))
         fail("thread creation (1)");
     Thread::sleep(20);
     //Create second thread
-    if (!Thread::create(t6_p2,STACK_SMALL,priorityAdapter(1),NULL))
+    if (!Thread::create(t6_p2,STACK_SMALL,priorityAdapter(1),nullptr,Thread::DETACHED))
         fail("thread creation (2)");
     Thread::sleep(20);
     //Create third thread
-    if (!Thread::create(t6_p3,STACK_SMALL,priorityAdapter(2),NULL))
+    if (!Thread::create(t6_p3,STACK_SMALL,priorityAdapter(2),nullptr,Thread::DETACHED))
         fail("thread creation (3)");
     Thread::sleep(20);
     t6_m1.lock();
@@ -1178,7 +1178,7 @@ static void test_6()
     if(t6_m1.tryLock()==false) fail("Mutex::tryLock() (3)");
     t6_m1.unlock();
     t6_v1=false;
-    Thread *t2=Thread::create(t6_p5,STACK_SMALL,1);
+    Thread *t2=Thread::create(t6_p5,STACK_SMALL,1,nullptr,Thread::DETACHED);
     Thread::sleep(30);
     if(t6_v1==false) fail("Thread not created");
     {
@@ -1278,7 +1278,7 @@ static void test_6()
             {
                 Lock<Mutex> l(t6_m5);
                 t=Thread::create(t6_p6,STACK_SMALL,0,reinterpret_cast<void*>(
-                    &t6_m5));
+                    &t6_m5),Thread::DETACHED);
                 Thread::sleep(10);
                 //If thread does not exist it means it has locked the mutex
                 //even if we locked it first
@@ -1323,13 +1323,13 @@ static void test_6()
     
     seq.clear();
     //Create first thread
-    Thread::create(t6_p1a,STACK_SMALL,priorityAdapter(0),NULL);
+    Thread::create(t6_p1a,STACK_SMALL,priorityAdapter(0),nullptr,Thread::DETACHED);
     Thread::sleep(20);
     //Create second thread
-    Thread::create(t6_p2a,STACK_SMALL,priorityAdapter(1),NULL);
+    Thread::create(t6_p2a,STACK_SMALL,priorityAdapter(1),nullptr,Thread::DETACHED);
     Thread::sleep(20);
     //Create third thread
-    Thread::create(t6_p3a,STACK_SMALL,priorityAdapter(2),NULL);
+    Thread::create(t6_p3a,STACK_SMALL,priorityAdapter(2),nullptr,Thread::DETACHED);
     Thread::sleep(20);
     t6_m1a.lock();
     /*
@@ -1351,7 +1351,7 @@ static void test_6()
     //
 
     //This thread will hold the lock until we terminate it
-    t=Thread::create(t6_p4a,STACK_SMALL,0);
+    t=Thread::create(t6_p4a,STACK_SMALL,0,nullptr,Thread::DETACHED);
     Thread::yield();
     if(t6_m1a.tryLock()==true) fail("Mutex::tryLock() (1a)");
     Thread::sleep(10);
@@ -1366,7 +1366,7 @@ static void test_6()
     if(t6_m1a.tryLock()==false) fail("Mutex::tryLock() (3a)");
     t6_m1a.unlock();
     t6_v1=false;
-    t2=Thread::create(t6_p5a,STACK_SMALL,1);
+    t2=Thread::create(t6_p5a,STACK_SMALL,1,nullptr,Thread::DETACHED);
     Thread::sleep(30);
     if(t6_v1==false) fail("Thread not created");
     {
@@ -1390,7 +1390,7 @@ static void test_6()
             {
                 Lock<FastMutex> l(t6_m5a);
                 t=Thread::create(t6_p6a,STACK_SMALL,0,reinterpret_cast<void*>(
-                    &t6_m5a));
+                    &t6_m5a),Thread::DETACHED);
                 Thread::sleep(10);
                 //If thread does not exist it means it has locked the mutex
                 //even if we locked it first
@@ -1513,7 +1513,7 @@ static void test_8()
     //Test queue between threads
     t8_q1.reset();
     t8_q2.reset();
-    Thread *p=Thread::create(t8_p1,STACK_SMALL,0,NULL);
+    Thread *p=Thread::create(t8_p1,STACK_SMALL,0,nullptr,Thread::DETACHED);
     int i,j;
     char write='A', read='A';
     for(i=1;i<=8;i++)
@@ -1609,7 +1609,7 @@ static void test_9()
 {
     test_name("isKernelPaused and save/restore interrupts");
     //Testing kernel_running with nested pause_kernel()
-    Thread *p=Thread::create(t9_p1,STACK_SMALL,0,NULL,Thread::JOINABLE);
+    Thread *p=Thread::create(t9_p1,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     if(isKernelPaused()==true) fail("isKernelPaused() (1)");
     {
         PauseKernelLock lock;//1
@@ -1721,7 +1721,7 @@ void t10_p1(void *argv)
 void test_10()
 {
     test_name("Exception handling");
-    Thread *t=Thread::create(t10_p1,1024+512,0,NULL);
+    Thread *t=Thread::create(t10_p1,1024+512,0,nullptr,Thread::DETACHED);
     //This sleep needs to be long enough to let the other thread print the
     //"An exception propagated ..." string on the serial port, otherwise the
     //test fails because the other thread still exists because it is printing.
@@ -1769,7 +1769,7 @@ void test_11()
     if(MemoryProfiling::getAbsoluteFreeHeap()>heapSize)
         fail("getAbsoluteFreeHeap");
     //Multithread test
-    Thread *t=Thread::create(t11_p1,STACK_SMALL,0,0,Thread::JOINABLE);
+    Thread *t=Thread::create(t11_p1,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     t11_v1=MemoryProfiling::getCurrentFreeHeap();
     t->join(0);
     Thread::sleep(10); //Give time to the idle thread for deallocating resources
@@ -1809,7 +1809,7 @@ void test_12()
         Lock<Mutex> l(t12_m2);
         //Then we create the first thread that will lock successfully the first
         //mutex, but will block while locking the second
-        t1=Thread::create(t12_p1,STACK_SMALL,priorityAdapter(0),0,
+        t1=Thread::create(t12_p1,STACK_SMALL,priorityAdapter(0),nullptr,
                 Thread::JOINABLE);
         Thread::sleep(5);
         //Last, we create the third thread that will block at the first mutex,
@@ -1817,7 +1817,7 @@ void test_12()
         //But since the first thread is itself waiting, the priority increase
         //should transitively pass to the thread who locked the second mutex,
         //which is main.
-        t2=Thread::create(t12_p2,STACK_SMALL,priorityAdapter(1),0,
+        t2=Thread::create(t12_p2,STACK_SMALL,priorityAdapter(1),nullptr,
                 Thread::JOINABLE);
         Thread::sleep(5);
         if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(1))
@@ -1898,33 +1898,33 @@ void test_14()
     //
 
     //Test 1: detached thread that returns void*
-    Thread *t=Thread::create(t14_p1,STACK_SMALL,0,0);
+    Thread *t=Thread::create(t14_p1,STACK_SMALL,0,nullptr,Thread::DETACHED);
     if(!t) fail("thread creation (1)");
     t->terminate();
     Thread::sleep(10);
     if(Thread::exists(t)) fail("detached thread");
     //Test 2: joining a not deleted thread
-    t=Thread::create(t14_p2,STACK_SMALL,0,0,Thread::JOINABLE);
+    t=Thread::create(t14_p2,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     if(!t) fail("thread creation (2)");
     t->join();
     Thread::sleep(10);
     //Test 3: detaching a thread while not deleted
-    t=Thread::create(t14_p2,STACK_SMALL,0,0,Thread::JOINABLE);
+    t=Thread::create(t14_p2,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     if(!t) fail("thread creation (3)");
     Thread::yield();
     t->detach();
     Thread::sleep(10);
     //Test 4: detaching a deleted thread
-    t=Thread::create(t14_p1,STACK_SMALL,0,0,Thread::JOINABLE);
+    t=Thread::create(t14_p1,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     if(!t) fail("thread creation (4)");
     t->terminate();
     Thread::sleep(10);
     t->detach();
     Thread::sleep(10);
     //Test 5: detaching a thread on which some other thread called join
-    t=Thread::create(t14_p2,STACK_SMALL,0,0,Thread::JOINABLE);
+    t=Thread::create(t14_p2,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     if(!t) fail("thread creation (5)");
-    if(!Thread::create(t14_p3,STACK_SMALL,0,reinterpret_cast<void*>(t)))
+    if(!Thread::create(t14_p3,STACK_SMALL,0,reinterpret_cast<void*>(t),Thread::DETACHED))
         fail("thread creation (6)");
     if(t->join()==true) fail("thread not detached (1)");
 
@@ -1944,7 +1944,7 @@ void test_14()
     Thread::sleep(10);
 
     //Test 2: join on joinable, but detach called before
-    t=Thread::create(t14_p2,STACK_SMALL,0,0,Thread::JOINABLE);
+    t=Thread::create(t14_p2,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     if(!t) fail("thread creation (8)");
     Thread::yield();
     t->detach();
@@ -1952,15 +1952,15 @@ void test_14()
     Thread::sleep(60);
 
     //Test 3: join on joinable, but detach called after
-    t=Thread::create(t14_p1,STACK_SMALL,0,0,Thread::JOINABLE);
+    t=Thread::create(t14_p1,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     if(!t) fail("thread creation (9)");
-    Thread::create(t14_p3,STACK_SMALL,0,reinterpret_cast<void*>(t));
+    Thread::create(t14_p3,STACK_SMALL,0,reinterpret_cast<void*>(t),Thread::DETACHED);
     if(t->join()==true) fail("Thread::join (3)");
     t->terminate();
     Thread::sleep(10);
 
     //Test 4: join on detached, not already deleted
-    t=Thread::create(t14_p1,STACK_SMALL,0,0);
+    t=Thread::create(t14_p1,STACK_SMALL,0,nullptr,Thread::DETACHED);
     if(!t) fail("thread creation (9)");
     if(t->join()==true) fail("Thread::join (4)");
     t->terminate();
@@ -1983,7 +1983,7 @@ void test_14()
     Thread::sleep(10);
 
     //Test 7: join on already detached and deleted
-    t=Thread::create(t14_p1,STACK_SMALL,0,0,Thread::JOINABLE);
+    t=Thread::create(t14_p1,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     if(!t) fail("thread creation (11)");
     t->detach();
     t->terminate();
@@ -2045,8 +2045,8 @@ static void test_15()
     t15_v1=false;
     t15_v2=false;
     t15_v3=0;
-    Thread *p1=Thread::create(t15_p1,STACK_SMALL,0);
-    Thread *p2=Thread::create(t15_p2,STACK_SMALL,0);
+    Thread *p1=Thread::create(t15_p1,STACK_SMALL,0,nullptr,Thread::DETACHED);
+    Thread *p2=Thread::create(t15_p2,STACK_SMALL,0,nullptr,Thread::DETACHED);
     for(int i=0;i<20;i++)
     {
         Thread::sleep(10);
@@ -2068,8 +2068,8 @@ static void test_15()
     t15_v1=false;
     t15_v2=false;
     t15_v3=0;
-    p1=Thread::create(t15_p1,STACK_SMALL,0);
-    p2=Thread::create(t15_p2,STACK_SMALL,0);
+    p1=Thread::create(t15_p1,STACK_SMALL,0,nullptr,Thread::DETACHED);
+    p2=Thread::create(t15_p2,STACK_SMALL,0,nullptr,Thread::DETACHED);
     for(int i=0;i<10;i++)
     {
         Thread::sleep(10);
@@ -2103,7 +2103,7 @@ static void test_15()
     }
     //iprintf("delta=%lld\n",b-a);
     if(llabs(b-a)>timeout1) fail("timedwait (2)");
-    Thread::create(t15_p3,STACK_SMALL,0);
+    Thread::create(t15_p3,STACK_SMALL,0,nullptr,Thread::DETACHED);
     a=getTime()+100000000; //100ms
     {
         Lock<Mutex> l(t15_m1);
@@ -2445,7 +2445,7 @@ static void test_16()
     if(pthread_once(&t16_o1,t16_f1)!=0) fail("pthread_once 2");
     if(t16_v2!=1) fail("pthread_once 3");
     t16_v2=0;
-    Thread::create(t16_p5,STACK_MIN);
+    Thread::create(t16_p5,STACK_MIN,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
     Thread::sleep(50);
     if(pthread_once(&t16_o2,t16_f2)!=0) fail("pthread_once 5");
     if(t16_v2!=1) fail("pthread_once does not wait");
@@ -2743,7 +2743,7 @@ static void test_19()
 
     //Now real multithreaded test
     t19_v1=Thread::getCurrentThread();
-    Thread *t=Thread::create(t19_p1,STACK_MIN,0,0,Thread::JOINABLE);
+    Thread *t=Thread::create(t19_p1,STACK_MIN,0,nullptr,Thread::JOINABLE);
     gbr(buffer,size);
     if(size!=strlen(b1c)) fail("returned size");
     if(strcmp(buffer,b1c)!=0) fail("returned buffer");
@@ -3200,7 +3200,7 @@ static void test_22()
     
     //Check that the implementation works with interrupts disabled too
     bool error=false;
-    Thread *t2=Thread::create(t22_t2,STACK_MIN,0,0,Thread::JOINABLE);
+    Thread *t2=Thread::create(t22_t2,STACK_MIN,0,nullptr,Thread::JOINABLE);
     {
         FastGlobalIrqLock dLock;
         t22_v5=false;
@@ -3247,7 +3247,7 @@ static void test_22()
     #ifndef __NO_EXCEPTIONS
     t22_v8=0;
     {
-        Thread *t3=Thread::create(t22_t3,STACK_SMALL,0,0,Thread::JOINABLE);
+        Thread *t3=Thread::create(t22_t3,STACK_SMALL,0,nullptr,Thread::JOINABLE);
         auto inst2=make_shared<t22_c1>();
         for(int i=0;i<t22_iterations;i++)
         {
@@ -3321,20 +3321,20 @@ static void test_23()
     {
         Lock<Mutex> l(t23_m1);
         Lock<Mutex> l2(t23_m1);
-        Thread *t=Thread::create(t23_f1,2*STACK_MIN,1,0,Thread::JOINABLE);
+        Thread *t=Thread::create(t23_f1,2*STACK_MIN,1,nullptr,Thread::JOINABLE);
         t23_c1.wait(l2);
         t->join();
     }
     {
         Lock<FastMutex> l(t23_m2);
         Lock<FastMutex> l2(t23_m2);
-        Thread *t=Thread::create(t23_f2,2*STACK_MIN,1,0,Thread::JOINABLE);
+        Thread *t=Thread::create(t23_f2,2*STACK_MIN,1,nullptr,Thread::JOINABLE);
         t23_c2.wait(l2);
         t->join();
     }
     pthread_mutex_lock(&t23_m3);
     pthread_mutex_lock(&t23_m3);
-    Thread *t=Thread::create(t23_f3,2*STACK_MIN,1,0,Thread::JOINABLE);
+    Thread *t=Thread::create(t23_f3,2*STACK_MIN,1,nullptr,Thread::JOINABLE);
     pthread_cond_wait(&t23_c3,&t23_m3);
     t->join();
     pthread_mutex_unlock(&t23_m3);
@@ -4402,7 +4402,7 @@ static void exception_test()
     test_name("C++ exception thread safety");
     iprintf("Note: test never ends. Reset the board when you are satisfied\n");
 	for(int i=0;i<nThreads;i++)
-        Thread::create(test,1024+512,0,reinterpret_cast<void*>(i));
+        Thread::create(test,1024+512,0,reinterpret_cast<void*>(i),Thread::DETACHED);
 	bool toggle=false;
 	for(int j=0;;j++)
 	{
@@ -4474,8 +4474,8 @@ static int b2_f1(int priority)
     Thread::setPriority(priority);
     b2_v1=false;
     b2_v2=0;
-    Thread *t1=Thread::create(b2_p1,STACK_SMALL,priority,NULL,Thread::JOINABLE);
-    Thread *t2=Thread::create(b2_p1,STACK_SMALL,priority,NULL,Thread::JOINABLE);
+    Thread *t1=Thread::create(b2_p1,STACK_SMALL,priority,nullptr,Thread::JOINABLE);
+    Thread *t2=Thread::create(b2_p1,STACK_SMALL,priority,nullptr,Thread::JOINABLE);
     b2_v1=true; //Start counting
     Thread::sleep(1000);
     b2_v1=false; //Stop counting
@@ -4602,9 +4602,9 @@ static void benchmark_4()
     Mutex m;
     b4_end=false;
     #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_SMALL);
+    Thread::create(b4_t1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
     #else
-    Thread::create(b4_t1,STACK_SMALL,0);
+    Thread::create(b4_t1,STACK_SMALL,0,nullptr,Thread::DETACHED);
     #endif
     Thread::yield();
     int i=0;
@@ -4619,9 +4619,9 @@ static void benchmark_4()
     FastMutex fm;
     b4_end=false;
     #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_SMALL);
+    Thread::create(b4_t1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
     #else
-    Thread::create(b4_t1,STACK_SMALL,0);
+    Thread::create(b4_t1,STACK_SMALL,0,nullptr,Thread::DETACHED);
     #endif
     Thread::yield();
     i=0;
@@ -4636,9 +4636,9 @@ static void benchmark_4()
     pthread_mutex_t pm=PTHREAD_MUTEX_INITIALIZER;
     b4_end=false;
     #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_SMALL);
+    Thread::create(b4_t1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
     #else
-    Thread::create(b4_t1,STACK_SMALL,0);
+    Thread::create(b4_t1,STACK_SMALL,0,nullptr,Thread::DETACHED);
     #endif
     Thread::yield();
     i=0;
@@ -4661,9 +4661,9 @@ static void benchmark_4()
 
     b4_end=false;
     #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_SMALL);
+    Thread::create(b4_t1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
     #else
-    Thread::create(b4_t1,STACK_SMALL,0);
+    Thread::create(b4_t1,STACK_SMALL,0,nullptr,Thread::DETACHED);
     #endif
     Thread::yield();
     i=0;
@@ -4679,9 +4679,9 @@ static void benchmark_4()
 
     b4_end=false;
     #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_SMALL);
+    Thread::create(b4_t1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
     #else
-    Thread::create(b4_t1,STACK_SMALL,0);
+    Thread::create(b4_t1,STACK_SMALL,0,nullptr,Thread::DETACHED);
     #endif
     Thread::yield();
     i=0;
@@ -4698,9 +4698,9 @@ static void benchmark_4()
 
     b4_end=false;
     #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_SMALL);
+    Thread::create(b4_t1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
     #else
-    Thread::create(b4_t1,STACK_SMALL,0);
+    Thread::create(b4_t1,STACK_SMALL,0,nullptr,Thread::DETACHED);
     #endif
     Thread::yield();
     i=0;
@@ -4716,9 +4716,9 @@ static void benchmark_4()
 
     b4_end=false;
     #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_SMALL);
+    Thread::create(b4_t1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
     #else
-    Thread::create(b4_t1,STACK_SMALL,0);
+    Thread::create(b4_t1,STACK_SMALL,0,nullptr,Thread::DETACHED);
     #endif
     Thread::yield();
     i=0;
@@ -4732,9 +4732,9 @@ static void benchmark_4()
 
     b4_end=false;
     #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_SMALL);
+    Thread::create(b4_t1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
     #else
-    Thread::create(b4_t1,STACK_SMALL,0);
+    Thread::create(b4_t1,STACK_SMALL,0,nullptr,Thread::DETACHED);
     #endif
     Thread::yield();
     i=0;

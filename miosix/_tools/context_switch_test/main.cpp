@@ -56,7 +56,7 @@ void *otherThread(void *unused)
 
 int main()
 {
-    Thread::create(otherThread, 1024);
+    Thread::create(otherThread,1024,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
     for (;;)
     {
         iprintf("blah blah blah blah blah blah blah blah blah blah blah "

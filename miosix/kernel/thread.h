@@ -108,8 +108,9 @@ public:
      */
     enum Options
     {
-        DEFAULT=0,    ///< Default thread options
-        JOINABLE=1<<0 ///< Thread is joinable instead of detached
+        DEFAULT=0,    ///< Default thread options (JOINABLE thread)
+        JOINABLE=0,   ///< Thread is created joinable
+        DETACHED=1<<0 ///< Thread is detached instead of joinable
     };
 
     /**
@@ -120,15 +121,18 @@ public:
      * The size of the stack must be divisible by 4, otherwise it will be
      * rounded to a number divisible by 4.
      * \param priority the thread's priority, whose range depends on the
-     * selected scheduler, see miosix_settings.h
+     * selected scheduler, see miosix_settings.h and constant DEFAULT_PRIORITY
      * \param argv a void* pointer that is passed as pararmeter to the entry
      * point function
-     * \param options thread options, such ad Thread::JOINABLE
+     * \param options thread options, such ad Thread::DETACHED
      * \return a reference to the thread created, that can be used, for example,
      * to delete it, or nullptr in case of errors.
+     *
+     * NOTE: starting from Miosix 3 threads are created JOINABLE by default.
+     * To createa detached thread, pass as options Thread::DETACHED
      */
     static Thread *create(void *(*startfunc)(void *), unsigned int stacksize,
-                            Priority priority=Priority(), void *argv=nullptr,
+                            Priority priority=DEFAULT_PRIORITY, void *argv=nullptr,
                             Options options=DEFAULT);
 
     /**
@@ -141,15 +145,18 @@ public:
      * The size of the stack must be divisible by 4, otherwise it will be
      * rounded to a number divisible by 4.
      * \param priority the thread's priority, whose range depends on the
-     * selected scheduler, see miosix_settings.h
+     * selected scheduler, see miosix_settings.h and constant DEFAULT_PRIORITY
      * \param argv a void* pointer that is passed as pararmeter to the entry
      * point function
-     * \param options thread options, such ad Thread::JOINABLE
+     * \param options thread options, such ad Thread::DETACHED
      * \return a reference to the thread created, that can be used, for example,
      * to delete it, or nullptr in case of errors.
+     *
+     * NOTE: starting from Miosix 3 threads are created JOINABLE by default.
+     * To createa detached thread, pass as options Thread::DETACHED
      */
     static Thread *create(void (*startfunc)(void *), unsigned int stacksize,
-                            Priority priority=Priority(), void *argv=nullptr,
+                            Priority priority=DEFAULT_PRIORITY, void *argv=nullptr,
                             Options options=DEFAULT)
     {
         //Just call the other version with a cast.

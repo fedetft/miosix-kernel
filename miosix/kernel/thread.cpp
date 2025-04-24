@@ -845,7 +845,7 @@ Thread::~Thread()
     #endif //WITH_PROCESSES
 }
 
-Thread *Thread::doCreate(void*(*startfunc)(void*) , unsigned int stacksize,
+Thread *Thread::doCreate(void*(*startfunc)(void*), unsigned int stacksize,
                       void* argv, Options options, bool defaultReent)
 {
     unsigned int fullStackSize=WATERMARK_LEN+CTXSAVE_ON_STACK+stacksize;
@@ -882,7 +882,7 @@ Thread *Thread::doCreate(void*(*startfunc)(void*) , unsigned int stacksize,
                             reinterpret_cast<unsigned int*>(thread),
                             startfunc,argv);
 
-    if((options & JOINABLE)==0) thread->flags.IRQsetDetached();
+    if(options & DETACHED) thread->flags.IRQsetDetached();
     return thread;
 }
 
@@ -1055,7 +1055,7 @@ Thread *Thread::allocateIdleThread()
     //there are no concurrency issues, not even with interrupts
 
     // Create the idle and main thread
-    auto *idle=Thread::doCreate(idleThreadCore0,STACK_IDLE,nullptr,Thread::DEFAULT,true);
+    auto *idle=Thread::doCreate(idleThreadCore0,STACK_IDLE,nullptr,Thread::DETACHED,true);
     if(idle==nullptr) errorHandler(Error::OUT_OF_MEMORY);
 
     // runningThreads[0] must point to a valid thread, so we make it point

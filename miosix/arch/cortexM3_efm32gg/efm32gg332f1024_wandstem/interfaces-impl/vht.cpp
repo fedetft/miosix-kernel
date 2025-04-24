@@ -49,7 +49,7 @@ void VHT::start(){
     TIMER2->IEN |= TIMER_IEN_CC2;
     
     // Thread that is waken up by the timer2 to perform the clock correction
-    HRTB::flopsyncThread=Thread::create(&VHT::doRun,2048,1,this);
+    HRTB::flopsyncThread=Thread::create(&VHT::doRun,2048,DEFAULT_PRIORITY,this,Thread::DETACHED);
 }
 
 void VHT::IRQoffsetUpdate(long long baseTheoretical, long long baseComputed){

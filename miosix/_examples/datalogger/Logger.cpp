@@ -76,7 +76,7 @@ void Logger::start()
     // Perhaps excessive defensive programming as thread creation failure is
     // highly unlikely (only if ram is full)
 
-    packT = Thread::create(packThreadLauncher, 1536, 1, this, Thread::JOINABLE);
+    packT = Thread::create(packThreadLauncher, 1536, DEFAULT_PRIORITY, this, Thread::JOINABLE);
     if (!packT)
     {
         fclose(file);
@@ -84,7 +84,7 @@ void Logger::start()
     }
 
     writeT =
-        Thread::create(writeThreadLauncher, 2048, 1, this, Thread::JOINABLE);
+        Thread::create(writeThreadLauncher, 2048, DEFAULT_PRIORITY, this, Thread::JOINABLE);
     if (!writeT)
     {
         fullQueue.put(nullptr);  // Signal packThread to stop
@@ -103,7 +103,7 @@ void Logger::start()
     if(logStatsEnabled)
     {
         statsT =
-            Thread::create(statsThreadLauncher, 1536, 1, this, Thread::JOINABLE);
+            Thread::create(statsThreadLauncher, 1536, DEFAULT_PRIORITY, this, Thread::JOINABLE);
         if (!statsT)
         {
             fullQueue.put(nullptr);  // Signal packThread to stop

@@ -99,7 +99,7 @@ static void number(int x)
 int main()
 {
     memset(digits,0,sizeof(digits));
-    Thread::create(displayThread,STACK_MIN);
+    Thread::create(displayThread,STACK_MIN,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
     for(int i=0;;i++)
     {
         number(i);

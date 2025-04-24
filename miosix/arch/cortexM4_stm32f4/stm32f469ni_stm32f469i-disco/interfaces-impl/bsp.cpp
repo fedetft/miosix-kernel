@@ -285,7 +285,7 @@ void bspInit2()
     #ifdef WITH_FILESYSTEM
     basicFilesystemSetup(SDIODriver::instance());
     #endif //WITH_FILESYSTEM
-//     Thread::create(printIRQ, 2048);
+//     Thread::create(printIRQ, 2048, DEFAULT_PRIORITY, nullptr, Thread::DETACHED);
 }
 
 //

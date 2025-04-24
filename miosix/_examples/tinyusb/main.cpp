@@ -88,7 +88,7 @@ int main()
         iprintf("USB initialization error\n");
         return 0;
     }
-    Thread::create(usbThread,2048U,Priority(0),nullptr,0);
+    Thread::create(usbThread,2048,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
 
     for (;;)
     {

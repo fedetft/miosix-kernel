@@ -30,7 +30,7 @@ int main()
 {
     const char str[]="Hello world\n";
     Thread *thread;
-    thread=Thread::create(threadfunc,2048,1,(void*)strlen(str),Thread::JOINABLE);
+    thread=Thread::create(threadfunc,2048,DEFAULT_PRIORITY,(void*)strlen(str));
     {
         Lock<Mutex> lock(mutex);
         for(int i=0;i<strlen(str);i++)

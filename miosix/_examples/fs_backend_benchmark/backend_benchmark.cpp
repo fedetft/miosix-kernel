@@ -93,7 +93,7 @@ int main()
             if(line[0]=='r' || line[0]=='s') break;
             puts("Error: insert 'r' or 's'");
         }
-        Thread *t=Thread::create(testThread,4096,1,0,Thread::JOINABLE);
+        auto t=Thread::create(testThread,4096,DEFAULT_PRIORITY,nullptr,Thread::JOINABLE);
         printf("Type enter to stop\n");
         getchar();
         t->terminate();

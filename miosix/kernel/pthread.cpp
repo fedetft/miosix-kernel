@@ -65,7 +65,7 @@ int pthread_create(pthread_t *pthread, const pthread_attr_t *attr,
     Priority priority=DEFAULT_PRIORITY;
     if(attr!=nullptr)
     {
-        if(attr->detachstate==PTHREAD_CREATE_DETACHED) opt=Thread::DEFAULT;
+        if(attr->detachstate==PTHREAD_CREATE_DETACHED) opt=Thread::DETACHED;
         stacksize=attr->stacksize;
         #ifndef SCHED_TYPE_EDF
         priority=max(0,min(NUM_PRIORITIES-1,attr->schedparam.sched_priority));

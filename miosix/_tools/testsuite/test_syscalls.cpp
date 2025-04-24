@@ -265,9 +265,9 @@ static void fs_test_1()
     #ifndef IN_PROCESS
     //Test concurrent file write access
     fs_1_error=false;
-    Thread *t1=Thread::create(fs_t1_p1,2048+512,1,NULL,Thread::JOINABLE);
-    Thread *t2=Thread::create(fs_t1_p2,2048+512,1,NULL,Thread::JOINABLE);
-    Thread *t3=Thread::create(fs_t1_p3,2048+512,1,NULL,Thread::JOINABLE);
+    Thread *t1=Thread::create(fs_t1_p1,2048+512,DEFAULT_PRIORITY,nullptr,Thread::JOINABLE);
+    Thread *t2=Thread::create(fs_t1_p2,2048+512,DEFAULT_PRIORITY,nullptr,Thread::JOINABLE);
+    Thread *t3=Thread::create(fs_t1_p3,2048+512,DEFAULT_PRIORITY,nullptr,Thread::JOINABLE);
     t1->join();
     t2->join();
     t3->join();
