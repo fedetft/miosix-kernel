@@ -329,7 +329,7 @@ Memory layout for a thread
 */
 
 Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
-                       Priority priority, void *argv, unsigned short options)
+                       Priority priority, void *argv, Options options)
 {
     //Check to see if input parameters are valid
     if(priority.validate()==false || stacksize<STACK_MIN) return nullptr;
@@ -846,7 +846,7 @@ Thread::~Thread()
 }
 
 Thread *Thread::doCreate(void*(*startfunc)(void*) , unsigned int stacksize,
-                      void* argv, unsigned short options, bool defaultReent)
+                      void* argv, Options options, bool defaultReent)
 {
     unsigned int fullStackSize=WATERMARK_LEN+CTXSAVE_ON_STACK+stacksize;
 

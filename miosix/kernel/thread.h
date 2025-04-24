@@ -129,7 +129,7 @@ public:
      */
     static Thread *create(void *(*startfunc)(void *), unsigned int stacksize,
                             Priority priority=Priority(), void *argv=nullptr,
-                            unsigned short options=DEFAULT);
+                            Options options=DEFAULT);
 
     /**
      * Same as create(void (*startfunc)(void *), unsigned int stacksize,
@@ -150,7 +150,7 @@ public:
      */
     static Thread *create(void (*startfunc)(void *), unsigned int stacksize,
                             Priority priority=Priority(), void *argv=nullptr,
-                            unsigned short options=DEFAULT)
+                            Options options=DEFAULT)
     {
         //Just call the other version with a cast.
         return Thread::create(reinterpret_cast<void *(*)(void*)>(startfunc),
@@ -898,7 +898,7 @@ private:
      * resources to create one.
      */
     static Thread *doCreate(void *(*startfunc)(void *), unsigned int stacksize,
-                            void *argv, unsigned short options, bool defaultReent);
+                            void *argv, Options options, bool defaultReent);
 
     /**
      * Thread launcher, all threads start from this member function, which calls
