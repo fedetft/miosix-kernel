@@ -244,9 +244,9 @@ static const STM32SerialHW ports[maxPorts] = {
 STM32SerialBase::STM32SerialBase(int id, int baudrate, bool flowControl) : 
     flowControl(flowControl), portId(id), rxQueue(rxQueueMin+baudrate/500)
 {
-    if(id<1 || id>maxPorts) errorHandler(UNEXPECTED);
+    if(id<1 || id>maxPorts) errorHandler(Error::UNEXPECTED);
     port=&ports[id-1];
-    if(port->get()==nullptr) errorHandler(UNEXPECTED);
+    if(port->get()==nullptr) errorHandler(Error::UNEXPECTED);
 }
 
 void STM32SerialBase::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
@@ -473,7 +473,7 @@ void STM32DMASerial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
 {
     //Check if DMA is supported for this port
     auto dma=port->getDma();
-    if(!dma.get()) errorHandler(UNEXPECTED);
+    if(!dma.get()) errorHandler(Error::UNEXPECTED);
     GlobalIrqLock dLock;
 
     dma.IRQenable();

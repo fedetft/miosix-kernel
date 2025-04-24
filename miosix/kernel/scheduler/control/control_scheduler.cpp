@@ -168,7 +168,7 @@ void ControlScheduler::IRQsetIdleThread(Thread *idleThread)
     idle=idleThread;
     //Initializing curInRound to end() so that the first time
     //IRQrunScheduler() is called the scheduling algorithm runs
-    if(threadListSize!=1) errorHandler(UNEXPECTED);
+    if(threadListSize!=1) errorHandler(Error::UNEXPECTED);
     curInRound=nullptr;
 }
 
@@ -580,7 +580,7 @@ void ControlScheduler::IRQsetIdleThread(Thread *idleThread)
     idle=idleThread;
     //Initializing curInRound to end() so that the first time
     //IRQrunScheduler() is called the scheduling algorithm runs
-    if(threadListSize!=1) errorHandler(UNEXPECTED);
+    if(threadListSize!=1) errorHandler(Error::UNEXPECTED);
     curInRound=activeThreads.end();
 }
 
@@ -683,7 +683,7 @@ void ControlScheduler::IRQrunScheduler()
             return;
         } else {
             //Error: a not ready thread end up in the ready list
-            errorHandler(UNEXPECTED);
+            errorHandler(Error::UNEXPECTED);
         }
     }
 }

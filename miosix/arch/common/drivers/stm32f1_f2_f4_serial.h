@@ -51,7 +51,7 @@ public:
      * Utility factory method for crating an instance of the STM32 serial
      * drivers.
      * 
-     * Calls errorHandler(UNEXPECTED) if id is not correct range or if DMA
+     * Calls errorHandler(Error::UNEXPECTED) if id is not correct range or if DMA
      * operation is requested and the specified port is not supported.
      * \tparam Tx Output GPIO
      * \tparam Rx Input GPIO
@@ -156,7 +156,7 @@ public:
      * Constructor, initializes the serial port using remapped pins and disables
      * flow control.
      * 
-     * Calls errorHandler(UNEXPECTED) if id is not in the correct range.
+     * Calls errorHandler(Error::UNEXPECTED) if id is not in the correct range.
      * \param id a number to select which USART. The maximum id depends on the
      *           specific microcontroller, the minimum id is always 1.
      * \param baudrate serial port baudrate
@@ -169,7 +169,7 @@ public:
      * Constructor, initializes the serial port using remapped pins and enables
      * flow control.
      * 
-     * Calls errorHandler(UNEXPECTED) if id is not in the correct range.
+     * Calls errorHandler(Error::UNEXPECTED) if id is not in the correct range.
      * \param id a number to select which USART. The maximum id depends on the
      *           specific microcontroller, the minimum id is always 1.
      * \param tx tx pin
@@ -256,7 +256,7 @@ public:
      * Constructor, initializes the serial port using remapped pins and disables
      * flow control.
      * 
-     * Calls errorHandler(UNEXPECTED) if id is not in the correct range, or if
+     * Calls errorHandler(Error::UNEXPECTED) if id is not in the correct range, or if
      * there is no support for DMA operation for this port.
      * \param id a number to select which USART. The maximum id depends on the
      *           specific microcontroller, the minimum id is always 1.
@@ -270,7 +270,7 @@ public:
      * Constructor, initializes the serial port using remapped pins and enables
      * flow control.
      * 
-     * Calls errorHandler(UNEXPECTED) if id is not in the correct range, or if
+     * Calls errorHandler(Error::UNEXPECTED) if id is not in the correct range, or if
      * there is no support for DMA operation for this port.
      * \param id a number to select which USART. The maximum id depends on the
      *           specific microcontroller, the minimum id is always 1.

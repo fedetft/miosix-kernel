@@ -112,7 +112,7 @@ void PriorityScheduler::IRQsetPriority(Thread *thread,
     thread->schedData.priority=newPriority;
     // Last insert the thread in the new list
     // NOTE: notReadyThreads must be pushed front to keep invariant
-    //if(thread->flags.isZombie()) errorHandler(UNEXPECTED);
+    //if(thread->flags.isZombie()) errorHandler(Error::UNEXPECTED);
     if(thread->flags.isReady()==false) notReadyThreads.push_front(thread);
     else readyThreads[newPriority.get()].push_back(thread);
 }

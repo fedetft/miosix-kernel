@@ -50,7 +50,7 @@ ATSAMSerial::ATSAMSerial(int id, int baudrate)
     : Device(Device::TTY), rxQueue(rxQueueMin+baudrate/500), rxWaiting(0),
     idle(true), portId(id)
 {
-    if(id!=2) errorHandler(UNEXPECTED);
+    if(id!=2) errorHandler(Error::UNEXPECTED);
     
     {
         GlobalIrqLock dLock;

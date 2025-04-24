@@ -64,7 +64,7 @@ EFM32Serial::EFM32Serial(int id, int baudrate, GpioPin tx, GpioPin rx)
                 CMU->HFPERCLKEN0|=CMU_HFPERCLKEN0_USART1;
                 break;
             default:
-                errorHandler(UNEXPECTED);
+                errorHandler(Error::UNEXPECTED);
         }
         IRQregisterIrq(irqn,&EFM32Serial::IRQinterruptHandler,this);
     }

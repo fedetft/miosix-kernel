@@ -218,7 +218,7 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
         Process *joined=self->zombies.front();
         self->zombies.pop_front();
         p.processes.erase(joined->pid);
-        if(joined->waitCount!=0) errorHandler(UNEXPECTED);
+        if(joined->waitCount!=0) errorHandler(Error::UNEXPECTED);
         if(exit!=nullptr) *exit=joined->exitCode;
         pid_t result=joined->pid;
         delete joined;
@@ -238,7 +238,7 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
             joined->waiting.wait(l);
             joined->waitCount--;
             if(joined->waitCount<0 || joined->zombie==false)
-                errorHandler(UNEXPECTED);
+                errorHandler(Error::UNEXPECTED);
         }
         pid_t result=-1;
         if(joined->waitCount==0)
@@ -352,7 +352,7 @@ void *Process::start(void *)
         kernel->zombies.splice(kernel->zombies.begin(),proc->zombies);
         
         map<pid_t,ProcessBase *>::iterator it2=p.processes.find(proc->ppid);
-        if(it2==p.processes.end()) errorHandler(UNEXPECTED);
+        if(it2==p.processes.end()) errorHandler(Error::UNEXPECTED);
         it2->second->childs.remove(proc);
         if(proc->waitCount>0) proc->waiting.broadcast();
         else {

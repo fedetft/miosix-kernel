@@ -239,7 +239,7 @@ void EDFScheduler::IRQrunScheduler()
     } 
 
     // if no RT, NRT or idle is available, Error (should never happen)
-    if(selected == 0) errorHandler(UNEXPECTED);
+    if(selected == 0) errorHandler(Error::UNEXPECTED);
    
 
     runningThread = walk;
@@ -321,7 +321,7 @@ void EDFScheduler::remove(Thread *thread)
 
     if(deadline == std::numeric_limits<long long>::max() - 2) // NRT tasks
     {
-        if(headNRT == nullptr) errorHandler(UNEXPECTED);
+        if(headNRT == nullptr) errorHandler(Error::UNEXPECTED);
 
         if(headNRT == thread)
         {
@@ -344,7 +344,7 @@ void EDFScheduler::remove(Thread *thread)
         Thread *walk = headNRT;
         for(;;)
         {
-            if(walk->schedData.next == headNRT) errorHandler(UNEXPECTED);
+            if(walk->schedData.next == headNRT) errorHandler(Error::UNEXPECTED);
             if(walk->schedData.next == thread)
             {
                 walk->schedData.next = walk->schedData.next->schedData.next;
@@ -355,7 +355,7 @@ void EDFScheduler::remove(Thread *thread)
     }
     else // RT tasks
     {
-        if(head == nullptr) errorHandler(UNEXPECTED);
+        if(head == nullptr) errorHandler(Error::UNEXPECTED);
         if(head == thread)
         {
             head = head->schedData.next;
@@ -365,7 +365,7 @@ void EDFScheduler::remove(Thread *thread)
         Thread *walk = head;
         for(;;)
         {
-            if(walk->schedData.next == nullptr) errorHandler(UNEXPECTED);
+            if(walk->schedData.next == nullptr) errorHandler(Error::UNEXPECTED);
             if(walk->schedData.next == thread)
             {
                 walk->schedData.next = walk->schedData.next->schedData.next;

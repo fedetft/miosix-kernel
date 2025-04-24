@@ -70,7 +70,7 @@ namespace miosix {
  * safety reasons it is not advisable to enter a state where execution stops,
  * it is suggested to implement this function by performing a reboot instead.
  */
-void shutdown();
+[[noreturn]] void shutdown();
 
 /**
  * This function should flush the default console with
@@ -83,7 +83,7 @@ void shutdown();
  * \endcode
  * and finally reboot the system.
  */
-void reboot();
+[[noreturn]] void reboot();
 
 /**
  * Used after an unrecoverable error condition to restart the system, even from
@@ -91,7 +91,7 @@ void reboot();
  * WARNING: this function does not close files nor unmount filesystems, so using
  * it could lead to data corruption.
  */
-void IRQsystemReboot();
+[[noreturn]] void IRQsystemReboot();
 
 } //namespace miosix
 

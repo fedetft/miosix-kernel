@@ -555,7 +555,7 @@ public:
      */
     void bufferFilled(unsigned int actualSize)
     {
-        if(isFull()) errorHandler(UNEXPECTED);
+        if(isFull()) errorHandler(Error::UNEXPECTED);
         cnt++;
         bufSize[put++]=actualSize;
         if(put>=numbuf) put=0;
@@ -590,7 +590,7 @@ public:
      */
     void bufferEmptied()
     {
-        if(isEmpty()) errorHandler(UNEXPECTED);
+        if(isEmpty()) errorHandler(Error::UNEXPECTED);
         cnt--;
         get++;
         if(get>=numbuf) get=0;

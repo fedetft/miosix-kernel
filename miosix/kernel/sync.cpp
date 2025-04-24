@@ -68,7 +68,7 @@ int FastMutex::lock()
         {
             recursiveDepth++;
             return 0;
-        } else errorHandler(MUTEX_ERROR); //Bad, deadlock
+        } else errorHandler(Error::MUTEX_ERROR); //Bad, deadlock
     }
 
     WaitingList waiting; //Element of a linked list on stack
@@ -109,7 +109,7 @@ int FastMutex::unlock()
 {
     FastPauseKernelLock dLock;
 //    Safety check removed for speed reasons
-//    if(owner!=Thread::PKgetCurrentThread()) errorHandler(MUTEX_ERROR);
+//    if(owner!=Thread::PKgetCurrentThread()) errorHandler(Error::MUTEX_ERROR);
     if(recursiveDepth>0)
     {
         recursiveDepth--;
@@ -146,7 +146,7 @@ inline void FastMutex::PKlockToDepth(FastPauseKernelLock& dLock, unsigned int de
         {
             recursiveDepth=depth;
             return;
-        } else errorHandler(MUTEX_ERROR); //Bad, deadlock
+        } else errorHandler(Error::MUTEX_ERROR); //Bad, deadlock
     }
 
     WaitingList waiting; //Element of a linked list on stack
@@ -169,7 +169,7 @@ inline void FastMutex::PKlockToDepth(FastPauseKernelLock& dLock, unsigned int de
 inline unsigned int FastMutex::PKunlockAllDepthLevels()
 {
 //    Safety check removed for speed reasons
-//    if(owner!=Thread::PKgetCurrentThread()) errorHandler(MUTEX_ERROR);
+//    if(owner!=Thread::PKgetCurrentThread()) errorHandler(Error::MUTEX_ERROR);
     if(first!=nullptr)
     {
         Thread *t=first->thread;
@@ -221,7 +221,7 @@ int Mutex::lock()
         {
             recursiveDepth++;
             return 0;
-        } else errorHandler(MUTEX_ERROR); //Bad, deadlock
+        } else errorHandler(Error::MUTEX_ERROR); //Bad, deadlock
     }
 
     //Add thread to mutex' waiting queue
@@ -229,7 +229,7 @@ int Mutex::lock()
     push_heap(waiting.begin(),waiting.end(),PKlowerPriority);
 
     //Handle priority inheritance
-    if(cur->mutexWaiting!=nullptr) errorHandler(UNEXPECTED);
+    if(cur->mutexWaiting!=nullptr) errorHandler(Error::UNEXPECTED);
     cur->mutexWaiting=this;
     inheritPriorityTowardsMutexOwner(cur->PKgetPriority());
 
@@ -263,7 +263,7 @@ int Mutex::unlock()
 {
     PauseKernelLock dLock;
 //    Safety check removed for speed reasons
-//    if(owner!=Thread::PKgetCurrentThread()) errorHandler(MUTEX_ERROR);
+//    if(owner!=Thread::PKgetCurrentThread()) errorHandler(Error::MUTEX_ERROR);
 
     if(recursiveDepth>0)
     {
@@ -299,7 +299,7 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
         {
             recursiveDepth=depth;
             return;
-        } else errorHandler(MUTEX_ERROR); //Bad, deadlock
+        } else errorHandler(Error::MUTEX_ERROR); //Bad, deadlock
     }
 
     //Add thread to mutex' waiting queue
@@ -307,7 +307,7 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
     push_heap(waiting.begin(),waiting.end(),PKlowerPriority);
 
     //Handle priority inheritance
-    if(cur->mutexWaiting!=nullptr) errorHandler(UNEXPECTED);
+    if(cur->mutexWaiting!=nullptr) errorHandler(Error::UNEXPECTED);
     cur->mutexWaiting=this;
     inheritPriorityTowardsMutexOwner(cur->PKgetPriority());
 
@@ -319,7 +319,7 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
 unsigned int Mutex::PKunlockAllDepthLevels()
 {
 //    Safety check removed for speed reasons
-//    if(owner!=Thread::PKgetCurrentThread()) errorHandler(MUTEX_ERROR);
+//    if(owner!=Thread::PKgetCurrentThread()) errorHandler(Error::MUTEX_ERROR);
 
     //NOTE: unlike Mutex::unlock() this function is only used to wait in
     //condition variables, after this call the current thread is descheduled
@@ -353,7 +353,7 @@ inline void Mutex::chooseNextOwner()
         owner=waiting.front();
         pop_heap(waiting.begin(),waiting.end(),PKlowerPriority);
         waiting.pop_back();
-        if(owner->mutexWaiting!=this) errorHandler(UNEXPECTED);
+        if(owner->mutexWaiting!=this) errorHandler(Error::UNEXPECTED);
         owner->mutexWaiting=nullptr;
         owner->PKwakeup(); //Also sets pendingWakeup if higher priority thread woken
         if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
@@ -434,7 +434,7 @@ inline void Mutex::removeFromLockedList(Thread *t)
         for(Mutex *walk=t->mutexLocked;;walk=walk->next)
         {
             //this Mutex not in owner's list? impossible
-            if(walk->next==nullptr) errorHandler(UNEXPECTED);
+            if(walk->next==nullptr) errorHandler(Error::UNEXPECTED);
             if(walk->next==this)
             {
                 walk->next=walk->next->next;
@@ -660,7 +660,7 @@ inline void ConditionVariable::addToWaitQueue(WaitToken *item)
      *   is added only when needed, look for CONDVAR_WAKEUP_BY_PRIORITY in the
      *   kernel code.
      */
-    if(item->t->savedPriority<0) errorHandler(UNEXPECTED); //Idle can't wait
+    if(item->t->savedPriority<0) errorHandler(Error::UNEXPECTED); //Idle can't wait
     if(condLists==nullptr) condLists=new IntrusiveList<WaitToken>[NUM_PRIORITIES];
     condLists[item->t->savedPriority.get()].push_back(item);
     #else

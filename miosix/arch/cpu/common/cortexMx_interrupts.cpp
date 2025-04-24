@@ -257,7 +257,7 @@ void IRQinitIrqTable() noexcept
 void IRQregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexcept
 {
     if(id>=numInterrupts || irqForwardingTable[id].handler!=unexpectedInterrupt)
-        errorHandler(INTERRUPT_REGISTRATION_ERROR);
+        errorHandler(Error::INTERRUPT_REGISTRATION_ERROR);
     irqForwardingTable[id].handler=handler;
     irqForwardingTable[id].arg=arg;
     NVIC_EnableIRQ(static_cast<IRQn_Type>(id));
@@ -278,7 +278,7 @@ void IRQunregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexce
     if(id>=numInterrupts
     || irqForwardingTable[id].handler!=handler
     || irqForwardingTable[id].arg!=arg)
-        errorHandler(INTERRUPT_REGISTRATION_ERROR);
+        errorHandler(Error::INTERRUPT_REGISTRATION_ERROR);
     irqForwardingTable[id].handler=unexpectedInterrupt;
     #ifdef WITH_ERRLOG
     irqForwardingTable[id].arg=reinterpret_cast<void*>(id);

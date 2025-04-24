@@ -177,7 +177,7 @@ void RP2040PL011Serial::commonInit(int number, int baudrate)
             irqn=UART1_IRQ_IRQn;
             break;
         default:
-            errorHandler(UNEXPECTED);
+            errorHandler(Error::UNEXPECTED);
     }
     IRQregisterIrq(irqn, &RP2040PL011Serial::IRQhandleInterrupt, this);
     uart->ifls = (2<<UART_UARTIFLS_RXIFLSEL_LSB) | (2<<UART_UARTIFLS_TXIFLSEL_LSB);

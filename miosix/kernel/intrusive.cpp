@@ -165,7 +165,7 @@ IntrusiveListItem *IntrusiveListBase::erase(IntrusiveListItem *cur)
 void IntrusiveListBase::fail()
 {
     #ifndef TEST_ALGORITHM
-    errorHandler(UNEXPECTED);
+    errorHandler(Error::UNEXPECTED);
     #else //TEST_ALGORITHM
     assert(false);
     #endif //TEST_ALGORITHM

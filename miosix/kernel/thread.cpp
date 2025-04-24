@@ -162,9 +162,9 @@ void *idleThreadOtherCores(void *)
  * \internal
  * Start the kernel.<br> There is no way to stop the kernel once it is
  * started, except a (software or hardware) system reset.<br>
- * Calls errorHandler(OUT_OF_MEMORY) if there is no heap to create the idle
- * thread. If the function succeds in starting the kernel, it never returns;
- * otherwise it will call errorHandler(OUT_OF_MEMORY) and then return
+ * Calls errorHandler(Error::OUT_OF_MEMORY) if there is no heap to create the
+ * idle thread. If the function succeds in starting the kernel, it never returns;
+ * otherwise it will call errorHandler(Error::OUT_OF_MEMORY) and then return
  * immediately. IRQstartKernel() must not be called when the kernel is already
  * started.
  */
@@ -174,7 +174,7 @@ void IRQstartKernel()
     try {
         kernel=new ProcessBase;
     } catch(...) {
-        errorHandler(OUT_OF_MEMORY);
+        errorHandler(Error::OUT_OF_MEMORY);
     }
     #endif //WITH_PROCESSES
     
@@ -193,8 +193,8 @@ void IRQstartKernel()
     // Create the main thread and add it to the scheduler.
     Thread *main;
     main=Thread::doCreate(mainLoader,MAIN_STACK_SIZE,nullptr,Thread::DEFAULT,true);
-    if(main==nullptr) errorHandler(OUT_OF_MEMORY);
-    if(Scheduler::IRQaddThread(main,DEFAULT_PRIORITY)==false) errorHandler(UNEXPECTED);
+    if(main==nullptr) errorHandler(Error::OUT_OF_MEMORY);
+    if(Scheduler::IRQaddThread(main,DEFAULT_PRIORITY)==false) errorHandler(Error::UNEXPECTED);
 
     // Idle thread needs to be set after main (see control_scheduler.cpp)
     Scheduler::IRQsetIdleThread(0,idle);
@@ -208,7 +208,7 @@ void IRQstartKernel()
     {
         // Create idle thread and set it as running
         idle=Thread::doCreate(idleThreadOtherCores,STACK_IDLE,nullptr,Thread::DEFAULT,true);
-        if(idle==nullptr) errorHandler(OUT_OF_MEMORY);
+        if(idle==nullptr) errorHandler(Error::OUT_OF_MEMORY);
         Scheduler::IRQsetIdleThread(i,idle);
         runningThreads[i]=idle;
         // Prepare initial stack and entry point. The core entry point does
@@ -703,9 +703,9 @@ void Thread::IRQstackOverflowCheck()
     #endif //WITH_PROCESSES
     if(cur->ctxsave[STACK_OFFSET_IN_CTXSAVE] <
         reinterpret_cast<unsigned int>(cur->watermark+watermarkSize))
-        errorHandler(STACK_OVERFLOW);
+        errorHandler(Error::STACK_OVERFLOW);
     for(unsigned int i=0;i<watermarkSize;i++)
-        if(cur->watermark[i]!=WATERMARK_FILL) errorHandler(STACK_OVERFLOW);
+        if(cur->watermark[i]!=WATERMARK_FILL) errorHandler(Error::STACK_OVERFLOW);
 }
 
 #ifdef WITH_PROCESSES
@@ -713,7 +713,7 @@ void Thread::IRQstackOverflowCheck()
 void Thread::IRQhandleSvc()
 {
     Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
-    if(cur->proc==kernel) errorHandler(UNEXPECTED);
+    if(cur->proc==kernel) errorHandler(Error::UNEXPECTED);
     //We know it's not the kernel, so the cast is safe
     auto *proc=static_cast<Process*>(cur->proc);
     //Don't process syscall if fault happened, may return to userspace by mistake
@@ -943,7 +943,7 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
     }
     Thread::yield();//Since the thread is now deleted, yield immediately.
     //Will never reach here
-    errorHandler(UNEXPECTED);
+    errorHandler(Error::UNEXPECTED);
 }
 
 void Thread::PKrestartKernelAndWaitImpl()
@@ -1064,11 +1064,11 @@ Thread *Thread::allocateIdleThread()
 
     // Create the idle and main thread
     auto *idle=Thread::doCreate(idleThreadCore0,STACK_IDLE,nullptr,Thread::DEFAULT,true);
-    if(idle==nullptr) errorHandler(OUT_OF_MEMORY);
+    if(idle==nullptr) errorHandler(Error::OUT_OF_MEMORY);
 
     // runningThreads[0] must point to a valid thread, so we make it point
     // to the the idle one. Moreover, we must be on core 0 during boot
-    if(getCurrentCoreId()!=0) errorHandler(UNEXPECTED);
+    if(getCurrentCoreId()!=0) errorHandler(Error::UNEXPECTED);
     runningThreads[0]=idle;
     return idle;
 }

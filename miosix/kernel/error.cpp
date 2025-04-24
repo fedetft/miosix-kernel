@@ -52,32 +52,22 @@ void errorHandler(Error e)
     //Unrecoverable errors
     switch(e)
     {
-        
-        case OUT_OF_MEMORY:
-            IRQerrorLog("\r\n***Out of memory\r\n");
-            break;
-        case STACK_OVERFLOW:
-            IRQerrorLog("\r\n***Stack overflow\r\n");
-            break;
-        case UNEXPECTED:
+        case Error::UNEXPECTED:
             IRQerrorLog("\r\n***Unexpected error\r\n");
             break;
-        case PAUSE_KERNEL_NESTING:
-            IRQerrorLog("\r\n***Pause kernel nesting\r\n");
+        case Error::OUT_OF_MEMORY:
+            IRQerrorLog("\r\n***Out of memory\r\n");
             break;
-        case GLOBAL_LOCK_NESTING:
-            IRQerrorLog("\r\n***Global lock nesting\r\n");
+        case Error::STACK_OVERFLOW:
+            IRQerrorLog("\r\n***Stack overflow\r\n");
             break;
-        case MUTEX_ERROR:
+        case Error::MUTEX_ERROR:
             IRQerrorLog("\r\n***Mutex error\r\n");
             break;
-        case NESTING_OVERFLOW:
-            IRQerrorLog("\r\n***Nesting overflow\r\n"); 
-            break;
-        case INTERRUPTS_ENABLED_AT_BOOT:
+        case Error::INTERRUPTS_ENABLED_AT_BOOT:
             IRQerrorLog("\r\n***Interrupts enabled at boot\r\n");
             break;
-        case INTERRUPT_REGISTRATION_ERROR:
+        case Error::INTERRUPT_REGISTRATION_ERROR:
             IRQerrorLog("\r\n***Interrupt registration error\r\n");
             break;
         default:

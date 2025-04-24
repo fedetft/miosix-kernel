@@ -106,7 +106,7 @@ void ProcessPool::deallocate(unsigned int *ptr)
     map<unsigned int*, unsigned int>::iterator it= allocatedBlocks.find(ptr);
     if(it==allocatedBlocks.end())
     #ifndef TEST_ALLOC
-        errorHandler(UNEXPECTED);
+        errorHandler(Error::UNEXPECTED);
     #else //TEST_ALLOC
         throw runtime_error("ProcessPool::deallocate corrupted pointer");
     #endif //TEST_ALLOC

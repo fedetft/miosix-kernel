@@ -48,7 +48,7 @@ class EFM32Serial : public Device
 public:
     /**
      * Constructor, initializes the serial port.
-     * Calls errorHandler(UNEXPECTED) if id is not in the correct range, or when
+     * Calls errorHandler(Error::UNEXPECTED) if id is not in the correct range, or when
      * attempting to construct multiple objects with the same id. That is,
      * it is possible to instantiate only one instance of this class for each
      * hardware USART.

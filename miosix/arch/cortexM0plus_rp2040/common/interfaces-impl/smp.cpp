@@ -188,13 +188,13 @@ void IRQinitSMP(void *const stackPtrs[], void (*const mains[])()) noexcept
     unsigned long vtor=SCB->VTOR;
     unsigned long psp=reinterpret_cast<unsigned long>(stackPtrs[0]);
     unsigned long pc=reinterpret_cast<unsigned long>(&initCore1);
-    if (!fifoSend(vtor)) errorHandler(UNEXPECTED);
-    if (!fifoSend(psp)) errorHandler(UNEXPECTED);
-    if (!fifoSend(pc)) errorHandler(UNEXPECTED);
+    if (!fifoSend(vtor)) errorHandler(Error::UNEXPECTED);
+    if (!fifoSend(psp)) errorHandler(Error::UNEXPECTED);
+    if (!fifoSend(pc)) errorHandler(Error::UNEXPECTED);
     // Send main function address and args, which will be read by
     // IRQcontinueInitCore1
     unsigned long fp=reinterpret_cast<unsigned long>(mains[0]);
-    if (!fifoSend(fp)) errorHandler(UNEXPECTED);
+    if (!fifoSend(fp)) errorHandler(Error::UNEXPECTED);
     // Register IPI (FIFO) interrupt handler for core 0
     IRQregisterIrq(SIO_IRQ_PROC0_IRQn,IRQinterProcessorInterruptHandler);
     // Register timer interrupt handler for core 0
@@ -228,7 +228,7 @@ void IRQcallOnCore(GlobalIrqLock& lock, unsigned char core, void (*f)(void *),
     // Is this already the right core?
     if(core==getCurrentCoreId()) { f(arg); return; }
     // If there is a pending call on core, panic because this is impossible
-    if(flags[core]&IPIFlags::CallOnCore) errorHandler(UNEXPECTED);
+    if(flags[core]&IPIFlags::CallOnCore) errorHandler(Error::UNEXPECTED);
     // Save the invocation which will be read by the call on core later
     invocations[core].func=f;
     invocations[core].arg=arg;

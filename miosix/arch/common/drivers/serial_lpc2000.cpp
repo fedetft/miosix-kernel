@@ -90,7 +90,7 @@ LPC2000Serial::LPC2000Serial(int id, int baudrate) : Device(Device::TTY),
         txWaiting(nullptr), rxWaiting(nullptr), idle(true)
 {
     GlobalIrqLock dLock;
-    if(id<0 || id>1 || ports[id]!=0) errorHandler(UNEXPECTED);
+    if(id<0 || id>1 || ports[id]!=0) errorHandler(Error::UNEXPECTED);
     ports[id]=this;
     if(id==0)
     {
@@ -284,7 +284,7 @@ LPC2000Serial::~LPC2000Serial()
     int id=0;
     if(ports[0]==this) id=0;
     else if(ports[1]==this) id=1;
-    else errorHandler(UNEXPECTED);
+    else errorHandler(Error::UNEXPECTED);
     ports[id]=0;
     
     if(id==0)

@@ -241,7 +241,7 @@ pair<const unsigned int*, unsigned int> MPUConfiguration::roundRegionForMPU(
     unsigned int x=roundSizeForMPU(size);
     for(;;)
     {
-        if(x>=maxSize) errorHandler(UNEXPECTED);
+        if(x>=maxSize) errorHandler(Error::UNEXPECTED);
         unsigned int ap=p & (~(x-1));
         unsigned int addsz=p-ap;
         unsigned int y=roundSizeForMPU(size+addsz);

@@ -34,6 +34,7 @@ void IRQsystemReboot()
 {
     //Jump to reset vector
     asm volatile("ldr pc, =0"::);
+    for(;;) ;
 }
 
 } // namespace miosix

@@ -90,7 +90,7 @@ public:
      */
     ~CppReentrancyData()
     {
-        if(eh_globals.caughtExceptions!=0) errorHandler(UNEXPECTED);
+        if(eh_globals.caughtExceptions!=0) errorHandler(Error::UNEXPECTED);
     }
 
 private:

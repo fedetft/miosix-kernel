@@ -39,7 +39,7 @@ class RP2040PL011Serial : public Device
 public:
     /**
      * Constructor, initializes the serial port.
-     * Calls errorHandler(UNEXPECTED) if the port is already being used by
+     * Calls errorHandler(Error::UNEXPECTED) if the port is already being used by
      * another instance of this driver.
      * \param number usart number
      * \param baudrate serial port baudrate
@@ -50,7 +50,7 @@ public:
 
     /**
      * Constructor, initializes the serial port.
-     * Calls errorHandler(UNEXPECTED) if the port is already being used by
+     * Calls errorHandler(Error::UNEXPECTED) if the port is already being used by
      * another instance of this driver.
      * \param number usart number
      * \param baudrate serial port baudrate
