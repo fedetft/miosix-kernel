@@ -33,8 +33,8 @@ void GpioPin::mode(Mode m)
 {
     //Can't avoid the if as we've done with Gpio<P,N>, as n is not a
     //template parameter in GpioPin
-    if(n>=8) internal::ModeBase::modeImplH(port,n,m);
-    else internal::ModeBase::modeImplL(port,n,m);
+    if(getNumber()>=8) internal::ModeBase::modeImplH(ptr(),getNumber(),m);
+    else internal::ModeBase::modeImplL(ptr(),getNumber(),m);
 }
 
 namespace internal {

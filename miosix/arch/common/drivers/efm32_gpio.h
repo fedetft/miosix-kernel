@@ -29,19 +29,18 @@
 
 #include "interfaces/arch_registers.h"
 
+namespace miosix {
+
 //The EFM32 header files do not provide a pointer to struct for each GPIO,
 //rather a single pointer to a GPIO struct is provided with an array of
 //other structs, one for each port. Thus, the port names map to indices to that
-//array. They are put outside of the miosix namespace for compatibility with
-//other BSPs
-const unsigned int GPIOA_BASE=0;
-const unsigned int GPIOB_BASE=1;
-const unsigned int GPIOC_BASE=2;
-const unsigned int GPIOD_BASE=3;
-const unsigned int GPIOE_BASE=4;
-const unsigned int GPIOF_BASE=5;
-
-namespace miosix {
+//array.
+const unsigned int PA=0;
+const unsigned int PB=1;
+const unsigned int PC=2;
+const unsigned int PD=3;
+const unsigned int PE=4;
+const unsigned int PF=5;
 
 /**
  * GPIO mode (INPUT, OUTPUT, ...)
@@ -87,10 +86,10 @@ enum class DriveStrength
 };
 
 /**
- * GPIOs configured as output have a default drive strength og 6mA, but every
+ * GPIOs configured as output have a default drive strength of 6mA, but every
  * port also has an alternate drive strength setting. GPIOs configured as
  * output ALT inherit the drive strength configured with this function.
- * \param p GPIOA_BASE, GPIOB_BASE, ...
+ * \param p PA, PB, ...
  * \param dst drive strength
  */
 inline void setPortAlternateDriveStrength(unsigned int p, DriveStrength dst)
@@ -106,7 +105,7 @@ inline void setPortAlternateDriveStrength(unsigned int p, DriveStrength dst)
  * 
  * To instantiate classes of this type, use Gpio<P,N>::getPin()
  * \code
- * typedef Gpio<PORTA_BASE,0> led;
+ * typedef Gpio<PA,0> led;
  * GpioPin ledPin=led::getPin();
  * \endcode
  */
@@ -114,17 +113,29 @@ class GpioPin
 {
 public:
     /**
+     * Default constructor
+     * Produces an invalid pin that shall not be used. The only safe method to
+     * call is isValid() which returns false on a default constructed GpioPin
+     */
+    GpioPin() : GpioPin(PA,0xff) {}
+
+    /**
      * \internal
      * Constructor. Don't instantiate classes through this constructor,
      * rather caller Gpio<P,N>::getPin().
-     * \param port port struct
+     * \param port PA, PB, ...
      * \param n which pin (0 to 15)
      */
-    GpioPin(GPIO_P_TypeDef *port, unsigned char n) : port(port), n(n) {}
+    GpioPin(unsigned int p, unsigned char n) : packed(p<<8 | n) {}
+
+    /**
+     * \retrun whether the GpioPin is valid
+     */
+    bool isValid() const { return getNumber()<16; }
     
     /**
      * Set the GPIO to the desired mode (INPUT, OUTPUT, ...)
-     * \param m enum Mode_
+     * \param m enum Mode
      */
     void mode(Mode m);
 
@@ -133,7 +144,7 @@ public:
      */
     void high()
     {
-        port->DOUTSET=1<<n;
+        ptr()->DOUTSET=1<<getNumber();
     }
 
     /**
@@ -141,7 +152,7 @@ public:
      */
     void low()
     {
-        port->DOUTCLR=1<<n;
+        ptr()->DOUTCLR=1<<getNumber();
     }
     
     /**
@@ -149,7 +160,7 @@ public:
      */
     void toggle()
     {
-        port->DOUTTGL=1<<n;
+        ptr()->DOUTTGL=1<<getNumber();
     }
 
     /**
@@ -158,22 +169,29 @@ public:
      */
     int value()
     {
-        return ((port->DIN & 1<<n)? 1 : 0);
+        return ((ptr()->DIN & 1<<getNumber())? 1 : 0);
     }
     
     /**
-     * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
+     * \return the pin port. One of the constants PA, PB, ...
      */
-    unsigned int getPort() const { return port-GPIO->P; }
+    inline unsigned int getPort() const { return packed>>8; }
     
     /**
      * \return the pin number, from 0 to 15
      */
-    unsigned char getNumber() const { return n; }
+     inline unsigned char getNumber() const { return packed & 0xff; }
     
 private:
-    GPIO_P_TypeDef *port; ///<Pointer to the port
-    unsigned char n;      ///<Number of the GPIO within the port
+    /**
+     * \return the GPIO struct pointer
+     */
+    inline GPIO_P_TypeDef *ptr() { return &GPIO->P[getPort()]; }
+
+    /// Packed pin port and number for efficiency. NOTE: we can't just store in
+    /// the high bit numbers the address of the GPIO_P_TypeDef struct as the're
+    /// not aligned and thus use all the bits
+    unsigned int packed;
 };
 
 namespace internal {
@@ -190,7 +208,7 @@ struct ModeBase
      * Set mode to a GPIO whose number is within 0 and 7
      * \param port port struct
      * \param n which pin (0 to 15)
-     * \param m enum Mode_
+     * \param m enum Mode
      */
     static void modeImplL(GPIO_P_TypeDef *port, unsigned char n, Mode m);
     
@@ -199,7 +217,7 @@ struct ModeBase
      * Set mode to a GPIO whose number is within 8 and 15
      * \param port port struct
      * \param n which pin (0 to 15)
-     * \param m enum Mode_
+     * \param m enum Mode
      */
     static void modeImplH(GPIO_P_TypeDef *port, unsigned char n, Mode m);
 };
@@ -231,11 +249,11 @@ struct ModeFwd<P,N,false>
 
 /**
  * Gpio template class
- * \param P GPIOA_BASE, GPIOB_BASE, ...
+ * \param P PA, PB, ...
  * \param N which pin (0 to 15)
  * The intended use is to make a typedef to this class with a meaningful name.
  * \code
- * typedef Gpio<PORTA_BASE,0> green_led;
+ * typedef Gpio<PA,0> green_led;
  * green_led::mode(Mode::OUTPUT);
  * green_led::high();//Turn on LED
  * \endcode
@@ -246,7 +264,7 @@ class Gpio
 public:
     /**
      * Set the GPIO to the desired mode (INPUT, OUTPUT, ...)
-     * \param m enum Mode_
+     * \param m enum Mode
      */
     static void mode(Mode m)
     {
@@ -289,13 +307,10 @@ public:
     /**
      * \return this Gpio converted as a GpioPin class 
      */
-    static GpioPin getPin()
-    {
-        return GpioPin(&GPIO->P[P],N);
-    }
+    static GpioPin getPin() { return GpioPin(P,N); }
     
     /**
-     * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
+     * \return the pin port. One of the constants PA, PB, ...
      */
     unsigned int getPort() const { return P; }
     
@@ -304,8 +319,7 @@ public:
      */
     unsigned char getNumber() const { return N; }
 
-private:
-    Gpio();//Only static member functions, disallow creating instances
+    Gpio() = delete; //Only static member functions, disallow creating instances
 };
 
 } //namespace miosix
