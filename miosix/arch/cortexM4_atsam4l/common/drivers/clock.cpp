@@ -128,7 +128,7 @@ void start32kHzOscillator()
 //     //Output OSC32K on PA2/GCLK0 for measurement purpose
 //     SCIF->SCIF_GCCTRL[0].SCIF_GCCTRL = SCIF_GCCTRL_OSCSEL(1) //Output OSC32K
 //                                      | SCIF_GCCTRL_CEN;
-//     using gclk0 = Gpio<GPIOA_BASE,2>;
+//     using gclk0 = Gpio<PA,2>;
 //     gclk0::mode(Mode::ALTERNATE);
 //     gclk0::alternateFunction('A');
 #else //USE_RC_32K_OSCILLATOR

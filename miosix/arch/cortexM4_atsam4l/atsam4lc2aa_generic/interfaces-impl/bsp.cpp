@@ -55,8 +55,8 @@ namespace miosix {
 void IRQbspInit()
 {
     //Configuring GPIO pins of USART2 to the proper alternate function
-    using rx = Gpio<GPIOA_BASE,25>;
-    using tx = Gpio<GPIOA_BASE,26>;
+    using rx = Gpio<PA,25>;
+    using tx = Gpio<PA,26>;
     rx::alternateFunction('B');
     tx::alternateFunction('B');
     rx::mode(Mode::ALTERNATE_PULL_UP);

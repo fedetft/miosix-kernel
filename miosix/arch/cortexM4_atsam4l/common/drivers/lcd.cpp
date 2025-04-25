@@ -27,6 +27,7 @@
 
 #include "lcd.h"
 #include "kernel/thread.h"
+#include "kernel/lock.h"
 #include <algorithm>
 
 using namespace std;

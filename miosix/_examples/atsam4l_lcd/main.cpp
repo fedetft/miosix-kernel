@@ -13,7 +13,7 @@ int main()
     //Configure GPIO of LCD, PA8 to PA23 = 4 COM and 12 SEG
     for(int i = 8; i <= 23; i++)
     {
-        GpioPin pin(GPIOA_BASE,i);
+        GpioPin pin(PA,i);
         pin.mode(Mode::ALTERNATE);
         pin.alternateFunction('F');
     }
