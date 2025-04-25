@@ -29,19 +29,19 @@
 
 #include "interfaces/arch_registers.h"
 
+namespace miosix {
+
 //The ATSAM header files do not provide a #define for each GPIO, rather a single
 //array of structs. Thus, the port names map to indices to that array.
 //To be able to access GPIOs the Miosix way, we need to add those.
 //They are put outside of the miosix namespace for compatibility with other BSPs
-const unsigned int GPIOA_BASE = GPIO_ADDR;
-const unsigned int GPIOB_BASE = GPIO_ADDR + 1*0x200;
-const unsigned int GPIOC_BASE = GPIO_ADDR + 2*0x200;
-
-namespace miosix {
+constexpr unsigned int PA = GPIO_ADDR;
+constexpr unsigned int PB = GPIO_ADDR + 1*0x200;
+constexpr unsigned int PC = GPIO_ADDR + 2*0x200;
 
 /*
  * A note for the user: writing this driver has been harder than expected as
- * the ATSAM4L documentation is quite a bit incpmplete and inconsistent, here's
+ * the ATSAM4L documentation is quite a bit incomplete and inconsistent, here's
  * a quick list of the dark corners:
  * - Figure 23-2 shows a GPIO_ODMER register, but there's no mention of it
  *   anywhere else in the entire document. The header file has this register
@@ -79,6 +79,7 @@ enum class Mode : unsigned char
 };
 
 /**
+ * \internal
  * Base class to implement non template-dependent functions that, if inlined,
  * would significantly increase code size
  */
@@ -101,13 +102,24 @@ class GpioPin : private GpioBase
 {
 public:
     /**
+     * Default constructor
+     * Produces an invalid pin that shall not be used. The only safe method to
+     * call is isValid() which returns false on a default constructed GpioPin
+     */
+    GpioPin() : packed(PA | 0xff) {}
+
+    /**
      * \internal
      * Constructor
-     * \param p GPIOA_BASE, GPIOB_BASE, ...
+     * \param p PA, PB, ...
      * \param n which pin (0 to 31)
      */
-    GpioPin(unsigned int p, unsigned char n)
-        : p(reinterpret_cast<GpioPort*>(p)), n(n) {}
+    GpioPin(unsigned int p, unsigned char n) : packed(p | n) {}
+
+    /**
+     * \retrun whether the GpioPin is valid
+     */
+    bool isValid() const { return getNumber()<32; }
 
     /**
      * Set the GPIO to the desired mode (INPUT, OUTPUT, ...)
@@ -115,7 +127,7 @@ public:
      */
     void mode(Mode m)
     {
-        modeImpl(p,n,m);
+        modeImpl(ptr(),getNumber(),m);
     }
 
     /**
@@ -125,7 +137,7 @@ public:
      */
     void driveStrength(unsigned char s)
     {
-        strengthImpl(p,n,s);
+        strengthImpl(ptr(),getNumber(),s);
     }
 
     /**
@@ -134,7 +146,7 @@ public:
      */
     void slewRateControl(bool s)
     {
-        slewImpl(p,n,s);
+        slewImpl(ptr(),getNumber(),s);
     }
 
     /**
@@ -146,7 +158,7 @@ public:
      */
     void alternateFunction(char af)
     {
-        afImpl(p,n,af);
+        afImpl(ptr(),getNumber(),af);
     }
 
     /**
@@ -154,7 +166,7 @@ public:
      */
     void high()
     {
-        p->GPIO_OVRS=1<<n;
+        ptr()->GPIO_OVRS=1<<getNumber();
     }
 
     /**
@@ -162,7 +174,7 @@ public:
      */
     void low()
     {
-        p->GPIO_OVRC=1<<n;
+        ptr()->GPIO_OVRC=1<<getNumber();
     }
     
     /**
@@ -170,7 +182,7 @@ public:
      */
     void toggle()
     {
-        p->GPIO_OVRT=1<<n;
+        ptr()->GPIO_OVRT=1<<getNumber();
     }
 
     /**
@@ -179,31 +191,38 @@ public:
      */
     int value()
     {
-        return (p->GPIO_PVR & 1<<n) ? 1 : 0;
+        return (ptr()->GPIO_PVR & 1<<getNumber()) ? 1 : 0;
     }
 
     /**
-     * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
+     * \return the pin port. One of the constants PA, PB, ...
      */
-    unsigned int getPort() const { return reinterpret_cast<unsigned int>(p); }
+    inline unsigned int getPort() const { return packed & ~0xff; }
 
     /**
      * \return the pin number, from 0 to 31
      */
-    unsigned char getNumber() const { return n; }
+    inline unsigned char getNumber() const { return packed & 0xff; }
 
 private:
-    GpioPort *p;     //Pointer to the port
-    unsigned char n; //Number of the GPIO within the port
+    /**
+     * \return the GPIO struct pointer
+     */
+    inline GpioPort *ptr()
+    {
+        return reinterpret_cast<GpioPort *>(getPort());
+    }
+
+    unsigned int packed; ///< Packed pin port and number for efficiency
 };
 
 /**
  * Gpio template class
- * \param P GPIOA_BASE, GPIOB_BASE, ...
+ * \param P PA, PB, ...
  * \param N which pin (0 to 31)
  * The intended use is to make a typedef to this class with a meaningful name.
  * \code
- * typedef Gpio<PORTA_BASE,0> green_led;
+ * typedef Gpio<PA,0> green_led;
  * green_led::mode(Mode::OUTPUT);
  * green_led::high();//Turn on LED
  * \endcode
@@ -212,8 +231,6 @@ template<unsigned int P, unsigned char N>
 class Gpio : private GpioBase
 {
 public:
-    Gpio() = delete; //Disallow creating instances
-
     /**
      * Set the GPIO to the desired mode (INPUT, OUTPUT, ...)
      * \param m enum Mode
@@ -304,6 +321,8 @@ public:
      * \return the pin number, from 0 to 31
      */
     unsigned char getNumber() const { return N; }
+
+    Gpio() = delete; //Disallow creating instances
 };
 
 } //namespace miosix
