@@ -35,15 +35,15 @@
 
 namespace miosix {
 
-typedef Gpio<GPIOF_BASE,2>  redLed;
-typedef Gpio<GPIOA_BASE,4>  greenLed;   //Also pin 20 of expansion connector
+typedef Gpio<PF,2>  redLed;
+typedef Gpio<PA,4>  greenLed;   //Also pin 20 of expansion connector
 
 //Also connected to a pin of the expansion connector in some revisions
 //rev 1.0 pin 19
 //rev 1.1 pin 30
 //rev 1.2 pin 30
 //rev 1.3 no longer connected to the expansion connector
-typedef Gpio<GPIOA_BASE,3>  userButton;
+typedef Gpio<PA,3>  userButton;
 
 //This is used for the VHT implementation, allowing to resynchronize
 //the high frequency timer with the RTC every time the node goes out
@@ -51,13 +51,13 @@ typedef Gpio<GPIOA_BASE,3>  userButton;
 //high frequency clock. The 32KHz frequency is also output on pin 26
 //of the expansion connector providing a low frequency clock to
 //daughter boards
-typedef Gpio<GPIOA_BASE,10> loopback32KHzIn;
-typedef Gpio<GPIOD_BASE,8>  loopback32KHzOut;
+typedef Gpio<PA,10> loopback32KHzIn;
+typedef Gpio<PD,8>  loopback32KHzOut;
 
 #if WANDSTEM_HW_REV>12
 //low  = 2.3V
 //high = 3.1V
-typedef Gpio<GPIOE_BASE,15> voltageSelect;
+typedef Gpio<PE,15> voltageSelect;
 #endif
 
 #if WANDSTEM_HW_REV>13
@@ -66,7 +66,7 @@ typedef Gpio<GPIOE_BASE,15> voltageSelect;
 //functions, while starting from revision 1.4, this pin controls the power
 //switch for the expansion connector, and transceiver::vregEn controls the
 //cc2520 and flash power domain
-typedef Gpio<GPIOC_BASE,10> powerSwitch;
+typedef Gpio<PC,10> powerSwitch;
 #endif //rev 1.4 or higher
 
 namespace expansion {
@@ -77,65 +77,65 @@ namespace expansion {
 //gpio17, reducing the GPIO count from 20 to 18.
 //MCU pin                   GPIO#     CONN# AF1          AF2
 #if WANDSTEM_HW_REV==10
-typedef Gpio<GPIOD_BASE,4>  gpio0;  //    1 ADC_CH0
-typedef Gpio<GPIOD_BASE,5>  gpio1;  //    2 ADC_CH1
-typedef Gpio<GPIOD_BASE,6>  gpio2;  //    3 ADC_CH2      LETIMER0
+typedef Gpio<PD,4>  gpio0;  //    1 ADC_CH0
+typedef Gpio<PD,5>  gpio1;  //    2 ADC_CH1
+typedef Gpio<PD,6>  gpio2;  //    3 ADC_CH2      LETIMER0
 #else //rev 1.1 or greater
-typedef Gpio<GPIOD_BASE,3>  gpio0;  //    1 ADC_CH0
-typedef Gpio<GPIOD_BASE,6>  gpio1;  //    2 ADC_CH1      LETIMER0
-typedef Gpio<GPIOD_BASE,5>  gpio2;  //    3 ADC_CH2
+typedef Gpio<PD,3>  gpio0;  //    1 ADC_CH0
+typedef Gpio<PD,6>  gpio1;  //    2 ADC_CH1      LETIMER0
+typedef Gpio<PD,5>  gpio2;  //    3 ADC_CH2
 #endif
 #if WANDSTEM_HW_REV<14
-typedef Gpio<GPIOD_BASE,7>  gpio3;  //    4 ADC_CH3      reserved in rev 1.4
+typedef Gpio<PD,7>  gpio3;  //    4 ADC_CH3      reserved in rev 1.4
 #endif //rev 1.3 or lower
-typedef Gpio<GPIOC_BASE,5>  gpio4;  //    7 SPI_CS       LETIMER1
-typedef Gpio<GPIOC_BASE,4>  gpio5;  //    8 SPI_SCK
-typedef Gpio<GPIOC_BASE,3>  gpio6;  //    9 SPI_MISO     USART_RX
-typedef Gpio<GPIOC_BASE,2>  gpio7;  //   10 SPI_MOSI     USART_TX
-typedef Gpio<GPIOC_BASE,6>  gpio8;  //   11 I2C_SDA      LEUSART_TX
-typedef Gpio<GPIOC_BASE,7>  gpio9;  //   12 I2C_SCL      LEUSART_RX
-typedef Gpio<GPIOE_BASE,12> gpio10; //   13 TIMESTAMP_IN/OUT
-typedef Gpio<GPIOB_BASE,11> gpio11; //   14 DAC_OUT
-typedef Gpio<GPIOA_BASE,0>  gpio12; //   15 PWM0         PRS0
-typedef Gpio<GPIOA_BASE,1>  gpio13; //   16 PWM1         PRS1
-typedef Gpio<GPIOC_BASE,1>  gpio14; //   18              EXC_ACMP1
-typedef Gpio<GPIOC_BASE,8>  gpio15; //   23 ACMP0
-typedef Gpio<GPIOC_BASE,9>  gpio16; //   24 ACMP1
+typedef Gpio<PC,5>  gpio4;  //    7 SPI_CS       LETIMER1
+typedef Gpio<PC,4>  gpio5;  //    8 SPI_SCK
+typedef Gpio<PC,3>  gpio6;  //    9 SPI_MISO     USART_RX
+typedef Gpio<PC,2>  gpio7;  //   10 SPI_MOSI     USART_TX
+typedef Gpio<PC,6>  gpio8;  //   11 I2C_SDA      LEUSART_TX
+typedef Gpio<PC,7>  gpio9;  //   12 I2C_SCL      LEUSART_RX
+typedef Gpio<PE,12> gpio10; //   13 TIMESTAMP_IN/OUT
+typedef Gpio<PB,11> gpio11; //   14 DAC_OUT
+typedef Gpio<PA,0>  gpio12; //   15 PWM0         PRS0
+typedef Gpio<PA,1>  gpio13; //   16 PWM1         PRS1
+typedef Gpio<PC,1>  gpio14; //   18              EXC_ACMP1
+typedef Gpio<PC,8>  gpio15; //   23 ACMP0
+typedef Gpio<PC,9>  gpio16; //   24 ACMP1
 #if WANDSTEM_HW_REV<14
-typedef Gpio<GPIOC_BASE,10> gpio17; //   25 ACMP2        reserved in rev 1.4
+typedef Gpio<PC,10> gpio17; //   25 ACMP2        reserved in rev 1.4
 #endif //rev 1.3 or lower
-typedef Gpio<GPIOE_BASE,8>  gpio18; //   27 PCNT_A
-typedef Gpio<GPIOE_BASE,9>  gpio19; //   28 PCNT_B
+typedef Gpio<PE,8>  gpio18; //   27 PCNT_A
+typedef Gpio<PE,9>  gpio19; //   28 PCNT_B
 } //namespace expansion
 
 namespace internalSpi {
 //The internal SPI is shared between the radio transceiver (CC2520) and flash
 //(IS25LP128). In addition, the CC2520 can be configured to output an analog
 //value proportional to its temperature on a pin that is shared with sck
-typedef Gpio<GPIOD_BASE,0>  mosi;
-typedef Gpio<GPIOD_BASE,1>  miso;
-typedef Gpio<GPIOD_BASE,2>  sck;    //Also cc2520_tempsensor (analog)
+typedef Gpio<PD,0>  mosi;
+typedef Gpio<PD,1>  miso;
+typedef Gpio<PD,2>  sck;    //Also cc2520_tempsensor (analog)
 } //namespace internalSpi
 
 namespace transceiver {
 //The radio transceiver. The exception channel B and STXON are connected to
 //a timer input capture and output compare channel for precise packet timing
-typedef Gpio<GPIOA_BASE,2>  cs;
-typedef Gpio<GPIOF_BASE,5>  reset;
-typedef Gpio<GPIOF_BASE,12> vregEn; //Also power switch enable before rev 1.4
-typedef Gpio<GPIOE_BASE,13> gpio1;
-typedef Gpio<GPIOE_BASE,14> gpio2;
-typedef Gpio<GPIOA_BASE,8>  excChB; //including SFD and FRM_DONE
+typedef Gpio<PA,2>  cs;
+typedef Gpio<PF,5>  reset;
+typedef Gpio<PF,12> vregEn; //Also power switch enable before rev 1.4
+typedef Gpio<PE,13> gpio1;
+typedef Gpio<PE,14> gpio2;
+typedef Gpio<PA,8>  excChB; //including SFD and FRM_DONE
 #if WANDSTEM_HW_REV<13
-typedef Gpio<GPIOE_BASE,15> gpio4;
+typedef Gpio<PE,15> gpio4;
 #endif
-typedef Gpio<GPIOA_BASE,9>  stxon;
+typedef Gpio<PA,9>  stxon;
 } //namespace transceiver
 
 namespace flash {
 //The on-board flash is a 16MByte IS25LP128, works down to 2.3V
-typedef Gpio<GPIOC_BASE,11> cs;
-typedef Gpio<GPIOA_BASE,5>  hold;
+typedef Gpio<PC,11> cs;
+typedef Gpio<PA,5>  hold;
 } //namespace flash
 
 namespace currentSense {
@@ -144,11 +144,11 @@ namespace currentSense {
 //and the resolution is ~51uA. The current sensor can sense the consumption of
 //all the components on the board (MCU, transceiver, flash) and also of the
 //components on the daughter board, unless they are hooked up to the VBAT line.
-typedef Gpio<GPIOC_BASE,0>  enable;
+typedef Gpio<PC,0>  enable;
 #if WANDSTEM_HW_REV==10
-typedef Gpio<GPIOD_BASE,3>  sense;  //Analog, also pin 5 of expansion connector
+typedef Gpio<PD,3>  sense;  //Analog, also pin 5 of expansion connector
 #else //rev 1.1 or greater
-typedef Gpio<GPIOD_BASE,4>  sense;  //Analog, also pin 5 of expansion connector
+typedef Gpio<PD,4>  sense;  //Analog, also pin 5 of expansion connector
 #endif
 } //namespace currentSense
 
@@ -157,7 +157,7 @@ typedef Gpio<GPIOD_BASE,4>  sense;  //Analog, also pin 5 of expansion connector
 //The voltage that can be sensed at this point is the battery voltage
 //multiplied by 0.237
 #if WANDSTEM_HW_REV>13
-typedef Gpio<GPIOD_BASE,7>  voltageSense;
+typedef Gpio<PD,7>  voltageSense;
 #endif //rev 1.4 or higher
 
 namespace debugConnector {
@@ -166,16 +166,16 @@ namespace debugConnector {
 //to upload code to the board, by pulling SWCLK high and resetting the board.
 //The bootloader can load code either using the serial port or the USB port.
 //Finally, also the MCU reset is exposed.
-typedef Gpio<GPIOE_BASE,10> tx;     //kernel serial port
-typedef Gpio<GPIOE_BASE,11> rx;     //kernel serial port
-typedef Gpio<GPIOF_BASE,0>  swclk;  //SWD (also pull high to start bootloader)
-typedef Gpio<GPIOF_BASE,1>  swdio;  //SWD
+typedef Gpio<PE,10> tx;     //kernel serial port
+typedef Gpio<PE,11> rx;     //kernel serial port
+typedef Gpio<PF,0>  swclk;  //SWD (also pull high to start bootloader)
+typedef Gpio<PF,1>  swdio;  //SWD
 } //namespace debugConnector
 
 namespace usb {
 //USB lines
-typedef Gpio<GPIOF_BASE,10> dm;
-typedef Gpio<GPIOF_BASE,11> dp;
+typedef Gpio<PF,10> dm;
+typedef Gpio<PF,11> dp;
 } //namespace usb
 
 } //namespace miosix
