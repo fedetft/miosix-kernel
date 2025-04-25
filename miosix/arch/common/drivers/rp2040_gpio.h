@@ -29,10 +29,10 @@
 
 #include "interfaces/arch_registers.h"
 
-//There is just one GPIO port on RP2040, with 30 lines
-const unsigned int GPIO0_BASE=0;
-
 namespace miosix {
+
+//There is just one GPIO port on RP2040, with 30 lines
+constexpr unsigned int P0=0;
 
 /**
  * GPIO pad mode (INPUT, OUTPUT, ...)
@@ -94,13 +94,20 @@ inline auto toUint(Function f)      { return static_cast<unsigned int>(f); }
  *
  * To instantiate classes of this type, use Gpio<P,N>::getPin()
  * \code
- * typedef Gpio<PORT0_BASE,0> led;
+ * typedef Gpio<P0,0> led;
  * GpioPin ledPin=led::getPin();
  * \endcode
  */
 class GpioPin
 {
 public:
+    /**
+     * Default constructor
+     * Produces an invalid pin that shall not be used. The only safe method to
+     * call is isValid() which returns false on a default constructed GpioPin
+     */
+    GpioPin() : N(0xff) {}
+
     /**
      * \internal
      * Constructor. Don't instantiate classes through this constructor,
@@ -109,6 +116,11 @@ public:
      * \param n which pin (0 to 15)
      */
     GpioPin(unsigned int port, unsigned char n): /*P(port),*/ N(n) {}
+
+    /**
+     * \retrun whether the GpioPin is valid
+     */
+    bool isValid() const { return getNumber()<32; }
 
     /**
      * Set the GPIO to the desired mode (INPUT, OUTPUT, ...)
@@ -173,9 +185,9 @@ public:
     int value() { return !!(sio_hw->gpio_out & (1UL << N)); }
 
     /**
-     * \return the pin port. One of the constants PORT0_BASE, ...
+     * \return the pin port. One of the constants P0, ...
      */
-    unsigned int getPort() const { /*return P;*/ return GPIO0_BASE; }
+    unsigned int getPort() const { /*return P;*/ return P0; }
 
     /**
      * \return the pin number, from 0 to 15
@@ -184,12 +196,12 @@ public:
 
 private:
     //const unsigned int P; optimized away because rp2040 has only one port
-    const unsigned char N;
+    unsigned char N;
 };
 
 /**
  * Gpio template class
- * \param P GPIO0_BASE, GPIO1_BASE, ...
+ * \param P P0, P1, ...
  * \param N which pin (0 to 29)
  * The intended use is to make a typedef to this class with a meaningful name.
  * \code
@@ -273,7 +285,7 @@ public:
     static GpioPin getPin() { return GpioPin(P, N); }
     
     /**
-     * \return the pin port. One of the constants GPIO0_BASE, GPIO1_BASE, ...
+     * \return the pin port. One of the constants P0, P1, ...
      */
     static unsigned int getPort() { return P; }
     
@@ -282,8 +294,7 @@ public:
      */
     static unsigned char getNumber() { return N; }
 
-private:
-    Gpio();//Only static member functions, disallow creating instances
+    Gpio() = delete; //Only static member functions, disallow creating instances
 };
 
 } //namespace miosix
