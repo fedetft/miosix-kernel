@@ -10,7 +10,7 @@ using namespace std;
 using namespace miosix;
 
 //Connect IR sensor output to PC6 of the stm32f4discovery
-typedef Gpio<GPIOC_BASE,6> timerIn;
+typedef Gpio<PC,6> timerIn;
 
 static unsigned short previous=0;
 

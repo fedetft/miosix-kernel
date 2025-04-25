@@ -34,8 +34,8 @@ using namespace miosix;
 int main()
 {
     long long int timeBefore, timeAfter;
-    using sleepLed = Gpio<GPIOD_BASE, 13>;     // orange
-    using deepSleepLed = Gpio<GPIOD_BASE, 15>; // blue
+    using sleepLed = Gpio<PD, 13>;     // orange
+    using deepSleepLed = Gpio<PD, 15>; // blue
     sleepLed::mode(Mode::OUTPUT);
     deepSleepLed::mode(Mode::OUTPUT);
     int i=1;

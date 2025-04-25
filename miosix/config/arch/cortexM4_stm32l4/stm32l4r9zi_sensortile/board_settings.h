@@ -55,20 +55,20 @@ const unsigned int defaultSerialSpeed=115200;
 const bool defaultSerialFlowctrl=false;
 const bool defaultSerialDma=true;
 // Default serial 1 pins (uncomment when using serial 1)
-//using defaultSerialTxPin = Gpio<GPIOA_BASE,9>;
-//using defaultSerialRxPin = Gpio<GPIOA_BASE,10>;
-//using defaultSerialRtsPin = Gpio<GPIOA_BASE,12>;
-//using defaultSerialCtsPin = Gpio<GPIOA_BASE,11>;
+//using defaultSerialTxPin = Gpio<PA,9>;
+//using defaultSerialRxPin = Gpio<PA,10>;
+//using defaultSerialRtsPin = Gpio<PA,12>;
+//using defaultSerialCtsPin = Gpio<PA,11>;
 // Default serial 2 pins (uncomment when using serial 2)
-using defaultSerialTxPin = Gpio<GPIOD_BASE,5>;
-using defaultSerialRxPin = Gpio<GPIOD_BASE,6>;
-using defaultSerialRtsPin = Gpio<GPIOD_BASE,4>;
-using defaultSerialCtsPin = Gpio<GPIOA_BASE,0>; //actually connected to DAC1_OUT1
+using defaultSerialTxPin = Gpio<PD,5>;
+using defaultSerialRxPin = Gpio<PD,6>;
+using defaultSerialRtsPin = Gpio<PD,4>;
+using defaultSerialCtsPin = Gpio<PA,0>; //actually connected to DAC1_OUT1
 // Default serial 3 pins (uncomment when using serial 3)
-//using defaultSerialTxPin = Gpio<GPIOD_BASE,8>;
-//using defaultSerialRxPin = Gpio<GPIOD_BASE,9>;
-//using defaultSerialRtsPin = Gpio<GPIOB_BASE,1>;
-//using defaultSerialCtsPin = Gpio<GPIOB_BASE,13>;
+//using defaultSerialTxPin = Gpio<PD,8>;
+//using defaultSerialRxPin = Gpio<PD,9>;
+//using defaultSerialRtsPin = Gpio<PB,1>;
+//using defaultSerialCtsPin = Gpio<PB,13>;
 
 //SD card driver
 static const unsigned char sdVoltage=33; //Board powered @ 3.3V

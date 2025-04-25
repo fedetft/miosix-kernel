@@ -37,15 +37,15 @@ using namespace std;
 using namespace miosix;
 
 #ifdef _BOARD_STM32VLDISCOVERY
-typedef Gpio<GPIOA_BASE,4> dacPin; //DAC1 out on the stm32f100rb is PA4
+typedef Gpio<PA,4> dacPin; //DAC1 out on the stm32f100rb is PA4
 #else //Assuming stm32f4discovery
-typedef Gpio<GPIOB_BASE,6>  scl;
-typedef Gpio<GPIOB_BASE,9>  sda;
-typedef Gpio<GPIOA_BASE,4>  lrck;
-typedef Gpio<GPIOC_BASE,7>  mclk;
-typedef Gpio<GPIOC_BASE,10> sclk;
-typedef Gpio<GPIOC_BASE,12> sdin;
-typedef Gpio<GPIOD_BASE,4>  reset;
+typedef Gpio<PB,6>  scl;
+typedef Gpio<PB,9>  sda;
+typedef Gpio<PA,4>  lrck;
+typedef Gpio<PC,7>  mclk;
+typedef Gpio<PC,10> sclk;
+typedef Gpio<PC,12> sdin;
+typedef Gpio<PD,4>  reset;
 typedef SoftwareI2C<sda,scl> i2c;
 #endif
 

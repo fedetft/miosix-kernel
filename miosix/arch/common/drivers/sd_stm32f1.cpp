@@ -135,12 +135,12 @@ enum CardType
 static CardType cardType=Invalid;
 
 //SD card GPIOs
-typedef Gpio<GPIOC_BASE,8>  sdD0;
-typedef Gpio<GPIOC_BASE,9>  sdD1;
-typedef Gpio<GPIOC_BASE,10> sdD2;
-typedef Gpio<GPIOC_BASE,11> sdD3;
-typedef Gpio<GPIOC_BASE,12> sdCLK;
-typedef Gpio<GPIOD_BASE,2>  sdCMD;
+typedef Gpio<PC,8>  sdD0;
+typedef Gpio<PC,9>  sdD1;
+typedef Gpio<PC,10> sdD2;
+typedef Gpio<PC,11> sdD3;
+typedef Gpio<PC,12> sdCLK;
+typedef Gpio<PD,2>  sdCMD;
 
 //
 // Class BufferConverter

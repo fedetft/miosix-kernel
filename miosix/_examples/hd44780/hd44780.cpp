@@ -8,12 +8,12 @@ using namespace miosix;
 #warning "You may need to choose different GPIOs that are free in your board"
 #endif
 
-typedef Gpio<GPIOB_BASE,12> d4;
-typedef Gpio<GPIOB_BASE,13> d5;
-typedef Gpio<GPIOB_BASE,14> d6;
-typedef Gpio<GPIOB_BASE,15> d7;
-typedef Gpio<GPIOC_BASE,1> rs;
-typedef Gpio<GPIOC_BASE,2> e;
+typedef Gpio<PB,12> d4;
+typedef Gpio<PB,13> d5;
+typedef Gpio<PB,14> d6;
+typedef Gpio<PB,15> d7;
+typedef Gpio<PC,1> rs;
+typedef Gpio<PC,2> e;
 
 // Custom characters:
 //   0      1      2      3      4      5      6      7

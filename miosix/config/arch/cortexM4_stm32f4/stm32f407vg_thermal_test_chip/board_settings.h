@@ -55,20 +55,20 @@ const unsigned int defaultSerialSpeed=115200;
 const bool defaultSerialFlowctrl=false;
 const bool defaultSerialDma=true;
 // Default serial 1 pins (uncomment when using serial 1)
-using defaultSerialTxPin = Gpio<GPIOA_BASE,9>;
-using defaultSerialRxPin = Gpio<GPIOA_BASE,10>;
-using defaultSerialRtsPin = Gpio<GPIOA_BASE,12>;
-using defaultSerialCtsPin = Gpio<GPIOA_BASE,11>;
+using defaultSerialTxPin = Gpio<PA,9>;
+using defaultSerialRxPin = Gpio<PA,10>;
+using defaultSerialRtsPin = Gpio<PA,12>;
+using defaultSerialCtsPin = Gpio<PA,11>;
 // Default serial 2 pins (uncomment when using serial 2)
-//using defaultSerialTxPin = Gpio<GPIOA_BASE,2>;
-//using defaultSerialRxPin = Gpio<GPIOA_BASE,3>;
-//using defaultSerialRtsPin = Gpio<GPIOA_BASE,1>;
-//using defaultSerialCtsPin = Gpio<GPIOA_BASE,0>;
+//using defaultSerialTxPin = Gpio<PA,2>;
+//using defaultSerialRxPin = Gpio<PA,3>;
+//using defaultSerialRtsPin = Gpio<PA,1>;
+//using defaultSerialCtsPin = Gpio<PA,0>;
 // Default serial 3 pins (uncomment when using serial 3)
-//using defaultSerialTxPin = Gpio<GPIOB_BASE,10>;
-//using defaultSerialRxPin = Gpio<GPIOB_BASE,11>;
-//using defaultSerialRtsPin = Gpio<GPIOB_BASE,14>;
-//using defaultSerialCtsPin = Gpio<GPIOB_BASE,13>;
+//using defaultSerialTxPin = Gpio<PB,10>;
+//using defaultSerialRxPin = Gpio<PB,11>;
+//using defaultSerialRtsPin = Gpio<PB,14>;
+//using defaultSerialCtsPin = Gpio<PB,13>;
 
 // Uncomment AUX_SERIAL to enable. The device will appear as /dev/auxtty.
 #define AUX_SERIAL "auxtty"
@@ -77,20 +77,20 @@ const unsigned int auxSerialSpeed=230400;
 const bool auxSerialFlowctrl=false;
 const bool auxSerialDma=true;
 // Default aux serial 1 pins (uncomment when using serial 1)
-//using auxSerialTxPin = Gpio<GPIOA_BASE,9>;
-//using auxSerialRxPin = Gpio<GPIOA_BASE,10>;
-//using auxSerialRtsPin = Gpio<GPIOA_BASE,12>;
-//using auxSerialCtsPin = Gpio<GPIOA_BASE,11>;
+//using auxSerialTxPin = Gpio<PA,9>;
+//using auxSerialRxPin = Gpio<PA,10>;
+//using auxSerialRtsPin = Gpio<PA,12>;
+//using auxSerialCtsPin = Gpio<PA,11>;
 // Default aux serial 2 pins (uncomment when using serial 2)
-//using auxSerialTxPin = Gpio<GPIOA_BASE,2>;
-//using auxSerialRxPin = Gpio<GPIOA_BASE,3>;
-//using auxSerialRtsPin = Gpio<GPIOA_BASE,1>;
-//using auxSerialCtsPin = Gpio<GPIOA_BASE,0>;
+//using auxSerialTxPin = Gpio<PA,2>;
+//using auxSerialRxPin = Gpio<PA,3>;
+//using auxSerialRtsPin = Gpio<PA,1>;
+//using auxSerialCtsPin = Gpio<PA,0>;
 // Default aux serial 3 pins (uncomment when using serial 3)
-using auxSerialTxPin = Gpio<GPIOB_BASE,10>;
-using auxSerialRxPin = Gpio<GPIOB_BASE,11>;
-using auxSerialRtsPin = Gpio<GPIOB_BASE,14>;
-using auxSerialCtsPin = Gpio<GPIOB_BASE,13>;
+using auxSerialTxPin = Gpio<PB,10>;
+using auxSerialRxPin = Gpio<PB,11>;
+using auxSerialRtsPin = Gpio<PB,14>;
+using auxSerialCtsPin = Gpio<PB,13>;
 
 //SD card driver
 static const unsigned char sdVoltage=33; //Board powered @ 3.3V

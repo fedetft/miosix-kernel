@@ -56,15 +56,15 @@ const bool defaultSerialFlowctrl=false;
 //Disable DMA for serial 2 because it conflicts with I2S driver in examples
 const bool defaultSerialDma=false;
 // Default serial 1 pins (uncomment when using serial 1)
-//using defaultSerialTxPin = Gpio<GPIOA_BASE,9>;
-//using defaultSerialRxPin = Gpio<GPIOA_BASE,10>;
-//using defaultSerialRtsPin = Gpio<GPIOA_BASE,12>;
-//using defaultSerialCtsPin = Gpio<GPIOA_BASE,11>;
+//using defaultSerialTxPin = Gpio<PA,9>;
+//using defaultSerialRxPin = Gpio<PA,10>;
+//using defaultSerialRtsPin = Gpio<PA,12>;
+//using defaultSerialCtsPin = Gpio<PA,11>;
 // Default serial 2 pins (uncomment when using serial 2)
-using defaultSerialTxPin = Gpio<GPIOA_BASE,2>;
-using defaultSerialRxPin = Gpio<GPIOA_BASE,3>;
-using defaultSerialRtsPin = Gpio<GPIOA_BASE,1>;
-using defaultSerialCtsPin = Gpio<GPIOA_BASE,0>;
+using defaultSerialTxPin = Gpio<PA,2>;
+using defaultSerialRxPin = Gpio<PA,3>;
+using defaultSerialRtsPin = Gpio<PA,1>;
+using defaultSerialCtsPin = Gpio<PA,0>;
 
 //SD card driver
 static const unsigned char sdVoltage=30; //Board powered @ 3.0V

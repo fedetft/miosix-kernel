@@ -10,7 +10,7 @@ void smallsleepTest()
 {
     // Check for os_timer race conditions by sleeping close to the wakeup time
     // test passes if no lockups occur
-    using pin = Gpio<GPIOB_BASE,1>; //TODO: change pin to one available
+    using pin = Gpio<PB,1>; //TODO: change pin to one available
     pin::mode(Mode::OUTPUT);
     const int span=2;
     for(;;)

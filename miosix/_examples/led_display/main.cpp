@@ -9,22 +9,22 @@
 
 using namespace miosix;
 
-typedef Gpio<GPIOB_BASE, 3> segmentA;
-typedef Gpio<GPIOB_BASE, 4> segmentB;
-typedef Gpio<GPIOB_BASE, 5> segmentC;
-typedef Gpio<GPIOB_BASE, 6> segmentD;
-typedef Gpio<GPIOB_BASE, 7> segmentE;
-typedef Gpio<GPIOB_BASE, 8> segmentF;
-typedef Gpio<GPIOB_BASE, 9> segmentG;
-typedef Gpio<GPIOB_BASE,10> segmentDP;
-typedef Gpio<GPIOD_BASE, 2> digit0;
-typedef Gpio<GPIOC_BASE,12> digit1;
-typedef Gpio<GPIOC_BASE,11> digit2;
-typedef Gpio<GPIOC_BASE,10> digit3;
-typedef Gpio<GPIOA_BASE,15> digit4;
-typedef Gpio<GPIOA_BASE, 3> digit5;
-typedef Gpio<GPIOA_BASE, 2> digit6;
-typedef Gpio<GPIOA_BASE, 1> digit7;
+typedef Gpio<PB, 3> segmentA;
+typedef Gpio<PB, 4> segmentB;
+typedef Gpio<PB, 5> segmentC;
+typedef Gpio<PB, 6> segmentD;
+typedef Gpio<PB, 7> segmentE;
+typedef Gpio<PB, 8> segmentF;
+typedef Gpio<PB, 9> segmentG;
+typedef Gpio<PB,10> segmentDP;
+typedef Gpio<PD, 2> digit0;
+typedef Gpio<PC,12> digit1;
+typedef Gpio<PC,11> digit2;
+typedef Gpio<PC,10> digit3;
+typedef Gpio<PA,15> digit4;
+typedef Gpio<PA, 3> digit5;
+typedef Gpio<PA, 2> digit6;
+typedef Gpio<PA, 1> digit7;
 
 static void outSegment(unsigned char segment)
 {

@@ -203,26 +203,26 @@ static CardType cardType=Invalid;
 //SD card GPIOs
 //TODO: expose gpio selection to the BSPs...
 #if (defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)) && SD_SDMMC==2
-typedef Gpio<GPIOG_BASE,9>  sdD0;
-typedef Gpio<GPIOG_BASE,10> sdD1;
-typedef Gpio<GPIOB_BASE,3>  sdD2;
-typedef Gpio<GPIOB_BASE,4>  sdD3;
-typedef Gpio<GPIOD_BASE,6>  sdCLK;
-typedef Gpio<GPIOD_BASE,7>  sdCMD;
+typedef Gpio<PG,9>  sdD0;
+typedef Gpio<PG,10> sdD1;
+typedef Gpio<PB,3>  sdD2;
+typedef Gpio<PB,4>  sdD3;
+typedef Gpio<PD,6>  sdCLK;
+typedef Gpio<PD,7>  sdCMD;
 #elif defined(_BOARD_STM32F411CE_BLACKPILL)
-typedef Gpio<GPIOB_BASE,4>  sdD0;
-typedef Gpio<GPIOC_BASE,9>  sdD1;
-typedef Gpio<GPIOC_BASE,10> sdD2;
-typedef Gpio<GPIOC_BASE,11> sdD3;
-typedef Gpio<GPIOB_BASE,15> sdCLK;
-typedef Gpio<GPIOA_BASE,6>  sdCMD;
+typedef Gpio<PB,4>  sdD0;
+typedef Gpio<PC,9>  sdD1;
+typedef Gpio<PC,10> sdD2;
+typedef Gpio<PC,11> sdD3;
+typedef Gpio<PB,15> sdCLK;
+typedef Gpio<PA,6>  sdCMD;
 #else
-typedef Gpio<GPIOC_BASE,8>  sdD0;
-typedef Gpio<GPIOC_BASE,9>  sdD1;
-typedef Gpio<GPIOC_BASE,10> sdD2;
-typedef Gpio<GPIOC_BASE,11> sdD3;
-typedef Gpio<GPIOC_BASE,12> sdCLK;
-typedef Gpio<GPIOD_BASE,2>  sdCMD;
+typedef Gpio<PC,8>  sdD0;
+typedef Gpio<PC,9>  sdD1;
+typedef Gpio<PC,10> sdD2;
+typedef Gpio<PC,11> sdD3;
+typedef Gpio<PC,12> sdCLK;
+typedef Gpio<PD,2>  sdCMD;
 #endif
 
 

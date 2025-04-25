@@ -177,7 +177,7 @@ public:
     }
     
     /**
-     * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
+     * \return the pin port. One of the constants PA, PB, ...
      */
     unsigned int getPort() const { return p & ~0xff; }
     
@@ -211,7 +211,7 @@ private:
  * \param N which pin (0 to 15)
  * The intended use is to make a typedef to this class with a meaningful name.
  * \code
- * typedef Gpio<PORTA_BASE,0> green_led;
+ * typedef Gpio<PA,0> green_led;
  * green_led::mode(Mode::OUTPUT);
  * green_led::high();//Turn on LED
  * \endcode
@@ -279,7 +279,7 @@ public:
     }
     
     /**
-     * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
+     * \return the pin port. One of the constants PA, PB, ...
      */
     unsigned int getPort() const { return P; }
     

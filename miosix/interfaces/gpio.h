@@ -100,15 +100,15 @@
  * The intended use is this:
  * considering an architecture with two ports, PORTA and PORTB each with 8 pins.
  * The header gpio_impl.h should provide two constants, for example named
- * GPIOA_BASE and GPIOB_BASE.
+ * PA and PB.
  *
  * The user can declare the hardware mapping between gpios and what is connected
  * to them, usually in an header file. If for example PORTA.0 is connected to
  * a button while PORTB.4 to a led, the header file might contain:
  *
  * \code
- * typedef Gpio<GPIOA_BASE,0> button;
- * typedef Gpio<GPIOB_BASE,4> led;
+ * typedef Gpio<PA,0> button;
+ * typedef Gpio<PB,4> led;
  * \endcode
  *
  * This allows the rest of the code to be written in terms of leds and buttons,

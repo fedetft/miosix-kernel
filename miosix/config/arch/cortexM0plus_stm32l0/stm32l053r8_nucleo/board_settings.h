@@ -54,20 +54,20 @@ const unsigned int defaultSerialSpeed=115200;
 const bool defaultSerialFlowctrl=false;
 const bool defaultSerialDma=false; // Not supported for serial 2
 // Default serial 1 pins (uncomment when using serial 1)
-//using defaultSerialTxPin = Gpio<GPIOA_BASE,9>;
-//using defaultSerialRxPin = Gpio<GPIOA_BASE,10>;
-//using defaultSerialRtsPin = Gpio<GPIOA_BASE,12>;
-//using defaultSerialCtsPin = Gpio<GPIOA_BASE,11>;
+//using defaultSerialTxPin = Gpio<PA,9>;
+//using defaultSerialRxPin = Gpio<PA,10>;
+//using defaultSerialRtsPin = Gpio<PA,12>;
+//using defaultSerialCtsPin = Gpio<PA,11>;
 // Default serial 2 pins (uncomment when using serial 2)
-using defaultSerialTxPin = Gpio<GPIOA_BASE,2>;
-using defaultSerialRxPin = Gpio<GPIOA_BASE,3>;
-using defaultSerialRtsPin = Gpio<GPIOA_BASE,1>;
-using defaultSerialCtsPin = Gpio<GPIOA_BASE,0>;
+using defaultSerialTxPin = Gpio<PA,2>;
+using defaultSerialRxPin = Gpio<PA,3>;
+using defaultSerialRtsPin = Gpio<PA,1>;
+using defaultSerialCtsPin = Gpio<PA,0>;
 // Default serial 3 pins (uncomment when using serial 3/LPUART)
-//using defaultSerialTxPin = Gpio<GPIOB_BASE,10>;
-//using defaultSerialRxPin = Gpio<GPIOB_BASE,11>;
-//using defaultSerialRtsPin = Gpio<GPIOB_BASE,14>;
-//using defaultSerialCtsPin = Gpio<GPIOB_BASE,13>;
+//using defaultSerialTxPin = Gpio<PB,10>;
+//using defaultSerialRxPin = Gpio<PB,11>;
+//using defaultSerialRtsPin = Gpio<PB,14>;
+//using defaultSerialCtsPin = Gpio<PB,13>;
 
 /**
  * \}

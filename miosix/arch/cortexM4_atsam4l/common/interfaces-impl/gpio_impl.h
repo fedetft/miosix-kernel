@@ -313,7 +313,7 @@ public:
     }
 
     /**
-     * \return the pin port. One of the constants PORTA_BASE, PORTB_BASE, ...
+     * \return the pin port. One of the constants PA, PB, ...
      */
     unsigned int getPort() const { return P; }
     

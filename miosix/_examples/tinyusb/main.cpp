@@ -34,10 +34,10 @@ using namespace miosix;
 
 namespace usb {
 
-using vbus = Gpio<GPIOA_BASE, 9>;
-using id = Gpio<GPIOA_BASE, 10>;
-using dm = Gpio<GPIOA_BASE, 11>;
-using dp = Gpio<GPIOA_BASE, 12>;
+using vbus = Gpio<PA, 9>;
+using id = Gpio<PA, 10>;
+using dm = Gpio<PA, 11>;
+using dp = Gpio<PA, 12>;
 
 }
 

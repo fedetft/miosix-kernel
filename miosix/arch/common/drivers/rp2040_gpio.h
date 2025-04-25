@@ -205,7 +205,7 @@ private:
  * \param N which pin (0 to 29)
  * The intended use is to make a typedef to this class with a meaningful name.
  * \code
- * typedef Gpio<PORTA_BASE,0> green_led;
+ * typedef Gpio<PA,0> green_led;
  * green_led::mode(Mode::OUTPUT);
  * green_led::high();//Turn on LED
  * \endcode

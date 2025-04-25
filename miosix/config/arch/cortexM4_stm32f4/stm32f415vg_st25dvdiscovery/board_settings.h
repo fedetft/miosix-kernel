@@ -57,15 +57,15 @@ const unsigned int defaultSerialSpeed=115200;
 const bool defaultSerialFlowctrl=false;
 const bool defaultSerialDma=true;
 // Default serial 2 pins (uncomment when using serial 2)
-//using defaultSerialTxPin = Gpio<GPIOA_BASE,2>;
-//using defaultSerialRxPin = Gpio<GPIOA_BASE,3>;
-//using defaultSerialRtsPin = Gpio<GPIOA_BASE,1>;
-//using defaultSerialCtsPin = Gpio<GPIOA_BASE,0>;
+//using defaultSerialTxPin = Gpio<PA,2>;
+//using defaultSerialRxPin = Gpio<PA,3>;
+//using defaultSerialRtsPin = Gpio<PA,1>;
+//using defaultSerialCtsPin = Gpio<PA,0>;
 // Default serial 6 pins (uncomment when using serial 6)
-using defaultSerialTxPin = Gpio<GPIOC_BASE,6>;
-using defaultSerialRxPin = Gpio<GPIOC_BASE,7>;
-using defaultSerialRtsPin = Gpio<GPIOG_BASE,12>; //unused
-using defaultSerialCtsPin = Gpio<GPIOG_BASE,13>; //unused
+using defaultSerialTxPin = Gpio<PC,6>;
+using defaultSerialRxPin = Gpio<PC,7>;
+using defaultSerialRtsPin = Gpio<PG,12>; //unused
+using defaultSerialCtsPin = Gpio<PG,13>; //unused
 
 //SD card driver
 //TODO: this board does not have an SD card connector and does not have any

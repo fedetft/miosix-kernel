@@ -34,10 +34,10 @@
 using namespace std;
 using namespace miosix;
 
-typedef Gpio<GPIOB_BASE,6> servo1out;
-typedef Gpio<GPIOB_BASE,7> servo2out;
-typedef Gpio<GPIOB_BASE,8> servo3out;
-typedef Gpio<GPIOB_BASE,9> servo4out;
+typedef Gpio<PB,6> servo1out;
+typedef Gpio<PB,7> servo2out;
+typedef Gpio<PB,8> servo3out;
+typedef Gpio<PB,9> servo4out;
 
 namespace miosix {
 
