@@ -35,12 +35,12 @@ namespace miosix {
 //rather a single pointer to a GPIO struct is provided with an array of
 //other structs, one for each port. Thus, the port names map to indices to that
 //array.
-const unsigned int PA=0;
-const unsigned int PB=1;
-const unsigned int PC=2;
-const unsigned int PD=3;
-const unsigned int PE=4;
-const unsigned int PF=5;
+constexpr unsigned int PA=0;
+constexpr unsigned int PB=1;
+constexpr unsigned int PC=2;
+constexpr unsigned int PD=3;
+constexpr unsigned int PE=4;
+constexpr unsigned int PF=5;
 
 /**
  * GPIO mode (INPUT, OUTPUT, ...)
