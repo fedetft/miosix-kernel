@@ -34,8 +34,8 @@ namespace miosix {
 // nRF chips name ports with a number, thus P0, P1, ... and provide peripheral
 // base address values with the macros NRF_P0_BASE, NRF_P1_BASE, ...
 // Provide shorthands for use with the Miosix Gpio class in the miosix namespace
-const unsigned int P0 = NRF_P0_BASE;
-const unsigned int P1 = NRF_P1_BASE;
+constexpr unsigned int P0 = NRF_P0_BASE;
+constexpr unsigned int P1 = NRF_P1_BASE;
 
 /**
  * GPIO mode (INPUT, OUTPUT, ...)
@@ -91,12 +91,25 @@ class GpioPin : private GpioBase
 {
 public:
     /**
+     * Default constructor
+     * Produces an invalid pin that shall not be used. The only safe method to
+     * call areisValid() which returns false on a default constructed GpioPin
+     * and getPsel()
+     */
+    GpioPin() : packed(P0 | 0xff) {}
+
+    /**
      * \internal
      * Constructor
      * \param p P0, P1, ...
      * \param n which pin (0 to 31)
      */
     GpioPin(unsigned int p, unsigned char n) : packed(p | n) {}
+
+    /**
+     * \retrun whether the GpioPin is valid
+     */
+    bool isValid() const { return getNumber()<32; }
 
     /**
      * Set the GPIO to the desired mode (INPUT, OUTPUT, ...)
@@ -136,20 +149,34 @@ public:
     /**
      * \return the pin port. One of the constants P0, P1, ...
      */
-    inline unsigned int getPort() const { return packed & ~0x1f; }
+    inline unsigned int getPort() const { return packed & ~0xff; }
 
     /**
      * \return 0 if the GPIO belongs to P0, or 1 if it belongs to P1
      */
     inline unsigned int getPortNumber() const
     {
-        if((packed & ~0x1f)==P0) return 0; else return 1;
+        if((packed & ~0xff)==P0) return 0; else return 1;
     }
 
     /**
      * \return the pin number, from 0 to 31
      */
-    inline unsigned char getNumber() const { return packed & 0x1f; }
+    inline unsigned char getNumber() const { return packed & 0xff; }
+
+    /**
+     * \return the value to plase in PSEL registers to use the GPIO as alternate
+     * function for peripherals.
+     *
+     * Can be called also on a GPIO that has been default constructed and is
+     * therefore not valid, in this case returns the architecture-specific
+     * constant that leaves that peripheral pin not connected to any GPIO
+     */
+    unsigned int getPsel()
+    {
+        if(isValid()) return getPortNumber()<<5 | getNumber();
+        else return 0xffffffff;
+    }
 
 private:
     /**
@@ -178,8 +205,6 @@ template<unsigned int P, unsigned char N>
 class Gpio : private GpioBase
 {
 public:
-    Gpio() = delete; //Disallow creating instances
-
     /**
      * Set the GPIO to the desired mode (INPUT, OUTPUT, ...)
      * \param m enum Mode
@@ -237,6 +262,8 @@ public:
      * \return the pin number, from 0 to 31
      */
     static inline unsigned char getNumber() { return N; }
+
+    Gpio() = delete; //Disallow creating instances
 
 private:
     /**
