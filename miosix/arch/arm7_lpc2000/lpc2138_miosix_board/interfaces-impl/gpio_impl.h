@@ -37,8 +37,8 @@ namespace miosix {
  */
 enum class Mode
 {
-    INPUT              = 0x0, ///Floating  Input
-    OUTPUT             = 0x1, ///Push Pull Output
+    INPUT  = 0x0, ///Floating  Input
+    OUTPUT = 0x1, ///Push Pull Output
 };
 
 /**
@@ -53,8 +53,8 @@ struct GpioMemoryLayout
     volatile unsigned int IOCLR;
 };
 
-const unsigned int GPIO0_BASE=0xe0028000;///<\internal Base address of GPIO0 registers
-const unsigned int GPIO1_BASE=0xe0028010;///<\internal Base address of GPIO1 registers
+constexpr unsigned int P0=0xe0028000;///<\internal Base address of GPIO0 registers
+constexpr unsigned int P1=0xe0028010;///<\internal Base address of GPIO1 registers
 
 /**
  * This class allows to easiliy pass a Gpio as a parameter to a function.
@@ -66,12 +66,24 @@ class GpioPin
 {
 public:
     /**
+     * Default constructor
+     * Produces an invalid pin that shall not be used. The only safe method to
+     * call is isValid() which returns false on a default constructed GpioPin
+     */
+    GpioPin() : GpioPin(P0,0xff) {}
+
+    /**
      * Constructor
-     * \param p GPIO0_BASE or GPIO1_BASE. Select which port
-     * \param n which pin (0 to 15)
+     * \param p P0 or P1. Select which port
+     * \param n which pin (0 to 31)
      */
     GpioPin(unsigned int p, unsigned char n)
         : p(reinterpret_cast<GpioMemoryLayout*>(p)), n(n) {}
+
+    /**
+     * \retrun whether the GpioPin is valid
+     */
+    bool isValid() const { return getNumber()<32; }
         
     /**
      * Set the GPIO to the desired mode (INPUT, OUTPUT)
@@ -108,7 +120,7 @@ public:
     }
     
     /**
-     * \return the pin port. One of the constants PORT0_BASE, PORT1_BASE, ...
+     * \return the pin port. One of the constants P0, P1, ...
      */
     unsigned int getPort() const { return reinterpret_cast<unsigned int>(p); }
     
@@ -124,11 +136,11 @@ private:
 
 /**
  * Gpio template class
- * \param P GPIO0_BASE or GPIO1_BASE. Select which port
+ * \param P P0 or P1. Select which port
  * \param N which pin (0 to 31)
  * The intended use is to make a typedef to this class with a meaningful name.
  * \code
- * typedef Gpio<GPIO0_BASE,0> green_led;
+ * typedef Gpio<P0,0> green_led;
  * green_led::mode(Mode::OUTPUT);
  * green_led::high();//Turn on LED
  * \endcode
@@ -185,7 +197,7 @@ public:
     }
     
     /**
-     * \return the pin port. One of the constants PORT0_BASE, PORT1_BASE, ...
+     * \return the pin port. One of the constants P0, P1, ...
      */
     unsigned int getPort() const { return P; }
     
@@ -194,8 +206,7 @@ public:
      */
     unsigned char getNumber() const { return N; }
 
-private:
-    Gpio();//Only static member functions, disallow creating instances
+    Gpio() = delete; //Only static member functions, disallow creating instances
 };
 
 } //namespace miosix
