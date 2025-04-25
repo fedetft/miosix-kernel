@@ -31,33 +31,33 @@
 
 namespace miosix {
 
-typedef Gpio<GPIOA_BASE,0>  strig;
-typedef Gpio<GPIOA_BASE,2>  button;
-typedef Gpio<GPIOA_BASE,13> led;
-typedef Gpio<GPIOA_BASE,14> hpled;
-typedef Gpio<GPIOA_BASE,15> sen;
+typedef Gpio<PA,0>  strig;
+typedef Gpio<PA,2>  button;
+typedef Gpio<PA,13> led;
+typedef Gpio<PA,14> hpled;
+typedef Gpio<PA,15> sen;
 
 namespace nrf {
-typedef Gpio<GPIOA_BASE,1>  irq;
-typedef Gpio<GPIOA_BASE,4>  cs;
-typedef Gpio<GPIOA_BASE,5>  sck;
-typedef Gpio<GPIOA_BASE,6>  miso;
-typedef Gpio<GPIOA_BASE,7>  mosi;
-typedef Gpio<GPIOA_BASE,8>  ce;
+typedef Gpio<PA,1>  irq;
+typedef Gpio<PA,4>  cs;
+typedef Gpio<PA,5>  sck;
+typedef Gpio<PA,6>  miso;
+typedef Gpio<PA,7>  mosi;
+typedef Gpio<PA,8>  ce;
 }
 
 namespace cam {
-typedef Gpio<GPIOA_BASE,3>  irq;
-typedef Gpio<GPIOB_BASE,11> en;
-typedef Gpio<GPIOB_BASE,12> cs;
-typedef Gpio<GPIOB_BASE,13> sck;
-typedef Gpio<GPIOB_BASE,14> miso;
-typedef Gpio<GPIOB_BASE,15> mosi;
+typedef Gpio<PA,3>  irq;
+typedef Gpio<PB,11> en;
+typedef Gpio<PB,12> cs;
+typedef Gpio<PB,13> sck;
+typedef Gpio<PB,14> miso;
+typedef Gpio<PB,15> mosi;
 }
 
 namespace serial {
-typedef Gpio<GPIOA_BASE,9>  tx;
-typedef Gpio<GPIOA_BASE,10> rx;
+typedef Gpio<PA,9>  tx;
+typedef Gpio<PA,10> rx;
 }
 
 } //namespace miosix

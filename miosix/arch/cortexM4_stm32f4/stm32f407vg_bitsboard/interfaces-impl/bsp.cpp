@@ -112,7 +112,7 @@ void shutdown()
 
     FastGlobalIrqLock::lock();
     //The display could be damaged if left on but without refreshing it
-	typedef Gpio<GPIOB_BASE,8>  dispoff;//DISPOFF signal to display
+	typedef Gpio<PB,8>  dispoff;//DISPOFF signal to display
 	dispoff::high();
     
     for(;;) ;

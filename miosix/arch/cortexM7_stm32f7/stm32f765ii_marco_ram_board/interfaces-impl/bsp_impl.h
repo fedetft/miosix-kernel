@@ -46,14 +46,14 @@ namespace miosix {
  * \internal
  * Board pin definition
  */
-using led1 = Gpio<GPIOI_BASE,8>;
-using led2 = Gpio<GPIOI_BASE,11>;
-using btn0 = Gpio<GPIOF_BASE,9>; // SW504
-using btn1 = Gpio<GPIOF_BASE,8>; // SW503
-using btn2 = Gpio<GPIOF_BASE,7>; // SW502
-using btn3 = Gpio<GPIOF_BASE,6>; // SW501
-using sdmmcCD = Gpio<GPIOC_BASE,6>;
-using sdmmcWP = Gpio<GPIOC_BASE,7>;
+using led1 = Gpio<PI,8>;
+using led2 = Gpio<PI,11>;
+using btn0 = Gpio<PF,9>; // SW504
+using btn1 = Gpio<PF,8>; // SW503
+using btn2 = Gpio<PF,7>; // SW502
+using btn3 = Gpio<PF,6>; // SW501
+using sdmmcCD = Gpio<PC,6>;
+using sdmmcWP = Gpio<PC,7>;
 
 inline void ledOn()
 {

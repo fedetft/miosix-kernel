@@ -47,7 +47,7 @@ namespace miosix {
  * \internal
  * used by the ledOn() and ledOff() implementation
  */
-typedef Gpio<GPIOA_BASE,5> _led;
+typedef Gpio<PA,5> _led;
 
 inline void ledOn()
 {

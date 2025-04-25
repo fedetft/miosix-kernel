@@ -55,7 +55,7 @@ void configureSdram();
  * \internal
  * used by the ledOn() and ledOff() implementation
  */
-typedef Gpio<GPIOG_BASE,6> _led;
+typedef Gpio<PG,6> _led;
 
 inline void ledOn()
 {

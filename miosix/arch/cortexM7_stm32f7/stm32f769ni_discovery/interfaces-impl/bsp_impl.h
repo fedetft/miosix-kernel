@@ -54,11 +54,11 @@ void configureSdram();
  * \internal
  * Board pin definition
  */
-typedef Gpio<GPIOJ_BASE,13> userLed1;
-typedef Gpio<GPIOJ_BASE,5> userLed2;
-typedef Gpio<GPIOA_BASE,12> userLed3;
-typedef Gpio<GPIOA_BASE,0> userBtn;
-typedef Gpio<GPIOI_BASE,15> sdCardDetect;
+typedef Gpio<PJ,13> userLed1;
+typedef Gpio<PJ,5> userLed2;
+typedef Gpio<PA,12> userLed3;
+typedef Gpio<PA,0> userBtn;
+typedef Gpio<PI,15> sdCardDetect;
 
 inline void ledOn()
 {

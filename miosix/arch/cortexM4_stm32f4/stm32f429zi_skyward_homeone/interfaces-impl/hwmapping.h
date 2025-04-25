@@ -34,80 +34,80 @@ namespace miosix {
 namespace interfaces {
 
 namespace spi1 {
-using sck   = Gpio<GPIOA_BASE, 5>;
-using miso  = Gpio<GPIOA_BASE, 6>;
-using mosi  = Gpio<GPIOA_BASE, 7>;
+using sck   = Gpio<PA, 5>;
+using miso  = Gpio<PA, 6>;
+using mosi  = Gpio<PA, 7>;
 } //namespace spi1
 
 namespace spi2 {
-using sck   = Gpio<GPIOB_BASE, 13>;
-using miso  = Gpio<GPIOB_BASE, 14>;
-using mosi  = Gpio<GPIOB_BASE, 15>;
+using sck   = Gpio<PB, 13>;
+using miso  = Gpio<PB, 14>;
+using mosi  = Gpio<PB, 15>;
 } //namespace spi1
 
 namespace i2c {
-using scl   = Gpio<GPIOB_BASE, 8>;
-using sda   = Gpio<GPIOB_BASE, 9>;
+using scl   = Gpio<PB, 8>;
+using sda   = Gpio<PB, 9>;
 } //namespace i2c
 
 namespace uart4 {
-using tx    = Gpio<GPIOA_BASE, 0>;
-using rx    = Gpio<GPIOA_BASE, 1>;
+using tx    = Gpio<PA, 0>;
+using rx    = Gpio<PA, 1>;
 } //namespace uart4
 
 namespace can {
-using rx    = Gpio<GPIOA_BASE, 11>;
-using tx    = Gpio<GPIOA_BASE, 12>;
+using rx    = Gpio<PA, 11>;
+using tx    = Gpio<PA, 12>;
 } // namespace can
 } //namespace interfaces
 
 namespace sensors {
     
 namespace adis16405 {
-using cs    = Gpio<GPIOA_BASE, 8>;
-using dio1  = Gpio<GPIOB_BASE, 4>;
-using nrst  = Gpio<GPIOD_BASE, 5>;
-using ckIn  = Gpio<GPIOD_BASE, 14>;
+using cs    = Gpio<PA, 8>;
+using dio1  = Gpio<PB, 4>;
+using nrst  = Gpio<PD, 5>;
+using ckIn  = Gpio<PD, 14>;
 } //namespace adis16405
 
 namespace ad7994 {
-using ab      = Gpio<GPIOB_BASE, 1>;
-using nconvst = Gpio<GPIOG_BASE, 9>;
+using ab      = Gpio<PB, 1>;
+using nconvst = Gpio<PG, 9>;
 } //namespace ad7994
 
 namespace max21105 {
-using cs    = Gpio<GPIOC_BASE, 1>;
+using cs    = Gpio<PC, 1>;
 } //namespace max21105
 
 namespace mpu9250 {
-using cs    = Gpio<GPIOC_BASE, 3>;
+using cs    = Gpio<PC, 3>;
 } //namespace mpu9250
 
 namespace ms5803 {
-using cs    = Gpio<GPIOD_BASE, 7>;
+using cs    = Gpio<PD, 7>;
 } //namespace ms5803
 } //namespace sensors
 
 namespace actuators {
 namespace hbridgel {
-using ena   = Gpio<GPIOD_BASE, 11>;
-using in    = Gpio<GPIOD_BASE, 13>;
-using csens = Gpio<GPIOF_BASE, 8>;
+using ena   = Gpio<PD, 11>;
+using in    = Gpio<PD, 13>;
+using csens = Gpio<PF, 8>;
 } //namespace hbridgel
 
 namespace hbridger {
-using ena   = Gpio<GPIOD_BASE, 9>;
-using in    = Gpio<GPIOD_BASE, 12>;
-using csens = Gpio<GPIOF_BASE, 6>;
+using ena   = Gpio<PD, 9>;
+using in    = Gpio<PD, 12>;
+using csens = Gpio<PF, 6>;
 } //namespace hbridger
 } //namespace actuators
 
 namespace InAir9B {
-using dio0  = Gpio<GPIOB_BASE, 0>;
-using dio1  = Gpio<GPIOC_BASE, 4>;
-using dio2  = Gpio<GPIOA_BASE, 4>;
-using dio3  = Gpio<GPIOC_BASE, 2>;
-using cs    = Gpio<GPIOF_BASE, 9>;
-using nrst  = Gpio<GPIOF_BASE, 7>;
+using dio0  = Gpio<PB, 0>;
+using dio1  = Gpio<PC, 4>;
+using dio2  = Gpio<PA, 4>;
+using dio3  = Gpio<PC, 2>;
+using cs    = Gpio<PF, 9>;
+using nrst  = Gpio<PF, 7>;
 } //namespace InAir9B
 } //namespace miosix

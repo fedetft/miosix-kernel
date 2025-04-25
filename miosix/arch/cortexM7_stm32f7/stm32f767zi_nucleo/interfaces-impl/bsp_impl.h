@@ -47,10 +47,10 @@ namespace miosix {
  * \internal
  * Board pin definition
  */
-typedef Gpio<GPIOB_BASE,0> userLed1;
-typedef Gpio<GPIOB_BASE,7> userLed2;
-typedef Gpio<GPIOB_BASE,14> userLed3;
-typedef Gpio<GPIOC_BASE,13> userBtn;
+typedef Gpio<PB,0> userLed1;
+typedef Gpio<PB,7> userLed2;
+typedef Gpio<PB,14> userLed3;
+typedef Gpio<PC,13> userBtn;
 
 inline void ledOn()
 {

@@ -35,82 +35,82 @@ namespace miosix {
 
 //external SPI flash memories, whith dedicated SPI bus
 namespace memories {
-using sck  = Gpio<GPIOA_BASE, 5>;
-using miso = Gpio<GPIOA_BASE, 6>;
-using mosi = Gpio<GPIOA_BASE, 7>;
-using cs0  = Gpio<GPIOC_BASE,15>;
-using cs1  = Gpio<GPIOC_BASE,14>;
-using cs2  = Gpio<GPIOC_BASE,13>;
+using sck  = Gpio<PA, 5>;
+using miso = Gpio<PA, 6>;
+using mosi = Gpio<PA, 7>;
+using cs0  = Gpio<PC,15>;
+using cs1  = Gpio<PC,14>;
+using cs2  = Gpio<PC,13>;
 }
 
 //MCP2515 SPI driven CAN interface chip
 namespace mcp2515 {
-using sck    = Gpio<GPIOB_BASE, 3>;
-using miso   = Gpio<GPIOB_BASE, 4>;
-using mosi   = Gpio<GPIOB_BASE, 5>;
-using tx0rts = Gpio<GPIOB_BASE, 7>;
-using tx1rts = Gpio<GPIOB_BASE, 8>;
-using tx2rts = Gpio<GPIOB_BASE, 9>;
-using interr = Gpio<GPIOA_BASE, 8>;
+using sck    = Gpio<PB, 3>;
+using miso   = Gpio<PB, 4>;
+using mosi   = Gpio<PB, 5>;
+using tx0rts = Gpio<PB, 7>;
+using tx1rts = Gpio<PB, 8>;
+using tx2rts = Gpio<PB, 9>;
+using interr = Gpio<PA, 8>;
 }
 
 namespace can {
-using rx1 = Gpio<GPIOA_BASE,11>;
-using tx1 = Gpio<GPIOA_BASE,12>;
-using rx2 = Gpio<GPIOB_BASE,12>;
-using tx2 = Gpio<GPIOB_BASE,13>;
+using rx1 = Gpio<PA,11>;
+using tx1 = Gpio<PA,12>;
+using rx2 = Gpio<PB,12>;
+using tx2 = Gpio<PB,13>;
 }
 
 //analog inputs
 namespace analogIn {
-using ch0 = Gpio<GPIOA_BASE, 4>;
-using ch1 = Gpio<GPIOB_BASE, 1>;
-using ch2 = Gpio<GPIOB_BASE, 2>;
-using ch3 = Gpio<GPIOC_BASE, 5>;
-using ch4 = Gpio<GPIOC_BASE, 4>;
-using ch5 = Gpio<GPIOC_BASE, 2>;
-using ch6 = Gpio<GPIOC_BASE, 6>;
-using ch7 = Gpio<GPIOC_BASE, 1>;
-using ch8 = Gpio<GPIOC_BASE, 0>;
+using ch0 = Gpio<PA, 4>;
+using ch1 = Gpio<PB, 1>;
+using ch2 = Gpio<PB, 2>;
+using ch3 = Gpio<PC, 5>;
+using ch4 = Gpio<PC, 4>;
+using ch5 = Gpio<PC, 2>;
+using ch6 = Gpio<PC, 6>;
+using ch7 = Gpio<PC, 1>;
+using ch8 = Gpio<PC, 0>;
 }
 
 //general purpose IOs (typically used as digital IO)
 namespace gpio {
-using gpio0 = Gpio<GPIOA_BASE,15>;
-using gpio1 = Gpio<GPIOC_BASE, 8>;
-using gpio2 = Gpio<GPIOC_BASE, 9>;
-using gpio3 = Gpio<GPIOB_BASE,15>;
+using gpio0 = Gpio<PA,15>;
+using gpio1 = Gpio<PC, 8>;
+using gpio2 = Gpio<PC, 9>;
+using gpio3 = Gpio<PB,15>;
 }
 
 //USART2, connected to RS485 transceiver
 namespace usart2 {
-using tx  = Gpio<GPIOA_BASE, 2>;
-using rx  = Gpio<GPIOA_BASE, 3>;
-using rts = Gpio<GPIOA_BASE, 1>;
+using tx  = Gpio<PA, 2>;
+using rx  = Gpio<PA, 3>;
+using rts = Gpio<PA, 1>;
 }
 
 //USART3, connected to RS485 transceiver
 namespace usart3 {
-using tx  = Gpio<GPIOB_BASE,10>;
-using rx  = Gpio<GPIOB_BASE,11>;
-using rts = Gpio<GPIOB_BASE,14>;
+using tx  = Gpio<PB,10>;
+using rx  = Gpio<PB,11>;
+using rts = Gpio<PB,14>;
 }
 
 //UART4
 namespace uart4 {
-using tx  = Gpio<GPIOC_BASE,10>;
-using rx  = Gpio<GPIOC_BASE,11>;
+using tx  = Gpio<PC,10>;
+using rx  = Gpio<PC,11>;
 }
 
 //UART5
 namespace uart5 {
-using tx  = Gpio<GPIOC_BASE,12>;
-using rx  = Gpio<GPIOD_BASE, 2>;
+using tx  = Gpio<PC,12>;
+using rx  = Gpio<PD, 2>;
 }
 
 //UART6
 namespace uart6 {
-using tx  = Gpio<GPIOC_BASE, 6>;
-using rx  = Gpio<GPIOC_BASE, 7>;
+using tx  = Gpio<PC, 6>;
+using rx  = Gpio<PC, 7>;
 }
 } //namespace miosix

@@ -286,10 +286,10 @@ void bspInit2()
     intrusive_ref_ptr<DevFs> devFs = basicFilesystemSetup(SDIODriver::instance());
     devFs->addDevice("gps", intrusive_ref_ptr<Device>(
         new STM32Serial(2,115200,
-        Gpio<GPIOA_BASE,2>::getPin(),Gpio<GPIOA_BASE,3>::getPin())));
+        Gpio<PA,2>::getPin(),Gpio<PA,3>::getPin())));
     devFs->addDevice("radio", intrusive_ref_ptr<Device>(
         new STM32Serial(3,115200,
-        Gpio<GPIOB_BASE,10>::getPin(),Gpio<GPIOB_BASE,11>::getPin())));
+        Gpio<PB,10>::getPin(),Gpio<PB,11>::getPin())));
     #endif //WITH_FILESYSTEM
 }
 
