@@ -65,7 +65,7 @@ void VHT::update(long long baseTheoretical, long long baseComputed, long long cl
     
     //Save modification to make effective the update
     {
-        FastGlobalIrqLock dl;
+        GlobalIrqLock dl; //Called early at boot
         IRQoffsetUpdate(baseTheoretical, baseComputed);
         
         factorI = static_cast<unsigned int>((temp & 0xFFFFFFFF00000000LLU)>>32);

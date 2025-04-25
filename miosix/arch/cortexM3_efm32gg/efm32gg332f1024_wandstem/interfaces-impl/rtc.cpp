@@ -233,7 +233,7 @@ unsigned int Rtc::getTickFrequency() const
 
 Rtc::Rtc() : tc(frequency)
 {
-    FastGlobalIrqLock dLock;
+    GlobalIrqLock dLock;
     
     //
     // Configure timer
