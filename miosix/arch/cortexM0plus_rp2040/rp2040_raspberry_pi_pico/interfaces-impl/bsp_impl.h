@@ -50,7 +50,7 @@ namespace miosix {
  * used by the ledOn() and ledOff() implementation
  * \note Doesn't work on Pico W, as the LED is controlled by the WiFi chip.
  */
-using led = Gpio<GPIO0_BASE, PICO_DEFAULT_LED_PIN>;
+using led = Gpio<P0, PICO_DEFAULT_LED_PIN>;
 #endif
 
 /**

@@ -63,15 +63,15 @@ const unsigned int defaultSerial=0;
 const unsigned int defaultSerialSpeed=115200;
 const bool defaultSerialFlowctrl=false;
 // Pin mapping for usart0, uncomment if defaultSerial==0
-using defaultSerialTxPin = Gpio<GPIO0_BASE, 0>;
-using defaultSerialRxPin = Gpio<GPIO0_BASE, 1>;
-using defaultSerialRtsPin = Gpio<GPIO0_BASE, 3>;
-using defaultSerialCtsPin = Gpio<GPIO0_BASE, 2>;
+using defaultSerialTxPin = Gpio<P0, 0>;
+using defaultSerialRxPin = Gpio<P0, 1>;
+using defaultSerialRtsPin = Gpio<P0, 3>;
+using defaultSerialCtsPin = Gpio<P0, 2>;
 // Pin mapping for usart1, uncomment if defaultSerial==1
-//using defaultSerialTxPin = Gpio<GPIO0_BASE, 4>;
-//using defaultSerialRxPin = Gpio<GPIO0_BASE, 5>;
-//using defaultSerialRtsPin = Gpio<GPIO0_BASE, 7>;
-//using defaultSerialCtsPin = Gpio<GPIO0_BASE, 6>;
+//using defaultSerialTxPin = Gpio<P0, 4>;
+//using defaultSerialRxPin = Gpio<P0, 5>;
+//using defaultSerialRtsPin = Gpio<P0, 7>;
+//using defaultSerialCtsPin = Gpio<P0, 6>;
 
 /**
  * \}
