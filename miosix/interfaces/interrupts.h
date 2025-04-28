@@ -119,6 +119,28 @@ inline bool areInterruptsEnabled() noexcept;
  * \{
  */
 
+#ifdef WITH_SMP
+/**
+ * Register an interrupt handler on a specific core.
+ * \param coreId the identifier of the core that will handle the interrupt.
+ * After calling this function, the same interrupt will not be register-able
+ * on any other core, unless it is unregistered first.
+ * \param id platform-dependent id of the peripheral for which the handler has
+ * to be registered.
+ * \param handler pointer to the handler function of type void (*)(void*)
+ * \param arg optional void* argument. This argument is stored in the interrupt
+ * handling logic and passed as-is whenever the interrupt handler is called.
+ * If omitted, the handler function is called with nullptr as argument.
+ *
+ * \note This function calls errorHandler() causing a reboot if attempting to
+ * register an already registered interrupt. If your driver can tolerate failing
+ * to register an interrupt you should call IRQisIrqRegistered() to test whether
+ * an interrupt is already registered for that id before calling IRQregisterIrq()
+ */
+void IRQregisterIrqOnCore(unsigned char coreId, unsigned int id,
+                          void (*handler)(void*), void *arg=nullptr) noexcept;
+#endif
+
 /**
  * Register an interrupt handler.
  * \param id platform-dependent id of the peripheral for which the handler has
@@ -133,7 +155,14 @@ inline bool areInterruptsEnabled() noexcept;
  * to register an interrupt you should call IRQisIrqRegistered() to test whether
  * an interrupt is already registered for that id before calling IRQregisterIrq()
  */
+#ifdef WITH_SMP
+inline void IRQregisterIrq(unsigned int id, void (*handler)(void*), void *arg=nullptr) noexcept
+{
+    IRQregisterIrqOnCore(0,id,handler,arg);
+}
+#else
 void IRQregisterIrq(unsigned int id, void (*handler)(void*), void *arg=nullptr) noexcept;
+#endif
 
 /**
  * Register an interrupt handler.
@@ -171,6 +200,26 @@ inline void IRQregisterIrq(unsigned int id, void (T::*mfn)(), T *object) noexcep
     IRQregisterIrq(id,std::get<0>(result),std::get<1>(result));
 }
 
+#ifdef WITH_SMP
+/**
+ * Unregister an interrupt handler from a specific core.
+ * \param coreId the identifier of the core that was registered for handling the
+ * interrupt. If the core is not the same one that was used for originally
+ * registering the IRQ, the function's behavior is undefined.
+ * \param id platform-dependent id of the peripheral for which the handler has
+ * to be unregistered.
+ * \param handler pointer to the handler function of type void (*)(void*)
+ * \param arg optional void* argument. This argument is stored in the interrupt
+ * handling logic and passed as-is whenever the interrupt handler is called.
+ * If omitted, the handler function is called with nullptr as argument.
+ *
+ * \note This function calls errorHandler() causing a reboot if attempting to
+ * unregister a different interrupt than the currently registered one
+ */
+void IRQunregisterIrqOnCore(unsigned char coreId, unsigned int id,
+                            void (*handler)(void*), void *arg=nullptr) noexcept;
+#endif
+
 /**
  * Unregister an interrupt handler.
  * \param id platform-dependent id of the peripheral for which the handler has
@@ -183,7 +232,14 @@ inline void IRQregisterIrq(unsigned int id, void (T::*mfn)(), T *object) noexcep
  * \note This function calls errorHandler() causing a reboot if attempting to
  * unregister a different interrupt than the currently registered one
  */
+#ifdef WITH_SMP
+inline void IRQunregisterIrq(unsigned int id, void (*handler)(void*), void *arg=nullptr) noexcept
+{
+    IRQunregisterIrqOnCore(0,id,handler,arg);
+}
+#else
 void IRQunregisterIrq(unsigned int id, void (*handler)(void*), void *arg=nullptr) noexcept;
+#endif
 
 /**
  * Unregister an interrupt handler.

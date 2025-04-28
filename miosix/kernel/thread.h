@@ -1010,6 +1010,10 @@ private:
     friend void IRQwakeThreads(long long);
     //Needs to create the idle thread
     friend void IRQstartKernel();
+    #ifdef WITH_SMP
+    //Needs IRQglobalIrqUnlockAndWaitImpl
+    friend void IRQcallOnCore(unsigned char, void (*)(void *), void *) noexcept;
+    #endif
     //Needs access to savedPriority, mutexLocked and flags.
     friend class Mutex;
     //Needs access to savedPriority

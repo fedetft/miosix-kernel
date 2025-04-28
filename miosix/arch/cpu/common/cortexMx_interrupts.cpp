@@ -25,6 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "cortexMx_interrupts.h"
 #include "util/util.h"
 #include "kernel/logging.h"
 #include "kernel/thread.h"
@@ -36,6 +37,7 @@
 #include "interfaces_private/cpu.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces/interrupts.h"
+#include "interfaces_private/smp.h"
 
 #ifndef __CORTEX_M
 #error "__CORTEX_M undefined"
@@ -254,7 +256,7 @@ void IRQinitIrqTable() noexcept
     }
 }
 
-void IRQregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexcept
+inline void IRQregisterIrqImpl(unsigned int id, void (*handler)(void*), void *arg) noexcept
 {
     if(id>=numInterrupts || irqForwardingTable[id].handler!=unexpectedInterrupt)
         errorHandler(Error::INTERRUPT_REGISTRATION_ERROR);
@@ -263,7 +265,7 @@ void IRQregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexcept
     NVIC_EnableIRQ(static_cast<IRQn_Type>(id));
 }
 
-void IRQunregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexcept
+inline void IRQunregisterIrqImpl(unsigned int id, void (*handler)(void*), void *arg) noexcept
 {
     if(id>=numInterrupts
     || irqForwardingTable[id].handler!=handler
@@ -276,6 +278,69 @@ void IRQunregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexce
     NVIC_DisableIRQ(static_cast<IRQn_Type>(id));
     NVIC_ClearPendingIRQ(static_cast<IRQn_Type>(id));
 }
+
+#ifdef WITH_SMP
+
+void IRQregisterIrqOnCurrentCore(unsigned int id, void (*handler)(void*), void *arg) noexcept
+{
+    IRQregisterIrqImpl(id,handler,arg);
+}
+
+void IRQunregisterIrqOnCurrentCore(unsigned int id, void (*handler)(void*), void *arg) noexcept
+{
+    IRQunregisterIrqImpl(id,handler,arg);
+}
+
+struct IrqRegistrationContext
+{
+    unsigned int id;
+    void (*handler)(void*);
+    void *arg;
+};
+
+static void IRQregisterIrqOnCoreHandler(void *ctxt)
+{
+    IrqRegistrationContext *irqCtxt=reinterpret_cast<IrqRegistrationContext*>(ctxt);
+    IRQregisterIrqImpl(irqCtxt->id,irqCtxt->handler,irqCtxt->arg);
+}
+
+void IRQregisterIrqOnCore(unsigned char coreId, unsigned int id, void (*handler)(void*), void *arg) noexcept
+{
+    if(coreId==getCurrentCoreId()) IRQregisterIrqImpl(id,handler,arg);
+    else {
+        IrqRegistrationContext irqCtxt={id,handler,arg};
+        IRQcallOnCore(coreId,&IRQregisterIrqOnCoreHandler,&irqCtxt);
+    }
+}
+
+static void IRQunregisterIrqOnCoreHandler(void *ctxt)
+{
+    IrqRegistrationContext *irqCtxt=reinterpret_cast<IrqRegistrationContext*>(ctxt);
+    IRQunregisterIrqImpl(irqCtxt->id,irqCtxt->handler,irqCtxt->arg);
+}
+
+void IRQunregisterIrqOnCore(unsigned char coreId, unsigned int id, void (*handler)(void*), void *arg) noexcept
+{
+    if(coreId==getCurrentCoreId()) IRQunregisterIrqImpl(id,handler,arg);
+    else {
+        IrqRegistrationContext irqCtxt={id,handler,arg};
+        IRQcallOnCore(coreId,&IRQunregisterIrqOnCoreHandler,&irqCtxt);
+    }
+}
+
+#else // WITH_SMP
+
+void IRQregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexcept
+{
+    IRQregisterIrqImpl(id,handler,arg);
+}
+
+void IRQunregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexcept
+{
+    IRQunregisterIrqImpl(id,handler,arg);
+}
+
+#endif // WITH_SMP
 
 bool IRQisIrqRegistered(unsigned int id) noexcept
 {

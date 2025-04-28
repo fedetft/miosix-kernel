@@ -32,6 +32,7 @@
 #include "interfaces/interrupts.h"
 #include "interfaces_private/os_timer.h"
 #include "interfaces_private/cpu.h"
+#include "arch/cpu/common/cortexMx_interrupts.h"
 
 namespace miosix {
 
@@ -66,7 +67,7 @@ static inline long long IRQgetTicks() noexcept
  * elapsed and calling the kernel if so.
  */
 template<unsigned char AlarmId>
-static void IRQtimerInterruptHandler()
+static void IRQtimerInterruptHandler(void *arg)
 {
     FastGlobalLockFromIrq irq;
     timer_hw->intf &= ~(1<<AlarmId);
@@ -135,9 +136,9 @@ void IRQosTimerInitSMP()
 {
     if(getCurrentCoreId()==0)
     {
-        IRQregisterIrq(TIMER_IRQ_0_IRQn,IRQtimerInterruptHandler<0>);
+        IRQregisterIrqOnCurrentCore(TIMER_IRQ_0_IRQn,IRQtimerInterruptHandler<0>,nullptr);
     } else {
-        IRQregisterIrq(TIMER_IRQ_1_IRQn,IRQtimerInterruptHandler<1>);
+        IRQregisterIrqOnCurrentCore(TIMER_IRQ_1_IRQn,IRQtimerInterruptHandler<1>,nullptr);
     }
 }
 

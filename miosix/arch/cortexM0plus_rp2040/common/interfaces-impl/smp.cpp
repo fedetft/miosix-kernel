@@ -35,6 +35,7 @@
 #include "interfaces/cpu_const.h"
 #include "interfaces_private/cpu.h"
 #include "kernel/error.h"
+#include "arch/cpu/common/cortexMx_interrupts.h"
 
 // System mode stack size for core 1
 #define CORE1_SYSTEM_STACK_SIZE 0x200
@@ -93,7 +94,7 @@ struct IPICall
 unsigned char flags[2];
 IPICall invocations[2];
 
-void IRQinterProcessorInterruptHandler()
+void IRQinterProcessorInterruptHandler(void *arg)
 {
     FastGlobalLockFromIrq dLock;
     if(sio_hw->fifo_st & (SIO_FIFO_ST_ROE_BITS|SIO_FIFO_ST_WOF_BITS))
@@ -151,7 +152,7 @@ __attribute__((noreturn)) void IRQcontinueInitCore1()
     for(unsigned int i=0;i<numInterrupts;i++)
         NVIC_SetPriority(static_cast<IRQn_Type>(i),defaultIrqPriority);
     // Register IPI (FIFO) interrupt handler for core 1
-    IRQregisterIrq(SIO_IRQ_PROC1_IRQn,IRQinterProcessorInterruptHandler);
+    IRQregisterIrqOnCurrentCore(SIO_IRQ_PROC1_IRQn,IRQinterProcessorInterruptHandler,nullptr);
     // Register timer interrupt handler for core 1
     IRQosTimerInitSMP();
     // Clear fifo status flags and pending interrupt flag to avoid spurious
@@ -196,7 +197,7 @@ void IRQinitSMP(void *const stackPtrs[], void (*const mains[])()) noexcept
     unsigned long fp=reinterpret_cast<unsigned long>(mains[0]);
     if (!fifoSend(fp)) errorHandler(Error::UNEXPECTED);
     // Register IPI (FIFO) interrupt handler for core 0
-    IRQregisterIrq(SIO_IRQ_PROC0_IRQn,IRQinterProcessorInterruptHandler);
+    IRQregisterIrqOnCurrentCore(SIO_IRQ_PROC0_IRQn,IRQinterProcessorInterruptHandler,nullptr);
     // Register timer interrupt handler for core 0
     IRQosTimerInitSMP();
     // Clear fifo status flags and pending interrupt flag to avoid spurious
@@ -222,8 +223,7 @@ void IRQinvokeSchedulerOnCore(unsigned char core) noexcept
     sio_hw->fifo_wr=0;
 }
 
-void IRQcallOnCore(GlobalIrqLock& lock, unsigned char core, void (*f)(void *),
-                   void *arg) noexcept
+void IRQcallOnCore(unsigned char core, void (*f)(void *), void *arg) noexcept
 {
     // Is this already the right core?
     if(core==getCurrentCoreId()) { f(arg); return; }
@@ -238,7 +238,7 @@ void IRQcallOnCore(GlobalIrqLock& lock, unsigned char core, void (*f)(void *),
     __DSB();
     sio_hw->fifo_wr=0;
     do {
-        Thread::IRQglobalIrqUnlockAndWait(lock);
+        Thread::IRQglobalIrqUnlockAndWaitImpl();
     } while(invocations[core].waiting);
 }
 
