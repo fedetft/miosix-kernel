@@ -33,13 +33,15 @@ namespace miosix {
 
 static inline __attribute__((always_inline)) void delayUsImpl(unsigned int us)
 {
-    static_assert(cpuFrequency==133000000 || cpuFrequency==125000000,
+    static_assert(cpuFrequency==125000000
+                  || cpuFrequency==133000000
+                  || cpuFrequency==200000000,
                   "Unsupported clock frequency");
     if(us == 0) return;
     if(cpuFrequency==133000000)
     {
         // 7 cycles per iteration @ 133 MHz = 1/19 us per iteration
-        uint32_t iter_count = us*19-2;
+        unsigned int iterCount = us*19-2;
         asm volatile(
             ".syntax unified\n"
             ".align 2       \n"
@@ -48,17 +50,19 @@ static inline __attribute__((always_inline)) void delayUsImpl(unsigned int us)
             "    nop        \n"
             "    subs %0, #1\n"
             "    cmp  %0, #0\n"
-            "    bne  1b    \n":"+r"(iter_count)::"cc");
-    } else if(cpuFrequency==125000000) {
-        // 5 cycles per iteration @ 125 MHz = 1/25 us per iteration
-        uint32_t iter_count = us*25-2;
+            "    bne  1b    \n":"+r"(iterCount)::"cc");
+    } else if(cpuFrequency==125000000 || cpuFrequency==200000000) {
+        // 5 cycles per iteration
+        unsigned int iterCount;
+        if(cpuFrequency==125000000) iterCount=us*25-2; // 1/25 us per iteration
+        else iterCount=us*40-2; // 1/40 us per iteration
         asm volatile(
             ".syntax unified\n"
             ".align 2       \n"
             "1:  nop        \n"
             "    subs %0, #1\n"
             "    cmp  %0, #0\n"
-            "    bne  1b    \n":"+r"(iter_count)::"cc");
+            "    bne  1b    \n":"+r"(iterCount)::"cc");
     }
 }
 

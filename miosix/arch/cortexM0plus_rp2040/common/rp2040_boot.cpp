@@ -151,9 +151,22 @@ static void clockTreeSetup()
 
     // Before we touch PLLs, switch sys and ref cleanly away from their aux sources.
     hw_clear_bits(&clocks_hw->clk[clk_sys].ctrl, CLOCKS_CLK_SYS_CTRL_SRC_BITS);
-    while (clocks_hw->clk[clk_sys].selected != 0x1);
+    while(clocks_hw->clk[clk_sys].selected != 0x1) ;
     hw_clear_bits(&clocks_hw->clk[clk_ref].ctrl, CLOCKS_CLK_REF_CTRL_SRC_BITS);
-    while (clocks_hw->clk[clk_ref].selected != 0x1);
+    while(clocks_hw->clk[clk_ref].selected != 0x1) ;
+
+    if(cpuFrequency>133000000)
+    {
+        // vcore to 1.15V
+        vreg_and_chip_reset_hw->vreg=(12<<VREG_AND_CHIP_RESET_VREG_VSEL_LSB) 
+                                     | VREG_AND_CHIP_RESET_VREG_EN_BITS;
+    } else {
+        // vcore to 1.1V
+        vreg_and_chip_reset_hw->vreg=(11<<VREG_AND_CHIP_RESET_VREG_VSEL_LSB) 
+                                     | VREG_AND_CHIP_RESET_VREG_EN_BITS;
+    }
+    while(!(vreg_and_chip_reset_hw->vreg&VREG_AND_CHIP_RESET_VREG_ROK_BITS)) ;
+
     // Setup SYS PLL to cpuFrequency rounded to the nearest MHz
     // VCO frequency (fb_div * oscillatorFrequency) must be >= 750MHz
     static_assert((cpuFrequency / 1000000) * oscillatorFrequency >= 750, "cpuFrequency too slow");
