@@ -79,6 +79,9 @@ enum class Function
     PIO1    = IO_BANK0_GPIO0_CTRL_FUNCSEL_VALUE_PIO1_0,
     // Host USB VDD monitoring
     USBMON  = IO_BANK0_GPIO0_CTRL_FUNCSEL_VALUE_USB_MUXING_OVERCURR_DETECT,
+    // Clock in/out (only GPIO from 20 to 25)
+    CLKIN   = IO_BANK0_GPIO20_CTRL_FUNCSEL_VALUE_CLOCKS_GPIN_0,
+    CLKOUT  = IO_BANK0_GPIO21_CTRL_FUNCSEL_VALUE_CLOCKS_GPOUT_0,
 };
 
 //Convert enum classes to their bitmask representation
