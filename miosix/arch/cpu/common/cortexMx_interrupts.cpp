@@ -263,16 +263,6 @@ void IRQregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexcept
     NVIC_EnableIRQ(static_cast<IRQn_Type>(id));
 }
 
-bool IRQisIrqRegistered(unsigned int id, void (*handler)(void*), void *arg) noexcept
-{
-    if(id>=numInterrupts || irqForwardingTable[id].handler!=unexpectedInterrupt)
-        return false;
-    irqForwardingTable[id].handler=handler;
-    irqForwardingTable[id].arg=arg;
-    NVIC_EnableIRQ(static_cast<IRQn_Type>(id));
-    return true;
-}
-
 void IRQunregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexcept
 {
     if(id>=numInterrupts
@@ -285,6 +275,12 @@ void IRQunregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexce
     #endif //WITH_ERRLOG
     NVIC_DisableIRQ(static_cast<IRQn_Type>(id));
     NVIC_ClearPendingIRQ(static_cast<IRQn_Type>(id));
+}
+
+bool IRQisIrqRegistered(unsigned int id) noexcept
+{
+    if(id>=numInterrupts) return false;
+    return irqForwardingTable[id].handler==unexpectedInterrupt;
 }
 
 //

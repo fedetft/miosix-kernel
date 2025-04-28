@@ -172,46 +172,6 @@ inline void IRQregisterIrq(unsigned int id, void (T::*mfn)(), T *object) noexcep
 }
 
 /**
- * Try registering an interrupt handler.
- * \param id platform-dependent id of the peripheral for which the handler has
- * to be registered.
- * \param handler pointer to the handler function of type void (*)(void*)
- * \param arg optional void* argument. This argument is stored in the interrupt
- * handling logic and passed as-is whenever the interrupt handler is called.
- * If omitted, the handler function is called with nullptr as argument.
- * \return true if the interrupt was registered successfully
- */
-bool IRQtryRegisterIrq(unsigned int id, void (*handler)(void*), void *arg=nullptr) noexcept;
-
-/**
- * Try registering an interrupt handler.
- * \param id platform-dependent id of the peripheral for which the handler has
- * to be registered.
- * \param handler pointer to the handler function of type void (*)()
- * \return true if the interrupt was registered successfully
- */
-inline bool IRQtryRegisterIrq(unsigned int id, void (*handler)()) noexcept
-{
-    return IRQtryRegisterIrq(id,reinterpret_cast<void (*)(void*)>(handler));
-}
-
-/**
- * Try registering an interrupt handler.
- * \param id platform-dependent id of the peripheral for which the handler has
- * to be registered.
- * \param mfn member function pointer to the class method to be registered as
- * interrupt handler. The method shall take no paprameters.
- * \param object class intance whose methos shall be called as interrupt hanlder.
- * \return true if the interrupt was registered successfully
- */
-template<typename T>
-inline bool IRQtryRegisterIrq(unsigned int id, void (T::*mfn)(), T *object) noexcept
-{
-    auto result=unmember(mfn,object);
-    return IRQtryRegisterIrq(id,std::get<0>(result),std::get<1>(result));
-}
-
-/**
  * Unregister an interrupt handler.
  * \param id platform-dependent id of the peripheral for which the handler has
  * to be unregistered.
@@ -256,6 +216,14 @@ inline void IRQunregisterIrq(unsigned int id, void (T::*mfn)(), T *object) noexc
     auto result=unmember(mfn,object);
     IRQunregisterIrq(id,std::get<0>(result),std::get<1>(result));
 }
+
+/*
+ * Check whether an interrupt handler is currently registered.
+ * \param id platform-dependent id of the peripheral for which to check whether
+ * an interrupt handler is registered.
+ * \return true if an interrupt hander is currently registered for that id.
+ */
+bool IRQisIrqRegistered(unsigned int id) noexcept;
 
 /**
  * \}
