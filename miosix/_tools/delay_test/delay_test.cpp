@@ -61,6 +61,12 @@ int main()
 //    clkOut0::mode(Mode::OUTPUT);
 //    CMU->CTRL |= CMU_CTRL_CLKOUTSEL0_HFCLK2;
 //    CMU->ROUTE |= CMU_ROUTE_CLKOUT0PEN;
+//    //Raspberry Pi Pico-specific: output clock on GPIO 21 divided by 1000
+//    using clkOut = Gpio<P0,21>;
+//    clocks_hw->clk[clk_gpout0].ctrl=
+//        (CLOCKS_CLK_GPOUT0_CTRL_AUXSRC_VALUE_CLK_SYS<<CLOCKS_CLK_GPOUT0_CTRL_AUXSRC_LSB)
+//        | CLOCKS_CLK_GPOUT0_CTRL_ENABLE_BITS;
+//    clocks_hw->clk[clk_gpout0].div=1000<<CLOCKS_CLK_GPOUT0_DIV_INT_LSB;
     int n;
     out::mode(Mode::OUTPUT);
     iprintf("Delay test\nEnter value in us\n");
