@@ -287,27 +287,6 @@ void IRQunregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexce
     NVIC_ClearPendingIRQ(static_cast<IRQn_Type>(id));
 }
 
-void registerIrq(unsigned int id, void (*handler)(void*), void *arg) noexcept
-{
-    //TODO pin ourselves to core 0 before registering IRQ
-    GlobalIrqLock dLock;
-    IRQregisterIrq(id,handler,arg);
-}
-
-bool isIrqRegistered(unsigned int id, void (*handler)(void*), void *arg) noexcept
-{
-    //TODO pin ourselves to core 0 before registering IRQ
-    GlobalIrqLock dLock;
-    return IRQisIrqRegistered(id,handler,arg);
-}
-
-void unregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexcept
-{
-    //TODO pin ourselves to core 0 before registering IRQ
-    GlobalIrqLock dLock;
-    IRQunregisterIrq(id,handler,arg);
-}
-
 //
 // Support functions to implement interrupt handlers
 //

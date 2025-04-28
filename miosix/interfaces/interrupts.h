@@ -257,57 +257,6 @@ inline void IRQunregisterIrq(unsigned int id, void (T::*mfn)(), T *object) noexc
     IRQunregisterIrq(id,std::get<0>(result),std::get<1>(result));
 }
 
-#ifdef WITH_SMP
-
-//FIXME: eventually we'll switch to a separate lock for device driver initialization code
-//for both SMP and non-SMP due to difficulties in registering IRQs with the global interrupt lock.
-//for now, though, we provide these functions that, unlike in the non-SMP case, must be called
-//without thaking any lock
-
-void registerIrq(unsigned int id, void (*handler)(void*), void *arg=nullptr) noexcept;
-
-inline void registerIrq(unsigned int id, void (*handler)()) noexcept
-{
-    registerIrq(id,reinterpret_cast<void (*)(void*)>(handler));
-}
-
-template<typename T>
-inline void registerIrq(unsigned int id, void (T::*mfn)(), T *object) noexcept
-{
-    auto result=unmember(mfn,object);
-    registerIrq(id,std::get<0>(result),std::get<1>(result));
-}
-
-bool tryRegisterIrq(unsigned int id, void (*handler)(void*), void *arg=nullptr) noexcept;
-
-inline bool tryRegisterIrq(unsigned int id, void (*handler)()) noexcept
-{
-    return tryRegisterIrq(id,reinterpret_cast<void (*)(void*)>(handler));
-}
-
-template<typename T>
-inline bool tryRegisterIrq(unsigned int id, void (T::*mfn)(), T *object) noexcept
-{
-    auto result=unmember(mfn,object);
-    return tryRegisterIrq(id,std::get<0>(result),std::get<1>(result));
-}
-
-void unregisterIrq(unsigned int id, void (*handler)(void*), void *arg=nullptr) noexcept;
-
-inline void unregisterIrq(unsigned int id, void (*handler)()) noexcept
-{
-    unregisterIrq(id,reinterpret_cast<void (*)(void*)>(handler));
-}
-
-template<typename T>
-inline void unregisterIrq(unsigned int id, void (T::*mfn)(), T *object) noexcept
-{
-    auto result=unmember(mfn,object);
-    unregisterIrq(id,std::get<0>(result),std::get<1>(result));
-}
-
-#endif //WITH_SMP
-
 /**
  * \}
  */
