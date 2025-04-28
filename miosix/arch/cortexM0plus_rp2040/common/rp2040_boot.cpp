@@ -301,9 +301,6 @@ void IRQmemoryAndClockInit()
           RESETS_RESET_SYSINFO_BITS
         | RESETS_RESET_SYSCFG_BITS
         | RESETS_RESET_BUSCTRL_BITS);
-
-    // Update SystemCoreClock
-    SystemCoreClock = cpuFrequency;
 }
 
 } //namespace miosix

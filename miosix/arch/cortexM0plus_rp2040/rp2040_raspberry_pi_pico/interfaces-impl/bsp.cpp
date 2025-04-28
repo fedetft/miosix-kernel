@@ -56,6 +56,9 @@ namespace miosix {
 
 void IRQbspInit()
 {
+    // Update SystemCoreClock
+    SystemCoreClock = cpuFrequency;
+    
     //Enable all gpios
     unreset_block_wait(RESETS_RESET_PADS_BANK0_BITS | RESETS_RESET_IO_BANK0_BITS);
     sio_hw->gpio_oe_set = SIO_GPIO_OE_SET_BITS;
