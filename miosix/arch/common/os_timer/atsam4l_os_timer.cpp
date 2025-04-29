@@ -145,6 +145,7 @@ public:
     
     void IRQinitTimer()
     {
+        GlobalIrqLock lock; // does nothing, but is needed for IRQregisterIrq
         int timerInputFreq = SystemCoreClock / 2;
         
         //Handle the case when the prescribed timer frequency is not achievable.
@@ -169,7 +170,7 @@ public:
         TC1->TC_CHANNEL[0].TC_CMR = TC_CMR_WAVE | TC_CMR_CAPTURE_TCCLKS(0); //CLOCK=GCLK8
         TC1->TC_CHANNEL[0].TC_IER = TC_IER_CPCS | TC_IER_COVFS;
         
-        IRQregisterIrq(TC10_IRQn,&TimerAdapter<ATSAM_TC1_Timer,16>::IRQhandler,
+        IRQregisterIrq(lock,TC10_IRQn,&TimerAdapter<ATSAM_TC1_Timer,16>::IRQhandler,
                        static_cast<TimerAdapter<ATSAM_TC1_Timer, 16>*>(this));
     }
 };
@@ -251,6 +252,7 @@ public:
     
     void IRQinitTimer()
     {
+        GlobalIrqLock lock; // does nothing, but is needed for IRQregisterIrq
         start32kHzOscillator();
 
         //AST clock gating already enabled at boot
@@ -277,9 +279,9 @@ public:
         while(AST->AST_SR & AST_SR_BUSY) ;
         AST->AST_WER=AST_WER_ALARM0 | AST_WER_OVF;
         
-        IRQregisterIrq(AST_ALARM_IRQn,&TimerAdapter<ATSAM_AST_Timer,32,2>::IRQhandler,
+        IRQregisterIrq(lock,AST_ALARM_IRQn,&TimerAdapter<ATSAM_AST_Timer,32,2>::IRQhandler,
                        static_cast<TimerAdapter<ATSAM_AST_Timer,32,2>*>(this));
-        IRQregisterIrq(AST_OVF_IRQn,&TimerAdapter<ATSAM_AST_Timer,32,2>::IRQhandler,
+        IRQregisterIrq(lock,AST_OVF_IRQn,&TimerAdapter<ATSAM_AST_Timer,32,2>::IRQhandler,
                        static_cast<TimerAdapter<ATSAM_AST_Timer,32,2>*>(this));
     }
 };

@@ -1205,7 +1205,7 @@ static void initSDIOPeripheral()
 {
     {
         //Doing read-modify-write on RCC->APBENR2 and gpios, better be safe
-        FastGlobalIrqLock lock;
+        GlobalIrqLock lock;
         RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN
                       | RCC_AHB1ENR_GPIODEN
                       | RCC_AHB1ENR_DMA2EN;
@@ -1243,14 +1243,14 @@ static void initSDIOPeripheral()
         sdCMD::mode(Mode::ALTERNATE);
         sdCMD::alternateFunction(12);
         #endif
+    
+        #if (defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)) && SD_SDMMC==2
+        IRQregisterIrq(lock,DMA2_Stream0_IRQn,SDDMAirqImpl);
+        #else
+        IRQregisterIrq(lock,DMA2_Stream3_IRQn,SDDMAirqImpl);
+        #endif
+        IRQregisterIrq(lock,SDIO_IRQn,SDirqImpl);
     }
-
-    #if (defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)) && SD_SDMMC==2
-    IRQregisterIrq(DMA2_Stream0_IRQn,SDDMAirqImpl);
-    #else
-    IRQregisterIrq(DMA2_Stream3_IRQn,SDDMAirqImpl);
-    #endif
-    IRQregisterIrq(SDIO_IRQn,SDirqImpl);
     
     SDIO->POWER=0; //Power off state
     delayUs(1);

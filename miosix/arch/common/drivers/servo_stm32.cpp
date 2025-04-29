@@ -259,23 +259,23 @@ void SynchronizedServo::setMaxPulseWidth(float maxPulse)
 SynchronizedServo::SynchronizedServo() : status(STOPPED)
 {
     {
-        FastGlobalIrqLock dLock;
+        GlobalIrqLock dLock;
         // The RCC register should be written with interrupts disabled to
         // prevent race conditions with other threads.
         RCC->APB1ENR |= RCC_APB1ENR_TIM4EN;
         RCC_SYNC();
-    }
     
-    // Configure timer
-    TIM4->CR1=0;
-    TIM4->ARR=0xffff;
-    TIM4->CCR1=0;
-    TIM4->CCR2=0;
-    TIM4->CCR3=0;
-    TIM4->CCR4=0;
-    // Configure interrupt on timer overflow
-    TIM4->DIER=TIM_DIER_UIE;
-    IRQregisterIrq(TIM4_IRQn,&SynchronizedServo::interruptHandler,this);
+        // Configure timer
+        TIM4->CR1=0;
+        TIM4->ARR=0xffff;
+        TIM4->CCR1=0;
+        TIM4->CCR2=0;
+        TIM4->CCR3=0;
+        TIM4->CCR4=0;
+        // Configure interrupt on timer overflow
+        TIM4->DIER=TIM_DIER_UIE;
+        IRQregisterIrq(dLock,TIM4_IRQn,&SynchronizedServo::interruptHandler,this);
+    }
     // Set default parameters
     setFrequency(50);
     setMinPulseWidth(1000);

@@ -250,7 +250,7 @@ void Player::play(Sound& sound)
     bq=new BufferQueue<unsigned short,bufferSize>();
     
 	{
-		FastGlobalIrqLock dLock;
+		GlobalIrqLock dLock;
         //Configure GPIOs
         dacPin::mode(Mode::INPUT_ANALOG);
 		//Enable peripherals clock gating, other threads might be concurretly
@@ -262,7 +262,7 @@ void Player::play(Sound& sound)
 		//Configure DAC
 		DAC->CR=DAC_CR_DMAEN1 | DAC_CR_TEN1 | DAC_CR_EN1;
 		//Configure DMA
-		IRQregisterIrq(DMA1_Channel3_IRQn,DACdmaHandlerImpl);
+		IRQregisterIrq(dLock,DMA1_Channel3_IRQn,DACdmaHandlerImpl);
 	}
 
 	//Configure TIM6
@@ -300,8 +300,8 @@ void Player::play(Sound& sound)
 
     //Shutdown
 	{
-		FastGlobalIrqLock dLock;
-		IRQunregisterIrq(DMA1_Channel3_IRQn,DACdmaHandlerImpl);
+		GlobalIrqLock dLock;
+		IRQunregisterIrq(dLock,DMA1_Channel3_IRQn,DACdmaHandlerImpl);
 		TIM6->CR1=0;
 		DMA1_Channel3->CCR=0;
 		DAC->CR=0;
@@ -317,7 +317,7 @@ void Player::play(Sound& sound)
     bq=new BufferQueue<unsigned short,bufferSize>();
 
     {
-        FastGlobalIrqLock dLock;
+        GlobalIrqLock dLock;
         //Enable DMA1 and SPI3/I2S3
         RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN;
         RCC_SYNC();
@@ -337,7 +337,7 @@ void Player::play(Sound& sound)
         //Enable audio PLL (settings for 44100Hz audio)
         RCC->PLLI2SCFGR=(2<<28) | (271<<6);
         RCC->CR |= RCC_CR_PLLI2SON;
-        IRQregisterIrq(DMA1_Stream5_IRQn,I2SdmaHandlerImpl);
+        IRQregisterIrq(dLock,DMA1_Stream5_IRQn,I2SdmaHandlerImpl);
     }
     //Wait for PLL to lock
     while((RCC->CR & RCC_CR_PLLI2SRDY)==0) ;
@@ -401,9 +401,9 @@ void Player::play(Sound& sound)
     reset::low(); //Keep in reset state
     SPI3->I2SCFGR=0;
     {
-        FastGlobalIrqLock dLock;
+        GlobalIrqLock dLock;
         RCC->CR &= ~RCC_CR_PLLI2SON;
-        IRQunregisterIrq(DMA1_Stream5_IRQn,I2SdmaHandlerImpl);
+        IRQunregisterIrq(dLock,DMA1_Stream5_IRQn,I2SdmaHandlerImpl);
     }
     delete bq;
 }

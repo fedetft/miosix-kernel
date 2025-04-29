@@ -752,58 +752,58 @@ HRTB& HRTB::instance(){
     return hrtb;
 }
 
-HRTB::HRTB() {
+HRTB::HRTB()
+{
     //Power the timers up and PRS system
     {
         GlobalIrqLock l;
         CMU->HFPERCLKEN0 |= CMU_HFPERCLKEN0_TIMER1 | CMU_HFPERCLKEN0_TIMER2
                 | CMU_HFPERCLKEN0_TIMER3 | CMU_HFPERCLKEN0_PRS;
-    }
-    //Configure Timers
-    TIMER1->CTRL = TIMER_CTRL_MODE_UP | TIMER_CTRL_CLKSEL_PRESCHFPERCLK 
-            | TIMER_CTRL_PRESC_DIV1 | TIMER_CTRL_SYNC;
-    TIMER2->CTRL = TIMER_CTRL_MODE_UP | TIMER_CTRL_CLKSEL_PRESCHFPERCLK 
-            | TIMER_CTRL_PRESC_DIV1 | TIMER_CTRL_SYNC;
-    TIMER3->CTRL = TIMER_CTRL_MODE_UP | TIMER_CTRL_CLKSEL_TIMEROUF 
-            | TIMER_CTRL_SYNC;
-
-    //Code to entirely reset TIMER1, needed if you want run after the flash
-    TIMER1->CMD=TIMER_CMD_STOP;
-    TIMER1->CTRL=0;
-    TIMER1->ROUTE=0;
-    TIMER1->IEN=0;
-    TIMER1->IFC=~0;
-    TIMER1->TOP=0xFFFF;
-    TIMER1->CNT=0;
-    TIMER1->CC[0].CTRL=0;
-    TIMER1->CC[0].CCV=0;
-    TIMER1->CC[1].CTRL=0;
-    TIMER1->CC[1].CCV=0;
-    TIMER1->CC[2].CTRL=0;
-    TIMER1->CC[2].CCV=0;
-
-     
     
-    //Enable necessary interrupt lines
-    TIMER1->IEN = 0;
-    TIMER3->IEN = TIMER_IEN_OF; //OF needed to increment the software counter (32-bit)
+        //Configure Timers
+        TIMER1->CTRL = TIMER_CTRL_MODE_UP | TIMER_CTRL_CLKSEL_PRESCHFPERCLK 
+                | TIMER_CTRL_PRESC_DIV1 | TIMER_CTRL_SYNC;
+        TIMER2->CTRL = TIMER_CTRL_MODE_UP | TIMER_CTRL_CLKSEL_PRESCHFPERCLK 
+                | TIMER_CTRL_PRESC_DIV1 | TIMER_CTRL_SYNC;
+        TIMER3->CTRL = TIMER_CTRL_MODE_UP | TIMER_CTRL_CLKSEL_TIMEROUF 
+                | TIMER_CTRL_SYNC;
 
-    TIMER1->CC[1].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
-    TIMER3->CC[1].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
+        //Code to entirely reset TIMER1, needed if you want run after the flash
+        TIMER1->CMD=TIMER_CMD_STOP;
+        TIMER1->CTRL=0;
+        TIMER1->ROUTE=0;
+        TIMER1->IEN=0;
+        TIMER1->IFC=~0;
+        TIMER1->TOP=0xFFFF;
+        TIMER1->CNT=0;
+        TIMER1->CC[0].CTRL=0;
+        TIMER1->CC[0].CCV=0;
+        TIMER1->CC[1].CTRL=0;
+        TIMER1->CC[1].CCV=0;
+        TIMER1->CC[2].CTRL=0;
+        TIMER1->CC[2].CCV=0;
 
-    //FIXME: in Miosix 2 the timer 1 and 3 priority was set to 3 like in all
-    //other architectures, the RTC priority was set to 7 and TIMER2 to 8.
-    //However, the EFM32 only has 3 bits of priority unlike the STM32 so setting
-    //priority to 8 effectively set it to 0, the highest one!
-    //In Miosix 3 we changed the default priority values but for now we keep this
-    //wrong line here in case the priority 0 is important.
-    //This code needs a refactoring anyway...
+        //Enable necessary interrupt lines
+        TIMER1->IEN = 0;
+        TIMER3->IEN = TIMER_IEN_OF; //OF needed to increment the software counter (32-bit)
 
-    // Priority 8, this is very important, it MUST be a lower priority than RTC priority
-    NVIC_SetPriority(TIMER2_IRQn,8);
-    IRQregisterIrq(TIMER1_IRQn,cstirqhnd1);
-    IRQregisterIrq(TIMER2_IRQn,cstirqhnd2);
-    IRQregisterIrq(TIMER3_IRQn,cstirqhnd3);
+        TIMER1->CC[1].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
+        TIMER3->CC[1].CTRL = TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
+
+        //FIXME: in Miosix 2 the timer 1 and 3 priority was set to 3 like in all
+        //other architectures, the RTC priority was set to 7 and TIMER2 to 8.
+        //However, the EFM32 only has 3 bits of priority unlike the STM32 so setting
+        //priority to 8 effectively set it to 0, the highest one!
+        //In Miosix 3 we changed the default priority values but for now we keep this
+        //wrong line here in case the priority 0 is important.
+        //This code needs a refactoring anyway...
+
+        // Priority 8, this is very important, it MUST be a lower priority than RTC priority
+        NVIC_SetPriority(TIMER2_IRQn,8);
+        IRQregisterIrq(l,TIMER1_IRQn,cstirqhnd1);
+        IRQregisterIrq(l,TIMER2_IRQn,cstirqhnd2);
+        IRQregisterIrq(l,TIMER3_IRQn,cstirqhnd3);
+    }
     
     tc=new TimeConversion(HRTB::freq);
     //Start timers

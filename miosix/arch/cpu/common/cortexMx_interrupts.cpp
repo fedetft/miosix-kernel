@@ -304,12 +304,13 @@ static void IRQregisterIrqOnCoreHandler(void *ctxt)
     IRQregisterIrqImpl(irqCtxt->id,irqCtxt->handler,irqCtxt->arg);
 }
 
-void IRQregisterIrqOnCore(unsigned char coreId, unsigned int id, void (*handler)(void*), void *arg) noexcept
+void IRQregisterIrqOnCore(GlobalIrqLock& lock, unsigned char coreId,
+    unsigned int id, void (*handler)(void*), void *arg) noexcept
 {
     if(coreId==getCurrentCoreId()) IRQregisterIrqImpl(id,handler,arg);
     else {
         IrqRegistrationContext irqCtxt={id,handler,arg};
-        IRQcallOnCore(coreId,&IRQregisterIrqOnCoreHandler,&irqCtxt);
+        IRQcallOnCore(lock,coreId,&IRQregisterIrqOnCoreHandler,&irqCtxt);
     }
 }
 
@@ -319,23 +320,26 @@ static void IRQunregisterIrqOnCoreHandler(void *ctxt)
     IRQunregisterIrqImpl(irqCtxt->id,irqCtxt->handler,irqCtxt->arg);
 }
 
-void IRQunregisterIrqOnCore(unsigned char coreId, unsigned int id, void (*handler)(void*), void *arg) noexcept
+void IRQunregisterIrqOnCore(GlobalIrqLock& lock, unsigned char coreId,
+    unsigned int id, void (*handler)(void*), void *arg) noexcept
 {
     if(coreId==getCurrentCoreId()) IRQunregisterIrqImpl(id,handler,arg);
     else {
         IrqRegistrationContext irqCtxt={id,handler,arg};
-        IRQcallOnCore(coreId,&IRQunregisterIrqOnCoreHandler,&irqCtxt);
+        IRQcallOnCore(lock,coreId,&IRQunregisterIrqOnCoreHandler,&irqCtxt);
     }
 }
 
 #else // WITH_SMP
 
-void IRQregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexcept
+void IRQregisterIrq(GlobalIrqLock& lock, unsigned int id,
+                    void (*handler)(void*), void *arg) noexcept
 {
     IRQregisterIrqImpl(id,handler,arg);
 }
 
-void IRQunregisterIrq(unsigned int id, void (*handler)(void*), void *arg) noexcept
+void IRQunregisterIrq(GlobalIrqLock& lock, unsigned int id,
+                      void (*handler)(void*), void *arg) noexcept
 {
     IRQunregisterIrqImpl(id,handler,arg);
 }

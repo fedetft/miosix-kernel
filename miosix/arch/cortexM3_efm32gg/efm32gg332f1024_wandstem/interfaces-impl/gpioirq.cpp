@@ -71,14 +71,14 @@ void registerGpioIrq(GpioPin pin, GpioIrqEdge edge, function<void ()> callback)
     
     bool failed=false;
     {
-        FastGlobalIrqLock dLock;
+        GlobalIrqLock dLock;
         static bool first=false;
         if(first==false)
         {
             first=true;
             GPIO->INSENSE |= GPIO_INSENSE_INT | GPIO_INSENSE_PRS;
-            IRQregisterIrq(GPIO_EVEN_IRQn,&IRQGpioEvenInterruptHandler);
-            IRQregisterIrq(GPIO_ODD_IRQn,&IRQGpioOddInterruptHandler);
+            IRQregisterIrq(dLock,GPIO_EVEN_IRQn,&IRQGpioEvenInterruptHandler);
+            IRQregisterIrq(dLock,GPIO_ODD_IRQn,&IRQGpioOddInterruptHandler);
         }
         
         if(callbacks[number])

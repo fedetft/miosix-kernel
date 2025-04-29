@@ -119,9 +119,12 @@ inline bool areInterruptsEnabled() noexcept;
  * \{
  */
 
+class GlobalIrqLock; // lock.h
+
 #ifdef WITH_SMP
 /**
  * Register an interrupt handler on a specific core.
+ * \param lock a GlobalIrqLock (GIL) lock that must be already taken here.
  * \param coreId the identifier of the core that will handle the interrupt.
  * After calling this function, the same interrupt will not be register-able
  * on any other core, unless it is unregistered first.
@@ -137,12 +140,13 @@ inline bool areInterruptsEnabled() noexcept;
  * to register an interrupt you should call IRQisIrqRegistered() to test whether
  * an interrupt is already registered for that id before calling IRQregisterIrq()
  */
-void IRQregisterIrqOnCore(unsigned char coreId, unsigned int id,
+void IRQregisterIrqOnCore(GlobalIrqLock& lock, unsigned char coreId, unsigned int id,
                           void (*handler)(void*), void *arg=nullptr) noexcept;
 #endif
 
 /**
  * Register an interrupt handler.
+ * \param lock a GlobalIrqLock (GIL) lock that must be already taken here.
  * \param id platform-dependent id of the peripheral for which the handler has
  * to be registered.
  * \param handler pointer to the handler function of type void (*)(void*)
@@ -156,16 +160,19 @@ void IRQregisterIrqOnCore(unsigned char coreId, unsigned int id,
  * an interrupt is already registered for that id before calling IRQregisterIrq()
  */
 #ifdef WITH_SMP
-inline void IRQregisterIrq(unsigned int id, void (*handler)(void*), void *arg=nullptr) noexcept
+inline void IRQregisterIrq(GlobalIrqLock& lock, unsigned int id,
+                           void (*handler)(void*), void *arg=nullptr) noexcept
 {
-    IRQregisterIrqOnCore(0,id,handler,arg);
+    IRQregisterIrqOnCore(lock,0,id,handler,arg);
 }
 #else
-void IRQregisterIrq(unsigned int id, void (*handler)(void*), void *arg=nullptr) noexcept;
+void IRQregisterIrq(GlobalIrqLock& lock, unsigned int id,
+                    void (*handler)(void*), void *arg=nullptr) noexcept;
 #endif
 
 /**
  * Register an interrupt handler.
+ * \param lock a GlobalIrqLock (GIL) lock that must be already taken here.
  * \param id platform-dependent id of the peripheral for which the handler has
  * to be registered.
  * \param handler pointer to the handler function of type void (*)()
@@ -175,13 +182,14 @@ void IRQregisterIrq(unsigned int id, void (*handler)(void*), void *arg=nullptr) 
  * to register an interrupt you should call IRQisIrqRegistered() to test whether
  * an interrupt is already registered for that id before calling IRQregisterIrq()
  */
-inline void IRQregisterIrq(unsigned int id, void (*handler)()) noexcept
+inline void IRQregisterIrq(GlobalIrqLock& lock, unsigned int id, void (*handler)()) noexcept
 {
-    IRQregisterIrq(id,reinterpret_cast<void (*)(void*)>(handler));
+    IRQregisterIrq(lock,id,reinterpret_cast<void (*)(void*)>(handler));
 }
 
 /**
  * Register a class member function as an interrupt handler.
+ * \param lock a GlobalIrqLock (GIL) lock that must be already taken here.
  * \param id platform-dependent id of the peripheral for which the handler has
  * to be registered.
  * \param mfn member function pointer to the class method to be registered as
@@ -194,15 +202,16 @@ inline void IRQregisterIrq(unsigned int id, void (*handler)()) noexcept
  * an interrupt is already registered for that id before calling IRQregisterIrq()
  */
 template<typename T>
-inline void IRQregisterIrq(unsigned int id, void (T::*mfn)(), T *object) noexcept
+inline void IRQregisterIrq(GlobalIrqLock& lock, unsigned int id, void (T::*mfn)(), T *object) noexcept
 {
     auto result=unmember(mfn,object);
-    IRQregisterIrq(id,std::get<0>(result),std::get<1>(result));
+    IRQregisterIrq(lock,id,std::get<0>(result),std::get<1>(result));
 }
 
 #ifdef WITH_SMP
 /**
  * Unregister an interrupt handler from a specific core.
+ * \param lock a GlobalIrqLock (GIL) lock that must be already taken here.
  * \param coreId the identifier of the core that was registered for handling the
  * interrupt. If the core is not the same one that was used for originally
  * registering the IRQ, the function's behavior is undefined.
@@ -216,12 +225,13 @@ inline void IRQregisterIrq(unsigned int id, void (T::*mfn)(), T *object) noexcep
  * \note This function calls errorHandler() causing a reboot if attempting to
  * unregister a different interrupt than the currently registered one
  */
-void IRQunregisterIrqOnCore(unsigned char coreId, unsigned int id,
-                            void (*handler)(void*), void *arg=nullptr) noexcept;
+void IRQunregisterIrqOnCore(GlobalIrqLock& lock, unsigned char coreId,
+    unsigned int id, void (*handler)(void*), void *arg=nullptr) noexcept;
 #endif
 
 /**
  * Unregister an interrupt handler.
+ * \param lock a GlobalIrqLock (GIL) lock that must be already taken here.
  * \param id platform-dependent id of the peripheral for which the handler has
  * to be unregistered.
  * \param handler pointer to the handler function of type void (*)(void*)
@@ -233,16 +243,19 @@ void IRQunregisterIrqOnCore(unsigned char coreId, unsigned int id,
  * unregister a different interrupt than the currently registered one
  */
 #ifdef WITH_SMP
-inline void IRQunregisterIrq(unsigned int id, void (*handler)(void*), void *arg=nullptr) noexcept
+inline void IRQunregisterIrq(GlobalIrqLock& lock, unsigned int id,
+                             void (*handler)(void*), void *arg=nullptr) noexcept
 {
-    IRQunregisterIrqOnCore(0,id,handler,arg);
+    IRQunregisterIrqOnCore(lock,0,id,handler,arg);
 }
 #else
-void IRQunregisterIrq(unsigned int id, void (*handler)(void*), void *arg=nullptr) noexcept;
+void IRQunregisterIrq(GlobalIrqLock& lock, unsigned int id,
+                      void (*handler)(void*), void *arg=nullptr) noexcept;
 #endif
 
 /**
  * Unregister an interrupt handler.
+ * \param lock a GlobalIrqLock (GIL) lock that must be already taken here.
  * \param id platform-dependent id of the peripheral for which the handler has
  * to be registered.
  * \param handler pointer to the handler function of type void (*)()
@@ -250,13 +263,14 @@ void IRQunregisterIrq(unsigned int id, void (*handler)(void*), void *arg=nullptr
  * \note This function calls errorHandler() causing a reboot if attempting to
  * unregister a different interrupt than the currently registered one
  */
-inline void IRQunregisterIrq(unsigned int id, void (*handler)()) noexcept
+inline void IRQunregisterIrq(GlobalIrqLock& lock, unsigned int id, void (*handler)()) noexcept
 {
-    IRQunregisterIrq(id,reinterpret_cast<void (*)(void*)>(handler));
+    IRQunregisterIrq(lock,id,reinterpret_cast<void (*)(void*)>(handler));
 }
 
 /**
  * Unregister an interrupt handler.
+ * \param lock a GlobalIrqLock (GIL) lock that must be already taken here.
  * \param id platform-dependent id of the peripheral for which the handler has
  * to be registered.
  * \param mfn member function pointer to the class method to be registered as
@@ -267,10 +281,10 @@ inline void IRQunregisterIrq(unsigned int id, void (*handler)()) noexcept
  * unregister a different interrupt than the currently registered one
  */
 template<typename T>
-inline void IRQunregisterIrq(unsigned int id, void (T::*mfn)(), T *object) noexcept
+inline void IRQunregisterIrq(GlobalIrqLock& lock, unsigned int id, void (T::*mfn)(), T *object) noexcept
 {
     auto result=unmember(mfn,object);
-    IRQunregisterIrq(id,std::get<0>(result),std::get<1>(result));
+    IRQunregisterIrq(lock,id,std::get<0>(result),std::get<1>(result));
 }
 
 /*

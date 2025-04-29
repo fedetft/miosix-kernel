@@ -845,7 +845,7 @@ static void initSDIOPeripheral()
 {
     {
         //Doing read-modify-write on RCC->APBENR2 and gpios, better be safe
-        FastGlobalIrqLock lock;         
+        GlobalIrqLock lock;         
         RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN  
                       | RCC_AHB2ENR_GPIODEN
                       | RCC_AHB2ENR_SDMMC1EN;
@@ -868,7 +868,7 @@ static void initSDIOPeripheral()
         sdCLK::alternateFunction(12);
         sdCMD::mode(Mode::ALTERNATE);
         sdCMD::alternateFunction(12);
-        IRQregisterIrq(SDMMC1_IRQn,SDMMCirqImpl);
+        IRQregisterIrq(lock,SDMMC1_IRQn,SDMMCirqImpl);
     }
     
     SDMMC1->POWER=0; //Power off state

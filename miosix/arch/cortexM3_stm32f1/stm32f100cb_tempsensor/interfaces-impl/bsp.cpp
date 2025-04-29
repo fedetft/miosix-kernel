@@ -74,8 +74,8 @@ static void initDisplay()
     TIM3->PSC=0;
     TIM3->ARR=60000; //24MHz/60000=400Hz 
     TIM3->CR1=TIM_CR1_CEN;
-    FastGlobalIrqLock dLock;
-    IRQregisterIrq(TIM3_IRQn,TIM3_IRQHandler);
+    GlobalIrqLock dLock;
+    IRQregisterIrq(dLock,TIM3_IRQn,TIM3_IRQHandler);
 }
 
 void clearDisplay()

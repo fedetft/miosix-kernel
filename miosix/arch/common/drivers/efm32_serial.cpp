@@ -66,7 +66,7 @@ EFM32Serial::EFM32Serial(int id, int baudrate, GpioPin tx, GpioPin rx)
             default:
                 errorHandler(Error::UNEXPECTED);
         }
-        IRQregisterIrq(irqn,&EFM32Serial::IRQinterruptHandler,this);
+        IRQregisterIrq(dLock,irqn,&EFM32Serial::IRQinterruptHandler,this);
     }
     
     port->IEN=USART_IEN_RXDATAV;
@@ -180,7 +180,7 @@ EFM32Serial::~EFM32Serial()
     port->CMD=USART_CMD_TXDIS
             | USART_CMD_RXDIS;
     port->ROUTE=0;
-    IRQunregisterIrq(irqn,&EFM32Serial::IRQinterruptHandler,this);
+    IRQunregisterIrq(dLock,irqn,&EFM32Serial::IRQinterruptHandler,this);
     if(port==USART0) CMU->HFPERCLKEN0 &= ~CMU_HFPERCLKEN0_USART0;
     else             CMU->HFPERCLKEN0 &= ~CMU_HFPERCLKEN0_USART1;
 }

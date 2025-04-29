@@ -1388,7 +1388,7 @@ static void initSDIOPeripheral()
 {
     {
         //Doing read-modify-write on RCC->APBENR2 and gpios, better be safe
-        FastGlobalIrqLock lock;
+        GlobalIrqLock lock;
         RCC->APB2ENR |= RCC_APB2ENR_IOPCEN | RCC_APB2ENR_IOPDEN;
         RCC_SYNC();
         #ifdef SD_DMA
@@ -1403,11 +1403,12 @@ static void initSDIOPeripheral()
         sdD3::mode(Mode::ALTERNATE);
         sdCLK::mode(Mode::ALTERNATE);
         sdCMD::mode(Mode::ALTERNATE);
+        #ifdef SD_DMA
+        IRQregisterIrq(lock,DMA2_Channel4_5_IRQn,DMA2channel4irqImpl);
+        IRQregisterIrq(lock,SDIO_IRQn,SDIOirqImpl);
+        #endif //SD_DMA
     }
-    #ifdef SD_DMA
-    IRQregisterIrq(DMA2_Channel4_5_IRQn,DMA2channel4irqImpl);
-    IRQregisterIrq(SDIO_IRQn,SDIOirqImpl);
-    #endif //SD_DMA
+
 
     SDIO->POWER=0; //Power off state
     delayUs(1);

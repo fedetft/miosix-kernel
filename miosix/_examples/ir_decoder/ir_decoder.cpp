@@ -54,10 +54,10 @@ void tim3impl()
 int main()
 {
     {
-        FastGlobalIrqLock dLock;
+        GlobalIrqLock dLock;
         RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
         RCC_SYNC();
-        IRQregisterIrq(TIM3_IRQn,tim3impl);
+        IRQregisterIrq(dLock,TIM3_IRQn,tim3impl);
     }
     TIM3->CNT=0;
     TIM3->PSC=84-1; //Prescaler clocked at 84MHz, timer incremented every 1us

@@ -279,7 +279,7 @@ bool Rtc::absoluteWait(long long value)
 Rtc::Rtc() : tc(getTickFrequency())
 {
     {
-        FastGlobalIrqLock dLock;
+        GlobalIrqLock dLock;
         RCC->APB1ENR |= RCC_APB1ENR_PWREN | RCC_APB1ENR_BKPEN;
         PWR->CR |= PWR_CR_DBP;
         RCC->BDCR=RCC_BDCR_RTCEN       //RTC enabled
@@ -289,6 +289,7 @@ Rtc::Rtc() : tc(getTickFrequency())
         #ifdef RTC_CLKOUT_ENABLE
         BKP->RTCCR=BKP_RTCCR_CCO;      //Output RTC clock/64 on pin
         #endif
+        IRQregisterIrq(dLock,RTC_IRQn,RTCIrqImpl);
     }
     while((RCC->BDCR & RCC_BDCR_LSERDY)==0) ; //Wait for LSE to start
     
@@ -298,7 +299,6 @@ Rtc::Rtc() : tc(getTickFrequency())
         RTC->PRLH=0;
         RTC->PRLL=1;
     }
-    IRQregisterIrq(RTC_IRQn,RTCIrqImpl);
 }
 
 } //namespace miosix

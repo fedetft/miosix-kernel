@@ -4224,10 +4224,10 @@ void testCacheAndDMA()
 {
     test_name("STM32 cache/DMA");
     {
-        FastGlobalIrqLock dLock;
+        GlobalIrqLock dLock;
         RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
         RCC_SYNC();
-        IRQregisterIrq(DMA2_Stream0_IRQn,dma2s0irq);
+        IRQregisterIrq(dLock,DMA2_Stream0_IRQn,dma2s0irq);
     }
 
     //Testing cache-aligned transactions
@@ -4272,8 +4272,8 @@ void testCacheAndDMA()
     }
 
     {
-        FastGlobalIrqLock dLock;
-        IRQunregisterIrq(DMA2_Stream0_IRQn,dma2s0irq);
+        GlobalIrqLock dLock;
+        IRQunregisterIrq(dLock,DMA2_Stream0_IRQn,dma2s0irq);
     }
     pass();
 }

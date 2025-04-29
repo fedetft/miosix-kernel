@@ -917,7 +917,7 @@ static void initSDMMCPeripheral()
 {
     {
         //Doing read-modify-write on RCC->APBENR2 and gpios, better be safe
-        FastGlobalIrqLock lock;
+        GlobalIrqLock lock;
         RCC->AHB4ENR |= RCC_AHB4ENR_GPIOCEN
                       | RCC_AHB4ENR_GPIODEN
                       ;
@@ -959,9 +959,8 @@ static void initSDMMCPeripheral()
         sdCMD::mode(Mode::ALTERNATE);
         sdCMD::alternateFunction(12);
         #endif
+        IRQregisterIrq(lock,SDMMC_IRQn,SDirqImpl);
     }
-
-    IRQregisterIrq(SDMMC_IRQn,SDirqImpl);
     
     SDMMC->POWER=0; //Power off state
     delayUs(1);

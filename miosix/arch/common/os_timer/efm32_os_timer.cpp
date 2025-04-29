@@ -87,6 +87,7 @@ public:
 
     void IRQinitTimer()
     {
+        GlobalIrqLock lock; // does nothing, but is needed by IRQregisterIrq
         CMU->HFPERCLKEN0 |= CMU_HFPERCLKEN0_TIMER2;
 
         // MODE=0     Up-counter
@@ -103,7 +104,7 @@ public:
         TIMER2->CC[0].CTRL=TIMER_CC_CTRL_MODE_OUTPUTCOMPARE;
         TIMER2->CC[0].CCV=0xffff;
 
-        IRQregisterIrq(TIMER2_IRQn,&TimerAdapter<EFM32Timer2,16>::IRQhandler,
+        IRQregisterIrq(lock,TIMER2_IRQn,&TimerAdapter<EFM32Timer2,16>::IRQhandler,
                        static_cast<TimerAdapter<EFM32Timer2, 16>*>(this));
     }
 };

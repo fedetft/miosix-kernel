@@ -168,7 +168,7 @@ public:
     void IRQinitTimer()
     {
         {
-            FastGlobalIrqLock dLock;
+            GlobalIrqLock dLock;
             RCC->APB1ENR |= RCC_APB1ENR_PWREN | RCC_APB1ENR_BKPEN;
             RCC_SYNC();
             PWR->CR |= PWR_CR_DBP;
@@ -176,6 +176,9 @@ public:
                     | RCC_BDCR_LSEON       //External 32KHz oscillator enabled
                     | RCC_BDCR_RTCSEL_0;   //Select LSE as clock source for RTC
             RCC_SYNC();
+            IRQregisterIrq(dLock,RTC_IRQn,
+                &TimerAdapter<STM32F1RTC_Timer,32,1>::IRQhandler,
+                static_cast<TimerAdapter<STM32F1RTC_Timer,32,1>*>(this));
         }
         while((RCC->BDCR & RCC_BDCR_LSERDY)==0) ; //Wait for LSE to start
 
@@ -189,8 +192,6 @@ public:
             RTC->CNTH=0; RTC->CNTL=0;
             RTC->ALRH=0xffff; RTC->ALRL=0xffff;
         }
-        IRQregisterIrq(RTC_IRQn,&TimerAdapter<STM32F1RTC_Timer,32,1>::IRQhandler,
-                       static_cast<TimerAdapter<STM32F1RTC_Timer,32,1>*>(this));
 
         // We can't stop the RTC during debugging, so debugging won't be easy.
         // Actually, we can't stop the RTC at all once we start it...

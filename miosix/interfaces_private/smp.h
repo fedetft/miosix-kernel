@@ -110,7 +110,8 @@ void IRQinvokeSchedulerOnCore(unsigned char core) noexcept;
  * \param f    The function to execute on the core.
  * \param arg  The argument to pass to the function.
  */
-void IRQcallOnCore(unsigned char core, void (*f)(void *), void *arg) noexcept;
+void IRQcallOnCore(GlobalIrqLock& lock, unsigned char core, void (*f)(void *),
+                   void *arg) noexcept;
 
 /**
  * \}

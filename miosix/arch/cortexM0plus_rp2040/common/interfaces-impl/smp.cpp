@@ -223,7 +223,8 @@ void IRQinvokeSchedulerOnCore(unsigned char core) noexcept
     sio_hw->fifo_wr=0;
 }
 
-void IRQcallOnCore(unsigned char core, void (*f)(void *), void *arg) noexcept
+void IRQcallOnCore(GlobalIrqLock& lock, unsigned char core, void (*f)(void *),
+                   void *arg) noexcept
 {
     // Is this already the right core?
     if(core==getCurrentCoreId()) { f(arg); return; }
@@ -238,7 +239,7 @@ void IRQcallOnCore(unsigned char core, void (*f)(void *), void *arg) noexcept
     __DSB();
     sio_hw->fifo_wr=0;
     do {
-        Thread::IRQglobalIrqUnlockAndWaitImpl();
+        Thread::IRQglobalIrqUnlockAndWait(lock);
     } while(invocations[core].waiting);
 }
 

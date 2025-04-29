@@ -149,13 +149,14 @@ public:
     
     void IRQinitTimer()
     {
+        GlobalIrqLock lock; // does nothing, but is needed by IRQregisterIrq
         T::IRQenable();
         // Setup base configuration
         // Mode: Up-counter
         // Interrupts: counter overflow, Compare/Capture on channel 1
         T::get()->CR1=TIM_CR1_URS;
         T::get()->DIER=TIM_DIER_UIE | TIM_DIER_CC1IE;
-        IRQregisterIrq(T::getIRQn(),&TimerAdapter<STM32Timer<T>, 32>::IRQhandler,
+        IRQregisterIrq(lock,T::getIRQn(),&TimerAdapter<STM32Timer<T>, 32>::IRQhandler,
                        static_cast<TimerAdapter<STM32Timer<T>, 32>*>(this));
         // Configure channel 1 as:
         // Output channel (CC1S=0)

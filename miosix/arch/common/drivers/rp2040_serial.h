@@ -107,7 +107,7 @@ public:
     
 private:
 
-    void commonInit(int number, int baudrate);
+    void commonInit(GlobalIrqLock& lock, int number, int baudrate);
 
     /**
      * \internal the serial port interrupts call this member function.

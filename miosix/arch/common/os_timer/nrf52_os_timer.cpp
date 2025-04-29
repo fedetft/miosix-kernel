@@ -108,6 +108,7 @@ public:
 
     void IRQinitTimer()
     {
+        GlobalIrqLock lock; // does nothing, but is needed by IRQregisterIrq
         NRF_TIMER1->TASKS_STOP=1;
         NRF_TIMER1->TASKS_CLEAR=1;
         NRF_TIMER1->MODE=0;      //Timer mode
@@ -115,7 +116,7 @@ public:
         NRF_TIMER1->PRESCALER=0; //Maximum frequency
         NRF_TIMER1->CC[2]=0;     //Emulate overflow IRQ
         NRF_TIMER1->INTENSET=0b000101<<16; //Enable IRQ on channel 0 and 2
-        IRQregisterIrq(TIMER1_IRQn,&TimerAdapter<NRFTimer1,32>::IRQhandler,
+        IRQregisterIrq(lock,TIMER1_IRQn,&TimerAdapter<NRFTimer1,32>::IRQhandler,
                        static_cast<TimerAdapter<NRFTimer1,32>*>(this));
     }
 };

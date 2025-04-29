@@ -552,7 +552,7 @@ void STM32Serial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
 {
     GlobalIrqLock dLock;
     port->IRQenable();
-    IRQregisterIrq(port->getIRQn(),&STM32Serial::IRQhandleInterrupt,this);
+    IRQregisterIrq(dLock,port->getIRQn(),&STM32Serial::IRQhandleInterrupt,this);
     STM32SerialBase::commonInit(id,baudrate,tx,rx,rts,cts);
     //Enabled, 8 data bit, no parity, interrupt on character rx
     port->get()->CR1 = USART_CR1_UE     //Enable port
@@ -615,7 +615,7 @@ STM32Serial::~STM32Serial()
     {
         GlobalIrqLock dLock;
         port->get()->CR1=0;
-        IRQunregisterIrq(port->getIRQn(),&STM32Serial::IRQhandleInterrupt,this);
+        IRQunregisterIrq(dLock,port->getIRQn(),&STM32Serial::IRQhandleInterrupt,this);
         port->IRQdisable();
     }
 }
@@ -646,15 +646,15 @@ void STM32DMASerial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
     GlobalIrqLock dLock;
 
     dma.IRQenable();
-    IRQregisterIrq(dma.getTxIRQn(),&STM32DMASerial::IRQhandleDmaTxInterrupt,this);
-    IRQregisterIrq(dma.getRxIRQn(),&STM32DMASerial::IRQhandleDmaRxInterrupt,this);
+    IRQregisterIrq(dLock,dma.getTxIRQn(),&STM32DMASerial::IRQhandleDmaTxInterrupt,this);
+    IRQregisterIrq(dLock,dma.getRxIRQn(),&STM32DMASerial::IRQhandleDmaRxInterrupt,this);
     dma.IRQinit();
 
     port->IRQenable();
     //Lower priority to ensure IRQhandleDmaRxInterrupt() is called before
     //IRQhandleInterrupt(), so that idle is set correctly
     NVIC_SetPriority(port->getIRQn(),defaultIrqPriority+1);
-    IRQregisterIrq(port->getIRQn(),&STM32DMASerial::IRQhandleInterrupt,this);
+    IRQregisterIrq(dLock,port->getIRQn(),&STM32DMASerial::IRQhandleInterrupt,this);
 
     STM32SerialBase::commonInit(id,baudrate,tx,rx,rts,cts);
 
@@ -828,9 +828,9 @@ STM32DMASerial::~STM32DMASerial()
         port->get()->CR1=0;
         IRQstopDmaRead();
         auto dma=port->getDma();
-        IRQunregisterIrq(dma.getTxIRQn(),&STM32DMASerial::IRQhandleDmaTxInterrupt,this);
-        IRQunregisterIrq(dma.getRxIRQn(),&STM32DMASerial::IRQhandleDmaRxInterrupt,this);
-        IRQunregisterIrq(port->getIRQn(),&STM32DMASerial::IRQhandleInterrupt,this);
+        IRQunregisterIrq(dLock,dma.getTxIRQn(),&STM32DMASerial::IRQhandleDmaTxInterrupt,this);
+        IRQunregisterIrq(dLock,dma.getRxIRQn(),&STM32DMASerial::IRQhandleDmaRxInterrupt,this);
+        IRQunregisterIrq(dLock,port->getIRQn(),&STM32DMASerial::IRQhandleInterrupt,this);
         port->IRQdisable();
     }
 }

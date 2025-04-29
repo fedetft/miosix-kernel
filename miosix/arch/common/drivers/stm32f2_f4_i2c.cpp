@@ -46,7 +46,7 @@ I2C1Master::I2C1Master(GpioPin sda, GpioPin scl, int frequency)
     //iprintf("fpclk1=%d\n",fpclk1);
     
     {
-        FastGlobalIrqLock dLock;
+        GlobalIrqLock dLock;
         // NOTE: GPIOs need to be configured before enabling the peripheral or
         // the first read/write call blocks forever. Smells like a hw bug
         // NOTE: ALTERNATE_OD as the I2C peripheral doesn't enforce open drain
@@ -57,12 +57,12 @@ I2C1Master::I2C1Master(GpioPin sda, GpioPin scl, int frequency)
         RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN;
         RCC->APB1ENR |= RCC_APB1ENR_I2C1EN; //Enable clock gating
         RCC_SYNC();
-    }
     
-    IRQregisterIrq(DMA1_Stream7_IRQn,&I2C1Master::I2C1txDmaHandlerImpl,this);
-    IRQregisterIrq(DMA1_Stream0_IRQn,&I2C1Master::I2C1rxDmaHandlerImpl,this);
-    IRQregisterIrq(I2C1_EV_IRQn,&I2C1Master::I2C1HandlerImpl,this);
-    IRQregisterIrq(I2C1_ER_IRQn,&I2C1Master::I2C1errHandlerImpl,this);
+        IRQregisterIrq(dLock,DMA1_Stream7_IRQn,&I2C1Master::I2C1txDmaHandlerImpl,this);
+        IRQregisterIrq(dLock,DMA1_Stream0_IRQn,&I2C1Master::I2C1rxDmaHandlerImpl,this);
+        IRQregisterIrq(dLock,I2C1_EV_IRQn,&I2C1Master::I2C1HandlerImpl,this);
+        IRQregisterIrq(dLock,I2C1_ER_IRQn,&I2C1Master::I2C1errHandlerImpl,this);
+    }
 
     I2C1->CR1=I2C_CR1_SWRST;
     I2C1->CR1=0;
@@ -188,19 +188,17 @@ bool I2C1Master::send(unsigned char address, const void *data, int len, bool sen
 
 I2C1Master::~I2C1Master()
 {
+    GlobalIrqLock dLock;
     I2C1->CR1=I2C_CR1_SWRST;
     I2C1->CR1=0;
 
-    IRQunregisterIrq(DMA1_Stream7_IRQn,&I2C1Master::I2C1txDmaHandlerImpl,this);
-    IRQunregisterIrq(DMA1_Stream0_IRQn,&I2C1Master::I2C1rxDmaHandlerImpl,this);
-    IRQunregisterIrq(I2C1_EV_IRQn,&I2C1Master::I2C1HandlerImpl,this);
-    IRQunregisterIrq(I2C1_ER_IRQn,&I2C1Master::I2C1errHandlerImpl,this);
+    IRQunregisterIrq(dLock,DMA1_Stream7_IRQn,&I2C1Master::I2C1txDmaHandlerImpl,this);
+    IRQunregisterIrq(dLock,DMA1_Stream0_IRQn,&I2C1Master::I2C1rxDmaHandlerImpl,this);
+    IRQunregisterIrq(dLock,I2C1_EV_IRQn,&I2C1Master::I2C1HandlerImpl,this);
+    IRQunregisterIrq(dLock,I2C1_ER_IRQn,&I2C1Master::I2C1errHandlerImpl,this);
 
-    {
-        FastGlobalIrqLock dLock;
-        RCC->APB1ENR &= ~RCC_APB1ENR_I2C1EN;
-        RCC_SYNC();
-    }
+    RCC->APB1ENR &= ~RCC_APB1ENR_I2C1EN;
+    RCC_SYNC();
 }
 
 bool I2C1Master::start(unsigned char address)

@@ -28,6 +28,7 @@
 #include <termios.h>
 #include <errno.h>
 #include "config/miosix_settings.h"
+#include "kernel/lock.h"
 #include "filesystem/ioctl.h"
 #include "rp2040_serial.h"
 
@@ -36,9 +37,10 @@ namespace miosix {
 RP2040PL011Serial::RP2040PL011Serial(int number, int baudrate, GpioPin tx, GpioPin rx)
     : Device(Device::TTY), txLowWaterFlag(1), rxQueue(32+baudrate/500)
 {
+    GlobalIrqLock lock;
     tx.function(Function::UART); tx.mode(Mode::OUTPUT);
     rx.function(Function::UART); rx.mode(Mode::INPUT);
-    commonInit(number,baudrate);
+    commonInit(lock,number,baudrate);
     uart->cr = UART_UARTCR_UARTEN_BITS
              | UART_UARTCR_TXE_BITS
              | UART_UARTCR_RXE_BITS;
@@ -47,11 +49,12 @@ RP2040PL011Serial::RP2040PL011Serial(int number, int baudrate, GpioPin tx, GpioP
 RP2040PL011Serial::RP2040PL011Serial(int number, int baudrate, GpioPin tx, GpioPin rx,
     GpioPin rts, GpioPin cts) : Device(Device::TTY), txLowWaterFlag(1), rxQueue(32+baudrate/500)
 {
+    GlobalIrqLock lock;
     tx.function(Function::UART); tx.mode(Mode::OUTPUT);
     rx.function(Function::UART); rx.mode(Mode::INPUT);
     rts.function(Function::UART); rts.mode(Mode::OUTPUT);
     cts.function(Function::UART); cts.mode(Mode::INPUT);
-    commonInit(number,baudrate);
+    commonInit(lock,number,baudrate);
     uart->cr = UART_UARTCR_UARTEN_BITS
              | UART_UARTCR_TXE_BITS
              | UART_UARTCR_RXE_BITS
@@ -157,12 +160,13 @@ int RP2040PL011Serial::ioctl(int cmd, void *arg)
 
 RP2040PL011Serial::~RP2040PL011Serial()
 {
+    GlobalIrqLock lock;
     //Disable UART operation
     uart->cr = 0;
-    IRQunregisterIrq(irqn, &RP2040PL011Serial::IRQhandleInterrupt, this);
+    IRQunregisterIrq(lock,irqn,&RP2040PL011Serial::IRQhandleInterrupt,this);
 }
 
-void RP2040PL011Serial::commonInit(int number, int baudrate)
+void RP2040PL011Serial::commonInit(GlobalIrqLock& lock, int number, int baudrate)
 {
     switch(number)
     {
@@ -179,7 +183,7 @@ void RP2040PL011Serial::commonInit(int number, int baudrate)
         default:
             errorHandler(Error::UNEXPECTED);
     }
-    IRQregisterIrq(irqn, &RP2040PL011Serial::IRQhandleInterrupt, this);
+    IRQregisterIrq(lock,irqn,&RP2040PL011Serial::IRQhandleInterrupt,this);
     uart->ifls = (2<<UART_UARTIFLS_RXIFLSEL_LSB) | (2<<UART_UARTIFLS_TXIFLSEL_LSB);
     enableAllInterrupts();
     //Setup baud rate
