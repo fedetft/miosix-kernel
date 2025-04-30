@@ -81,10 +81,17 @@ public:
      */
     struct Data
     {
+        enum {
+            NOT_READY=' ',
+            READY='r',
+            RUNNING='R'
+        };
         /// The thread the data belongs to
         Thread *thread;
         /// Amount of CPU time scheduled to the thread in ns for each core
         long long usedCpuTime[CPU_NUM_CORES] = {0};
+        /// Flags at the time the data was collected
+        char state=NOT_READY;
     };
 
     /**
@@ -110,7 +117,7 @@ public:
             res.thread=cur;
             if(res.thread->flags.isReady())
             {
-                IRQgetReadyThreadTime(res);
+                IRQgetReadyThreadData(res);
             } else {
                 for(unsigned char i=0;i<CPU_NUM_CORES;i++)
                 {
@@ -128,7 +135,7 @@ public:
          * \internal Helper function for handling computation of the amount of
          * CPU run-time consumed up to now by a ready thread.
          */
-        void IRQgetReadyThreadTime(Data& res);
+        void IRQgetReadyThreadData(Data& res);
 
         Thread *cur;
         long long time;

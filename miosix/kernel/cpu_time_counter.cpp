@@ -40,8 +40,9 @@ Thread *CPUTimeCounter::head = nullptr;
 Thread *CPUTimeCounter::tail = nullptr;
 volatile unsigned int CPUTimeCounter::nThreads = 0;
 
-void CPUTimeCounter::iterator::IRQgetReadyThreadTime(CPUTimeCounter::Data& res)
+void CPUTimeCounter::iterator::IRQgetReadyThreadData(CPUTimeCounter::Data& res)
 {
+    res.state=CPUTimeCounter::Data::READY;
     for(unsigned char i=0; i<CPU_NUM_CORES; i++)
     {
         if(runningThreads[i]==res.thread)
@@ -49,6 +50,7 @@ void CPUTimeCounter::iterator::IRQgetReadyThreadTime(CPUTimeCounter::Data& res)
             long long usedTime = cur->timeCounterData.usedCpuTime[i];
             long long lastAct = cur->timeCounterData.lastActivation;
             res.usedCpuTime[i] = usedTime+(this->time-lastAct);
+            res.state=CPUTimeCounter::Data::RUNNING;
         } else {
             res.usedCpuTime[i] = cur->timeCounterData.usedCpuTime[i];
         }
