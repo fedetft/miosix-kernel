@@ -188,7 +188,7 @@ inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
         IRQcomputePreemption(coreId,false);
         #else //WITH_CPU_TIME_COUNTER
         auto now=IRQcomputePreemption(coreId,false);
-        IRQprofileContextSwitch(prev->timeCounterData,t->timeCounterData,now);
+        CPUTimeCounter::IRQprofileContextSwitch(prev,t,now,coreId);
         #endif //WITH_CPU_TIME_COUNTER
         #ifdef WITH_SMP
         // In case multiple tasks are woken at the same time, we may
@@ -230,7 +230,7 @@ inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
     IRQcomputePreemption(coreId,true);
     #else //WITH_CPU_TIME_COUNTER
     auto now=IRQcomputePreemption(coreId,true);
-    IRQprofileContextSwitch(prev->timeCounterData,idle[coreId]->timeCounterData,now);
+    CPUTimeCounter::IRQprofileContextSwitch(prev,idle[coreId],now,coreId);
     #endif //WITH_CPU_TIME_COUNTER
 }
 

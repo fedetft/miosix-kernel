@@ -46,14 +46,13 @@ void CPUTimeCounter::iterator::IRQgetReadyThreadTime(CPUTimeCounter::Data& res)
     {
         if(runningThreads[i]==res.thread)
         {
-            // The thread is running on some core, so compute time up to now
-            long long usedTime = cur->timeCounterData.usedCpuTime;
+            long long usedTime = cur->timeCounterData.usedCpuTime[i];
             long long lastAct = cur->timeCounterData.lastActivation;
-            res.usedCpuTime = usedTime+(this->time-lastAct);
-            return;
+            res.usedCpuTime[i] = usedTime+(this->time-lastAct);
+        } else {
+            res.usedCpuTime[i] = cur->timeCounterData.usedCpuTime[i];
         }
     }
-    res.usedCpuTime = cur->timeCounterData.usedCpuTime;
 }
 
 void CPUTimeCounter::removeDeadThreads()

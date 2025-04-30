@@ -240,8 +240,7 @@ void ControlScheduler::IRQrunScheduler()
                 #endif
                 IRQsetNextPreemptionForIdle();
                 #ifdef WITH_CPU_TIME_COUNTER
-                IRQprofileContextSwitch(prev->timeCounterData,
-                                        idle->timeCounterData,burstStart);
+                CPUTimeCounter::IRQprofileContextSwitch(prev,idle,burstStart,0);
                 #endif //WITH_CPU_TIME_COUNTER
                 return;
             }
@@ -270,8 +269,7 @@ void ControlScheduler::IRQrunScheduler()
             #endif //WITH_PROCESSES
             IRQsetNextPreemption(curInRound->schedData.bo/multFactor);
             #ifdef WITH_CPU_TIME_COUNTER
-            IRQprofileContextSwitch(prev->timeCounterData,
-                                    curInRound->timeCounterData,burstStart);
+            CPUTimeCounter::IRQprofileContextSwitch(prev,curInRound,burstStart,0);
             #endif //WITH_CPU_TIME_COUNTER
             return;
         } else {
@@ -647,8 +645,7 @@ void ControlScheduler::IRQrunScheduler()
                 #endif
                 IRQsetNextPreemptionForIdle();
                 #ifdef WITH_CPU_TIME_COUNTER
-                IRQprofileContextSwitch(prev->timeCounterData,
-                                        idle->timeCounterData,burstStart);
+                CPUTimeCounter::IRQprofileContextSwitch(prev,idle,burstStart,0);
                 #endif //WITH_CPU_TIME_COUNTER
                 return;
             }
@@ -677,8 +674,7 @@ void ControlScheduler::IRQrunScheduler()
             #endif //WITH_PROCESSES
             IRQsetNextPreemption(runningThread->schedData.bo/multFactor);
             #ifdef WITH_CPU_TIME_COUNTER
-            IRQprofileContextSwitch(prev->timeCounterData,
-                                    (*curInRound)->t->timeCounterData,burstStart);
+            CPUTimeCounter::IRQprofileContextSwitch(prev,(*curInRound)->t,burstStart,0);
             #endif //WITH_CPU_TIME_COUNTER
             return;
         } else {

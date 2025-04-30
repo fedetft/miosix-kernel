@@ -261,8 +261,7 @@ void EDFScheduler::IRQrunScheduler()
     IRQsetNextPreemption(const_cast<Thread*>(runningThread)->schedData.deadline.get());
 
     #ifdef WITH_CPU_TIME_COUNTER
-    IRQprofileContextSwitch(prev->timeCounterData, walk->timeCounterData,
-                            IRQgetTime());
+    CPUTimeCounter::IRQprofileContextSwitch(prev,walk->timeCounterData,IRQgetTime(),0);
     #endif // WITH_CPU_TIME_COUNTER
 }
 

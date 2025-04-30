@@ -28,6 +28,7 @@
 #pragma once
 
 #include "config/miosix_settings.h"
+#include "interfaces/cpu_const.h"
 
 #ifdef WITH_CPU_TIME_COUNTER
 
@@ -44,7 +45,7 @@ struct CPUTimeCounterPrivateThreadData
     /// Timestamp of the last context change to this thread
     long long lastActivation = 0;
     /// Cumulative amount of CPU time used by this thread
-    long long usedCpuTime = 0;
+    long long usedCpuTime[CPU_NUM_CORES] = {0};
     /// Next thread in the thread list used by CPUTimeCounter
     Thread *next = nullptr;
 };

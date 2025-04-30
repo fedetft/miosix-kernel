@@ -29,6 +29,7 @@
 
 #include "thread.h"
 #include "cpu_time_counter_types.h"
+#include "interfaces/cpu_const.h"
 
 #ifdef WITH_CPU_TIME_COUNTER
 
@@ -82,8 +83,8 @@ public:
     {
         /// The thread the data belongs to
         Thread *thread;
-        /// Cumulative amount of CPU time scheduled to the thread in ns
-        long long usedCpuTime = 0; 
+        /// Amount of CPU time scheduled to the thread in ns for each core
+        long long usedCpuTime[CPU_NUM_CORES] = {0};
     };
 
     /**
@@ -107,8 +108,15 @@ public:
         {
             Data res;
             res.thread=cur;
-            if(res.thread->flags.isReady()) IRQgetReadyThreadTime(res);
-            else res.usedCpuTime=cur->timeCounterData.usedCpuTime;
+            if(res.thread->flags.isReady())
+            {
+                IRQgetReadyThreadTime(res);
+            } else {
+                for(unsigned char i=0;i<CPU_NUM_CORES;i++)
+                {
+                    res.usedCpuTime[i]=cur->timeCounterData.usedCpuTime[i];
+                }
+            }
             return res;
         }
         inline bool operator==(const iterator& rhs) { return cur==rhs.cur; }
@@ -156,9 +164,12 @@ public:
     }
 
 private:
-    // The following methods are called from basic_scheduler to notify
+    // The following methods are called from the schedulers to notify
     // CPUTimeCounter of various events.
     template<typename> friend class basic_scheduler;
+    friend class PriorityScheduler;
+    friend class EDFScheduler;
+    friend class ControlScheduler;
 
     // CPUTimeCounter cannot be constructed
     CPUTimeCounter() = delete;
@@ -186,25 +197,25 @@ private:
      * threads.
      */
     static void removeDeadThreads();
+
+    /**
+     * Function to be called in the context switch code to profile threads
+     * \param prev time count struct of previously running thread
+     * \param prev time count struct of thread to be scheduled next
+     * \param t (approximate) current time, a time point taken somewhere during
+     * the context switch code
+     */
+    static inline void IRQprofileContextSwitch(Thread *prev, Thread *next,
+        long long t, unsigned char coreId)
+    {
+        prev->timeCounterData.usedCpuTime[coreId]+=t-prev->timeCounterData.lastActivation;
+        next->timeCounterData.lastActivation=t;
+    }
     
     static Thread *head; ///< Head of the thread list
     static Thread *tail; ///< Tail of the thread list
     static volatile unsigned int nThreads; ///< Number of non-idle threads
 };
-
-/**
- * Function to be called in the context switch code to profile threads
- * \param prev time count struct of previously running thread
- * \param prev time count struct of thread to be scheduled next
- * \param t (approximate) current time, a time point taken somewhere during
- * the context switch code
- */
-static inline void IRQprofileContextSwitch(CPUTimeCounterPrivateThreadData& prev,
-    CPUTimeCounterPrivateThreadData& next, long long t)
-{
-    prev.usedCpuTime+=t-prev.lastActivation;
-    next.lastActivation=t;
-}
 
 /**
  * \}
