@@ -256,18 +256,21 @@ void CPUProfiler::print()
     // Compute the difference between oldInfo and newInfo
     auto oldIt = oldInfo.begin();
     auto newIt = newInfo.begin();
-    while(newIt != newInfo.end() && oldIt != oldInfo.end())
+    while(newIt!=newInfo.end() && oldIt!=oldInfo.end())
     {
         // Skip old threads that were killed
-        while(newIt->thread != oldIt->thread)
+        while(oldIt!=oldInfo.end() && newIt->thread!=oldIt->thread)
         {
-            iprintf("%p killed\n", oldIt->thread);
+            printSingleThreadInfo(approxDt,&(*oldIt),nullptr);
             oldIt++;
         }
-        // Found a thread that exists in both lists
-        printSingleThreadInfo(approxDt,&(*oldIt),&(*newIt));
-        newIt++;
-        oldIt++;
+        if(oldIt!=oldInfo.end())
+        {
+            // Found a thread that exists in both lists
+            printSingleThreadInfo(approxDt,&(*oldIt),&(*newIt));
+            newIt++;
+            oldIt++;
+        }
     }
     // Skip last killed threads
     while(oldIt != oldInfo.end())
