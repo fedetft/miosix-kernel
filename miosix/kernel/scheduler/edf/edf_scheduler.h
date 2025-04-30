@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011 by Terraneo Federico                         *
+ *   Copyright (C) 2010-2025 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -28,6 +28,7 @@
 #pragma once
 
 #include "config/miosix_settings.h"
+#include "interfaces/cpu_const.h"
 #include "edf_scheduler_types.h"
 #include "kernel/thread.h"
 
@@ -48,29 +49,33 @@ public:
      * This is called when a thread is created.
      * \param thread a pointer to a valid thread instance.
      * The behaviour is undefined if a thread is added multiple timed to the
-     * scheduler, or if thread is NULL.
+     * scheduler, or if thread is nullptr.
      * \param priority the priority of the new thread.
      * Priority must be a positive value.
      * Note that the meaning of priority is scheduler specific.
+     * \return false if an error occurred and the thread could not be added to
+     * the scheduler
+     *
+     * Note: this member function is called also before the kernel is started
+     * to add the main and idle thread.
      */
-    static bool PKaddThread(Thread *thread, EDFSchedulerPriority priority);
+    static bool IRQaddThread(Thread *thread, EDFSchedulerPriority priority);
 
     /**
+     * \internal
      * \return true if thread exists, false if does not exist or has been
      * deleted. A joinable thread is considered existing until it has been
      * joined, even if it returns from its entry point (unless it is detached
      * and terminates).
-     *
-     * Can be called both with the kernel paused and with interrupts disabled.
      */
-    static bool PKexists(Thread *thread);
+    static bool IRQexists(Thread *thread);
 
     /**
      * \internal
      * Called when there is at least one dead thread to be removed from the
      * scheduler
      */
-    static void PKremoveDeadThreads();
+    static void removeDeadThreads();
 
     /**
      * \internal
@@ -80,7 +85,7 @@ public:
      * \param newPriority new thread priority.
      * Priority must be a positive value.
      */
-    static void PKsetPriority(Thread *thread, EDFSchedulerPriority newPriority);
+    static void IRQsetPriority(Thread *thread, EDFSchedulerPriority newPriority);
 
     /**
      * \internal
@@ -97,11 +102,15 @@ public:
 
     /**
      * \internal
-     * This is called before the kernel is started to by the kernel. The given
+     * This is called before the kernel is started by the kernel. The given
      * thread is the idle thread, to be run all the times where no other thread
      * can run.
+     * \param whichCore either 0 on single core platforms, or specify for which
+     * core this idle thread is meant to be used. Note that it is expected that
+     * during boot exactly one idle thread for each core is given to the
+     * scheduler
      */
-    static void IRQsetIdleThread(Thread *idleThread);
+    static void IRQsetIdleThread(int whichCore, Thread *idleThread);
 
     /**
      * \internal
@@ -109,7 +118,14 @@ public:
      * its running status. For example when a thread become sleeping, waiting,
      * deleted or if it exits the sleeping or waiting status
      */
-    static void IRQwaitStatusHook(Thread *t) {}
+    static void IRQwaitStatusHook(Thread *thread) {}
+
+    /**
+     * \internal
+     * Called when a thread transitions from waiting/sleeping to ready.
+     * Must not be called if the thread is already ready.
+     */
+    static void IRQwokenThread(Thread* thread) {}
 
     /**
      * \internal
@@ -118,7 +134,11 @@ public:
      * does nothing. It's behaviour is to modify the global variable
      * miosix::runningThread which always points to the currently running thread.
      */
+    #ifdef WITH_SMP
+    static void IRQrunScheduler(unsigned char coreId);
+    #else
     static void IRQrunScheduler();
+    #endif
 
     /**
      * \internal
@@ -138,7 +158,10 @@ public:
      * WAKEUP_HANDLING_CORE.
      * In case no preemption is set returns numeric_limits<long long>::max()
      */
-    static long long IRQgetNextPreemption();
+    static long long IRQgetNextPreemption()
+    {
+        return nextPreemptionWakeupCore;
+    }
     
 private:
     /**
@@ -152,6 +175,15 @@ private:
      * \param thread thread to remove
      */
     static void remove(Thread *thread);
+
+    /**
+     *
+     */
+    static void IRQsetNextPreemption(long long currentDeadline);
+
+    ///\internal On single core CPUs, end of time quantum (preemption) for the
+    ///only core. On multi core CPUs, end of time quantum for WAKEUP_HANDLING_CORE
+    static long long nextPreemptionWakeupCore;
 
     static Thread *head;///<\internal Head of Real Time threads list, ordered by deadline
     static Thread *headNRT; ///< \internal Head of Non Real Time threads circular list

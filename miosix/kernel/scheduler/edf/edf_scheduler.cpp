@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012 by Terraneo Federico                   *
+ *   Copyright (C) 2010-2025 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -30,6 +30,7 @@
 #include "kernel/process.h"
 #include "interfaces_private/cpu.h"
 #include "interfaces_private/os_timer.h"
+#include "interfaces_private/smp.h"
 #include <algorithm>
 
 using namespace std;
@@ -39,24 +40,24 @@ using namespace std;
 namespace miosix {
 
 //These are defined in thread.cpp
-extern volatile Thread *runningThread;
+extern volatile Thread *runningThreads[CPU_NUM_CORES];
 extern IntrusiveList<SleepData> sleepingList;
-
-//Static members
-static long long nextPreemption=numeric_limits<long long>::max();
 
 //
 // class EDFScheduler
 //
 
-bool EDFScheduler::PKaddThread(Thread *thread, EDFSchedulerPriority priority)
+bool EDFScheduler::IRQaddThread(Thread *thread, EDFSchedulerPriority priority)
 {
     thread->schedData.deadline=priority;
+    #ifdef CONDVAR_WAKEUP_BY_PRIORITY
+    thread->savedPriority=priority;
+    #endif //CONDVAR_WAKEUP_BY_PRIORITY
     add(thread);
     return true;
 }
 
-bool EDFScheduler::PKexists(Thread *thread)
+bool EDFScheduler::IRQexists(Thread *thread)
 {
     // Search in the RT task list
     Thread *walk=head;
@@ -80,8 +81,9 @@ bool EDFScheduler::PKexists(Thread *thread)
     return false;
 }
 
-void EDFScheduler::PKremoveDeadThreads()
+void EDFScheduler::removeDeadThreads()
 {
+    FastGlobalIrqLock dLock; //TODO more granular lock taking
     // Handle RT tasks (head list)
     while(head!=nullptr)
     {
@@ -159,7 +161,7 @@ void EDFScheduler::PKremoveDeadThreads()
     }
 }
 
-void EDFScheduler::PKsetPriority(Thread *thread,
+void EDFScheduler::IRQsetPriority(Thread *thread,
         EDFSchedulerPriority newPriority)
 {
     remove(thread);
@@ -167,33 +169,11 @@ void EDFScheduler::PKsetPriority(Thread *thread,
     add(thread);
 }
 
-void EDFScheduler::IRQsetIdleThread(Thread *idleThread)
+void EDFScheduler::IRQsetIdleThread(int whichCore, Thread *idleThread)
 {
+    //TODO: multicore support coming soon
     idleThread->schedData.deadline=numeric_limits<long long>::max()-1;
     idle = idleThread;
-}
-
-long long EDFScheduler::IRQgetNextPreemption()
-{
-    return nextPreemption;
-}
-
-static void IRQsetNextPreemption(long long currentDeadline)
-{
-    long long first;
-    if(sleepingList.empty()) first = std::numeric_limits<long long>::max();
-    else first = sleepingList.front()->wakeupTime;
-
-    if(currentDeadline != std::numeric_limits<long long>::max() - 2)
-    {
-        // RT task (and idle), have no time slice, preempt at next task wakeup
-        nextPreemption = first;
-    } else {
-        // NRT task, set preemption based on time slice and next task wakeup
-        nextPreemption = std::min(first, IRQgetTime() + MAX_TIME_SLICE);
-    }
-
-    IRQosTimerSetInterrupt(nextPreemption);
 }
 
 void EDFScheduler::IRQrunScheduler()
@@ -242,27 +222,45 @@ void EDFScheduler::IRQrunScheduler()
     if(selected == 0) errorHandler(Error::UNEXPECTED);
    
 
-    runningThread = walk;
+    runningThreads[0] = walk;
 
     #ifdef WITH_PROCESSES
     if(const_cast<Thread*>(runningThread)->flags.isInUserspace() == false)
     {
-        ctxsave=runningThread->ctxsave;
+        ctxsave[0]=runningThread->ctxsave;
         MPUConfiguration::IRQdisable();
     } else {
-        ctxsave=runningThread->userCtxsave;
+        ctxsave[0]=runningThread->userCtxsave;
         //A kernel thread is never in userspace, so the cast is safe
         static_cast<Process*>(runningThread->proc)->mpu.IRQenable();
     }
     #else // WITH_PROCESSES
-    ctxsave=runningThread->ctxsave;
+    ctxsave[0]=runningThreads[0]->ctxsave;
     #endif // WITH_PROCESSES
 
-    IRQsetNextPreemption(const_cast<Thread*>(runningThread)->schedData.deadline.get());
+    IRQsetNextPreemption(const_cast<Thread*>(runningThreads[0])->schedData.deadline.get());
 
     #ifdef WITH_CPU_TIME_COUNTER
     CPUTimeCounter::IRQprofileContextSwitch(prev,walk->timeCounterData,IRQgetTime(),0);
     #endif // WITH_CPU_TIME_COUNTER
+}
+
+void EDFScheduler::IRQsetNextPreemption(long long currentDeadline)
+{
+    long long first;
+    if(sleepingList.empty()) first = std::numeric_limits<long long>::max();
+    else first = sleepingList.front()->wakeupTime;
+
+    if(currentDeadline != std::numeric_limits<long long>::max() - 2)
+    {
+        // RT task (and idle), have no time slice, preempt at next task wakeup
+        nextPreemptionWakeupCore = first;
+    } else {
+        // NRT task, set preemption based on time slice and next task wakeup
+        nextPreemptionWakeupCore = std::min(first, IRQgetTime() + MAX_TIME_SLICE);
+    }
+
+    IRQosTimerSetInterrupt(nextPreemptionWakeupCore);
 }
 
 void EDFScheduler::add(Thread *thread)
@@ -375,6 +373,7 @@ void EDFScheduler::remove(Thread *thread)
     }
 }
 
+long long EDFScheduler::nextPreemptionWakeupCore=numeric_limits<long long>::max();
 Thread *EDFScheduler::head=nullptr;
 Thread *EDFScheduler::headNRT=nullptr;
 Thread *EDFScheduler::idle=nullptr;

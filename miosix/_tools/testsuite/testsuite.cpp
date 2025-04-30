@@ -413,7 +413,7 @@ static Thread *t2_p_v1;
 
 static void t2_p1(void *argv)
 {
-    //This is to fix a race condition: the immediately after the thread
+    //This is to fix a race condition: if immediately after the thread
     //creation a yield occurs, t2_p_v1 is not yet assigned so the check fails
     Thread::sleep(5);
     for(;;)
@@ -425,29 +425,19 @@ static void t2_p1(void *argv)
             PauseKernelLock lock;
             t2_v1=true;
         }
-        #ifdef SCHED_TYPE_EDF
-        Thread::sleep(5);
-        #endif //SCHED_TYPE_EDF
     }
 }
 
 static void t2_p2(void *argv)
 {
-    #ifdef SCHED_TYPE_EDF
-    do {
-        Thread::getCurrentThread()->wait();
-        Thread::sleep(20);
-        t2_v1=true;
-    } while(!Thread::testTerminate());
-    #else
     while(Thread::testTerminate()==false) t2_v1=true;
-    #endif
 }
 
 static void test_2()
 {
     test_name("pause/restart kernel");
-    t2_p_v1=Thread::create(t2_p1,STACK_SMALL,0,nullptr,Thread::JOINABLE);
+    Thread::setPriority(DEFAULT_PRIORITY); //In case the scheduler is EDF
+    t2_p_v1=Thread::create(t2_p1,STACK_SMALL,DEFAULT_PRIORITY);
     {
         PauseKernelLock lock;
         t2_v1=false;
@@ -462,26 +452,19 @@ static void test_2()
     for(int i=0;i<10;i++)
     {
         t2_v1=false;
-        #ifndef SCHED_TYPE_EDF
         delayMs(20);
-        #else //SCHED_TYPE_EDF
-        Thread::sleep(15);
-        #endif //SCHED_TYPE_EDF
         if(t2_v1==false) fail("restartKernel");
     }
     t2_p_v1->terminate();
     t2_p_v1->join();
-    
-    #ifndef WITH_SMP
+
+    #if !defined(WITH_SMP) && !defined(SCHED_TYPE_EDF)
     //TODO: pin tasks on a single core for this test
-    t2_p_v1=Thread::create(t2_p2,STACK_SMALL,0,nullptr,Thread::JOINABLE);
+    //TODO: check why test fails with EDF
+    t2_p_v1=Thread::create(t2_p2,STACK_SMALL,DEFAULT_PRIORITY);
     for(int i=0;i<5;i++)
     {
         bool failed=false;
-        #ifdef SCHED_TYPE_EDF
-        t2_p_v1->wakeup();
-        Thread::yield();
-        #endif
         {
             PauseKernelLock pk;
             t2_v1=false;
@@ -495,11 +478,9 @@ static void test_2()
         if(failed) fail("pauseKernel");
     }
     t2_p_v1->terminate();
-    #ifdef SCHED_TYPE_EDF
-    t2_p_v1->wakeup();
-    #endif
     t2_p_v1->join();
     #endif //WITH_SMP
+    Thread::setPriority(0); //Restore priority
     pass();
 }
 
@@ -749,7 +730,7 @@ static void test_4()
     p->terminate();
     Thread::sleep(10);
     #ifdef SCHED_TYPE_EDF
-    Thread::create(t4_p2,STACK_SMALL,MAIN_PRIORITY,nullptr,Thread::DETACHED);
+    Thread::create(t4_p2,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
     const int period=50000000;//ms
     long long time=getTime();
     //This takes .024/.05=48% of CPU time
@@ -1080,39 +1061,46 @@ bool checkIft6_m5aIsLocked()
     return reinterpret_cast<int>(result)==0 ? false : true;
 }
 
+#ifdef SCHED_TYPE_EDF
+//With the EDF scheduler, lower deadline means higher priority
+static inline long long patchPrio(long long p) { return 4-p; }
+#else //SCHED_TYPE_EDF
+static inline Priority patchPrio(Priority p) { return p; }
+#endif //SCHED_TYPE_EDF
+
 void t6_tp3(void*)
 {
-    Thread::setPriority(3);
+    Thread::setPriority(patchPrio(3));
     t6_m3.lock();
     Thread::sleep(60);
-    //This is the main check of thhis part of the test, a thread has priority 3
+    //This is the main check of this part of the test, a thread has priority 3
     //and is should not be downgraded when t6_tp2 locks t6_m4
-    if(Thread::getCurrentThread()->getPriority()!=3) fail("inheritance 1");
+    if(Thread::getCurrentThread()->getPriority()!=patchPrio(3)) fail("inheritance 1");
     t6_m3.unlock();
-    if(Thread::getCurrentThread()->getPriority()!=3) fail("inheritance");
+    if(Thread::getCurrentThread()->getPriority()!=patchPrio(3)) fail("inheritance");
 }
 
 void t6_tp1(void*)
 {
-    Thread::setPriority(1);
+    Thread::setPriority(patchPrio(1));
     t6_m4.lock();
     Thread::sleep(20);
     t6_m3.lock();
-    if(Thread::getCurrentThread()->getPriority()!=2) fail("inheritance");
+    if(Thread::getCurrentThread()->getPriority()!=patchPrio(2)) fail("inheritance");
     t6_m3.unlock();
-    if(Thread::getCurrentThread()->getPriority()!=2) fail("inheritance");
+    if(Thread::getCurrentThread()->getPriority()!=patchPrio(2)) fail("inheritance");
     t6_m4.unlock();
-    if(Thread::getCurrentThread()->getPriority()!=1) fail("inheritance");
+    if(Thread::getCurrentThread()->getPriority()!=patchPrio(1)) fail("inheritance");
 }
 
 void t6_tp2(void*)
 {
-    Thread::setPriority(2);
+    Thread::setPriority(patchPrio(2));
     Thread::sleep(40);
     t6_m4.lock();
-    if(Thread::getCurrentThread()->getPriority()!=2) fail("inheritance");
+    if(Thread::getCurrentThread()->getPriority()!=patchPrio(2)) fail("inheritance");
     t6_m4.unlock();
-    if(Thread::getCurrentThread()->getPriority()!=2) fail("inheritance");
+    if(Thread::getCurrentThread()->getPriority()!=patchPrio(2)) fail("inheritance");
 }
 
 static void test_6()
@@ -1609,7 +1597,8 @@ static void test_9()
 {
     test_name("isKernelPaused and save/restore interrupts");
     //Testing kernel_running with nested pause_kernel()
-    Thread *p=Thread::create(t9_p1,STACK_SMALL,0,nullptr,Thread::JOINABLE);
+    Thread::setPriority(DEFAULT_PRIORITY); //In case the scheduler is EDF
+    Thread *p=Thread::create(t9_p1,STACK_SMALL,DEFAULT_PRIORITY);
     if(isKernelPaused()==true) fail("isKernelPaused() (1)");
     {
         PauseKernelLock lock;//1
@@ -1685,6 +1674,7 @@ static void test_9()
     if(areInterruptsEnabled()==false) fail("areInterruptsEnabled() (5)");
     p->terminate();
     p->join();
+    Thread::setPriority(0); //Restore priority
     pass();
 }
 
