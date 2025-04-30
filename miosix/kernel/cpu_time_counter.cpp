@@ -27,45 +27,54 @@
 
 #include "cpu_time_counter.h"
 #include "kernel/thread.h"
+#include "interfaces/cpu_const.h"
 
 #ifdef WITH_CPU_TIME_COUNTER
 
-using namespace miosix;
+namespace miosix {
+
+// Defined in thread.cpp, used to check if a thread is running
+extern volatile Thread *runningThreads[CPU_NUM_CORES];
 
 Thread *CPUTimeCounter::head = nullptr;
 Thread *CPUTimeCounter::tail = nullptr;
 volatile unsigned int CPUTimeCounter::nThreads = 0;
 
-long long CPUTimeCounter::getActiveThreadTime()
+void CPUTimeCounter::iterator::IRQgetReadyThreadTime(CPUTimeCounter::Data& res)
 {
-    long long curTime, usedTime, lastAct;
+    for(unsigned char i=0; i<CPU_NUM_CORES; i++)
     {
-        PauseKernelLock pk;
-        curTime = IRQgetTime();
-        auto cur = Thread::PKgetCurrentThread();
-        usedTime = cur->timeCounterData.usedCpuTime;
-        lastAct = cur->timeCounterData.lastActivation;
+        if(runningThreads[i]==res.thread)
+        {
+            // The thread is running on some core, so compute time up to now
+            long long usedTime = cur->timeCounterData.usedCpuTime;
+            long long lastAct = cur->timeCounterData.lastActivation;
+            res.usedCpuTime = usedTime+(this->time-lastAct);
+            return;
+        }
     }
-    return usedTime + (curTime - lastAct);
+    res.usedCpuTime = cur->timeCounterData.usedCpuTime;
 }
 
-void CPUTimeCounter::PKremoveDeadThreads()
+void CPUTimeCounter::removeDeadThreads()
 {
-    Thread *prev = nullptr;
-    Thread *cur = head;
+    Thread *prev=nullptr;
+    Thread *cur=head;
     while(cur)
     {
         if(cur->flags.isDeleted())
         {
-            if(prev) prev->timeCounterData.next = cur->timeCounterData.next;
-            else head = cur->timeCounterData.next;
+            if(prev) prev->timeCounterData.next=cur->timeCounterData.next;
+            else head=cur->timeCounterData.next;
             nThreads--;
         } else {
-            prev = cur;
+            prev=cur;
         }
-        cur = cur->timeCounterData.next;
+        cur=cur->timeCounterData.next;
     }
-    tail = prev;
+    tail=prev;
 }
+
+} // namespace miosix
 
 #endif // WITH_CPU_TIME_COUNTER

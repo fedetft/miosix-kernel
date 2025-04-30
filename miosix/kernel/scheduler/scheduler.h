@@ -136,9 +136,6 @@ public:
      */
     static void IRQsetIdleThread(int whichCore, Thread *idleThread)
     {
-        #ifdef WITH_CPU_TIME_COUNTER
-        CPUTimeCounter::IRQaddIdleThread(whichCore,idleThread);
-        #endif
         return T::IRQsetIdleThread(whichCore,idleThread);
     }
 

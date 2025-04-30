@@ -31,6 +31,7 @@
 #include "interfaces_private/cpu.h"
 #include "interfaces_private/os_timer.h"
 #include "interfaces_private/smp.h"
+#include "kernel/cpu_time_counter.h"
 #include <limits>
 
 using namespace std;
@@ -186,8 +187,8 @@ inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
         #ifndef WITH_CPU_TIME_COUNTER
         IRQcomputePreemption(coreId,false);
         #else //WITH_CPU_TIME_COUNTER
-        auto t=IRQcomputePreemption(coreId,false);
-        IRQprofileContextSwitch(prev->timeCounterData,t->timeCounterData,t);
+        auto now=IRQcomputePreemption(coreId,false);
+        IRQprofileContextSwitch(prev->timeCounterData,t->timeCounterData,now);
         #endif //WITH_CPU_TIME_COUNTER
         #ifdef WITH_SMP
         // In case multiple tasks are woken at the same time, we may
@@ -228,8 +229,8 @@ inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
     #ifndef WITH_CPU_TIME_COUNTER
     IRQcomputePreemption(coreId,true);
     #else //WITH_CPU_TIME_COUNTER
-    auto t=IRQcomputePreemption(coreId,true);
-    IRQprofileContextSwitch(prev->timeCounterData,idle->timeCounterData,t);
+    auto now=IRQcomputePreemption(coreId,true);
+    IRQprofileContextSwitch(prev->timeCounterData,idle[coreId]->timeCounterData,now);
     #endif //WITH_CPU_TIME_COUNTER
 }
 

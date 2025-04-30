@@ -32,6 +32,7 @@
 #include <cstdio>
 #include <malloc.h>
 #include "util.h"
+#include "kernel/lock.h"
 #include "kernel/thread.h"
 #include "stdlib_integration/libc_integration.h"
 #include "config/miosix_settings.h" //For WATERMARK_FILL and STACK_FILL
@@ -194,19 +195,12 @@ void memDump(const void *start, int len)
 #ifdef WITH_CPU_TIME_COUNTER
 
 static void printSingleThreadInfo(Thread *self, Thread *thread,
-    int approxDt, long long newTime, long long oldTime, bool isIdleThread,
-    bool isNewThread)
+    int approxDt, long long newTime, long long oldTime, bool isNewThread)
 {
     long long threadDt = newTime - oldTime;
     int perc = static_cast<int>(threadDt >> 16) * 100 / approxDt;
     iprintf("%p %10lld ns (%2d.%1d%%)", thread, threadDt, perc / 10, perc % 10);
-    if(isIdleThread)
-    {
-        iprintf(" (idle)");
-        isIdleThread = false;
-    } else if(thread == self) {
-        iprintf(" (cur)");
-    }
+    if(thread == self) iprintf(" (cur)");
     if(isNewThread) iprintf(" new");
     iprintf("\n");
 }
@@ -237,8 +231,6 @@ void CPUProfiler::print()
     // Compute the difference between oldInfo and newInfo
     auto oldIt = oldInfo.begin();
     auto newIt = newInfo.begin();
-    // CPUTimeCounter always returns the idle thread as the first thread
-    bool isIdleThread = true;
     while(newIt != newInfo.end() && oldIt != oldInfo.end())
     {
         // Skip old threads that were killed
@@ -249,8 +241,7 @@ void CPUProfiler::print()
         }
         // Found a thread that exists in both lists
         printSingleThreadInfo(self, newIt->thread, approxDt, newIt->usedCpuTime,
-            oldIt->usedCpuTime, isIdleThread, false);
-        isIdleThread = false;
+            oldIt->usedCpuTime, false);
         newIt++;
         oldIt++;
     }
@@ -258,15 +249,13 @@ void CPUProfiler::print()
     while(oldIt != oldInfo.end())
     {
         iprintf("%p killed\n", oldIt->thread);
-        isIdleThread = false;
         oldIt++;
     }
     // Print info about newly created threads
     while(newIt != newInfo.end())
     {
         printSingleThreadInfo(self, newIt->thread, approxDt, newIt->usedCpuTime,
-            0, isIdleThread, true);
-        isIdleThread = false;
+            0, true);
         newIt++;
     }
 }
@@ -282,10 +271,10 @@ void CPUProfiler::Snapshot::collect()
     do {
         // Resize the vector with the current number of threads
         unsigned int nThreads = CPUTimeCounter::getThreadCount();
-        threadData.resize(nThreads);
+        this->threadData.resize(nThreads);
         {
-            // Pause the kernel!
-            PauseKernelLock pLock;
+            // Pause scheduling on all cores!
+            FastGlobalIrqLock pLock;
 
             // If the number of threads changed, try again
             unsigned int nThreads2 = CPUTimeCounter::getThreadCount();
@@ -298,13 +287,11 @@ void CPUProfiler::Snapshot::collect()
             // respect to the data collected, at the cost of making the
             // update interval imprecise (if this timestamp is then used
             // to mantain the update interval)
-            time = getTime();
+            this->time = IRQgetTime();
             // Fetch the CPU time data for all threads
-            auto i1 = threadData.begin();
-            auto i2 = CPUTimeCounter::PKbegin();
-            do
-                *i1++ = *i2++;
-            while(i2 != CPUTimeCounter::PKend());
+            auto i1 = this->threadData.begin();
+            auto i2 = CPUTimeCounter::IRQbegin(this->time);
+            do *i1++ = *i2++; while(i2 != CPUTimeCounter::IRQend());
         }
     } while(!success);
 }
