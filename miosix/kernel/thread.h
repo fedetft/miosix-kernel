@@ -73,7 +73,7 @@ enum class TimedWaitResult
 //Forwrd declaration
 class MemoryProfiling;
 class Mutex;
-class ConditionVariable;
+class WaitQueue;
 class GlobalIrqLock;
 class FastGlobalIrqLock;
 class PauseKernelLock;
@@ -1013,7 +1013,7 @@ private:
     //Needs access to savedPriority, mutexLocked and flags.
     friend class Mutex;
     //Needs access to savedPriority
-    friend class ConditionVariable;
+    friend class WaitQueue;
     //Needs access to flags, schedData
     friend class PriorityScheduler;
     //Needs access to flags, schedData

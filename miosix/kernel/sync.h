@@ -28,8 +28,6 @@
 
 #pragma once
 
-// #define TEST_NEW_QUEUE //TODO
-
 #include "lock.h"
 #include "intrusive.h"
 #include "kernel/scheduler/sched_types.h"
@@ -516,56 +514,12 @@ public:
      */
     bool isEmpty() const;
 
-    #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
-    /**
-     * Destructor
-     */
-    ~ConditionVariable();
-    #endif
-
     //Unwanted methods
     ConditionVariable(const ConditionVariable&) = delete;
     ConditionVariable& operator= (const ConditionVariable&) = delete;
 
 private:
-    /**
-     * \internal Element of a thread waiting list
-     */
-    class WaitToken : public IntrusiveListItem
-    {
-    public:
-        WaitToken(Thread *t) : t(t) {}
-        Thread *t; ///<\internal Waiting thread
-#ifdef SCHED_TYPE_EDF
-        long long getTime() { return t->PKgetPriority().get(); }
-#endif
-    };
-
-    /**
-     * Add the current thread to the queue of waiting threads
-     * \param item WaitToken intrusive list item
-     */
-    inline void addToWaitQueue(WaitToken *item);
-
-    /**
-     * Remove the current thread to the queue of waiting threads
-     * \param item WaitToken intrusive list item
-     */
-    inline void removeFromWaitQueue(WaitToken *item);
-
-    #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
-#ifdef TEST_NEW_QUEUE
-    PriorityQueue<WaitToken> *waitQueue=nullptr;
-#else
-    IntrusiveList<WaitToken> *condLists=nullptr; //Array of lists
-#endif
-    #else
-#ifdef TEST_NEW_QUEUE
-    TimeSortedQueue<WaitToken> waitQueue;
-#else
-    IntrusiveList<WaitToken> condList;
-#endif
-    #endif
+    WaitQueue waitQueue;
 };
 
 /**

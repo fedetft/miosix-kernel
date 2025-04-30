@@ -468,9 +468,9 @@ void ConditionVariable::wait(Mutex& m)
     WaitToken item(Thread::getCurrentThread());
     PauseKernelLock dLock;
     unsigned int depth=m.PKunlockAllDepthLevels();
-    addToWaitQueue(&item);
+    waitQueue.PKenqueue(&item);
     Thread::PKrestartKernelAndWait(dLock);
-    removeFromWaitQueue(&item); //In case of spurious wakeup
+    waitQueue.PKremove(&item); //In case of spurious wakeup
     m.PKlockToDepth(dLock,depth);
 }
 
@@ -479,9 +479,9 @@ void ConditionVariable::wait(FastMutex& m)
     WaitToken item(Thread::getCurrentThread());
     FastPauseKernelLock dLock;
     unsigned int depth=m.PKunlockAllDepthLevels();
-    addToWaitQueue(&item);
+    waitQueue.PKenqueue(&item);
     Thread::PKrestartKernelAndWait(dLock);
-    removeFromWaitQueue(&item); //In case of spurious wakeup
+    waitQueue.PKremove(&item); //In case of spurious wakeup
     m.PKlockToDepth(dLock,depth);
 }
 
@@ -490,9 +490,9 @@ TimedWaitResult ConditionVariable::timedWait(Mutex& m, long long absTime)
     WaitToken item(Thread::getCurrentThread());
     PauseKernelLock dLock;
     unsigned int depth=m.PKunlockAllDepthLevels();
-    addToWaitQueue(&item);
+    waitQueue.PKenqueue(&item);
     auto result=Thread::PKrestartKernelAndTimedWait(dLock,absTime);
-    removeFromWaitQueue(&item); //In case of timeout or spurious wakeup
+    waitQueue.PKremove(&item); //In case of timeout or spurious wakeup
     m.PKlockToDepth(dLock,depth);
     return result;
 }
@@ -502,9 +502,9 @@ TimedWaitResult ConditionVariable::timedWait(FastMutex& m, long long absTime)
     WaitToken item(Thread::getCurrentThread());
     FastPauseKernelLock dLock;
     unsigned int depth=m.PKunlockAllDepthLevels();
-    addToWaitQueue(&item);
+    waitQueue.PKenqueue(&item);
     auto result=Thread::PKrestartKernelAndTimedWait(dLock,absTime);
-    removeFromWaitQueue(&item); //In case of timeout or spurious wakeup
+    waitQueue.PKremove(&item); //In case of timeout or spurious wakeup
     m.PKlockToDepth(dLock,depth);
     return result;
 }
@@ -523,217 +523,19 @@ void ConditionVariable::signal()
      * real-time but does incur the bounce back penalty. Tradeoffs.
      */
     FastPauseKernelLock dLock;
-    #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
-#ifdef TEST_NEW_QUEUE
-    if(waitQueue==nullptr) return;
-    WaitToken *item=waitQueue->dequeueOne();
-    if(item!=nullptr) item->t->PKwakeup();
-#else
-    if(condLists==nullptr) return;
-    for(int i=NUM_PRIORITIES-1;i>=0;i--)
-    {
-        if(condLists[i].empty()) continue;
-        //Also sets pendingWakeup if higher priority thread woken
-        condLists[i].front()->t->PKwakeup();
-        condLists[i].pop_front();
-        break;
-    }
-#endif
-    #else
-#ifdef TEST_NEW_QUEUE
-    WaitToken *item=waitQueue.dequeueOne();
-    if(item!=nullptr) item->t->PKwakeup();
-#else
-    if(condList.empty()) return;
-    //Also sets pendingWakeup if higher priority thread woken
-    condList.front()->t->PKwakeup();
-    condList.pop_front();
-#endif
-    #endif
+    waitQueue.PKwakeOne();
 }
 
 void ConditionVariable::broadcast()
 {
     FastPauseKernelLock dLock;
-    #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
-#ifdef TEST_NEW_QUEUE
-    if(waitQueue==nullptr) return;
-    waitQueue->dequeueAll([](WaitToken *item){
-        //Also sets pendingWakeup if higher priority thread woken
-        item->t->PKwakeup();
-    });
-#else
-    if(condLists==nullptr) return;
-    for(int i=NUM_PRIORITIES-1;i>=0;i--)
-    {
-        while(!condLists[i].empty())
-        {
-            //Also sets pendingWakeup if higher priority thread woken
-            condLists[i].front()->t->PKwakeup();
-            condLists[i].pop_front();
-        }
-    }
-#endif
-    #else
-#ifdef TEST_NEW_QUEUE
-    waitQueue.dequeueAll([](WaitToken *item){
-        //Also sets pendingWakeup if higher priority thread woken
-        item->t->PKwakeup();
-    });
-#else
-    while(!condList.empty())
-    {
-        //Also sets pendingWakeup if higher priority thread woken
-        condList.front()->t->PKwakeup();
-        condList.pop_front();
-    }
-#endif
-    #endif
+    waitQueue.PKwakeAll();
 }
 
 bool ConditionVariable::isEmpty() const
 {
-    #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
-#ifdef TEST_NEW_QUEUE
-    if(waitQueue==nullptr) return true;
-    return waitQueue->empty();
-#else
-    if(condLists==nullptr) return true;
-    for(int i=NUM_PRIORITIES-1;i>=0;i--) if(condLists[i].empty()==false) return false;
-    return true;
-#endif
-    #else
-#ifdef TEST_NEW_QUEUE
-    return waitQueue.empty();
-#else
-    return condList.empty();
-#endif
-    #endif
-}
-
-#if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
-#ifdef TEST_NEW_QUEUE
-ConditionVariable::~ConditionVariable()
-{
-    if(waitQueue) delete waitQueue;
-}
-#else
-ConditionVariable::~ConditionVariable()
-{
-    if(condLists) delete[] condLists;
-}
-#endif
-#endif
-
-inline void ConditionVariable::addToWaitQueue(WaitToken *item)
-{
-    #if defined(SCHED_TYPE_EDF)
-    /*
-     * With EDF there is a simple implementation: the priority is the absolute
-     * deadline time in nanoseconds, thus we can just use a single list sorted
-     * by deadline and not care about threads having the same priority, just
-     * like sleepingList. If more threads with the exact same deadline are
-     * inserted, they will be awakened in lifo order but it doesn't matter since
-     * if the task pool is schedulable they will still complete before their
-     * deadline.
-     * NOTE: we can just call PKgetPriority() and not bother with savedPriority
-     * as the case we care about is when a thread has locked a single mutex and
-     * that's the one that was atomically unlocked as part of the wait(). Since
-     * we get here after the mutex has been unlocked, the priority or better,
-     * deadline, has already been de-inherited, if at all. Even if some weird
-     * code did the antipattern of locking some more mutex and thus waiting with
-     * some mutex locked and a priority inheritance occurs while waiting, since
-     * we have only one list no memory corruption is possible in
-     * removeFromWaitQueue
-     */
-#ifdef TEST_NEW_QUEUE
-    waitQueue.enqueue(item);
-#else
-    Priority pr=item->t->PKgetPriority();
-    auto it=condList.begin();
-    while(it!=condList.end() && pr.mutexLessOp((*it)->t->PKgetPriority())) ++it;
-    condList.insert(it,item);
-#endif
-    #elif defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
-    /*
-     * That's the hard case. Using a single list leaves no way to efficiently
-     * implement this algorithm. We could inserion-sort into the list by
-     * priority like with EDF, but doing so in the use case where more threads
-     * in the list have the same priority causes wakeup in lifo order which may
-     * result in starvation. Doing inserion-sort into the list but adding
-     * another loop to put the thread at the end of the threads with the same
-     * priority already in the list allows prioritization and fifo order, but
-     * causes O(n) insertion in the use case where all threads in the list have
-     * the same priority.
-     * The only way out is to have an array of lists, one for each priority
-     * level, but that adds more complications that we address in our code:
-     * - The array has to be dynamically allocated otherwise the size of the
-     *   condition variable object would depend on the number of priority levels
-     *   selected when compiling the kernel. This is not possible since the
-     *   memory layout of ConditionVariable must be compatible with
-     *   pthread_cond_t which is fixed when the C standard library is compiled.
-     * - Moreover, we can't even allocate the array in the cosntructor since
-     *   when a pthread_cond_t is staticall initialized with
-     *   PTHREAD_COND_INITIALIZER the constructor isn't called and all class
-     *   fields are set to 0/nullptr (see Miosix compiler patches). Thus we must
-     *   allocate it on first use. Thankfully deallocation is easy as statically
-     *   constructed objects have a lifetime equal to the entire program thus no
-     *   deallocation is needed, while pthread_cond_destroy calls the destructor
-     *   so no memory leaks are possible.
-     * - Finally, once we have an array of lists, one for each priority, we must
-     *   be absolutely sure that removeFromWaitQueue will try to remove the
-     *   thread from the same list we are inserting it here, otherise memory
-     *   corruption occurs in IntrusiveList::removeFast. That's made easier by
-     *   the fact that in Miosix a thread can only change its own priority, and
-     *   of course while waiting on a condition variable a thread isn't running
-     *   and thus cannot call Thread::setPriority() but there's a catch:
-     *   priority inheritance. When waiting on a condition variable a thread
-     *   should have locked a mutex but the mutex passed to wait() is atomically
-     *   unlocked before waiting (and before this function is called) so any
-     *   priority inheritance happening on that mutex is no longer a concern.
-     *   However, a thread may have locked other mutexes. I know, that's an
-     *   antipattern since you shouldn't hold additional mutexes locked while
-     *   waiting on a condition variable and if code does that we don't bother
-     *   to inherit the priority from a mutex to a condition variable (i.e: the
-     *   waiting thread doesn't switch to a higher priority list) because that's
-     *   not priority inversion: that's an antipattern. However, we  don't want
-     *   to cause memory corruption and a crash in code does that antipattern
-     *   either. To solve the issue, we use the thread's savedPriority instead
-     *   of actual priority as index into the list. That doesn't change.
-     *   Final remark: this is the only code in the kernel that cares about
-     *   savedPriority even when not locking and mutex, so the code to make sure
-     *   savedPriority is set to a valid value even when not locking any mutex
-     *   is added only when needed, look for CONDVAR_WAKEUP_BY_PRIORITY in the
-     *   kernel code.
-     */
-    if(item->t->savedPriority<0) errorHandler(Error::UNEXPECTED); //Idle can't wait
-#ifdef TEST_NEW_QUEUE
-    if(waitQueue==nullptr) waitQueue==new PriorityQueue<WaitToken>;
-    waitQueue->enqueue(item,item->t->savedPriority.get());
-#else
-    if(condLists==nullptr) condLists=new IntrusiveList<WaitToken>[NUM_PRIORITIES];
-    condLists[item->t->savedPriority.get()].push_back(item);
-#endif
-    #else
-    condList.push_back(item); //fallback is simple fifo policy
-    #endif
-}
-
-inline void ConditionVariable::removeFromWaitQueue(WaitToken *item)
-{
-    #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
-#ifdef TEST_NEW_QUEUE
-    waitQueue->remove(item,item->t->savedPriority.get());
-#else
-    condLists[item->t->savedPriority.get()].removeFast(item);
-#endif
-    #else
-#ifdef TEST_NEW_QUEUE
-    waitQueue.remove(item);
-#else
-    condList.removeFast(item);
-#endif
-    #endif
+    FastPauseKernelLock dLock;
+    return waitQueue.PKempty();
 }
 
 //
