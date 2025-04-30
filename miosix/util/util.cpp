@@ -315,10 +315,11 @@ void CPUProfiler::print()
         int totalPerc=static_cast<int>(allThdDelta[i]>>16)*100/approxDt;
         iprintf(" %2d.%1d%%",totalPerc/10,totalPerc%10);
     }
+    iprintf("\n");
     if(CPU_NUM_CORES>1)
     {
         int totalPerc=static_cast<int>(allCpuThdDelta>>16)*100/approxDt;
-        iprintf("\nTotal load (all cpus) %4d.%1d%%\n",totalPerc/10,totalPerc%10);
+        iprintf("Total load (all cpus) %4d.%1d%%\n",totalPerc/10,totalPerc%10);
     }
 }
 
