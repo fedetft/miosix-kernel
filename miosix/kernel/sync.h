@@ -28,9 +28,12 @@
 
 #pragma once
 
+// #define TEST_NEW_QUEUE //TODO
+
 #include "lock.h"
 #include "intrusive.h"
 #include "kernel/scheduler/sched_types.h"
+#include "kernel/sched_data_structures.h"
 #include <vector>
 
 namespace miosix {
@@ -533,6 +536,9 @@ private:
     public:
         WaitToken(Thread *t) : t(t) {}
         Thread *t; ///<\internal Waiting thread
+#ifdef SCHED_TYPE_EDF
+        long long getTime() { return t->PKgetPriority().get(); }
+#endif
     };
 
     /**
@@ -548,9 +554,17 @@ private:
     inline void removeFromWaitQueue(WaitToken *item);
 
     #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
+#ifdef TEST_NEW_QUEUE
+    PriorityQueue<WaitToken> *waitQueue=nullptr;
+#else
     IntrusiveList<WaitToken> *condLists=nullptr; //Array of lists
+#endif
     #else
+#ifdef TEST_NEW_QUEUE
+    TimeSortedQueue<WaitToken> waitQueue;
+#else
     IntrusiveList<WaitToken> condList;
+#endif
     #endif
 };
 

@@ -524,6 +524,11 @@ void ConditionVariable::signal()
      */
     FastPauseKernelLock dLock;
     #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
+#ifdef TEST_NEW_QUEUE
+    if(waitQueue==nullptr) return;
+    WaitToken *item=waitQueue->dequeueOne();
+    if(item!=nullptr) item->t->PKwakeup();
+#else
     if(condLists==nullptr) return;
     for(int i=NUM_PRIORITIES-1;i>=0;i--)
     {
@@ -533,11 +538,17 @@ void ConditionVariable::signal()
         condLists[i].pop_front();
         break;
     }
+#endif
     #else
+#ifdef TEST_NEW_QUEUE
+    WaitToken *item=waitQueue.dequeueOne();
+    if(item!=nullptr) item->t->PKwakeup();
+#else
     if(condList.empty()) return;
     //Also sets pendingWakeup if higher priority thread woken
     condList.front()->t->PKwakeup();
     condList.pop_front();
+#endif
     #endif
 }
 
@@ -545,6 +556,13 @@ void ConditionVariable::broadcast()
 {
     FastPauseKernelLock dLock;
     #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
+#ifdef TEST_NEW_QUEUE
+    if(waitQueue==nullptr) return;
+    waitQueue->dequeueAll([](WaitToken *item){
+        //Also sets pendingWakeup if higher priority thread woken
+        item->t->PKwakeup();
+    });
+#else
     if(condLists==nullptr) return;
     for(int i=NUM_PRIORITIES-1;i>=0;i--)
     {
@@ -555,32 +573,56 @@ void ConditionVariable::broadcast()
             condLists[i].pop_front();
         }
     }
+#endif
     #else
+#ifdef TEST_NEW_QUEUE
+    waitQueue.dequeueAll([](WaitToken *item){
+        //Also sets pendingWakeup if higher priority thread woken
+        item->t->PKwakeup();
+    });
+#else
     while(!condList.empty())
     {
         //Also sets pendingWakeup if higher priority thread woken
         condList.front()->t->PKwakeup();
         condList.pop_front();
     }
+#endif
     #endif
 }
 
 bool ConditionVariable::isEmpty() const
 {
     #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
+#ifdef TEST_NEW_QUEUE
+    if(waitQueue==nullptr) return true;
+    return waitQueue->empty();
+#else
     if(condLists==nullptr) return true;
     for(int i=NUM_PRIORITIES-1;i>=0;i--) if(condLists[i].empty()==false) return false;
     return true;
+#endif
     #else
+#ifdef TEST_NEW_QUEUE
+    return waitQueue.empty();
+#else
     return condList.empty();
+#endif
     #endif
 }
 
 #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
+#ifdef TEST_NEW_QUEUE
+ConditionVariable::~ConditionVariable()
+{
+    if(waitQueue) delete waitQueue;
+}
+#else
 ConditionVariable::~ConditionVariable()
 {
     if(condLists) delete[] condLists;
 }
+#endif
 #endif
 
 inline void ConditionVariable::addToWaitQueue(WaitToken *item)
@@ -604,10 +646,14 @@ inline void ConditionVariable::addToWaitQueue(WaitToken *item)
      * we have only one list no memory corruption is possible in
      * removeFromWaitQueue
      */
+#ifdef TEST_NEW_QUEUE
+    waitQueue.enqueue(item);
+#else
     Priority pr=item->t->PKgetPriority();
     auto it=condList.begin();
-    while(it!=condList.end() && pr.mutexLessOp((*it)->PKgetPriority())) ++it;
+    while(it!=condList.end() && pr.mutexLessOp((*it)->t->PKgetPriority())) ++it;
     condList.insert(it,item);
+#endif
     #elif defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
     /*
      * That's the hard case. Using a single list leaves no way to efficiently
@@ -661,8 +707,13 @@ inline void ConditionVariable::addToWaitQueue(WaitToken *item)
      *   kernel code.
      */
     if(item->t->savedPriority<0) errorHandler(Error::UNEXPECTED); //Idle can't wait
+#ifdef TEST_NEW_QUEUE
+    if(waitQueue==nullptr) waitQueue==new PriorityQueue<WaitToken>;
+    waitQueue->enqueue(item,item->t->savedPriority.get());
+#else
     if(condLists==nullptr) condLists=new IntrusiveList<WaitToken>[NUM_PRIORITIES];
     condLists[item->t->savedPriority.get()].push_back(item);
+#endif
     #else
     condList.push_back(item); //fallback is simple fifo policy
     #endif
@@ -671,9 +722,17 @@ inline void ConditionVariable::addToWaitQueue(WaitToken *item)
 inline void ConditionVariable::removeFromWaitQueue(WaitToken *item)
 {
     #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
+#ifdef TEST_NEW_QUEUE
+    waitQueue->remove(item,item->t->savedPriority.get());
+#else
     condLists[item->t->savedPriority.get()].removeFast(item);
+#endif
     #else
+#ifdef TEST_NEW_QUEUE
+    waitQueue.remove(item);
+#else
     condList.removeFast(item);
+#endif
     #endif
 }
 
