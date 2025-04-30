@@ -207,8 +207,8 @@ private:
 
     /**
      * Function to be called in the context switch code to profile threads
-     * \param prev time count struct of previously running thread
-     * \param prev time count struct of thread to be scheduled next
+     * \param prev previously running thread
+     * \param prev thread to be scheduled next
      * \param t (approximate) current time, a time point taken somewhere during
      * the context switch code
      */
