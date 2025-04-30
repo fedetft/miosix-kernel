@@ -194,12 +194,13 @@ void memDump(const void *start, int len)
 
 #ifdef WITH_CPU_TIME_COUNTER
 
-static void printSingleThreadInfo(long long approxDt,
+static long long printSingleThreadInfo(long long approxDt,
     CPUTimeCounter::Data *oldData, CPUTimeCounter::Data *newData)
 {
     if(!newData)
     {
         iprintf("%p killed\n", oldData->thread);
+        return 0;
     } else {
         Thread *thread=newData->thread;
         int perc[CPU_NUM_CORES];
@@ -220,15 +221,16 @@ static void printSingleThreadInfo(long long approxDt,
                 allCpuDelta+=td;
             }
         }
-        iprintf("%p %10lld ns (%2d.%1d%%",thread,allCpuDelta,perc[0]/10,perc[0]%10);
+        iprintf("%p %c %10lld %2d.%1d%%",thread,newData->state,allCpuDelta,
+                                         perc[0]/10,perc[0]%10);
         for(unsigned char i=1;i<CPU_NUM_CORES;i++)
         {
-            iprintf(",%2d.%1d%%",perc[i]/10,perc[i]%10);
+            iprintf(" %2d.%1d%%",perc[i]/10,perc[i]%10);
         }
-        iprintf(")");
         if(!oldData) iprintf(" new");
+        iprintf("\n");
+        return allCpuDelta;
     }
-    iprintf("\n");
 }
 
 //
@@ -250,8 +252,12 @@ void CPUProfiler::print()
     std::vector<CPUTimeCounter::Data>& newInfo = newSnap.threadData;
     long long dt = newSnap.time - oldSnap.time;
     int approxDt = static_cast<int>(dt >> 16) / 10;
+    long long allCpuThdDelta=0;
 
     iprintf("%d threads, last interval %lld ns\n", newInfo.size(), dt);
+    iprintf("%10s S %10s %5s","TID","time [ns]","cpu 0");
+    for(int i=1;i<CPU_NUM_CORES;i++) iprintf(" cpu%2d",i);
+    iprintf("\n");
 
     // Compute the difference between oldInfo and newInfo
     auto oldIt = oldInfo.begin();
@@ -261,13 +267,13 @@ void CPUProfiler::print()
         // Skip old threads that were killed
         while(oldIt!=oldInfo.end() && newIt->thread!=oldIt->thread)
         {
-            printSingleThreadInfo(approxDt,&(*oldIt),nullptr);
+            allCpuThdDelta+=printSingleThreadInfo(approxDt,&(*oldIt),nullptr);
             oldIt++;
         }
         if(oldIt!=oldInfo.end())
         {
             // Found a thread that exists in both lists
-            printSingleThreadInfo(approxDt,&(*oldIt),&(*newIt));
+            allCpuThdDelta+=printSingleThreadInfo(approxDt,&(*oldIt),&(*newIt));
             newIt++;
             oldIt++;
         }
@@ -275,23 +281,26 @@ void CPUProfiler::print()
     // Skip last killed threads
     while(oldIt != oldInfo.end())
     {
-        printSingleThreadInfo(approxDt,&(*oldIt),nullptr);
+        allCpuThdDelta+=printSingleThreadInfo(approxDt,&(*oldIt),nullptr);
         oldIt++;
     }
     // Print info about newly created threads
     while(newIt != newInfo.end())
     {
-        printSingleThreadInfo(approxDt,nullptr,&(*newIt));
+        allCpuThdDelta+=printSingleThreadInfo(approxDt,nullptr,&(*newIt));
         newIt++;
     }
+    // Print global stats
+    int totalPerc=static_cast<int>(allCpuThdDelta>>16)*100/approxDt;
+    iprintf("Total load %2d.%1d%%\n",totalPerc/10,totalPerc%10);
 }
 
 void CPUProfiler::Snapshot::collect()
 {
-    // We cannot expand the threadData vector while the kernel is paused.
-    //   Therefore we need to expand the vector earlier, pause the kernel, and
+    // We cannot expand the threadData vector while the GIL is taken.
+    //   Therefore we need to expand the vector earlier, lock the GIL, and
     // then check if the number of threads stayed the same. If it didn't,
-    // we must unpause the kernel and try again. Otherwise we can fill the
+    // we must unlock the GIL and try again. Otherwise we can fill the
     // vector.
     bool success = false;
     do {
