@@ -208,13 +208,26 @@ static long long printSingleThreadInfo(long long approxDt,
         long long allCpuDelta=0;
         if(oldData)
         {
+            bool revived=false;
             for(unsigned char i=0;i<CPU_NUM_CORES;i++)
             {
-                long long td=newData->usedCpuTime[i]-oldData->usedCpuTime[i];
+                long long td;
+                if(newData->usedCpuTime[i]>=oldData->usedCpuTime[i])
+                {
+                    td=newData->usedCpuTime[i]-oldData->usedCpuTime[i];
+                } else {
+                    // CPU time is incrementing. If it doesn't, a thread was
+                    // killed, and then another one created immediately after,
+                    // and the two thread pointers are coincidentially the same.
+                    // This is rare but not impossible!
+                    td=newData->usedCpuTime[i];
+                    revived=true;
+                }
                 allThdDelta[i]+=td;
                 perc[i]=static_cast<int>(td>>16)*100/approxDt;
                 allCpuDelta+=td;
             }
+            if(revived) iprintf("%p killed\n", oldData->thread);
         } else {
             for(unsigned char i=0;i<CPU_NUM_CORES;i++)
             {
