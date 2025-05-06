@@ -512,7 +512,7 @@ public:
      * \internal
      * \return true if no thread is waiting on the condition variable
      */
-    bool isEmpty() const;
+    bool empty() const;
 
     //Unwanted methods
     ConditionVariable(const ConditionVariable&) = delete;

@@ -532,7 +532,7 @@ void ConditionVariable::broadcast()
     waitQueue.PKwakeAll();
 }
 
-bool ConditionVariable::isEmpty() const
+bool ConditionVariable::empty() const
 {
     FastPauseKernelLock dLock;
     return waitQueue.PKempty();
