@@ -396,6 +396,10 @@ public:
 class WaitQueue
 {
 public:
+    #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
+    WaitQueue() : queue(new PriorityQueue<WaitToken>) {}
+    #endif
+
     /**
      * \return true if the WaitQueue is empty
      */
@@ -418,6 +422,8 @@ public:
     void PKenqueue(WaitToken *item)
     {
         #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
+        //We allocate here only for statically allocated pthread_* objects,
+        //in all other cases allocation happens in the constructor
         if(queue==nullptr) queue=new PriorityQueue<WaitToken>;
         queue->enqueue(item,item->t->savedPriority.get());
         #else
@@ -469,6 +475,7 @@ public:
     void PKremove(WaitToken *item)
     {
         #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
+        if(queue==nullptr) return;
         queue->remove(item,item->t->savedPriority.get());
         #else
         queue.remove(item);
@@ -476,10 +483,7 @@ public:
     }
 
     #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
-    ~WaitQueue()
-    {
-        if(queue) delete queue;
-    }
+    ~WaitQueue() { if(queue) delete queue; }
     #endif
 
 private:
