@@ -331,8 +331,16 @@ int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
     //attr is currently not considered
     //NOTE: pthread_condattr_setclock is not supported, the only clock supported
     //for pthread_cond_timedwait is CLOCK_MONOTONIC
-    new (cond) ConditionVariable; //Placement new as cond is a C type
-    return 0;
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        new (cond) ConditionVariable; //Placement new as cond is a C type
+        return 0;
+    #ifndef __NO_EXCEPTIONS
+    } catch(bad_alloc&) {
+        return ENOMEM; //Implementation may allocate for some scheduler type
+    }
+    #endif //__NO_EXCEPTIONS
 }
 
 int pthread_cond_destroy(pthread_cond_t *cond)
@@ -346,22 +354,38 @@ int pthread_cond_destroy(pthread_cond_t *cond)
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
     auto *impl=reinterpret_cast<ConditionVariable*>(cond);
-    //NOTE: Handling FastMutex first speeds up the likely case
-    if(hasPriorityInheritance(mutex->type)==false)
-         impl->wait(*reinterpret_cast<FastMutex*>(mutex));
-    else impl->wait(*reinterpret_cast<Mutex*>(mutex));
-    return 0;
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        //NOTE: Handling FastMutex first speeds up the likely case
+        if(hasPriorityInheritance(mutex->type)==false)
+            impl->wait(*reinterpret_cast<FastMutex*>(mutex));
+        else impl->wait(*reinterpret_cast<Mutex*>(mutex));
+        return 0;
+    #ifndef __NO_EXCEPTIONS
+    } catch(bad_alloc&) {
+        return ENOMEM; //Implementation may allocate for some scheduler type
+    }
+    #endif //__NO_EXCEPTIONS
 }
 
 int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime)
 {
     auto *impl=reinterpret_cast<ConditionVariable*>(cond);
     TimedWaitResult res;
-    //NOTE: Handling FastMutex first speeds up the likely case
-    if(hasPriorityInheritance(mutex->type)==false)
-         res=impl->timedWait(*reinterpret_cast<FastMutex*>(mutex),timespec2ll(abstime));
-    else res=impl->timedWait(*reinterpret_cast<Mutex*>(mutex),timespec2ll(abstime));
-    return res == TimedWaitResult::Timeout ? ETIMEDOUT : 0;
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        //NOTE: Handling FastMutex first speeds up the likely case
+        if(hasPriorityInheritance(mutex->type)==false)
+            res=impl->timedWait(*reinterpret_cast<FastMutex*>(mutex),timespec2ll(abstime));
+        else res=impl->timedWait(*reinterpret_cast<Mutex*>(mutex),timespec2ll(abstime));
+        return res == TimedWaitResult::Timeout ? ETIMEDOUT : 0;
+    #ifndef __NO_EXCEPTIONS
+    } catch(bad_alloc&) {
+        return ENOMEM; //Implementation may allocate for some scheduler type
+    }
+    #endif //__NO_EXCEPTIONS
 }
 
 int pthread_cond_signal(pthread_cond_t *cond)
