@@ -66,8 +66,7 @@ public:
      * Constructor, initializes the mutex.
      */
     FastMutex(MutexOptions opt=MutexOptions::DEFAULT) : owner(nullptr),
-        recursiveDepth(opt==MutexOptions::RECURSIVE ? 0 : -1), first(nullptr),
-        last(nullptr) {}
+        recursiveDepth(opt==MutexOptions::RECURSIVE ? 0 : -1) {}
 
     /**
      * Locks the critical section. If the critical section is already locked,
@@ -124,12 +123,6 @@ private:
      */
     inline unsigned int PKunlockAllDepthLevels();
 
-    struct WaitingList
-    {
-        Thread *thread;
-        struct WaitingList *next;
-    };
-
     /// Thread currently inside critical section, if nullptr the critical section
     /// is free
     Thread *owner;
@@ -137,8 +130,7 @@ private:
     /// Used to hold nesting depth for recursive mutexes, -1 if not recursive
     int recursiveDepth;
 
-    struct WaitingList *first; ///< First entry in fifo singly linked waiting list
-    struct WaitingList *last;  ///< Last entry in fifo singly linked waiting list
+    WaitQueue waitQueue; ///< Holds waiting threads, handles prioritization
 
     //Friends
     friend class ConditionVariable;
@@ -413,7 +405,6 @@ public:
     Unlock& operator= (const Unlock& l) = delete;
 
 private:
-
     T& mutex;///< Reference to locked mutex
 };
 
@@ -519,7 +510,7 @@ public:
     ConditionVariable& operator= (const ConditionVariable&) = delete;
 
 private:
-    WaitQueue waitQueue;
+    WaitQueue waitQueue; ///< Holds waiting threads, handles prioritization
 };
 
 /**

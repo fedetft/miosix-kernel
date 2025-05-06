@@ -433,17 +433,20 @@ public:
 
     /**
      * Wake the highest priority item in the queue, if any
+     * \return the woken thread, or nullptr if the queue was empty
      */
-    void PKwakeOne()
+    Thread *PKwakeOne()
     {
         #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
-        if(queue==nullptr) return;
+        if(queue==nullptr) return nullptr;
         WaitToken *item=queue->dequeueOne();
         #else
         WaitToken *item=queue.dequeueOne();
         #endif
+        if(item==nullptr) return nullptr;
         //Also sets pendingWakeup if higher priority thread woken
-        if(item!=nullptr) item->t->PKwakeup();
+        item->t->PKwakeup();
+        return item->t;
     }
 
     /**
@@ -503,24 +506,27 @@ private:
      * - The array has to be dynamically allocated otherwise the size of the
      *   synchronization primitive object would depend on the number of priority
      *   levels selected when compiling the kernel. This is not possible since
-     *   the memory layout of ConditionVariable must be compatible with
-     *   pthread_cond_t which is fixed when the C standard library is compiled.
-     * - Moreover, we can't even allocate the array in the constructor since
-     *   when a pthread_cond_t is statically initialized with
-     *   PTHREAD_COND_INITIALIZER the constructor isn't called and all class
-     *   fields are set to 0/nullptr (see Miosix compiler patches). Thus we must
-     *   allocate it on first use. Thankfully deallocation is easy as statically
-     *   constructed objects have a lifetime equal to the entire program thus no
-     *   deallocation is needed, while pthread_cond_destroy calls the destructor
-     *   so no memory leaks are possible.
+     *   the memory layout of pthread_* synchronization primitives is fixed when
+     *   the C standard library is compiled while the number of priorities is
+     *   tunable when the kernel is compiled.
+     * - Moreover, for pthread_* synchronization primitives statically
+     *   initialized with PTHREAD_*_INITIALIZER the constructor is not called,
+     *   and all fields are set to 0/nullptr (see Miosix compiler patches).
+     *   Thus we must check for nullptr and allocate it on first use. Thankfully
+     *   deallocation is easy as statically constructed objects have a lifetime
+     *   equal to the entire program thus no deallocation is needed, while
+     *   pthread_*_destroy calls the destructor so no memory leaks are possible.
      * - Finally, once we have an array of lists, one for each priority, we must
      *   be absolutely sure that removeFromWaitQueue will try to remove the
      *   thread from the same list we are inserting it here, otherise memory
      *   corruption occurs in IntrusiveList::removeFast. That's made easier by
      *   the fact that in Miosix a thread can only change its own priority, and
-     *   of course while waiting on a condition variable a thread isn't running
-     *   and thus cannot call Thread::setPriority() but there's a catch:
-     *   priority inheritance. When waiting on a condition variable a thread
+     *   of course while waiting on a synchronization primitive a thread isn't
+     *   running and thus cannot call Thread::setPriority() but there's a catch:
+     *   priority inheritance.
+     *
+     *   TODO: this comment should be revised when WaitQueue is also used for Mutex
+     *   When waiting on a condition variable a thread
      *   should have locked a mutex but the mutex passed to wait() is atomically
      *   unlocked before waiting (and before this function is called) so any
      *   priority inheritance happening on that mutex is no longer a concern.
@@ -538,8 +544,6 @@ private:
      *   savedPriority is set to a valid value even when not locking any mutex
      *   is added only when needed, look for CONDVAR_WAKEUP_BY_PRIORITY in the
      *   kernel code.
-     *
-     *   TODO: this comment should be revised when WaitQueue is also used for Mutex
      */
     PriorityQueue<WaitToken> *queue; //TODO: allocate on heap only if NUM_PRIORITIES>1
     #elif defined(SCHED_TYPE_EDF)

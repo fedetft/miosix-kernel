@@ -191,7 +191,7 @@ int sched_yield()
 
 //The pthread_cond_t API is implemented simply as a wrapper around the native
 //Miosix C++ Mutex or FastMutex. Therefore the memory layout of pthread_cond_t
-//should be emough to hold either of these plus an int to differentiate what
+//should be enough to hold either of these plus an int to differentiate what
 //kind of mutex it is
 static_assert(sizeof(pthread_mutex_t)>=sizeof(FastMutex)+sizeof(int),"Invalid pthread_mutex_t size");
 static_assert(sizeof(pthread_mutex_t)>=sizeof(Mutex)+sizeof(int),"Invalid pthread_mutex_t size");
@@ -267,14 +267,22 @@ int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
 {
     auto option=MutexOptions::DEFAULT;
     if(attr->recursive==PTHREAD_MUTEX_RECURSIVE) option=MutexOptions::RECURSIVE;
-    if(hasPriorityInheritance(attr->prio))
-    {
-        mutex->type=PTHREAD_PRIO_INHERIT;
-        new (mutex) Mutex(option);
-    } else {
-        mutex->type=PTHREAD_PRIO_NONE;
-        new (mutex) FastMutex(option);
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        if(hasPriorityInheritance(attr->prio))
+        {
+            mutex->type=PTHREAD_PRIO_INHERIT;
+            new (mutex) Mutex(option);
+        } else {
+            mutex->type=PTHREAD_PRIO_NONE;
+            new (mutex) FastMutex(option);
+        }
+    #ifndef __NO_EXCEPTIONS
+    } catch(bad_alloc&) {
+        return ENOMEM; //Implementation may allocate for some scheduler type
     }
+    #endif //__NO_EXCEPTIONS
     return 0;
 }
 
@@ -295,10 +303,18 @@ int pthread_mutex_destroy(pthread_mutex_t *mutex)
 
 int pthread_mutex_lock(pthread_mutex_t *mutex)
 {
-    //NOTE: Handling FastMutex first speeds up the likely case
-    if(hasPriorityInheritance(mutex->type)==false)
-         return reinterpret_cast<FastMutex*>(mutex)->lock();
-    else return reinterpret_cast<Mutex*>(mutex)->lock();
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        //NOTE: Handling FastMutex first speeds up the likely case
+        if(hasPriorityInheritance(mutex->type)==false)
+            return reinterpret_cast<FastMutex*>(mutex)->lock();
+        else return reinterpret_cast<Mutex*>(mutex)->lock();
+    #ifndef __NO_EXCEPTIONS
+    } catch(bad_alloc&) {
+        return ENOMEM; //Implementation may allocate for some scheduler type
+    }
+    #endif //__NO_EXCEPTIONS
 }
 
 int pthread_mutex_trylock(pthread_mutex_t *mutex)
@@ -323,8 +339,8 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
 
 //The pthread_cond_t API is implemented simply as a wrapper around the native
 //Miosix C++ ConditionVariable. Therefore the memory layout of pthread_cond_t
-//and of ConditionVariable must be exactly the same.
-static_assert(sizeof(ConditionVariable)<=sizeof(pthread_cond_t),"Invalid pthread_cond_t size");
+//and of ConditionVariable must be enough to hold a ConditionVariable.
+static_assert(sizeof(pthread_cond_t)>=sizeof(ConditionVariable),"Invalid pthread_cond_t size");
 
 int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
 {

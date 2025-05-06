@@ -847,7 +847,7 @@ Priority priorityAdapter(int x)
 
 class Sequence
 {
-    public:
+public:
     Sequence()
     {
         s[0]='\0';
@@ -871,7 +871,7 @@ class Sequence
         s[0]='\0';
     }
 
-    private:
+private:
     char s[4];
 };
 
@@ -1238,8 +1238,7 @@ static void test_6()
     }
     if(Thread::getCurrentThread()->getPriority()!=priorityAdapter(1))
         fail("priority inheritance (14)");
-    //Restore original priority
-    Thread::setPriority(0);
+    Thread::setPriority(0); //Restore original priority
     if(Thread::getCurrentThread()->getPriority()!=0)
         fail("priority inheritance (14)");
     t->join();
@@ -1308,7 +1307,8 @@ static void test_6()
     //
     // Testing FastMutex
     //
-    
+    //We can't have a priority higher than other threads (important with EDF)
+    Thread::setPriority(priorityAdapter(0));
     seq.clear();
     //Create first thread
     Thread::create(t6_p1a,STACK_SMALL,priorityAdapter(0),nullptr,Thread::DETACHED);
@@ -1323,16 +1323,17 @@ static void test_6()
     /*
     Now there will be 4 threads on the Mutex, the first one, with priority 0,
     waiting 100ms the second with priority 1, the third with priority 2 and the
-    fourth (this) with priority 0. Given that FastMutex does not implement
-    priority inheritance, they will lock the mutex in fifo order.
+    fourth (this) with priority 0. FastMutex does not implement priority
+    inheritance but in Miosix 3 still wakes threads in priority order
     */
-    if(strcmp(seq.read(),"123")!=0)
+    if(strcmp(seq.read(),"132")!=0)
     {
         //iprintf("%s\n",seq.read());
         fail("incorrect sequence a");
     }
     t6_m1a.unlock();
 
+    Thread::setPriority(0); //Restore original priority
     Thread::sleep(350);//Ensure all threads are deleted
     //
     // Testing tryLock

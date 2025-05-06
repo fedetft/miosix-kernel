@@ -71,18 +71,8 @@ int FastMutex::lock()
         } else errorHandler(Error::MUTEX_ERROR); //Bad, deadlock
     }
 
-    WaitingList waiting; //Element of a linked list on stack
-    waiting.thread=cur;
-    waiting.next=nullptr; //Putting this thread last on the list (lifo policy)
-    if(first==nullptr)
-    {
-        first=&waiting;
-        last=&waiting;
-    } else {
-        last->next=&waiting;
-        last=&waiting;
-    }
-
+    WaitToken item(cur);
+    waitQueue.PKenqueue(&item);
     //The while is necessary to protect against spurious wakeups
     while(owner!=cur) Thread::PKrestartKernelAndWait(dLock);
     return 0;
@@ -115,15 +105,7 @@ int FastMutex::unlock()
         recursiveDepth--;
         return 0;
     }
-    if(first!=nullptr)
-    {
-        Thread *t=first->thread;
-        first=first->next;
-        owner=t;
-        t->PKwakeup(); //Also sets pendingWakeup if higher priority thread woken
-        return 0;
-    }
-    owner=nullptr;
+    owner=waitQueue.PKwakeOne();
     return 0;
 }
 
@@ -149,18 +131,8 @@ inline void FastMutex::PKlockToDepth(FastPauseKernelLock& dLock, unsigned int de
         } else errorHandler(Error::MUTEX_ERROR); //Bad, deadlock
     }
 
-    WaitingList waiting; //Element of a linked list on stack
-    waiting.thread=cur;
-    waiting.next=nullptr; //Putting this thread last on the list (lifo policy)
-    if(first==nullptr)
-    {
-        first=&waiting;
-        last=&waiting;
-    } else {
-        last->next=&waiting;
-        last=&waiting;
-    }
-
+    WaitToken item(cur);
+    waitQueue.PKenqueue(&item);
     //The while is necessary to protect against spurious wakeups
     while(owner!=cur) Thread::PKrestartKernelAndWait(dLock);
     if(recursiveDepth>=0) recursiveDepth=depth;
@@ -170,24 +142,7 @@ inline unsigned int FastMutex::PKunlockAllDepthLevels()
 {
 //    Safety check removed for speed reasons
 //    if(owner!=Thread::PKgetCurrentThread()) errorHandler(Error::MUTEX_ERROR);
-    if(first!=nullptr)
-    {
-        Thread *t=first->thread;
-        first=first->next;
-        owner=t;
-        //NOTE: unlike FastMutex::unlock() this function is only used to wait in
-        //condition variables, after this call the current thread is descheduled
-        //so it's irrelevant whether we woke a higher priority thread
-        t->PKwakeup();
-
-        if(recursiveDepth<0) return 0;
-        unsigned int result=recursiveDepth;
-        recursiveDepth=0;
-        return result;
-    }
-
-    owner=nullptr;
-
+    owner=waitQueue.PKwakeOne();
     if(recursiveDepth<0) return 0;
     unsigned int result=recursiveDepth;
     recursiveDepth=0;
