@@ -71,8 +71,7 @@ int FastMutex::lock()
         } else errorHandler(Error::MUTEX_ERROR); //Bad, deadlock
     }
 
-    WaitToken item(cur);
-    waitQueue.PKenqueue(&item);
+    waitQueue.PKenqueue(cur);
     //The while is necessary to protect against spurious wakeups
     while(owner!=cur) Thread::PKrestartKernelAndWait(dLock);
     return 0;
@@ -100,12 +99,8 @@ int FastMutex::unlock()
     FastPauseKernelLock dLock;
 //    Safety check removed for speed reasons
 //    if(owner!=Thread::PKgetCurrentThread()) errorHandler(Error::MUTEX_ERROR);
-    if(recursiveDepth>0)
-    {
-        recursiveDepth--;
-        return 0;
-    }
-    owner=waitQueue.PKwakeOne();
+    if(recursiveDepth>0) recursiveDepth--;
+    else owner=waitQueue.PKwakeOne();
     return 0;
 }
 
@@ -131,8 +126,7 @@ inline void FastMutex::PKlockToDepth(FastPauseKernelLock& dLock, unsigned int de
         } else errorHandler(Error::MUTEX_ERROR); //Bad, deadlock
     }
 
-    WaitToken item(cur);
-    waitQueue.PKenqueue(&item);
+    waitQueue.PKenqueue(cur);
     //The while is necessary to protect against spurious wakeups
     while(owner!=cur) Thread::PKrestartKernelAndWait(dLock);
     if(recursiveDepth>=0) recursiveDepth=depth;
@@ -162,6 +156,7 @@ int Mutex::lock()
         owner=cur;
         //Save original thread priority, if the thread has not yet locked
         //another mutex
+        //TODO: can't we always keep savedPriority in sync and remove this?
         if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
         this->addToLockedList(owner);
         return 0;
@@ -179,15 +174,12 @@ int Mutex::lock()
         } else errorHandler(Error::MUTEX_ERROR); //Bad, deadlock
     }
 
-    //Add thread to mutex' waiting queue
-    waiting.push_back(cur);
-    push_heap(waiting.begin(),waiting.end(),PKlowerPriority);
-
     //Handle priority inheritance
     if(cur->mutexWaiting!=nullptr) errorHandler(Error::UNEXPECTED);
     cur->mutexWaiting=this;
     inheritPriorityTowardsMutexOwner(cur->PKgetPriority());
 
+    waitQueue.PKenqueue(cur);
     //The while is necessary to protect against spurious wakeups
     while(owner!=cur) Thread::PKrestartKernelAndWait(dLock);
     return 0;
@@ -202,6 +194,7 @@ bool Mutex::tryLock()
         owner=cur;
         //Save original thread priority, if the thread has not yet locked
         //another mutex
+        //TODO: can't we always keep savedPriority in sync and remove this?
         if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
         this->addToLockedList(owner);
         return true;
@@ -240,6 +233,7 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
         if(recursiveDepth>=0) recursiveDepth=depth;
         //Save original thread priority, if the thread has not yet locked
         //another mutex
+        //TODO: can't we always keep savedPriority in sync and remove this?
         if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
         this->addToLockedList(owner);
         return;
@@ -257,15 +251,12 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
         } else errorHandler(Error::MUTEX_ERROR); //Bad, deadlock
     }
 
-    //Add thread to mutex' waiting queue
-    waiting.push_back(cur);
-    push_heap(waiting.begin(),waiting.end(),PKlowerPriority);
-
     //Handle priority inheritance
     if(cur->mutexWaiting!=nullptr) errorHandler(Error::UNEXPECTED);
     cur->mutexWaiting=this;
     inheritPriorityTowardsMutexOwner(cur->PKgetPriority());
 
+    waitQueue.PKenqueue(cur);
     //The while is necessary to protect against spurious wakeups
     while(owner!=cur) Thread::PKrestartKernelAndWait(dLock);
     if(recursiveDepth>=0) recursiveDepth=depth;
@@ -302,15 +293,12 @@ inline void Mutex::deInheritPriority()
 
 inline void Mutex::chooseNextOwner()
 {
-    if(waiting.empty()==false)
+    owner=waitQueue.PKwakeOne();
+    if(owner!=nullptr)
     {
-        //There is at least another thread waiting
-        owner=waiting.front();
-        pop_heap(waiting.begin(),waiting.end(),PKlowerPriority);
-        waiting.pop_back();
         if(owner->mutexWaiting!=this) errorHandler(Error::UNEXPECTED);
         owner->mutexWaiting=nullptr;
-        owner->PKwakeup(); //Also sets pendingWakeup if higher priority thread woken
+        //TODO: can't we always keep savedPriority in sync and remove this?
         if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
         this->addToLockedList(owner);
         //NOTE: since we always pick the highest priority waiting thread
@@ -319,13 +307,6 @@ inline void Mutex::chooseNextOwner()
         //there's no need to make the new owner inherit priority from the other
         //waiting threads on the same mutex. If there were a higher priority
         //thread there, it would have been chosen as the owner
-    } else {
-        owner=nullptr; //No threads waiting
-        //Here we could either reclaim some RAM (by uncommenting this line) or
-        //boost performance since especially with periodic tasks locking mutexes
-        //in the same pattern leaving the vector capacity allows the mutex to
-        //reach a steady state where no more memory allocations occur
-        // std::vector<Thread *>().swap(waiting);
     }
 }
 
@@ -334,23 +315,26 @@ void Mutex::inheritPriorityTowardsMutexOwner(Priority prio)
     //NOTE: even though here we may change the priority of one or more
     //threads there's no need to check if a high priority thread needs
     //to be scheduled on some core and call the scheduler, as at the end
-    //of this algorithm we call Thread::PKrestartKernelAndWait that will
+    //of this algorithm we call Thread::PKrestartKernelAndWait() that will
     //take care of calling the scheduler
     Thread *walk=owner;
     while(walk->PKgetPriority().mutexLessOp(prio))
     {
+        //We're upgrading the priority of the thread that is currently the owner
+        //of the mutex we want to lock, but we need to check whether the owner
+        //is stuck waiting on another mutex. If it is, we need to first remove
+        //it from the waitQueue, update the priority and then insert it back to
+        //keep that wautQueue sorted by priority (note that removing it before
+        //updating the priority is necessary to prevent undefined behavior with
+        //some WaitQueue implementation), and then continue down the chain to
+        //find who's the owner of that mutex
+        if(walk->mutexWaiting) walk->mutexWaiting->waitQueue.PKremove(walk);
         {
             FastGlobalIrqLock irqLock;
             Scheduler::IRQsetPriority(walk,prio);
         }
         if(walk->mutexWaiting==nullptr) break;
-        //We upgraded the priority of the thread that is currently the owner
-        //of the mutex we want to lock, but unfortunately the owner is stuck
-        //waiting on another mutex. Thus, we need to update the min heap of
-        //the other mutex so it is kept sorted, and then continue down the
-        //chain to find who's the owner of that mutex
-        make_heap(walk->mutexWaiting->waiting.begin(),
-                  walk->mutexWaiting->waiting.end(),PKlowerPriority);
+        walk->mutexWaiting->waitQueue.PKenqueue(walk);
         walk=walk->mutexWaiting->owner;
     }
 }
@@ -361,7 +345,7 @@ void Mutex::inheritPriorityTowardsMutexOwner(Priority prio)
  * class Thread (the list head is Thread::mutexLocked), and partly in
  * class Mutex (Mutex::next). Using an intrusive singly linked list provides
  * optimal performance and mininal RAM requirements as mutexes should be
- * unlocked in reverse order and lifo insert/removal from a singly linked list
+ * unlocked in reverse order and LIFO insert/removal from a singly linked list
  * is O(1).
  * However, while from a software engineering standpoint list handling functions
  * would belong to class Thread (the thread has a list of locked mutexes, not
@@ -404,9 +388,9 @@ Priority Mutex::inheritPriorityFromLockedList(Thread *t, Priority pr)
     Mutex *walk=t->mutexLocked;
     while(walk!=nullptr)
     {
-        if(walk->waiting.empty()==false)
+        if(walk->waitQueue.PKempty()==false)
         {
-            Priority inheritedPr=walk->waiting.front()->PKgetPriority();
+            Priority inheritedPr=walk->waitQueue.PKfront()->PKgetPriority();
             if(pr.mutexLessOp(inheritedPr)) pr=inheritedPr;
         }
         walk=walk->next;
@@ -420,46 +404,46 @@ Priority Mutex::inheritPriorityFromLockedList(Thread *t, Priority pr)
 
 void ConditionVariable::wait(Mutex& m)
 {
-    WaitToken item(Thread::getCurrentThread());
     PauseKernelLock dLock;
     unsigned int depth=m.PKunlockAllDepthLevels();
-    waitQueue.PKenqueue(&item);
+    Thread *cur=Thread::PKgetCurrentThread();
+    waitQueue.PKenqueue(cur);
     Thread::PKrestartKernelAndWait(dLock);
-    waitQueue.PKremove(&item); //In case of spurious wakeup
+    waitQueue.PKremove(cur); //In case of spurious wakeup
     m.PKlockToDepth(dLock,depth);
 }
 
 void ConditionVariable::wait(FastMutex& m)
 {
-    WaitToken item(Thread::getCurrentThread());
     FastPauseKernelLock dLock;
     unsigned int depth=m.PKunlockAllDepthLevels();
-    waitQueue.PKenqueue(&item);
+    Thread *cur=Thread::PKgetCurrentThread();
+    waitQueue.PKenqueue(cur);
     Thread::PKrestartKernelAndWait(dLock);
-    waitQueue.PKremove(&item); //In case of spurious wakeup
+    waitQueue.PKremove(cur); //In case of spurious wakeup
     m.PKlockToDepth(dLock,depth);
 }
 
 TimedWaitResult ConditionVariable::timedWait(Mutex& m, long long absTime)
 {
-    WaitToken item(Thread::getCurrentThread());
     PauseKernelLock dLock;
     unsigned int depth=m.PKunlockAllDepthLevels();
-    waitQueue.PKenqueue(&item);
+    Thread *cur=Thread::PKgetCurrentThread();
+    waitQueue.PKenqueue(cur);
     auto result=Thread::PKrestartKernelAndTimedWait(dLock,absTime);
-    waitQueue.PKremove(&item); //In case of timeout or spurious wakeup
+    waitQueue.PKremove(cur); //In case of timeout or spurious wakeup
     m.PKlockToDepth(dLock,depth);
     return result;
 }
 
 TimedWaitResult ConditionVariable::timedWait(FastMutex& m, long long absTime)
 {
-    WaitToken item(Thread::getCurrentThread());
     FastPauseKernelLock dLock;
     unsigned int depth=m.PKunlockAllDepthLevels();
-    waitQueue.PKenqueue(&item);
+    Thread *cur=Thread::PKgetCurrentThread();
+    waitQueue.PKenqueue(cur);
     auto result=Thread::PKrestartKernelAndTimedWait(dLock,absTime);
-    waitQueue.PKremove(&item); //In case of timeout or spurious wakeup
+    waitQueue.PKremove(cur); //In case of timeout or spurious wakeup
     m.PKlockToDepth(dLock,depth);
     return result;
 }

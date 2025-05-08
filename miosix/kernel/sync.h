@@ -32,7 +32,6 @@
 #include "intrusive.h"
 #include "kernel/scheduler/sched_types.h"
 #include "kernel/sched_data_structures.h"
-#include <vector>
 
 namespace miosix {
 
@@ -130,7 +129,8 @@ private:
     /// Used to hold nesting depth for recursive mutexes, -1 if not recursive
     int recursiveDepth;
 
-    WaitQueue waitQueue; ///< Holds waiting threads, handles prioritization
+    /// Holds waiting threads, handles prioritization
+    WaitQueue<PriorityPolicy::IgnoreInheritedPriority> waitQueue;
 
     //Friends
     friend class ConditionVariable;
@@ -274,12 +274,12 @@ private:
     /// Used to hold nesting depth for recursive mutexes, -1 if not recursive
     int recursiveDepth;
 
+    /// Holds waiting threads, handles prioritization
+    WaitQueue<PriorityPolicy::ConsiderInheritedPriority> waitQueue;
+
     /// If this mutex is locked, it is added to a list of mutexes held by the
     /// thread that owns this mutex. This field is necessary to make the list.
     Mutex *next;
-
-    /// Waiting thread are stored in this min-heap, sorted by priority
-    std::vector<Thread *> waiting;
 
     //Friends
     friend class ConditionVariable;
@@ -510,7 +510,8 @@ public:
     ConditionVariable& operator= (const ConditionVariable&) = delete;
 
 private:
-    WaitQueue waitQueue; ///< Holds waiting threads, handles prioritization
+    /// Holds waiting threads, handles prioritization
+    WaitQueue<PriorityPolicy::IgnoreInheritedPriority> waitQueue;
 };
 
 /**

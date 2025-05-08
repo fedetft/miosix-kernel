@@ -86,6 +86,20 @@ public:
     }
 
     /**
+     * \return the first item that would be woken up if dequeueOne() was called.
+     * Causes undefined behavior if called when the queue is empty
+     */
+    T *front()
+    {
+        for(int i=NUM_PRIORITIES-1;i>=0;i--)
+        {
+            if(queued[i].empty()) continue;
+            return queued[i].front();
+        }
+        return nullptr;
+    }
+
+    /**
      * Add an item to the queue.
      * \param item pointer to an item. The queue does not take ownership of the
      * pointer and does not deallocate it in any way when dequeued/removed, this
@@ -189,6 +203,12 @@ public:
     bool empty() const { return queued.empty(); }
 
     /**
+     * \return the first item that would be woken up if dequeueOne() was called.
+     * Causes undefined behavior if called when the queue is empty
+     */
+    T *front() { return queued.front(); }
+
+    /**
      * Add an item to the queue.
      * \param item pointer to an item. The queue does not take ownership of the
      * pointer and does not deallocate it in any way when dequeued/removed, this
@@ -287,6 +307,12 @@ public:
     bool empty() const { return queued.empty(); }
 
     /**
+     * \return the first item that would be woken up if dequeueOne() was called.
+     * Causes undefined behavior if called when the queue is empty
+     */
+    T *front() { return queued.front(); }
+
+    /**
      * Add an item to the queue.
      * \param item pointer to an item. The queue does not take ownership of the
      * pointer and does not deallocate it in any way when dequeued/removed, this
@@ -340,47 +366,6 @@ private:
 
 /**
  * \internal
- * Data structure holding the information of a thread waiting on a
- * synchronization primitive such as a Mutex or ConditionVariable
- *
- * NOTE: since this class is only meant to implement synchronization primitives
- * and in Miosix from version 3 onwards synchronization primitives are
- * implemented using PauseKernelLock, this class uses PK prefixed member
- * functions to access thread properties, and assumes the class is only accessed
- * while holding the PauseKernelLock
- */
-class WaitToken : public IntrusiveListItem
-{
-public:
-    /**
-     * Constructor
-     * \param t thread about to block waiting on a synchronization primitive
-     */
-    WaitToken(Thread *t) : t(t) {}
-
-    #ifdef SCHED_TYPE_EDF
-    /**
-     * \return the thread deadline, used for sorting waiting threads by
-     * earliest deadline first
-     *
-     *  NOTE: we can just call PKgetPriority() and not bother with savedPriority
-     * as the case we care about is when a thread has locked a single mutex and
-     * that's the one that was atomically unlocked as part of the wait(). Since
-     * we get here after the mutex has been unlocked, the priority or better,
-     * deadline, has already been de-inherited, if at all. Even if some weird
-     * code did the antipattern of locking some more mutex and thus waiting with
-     * some mutex locked and a priority inheritance occurs while waiting, since
-     * we have only one list no memory corruption is possible in
-     * removeFromWaitQueue
-     */
-    long long getTime() { return t->PKgetPriority().get(); }
-    #endif
-
-    Thread *t; ///<\internal Waiting thread
-};
-
-/**
- * \internal
  * A queue class for holding threads waiting on a synchronization primitive
  * such as a Mutex or ConditionVariable.
  *
@@ -393,6 +378,7 @@ public:
  * functions to access thread properties, and assumes the class is only accessed
  * while holding the PauseKernelLock
  */
+template<PriorityPolicy pp>
 class WaitQueue
 {
 public:
@@ -414,20 +400,35 @@ public:
     }
 
     /**
+     * \return the first thread that would be woken up if PKwakeOne() was called.
+     * Causes undefined behavior if called when the queue is empty
+     */
+    Thread *PKfront()
+    {
+        #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
+        return queue->front()->t;
+        #else
+        return queue.front()->t;
+        #endif
+    }
+
+    /**
      * Add a thread to the queue.
      * \param item pointer to an item. The queue does not take ownership of the
      * pointer and does not deallocate it in any way when dequeued/removed, this
      * is a responsibility of the caller
      */
-    void PKenqueue(WaitToken *item)
+    void PKenqueue(Thread *t)
     {
         #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
         //We allocate here only for statically allocated pthread_* objects,
         //in all other cases allocation happens in the constructor
         if(queue==nullptr) queue=new PriorityQueue<WaitToken>;
-        queue->enqueue(item,item->t->savedPriority.get());
+        if(pp==PriorityPolicy::ConsiderInheritedPriority)
+             queue->enqueue(&t->waitQueueItem,t->PKgetPriority());
+        else queue->enqueue(&t->waitQueueItem,t->savedPriority.get());
         #else
-        queue.enqueue(item);
+        queue.enqueue(&t->waitQueueItem);
         #endif
     }
 
@@ -475,13 +476,15 @@ public:
      * IntrusiveList<T>::removeFast(), so all the warning related to this
      * function apply here.
      */
-    void PKremove(WaitToken *item)
+    void PKremove(Thread *t)
     {
         #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
         if(queue==nullptr) return;
-        queue->remove(item,item->t->savedPriority.get());
+        if(pp==PriorityPolicy::ConsiderInheritedPriority)
+             queue->remove(&t->waitQueueItem,t->PKgetPriority());
+        else queue->remove(&t->waitQueueItem,t->savedPriority.get());
         #else
-        queue.remove(item);
+        queue.remove(&t->waitQueueItem);
         #endif
     }
 

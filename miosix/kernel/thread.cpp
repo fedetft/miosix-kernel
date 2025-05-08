@@ -817,8 +817,8 @@ void Thread::setupUserspaceContext(unsigned int entry, int argc, void *argvSp,
 
 Thread::Thread(unsigned int *watermark, unsigned int stacksize,
                bool defaultReent) : schedData(), savedPriority(0),
-               mutexLocked(nullptr), mutexWaiting(nullptr), watermark(watermark),
-               ctxsave(), stacksize(stacksize)
+               mutexLocked(nullptr), mutexWaiting(nullptr), waitQueueItem(this),
+               watermark(watermark), ctxsave(), stacksize(stacksize)
 {
     joinData.waitingForJoin=nullptr;
     if(defaultReent) cReentrancyData=_GLOBAL_REENT;

@@ -70,10 +70,57 @@ enum class TimedWaitResult
     Timeout
 };
 
+/**
+ * \internal
+ * Data structure holding the information of a thread waiting on a
+ * synchronization primitive such as a Mutex or ConditionVariable
+ *
+ * NOTE: since this class is only meant to implement synchronization primitives
+ * and in Miosix from version 3 onwards synchronization primitives are
+ * implemented using PauseKernelLock, this class uses PK prefixed member
+ * functions to access thread properties, and assumes the class is only accessed
+ * while holding the PauseKernelLock
+ */
+class WaitToken : public IntrusiveListItem
+{
+public:
+    /**
+     * Constructor
+     * \param t thread about to block waiting on a synchronization primitive
+     */
+    WaitToken(Thread *t) : t(t) {}
+
+    #ifdef SCHED_TYPE_EDF
+    /**
+     * \return the thread deadline, used for sorting waiting threads by
+     * earliest deadline first
+     *
+     *  NOTE: we can just call PKgetPriority() and not bother with savedPriority
+     * as the case we care about is when a thread has locked a single mutex and
+     * that's the one that was atomically unlocked as part of the wait(). Since
+     * we get here after the mutex has been unlocked, the priority or better,
+     * deadline, has already been de-inherited, if at all. Even if some weird
+     * code did the antipattern of locking some more mutex and thus waiting with
+     * some mutex locked and a priority inheritance occurs while waiting, since
+     * we have only one list no memory corruption is possible in
+     * removeFromWaitQueue
+     */
+    long long getTime() { return t->PKgetPriority().get(); }
+    #endif
+
+    Thread *t; ///<\internal Waiting thread
+};
+
+enum class PriorityPolicy
+{
+    ConsiderInheritedPriority,
+    IgnoreInheritedPriority
+};
+
 //Forwrd declaration
 class MemoryProfiling;
 class Mutex;
-class WaitQueue;
+template<PriorityPolicy pp> class WaitQueue;
 class GlobalIrqLock;
 class FastGlobalIrqLock;
 class PauseKernelLock;
@@ -972,6 +1019,8 @@ private:
     Mutex *mutexLocked;
     ///If the thread is waiting on a Mutex, mutexWaiting points to that Mutex
     Mutex *mutexWaiting;
+    ///If the thread is waiting on a WaitQueue, entry in the wait list
+    WaitToken waitQueueItem;
     unsigned int *watermark;///< pointer to watermark area
     unsigned int ctxsave[CTXSAVE_SIZE];///< Holds cpu registers during ctxswitch
     unsigned int stacksize;///< Contains stack size
@@ -1013,7 +1062,7 @@ private:
     //Needs access to savedPriority, mutexLocked and flags.
     friend class Mutex;
     //Needs access to savedPriority
-    friend class WaitQueue;
+    template<PriorityPolicy pp> friend class WaitQueue;
     //Needs access to flags, schedData
     friend class PriorityScheduler;
     //Needs access to flags, schedData
