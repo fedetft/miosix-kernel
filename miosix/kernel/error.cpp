@@ -67,6 +67,9 @@ void errorHandler(Error e)
         case Error::INTERRUPTS_ENABLED_AT_BOOT:
             IRQerrorLog("\r\n***Interrupts enabled at boot\r\n");
             break;
+        case Error::KERNEL_ALREADY_STARTED_AT_BOOT:
+            IRQerrorLog("\r\n***Kernel already started at boot\r\n");
+            break;
         case Error::INTERRUPT_REGISTRATION_ERROR:
             IRQerrorLog("\r\n***Interrupt registration error\r\n");
             break;

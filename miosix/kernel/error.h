@@ -51,6 +51,9 @@ enum class Error
     /// Interrupts are wrongly enabled during the early boot stage
     INTERRUPTS_ENABLED_AT_BOOT,
 
+    /// PauseKernel is wrongly released during the early boot stage
+    KERNEL_ALREADY_STARTED_AT_BOOT,
+
     /// Attempting to register an already registered interrupt or unregistering
     /// the wrong interrupt
     INTERRUPT_REGISTRATION_ERROR,
