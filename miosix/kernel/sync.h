@@ -130,6 +130,11 @@ private:
     int recursiveDepth;
 
     /// Holds waiting threads, handles prioritization
+    /// A note for the curious: switching policy to ConsiderInheritedPriority
+    /// won't work and will likely crash. To be part of the priority inheritance
+    /// algorithm a synchronization primitive needs to be involved in the locked
+    /// list and class FastMutex doesn't. If you want a mutex with priority
+    /// inheritance just use class Mutex
     WaitQueue<PriorityPolicy::IgnoreInheritedPriority> waitQueue;
 
     //Friends
@@ -511,6 +516,24 @@ public:
 
 private:
     /// Holds waiting threads, handles prioritization
+    /// A note for the curious: switching policy to ConsiderInheritedPriority
+    /// won't work and will likely crash. To be part of the priority inheritance
+    /// algorithm a synchronization primitive needs to be involved in the locked
+    /// list and class ConditionVariable doesn't. This is by design as you
+    /// should be locking only one mutex while calling wait() on a condition
+    /// variable and pass it to wait. Code that does this leaves no mutex locked
+    /// while waiting and thus does not need to deal with priority inheritance
+    /// while waiting on a condition variable. The priority of waiting threads
+    /// won't be boosted due to priority inheritance and threads will be
+    /// awakened in order their original "saved" priority.
+    /// Locking additional mutexes while waiting on a condition variable would
+    /// cause a priority boost while waiting, but doing so it's an antipattern
+    /// so we only care such code doesn't crash rather than correctly handling
+    /// prioritization in this case, and that's what IgnoreInheritedPriority
+    /// does: code exhibiting the antipattern will cause wakeup from the
+    /// condition variable in order of original "saved" priority, thus ignoring
+    /// inheritance but won't crash and won't need to go through the overhead
+    /// of adding condition variables to the locked list.
     WaitQueue<PriorityPolicy::IgnoreInheritedPriority> waitQueue;
 };
 

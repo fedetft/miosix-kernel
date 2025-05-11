@@ -377,11 +377,30 @@ private:
  * implemented using PauseKernelLock, this class uses PK prefixed member
  * functions to access thread properties, and assumes the class is only accessed
  * while holding the PauseKernelLock
+ *
+ * \tparam pp priority policy. Can be one of two values:
+ * - IgnoreInheritedPriority: for schedulers where priority-based wakeup is
+ *   needed, wakeup waiting threads based on their original "saved" priority,
+ *   thus not considering the inherited priority due to priority inheritance.
+ * - ConsiderInheritedPriority: for schedulers where priority-based wakeup is
+ *   needed, wakeup waiting threads based on their actual priority, thus
+ *   considering the inherited priority. Note that you can't just set this
+ *   option and be done. If you set this option, your synchronization primitive
+ *   must be part of the thread's locked list so the synchronization primitive
+ *   is notified every time a priority boost happens and can remove the waiting
+ *   thread from the waitQueue, then boost the priority and then place it back.
+ *   Failing to do so will not only defeat the purpose of waking threads
+ *   considering the inherited priority but also cause undefined behavior for
+ *   some WaitQueue implementations, namely those with an array of lists
+ *   indexed by priority.
  */
 template<PriorityPolicy pp>
 class WaitQueue
 {
 public:
+    static_assert(pp==PriorityPolicy::ConsiderInheritedPriority
+               || pp==PriorityPolicy::IgnoreInheritedPriority,"");
+
     #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
     WaitQueue() : queue(new PriorityQueue<WaitToken>) {}
     #endif
@@ -496,7 +515,7 @@ private:
     #if defined(SCHED_TYPE_PRIORITY) && defined(CONDVAR_WAKEUP_BY_PRIORITY)
     /*
      * That's the hard case. Using a single list leaves no way to efficiently
-     * implement this algorithm. We could inserion-sort into the list by
+     * implement this queue. We could inserion-sort into the list by
      * priority like with EDF, but doing so in the use case where more threads
      * in the list have the same priority causes wakeup in LIFO order which may
      * result in starvation. Doing inserion-sort into the list but adding
@@ -526,27 +545,10 @@ private:
      *   the fact that in Miosix a thread can only change its own priority, and
      *   of course while waiting on a synchronization primitive a thread isn't
      *   running and thus cannot call Thread::setPriority() but there's a catch:
-     *   priority inheritance.
-     *
-     *   TODO: this comment should be revised when WaitQueue is also used for Mutex
-     *   When waiting on a condition variable a thread
-     *   should have locked a mutex but the mutex passed to wait() is atomically
-     *   unlocked before waiting (and before this function is called) so any
-     *   priority inheritance happening on that mutex is no longer a concern.
-     *   However, a thread may have locked other mutexes. I know, that's an
-     *   antipattern since you shouldn't hold additional mutexes locked while
-     *   waiting on a condition variable and if code does that we don't bother
-     *   to inherit the priority from a mutex to a condition variable (i.e: the
-     *   waiting thread doesn't switch to a higher priority list) because that's
-     *   not priority inversion: that's an antipattern. However, we  don't want
-     *   to cause memory corruption and a crash in code does that antipattern
-     *   either. To solve the issue, we use the thread's savedPriority instead
-     *   of actual priority as index into the list. That doesn't change.
-     *   Final remark: this is the only code in the kernel that cares about
-     *   savedPriority even when not locking and mutex, so the code to make sure
-     *   savedPriority is set to a valid value even when not locking any mutex
-     *   is added only when needed, look for CONDVAR_WAKEUP_BY_PRIORITY in the
-     *   kernel code.
+     *   priority inheritance, which may cause a thread's priority to change
+     *   even while waiting. We solve this by adding a template parameter,
+     *   PriorityPolicy to consider either the actual (possibly inherited) or
+     *   orignal "saved" priority.
      */
     PriorityQueue<WaitToken> *queue; //TODO: allocate on heap only if NUM_PRIORITIES>1
     #elif defined(SCHED_TYPE_EDF)
