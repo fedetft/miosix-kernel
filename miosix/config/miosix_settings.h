@@ -226,14 +226,20 @@ static_assert(SYSTEM_MODE_PROCESS_STACK_SIZE>=STACK_MIN,"");
 
 // The meaning of a thread's priority depends on the chosen scheduler.
 #ifdef SCHED_TYPE_PRIORITY
-/// The constant NUM_PRIORITIES defines the number of priorities (MUST be >=1)
+/// The constant NUM_PRIORITIES defines the number of priorities the scheduler
+/// can handle. Value must be at least 1 and up to 128 since the priority value
+/// is stored in a char in the priority scheduler. A higher value makes context
+/// switches more expensive and increases the memory required by the scheduler
+/// and synchronization primitives (Mutex and ConditionVariable).
+/// Can be set to 1 for non-real-time applications, in which case the scheduler
+/// becomes a pure round robin without priorities and code size and memory
+/// occupation is minimized.
 /// NUM_PRIORITIES-1 is the highest priority, 0 is the lowest. -1 is reserved as
 /// the priority of the idle thread.
-/// Can be modified, but a high value makes context switches more expensive
-/// If set to 1, the scheduler becomes a pure round robin without priorities
-const signed char NUM_PRIORITIES=4;
+#define NUM_PRIORITIES 4
 /// Default priority. Priority of main() and threads created with PTHREAD/C++11
 const signed char DEFAULT_PRIORITY=1;
+static_assert(NUM_PRIORITIES>=0 && NUM_PRIORITIES<=128,"");
 static_assert(DEFAULT_PRIORITY>=0 && DEFAULT_PRIORITY<NUM_PRIORITIES,"");
 #elif defined(SCHED_TYPE_CONTROL_BASED)
 /// The constant NUM_PRIORITIES defines the number of priorities (MUST be >=1)

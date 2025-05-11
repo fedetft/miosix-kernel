@@ -410,7 +410,7 @@ public:
     static_assert(pp==PriorityPolicy::ConsiderInheritedPriority
                || pp==PriorityPolicy::IgnoreInheritedPriority,"");
 
-    #ifdef SCHED_TYPE_PRIORITY
+    #if defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1
     WaitQueue() : queue(new PriorityQueue<WaitToken,NUM_PRIORITIES>) {}
     #endif
 
@@ -419,7 +419,7 @@ public:
      */
     bool PKempty() const
     {
-        #ifdef SCHED_TYPE_PRIORITY
+        #if defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1
         if(queue==nullptr) return true;
         return queue->empty();
         #else
@@ -433,7 +433,7 @@ public:
      */
     Thread *PKfront()
     {
-        #ifdef SCHED_TYPE_PRIORITY
+        #if defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1
         return queue->front()->t;
         #else
         return queue.front()->t;
@@ -448,7 +448,7 @@ public:
      */
     void PKenqueue(Thread *t)
     {
-        #ifdef SCHED_TYPE_PRIORITY
+        #if defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1
         //We allocate here only for statically allocated pthread_* objects,
         //in all other cases allocation happens in the constructor
         if(queue==nullptr) queue=new PriorityQueue<WaitToken,NUM_PRIORITIES>;
@@ -466,7 +466,7 @@ public:
      */
     Thread *PKwakeOne()
     {
-        #ifdef SCHED_TYPE_PRIORITY
+        #if defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1
         if(queue==nullptr) return nullptr;
         WaitToken *item=queue->dequeueOne();
         #else
@@ -484,7 +484,7 @@ public:
      */
     void PKwakeAll()
     {
-        #ifdef SCHED_TYPE_PRIORITY
+        #if defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1
         if(queue==nullptr) return;
         queue->dequeueAll([](WaitToken *item){
             //Also sets pendingWakeup if higher priority thread woken
@@ -506,7 +506,7 @@ public:
      */
     void PKremove(Thread *t)
     {
-        #ifdef SCHED_TYPE_PRIORITY
+        #if defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1
         if(queue==nullptr) return;
         if(pp==PriorityPolicy::ConsiderInheritedPriority)
              queue->remove(&t->waitQueueItem,t->PKgetPriority());
@@ -516,12 +516,12 @@ public:
         #endif
     }
 
-    #ifdef SCHED_TYPE_PRIORITY
+    #if defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1
     ~WaitQueue() { if(queue) delete queue; }
     #endif
 
 private:
-    #ifdef SCHED_TYPE_PRIORITY
+    #if defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1
     /*
      * That's the hard case. Using a single list leaves no way to efficiently
      * implement this queue. We could inserion-sort into the list by
@@ -559,7 +559,13 @@ private:
      *   PriorityPolicy to consider either the actual (possibly inherited) or
      *   orignal "saved" priority.
      */
-    PriorityQueue<WaitToken,NUM_PRIORITIES> *queue; //TODO: allocate on heap only if NUM_PRIORITIES>1
+    PriorityQueue<WaitToken,NUM_PRIORITIES> *queue;
+    #elif defined(SCHED_TYPE_PRIORITY)
+    /**
+     * Priority scheduler with only 1 priority level is a pure round-robin,
+     * thus wakeup threads in fifo order
+     */
+    FifoQueue<WaitToken> queue;
     #elif defined(SCHED_TYPE_EDF)
     /**
      * Functor needed by TimeSortedQueue to insert the thread in the correct
@@ -584,7 +590,7 @@ private:
      * deadline.
      */
     TimeSortedQueue<WaitToken,WaitQueue::GetTime> queue;
-    #else
+    #elif defined(SCHED_TYPE_CONTROL_BASED)
     FifoQueue<WaitToken> queue; //TODO: support prioritization with mutexLessOp?
     #endif
 };
