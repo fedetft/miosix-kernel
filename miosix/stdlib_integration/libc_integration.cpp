@@ -182,7 +182,7 @@ void *_sbrk_r(struct _reent *ptr, ptrdiff_t incr)
         // When exceptions are disabled operator new would return nullptr, which
         // would cause undefined behaviour. So when exceptions are disabled,
         // a heap overflow causes a reboot.
-        errorHandler(Error::OUT_OF_MEMORY);
+        miosix::errorHandler(miosix::Error::OUT_OF_MEMORY);
         #else //__NO_EXCEPTIONS
         return reinterpret_cast<void*>(-1);
         #endif //__NO_EXCEPTIONS
