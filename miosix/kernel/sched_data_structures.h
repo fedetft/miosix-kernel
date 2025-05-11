@@ -78,8 +78,9 @@ public:
      */
     bool empty() const
     {
-        for(int i=numPriorities-1;i>=0;i--) if(queued[i].empty()==false)
-            return false;
+        for(int i=numPriorities-1;i>=0;i--)
+            if(queued[i].empty()==false)
+                return false;
         return true;
     }
 
@@ -133,7 +134,7 @@ public:
      * Efficiently dequeue all items from the queue. After this method is
      * called, the queue will be empty
      * \param op callback operation that will be invoked once for every item
-     * found in the queue, passing it as callback parameter
+     * found in the queue, passing the item as callback parameter
      */
     void dequeueAll(void (*op)(T *))
     {
@@ -177,7 +178,7 @@ private:
  * It has the following properties:
  * - enqueue() is worst-case O(n) in the number of enqueued items
  * - dequeueOne() and dequeueTime() are O(1) in the number of enqueued items,
- * and always return the item with the lowest associated time. Additinally, if
+ * and always return the item with the lowest associated time. Additionally, if
  * multiple items with the same associated time are enqueued, they are dequeued
  * in LIFO order as it makes for a faster implementation and if the passed
  * times are deadlines, if the pool is schedulable all deadlines will be met
@@ -188,8 +189,9 @@ private:
  * \tparam T a class that must inherit from IntrusiveListItem, as items are
  * stored in IntrusiveList<T>. Additionally, the T type must provide a getTime()
  * member function to retrieve the associated time
+ * \tparam getTime functor that returns the time associated with an item T
  */
-template<typename T>
+template<typename T, typename GetTime>
 class TimeSortedQueue
 {
 public:
@@ -212,9 +214,10 @@ public:
      */
     void enqueue(T *item)
     {
-        auto t=item->getTime();
+        GetTime getTime;
+        long long t=getTime(item);
         auto it=queued.begin();
-        while(it!=queued.end() && (*it)->getTime()<t) ++it;
+        while(it!=queued.end() && getTime(*it)<t) ++it;
         queued.insert(it,item);
     }
 
@@ -242,9 +245,10 @@ public:
      */
     T *dequeueTime(long long time)
     {
+        GetTime getTime;
         if(queued.empty()) return nullptr;
         T *result=queued.front();
-        if(time<result->getTime()) return nullptr;
+        if(time<getTime(result)) return nullptr;
         queued.pop_front();
         return result;
     }
@@ -557,6 +561,19 @@ private:
      */
     PriorityQueue<WaitToken,NUM_PRIORITIES> *queue; //TODO: allocate on heap only if NUM_PRIORITIES>1
     #elif defined(SCHED_TYPE_EDF)
+    /**
+     * Functor needed by TimeSortedQueue to insert the thread in the correct
+     * place in the waiting list based on its deadline
+     */
+    struct GetTime
+    {
+        long long operator()(WaitToken *item)
+        {
+            if(pp==PriorityPolicy::ConsiderInheritedPriority)
+                return item->t->PKgetPriority().get();
+            else return item->t->savedPriority.get();
+        }
+    };
     /*
      * With EDF there is a simple implementation: the priority is the absolute
      * deadline time in nanoseconds, thus we can just use a single list sorted
@@ -566,9 +583,9 @@ private:
      * if the task pool is schedulable they will still complete before their
      * deadline.
      */
-    TimeSortedQueue<WaitToken> queue;
+    TimeSortedQueue<WaitToken,WaitQueue::GetTime> queue;
     #else
-    FifoQueue<WaitToken> queue;
+    FifoQueue<WaitToken> queue; //TODO: support prioritization with mutexLessOp?
     #endif
 };
 

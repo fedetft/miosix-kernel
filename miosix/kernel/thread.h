@@ -72,41 +72,14 @@ enum class TimedWaitResult
 
 /**
  * \internal
- * Data structure holding the information of a thread waiting on a
- * synchronization primitive such as a Mutex or ConditionVariable
- *
- * NOTE: since this class is only meant to implement synchronization primitives
- * and in Miosix from version 3 onwards synchronization primitives are
- * implemented using PauseKernelLock, this class uses PK prefixed member
- * functions to access thread properties, and assumes the class is only accessed
- * while holding the PauseKernelLock
+ * This class is used to make a list of threads waiting on a synchronization
+ * primitive such as a Mutex, FastMutex or ConditionVariable
+ * It is used by the kernel, and should not be used by end users.
  */
 class WaitToken : public IntrusiveListItem
 {
 public:
-    /**
-     * Constructor
-     * \param t thread about to block waiting on a synchronization primitive
-     */
     WaitToken(Thread *t) : t(t) {}
-
-    #ifdef SCHED_TYPE_EDF
-    /**
-     * \return the thread deadline, used for sorting waiting threads by
-     * earliest deadline first
-     *
-     *  NOTE: we can just call PKgetPriority() and not bother with savedPriority
-     * as the case we care about is when a thread has locked a single mutex and
-     * that's the one that was atomically unlocked as part of the wait(). Since
-     * we get here after the mutex has been unlocked, the priority or better,
-     * deadline, has already been de-inherited, if at all. Even if some weird
-     * code did the antipattern of locking some more mutex and thus waiting with
-     * some mutex locked and a priority inheritance occurs while waiting, since
-     * we have only one list no memory corruption is possible in
-     * removeFromWaitQueue
-     */
-    long long getTime() { return t->PKgetPriority().get(); }
-    #endif
 
     Thread *t; ///<\internal Waiting thread
 };
