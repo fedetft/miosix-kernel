@@ -202,12 +202,12 @@ private:
      * must be paused one level deep).<br>
      * If the mutex is not recursive the mutex is locked only one level deep
      * regardless of the depth value.
-     * \param dLock the PauseKernelLock instance that paused the kernel.
+     * \param dLock the FastPauseKernelLock instance that paused the kernel.
      * \param depth recursive depth at which the mutex will be locked. Zero
      * means the mutex is locked one level deep (as if lock() was called once),
      * one means two levels deep, etc. 
      */
-    void PKlockToDepth(PauseKernelLock& dLock, unsigned int depth);
+    void PKlockToDepth(FastPauseKernelLock& dLock, unsigned int depth);
     
     /**
      * Unlock all levels of a recursive mutex, can be called only with

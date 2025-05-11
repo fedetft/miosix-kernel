@@ -149,7 +149,7 @@ inline unsigned int FastMutex::PKunlockAllDepthLevels()
 
 int Mutex::lock()
 {
-    PauseKernelLock dLock;
+    FastPauseKernelLock dLock;
     Thread *cur=Thread::PKgetCurrentThread();
     if(owner==nullptr)
     {
@@ -183,7 +183,7 @@ int Mutex::lock()
 
 bool Mutex::tryLock()
 {
-    PauseKernelLock dLock;
+    FastPauseKernelLock dLock;
     Thread *cur=Thread::PKgetCurrentThread();
     if(owner==nullptr)
     {
@@ -201,7 +201,7 @@ bool Mutex::tryLock()
 
 int Mutex::unlock()
 {
-    PauseKernelLock dLock;
+    FastPauseKernelLock dLock;
 //    Safety check removed for speed reasons
 //    if(owner!=Thread::PKgetCurrentThread()) errorHandler(Error::MUTEX_ERROR);
 
@@ -216,7 +216,7 @@ int Mutex::unlock()
     return 0;
 }
 
-void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
+void Mutex::PKlockToDepth(FastPauseKernelLock& dLock, unsigned int depth)
 {
     Thread *cur=Thread::PKgetCurrentThread();
     if(owner==nullptr)
@@ -390,7 +390,7 @@ Priority Mutex::inheritPriorityFromLockedList(Thread *t, Priority pr)
 
 void ConditionVariable::wait(Mutex& m)
 {
-    PauseKernelLock dLock;
+    FastPauseKernelLock dLock;
     unsigned int depth=m.PKunlockAllDepthLevels();
     Thread *cur=Thread::PKgetCurrentThread();
     waitQueue.PKenqueue(cur);
@@ -412,7 +412,7 @@ void ConditionVariable::wait(FastMutex& m)
 
 TimedWaitResult ConditionVariable::timedWait(Mutex& m, long long absTime)
 {
-    PauseKernelLock dLock;
+    FastPauseKernelLock dLock;
     unsigned int depth=m.PKunlockAllDepthLevels();
     Thread *cur=Thread::PKgetCurrentThread();
     waitQueue.PKenqueue(cur);
