@@ -83,6 +83,9 @@ bool ControlScheduler::PKaddThread(Thread *thread,
     if(threadListSize>=64) return false;
     #endif //SCHED_CONTROL_FIXED_POINT
     thread->schedData.priority=priority;
+    //Priority and savedPriority must be the same except when locking a mutex
+    //with priority inheritance. A newly created thread isn't yet locking mutex
+    thread->savedPriority=priority;
     {
         //Note: can't use FastGlobalIrqLock here since this code is
         //also called *before* the kernel is started.
@@ -165,6 +168,7 @@ void ControlScheduler::PKsetPriority(Thread *thread,
 void ControlScheduler::IRQsetIdleThread(Thread *idleThread)
 {
     idleThread->schedData.priority=-1;
+    idleThread->savedPriority=-1;
     idle=idleThread;
     //Initializing curInRound to end() so that the first time
     //IRQrunScheduler() is called the scheduling algorithm runs

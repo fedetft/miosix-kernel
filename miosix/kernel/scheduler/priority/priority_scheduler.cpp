@@ -51,9 +51,9 @@ bool PriorityScheduler::IRQaddThread(Thread *thread,
         PrioritySchedulerPriority priority)
 {
     thread->schedData.priority=priority;
-    #ifdef CONDVAR_WAKEUP_BY_PRIORITY
+    //Priority and savedPriority must be the same except when locking a mutex
+    //with priority inheritance. A newly created thread isn't yet locking mutex
     thread->savedPriority=priority;
-    #endif //CONDVAR_WAKEUP_BY_PRIORITY
     #ifdef WITH_PROCESSES
     // Check isReady() as processes are initially created in not ready state
     if(thread->flags.isReady()==false) notReadyThreads.push_front(thread);
@@ -121,9 +121,7 @@ void PriorityScheduler::IRQsetPriority(Thread *thread,
 void PriorityScheduler::IRQsetIdleThread(int whichCore, Thread *idleThread)
 {
     idleThread->schedData.priority=-1;
-    #ifdef CONDVAR_WAKEUP_BY_PRIORITY
     idleThread->savedPriority=-1;
-    #endif //CONDVAR_WAKEUP_BY_PRIORITY
     idle[whichCore]=idleThread;
 }
 

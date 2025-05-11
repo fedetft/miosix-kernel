@@ -50,9 +50,9 @@ extern IntrusiveList<SleepData> sleepingList;
 bool EDFScheduler::IRQaddThread(Thread *thread, EDFSchedulerPriority priority)
 {
     thread->schedData.deadline=priority;
-    #ifdef CONDVAR_WAKEUP_BY_PRIORITY
+    //Priority and savedPriority must be the same except when locking a mutex
+    //with priority inheritance. A newly created thread isn't yet locking mutex
     thread->savedPriority=priority;
-    #endif //CONDVAR_WAKEUP_BY_PRIORITY
     add(thread);
     return true;
 }
@@ -173,6 +173,7 @@ void EDFScheduler::IRQsetIdleThread(int whichCore, Thread *idleThread)
 {
     //TODO: multicore support coming soon
     idleThread->schedData.deadline=numeric_limits<long long>::max()-1;
+    idleThread->savedPriority=numeric_limits<long long>::max()-1;
     idle = idleThread;
 }
 
