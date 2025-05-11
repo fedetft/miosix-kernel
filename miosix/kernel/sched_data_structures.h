@@ -365,6 +365,15 @@ private:
 };
 
 /**
+ * List of possible ways a WaitQueue can handle the priority of waiting threads
+ */
+enum class PriorityPolicy
+{
+    ConsiderInheritedPriority, ///< Threads awakened in order of actual priority
+    IgnoreInheritedPriority    ///< Threads awakened in order of "saved" priority
+};
+
+/**
  * \internal
  * A queue class for holding threads waiting on a synchronization primitive
  * such as a Mutex or ConditionVariable.

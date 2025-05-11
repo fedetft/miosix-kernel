@@ -111,15 +111,10 @@ public:
     Thread *t; ///<\internal Waiting thread
 };
 
-enum class PriorityPolicy
-{
-    ConsiderInheritedPriority,
-    IgnoreInheritedPriority
-};
-
 //Forwrd declaration
 class MemoryProfiling;
 class Mutex;
+enum class PriorityPolicy;
 template<PriorityPolicy pp> class WaitQueue;
 class GlobalIrqLock;
 class FastGlobalIrqLock;
