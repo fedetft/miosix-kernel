@@ -411,7 +411,7 @@ public:
                || pp==PriorityPolicy::IgnoreInheritedPriority,"");
 
     #ifdef SCHED_TYPE_PRIORITY
-    WaitQueue() : queue(new PriorityQueue<WaitToken>) {}
+    WaitQueue() : queue(new PriorityQueue<WaitToken,NUM_PRIORITIES>) {}
     #endif
 
     /**
@@ -451,7 +451,7 @@ public:
         #ifdef SCHED_TYPE_PRIORITY
         //We allocate here only for statically allocated pthread_* objects,
         //in all other cases allocation happens in the constructor
-        if(queue==nullptr) queue=new PriorityQueue<WaitToken>;
+        if(queue==nullptr) queue=new PriorityQueue<WaitToken,NUM_PRIORITIES>;
         if(pp==PriorityPolicy::ConsiderInheritedPriority)
              queue->enqueue(&t->waitQueueItem,t->PKgetPriority());
         else queue->enqueue(&t->waitQueueItem,t->savedPriority.get());
