@@ -154,10 +154,6 @@ int Mutex::lock()
     if(owner==nullptr)
     {
         owner=cur;
-        //Save original thread priority, if the thread has not yet locked
-        //another mutex
-        //TODO: can't we always keep savedPriority in sync and remove this?
-        if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
         this->addToLockedList(owner);
         return 0;
     }
@@ -192,10 +188,6 @@ bool Mutex::tryLock()
     if(owner==nullptr)
     {
         owner=cur;
-        //Save original thread priority, if the thread has not yet locked
-        //another mutex
-        //TODO: can't we always keep savedPriority in sync and remove this?
-        if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
         this->addToLockedList(owner);
         return true;
     }
@@ -231,10 +223,6 @@ void Mutex::PKlockToDepth(PauseKernelLock& dLock, unsigned int depth)
     {
         owner=cur;
         if(recursiveDepth>=0) recursiveDepth=depth;
-        //Save original thread priority, if the thread has not yet locked
-        //another mutex
-        //TODO: can't we always keep savedPriority in sync and remove this?
-        if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
         this->addToLockedList(owner);
         return;
     }
@@ -298,8 +286,6 @@ inline void Mutex::chooseNextOwner()
     {
         if(owner->mutexWaiting!=this) errorHandler(Error::UNEXPECTED);
         owner->mutexWaiting=nullptr;
-        //TODO: can't we always keep savedPriority in sync and remove this?
-        if(lockedListEmpty(owner)) owner->savedPriority=owner->PKgetPriority();
         this->addToLockedList(owner);
         //NOTE: since we always pick the highest priority waiting thread
         //(and this priority includes priority inheritance while waiting, see
