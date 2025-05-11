@@ -34,17 +34,6 @@ using namespace std;
 
 namespace miosix {
 
-/**
- * Helper lambda to sort threads in a min heap to implement priority inheritance
- * \param lhs first thread to compare
- * \param rhs second thread to compare
- * \return true if lhs->getPriority() < rhs->getPriority()
- */
-static auto PKlowerPriority=[](Thread *lhs, Thread *rhs)
-{
-    return lhs->PKgetPriority().mutexLessOp(rhs->PKgetPriority());
-};
-
 //
 // class FastMutex
 //
