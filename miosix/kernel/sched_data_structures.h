@@ -44,8 +44,6 @@
 
 namespace miosix {
 
-#ifdef SCHED_TYPE_PRIORITY
-
 /**
  * \internal
  * A priority queue class not meant for general-purpose use but instead
@@ -53,15 +51,12 @@ namespace miosix {
  * as an implementation detail in synchronization primitives when scheduled
  * with SCHED_TYPE_PRIORITY.
  *
- * The number of priorities is not configurable on a per-queue basis and is
- * instead fixed as the system-wide constant NUM_PRIORITIES.
- *
  * It has the following properties:
  * - enqueue is O(1) in the number of enqueued items
  * - dequeueOne() is also O(1) in the number of enqueued items, and it always
- * returns the highest priority item inserted. Additinally, if multiple items
- * with the same priority are enqueued, they are dequeued in FIFO order to
- * prevent starvation.
+ *   returns the highest priority item inserted. Additinally, if multiple items
+ *   with the same priority are enqueued, they are dequeued in FIFO order to
+ *   prevent starvation.
  * - dequeueAll() is of course O(n)
  * - remove is O(1)
  *
@@ -70,8 +65,11 @@ namespace miosix {
  *
  * \tparam T a class that must inherit from IntrusiveListItem, as items are
  * stored in IntrusiveList<T>
+ * \tparam numPriorities number of priorities the queue needs to support.
+ * Vald priority values rage from 0 to numPriorities-1. Note that the memory
+ * occupied by this class is proportional to the number of priorities
  */
-template<typename T>
+template<typename T, unsigned numPriorities>
 class PriorityQueue
 {
 public:
@@ -80,7 +78,7 @@ public:
      */
     bool empty() const
     {
-        for(int i=NUM_PRIORITIES-1;i>=0;i--) if(queued[i].empty()==false)
+        for(int i=numPriorities-1;i>=0;i--) if(queued[i].empty()==false)
             return false;
         return true;
     }
@@ -91,7 +89,7 @@ public:
      */
     T *front()
     {
-        for(int i=NUM_PRIORITIES-1;i>=0;i--)
+        for(int i=numPriorities-1;i>=0;i--)
         {
             if(queued[i].empty()) continue;
             return queued[i].front();
@@ -105,7 +103,7 @@ public:
      * pointer and does not deallocate it in any way when dequeued/removed, this
      * is a responsibility of the caller
      * \param priority the item priority. The priority value must be
-     * 0 <= priority < NUM_PRIORITIES
+     * 0 <= priority < numPriorities
      */
     void enqueue(T *item, Priority priority)
     {
@@ -121,7 +119,7 @@ public:
     T* dequeueOne()
     {
         T *result=nullptr;
-        for(int i=NUM_PRIORITIES-1;i>=0;i--)
+        for(int i=numPriorities-1;i>=0;i--)
         {
             if(queued[i].empty()) continue;
             result=queued[i].front();
@@ -139,7 +137,7 @@ public:
      */
     void dequeueAll(void (*op)(T *))
     {
-        for(int i=NUM_PRIORITIES-1;i>=0;i--)
+        for(int i=numPriorities-1;i>=0;i--)
         {
             while(!queued[i].empty())
             {
@@ -166,10 +164,8 @@ public:
 
 private:
     ///\internal Vector of lists of items, there's one list for each priority
-    IntrusiveList<T> queued[NUM_PRIORITIES];
+    IntrusiveList<T> queued[numPriorities];
 };
-
-#endif //SCHED_TYPE_PRIORITY
 
 /**
  * \internal
@@ -559,7 +555,7 @@ private:
      *   PriorityPolicy to consider either the actual (possibly inherited) or
      *   orignal "saved" priority.
      */
-    PriorityQueue<WaitToken> *queue; //TODO: allocate on heap only if NUM_PRIORITIES>1
+    PriorityQueue<WaitToken,NUM_PRIORITIES> *queue; //TODO: allocate on heap only if NUM_PRIORITIES>1
     #elif defined(SCHED_TYPE_EDF)
     /*
      * With EDF there is a simple implementation: the priority is the absolute
