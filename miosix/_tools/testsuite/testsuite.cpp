@@ -4481,7 +4481,7 @@ static void benchmark_2()
 {
     CHECK_AVAIL_HEAP(EST_THREAD_HEAP_USAGE(STACK_SMALL)*2);
     #ifndef SCHED_TYPE_EDF
-    iprintf("%d context switch per second (max priority)\n",b2_f1(3));
+    iprintf("%d context switch per second (max priority)\n",b2_f1(NUM_PRIORITIES-1));
     iprintf("%d context switch per second (min priority)\n",b2_f1(0));
     #else //SCHED_TYPE_EDF
     iprintf("Context switch benchmark not possible with EDF\n");
