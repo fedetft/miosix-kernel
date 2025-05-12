@@ -334,7 +334,7 @@ enum class Syscall
 
     // All other syscalls. Use of these SVC by kernel threads is forbidden.
     // Kernel should just call the functions with the corresponding name
-    // (kercalls) in stdlib_integration
+    // implemented in the kercalls directory
 
     // File/directory syscalls
     OPEN      = 2,

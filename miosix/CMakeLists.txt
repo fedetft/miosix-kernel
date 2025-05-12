@@ -87,8 +87,8 @@ set(MIOSIX_KERNEL_SRC
     ${MIOSIX_KPATH}/filesystem/littlefs/lfs.c
     ${MIOSIX_KPATH}/filesystem/littlefs/lfs_util.c
     ${MIOSIX_KPATH}/filesystem/romfs/romfs.cpp
-    ${MIOSIX_KPATH}/stdlib_integration/libc_integration.cpp
-    ${MIOSIX_KPATH}/stdlib_integration/libstdcpp_integration.cpp
+    ${MIOSIX_KPATH}/kercalls/libc_integration.cpp
+    ${MIOSIX_KPATH}/kercalls/libstdcpp_integration.cpp
     ${MIOSIX_KPATH}/e20/e20.cpp
     ${MIOSIX_KPATH}/e20/unmember.cpp
     ${MIOSIX_KPATH}/util/util.cpp

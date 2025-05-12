@@ -32,7 +32,7 @@
 #include "boot.h"
 #include "process.h"
 #include "kernel/scheduler/scheduler.h"
-#include "stdlib_integration/libc_integration.h"
+#include "kercalls/libc_integration.h"
 #include "interfaces_private/cpu.h"
 #include "interfaces_private/userspace.h"
 #include "interfaces_private/os_timer.h"

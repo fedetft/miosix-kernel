@@ -39,7 +39,7 @@
 #include "sync.h"
 #include "error.h"
 #include "pthread_private.h"
-#include "stdlib_integration/libc_integration.h"
+#include "kercalls/libc_integration.h"
 
 using namespace std;
 using namespace miosix;
