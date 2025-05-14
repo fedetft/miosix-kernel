@@ -667,16 +667,6 @@ public:
 
 private:
     /**
-     * \internal Element of a thread waiting list
-     */
-    class WaitToken : public IntrusiveListItem
-    {
-    public:
-        WaitToken(Thread *thread) : thread(thread) {}
-        Thread *thread; ///<\internal Waiting thread and spurious wakeup token
-    };
-
-    /**
      * \internal
      * Internal method that signals the semaphore without triggering a
      * rescheduling for prioritizing newly-woken threads.
@@ -684,7 +674,9 @@ private:
     inline Thread *IRQsignalImpl();
 
     volatile unsigned int count; ///< Counter of the semaphore
-    IntrusiveList<WaitToken> fifo; ///< List of waiting threads
+    /// List of waiting threads. Can't use WaitQueue as that class is meant to
+    /// be used in PK contenxt, not IRQ context
+    IntrusiveList<WaitToken> fifo;
 };
 
 /**
