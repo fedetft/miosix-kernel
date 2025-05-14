@@ -41,7 +41,7 @@ namespace miosix {
 
 //These are defined in thread.cpp
 extern volatile Thread *runningThreads[CPU_NUM_CORES];
-extern IntrusiveList<SleepData> sleepingList;
+extern TimeSortedQueue<SleepToken,GetWakeupTime> sleepingList;
 
 //
 // class PriorityScheduler

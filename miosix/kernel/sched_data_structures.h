@@ -272,9 +272,11 @@ public:
      * Remove a specific item from the queue
      * \param item item to remove. This function is implemented by calling
      * IntrusiveList<T>::removeFast(), so all the warning related to this
-     * function apply here.
+     * function apply here
+     * \return true if the item was removed, false if the item was not present
+     * in the list.
      */
-    void remove(T *item) { queued.removeFast(item); }
+    bool remove(T *item) { return queued.removeFast(item); }
 
 private:
     ///\internal List of items, sorted by wakeup time

@@ -31,7 +31,8 @@
 #include "sync.h"
 #include "boot.h"
 #include "process.h"
-#include "kernel/scheduler/scheduler.h"
+#include "scheduler/scheduler.h"
+#include "sched_data_structures.h"
 #include "kercalls/libc_integration.h"
 #include "interfaces_private/cpu.h"
 #include "interfaces_private/userspace.h"
@@ -74,7 +75,7 @@ volatile Thread *runningThreads[CPU_NUM_CORES]={nullptr};
 ///\internal True if there are threads in the DELETED status. Used by idle thread
 static volatile int existDeleted=0;
 
-IntrusiveList<SleepData> sleepingList;///list of sleeping threads
+TimeSortedQueue<SleepToken,GetWakeupTime> sleepingList;///list of sleeping threads
 
 #ifdef WITH_PROCESSES
 /// The proc field of the Thread class for kernel threads points to this object
@@ -242,20 +243,6 @@ void IRQstartKernel()
 
 /**
  * \internal
- * Used by Thread::sleep() and pthread_cond_timedwait() to add a thread to
- * sleeping list. The list is sorted by the wakeupTime field to reduce time
- * required to wake threads during context switch.
- * Interrupts must be disabled prior to calling this function.
- */
-static void IRQaddToSleepingList(SleepData *x)
-{
-    auto it=sleepingList.begin();
-    while(it!=sleepingList.end() && (*it)->wakeupTime<x->wakeupTime) ++it;
-    sleepingList.insert(it,x);
-}
-
-/**
- * \internal
  * This is the OS timer interrupt for WAKEUP_HANDLING_CORE, the only core that
  * is assigned the task to handle the wakeup of sleeping threads. The OS timer
  * is set aperiodically by the scheduler to both wake sleeping threads and to
@@ -280,13 +267,10 @@ void IRQwakeThreads(long long currentTime)
     // 1 1 0 invokeSchedulerOnCore + invokeScheduler
     // 1 1 1 invokeSchedulerOnCore + invokeScheduler
     bool hptw=false;
-    for(auto it=sleepingList.begin();it!=sleepingList.end();)
+    while(SleepToken *st=sleepingList.dequeueTime(currentTime))
     {
-        // List is sorted, if we don't need to wake one element, we don't need
-        // to wake the other too
-        if(currentTime<(*it)->wakeupTime) break;
         // Wake both threads doing absoluteSleep() and timedWait()
-        Thread *t=(*it)->thread;
+        Thread *t=st->thread;
         t->flags.IRQclearSleepAndWait(t);
         auto wokenPrio=t->IRQgetPriority();
         // Heuristic load balancing: threads waking from sleep get preferentially
@@ -300,7 +284,6 @@ void IRQwakeThreads(long long currentTime)
                 break;
             }
         }
-        it=sleepingList.erase(it);
     }
     if(hptw) IRQinvokeScheduler();
     else {
@@ -395,16 +378,17 @@ void Thread::nanoSleepUntil(long long absoluteTimeNs)
     //the timer isr will wake threads, modifying the sleepingList
     {
         FastGlobalIrqLock dLock;
-        SleepData d(const_cast<Thread*>(runningThreads[getCurrentCoreId()]),absoluteTimeNs);
-        d.thread->flags.IRQsetSleep(d.thread); //Sleeping thread: set sleep flag
-        IRQaddToSleepingList(&d);
+        Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
+        SleepToken st(cur,absoluteTimeNs);
+        cur->flags.IRQsetSleep(cur); //Sleeping thread: set sleep flag
+        sleepingList.enqueue(&st);
         IRQinvokeScheduler();
         {
             FastGlobalIrqUnlock eLock(dLock);
             //Interrupts are enabled, context switch happens, return after wakeup
         }
         //Only required for interruptibility when terminate is called
-        sleepingList.removeFast(&d);
+        sleepingList.remove(&st);
     }
 }
 
@@ -996,12 +980,12 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWaitImpl(long long absoluteTimeNs
 
     // Put the thread to sleep.
     absoluteTimeNs=max(absoluteTimeNs,100000LL);
-    Thread *t=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
-    SleepData sleepData(t,absoluteTimeNs);
+    Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
+    SleepToken st(cur,absoluteTimeNs);
     {
         FastGlobalLockFromIrq lock;
-        t->flags.IRQsetWait(t,true); //timedWait thread: set wait flag
-        IRQaddToSleepingList(&sleepData);
+        cur->flags.IRQsetWait(cur,true); //timedWait thread: set wait flag
+        sleepingList.enqueue(&st);
     }
 
     // Save Pk lock state, yield, and restore lock state.
@@ -1020,7 +1004,7 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWaitImpl(long long absoluteTimeNs
     bool removed;
     {
         FastGlobalLockFromIrq lock;
-        removed=sleepingList.removeFast(&sleepData);
+        removed=sleepingList.remove(&st);
     }
     fastEnableIrq();
     return removed ? TimedWaitResult::NoTimeout : TimedWaitResult::Timeout;
@@ -1030,10 +1014,10 @@ TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTim
 {
     // Put the thread to sleep.
     absoluteTimeNs=max(absoluteTimeNs,100000LL);
-    Thread *t=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
-    SleepData sleepData(t,absoluteTimeNs);
-    t->flags.IRQsetWait(t,true); //timedWait thread: set wait flag
-    IRQaddToSleepingList(&sleepData);
+    Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
+    SleepToken st(cur,absoluteTimeNs);
+    cur->flags.IRQsetWait(cur,true); //timedWait thread: set wait flag
+    sleepingList.enqueue(&st);
 
     // Unlock GIL, yield, and relock again
     auto gilTakenRecursively=GlobalIrqLock::inLockedSection();
@@ -1045,7 +1029,7 @@ TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTim
 
     // Remove us from the sleeping list and check how we were woken up.
     // If the thread was still in the sleeping list, it was woken up by a wakeup()
-    bool removed=sleepingList.removeFast(&sleepData);
+    bool removed=sleepingList.remove(&st);
     return removed ? TimedWaitResult::NoTimeout : TimedWaitResult::Timeout;
 }
 

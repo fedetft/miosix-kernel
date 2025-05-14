@@ -1054,10 +1054,10 @@ private:
  * This class is used to make a list of sleeping threads.
  * It is used by the kernel, and should not be used by end users.
  */
-class SleepData : public IntrusiveListItem
+class SleepToken : public IntrusiveListItem
 {
 public:
-    SleepData(Thread *thread, long long wakeupTime)
+    SleepToken(Thread *thread, long long wakeupTime)
         : thread(thread), wakeupTime(wakeupTime) {}
 
     ///\internal Thread that is sleeping
@@ -1066,6 +1066,16 @@ public:
     ///\internal When this number becomes equal to the kernel tick,
     ///the thread will wake
     long long wakeupTime;
+};
+
+/**
+ * \internal
+ * Functor needed by TimeSortedQueue to insert the thread in the correct
+ * place in the sleepingList based on its deadline
+ */
+struct GetWakeupTime
+{
+    long long operator()(SleepToken *item) { return item->wakeupTime; }
 };
 
 /**

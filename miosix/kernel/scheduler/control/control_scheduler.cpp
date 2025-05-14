@@ -40,7 +40,7 @@ namespace miosix {
 
 //These are defined in thread.cpp
 extern volatile Thread *runningThread;
-extern IntrusiveList<SleepData> sleepingList;
+extern TimeSortedQueue<SleepToken,GetWakeupTime> sleepingList;
 
 //Internal
 static long long burstStart=0;
