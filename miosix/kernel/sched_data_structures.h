@@ -436,29 +436,27 @@ public:
     Thread *PKfront()
     {
         #if defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1
-        return queue->front()->t;
+        return queue->front()->thread;
         #else
-        return queue.front()->t;
+        return queue.front()->thread;
         #endif
     }
 
     /**
      * Add a thread to the queue.
-     * \param item pointer to an item. The queue does not take ownership of the
-     * pointer and does not deallocate it in any way when dequeued/removed, this
-     * is a responsibility of the caller
+     * \param thread thread to add to the wait queue
      */
-    void PKenqueue(Thread *t)
+    void PKenqueue(Thread *thread)
     {
         #if defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1
         //We allocate here only for statically allocated pthread_* objects,
         //in all other cases allocation happens in the constructor
         if(queue==nullptr) queue=new PriorityQueue<WaitToken,NUM_PRIORITIES>;
         if(pp==PriorityPolicy::ConsiderInheritedPriority)
-             queue->enqueue(&t->waitQueueItem,t->PKgetPriority());
-        else queue->enqueue(&t->waitQueueItem,t->savedPriority.get());
+             queue->enqueue(&thread->waitQueueItem,thread->PKgetPriority());
+        else queue->enqueue(&thread->waitQueueItem,thread->savedPriority.get());
         #else
-        queue.enqueue(&t->waitQueueItem);
+        queue.enqueue(&thread->waitQueueItem);
         #endif
     }
 
@@ -476,8 +474,8 @@ public:
         #endif
         if(item==nullptr) return nullptr;
         //Also sets pendingWakeup if higher priority thread woken
-        item->t->PKwakeup();
-        return item->t;
+        item->thread->PKwakeup();
+        return item->thread;
     }
 
     /**
@@ -490,31 +488,31 @@ public:
         if(queue==nullptr) return;
         queue->dequeueAll([](WaitToken *item){
             //Also sets pendingWakeup if higher priority thread woken
-            item->t->PKwakeup();
+            item->thread->PKwakeup();
         });
         #else
         queue.dequeueAll([](WaitToken *item){
             //Also sets pendingWakeup if higher priority thread woken
-            item->t->PKwakeup();
+            item->thread->PKwakeup();
         });
         #endif
     }
 
     /**
-     * Remove a specific item from the queue
-     * \param item item to remove. This function is implemented by calling
+     * Remove a specific thread from the queue. The thread is not woken up.
+     * \param thread thread to remove. This function is implemented by calling
      * IntrusiveList<T>::removeFast(), so all the warning related to this
      * function apply here.
      */
-    void PKremove(Thread *t)
+    void PKremove(Thread *thread)
     {
         #if defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1
         if(queue==nullptr) return;
         if(pp==PriorityPolicy::ConsiderInheritedPriority)
-             queue->remove(&t->waitQueueItem,t->PKgetPriority());
-        else queue->remove(&t->waitQueueItem,t->savedPriority.get());
+             queue->remove(&thread->waitQueueItem,thread->PKgetPriority());
+        else queue->remove(&thread->waitQueueItem,thread->savedPriority.get());
         #else
-        queue.remove(&t->waitQueueItem);
+        queue.remove(&thread->waitQueueItem);
         #endif
     }
 
@@ -578,8 +576,8 @@ private:
         long long operator()(WaitToken *item)
         {
             if(pp==PriorityPolicy::ConsiderInheritedPriority)
-                return item->t->PKgetPriority().get();
-            else return item->t->savedPriority.get();
+                 return item->thread->PKgetPriority().get();
+            else return item->thread->savedPriority.get();
         }
     };
     /*

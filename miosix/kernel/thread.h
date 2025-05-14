@@ -79,9 +79,9 @@ enum class TimedWaitResult
 class WaitToken : public IntrusiveListItem
 {
 public:
-    WaitToken(Thread *t) : t(t) {}
+    WaitToken(Thread *thread) : thread(thread) {}
 
-    Thread *t; ///<\internal Waiting thread
+    Thread *thread; ///<\internal Waiting thread
 };
 
 //Forwrd declaration
