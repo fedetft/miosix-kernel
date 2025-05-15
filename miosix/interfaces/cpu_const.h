@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2024 by Terraneo Federico                               *
+ *   Copyright (C) 2024-2025 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -54,26 +54,15 @@
  * Offset in words to retrieve the thread stack pointer in ctxsave
  * const unsigned int STACK_OFFSET_IN_CTXSAVE=...;
  * 
- * Number of cores (must not be defined when WITH_SMP is not defined)
+ * Number of cores (only if WITH_SMP is defined, otherwise defaults to 1)
  * const unsigned char CPU_NUM_CORES=...;
  *
- * Which core is given the task to handle the wakeup from the list of sleeping
- * threads (must not be defined when WITH_SMP is not defined)
- * const unsigned char WAKEUP_HANDLING_CORE=...;
- *
- * The type used to store a set of CPUs for scheduler affinity
+ * The type used to store a set of CPUs for scheduler affinity (only if WITH_SMP
+ * is defined, otherwise defaults to unsigned char)
  * using CpuSet=...;
  */
 
 namespace miosix {
-
-#ifndef WITH_SMP
-const unsigned char CPU_NUM_CORES=1; //Only one core
-
-const unsigned char WAKEUP_HANDLING_CORE=0; //No choice, pick the only core
-
-using CpuSet=unsigned char;
-#endif
 
 /**
  * Returns a numeric ID for the current core. This function shall:
@@ -82,7 +71,12 @@ using CpuSet=unsigned char;
  * - Never return a number greater or equal than CPU_NUM_CORES
  */
 inline unsigned char getCurrentCoreId();
+
 #ifndef WITH_SMP
+const unsigned char CPU_NUM_CORES=1; //Only one core
+
+using CpuSet=unsigned char;
+
 inline unsigned char getCurrentCoreId() { return 0; }
 #endif
 
@@ -95,6 +89,14 @@ inline unsigned char getCurrentCoreId() { return 0; }
 #endif
 
 namespace miosix {
+
+/**
+ * Selects which core is given the task to handle the wakeup from the list of
+ * sleeping threads. We pick the last core for heuristic load balancing:
+ * Core 0 already handles most peripheral interrupts, so we choose another one,
+ * unless we are on a single core architecture, in which case it will be core 0.
+ */
+const unsigned char WAKEUP_HANDLING_CORE=CPU_NUM_CORES-1;
 
 /**
  * Constant representing an affinity mask posing no restriction on scheduling
