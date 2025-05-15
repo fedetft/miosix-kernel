@@ -618,6 +618,21 @@ public:
     bool join(void** result=nullptr);
 
     /**
+     * Set the core affinity of the current thread.
+     * If the architecture only has a single core or WITH_THREAD_AFFINITY is not
+     * enabled in miosix_settings.h, does nothing
+     * \param affinity a bit set where bit 0 @ 1 means the thread can be
+     * scheduled on core 0, and so on.
+     * \return true on success, false on failure
+     */
+    bool setAffinity(CpuSet affinity);
+
+    /**
+     * \return the core affinity mask of this thread
+     */
+    CpuSet getAffinity();
+
+    /**
      * \internal
      * This method is only meant to implement functions to check the available
      * stack in a thread. Returned pointer is constant because modifying the
@@ -975,6 +990,9 @@ private:
 
     //Thread data
     SchedulerData schedData; ///< Scheduler data, only used by class Scheduler
+    #if defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+    CpuSet affinity; ///< Core affinity of this thread
+    #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
     ThreadFlags flags;///< thread status
     ///Saved priority.
     ///When mutexLocked!=nullptr it stores the value of priority that this

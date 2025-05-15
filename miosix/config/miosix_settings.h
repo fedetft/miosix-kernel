@@ -66,6 +66,10 @@ namespace miosix {
 //#define SCHED_TYPE_CONTROL_BASED
 //#define SCHED_TYPE_EDF
 
+/// \def WITH_THREAD_AFFINITY
+/// Enable support for setting the core affinity of threads in the scheduler
+#define WITH_THREAD_AFFINITY
+
 /// \def WITH_CPU_TIME_COUNTER
 /// Allows to enable/disable CPUTimeCounter to save code size and remove its
 /// overhead from the scheduling process. By default it is not defined

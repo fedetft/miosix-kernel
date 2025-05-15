@@ -650,6 +650,34 @@ bool Thread::join(void** result)
     return true;
 }
 
+bool Thread::setAffinity(CpuSet affinity)
+{
+    #if defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+    if(affinity==0) return false;
+    if(affinity>unrestrictedAffinityMask) return false;
+    {
+        FastGlobalIrqLock dLock;
+        this->affinity=affinity;
+    }
+    return true;
+    #else //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+    // Architecture is either single core or scheduler support for affinity not
+    // enabled. Only return success if the requested affinity is unrestricted
+    return affinity==unrestrictedAffinityMask;
+    #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+
+}
+
+CpuSet Thread::getAffinity()
+{
+    #if defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+    FastGlobalIrqLock dLock;
+    return affinity;
+    #else //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+    return unrestrictedAffinityMask;
+    #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+}
+
 const unsigned int *Thread::getStackBottom()
 {
     return getCurrentThread()->watermark+(WATERMARK_LEN/sizeof(unsigned int));

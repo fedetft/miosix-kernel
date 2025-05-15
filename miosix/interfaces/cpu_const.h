@@ -60,6 +60,9 @@
  * Which core is given the task to handle the wakeup from the list of sleeping
  * threads (must not be defined when WITH_SMP is not defined)
  * const unsigned char WAKEUP_HANDLING_CORE=...;
+ *
+ * The type used to store a set of CPUs for scheduler affinity
+ * using CpuSet=...;
  */
 
 namespace miosix {
@@ -68,6 +71,8 @@ namespace miosix {
 const unsigned char CPU_NUM_CORES=1; //Only one core
 
 const unsigned char WAKEUP_HANDLING_CORE=0; //No choice, pick the only core
+
+using CpuSet=unsigned char;
 #endif
 
 /**
@@ -83,12 +88,22 @@ inline unsigned char getCurrentCoreId() { return 0; }
 
 } // namespace miosix
 
-/**
- * \}
- */
-
 #include "interfaces-impl/cpu_const_impl.h"
 
 #ifdef WITH_SMP
 #include "interfaces-impl/cpu_const_smp_impl.h"
 #endif
+
+namespace miosix {
+
+/**
+ * Constant representing an affinity mask posing no restriction on scheduling
+ * a thread on any core
+ */
+constexpr CpuSet unrestrictedAffinityMask=(1<<CPU_NUM_CORES)-1;
+
+} // namespace miosix
+
+/**
+ * \}
+ */

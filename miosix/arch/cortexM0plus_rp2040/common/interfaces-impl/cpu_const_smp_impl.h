@@ -33,6 +33,8 @@ namespace miosix {
 
 const unsigned char CPU_NUM_CORES=2;
 
+using CpuSet=unsigned char;
+
 // Pick the last core for heuristic load balancing: Core 0 already handles most
 // peripheral interrupts, let's handle wakeups from core 1
 const unsigned char WAKEUP_HANDLING_CORE=CPU_NUM_CORES-1;
