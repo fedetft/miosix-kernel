@@ -458,7 +458,7 @@ public:
      * woken thread priority is higher than the one running on at least one core.
      * If a core is found which is running a lower priority thread, then if
      * this core is the same as the one that took the pauseKernel, no preemption
-     * is caused but pendingWakeup is set to a context switch will occur
+     * is caused but pendingWakeup is set so a context switch will occur
      * immediately when releasing the pauseKernel lock. This is the only case
      * that can happen on a single core CPU. On a multi core CPU, however, the
      * core running a lower priority thread may be another core. In this case,
