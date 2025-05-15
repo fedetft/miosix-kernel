@@ -215,8 +215,9 @@ void IRQinitSMP(void *const stackPtrs[], void (*const mains[])()) noexcept
 
 void IRQinvokeSchedulerOnCore(unsigned char core) noexcept
 {
-    // Is this already the right core?
-    if(core==getCurrentCoreId()) { IRQinvokeScheduler(); return; }
+    // We should check if the core is the one we're currently running on but
+    // the caller code already does so
+    //if(core==getCurrentCoreId()) { IRQinvokeScheduler(); return; }
     // If not, trigger the IPI
     flags[core]|=IPIFlags::InvokeScheduler;
     __DSB();
