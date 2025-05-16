@@ -165,9 +165,23 @@ inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
     }
     for(int i=NUM_PRIORITIES-1;i>=0;i--)
     {
+        #if defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+        // If the kernel is compiled with affinity support we can't just pick
+        // the first thread in the ready list, we need to check the affinity
+        Thread *t=nullptr;
+        for(auto it=begin(readyThreads[i]);it!=end(readyThreads[i]);++it)
+        {
+            if(((*it)->affinity & (1<<coreId))==0) continue;
+            t=*it;
+            readyThreads[i].erase(it);
+            break;
+        }
+        if(t==nullptr) continue;
+        #else //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
         if(readyThreads[i].empty()) continue;
         Thread *t=readyThreads[i].front();
         readyThreads[i].pop_front(); //Remove selected thread from list
+        #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
         runningThreads[coreId]=t;
         #ifdef WITH_PROCESSES
         if(t->flags.isInUserspace()==false)
