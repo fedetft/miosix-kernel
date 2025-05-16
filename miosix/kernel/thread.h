@@ -743,9 +743,15 @@ private:
          * Set the wait flag of the thread.
          * Can only be called with interrupts disabled or within an interrupt.
          * \param self thread whose status changed
-         * \param waiting if true the flag will be set, otherwise cleared
          */
-        void IRQsetWait(Thread *self, bool waiting);
+        void IRQsetWait(Thread *self);
+
+        /**
+         * Clear the wait flag of the thread.
+         * Can only be called with interrupts disabled or within an interrupt.
+         * \param self thread whose status changed
+         */
+        void IRQclearWait(Thread *self);
 
         /**
          * Set the sleep flag of the thread.
@@ -765,9 +771,15 @@ private:
          * Set the wait_join flag of the thread.
          * Can only be called with interrupts disabled or within an interrupt.
          * \param self thread whose status changed
-         * \param waiting if true the flag will be set, otherwise cleared
          */
-        void IRQsetJoinWait(Thread *self, bool waiting);
+        void IRQsetJoinWait(Thread *self);
+
+        /**
+         * Clear the wait_join flag of the thread.
+         * Can only be called with interrupts disabled or within an interrupt.
+         * \param self thread whose status changed
+         */
+        void IRQclearJoinWait(Thread *self);
 
         /**
          * Set the deleted flag of the thread. This flag can't be cleared.
@@ -782,19 +794,13 @@ private:
          * Set the sleep flag of the thread. This flag can't be cleared.
          * Can only be called with interrupts disabled or within an interrupt.
          */
-        void IRQsetDeleting()
-        {
-            flags |= DELETING;
-        }
+        void IRQsetDeleting() { flags |= DELETING; }
 
         /**
          * Set the detached flag. This flag can't be cleared.
          * Can only be called with interrupts disabled or within an interrupt.
          */
-        void IRQsetDetached()
-        {
-            flags |= DETACHED;
-        }
+        void IRQsetDetached() { flags |= DETACHED; }
         
         /**
          * Set the userspace flag of the thread.

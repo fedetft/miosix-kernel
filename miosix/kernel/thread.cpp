@@ -378,7 +378,7 @@ void Thread::wait()
     {
         FastGlobalIrqLock lock;
         Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
-        cur->flags.IRQsetWait(cur,true);
+        cur->flags.IRQsetWait(cur);
         IRQinvokeScheduler();
     }
     //Interrupts are enabled, context switch happens, return after wakeup
@@ -403,7 +403,7 @@ void Thread::PKwakeup()
     //DO NOT refactor this code by calling IRQwakeup() as IRQwakeup can cause
     //the scheduler interrupt to be called on the current core
     FastGlobalIrqLock lock;
-    this->flags.IRQsetWait(this,false);
+    this->flags.IRQclearWait(this);
     // Heuristic load balancing: threads waking from mutexes get preferentially
     // allocated to lower core numbers
     if(IRQconsiderRescheduling<Hlb::FromFirst>(this,getCurrentCoreId()))
@@ -417,7 +417,7 @@ void Thread::PKwakeup()
 
 void Thread::IRQwakeup()
 {
-    this->flags.IRQsetWait(this,false);
+    this->flags.IRQclearWait(this);
     // Heuristic load balancing: threads waking from I/O get preferentially
     // allocated to lower core numbers
     if(IRQconsiderRescheduling<Hlb::FromFirst>(this,getCurrentCoreId()))
@@ -564,7 +564,7 @@ void Thread::detach()
         if(this->flags.isZombie()==false)
         {
             //Wake thread, or it might sleep forever
-            t->flags.IRQsetJoinWait(t,false);
+            t->flags.IRQclearJoinWait(t);
             // Heuristic load balancing: threads waiting on join get preferentially
             // allocated to higher core numbers
             if(IRQconsiderRescheduling<Hlb::FromLast>(t,getCurrentCoreId()))
@@ -595,7 +595,7 @@ bool Thread::join(void** result)
             for(;;)
             {
                 //Wait
-                cur->flags.IRQsetJoinWait(cur,true);
+                cur->flags.IRQsetJoinWait(cur);
                 IRQinvokeScheduler();
                 {
                     FastGlobalIrqUnlock eLock(dLock);
@@ -753,7 +753,7 @@ Thread *Thread::createUserspace(void *(*startfunc)(void *), Process *proc)
     }
     
     thread->proc=proc;
-    thread->flags.IRQsetWait(thread,true); //Thread is not yet ready
+    thread->flags.IRQsetWait(thread); //Thread is not yet ready
     
     //Add thread to thread list
     bool result;
@@ -907,7 +907,7 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
             //Wake thread
             if(t!=nullptr)
             {
-                t->flags.IRQsetJoinWait(t,false);
+                t->flags.IRQclearJoinWait(t);
                 // Heuristic load balancing: threads waiting on join get preferentially
                 // allocated to higher core numbers
                 if(IRQconsiderRescheduling<Hlb::FromLast>(t,getCurrentCoreId()))
@@ -939,7 +939,7 @@ void Thread::PKrestartKernelAndWaitImpl()
     Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
     {
         FastGlobalLockFromIrq lock;
-        cur->flags.IRQsetWait(cur,true);
+        cur->flags.IRQsetWait(cur);
     }
 
     // Save Pk lock state, yield, and restore lock state.
@@ -959,7 +959,7 @@ void Thread::IRQglobalIrqUnlockAndWaitImpl()
     // Thread::IRQgetCurrentThread but there is logic there that we want to
     // avoid.
     Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
-    cur->flags.IRQsetWait(cur,true);
+    cur->flags.IRQsetWait(cur);
 
     // Unlock GIL, yield, and relock again
     // Note that we are not sure here whether we have taken the PK lock or not.
@@ -987,7 +987,7 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWaitImpl(long long absoluteTimeNs
     SleepToken st(cur,absoluteTimeNs);
     {
         FastGlobalLockFromIrq lock;
-        cur->flags.IRQsetWait(cur,true); //timedWait thread: set wait flag
+        cur->flags.IRQsetWait(cur); //timedWait thread: set wait flag
         sleepingList.enqueue(&st);
     }
 
@@ -1019,7 +1019,7 @@ TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTim
     absoluteTimeNs=max(absoluteTimeNs,100000LL);
     Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
     SleepToken st(cur,absoluteTimeNs);
-    cur->flags.IRQsetWait(cur,true); //timedWait thread: set wait flag
+    cur->flags.IRQsetWait(cur); //timedWait thread: set wait flag
     sleepingList.enqueue(&st);
 
     // Unlock GIL, yield, and relock again
@@ -1105,14 +1105,17 @@ struct _reent *Thread::getCReent()
 // class ThreadFlags
 //
 
-void Thread::ThreadFlags::IRQsetWait(Thread *self, bool waiting)
+void Thread::ThreadFlags::IRQsetWait(Thread *self)
+{
+    flags |= WAIT;
+    Scheduler::IRQwaitStatusHook(self);
+}
+
+void Thread::ThreadFlags::IRQclearWait(Thread *self)
 {
     bool wasReady=isReady();
-    if(waiting) flags |= WAIT;
-    else {
-        flags &= ~WAIT;
-        if(wasReady==false && isReady()) Scheduler::IRQwokenThread(self);
-    }
+    flags &= ~WAIT;
+    if(wasReady==false && isReady()) Scheduler::IRQwokenThread(self);
     Scheduler::IRQwaitStatusHook(self);
 }
 
@@ -1130,14 +1133,17 @@ void Thread::ThreadFlags::IRQclearSleepAndWait(Thread *self)
     Scheduler::IRQwaitStatusHook(self);
 }
 
-void Thread::ThreadFlags::IRQsetJoinWait(Thread *self, bool waiting)
+void Thread::ThreadFlags::IRQsetJoinWait(Thread *self)
+{
+    flags |= WAIT_JOIN;
+    Scheduler::IRQwaitStatusHook(self);
+}
+
+void Thread::ThreadFlags::IRQclearJoinWait(Thread *self)
 {
     bool wasReady=isReady();
-    if(waiting) flags |= WAIT_JOIN;
-    else {
-        flags &= ~WAIT_JOIN;
-        if(wasReady==false && isReady()) Scheduler::IRQwokenThread(self);
-    }
+    flags &= ~WAIT_JOIN;
+    if(wasReady==false && isReady()) Scheduler::IRQwokenThread(self);
     Scheduler::IRQwaitStatusHook(self);
 }
 
