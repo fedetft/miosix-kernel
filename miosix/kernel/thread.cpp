@@ -876,6 +876,9 @@ Thread::Thread(unsigned int *watermark, unsigned int stacksize,
         cReentrancyData=new _reent;
         if(cReentrancyData) _REENT_INIT_PTR(cReentrancyData);
     }
+    #if defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+    affinity=unrestrictedAffinityMask;
+    #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
     #ifdef WITH_PROCESSES
     proc=kernel;
     userCtxsave=nullptr;
