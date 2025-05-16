@@ -242,74 +242,6 @@ void IRQstartKernel()
 //long long IRQgetTime() noexcept
 
 /**
- * Heuristic load balancing policy
- * These constants are passed as template parameter to IRQconsiderRescheduling()
- * to improve core utilization by not picking cores always in the same order
- * in every point of the kernel where a thread becomes ready
- */
-enum class Hlb
-{
-    FromFirst, ///< Start considering cores from the first
-    FromLast   ///< Start considering cores from the last
-};
-
-/**
- * To be called when a new thread transitions to the ready state to check
- * whether its priority is higher than the one of the thread currently running
- * on at least one core, in whcih case a rescheduling should be triggered.
- *
- * This function causes a reschedule if a core other than excludedCoreId is
- * found to be running a thread with a lower priority than wokenPrio.
- * If the core whose id is excludedCoreId is found to be running a thread with
- * a lower priority than wokenPrio, then no reschedule is caused and this
- * function returs true.
- * For cases where any core is eligible for rescheduling, you still need to
- * pass getCurrentCoreId() as template parameter and if the function returns
- * true, call IRQinvokeScheduler(), like this
- * \code
- * if(IRQconsiderRescheduling<Hlb::FromFirst>(wokenPrio,getCurrentCoreId()))
- *     IRQinvokeScheduler();
- * \endcode
- *
- * \tparam b heuristic load balancing policy, to select whether the list of
- * cores should be scanned staring from the first or last core
- * \param wokenPrio priority of the thread that just became ready, used to
- * decide if a reschedule is necessary
- * \param excludedCoreId this variable should be set to the current core id,
- * either by calling getCurrentCoreId() or by some other mean if the code has
- * some other way to detect the core it is running from.
- * \return true if a reschedule would be required but on the excluded core. In
- * all other cases returns false
- */
-template<Hlb b>
-static inline bool IRQconsiderRescheduling(Priority wokenPrio, unsigned char excludedCoreId)
-{
-    if(b==Hlb::FromFirst)
-    {
-        for(int i=0;i<CPU_NUM_CORES;i++)
-        {
-            if(const_cast<Thread*>(runningThreads[i])->IRQgetPriority()<wokenPrio)
-            {
-                if(i==excludedCoreId) return true;
-                IRQinvokeSchedulerOnCore(i);
-                return false;
-            }
-        }
-    } else {
-        for(int i=CPU_NUM_CORES-1;i>=0;i--)
-        {
-            if(const_cast<Thread*>(runningThreads[i])->IRQgetPriority()<wokenPrio)
-            {
-                if(i==excludedCoreId) return true;
-                IRQinvokeSchedulerOnCore(i);
-                return false;
-            }
-        }
-    }
-    return false;
-}
-
-/**
  * \internal
  * This is the OS timer interrupt for WAKEUP_HANDLING_CORE, the only core that
  * is assigned the task to handle the wakeup of sleeping threads. The OS timer
@@ -340,10 +272,9 @@ void IRQwakeThreads(long long currentTime)
         // Wake both threads doing absoluteSleep() and timedWait()
         Thread *t=st->thread;
         t->flags.IRQclearSleepAndWait(t);
-        auto wokenPrio=t->IRQgetPriority();
         // Heuristic load balancing: threads waking from sleep get preferentially
         // allocated to higher core numbers
-        if(IRQconsiderRescheduling<Hlb::FromLast>(wokenPrio,WAKEUP_HANDLING_CORE))
+        if(Thread::IRQconsiderRescheduling<Thread::Hlb::FromLast>(t,WAKEUP_HANDLING_CORE))
             hptw=true;
     }
     if(hptw) IRQinvokeScheduler();
@@ -394,7 +325,7 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
     }
     // Heuristic load balancing: threads just created get preferentially
     // allocated to higher core numbers
-    if(IRQconsiderRescheduling<Hlb::FromLast>(priority,getCurrentCoreId()))
+    if(IRQconsiderRescheduling<Hlb::FromLast>(thread,getCurrentCoreId()))
         IRQinvokeScheduler();
     return thread;
 }
@@ -473,10 +404,9 @@ void Thread::PKwakeup()
     //the scheduler interrupt to be called on the current core
     FastGlobalIrqLock lock;
     this->flags.IRQsetWait(this,false);
-    auto wokenPrio=this->IRQgetPriority();
     // Heuristic load balancing: threads waking from mutexes get preferentially
     // allocated to lower core numbers
-    if(IRQconsiderRescheduling<Hlb::FromFirst>(wokenPrio,getCurrentCoreId()))
+    if(IRQconsiderRescheduling<Hlb::FromFirst>(this,getCurrentCoreId()))
     {
         //Thread is higher priority than the one running on this core, but we
         //can't invoke the scheduler since we are in PK context and preemption
@@ -488,10 +418,9 @@ void Thread::PKwakeup()
 void Thread::IRQwakeup()
 {
     this->flags.IRQsetWait(this,false);
-    auto wokenPrio=this->IRQgetPriority();
     // Heuristic load balancing: threads waking from I/O get preferentially
     // allocated to lower core numbers
-    if(IRQconsiderRescheduling<Hlb::FromFirst>(wokenPrio,getCurrentCoreId()))
+    if(IRQconsiderRescheduling<Hlb::FromFirst>(this,getCurrentCoreId()))
         IRQinvokeScheduler();
 }
 
@@ -636,10 +565,9 @@ void Thread::detach()
         {
             //Wake thread, or it might sleep forever
             t->flags.IRQsetJoinWait(t,false);
-            auto wokenPrio=t->IRQgetPriority();
             // Heuristic load balancing: threads waiting on join get preferentially
             // allocated to higher core numbers
-            if(IRQconsiderRescheduling<Hlb::FromLast>(wokenPrio,getCurrentCoreId()))
+            if(IRQconsiderRescheduling<Hlb::FromLast>(t,getCurrentCoreId()))
                 IRQinvokeScheduler();
         }
     }
@@ -980,10 +908,9 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
             if(t!=nullptr)
             {
                 t->flags.IRQsetJoinWait(t,false);
-                auto wokenPrio=t->IRQgetPriority();
                 // Heuristic load balancing: threads waiting on join get preferentially
                 // allocated to higher core numbers
-                if(IRQconsiderRescheduling<Hlb::FromLast>(wokenPrio,getCurrentCoreId()))
+                if(IRQconsiderRescheduling<Hlb::FromLast>(t,getCurrentCoreId()))
                     IRQinvokeScheduler();
             }
             //Set result
@@ -1107,6 +1034,44 @@ TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTim
     // If the thread was still in the sleeping list, it was woken up by a wakeup()
     bool removed=sleepingList.remove(&st);
     return removed ? TimedWaitResult::NoTimeout : TimedWaitResult::Timeout;
+}
+
+template<Thread::Hlb b>
+inline bool Thread::IRQconsiderRescheduling(Thread *t, unsigned char excludedCoreId)
+{
+    auto wokenPrio=t->IRQgetPriority();
+    #if defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+    auto affinity=t->affinity;
+    #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+    if(b==Hlb::FromFirst)
+    {
+        for(int i=0;i<CPU_NUM_CORES;i++)
+        {
+            #if defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+            if((affinity & (1<<i))==0) continue;
+            #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+            if(const_cast<Thread*>(runningThreads[i])->IRQgetPriority()<wokenPrio)
+            {
+                if(i==excludedCoreId) return true;
+                IRQinvokeSchedulerOnCore(i);
+                return false;
+            }
+        }
+    } else {
+        for(int i=CPU_NUM_CORES-1;i>=0;i--)
+        {
+            #if defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+            if((affinity & (1<<i))==0) continue;
+            #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+            if(const_cast<Thread*>(runningThreads[i])->IRQgetPriority()<wokenPrio)
+            {
+                if(i==excludedCoreId) return true;
+                IRQinvokeSchedulerOnCore(i);
+                return false;
+            }
+        }
+    }
+    return false;
 }
 
 bool Thread::IRQexists(Thread* p)

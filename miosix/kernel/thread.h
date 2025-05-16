@@ -717,6 +717,18 @@ public:
 
 private:
     /**
+     * Heuristic load balancing policy
+     * These constants are passed as template parameter to IRQconsiderRescheduling()
+     * to improve core utilization by not picking cores always in the same order
+     * in every point of the kernel where a thread becomes ready
+     */
+    enum class Hlb
+    {
+        FromFirst, ///< Start considering cores from the first
+        FromLast   ///< Start considering cores from the last
+    };
+
+    /**
      * Curren thread status
      */
     class ThreadFlags
@@ -967,6 +979,38 @@ private:
      * Common implementation of all IRQ timedWait calls
      */
     static TimedWaitResult IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTimeNs);
+
+    /**
+     * To be called when a new thread transitions to the ready state to check
+     * whether its priority is higher than the one of the thread currently
+     * running on at least one core, in whcih case a rescheduling should be
+     * triggered.
+     *
+     * This function causes a reschedule if a core other than excludedCoreId is
+     * found to be running a thread with a lower priority than wokenPrio.
+     * If the core whose id is excludedCoreId is found to be running a thread
+     * with a lower priority than wokenPrio, then no reschedule is caused and
+     * this function returs true.
+     * For cases where any core is eligible for rescheduling, you still need to
+     * pass getCurrentCoreId() as template parameter and if the function returns
+     * true, call IRQinvokeScheduler(), like this
+     * \code
+     * if(IRQconsiderRescheduling<Hlb::FromFirst>(wokenPrio,getCurrentCoreId()))
+     *     IRQinvokeScheduler();
+     * \endcode
+     *
+     * \tparam b heuristic load balancing policy, to select whether the list of
+     * cores should be scanned staring from the first or last core
+     * \param t thread that just became ready, used to decide if a reschedule
+     * is necessary
+     * \param excludedCoreId this variable should be set to the current core id,
+     * either by calling getCurrentCoreId() or by some other mean if the code
+     * has some other way to detect the core it is running from.
+     * \return true if a reschedule would be required but on the excluded core.
+     * In all other cases returns false
+     */
+    template<Hlb b>
+    static inline bool IRQconsiderRescheduling(Thread *t, unsigned char excludedCoreId);
 
     /**
      * Same as exists() but is meant to be called only inside an IRQ or when
