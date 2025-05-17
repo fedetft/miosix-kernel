@@ -151,6 +151,42 @@ void PriorityScheduler::IRQrunScheduler()
 }
 #endif
 
+/*
+ * The scheduler in Miosix 3.0 runs in its dedicated interrupt, which on ARM is
+ * called PendSV. The scheduler has no input parameter that code invoking it
+ * through IRQinvokeScheduler() or IRQinvokeSchedulerOnCore() can pass to it.
+ * Rather, when it is run, it follows a "must preempt" policy. Since it has been
+ * called, it assumes the currently running thread must be unconditionally
+ * descheduled. If the thread is still ready, it is placed at the end of the
+ * ready queue for its priority level. Thus, parts of the kernel that invoke the
+ * scheduler must be mindful not to invoke it unnecessarily (that includes not
+ * invoking it unnecessarily on another core in multi-core architectures), since
+ * doing so causes the currently running thread to be preempted for no reason.
+ * Excluding the cases where a thread blocks for some reason, where obviously
+ * the scheduler must be invoked on the current core, the more complex case of
+ * a thread waking (which could in theory be scheduled on any core) is handled
+ * through the Thread::IRQconsiderRescheduling() function that decides based on
+ * the woken thread priority, the priority of the threads currently running on
+ * each core and optionally the thread's affinity mask on which core should the
+ * scheduler be invoked, if at all.
+ * The last detail that needs to be considered is how to handle multiple threads
+ * waking at the same time. Example code paths include multiple threads sleeping
+ * with the same wakeup time and a thread terminating while another thread is
+ * waiting on join (see Thread::threadLauncher). In such a case there's no easy
+ * way to invoke the scheduler on exactly all the cores needed without
+ * replicating the entire scheduling algorithm in IRQconsiderRescheduling(), and
+ * with the added issue that there could always be a race condition between when
+ * IRQconsiderRescheduling() is run and when the scheduler runs changing the
+ * picture. We deal with this issue by IRQconsiderRescheduling() being stateless
+ * and always make decisions as if a single thread needs to be scheduled.
+ * This may result in the same core being selected for multiple high priority
+ * threads that could instead be scheduled concurrently on multiple cores.
+ * In the scheduler itself, after we schedule a thread, we evaluate the state of
+ * the other cores and we let the scheduler on one core invoke the scheduler
+ * on another core if the invariant that "no thread is ready while a lower
+ * priority thread is running" is broken.
+ */
+
 inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
 {
     //If the previously running thread is not idle, we need to put it in a list
