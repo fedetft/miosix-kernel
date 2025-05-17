@@ -908,10 +908,10 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
             if(t!=nullptr)
             {
                 t->flags.IRQclearJoinWait(t);
-                // Heuristic load balancing: threads waiting on join get preferentially
-                // allocated to higher core numbers
-                if(IRQconsiderRescheduling<Hlb::FromLast>(t,getCurrentCoreId()))
-                    IRQinvokeScheduler();
+                // Here the waiting thread changed state to ready, but there's
+                // no need to call IRQconsiderRescheduling as the current thread
+                // is also about to terminate, thus a few lines below we
+                // unconditionally call the scheduler anyway
             }
             //Set result
             cur->joinData.result=result;
