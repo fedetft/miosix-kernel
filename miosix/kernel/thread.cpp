@@ -626,6 +626,18 @@ bool Thread::setAffinity(CpuSet affinity)
     {
         FastGlobalIrqLock dLock;
         this->affinity=affinity;
+        for(int i=0;i<CPU_NUM_CORES;i++)
+        {
+            if(const_cast<Thread*>(runningThreads[i])!=this) continue;
+            // Thread whose affinity was changed is currently running on a core,
+            // check if it's compatible with it
+            if(affinity & (1<<i)==0)
+            {
+                if(i==getCurrentCoreId()) IRQinvokeScheduler();
+                else IRQinvokeSchedulerOnCore(i);
+            }
+            break;
+        }
     }
     return true;
     #else //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
