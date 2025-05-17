@@ -211,6 +211,9 @@ inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
     for(int c=0;c<CPU_NUM_CORES;c++)
         runningPrio[c]=const_cast<Thread*>(runningThreads[c])->schedData.priority.get();
     runningPrio[coreId]=NUM_PRIORITIES-1;
+    #ifdef WITH_THREAD_AFFINITY
+    int scheduleOnOtherCore=-1;
+    #endif //WITH_THREAD_AFFINITY
     #endif //WITH_SMP
     for(int prio=NUM_PRIORITIES-1;prio>=0;prio--)
     {
@@ -218,7 +221,6 @@ inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
         // If the kernel is compiled with affinity support we can't just pick
         // the first thread in the ready list, we need to check the affinity
         Thread *t=nullptr;
-        int scheduleOnOtherCore=-1;
         for(auto it=begin(readyThreads[prio]);it!=end(readyThreads[prio]);++it)
         {
             auto affinity=(*it)->affinity;
@@ -282,8 +284,8 @@ inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
         // core will complete the job and figure out if there is the need to
         // reschedule on yet another core
         #ifdef WITH_THREAD_AFFINITY
-        if(scheduleOnOtherCore>=0) IRQinvokeSchedulerOnCore(scheduleOnOtherCore);
-        else {
+        if(scheduleOnOtherCore<0)
+        {
             signed char minRunningPriority=runningPrio[0];
             for(int c=1;c<CPU_NUM_CORES;c++)
                 minRunningPriority=min(minRunningPriority,runningPrio[c]);
@@ -328,6 +330,12 @@ inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
         #endif //WITH_SMP
         return;
     }
+    #if defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+    // Only if thread affinity support is enabled we may end up in the situation
+    // where we are about to schedule the idle thread on one core and at the
+    // same time we need to call the scheduler on another core
+    if(scheduleOnOtherCore>=0) IRQinvokeSchedulerOnCore(scheduleOnOtherCore);
+    #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
     //No thread found, run the idle thread
     runningThreads[coreId]=idle[coreId];
     ctxsave[coreId]=idle[coreId]->ctxsave;
