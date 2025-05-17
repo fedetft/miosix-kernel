@@ -208,26 +208,26 @@ inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
     // the priority of the current core to the maximum value so as to always
     // exclude the current core
     signed char runningPrio[CPU_NUM_CORES];
-    for(int i=0;i<CPU_NUM_CORES;i++)
-        runningPrio[i]=const_cast<Thread*>(runningThreads[i])->schedData.priority.get();
+    for(int c=0;c<CPU_NUM_CORES;c++)
+        runningPrio[c]=const_cast<Thread*>(runningThreads[c])->schedData.priority.get();
     runningPrio[coreId]=NUM_PRIORITIES-1;
     #endif //WITH_SMP
-    for(int i=NUM_PRIORITIES-1;i>=0;i--)
+    for(int prio=NUM_PRIORITIES-1;prio>=0;prio--)
     {
         #if defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
         // If the kernel is compiled with affinity support we can't just pick
         // the first thread in the ready list, we need to check the affinity
         Thread *t=nullptr;
-        short scheduleOnOtherCore=-1;
-        for(auto it=begin(readyThreads[i]);it!=end(readyThreads[i]);++it)
+        int scheduleOnOtherCore=-1;
+        for(auto it=begin(readyThreads[prio]);it!=end(readyThreads[prio]);++it)
         {
             auto affinity=(*it)->affinity;
             if(affinity & (1<<coreId))
             {
                 // Found highest priority thread whose affinity is compatible
-                // with this core. Tha'ts the one we'll schedule
+                // with this core. That's the one we'll schedule
                 t=*it;
-                readyThreads[i].erase(it);
+                readyThreads[prio].erase(it);
                 break;
             } else {
                 // Found thread that can't run on this core due to affinity.
@@ -236,18 +236,18 @@ inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
                 // as if there are more, they will be discovered when the
                 // scheduler is called on the other core (distributed algorithm)
                 if(scheduleOnOtherCore>=0) continue;
-                for(int j=0;j<CPU_NUM_CORES;j++)
+                for(int c=0;c<CPU_NUM_CORES;c++)
                 {
-                    if((affinity & (1<<j))==0) continue;
-                    if(runningPrio[j]<i) scheduleOnOtherCore=j;
+                    if((affinity & (1<<c))==0) continue;
+                    if(runningPrio[c]<prio) scheduleOnOtherCore=c;
                 }
             }
         }
         if(t==nullptr) continue;
         #else //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
-        if(readyThreads[i].empty()) continue;
-        Thread *t=readyThreads[i].front();
-        readyThreads[i].pop_front(); //Remove selected thread from list
+        if(readyThreads[prio].empty()) continue;
+        Thread *t=readyThreads[prio].front();
+        readyThreads[prio].pop_front(); //Remove selected thread from list
         #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
         runningThreads[coreId]=t;
         #ifdef WITH_PROCESSES
@@ -285,20 +285,20 @@ inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
         if(scheduleOnOtherCore>=0) IRQinvokeSchedulerOnCore(scheduleOnOtherCore);
         else {
             signed char minRunningPriority=runningPrio[0];
-            for(int j=1;j<CPU_NUM_CORES;j++)
-                minRunningPriority=min(minRunningPriority,runningPrio[j]);
+            for(int c=1;c<CPU_NUM_CORES;c++)
+                minRunningPriority=min(minRunningPriority,runningPrio[c]);
             // This is a loop in a loop with the same variable to continue from
             // where we left, but we'll never go back to the outer loop
-            for(;i>minRunningPriority;i--)
+            for(;prio>minRunningPriority;prio--)
             {
-                for(auto it=begin(readyThreads[i]);it!=end(readyThreads[i]);++it)
+                for(auto it=begin(readyThreads[prio]);it!=end(readyThreads[prio]);++it)
                 {
                     auto affinity=(*it)->affinity;
-                    for(int j=0;j<CPU_NUM_CORES;j++)
+                    for(int c=0;c<CPU_NUM_CORES;c++)
                     {
-                        if((affinity & (1<<j))==0) continue;
-                        if(i<runningPrio[j]) continue;
-                        IRQinvokeSchedulerOnCore(j);
+                        if((affinity & (1<<c))==0) continue;
+                        if(prio<runningPrio[c]) continue;
+                        IRQinvokeSchedulerOnCore(c);
                         goto found;
                     }
                 }
@@ -308,19 +308,19 @@ inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
         #else //WITH_THREAD_AFFINITY
         signed char minRunningPriority=runningPrio[0];
         int coreRunningMinPriorityThread=0;
-        for(int j=1;j<CPU_NUM_CORES;j++)
+        for(int c=1;c<CPU_NUM_CORES;c++)
         {
-            if(runningPrio[j]<minRunningPriority)
+            if(runningPrio[c]<minRunningPriority)
             {
-                minRunningPriority=runningPrio[j];
-                coreRunningMinPriorityThread=j;
+                minRunningPriority=runningPrio[c];
+                coreRunningMinPriorityThread=c;
             }
         }
         // This is a loop in a loop with the same variable to continue from
         // where we left, but we'll never go back to the outer loop
-        for(;i>minRunningPriority;i--)
+        for(;prio>minRunningPriority;prio--)
         {
-            if(readyThreads[i].empty()) continue;
+            if(readyThreads[prio].empty()) continue;
             IRQinvokeSchedulerOnCore(coreRunningMinPriorityThread);
             break;
         }
