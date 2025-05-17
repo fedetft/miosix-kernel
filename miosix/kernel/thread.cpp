@@ -631,7 +631,7 @@ bool Thread::setAffinity(CpuSet affinity)
             if(const_cast<Thread*>(runningThreads[i])!=this) continue;
             // Thread whose affinity was changed is currently running on a core,
             // check if it's compatible with it
-            if(affinity & (1<<i)==0)
+            if((affinity & (1<<i))==0)
             {
                 if(i==getCurrentCoreId()) IRQinvokeScheduler();
                 else IRQinvokeSchedulerOnCore(i);
