@@ -317,9 +317,6 @@ static void t1_p1(void *argv)
     {
         if(Thread::testTerminate()) break;
         t1_v1=true;
-        #ifdef SCHED_TYPE_EDF
-        Thread::sleep(5);
-        #endif //SCHED_TYPE_EDF
     }
 }
 
@@ -337,44 +334,40 @@ static void t1_f1(Thread *p)
     // The Thread::sleep(5) is added to make this possibility as unlikely as
     //possible.
     //If the thread exists, it should modify t1_v1, and exist() must return true
+    #if defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
+    Thread::getCurrentThread()->setAffinity(1); //Only core 0
+    p->setAffinity(1); //Only core 0
+    #endif //defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
     for(int i=0;i<10;i++) //testing 10 times
     {
         Thread::sleep(5);
         t1_v1=false;
-        #ifndef SCHED_TYPE_EDF
         Thread::yield();//run t1_p1
-        #ifdef WITH_SMP
-        //With a multi core CPU both threads run in parallel and yield returns
-        //immediately. TODO: pin tasks on a single core for this test
-        delayUs(100);
-        #endif //WITH_SMP
-        #else //SCHED_TYPE_EDF
-        Thread::sleep(15);
-        #endif //SCHED_TYPE_EDF
+        #if defined(WITH_SMP) && !defined(WITH_THREAD_AFFINITY)
+        Thread::sleep(5);
+        #endif //defined(WITH_SMP) && !defined(WITH_THREAD_AFFINITY)
         if(t1_v1==false) fail("thread not created");
         if(Thread::exists(p)==false) fail("Thread::exists (1)");
     }
     
     p->terminate();
-    #ifndef SCHED_TYPE_EDF
-    Thread::yield();//Give time to the second thread to terminate
-    #else //SCHED_TYPE_EDF
-    Thread::sleep(15);
-    #endif //SCHED_TYPE_EDF
+    Thread::yield();
+    #if defined(WITH_SMP) && !defined(WITH_THREAD_AFFINITY)
+    Thread::sleep(5);
+    #endif //defined(WITH_SMP) && !defined(WITH_THREAD_AFFINITY)
     //If the thread doesn't exist, it can't modify t1_v1, and exist() must
     //return false
     for(int i=0;i<10;i++) //testing 10 times
     {
         t1_v1=false;
-        #ifndef SCHED_TYPE_EDF
         Thread::yield();//run t1_p1
         Thread::yield();//Double yield to be extra sure.
-        #else //SCHED_TYPE_EDF
-        Thread::sleep(15);
-        #endif //SCHED_TYPE_EDF
         if(t1_v1==true) fail("thread not deleted");
         if(Thread::exists(p)==true) fail("Thread::exists (2)");
     }
+    #if defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
+    Thread::getCurrentThread()->setAffinity(unrestrictedAffinityMask);
+    #endif //defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
 }
 
 static void test_1()
@@ -383,13 +376,15 @@ static void test_1()
     CHECK_AVAIL_HEAP(EST_THREAD_HEAP_USAGE(STACK_SMALL)*3);
     //Testing getStackBottom()
     const unsigned int *y=Thread::getStackBottom();
-    
+
+    Thread::setPriority(DEFAULT_PRIORITY);
     if(*y!=STACK_FILL) fail("getStackBottom() (1)");
     y--;//Now should point to last word of watermark
     if(*y!=WATERMARK_FILL) fail("getStackBottom() (2)");
     //Testing thread termination
-    Thread *p=Thread::create(t1_p1,STACK_SMALL,0,nullptr,Thread::DETACHED);
+    Thread *p=Thread::create(t1_p1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
     t1_f1(p);
+    Thread::setPriority(0);
     //Testing argv passing
     p=Thread::create(t1_p3,STACK_SMALL,0,reinterpret_cast<void*>(0xdeadbeef),Thread::DETACHED);
     Thread::sleep(5);
@@ -628,10 +623,9 @@ static void t4_p1(void *argv)
     {
         if(Thread::testTerminate()) break;
         {
-            #ifdef WITH_SMP
-            //TODO: pin tasks on a single core for this test
+            #if defined(WITH_SMP) && !defined(WITH_THREAD_AFFINITY)
             GlobalIrqLock lock;
-            #endif //WITH_SMP
+            #endif //defined(WITH_SMP) && !defined(WITH_THREAD_AFFINITY)
             t4_v1=true;
         }
         #ifdef SCHED_TYPE_EDF
@@ -662,6 +656,10 @@ static void test_4()
 {
     test_name("globalIrqLock and priority");
     Thread *p=Thread::create(t4_p1,STACK_SMALL,0,nullptr,Thread::DETACHED);
+    #if defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
+    Thread::getCurrentThread()->setAffinity(1); //Only core 0
+    p->setAffinity(1); //Only core 0
+    #endif //defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
     //Check getPriority()
     if(p->getPriority()!=0) fail("getPriority (0)");
     //Check that getCurrentThread() and IRQgetCurrentThread() return the
@@ -706,6 +704,10 @@ static void test_4()
     #endif //SCHED_TYPE_EDF
     //Should not happen, since already tested
     if(t4_v1==false) fail("variable not updated");
+
+    #if defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
+    Thread::getCurrentThread()->setAffinity(unrestrictedAffinityMask);
+    #endif //defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
 
     //Checking get_priority
     if(Thread::getCurrentThread()->getPriority()!=0)
@@ -1152,12 +1154,8 @@ static void test_6()
 
     //This thread will hold the lock until we terminate it
     Thread *t=Thread::create(t6_p4,STACK_SMALL,0,nullptr,Thread::JOINABLE);
-    #ifdef WITH_SMP
-    //With a multi core CPU both threads run in parallel and yield returns
-    //immediately. TODO: pin tasks on a single core for this test
-    delayUs(100);
-    #endif //WITH_SMP
-    Thread::yield();
+    //Leave time for the other thread to lock the mutex
+    Thread::sleep(1);
     if(t6_m1.tryLock()==true) fail("Mutex::tryLock() (1)");
     Thread::sleep(10);
     if(t6_m1.tryLock()==true) fail("Mutex::tryLock() (2)");
@@ -3875,21 +3873,25 @@ static void test_25()
     // Testing yield
     //
     #ifndef SCHED_TYPE_EDF
+    //On multi-core can only really test yield if core pinning is enabled
+    #if !defined(WITH_SMP) || defined(WITH_THREAD_AFFINITY)
     {
+        Thread::getCurrentThread()->setAffinity(1); //Only core 0
         volatile bool enable=false;
         volatile bool flag=false;
-        thread thr([&]{ while(enable==false) /*wait*/; flag=true; });
+        thread thr([&]{
+            Thread::getCurrentThread()->setAffinity(1); //Only core 0
+            while(enable==false) /*wait*/;
+            flag=true;
+        });
         Thread::sleep(10); //Get the other thread ready
         enable=true;
         this_thread::yield();
-        #ifdef WITH_SMP
-        //With a multi core CPU both threads run in parallel and yield returns
-        //immediately. TODO: pin tasks on a single core for this test
-        delayUs(100);
-        #endif //WITH_SMP
         if(flag==false) fail("this_thread::yield");
+        Thread::getCurrentThread()->setAffinity(unrestrictedAffinityMask);
         thr.join();
     }
+    #endif //!defined(WITH_SMP) || defined(WITH_THREAD_AFFINITY)
     #endif //SCHED_TYPE_EDF
     //
     // Testing system_clock/this_thread::sleep_for
@@ -3969,7 +3971,12 @@ void *t26_t1(void*)
 {
     for(int i=0;i<10;i++)
     {
-        if(errno!=0) fail("errno 1");
+        auto temp=errno;
+        if(temp!=0)
+        {
+            //iprintf("%d %d ",temp,i);
+            fail("errno 1");
+        }
         Thread::sleep(1);
     }
     return nullptr;
@@ -3985,7 +3992,12 @@ static void test_26()
     {
         errno=-i-1;
         Thread::sleep(1);
-        if(errno!=-i-1) fail("errno 2");
+        auto temp=errno;
+        if(temp!=-i-1)
+        {
+            //iprintf("%d %d ",temp,i);
+            fail("errno 2");
+        }
     }
     pthread_join(t,0);
     pass();
