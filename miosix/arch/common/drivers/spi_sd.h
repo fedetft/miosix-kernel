@@ -242,15 +242,24 @@ template <class SPI>
 unsigned char SPISD<SPI>::wait_ready()
 {
     unsigned char result;
-    spi_1_send(0xff);
-    long long t0=getTime(), t1=t0;
-    while(t1<t0+500*1000*1000)//Timeout ~500ms
+    // Backoff of 100us; do not use Thread::sleep, too few cycles
+    for(int i=0;i<10;i++)
     {
         result=spi_1_send(0xff);
         if(result==0xff) return 0xff;
-        t1=getTime();
+        delayUs(100);
     }
-    dbgerr("Error: wait_ready()\n");
+    unsigned int t=0;
+    while(t<=500) // Timeout ~500ms
+    {
+        result=spi_1_send(0xff);
+        if(result==0xff) return 0xff;
+        // exponential backoff
+        if(t<10) { Thread::sleep(1); t+=1; }
+        else if(t<100) { Thread::sleep(10); t+=10; }
+        else { Thread::sleep(100); t+=100; }
+    }
+    dbgerr("Error: wait_ready() (result=%x)\n",result);
     return result;
 }
 
@@ -562,9 +571,8 @@ SPISD<SPI>::SPISD(SPI& spi) : Device(Device::BLOCK), spi(spi)
     }
 
     CS_HIGH();
-    //Configure the SPI interface to use the 7.4MHz high speed mode
-    //spi.setBitrate(7400*1000);
-    spi.setBitrate(20*1000*1000);
+    //Configure the SPI interface to use at most 25MHz speed
+    spi.setBitrate(25*1000*1000);
 
     dbg("Init done...\n");
 }
