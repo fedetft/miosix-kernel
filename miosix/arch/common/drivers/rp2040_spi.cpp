@@ -60,7 +60,10 @@ RP2040PL022SPI::RP2040PL022SPI(int number, unsigned int bitrate, bool spo, bool 
         si.function(Function::SPI); si.mode(Mode::INPUT); si.fast();
         so.function(Function::SPI); so.mode(Mode::OUTPUT); so.fast();
         sck.function(Function::SPI); sck.mode(Mode::OUTPUT); sck.fast();
-        ce.function(Function::SPI); ce.mode(Mode::OUTPUT); ce.fast();
+        if (ce.isValid())
+        {
+            ce.function(Function::SPI); ce.mode(Mode::OUTPUT); ce.fast();
+        }
     }
     spi->cr0=(0<<SPI_SSPCR0_SCR_LSB)
             |(sph?SPI_SSPCR0_SPH_BITS:0)
