@@ -44,13 +44,13 @@ public:
 
     unsigned short sendRecv(unsigned short data, unsigned wordSize=8);
 
-    void sendRecv(const unsigned short send[], unsigned short recv[], size_t len, unsigned wordSize=16);
+    void sendRecv(const unsigned short send[], unsigned short recv[], size_t len, unsigned wordSize=8);
     void sendRecv(const unsigned char send[], unsigned char recv[], size_t len, unsigned wordSize=8);
 
-    void send(const unsigned short send[], size_t len, unsigned wordSize=16);
+    void send(const unsigned short send[], size_t len, unsigned wordSize=8);
     void send(const unsigned char send[], size_t len, unsigned wordSize=8);
 
-    void recv(unsigned short recv[], size_t len, unsigned wordSize=16, unsigned short sendDummy=0xFFFF);
+    void recv(unsigned short recv[], size_t len, unsigned wordSize=8, unsigned short sendDummy=0xFFFF);
     void recv(unsigned char recv[], size_t len, unsigned wordSize=8, unsigned short sendDummy=0xFF);
 private:
     void IRQhandleInterrupt();

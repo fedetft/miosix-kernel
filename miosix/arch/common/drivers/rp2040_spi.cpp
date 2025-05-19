@@ -157,10 +157,29 @@ void RP2040PL022SPI::sendRecvImpl(const D send[], D recv[], size_t len, unsigned
     unsigned int datasz=sizeof(D)==1
             ?DMA_CH0_CTRL_TRIG_DATA_SIZE_VALUE_SIZE_BYTE
             :DMA_CH0_CTRL_TRIG_DATA_SIZE_VALUE_SIZE_HALFWORD;
-    dma_hw->ch[txDmaCh].read_addr=reinterpret_cast<unsigned int>(send);
+    // In SPI sending and receiving happens simultaneously, so the DMA also
+    // must pump data in as fast as it pumps it out. Unfortunately this is
+    // NOT necessarily the case because of bus contention for instance.
+    // So it can happen that the write DMA pumps data in merrily while the read
+    // DMA is not keeping up with the FIFO getting full. So the PL022 internal
+    // read FIFO overflows and we lose bytes.
+    //   To work around this issue we force the write DMA to work in lockstep
+    // with the read DMA by setting both DMAs' trigger requests to the read
+    // trigger. To kickstart the process we write the first byte of the
+    // transmission *in software* to the DR.
+    //   This has the side-effect of slowing down the data transfer when we
+    // get around 25MHz, which if we are running the Pico at 200MHz leaves
+    // 8 cycles for the DMA to do the whole read->write bus operation.
+    // So it makes sense that we are slowing down just about there, because
+    // any faster and we barely have the cycles to do anything at all.
+    //   Now, it would be MUCH better if the PL022 did NOT assert the DMA TX
+    // signal if the read FIFO was full, given that, well, it's SPI GODDAMNIT.
+    // This peripheral almost seems to be designed by people who are ignorant
+    // of the fact that read/write must be simultaneous in this protocol!...
+    dma_hw->ch[txDmaCh].read_addr=reinterpret_cast<unsigned int>(send+1);
     dma_hw->ch[txDmaCh].write_addr=reinterpret_cast<unsigned int>(&spi->dr);
-    dma_hw->ch[txDmaCh].transfer_count=len;
-    dma_hw->ch[txDmaCh].al1_ctrl=(16<<DMA_CH0_CTRL_TRIG_TREQ_SEL_LSB)
+    dma_hw->ch[txDmaCh].transfer_count=len-1;
+    dma_hw->ch[txDmaCh].al1_ctrl=(17<<DMA_CH0_CTRL_TRIG_TREQ_SEL_LSB)
                                 |(txDmaCh<<DMA_CH0_CTRL_TRIG_CHAIN_TO_LSB) // disable chaining!!!!
                                 |DMA_CH0_CTRL_TRIG_INCR_READ_BITS
                                 |(datasz<<DMA_CH0_CTRL_TRIG_DATA_SIZE_LSB)
@@ -178,6 +197,7 @@ void RP2040PL022SPI::sendRecvImpl(const D send[], D recv[], size_t len, unsigned
         FastGlobalIrqLock lock;
         spi->imsc=SPI_SSPIMSC_RORIM_BITS; // enable RX overrun interrupt
         dma_hw->multi_channel_trigger=(1U<<txDmaCh)|(1U<<rxDmaCh);
+        spi->dr=send[0]; // kickstart the transfer
         while(true)
         {
             if(!((dma_hw->ch[rxDmaCh].al1_ctrl)&DMA_CH0_CTRL_TRIG_BUSY_BITS)) break;
@@ -224,10 +244,11 @@ void RP2040PL022SPI::sendImpl(const D send[], size_t len, unsigned wordSize)
             while(waiting) Thread::IRQglobalIrqUnlockAndWait(lock);
         }
         dma_hw->ch[txDmaCh].al1_ctrl=0;
-        spi->icr=3; // clear all interrupts (the overrun interrupt might have triggered)
     }
     // flush the SPI fifo
+    while(spi->sr&SPI_SSPSR_BSY_BITS) ;
     while(spi->sr&SPI_SSPSR_RNE_BITS) (void)spi->dr;
+    spi->icr=3; // clear all interrupts (the overrun interrupt might have triggered)
 }
 
 template<typename D>
@@ -237,10 +258,14 @@ void RP2040PL022SPI::recvImpl(D recv[], size_t len, unsigned wordSize, D sendDum
     unsigned int datasz=sizeof(D)==1
             ?DMA_CH0_CTRL_TRIG_DATA_SIZE_VALUE_SIZE_BYTE
             :DMA_CH0_CTRL_TRIG_DATA_SIZE_VALUE_SIZE_HALFWORD;
+    // This API is for receiving data without really sending anything --
+    // or better we just send the same byte over and over.
+    // But we still need to write the byte to the data register
+    // so the same funny cursed business happens as in sendRecvImpl.
     dma_hw->ch[txDmaCh].read_addr=reinterpret_cast<unsigned int>(&sendDummy);
     dma_hw->ch[txDmaCh].write_addr=reinterpret_cast<unsigned int>(&spi->dr);
-    dma_hw->ch[txDmaCh].transfer_count=len;
-    dma_hw->ch[txDmaCh].al1_ctrl=(16<<DMA_CH0_CTRL_TRIG_TREQ_SEL_LSB)
+    dma_hw->ch[txDmaCh].transfer_count=len-1;
+    dma_hw->ch[txDmaCh].al1_ctrl=(17<<DMA_CH0_CTRL_TRIG_TREQ_SEL_LSB)
                                 |(txDmaCh<<DMA_CH0_CTRL_TRIG_CHAIN_TO_LSB) // disable chaining!!!!
                                 |(datasz<<DMA_CH0_CTRL_TRIG_DATA_SIZE_LSB)
                                 |DMA_CH0_CTRL_TRIG_EN_BITS;
@@ -257,6 +282,7 @@ void RP2040PL022SPI::recvImpl(D recv[], size_t len, unsigned wordSize, D sendDum
         FastGlobalIrqLock lock;
         spi->imsc=SPI_SSPIMSC_RORIM_BITS; // enable RX overrun interrupt
         dma_hw->multi_channel_trigger=(1U<<txDmaCh)|(1U<<rxDmaCh);
+        spi->dr=sendDummy; // kickstart the transfer
         while(true)
         {
             if(!((dma_hw->ch[rxDmaCh].al1_ctrl)&DMA_CH0_CTRL_TRIG_BUSY_BITS)) break;
