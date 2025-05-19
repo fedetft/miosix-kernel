@@ -94,6 +94,11 @@ void IRQbspInit()
 void bspInit2()
 {
     #ifdef WITH_FILESYSTEM
+    // Pinout for SD card in SPI mode:
+    // GP2: SD CLK (SPI SCK)
+    // GP3: SD CMD (SPI SO)
+    // GP4: SD D0  (SPI SI)
+    // GP5: SD D3  (SPI CS)
     spi0=new RP2040PL022SPI(0,100*1000,false,false,
         GpioPin(P0,4),GpioPin(P0,3),GpioPin(P0,2),GpioPin());
     basicFilesystemSetup(intrusive_ref_ptr<SPISD<RP2040PL022SPI>>(
