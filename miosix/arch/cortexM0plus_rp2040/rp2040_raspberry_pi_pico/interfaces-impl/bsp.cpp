@@ -94,8 +94,10 @@ void IRQbspInit()
 void bspInit2()
 {
     #ifdef WITH_FILESYSTEM
-    spi0=new RP2040PL022SPI(0,100*1000,false,false,GpioPin(P0,4),GpioPin(P0,3),GpioPin(P0,2),GpioPin(P0,5));
-    basicFilesystemSetup(intrusive_ref_ptr<SPISD<RP2040PL022SPI>>(new SPISD<RP2040PL022SPI>(*spi0)));
+    spi0=new RP2040PL022SPI(0,100*1000,false,false,
+        GpioPin(P0,4),GpioPin(P0,3),GpioPin(P0,2),GpioPin());
+    basicFilesystemSetup(intrusive_ref_ptr<SPISD<RP2040PL022SPI>>(
+        new SPISD<RP2040PL022SPI>(*spi0,GpioPin(P0,5))));
     #endif //WITH_FILESYSTEM
 }
 

@@ -47,7 +47,7 @@ class SPISD: public Device
 {
 public:
     // Constructor
-    SPISD(SPI& spi);
+    SPISD(SPI& spi, GpioPin cs);
     
     virtual ssize_t readBlock(void *buffer, size_t size, off_t where);
     
@@ -81,8 +81,8 @@ private:
 
     static void print_error_code(unsigned char value);
 
-    void CS_HIGH() {}
-    void CS_LOW() {}
+    void CS_HIGH() { cs.high(); }
+    void CS_LOW() { cs.low(); }
     
     unsigned char spi_1_send(unsigned char outgoing)
     {
@@ -132,6 +132,7 @@ private:
     unsigned char CMD58 = (0x40 + 58);  // READ_OCR
 
     SPI &spi;
+    GpioPin cs;
     KernelMutex mutex;
     ///\internal Type of card (1<<0)=MMC (1<<1)=SDv1 (1<<2)=SDv2 (1<<2)|(1<<3)=SDHC
     unsigned char cardType;
@@ -479,8 +480,12 @@ int SPISD<SPI>::ioctl(int cmd, void* arg)
 }
 
 template <class SPI>
-SPISD<SPI>::SPISD(SPI& spi) : Device(Device::BLOCK), spi(spi)
+SPISD<SPI>::SPISD(SPI& spi, GpioPin cs) : Device(Device::BLOCK), spi(spi), cs(cs)
 {
+    cs.high();
+    cs.mode(Mode::OUTPUT);
+    cs.fast();
+
     const int MAX_RETRY=20;//Maximum command retry before failing
     spi.setBitrate(100*1000); // 100 kHz SPI speed
     unsigned char resp;
