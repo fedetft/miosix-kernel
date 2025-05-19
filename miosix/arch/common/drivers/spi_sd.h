@@ -489,11 +489,10 @@ SPISD<SPI>::SPISD(SPI& spi, GpioPin cs) : Device(Device::BLOCK), spi(spi), cs(cs
     cs.mode(Mode::OUTPUT);
     cs.fast();
 
-    const int MAX_RETRY=20;//Maximum command retry before failing
     spi.setBitrate(100*1000); // 100 kHz SPI speed
     unsigned char resp;
     int i;
-    for(i=0;i<MAX_RETRY;i++)
+    for(i=0;i<20;i++)
     {
         resp=send_cmd(CMD0,0);
         if(resp==1) break;
@@ -514,7 +513,7 @@ SPISD<SPI>::SPISD(SPI& spi, GpioPin cs) : Device(Device::BLOCK), spi(spi), cs(cs
         for(n=0;n<4;n++) ocr[n]=spi_1_send(0xff);// Get return value of R7 resp
         if((ocr[2]==0x01)&&(ocr[3]==0xaa))
         {   // The card can work at vdd range of 2.7-3.6V
-            for(i=0;i<MAX_RETRY;i++)
+            for(i=0;i<200;i++)
             {
                 resp=send_cmd(ACMD41, 1UL << 30);
                 if(resp==0)
@@ -531,11 +530,14 @@ SPISD<SPI>::SPISD(SPI& spi, GpioPin cs) : Device(Device::BLOCK), spi(spi), cs(cs
                             dbg("SDHC, no block addressing\n");
                         }
                     } else dbgerr("CMD58 failed\n");
-
                     break; //Exit from for
-                } else print_error_code(resp);
+                } else {
+                    print_error_code(resp);
+                    Thread::sleep(10);
+                }
             }
-            dbg("ACMD41 required %d commands\n",i+1);
+            if(i==200) dbgerr("ACMD41 timeout\n");
+            else dbg("ACMD41 required %d commands\n",i+1);
         } else dbgerr("CMD8 failed\n");
     } else { /* SDSC or MMC */
         if(send_cmd(ACMD41,0)<=1)
@@ -548,7 +550,7 @@ SPISD<SPI>::SPISD(SPI& spi, GpioPin cs) : Device(Device::BLOCK), spi(spi), cs(cs
             cmd=CMD1;   /* MMC */
             dbg("MMC card\n");
         }
-        for(i=0;i<MAX_RETRY;i++)
+        for(i=0;i<200;i++)
         {
             resp=send_cmd(cmd,0);
             if(resp==0)
@@ -559,7 +561,10 @@ SPISD<SPI>::SPISD(SPI& spi, GpioPin cs) : Device(Device::BLOCK), spi(spi), cs(cs
                     dbgerr("CMD16 failed\n");
                 }
                 break; //Exit from for
-            } else print_error_code(resp);
+            } else {
+                print_error_code(resp);
+                Thread::sleep(10);
+            }
         }
         dbg("CMD required %d commands\n",i+1);
     }
