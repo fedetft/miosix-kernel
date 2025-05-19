@@ -425,7 +425,13 @@ static void t2_p1(void *argv)
 
 static void t2_p2(void *argv)
 {
-    while(Thread::testTerminate()==false) t2_v1=true;
+    while(Thread::testTerminate()==false)
+    {
+        #if defined(WITH_SMP) && !defined(WITH_THREAD_AFFINITY)
+        PauseKernelLock pk;
+        #endif //defined(WITH_SMP) && !defined(WITH_THREAD_AFFINITY)
+        t2_v1=true;
+    }
 }
 
 static void test_2()
@@ -453,10 +459,13 @@ static void test_2()
     t2_p_v1->terminate();
     t2_p_v1->join();
 
-    #if !defined(WITH_SMP) && !defined(SCHED_TYPE_EDF)
-    //TODO: pin tasks on a single core for this test
+    #if !defined(SCHED_TYPE_EDF)
     //TODO: check why test fails with EDF
     t2_p_v1=Thread::create(t2_p2,STACK_SMALL,DEFAULT_PRIORITY);
+    #if defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
+    Thread::getCurrentThread()->setAffinity(1); //Only core 0
+    t2_p_v1->setAffinity(1); //Only core 0
+    #endif //defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
     for(int i=0;i<5;i++)
     {
         bool failed=false;
@@ -474,8 +483,11 @@ static void test_2()
     }
     t2_p_v1->terminate();
     t2_p_v1->join();
-    #endif //WITH_SMP
+    #endif
     Thread::setPriority(0); //Restore priority
+    #if defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
+    Thread::getCurrentThread()->setAffinity(unrestrictedAffinityMask);
+    #endif //defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
     pass();
 }
 
@@ -652,6 +664,11 @@ static void t4_p2(void *argv)
 }
 #endif //SCHED_TYPE_EDF
 
+void t4_p3(void*)
+{
+    while(!Thread::testTerminate()) ;
+}
+
 static void test_4()
 {
     test_name("globalIrqLock and priority");
@@ -716,14 +733,22 @@ static void test_4()
     Thread::setPriority(1);
     if(Thread::getCurrentThread()->getPriority()!=1)
         fail("setPriority (0)");
-    #if !defined(SCHED_TYPE_CONTROL_BASED) && !defined(SCHED_TYPE_EDF) && !defined(WITH_SMP)
-    //TODO in the SMP case create a number of higher priority threads equal to the number of cores
+    #if !defined(SCHED_TYPE_CONTROL_BASED) && !defined(SCHED_TYPE_EDF)
+    //On multi-core CPUs we need as many high priority threads as cores
+    Thread *other[CPU_NUM_CORES-1];
+    for(int i=0;i<CPU_NUM_CORES-1;i++)
+        other[i]=Thread::create(t4_p3,STACK_SMALL,1);
     //Since priority is higher, the other thread must not run
     //Of course this is not true for the control based scheduler
     t4_v1=false;
     Thread::yield();//must return immediately
     delayMs(100);
     if(t4_v1==true) fail("setPriority (1)");
+    for(int i=0;i<CPU_NUM_CORES-1;i++)
+    {
+        other[i]->terminate();
+        other[i]->join();
+    }
     #endif //SCHED_TYPE_CONTROL_BASED
     //Restoring original priority
     Thread::setPriority(0);
@@ -1580,15 +1605,11 @@ void t9_p1(void*)
     {
         if(Thread::testTerminate()) break;
         {
-            //TODO: pin tasks on a single core for this test
-            #ifdef WITH_SMP
+            #if defined(WITH_SMP) && !defined(WITH_THREAD_AFFINITY)
             GlobalIrqLock lock;
-            #endif //WITH_SMP
+            #endif //defined(WITH_SMP) && !defined(WITH_THREAD_AFFINITY)
             t9_v1=true;
         }
-        #ifdef SCHED_TYPE_EDF
-        Thread::sleep(1);
-        #endif //SCHED_TYPE_EDF
     }
 }
 
@@ -1598,6 +1619,10 @@ static void test_9()
     //Testing kernel_running with nested pause_kernel()
     Thread::setPriority(DEFAULT_PRIORITY); //In case the scheduler is EDF
     Thread *p=Thread::create(t9_p1,STACK_SMALL,DEFAULT_PRIORITY);
+    #if defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
+    Thread::getCurrentThread()->setAffinity(1); //Only core 0
+    p->setAffinity(1); //Only core 0
+    #endif //defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
     if(isKernelPaused()==true) fail("isKernelPaused() (1)");
     {
         PauseKernelLock lock;//1
@@ -1620,49 +1645,49 @@ static void test_9()
             fail("isKernelPaused() (4)");
         }
     }
-    if(isKernelPaused()==true) fail("isKernelRunning() (5)");
+    if(isKernelPaused()==true) fail("isKernelPaused() (5)");
     //Testing nesting of globalIrqLock()
     if(areInterruptsEnabled()==false) fail("areInterruptsEnabled() (1)");
     {
         GlobalIrqLock lock;//This should disable interrupts
-    t9_v1=false;
-    delayUs(MAX_TIME_IRQ_DISABLED/3);
-    if(t9_v1)
-    {
+        t9_v1=false;
+        delayUs(MAX_TIME_IRQ_DISABLED/3);
+        if(t9_v1)
+        {
             GlobalIrqUnlock unlock(lock);
-        fail("globalIrqLock() nesting (1)");
-    }
-    if(areInterruptsEnabled()==true)
-    {
+            fail("globalIrqLock() nesting (1)");
+        }
+        if(areInterruptsEnabled()==true)
+        {
             GlobalIrqUnlock unlock(lock);
-        fail("areInterruptsEnabled() (2)");
-    }
+            fail("areInterruptsEnabled() (2)");
+        }
         {
             GlobalIrqLock lock;//Interrupts already disabled
-    delayUs(MAX_TIME_IRQ_DISABLED/3);
-    if(t9_v1)
-    {
+            delayUs(MAX_TIME_IRQ_DISABLED/3);
+            if(t9_v1)
+            {
                 GlobalIrqUnlock unlock(lock);//This unlocks all nesting levels
-        fail("globalIrqLock() nesting (2)");
-    }
-    if(areInterruptsEnabled()==true)
-    {
+                fail("globalIrqLock() nesting (2)");
+            }
+            if(areInterruptsEnabled()==true)
+            {
                 GlobalIrqUnlock unlock(lock);//This unlocks all nesting levels
-        fail("areInterruptsEnabled() (3)");
-    }
+                fail("areInterruptsEnabled() (3)");
+            }
         }
         //Interrupts should still be disabled
-    delayUs(MAX_TIME_IRQ_DISABLED/3);
-    if(t9_v1)
-    {
+        delayUs(MAX_TIME_IRQ_DISABLED/3);
+        if(t9_v1)
+        {
             GlobalIrqUnlock unlock(lock);//This unlocks all nesting levels
-        fail("globalIrqUnlock() nesting (1)");
-    }
-    if(areInterruptsEnabled()==true)
-    {
+            fail("globalIrqUnlock() nesting (1)");
+        }
+        if(areInterruptsEnabled()==true)
+        {
             GlobalIrqUnlock unlock(lock);//This unlocks all nesting levels
-        fail("areInterruptsEnabled() (4)");
-    }
+            fail("areInterruptsEnabled() (4)");
+        }
     }
     //Now interrupts should be enabled
     delayMs(10);
@@ -1674,6 +1699,9 @@ static void test_9()
     p->terminate();
     p->join();
     Thread::setPriority(0); //Restore priority
+    #if defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
+    Thread::getCurrentThread()->setAffinity(unrestrictedAffinityMask);
+    #endif //defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
     pass();
 }
 
