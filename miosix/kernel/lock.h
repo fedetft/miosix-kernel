@@ -141,7 +141,7 @@ public:
      * Destructor.
      * Acquire back the lock.
      */
-    ~UnlockBase() { { T::lock(); } }
+    ~UnlockBase() { T::lock(); }
 
     UnlockBase(const UnlockBase&)=delete;
     UnlockBase& operator= (const UnlockBase&)=delete;
@@ -640,7 +640,7 @@ inline void deepSleepUnlock() noexcept {} //Nothing to do
  */
 class DeepSleepLock
 {
-public:       
+public:
     DeepSleepLock() { deepSleepLock(); }
 
     ~DeepSleepLock() { deepSleepUnlock(); }
