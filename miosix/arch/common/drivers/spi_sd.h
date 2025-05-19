@@ -57,12 +57,13 @@ public:
 private:
     //Note: enabling debugging might cause deadlock when using sleep() or reboot()
     //The bug won't be fixed because debugging is only useful for driver development
-    ///\internal When set to true, enables debugging messages
-    static const bool verbose=false;
+    ///\internal When set to 1, enables error messages.
+    ///When set to 2, enables debug messages as well.
+    static const int dbgLevel=0;
     ///\internal Debug macro, for normal conditions
     static inline void dbg(const char *fmt, ...)
     {
-        if(!verbose) return;
+        if(dbgLevel<2) return;
         va_list arg;
         va_start(arg,fmt);
         viprintf(fmt,arg);
@@ -71,7 +72,7 @@ private:
     ///\internal Debug macro, for errors only
     static inline void dbgerr(const char *fmt, ...)
     {
-        if(!verbose) return;
+        if(dbgLevel<1) return;
         va_list arg;
         va_start(arg,fmt);
         viprintf(fmt,arg);
