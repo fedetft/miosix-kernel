@@ -255,13 +255,14 @@ unsigned char SPISD<SPI>::wait_ready()
     {
         result=spi_1_send(0xff);
         if(result==0xff) return 0xff;
+        if(result!=0) { delayUs(100); continue; }
         // exponential backoff
         if(t<10) { Thread::sleep(1); t+=1; }
         else if(t<100) { Thread::sleep(10); t+=10; }
         else { Thread::sleep(100); t+=100; }
     }
-    dbgerr("Error: wait_ready() (result=%x)\n",result);
-    return result;
+    dbgerr("Error: wait_ready() timeout\n");
+    return 0;
 }
 
 /**
@@ -295,15 +296,17 @@ unsigned char SPISD<SPI>::send_cmd(unsigned char cmd, unsigned int arg)
         if(wait_ready()!=0xff) return 0xff;
     }
     // Send command
-    spi_1_send(cmd);			            // Start + Command index
-    spi_1_send((unsigned char)(arg >> 24));	// Argument[31..24]
-    spi_1_send((unsigned char)(arg >> 16));	// Argument[23..16]
-    spi_1_send((unsigned char)(arg >> 8));	// Argument[15..8]
-    spi_1_send((unsigned char)arg);		    // Argument[7..0]
-    n=0x01;                // Dummy CRC + Stop
-    if (cmd==CMD0) n=0x95; // Valid CRC for CMD0(0)
-    if (cmd==CMD8) n=0x87; // Valid CRC for CMD8(0x1AA)
-    spi_1_send(n);
+    unsigned char buf[6];
+    buf[0]=cmd;                         // Start + Command index
+    buf[1]=(unsigned char)(arg >> 24);  // Argument[31..24]
+    buf[2]=(unsigned char)(arg >> 16);  // Argument[23..16]
+    buf[3]=(unsigned char)(arg >> 8);   // Argument[15..8]
+    buf[4]=(unsigned char)arg;          // Argument[7..0]
+    n=0x01;                 // Dummy CRC + Stop
+    if (cmd==CMD0) n=0x95;  // Valid CRC for CMD0(0)
+    if (cmd==CMD8) n=0x87;  // Valid CRC for CMD8(0x1AA)
+    buf[5]=n;
+    spi.send(buf,6);
     // Receive response
     if (cmd==CMD12) spi_1_send(0xff);   // Skip a stuff byte when stop reading
     n=10; // Wait response, try 10 times
