@@ -47,8 +47,12 @@
 #include "drivers/serial.h"
 #include "drivers/dcc.h"
 #include "board_settings.h"
+#include "drivers/rp2040_spi.h"
+#include "drivers/spi_sd.h"
 
 namespace miosix {
+
+RP2040PL022SPI *spi0; // for SD card
 
 //
 // Initialization
@@ -90,7 +94,8 @@ void IRQbspInit()
 void bspInit2()
 {
     #ifdef WITH_FILESYSTEM
-    basicFilesystemSetup(intrusive_ref_ptr<Device>());
+    spi0=new RP2040PL022SPI(0,100*1000,false,false,GpioPin(P0,4),GpioPin(P0,3),GpioPin(P0,2),GpioPin(P0,5));
+    basicFilesystemSetup(intrusive_ref_ptr<SPISD<RP2040PL022SPI>>(new SPISD<RP2040PL022SPI>(*spi0)));
     #endif //WITH_FILESYSTEM
 }
 
