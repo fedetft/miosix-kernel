@@ -207,6 +207,16 @@ public:
     T *front() { return queued.front(); }
 
     /**
+     * \param item item to check whether it is present in the queue
+     * \return true if the given item was found in the queue
+     */
+    bool contains(T *item)
+    {
+        for(auto it : queued) if(it==item) return true;
+        return false;
+    }
+
+    /**
      * Add an item to the queue.
      * \param item pointer to an item. The queue does not take ownership of the
      * pointer and does not deallocate it in any way when dequeued/removed, this
@@ -313,6 +323,16 @@ public:
      * Causes undefined behavior if called when the queue is empty
      */
     T *front() { return queued.front(); }
+
+    /**
+     * \param item item to check whether it is present in the queue
+     * \return true if the given item was found in the queue
+     */
+    bool contains(T *item)
+    {
+        for(auto it : queued) if(it==item) return true;
+        return false;
+    }
 
     /**
      * Add an item to the queue.

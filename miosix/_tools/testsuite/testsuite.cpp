@@ -465,8 +465,6 @@ static void test_2()
     t2_p_v1->terminate();
     t2_p_v1->join();
 
-    #if !defined(SCHED_TYPE_EDF)
-    //TODO: check why test fails with EDF
     t2_p_v1=Thread::create(t2_p2,STACK_SMALL,DEFAULT_PRIORITY);
     #if defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
     Thread::getCurrentThread()->setAffinity(1); //Only core 0
@@ -489,7 +487,6 @@ static void test_2()
     }
     t2_p_v1->terminate();
     t2_p_v1->join();
-    #endif
     Thread::setPriority(0); //Restore priority
     #if defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
     Thread::getCurrentThread()->setAffinity(unrestrictedAffinityMask);
@@ -1370,8 +1367,10 @@ static void test_6()
 
     //This thread will hold the lock until we terminate it
     t=Thread::create(t6_p4a,STACK_SMALL,0,nullptr,Thread::DETACHED);
+    #ifndef SCHED_TYPE_EDF
     Thread::yield();
     if(t6_m1a.tryLock()==true) fail("Mutex::tryLock() (1a)");
+    #endif //SCHED_TYPE_EDF
     Thread::sleep(10);
     if(t6_m1a.tryLock()==true) fail("Mutex::tryLock() (2a)");
     t->terminate();

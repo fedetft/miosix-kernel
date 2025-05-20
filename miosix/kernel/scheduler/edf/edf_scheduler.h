@@ -31,6 +31,7 @@
 #include "interfaces/cpu_const.h"
 #include "edf_scheduler_types.h"
 #include "kernel/thread.h"
+#include "kernel/sched_data_structures.h"
 
 #ifdef SCHED_TYPE_EDF
 
@@ -125,7 +126,7 @@ public:
      * Called when a thread transitions from waiting/sleeping to ready.
      * Must not be called if the thread is already ready.
      */
-    static void IRQwokenThread(Thread* thread) {}
+    static void IRQwokenThread(Thread* thread);
 
     /**
      * \internal
@@ -136,9 +137,9 @@ public:
      */
     #ifdef WITH_SMP
     static void IRQrunScheduler(unsigned char coreId);
-    #else
+    #else //WITH_SMP
     static void IRQrunScheduler();
-    #endif
+    #endif //WITH_SMP
 
     /**
      * \internal
@@ -165,29 +166,40 @@ public:
     
 private:
     /**
-     * Add a thread to the list of threads, keeping the list ordered by deadline
-     * \param thread thread to add
+     * \param coreId id of the core the preemption needs to be set for
+     * \param currentDeadline deadline of the thread that will be scheduled next
+     * \return the current time in nanoseconds
      */
-    static void add(Thread *thread);
-
-    /**
-     * Remove a thread to the list of threads.
-     * \param thread thread to remove
-     */
-    static void remove(Thread *thread);
-
-    /**
-     *
-     */
-    static void IRQsetNextPreemption(long long currentDeadline);
+    static long long IRQcomputePreemption(int coreId, long long currentDeadline);
 
     ///\internal On single core CPUs, end of time quantum (preemption) for the
     ///only core. On multi core CPUs, end of time quantum for WAKEUP_HANDLING_CORE
     static long long nextPreemptionWakeupCore;
 
-    static Thread *head;///<\internal Head of Real Time threads list, ordered by deadline
-    static Thread *headNRT; ///< \internal Head of Non Real Time threads circular list
-    static Thread *idle;
+    /**
+     * Functor needed by TimeSortedQueue to insert the thread in the correct
+     * place in the waiting list based on its deadline
+     */
+    struct GetTime
+    {
+        long long operator()(Thread *thread)
+        {
+            return thread->schedData.deadline.get();
+        }
+    };
+
+    ///\internal Deadline-sorted queue of ready threads with deadline (EDF-scheduled)
+    static TimeSortedQueue<Thread,EDFScheduler::GetTime> readyEdfThreads;
+
+    ///\internal FIFO queue of ready threads without deadline (RR scheduled)
+    static FifoQueue<Thread> readyRrThreads;
+
+    ///\internal List of threads that are not ready.
+    ///Keep the invariant that deleted threads are pushed to the back!
+    static IntrusiveList<Thread> notReadyThreads;
+
+    ///\internal idle threads (one per core)
+    static Thread *idle[CPU_NUM_CORES];
 };
 
 } //namespace miosix

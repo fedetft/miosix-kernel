@@ -53,331 +53,248 @@ bool EDFScheduler::IRQaddThread(Thread *thread, EDFSchedulerPriority priority)
     //Priority and savedPriority must be the same except when locking a mutex
     //with priority inheritance. A newly created thread isn't yet locking mutex
     thread->savedPriority=priority;
-    add(thread);
+    #ifdef WITH_PROCESSES
+    // Check isReady() as processes are initially created in not ready state
+    if(thread->flags.isReady()==false) notReadyThreads.push_front(thread);
+    else
+    #endif //WITH_PROCESSES
+    if(priority.get()==numeric_limits<long long>::max()-2)
+        readyRrThreads.enqueue(thread);
+    else readyEdfThreads.enqueue(thread);
     return true;
 }
 
 bool EDFScheduler::IRQexists(Thread *thread)
 {
-    // Search in the RT task list
-    Thread *walk=head;
-    while(walk!=nullptr)
-    {
-        if(walk==thread && (!walk->flags.isDeleted())) return true;
-        walk=walk->schedData.next;
-    }
-
-    // Search in the NRT task list (circular list)
-    if(headNRT != nullptr)
-    {
-        Thread *start = headNRT;
-        Thread *walkNRT = headNRT;
-        do {
-            if(walkNRT == thread && !walkNRT->flags.isDeleted()) return true;
-            walkNRT = walkNRT->schedData.next;
-        } while(walkNRT != start); // Stop when we complete a full loop
-    }
-
+    for(int i=0;i<CPU_NUM_CORES;i++)
+        if(runningThreads[i]==thread) return !thread->flags.isDeleted();
+    if(readyRrThreads.contains(thread)) return true;
+    if(readyEdfThreads.contains(thread)) return true;
+    for(auto t : notReadyThreads) if(t==thread) return !thread->flags.isDeleted();
     return false;
 }
 
 void EDFScheduler::removeDeadThreads()
 {
-    FastGlobalIrqLock dLock; //TODO more granular lock taking
-    // Handle RT tasks (head list)
-    while(head!=nullptr)
+    for(;;)
     {
-        if(head->flags.isDeleted()==false) break;
-        Thread *toBeDeleted=head;
-        head=head->schedData.next;
-        void *base=toBeDeleted->watermark;
-        toBeDeleted->~Thread();
-        free(base); //Delete ALL thread memory
-    }
-    if(head!=nullptr)
-    {
-        //When we get here, head is not null and does not need to be deleted
-        Thread *walk=head;
-        for(;;)
+        Thread *t;
         {
-            if(walk->schedData.next==nullptr) break;
-            if(walk->schedData.next->flags.isDeleted())
-            {
-                Thread *toBeDeleted=walk->schedData.next;
-                walk->schedData.next=walk->schedData.next->schedData.next;
-                void *base=toBeDeleted->watermark;
-                toBeDeleted->~Thread();
-                free(base); //Delete ALL thread memory
-            } else walk=walk->schedData.next;
+            FastGlobalIrqLock dLock;
+            if(notReadyThreads.empty()) return;
+            t=notReadyThreads.back();
+            // All deleted threads are at the bottom of the list, so the first
+            // not deleted we found means there are no more
+            if(t->flags.isDeleted()==false) return;
+            notReadyThreads.pop_back();
         }
-    }
-
-    // Handle NRT tasks (headNRT circular list)
-    if(headNRT != nullptr)
-    {
-        bool firstPass = true;
-        Thread *prev = headNRT;
-        Thread *curr = headNRT;
-
-        do {
-            if(curr->flags.isDeleted())
-            {
-                Thread *toBeDeleted = curr;
-                
-                if(curr == headNRT)
-                {
-                    if(headNRT->schedData.next == headNRT)
-                    {
-                        // Only one element in the circular list
-                        headNRT = nullptr;
-                        free(toBeDeleted->watermark);
-                        toBeDeleted->~Thread();
-                        return;
-                    } else {
-                        // Find the last node to fix circular list
-                        Thread *tail = headNRT;
-                        while(tail->schedData.next != headNRT)
-                        {
-                            tail = tail->schedData.next;
-                        }
-                        headNRT = headNRT->schedData.next;
-                        tail->schedData.next = headNRT;
-                    }
-                } else {
-                    prev->schedData.next = curr->schedData.next;
-                }
-
-                free(toBeDeleted->watermark);
-                toBeDeleted->~Thread();
-
-                curr = prev->schedData.next;
-            } else {
-                prev = curr;
-                curr = curr->schedData.next;
-            }
-
-            firstPass = false;
-        } while(curr != headNRT && !firstPass);
+        //Optimization: don't keep the lock while thread is being deleted
+        void *base=t->watermark;
+        t->~Thread();//Call destructor manually because of placement new
+        free(base);  //Delete ALL thread memory
     }
 }
 
-void EDFScheduler::IRQsetPriority(Thread *thread,
-        EDFSchedulerPriority newPriority)
+void EDFScheduler::IRQsetPriority(Thread *thread, EDFSchedulerPriority newPriority)
 {
-    remove(thread);
+    //if(thread->flags.isZombie()) errorHandler(Error::UNEXPECTED);
+    // If thread is running it is not in any list, only change priority value
+    for(int i=0;i<CPU_NUM_CORES;i++)
+    {
+        if(thread==runningThreads[i])
+        {
+            thread->schedData.deadline=newPriority;
+            return;
+        }
+    }
+    // If thread is not ready it will remain in the notReadyThreads list,
+    // only change priority value
+    if(thread->flags.isReady()==false)
+    {
+        thread->schedData.deadline=newPriority;
+        return;
+    }
+    bool oldRR=thread->schedData.deadline.get()==numeric_limits<long long>::max()-2;
+    bool newRR=newPriority==numeric_limits<long long>::max()-2;
+    // Ready threads are harder because of two constraints:
+    // 1) Changing priority may switch a thread from real-time (with deadline,
+    //    scheduled with EDF) to non-real-time (no deadline, scheduled with RR)
+    //    and in this case it needs to switch queue
+    // 2) Even if a thread is and remains real-time, it needs to be removed
+    //    from the EDF queue and be re-inserted with the new priority (deadline)
+    //    to keep it sorted
+    // Thus a thread will need to be removed/re-inserted unless it is and will
+    // remain non-real-time
+    if(oldRR==true || newRR==true)
+    {
+        thread->schedData.deadline=newPriority;
+        return;
+    }
+    // Remove from old queue
+    if(oldRR) readyRrThreads.remove(thread);
+    else readyEdfThreads.remove(thread);
+    // Set priority to the new value
     thread->schedData.deadline=newPriority;
-    add(thread);
+    // After priority changed, can insert the thread in the new queue
+    if(newRR) readyRrThreads.enqueue(thread);
+    else readyEdfThreads.enqueue(thread);
 }
 
 void EDFScheduler::IRQsetIdleThread(int whichCore, Thread *idleThread)
 {
-    //TODO: multicore support coming soon
     idleThread->schedData.deadline=numeric_limits<long long>::max()-1;
     idleThread->savedPriority=numeric_limits<long long>::max()-1;
-    idle = idleThread;
+    idle[whichCore]=idleThread;
 }
 
+void EDFScheduler::IRQwokenThread(Thread* thread)
+{
+    // NOTE: this check is necessary as there is the corner case of a thread
+    // that has just set itself to sleeping/waiting but it gets woken up before
+    // the scheduler has a chance to run. Thus it is both awakened and running,
+    // and we must not call notReadyThreads.removeFast(thread) if it's not in
+    // that list as it causes undefined behavior
+    for(int i=0;i<CPU_NUM_CORES;i++) if(runningThreads[i]==thread) return;
+    notReadyThreads.removeFast(thread);
+    if(thread->schedData.deadline.get()==numeric_limits<long long>::max()-2)
+        readyRrThreads.enqueue(thread);
+    else readyEdfThreads.enqueue(thread);
+}
+
+/*
+ * Please read the comment in the priority scheduler for the general overview
+ * of the Miosix 3.0 scheduler operation.
+ * Compared to the priority scheduler the EDF scheduler is actually a
+ * combination of two schedulers in one: the actual EDF scheduler and a
+ * Round Robin (RR) scheduler. The reason for this choice is due to the fact
+ * that not all threads may be real-time threads, and it's hard to assign a
+ * deadline value to non-real-time threads without causing side effect such as
+ * "priority inversion". This was the main usability issue of the EDF scheduler
+ * in older Miosix versions, and it has been overcome by scheduling
+ * non-real-time threads separately using RR.
+ * With this scheduler, every thread is assigned a priority which is a 64 bit
+ * number, to be set with the Thread::setPriority() API.
+ * The special priority value std::numeric_limits<long long>::max()-2 known as
+ * DEFAULT_PRIORITY as defined in miosix_settings.h corresponds to non-real-time
+ * threads which are scheduled using RR.
+ * Any other priority value is interpreted as a deadline expressed in absolute
+ * time and makes the thread real-time and scheduled with EDF instead of RR.
+ * This scheduler will always schedule real-time threads before non-real-time
+ * threads, the RR scheduler only works when all real-time threads are blocked.
+ * Since deadlines are absolute times, a thread must constantly update the
+ * deadline value by calling Thread::setPriority() as soon as it has completed
+ * its workload (hopefully the task pool is schedulable, and this will occur
+ * before the deadline expired).
+ * This approach can flexibly support periodic tasks (deadline is updated at
+ * every period to be the end of the next period), aperiodic tasks (just change
+ * the period on-the-fly when updating the deadline), sporadic tasks (usually
+ * waiting for an event, when the event arrives, they are woken and a deadline
+ * is set) as well as threads that switch between real-time and non-real-time
+ * (just calling Thread::setPriority(DEFAULT_PRIORITY) will switch the thread
+ * from being a real-time thread to a non-real-time one).
+ * Unlike other operating systems, the EDF scheduler in Miosix will never
+ * preempt the thread with the earliest deadline, even if the deadline is missed
+ * and now in the past. A thread waking up with a deadline in the past will
+ * also be scheduled immediately (unless another thread with a deadline even
+ * more in the past is running). This design makes it possible to use EDF beyond
+ * periodic tasks, but an off-line schedulability analysis is suggested to make
+ * sure the task pool is schedulable.
+ */
+
+#ifdef WITH_SMP
+void EDFScheduler::IRQrunScheduler(unsigned char coreId)
+{
+#else //WITH_SMP
 void EDFScheduler::IRQrunScheduler()
 {
-    #ifdef WITH_CPU_TIME_COUNTER
-    Thread *prev=const_cast<Thread*>(runningThread);
-    #endif // WITH_CPU_TIME_COUNTER
-    
-    // Try to find a ready RT task first
-    Thread *walk=head;
-    int selected=0;
-    while(walk!=nullptr)
+    constexpr int coreId=0;
+#endif //WITH_SMP
+    // If the previously running thread is not idle, we need to put it in a list
+    Thread *prev=const_cast<Thread*>(runningThreads[coreId]);
+    if(prev!=idle[coreId])
     {
-        if(walk->flags.isReady())
-        {
-            selected=1;
-            break;
-        }
-        walk=walk->schedData.next;
+        // NOTE: notReadyThreads must be pushed back if deleted, front if not
+        if(prev->flags.isZombie()) notReadyThreads.push_back(prev);
+        else if(prev->flags.isReady()==false) notReadyThreads.push_front(prev);
+        else if(prev->schedData.deadline.get()==numeric_limits<long long>::max()-2)
+            readyRrThreads.enqueue(prev);
+        else readyEdfThreads.enqueue(prev);
     }
 
-    // If no RT tasks are ready, check NRT tasks (round-robin list)
-    if(headNRT != nullptr && selected == 0)
-    {
-        Thread *start = headNRT;
-        do {
-            if(headNRT->flags.isReady())
-            {
-                walk = headNRT;
-                headNRT = headNRT->schedData.next; // Round-robin: move to next
-                selected = 1;
-                break;
-            }
-            headNRT = headNRT->schedData.next;
-        } while(headNRT != start);
-    }
+    // Try to find a ready real-time thread first
+    Thread *next=readyEdfThreads.dequeueOne();
 
-    // If no RT or NRT tasks are ready, run the idle thread
-    if(idle != nullptr && selected == 0)
-    {
-        walk = idle;
-        selected = 1;
-    } 
+    //If not found, try to find a ready non-real-time
+    if(next==nullptr) next=readyRrThreads.dequeueOne();
 
-    // if no RT, NRT or idle is available, Error (should never happen)
-    if(selected == 0) errorHandler(Error::UNEXPECTED);
-   
+    //Otherwise, run idle
+    if(next==nullptr) next=idle[coreId];
 
-    runningThreads[0] = walk;
-
+    runningThreads[coreId]=next;
     #ifdef WITH_PROCESSES
-    if(const_cast<Thread*>(runningThread)->flags.isInUserspace() == false)
+    if(next->flags.isInUserspace()==false)
     {
-        ctxsave[0]=runningThread->ctxsave;
+        ctxsave[coreId]=next->ctxsave;
         MPUConfiguration::IRQdisable();
     } else {
-        ctxsave[0]=runningThread->userCtxsave;
+        ctxsave[coreId]=next->userCtxsave;
         //A kernel thread is never in userspace, so the cast is safe
-        static_cast<Process*>(runningThread->proc)->mpu.IRQenable();
+        static_cast<Process*>(next->proc)->mpu.IRQenable();
     }
-    #else // WITH_PROCESSES
-    ctxsave[0]=runningThreads[0]->ctxsave;
-    #endif // WITH_PROCESSES
-
-    IRQsetNextPreemption(const_cast<Thread*>(runningThreads[0])->schedData.deadline.get());
-
-    #ifdef WITH_CPU_TIME_COUNTER
-    CPUTimeCounter::IRQprofileContextSwitch(prev,walk->timeCounterData,IRQgetTime(),0);
-    #endif // WITH_CPU_TIME_COUNTER
+    #else //WITH_PROCESSES
+    ctxsave[coreId]=next->ctxsave;
+    #endif //WITH_PROCESSES
+    #ifndef WITH_CPU_TIME_COUNTER
+    IRQcomputePreemption(coreId,next->schedData.deadline.get());
+    #else //WITH_CPU_TIME_COUNTER
+    auto now=IRQcomputePreemption(coreId,next->schedData.deadline.get());
+    CPUTimeCounter::IRQprofileContextSwitch(prev,next,now,coreId);
+    #endif //WITH_CPU_TIME_COUNTER
 }
 
-void EDFScheduler::IRQsetNextPreemption(long long currentDeadline)
+long long EDFScheduler::IRQcomputePreemption(int coreId, long long currentDeadline)
 {
-    long long first;
-    if(sleepingList.empty()) first = std::numeric_limits<long long>::max();
-    else first = sleepingList.front()->wakeupTime;
+    long long firstWakeup;
+    if(sleepingList.empty()) firstWakeup=numeric_limits<long long>::max();
+    else firstWakeup=sleepingList.front()->wakeupTime;
 
-    if(currentDeadline != std::numeric_limits<long long>::max() - 2)
+    long long t=IRQgetTime(), nextPreempt;
+    // Real-time threads (and idle), have no time slice
+    if(currentDeadline!=std::numeric_limits<long long>::max()-2)
+        nextPreempt=numeric_limits<long long>::max();
+    else nextPreempt=t+MAX_TIME_SLICE;
+
+    // We could avoid setting an interrupt if the sleeping list is empty and
+    // runningThreads[coreId] is idle but there's no such hurry to run idle
+    // anyway, so why bother?
+    #ifdef WITH_SMP
+    if(coreId!=WAKEUP_HANDLING_CORE)
     {
-        // RT task (and idle), have no time slice, preempt at next task wakeup
-        nextPreemptionWakeupCore = first;
+        // IRQosTimerSetPreemption is to be used by all cores that are not
+        // WAKEUP_HANDLING_CORE
+        IRQosTimerSetPreemption(nextPreempt);
+        // NOTE: even if we're not on the WAKEUP_HANDLING_CORE, the thread we
+        // just preempted may have started a sleep whose wakeup is earlier than
+        // any other sleep, thus we should check and modify the preemption of
+        // the WAKEUP_HANDLING_CORE
+        if(firstWakeup<nextPreemptionWakeupCore)
+            IRQosTimerSetInterrupt(firstWakeup);
     } else {
-        // NRT task, set preemption based on time slice and next task wakeup
-        nextPreemptionWakeupCore = std::min(first, IRQgetTime() + MAX_TIME_SLICE);
+        nextPreemptionWakeupCore=nextPreempt;
+        IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
     }
-
-    IRQosTimerSetInterrupt(nextPreemptionWakeupCore);
-}
-
-void EDFScheduler::add(Thread *thread)
-{
-
-    long long newDeadline=thread->schedData.deadline.get();
-
-    if(newDeadline == std::numeric_limits<long long>::max()-2) // NRT tasks
-    {
-        if(headNRT==nullptr)
-        {
-            headNRT=thread;
-            thread->schedData.next=thread;//Circular list
-        } else {
-            thread->schedData.next=headNRT->schedData.next;
-            headNRT->schedData.next=thread;
-        }
-
-        return;
-
-    } else if(newDeadline < std::numeric_limits<long long>::max()-2) // RT Tasks
-    {
-        if(head==nullptr)
-        {
-            thread->schedData.next=nullptr;
-            head=thread;
-            return;
-        }
-        if(newDeadline<=head->schedData.deadline.get())
-        {
-            thread->schedData.next=head;
-            head=thread;
-
-            return;
-        }
-        Thread *walk=head;
-        for(;;)
-        {
-            if(walk->schedData.next==nullptr || newDeadline<=
-            walk->schedData.next->schedData.deadline.get())
-            {
-                thread->schedData.next=walk->schedData.next;
-                walk->schedData.next=thread;
-                break;
-            }
-            walk=walk->schedData.next;
-        }
-    }
-
-}
-
-void EDFScheduler::remove(Thread *thread)
-{
-    long long deadline = thread->schedData.deadline.get();
-
-    if(deadline == std::numeric_limits<long long>::max() - 2) // NRT tasks
-    {
-        if(headNRT == nullptr) errorHandler(Error::UNEXPECTED);
-
-        if(headNRT == thread)
-        {
-            if(headNRT->schedData.next == headNRT)
-            {
-                // Only one element in the circular list
-                headNRT = nullptr;
-            } else {
-                Thread *tail = headNRT;
-                while(tail->schedData.next != headNRT)
-                {
-                    tail = tail->schedData.next;
-                }
-                headNRT = headNRT->schedData.next;
-                tail->schedData.next = headNRT;
-            }
-            return;
-        }
-
-        Thread *walk = headNRT;
-        for(;;)
-        {
-            if(walk->schedData.next == headNRT) errorHandler(Error::UNEXPECTED);
-            if(walk->schedData.next == thread)
-            {
-                walk->schedData.next = walk->schedData.next->schedData.next;
-                break;
-            }
-            walk = walk->schedData.next;
-        }
-    }
-    else // RT tasks
-    {
-        if(head == nullptr) errorHandler(Error::UNEXPECTED);
-        if(head == thread)
-        {
-            head = head->schedData.next;
-            return;
-        }
-
-        Thread *walk = head;
-        for(;;)
-        {
-            if(walk->schedData.next == nullptr) errorHandler(Error::UNEXPECTED);
-            if(walk->schedData.next == thread)
-            {
-                walk->schedData.next = walk->schedData.next->schedData.next;
-                break;
-            }
-            walk = walk->schedData.next;
-        }
-    }
+    #else //WITH_SMP
+    nextPreemptionWakeupCore=nextPreempt;
+    IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
+    #endif //WITH_SMP
+    return t;
 }
 
 long long EDFScheduler::nextPreemptionWakeupCore=numeric_limits<long long>::max();
-Thread *EDFScheduler::head=nullptr;
-Thread *EDFScheduler::headNRT=nullptr;
-Thread *EDFScheduler::idle=nullptr;
+TimeSortedQueue<Thread,EDFScheduler::GetTime> EDFScheduler::readyEdfThreads;
+FifoQueue<Thread> EDFScheduler::readyRrThreads;
+IntrusiveList<Thread> EDFScheduler::notReadyThreads;
+Thread *EDFScheduler::idle[CPU_NUM_CORES]={nullptr};
 
 } //namespace miosix
 
