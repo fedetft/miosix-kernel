@@ -243,23 +243,24 @@ template <class SPI>
 unsigned char SPISD<SPI>::wait_ready() noexcept
 {
     unsigned char result;
-    // Backoff of 100us; do not use Thread::sleep, too few cycles
+    // Backoff of 10us; do not use Thread::sleep, too few cycles
     for(int i=0;i<10;i++)
     {
         result=spi_1_send(0xff);
         if(result==0xff) return 0xff;
-        delayUs(100);
+        delayUs(10);
     }
     unsigned int t=0;
-    while(t<=500) // Timeout ~500ms
+    while(t<=5000) // Timeout ~500ms
     {
         result=spi_1_send(0xff);
         if(result==0xff) return 0xff;
-        if(result!=0) { delayUs(100); continue; }
+        if(result!=0) { delayUs(10); continue; }
         // exponential backoff
-        if(t<10) { Thread::sleep(1); t+=1; }
-        else if(t<100) { Thread::sleep(10); t+=10; }
-        else { Thread::sleep(100); t+=100; }
+        if(t<10) { Thread::nanoSleep(1*100*1000); t+=1; } // 100us
+        else if(t<100) { Thread::nanoSleep(10*100*1000); t+=10; } // 1ms
+        else if(t<1000) { Thread::nanoSleep(100*100*1000); t+=100; } // 10ms
+        else  { Thread::nanoSleep(1000*100*1000); t+=1000; } // 100ms
     }
     dbgerr("Error: wait_ready() timeout\n");
     return 0;
