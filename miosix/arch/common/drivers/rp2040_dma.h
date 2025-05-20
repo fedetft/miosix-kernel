@@ -133,11 +133,11 @@ public:
 
 private:
     /// \internal Lazy initializer for the DMA reservation table
-    static void IRQinitialize(GlobalIrqLock& lock);
+    static void IRQinitialize(GlobalIrqLock& lock) noexcept;
 
     /// \internal Common interrupt handler for all channels
     template<unsigned int IrqId>
-    static void IRQinterruptHandler();
+    static void IRQinterruptHandler() noexcept;
 
     static bool initialized;
     static constexpr unsigned int numChannels=12;

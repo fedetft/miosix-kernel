@@ -71,7 +71,7 @@ void RP2040Dma::IRQunregisterChannel(GlobalIrqLock& lock, unsigned int channel,
     irqEntries[channel].arg=0;
 }
 
-void RP2040Dma::IRQinitialize(GlobalIrqLock& lock)
+void RP2040Dma::IRQinitialize(GlobalIrqLock& lock) noexcept
 {
     unreset_block_wait(RESETS_RESET_DMA_BITS);
     IRQregisterIrq(lock,DMA_IRQ_0_IRQn,&IRQinterruptHandler<0>);
@@ -80,7 +80,7 @@ void RP2040Dma::IRQinitialize(GlobalIrqLock& lock)
 }
 
 template<unsigned int IrqId>
-void RP2040Dma::IRQinterruptHandler()
+void RP2040Dma::IRQinterruptHandler() noexcept
 {
     FastGlobalLockFromIrq lock;
     io_rw_32 *status;

@@ -47,13 +47,13 @@ class SPISD: public Device
 {
 public:
     // Constructor
-    SPISD(SPI& spi, GpioPin cs);
+    SPISD(SPI& spi, GpioPin cs) noexcept;
     
-    virtual ssize_t readBlock(void *buffer, size_t size, off_t where);
+    virtual ssize_t readBlock(void *buffer, size_t size, off_t where) noexcept;
     
-    virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where);
+    virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where) noexcept;
     
-    virtual int ioctl(int cmd, void *arg);
+    virtual int ioctl(int cmd, void *arg) noexcept;
 private:
     //Note: enabling debugging might cause deadlock when using sleep() or reboot()
     //The bug won't be fixed because debugging is only useful for driver development
@@ -61,7 +61,7 @@ private:
     ///When set to 2, enables debug messages as well.
     static const int dbgLevel=0;
     ///\internal Debug macro, for normal conditions
-    static inline void dbg(const char *fmt, ...)
+    static inline void dbg(const char *fmt, ...) noexcept
     {
         if(dbgLevel<2) return;
         va_list arg;
@@ -70,7 +70,7 @@ private:
         va_end(arg);
     }
     ///\internal Debug macro, for errors only
-    static inline void dbgerr(const char *fmt, ...)
+    static inline void dbgerr(const char *fmt, ...) noexcept
     {
         if(dbgLevel<1) return;
         va_list arg;
@@ -79,21 +79,21 @@ private:
         va_end(arg);
     }
 
-    static void print_error_code(unsigned char value);
+    static void print_error_code(unsigned char value) noexcept;
 
-    void CS_HIGH() { cs.high(); }
-    void CS_LOW() { cs.low(); }
+    void CS_HIGH() noexcept { cs.high(); }
+    void CS_LOW() noexcept { cs.low(); }
     
-    unsigned char spi_1_send(unsigned char outgoing)
+    unsigned char spi_1_send(unsigned char outgoing) noexcept
     {
         return spi.sendRecv(outgoing);
     }
 
-    char sd_status();
-    unsigned char wait_ready();
-    unsigned char send_cmd(unsigned char cmd, unsigned int arg);
-    bool rx_datablock(unsigned char *buf, unsigned int btr);
-    bool tx_datablock(const unsigned char *buf, unsigned char token);
+    char sd_status() noexcept;
+    unsigned char wait_ready() noexcept;
+    unsigned char send_cmd(unsigned char cmd, unsigned int arg) noexcept;
+    bool rx_datablock(unsigned char *buf, unsigned int btr) noexcept;
+    bool tx_datablock(const unsigned char *buf, unsigned char token) noexcept;
 
     /*
     * Definitions for MMC/SDC command.
@@ -143,7 +143,7 @@ private:
  * Used for debugging, print 8 bit error code from SD card
  */
 template <class SPI>
-void SPISD<SPI>::print_error_code(unsigned char value)
+void SPISD<SPI>::print_error_code(unsigned char value) noexcept
 {
     switch(value)
     {
@@ -179,7 +179,7 @@ void SPISD<SPI>::print_error_code(unsigned char value)
  * Return 1 if card is OK, otherwise print 16 bit error code from SD card
  */
 template <class SPI>
-char SPISD<SPI>::sd_status()
+char SPISD<SPI>::sd_status() noexcept
 {
     short value=send_cmd(CMD13,0);
     value<<=8;
@@ -240,7 +240,7 @@ char SPISD<SPI>::sd_status()
  * Wait until card is ready
  */
 template <class SPI>
-unsigned char SPISD<SPI>::wait_ready()
+unsigned char SPISD<SPI>::wait_ready() noexcept
 {
     unsigned char result;
     // Backoff of 100us; do not use Thread::sleep, too few cycles
@@ -274,7 +274,7 @@ unsigned char SPISD<SPI>::wait_ready()
  * can continue reading the response with spi_1_send(0xff)
  */
 template <class SPI>
-unsigned char SPISD<SPI>::send_cmd(unsigned char cmd, unsigned int arg)
+unsigned char SPISD<SPI>::send_cmd(unsigned char cmd, unsigned int arg) noexcept
 {
     unsigned char n, res;
     if(cmd & 0x80)
@@ -324,7 +324,7 @@ unsigned char SPISD<SPI>::send_cmd(unsigned char cmd, unsigned int arg)
  * \return true on success, false on failure
  */
 template <class SPI>
-bool SPISD<SPI>::rx_datablock(unsigned char *buf, unsigned int btr)
+bool SPISD<SPI>::rx_datablock(unsigned char *buf, unsigned int btr) noexcept
 {
     unsigned char token;
     for(int i=0;i<0xffff;i++)
@@ -349,7 +349,7 @@ bool SPISD<SPI>::rx_datablock(unsigned char *buf, unsigned int btr)
  * \return true on success, false on failure
  */
 template <class SPI>
-bool SPISD<SPI>::tx_datablock(const unsigned char *buf, unsigned char token)
+bool SPISD<SPI>::tx_datablock(const unsigned char *buf, unsigned char token) noexcept
 {
     unsigned char resp;
     if(wait_ready()!=0xff) return false;
@@ -368,7 +368,7 @@ bool SPISD<SPI>::tx_datablock(const unsigned char *buf, unsigned char token)
 }
 
 template <class SPI>
-ssize_t SPISD<SPI>::readBlock(void* buffer, size_t size, off_t where)
+ssize_t SPISD<SPI>::readBlock(void* buffer, size_t size, off_t where) noexcept
 {
     if(where % 512 || size % 512) return -EFAULT;
     unsigned int lba=where/512;
@@ -419,7 +419,7 @@ ssize_t SPISD<SPI>::readBlock(void* buffer, size_t size, off_t where)
 }
 
 template <class SPI>
-ssize_t SPISD<SPI>::writeBlock(const void* buffer, size_t size, off_t where)
+ssize_t SPISD<SPI>::writeBlock(const void* buffer, size_t size, off_t where) noexcept
 {
     if(where % 512 || size % 512) return -EFAULT;
     unsigned int lba=where/512;
@@ -470,7 +470,7 @@ ssize_t SPISD<SPI>::writeBlock(const void* buffer, size_t size, off_t where)
 }
 
 template <class SPI>
-int SPISD<SPI>::ioctl(int cmd, void* arg)
+int SPISD<SPI>::ioctl(int cmd, void* arg) noexcept
 {
     dbg("%s\n",__PRETTY_FUNCTION__);
     if(cmd!=IOCTL_SYNC) return -ENOTTY;
@@ -483,7 +483,7 @@ int SPISD<SPI>::ioctl(int cmd, void* arg)
 }
 
 template <class SPI>
-SPISD<SPI>::SPISD(SPI& spi, GpioPin cs) : Device(Device::BLOCK), spi(spi), cs(cs)
+SPISD<SPI>::SPISD(SPI& spi, GpioPin cs) noexcept : Device(Device::BLOCK), spi(spi), cs(cs)
 {
     cs.high();
     cs.mode(Mode::OUTPUT);

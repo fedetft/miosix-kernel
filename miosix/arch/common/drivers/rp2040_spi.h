@@ -55,18 +55,18 @@ public:
      * \param ce Chip enable pin (optional).
      */
     RP2040PL022SPI(int number, unsigned int bitrate, bool spo, bool sph,
-                   GpioPin si, GpioPin so, GpioPin sck, GpioPin ce);
+                   GpioPin si, GpioPin so, GpioPin sck, GpioPin ce) noexcept;
     /**
      * Destructor.
      */
-    ~RP2040PL022SPI();
+    ~RP2040PL022SPI() noexcept;
 
     /**
      * Changes the current serial clock to the specified one.
      * \param The clock rate to be programmed in Hz. This is an upper bound;
      * the actual clock rate might be lower.
      */
-    void setBitrate(unsigned int bitrate);
+    void setBitrate(unsigned int bitrate) noexcept;
 
     /**
      * Send and receive a single word.
@@ -80,7 +80,7 @@ public:
      * By default it is 8 bits.
      * \returns The data coming back from the SI pin.
      */
-    unsigned short sendRecv(unsigned short data, unsigned wordSize=8);
+    unsigned short sendRecv(unsigned short data, unsigned wordSize=8) noexcept;
 
     /**
      * Send and receive a string of words.
@@ -95,8 +95,8 @@ public:
      * expects.
      * By default it is 8 bits.
      */
-    void sendRecv(const unsigned short send[], unsigned short recv[], size_t len, unsigned wordSize=8);
-    void sendRecv(const unsigned char send[], unsigned char recv[], size_t len, unsigned wordSize=8);
+    void sendRecv(const unsigned short send[], unsigned short recv[], size_t len, unsigned wordSize=8) noexcept;
+    void sendRecv(const unsigned char send[], unsigned char recv[], size_t len, unsigned wordSize=8) noexcept;
 
     /**
      * Send a string of words, ignoring the response being trasmitted back.
@@ -109,8 +109,8 @@ public:
      * expects.
      * By default it is 8 bits.
      */
-    void send(const unsigned short send[], size_t len, unsigned wordSize=8);
-    void send(const unsigned char send[], size_t len, unsigned wordSize=8);
+    void send(const unsigned short send[], size_t len, unsigned wordSize=8) noexcept;
+    void send(const unsigned char send[], size_t len, unsigned wordSize=8) noexcept;
 
     /**
      * Receive a string of words, while repeatedly sending the same data.
@@ -125,20 +125,20 @@ public:
      * \param sendDummy Word to be sent to keep the transmission going and
      * the clock clocking.
      */
-    void recv(unsigned short recv[], size_t len, unsigned wordSize=8, unsigned short sendDummy=0xFFFF);
-    void recv(unsigned char recv[], size_t len, unsigned wordSize=8, unsigned short sendDummy=0xFF);
+    void recv(unsigned short recv[], size_t len, unsigned wordSize=8, unsigned short sendDummy=0xFFFF) noexcept;
+    void recv(unsigned char recv[], size_t len, unsigned wordSize=8, unsigned short sendDummy=0xFF) noexcept;
     
 private:
-    void IRQhandleInterrupt();
-    void IRQhandleDmaInterrupt();
+    void IRQhandleInterrupt() noexcept;
+    void IRQhandleDmaInterrupt() noexcept;
 
-    void setWordSize(unsigned int wordSize);
+    void setWordSize(unsigned int wordSize) noexcept;
     template<typename D>
-    void sendRecvImpl(const D send[], D recv[], size_t len, unsigned wordSize);
+    void sendRecvImpl(const D send[], D recv[], size_t len, unsigned wordSize) noexcept;
     template<typename D>
-    void sendImpl(const D send[], size_t len, unsigned wordSize);
+    void sendImpl(const D send[], size_t len, unsigned wordSize) noexcept;
     template<typename D>
-    void recvImpl(D recv[], size_t len, unsigned wordSize, D sendDummy);
+    void recvImpl(D recv[], size_t len, unsigned wordSize, D sendDummy) noexcept;
     
     spi_hw_t *spi;
     Thread *waiting=nullptr;
