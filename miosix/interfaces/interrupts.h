@@ -193,8 +193,9 @@ inline void IRQregisterIrq(GlobalIrqLock& lock, unsigned int id, void (*handler)
  * \param id platform-dependent id of the peripheral for which the handler has
  * to be registered.
  * \param mfn member function pointer to the class method to be registered as
- * interrupt handler. The method shall take no paprameters.
- * \param object class intance whose methos shall be called as interrupt hanlder.
+ * interrupt handler. The method shall take no parameters.
+ * \param object class instance whose methods shall be called as interrupt
+ * handler.
  *
  * \note This function calls errorHandler() causing a reboot if attempting to
  * register an already registered interrupt. If your driver can tolerate failing
@@ -217,10 +218,10 @@ inline void IRQregisterIrq(GlobalIrqLock& lock, unsigned int id, void (T::*mfn)(
  * registering the IRQ, the function's behavior is undefined.
  * \param id platform-dependent id of the peripheral for which the handler has
  * to be unregistered.
- * \param handler pointer to the handler function of type void (*)(void*)
- * \param arg optional void* argument. This argument is stored in the interrupt
- * handling logic and passed as-is whenever the interrupt handler is called.
- * If omitted, the handler function is called with nullptr as argument.
+ * \param handler pointer to the currently registered handler function of type
+ * void (*)(void*)
+ * \param arg optional void* argument previously specified when registering
+ * the handler.
  *
  * \note This function calls errorHandler() causing a reboot if attempting to
  * unregister a different interrupt than the currently registered one
@@ -234,10 +235,10 @@ void IRQunregisterIrqOnCore(GlobalIrqLock& lock, unsigned char coreId,
  * \param lock a GlobalIrqLock (GIL) lock that must be already taken here.
  * \param id platform-dependent id of the peripheral for which the handler has
  * to be unregistered.
- * \param handler pointer to the handler function of type void (*)(void*)
- * \param arg optional void* argument. This argument is stored in the interrupt
- * handling logic and passed as-is whenever the interrupt handler is called.
- * If omitted, the handler function is called with nullptr as argument.
+ * \param handler pointer to the currently registered handler function of type
+ * void (*)(void*)
+ * \param arg optional void* argument previously specified when registering
+ * the handler.
  *
  * \note This function calls errorHandler() causing a reboot if attempting to
  * unregister a different interrupt than the currently registered one
@@ -258,7 +259,8 @@ void IRQunregisterIrq(GlobalIrqLock& lock, unsigned int id,
  * \param lock a GlobalIrqLock (GIL) lock that must be already taken here.
  * \param id platform-dependent id of the peripheral for which the handler has
  * to be registered.
- * \param handler pointer to the handler function of type void (*)()
+ * \param handler pointer to the currently registered handler function of type
+ * void (*)()
  *
  * \note This function calls errorHandler() causing a reboot if attempting to
  * unregister a different interrupt than the currently registered one
@@ -273,9 +275,10 @@ inline void IRQunregisterIrq(GlobalIrqLock& lock, unsigned int id, void (*handle
  * \param lock a GlobalIrqLock (GIL) lock that must be already taken here.
  * \param id platform-dependent id of the peripheral for which the handler has
  * to be registered.
- * \param mfn member function pointer to the class method to be registered as
- * interrupt handler. The method shall take no paprameters.
- * \param object class intance whose methos shall be called as interrupt hanlder.
+ * \param mfn member function pointer to the class method that has been
+ * previously registered as interrupt handler.
+ * \param object class instance previously specified to be used for invoking the
+ * member function.
  *
  * \note This function calls errorHandler() causing a reboot if attempting to
  * unregister a different interrupt than the currently registered one
