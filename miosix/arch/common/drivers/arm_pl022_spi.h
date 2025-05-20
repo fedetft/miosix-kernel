@@ -27,60 +27,38 @@
 
 #pragma once
 
-#include "interfaces/arch_registers.h"
-#include "interfaces/gpio.h"
 #include "kernel/thread.h"
 #include "kernel/lock.h"
-#include "arm_pl022_spi.h"
 
 namespace miosix {
 
 /**
- * RP2040 no DMA driver for the PL022 SPI hardware. Master mode only.
+ * Vendor-independent driver for the ARM PL022 SPI hardware. Master mode only.
  */
-class RP2040PL022SPINoDma: public PL022SPI
-{
-public:
-    RP2040PL022SPINoDma(int number, unsigned int bitrate, bool spo, bool sph,
-        GpioPin si, GpioPin so, GpioPin sck, GpioPin ce) noexcept
-            : PL022SPI(getBase(number),getIrqn(number))
-    {
-        GlobalIrqLock lock;
-        switch(number)
-        {
-            case 0:
-                unreset_block_wait(RESETS_RESET_SPI0_BITS);
-                break;
-            case 1:
-                unreset_block_wait(RESETS_RESET_SPI1_BITS);
-                break;
-            default:
-                errorHandler(Error::UNEXPECTED);
-        }
-        initialize(bitrate,spo,sph);
-        si.function(Function::SPI); si.mode(Mode::INPUT); si.fast();
-        so.function(Function::SPI); so.mode(Mode::OUTPUT); so.fast();
-        sck.function(Function::SPI); sck.mode(Mode::OUTPUT); sck.fast();
-        if (ce.isValid())
-        {
-            ce.function(Function::SPI); ce.mode(Mode::OUTPUT); ce.fast();
-        }
-    }
-
-private:
-    static void *getBase(int n) { return reinterpret_cast<void*>(n==0 ? spi0_hw : spi1_hw); }
-    static unsigned int getIrqn(int n) { return n==0 ? SPI0_IRQ_IRQn : SPI1_IRQ_IRQn; }
-};
-
-/**
- * RP2040 DMA-enabled driver for the PL022 SPI hardware. Master mode only.
- */
-class RP2040PL022SPI
+class PL022SPI
 {
 public:
     /**
      * Constructor.
-     * \param number The ID of the peripheral (0 or 1)
+     * \param base Base address of the memory mapped register bank of the
+     * peripheral.
+     * \param irqn The IRQ number for the peripheral, or a negative number if
+     * there is no IRQ available.
+     * 
+     * \note Since this peripheral class is vendor-independent, it cannot
+     * take the peripheral out of reset or configure the GPIOs. This must be
+     * done in a vendor-dependent way outside of this class. Once this is
+     * done, you must call the initialize() method before using the peripheral.
+     */
+    PL022SPI(void *base, int irqn) noexcept : spi(reinterpret_cast<Regs*>(base)), irqn(irqn) { }
+
+    /**
+     * Destructor.
+     */
+    ~PL022SPI() noexcept;
+
+    /**
+     * Initialize the hardware.
      * \param bitrate Initially configured serial clock frequency upper bound in
      * Hz. The actual clock rate programmed might be lower.
      * \param spo Clock polarity. `false' keeps the SCK pin low when the line is
@@ -88,17 +66,8 @@ public:
      * \param sph Clock phase. `false' if data in/out must be sampled at the
      * rising edge of the clock, `true' if it must be sampled at the falling
      * edge.
-     * \param si Serial in pin.
-     * \param so Serial out pin.
-     * \param sck Serial clock pin.
-     * \param ce Chip enable pin (optional).
      */
-    RP2040PL022SPI(int number, unsigned int bitrate, bool spo, bool sph,
-                   GpioPin si, GpioPin so, GpioPin sck, GpioPin ce) noexcept;
-    /**
-     * Destructor.
-     */
-    ~RP2040PL022SPI() noexcept;
+    void initialize(unsigned int bitrate, bool spo, bool sph) noexcept;
 
     /**
      * Changes the current serial clock to the specified one.
@@ -168,8 +137,73 @@ public:
     void recv(unsigned char recv[], size_t len, unsigned wordSize=8, unsigned short sendDummy=0xFF) noexcept;
     
 private:
+    /// \private Hardware register definition
+    /// Not using the arch_registers definitions because they might change from
+    /// vendor to vendor.
+    struct Regs
+    {
+        struct Field
+        {
+            Field(unsigned char lsb, unsigned char msb) : lsb(lsb), msb(msb) {}
+            unsigned int mask() { return ((1<<(1+msb-lsb))-1) << lsb; } 
+            unsigned int get(unsigned int v) { return (v & mask()) >> lsb; }
+            unsigned int put(unsigned int v, unsigned int old=0)
+            {
+                return (old & ~mask()) | ((v << lsb) & mask());
+            }
+            const unsigned char lsb, msb;
+        };
+
+        volatile unsigned int CR0;
+        static inline Field CR0_DSS() { return Field(0,3); }
+        static inline Field CR0_FRF() { return Field(4,5); }
+        static inline Field CR0_SPO() { return Field(6,6); }
+        static inline Field CR0_SPH() { return Field(7,7); }
+        static inline Field CR0_SCR() { return Field(8,15); }
+
+        volatile unsigned int CR1;
+        static inline Field CR1_LBM() { return Field(0,0); }
+        static inline Field CR1_SSE() { return Field(1,1); }
+        static inline Field CR1_MS()  { return Field(2,2); }
+        static inline Field CR1_SOD() { return Field(3,3); }
+
+        volatile unsigned int DR;
+
+        volatile unsigned int SR;
+        /// Transmit FIFO empty
+        static inline Field SR_TFE() { return Field(0,0); }
+        /// Transmit FIFO not full
+        static inline Field SR_TNF() { return Field(1,1); }
+        /// Receive FIFO not empty
+        static inline Field SR_RNE() { return Field(2,2); }
+        /// Receive FIFO full
+        static inline Field SR_RFF() { return Field(3,3); }
+        /// Peripheral busy transmitting/receiving
+        static inline Field SR_BSY() { return Field(4,4); }
+
+        volatile unsigned int CPSR;
+
+        volatile unsigned int IMSC;
+        volatile unsigned int RIS;
+        volatile unsigned int MIS;
+        volatile unsigned int ICR;
+        /// Receive FIFO overflow
+        static inline Field INT_RO() { return Field(0,0); }
+        /// Receive timeout (line idle)
+        static inline Field INT_RT() { return Field(1,1); }
+        /// There are four or more valid entries in the receive FIFO
+        static inline Field INT_RX() { return Field(2,2); }
+        /// There are four or fewer valid entries in the transmit FIFO
+        static inline Field INT_TX() { return Field(3,3); }
+
+        volatile unsigned int DMACR;
+        static inline Field DMACR_RXDMAE() { return Field(0,0); }
+        static inline Field DMACR_TXDMAE() { return Field(1,1); }
+    };
+
     void IRQhandleInterrupt() noexcept;
-    void IRQhandleDmaInterrupt() noexcept;
+    void waitForInterrupt(unsigned int flag) noexcept;
+    void waitForEndTransfer() noexcept;
 
     void setWordSize(unsigned int wordSize) noexcept;
     template<typename D>
@@ -179,11 +213,10 @@ private:
     template<typename D>
     void recvImpl(D recv[], size_t len, unsigned wordSize, D sendDummy) noexcept;
     
-    spi_hw_t *spi;
+    Regs *spi;
+    const int irqn;
     Thread *waiting=nullptr;
-    GpioPin so;
     unsigned int bitrate;
-    unsigned char txDmaCh, rxDmaCh;
 };
 
 } // namespace miosix

@@ -25,11 +25,10 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "rp2040_spi.h"
 #include "config/miosix_settings.h"
-#include "rp2040_dma.h"
-#include "kernel/lock.h"
 #include "kernel/logging.h"
+#include "rp2040_spi.h"
+#include "rp2040_dma.h"
 
 namespace miosix {
 

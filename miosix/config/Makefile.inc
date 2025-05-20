@@ -3420,6 +3420,7 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
     arch/common/os_timer/rp2040_os_timer.cpp                 \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/drivers/rp2040_serial.cpp                    \
+	arch/common/drivers/arm_pl022_spi.cpp                    \
     arch/common/drivers/rp2040_spi.cpp                       \
     arch/common/drivers/rp2040_dma.cpp                       \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
