@@ -56,7 +56,9 @@ public:
     /**
      * Reserve a DMA channel and registers an interrupt handler for it.
      * \param lock a GlobalIrqLock (GIL) lock that must be already taken here
-     * \param handler pointer to the handler function of type void (*)(void*)
+     * \param handler pointer to the handler function of type void (*)(void*).
+     * The handler will be called with the GIL already fully locked (this is
+     * different than what is required in handlers registered by IRQregisterIrq)
      * \param arg optional void* argument. This argument is stored in the
      * interrupt handling logic and passed as-is whenever the interrupt handler
      * is called. If omitted, the handler function is called with nullptr as
@@ -75,6 +77,8 @@ public:
      * \param lock a GlobalIrqLock (GIL) lock that must be already taken here
      * \param mfn member function pointer to the class method to be registered
      * as interrupt handler. The method shall take no parameters.
+     * The handler will be called with the GIL already fully locked (this is
+     * different than what is required in handlers registered by IRQregisterIrq)
      * \param object class instance whose methods shall be called as interrupt
      * handler.
      * \returns the ID of the DMA channel that has been reserved.

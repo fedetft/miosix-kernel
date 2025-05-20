@@ -118,7 +118,7 @@ void RP2040PL022SPI::IRQhandleInterrupt()
 
 void RP2040PL022SPI::IRQhandleDmaInterrupt()
 {
-    FastGlobalLockFromIrq lock;
+    // We do not take the GIL because the DMA code already did
     spi->imsc=0;
     if(waiting)
     {

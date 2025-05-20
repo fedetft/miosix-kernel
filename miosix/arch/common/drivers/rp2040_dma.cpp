@@ -82,6 +82,7 @@ void RP2040Dma::IRQinitialize(GlobalIrqLock& lock)
 template<unsigned int IrqId>
 void RP2040Dma::IRQinterruptHandler()
 {
+    FastGlobalLockFromIrq lock;
     io_rw_32 *status;
     if(IrqId==0) status=&dma_hw->ints0;
     else status=&dma_hw->ints1;
