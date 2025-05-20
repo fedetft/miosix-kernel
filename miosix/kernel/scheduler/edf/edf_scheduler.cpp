@@ -250,6 +250,30 @@ void EDFScheduler::IRQrunScheduler()
     auto now=IRQcomputePreemption(coreId,next->schedData.deadline.get());
     CPUTimeCounter::IRQprofileContextSwitch(prev,next,now,coreId);
     #endif //WITH_CPU_TIME_COUNTER
+
+    #ifdef WITH_SMP
+    // In case multiple tasks are woken at the same time, we may have to
+    // schedule more than one earlier deadline thread than currently running.
+    // When this happens, we need to call the scheduler again on more than
+    // one core.
+    long long secondEarliestDeadline=numeric_limits<long long>::max()-1;
+    if(readyEdfThreads.empty()==false)
+        secondEarliestDeadline=readyEdfThreads.front()->schedData.deadline.get();
+    else if(readyRrThreads.empty()==false)
+        secondEarliestDeadline=numeric_limits<long long>::max()-2;
+    if(secondEarliestDeadline!=numeric_limits<long long>::max()-1)
+    {
+        for(int c=0;c<CPU_NUM_CORES;c++)
+        {
+            if(secondEarliestDeadline<const_cast<Thread*>(runningThreads[c])->
+                schedData.deadline.get())
+            {
+                IRQinvokeSchedulerOnCore(c);
+                break;
+            }
+        }
+    }
+    #endif //WITH_SMP
 }
 
 long long EDFScheduler::IRQcomputePreemption(unsigned char coreId, long long currentDeadline)
