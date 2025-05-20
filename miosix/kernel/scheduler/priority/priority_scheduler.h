@@ -170,7 +170,7 @@ private:
      * \param runningIdleThread true if we're about to run the idle thread
      * \return the current time in nanoseconds
      */
-    static long long IRQcomputePreemption(int coreId, bool runningIdleThread);
+    static long long IRQcomputePreemption(unsigned char coreId, bool runningIdleThread);
 
     ///\internal On single core CPUs, end of time quantum (preemption) for the
     ///only core. On multi core CPUs, end of time quantum for WAKEUP_HANDLING_CORE

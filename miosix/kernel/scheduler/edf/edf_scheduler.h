@@ -170,7 +170,7 @@ private:
      * \param currentDeadline deadline of the thread that will be scheduled next
      * \return the current time in nanoseconds
      */
-    static long long IRQcomputePreemption(int coreId, long long currentDeadline);
+    static long long IRQcomputePreemption(unsigned char coreId, long long currentDeadline);
 
     ///\internal On single core CPUs, end of time quantum (preemption) for the
     ///only core. On multi core CPUs, end of time quantum for WAKEUP_HANDLING_CORE

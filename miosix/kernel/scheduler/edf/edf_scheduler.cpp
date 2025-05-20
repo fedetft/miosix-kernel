@@ -207,7 +207,7 @@ void EDFScheduler::IRQrunScheduler(unsigned char coreId)
 #else //WITH_SMP
 void EDFScheduler::IRQrunScheduler()
 {
-    constexpr int coreId=0;
+    constexpr unsigned char coreId=0;
 #endif //WITH_SMP
     // If the previously running thread is not idle, we need to put it in a list
     Thread *prev=const_cast<Thread*>(runningThreads[coreId]);
@@ -221,10 +221,10 @@ void EDFScheduler::IRQrunScheduler()
         else readyEdfThreads.enqueue(prev);
     }
 
-    // Try to find a ready real-time thread first
+    // Try to find a ready real-time thread first.
     Thread *next=readyEdfThreads.dequeueOne();
 
-    //If not found, try to find a ready non-real-time
+    // If not found, try to find a ready non-real-time thread
     if(next==nullptr) next=readyRrThreads.dequeueOne();
 
     //Otherwise, run idle
@@ -252,7 +252,7 @@ void EDFScheduler::IRQrunScheduler()
     #endif //WITH_CPU_TIME_COUNTER
 }
 
-long long EDFScheduler::IRQcomputePreemption(int coreId, long long currentDeadline)
+long long EDFScheduler::IRQcomputePreemption(unsigned char coreId, long long currentDeadline)
 {
     long long firstWakeup;
     if(sleepingList.empty()) firstWakeup=numeric_limits<long long>::max();

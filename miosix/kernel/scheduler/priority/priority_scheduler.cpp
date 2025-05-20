@@ -183,7 +183,7 @@ void PriorityScheduler::IRQrunScheduler(unsigned char coreId)
 #else //WITH_SMP
 void PriorityScheduler::IRQrunScheduler()
 {
-    constexpr int coreId=0;
+    constexpr unsigned char coreId=0;
 #endif //WITH_SMP
     //If the previously running thread is not idle, we need to put it in a list
     Thread *prev=const_cast<Thread*>(runningThreads[coreId]);
@@ -346,7 +346,7 @@ void PriorityScheduler::IRQrunScheduler()
     #endif //WITH_CPU_TIME_COUNTER
 }
 
-long long PriorityScheduler::IRQcomputePreemption(int coreId, bool runningIdleThread)
+long long PriorityScheduler::IRQcomputePreemption(unsigned char coreId, bool runningIdleThread)
 {
     long long firstWakeup;
     if(sleepingList.empty()) firstWakeup=numeric_limits<long long>::max();
