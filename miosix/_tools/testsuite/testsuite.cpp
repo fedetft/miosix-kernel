@@ -123,6 +123,9 @@ static void test_24();
 static void test_25();
 static void test_26();
 static void test_27();
+#if defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
+static void test_28();
+#endif //defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
 void testCacheAndDMA();
 #endif //_ARCH_CORTEXM7_STM32F7/H7
@@ -196,6 +199,9 @@ int main()
                 test_25();
                 test_26();
                 test_27();
+                #if defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
+                test_28();
+                #endif //defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
                 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
                 testCacheAndDMA();
                 #endif //_ARCH_CORTEXM7_STM32F7/H7
@@ -4147,6 +4153,76 @@ static void test_27()
     #endif
     pass();
 }
+
+#if defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
+
+void t28_t1(int core,int priority)
+{
+    #ifndef SCHED_TYPE_EDF
+    Thread::setPriority(priority);
+    #endif //SCHED_TYPE_EDF
+    Thread *t=Thread::getCurrentThread();
+    if(t->getAffinity()!=unrestrictedAffinityMask) fail("getAffinity");
+    if(t->setAffinity(0)==true) fail("setAffinity 1");
+    if(t->setAffinity(1<<core)==false) fail("setAffinity 2");
+    if(t->getAffinity()!=1<<core) fail("getAffinity");
+    //Check thread affinity is considered when preempting, sleeping, waiting
+    for(int i=0;i<5;i++)
+    {
+        if(getCurrentCoreId()!=core) fail("setAffinity 3");
+        delayMs(5);
+    }
+    if(t->getAffinity()!=1<<core) fail("getAffinity");
+    for(int i=0;i<5;i++)
+    {
+        if(getCurrentCoreId()!=core) fail("setAffinity 4");
+        Thread::sleep(5);
+    }
+    if(t->getAffinity()!=1<<core) fail("getAffinity");
+    for(int i=0;i<5;i++)
+    {
+        if(getCurrentCoreId()!=core) fail("setAffinity 5");
+        Thread::wait();
+    }
+    if(t->getAffinity()!=1<<core) fail("getAffinity");
+    if(t->setAffinity(unrestrictedAffinityMask)==false) fail("setAffinity 6");
+    if(t->getAffinity()!=unrestrictedAffinityMask) fail("getAffinity");
+}
+
+void t28_t2(list<thread> *threads)
+{
+    //Roughly wait until the threads get to the wait() part of the test
+    Thread::sleep(100);
+    //Wake threads up
+    while(!Thread::testTerminate())
+    {
+        Thread::sleep(5);
+        for(auto& t : *threads)
+            reinterpret_cast<Thread*>(t.native_handle())->wakeup();
+    }
+}
+
+static void test_28()
+{
+    test_name("Thread/core affinity");
+    #ifndef SCHED_TYPE_EDF
+    Thread::setPriority(2);
+    #endif //SCHED_TYPE_EDF
+    list<thread> threads;
+    thread waker(t28_t2,&threads);
+    //Priority 0 (if not EDF)
+    for(int i=0;i<CPU_NUM_CORES;i++) threads.push_back(thread(t28_t1,i,0));
+    //Priority 1 (if not EDF)
+    for(int i=0;i<CPU_NUM_CORES;i++) threads.push_back(thread(t28_t1,i,1));
+    for(auto& t : threads) t.join();
+    reinterpret_cast<Thread*>(waker.native_handle())->terminate();
+    waker.join();
+    #ifndef SCHED_TYPE_EDF
+    Thread::setPriority(0);
+    #endif //SCHED_TYPE_EDF
+    pass();
+}
+#endif //defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
 
 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
 static Thread *waiting=nullptr; /// Thread waiting on DMA completion IRQ
