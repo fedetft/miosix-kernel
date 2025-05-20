@@ -97,6 +97,7 @@ void PriorityScheduler::removeDeadThreads()
 void PriorityScheduler::IRQsetPriority(Thread *thread,
         PrioritySchedulerPriority newPriority)
 {
+    //if(thread->flags.isZombie()) errorHandler(Error::UNEXPECTED);
     // If thread is running it is not in any list, only change priority value
     for(int i=0;i<CPU_NUM_CORES;i++)
     {
@@ -106,16 +107,19 @@ void PriorityScheduler::IRQsetPriority(Thread *thread,
             return;
         }
     }
-    // Thread isn't running, remove the thread from its old list
-    if(thread->flags.isReady()==false) notReadyThreads.removeFast(thread);
-    else readyThreads[thread->schedData.priority.get()].removeFast(thread);
+    // If thread is not ready it will remain in the notReadyThreads list,
+    // only change priority value
+    if(thread->flags.isReady()==false)
+    {
+        thread->schedData.priority=newPriority;
+        return;
+    }
+    // Ready threads need to change list, remove the thread from its old list
+    readyThreads[thread->schedData.priority.get()].removeFast(thread);
     // Set priority to the new value
     thread->schedData.priority=newPriority;
     // Last insert the thread in the new list
-    // NOTE: notReadyThreads must be pushed front to keep invariant
-    //if(thread->flags.isZombie()) errorHandler(Error::UNEXPECTED);
-    if(thread->flags.isReady()==false) notReadyThreads.push_front(thread);
-    else readyThreads[newPriority.get()].push_back(thread);
+    readyThreads[newPriority.get()].push_back(thread);
 }
 
 void PriorityScheduler::IRQsetIdleThread(int whichCore, Thread *idleThread)
