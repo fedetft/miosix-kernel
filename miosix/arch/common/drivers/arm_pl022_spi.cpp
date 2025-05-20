@@ -57,10 +57,10 @@ void PL022SPI::setBitrate(unsigned int bitrate) noexcept
     this->bitrate=bitrate;
     unsigned int ratio=peripheralFrequency/bitrate;
     if(ratio<2) ratio=2;
-    if(ratio>0xFE00) errorHandler(Error::UNEXPECTED);
+    if(ratio>0xfe00) errorHandler(Error::UNEXPECTED);
     unsigned int presc=2;
     while(ratio>presc*0x100) presc<<=1;
-    if(presc>0xFF) presc=0xFE;
+    if(presc>0xfe) presc=0xfe;
     unsigned int scr=(ratio/presc)-1;
     spi->CPSR=presc;
     spi->CR0=Regs::CR0_SCR().put(scr,spi->CR0);
