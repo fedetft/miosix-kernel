@@ -645,7 +645,6 @@ bool Thread::setAffinity(CpuSet affinity)
     // enabled. Only return success if the requested affinity is unrestricted
     return affinity==unrestrictedAffinityMask;
     #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
-
 }
 
 CpuSet Thread::getAffinity()

@@ -186,7 +186,7 @@ private:
     ///Keep the invariant that deleted threads are pushed to the back!
     static IntrusiveList<Thread> notReadyThreads;
 
-    ///\internal idle thread
+    ///\internal idle threads (one per core)
     static Thread *idle[CPU_NUM_CORES];
 };
 
