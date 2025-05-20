@@ -137,9 +137,9 @@ public:
      */
     #ifdef WITH_SMP
     static void IRQrunScheduler(unsigned char coreId);
-    #else
+    #else //WITH_SMP
     static void IRQrunScheduler();
-    #endif
+    #endif //WITH_SMP
     
     /**
      * \internal
@@ -165,10 +165,6 @@ public:
     }
 
 private:
-    /// \internal Internal implementation of IRQrunScheduler
-    /// \param coreId ID of the current core
-    static inline void IRQrunSchedulerImpl(unsigned char coreId);
-
     /**
      * \param coreId id of the core the preemption needs to be set for
      * \param runningIdleThread true if we're about to run the idle thread

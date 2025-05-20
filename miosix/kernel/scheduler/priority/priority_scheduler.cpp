@@ -141,20 +141,6 @@ void PriorityScheduler::IRQwokenThread(Thread* thread)
     readyThreads[thread->schedData.priority.get()].push_back(thread);
 }
 
-#ifdef WITH_SMP
-void PriorityScheduler::IRQrunScheduler(unsigned char coreId)
-{
-    IRQrunSchedulerImpl(coreId);
-}
-#else
-void PriorityScheduler::IRQrunScheduler()
-{
-    // Thanks to the magic of compilers this should elide a lot of pointer
-    // arithmetic
-    IRQrunSchedulerImpl(0);
-}
-#endif
-
 /*
  * The scheduler in Miosix 3.0 runs in its dedicated interrupt, which on ARM is
  * called PendSV. The scheduler has no input parameter that code invoking it
@@ -191,8 +177,14 @@ void PriorityScheduler::IRQrunScheduler()
  * priority thread is running" is broken.
  */
 
-inline void PriorityScheduler::IRQrunSchedulerImpl(unsigned char coreId)
+#ifdef WITH_SMP
+void PriorityScheduler::IRQrunScheduler(unsigned char coreId)
 {
+#else //WITH_SMP
+void PriorityScheduler::IRQrunScheduler()
+{
+    constexpr int coreId=0;
+#endif //WITH_SMP
     //If the previously running thread is not idle, we need to put it in a list
     Thread *prev=const_cast<Thread*>(runningThreads[coreId]);
     if(prev!=idle[coreId])
