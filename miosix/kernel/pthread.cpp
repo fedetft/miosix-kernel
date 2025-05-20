@@ -444,6 +444,51 @@ int pthread_once(pthread_once_t *once, void (*func)())
     return 0;
 }
 
+//
+// Affinity API
+//
+
+using cpu_set_t=void*; //Move to newlib patches
+
+int pthread_setaffinity_np(pthread_t pthread, size_t cpusetsize,
+    const cpu_set_t *cpuset)
+{
+    CpuSet affinity;
+    if(cpusetsize<=8)
+    {
+        auto temp=*reinterpret_cast<const unsigned char*>(cpuset);
+        if(temp>unrestrictedAffinityMask) return EINVAL;
+        affinity=temp;
+    } else if(cpusetsize<=16) {
+        auto temp=*reinterpret_cast<const unsigned short*>(cpuset);
+        if(temp>unrestrictedAffinityMask) return EINVAL;
+        affinity=temp;
+    } else if(cpusetsize<=32) {
+        auto temp=*reinterpret_cast<const unsigned int*>(cpuset);
+        if(temp>unrestrictedAffinityMask) return EINVAL;
+        affinity=temp;
+    }
+    else if(cpusetsize<=64) {
+        auto temp=*reinterpret_cast<const unsigned long long*>(cpuset);
+        if(temp>unrestrictedAffinityMask) return EINVAL;
+        affinity=temp;
+    } else return EINVAL;
+    if(reinterpret_cast<Thread*>(pthread)->setAffinity(affinity)==true) return 0;
+    else return EINVAL;
+}
+
+int pthread_getaffinity_np(pthread_t pthread, size_t cpusetsize,
+    cpu_set_t *cpuset)
+{
+    CpuSet affinity=reinterpret_cast<Thread*>(pthread)->getAffinity();
+    if(cpusetsize<=8) *reinterpret_cast<unsigned char*>(cpuset)=affinity;
+    else if(cpusetsize<=16) *reinterpret_cast<unsigned short*>(cpuset)=affinity;
+    else if(cpusetsize<=32) *reinterpret_cast<unsigned int*>(cpuset)=affinity;
+    else if(cpusetsize<=64) *reinterpret_cast<unsigned long long*>(cpuset)=affinity;
+    else return 1;
+    return EINVAL;
+}
+
 int pthread_setcancelstate(int state, int *oldstate) { return 0; } //Stub
 
 #ifdef WITH_PTHREAD_EXIT
