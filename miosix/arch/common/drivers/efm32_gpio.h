@@ -129,7 +129,7 @@ public:
     GpioPin(unsigned int p, unsigned char n) : packed(p<<8 | n) {}
 
     /**
-     * \retrun whether the GpioPin is valid
+     * \return whether the GpioPin is valid
      */
     bool isValid() const { return getNumber()<16; }
     

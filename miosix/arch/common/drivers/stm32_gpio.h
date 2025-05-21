@@ -160,7 +160,7 @@ public:
         : p(pack(p, n)) {}
 
     /**
-     * \retrun whether the GpioPin is valid
+     * \return whether the GpioPin is valid
      */
     bool isValid() const { return getNumber()<16; }
     
@@ -266,7 +266,7 @@ public:
      * \return whether the Gpio is valid
      */
     bool isValid() const { return true; }
-    
+
     /**
      * Set the GPIO to the desired mode (INPUT, OUTPUT, ...)
      * \param m enum Mode

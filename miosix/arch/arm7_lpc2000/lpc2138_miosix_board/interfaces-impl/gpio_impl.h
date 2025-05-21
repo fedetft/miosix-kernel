@@ -81,7 +81,7 @@ public:
         : p(reinterpret_cast<GpioMemoryLayout*>(p)), n(n) {}
 
     /**
-     * \retrun whether the GpioPin is valid
+     * \return whether the GpioPin is valid
      */
     bool isValid() const { return getNumber()<32; }
         

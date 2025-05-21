@@ -117,7 +117,7 @@ public:
     GpioPin(unsigned int p, unsigned char n) : packed(p | n) {}
 
     /**
-     * \retrun whether the GpioPin is valid
+     * \return whether the GpioPin is valid
      */
     bool isValid() const { return getNumber()<32; }
 
