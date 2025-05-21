@@ -44,13 +44,15 @@ public:
      * peripheral.
      * \param irqn The IRQ number for the peripheral, or a negative number if
      * there is no IRQ available.
+     * \param clk The clock of the peripheral in Hz. Use to compute bit rate.
      * 
      * \note Since this peripheral class is vendor-independent, it cannot
      * take the peripheral out of reset or configure the GPIOs. This must be
      * done in a vendor-dependent way outside of this class. Once this is
      * done, you must call the initialize() method before using the peripheral.
      */
-    PL022SPI(void *base, int irqn) noexcept : spi(reinterpret_cast<Regs*>(base)), irqn(irqn) { }
+    PL022SPI(void *base, int irqn, unsigned int clk) noexcept
+        : spi(reinterpret_cast<Regs*>(base)), irqn(irqn), peripheralClock(clk) { }
 
     /**
      * Destructor.
@@ -215,6 +217,7 @@ private:
     
     Regs *spi;
     const int irqn;
+    const unsigned int peripheralClock;
     Thread *waiting=nullptr;
     unsigned int bitrate;
 };

@@ -55,7 +55,7 @@ PL022SPI::~PL022SPI() noexcept
 void PL022SPI::setBitrate(unsigned int bitrate) noexcept
 {
     this->bitrate=bitrate;
-    unsigned int ratio=peripheralFrequency/bitrate;
+    unsigned int ratio=peripheralClock/bitrate;
     if(ratio<2) ratio=2;
     if(ratio>0xfe00) errorHandler(Error::UNEXPECTED);
     unsigned int presc=2;

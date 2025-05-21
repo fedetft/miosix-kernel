@@ -43,7 +43,7 @@ class RP2040PL022SPINoDma: public PL022SPI
 public:
     RP2040PL022SPINoDma(int number, unsigned int bitrate, bool spo, bool sph,
         GpioPin si, GpioPin so, GpioPin sck, GpioPin ce) noexcept
-            : PL022SPI(getBase(number),getIrqn(number))
+            : PL022SPI(getBase(number),getIrqn(number),peripheralFrequency)
     {
         GlobalIrqLock lock;
         switch(number)
