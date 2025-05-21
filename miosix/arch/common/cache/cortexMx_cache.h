@@ -35,7 +35,9 @@
  * is required. The default cache policy is write-back, but this has been deemed
  * unsuitable for Miosix, so for the time being only write-through is supported.
  * 
- * The IRQconfigureCache() configures the cache as write-through and enables it.
+ * Cache configuration at boot is done as part of IRQconfigureMPU() since
+ * the MPU is also used to enforce kernel-level W^X, see cortexMx_mpu.h.
+ * That function configures the cache as write-through and enables it.
  * It should be called early at boot, in stage_1_boot.cpp
  * 
  * When writing DMA drivers, before passing a buffer to the DMA for it to be
@@ -105,13 +107,7 @@
 
 namespace miosix {
 
-/**
- * To be called in boot.cpp to configure caches.
- * Only call this function if the board has caches.
- * \param xramBase base address of external memory, if present, otherwise nullptr
- * \param xramSize size of external memory, if present, otherwise 0
- */
-void IRQconfigureCache(const unsigned int *xramBase=nullptr, unsigned int xramSize=0);
+static const unsigned int cacheLine=32; //Cortex-M7 cache line size
 
 /**
  * Call this function to mark a buffer before starting a DMA transfer where

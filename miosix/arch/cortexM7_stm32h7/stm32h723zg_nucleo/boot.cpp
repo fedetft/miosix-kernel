@@ -26,7 +26,7 @@
  ***************************************************************************/
 
 #include "drivers/pll.h"
-#include "cache/cortexMx_cache.h"
+#include "mpu/cortexMx_mpu.h"
 
 extern "C" void SystemInit();
 
@@ -36,7 +36,7 @@ void IRQmemoryAndClockInit()
 {
     SystemInit();
     startPll();
-    miosix::IRQconfigureCache();
+    miosix::IRQconfigureMPU();
 }
 
 } // namespace miosix

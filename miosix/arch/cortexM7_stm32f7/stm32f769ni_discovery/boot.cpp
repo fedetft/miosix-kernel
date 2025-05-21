@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "cache/cortexMx_cache.h"
+#include "mpu/cortexMx_mpu.h"
 #include "interfaces/bsp.h"
 
 extern "C" void SystemInit();
@@ -45,7 +45,7 @@ void IRQmemoryAndClockInit()
     miosix::configureSdram();
     #endif  //__ENABLE_XRAM
 
-    miosix::IRQconfigureCache((const unsigned int*)0xc0000000, 16*1024*1024);
+    miosix::IRQconfigureMPU((const unsigned int*)0xc0000000, 16*1024*1024);
 }
 
 } // namespace miosix

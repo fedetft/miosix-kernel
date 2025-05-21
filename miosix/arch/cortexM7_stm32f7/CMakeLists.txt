@@ -57,6 +57,7 @@ set(MIOSIX_L_FLAGS
 list(APPEND MIOSIX_ARCH_SRC
     ${MIOSIX_KPATH}/arch/common/sleep/cortexMx_sleep.cpp
     ${MIOSIX_KPATH}/arch/common/cache/cortexMx_cache.cpp
+    ${MIOSIX_KPATH}/arch/common/mpu/cortexMx_mpu.cpp
     ${MIOSIX_KPATH}/arch/common/drivers/stm32_serial_common.cpp
     ${MIOSIX_KPATH}/arch/common/drivers/stm32f7_serial.cpp
     ${MIOSIX_KPATH}/arch/common/drivers/sd_stm32f2_f4_f7.cpp

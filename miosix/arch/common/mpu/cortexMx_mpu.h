@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2024 by Daniele Cattaneo                                *
+ *   Copyright (C) 2018 by Filippi Nicole, Padalino Luca                   *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,18 +25,25 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "mpu/cortexMx_mpu.h"
-
-extern "C" void SystemInit();
+#pragma once
+#include "interfaces/arch_registers.h"
 
 namespace miosix {
 
-void IRQmemoryAndClockInit()
-{
-    // Currently we use the code provided by ST (with our modifications) to
-    // handle the memory and clock initialization process.
-    SystemInit();
-    miosix::IRQconfigureMPU();
-}
+/**
+ * To be called in boot.cpp to configure the MPU for kernel-level W^X and
+ * cacheability (if caches are present).
+ * This function must be called if the board has and MPU or caches, but in
+ * ARM CPUs all architectures with caches also have the MPU.
+ * 
+ * If the board has an external RAM attached, the XRAM base address and
+ * size must be passed as parameters to this function to extend the W^X
+ * protection and cacheability configuration to the XRAM as well, otherwise
+ * pass the default nullptr and 0.
+ * 
+ * \param xramBase base address of external memory, if present, otherwise nullptr
+ * \param xramSize size of external memory, if present, otherwise 0
+ */
+void IRQconfigureMPU(const unsigned int *xramBase=nullptr, unsigned int xramSize=0);
 
-} // namespace miosix
+} //namespace miosix

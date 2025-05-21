@@ -24,7 +24,7 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
-#include "cache/cortexMx_cache.h"
+#include "mpu/cortexMx_mpu.h"
 
 extern "C" void SystemInit();
 
@@ -36,7 +36,7 @@ void IRQmemoryAndClockInit()
     // handle the memory and clock initialization process.
     SystemInit();
 
-    IRQconfigureCache();
+    IRQconfigureMPU();
 }
 
 } // namespace miosix

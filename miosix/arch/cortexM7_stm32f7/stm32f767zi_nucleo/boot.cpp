@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "cache/cortexMx_cache.h"
+#include "mpu/cortexMx_mpu.h"
 
 extern "C" void SystemInit();
 
@@ -36,7 +36,7 @@ void IRQmemoryAndClockInit()
     // Currently we use the code provided by ST (with our modifications) to
     // handle the memory and clock initialization process.
     SystemInit();
-    miosix::IRQconfigureCache();
+    miosix::IRQconfigureMPU();
 }
 
 } // namespace miosix

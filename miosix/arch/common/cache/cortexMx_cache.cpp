@@ -33,55 +33,6 @@ using namespace std;
 
 namespace miosix {
 
-static const unsigned int cacheLine=32; //Cortex-M7 cache line size
-
-/**
- * Using the MPU, configure a region of the memory space as
- * - write-through cacheable
- * - non-shareable
- * - readable/writable/executable only by privileged code (for compatibility
- *   with the way processes use the MPU)
- * \param region MPU region. Note that region 6 and 7 are used by processes, and
- * should be avoided here
- * \param base base address, aligned to a 32Byte cache line
- * \param size size, must be at least 32 and a power of 2, or it is rounded to
- * the next power of 2
- */
-static void IRQconfigureCacheability(unsigned int region, unsigned int base,
-                                     unsigned int size, bool executePermitted)
-{
-    // NOTE: The ARM documentation is unclear about the effect of the shareable
-    // bit on a single core architecture. Experimental evidence on an STM32F476
-    // shows that setting it in IRQconfigureCache for the internal RAM region
-    // causes the boot to fail.
-    // For this reason, all regions are marked as not shareable
-    MPU->RBAR=(base & (~(cacheLine-1))) | MPU_RBAR_VALID_Msk | region;
-    MPU->RASR=(executePermitted ? 0 : 1<<MPU_RASR_XN_Pos)
-               | 1<<MPU_RASR_AP_Pos //Privileged: RW, unprivileged: no access
-               | MPU_RASR_C_Msk     //Cacheable, write through
-               | 1                  //Enable bit
-               | sizeToMpu(size)<<1;
-}
-
-void IRQconfigureCache(const unsigned int *xramBase, unsigned int xramSize)
-{
-    // NOTE: using regions 0 to 3 for the kernel because in the ARM MPU in case
-    // of overlapping regions the one with the highest number takes priority.
-    // The lower regions are used by the kernel and by default forbid access to
-    // unprivileged code, while the higher numbered ones are used by processes
-    // to override the default deny policy for the process-specific memory.
-    IRQconfigureCacheability(0,0x00000000,0x20000000,true);
-    IRQconfigureCacheability(1,0x20000000,0x20000000,false);
-    if(xramSize)
-        IRQconfigureCacheability(2,reinterpret_cast<unsigned int>(xramBase),xramSize,false);
-    IRQenableMPUatBoot();
-    
-    #if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT==1)
-    SCB_EnableICache();
-    SCB_EnableDCache();
-    #endif
-}
-
 #if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT==1)
 /**
  * Align a generic buffer to another one that contains the first one, but the

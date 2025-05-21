@@ -166,7 +166,7 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
     // override the default deny policy for the process-specific memory.
     // NOTE: The ARM documentation is unclear about the effect of the shareable
     // bit on a single core architecture. Experimental evidence on an STM32F476
-    // shows that setting it in IRQconfigureCache for the internal RAM region
+    // shows that setting it in IRQconfigureMPU for the internal RAM region
     // causes the boot to fail.
     // For this reason, all regions are marked as not shareable
     regValues[0]=(reinterpret_cast<unsigned int>(elfBase) & (~0x1f))
