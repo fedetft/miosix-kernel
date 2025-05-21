@@ -134,8 +134,48 @@
  *
  */
 
+#include "interfaces-impl/gpio_impl.h"
+
+namespace miosix {
+
+/**
+ * Invalid GPIO pin which does nothing. Cannot be read, and its port and number
+ * are not available.
+ */
+class NullGpio
+{
+public:
+    /**
+     * \return whether the Gpio is valid
+     */
+    bool isValid() const { return false; }
+    
+    /**
+     * Set the GPIO to the desired mode (INPUT, OUTPUT, ...)
+     * \param m enum Mode_
+     */
+    static void mode(Mode m) { }
+
+    /**
+     * Set the pin to 1, if it is an output
+     */
+    static void high() {  }
+
+    /**
+     * Set the pin to 0, if it is an output
+     */
+    static void low() { }
+
+    /**
+     * \return this Gpio converted as a GpioPin class 
+     */
+    static GpioPin getPin() { return GpioPin(); }
+
+    NullGpio() = delete; //Only static member functions
+};
+
+} // namespace miosix
+
 /**
  * \}
  */
-
-#include "interfaces-impl/gpio_impl.h"

@@ -263,6 +263,11 @@ class Gpio
 {
 public:
     /**
+     * \return whether the Gpio is valid
+     */
+    bool isValid() const { return true; }
+
+    /**
      * Set the GPIO to the desired mode (INPUT, OUTPUT, ...)
      * \param m enum Mode
      */

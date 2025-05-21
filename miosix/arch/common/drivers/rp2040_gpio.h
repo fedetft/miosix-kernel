@@ -121,7 +121,7 @@ public:
     GpioPin(unsigned int port, unsigned char n): /*P(port),*/ N(n) {}
 
     /**
-     * \retrun whether the GpioPin is valid
+     * \return whether the GpioPin is valid
      */
     bool isValid() const { return getNumber()<32; }
 
@@ -217,6 +217,11 @@ template<unsigned int P, unsigned char N>
 class Gpio
 {
 public:
+    /**
+     * \return whether the Gpio is valid
+     */
+    bool isValid() const { return true; }
+
     /**
      * Set the GPIO to the desired mode (INPUT, OUTPUT, ...)
      * \param m enum Mode_
