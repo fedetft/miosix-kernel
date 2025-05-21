@@ -185,7 +185,7 @@ public:
      * Allows to read the pin status
      * \return 0 or 1
      */
-    int value() { return !!(sio_hw->gpio_out & (1UL << N)); }
+    int value() { return !!(sio_hw->gpio_in & (1UL << N)); }
 
     /**
      * \return the pin port. One of the constants P0, ...
@@ -280,7 +280,7 @@ public:
      * Allows to read the pin status
      * \return 0 or 1
      */
-    static int value() { return !!(sio_hw->gpio_out & (1UL << N)); }
+    static int value() { return !!(sio_hw->gpio_in & (1UL << N)); }
     
     /**
      * \return this Gpio converted as a GpioPin class 
