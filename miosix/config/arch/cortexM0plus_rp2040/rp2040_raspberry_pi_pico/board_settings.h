@@ -76,8 +76,13 @@ using defaultSerialCtsPin = Gpio<P0, 2>;
 
 // SD card
 const bool enableSdCard=true;
-const unsigned int defaultSdCardSPI=0; // 0 or 1
-const bool defaultSdCardSPIDma=true;
+// Dma and NoDma use the SPI device and have pin constraints, Software does not
+// The NoDma driver is faster, the Dma driver is slightly slower but uses way
+// less CPU, and the Software driver is the slowest but can be used if other
+// devices are using the SPI peripherals.
+enum class SdCardDriverType { Dma, NoDma, Software };
+const SdCardDriverType defaultSdCardDriver=SdCardDriverType::Dma;
+const unsigned int defaultSdCardSPI=0; // 0 or 1 (only for non-Software drivers)
 // Pin mapping for spi0, uncomment if defaultSdCardSPI==0
 using defaultSdCardSPISckPin = Gpio<P0, 2>; // SD CLK
 using defaultSdCardSPISoPin = Gpio<P0, 3>; // SD CMD

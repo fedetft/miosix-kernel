@@ -48,6 +48,7 @@
 #include "drivers/dcc.h"
 #include "board_settings.h"
 #include "drivers/rp2040_spi.h"
+#include "drivers/sw_spi.h"
 #include "drivers/spi_sd.h"
 
 namespace miosix {
@@ -97,7 +98,7 @@ void bspInit2()
         basicFilesystemSetup(intrusive_ref_ptr<Device>());
     } else {
         iprintf("filesystem setup\n");
-        if(defaultSdCardSPIDma)
+        if(defaultSdCardDriver==SdCardDriverType::Dma)
         {
             auto spi=new RP2040PL022SPI(
                 defaultSdCardSPI,100*1000,false,false,
@@ -109,7 +110,7 @@ void bspInit2()
                 std::unique_ptr<RP2040PL022SPI>(spi),
                 defaultSdCardSPICsPin::getPin());
             basicFilesystemSetup(intrusive_ref_ptr<SPISD<RP2040PL022SPI>>(sd));
-        } else {
+        } else if(defaultSdCardDriver==SdCardDriverType::NoDma) {
             auto spi=new RP2040PL022SPINoDma(
                 defaultSdCardSPI,100*1000,false,false,
                 defaultSdCardSPISiPin::getPin(),
@@ -120,6 +121,14 @@ void bspInit2()
                 std::unique_ptr<RP2040PL022SPINoDma>(spi),
                 defaultSdCardSPICsPin::getPin());
             basicFilesystemSetup(intrusive_ref_ptr<SPISD<RP2040PL022SPINoDma>>(sd));
+        } else { // SdCardDriverType::Software
+            using SPIType=SwSPI<defaultSdCardSPISiPin,defaultSdCardSPISoPin,
+                defaultSdCardSPISckPin>;
+            auto spi=new SPIType(100*1000);
+            auto sd=new SPISD<SPIType>(
+                std::unique_ptr<SPIType>(spi),
+                defaultSdCardSPICsPin::getPin());
+            basicFilesystemSetup(intrusive_ref_ptr<SPISD<SPIType>>(sd));
         }
     }
     #endif //WITH_FILESYSTEM
