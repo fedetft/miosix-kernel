@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef SOFTWARE_SPI_H
-#define	SOFTWARE_SPI_H
+#pragma once
 
 #include "interfaces/gpio.h"
 
@@ -159,5 +158,3 @@ void SoftwareSPI<SI,SO,SCK,CE,numNops>::delayLoop()
 }
 
 } //namespace miosix
-
-#endif  //SOFTWARE_SPI_H
