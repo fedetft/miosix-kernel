@@ -60,7 +60,7 @@ constexpr unsigned int cpuFrequency=200000000;
 constexpr unsigned int peripheralFrequency=cpuFrequency;
 
 /// Serial port
-const unsigned int defaultSerial=0;
+const unsigned int defaultSerial=0; // 0 or 1
 const unsigned int defaultSerialSpeed=115200;
 const bool defaultSerialFlowctrl=false;
 // Pin mapping for usart0, uncomment if defaultSerial==0
@@ -73,6 +73,21 @@ using defaultSerialCtsPin = Gpio<P0, 2>;
 //using defaultSerialRxPin = Gpio<P0, 5>;
 //using defaultSerialRtsPin = Gpio<P0, 7>;
 //using defaultSerialCtsPin = Gpio<P0, 6>;
+
+// SD card
+const bool enableSdCard=true;
+const unsigned int defaultSdCardSPI=0; // 0 or 1
+const bool defaultSdCardSPIDma=true;
+// Pin mapping for spi0, uncomment if defaultSdCardSPI==0
+using defaultSdCardSPISckPin = Gpio<P0, 2>; // SD CLK
+using defaultSdCardSPISoPin = Gpio<P0, 3>; // SD CMD
+using defaultSdCardSPISiPin = Gpio<P0, 4>; // SD D0
+using defaultSdCardSPICsPin = Gpio<P0, 5>; // SD D3
+// Pin mapping for spi1, uncomment if defaultSdCardSPI==1
+//using defaultSdCardSPISckPin = Gpio<P0, 10>; // SD CLK
+//using defaultSdCardSPISoPin = Gpio<P0, 11>; // SD CMD
+//using defaultSdCardSPISiPin = Gpio<P0, 12>; // SD D0
+//using defaultSdCardSPICsPin = Gpio<P0, 13>; // SD D3
 
 /**
  * \}

@@ -33,6 +33,7 @@
 #pragma once
 
 #include <cstdarg>
+#include <memory>
 #include "kernel/sync.h"
 #include "filesystem/devfs/devfs.h"
 #include "filesystem/ioctl.h"
@@ -47,7 +48,7 @@ class SPISD: public Device
 {
 public:
     // Constructor
-    SPISD(SPI& spi, GpioPin cs) noexcept;
+    SPISD(std::unique_ptr<SPI> spi, GpioPin cs) noexcept;
     
     virtual ssize_t readBlock(void *buffer, size_t size, off_t where) noexcept;
     
@@ -86,7 +87,7 @@ private:
     
     unsigned char spi_1_send(unsigned char outgoing) noexcept
     {
-        return spi.sendRecv(outgoing);
+        return spi->sendRecv(outgoing);
     }
 
     char sd_status() noexcept;
@@ -131,7 +132,7 @@ private:
     unsigned char CMD55 = (0x40 + 55);  // APP_CMD
     unsigned char CMD58 = (0x40 + 58);  // READ_OCR
 
-    SPI &spi;
+    std::unique_ptr<SPI> spi;
     GpioPin cs;
     KernelMutex mutex;
     ///\internal Type of card (1<<0)=MMC (1<<1)=SDv1 (1<<2)=SDv2 (1<<2)|(1<<3)=SDHC
@@ -307,7 +308,7 @@ unsigned char SPISD<SPI>::send_cmd(unsigned char cmd, unsigned int arg) noexcept
     if (cmd==CMD0) n=0x95;  // Valid CRC for CMD0(0)
     if (cmd==CMD8) n=0x87;  // Valid CRC for CMD8(0x1AA)
     buf[5]=n;
-    spi.send(buf,6);
+    spi->send(buf,6);
     // Receive response
     if (cmd==CMD12) spi_1_send(0xff);   // Skip a stuff byte when stop reading
     n=10; // Wait response, try 10 times
@@ -335,7 +336,7 @@ bool SPISD<SPI>::rx_datablock(unsigned char *buf, unsigned int btr) noexcept
     }
     if(token!=0xfe) return false; // If not valid data token, retutn error
 
-    spi.recv(buf,btr);
+    spi->recv(buf,btr);
     spi_1_send(0xff); // Discard CRC
     spi_1_send(0xff);
 
@@ -358,7 +359,7 @@ bool SPISD<SPI>::tx_datablock(const unsigned char *buf, unsigned char token) noe
     spi_1_send(token);      // Xmit data token
     if (token!=0xfd)
     {                       // Is data token
-        spi.send(buf,512);
+        spi->send(buf,512);
         spi_1_send(0xff);		// CRC (Dummy)
         spi_1_send(0xff);
         resp=spi_1_send(0xff);          // Receive data response
@@ -484,13 +485,14 @@ int SPISD<SPI>::ioctl(int cmd, void* arg) noexcept
 }
 
 template <class SPI>
-SPISD<SPI>::SPISD(SPI& spi, GpioPin cs) noexcept : Device(Device::BLOCK), spi(spi), cs(cs)
+SPISD<SPI>::SPISD(std::unique_ptr<SPI> movedSpi, GpioPin cs) noexcept
+    : Device(Device::BLOCK), spi(std::move(movedSpi)), cs(cs)
 {
     cs.high();
     cs.mode(Mode::OUTPUT);
     cs.fast();
 
-    spi.setBitrate(100*1000); // 100 kHz SPI speed
+    spi->setBitrate(100*1000); // 100 kHz SPI speed
     unsigned char resp;
     int i;
     for(i=0;i<20;i++)
@@ -586,7 +588,7 @@ SPISD<SPI>::SPISD(SPI& spi, GpioPin cs) noexcept : Device(Device::BLOCK), spi(sp
 
     CS_HIGH();
     //Configure the SPI interface to use at most 25MHz speed
-    spi.setBitrate(25*1000*1000);
+    spi->setBitrate(25*1000*1000);
 
     dbg("Init done...\n");
 }

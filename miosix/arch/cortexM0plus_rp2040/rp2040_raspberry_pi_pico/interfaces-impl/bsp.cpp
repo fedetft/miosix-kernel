@@ -52,8 +52,6 @@
 
 namespace miosix {
 
-RP2040PL022SPI *spi0; // for SD card
-
 //
 // Initialization
 //
@@ -94,15 +92,36 @@ void IRQbspInit()
 void bspInit2()
 {
     #ifdef WITH_FILESYSTEM
-    // Pinout for SD card in SPI mode:
-    // GP2: SD CLK (SPI SCK)
-    // GP3: SD CMD (SPI SO)
-    // GP4: SD D0  (SPI SI)
-    // GP5: SD D3  (SPI CS)
-    spi0=new RP2040PL022SPI(0,100*1000,false,false,
-        GpioPin(P0,4),GpioPin(P0,3),GpioPin(P0,2),GpioPin());
-    basicFilesystemSetup(intrusive_ref_ptr<SPISD<RP2040PL022SPI>>(
-        new SPISD<RP2040PL022SPI>(*spi0,GpioPin(P0,5))));
+    if(!enableSdCard)
+    {
+        basicFilesystemSetup(intrusive_ref_ptr<Device>());
+    } else {
+        iprintf("filesystem setup\n");
+        if(defaultSdCardSPIDma)
+        {
+            auto spi=new RP2040PL022SPI(
+                defaultSdCardSPI,100*1000,false,false,
+                defaultSdCardSPISiPin::getPin(),
+                defaultSdCardSPISoPin::getPin(),
+                defaultSdCardSPISckPin::getPin(),
+                GpioPin());
+            auto sd=new SPISD<RP2040PL022SPI>(
+                std::unique_ptr<RP2040PL022SPI>(spi),
+                defaultSdCardSPICsPin::getPin());
+            basicFilesystemSetup(intrusive_ref_ptr<SPISD<RP2040PL022SPI>>(sd));
+        } else {
+            auto spi=new RP2040PL022SPINoDma(
+                defaultSdCardSPI,100*1000,false,false,
+                defaultSdCardSPISiPin::getPin(),
+                defaultSdCardSPISoPin::getPin(),
+                defaultSdCardSPISckPin::getPin(),
+                GpioPin());
+            auto sd=new SPISD<RP2040PL022SPINoDma>(
+                std::unique_ptr<RP2040PL022SPINoDma>(spi),
+                defaultSdCardSPICsPin::getPin());
+            basicFilesystemSetup(intrusive_ref_ptr<SPISD<RP2040PL022SPINoDma>>(sd));
+        }
+    }
     #endif //WITH_FILESYSTEM
 }
 
