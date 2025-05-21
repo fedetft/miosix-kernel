@@ -72,7 +72,6 @@ RP2040PL022SPI::RP2040PL022SPI(int number, unsigned int bitrate, bool spo, bool 
     setBitrate(bitrate);
     spi->cr1=SPI_SSPCR1_SSE_BITS;
     spi->dmacr=SPI_SSPDMACR_TXDMAE_BITS|SPI_SSPDMACR_RXDMAE_BITS;
-    this->so=so;
 }
 
 RP2040PL022SPI::~RP2040PL022SPI() noexcept

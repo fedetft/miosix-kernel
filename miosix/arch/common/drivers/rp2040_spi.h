@@ -95,6 +95,7 @@ public:
      */
     RP2040PL022SPI(int number, unsigned int bitrate, bool spo, bool sph,
                    GpioPin si, GpioPin so, GpioPin sck, GpioPin ce) noexcept;
+
     /**
      * Destructor.
      */
@@ -181,7 +182,6 @@ private:
     
     spi_hw_t *spi;
     Thread *waiting=nullptr;
-    GpioPin so;
     unsigned int bitrate;
     unsigned char txDmaCh, rxDmaCh;
 };
