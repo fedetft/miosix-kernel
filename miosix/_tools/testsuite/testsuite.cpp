@@ -741,11 +741,19 @@ static void test_4()
     Thread *other[CPU_NUM_CORES-1];
     for(int i=0;i<CPU_NUM_CORES-1;i++)
         other[i]=Thread::create(t4_p3,STACK_SMALL,1);
+    //This part is tricky on multi-core architectures. Although Thread::create()
+    //will call IRQinvokeSchedulerOnCore() to run the new high priority thread
+    //on the other cores, if affinity support is disabled, t4_p1 takes the
+    //GlobalIrqLock so when Thread::create() returns the lower priority thread
+    //may take the lock before the scheduler and briefly run again and set
+    //t4_v1. 1us delay is enough to make sure it is descheduled
+    #ifndef WITH_THREAD_AFFINITY
+    delayUs(1);
+    #endif //WITH_THREAD_AFFINITY
+    t4_v1=false;
+    delayMs(100);
     //Since priority is higher, the other thread must not run
     //Of course this is not true for the control based scheduler
-    t4_v1=false;
-    Thread::yield();//must return immediately
-    delayMs(100);
     if(t4_v1==true) fail("setPriority (1)");
     for(int i=0;i<CPU_NUM_CORES-1;i++)
     {
