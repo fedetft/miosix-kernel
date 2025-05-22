@@ -222,11 +222,80 @@ void EDFScheduler::IRQrunScheduler()
     }
 
     // Try to find a ready real-time thread first.
-    Thread *next=readyEdfThreads.dequeueOne();
-
     // If not found, try to find a ready non-real-time thread
+    #if defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+    // Cache the deadline of all running threads in an array. Note that we're
+    // interested in the deadlines after the scheduler is run but we still
+    // don't what the deadline will be on the current core as we haven't
+    // done the scheduling yet. However, since this variable is used to decide
+    // if we need to invoke the scheduler on another core we just lie and set
+    // the deadline of the current core to 0 value so as to always exclude the
+    // current core
+    long long runningDeadline[CPU_NUM_CORES];
+    for(int c=0;c<CPU_NUM_CORES;c++)
+        runningDeadline[c]=const_cast<Thread*>(runningThreads[c])->schedData.deadline.get();
+    runningDeadline[coreId]=0;
+    int scheduleOnOtherCore=-1;
+    // If the kernel is compiled with affinity support we can't just pick
+    // the first thread in the ready list, we need to check the affinity
+    Thread *next=nullptr;
+    for(auto it=begin(readyEdfThreads);it!=end(readyEdfThreads);++it)
+    {
+        auto affinity=(*it)->affinity;
+        if(affinity & (1<<coreId))
+        {
+            // Found highest priority thread whose affinity is compatible
+            // with this core. That's the one we'll schedule
+            next=*it;
+            readyEdfThreads.erase(it);
+            break;
+        } else {
+            // Found thread that can't run on this core due to affinity.
+            // On the cores it can run it may however preempt the currently
+            // running thread. We only need to find one such thread though
+            // as if there are more, they will be discovered when the
+            // scheduler is called on the other core (distributed algorithm)
+            if(scheduleOnOtherCore>=0) continue;
+            long long deadline=(*it)->schedData.deadline.get();
+            for(int c=0;c<CPU_NUM_CORES;c++)
+            {
+                if((affinity & (1<<c))==0) continue;
+                if(runningDeadline[c]<deadline) continue;
+                scheduleOnOtherCore=c;
+                break;
+            }
+        }
+    }
+    if(next==nullptr)
+    {
+        for(auto it=begin(readyRrThreads);it!=end(readyRrThreads);++it)
+        {
+            auto affinity=(*it)->affinity;
+            if(affinity & (1<<coreId))
+            {
+                // Found highest priority thread whose affinity is compatible
+                // with this core. That's the one we'll schedule
+                next=*it;
+                readyRrThreads.erase(it);
+                break;
+            } else {
+                // Non-real-time threads can only preempt idle
+                if(scheduleOnOtherCore>=0) continue;
+                for(int c=0;c<CPU_NUM_CORES;c++)
+                {
+                    if((affinity & (1<<c))==0) continue;
+                    if(runningDeadline[c]!=numeric_limits<long long>::max()-1)
+                        continue;
+                    scheduleOnOtherCore=c;
+                    break;
+                }
+            }
+        }
+    }
+    #else //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+    Thread *next=readyEdfThreads.dequeueOne();
     if(next==nullptr) next=readyRrThreads.dequeueOne();
-
+    #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
     //Otherwise, run idle
     if(next==nullptr) next=idle[coreId];
 
@@ -252,10 +321,56 @@ void EDFScheduler::IRQrunScheduler()
     #endif //WITH_CPU_TIME_COUNTER
 
     #ifdef WITH_SMP
-    // In case multiple tasks are woken at the same time, we may have to
+    // In case multiple threads are woken at the same time, we may have to
     // schedule more than one earlier deadline thread than currently running.
     // When this happens, we need to call the scheduler again on more than
-    // one core.
+    // one core. Additionally, if compiling with thread affinity we may have
+    // already found that we need to invoke the scheduler on another core
+    // because an earliest deadline thread wasn't selected on this core due to
+    // incompatible affinity. In this case skip this algorithm as we don't
+    // need to solve the schedule for all cores, just figuring out that
+    // it's wrong one core is enough. Then the invoked scheduler on that
+    // core will complete the job and figure out if there is the need to
+    // reschedule on yet another core
+    #ifdef WITH_THREAD_AFFINITY
+    // With affinity, see if we find a compatible thread with earlier deadline
+    if(scheduleOnOtherCore<0)
+    {
+        long long latestRunningDeadline=runningDeadline[0];
+        for(int c=1;c<CPU_NUM_CORES;c++)
+            latestRunningDeadline=max(latestRunningDeadline,runningDeadline[c]);
+
+        for(auto it=begin(readyEdfThreads);it!=end(readyEdfThreads);++it)
+        {
+            long long deadline=(*it)->schedData.deadline.get();
+            if(deadline>=latestRunningDeadline) goto checkCompleted;
+            auto affinity=(*it)->affinity;
+            for(int c=0;c<CPU_NUM_CORES;c++)
+            {
+                if((affinity & (1<<c))==0) continue;
+                if(runningDeadline[c]<deadline) continue;
+                IRQinvokeSchedulerOnCore(c);
+                goto checkCompleted;
+            }
+        }
+        for(auto it=begin(readyRrThreads);it!=end(readyRrThreads);++it)
+        {
+            auto affinity=(*it)->affinity;
+            // Non-real-time threads can only preempt idle
+            for(int c=0;c<CPU_NUM_CORES;c++)
+            {
+                if((affinity & (1<<c))==0) continue;
+                if(runningDeadline[c]!=numeric_limits<long long>::max()-1)
+                    continue;
+                IRQinvokeSchedulerOnCore(c);
+                goto checkCompleted;
+            }
+        }
+        checkCompleted:;
+    } else IRQinvokeSchedulerOnCore(scheduleOnOtherCore);
+    #else //WITH_THREAD_AFFINITY
+    // No affinity, just knowing a ready thread exists with an eraliest deadline
+    // is enough, it can surely be running on any core
     long long secondEarliestDeadline=numeric_limits<long long>::max()-1;
     if(readyEdfThreads.empty()==false)
         secondEarliestDeadline=readyEdfThreads.front()->schedData.deadline.get();
@@ -273,6 +388,7 @@ void EDFScheduler::IRQrunScheduler()
             }
         }
     }
+    #endif //WITH_THREAD_AFFINITY
     #endif //WITH_SMP
 }
 

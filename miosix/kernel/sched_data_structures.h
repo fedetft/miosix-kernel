@@ -195,6 +195,9 @@ template<typename T, typename GetTime>
 class TimeSortedQueue
 {
 public:
+    /// Iterator type
+    using iterator=typename IntrusiveList<T>::iterator;
+
     /**
      * \return true if the TimeSortedQueue is empty
      */
@@ -205,6 +208,26 @@ public:
      * Causes undefined behavior if called when the queue is empty
      */
     T *front() { return queued.front(); }
+
+    /**
+     * \return an iterator to the first item in the queue
+     */
+    iterator begin() { return queued.begin(); }
+
+    /**
+     * \return an iterator to one past the last item in the queue
+     */
+    iterator end() { return queued.end(); }
+
+    /**
+     * Removes the specified item from the queue
+     * \param it iterator to the item to remove
+     * \return an iterator to the next item
+     */
+    iterator erase(iterator it)
+    {
+        return queued.erase(it);
+    }
 
     /**
      * \param item item to check whether it is present in the queue
@@ -313,6 +336,9 @@ template<typename T>
 class FifoQueue
 {
 public:
+    /// Iterator type
+    using iterator=typename IntrusiveList<T>::iterator;
+
     /**
      * \return true if the TimeSortedQueue is empty
      */
@@ -323,6 +349,26 @@ public:
      * Causes undefined behavior if called when the queue is empty
      */
     T *front() { return queued.front(); }
+
+    /**
+     * \return an iterator to the first item in the queue
+     */
+    iterator begin() { return queued.begin(); }
+
+    /**
+     * \return an iterator to one past the last item in the queue
+     */
+    iterator end() { return queued.end(); }
+
+    /**
+     * Removes the specified item from the queue
+     * \param it iterator to the item to remove
+     * \return an iterator to the next item
+     */
+    iterator erase(iterator it)
+    {
+        return queued.erase(it);
+    }
 
     /**
      * \param item item to check whether it is present in the queue
