@@ -48,13 +48,13 @@ class SPISD: public Device
 {
 public:
     // Constructor
-    SPISD(std::unique_ptr<SPI> spi, GpioPin cs) noexcept;
+    SPISD(std::unique_ptr<SPI> spi, GpioPin cs);
     
-    virtual ssize_t readBlock(void *buffer, size_t size, off_t where) noexcept;
+    virtual ssize_t readBlock(void *buffer, size_t size, off_t where);
     
-    virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where) noexcept;
+    virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where);
     
-    virtual int ioctl(int cmd, void *arg) noexcept;
+    virtual int ioctl(int cmd, void *arg);
 private:
     //Note: enabling debugging might cause deadlock when using sleep() or reboot()
     //The bug won't be fixed because debugging is only useful for driver development
@@ -369,7 +369,7 @@ bool SPISD<SPI>::tx_datablock(const unsigned char *buf, unsigned char token) noe
 }
 
 template <class SPI>
-ssize_t SPISD<SPI>::readBlock(void* buffer, size_t size, off_t where) noexcept
+ssize_t SPISD<SPI>::readBlock(void* buffer, size_t size, off_t where)
 {
     if(where % 512 || size % 512) return -EFAULT;
     unsigned int lba=where/512;
@@ -420,7 +420,7 @@ ssize_t SPISD<SPI>::readBlock(void* buffer, size_t size, off_t where) noexcept
 }
 
 template <class SPI>
-ssize_t SPISD<SPI>::writeBlock(const void* buffer, size_t size, off_t where) noexcept
+ssize_t SPISD<SPI>::writeBlock(const void* buffer, size_t size, off_t where)
 {
     if(where % 512 || size % 512) return -EFAULT;
     unsigned int lba=where/512;
@@ -471,7 +471,7 @@ ssize_t SPISD<SPI>::writeBlock(const void* buffer, size_t size, off_t where) noe
 }
 
 template <class SPI>
-int SPISD<SPI>::ioctl(int cmd, void* arg) noexcept
+int SPISD<SPI>::ioctl(int cmd, void* arg)
 {
     dbg("%s\n",__PRETTY_FUNCTION__);
     if(cmd!=IOCTL_SYNC) return -ENOTTY;
@@ -484,7 +484,7 @@ int SPISD<SPI>::ioctl(int cmd, void* arg) noexcept
 }
 
 template <class SPI>
-SPISD<SPI>::SPISD(std::unique_ptr<SPI> movedSpi, GpioPin cs) noexcept
+SPISD<SPI>::SPISD(std::unique_ptr<SPI> movedSpi, GpioPin cs)
     : Device(Device::BLOCK), spi(std::move(movedSpi)), cs(cs)
 {
     cs.high();
