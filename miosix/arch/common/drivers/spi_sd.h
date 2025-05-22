@@ -259,6 +259,7 @@ unsigned char SPISD<SPI>::wait_ready() noexcept
         if(result!=0) { delayUs(10); continue; }
         // exponential backoff
         Thread::nanoSleep(backoff);
+        t+=backoff;
         backoff=backoff+backoff/16; // backoff*=1.0625;
     }
     dbgerr("Error: wait_ready() timeout\n");
