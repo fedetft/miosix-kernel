@@ -173,11 +173,12 @@ private:
     GpioPin cs;
     KernelMutex mutex;
     ///\internal Type of card
+    /// - 0=no card
     /// - (1<<0)=MMC
     /// - (1<<1)=SDv1
     /// - (1<<2)=SDv2
     /// - (1<<2)|(1<<3)=SDHC
-    unsigned char cardType;
+    unsigned char cardType=0;
 };
 
 template <class SPI>
@@ -378,6 +379,7 @@ bool SPISD<SPI>::sendDataPacket(const unsigned char *buf, unsigned char token) n
 template <class SPI>
 ssize_t SPISD<SPI>::readBlock(void* buffer, size_t size, off_t where)
 {
+    if(cardType==0) return -EIO;
     if(where % 512 || size % 512) return -EFAULT;
     unsigned int lba=where/512;
     unsigned int nSectors=size/512;
@@ -393,7 +395,7 @@ ssize_t SPISD<SPI>::readBlock(void* buffer, size_t size, off_t where)
         {
             printErrorCode(result);
             cs.high();
-            return -EBADF;
+            return -EBADF; // TODO: we always return EBADF, shouldn't it be EIO?
         }
         if(readDataPacket(buf,512)==false)
         {
@@ -429,6 +431,7 @@ ssize_t SPISD<SPI>::readBlock(void* buffer, size_t size, off_t where)
 template <class SPI>
 ssize_t SPISD<SPI>::writeBlock(const void* buffer, size_t size, off_t where)
 {
+    if(cardType==0) return -EIO;
     if(where % 512 || size % 512) return -EFAULT;
     unsigned int lba=where/512;
     unsigned int nSectors=size/512;
@@ -480,6 +483,7 @@ ssize_t SPISD<SPI>::writeBlock(const void* buffer, size_t size, off_t where)
 template <class SPI>
 int SPISD<SPI>::ioctl(int cmd, void* arg)
 {
+    if(cardType==0) return -EIO;
     dbg("%s\n",__PRETTY_FUNCTION__);
     if(cmd!=IOCTL_SYNC) return -ENOTTY;
     Lock<KernelMutex> l(mutex);
