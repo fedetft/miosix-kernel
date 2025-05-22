@@ -4015,7 +4015,7 @@ void *t26_t1(void*)
         auto temp=errno;
         if(temp!=0)
         {
-            //iprintf("%d %d ",temp,i);
+            iprintf("%d %d ",temp,i);
             fail("errno 1");
         }
         Thread::sleep(1);
@@ -4036,7 +4036,7 @@ static void test_26()
         auto temp=errno;
         if(temp!=-i-1)
         {
-            //iprintf("%d %d ",temp,i);
+            iprintf("%d %d ",temp,i);
             fail("errno 2");
         }
     }
