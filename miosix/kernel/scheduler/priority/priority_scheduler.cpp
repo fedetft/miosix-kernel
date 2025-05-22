@@ -197,7 +197,7 @@ void PriorityScheduler::IRQrunScheduler()
     }
     #ifdef WITH_SMP
     // Cache the priority of all running threads in an array. Note that we're
-    // interesting in the priorities after the scheduler is run but we still
+    // interested in the priorities after the scheduler is run but we still
     // don't what the priority will be on the current core as we haven't
     // done the scheduling yet. However, since this variable is used to decide
     // if we need to invoke the scheduler on another core we just lie and set
@@ -237,7 +237,9 @@ void PriorityScheduler::IRQrunScheduler()
                 for(int c=0;c<CPU_NUM_CORES;c++)
                 {
                     if((affinity & (1<<c))==0) continue;
-                    if(runningPrio[c]<prio) scheduleOnOtherCore=c;
+                    if(prio<runningPrio[c]) continue;
+                    scheduleOnOtherCore=c;
+                    break;
                 }
             }
         }
@@ -268,7 +270,7 @@ void PriorityScheduler::IRQrunScheduler()
         CPUTimeCounter::IRQprofileContextSwitch(prev,t,now,coreId);
         #endif //WITH_CPU_TIME_COUNTER
         #ifdef WITH_SMP
-        // In case multiple tasks are woken at the same time, we may have to
+        // In case multiple threads are woken at the same time, we may have to
         // schedule more than one higher priority thread than currently running.
         // When this happens, we need to call the scheduler again on more than
         // one core. Additionally, if compiling with thread affinity we may have
@@ -280,6 +282,7 @@ void PriorityScheduler::IRQrunScheduler()
         // core will complete the job and figure out if there is the need to
         // reschedule on yet another core
         #ifdef WITH_THREAD_AFFINITY
+        // With affinity, see if we find a compatible thread with higher priority
         if(scheduleOnOtherCore<0)
         {
             signed char minRunningPriority=runningPrio[0];
@@ -304,6 +307,8 @@ void PriorityScheduler::IRQrunScheduler()
             found:;
         }
         #else //WITH_THREAD_AFFINITY
+        // No affinity, just knowing a ready thread exists with higher periority
+        // is enough, it can surely be running on any core
         signed char minRunningPriority=runningPrio[0];
         int coreRunningMinPriorityThread=0;
         for(int c=1;c<CPU_NUM_CORES;c++)
