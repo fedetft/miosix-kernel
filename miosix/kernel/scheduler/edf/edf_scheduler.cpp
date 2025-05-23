@@ -239,15 +239,16 @@ void EDFScheduler::IRQrunScheduler()
     // If the kernel is compiled with affinity support we can't just pick
     // the first thread in the ready list, we need to check the affinity
     Thread *next=nullptr;
-    for(auto it=begin(readyEdfThreads);it!=end(readyEdfThreads);++it)
+    auto edfIt=begin(readyEdfThreads);
+    for(;edfIt!=end(readyEdfThreads);++edfIt)
     {
-        auto affinity=(*it)->affinity;
+        auto affinity=(*edfIt)->affinity;
         if(affinity & (1<<coreId))
         {
             // Found highest priority thread whose affinity is compatible
             // with this core. That's the one we'll schedule
-            next=*it;
-            readyEdfThreads.erase(it);
+            next=*edfIt;
+            edfIt=readyEdfThreads.erase(edfIt);
             break;
         } else {
             // Found thread that can't run on this core due to affinity.
@@ -256,7 +257,7 @@ void EDFScheduler::IRQrunScheduler()
             // as if there are more, they will be discovered when the
             // scheduler is called on the other core (distributed algorithm)
             if(scheduleOnOtherCore>=0) continue;
-            long long deadline=(*it)->schedData.deadline.get();
+            long long deadline=(*edfIt)->schedData.deadline.get();
             for(int c=0;c<CPU_NUM_CORES;c++)
             {
                 if((affinity & (1<<c))==0) continue;
@@ -266,17 +267,18 @@ void EDFScheduler::IRQrunScheduler()
             }
         }
     }
+    auto rrIt=begin(readyRrThreads);
     if(next==nullptr)
     {
-        for(auto it=begin(readyRrThreads);it!=end(readyRrThreads);++it)
+        for(;rrIt!=end(readyRrThreads);++rrIt)
         {
-            auto affinity=(*it)->affinity;
+            auto affinity=(*rrIt)->affinity;
             if(affinity & (1<<coreId))
             {
                 // Found highest priority thread whose affinity is compatible
                 // with this core. That's the one we'll schedule
-                next=*it;
-                readyRrThreads.erase(it);
+                next=*rrIt;
+                rrIt=readyRrThreads.erase(rrIt);
                 break;
             } else {
                 // Non-real-time threads can only preempt idle
@@ -340,11 +342,11 @@ void EDFScheduler::IRQrunScheduler()
         for(int c=1;c<CPU_NUM_CORES;c++)
             latestRunningDeadline=max(latestRunningDeadline,runningDeadline[c]);
 
-        for(auto it=begin(readyEdfThreads);it!=end(readyEdfThreads);++it)
+        for(;edfIt!=end(readyEdfThreads);++edfIt)
         {
-            long long deadline=(*it)->schedData.deadline.get();
+            long long deadline=(*edfIt)->schedData.deadline.get();
             if(deadline>=latestRunningDeadline) goto checkCompleted;
-            auto affinity=(*it)->affinity;
+            auto affinity=(*edfIt)->affinity;
             for(int c=0;c<CPU_NUM_CORES;c++)
             {
                 if((affinity & (1<<c))==0) continue;
@@ -353,17 +355,21 @@ void EDFScheduler::IRQrunScheduler()
                 goto checkCompleted;
             }
         }
-        for(auto it=begin(readyRrThreads);it!=end(readyRrThreads);++it)
+        // Check non-real-time threads only if at least one core is idle
+        if(latestRunningDeadline==numeric_limits<long long>::max()-1)
         {
-            auto affinity=(*it)->affinity;
-            // Non-real-time threads can only preempt idle
-            for(int c=0;c<CPU_NUM_CORES;c++)
+            for(;rrIt!=end(readyRrThreads);++rrIt)
             {
-                if((affinity & (1<<c))==0) continue;
-                if(runningDeadline[c]!=numeric_limits<long long>::max()-1)
-                    continue;
-                IRQinvokeSchedulerOnCore(c);
-                goto checkCompleted;
+                auto affinity=(*rrIt)->affinity;
+                // Non-real-time threads can only preempt idle
+                for(int c=0;c<CPU_NUM_CORES;c++)
+                {
+                    if((affinity & (1<<c))==0) continue;
+                    if(runningDeadline[c]!=numeric_limits<long long>::max()-1)
+                        continue;
+                    IRQinvokeSchedulerOnCore(c);
+                    goto checkCompleted;
+                }
             }
         }
         checkCompleted:;
