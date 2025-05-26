@@ -39,7 +39,9 @@ class PL022SPI
 {
 public:
     /**
-     * Constructor.
+     * Constructor, initializes the SPI port.
+     * Calls errorHandler(Error::UNEXPECTED) if the port is already being used
+     * by another instance of this driver or another driver.
      * \param base Base address of the memory mapped register bank of the
      * peripheral.
      * \param irqn The IRQ number for the peripheral, or a negative number if
