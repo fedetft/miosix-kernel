@@ -155,6 +155,7 @@ void RP2040PL022SPI::sendRecvImpl(const D send[], D recv[], size_t len, unsigned
     unsigned int datasz=sizeof(D)==1
             ?DMA_CH0_CTRL_TRIG_DATA_SIZE_VALUE_SIZE_BYTE
             :DMA_CH0_CTRL_TRIG_DATA_SIZE_VALUE_SIZE_HALFWORD;
+    unsigned int rxDreq=spi==spi0_hw?17:19;
     // In SPI sending and receiving happens simultaneously, so the DMA also
     // must pump data in as fast as it pumps it out. Unfortunately this is
     // NOT necessarily the case because of bus contention for instance.
@@ -177,7 +178,7 @@ void RP2040PL022SPI::sendRecvImpl(const D send[], D recv[], size_t len, unsigned
     dma_hw->ch[txDmaCh].read_addr=reinterpret_cast<unsigned int>(send+1);
     dma_hw->ch[txDmaCh].write_addr=reinterpret_cast<unsigned int>(&spi->dr);
     dma_hw->ch[txDmaCh].transfer_count=len-1;
-    dma_hw->ch[txDmaCh].al1_ctrl=(17<<DMA_CH0_CTRL_TRIG_TREQ_SEL_LSB)
+    dma_hw->ch[txDmaCh].al1_ctrl=(rxDreq<<DMA_CH0_CTRL_TRIG_TREQ_SEL_LSB)
                                 |(txDmaCh<<DMA_CH0_CTRL_TRIG_CHAIN_TO_LSB) // disable chaining!!!!
                                 |DMA_CH0_CTRL_TRIG_INCR_READ_BITS
                                 |(datasz<<DMA_CH0_CTRL_TRIG_DATA_SIZE_LSB)
@@ -185,7 +186,7 @@ void RP2040PL022SPI::sendRecvImpl(const D send[], D recv[], size_t len, unsigned
     dma_hw->ch[rxDmaCh].read_addr=reinterpret_cast<unsigned int>(&spi->dr);
     dma_hw->ch[rxDmaCh].write_addr=reinterpret_cast<unsigned int>(recv);
     dma_hw->ch[rxDmaCh].transfer_count=len;
-    dma_hw->ch[rxDmaCh].al1_ctrl=(17<<DMA_CH0_CTRL_TRIG_TREQ_SEL_LSB)
+    dma_hw->ch[rxDmaCh].al1_ctrl=(rxDreq<<DMA_CH0_CTRL_TRIG_TREQ_SEL_LSB)
                                 |(rxDmaCh<<DMA_CH0_CTRL_TRIG_CHAIN_TO_LSB) // disable chaining!!!!
                                 |DMA_CH0_CTRL_TRIG_INCR_WRITE_BITS
                                 |(datasz<<DMA_CH0_CTRL_TRIG_DATA_SIZE_LSB)
@@ -208,6 +209,7 @@ void RP2040PL022SPI::sendRecvImpl(const D send[], D recv[], size_t len, unsigned
                 #ifdef WITH_ERRLOG
                 IRQerrorLog("SPI RX FIFO overrun, you are running too fast!");
                 #endif // WITH_ERRLOG
+                dma_hw->abort=(1U<<txDmaCh)|(1U<<rxDmaCh);
                 errorHandler(Error::UNEXPECTED);
             }
             waiting=Thread::IRQgetCurrentThread();
@@ -227,12 +229,13 @@ void RP2040PL022SPI::sendImpl(const D send[], size_t len, unsigned wordSize) noe
     unsigned int datasz=sizeof(D)==1
             ?DMA_CH0_CTRL_TRIG_DATA_SIZE_VALUE_SIZE_BYTE
             :DMA_CH0_CTRL_TRIG_DATA_SIZE_VALUE_SIZE_HALFWORD;
+    unsigned int txDreq=spi==spi0_hw?16:18;
     dma_hw->ch[txDmaCh].read_addr=reinterpret_cast<unsigned int>(send);
     dma_hw->ch[txDmaCh].write_addr=reinterpret_cast<unsigned int>(&spi->dr);
     dma_hw->ch[txDmaCh].transfer_count=len;
     {
         FastGlobalIrqLock lock;
-        dma_hw->ch[txDmaCh].ctrl_trig=(16<<DMA_CH0_CTRL_TRIG_TREQ_SEL_LSB)
+        dma_hw->ch[txDmaCh].ctrl_trig=(txDreq<<DMA_CH0_CTRL_TRIG_TREQ_SEL_LSB)
                                |DMA_CH0_CTRL_TRIG_INCR_READ_BITS
                                |(datasz<<DMA_CH0_CTRL_TRIG_DATA_SIZE_LSB)
                                |DMA_CH0_CTRL_TRIG_EN_BITS;
@@ -256,6 +259,7 @@ void RP2040PL022SPI::recvImpl(D recv[], size_t len, unsigned wordSize, D sendDum
     unsigned int datasz=sizeof(D)==1
             ?DMA_CH0_CTRL_TRIG_DATA_SIZE_VALUE_SIZE_BYTE
             :DMA_CH0_CTRL_TRIG_DATA_SIZE_VALUE_SIZE_HALFWORD;
+    unsigned int rxDreq=spi==spi0_hw?17:19;
     // This API is for receiving data without really sending anything --
     // or better we just send the same byte over and over.
     // But we still need to write the byte to the data register
@@ -263,14 +267,14 @@ void RP2040PL022SPI::recvImpl(D recv[], size_t len, unsigned wordSize, D sendDum
     dma_hw->ch[txDmaCh].read_addr=reinterpret_cast<unsigned int>(&sendDummy);
     dma_hw->ch[txDmaCh].write_addr=reinterpret_cast<unsigned int>(&spi->dr);
     dma_hw->ch[txDmaCh].transfer_count=len-1;
-    dma_hw->ch[txDmaCh].al1_ctrl=(17<<DMA_CH0_CTRL_TRIG_TREQ_SEL_LSB)
+    dma_hw->ch[txDmaCh].al1_ctrl=(rxDreq<<DMA_CH0_CTRL_TRIG_TREQ_SEL_LSB)
                                 |(txDmaCh<<DMA_CH0_CTRL_TRIG_CHAIN_TO_LSB) // disable chaining!!!!
                                 |(datasz<<DMA_CH0_CTRL_TRIG_DATA_SIZE_LSB)
                                 |DMA_CH0_CTRL_TRIG_EN_BITS;
     dma_hw->ch[rxDmaCh].read_addr=reinterpret_cast<unsigned int>(&spi->dr);
     dma_hw->ch[rxDmaCh].write_addr=reinterpret_cast<unsigned int>(recv);
     dma_hw->ch[rxDmaCh].transfer_count=len;
-    dma_hw->ch[rxDmaCh].al1_ctrl=(17<<DMA_CH0_CTRL_TRIG_TREQ_SEL_LSB)
+    dma_hw->ch[rxDmaCh].al1_ctrl=(rxDreq<<DMA_CH0_CTRL_TRIG_TREQ_SEL_LSB)
                                 |(rxDmaCh<<DMA_CH0_CTRL_TRIG_CHAIN_TO_LSB) // disable chaining!!!!
                                 |DMA_CH0_CTRL_TRIG_INCR_WRITE_BITS
                                 |(datasz<<DMA_CH0_CTRL_TRIG_DATA_SIZE_LSB)
@@ -293,6 +297,7 @@ void RP2040PL022SPI::recvImpl(D recv[], size_t len, unsigned wordSize, D sendDum
                 #ifdef WITH_ERRLOG
                 IRQerrorLog("SPI RX FIFO overrun, you are running too fast!");
                 #endif // WITH_ERRLOG
+                dma_hw->abort=(1U<<txDmaCh)|(1U<<rxDmaCh);
                 errorHandler(Error::UNEXPECTED);
             }
             waiting=Thread::IRQgetCurrentThread();
