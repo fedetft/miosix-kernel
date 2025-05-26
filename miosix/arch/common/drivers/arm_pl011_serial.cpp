@@ -34,7 +34,7 @@
 
 namespace miosix {
 
-void PL011Serial::initialize(GlobalIrqLock& lock, unsigned int baudrate, bool hwFlowCtl) noexcept
+void PL011Serial::initialize(GlobalIrqLock& lock, unsigned int baudrate, bool rts, bool cts) noexcept
 {
     IRQregisterIrq(lock,irqn,&PL011Serial::IRQhandleInterrupt,this);
     // Interrupt configuration
@@ -51,8 +51,8 @@ void PL011Serial::initialize(GlobalIrqLock& lock, unsigned int baudrate, bool hw
     uart->CR = Regs::CR_UARTEN().mask()
              | Regs::CR_TXE().mask()
              | Regs::CR_RXE().mask()
-             | Regs::CR_RTSEN().put(hwFlowCtl)
-             | Regs::CR_CTSEN().put(hwFlowCtl);
+             | Regs::CR_RTSEN().put(!!rts)
+             | Regs::CR_CTSEN().put(!!cts);
 }
 
 ssize_t PL011Serial::readBlock(void *buffer, size_t size, off_t where)

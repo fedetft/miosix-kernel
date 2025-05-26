@@ -63,9 +63,12 @@ public:
     /**
      * Initialize the hardware.
      * \param baudrate serial port baudrate
-     * \param hwFlowCtl true if hardware flow control (RTS/CTS) should be enabled
+     * \param rts true if hardware flow control for reception (Request To
+     * Send input) should be enabled
+     * \param cts true if hardware flow control for transmission (Clear to Send
+     * output) should be enabled
      */
-    void initialize(GlobalIrqLock& lock, unsigned int baudrate, bool hwFlowCtl) noexcept;
+    void initialize(GlobalIrqLock& lock, unsigned int baudrate, bool rts, bool cts) noexcept;
     
     /**
      * Read a block of data

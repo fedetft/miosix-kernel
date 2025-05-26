@@ -68,8 +68,7 @@ public:
             default:
                 errorHandler(Error::UNEXPECTED);
         }
-        bool hwFlowCtl = rts.isValid()||cts.isValid();
-        initialize(lock,baudrate,hwFlowCtl);
+        initialize(lock,baudrate,rts.isValid(),cts.isValid());
         tx.function(Function::UART); tx.mode(Mode::OUTPUT);
         rx.function(Function::UART); rx.mode(Mode::INPUT);
         if(rts.isValid()) { rts.function(Function::UART); rts.mode(Mode::OUTPUT); }
