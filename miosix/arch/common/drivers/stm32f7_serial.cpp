@@ -621,23 +621,23 @@ STM32Serial::~STM32Serial()
 }
 
 //
-// class STM32DMASerial
+// class STM32DmaSerial
 //
 
-STM32DMASerial::STM32DMASerial(int id, int baudrate, GpioPin tx, GpioPin rx)
+STM32DmaSerial::STM32DmaSerial(int id, int baudrate, GpioPin tx, GpioPin rx)
     : STM32SerialBase(id,baudrate,false), Device(Device::TTY)
 {
     commonInit(id,baudrate,tx,rx,tx,rx); //The last two args will be ignored
 }
 
-STM32DMASerial::STM32DMASerial(int id, int baudrate, GpioPin tx, GpioPin rx,
+STM32DmaSerial::STM32DmaSerial(int id, int baudrate, GpioPin tx, GpioPin rx,
             GpioPin rts, GpioPin cts)
     : STM32SerialBase(id,baudrate,true), Device(Device::TTY)
 {
     commonInit(id,baudrate,tx,rx,rts,cts);
 }
 
-void STM32DMASerial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
+void STM32DmaSerial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
                     GpioPin rts, GpioPin cts)
 {
     //Check if DMA is supported for this port
@@ -646,15 +646,15 @@ void STM32DMASerial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
     GlobalIrqLock dLock;
 
     dma.IRQenable();
-    IRQregisterIrq(dLock,dma.getTxIRQn(),&STM32DMASerial::IRQhandleDmaTxInterrupt,this);
-    IRQregisterIrq(dLock,dma.getRxIRQn(),&STM32DMASerial::IRQhandleDmaRxInterrupt,this);
+    IRQregisterIrq(dLock,dma.getTxIRQn(),&STM32DmaSerial::IRQhandleDmaTxInterrupt,this);
+    IRQregisterIrq(dLock,dma.getRxIRQn(),&STM32DmaSerial::IRQhandleDmaRxInterrupt,this);
     dma.IRQinit();
 
     port->IRQenable();
     //Lower priority to ensure IRQhandleDmaRxInterrupt() is called before
     //IRQhandleInterrupt(), so that idle is set correctly
     NVIC_SetPriority(port->getIRQn(),defaultIrqPriority+1);
-    IRQregisterIrq(dLock,port->getIRQn(),&STM32DMASerial::IRQhandleInterrupt,this);
+    IRQregisterIrq(dLock,port->getIRQn(),&STM32DmaSerial::IRQhandleInterrupt,this);
 
     STM32SerialBase::commonInit(id,baudrate,tx,rx,rts,cts);
 
@@ -666,7 +666,7 @@ void STM32DMASerial::commonInit(int id, int baudrate, GpioPin tx, GpioPin rx,
     IRQstartDmaRead();
 }
 
-ssize_t STM32DMASerial::writeBlock(const void *buffer, size_t size, off_t where)
+ssize_t STM32DmaSerial::writeBlock(const void *buffer, size_t size, off_t where)
 {
     Lock<KernelMutex> l(txMutex);
     DeepSleepLock dpLock;
@@ -713,7 +713,7 @@ ssize_t STM32DMASerial::writeBlock(const void *buffer, size_t size, off_t where)
     return size;
 }
 
-void STM32DMASerial::startDmaWrite(const char *buffer, size_t size)
+void STM32DmaSerial::startDmaWrite(const char *buffer, size_t size)
 {
     markBufferBeforeDmaWrite(buffer,size);
     DeepSleepLock dpLock;
@@ -744,7 +744,7 @@ void STM32DMASerial::startDmaWrite(const char *buffer, size_t size)
         reinterpret_cast<volatile uint32_t *>(&port->get()->TDR),buffer,size);
 }
 
-void STM32DMASerial::IRQhandleDmaTxInterrupt()
+void STM32DmaSerial::IRQhandleDmaTxInterrupt()
 {
     port->getDma().IRQhandleDmaTxInterrupt();
     dmaTxInProgress=false;
@@ -753,7 +753,7 @@ void STM32DMASerial::IRQhandleDmaTxInterrupt()
     txWaiting=nullptr;
 }
 
-void STM32DMASerial::waitDmaWriteEnd()
+void STM32DmaSerial::waitDmaWriteEnd()
 {
     FastGlobalIrqLock dLock;
     // If a previous DMA xfer is in progress, wait
@@ -764,24 +764,24 @@ void STM32DMASerial::waitDmaWriteEnd()
     }
 }
 
-ssize_t STM32DMASerial::readBlock(void *buffer, size_t size, off_t where)
+ssize_t STM32DmaSerial::readBlock(void *buffer, size_t size, off_t where)
 {
     return STM32SerialBase::readFromRxQueue(buffer, size);
 }
 
-void STM32DMASerial::IRQstartDmaRead()
+void STM32DmaSerial::IRQstartDmaRead()
 {
     port->getDma().IRQstartDmaRead(
         reinterpret_cast<volatile uint32_t *>(&port->get()->RDR),
         rxBuffer,rxQueueMin);
 }
 
-int STM32DMASerial::IRQstopDmaRead()
+int STM32DmaSerial::IRQstopDmaRead()
 {
     return rxQueueMin - port->getDma().IRQstopDmaRead();
 }
 
-void STM32DMASerial::IRQflushDmaReadBuffer()
+void STM32DmaSerial::IRQflushDmaReadBuffer()
 {
     int elem=IRQstopDmaRead();
     markBufferAfterDmaRead(rxBuffer,rxQueueMin);
@@ -790,14 +790,14 @@ void STM32DMASerial::IRQflushDmaReadBuffer()
     IRQstartDmaRead();
 }
 
-void STM32DMASerial::IRQhandleDmaRxInterrupt()
+void STM32DmaSerial::IRQhandleDmaRxInterrupt()
 {
     IRQflushDmaReadBuffer();
     rxUpdateIdle(0);
     rxWakeup();
 }
 
-void STM32DMASerial::IRQhandleInterrupt()
+void STM32DmaSerial::IRQhandleInterrupt()
 {
     unsigned int status=port->get()->ISR;
     rxUpdateIdle(status);
@@ -813,14 +813,14 @@ void STM32DMASerial::IRQhandleInterrupt()
     }
 }
 
-void STM32DMASerial::IRQwrite(const char *str)
+void STM32DmaSerial::IRQwrite(const char *str)
 {
     //Wait until DMA xfer ends. EN bit is cleared by hardware on transfer end
     port->getDma().IRQwaitDmaWriteStop();
     STM32SerialBase::IRQwrite(str);
 }
 
-STM32DMASerial::~STM32DMASerial()
+STM32DmaSerial::~STM32DmaSerial()
 {
     waitSerialTxFifoEmpty();
     {
@@ -828,9 +828,9 @@ STM32DMASerial::~STM32DMASerial()
         port->get()->CR1=0;
         IRQstopDmaRead();
         auto dma=port->getDma();
-        IRQunregisterIrq(dLock,dma.getTxIRQn(),&STM32DMASerial::IRQhandleDmaTxInterrupt,this);
-        IRQunregisterIrq(dLock,dma.getRxIRQn(),&STM32DMASerial::IRQhandleDmaRxInterrupt,this);
-        IRQunregisterIrq(dLock,port->getIRQn(),&STM32DMASerial::IRQhandleInterrupt,this);
+        IRQunregisterIrq(dLock,dma.getTxIRQn(),&STM32DmaSerial::IRQhandleDmaTxInterrupt,this);
+        IRQunregisterIrq(dLock,dma.getRxIRQn(),&STM32DmaSerial::IRQhandleDmaRxInterrupt,this);
+        IRQunregisterIrq(dLock,port->getIRQn(),&STM32DmaSerial::IRQhandleInterrupt,this);
         port->IRQdisable();
     }
 }

@@ -32,7 +32,7 @@
 
 namespace miosix {
 
-RP2040PL022SPI::RP2040PL022SPI(int number, unsigned int bitrate, bool spo, bool sph,
+RP2040PL022DmaSpi::RP2040PL022DmaSpi(int number, unsigned int bitrate, bool spo, bool sph,
                                GpioPin si, GpioPin so, GpioPin sck, GpioPin ce) noexcept
 {
     {
@@ -53,9 +53,9 @@ RP2040PL022SPI::RP2040PL022SPI(int number, unsigned int bitrate, bool spo, bool 
             default:
                 errorHandler(Error::UNEXPECTED);
         }
-        IRQregisterIrq(lock,irqn,&RP2040PL022SPI::IRQhandleInterrupt,this);
-        txDmaCh=RP2040Dma::IRQregisterChannel(lock,&RP2040PL022SPI::IRQhandleDmaInterrupt,this);
-        rxDmaCh=RP2040Dma::IRQregisterChannel(lock,&RP2040PL022SPI::IRQhandleDmaInterrupt,this);
+        IRQregisterIrq(lock,irqn,&RP2040PL022DmaSpi::IRQhandleInterrupt,this);
+        txDmaCh=RP2040Dma::IRQregisterChannel(lock,&RP2040PL022DmaSpi::IRQhandleDmaInterrupt,this);
+        rxDmaCh=RP2040Dma::IRQregisterChannel(lock,&RP2040PL022DmaSpi::IRQhandleDmaInterrupt,this);
         si.function(Function::SPI); si.mode(Mode::INPUT); si.fast();
         so.function(Function::SPI); so.mode(Mode::OUTPUT); so.fast();
         sck.function(Function::SPI); sck.mode(Mode::OUTPUT); sck.fast();
@@ -74,23 +74,23 @@ RP2040PL022SPI::RP2040PL022SPI(int number, unsigned int bitrate, bool spo, bool 
     spi->dmacr=SPI_SSPDMACR_TXDMAE_BITS|SPI_SSPDMACR_RXDMAE_BITS;
 }
 
-RP2040PL022SPI::~RP2040PL022SPI() noexcept
+RP2040PL022DmaSpi::~RP2040PL022DmaSpi() noexcept
 {
     GlobalIrqLock lock;
     spi->cr1=0;
     if(spi==spi0_hw)
     {
-        IRQunregisterIrq(lock,SPI0_IRQ_IRQn,&RP2040PL022SPI::IRQhandleInterrupt,this);
+        IRQunregisterIrq(lock,SPI0_IRQ_IRQn,&RP2040PL022DmaSpi::IRQhandleInterrupt,this);
         reset_block(RESETS_RESET_SPI0_BITS);
     } else {
-        IRQunregisterIrq(lock,SPI1_IRQ_IRQn,&RP2040PL022SPI::IRQhandleInterrupt,this);
+        IRQunregisterIrq(lock,SPI1_IRQ_IRQn,&RP2040PL022DmaSpi::IRQhandleInterrupt,this);
         reset_block(RESETS_RESET_SPI1_BITS);
     }
-    RP2040Dma::IRQunregisterChannel(lock,txDmaCh,&RP2040PL022SPI::IRQhandleDmaInterrupt,this);
-    RP2040Dma::IRQunregisterChannel(lock,rxDmaCh,&RP2040PL022SPI::IRQhandleDmaInterrupt,this);
+    RP2040Dma::IRQunregisterChannel(lock,txDmaCh,&RP2040PL022DmaSpi::IRQhandleDmaInterrupt,this);
+    RP2040Dma::IRQunregisterChannel(lock,rxDmaCh,&RP2040PL022DmaSpi::IRQhandleDmaInterrupt,this);
 }
 
-void RP2040PL022SPI::setBitrate(unsigned int bitrate) noexcept
+void RP2040PL022DmaSpi::setBitrate(unsigned int bitrate) noexcept
 {
     this->bitrate=bitrate;
     unsigned int ratio=peripheralFrequency/bitrate;
@@ -104,7 +104,7 @@ void RP2040PL022SPI::setBitrate(unsigned int bitrate) noexcept
     spi->cr0=(spi->cr0&~SPI_SSPCR0_SCR_BITS) | (scr<<SPI_SSPCR0_SCR_LSB);
 }
 
-void RP2040PL022SPI::IRQhandleInterrupt() noexcept
+void RP2040PL022DmaSpi::IRQhandleInterrupt() noexcept
 {
     FastGlobalLockFromIrq lock;
     if(waiting)
@@ -114,7 +114,7 @@ void RP2040PL022SPI::IRQhandleInterrupt() noexcept
     }
 }
 
-void RP2040PL022SPI::IRQhandleDmaInterrupt() noexcept
+void RP2040PL022DmaSpi::IRQhandleDmaInterrupt() noexcept
 {
     // We do not take the GIL because the DMA code already did
     spi->imsc=0;
@@ -125,13 +125,13 @@ void RP2040PL022SPI::IRQhandleDmaInterrupt() noexcept
     }
 }
 
-void RP2040PL022SPI::setWordSize(unsigned int wordSize) noexcept
+void RP2040PL022DmaSpi::setWordSize(unsigned int wordSize) noexcept
 {
     spi->cr0=(spi->cr0 & ~SPI_SSPCR0_DSS_BITS)
             |((wordSize-1)<<SPI_SSPCR0_DSS_LSB);
 }
 
-unsigned short RP2040PL022SPI::sendRecv(unsigned short data, unsigned wordSize) noexcept
+unsigned short RP2040PL022DmaSpi::sendRecv(unsigned short data, unsigned wordSize) noexcept
 {
     // Just polling when sending a single byte because using the DMA will
     // probably take more cycles
@@ -149,7 +149,7 @@ unsigned short RP2040PL022SPI::sendRecv(unsigned short data, unsigned wordSize) 
 }
 
 template<typename D>
-void RP2040PL022SPI::sendRecvImpl(const D send[], D recv[], size_t len, unsigned wordSize) noexcept
+void RP2040PL022DmaSpi::sendRecvImpl(const D send[], D recv[], size_t len, unsigned wordSize) noexcept
 {
     setWordSize(wordSize);
     unsigned int datasz=sizeof(D)==1
@@ -223,7 +223,7 @@ void RP2040PL022SPI::sendRecvImpl(const D send[], D recv[], size_t len, unsigned
 }
 
 template<typename D>
-void RP2040PL022SPI::sendImpl(const D send[], size_t len, unsigned wordSize) noexcept
+void RP2040PL022DmaSpi::sendImpl(const D send[], size_t len, unsigned wordSize) noexcept
 {
     setWordSize(wordSize);
     unsigned int datasz=sizeof(D)==1
@@ -253,7 +253,7 @@ void RP2040PL022SPI::sendImpl(const D send[], size_t len, unsigned wordSize) noe
 }
 
 template<typename D>
-void RP2040PL022SPI::recvImpl(D recv[], size_t len, unsigned wordSize, D sendDummy) noexcept
+void RP2040PL022DmaSpi::recvImpl(D recv[], size_t len, unsigned wordSize, D sendDummy) noexcept
 {
     setWordSize(wordSize);
     unsigned int datasz=sizeof(D)==1
@@ -310,32 +310,32 @@ void RP2040PL022SPI::recvImpl(D recv[], size_t len, unsigned wordSize, D sendDum
     }
 }
 
-void RP2040PL022SPI::sendRecv(const unsigned short send[], unsigned short recv[], size_t len, unsigned wordSize) noexcept
+void RP2040PL022DmaSpi::sendRecv(const unsigned short send[], unsigned short recv[], size_t len, unsigned wordSize) noexcept
 {
     sendRecvImpl<unsigned short>(send, recv, len, wordSize);
 }
 
-void RP2040PL022SPI::sendRecv(const unsigned char send[], unsigned char recv[], size_t len, unsigned wordSize) noexcept
+void RP2040PL022DmaSpi::sendRecv(const unsigned char send[], unsigned char recv[], size_t len, unsigned wordSize) noexcept
 {
     sendRecvImpl<unsigned char>(send, recv, len, wordSize);
 }
 
-void RP2040PL022SPI::send(const unsigned short send[], size_t len, unsigned wordSize) noexcept
+void RP2040PL022DmaSpi::send(const unsigned short send[], size_t len, unsigned wordSize) noexcept
 {
     sendImpl<unsigned short>(send, len, wordSize);
 }
 
-void RP2040PL022SPI::send(const unsigned char send[], size_t len, unsigned wordSize) noexcept
+void RP2040PL022DmaSpi::send(const unsigned char send[], size_t len, unsigned wordSize) noexcept
 {
     sendImpl<unsigned char>(send, len, wordSize);
 }
 
-void RP2040PL022SPI::recv(unsigned short recv[], size_t len, unsigned wordSize, unsigned short sendDummy) noexcept
+void RP2040PL022DmaSpi::recv(unsigned short recv[], size_t len, unsigned wordSize, unsigned short sendDummy) noexcept
 {
     recvImpl<unsigned short>(recv, len, wordSize, sendDummy);
 }
 
-void RP2040PL022SPI::recv(unsigned char recv[], size_t len, unsigned wordSize, unsigned short sendDummy) noexcept
+void RP2040PL022DmaSpi::recv(unsigned char recv[], size_t len, unsigned wordSize, unsigned short sendDummy) noexcept
 {
     recvImpl<unsigned char>(recv, len, wordSize, sendDummy);
 }

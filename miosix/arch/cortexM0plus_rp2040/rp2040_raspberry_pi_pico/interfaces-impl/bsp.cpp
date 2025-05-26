@@ -93,27 +93,27 @@ void bspInit2()
     } else {
         if(defaultSdCardDriver==SdCardDriverType::Dma)
         {
-            auto spi=new RP2040PL022SPI(
+            auto spi=new RP2040PL022DmaSpi(
                 defaultSdCardSPI,100*1000,false,false,
                 defaultSdCardSPISiPin::getPin(),
                 defaultSdCardSPISoPin::getPin(),
                 defaultSdCardSPISckPin::getPin(),
                 GpioPin());
-            auto sd=new SPISD<RP2040PL022SPI>(
-                std::unique_ptr<RP2040PL022SPI>(spi),
+            auto sd=new SPISD<RP2040PL022DmaSpi>(
+                std::unique_ptr<RP2040PL022DmaSpi>(spi),
                 defaultSdCardSPICsPin::getPin());
-            basicFilesystemSetup(intrusive_ref_ptr<SPISD<RP2040PL022SPI>>(sd));
+            basicFilesystemSetup(intrusive_ref_ptr<SPISD<RP2040PL022DmaSpi>>(sd));
         } else if(defaultSdCardDriver==SdCardDriverType::NoDma) {
-            auto spi=new RP2040PL022SPINoDma(
+            auto spi=new RP2040PL022Spi(
                 defaultSdCardSPI,100*1000,false,false,
                 defaultSdCardSPISiPin::getPin(),
                 defaultSdCardSPISoPin::getPin(),
                 defaultSdCardSPISckPin::getPin(),
                 GpioPin());
-            auto sd=new SPISD<RP2040PL022SPINoDma>(
-                std::unique_ptr<RP2040PL022SPINoDma>(spi),
+            auto sd=new SPISD<RP2040PL022Spi>(
+                std::unique_ptr<RP2040PL022Spi>(spi),
                 defaultSdCardSPICsPin::getPin());
-            basicFilesystemSetup(intrusive_ref_ptr<SPISD<RP2040PL022SPINoDma>>(sd));
+            basicFilesystemSetup(intrusive_ref_ptr<SPISD<RP2040PL022Spi>>(sd));
         } else { // SdCardDriverType::Software
             using SPIType=SwSPI<defaultSdCardSPISiPin,defaultSdCardSPISoPin,
                 defaultSdCardSPISckPin>;

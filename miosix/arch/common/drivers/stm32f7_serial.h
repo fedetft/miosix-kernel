@@ -38,7 +38,7 @@ namespace miosix {
 
 class STM32SerialHW;
 class STM32Serial;
-class STM32DMASerial;
+class STM32DmaSerial;
 
 /**
  * \internal Common code for DMA and non-DMA implementations of the STM32 serial
@@ -130,7 +130,7 @@ private:
     int ioctl(int cmd, void* arg);
 
     friend class STM32Serial;
-    friend class STM32DMASerial;
+    friend class STM32DmaSerial;
 
     const STM32SerialHW *port;        ///< Pointer to USART port object
     const bool flowControl;           ///< True if flow control GPIOs enabled
@@ -249,7 +249,7 @@ private:
  * Classes of this type are reference counted, must be allocated on the heap
  * and managed through intrusive_ref_ptr<FileBase>
  */
-class STM32DMASerial : public STM32SerialBase, public Device
+class STM32DmaSerial : public STM32SerialBase, public Device
 {
 public:
     /**
@@ -264,7 +264,7 @@ public:
      * \param tx tx pin
      * \param rx rx pin
      */
-    STM32DMASerial(int id, int baudrate, GpioPin tx, GpioPin rx);
+    STM32DmaSerial(int id, int baudrate, GpioPin tx, GpioPin rx);
     
     /**
      * Constructor, initializes the serial port using remapped pins and enables
@@ -279,7 +279,7 @@ public:
      * \param rts rts pin
      * \param cts cts pin
      */
-    STM32DMASerial(int id, int baudrate, GpioPin tx, GpioPin rx,
+    STM32DmaSerial(int id, int baudrate, GpioPin tx, GpioPin rx,
                 GpioPin rts, GpioPin cts);
     
     /**
@@ -326,7 +326,7 @@ public:
     /**
      * Destructor
      */
-    ~STM32DMASerial();
+    ~STM32DmaSerial();
     
 private:
     /**
@@ -420,13 +420,13 @@ intrusive_ref_ptr<Device> STM32SerialBase::get(
         return intrusive_ref_ptr<Device>(new STM32Serial(id,speed,
             Tx::getPin(),Rx::getPin()));
     else if(!flowctrl&&dma)
-        return intrusive_ref_ptr<Device>(new STM32DMASerial(id,speed,
+        return intrusive_ref_ptr<Device>(new STM32DmaSerial(id,speed,
             Tx::getPin(),Rx::getPin()));
     else if(flowctrl&&!dma)
         return intrusive_ref_ptr<Device>(new STM32Serial(id,speed,
             Tx::getPin(),Rx::getPin(),Rts::getPin(),Cts::getPin()));
     else //if(flowctrl&&dma)
-        return intrusive_ref_ptr<Device>(new STM32DMASerial(id,speed,
+        return intrusive_ref_ptr<Device>(new STM32DmaSerial(id,speed,
             Tx::getPin(),Rx::getPin(),Rts::getPin(),Cts::getPin()));
 }
 

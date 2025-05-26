@@ -30,12 +30,12 @@
 
 namespace miosix {
 
-void PL022SPI::initialize(unsigned int bitrate, bool spo, bool sph) noexcept
+void PL022Spi::initialize(unsigned int bitrate, bool spo, bool sph) noexcept
 {
     if(irqn>=0)
     {
         GlobalIrqLock lock;
-        IRQregisterIrq(lock,irqn,&PL022SPI::IRQhandleInterrupt,this);
+        IRQregisterIrq(lock,irqn,&PL022Spi::IRQhandleInterrupt,this);
     }
     spi->CR0=Regs::CR0_SPH().put(sph)
             |Regs::CR0_SPO().put(spo)
@@ -45,14 +45,14 @@ void PL022SPI::initialize(unsigned int bitrate, bool spo, bool sph) noexcept
     spi->CR1=Regs::CR1_SSE().put(1);
 }
 
-PL022SPI::~PL022SPI() noexcept
+PL022Spi::~PL022Spi() noexcept
 {
     GlobalIrqLock lock;
     spi->CR1=0;
-    if(irqn>=0) IRQunregisterIrq(lock,irqn,&PL022SPI::IRQhandleInterrupt,this);
+    if(irqn>=0) IRQunregisterIrq(lock,irqn,&PL022Spi::IRQhandleInterrupt,this);
 }
 
-void PL022SPI::setBitrate(unsigned int bitrate) noexcept
+void PL022Spi::setBitrate(unsigned int bitrate) noexcept
 {
     this->bitrate=bitrate;
     unsigned int ratio=peripheralClock/bitrate;
@@ -66,7 +66,7 @@ void PL022SPI::setBitrate(unsigned int bitrate) noexcept
     spi->CR0=Regs::CR0_SCR().put(scr,spi->CR0);
 }
 
-void PL022SPI::IRQhandleInterrupt() noexcept
+void PL022Spi::IRQhandleInterrupt() noexcept
 {
     FastGlobalLockFromIrq lock;
     spi->IMSC=0;
@@ -77,7 +77,7 @@ void PL022SPI::IRQhandleInterrupt() noexcept
     }
 }
 
-void PL022SPI::waitForInterrupt(unsigned int flag) noexcept
+void PL022Spi::waitForInterrupt(unsigned int flag) noexcept
 {
     if(irqn>=0 && bitrate<10*1000*1000)
     {
@@ -96,7 +96,7 @@ void PL022SPI::waitForInterrupt(unsigned int flag) noexcept
     }
 }
 
-void PL022SPI::waitForEndTransfer() noexcept
+void PL022Spi::waitForEndTransfer() noexcept
 {
     if(bitrate<10*1000*1000)
     {
@@ -107,12 +107,12 @@ void PL022SPI::waitForEndTransfer() noexcept
     }
 }
 
-void PL022SPI::setWordSize(unsigned int wordSize) noexcept
+void PL022Spi::setWordSize(unsigned int wordSize) noexcept
 {
     spi->CR0=Regs::CR0_DSS().put(wordSize-1,spi->CR0);
 }
 
-unsigned short PL022SPI::sendRecv(unsigned short data, unsigned wordSize) noexcept
+unsigned short PL022Spi::sendRecv(unsigned short data, unsigned wordSize) noexcept
 {
     setWordSize(wordSize);
     spi->DR=data;
@@ -121,7 +121,7 @@ unsigned short PL022SPI::sendRecv(unsigned short data, unsigned wordSize) noexce
 }
 
 template<typename D>
-void PL022SPI::sendRecvImpl(const D send[], D recv[], size_t len, unsigned wordSize) noexcept
+void PL022Spi::sendRecvImpl(const D send[], D recv[], size_t len, unsigned wordSize) noexcept
 {
     setWordSize(wordSize);
     size_t w=0, r=0;
@@ -142,7 +142,7 @@ void PL022SPI::sendRecvImpl(const D send[], D recv[], size_t len, unsigned wordS
 }
 
 template<typename D>
-void PL022SPI::sendImpl(const D send[], size_t len, unsigned wordSize) noexcept
+void PL022Spi::sendImpl(const D send[], size_t len, unsigned wordSize) noexcept
 {
     setWordSize(wordSize);
     size_t w=0;
@@ -162,7 +162,7 @@ void PL022SPI::sendImpl(const D send[], size_t len, unsigned wordSize) noexcept
 }
 
 template<typename D>
-void PL022SPI::recvImpl(D recv[], size_t len, unsigned wordSize, D sendDummy) noexcept
+void PL022Spi::recvImpl(D recv[], size_t len, unsigned wordSize, D sendDummy) noexcept
 {
     setWordSize(wordSize);
     size_t w=0, r=0;
@@ -182,32 +182,32 @@ void PL022SPI::recvImpl(D recv[], size_t len, unsigned wordSize, D sendDummy) no
     while(r<len) recv[r++]=spi->DR;
 }
 
-void PL022SPI::sendRecv(const unsigned short send[], unsigned short recv[], size_t len, unsigned wordSize) noexcept
+void PL022Spi::sendRecv(const unsigned short send[], unsigned short recv[], size_t len, unsigned wordSize) noexcept
 {
     sendRecvImpl<unsigned short>(send, recv, len, wordSize);
 }
 
-void PL022SPI::sendRecv(const unsigned char send[], unsigned char recv[], size_t len, unsigned wordSize) noexcept
+void PL022Spi::sendRecv(const unsigned char send[], unsigned char recv[], size_t len, unsigned wordSize) noexcept
 {
     sendRecvImpl<unsigned char>(send, recv, len, wordSize);
 }
 
-void PL022SPI::send(const unsigned short data[], size_t len, unsigned wordSize) noexcept
+void PL022Spi::send(const unsigned short data[], size_t len, unsigned wordSize) noexcept
 {
     sendImpl<unsigned short>(data, len, wordSize);
 }
 
-void PL022SPI::send(const unsigned char data[], size_t len, unsigned wordSize) noexcept
+void PL022Spi::send(const unsigned char data[], size_t len, unsigned wordSize) noexcept
 {
     sendImpl<unsigned char>(data, len, wordSize);
 }
 
-void PL022SPI::recv(unsigned short recv[], size_t len, unsigned wordSize, unsigned short sendDummy) noexcept
+void PL022Spi::recv(unsigned short recv[], size_t len, unsigned wordSize, unsigned short sendDummy) noexcept
 {
     recvImpl<unsigned short>(recv, len, wordSize, sendDummy);
 }
 
-void PL022SPI::recv(unsigned char recv[], size_t len, unsigned wordSize, unsigned short sendDummy) noexcept
+void PL022Spi::recv(unsigned char recv[], size_t len, unsigned wordSize, unsigned short sendDummy) noexcept
 {
     recvImpl<unsigned char>(recv, len, wordSize, sendDummy);
 }

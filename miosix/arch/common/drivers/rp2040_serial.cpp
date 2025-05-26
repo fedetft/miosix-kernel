@@ -35,7 +35,7 @@
 
 namespace miosix {
 
-RP2040PL011Serial::RP2040PL011Serial(int number, int baudrate,
+RP2040PL011DmaSerial::RP2040PL011DmaSerial(int number, int baudrate,
     GpioPin tx, GpioPin rx, GpioPin rts, GpioPin cts) noexcept
     : Device(Device::TTY), rxQueue(32+baudrate/500)
 {
@@ -61,11 +61,11 @@ RP2040PL011Serial::RP2040PL011Serial(int number, int baudrate,
             errorHandler(Error::UNEXPECTED);
     }
     // Configure interrupts
-    IRQregisterIrq(lock,irqn,&RP2040PL011Serial::IRQhandleInterrupt,this);
+    IRQregisterIrq(lock,irqn,&RP2040PL011DmaSerial::IRQhandleInterrupt,this);
     uart->ifls = (2<<UART_UARTIFLS_RXIFLSEL_LSB) | (2<<UART_UARTIFLS_TXIFLSEL_LSB);
     enableRXInterrupts();
     // Reserve DMA channels
-    txDmaCh = RP2040Dma::IRQregisterChannel(lock,&RP2040PL011Serial::IRQhandleDmaInterrupt,this);
+    txDmaCh = RP2040Dma::IRQregisterChannel(lock,&RP2040PL011DmaSerial::IRQhandleDmaInterrupt,this);
     // Setup baud rate
     int rate = 16 * baudrate;
     int div = peripheralFrequency / rate;
@@ -84,7 +84,7 @@ RP2040PL011Serial::RP2040PL011Serial(int number, int baudrate,
     uart->dmacr = UART_UARTDMACR_TXDMAE_BITS;
 }
 
-ssize_t RP2040PL011Serial::readBlock(void *buffer, size_t size, off_t where)
+ssize_t RP2040PL011DmaSerial::readBlock(void *buffer, size_t size, off_t where)
 {
     if(size==0) return 0;
     Lock<KernelMutex> lock(rxMutex);
@@ -106,7 +106,7 @@ ssize_t RP2040PL011Serial::readBlock(void *buffer, size_t size, off_t where)
     return i;
 }
 
-ssize_t RP2040PL011Serial::writeBlock(const void *buffer, size_t size, off_t where)
+ssize_t RP2040PL011DmaSerial::writeBlock(const void *buffer, size_t size, off_t where)
 {
     if(size==0) return 0;
     Lock<KernelMutex> lock(txMutex);
@@ -134,7 +134,7 @@ ssize_t RP2040PL011Serial::writeBlock(const void *buffer, size_t size, off_t whe
     return size;
 }
 
-void RP2040PL011Serial::IRQwrite(const char *str)
+void RP2040PL011DmaSerial::IRQwrite(const char *str)
 {
     // Wait for any pending DMA transfer to complete
     while(!(uart->fr & UART_UARTFR_TXFE_BITS)) ;
@@ -148,7 +148,7 @@ void RP2040PL011Serial::IRQwrite(const char *str)
     while(!(uart->fr & UART_UARTFR_TXFE_BITS)) ;
 }
 
-int RP2040PL011Serial::ioctl(int cmd, void *arg)
+int RP2040PL011DmaSerial::ioctl(int cmd, void *arg)
 {
     if(reinterpret_cast<unsigned>(arg) & 0b11) return -EFAULT; //Unaligned
     termios *t=reinterpret_cast<termios*>(arg);
@@ -174,23 +174,23 @@ int RP2040PL011Serial::ioctl(int cmd, void *arg)
     }
 }
 
-RP2040PL011Serial::~RP2040PL011Serial()
+RP2040PL011DmaSerial::~RP2040PL011DmaSerial()
 {
     GlobalIrqLock lock;
     //Disable UART operation
     uart->cr = 0;
     if(uart==uart0_hw)
     {
-        IRQunregisterIrq(lock,UART0_IRQ_IRQn,&RP2040PL011Serial::IRQhandleInterrupt,this);
+        IRQunregisterIrq(lock,UART0_IRQ_IRQn,&RP2040PL011DmaSerial::IRQhandleInterrupt,this);
         reset_block(RESETS_RESET_UART0_BITS);
     } else {
-        IRQunregisterIrq(lock,UART1_IRQ_IRQn,&RP2040PL011Serial::IRQhandleInterrupt,this);
+        IRQunregisterIrq(lock,UART1_IRQ_IRQn,&RP2040PL011DmaSerial::IRQhandleInterrupt,this);
         reset_block(RESETS_RESET_UART1_BITS);
     }
-    RP2040Dma::IRQunregisterChannel(lock,txDmaCh,&RP2040PL011Serial::IRQhandleDmaInterrupt,this);
+    RP2040Dma::IRQunregisterChannel(lock,txDmaCh,&RP2040PL011DmaSerial::IRQhandleDmaInterrupt,this);
 }
 
-void RP2040PL011Serial::IRQhandleInterrupt() noexcept
+void RP2040PL011DmaSerial::IRQhandleInterrupt() noexcept
 {
     FastGlobalLockFromIrq dLock;
     uint32_t flags = uart->mis;
@@ -212,7 +212,7 @@ void RP2040PL011Serial::IRQhandleInterrupt() noexcept
     }
 }
 
-void RP2040PL011Serial::IRQhandleDmaInterrupt() noexcept
+void RP2040PL011DmaSerial::IRQhandleDmaInterrupt() noexcept
 {
     // We do not take the GIL because the DMA code already did
     if(txWaiting)

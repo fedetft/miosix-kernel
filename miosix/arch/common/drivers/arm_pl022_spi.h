@@ -35,7 +35,7 @@ namespace miosix {
 /**
  * Vendor-independent driver for the ARM PL022 SPI hardware. Master mode only.
  */
-class PL022SPI
+class PL022Spi
 {
 public:
     /**
@@ -53,13 +53,13 @@ public:
      * done in a vendor-dependent way outside of this class. Once this is
      * done, you must call the initialize() method before using the peripheral.
      */
-    PL022SPI(void *base, int irqn, unsigned int clk) noexcept
+    PL022Spi(void *base, int irqn, unsigned int clk) noexcept
         : spi(reinterpret_cast<Regs*>(base)), irqn(irqn), peripheralClock(clk) { }
 
     /**
      * Destructor.
      */
-    ~PL022SPI() noexcept;
+    ~PL022Spi() noexcept;
 
     /**
      * Initialize the hardware.

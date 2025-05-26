@@ -38,7 +38,7 @@ namespace miosix {
 /**
  * RP2040 no DMA driver for the PL011 serial hardware.
  */
-class RP2040PL011SerialNoDma : public PL011Serial
+class RP2040PL011Serial : public PL011Serial
 {
 public:
     /**
@@ -52,7 +52,7 @@ public:
      * \param rts GPIO to configure as usart rts, see datasheet for restrictions
      * \param cts GPIO to configure as usart cts, see datasheet for restrictions
      */
-    RP2040PL011SerialNoDma(int number, int baudrate,
+    RP2040PL011Serial(int number, int baudrate,
         GpioPin tx, GpioPin rx, GpioPin rts=GpioPin(), GpioPin cts=GpioPin())
         : PL011Serial(getBase(number), getIrqn(number), peripheralFrequency, 32+baudrate/500)
     {
@@ -83,7 +83,7 @@ private:
 /**
  * RP2040 DMA driver for the PL011 serial hardware.
  */
-class RP2040PL011Serial : public Device
+class RP2040PL011DmaSerial : public Device
 {
 public:
     /**
@@ -101,7 +101,7 @@ public:
      * restrictions) or an invalid pin to disable hardware flow control for
      * reception
      */
-    RP2040PL011Serial(int number, int baudrate, GpioPin tx, GpioPin rx,
+    RP2040PL011DmaSerial(int number, int baudrate, GpioPin tx, GpioPin rx,
                       GpioPin rts=GpioPin(), GpioPin cts=GpioPin()) noexcept;
     
     /**
@@ -145,7 +145,7 @@ public:
     /**
      * Destructor
      */
-    ~RP2040PL011Serial();
+    ~RP2040PL011DmaSerial();
     
 private:
     /// \internal the serial port interrupts call this member function.
@@ -186,16 +186,16 @@ public:
                                          bool flowctrl, bool dma)
     {
         if(!flowctrl&&!dma)
-            return intrusive_ref_ptr<Device>(new RP2040PL011SerialNoDma(id,speed,
+            return intrusive_ref_ptr<Device>(new RP2040PL011Serial(id,speed,
                 Tx::getPin(),Rx::getPin()));
         else if(!flowctrl&&dma)
-            return intrusive_ref_ptr<Device>(new RP2040PL011Serial(id,speed,
+            return intrusive_ref_ptr<Device>(new RP2040PL011DmaSerial(id,speed,
                 Tx::getPin(),Rx::getPin()));
         else if(flowctrl&&!dma)
-            return intrusive_ref_ptr<Device>(new RP2040PL011SerialNoDma(id,speed,
+            return intrusive_ref_ptr<Device>(new RP2040PL011Serial(id,speed,
                 Tx::getPin(),Rx::getPin(),Rts::getPin(),Cts::getPin()));
         else //if(flowctrl&&dma)
-            return intrusive_ref_ptr<Device>(new RP2040PL011Serial(id,speed,
+            return intrusive_ref_ptr<Device>(new RP2040PL011DmaSerial(id,speed,
                 Tx::getPin(),Rx::getPin(),Rts::getPin(),Cts::getPin()));
     }
 };

@@ -38,12 +38,12 @@ namespace miosix {
 /**
  * RP2040 no DMA driver for the PL022 SPI hardware. Master mode only.
  */
-class RP2040PL022SPINoDma: public PL022SPI
+class RP2040PL022Spi: public PL022Spi
 {
 public:
-    RP2040PL022SPINoDma(int number, unsigned int bitrate, bool spo, bool sph,
+    RP2040PL022Spi(int number, unsigned int bitrate, bool spo, bool sph,
         GpioPin si, GpioPin so, GpioPin sck, GpioPin ce) noexcept
-            : PL022SPI(getBase(number),getIrqn(number),peripheralFrequency)
+            : PL022Spi(getBase(number),getIrqn(number),peripheralFrequency)
     {
         GlobalIrqLock lock;
         switch(number)
@@ -75,7 +75,7 @@ private:
 /**
  * RP2040 DMA-enabled driver for the PL022 SPI hardware. Master mode only.
  */
-class RP2040PL022SPI
+class RP2040PL022DmaSpi
 {
 public:
     /**
@@ -93,13 +93,13 @@ public:
      * \param sck Serial clock pin.
      * \param ce Chip enable pin (optional).
      */
-    RP2040PL022SPI(int number, unsigned int bitrate, bool spo, bool sph,
+    RP2040PL022DmaSpi(int number, unsigned int bitrate, bool spo, bool sph,
                    GpioPin si, GpioPin so, GpioPin sck, GpioPin ce) noexcept;
 
     /**
      * Destructor.
      */
-    ~RP2040PL022SPI() noexcept;
+    ~RP2040PL022DmaSpi() noexcept;
 
     /**
      * Changes the current serial clock to the specified one.
