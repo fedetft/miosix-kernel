@@ -502,6 +502,11 @@ SPISD<SPI>::SPISD(std::unique_ptr<SPI> movedSpi, GpioPin cs)
     cs.mode(Mode::OUTPUT);
 
     spi->setBitrate(100*1000); // 100 kHz SPI speed
+
+    // Send 160 clocks (should be at least 74) to exit from pre-init mode.
+    // Newer cards seem not to care if this is done, but older cards do.
+    for(int i=0;i<20;i++) spi->sendRecv(0xFF);
+
     unsigned char resp;
     int i;
     for(i=0;i<20;i++)
