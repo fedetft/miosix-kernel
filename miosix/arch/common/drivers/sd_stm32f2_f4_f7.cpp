@@ -116,10 +116,12 @@ constexpr int ICR_FLAGS_CLR=0x7ff;
 
 namespace miosix {
 
-static volatile bool transferError; ///< \internal DMA or SDIO transfer error
-static Thread *waiting;             ///< \internal Thread waiting for transfer
-static unsigned int dmaFlags;       ///< \internal DMA status flags
-static unsigned int sdioFlags;      ///< \internal SDIO status flags
+static volatile bool driverError;       ///< \internal Errors caused by OS issues (premature wakeup)
+static volatile bool dmaTransferError;  ///< \internal DMA transfer error
+static volatile bool sdioTransferError; ///< \internal SDIO transfer error
+static Thread *waiting;                 ///< \internal Thread waiting for transfer
+static unsigned int dmaFlags;           ///< \internal DMA status flags
+static unsigned int sdioFlags;          ///< \internal SDIO status flags
 
 /**
  * \internal
@@ -130,7 +132,7 @@ void SDDMAirqImpl()
     dmaFlags=DMA2->LISR;
     #if (defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)) && SD_SDMMC==2
     if(dmaFlags & (DMA_LISR_TEIF0 | DMA_LISR_DMEIF0 | DMA_LISR_FEIF0))
-        transferError=true;
+        dmaTransferError=true;
 
     DMA2->LIFCR = DMA_LIFCR_CTCIF0
                 | DMA_LIFCR_CTEIF0
@@ -138,7 +140,7 @@ void SDDMAirqImpl()
                 | DMA_LIFCR_CFEIF0;
     #else
     if(dmaFlags & (DMA_LISR_TEIF3 | DMA_LISR_DMEIF3 | DMA_LISR_FEIF3))
-        transferError=true;
+        dmaTransferError=true;
 
     DMA2->LIFCR = DMA_LIFCR_CTCIF3
                 | DMA_LIFCR_CTEIF3
@@ -163,11 +165,11 @@ void SDirqImpl()
     //Some STM32 chips leave this flag reserved, in that case it's left
     //undefined in the CMSIS headers
     if(sdioFlags & SDIO_STA_STBITERR)
-        transferError=true;
+        sdioTransferError=true;
     #endif
     if(sdioFlags & (SDIO_STA_RXOVERR  | SDIO_STA_TXUNDERR | 
                     SDIO_STA_DTIMEOUT | SDIO_STA_DCRCFAIL))
-        transferError=true;
+        sdioTransferError=true;
     
     SDIO->ICR=ICR_FLAGS_CLR; //Clear flags
     
@@ -939,7 +941,7 @@ static unsigned int dmaTransferCommonSetup(const unsigned char *buffer)
                 | DMA_LIFCR_CFEIF3;
     #endif
 
-    transferError=false;
+    driverError=dmaTransferError=sdioTransferError=false;
     dmaFlags=sdioFlags=0;
     waiting=Thread::getCurrentThread();
     
@@ -1016,7 +1018,7 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
     if(waiting==0)
     {
         DBGERR("Premature wakeup\n");
-        transferError=true;
+        driverError=true;
     }
     CmdResult cr=Command::send(nblk>1 ? Command::CMD18 : Command::CMD17,lba);
     if(cr.validateR1Response())
@@ -1025,7 +1027,7 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
         SDIO->DCTRL=(9<<4) | SDIO_DCTRL_DMAEN | SDIO_DCTRL_DTDIR | SDIO_DCTRL_DTEN;
         FastGlobalIrqLock dLock;
         while(waiting) Thread::IRQglobalIrqUnlockAndWait(dLock);
-    } else transferError=true;
+    } else sdioTransferError=true;
     DMA_Stream->CR=0;
     while(DMA_Stream->CR & DMA_SxCR_EN) ; //DMA may take time to stop
     SDIO->DCTRL=0; //Disable data path state machine
@@ -1033,13 +1035,14 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
 
     // CMD12 is sent to end CMD18 (multiple block read), or to abort an
     // unfinished read in case of errors
-    if(nblk>1 || transferError) {
-        cr=Command::send(Command::CMD12,0);
+    if(nblk>1 || driverError || sdioTransferError || dmaTransferError)
+    {
+        Command::send(Command::CMD12,0);
         // CMD13 is sent to check the real status of the sdio after cmd12 and to reset the board
         // in case if it gets stuck in a illegal state
         cr=Command::send(Command::CMD13, Command::getRca()<<16);
     }
-    if(transferError || cr.validateR1Response()==false)
+    if(sdioTransferError || dmaTransferError || cr.validateR1Response()==false)
     {
         displayBlockTransferError();
         ClockController::reduceClockSpeed();
@@ -1126,7 +1129,7 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
     if(waiting==0)
     {
         DBGERR("Premature wakeup\n");
-        transferError=true;
+        driverError=true;
     }
     CmdResult cr=Command::send(nblk>1 ? Command::CMD25 : Command::CMD24,lba);
     if(cr.validateR1Response())
@@ -1135,7 +1138,7 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
         SDIO->DCTRL=(9<<4) | SDIO_DCTRL_DMAEN | SDIO_DCTRL_DTEN;
         FastGlobalIrqLock dLock;
         while(waiting) Thread::IRQglobalIrqUnlockAndWait(dLock);
-    } else transferError=true;
+    } else sdioTransferError=true;
     DMA_Stream->CR=0;
     while(DMA_Stream->CR & DMA_SxCR_EN) ; //DMA may take time to stop
     SDIO->DCTRL=0; //Disable data path state machine
@@ -1143,13 +1146,14 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
 
     // CMD12 is sent to end CMD25 (multiple block write), or to abort an
     // unfinished write in case of errors
-    if(nblk>1 || transferError) {
-        cr=Command::send(Command::CMD12,0);
+    if(nblk>1 || driverError || sdioTransferError || dmaTransferError) 
+    {
+        Command::send(Command::CMD12,0);
         // CMD13 is sent to check the real status of the sdio after cmd12 and to reset the board
         // in case if it gets stuck in a illegal state
-        cr=Command::send(Command::CMD13, Command::getRca()<<16);
+        cr=Command::send(Command::CMD13,Command::getRca()<<16);
     }
-    if(transferError || cr.validateR1Response()==false)
+    if(sdioTransferError || dmaTransferError || cr.validateR1Response()==false)
     {
         displayBlockTransferError();
         ClockController::reduceClockSpeed();
