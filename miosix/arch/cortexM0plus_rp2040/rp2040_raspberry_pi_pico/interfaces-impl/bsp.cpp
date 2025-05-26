@@ -97,7 +97,6 @@ void bspInit2()
     {
         basicFilesystemSetup(intrusive_ref_ptr<Device>());
     } else {
-        iprintf("filesystem setup\n");
         if(defaultSdCardDriver==SdCardDriverType::Dma)
         {
             auto spi=new RP2040PL022SPI(
