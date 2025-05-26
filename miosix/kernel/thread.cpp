@@ -252,7 +252,7 @@ void IRQstartKernel()
  */
 void IRQwakeThreads(long long currentTime)
 {
-    // Condition
+    // Condition (for the unified timer model)
     // A woken higher priority thread than running on another core
     // B woken higher priority thread than running on WAKEUP_HANDLING_CORE
     // C time to preempt task on WAKEUP_HANDLING_CORE
@@ -278,16 +278,28 @@ void IRQwakeThreads(long long currentTime)
             hptw=true;
     }
     if(hptw) IRQinvokeScheduler();
+    #ifdef OS_TIMER_MODEL_UNIFIED
+    // In the unified model, the scheduler on WAKEUP_HANDLING_CORE uses
+    // IRQosTimerSetInterrupt() for both preemption and wakeup, so if we're
+    // calling the scheduler already, no need to set the next wakeup interrupt
     else {
         long long nextPreempt=Scheduler::IRQgetNextPreemption();
         if(currentTime>=nextPreempt) IRQinvokeScheduler();
         else {
+            // In the unified timer model we need to set the next interrupt to
+            // the minimum time between the enxt preemption and the next wakeup
             long long firstWakeup;
             if(sleepingList.empty()) firstWakeup=numeric_limits<long long>::max();
             else firstWakeup=sleepingList.front()->wakeupTime;
             IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
         }
     }
+    #else //OS_TIMER_MODEL_UNIFIED
+    // In the separate timer model, IRQosTimerSetInterrupt() is only used for
+    // thread wakeups
+    if(sleepingList.empty()==false)
+        IRQosTimerSetInterrupt(sleepingList.front()->wakeupTime);
+    #endif //OS_TIMER_MODEL_UNIFIED
 }
 
 /*

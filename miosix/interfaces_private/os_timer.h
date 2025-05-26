@@ -47,18 +47,84 @@
  * - measure time durations
  * - set interrupts used both preemption and to handle sleeping threads wakeup
  *
- * Please note that all functions in this interface should provide the kernel
- * with time information in nanoseconds. In the platform-specific implementation
- * it is highly recommended to use the TimeConversion class to convert the
- * underlying hardware timer ticks to nanoseconds.
+ * Starting from Miosix 3, the OS supports two different timer models:
+ * unified and separate, selected with the option OS_TIMER_MODEL_UNIFIED
+ * in miosix_settings.h.
+ *
+ * Unified timer model.
+ * In this case the implementation is expected to use a single hardware timer
+ * for serving all the timekeeping functions for the entire OS, even if multiple
+ * CPU cores are present.
+ * In single-core microcontrollers, a single timer with a single match register
+ * is all that's needed to run the kernel, while on a multi-core microcontroller
+ * the single timer must have a number of match registers equal to the number
+ * of available cores. Due to the need for an upcounting timer for fine-grain
+ * timekeeping as well as the need for multiple per-core match registers, the
+ * ARM SysTick CANNOT be used as OS timer in the unified model.
+ * In the unified model, one special core, with id identified by the constant
+ * WAKEUP_HANDLING_CORE is in charge of handling timekeeping and task wakeup.
+ * The OS scheduler on that core will set both thread wakeup and preemption
+ * interrupts by calling IRQosTimerSetInterrupt() and when the the set time is
+ * reached, the timer driver must call IRQwakeThreads() kernel function on the
+ * WAKEUP_HANDLING_CORE only, regardless of the core IRQosTimerSetInterrupt()
+ * is called from. Note that cores other than WAKEUP_HANDLING_CORE may call
+ * IRQosTimerSetInterrupt() if a thread on that core does a sleep.
+ * Cores othar than WAKEUP_HANDLING_CORE will instead set preemption interrupts
+ * by calling IRQosTimerSetPreemption() and when the set time is reached, the
+ * timer driver must NOT call IRQwakeThreads(), and should instead invoke
+ * directly scheduler on the same core where IRQosTimerSetPreemption() was
+ * called. This can be implemented either by registering the match register
+ * interrupt directly on the desired core and using IRQinvokeScheduler() as done
+ * for example in the RP2040 port, or in case it is not possible to register
+ * match register interrupts on different cores, by servicing all match
+ * interrupts on a single core and using IRQinvokeSchedulerOnCore() to call the
+ * scheduler on the correct core.
+ * NOTE: in the unified model, the WAKEUP_HANDLING_CORE never calls
+ * IRQosTimerSetPreemption(), it always calls IRQosTimerSetInterrupt() for both
+ * thread wakeup and preemptions. Indeed, in single-core architecture where the
+ * only core is WAKEUP_HANDLING_CORE, IRQosTimerSetPreemption() is not needed.
+ *
+ * Separate timer model.
+ * In this case the implementation is expected to use a separate timer for
+ * timekeeping, plus one additional timer per-core for preemption.
+ * It is expected that on ARM architectures, the per-core preemption timers be
+ * implemented using the ARM SysTick which is a per-core timer meant for that
+ * purpose. An additional upcounting timer with match register is still needed
+ * for timekeeping, so in both timer models the ARM SysTick is not enough due to
+ * it being incapable of fine grain timekeeping.
+ * In the separate model, all cores, including the WAKEUP_HANDLING_CORE use
+ * the IRQosTimerSetPreemption() function to schedule preemption interrupts,
+ * and when the set time is reached, the scheduler must be called by the timer
+ * driver on the core that called IRQosTimerSetPreemption().
+ * IRQosTimerSetInterrupt() is used only for thread wakeup and when that set
+ * time is reached, the separate timekeeping timer driver will need to call the
+ * IRQwakeThreads() kernel function on the WAKEUP_HANDLING_CORE only.
+ * NOTE: in the separate model the WAKEUP_HANDLING_CORE calls both
+ * IRQosTimerSetPreemption() to set preemptions, and IRQosTimerSetInterrupt()
+ * for thread wakeups. Thus, even in single-core microcontrollers, both APIs
+ * must be provided by the timer driver.
+ *
+ * Finally, a note on timer accuracy. To provide accurate timekeeping,
+ * IRQosTimerSetInterrupt() must perform the nanosecond to tick conversion
+ * accurately and not accumulate clock skew. This is usually done by never
+ * stopping the underlying timer. It is highly recommended to use the
+ * TimeConversion class in the timer drivers to convert the underlying hardware
+ * timer ticks to nanoseconds.
+ * The preemption timer can instead be coarser grain and do not need to care
+ * about not accumulating clock skew. This is also why it is permissible to use
+ * the ARM SysTick for this purpose.
  * 
- * NOTE: when porting Miosix, architectures providing
+ * NOTE: when porting Miosix, on architectures providing a 16/32 bit timer with
  * - a timer counting up
  * - a match register capable of generating interrupts
  * - an overflow interrupt
- * can simply derive the TimerAdapter providing the required functions to
- * access the hardware timer, and the DEFAULT_OS_TIMER_INTERFACE_IMPLEMENTATION
- * macro to implement the os_timer interface.
+ * the timekeeping and task wakeup part (getTime(), IRQosTimerSetInterrupt()) of
+ * the timer API can simply be implemented by deriving the TimerAdapter
+ * providing the required functions to access the hardware timer, and the
+ * DEFAULT_OS_TIMER_INTERFACE_IMPLEMENTATION macro to implement the os_timer
+ * interface. On single-core microcontrollers using the unified model and thus
+ * not needing the IRQosTimerSetPreemption() API, this covers the entire API
+ * required to run Miosix.
  */
 
 namespace miosix {
@@ -91,43 +157,83 @@ void IRQosTimerInit();
  * On non-SMP platforms it is not called.
  */
 void IRQosTimerInitSMP();
-
-/**
- * \internal
- * Set the next preemption on cores that are not WAKEUP_HANDLING_CORE.
- * It is used by the kernel, and should not be used by end users.
- * Can be called with interrupts disabled or within an interrupt.
- * In the SMP case one core, WAKEUP_HANDLING_CORE, is dedicated to handling
- * thread wakeup, while the other only use the timer for preemption.
- * The timer interrupt for the WAKEUP_HANDLING_CORE must call IRQwakeThreads,
- * while on all other cores must call IRQinvokeScheduler
- * \param ns the absolute time when the interrupt will be fired on the core
- * that is calling this function. On architectures with more than 2 cores,
- * this function must set a separate timer for every core that is not
- * WAKEUP_HANDLING_CORE
- */
-void IRQosTimerSetPreemption(long long ns) noexcept;
 #endif //WITH_SMP
 
+#if defined(WITH_SMP) || !defined(OS_TIMER_MODEL_UNIFIED)
 /**
  * \internal
- * Set the next interrupt on the current core.
- * It is used by the kernel, and should not be used by end users.
+ * Set the next preemption interrupt. When the set time is reached, the timer
+ * driver must call the scheduler on the core where function was called.
+ *
+ * If the timer model is unified, this function is never called on the
+ * WAKEUP_HANDLING_CORE, thus on a single-core architecture, this function is
+ * never called at all, and the driver must manage up to CPU_NUM_CORES-1
+ * concurrent calls, one for each core that is not WAKEUP_HANDLING_CORE.
+ *
+ * If the timer model is separate, then each core including WAKEUP_HANDLING_CORE
+ * calls this function to handle preemption, and the timer driver is expected
+ * to use a number of timers equals to CPU_NUM_CORES, each handling calls
+ * from the local core and calling the scheduler on the core the timer has been
+ * set.
+ *
+ * This function is used by the kernel, and should not be used by end users.
+ * Can be called with interrupts disabled or within an interrupt.
+ * The hardware timer handles only one outstading interrupt request at a
+ * time per core (except for WAKEUP_HANDLING_CORE in the unified mode), so a new
+ * call from a core before the interrupt expires cancels the previous one for
+ * that core.
+ *
+ * \param ns the relative time when the interrupt will be fired on the core
+ * that is calling this function. This value thus represent a time duration and
+ * NOT a time point. The time conversion from nanoseconds to ticks does not need
+ * to be very precise and clock skew is tolerated.
+ *
+ * The fired interrupt must invoke the scheduler on the core the function was
+ * called from.
+ *
+ * \warning The timer model is one shot, and NOT periodic. Once the scheduler is
+ * called it must NOT be called again unless IRQosTimerSetPreemption() is
+ * called again to schedule another interrupt.
+ */
+void IRQosTimerSetPreemption(long long ns) noexcept;
+#endif //defined(WITH_SMP) || !defined(OS_TIMER_MODEL_UNIFIED)
+
+/**
+ * \internal
+ * Set the next timekeeping/thread wakeup interrupt.
+ * This function is used by the kernel, and should not be used by end users.
  * Can be called with interrupts disabled or within an interrupt.
  * The hardware timer handles only one outstading interrupt request at a
  * time, so a new call before the interrupt expires cancels the previous one.
+ * On multi-core architectures, this function can called by any core but shall
+ * only set the interrupt that will run on the WAKEUP_HANDLING_CORE.
+ *
  * \param ns the absolute time when the interrupt will be fired, in nanoseconds.
+ * This value thus represent a time point and NOT a duration.
  * When the interrupt fires, it shall call the
  * \code
  * void IRQwakeThreads(long long currentTime);
  * \endcode
- * function defined in thread.cpp
+ * function defined in thread.cpp. This function shall be called from the
+ * WAKEUP_HANDLING_CORE.
  * \warning IRQwakeThreads must NOT be called before the time specified in ns
  * is reached. Thus, the parameter currentTime passed to IRQwakeThreads must
  * be equal or greater than ns. A device driver that implements the os_timer and
  * fails to meet this requirement will break the scheduler!
+ * The time conversion from nanoseconds to ticks must thus be precise, using the
+ * TimeConversion class is recommended.
+ *
+ * \warning The timer model is one shot, and NOT periodic. Once the handler
+ * function is called, it must NOT be called again unless
+ * IRQosTimerSetInterrupt() is called again to schedule another interrupt.
  */
 void IRQosTimerSetInterrupt(long long ns) noexcept;
+
+/**
+ * \return the last last timer interrupt time that was scheduled with
+ * IRQosTimerSetInterrupt()
+ */
+long long IRQosTimerGetInterrupt() noexcept;
 
 /**
  * \internal

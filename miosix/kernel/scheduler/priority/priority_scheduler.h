@@ -141,6 +141,7 @@ public:
     static void IRQrunScheduler();
     #endif //WITH_SMP
     
+    #ifdef OS_TIMER_MODEL_UNIFIED
     /**
      * \internal
      * On single core CPUs, the hardware timer is set considering both the
@@ -163,6 +164,7 @@ public:
     {
         return nextPreemptionWakeupCore;
     }
+    #endif //OS_TIMER_MODEL_UNIFIED
 
 private:
     /**
@@ -172,9 +174,11 @@ private:
      */
     static long long IRQcomputePreemption(unsigned char coreId, bool runningIdleThread);
 
+    #ifdef OS_TIMER_MODEL_UNIFIED
     ///\internal On single core CPUs, end of time quantum (preemption) for the
     ///only core. On multi core CPUs, end of time quantum for WAKEUP_HANDLING_CORE
     static long long nextPreemptionWakeupCore;
+    #endif //OS_TIMER_MODEL_UNIFIED
 
     ///\internal Vector of lists of threads, there's one list for each priority
     static IntrusiveList<Thread> readyThreads[NUM_PRIORITIES];

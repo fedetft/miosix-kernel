@@ -274,6 +274,14 @@ const long long DEFAULT_PRIORITY=std::numeric_limits<long long>::max()-2;
 const unsigned int MAX_TIME_SLICE=1000000;
 #endif //SCHED_TYPE_PRIORITY
 
+/// \def OS_TIMER_MODEL_UNIFIED
+/// If this configuration option is selected, the kernel uses a single timer
+/// for both preemption and timekeeping (getTime() and Thread::nanoSleep()).
+/// If this option is not selected, the kernel uses one timer for timekeeping
+/// for the entire OS plus a separate timer for each CPU core for context
+/// switches. In single-core microcontrollers, two timers are needed.
+#define OS_TIMER_MODEL_UNIFIED
+
 /// Select the implementation of pthread_mutex_t. Three options:
 /// 1) pthreadMutexProtocolOverride=DYNAMIC;
 /// Allow the type of each pthread_mutex_t to be selected on a per-mutex basis

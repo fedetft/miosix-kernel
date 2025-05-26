@@ -189,6 +189,7 @@ public:
         #endif
     }
     
+    #ifdef OS_TIMER_MODEL_UNIFIED
     /**
      * \internal
      * On single core CPUs, the hardware timer is set considering both the
@@ -211,6 +212,7 @@ public:
     {
         return T::IRQgetNextPreemption();
     }
+    #endif //OS_TIMER_MODEL_UNIFIED
 };
 
 #ifdef SCHED_TYPE_PRIORITY
