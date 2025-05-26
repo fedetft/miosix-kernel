@@ -63,14 +63,15 @@ constexpr unsigned int peripheralFrequency=cpuFrequency;
 const unsigned int defaultSerial=0; // 0 or 1
 const unsigned int defaultSerialSpeed=115200;
 const bool defaultSerialFlowctrl=false;
+const bool defaultSerialDma=true;
 // Pin mapping for usart0, uncomment if defaultSerial==0
 using defaultSerialTxPin = Gpio<P0, 0>;
 using defaultSerialRxPin = Gpio<P0, 1>;
-using defaultSerialRtsPin = Gpio<P0, 3>;
-using defaultSerialCtsPin = Gpio<P0, 2>;
+using defaultSerialRtsPin = Gpio<P0, 15>; // Gpio<P0, 3> conflicts with SD default
+using defaultSerialCtsPin = Gpio<P0, 14>; // Gpio<P0, 2> conflicts with SD default
 // Pin mapping for usart1, uncomment if defaultSerial==1
-//using defaultSerialTxPin = Gpio<P0, 4>;
-//using defaultSerialRxPin = Gpio<P0, 5>;
+//using defaultSerialTxPin = Gpio<P0, 8>; // Gpio<P0, 4> conflicts with SD default
+//using defaultSerialRxPin = Gpio<P0, 9>; // Gpio<P0, 5> conflicts with SD default
 //using defaultSerialRtsPin = Gpio<P0, 7>;
 //using defaultSerialCtsPin = Gpio<P0, 6>;
 

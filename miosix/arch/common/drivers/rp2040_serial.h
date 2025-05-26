@@ -178,4 +178,26 @@ private:
     DynQueue<unsigned char> rxQueue;
 };
 
+class RP2040SerialBase
+{
+public:
+    template<typename Tx, typename Rx, typename Rts, typename Cts>
+    static intrusive_ref_ptr<Device> get(unsigned int id, unsigned int speed,
+                                         bool flowctrl, bool dma)
+    {
+        if(!flowctrl&&!dma)
+            return intrusive_ref_ptr<Device>(new RP2040PL011SerialNoDma(id,speed,
+                Tx::getPin(),Rx::getPin()));
+        else if(!flowctrl&&dma)
+            return intrusive_ref_ptr<Device>(new RP2040PL011Serial(id,speed,
+                Tx::getPin(),Rx::getPin()));
+        else if(flowctrl&&!dma)
+            return intrusive_ref_ptr<Device>(new RP2040PL011SerialNoDma(id,speed,
+                Tx::getPin(),Rx::getPin(),Rts::getPin(),Cts::getPin()));
+        else //if(flowctrl&&dma)
+            return intrusive_ref_ptr<Device>(new RP2040PL011Serial(id,speed,
+                Tx::getPin(),Rx::getPin(),Rts::getPin(),Cts::getPin()));
+    }
+};
+
 } //namespace miosix

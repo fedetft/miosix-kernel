@@ -77,17 +77,11 @@ void IRQbspInit()
     ledOff();
     #endif
 
-    if(defaultSerialFlowctrl)
-    {
-        DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
-            new RP2040PL011Serial(defaultSerial,defaultSerialSpeed,
-            defaultSerialTxPin::getPin(),defaultSerialRxPin::getPin(),
-            defaultSerialRtsPin::getPin(),defaultSerialCtsPin::getPin())));
-    } else {
-        DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
-            new RP2040PL011Serial(defaultSerial,defaultSerialSpeed,
-            defaultSerialTxPin::getPin(),defaultSerialRxPin::getPin())));
-    }
+    DefaultConsole::instance().IRQset(
+        RP2040SerialBase::get<defaultSerialTxPin,defaultSerialRxPin,
+        defaultSerialRtsPin,defaultSerialCtsPin>(
+            defaultSerial,defaultSerialSpeed,
+            defaultSerialFlowctrl,defaultSerialDma));
 }
 
 void bspInit2()
