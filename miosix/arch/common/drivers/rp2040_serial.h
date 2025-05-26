@@ -38,7 +38,7 @@ namespace miosix {
 /**
  * RP2040 no DMA driver for the PL011 serial hardware.
  */
-class RP2040PL011Serial : public PL011Serial
+class RP2040PL011SerialNoDma : public PL011Serial
 {
 public:
     /**
@@ -52,7 +52,7 @@ public:
      * \param rts GPIO to configure as usart rts, see datasheet for restrictions
      * \param cts GPIO to configure as usart cts, see datasheet for restrictions
      */
-    RP2040PL011Serial(int number, int baudrate,
+    RP2040PL011SerialNoDma(int number, int baudrate,
         GpioPin tx, GpioPin rx, GpioPin rts=GpioPin(), GpioPin cts=GpioPin())
         : PL011Serial(getBase(number), getIrqn(number), peripheralFrequency, 32+baudrate/500)
     {
@@ -78,6 +78,104 @@ public:
 private:
     static void *getBase(int n) { return reinterpret_cast<void*>(n==0 ? uart0_hw : uart1_hw); }
     static unsigned int getIrqn(int n) { return n==0 ? UART0_IRQ_IRQn : UART1_IRQ_IRQn; }
+};
+
+/**
+ * RP2040 DMA driver for the PL011 serial hardware.
+ */
+class RP2040PL011Serial : public Device
+{
+public:
+    /**
+     * Constructor, initializes the serial port.
+     * Calls errorHandler(Error::UNEXPECTED) if the port is already being used by
+     * another instance of this driver.
+     * \param number usart number
+     * \param baudrate serial port baudrate
+     * \param tx GPIO to configure as usart tx, see datasheet for restrictions
+     * \param rx GPIO to configure as usart rx, see datasheet for restrictions
+     * \param rts GPIO to configure as usart rts (see datasheet for
+     * restrictions) or an invalid pin to disable hardware flow control for
+     * transmission
+     * \param cts GPIO to configure as usart cts (see datasheet for
+     * restrictions) or an invalid pin to disable hardware flow control for
+     * reception
+     */
+    RP2040PL011Serial(int number, int baudrate, GpioPin tx, GpioPin rx,
+                      GpioPin rts=GpioPin(), GpioPin cts=GpioPin()) noexcept;
+    
+    /**
+     * Read a block of data
+     * \param buffer buffer where read data will be stored
+     * \param size buffer size
+     * \param where where to read from
+     * \return number of bytes read or a negative number on failure. Note that
+     * it is normal for this function to return less character than the amount
+     * asked
+     */
+    ssize_t readBlock(void *buffer, size_t size, off_t where);
+    
+    /**
+     * Write a block of data
+     * \param buffer buffer where take data to write
+     * \param size buffer size
+     * \param where where to write to
+     * \return number of bytes written or a negative number on failure
+     */
+    ssize_t writeBlock(const void *buffer, size_t size, off_t where);
+    
+    /**
+     * Write a string.
+     * An extension to the Device interface that adds a new member function,
+     * which is used by the kernel on console devices to write debug information
+     * before the kernel is started or in case of serious errors, right before
+     * rebooting.
+     * \param str the string to write. The string must be NUL terminated.
+     */
+    void IRQwrite(const char *str);
+    
+    /**
+     * Performs device-specific operations
+     * \param cmd specifies the operation to perform
+     * \param arg optional argument that some operation require
+     * \return the exact return value depends on CMD, -1 is returned on error
+     */
+    int ioctl(int cmd, void *arg);
+    
+    /**
+     * Destructor
+     */
+    ~RP2040PL011Serial();
+    
+private:
+    /// \internal the serial port interrupts call this member function.
+    /// Never call this from user code.
+    void IRQhandleInterrupt() noexcept;
+
+    /// \internal the DMA interrupts call this member function.
+    /// Never call this from user code.
+    void IRQhandleDmaInterrupt() noexcept;
+
+    // Internal function to disable RX interrupts when the buffer is full
+    inline void disableRXInterrupts() noexcept
+    {
+        uart->imsc = 0;
+    }
+
+    // Internal function to enable RX interrupts for normal operation
+    inline void enableRXInterrupts() noexcept
+    {
+        uart->imsc = UART_UARTIMSC_RTIM_BITS
+                   | UART_UARTIMSC_RXIM_BITS;
+    }
+
+    uart_hw_t *uart;            ///< Pointer to the hardware registers
+    unsigned char txDmaCh;      ///< Channel for DMA transmission
+    KernelMutex txMutex;        ///< Mutex locked during transmission
+    KernelMutex rxMutex;        ///< Mutex locked during reception
+    Thread *txWaiting=nullptr;  ///< Thread waiting for the end of a TX
+    /// Software queue used for buffering bytes from the hardware RX FIFO
+    DynQueue<unsigned char> rxQueue;
 };
 
 } //namespace miosix
