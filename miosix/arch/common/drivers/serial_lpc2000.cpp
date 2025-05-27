@@ -31,7 +31,6 @@
 #include <termios.h>
 #include "serial_lpc2000.h"
 #include "kernel/sync.h"
-#include "kernel/scheduler/scheduler.h"
 #include "filesystem/ioctl.h"
 #include "LPC213x.h"
 
