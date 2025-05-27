@@ -140,46 +140,8 @@ public:
     #else //WITH_SMP
     static void IRQrunScheduler();
     #endif //WITH_SMP
-    
-    #ifdef OS_TIMER_MODEL_UNIFIED
-    /**
-     * \internal
-     * On single core CPUs, the hardware timer is set considering both the
-     * earliest thread wakeup from sleep and and the end of the time quantum
-     * (preemption) of the currently running thread. This function returns the
-     * next preemption time, if any, of the currently running thread. If there
-     * are threads with a wakeup time earlier than the next preemption, they are
-     * not considered by this function that only returns the next preemption.
-     *
-     * On multi core CPUs this function returns the next preemption time for the
-     * WAKEUP_HANDLING_CORE, the only core that performs the wakeup from sleep
-     * logic. All other cores only set their timer to schedule preemptions, and
-     * there is currently no getter for this value.
-     *
-     * \return the next scheduled preemption set by the scheduler for the
-     * WAKEUP_HANDLING_CORE.
-     * In case no preemption is set returns numeric_limits<long long>::max()
-     */
-    static long long IRQgetNextPreemption()
-    {
-        return nextPreemptionWakeupCore;
-    }
-    #endif //OS_TIMER_MODEL_UNIFIED
 
 private:
-    /**
-     * \param coreId id of the core the preemption needs to be set for
-     * \param runningIdleThread true if we're about to run the idle thread
-     * \return the current time in nanoseconds
-     */
-    static long long IRQcomputePreemption(unsigned char coreId, bool runningIdleThread);
-
-    #ifdef OS_TIMER_MODEL_UNIFIED
-    ///\internal On single core CPUs, end of time quantum (preemption) for the
-    ///only core. On multi core CPUs, end of time quantum for WAKEUP_HANDLING_CORE
-    static long long nextPreemptionWakeupCore;
-    #endif //OS_TIMER_MODEL_UNIFIED
-
     ///\internal Vector of lists of threads, there's one list for each priority
     static IntrusiveList<Thread> readyThreads[NUM_PRIORITIES];
     ///\internal List of threads that are not ready.

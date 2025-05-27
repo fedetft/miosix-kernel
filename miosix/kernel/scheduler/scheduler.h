@@ -27,15 +27,25 @@
 
 #pragma once
 
+#ifndef COMPILING_MIOSIX
+#error "This is header is private, it can't be used outside Miosix itself."
+#error "If your code depends on a private header, it IS broken."
+#endif //COMPILING_MIOSIX
+
 #include "config/miosix_settings.h"
 #include "kernel/scheduler/priority/priority_scheduler.h"
 #include "kernel/scheduler/control/control_scheduler.h"
 #include "kernel/scheduler/edf/edf_scheduler.h"
+#include "kernel/lock.h"
 #include "kernel/cpu_time_counter.h"
+#include "interfaces_private/os_timer.h"
 
 namespace miosix {
 
 class Thread; //Forward declaration
+
+//These are defined in thread.cpp
+extern TimeSortedQueue<SleepToken,GetWakeupTime> sleepingList;
 
 /**
  * \internal
@@ -188,6 +198,72 @@ public:
         else T::IRQrunScheduler();
         #endif
     }
+
+    /**
+     * \param coreId id of the core the preemption needs to be set for
+     * \param timeSlice desired time slice in nanoseconds for the thread that
+     * will be scheduled next. After that time, the scheduler will be called
+     * on coreId to perform preemption. The special value 0 means unbounded time
+     * slice (no preemption will be performed)
+     * \return the current time in nanoseconds if WITH_CPU_TIME_COUNTER is defined
+     */
+    static long long IRQcomputePreemption(unsigned char coreId, unsigned int timeSlice)
+    {
+        using namespace std;
+        long long firstWakeup;
+        if(sleepingList.empty()) firstWakeup=numeric_limits<long long>::max();
+        else firstWakeup=sleepingList.front()->wakeupTime;
+
+        long long t=0;
+        #ifdef OS_TIMER_MODEL_UNIFIED
+        // We could avoid setting an interrupt if the sleeping list is empty and
+        // runningThreads[coreId] is idle but there's no such hurry to run idle
+        // anyway, so why bother?
+        #ifdef WITH_SMP
+        if(coreId!=WAKEUP_HANDLING_CORE)
+        {
+            // IRQosTimerSetPreemption is to be used by all cores that are not
+            // WAKEUP_HANDLING_CORE
+            if(timeSlice>0) IRQosTimerSetPreemption(timeSlice);
+            // NOTE: even if we're not on the WAKEUP_HANDLING_CORE, the thread we
+            // just preempted may have started a sleep whose wakeup is earlier than
+            // any other sleep, thus we should check and modify the preemption of
+            // the WAKEUP_HANDLING_CORE
+            if(firstWakeup<IRQosTimerGetInterrupt())
+                IRQosTimerSetInterrupt(firstWakeup);
+            #ifdef WITH_CPU_TIME_COUNTER
+            t=IRQgetTime();
+            #endif //WITH_CPU_TIME_COUNTER
+        } else {
+            t=IRQgetTime();
+            long long nextPreempt;
+            if(timeSlice>0) nextPreempt=t+timeSlice;
+            else nextPreempt=numeric_limits<long long>::max();
+            nextPreemptionWakeupCore=nextPreempt;
+            IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
+        }
+        #else //WITH_SMP
+        t=IRQgetTime();
+        long long nextPreempt;
+        if(timeSlice>0) nextPreempt=t+timeSlice;
+        else nextPreempt=numeric_limits<long long>::max();
+        nextPreemptionWakeupCore=nextPreempt;
+        IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
+        #endif //WITH_SMP
+        #else //OS_TIMER_MODEL_UNIFIED
+        if(timeSlice>0) IRQosTimerSetPreemption(timeSlice);
+        // NOTE: even if we're not on the WAKEUP_HANDLING_CORE, the thread we
+        // just preempted may have started a sleep whose wakeup is earlier than
+        // any other sleep, thus we should check and modify the preemption of
+        // the WAKEUP_HANDLING_CORE
+        if(firstWakeup<IRQosTimerGetInterrupt())
+            IRQosTimerSetInterrupt(firstWakeup);
+        #ifdef WITH_CPU_TIME_COUNTER
+        t=IRQgetTime();
+        #endif //WITH_CPU_TIME_COUNTER
+        #endif //OS_TIMER_MODEL_UNIFIED
+        return t;
+    }
     
     #ifdef OS_TIMER_MODEL_UNIFIED
     /**
@@ -210,8 +286,13 @@ public:
      */
     static long long IRQgetNextPreemption()
     {
-        return T::IRQgetNextPreemption();
+        return nextPreemptionWakeupCore;
     }
+
+private:
+    ///\internal On single core CPUs, end of time quantum (preemption) for the
+    ///only core. On multi core CPUs, end of time quantum for WAKEUP_HANDLING_CORE
+    static long long nextPreemptionWakeupCore;
     #endif //OS_TIMER_MODEL_UNIFIED
 };
 

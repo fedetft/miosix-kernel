@@ -26,10 +26,10 @@
  ***************************************************************************/
 
 #include "priority_scheduler.h"
+#include "kernel/scheduler/scheduler.h"
 #include "kernel/error.h"
 #include "kernel/process.h"
 #include "interfaces_private/cpu.h"
-#include "interfaces_private/os_timer.h"
 #include "interfaces_private/smp.h"
 #include "kernel/cpu_time_counter.h"
 #include <limits>
@@ -41,7 +41,6 @@ namespace miosix {
 
 //These are defined in thread.cpp
 extern volatile Thread *runningThreads[CPU_NUM_CORES];
-extern TimeSortedQueue<SleepToken,GetWakeupTime> sleepingList;
 
 //
 // class PriorityScheduler
@@ -264,9 +263,9 @@ void PriorityScheduler::IRQrunScheduler()
         ctxsave[coreId]=t->ctxsave;
         #endif //WITH_PROCESSES
         #ifndef WITH_CPU_TIME_COUNTER
-        IRQcomputePreemption(coreId,false);
+        Scheduler::IRQcomputePreemption(coreId,MAX_TIME_SLICE);
         #else //WITH_CPU_TIME_COUNTER
-        auto now=IRQcomputePreemption(coreId,false);
+        auto now=Scheduler::IRQcomputePreemption(coreId,MAX_TIME_SLICE);
         CPUTimeCounter::IRQprofileContextSwitch(prev,t,now,coreId);
         #endif //WITH_CPU_TIME_COUNTER
         #ifdef WITH_SMP
@@ -344,76 +343,21 @@ void PriorityScheduler::IRQrunScheduler()
     MPUConfiguration::IRQdisable();
     #endif //WITH_PROCESSES
     #ifndef WITH_CPU_TIME_COUNTER
-    IRQcomputePreemption(coreId,true);
+    Scheduler::IRQcomputePreemption(coreId,0);
     #else //WITH_CPU_TIME_COUNTER
-    auto now=IRQcomputePreemption(coreId,true);
+    auto now=Scheduler::IRQcomputePreemption(coreId,0);
     CPUTimeCounter::IRQprofileContextSwitch(prev,idle[coreId],now,coreId);
     #endif //WITH_CPU_TIME_COUNTER
 }
 
-long long PriorityScheduler::IRQcomputePreemption(unsigned char coreId, bool runningIdleThread)
-{
-    long long firstWakeup;
-    if(sleepingList.empty()) firstWakeup=numeric_limits<long long>::max();
-    else firstWakeup=sleepingList.front()->wakeupTime;
-
-    long long t=0;
-    #ifdef OS_TIMER_MODEL_UNIFIED
-    // We could avoid setting an interrupt if the sleeping list is empty and
-    // runningThreads[coreId] is idle but there's no such hurry to run idle
-    // anyway, so why bother?
-    #ifdef WITH_SMP
-    if(coreId!=WAKEUP_HANDLING_CORE)
-    {
-        // IRQosTimerSetPreemption is to be used by all cores that are not
-        // WAKEUP_HANDLING_CORE
-        if(runningIdleThread==false) IRQosTimerSetPreemption(MAX_TIME_SLICE);
-        // NOTE: even if we're not on the WAKEUP_HANDLING_CORE, the thread we
-        // just preempted may have started a sleep whose wakeup is earlier than
-        // any other sleep, thus we should check and modify the preemption of
-        // the WAKEUP_HANDLING_CORE
-        if(firstWakeup<IRQosTimerGetInterrupt())
-            IRQosTimerSetInterrupt(firstWakeup);
-        #ifdef WITH_CPU_TIME_COUNTER
-        t=IRQgetTime();
-        #endif //WITH_CPU_TIME_COUNTER
-    } else {
-        t=IRQgetTime();
-        long long nextPreempt;
-        if(runningIdleThread==false) nextPreempt=t+MAX_TIME_SLICE;
-        else nextPreempt=numeric_limits<long long>::max();
-        nextPreemptionWakeupCore=nextPreempt;
-        IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
-    }
-    #else //WITH_SMP
-    t=IRQgetTime();
-    long long nextPreempt;
-    if(runningIdleThread==false) nextPreempt=t+MAX_TIME_SLICE;
-    else nextPreempt=numeric_limits<long long>::max();
-    nextPreemptionWakeupCore=nextPreempt;
-    IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
-    #endif //WITH_SMP
-    #else //OS_TIMER_MODEL_UNIFIED
-    if(runningIdleThread==false) IRQosTimerSetPreemption(MAX_TIME_SLICE);
-    // NOTE: even if we're not on the WAKEUP_HANDLING_CORE, the thread we
-    // just preempted may have started a sleep whose wakeup is earlier than
-    // any other sleep, thus we should check and modify the preemption of
-    // the WAKEUP_HANDLING_CORE
-    if(firstWakeup<IRQosTimerGetInterrupt())
-        IRQosTimerSetInterrupt(firstWakeup);
-    #ifdef WITH_CPU_TIME_COUNTER
-    t=IRQgetTime();
-    #endif //WITH_CPU_TIME_COUNTER
-    #endif //OS_TIMER_MODEL_UNIFIED
-    return t;
-}
-
-#ifdef OS_TIMER_MODEL_UNIFIED
-long long PriorityScheduler::nextPreemptionWakeupCore=numeric_limits<long long>::max();
-#endif //OS_TIMER_MODEL_UNIFIED
 IntrusiveList<Thread> PriorityScheduler::readyThreads[NUM_PRIORITIES];
 IntrusiveList<Thread> PriorityScheduler::notReadyThreads;
 Thread *PriorityScheduler::idle[CPU_NUM_CORES]={nullptr};
+
+#ifdef OS_TIMER_MODEL_UNIFIED
+template<typename T>
+long long basic_scheduler<T>::nextPreemptionWakeupCore=numeric_limits<long long>::max();
+#endif //OS_TIMER_MODEL_UNIFIED
 
 } //namespace miosix
 

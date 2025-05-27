@@ -26,11 +26,12 @@
  ***************************************************************************/
 
 #include "edf_scheduler.h"
+#include "kernel/scheduler/scheduler.h"
 #include "kernel/error.h"
 #include "kernel/process.h"
 #include "interfaces_private/cpu.h"
-#include "interfaces_private/os_timer.h"
 #include "interfaces_private/smp.h"
+#include "kernel/cpu_time_counter.h"
 #include <algorithm>
 
 using namespace std;
@@ -41,7 +42,6 @@ namespace miosix {
 
 //These are defined in thread.cpp
 extern volatile Thread *runningThreads[CPU_NUM_CORES];
-extern TimeSortedQueue<SleepToken,GetWakeupTime> sleepingList;
 
 //
 // class EDFScheduler
@@ -315,10 +315,14 @@ void EDFScheduler::IRQrunScheduler()
     #else //WITH_PROCESSES
     ctxsave[coreId]=next->ctxsave;
     #endif //WITH_PROCESSES
+    // Real-time threads (and idle), have no time slice
+    unsigned int timeSlice=0;
+    if(next->schedData.deadline.get()==std::numeric_limits<long long>::max()-2)
+        timeSlice=MAX_TIME_SLICE;
     #ifndef WITH_CPU_TIME_COUNTER
-    IRQcomputePreemption(coreId,next->schedData.deadline.get());
+    Scheduler::IRQcomputePreemption(coreId,timeSlice);
     #else //WITH_CPU_TIME_COUNTER
-    auto now=IRQcomputePreemption(coreId,next->schedData.deadline.get());
+    auto now=Scheduler::IRQcomputePreemption(coreId,timeSlice);
     CPUTimeCounter::IRQprofileContextSwitch(prev,next,now,coreId);
     #endif //WITH_CPU_TIME_COUNTER
 
@@ -398,77 +402,15 @@ void EDFScheduler::IRQrunScheduler()
     #endif //WITH_SMP
 }
 
-long long EDFScheduler::IRQcomputePreemption(unsigned char coreId, long long currentDeadline)
-{
-    long long firstWakeup;
-    if(sleepingList.empty()) firstWakeup=numeric_limits<long long>::max();
-    else firstWakeup=sleepingList.front()->wakeupTime;
-
-    long long t=0;
-    #ifdef OS_TIMER_MODEL_UNIFIED
-    // We could avoid setting an interrupt if the sleeping list is empty and
-    // runningThreads[coreId] is idle but there's no such hurry to run idle
-    // anyway, so why bother?
-    #ifdef WITH_SMP
-    if(coreId!=WAKEUP_HANDLING_CORE)
-    {
-        // IRQosTimerSetPreemption is to be used by all cores that are not
-        // WAKEUP_HANDLING_CORE
-        if(currentDeadline==std::numeric_limits<long long>::max()-2)
-            IRQosTimerSetPreemption(MAX_TIME_SLICE);
-        // NOTE: even if we're not on the WAKEUP_HANDLING_CORE, the thread we
-        // just preempted may have started a sleep whose wakeup is earlier than
-        // any other sleep, thus we should check and modify the preemption of
-        // the WAKEUP_HANDLING_CORE
-        if(firstWakeup<IRQosTimerGetInterrupt())
-            IRQosTimerSetInterrupt(firstWakeup);
-        #ifdef WITH_CPU_TIME_COUNTER
-        t=IRQgetTime();
-        #endif //WITH_CPU_TIME_COUNTER
-    } else {
-        t=IRQgetTime();
-        long long nextPreempt;
-        // Real-time threads (and idle), have no time slice
-        if(currentDeadline==std::numeric_limits<long long>::max()-2)
-            nextPreempt=t+MAX_TIME_SLICE;
-        else nextPreempt=numeric_limits<long long>::max();
-        nextPreemptionWakeupCore=nextPreempt;
-        IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
-    }
-    #else //WITH_SMP
-    t=IRQgetTime();
-    long long nextPreempt;
-    // Real-time threads (and idle), have no time slice
-    if(currentDeadline==std::numeric_limits<long long>::max()-2)
-        nextPreempt=t+MAX_TIME_SLICE;
-    else nextPreempt=numeric_limits<long long>::max();
-    nextPreemptionWakeupCore=nextPreempt;
-    IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
-    #endif //WITH_SMP
-    #else //OS_TIMER_MODEL_UNIFIED
-    // Real-time threads (and idle), have no time slice
-    if(currentDeadline==std::numeric_limits<long long>::max()-2)
-        IRQosTimerSetPreemption(MAX_TIME_SLICE);
-    // NOTE: even if we're not on the WAKEUP_HANDLING_CORE, the thread we
-    // just preempted may have started a sleep whose wakeup is earlier than
-    // any other sleep, thus we should check and modify the preemption of
-    // the WAKEUP_HANDLING_CORE
-    if(firstWakeup<IRQosTimerGetInterrupt())
-        IRQosTimerSetInterrupt(firstWakeup);
-    #ifdef WITH_CPU_TIME_COUNTER
-    t=IRQgetTime();
-    #endif //WITH_CPU_TIME_COUNTER
-    #endif //OS_TIMER_MODEL_UNIFIED
-    return t;
-}
-
-#ifdef OS_TIMER_MODEL_UNIFIED
-long long EDFScheduler::nextPreemptionWakeupCore=numeric_limits<long long>::max();
-#endif //OS_TIMER_MODEL_UNIFIED
 TimeSortedQueue<Thread,EDFScheduler::GetTime> EDFScheduler::readyEdfThreads;
 FifoQueue<Thread> EDFScheduler::readyRrThreads;
 IntrusiveList<Thread> EDFScheduler::notReadyThreads;
 Thread *EDFScheduler::idle[CPU_NUM_CORES]={nullptr};
+
+#ifdef OS_TIMER_MODEL_UNIFIED
+template<typename T>
+long long basic_scheduler<T>::nextPreemptionWakeupCore=numeric_limits<long long>::max();
+#endif //OS_TIMER_MODEL_UNIFIED
 
 } //namespace miosix
 
