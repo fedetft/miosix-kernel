@@ -252,6 +252,9 @@ void IRQstartKernel()
  */
 void IRQwakeThreads(long long currentTime)
 {
+    //Safety check useful for timer driver development
+    //if(getCurrentCoreId()!=WAKEUP_HANDLING_CORE) errorHandler(Error::UNEXPECTED);
+
     // Condition (for the unified timer model)
     // A woken higher priority thread than running on another core
     // B woken higher priority thread than running on WAKEUP_HANDLING_CORE
