@@ -4712,14 +4712,15 @@ void b4_t1(void *argv)
 
 static void benchmark_4()
 {
+    #ifndef SCHED_TYPE_EDF
+    Priority b4_t1_p=1; //Main priority is 0, use priority 1 for stop thread
+    #else //SCHED_TYPE_EDF
+    Thread::setPriority(1);
+    Priority b4_t1_p=0; //Main "deadline" set to 1, use "deadline" 0 for stop thread
+    #endif //SCHED_TYPE_EDF
     Mutex m;
     b4_end=false;
-    #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
-    #else
-    Thread::create(b4_t1,STACK_SMALL,0,nullptr,Thread::DETACHED);
-    #endif
-    Thread::yield();
+    Thread::create(b4_t1,STACK_SMALL,b4_t1_p,nullptr,Thread::DETACHED);
     int i=0;
     while(b4_end==false)
     {
@@ -4731,12 +4732,7 @@ static void benchmark_4()
 
     FastMutex fm;
     b4_end=false;
-    #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
-    #else
-    Thread::create(b4_t1,STACK_SMALL,0,nullptr,Thread::DETACHED);
-    #endif
-    Thread::yield();
+    Thread::create(b4_t1,STACK_SMALL,b4_t1_p,nullptr,Thread::DETACHED);
     i=0;
     while(b4_end==false)
     {
@@ -4748,12 +4744,7 @@ static void benchmark_4()
 
     pthread_mutex_t pm=PTHREAD_MUTEX_INITIALIZER;
     b4_end=false;
-    #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
-    #else
-    Thread::create(b4_t1,STACK_SMALL,0,nullptr,Thread::DETACHED);
-    #endif
-    Thread::yield();
+    Thread::create(b4_t1,STACK_SMALL,b4_t1_p,nullptr,Thread::DETACHED);
     i=0;
     while(b4_end==false)
     {
@@ -4773,12 +4764,7 @@ static void benchmark_4()
     }
 
     b4_end=false;
-    #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
-    #else
-    Thread::create(b4_t1,STACK_SMALL,0,nullptr,Thread::DETACHED);
-    #endif
-    Thread::yield();
+    Thread::create(b4_t1,STACK_SMALL,b4_t1_p,nullptr,Thread::DETACHED);
     i=0;
     while(b4_end==false)
     {
@@ -4791,12 +4777,7 @@ static void benchmark_4()
     iprintf("%10d PauseKernelLock lock/unlock pairs per second\n",i);
 
     b4_end=false;
-    #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
-    #else
-    Thread::create(b4_t1,STACK_SMALL,0,nullptr,Thread::DETACHED);
-    #endif
-    Thread::yield();
+    Thread::create(b4_t1,STACK_SMALL,b4_t1_p,nullptr,Thread::DETACHED);
     i=0;
     while(b4_end==false)
     {
@@ -4810,12 +4791,7 @@ static void benchmark_4()
 
 
     b4_end=false;
-    #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
-    #else
-    Thread::create(b4_t1,STACK_SMALL,0,nullptr,Thread::DETACHED);
-    #endif
-    Thread::yield();
+    Thread::create(b4_t1,STACK_SMALL,b4_t1_p,nullptr,Thread::DETACHED);
     i=0;
     while(b4_end==false)
     {
@@ -4828,12 +4804,7 @@ static void benchmark_4()
     iprintf("%10d GlobalIrqLock lock/unlock pairs per second\n",i);
 
     b4_end=false;
-    #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
-    #else
-    Thread::create(b4_t1,STACK_SMALL,0,nullptr,Thread::DETACHED);
-    #endif
-    Thread::yield();
+    Thread::create(b4_t1,STACK_SMALL,b4_t1_p,nullptr,Thread::DETACHED);
     i=0;
     while(b4_end==false)
     {
@@ -4844,12 +4815,7 @@ static void benchmark_4()
     iprintf("%10d FastGlobalIrqLock lock/unlock pairs per second\n",i);
 
     b4_end=false;
-    #ifndef SCHED_TYPE_EDF
-    Thread::create(b4_t1,STACK_SMALL,DEFAULT_PRIORITY,nullptr,Thread::DETACHED);
-    #else
-    Thread::create(b4_t1,STACK_SMALL,0,nullptr,Thread::DETACHED);
-    #endif
-    Thread::yield();
+    Thread::create(b4_t1,STACK_SMALL,b4_t1_p,nullptr,Thread::DETACHED);
     i=0;
     while(b4_end==false)
     {
@@ -4858,4 +4824,7 @@ static void benchmark_4()
         i++;
     }
     iprintf("%10d enable/disable irq pairs per second\n",i);
+    #ifdef SCHED_TYPE_EDF
+    Thread::setPriority(0); //Restore priority
+    #endif //SCHED_TYPE_EDF
 }
