@@ -318,9 +318,7 @@ public:
     
     long long upperTimeTick = 0; //Extended timer counter (upper bits)
     long long upperIrqTick = 0;  //Extended interrupt time point (upper bits)
-    #ifdef WITH_RTC_AS_OS_TIMER
     long long irqNs = 0;
-    #endif //WITH_RTC_AS_OS_TIMER
     miosix::TimeConversion tc;
     bool lateIrq=false;
     
@@ -384,7 +382,7 @@ public:
      */
     inline long long IRQgetIrqNs()
     {
-        return tc.tick2ns(IRQgetIrqTick());
+        return irqNs;
     }
     
     /**
@@ -454,9 +452,7 @@ public:
     inline void IRQsetIrqNs(long long ns)
     {
         IRQsetIrqTick(tc.ns2tick(ns));
-        #ifdef WITH_RTC_AS_OS_TIMER
         irqNs=ns;
-        #endif //WITH_RTC_AS_OS_TIMER
     }
     
     /**
@@ -573,6 +569,11 @@ void IRQosTimerInit()                              \
 void IRQosTimerSetInterrupt(long long ns) noexcept \
 {                                                  \
     timer.IRQsetIrqNs(ns);                         \
+}                                                  \
+                                                   \
+long long IRQosTimerGetInterrupt() noexcept        \
+{                                                  \
+    return timer.IRQgetIrqNs();                    \
 }                                                  \
                                                    \
 void IRQosTimerSetTime(long long ns) noexcept      \
