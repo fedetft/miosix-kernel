@@ -195,7 +195,7 @@ void IRQosTimerInitSMP();
  * called it must NOT be called again unless IRQosTimerSetPreemption() is
  * called again to schedule another interrupt.
  */
-void IRQosTimerSetPreemption(long long ns) noexcept;
+void IRQosTimerSetPreemption(unsigned int ns) noexcept;
 #endif //defined(WITH_SMP) || !defined(OS_TIMER_MODEL_UNIFIED)
 
 /**
