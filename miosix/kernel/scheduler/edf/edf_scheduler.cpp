@@ -426,7 +426,8 @@ long long EDFScheduler::IRQcomputePreemption(unsigned char coreId, long long cur
         t=IRQgetTime();
         #endif //WITH_CPU_TIME_COUNTER
     } else {
-        t=IRQgetTime(), nextPreempt;
+        t=IRQgetTime();
+        long long nextPreempt;
         // Real-time threads (and idle), have no time slice
         if(currentDeadline==std::numeric_limits<long long>::max()-2)
             nextPreempt=t+MAX_TIME_SLICE;
@@ -435,7 +436,8 @@ long long EDFScheduler::IRQcomputePreemption(unsigned char coreId, long long cur
         IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
     }
     #else //WITH_SMP
-    t=IRQgetTime(), nextPreempt;
+    t=IRQgetTime();
+    long long nextPreempt;
     // Real-time threads (and idle), have no time slice
     if(currentDeadline==std::numeric_limits<long long>::max()-2)
         nextPreempt=t+MAX_TIME_SLICE;

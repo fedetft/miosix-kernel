@@ -378,14 +378,16 @@ long long PriorityScheduler::IRQcomputePreemption(unsigned char coreId, bool run
         t=IRQgetTime();
         #endif //WITH_CPU_TIME_COUNTER
     } else {
-        t=IRQgetTime(), nextPreempt;
+        t=IRQgetTime();
+        long long nextPreempt;
         if(runningIdleThread==false) nextPreempt=t+MAX_TIME_SLICE;
         else nextPreempt=numeric_limits<long long>::max();
         nextPreemptionWakeupCore=nextPreempt;
         IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
     }
     #else //WITH_SMP
-    t=IRQgetTime(), nextPreempt;
+    t=IRQgetTime();
+    long long nextPreempt;
     if(runningIdleThread==false) nextPreempt=t+MAX_TIME_SLICE;
     else nextPreempt=numeric_limits<long long>::max();
     nextPreemptionWakeupCore=nextPreempt;
