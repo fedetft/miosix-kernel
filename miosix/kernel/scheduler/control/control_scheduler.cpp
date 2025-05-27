@@ -181,11 +181,6 @@ Thread *ControlScheduler::IRQgetIdleThread()
     return idle;
 }
 
-long long ControlScheduler::IRQgetNextPreemption()
-{
-    return nextPreemption;
-}
-
 void ControlScheduler::IRQrunScheduler()
 {
     #ifdef WITH_CPU_TIME_COUNTER
@@ -589,11 +584,6 @@ void ControlScheduler::IRQsetIdleThread(Thread *idleThread)
 Thread *ControlScheduler::IRQgetIdleThread()
 {
     return idle;
-}
-
-long long ControlScheduler::IRQgetNextPreemption()
-{
-    return nextPreemption;
 }
 
 void ControlScheduler::IRQrunScheduler()
