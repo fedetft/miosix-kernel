@@ -4582,7 +4582,7 @@ static void b2_p1(void *argv)
     }
 }
 
-static int b2_f1(int priority)
+static int b2_f1(Priority priority)
 {
     Thread::setPriority(priority);
     b2_v1=false;
@@ -4596,18 +4596,19 @@ static int b2_f1(int priority)
     t2->terminate();
     t1->join();
     t2->join();
+    Thread::setPriority(0);
     return b2_v2;
 }
 
 static void benchmark_2()
 {
     CHECK_AVAIL_HEAP(EST_THREAD_HEAP_USAGE(STACK_SMALL)*2);
-    #ifndef SCHED_TYPE_EDF
+    #ifdef SCHED_TYPE_PRIORITY
     iprintf("%d context switch per second (max priority)\n",b2_f1(NUM_PRIORITIES-1));
     iprintf("%d context switch per second (min priority)\n",b2_f1(0));
-    #else //SCHED_TYPE_EDF
-    iprintf("Context switch benchmark not possible with EDF\n");
-    #endif //SCHED_TYPE_EDF
+    #else //SCHED_TYPE_PRIORITY
+    iprintf("%d context switch per second\n",b2_f1(DEFAULT_PRIORITY));
+    #endif //SCHED_TYPE_PRIORITY
 }
 
 //
