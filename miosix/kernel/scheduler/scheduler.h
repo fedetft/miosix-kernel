@@ -284,7 +284,7 @@ public:
      * WAKEUP_HANDLING_CORE.
      * In case no preemption is set returns numeric_limits<long long>::max()
      */
-    static long long IRQgetNextPreemption()
+    static long long IRQgetWakeupCoreNextPreemption()
     {
         return nextPreemptionWakeupCore;
     }

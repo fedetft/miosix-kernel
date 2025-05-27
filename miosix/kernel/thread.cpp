@@ -283,7 +283,7 @@ void IRQwakeThreads(long long currentTime)
     // IRQosTimerSetInterrupt() for both preemption and wakeup, so if we're
     // calling the scheduler already, no need to set the next wakeup interrupt
     else {
-        long long nextPreempt=Scheduler::IRQgetNextPreemption();
+        long long nextPreempt=Scheduler::IRQgetWakeupCoreNextPreemption();
         if(currentTime>=nextPreempt) IRQinvokeScheduler();
         else {
             // In the unified timer model we need to set the next interrupt to
