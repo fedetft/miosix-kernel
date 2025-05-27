@@ -4274,7 +4274,6 @@ void dmaMemcpy(void *dest, const void *source, int size,
     } while(waiting);
 }
 
-static const unsigned int cacheLine=32; //Cortex-M7 cache line size
 static const unsigned int bufferSize=4096;
 static char __attribute__((aligned(32))) src[bufferSize];
 static char __attribute__((aligned(32))) dst[bufferSize];
