@@ -1027,7 +1027,7 @@ private:
      * by IRQstartKernel to create the idle thread, whichever comes first.
      * \return the newly allocated idle thread
      */
-    static Thread *allocateIdleThread();
+    static Thread *IRQallocateIdleThread();
     
     /**
      * \return the C reentrancy structure of the currently running thread

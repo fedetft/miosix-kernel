@@ -477,7 +477,7 @@ Thread *Thread::IRQgetCurrentThread()
     //This function must always return a pointer to a valid thread. The first
     //time this is called before the kernel is started, however, runningThreads
     //is nullptr, thus we allocate the idle thread and return a pointer to that.
-    return allocateIdleThread();
+    return IRQallocateIdleThread();
 }
 
 bool Thread::exists(Thread *p)
@@ -578,8 +578,7 @@ void Thread::terminate()
 
 bool Thread::testTerminate()
 {
-    //Just reading, no need for critical section
-    return const_cast<Thread*>(runningThreads[getCurrentCoreId()])->flags.isDeleting();
+    return getCurrentThread()->flags.isDeleting();
 }
 
 void Thread::detach()
@@ -740,7 +739,8 @@ void Thread::IRQstackOverflowCheck()
 
 void Thread::IRQhandleSvc()
 {
-    Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
+    int coreId=getCurrentCoreId();
+    Thread *cur=const_cast<Thread*>(runningThreads[coreId]);
     if(cur->proc==kernel) errorHandler(Error::UNEXPECTED);
     //We know it's not the kernel, so the cast is safe
     auto *proc=static_cast<Process*>(cur->proc);
@@ -749,7 +749,6 @@ void Thread::IRQhandleSvc()
 
     //Note that it is required to use ctxsave and not cur->ctxsave because
     //at this time we do not know if the active context is user or kernel
-    int coreId=getCurrentCoreId();
     switch(static_cast<Syscall>(peekSyscallId(
         const_cast<unsigned int*>(::ctxsave[coreId]))))
     {
@@ -789,7 +788,7 @@ bool Thread::IRQreportFault(const FaultData& fault)
 SyscallParameters Thread::switchToUserspace()
 {
     portableSwitchToUserspace();
-    SyscallParameters result(runningThreads[getCurrentCoreId()]->userCtxsave);
+    SyscallParameters result(Thread::getCurrentThread()->userCtxsave);
     return result;
 }
 
@@ -836,7 +835,7 @@ void Thread::setupUserspaceContext(unsigned int entry, int argc, void *argvSp,
     char *base=reinterpret_cast<char*>(argvSp)-stackSize-WATERMARK_LEN;
     memset(base, WATERMARK_FILL, WATERMARK_LEN);
     memset(base+WATERMARK_LEN, STACK_FILL, stackSize);
-    Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
+    Thread *cur=getCurrentThread();
     cur->userWatermark=reinterpret_cast<unsigned int*>(base);
     //Initialize registers
     //NOTE: for the main thread in a process userWatermark is also the end of
@@ -946,7 +945,7 @@ void Thread::threadLauncher(void *(*threadfunc)(void*), void *argv)
     #endif //__NO_EXCEPTIONS
     //Thread returned from its entry point, so delete it
 
-    Thread* cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
+    Thread* cur=getCurrentThread();
     #ifdef WITH_PTHREAD_KEYS
     callPthreadKeyDestructors(cur->pthreadKeyValues);
     #endif //WITH_PTHREAD_KEYS
@@ -1136,7 +1135,7 @@ bool Thread::IRQexists(Thread* p)
     return Scheduler::IRQexists(p);
 }
 
-Thread *Thread::allocateIdleThread()
+Thread *Thread::IRQallocateIdleThread()
 {
     //NOTE: this function is only called once before the kernel is started, so
     //there are no concurrency issues, not even with interrupts
