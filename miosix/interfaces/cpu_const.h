@@ -69,6 +69,23 @@ namespace miosix {
  * - Always return 0 on single core platforms
  * - Always return 0 when executed on the core which handles the boot process
  * - Never return a number greater or equal than CPU_NUM_CORES
+ *
+ * \warning Although this function is safe to be called without taking any lock,
+ * using the result may not be, as without taking either the GlobalIrqLock or
+ * the PauseKernelLock, the thread calling this function may be preempted and
+ * migrated to another core at any time.
+ * Consider this code snippet executed without taking any lock, that did cause
+ * trouble during Miosix 3 development:
+ * \code
+ * Thread *currentThread=runningThreads[getCurrentCoreId()];
+ * \endcode
+ * Most of the time it works, however, if the thread is preempted and migrated
+ * after the getCurrentCoreId() but before the array indexing, currentThread
+ * points to another thread running on another core!
+ *
+ * For this reason, any code calling getCurrentCoreId() without taking the
+ * GlobalIrqLock or PauseKernelLock should be carefully checked not to cause
+ * race conditions on thread migrations.
  */
 inline unsigned char getCurrentCoreId();
 
