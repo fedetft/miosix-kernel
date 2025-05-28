@@ -333,7 +333,15 @@ private:
     static inline bool inLockedSection() noexcept
     {
         #ifdef WITH_SMP
-        return holdingCore==getCurrentCoreId();
+        // Checking getCurrentCoreId() with interrupts potentially enabled is
+        // unsafe due to thread migrations
+        // TODO: evaluate if fusing this check with other code can prevent the
+        // need to disable interrupts multiple times to improve performance
+        bool dis=areInterruptsEnabled();
+        if(dis) fastDisableIrq();
+        bool result=holdingCore==getCurrentCoreId();
+        if(dis) fastEnableIrq();
+        return result;
         #else
         return !areInterruptsEnabled();
         #endif
@@ -446,7 +454,19 @@ public:
      */
     static inline bool inLockedSection()
     {
+        #ifdef WITH_SMP
+        // Checking getCurrentCoreId() with interrupts potentially enabled is
+        // unsafe due to thread migrations
+        // TODO: evaluate if fusing this check with other code can prevent the
+        // need to disable interrupts multiple times to improve performance
+        bool dis=areInterruptsEnabled();
+        if(dis) fastDisableIrq();
+        bool result=holdingCore==getCurrentCoreId();
+        if(dis) fastEnableIrq();
+        return result;
+        #else //WITH_SMP
         return holdingCore==getCurrentCoreId();
+        #endif //WITH_SMP
     }
 
     /**
