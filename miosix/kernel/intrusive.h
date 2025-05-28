@@ -813,10 +813,10 @@ public:
     /**
      * Nonportable version of std::list::remove that is O(1) since it relies on
      * the list being intrusive
-     * NOTE: can ONLY be called if you are sure the item to remove is either not
-     * in any list (in this case, nothing is done) or is in the list it is being
-     * removed from. Trying to remove an item that is present in another list
-     * produces undefined behavior.
+     * \warning: can ONLY be called if you are sure the item to remove is either
+     * not in any list (in this case, nothing is done) or is in the list it is
+     * being removed from. Trying to remove an item that is present in another
+     * list produces undefined behavior.
      * \param item item to remove, must not be nullptr
      * \return true if the item was removed, false if the item was not present
      * in the list

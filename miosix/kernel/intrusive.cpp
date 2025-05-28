@@ -155,6 +155,16 @@ IntrusiveListItem *IntrusiveListBase::erase(IntrusiveListItem *cur)
         if(cur==nullptr) fail();
         if(cur->prev==nullptr && cur!=head) fail();
         if(cur->next==nullptr && cur!=tail) fail();
+        // Computationally heavy check, makes an O(1) operation O(n), but is
+        // only enabled at the highest level of extra checks
+        bool found=false;
+        for(auto walk=head;walk!=nullptr;walk=walk->next)
+        {
+            if(walk!=cur) continue;
+            found=true;
+            break;
+        }
+        if(found==false) fail();
     }
     if(cur->prev!=nullptr) cur->prev->next=cur->next;
     else head=cur->next;
