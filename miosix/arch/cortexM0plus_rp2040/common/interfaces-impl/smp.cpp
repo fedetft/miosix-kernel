@@ -234,7 +234,7 @@ void IRQcallOnCore(GlobalIrqLock& lock, unsigned char core, void (*f)(void *),
     // Save the invocation which will be read by the call on core later
     invocations[core].func=f;
     invocations[core].arg=arg;
-    invocations[core].waiting=Thread::getCurrentThread();
+    invocations[core].waiting=Thread::IRQgetCurrentThread();
     // Trigger the IPI and wait for it to be served
     flags[core]|=IPIFlags::CallOnCore;
     __DSB();
