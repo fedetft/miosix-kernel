@@ -169,6 +169,11 @@ const unsigned char MAX_OPEN_FILES=8;
 // Kernel related options (stack sizes, priorities)
 //
 
+/// \def WITH_EXTRA_CHECKS
+/// Enable additional assertions in the kernel code, useful for debugging but
+/// adding more run-time overhead
+// #define WITH_EXTRA_CHECKS
+
 /// \def WITH_SLEEP
 /// Enable sleep support. If enabled, the idle thread will stop the CPU whenever
 /// no ready thread exists to save power.
