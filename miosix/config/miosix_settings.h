@@ -169,10 +169,15 @@ const unsigned char MAX_OPEN_FILES=8;
 // Kernel related options (stack sizes, priorities)
 //
 
-/// \def WITH_EXTRA_CHECKS
-/// Enable additional assertions in the kernel code, useful for debugging but
-/// adding more run-time overhead
-// #define WITH_EXTRA_CHECKS
+/// Enable additional assertions useful for debugging but adding more run-time
+/// overhead. Three levels are implemented
+/// None: Do not add extra checks, leading to fastest code. This is the default.
+/// Application: Only add checks that are useful to debug kernel-level
+/// application programming errors. Useful during application code debugging.
+/// Kernel: Also add checks that are useful to debug kernel code. Useful
+/// during kernel code debugging. Adds significant run-time overhead!
+enum class ExtraChecks { None, Application, Kernel };
+constexpr auto extraChecks=ExtraChecks::None;
 
 /// \def WITH_SLEEP
 /// Enable sleep support. If enabled, the idle thread will stop the CPU whenever

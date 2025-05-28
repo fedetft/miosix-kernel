@@ -36,9 +36,6 @@
 #include "error.h"
 #endif //TEST_ALGORITHM
 
-//Only enable when testing code that uses IntrusiveList
-//#define INTRUSIVE_LIST_ERROR_CHECK
-
 namespace miosix {
 
 // Forward decls
@@ -651,9 +648,14 @@ protected:
 
     bool empty() const { return head==nullptr; }
 
-    #ifdef INTRUSIVE_LIST_ERROR_CHECK
-    static void fail();
-    #endif //INTRUSIVE_LIST_ERROR_CHECK
+    static void fail()
+    {
+        #ifndef TEST_ALGORITHM
+        errorHandler(Error::UNEXPECTED);
+        #else //TEST_ALGORITHM
+        assert(false);
+        #endif //TEST_ALGORITHM
+    }
 
 private:
     IntrusiveListItem *head;
@@ -687,25 +689,25 @@ public:
 
         T* operator*()
         {
-            #ifdef INTRUSIVE_LIST_ERROR_CHECK
-            if(list==nullptr || cur==nullptr) IntrusiveListBase::fail();
-            #endif //INTRUSIVE_LIST_ERROR_CHECK
+            if(extraChecks==ExtraChecks::Kernel)
+                if(list==nullptr || cur==nullptr) IntrusiveListBase::fail();
+
             return static_cast<T*>(cur);
         }
 
         iterator operator++()
         {
-            #ifdef INTRUSIVE_LIST_ERROR_CHECK
-            if(list==nullptr || cur==nullptr) IntrusiveListBase::fail();
-            #endif //INTRUSIVE_LIST_ERROR_CHECK
+            if(extraChecks==ExtraChecks::Kernel)
+                if(list==nullptr || cur==nullptr) IntrusiveListBase::fail();
+
             cur=cur->next; return *this;
         }
 
         iterator operator--()
         {
-            #ifdef INTRUSIVE_LIST_ERROR_CHECK
-            if(list==nullptr || list->empty()) IntrusiveListBase::fail();
-            #endif //INTRUSIVE_LIST_ERROR_CHECK
+            if(extraChecks==ExtraChecks::Kernel)
+                if(list==nullptr || list->empty()) IntrusiveListBase::fail();
+
             if(cur!=nullptr) cur=cur->prev;
             else cur=list->IntrusiveListBase::back(); //Special case: decrementing end()
             return *this;
@@ -713,9 +715,9 @@ public:
 
         iterator operator++(int)
         {
-            #ifdef INTRUSIVE_LIST_ERROR_CHECK
-            if(list==nullptr || cur==nullptr) IntrusiveListBase::fail();
-            #endif //INTRUSIVE_LIST_ERROR_CHECK
+            if(extraChecks==ExtraChecks::Kernel)
+                if(list==nullptr || cur==nullptr) IntrusiveListBase::fail();
+
             iterator result=*this;
             cur=cur->next;
             return result;
@@ -723,9 +725,9 @@ public:
 
         iterator operator--(int)
         {
-            #ifdef INTRUSIVE_LIST_ERROR_CHECK
-            if(list==nullptr || list->empty()) IntrusiveListBase::fail();
-            #endif //INTRUSIVE_LIST_ERROR_CHECK
+            if(extraChecks==ExtraChecks::Kernel)
+                if(list==nullptr || list->empty()) IntrusiveListBase::fail();
+
             iterator result=*this;
             if(cur!=nullptr) cur=cur->prev;
             else cur=list->IntrusiveListBase::back(); //Special case: decrementing end()
@@ -787,9 +789,9 @@ public:
      */
     void insert(iterator it, T *item)
     {
-        #ifdef INTRUSIVE_LIST_ERROR_CHECK
-        if(it.list!=this) fail();
-        #endif //INTRUSIVE_LIST_ERROR_CHECK
+        if(extraChecks==ExtraChecks::Kernel)
+            if(it.list!=this) fail();
+
         IntrusiveListItem *cur=it.cur; //Safe even if it==end() -> cur=nullptr
         IntrusiveListBase::insert(cur,item);
     }
@@ -801,9 +803,9 @@ public:
      */
     iterator erase(iterator it)
     {
-        #ifdef INTRUSIVE_LIST_ERROR_CHECK
-        if(it.list!=this) fail();
-        #endif //INTRUSIVE_LIST_ERROR_CHECK
+        if(extraChecks==ExtraChecks::Kernel)
+            if(it.list!=this) fail();
+
         IntrusiveListItem *cur=it.cur;
         return iterator(this,IntrusiveListBase::erase(cur));
     }
@@ -842,9 +844,9 @@ public:
     T* front()
     {
         auto result=IntrusiveListBase::front();
-        #ifdef INTRUSIVE_LIST_ERROR_CHECK
-        if(result==nullptr) fail();
-        #endif //INTRUSIVE_LIST_ERROR_CHECK
+
+        if(extraChecks==ExtraChecks::Kernel) if(result==nullptr) fail();
+
         return static_cast<T*>(result);
     }
     
@@ -854,9 +856,9 @@ public:
     T* back()
     {
         auto result=IntrusiveListBase::back();
-        #ifdef INTRUSIVE_LIST_ERROR_CHECK
-        if(result==nullptr) fail();
-        #endif //INTRUSIVE_LIST_ERROR_CHECK
+
+        if(extraChecks==ExtraChecks::Kernel) if(result==nullptr) fail();
+
         return static_cast<T*>(result);
     }
     

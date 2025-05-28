@@ -97,9 +97,9 @@ void EDFScheduler::removeDeadThreads()
 
 void EDFScheduler::IRQsetPriority(Thread *thread, EDFSchedulerPriority newPriority)
 {
-    #ifdef WITH_EXTRA_CHECKS
-    if(thread->flags.isZombie()) errorHandler(Error::UNEXPECTED);
-    #endif //WITH_EXTRA_CHECKS
+    if(extraChecks==ExtraChecks::Kernel)
+        if(thread->flags.isZombie()) errorHandler(Error::UNEXPECTED);
+
     // If thread is running it is not in any list, only change priority value
     for(int i=0;i<CPU_NUM_CORES;i++)
     {

@@ -86,9 +86,9 @@ bool FastMutex::tryLock()
 int FastMutex::unlock()
 {
     FastPauseKernelLock dLock;
-    #ifdef WITH_EXTRA_CHECKS
-    if(owner!=Thread::PKgetCurrentThread()) errorHandler(Error::MUTEX_ERROR);
-    #endif //WITH_EXTRA_CHECKS
+    if(extraChecks!=ExtraChecks::None)
+        if(owner!=Thread::PKgetCurrentThread()) errorHandler(Error::MUTEX_ERROR);
+
     if(recursiveDepth>0) recursiveDepth--;
     else owner=waitQueue.PKwakeOne();
     return 0;
@@ -124,9 +124,9 @@ inline void FastMutex::PKlockToDepth(FastPauseKernelLock& dLock, unsigned int de
 
 inline unsigned int FastMutex::PKunlockAllDepthLevels()
 {
-    #ifdef WITH_EXTRA_CHECKS
-    if(owner!=Thread::PKgetCurrentThread()) errorHandler(Error::MUTEX_ERROR);
-    #endif //WITH_EXTRA_CHECKS
+    if(extraChecks!=ExtraChecks::None)
+        if(owner!=Thread::PKgetCurrentThread()) errorHandler(Error::MUTEX_ERROR);
+
     owner=waitQueue.PKwakeOne();
     if(recursiveDepth<0) return 0;
     unsigned int result=recursiveDepth;
@@ -193,9 +193,8 @@ bool Mutex::tryLock()
 int Mutex::unlock()
 {
     FastPauseKernelLock dLock;
-    #ifdef WITH_EXTRA_CHECKS
-    if(owner!=Thread::PKgetCurrentThread()) errorHandler(Error::MUTEX_ERROR);
-    #endif //WITH_EXTRA_CHECKS
+    if(extraChecks!=ExtraChecks::None)
+        if(owner!=Thread::PKgetCurrentThread()) errorHandler(Error::MUTEX_ERROR);
 
     if(recursiveDepth>0)
     {
@@ -244,9 +243,8 @@ void Mutex::PKlockToDepth(FastPauseKernelLock& dLock, unsigned int depth)
 
 unsigned int Mutex::PKunlockAllDepthLevels()
 {
-    #ifdef WITH_EXTRA_CHECKS
-    if(owner!=Thread::PKgetCurrentThread()) errorHandler(Error::MUTEX_ERROR);
-    #endif //WITH_EXTRA_CHECKS
+    if(extraChecks!=ExtraChecks::None)
+        if(owner!=Thread::PKgetCurrentThread()) errorHandler(Error::MUTEX_ERROR);
 
     //NOTE: unlike Mutex::unlock() this function is only used to wait in
     //condition variables, after this call the current thread is descheduled

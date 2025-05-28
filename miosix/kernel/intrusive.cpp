@@ -58,11 +58,12 @@ namespace miosix {
 
 void IntrusiveListBase::push_back(IntrusiveListItem *item)
 {
-    #ifdef INTRUSIVE_LIST_ERROR_CHECK
-    if((head!=nullptr) ^ (tail!=nullptr)) fail();
-    if(!empty() && head==tail && (head->prev || head->next)) fail();
-    if(item->prev!=nullptr || item->next!=nullptr) fail();
-    #endif //INTRUSIVE_LIST_ERROR_CHECK
+    if(extraChecks==ExtraChecks::Kernel)
+    {
+        if((head!=nullptr) ^ (tail!=nullptr)) fail();
+        if(!empty() && head==tail && (head->prev || head->next)) fail();
+        if(item->prev!=nullptr || item->next!=nullptr) fail();
+    }
     if(empty()) head=item;
     else {
         item->prev=tail;
@@ -73,10 +74,11 @@ void IntrusiveListBase::push_back(IntrusiveListItem *item)
 
 void IntrusiveListBase::pop_back()
 {
-    #ifdef INTRUSIVE_LIST_ERROR_CHECK
-    if(head==nullptr || tail==nullptr) fail();
-    if(!empty() && head==tail && (head->prev || head->next)) fail();
-    #endif //INTRUSIVE_LIST_ERROR_CHECK
+    if(extraChecks==ExtraChecks::Kernel)
+    {
+        if(head==nullptr || tail==nullptr) fail();
+        if(!empty() && head==tail && (head->prev || head->next)) fail();
+    }
     IntrusiveListItem *removedItem=tail;
     tail=removedItem->prev;
     if(tail!=nullptr)
@@ -88,11 +90,12 @@ void IntrusiveListBase::pop_back()
 
 void IntrusiveListBase::push_front(IntrusiveListItem *item)
 {
-    #ifdef INTRUSIVE_LIST_ERROR_CHECK
-    if((head!=nullptr) ^ (tail!=nullptr)) fail();
-    if(!empty() && head==tail && (head->prev || head->next)) fail();
-    if(item->prev!=nullptr || item->next!=nullptr) fail();
-    #endif //INTRUSIVE_LIST_ERROR_CHECK
+    if(extraChecks==ExtraChecks::Kernel)
+    {
+        if((head!=nullptr) ^ (tail!=nullptr)) fail();
+        if(!empty() && head==tail && (head->prev || head->next)) fail();
+        if(item->prev!=nullptr || item->next!=nullptr) fail();
+    }
     if(empty()) tail=item;
     else {
         head->prev=item;
@@ -103,10 +106,11 @@ void IntrusiveListBase::push_front(IntrusiveListItem *item)
 
 void IntrusiveListBase::pop_front()
 {
-    #ifdef INTRUSIVE_LIST_ERROR_CHECK
-    if(head==nullptr || tail==nullptr) fail();
-    if(!empty() && head==tail && (head->prev || head->next)) fail();
-    #endif //INTRUSIVE_LIST_ERROR_CHECK
+    if(extraChecks==ExtraChecks::Kernel)
+    {
+        if(head==nullptr || tail==nullptr) fail();
+        if(!empty() && head==tail && (head->prev || head->next)) fail();
+    }
     IntrusiveListItem *removedItem=head;
     head=removedItem->next;
     if(head!=nullptr)
@@ -118,16 +122,17 @@ void IntrusiveListBase::pop_front()
 
 void IntrusiveListBase::insert(IntrusiveListItem *cur, IntrusiveListItem *item)
 {
-    #ifdef INTRUSIVE_LIST_ERROR_CHECK
-    if((head!=nullptr) ^ (tail!=nullptr)) fail();
-    if(!empty() && head==tail && (head->prev || head->next)) fail();
-    if(cur!=nullptr)
+    if(extraChecks==ExtraChecks::Kernel)
     {
-        if(cur->prev==nullptr && cur!=head) fail();
-        if(cur->next==nullptr && cur!=tail) fail();
+        if((head!=nullptr) ^ (tail!=nullptr)) fail();
+        if(!empty() && head==tail && (head->prev || head->next)) fail();
+        if(cur!=nullptr)
+        {
+            if(cur->prev==nullptr && cur!=head) fail();
+            if(cur->next==nullptr && cur!=tail) fail();
+        }
+        if(item->prev!=nullptr || item->next!=nullptr) fail();
     }
-    if(item->prev!=nullptr || item->next!=nullptr) fail();
-    #endif //INTRUSIVE_LIST_ERROR_CHECK
     item->next=cur;
     if(cur!=nullptr)
     {
@@ -143,13 +148,14 @@ void IntrusiveListBase::insert(IntrusiveListItem *cur, IntrusiveListItem *item)
 
 IntrusiveListItem *IntrusiveListBase::erase(IntrusiveListItem *cur)
 {
-    #ifdef INTRUSIVE_LIST_ERROR_CHECK
-    if(head==nullptr || tail==nullptr) fail();
-    if(!empty() && head==tail && (head->prev || head->next)) fail();
-    if(cur==nullptr) fail();
-    if(cur->prev==nullptr && cur!=head) fail();
-    if(cur->next==nullptr && cur!=tail) fail();
-    #endif //INTRUSIVE_LIST_ERROR_CHECK
+    if(extraChecks==ExtraChecks::Kernel)
+    {
+        if(head==nullptr || tail==nullptr) fail();
+        if(!empty() && head==tail && (head->prev || head->next)) fail();
+        if(cur==nullptr) fail();
+        if(cur->prev==nullptr && cur!=head) fail();
+        if(cur->next==nullptr && cur!=tail) fail();
+    }
     if(cur->prev!=nullptr) cur->prev->next=cur->next;
     else head=cur->next;
     if(cur->next!=nullptr) cur->next->prev=cur->prev;
@@ -159,18 +165,6 @@ IntrusiveListItem *IntrusiveListBase::erase(IntrusiveListItem *cur)
     cur->next=nullptr;
     return result;
 }
-
-#ifdef INTRUSIVE_LIST_ERROR_CHECK
-#warning "INTRUSIVE_LIST_ERROR_CHECK should not be enabled in release builds"
-void IntrusiveListBase::fail()
-{
-    #ifndef TEST_ALGORITHM
-    errorHandler(Error::UNEXPECTED);
-    #else //TEST_ALGORITHM
-    assert(false);
-    #endif //TEST_ALGORITHM
-}
-#endif //INTRUSIVE_LIST_ERROR_CHECK
 
 } //namespace miosix
 

@@ -252,9 +252,8 @@ void IRQstartKernel()
  */
 void IRQwakeThreads(long long currentTime)
 {
-    #ifdef WITH_EXTRA_CHECKS
-    if(getCurrentCoreId()!=WAKEUP_HANDLING_CORE) errorHandler(Error::UNEXPECTED);
-    #endif //WITH_EXTRA_CHECKS
+    if(extraChecks==ExtraChecks::Kernel)
+        if(getCurrentCoreId()!=WAKEUP_HANDLING_CORE) errorHandler(Error::UNEXPECTED);
 
     // Condition (for the unified timer model)
     // A woken higher priority thread than running on another core
@@ -563,10 +562,10 @@ bool Thread::testTerminate()
 void Thread::detach()
 {
     FastGlobalIrqLock lock;
-    #ifdef WITH_EXTRA_CHECKS
-    if(this!=Thread::IRQgetCurrentThread() && Thread::IRQexists(this)==false)
-        return;
-    #endif //WITH_EXTRA_CHECKS
+    if(extraChecks!=ExtraChecks::None)
+        if(this!=Thread::IRQgetCurrentThread() && Thread::IRQexists(this)==false)
+            return;
+
     this->flags.IRQsetDetached();
     
     //we detached a terminated thread, so its memory needs to be deallocated
@@ -602,9 +601,8 @@ bool Thread::join(void** result)
         FastGlobalIrqLock dLock;
         Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
         if(this==cur) return false;
-        #ifdef WITH_EXTRA_CHECKS
-        if(Thread::IRQexists(this)==false) return false;
-        #endif //WITH_EXTRA_CHECKS
+        if(extraChecks!=ExtraChecks::None)
+            if(Thread::IRQexists(this)==false) return false;
         if(this->flags.isDetached()) return false;
         if(this->flags.isZombie()==false)
         {
@@ -621,9 +619,8 @@ bool Thread::join(void** result)
                     FastGlobalIrqUnlock eLock(dLock);
                     //Interrupts are enabled, context switch happens
                 }
-                #ifdef WITH_EXTRA_CHECKS
-                if(Thread::IRQexists(this)==false) return false;
-                #endif //WITH_EXTRA_CHECKS
+                if(extraChecks!=ExtraChecks::None)
+                    if(Thread::IRQexists(this)==false) return false;
                 if(this->flags.isDetached()) return false;
                 if(this->flags.isZombie()) break;
             }
@@ -647,10 +644,9 @@ bool Thread::setAffinity(CpuSet affinity)
     if(affinity>unrestrictedAffinityMask) return false;
     {
         FastGlobalIrqLock dLock;
-        #ifdef WITH_EXTRA_CHECKS
-        if(this!=Thread::IRQgetCurrentThread() && Thread::IRQexists(this)==false)
-            return false;
-        #endif //WITH_EXTRA_CHECKS
+        if(extraChecks!=ExtraChecks::None)
+            if(this!=Thread::IRQgetCurrentThread() && Thread::IRQexists(this)==false)
+                return false;
         this->affinity=affinity;
         for(int i=0;i<CPU_NUM_CORES;i++)
         {
