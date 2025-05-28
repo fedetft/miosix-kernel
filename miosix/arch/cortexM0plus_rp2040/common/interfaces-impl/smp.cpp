@@ -45,7 +45,7 @@
 
 namespace miosix {
 
-char core1SystemStack[CORE1_SYSTEM_STACK_SIZE];
+char core1SystemStack[CORE1_SYSTEM_STACK_SIZE] alignas(8);
 
 static void fifoDrain()
 {
