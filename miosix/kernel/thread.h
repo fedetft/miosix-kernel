@@ -485,11 +485,7 @@ public:
      *
      * Returns a valid pointer also if called before the kernel is started.
      */
-    static Thread *getCurrentThread()
-    {
-        //Safe to call without disabling IRQ, see implementation
-        return IRQgetCurrentThread();
-    }
+    static Thread *getCurrentThread();
 
     /**
      * \return a pointer to the current thread.
@@ -498,7 +494,7 @@ public:
      */
     static Thread *PKgetCurrentThread()
     {
-        //Safe to call without disabling IRQ, see implementation
+        //Safe to call directly, see comment in Thread::IRQgetCurrentThread()
         return IRQgetCurrentThread();
     }
 

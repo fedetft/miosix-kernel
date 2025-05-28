@@ -439,16 +439,39 @@ void Thread::IRQwakeup()
         IRQinvokeScheduler();
 }
 
+Thread *Thread::getCurrentThread()
+{
+    //Need to add lock if SMP, see comment in Thread::IRQgetCurrentThread()
+    #ifdef WITH_SMP
+    fastDisableIrq();
+    #endif //WITH_SMP
+    Thread *result=IRQgetCurrentThread();
+    #ifdef WITH_SMP
+    fastEnableIrq();
+    #endif //WITH_SMP
+    return result;
+}
+
 Thread *Thread::IRQgetCurrentThread()
 {
-    //NOTE: this code is currently safe to be called either with interrupt
-    //enabed or not, and with the kernel paused or not, as well as before the
-    //kernel is started, so getCurrentThread() and PKgetCurrentThread() all
-    //directly call here. If introducing changes that break this property, these
-    //three functions may need to be split
+    // NOTE: this function used to be safe to be called also with interrupts
+    // enabled and older versions of Miosix took advantage of this property to
+    // have getCurrentThread() and PKgetCurrentThread() call this function
+    // directly without adding locks for perfromance reasons.
+    // On multi-core architectures, calling this function without taking any
+    // lock is no longer safe, as a context switch can happen between the
+    // getCurrentCoreId() and array indexing. If the thread migrates to a
+    // different core during the context switch, this function then returns the
+    // wrong thread pointer. This caused intermittent failures in the testsuite
+    // test_26.
+    // There is actually no need to take the global lock though, disabling
+    // interrupts on the local core and/or taking the pause kernel lock is
+    // enough to prevent the currently running thread from being preempted and
+    // migrated. Thus, in the current implementation
+    // - PKgetCurrentThread() calls IRQgetCurrentThread() without futher locks
+    // - getCurrentThread() on multi-core architectures disables interrupts on
+    // the core it is called from, on single-core architectures takes no lock
 
-    //Implementation is the same as getCurrentThread, but to keep a consistent
-    //interface this method is duplicated
     Thread *result=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
     if(result) return result;
     //This function must always return a pointer to a valid thread. The first
