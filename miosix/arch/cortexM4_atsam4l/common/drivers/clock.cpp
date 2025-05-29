@@ -28,6 +28,7 @@
 #include "clock.h"
 #include "interfaces/arch_registers.h"
 #include "board_settings.h"
+#include "mpu/cortexMx_mpu.h"
 
 extern "C" {
 unsigned int SystemCoreClock = miosix::bootClock;
@@ -96,6 +97,9 @@ void IRQmemoryAndClockInit()
     }
     //This function is empty in this microcontroller family
     //SystemInit();
+    
+    // Architecture has MPU, enable kernel-level W^X protection
+    IRQconfigureMPU();
 }
 
 int getSelectedOscillator()

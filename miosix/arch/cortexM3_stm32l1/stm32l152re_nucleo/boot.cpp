@@ -28,6 +28,7 @@
 #include "interfaces/arch_registers.h"
 #include "interfaces/gpio.h"
 #include "board_settings.h"
+#include "mpu/cortexMx_mpu.h"
 
 uint32_t SystemCoreClock=miosix::sysclkFrequency;
 
@@ -106,6 +107,9 @@ void IRQsetupClockTree()
 void IRQmemoryAndClockInit()
 {
     IRQsetupClockTree();
+    
+    // Architecture has MPU, enable kernel-level W^X protection
+    IRQconfigureMPU();
 }
 
 } // namespace miosix

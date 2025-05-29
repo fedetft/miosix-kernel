@@ -28,6 +28,7 @@
 #include <config/miosix_settings.h>
 #include <interfaces/arch_registers.h>
 #include <interfaces/delays.h>
+#include "mpu/cortexMx_mpu.h"
 
 namespace miosix {
 
@@ -71,6 +72,9 @@ void IRQmemoryAndClockInit()
 
     //See Cortex M4 TRM: enable the FPU in privileged and user mode
     SCB->CPACR |= 0xf<<20;
+    
+    // Architecture has MPU, enable kernel-level W^X protection
+    IRQconfigureMPU();
 }
 
 } // namespace miosix

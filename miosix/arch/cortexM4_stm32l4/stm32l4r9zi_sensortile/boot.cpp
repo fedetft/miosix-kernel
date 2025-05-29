@@ -36,7 +36,8 @@ void IRQmemoryAndClockInit()
     // handle the memory and clock initialization process.
     SystemInit();
 
-    IRQconfigureMPU();
+    // Architecture has MPU, enable kernel-level W^X protection
+    IRQconfigureMPU(reinterpret_cast<unsigned int*>(0x64000000),0x200000);
 }
 
 } // namespace miosix
