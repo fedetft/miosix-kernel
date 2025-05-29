@@ -45,6 +45,8 @@ namespace miosix {
  * \param base base address, aligned to a 32Byte cache line
  * \param size size, must be at least 32 and a power of 2, or it is rounded to
  * the next power of 2
+ * \param executePermitted if true configure MPU to allow code execution,
+ * if false configure MPU to trap code execution for W^X protection
  */
 static void IRQconfigureMPURegion(unsigned int region, unsigned int base,
     unsigned int size, bool executePermitted)
@@ -71,8 +73,14 @@ void IRQconfigureMPU(const unsigned int *xramBase, unsigned int xramSize)
     // to override the default deny policy for the process-specific memory.
     IRQconfigureMPURegion(0,0x00000000,0x20000000,true);
     IRQconfigureMPURegion(1,0x20000000,0x20000000,false);
+
+    #ifdef __CODE_IN_XRAM
+    bool allowCodeInXram=true;
+    #else //__CODE_IN_XRAM
+    bool allowCodeInXram=false;
+    #endif //__CODE_IN_XRAM
     if(xramSize)
-        IRQconfigureMPURegion(2,reinterpret_cast<unsigned int>(xramBase),xramSize,false);
+        IRQconfigureMPURegion(2,reinterpret_cast<unsigned int>(xramBase),xramSize,allowCodeInXram);
     IRQenableMPUatBoot();
     
     #if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT==1)
