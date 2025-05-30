@@ -230,8 +230,10 @@ void IRQosTimerSetPreemption(unsigned int ns) noexcept;
 void IRQosTimerSetInterrupt(long long ns) noexcept;
 
 /**
- * \return the last last timer interrupt time that was scheduled with
- * IRQosTimerSetInterrupt()
+ * \return if the last timer interrupt time that was scheduled with
+ * IRQosTimerSetInterrupt() is still pending, return the abolute time in
+ * nanoseconds of the pending interrupt. If the interrupt time already passed
+ * no further interrupt has been set, return numeric_limits<long long>::max()
  */
 long long IRQosTimerGetInterrupt() noexcept;
 
@@ -316,9 +318,12 @@ public:
     static constexpr unsigned long long lowerMask=upperIncr-1;
     static constexpr unsigned long long upperMask=0xFFFFFFFFFFFFFFFFLL-lowerMask;
     
-    long long upperTimeTick = 0; //Extended timer counter (upper bits)
-    long long upperIrqTick = 0;  //Extended interrupt time point (upper bits)
-    long long irqNs = 0;
+    long long upperTimeTick=0; /// Extended timer counter (upper bits)
+    /// Extended interrupt time point. If the interrupt is set we only use the
+    /// upper bits and the lower bits are 0. If the interrupt is not set we use
+    /// all bits to force the value to be return numeric_limits<long long>::max()
+    long long upperIrqTick=0x7FFFFFFFFFFFFFFFLL;
+    long long irqNs=0x7FFFFFFFFFFFFFFFLL;
     miosix::TimeConversion tc;
     bool lateIrq=false;
     
@@ -362,7 +367,10 @@ public:
     }
     
     /**
-     * \return the time when the next os interrupt is scheduled in ticks
+     * \return if the last interrupt time that was scheduled is still pending,
+     * return the abolute time in ticks of the pending interrupt.
+     * If the interrupt time already passed no further interrupt has been set,
+     * return numeric_limits<long long>::max()
      */
     inline long long IRQgetIrqTick()
     {
@@ -378,7 +386,10 @@ public:
     }
     
     /**
-     * \return the time when the next os interrupt is scheduled in nanoseconds
+     * \return if the last interrupt time that was scheduled is still pending,
+     * return the abolute time in nanoseconds of the pending interrupt.
+     * If the interrupt time already passed no further interrupt has been set,
+     * return numeric_limits<long long>::max()
      */
     inline long long IRQgetIrqNs()
     {
@@ -402,9 +413,9 @@ public:
             upperTimeTick = tick & upperMask;
             D::IRQsetTimerCounter(static_cast<unsigned int>(tick & lowerMask));
             D::IRQclearOverflowFlag();
-            //Adjust also when the next interrupt will be fired
+            //Adjust also when the next interrupt will be fired, if it is set
             long long nextIrqTick = IRQgetIrqTick();
-            if(nextIrqTick>oldTick)
+            if(nextIrqTick!=0x7FFFFFFFFFFFFFFFLL && nextIrqTick>oldTick)
             {
                 //Avoid using IRQsetIrqTick(nextIrqTick) as in some weird timers
                 //IRQgetTimeTick() does not work after setting the timer counter
@@ -451,8 +462,8 @@ public:
      */
     inline void IRQsetIrqNs(long long ns)
     {
-        IRQsetIrqTick(tc.ns2tick(ns));
         irqNs=ns;
+        IRQsetIrqTick(tc.ns2tick(ns));
     }
     
     /**
@@ -469,17 +480,23 @@ public:
             if(tick >= IRQgetIrqTick() || lateIrq)
             {
                 lateIrq=false;
-                long long now=tc.tick2ns(tick);
+
                 #ifndef WITH_RTC_AS_OS_TIMER
+                long long now=irqNs;
+                irqNs=upperIrqTick=0x7FFFFFFFFFFFFFFFLL;
                 IRQwakeThreads(now);
                 #else //WITH_RTC_AS_OS_TIMER
                 // Timeconversion error is less than 2 ticks, but with the low
                 // frequency of the RTC this error occasionally causes an early
-                // wakeup. In this case retry the next tick
-                // When developing new os_timer drivers remove this code to
-                // make sure it does not happen systematically
-                if(now>=irqNs) IRQwakeThreads(now);
-                else IRQsetIrqTick(tick+1);
+                // wakeup with an appreciable time error. In this case retry the
+                // next tick. When developing new os_timer drivers remove this
+                // code to make sure it does not happen systematically
+                long long now=tc.tick2ns(tick);
+                if(now<irqNs) IRQsetIrqTick(tick+1);
+                else {
+                    irqNs=upperIrqTick=0x7FFFFFFFFFFFFFFFLL;
+                    IRQwakeThreads(now);
+                }
                 #endif //WITH_RTC_AS_OS_TIMER
             }
         }

@@ -37,8 +37,8 @@
 namespace miosix {
 
 static TimeConversion tc(48000000);
-static long long lastAlarmTicks=0;
-static long long irqNs=0;
+static long long lastAlarmTicks=0x7FFFFFFFFFFFFFFFLL;
+static long long irqNs=0x7FFFFFFFFFFFFFFFLL;
 
 /**
  * \internal
@@ -112,7 +112,6 @@ static void IRQtimerInterruptHandler(void *arg)
     timer_hw->intr=1<<AlarmId; //Bit is write-clear
     if(AlarmId==WAKEUP_HANDLING_CORE)
     {
-        auto tnow=IRQgetTicks(), twake=lastAlarmTicks;
         //Check the full 64 bits. If the alarm deadline has passed, call the
         //kernel. Otherwise rearm the timer. Rearming the timer is also
         //important to prevent a race condition that occurs when
@@ -120,7 +119,13 @@ static void IRQtimerInterruptHandler(void *arg)
         //about to trigger. In this case the previous timer interrupt clears
         //the armed flag thus the next interrupt set with IRQosTimerSetInterrupt
         //would not occur unless rearmed.
-        if(twake<=tnow) IRQwakeThreads(tc.tick2ns(tnow));
+        auto twake=lastAlarmTicks;
+        if(twake<=IRQgetTicks())
+        {
+            long long now=irqNs;
+            irqNs=lastAlarmTicks=0x7FFFFFFFFFFFFFFFLL;
+            IRQwakeThreads(now);
+        }
         else timer_hw->alarm[AlarmId]=static_cast<unsigned int>(twake & 0xffffffff);
     } else {
         // On multi core platforms if the interrupt is not fired from
@@ -218,6 +223,12 @@ void IRQosTimerSetInterrupt(long long ns) noexcept
     }
 }
 
+/**
+ * \return if the last timer interrupt time that was scheduled with
+ * IRQosTimerSetInterrupt() is still pending, return the abolute time in
+ * nanoseconds of the pending interrupt. If the interrupt time already passed
+ * no further interrupt has been set, return numeric_limits<long long>::max()
+ */
 long long IRQosTimerGetInterrupt() noexcept
 {
     return irqNs;
