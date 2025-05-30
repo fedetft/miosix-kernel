@@ -549,7 +549,7 @@ static void test_3()
         delayUs(MAX_TIME_IRQ_DISABLED);
         delta=IRQgetTime()-start;
     }
-    iprintf("%lld ",delta);
+    fiprintf(stderr,"%lld ",delta);
     //10% tolerance
     auto m=MAX_TIME_IRQ_DISABLED*1000;
     if(delta<(m-m/10) || delta>(m+m/10)) fail("getTime and delayUs don't agree");
