@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2015, 2016 by Terraneo Federico                         *
+ *   Copyright (C) 2015-2025 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/ 
 
-#ifndef TIMECONVERSION_H
-#define TIMECONVERSION_H
+#pragma once
 
 namespace miosix {
 
@@ -262,6 +261,50 @@ private:
     long long adjustOffsetNs;
 };
 
-} //namespace miosix
+/**
+ * Instances of this class can be used by timer drivers to convert from ticks
+ * in the timer resolution to nanoseconds and back.
+ * Unlike class TimeConversion, this class is limited to convert 32 bit time
+ * durations and provides less accuracy guarantees compared to TimeConversion
+ * which can convert 64 bit absolute time points with ppm-level accuracy.
+ *
+ * The maximum valude that can be converted without overflow is about 4 seconds,
+ * which is acceptable for the purpose of measuring scheduler time slices.
+ * This class is indeed only meant to be used to convert thread time slices for
+ * preemption purposes.
+ */
+class CoarseTimeConversion
+{
+public:
+    CoarseTimeConversion() : factor(1) {}
 
-#endif //TIMECONVERSION_H
+    /**
+     * Constructor
+     * Set the conversion factors based on the tick frequency.
+     * \param hz tick frequency in Hz
+     */
+    CoarseTimeConversion(unsigned int hz) noexcept;
+
+    /**
+     * \param tick time interval in timer ticks
+     * \return the equivalent time intterval in nanoseconds
+     */
+    inline unsigned int tick2ns(unsigned int tick) const
+    {
+        return tick*factor;
+    }
+
+    /**
+     * \param ns time interval in nanoseconds
+     * \return the equivalent time interval in ticks
+     */
+    inline unsigned int ns2tick(unsigned int ns) const
+    {
+        return ns/factor;
+    }
+
+private:
+    unsigned int factor;
+};
+
+} //namespace miosix

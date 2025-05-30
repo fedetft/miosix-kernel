@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2015, 2016 by Terraneo Federico                         *
+ *   Copyright (C) 2015-2025 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -428,6 +428,21 @@ long long TimeConversion::computeRoundTripError(unsigned long long tick,
     unsigned long long roundTrip=convert(ns,adjustedToTick);
     return static_cast<long long>(tick-roundTrip);
 }
+
+//
+// class CoarseTimeConversion
+//
+
+CoarseTimeConversion::CoarseTimeConversion(unsigned int hz) noexcept
+{
+    // The only accuracy improvement method currently implemented is a rounded
+    // division. This is acceptable for low tick frequencies, but for timers
+    // clocked close to 1GHz the accuracy of this conversion is quite coarse.
+    // For example, with a 400MHz timer the correct factor would be 2.5, and is
+    // approximated to 3, a 20% error.
+    factor=(1000000000+hz/2)/hz;
+}
+
 
 } //namespace miosix
 
