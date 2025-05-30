@@ -160,6 +160,9 @@ void IRQosTimerInitSMP();
 #endif //WITH_SMP
 
 #if defined(WITH_SMP) || !defined(OS_TIMER_MODEL_UNIFIED)
+//TODO
+void IRQinitCoreLocalPreemptionTimer();
+
 /**
  * \internal
  * Set the next preemption interrupt. When the set time is reached, the timer

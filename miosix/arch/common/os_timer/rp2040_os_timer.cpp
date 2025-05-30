@@ -146,12 +146,12 @@ void IRQosTimerInit()
     resets_hw->reset&= ~RESETS_RESET_TIMER_BITS;
     while((resets_hw->reset_done & RESETS_RESET_TIMER_BITS)==0) ;
     //Enable timer interrupt generation
-    #if defined(WITH_SMP) && defined(OS_TIMER_MODEL_UNIFIED)
+    #ifdef WITH_SMP
     timer_hw->inte=TIMER_INTE_ALARM_0_BITS|TIMER_INTE_ALARM_1_BITS;
-    #else //defined(WITH_SMP) && defined(OS_TIMER_MODEL_UNIFIED)
+    #else //WITH_SMP
     timer_hw->inte=TIMER_INTE_ALARM_0_BITS;
     IRQregisterIrq(lock,TIMER_IRQ_0_IRQn,IRQtimerInterruptHandler<0>);
-    #endif //defined(WITH_SMP) && defined(OS_TIMER_MODEL_UNIFIED)
+    #endif //WITH_SMP
     //Toggle debug sleep mode. Works around a bug where the timer does not
     //start counting if it was reset while it was paused due to debug mode.
     timer_hw->dbgpause=0;
@@ -159,7 +159,7 @@ void IRQosTimerInit()
     timer_hw->dbgpause=3;
 }
 
-#if defined(WITH_SMP) && defined(OS_TIMER_MODEL_UNIFIED)
+#ifdef WITH_SMP
 /**
  * \internal
  * Initialize the OS timer for a given core during SMP setup.
@@ -169,14 +169,22 @@ void IRQosTimerInit()
  */
 void IRQosTimerInitSMP()
 {
+    #ifdef OS_TIMER_MODEL_UNIFIED
     if(getCurrentCoreId()==0)
     {
         IRQregisterIrqOnCurrentCore(TIMER_IRQ_0_IRQn,IRQtimerInterruptHandler<0>,nullptr);
     } else {
         IRQregisterIrqOnCurrentCore(TIMER_IRQ_1_IRQn,IRQtimerInterruptHandler<1>,nullptr);
     }
+    #else //OS_TIMER_MODEL_UNIFIED
+    IRQinitCoreLocalPreemptionTimer();
+    if(getCurrentCoreId()==WAKEUP_HANDLING_CORE)
+        IRQregisterIrqOnCurrentCore(TIMER_IRQ_1_IRQn,
+            IRQtimerInterruptHandler<WAKEUP_HANDLING_CORE>,nullptr);
+    #endif //OS_TIMER_MODEL_UNIFIED
 }
 
+#ifdef OS_TIMER_MODEL_UNIFIED
 void IRQosTimerSetPreemption(unsigned int ns) noexcept
 {
     int coreId=getCurrentCoreId();
@@ -190,7 +198,8 @@ void IRQosTimerSetPreemption(unsigned int ns) noexcept
         else NVIC_SetPendingIRQ(TIMER_IRQ_1_IRQn);
     }
 }
-#endif //defined(WITH_SMP) && defined(OS_TIMER_MODEL_UNIFIED)
+#endif //OS_TIMER_MODEL_UNIFIED
+#endif //WITH_SMP
 
 /**
  * \internal

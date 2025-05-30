@@ -61,6 +61,7 @@ void DebugMon_Handler();
 #endif //__CORTEX_M != 0
 void SVC_Handler();
 void __attribute__((naked)) PendSV_Handler();
+void SysTick_Handler();
 static void unexpectedInterrupt(void*);
 
 //
@@ -191,7 +192,7 @@ __attribute__((section(".isr_vector"))) extern const InterruptTable hardwareInte
         DebugMon_Handler,    // Debug Monitor Handler
         nullptr,             // Reserved
         PendSV_Handler,      // PendSV Handler
-        nullptr              // SysTick Handler (Miosix does not use it)
+        SysTick_Handler      // SysTick Handler
     #else //__CORTEX_M != 0
         &_main_stack_top,    // Stack pointer
         Reset_Handler,       // Reset Handler
@@ -208,7 +209,7 @@ __attribute__((section(".isr_vector"))) extern const InterruptTable hardwareInte
         nullptr,             // Reserved
         nullptr,             // Reserved
         PendSV_Handler,      // PendSV Handler
-        nullptr              // SysTick Handler (Miosix does not use it)
+        SysTick_Handler      // SysTick Handler
     #endif //__CORTEX_M != 0
 );
 
@@ -750,6 +751,27 @@ void __attribute__((naked)) PendSV_Handler()
     saveContext();
     asm volatile("bl _ZN6miosix10pendsvImplEv");
     restoreContext();
+}
+
+void SysTick_Handler()
+{
+    #ifdef OS_TIMER_MODEL_UNIFIED
+    FastGlobalLockFromIrq lock;
+    IRQerrorLog("\r\n***Unexpected SysTick\r\n");
+    IRQsystemReboot();
+    #else //OS_TIMER_MODEL_UNIFIED
+    // In the separate timer model, SysTick is used to implement
+    // IRQosTimerSetPreemption(), and when the set time expires the scheduler
+    // should be called. We must do so here since SysTick is a system interrupt
+    // and not a peripheral interrupt, thus it cannot be registered with
+    // IRQregisterIrq.
+    // Miosix requires a one shot timer for preemption, not a periodic one, so
+    // clear TICKINT to prevent further interrupts. The timer is kept running
+    // so as to allow measuring burst length for schedulers that need it.
+    // Avoid doing a read-modify-write as reading CTRL clears COUNTFLAG.
+    SysTick->CTRL=SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk;
+    IRQinvokeScheduler();
+    #endif //OS_TIMER_MODEL_UNIFIED
 }
 
 static void unexpectedInterrupt(void* arg)
