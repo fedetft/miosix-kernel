@@ -25,8 +25,8 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "mpu/cortexMx_mpu.h"
 #include "interfaces/bsp.h"
+#include "mpu/cortexMx_mpu.h"
 
 extern "C" void SystemInit();
 
