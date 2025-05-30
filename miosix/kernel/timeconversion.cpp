@@ -438,8 +438,15 @@ CoarseTimeConversion::CoarseTimeConversion(unsigned int hz) noexcept
     // The only accuracy improvement method currently implemented is a rounded
     // division. This is acceptable for low tick frequencies, but for timers
     // clocked close to 1GHz the accuracy of this conversion is quite coarse.
-    // For example, with a 400MHz timer the correct factor would be 2.5, and is
-    // approximated to 3, a 20% error.
+    // As the following Scilab code shows, maximum error is 33% for 666/667MHz
+    /*
+    freq_mhz=[10:1:1000];       freq_hz=freq_mhz*1e6;
+    exact_factor=1e9./freq_hz;  int_factor=round(1e9./freq_hz);
+    err=(exact_factor-int_factor)./exact_factor; plot(freq_mhz,err);
+    mindex=find(err==min(err)); maxdex=find(err==max(err));
+    [freq_mhz(mindex) err(mindex)]
+    [freq_mhz(maxdex) err(maxdex)]
+    */
     factor=(1000000000+hz/2)/hz;
 }
 
