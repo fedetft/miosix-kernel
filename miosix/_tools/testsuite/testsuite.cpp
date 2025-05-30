@@ -550,9 +550,17 @@ static void test_3()
         delta=IRQgetTime()-start;
     }
     fiprintf(stderr,"%lld ",delta);
-    //10% tolerance
-    auto m=MAX_TIME_IRQ_DISABLED*1000;
-    if(delta<(m-m/10) || delta>(m+m/10)) fail("getTime and delayUs don't agree");
+    const auto m=MAX_TIME_IRQ_DISABLED*1000;
+    const auto lowThres=m-m/10; //10% tolerance
+    #if defined(_ARCH_CORTEXM0PLUS_RP2040) && defined(WITH_SMP) && !defined(WITH_SLEEP)
+    // Edge case. The RP2040 is dual-core with no per-core instruction cache. If
+    // the kernel is compiled without sleep support, the idle thread running on
+    // one core slows down the other core by ~29%, making delayUs take longer
+    const auto hiThres=m+m/3; //33% tolerance
+    #else
+    const auto hiThres=m+m/10; //10% tolerance
+    #endif
+    if(delta<lowThres || delta>hiThres) fail("getTime and delayUs don't agree");
     Thread *p=Thread::create(t3_p1,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     for(int i=0;i<4;i++)
     {
