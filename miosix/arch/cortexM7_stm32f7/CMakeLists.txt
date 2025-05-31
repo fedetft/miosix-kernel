@@ -55,16 +55,20 @@ set(MIOSIX_L_FLAGS
 
 # Select architecture specific files
 list(APPEND MIOSIX_ARCH_SRC
+    ${MIOSIX_KPATH}/arch/cpu/armv7m/interfaces-impl/cpu.cpp
+    ${MIOSIX_KPATH}/arch/cpu/common/cortexMx_interrupts.cpp
+    ${MIOSIX_KPATH}/arch/common/mpu/cortexMx_mpu.cpp
+    ${MIOSIX_KPATH}/arch/cpu/common/cortexMx_userspace.cpp
+    ${MIOSIX_KPATH}/arch/common/os_timer/stm32_32bit_os_timer.cpp
+    ${MIOSIX_KPATH}/arch/common/os_timer/arm_systick_os_timer.cpp
     ${MIOSIX_KPATH}/arch/common/sleep/cortexMx_sleep.cpp
     ${MIOSIX_KPATH}/arch/common/cache/cortexMx_cache.cpp
-    ${MIOSIX_KPATH}/arch/common/mpu/cortexMx_mpu.cpp
-    ${MIOSIX_KPATH}/arch/common/drivers/stm32_serial_common.cpp
+    ${MIOSIX_KPATH}/arch/common/drivers/stm32_gpio.cpp
     ${MIOSIX_KPATH}/arch/common/drivers/stm32f7_serial.cpp
-    ${MIOSIX_KPATH}/arch/common/drivers/sd_stm32f2_f4_f7.cpp
+    ${MIOSIX_KPATH}/arch/common/drivers/stm32_serial_common.cpp
     ${MIOSIX_KPATH}/arch/common/drivers/dcc.cpp
+    ${MIOSIX_KPATH}/arch/common/drivers/sd_stm32f2_f4_f7.cpp
     ${MIOSIX_ARCH_INC}/interfaces-impl/delays.cpp
     ${MIOSIX_ARCH_INC}/interfaces-impl/poweroff.cpp
-    ${MIOSIX_KPATH}/arch/common/drivers/stm32_gpio.cpp
-    ${MIOSIX_KPATH}/arch/common/os_timer/stm32_32bit_os_timer.cpp
     ${MIOSIX_KPATH}/arch/common/CMSIS/Device/ST/STM32F7xx/Source/Templates/system_stm32f7xx.c
 )

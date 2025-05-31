@@ -58,10 +58,16 @@ set(MIOSIX_L_FLAGS
 list(APPEND MIOSIX_ARCH_SRC
     ${MIOSIX_KPATH}/arch/cpu/armv6m/interfaces-impl/cpu.cpp
     ${MIOSIX_KPATH}/arch/cpu/common/cortexMx_interrupts.cpp
+    ${MIOSIX_KPATH}/arch/common/mpu/cortexMx_mpu.cpp
     ${MIOSIX_KPATH}/arch/cpu/common/cortexMx_userspace.cpp
     ${MIOSIX_KPATH}/arch/common/os_timer/rp2040_os_timer.cpp
+    ${MIOSIX_KPATH}/arch/common/os_timer/arm_systick_os_timer.cpp
     ${MIOSIX_KPATH}/arch/common/sleep/cortexMx_sleep.cpp
+    ${MIOSIX_KPATH}/arch/common/drivers/arm_pl011_serial.cpp
     ${MIOSIX_KPATH}/arch/common/drivers/rp2040_serial.cpp
+    ${MIOSIX_KPATH}/arch/common/drivers/arm_pl022_spi.cpp
+    ${MIOSIX_KPATH}/arch/common/drivers/rp2040_spi.cpp
+    ${MIOSIX_KPATH}/arch/common/drivers/rp2040_dma.cpp
     ${MIOSIX_ARCH_INC}/interfaces-impl/delays.cpp
     ${MIOSIX_ARCH_INC}/interfaces-impl/smp.cpp
     ${MIOSIX_ARCH_INC}/interfaces-impl/atomic_ops_smp_impl.cpp
