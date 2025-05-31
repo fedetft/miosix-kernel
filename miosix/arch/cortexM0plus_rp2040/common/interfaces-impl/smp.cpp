@@ -36,6 +36,7 @@
 #include "interfaces_private/cpu.h"
 #include "kernel/error.h"
 #include "arch/cpu/common/cortexMx_interrupts.h"
+#include "mpu/cortexMx_mpu.h"
 
 // System mode stack size for core 1
 #define CORE1_SYSTEM_STACK_SIZE 0x200
@@ -155,6 +156,8 @@ __attribute__((noreturn)) void IRQcontinueInitCore1()
     IRQregisterIrqOnCurrentCore(SIO_IRQ_PROC1_IRQn,IRQinterProcessorInterruptHandler,nullptr);
     // Register timer interrupt handler for core 1
     IRQosTimerInitSMP();
+    // Kernel-level W^X and cache configuration
+    IRQconfigureMPU();
     // Clear fifo status flags and pending interrupt flag to avoid spurious
     // interrupts on core 1 side
     sio_hw->fifo_st=0;
