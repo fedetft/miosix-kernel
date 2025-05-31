@@ -3438,6 +3438,7 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
     ARCH_SRC +=                                              \
     arch/cpu/armv6m/interfaces-impl/cpu.cpp                  \
     arch/cpu/common/cortexMx_interrupts.cpp                  \
+    arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/cpu/common/cortexMx_userspace.cpp                   \
     arch/common/os_timer/rp2040_os_timer.cpp                 \
     arch/common/os_timer/arm_systick_os_timer.cpp            \

@@ -43,6 +43,7 @@
 #include "config/miosix_settings.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces/gpio.h"
+#include "mpu/cortexMx_mpu.h"
 #include <string.h>
 
 //Include the RP2040 flash stage 2 pre-built bootloader binary.
@@ -301,6 +302,9 @@ void IRQmemoryAndClockInit()
           RESETS_RESET_SYSINFO_BITS
         | RESETS_RESET_SYSCFG_BITS
         | RESETS_RESET_BUSCTRL_BITS);
+
+    // Architecture has MPU, enable kernel-level W^X protection
+    IRQconfigureMPU();
 }
 
 } //namespace miosix
