@@ -2672,12 +2672,12 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     ARCH_SRC +=                                              \
     arch/cpu/armv7m/interfaces-impl/cpu.cpp                  \
     arch/cpu/common/cortexMx_interrupts.cpp                  \
+    arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/cpu/common/cortexMx_userspace.cpp                   \
     arch/common/os_timer/stm32_32bit_os_timer.cpp            \
     arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/cache/cortexMx_cache.cpp                     \
-    arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/drivers/stm32f7_serial.cpp                   \
     arch/common/drivers/stm32_serial_common.cpp              \
@@ -2822,12 +2822,12 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
     ARCH_SRC +=                                              \
     arch/cpu/armv7m/interfaces-impl/cpu.cpp                  \
     arch/cpu/common/cortexMx_interrupts.cpp                  \
+    arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/cpu/common/cortexMx_userspace.cpp                   \
     arch/common/os_timer/stm32_32bit_os_timer.cpp            \
     arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/cache/cortexMx_cache.cpp                     \
-    arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/drivers/stm32f7_serial.cpp                   \
     arch/common/drivers/stm32_serial_common.cpp              \
@@ -3527,7 +3527,6 @@ else ifeq ($(ARCH),cortexM33_stm32h5)
     arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/cache/cortexMx_cache.cpp                     \
-    arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/drivers/stm32f4_serial.cpp                   \
     arch/common/drivers/stm32_serial_common.cpp              \
