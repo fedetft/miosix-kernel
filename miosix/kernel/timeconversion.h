@@ -276,7 +276,10 @@ private:
 class CoarseTimeConversion
 {
 public:
-    CoarseTimeConversion() : factor(1) {}
+    /**
+     * Default constructor. Leaves the factors unintialized.
+     */
+    CoarseTimeConversion() {}
 
     /**
      * Constructor
@@ -289,10 +292,10 @@ public:
      * \param tick time interval in timer ticks
      * \return the equivalent time intterval in nanoseconds
      */
-    inline unsigned int tick2ns(unsigned int tick) const
-    {
-        return tick*factor;
-    }
+    // inline unsigned int tick2ns(unsigned int tick) const
+    // {
+    //     return tick*factor; //TODO implement for control scheduler
+    // }
 
     /**
      * \param ns time interval in nanoseconds
@@ -300,11 +303,11 @@ public:
      */
     inline unsigned int ns2tick(unsigned int ns) const
     {
-        return ns/factor;
+        return mul32x32to64(ns,toTick)>>32;
     }
 
 private:
-    unsigned int factor;
+    unsigned int toTick; ///< Fixed point 0.32
 };
 
 } //namespace miosix
