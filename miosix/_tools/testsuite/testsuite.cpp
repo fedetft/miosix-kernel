@@ -51,6 +51,7 @@
 #include <chrono>
 #include <atomic>
 #include <spawn.h>
+#include <memory>
 
 #include "miosix.h"
 #include "config/miosix_settings.h"

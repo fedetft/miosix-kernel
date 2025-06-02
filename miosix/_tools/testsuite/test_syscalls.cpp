@@ -543,7 +543,7 @@ unsigned int checkInodes(const char *dir, unsigned int curInode,
     getcwdRes=getcwd(getcwdBuf,getcwdBufSz);
     if(getcwdRes!=getcwdBuf) fail("getcwd result (1)");
     if(strcmp(getcwdBuf,dir)!=0) fail("getcwd (2)");
-    delete getcwdBuf;
+    delete[] getcwdBuf;
     
     DIR *d=opendir(".");
     if(d==NULL) fail("opendir");
