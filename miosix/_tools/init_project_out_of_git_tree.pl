@@ -56,9 +56,27 @@ sub copy_and_fixup_makefile
 	close($out);
 }
 
+# Copy the CMakeLists.txt fixing the KPATH line. This is what makes
+# building out the git tree possible
+sub copy_and_fixup_cmake
+{
+	my ($in_name,$out_name)=@_;
+	open(my $in ,'<', $in_name) or die $!;
+	open(my $out,'>', $out_name) or die $!;
+	my $relpath=File::Spec->abs2rel($source,$target);
+	$relpath =~ s/\\/\//;
+	while(<$in>)
+	{
+		s/^set\(MIOSIX_KPATH miosix\b/set(MIOSIX_KPATH $relpath\/miosix/;
+		print $out "$_";
+	}
+	close $in;
+	close $out;
+}
+
 copy("$source/main.cpp","$target/main.cpp") or die;
 copy_and_fixup_makefile("$source/Makefile","$target/Makefile");
-copy("$source/CMakeLists.txt","$target/CMakeLists.txt") or die;
+copy_and_fixup_cmake("$source/CMakeLists.txt","$target/CMakeLists.txt");
 dircopy("$source/miosix/config","$target/config") or die;
 
 print "Successfully created Miosix project\n";

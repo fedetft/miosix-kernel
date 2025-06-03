@@ -33,7 +33,7 @@ endfunction()
 # Remember to delete cmake cache for changes in CMakeLists.txt to have effect (or use --fresh to ignore it)
 
 # Set here the path to miosix kernel
-set(MIOSIX_KPATH ../miosix-kernel/miosix CACHE PATH "Path to the miosix kernel")
+set(MIOSIX_KPATH miosix CACHE PATH "Path to the miosix kernel")
 make_absolute_path(MIOSIX_KPATH)
 
 # Set here your toolchain file
