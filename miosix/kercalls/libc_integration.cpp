@@ -200,7 +200,24 @@ void *sbrk(ptrdiff_t incr)
     return _sbrk_r(miosix::getReent(),incr);
 }
 
-static int mallocLockCount=0;
+namespace miosix {
+
+static unsigned int mallocLockRecursiveCount=0;
+
+// These functions are friends of PauseKernelLock. For mysterious reasons one
+// cannot make an extern C function a friend of a class.
+extern "C++" inline void mallocLockImpl()
+{
+    if(PauseKernelLock::pushLock()) mallocLockRecursiveCount++;
+}
+
+extern "C++" inline void mallocUnlockImpl()
+{
+    if(mallocLockRecursiveCount>0) mallocLockRecursiveCount--;
+    else PauseKernelLock::unlock();
+}
+
+} // namespace miosix
 
 /**
  * \internal
@@ -216,11 +233,7 @@ static int mallocLockCount=0;
  */
 void __malloc_lock()
 {
-    // NOTE: __malloc_lock can be called recursively, and should also
-    // work if malloc is called with FastPauseKernelLock already taken
-    bool s=miosix::FastPauseKernelLock::inLockedSection();
-    if(s) mallocLockCount++;
-    else miosix::FastPauseKernelLock::lock();
+    miosix::mallocLockImpl();
 }
 
 /**
@@ -229,8 +242,7 @@ void __malloc_lock()
  */
 void __malloc_unlock()
 {
-    if(mallocLockCount > 0) mallocLockCount--;
-    else miosix::FastPauseKernelLock::unlock();
+    miosix::mallocUnlockImpl();
 }
 
 /**

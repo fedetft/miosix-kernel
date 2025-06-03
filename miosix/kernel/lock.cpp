@@ -44,12 +44,59 @@ bool FastPauseKernelLock::pendingWakeup=false;
 
 void PauseKernelLock::lock()
 {
+    #ifdef WITH_SMP
+    // Save and restore interrupt enabling state to allow use during boot
+    bool ie=areInterruptsEnabled();
+    fastDisableIrq();
+    FastPauseKernelLock::irqDisabledFastLock();
+    if(ie) fastEnableIrq();
+    #else
     FastPauseKernelLock::lock();
+    #endif
 }
 
 void PauseKernelLock::unlock()
 {
+    #ifdef WITH_SMP
+    bool ie=areInterruptsEnabled();
+    fastDisableIrq();
+    FastPauseKernelLock::irqDisabledFastUnlock();
+    if(ie) fastEnableIrq();
+    
+    // See comments in FastPauseKernelLock::unlock()
+    if(FastPauseKernelLock::pendingWakeup)
+    {
+        FastPauseKernelLock::pendingWakeup=false;
+        Thread::yield();
+    }
+    #else
     FastPauseKernelLock::unlock();
+    #endif
+}
+
+bool PauseKernelLock::pushLock()
+{
+    #ifdef WITH_SMP
+    // Checking getCurrentCoreId() with interrupts potentially enabled is
+    // unsafe due to thread migrations, so disable interrupts while we
+    // check.
+    bool ie=areInterruptsEnabled();
+    fastDisableIrq();
+    #endif
+    bool res;
+    if(FastPauseKernelLock::holdingCore==getCurrentCoreId())
+    {
+        // We are holding the lock, nothing to do
+        res=true;
+    } else {
+        // Take the lock
+        FastPauseKernelLock::irqDisabledFastLock();
+        res=false;
+    }
+    #ifdef WITH_SMP
+    if(ie) fastEnableIrq();
+    #endif
+    return res;
 }
 
 #ifdef WITH_DEEP_SLEEP

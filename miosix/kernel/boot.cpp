@@ -114,9 +114,6 @@ void IRQkernelBootEntryPoint()
         #endif // WITH_DEEP_SLEEP
         //After IRQbspInit() serial port is initialized, so we can use IRQbootlog
         IRQbootlog("Starting Kernel... ");
-        if(areInterruptsEnabled()) errorHandler(Error::INTERRUPTS_ENABLED_AT_BOOT);
-        if(FastPauseKernelLock::inLockedSection()==false)
-            errorHandler(Error::KERNEL_ALREADY_STARTED_AT_BOOT);
         IRQstartKernel();
     #ifndef __NO_EXCEPTIONS
     } catch(...) {}

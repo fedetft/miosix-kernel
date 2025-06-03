@@ -466,30 +466,6 @@ public:
     }
 
     /**
-     * Return true if the pause kernel lock is currently taken, false otherwise.
-     * Note: this function can be called during the boot process.
-     *
-     * \note Acquiring the global lock or disabling interrupts does not affect
-     * the result returned by this function.
-     * This function replaces isKernelPaused() from Miosix v2.x.
-     * \return true if preemption is disabled on the current core.
-     */
-    static inline bool inLockedSection()
-    {
-        #ifdef WITH_SMP
-        // Checking getCurrentCoreId() with interrupts potentially enabled is
-        // unsafe due to thread migrations
-        bool ie=areInterruptsEnabled();
-        fastDisableIrq();
-        bool result=holdingCore==getCurrentCoreId();
-        if(ie) fastEnableIrq();
-        return result;
-        #else //WITH_SMP
-        return holdingCore==getCurrentCoreId();
-        #endif //WITH_SMP
-    }
-
-    /**
      * Release the lock.
      * \note This method is not a replacement for restartKernel() because it
      * does not allow recursive locking. Use PauseKernelLock instead.
@@ -549,7 +525,6 @@ private:
         // Checking getCurrentCoreId() with interrupts potentially enabled is
         // unsafe due to thread migrations, so disable interrupts while we
         // check.
-        bool ie=areInterruptsEnabled();
         fastDisableIrq();
         #endif
         bool res;
@@ -563,7 +538,7 @@ private:
             res=false;
         }
         #ifdef WITH_SMP
-        if(ie) fastEnableIrq();
+        fastEnableIrq();
         #endif
         return res;
     }
@@ -608,6 +583,31 @@ private:
  */
 class PauseKernelLock: public LockMixin<PauseKernelLock>
 {
+public:
+    /**
+     * Return true if the pause kernel lock is currently taken, false otherwise.
+     * Note: this function can be called during the boot process.
+     *
+     * \note Acquiring the global lock or disabling interrupts does not affect
+     * the result returned by this function.
+     * This function replaces isKernelPaused() from Miosix v2.x.
+     * \return true if preemption is disabled on the current core.
+     */
+    static inline bool inLockedSection()
+    {
+        #ifdef WITH_SMP
+        // Checking getCurrentCoreId() with interrupts potentially enabled is
+        // unsafe due to thread migrations
+        bool ie=areInterruptsEnabled();
+        fastDisableIrq();
+        bool result=FastPauseKernelLock::holdingCore==getCurrentCoreId();
+        if(ie) fastEnableIrq();
+        return result;
+        #else //WITH_SMP
+        return holdingCore==getCurrentCoreId();
+        #endif //WITH_SMP
+    }
+
 private:
     /**
      * \private Take the lock.
@@ -623,14 +623,14 @@ private:
      * \private Take the lock if it's not already taken. Returns true only
      * if we already were in a locked section, otherwise false.
      */
-    static inline bool pushLock()
-    {
-        return FastPauseKernelLock::pushLock();
-    }
+    static bool pushLock();
 
     /// These classes need to access lock/unlock
     friend class LockMixin<PauseKernelLock>;
     friend class UnlockBase<PauseKernelLock>;
+    /// These functions need pushLock and unlock
+    friend void mallocLockImpl();
+    friend void mallocUnlockImpl();
 };
 
 /**
@@ -642,7 +642,7 @@ private:
  */
 inline bool isKernelPaused() noexcept
 {
-    return FastPauseKernelLock::inLockedSection();
+    return PauseKernelLock::inLockedSection();
 }
 
 /**

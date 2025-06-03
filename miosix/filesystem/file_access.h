@@ -533,8 +533,9 @@ public:
     {
         #ifdef WITH_PROCESSES
         // This function is also called before the kernel is started, and not
-        // only we don't need to lock a mutex in this context, we can't
-        if(FastPauseKernelLock::inLockedSection())
+        // only we don't need to lock a mutex in this context, we can't.
+        // TODO: can we just use PauseKernelLock here?
+        if(PauseKernelLock::inLockedSection())
         {
             fileTables.push_back(fdt);
             return;

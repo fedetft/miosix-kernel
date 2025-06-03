@@ -171,6 +171,14 @@ void *idleThreadOtherCores(void *)
  */
 void IRQstartKernel()
 {
+    if(areInterruptsEnabled()) errorHandler(Error::INTERRUPTS_ENABLED_AT_BOOT);
+    #ifdef WITH_SMP
+    if(GlobalIrqLock::holdingCore!=0)
+        errorHandler(Error::INTERRUPTS_ENABLED_AT_BOOT);
+    #endif
+    if(FastPauseKernelLock::holdingCore!=0)
+        errorHandler(Error::KERNEL_ALREADY_STARTED_AT_BOOT);
+        
     #ifdef WITH_PROCESSES
     try {
         kernel=new ProcessBase;
