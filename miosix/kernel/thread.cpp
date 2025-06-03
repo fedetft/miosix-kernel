@@ -1022,7 +1022,7 @@ void Thread::IRQglobalIrqUnlockAndWaitImpl()
     // and as a result we cannot touch it!
     // So better to leave it alone. But as a side-effect we cannot upgrade a PK
     // lock to a GIL and then use this function!
-    auto gilTakenRecursively=GlobalIrqLock::inLockedSection();
+    auto gilTakenRecursively=GlobalIrqLock::irqDisabledInLockedSection();
     IRQinvokeScheduler();
     GlobalIrqLock::unlock();
     //Interrupts are enabled, context switch happens, return after wakeup
@@ -1078,7 +1078,7 @@ TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTim
     sleepingList.enqueue(&st);
 
     // Unlock GIL, yield, and relock again
-    auto gilTakenRecursively=GlobalIrqLock::inLockedSection();
+    auto gilTakenRecursively=GlobalIrqLock::irqDisabledInLockedSection();
     IRQinvokeScheduler();
     GlobalIrqLock::unlock();
     //Interrupts are enabled, context switch happens, return after wakeup

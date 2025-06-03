@@ -368,14 +368,12 @@ class LibAtomicQuickLock
 public:
     static inline unsigned int lock()
     {
-        if(GlobalIrqLock::inLockedSection()) return 1;
-        FastGlobalIrqLock::lock();
-        return 0;
+        return GlobalIrqLock::pushLock();
     }
 
     static inline void unlock(unsigned int token)
     {
-        if(token==0) FastGlobalIrqLock::unlock();
+        if(token==0) GlobalIrqLock::unlock();
     }
 };
 

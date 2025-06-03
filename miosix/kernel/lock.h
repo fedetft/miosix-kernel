@@ -102,11 +102,7 @@ public:
      */
     LockMixin()
     {
-        if(T::inLockedSection()) wasLocked=true;
-        else {
-            wasLocked=false;
-            T::lock();
-        }
+        wasLocked=T::pushLock();
     }
 
     /**
@@ -327,23 +323,49 @@ private:
     /**
      * \private Returns if we are within a critical section protected by this
      * lock. This only returns true for the thread that is currently holding
-     * the lock.
+     * the lock. Requires interrupts to be disabled.
+     * Note that this only makes sense in SMP platforms because in non-SMP
+     * platforms having interrupts disabled is equivalent to taking the
+     * GlobalIrqLock.
+     */
+    static inline bool irqDisabledInLockedSection() noexcept
+    {
+        #ifdef WITH_SMP
+        return holdingCore==getCurrentCoreId();
+        #else
+        return true;
+        #endif
+    }
+
+    /**
+     * \private Take the lock if it's not already taken. Returns true only
+     * if we already were in a locked section, otherwise false.
      * This primitive is used to implement recursion (see the LockMixin<> class)
      */
-    static inline bool inLockedSection() noexcept
+    static inline bool pushLock() noexcept
     {
         #ifdef WITH_SMP
         // Checking getCurrentCoreId() with interrupts potentially enabled is
-        // unsafe due to thread migrations
-        // TODO: evaluate if fusing this check with other code can prevent the
-        // need to disable interrupts multiple times to improve performance
-        bool dis=areInterruptsEnabled();
-        if(dis) fastDisableIrq();
-        bool result=holdingCore==getCurrentCoreId();
-        if(dis) fastEnableIrq();
-        return result;
+        // unsafe due to thread migrations, so disable interrupts while we
+        // check.
+        bool ie=areInterruptsEnabled();
+        fastDisableIrq();
+        if(holdingCore==getCurrentCoreId())
+        {
+            // We are holding the lock, nothing to do
+            if(ie) fastEnableIrq();
+            return true;
+        }
+        // Take the lock
+        FastGlobalLockFromIrq::lock();
+        holdingCore=getCurrentCoreId();
+        return false;
         #else
-        return !areInterruptsEnabled();
+        // If interrupts are not enabled, we already have the lock taken
+        if(!areInterruptsEnabled()) return true;
+        // Otherwise take it
+        FastGlobalIrqLock::lock();
+        return false;
         #endif
     }
 
@@ -435,8 +457,7 @@ public:
         // So we also check for that and bail out early if so.
         //   These comments also apply to unlock().
         fastDisableIrq();
-        irqDisabledHwLockAcquire(HwLocks::PK);
-        holdingCore=getCurrentCoreId();
+        irqDisabledFastLock();
         fastEnableIrq();
         #else
         holdingCore=0;
@@ -446,6 +467,7 @@ public:
 
     /**
      * Return true if the pause kernel lock is currently taken, false otherwise.
+     * Note: this function can be called during the boot process.
      *
      * \note Acquiring the global lock or disabling interrupts does not affect
      * the result returned by this function.
@@ -457,12 +479,10 @@ public:
         #ifdef WITH_SMP
         // Checking getCurrentCoreId() with interrupts potentially enabled is
         // unsafe due to thread migrations
-        // TODO: evaluate if fusing this check with other code can prevent the
-        // need to disable interrupts multiple times to improve performance
-        bool dis=areInterruptsEnabled();
-        if(dis) fastDisableIrq();
+        bool ie=areInterruptsEnabled();
+        fastDisableIrq();
         bool result=holdingCore==getCurrentCoreId();
-        if(dis) fastEnableIrq();
+        if(ie) fastEnableIrq();
         return result;
         #else //WITH_SMP
         return holdingCore==getCurrentCoreId();
@@ -479,8 +499,7 @@ public:
         #ifdef WITH_SMP
         // See comments in lock().
         fastDisableIrq();
-        holdingCore=0xff;
-        irqDisabledHwLockRelease(HwLocks::PK);
+        irqDisabledFastUnlock();
         fastEnableIrq();
         #else //WITH_SMP
         holdingCore=0xff;
@@ -520,6 +539,36 @@ private:
     }
 
     /**
+     * \private Take the lock if it's not already taken. Returns true only
+     * if we already were in a locked section, otherwise false.
+     * This primitive is used to implement recursion (see the LockMixin<> class)
+     */
+    static inline bool pushLock() noexcept
+    {
+        #ifdef WITH_SMP
+        // Checking getCurrentCoreId() with interrupts potentially enabled is
+        // unsafe due to thread migrations, so disable interrupts while we
+        // check.
+        bool ie=areInterruptsEnabled();
+        fastDisableIrq();
+        #endif
+        bool res;
+        if(holdingCore==getCurrentCoreId())
+        {
+            // We are holding the lock, nothing to do
+            res=true;
+        } else {
+            // Take the lock
+            irqDisabledFastLock();
+            res=false;
+        }
+        #ifdef WITH_SMP
+        if(ie) fastEnableIrq();
+        #endif
+        return res;
+    }
+
+    /**
      * \private Lock the Pause Kernel lock when interrupts are disabled.
      * This is used when the thread holding the lock is entering a wait.
      */
@@ -537,6 +586,7 @@ private:
     /// Thread wait primitives use irqDisabledFastLock() and
     /// irqDisabledFastUnlock().
     friend class Thread;
+    friend class PauseKernelLock;
     /// The lock is actually initialized in IRQstartKernel(); when the boot
     /// process is complete
     friend void IRQstartKernel();
@@ -570,11 +620,12 @@ private:
     static void unlock();
 
     /**
-     * \private Are we in a code region protected by this lock?
+     * \private Take the lock if it's not already taken. Returns true only
+     * if we already were in a locked section, otherwise false.
      */
-    static inline bool inLockedSection()
+    static inline bool pushLock()
     {
-        return FastPauseKernelLock::inLockedSection();
+        return FastPauseKernelLock::pushLock();
     }
 
     /// These classes need to access lock/unlock
