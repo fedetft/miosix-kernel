@@ -46,7 +46,7 @@
 
 namespace miosix {
 
-char core1SystemStack[CORE1_SYSTEM_STACK_SIZE] alignas(8);
+char __attribute__((aligned(8))) core1SystemStack[CORE1_SYSTEM_STACK_SIZE];
 
 static void fifoDrain()
 {
