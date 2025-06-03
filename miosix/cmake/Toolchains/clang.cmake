@@ -69,7 +69,7 @@ string(REGEX REPLACE "/bin/[^/]+$" "" MIOSIX_LLVM_PATH ${MIOSIX_LLVM_PATH})
 set(CMAKE_SYSROOT ${MIOSIX_LLVM_PATH})
 
 # Miosix gcc compiler path
-set(MIOSIX_GCC_PATH /Users/nico/CLionProjects/miosix/miosix-kernel/miosix/_tools/compiler/gcc-9.2.0-mp3.3/gcc/arm-miosix-eabi CACHE PATH "Path to the miosix gcc compiler")
+set(MIOSIX_GCC_PATH /opt/arm-miosix-eabi CACHE PATH "Path to the miosix gcc compiler")
 
 # gcc multilib include paths (multilib link directories are set in miosix/CMakeLists.txt, after knowing the target board)
 include_directories(

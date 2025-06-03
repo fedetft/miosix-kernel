@@ -15,11 +15,11 @@
 #### Configuration tunables -- begin ####
 
 # Uncomment if installing globally on this system
-#PREFIX=/opt/miosix-llvm
-#SUDO=sudo
+PREFIX=/opt/miosix-llvm
+SUDO=sudo
 # Uncomment if installing locally on this system, sudo isn't necessary
-PREFIX=`pwd`/miosix-llvm
-SUDO=
+#PREFIX=`pwd`/miosix-llvm
+#SUDO=
 
 # Choose llvm build type
 BUILD_TYPE=Release
@@ -44,9 +44,9 @@ apply_patch() {
 
 echo "Applying patches"
 cd llvm-project
-#apply_patch "Add-GCC-s-spare-dynamic-tags.patch"
-#apply_patch "Implemented-single-pic-base.patch"
-#apply_patch "libomp.patch"
+apply_patch "Add-GCC-s-spare-dynamic-tags.patch"
+apply_patch "Implemented-single-pic-base.patch"
+apply_patch "libomp.patch"
 echo "Successfully applied patches"
 
 #
