@@ -1233,7 +1233,13 @@ static bool multipleBlockRead(unsigned int *buffer, unsigned int nblk,
 
     // CMD12 is sent to end CMD18 (multiple block read), or to abort an
     // unfinished read in case of errors
-    if(nblk>1 || transferError) cr=Command::send(Command::CMD12,0);
+    if(nblk>1 || transferError) 
+    {
+        Command::send(Command::CMD12,0);
+        // CMD13 is sent to check the real status of the sdio after cmd12 and to reset the board
+        // in case if it gets stuck in a illegal state
+        cr=Command::send(Command::CMD13,Command::getRca()<<16);
+    }
     if(transferError || cr.validateR1Response()==false)
     {
         displayBlockTransferError();
@@ -1320,7 +1326,13 @@ static bool multipleBlockWrite(const unsigned int *buffer, unsigned int nblk,
 
     // CMD12 is sent to end CMD25 (multiple block write), or to abort an
     // unfinished write in case of errors
-    if(nblk>1 || transferError) cr=Command::send(Command::CMD12,0);
+    if(nblk>1 || transferError) 
+    {
+        Command::send(Command::CMD12,0);
+        // CMD13 is sent to check the real status of the sdio after cmd12 and to reset the board
+        // in case if it gets stuck in a illegal state
+        cr=Command::send(Command::CMD13,Command::getRca()<<16);
+    }
     if(transferError || cr.validateR1Response()==false)
     {
         displayBlockTransferError();
