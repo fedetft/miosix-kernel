@@ -290,7 +290,7 @@ const unsigned int MAX_TIME_SLICE=1000000;
 /// If this option is not selected, the kernel uses one timer for timekeeping
 /// for the entire OS plus a separate timer for each CPU core for context
 /// switches. In single-core microcontrollers, two timers are needed.
-#define OS_TIMER_MODEL_UNIFIED
+//#define OS_TIMER_MODEL_UNIFIED
 
 /// Select the implementation of pthread_mutex_t. Three options:
 /// 1) pthreadMutexProtocolOverride=DYNAMIC;
