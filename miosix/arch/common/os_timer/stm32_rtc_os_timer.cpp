@@ -192,9 +192,12 @@ public:
             RTC->CNTH=0; RTC->CNTL=0;
             RTC->ALRH=0xffff; RTC->ALRL=0xffff;
         }
-
         // We can't stop the RTC during debugging, so debugging won't be easy.
         // Actually, we can't stop the RTC at all once we start it...
+
+        #if !defined(WITH_SMP) && !defined(OS_TIMER_MODEL_UNIFIED)
+        IRQinitCoreLocalPreemptionTimer();
+        #endif //!defined(WITH_SMP) && !defined(OS_TIMER_MODEL_UNIFIED)
     }
 };
 

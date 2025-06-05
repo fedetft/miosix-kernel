@@ -118,6 +118,9 @@ public:
         NRF_TIMER1->INTENSET=0b000101<<16; //Enable IRQ on channel 0 and 2
         IRQregisterIrq(lock,TIMER1_IRQn,&TimerAdapter<NRFTimer1,32>::IRQhandler,
                        static_cast<TimerAdapter<NRFTimer1,32>*>(this));
+        #if !defined(WITH_SMP) && !defined(OS_TIMER_MODEL_UNIFIED)
+        IRQinitCoreLocalPreemptionTimer();
+        #endif //!defined(WITH_SMP) && !defined(OS_TIMER_MODEL_UNIFIED)
     }
 };
 
