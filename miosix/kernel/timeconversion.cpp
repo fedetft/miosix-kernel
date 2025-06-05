@@ -438,7 +438,7 @@ long long TimeConversion::computeRoundTripError(unsigned long long tick,
 
 CoarseTimeConversion::CoarseTimeConversion(unsigned int hz) noexcept
 {
-    toTick=max(0xffffffffll,0x100000000ll*hz/1000000000);
+    toTick=min(0xffffffffll,0x100000000ll*hz/1000000000);
 }
 
 
