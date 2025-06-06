@@ -69,7 +69,6 @@ cmake -Bbuild -GNinja \
     -DLLVM_LINK_LLVM_DYLIB=ON \
     -DLLVM_OPTIMIZED_TABLEGEN=ON \
     -DLLVM_INCLUDE_EXAMPLES=OFF \
-    -DLLVM_CCACHE_BUILD=1 \
     -DLLVM_PARALLEL_LINK_JOBS=1 || quit "Failed to configure llvm build"
 
 cmake --build build --target install || quit "Failed to build and install llvm"
