@@ -39,7 +39,13 @@ quit() {
 PATCHES_DIR=`pwd`/patches
 apply_patch() {
     local patch_file="$1"
-    patch -p1 < "${PATCHES_DIR}/${patch_file}" || quit "Failed to apply patch ${patch_file}"
+    local patch_path="${PATCHES_DIR}/${patch_file}"
+
+    if patch --dry-run -p1 < "$patch_path" > /dev/null 2>&1; then
+        patch -p1 < "$patch_path" || quit "Failed to apply patch ${patch_file}"
+    else
+        echo "Patch ${patch_file} has already been applied: skipping"
+    fi
 }
 
 echo "Applying patches"

@@ -78,6 +78,9 @@ include_directories(
     ${MIOSIX_GCC_PATH}/arm-miosix-eabi/include
 )
 
+# Needed for compatibility with gcc compiled multilibs
+add_compile_options(-fshort-enums)
+
 # Set gcc linker for clang
 add_link_options(-fuse-ld=${MIOSIX_GCC_PATH}/bin/arm-miosix-eabi-ld)
 
