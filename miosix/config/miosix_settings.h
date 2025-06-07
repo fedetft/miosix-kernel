@@ -141,6 +141,7 @@ const unsigned char MAX_OPEN_FILES=8;
 /// call service and, if the hardware supports it, the MPU to provide memory
 /// isolation of processes
 //#define WITH_PROCESSES
+
 /// RomFS is enabled by default when using processes. Comment the following
 /// lines if you want to use processes without RomFS.
 #if defined(WITH_PROCESSES) && !defined(WITH_ROMFS)
