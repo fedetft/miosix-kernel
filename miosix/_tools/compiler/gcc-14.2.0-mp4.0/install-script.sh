@@ -200,8 +200,8 @@ extract()
 }
 
 extract 'binutils' $BINUTILS.tar.xz patches/binutils.patch
-extract 'gcc' $GCC.tar.xz patches/gcc.patch patches/libgomp-fix-crash.patch
-extract 'newlib' $NEWLIB.tar.gz patches/newlib.patch
+extract 'gcc' $GCC.tar.xz patches/gcc.patch patches/libgomp-fix-crash.patch patches/libgomp_gcc14.patch
+extract 'newlib' $NEWLIB.tar.gz patches/newlib.patch patches/newlib_gcc14.patch
 extract 'gdb' $GDB.tar.xz
 extract 'gmp' $GMP.tar.xz
 extract 'mpfr' $MPFR.tar.xz

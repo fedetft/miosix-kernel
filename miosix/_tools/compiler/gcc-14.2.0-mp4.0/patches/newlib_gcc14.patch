@@ -1,0 +1,162 @@
+diff -ruN newlib-3.1.0/newlib/libc/include/sys/_pthreadtypes.h newlib-3.1.0-new/newlib/libc/include/sys/_pthreadtypes.h
+--- newlib-3.1.0/newlib/libc/include/sys/_pthreadtypes.h	2025-05-04 17:27:54.772355648 +0200
++++ newlib-3.1.0-new/newlib/libc/include/sys/_pthreadtypes.h	2025-05-04 17:32:29.530345974 +0200
+@@ -175,21 +175,12 @@
+ 
+ #else /* _MIOSIX */
+ /*
+- * The definition of pthread_mutex_t:
+- * - has been changed from a simple int to a struct containing the actual mutex
++ * The definitions of pthread_mutex_t and pthread_mutexattr_t:
++ * - have been changed from a simple int to a struct containing the actual mutex
+  *   implementation for speed reasons.
+- * - has been moved to sys/lock.h because leaving it here and #including sys/_pthreadtypes.h
++ * - have been moved to sys/lock.h because leaving it here and #including sys/_pthreadtypes.h
+  *   in sys/lock.h would have caused a cycle of #includes
+  */
+-typedef struct {
+-  char is_initialized;
+-  char prio;
+-  char recursive;
+-} pthread_mutexattr_t;
+-
+-#define _PTHREAD_MUTEX_INITIALIZER {0,-1,0,0,0,0,0}
+-/* NOTE: this is not defined in pthread.h, so no leading underscore */
+-#define PTHREAD_MUTEX_RECURSIVE_INITIALIZER_NP {0,0,0,0,0,0,0}
+ #endif /* _MIOSIX */
+ 
+ /* Condition Variables */
+diff -ruN newlib-3.1.0/newlib/libc/include/sys/stat.h newlib-3.1.0-new/newlib/libc/include/sys/stat.h
+--- newlib-3.1.0/newlib/libc/include/sys/stat.h	2025-05-04 17:26:53.091069507 +0200
++++ newlib-3.1.0-new/newlib/libc/include/sys/stat.h	2025-05-04 17:33:45.409610660 +0200
+@@ -152,7 +152,8 @@
+ int	stat (const char *__restrict __path, struct stat *__restrict __sbuf );
+ mode_t	umask (mode_t __mask );
+ 
+-#if defined (__SPU__) || defined(__rtems__) || defined(__CYGWIN__) && !defined(__INSIDE_CYGWIN__)
++// Patch rationale: add lstat declaration for MIOSIX
++#if defined (__SPU__) || defined(_MIOSIX) || defined(__rtems__) || defined(__CYGWIN__) && !defined(__INSIDE_CYGWIN__)
+ int	lstat (const char *__restrict __path, struct stat *__restrict __buf );
+ int	mknod (const char *__path, mode_t __mode, dev_t __dev );
+ #endif
+diff -ruN newlib-3.1.0/newlib/libc/posix/execl.c newlib-3.1.0-new/newlib/libc/posix/execl.c
+--- newlib-3.1.0/newlib/libc/posix/execl.c	2025-05-04 17:40:16.955987400 +0200
++++ newlib-3.1.0-new/newlib/libc/posix/execl.c	2025-05-04 17:40:47.551646532 +0200
+@@ -19,6 +19,9 @@
+ 
+ #include <stdarg.h>
+ 
++// Add missing declaration when compiling for newer C standards
++int _execve (const char *filename, char *const argv[], char *const envp[]);
++
+ int
+ execl (const char *path,
+       const char *arg0, ...)
+diff -ruN newlib-3.1.0/newlib/libc/posix/execle.c newlib-3.1.0-new/newlib/libc/posix/execle.c
+--- newlib-3.1.0/newlib/libc/posix/execle.c	2025-05-04 17:40:16.956657843 +0200
++++ newlib-3.1.0-new/newlib/libc/posix/execle.c	2025-05-04 17:40:47.551938710 +0200
+@@ -14,6 +14,9 @@
+ 
+ #include <stdarg.h>
+ 
++// Add missing declaration when compiling for newer C standards
++int _execve (const char *filename, char *const argv[], char *const envp[]);
++
+ int
+ execle (const char *path,
+       const char *arg0, ...)
+diff -ruN newlib-3.1.0/newlib/libc/posix/execv.c newlib-3.1.0-new/newlib/libc/posix/execv.c
+--- newlib-3.1.0/newlib/libc/posix/execv.c	2025-05-04 17:40:16.956849421 +0200
++++ newlib-3.1.0-new/newlib/libc/posix/execv.c	2025-05-04 17:40:47.552077878 +0200
+@@ -13,6 +13,9 @@
+    'environ'.  */
+ static char ***p_environ = &environ;
+ 
++// Add missing declaration when compiling for newer C standards
++int _execve (const char *filename, char *const argv[], char *const envp[]);
++
+ int
+ execv (const char *path,
+ 	char * const argv[])
+diff -ruN newlib-3.1.0/newlib/libc/posix/execve.c newlib-3.1.0-new/newlib/libc/posix/execve.c
+--- newlib-3.1.0/newlib/libc/posix/execve.c	2025-05-04 17:40:16.956985647 +0200
++++ newlib-3.1.0-new/newlib/libc/posix/execve.c	2025-05-04 17:40:47.552202261 +0200
+@@ -8,6 +8,8 @@
+ 
+ #include <unistd.h>
+ 
++// Add missing declaration when compiling for newer C standards
++int _execve (const char *filename, char *const argv[], char *const envp[]);
+ 
+ int
+ execve (const char *path,
+diff -ruN newlib-3.1.0/newlib/libc/posix/rewinddir.c newlib-3.1.0-new/newlib/libc/posix/rewinddir.c
+--- newlib-3.1.0/newlib/libc/posix/rewinddir.c	2025-05-04 17:40:16.957169260 +0200
++++ newlib-3.1.0-new/newlib/libc/posix/rewinddir.c	2025-05-04 17:40:47.552347841 +0200
+@@ -41,6 +41,9 @@
+ #include <dirent.h>
+ #include <sys/lock.h>
+ 
++// Needed by lseek in the _MIOSIX case
++#include <unistd.h>
++
+ void
+ rewinddir (DIR *dirp)
+ {
+diff -ruN newlib-3.1.0/newlib/libc/posix/seekdir.c newlib-3.1.0-new/newlib/libc/posix/seekdir.c
+--- newlib-3.1.0/newlib/libc/posix/seekdir.c	2025-05-04 17:40:16.957484545 +0200
++++ newlib-3.1.0-new/newlib/libc/posix/seekdir.c	2025-05-04 17:40:47.552494010 +0200
+@@ -38,6 +38,8 @@
+ #endif /* LIBC_SCCS and not lint */
+ 
+ #include <sys/param.h>
++// _seekdir is gated behing _COMPILING_NEWLIB which is undefined (but shouldn't)
++#define _COMPILING_NEWLIB
+ #include <dirent.h>
+ #include <sys/lock.h>
+ 
+diff -ruN newlib-3.1.0/newlib/libc/sys/miosix/sys/lock.h newlib-3.1.0-new/newlib/libc/sys/miosix/sys/lock.h
+--- newlib-3.1.0/newlib/libc/sys/miosix/sys/lock.h	2025-05-04 17:27:54.787197911 +0200
++++ newlib-3.1.0-new/newlib/libc/sys/miosix/sys/lock.h	2025-05-04 17:37:22.663948034 +0200
+@@ -30,6 +30,30 @@
+     int type;           /* Depending on how kernel is compiled, mutex type */
+ } pthread_mutex_t;
+ 
++typedef struct {
++    char is_initialized;
++    char prio;
++    char recursive;
++} pthread_mutexattr_t;
++
++#define _PTHREAD_MUTEX_INITIALIZER {0,-1,0,0,0,0,0}
++/* NOTE: this is not defined in pthread.h, so no leading underscore */
++#define PTHREAD_MUTEX_RECURSIVE_INITIALIZER_NP {0,0,0,0,0,0,0}
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++int pthread_mutex_init(pthread_mutex_t *, const pthread_mutexattr_t *);
++int pthread_mutex_destroy(pthread_mutex_t *);
++int pthread_mutex_lock(pthread_mutex_t *);
++int pthread_mutex_trylock(pthread_mutex_t *);
++int pthread_mutex_unlock(pthread_mutex_t *);
++
++#ifdef __cplusplus
++}
++#endif
++
+ /*
+  * Finished declaring pthread stuff, now starting real content of lock.h
+  */
+@@ -37,8 +61,8 @@
+ typedef pthread_mutex_t _LOCK_T;
+ typedef pthread_mutex_t _LOCK_RECURSIVE_T;
+ 
+-#define __LOCK_INIT(clazz,lock) clazz pthread_mutex_t lock = {0,-1,0,0,0,0,0}
+-#define __LOCK_INIT_RECURSIVE(clazz,lock) clazz pthread_mutex_t lock = {0,0,0,0,0,0,0}
++#define __LOCK_INIT(clazz,lock) clazz pthread_mutex_t lock = _PTHREAD_MUTEX_INITIALIZER
++#define __LOCK_INIT_RECURSIVE(clazz,lock) clazz pthread_mutex_t lock = PTHREAD_MUTEX_RECURSIVE_INITIALIZER_NP
+ #define __lock_init(lock) pthread_mutex_init(&lock,NULL) 
+ #define __lock_init_recursive(lock) \
+ do { \

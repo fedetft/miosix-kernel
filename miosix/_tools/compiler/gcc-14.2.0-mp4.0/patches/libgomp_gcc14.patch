@@ -1,0 +1,26 @@
+diff -ruN gcc-14.2.0/libgomp/omp.h.in gcc-14.2.0-new/libgomp/omp.h.in
+--- gcc-14.2.0/libgomp/omp.h.in	2025-05-04 17:52:21.866117966 +0200
++++ gcc-14.2.0-new/libgomp/omp.h.in	2025-05-04 17:52:09.567073756 +0200
+@@ -137,7 +137,12 @@
+   __omp_allocator_handle_t_max__ = __UINTPTR_MAX__
+ } omp_allocator_handle_t;
+ 
+-typedef enum omp_alloctrait_key_t
++/*
++ * Patch rationale: force this to be 4 bytes. Somehow when compiled with GCC 14
++ * this is 8 bytes, failing an assertion in libgomp_f.h:omp_check_defines()
++ */
++typedef uint32_t omp_alloctrait_key_t;
++typedef enum _omp_alloctrait_key_t
+ {
+   omp_atk_sync_hint = 1,
+   omp_atk_alignment = 2,
+@@ -147,7 +152,7 @@
+   omp_atk_fb_data = 6,
+   omp_atk_pinned = 7,
+   omp_atk_partition = 8
+-} omp_alloctrait_key_t;
++} _omp_alloctrait_key_t;
+ 
+ typedef enum omp_alloctrait_value_t
+ {
