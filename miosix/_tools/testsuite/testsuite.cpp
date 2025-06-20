@@ -4597,14 +4597,11 @@ static int b2_f1(Priority priority)
     b2_v1=false;
     b2_v2=0;
     Thread *t1=Thread::create(b2_p1,STACK_SMALL,priority,nullptr,Thread::JOINABLE);
-    Thread *t2=Thread::create(b2_p1,STACK_SMALL,priority,nullptr,Thread::JOINABLE);
     b2_v1=true; //Start counting
     Thread::sleep(1000);
     b2_v1=false; //Stop counting
     t1->terminate();
-    t2->terminate();
     t1->join();
-    t2->join();
     Thread::setPriority(0);
     return b2_v2;
 }
