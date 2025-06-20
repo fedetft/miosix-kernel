@@ -27,6 +27,8 @@
 
 #pragma once
 
+#include "drivers/clock.h"
+
 //TODO
 #define DONT_USE_CMSIS_INIT
 
