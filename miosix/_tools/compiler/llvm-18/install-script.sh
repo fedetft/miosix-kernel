@@ -95,8 +95,7 @@ cmake -Bbuild -GNinja \
     -DCMAKE_TOOLCHAIN_FILE="${TOOLCHAIN}" \
     -DCMAKE_C_FLAGS="-mcpu=cortex-m0plus -mthumb" \
     -DCMAKE_CXX_FLAGS="-mcpu=cortex-m0plus -mthumb" \
-    -DLIBOMP_ENABLE_SHARED=OFF \
-    -DLLVM_CCACHE_BUILD=1 || quit "Failed to configure libomp build"
+    -DLIBOMP_ENABLE_SHARED=OFF || quit "Failed to configure libomp build"
 
 cmake --build build --target install || quit "Failed to build and install libomp"
 echo "Successfully built and installed libomp"
