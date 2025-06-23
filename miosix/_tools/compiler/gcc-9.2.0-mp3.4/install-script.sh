@@ -201,9 +201,9 @@ extract()
 
 extract 'binutils' $BINUTILS.tar.xz patches/binutils.patch
 if [[ ( $(uname -s) == 'Darwin' ) && ( $(uname -m) == 'arm64' ) ]]; then
-	extract 'gcc' $GCC.tar.xz patches/gcc.patch patches/gcc_mac_arm64.patch patches/libgomp-fix-crash.patch
+	extract 'gcc' $GCC.tar.xz patches/gcc.patch patches/libgomp-fix-crash.patch patches/gcc_mac_arm64.patch
 else
-	extract 'gcc' $GCC.tar.xz patches/gcc.patch
+	extract 'gcc' $GCC.tar.xz patches/gcc.patch patches/libgomp-fix-crash.patch
 fi
 extract 'newlib' $NEWLIB.tar.gz patches/newlib.patch
 extract 'gdb' $GDB.tar.xz patches/gdb.patch
