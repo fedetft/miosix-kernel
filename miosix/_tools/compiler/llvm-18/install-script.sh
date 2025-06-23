@@ -71,7 +71,8 @@ cmake -Bbuild -GNinja \
     -DLLVM_INCLUDE_EXAMPLES=OFF \
     -DLLVM_PARALLEL_LINK_JOBS=1 || quit "Failed to configure llvm build"
 
-cmake --build build --target install || quit "Failed to build and install llvm"
+cmake --build build || quit "Failed to build llvm"
+$SUDO cmake --build build --target install || quit "Failed to install llvm"
 echo "Successfully built and installed llvm"
 cd ..
 
@@ -97,7 +98,8 @@ cmake -Bbuild -GNinja \
     -DCMAKE_CXX_FLAGS="-mcpu=cortex-m0plus -mthumb" \
     -DLIBOMP_ENABLE_SHARED=OFF || quit "Failed to configure libomp build"
 
-cmake --build build --target install || quit "Failed to build and install libomp"
+cmake --build build || quit "Failed to build libomp"
+$SUDO cmake --build build --target install || quit "Failed to install libomp"
 echo "Successfully built and installed libomp"
 cd ..
 
