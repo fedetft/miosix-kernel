@@ -88,7 +88,7 @@ if [[ ! -z "$SUDO" ]]; then
     fi
     $SUDO mkdir -p "$symlink_path"
     for src_path in "$PREFIX/bin/"*; do
-        $SUDO ln -s "$src_path" "$PREFIX"/bin/miosix-$(basename "${src_path}") \
+        $SUDO ln -s "$src_path" "$symlink_path"/miosix-$(basename "${src_path}") \
             || quit "Failed to link binary ${src_path}"
     done
     # install symlinks in /usr/bin only on Linux
