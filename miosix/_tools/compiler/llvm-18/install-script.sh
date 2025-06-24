@@ -25,12 +25,25 @@ SUDO=sudo
 BUILD_TYPE=Release
 #BUILD_TYPE=Debug
 
+# Choose whether to use ccache to cache the llvm build
+# This speeds up multiple llvm builds. Useful in case of errors or frequent rebuilds
+USE_CCACHE=1
+
 #### Configuration tunables -- end ####
 
 quit() {
 	echo $1
 	exit 1
 }
+
+# Check for ccache if enabled
+CCACHE_OPT=""
+if [[ "$USE_CCACHE" -eq 1 ]]; then
+    if ! command -v ccache >/dev/null 2>&1; then
+        quit "USE_CCACHE=1 but 'ccache' is not installed. Install it (e.g. apt install ccache) or set USE_CCACHE=0"
+    fi
+    CCACHE_OPT="-DLLVM_CCACHE_BUILD=ON"
+fi
 
 # Ask for sudo if needed
 if [[ ! -z "$SUDO" ]]; then
@@ -75,25 +88,27 @@ cmake -Bbuild -GNinja \
     -DLLVM_LINK_LLVM_DYLIB=ON \
     -DLLVM_OPTIMIZED_TABLEGEN=ON \
     -DLLVM_INCLUDE_EXAMPLES=OFF \
-    -DLLVM_PARALLEL_LINK_JOBS=1 || quit "Failed to configure llvm build"
+    -DLLVM_PARALLEL_LINK_JOBS=1 \
+    "${CCACHE_OPT}" || quit "Failed to configure llvm build"
 
 cmake --build build || quit "Failed to build llvm"
 $SUDO cmake --build build --target install || quit "Failed to install llvm"
 
 # create links with miosix- prefix
+symlink_path="$PREFIX/libexec/miosix-llvm"
+if [[ -e "$symlink_path" ]]; then
+    $SUDO rm -rf "$symlink_path"
+fi
+$SUDO mkdir -p "$symlink_path"
+for src_path in "$PREFIX/bin/"*; do
+    $SUDO ln -s "$src_path" "$symlink_path"/miosix-$(basename "${src_path}") \
+        || quit "Failed to link binary ${src_path}"
+done
+
+# install symlinks in /usr/bin only on Linux
 if [[ ! -z "$SUDO" ]]; then
-    symlink_path="$PREFIX/libexec/miosix-llvm"
-    if [[ -e "$symlink_path" ]]; then
-        $SUDO rm -rf "$symlink_path"
-    fi
-    $SUDO mkdir -p "$symlink_path"
-    for src_path in "$PREFIX/bin/"*; do
-        $SUDO ln -s "$src_path" "$symlink_path"/miosix-$(basename "${src_path}") \
-            || quit "Failed to link binary ${src_path}"
-    done
-    # install symlinks in /usr/bin only on Linux
     if [[ $(uname -s) != 'Darwin' ]]; then
-        $SUDO ln -s "$symlink_path"/* /usr/bin || quit "Failed install symlinks in /usr/bin"
+        $SUDO ln -sf "$symlink_path"/* /usr/bin || quit "Failed install symlinks in /usr/bin"
     fi
 fi
 
@@ -101,7 +116,7 @@ echo "Successfully built and installed llvm"
 cd ..
 
 # export the newly compiled compiler to use it to compile libraries even if not installed system-wide
-export "PATH=${PREFIX}/bin:${PATH}"
+export "PATH=${PREFIX}/libexec/miosix-llvm:${PATH}"
 # miosix clang toolchain file
 TOOLCHAIN=`pwd`/../../../../cmake/Toolchains/clang.cmake
 
