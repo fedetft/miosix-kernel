@@ -33,8 +33,8 @@ quit() {
 }
 
 # Ask for sudo if needed
-if [[ -z "$SUDO" ]]; then
-    echo "System-wide install selected: you'll be asked for your sudo password to continue"
+if [[ ! -z "$SUDO" ]]; then
+    echo "System-wide install selected: sudo rights are needed to continue"
     $SUDO -v || quit "Cannot continue without sudo rights"
 fi
 
