@@ -30,17 +30,15 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/..)
 # Tell CMake that we are building for an embedded ARM system
 set(CMAKE_SYSTEM_NAME Miosix)
 
-set(MIOSIX_PREFIX      llvm)
-
 # Names of the compiler and other tools
-set(CMAKE_ASM_COMPILER clang)
-set(CMAKE_C_COMPILER   clang)
-set(CMAKE_CXX_COMPILER clang++)
-set(CMAKE_AR           ${MIOSIX_PREFIX}-ar)
-set(CMAKE_RANLIB       ${MIOSIX_PREFIX}-ranlib)
-set(CMAKE_OBJCOPY      ${MIOSIX_PREFIX}-objcopy)
-set(CMAKE_OBJDUMP      ${MIOSIX_PREFIX}-objdump)
-set(CMAKE_SIZE         ${MIOSIX_PREFIX}-size)
+set(CMAKE_ASM_COMPILER miosix-clang)
+set(CMAKE_C_COMPILER   miosix-clang)
+set(CMAKE_CXX_COMPILER miosix-clang++)
+set(CMAKE_AR           miosix-llvm-ar)
+set(CMAKE_RANLIB       miosix-llvm-ranlib)
+set(CMAKE_OBJCOPY      miosix-llvm-objcopy)
+set(CMAKE_OBJDUMP      miosix-llvm-objdump)
+set(CMAKE_SIZE         miosix-llvm-size)
 
 # Optimization flags for each language and build configuration
 set(CMAKE_ASM_FLAGS_DEBUG "")
