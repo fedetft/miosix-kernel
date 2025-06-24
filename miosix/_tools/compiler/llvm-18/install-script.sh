@@ -15,9 +15,11 @@
 #### Configuration tunables -- begin ####
 
 # Uncomment if installing globally on this system
+SYSTEM_INSTALL=1
 PREFIX=/opt/miosix-llvm
 SUDO=sudo
 # Uncomment if installing locally on this system, sudo isn't necessary
+#SYSTEM_INSTALL=0
 #PREFIX=`pwd`/miosix-llvm
 #SUDO=
 
@@ -31,6 +33,12 @@ quit() {
 	echo $1
 	exit 1
 }
+
+# Ask for sudo if needed
+if [ "${SYSTEM_INSTALL}" ] && [ "${SUDO}" ]; then
+    echo "System-wide install selected: you'll be asked for your sudo password to continue"
+    ${SUDO} -v || quit "Cannot continue without sudo rights"
+fi
 
 #
 # Part 1, apply patches
@@ -73,10 +81,25 @@ cmake -Bbuild -GNinja \
 
 cmake --build build || quit "Failed to build llvm"
 $SUDO cmake --build build --target install || quit "Failed to install llvm"
+
+# rename binaries with miosix- prefix
+for bin in "${PREFIX}/bin/"*; do
+  bin_name=$(basename "$bin")
+  case "$bin_name" in
+    miosix-*) continue;; # skip if already renamed with miosix- prefix
+  esac
+  ${SUDO} mv "$bin" "${PREFIX}/bin/miosix-$(basename "$bin")" || quit "Failed to rename binary ${bin}"
+done
+
+# install symlinks in /usr/bin
+if [ "${SYSTEM_INSTALL}" ]; then
+  ${SUDO} ln -s ${PREFIX}/bin/* /usr/bin || quit "Failed install symlinks in /usr/bin"
+fi
+
 echo "Successfully built and installed llvm"
 cd ..
 
-# export the newly compiled compiler to use to compile libraries
+# export the newly compiled compiler to use it to compile libraries even if not installed system-wide
 export "PATH=${PREFIX}/bin:${PATH}"
 # miosix clang toolchain file
 TOOLCHAIN=`pwd`/../../../../cmake/Toolchains/clang.cmake
