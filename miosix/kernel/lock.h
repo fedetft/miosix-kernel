@@ -604,7 +604,7 @@ public:
         if(ie) fastEnableIrq();
         return result;
         #else //WITH_SMP
-        return holdingCore==getCurrentCoreId();
+        return FastPauseKernelLock::holdingCore==getCurrentCoreId();
         #endif //WITH_SMP
     }
 
