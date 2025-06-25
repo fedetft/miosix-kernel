@@ -1,6 +1,6 @@
 diff -ruN gcc-9.2.0-old/libgomp/libgomp.h gcc-9.2.0/libgomp/libgomp.h
 --- gcc-9.2.0-old/libgomp/libgomp.h	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libgomp/libgomp.h	2025-06-25 18:16:18.820516894 +0200
++++ gcc-9.2.0/libgomp/libgomp.h	2025-06-25 18:43:50.797780792 +0200
 @@ -699,10 +699,23 @@
    return &gomp_tls_data;
  }
@@ -25,14 +25,14 @@ diff -ruN gcc-9.2.0-old/libgomp/libgomp.h gcc-9.2.0/libgomp/libgomp.h
 +  return gomp_tls_ptr;
  }
  #endif
-
+ 
 diff -ruN gcc-9.2.0-old/libgomp/team.c gcc-9.2.0/libgomp/team.c
 --- gcc-9.2.0-old/libgomp/team.c	2019-03-27 19:30:44.000000000 +0100
-+++ gcc-9.2.0/libgomp/team.c	2025-06-25 18:19:58.143102836 +0200
++++ gcc-9.2.0/libgomp/team.c	2025-06-25 18:43:50.797780792 +0200
 @@ -993,16 +993,23 @@
-
+ 
  #ifdef LIBGOMP_USE_PTHREADS
-
+ 
 +#if !defined HAVE_TLS && !defined USE_EMUTLS
 +struct gomp_thread *initialize_team_leader (void)
 +{
@@ -43,7 +43,7 @@ diff -ruN gcc-9.2.0-old/libgomp/team.c gcc-9.2.0/libgomp/team.c
 +#endif
 +
  /* Constructors for this file.  */
-
+ 
  static void __attribute__((constructor))
  initialize_team (void)
  {
@@ -54,5 +54,5 @@ diff -ruN gcc-9.2.0-old/libgomp/team.c gcc-9.2.0/libgomp/team.c
 -  pthread_setspecific (gomp_tls_key, &initial_thread_tls_data);
 +  initialize_team_leader ();
  #endif
-
+ 
    if (pthread_key_create (&gomp_thread_destructor, gomp_free_thread) != 0)
