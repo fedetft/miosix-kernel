@@ -62,8 +62,14 @@ set(CMAKE_C_COMPILER_TARGET   ${CLANG_TARGET_TRIPLE})
 set(CMAKE_CXX_COMPILER_TARGET ${CLANG_TARGET_TRIPLE})
 
 # Miosix llvm compiler path
-find_program(MIOSIX_LLVM_PATH NAMES ${CMAKE_CXX_COMPILER})
-string(REGEX REPLACE "/bin/[^/]+$" "" MIOSIX_LLVM_PATH ${MIOSIX_LLVM_PATH})
+if(NOT DEFINED MIOSIX_LLVM_PATH)
+  find_program(MIOSIX_LLVM_PATH NAMES ${CMAKE_CXX_COMPILER})
+  # Follow any symlinks to the real executable
+  get_filename_component(MIOSIX_LLVM_PATH "${MIOSIX_LLVM_PATH}" REALPATH)
+  # Get llvm path by getting the parent directory two times
+  get_filename_component(MIOSIX_LLVM_PATH "${MIOSIX_LLVM_PATH}" DIRECTORY)
+  get_filename_component(MIOSIX_LLVM_PATH "${MIOSIX_LLVM_PATH}" DIRECTORY)
+endif()
 set(CMAKE_SYSROOT ${MIOSIX_LLVM_PATH})
 
 # Miosix gcc compiler path
