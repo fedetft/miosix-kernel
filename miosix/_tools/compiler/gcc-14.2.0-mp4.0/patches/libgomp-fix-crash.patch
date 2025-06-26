@@ -1,56 +1,73 @@
-diff -ruN gcc-14.2.0-orig/libgomp/libgomp.h gcc-14.2.0/libgomp/libgomp.h
---- gcc-14.2.0-orig/libgomp/libgomp.h	2024-08-01 10:17:18.000000000 +0200
-+++ gcc-14.2.0/libgomp/libgomp.h	2025-04-23 16:34:43.247701687 +0200
-@@ -966,9 +966,27 @@
-   return &gomp_tls_data;
+diff -ruN gcc-9.2.0-old/libgomp/libgomp.h gcc-9.2.0/libgomp/libgomp.h
+--- gcc-9.2.0-old/libgomp/libgomp.h	2019-01-01 13:31:55.000000000 +0100
++++ gcc-9.2.0/libgomp/libgomp.h	2025-06-26 14:23:42.980043159 +0200
+@@ -700,9 +700,22 @@
  }
  #else
-+extern void initialize_team (void);
  extern pthread_key_t gomp_tls_key;
++struct gomp_thread *gomp_initialize_tls_key (void);
  static inline struct gomp_thread *gomp_thread (void)
  {
-+  /* NOTE: initialize_team() is declared __attribute__((constructor)) and sets
-+   * gomp_tls_key at program start, but for main() only! However, if the
+-  return pthread_getspecific (gomp_tls_key);
++  /* NOTE: if openmp is only used by main(), then initialize_team() takes care
++   * of initializing gomp_tls_key for main() as team leader. However, if the
 +   * application spawns a thread using pthread, C11 or C++11 threads and *that*
 +   * thread tries to call some OpenMP-parallelized code, no one initialized
-+   * gomp_tls_key for that thread, causing a NULL pointer dereference.
-+   * Fix: call initialize_team() if we reach here and gomp_tls_key is NULL
++   * gomp_tls_key for that thread, and pthread_getspecific() returns NULL.
++   * Calling gomp_initialize_tls_key() solves the issue.
 +   */
 +  void *gomp_tls_ptr = pthread_getspecific (gomp_tls_key);
 +  if (!gomp_tls_ptr)
 +  {
-+    initialize_team ();
-+    gomp_tls_ptr = pthread_getspecific (gomp_tls_key);
++    gomp_tls_ptr = gomp_initialize_tls_key ();
 +  }
 +  return gomp_tls_ptr;
-+}
-+static inline struct gomp_thread *gomp_thread_no_init (void)
-+{
-   return pthread_getspecific (gomp_tls_key);
  }
  #endif
-diff -ruN gcc-14.2.0-orig/libgomp/team.c gcc-14.2.0/libgomp/team.c
---- gcc-14.2.0-orig/libgomp/team.c	2024-08-01 10:17:18.000000000 +0200
-+++ gcc-14.2.0/libgomp/team.c	2025-04-23 16:34:43.249889195 +0200
-@@ -264,7 +264,12 @@
- void
- gomp_free_thread (void *arg __attribute__((unused)))
- {
-+#ifdef LIBGOMP_USE_PTHREADS
-+  struct gomp_thread *thr = gomp_thread_no_init ();
-+  if (!thr) return;
-+#else
-   struct gomp_thread *thr = gomp_thread ();
-+#endif
-   struct gomp_thread_pool *pool = thr->thread_pool;
-   if (pool)
-     {
-@@ -1018,7 +1023,7 @@
  
- /* Constructors for this file.  */
+diff -ruN gcc-9.2.0-old/libgomp/team.c gcc-9.2.0/libgomp/team.c
+--- gcc-9.2.0-old/libgomp/team.c	2019-03-27 19:30:44.000000000 +0100
++++ gcc-9.2.0/libgomp/team.c	2025-06-26 14:25:03.000046178 +0200
+@@ -43,6 +43,18 @@
+ __thread struct gomp_thread gomp_tls_data;
+ #else
+ pthread_key_t gomp_tls_key;
++
++struct gomp_thread *gomp_initialize_tls_key (void)
++{
++	struct gomp_thread *gomp_tls_ptr = malloc (sizeof (struct gomp_thread));
++	pthread_setspecific (gomp_tls_key, gomp_tls_ptr);
++	return gomp_tls_ptr;
++}
++
++void gomp_delete_tls_key (void* ptr)
++{
++	free (ptr);
++}
+ #endif
  
--static void __attribute__((constructor))
-+void __attribute__((constructor))
+ 
+@@ -76,9 +88,7 @@
+ #if defined HAVE_TLS || defined USE_EMUTLS
+   thr = &gomp_tls_data;
+ #else
+-  struct gomp_thread local_thr;
+-  thr = &local_thr;
+-  pthread_setspecific (gomp_tls_key, thr);
++  thr = gomp_initialize_tls_key ();
+ #endif
+   gomp_sem_init (&thr->release, 0);
+ 
+@@ -999,10 +1009,8 @@
  initialize_team (void)
  {
  #if !defined HAVE_TLS && !defined USE_EMUTLS
+-  static struct gomp_thread initial_thread_tls_data;
+-
+-  pthread_key_create (&gomp_tls_key, NULL);
+-  pthread_setspecific (gomp_tls_key, &initial_thread_tls_data);
++  pthread_key_create (&gomp_tls_key, gomp_delete_tls_key);
++  gomp_initialize_tls_key ();
+ #endif
+ 
+   if (pthread_key_create (&gomp_thread_destructor, gomp_free_thread) != 0)
