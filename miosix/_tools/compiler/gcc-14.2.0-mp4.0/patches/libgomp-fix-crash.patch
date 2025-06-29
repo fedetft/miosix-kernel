@@ -1,3 +1,15 @@
+diff -ruN gcc-9.2.0-old/libgomp/configure.tgt gcc-9.2.0/libgomp/configure.tgt
+--- gcc-9.2.0-old/libgomp/configure.tgt	2025-06-29 12:33:39.052395119 +0200
++++ gcc-9.2.0/libgomp/configure.tgt	2025-06-29 13:15:29.584489834 +0200
+@@ -159,6 +159,8 @@
+ 
+   *-miosix-*)
+     config_path="posix"
++    # libgomp uses pthread_exit which on Miosix throws a terminate exception
++    XCFLAGS="${XCFLAGS} -fexceptions"
+     ;;
+ 
+   *-*-rtems*)
 diff -ruN gcc-9.2.0-old/libgomp/libgomp.h gcc-9.2.0/libgomp/libgomp.h
 --- gcc-9.2.0-old/libgomp/libgomp.h	2019-01-01 13:31:55.000000000 +0100
 +++ gcc-9.2.0/libgomp/libgomp.h	2025-06-26 14:23:42.980043159 +0200
