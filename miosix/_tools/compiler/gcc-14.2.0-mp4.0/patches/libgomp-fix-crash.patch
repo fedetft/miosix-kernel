@@ -27,8 +27,8 @@ diff -ruN gcc-9.2.0-old/libgomp/libgomp.h gcc-9.2.0/libgomp/libgomp.h
  
 diff -ruN gcc-9.2.0-old/libgomp/team.c gcc-9.2.0/libgomp/team.c
 --- gcc-9.2.0-old/libgomp/team.c	2019-03-27 19:30:44.000000000 +0100
-+++ gcc-9.2.0/libgomp/team.c	2025-06-26 14:25:03.000046178 +0200
-@@ -43,6 +43,18 @@
++++ gcc-9.2.0/libgomp/team.c	2025-06-29 10:19:20.768091103 +0200
+@@ -43,6 +43,20 @@
  __thread struct gomp_thread gomp_tls_data;
  #else
  pthread_key_t gomp_tls_key;
@@ -36,6 +36,8 @@ diff -ruN gcc-9.2.0-old/libgomp/team.c gcc-9.2.0/libgomp/team.c
 +struct gomp_thread *gomp_initialize_tls_key (void)
 +{
 +	struct gomp_thread *gomp_tls_ptr = malloc (sizeof (struct gomp_thread));
++	if (!gomp_tls_ptr) gomp_fatal ("Out of memory");
++	memset (gomp_tls_ptr, 0, sizeof (struct gomp_thread));
 +	pthread_setspecific (gomp_tls_key, gomp_tls_ptr);
 +	return gomp_tls_ptr;
 +}
@@ -47,7 +49,7 @@ diff -ruN gcc-9.2.0-old/libgomp/team.c gcc-9.2.0/libgomp/team.c
  #endif
  
  
-@@ -76,9 +88,7 @@
+@@ -76,9 +90,7 @@
  #if defined HAVE_TLS || defined USE_EMUTLS
    thr = &gomp_tls_data;
  #else
@@ -58,7 +60,7 @@ diff -ruN gcc-9.2.0-old/libgomp/team.c gcc-9.2.0/libgomp/team.c
  #endif
    gomp_sem_init (&thr->release, 0);
  
-@@ -999,10 +1009,8 @@
+@@ -999,10 +1011,8 @@
  initialize_team (void)
  {
  #if !defined HAVE_TLS && !defined USE_EMUTLS
