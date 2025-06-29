@@ -27,7 +27,7 @@ diff -ruN gcc-9.2.0-old/libgomp/libgomp.h gcc-9.2.0/libgomp/libgomp.h
  
 diff -ruN gcc-9.2.0-old/libgomp/team.c gcc-9.2.0/libgomp/team.c
 --- gcc-9.2.0-old/libgomp/team.c	2019-03-27 19:30:44.000000000 +0100
-+++ gcc-9.2.0/libgomp/team.c	2025-06-29 10:19:20.768091103 +0200
++++ gcc-9.2.0/libgomp/team.c	2025-06-29 11:22:10.736233333 +0200
 @@ -43,6 +43,20 @@
  __thread struct gomp_thread gomp_tls_data;
  #else
@@ -60,7 +60,23 @@ diff -ruN gcc-9.2.0-old/libgomp/team.c gcc-9.2.0/libgomp/team.c
  #endif
    gomp_sem_init (&thr->release, 0);
  
-@@ -999,10 +1011,8 @@
+@@ -247,9 +259,13 @@
+ /* Free a thread pool and release its threads. */
+ 
+ void
+-gomp_free_thread (void *arg __attribute__((unused)))
++gomp_free_thread (void *arg)
+ {
+-  struct gomp_thread *thr = gomp_thread ();
++  // NOTE: we cannot call gomp_thread () here as it calls pthread_getspecific ()
++  // and the POSIX semantics require the pthread_key value to be set to NULL
++  // before calling the destructor. We must get the struct gomp_thread pointer
++  // from the arg parameter!
++  struct gomp_thread *thr = (struct gomp_thread *) arg;
+   struct gomp_thread_pool *pool = thr->thread_pool;
+   if (pool)
+     {
+@@ -999,10 +1015,8 @@
  initialize_team (void)
  {
  #if !defined HAVE_TLS && !defined USE_EMUTLS
