@@ -1240,8 +1240,8 @@ static bool multipleBlockRead(unsigned int *buffer, unsigned int nblk,
         cr=Command::send(Command::CMD12,0);
         if(driverError || dmaTransferError || sdioTransferError)
         {
-            // CMD13 is sent to check the real status of the sdio after cmd12 and to reset the board
-            // in case if it gets stuck in a illegal state
+            // CMD13 is sent to check the real status of the sdio after CMD12
+            // and to reset the card in case if it gets stuck in a illegal state
             cr=Command::send(Command::CMD13,Command::getRca()<<16);
         }
     }
@@ -1336,8 +1336,8 @@ static bool multipleBlockWrite(const unsigned int *buffer, unsigned int nblk,
         cr=Command::send(Command::CMD12,0);
         if (driverError || dmaTransferError || sdioTransferError)
         {
-            // CMD13 is sent to check the real status of the sdio after cmd12 and to reset the board
-            // in case if it gets stuck in a illegal state
+            // CMD13 is sent to check the real status of the sdio after CMD12
+            // and to reset the card in case if it gets stuck in a illegal state
             cr=Command::send(Command::CMD13,Command::getRca()<<16);
         }
     }
