@@ -72,6 +72,7 @@ cd llvm-project
 apply_patch "Add-GCC-s-spare-dynamic-tags.patch"
 apply_patch "Implemented-single-pic-base.patch"
 apply_patch "libomp.patch"
+apply_patch "libomp-memory-usage.patch"
 echo "Successfully applied patches"
 
 #
