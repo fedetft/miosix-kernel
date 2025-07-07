@@ -1,0 +1,134 @@
+diff -ruN -x build -x CMakeCache.txt llvm-project/openmp/runtime/src/kmp.h llvm-project-new/openmp/runtime/src/kmp.h
+--- llvm-project/openmp/runtime/src/kmp.h	2025-07-07 14:16:47.071926687 +0200
++++ llvm-project-new/openmp/runtime/src/kmp.h	2025-06-20 10:44:42.930643993 +0200
+@@ -1291,8 +1291,8 @@
+ #define KMP_DEFAULT_CHUNK 1
+ 
+ #define KMP_MIN_DISP_NUM_BUFF 1
+-#define KMP_DFLT_DISP_NUM_BUFF 7
+-#define KMP_MAX_DISP_NUM_BUFF 4096
++#define KMP_DFLT_DISP_NUM_BUFF 4
++#define KMP_MAX_DISP_NUM_BUFF 256
+ 
+ #define KMP_MAX_ORDERED 8
+ 
+@@ -1850,7 +1850,7 @@
+   size_t cmn_size;
+ };
+ 
+-#define KMP_HASH_TABLE_LOG2 9 /* log2 of the hash table size */
++#define KMP_HASH_TABLE_LOG2 7 /* log2 of the hash table size */
+ #define KMP_HASH_TABLE_SIZE                                                    \
+   (1 << KMP_HASH_TABLE_LOG2) /* size of the hash table */
+ #define KMP_HASH_SHIFT 3 /* throw away this many low bits from the address */
+diff -ruN -x build -x CMakeCache.txt llvm-project/openmp/runtime/src/kmp_alloc.cpp llvm-project-new/openmp/runtime/src/kmp_alloc.cpp
+--- llvm-project/openmp/runtime/src/kmp_alloc.cpp	2025-07-07 14:16:47.072926705 +0200
++++ llvm-project-new/openmp/runtime/src/kmp_alloc.cpp	2025-06-20 13:15:08.638713456 +0200
+@@ -2000,7 +2000,12 @@
+   void *ptr;
+   KE_TRACE(25, ("-> __kmp_allocate( %d ) called from %s:%d\n",
+                 (int)size KMP_SRC_LOC_PARM));
++#ifdef KMP_OS_MIOSIX
++  ptr = malloc(size);
++  memset(ptr, 0, size);
++#else
+   ptr = ___kmp_allocate_align(size, __kmp_align_alloc KMP_SRC_LOC_PARM);
++#endif
+   KE_TRACE(25, ("<- __kmp_allocate() returns %p\n", ptr));
+   return ptr;
+ } // func ___kmp_allocate
+@@ -2010,12 +2015,17 @@
+    NULL is NEVER returned, __kmp_abort() is called in case of memory allocation
+    error. Must use __kmp_free when freeing memory allocated by this routine! */
+ void *___kmp_page_allocate(size_t size KMP_SRC_LOC_DECL) {
++#ifdef KMP_OS_MIOSIX
++  void *ptr = malloc(size);
++  memset(ptr, 0, size);
++#else
+   int page_size = 8 * 1024;
+   void *ptr;
+ 
+   KE_TRACE(25, ("-> __kmp_page_allocate( %d ) called from %s:%d\n",
+                 (int)size KMP_SRC_LOC_PARM));
+   ptr = ___kmp_allocate_align(size, page_size KMP_SRC_LOC_PARM);
++#endif
+   KE_TRACE(25, ("<- __kmp_page_allocate( %d ) returns %p\n", (int)size, ptr));
+   return ptr;
+ } // ___kmp_page_allocate
+@@ -2023,6 +2033,9 @@
+ /* Free memory allocated by __kmp_allocate() and __kmp_page_allocate().
+    In debug mode, fill the memory block with 0xEF before call to free(). */
+ void ___kmp_free(void *ptr KMP_SRC_LOC_DECL) {
++#ifdef KMP_OS_MIOSIX
++  free(ptr);
++#else
+   kmp_mem_descr_t descr;
+ #if KMP_DEBUG
+   kmp_uintptr_t addr_allocated; // Address returned by malloc().
+@@ -2061,6 +2074,7 @@
+ #endif
+ #endif
+   KMP_MB();
++#endif
+   KE_TRACE(25, ("<- __kmp_free() returns\n"));
+ } // func ___kmp_free
+ 
+diff -ruN -x build -x CMakeCache.txt llvm-project/openmp/runtime/src/kmp_config.h.cmake llvm-project-new/openmp/runtime/src/kmp_config.h.cmake
+--- llvm-project/openmp/runtime/src/kmp_config.h.cmake	2025-07-07 13:58:22.313627073 +0200
++++ llvm-project-new/openmp/runtime/src/kmp_config.h.cmake	2025-06-20 12:53:25.671140033 +0200
+@@ -106,6 +106,8 @@
+ # define CACHE_LINE 256
+ #elif KMP_ARCH_S390X
+ # define CACHE_LINE 256
++#elif KMP_ARCH_ARMV6M
++# define CACHE_LINE 4
+ #else
+ # define CACHE_LINE 64
+ #endif
+diff -ruN -x build -x CMakeCache.txt llvm-project/openmp/runtime/src/kmp_os.h llvm-project-new/openmp/runtime/src/kmp_os.h
+--- llvm-project/openmp/runtime/src/kmp_os.h	2025-07-07 14:16:47.072926705 +0200
++++ llvm-project-new/openmp/runtime/src/kmp_os.h	2025-06-20 10:24:31.527305519 +0200
+@@ -1229,8 +1229,12 @@
+ #define USE_CMPXCHG_FIX 1
+ #endif
+ 
++#ifndef KMP_OS_MIOSIX
+ // Enable dynamic user lock
+ #define KMP_USE_DYNAMIC_LOCK 1
++#else
++#define KMP_USE_DYNAMIC_LOCK 0
++#endif
+ 
+ // Enable Intel(R) Transactional Synchronization Extensions (Intel(R) TSX) if
+ // dynamic user lock is turned on
+diff -ruN -x build -x CMakeCache.txt llvm-project/openmp/runtime/src/kmp_settings.cpp llvm-project-new/openmp/runtime/src/kmp_settings.cpp
+--- llvm-project/openmp/runtime/src/kmp_settings.cpp	2025-07-07 13:58:22.317627138 +0200
++++ llvm-project-new/openmp/runtime/src/kmp_settings.cpp	2025-06-20 11:34:58.990322283 +0200
+@@ -6250,6 +6250,7 @@
+ #endif
+   }
+ 
++#ifndef KMP_OS_MIOSIX
+   // Set up the affinity format ICV
+   // Grab the default affinity format string from the message catalog
+   kmp_msg_t m =
+@@ -6262,6 +6263,7 @@
+   }
+   KMP_STRCPY_S(__kmp_affinity_format, KMP_AFFINITY_FORMAT_SIZE, m.str);
+   __kmp_str_free(&m.str);
++#endif
+ 
+   // Now process all of the settings.
+   for (i = 0; i < block.count; ++i) {
+diff -ruN -x build -x CMakeCache.txt llvm-project/openmp/runtime/src/kmp_str.cpp llvm-project-new/openmp/runtime/src/kmp_str.cpp
+--- llvm-project/openmp/runtime/src/kmp_str.cpp	2025-07-07 13:58:22.317627138 +0200
++++ llvm-project-new/openmp/runtime/src/kmp_str.cpp	2025-06-20 15:38:06.076399323 +0200
+@@ -450,7 +450,7 @@
+     ... // Other parameters.
+ ) {
+   va_list args;
+-  int size = 512;
++  int size = 8;
+   char *buffer = NULL;
+   int rc;
+ 
