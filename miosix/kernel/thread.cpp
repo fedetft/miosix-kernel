@@ -795,7 +795,7 @@ SyscallParameters Thread::switchToUserspace()
 Thread *Thread::createUserspace(void *(*startfunc)(void *), Process *proc)
 {
     Thread *thread=doCreate(startfunc,SYSTEM_MODE_PROCESS_STACK_SIZE,nullptr,
-            Thread::DEFAULT,false);
+            Thread::DETACHED,false);
     if(thread==nullptr) return nullptr;
 
     unsigned int *base=thread->watermark;
