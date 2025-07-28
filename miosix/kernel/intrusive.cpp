@@ -38,6 +38,10 @@
 inline int atomicSwap(volatile int*, int) { return 0; }
 void *atomicFetchAndIncrement(void *const volatile*, int, int) { return nullptr; }
 
+// Enable all checks
+enum class ExtraChecks { None, Application, Kernel };
+constexpr auto extraChecks=ExtraChecks::Kernel;
+
 //C++ glassbox testing trick
 #define private public
 #define protected public
@@ -180,7 +184,7 @@ IntrusiveListItem *IntrusiveListBase::erase(IntrusiveListItem *cur)
 
 //Testsuite for IntrusiveList. Compile with:
 //g++ -DTEST_ALGORITHM -DINTRUSIVE_LIST_ERROR_CHECK -fsanitize=address -m32
-//    -std=c++14 -Wall -O2 -o test intrusive.cpp; ./test
+//    -std=c++14 -Wall -O2 -o test intrusive.cpp && ./test
 #ifdef TEST_ALGORITHM
 
 void emptyCheck(IntrusiveListItem& x)
