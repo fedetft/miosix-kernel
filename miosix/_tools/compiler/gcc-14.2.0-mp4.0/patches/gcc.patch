@@ -1245,10 +1245,10 @@ diff -ruN gcc-14.2.0-orig/libstdc++-v3/libsupc++/bad_array_length.cc gcc-14.2.0/
  
 diff -ruN gcc-14.2.0-orig/libstdc++-v3/libsupc++/eh_alloc.cc gcc-14.2.0/libstdc++-v3/libsupc++/eh_alloc.cc
 --- gcc-14.2.0-orig/libstdc++-v3/libsupc++/eh_alloc.cc	2024-08-01 10:17:18.000000000 +0200
-+++ gcc-14.2.0/libstdc++-v3/libsupc++/eh_alloc.cc	2025-04-24 18:07:03.825766902 +0200
-@@ -373,6 +373,14 @@
-   pool emergency_pool;
- }
++++ gcc-14.2.0/libstdc++-v3/libsupc++/eh_alloc.cc	2025-08-21 21:58:21.896950622 +0200
+@@ -114,6 +114,14 @@
+ # endif
+ #endif
  
 +// RATIONALE: reduced emergency buffer for ARM microcontrollers, saves RAM
 +#ifdef _MIOSIX
@@ -1258,9 +1258,9 @@ diff -ruN gcc-14.2.0-orig/libstdc++-v3/libsupc++/eh_alloc.cc gcc-14.2.0/libstdc+
 +# define EMERGENCY_OBJ_COUNT 3
 +#endif
 +
- namespace __gnu_cxx
- {
-   __attribute__((cold))
+ #if defined _GLIBCXX_EH_POOL_STATIC && EMERGENCY_OBJ_COUNT == 0
+ # define USE_POOL 0
+ #else
 diff -ruN gcc-14.2.0-orig/libstdc++-v3/libsupc++/eh_aux_runtime.cc gcc-14.2.0/libstdc++-v3/libsupc++/eh_aux_runtime.cc
 --- gcc-14.2.0-orig/libstdc++-v3/libsupc++/eh_aux_runtime.cc	2024-08-01 10:17:18.000000000 +0200
 +++ gcc-14.2.0/libstdc++-v3/libsupc++/eh_aux_runtime.cc	2025-04-23 18:13:38.593368399 +0200
