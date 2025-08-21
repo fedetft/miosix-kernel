@@ -4499,52 +4499,73 @@ bool flags[nThreads];
 static int throwable(std::vector<int>& v) __attribute__((noinline));
 static int throwable(std::vector<int>& v)
 {
-	return v.at(10);
+    return v.at(10);
 }
 
 static void test(void *argv)
 {
-	const int n=reinterpret_cast<int>(argv);
-	for(;;)
-	{
-		try {
-			std::vector<int> v;
-			v.push_back(10);
-			throwable(v);
+    const int n=reinterpret_cast<int>(argv);
+    for(;;)
+    {
+        try {
+            std::vector<int> v;
+            v.push_back(10);
+            throwable(v);
             fail("Exception not thrown");
-		} catch(std::out_of_range& e)
-		{
-			flags[n]=true;
-		}
-	}
+        } catch(std::out_of_range& e)
+        {
+            flags[n]=true;
+        }
+    }
 }
 
 static void exception_test()
 {
     test_name("C++ exception thread safety");
     iprintf("Note: test never ends. Reset the board when you are satisfied\n");
-	for(int i=0;i<nThreads;i++)
-        Thread::create(test,1024+512,0,reinterpret_cast<void*>(i),Thread::DETACHED);
-	bool toggle=false;
-	for(int j=0;;j++)
-	{
-		Thread::sleep(200);
-		if(toggle) ledOn(); else ledOff();
-		toggle^=1;
-		bool failed=false;
-		{
-			PauseKernelLock dLock;
-			for(int i=0;i<nThreads;i++)
-			{
-				if(flags[i]==false) failed=true;
-				flags[i]=false;
-			}
-		}
-        if(failed) fail("Test failed");
-		int heap=MemoryProfiling::getHeapSize()-
+    for(int i=0;i<nThreads;i++)
+    {
+        Thread *thd=Thread::create(test,1024+512,0,
+                                   reinterpret_cast<void*>(i),Thread::DETACHED);
+        if (!thd) fail("Thread creation failed");
+    }
+    bool toggle=false;
+    for(int j=0;;j++)
+    {
+        Thread::sleep(200);
+        if(toggle) ledOn(); else ledOff();
+        toggle^=1;
+        bool failed=false;
+        bool flagsCopy[nThreads];
+        {
+            PauseKernelLock dLock;
+            for(int i=0;i<nThreads;i++)
+            {
+                flagsCopy[i]=flags[i]; // Copy flag state for debugging
+                if(flags[i]==false) failed=true;
+                flags[i]=false;
+            }
+        }
+        if(failed)
+        {
+            char flagsStr[nThreads*3];
+            char* ptr=flagsStr;
+            for(int i=0;i<nThreads;i++)
+            {
+                const char* fmt = i<nThreads-1 ? "%d " : "%d";
+                ptr += snprintf(ptr,3,fmt,flagsCopy[i]);
+            }
+            const char failMsg[] = 
+                "One or more threads did not set their flag"
+                "\nflags = [%s]";
+            char buf[sizeof(failMsg)+sizeof(flagsStr)];
+            snprintf(buf,sizeof(buf),failMsg,flagsStr);
+            fail(buf);
+        }
+        int heap=MemoryProfiling::getHeapSize()-
                  MemoryProfiling::getCurrentFreeHeap();
-		iprintf("iteration=%d heap_used=%d\n",j,heap);
-	}
+        iprintf("iteration=%d heap_used=%d\n",j,heap);
+    }
 }
 #endif //__NO_EXCEPTIONS
 
