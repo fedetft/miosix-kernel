@@ -318,9 +318,10 @@ bool QueueBase<T,BufferT>::IRQput(const T& elem, bool *hppw)
             waiting->IRQgetPriority())) *hppw=true;
     IRQwakeWaitingThread();
     if(isFull()) return false;
-    numElem++;
+    numElem+=1;
     buffer.data[putPos]=elem;
-    if(++putPos==buffer.size()) putPos=0;
+    putPos+=1;
+    if(putPos==buffer.size()) putPos=0;
     return true;
 }
 
@@ -331,9 +332,10 @@ bool QueueBase<T,BufferT>::IRQget(T& elem, bool *hppw)
             waiting->IRQgetPriority()) *hppw=true;
     IRQwakeWaitingThread();
     if(isEmpty()) return false;
-    numElem--;
+    numElem-=1;
     elem=std::move(buffer.data[getPos]);
-    if(++getPos==buffer.size()) getPos=0;
+    getPos+=1;
+    if(getPos==buffer.size()) getPos=0;
     return true;
 }
 
@@ -346,12 +348,15 @@ void QueueBase<T,BufferT>::IRQreset()
     {
         while(!isEmpty())
         {
-            numElem--;
+            numElem-=1;
             buffer.data[getPos].~T();
-            if(++getPos==buffer.size()) getPos=0;
+            getPos+=1;
+            if(getPos==buffer.size()) getPos=0;
         }
     }
-    putPos=getPos=numElem=0;
+    putPos=0;
+    getPos=0;
+    numElem=0;
 }
 
 } // namespace internal
@@ -473,7 +478,7 @@ template<typename T>
 bool DynUnsyncQueue<T>::tryPut(const T& elem)
 {
     if(isFull()) return false;
-    queueSize++;
+    queueSize+=1;
     data[putPos++]=elem;
     if(putPos>=queueCapacity) putPos=0;
     return true;
@@ -483,7 +488,7 @@ template<typename T>
 bool DynUnsyncQueue<T>::tryGet(T& elem)
 {
     if(isEmpty()) return false;
-    queueSize--;
+    queueSize-=1;
     elem=data[getPos++];
     if(getPos>=queueCapacity) getPos=0;
     return true;
@@ -556,7 +561,7 @@ public:
     void bufferFilled(unsigned int actualSize)
     {
         if(isFull()) errorHandler(Error::UNEXPECTED);
-        cnt++;
+        cnt+=1;
         bufSize[put++]=actualSize;
         if(put>=numbuf) put=0;
     }
@@ -591,7 +596,7 @@ public:
     void bufferEmptied()
     {
         if(isEmpty()) errorHandler(Error::UNEXPECTED);
-        cnt--;
+        cnt-=1;
         get++;
         if(get>=numbuf) get=0;
     }
@@ -606,7 +611,9 @@ public:
      */
     void reset()
     {
-        put=get=cnt=0;
+        put=0;
+        get=0;
+        cnt=0;
     }
 
     //Unwanted methods

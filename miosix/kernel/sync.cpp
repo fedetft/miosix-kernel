@@ -464,7 +464,7 @@ Thread *Semaphore::IRQsignalImpl()
     if(fifo.empty())
     {
         //Nobody there, just increment the counter
-        count++;
+        count+=1;
         return nullptr;
     }
     WaitToken *cd=fifo.front();
@@ -503,7 +503,7 @@ void Semaphore::wait()
     //If the counter is positive, decrement it and we're done
     if(count>0)
     {
-        count--;
+        count-=1;
         return;
     }
     //Otherwise put ourselves in queue and wait
@@ -520,7 +520,7 @@ TimedWaitResult Semaphore::timedWait(long long absTime)
     //If the counter is positive, decrement it and we're done
     if(count>0)
     {
-        count--;
+        count-=1;
         return TimedWaitResult::NoTimeout;
     }
     //Otherwise put ourselves in queue and wait

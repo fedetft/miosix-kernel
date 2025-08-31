@@ -3162,7 +3162,12 @@ public:
 //TODO: remove this guard
 //atomic_load/store brings in exception code but it shouldn't
 #ifndef __NO_EXCEPTIONS
+#ifdef __cplusplus >= 202002
+// atomic_store/load is deprecated for shared_ptr in C++20
+std::atomic<shared_ptr<t22_c1>> t22_v7;
+#else
 shared_ptr<t22_c1> t22_v7;
+#endif
 
 void t22_t3(void*)
 {

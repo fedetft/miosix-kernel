@@ -36,10 +36,10 @@
 #include <vector>
 #include <cmath>
 
-static bool print=true;
-#define P(x) if(print) std::cout<<#x<<'='<<x<<' ';
-#define NL if(print) std::cout<<std::endl;
-#define ITERATION if(print) std::cout<<'+';
+static bool printEnabled=true;
+#define P(x) if(printEnabled) std::cout<<#x<<'='<<x<<' ';
+#define NL if(printEnabled) std::cout<<std::endl;
+#define ITERATION if(printEnabled) std::cout<<'+';
 
 #endif //TEST_ALGORITHM
 
@@ -503,7 +503,7 @@ void testns2tick(TimeConversion& tc, int iterations)
     long long maxTick=numeric_limits<long long>::max()/toNs;
     //Care about rounding
     while(tc.tick2ns(maxTick)<0) maxTick--;
-    print=false;
+    printEnabled=false;
     srand(0);
 
     //Fully random test
@@ -536,7 +536,7 @@ void testns2tick(TimeConversion& tc, int iterations)
         assert(uabs(tc.ns2tick(tc.tick2ns(b))-b)<2);
     }
 
-    print=true;
+    printEnabled=true;
 }
 
 int main()

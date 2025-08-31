@@ -616,7 +616,7 @@ public:
         if(count>0)
         {
             // The wait "succeeded"
-            count--;
+            count-=1;
             return true;
         }
         return false;

@@ -1019,7 +1019,7 @@ ArgsBlock::ArgsBlock(const char* const* argv, const char* const* envp, int narg,
 void ArgsBlock::relocateTo(char *target)
 {
     memcpy(target,block,blockSize);
-    auto relocate=[=](char *a)
+    auto relocate=[=, this](char *a)
     {
         char **element=reinterpret_cast<char**>(a);
         for(;*element!=nullptr;element++) *element=*element-block+target;

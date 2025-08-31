@@ -1190,7 +1190,9 @@ static bool multipleBlockRead(unsigned int *buffer, unsigned int nblk,
     SDIO->ICR=0x7ff;
     DMA2->IFCR=DMA_IFCR_CGIF4;
     
-    driverError=dmaTransferError=sdioTransferError=false;
+    driverError=false;
+    dmaTransferError=false;
+    sdioTransferError=false;
     dmaFlags=sdioFlags=0;
     waiting=Thread::getCurrentThread();
     
@@ -1286,7 +1288,9 @@ static bool multipleBlockWrite(const unsigned int *buffer, unsigned int nblk,
     SDIO->ICR=0x7ff;
     DMA2->IFCR=DMA_IFCR_CGIF4;
     
-    driverError=dmaTransferError=sdioTransferError=false;
+    driverError=false;
+    dmaTransferError=false;
+    sdioTransferError=false;
     dmaFlags=sdioFlags=0;
     waiting=Thread::getCurrentThread();
     

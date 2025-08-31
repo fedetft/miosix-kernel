@@ -941,7 +941,9 @@ static unsigned int dmaTransferCommonSetup(const unsigned char *buffer)
                 | DMA_LIFCR_CFEIF3;
     #endif
 
-    driverError=dmaTransferError=sdioTransferError=false;
+    driverError=false;
+    dmaTransferError=false;
+    sdioTransferError=false;
     dmaFlags=sdioFlags=0;
     waiting=Thread::getCurrentThread();
     
