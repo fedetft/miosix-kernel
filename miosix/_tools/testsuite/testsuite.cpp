@@ -4527,7 +4527,7 @@ static void exception_test()
     {
         Thread *thd=Thread::create(test,1024+512,0,
                                    reinterpret_cast<void*>(i),Thread::DETACHED);
-        if (!thd) fail("Thread creation failed");
+        if(!thd) fail("Thread creation failed");
     }
     bool toggle=false;
     for(int j=0;;j++)
@@ -4548,7 +4548,8 @@ static void exception_test()
         }
         if(failed)
         {
-            char flagsStr[nThreads*3];
+            char flagsStr[nThreads*3+1];
+            memset(flagsStr,0,sizeof(flagsStr));
             char* ptr=flagsStr;
             for(int i=0;i<nThreads;i++)
             {
