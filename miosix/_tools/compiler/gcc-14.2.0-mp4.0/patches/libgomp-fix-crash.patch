@@ -1,19 +1,19 @@
-diff -ruN gcc-9.2.0-old/libgomp/configure.tgt gcc-9.2.0/libgomp/configure.tgt
---- gcc-9.2.0-old/libgomp/configure.tgt	2025-06-29 12:33:39.052395119 +0200
-+++ gcc-9.2.0/libgomp/configure.tgt	2025-06-29 13:15:29.584489834 +0200
-@@ -159,6 +159,8 @@
+diff -ruN gcc-14.2.0-old/libgomp/configure.tgt gcc-14.2.0/libgomp/configure.tgt
+--- gcc-14.2.0-old/libgomp/configure.tgt	2025-09-09 16:52:42.186587531 +0200
++++ gcc-14.2.0/libgomp/configure.tgt	2025-09-09 16:55:11.395007822 +0200
+@@ -174,6 +174,8 @@
  
    *-miosix-*)
-     config_path="posix"
-+    # libgomp uses pthread_exit which on Miosix throws a terminate exception
-+    XCFLAGS="${XCFLAGS} -fexceptions"
-     ;;
+ 	config_path="posix"
++	# libgomp uses pthread_exit which on Miosix throws a terminate exception
++	XCFLAGS="${XCFLAGS} -fexceptions"
+ 	;;
  
    *-*-rtems*)
-diff -ruN gcc-9.2.0-old/libgomp/libgomp.h gcc-9.2.0/libgomp/libgomp.h
---- gcc-9.2.0-old/libgomp/libgomp.h	2019-01-01 13:31:55.000000000 +0100
-+++ gcc-9.2.0/libgomp/libgomp.h	2025-06-26 14:23:42.980043159 +0200
-@@ -700,9 +700,22 @@
+diff -ruN gcc-14.2.0-old/libgomp/libgomp.h gcc-14.2.0/libgomp/libgomp.h
+--- gcc-14.2.0-old/libgomp/libgomp.h	2025-09-09 16:52:42.118587339 +0200
++++ gcc-14.2.0/libgomp/libgomp.h	2025-09-09 16:52:53.446619244 +0200
+@@ -967,9 +967,22 @@
  }
  #else
  extern pthread_key_t gomp_tls_key;
@@ -37,9 +37,9 @@ diff -ruN gcc-9.2.0-old/libgomp/libgomp.h gcc-9.2.0/libgomp/libgomp.h
  }
  #endif
  
-diff -ruN gcc-9.2.0-old/libgomp/team.c gcc-9.2.0/libgomp/team.c
---- gcc-9.2.0-old/libgomp/team.c	2019-03-27 19:30:44.000000000 +0100
-+++ gcc-9.2.0/libgomp/team.c	2025-06-29 11:22:10.736233333 +0200
+diff -ruN gcc-14.2.0-old/libgomp/team.c gcc-14.2.0/libgomp/team.c
+--- gcc-14.2.0-old/libgomp/team.c	2025-09-09 16:52:42.114587328 +0200
++++ gcc-14.2.0/libgomp/team.c	2025-09-09 17:04:23.564563212 +0200
 @@ -43,6 +43,20 @@
  __thread struct gomp_thread gomp_tls_data;
  #else
@@ -61,18 +61,31 @@ diff -ruN gcc-9.2.0-old/libgomp/team.c gcc-9.2.0/libgomp/team.c
  #endif
  
  
-@@ -76,9 +90,7 @@
+@@ -78,8 +92,7 @@
  #if defined HAVE_TLS || defined USE_EMUTLS
    thr = &gomp_tls_data;
  #else
 -  struct gomp_thread local_thr;
 -  thr = &local_thr;
--  pthread_setspecific (gomp_tls_key, thr);
 +  thr = gomp_initialize_tls_key ();
  #endif
    gomp_sem_init (&thr->release, 0);
  
-@@ -247,9 +259,13 @@
+@@ -95,9 +108,10 @@
+ #ifdef GOMP_NEEDS_THREAD_HANDLE
+   thr->handle = data->handle;
+ #endif
+-#if !(defined HAVE_TLS || defined USE_EMUTLS)
+-  pthread_setspecific (gomp_tls_key, thr);
+-#endif
++//TODO: code changed upstream and this line was moved down, check the reason
++// #if !(defined HAVE_TLS || defined USE_EMUTLS)
++//   pthread_setspecific (gomp_tls_key, thr);
++// #endif
+ 
+   thr->ts.team->ordered_release[thr->ts.team_id] = &thr->release;
+ 
+@@ -262,9 +276,13 @@
  /* Free a thread pool and release its threads. */
  
  void
@@ -88,7 +101,7 @@ diff -ruN gcc-9.2.0-old/libgomp/team.c gcc-9.2.0/libgomp/team.c
    struct gomp_thread_pool *pool = thr->thread_pool;
    if (pool)
      {
-@@ -999,10 +1015,8 @@
+@@ -1022,10 +1040,8 @@
  initialize_team (void)
  {
  #if !defined HAVE_TLS && !defined USE_EMUTLS
