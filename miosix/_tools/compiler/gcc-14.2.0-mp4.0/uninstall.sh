@@ -4,7 +4,7 @@
 
 PREFIX="arm-miosix-eabi-"
 # Do not remove any item from this list, some users may have installed a very old Miosix compiler
-FILES="addr2line ar as c++ c++filt cpp elfedit g++ gcc gcc-ar gcc-nm gcc-ranlib gccbug gcov gcov-dump gcov-tool gdb gdbtui gdb-add-index gprof ld ld.bfd nm objcopy objdump ranlib readelf run size strings strip"
+FILES="addr2line ar as c++ c++filt cpp elfedit g++ gcc gcc-ar gcc-nm gcc-ranlib gccbug gcov gcov-dump gcov-tool gdb gdbtui gdb-add-index gprof ld ld.bfd lto-dump nm objcopy objdump ranlib readelf run size strings strip"
 
 # Remove symlinks to the compiler
 for i in $FILES; do

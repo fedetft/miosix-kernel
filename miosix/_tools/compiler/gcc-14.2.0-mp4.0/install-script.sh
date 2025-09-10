@@ -657,6 +657,8 @@ fi
 
 # Remove this since its name is not arm-miosix-eabi-
 $SUDO rm $DESTDIR$PREFIX/bin/arm-miosix-eabi-$GCC$EXT
+# Remove this since it is useless when cross-compiling
+$SUDO rm $DESTDIR$PREFIX/bin/arm-miosix-eabi-gstack
 
 # Strip stuff that is very large when having debug symbols to save disk space
 # This simple thing can easily save 500+MB
