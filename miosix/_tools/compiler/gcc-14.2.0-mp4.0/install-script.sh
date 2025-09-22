@@ -171,7 +171,13 @@ else
 fi
 
 if [[ $1 == '' ]]; then
-	PARALLEL="-j1"
+	if command -v nproc > /dev/null; then
+		PARALLEL="-j$(nproc)"
+	elif [[ $(uname -s) == 'Darwin' ]]; then
+		PARALLEL="-j$(sysctl -n hw.logicalcpu)"
+	else
+		PARALLEL="-j1";
+	fi
 else
 	PARALLEL=$1;
 fi
