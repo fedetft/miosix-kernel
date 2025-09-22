@@ -1,6 +1,6 @@
-diff -ruN binutils-2.44-orig/bfd/elf32-arm.c binutils-2.44/bfd/elf32-arm.c
---- binutils-2.44-orig/bfd/elf32-arm.c	2025-02-02 01:00:00.000000000 +0100
-+++ binutils-2.44/bfd/elf32-arm.c	2025-04-22 18:05:32.185164848 +0200
+diff -ruN binutils-2.44-old/bfd/elf32-arm.c binutils-2.44/bfd/elf32-arm.c
+--- binutils-2.44-old/bfd/elf32-arm.c	2025-02-02 01:00:00
++++ binutils-2.44/bfd/elf32-arm.c	2025-09-22 20:45:45
 @@ -1895,6 +1895,24 @@
  	 false),		/* pcrel_offset */
  };
@@ -64,10 +64,13 @@ diff -ruN binutils-2.44-orig/bfd/elf32-arm.c binutils-2.44/bfd/elf32-arm.c
  	{
  	  Elf_Internal_Rela outrel;
  	  bool skip, relocate;
-@@ -10879,6 +10905,33 @@
- 	  if (branch_type == ST_BRANCH_TO_THUMB)
- 	    value |= 1;
- 	  break;
+@@ -10876,6 +10902,33 @@
+ 
+ 	case R_ARM_ABS32:
+ 	  value += addend;
++	  if (branch_type == ST_BRANCH_TO_THUMB)
++	    value |= 1;
++	  break;
 +
 +	/*
 +	 * R_ARM_MIOSIXPROC_TGT2 is used in Miosix processes to implement TARGET2
@@ -92,15 +95,12 @@ diff -ruN binutils-2.44-orig/bfd/elf32-arm.c binutils-2.44/bfd/elf32-arm.c
 +	 */
 +	case R_ARM_MIOSIXPROC_TGT2:
 +	  value += addend - 0x40000000; /* subtract DATA_BASE */
-+	  if (branch_type == ST_BRANCH_TO_THUMB)
-+	    value |= 1;
-+	  break;
- 
- 	case R_ARM_ABS32_NOI:
- 	  value += addend;
-diff -ruN binutils-2.44-orig/include/elf/arm.h binutils-2.44/include/elf/arm.h
---- binutils-2.44-orig/include/elf/arm.h	2025-04-22 17:43:18.978078671 +0200
-+++ binutils-2.44/include/elf/arm.h	2025-04-22 17:43:37.991803482 +0200
+ 	  if (branch_type == ST_BRANCH_TO_THUMB)
+ 	    value |= 1;
+ 	  break;
+diff -ruN binutils-2.44-old/include/elf/arm.h binutils-2.44/include/elf/arm.h
+--- binutils-2.44-old/include/elf/arm.h	2025-02-02 01:00:00
++++ binutils-2.44/include/elf/arm.h	2025-09-22 20:45:45
 @@ -258,6 +258,7 @@
    RELOC_NUMBER (R_ARM_TLS_GD32_FDPIC,   165)
    RELOC_NUMBER (R_ARM_TLS_LDM32_FDPIC,  166)
@@ -109,3 +109,22 @@ diff -ruN binutils-2.44-orig/include/elf/arm.h binutils-2.44/include/elf/arm.h
  
    /* Extensions?  R=read-only?  */
    RELOC_NUMBER (R_ARM_RXPC25,         	249)
+diff -ruN binutils-2.44-old/zlib/zutil.h binutils-2.44/zlib/zutil.h
+--- binutils-2.44-old/zlib/zutil.h	2025-02-02 01:00:00
++++ binutils-2.44/zlib/zutil.h	2025-09-22 20:50:35
+@@ -139,15 +139,6 @@
+ 
+ #if defined(MACOS) || defined(TARGET_OS_MAC)
+ #  define OS_CODE  7
+-#  ifndef Z_SOLO
+-#    if defined(__MWERKS__) && __dest_os != __be_os && __dest_os != __win32_os
+-#      include <unix.h> /* for fdopen */
+-#    else
+-#      ifndef fdopen
+-#        define fdopen(fd,mode) NULL /* No fdopen() */
+-#      endif
+-#    endif
+-#  endif
+ #endif
+ 
+ #ifdef __acorn

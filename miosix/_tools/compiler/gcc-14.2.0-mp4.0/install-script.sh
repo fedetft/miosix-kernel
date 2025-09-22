@@ -208,7 +208,7 @@ extract()
 extract 'binutils' $BINUTILS.tar.xz patches/binutils.patch
 extract 'gcc' $GCC.tar.xz patches/gcc.patch
 extract 'newlib' $NEWLIB.tar.gz patches/newlib.patch patches/newlib_gcc14.patch
-extract 'gdb' $GDB.tar.xz
+extract 'gdb' $GDB.tar.xz patches/gdb.patch
 extract 'gmp' $GMP.tar.xz
 extract 'mpfr' $MPFR.tar.xz
 extract 'mpc' $MPC.tar.gz
@@ -240,11 +240,20 @@ if [[ $HOST ]]; then
 	export CPP_FOR_BUILD='g++'
 fi
 
+if [[ $(uname -s) == 'Darwin' ]]; then
+	# On macOS, the assembly implementations in GMP intermittently cause
+	# either compilation failures or broken builds. Disable them
+	MX_GMP_ASSEMBLY="--disable-assembly"
+else
+	MX_GMP_ASSEMBLY=""
+fi
+
 ./configure \
 	--build=$BUILD \
 	--host=$HOST \
 	--prefix=$LIB_DIR \
 	--enable-static --disable-shared \
+	$MX_GMP_ASSEMBLY \
 	2> ../log/z.gmp.a.txt					|| quit ":: Error configuring gmp"
 
 make all $PARALLEL 2>../log/z.gmp.b.txt		|| quit ":: Error compiling gmp"
