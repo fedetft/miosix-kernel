@@ -35,6 +35,7 @@
 #include <sys/ioctl.h>
 #include "interfaces/bsp.h"
 #include "interfaces_private/bsp_private.h"
+#include "interfaces_private/smp.h"
 #include "kernel/thread.h"
 #include "kernel/sync.h"
 #include "interfaces/delays.h"
@@ -153,7 +154,14 @@ void shutdown()
     #endif //WITH_FILESYSTEM
 
     FastGlobalIrqLock::lock();
-    for(;;) ;
+    // Everybody, go to sleep!
+    clocks_hw->sleep_en0=0;
+    clocks_hw->sleep_en1=0;
+    #ifdef WITH_SMP
+    IRQlockupOtherCores();
+    #endif
+    FastGlobalLockFromIrq::unlock();
+    for(;;) __WFE();
 }
 
 void reboot()

@@ -120,7 +120,7 @@ void IRQinterProcessorInterruptHandler(void *arg)
     if(flags[coreId] & IPIFlags::HangUp)
     {
         FastGlobalUnlockFromIrq dUnlock(dLock);
-        for(;;) ;
+        for(;;) __WFE();
     }
     // Clear the flags
     flags[coreId]=0;
