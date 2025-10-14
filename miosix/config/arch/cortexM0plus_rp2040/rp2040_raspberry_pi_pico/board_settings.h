@@ -55,7 +55,7 @@ const unsigned int MAIN_STACK_SIZE=4*1024;
 enum class OscillatorType { XOSC }; //Only one supported for now
 constexpr auto oscillatorType=OscillatorType::XOSC;
 constexpr unsigned int oscillatorFrequency=12000000;
-// Supported clock frequencies: 125000000, 133000000, 200000000
+// Supported clock frequencies: 125000000, 133333333, 200000000
 constexpr unsigned int cpuFrequency=200000000;
 constexpr unsigned int peripheralFrequency=cpuFrequency;
 

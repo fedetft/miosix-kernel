@@ -156,7 +156,7 @@ static void clockTreeSetup()
     hw_clear_bits(&clocks_hw->clk[clk_ref].ctrl, CLOCKS_CLK_REF_CTRL_SRC_BITS);
     while(clocks_hw->clk[clk_ref].selected != 0x1) ;
 
-    if(cpuFrequency>133000000)
+    if(cpuFrequency>133333333)
     {
         // vcore to 1.15V
         vreg_and_chip_reset_hw->vreg=(12<<VREG_AND_CHIP_RESET_VREG_VSEL_LSB) 
@@ -172,7 +172,10 @@ static void clockTreeSetup()
     // VCO frequency (fb_div * oscillatorFrequency) must be >= 750MHz
     static_assert((cpuFrequency / 1000000) * oscillatorFrequency >= 750, "cpuFrequency too slow");
     // SYS PLL = 12MHz * (cpuFrequency/1000000) / 6 / 2 ~= cpuFrequency
-    pllInit(pll_sys_hw, 1, cpuFrequency/1000000, 6, 2);
+    // Optimal parameters for common frequencies
+    if(cpuFrequency==133333333) pllInit(pll_sys_hw, 1, 100, 3, 3);
+    else if(cpuFrequency==200000000) pllInit(pll_sys_hw, 1, 100, 6, 1);
+    else pllInit(pll_sys_hw, 1, cpuFrequency/1000000, 6, 2);
     // USB PLL = 12MHz * 64 / 4 / 4 = 48 MHz
     pllInit(pll_usb_hw, 1, 64, 4, 4);
 
