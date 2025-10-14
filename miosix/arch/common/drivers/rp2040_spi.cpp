@@ -41,11 +41,19 @@ RP2040PL022DmaSpi::RP2040PL022DmaSpi(int number, unsigned int bitrate, bool spo,
         switch(number)
         {
             case 0:
+                clocks_hw->wake_en0|=CLOCKS_WAKE_EN0_CLK_SYS_SPI0_BITS
+                                   | CLOCKS_WAKE_EN0_CLK_PERI_SPI0_BITS;
+                clocks_hw->sleep_en0|=CLOCKS_SLEEP_EN0_CLK_SYS_SPI0_BITS
+                                    | CLOCKS_SLEEP_EN0_CLK_PERI_SPI0_BITS;
                 unreset_block_wait(RESETS_RESET_SPI0_BITS);
                 spi=spi0_hw;
                 irqn=SPI0_IRQ_IRQn;
                 break;
             case 1:
+                clocks_hw->wake_en0|=CLOCKS_WAKE_EN0_CLK_SYS_SPI1_BITS
+                                   | CLOCKS_WAKE_EN0_CLK_PERI_SPI1_BITS;
+                clocks_hw->sleep_en0|=CLOCKS_SLEEP_EN0_CLK_SYS_SPI1_BITS
+                                    | CLOCKS_SLEEP_EN0_CLK_PERI_SPI1_BITS;
                 unreset_block_wait(RESETS_RESET_SPI1_BITS);
                 spi=spi1_hw;
                 irqn=SPI1_IRQ_IRQn;
@@ -81,9 +89,17 @@ RP2040PL022DmaSpi::~RP2040PL022DmaSpi() noexcept
     if(spi==spi0_hw)
     {
         IRQunregisterIrq(lock,SPI0_IRQ_IRQn,&RP2040PL022DmaSpi::IRQhandleInterrupt,this);
+        clocks_hw->wake_en0&=~(CLOCKS_WAKE_EN0_CLK_SYS_SPI0_BITS
+                              | CLOCKS_WAKE_EN0_CLK_PERI_SPI0_BITS);
+        clocks_hw->sleep_en0&=~(CLOCKS_SLEEP_EN0_CLK_SYS_SPI0_BITS
+                               | CLOCKS_SLEEP_EN0_CLK_PERI_SPI0_BITS);
         reset_block(RESETS_RESET_SPI0_BITS);
     } else {
         IRQunregisterIrq(lock,SPI1_IRQ_IRQn,&RP2040PL022DmaSpi::IRQhandleInterrupt,this);
+        clocks_hw->wake_en0&=~(CLOCKS_WAKE_EN0_CLK_SYS_SPI1_BITS
+                              | CLOCKS_WAKE_EN0_CLK_PERI_SPI1_BITS);
+        clocks_hw->sleep_en0&=~(CLOCKS_SLEEP_EN0_CLK_SYS_SPI1_BITS
+                               | CLOCKS_SLEEP_EN0_CLK_PERI_SPI1_BITS);
         reset_block(RESETS_RESET_SPI1_BITS);
     }
     RP2040Dma::IRQunregisterChannel(lock,txDmaCh,&RP2040PL022DmaSpi::IRQhandleDmaInterrupt,this);

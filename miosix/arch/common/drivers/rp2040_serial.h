@@ -60,9 +60,17 @@ public:
         switch(number)
         {
             case 0:
+                clocks_hw->wake_en1|=CLOCKS_WAKE_EN1_CLK_SYS_UART0_BITS
+                                   | CLOCKS_WAKE_EN1_CLK_PERI_UART0_BITS;
+                clocks_hw->sleep_en1|=CLOCKS_SLEEP_EN1_CLK_SYS_UART0_BITS
+                                    | CLOCKS_SLEEP_EN1_CLK_PERI_UART0_BITS;
                 unreset_block_wait(RESETS_RESET_UART0_BITS);
                 break;
             case 1:
+                clocks_hw->wake_en1|=CLOCKS_WAKE_EN1_CLK_SYS_UART1_BITS
+                                   | CLOCKS_WAKE_EN1_CLK_PERI_UART1_BITS;
+                clocks_hw->sleep_en1|=CLOCKS_WAKE_EN1_CLK_SYS_UART1_BITS
+                                    | CLOCKS_WAKE_EN1_CLK_PERI_UART1_BITS;
                 unreset_block_wait(RESETS_RESET_UART1_BITS);
                 break;
             default:

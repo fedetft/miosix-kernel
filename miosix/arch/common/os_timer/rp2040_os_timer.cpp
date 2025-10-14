@@ -143,6 +143,8 @@ void IRQosTimerInit()
 {
     GlobalIrqLock lock; // does nothing, but is needed by IRQregisterIrq
     //Bring timer out of reset
+    clocks_hw->wake_en1|=CLOCKS_WAKE_EN1_CLK_SYS_TIMER_BITS;
+    clocks_hw->sleep_en1|=CLOCKS_SLEEP_EN1_CLK_SYS_TIMER_BITS;
     resets_hw->reset&= ~RESETS_RESET_TIMER_BITS;
     while((resets_hw->reset_done & RESETS_RESET_TIMER_BITS)==0) ;
     //Enable timer interrupt generation

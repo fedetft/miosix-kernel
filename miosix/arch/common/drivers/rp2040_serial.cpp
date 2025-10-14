@@ -48,11 +48,19 @@ RP2040PL011DmaSerial::RP2040PL011DmaSerial(int number, int baudrate,
     switch(number)
     {
         case 0:
+            clocks_hw->wake_en1|=CLOCKS_WAKE_EN1_CLK_SYS_UART0_BITS
+                               | CLOCKS_WAKE_EN1_CLK_PERI_UART0_BITS;
+            clocks_hw->sleep_en1|=CLOCKS_SLEEP_EN1_CLK_SYS_UART0_BITS
+                                | CLOCKS_SLEEP_EN1_CLK_PERI_UART0_BITS;
             unreset_block_wait(RESETS_RESET_UART0_BITS);
             uart=uart0_hw;
             irqn=UART0_IRQ_IRQn;
             break;
         case 1:
+            clocks_hw->wake_en1|=CLOCKS_WAKE_EN1_CLK_SYS_UART1_BITS
+                               | CLOCKS_WAKE_EN1_CLK_PERI_UART1_BITS;
+            clocks_hw->sleep_en1|=CLOCKS_SLEEP_EN1_CLK_SYS_UART1_BITS
+                                | CLOCKS_SLEEP_EN1_CLK_PERI_UART1_BITS;
             unreset_block_wait(RESETS_RESET_UART1_BITS);
             uart=uart1_hw;
             irqn=UART1_IRQ_IRQn;
@@ -182,9 +190,17 @@ RP2040PL011DmaSerial::~RP2040PL011DmaSerial()
     if(uart==uart0_hw)
     {
         IRQunregisterIrq(lock,UART0_IRQ_IRQn,&RP2040PL011DmaSerial::IRQhandleInterrupt,this);
+        clocks_hw->wake_en1&=~(CLOCKS_WAKE_EN1_CLK_SYS_UART0_BITS
+                              | CLOCKS_WAKE_EN1_CLK_PERI_UART0_BITS);
+        clocks_hw->sleep_en1&=~(CLOCKS_SLEEP_EN1_CLK_SYS_UART0_BITS
+                               | CLOCKS_SLEEP_EN1_CLK_PERI_UART0_BITS);
         reset_block(RESETS_RESET_UART0_BITS);
     } else {
         IRQunregisterIrq(lock,UART1_IRQ_IRQn,&RP2040PL011DmaSerial::IRQhandleInterrupt,this);
+        clocks_hw->wake_en1&=~(CLOCKS_WAKE_EN1_CLK_SYS_UART1_BITS
+                              | CLOCKS_WAKE_EN1_CLK_PERI_UART1_BITS);
+        clocks_hw->sleep_en1&=~(CLOCKS_SLEEP_EN1_CLK_SYS_UART1_BITS
+                               | CLOCKS_SLEEP_EN1_CLK_PERI_UART1_BITS);
         reset_block(RESETS_RESET_UART1_BITS);
     }
     RP2040Dma::IRQunregisterChannel(lock,txDmaCh,&RP2040PL011DmaSerial::IRQhandleDmaInterrupt,this);

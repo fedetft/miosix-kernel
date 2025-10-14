@@ -73,6 +73,8 @@ void RP2040Dma::IRQunregisterChannel(GlobalIrqLock& lock, unsigned int channel,
 
 void RP2040Dma::IRQinitialize(GlobalIrqLock& lock) noexcept
 {
+    clocks_hw->wake_en0|=CLOCKS_WAKE_EN0_CLK_SYS_DMA_BITS;
+    clocks_hw->sleep_en0|=CLOCKS_SLEEP_EN0_CLK_SYS_DMA_BITS;
     unreset_block_wait(RESETS_RESET_DMA_BITS);
     IRQregisterIrq(lock,DMA_IRQ_0_IRQn,&IRQinterruptHandler<0>);
     IRQregisterIrq(lock,DMA_IRQ_1_IRQn,&IRQinterruptHandler<1>);

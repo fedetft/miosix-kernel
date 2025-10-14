@@ -255,30 +255,45 @@ void IRQmemoryAndClockInit()
     //properly. We do everyting ourselves.
     //SystemInit();
 
-    // Reset all peripherals to put system into a known state,
-    // - except for QSPI pads and the XIP IO bank, as this is fatal if running from flash
-    // - and the PLLs, as this is fatal if clock muxing has not been reset on this boot
-    reset_block(~(
-          RESETS_RESET_IO_QSPI_BITS
+    // Reset all peripherals to put system into a known state, except for:
+    // - QSPI pads and the XIP IO bank, as this is fatal if running from flash
+    // - the PLLs, as this is fatal if clock muxing has not been reset on this boot
+    reset_block(~(RESETS_RESET_IO_QSPI_BITS
         | RESETS_RESET_PADS_QSPI_BITS
         | RESETS_RESET_PLL_USB_BITS
-        | RESETS_RESET_PLL_SYS_BITS));
-    // Remove reset from peripherals which are clocked only by clk_sys and
-    // clk_ref. Other peripherals stay in reset until we've configured clocks.
-    // TODO: do we really have to enable all that junk?
-    unreset_block_wait(RESETS_RESET_BITS & ~(
-          RESETS_RESET_ADC_BITS
-        | RESETS_RESET_RTC_BITS
-        | RESETS_RESET_SPI0_BITS
-        | RESETS_RESET_SPI1_BITS
-        | RESETS_RESET_UART0_BITS
-        | RESETS_RESET_UART1_BITS
-        | RESETS_RESET_USBCTRL_BITS));
+        | RESETS_RESET_PLL_SYS_BITS)); // These are the peripherals NOT being reset
+    // Kill clock of non-essential peripherals
+    // Essential peripherals are BUSCTRL, BUSFAB, VREG, Resets, ROM, SRAMs
+    // We also leave on some more stuff we need
+    clocks_hw->wake_en0=clocks_hw->sleep_en0=
+          CLOCKS_WAKE_EN0_CLK_SYS_CLOCKS_BITS
+        | CLOCKS_WAKE_EN0_CLK_SYS_BUSCTRL_BITS // (essential)
+        | CLOCKS_WAKE_EN0_CLK_SYS_BUSFABRIC_BITS // (essential)
+        | CLOCKS_WAKE_EN0_CLK_SYS_IO_BITS // (essential as we are using QSPI)
+        | CLOCKS_WAKE_EN0_CLK_SYS_VREG_AND_CHIP_RESET_BITS // (essential)
+        | CLOCKS_WAKE_EN0_CLK_SYS_PADS_BITS // (essential as we are using QSPI)
+        | CLOCKS_WAKE_EN0_CLK_SYS_PLL_SYS_BITS // (essential as we might be clocked using the PLL now)
+        | CLOCKS_WAKE_EN0_CLK_SYS_PLL_USB_BITS // (essential as we might be clocked using the PLL now)
+        | CLOCKS_WAKE_EN0_CLK_SYS_PSM_BITS // Power on State Machine
+        | CLOCKS_WAKE_EN0_CLK_SYS_RESETS_BITS // (essential)
+        | CLOCKS_WAKE_EN0_CLK_SYS_ROM_BITS // (essential)
+        | CLOCKS_WAKE_EN0_CLK_SYS_ROSC_BITS // Internal ring oscillator (essential as we might be clocked using the ROSC now)
+        | CLOCKS_WAKE_EN0_CLK_SYS_SIO_BITS // Single-Cycle IO (GPIOs/CPUID/CPU FIFOs/Spinlocks) (needed by the kernel later)
+        | CLOCKS_WAKE_EN0_CLK_SYS_SRAM0_BITS // (essential)
+        | CLOCKS_WAKE_EN0_CLK_SYS_SRAM1_BITS // (essential)
+        | CLOCKS_WAKE_EN0_CLK_SYS_SRAM2_BITS // (essential)
+        | CLOCKS_WAKE_EN0_CLK_SYS_SRAM3_BITS; // (essential)
+    clocks_hw->wake_en1=clocks_hw->sleep_en1=
+          CLOCKS_WAKE_EN1_CLK_SYS_SRAM4_BITS // (essential)
+        | CLOCKS_WAKE_EN1_CLK_SYS_SRAM5_BITS // (essential)
+        | CLOCKS_WAKE_EN1_CLK_SYS_WATCHDOG_BITS // (needed by the kernel later for rebooting)
+        | CLOCKS_WAKE_EN1_CLK_SYS_XIP_BITS // (essential because almost certainly in use now)
+        | CLOCKS_WAKE_EN1_CLK_SYS_XOSC_BITS; // (essential because we might be clocked by this now)
 
     //QUIRK: the rp2040 GPIO when reset configures pins as output by default!
     //This was causing problems if a fault reset occurs such as a HardFault as
     //immediately after printing the fault debug message, the chip would reboot
-    //and hit the reset_block() above that would configure the serial TX as
+    //and hit the reset above that would configure the serial TX as
     //output low, inadvertently sending a break condition that would prevent
     //the debug message from being printed. As a positive side effect of this
     //fix, ALL GPIOs, not just the serial ones get disabled at boot, which is
@@ -298,10 +313,29 @@ void IRQmemoryAndClockInit()
     clockTreeSetup();
 
     // Peripheral clocks should now all be running, turn on basic peripherals
-    unreset_block_wait(
-          RESETS_RESET_SYSINFO_BITS
-        | RESETS_RESET_SYSCFG_BITS
-        | RESETS_RESET_BUSCTRL_BITS);
+    clocks_hw->wake_en0=clocks_hw->sleep_en0|=
+          CLOCKS_WAKE_EN0_CLK_SYS_BUSCTRL_BITS;
+    clocks_hw->wake_en1=clocks_hw->sleep_en1|=
+          CLOCKS_WAKE_EN1_CLK_SYS_SYSINFO_BITS
+        | CLOCKS_WAKE_EN1_CLK_SYS_SYSCFG_BITS;
+    unreset_block_wait(RESETS_RESET_SYSINFO_BITS
+                     | RESETS_RESET_SYSCFG_BITS
+                     | RESETS_RESET_BUSCTRL_BITS);
+    // Disable peripherals we surely don't need anymore
+    clocks_hw->wake_en0=clocks_hw->sleep_en0&=~CLOCKS_WAKE_EN0_CLK_SYS_ROSC_BITS;
+    // Disable sleep clocks of peripherals that won't be accessed if the CPU sleeps
+    clocks_hw->sleep_en0&=~(
+          CLOCKS_WAKE_EN0_CLK_SYS_CLOCKS_BITS // can't reconfigure clocks when in sleep
+        | CLOCKS_WAKE_EN0_CLK_SYS_IO_BITS // can't reconfigure pads when in sleep
+        | CLOCKS_WAKE_EN0_CLK_SYS_PADS_BITS // can't reconfigure pads when in sleep
+        | CLOCKS_WAKE_EN0_CLK_SYS_RESETS_BITS // can't reconfigure resets when in sleep
+        | CLOCKS_WAKE_EN0_CLK_SYS_ROM_BITS // can't read the ROM when in sleep
+        | CLOCKS_WAKE_EN0_CLK_SYS_SIO_BITS); // only accessible by CPUs
+    clocks_hw->sleep_en1&=~(
+          CLOCKS_WAKE_EN1_CLK_SYS_SYSINFO_BITS // only accessible by CPUs
+        | CLOCKS_WAKE_EN1_CLK_SYS_SYSCFG_BITS // only accessible by CPUs
+        | CLOCKS_WAKE_EN1_CLK_SYS_WATCHDOG_BITS // only used for resetting
+        | CLOCKS_WAKE_EN1_CLK_SYS_XIP_BITS); // won't DMA from the XIP ROM (if we do, reenable!)
 
     // Architecture has MPU, enable kernel-level W^X protection
     IRQconfigureMPU();
