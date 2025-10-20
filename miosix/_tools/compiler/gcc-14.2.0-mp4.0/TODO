@@ -1,4 +1,9 @@
 
+miosix/stdlib_integration/libstdcpp_integration.cpp:48:#warning: TODO: FIX __gthread_key_t in libstdc++/include/std/memory_resource
+
+add this to newlib options?
+--disable-newlib-wide-orient
+
 Add libsyscalls to the compiler and have gcc link with it be default by
 creating a specs file, remove stubs.c in newlib. Also, build newlib without
 libnosys and the other unused stub libraries.
