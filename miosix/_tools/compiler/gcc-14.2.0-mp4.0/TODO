@@ -30,6 +30,9 @@ __gthread_cond_timedwait(&_M_cond, __lock.mutex()->native_handle(), &__ts);
 return (__clock_t::now() < __atime ? cv_status::no_timeout : cv_status::timeout);
 use the return value of pthread_cond_timedwait instead to optimize code
 
+TODO: can't we just define _GLIBCXX_USE_PTHREAD_COND_CLOCKWAIT since support
+has been added in GCC 14????
+---- old note ---
 In libstdc++ header condition_variable condition_variable::wait_for calls both clock_gettime(CLOCK_REALTIME... and clock_gettime(CLOCK_MONOTONIC...
 This is not needed as pthread_cond_timedwait in Miosix refuses to follow the
 (broken) standard on purpose and accepts the timeout directly in terms of

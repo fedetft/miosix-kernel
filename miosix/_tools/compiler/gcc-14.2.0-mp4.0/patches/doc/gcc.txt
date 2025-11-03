@@ -97,7 +97,7 @@ compile-time errors to avoid giving the false impression that it works.
 Types to watch out
 ------------------
 Some unexported types are copy-pasted in the kernel, and need to be kept consistent
-struct __cxa_eh_globals in miosix/stdlib_integration/libstdcpp_integration.h
+struct __cxa_eh_globals in miosix/kercalls/libstdcpp_integration.h
 
 
 Program to check how atomic ops are handled
