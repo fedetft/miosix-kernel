@@ -50,7 +50,7 @@ static inline __attribute__((always_inline)) void delayUsImpl(unsigned int us)
             "    nop        \n"
             "    subs %0, #1\n"
             "    cmp  %0, #0\n"
-            "    bne  1b    \n":"+r"(iterCount)::"cc");
+            "    bne  1b    \n":"+l"(iterCount)::"cc");
     } else if(cpuFrequency==125000000 || cpuFrequency==200000000) {
         // 5 cycles per iteration
         unsigned int iterCount;
@@ -62,7 +62,7 @@ static inline __attribute__((always_inline)) void delayUsImpl(unsigned int us)
             "1:  nop        \n"
             "    subs %0, #1\n"
             "    cmp  %0, #0\n"
-            "    bne  1b    \n":"+r"(iterCount)::"cc");
+            "    bne  1b    \n":"+l"(iterCount)::"cc");
     }
 }
 

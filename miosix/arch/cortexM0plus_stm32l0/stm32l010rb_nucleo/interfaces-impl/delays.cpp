@@ -52,7 +52,7 @@ void delayUs(unsigned int useconds)
                  "1: sub   %0, %0, #1 \n"
                  "   nop              \n"
                  "   cmp   %0, #0     \n" //No subs instruction in cortex m0
-                 "   bpl   1b         \n":"+r"(counter):"r"(useconds):"cc");
+                 "   bpl   1b         \n":"+l"(counter):"l"(useconds):"cc");
 }
 
 } //namespace miosix
