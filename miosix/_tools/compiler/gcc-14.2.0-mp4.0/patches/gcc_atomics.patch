@@ -1,0 +1,188 @@
+diff --git gcc-14.2.0-old/gcc/builtins.cc gcc-14.2.0/gcc/builtins.cc
+index 7c1497561f7..f754ee85e6d 100644
+--- gcc-14.2.0-old/gcc/builtins.cc
++++ gcc-14.2.0/gcc/builtins.cc
+@@ -6596,12 +6596,21 @@ expand_builtin_sync_lock_test_and_set (machine_mode mode, tree exp,
+ static void
+ expand_builtin_sync_lock_release (machine_mode mode, tree exp)
+ {
+-  rtx mem;
+-
+-  /* Expand the operands.  */
+-  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
+-
+-  expand_atomic_store (mem, const0_rtx, MEMMODEL_SYNC_RELEASE, true);
++  /* Miosix patch begin: Generate the atomic store the long way because
++     just calling expand_atomic_store does not guarantee we generate any code */
++  rtx mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
++  unsigned int bytes_log2 = exact_log2 (GET_MODE_SIZE (mode).to_constant ());
++  gcc_assert (bytes_log2 < 5);
++  built_in_function fncode
++    = (built_in_function) ((int) BUILT_IN_ATOMIC_STORE_1 + bytes_log2);
++  tree const fn = builtin_decl_explicit (fncode);
++  tree target = CALL_EXPR_ARG (exp, 0);
++  tree sync = build_int_cst (integer_type_node, MEMMODEL_SYNC_RELEASE);
++  tree exp2 = build_call_expr (fn, 3, target,
++                              build_zero_cst (boolean_type_node),
++                              sync);
++  expand_builtin (exp2, NULL_RTX, NULL_RTX, mode, false);
++  /* Miosix patch end */
+ }
+ 
+ /* Given an integer representing an ``enum memmodel'', verify its
+@@ -7180,9 +7189,20 @@ expand_builtin_atomic_clear (tree exp)
+      fail is if the bool type is larger than a word size.  Unlikely, but
+      handle it anyway for completeness.  Assume a single threaded model since
+      there is no atomic support in this case, and no barriers are required.  */
+-  rtx ret = expand_atomic_store (mem, const0_rtx, model, true);
+-  if (!ret)
+-    emit_move_insn (mem, const0_rtx);
++  /* Miosix patch begin: As the comment above suggests, the case in which
++     expand_atomic_store failed was handled, but in the wrong way, just
++     generating a move, while it actually needed to call the __atomic_store
++     function. By generating the store the long way we avoid problems.
++     TODO: assuming that BOOL_TYPE_SIZE is 8 bits here, which is correct for
++     the architectures supported by Miosix. */
++  tree const fn = builtin_decl_explicit (BUILT_IN_ATOMIC_STORE_1);
++  tree target = CALL_EXPR_ARG (exp, 0);
++  tree sync = build_int_cst (integer_type_node, model);
++  tree exp2 = build_call_expr (fn, 3, target,
++                              build_zero_cst (boolean_type_node),
++                              sync);
++  expand_builtin (exp2, NULL_RTX, NULL_RTX, mode, false);
++  /* Miosix patch end */
+   return const0_rtx;
+ }
+ 
+diff --git gcc-14.2.0-old/gcc/config/arm/sync.md gcc-14.2.0/gcc/config/arm/sync.md
+index 0a8347fc598..611887fa618 100644
+--- gcc-14.2.0-old/gcc/config/arm/sync.md
++++ gcc-14.2.0/gcc/config/arm/sync.md
+@@ -102,7 +102,7 @@
+   [(match_operand:QHSI 0 "register_operand")		;; val out
+    (match_operand:QHSI 1 "arm_sync_memory_operand")	;; memory
+    (match_operand:SI 2 "const_int_operand")]		;; model
+-  ""
++  "!TARGET_THUMB1" ;; Miosix patch: generate calls if we don't have ldrex/strex
+ {
+   memmodel model = memmodel_from_int (INTVAL (operands[2]));
+ 
+@@ -131,7 +131,7 @@
+   [(match_operand:QHSI 0 "arm_sync_memory_operand")	;; memory
+    (match_operand:QHSI 1 "register_operand")		;; store value
+    (match_operand:SI 2 "const_int_operand")]		;; model
+-  ""
++  "!TARGET_THUMB1" ;; Miosix patch: generate calls if we don't have ldrex/strex
+ {
+   memmodel model = memmodel_from_int (INTVAL (operands[2]));
+ 
+diff --git gcc-14.2.0-old/gcc/optabs.cc gcc-14.2.0/gcc/optabs.cc
+index ce91f94ed43..7bfa4bd49e5 100644
+--- gcc-14.2.0-old/gcc/optabs.cc
++++ gcc-14.2.0/gcc/optabs.cc
+@@ -7408,29 +7408,20 @@ expand_atomic_load (rtx target, rtx mem, enum memmodel model)
+       delete_insns_since (last);
+     }
+ 
+-  /* If the size of the object is greater than word size on this target,
+-     then we assume that a load will not be atomic.  We could try to
+-     emulate a load with a compare-and-swap operation, but the store that
+-     doing this could result in would be incorrect if this is a volatile
+-     atomic load or targetting read-only-mapped memory.  */
+-  if (maybe_gt (GET_MODE_PRECISION (mode), BITS_PER_WORD))
+-    /* If there is no atomic load, leave the library call.  */
+-    return NULL_RTX;
+-
+-  /* Otherwise assume loads are atomic, and emit the proper barriers.  */
+-  if (!target || target == const0_rtx)
+-    target = gen_reg_rtx (mode);
+-
+-  /* For SEQ_CST, emit a barrier before the load.  */
+-  if (is_mm_seq_cst (model))
+-    expand_mem_thread_fence (model);
+-
+-  emit_move_insn (target, mem);
+-
+-  /* Emit the appropriate barrier after the load.  */
+-  expand_mem_thread_fence (model);
+-
+-  return target;
++  /* Miosix patch begin
++     Upstream, there is codegen here that assumes one could always use a normal
++     load wrapped around some barriers if there are no architecture specific
++     pattern for atomic_load AND the size of the value is <= the architecture's
++     word size. But this is of course wrong if for other atomics we are using
++     lock-based implementations in all cases. This is pointed out in
++     bug report https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86005, but
++     the maintainers don't seem forthcoming in addressing the problem.
++     Since this issue affects Miosix specifically, we patch it ourselves
++     for now by always using the code-path for objects that are not a
++     supported word size. */
++  /* Leave the library call. */
++  return NULL_RTX;
++  /* Miosix patch end */
+ }
+ 
+ /* This function expands the atomic store operation:
+@@ -7485,36 +7476,32 @@ expand_atomic_store (rtx mem, rtx val, enum memmodel model, bool use_release)
+ 	}
+     }
+ 
+-  /* If the size of the object is greater than word size on this target,
+-     a default store will not be atomic.  */
+-  if (maybe_gt (GET_MODE_PRECISION (mode), BITS_PER_WORD))
+-    {
+-      /* If loads are atomic or we are called to provide a __sync builtin,
+-	 we can try a atomic_exchange and throw away the result.  Otherwise,
+-	 don't do anything so that we do not create an inconsistency between
+-	 loads and stores.  */
+-      if (can_atomic_load_p (mode) || is_mm_sync (model))
+-	{
+-	  rtx target = maybe_emit_atomic_exchange (NULL_RTX, mem, val, model);
+-	  if (!target)
+-	    target = maybe_emit_compare_and_swap_exchange_loop (NULL_RTX, mem,
+-								val);
+-	  if (target)
+-	    return const0_rtx;
+-	}
+-        return NULL_RTX;
++  /* Miosix patch begin
++     Upstream, there is codegen here that assumes one could always use a normal
++     store wrapped around some barriers if there are no architecture specific
++     pattern for atomic_store. But this is of course wrong if for other atomics
++     we are using lock-based implementations. This is pointed out in
++     bug report https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86005, but
++     the maintainers don't seem forthcoming in addressing the problem.
++     Since this issue affects Miosix specifically, we patch it ourselves
++     for now by always using the code-path for objects that are not a
++     supported word size. */
++  /* If loads are atomic or we are called to provide a __sync builtin,
++      we can try a atomic_exchange and throw away the result.  Otherwise,
++      don't do anything so that we do not create an inconsistency between
++      loads and stores.  */
++  if (can_atomic_load_p (mode) || is_mm_sync (model))
++    {
++      rtx target = maybe_emit_atomic_exchange (NULL_RTX, mem, val, model);
++      if (!target)
++        target = maybe_emit_compare_and_swap_exchange_loop (NULL_RTX, mem,
++                                                            val);
++      if (target)
++        return const0_rtx;
+     }
+-
+-  /* Otherwise assume stores are atomic, and emit the proper barriers.  */
+-  expand_mem_thread_fence (model);
+-
+-  emit_move_insn (mem, val);
+-
+-  /* For SEQ_CST, also emit a barrier after the store.  */
+-  if (is_mm_seq_cst (model))
+-    expand_mem_thread_fence (model);
+-
+-  return const0_rtx;
++  /* Leave the library call. */
++  return NULL_RTX;
++  /* Miosix patch end */
+ }
+ 
+ 
