@@ -633,6 +633,17 @@ int pthread_once(pthread_once_t *once, void (*func)())
     return 0;
 }
 
+// TODO
+extern "C" unsigned int libat_quick_lock_n(void *ptr)
+{
+    return 0;
+}
+
+// TODO
+extern "C" void libat_quick_unlock_n(void *ptr, unsigned int token)
+{
+}
+
 } // extern "C"
 
 union MiosixGuard
