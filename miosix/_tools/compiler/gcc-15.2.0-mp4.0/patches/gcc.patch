@@ -11,7 +11,7 @@ diff -ruN gcc-15.2.0-old/config/gthr.m4 gcc-15.2.0/config/gthr.m4
      rtems)	thread_header=config/gthr-rtems.h ;;
 diff -ruN gcc-15.2.0-old/gcc/config/arm/arm.cc gcc-15.2.0/gcc/config/arm/arm.cc
 --- gcc-15.2.0-old/gcc/config/arm/arm.cc	2025-08-08 08:51:40.469348055 +0200
-+++ gcc-15.2.0/gcc/config/arm/arm.cc	2025-11-03 23:30:09.352014434 +0100
++++ gcc-15.2.0/gcc/config/arm/arm.cc	2025-11-19 18:23:25.058331529 +0100
 @@ -77,10 +77,20 @@
  #include "aarch-common-protos.h"
  #include "machmode.h"
@@ -69,10 +69,11 @@ diff -ruN gcc-15.2.0-old/gcc/config/arm/arm.cc gcc-15.2.0/gcc/config/arm/arm.cc
  
    speculation_barrier_libfunc = init_one_libfunc ("__speculation_barrier");
  }
-@@ -8189,6 +8224,157 @@
+@@ -8189,6 +8224,158 @@
    return emit_insn (pat);
  }
  
++// Patch set ID: miosix-processes-rodata
 +// TODO: #ifdef _MIOSIX does not work in this context
 +
 +// Taken from varasm.cc, it is static unfortunately, hence the copy-paste
@@ -227,16 +228,17 @@ diff -ruN gcc-15.2.0-old/gcc/config/arm/arm.cc gcc-15.2.0/gcc/config/arm/arm.cc
  /* Legitimize PIC load to ORIG into REG.  If REG is NULL, a new pseudo is
     created to hold the result of the load.  If not NULL, PIC_REG indicates
     which register to use as PIC register, otherwise it is decided by register
-@@ -8214,6 +8400,8 @@
+@@ -8214,6 +8401,9 @@
  	  reg = gen_reg_rtx (Pmode);
  	}
  
++      // Patch set ID: miosix-processes-rodata
 +      bool miosix_ref_demux = miosix_processes_ref_demux(orig);
 +
        /* VxWorks does not impose a fixed gap between segments; the run-time
  	 gap can be different from the object-file gap.  We therefore can't
  	 use GOTOFF unless we are absolutely sure that the symbol is in the
-@@ -8223,15 +8411,7 @@
+@@ -8223,15 +8413,8 @@
        /* References to weak symbols cannot be resolved locally: they
  	 may be overridden by a non-weak definition at link time.  */
        rtx_insn *insn;
@@ -249,15 +251,17 @@ diff -ruN gcc-15.2.0-old/gcc/config/arm/arm.cc gcc-15.2.0/gcc/config/arm/arm.cc
 -		   || arm_fdpic_local_funcdesc_p (orig))))
 -	  && NEED_GOT_RELOC
 -	  && arm_pic_data_is_text_relative)
++      // Patch set ID: miosix-processes-rodata
 +      if (miosix_ref_demux && NEED_GOT_RELOC && arm_pic_data_is_text_relative)
  	insn = arm_pic_static_addr (orig, reg);
        else
  	{
-@@ -25100,6 +25280,21 @@
+@@ -25100,6 +25283,22 @@
        if (NEED_GOT_RELOC && flag_pic && making_const_table &&
  	  (SYMBOL_REF_P (x) || LABEL_REF_P (x)))
  	{
 +	  /*
++	   * Patch set ID: miosix-processes-rodata
 +	   * NOTE: On Miosix processes GOTOFF can't work, as we don't know at
 +	   * time the offset between .text and .got/.data/whatever is in RAM
 +	   * so always use GOT.
@@ -275,11 +279,12 @@ diff -ruN gcc-15.2.0-old/gcc/config/arm/arm.cc gcc-15.2.0/gcc/config/arm/arm.cc
  	  /* See legitimize_pic_address for an explanation of the
  	     TARGET_VXWORKS_RTP check.  */
  	  /* References to weak symbols cannot be resolved locally:
-@@ -25128,7 +25323,9 @@
+@@ -25128,7 +25327,10 @@
  
  		  if (!TARGET_FDPIC
  		      || arm_is_segment_info_known (x, &is_readonly))
 -		    fputs ("(GOTOFF)", asm_out_file);
++		    //Patch set ID: miosix-processes-rodata
 +		    //All this if/else chain should always produce (GOT) in Miosix
 +		    //fputs ("(GOTOFF)", asm_out_file);
 +		    fputs ("(GOT)", asm_out_file);
@@ -288,12 +293,13 @@ diff -ruN gcc-15.2.0-old/gcc/config/arm/arm.cc gcc-15.2.0/gcc/config/arm/arm.cc
  		}
 diff -ruN gcc-15.2.0-old/gcc/config/arm/arm.h gcc-15.2.0/gcc/config/arm/arm.h
 --- gcc-15.2.0-old/gcc/config/arm/arm.h	2025-08-08 08:51:40.469348055 +0200
-+++ gcc-15.2.0/gcc/config/arm/arm.h	2025-11-03 23:16:44.942623208 +0100
-@@ -961,7 +961,12 @@
++++ gcc-15.2.0/gcc/config/arm/arm.h	2025-11-19 18:20:16.734321040 +0100
+@@ -961,7 +961,13 @@
  #define EH_RETURN_STACKADJ_RTX	gen_rtx_REG (SImode, ARM_EH_STACKADJ_REGNUM)
  
  #ifndef ARM_TARGET2_DWARF_FORMAT
 -#define ARM_TARGET2_DWARF_FORMAT DW_EH_PE_pcrel
++// Patch set ID: miosix-processes-exceptions
 +//TODO: #ifdef _MIOSIX does not work in this context
 +//Produce exception unwinding tables that work with Miosix processes
 +//see processes-patch.md, section "The problem with unwinding exception tables"
@@ -495,11 +501,12 @@ diff -ruN gcc-15.2.0-old/gcc/configure.ac gcc-15.2.0/gcc/configure.ac
      ;;
 diff -ruN gcc-15.2.0-old/gcc/except.cc gcc-15.2.0/gcc/except.cc
 --- gcc-15.2.0-old/gcc/except.cc	2025-08-08 08:51:40.808353711 +0200
-+++ gcc-15.2.0/gcc/except.cc	2025-11-03 23:16:44.950623304 +0100
-@@ -3075,6 +3075,11 @@
++++ gcc-15.2.0/gcc/except.cc	2025-11-19 18:17:32.050311867 +0100
+@@ -3075,6 +3075,12 @@
    else
      {
        tt_format = ASM_PREFERRED_EH_DATA_FORMAT (/*code=*/0, /*global=*/1);
++      // Patch set ID: miosix-processes-exceptions
 +      // This is here for debugging the change to ARM_TARGET2_DWARF_FORMAT
 +      // in Miosix processes: when compiling C++ code that throws and catches
 +      // exceptions, it should print 0x10 (DW_EH_PE_pcrel) when compiling the
@@ -568,7 +575,7 @@ diff -ruN gcc-15.2.0-old/libatomic/configure.tgt gcc-15.2.0/libatomic/configure.
  	config_path="rtems"
 diff -ruN gcc-15.2.0-old/libatomic/tas_n.c gcc-15.2.0/libatomic/tas_n.c
 --- gcc-15.2.0-old/libatomic/tas_n.c	2025-08-08 08:51:44.760419638 +0200
-+++ gcc-15.2.0/libatomic/tas_n.c	2025-11-03 23:27:51.603348985 +0100
++++ gcc-15.2.0/libatomic/tas_n.c	2025-11-04 12:57:41.048017782 +0100
 @@ -115,3 +115,17 @@
  
  EXPORT_ALIAS (SIZE(test_and_set));
@@ -1115,11 +1122,12 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/fstream.tcc gcc-15.2.0/libstd
      _M_codecvt(0), _M_ext_buf(0), _M_ext_buf_size(0), _M_ext_next(0),
 diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/std_thread.h gcc-15.2.0/libstdc++-v3/include/bits/std_thread.h
 --- gcc-15.2.0-old/libstdc++-v3/include/bits/std_thread.h	2025-08-08 08:51:45.765436403 +0200
-+++ gcc-15.2.0/libstdc++-v3/include/bits/std_thread.h	2025-11-03 23:16:45.002623928 +0100
-@@ -51,10 +51,21 @@
++++ gcc-15.2.0/libstdc++-v3/include/bits/std_thread.h	2025-11-10 10:55:12.142604598 +0100
+@@ -51,10 +51,23 @@
  # include <bits/functexcept.h>
  #endif
  
++// Patch set ID: inline-thread
 +// Patch rationale: join() and detach() need this
 +#ifdef _MIOSIX
 +# include <errno.h>
@@ -1130,6 +1138,7 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/std_thread.h gcc-15.2.0/libst
  {
  _GLIBCXX_BEGIN_NAMESPACE_VERSION
  
++// Patch set ID: inline-thread
 +// Patch rationale: _M_start_thread needs this
 +#ifdef _MIOSIX
 +  extern "C" void* execute_native_thread_routine(void* __p);
@@ -1138,19 +1147,20 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/std_thread.h gcc-15.2.0/libst
  #if __glibcxx_formatters
    template<typename, typename> class formatter;
  #endif
-@@ -104,6 +115,11 @@
- 
+@@ -105,6 +118,12 @@
        explicit
        id(native_handle_type __id) : _M_thread(__id) { }
-+      
+ 
++      // Patch set ID: inline-thread
 +      // Patch rationale: join() and detach() patches need this
 +#ifdef _MIOSIX
 +      native_handle_type _M_get() const noexcept { return _M_thread; }
 +#endif
- 
++
      private:
        friend class thread;
-@@ -207,11 +223,42 @@
+       friend struct hash<id>;
+@@ -207,11 +226,43 @@
      joinable() const noexcept
      { return !(_M_id == id()); }
  
@@ -1161,6 +1171,7 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/std_thread.h gcc-15.2.0/libst
      void
      detach();
 +#else
++    // Patch set ID: inline-thread
 +    // Patch rationale: compiling these in libstdc++.a pulls in exceptions
 +    void
 +    join()
@@ -1193,7 +1204,7 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/std_thread.h gcc-15.2.0/libst
  
      id
      get_id() const noexcept
-@@ -255,8 +302,25 @@
+@@ -255,8 +306,26 @@
  	_M_run() { _M_func(); }
        };
  
@@ -1201,7 +1212,8 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/std_thread.h gcc-15.2.0/libst
      void
      _M_start_thread(_State_ptr, void (*)());
 +#else
-+    //Patch rationale: compiling this in libstdc++.a pulls in exceptions
++    // Patch set ID: inline-thread
++    // Patch rationale: compiling this in libstdc++.a pulls in exceptions
 +    void
 +    _M_start_thread(_State_ptr state, void (*depend)())
 +    {
@@ -1268,35 +1280,38 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/this_thread_sleep.h gcc-15.2.
    } // namespace this_thread
 diff -ruN gcc-15.2.0-old/libstdc++-v3/include/std/condition_variable gcc-15.2.0/libstdc++-v3/include/std/condition_variable
 --- gcc-15.2.0-old/libstdc++-v3/include/std/condition_variable	2025-08-08 08:51:45.811437170 +0200
-+++ gcc-15.2.0/libstdc++-v3/include/std/condition_variable	2025-11-03 23:16:45.002623928 +0100
-@@ -84,12 +84,26 @@
++++ gcc-15.2.0/libstdc++-v3/include/std/condition_variable	2025-11-19 17:58:25.902248031 +0100
+@@ -84,12 +84,29 @@
    public:
      typedef __gthread_cond_t* 		native_handle_type;
  
 +/*
-+ * This patch works together with the one in src/c++11/condition_variable.cc
++ * Patch set ID: inline-condvar
 + */
 +#ifndef _MIOSIX
-+    
++
      condition_variable() noexcept;
      ~condition_variable() noexcept;
-+    
+ 
 +#else //_MIOSIX
-+    
++
 +    condition_variable() noexcept = default;
 +    ~condition_variable() noexcept = default;
-+    
++
 +#endif //_MIOSIX
- 
++
      condition_variable(const condition_variable&) = delete;
      condition_variable& operator=(const condition_variable&) = delete;
  
++/*
++ * Patch set ID: inline-condvar
++ */
 +#ifndef _MIOSIX
 +
      void
      notify_one() noexcept;
  
-@@ -99,6 +113,28 @@
+@@ -99,6 +116,28 @@
      void
      wait(unique_lock<mutex>& __lock);
  
@@ -1548,18 +1563,18 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/libsupc++/vterminate.cc gcc-15.2.0/libstdc
  
 diff -ruN gcc-15.2.0-old/libstdc++-v3/src/c++11/condition_variable.cc gcc-15.2.0/libstdc++-v3/src/c++11/condition_variable.cc
 --- gcc-15.2.0-old/libstdc++-v3/src/c++11/condition_variable.cc	2025-08-08 08:51:45.832437521 +0200
-+++ gcc-15.2.0/libstdc++-v3/src/c++11/condition_variable.cc	2025-11-03 23:16:45.014624070 +0100
++++ gcc-15.2.0/libstdc++-v3/src/c++11/condition_variable.cc	2025-11-19 17:55:18.606237599 +0100
 @@ -31,6 +31,16 @@
  {
  _GLIBCXX_BEGIN_NAMESPACE_VERSION
  
 +/*
++ * Patch set ID: inline-condvar
 + * Patch rationale: this file is compiled when libstdc++ is built, with
 + * exceptions enabled. When Miosix is compiled with exceptions disabled and
 + * these are used, they cause some of the exception support to be pulled in
 + * increasing code size. These are also so simple that inlining them will
 + * make condition_variable faster. A win-win.
-+ * This patch works together with the one in include/std/condition_variable
 + */
 +#ifndef _MIOSIX
 +
@@ -1771,12 +1786,13 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/src/c++11/system_error.cc gcc-15.2.0/libst
      _GLIBCXX_THROW_OR_ABORT(system_error(__i, generic_category_instance.obj));
 diff -ruN gcc-15.2.0-old/libstdc++-v3/src/c++11/thread.cc gcc-15.2.0/libstdc++-v3/src/c++11/thread.cc
 --- gcc-15.2.0-old/libstdc++-v3/src/c++11/thread.cc	2025-08-08 08:51:45.835437571 +0200
-+++ gcc-15.2.0/libstdc++-v3/src/c++11/thread.cc	2025-11-03 23:16:45.018624118 +0100
-@@ -22,8 +22,12 @@
++++ gcc-15.2.0/libstdc++-v3/src/c++11/thread.cc	2025-11-10 10:55:35.254603828 +0100
+@@ -22,8 +22,13 @@
  // see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
  // <http://www.gnu.org/licenses/>.
  
 -
++// Patch set ID: inline-thread
 +// Patch rationale: don't need to be ABI backwards compatible, and
 +// on top of that the compat code pulls in exceptions when compiling Miosix with
 +// exceptions disabled.
@@ -1786,11 +1802,12 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/src/c++11/thread.cc gcc-15.2.0/libstdc++-v
  #define _GLIBCXX_THREAD_IMPL 1
  #include <memory> // include this first so <thread> can use shared_ptr
  #include <thread>
-@@ -97,7 +101,16 @@
+@@ -97,7 +102,17 @@
  {
    extern "C"
    {
 +    /*
++     * Patch set ID: inline-thread
 +     * Patch rationale: the need to call the class destructor makes it
 +     * call __cxa_end_cleanup which pulls in exception code. Thus, reimplemented
 +     * in Miosix when compiling without exceptions.
@@ -1803,17 +1820,18 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/src/c++11/thread.cc gcc-15.2.0/libstdc++-v
      execute_native_thread_routine(void* __p)
      {
        thread::_State_ptr __t{ static_cast<thread::_State*>(__p) };
-@@ -125,6 +138,9 @@
+@@ -125,6 +140,10 @@
  
    thread::_State::~_State() = default;
  
-+  //Patch rationale: compiling these in libstdc++.a pulls in exceptions
-+  //This patch works together with the one in include/std/thread
++  // Patch set ID: inline-thread
++  // Patch rationale: compiling these in libstdc++.a pulls in exceptions
++  // This patch works together with the one in include/bits/std_thread.h
 +#ifndef _MIOSIX
    void
    thread::join()
    {
-@@ -176,6 +192,7 @@
+@@ -176,6 +195,7 @@
        __throw_system_error(err);
      state.release();
    }
