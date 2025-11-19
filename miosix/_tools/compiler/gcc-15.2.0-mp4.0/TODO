@@ -1,6 +1,4 @@
 
-miosix/stdlib_integration/libstdcpp_integration.cpp:48:#warning: TODO: FIX __gthread_key_t in libstdc++/include/std/memory_resource
-
 add this to newlib options?
 --disable-newlib-wide-orient
 

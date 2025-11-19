@@ -46,7 +46,6 @@ using namespace std;
 
 #if __cplusplus >= 201703L
 #warning: TODO: Override new with alignment (libsupc++/new_opa.cc, new_opv.cc, ...
-#warning: TODO: FIX __gthread_key_t in libstdc++/include/std/memory_resource
 #endif
 
 #ifdef __NO_EXCEPTIONS
