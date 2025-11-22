@@ -1004,7 +1004,7 @@ CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
                  -ffunction-sections -fdata-sections \
                  -Wall -Werror=return-type -g
 CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
-                 -std=c++14 -ffunction-sections -fdata-sections \
+                 -std=c++17 -ffunction-sections -fdata-sections \
                  -Wall -Werror=return-type -g
 
 ##

@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <cxxabi.h>
 #include <thread>
+#include <malloc.h>
 //// Settings
 #include "config/miosix_settings.h"
 //// Console
@@ -44,10 +45,6 @@ using namespace std;
 // C++ exception support
 // =====================
 
-#if __cplusplus >= 201703L
-#warning: TODO: Override new with alignment (libsupc++/new_opa.cc, new_opv.cc, ...
-#endif
-
 #ifdef __NO_EXCEPTIONS
 /*
  * If not using exceptions, ovverride the default new, delete with
@@ -58,6 +55,20 @@ void *operator new(size_t size) noexcept
     return malloc(size);
 }
 
+#if __cplusplus >= 201703L
+void *operator new(size_t size, std::align_val_t al) noexcept
+{
+    auto alignment=static_cast<size_t>(al);
+    return memalign(alignment,size);
+}
+
+void *operator new(size_t size, std::align_val_t al, const std::nothrow_t) noexcept
+{
+    auto alignment=static_cast<size_t>(al);
+    return memalign(alignment,size);
+}
+#endif
+
 void *operator new(size_t size, const std::nothrow_t&) noexcept
 {
     return malloc(size);
@@ -67,6 +78,27 @@ void *operator new[](size_t size) noexcept
 {
     return malloc(size);
 }
+
+#if __cplusplus >= 201703L
+//NOTE: if the allocated object has destructors, an 8 byte offset is added by
+//the compiler to store the object count. This is all known and expected, but it
+//breaks the alignment... The code in GCC does not care, and even testing on
+//Linux the alignment is broken. Not sure if this is correct, but if it isn't
+//it's a compiler bug and it can't be fixed here as we have no way to figure
+//out if the object that is being allocated has destructors, all we know is
+//the size.
+void *operator new[](size_t size, std::align_val_t al) noexcept
+{
+    auto alignment=static_cast<size_t>(al);
+    return memalign(alignment,size);
+}
+
+void *operator new[](size_t size, std::align_val_t al, const std::nothrow_t) noexcept
+{
+    auto alignment=static_cast<size_t>(al);
+    return memalign(alignment,size);
+}
+#endif
 
 void *operator new[](size_t size, const std::nothrow_t&) noexcept
 {
