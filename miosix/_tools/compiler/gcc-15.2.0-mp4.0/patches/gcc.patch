@@ -1122,7 +1122,7 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/fstream.tcc gcc-15.2.0/libstd
      _M_codecvt(0), _M_ext_buf(0), _M_ext_buf_size(0), _M_ext_next(0),
 diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/std_thread.h gcc-15.2.0/libstdc++-v3/include/bits/std_thread.h
 --- gcc-15.2.0-old/libstdc++-v3/include/bits/std_thread.h	2025-08-08 08:51:45.765436403 +0200
-+++ gcc-15.2.0/libstdc++-v3/include/bits/std_thread.h	2025-11-10 10:55:12.142604598 +0100
++++ gcc-15.2.0/libstdc++-v3/include/bits/std_thread.h	2025-11-22 16:54:14.268171637 +0100
 @@ -51,10 +51,23 @@
  # include <bits/functexcept.h>
  #endif
@@ -1204,7 +1204,21 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/std_thread.h gcc-15.2.0/libst
  
      id
      get_id() const noexcept
-@@ -255,8 +306,26 @@
+@@ -229,8 +280,13 @@
+ 
+ #ifdef _GLIBCXX_HAS_GTHREADS
+ #ifndef _GLIBCXX_THREAD_IMPL
++    // Patch set ID: inline-thread
++    // struct _State is needed in libstdcpp_integration.cpp when compiling with
++    // exceptions disabled
++#ifndef _MIOSIX
+   private:
+ #endif
++#endif
+     // Abstract base class for types that wrap arbitrary functors to be
+     // invoked in the new thread of execution.
+     struct _State
+@@ -255,8 +311,26 @@
  	_M_run() { _M_func(); }
        };
  
