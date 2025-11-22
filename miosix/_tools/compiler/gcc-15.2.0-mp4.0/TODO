@@ -16,12 +16,6 @@ as fat32 too.
 Fix newlib so that the lstat syscall function prototype is made available,
 and maybe add prototype for _lstat_r too
 
-Update sys/lock.h make pthread_mutex_t compatible with future decisions to
-replace the custom list with IntrusiveList.
-Update _pthreadtypes.h removing the forward declaration of WaitingList and
-change pthread_cond_t to be two opaque pointers, comment that it should have
-a memory layout compatible with IntrusiveList.
-
 In libstdc++ header condition_variable the __wait_until_impl checks for timeout
 in this way:
 __gthread_cond_timedwait(&_M_cond, __lock.mutex()->native_handle(), &__ts);
