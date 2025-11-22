@@ -404,6 +404,17 @@ int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const s
     #endif //__NO_EXCEPTIONS
 }
 
+int pthread_cond_clockwait(pthread_cond_t *cond, pthread_mutex_t *mutex, clockid_t clock, const struct timespec *abstime)
+{
+    //Miosix only supports CLOCK_MONOTONIC for condition variables, since
+    //why would a wait on a condition variable be delayed by one hour if it's
+    //done the night daylight saving time comes in effect? Sounds more a cause
+    //for hard to spot bugs than a feature.
+    //Thus, we ignore the clock parameter and forward the call to
+    //pthread_cond_timedwait which, too, only supports CLOCK_MONOTONIC
+    return pthread_cond_timedwait(cond,mutex,abstime);
+}
+
 int pthread_cond_signal(pthread_cond_t *cond)
 {
     reinterpret_cast<ConditionVariable*>(cond)->signal();
