@@ -1086,6 +1086,34 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/configure gcc-15.2.0/libstdc++-v3/configur
  
    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pthread_cond_clockwait" >&5
  $as_echo_n "checking for pthread_cond_clockwait... " >&6; }
+diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/atomic_timed_wait.h gcc-15.2.0/libstdc++-v3/include/bits/atomic_timed_wait.h
+--- gcc-15.2.0-old/libstdc++-v3/include/bits/atomic_timed_wait.h	2025-08-08 08:51:45.752436186 +0200
++++ gcc-15.2.0/libstdc++-v3/include/bits/atomic_timed_wait.h	2025-11-23 11:47:20.672441938 +0100
+@@ -159,6 +159,16 @@
+ 	    static_cast<long>(__ns.count())
+ 	  };
+ 
++	// Patch set ID: time-functions-optimization
++	// Patch rationale: use return value to check for timeout
++#ifdef _MIOSIX
++#ifdef _GLIBCXX_USE_PTHREAD_COND_CLOCKWAIT
++	if constexpr (is_same_v<chrono::steady_clock, _Clock>)
++	  return __cv.wait_until(__mx, CLOCK_MONOTONIC, __ts) != ETIMEDOUT;
++	else
++#endif
++	return __cv.wait_until(__mx, __ts) != ETIMEDOUT;
++#else //_MIOSIX
+ #ifdef _GLIBCXX_USE_PTHREAD_COND_CLOCKWAIT
+ 	if constexpr (is_same_v<chrono::steady_clock, _Clock>)
+ 	  __cv.wait_until(__mx, CLOCK_MONOTONIC, __ts);
+@@ -166,6 +176,7 @@
+ #endif
+ 	  __cv.wait_until(__mx, __ts);
+ 	return _Clock::now() < __atime;
++#endif //_MIOSIX
+       }
+ 
+     // returns true if wait ended before timeout
 diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/basic_string.tcc gcc-15.2.0/libstdc++-v3/include/bits/basic_string.tcc
 --- gcc-15.2.0-old/libstdc++-v3/include/bits/basic_string.tcc	2025-08-08 08:51:45.753436203 +0200
 +++ gcc-15.2.0/libstdc++-v3/include/bits/basic_string.tcc	2025-11-03 23:16:45.002623928 +0100
@@ -1130,6 +1158,50 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/fstream.tcc gcc-15.2.0/libstd
      _M_buf_allocated(false), _M_reading(false), _M_writing(false), _M_pback(), 
      _M_pback_cur_save(0), _M_pback_end_save(0), _M_pback_init(false),
      _M_codecvt(0), _M_ext_buf(0), _M_ext_buf_size(0), _M_ext_next(0),
+diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/std_mutex.h gcc-15.2.0/libstdc++-v3/include/bits/std_mutex.h
+--- gcc-15.2.0-old/libstdc++-v3/include/bits/std_mutex.h	2025-08-08 08:51:45.765436403 +0200
++++ gcc-15.2.0/libstdc++-v3/include/bits/std_mutex.h	2025-11-23 11:25:46.136389837 +0100
+@@ -174,19 +174,40 @@
+       __glibcxx_assert(__e == 0);
+     }
+ 
++    // Patch set ID: time-functions-optimization
++    // Patch rationale: use return value to check for timeout
++#ifdef _MIOSIX
++    int
++    wait_until(mutex& __m, timespec& __abs_time)
++    {
++      return __gthread_cond_timedwait(&_M_cond, __m.native_handle(), &__abs_time);
++    }
++#else //_MIOSIX
+     void
+     wait_until(mutex& __m, timespec& __abs_time)
+     {
+       __gthread_cond_timedwait(&_M_cond, __m.native_handle(), &__abs_time);
+     }
++#endif //_MIOSIX
+ 
+ #ifdef _GLIBCXX_USE_PTHREAD_COND_CLOCKWAIT
++    // Patch set ID: time-functions-optimization
++    // Patch rationale: use return value to check for timeout
++#ifdef _MIOSIX
++    int
++    wait_until(mutex& __m, clockid_t __clock, timespec& __abs_time)
++    {
++      return pthread_cond_clockwait(&_M_cond, __m.native_handle(), __clock,
++			     &__abs_time);
++    }
++#else //_MIOSIX
+     void
+     wait_until(mutex& __m, clockid_t __clock, timespec& __abs_time)
+     {
+       pthread_cond_clockwait(&_M_cond, __m.native_handle(), __clock,
+ 			     &__abs_time);
+     }
++#endif //_MIOSIX
+ #endif
+ 
+     void
 diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/std_thread.h gcc-15.2.0/libstdc++-v3/include/bits/std_thread.h
 --- gcc-15.2.0-old/libstdc++-v3/include/bits/std_thread.h	2025-08-08 08:51:45.765436403 +0200
 +++ gcc-15.2.0/libstdc++-v3/include/bits/std_thread.h	2025-11-22 16:54:14.268171637 +0100
@@ -1257,11 +1329,12 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/std_thread.h gcc-15.2.0/libst
    public:
 diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/this_thread_sleep.h gcc-15.2.0/libstdc++-v3/include/bits/this_thread_sleep.h
 --- gcc-15.2.0-old/libstdc++-v3/include/bits/this_thread_sleep.h	2025-08-08 08:51:45.769436470 +0200
-+++ gcc-15.2.0/libstdc++-v3/include/bits/this_thread_sleep.h	2025-11-03 23:16:45.002623928 +0100
-@@ -79,8 +79,14 @@
++++ gcc-15.2.0/libstdc++-v3/include/bits/this_thread_sleep.h	2025-11-23 11:18:47.268372979 +0100
+@@ -79,8 +79,15 @@
  	    static_cast<std::time_t>(__s.count()),
  	    static_cast<long>(__ns.count())
  	  };
++	  // Patch set ID: time-functions-optimization
 +	  // Patch rationale: use Miosix preferred sleep function
 +#ifdef _MIOSIX
 +	while (::clock_nanosleep(CLOCK_MONOTONIC, 0, &__ts, &__ts) == -1 && errno == EINTR)
@@ -1273,10 +1346,11 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/this_thread_sleep.h gcc-15.2.
  #else
  	__sleep_for(__s, __ns);
  #endif
-@@ -94,6 +100,20 @@
+@@ -94,6 +101,21 @@
  #if __cplusplus > 201703L
  	static_assert(chrono::is_clock_v<_Clock>);
  #endif
++	  // Patch set ID: time-functions-optimization
 +	  // Patch rationale: do not add skew by converting absolute sleep to relative
 +#ifdef _MIOSIX
 +	auto __rtime = __atime.time_since_epoch();
@@ -1294,7 +1368,7 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/this_thread_sleep.h gcc-15.2.
  	auto __now = _Clock::now();
  	if (_Clock::is_steady)
  	  {
-@@ -106,6 +126,7 @@
+@@ -106,6 +128,7 @@
  	    sleep_for(__atime - __now);
  	    __now = _Clock::now();
  	  }
@@ -1304,7 +1378,7 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/this_thread_sleep.h gcc-15.2.
    } // namespace this_thread
 diff -ruN gcc-15.2.0-old/libstdc++-v3/include/std/condition_variable gcc-15.2.0/libstdc++-v3/include/std/condition_variable
 --- gcc-15.2.0-old/libstdc++-v3/include/std/condition_variable	2025-08-08 08:51:45.811437170 +0200
-+++ gcc-15.2.0/libstdc++-v3/include/std/condition_variable	2025-11-19 17:58:25.902248031 +0100
++++ gcc-15.2.0/libstdc++-v3/include/std/condition_variable	2025-11-23 11:30:37.504401564 +0100
 @@ -84,12 +84,29 @@
    public:
      typedef __gthread_cond_t* 		native_handle_type;
@@ -1364,6 +1438,42 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/std/condition_variable gcc-15.2.0/
      template<typename _Predicate>
        void
        wait(unique_lock<mutex>& __lock, _Predicate __p)
+@@ -202,10 +241,17 @@
+ 	    static_cast<long>(__ns.count())
+ 	  };
+ 
++	// Patch set ID: time-functions-optimization
++	// Patch rationale: use return value to check for timeout
++#ifdef _MIOSIX
++	return _M_cond.wait_until(*__lock.mutex(), CLOCK_MONOTONIC, __ts) == ETIMEDOUT
++		? cv_status::timeout : cv_status::no_timeout;
++#else //_MIOSIX
+ 	_M_cond.wait_until(*__lock.mutex(), CLOCK_MONOTONIC, __ts);
+ 
+ 	return (steady_clock::now() < __atime
+ 		? cv_status::no_timeout : cv_status::timeout);
++#endif _MIOSIX
+       }
+ #endif
+ 
+@@ -223,10 +269,17 @@
+ 	    static_cast<long>(__ns.count())
+ 	  };
+ 
++	// Patch set ID: time-functions-optimization
++	// Patch rationale: use return value to check for timeout
++#ifdef _MIOSIX
++	return _M_cond.wait_until(*__lock.mutex(), __ts) == ETIMEDOUT
++		? cv_status::timeout : cv_status::no_timeout;
++#else //_MIOSIX
+ 	_M_cond.wait_until(*__lock.mutex(), __ts);
+ 
+ 	return (system_clock::now() < __atime
+ 		? cv_status::no_timeout : cv_status::timeout);
++#endif _MIOSIX
+       }
+   };
+ 
 diff -ruN gcc-15.2.0-old/libstdc++-v3/libsupc++/bad_array_length.cc gcc-15.2.0/libstdc++-v3/libsupc++/bad_array_length.cc
 --- gcc-15.2.0-old/libstdc++-v3/libsupc++/bad_array_length.cc	2025-08-08 08:51:45.825369529 +0200
 +++ gcc-15.2.0/libstdc++-v3/libsupc++/bad_array_length.cc	2025-11-03 23:16:45.002623928 +0100
