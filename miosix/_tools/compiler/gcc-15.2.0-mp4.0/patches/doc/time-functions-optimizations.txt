@@ -1,7 +1,7 @@
 
 With Miosix being a real-time operating system, time management plays a central
 role in the OS design. The kernel internally keeps track of time as a signed
-64 bit number counting in nanoseconds, and uses high-ressolution hardware timers
+64 bit number counting in nanoseconds, and uses high-resolution hardware timers
 to provide high resolution timestamping, sleeping and timeout operations.
 
 This file discusses how the internal kernel APIs are mapped to standard C/C++.
@@ -26,7 +26,7 @@ a non-negligible amount of time (~200 cycles).
 No improvement is possible as this design decision is part of the public API
 specified by POSIX.
 
-The only patch required to nwlib was the addition of the pthread_cond_clockwait
+The only patch required to newlib was the addition of the pthread_cond_clockwait
 function prototype that was missing, and is very useful as a replacement for
 the bad design of the pthread_cond_timedwait which specified the timeout in
 the CLOCK_REALTIME, thus being subject to clock jumps such as when daylight
@@ -37,12 +37,12 @@ C++ time APIs
 C++11 introduced std::chrono as a generic way to represent and interact with
 time. Unlike for the C API, C++ did a very good design allowing efficient
 implementations, but the libstdc++ implementation contains many notable
-shotcomings that had to be patched to be acceptable for real-time use:
+shortcomings that had to be patched to be acceptable for real-time use:
 
 1) this_thread::sleep_until() in bits/this_thread_sleep.h is implemented in
 terms of sleep_for() by converting the absolute time in a realtive time.
 This is both inefficient as it pays the overhead of getting the current time
-and makes the wakeup time by accumulating clock skew (think if a context switch
+and the wakeup time may accumulate clock skew (think if a context switch
 occurs after the current time is measured but before the sleep takes effect).
 It was patched to call clock_nanosleep(*, TIMER_ABSTIME).
 Also, this_thread::sleep_for() which was implemented in terms of nanosleep has
@@ -71,7 +71,7 @@ call to clock_gettime. This required patching bits/std_mutex.h which defines
 the implementation class __condvar to forward the return code, as well as
 std::condition_variable itself.
 
-With this change done, not std::chrono is as efficient as the C API.
+With this change done, now std::chrono is as efficient as the C API.
 However, it could in theory be optimized further, as it looks like std::chrono
 internally represents time as a single 64 bit number, just like Miosix.
 Since std::chrono is currently implemented in terms of the C API though, every
