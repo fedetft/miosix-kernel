@@ -4,7 +4,7 @@
 
 ## KPATH and CONFPATH can be specified here or forwarded by the parent makefile
 MAKEFILE_VERSION := 1.16
-include $(KPATH)/libsyscalls/Makefile.pcommon
+include $(KPATH)/Makefile.pcommon
 
 BIN := ../testsuite_romfs/test_global_dtor_ctor
 SRC := main.cpp

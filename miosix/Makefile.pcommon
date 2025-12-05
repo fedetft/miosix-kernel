@@ -20,7 +20,7 @@ CFLAGS   ?= -MMD -MP $(CPU) -fpie -msingle-pic-base -ffunction-sections -Wall  \
             $(INCLUDE_DIRS) -g -c
 CXXFLAGS ?= -std=c++14 $(PROC_OPT_EXCEPT) $(CFLAGS)
 LFLAGS   ?= $(CPU) -fpie -msingle-pic-base -nostdlib -Wl,--gc-sections         \
-            -Wl,-Map,$(notdir $(BIN)).map,-T$(KPATH)/libsyscalls/process.ld    \
+            -Wl,-Map,$(notdir $(BIN)).map,-T,process.ld    \
             -Wl,-n,-pie,--spare-dynamic-tags,3,--target2=mx-data-rel
 STDLIBS  := -lsyscalls -lstdc++ -lc -lm -lgcc -latomic
 LINK_LIBS ?= $(LIBS) -L$(KPATH)/libsyscalls -Wl,--start-group $(STDLIBS)       \

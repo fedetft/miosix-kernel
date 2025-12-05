@@ -6,7 +6,7 @@
 KPATH := ../../..
 CONFPATH := ../../..
 MAKEFILE_VERSION := 1.16
-include $(KPATH)/libsyscalls/Makefile.pcommon
+include $(KPATH)/Makefile.pcommon
 
 BIN := hello
 SRC := main.cpp
