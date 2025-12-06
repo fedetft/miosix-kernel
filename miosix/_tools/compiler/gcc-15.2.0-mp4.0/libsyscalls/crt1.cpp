@@ -594,6 +594,14 @@ int pthread_mutex_lock(pthread_mutex_t *mutex)
         //1) a syscall to ask the OS to block the thread
         //2) a way to atomically exit the critical section and block, otherwise
         //   we have a race condition if the wakeup occurs in between
+
+        // Note: for mysterious reasons, the call to pthread_yield() here makes
+        // GCC believe that this function may throw, and therefore the function
+        // epilogue gets a __cxa_end_cleanup call added at the end.
+        // However this is a problem for C executables that don't link with
+        // libstdc++, as that would cause undefined references.
+        // The easiest way to solve this is to build libsyscalls with exceptions
+        // disabled.
         pthread_yield();
     }
     return 0;
