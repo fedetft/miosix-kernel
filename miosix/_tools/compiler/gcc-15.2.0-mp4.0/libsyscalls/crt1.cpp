@@ -792,7 +792,7 @@ extern "C" void* execute_native_thread_routine(void* __p)
 } //namespace std
 
 /*
- * If not using exceptions, ovverride these functions with
+ * If not using exceptions, override these functions with
  * an implementation that does not throw, to minimze code size
  */
 namespace std {
