@@ -1711,7 +1711,7 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/this_thread_sleep.h gcc-15.2.
    } // namespace this_thread
 diff -ruN gcc-15.2.0-old/libstdc++-v3/include/std/condition_variable gcc-15.2.0/libstdc++-v3/include/std/condition_variable
 --- gcc-15.2.0-old/libstdc++-v3/include/std/condition_variable	2025-08-08 08:51:45.811437170 +0200
-+++ gcc-15.2.0/libstdc++-v3/include/std/condition_variable	2025-12-07 04:25:37.146767589 +0100
++++ gcc-15.2.0/libstdc++-v3/include/std/condition_variable	2025-12-07 20:53:55.253862360 +0100
 @@ -84,12 +84,29 @@
    public:
      typedef __gthread_cond_t* 		native_handle_type;
@@ -1785,7 +1785,7 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/std/condition_variable gcc-15.2.0/
  
  	return (steady_clock::now() < __atime
  		? cv_status::no_timeout : cv_status::timeout);
-+#endif _MIOSIX
++#endif //_MIOSIX
        }
  #endif
  
@@ -1803,7 +1803,7 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/std/condition_variable gcc-15.2.0/
  
  	return (system_clock::now() < __atime
  		? cv_status::no_timeout : cv_status::timeout);
-+#endif _MIOSIX
++#endif //_MIOSIX
        }
    };
  
