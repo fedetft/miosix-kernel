@@ -506,6 +506,14 @@ cd ..
 # Part 7: compile and install gcc-end
 #
 
+# Install the linker file for processes
+echo "Installing process linker script..."
+cd libsyscalls
+PREFIX=$PREFIX SUDO=$SUDO DESTDIR=$DESTDIR ./install_linkerscript.sh \
+	|| quit ":: Error installing process linker script"
+cd ..
+
+# Build and install GCC's libraries
 cd gcc_build
 echo "Building $GCC (end)..."
 $SUDO make all $PARALLEL &> ../log/07_gcc-end_1_build.txt \
@@ -513,6 +521,13 @@ $SUDO make all $PARALLEL &> ../log/07_gcc-end_1_build.txt \
 echo "Installing $GCC (end)..."
 $SUDO make install DESTDIR=$DESTDIR &>../log/07_gcc-end_2_install.txt \
 	|| quit ":: Error installing gcc-end"
+cd ..
+
+# Install the real libsyscalls
+echo "Installing libsyscalls..."
+cd libsyscalls
+PREFIX=$PREFIX SUDO=$SUDO DESTDIR=$DESTDIR ./install_multilibs.sh \
+	|| quit ":: Error installing libsyscalls"
 cd ..
 
 #
@@ -541,6 +556,15 @@ $SUDO rm "$DESTDIR$PREFIX/arm-miosix-eabi/lib"/*.ld
 $SUDO rm -rf "$DESTDIR$PREFIX/arm-miosix-eabi/lib/cpu-init"
 $SUDO rm "$DESTDIR$PREFIX/lib/gcc/arm-miosix-eabi/15.2.0"/*.o
 $SUDO rm "$DESTDIR$PREFIX/lib/gcc/arm-miosix-eabi/15.2.0"/*.a
+# For some reasons, some root multilibs (libatomic/gomp/stdc++/stdc++exp/supc++)
+# end up in arm/v4t/nofp. There must be something wrong in GCC's multilib
+# normalization scripts, but to be honest I don't really care.
+$SUDO rm "$DESTDIR$PREFIX/arm-miosix-eabi/lib/arm/v4t/nofp"/*.spec # not specs!
+$SUDO rm "$DESTDIR$PREFIX/arm-miosix-eabi/lib/arm/v4t/nofp"/*.a
+$SUDO rm "$DESTDIR$PREFIX/arm-miosix-eabi/lib/arm/v4t/nofp"/*.la
+$SUDO rm "$DESTDIR$PREFIX/arm-miosix-eabi/lib/arm/v4t/nofp"/*.py
+$SUDO rm "$DESTDIR$PREFIX/arm-miosix-eabi/lib/arm/v4t/nofp"/*.json
+
 
 # 8B: check that all multilibs have been built.
 # This check has been added after an attempt to build arm-miosix-eabi-gcc on Fedora
