@@ -206,7 +206,7 @@ extract()
 }
 
 extract 'binutils' $BINUTILS.tar.xz patches/binutils.patch
-extract 'gcc' $GCC.tar.xz patches/gcc.patch patches/gcc_atomics.patch
+extract 'gcc' $GCC.tar.xz patches/gcc.patch patches/gcc_atomics.patch patches/gcc_specs.patch
 extract 'newlib' $NEWLIB.tar.gz patches/newlib.patch patches/newlib_gcc15.patch
 extract 'gdb' $GDB.tar.xz patches/gdb.patch
 extract 'gmp' $GMP.tar.xz
