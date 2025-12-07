@@ -29,7 +29,7 @@ PREFIX=/opt/arm-miosix-eabi
 DESTDIR=
 SUDO=sudo
 # Uncomment if installing locally on this system, sudo isn't necessary
-#PREFIX=`pwd`/gcc/arm-miosix-eabi
+#PREFIX=`pwd`/arm-miosix-eabi
 #DESTDIR=
 #SUDO=
 # Uncomment for producing a package for redistribution. The prefix is set to the
