@@ -248,22 +248,30 @@ else
 	MX_GMP_ASSEMBLY=""
 fi
 
+echo "Configuring $GMP..."
 ./configure \
 	--build=$BUILD \
 	--host=$HOST \
 	--prefix=$LIB_DIR \
 	--enable-static --disable-shared \
 	$MX_GMP_ASSEMBLY \
-	2> ../log/z.gmp.a.txt					|| quit ":: Error configuring gmp"
+	&> ../log/03_1_gmp_1_configure.txt \
+	|| quit ":: Error configuring gmp"
 
-make all $PARALLEL 2>../log/z.gmp.b.txt		|| quit ":: Error compiling gmp"
+echo "Building $GMP..."
+make all $PARALLEL &> ../log/03_1_gmp_2_build.txt \
+	|| quit ":: Error compiling gmp"
 
+echo "Testing $GMP..."
 if [[ ! $HOST ]]; then
 	# Don't check if cross-compiling
-	make check $PARALLEL 2> ../log/z.gmp.c.txt	|| quit ":: Error testing gmp"
+	make check $PARALLEL &> ../log/03_1_gmp_3_check.txt \
+	|| quit ":: Error testing gmp"
 fi
 
-make install 2>../log/z.gmp.d.txt			|| quit ":: Error installing gmp"
+echo "Installing $GMP..."
+make install &>../log/03_1_gmp_4_install.txt \
+	|| quit ":: Error installing gmp"
 
 if [[ $HOST ]]; then
 	unset CC_FOR_BUILD
@@ -274,27 +282,36 @@ cd ..
 
 cd $MPFR
 
+echo "Configuring $MPFR..."
 ./configure \
 	--build=$BUILD \
 	--host=$HOST \
 	--prefix=$LIB_DIR \
 	--enable-static --disable-shared \
 	--with-gmp=$LIB_DIR \
-	2> ../log/z.mpfr.a.txt					|| quit ":: Error configuring mpfr"
+	&> ../log/03_2_mpfr_1_configure.txt \
+	|| quit ":: Error configuring mpfr"
 
-make all $PARALLEL 2>../log/z.mpfr.b.txt	|| quit ":: Error compiling mpfr"
+echo "Building $MPFR..."
+make all $PARALLEL &> ../log/03_2_mpfr_2_build.txt \
+	|| quit ":: Error compiling mpfr"
 
+echo "Testing $MPFR..."
 if [[ ! $HOST ]]; then
 	# Don't check if cross-compiling
-	make check $PARALLEL 2> ../log/z.mpfr.c.txt	|| quit ":: Error testing mpfr"
+	make check $PARALLEL &> ../log/03_2_mpfr_3_check.txt \
+	|| quit ":: Error testing mpfr"
 fi
 
-make install 2>../log/z.mpfr.d.txt			|| quit ":: Error installing mpfr"
+echo "Installing $MPFR..."
+make install &>../log/03_2_mpfr_4_install.txt \
+	|| quit ":: Error installing mpfr"
 
 cd ..
 
 cd $MPC
 
+echo "Configuring $MPC..."
 ./configure \
 	--build=$BUILD \
 	--host=$HOST \
@@ -302,16 +319,23 @@ cd $MPC
 	--enable-static --disable-shared \
 	--with-gmp=$LIB_DIR \
 	--with-mpfr=$LIB_DIR \
-	2> ../log/z.mpc.a.txt					|| quit ":: Error configuring mpc"
+	&> ../log/03_3_mpc_1_configure.txt \
+	|| quit ":: Error configuring mpc"
 
-make all $PARALLEL 2>../log/z.mpc.b.txt		|| quit ":: Error compiling mpc"
+echo "Building $MPC..."
+make all $PARALLEL &> ../log/03_3_mpc_2_build.txt \
+	|| quit ":: Error compiling mpc"
 
+echo "Testing $MPC..."
 if [[ ! $HOST ]]; then
 	# Don't check if cross-compiling for windows
-	make check $PARALLEL 2> ../log/z.mpc.c.txt	|| quit ":: Error testing mpc"
+	make check $PARALLEL &>../log/03_3_mpc_3_check.txt \
+	|| quit ":: Error testing mpc"
 fi
 
-make install 2>../log/z.mpc.d.txt			|| quit ":: Error installing mpc"
+echo "Installing $MPC..."
+make install &>../log/03_3_mpc_4_install.txt \
+	|| quit ":: Error installing mpc"
 
 cd ..
 
@@ -322,6 +346,7 @@ cd ..
 mkdir binutils_build
 cd binutils_build
 
+echo "Configuring $BINUTILS..."
 ../$BINUTILS/configure \
 	--build=$BUILD \
 	--host=$HOST \
@@ -330,11 +355,16 @@ cd binutils_build
 	--enable-interwork \
 	--enable-multilib \
 	--enable-lto \
-	--disable-werror 2>../log/a.txt			|| quit ":: Error configuring binutils"
+	--disable-werror &>../log/04_binutils_1_configure.txt \
+	|| quit ":: Error configuring binutils"
 
-make all $PARALLEL 2>../log/b.txt			|| quit ":: Error compiling binutils"
+echo "Building $BINUTILS..."
+make all $PARALLEL &>../log/04_binutils_2_build.txt \
+	|| quit ":: Error compiling binutils"
 
-$SUDO make install DESTDIR=$DESTDIR 2>../log/c.txt || quit ":: Error installing binutils"
+echo "Installing $BINUTILS..."
+$SUDO make install DESTDIR=$DESTDIR &>../log/04_binutils_3_install.txt \
+	|| quit ":: Error installing binutils"
 
 cd ..
 
@@ -371,6 +401,7 @@ else
 	__GCC_CONF_HEADERS_PARAM=--with-headers=../$NEWLIB/newlib/libc/include
 fi
 
+echo "Configuring $GCC (start)..."
 $SUDO ../$GCC/configure \
 	--build=$BUILD \
 	--host=$HOST \
@@ -394,11 +425,16 @@ $SUDO ../$GCC/configure \
 	--with-newlib \
 	${__GCC_CONF_HEADERS_PARAM} \
 	--with-pkgversion="GCC_mp${__GCCPATCUR}" \
-	2>../log/d.txt							|| quit ":: Error configuring gcc-start"
+	&>../log/05_gcc-start_1_configure.txt \
+	|| quit ":: Error configuring gcc-start"
 
-$SUDO make all-gcc $PARALLEL 2>../log/e.txt || quit ":: Error compiling gcc-start"
+echo "Building $GCC (start)..."
+$SUDO make all-gcc $PARALLEL &>../log/05_gcc-start_2_build.txt \
+	|| quit ":: Error compiling gcc-start"
 
-$SUDO make install-gcc DESTDIR=$DESTDIR 2>../log/f.txt || quit ":: Error installing gcc-start"
+echo "Installing $GCC (start)..."
+$SUDO make install-gcc DESTDIR=$DESTDIR &>../log/05_gcc-start_3_install.txt \
+	|| quit ":: Error installing gcc-start"
 
 if [[ -z $DESTDIR ]]; then
 	# Remove the sys-include directory if we are installing locally.
@@ -438,6 +474,7 @@ cd ..
 mkdir newlib_build
 cd newlib_build
 
+echo "Configuring $NEWLIB..."
 ../$NEWLIB/configure \
 	--build=$BUILD \
 	--host=$HOST \
@@ -452,11 +489,16 @@ cd newlib_build
 	--disable-newlib-io-pos-args \
 	--disable-newlib-mb \
 	--disable-newlib-supplied-syscalls \
-	2>../log/g.txt							|| quit ":: Error configuring newlib"
+	&>../log/06_newlib_1_configure.txt \
+	|| quit ":: Error configuring newlib"
 
-make $PARALLEL 2>../log/h.txt				|| quit ":: Error compiling newlib"
+echo "Building $NEWLIB..."
+make $PARALLEL &>../log/06_newlib_2_build.txt \
+	|| quit ":: Error compiling newlib"
 
-$SUDO make install DESTDIR=$DESTDIR 2>../log/i.txt || quit ":: Error installing newlib"
+echo "Installing $NEWLIB..."
+$SUDO make install DESTDIR=$DESTDIR &>../log/06_newlib_3_install.txt \
+	|| quit ":: Error installing newlib"
 
 cd ..
 
@@ -465,11 +507,12 @@ cd ..
 #
 
 cd gcc_build
-
-$SUDO make all $PARALLEL 2>../log/j.txt		|| quit ":: Error compiling gcc-end"
-
-$SUDO make install DESTDIR=$DESTDIR 2>../log/k.txt || quit ":: Error installing gcc-end"
-
+echo "Building $GCC (end)..."
+$SUDO make all $PARALLEL &> ../log/07_gcc-end_1_build.txt \
+	|| quit ":: Error compiling gcc-end"
+echo "Installing $GCC (end)..."
+$SUDO make install DESTDIR=$DESTDIR &>../log/07_gcc-end_2_install.txt \
+	|| quit ":: Error installing gcc-end"
 cd ..
 
 #
@@ -490,7 +533,7 @@ cd ..
 # will result in a link-time failure to find the libraries, hinting that
 # something is wrong.
 
-echo "::Deleting root multilibs"
+echo "Deleting root multilibs..."
 $SUDO rm "$DESTDIR$PREFIX/arm-miosix-eabi/lib"/*.specs
 $SUDO rm "$DESTDIR$PREFIX/arm-miosix-eabi/lib"/*.o
 $SUDO rm "$DESTDIR$PREFIX/arm-miosix-eabi/lib"/*.a
@@ -544,7 +587,7 @@ check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+fp/hard/pie/sing
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.base/nofp/pie/single-pic-base
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+dp/hard/pie/single-pic-base
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+fp/hard/pie/single-pic-base
-echo "::All multilibs have been built. OK"
+echo "Checked multilibs: all have been built!"
 
 #
 # Part 9: compile and install gdb
@@ -553,18 +596,24 @@ echo "::All multilibs have been built. OK"
 # GDB on linux/windows needs expat
 if [[ $DESTDIR ]]; then
 	cd $EXPAT
-
+	
+	echo "Configuring $EXPAT..."
 	./configure \
 		--build=$BUILD \
 		--host=$HOST \
 		--prefix=$LIB_DIR \
 		--enable-static=yes \
 		--enable-shared=no \
-		2> ../log/z.expat.a.txt					|| quit ":: Error configuring expat"
+		&> ../log/09_expat_1_configure.txt \
+		|| quit ":: Error configuring expat"
 
-	make all $PARALLEL 2>../log/z.expat.b.txt	|| quit ":: Error compiling expat"
+	echo "Building $EXPAT..."
+	make all $PARALLEL &>../log/09_expat_2_build.txt \
+		|| quit ":: Error compiling expat"
 
-	make install 2>../log/z.expat.d.txt			|| quit ":: Error installing expat"
+	echo "Installing $EXPAT..."
+	make install &>../log/09_expat_3_install.txt \
+		|| quit ":: Error installing expat"
 
 	cd ..
 fi
@@ -577,6 +626,7 @@ fi
 if [[ $HOST == *linux* ]]; then
 	cd $NCURSES
 
+	echo "Configuring $NCURSES..."
 	./configure \
 		--build=$BUILD \
 		--host=$HOST \
@@ -585,11 +635,16 @@ if [[ $HOST == *linux* ]]; then
 		--without-ada --without-cxx-binding --without-debug \
 		--with-fallbacks='xterm-256color' \
 		--without-manpages --without-progs --without-tests \
-		2> ../log/z.ncurses.a.txt				|| quit ":: Error configuring ncurses"
+		&> ../log/10_ncurses_1_configure.txt \
+		|| quit ":: Error configuring ncurses"
 
-	make all $PARALLEL 2>../log/z.ncurses.b.txt	|| quit ":: Error compiling ncurses"
+	echo "Building $NCURSES..."
+	make all $PARALLEL &>../log/10_ncurses_2_build.txt \
+		|| quit ":: Error compiling ncurses"
 
-	make install 2>../log/z.ncurses.d.txt		|| quit ":: Error installing ncurses"
+	echo "Installing $NCURSES..."
+	make install &>../log/10_ncurses_3_install.txt \
+		|| quit ":: Error installing ncurses"
 
 	cd ..
 fi
@@ -598,6 +653,7 @@ mkdir gdb_build
 cd gdb_build
 
 # CXX=$HOSTCXX to avoid having to distribute libstdc++.dll on windows
+echo "Configuring $GDB..."
 CXX=$HOSTCXX ../$GDB/configure \
 	--build=$BUILD \
 	--host=$HOST \
@@ -612,14 +668,19 @@ CXX=$HOSTCXX ../$GDB/configure \
 	--with-python=no \
 	--enable-interwork \
 	--enable-multilib \
-	--disable-werror 2>../log/l.txt			|| quit ":: Error configuring gdb"
+	--disable-werror &>../log/11_gdb_1_configure.txt \
+	|| quit ":: Error configuring gdb"
 
 # Specify a dummy MAKEINFO binary to work around an issue in the gdb makefiles
 # where compilation fails if MAKEINFO is not installed.
 # https://sourceware.org/bugzilla/show_bug.cgi?id=14678
-make all MAKEINFO=/usr/bin/true $PARALLEL 2>../log/m.txt || quit ":: Error compiling gdb"
+echo "Building $GDB..."
+make all MAKEINFO=/usr/bin/true $PARALLEL &>../log/11_gdb_2_build.txt \
+	|| quit ":: Error compiling gdb"
 
-$SUDO make install MAKEINFO=/usr/bin/true DESTDIR=$DESTDIR 2>../log/n.txt || quit ":: Error installing gdb"
+echo "Installing $GDB..."
+$SUDO make install MAKEINFO=/usr/bin/true DESTDIR=$DESTDIR &>../log/11_gdb_3_install.txt \
+	|| quit ":: Error installing gdb"
 
 cd ..
 
@@ -627,10 +688,12 @@ cd ..
 # Part 10: install the postlinker
 #
 cd mx-postlinker
-make CXX="$HOSTCXX" SUFFIX=$EXT				|| quit ":: Error compiling mx-postlinker"
+echo "Installing mx-postlinker..."
+make CXX="$HOSTCXX" SUFFIX=$EXT \
+	|| quit ":: Error compiling mx-postlinker"
 $SUDO make install CXX="$HOSTCXX" SUFFIX=$EXT \
 	INSTALL_DIR=$DESTDIR$PREFIX/bin \
-											|| quit ":: Error installing mx-postlinker"
+	|| quit ":: Error installing mx-postlinker"
 make CXX="$HOSTCXX" SUFFIX=$EXT clean
 cd ..
 
@@ -638,9 +701,12 @@ cd ..
 # Part 11: compile and install lpc21isp.c
 #
 
-$HOSTCC -o lpc21isp$EXT lpc21isp.c						|| quit ":: Error compiling lpc21isp"
+echo "Installing lpc21isp..."
+$HOSTCC -o lpc21isp$EXT lpc21isp.c \
+	|| quit ":: Error compiling lpc21isp"
 
-$SUDO mv lpc21isp$EXT $DESTDIR$PREFIX/bin || quit ":: Error installing lpc21isp"
+$SUDO mv lpc21isp$EXT $DESTDIR$PREFIX/bin \
+	|| quit ":: Error installing lpc21isp"
 
 #
 # Part 12: install GNU make and rm (windows release only)
@@ -650,21 +716,30 @@ if [[ $HOST == *mingw* ]]; then
 
 	cd $MAKE
 
+	echo "Configuring $MAKE..."
 	./configure \
 		--build=$BUILD \
 		--host=$HOST \
-		--prefix=$PREFIX 2> z.make.a.txt || quit ":: Error configuring make"
+		--prefix=$PREFIX &> z.make.a.txt \
+		|| quit ":: Error configuring make"
 
-	make all $PARALLEL 2>../log/z.make.b.txt || quit ":: Error compiling make"
+	echo "Building $MAKE..."
+	make all $PARALLEL &>../log/z.make.b.txt \
+		|| quit ":: Error compiling make"
 
-	make install DESTDIR=$DESTDIR 2>../log/z.make.c.txt || quit ":: Error installing make"
+	echo "Installing $MAKE..."
+	make install DESTDIR=$DESTDIR &>../log/z.make.c.txt \
+		|| quit ":: Error installing make"
 
 	cd ..
 
 	# FIXME get a better rm to distribute for windows
-	$HOSTCC -o rm$EXT -O2 installers/windows/rm.c || quit ":: Error compiling rm"
+	echo "Installing rm..."
+	$HOSTCC -o rm$EXT -O2 installers/windows/rm.c \
+		|| quit ":: Error compiling rm"
 
-	mv rm$EXT $DESTDIR$PREFIX/bin || quit ":: Error installing rm"
+	mv rm$EXT $DESTDIR$PREFIX/bin \
+		|| quit ":: Error installing rm"
 fi
 
 #
@@ -690,6 +765,7 @@ if [[ $DESTDIR ]]; then
 	if [[ ( $(uname -s) == 'Linux' ) && ( $HOST == *linux* ) ]]; then
 		# Build a makeself installer
 		# Distribute the installer and uninstaller too
+		echo "Building Linux makeself installer..."
 		sed -E "s|/opt/arm-miosix-eabi|$PREFIX|g" installers/linux/installer.sh > $DESTDIR$PREFIX/installer.sh
 		sed -E "s|/opt/arm-miosix-eabi|$PREFIX|g" uninstall.sh > $DESTDIR$PREFIX/uninstall.sh
 		chmod +x $DESTDIR$PREFIX/installer.sh $DESTDIR$PREFIX/uninstall.sh
@@ -703,6 +779,7 @@ if [[ $DESTDIR ]]; then
 			"./installer.sh"
 	elif [[ ( $(uname -s) == 'Linux' ) && ( $HOST == *mingw* ) ]]; then
 		# Build an executable installer for Windows
+		echo "Building Windows InnoSetup installer..."
 		cd installers/windows
 		wine "C:\Program Files (x86)\Inno Setup 6\Compil32.exe" /cc MiosixInstaller.iss
 		cd ../..
@@ -711,6 +788,7 @@ if [[ $DESTDIR ]]; then
 		echo "from Linux as the pkgbuild/productbuild tools aren't available"
 	elif [[ $(uname -s) == 'Darwin' ]]; then
 		# Build a .pkg installer for macOS if we are on macOS and we are building for it
+		echo "Building macOS package..."
 		cp uninstall.sh $DESTDIR$PREFIX
 		# Prepare the postinstall script by replacing the correct prefix
 		mkdir -p installers/macos/Scripts
@@ -755,6 +833,7 @@ if [[ $DESTDIR ]]; then
 	fi
 else
 	# Install the uninstaller too
+	echo "Installing uninstall script..."
 	chmod +x uninstall.sh
 	$SUDO cp uninstall.sh $DESTDIR$PREFIX
 	# If sudo not an empty variable and we are not on macOS, make symlinks to
@@ -774,4 +853,4 @@ fi
 # The end.
 #
 
-echo ":: Successfully installed"
+echo "Successfully installed!"
