@@ -1,8 +1,7 @@
 downloaded
-objdir
-newlib-obj
+*_build
+arm-miosix-eabi
 lib
-gcc
 dist
 log
 ramdisk

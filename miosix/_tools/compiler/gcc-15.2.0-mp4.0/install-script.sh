@@ -319,9 +319,10 @@ cd ..
 # Part 4: compile and install binutils
 #
 
-cd $BINUTILS
+mkdir binutils_build
+cd binutils_build
 
-./configure \
+../$BINUTILS/configure \
 	--build=$BUILD \
 	--host=$HOST \
 	--target=arm-miosix-eabi \
@@ -341,8 +342,8 @@ cd ..
 # Part 5: compile and install gcc-start
 #
 
-mkdir objdir
-cd objdir
+mkdir gcc_build
+cd gcc_build
 
 # GCC needs the C headers of the target to configure and build the C++ standard
 # library, therefore when configured --with-headers=[...] the configure script
@@ -434,8 +435,8 @@ cd ..
 # Part 6: compile and install newlib
 #
 
-mkdir newlib-obj
-cd newlib-obj
+mkdir newlib_build
+cd newlib_build
 
 ../$NEWLIB/configure \
 	--build=$BUILD \
@@ -463,7 +464,7 @@ cd ..
 # Part 7: compile and install gcc-end
 #
 
-cd objdir
+cd gcc_build
 
 $SUDO make all $PARALLEL 2>../log/j.txt		|| quit ":: Error compiling gcc-end"
 
@@ -593,8 +594,8 @@ if [[ $HOST == *linux* ]]; then
 	cd ..
 fi
 
-mkdir gdb-obj
-cd gdb-obj
+mkdir gdb_build
+cd gdb_build
 
 # CXX=$HOSTCXX to avoid having to distribute libstdc++.dll on windows
 CXX=$HOSTCXX ../$GDB/configure \
