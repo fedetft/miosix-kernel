@@ -223,7 +223,7 @@ void ElfProgram::validateHeader()
     //Note: this code assumes a little endian elf and a little endian ARM CPU
     if(isUnaligned(getElfBase(),8))
     {
-        DBG("Elf file load address alignment error");
+        DBG("Elf file load address alignment error\n");
         return;
     }
     if(size<sizeof(Elf32_Ehdr)) return;
@@ -231,13 +231,13 @@ void ElfProgram::validateHeader()
     static const char magic[EI_NIDENT]={0x7f,'E','L','F',1,1,1};
     if(memcmp(ehdr->e_ident,magic,EI_NIDENT))
     {
-        DBG("Unrecognized format");
+        DBG("Unrecognized format\n");
         return;
     }
     if(ehdr->e_type!=ET_EXEC) return;
     if(ehdr->e_machine!=EM_ARM)
     {
-        DBG("Wrong CPU arch");
+        DBG("Wrong CPU arch\n");
         return;
     }
     if(ehdr->e_version!=EV_CURRENT) return;
@@ -250,7 +250,7 @@ void ElfProgram::validateHeader()
     #if !defined(__FPU_USED) || __FPU_USED==0
     if(ehdr->e_flags & EF_ARM_VFP_FLOAT)
     {
-        DBG("FPU required");
+        DBG("FPU required\n");
         return;
     }
     #endif
@@ -300,12 +300,12 @@ void ElfProgram::validateHeader()
             case 64:
                 if(isUnaligned(phdr->p_offset,phdr->p_align))
                 {
-                    DBG("Alignment error");
+                    DBG("Alignment error\n");
                     return;
                 }
                 break;
             default:
-                DBG("Unsupported segment alignment");
+                DBG("Unsupported segment alignment\n");
                 return;
         }
         
@@ -316,7 +316,7 @@ void ElfProgram::validateHeader()
                 if(!(phdr->p_flags & PF_R)) return;
                 if((phdr->p_flags & PF_W) && (phdr->p_flags & PF_X))
                 {
-                    DBG("File violates W^X");
+                    DBG("File violates W^X\n");
                     return;
                 }
                 if(phdr->p_flags & PF_X)
@@ -336,7 +336,7 @@ void ElfProgram::validateHeader()
                         MIN_PROCESS_STACK_SIZE;
                     if(phdr->p_memsz>=maxSize)
                     {
-                        DBG("Data segment too big");
+                        DBG("Data segment too big\n");
                         return;
                     }
                     dataSegmentSize=phdr->p_memsz;
@@ -391,7 +391,7 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
             case DT_MX_ABI:
                 if(dyn->d_un.d_val==DV_MX_ABI_V1) miosixTagFound=true;
                 else {
-                    DBG("Unknown/unsupported DT_MX_ABI");
+                    DBG("Unknown/unsupported DT_MX_ABI\n");
                     return false;
                 }
                 break;
@@ -404,7 +404,7 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
             case DT_RELA:
             case DT_RELASZ:
             case DT_RELAENT:
-                DBG("RELA relocations unsupported");
+                DBG("RELA relocations unsupported\n");
                 return false;
             default:
                 //Ignore other entries
@@ -413,17 +413,17 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
     }
     if(miosixTagFound==false)
     {
-        DBG("Not a Miosix executable");
+        DBG("Not a Miosix executable\n");
         return false;
     }
     if(stackSize<MIN_PROCESS_STACK_SIZE)
     {
-        DBG("Requested stack is too small");
+        DBG("Requested stack is too small\n");
         return false;
     }
     if(ramSize>MAX_PROCESS_IMAGE_SIZE)
     {
-        DBG("Requested image size is too large");
+        DBG("Requested image size is too large\n");
         return false;
     }
     //NOTE: this check can only guarantee that statically data and stack fit
@@ -437,7 +437,7 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
        (dataSegmentSize>MAX_PROCESS_IMAGE_SIZE) ||
        (dataSegmentSize+stackSize+WATERMARK_LEN>ramSize))
     {
-        DBG("Invalid stack or RAM size");
+        DBG("Invalid stack or RAM size\n");
         return false;
     }
     
@@ -454,7 +454,8 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
         const int relSize=dtRelsz/sizeof(Elf32_Rel);
         for(int i=0;i<relSize;i++,rel++)
         {
-            switch(ELF32_R_TYPE(rel->r_info))
+            unsigned int relType=ELF32_R_TYPE(rel->r_info);
+            switch(relType)
             {
                 case R_ARM_NONE:
                     break;
@@ -464,7 +465,7 @@ bool ElfProgram::validateDynamicSegment(const Elf32_Phdr *dynamic,
                     if(rel->r_offset & 0x3) return false;
                     break;
                 default:
-                    DBG("Unexpected relocation type");
+                    DBG("Unexpected relocation %d type %d\n", i, relType);
                     return false;
             }
         }
