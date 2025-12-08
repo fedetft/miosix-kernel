@@ -112,13 +112,25 @@ diff -ruN newlib-3.1.0-old/newlib/libc/include/malloc.h newlib-3.1.0/newlib/libc
  extern void *memalign (size_t, size_t);
 diff -ruN newlib-3.1.0-old/newlib/libc/include/pthread.h newlib-3.1.0/newlib/libc/include/pthread.h
 --- newlib-3.1.0-old/newlib/libc/include/pthread.h	2019-01-01 05:40:11.000000000 +0100
-+++ newlib-3.1.0/newlib/libc/include/pthread.h	2025-11-22 18:18:13.870761863 +0100
-@@ -126,6 +126,13 @@
++++ newlib-3.1.0/newlib/libc/include/pthread.h	2025-12-08 17:35:30.207609624 +0100
+@@ -126,6 +126,25 @@
  int	pthread_cond_timedwait (pthread_cond_t *__cond,
  				pthread_mutex_t *__mutex,
  				const struct timespec *__abstime);
 +
 +#ifdef _MIOSIX
++
++typedef unsigned long long cpu_set_t; /* Up to 64 CPUs seems reasonable */
++
++#define CPU_ZERO(__set) *__set=0
++#define CPU_SET(__bit, __set) (*__set) |= (1ull<<(__bit))
++#define CPU_CLR(__bit, __set) (*__set) &= ~(1ull<<(__bit))
++#define CPU_ISSET(__bit, __set) ((*__set) | (1ull<<(__bit)))
++
++int pthread_setaffinity_np (pthread_t __pthread, size_t __cpusetsize,
++                            const cpu_set_t *__cpuset);
++int pthread_getaffinity_np (pthread_t __pthread, size_t __cpusetsize,
++                            cpu_set_t *__cpuset);
 +
 +int pthread_cond_clockwait (pthread_cond_t *__cond, pthread_mutex_t *__mutex,
 +                            clockid_t __clock, const struct timespec *__abstime);
