@@ -386,8 +386,8 @@ diff -ruN gcc-15.2.0-old/gcc/config/arm/sync.md gcc-15.2.0/gcc/config/arm/sync.m
  
 diff -ruN gcc-15.2.0-old/gcc/config/arm/t-arm-miosix gcc-15.2.0/gcc/config/arm/t-arm-miosix
 --- gcc-15.2.0-old/gcc/config/arm/t-arm-miosix	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-15.2.0/gcc/config/arm/t-arm-miosix	2025-12-07 04:25:36.887725841 +0100
-@@ -0,0 +1,100 @@
++++ gcc-15.2.0/gcc/config/arm/t-arm-miosix	2025-12-08 01:20:39.657956327 +0100
+@@ -0,0 +1,99 @@
 +
 +## RATIONALE: build multilibs for all microcontroller-relevant ARM architectures
 +## with and without `-fpie -msingle-pic-base' (for processes).
@@ -411,11 +411,10 @@ diff -ruN gcc-15.2.0-old/gcc/config/arm/t-arm-miosix gcc-15.2.0/gcc/config/arm/t
 +MULTILIB_REQUIRED    =
 +MULTILIB_REUSE       =
 +
-+# explicit default is -marm
 +MULTILIB_OPTIONS    += marm/mthumb
 +MULTILIB_DIRNAMES   += arm thumb
 +
-+# implicit default is set to armv4t (because explicit defualt -mcpu=arm7tdmi)
++# implicit default is set to armv6s-m (because explicit default -mcpu=cortex-m0)
 +MULTILIB_OPTIONS    += march=armv4t/march=armv6s-m/march=armv7-m/march=armv7e-m/march=armv7e-m+fp/march=armv7e-m+fp.dp/march=armv8-m.base/march=armv8-m.main/march=armv8-m.main+fp/march=armv8-m.main+fp.dp
 +MULTILIB_DIRNAMES   += v4t v6-m v7-m v7e-m v7e-m+fp v7e-m+dp v8-m.base v8-m.main v8-m.main+fp v8-m.main+dp
 +
@@ -637,8 +636,8 @@ diff -ruN gcc-15.2.0-old/gcc/config/miosix.opt.urls gcc-15.2.0/gcc/config/miosix
 +
 diff -ruN gcc-15.2.0-old/gcc/config.gcc gcc-15.2.0/gcc/config.gcc
 --- gcc-15.2.0-old/gcc/config.gcc	2025-08-08 08:51:40.435347488 +0200
-+++ gcc-15.2.0/gcc/config.gcc	2025-12-07 04:25:36.900578636 +0100
-@@ -1504,6 +1504,14 @@
++++ gcc-15.2.0/gcc/config.gcc	2025-12-07 22:03:17.550925343 +0100
+@@ -1504,6 +1504,15 @@
  	tmake_file="${tmake_file} arm/t-arm arm/t-arm-elf"
  	target_cpu_cname="arm7tdmi"
  	case ${target} in
@@ -649,6 +648,7 @@ diff -ruN gcc-15.2.0-old/gcc/config.gcc gcc-15.2.0/gcc/config.gcc
 +	  tmake_file="arm/t-arm arm/t-arm-miosix arm/t-bpabi"     # Replace
 +	  extra_options="${extra_options} miosix.opt"             # Append
 +	  use_gcc_stdint=wrap
++	  target_cpu_cname="cortex-m0"
 +	  ;;
  	arm*-*-eabi*)
  	  tm_file="$tm_file newlib-stdint.h"
