@@ -482,6 +482,10 @@ int pthread_once(pthread_once_t *once, void (*func)())
 // Affinity API
 //
 
+//From GCC15.2.0-mp4.0 this is unnecessary as it's in pthread.h, but multiple
+//redefinition of the same typedef are not an error
+typedef unsigned long long cpu_set_t;
+
 int pthread_setaffinity_np(pthread_t pthread, size_t cpusetsize,
     const cpu_set_t *cpuset)
 {
