@@ -189,10 +189,23 @@ int sched_yield()
 // Mutex API
 //
 
-//The pthread_cond_t API is implemented simply as a wrapper around the native
-//Miosix C++ Mutex or FastMutex. Therefore the memory layout of pthread_cond_t
-//should be enough to hold either of these plus an int to differentiate what
-//kind of mutex it is
+//The pthread_mutex_t API is implemented simply as a wrapper around the native
+//Miosix C++ Mutex or FastMutex. Therefore the memory layout of pthread_mutex_t
+//should be enough to hold either of these plus an int (type) to differentiate
+//what kind of mutex it is.
+//
+// Memory layout of the three involved types and how it overlaps:
+// Also note that when SCHED_TYPE_PRIORITY is defined, the WaitQueue size
+// becomes 4 bytes instead of 8 so it only has one field.
+// typedef struct           class Mutex                    class FastMutex
+// {                        {                              {
+//     void *owner;             Thread *owner;                 Thread *owner;
+//     int recursiveDepth;      int recursiveDepth;            int recursiveDepth;
+//     void *field1;            WaitQueue waitQueue; (field1)  WaitQueue waitQueue; (field1)
+//     void *field2;            WaitQueue waitQueue; (field2)  WaitQueue waitQueue; (field2)
+//     void *field3;            Mutex *next;                   //Unused
+//     int type;                //Used by pthread wrapper      //Used by pthread wrapper
+// } pthread_mutex_t;       };                             };
 static_assert(sizeof(pthread_mutex_t)>=sizeof(FastMutex)+sizeof(int),"Invalid pthread_mutex_t size");
 static_assert(sizeof(pthread_mutex_t)>=sizeof(Mutex)+sizeof(int),"Invalid pthread_mutex_t size");
 
@@ -340,6 +353,16 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
 //The pthread_cond_t API is implemented simply as a wrapper around the native
 //Miosix C++ ConditionVariable. Therefore the memory layout of pthread_cond_t
 //and of ConditionVariable must be enough to hold a ConditionVariable.
+//
+// Memory layout of the three involved types and how it overlaps:
+// Also note that when SCHED_TYPE_PRIORITY is defined, the WaitQueue size
+// becomes 4 bytes instead of 8 so it only has one field (second field remains
+// unused)
+// typedef struct           class ConditionVariable
+// {                        {
+//     void *field1;            WaitQueue waitQueue; (field1)
+//     void *field2;            WaitQueue waitQueue; (field2)
+// } pthread_cond_t;        };
 static_assert(sizeof(pthread_cond_t)>=sizeof(ConditionVariable),"Invalid pthread_cond_t size");
 
 int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)

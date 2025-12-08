@@ -590,7 +590,7 @@ private:
     #if defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1
     /*
      * That's the hard case. Using a single list leaves no way to efficiently
-     * implement this queue. We could inserion-sort into the list by
+     * implement this queue. We could insertion-sort into the list by
      * priority like with EDF, but doing so in the use case where more threads
      * in the list have the same priority causes wakeup in LIFO order which may
      * result in starvation. Doing inserion-sort into the list but adding
