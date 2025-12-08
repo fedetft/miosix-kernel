@@ -15,16 +15,11 @@ endif
 include $(CONFPATH)/config/Makefile.inc
 
 AFLAGS   ?= $(CPU) -c
-CFLAGS   ?= -MMD -MP $(CPU) -fpie -msingle-pic-base -ffunction-sections -Wall  \
-            -Werror=return-type -D_DEFAULT_SOURCE=1 $(OPT_OPTIMIZATION)        \
-            $(INCLUDE_DIRS) -g -c
+CFLAGS   ?= -MMD -MP $(CPU) -ffunction-sections -Wall -Werror=return-type \
+            -D_DEFAULT_SOURCE=1 $(OPT_OPTIMIZATION) $(INCLUDE_DIRS) -g -c
 CXXFLAGS ?= -std=c++14 $(PROC_OPT_EXCEPT) $(CFLAGS)
-LFLAGS   ?= $(CPU) -fpie -msingle-pic-base -nostdlib -Wl,--gc-sections         \
-            -Wl,-Map,$(notdir $(BIN)).map,-T,process.ld    \
-            -Wl,-n,-pie,--spare-dynamic-tags,3,--target2=mx-data-rel
-STDLIBS  := -lsyscalls -lstdc++ -lc -lm -lgcc -latomic
-LINK_LIBS ?= $(LIBS) -L$(KPATH)/libsyscalls -Wl,--start-group $(STDLIBS)       \
-             -Wl,--end-group
+LFLAGS   ?= $(CPU) -Wl,--gc-sections
+LINK_LIBS ?= $(LIBS)
 
 OBJ ?= $(addsuffix .o, $(basename $(SRC)))
 
