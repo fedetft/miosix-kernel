@@ -168,7 +168,7 @@ diff -ruN newlib-3.1.0-old/newlib/libc/include/sys/features.h newlib-3.1.0/newli
  #ifdef __rtems__
 diff -ruN newlib-3.1.0-old/newlib/libc/include/sys/_pthreadtypes.h newlib-3.1.0/newlib/libc/include/sys/_pthreadtypes.h
 --- newlib-3.1.0-old/newlib/libc/include/sys/_pthreadtypes.h	2019-01-01 05:40:11.000000000 +0100
-+++ newlib-3.1.0/newlib/libc/include/sys/_pthreadtypes.h	2025-11-22 18:14:22.368169305 +0100
++++ newlib-3.1.0/newlib/libc/include/sys/_pthreadtypes.h	2025-12-08 15:59:53.942158738 +0100
 @@ -143,6 +143,8 @@
  
  #endif /* !defined(_UNIX98_THREAD_MUTEX_ATTRIBUTES) */
@@ -178,7 +178,7 @@ diff -ruN newlib-3.1.0-old/newlib/libc/include/sys/_pthreadtypes.h newlib-3.1.0/
  #if defined(__XMK__)
  typedef unsigned int pthread_mutex_t;    /* identify a mutex */
  
-@@ -171,11 +173,45 @@
+@@ -171,11 +173,44 @@
  
  #define _PTHREAD_MUTEX_INITIALIZER ((pthread_mutex_t) 0xFFFFFFFF)
  
@@ -196,9 +196,9 @@ diff -ruN newlib-3.1.0-old/newlib/libc/include/sys/_pthreadtypes.h newlib-3.1.0/
 +  char recursive;
 +} pthread_mutexattr_t;
 +
-+#define _PTHREAD_MUTEX_INITIALIZER {0,-1,0,0,0,0,0}
++#define _PTHREAD_MUTEX_INITIALIZER {0,-1,0,0,0,0}
 +/* NOTE: this is not defined in pthread.h, so no leading underscore */
-+#define PTHREAD_MUTEX_RECURSIVE_INITIALIZER_NP {0,0,0,0,0,0,0}
++#define PTHREAD_MUTEX_RECURSIVE_INITIALIZER_NP {0,0,0,0,0,0}
 +#endif /* _MIOSIX */
 +
  /* Condition Variables */
@@ -216,10 +216,9 @@ diff -ruN newlib-3.1.0-old/newlib/libc/include/sys/_pthreadtypes.h newlib-3.1.0/
 +{
 +    void *field1; /* Opaque fields */
 +    void *field2; /* Opaque fields */
-+    void *field3; /* Opaque fields */
 +} pthread_cond_t;
 +
-+#define _PTHREAD_COND_INITIALIZER {0,0,0}
++#define _PTHREAD_COND_INITIALIZER {0,0}
 +#endif /* _MIOSIX */
  
  typedef struct {
@@ -7516,8 +7515,8 @@ diff -ruN newlib-3.1.0-old/newlib/libc/sys/miosix/sys/ioctl.h newlib-3.1.0/newli
 +#endif /*_SYS_IOCTL_H*/
 diff -ruN newlib-3.1.0-old/newlib/libc/sys/miosix/sys/lock.h newlib-3.1.0/newlib/libc/sys/miosix/sys/lock.h
 --- newlib-3.1.0-old/newlib/libc/sys/miosix/sys/lock.h	1970-01-01 01:00:00.000000000 +0100
-+++ newlib-3.1.0/newlib/libc/sys/miosix/sys/lock.h	2025-11-22 18:14:22.372169489 +0100
-@@ -0,0 +1,62 @@
++++ newlib-3.1.0/newlib/libc/sys/miosix/sys/lock.h	2025-12-08 16:05:53.099124221 +0100
+@@ -0,0 +1,60 @@
 +#ifndef __SYS_LOCK_H__
 +#define __SYS_LOCK_H__
 +
@@ -7546,7 +7545,6 @@ diff -ruN newlib-3.1.0-old/newlib/libc/sys/miosix/sys/lock.h newlib-3.1.0/newlib
 +    void *field1;       /* Opaque fields */
 +    void *field2;       /* Opaque fields */
 +    void *field3;       /* Opaque fields */
-+    void *field4;       /* Opaque fields */
 +    int type;           /* Depending on how kernel is compiled, mutex type */
 +} pthread_mutex_t;
 +
@@ -7557,8 +7555,8 @@ diff -ruN newlib-3.1.0-old/newlib/libc/sys/miosix/sys/lock.h newlib-3.1.0/newlib
 +typedef pthread_mutex_t _LOCK_T;
 +typedef pthread_mutex_t _LOCK_RECURSIVE_T;
 +
-+#define __LOCK_INIT(clazz,lock) clazz pthread_mutex_t lock = {0,-1,0,0,0,0,0}
-+#define __LOCK_INIT_RECURSIVE(clazz,lock) clazz pthread_mutex_t lock = {0,0,0,0,0,0,0}
++#define __LOCK_INIT(clazz,lock) clazz pthread_mutex_t lock = {0,-1,0,0,0,0}
++#define __LOCK_INIT_RECURSIVE(clazz,lock) clazz pthread_mutex_t lock = {0,0,0,0,0,0}
 +#define __lock_init(lock) pthread_mutex_init(&lock,NULL) 
 +#define __lock_init_recursive(lock) \
 +do { \
@@ -7567,7 +7565,6 @@ diff -ruN newlib-3.1.0-old/newlib/libc/sys/miosix/sys/lock.h newlib-3.1.0/newlib
 +    (lock).field1=0; \
 +    (lock).field2=0; \
 +    (lock).field3=0; \
-+    (lock).field4=0; \
 +    (lock).type=0; \
 +} while(0)
 +#define __lock_close(lock) pthread_mutex_destroy(&lock)
