@@ -180,7 +180,7 @@ diff -ruN newlib-3.1.0-old/newlib/libc/include/sys/features.h newlib-3.1.0/newli
  #ifdef __rtems__
 diff -ruN newlib-3.1.0-old/newlib/libc/include/sys/_pthreadtypes.h newlib-3.1.0/newlib/libc/include/sys/_pthreadtypes.h
 --- newlib-3.1.0-old/newlib/libc/include/sys/_pthreadtypes.h	2019-01-01 05:40:11.000000000 +0100
-+++ newlib-3.1.0/newlib/libc/include/sys/_pthreadtypes.h	2025-12-08 15:59:53.942158738 +0100
++++ newlib-3.1.0/newlib/libc/include/sys/_pthreadtypes.h	2025-12-08 21:18:23.662488293 +0100
 @@ -143,6 +143,8 @@
  
  #endif /* !defined(_UNIX98_THREAD_MUTEX_ATTRIBUTES) */
@@ -190,27 +190,18 @@ diff -ruN newlib-3.1.0-old/newlib/libc/include/sys/_pthreadtypes.h newlib-3.1.0/
  #if defined(__XMK__)
  typedef unsigned int pthread_mutex_t;    /* identify a mutex */
  
-@@ -171,11 +173,44 @@
+@@ -171,11 +173,35 @@
  
  #define _PTHREAD_MUTEX_INITIALIZER ((pthread_mutex_t) 0xFFFFFFFF)
  
 +#else /* _MIOSIX */
 +/*
-+ * The definition of pthread_mutex_t:
-+ * - has been changed from a simple int to a struct containing the actual mutex
++ * The definition of pthread_mutex_t and pthread_mutexattr_t:
++ * - have been changed from a simple int to a struct containing the actual mutex
 + *   implementation for speed reasons.
-+ * - has been moved to sys/lock.h because leaving it here and #including sys/_pthreadtypes.h
++ * - have been moved to sys/lock.h because leaving it here and #including sys/_pthreadtypes.h
 + *   in sys/lock.h would have caused a cycle of #includes
 + */
-+typedef struct {
-+  char is_initialized;
-+  char prio;
-+  char recursive;
-+} pthread_mutexattr_t;
-+
-+#define _PTHREAD_MUTEX_INITIALIZER {0,-1,0,0,0,0}
-+/* NOTE: this is not defined in pthread.h, so no leading underscore */
-+#define PTHREAD_MUTEX_RECURSIVE_INITIALIZER_NP {0,0,0,0,0,0}
 +#endif /* _MIOSIX */
 +
  /* Condition Variables */
@@ -316,6 +307,18 @@ diff -ruN newlib-3.1.0-old/newlib/libc/include/sys/reent.h newlib-3.1.0/newlib/l
  
  #define _REENT_INIT_PTR_ZEROED(var) \
    { (var)->_stdin = &__sf[0]; \
+diff -ruN newlib-3.1.0-old/newlib/libc/include/sys/stat.h newlib-3.1.0/newlib/libc/include/sys/stat.h
+--- newlib-3.1.0-old/newlib/libc/include/sys/stat.h	2019-01-01 05:40:11.000000000 +0100
++++ newlib-3.1.0/newlib/libc/include/sys/stat.h	2025-12-08 21:15:08.233158461 +0100
+@@ -152,7 +152,7 @@
+ int	stat (const char *__restrict __path, struct stat *__restrict __sbuf );
+ mode_t	umask (mode_t __mask );
+ 
+-#if defined (__SPU__) || defined(__rtems__) || defined(__CYGWIN__) && !defined(__INSIDE_CYGWIN__)
++#if defined (__SPU__) || defined(_MIOSIX) || defined(__rtems__) || defined(__CYGWIN__) && !defined(__INSIDE_CYGWIN__)
+ int	lstat (const char *__restrict __path, struct stat *__restrict __buf );
+ int	mknod (const char *__path, mode_t __mode, dev_t __dev );
+ #endif
 diff -ruN newlib-3.1.0-old/newlib/libc/include/sys/_types.h newlib-3.1.0/newlib/libc/include/sys/_types.h
 --- newlib-3.1.0-old/newlib/libc/include/sys/_types.h	2019-01-01 05:40:11.000000000 +0100
 +++ newlib-3.1.0/newlib/libc/include/sys/_types.h	2025-11-22 18:14:22.368169305 +0100
@@ -7527,8 +7530,8 @@ diff -ruN newlib-3.1.0-old/newlib/libc/sys/miosix/sys/ioctl.h newlib-3.1.0/newli
 +#endif /*_SYS_IOCTL_H*/
 diff -ruN newlib-3.1.0-old/newlib/libc/sys/miosix/sys/lock.h newlib-3.1.0/newlib/libc/sys/miosix/sys/lock.h
 --- newlib-3.1.0-old/newlib/libc/sys/miosix/sys/lock.h	1970-01-01 01:00:00.000000000 +0100
-+++ newlib-3.1.0/newlib/libc/sys/miosix/sys/lock.h	2025-12-08 16:05:53.099124221 +0100
-@@ -0,0 +1,60 @@
++++ newlib-3.1.0/newlib/libc/sys/miosix/sys/lock.h	2025-12-08 21:23:36.528617255 +0100
+@@ -0,0 +1,84 @@
 +#ifndef __SYS_LOCK_H__
 +#define __SYS_LOCK_H__
 +
@@ -7560,6 +7563,30 @@ diff -ruN newlib-3.1.0-old/newlib/libc/sys/miosix/sys/lock.h newlib-3.1.0/newlib
 +    int type;           /* Depending on how kernel is compiled, mutex type */
 +} pthread_mutex_t;
 +
++typedef struct {
++  char is_initialized;
++  char prio;
++  char recursive;
++} pthread_mutexattr_t;
++
++#define _PTHREAD_MUTEX_INITIALIZER {0,-1,0,0,0,0}
++/* NOTE: this is not defined in pthread.h, so no leading underscore */
++#define PTHREAD_MUTEX_RECURSIVE_INITIALIZER_NP {0,0,0,0,0,0}
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++int pthread_mutex_init(pthread_mutex_t *, const pthread_mutexattr_t *);
++int pthread_mutex_destroy(pthread_mutex_t *);
++int pthread_mutex_lock(pthread_mutex_t *);
++int pthread_mutex_trylock(pthread_mutex_t *);
++int pthread_mutex_unlock(pthread_mutex_t *);
++
++#ifdef __cplusplus
++}
++#endif
++
 +/*
 + * Finished declaring pthread stuff, now starting real content of lock.h
 + */
@@ -7567,8 +7594,8 @@ diff -ruN newlib-3.1.0-old/newlib/libc/sys/miosix/sys/lock.h newlib-3.1.0/newlib
 +typedef pthread_mutex_t _LOCK_T;
 +typedef pthread_mutex_t _LOCK_RECURSIVE_T;
 +
-+#define __LOCK_INIT(clazz,lock) clazz pthread_mutex_t lock = {0,-1,0,0,0,0}
-+#define __LOCK_INIT_RECURSIVE(clazz,lock) clazz pthread_mutex_t lock = {0,0,0,0,0,0}
++#define __LOCK_INIT(clazz,lock) clazz pthread_mutex_t lock = _PTHREAD_MUTEX_INITIALIZER
++#define __LOCK_INIT_RECURSIVE(clazz,lock) clazz pthread_mutex_t lock = PTHREAD_MUTEX_RECURSIVE_INITIALIZER_NP
 +#define __lock_init(lock) pthread_mutex_init(&lock,NULL) 
 +#define __lock_init_recursive(lock) \
 +do { \
