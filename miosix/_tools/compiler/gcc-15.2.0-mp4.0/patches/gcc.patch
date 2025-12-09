@@ -490,8 +490,8 @@ diff -ruN gcc-15.2.0-old/gcc/config/arm/t-arm-miosix gcc-15.2.0/gcc/config/arm/t
 +			mthumb/march.$(ARCH)/mfloat-abi.soft=mthumb/march.$(ARCH))
 diff -ruN gcc-15.2.0-old/gcc/config/miosix.h gcc-15.2.0/gcc/config/miosix.h
 --- gcc-15.2.0-old/gcc/config/miosix.h	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-15.2.0/gcc/config/miosix.h	2025-12-07 20:37:42.931299371 +0100
-@@ -0,0 +1,87 @@
++++ gcc-15.2.0/gcc/config/miosix.h	2025-12-08 01:33:28.313191394 +0100
+@@ -0,0 +1,118 @@
 +/* Target definitions for the Miosix RTOS. */
 +
 +/* RATIONALE: adding builtin_define to always define _MIOSIX
@@ -530,11 +530,42 @@ diff -ruN gcc-15.2.0-old/gcc/config/miosix.h gcc-15.2.0/gcc/config/miosix.h
 +   does is to expand to -lc in most cases except if profiling is enabled. */
 +#define STD_LIB_SPEC "%{!shared:%{g*:-lg} %{!p:%{!pg:-lc}}%{p:-lc_p}%{pg:-lc_p}}"
 +
-+/* Includes libsyscalls if -qkernelspace is not specified.
-+   Note that this spec goes unused if -nostlib is passed to gcc (i.e. we don't
-+   have to handle that case manually ourselves. */
++/* Includes libsyscalls and libatomic if -qkernelspace is not specified, and
++   the libraries are found.
++   If -lstdc++ is used, move it inside the system LIB_SPEC because in Miosix
++   it has a circular dependency on -lsyscalls. Also -lm must be moved in
++   because -lstdc++ depends on -lm.*/
++/* The case in which the libraries are not found is important to allow the
++   configure steps for GCC's libraries to succeed, because they try to compile
++   linked executables (even though they shouldn't need to!). */
++/* This spec goes unused if -nostlib is passed to gcc (i.e. we don't
++   have to handle that case manually ourselves). Additionally, it is also
++   inside a --start-group --end-group. This is implemented in
++   the parent spec LINK_GCC_C_SEQUENCE_SPEC in unknown-elf.h. */
++/* IMPORTANT: we CANNOT remove the -lstdc++ outfile because LIB_SPEC
++   is evaluated TWICE: one time for creating the --pass-through-libs=...
++   arguments to the linker, the other for adding the libraries to the command
++   line. This is not evident because of too many levels of indirection, but
++   it happens like this:
++     LINK_COMMAND_SPEC
++       string-includes LINK_PLUGIN_SPEC
++         uses %(link_gcc_c_sequence) to invoke LINK_GCC_C_SEQUENCE_SPEC
++           uses %L to invoke LIB_SPEC
++       uses %X to add the output files to the commandline
++       uses %(link_gcc_c_sequence) to invoke LINK_GCC_C_SEQUENCE_SPEC
++         uses %L to invoke LIB_SPEC
++   Unfortunately the output files are added to the linker's command line
++   (by spec command %X) before the second call of LIB_SPEC, so it is basically
++   impossible to remove -lstdc++ once it is added again here.
++   There is no other way to handle libstdc++ because its presence is not
++   defined in any spec string, instead it is hardcoded directly in the
++   C++ driver. */
 +#undef  LIB_SPEC
-+#define LIB_SPEC "%{!qkernelspace:-lsyscalls} " STD_LIB_SPEC
++#define LIB_SPEC \
++  "%{!qkernelspace: \
++     %:if-exists-then-else(libsyscalls.a%s -lsyscalls) \
++     %:if-exists-then-else(libatomic.a%s -latomic) \
++     %{%:find-outfile(-lstdc++):-lstdc++ -lm}} " STD_LIB_SPEC
 +
 +/* Linker specs for Miosix processes */
 +
@@ -662,6 +693,53 @@ diff -ruN gcc-15.2.0-old/gcc/except.cc gcc-15.2.0/gcc/except.cc
        if (HAVE_AS_LEB128)
  	ASM_GENERATE_INTERNAL_LABEL (ttype_label,
  				     section ? "LLSDATTC" : "LLSDATT",
+diff -ruN gcc-15.2.0-old/gcc/gcc.cc gcc-15.2.0/gcc/gcc.cc
+--- gcc-15.2.0-old/gcc/gcc.cc	2025-08-08 08:51:40.855354495 +0200
++++ gcc-15.2.0/gcc/gcc.cc	2025-12-08 00:29:47.095296720 +0100
+@@ -446,6 +446,7 @@
+ static const char *if_exists_else_spec_function (int, const char **);
+ static const char *if_exists_then_else_spec_function (int, const char **);
+ static const char *sanitize_spec_function (int, const char **);
++static const char *find_outfile_spec_function (int, const char **);
+ static const char *replace_outfile_spec_function (int, const char **);
+ static const char *remove_outfile_spec_function (int, const char **);
+ static const char *version_compare_spec_function (int, const char **);
+@@ -1779,6 +1780,7 @@
+   { "if-exists-else",		if_exists_else_spec_function },
+   { "if-exists-then-else",	if_exists_then_else_spec_function },
+   { "sanitize",			sanitize_spec_function },
++  { "find-outfile",		find_outfile_spec_function },
+   { "replace-outfile",		replace_outfile_spec_function },
+   { "remove-outfile",		remove_outfile_spec_function },
+   { "version-compare",		version_compare_spec_function },
+@@ -10467,6 +10469,27 @@
+   return NULL;
+ }
+ 
++/* find-outfile built-in spec function.
++
++   This looks for the first argument in the outfiles array's name and
++   returns the empty string if found.  */
++
++static const char *
++find_outfile_spec_function (int argc, const char **argv)
++{
++  int i;
++  /* Must have exactly one argument.  */
++  if (argc != 1)
++    abort ();
++
++  for (i = 0; i < n_infiles; i++)
++    {
++      if (outfiles[i] && !filename_cmp (outfiles[i], argv[0]))
++        return "";
++    }
++  return NULL;
++}
++
+ /* replace-outfile built-in spec function.
+ 
+    This looks for the first argument in the outfiles array's name and
 diff -ruN gcc-15.2.0-old/gcc/optabs.cc gcc-15.2.0/gcc/optabs.cc
 --- gcc-15.2.0-old/gcc/optabs.cc	2025-08-08 08:51:41.012357114 +0200
 +++ gcc-15.2.0/gcc/optabs.cc	2025-12-07 04:25:36.993113329 +0100
