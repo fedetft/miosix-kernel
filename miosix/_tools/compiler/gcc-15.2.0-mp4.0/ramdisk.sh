@@ -24,6 +24,7 @@ esac
 
 ln -s `pwd`/downloaded ramdisk/downloaded
 cp -R installers ramdisk
+cp -R libsyscalls ramdisk
 cp -R mx-postlinker ramdisk
 cp -R patches ramdisk
 cp cleanup.sh ramdisk
