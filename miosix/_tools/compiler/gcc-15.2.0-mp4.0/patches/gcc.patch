@@ -1380,7 +1380,7 @@ diff -ruN gcc-15.2.0-old/libgomp/team.c gcc-15.2.0/libgomp/team.c
    if (pthread_key_create (&gomp_thread_destructor, gomp_free_thread) != 0)
 diff -ruN gcc-15.2.0-old/libstdc++-v3/configure gcc-15.2.0/libstdc++-v3/configure
 --- gcc-15.2.0-old/libstdc++-v3/configure	2025-08-08 08:51:45.690435151 +0200
-+++ gcc-15.2.0/libstdc++-v3/configure	2025-12-10 15:09:32.635988309 +0100
++++ gcc-15.2.0/libstdc++-v3/configure	2025-12-10 16:21:10.291911676 +0100
 @@ -15967,6 +15967,7 @@
      dce)	thread_header=config/pa/gthr-dce.h ;;
      gcn)	thread_header=config/gcn/gthr-gcn.h ;;
@@ -1413,16 +1413,6 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/configure gcc-15.2.0/libstdc++-v3/configur
    elif test x"$enable_libstdcxx_time" != x"no"; then
  
      if test x"$enable_libstdcxx_time" = x"rt"; then
-@@ -21995,7 +22013,8 @@
-   ac_save_CXXFLAGS="$CXXFLAGS"
-   CXXFLAGS="$CXXFLAGS -fno-exceptions"
-   ac_save_LIBS="$LIBS"
--  LIBS="$LIBS -lpthread"
-+# For Miosix the pthread_cond_clockwait check must pass, but it fails because unlike Linux we don't have a separate library for pthreads, so remove -lpthread
-+#  LIBS="$LIBS -lpthread"
- 
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for pthread_cond_clockwait" >&5
- $as_echo_n "checking for pthread_cond_clockwait... " >&6; }
 diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/atomic_timed_wait.h gcc-15.2.0/libstdc++-v3/include/bits/atomic_timed_wait.h
 --- gcc-15.2.0-old/libstdc++-v3/include/bits/atomic_timed_wait.h	2025-08-08 08:51:45.752436186 +0200
 +++ gcc-15.2.0/libstdc++-v3/include/bits/atomic_timed_wait.h	2025-12-10 15:09:32.639988309 +0100
