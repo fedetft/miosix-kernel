@@ -2,16 +2,10 @@
 add this to newlib options?
 --disable-newlib-wide-orient
 
-Add libsyscalls to the compiler and have gcc link with it be default by
-creating a specs file, remove stubs.c in newlib. Also, build newlib without
-libnosys and the other unused stub libraries.
+Bbuild newlib without libnosys and the other unused stub libraries.
 
 Reduce MAXNAMLEN in newlib from 1024 to 256, it is used to allocate a buffer
 on the stack in newlib/libc/posix/execvp.c
-
-Make ino_t a long long, to support, e.g, greater than 128GByte SD cards.
-Would require changes to the filesystems meant to support very large disks, such
-as fat32 too.
 
 Fix newlib so that the lstat syscall function prototype is made available,
 and maybe add prototype for _lstat_r too
