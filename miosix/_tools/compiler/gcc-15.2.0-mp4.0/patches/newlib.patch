@@ -7331,7 +7331,7 @@ diff -ruN newlib-3.1.0-old/newlib/libc/sys/miosix/Makefile.in newlib-3.1.0/newli
 +.NOEXPORT:
 diff -ruN newlib-3.1.0-old/newlib/libc/sys/miosix/stubs.c newlib-3.1.0/newlib/libc/sys/miosix/stubs.c
 --- newlib-3.1.0-old/newlib/libc/sys/miosix/stubs.c	1970-01-01 01:00:00.000000000 +0100
-+++ newlib-3.1.0/newlib/libc/sys/miosix/stubs.c	2025-11-22 18:20:09.128035537 +0100
++++ newlib-3.1.0/newlib/libc/sys/miosix/stubs.c	2025-12-10 16:56:53.455873461 +0100
 @@ -0,0 +1,99 @@
 +/*
 + * RATIONALE: these stubs exists so that an attempt to use arm-miosix-eabi-gcc
@@ -7431,7 +7431,7 @@ diff -ruN newlib-3.1.0-old/newlib/libc/sys/miosix/stubs.c newlib-3.1.0/newlib/li
 +int    AW getpid()                                                   { return 0; }
 +int    AW _wait_r(struct _reent *a, int *b)                          { return -1; }
 +int    AW wait(int *a)                                               { return -1; }
-+
++long int AW sysconf(int query)                                       { return -1; }
 diff -ruN newlib-3.1.0-old/newlib/libc/sys/miosix/sys/dirent.h newlib-3.1.0/newlib/libc/sys/miosix/sys/dirent.h
 --- newlib-3.1.0-old/newlib/libc/sys/miosix/sys/dirent.h	1970-01-01 01:00:00.000000000 +0100
 +++ newlib-3.1.0/newlib/libc/sys/miosix/sys/dirent.h	2025-11-22 18:14:22.372169489 +0100
@@ -7530,20 +7530,22 @@ diff -ruN newlib-3.1.0-old/newlib/libc/sys/miosix/sys/ioctl.h newlib-3.1.0/newli
 +#endif /*_SYS_IOCTL_H*/
 diff -ruN newlib-3.1.0-old/newlib/libc/sys/miosix/sys/lock.h newlib-3.1.0/newlib/libc/sys/miosix/sys/lock.h
 --- newlib-3.1.0-old/newlib/libc/sys/miosix/sys/lock.h	1970-01-01 01:00:00.000000000 +0100
-+++ newlib-3.1.0/newlib/libc/sys/miosix/sys/lock.h	2025-12-08 21:23:36.528617255 +0100
-@@ -0,0 +1,84 @@
++++ newlib-3.1.0/newlib/libc/sys/miosix/sys/lock.h	2025-12-10 17:03:35.483866292 +0100
+@@ -0,0 +1,86 @@
 +#ifndef __SYS_LOCK_H__
 +#define __SYS_LOCK_H__
 +
 +#include <_ansi.h>
 +
 +/*
-+ * The Miosix filesystem code assumes off_t is a signed 64 bit type.
++ * The Miosix filesystem code assumes off_t and ino_t are 64 bit types.
 + * Technically this definition should be in sys/types.h, but we don't
 + * provide a Miosix-specific version of sys/types.h yet.
 + */
 +typedef signed long long _off_t;
 +#define __machine_off_t_defined 1
++typedef unsigned long long __ino_t;
++#define __machine_ino_t_defined 1
 +
 +/*
 + * The type of pthread_mutex_t, has been moved here from sys/types.h, because
