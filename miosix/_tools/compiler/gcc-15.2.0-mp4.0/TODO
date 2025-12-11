@@ -2,8 +2,6 @@
 add this to newlib options?
 --disable-newlib-wide-orient
 
-Bbuild newlib without libnosys and the other unused stub libraries.
-
 Reduce MAXNAMLEN in newlib from 1024 to 256, it is used to allocate a buffer
 on the stack in newlib/libc/posix/execvp.c
 
