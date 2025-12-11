@@ -685,7 +685,7 @@ clock_gettime:
 	movs r4, r1
 	movs r7, #38
 	svc  0
-#ifdef __ARM_ARCH_6M__
+#if __ARM_ARCH_ISA_THUMB == 1
 	str  r2, [r4]
 	str  r3, [r4, #4]
 #else
@@ -711,7 +711,7 @@ clock_gettime:
 clock_settime:
 	push {r7, lr}
 	/* return syscall(clock_id,tp->tv_nsec,tp->tv_sec); */
-#ifdef __ARM_ARCH_6M__
+#if __ARM_ARCH_ISA_THUMB == 1
 	ldr  r2, [r1]
 	ldr  r3, [r1, #4]
 #else
@@ -891,7 +891,7 @@ sysconf:
 /* common jump target for all failing syscalls with 32 bit return value */
 .section .text.__seterrno32
 syscallfailed32:
-#ifdef __ARM_ARCH_6M__
+#if __ARM_ARCH_ISA_THUMB == 1
 	ldr  r7, [sp, #4] /* push{r7,lr} leaves lr @ sp+4 and r7 @ sp+0 */
 	mov  lr, r7
 	ldr  r7, [sp, #0]
@@ -904,7 +904,7 @@ syscallfailed32:
 /* common jump target for all failing syscalls with 64 bit return value */
 .section .text.__seterrno64
 syscallfailed64:
-#ifdef __ARM_ARCH_6M__
+#if __ARM_ARCH_ISA_THUMB == 1
 	ldr  r7, [sp, #4] /* push{r7,lr} leaves lr @ sp+4 and r7 @ sp+0 */
 	mov  lr, r7
 	ldr  r7, [sp, #0]
