@@ -231,7 +231,6 @@ if [[ $DESTDIR ]]; then
 	extract 'expat' $EXPAT.tar.xz
 fi
 
-unzip -o lpc21isp_148_src.zip || quit ":: Error extracting lpc21isp"
 mkdir log
 
 #
@@ -755,18 +754,7 @@ make CXX="$HOSTCXX" SUFFIX=$EXT clean
 cd ..
 
 #
-# Part 11: compile and install lpc21isp.c
-#
-
-echo "Installing lpc21isp..."
-$HOSTCC -o lpc21isp$EXT lpc21isp.c \
-	|| quit ":: Error compiling lpc21isp"
-
-$SUDO mv lpc21isp$EXT $DESTDIR$PREFIX/bin \
-	|| quit ":: Error installing lpc21isp"
-
-#
-# Part 12: install GNU make and rm (windows release only)
+# Part 11: install GNU make and rm (windows release only)
 #
 
 if [[ $HOST == *mingw* ]]; then
@@ -800,7 +788,7 @@ if [[ $HOST == *mingw* ]]; then
 fi
 
 #
-# Part 13: Final fixups
+# Part 12: Final fixups
 #
 
 # Remove this since its name is not arm-miosix-eabi-

@@ -4,7 +4,6 @@ GNU Binutils
 GNU GDB
 GNU Make
 Newlib
-lpc21isp
 mx-postlinker
 
 === GCC, Binutils, GDB, Make License ===
@@ -1750,25 +1749,7 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-=== lpc21isp License ===
-
-Copyright: (c) Martin Maurer 2003-2014, All rights reserved
-Portions Copyright (c) by Aeolus Development 2004 http://www.aeolusdevelopment.com
-
-This file is part of lpc21isp.
-lpc21isp is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-any later version.
-lpc21isp is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Lesser General Public License for more details.
-You should have received a copy of the GNU Lesser General Public License
-and GNU General Public License along with lpc21isp.
-If not, see <http://www.gnu.org/licenses/>. 
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 
 === mx-postlinker License ===
 

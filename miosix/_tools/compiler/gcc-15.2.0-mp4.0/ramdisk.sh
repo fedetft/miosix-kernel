@@ -30,4 +30,3 @@ cp -R patches ramdisk
 cp cleanup.sh ramdisk
 cp install-script.sh ramdisk
 cp uninstall.sh ramdisk
-cp lpc21isp_148_src.zip ramdisk
