@@ -4,8 +4,6 @@
 # Usage: ./install-script -j`nproc`
 # The -j parameter is passed to make for parallel compilation
 #
-# Building Miosix is officially supported only through the gcc compiler built
-# with this script. This is because this script patches the compiler.
 # Starting from Miosix 1.58 the use of the arm-miosix-eabi-gcc compiler built
 # by this script has become mandatory due to patches related to posix threads
 # in newlib. The kernel *won't* compile unless the correct compiler is used.
@@ -14,11 +12,6 @@
 # of the Miosix compiler for both linux and windows. Most users will want to
 # download the binary relase from http://miosix.org instead of compiling GCC
 # using this script.
-#
-# This script will install arm-miosix-eabi-gcc in /opt, creating links to
-# binaries in /usr/bin.
-# It should be run without root privileges, but it will ask for the root
-# password when installing files to /opt and /usr/bin
 
 #### Configuration tunables -- begin ####
 
@@ -37,11 +30,6 @@ SUDO=sudo
 # copied with $DESTDIR as prefix. When doing a redistibutable build you also
 # have to specify HOST or (on Mac OS), BUILD, see below.
 # When compiling the Windows installer, do not change the default values!
-# WARNING: Please note that since the already installed version of
-# arm-miosix-eabi-gcc is used to build the standard libraries, it
-# MUST BE THE EXACT SAME VERSION, including miosix-specific patches. Thus when
-# adding new patches you need to first install the new compiler system-wide and
-# only after that build the redistributable one
 #PREFIX=/opt/arm-miosix-eabi
 #DESTDIR=`pwd`/dist
 #SUDO=
@@ -118,24 +106,44 @@ if [[ $DESTDIR ]]; then
 			quit ":: Error distributable compiling but no HOST specifed"
 		fi
 	fi
-	# Since we do not install the bootstrapped arm-miosix-eabi-gcc during the
-	# build process, for making libc, libstdc++, ... we need the same version of
-	# arm-miosix-eabi-gcc that we are going to compile already installed locally
-	# in the system from which we are compiling.
-	__GCCVER=`arm-miosix-eabi-gcc --version | perl -ne \
-		'next unless(/(\d+\.\d+.\d+)/); print "gcc-$1\n";'`;
-	__GCCPAT=`arm-miosix-eabi-gcc -dM -E - < /dev/null | perl -e \
-		'my $M, my $m;
-		 while(<>) {
-		 	$M=$1 if(/_MIOSIX_GCC_PATCH_MAJOR (\d+)/);
-		 	$m=$1 if(/_MIOSIX_GCC_PATCH_MINOR (\d+)/);
-		 }
-		 print "mp$M.$m";'`;
-	if [[ ($__GCCVER != $GCC) || ($__GCCPAT != "mp${__GCCPATCUR}") ]]; then
-		quit ":: Error must first install ${GCC}mp${__GCCPATCUR} system-wide"
-	fi
-	if [[ ! -e $PREFIX/bin/arm-miosix-eabi-gcc ]]; then
-		quit ":: Error To use \$DESTDIR you must first install ${GCC}mp${__GCCPATCUR} in the same prefix"
+	if [[ -d $PREFIX/arm-miosix-eabi ]]; then
+		# If arm-miosix-eabi-gcc is already installed system-wide, make sure
+		# it's the same version, otherwise we may by mistake build part of the
+		# standard libraries with the old compiler
+		__GCCVER=`arm-miosix-eabi-gcc --version | perl -ne \
+			'next unless(/(\d+\.\d+.\d+)/); print "gcc-$1\n";'`;
+		__GCCPAT=`arm-miosix-eabi-gcc -dM -E - < /dev/null | perl -e \
+			'my $M, my $m;
+			 while(<>) {
+			 	$M=$1 if(/_MIOSIX_GCC_PATCH_MAJOR (\d+)/);
+			 	$m=$1 if(/_MIOSIX_GCC_PATCH_MINOR (\d+)/);
+			 }
+			 print "mp$M.$m";'`;
+		if [[ ($__GCCVER != $GCC) || ($__GCCPAT != "mp${__GCCPATCUR}") ]]; then
+			quit ":: Uninstall the previous compiler version first"
+		fi
+	else
+		# When building a redistributable build, we use destdir. Thus, the
+		# compiler is "installed" to $DESTDIR$PREFIX even though it is meant to
+		# be run from $PREFIX. There is an issue though: building the standard
+		# libraries requires the to-be-built compiler, which is't found, so
+		# building fails at the newlib stage. We wish the fix would just be a
+		# export PATH=$DESTDIR$PREFIX/bin:$PATH
+		# but turns out that isn't enough, as after newlib is built, the
+		# subsequent libraries (part of gcc-end) don't just require the compiler,
+		# they require the libc too that is installed in $DESTDIR$PREFIX, but
+		# the compiler looks for it in $PREFIX only...
+		# As a workaround, we temporarily do a symlink to make the compiler
+		# and standard libraries available from their final path, $PREFIX during
+		# the compilation process.
+		# Moreover, just symlinking /opt/arm-miosix-eabi fails, so we need to
+		# symlink only /opt/arm-miosix-eabi/arm-miosix-eabi
+		export PATH=$DESTDIR$PREFIX/bin:$PATH
+		mkdir -p $DESTDIR$PREFIX/arm-miosix-eabi
+		# This must unconditionally be done with sudo so it's important we use
+		# sudo and not $SUDO.
+		sudo mkdir -p $PREFIX
+		sudo ln -s $DESTDIR$PREFIX/arm-miosix-eabi $PREFIX/arm-miosix-eabi
 	fi
 else
 	if [[ $HOST || $BUILD ]]; then
@@ -380,9 +388,7 @@ cd gcc_build
 # unconditionally copies those headers in the
 # $PREFIX/arm-miosix-eabi/sys-include folder.
 #   This is fine for local installs, (up to a certain point, see later
-# comments), but for distributable builds we already have the headers in
-# $PREFIX/arm-miosix-eabi/include (not in sys-include!) and we don't want to
-# touch the existing install.
+# comments).
 #   However the GCC makefiles are not clever enough to search in `include`
 # rather than `sys-include` when checking if limits.h exists to decide whether
 # to "fix" it. Since `sys-include` does not exists, GCC does not find limits.h
@@ -390,16 +396,7 @@ cd gcc_build
 # by newlib's one. This incorrect file ends up installed and used by the
 # built GCC causing build failures usually related to missing defines used
 # by dirent.h.
-#   Therefore we must differentiate the case in which we are installing
-# or building for redistribution. When we build for redistribution we use
-# --with-sysroot and --with-native-system-header-dir to instruct the GCC
-# configure script to set CROSS_SYSTEM_HEADER_DIR to the place where we already
-# have our headers available, without attempting to copy stuff in $PREFIX.
-if [[ $DESTDIR ]]; then
-	__GCC_CONF_HEADERS_PARAM="--with-sysroot=$PREFIX/arm-miosix-eabi --with-native-system-header-dir=/include"
-else
-	__GCC_CONF_HEADERS_PARAM=--with-headers=../$NEWLIB/newlib/libc/include
-fi
+__GCC_CONF_HEADERS_PARAM=--with-headers=../$NEWLIB/newlib/libc/include
 
 echo "Configuring $GCC (start)..."
 $SUDO ../$GCC/configure \
@@ -436,34 +433,19 @@ echo "Installing $GCC (start)..."
 $SUDO make install-gcc DESTDIR=$DESTDIR &>../log/05_gcc-start_3_install.txt \
 	|| quit ":: Error installing gcc-start"
 
-if [[ -z $DESTDIR ]]; then
-	# Remove the sys-include directory if we are installing locally.
-	# There are two reasons why to remove it: first because it is unnecessary,
-	# second because it is harmful.
-	# After gcc is compiled, the installation of newlib places the headers in the
-	# include dirctory and at that point the sys-include headers aren't necessary anymore
-	# Now, to see why the're harmful, consider the header newlib.h It is initially
-	# empty and is filled in by the newlib's ./configure with the appropriate options
-	# Now, since the configure process happens after, the newlib.h in sys-include
-	# is the wrong (empty) one, while the one in include is the correct one.
-	# This causes troubles because newlib.h contains the _WANT_REENT_SMALL used to
-	# select the appropriate _Reent struct. This error is visible to user code since
-	# GCC seems to take the wrong newlib.h and user code gets the wrong _Reent struct
-	$SUDO rm -rf $PREFIX/arm-miosix-eabi/sys-include
-	
-	# Another fix, looks like export PATH isn't enough for newlib, it fails
-	# running arm-miosix-eabi-ranlib when installing
-	if [[ $SUDO ]]; then
-		# This is actually done also later, but we don't want to add a symlink too
-		$SUDO rm $PREFIX/bin/arm-miosix-eabi-$GCC$EXT
-
-		# Linking to /usr/bin does not work on macOS because of SIP, but newlib
-		# appears to build just fine with export PATH on macOS...
-		if [[ ! ( $(uname -s) == 'Darwin' ) ]]; then
-			$SUDO ln -s $DESTDIR$PREFIX/bin/* /usr/bin
-		fi
-	fi
-fi
+# Remove the sys-include directory if we are installing locally.
+# There are two reasons why to remove it: first because it is unnecessary,
+# second because it is harmful.
+# After gcc is compiled, the installation of newlib places the headers in the
+# include dirctory and at that point the sys-include headers aren't necessary anymore
+# Now, to see why the're harmful, consider the header newlib.h It is initially
+# empty and is filled in by the newlib's ./configure with the appropriate options
+# Now, since the configure process happens after, the newlib.h in sys-include
+# is the wrong (empty) one, while the one in include is the correct one.
+# This causes troubles because newlib.h contains the _WANT_REENT_SMALL used to
+# select the appropriate _Reent struct. This error is visible to user code since
+# GCC seems to take the wrong newlib.h and user code gets the wrong _Reent struct
+$SUDO rm -rf $DESTDIR$PREFIX/arm-miosix-eabi/sys-include
 
 cd ..
 
@@ -497,7 +479,7 @@ make $PARALLEL &>../log/06_newlib_2_build.txt \
 	|| quit ":: Error compiling newlib"
 
 echo "Installing $NEWLIB..."
-$SUDO make install DESTDIR=$DESTDIR &>../log/06_newlib_3_install.txt \
+$SUDO make install PATH=$PATH DESTDIR=$DESTDIR &>../log/06_newlib_3_install.txt \
 	|| quit ":: Error installing newlib"
 
 cd ..
@@ -516,10 +498,10 @@ cd ..
 # Build and install GCC's libraries
 cd gcc_build
 echo "Building $GCC (end)..."
-$SUDO make all $PARALLEL &> ../log/07_gcc-end_1_build.txt \
+$SUDO make all $PARALLEL PATH=$PATH &> ../log/07_gcc-end_1_build.txt \
 	|| quit ":: Error compiling gcc-end"
 echo "Installing $GCC (end)..."
-$SUDO make install DESTDIR=$DESTDIR &>../log/07_gcc-end_2_install.txt \
+$SUDO make install PATH=$PATH DESTDIR=$DESTDIR &>../log/07_gcc-end_2_install.txt \
 	|| quit ":: Error installing gcc-end"
 cd ..
 
@@ -754,7 +736,7 @@ make all MAKEINFO=/usr/bin/true $PARALLEL &>../log/11_gdb_2_build.txt \
 	|| quit ":: Error compiling gdb"
 
 echo "Installing $GDB..."
-$SUDO make install MAKEINFO=/usr/bin/true DESTDIR=$DESTDIR &>../log/11_gdb_3_install.txt \
+$SUDO make install MAKEINFO=/usr/bin/true PATH=$PATH DESTDIR=$DESTDIR &>../log/11_gdb_3_install.txt \
 	|| quit ":: Error installing gdb"
 
 cd ..
@@ -922,6 +904,15 @@ else
 		echo "export PATH=$PREFIX/bin:"'$PATH' >> env.sh
 		chmod +x env.sh
 	fi
+fi
+
+if [[ -h $PREFIX/arm-miosix-eabi ]]; then
+	# Symlink of $DESTDIR$PREFIX/arm-miosix-eabi to $PREFIX/arm-miosix-eabi no
+	# longer required.
+	# This must unconditionally be done with sudo so it's important we use
+	# sudo and not $SUDO.
+	sudo rm $PREFIX/arm-miosix-eabi
+	sudo rmdir $PREFIX
 fi
 
 #
