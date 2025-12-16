@@ -557,7 +557,7 @@ unsigned int checkInodes(const char *dir, unsigned int curInode,
         
         struct stat st;
         if(stat(de->d_name,&st)) fail("stat");
-        printf("inode=%lu dev=%d %s\n",st.st_ino,st.st_dev,de->d_name);
+        printf("inode=%llu dev=%d %s\n",st.st_ino,st.st_dev,de->d_name);
         
         if(de->d_ino!=st.st_ino) fail("inode mismatch");
         
@@ -663,7 +663,7 @@ static void fs_test_4()
             sdDevice=st.st_dev;
         }
         
-        printf("inode=%lu dev=%d %s\n",st.st_ino,st.st_dev,de->d_name);
+        printf("inode=%llu dev=%d %s\n",st.st_ino,st.st_dev,de->d_name);
     }
     closedir(d);
     
