@@ -375,7 +375,10 @@ int _gettimeofday_r(struct _reent *ptr, struct timeval *tv, void *tz)
     return gettimeofday(tv,tz);
 }
 
-// int _kill_r(struct _reent* ptr, int pid, int sig) { return -1; }
+int _kill_r(struct _reent* ptr, int pid, int sig)
+{
+    return -1;
+}
 
 int _wait_r(struct _reent *ptr, int *status)
 {
@@ -720,106 +723,3 @@ extern "C" void __cxa_guard_abort(__guard *g) noexcept
 #warning: TODO: Override new with alignment (libsupc++/new_opa.cc, new_opv.cc, ...
 #warning: TODO: FIX __gthread_key_t in libstdc++/include/std/memory_resource
 #endif
-
-#ifdef __NO_EXCEPTIONS
-/*
- * If not using exceptions, ovverride the default new, delete with
- * an implementation that does not throw, to minimze code size
- */
-void *operator new(size_t size) noexcept
-{
-    return malloc(size);
-}
-
-void *operator new(size_t size, const std::nothrow_t&) noexcept
-{
-    return malloc(size);
-}
-
-void *operator new[](size_t size) noexcept
-{
-    return malloc(size);
-}
-
-void *operator new[](size_t size, const std::nothrow_t&) noexcept
-{
-    return malloc(size);
-}
-
-void operator delete(void *p) noexcept
-{
-    free(p);
-}
-
-void operator delete[](void *p) noexcept
-{
-    free(p);
-}
-
-/**
- * \internal
- * The default version of these functions provided with libstdc++ require
- * exception support. This means that a program using pure virtual functions
- * incurs in the code size penalty of exception support even when compiling
- * without exceptions. By replacing the default implementations with these one
- * the problem is fixed.
- */
-extern "C" void __cxxabiv1::__cxa_pure_virtual(void)
-{
-    write(STDERR_FILENO,"Pure virtual method called\n",27);
-    _exit(1);
-}
-
-extern "C" void __cxxabiv1::__cxa_deleted_virtual(void)
-{
-    write(STDERR_FILENO,"Deleted virtual method called\n",30);
-    _exit(1);
-}
-
-namespace std {
-void terminate()  noexcept { _exit(1); }
-void unexpected() noexcept { _exit(1); }
-/*
- * This one comes from thread.cc, the need to call the class destructor makes it
- * call __cxa_end_cleanup which pulls in exception code.
- */
-extern "C" void* execute_native_thread_routine(void* __p)
-{
-    thread::_State_ptr __t{ static_cast<thread::_State*>(__p) };
-    __t->_M_run();
-    return nullptr;
-}
-} //namespace std
-
-/*
- * If not using exceptions, override these functions with
- * an implementation that does not throw, to minimze code size
- */
-namespace std {
-void __throw_bad_exception() { _exit(1); }
-void __throw_bad_alloc()  { _exit(1); }
-void __throw_bad_cast() { _exit(1); }
-void __throw_bad_typeid()  { _exit(1); }
-void __throw_logic_error(const char*) { _exit(1); }
-void __throw_domain_error(const char*) { _exit(1); }
-void __throw_invalid_argument(const char*) { _exit(1); }
-void __throw_length_error(const char*) { _exit(1); }
-void __throw_out_of_range(const char*) { _exit(1); }
-void __throw_out_of_range_fmt(const char*, ...) { exit(1); }
-void __throw_runtime_error(const char*) { _exit(1); }
-void __throw_range_error(const char*) { _exit(1); }
-void __throw_overflow_error(const char*) { _exit(1); }
-void __throw_underflow_error(const char*) { _exit(1); }
-void __throw_system_error(int) { _exit(1); }
-void __throw_future_error(int) { _exit(1); }
-void __throw_bad_function_call() { _exit(1); }
-} //namespace std
-
-namespace __cxxabiv1 {
-extern "C" void __cxa_throw_bad_array_length() { exit(1); }
-extern "C" void __cxa_bad_cast() { exit(1); }
-extern "C" void __cxa_bad_typeid() { exit(1); }
-extern "C" void __cxa_throw_bad_array_new_length() { exit(1); }
-} //namespace __cxxabiv1
-
-#endif //__NO_EXCEPTIONS
