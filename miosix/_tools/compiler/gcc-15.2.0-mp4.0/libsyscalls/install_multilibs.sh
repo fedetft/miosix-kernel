@@ -10,7 +10,7 @@ quit() {
 }
 
 if [[ -z "$PREFIX" ]]; then
-    quit PREFIX must be a toolchain prefix path like '/opt/arm-miosix-eabi'
+    quit 'PREFIX must be a toolchain prefix path like ''/opt/arm-miosix-eabi'''
 fi
 
 all_multilibs=$(arm-miosix-eabi-gcc --print-multi-lib)
