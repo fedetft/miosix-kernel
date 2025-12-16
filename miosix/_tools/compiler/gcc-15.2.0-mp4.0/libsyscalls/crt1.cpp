@@ -377,6 +377,12 @@ int _gettimeofday_r(struct _reent *ptr, struct timeval *tv, void *tz)
 
 int _kill_r(struct _reent* ptr, int pid, int sig)
 {
+    if(pid==getpid())
+    {
+        if(sig!=0) _exit(128+sig);
+        return 0;
+    }
+    errno=EPERM;
     return -1;
 }
 
