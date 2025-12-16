@@ -81,7 +81,7 @@ And now you know why this way of deciding which multilibs to build wasn't
 exactly the best one... and they introduced `MULTILIB_EXCEPTIONS`,
 `MULTILIB_REQUIRED`, `MULTILIB_MATCHES` and `MULTILIB_REUSE` to patch it up.
 All these variables take the list above and modify it. `MULTILIB_REQUIRED`
-modifies the combinations GCC build time, while the others are implemented
+modifies the combinations at GCC build time, while the others are implemented
 at GCC runtime.
 
 The `genmultilib` script flattens the sets even more, by repeating all options
