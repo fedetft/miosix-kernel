@@ -25,14 +25,18 @@ for libspec in $all_multilibs; do
         echo 'Kernel multilib, skipped.'
     else
         make clean
-        # TODO: quit on error, current we can't do that because armv8-m.base
-        # libs don't build and we want to ignore that.
-        $SUDO make install \
+        make \
             PREFIX="$PREFIX" \
             DESTDIR="$DESTDIR" \
             TARGET=arm-miosix-eabi \
             MULTILIB_PATH="$MULTILIB_PATH" \
             MULTILIB_FLAGS="$MULTILIB_FLAGS" || quit 'Compilation error'
+        $SUDO make install \
+            PREFIX="$PREFIX" \
+            DESTDIR="$DESTDIR" \
+            TARGET=arm-miosix-eabi \
+            MULTILIB_PATH="$MULTILIB_PATH" \
+            MULTILIB_FLAGS="$MULTILIB_FLAGS" || quit 'Installation error'
     fi
 done
 make clean
