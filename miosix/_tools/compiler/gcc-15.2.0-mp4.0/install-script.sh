@@ -620,21 +620,37 @@ check_multilibs() {
 }
 
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/arm/v4t/nofp/kernel
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/arm/v4t/nofp/kernel/noexceptions
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v4t/nofp/kernel
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v4t/nofp/kernel/noexceptions
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v6-m/nofp
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v6-m/nofp/kernel
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v6-m/nofp/noexceptions
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v6-m/nofp/kernel/noexceptions
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7-m/nofp
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7-m/nofp/kernel
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7-m/nofp/noexceptions
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7-m/nofp/kernel/noexceptions
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+fp/hard
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+fp/hard/kernel
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+fp/hard/noexceptions
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+fp/hard/kernel/noexceptions
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+dp/hard
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+dp/hard/kernel
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+dp/hard/noexceptions
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v7e-m+dp/hard/kernel/noexceptions
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.base/nofp
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.base/nofp/kernel
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.base/nofp/noexceptions
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.base/nofp/kernel/noexceptions
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+fp/hard
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+fp/hard/kernel
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+fp/hard/noexceptions
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+fp/hard/kernel/noexceptions
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+dp/hard
 check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+dp/hard/kernel
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+dp/hard/noexceptions
+check_multilibs $DESTDIR$PREFIX/arm-miosix-eabi/lib/thumb/v8-m.main+dp/hard/kernel/noexceptions
 echo "Checked multilibs: all have been built!"
 
 #
