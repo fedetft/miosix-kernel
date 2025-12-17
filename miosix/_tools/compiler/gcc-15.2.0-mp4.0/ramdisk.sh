@@ -7,11 +7,11 @@ case $(uname -s) in
 	Linux)
 		mkdir -p ramdisk
 		sudo umount ramdisk 2> /dev/null # If not already mounted it's not an error
-		sudo mount -t tmpfs -o size=13G,uid=`id -u`,gid=`id -g`,mode=700 tmpfs ramdisk
+		sudo mount -t tmpfs -o size=15872M,uid=`id -u`,gid=`id -g`,mode=700 tmpfs ramdisk
 		sudo -k
 		;;
 	Darwin)
-		ramdisk_size=$(( 13 * 1024 * 1024 ))
+		ramdisk_size=$(( 15872 * 1024 )) # 15.5GB
 		ramdisk_name="miosix_ramdisk_$RANDOM"
 		diskutil erasevolume HFS+ "$ramdisk_name" $(hdiutil attach -nobrowse -nomount ram://$(( ramdisk_size ))) > /dev/stderr
 		ln -s "/Volumes/$ramdisk_name/" ./ramdisk
