@@ -12,7 +12,7 @@
 //microcontrollers. Note that reordering does not necessarily happen at the
 //CPU level alone, the bus matrices and peripherals themselves may also reorder
 //accesses as a side-effect of how they work.
-#define RCC_SYNC()
+#define RCC_SYNC() __DSB()
 
 //Peripheral interrupt start from 0 and the last one is 80, so there are 81
 #define MIOSIX_NUM_PERIPHERAL_IRQ 81
