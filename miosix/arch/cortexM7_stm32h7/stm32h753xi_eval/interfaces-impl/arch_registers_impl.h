@@ -11,13 +11,16 @@
 
 #include "CMSIS/Device/ST/STM32H7xx/Include/system_stm32h7xx.h"
 
-//RCC_SYNC is a Miosix-defined primitive for synchronizing the CPU with the RCC
-//after modifying peripheral clocks/resets. It should be defined to a no-op on
-//architectures without bus access reordering, and to a __DSB() on all other
-//ARM architectures. The DMB is required for example in stm32f42x
-//microcontrollers. Note that reordering does not necessarily happen at the
-//CPU level alone, the bus matrices and peripherals themselves may also reorder
-//accesses as a side-effect of how they work.
+//RCC_SYNC is a Miosix-defined primitive for synchronizing the CPU with the
+//STM32 RCC (Reset and Clock Control) peripheral after modifying peripheral
+//clocks/resets. This is necessary on almost all stm32s starting from stm32f2xx,
+//as observed experimentally across a variety of microcontrollers and also
+//according to the errata and more recent reference manuals. To be extra safe
+//it is defined to a __DSB() on all stm32s (even those that according to the
+//documentation don't need it).
+//On stm32h742,h743,h753,h750 RCC synchronization is required per the reference
+//manual (RM0433 section 8.5.10, although the synchonization mechanism described
+//is different).
 #define RCC_SYNC() __DSB()
 
 //Peripheral interrupt start from 0 and the last one is 149, so there are 150
