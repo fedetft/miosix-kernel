@@ -279,11 +279,14 @@ int pthread_mutexattr_getprotocol(const pthread_mutexattr_t *attr, int *protocol
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
 {
     auto option=MutexOptions::DEFAULT;
-    if(attr->recursive==PTHREAD_MUTEX_RECURSIVE) option=MutexOptions::RECURSIVE;
+    //NOTE: attr can be NULL
+    if(attr && attr->recursive==PTHREAD_MUTEX_RECURSIVE) option=MutexOptions::RECURSIVE;
     #ifndef __NO_EXCEPTIONS
     try {
     #endif //__NO_EXCEPTIONS
-        if(hasPriorityInheritance(attr->prio))
+        int type=PTHREAD_PRIO_NONE;
+        if(attr) type=attr->prio; //NOTE: attr can be NULL
+        if(hasPriorityInheritance(type))
         {
             mutex->type=PTHREAD_PRIO_INHERIT;
             new (mutex) Mutex(option);
