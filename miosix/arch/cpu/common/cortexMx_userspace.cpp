@@ -249,21 +249,18 @@ void MPUConfiguration::dumpConfiguration()
     #if __MPU_PRESENT==1
     #if __CORTEX_M == 33
     for(int i=0; i<2; i++) {
-        const uint32_t rnr  = regValues[3 * i] & 0xff;
-        const uint32_t rbar = regValues[3 * i + 1];
-        const uint32_t rlar = regValues[3 * i + 2];
+        const unsigned int rnr  = regValues[3 * i] & 0xff;
+        const unsigned int rbar = regValues[3 * i + 1];
+        const unsigned int rlar = regValues[3 * i + 2];
 
         // Base address
-        const uint32_t base = rbar & ~0x1F;
+        const unsigned int base = rbar & ~0x1F;
 
         // End address
-        const uint32_t limit = rlar & ~0x1F;
-
-        // Size
-        const uint32_t size = limit - base + 1;
+        const unsigned int limit = rlar & ~0x1F;
 
         // Permissions
-        const uint32_t ap = (rbar >> MPU_RBAR_AP_Pos) & 0b11;
+        const unsigned int ap = (rbar >> MPU_RBAR_AP_Pos) & 0b11;
 
         char r, w, x;
         switch(ap)

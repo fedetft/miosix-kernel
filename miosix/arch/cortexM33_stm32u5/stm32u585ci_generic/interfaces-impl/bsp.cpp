@@ -36,6 +36,7 @@
 #include <sys/ioctl.h>
 #include "interfaces_private/bsp_private.h"
 #include "interfaces/poweroff.h"
+#include "filesystem/file_access.h"
 #include "drivers/serial.h"
 #include "drivers/dcc.h"
 #include "board_settings.h"
