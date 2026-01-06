@@ -169,6 +169,56 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
     // shows that setting it in IRQconfigureMPU for the internal RAM region
     // causes the boot to fail.
     // For this reason, all regions are marked as not shareable
+    #if __CORTEX_M == 33
+    {
+        // elfBase: RX
+        const uint32_t regionBase = reinterpret_cast<uint32_t>(elfBase) & (~0x1f);
+        const uint32_t sizeExponent = sizeToMpu(elfSize);
+        const uint32_t regionSize = (1 << sizeExponent);
+        const uint32_t regionLimit = (regionBase + regionSize - 1) & (~0x1f);
+
+        // TODO: this can probably be Flash
+        const uint8_t attrIndex = 1; // SRAM, defined in cortexMx_mpu.cpp
+
+        // RNR
+        regValues[0] = 6;
+
+        // RBAR
+        regValues[1] = (reinterpret_cast<uint32_t>(elfBase) & (~0x1f))
+                    | (1 << MPU_RBAR_XN_Pos)
+                    | (0 << MPU_RBAR_SH_Pos)  // Non-sharable
+                    // 0b11=RO by any privilege level
+                    | ((0b11) << MPU_RBAR_AP_Pos);
+
+        // RLAR
+        regValues[2] = regionLimit
+                     | ((attrIndex << MPU_RLAR_AttrIndx_Pos) & MPU_RLAR_AttrIndx_Msk)
+                     | (1 << MPU_RLAR_EN_Pos);
+    }
+
+    {
+        // imageBase: RW, non executable
+        const uint32_t regionBase = reinterpret_cast<uint32_t>(imageBase) & (~0x1f);
+        const uint32_t sizeExponent = sizeToMpu(imageSize);
+        const uint32_t regionSize = (1 << sizeExponent);
+        const uint32_t regionLimit = (regionBase + regionSize - 1) & (~0x1f);
+        const uint8_t attrIndex = 1; // SRAM, defined in cortexMx_mpu.cpp
+
+        // RNR
+        regValues[3] = 7;
+
+        // RBAR
+        regValues[4] = (reinterpret_cast<unsigned int>(elfBase) & (~0x1f))
+                    | (0 << MPU_RBAR_SH_Pos)  // Non-sharable
+                    // 0b01=RW by any privilege level
+                    | ((0b01) << MPU_RBAR_AP_Pos);
+
+        // RLAR
+        regValues[5] = regionLimit
+                     | ((attrIndex << MPU_RLAR_AttrIndx_Pos) & MPU_RLAR_AttrIndx_Msk)
+                     | (1 << MPU_RLAR_EN_Pos);
+    }
+    #else // __CORTEX_M == 33
     regValues[0]=(reinterpret_cast<unsigned int>(elfBase) & (~0x1f))
                | MPU_RBAR_VALID_Msk | 6; //Region 6
     regValues[1]=2<<MPU_RASR_AP_Pos //Privileged: RW, unprivileged: RO
@@ -182,6 +232,7 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
                | MPU_RASR_C_Msk     //Cacheable, write through
                | 1 //Enable bit
                | sizeToMpu(imageSize)<<1;
+    #endif
     #else //__MPU_PRESENT==1
     #warning architecture lacks MPU, memory protection for processes unsupported
     //Although we have no MPU, store enough information to still enable checking
@@ -196,6 +247,39 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
 void MPUConfiguration::dumpConfiguration()
 {
     #if __MPU_PRESENT==1
+    #if __CORTEX_M == 33
+    for(int i=0; i<2; i++) {
+        const uint32_t rnr  = regValues[3 * i] & 0xff;
+        const uint32_t rbar = regValues[3 * i + 1];
+        const uint32_t rlar = regValues[3 * i + 2];
+
+        // Base address
+        const uint32_t base = rbar & ~0x1F;
+
+        // End address
+        const uint32_t limit = rlar & ~0x1F;
+
+        // Size
+        const uint32_t size = limit - base + 1;
+
+        // Permissions
+        const uint32_t ap = (rbar >> MPU_RBAR_AP_Pos) & 0b11;
+
+        char r, w, x;
+        switch(ap)
+        {
+            case 0b00: r='-'; w='-'; break; // No access
+            case 0b01: r='r'; w='w'; break; // RW
+            case 0b10: r='r'; w='-'; break; // RO privileged
+            case 0b11: r='r'; w='-'; break; // RO any
+            default:   r='?'; w='?'; break; // Should never happen
+        }
+
+        x = (rbar & (1 << MPU_RBAR_XN_Pos)) ? '-' : 'x';
+
+        iprintf("* MPU region %d 0x%08x-0x%08x %c%c%c\n", rnr, base, limit, r, w, x);
+    }
+    #else
     for(int i=0;i<2;i++)
     {
         unsigned int base=regValues[2*i] & (~0x1f);
@@ -204,6 +288,7 @@ void MPUConfiguration::dumpConfiguration()
         char x=regValues[2*i+1] & MPU_RASR_XN_Msk ? '-' : 'x';
         iprintf("* MPU region %d 0x%08x-0x%08x r%c%c\n",i+6,base,end,w,x);
     }
+    #endif
     #else //__MPU_PRESENT==1
     iprintf("* Architecture lacks MPU\n");
     for(int i=0;i<2;i++)

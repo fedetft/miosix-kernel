@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010-2024 by Terraneo Federico                          *
+ *   Copyright (C) 2012 by Terraneo Federico                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -23,61 +23,53 @@
  *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
- ***************************************************************************/
+ ***************************************************************************/ 
+
+/***********************************************************************
+* bsp_impl.h Part of the Miosix Embedded OS.
+* Board support package, this file initializes hardware.
+************************************************************************/
 
 #pragma once
 
-#include "interfaces/arch_registers.h"
+#include "config/miosix_settings.h"
+#include "interfaces/gpio.h"
+//#include "drivers/stm32_hardware_rng.h"
 
 namespace miosix {
 
 /**
- * \addtogroup Interfaces
- * \{
+\addtogroup Hardware
+\{
+*/
+
+/**
+ * \internal
+ * used by the ledOn() and ledOff() implementation
  */
+typedef Gpio<PC,13> _led;
 
-#ifndef __NVIC_PRIO_BITS
-#error "__NVIC_PRIO_BITS undefined"
-#endif //__NVIC_PRIO_BITS
-
-/// Default interrupt priority. All interrupt priorities are set at boot to this
-/// value. ARM Cortex use 0 for the highest priority and (1<<__NVIC_PRIO_BITS)-1
-/// for the lowest one. We chose to use the top 3/4 of the range for higher than
-/// default priority and the bottom 1/4 of the range for lower than default.
-/// With 4 bit priorities the default is 11
-/// With 3 bit priorities the default is 5
-/// With 2 bit priorities the default is 2
-constexpr int defaultIrqPriority=(0.75f*(1<<__NVIC_PRIO_BITS))-1;
-
-/// Minimum interrupt priority that the hardware provides
-constexpr int minimumIrqPriority=(1<<__NVIC_PRIO_BITS)-1;
-
-inline void fastDisableIrq() noexcept
+inline void ledOn()
 {
-    //Since this function is inline there's the need for a memory barrier to
-    //avoid aggressive reordering
-    asm volatile("cpsid i":::"memory");
-    asm volatile("dsb":::"memory");
+    _led::low();
 }
 
-inline void fastEnableIrq() noexcept
+inline void ledOff()
 {
-    //Since this function is inline there's the need for a memory barrier to
-    //avoid aggressive reordering
-    asm volatile("cpsie i":::"memory");
-    asm volatile("dsb":::"memory");
-}
-
-inline bool areInterruptsEnabled() noexcept
-{
-    int i;
-    asm volatile("mrs   %0, primask    \n\t":"=r"(i));
-    if(i!=0) return false;
-    return true;
+    _led::high();
 }
 
 /**
- * \}
+ * Polls the SD card sense GPIO
+ * \return true if there is an uSD card in the socket.
  */
+inline bool sdCardSense()
+{
+    return false;
+}
 
-} //namespace miosix
+/**
+\}
+*/
+
+};//namespace miosix

@@ -67,6 +67,7 @@
 #OPT_BOARD := stm32l010rb_nucleo
 #OPT_BOARD := stm32h503rb_generic
 #OPT_BOARD := nrf52840_generic
+#OPT_BOARD := stm32u585ci_generic
 
 ##
 ## Optimization flags, choose one.
@@ -989,6 +990,8 @@ else ifeq ($(OPT_BOARD),stm32l010rb_nucleo)
     ARCH := cortexM0plus_stm32l0
 else ifeq ($(OPT_BOARD),stm32h503rb_generic)
     ARCH := cortexM33_stm32h5
+else ifeq ($(OPT_BOARD),stm32u585ci_generic)
+    ARCH := cortexM33_stm32u5
 else ifeq ($(OPT_BOARD),nrf52840_generic)
     ARCH := cortexM4_nrf52
 else
@@ -3535,6 +3538,95 @@ else ifeq ($(ARCH),cortexM33_stm32h5)
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
     arch/common/CMSIS/Device/ST/STM32H5xx/Source/Templates/system_stm32h5xx.c
+
+##-----------------------------------------------------------------------------
+## ARCHITECTURE: cortexM33_stm32u5
+##
+else ifeq ($(ARCH),cortexM33_stm32u5)
+    ## Base directory with else header files for this board
+    ARCH_INC := arch/cortexM33_stm32u5/common
+
+    ifeq ($(OPT_BOARD),stm32u585ci_generic)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM33_stm32u5/stm32u585ci_generic
+
+        ## Select linker script
+        LINKER_SCRIPT_PATH := $(BOARD_INC)
+        LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_2048k+768k_rom.ld
+        #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_2048k+768k_processes.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/boot.cpp                        \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+
+
+        # arch/common/drivers/stm32_hardware_rng.cpp   \
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32U585CI_GENERIC
+        CXXFLAGS_BASE += -D_BOARD_STM32U585CI_GENERIC
+
+        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
+        ## While the chip can run up to 480MHz, the board uses the SMPS feature
+        ## that limits clock speed to 400MHz
+        CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_160MHz=160000000
+        #CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_110MHz=110000000
+        #CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_48MHz=48000000
+        #CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_24MHz=24000000
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
+        #PROG ?= st-flash --connect-under-reset --reset write \
+        #        $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
+        PROG ?= dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D \
+                $(if $(ROMFS_DIR), image.bin, main.bin)
+    ##-------------------------------------------------------------------------
+    ## End of board list
+    ##
+    endif
+
+    ## Select compiler
+    PREFIX := arm-miosix-eabi-
+    ## This architecture supports processes
+    POSTLD := mx-postlinker
+
+    CPU_INC := arch/cpu/armv7m
+    ## Select appropriate compiler flags for both ASM/C/C++/linker
+    CPU := -mcpu=cortex-m33 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+    AFLAGS_BASE   := $(CPU)
+    CFLAGS_BASE   += -D_ARCH_CORTEXM33_STM32U5 $(CLOCK_FREQ) $(XRAM) \
+                     $(CPU) $(OPT_OPTIMIZATION)
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM33_STM32U5 $(CLOCK_FREQ) $(XRAM) \
+                     $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
+    LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map         \
+                     -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)  \
+                     $(OPT_OPTIMIZATION) -nostdlib
+
+    ## Select architecture specific files
+    ## These are the files in arch/<arch name>/common
+    ARCH_SRC +=                                              \
+    arch/cpu/armv7m/interfaces-impl/cpu.cpp                  \
+    arch/cpu/common/cortexMx_interrupts.cpp                  \
+    arch/common/mpu/cortexMx_mpu.cpp                         \
+    arch/cpu/common/cortexMx_userspace.cpp                   \
+    arch/common/os_timer/stm32_32bit_os_timer.cpp            \
+    arch/common/os_timer/arm_systick_os_timer.cpp            \
+    arch/common/sleep/cortexMx_sleep.cpp                     \
+    arch/common/cache/cortexMx_cache.cpp                     \
+    arch/common/drivers/stm32u5_serial.cpp                   \
+    arch/common/drivers/stm32_serial_common.cpp              \
+    arch/common/drivers/stm32_gpio.cpp                       \
+    arch/common/drivers/dcc.cpp                              \
+    $(ARCH_INC)/interfaces-impl/delays.cpp                   \
+    $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+    $(ARCH_INC)/drivers/pll.cpp                              \
+    arch/common/CMSIS/Device/ST/STM32U5xx/Source/Templates/system_stm32u5xx.c
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM4_nrf52

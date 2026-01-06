@@ -172,7 +172,7 @@ inline void IRQinvokeScheduler() noexcept
     SCB->ICSR=SCB_ICSR_PENDSVSET_Msk;
     //NOTE: due to the write buffer while doing the store to the SCB->ICSR,
     //the CPU could execute ahead of the yield. Use dmb to prevent
-    asm volatile("dmb":::"memory");
+    asm volatile("dsb":::"memory");
 }
 
 } //namespace miosix

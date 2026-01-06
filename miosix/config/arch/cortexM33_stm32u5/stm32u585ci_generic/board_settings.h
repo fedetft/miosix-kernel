@@ -1,5 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2010-2024 by Terraneo Federico                          *
+ *   Copyright (C) 2018-2021 by Terraneo Federico                          *
+ *   Copyright (C) 2026 by Alain Carlucci                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -27,54 +28,50 @@
 
 #pragma once
 
-#include "interfaces/arch_registers.h"
+#include "interfaces/gpio.h"
+
+/**
+ * \internal
+ * Versioning for board_settings.h for out of git tree projects
+ */
+#define BOARD_SETTINGS_VERSION 300
 
 namespace miosix {
 
 /**
- * \addtogroup Interfaces
+ * \addtogroup Settings
  * \{
  */
 
-#ifndef __NVIC_PRIO_BITS
-#error "__NVIC_PRIO_BITS undefined"
-#endif //__NVIC_PRIO_BITS
+/// Size of stack for main().
+/// The C standard library is stack-heavy (iprintf requires 1KB)
+const unsigned int MAIN_STACK_SIZE=4*1024;
 
-/// Default interrupt priority. All interrupt priorities are set at boot to this
-/// value. ARM Cortex use 0 for the highest priority and (1<<__NVIC_PRIO_BITS)-1
-/// for the lowest one. We chose to use the top 3/4 of the range for higher than
-/// default priority and the bottom 1/4 of the range for lower than default.
-/// With 4 bit priorities the default is 11
-/// With 3 bit priorities the default is 5
-/// With 2 bit priorities the default is 2
-constexpr int defaultIrqPriority=(0.75f*(1<<__NVIC_PRIO_BITS))-1;
+/// Serial port
+const unsigned int defaultSerial=1;
+const unsigned int defaultSerialSpeed=115200;
+const bool defaultSerialFlowctrl=false;
+const bool defaultSerialDma=false;
+// Default serial 1 pins (uncomment when using serial 1)
+using defaultSerialTxPin = Gpio<PA,9>;
+using defaultSerialRxPin = Gpio<PA,10>;
+using defaultSerialRtsPin = Gpio<PA,12>;
+using defaultSerialCtsPin = Gpio<PA,11>;
+// Default serial 2 pins (uncomment when using serial 2)
+//using defaultSerialTxPin = Gpio<PA,2>;
+//using defaultSerialRxPin = Gpio<PA,3>;
+//using defaultSerialRtsPin = Gpio<PA,1>;
+//using defaultSerialCtsPin = Gpio<PA,0>;
+// Default serial 3 pins (uncomment when using serial 3)
+//using defaultSerialTxPin = Gpio<PD,8>;
+//using defaultSerialRxPin = Gpio<PD,9>;
+//using defaultSerialRtsPin = Gpio<PB,14>;
+//using defaultSerialCtsPin = Gpio<PB,13>;
 
-/// Minimum interrupt priority that the hardware provides
-constexpr int minimumIrqPriority=(1<<__NVIC_PRIO_BITS)-1;
-
-inline void fastDisableIrq() noexcept
-{
-    //Since this function is inline there's the need for a memory barrier to
-    //avoid aggressive reordering
-    asm volatile("cpsid i":::"memory");
-    asm volatile("dsb":::"memory");
-}
-
-inline void fastEnableIrq() noexcept
-{
-    //Since this function is inline there's the need for a memory barrier to
-    //avoid aggressive reordering
-    asm volatile("cpsie i":::"memory");
-    asm volatile("dsb":::"memory");
-}
-
-inline bool areInterruptsEnabled() noexcept
-{
-    int i;
-    asm volatile("mrs   %0, primask    \n\t":"=r"(i));
-    if(i!=0) return false;
-    return true;
-}
+//SD card driver
+//static const unsigned char sdVoltage=33; //Board powered @ 3.3V
+//#define SD_SDMMC 1 //Select either SDMMC1 or SDMMC2
+//#define SD_ONE_BIT_DATABUS //For now we'll use 1 bit bus
 
 /**
  * \}

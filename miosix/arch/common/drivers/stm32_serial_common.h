@@ -92,6 +92,11 @@
     #define DMA_STM32F2
     #define DMA_HAS_MUX
     #define ALTFUNC_STM32F2_SPLIT
+#elif defined(_ARCH_CORTEXM33_STM32U5)
+    #define BUS_HAS_AHB12L2H3
+    #define BUS_HAS_APB1L1H23
+    #define ALTFUNC_STM32F2
+    #define DMA_STM32U5
 #else
     #define BUS_HAS_AHB12
     #define BUS_HAS_APB12
@@ -111,6 +116,8 @@ public:
     enum ID {
         #if defined(BUS_HAS_APB) || defined(BUS_HAS_APB12)
             APB1, APB2,
+        #elif defined(BUS_HAS_APB1L1H23)
+            APB1L, APB1H, APB2, APB3,
         #elif defined(BUS_HAS_APB1L1H2)
             APB1L, APB1H, APB2,
         #elif defined(BUS_HAS_APB1L1H234)
@@ -122,6 +129,8 @@ public:
             AHB,
         #elif defined(BUS_HAS_AHB12)
             AHB1, AHB2,
+        #elif defined(BUS_HAS_AHB12L2H3)
+            AHB1, AHB2L, AHB2H, AHB3,
         #elif defined(BUS_HAS_AHB1234)
             AHB1, AHB2, AHB3, AHB4,
         #else // BUS_HAS_AHBx
@@ -136,7 +145,7 @@ public:
     }
     static inline void IRQdis(STM32Bus::ID bus, unsigned long mask)
     {
-        getENR(bus)&=mask;
+        getENR(bus)&=~mask;
         RCC_SYNC();
     }
     
@@ -159,6 +168,21 @@ public:
             case STM32Bus::APB2:
                 if(RCC->CFGR & RCC_CFGR_PPRE2_2)
                     freq/=1<<(((RCC->CFGR>>RCC_CFGR_PPRE2_Pos) & 0x3)+1);
+                break;
+        #elif defined(BUS_HAS_APB1L1H23)
+            // STM32U5xx
+            case STM32Bus::APB1L:
+            case STM32Bus::APB1H:
+                if(RCC->CFGR2 & RCC_CFGR2_PPRE1_2)
+                    freq/=1<<(((RCC->CFGR2>>RCC_CFGR2_PPRE1_Pos) & 0x3)+1);
+                break;
+            case STM32Bus::APB2:
+                if(RCC->CFGR2 & RCC_CFGR2_PPRE2_2)
+                    freq/=1<<(((RCC->CFGR2>>RCC_CFGR2_PPRE2_Pos) & 0x3)+1);
+                break;
+            case STM32Bus::APB3:
+                if(RCC->CFGR3 & RCC_CFGR3_PPRE3_2)
+                    freq/=1<<(((RCC->CFGR3>>RCC_CFGR3_PPRE3_Pos) & 0x3)+1);
                 break;
         #elif defined(BUS_HAS_APB1L1H2)
             case STM32Bus::APB1L:
@@ -190,6 +214,8 @@ public:
                 if(RCC->D3CFGR & RCC_D3CFGR_D3PPRE_2)
                     freq/=1<<(((RCC->D3CFGR>>RCC_D3CFGR_D3PPRE_Pos) & 0x3)+1);
                 break;
+        #else
+        #error APB compile time bus setting unspecified
         #endif
         default:
             break;
@@ -209,12 +235,19 @@ private:
                 case STM32Bus::APB1L: return RCC->APB1ENR1;
                 case STM32Bus::APB1H: return RCC->APB1ENR2;
                 case STM32Bus::APB2: return RCC->APB2ENR;
+            #elif defined(BUS_HAS_APB1L1H23)
+                case STM32Bus::APB1L: return RCC->APB1ENR1;
+                case STM32Bus::APB1H: return RCC->APB1ENR2;
+                case STM32Bus::APB2: return RCC->APB2ENR;
+                case STM32Bus::APB3: return RCC->APB3ENR;
             #elif defined(BUS_HAS_APB1L1H234)
                 case STM32Bus::APB1L: return RCC->APB1LENR;
                 case STM32Bus::APB1H: return RCC->APB1HENR;
                 case STM32Bus::APB2: return RCC->APB2ENR;
                 case STM32Bus::APB3: return RCC->APB3ENR;
                 case STM32Bus::APB4: return RCC->APB4ENR;
+            #else
+            #error APB compile time bus setting unspecified
             #endif // BUS_HAS_APBx
             default:
             #if defined(BUS_HAS_AHB)
@@ -222,11 +255,18 @@ private:
             #elif defined(BUS_HAS_AHB12)
                 case STM32Bus::AHB1: return RCC->AHB1ENR;
                 case STM32Bus::AHB2: return RCC->AHB2ENR;
+            #elif defined(BUS_HAS_AHB12L2H3)
+                case STM32Bus::AHB1: return RCC->AHB1ENR;
+                case STM32Bus::AHB2L: return RCC->AHB2ENR1;
+                case STM32Bus::AHB2H: return RCC->AHB2ENR2;
+                case STM32Bus::AHB3: return RCC->AHB3ENR;
             #elif defined(BUS_HAS_AHB1234)
                 case STM32Bus::AHB1: return RCC->AHB1ENR;
                 case STM32Bus::AHB2: return RCC->AHB2ENR;
                 case STM32Bus::AHB3: return RCC->AHB3ENR;
                 case STM32Bus::AHB4: return RCC->AHB4ENR;
+            #else
+            #error AHB compile time bus setting unspecified
             #endif // BUS_HAS_AHBx
         }
     }
@@ -625,6 +665,9 @@ private:
         else dma->HIFCR=value;
     }
 };
+
+#elif defined(DMA_STM32U5)
+
 
 #endif // DMA_STM32Fx
 
