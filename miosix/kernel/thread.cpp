@@ -752,7 +752,8 @@ void Thread::IRQhandleSvc()
     if(cur->proc==kernel) errorHandler(Error::UNEXPECTED);
     //We know it's not the kernel, so the cast is safe
     auto *proc=static_cast<Process*>(cur->proc);
-    //Don't process syscall if fault happened, may return to userspace by mistake
+    //Don't process syscall if a fault already happened. This can happen if
+    //the stack overflow check triggered and caused a fault.
     if(proc->fault.IRQfaultHappened()) return;
 
     //Note that it is required to use ctxsave and not cur->ctxsave because
@@ -785,8 +786,10 @@ bool Thread::IRQreportFault(const FaultData& fault)
     if(cur->flags.isInUserspace()==false || cur->proc==kernel) return false;
     //We know it's not the kernel, so the cast is safe
     auto *proc=static_cast<Process*>(cur->proc);
+    //Record the fault for later reporting.
     proc->fault=fault;
     proc->fault.IRQtryAddProgramCounter(cur->userCtxsave,proc->mpu);
+    //Switch to kernel mode
     cur->flags.IRQsetUserspace(false);
     ::ctxsave[getCurrentCoreId()]=cur->ctxsave;
     MPUConfiguration::IRQdisable();

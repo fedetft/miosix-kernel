@@ -229,6 +229,19 @@ void IRQinitIrqTable() noexcept
     #endif
     #endif
 
+    //Effectively disable interrupt nesting by setting priority grouping such
+    //that all exceptions will have the same priority (zero). With this setting,
+    //NVIC_SetPriority will only affect the sub-priority of the exceptions,
+    //i.e. which one executes first when there are multiple pending.
+    //This does NOT apply to the case where an exception causes another while
+    //saving registers, though, because that mechanism does not look at
+    //sub-priorities! As a result, a SVC in a process that causes a
+    //MemManage will not cause the MemManage handler to run first.
+    //Priority grouping does not exist on Cortex-M0, so we have to explicitly
+    //set all priorities to the same value to get the same effect.
+    #if __CORTEX_M != 0
+    NVIC_SetPriorityGrouping(7);
+    #endif
     //Quirk: static_cast<IRQn_Type>(-5) is sometimes defined as SVCall_IRQn and
     //sometimes as SVC_IRQn. We could use complicated means to detect which
     //enumeration item is defined, or we could use its value directly which
@@ -241,9 +254,7 @@ void IRQinitIrqTable() noexcept
     NVIC_SetPriority(UsageFault_IRQn,defaultIrqPriority-1); //Higher
     NVIC_SetPriority(MemoryManagement_IRQn,defaultIrqPriority-1); //Higher
     NVIC_SetPriority(DebugMonitor_IRQn,defaultIrqPriority);
-    NVIC_SetPriorityGrouping(7); //Disable interrupt nesting
     #endif //__CORTEX_M != 0
-    //NOTE: Cortex M0 cannot disable interrupt nesting
 
     for(unsigned int i=0;i<numInterrupts;i++)
     {
@@ -481,7 +492,20 @@ void __attribute__((naked)) HardFault_Handler()
 void __attribute__((noinline)) hardfaultImpl()
 {
     FastGlobalLockFromIrq lock;
-    if(Thread::IRQreportFault(FaultData(fault::HARDFAULT))) return;
+    if(Thread::IRQreportFault(FaultData(fault::HARDFAULT))) 
+    {
+        //Clear all pending exceptions as a defensive measure
+        //(see comment in MEMFAULTPENDED)
+        #if __CORTEX_M == 0
+        SCB->SHCSR &= ~SCB_SHCSR_SVCALLPENDED_Msk;
+        #else
+        SCB->SHCSR &= ~(SCB_SHCSR_BUSFAULTPENDED_Msk
+                      | SCB_SHCSR_MEMFAULTPENDED_Msk
+                      | SCB_SHCSR_USGFAULTPENDED_Msk
+                      | SCB_SHCSR_SVCALLPENDED_Msk);
+        #endif
+        return;
+    }
 #else //WITH_PROCESSES
 void HardFault_Handler()
 {
@@ -526,7 +550,7 @@ void MemManage_Handler()
     if(cfsr & 0x00000001) id=fault::MP_XN;
     else if(cfsr & 0x00000080) { id=fault::MP; arg=SCB->MMFAR; }
     else if(cfsr & 0x00000010)
-    { 
+    {
         id=fault::MP_STACK;
         arg=ctxsave[getCurrentCoreId()][STACK_OFFSET_IN_CTXSAVE];
     } else id=fault::MP_NOADDR;
@@ -534,17 +558,20 @@ void MemManage_Handler()
     {
         //Clear MMARVALID, MLSPERR, MSTKERR, MUNSTKERR, DACCVIOL, IACCVIOL
         SCB->CFSR = 0x000000bb;
-        //Clear MEMFAULTPENDED bit. Corrupted thread stack pointer causes memory
-        //faults during exception stacking (MSTKERR bit), and if the core has an
-        //FPU and the thread was using the FPU registers attempting to save
-        //these registers causes a second memory fault (MSLPERR bit) which at
-        //least on an STM32H755 causes the memory fault interrupt to become both
-        //pending and active, thus it gets run twice. This is a problem since
-        //the first run reports the fault and switches the thread context from
-        //userspace to kernelspace, and then the second run finds the thread
-        //already in kernelspace and erroneously attributes the fault to code
-        //running in kernelspace triggering a reboot
-        SCB->SHCSR &= ~(1<<13);
+        //Clear all pending exceptions and SVCs for the process now that we are
+        //in kernelspace. This is necessary for example if a stack overflow
+        //is detected simultaneously with a MemManage exception.
+        //A more complicated case is when the core has an FPU and the thread was
+        //using the FPU registers attempting to save these registers causes a
+        //second memory fault (MSLPERR bit) which causes the memory fault
+        //interrupt to become both pending and active, thus it would run twice.
+        //In all these cases, if the fault pending status is not cleared, the
+        //unhandled is going to trigger after switching to kernelspace, causing
+        //it to be misreported as a kernel fault instead.
+        SCB->SHCSR &= ~(SCB_SHCSR_BUSFAULTPENDED_Msk
+                      | SCB_SHCSR_MEMFAULTPENDED_Msk
+                      | SCB_SHCSR_USGFAULTPENDED_Msk
+                      | SCB_SHCSR_SVCALLPENDED_Msk);
         return;
     }
     #endif //WITH_PROCESSES
@@ -593,9 +620,12 @@ void BusFault_Handler()
     {
         //Clear BFARVALID, LSPERR, STKERR, UNSTKERR, IMPRECISERR, PRECISERR, IBUSERR
         SCB->CFSR = 0x0000bf00;
-        //Clear BUSFAULTPENDED as a defensive measure against issues similar to
-        //the one described in MEMFAULTPENDED
-        SCB->SHCSR &= ~(1<<14);
+        //Clear all pending exceptions as a defensive measure
+        //(see comment in MEMFAULTPENDED)
+        SCB->SHCSR &= ~(SCB_SHCSR_BUSFAULTPENDED_Msk
+                      | SCB_SHCSR_MEMFAULTPENDED_Msk
+                      | SCB_SHCSR_USGFAULTPENDED_Msk
+                      | SCB_SHCSR_SVCALLPENDED_Msk);
         return;
     }
     #endif //WITH_PROCESSES
@@ -651,9 +681,12 @@ void UsageFault_Handler()
     {
         //Clear DIVBYZERO, UNALIGNED, UNDEFINSTR, INVSTATE, INVPC, NOCP
         SCB->CFSR = 0x030f0000;
-        //Clear BUSFAULTPENDED as a defensive measure against issues similar to
-        //the one described in USGFAULTPENDED
-        SCB->SHCSR &= ~(1<<12);
+        //Clear all pending exceptions as a defensive measure
+        //(see comment in MEMFAULTPENDED)
+        SCB->SHCSR &= ~(SCB_SHCSR_BUSFAULTPENDED_Msk
+                      | SCB_SHCSR_MEMFAULTPENDED_Msk
+                      | SCB_SHCSR_USGFAULTPENDED_Msk
+                      | SCB_SHCSR_SVCALLPENDED_Msk);
         return;
     }
     #endif //WITH_PROCESSES
@@ -699,6 +732,20 @@ void __attribute__((naked)) SVC_Handler()
 void __attribute__((noinline)) svcImpl()
 {
     FastGlobalLockFromIrq lock;
+    #if __CORTEX_M != 0
+    //If there are higher-priority faults pending, do not process the SVC, as
+    //they must have been caused during register saving. If that wasn't the
+    //case, they would have triggered before the SVC.
+    //This does not happen on armv6-m (Cortex-M0) because HardFault is the only
+    //possible exception triggerable by a context save and that has a hardcoded
+    //higher priority and will run preempt and run first no matter what.
+    //If we do not exit now, IRQstackOverflowCheck or IRQhandleSvc may switch
+    //from userspace into kernelspace, causing these faults to be attributed to
+    //the kernel rather than the process.
+    if(SCB->SHCSR & (SCB_SHCSR_BUSFAULTPENDED_Msk
+                   | SCB_SHCSR_MEMFAULTPENDED_Msk
+                   | SCB_SHCSR_USGFAULTPENDED_Msk)) return;
+    #endif
     Thread::IRQstackOverflowCheck();
     Thread::IRQhandleSvc();
 }
