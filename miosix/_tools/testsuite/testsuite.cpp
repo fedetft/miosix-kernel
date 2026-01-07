@@ -4439,6 +4439,9 @@ void runCrash(const string& arg1, const string& arg2="", bool mustfail=true)
         arg2.empty() ? nullptr : arg2.c_str(),
         nullptr
     };
+    putchar('>');
+    for(int i=0; arg[i]!=nullptr; i++) iprintf(" %s",arg[i]);
+    putchar('\n');
     int exitcode=spawnAndWait(arg);
     if(mustfail==false) return;
     if(WIFEXITED(exitcode)) fail("test process did not crash");
