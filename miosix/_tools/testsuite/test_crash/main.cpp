@@ -171,6 +171,20 @@ void tryIret()
                  "bx   lr             \n\t");
 }
 
+/**
+ * Causes a usage fault with the stack in an invalid location. Tests the case in
+ * which multiple exceptions are pending simultaneously. Miosix should only
+ * report the root exception (the usage fault) and ignore the memory fault.
+ */
+void __attribute__((naked,noreturn)) tryMultiple()
+{
+    asm volatile("bl   _Z7addressv \n\t"
+                 "mov  sp, r0      \n\t"
+                 "movs r0, #0      \n\t"
+                 "movs r1, #123    \n\t"
+                 "sdiv r0, r1, r0  \n\t");
+}
+
 int *foo() { return reinterpret_cast<int*>(0x1000); }
 void __attribute__((naked,noreturn)) nofloat()
 {
@@ -221,6 +235,7 @@ int main(int argc, char *argv[])
         case 's': tryStack();    break;
         case 'o': tryOverflow(); break;
         case 'u': tryIret();     break;
+        case 'm': tryMultiple(); break;
         case '-': nofloat();     break;
         case '+': yesfloat();    break;
     }

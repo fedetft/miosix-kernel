@@ -4486,6 +4486,7 @@ void test_crash_process()
     runCrash("s","0xf0000000"); //Set stack to invalid address (unaligned)
     runCrash("o");
     runCrash("u");
+    runCrash("m","0"); //Usage fault with stack to nullptr
     runCrash("-");
     runCrash("+");
     if(i!=1234) fail("Kernel memory was modified");
