@@ -170,68 +170,35 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
     // causes the boot to fail.
     // For this reason, all regions are marked as not shareable
     #if __CORTEX_M == 33
-    {
-        // elfBase: RX
-        const uint32_t regionBase = reinterpret_cast<uint32_t>(elfBase) & (~0x1f);
-        const uint32_t sizeExponent = sizeToMpu(elfSize);
-        const uint32_t regionSize = (1 << sizeExponent);
-        const uint32_t regionLimit = (regionBase + regionSize - 1) & (~0x1f);
-
-        // TODO: this can probably be Flash
-        const uint8_t attrIndex = 1; // SRAM, defined in cortexMx_mpu.cpp
-
-        // RNR
-        regValues[0] = 6;
-
-        // RBAR
-        regValues[1] = (reinterpret_cast<uint32_t>(elfBase) & (~0x1f))
-                    | (1 << MPU_RBAR_XN_Pos)
-                    | (0 << MPU_RBAR_SH_Pos)  // Non-sharable
-                    // 0b11=RO by any privilege level
-                    | ((0b11) << MPU_RBAR_AP_Pos);
-
-        // RLAR
-        regValues[2] = regionLimit
-                     | ((attrIndex << MPU_RLAR_AttrIndx_Pos) & MPU_RLAR_AttrIndx_Msk)
-                     | (1 << MPU_RLAR_EN_Pos);
-    }
-
-    {
-        // imageBase: RW, non executable
-        const uint32_t regionBase = reinterpret_cast<uint32_t>(imageBase) & (~0x1f);
-        const uint32_t sizeExponent = sizeToMpu(imageSize);
-        const uint32_t regionSize = (1 << sizeExponent);
-        const uint32_t regionLimit = (regionBase + regionSize - 1) & (~0x1f);
-        const uint8_t attrIndex = 1; // SRAM, defined in cortexMx_mpu.cpp
-
-        // RNR
-        regValues[3] = 7;
-
-        // RBAR
-        regValues[4] = (reinterpret_cast<unsigned int>(elfBase) & (~0x1f))
-                    | (0 << MPU_RBAR_SH_Pos)  // Non-sharable
-                    // 0b01=RW by any privilege level
-                    | ((0b01) << MPU_RBAR_AP_Pos);
-
-        // RLAR
-        regValues[5] = regionLimit
-                     | ((attrIndex << MPU_RLAR_AttrIndx_Pos) & MPU_RLAR_AttrIndx_Msk)
-                     | (1 << MPU_RLAR_EN_Pos);
-    }
+    regValues[0]=6; // RNR
+    regValues[1]=(reinterpret_cast<unsigned int>(elfBase) & (~0x1f))
+                | 3<<MPU_RBAR_AP_Pos; //Privileged: RO, unprivileged: RO
+    regValues[2]=((reinterpret_cast<unsigned int>(elfBase)+elfSize-1) & (~0x1f))
+                | MPU_RLAR_PXN_Msk    //Not executable from the privileged side
+                | 1<<MPU_RLAR_AttrIndx_Pos // TODO SRAM, defined in cortexMx_mpu.cpp
+                | 1; //Enable bit
+    regValues[3]=7; // RNR
+    regValues[4]=(reinterpret_cast<unsigned int>(imageBase) & (~0x1f))
+                | 1<<MPU_RBAR_AP_Pos //Privileged: RW, unprivileged: RW
+                | MPU_RBAR_XN_Msk;   //Not executable
+    regValues[5]=((reinterpret_cast<unsigned int>(imageBase)+imageSize-1) & (~0x1f))
+                | MPU_RLAR_PXN_Msk    //Not executable from the privileged side
+                | 1<<MPU_RLAR_AttrIndx_Pos // SRAM, defined in cortexMx_mpu.cpp
+                | 1; //Enable bit
     #else // __CORTEX_M == 33
     regValues[0]=(reinterpret_cast<unsigned int>(elfBase) & (~0x1f))
-               | MPU_RBAR_VALID_Msk | 6; //Region 6
-    regValues[1]=2<<MPU_RASR_AP_Pos //Privileged: RW, unprivileged: RO
-               | MPU_RASR_C_Msk     //Cacheable, write through
-               | 1 //Enable bit
-               | sizeToMpu(elfSize)<<1;
+                | MPU_RBAR_VALID_Msk | 6; //Region 6
+    regValues[1]=2<<MPU_RASR_AP_Pos  //Privileged: RW, unprivileged: RO
+                | MPU_RASR_C_Msk     //Cacheable, write through
+                | 1 //Enable bit
+                | sizeToMpu(elfSize)<<1;
     regValues[2]=(reinterpret_cast<unsigned int>(imageBase) & (~0x1f))
-               | MPU_RBAR_VALID_Msk | 7; //Region 7
-    regValues[3]=3<<MPU_RASR_AP_Pos //Privileged: RW, unprivileged: RW
-               | MPU_RASR_XN_Msk    //Not executable
-               | MPU_RASR_C_Msk     //Cacheable, write through
-               | 1 //Enable bit
-               | sizeToMpu(imageSize)<<1;
+                | MPU_RBAR_VALID_Msk | 7; //Region 7
+    regValues[3]=3<<MPU_RASR_AP_Pos  //Privileged: RW, unprivileged: RW
+                | MPU_RASR_XN_Msk    //Not executable
+                | MPU_RASR_C_Msk     //Cacheable, write through
+                | 1 //Enable bit
+                | sizeToMpu(imageSize)<<1;
     #endif
     #else //__MPU_PRESENT==1
     #warning architecture lacks MPU, memory protection for processes unsupported
@@ -248,33 +215,15 @@ void MPUConfiguration::dumpConfiguration()
 {
     #if __MPU_PRESENT==1
     #if __CORTEX_M == 33
-    for(int i=0; i<2; i++) {
-        const unsigned int rnr  = regValues[3 * i] & 0xff;
-        const unsigned int rbar = regValues[3 * i + 1];
-        const unsigned int rlar = regValues[3 * i + 2];
-
-        // Base address
-        const unsigned int base = rbar & ~0x1F;
-
-        // End address
-        const unsigned int limit = rlar & ~0x1F;
-
-        // Permissions
-        const unsigned int ap = (rbar >> MPU_RBAR_AP_Pos) & 0b11;
-
-        char r, w, x;
-        switch(ap)
-        {
-            case 0b00: r='-'; w='-'; break; // No access
-            case 0b01: r='r'; w='w'; break; // RW
-            case 0b10: r='r'; w='-'; break; // RO privileged
-            case 0b11: r='r'; w='-'; break; // RO any
-            default:   r='?'; w='?'; break; // Should never happen
-        }
-
-        x = (rbar & (1 << MPU_RBAR_XN_Pos)) ? '-' : 'x';
-
-        iprintf("* MPU region %d 0x%08x-0x%08x %c%c%c\n", rnr, base, limit, r, w, x);
+    for(int i=0;i<2;i++)
+    {
+        unsigned int rnr=regValues[3*i];
+        unsigned int rbar=regValues[3*i+1];
+        unsigned int base=rbar & ~0x1f;
+        unsigned int end=regValues[3*i+2] & ~0x1f;
+        char r=rbar & (0b10<<MPU_RBAR_AP_Pos) ? '-' : 'w';
+        char x=rbar & MPU_RBAR_XN_Msk ? '-' : 'x';
+        iprintf("* MPU region %d 0x%08x-0x%08x r%c%c\n",rnr,base,end,w,x);
     }
     #else
     for(int i=0;i<2;i++)

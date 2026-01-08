@@ -137,20 +137,20 @@ inline void MPUConfiguration::IRQenable()
     #if __MPU_PRESENT==1
 
     #if __CORTEX_M == 33
-        // ARM-V8m
-        MPU->RNR =regValues[0];
-        MPU->RBAR=regValues[1];
-        MPU->RLAR=regValues[2];
+    // ARM-V8m
+    MPU->RNR =regValues[0];
+    MPU->RBAR=regValues[1];
+    MPU->RLAR=regValues[2];
 
-        MPU->RNR =regValues[3];
-        MPU->RBAR=regValues[4];
-        MPU->RLAR=regValues[5];
+    MPU->RNR =regValues[3];
+    MPU->RBAR=regValues[4];
+    MPU->RLAR=regValues[5];
     #else
-        // ARM-V7m
-        MPU->RBAR=regValues[0];
-        MPU->RASR=regValues[1];
-        MPU->RBAR=regValues[2];
-        MPU->RASR=regValues[3];
+    // ARM-V7m
+    MPU->RBAR=regValues[0];
+    MPU->RASR=regValues[1];
+    MPU->RBAR=regValues[2];
+    MPU->RASR=regValues[3];
     #endif
 
     // Set bit 0 of CONTROL register to switch thread mode to unprivileged. When
