@@ -182,7 +182,7 @@ void __attribute__((naked,noreturn)) tryMultiple()
                  "mov  sp, r0      \n\t"
                  "movs r0, #0      \n\t"
                  "movs r1, #123    \n\t"
-                 "sdiv r0, r1, r0  \n\t");
+                 ".word 0xffffffff \n\t"); //0xffffffff is an ARM invalid instruction
 }
 
 int *foo() { return reinterpret_cast<int*>(0x1000); }
