@@ -296,18 +296,19 @@ public:
 
     //Uses default copy constructor and operator=
 private:
-#ifndef __CORTEX_M
-#error Invalid MPUConfiguration for this architecture
-#endif
+    #ifndef __CORTEX_M
+    #error Invalid MPUConfiguration for this architecture
+    #endif
 
-#if __CORTEX_M == 33
+    #if __CORTEX_M == 33
     /// ARM-v8m
+    ///These value are copied into the MPU registers to configure them
     unsigned int regValues[6];
-#else
+    #else
     /// ARM-v7m
     ///These value are copied into the MPU registers to configure them
     unsigned int regValues[4];
-#endif
+    #endif
 };
 
 #endif //WITH_PROCESSES

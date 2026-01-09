@@ -38,97 +38,76 @@ namespace miosix {
  * Using the MPU, configure a region of the memory space as
  * - write-through cacheable
  * - non-shareable
- * - readable/writable/executable only by privileged code (for compatibility
- *   with the way processes use the MPU)
+ * - readable/writable only by privileged code (for compatibility with the way
+ *   processes use the MPU)
  * \param region MPU region. Note that region 6 and 7 are used by processes, and
  * should be avoided here
  * \param base base address, aligned to a 32Byte cache line
- * \param size size, must be at least 32 and a power of 2, or it is rounded to
- * the next power of 2
+ * \param size size, must be at least 32. For ARMv7M and lower must also be a
+ * power of 2, or it is rounded to the next power of 2
  * \param executePermitted if true configure MPU to allow code execution,
  * if false configure MPU to trap code execution for W^X protection
  */
 
 static void IRQconfigureMPURegion(unsigned int region, unsigned int base,
-    unsigned int size, bool executePermitted, uint8_t attrIndex)
+    unsigned int size, bool executePermitted, unsigned char attrIndex)
 {
-    // __CORTEX_M macro is defined in mpu_armv8.h
-#ifndef __CORTEX_M
-#error This MPU implementation works only on ARM CORTEX M
-#endif
+    #ifndef __CORTEX_M
+    #error This MPU implementation works only on ARM CORTEX M
+    #endif
 
-#if __CORTEX_M == 33U
-    // TODO: this should be ARMv8-M
-    const uint32_t regionBase = base & (~(cacheLine-1));
-    const uint32_t sizeExponent = sizeToMpu(size);
-    const uint32_t regionSize = (1 << sizeExponent);
-    const uint32_t regionLimit = (regionBase + regionSize - 1) & (~(cacheLine-1));
-
-    constexpr uint8_t PA_P_RW_U_NA = 0;
-    constexpr uint8_t PA_P_RO_U_NA = 2;
-
-    // W^X: if(executable) RO by privileged only; else RW by privileged only.
-    const uint8_t AP_bits = executePermitted ? PA_P_RO_U_NA : PA_P_RW_U_NA;
-
-    MPU->RNR = region & 0xff;
-    MPU->RBAR = regionBase
-              | (executePermitted ? 0 : 1 << MPU_RBAR_XN_Pos)
-              | (0 << MPU_RBAR_SH_Pos)  // Non-sharable
-              | (AP_bits << MPU_RBAR_AP_Pos);
-
-    MPU->RLAR = regionLimit
-              | ((attrIndex << MPU_RLAR_AttrIndx_Pos) & MPU_RLAR_AttrIndx_Msk)
-              | (1 << MPU_RLAR_EN_Pos);
-
+    #if __CORTEX_M == 33U
+    // ARMv8-M
+    const unsigned int MPU_RLAR_PXN_Msk=1<<4; //This bit is missing in the ARM .h
+    MPU->RNR=region;
+    MPU->RBAR=(base & (~(cacheLine-1)))
+             | (executePermitted ? 2<<MPU_RBAR_AP_Pos : 0)
+             | (executePermitted ? 0 : MPU_RBAR_XN_Msk);
+    MPU->RLAR=((base+size-1) & (~(cacheLine-1)))
+             | (executePermitted ? 0 : MPU_RLAR_PXN_Msk)
+             | (attrIndex<<MPU_RLAR_AttrIndx_Pos)
+             | 1;                 //Enable bit
     asm volatile("dsb":::"memory");
-#else
-    // TODO: this should be ARMv7-M
-
-    // Unused on ARMv7-M
-    (void) attrIndex;
-
+    #else
+    // ARMv7-M
+    (void) attrIndex; // Unused
     // NOTE: The ARM documentation is unclear about the effect of the shareable
     // bit on a single core architecture. Experimental evidence on an STM32F476
     // shows that setting it in IRQconfigureMPU for the internal RAM region
     // causes the boot to fail.
     // For this reason, all regions are marked as not shareable
     MPU->RBAR=(base & (~(cacheLine-1))) | MPU_RBAR_VALID_Msk | region;
-    MPU->RASR=(executePermitted ? 0 : 1<<MPU_RASR_XN_Pos)
+    MPU->RASR=(executePermitted ? 0 : MPU_RASR_XN_Msk)
                | 1<<MPU_RASR_AP_Pos //Privileged: RW, unprivileged: no access
-               | MPU_RASR_C_Msk     //Cacheable, write through
+               | MPU_RASR_C_Msk     //Normal, outer/inner write through, no write alloc
                | 1                  //Enable bit
                | sizeToMpu(size)<<1;
-#endif
+    #endif
 }
 
 void IRQconfigureMPU(const unsigned int *xramBase, unsigned int xramSize)
 {
-#if __CORTEX_M == 33U
-    // ARM-V8m MPU regions need attributes to determine gathering, reorder and
-    // cache usage.
-    // Region 0 is used for devices
-    // Region 1 is used for SRAM
-    // Region 2 is used for Flash
+    #if __CORTEX_M == 33U
+    // ARMv8-M MPU attributes are stored in separate registers, indexed in RLAR
+    //TODO: Alain code configured three regions for devices, RAM, flash, but
+    //for MPU regions for RAM and flash and attributes are the same, can't we
+    //only use region?
     MPU->MAIR0 = (0x00 << 0)   // Device-nGnRnE
-               | (0xFF << 8)   // SRAM:  Normal, Write-Back, RW allocate
-               // | (0x44 << 8) // SRAM:  Normal, Non cacheable
-               | (0xAA << 16); // Flash: Normal, Write-Through, RW allocate
-
+               | (0xaa << 8)   // Normal, outer/inner write through, no write alloc
+               | (0xaa << 16); // Normal, outer/inner write through, no write alloc
     MPU->MAIR1 = 0;
-#endif
-
-    // NOTE: using regions 0 to 3 for the kernel because in the ARM MPU in case
-    // of overlapping regions the one with the highest number takes priority.
-    // The lower regions are used by the kernel and by default forbid access to
-    // unprivileged code, while the higher numbered ones are used by processes
-    // to override the default deny policy for the process-specific memory.
-    IRQconfigureMPURegion(0,0x00000000,0x20000000,true, 2);
-    IRQconfigureMPURegion(1,0x20000000,0x20000000,false, 1);
-
-#if __CORTEX_M == 33U
+    // TODO: do we need this? Isn't this implicit like for ARMv7-M?
     // Device area without caching, gathering and reordering
-    IRQconfigureMPURegion(3,0x40000000,0x20000000,false, 0);
-#endif
+    IRQconfigureMPURegion(3,0x40000000,0x20000000,false,0);
+    #endif
+
+    // NOTE: using regions starting from 0 for the kernel because in the ARM MPU
+    // in case of overlapping regions the one with the highest number takes
+    // priority. The lower regions used by the kernel by default forbid access
+    // to unprivileged code, while the higher numbered ones are used by processes
+    // to override the default deny policy for the process-specific memory.
+    IRQconfigureMPURegion(0,0x00000000,0x20000000,true,2);
+    IRQconfigureMPURegion(1,0x20000000,0x20000000,false,1);
 
     #ifdef __CODE_IN_XRAM
     bool allowCodeInXram=true;
@@ -136,7 +115,7 @@ void IRQconfigureMPU(const unsigned int *xramBase, unsigned int xramSize)
     bool allowCodeInXram=false;
     #endif //__CODE_IN_XRAM
     if(xramSize)
-        IRQconfigureMPURegion(2,reinterpret_cast<unsigned int>(xramBase),xramSize,allowCodeInXram, 1);
+        IRQconfigureMPURegion(2,reinterpret_cast<unsigned int>(xramBase),xramSize,allowCodeInXram,1);
     IRQenableMPUatBoot();
     
     #if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT==1)
@@ -144,4 +123,5 @@ void IRQconfigureMPU(const unsigned int *xramBase, unsigned int xramSize)
     SCB_EnableDCache();
     #endif
 }
-}
+
+} //namespace miosix

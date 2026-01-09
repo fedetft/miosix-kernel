@@ -170,6 +170,7 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
     // causes the boot to fail.
     // For this reason, all regions are marked as not shareable
     #if __CORTEX_M == 33
+    const unsigned int MPU_RLAR_PXN_Msk=1<<4; //This bit is missing in the ARM .h
     regValues[0]=6; // RNR
     regValues[1]=(reinterpret_cast<unsigned int>(elfBase) & (~0x1f))
                 | 3<<MPU_RBAR_AP_Pos; //Privileged: RO, unprivileged: RO
