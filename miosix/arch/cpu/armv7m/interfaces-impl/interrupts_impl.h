@@ -40,6 +40,11 @@ namespace miosix {
 #error "__NVIC_PRIO_BITS undefined"
 #endif //__NVIC_PRIO_BITS
 
+//TODO remove when splitting ARMv8-M to its own directory
+#ifndef __CORTEX_M
+#error __CORTEX_M not defined
+#endif
+
 /// Default interrupt priority. All interrupt priorities are set at boot to this
 /// value. ARM Cortex use 0 for the highest priority and (1<<__NVIC_PRIO_BITS)-1
 /// for the lowest one. We chose to use the top 3/4 of the range for higher than
@@ -57,7 +62,11 @@ inline void fastDisableIrq() noexcept
     //Since this function is inline there's the need for a memory barrier to
     //avoid aggressive reordering
     asm volatile("cpsid i":::"memory");
+
+    //TODO remove when splitting ARMv8-M to its own directory
+    #if __CORTEX_M == 33
     asm volatile("dsb":::"memory");
+    #endif
 }
 
 inline void fastEnableIrq() noexcept
@@ -65,7 +74,11 @@ inline void fastEnableIrq() noexcept
     //Since this function is inline there's the need for a memory barrier to
     //avoid aggressive reordering
     asm volatile("cpsie i":::"memory");
+
+    //TODO remove when splitting ARMv8-M to its own directory
+    #if __CORTEX_M == 33
     asm volatile("dsb":::"memory");
+    #endif
 }
 
 inline bool areInterruptsEnabled() noexcept
