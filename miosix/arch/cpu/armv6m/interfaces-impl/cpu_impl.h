@@ -178,7 +178,16 @@ inline void IRQinvokeScheduler() noexcept
     SCB->ICSR=SCB_ICSR_PENDSVSET_Msk;
     //NOTE: due to the write buffer while doing the store to the SCB->ICSR,
     //the CPU could execute ahead of the yield. Use dmb to prevent
-    asm volatile("dmb":::"memory");
+    //NOTE: a dmb is NOT enough, as the code pattern using this function can be:
+    // str     r2, [r3, #4] //SCB->ICSR=SCB_ICSR_PENDSVSET_Msk;
+    // dmb     sy
+    // cpsie   i
+    // cpsid   i
+    // and it's important that the store to set PENDSVSET is seen in the cycle
+    // when interrupts are enabled. However since cpsi* instruction do not read
+    // from memory a dmb can still allow the store to be delayed. This isssue
+    // was first seen in CortexM33
+    asm volatile("dsb":::"memory");
 }
 
 } //namespace miosix
