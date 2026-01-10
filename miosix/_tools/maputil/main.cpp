@@ -18,6 +18,7 @@
 #include <iostream>
 #include <algorithm>
 #include <list>
+#include <map>
 #include "maputils.h"
 
 using namespace std;
@@ -28,11 +29,19 @@ void usage()
 maputil, an utility for extracting diffable data from map files.
 Currently only prints info about the .text section.
 Options:
-    -f Print at the granularity of function names)instead of translation units
+    -f Print at the granularity of function names instead of translation units
     -s Sort output
+    -t Print totals for each library (only if -f not specified)
     -n Do not print size, only list symbols/translation units
 )";
     exit(1);
+}
+
+string libname(const string& input)
+{
+    auto libend=input.find('(');
+    if(libend==string::npos) return ""; //No library
+    return input.substr(0,libend);
 }
 
 int main(int argc, char *argv[])
@@ -43,6 +52,7 @@ int main(int argc, char *argv[])
     enum class Mode { TranslationUnits, Functions } mode=Mode::TranslationUnits;
     bool printSizes=true;
     bool sorted=false;
+    bool totals=true;
     if(find(opts.begin(),opts.end(),"-f")!=opts.end())
     {
         opts.remove("-f");
@@ -53,6 +63,11 @@ int main(int argc, char *argv[])
         opts.remove("-s");
         sorted=true;
     }
+    if(find(opts.begin(),opts.end(),"-t")!=opts.end())
+    {
+        opts.remove("-t");
+        totals=true;
+    }
     if(find(opts.begin(),opts.end(),"-n")!=opts.end())
     {
         opts.remove("-n");
@@ -61,20 +76,31 @@ int main(int argc, char *argv[])
     for(auto f : opts)
     {
         cout<<"Map file: "<<f<<"\n";
-        Mapfile map;
+        Mapfile mapfile;
         switch(mode)
         {
-            case Mode::TranslationUnits: map=loadMapFileByTranslationUnits(f); break;
-            case Mode::Functions: map=loadMapFileByFunctionNames(f); break;
+            case Mode::TranslationUnits: mapfile=loadMapFileByTranslationUnits(f); break;
+            case Mode::Functions: mapfile=loadMapFileByFunctionNames(f); break;
         }
-        if(sorted) sort(begin(map),end(map));
+        if(sorted) sort(begin(mapfile),end(mapfile));
         unsigned int totalSize=0;
-        for(auto& s : map)
+        map<string,unsigned int> libs;
+        for(auto& s : mapfile)
         {
             totalSize+=get<1>(s);
             cout<<get<0>(s);
             if(printSizes) cout<<"\t"<<get<1>(s);
             cout<<"\n";
+            if(totals==false) continue;
+            string lib=libname(get<0>(s));
+            if(lib.empty()) continue;
+            if(libs.count(lib)==0) libs[lib]=get<1>(s);
+            else libs[lib]+=get<1>(s);
+        }
+        if(totals)
+        {
+            cout<<"\nLibrary sizes\n";
+            for(auto l : libs) cout<<l.first<<"\t"<<l.second<<"\n";
         }
         cout<<"Total .text size = "<<totalSize<<"\n\n";
     }
