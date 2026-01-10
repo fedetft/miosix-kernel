@@ -57,7 +57,7 @@ Mapfile loadMapFileByFunctionNames(const string& filename)
     if(!in) throw runtime_error("Can't open file");
     const regex textSectionBlock(R"(^ \.text.*)");
     const regex symbolName(R"(^\s+(0x[0-9a-fA-F]+)\s+(\S+))");
-    const regex symbolSize(R"(^\s+0x[0-9a-fA-F]+\s+0x[0-9a-fA-F]+\s+\S+)");
+    const regex symbolSize(R"(^\s+0x[0-9a-fA-F]+\s+0x[0-9a-fA-F]+\s+.*)");
     const regex anySectionBlockWithAddr(R"(^ \.\S+\s+(0x[0-9a-fA-F]+)\s+.*)");
     // Algorithm: we always compute a symbol size by difference between the next
     // symbol address and the current symbol address. Thus when we find a symbol
@@ -117,7 +117,7 @@ Mapfile loadMapFileByTranslationUnits(const string& filename)
     const regex textNoAddr(R"(^ \.text.*)");
     const regex textWithAddr(R"(^ \.text\S*\s+0x[0-9a-fA-F]+\s+(0x[0-9a-fA-F]+)\s+(.*))");
     const regex symbolName(R"(^\s+0x[0-9a-fA-F]+\s+\S+)");
-    const regex symbolSize(R"(^\s+0x[0-9a-fA-F]+\s+(0x[0-9a-fA-F]+)\s+(\S+))");
+    const regex symbolSize(R"(^\s+0x[0-9a-fA-F]+\s+(0x[0-9a-fA-F]+)\s+(.*))");
     // Algorithm: just like in loadMapFileByFunctionNames we use validContext to
     // remember whether we're parsing .text or some other section. Then we just
     // read the data for translation units without -ffunction-section, and for
