@@ -222,7 +222,7 @@ void MPUConfiguration::dumpConfiguration()
         unsigned int rbar=regValues[3*i+1];
         unsigned int base=rbar & ~0x1f;
         unsigned int end=regValues[3*i+2] & ~0x1f;
-        char r=rbar & (0b10<<MPU_RBAR_AP_Pos) ? '-' : 'w';
+        char w=rbar & (0b10<<MPU_RBAR_AP_Pos) ? '-' : 'w';
         char x=rbar & MPU_RBAR_XN_Msk ? '-' : 'x';
         iprintf("* MPU region %d 0x%08x-0x%08x r%c%c\n",rnr,base,end,w,x);
     }
