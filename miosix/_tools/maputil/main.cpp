@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     enum class Mode { TranslationUnits, Functions } mode=Mode::TranslationUnits;
     bool printSizes=true;
     bool sorted=false;
-    bool totals=true;
+    bool totals=false;
     if(find(opts.begin(),opts.end(),"-f")!=opts.end())
     {
         opts.remove("-f");
