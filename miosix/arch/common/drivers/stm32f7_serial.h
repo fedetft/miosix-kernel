@@ -64,8 +64,22 @@ public:
      * \param dma True to enable DMA operation
      */
     template<typename Tx, typename Rx, typename Rts, typename Cts>
-    static inline intrusive_ref_ptr<Device> get(
-        unsigned int id, unsigned int speed, bool flowctrl, bool dma);
+    static __attribute__((always_inline)) intrusive_ref_ptr<Device> get(
+        unsigned int id, unsigned int speed, bool flowctrl, bool dma)
+    {
+        if(!flowctrl&&!dma)
+            return intrusive_ref_ptr<Device>(new STM32Serial(id,speed,
+                Tx::getPin(),Rx::getPin()));
+        else if(!flowctrl&&dma)
+            return intrusive_ref_ptr<Device>(new STM32DmaSerial(id,speed,
+                Tx::getPin(),Rx::getPin()));
+        else if(flowctrl&&!dma)
+            return intrusive_ref_ptr<Device>(new STM32Serial(id,speed,
+                Tx::getPin(),Rx::getPin(),Rts::getPin(),Cts::getPin()));
+        else //if(flowctrl&&dma)
+            return intrusive_ref_ptr<Device>(new STM32DmaSerial(id,speed,
+                Tx::getPin(),Rx::getPin(),Rts::getPin(),Cts::getPin()));
+    }
     
     /**
      * \return port id, 1 for USART1, 2 for USART2, ... 
@@ -411,23 +425,5 @@ private:
     char rxBuffer[rxQueueMin];
     bool dmaTxInProgress=false;        ///< True if a DMA tx is in progress
 };
-
-template<typename Tx, typename Rx, typename Rts, typename Cts>
-intrusive_ref_ptr<Device> STM32SerialBase::get(
-    unsigned int id, unsigned int speed, bool flowctrl, bool dma)
-{
-    if(!flowctrl&&!dma)
-        return intrusive_ref_ptr<Device>(new STM32Serial(id,speed,
-            Tx::getPin(),Rx::getPin()));
-    else if(!flowctrl&&dma)
-        return intrusive_ref_ptr<Device>(new STM32DmaSerial(id,speed,
-            Tx::getPin(),Rx::getPin()));
-    else if(flowctrl&&!dma)
-        return intrusive_ref_ptr<Device>(new STM32Serial(id,speed,
-            Tx::getPin(),Rx::getPin(),Rts::getPin(),Cts::getPin()));
-    else //if(flowctrl&&dma)
-        return intrusive_ref_ptr<Device>(new STM32DmaSerial(id,speed,
-            Tx::getPin(),Rx::getPin(),Rts::getPin(),Cts::getPin()));
-}
 
 } //namespace miosix
