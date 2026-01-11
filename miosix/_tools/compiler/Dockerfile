@@ -17,6 +17,8 @@ COPY ${COMPILER} /project/${COMPILER}
 
 WORKDIR /project/${COMPILER}
 
+RUN echo 'export PATH=/opt/arm-miosix-eabi/bin:$PATH' >> /root/.profile
+
 RUN ./download.sh && ./install-script.sh -j$(nproc)
 
 WORKDIR /opt
