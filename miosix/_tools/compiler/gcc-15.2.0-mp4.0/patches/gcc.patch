@@ -1521,6 +1521,29 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/std_mutex.h gcc-15.2.0/libstd
  #endif
  
      void
+diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/stl_tree.h gcc-15.2.0/libstdc++-v3/include/bits/stl_tree.h
+--- gcc-15.2.0-old/libstdc++-v3/include/bits/stl_tree.h	2025-08-08 08:51:45.769436470 +0200
++++ gcc-15.2.0/libstdc++-v3/include/bits/stl_tree.h	2026-01-15 17:16:15.095576021 +0100
+@@ -1534,7 +1534,18 @@
+ 	return _M_copy<__as_lvalue>(__x, __an);
+       }
+ 
+-      void
++      /*
++       * Patch rationale: this function is not marked inline, for a reason I
++       * would add. However, in GCC 15.2.0 compiling with -O2 this function gets
++       * inlined. But this is a recursive function, so its implementation gets
++       * inlined again and again until after 8 times the compiler finally gives
++       * up. This excessive inlining causes every use of std::map to code bloat.
++       * This issue did not happen in GCC 9.2.0.
++       * For future compiler versions consider removing this patch if a
++       * disassembly of _M_erase shows assembly code matching one instance of
++       * the source code, not multiple ones...
++       */
++      void __attribute__((noinline))
+       _M_erase(_Node_ptr __x);
+ 
+       _Base_ptr
 diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/this_thread_sleep.h gcc-15.2.0/libstdc++-v3/include/bits/this_thread_sleep.h
 --- gcc-15.2.0-old/libstdc++-v3/include/bits/this_thread_sleep.h	2025-08-08 08:51:45.769436470 +0200
 +++ gcc-15.2.0/libstdc++-v3/include/bits/this_thread_sleep.h	2025-12-17 09:45:25.962367037 +0100
