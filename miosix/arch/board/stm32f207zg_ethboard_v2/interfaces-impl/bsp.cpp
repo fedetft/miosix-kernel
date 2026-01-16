@@ -65,6 +65,10 @@ void IRQbspInit()
     ledOff();
     
     mii::res::high();
+    mii::mdc::alternateFunction(11);
+    mii::mdc::mode(Mode::ALTERNATE);
+    mii::mdio::alternateFunction(11);
+    mii::mdio::mode(Mode::ALTERNATE);
     
     IRQsetDefaultConsole(intrusive_ref_ptr<Device>(
     #ifndef STDOUT_REDIRECTED_TO_DCC
