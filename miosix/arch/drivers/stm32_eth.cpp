@@ -95,8 +95,8 @@ void STM32Ethernet::init(RxDmaDescriptor *rxDesc, TxDmaDescriptor *txDesc,
                  | 0 // Enable watchdog to cut TX packets to 2048 bytes
                  | 0 // Standard IFG 96 bit
                  | 0 // Enable carrier sense checking
-                 | ETH_MACCR_FES // 100MBit/s mode
-                 | ETH_MACCR_DM  // Full duplex
+                 | ETH_MACCR_FES  // 100MBit/s mode
+                 | ETH_MACCR_DM   // Full duplex
                  | ETH_MACCR_IPCO // Check checksum of IPv4 frames
                  | 0;
 

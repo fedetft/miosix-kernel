@@ -150,6 +150,43 @@ const unsigned char MAX_OPEN_FILES=8;
 #endif // WITH_FILESYSTEM
 
 //
+// Networking options
+//
+
+/// \def WITH_NETWORKING
+/// Allows to enable/disable networking support to save code size
+/// By default it is not defined (networking support is disabled)
+//#define WITH_NETWORKING
+
+// The following options make sense only when networking is enabled, so they are
+// always left undefined otherwise
+#ifdef WITH_NETWORKING
+
+/// \def ETHERNET_ENABLE_DHCP
+/// Enable obtaining an IP address via DHCP
+/// When disabled, the static IP address defined below is used.
+#define ETHERNET_ENABLE_DHCP
+
+/// \def ETHERNET_WAIT_ON_TX_FULL
+/// When enabled, the driver will block when the TX queue is full,
+/// waiting for free slots to become available.
+/// When disabled, packets will be dropped when the TX queue is full.
+#define ETHERNET_WAIT_ON_TX_FULL
+
+#endif // WITH_NETWORKING
+
+/// \def ETHERNET_IFNAME
+/// Name of the ethernet network interface (2 characters only)
+constexpr char ETHERNET_IFNAME[2]={'e','n'};
+
+/// Static ethernet configuration used when DHCP is disabled
+#define ETHERNET_IP_ADDRESS             IPADDR4_INIT_BYTES(192, 168, 170, 2)
+#define ETHERNET_NETMASK_ADDRESS        IPADDR4_INIT_BYTES(255, 255, 255, 0)
+#define ETHERNET_GATEWAY_ADDRESS        IPADDR4_INIT_BYTES(192, 168, 170, 254)
+
+
+
+//
 // C/C++ standard library I/O (stdin, stdout and stderr related)
 //
 

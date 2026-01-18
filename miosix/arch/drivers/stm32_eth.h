@@ -29,6 +29,8 @@
 
 #include <cstdint>
 
+#include "miosix_settings.h"
+
 namespace miosix::stm32_eth {
 
 struct alignas(uint32_t) RxDmaDescriptor {
@@ -98,8 +100,6 @@ struct alignas(uint32_t) TxDmaDescriptor {
 
     void assignBuffer(void *buf, uint16_t bufSize, bool first, bool last,
                       bool endOfRing) {
-        constexpr uint32_t Checksum = 0b00;
-
         control = 0U |                // Clear status bits
                   (0U << 31) |        // Owned by CPU
                   (1U << 30) |        // Enable IRQ on full frame tx complete
@@ -108,7 +108,7 @@ struct alignas(uint32_t) TxDmaDescriptor {
                   (0U << 27) |        // Enable CRC insertion
                   (0U << 26) |        // Enable pad insertion
                   (0U << 25) |        // TX timestamp disabled
-                  (Checksum << 22) |  // Checksum insertion
+                  (0b11 << 22) |      // Full checksum insertion
                   (endOfRing << 21) | // Ring mode
                   (0U << 20);         // Disable chain mode
 
