@@ -221,7 +221,7 @@ private:
     
     static Thread *head; ///< Head of the thread list
     static Thread *tail; ///< Tail of the thread list
-    static volatile unsigned int nThreads; ///< Number of non-idle threads
+    static unsigned int nThreads; ///< Number of non-idle threads
 };
 
 /**

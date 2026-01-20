@@ -38,7 +38,7 @@ extern volatile Thread *runningThreads[CPU_NUM_CORES];
 
 Thread *CPUTimeCounter::head = nullptr;
 Thread *CPUTimeCounter::tail = nullptr;
-volatile unsigned int CPUTimeCounter::nThreads = 0;
+unsigned int CPUTimeCounter::nThreads = 0;
 
 void CPUTimeCounter::iterator::IRQgetReadyThreadData(CPUTimeCounter::Data& res)
 {
