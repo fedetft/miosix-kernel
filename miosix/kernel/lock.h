@@ -652,17 +652,17 @@ inline bool isKernelPaused() noexcept
  * Example:
  * \code
  *
- * //Kernel started
+ * //Kernel running
  * {
  *     PauseKernelLock dLock;
- *     //Now kernel paused
+ *     //Kernel paused
  *     {
  *         PauseKernelUnlock eLock(dLock);
- *         //Now kernel back started
+ *         //Kernel running again
  *     }
- *     //Now kernel again paused
+ *     //Kernel back to paused
  * }
- * //Finally kernel started
+ * //Kernel running
  * \endcode
  *
  * \note This class replaces the RestartKernelLock class in Miosix v2.x
