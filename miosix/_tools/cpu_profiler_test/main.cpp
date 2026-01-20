@@ -102,13 +102,13 @@ int main()
             // at the maximum/minimum number of workers.
             if((workers.size()>=MAX_WORKERS || slope>0) && workers.size()>0)
             {
-                maxPeriod=(workers.size()*slopeMagnitude+5)/10;
+                maxPeriod=workers.size()*slopeMagnitude;
                 slope=-slopeMagnitude;
             } else {
-                maxPeriod=((MAX_WORKERS-workers.size())*slopeMagnitude+5)/10;
+                maxPeriod=(MAX_WORKERS-workers.size())*slopeMagnitude;
                 slope=slopeMagnitude;
             }
-            periodLeft=rand()%maxPeriod+1;
+            periodLeft=((rand()%maxPeriod)/10)+1;
             periodSpent=0;
             threadDelta=0;
             approxLoad=0;
