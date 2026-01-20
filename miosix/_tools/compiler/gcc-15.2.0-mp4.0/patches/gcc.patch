@@ -1832,6 +1832,22 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/src/c++11/functexcept.cc gcc-15.2.0/libstd
      const size_t __len = __builtin_strlen(__fmt);
      // We expect at most 2 numbers, and 1 short string. The additional
      // 512 bytes should provide more than enough space for expansion.
+diff -ruN gcc-15.2.0-old/libstdc++-v3/src/c++17/fs_ops.cc gcc-15.2.0/libstdc++-v3/src/c++17/fs_ops.cc
+--- gcc-15.2.0-old/libstdc++-v3/src/c++17/fs_ops.cc	2025-08-08 08:51:45.837437604 +0200
++++ gcc-15.2.0/libstdc++-v3/src/c++17/fs_ops.cc	2026-01-20 18:11:59.135676125 +0100
+@@ -745,7 +745,11 @@
+   else
+     ec.assign(errno, std::generic_category());
+ #else
+-#ifdef _PC_PATH_MAX
++#ifdef _MIOSIX
++  //1. On Miosix avoid pathconf
++  //2. PATH_MAX is big (512) and memory is scarce, so try a smaller buffer first
++  size_t size = PATH_MAX/4;
++#elif defined(_PC_PATH_MAX)
+   long path_max = pathconf(".", _PC_PATH_MAX);
+   size_t size;
+   if (path_max == -1)
 diff -ruN gcc-15.2.0-old/zlib/zutil.h gcc-15.2.0/zlib/zutil.h
 --- gcc-15.2.0-old/zlib/zutil.h	2025-08-08 08:51:46.250444494 +0200
 +++ gcc-15.2.0/zlib/zutil.h	2025-12-17 09:45:25.962367037 +0100
