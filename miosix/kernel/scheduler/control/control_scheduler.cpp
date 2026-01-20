@@ -231,7 +231,7 @@ void ControlScheduler::IRQrunScheduler()
                 static_cast<Process*>(runningThreads[0]->proc)->mpu.IRQenable();
             }
             #else //WITH_PROCESSES
-            ctxsave=runningThreads[0]->ctxsave;
+            ctxsave[0]=runningThreads[0]->ctxsave;
             #endif //WITH_PROCESSES
             #ifndef WITH_CPU_TIME_COUNTER
             Scheduler::IRQcomputePreemption(0,curInRound->schedData.bo/multFactor);
