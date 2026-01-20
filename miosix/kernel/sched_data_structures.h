@@ -657,7 +657,9 @@ private:
      */
     TimeSortedQueue<WaitToken,WaitQueue::GetTime> queue;
     #elif defined(SCHED_TYPE_CONTROL_BASED)
-    FifoQueue<WaitToken> queue; //TODO: support prioritization with mutexLessOp?
+    //TODO: support prioritization with mutexLessOp?
+    //(when done re-enable tests in testsuite)
+    FifoQueue<WaitToken> queue;
     #endif
 };
 

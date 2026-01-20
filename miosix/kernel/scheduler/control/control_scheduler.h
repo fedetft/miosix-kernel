@@ -55,7 +55,7 @@ public:
      * Priority must be a positive value.
      * Note that the meaning of priority is scheduler specific.
      */
-    static bool PKaddThread(Thread *thread, ControlSchedulerPriority priority);
+    static bool IRQaddThread(Thread *thread, ControlSchedulerPriority priority);
 
     /**
      * \internal
@@ -66,14 +66,14 @@ public:
      *
      * Can be called both with the kernel paused and with interrupts disabled.
      */
-    static bool PKexists(Thread *thread);
+    static bool IRQexists(Thread *thread);
 
     /**
      * \internal
      * Called when there is at least one dead thread to be removed from the
      * scheduler
      */
-    static void PKremoveDeadThreads();
+    static void removeDeadThreads();
 
     /**
      * \internal
@@ -83,7 +83,7 @@ public:
      * \param newPriority new thread priority.
      * Priority must be a positive value.
      */
-    static void PKsetPriority(Thread *thread,
+    static void IRQsetPriority(Thread *thread,
             ControlSchedulerPriority newPriority);
 
     /**
@@ -105,7 +105,7 @@ public:
      * thread is the idle thread, to be run all the times where no other thread
      * can run.
      */
-    static void IRQsetIdleThread(Thread *idleThread);
+    static void IRQsetIdleThread(int whichCore, Thread *idleThread);
 
     /**
      * \internal
@@ -120,6 +120,13 @@ public:
      * deleted or if it exits the sleeping or waiting status
      */
     static void IRQwaitStatusHook(Thread* t);
+
+    /**
+     * \internal
+     * Called when a thread transitions from waiting/sleeping to ready.
+     * Must not be called if the thread is already ready.
+     */
+    static void IRQwokenThread(Thread* thread) { }
 
     /**
      * \internal

@@ -1222,6 +1222,8 @@ static void test_6()
     if(t6_v1==false) fail("Lock (2)");
     t2->terminate();
     Thread::sleep(10);
+    // TODO: no priority inheritance for control-based scheduler
+    #ifndef SCHED_TYPE_CONTROL_BASED
     //
     // Testing full priority inheritance algorithm
     //
@@ -1298,6 +1300,7 @@ static void test_6()
     a->join();
     b->join();
     c->join();
+    #endif // SCHED_TYPE_CONTROL_BASED
     //
     // Testing recursive mutexes
     //
@@ -1367,9 +1370,15 @@ static void test_6()
     Now there will be 4 threads on the Mutex, the first one, with priority 0,
     waiting 100ms the second with priority 1, the third with priority 2 and the
     fourth (this) with priority 0. FastMutex does not implement priority
-    inheritance but in Miosix 3 still wakes threads in priority order
+    inheritance but in Miosix 3 still wakes threads in priority order.
+    On the other hand with the control-based scheduler the threads wake up in
+    FIFO order as in Miosix 2.
     */
-    if(strcmp(seq.read(),"132")!=0)
+    #ifndef SCHED_TYPE_CONTROL_BASED
+    if(strcmp(seq.read(),"132")!=0) // priority order
+    #else // SCHED_TYPE_CONTROL_BASED
+    if(strcmp(seq.read(),"123")!=0) // FIFO order
+    #endif
     {
         //iprintf("%s\n",seq.read());
         fail("incorrect sequence a");
