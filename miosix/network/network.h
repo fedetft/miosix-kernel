@@ -31,6 +31,20 @@ namespace miosix::network {
 
 /**
  * \internal
+ * Prints all network interfaces configuration to the bootlog.
+ * \note Must be called after the network stack is online to have meaningful
+ * data.
+ */
+void bootlogNetworkConfig();
+
+/**
+ * \internal
+ * Block the calling thread until the network is online.
+ */
+void waitOnline();
+
+/**
+ * \internal
  * Network stack thread entry point.
  * \param argv Unused
  */

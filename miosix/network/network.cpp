@@ -31,6 +31,7 @@
 
 #include <interfaces/bsp.h>
 #include <kernel/logging.h>
+#include <kernel/sync.h>
 #include <network/ethernetif.h>
 
 #include <lwip/dhcp.h>
@@ -39,10 +40,14 @@
 #include <lwip/netif.h>
 #include <lwip/timeouts.h>
 
+#include <atomic>
 #include <bit>
 
 namespace miosix::network {
 namespace {
+std::atomic<bool> networkOnline = false;
+FastMutex waitOnlineMutex;
+ConditionVariable waitOnlineCv;
 
 /**
  * \internal
@@ -58,7 +63,9 @@ int netmaskToPrefix(const ip4_addr_t *netmask) {
  * Print the configuration of a network interface to the bootlog
  */
 void bootlogNetworkConfig(struct netif *netif) {
-    if (!dhcp_supplied_address(netif)) {
+    bool loopback = netif->name[0] == 'l' && netif->name[1] == 'o';
+    // loopback interface will never have a supplied DHCP address
+    if (!dhcp_supplied_address(netif) && !loopback) {
         char name[3] = {netif->name[0], netif->name[1], '\0'};
         bootlog(
             "Network interface '%s' up, waiting for IP address via DHCP...\n",
@@ -80,9 +87,32 @@ void bootlogNetworkConfig(struct netif *netif) {
             cidr, gateway);
 }
 
-void netifStatusCallback(struct netif *netif) {}
+void netifStatusCallback(struct netif *netif) {
+    if (dhcp_supplied_address(netif)) {
+        networkOnline.store(true, std::memory_order_release);
+        waitOnlineCv.broadcast();
+    }
+}
 
 } // namespace
+
+void bootlogNetworkConfig() {
+    struct netif *netif = netif_list;
+    while (netif != nullptr) {
+        bootlogNetworkConfig(netif);
+        netif = netif->next;
+    }
+}
+
+void waitOnline() {
+    if (networkOnline.load(std::memory_order_acquire))
+        return;
+
+    Lock l(waitOnlineMutex);
+    while (!networkOnline.load(std::memory_order_acquire)) {
+        waitOnlineCv.wait(l);
+    }
+}
 
 void *netStackThread(void *) {
     lwip_init();
@@ -117,7 +147,10 @@ void *netStackThread(void *) {
         errorLog("netStackThread: DHCP start failed: %d\n", err);
         return 0;
     }
-#endif
+#else // ETHERNET_ENABLE_DHCP
+    networkOnline.store(true, std::memory_order_release);
+    waitOnlineCv.broadcast();
+#endif // ETHERNET_ENABLE_DHCP
 
     while (true) {
         uint32_t sleepTime = sys_timeouts_sleeptime(); // ms

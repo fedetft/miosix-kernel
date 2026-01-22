@@ -162,6 +162,20 @@ const unsigned char MAX_OPEN_FILES=8;
 // always left undefined otherwise
 #ifdef WITH_NETWORKING
 
+/// \def NETWORK_WAIT_ONLINE
+/// When defined, the main thread will wait for the network stack to be
+/// initialized before calling the main() function.
+/// As a side effect, this option also controls bootlog printing of the network
+/// status.
+#define NETWORK_WAIT_ONLINE
+
+#ifdef NETWORK_WAIT_ONLINE
+/// \def NETWORK_BOOTLOG_STATUS
+/// When defined, the network stack initialization status is printed to the 
+/// bootlog. This can only be enabled if NETWORK_WAIT_ONLINE is also defined.
+#define NETWORK_BOOTLOG_STATUS
+#endif
+
 /// \def ETHERNET_ENABLE_DHCP
 /// Enable obtaining an IP address via DHCP
 /// When disabled, the static IP address defined below is used.

@@ -41,6 +41,7 @@
 #include "error.h"
 #include "logging.h"
 #include "pthread_private.h"
+#include "network/network.h"
 // settings for miosix
 #include "miosix_settings.h"
 #include "util/util.h"
@@ -174,6 +175,16 @@ void *mainLoader(void *argv)
     bootlog("Available heap %d out of %d Bytes\n",
             MemoryProfiling::getCurrentFreeHeap(),
             MemoryProfiling::getHeapSize());
+
+    #ifdef NETWORK_WAIT_ONLINE
+    bootlog("Waiting for network online... ");
+    fflush(stdout); // Force printing without newline before the wait
+    network::waitOnline();
+    bootlog("Ok\n");
+    #ifdef NETWORK_BOOTLOG_STATUS
+    network::bootlogNetworkConfig();
+    #endif
+    #endif
     
     //Run application code
     #ifdef __NO_EXCEPTIONS
