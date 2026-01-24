@@ -47,22 +47,36 @@
         static constexpr unsigned int P=1;   // 110MHz/P=110MHz
         static constexpr unsigned int Q=1;   // 110MHz/Q=110MHz
         static constexpr unsigned int R=1;   // 110MHz/R=110MHz
-        static constexpr unsigned int VCore=0b11; // Range 2
+        static constexpr unsigned int VCore=0b10; // Range 2
         static constexpr bool boostEnable=1;  // Yes if fClk > 55MHz
     #elif SYSCLK_FREQ_48MHz
         static constexpr unsigned int N=48;  // 5MHz*N=240MHz
         static constexpr unsigned int P=5;   // 110MHz/P=48MHz
         static constexpr unsigned int Q=5;   // 110MHz/Q=48MHz
         static constexpr unsigned int R=5;   // 110MHz/R=48MHz
-        static constexpr unsigned int VCore=0b11; // Range 2
-        static constexpr bool boostEnable=1;  // Yes if fClk > 55MHz
+        static constexpr unsigned int VCore=0b10; // Range 2
+        static constexpr bool boostEnable=0;  // Yes if fClk > 55MHz
     #elif SYSCLK_FREQ_24MHz
         static constexpr unsigned int N=24;  // 5MHz*N=120MHz
         static constexpr unsigned int P=5;   // 110MHz/P=24MHz
         static constexpr unsigned int Q=5;   // 110MHz/Q=24MHz
         static constexpr unsigned int R=5;   // 110MHz/R=24MHz
-        static constexpr unsigned int VCore=0b11; // Range 2
-        static constexpr bool boostEnable=1;  // Yes if fClk > 55MHz
+        static constexpr unsigned int VCore=0b10; // Range 2
+        static constexpr bool boostEnable=0;  // Yes if fClk > 55MHz
+    #else
+        #error "SYSCLK value not supported!"
+    #endif
+#elif defined(RUN_WITH_HSI)
+    static constexpr unsigned int rge=0b10; //4..8MHz
+    static constexpr unsigned int M=3;   // 16MHz/(4-1)=4MHz
+    static constexpr unsigned int MBoost=1;   // 4 < 25MHz/2^Mboost < 16
+    #ifdef SYSCLK_FREQ_48MHz
+        static constexpr unsigned int N=12;  // 4MHz*N=48MHz
+        static constexpr unsigned int P=1;   // 48MHz/P=48MHz
+        static constexpr unsigned int Q=1;   // 48MHz/Q=48MHz
+        static constexpr unsigned int R=1;   // 48MHz/R=48MHz
+        static constexpr bool boostEnable=0;  // Yes if fClk > 55MHz
+        static constexpr unsigned int VCore=0b01; // Range 3
     #else
         #error "SYSCLK value not supported!"
     #endif
@@ -77,7 +91,7 @@ void startPll()
     RCC_SYNC();
 
     // 1. Set voltage range
-    #if defined(SYSCLK_FREQ_160MHz) or defined(SYSCLK_FREQ_110MHz) or defined(SYSCLK_FREQ_48MHz) or defined(SYSCLK_FREQ_24MHz)
+    #if defined(HSE_VALUE)
         //Enable HSE oscillator
         RCC->CR |= RCC_CR_HSEON;
         while((RCC->CR & RCC_CR_HSERDY)==0) ;
@@ -95,23 +109,46 @@ void startPll()
                     | (M << RCC_PLL1CFGR_PLL1M_Pos)
                     | (MBoost << RCC_PLL1CFGR_PLL1MBOOST_Pos) // 4 < 25/4 < 16
                     | (rge << RCC_PLL1CFGR_PLL1RGE_Pos)
-                    | (VCore << RCC_PLL1CFGR_PLL1SRC_Pos); // HSE
+                    | (0b11 << RCC_PLL1CFGR_PLL1SRC_Pos); // HSE
 
         RCC->CR |= RCC_CR_PLL1ON;
         while((RCC->CR & RCC_CR_PLL1RDY) == 0) ;
 
-        ////// Highest frequency (Range 1) [boost needed if tgt freq >= 55MHz)
-        PWR->VOSR = (0b11<<PWR_VOSR_VOS_Pos);
-        while((PWR->VOSR & PWR_VOSR_VOSRDY)==0);
+    #elif defined(RUN_WITH_HSI)
+        //Enable HSE oscillator
+        RCC->CR |= RCC_CR_HSION;
+        while((RCC->CR & RCC_CR_HSIRDY)==0) ;
 
-        if (boostEnable)
-        {
-            PWR->VOSR |= (PWR_VOSR_BOOSTEN);
-            while ((PWR->VOSR & PWR_VOSR_BOOSTRDY) == 0);
-        }
-#else
-#error
+        // PLL must be enabled before VOSR
+
+        RCC->PLL1DIVR = (R-1)<<RCC_PLL1DIVR_PLL1R_Pos
+                    | (Q-1)<<RCC_PLL1DIVR_PLL1Q_Pos
+                    | (P-1)<<RCC_PLL1DIVR_PLL1P_Pos
+                    | (N-1)<<RCC_PLL1DIVR_PLL1N_Pos;
+
+        RCC->PLL1CFGR = RCC_PLL1CFGR_PLL1REN
+                    | RCC_PLL1CFGR_PLL1QEN
+                    | RCC_PLL1CFGR_PLL1PEN
+                    | (M << RCC_PLL1CFGR_PLL1M_Pos)
+                    | (MBoost << RCC_PLL1CFGR_PLL1MBOOST_Pos) // 4 < 25/4 < 16
+                    | (rge << RCC_PLL1CFGR_PLL1RGE_Pos)
+                    | (0b10 << RCC_PLL1CFGR_PLL1SRC_Pos); // HSI16
+
+        RCC->CR |= RCC_CR_PLL1ON;
+        while((RCC->CR & RCC_CR_PLL1RDY) == 0) ;
+    #else
+        #error Not implemented
     #endif
+
+    // Highest frequency (Range 1) [boost needed if tgt freq >= 55MHz)
+    PWR->VOSR = (VCore<<PWR_VOSR_VOS_Pos);
+    while((PWR->VOSR & PWR_VOSR_VOSRDY)==0);
+
+    if (boostEnable)
+    {
+        PWR->VOSR |= (PWR_VOSR_BOOSTEN);
+        while ((PWR->VOSR & PWR_VOSR_BOOSTRDY) == 0);
+    }
     
     // Increase FLASH wait states (RM 7.3.3, Table 54)
 

@@ -203,6 +203,19 @@ static const STM32SerialHW ports[maxPorts] = {
     { LPUART1, LPUART1_IRQn, {8}, true, STM32Bus::APB3, RCC_APB3ENR_LPUART1EN},
 };
 
+#elif defined(STM32U535xx)
+// 0: USART1; 1: USART2; 2: USART3; 3: UART4; 4: UART5; 6: LPUART1
+constexpr int maxPorts = 5;
+
+static const STM32SerialHW ports[maxPorts] = {
+    { USART1, USART1_IRQn, {7},   false, STM32Bus::APB2, RCC_APB2ENR_USART1EN},
+    { USART3, USART3_IRQn, {7},   false, STM32Bus::APB1L, RCC_APB1ENR1_USART3EN},
+    { UART4,  UART4_IRQn,  {8},    false, STM32Bus::APB1L, RCC_APB1ENR1_UART4EN},
+    { UART5,  UART5_IRQn,  {8},    false, STM32Bus::APB1L, RCC_APB1ENR1_UART5EN},
+    { LPUART1, LPUART1_IRQn, {8}, true, STM32Bus::APB3, RCC_APB3ENR_LPUART1EN},
+};
+
+
 #else
 // STM32U535xx has different alternate functions!
 #error Unsupported STM32 chip for this serial driver

@@ -68,6 +68,7 @@
 #OPT_BOARD := stm32h503rb_generic
 #OPT_BOARD := nrf52840_generic
 #OPT_BOARD := stm32u585ci_generic
+#OPT_BOARD := stm32u535cb_rrc
 
 ##
 ## Optimization flags, choose one.
@@ -991,6 +992,8 @@ else ifeq ($(OPT_BOARD),stm32l010rb_nucleo)
 else ifeq ($(OPT_BOARD),stm32h503rb_generic)
     ARCH := cortexM33_stm32h5
 else ifeq ($(OPT_BOARD),stm32u585ci_generic)
+    ARCH := cortexM33_stm32u5
+else ifeq ($(OPT_BOARD),stm32u535cb_rrc)
     ARCH := cortexM33_stm32u5
 else ifeq ($(OPT_BOARD),nrf52840_generic)
     ARCH := cortexM4_nrf52
@@ -3584,6 +3587,38 @@ else ifeq ($(ARCH),cortexM33_stm32u5)
         ## board.
         #PROG ?= st-flash --connect-under-reset --reset write \
         #        $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
+        PROG ?= dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D \
+                $(if $(ROMFS_DIR), image.bin, main.bin)
+    else ifeq ($(OPT_BOARD),stm32u535cb_rrc)
+        ## Base directory with header files for this board
+        BOARD_INC := arch/cortexM33_stm32u5/stm32u535cb_rrc
+
+        ## Select linker script
+        LINKER_SCRIPT_PATH := $(BOARD_INC)
+        LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_128k+256k_rom.ld
+
+        ## Select architecture specific files
+        ## These are the files in arch/<arch name>/<board name>
+        ARCH_SRC :=                                  \
+        $(BOARD_INC)/boot.cpp                        \
+        $(BOARD_INC)/interfaces-impl/bsp.cpp
+        # arch/common/drivers/stm32_hardware_rng.cpp   \
+
+        ## Add a #define to allow querying board name
+        CFLAGS_BASE   += -D_BOARD_STM32U535CB_RRC
+        CXXFLAGS_BASE += -D_BOARD_STM32U535CB_RRC
+
+        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
+        ## While the chip can run up to 480MHz, the board uses the SMPS feature
+        ## that limits clock speed to 400MHz
+        CLOCK_FREQ := -DSYSCLK_FREQ_48MHz=48000000 -DRUN_WITH_HSI
+
+        ## Select programmer command line
+        ## This is the program that is invoked when the user types
+        ## 'make program'
+        ## The command must provide a way to program the board, or print an
+        ## error message saying that 'make program' is not supported for that
+        ## board.
         PROG ?= dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D \
                 $(if $(ROMFS_DIR), image.bin, main.bin)
     ##-------------------------------------------------------------------------
