@@ -89,19 +89,6 @@ void bspInit2()
 // Shutdown and reboot
 //
 
-/**
-This function disables filesystem (if enabled), serial port (if enabled) and
-puts the processor in deep sleep mode.<br>
-Wakeup occurs when PA.0 goes high, but instead of sleep(), a new boot happens.
-<br>This function does not return.<br>
-WARNING: close all files before using this function, since it unmounts the
-filesystem.<br>
-When in shutdown mode, power consumption of the miosix board is reduced to ~
-5uA??, however, true power consumption depends on what is connected to the GPIO
-pins. The user is responsible to put the devices connected to the GPIO pin in the
-minimal power consumption mode before calling shutdown(). Please note that to
-minimize power consumption all unused GPIO must not be left floating.
-*/
 void shutdown()
 {
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
