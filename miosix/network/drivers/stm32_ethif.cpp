@@ -28,7 +28,9 @@
 
 #include "ethernetif_debug.h"
 #include <arch/drivers/stm32_eth.h>
+#include <arch/drivers/stm32_uid.h>
 #include <kernel/thread.h>
+#include <util/cityhash.h>
 
 #include <lwip/etharp.h>
 #include <lwip/ethip6.h>
@@ -446,10 +448,11 @@ struct EthInterface {
      * Initializes the ethernet interface.
      * \param netStackThread the thread running the network stack, to be
      * woken up on IRQs
+     * \param hwaddr the MAC address of the interface
      * \return ERR_OK if the interface is initialized
      *         an err_t value on error
      */
-    err_t init(Thread *netStackThread) {
+    err_t init(Thread *netStackThread, uint8_t *hwaddr) {
         this->netStackThread = netStackThread;
 
         if (auto err = rx.init(); err != ERR_OK)
@@ -457,7 +460,7 @@ struct EthInterface {
         if (auto err = tx.init(); err != ERR_OK)
             return err;
 
-        STM32Ethernet::init(rx.descriptorList(), tx.descriptorList(),
+        STM32Ethernet::init(rx.descriptorList(), tx.descriptorList(), hwaddr,
                             ethernetIrqHandler, this);
 
         return ERR_OK;
@@ -565,6 +568,30 @@ err_t ethernetif_init(struct netif *netif) {
 #endif
     netif->linkoutput = ethernetif_output;
 
+#ifdef ETHERNET_MAC_ADDRESS_NIC
+    u8_t hwaddr[] = {ETHERNET_MAC_ADDRESS_OUI, ETHERNET_MAC_ADDRESS_NIC};
+#else
+    // Generate NIC part of MAC address from unique ID
+    auto uid = miosix::GetUniqueId().get();
+    auto hash = miosix::cityHash32(uid.data(), uid.size());
+    u8_t hwaddr[] = {
+        ETHERNET_MAC_ADDRESS_OUI,
+        static_cast<u8_t>((hash >> 0) & 0xFF),
+        static_cast<u8_t>((hash >> 8) & 0xFF),
+        static_cast<u8_t>((hash >> 16) & 0xFF),
+    };
+#endif
+
+    netif->hwaddr_len = ETHARP_HWADDR_LEN;
+    netif->hwaddr[0] = hwaddr[0];
+    netif->hwaddr[1] = hwaddr[1];
+    netif->hwaddr[2] = hwaddr[2];
+    netif->hwaddr[3] = hwaddr[3];
+    netif->hwaddr[4] = hwaddr[4];
+    netif->hwaddr[5] = hwaddr[5];
+
+    netif->mtu = 1500;
+
     // Initialize the interface private data
     // Use smart pointer to ensure proper cleanup on failure
     auto ethif = std::make_unique<EthInterface>();
@@ -572,23 +599,13 @@ err_t ethernetif_init(struct netif *netif) {
         return ERR_MEM;
 
     // Initialize the ethernet interface
-    auto err = ethif->init(Thread::getCurrentThread());
+    auto err = ethif->init(Thread::getCurrentThread(), netif->hwaddr);
     if (err != ERR_OK)
         return err;
 
     // Release ownership to netif
     netif->state = ethif.release();
     // TODO: cleaup on netif removal
-
-    netif->hwaddr_len = ETHARP_HWADDR_LEN;
-    netif->hwaddr[0] = 0x00;
-    netif->hwaddr[1] = 0x80;
-    netif->hwaddr[2] = 0xe1;
-    netif->hwaddr[3] = 0x00;
-    netif->hwaddr[4] = 0x00;
-    netif->hwaddr[5] = 0x00;
-
-    netif->mtu = 1500;
 
     // TODO: support link detection through PHY
     netif->flags =
