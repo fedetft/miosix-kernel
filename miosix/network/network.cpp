@@ -63,13 +63,18 @@ int netmaskToPrefix(const ip4_addr_t *netmask) {
  * Print the configuration of a network interface to the bootlog
  */
 void bootlogNetworkConfig(struct netif *netif) {
-    bool loopback = netif->name[0] == 'l' && netif->name[1] == 'o';
-    // loopback interface will never have a supplied DHCP address
-    if (!dhcp_supplied_address(netif) && !loopback) {
+    char hwaddr[18];
+    sniprintf(hwaddr, sizeof(hwaddr), "%02x:%02x:%02x:%02x:%02x:%02x",
+              (int)netif->hwaddr[0], (int)netif->hwaddr[1],
+              (int)netif->hwaddr[2], (int)netif->hwaddr[3],
+              (int)netif->hwaddr[4], (int)netif->hwaddr[5]);
+
+    // Handle cases where DHCP is enabled and IP not yet assigned
+    auto dhcp = netif_dhcp_data(netif);
+    if (dhcp && !dhcp_supplied_address(netif)) {
         char name[3] = {netif->name[0], netif->name[1], '\0'};
-        bootlog(
-            "Network interface '%s' up, waiting for IP address via DHCP...\n",
-            name);
+        bootlog("Network interface '%s' (%s) up, waiting for DHCP...\n", name,
+                hwaddr);
         return;
     }
 
@@ -83,8 +88,8 @@ void bootlogNetworkConfig(struct netif *netif) {
 
     char name[3] = {netif->name[0], netif->name[1], '\0'};
 
-    bootlog("Network interface '%s' up: IP %s/%d, Gateway: %s\n", name, ip,
-            cidr, gateway);
+    bootlog("Network interface '%s' (%s) up: IP %s/%d, Gateway: %s\n", name,
+            hwaddr, ip, cidr, gateway);
 }
 
 void netifStatusCallback(struct netif *netif) {

@@ -193,6 +193,16 @@ const unsigned char MAX_OPEN_FILES=8;
 /// Name of the ethernet network interface (2 characters only)
 constexpr char ETHERNET_IFNAME[2]={'e','n'};
 
+/// \def ETHERNET_MAC_ADDRESS_OUI
+/// \def ETHERNET_MAC_ADDRESS_NIC
+/// The MAC address of the ethernet interface, split between OUI and NIC parts.
+/// The OUI part defaults to a locally administered address.
+/// By default the NIC part is not defined, which means it will be generated
+/// from the CPU unique ID to ensure different devices have different MAC
+/// addresses. Define it to a fixed value to use a MAC address of choice.
+#define ETHERNET_MAC_ADDRESS_OUI        0x02, 0x00, 0x00
+//#define ETHERNET_MAC_ADDRESS_NIC        0x00, 0x00, 0x01
+
 /// Static ethernet configuration used when DHCP is disabled
 #define ETHERNET_IP_ADDRESS             IPADDR4_INIT_BYTES(192, 168, 170, 2)
 #define ETHERNET_NETMASK_ADDRESS        IPADDR4_INIT_BYTES(255, 255, 255, 0)

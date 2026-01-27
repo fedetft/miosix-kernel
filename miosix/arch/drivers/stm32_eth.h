@@ -199,11 +199,12 @@ class IrqStatus {
  * Initialize the Ethernet hardware (MAC and DMA).
  * \param rxDesc pointer to the RX DMA descriptor list
  * \param txDesc pointer to the TX DMA descriptor list
+ * \param hwaddr hardware MAC address
  * \param irqHandler optional IRQ handler to register for Ethernet
  * interrupts
  * \param irqParam optional parameter to pass to the IRQ handler
  */
-void init(RxDmaDescriptor *rxDesc, TxDmaDescriptor *txDesc,
+void init(RxDmaDescriptor *rxDesc, TxDmaDescriptor *txDesc, uint8_t *hwaddr,
           EthernetIrqHandler irqHandler = nullptr, void *irqArg = nullptr);
 
 IrqStatus getIrqStatus();

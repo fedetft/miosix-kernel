@@ -51,6 +51,7 @@ util/util.cpp                                                              \
 util/unicode.cpp                                                           \
 util/version.cpp                                                           \
 util/crc16.cpp                                                             \
+util/cityhash.cpp                                                          \
 util/lcd44780.cpp
 
 ## Add the architecture dependand sources to the list of files to build.

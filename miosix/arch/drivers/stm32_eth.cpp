@@ -79,7 +79,8 @@ void STM32Ethernet::IrqStatus::clearTx() {
 }
 
 void STM32Ethernet::init(RxDmaDescriptor *rxDesc, TxDmaDescriptor *txDesc,
-                         EthernetIrqHandler irqHandler, void *irqArg) {
+                         uint8_t *hwaddr, EthernetIrqHandler irqHandler,
+                         void *irqArg) {
     SYSCFG->PMC = 0; // Select MII interface, must be done before enabling ETH
 
     {
@@ -115,13 +116,14 @@ void STM32Ethernet::init(RxDmaDescriptor *rxDesc, TxDmaDescriptor *txDesc,
     ETH->MACIMR = ETH_MACIMR_TSTIM    // Disable timestamp interrupts
                   | ETH_MACIMR_PMTIM; // Disable power management interrupts
 
-    // TODO: set proper MAC based on UID
-    auto setMac = [](unsigned long long mac) {
-        ETH->MACA0HR = 1U << 31 | swapBytes16(mac & 0xffff);
-        ETH->MACA0LR = swapBytes32(mac >> 16);
-    };
-
-    setMac(0x0080e1000000ull); // Set a MAC address with ST OUI
+    // Set MAC address
+    ETH->MACA0HR = 1U << 31         // Address enable bit
+                   | hwaddr[5] << 8 //
+                   | hwaddr[4];
+    ETH->MACA0LR = hwaddr[3] << 24   //
+                   | hwaddr[2] << 16 //
+                   | hwaddr[1] << 8  //
+                   | hwaddr[0];
 
     // Disable counter interrupts
     ETH->MMCRIMR = ETH_MMCRIMR_RGUFM | ETH_MMCRIMR_RFAEM | ETH_MMCRIMR_RFCEM;
