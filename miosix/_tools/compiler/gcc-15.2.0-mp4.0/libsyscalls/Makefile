@@ -37,9 +37,9 @@ AR       := $(TARGET)-ar
 
 OPT_OPTIMIZATION := -O2
 AFLAGS   := $(MULTILIB_FLAGS)
-CFLAGS   := -MMD -MP $(MULTILIB_FLAGS) -fno-exceptions -ffunction-sections \
-            -Wall -Werror=return-type -D_DEFAULT_SOURCE=1 $(OPT_OPTIMIZATION) -g
-CXXFLAGS := -std=c++14 $(CFLAGS)
+CFLAGS   := -MMD -MP $(MULTILIB_FLAGS) -ffunction-sections -Wall \
+            -Werror=return-type -D_DEFAULT_SOURCE=1 $(OPT_OPTIMIZATION) -g
+CXXFLAGS := -fno-exceptions -std=c++23 $(CFLAGS)
 
 OBJ := $(addsuffix .o, $(basename $(SRC)))
 
