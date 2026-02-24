@@ -268,7 +268,7 @@ void IRQmemoryAndClockInit()
     // Kill clock of non-essential peripherals
     // Essential peripherals are BUSCTRL, BUSFAB, VREG, Resets, ROM, SRAMs
     // We also leave on some more stuff we need
-    clocks_hw->wake_en0=clocks_hw->sleep_en0=
+    const unsigned int clock0mask=
           CLOCKS_WAKE_EN0_CLK_SYS_CLOCKS_BITS
         | CLOCKS_WAKE_EN0_CLK_SYS_BUSCTRL_BITS // (essential)
         | CLOCKS_WAKE_EN0_CLK_SYS_BUSFABRIC_BITS // (essential)
@@ -286,12 +286,16 @@ void IRQmemoryAndClockInit()
         | CLOCKS_WAKE_EN0_CLK_SYS_SRAM1_BITS // (essential)
         | CLOCKS_WAKE_EN0_CLK_SYS_SRAM2_BITS // (essential)
         | CLOCKS_WAKE_EN0_CLK_SYS_SRAM3_BITS; // (essential)
-    clocks_hw->wake_en1=clocks_hw->sleep_en1=
+    clocks_hw->wake_en0=clock0mask;
+    clocks_hw->sleep_en0=clock0mask;
+    const unsigned int clock1mask=
           CLOCKS_WAKE_EN1_CLK_SYS_SRAM4_BITS // (essential)
         | CLOCKS_WAKE_EN1_CLK_SYS_SRAM5_BITS // (essential)
         | CLOCKS_WAKE_EN1_CLK_SYS_WATCHDOG_BITS // (needed by the kernel later for rebooting)
         | CLOCKS_WAKE_EN1_CLK_SYS_XIP_BITS // (essential because almost certainly in use now)
         | CLOCKS_WAKE_EN1_CLK_SYS_XOSC_BITS; // (essential because we might be clocked by this now)
+    clocks_hw->wake_en1=clock1mask;
+    clocks_hw->sleep_en1=clock1mask;
 
     //QUIRK: the rp2040 GPIO when reset configures pins as output by default!
     //This was causing problems if a fault reset occurs such as a HardFault as
@@ -316,16 +320,19 @@ void IRQmemoryAndClockInit()
     clockTreeSetup();
 
     // Peripheral clocks should now all be running, turn on basic peripherals
-    clocks_hw->wake_en0=clocks_hw->sleep_en0|=
-          CLOCKS_WAKE_EN0_CLK_SYS_BUSCTRL_BITS;
-    clocks_hw->wake_en1=clocks_hw->sleep_en1|=
+    // clocks_hw->wake_en0|=CLOCKS_WAKE_EN0_CLK_SYS_BUSCTRL_BITS;
+    // clocks_hw->sleep_en0|=CLOCKS_WAKE_EN0_CLK_SYS_BUSCTRL_BITS; //Already set above
+    const unsigned int clock2mask=
           CLOCKS_WAKE_EN1_CLK_SYS_SYSINFO_BITS
         | CLOCKS_WAKE_EN1_CLK_SYS_SYSCFG_BITS;
+    clocks_hw->wake_en1|=clock2mask;
+    clocks_hw->sleep_en1|=clock2mask;
     unreset_block_wait(RESETS_RESET_SYSINFO_BITS
                      | RESETS_RESET_SYSCFG_BITS
                      | RESETS_RESET_BUSCTRL_BITS);
     // Disable peripherals we surely don't need anymore
-    clocks_hw->wake_en0=clocks_hw->sleep_en0&=~CLOCKS_WAKE_EN0_CLK_SYS_ROSC_BITS;
+    clocks_hw->wake_en0&=~CLOCKS_WAKE_EN0_CLK_SYS_ROSC_BITS;
+    clocks_hw->sleep_en0&=~CLOCKS_WAKE_EN0_CLK_SYS_ROSC_BITS;
     // Disable sleep clocks of peripherals that won't be accessed if the CPU sleeps
     clocks_hw->sleep_en0&=~(
           CLOCKS_WAKE_EN0_CLK_SYS_CLOCKS_BITS // can't reconfigure clocks when in sleep
