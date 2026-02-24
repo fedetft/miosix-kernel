@@ -161,7 +161,7 @@ pid_t Process::create(ElfProgram&& program, ArgsBlock&& args)
         Lock<KernelMutex> l(p.procMutex);
         p.processes.erase(proc->pid);
         parent->childs.remove(proc.get());
-        throw runtime_error("Thread creation failed");
+        throw bad_alloc(); //Thread allocation failed
     }
     //Cannot throw bad_alloc due to the reserve in Process's constructor.
     //This ensures we will never be in the uncomfortable situation where a
