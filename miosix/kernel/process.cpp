@@ -103,13 +103,13 @@ struct SpawnArgs
 /**
  * This class contains information on all the processes in the system
  */
-class Processes
+class ProcessTable
 {
 public:
     /**
      * \return the instance of this class (singleton)
      */
-    static Processes& instance();
+    static ProcessTable& instance();
 
     /**
      * \return an unique pid that is not zero and is not already in use in the
@@ -129,19 +129,19 @@ private:
     ///Used to assign a new pid to a process
     pid_t pidCounter=1;
 
-    Processes()
+    ProcessTable()
     {
         ProcessBase *kernel=Thread::getCurrentThread()->getProcess();
         assert(kernel->getPid()==0);
         processes[0]=kernel;
     }
-    Processes(const Processes&)=delete;
-    Processes& operator=(const Processes&)=delete;
+    ProcessTable(const ProcessTable&)=delete;
+    ProcessTable& operator=(const ProcessTable&)=delete;
 };
 
-Processes& Processes::instance()
+ProcessTable& ProcessTable::instance()
 {
-    static Processes singleton;
+    static ProcessTable singleton;
     return singleton;
 }
 
@@ -149,7 +149,7 @@ Processes& Processes::instance()
  * \return an unique pid that is not zero and is not already in use in the
  * system, used to assign a pid to a new process.<br>
  */
-pid_t Processes::getNewPid()
+pid_t ProcessTable::getNewPid()
 {
     for(;;pidCounter++)
     {
@@ -167,22 +167,22 @@ pid_t Processes::getNewPid()
 pid_t Process::create(ElfProgram&& program, ArgsBlock&& args)
 {
     if(program.errorCode()) return program.errorCode();
-    Processes& p=Processes::instance();
+    auto& processTable=ProcessTable::instance();
     ProcessBase *parent=Thread::getCurrentThread()->proc;
     unique_ptr<Process> proc(new Process(parent->fileTable,
                                          std::move(program),std::move(args)));
     {   
-        Lock<KernelMutex> l(p.procMutex);
-        proc->pid=p.getNewPid();
+        Lock<KernelMutex> l(processTable.procMutex);
+        proc->pid=processTable.getNewPid();
         proc->ppid=parent->pid;
         parent->childs.push_back(proc.get());
-        p.processes[proc->pid]=proc.get();
+        processTable.processes[proc->pid]=proc.get();
     }
     auto thr=Thread::createUserspace(Process::start,proc.get());
     if(thr==nullptr)
     {
-        Lock<KernelMutex> l(p.procMutex);
-        p.processes.erase(proc->pid);
+        Lock<KernelMutex> l(processTable.procMutex);
+        processTable.processes.erase(proc->pid);
         parent->childs.remove(proc.get());
         throw bad_alloc(); //Thread allocation failed
     }
@@ -217,17 +217,17 @@ pid_t Process::spawn(const char *path, const char* const* argv,
 
 pid_t Process::getppid(pid_t proc)
 {
-    Processes& p=Processes::instance();
-    Lock<KernelMutex> l(p.procMutex);
-    map<pid_t,ProcessBase *>::iterator it=p.processes.find(proc);
-    if(it==p.processes.end()) return -1;
+    auto& processTable=ProcessTable::instance();
+    Lock<KernelMutex> l(processTable.procMutex);
+    auto it=processTable.processes.find(proc);
+    if(it==processTable.processes.end()) return -1;
     return it->second->ppid;
 }
 
 pid_t Process::waitpid(pid_t pid, int* exit, int options)
 {
-    Processes& p=Processes::instance();
-    Lock<KernelMutex> l(p.procMutex);
+    auto& processTable=ProcessTable::instance();
+    Lock<KernelMutex> l(processTable.procMutex);
     ProcessBase *self=Thread::getCurrentThread()->proc;
     if(pid<=0)
     {
@@ -236,11 +236,11 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
         while(self->zombies.empty())
         {
             if(self->childs.empty()) return -ECHILD;
-            p.genericWaiting.wait(l);
+            processTable.genericWaiting.wait(l);
         }
         Process *joined=self->zombies.front();
         self->zombies.pop_front();
-        p.processes.erase(joined->pid);
+        processTable.processes.erase(joined->pid);
         if(joined->waitCount!=0) errorHandler(Error::UNEXPECTED);
         if(exit!=nullptr) *exit=joined->exitCode;
         pid_t result=joined->pid;
@@ -248,8 +248,8 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
         return result;
     } else {
         //Wait on a specific child process
-        map<pid_t,ProcessBase *>::iterator it=p.processes.find(pid);
-        if(it==p.processes.end() || it->second->ppid!=self->pid
+        auto it=processTable.processes.find(pid);
+        if(it==processTable.processes.end() || it->second->ppid!=self->pid
                 || pid==self->pid) return -ECHILD;
         //Since the case when pid==0 has been singled out, this cast is safe
         Process *joined=static_cast<Process*>(it->second);
@@ -269,7 +269,7 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
             result=joined->pid;
             if(exit!=nullptr) *exit=joined->exitCode;
             self->zombies.remove(joined);
-            p.processes.erase(joined->pid);
+            processTable.processes.erase(joined->pid);
             delete joined;
         }
         return result;
@@ -364,23 +364,23 @@ void *Process::start(void *)
     } while(running);
     proc->fileTable.closeAll();
     {
-        Processes& p=Processes::instance();
-        Lock<KernelMutex> l(p.procMutex);
+        auto& processTable=ProcessTable::instance();
+        Lock<KernelMutex> l(processTable.procMutex);
         proc->zombie=true;
         list<Process*>::iterator it;
         for(it=proc->childs.begin();it!=proc->childs.end();++it) (*it)->ppid=0;
         for(it=proc->zombies.begin();it!=proc->zombies.end();++it) (*it)->ppid=0;
-        ProcessBase *kernel=p.processes[0];
+        ProcessBase *kernel=processTable.processes[0];
         kernel->childs.splice(kernel->childs.begin(),proc->childs);
         kernel->zombies.splice(kernel->zombies.begin(),proc->zombies);
         
-        map<pid_t,ProcessBase *>::iterator it2=p.processes.find(proc->ppid);
-        if(it2==p.processes.end()) errorHandler(Error::UNEXPECTED);
+        auto it2=processTable.processes.find(proc->ppid);
+        if(it2==processTable.processes.end()) errorHandler(Error::UNEXPECTED);
         it2->second->childs.remove(proc);
         if(proc->waitCount>0) proc->waiting.broadcast();
         else {
             it2->second->zombies.push_back(proc);
-            p.genericWaiting.broadcast();
+            processTable.genericWaiting.broadcast();
         }
     }
     return nullptr;
