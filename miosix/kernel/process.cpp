@@ -110,9 +110,14 @@ public:
      * \return the instance of this class (singleton)
      */
     static Processes& instance();
+
+    /**
+     * \return an unique pid that is not zero and is not already in use in the
+     * system, used to assign a pid to a new process.<br>
+     * Calling this function requires to first lock procMutex
+     */
+    pid_t getNewPid();
     
-    ///Used to assign a new pid to a process
-    pid_t pidCounter;
     ///Maps the pid to the Process instance. Includes zombie processes
     map<pid_t,ProcessBase *> processes;
     ///Uset to guard access to processes and pidCounter
@@ -121,6 +126,9 @@ public:
     ConditionVariable genericWaiting;
     
 private:
+    ///Used to assign a new pid to a process
+    pid_t pidCounter=1;
+
     Processes()
     {
         ProcessBase *kernel=Thread::getCurrentThread()->getProcess();
@@ -137,6 +145,21 @@ Processes& Processes::instance()
     return singleton;
 }
 
+/**
+ * \return an unique pid that is not zero and is not already in use in the
+ * system, used to assign a pid to a new process.<br>
+ */
+pid_t Processes::getNewPid()
+{
+    for(;;pidCounter++)
+    {
+        if(pidCounter<=0) pidCounter=1; //Zero/negative are not valid pid
+        auto it=processes.find(pidCounter);
+        if(it!=processes.end()) continue; //Pid number already used
+        return pidCounter++;
+    }
+}
+
 //
 // class Process
 //
@@ -150,7 +173,7 @@ pid_t Process::create(ElfProgram&& program, ArgsBlock&& args)
                                          std::move(program),std::move(args)));
     {   
         Lock<KernelMutex> l(p.procMutex);
-        proc->pid=getNewPid();
+        proc->pid=p.getNewPid();
         proc->ppid=parent->pid;
         parent->childs.push_back(proc.get());
         p.processes[proc->pid]=proc.get();
@@ -952,19 +975,6 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
         sp.setParameter(0,-ENOMEM);
     }
     return Resume;
-}
-
-pid_t Process::getNewPid()
-{
-    auto& p=Processes::instance();
-    for(;;p.pidCounter++)
-    {
-        if(p.pidCounter<0) p.pidCounter=1;
-        if(p.pidCounter==0) continue; //Zero is not a valid pid
-        map<pid_t,ProcessBase*>::iterator it=p.processes.find(p.pidCounter);
-        if(it!=p.processes.end()) continue; //Pid number already used
-        return p.pidCounter++;
-    }
 }
 
 //

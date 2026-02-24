@@ -210,12 +210,6 @@ private:
      */
     SvcResult handleSvc(SyscallParameters sp);
     
-    /**
-     * \return an unique pid that is not zero and is not already in use in the
-     * system, used to assign a pid to a new process.<br>
-     */
-    static pid_t getNewPid();
-    
     ElfProgram program; ///<The program that is running inside the process
     ProcessImage image; ///<The RAM image of a process
     FaultData fault; ///< Contains information about faults
