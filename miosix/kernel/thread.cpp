@@ -79,7 +79,7 @@ TimeSortedQueue<SleepToken,GetWakeupTime> sleepingList;///list of sleeping threa
 
 #ifdef WITH_PROCESSES
 /// The proc field of the Thread class for kernel threads points to this object
-static ProcessBase *kernel=nullptr;
+static ProcessBase *kernelProcess=nullptr;
 #endif //WITH_PROCESSES
 
 #ifdef WITH_DEEP_SLEEP
@@ -181,7 +181,7 @@ void IRQstartKernel()
         
     #ifdef WITH_PROCESSES
     try {
-        kernel=new ProcessBase;
+        kernelProcess=new ProcessBase;
     } catch(...) {
         errorHandler(Error::OUT_OF_MEMORY);
     }
@@ -194,9 +194,9 @@ void IRQstartKernel()
     
     #ifdef WITH_PROCESSES
     // If the idle thread was allocated before IRQstartKernel(), then its proc
-    // is nullptr. We can't move kernel=new ProcessBase; earlier than this
+    // is nullptr. We can't move kernelProcess=new ProcessBase; earlier than this
     // function, though
-    idle->proc=kernel;
+    idle->proc=kernelProcess;
     #endif //WITH_PROCESSES
 
     // Create the main thread and add it to the scheduler.
@@ -749,7 +749,7 @@ void Thread::IRQhandleSvc()
 {
     int coreId=getCurrentCoreId();
     Thread *cur=const_cast<Thread*>(runningThreads[coreId]);
-    if(cur->proc==kernel) errorHandler(Error::UNEXPECTED);
+    if(cur->proc==kernelProcess) errorHandler(Error::UNEXPECTED);
     //We know it's not the kernel, so the cast is safe
     auto *proc=static_cast<Process*>(cur->proc);
     //Don't process syscall if a fault already happened. This can happen if
@@ -783,7 +783,7 @@ void Thread::IRQhandleSvc()
 bool Thread::IRQreportFault(const FaultData& fault)
 {
     Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
-    if(cur->flags.isInUserspace()==false || cur->proc==kernel) return false;
+    if(cur->flags.isInUserspace()==false || cur->proc==kernelProcess) return false;
     //We know it's not the kernel, so the cast is safe
     auto *proc=static_cast<Process*>(cur->proc);
     //Record the fault for later reporting.
@@ -874,7 +874,7 @@ Thread::Thread(unsigned int *watermark, unsigned int stacksize,
     affinity=unrestrictedAffinityMask;
     #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
     #ifdef WITH_PROCESSES
-    proc=kernel;
+    proc=kernelProcess;
     userCtxsave=nullptr;
     #endif //WITH_PROCESSES
     #ifdef WITH_PTHREAD_KEYS
