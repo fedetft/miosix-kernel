@@ -405,7 +405,6 @@ int ControlScheduler::Tr=bNominal;
 int ControlScheduler::bco=0;
 int ControlScheduler::eTro=0;
 bool ControlScheduler::reinitRegulator=false;
-}
 
 #else //SCHED_CONTROL_MULTIBURST
 
@@ -808,7 +807,13 @@ int ControlScheduler::bco=0;
 int ControlScheduler::eTro=0;
 bool ControlScheduler::reinitRegulator=false;
 
+#endif //SCHED_CONTROL_MULTIBURST
+
+#ifdef OS_TIMER_MODEL_UNIFIED
+template<typename T>
+long long basic_scheduler<T>::nextPreemptionWakeupCore=numeric_limits<long long>::max();
+#endif //OS_TIMER_MODEL_UNIFIED
+
 } //namespace miosix
 
-#endif //SCHED_CONTROL_MULTIBURST
 #endif //SCHED_TYPE_CONTROL_BASED
