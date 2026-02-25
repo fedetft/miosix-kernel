@@ -263,7 +263,7 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
             if(joined->waitCount<0 || joined->zombie==false)
                 errorHandler(Error::UNEXPECTED);
         }
-        pid_t result=-1;
+        pid_t result=-ECHILD;
         if(joined->waitCount==0)
         {
             result=joined->pid;
