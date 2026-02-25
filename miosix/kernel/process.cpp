@@ -381,10 +381,15 @@ void *Process::start(void *)
         if(it2==processTable.processes.end()) errorHandler(Error::UNEXPECTED);
         it2->second->childs.remove(proc);
         if(proc->waitCount>0) proc->waiting.broadcast();
-        else {
-            it2->second->zombies.push_back(proc);
-            processTable.genericWaiting.broadcast();
-        }
+        else it2->second->zombies.push_back(proc);
+        //This serves two purposes: first, it wakes the parent process in case
+        //it was waiting for any child. Note that this must be done also if
+        //waitCount is >0 as there may be both threads waiting on this specific
+        //child and threads waiting on a generic child, and if this is the only
+        //child, the latter will deadlock. Second, it will wake the kernel
+        //(process 0) so it can handle any zombies we may have spliced into its
+        //zombie list.
+        processTable.genericWaiting.broadcast();
     }
     return nullptr;
 }
