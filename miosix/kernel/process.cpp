@@ -276,7 +276,10 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
     }
 }
 
-Process::~Process() {}
+Process::~Process()
+{
+    for(auto t : threads) if(t) t->join();
+}
 
 Process::Process(const FileDescriptorTable& fdt, ElfProgram&& program,
         ArgsBlock&& args) : ProcessBase(fdt), waitCount(0), zombie(false)
