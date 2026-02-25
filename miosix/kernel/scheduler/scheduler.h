@@ -235,20 +235,15 @@ public:
             t=IRQgetTime();
             #endif //WITH_CPU_TIME_COUNTER
         } else {
+        #endif //WITH_SMP
             t=IRQgetTime();
             long long nextPreempt;
             if(timeSlice>0) nextPreempt=t+timeSlice;
             else nextPreempt=numeric_limits<long long>::max();
             nextPreemptionWakeupCore=nextPreempt;
             IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
+        #ifdef WITH_SMP
         }
-        #else //WITH_SMP
-        t=IRQgetTime();
-        long long nextPreempt;
-        if(timeSlice>0) nextPreempt=t+timeSlice;
-        else nextPreempt=numeric_limits<long long>::max();
-        nextPreemptionWakeupCore=nextPreempt;
-        IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
         #endif //WITH_SMP
         #else //OS_TIMER_MODEL_UNIFIED
         if(timeSlice>0) IRQosTimerSetPreemption(timeSlice);
