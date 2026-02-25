@@ -229,6 +229,7 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
     auto& processTable=ProcessTable::instance();
     Lock<KernelMutex> l(processTable.procMutex);
     ProcessBase *self=Thread::getCurrentThread()->proc;
+    Process *joined=nullptr;
     if(pid<=0)
     {
         //Wait for a generic child process
@@ -238,42 +239,34 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
             if(self->childs.empty()) return -ECHILD;
             processTable.genericWaiting.wait(l);
         }
-        Process *joined=self->zombies.front();
-        self->zombies.pop_front();
-        processTable.processes.erase(joined->pid);
+        joined=self->zombies.front();
         if(joined->waitCount!=0) errorHandler(Error::UNEXPECTED);
-        if(exit!=nullptr) *exit=joined->exitCode;
-        pid_t result=joined->pid;
-        delete joined;
-        return result;
     } else {
         //Wait on a specific child process
         auto it=processTable.processes.find(pid);
         if(it==processTable.processes.end() || it->second->ppid!=self->pid
                 || pid==self->pid) return -ECHILD;
         //Since the case when pid==0 has been singled out, this cast is safe
-        Process *joined=static_cast<Process*>(it->second);
-        if(joined->zombie==false)
+        joined=static_cast<Process*>(it->second);
+        while(joined->zombie==false)
         {
-            //Process hasn't terminated yet
-            if(options & WNOHANG) return 0;
+            if(options & WNOHANG) return 0; //Process hasn't terminated yet
             joined->waitCount++;
             joined->waiting.wait(l);
             joined->waitCount--;
-            if(joined->waitCount<0 || joined->zombie==false)
-                errorHandler(Error::UNEXPECTED);
+            if(joined->waitCount<0) errorHandler(Error::UNEXPECTED);
         }
-        pid_t result=-ECHILD;
-        if(joined->waitCount==0)
-        {
-            result=joined->pid;
-            if(exit!=nullptr) *exit=joined->exitCode;
-            self->zombies.remove(joined);
-            processTable.processes.erase(joined->pid);
-            delete joined;
-        }
-        return result;
+        //waitCount implements areference counting strategy to make sure only
+        //only one waitpid returns each child, and no double-delete occurs
+        if(joined->waitCount>0) return -ECHILD;
     }
+
+    self->zombies.remove(joined);
+    processTable.processes.erase(joined->pid);
+    if(exit!=nullptr) *exit=joined->exitCode;
+    pid_t result=joined->pid;
+    delete joined;
+    return result;
 }
 
 Process::~Process()
