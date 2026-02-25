@@ -1,0 +1,76 @@
+diff --git a/miosix/kernel/scheduler/edf/edf_scheduler.cpp b/miosix/kernel/scheduler/edf/edf_scheduler.cpp
+index 5120bc6a..ab7dcedf 100644
+--- a/miosix/kernel/scheduler/edf/edf_scheduler.cpp
++++ b/miosix/kernel/scheduler/edf/edf_scheduler.cpp
+@@ -34,6 +34,10 @@
+ #include "kernel/cpu_time_counter.h"
+ #include <algorithm>
+ 
++#include "interfaces/gpio.h"
++using greenLed = miosix::Gpio<miosix::P0,17>;
++using yellowLed = miosix::Gpio<miosix::P0,16>;
++
+ using namespace std;
+ 
+ #ifdef SCHED_TYPE_EDF
+@@ -147,6 +151,9 @@ void EDFScheduler::IRQsetIdleThread(int whichCore, Thread *idleThread)
+     idleThread->schedData.deadline=numeric_limits<long long>::max()-1;
+     idleThread->savedPriority=numeric_limits<long long>::max()-1;
+     idle[whichCore]=idleThread;
++
++    greenLed::mode(Mode::OUTPUT);
++    yellowLed::mode(Mode::OUTPUT);
+ }
+ 
+ void EDFScheduler::IRQwokenThread(Thread* thread)
+@@ -402,6 +409,9 @@ void EDFScheduler::IRQrunScheduler()
+     }
+     #endif //WITH_THREAD_AFFINITY
+     #endif //WITH_SMP
++
++    if(next!=idle[coreId]) if(coreId==0) greenLed::high(); else yellowLed::high();
++    else if(coreId==0) greenLed::low(); else yellowLed::low();
+ }
+ 
+ TimeSortedQueue<Thread,EDFScheduler::GetTime> EDFScheduler::readyEdfThreads;
+diff --git a/miosix/kernel/scheduler/priority/priority_scheduler.cpp b/miosix/kernel/scheduler/priority/priority_scheduler.cpp
+index b203c7aa..323d806d 100644
+--- a/miosix/kernel/scheduler/priority/priority_scheduler.cpp
++++ b/miosix/kernel/scheduler/priority/priority_scheduler.cpp
+@@ -34,6 +34,10 @@
+ #include "kernel/cpu_time_counter.h"
+ #include <limits>
+ 
++#include "interfaces/gpio.h"
++using greenLed = miosix::Gpio<miosix::P0,17>;
++using yellowLed = miosix::Gpio<miosix::P0,16>;
++
+ using namespace std;
+ 
+ #ifdef SCHED_TYPE_PRIORITY
+@@ -128,6 +132,9 @@ void PriorityScheduler::IRQsetIdleThread(int whichCore, Thread *idleThread)
+     idleThread->schedData.priority=-1;
+     idleThread->savedPriority=-1;
+     idle[whichCore]=idleThread;
++
++    greenLed::mode(Mode::OUTPUT);
++    yellowLed::mode(Mode::OUTPUT);
+ }
+ 
+ void PriorityScheduler::IRQwokenThread(Thread* thread)
+@@ -330,6 +337,7 @@ void PriorityScheduler::IRQrunScheduler()
+         }
+         #endif //WITH_THREAD_AFFINITY
+         #endif //WITH_SMP
++        if(coreId==0) greenLed::high(); else yellowLed::high();
+         return;
+     }
+     #if defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+@@ -350,6 +358,7 @@ void PriorityScheduler::IRQrunScheduler()
+     auto now=Scheduler::IRQcomputePreemption(coreId,0);
+     CPUTimeCounter::IRQprofileContextSwitch(prev,idle[coreId],now,coreId);
+     #endif //WITH_CPU_TIME_COUNTER
++    if(coreId==0) greenLed::low(); else yellowLed::low();
+ }
+ 
+ IntrusiveList<Thread> PriorityScheduler::readyThreads[NUM_PRIORITIES];
