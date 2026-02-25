@@ -866,7 +866,7 @@ Thread::Thread(unsigned int *watermark, unsigned int stacksize,
     joinData.waitingForJoin=nullptr;
     if(defaultReent) cReentrancyData=_GLOBAL_REENT;
     else {
-        cReentrancyData=new _reent;
+        cReentrancyData=static_cast<struct _reent*>(malloc(sizeof(_reent)));
         if(cReentrancyData) _REENT_INIT_PTR(cReentrancyData);
     }
     #if defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
@@ -886,7 +886,7 @@ Thread::~Thread()
     if(cReentrancyData && cReentrancyData!=_GLOBAL_REENT)
     {
         _reclaim_reent(cReentrancyData);
-        delete cReentrancyData;
+        free(cReentrancyData);
     }
     #ifdef WITH_PROCESSES
     if(userCtxsave) delete[] userCtxsave;
