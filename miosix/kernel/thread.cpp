@@ -488,11 +488,10 @@ Thread *Thread::IRQgetCurrentThread()
     return IRQallocateIdleThread();
 }
 
-bool Thread::exists(Thread *p)
+bool Thread::IRQexists(Thread* t)
 {
-    if(p==nullptr) return false;
-    GlobalIrqLock lock;
-    return Scheduler::IRQexists(p);
+    if(t==nullptr) return false;
+    return Scheduler::IRQexists(t);
 }
 
 Priority Thread::getPriority()
@@ -1138,12 +1137,6 @@ inline bool Thread::IRQconsiderRescheduling(Thread *t, unsigned char excludedCor
         }
     }
     return false;
-}
-
-bool Thread::IRQexists(Thread* p)
-{
-    if(p==nullptr) return false;
-    return Scheduler::IRQexists(p);
 }
 
 Thread *Thread::IRQallocateIdleThread()

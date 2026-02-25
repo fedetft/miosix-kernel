@@ -301,6 +301,17 @@ static void fail(const char *cause)
     reboot();
 }
 
+/**
+ * The kernel used to have a Thread::exists() member function that was only
+ * used by the testsuite. This function replaces this behavior using the newer
+ * IRQexists.
+ */
+bool threadExists(Thread *t)
+{
+    FastGlobalIrqLock dLock;
+    return Thread::IRQexists(t);
+}
+
 //
 // Test 1
 //
@@ -354,7 +365,7 @@ static void t1_f1(Thread *p)
         Thread::sleep(5);
         #endif //defined(WITH_SMP) && !defined(WITH_THREAD_AFFINITY)
         if(t1_v1==false) fail("thread not created");
-        if(Thread::exists(p)==false) fail("Thread::exists (1)");
+        if(threadExists(p)==false) fail("Thread::exists (1)");
     }
     
     p->terminate();
@@ -370,7 +381,7 @@ static void t1_f1(Thread *p)
         Thread::yield();//run t1_p1
         Thread::yield();//Double yield to be extra sure.
         if(t1_v1==true) fail("thread not deleted");
-        if(Thread::exists(p)==true) fail("Thread::exists (2)");
+        if(threadExists(p)==true) fail("Thread::exists (2)");
     }
     #if defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
     Thread::getCurrentThread()->setAffinity(unrestrictedAffinityMask);
@@ -396,7 +407,7 @@ static void test_1()
     p=Thread::create(t1_p3,STACK_SMALL,0,reinterpret_cast<void*>(0xdeadbeef),Thread::DETACHED);
     Thread::sleep(5);
     
-    if(Thread::exists(p)) fail("thread not deleted (2)");
+    if(threadExists(p)) fail("thread not deleted (2)");
     pass();
 }
 
@@ -599,12 +610,12 @@ static void test_3()
     t3_deleted=false;
     p->terminate();
     p->join();
-    if(Thread::exists(p)) fail("multiple instances (1)");
+    if(threadExists(p)) fail("multiple instances (1)");
     if(t3_deleted==false) fail("multiple instances (2)");
     t3_deleted=false;
     p2->terminate();
     p2->join();
-    if(Thread::exists(p2)) fail("multiple instances (3)");
+    if(threadExists(p2)) fail("multiple instances (3)");
     if(t3_deleted==false) fail("multiple instances (4)");
     //Testing Thread::nanoSleepUntil()
     long long time;
@@ -1315,19 +1326,19 @@ static void test_6()
                 Thread::sleep(10);
                 //If thread does not exist it means it has locked the mutex
                 //even if we locked it first
-                if(Thread::exists(t)==false) fail("recursive mutex (1)");
+                if(threadExists(t)==false) fail("recursive mutex (1)");
             }
             Thread::sleep(10);
             //If thread does not exist the mutex was unlocked too early
-            if(Thread::exists(t)==false) fail("recursive mutex (2)");
+            if(threadExists(t)==false) fail("recursive mutex (2)");
         }
         Thread::sleep(10);
         //If thread does not exist the mutex was unlocked too early
-        if(Thread::exists(t)==false) fail("recursive mutex (3)");
+        if(threadExists(t)==false) fail("recursive mutex (3)");
     }
     Thread::sleep(10);
     //If thread exists the mutex was not unlocked
-    if(Thread::exists(t)==true) fail("recursive mutex (4)");
+    if(threadExists(t)==true) fail("recursive mutex (4)");
 
     //Checking if tryLock on recursive mutex returns true when called by the
     //thread that already owns the lock
@@ -1437,19 +1448,19 @@ static void test_6()
                 Thread::sleep(10);
                 //If thread does not exist it means it has locked the mutex
                 //even if we locked it first
-                if(Thread::exists(t)==false) fail("recursive mutex (1)");
+                if(threadExists(t)==false) fail("recursive mutex (1)");
             }
             Thread::sleep(10);
             //If thread does not exist the mutex was unlocked too early
-            if(Thread::exists(t)==false) fail("recursive mutex (2)");
+            if(threadExists(t)==false) fail("recursive mutex (2)");
         }
         Thread::sleep(10);
         //If thread does not exist the mutex was unlocked too early
-        if(Thread::exists(t)==false) fail("recursive mutex (3)");
+        if(threadExists(t)==false) fail("recursive mutex (3)");
     }
     Thread::sleep(10);
     //If thread exists the mutex was not unlocked
-    if(Thread::exists(t)==true) fail("recursive mutex (4)");
+    if(threadExists(t)==true) fail("recursive mutex (4)");
 
     //Checking if tryLock on recursive mutex returns true when called by the
     //thread that already owns the lock
@@ -1774,7 +1785,7 @@ void test_10()
     //"An exception propagated ..." string on the serial port, otherwise the
     //test fails because the other thread still exists because it is printing.
     Thread::sleep(100);
-    if(Thread::exists(t)) fail("Thread not deleted");
+    if(threadExists(t)) fail("Thread not deleted");
     pass();
 }
 #endif //__NO_EXCEPTIONS
@@ -1950,7 +1961,7 @@ void test_14()
     if(!t) fail("thread creation (1)");
     t->terminate();
     Thread::sleep(10);
-    if(Thread::exists(t)) fail("detached thread");
+    if(threadExists(t)) fail("detached thread");
     //Test 2: joining a not deleted thread
     t=Thread::create(t14_p2,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     if(!t) fail("thread creation (2)");
@@ -1987,7 +1998,7 @@ void test_14()
     if(!t) fail("thread creation (7)");
     Thread::yield();
     if(t->join(&result)==false) fail("Thread::join (1)");
-    if(Thread::exists(t)) fail("Thread::exists (1)");
+    if(threadExists(t)) fail("Thread::exists (1)");
     if(reinterpret_cast<unsigned>(result)!=0xdeadbeef) fail("join result (1)");
     Thread::sleep(10);
 
@@ -2024,9 +2035,9 @@ void test_14()
     if(!t) fail("thread creation (10)");
     t->terminate();
     Thread::sleep(10);
-    if(Thread::exists(t)==false) fail("Thread::exists (2)");
+    if(threadExists(t)==false) fail("Thread::exists (2)");
     if(t->join(&result)==false) fail("Thread::join (6)");
-    if(Thread::exists(t)) fail("Thread::exists (3)");
+    if(threadExists(t)) fail("Thread::exists (3)");
     if(reinterpret_cast<unsigned>(result)!=0xdeadbeef) fail("join result (2)");
     Thread::sleep(10);
 
@@ -2036,7 +2047,7 @@ void test_14()
     t->detach();
     t->terminate();
     Thread::sleep(10);
-    if(Thread::exists(t)) fail("Thread::exists (4)");
+    if(threadExists(t)) fail("Thread::exists (4)");
     if(t->join()==true) fail("Thread::join (7)");
     Thread::sleep(10);
     
@@ -2110,7 +2121,7 @@ static void test_15()
         t15_v2=false;
     }
     Thread::sleep(10);
-    if(Thread::exists(p1) || Thread::exists(p2))
+    if(threadExists(p1) || threadExists(p2))
         fail("Threads not deleted (1)");
     //Test broadcast
     t15_v1=false;
@@ -2133,7 +2144,7 @@ static void test_15()
         t15_v2=false;
     }
     Thread::sleep(10);
-    if(Thread::exists(p1) || Thread::exists(p2))
+    if(threadExists(p1) || threadExists(p2))
         fail("Threads not deleted (2)");
 
     //testing timedWait
@@ -2329,7 +2340,7 @@ static void test_16()
     if(pthread_create(&thread,&attr,t16_p1,NULL)!=0)
         fail("pthread_create (1)");
     Thread *t=toThread(thread);
-    if(Thread::exists(t)==false) fail("thread not created");
+    if(threadExists(t)==false) fail("thread not created");
     if(t->isDetached()==false) fail("attr_setdetachstate not considered");
     pthread_t self=pthread_self();
     if(Thread::getCurrentThread()!=toThread(self)) fail("pthread_self");
@@ -2339,7 +2350,7 @@ static void test_16()
     Thread::sleep(10); //Give the other thread time to call wait()
     t->wakeup();
     Thread::sleep(10);
-    if(Thread::exists(t)) fail("unexpected");
+    if(threadExists(t)) fail("unexpected");
     //
     // testing pthread_join and pthread_detach
     //
@@ -2348,26 +2359,26 @@ static void test_16()
     if(pthread_create(&thread,&attr,t16_p1,(void*)0xdeadbeef)!=0)
         fail("pthread_create (2)");
     t=toThread(thread);
-    if(Thread::exists(t)==false) fail("thread not created (2)");
+    if(threadExists(t)==false) fail("thread not created (2)");
     if(t->isDetached()==true) fail("detached by mistake (1)");
     Thread::sleep(10); //Give the other thread time to call wait()
     t->wakeup();
     void *res;
     if(pthread_join(thread,&res)!=0) fail("join return value");
     if(((unsigned)res)!=0xdeadbeef) fail("entry point return value");
-    if(Thread::exists(t)) fail("not joined");
+    if(threadExists(t)) fail("not joined");
     Thread::sleep(10);
     //Testing create with no pthread_attr_t
     if(pthread_create(&thread,NULL,t16_p1,NULL)!=0) fail("pthread_create (3)");
     t=toThread(thread);
-    if(Thread::exists(t)==false) fail("thread not created (3)");
+    if(threadExists(t)==false) fail("thread not created (3)");
     if(t->isDetached()==true) fail("detached by mistake (2)");
     if(pthread_detach(thread)!=0) fail("detach return value");
     if(t->isDetached()==false) fail("detach");
     Thread::sleep(10); //Give the other thread time to call wait()
     t->wakeup();
     Thread::sleep(10);
-    if(Thread::exists(t)) fail("unexpected (2)");
+    if(threadExists(t)) fail("unexpected (2)");
     //
     // testing pthread_mutex_*
     //
@@ -2376,7 +2387,7 @@ static void test_16()
     if(pthread_create(&thread,NULL,t16_p2,(void*)&t16_m1)!=0)
         fail("pthread_create (4)");
     t=toThread(thread);
-    if(Thread::exists(t)==false) fail("thread not created (4)");
+    if(threadExists(t)==false) fail("thread not created (4)");
     if(t->isDetached()==true) fail("detached by mistake (3)");
     Thread::sleep(10);
     if(t16_v1==true) fail("mutex fail");
@@ -2403,7 +2414,7 @@ static void test_16()
     if(pthread_create(&thread,NULL,t16_p2,(void*)&mutex)!=0)
         fail("pthread_create (6)");
     t=toThread(thread);
-    if(Thread::exists(t)==false) fail("thread not created (5)");
+    if(threadExists(t)==false) fail("thread not created (5)");
     if(t->isDetached()==true) fail("detached by mistake (4)");
     Thread::sleep(10);
     if(t16_v1==true) fail("mutex fail (3)");
@@ -2416,7 +2427,7 @@ static void test_16()
     if(pthread_create(&thread,NULL,t16_p2,(void*)&mutex)!=0)
         fail("pthread_create (7)");
     t=toThread(thread);
-    if(Thread::exists(t)==false) fail("thread not created (6)");
+    if(threadExists(t)==false) fail("thread not created (6)");
     if(t->isDetached()==true) fail("detached by mistake (5)");
     Thread::sleep(10);
     if(pthread_mutex_destroy(&mutex)==0) fail("mutex destroy");
@@ -2428,7 +2439,7 @@ static void test_16()
     //
     if(pthread_create(&thread,NULL,t16_p3,NULL)!=0) fail("pthread_create (8)");
     t=toThread(thread);
-    if(Thread::exists(t)==false) fail("thread not created (7)");
+    if(threadExists(t)==false) fail("thread not created (7)");
     if(t->isDetached()==true) fail("detached by mistake (6)");
     if(pthread_mutex_lock(&t16_m1)!=0) fail("mutex lock (5)"); //<---
     t16_v1=false;
@@ -2441,7 +2452,7 @@ static void test_16()
     if(pthread_cond_init(&t16_c2,NULL)!=0) fail("cond_init");
     if(pthread_create(&thread,NULL,t16_p4,NULL)!=0) fail("pthread_create (9)");
     t=toThread(thread);
-    if(Thread::exists(t)==false) fail("thread not created (8)");
+    if(threadExists(t)==false) fail("thread not created (8)");
     if(t->isDetached()==true) fail("detached by mistake (7)");
     if(pthread_mutex_lock(&t16_m1)!=0) fail("mutex lock (6)"); //<---
     t16_v1=false;
@@ -3814,7 +3825,7 @@ static void test_25()
     {
         thread thr(t25_p1,2,5);
         Thread *t=reinterpret_cast<Thread*>(thr.native_handle());
-        if(Thread::exists(t)==false) fail("thread::thread");
+        if(threadExists(t)==false) fail("thread::thread");
         if(t->isDetached()==true) fail("initial detachstate");
         if(thr.joinable()==false) fail("thread::joinable");
         thr.detach();
@@ -3828,7 +3839,7 @@ static void test_25()
         if(t!=t25_v1) fail("thread::native_handle");
         t->wakeup();
         Thread::sleep(10);
-        if(Thread::exists(t)) fail("unexpected");
+        if(threadExists(t)) fail("unexpected");
     }
     //
     // Testing join
@@ -3836,11 +3847,11 @@ static void test_25()
     {
         thread thr(t25_p1,2,5);
         Thread *t=reinterpret_cast<Thread*>(thr.native_handle());
-        if(Thread::exists(t)==false) fail("thread::thread");
+        if(threadExists(t)==false) fail("thread::thread");
         Thread::sleep(10); //Give the other thread time to call wait()
         t->wakeup();
         thr.join();
-        if(Thread::exists(t)==true) fail("thread::join");
+        if(threadExists(t)==true) fail("thread::join");
     }
     //
     // Testing async

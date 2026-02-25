@@ -506,16 +506,16 @@ public:
     static Thread *IRQgetCurrentThread();
 
     /**
-     * Check if a thread exists
-     * \param p thread to check
+     * Check if a thread exists. This is a comparatively expensive operation,
+     * as it requires to scan the entire list of threads in the scheduler.
+     * It is best used only in debug checks that are removed in release builds.
+     * \param t thread to check
      * \return true if thread exists, false if does not exist or has been
      * deleted. A joinable thread is considered existing until it has been
-     * joined, even if it returns from its entry point (unless it is detached
-     * and terminates).
-     *
-     * Can be called when the kernel is paused.
+     * joined, even if it returns from its entry point. A detached thread stops
+     * existing when it returns from its entry point.
      */
-    static bool exists(Thread *p);
+    static bool IRQexists(Thread *t);
 
     /**
      * Returns the priority of a thread.<br>
@@ -1013,12 +1013,6 @@ private:
      */
     template<Hlb b>
     static inline bool IRQconsiderRescheduling(Thread *t, unsigned char excludedCoreId);
-
-    /**
-     * Same as exists() but is meant to be called only inside an IRQ or when
-     * interrupts are disabled.
-     */
-    static bool IRQexists(Thread *p);
 
     /**
      * Allocates the idle thread and makes cur point to it
