@@ -240,7 +240,8 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
             processTable.genericWaiting.wait(l);
         }
         joined=self->zombies.front();
-        if(joined->waitCount!=0) errorHandler(Error::UNEXPECTED);
+        if(extraChecks!=ExtraChecks::None && joined->waitCount!=0)
+            errorHandler(Error::UNEXPECTED);
     } else {
         //Wait on a specific child process
         auto it=processTable.processes.find(pid);
@@ -254,7 +255,8 @@ pid_t Process::waitpid(pid_t pid, int* exit, int options)
             joined->waitCount++;
             joined->waiting.wait(l);
             joined->waitCount--;
-            if(joined->waitCount<0) errorHandler(Error::UNEXPECTED);
+            if(extraChecks!=ExtraChecks::None && joined->waitCount<0)
+                errorHandler(Error::UNEXPECTED);
         }
         //waitCount implements areference counting strategy to make sure only
         //only one waitpid returns each child, and no double-delete occurs
