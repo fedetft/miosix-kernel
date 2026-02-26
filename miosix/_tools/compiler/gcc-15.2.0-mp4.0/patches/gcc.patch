@@ -388,7 +388,7 @@ diff -ruN gcc-15.2.0-old/gcc/config/arm/sync.md gcc-15.2.0/gcc/config/arm/sync.m
  
 diff -ruN gcc-15.2.0-old/gcc/config/arm/t-arm-miosix gcc-15.2.0/gcc/config/arm/t-arm-miosix
 --- gcc-15.2.0-old/gcc/config/arm/t-arm-miosix	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-15.2.0/gcc/config/arm/t-arm-miosix	2025-12-17 09:45:25.946367038 +0100
++++ gcc-15.2.0/gcc/config/arm/t-arm-miosix	2025-12-17 09:45:25.000000000 +0100
 @@ -0,0 +1,118 @@
 +
 +## RATIONALE: build multilibs for all microcontroller-relevant ARM architectures
@@ -1460,6 +1460,36 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/atomic_timed_wait.h gcc-15.2.
        }
  
      // returns true if wait ended before timeout
+diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/atomic_wait.h gcc-15.2.0/libstdc++-v3/include/bits/atomic_wait.h
+--- gcc-15.2.0-old/libstdc++-v3/include/bits/atomic_wait.h	2025-08-08 08:51:45.752436186 +0200
++++ gcc-15.2.0/libstdc++-v3/include/bits/atomic_wait.h	2026-02-26 08:58:48.954656889 +0100
+@@ -195,7 +195,13 @@
+     {
+       // Don't use std::hardware_destructive_interference_size here because we
+       // don't want the layout of library types to depend on compiler options.
++#ifndef _MIOSIX
+       static constexpr auto _S_align = 64;
++#else
++      //Patch rationale: Miosix runs on microcontrollers which have no cache
++      //alignment issues, but there is very little RAM: reduce RAM usage
++      static constexpr auto _S_align = 1;
++#endif
+ 
+       alignas(_S_align) __platform_wait_t _M_wait = 0;
+ 
+@@ -252,7 +258,12 @@
+       static __waiter_pool_base&
+       _S_for(const void* __addr) noexcept
+       {
++#ifndef _MIOSIX
+ 	constexpr __UINTPTR_TYPE__ __ct = 16;
++#else
++	//Patch rationale: Miosix runs on microcontrollers: reduce RAM usage
++	constexpr __UINTPTR_TYPE__ __ct = 1;
++#endif
+ 	static __waiter_pool_base __w[__ct];
+ 	auto __key = ((__UINTPTR_TYPE__)__addr >> 2) % __ct;
+ 	return __w[__key];
 diff -ruN gcc-15.2.0-old/libstdc++-v3/include/bits/fstream.tcc gcc-15.2.0/libstdc++-v3/include/bits/fstream.tcc
 --- gcc-15.2.0-old/libstdc++-v3/include/bits/fstream.tcc	2025-08-08 08:51:45.756436253 +0200
 +++ gcc-15.2.0/libstdc++-v3/include/bits/fstream.tcc	2025-12-17 09:45:25.962367037 +0100
