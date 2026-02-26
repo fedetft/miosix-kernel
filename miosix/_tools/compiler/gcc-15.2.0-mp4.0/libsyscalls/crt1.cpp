@@ -64,6 +64,28 @@ static pthread_mutex_t mallocMutex=PTHREAD_MUTEX_RECURSIVE_INITIALIZER_NP;
 /// struct with a per-mutex flag
 static int globalFlag=0;
 
+/**
+ * \internal
+ * Required by C++ standard library.
+ * See http://lists.debian.org/debian-gcc/2003/07/msg00057.html
+ *
+ * __dso_handle is referenced by atexit and by global destructors to
+ * discriminate between loaded binary objects --- i.e. it is used to implement
+ * the fact that when a shared object is unloaded, only the atexit functions
+ * that belong to that SO are effectively called.
+ * It is also used by GCC itself to implement global destructors; in that
+ * case, a reference to it is lazily added when necessary by the code in GCC
+ * (see decl.cc:10352 in GCC 15.2.0, function get_dso_handle_node()).
+ * This symbol is normally declared in crt0, but we do not link with the
+ * standard GCC crt0, so we have to provide the declaration ourselves.
+ * Due to a quirk of how GCC's symbol reference generation works, since this
+ * is a .cpp file, the symbol is marked as extern C++ despite it should not (and
+ * in fact the symbol is not mangled). To prevent compilation errors due to
+ * declaration mismatch, we need to declare the symbol as extern C++ ourselves,
+ * forcing the symbol name with asm() to defeat the mangling.
+ */
+void *__dso_handle asm("__dso_handle")=(void*) &__dso_handle;
+
 extern "C" {
 
 /**
@@ -180,28 +202,6 @@ void __call_exitprocs(int code, void *d)
         walk=walk->next;
     }
 }
-
-/**
- * \internal
- * Required by C++ standard library.
- * See http://lists.debian.org/debian-gcc/2003/07/msg00057.html
- * 
- * __dso_handle is referenced by atexit and by global destructors to
- * discriminate between loaded binary objects --- i.e. it is used to implement
- * the fact that when a shared object is unloaded, only the atexit functions
- * that belong to that SO are effectively called.
- * It is also used by GCC itself to implement global destructors; in that
- * case, a reference to it is lazily added when necessary by the code in GCC
- * (see decl.cc:10352 in GCC 15.2.0, function get_dso_handle_node()).
- *   This symbol is normally declared in crt0, but we do not link with the
- * standard GCC crt0, so we have to provide the declaration ourselves.
- * Due to a quirk of how GCC's symbol reference generation works, since this
- * is a .cpp file, the symbol is marked as extern C++ despite it should not (and
- * in fact the symbol is not mangled). To prevent compilation errors due to
- * declaration mismatch, we need to declare the symbol as extern C++ ourselves,
- * forcing the symbol name with asm() to defeat the mangling.
- */
-void *__dso_handle asm("__dso_handle")=(void*) &__dso_handle;
 
 // initialized in crt0.s, used also by memoryprofiling
 const char *__processHeapEnd;
