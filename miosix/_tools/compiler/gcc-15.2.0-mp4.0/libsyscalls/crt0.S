@@ -77,8 +77,9 @@ _start:
      * followed by _exit(), but it forgot to also call __stdio_exit_handler(),
      * which caused stdout to not be flushed on exit.
      * The standard exit() function does everything that needs to be done,
-     * and is perfectly fine to call here, so we might as well use it! */
-	b     exit
+     * and is perfectly fine to call here, so we might as well use it!
+     * Switched to bl insted of b to fix linker errors if the symbol is far */
+	bl    exit
 .align 2
 .L100:
 	.word	__processStackEnd(GOT)
