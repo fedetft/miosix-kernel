@@ -15,7 +15,7 @@ fi
 
 $WGET https://ftpmirror.gnu.org/binutils/binutils-2.45.tar.xz
 $WGET https://ftpmirror.gnu.org/gcc/gcc-15.2.0/gcc-15.2.0.tar.xz
-$WGET https://sourceware.org/pub/newlib/newlib-3.1.0.tar.gz
+$WGET https://sourceware.org/pub/newlib/newlib-4.6.0.20260123.tar.gz
 $WGET https://ftpmirror.gnu.org/gdb/gdb-16.3.tar.xz
 $WGET https://ftpmirror.gnu.org/gmp/gmp-6.3.0.tar.xz
 $WGET https://ftpmirror.gnu.org/mpfr/mpfr-4.2.2.tar.xz

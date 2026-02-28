@@ -10,12 +10,20 @@
 #
 # Starting from 04/2014 this script is also used to build binary releases
 # of the Miosix compiler for both linux and windows. Most users will want to
-# download the binary relase from http://miosix.org instead of compiling GCC
+# download the binary relase from https://miosix.org instead of compiling GCC
 # using this script.
 
 #### Configuration tunables -- begin ####
 
 __GCCPATCUR='4.0' # Can't autodetect this one easily from gcc.patch
+
+# This should be set to true unless you're installing locally on your Linux
+# machine the compiler that will be used to do canadian cross compiling for
+# making a Windows redistributable build. The compiler built with this variable
+# set to false should only be used for this purpose, as it will contain the
+# stubs.o in libc with dummy implementations of some core functionality which
+# sometimes get linked in resulting in kernel builds being subtly non-functional
+STRIP_STUBS_FROM_LIBC=true
 
 # Uncomment if installing globally on this system
 PREFIX=/opt/arm-miosix-eabi
@@ -77,7 +85,7 @@ LIB_DIR=`pwd`/lib
 # Program versions
 BINUTILS=binutils-2.45
 GCC=gcc-15.2.0
-NEWLIB=newlib-3.1.0
+NEWLIB=newlib-4.6.0.20260123
 GDB=gdb-16.3
 GMP=gmp-6.3.0
 MPFR=mpfr-4.2.2
@@ -215,7 +223,7 @@ extract()
 
 extract 'binutils' $BINUTILS.tar.xz patches/binutils.patch
 extract 'gcc' $GCC.tar.xz patches/gcc.patch
-extract 'newlib' $NEWLIB.tar.gz patches/newlib.patch patches/newlib_gcc15.patch
+extract 'newlib' $NEWLIB.tar.gz patches/newlib.patch
 extract 'gdb' $GDB.tar.xz patches/gdb.patch
 extract 'gmp' $GMP.tar.xz
 extract 'mpfr' $MPFR.tar.xz
@@ -441,9 +449,9 @@ $SUDO make install-gcc DESTDIR=$DESTDIR &>../log/05_gcc-start_3_install.txt \
 # empty and is filled in by the newlib's ./configure with the appropriate options
 # Now, since the configure process happens after, the newlib.h in sys-include
 # is the wrong (empty) one, while the one in include is the correct one.
-# This causes troubles because newlib.h contains the _WANT_REENT_SMALL used to
-# select the appropriate _Reent struct. This error is visible to user code since
-# GCC seems to take the wrong newlib.h and user code gets the wrong _Reent struct
+# This causes troubles because newlib.h contains configuration options that are
+# used by other headers in libc, and the misconfiguration becomes visible to
+# user code since GCC seems to take the wrong newlib.h
 $SUDO rm -rf $DESTDIR$PREFIX/arm-miosix-eabi/sys-include
 
 cd ..
@@ -462,9 +470,9 @@ echo "Configuring $NEWLIB..."
 	--target=arm-miosix-eabi \
 	--prefix=$PREFIX \
 	--enable-multilib \
-	--enable-newlib-reent-small \
 	--enable-newlib-multithread \
 	--enable-newlib-io-long-long \
+	--enable-newlib-use-malloc-in-execl \
 	--disable-newlib-io-c99-formats \
 	--disable-newlib-io-long-double \
 	--disable-newlib-io-pos-args \
@@ -531,8 +539,12 @@ for libspec in $all_multilibs; do
         ## userspace applications, or the kernel itself for kernelspace
         ## applications. Since it was found that sometimes the linker selected
         ## stubs.o, it is harmful to keep it, so remove it from libc.a
-        $SUDO arm-miosix-eabi-ar d $FULL_PATH/libc.a lib_a-stubs.o
-        $SUDO arm-miosix-eabi-ranlib $FULL_PATH/libc.a
+        ## NOTE: check after every compiler release, for example from newlib
+        ## 3.1.0 to 4.6.0 the name changed from lib_a-stubs.o to libc_a-stubs.o
+        if [[ $STRIP_STUBS_FROM_LIBC = true ]]; then
+            $SUDO arm-miosix-eabi-ar d $FULL_PATH/libc.a libc_a-stubs.o
+            $SUDO arm-miosix-eabi-ranlib $FULL_PATH/libc.a
+        fi
         ## All those files aren't needed, so remove them. TODO: try to convince
         ## newlib to not produce them in the first place
         $SUDO rm -f $FULL_PATH/cpu-init/rdimon-aem.o

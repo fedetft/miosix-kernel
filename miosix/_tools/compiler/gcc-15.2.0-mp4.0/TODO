@@ -1,9 +1,0 @@
-
-add this to newlib options?
---disable-newlib-wide-orient
-
-Reduce MAXNAMLEN in newlib from 1024 to 256, it is used to allocate a buffer
-on the stack in newlib/libc/posix/execvp.c
-
-Fix newlib so that the lstat syscall function prototype is made available,
-and maybe add prototype for _lstat_r too
