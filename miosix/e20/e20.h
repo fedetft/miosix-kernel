@@ -136,12 +136,10 @@ protected:
      * \param event event to post
      * \param events pointer to event queue
      * \param size event queue size
-     * \param hppw if not null set to true if a higher priority thread is
-     * awakened, otherwise the variable is not modified
      * \return false if there was no space in the queue
      */
     bool IRQpostImpl(Callback<SlotSize>&& event, Callback<SlotSize> *events,
-            unsigned int size, bool *hppw=nullptr);
+            unsigned int size);
 
     /**
      * This function blocks waiting for events being posted, and when available
@@ -205,7 +203,7 @@ void FixedEventQueueBase<SlotSize>::postImpl(Callback<SlotSize>&& event,
 
 template<unsigned SlotSize>
 bool FixedEventQueueBase<SlotSize>::IRQpostImpl(Callback<SlotSize>&& event,
-        Callback<SlotSize> *events, unsigned int size, bool *hppw)
+        Callback<SlotSize> *events, unsigned int size)
 {
     if(n>=size) return false;
     events[put]=std::move(event);
@@ -217,8 +215,6 @@ bool FixedEventQueueBase<SlotSize>::IRQpostImpl(Callback<SlotSize>&& event,
         waitingGet.front()->thread=nullptr;
         waitingGet.pop_front();
         t->IRQwakeup();
-        if(hppw && t->IRQgetPriority()>Thread::IRQgetCurrentThread()->IRQgetPriority())
-            *hppw=true;
     }
     return true;
 }
@@ -363,32 +359,6 @@ public:
     {
         return this->IRQpostImpl(Callback<SlotSize>(std::move(event)),
                                  events,NumSlots);
-    }
-    
-    /**
-     * Post an event in the queue, or return if the queue was full.
-     * Can be called only with interrupts disabled or within an interrupt
-     * handler, allowing device drivers to post an event to a thread.
-     * 
-     * \param event The function to be invoked in the thread that calls
-     * run() or runOne(), in the form of a functor object.
-     * Bind can be used to bind parameters to the function and make a suitable
-     * functor.
-     * The type of the functor must be move-constructible, to ensure it is
-     * callable from inside a GlobalIrqLock without causing memory allocations.
-     * Additionally their move constructor must not perform things that are
-     * forbidden in interrupt context such as open files, print, ...
-     * \param hppw returns true if a higher priority thread was awakened as
-     * part of posting the event. Can be used inside an IRQ to call the
-     * scheduler.
-     * \return false if there was no space in the queue
-     */
-    template<typename T>
-    bool IRQpost(T&& event, bool& hppw)
-    {
-        hppw=false;
-        return this->IRQpostImpl(Callback<SlotSize>(std::move(event)),
-                                 events,NumSlots,&hppw);
     }
 
     /**
