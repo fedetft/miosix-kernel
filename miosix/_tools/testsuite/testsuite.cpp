@@ -2860,19 +2860,68 @@ class T20_c1
 public:
     T20_c1() : x(0) {}
     
-	void h()
+    void h()
     {
         x=4321;
     }
-	
+
     void k(int a, int b)
     {
         x=a*b;
     }
-    
+
     int get() const { return x; }
 private:
     int x;
+};
+
+int t20_c2_copied;
+int t20_c2_moved;
+int t20_c2_destroyed;
+
+class T20_c2
+{
+public:
+    T20_c2(): moved(false) { }
+
+    T20_c2(T20_c2& rhs): moved(false)
+    {
+        t20_c2_copied++;
+    }
+
+    T20_c2(T20_c2&& rhs): moved(false)
+    {
+        if(rhs.moved) fail("T20_c2 moved twice");
+        t20_c2_moved++;
+        rhs.moved=true;
+    }
+
+    T20_c2& operator= (T20_c2& rhs)
+    {
+        t20_c2_copied++;
+        return *this;
+    }
+
+    T20_c2& operator= (T20_c2&& rhs)
+    {
+        if(rhs.moved) fail("T20_c2 moved twice");
+        t20_c2_moved++;
+        rhs.moved=true;
+        return *this;
+    }
+
+    void operator()()
+    {
+        if(moved) fail("T20_c2 instance that was moved away has been called");
+        t20_v1=777; 
+    }
+
+    ~T20_c2()
+    {
+        if(!moved) t20_c2_destroyed++;
+    }
+private:
+    bool moved;
 };
 
 #ifndef __NO_EXCEPTIONS
@@ -2957,6 +3006,21 @@ static void test_20()
     cb.clear();
     cb2=std::move(cb);
     if(cb2) fail("Empty callback");
+
+    // Test that we move rather than copy objects inside callback
+    t20_c2_copied=t20_c2_moved=t20_c2_destroyed=0;
+    {
+        Callback<20> cb3;
+        Callback<20> cb4;
+        T20_c2 moveTestClass;
+        cb3=std::move(moveTestClass); // First move
+        cb4=std::move(cb3); // Second move
+        cb4();
+    }
+    if(t20_c2_copied!=0) fail("Callback copied class");
+    if(t20_c2_moved!=2) fail("Callback contents move ct not called");
+    if(t20_c2_destroyed!=1) fail("Callback contents destructor not called");
+    if(t20_v1!=777) fail("Callback not called");
 
     //
     // Testing EventQueue
