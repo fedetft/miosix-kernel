@@ -1862,6 +1862,26 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/src/c++11/functexcept.cc gcc-15.2.0/libstd
      const size_t __len = __builtin_strlen(__fmt);
      // We expect at most 2 numbers, and 1 short string. The additional
      // 512 bytes should provide more than enough space for expansion.
+diff -ruN gcc-15.2.0-old/libstdc++-v3/src/c++11/system_error.cc gcc-15.2.0/libstdc++-v3/src/c++11/system_error.cc
+--- gcc-15.2.0-old/libstdc++-v3/src/c++11/system_error.cc	2025-08-08 08:51:45.835437571 +0200
++++ gcc-15.2.0/libstdc++-v3/src/c++11/system_error.cc	2026-02-28 23:41:24.069618816 +0100
+@@ -596,7 +596,16 @@
+   void
+   __throw_system_error(int __i __attribute__((unused)))
+   {
++    // Patch rationale: a simple main instantiating an std::mutex and calling
++    // lock() increases code size by >6KB compared to an empty main.
++    // The issue was traced to system_error pulling in strerror to get fancy
++    // error messages. To save code size we throw runtime_error instead.
++    // TODO: maybe print the error code __i, but somehow without pulling in sprintf?
++#ifdef _MIOSIX
++    _GLIBCXX_THROW_OR_ABORT(runtime_error("System error"));
++#else
+     _GLIBCXX_THROW_OR_ABORT(system_error(__i, generic_category_instance.obj));
++#endif
+   }
+ 
+   error_category::~error_category() = default;
 diff -ruN gcc-15.2.0-old/libstdc++-v3/src/c++17/fs_ops.cc gcc-15.2.0/libstdc++-v3/src/c++17/fs_ops.cc
 --- gcc-15.2.0-old/libstdc++-v3/src/c++17/fs_ops.cc	2025-08-08 08:51:45.837437604 +0200
 +++ gcc-15.2.0/libstdc++-v3/src/c++17/fs_ops.cc	2026-01-20 18:11:59.135676125 +0100
