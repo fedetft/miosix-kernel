@@ -2886,12 +2886,12 @@ void t20_t1(void* arg)
 {
     EventQueue *eq=reinterpret_cast<EventQueue*>(arg);
     t20_v1=0;
-    eq->post(t20_f1);
+    eq->post(&t20_f1);
     Thread::sleep(10);
     if(t20_v1!=1234) fail("Not called");
     
     t20_v1=0;
-    eq->post(t20_f1);
+    eq->post(&t20_f1);
     eq->post(bind(t20_f2,5,5)); //Checking event ordering
     Thread::sleep(10);
     if(t20_v1!=10) fail("Not called");
@@ -2903,8 +2903,8 @@ void t20_t2(void* arg)
 {
     FixedEventQueue<2> *eq=reinterpret_cast<FixedEventQueue<2>*>(arg);
     t20_v1=0;
-    eq->post(t20_f1);
-    eq->post(t20_f1);
+    eq->post(&t20_f1);
+    eq->post(&t20_f1);
     unsigned long long t1=getTime();
     eq->post(bind(t20_f2,10,4)); //This should block
     unsigned long long t2=getTime();
@@ -2915,7 +2915,7 @@ void t20_t2(void* arg)
     if(t20_v1!=14) fail("Not called");
     
     Thread::sleep(10);
-    eq->post(thrower);
+    eq->post(&thrower);
 }
 #endif //__NO_EXCEPTIONS
 
@@ -2928,36 +2928,36 @@ static void test_20()
     Callback<20> cb;
 
     t20_v1=0;
-	cb=t20_f1; //4 bytes
-	Callback<20> cb2(cb);
-	cb2();
-    if(t20_v1!=1234) fail("Callback");
+    cb=std::move(&t20_f1); //4 bytes
+    Callback<20> cb2(std::move(cb));
+    cb2();
+    if(t20_v1!=1234) fail("Callback 1");
 
-	cb=bind(t20_f2,12,2); //12 bytes
-	cb2=cb;
-	cb2();
-    if(t20_v1!=14) fail("Callback");
-    
-	T20_c1 c;
-	cb=bind(&T20_c1::h,&c); //12 bytes
-	cb2=cb;
-	cb2();
-    if(c.get()!=4321) fail("Callback");
+    cb=bind(t20_f2,12,2); //12 bytes
+    cb2=std::move(cb);
+    cb2();
+    if(t20_v1!=14) fail("Callback 2");
 
-	cb=bind(&T20_c1::k,&c,10,15); //20 bytes
-	cb2=cb;
-	cb2();
-    if(c.get()!=150) fail("Callback");
+    T20_c1 c;
+    cb=bind(&T20_c1::h,&c); //12 bytes
+    cb2=std::move(cb);
+    cb2();
+    if(c.get()!=4321) fail("Callback 3");
 
-	cb=bind(&T20_c1::k,ref(c),12,12); //20 bytes
-	cb2=cb;
-	cb2();
-    if(c.get()!=144) fail("Callback");
+    cb=bind(&T20_c1::k,&c,10,15); //20 bytes
+    cb2=std::move(cb);
+    cb2();
+    if(c.get()!=150) fail("Callback 4");
 
-	cb.clear();
-	cb2=cb;
-	if(cb2) fail("Empty callback");
-    
+    cb=bind(&T20_c1::k,ref(c),12,12); //20 bytes
+    cb2=std::move(cb);
+    cb2();
+    if(c.get()!=144) fail("Callback 5");
+
+    cb.clear();
+    cb2=std::move(cb);
+    if(cb2) fail("Empty callback");
+
     //
     // Testing EventQueue
     //
@@ -2967,7 +2967,7 @@ static void test_20()
     eq.runOne(); //This tests that runOne() does not block
     
     t20_v1=0;
-    eq.post(t20_f1);
+    eq.post(&t20_f1);
     if(t20_v1!=0) fail("Too early");
     if(eq.empty() || eq.size()!=1) fail("Not empty EventQueue");
     eq.runOne();
@@ -2975,7 +2975,7 @@ static void test_20()
     if(eq.empty()==false || eq.size()!=0) fail("Empty EventQueue");
     
     t20_v1=0;
-    eq.post(t20_f1);
+    eq.post(&t20_f1);
     eq.post(bind(t20_f2,2,3));
     if(t20_v1!=0) fail("Too early");
     if(eq.empty() || eq.size()!=2) fail("Not empty EventQueue");
@@ -3007,7 +3007,7 @@ static void test_20()
     feq.runOne(); //This tests that runOne() does not block
     
     t20_v1=0;
-    feq.post(t20_f1);
+    feq.post(&t20_f1);
     if(t20_v1!=0) fail("Too early");
     if(feq.empty() || feq.size()!=1) fail("Not empty EventQueue");
     feq.runOne();
@@ -3015,7 +3015,7 @@ static void test_20()
     if(feq.empty()==false || feq.size()!=0) fail("Empty EventQueue");
     
     t20_v1=0;
-    feq.post(t20_f1);
+    feq.post(&t20_f1);
     feq.post(bind(t20_f2,2,3));
     if(t20_v1!=0) fail("Too early");
     if(feq.empty() || feq.size()!=2) fail("Not empty EventQueue");
@@ -3027,9 +3027,9 @@ static void test_20()
     if(feq.empty()==false || feq.size()!=0) fail("Empty EventQueue");
     
     t20_v1=0;
-    feq.post(t20_f1);
+    feq.post(&t20_f1);
     if(feq.postNonBlocking(bind(t20_f2,2,3))==false) fail("PostNonBlocking 1");
-    if(feq.postNonBlocking(t20_f1)==true) fail("PostNonBlocking 2");
+    if(feq.postNonBlocking(&t20_f1)==true) fail("PostNonBlocking 2");
     if(t20_v1!=0) fail("Too early");
     if(feq.empty() || feq.size()!=2) fail("Not empty EventQueue");
     feq.runOne();

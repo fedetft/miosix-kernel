@@ -27,12 +27,12 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace miosix {
 
 /**
- * This class is to extract from Callback code that
+ * This class contains all the code for Callback that
  * does not depend on the template parameter N. 
  */
 class CallbackBase
@@ -44,7 +44,7 @@ protected:
     enum Op
     {
         CALL,
-        ASSIGN,
+        MOVE,
         DESTROY
     };
     /**
@@ -57,25 +57,20 @@ protected:
         /**
          * Perform the type-dependent operations
          * \param a storage for the any object, stores the function object
-         * \param b storage for the source object for the copy constructor
+         * \param b storage for the source object for the move constructor
          * \param op operation
          */
-        static void operation(int32_t *a, const int32_t *b, Op op)
+        static void operation(int32_t *a, int32_t *b, Op op)
         {
             T *o1=reinterpret_cast<T*>(a);
-            const T *o2=reinterpret_cast<const T*>(b);
+            T *o2=reinterpret_cast<T*>(b);
             switch(op)
             {
                 case CALL:
                     (*o1)();
                     break;
-                case ASSIGN:
-                    //This used to be simply *o1=*o2 when we were using
-                    //tr1/functional, but in C++11 the type returned by bind
-                    //due to having a move constructor doesn't like being
-                    //assigned, only copy construction works so we have to
-                    //use placement new
-                    new (o1) T(*o2);
+                case MOVE:
+                    new (o1) T(std::move(*o2));
                     break;
                 case DESTROY:
                     o1->~T();
@@ -88,8 +83,8 @@ protected:
 /**
  * A Callback works just like an std::function, but has some additional
  * <b>limitations</b>. First, it can only accept function objects that take void
- * as a parameter and return void, and second if the size of the
- * implementation-defined type returned by bind is larger than N a
+ * as a parameter and return void. Second, if the size of the
+ * implementation-defined type returned by bind is larger than N, a
  * compile-time error is generated. Also, calling an empty Callback does
  * nothing, while doing the same on a function results in an exception
  * being thrown.
@@ -97,12 +92,12 @@ protected:
  * The reason why one would want to use this class is because, other than the
  * limitations, this class also offers a guarantee: it will never allocate
  * data on the heap. It is not just a matter of code speed: in Miosix calling
- * new/delete/malloc/free from an interrupt routine produces undefined
- * behaviour, so this class enables binding function calls form an interrupt
- * safely.
+ * new/delete/malloc/free from an interrupt routine (or with the GlobalIrqLock
+ * taken) produces undefined behavior or even a deadlock, so this class enables
+ * safely binding function calls from interrupt context.
  * 
  * \param N the size in bytes that an instance of this class reserves to
- * store the function objects. If the line starting with 'typedef char check1'
+ * store the function objects. If the assert `sizeof(any)>=sizeof(T)'
  * starts failing it means it is time to increase this number. The size
  * of an instance of this object is N+sizeof(void (*)()), but with N rounded
  * by excess to four byte boundaries.
@@ -117,38 +112,64 @@ public:
     Callback() : operation(nullptr) {}
 
     /**
-     * Constructor. Not explicit by design.
-     * \param functor function object a copy of which is stored internally
+     * Deleted copy constructor. Callback cannot be copied, because doing that
+     * may cause memory allocations.
      */
-    template<typename T>
-    Callback(T functor) : operation(nullptr)
-    {
-        *this=functor;
-    }
-    
-    /**
-     * Copy constructor
-     * \param rhs object to copy
-     */
-    Callback(const Callback& rhs)
-    {
-        operation=rhs.operation;
-        if(operation) operation(any,rhs.any,ASSIGN);
-    }
-    
-    /**
-     * Operator =
-     * \param rhs object to copy
-     * \return *this
-     */
-    Callback& operator= (const Callback& rhs);
+    Callback(Callback& rhs) = delete;
 
     /**
-     * Assignment operation, assigns a function object to this callback.
-     * \param funtor function object a copy of which is stored internally
+     * Deleted copy constructor. Callback cannot be copied, because doing that
+     * may cause memory allocations.
+     */
+    Callback(const Callback& rhs) = delete;
+
+    /**
+     * Move constructor.
+     * \param rhs Other Callback to be moved inside this one.
+     */
+    Callback(Callback&& rhs)
+    {
+        operation=rhs.operation;
+        if(operation) operation(any,rhs.any,MOVE);
+        rhs.operation=nullptr; //Ensure the rhs is made inert after the move
+    }
+
+    /**
+     * Move conversion constructor. Not explicit by design.
+     * \param functor Object which will be moved to inside this Callback.
      */
     template<typename T>
-    Callback& operator= (T functor);
+    Callback(T&& functor) : operation(nullptr)
+    {
+        *this=std::forward<T>(functor);
+    }
+
+    /**
+     * Deleted assignment operators. Callback cannot be copied, because doing
+     * that may cause memory allocations.
+     */
+    Callback& operator= (Callback& rhs) = delete;
+
+    /**
+     * Deleted assignment operators. Callback cannot be copied, because doing
+     * that may cause memory allocations.
+     */
+    Callback& operator= (const Callback& rhs) = delete;
+
+    /**
+     * Assignment move operator.
+     * \param rhs Object to move inside this Callback.
+     * \return *this
+     */
+    Callback& operator= (Callback&& rhs);
+
+    /**
+     * Assignment move operator with conversion. Moves an object inside this
+     * Callback.
+     * \param functor Object which will be moved to inside this Callback.
+     */
+    template<typename T>
+    Callback& operator= (T&& functor);
 
     /**
      * Removes any function object stored in this class
@@ -202,33 +223,34 @@ private:
     /// to 8 bytes. This allows i.e. declaring Callback<20> with 20 bytes of
     /// useful storage and 4 bytes of pointer, despite 20 is not a multiple of 8
     int32_t any[(N+3)/4] __attribute__((aligned(8)));
-    void (*operation)(int32_t *a, const int32_t *b, Op op);
+    void (*operation)(int32_t *a, int32_t *b, Op op);
 };
 
 template<unsigned N>
-Callback<N>& Callback<N>::operator= (const Callback<N>& rhs)
+Callback<N>& Callback<N>::operator= (Callback<N>&& rhs)
 {
     if(this==&rhs) return *this; //Handle assignmento to self
     if(operation) operation(any,nullptr,DESTROY);
     operation=rhs.operation;
-    if(operation) operation(any,rhs.any,ASSIGN);
+    if(operation) operation(any,rhs.any,MOVE);
+    rhs.operation=nullptr; //Ensure the rhs is made inert after the move
     return *this;
 }
 
 template<unsigned N>
 template<typename T>
-Callback<N>& Callback<N>::operator= (T functor)
+Callback<N>& Callback<N>::operator= (T&& functor)
 {
     //If an error is reported about this line an attempt to store a too large
     //object is made. Increase N.
-    static_assert(sizeof(any)>=sizeof(T),"");
+    static_assert(sizeof(any)>=sizeof(T),"N is too small");
     
     //This should not fail unless something has a stricter alignment than double
-    static_assert(__alignof__(any)>=__alignof__(T),"");
+    static_assert(__alignof__(any)>=__alignof__(T),"Alignment mismatch");
 
     if(operation) operation(any,nullptr,DESTROY);
 
-    new (reinterpret_cast<T*>(any)) T(functor);
+    new (reinterpret_cast<T*>(any)) T(std::forward<T>(functor));
     operation=TypeDependentOperation<T>::operation;
     return *this;
 }
