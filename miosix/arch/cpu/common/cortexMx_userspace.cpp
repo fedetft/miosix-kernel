@@ -30,7 +30,6 @@
 #include "kernel/error.h"
 #include <cstdio>
 #include <cstring>
-#include <cassert>
 
 using namespace std;
 
@@ -324,7 +323,7 @@ bool MPUConfiguration::withinForReading(const char* str) const
 
 unsigned int sizeToMpu(unsigned int size)
 {
-    assert(size>=32);
+    if(extraChecks!=ExtraChecks::None && size<32) errorHandler(Error::UNEXPECTED);
     unsigned int result=30-__builtin_clz(size);
     if(size & (size-1)) result++;
     return result;
