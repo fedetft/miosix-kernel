@@ -13,10 +13,10 @@ else
 	WGET='curl -LO'
 fi
 
-$WGET https://ftpmirror.gnu.org/binutils/binutils-2.45.tar.xz
-$WGET https://ftpmirror.gnu.org/gcc/gcc-15.2.0/gcc-15.2.0.tar.xz
+$WGET https://ftp.gnu.org/gnu/binutils/binutils-2.45.tar.xz
+$WGET https://ftp.gnu.org/gnu/gcc/gcc-15.2.0/gcc-15.2.0.tar.xz
 $WGET https://sourceware.org/pub/newlib/newlib-4.6.0.20260123.tar.gz
-$WGET https://ftpmirror.gnu.org/gdb/gdb-16.3.tar.xz
-$WGET https://ftpmirror.gnu.org/gmp/gmp-6.3.0.tar.xz
-$WGET https://ftpmirror.gnu.org/mpfr/mpfr-4.2.2.tar.xz
-$WGET https://ftpmirror.gnu.org/mpc/mpc-1.3.1.tar.gz
+$WGET https://ftp.gnu.org/gnu/gdb/gdb-16.3.tar.xz
+$WGET https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.xz
+$WGET https://ftp.gnu.org/gnu/mpfr/mpfr-4.2.2.tar.xz
+$WGET https://ftp.gnu.org/gnu/mpc/mpc-1.3.1.tar.gz

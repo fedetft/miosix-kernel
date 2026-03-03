@@ -14,11 +14,11 @@ else
 fi
 
 # Linux
-$WGET https://ftpmirror.gnu.org/ncurses/ncurses-6.5.tar.gz
+$WGET https://ftp.gnu.org/gnu/ncurses/ncurses-6.5.tar.gz
 $WGET https://github.com/megastep/makeself/releases/download/release-2.6.0/makeself-2.6.0.run
 
 # Windows
-$WGET https://ftpmirror.gnu.org/make/make-4.4.1.tar.gz
+$WGET https://ftp.gnu.org/gnu/make/make-4.4.1.tar.gz
 $WGET https://jrsoftware.org/download.php/is.exe
 mv is.exe innosetup.exe
 
