@@ -1721,6 +1721,28 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/std/condition_variable gcc-15.2.0/
        }
    };
  
+diff -ruN gcc-15.2.0-old/libstdc++-v3/libsupc++/eh_alloc.cc gcc-15.2.0/libstdc++-v3/libsupc++/eh_alloc.cc
+--- gcc-15.2.0-old/libstdc++-v3/libsupc++/eh_alloc.cc	2025-08-08 08:51:45.825437404 +0200
++++ gcc-15.2.0/libstdc++-v3/libsupc++/eh_alloc.cc	2026-03-03 20:18:40.333090287 +0100
+@@ -186,6 +186,18 @@
+ 
+   pool::pool() noexcept
+     {
++#ifdef _MIOSIX
++      // When compiling for Miosix, we lock the mutex. Not because we need it
++      // to protect against concurrent access, but to exercise this code path.
++      // Depending on how the kernel is compiled, the first attempt to lock a
++      // mutex in Miosix may allocate memory using malloc.
++      // That's a problem because the whole purpose of the emergency pool is to
++      // successfully allocate an exception even if the heap is full and malloc
++      // returns NULL, so if the first time we lock this mutex is after the heap
++      // is already full, and the lock fails, this kind of defeats the purpose..
++      __scoped_lock sentry(emergency_mutex);
++#endif
++
+ #ifndef _GLIBCXX_EH_POOL_STATIC
+       int obj_size = EMERGENCY_OBJ_SIZE;
+       int obj_count = EMERGENCY_OBJ_COUNT;
 diff -ruN gcc-15.2.0-old/libstdc++-v3/libsupc++/eh_globals.cc gcc-15.2.0/libstdc++-v3/libsupc++/eh_globals.cc
 --- gcc-15.2.0-old/libstdc++-v3/libsupc++/eh_globals.cc	2025-08-08 08:51:45.826437421 +0200
 +++ gcc-15.2.0/libstdc++-v3/libsupc++/eh_globals.cc	2025-12-17 09:45:25.962367037 +0100
