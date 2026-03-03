@@ -5,7 +5,7 @@
 # running install-script.sh is possible without re-downloading them.
 
 rm -rf binutils-2.45 binutils_build gcc-15.2.0 gdb-16.3 gdb_build \
-  newlib-3.1.0 newlib_build gmp-6.3.0 mpfr-4.2.2 mpc-1.3.1 make-4.2.1 \
+  newlib-4.6.0.20260123 newlib_build gmp-6.3.0 mpfr-4.2.2 mpc-1.3.1 make-4.2.1 \
   expat-2.7.3 ncurses-6.5 makeself-2.6.0 lib
 
 rm -rf gcc_build log
