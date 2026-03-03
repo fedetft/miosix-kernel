@@ -388,8 +388,8 @@ diff -ruN gcc-15.2.0-old/gcc/config/arm/sync.md gcc-15.2.0/gcc/config/arm/sync.m
  
 diff -ruN gcc-15.2.0-old/gcc/config/arm/t-arm-miosix gcc-15.2.0/gcc/config/arm/t-arm-miosix
 --- gcc-15.2.0-old/gcc/config/arm/t-arm-miosix	1970-01-01 01:00:00.000000000 +0100
-+++ gcc-15.2.0/gcc/config/arm/t-arm-miosix	2025-12-17 09:45:25.000000000 +0100
-@@ -0,0 +1,118 @@
++++ gcc-15.2.0/gcc/config/arm/t-arm-miosix	2026-03-03 17:40:53.207866738 +0100
+@@ -0,0 +1,124 @@
 +
 +## RATIONALE: build multilibs for all microcontroller-relevant ARM architectures
 +## with and without `-fpie -msingle-pic-base' (for processes).
@@ -502,12 +502,18 @@ diff -ruN gcc-15.2.0-old/gcc/config/arm/t-arm-miosix gcc-15.2.0/gcc/config/arm/t
 +# because the main makefile (config.gcc) special-cases this by setting
 +# with_float="soft" which results in all invocations to have the default
 +# option "--with-float=soft"
-+MULTILIB_REUSE		+= mthumb/march.armv4t/mfloat-abi.soft=mthumb/march.armv4t
-+MULTILIB_REUSE		+= marm/march.armv4t/mfloat-abi.soft=marm/march.armv4t
++MULTILIB_REUSE		+= $(foreach ABI, mthumb marm, \
++			$(ABI)/march.armv4t/mfloat-abi.soft/qkernelspace=$(ABI)/march.armv4t/qkernelspace)
++MULTILIB_REUSE		+= $(foreach ABI, mthumb marm, \
++			$(ABI)/march.armv4t/mfloat-abi.soft/qkernelspace/fno-exceptions=$(ABI)/march.armv4t/qkernelspace/fno-exceptions)
 +MULTILIB_REUSE		+= $(foreach ARCH, armv6s-m armv7-m armv8-m\.base, \
 +			mthumb/march.$(ARCH)/mfloat-abi.soft/qkernelspace=mthumb/march.$(ARCH)/qkernelspace)
 +MULTILIB_REUSE		+= $(foreach ARCH, armv6s-m armv7-m armv8-m\.base, \
++			mthumb/march.$(ARCH)/mfloat-abi.soft/qkernelspace/fno-exceptions=mthumb/march.$(ARCH)/qkernelspace/fno-exceptions)
++MULTILIB_REUSE		+= $(foreach ARCH, armv6s-m armv7-m armv8-m\.base, \
 +			mthumb/march.$(ARCH)/mfloat-abi.soft=mthumb/march.$(ARCH))
++MULTILIB_REUSE		+= $(foreach ARCH, armv6s-m armv7-m armv8-m\.base, \
++			mthumb/march.$(ARCH)/mfloat-abi.soft/fno-exceptions=mthumb/march.$(ARCH)/fno-exceptions)
 diff -ruN gcc-15.2.0-old/gcc/config/miosix.h gcc-15.2.0/gcc/config/miosix.h
 --- gcc-15.2.0-old/gcc/config/miosix.h	1970-01-01 01:00:00.000000000 +0100
 +++ gcc-15.2.0/gcc/config/miosix.h	2025-12-17 09:45:25.946367038 +0100
