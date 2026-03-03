@@ -495,11 +495,11 @@ echo "Configuring $NEWLIB..."
 	|| quit ":: Error configuring newlib"
 
 echo "Building $NEWLIB..."
-make $PARALLEL &>../log/06_newlib_2_build.txt \
+make MAKEINFO=/usr/bin/true $PARALLEL &>../log/06_newlib_2_build.txt \
 	|| quit ":: Error compiling newlib"
 
 echo "Installing $NEWLIB..."
-$SUDO make install PATH=$PATH DESTDIR=$DESTDIR &>../log/06_newlib_3_install.txt \
+$SUDO make install MAKEINFO=/usr/bin/true PATH=$PATH DESTDIR=$DESTDIR &>../log/06_newlib_3_install.txt \
 	|| quit ":: Error installing newlib"
 
 cd ..
