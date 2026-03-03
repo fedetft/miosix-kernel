@@ -1399,7 +1399,7 @@ diff -ruN gcc-15.2.0-old/libgomp/team.c gcc-15.2.0/libgomp/team.c
    if (pthread_key_create (&gomp_thread_destructor, gomp_free_thread) != 0)
 diff -ruN gcc-15.2.0-old/libstdc++-v3/configure gcc-15.2.0/libstdc++-v3/configure
 --- gcc-15.2.0-old/libstdc++-v3/configure	2025-08-08 08:51:45.690435151 +0200
-+++ gcc-15.2.0/libstdc++-v3/configure	2025-12-17 09:45:25.958367037 +0100
++++ gcc-15.2.0/libstdc++-v3/configure	2026-03-03 11:58:31.469908430 +0100
 @@ -15967,6 +15967,7 @@
      dce)	thread_header=config/pa/gthr-dce.h ;;
      gcn)	thread_header=config/gcn/gthr-gcn.h ;;
@@ -1721,24 +1721,6 @@ diff -ruN gcc-15.2.0-old/libstdc++-v3/include/std/condition_variable gcc-15.2.0/
        }
    };
  
-diff -ruN gcc-15.2.0-old/libstdc++-v3/libsupc++/eh_alloc.cc gcc-15.2.0/libstdc++-v3/libsupc++/eh_alloc.cc
---- gcc-15.2.0-old/libstdc++-v3/libsupc++/eh_alloc.cc	2025-08-08 08:51:45.825437404 +0200
-+++ gcc-15.2.0/libstdc++-v3/libsupc++/eh_alloc.cc	2025-12-17 09:45:25.962367037 +0100
-@@ -114,6 +114,14 @@
- # endif
- #endif
- 
-+// RATIONALE: reduced emergency buffer for ARM microcontrollers, saves RAM
-+#ifdef _MIOSIX
-+# undef EMERGENCY_OBJ_SIZE
-+# undef EMERGENCY_OBJ_COUNT
-+# define EMERGENCY_OBJ_SIZE  160
-+# define EMERGENCY_OBJ_COUNT 3
-+#endif
-+
- #if defined _GLIBCXX_EH_POOL_STATIC && EMERGENCY_OBJ_COUNT == 0
- # define USE_POOL 0
- #else
 diff -ruN gcc-15.2.0-old/libstdc++-v3/libsupc++/eh_globals.cc gcc-15.2.0/libstdc++-v3/libsupc++/eh_globals.cc
 --- gcc-15.2.0-old/libstdc++-v3/libsupc++/eh_globals.cc	2025-08-08 08:51:45.826437421 +0200
 +++ gcc-15.2.0/libstdc++-v3/libsupc++/eh_globals.cc	2025-12-17 09:45:25.962367037 +0100

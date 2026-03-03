@@ -405,6 +405,17 @@ cd gcc_build
 # by dirent.h.
 __GCC_CONF_HEADERS_PARAM=--with-headers=../$NEWLIB/newlib/libc/include
 
+# About --enable-libstdcxx-static-eh-pool, --with-libstdcxx-eh-pool-obj-count=3:
+# we used to patch eh_alloc.cc to reduce the C++ emergency exception allocation
+# pool to limit the amount of RAM it uses. In GCC 15.2.0 it is no longer needed
+# as it can be configured. The formula for the used RAM is:
+# pool_size = EMERGENCY_OBJ_COUNT * (EMERGENCY_OBJ_SIZE * P + R + D)
+# EMERGENCY_OBJ_COUNT is set via --with-libstdcxx-eh-pool-obj-count, so is 3
+# EMERGENCY_OBJ_SIZE is fixed to 6, a reasonable exception size
+# P is sizeof(void*), 4 on ARM
+# R is sizeof(__cxa_refcounted_exception), 128 on ARM
+# D is sizeof(__cxa_dependent_exception), 120 on RAM
+# This is about as small as it can get in a multithreaded system.
 echo "Configuring $GCC (start)..."
 $SUDO ../$GCC/configure \
 	--build=$BUILD \
@@ -422,6 +433,8 @@ $SUDO ../$GCC/configure \
 	--disable-libstdcxx-pch \
 	--disable-libstdcxx-dual-abi \
 	--disable-libstdcxx-filesystem-ts \
+	--enable-libstdcxx-static-eh-pool \
+	--with-libstdcxx-eh-pool-obj-count=3 \
 	--enable-threads=miosix \
 	--enable-languages="c,c++" \
 	--enable-lto \
