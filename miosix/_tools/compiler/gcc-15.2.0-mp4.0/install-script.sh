@@ -103,7 +103,7 @@ quit() {
 # Is it a redistributable build?
 if [[ $DESTDIR ]]; then
 	if [[ $SUDO ]]; then
-		quit ":: Error global install distributable compiling are mutually exclusive"
+		quit ":: Error global install and distributable compiling are mutually exclusive"
 	fi
 	if [[ $(uname -s) == 'Darwin' ]]; then
 		if [[ -z $BUILD ]]; then
@@ -131,10 +131,10 @@ if [[ $DESTDIR ]]; then
 			quit ":: Uninstall the previous compiler version first"
 		fi
 	else
-		# When building a redistributable build, we use destdir. Thus, the
+		# When building a redistributable build, we use DESTDIR. Thus, the
 		# compiler is "installed" to $DESTDIR$PREFIX even though it is meant to
 		# be run from $PREFIX. There is an issue though: building the standard
-		# libraries requires the to-be-built compiler, which is't found, so
+		# libraries requires the to-be-built compiler, which isn't found, so
 		# building fails at the newlib stage. We wish the fix would just be a
 		# export PATH=$DESTDIR$PREFIX/bin:$PATH
 		# but turns out that isn't enough, as after newlib is built, the
