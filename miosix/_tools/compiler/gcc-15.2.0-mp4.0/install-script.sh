@@ -114,6 +114,13 @@ if [[ $DESTDIR ]]; then
 			quit ":: Error distributable compiling but no HOST specifed"
 		fi
 	fi
+	# Clean up PATH to avoid finding system-installed libraries that
+	# won't be present when actually installing the compiler.
+	# This is mostly relevant for macOS, because Linux distributions
+	# install all packages (system-required and user-requested) in the same
+	# place, making redistributable builds basically impossible without
+	# using a clean purpose-built VM.
+	export PATH=/usr/bin:/bin:/usr/sbin:/sbin
 	if [[ -d $PREFIX/arm-miosix-eabi ]]; then
 		# If arm-miosix-eabi-gcc is already installed system-wide, make sure
 		# it's the same version, otherwise we may by mistake build part of the
@@ -159,9 +166,13 @@ else
 		# may work, but is untested. Remove this line if you want to try.
 		quit ":: Specifying either HOST or BUILD without DESTDIR is not supported"
 	fi
-	# For local builds assume there's no existing miosix compiler installed,
-	# add the install prefix to the path in order to ensure tools are available
-	# as soon as we build them.
+	# Ensure the install destination is clean. If it is not, old and new
+	# compiler files will mix up, potentially making the compilation fail.
+	if [[ -d $PREFIX ]]; then
+		quit ":: Uninstall (or move away) the existing compiler first"
+	fi
+	# Add the install prefix to the path in order to ensure tools are
+	# available as soon as we build them.
 	export PATH=$PREFIX/bin:$PATH
 fi
 
