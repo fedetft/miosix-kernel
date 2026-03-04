@@ -1,3 +1,0 @@
-[submodule "miosix/_examples/datalogger/tscpp"]
-	path = miosix/_examples/datalogger/tscpp
-	url = https://github.com/fedetft/tscpp.git
