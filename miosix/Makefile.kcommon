@@ -38,6 +38,17 @@ SUBDIRS := $(KPATH)
 # Not adding libsyscalls to SUBDIRS because it has to be built before
 LIBSYS  := $(KPATH)/libsyscalls
 
+# Starting from Miosix 3, we compile the kernel with the -qkernelspace option
+# that was not present in GCC patches before 15.2.0mp4.0, so when using an
+# earlier compiler the user gets a compiler error even before the compiler
+# version check in miosix_settings.h
+# To fix this, we check the compiler version also here in the build system
+ifneq ($(shell perl $(TOOLS_DIR)/compiler_check.pl $(CC)), 0)
+    $(info You are using a too old or unsupported compiler.)
+    $(info Get the latest one from https://miosix.org/wiki/index.php?title=Miosix_Toolchain)
+    $(error Error)
+endif
+
 .DEFAULT_GOAL := all
 
 image: main $(TOOLS_DIR)/filesystems/buildromfs
