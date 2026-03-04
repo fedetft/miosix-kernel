@@ -88,47 +88,54 @@ void FaultData::print() const
             iprintf("* Stack overflow\n");
             break;
         case MP:
-            iprintf("* Attempted data access @ 0x%x (PC was 0x%x)\n",arg,pc);
+            iprintf("* Attempted data access @ 0x%x",arg);
             break;
         case MP_NOADDR:
-            iprintf("* Invalid data access (PC was 0x%x)\n",pc);
+            iprintf("* Invalid data access");
             break;
         case MP_XN:
-            iprintf("* Attempted instruction fetch @ 0x%x\n",pc);
+            iprintf("* Attempted instruction fetch");
             break;
         case MP_STACK:
-            iprintf("* Invalid SP (0x%x) while entering IRQ\n",arg);
+            iprintf("* Invalid SP (0x%x) while entering IRQ",arg);
             break;
         case UF_DIVZERO:
-            iprintf("* Divide by zero (PC was 0x%x)\n",pc);
+            iprintf("* Divide by zero");
             break;
         case UF_UNALIGNED:
-            iprintf("* Unaligned memory access (PC was 0x%x)\n",pc);
+            iprintf("* Unaligned memory access");
             break;
         case UF_COPROC:
-            iprintf("* Attempted coprocessor access (PC was 0x%x)\n",pc);
+            iprintf("* Attempted coprocessor access");
             break;
         case UF_EXCRET:
-            iprintf("* Invalid exception return sequence (PC was 0x%x)\n",pc);
+            iprintf("* Invalid exception return sequence");
             break;
         case UF_EPSR:
-            iprintf("* Attempted access to the EPSR (PC was 0x%x)\n",pc);
+            iprintf("* Attempted access to the EPSR");
             break;
         case UF_UNDEF:
-            iprintf("* Undefined instruction (PC was 0x%x)\n",pc);
+            iprintf("* Undefined instruction");
             break;
         case UF_UNEXP:
-            iprintf("* Unexpected usage fault (PC was 0x%x)\n",pc);
+            iprintf("* Unexpected usage fault");
             break;
         case HARDFAULT:
-            iprintf("* Hardfault (PC was 0x%x)\n",pc);
+            iprintf("* Hardfault");
             break;
         case BF:
-            iprintf("* Busfault @ 0x%x (PC was 0x%x)\n",arg,pc);
+            iprintf("* Busfault @ 0x%x",arg);
             break;
         case BF_NOADDR:
-            iprintf("* Busfault (PC was 0x%x)\n",pc);
+            iprintf("* Busfault");
             break;
+    }
+    if(id!=NONE && id!=STACKOVERFLOW)
+    {
+        //NOTE: if the fault really occurs at the address 0xbadadd we'll
+        //spuriously say the stack is corrupted...
+        if(pc==0xbadadd) iprintf(" (Missing PC, corrupted stack)\n");
+        else iprintf(" PC=0x%x\n",pc);
     }
 }
 

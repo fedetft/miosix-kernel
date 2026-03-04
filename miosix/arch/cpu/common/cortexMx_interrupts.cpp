@@ -384,15 +384,15 @@ static void printUnsignedInt(unsigned int x)
 
 /**
  * \internal
- * \return attempt to get the program counter of the thread that was running
- * when the exception occurred.
+ * Attempt to print the program counter of the thread that was running when the
+ * exception occurred.
  */
-static unsigned int tryGetKernelThreadProgramCounter()
+static void tryPrintingProgramCounter()
 {
     // Attempt to get program counter at the time the exception was thrown from
-    // stack frame. This can fail if the stack pointer itself is corrupted, in
-    // this case return 0xbadadd. Failing to validate the thread stack pointer
-    // before dereferencing it may cause further memory faults and a CPU lockup
+    // stack frame. This can fail if the stack pointer itself is corrupted.
+    // Failing to validate the thread stack pointer before dereferencing it may
+    // cause further memory faults and a CPU lockup
     unsigned int psp=__get_PSP();
     // Miosix uses the stack-in-heap approach for kernel threads, so compare the
     // stack pointer against the boundaries of the heap
@@ -401,8 +401,8 @@ static unsigned int tryGetKernelThreadProgramCounter()
     const unsigned int off=24; //Offset in bytes of PC in the stack frame on ARM
     if(psp<reinterpret_cast<unsigned int>(&_end)
     || psp>reinterpret_cast<unsigned int>(&_heap_end)-off-sizeof(unsigned int))
-        return 0xbadadd;
-    return *reinterpret_cast<unsigned int *>(psp+off);
+        IRQerrorLog("? (Corrupted stack)\r\n");
+    else printUnsignedInt(*reinterpret_cast<unsigned int *>(psp+off));
 }
 #endif //WITH_ERRLOG
 
@@ -513,7 +513,7 @@ void HardFault_Handler()
 #endif //WITH_PROCESSES
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected HardFault @ ");
-    printUnsignedInt(tryGetKernelThreadProgramCounter());
+    tryPrintingProgramCounter();
     #if __CORTEX_M != 0
     unsigned int hfsr=SCB->HFSR;
     if(hfsr & 0x40000000) //SCB_HFSR_FORCED
@@ -577,7 +577,7 @@ void MemManage_Handler()
     #endif //WITH_PROCESSES
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected MemManage @ ");
-    printUnsignedInt(tryGetKernelThreadProgramCounter());
+    tryPrintingProgramCounter();
     if(cfsr & 0x00000080) //SCB_CFSR_MMARVALID
     {
         IRQerrorLog("Fault caused by attempted access to ");
@@ -631,7 +631,7 @@ void BusFault_Handler()
     #endif //WITH_PROCESSES
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected BusFault @ ");
-    printUnsignedInt(tryGetKernelThreadProgramCounter());
+    tryPrintingProgramCounter();
     if(cfsr & 0x00008000) //SCB_CFSR_BFARVALID
     {
         IRQerrorLog("Fault caused by attempted access to ");
@@ -692,7 +692,7 @@ void UsageFault_Handler()
     #endif //WITH_PROCESSES
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected UsageFault @ ");
-    printUnsignedInt(tryGetKernelThreadProgramCounter());
+    tryPrintingProgramCounter();
     if(cfsr & 0x02000000) //SCB_CFSR_DIVBYZERO
         IRQerrorLog("Divide by zero\r\n");
     if(cfsr & 0x01000000) //SCB_CFSR_UNALIGNED
@@ -714,7 +714,7 @@ void DebugMon_Handler()
     FastGlobalLockFromIrq lock;
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected DebugMon @ ");
-    printUnsignedInt(tryGetKernelThreadProgramCounter());
+    tryPrintingProgramCounter();
     #endif //WITH_ERRLOG
     IRQsystemReboot();
 }
@@ -755,7 +755,7 @@ void SVC_Handler()
     FastGlobalLockFromIrq lock;
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected SVC @ ");
-    printUnsignedInt(tryGetKernelThreadProgramCounter());
+    tryPrintingProgramCounter();
     #endif //WITH_ERRLOG
     IRQsystemReboot();
 }
