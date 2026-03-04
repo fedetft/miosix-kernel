@@ -1,5 +1,11 @@
 High performance logging for Miosix
 
+NOTE: compiling this example requires the external library TSCPP.
+It is suggested you copy the entire "datalogger" directory out of the "_examples"
+directory of the Miosix kernel and into your project directory, and then either
+do a "git clone https://github.com/fedetft/tscpp.git" in the "datalogger"
+directory or add it as a submodule if your project is already using git.
+
 Some applications - possibly real-time - require to log data, and do so from
 multiple threads. While a simple library that opens a file and writes to is
 sufficient for simple applications, there are some problems:
