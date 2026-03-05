@@ -651,7 +651,6 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
 }
 
 int pthread_mutex_destroy(pthread_mutex_t *mutex) { return 0; }
-int pthread_setcancelstate(int state, int *oldstate) { return 0; }
 
 int pthread_once(pthread_once_t *once, void (*func)())
 {

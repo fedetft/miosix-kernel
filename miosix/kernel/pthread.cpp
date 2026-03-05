@@ -509,8 +509,6 @@ int pthread_getaffinity_np(pthread_t pthread, size_t cpusetsize,
     return 0;
 }
 
-int pthread_setcancelstate(int state, int *oldstate) { return 0; } //Stub
-
 #ifdef WITH_PTHREAD_EXIT
 
 void pthread_exit(void *returnValue)

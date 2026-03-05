@@ -1015,8 +1015,8 @@ diff -ruN newlib-4.6.0.20260123-old/newlib/libc/sys/miosix/Makefile.inc newlib-4
 +libc_a_SOURCES += %D%/crt0.c %D%/termios.c %D%/stubs.c
 diff -ruN newlib-4.6.0.20260123-old/newlib/libc/sys/miosix/stubs.c newlib-4.6.0.20260123/newlib/libc/sys/miosix/stubs.c
 --- newlib-4.6.0.20260123-old/newlib/libc/sys/miosix/stubs.c	1970-01-01 01:00:00.000000000 +0100
-+++ newlib-4.6.0.20260123/newlib/libc/sys/miosix/stubs.c	2026-02-07 23:11:07.203131623 +0100
-@@ -0,0 +1,106 @@
++++ newlib-4.6.0.20260123/newlib/libc/sys/miosix/stubs.c	2026-03-04 23:40:37.202439414 +0100
+@@ -0,0 +1,105 @@
 +/*
 + * RATIONALE: these stubs exists only so that when building the GCC compiler
 + * for Miosix (arm-miosix-eabi-gcc), the configure scripts can compile and link
@@ -1105,7 +1105,6 @@ diff -ruN newlib-4.6.0.20260123-old/newlib/libc/sys/miosix/stubs.c newlib-4.6.0.
 +int    AW pthread_cond_broadcast(pthread_cond_t *a)                  { return -1; }
 +int    AW pthread_cond_destroy(pthread_cond_t *a)                    { return -1; }
 +int    AW pthread_once(pthread_once_t *a, void (*b)())               { return -1; }
-+int    AW pthread_setcancelstate(int a, int *b)                      { return 0; }
 +int    AW clock_gettime(clockid_t a, struct timespec *b)             { return -1; }
 +int    AW clock_settime(clockid_t a, const struct timespec *b)       { return -1; }
 +int    AW clock_getres(clockid_t a, struct timespec *b)              { return -1; }
