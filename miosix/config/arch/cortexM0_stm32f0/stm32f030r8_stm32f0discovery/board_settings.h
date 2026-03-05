@@ -47,6 +47,13 @@ namespace miosix {
 /// STM32F030R8 only has 8KB of RAM so the stack is only 1.5KB.
 const unsigned int MAIN_STACK_SIZE=1024+512;
 
+/// Clock options
+enum class OscillatorType { HSE }; //Only one supported for now
+constexpr auto oscillatorType=OscillatorType::HSE;
+constexpr unsigned int hseFrequency=8000000;
+// Supported clock frequencies: 32000000
+constexpr unsigned int sysclkFrequency=32000000;
+
 /// Serial port
 /// Serial ports 1 and 2 are available
 const unsigned int defaultSerial=1;

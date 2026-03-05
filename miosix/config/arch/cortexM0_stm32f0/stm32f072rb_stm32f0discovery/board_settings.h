@@ -47,6 +47,12 @@ namespace miosix {
 /// STM32F072RB only has 16KB of RAM so the stack is only 1.5KB.
 const unsigned int MAIN_STACK_SIZE=1024+512;
 
+/// Clock options
+enum class OscillatorType { HSI }; //Only one supported for now
+constexpr auto oscillatorType=OscillatorType::HSI;
+// Supported clock frequencies: 32000000
+constexpr unsigned int sysclkFrequency=32000000;
+
 /// Serial port
 /// Serial ports 1 to 4 are available (no DMA supported)
 const unsigned int defaultSerial=1;

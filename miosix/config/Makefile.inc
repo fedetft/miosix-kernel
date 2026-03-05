@@ -2811,9 +2811,6 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
         CFLAGS_BASE   += -D_BOARD_STM32F072RB_DISCO
         CXXFLAGS_BASE += -D_BOARD_STM32F072RB_DISCO
 
-        ## Select clock frequency
-        CLOCK_FREQ := -DSYSCLK_FREQ_32MHz=32000000 -DRUN_WITH_HSI
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -2843,9 +2840,6 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32F030R8_DISCO
         CXXFLAGS_BASE += -D_BOARD_STM32F030R8_DISCO
-
-        ## Select clock frequency
-        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_32MHz=32000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types

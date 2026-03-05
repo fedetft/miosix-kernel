@@ -25,19 +25,15 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "board_settings.h"
 #include "interfaces/delays.h"
 
 namespace miosix {
 
-void delayMs(unsigned int mseconds)
+void delayMs(unsigned int ms)
 {
-    #ifdef SYSCLK_FREQ_32MHz
-    const unsigned int count=4000;
-    #else
-    #error "Delays are uncalibrated for this clock frequency"
-    #endif
-
-    for(unsigned int i=0;i<mseconds;i++)
+    const unsigned int count=sysclkFrequency/8000;
+    for(unsigned int i=0;i<ms;i++)
     {
         // This delay has been calibrated to take 1 millisecond
         // It is written in assembler to be independent on compiler optimizations
@@ -49,18 +45,17 @@ void delayMs(unsigned int mseconds)
     }
 }
 
-void delayUs(unsigned int useconds)
+void delayUs(unsigned int us)
 {
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimizations
-    #ifdef SYSCLK_FREQ_32MHz
-    asm volatile("    movs  r1, #4     \n"
+    const unsigned int clkPerUs=sysclkFrequency/8000000;
+    asm volatile("    movs  r1, %1     \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 8 cycles
                  "    sub   r1, r1, #1 \n" //sub does update condition code
-                 "    bpl   1b         \n"::"l"(useconds):"r1","cc");
-    #endif
+                 "    bpl   1b         \n"::"l"(us),"i"(clkPerUs):"r1","cc");
 }
 
 } //namespace miosix

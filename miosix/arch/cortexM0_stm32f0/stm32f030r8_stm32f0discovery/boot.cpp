@@ -25,6 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "board_settings.h"
 #include "interfaces/arch_registers.h"
 
 extern "C" void SystemInit();
@@ -33,8 +34,8 @@ namespace miosix {
 
 void IRQsetupClockTree()
 {
-    static_assert(HSE_VALUE==8000000,"Unsupported HSE oscillator frequency");
-    static_assert(SYSCLK_FREQ_32MHz==32000000,"Unsupported target SYSCLK");
+    static_assert(hseFrequency==8000000,"Unsupported HSE oscillator frequency");
+    static_assert(sysclkFrequency==32000000,"Unsupported target SYSCLK");
 
     // Check if PLL is used as system clock
     if ((RCC->CFGR & RCC_CFGR_SWS) == RCC_CFGR_SWS_PLL)

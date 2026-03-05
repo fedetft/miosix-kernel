@@ -25,6 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "board_settings.h"
 #include "interfaces/arch_registers.h"
 
 extern "C" void SystemInit();
@@ -33,7 +34,8 @@ namespace miosix {
 
 void IRQsetupClockTree()
 {
-    #if defined(RUN_WITH_HSI) && defined(SYSCLK_FREQ_32MHz)
+    static_assert(oscillatorType==OscillatorType::HSI,"Unsupported clock config");
+    static_assert(sysclkFrequency==32000000,"Unsupported clock config");
     RCC->CR |= RCC_CR_HSION;
     while((RCC->CR & RCC_CR_HSIRDY)==0) ;
     RCC->CR &= ~RCC_CR_PLLON;
@@ -46,9 +48,6 @@ void IRQsetupClockTree()
     FLASH->ACR &= ~FLASH_ACR_LATENCY;
     FLASH->ACR |= 1; //1 wait state for freq > 24MHz
     RCC->CFGR |= RCC_CFGR_SW_PLL;
-    #else
-    #error "Unsupported clock configuration"
-    #endif
 }
 
 void IRQmemoryAndClockInit()
