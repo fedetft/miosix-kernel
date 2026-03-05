@@ -48,10 +48,37 @@
  * - set interrupts used both preemption and to handle sleeping threads wakeup
  *
  * Starting from Miosix 3, the OS supports two different timer models:
- * unified and separate, selected with the option OS_TIMER_MODEL_UNIFIED
+ * separate and unified, selected with the option OS_TIMER_MODEL_UNIFIED
  * in miosix_settings.h.
  *
+ * Separate timer model, also called 1+N timer model.
+ * This is the timer model you want to use if you care about speed and your
+ * platform has at least 1+N timers, where N is the number of cores in your CPU.
+ * The motivation and design of this model can be found in the paper "Efficient
+ * Design of High-Resolution Timekeeping in Real-Time Operating Systems".
+ * https://doi.org/10.4230/OASIcs.NG-RES.2026.4
+ * Summarizing, the implementation is expected to use a separate high-resolution
+ * timer for timekeeping, plus one additional timer per-core for preemption.
+ * It is expected that on ARM architectures, the per-core preemption timers be
+ * implemented using the ARM SysTick which is a per-core timer meant for that
+ * purpose. An additional <b>upcounting</b> timer <b>with match register</b> is
+ * needed for timekeeping. Regardless of the cosen timer model, the ARM SysTick
+ * is not enough due to it not meeting the high-resolution timer requirements.
+ * In the separate model, all cores, including the WAKEUP_HANDLING_CORE use
+ * the IRQosTimerSetPreemption() function to schedule preemption interrupts,
+ * and when the set time is reached, the scheduler must be called by the timer
+ * driver <b>on the core that</b> called IRQosTimerSetPreemption().
+ * IRQosTimerSetInterrupt() is used only for thread wakeup and when that set
+ * time is reached, the separate timekeeping timer driver will need to call the
+ * IRQwakeThreads() kernel function <b>always on the WAKEUP_HANDLING_CORE</b>,
+ * regardless of the core that called IRQosTimerSetInterrupt().
+ * NOTE: in the separate model the WAKEUP_HANDLING_CORE calls both
+ * IRQosTimerSetPreemption() to set preemptions, and IRQosTimerSetInterrupt()
+ * for thread wakeups. Thus, even in single-core microcontrollers, both APIs
+ * must be provided, requiring two hardware timers.
+ *
  * Unified timer model.
+ * This is the slower timer model where a single timer does all the timekeeping.
  * In this case the implementation is expected to use a single hardware timer
  * for serving all the timekeeping functions for the entire OS, even if multiple
  * CPU cores are present.
@@ -60,49 +87,30 @@
  * the single timer must have a number of match registers equal to the number
  * of available cores. Due to the need for an upcounting timer for fine-grain
  * timekeeping as well as the need for multiple per-core match registers, the
- * ARM SysTick CANNOT be used as OS timer in the unified model.
- * In the unified model, one special core, with id identified by the constant
- * WAKEUP_HANDLING_CORE is in charge of handling timekeeping and task wakeup.
- * The OS scheduler on that core will set both thread wakeup and preemption
- * interrupts by calling IRQosTimerSetInterrupt() and when the the set time is
- * reached, the timer driver must call IRQwakeThreads() kernel function on the
- * WAKEUP_HANDLING_CORE only, regardless of the core IRQosTimerSetInterrupt()
- * is called from. Note that cores other than WAKEUP_HANDLING_CORE may call
- * IRQosTimerSetInterrupt() if a thread on that core does a sleep.
+ * ARM SysTick <b>cannot</b> be used as OS timer in the unified model.
+ * Also in the unified model, one special core, identified by the constant
+ * WAKEUP_HANDLING_CORE, is in charge of handling timekeeping and task wakeup.
+ * In the unified model, the OS scheduler on that core will set both thread
+ * wakeup and preemption interrupts by calling IRQosTimerSetInterrupt() and when
+ * the the set time is reached, the timer driver must call the IRQwakeThreads()
+ * kernel function <b>always on the WAKEUP_HANDLING_CORE</b>, regardless of the
+ * core IRQosTimerSetInterrupt() is called from.
  * Cores othar than WAKEUP_HANDLING_CORE will instead set preemption interrupts
  * by calling IRQosTimerSetPreemption() and when the set time is reached, the
- * timer driver must NOT call IRQwakeThreads(), and should instead invoke
- * directly scheduler on the same core where IRQosTimerSetPreemption() was
- * called. This can be implemented either by registering the match register
- * interrupt directly on the desired core and using IRQinvokeScheduler() as done
- * for example in the RP2040 port, or in case it is not possible to register
- * match register interrupts on different cores, by servicing all match
- * interrupts on a single core and using IRQinvokeSchedulerOnCore() to call the
- * scheduler on the correct core.
+ * scheduler must be called by the timer driver <b>on the core that</b> called
+ * IRQosTimerSetPreemption().
  * NOTE: in the unified model, the WAKEUP_HANDLING_CORE never calls
  * IRQosTimerSetPreemption(), it always calls IRQosTimerSetInterrupt() for both
  * thread wakeup and preemptions. Indeed, in single-core architecture where the
- * only core is WAKEUP_HANDLING_CORE, IRQosTimerSetPreemption() is not needed.
+ * only core is WAKEUP_HANDLING_CORE, IRQosTimerSetPreemption() is not needed,
+ * thus a single timer can be used.
  *
- * Separate timer model.
- * In this case the implementation is expected to use a separate timer for
- * timekeeping, plus one additional timer per-core for preemption.
- * It is expected that on ARM architectures, the per-core preemption timers be
- * implemented using the ARM SysTick which is a per-core timer meant for that
- * purpose. An additional upcounting timer with match register is still needed
- * for timekeeping, so in both timer models the ARM SysTick is not enough due to
- * it being incapable of fine grain timekeeping.
- * In the separate model, all cores, including the WAKEUP_HANDLING_CORE use
- * the IRQosTimerSetPreemption() function to schedule preemption interrupts,
- * and when the set time is reached, the scheduler must be called by the timer
- * driver on the core that called IRQosTimerSetPreemption().
- * IRQosTimerSetInterrupt() is used only for thread wakeup and when that set
- * time is reached, the separate timekeeping timer driver will need to call the
- * IRQwakeThreads() kernel function on the WAKEUP_HANDLING_CORE only.
- * NOTE: in the separate model the WAKEUP_HANDLING_CORE calls both
- * IRQosTimerSetPreemption() to set preemptions, and IRQosTimerSetInterrupt()
- * for thread wakeups. Thus, even in single-core microcontrollers, both APIs
- * must be provided by the timer driver.
+ * NOTE: in multi-cores, regardless of the selected timer model, cores other
+ * than WAKEUP_HANDLING_CORE can call IRQosTimerSetInterrupt() if a thread on
+ * that core does a sleep. Regardless of the chosen timer model and the core
+ * IRQosTimerSetInterrupt() is called from, the interrupt set by
+ * IRQosTimerSetInterrupt() must always run the IRQwakeThreads() function from
+ * the WAKEUP_HANDLING_CORE.
  *
  * Finally, a note on timer accuracy. To provide accurate timekeeping,
  * IRQosTimerSetInterrupt() must perform the nanosecond to tick conversion
@@ -112,7 +120,7 @@
  * timer ticks to nanoseconds.
  * The preemption timer can instead be coarser grain and do not need to care
  * about not accumulating clock skew. This is also why it is permissible to use
- * the ARM SysTick for this purpose.
+ * the ARM SysTick for this purpose. A CoarseTimeConversion class is provided.
  * 
  * NOTE: when porting Miosix, on architectures providing a 16/32 bit timer with
  * - a timer counting up
@@ -124,7 +132,9 @@
  * DEFAULT_OS_TIMER_INTERFACE_IMPLEMENTATION macro to implement the os_timer
  * interface. On single-core microcontrollers using the unified model and thus
  * not needing the IRQosTimerSetPreemption() API, this covers the entire API
- * required to run Miosix.
+ * required to run Miosix, but you should consider using the separate timer
+ * model as it improves performance, especially of the scheduler. On ARM Cortex,
+ * arm_systick_os_timer.cpp provides the missing piece to do so.
  */
 
 namespace miosix {
@@ -161,18 +171,16 @@ void IRQosTimerInitSMP();
 #endif //WITH_SMP
 
 #if defined(WITH_SMP) || !defined(OS_TIMER_MODEL_UNIFIED)
-//TODO
-void IRQinitCoreLocalPreemptionTimer();
-
 /**
  * \internal
  * Set the next preemption interrupt. When the set time is reached, the timer
- * driver must call the scheduler on the core where function was called.
+ * driver must call the scheduler on the core where the function was called.
  *
  * If the timer model is unified, this function is never called on the
  * WAKEUP_HANDLING_CORE, thus on a single-core architecture, this function is
- * never called at all, and the driver must manage up to CPU_NUM_CORES-1
- * concurrent calls, one for each core that is not WAKEUP_HANDLING_CORE.
+ * never called at all, and on multi-core architectures the driver must manage
+ * up to CPU_NUM_CORES-1 concurrent calls, one for each core that is not
+ * WAKEUP_HANDLING_CORE.
  *
  * If the timer model is separate, then each core including WAKEUP_HANDLING_CORE
  * calls this function to handle preemption, and the timer driver is expected
@@ -611,3 +619,8 @@ unsigned int osTimerGetFrequency()                 \
 /**
  * \}
  */
+
+// Gated including of arch-specific functions to enable inlining
+#if !defined(OS_TIMER_MODEL_UNIFIED) && __ARM_ARCH>=6
+#include "arch/common/os_timer/arm_systick_os_timer_impl.h"
+#endif

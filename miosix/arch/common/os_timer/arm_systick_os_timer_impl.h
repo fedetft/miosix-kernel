@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2025 by Terraneo Federico                               *
+ *   Copyright (C) 2026 by Terraneo Federico                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,38 +25,46 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "interfaces/arch_registers.h"
-#include "interfaces_private/os_timer.h"
-
 /*
- * Miosix 3 can use the SysTick as a per-core preemption timer in the separate
- * timer model. However, we can't implement the entire OS timing subsystem using
- * SysTick only. Even in the separate timer model we need an additional timer
- * to handle high resolution timekeeping without clock skew and thread sleeps.
+ * Inline implementation of functions from interfaces_private/os_timer.h
+ * related to the per-core timer on ARM architectures providing SysTick.
  */
 
 #if !defined(OS_TIMER_MODEL_UNIFIED) && __ARM_ARCH>=6
 
+#include "interfaces/arch_registers.h"
+
 namespace miosix {
 
-CoarseTimeConversion preemptionTimeConversion;
+/**
+ * This function must be called:
+ * - on ARMv6 or higher CPUs (CPUs which provide the SysTick timer)
+ * - if OS_TIMER_MODEL_UNIFIED is not defined (separate timer model selected)
+ * - from IRQosTimerInit() in single-core architectures or from IRQosTimerInitSMP()
+ *   (thus once for each core)
+ * to enable the SysTick which is used to implement IRQosTimerSetPreemption().
+ */
+void IRQinitCoreLocalPreemptionTimer();
 
-void IRQinitCoreLocalPreemptionTimer()
+extern CoarseTimeConversion preemptionTimeConversion; //TODO
+
+inline void IRQosTimerSetPreemption(unsigned int ns) noexcept
 {
-    preemptionTimeConversion=CoarseTimeConversion(SystemCoreClock);
-    NVIC_EnableIRQ(SysTick_IRQn);
+    SysTick->LOAD=preemptionTimeConversion.ns2tick(ns);
+    // SysTick is weird. Writing any value to VAL causes LOAD to be stored in
+    // VAL. Couldn't it be implemented so that writing to VAL writes to VAL?
+    SysTick->VAL=1;
+    // Set TICKINT so that when timer reaches zero, interrupt is fired. Also
+    // set the other bits to avoid read-modify-write.
+    // NOTE: This register is also written in the ISR in cortexMx_interrupts.cpp
+    SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk
+                  | SysTick_CTRL_TICKINT_Msk
+                  | SysTick_CTRL_ENABLE_Msk;
+    // Immediately after starting the timer, change LOAD so that when the timer
+    // reaches zero, it restarts counting from the highest possible value to
+    // measure thread actual burst length
+    SysTick->LOAD=0x00ffffff;
 }
-
-// This may become part of the implementation of the to-be-defined API to get
-// thread actual burst lengths for the control scheduler
-// unsigned int getBurstErrorTicks()
-// {
-//     SysTick->CTRL=SysTick_CTRL_CLKSOURCE_Msk; //Stop timer
-//     int result=SysTick->VAL;
-//     // If timer overflowed, it kept counting so we can return negative value
-//     if(SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) result-=0x01000000;
-//     return result;
-// }
 
 } //namespace miosix
 
