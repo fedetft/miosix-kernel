@@ -87,6 +87,25 @@ extern int deepSleepCounter; ///< Shared with lock.cpp
 #endif //WITH_DEEP_SLEEP
 
 /**
+ * Update the OS timer after a thread is added to the sleeping list.
+ * Must not be called when the sleepingList is empty.
+ */
+static inline void updateOsTimer()
+{
+    #ifndef OS_TIMER_MODEL_UNIFIED
+    if(extraChecks==ExtraChecks::Kernel && sleepingList.empty())
+        errorHandler(Error::UNEXPECTED);
+    // Our wakeup may be earlier than any other sleep (or we may be the only
+    // thread sleeping), thus we should check and modify the wakeup interrupt.
+    long long firstWakeup=sleepingList.front()->wakeupTime;
+    if(firstWakeup<IRQosTimerGetInterrupt()) IRQosTimerSetInterrupt(firstWakeup);
+    #else //OS_TIMER_MODEL_UNIFIED
+    // This is not needed with the unified timer model as the scheduler will do
+    // it for us when setting the preemption.
+    #endif //OS_TIMER_MODEL_UNIFIED
+}
+
+/**
  * \internal
  * Idle thread. Created when the kernel is started, it physically deallocates
  * memory for deleted threads, and puts the cpu in sleep mode.
@@ -385,6 +404,7 @@ void Thread::nanoSleepUntil(long long absoluteTimeNs)
         SleepToken st(cur,absoluteTimeNs);
         cur->flags.IRQsetSleep(cur); //Sleeping thread: set sleep flag
         sleepingList.enqueue(&st);
+        updateOsTimer();
         IRQinvokeScheduler();
         {
             FastGlobalIrqUnlock eLock(dLock);
@@ -1054,6 +1074,7 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWaitImpl(long long absoluteTimeNs
         FastGlobalLockFromIrq lock;
         cur->flags.IRQsetWait(cur); //timedWait thread: set wait flag
         sleepingList.enqueue(&st);
+        updateOsTimer();
     }
 
     // Save Pk lock state, yield, and restore lock state.
@@ -1086,6 +1107,7 @@ TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTim
     SleepToken st(cur,absoluteTimeNs);
     cur->flags.IRQsetWait(cur); //timedWait thread: set wait flag
     sleepingList.enqueue(&st);
+    updateOsTimer();
 
     // Unlock GIL, yield, and relock again
     auto gilTakenRecursively=GlobalIrqLock::irqDisabledInLockedSection();

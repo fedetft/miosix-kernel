@@ -210,18 +210,21 @@ public:
     static long long IRQcomputePreemption(unsigned char coreId, unsigned int timeSlice)
     {
         using namespace std;
-        long long firstWakeup;
-        if(sleepingList.empty()) firstWakeup=numeric_limits<long long>::max();
-        else firstWakeup=sleepingList.front()->wakeupTime;
 
         long long t=0;
         #ifdef OS_TIMER_MODEL_UNIFIED
+        long long firstWakeup;
+        if(sleepingList.empty()) firstWakeup=numeric_limits<long long>::max();
+        else firstWakeup=sleepingList.front()->wakeupTime;
         // We could avoid setting an interrupt if the sleeping list is empty and
         // runningThreads[coreId] is idle but there's no such hurry to run idle
         // anyway, so why bother?
         #ifdef WITH_SMP
         if(coreId!=WAKEUP_HANDLING_CORE)
         {
+            #ifdef WITH_CPU_TIME_COUNTER
+            t=IRQgetTime();
+            #endif //WITH_CPU_TIME_COUNTER
             // IRQosTimerSetPreemption is to be used by all cores that are not
             // WAKEUP_HANDLING_CORE
             if(timeSlice>0) IRQosTimerSetPreemption(timeSlice);
@@ -231,9 +234,6 @@ public:
             // the WAKEUP_HANDLING_CORE
             if(firstWakeup<IRQosTimerGetInterrupt())
                 IRQosTimerSetInterrupt(firstWakeup);
-            #ifdef WITH_CPU_TIME_COUNTER
-            t=IRQgetTime();
-            #endif //WITH_CPU_TIME_COUNTER
         } else {
         #endif //WITH_SMP
             t=IRQgetTime();
@@ -247,12 +247,6 @@ public:
         #endif //WITH_SMP
         #else //OS_TIMER_MODEL_UNIFIED
         if(timeSlice>0) IRQosTimerSetPreemption(timeSlice);
-        // NOTE: even if we're not on the WAKEUP_HANDLING_CORE, the thread we
-        // just preempted may have started a sleep whose wakeup is earlier than
-        // any other sleep, thus we should check and modify the preemption of
-        // the WAKEUP_HANDLING_CORE
-        if(firstWakeup<IRQosTimerGetInterrupt())
-            IRQosTimerSetInterrupt(firstWakeup);
         #ifdef WITH_CPU_TIME_COUNTER
         t=IRQgetTime();
         #endif //WITH_CPU_TIME_COUNTER
