@@ -26,6 +26,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "board_settings.h"
 #include "interfaces/delays.h"
 
 namespace miosix {
@@ -41,11 +42,8 @@ void delayUs(unsigned int useconds)
     // it is written in assembler to be independent on compiler optimizations    
     //   Notice that the multiplication factor required is different between
     // CortexM0 and CortexM0+.
-    #ifdef SYSCLK_FREQ_32MHz
+    static_assert(sysclkFrequency==32000000,"delayUs not implemented");
     unsigned int counter=4;
-    #else
-    #error "delayUs not implemented"
-    #endif
     asm volatile("   mul   %0, %1, %0 \n"
                  "   sub   %0, %0, #1 \n"
                  "   .align 2         \n" // <- important!

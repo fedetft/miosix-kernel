@@ -3234,11 +3234,6 @@ else ifeq ($(ARCH),cortexM0plus_stm32l0)
         CFLAGS_BASE   += -DBOARD_STM32L053R8_NUCLEO
         CXXFLAGS_BASE += -DBOARD_STM32L053R8_NUCLEO
 
-        ## Clock frequency
-        ## External clock is 8Mhz provided from MCO output of ST-LINK. Actual
-        ## HSE crystal (X3) is not fitted.
-        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_32MHz=32000000
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -3265,11 +3260,6 @@ else ifeq ($(ARCH),cortexM0plus_stm32l0)
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -DBOARD_STM32L010RB_NUCLEO
         CXXFLAGS_BASE += -DBOARD_STM32L010RB_NUCLEO
-
-        ## Clock frequency
-        ## External clock is 8Mhz provided from MCO output of ST-LINK. Actual
-        ## HSE crystal (X3) is not fitted.
-        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_32MHz=32000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
