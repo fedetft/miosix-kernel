@@ -122,31 +122,32 @@ void configureSdram()
                        | FMC_SDCR1_NB     //  4 banks
                        | FMC_SDCR1_CAS_1; //  2 cycle CAS latency (TCK>9+0.5ns [1])
     
-    #ifdef SYSCLK_FREQ_180MHz
-    //One SDRAM clock cycle is 11.1ns
-    //Some bits in SDTR[1] are don't care, and the have to be set in SDTR[0],
-    //they aren't just don't care, the controller will fail if they aren't at 0
-    FMC_Bank5_6->SDTR[0]=(6-1)<<12        // 6 cycle TRC  (66.6ns>60ns)
-                       | (2-1)<<20;       // 2 cycle TRP  (22.2ns>18ns)
-    FMC_Bank5_6->SDTR[1]=(2-1)<<0         // 2 cycle TMRD
-                       | (6-1)<<4         // 6 cycle TXSR (66.6ns>61.5+0.5ns [1])
-                       | (4-1)<<8         // 4 cycle TRAS (44.4ns>42ns)
-                       | (2-1)<<16        // 2 cycle TWR
-                       | (2-1)<<24;       // 2 cycle TRCD (22.2ns>18ns)
-    #elif defined(SYSCLK_FREQ_168MHz)
-    //One SDRAM clock cycle is 11.9ns
-    //Some bits in SDTR[1] are don't care, and the have to be set in SDTR[0],
-    //they aren't just don't care, the controller will fail if they aren't at 0
-    FMC_Bank5_6->SDTR[0]=(6-1)<<12        // 6 cycle TRC  (71.4ns>60ns)
-                       | (2-1)<<20;       // 2 cycle TRP  (23.8ns>18ns)
-    FMC_Bank5_6->SDTR[1]=(2-1)<<0         // 2 cycle TMRD
-                       | (6-1)<<4         // 6 cycle TXSR (71.4ns>61.5+0.5ns [1])
-                       | (4-1)<<8         // 4 cycle TRAS (47.6ns>42ns)
-                       | (2-1)<<16        // 2 cycle TWR
-                       | (2-1)<<24;       // 2 cycle TRCD (23.8ns>18ns)
-    #else
-    #error No SDRAM timings for this clock
-    #endif
+    static_assert(sysclkFrequency==180000000 || sysclkFrequency==168000000,
+                  "No SDRAM timings for this clock");
+    if (sysclkFrequency==180000000)
+    {
+        //One SDRAM clock cycle is 11.1ns
+        //Some bits in SDTR[1] are don't care, and the have to be set in SDTR[0],
+        //they aren't just don't care, the controller will fail if they aren't at 0
+        FMC_Bank5_6->SDTR[0]=(6-1)<<12        // 6 cycle TRC  (66.6ns>60ns)
+                           | (2-1)<<20;       // 2 cycle TRP  (22.2ns>18ns)
+        FMC_Bank5_6->SDTR[1]=(2-1)<<0         // 2 cycle TMRD
+                           | (6-1)<<4         // 6 cycle TXSR (66.6ns>61.5+0.5ns [1])
+                           | (4-1)<<8         // 4 cycle TRAS (44.4ns>42ns)
+                           | (2-1)<<16        // 2 cycle TWR
+                           | (2-1)<<24;       // 2 cycle TRCD (22.2ns>18ns)
+    } else if (sysclkFrequency==168000000) {
+        //One SDRAM clock cycle is 11.9ns
+        //Some bits in SDTR[1] are don't care, and the have to be set in SDTR[0],
+        //they aren't just don't care, the controller will fail if they aren't at 0
+        FMC_Bank5_6->SDTR[0]=(6-1)<<12        // 6 cycle TRC  (71.4ns>60ns)
+                           | (2-1)<<20;       // 2 cycle TRP  (23.8ns>18ns)
+        FMC_Bank5_6->SDTR[1]=(2-1)<<0         // 2 cycle TMRD
+                           | (6-1)<<4         // 6 cycle TXSR (71.4ns>61.5+0.5ns [1])
+                           | (4-1)<<8         // 4 cycle TRAS (47.6ns>42ns)
+                           | (2-1)<<16        // 2 cycle TWR
+                           | (2-1)<<24;       // 2 cycle TRCD (23.8ns>18ns)
+    }
     //NOTE [1]: the timings for TCK and TIS depend on rise and fall times
     //(see note 9 and 10 on datasheet). Timings are adjusted accordingly to
     //the measured 2ns rise and fall time
@@ -176,15 +177,14 @@ void configureSdram()
     sdramCommandWait();
 
     // 32ms/4096=7.8125us, but datasheet says to round that to 7.8us
-    #ifdef SYSCLK_FREQ_180MHz
-    //7.8us*90MHz=702-20=682
-    FMC_Bank5_6->SDRTR=682<<1;
-    #elif defined(SYSCLK_FREQ_168MHz)
-    //7.8us*84MHz=655-20=635
-    FMC_Bank5_6->SDRTR=635<<1;
-    #else
-    #error No refresh timings for this clock
-    #endif
+    if (sysclkFrequency==180000000)
+    {
+        //7.8us*90MHz=702-20=682
+        FMC_Bank5_6->SDRTR=682<<1;
+    } else if (sysclkFrequency==168000000) {
+        //7.8us*84MHz=655-20=635
+        FMC_Bank5_6->SDRTR=635<<1;
+    }
 }
 
 void IRQbspInit()

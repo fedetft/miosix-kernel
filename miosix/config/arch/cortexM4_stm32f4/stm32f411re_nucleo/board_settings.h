@@ -48,6 +48,16 @@ namespace miosix {
 /// STM32F407VG only has 192KB of RAM so there is room for a big 4K stack.
 const unsigned int MAIN_STACK_SIZE=4*1024;
 
+/// Clock options
+enum class OscillatorType { HSE }; //Only one supported for now
+constexpr auto oscillatorType=OscillatorType::HSE;
+constexpr unsigned int hseFrequency=8000000;
+// Supported clock frequencies: 100000000, 84000000
+// Note: at 100Mhz SDIO and RNG run at the wrong speed and USB will not work
+// because the PLL will run at 40MHz instead of 48MHz due to hardware
+// limitations 
+constexpr unsigned int sysclkFrequency=100000000;
+
 /// Serial port
 /// Serial ports 1, 2, 6 are available (ports 3, 4, 5 do not exist!)
 const unsigned int defaultSerial=2;

@@ -26,6 +26,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/ 
 
+#include "board_settings.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces_private/sleep.h"
 #include "interfaces_private/os_timer.h"
@@ -56,22 +57,14 @@ static void IRQsetSystemClock()
     while((RCC->CFGR & RCC_CFGR_SWS ) != RCC_CFGR_SWS_HSI) ;
 
     //Configure PLL and turn it on
-    const int m=HSE_VALUE/1000000;
-    #ifdef SYSCLK_FREQ_168MHz
-    const int n=336;
-    const int p=2;
-    const int q=7;
-    #elif defined(SYSCLK_FREQ_100MHz)
-    const int n=200;
-    const int p=2;
-    const int q=5;
-    #elif defined(SYSCLK_FREQ_84MHz)
-    const int n=336;
-    const int p=4;
-    const int q=7;
-    #else
-    #error No PLL config for this clock frequency
-    #endif
+    const int m=hseFrequency/1000000;
+    constexpr int sysclkMhz=sysclkFrequency/1000000;
+    static_assert(sysclkMhz==180 || sysclkMhz==168 || sysclkMhz==100
+                || sysclkMhz==84,"unsupported sysclk frequency");
+    constexpr int p=sysclkMhz<100 ? 4 : 2;
+    constexpr int n=sysclkMhz*p;
+    // With SYSCLK 100MHz, 48MHz output will be 40MHz
+    constexpr int q=sysclkMhz==100 ? 5 : p/48;
     RCC->PLLCFGR=m | (n<<6) | (((p/2)-1)<<16) | RCC_PLLCFGR_PLLSRC_HSE | (q<<24);
     RCC->CR |= RCC_CR_PLLON;
     while((RCC->CR & RCC_CR_PLLRDY)==0) ;

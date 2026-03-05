@@ -122,31 +122,32 @@ void configureSdram()
                        | FMC_SDCR1_NB     //  4 banks
                        | FMC_SDCR1_CAS_1; //  2 cycle CAS latency (F<133MHz)
     
-    #ifdef SYSCLK_FREQ_180MHz
-    //One SDRAM clock cycle is 11.1ns
-    //Some bits in SDTR[1] are don't care, and the have to be set in SDTR[0],
-    //they aren't just don't care, the controller will fail if they aren't at 0
-    FMC_Bank5_6->SDTR[0]=(6-1)<<12        // 6 cycle TRC  (66.6ns>63ns)
-                       | (2-1)<<20;       // 2 cycle TRP  (22.2ns>15ns)
-    FMC_Bank5_6->SDTR[1]=(2-1)<<0         // 2 cycle TMRD
-                       | (7-1)<<4         // 7 cycle TXSR (77.7ns>70ns)
-                       | (4-1)<<8         // 4 cycle TRAS (44.4ns>42ns)
-                       | (2-1)<<16        // 2 cycle TWR
-                       | (2-1)<<24;       // 2 cycle TRCD (22.2ns>15ns)
-    #elif defined(SYSCLK_FREQ_168MHz)
-    //One SDRAM clock cycle is 11.9ns
-    //Some bits in SDTR[1] are don't care, and the have to be set in SDTR[0],
-    //they aren't just don't care, the controller will fail if they aren't at 0
-    FMC_Bank5_6->SDTR[0]=(6-1)<<12        // 6 cycle TRC  (71.4ns>63ns)
-                       | (2-1)<<20;       // 2 cycle TRP  (23.8ns>15ns)
-    FMC_Bank5_6->SDTR[1]=(2-1)<<0         // 2 cycle TMRD
-                       | (6-1)<<4         // 6 cycle TXSR (71.4ns>70ns)
-                       | (4-1)<<8         // 4 cycle TRAS (47.6ns>42ns)
-                       | (2-1)<<16        // 2 cycle TWR
-                       | (2-1)<<24;       // 2 cycle TRCD (23.8ns>15ns)
-    #else
-    #error No SDRAM timings for this clock
-    #endif
+    static_assert(sysclkFrequency==180000000 || sysclkFrequency==168000000,
+                  "No SDRAM timings for this clock");
+    if (sysclkFrequency==180000000)
+    {
+        //One SDRAM clock cycle is 11.1ns
+        //Some bits in SDTR[1] are don't care, and the have to be set in SDTR[0],
+        //they aren't just don't care, the controller will fail if they aren't at 0
+        FMC_Bank5_6->SDTR[0]=(6-1)<<12        // 6 cycle TRC  (66.6ns>63ns)
+                           | (2-1)<<20;       // 2 cycle TRP  (22.2ns>15ns)
+        FMC_Bank5_6->SDTR[1]=(2-1)<<0         // 2 cycle TMRD
+                           | (7-1)<<4         // 7 cycle TXSR (77.7ns>70ns)
+                           | (4-1)<<8         // 4 cycle TRAS (44.4ns>42ns)
+                           | (2-1)<<16        // 2 cycle TWR
+                           | (2-1)<<24;       // 2 cycle TRCD (22.2ns>15ns)
+    } else if (sysclkFrequency==168000000) {
+        //One SDRAM clock cycle is 11.9ns
+        //Some bits in SDTR[1] are don't care, and the have to be set in SDTR[0],
+        //they aren't just don't care, the controller will fail if they aren't at 0
+        FMC_Bank5_6->SDTR[0]=(6-1)<<12        // 6 cycle TRC  (71.4ns>63ns)
+                           | (2-1)<<20;       // 2 cycle TRP  (23.8ns>15ns)
+        FMC_Bank5_6->SDTR[1]=(2-1)<<0         // 2 cycle TMRD
+                           | (6-1)<<4         // 6 cycle TXSR (71.4ns>70ns)
+                           | (4-1)<<8         // 4 cycle TRAS (47.6ns>42ns)
+                           | (2-1)<<16        // 2 cycle TWR
+                           | (2-1)<<24;       // 2 cycle TRCD (23.8ns>15ns)
+    }
 
     FMC_Bank5_6->SDCMR=  FMC_SDCMR_CTB2   // Enable bank 2
                        | 1;               // MODE=001 clock enabled
@@ -171,15 +172,14 @@ void configureSdram()
     sdramCommandWait();
 
     // 64ms/4096=15.625us
-    #ifdef SYSCLK_FREQ_180MHz
-    //15.625us*90MHz=1406-20=1386
-    FMC_Bank5_6->SDRTR=1386<<1;
-    #elif defined(SYSCLK_FREQ_168MHz)
-    //15.625us*84MHz=1312-20=1292
-    FMC_Bank5_6->SDRTR=1292<<1;
-    #else
-    #error No refresh timings for this clock
-    #endif
+    if (sysclkFrequency==180000000)
+    {
+        //15.625us*90MHz=1406-20=1386
+        FMC_Bank5_6->SDRTR=1386<<1;
+    } else if (sysclkFrequency==168000000) {
+        //15.625us*84MHz=1312-20=1292
+        FMC_Bank5_6->SDRTR=1292<<1;
+    }
 }
 
 // static IRQDisplayPrint *irq_display;

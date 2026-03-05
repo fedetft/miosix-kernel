@@ -62,15 +62,7 @@ template <int div, int t_rcd_ns, int t_rp_ns, int t_wr_ns,
     int t_rc_ns, int t_ras_ns, int t_xsr_ns, int t_mrd_ns>
 static constexpr unsigned long sdramSDTR() noexcept
 {
-    #if defined(SYSCLK_FREQ_180MHz)
-    constexpr float hclk_mhz = 180;
-    #elif defined(SYSCLK_FREQ_168MHz)
-    constexpr float hclk_mhz = 168;
-    #elif defined(SYSCLK_FREQ_100MHz)
-    constexpr float hclk_mhz = 100;
-    #else
-    #error "Unknown clock frequency"
-    #endif
+    constexpr float hclk_mhz = sysclkFrequency/1000000;
     constexpr float t_ns = 1000.0f / (hclk_mhz / (float)div);
     constexpr int sdtr_trcd = std::ceil((float)t_rcd_ns / t_ns) - 1;
     static_assert(0 <= sdtr_trcd && sdtr_trcd <= 15);
@@ -98,15 +90,7 @@ static constexpr unsigned long sdramSDTR() noexcept
 template <int div, int n_rows, int t_refresh_ms>
 constexpr unsigned long sdramSDRTR() noexcept
 {
-    #if defined(SYSCLK_FREQ_180MHz)
-    constexpr float hclk_mhz = 180;
-    #elif defined(SYSCLK_FREQ_168MHz)
-    constexpr float hclk_mhz = 168;
-    #elif defined(SYSCLK_FREQ_100MHz)
-    constexpr float hclk_mhz = 100;
-    #else
-    #error "Unknown clock frequency"
-    #endif
+    constexpr float hclk_mhz = sysclkFrequency/1000000;
     constexpr float t_us = 1.0f / (hclk_mhz / (float)div);
     constexpr float t_refresh_us = (float)t_refresh_ms * 1000.0f;
     constexpr float t_refreshPerRow_us = t_refresh_us / (float)n_rows;

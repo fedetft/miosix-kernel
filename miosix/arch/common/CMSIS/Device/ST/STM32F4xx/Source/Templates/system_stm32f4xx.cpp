@@ -65,6 +65,7 @@
 
 //By TFT: was #include "stm32f4xx_hal.h", but the specific chip is #defined in
 //arch_registers_impl.h
+#include "board_settings.h"
 #include "interfaces/arch_registers.h"
 //By TFT: the .h file for the chip used to define this
 #define HSI_VALUE 16000000
@@ -107,45 +108,6 @@
 /* #define VECT_TAB_SRAM */
 #define VECT_TAB_OFFSET  0x00 /*!< Vector Table base offset field. 
                                    This value must be a multiple of 0x200. */
-/******************************************************************************/
-
-// By TFT -- begin
-// this was backported from an older version. Now this code seems to be
-// moved in a function called HAL_something...
-/************************* PLL Parameters *************************************/
-/* PLL_VCO = (HSE_VALUE or HSI_VALUE / PLL_M) * PLL_N */
-
-#define PLL_M (HSE_VALUE/1000000)
-
-/* SYSCLK = PLL_VCO / PLL_P */
-#ifdef SYSCLK_FREQ_180MHz
-#define PLL_N      360
-#define PLL_P      2
-// Warning: this output will be 45MHz due to PLL limitations instead of 48MHz.
-// This means that the SDIO and RNG will run approximatively 6% slower and
-// that the USB peripheral WILL NOT WORK as it requires a precise 48MHz
-#define PLL_Q      8
-#elif defined(SYSCLK_FREQ_168MHz)
-#define PLL_N      336
-#define PLL_P      2
-#define PLL_Q      7
-#elif defined(SYSCLK_FREQ_100MHz)
-#define PLL_N      200
-#define PLL_P      2
-// Warning: this output will be 40MHz due to PLL limitations instead of 48MHz.
-// This means that the SDIO and RNG will run approximatively 17% slower and
-// that the USB peripheral WILL NOT WORK as it requires a precise 48MHz
-#define PLL_Q      5
-#elif defined(SYSCLK_FREQ_84MHz)
-#define PLL_N      336
-#define PLL_P      4
-#define PLL_Q      7
-#else
-#error Clock not selected
-#endif
-
-/******************************************************************************/
-// By TFT -- end
 
 /**
   * @}
@@ -171,17 +133,7 @@
                variable is updated automatically.
   */
 //By TFT: we increase the clock BEFORE initializing .data and .bss!
-#ifdef SYSCLK_FREQ_180MHz
-uint32_t SystemCoreClock = 180000000;
-#elif defined(SYSCLK_FREQ_168MHz)
-uint32_t SystemCoreClock = 168000000;
-#elif defined(SYSCLK_FREQ_100MHz)
-uint32_t SystemCoreClock = 100000000;
-#elif defined(SYSCLK_FREQ_84MHz)
-uint32_t SystemCoreClock = 84000000;
-#else
-#error No clock defined
-#endif
+uint32_t SystemCoreClock = miosix::sysclkFrequency;
 const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
 
 /**
@@ -272,17 +224,17 @@ void SystemInit(void)
   *             
   *           - If SYSCLK source is HSI, SystemCoreClock will contain the HSI_VALUE(*)
   *                                              
-  *           - If SYSCLK source is HSE, SystemCoreClock will contain the HSE_VALUE(**)
+  *           - If SYSCLK source is HSE, SystemCoreClock will contain the hseFrequency(**)
   *                          
-  *           - If SYSCLK source is PLL, SystemCoreClock will contain the HSE_VALUE(**) 
+  *           - If SYSCLK source is PLL, SystemCoreClock will contain the hseFrequency(**) 
   *             or HSI_VALUE(*) multiplied/divided by the PLL factors.
   *         
   *         (*) HSI_VALUE is a constant defined in stm32f4xx_hal_conf.h file (default value
   *             16 MHz) but the real value may vary depending on the variations
   *             in voltage and temperature.   
   *    
-  *         (**) HSE_VALUE is a constant defined in stm32f4xx_hal_conf.h file (its value
-  *              depends on the application requirements), user has to ensure that HSE_VALUE
+  *         (**) hseFrequency is a constant defined in board_settings.h file (its value
+  *              depends on the application requirements), user has to ensure that hseFrequency
   *              is same as the real frequency of the crystal used. Otherwise, this function
   *              may have wrong result.
   *                
@@ -305,7 +257,7 @@ void SystemCoreClockUpdate(void)
       SystemCoreClock = HSI_VALUE;
       break;
     case 0x04:  /* HSE used as system clock source */
-      SystemCoreClock = HSE_VALUE;
+      SystemCoreClock = miosix::hseFrequency;
       break;
     case 0x08:  /* PLL used as system clock source */
 
@@ -318,7 +270,7 @@ void SystemCoreClockUpdate(void)
       if (pllsource != 0)
       {
         /* HSE used as PLL clock source */
-        pllvco = (HSE_VALUE / pllm) * ((RCC->PLLCFGR & RCC_PLLCFGR_PLLN) >> 6);
+        pllvco = (miosix::hseFrequency / pllm) * ((RCC->PLLCFGR & RCC_PLLCFGR_PLLN) >> 6);
       }
       else
       {
@@ -356,7 +308,28 @@ static void SetSysClock(void)
 /******************************************************************************/
 /*            PLL (clocked by HSE) used as System clock source                */
 /******************************************************************************/
-  __IO uint32_t StartUpCounter = 0, HSEStatus = 0;
+  uint32_t StartUpCounter = 0, HSEStatus = 0;
+
+
+// By TFT -- begin
+// this was backported from an older version. Now this code seems to be
+// moved in a function called HAL_something...
+/************************* PLL Parameters *************************************/
+/* PLL_VCO = (hseFrequency or HSI_VALUE / PLL_M) * PLL_N */
+
+  constexpr unsigned int PLL_M=miosix::hseFrequency/1000000;
+  constexpr unsigned int sysclkMhz=miosix::sysclkFrequency/1000000;
+  static_assert(sysclkMhz==180 || sysclkMhz==168 || sysclkMhz==100
+                || sysclkMhz==84,"unsupported sysclk frequency");
+  constexpr unsigned int PLL_P=sysclkMhz<100 ? 4 : 2;
+  constexpr unsigned int PLL_N=sysclkMhz*PLL_P;
+  unsigned int PLL_Q;
+  if(sysclkMhz==180) PLL_Q=8; // 48MHz output will be 45MHz
+  else if(sysclkMhz==100) PLL_Q=5; // 48MHz output will be 40MHz
+  else PLL_Q=PLL_P/48;
+
+/******************************************************************************/
+// By TFT -- end
   
   /* Enable HSE */
   RCC->CR |= ((uint32_t)RCC_CR_HSEON);
@@ -402,14 +375,17 @@ static void SetSysClock(void)
     /* Enable the main PLL */
     RCC->CR |= RCC_CR_PLLON;
 
-    #ifdef SYSCLK_FREQ_180MHz
-    //NOTE: stm32f42x can run up to 180MHz but require the regulator to switch
-    //to "overdrive mode". Stm32f405/7 don't have these registers but can't run
-    //at 180MHz anyway
-    PWR->CR |= PWR_CR_ODEN;
-    while((PWR->CSR & PWR_CSR_ODRDY)==0) ;
-    PWR->CR |= PWR_CR_ODSWEN;
-    while((PWR->CSR & PWR_CSR_ODSWRDY)==0) ;
+    #ifdef PWR_CR_ODEN
+    if constexpr(sysclkMhz>168)
+    {
+      //NOTE: stm32f42x can run up to 180MHz but require the regulator to switch
+      //to "overdrive mode". Stm32f405/7 don't have these registers but can't run
+      //at 180MHz anyway
+      PWR->CR |= PWR_CR_ODEN;
+      while((PWR->CSR & PWR_CSR_ODRDY)==0) ;
+      PWR->CR |= PWR_CR_ODSWEN;
+      while((PWR->CSR & PWR_CSR_ODSWRDY)==0) ;
+    }
     #endif
 
     /* Wait till the main PLL is ready */
@@ -418,17 +394,11 @@ static void SetSysClock(void)
     }
    
     /* Configure Flash prefetch, Instruction cache, Data cache and wait state */
-    #ifdef SYSCLK_FREQ_180MHz
-    FLASH->ACR = FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_LATENCY_5WS;
-    #elif defined(SYSCLK_FREQ_168MHz)
-    FLASH->ACR = FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_LATENCY_5WS;
-    #elif defined(SYSCLK_FREQ_100MHz)
-    FLASH->ACR = FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_LATENCY_3WS;
-    #elif defined(SYSCLK_FREQ_84MHz)
-    FLASH->ACR = FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_LATENCY_2WS;
-    #else
-    #error No flash latency for this frequency
-    #endif
+    unsigned int flashLatency;
+    if constexpr(sysclkMhz<=168) flashLatency = FLASH_ACR_LATENCY_5WS;
+    else if constexpr(sysclkMhz<=100) flashLatency = FLASH_ACR_LATENCY_3WS;
+    else flashLatency = FLASH_ACR_LATENCY_2WS;
+    FLASH->ACR = FLASH_ACR_ICEN | FLASH_ACR_DCEN | flashLatency;
 
     /* Select the main PLL as system clock source */
     RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));

@@ -25,25 +25,15 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "board_settings.h"
 #include "interfaces/delays.h"
 
 namespace miosix {
 
-void delayMs(unsigned int mseconds)
+void delayMs(unsigned int ms)
 {
-    #ifdef SYSCLK_FREQ_180MHz
-    const unsigned int count=45000;
-    #elif defined(SYSCLK_FREQ_168MHz)
-    const unsigned int count=42000;
-    #elif defined(SYSCLK_FREQ_100MHz)
-    const unsigned int count=25000;
-    #elif SYSCLK_FREQ_84MHz
-    const unsigned int count=21000;
-    #else
-    #warning "Delays are uncalibrated for this clock frequency"
-    #endif
-
-    for(unsigned int i=0;i<mseconds;i++)
+    const unsigned int count=sysclkFrequency/4000;
+    for(unsigned int i=0;i<ms;i++)
     {
         // This delay has been calibrated to take 1 millisecond
         // It is written in assembler to be independent on compiler optimizations
@@ -55,40 +45,17 @@ void delayMs(unsigned int mseconds)
     }
 }
 
-void delayUs(unsigned int useconds)
+void delayUs(unsigned int us)
 {
+    constexpr unsigned int cyPerUs=sysclkFrequency/4000000;
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimizations
-    #ifdef SYSCLK_FREQ_180MHz
-    asm volatile("    movs  r1, #45    \n"
+    asm volatile("    movs  r1, %1     \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #elif defined(SYSCLK_FREQ_168MHz)
-    asm volatile("    movs  r1, #42    \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  nop              \n" //Bring the loop time to 4 cycles
-                 "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #elif defined(SYSCLK_FREQ_100MHz)
-    asm volatile("    movs  r1, #25    \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  nop              \n" //Bring the loop time to 4 cycles
-                 "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #else //SYSCLK_FREQ_84MHz
-    asm volatile("    movs  r1, #21    \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  nop              \n" //Bring the loop time to 4 cycles
-                 "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #endif
+                 "    bpl   1b         \n"::"r"(us),"i"(cyPerUs):"r1","cc");
 }
 
 } //namespace miosix
-

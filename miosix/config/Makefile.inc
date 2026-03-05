@@ -188,11 +188,6 @@ ifeq ($(OPT_BOARD),stm32f407vg_stm32f4discovery)
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+192k_rom.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+192k_rom_processes.ld
 
-    ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-    CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
-    #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_100MHz=100000000
-    #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_84MHz=84000000
-
 endif
 
 ##---------------------------------------------------------------------------
@@ -307,15 +302,6 @@ ifeq ($(OPT_BOARD),stm32f429zi_stm32f4discovery)
     ## 8MB SDRAM memory. Do not uncomment this even if you don't use a linker
     ## script that requires it, as it is used for the LCD framebuffer.
     XRAM := -D__ENABLE_XRAM
-    
-    ## Select clock frequency. Warning: the default clock frequency for
-    ## this board is 168MHz and not 180MHz because, due to a limitation in
-    ## the PLL, it is not possible to generate a precise 48MHz output when
-    ## running the core at 180MHz. If 180MHz is chosen the USB peripheral will
-    ## NOT WORK and the SDIO and RNG will run ~6% slower (45MHz insteand of 48)
-    #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_180MHz=180000000
-    CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
-    #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_100MHz=100000000
 
 endif
 
@@ -352,14 +338,6 @@ ifeq ($(OPT_BOARD),stm32f429zi_oledboard2)
     ## 8MB SDRAM memory. Do not uncomment this even if you don't use a linker
     ## script that requires it, as it is used for the LCD framebuffer.
     XRAM := -D__ENABLE_XRAM
-    
-    ## Select clock frequency. Warning: the default clock frequency for
-    ## this board is 168MHz and not 180MHz because, due to a limitation in
-    ## the PLL, it is not possible to generate a precise 48MHz output when
-    ## running the core at 180MHz. If 180MHz is chosen the USB peripheral will
-    ## NOT WORK and the SDIO and RNG will run ~6% slower (45MHz insteand of 48)
-    CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
-    #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_180MHz=180000000
 
 endif
 
@@ -381,13 +359,8 @@ endif
 ##---------------------------------------------------------------------------
 ## stm32f411re_nucleo
 ##
-ifeq ($(OPT_BOARD),stm32f411re_nucleo)
 
-    # Select clock frequency
-    CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_100MHz=100000000
-    #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_84MHz=84000000
-
-endif
+# No options
 
 ##---------------------------------------------------------------------------
 ## stm32f429zi_skyward_anakin
@@ -407,13 +380,6 @@ ifeq ($(OPT_BOARD),stm32f429zi_skyward_anakin)
     ## 8MB SDRAM memory. Do not uncomment this even if you don't use a linker
     ## script that requires it, as it is used for the LCD framebuffer.
     XRAM := -D__ENABLE_XRAM
-    
-    ## Select clock frequency.
-    ## Warning: due to a limitation in the PLL, it is not possible to generate
-    ## a precise 48MHz output when running the core at 180MHz. If 180MHz is
-    ## chosen the SDIO and RNG will run ~6% slower (45MHz insteand of 48)
-    CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_180MHz=180000000
-    #CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_168MHz=168000000
 
 endif
 
@@ -495,15 +461,6 @@ ifeq ($(OPT_BOARD),stm32f429zi_skyward_homeone)
     ## Uncommenting __ENABLE_XRAM enables the initialization of the external
     ## 8MB SDRAM memory.
     XRAM := -D__ENABLE_XRAM
-    
-    ## Select clock frequency. Warning: the default clock frequency for
-    ## this board is 168MHz and not 180MHz because, due to a limitation in
-    ## the PLL, it is not possible to generate a precise 48MHz output when
-    ## running the core at 180MHz. If 180MHz is chosen the USB peripheral will
-    ## NOT WORK and the SDIO and RNG will run ~6% slower (45MHz insteand of 48)
-    #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_180MHz=180000000
-    CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
-    #CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_100MHz=100000000
 
 endif
 
@@ -1622,9 +1579,6 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         CFLAGS_BASE   += -D_BOARD_BITSBOARD
         CXXFLAGS_BASE += -D_BOARD_BITSBOARD
 
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -1781,9 +1735,6 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         CFLAGS_BASE   += -D_BOARD_STM32F401VC_STM32F4DISCOVERY
         CXXFLAGS_BASE += -D_BOARD_STM32F401VC_STM32F4DISCOVERY
 
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_84MHz=84000000
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -1880,9 +1831,6 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         CFLAGS_BASE   += -D_BOARD_STM32F401RE_NUCLEO
         CXXFLAGS_BASE += -D_BOARD_STM32F401RE_NUCLEO
 
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_84MHz=84000000
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -1911,9 +1859,6 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_THERMALTESTCHIP
         CXXFLAGS_BASE += -D_BOARD_THERMALTESTCHIP
-
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -1944,9 +1889,6 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         CFLAGS_BASE   += -D_BOARD_STM32F411CE_BLACKPILL
         CXXFLAGS_BASE += -D_BOARD_STM32F411CE_BLACKPILL
 
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_100MHz=100000000
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -1976,9 +1918,6 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32F415VG_ST25DVDISCOVERY
         CXXFLAGS_BASE += -D_BOARD_STM32F415VG_ST25DVDISCOVERY
-
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_168MHz=168000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -2028,7 +1967,7 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     arch/common/drivers/sd_stm32f2_f4_f7.cpp                  \
     $(ARCH_INC)/interfaces-impl/delays.cpp                    \
     $(ARCH_INC)/interfaces-impl/poweroff.cpp                  \
-    arch/common/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c
+    arch/common/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.cpp
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM3_stm32f2

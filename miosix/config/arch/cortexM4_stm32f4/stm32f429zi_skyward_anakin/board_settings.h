@@ -48,6 +48,16 @@ namespace miosix {
 /// STM32F429ZI only has 256KB of RAM so there is room for a big 4K stack.
 const unsigned int MAIN_STACK_SIZE=4*1024;
 
+/// Clock options
+enum class OscillatorType { HSE }; //Only one supported for now
+constexpr auto oscillatorType=OscillatorType::HSE;
+constexpr unsigned int hseFrequency=25000000;
+// Supported clock frequencies: 180000000, 168000000
+// Note: at 180Mhz SDIO and RNG run at the wrong speed and USB will not work
+// because the PLL will run at 45MHz instead of 48MHz due to hardware
+// limitations 
+constexpr unsigned int sysclkFrequency=168000000;
+
 /// Serial port
 /// Serial ports 1 to 8 are available
 /// Note that serial 2 is used by the piksi GPS

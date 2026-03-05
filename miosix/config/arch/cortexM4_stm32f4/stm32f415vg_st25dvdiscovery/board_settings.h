@@ -48,6 +48,13 @@ namespace miosix {
 /// STM32F415VG only has 192KB of RAM so there is room for a big 4K stack.
 const unsigned int MAIN_STACK_SIZE=4*1024;
 
+/// Clock options
+enum class OscillatorType { HSE }; //Only one supported for now
+constexpr auto oscillatorType=OscillatorType::HSE;
+constexpr unsigned int hseFrequency=8000000;
+// Supported clock frequencies: 168000000
+constexpr unsigned int sysclkFrequency=168000000;
+
 /// Serial port
 //Serial ports 1 to 6 are available, serial 2 is brought over to unsoldered
 //headers on the PCB, serial 6 is connected to the STLink USB ACM adapter,

@@ -48,6 +48,13 @@ namespace miosix {
 /// Application requires more than the usual 4KB stack, increasing to 5KB.
 const unsigned int MAIN_STACK_SIZE=5*1024;
 
+/// Clock options
+enum class OscillatorType { HSE }; //Only one supported for now
+constexpr auto oscillatorType=OscillatorType::HSE;
+constexpr unsigned int hseFrequency=8000000;
+// Supported clock frequencies: 168000000
+constexpr unsigned int sysclkFrequency=168000000;
+
 /// Serial port
 /// Serial ports 1 to 6 are available
 const unsigned int defaultSerial=1;
