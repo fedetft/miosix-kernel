@@ -68,7 +68,7 @@ void IRQbspInit()
     GPIOE->OSPEEDR=0xaaaaaaaa;
     GPIOH->OSPEEDR=0xaaaaaaaa;
     _led::mode(Mode::OUTPUT);
-    DefaultConsole::instance().IRQset(
+    IRQsetDefaultConsole(
         STM32SerialBase::get<defaultSerialTxPin,defaultSerialRxPin,
         defaultSerialRtsPin,defaultSerialCtsPin>(
             defaultSerial,defaultSerialSpeed,

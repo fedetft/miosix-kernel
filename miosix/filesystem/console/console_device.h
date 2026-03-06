@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013, 2014 by Terraneo Federico                         *
+ *   Copyright (C) 2013-2026 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,8 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef CONSOLE_DEVICE_H
-#define	CONSOLE_DEVICE_H
+#pragma once
 
 #include "config/miosix_settings.h"
 #include "filesystem/devfs/devfs.h"
@@ -161,75 +160,43 @@ private:
 };
 
 /**
- * This class holds the file object related to the console, that is set by
- * the board support package, and used to populate /dev/console in DevFs
+ * Called by the board support package, in particular IRQbspInit(), to pass
+ * to the kernel the console device. This device file is used as the default
+ * one for stdin/stdout/stderr.
+ * Notes: this has to be called in IRQbspInit(), since if it's called too
+ * late some code gets a /dev/null-like file.
+ * Cannot be called again after boot as malloc/new with interrupts disabled
+ * is no longer permitted in Miosix 3. Also, calling this a second time to
+ * dynamically change the console device is probably a bad idea, as the device
+ * is cached around in the filesystem code and will result in some processes
+ * using the old device and some other the new one.
+ * \param console device file handling console I/O. Can only be called with
+ * interrupts disabled.
  */
-class DefaultConsole
-{
-public:
-    /**
-     * \return an instance of this class (singleton) 
-     */
-    static DefaultConsole& instance();
-    
-    /**
-     * Called by the board support package, in particular IRQbspInit(), to pass
-     * to the kernel the console device. This device file is used as the default
-     * one for stdin/stdout/stderr.
-     * Notes: this has to be called in IRQbspInit(), since if it's called too
-     * late the console gets initialized with a NullFile.
-     * Also, calling this a second time to dynamically change the console device
-     * is probably a bad idea, as the device is cached around in the filesystem
-     * code and will result in some processes using the old device and some
-     * other the new one.
-     * \param console device file handling console I/O. Can only be called with
-     * interrupts disabled. 
-     */
-    void IRQset(intrusive_ref_ptr<Device> console);
-    
-    /**
-     * Same as IRQset(), but can be called with interrupts enabled
-     * \param console device file handling console I/O. Can only be called with
-     * interrupts disabled. 
-     */
-    void set(intrusive_ref_ptr<Device> console) { IRQset(console); }
-    
-    /**
-     * \return the currently installed console device, wrapped in a
-     * TerminalDevice
-     */
-    intrusive_ref_ptr<Device> get() { return console; }
-    
-    /**
-     * \return the currently installed console device.
-     * Can be called with interrupts disabled or within an interrupt routine.
-     */
-    intrusive_ref_ptr<Device> IRQget() { return console; }
-    
-    #ifndef WITH_FILESYSTEM
-    /**
-     * \return the terminal device, when filesystem support is disabled.
-     * If filesystem is enabled, the terminal device can be found in the
-     * FileDescriptorTable
-     */
-    intrusive_ref_ptr<TerminalDevice> getTerminal() { return terminal; }
-    #endif //WITH_FILESYSTEM
-    
-private:    
-    /**
-     * Constructor, private as it is a singleton
-     */
-    DefaultConsole();
-    
-    DefaultConsole(const DefaultConsole&);
-    DefaultConsole& operator= (const DefaultConsole&);
-    
-    intrusive_ref_ptr<Device> console; ///< The raw console device
-    #ifndef WITH_FILESYSTEM
-    intrusive_ref_ptr<TerminalDevice> terminal; ///< The wrapped console device
-    #endif //WITH_FILESYSTEM
-};
+void IRQsetDefaultConsole(intrusive_ref_ptr<Device> console);
+
+/**
+ * \return the currently installed console device, wrapped in a
+ * TerminalDevice.
+ * Returns a /dev/null-like device if no console has been set.
+ */
+intrusive_ref_ptr<Device> getDefaultConsole();
+
+/**
+ * \return the currently installed console device.
+ * Can be called with interrupts disabled or within an interrupt routine.
+ * WARNING: unlike the non-IRQ version, this function returns nullptr if no
+ * console has been set, so check the pointer before using it.
+ */
+intrusive_ref_ptr<Device> IRQgetDefaultConsole();
+
+#ifndef WITH_FILESYSTEM
+/**
+ * \return the terminal device, when filesystem support is disabled.
+ * If filesystem is enabled, the terminal device can be found in the
+ * FileDescriptorTable
+ */
+intrusive_ref_ptr<TerminalDevice> getDefaultTerminal();
+#endif //WITH_FILESYSTEM
 
 } //namespace miosix
-
-#endif //CONSOLE_DEVICE_H

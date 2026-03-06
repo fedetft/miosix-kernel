@@ -117,7 +117,7 @@ void IRQbspInit()
     delayMs(100);
     ledOff();
     
-    DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
+    IRQsetDefaultConsole(intrusive_ref_ptr<Device>(
         STM32SerialBase::get<defaultSerialTxPin,defaultSerialRxPin,
         defaultSerialRtsPin,defaultSerialCtsPin>(
             defaultSerial,defaultSerialSpeed,

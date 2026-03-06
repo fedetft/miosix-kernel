@@ -66,7 +66,7 @@ void IRQbspInit()
     
     mii::res::high();
     
-    DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
+    IRQsetDefaultConsole(intrusive_ref_ptr<Device>(
     #ifndef STDOUT_REDIRECTED_TO_DCC
         STM32SerialBase::get<defaultSerialTxPin,defaultSerialRxPin,
         defaultSerialRtsPin,defaultSerialCtsPin>(

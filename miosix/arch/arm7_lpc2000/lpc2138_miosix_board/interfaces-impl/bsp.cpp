@@ -153,7 +153,7 @@ void IRQbspInit()
     rtcInit();
     #endif //WITH_RTC
     //Init serial port
-    DefaultConsole::instance().IRQset(
+    IRQsetDefaultConsole(
         intrusive_ref_ptr<Device>(new LPC2000Serial(0,SERIAL_PORT_SPEED)));
 }
 

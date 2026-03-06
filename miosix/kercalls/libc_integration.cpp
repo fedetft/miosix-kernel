@@ -371,7 +371,7 @@ ssize_t _write_r(struct _reent *ptr, int fd, const void *buf, size_t size)
     #else //WITH_FILESYSTEM
     if(fd==STDOUT_FILENO || fd==STDERR_FILENO)
     {
-        ssize_t result=miosix::DefaultConsole::instance().getTerminal()->write(buf,size);
+        ssize_t result=miosix::getDefaultTerminal()->write(buf,size);
         if(result>=0) return result;
         ptr->_errno=-result;
         return -1;
@@ -412,7 +412,7 @@ ssize_t _read_r(struct _reent *ptr, int fd, void *buf, size_t size)
     #else //WITH_FILESYSTEM
     if(fd==STDIN_FILENO)
     {
-        ssize_t result=miosix::DefaultConsole::instance().getTerminal()->read(buf,size);
+        ssize_t result=miosix::getDefaultTerminal()->read(buf,size);
         if(result>=0) return result;
         ptr->_errno=-result;
         return -1;
@@ -685,7 +685,7 @@ int _ioctl_r(struct _reent *ptr, int fd, int cmd, void *arg)
     #else //WITH_FILESYSTEM
     if(fd==STDIN_FILENO || fd==STDOUT_FILENO || fd==STDERR_FILENO)
     {
-        int result=miosix::DefaultConsole::instance().getTerminal()->ioctl(cmd,arg);
+        int result=miosix::getDefaultTerminal()->ioctl(cmd,arg);
         if(result>=0) return result;
         ptr->_errno=-result;
         return -1;

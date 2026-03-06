@@ -62,7 +62,7 @@ void IRQbspInit()
     rx::mode(Mode::ALTERNATE_PULL_UP);
     tx::mode(Mode::ALTERNATE);
 
-    DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
+    IRQsetDefaultConsole(intrusive_ref_ptr<Device>(
         new ATSAMSerial(defaultSerial,defaultSerialSpeed)));
 }
 

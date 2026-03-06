@@ -81,7 +81,7 @@ FileDescriptorTable::FileDescriptorTable()
 {
     FilesystemManager::instance().addFileDescriptorTable(this);
     files[0]=files[1]=files[2]=intrusive_ref_ptr<FileBase>(
-        new TerminalDevice(DefaultConsole::instance().get()));
+        new TerminalDevice(getDefaultConsole()));
 }
 
 FileDescriptorTable::FileDescriptorTable(const FileDescriptorTable& rhs)

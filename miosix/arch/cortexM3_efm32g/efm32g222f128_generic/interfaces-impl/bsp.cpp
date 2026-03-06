@@ -162,13 +162,13 @@ void IRQbspInit()
     {
         using tx = Gpio<PE,10>;
         using rx = Gpio<PE,11>;
-        DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
+        IRQsetDefaultConsole(intrusive_ref_ptr<Device>(
             new EFM32Serial(defaultSerial,defaultSerialSpeed,
                             tx::getPin(),rx::getPin())));
     } else {
         using tx = Gpio<PC,0>;
         using rx = Gpio<PC,1>;
-        DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(
+        IRQsetDefaultConsole(intrusive_ref_ptr<Device>(
             new EFM32Serial(defaultSerial,defaultSerialSpeed,
                             tx::getPin(),rx::getPin())));
     }

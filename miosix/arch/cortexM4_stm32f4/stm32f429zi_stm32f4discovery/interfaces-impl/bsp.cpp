@@ -198,13 +198,13 @@ void IRQbspInit()
     ledOn();
     delayMs(100);
     ledOff();
-    DefaultConsole::instance().IRQset(
+    IRQsetDefaultConsole(
         STM32SerialBase::get<defaultSerialTxPin,defaultSerialRxPin,
         defaultSerialRtsPin,defaultSerialCtsPin>(
             defaultSerial,defaultSerialSpeed,
             defaultSerialFlowctrl,defaultSerialDma));
 //     irq_display = new IRQDisplayPrint();
-//     DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(irq_display));
+//     IRQsetDefaultConsole(intrusive_ref_ptr<Device>(irq_display));
 }
 
 // void* printIRQ(void *argv)

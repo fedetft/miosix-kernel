@@ -72,7 +72,7 @@ void IRQbspInit()
     delayMs(100);
     ledOff();
     // Initialize default serial
-    DefaultConsole::instance().IRQset(
+    IRQsetDefaultConsole(
         STM32SerialBase::get<defaultSerialTxPin,defaultSerialRxPin,
         defaultSerialRtsPin,defaultSerialCtsPin>(
             defaultSerial,defaultSerialSpeed,

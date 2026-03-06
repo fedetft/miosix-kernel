@@ -192,31 +192,50 @@ void TerminalDevice::echoBack(const char *chunkEnd, const char *sep, size_t sepL
     if(sep) device->writeBlock(sep,sepLen,0); //Ignore write errors
 }
 
-//
-// class DefaultConsole 
-//
 
-DefaultConsole& DefaultConsole::instance()
-{
-    static DefaultConsole singleton;
-    return singleton;
-}
 
-void DefaultConsole::IRQset(intrusive_ref_ptr<Device> console)
+static intrusive_ref_ptr<Device> defaultConsole; ///< The raw console device
+#ifndef WITH_FILESYSTEM
+static intrusive_ref_ptr<TerminalDevice> defaultTerminal; ///< The wrapped console device
+#endif //WITH_FILESYSTEM
+
+void IRQsetDefaultConsole(intrusive_ref_ptr<Device> console)
 {
-    //Note: should be safe to be called also outside of IRQ as set() calls
-    //IRQset()
-    atomic_store(&this->console,console);
+    atomic_store(&defaultConsole,console);
     #ifndef WITH_FILESYSTEM
-    atomic_store(&terminal,
+    atomic_store(&defaultTerminal,
         intrusive_ref_ptr<TerminalDevice>(new TerminalDevice(console)));
     #endif //WITH_FILESYSTEM
 }
 
-DefaultConsole::DefaultConsole() : console(new Device(Device::STREAM))
+intrusive_ref_ptr<Device> getDefaultConsole()
+{
+    intrusive_ref_ptr<Device> result=atomic_load(&defaultConsole);
+    if(result) return result;
+    // This code path is optimized for code size, but will cause repeated memory
+    // allocations every time it's called. However, this should never occur.
+    // On a board where IRQsetDefaultConsole is not set there is no console, so
+    // application code is expected to never write to it.
+    return intrusive_ref_ptr<Device>(new Device(Device::STREAM));
+}
+
+intrusive_ref_ptr<Device> IRQgetDefaultConsole()
+{
+    return defaultConsole;
+}
+
 #ifndef WITH_FILESYSTEM
-, terminal(new TerminalDevice(console))
-#endif //WITH_FILESYSTEM      
-{}
+intrusive_ref_ptr<TerminalDevice> getDefaultTerminal()
+{
+    intrusive_ref_ptr<TerminalDevice> result=atomic_load(&defaultTerminal);
+    if(result) return result;
+    // This code path is optimized for code size, but will cause repeated memory
+    // allocations every time it's called. However, this should never occur.
+    // On a board where IRQsetDefaultConsole is not set there is no console, so
+    // application code is expected to never write to it.
+    return intrusive_ref_ptr<TerminalDevice>(new TerminalDevice(intrusive_ref_ptr<Device>(new Device(Device::STREAM))));
+}
+#endif //WITH_FILESYSTEM
+
 
 } //namespace miosix

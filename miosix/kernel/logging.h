@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012, 2013, 2014 by Terraneo Federico       *
+ *   Copyright (C) 2010-2026 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,13 +25,14 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef LOGGING_H
-#define	LOGGING_H
+#pragma once
 
 #include "config/miosix_settings.h"
 #include "filesystem/console/console_device.h"
 #include <cstdio>
 #include <cstdarg>
+
+namespace miosix {
 
 /**
  * Print boot logs. Contrary to (i)printf(), this can be disabled in
@@ -59,7 +60,8 @@ inline void bootlog(const char *fmt, ...)
 #ifdef WITH_BOOTLOG
 inline void IRQbootlog(const char *string)
 {
-    miosix::DefaultConsole::instance().IRQget()->IRQwrite(string);
+    auto console=IRQgetDefaultConsole();
+    if(console) console->IRQwrite(string);
 }
 #else //WITH_BOOTLOG
 #define IRQbootlog(x)
@@ -91,10 +93,11 @@ inline void errorLog(const char *fmt, ...)
 #ifdef WITH_ERRLOG
 inline void IRQerrorLog(const char *string)
 {
-    miosix::DefaultConsole::instance().IRQget()->IRQwrite(string);
+    auto console=IRQgetDefaultConsole();
+    if(console) console->IRQwrite(string);
 }
 #else //WITH_ERRLOG
 #define IRQerrorLog(x)
 #endif //WITH_ERRLOG
 
-#endif	/* LOGGING_H */
+} //namespace miosix

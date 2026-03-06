@@ -52,7 +52,7 @@ namespace miosix {
 
 void IRQbspInit()
 {
-    DefaultConsole::instance().IRQset(intrusive_ref_ptr<Device>(new ARMDCC));
+    IRQsetDefaultConsole(intrusive_ref_ptr<Device>(new ARMDCC));
 }
 
 void bspInit2()

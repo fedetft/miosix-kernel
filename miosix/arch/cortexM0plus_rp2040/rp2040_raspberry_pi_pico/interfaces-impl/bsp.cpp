@@ -78,7 +78,7 @@ void IRQbspInit()
     ledOff();
     #endif
 
-    DefaultConsole::instance().IRQset(
+    IRQsetDefaultConsole(
         RP2040SerialBase::get<defaultSerialTxPin,defaultSerialRxPin,
         defaultSerialRtsPin,defaultSerialCtsPin>(
             defaultSerial,defaultSerialSpeed,

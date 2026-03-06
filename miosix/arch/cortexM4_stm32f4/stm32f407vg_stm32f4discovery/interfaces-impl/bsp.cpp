@@ -78,7 +78,7 @@ void IRQbspInit()
     cs43l22reset::mode(Mode::OUTPUT);
     cs43l22reset::low();
     // Initialize default serial
-    DefaultConsole::instance().IRQset(
+    IRQsetDefaultConsole(
         STM32SerialBase::get<defaultSerialTxPin,defaultSerialRxPin,
         defaultSerialRtsPin,defaultSerialCtsPin>(
             defaultSerial,defaultSerialSpeed,
