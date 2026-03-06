@@ -87,25 +87,6 @@ extern int deepSleepCounter; ///< Shared with lock.cpp
 #endif //WITH_DEEP_SLEEP
 
 /**
- * Update the OS timer after a thread is added to the sleeping list.
- * Must not be called when the sleepingList is empty.
- */
-static inline void updateOsTimer()
-{
-    #ifndef OS_TIMER_MODEL_UNIFIED
-    if(extraChecks==ExtraChecks::Kernel && sleepingList.empty())
-        errorHandler(Error::UNEXPECTED);
-    // Our wakeup may be earlier than any other sleep (or we may be the only
-    // thread sleeping), thus we should check and modify the wakeup interrupt.
-    long long firstWakeup=sleepingList.front()->wakeupTime;
-    if(firstWakeup<IRQosTimerGetInterrupt()) IRQosTimerSetInterrupt(firstWakeup);
-    #else //OS_TIMER_MODEL_UNIFIED
-    // This is not needed with the unified timer model as the scheduler will do
-    // it for us when setting the preemption.
-    #endif //OS_TIMER_MODEL_UNIFIED
-}
-
-/**
  * \internal
  * Idle thread. Created when the kernel is started, it physically deallocates
  * memory for deleted threads, and puts the cpu in sleep mode.
@@ -332,6 +313,27 @@ void IRQwakeThreads(long long currentTime)
     #endif //OS_TIMER_MODEL_UNIFIED
 }
 
+/**
+ * Update the OS timer after a thread is added to the sleeping list.
+ * Must not be called when the sleepingList is empty.
+ */
+static inline void IRQupdateOsTimer()
+{
+    // Updating the OS timer is only required
+    // - In the separate timer model, as in this case the scheduler never calls
+    //   IRQosTimerSetInterrupt(), both on single core and SMP configurations
+    // - In the unified timer model with SMP, as in this case the scheduler
+    //   updates the OS timer only when running on WAKEUP_HANDLING_CORE, thus a
+    //   thread running on another core and initiating a sleep won't cause the
+    //   OS timer to be updated
+    #if !defined(OS_TIMER_MODEL_UNIFIED) || defined(WITH_SMP)
+    if(extraChecks==ExtraChecks::Kernel && sleepingList.empty())
+        errorHandler(Error::UNEXPECTED);
+    long long firstWakeup=sleepingList.front()->wakeupTime;
+    if(firstWakeup<IRQosTimerGetInterrupt()) IRQosTimerSetInterrupt(firstWakeup);
+    #endif //OS_TIMER_MODEL_UNIFIED
+}
+
 /*
 Memory layout for a thread
     |------------------------|
@@ -404,7 +406,7 @@ void Thread::nanoSleepUntil(long long absoluteTimeNs)
         SleepToken st(cur,absoluteTimeNs);
         cur->flags.IRQsetSleep(cur); //Sleeping thread: set sleep flag
         sleepingList.enqueue(&st);
-        updateOsTimer();
+        IRQupdateOsTimer();
         IRQinvokeScheduler();
         {
             FastGlobalIrqUnlock eLock(dLock);
@@ -1074,7 +1076,7 @@ TimedWaitResult Thread::PKrestartKernelAndTimedWaitImpl(long long absoluteTimeNs
         FastGlobalLockFromIrq lock;
         cur->flags.IRQsetWait(cur); //timedWait thread: set wait flag
         sleepingList.enqueue(&st);
-        updateOsTimer();
+        IRQupdateOsTimer();
     }
 
     // Save Pk lock state, yield, and restore lock state.
@@ -1107,7 +1109,7 @@ TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTim
     SleepToken st(cur,absoluteTimeNs);
     cur->flags.IRQsetWait(cur); //timedWait thread: set wait flag
     sleepingList.enqueue(&st);
-    updateOsTimer();
+    IRQupdateOsTimer();
 
     // Unlock GIL, yield, and relock again
     auto gilTakenRecursively=GlobalIrqLock::irqDisabledInLockedSection();

@@ -205,7 +205,10 @@ public:
      * will be scheduled next. After that time, the scheduler will be called
      * on coreId to perform preemption. The special value 0 means unbounded time
      * slice (no preemption will be performed)
-     * \return the current time in nanoseconds if WITH_CPU_TIME_COUNTER is defined
+     * \return the current time in nanoseconds if WITH_CPU_TIME_COUNTER is
+     * defined, else the return value should be ignored. This is done to
+     * call the relatively expensive IRQgetTime() only once despite both
+     * CPUTimeCounter and some code paths of the preemption code need it.
      */
     static long long IRQcomputePreemption(unsigned char coreId, unsigned int timeSlice)
     {
@@ -213,12 +216,6 @@ public:
 
         long long t=0;
         #ifdef OS_TIMER_MODEL_UNIFIED
-        long long firstWakeup;
-        if(sleepingList.empty()) firstWakeup=numeric_limits<long long>::max();
-        else firstWakeup=sleepingList.front()->wakeupTime;
-        // We could avoid setting an interrupt if the sleeping list is empty and
-        // runningThreads[coreId] is idle but there's no such hurry to run idle
-        // anyway, so why bother?
         #ifdef WITH_SMP
         if(coreId!=WAKEUP_HANDLING_CORE)
         {
@@ -228,19 +225,19 @@ public:
             // IRQosTimerSetPreemption is to be used by all cores that are not
             // WAKEUP_HANDLING_CORE
             if(timeSlice>0) IRQosTimerSetPreemption(timeSlice);
-            // NOTE: even if we're not on the WAKEUP_HANDLING_CORE, the thread we
-            // just preempted may have started a sleep whose wakeup is earlier than
-            // any other sleep, thus we should check and modify the preemption of
-            // the WAKEUP_HANDLING_CORE
-            if(firstWakeup<IRQosTimerGetInterrupt())
-                IRQosTimerSetInterrupt(firstWakeup);
         } else {
         #endif //WITH_SMP
             t=IRQgetTime();
+            long long firstWakeup;
+            if(sleepingList.empty()) firstWakeup=numeric_limits<long long>::max();
+            else firstWakeup=sleepingList.front()->wakeupTime;
             long long nextPreempt;
             if(timeSlice>0) nextPreempt=t+timeSlice;
             else nextPreempt=numeric_limits<long long>::max();
             nextPreemptionWakeupCore=nextPreempt;
+            // We could avoid setting an interrupt if the sleeping list is empty
+            // and we're about to run idle but there's no such hurry to run idle
+            // anyway, so why bother?
             IRQosTimerSetInterrupt(min(firstWakeup,nextPreempt));
         #ifdef WITH_SMP
         }

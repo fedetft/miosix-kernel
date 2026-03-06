@@ -286,11 +286,12 @@ const unsigned int MAX_TIME_SLICE=1000000;
 #endif //SCHED_TYPE_PRIORITY
 
 /// \def OS_TIMER_MODEL_UNIFIED
-/// If this configuration option is selected, the kernel uses a single timer
-/// for both preemption and timekeeping (getTime() and Thread::nanoSleep()).
-/// If this option is not selected, the kernel uses one timer for timekeeping
-/// for the entire OS plus a separate timer for each CPU core for context
-/// switches. In single-core microcontrollers, two timers are needed.
+/// Replace the new 1+N high-resolution timing subsystem, also called separate
+/// timer model with the old high-resolution timing subsystem, called unified.
+/// This only makes sense for boards that have a low number of hardware timers,
+/// as the new timer model significantly improves the scheduler perofrmance, see
+/// the paper "Efficient Design of High-Resolution Timekeeping in Real-Time
+/// Operating Systems"
 //#define OS_TIMER_MODEL_UNIFIED
 
 /// Select the implementation of pthread_mutex_t. Three options:
