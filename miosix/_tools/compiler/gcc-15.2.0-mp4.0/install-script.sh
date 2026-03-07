@@ -15,7 +15,7 @@
 
 #### Configuration tunables -- begin ####
 
-__GCCPATCUR='4.0' # Can't autodetect this one easily from gcc.patch
+__GCCPATCUR='4.1' # Can't autodetect this one easily from gcc.patch
 
 # This should be set to true unless you're installing locally on your Linux
 # machine the compiler that will be used to do canadian cross compiling for
