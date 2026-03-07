@@ -81,7 +81,10 @@ Mapfile loadMapFileByFunctionNames(const string& filename)
     };
     while(getline(in,line))
     {
-        if(line=="Linker script and memory map") break; //Filter initial garbage
+        // Filter initial garbage.
+        // We can't look for the string "Linker script and memory map" as this
+        // string is localized, so the best non-localized string is this one...
+        if(line=="*default*        0x00000000         0xffffffff") break;
     }
     while(getline(in,line))
     {
@@ -134,7 +137,10 @@ Mapfile loadMapFileByTranslationUnits(const string& filename)
     };
     while(getline(in,line))
     {
-        if(line=="Linker script and memory map") break; //Filter initial garbage
+        // Filter initial garbage.
+        // We can't look for the string "Linker script and memory map" as this
+        // string is localized, so the best non-localized string is this one...
+        if(line=="*default*        0x00000000         0xffffffff") break;
     }
     while(getline(in,line))
     {
