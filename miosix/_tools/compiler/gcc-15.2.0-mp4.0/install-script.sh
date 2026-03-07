@@ -863,8 +863,8 @@ if [[ $DESTDIR ]]; then
 		# permissions to group and other, resulting in an unusable installation
 		./$MAKESELF/makeself.sh --xz --keep-umask \
 			$DESTDIR$PREFIX \
-			MiosixToolchainInstaller15.2.0mp4.0.run \
-			"Miosix toolchain for Linux (GCC 15.2.0-mp4.0)" \
+			MiosixToolchainInstaller15.2.0mp4.1.run \
+			"Miosix toolchain for Linux (GCC 15.2.0-mp4.1)" \
 			"./installer.sh"
 	elif [[ ( $(uname -s) == 'Linux' ) && ( $HOST == *mingw* ) ]]; then
 		# Build an executable installer for Windows
