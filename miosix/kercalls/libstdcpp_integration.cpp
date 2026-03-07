@@ -103,22 +103,6 @@ extern "C" void *_Miosix_get_sjlj_ptr()
 
 } //namespace __cxxabiv1
 
-namespace __gnu_cxx {
-
-/**
- * \internal
- * Replaces the default verbose terminate handler.
- * Avoids the inclusion of code to demangle C++ names, which saves code size
- * when using exceptions.
- */
-void __verbose_terminate_handler()
-{
-    errorLog("\n***Unhandled exception thrown\n");
-    _exit(1);
-}
-
-} //namespace __gnu_cxx
-
 
 
 
