@@ -310,26 +310,22 @@ static void SetSysClock(void)
 /******************************************************************************/
   uint32_t StartUpCounter = 0, HSEStatus = 0;
 
-
-// By TFT -- begin
-// this was backported from an older version. Now this code seems to be
-// moved in a function called HAL_something...
-/************************* PLL Parameters *************************************/
-/* PLL_VCO = (hseFrequency or HSI_VALUE / PLL_M) * PLL_N */
-
+  // By TFT -- begin
+  // this was backported from an older version. Now this code seems to be
+  // moved in a function called HAL_something...
+  static_assert(miosix::oscillatorType==miosix::OscillatorType::HSE,
+                "Unsupported oscillator type");
   constexpr unsigned int PLL_M=miosix::hseFrequency/1000000;
   constexpr unsigned int sysclkMhz=miosix::sysclkFrequency/1000000;
   static_assert(sysclkMhz==180 || sysclkMhz==168 || sysclkMhz==100
-                || sysclkMhz==84,"unsupported sysclk frequency");
+                || sysclkMhz==84,"Unsupported sysclk frequency");
   constexpr unsigned int PLL_P=sysclkMhz<100 ? 4 : 2;
   constexpr unsigned int PLL_N=sysclkMhz*PLL_P;
   unsigned int PLL_Q;
   if(sysclkMhz==180) PLL_Q=8; // 48MHz output will be 45MHz
   else if(sysclkMhz==100) PLL_Q=5; // 48MHz output will be 40MHz
   else PLL_Q=PLL_P/48;
-
-/******************************************************************************/
-// By TFT -- end
+  // By TFT -- end
   
   /* Enable HSE */
   RCC->CR |= ((uint32_t)RCC_CR_HSEON);
