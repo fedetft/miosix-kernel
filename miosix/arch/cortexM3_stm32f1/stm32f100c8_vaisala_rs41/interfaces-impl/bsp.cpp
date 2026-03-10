@@ -118,6 +118,7 @@ void shutdown()
     //Cut power to whole system
     poweroff::mode(Mode::OUTPUT);
     poweroff::high();
+    for(;;) ;
 }
 
 void reboot()
