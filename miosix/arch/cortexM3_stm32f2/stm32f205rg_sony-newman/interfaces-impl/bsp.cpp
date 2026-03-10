@@ -40,6 +40,7 @@
 #include "interfaces_private/os_timer.h"
 #include "interfaces/poweroff.h"
 #include "config/miosix_settings.h"
+#include "board_settings.h"
 
 using namespace std;
 
@@ -526,7 +527,7 @@ void PowerManagement::IRQsetSystemClock()
     while((RCC->CR & RCC_CR_HSERDY)==0) ;
 
     //Configure PLL and turn it on
-    const int m=HSE_VALUE/1000000;
+    const int m=miosix::hseFrequency/1000000;
     const int n=240;
     const int p=2;
     const int q=5;

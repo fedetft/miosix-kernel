@@ -46,13 +46,10 @@
 
 //By TFT: was #include "stm32f4xx_hal.h", but the specific chip is #defined in
 //arch_registers_impl.h
+#include "board_settings.h"
 #include "interfaces/arch_registers.h"
 //By TFT: was in the old stm32f4xx.h
 #define HSE_STARTUP_TIMEOUT    ((uint16_t)0x0500)
-
-#if !defined  (HSE_VALUE) 
-  #define HSE_VALUE    ((uint32_t)25000000) /*!< Default value of the External oscillator in Hz */
-#endif /* HSE_VALUE */
 
 #if !defined  (HSI_VALUE)
   #define HSI_VALUE    ((uint32_t)16000000) /*!< Value of the Internal oscillator in Hz*/
@@ -116,20 +113,6 @@
 #endif //_BOARD_SONY_NEWMAN
 //By TFT -- end
 
-//By TFT -- begin
-// this was backported from an older version. Now this code seems to be
-// moved in a function called HAL_something...
-/* PLL_VCO = (HSE_VALUE or HSI_VALUE / PLL_M) * PLL_N */
-#define PLL_M (HSE_VALUE/1000000)
-
-#define PLL_N      240
-
-/* SYSCLK = PLL_VCO / PLL_P */
-#define PLL_P      2
-
-/* USB OTG FS, SDIO and RNG Clock =  PLL_VCO / PLLQ */
-#define PLL_Q      5
-//By TFT -- end
 /******************************************************************************/
 
 /**
@@ -148,17 +131,17 @@
   * @{
   */
   
-  /* This variable can be updated in Three ways :
-      1) by calling CMSIS function SystemCoreClockUpdate()
-      2) by calling HAL API function HAL_RCC_GetHCLKFreq()
-      3) each time HAL_RCC_ClockConfig() is called to configure the system clock frequency 
-         Note: If you use this function to configure the system clock; then there
-               is no need to call the 2 first functions listed above, since SystemCoreClock
-               variable is updated automatically.
-  */
-  uint32_t SystemCoreClock = 120000000;
-  const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
-  const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
+/* This variable can be updated in Three ways :
+    1) by calling CMSIS function SystemCoreClockUpdate()
+    2) by calling HAL API function HAL_RCC_GetHCLKFreq()
+    3) each time HAL_RCC_ClockConfig() is called to configure the system clock frequency 
+        Note: If you use this function to configure the system clock; then there
+            is no need to call the 2 first functions listed above, since SystemCoreClock
+            variable is updated automatically.
+*/
+uint32_t SystemCoreClock = miosix::sysclkFrequency;
+const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
+const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
 /**
   * @}
   */
@@ -252,7 +235,7 @@ void SystemCoreClockUpdate(void)
       SystemCoreClock = HSI_VALUE;
       break;
     case 0x04:  /* HSE used as system clock source */
-      SystemCoreClock = HSE_VALUE;
+      SystemCoreClock = miosix::hseFrequency;
       break;
     case 0x08:  /* PLL used as system clock source */
 
@@ -265,7 +248,7 @@ void SystemCoreClockUpdate(void)
       if (pllsource != 0)
       {
         /* HSE used as PLL clock source */
-        pllvco = (HSE_VALUE / pllm) * ((RCC->PLLCFGR & RCC_PLLCFGR_PLLN) >> 6);
+        pllvco = (miosix::hseFrequency / pllm) * ((RCC->PLLCFGR & RCC_PLLCFGR_PLLN) >> 6);
       }
       else
       {
@@ -303,7 +286,23 @@ static void SetSysClock(void)
 /******************************************************************************/
 /*            PLL (clocked by HSE) used as System clock source                */
 /******************************************************************************/
-  __IO uint32_t StartUpCounter = 0, HSEStatus = 0;
+  uint32_t StartUpCounter = 0, HSEStatus = 0;
+
+  //By TFT -- begin
+  // this was backported from an older version. Now this code seems to be
+  // moved in a function called HAL_something...
+  /* PLL_VCO = (HSE_VALUE or HSI_VALUE / PLL_M) * PLL_N */
+  /* SYSCLK = PLL_VCO / PLL_P */
+  /* USB OTG FS, SDIO and RNG Clock =  PLL_VCO / PLLQ */
+  static_assert(miosix::oscillatorType==miosix::OscillatorType::HSE,
+                "Unsupported oscillator type");
+  constexpr unsigned int PLL_M=miosix::hseFrequency/1000000;
+  static_assert(miosix::sysclkFrequency==120000000,
+                "Unsupported sysclk frequency");
+  constexpr unsigned int PLL_N=240;
+  constexpr unsigned int PLL_P=2;
+  constexpr unsigned int PLL_Q=5;
+  //By TFT -- end
   
   /* Enable HSE */
   RCC->CR |= ((uint32_t)RCC_CR_HSEON);

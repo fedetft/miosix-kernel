@@ -48,6 +48,14 @@ namespace miosix {
 /// STM32F207ZG has 128KB of RAM so there is room for a big 4K stack.
 const unsigned int MAIN_STACK_SIZE=4*1024;
 
+/// Clock options
+enum class OscillatorType { HSI, HSE };
+// Supported oscillator types: HSE
+constexpr auto oscillatorType=OscillatorType::HSE;
+constexpr unsigned int hseFrequency=26000000;
+// Supported clock frequencies: 120000000
+constexpr unsigned int sysclkFrequency=120000000;
+
 /**
  * \}
  */

@@ -48,6 +48,16 @@ namespace miosix {
 /// STM32F207ZG has 128KB of RAM so there is room for a big 4K stack.
 const unsigned int MAIN_STACK_SIZE=4*1024;
 
+/// Clock options
+enum class OscillatorType { HSI, HSE };
+// Supported oscillator types: HSE
+constexpr auto oscillatorType=OscillatorType::HSE;
+// External clock is 8Mhz provided from MCO output of ST-LINK. Actual HSE
+// crystal (X3) is not fitted.
+constexpr unsigned int hseFrequency=8000000;
+// Supported clock frequencies: 120000000
+constexpr unsigned int sysclkFrequency=120000000;
+
 /// Serial port
 /// The ST-Link serial adapter in Nucleo 144 boards is connected to PD8/9
 const unsigned int defaultSerial=3;

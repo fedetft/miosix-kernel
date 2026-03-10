@@ -25,6 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "board_settings.h"
 #include "interfaces/delays.h"
 
 namespace miosix {
@@ -33,15 +34,12 @@ void delayMs(unsigned int mseconds)
 {
     #ifndef __CODE_IN_XRAM
 
-    #ifdef SYSCLK_FREQ_120MHz
+    static_assert(sysclkFrequency==120000000,"Unsupported clock frequency");
     const unsigned int count=40000; //Flash 3 wait state
-    #else //SYSCLK_FREQ_120MHz
-    #error "Delays are uncalibrated for this clock frequency"
-    #endif //SYSCLK_FREQ_120MHz
 
     #else //__CODE_IN_XRAM
 
-    #ifdef SYSCLK_FREQ_120MHz
+    static_assert(sysclkFrequency==120000000,"Unsupported clock frequency");
 
     //When running code from external RAM delays depend on the RAM timings
     #if defined(_BOARD_STM3220G_EVAL)
@@ -49,12 +47,8 @@ void delayMs(unsigned int mseconds)
     #elif defined(_BOARD_ETHBOARDV2)
     const unsigned int count=6000;
     #else
-    #error "Delays are uncalibrated for this clock board"
+    #error RAM delays are uncalibrated for this board
     #endif
-
-    #else //SYSCLK_FREQ_120MHz
-    #error "Delays are uncalibrated for this clock frequency"
-    #endif //SYSCLK_FREQ_120MHz
 
     #endif //__CODE_IN_XRAM
 
@@ -75,17 +69,17 @@ void delayUs(unsigned int useconds)
     // It is written in assembler to be independent on compiler optimizations
     #ifndef __CODE_IN_XRAM
 
-    #ifdef SYSCLK_FREQ_120MHz
+    static_assert(sysclkFrequency==120000000,"Unsupported clock frequency");
+
     asm volatile("    movs  r1, #40    \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  subs  r1, r1, #1 \n"
                  "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #endif //SYSCLK_FREQ_120MHz
 
     #else //__CODE_IN_XRAM
 
-    #ifdef SYSCLK_FREQ_120MHz
+    static_assert(sysclkFrequency==120000000,"Unsupported clock frequency");
 
     //When running code from external RAM delays depend on the RAM timings
     #if defined(_BOARD_STM3220G_EVAL)
@@ -101,8 +95,6 @@ void delayUs(unsigned int useconds)
                  "1:  subs  r1, r1, #1 \n"
                  "    bpl   1b         \n"::"r"(useconds):"r1","cc");
     #endif
-
-    #endif //SYSCLK_FREQ_120MHz
 
     #endif //__CODE_IN_XRAM
 }
