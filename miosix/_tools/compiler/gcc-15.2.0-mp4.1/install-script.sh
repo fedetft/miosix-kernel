@@ -100,6 +100,16 @@ quit() {
 	exit 1
 }
 
+# Ensure the install destination is clean. If it is not, old and new
+# compiler files will mix up, potentially making the compilation fail.
+# This also applies to redistributable compilation because we need to make
+# symlinks inside $PREFIX to make the whole process work.
+# Don't do this check if canadian cross compiling for Windows though because we
+# need a working compiler installed in the right place for the host machine.
+if [[ -d "$PREFIX" && ! ( "$HOST" == *mingw* ) ]]; then
+	quit ":: Uninstall (or move away) the existing compiler first"
+fi
+
 # Is it a redistributable build?
 if [[ $DESTDIR ]]; then
 	if [[ $SUDO ]]; then
@@ -121,55 +131,32 @@ if [[ $DESTDIR ]]; then
 	# place, making redistributable builds basically impossible without
 	# using a clean purpose-built VM.
 	export PATH=/usr/bin:/bin:/usr/sbin:/sbin
-	if [[ -d $PREFIX/arm-miosix-eabi ]]; then
-		# If arm-miosix-eabi-gcc is already installed system-wide, make sure
-		# it's the same version, otherwise we may by mistake build part of the
-		# standard libraries with the old compiler
-		__GCCVER=`arm-miosix-eabi-gcc --version | perl -ne \
-			'next unless(/(\d+\.\d+.\d+)/); print "gcc-$1\n";'`;
-		__GCCPAT=`arm-miosix-eabi-gcc -dM -E - < /dev/null | perl -e \
-			'my $M, my $m;
-			 while(<>) {
-			 	$M=$1 if(/_MIOSIX_GCC_PATCH_MAJOR (\d+)/);
-			 	$m=$1 if(/_MIOSIX_GCC_PATCH_MINOR (\d+)/);
-			 }
-			 print "mp$M.$m";'`;
-		if [[ ($__GCCVER != $GCC) || ($__GCCPAT != "mp${__GCCPATCUR}") ]]; then
-			quit ":: Uninstall the previous compiler version first"
-		fi
-	else
-		# When building a redistributable build, we use DESTDIR. Thus, the
-		# compiler is "installed" to $DESTDIR$PREFIX even though it is meant to
-		# be run from $PREFIX. There is an issue though: building the standard
-		# libraries requires the to-be-built compiler, which isn't found, so
-		# building fails at the newlib stage. We wish the fix would just be a
-		# export PATH=$DESTDIR$PREFIX/bin:$PATH
-		# but turns out that isn't enough, as after newlib is built, the
-		# subsequent libraries (part of gcc-end) don't just require the compiler,
-		# they require the libc too that is installed in $DESTDIR$PREFIX, but
-		# the compiler looks for it in $PREFIX only...
-		# As a workaround, we temporarily do a symlink to make the compiler
-		# and standard libraries available from their final path, $PREFIX during
-		# the compilation process.
-		# Moreover, just symlinking /opt/arm-miosix-eabi fails, so we need to
-		# symlink only /opt/arm-miosix-eabi/arm-miosix-eabi
-		export PATH=$DESTDIR$PREFIX/bin:$PATH
-		mkdir -p $DESTDIR$PREFIX/arm-miosix-eabi
-		# This must unconditionally be done with sudo so it's important we use
-		# sudo and not $SUDO.
-		sudo mkdir -p $PREFIX
-		sudo ln -s $DESTDIR$PREFIX/arm-miosix-eabi $PREFIX/arm-miosix-eabi
-	fi
+  # When building a redistributable build, we use DESTDIR. Thus, the
+  # compiler is "installed" to $DESTDIR$PREFIX even though it is meant to
+  # be run from $PREFIX. There is an issue though: building the standard
+  # libraries requires the to-be-built compiler, which isn't found, so
+  # building fails at the newlib stage. We wish the fix would just be a
+  # export PATH=$DESTDIR$PREFIX/bin:$PATH
+  # but turns out that isn't enough, as after newlib is built, the
+  # subsequent libraries (part of gcc-end) don't just require the compiler,
+  # they require the libc too that is installed in $DESTDIR$PREFIX, but
+  # the compiler looks for it in $PREFIX only...
+  # As a workaround, we temporarily do a symlink to make the compiler
+  # and standard libraries available from their final path, $PREFIX during
+  # the compilation process.
+  # Moreover, just symlinking /opt/arm-miosix-eabi fails, so we need to
+  # symlink only /opt/arm-miosix-eabi/arm-miosix-eabi
+  export PATH=$DESTDIR$PREFIX/bin:$PATH
+  mkdir -p $DESTDIR$PREFIX/arm-miosix-eabi
+  # This must unconditionally be done with sudo so it's important we use
+  # sudo and not $SUDO.
+  sudo mkdir -p $PREFIX
+  sudo ln -s $DESTDIR$PREFIX/arm-miosix-eabi $PREFIX/arm-miosix-eabi
 else
 	if [[ $HOST || $BUILD ]]; then
 		# NOTE: doing a non redistributable build but specifying HOST or BUILD
 		# may work, but is untested. Remove this line if you want to try.
 		quit ":: Specifying either HOST or BUILD without DESTDIR is not supported"
-	fi
-	# Ensure the install destination is clean. If it is not, old and new
-	# compiler files will mix up, potentially making the compilation fail.
-	if [[ -d $PREFIX ]]; then
-		quit ":: Uninstall (or move away) the existing compiler first"
 	fi
 	# Add the install prefix to the path in order to ensure tools are
 	# available as soon as we build them.
