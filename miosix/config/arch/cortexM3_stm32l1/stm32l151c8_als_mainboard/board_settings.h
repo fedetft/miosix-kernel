@@ -48,8 +48,15 @@ namespace miosix {
 const unsigned int MAIN_STACK_SIZE=1536;
 
 /// Clock options
-enum class OscillatorType { LowSpeedInt };
-constexpr auto oscillatorType=OscillatorType::LowSpeedInt;
+enum class OscillatorType { HSI, HSE, HSEBYP, MSI };
+// HSI: High Speed Internal (fixed 16MHz)
+// HSE: External quartz Xtal
+// HSEBYP: Direct external clock input
+// MSI: Medium Speed Internal (configurable, default ~2MHz)
+// Supported oscillator types: HSI
+constexpr auto oscillatorType=OscillatorType::HSI;
+constexpr unsigned int hseFrequency=0; // no HSE
+// Supported clock frequencies: 16000000
 constexpr unsigned int sysclkFrequency=16000000;
 
 /// Serial port

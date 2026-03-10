@@ -39,7 +39,8 @@ namespace miosix {
 
 void IRQmemoryAndClockInit()
 {
-    static_assert(oscillatorType==OscillatorType::LowSpeedInt);
+    static_assert(oscillatorType==OscillatorType::HSI,
+                  "Unsupported oscillator type");
     static_assert(sysclkFrequency==16000000,"Unsupported sysclk setting");
     FLASH->ACR |= FLASH_ACR_ACC64;
     FLASH->ACR |= FLASH_ACR_PRFTEN;

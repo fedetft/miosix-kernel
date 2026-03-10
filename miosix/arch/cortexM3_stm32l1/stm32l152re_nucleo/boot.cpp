@@ -61,13 +61,16 @@ void IRQresetClockTree()
 void IRQsetupClockTree()
 {
     static_assert(hseFrequency==8000000,"Unsupported HSE frequency");
+    static_assert(oscillatorType==OscillatorType::HSE
+                  || oscillatorType==OscillatorType::HSEBYP,
+                  "Unsupported oscillator type");
 
     // Reset clock tree to initial state
     IRQresetClockTree();
 
     // Enable HSE
     unsigned long bypass=0;
-    if(oscillatorType==OscillatorType::ExtWithPLL) bypass=RCC_CR_HSEBYP;
+    if(oscillatorType==OscillatorType::HSEBYP) bypass=RCC_CR_HSEBYP;
     RCC->CR |= RCC_CR_HSEON | bypass;
     while((RCC->CR & RCC_CR_HSERDY) == 0) {}
 
@@ -79,10 +82,9 @@ void IRQsetupClockTree()
     RCC->APB1ENR |= RCC_APB1ENR_PWREN;
     RCC_SYNC();
     PWR->CR = PWR_CR_VOS_0;
-    while((PWR->CSR & PWR_CSR_VOSF) != 0) {}
+    while((PWR->CSR & PWR_CSR_VOSF) != 0) ;
 
     unsigned long mul,div;
-    //TODO: use if constexpr when we support C++17
     static_assert(sysclkFrequency==32000000
                 ||sysclkFrequency==24000000, "unsupported sysclk");
     if(sysclkFrequency==32000000)
@@ -97,11 +99,11 @@ void IRQsetupClockTree()
     RCC->CFGR |= (RCC_CFGR_PLLSRC_HSE | mul | div);
     // Enable PLL
     RCC->CR |= RCC_CR_PLLON;
-    while ((RCC->CR & RCC_CR_PLLRDY) == 0) {}
+    while ((RCC->CR & RCC_CR_PLLRDY) == 0) ;
 
     // Set PLL as system clock
     RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_PLL;
-    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) {}
+    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) ;
 }
 
 void IRQmemoryAndClockInit()

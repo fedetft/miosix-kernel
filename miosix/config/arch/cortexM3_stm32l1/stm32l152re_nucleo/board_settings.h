@@ -49,10 +49,18 @@ namespace miosix {
 const unsigned int MAIN_STACK_SIZE=1536;
 
 /// Clock options
-enum class OscillatorType { ExtWithPLL, ExtXtalWithPLL };
-constexpr auto oscillatorType=OscillatorType::ExtWithPLL;
+enum class OscillatorType { HSI, HSE, HSEBYP, MSI };
+// HSI: High Speed Internal (fixed 16MHz)
+// HSE: External quartz Xtal
+// HSEBYP: Direct external clock input
+// MSI: Medium Speed Internal (configurable, default ~2MHz)
+// Supported oscillator types: HSE, HSEBYP
+constexpr auto oscillatorType=OscillatorType::HSEBYP;
+// External clock is 8Mhz provided from MCO output of ST-LINK. Actual HSE
+// crystal (X3) is not fitted.
 constexpr unsigned int hseFrequency=8000000;
-constexpr unsigned int sysclkFrequency=32000000; //24000000;
+// Supported clock frequencies: 24000000, 32000000
+constexpr unsigned int sysclkFrequency=32000000;
 
 /// Serial port
 /// Serial ports 1 to 5 are available
