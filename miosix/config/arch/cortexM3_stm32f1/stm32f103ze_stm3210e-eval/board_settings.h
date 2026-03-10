@@ -54,6 +54,14 @@ namespace miosix {
 /// STM32F103ZE has 64KB of RAM so there is room for a big 4K stack.
 const unsigned int MAIN_STACK_SIZE=4*1024;
 
+/// Clock options
+enum class OscillatorType { HSI, HSE };
+// Supported oscillator types: HSE
+constexpr auto oscillatorType=OscillatorType::HSE;
+constexpr unsigned int hseFrequency=8000000;
+// Supported clock frequencies: 24000000, 36000000, 48000000, 56000000, 72000000
+constexpr unsigned int sysclkFrequency=72000000;
+
 /// Serial port
 /// Serial ports 1 to 5 are available (4 and 5 no DMA support)
 const unsigned int defaultSerial=1;

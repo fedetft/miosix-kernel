@@ -137,14 +137,6 @@ ifeq ($(OPT_BOARD),stm32f103ze_stm3210e-eval)
     XRAM := -D__ENABLE_XRAM
     #XRAM := -D__ENABLE_XRAM -D__CODE_IN_XRAM
 
-    ## Select clock frequency
-    ## Not defining any of these results in the internal 8MHz clock to be used
-    #CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000
-    #CLOCK_FREQ := -DSYSCLK_FREQ_36MHz=36000000
-    #CLOCK_FREQ := -DSYSCLK_FREQ_48MHz=48000000
-    #CLOCK_FREQ := -DSYSCLK_FREQ_56MHz=56000000
-    CLOCK_FREQ := -DSYSCLK_FREQ_72MHz=72000000
-
 endif
 
 ##---------------------------------------------------------------------------
@@ -392,16 +384,8 @@ endif
 ##---------------------------------------------------------------------------
 ## stm32f103c8_bluepill
 ##
-ifeq ($(OPT_BOARD),stm32f103c8_bluepill)
-    
-    ## Select clock frequency
-    #CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000
-    #CLOCK_FREQ := -DSYSCLK_FREQ_36MHz=36000000
-    #CLOCK_FREQ := -DSYSCLK_FREQ_48MHz=48000000
-    #CLOCK_FREQ := -DSYSCLK_FREQ_56MHz=56000000
-    CLOCK_FREQ := -DSYSCLK_FREQ_72MHz=72000000
 
-endif
+# No options
 
 ##---------------------------------------------------------------------------
 ## stm32f100c8_microboard
@@ -567,10 +551,6 @@ ifeq ($(OPT_BOARD),stm32f100xb_generic)
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_64k+8k_rom.ld
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_128k+8k_rom.ld
 
-    ## Select clock frequency
-    CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000 -DRUN_WITH_HSI
-    #CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000
-
 endif
 
 ##---------------------------------------------------------------------------
@@ -592,15 +572,7 @@ endif
 ## stm32f100c8_vaisala_rs41
 ##
 
-ifeq ($(OPT_BOARD),stm32f100c8_vaisala_rs41)
-
-    ## Select clock frequency
-    ## Not defining anything results in HSI being used
-    #CLOCK_FREQ := -DSYSCLK_FREQ_8MHz=8000000
-    CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000 -DRUN_WITH_HSI
-    #CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000 -DHSE_VALUE=24000000
-
-endif
+# No options
 
 ##---------------------------------------------------------------------------
 ## stm32l476rg_nucleo
@@ -1107,9 +1079,6 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         CFLAGS_BASE   += -D_BOARD_MP3V2
         CXXFLAGS_BASE += -D_BOARD_MP3V2
 
-        ## Clock frequency
-        CLOCK_FREQ := -DSYSCLK_FREQ_72MHz=72000000
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -1145,9 +1114,6 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         CFLAGS_BASE   += -D_BOARD_STM32VLDISCOVERY
         CXXFLAGS_BASE += -D_BOARD_STM32VLDISCOVERY
 
-        ## Clock frequency
-        CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -1177,9 +1143,6 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_SOLERTEGIARD
         CXXFLAGS_BASE += -D_BOARD_SOLERTEGIARD
-
-        ## Clock frequency
-        CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -1212,9 +1175,6 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         CFLAGS_BASE   += -D_BOARD_STRIVE_MINI
         CXXFLAGS_BASE += -D_BOARD_STRIVE_MINI
 
-        ## Clock frequency
-        CLOCK_FREQ := -DSYSCLK_FREQ_72MHz=72000000
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -1245,9 +1205,6 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         CFLAGS_BASE   += -D_BOARD_REDBULL_V2
         CXXFLAGS_BASE += -D_BOARD_REDBULL_V2
 
-        ## Clock frequency
-        CLOCK_FREQ := -DSYSCLK_FREQ_72MHz=72000000
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -1277,10 +1234,6 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         CFLAGS_BASE   += -D_BOARD_ALS_MAINBOARD_REV2
         CXXFLAGS_BASE += -D_BOARD_ALS_MAINBOARD_REV2
 
-        ## Clock frequency
-        # Not defining anything results in HSI being used
-        CLOCK_FREQ :=
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -1309,10 +1262,6 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_TEMPSENSOR
         CXXFLAGS_BASE += -D_BOARD_TEMPSENSOR
-
-        ## Clock frequency
-        # Not defining anything results in HSI being used
-        CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000 -DRUN_WITH_HSI
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -1373,10 +1322,6 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_MICROBOARD
         CXXFLAGS_BASE += -D_BOARD_MICROBOARD
-
-        ## Clock frequency
-        # Not defining anything results in HSI being used
-        CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000 -DRUN_WITH_HSI
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -1514,7 +1459,7 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
     $(ARCH_INC)/interfaces-impl/delays.cpp                \
     $(ARCH_INC)/interfaces-impl/sleep.cpp                 \
     $(ARCH_INC)/interfaces-impl/poweroff.cpp              \
-    arch/common/CMSIS/Device/ST/STM32F1xx/Source/Templates/system_stm32f1xx.c
+    arch/common/CMSIS/Device/ST/STM32F1xx/Source/Templates/system_stm32f1xx.cpp
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM4_stm32f4

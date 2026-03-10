@@ -25,6 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "board_settings.h"
 #include "interfaces/delays.h"
 
 namespace miosix {
@@ -32,35 +33,14 @@ namespace miosix {
 void delayMs(unsigned int mseconds)
 {
     #ifndef __CODE_IN_XRAM
-    #ifdef SYSCLK_FREQ_72MHz
-    const unsigned int count=12000; //Flash 2 wait state
-    #elif SYSCLK_FREQ_56MHz
-    const unsigned int count=9333;  //Flash 2 wait state
-    #elif SYSCLK_FREQ_48MHz
-    const unsigned int count=12000; //Flash 1 wait state
-    #elif SYSCLK_FREQ_36MHz
-    const unsigned int count=9000;  //Flash 1 wait state
-    #elif SYSCLK_FREQ_24MHz
-    const unsigned int count=8000;  //Flash 0 wait state
-    #else
-    const unsigned int count=2678;  //Flash 0 wait state
-    #endif
+    constexpr unsigned int count=
+        sysclkFrequency<=24000000 ? sysclkFrequency/3000 : //Flash 0 wait state
+        sysclkFrequency<=48000000 ? sysclkFrequency/4000 : //Flash 1 wait state
+        sysclkFrequency/6000; //Flash 2 wait state
     #else //__CODE_IN_XRAM
     //These delays are calibrated on an stm3210e-eval, and are only correct when
     //running from ram memories with similar access timings
-    #ifdef SYSCLK_FREQ_72MHz
-    const unsigned int count=1889; //Linear scaling, factor 26.236
-    #elif SYSCLK_FREQ_56MHz
-    const unsigned int count=1469;
-    #elif SYSCLK_FREQ_48MHz
-    const unsigned int count=1259;
-    #elif SYSCLK_FREQ_36MHz
-    const unsigned int count=945;
-    #elif SYSCLK_FREQ_24MHz
-    const unsigned int count=630;
-    #else
-    const unsigned int count=210;
-    #endif
+    constexpr unsigned int count=sysclkFrequency/38095;
     #endif //__CODE_IN_XRAM
     for(unsigned int i=0;i<mseconds;i++)
     {
@@ -78,80 +58,51 @@ void delayUs(unsigned int useconds)
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimizations
     #ifndef __CODE_IN_XRAM
-    #ifdef SYSCLK_FREQ_72MHz
-    asm volatile("    movs  r1, #12    \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #elif SYSCLK_FREQ_56MHz
-    asm volatile("    movs  r1, #10    \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #elif SYSCLK_FREQ_48MHz
-    asm volatile("    movs  r1, #12    \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #elif SYSCLK_FREQ_36MHz
-    asm volatile("    movs  r1, #9     \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #elif SYSCLK_FREQ_24MHz
-    asm volatile("    movs  r1, #8     \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #else
-    //+13% error for a 100us delay
-    asm volatile("    movs  r1, #3     \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #endif
+    unsigned int count=
+        sysclkFrequency==8000000 ? 8*useconds/3 :
+        sysclkFrequency<=24000000 ? useconds*(sysclkFrequency/3000000) :
+        sysclkFrequency<=48000000 ? useconds*(sysclkFrequency/4000000) :
+        useconds*(sysclkFrequency/6000000);
+    asm volatile("    .align 2         \n" //4-byte aligned inner loop
+                 "1:  subs  %0, %0, #1 \n"
+                 "    bpl   1b         \n":"+r"(count)::"cc");
     #else //__CODE_IN_XRAM
     //These delays are calibrated on an stm3210e-eval, and are only correct when
     //running from ram memories with similar access timings
-    #ifdef SYSCLK_FREQ_72MHz
-    asm volatile("    movs  r1, #2     \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #elif SYSCLK_FREQ_56MHz
-    asm volatile("    .align 2         \n" //4-byte aligned inner loop
-                 "1:  subs  %0, %0, #1 \n"
-                 "    nop              \n"
-                 "    bpl   1b         \n"::"r"(useconds):"cc");
-    #elif SYSCLK_FREQ_48MHz
-    asm volatile("    adds  %0, %0, %0, lsr 2 \n"
-                 "    .align 2                \n" //4-byte aligned inner loop
-                 "1:  subs  %0, %0, #1        \n"
-                 "    bpl   1b                \n"::"r"(useconds):"cc");
-    #elif SYSCLK_FREQ_36MHz
-    asm volatile("    .align 2         \n" //4-byte aligned inner loop
-                 "1:  subs  %0, %0, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds));
-    #elif SYSCLK_FREQ_24MHz
-    asm volatile("    adds  %0, %0, %0, lsr 2 \n"
-                 "    lsrs  %0, %0, 1         \n"
-                 "    .align 2                \n" //4-byte aligned inner loop
-                 "1:  subs  %0, %0, #1        \n"
-                 "    bpl   1b                \n"::"r"(useconds):"cc");
-    #else
-    //+35% error for a 100us delay
-    asm volatile("    lsrs  %0, %0, 2  \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  subs  %0, %0, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"cc");
-    #endif
+    if(sysclkFrequency==72000000)
+    {
+        asm volatile("    movs  r1, #2     \n"
+                     "    mul   r1, r1, %0 \n"
+                     "    .align 2         \n" //4-byte aligned inner loop
+                     "1:  subs  r1, r1, #1 \n"
+                     "    bpl   1b         \n"::"r"(useconds):"r1","cc");
+    } else if(sysclkFrequency==56000000) {
+        asm volatile("    .align 2         \n" //4-byte aligned inner loop
+                     "1:  subs  %0, %0, #1 \n"
+                     "    nop              \n"
+                     "    bpl   1b         \n"::"r"(useconds):"cc");
+    } else if(sysclkFrequency==48000000) {
+        asm volatile("    adds  %0, %0, %0, lsr 2 \n"
+                     "    .align 2                \n" //4-byte aligned inner loop
+                     "1:  subs  %0, %0, #1        \n"
+                     "    bpl   1b                \n"::"r"(useconds):"cc");
+    } else if(sysclkFrequency==36000000) {
+        asm volatile("    .align 2         \n" //4-byte aligned inner loop
+                     "1:  subs  %0, %0, #1 \n"
+                     "    bpl   1b         \n"::"r"(useconds));
+    } else if(sysclkFrequency==24000000) {
+        asm volatile("    adds  %0, %0, %0, lsr 2 \n"
+                     "    lsrs  %0, %0, 1         \n"
+                     "    .align 2                \n" //4-byte aligned inner loop
+                     "1:  subs  %0, %0, #1        \n"
+                     "    bpl   1b                \n"::"r"(useconds):"cc");
+    } else {
+        //+35% error for a 100us delay
+        asm volatile("    lsrs  %0, %0, 2  \n"
+                     "    .align 2         \n" //4-byte aligned inner loop
+                     "1:  subs  %0, %0, #1 \n"
+                     "    bpl   1b         \n"::"r"(useconds):"cc");
+    }
     #endif //__CODE_IN_XRAM
 }
 

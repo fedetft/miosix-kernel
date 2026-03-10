@@ -54,6 +54,14 @@ namespace miosix {
 /// STM32F100CB only has 8KB of RAM so the stack is only 1.5KB.
 const unsigned int MAIN_STACK_SIZE=1024+512;
 
+/// Clock options
+enum class OscillatorType { HSI, HSE };
+// Supported oscillator types: HSI
+constexpr auto oscillatorType=OscillatorType::HSI;
+constexpr unsigned int hseFrequency=0; // no HSE
+// Supported clock frequencies: 24000000
+constexpr unsigned int sysclkFrequency=24000000;
+
 /// Serial port
 /// Serial ports 1 to 3 are available
 const unsigned int defaultSerial=1;
