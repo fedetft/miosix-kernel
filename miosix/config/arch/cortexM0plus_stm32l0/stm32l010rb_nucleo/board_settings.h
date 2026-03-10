@@ -48,7 +48,8 @@ namespace miosix {
 const unsigned int MAIN_STACK_SIZE=1024+512;
 
 /// Clock options
-enum class OscillatorType { HSE }; //Only one supported for now
+enum class OscillatorType { HSI, HSE };
+// Supported oscillator types: HSE
 constexpr auto oscillatorType=OscillatorType::HSE;
 constexpr unsigned int hseFrequency=8000000;
 // Supported clock frequencies: 32000000
