@@ -156,7 +156,22 @@ __attribute__((noreturn)) void IRQcontinueInitCore1()
     IRQregisterIrqOnCurrentCore(SIO_IRQ_PROC1_IRQn,IRQinterProcessorInterruptHandler,nullptr);
     // Register timer interrupt handler for core 1
     IRQosTimerInitSMP();
-    // Kernel-level W^X and cache configuration
+    // Kernel-level W^X, cache configuration, and userspace memory protection.
+    // TODO: Configuring the MPU in an easy way for SMP is still an open issue.
+    // IRQconfigureMPU must be called by the first core in IrqMemoryAndClockInit
+    // since it also configures cacheability and this must be done before the
+    // XRAM is enabled.
+    // In a single core there's no problem since there's nothing more to do.
+    // On a multi-core however, we need to configure the MPU again for all the
+    // other cores. Ideally, we would like to avoid the burden of passing again
+    // the same parameters (XRAM base address and size) every time as keeping
+    // these parameters in sync between IrqMemoryAndClockInit and SMP init could
+    // become a source of bugs.
+    // However, we can't simply store these parameters in a global variable as
+    // for the function to configure the MPU on SMP to use, as .data/.bss are
+    // erased after IrqMemoryAndClockInit.
+    // On this board we don't have this problem just because it does not have an
+    // external memory, so we can call IRQconfigureMPU() with no parameters.
     IRQconfigureMPU();
     // Clear fifo status flags and pending interrupt flag to avoid spurious
     // interrupts on core 1 side
