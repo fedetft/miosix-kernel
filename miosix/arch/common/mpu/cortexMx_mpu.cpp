@@ -28,7 +28,8 @@
 
 #include "cortexMx_mpu.h"
 #include "cache/cortexMx_cache.h"
-#include "interfaces_private/userspace.h" //For sizeToMpu
+#include "kernel/error.h"
+#include "config/miosix_settings.h"
 
 using namespace std;
 
@@ -48,7 +49,6 @@ inline void IRQenableMPUatBoot()
               | MPU_CTRL_PRIVDEFENA_Msk
               | MPU_CTRL_ENABLE_Msk;
 }
-
 
 /**
  * Using the MPU, configure a region of the memory space as
@@ -138,6 +138,14 @@ void IRQconfigureMPU(const unsigned int *xramBase, unsigned int xramSize)
     SCB_EnableICache();
     SCB_EnableDCache();
     #endif
+}
+
+unsigned int sizeToMpu(unsigned int size)
+{
+    if(extraChecks!=ExtraChecks::None && size<32) errorHandler(Error::UNEXPECTED);
+    unsigned int result=30-__builtin_clz(size);
+    if(size & (size-1)) result++;
+    return result;
 }
 
 } //namespace miosix

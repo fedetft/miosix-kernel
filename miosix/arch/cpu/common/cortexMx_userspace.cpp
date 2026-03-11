@@ -27,6 +27,7 @@
 
 #include "interfaces_private/userspace.h"
 #include "interfaces/cpu_const.h"
+#include "mpu/cortexMx_mpu.h"
 #include "kernel/error.h"
 #include <cstdio>
 #include <cstring>
@@ -327,13 +328,5 @@ bool MPUConfiguration::withinForReading(const char* str) const
 }
 
 #endif //WITH_PROCESSES
-
-unsigned int sizeToMpu(unsigned int size)
-{
-    if(extraChecks!=ExtraChecks::None && size<32) errorHandler(Error::UNEXPECTED);
-    unsigned int result=30-__builtin_clz(size);
-    if(size & (size-1)) result++;
-    return result;
-}
 
 } //namespace miosix

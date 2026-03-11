@@ -46,4 +46,15 @@ namespace miosix {
  */
 void IRQconfigureMPU(const unsigned int *xramBase=nullptr, unsigned int xramSize=0);
 
+/**
+ * \internal
+ * Convert a memory region size to a bit pattern that can be written in the MPU
+ * registers.
+ * On some architectures the MPU is also used to set cacheability regions in the
+ * address space, thus this function is useful also when processes are disabled
+ * \param size in bytes >32
+ * \return a value that can be written to MPU->RASR to represent that size
+ */
+unsigned int sizeToMpu(unsigned int size);
+
 } //namespace miosix
