@@ -153,7 +153,8 @@ void IRQosTimerInit();
  * \internal
  * Initialize the OS timer for a given core during SMP setup.
  * This function is used by the kernel, and should not be used by end users, and
- * is called by SMP setup code.
+ * is called at boot by SMP setup code once for each core from each core, so
+ * that each core calls this function exactly once.
  * On non-SMP platforms it is not called.
  */
 void IRQosTimerInitSMP();
