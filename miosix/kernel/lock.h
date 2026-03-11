@@ -33,8 +33,12 @@
 #include "interfaces/cpu_const.h"
 #include "interfaces_private/smp_locks.h"
 #include "thread.h"
+#include "error.h"
 
 namespace miosix {
+
+//Forward declarations
+inline bool isKernelPaused() noexcept;
 
 /**
  * \defgroup lock Low-level locking
@@ -245,6 +249,12 @@ public:
      */
     static inline void lock() noexcept
     {
+        // If we're compiling with extra checks, verify that we also never use
+        // FastGlobalIrqLock early at boot or in a context where the global lock
+        // is already taken.
+        if(extraChecks==ExtraChecks::Kernel && areInterruptsEnabled()==false)
+            errorHandler(Error::UNEXPECTED);
+
         fastDisableIrq();
         FastGlobalLockFromIrq::lock();
     }
@@ -446,6 +456,22 @@ public:
      */
     static inline void lock() noexcept
     {
+        // We should never take the PK lock while we're holding the GIL, as this
+        // can cause deadlocks in SMP architectures. The only exception is early
+        // at boot, before the kernel is started where there's only one core
+        // running and it's running code as-if both the PK and GIL are taken.
+        // If we're compiling with extra checks, verify this property using an
+        // edge detection method. If the kernel isn't paused (this excludes the
+        // early at boot case) and interrupts are disabled, then it's a bug.
+        // Additionally, we also should never use FastPauseKernelLock early at
+        // boot or in a context where the kernel is already paused, so if the
+        // kernel is already paused fail too.
+        if(extraChecks==ExtraChecks::Kernel)
+        {
+            if(isKernelPaused()) errorHandler(Error::UNEXPECTED);
+            else if(areInterruptsEnabled()==false) errorHandler(Error::UNEXPECTED);
+        }
+
         #ifdef WITH_SMP
         // The SMP implementation needs to disable local interrupts when
         // changing the lock's state to prevent the scheduler running in between

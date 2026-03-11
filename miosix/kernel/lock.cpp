@@ -76,6 +76,17 @@ void PauseKernelLock::unlock()
 
 bool PauseKernelLock::pushLock()
 {
+    // We should never take the PK lock while we're holding the GIL, as this
+    // can cause deadlocks in SMP architectures. The only exception is early
+    // at boot, before the kernel is started where there's only one core
+    // running and it's running code as-if both the PK and GIL are taken.
+    // If we're compiling with extra checks, verify this property using an
+    // edge detection method. If the kernel isn't paused (this excludes the
+    // early at boot case) and interrupts are disabled, then it's a bug.
+    if(extraChecks==ExtraChecks::Kernel)
+        if(isKernelPaused()==false && areInterruptsEnabled()==false)
+            errorHandler(Error::UNEXPECTED);
+
     #ifdef WITH_SMP
     // Checking getCurrentCoreId() with interrupts potentially enabled is
     // unsafe due to thread migrations, so disable interrupts while we
