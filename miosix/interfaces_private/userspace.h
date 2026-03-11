@@ -313,16 +313,6 @@ private:
 
 #endif //WITH_PROCESSES
 
-/**
- * \internal
- * To be called at boot to enable the MPU.
- * Without calling this function, the MPU will not work even if regions are
- * configured in MPUConfiguration.
- * On some architectures the MPU is also used to set cacheability regions in the
- * address space, thus this function is useful also when processes are disabled
- */
-inline void IRQenableMPUatBoot();
-
 } //namespace miosix
 
 /**

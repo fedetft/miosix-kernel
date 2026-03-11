@@ -173,15 +173,6 @@ inline void MPUConfiguration::IRQdisable()
 
 #endif //WITH_PROCESSES
 
-inline void IRQenableMPUatBoot()
-{
-    #if __MPU_PRESENT==1
-    MPU->CTRL = MPU_CTRL_HFNMIENA_Msk
-              | MPU_CTRL_PRIVDEFENA_Msk
-              | MPU_CTRL_ENABLE_Msk;
-    #endif //__MPU_PRESENT==1
-}
-
 /**
  * \internal
  * Convert a memory region size to a bit pattern that can be written in the MPU

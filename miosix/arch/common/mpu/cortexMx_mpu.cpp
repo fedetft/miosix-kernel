@@ -28,11 +28,27 @@
 
 #include "cortexMx_mpu.h"
 #include "cache/cortexMx_cache.h"
-#include "interfaces_private/userspace.h" //For IRQenableMPUatBoot
+#include "interfaces_private/userspace.h" //For sizeToMpu
 
 using namespace std;
 
 namespace miosix {
+
+/**
+ * \internal
+ * To be called at boot to enable the MPU.
+ * Without calling this function, the MPU will not work even if regions are
+ * configured in MPUConfiguration.
+ * On some architectures the MPU is also used to set cacheability regions in the
+ * address space, thus this function is useful also when processes are disabled
+ */
+inline void IRQenableMPUatBoot()
+{
+    MPU->CTRL = MPU_CTRL_HFNMIENA_Msk
+              | MPU_CTRL_PRIVDEFENA_Msk
+              | MPU_CTRL_ENABLE_Msk;
+}
+
 
 /**
  * Using the MPU, configure a region of the memory space as
