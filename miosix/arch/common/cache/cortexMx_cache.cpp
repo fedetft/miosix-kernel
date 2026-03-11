@@ -26,7 +26,6 @@
  ***************************************************************************/
 
 #include "cortexMx_cache.h"
-#include "interfaces_private/userspace.h" //For IRQenableMPUatBoot
 #include <utility>
 
 using namespace std;
