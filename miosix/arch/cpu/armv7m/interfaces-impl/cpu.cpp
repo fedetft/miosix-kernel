@@ -64,13 +64,6 @@ void IRQportableStartKernel() noexcept
     //default (https://www.gnu.org/software/gcc/gcc-4.7/changes.html)
     SCB->CCR |= SCB_CCR_DIV_0_TRP_Msk;
 
-    #ifdef WITH_PROCESSES
-    //NOTE: For Cortex-M7, if caches are enabled, the MPU will be enabled also
-    //if processes are not enabled, but this code is still needed also for
-    //Cortex-M7 for the rare configuration of caches disabled but processes enabled
-    miosix::IRQenableMPUatBoot();
-    #endif //WITH_PROCESSES
-
     //create a temporary space to save current registers. This data is useless
     //since there's no way to stop the sheduler, but we need to save it anyway.
     unsigned int s_ctxsave[miosix::CTXSAVE_SIZE];
