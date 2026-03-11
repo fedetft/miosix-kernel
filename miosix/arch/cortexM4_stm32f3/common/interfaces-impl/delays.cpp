@@ -25,6 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "board_settings.h"
 #include "interfaces/delays.h"
 
 namespace miosix {
@@ -33,21 +34,12 @@ namespace miosix {
 
 void delayMs(unsigned int mseconds)
 {
-    #ifdef SYSCLK_FREQ_72MHz
-    #warning delayMs has not been calibrated yet with 72MHz clock
-    const unsigned int count=5350;
-    #elif SYSCLK_FREQ_56MHz
-    const unsigned int count=5350;
-    #elif SYSCLK_FREQ_48MHz
-    const unsigned int count=5350;
-    #elif SYSCLK_FREQ_36MHz
-    const unsigned int count=4010;
-    #elif SYSCLK_FREQ_24MHz
-    const unsigned int count=4010;
-    #else // 8MHz clock
-    const unsigned int count=2000;
-    #endif
-
+    const unsigned int count=sysclkFrequency==72000000 ? 5350 :
+                             sysclkFrequency==72000000 ? 5350 :
+                             sysclkFrequency==72000000 ? 5350 :
+                             sysclkFrequency==72000000 ? 4010 :
+                             sysclkFrequency==72000000 ? 4010 :
+                             2000;
     for(unsigned int i=0;i<mseconds;i++)
     {
         // This delay has been calibrated to take 1 millisecond
@@ -64,83 +56,84 @@ void delayUs(unsigned int useconds)
 {
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimization
-    #ifdef SYSCLK_FREQ_72MHz
-    #warning delayUs has not been calibrated yet with 72MHz clock
-    asm volatile("           mov   r2, #166   \n"//Preloop, constant delay
-                 "           mov   r1, #0     \n"
-                 "__loop_u2: cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   __loop_u2  \n"
-                 "           mov   r1, #5     \n"//Actual loop
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: nop              \n"
-                 "           nop              \n"
-                 "           cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
-    #elif SYSCLK_FREQ_56MHz
-    asm volatile("           mov   r2, #166   \n"//Preloop, constant delay
-                 "           mov   r1, #0     \n"
-                 "__loop_u2: cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   __loop_u2  \n"
-                 "           mov   r1, #5     \n"//Actual loop
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: nop              \n"
-                 "           nop              \n"
-                 "           cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
-    #elif SYSCLK_FREQ_48MHz
-    asm volatile("           mov   r2, #166   \n"//Preloop, constant delay
-                 "           mov   r1, #0     \n"
-                 "__loop_u2: cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   __loop_u2  \n"
-                 "           mov   r1, #5     \n"//Actual loop
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: nop              \n"
-                 "           nop              \n"
-                 "           cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
-    #elif SYSCLK_FREQ_36MHz
-    asm volatile("           mov   r1, #4     \n"
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: nop              \n"
-                 "           nop              \n"
-                 "           cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
-    #elif SYSCLK_FREQ_24MHz
-    asm volatile("           mov   r1, #4     \n"
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "           nop              \n"
-                 "___loop_u: cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
-    #else   // 8MHz clock
-    asm volatile("           mov   r1, #2     \n"
-                 "           mul   r2, %0, r1 \n"
-                 "           mov   r1, #0     \n"
-                 "___loop_u: cmp   r1, r2     \n"
-                 "           itt   lo         \n"
-                 "           addlo r1, r1, #1 \n"
-                 "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
-    #endif
+    static_assert(sysclkFrequency!=72000000,"Not calibrated for 72MHz");
+    if(sysclkFrequency==72000000)
+    {
+        asm volatile("           mov   r2, #166   \n"//Preloop, constant delay
+                     "           mov   r1, #0     \n"
+                     "__loop_u2: cmp   r1, r2     \n"
+                     "           itt   lo         \n"
+                     "           addlo r1, r1, #1 \n"
+                     "           blo   __loop_u2  \n"
+                     "           mov   r1, #5     \n"//Actual loop
+                     "           mul   r2, %0, r1 \n"
+                     "           mov   r1, #0     \n"
+                     "___loop_u: nop              \n"
+                     "           nop              \n"
+                     "           cmp   r1, r2     \n"
+                     "           itt   lo         \n"
+                     "           addlo r1, r1, #1 \n"
+                     "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
+    } else if(sysclkFrequency==56000000) {
+        asm volatile("           mov   r2, #166   \n"//Preloop, constant delay
+                     "           mov   r1, #0     \n"
+                     "__loop_u2: cmp   r1, r2     \n"
+                     "           itt   lo         \n"
+                     "           addlo r1, r1, #1 \n"
+                     "           blo   __loop_u2  \n"
+                     "           mov   r1, #5     \n"//Actual loop
+                     "           mul   r2, %0, r1 \n"
+                     "           mov   r1, #0     \n"
+                     "___loop_u: nop              \n"
+                     "           nop              \n"
+                     "           cmp   r1, r2     \n"
+                     "           itt   lo         \n"
+                     "           addlo r1, r1, #1 \n"
+                     "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
+    } else if(sysclkFrequency==48000000) {
+        asm volatile("           mov   r2, #166   \n"//Preloop, constant delay
+                     "           mov   r1, #0     \n"
+                     "__loop_u2: cmp   r1, r2     \n"
+                     "           itt   lo         \n"
+                     "           addlo r1, r1, #1 \n"
+                     "           blo   __loop_u2  \n"
+                     "           mov   r1, #5     \n"//Actual loop
+                     "           mul   r2, %0, r1 \n"
+                     "           mov   r1, #0     \n"
+                     "___loop_u: nop              \n"
+                     "           nop              \n"
+                     "           cmp   r1, r2     \n"
+                     "           itt   lo         \n"
+                     "           addlo r1, r1, #1 \n"
+                     "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
+    } else if(sysclkFrequency==36000000) {
+        asm volatile("           mov   r1, #4     \n"
+                     "           mul   r2, %0, r1 \n"
+                     "           mov   r1, #0     \n"
+                     "___loop_u: nop              \n"
+                     "           nop              \n"
+                     "           cmp   r1, r2     \n"
+                     "           itt   lo         \n"
+                     "           addlo r1, r1, #1 \n"
+                     "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
+    } else if(sysclkFrequency==24000000) {
+        asm volatile("           mov   r1, #4     \n"
+                     "           mul   r2, %0, r1 \n"
+                     "           mov   r1, #0     \n"
+                     "           nop              \n"
+                     "___loop_u: cmp   r1, r2     \n"
+                     "           itt   lo         \n"
+                     "           addlo r1, r1, #1 \n"
+                     "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
+    } else if(sysclkFrequency==8000000) {
+        asm volatile("           mov   r1, #2     \n"
+                     "           mul   r2, %0, r1 \n"
+                     "           mov   r1, #0     \n"
+                     "___loop_u: cmp   r1, r2     \n"
+                     "           itt   lo         \n"
+                     "           addlo r1, r1, #1 \n"
+                     "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
+    }
 }
 
 } //namespace miosix

@@ -526,11 +526,12 @@ ifeq ($(OPT_BOARD),stm32f103xb_generic)
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_128k+20k_rom.ld
 
 endif
+
 ##---------------------------------------------------------------------------
 ## stm32f072rb_stm32f0discovery
 ##
 
-# Actually no options
+# No options
 
 ##---------------------------------------------------------------------------
 ## stm32f100xb_generic
@@ -549,16 +550,7 @@ endif
 ## stm32f303vc_stm32f3discovery
 ##
 
-ifeq ($(OPT_BOARD),stm32f303vc_stm32f3discovery)
-
-    ## Select clock frequency
-    ## Not defining any of these results in the internal 8MHz clock to be used
-    #CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000 -DRUN_WITH_HSI
-    #CLOCK_FREQ := -DSYSCLK_FREQ_36MHz=36000000 -DRUN_WITH_HSI
-    #CLOCK_FREQ := -DSYSCLK_FREQ_48MHz=48000000 -DRUN_WITH_HSI
-    CLOCK_FREQ := -DSYSCLK_FREQ_56MHz=56000000 -DRUN_WITH_HSI
-
-endif
+# No options
 
 ##---------------------------------------------------------------------------
 ## stm32f100c8_vaisala_rs41
@@ -2874,7 +2866,7 @@ else ifeq ($(ARCH),cortexM4_stm32f3)
     arch/common/drivers/stm32_serial_common.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
-    arch/common/CMSIS/Device/ST/STM32F3xx/Source/Templates/system_stm32f3xx.c
+    arch/common/CMSIS/Device/ST/STM32F3xx/Source/Templates/system_stm32f3xx.cpp
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM4_stm32l4
