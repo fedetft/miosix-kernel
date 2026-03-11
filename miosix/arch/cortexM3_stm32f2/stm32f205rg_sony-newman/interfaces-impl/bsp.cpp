@@ -367,6 +367,9 @@ int PowerManagement::getBatteryVoltage()
 
 void PowerManagement::setCoreFrequency(CoreFrequency cf)
 {
+    // This does not work
+    // TODO: proper OS-wide DVFS support
+    #if 0
     if(cf==coreFreq) return;
     
     Lock<KernelMutex> l(powerManagementMutex);
@@ -400,6 +403,7 @@ void PowerManagement::setCoreFrequency(CoreFrequency cf)
     //Reinitialize after the frequency change
     delete i2c;
     i2c=new I2C1Master(i2c::I2C_SDA_Pin::getPin(),i2c::I2C_SCL_Pin::getPin(),100);
+    #endif
 }
 
 void PowerManagement::goDeepSleep(int ms)
