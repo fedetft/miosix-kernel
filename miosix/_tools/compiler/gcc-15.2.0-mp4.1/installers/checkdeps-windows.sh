@@ -5,4 +5,4 @@
 # another machine
 
 # Meant to be run from the main compiler directory (./installers/checkdeps-windows.sh)
-strings gcc/arm-miosix-eabi/bin/*.exe | grep '\.dll' | sort -u
+strings dist/opt/arm-miosix-eabi/bin/*.exe | grep '\.dll' | sort -u

@@ -6,4 +6,4 @@
 
 # Meant to be run from the main compiler directory (./installers/checkdeps.sh)
 
-ldd gcc/arm-miosix-eabi/bin/* | perl -ne 'next unless(/\s+(\S+.so(\S+))\s+/);print "$1\n";' | sort -u
+ldd dist/opt/arm-miosix-eabi/bin/* | perl -ne 'next unless(/\s+(\S+.so(\S+))\s+/);print "$1\n";' | sort -u
