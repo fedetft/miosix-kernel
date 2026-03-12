@@ -35,7 +35,6 @@
 #include "scheduler/scheduler.h"
 #include "sched_data_structures.h"
 #include "kercalls/libc_integration.h"
-#include "network/network.h"
 #include "interfaces_private/cpu.h"
 #include "interfaces_private/userspace.h"
 #include "interfaces_private/os_timer.h"
@@ -206,14 +205,6 @@ void IRQstartKernel()
     main=Thread::doCreate(mainLoader,MAIN_STACK_SIZE,nullptr,Thread::DEFAULT,true);
     if(main==nullptr) errorHandler(Error::OUT_OF_MEMORY);
     if(Scheduler::IRQaddThread(main,DEFAULT_PRIORITY)==false) errorHandler(Error::UNEXPECTED);
-
-    #ifdef WITH_NETWORKING
-    // Create the network stack thread and add it to the scheduler.
-    Thread *net;
-    net=Thread::doCreate(network::netStackThread,MAIN_STACK_SIZE,nullptr,Thread::DEFAULT,true);
-    if(net==nullptr) errorHandler(Error::OUT_OF_MEMORY);
-    if(Scheduler::IRQaddThread(net,DEFAULT_PRIORITY)==false) errorHandler(Error::UNEXPECTED);
-    #endif
 
     // Idle thread needs to be set after main (see control_scheduler.cpp)
     Scheduler::IRQsetIdleThread(0,idle);

@@ -46,8 +46,7 @@ void waitOnline();
 /**
  * \internal
  * Network stack thread entry point.
- * \param argv Unused
  */
-void *netStackThread(void *argv);
+void *netStackThread(void *);
 
 } // namespace miosix::network
