@@ -179,12 +179,12 @@ void *mainLoader(void *argv)
     #ifdef NETWORK_WAIT_ONLINE
     bootlog("Waiting for network online... ");
     fflush(stdout); // Force printing without newline before the wait
-    network::waitOnline();
+    network::waitConfigAvailable();
     bootlog("Ok\n");
-    #ifdef NETWORK_BOOTLOG_STATUS
+    #ifdef NETWORK_CONFIG_BOOTLOG
     network::bootlogNetworkConfig();
-    #endif
-    #endif
+    #endif //NETWORK_CONFIG_BOOTLOG
+    #endif //NETWORK_WAIT_ONLINE
     
     //Run application code
     #ifdef __NO_EXCEPTIONS

@@ -39,9 +39,12 @@ void bootlogNetworkConfig();
 
 /**
  * \internal
- * Block the calling thread until the network is online.
+ * Block the calling thread until a valid network configuration is available.
+ * In case of static IP configuration, this function will return immediately.
+ * In case of DHCP enabled, this function will wait until the DHCP negotiation
+ * completes and an IP address is assigned.
  */
-void waitOnline();
+void waitConfigAvailable();
 
 /**
  * \internal
