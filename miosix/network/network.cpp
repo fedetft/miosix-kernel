@@ -109,7 +109,7 @@ void bootlogNetworkConfig() {
     }
 }
 
-void waitOnline() {
+void waitConfigAvailable() {
     if (networkOnline.load(std::memory_order_acquire))
         return;
 

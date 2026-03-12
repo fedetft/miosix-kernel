@@ -170,10 +170,10 @@ const unsigned char MAX_OPEN_FILES=8;
 #define NETWORK_WAIT_ONLINE
 
 #ifdef NETWORK_WAIT_ONLINE
-/// \def NETWORK_BOOTLOG_STATUS
-/// When defined, the network stack initialization status is printed to the 
-/// bootlog. This can only be enabled if NETWORK_WAIT_ONLINE is also defined.
-#define NETWORK_BOOTLOG_STATUS
+/// \def NETWORK_CONFIG_BOOTLOG
+/// When defined, the network stack config is printed to the bootlog.
+/// This can only be enabled if NETWORK_WAIT_ONLINE is also defined.
+#define NETWORK_CONFIG_BOOTLOG
 #endif
 
 /// \def ETHERNET_ENABLE_DHCP
