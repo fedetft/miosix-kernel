@@ -182,18 +182,21 @@ if [[ $HOST ]]; then
 	which "$HOST-gcc" > /dev/null || quit ":: Error must have host cross compiler"
 
 	HOSTCC="$HOST-gcc"
+	HOSTCXX="$HOST-g++"
 	HOSTSTRIP="$HOST-strip"
 	if [[ $HOST == *mingw* ]]; then
-		HOSTCXX="$HOST-g++ -static -s" # For windows not to depend on libstdc++.dll
+		# For windows not to depend on libstdc++.dll
+		HOSTLDFLAGS="-static-libstdc++ -static-libgcc"
 		EXT=".exe"
 	else
-		HOSTCXX="$HOST-g++"
+		HOSTLDFLAGS=
 		EXT=
 	fi
 else
 	HOSTCC=gcc
 	HOSTCXX=g++
 	HOSTSTRIP=strip
+	HOSTLDFLAGS=
 	EXT=
 fi
 
@@ -752,9 +755,8 @@ fi
 mkdir gdb_build
 cd gdb_build
 
-# CXX=$HOSTCXX to avoid having to distribute libstdc++.dll on windows
 echo "Configuring $GDB..."
-CXX=$HOSTCXX ../$GDB/configure \
+../$GDB/configure \
 	--build=$BUILD \
 	--host=$HOST \
 	--target=arm-miosix-eabi \
@@ -774,12 +776,13 @@ CXX=$HOSTCXX ../$GDB/configure \
 # Specify a dummy MAKEINFO binary to work around an issue in the gdb makefiles
 # where compilation fails if MAKEINFO is not installed.
 # https://sourceware.org/bugzilla/show_bug.cgi?id=14678
+# LDFLAGS="$HOSTLDFLAGS" to avoid having to distribute libstdc++.dll on windows
 echo "Building $GDB..."
-make all MAKEINFO=/usr/bin/true $PARALLEL &>../log/11_gdb_2_build.txt \
+make all LDFLAGS="$HOSTLDFLAGS" MAKEINFO=/usr/bin/true $PARALLEL &>../log/11_gdb_2_build.txt \
 	|| quit ":: Error compiling gdb"
 
 echo "Installing $GDB..."
-$SUDO make install MAKEINFO=/usr/bin/true PATH=$PATH DESTDIR=$DESTDIR &>../log/11_gdb_3_install.txt \
+$SUDO make install LDFLAGS="$HOSTLDFLAGS" MAKEINFO=/usr/bin/true PATH=$PATH DESTDIR=$DESTDIR &>../log/11_gdb_3_install.txt \
 	|| quit ":: Error installing gdb"
 
 cd ..
@@ -789,12 +792,12 @@ cd ..
 #
 cd mx-postlinker
 echo "Installing mx-postlinker..."
-make CXX="$HOSTCXX" SUFFIX=$EXT \
+make CXX=$HOSTCXX LDFLAGS="$HOSTLDFLAGS" SUFFIX=$EXT \
 	|| quit ":: Error compiling mx-postlinker"
-$SUDO make install CXX="$HOSTCXX" SUFFIX=$EXT \
+$SUDO make install CXX=$HOSTCXX LDFLAGS="$HOSTLDFLAGS" SUFFIX=$EXT \
 	INSTALL_DIR=$DESTDIR$PREFIX/bin \
 	|| quit ":: Error installing mx-postlinker"
-make CXX="$HOSTCXX" SUFFIX=$EXT clean
+make CXX=$HOSTCXX LDFLAGS="$HOSTLDFLAGS" SUFFIX=$EXT clean
 cd ..
 
 #

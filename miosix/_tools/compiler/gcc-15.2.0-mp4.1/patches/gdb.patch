@@ -1,6 +1,44 @@
+diff -ruN gdb-16.3-old/gdb/configure gdb-16.3/gdb/configure
+--- gdb-16.3-old/gdb/configure	2025-04-20 19:22:05.000000000 +0200
++++ gdb-16.3/gdb/configure	2026-03-13 11:51:50.792438724 +0100
+@@ -20881,12 +20881,12 @@
+ /* end confdefs.h.  */
+   #if defined (__MINGW32__) || defined (__CYGWIN__)
+     # ifdef _WIN32_WINNT
+-    #  if _WIN32_WINNT < 0x0501
++    #  if _WIN32_WINNT < 0x0600
+     #   undef _WIN32_WINNT
+-    #   define _WIN32_WINNT 0x0501
++    #   define _WIN32_WINNT 0x0600
+     #  endif
+     # else
+-    #  define _WIN32_WINNT 0x0501
++    #  define _WIN32_WINNT 0x0600
+     # endif
+     #endif	/* __MINGW32__ || __CYGWIN__ */
+     #include <thread>
+diff -ruN gdb-16.3-old/gdbserver/configure gdb-16.3/gdbserver/configure
+--- gdb-16.3-old/gdbserver/configure	2025-04-20 19:22:06.000000000 +0200
++++ gdb-16.3/gdbserver/configure	2026-03-13 11:52:27.712440210 +0100
+@@ -9587,12 +9587,12 @@
+ /* end confdefs.h.  */
+   #if defined (__MINGW32__) || defined (__CYGWIN__)
+     # ifdef _WIN32_WINNT
+-    #  if _WIN32_WINNT < 0x0501
++    #  if _WIN32_WINNT < 0x0600
+     #   undef _WIN32_WINNT
+-    #   define _WIN32_WINNT 0x0501
++    #   define _WIN32_WINNT 0x0600
+     #  endif
+     # else
+-    #  define _WIN32_WINNT 0x0501
++    #  define _WIN32_WINNT 0x0600
+     # endif
+     #endif	/* __MINGW32__ || __CYGWIN__ */
+     #include <thread>
 diff -ruN gdb-16.3-old/gdbsupport/common-defs.h gdb-16.3/gdbsupport/common-defs.h
 --- gdb-16.3-old/gdbsupport/common-defs.h	2025-04-20 19:22:06.000000000 +0200
-+++ gdb-16.3/gdbsupport/common-defs.h	2026-03-11 13:46:49.640875571 +0100
++++ gdb-16.3/gdbsupport/common-defs.h	2026-03-13 11:49:29.304433029 +0100
 @@ -82,12 +82,12 @@
     NOTE: this must be kept in sync with common.m4.  */
  #if defined (__MINGW32__) || defined (__CYGWIN__)
@@ -19,7 +57,7 @@ diff -ruN gdb-16.3-old/gdbsupport/common-defs.h gdb-16.3/gdbsupport/common-defs.
  
 diff -ruN gdb-16.3-old/gdbsupport/common.m4 gdb-16.3/gdbsupport/common.m4
 --- gdb-16.3-old/gdbsupport/common.m4	2025-04-20 19:22:06.000000000 +0200
-+++ gdb-16.3/gdbsupport/common.m4	2026-03-11 13:46:52.378870916 +0100
++++ gdb-16.3/gdbsupport/common.m4	2026-03-13 11:49:29.304433029 +0100
 @@ -133,12 +133,12 @@
    dnl NOTE: this must be kept in sync with common-defs.h.
    [[#if defined (__MINGW32__) || defined (__CYGWIN__)
@@ -36,9 +74,28 @@ diff -ruN gdb-16.3-old/gdbsupport/common.m4 gdb-16.3/gdbsupport/common.m4
      # endif
      #endif	/* __MINGW32__ || __CYGWIN__ */
      #include <thread>
+diff -ruN gdb-16.3-old/gdbsupport/configure gdb-16.3/gdbsupport/configure
+--- gdb-16.3-old/gdbsupport/configure	2025-04-20 19:22:06.000000000 +0200
++++ gdb-16.3/gdbsupport/configure	2026-03-13 11:52:52.556441210 +0100
+@@ -12361,12 +12361,12 @@
+ /* end confdefs.h.  */
+   #if defined (__MINGW32__) || defined (__CYGWIN__)
+     # ifdef _WIN32_WINNT
+-    #  if _WIN32_WINNT < 0x0501
++    #  if _WIN32_WINNT < 0x0600
+     #   undef _WIN32_WINNT
+-    #   define _WIN32_WINNT 0x0501
++    #   define _WIN32_WINNT 0x0600
+     #  endif
+     # else
+-    #  define _WIN32_WINNT 0x0501
++    #  define _WIN32_WINNT 0x0600
+     # endif
+     #endif	/* __MINGW32__ || __CYGWIN__ */
+     #include <thread>
 diff -ruN gdb-16.3-old/zlib/zutil.h gdb-16.3/zlib/zutil.h
 --- gdb-16.3-old/zlib/zutil.h	2024-12-29 03:50:08.000000000 +0100
-+++ gdb-16.3/zlib/zutil.h	2026-03-11 09:43:49.519712177 +0100
++++ gdb-16.3/zlib/zutil.h	2026-03-13 11:49:29.304433029 +0100
 @@ -139,15 +139,6 @@
  
  #if defined(MACOS) || defined(TARGET_OS_MAC)
