@@ -25,6 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "board_settings.h"
 #include "interfaces/delays.h"
 
 namespace miosix {
@@ -32,12 +33,9 @@ namespace miosix {
 void delayMs(unsigned int mseconds)
 {
     //Note: flash wait state don't matter because of icache
-    #ifdef SYSCLK_FREQ_216MHz
+    static_assert(sysclkFrequency==216000000,
+                  "Delays uncalibrated for this sysclk");
     const unsigned int count=216000;
-    #else
-    #warning "Delays are uncalibrated for this clock frequency"
-    #endif
-
     for(unsigned int i=0;i<mseconds;i++)
     {
         // This delay has been calibrated to take 1 millisecond
@@ -53,13 +51,11 @@ void delayUs(unsigned int useconds)
 {
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimizations
-    #ifdef SYSCLK_FREQ_216MHz
     asm volatile("    movs  r1, #216   \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  subs  r1, r1, #1 \n"
                  "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #endif
 }
 
 } //namespace miosix

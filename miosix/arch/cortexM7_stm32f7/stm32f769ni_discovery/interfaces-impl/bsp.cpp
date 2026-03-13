@@ -190,7 +190,7 @@ void configureSdram()
                          | 0;                 // 8 bit column address
 
     // 2. Memory device timings
-    #ifdef SYSCLK_FREQ_216MHz
+    static_assert(sysclkFrequency==216000000,"No SDRAM timings for this clock");
     // SDRAM timings. One clock cycle is 9.26ns
     FMC_Bank5_6->SDTR[0] =
           (2 - 1) << FMC_SDTR1_TRCD_Pos   // 2 cycles TRCD (18.52ns > 18ns)
@@ -200,9 +200,6 @@ void configureSdram()
         | (5 - 1) << FMC_SDTR1_TRAS_Pos   // 5 cycles TRAS (46.3ns  > 42ns)
         | (8 - 1) << FMC_SDTR1_TXSR_Pos   // 8 cycles TXSR (74.08ns > 70ns)
         | (2 - 1) << FMC_SDTR1_TMRD_Pos;  // 2 cycles TMRD (18.52ns > 12ns)
-    #else
-    #error No SDRAM timings for this clock
-    #endif
 
     // 3. Enable the bank 1 clock
     FMC_Bank5_6->SDCMR = FMC_SDCMR_MODE_0   // Clock Configuration Enable
@@ -231,12 +228,8 @@ void configureSdram()
 
     // 8. Program the refresh rate (4K / 64ms)
     // 64ms / 4096 = 15.625us
-    #ifdef SYSCLK_FREQ_216MHz
     // 15.625us * 108MHz = 1687 - 20 = 1667
     FMC_Bank5_6->SDRTR = 1667 << FMC_SDRTR_COUNT_Pos;
-    #else
-    #error No SDRAM refresh timings for this clock
-    #endif
 }
 
 void IRQbspInit()

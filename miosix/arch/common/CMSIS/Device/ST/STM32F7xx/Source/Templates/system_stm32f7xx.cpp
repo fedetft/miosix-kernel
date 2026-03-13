@@ -61,13 +61,10 @@
   * @{
   */
 
+#include "board_settings.h"
 //By TFT: was #include "stm32f7xx.h", but the specific chip is #defined in
 //arch_registers_impl.h
 #include "interfaces/arch_registers.h"
-
-#if !defined  (HSE_VALUE) 
-  #define HSE_VALUE    ((uint32_t)25000000) /*!< Default value of the External oscillator in Hz */
-#endif /* HSE_VALUE */
 
 #if !defined  (HSI_VALUE)
   #define HSI_VALUE    ((uint32_t)16000000) /*!< Value of the Internal oscillator in Hz*/
@@ -98,36 +95,6 @@
                                    This value must be a multiple of 0x200. */
 /******************************************************************************/
 
-// By Alberto Nidasio and TFT -- begin
-#if (HSE_VALUE % 2000000) == 0
-
-//PLL input frequency set to 2MHz to reduce jitter as suggested by the datasheet.
-const unsigned int PLL_M=HSE_VALUE/2000000;
-#ifdef SYSCLK_FREQ_216MHz
-const unsigned int PLL_Q=9;
-const unsigned int PLL_R=7;
-const unsigned int PLL_N=216;
-const unsigned int PLL_P=2;
-#else
-#error Clock not selected
-#endif
-
-#else // HSE_VALUE not divisible by 2MHz
-
-//PLL Input frequency set to 1MHz
-const unsigned int PLL_M=HSE_VALUE/1000000;
-#ifdef SYSCLK_FREQ_216MHz
-const unsigned int PLL_Q=9;
-const unsigned int PLL_R=7;
-const unsigned int PLL_N=432;
-const unsigned int PLL_P=2;
-#else
-#error Clock not selected
-#endif
-
-#endif // HSE_VALUE divisibility check
-// By Alberto Nidasio and TFT -- end
-
 /**
   * @}
   */
@@ -153,14 +120,9 @@ const unsigned int PLL_P=2;
                variable is updated automatically.
   */
 //By TFT: we increase the clock BEFORE initializing .data and .bss!
-#ifdef SYSCLK_FREQ_216MHz
-uint32_t SystemCoreClock = 216000000;
-#else
-#error No clock defined
-#endif
-  //uint32_t SystemCoreClock = 16000000;
-  const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
-  const uint8_t APBPrescTable[8] = {0, 0, 0, 0, 1, 2, 3, 4};
+uint32_t SystemCoreClock = miosix::sysclkFrequency;
+const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
+const uint8_t APBPrescTable[8] = {0, 0, 0, 0, 1, 2, 3, 4};
 
 /**
   * @}
@@ -278,7 +240,7 @@ void SystemCoreClockUpdate(void)
       SystemCoreClock = HSI_VALUE;
       break;
     case 0x04:  /* HSE used as system clock source */
-      SystemCoreClock = HSE_VALUE;
+      SystemCoreClock = miosix::hseFrequency;
       break;
     case 0x08:  /* PLL used as system clock source */
 
@@ -291,7 +253,7 @@ void SystemCoreClockUpdate(void)
       if (pllsource != 0)
       {
         /* HSE used as PLL clock source */
-        pllvco = (HSE_VALUE / pllm) * ((RCC->PLLCFGR & RCC_PLLCFGR_PLLN) >> 6);
+        pllvco = (miosix::hseFrequency / pllm) * ((RCC->PLLCFGR & RCC_PLLCFGR_PLLN) >> 6);
       }
       else
       {
@@ -316,11 +278,23 @@ void SystemCoreClockUpdate(void)
 //By TFT: added PLL initialization that was not present in the CMSIS code
 void SetSysClk(void)
 {
-  register uint32_t tmpreg = 0, timeout = 0xFFFF;
+  uint32_t tmpreg = 0, timeout = 0xFFFF;
   
 /******************************************************************************/
 /*            PLL (clocked by HSE) used as System clock source                */
 /******************************************************************************/
+
+  static_assert(miosix::oscillatorType==miosix::OscillatorType::HSE,
+                "Unsupported oscillator type");
+  static_assert(miosix::sysclkFrequency==216000000,"Unsupported sysclk");
+  //If possible, PLL input frequency set to 2MHz to reduce jitter as suggested
+  //by the datasheet.
+  const unsigned int PLL_M=miosix::hseFrequency%2000000 == 0 ?
+      miosix::hseFrequency/2000000 : miosix::hseFrequency/1000000;
+  const unsigned int PLL_Q=9;
+  const unsigned int PLL_R=7;
+  const unsigned int PLL_N=miosix::hseFrequency%2000000 == 0 ? 216 : 432;
+  const unsigned int PLL_P=2;
   
   /* Enable Power Control clock */
   RCC->APB1ENR |= RCC_APB1ENR_PWREN;
@@ -389,12 +363,7 @@ void SetSysClk(void)
   if(timeout != 0)
   {
     /* Configure Flash prefetch, Instruction cache, Data cache and wait state */
-    #ifdef SYSCLK_FREQ_216MHz
     FLASH->ACR = FLASH_ACR_LATENCY_7WS;
-    #else
-    #error No wait state info for this clock frequency
-    #endif
-
     
     /* Select the main PLL as system clock source */
     RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));

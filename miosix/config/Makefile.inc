@@ -2337,9 +2337,6 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         CFLAGS_BASE   += -D_BOARD_STM32F746ZG_NUCLEO
         CXXFLAGS_BASE += -D_BOARD_STM32F746ZG_NUCLEO
 
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_216MHz=216000000
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -2371,9 +2368,6 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32F767ZI_NUCLEO
         CXXFLAGS_BASE += -D_BOARD_STM32F767ZI_NUCLEO
-
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_216MHz=216000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -2410,9 +2404,6 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         ## Enables the initialization of the external 16MB SDRAM memory
         XRAM := -D__ENABLE_XRAM
 
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_216MHz=216000000
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -2445,9 +2436,6 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
         CFLAGS_BASE   += -D_BOARD_STM32F765II_MARCO_RAM_BOARD
         CXXFLAGS_BASE += -D_BOARD_STM32F765II_MARCO_RAM_BOARD
 
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_216MHz=216000000
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -2473,9 +2461,9 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     CPU_INC := arch/cpu/armv7m
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     AFLAGS_BASE   := $(CPU)
-    CFLAGS_BASE   += -D_ARCH_CORTEXM7_STM32F7 $(CLOCK_FREQ) $(XRAM) \
+    CFLAGS_BASE   += -D_ARCH_CORTEXM7_STM32F7 $(XRAM) \
                      $(CPU) $(OPT_OPTIMIZATION)
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM7_STM32F7 $(CLOCK_FREQ) $(XRAM) \
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM7_STM32F7 $(XRAM) \
                      $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
     LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map         \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)  \
@@ -2499,7 +2487,7 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     arch/common/drivers/sd_stm32f2_f4_f7.cpp                 \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
-    arch/common/CMSIS/Device/ST/STM32F7xx/Source/Templates/system_stm32f7xx.c
+    arch/common/CMSIS/Device/ST/STM32F7xx/Source/Templates/system_stm32f7xx.cpp
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM7_stm32h7
