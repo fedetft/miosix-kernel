@@ -25,6 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "board_settings.h"
 #include "interfaces/delays.h"
 
 namespace miosix {
@@ -32,14 +33,7 @@ namespace miosix {
 void delayMs(unsigned int mseconds)
 {
     //Note: flash wait state don't matter because of icache
-    #ifdef SYSCLK_FREQ_550MHz
-    const unsigned int count=550000;
-    #elif defined(SYSCLK_FREQ_400MHz)
-    const unsigned int count=400000;
-    #else
-    #error "Delays are uncalibrated for this clock frequency"
-    #endif
-
+    const unsigned int count=sysclkFrequency/1000;
     for(unsigned int i=0;i<mseconds;i++)
     {
         // This delay has been calibrated to take 1 millisecond
@@ -53,23 +47,16 @@ void delayMs(unsigned int mseconds)
 
 void delayUs(unsigned int useconds)
 {
+    const unsigned int factor=sysclkFrequency/1000000;
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimizations
-    #ifdef SYSCLK_FREQ_550MHz
     //NOTE: can't use movs because some compilers (GCC on windows but not GCC on
     //Linux) can't produce the opcode to move a 16bit immediate, go figure...
-    asm volatile("    mov   r1, #550   \n"
+    asm volatile("    mov   r1, %1     \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #elif defined(SYSCLK_FREQ_400MHz)
-    asm volatile("    movs  r1, #400   \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #endif
+                 "    bpl   1b         \n"::"r"(useconds),"i"(factor):"r1","cc");
 }
 
 } //namespace miosix

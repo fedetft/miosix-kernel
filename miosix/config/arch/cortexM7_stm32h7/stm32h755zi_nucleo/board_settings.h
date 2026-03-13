@@ -46,6 +46,16 @@ namespace miosix {
 /// The C standard library is stack-heavy (iprintf requires 1KB)
 const unsigned int MAIN_STACK_SIZE=4*1024;
 
+/// Clock options
+enum class OscillatorType { HSI, HSE };
+// Supported oscillator types: HSE
+constexpr auto oscillatorType=OscillatorType::HSE;
+constexpr unsigned int hseFrequency=8000000;
+// Supported clock frequencies: 400000000
+// While the chip can run up to 480MHz, the board uses the SMPS feature
+// that limits clock speed to 400MHz
+constexpr unsigned int sysclkFrequency=400000000;
+
 /// Serial port
 /// This board only exposes USART3, without flow control
 /// Serial ports 1 to 9 are available (9 is LPUART1)

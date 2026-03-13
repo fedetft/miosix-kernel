@@ -63,13 +63,10 @@
   * @{
   */
 
+#include "board_settings.h"
 //By TFT: was #include "stm32f7xx.h", but the specific chip is #defined in
 //arch_registers_impl.h
 #include "interfaces/arch_registers.h"
-
-#if !defined  (HSE_VALUE)
-#define HSE_VALUE    ((uint32_t)25000000) /*!< Value of the External oscillator in Hz */
-#endif /* HSE_VALUE */
 
 #if !defined  (CSI_VALUE)
   #define CSI_VALUE    ((uint32_t)4000000) /*!< Value of the Internal oscillator in Hz*/
@@ -137,16 +134,10 @@
                variable is updated automatically.
   */
 //By TFT: we increase the clock BEFORE initializing .data and .bss!
-#ifdef SYSCLK_FREQ_400MHz
-uint32_t SystemCoreClock = 400000000;
-#elif SYSCLK_FREQ_550MHz
-uint32_t SystemCoreClock = 550000000;
-#else
-#error No clock defined
-#endif
+uint32_t SystemCoreClock = miosix::sysclkFrequency;
 //   uint32_t SystemCoreClock = 64000000;
-  uint32_t SystemD2Clock = 64000000;
-  const  uint8_t D1CorePrescTable[16] = {0, 0, 0, 0, 1, 2, 3, 4, 1, 2, 3, 4, 6, 7, 8, 9};
+uint32_t SystemD2Clock = 64000000;
+const  uint8_t D1CorePrescTable[16] = {0, 0, 0, 0, 1, 2, 3, 4, 1, 2, 3, 4, 6, 7, 8, 9};
 
 /**
   * @}
@@ -300,7 +291,7 @@ float fracn1, pllvco = 0 ;
     break;
 
   case 0x10:  /* HSE used as system clock  source */
-    SystemCoreClock = HSE_VALUE;
+    SystemCoreClock = miosix::hseFrequency;
     break;
 
   case 0x18:  /* PLL1 used as system clock  source */
@@ -325,7 +316,7 @@ float fracn1, pllvco = 0 ;
       break;
 
     case 0x02:  /* HSE used as PLL clock source */
-      pllvco = (HSE_VALUE / pllm) * ((RCC->PLL1DIVR & RCC_PLL1DIVR_N1) + (fracn1/0x2000) +1 );
+      pllvco = (miosix::hseFrequency / pllm) * ((RCC->PLL1DIVR & RCC_PLL1DIVR_N1) + (fracn1/0x2000) +1 );
       break;
 
     default:

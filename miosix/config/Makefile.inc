@@ -500,6 +500,7 @@ ifeq ($(OPT_BOARD),stm32h723zg_nucleo)
     ##    You must uncomment -D__ENABLE_XRAM below in this case.
     LINKER_SCRIPT_PATH := arch/cortexM7_stm32h7/stm32h723zg_nucleo/
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom.ld
+
 endif
 
 ##---------------------------------------------------------------------------
@@ -2517,9 +2518,6 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
         CFLAGS_BASE   += -D_BOARD_STM32H753XI_EVAL
         CXXFLAGS_BASE += -D_BOARD_STM32H753XI_EVAL
 
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_400MHz=400000000
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -2550,9 +2548,6 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
         CFLAGS_BASE   += -D_BOARD_STM32H723ZG_NUCLEO
         CXXFLAGS_BASE += -D_BOARD_STM32H723ZG_NUCLEO
 
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_550MHz=550000000
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -2582,11 +2577,6 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32H755ZI_NUCLEO
         CXXFLAGS_BASE += -D_BOARD_STM32H755ZI_NUCLEO
-
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        ## While the chip can run up to 480MHz, the board uses the SMPS feature
-        ## that limits clock speed to 400MHz
-        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_400MHz=400000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -2638,7 +2628,7 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
     $(ARCH_INC)/drivers/pll.cpp                              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
-    arch/common/CMSIS/Device/ST/STM32H7xx/Source/Templates/system_stm32h7xx.c
+    arch/common/CMSIS/Device/ST/STM32H7xx/Source/Templates/system_stm32h7xx.cpp
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM0_stm32f0
