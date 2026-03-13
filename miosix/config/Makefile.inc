@@ -3255,11 +3255,6 @@ else ifeq ($(ARCH),cortexM33_stm32h5)
         CFLAGS_BASE   += -D_BOARD_STM32H503RB_GENERIC
         CXXFLAGS_BASE += -D_BOARD_STM32H503RB_GENERIC
 
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        ## While the chip can run up to 480MHz, the board uses the SMPS feature
-        ## that limits clock speed to 400MHz
-        CLOCK_FREQ := -DHSE_VALUE=8000000 -DSYSCLK_FREQ_250MHz=250000000
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -3310,7 +3305,7 @@ else ifeq ($(ARCH),cortexM33_stm32h5)
     arch/common/drivers/dcc.cpp                              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
-    arch/common/CMSIS/Device/ST/STM32H5xx/Source/Templates/system_stm32h5xx.c
+    arch/common/CMSIS/Device/ST/STM32H5xx/Source/Templates/system_stm32h5xx.cpp
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM33_stm32u5

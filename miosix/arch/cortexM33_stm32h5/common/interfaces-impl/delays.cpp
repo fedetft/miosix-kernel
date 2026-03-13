@@ -25,19 +25,17 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "board_settings.h"
 #include "interfaces/delays.h"
 
 namespace miosix {
 
 void delayMs(unsigned int mseconds)
 {
-    #ifdef SYSCLK_FREQ_250MHz
-    register const unsigned int count=45000;
+    static_assert(sysclkFrequency==250000000,
+                  "Delays are uncalibrated for this clock frequency");
     #warning TODO
-    #else
-    #warning "Delays are uncalibrated for this clock frequency"
-    #endif
-
+    const unsigned int count=45000;
     for(unsigned int i=0;i<mseconds;i++)
     {
         // This delay has been calibrated to take 1 millisecond
@@ -54,14 +52,12 @@ void delayUs(unsigned int useconds)
 {
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimizations
-    #ifdef SYSCLK_FREQ_250MHz
     asm volatile("    movs  r1, #45    \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  r1, r1, #1 \n"
                  "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #endif
 }
 
 } //namespace miosix

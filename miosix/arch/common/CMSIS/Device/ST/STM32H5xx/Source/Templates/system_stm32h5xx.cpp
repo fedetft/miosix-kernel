@@ -109,6 +109,7 @@
   * @{
   */
 
+#include "board_settings.h"
 //By TFT: was #include "stm32h5xx.h", but the specific chip is #defined in
 //arch_registers_impl.h
 #include "interfaces/arch_registers.h"
@@ -128,10 +129,6 @@
 /** @addtogroup STM32H5xx_System_Private_Defines
   * @{
   */
-
-#if !defined  (HSE_VALUE)
-  #define HSE_VALUE    (25000000UL) /*!< Value of the External oscillator in Hz */
-#endif /* HSE_VALUE */
 
 #if !defined  (CSI_VALUE)
   #define CSI_VALUE    (4000000UL)  /*!< Value of the Internal oscillator in Hz*/
@@ -337,7 +334,7 @@ void SystemCoreClockUpdate(void)
     break;
 
   case 0x10UL:  /* HSE used as system clock  source */
-    SystemCoreClock = HSE_VALUE;
+    SystemCoreClock = miosix::hseFrequency;
     break;
 
   case 0x18UL:  /* PLL1 used as system clock source */
@@ -363,7 +360,7 @@ void SystemCoreClockUpdate(void)
       break;
 
     case 0x03UL:  /* HSE used as PLL clock source */
-      pllvco = ((float_t)HSE_VALUE / (float_t)pllm) * ((float_t)(uint32_t)(RCC->PLL1DIVR & RCC_PLL1DIVR_PLL1N) + \
+      pllvco = ((float_t)miosix::hseFrequency / (float_t)pllm) * ((float_t)(uint32_t)(RCC->PLL1DIVR & RCC_PLL1DIVR_PLL1N) + \
                 (fracn1/(float_t)0x2000) +(float_t)1 );
       break;
 
