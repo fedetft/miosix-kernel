@@ -48,6 +48,18 @@ namespace miosix {
 /// so there is room for a big 4K stack.
 const unsigned int MAIN_STACK_SIZE=4*1024;
 
+/// Clock options
+enum class OscillatorType { HSI, HSE, MSI };
+// Supported oscillator types: HSI, HSE, MSI
+// Note: MSI appears to be more inaccurate than the datasheet states
+// (measured about 5% instead of 1%)
+constexpr auto oscillatorType=OscillatorType::HSE;
+constexpr unsigned int hseFrequency=16000000;
+// Supported clock frequencies: 24000000, 36000000, 48000000, 72000000, 80000000
+// Note: at 80Mhz SDIO and RNG run at the wrong speed and USB will not work
+// because the PLL will run at 40MHz instead of 48MHz
+constexpr unsigned int sysclkFrequency=24000000;
+
 /// Serial port
 /// Serial ports 1 to 5 are available
 const unsigned int defaultSerial=2;

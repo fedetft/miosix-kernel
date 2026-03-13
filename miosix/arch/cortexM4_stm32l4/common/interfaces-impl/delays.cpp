@@ -25,38 +25,16 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
+#include "board_settings.h"
 #include "interfaces/delays.h"
 
 namespace miosix {
 
 void delayMs(unsigned int mseconds)
 {
-    #ifdef SYSCLK_FREQ_80MHz
-    const unsigned int count=20000;
-    #elif defined(SYSCLK_FREQ_56MHz)
-    const unsigned int count=14000;
-    #elif defined(SYSCLK_FREQ_48MHz)
-    const unsigned int count=12000;
-    #elif defined(SYSCLK_FREQ_36MHz)
-    const unsigned int count=9000;
-    #elif defined(SYSCLK_FREQ_24MHz)
-    const unsigned int count=6000;
-    #elif defined(HSE_VALUE) && HSE_VALUE==16000000
-    const unsigned int count=4000;
-    #elif defined(HSE_VALUE) && HSE_VALUE==8000000
-    const unsigned int count=2000;
-    #elif defined(RUN_WITH_HSI)
-    const unsigned int count=4000;
-    #elif defined(RUN_WITH_MSI)
-    const unsigned int count=1000;
-    #else
-    #error "Delays are uncalibrated for this clock frequency"
-    #endif
-
+    const unsigned int count=sysclkFrequency/4000;
     for(unsigned int i=0;i<mseconds;i++)
     {
-        // This delay has been calibrated to take 1 millisecond
-        // It is written in assembler to be independent on compiler optimizations
         asm volatile("    movs  r1, %0     \n"
                      "    .align 2         \n" //4-byte aligned inner loop
                      "1:  nop              \n" //Bring the loop time to 4 cycles
@@ -67,70 +45,14 @@ void delayMs(unsigned int mseconds)
 
 void delayUs(unsigned int useconds)
 {
-    // This delay has been calibrated to take x microseconds
-    // It is written in assembler to be independent on compiler optimizations
-    #ifdef SYSCLK_FREQ_80MHz
-    asm volatile("    movs  r1, #20    \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  nop              \n" //Bring the loop time to 4 cycles
-                 "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #elif defined(SYSCLK_FREQ_56MHz)
-    asm volatile("    movs  r1, #14    \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  nop              \n" //Bring the loop time to 4 cycles
-                 "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #elif defined(SYSCLK_FREQ_48MHz)
-    asm volatile("    movs  r1, #12    \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  nop              \n" //Bring the loop time to 4 cycles
-                 "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #elif defined(SYSCLK_FREQ_36MHz)
-    asm volatile("    movs  r1, #9     \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  nop              \n" //Bring the loop time to 4 cycles
-                 "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #elif defined(SYSCLK_FREQ_24MHz)
-    asm volatile("    movs  r1, #6     \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  nop              \n" //Bring the loop time to 4 cycles
-                 "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #elif defined(HSE_VALUE) && HSE_VALUE==16000000
-    asm volatile("    movs  r1, #4     \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  nop              \n" //Bring the loop time to 4 cycles
-                 "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #elif defined(HSE_VALUE) && HSE_VALUE==8000000
-    asm volatile("    movs  r1, #2     \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  nop              \n" //Bring the loop time to 4 cycles
-                 "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #elif defined(RUN_WITH_HSI)
-    asm volatile("    movs  r1, #4     \n"
-                 "    mul   r1, r1, %0 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
-                 "1:  nop              \n" //Bring the loop time to 4 cycles
-                 "    subs  r1, r1, #1 \n"
-                 "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #elif defined(RUN_WITH_MSI)
+    // Apparently stm32l4's code prefetch is efficient enough that, no matter
+    // the flash wait states, each loop iteration always takes 4 cycles
+    constexpr unsigned int factor=sysclkFrequency/4000000;
+    useconds*=factor;
     asm volatile("    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles
                  "    subs  %0, %0, #1 \n"
                  "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    #endif
 }
 
 } //namespace miosix

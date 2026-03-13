@@ -562,23 +562,7 @@ endif
 ## stm32l476rg_nucleo
 ##
 
-ifeq ($(OPT_BOARD),stm32l476rg_nucleo)
-
-    ## Select clock frequency (16MHz HSI)
-    #CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000 -DRUN_WITH_HSI
-    #CLOCK_FREQ := -DSYSCLK_FREQ_36MHz=36000000 -DRUN_WITH_HSI
-    #CLOCK_FREQ := -DSYSCLK_FREQ_48MHz=48000000 -DRUN_WITH_HSI
-    #CLOCK_FREQ := -DSYSCLK_FREQ_56MHz=56000000 -DRUN_WITH_HSI
-    CLOCK_FREQ := -DSYSCLK_FREQ_80MHz=80000000 -DRUN_WITH_HSI
-    ## Select clock frequency (4MHz MSI)
-    #CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000
-    #CLOCK_FREQ := -DSYSCLK_FREQ_36MHz=36000000
-    #CLOCK_FREQ := -DSYSCLK_FREQ_48MHz=48000000
-    #CLOCK_FREQ := -DSYSCLK_FREQ_56MHz=56000000
-    ## Other clock options
-    #CLOCK_FREQ := -DRUN_WITH_MSI
-
-endif
+# No options
 
 ##---------------------------------------------------------------------------
 ## atsam4lc2aa_generic
@@ -625,27 +609,6 @@ ifeq ($(OPT_BOARD),stm32l4r9zi_sensortile)
     LINKER_SCRIPT_PATH := arch/cortexM4_stm32l4/stm32l4r9zi_sensortile/
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+640k_rom.ld
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+640k_rom_processes.ld
-
-    ## Select clock frequency (8MHz HSE)
-    #CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000 -DHSE_VALUE=16000000
-    #CLOCK_FREQ := -DSYSCLK_FREQ_36MHz=36000000 -DHSE_VALUE=16000000
-    #CLOCK_FREQ := -DSYSCLK_FREQ_48MHz=48000000 -DHSE_VALUE=16000000
-    #CLOCK_FREQ := -DSYSCLK_FREQ_56MHz=56000000 -DHSE_VALUE=16000000
-    CLOCK_FREQ := -DSYSCLK_FREQ_80MHz=80000000 -DHSE_VALUE=16000000
-    ## Select clock frequency (16MHz HSI)
-    #CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000 -DRUN_WITH_HSI
-    #CLOCK_FREQ := -DSYSCLK_FREQ_36MHz=36000000 -DRUN_WITH_HSI
-    #CLOCK_FREQ := -DSYSCLK_FREQ_48MHz=48000000 -DRUN_WITH_HSI
-    #CLOCK_FREQ := -DSYSCLK_FREQ_56MHz=56000000 -DRUN_WITH_HSI
-    #CLOCK_FREQ := -DSYSCLK_FREQ_80MHz=80000000 -DRUN_WITH_HSI
-    ## Select clock frequency (4MHz MSI)
-    #CLOCK_FREQ := -DSYSCLK_FREQ_24MHz=24000000
-    #CLOCK_FREQ := -DSYSCLK_FREQ_36MHz=36000000
-    #CLOCK_FREQ := -DSYSCLK_FREQ_48MHz=48000000
-    #CLOCK_FREQ := -DSYSCLK_FREQ_56MHz=56000000
-    ## Other clock options
-    #CLOCK_FREQ := -DHSE_VALUE=16000000
-    #CLOCK_FREQ := -DRUN_WITH_MSI
 
 endif
 
@@ -2948,9 +2911,9 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
     ## Select appropriate compiler flags for both ASM/C/C++/linker
     CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
     AFLAGS_BASE   := $(CPU)
-    CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32L4 $(CLOCK_FREQ) $(XRAM) $(CPU) \
+    CFLAGS_BASE   += -D_ARCH_CORTEXM4_STM32L4 $(XRAM) $(CPU) \
                      $(OPT_OPTIMIZATION)
-    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32L4 $(CLOCK_FREQ) $(XRAM) $(CPU) \
+    CXXFLAGS_BASE += -D_ARCH_CORTEXM4_STM32L4 $(XRAM) $(CPU) \
                      $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
     LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map                \
                      -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT)         \
@@ -2972,7 +2935,7 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
     arch/common/drivers/stm32_serial_common.cpp              \
     $(ARCH_INC)/interfaces-impl/delays.cpp                   \
     $(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
-    arch/common/CMSIS/Device/ST/STM32L4xx/Source/Templates/system_stm32l4xx.c
+    arch/common/CMSIS/Device/ST/STM32L4xx/Source/Templates/system_stm32l4xx.cpp
 
 ##-----------------------------------------------------------------------------
 ## ARCHITECTURE: cortexM4_atsam4l
