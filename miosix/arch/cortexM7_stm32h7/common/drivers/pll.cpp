@@ -89,7 +89,7 @@ static constexpr RCCPLLConfig pllConfigs[] = {
 template<unsigned int N>
 constexpr RCCPLLConfig findPllConfig()
 {
-    static_assert(pllConfigs[N].sysclk!=0, "Unsupported sysclk");
+    static_assert(sizeof(pllConfigs)/sizeof(RCCPLLConfig)>=N, "Unsupported sysclk");
     if constexpr(pllConfigs[N].hse==hseFrequency && 
                  pllConfigs[N].sysclk==sysclkFrequency) return pllConfigs[N];
     else return findPllConfig<N+1>();
