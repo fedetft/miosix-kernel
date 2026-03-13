@@ -743,6 +743,19 @@ endif
 
 # No options
 
+##---------------------------------------------------------------------------
+## stm32u585ci_generic
+##
+
+ifeq ($(OPT_BOARD),stm32u585ci_generic)
+
+    ## Select linker script
+    LINKER_SCRIPT_PATH := arch/cortexM33_stm32u5/stm32u585ci_generic
+    LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_2048k+768k_rom.ld
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_2048k+768k_processes.ld
+
+endif
+
 ############################################################################
 ## From the options selected above, now fill all the variables needed to  ##
 ## build Miosix. You should modify something here only if you are adding  ##
@@ -3318,31 +3331,16 @@ else ifeq ($(ARCH),cortexM33_stm32u5)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM33_stm32u5/stm32u585ci_generic
 
-        ## Select linker script
-        LINKER_SCRIPT_PATH := $(BOARD_INC)
-        LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_2048k+768k_rom.ld
-        #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_2048k+768k_processes.ld
-
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
         $(BOARD_INC)/boot.cpp                        \
         $(BOARD_INC)/interfaces-impl/bsp.cpp
-
-
         # arch/common/drivers/stm32_hardware_rng.cpp   \
 
         ## Add a #define to allow querying board name
         CFLAGS_BASE   += -D_BOARD_STM32U585CI_GENERIC
         CXXFLAGS_BASE += -D_BOARD_STM32U585CI_GENERIC
-
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        ## While the chip can run up to 480MHz, the board uses the SMPS feature
-        ## that limits clock speed to 400MHz
-        CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_160MHz=160000000
-        #CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_110MHz=110000000
-        #CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_48MHz=48000000
-        #CLOCK_FREQ := -DHSE_VALUE=25000000 -DSYSCLK_FREQ_24MHz=24000000
 
         ## Select programmer command line
         ## This is the program that is invoked when the user types
@@ -3354,6 +3352,7 @@ else ifeq ($(ARCH),cortexM33_stm32u5)
         #        $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
         PROG ?= dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D \
                 $(if $(ROMFS_DIR), image.bin, main.bin)
+
     else ifeq ($(OPT_BOARD),stm32u535cb_rrc)
         ## Base directory with header files for this board
         BOARD_INC := arch/cortexM33_stm32u5/stm32u535cb_rrc
@@ -3373,11 +3372,6 @@ else ifeq ($(ARCH),cortexM33_stm32u5)
         CFLAGS_BASE   += -D_BOARD_STM32U535CB_RRC
         CXXFLAGS_BASE += -D_BOARD_STM32U535CB_RRC
 
-        ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-        ## While the chip can run up to 480MHz, the board uses the SMPS feature
-        ## that limits clock speed to 400MHz
-        CLOCK_FREQ := -DSYSCLK_FREQ_48MHz=48000000 -DRUN_WITH_HSI
-
         ## Select programmer command line
         ## This is the program that is invoked when the user types
         ## 'make program'
@@ -3386,6 +3380,7 @@ else ifeq ($(ARCH),cortexM33_stm32u5)
         ## board.
         PROG ?= dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D \
                 $(if $(ROMFS_DIR), image.bin, main.bin)
+
     ##-------------------------------------------------------------------------
     ## End of board list
     ##

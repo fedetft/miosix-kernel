@@ -47,6 +47,14 @@ namespace miosix {
 /// The C standard library is stack-heavy (iprintf requires 1KB)
 const unsigned int MAIN_STACK_SIZE=4*1024;
 
+/// Clock options
+enum class OscillatorType { HSI, HSE };
+// Supported oscillator types: HSI
+constexpr auto oscillatorType=OscillatorType::HSI;
+constexpr unsigned int hseFrequency=0;
+// Supported clock frequencies: 48000000
+constexpr unsigned int sysclkFrequency=48000000;
+
 /// Serial port
 const unsigned int defaultSerial=1;
 const unsigned int defaultSerialSpeed=115200;

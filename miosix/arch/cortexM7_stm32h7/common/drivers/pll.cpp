@@ -83,13 +83,13 @@ static constexpr RCCPLLConfig pllConfigs[] = {
         .p=2,      // 800MHz/P=400MHz
         .q=8,      // 800MHz/P=100MHz (for SDMMC)
         .r=2,      // 800MHz/P=400MHz
-    }
+    },
 };
 
 template<unsigned int N>
 constexpr RCCPLLConfig findPllConfig()
 {
-    static_assert(sizeof(pllConfigs)/sizeof(RCCPLLConfig)>=N, "Unsupported sysclk");
+    static_assert(N<sizeof(pllConfigs)/sizeof(RCCPLLConfig), "Unsupported sysclk");
     if constexpr(pllConfigs[N].hse==hseFrequency && 
                  pllConfigs[N].sysclk==sysclkFrequency) return pllConfigs[N];
     else return findPllConfig<N+1>();
