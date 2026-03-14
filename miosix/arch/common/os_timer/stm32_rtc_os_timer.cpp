@@ -215,23 +215,26 @@ void IRQdeepSleepInit()
 static bool IRQdeepSleepImpl(bool withTimeout)
 {
     unsigned int lowerTickBefore=timer.IRQgetTimerCounter();
-    #ifndef RUN_WITH_HSI
-    // The HSI oscillator, even with PLL, starts so fast that it does not impact
-    // lag from returining from application sleeps that resulted in deep sleep.
-    // The HSE, however, takes up to 10 ticks to restart. In this case we want
-    // to check whether the wakeup time is too close, and in that case not even
-    // enter deep sleep. If the sleep is longer, we wakeup in advance and then
-    // sleep the rest of the time. Tested with _tools/delay_test/os_timer_test.cpp
-    const unsigned int minTicks=13;//TODO: increasing it further does not improve
-    long long irqTick;
-    if(withTimeout)
+    static_assert(oscillatorType==OscillatorType::HSE || oscillatorType==OscillatorType::HSI,
+                      "Unsupported oscillator type");
+    if(oscillatorType==OscillatorType::HSE)
     {
-        long long tick=timer.IRQgetTimeTickFromCounter(lowerTickBefore);
-        irqTick=timer.IRQgetIrqTick();
-        if(irqTick-tick<minTicks) return false; //Not enough time for deep sleep
-        timer.IRQsetIrqTick(irqTick-minTicks+1);
+        // The HSI oscillator, even with PLL, starts so fast that it does not impact
+        // lag from returining from application sleeps that resulted in deep sleep.
+        // The HSE, however, takes up to 10 ticks to restart. In this case we want
+        // to check whether the wakeup time is too close, and in that case not even
+        // enter deep sleep. If the sleep is longer, we wakeup in advance and then
+        // sleep the rest of the time. Tested with _tools/delay_test/os_timer_test.cpp
+        const unsigned int minTicks=13;//TODO: increasing it further does not improve
+        long long irqTick;
+        if(withTimeout)
+        {
+            long long tick=timer.IRQgetTimeTickFromCounter(lowerTickBefore);
+            irqTick=timer.IRQgetIrqTick();
+            if(irqTick-tick<minTicks) return false; //Not enough time for deep sleep
+            timer.IRQsetIrqTick(irqTick-minTicks+1);
+        }
     }
-    #endif //RUN_WITH_HSI
 
     /*
      * NOTE: The RTC causes two separate IRQs, the RTC IRQ, and the RTC_Alarm
@@ -283,15 +286,16 @@ static bool IRQdeepSleepImpl(bool withTimeout)
     if(lowerTickAfter<lowerTickBefore && !(RTC->CRL & RTC_CRL_OWF))
         timer.IRQquirkIncrementUpperCounter();
 
-    #ifndef RUN_WITH_HSI
-    if(withTimeout)
+    if(oscillatorType==OscillatorType::HSE)
     {
-        //Restore the previous interrupt time and return false so we consume the
-        //slack time in (non deep) sleep
-        timer.IRQsetIrqTick(irqTick);
-        return false;
+        if(withTimeout)
+        {
+            //Restore the previous interrupt time and return false so we consume the
+            //slack time in (non deep) sleep
+            timer.IRQsetIrqTick(irqTick);
+            return false;
+        }
     }
-    #endif //RUN_WITH_HSI
     return true;
 }
 

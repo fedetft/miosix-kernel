@@ -43,6 +43,7 @@
   * @{
   */
 
+#include "board_settings.h"
 // By redman: was #include "stm32f0xx.h", but the specific chip is #defined in
 // arch_registers_impl.h
 #include "interfaces/arch_registers.h"
@@ -62,10 +63,6 @@
 /** @addtogroup STM32F0xx_System_Private_Defines
   * @{
   */
-#if !defined  (HSE_VALUE) 
-  #define HSE_VALUE    ((uint32_t)8000000) /*!< Default value of the External oscillator in Hz.
-                                                This value can be provided and adapted by the user application. */
-#endif /* HSE_VALUE */
 
 #if !defined  (HSI_VALUE)
   #define HSI_VALUE    ((uint32_t)8000000) /*!< Default value of the Internal oscillator in Hz.
@@ -99,11 +96,7 @@
                is no need to call the 2 first functions listed above, since SystemCoreClock
                variable is updated automatically.
   */
-#ifdef SYSCLK_FREQ_32MHz
-uint32_t SystemCoreClock = 32000000;
-#else
-uint32_t SystemCoreClock = 8000000;
-#endif
+uint32_t SystemCoreClock = miosix::sysclkFrequency;
 
 const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
 const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
@@ -194,7 +187,7 @@ void SystemCoreClockUpdate (void)
       SystemCoreClock = HSI_VALUE;
       break;
     case RCC_CFGR_SWS_HSE:  /* HSE used as system clock */
-      SystemCoreClock = HSE_VALUE;
+      SystemCoreClock = miosix::hseFrequency;
       break;
     case RCC_CFGR_SWS_PLL:  /* PLL used as system clock */
       /* Get PLL clock source and multiplication factor ----------------------*/
@@ -207,7 +200,7 @@ void SystemCoreClockUpdate (void)
       {
         /* HSE used as PLL clock source : SystemCoreClock = HSE/PREDIV * PLLMUL */
         // Miosix: first multiply and then divide to fix numerical precision
-        SystemCoreClock = (HSE_VALUE*pllmull)/predivfactor;
+        SystemCoreClock = (miosix::hseFrequency*pllmull)/predivfactor;
       }
 #if defined(STM32F042x6) || defined(STM32F048xx) || defined(STM32F071xB) || defined(STM32F072xB) || defined(STM32F078xx) || defined(STM32F091xC) || defined(STM32F098xx)
       else if (pllsource == RCC_CFGR_PLLSRC_HSI48_PREDIV)

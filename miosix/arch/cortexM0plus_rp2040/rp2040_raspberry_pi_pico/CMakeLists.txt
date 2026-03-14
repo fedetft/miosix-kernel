@@ -51,9 +51,6 @@ if(NOT MIOSIX_LINKER_SCRIPT IN_LIST MIOSIX_LINKER_SCRIPT_LIST)
 endif()
 set_property(CACHE MIOSIX_LINKER_SCRIPT PROPERTY STRINGS ${MIOSIX_LINKER_SCRIPT_LIST})
 
-# Select HSE clock frequency (external clock on board, fixed)
-set(MIOSIX_HSE_VALUE -DHSE_VALUE=8000000)
-
 # Select architecture specific files
 set(MIOSIX_ARCH_SRC
     ${MIOSIX_ARCH_INC}/rp2040_boot.cpp

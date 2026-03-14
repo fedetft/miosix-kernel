@@ -66,26 +66,6 @@ else()
     message(NOTICE "You have disabled the XRAM, make sure that the selected linker script does not use it")
 endif()
 
-# Select HSE clock frequency (external clock on board, fixed)
-set(MIOSIX_HSE_VALUE -DHSE_VALUE=8000000)
-
-# Select clock frequency.
-# Warning: due to a limitation in the PLL, it is not possible to generate
-# a precise 48MHz output when running the core at 180MHz. If 180MHz is
-# chosen the SDIO and RNG will run ~6% slower (45MHz insteand of 48MHz)
-set(MIOSIX_SYSCLK_FREQ_LIST
-    -DSYSCLK_FREQ_216MHz=216000000
-)
-if(NOT MIOSIX_SYSCLK_FREQ IN_LIST MIOSIX_SYSCLK_FREQ_LIST)
-    # If there is no cached value, or the cached value is not in the list, set a default value
-    set(MIOSIX_SYSCLK_FREQ -DSYSCLK_FREQ_216MHz=216000000 CACHE STRING "Clock frenquency" FORCE)
-endif()
-set_property(CACHE MIOSIX_SYSCLK_FREQ PROPERTY STRINGS ${MIOSIX_SYSCLK_FREQ_LIST})
-
-if(MIOSIX_SYSCLK_FREQ STREQUAL -DSYSCLK_FREQ_180MHz=180000000)
-    message(NOTICE "The clock frequency has been set to 180MHz, the SDIO and RNG will run ~6% slower (45MHz insteand of 48MHz)")
-endif()
-
 # Select architecture specific files
 set(MIOSIX_ARCH_SRC
     ${MIOSIX_BOARD_INC}/boot.cpp

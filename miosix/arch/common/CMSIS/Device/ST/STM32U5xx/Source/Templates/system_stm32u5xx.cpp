@@ -100,6 +100,7 @@
   * @{
   */
 
+#include "board_settings.h"
 #include <interfaces/arch_registers.h>
 #include <math.h>
 
@@ -118,10 +119,6 @@
 /** @addtogroup STM32U5xx_System_Private_Defines
   * @{
   */
-
-#if !defined  (HSE_VALUE)
-  #define HSE_VALUE    16000000U /*!< Value of the External oscillator in Hz */
-#endif /* HSE_VALUE */
 
 #if !defined  (MSI_VALUE)
   #define MSI_VALUE    4000000U  /*!< Value of the Internal oscillator in Hz*/
@@ -164,12 +161,11 @@
                is no need to call the 2 first functions listed above, since SystemCoreClock
                variable is updated automatically.
   */
-  uint32_t SystemCoreClock = 4000000U;
-
-  const uint8_t  AHBPrescTable[16] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 1U, 2U, 3U, 4U, 6U, 7U, 8U, 9U};
-  const uint8_t  APBPrescTable[8] =  {0U, 0U, 0U, 0U, 1U, 2U, 3U, 4U};
-  const uint32_t MSIRangeTable[16] = {48000000U,24000000U,16000000U,12000000U, 4000000U, 2000000U, 1330000U,\
-                                      1000000U, 3072000U, 1536000U,1024000U, 768000U, 400000U, 200000U, 133000U, 100000U};
+uint32_t SystemCoreClock = miosix::sysclkFrequency;
+const uint8_t  AHBPrescTable[16] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 1U, 2U, 3U, 4U, 6U, 7U, 8U, 9U};
+const uint8_t  APBPrescTable[8] =  {0U, 0U, 0U, 0U, 1U, 2U, 3U, 4U};
+const uint32_t MSIRangeTable[16] = {48000000U,24000000U,16000000U,12000000U, 4000000U, 2000000U, 1330000U,\
+                                    1000000U, 3072000U, 1536000U,1024000U, 768000U, 400000U, 200000U, 133000U, 100000U};
 /**
   * @}
   */
@@ -302,7 +298,7 @@ void SystemCoreClockUpdate(void)
     break;
 
   case 0x08:  /* HSE used as system clock source */
-    SystemCoreClock = HSE_VALUE;
+    SystemCoreClock = miosix::hseFrequency;
     break;
 
   case 0x0C:  /* PLL used as system clock source */
@@ -325,7 +321,7 @@ void SystemCoreClockUpdate(void)
         break;
 
       case 0x03:  /* HSE used as PLL clock source */
-        pllvco = ((float_t)HSE_VALUE / (float_t)pllm);
+        pllvco = ((float_t)miosix::hseFrequency / (float_t)pllm);
         break;
 
       default:    /* MSI used as PLL clock source */

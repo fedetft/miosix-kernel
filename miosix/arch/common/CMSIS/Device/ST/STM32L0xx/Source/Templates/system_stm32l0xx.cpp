@@ -44,13 +44,10 @@
   * @{
   */
 
+#include "board_settings.h"
 // Miosix: was #include "stm32l7xx.h", but the specific chip is #defined in
 // arch_registers_impl.h
 #include "interfaces/arch_registers.h"
-
-#if !defined  (HSE_VALUE)
-  #define HSE_VALUE    ((uint32_t)8000000U) /*!< Value of the External oscillator in Hz */
-#endif /* HSE_VALUE */
 
 #if !defined  (MSI_VALUE)
   #define MSI_VALUE    ((uint32_t)2097152U) /*!< Value of the Internal oscillator in Hz*/
@@ -126,10 +123,10 @@
                is no need to call the 2 first functions listed above, since SystemCoreClock
                variable is updated automatically.
   */
-  uint32_t SystemCoreClock = 2097152U; /* 32.768 kHz * 2^6 */
-  const uint8_t AHBPrescTable[16] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 1U, 2U, 3U, 4U, 6U, 7U, 8U, 9U};
-  const uint8_t APBPrescTable[8] = {0U, 0U, 0U, 0U, 1U, 2U, 3U, 4U};
-  const uint8_t PLLMulTable[9] = {3U, 4U, 6U, 8U, 12U, 16U, 24U, 32U, 48U};
+uint32_t SystemCoreClock = miosix::sysclkFrequency;
+const uint8_t AHBPrescTable[16] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 1U, 2U, 3U, 4U, 6U, 7U, 8U, 9U};
+const uint8_t APBPrescTable[8] = {0U, 0U, 0U, 0U, 1U, 2U, 3U, 4U};
+const uint8_t PLLMulTable[9] = {3U, 4U, 6U, 8U, 12U, 16U, 24U, 32U, 48U};
 
 /**
   * @}
@@ -222,7 +219,7 @@ void SystemCoreClockUpdate (void)
       }
       break;
     case 0x08U:  /* HSE used as system clock */
-      SystemCoreClock = HSE_VALUE;
+      SystemCoreClock = miosix::hseFrequency;
       break;
     default:  /* PLL used as system clock */
       /* Get PLL clock source and multiplication factor ----------------------*/
@@ -248,7 +245,7 @@ void SystemCoreClockUpdate (void)
       else
       {
         /* HSE selected as PLL clock entry */
-        SystemCoreClock = (((HSE_VALUE) * pllmul) / plldiv);
+        SystemCoreClock = (((miosix::hseFrequency) * pllmul) / plldiv);
       }
       break;
   }

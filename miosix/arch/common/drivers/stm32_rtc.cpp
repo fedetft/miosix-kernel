@@ -29,6 +29,7 @@
 #include <miosix.h>
 #include <sys/ioctl.h>
 #include <interfaces/interrupts.h>
+#include "board_settings.h"
 
 #ifndef WITH_RTC_AS_OS_TIMER
 
@@ -140,11 +141,8 @@ namespace miosix {
 
 void absoluteDeepSleep(long long int value)
 {
-    #ifdef RUN_WITH_HSI
-    const int wakeupAdvance=3; //waking up takes time
-    #else //RUN_WITH_HSI
-    const int wakeupAdvance=33; //HSE starup time is 2ms
-    #endif //RUN_WITH_HSI
+    //waking up takes time, HSE starup time is 2ms, HSI is faster;
+    const int wakeupAdvance=oscillatorType==OscillatorType::HSI ? 3 : 33;
     
     Rtc& rtc=Rtc::instance();
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
@@ -180,18 +178,21 @@ void absoluteDeepSleep(long long int value)
         PWR->CR &= ~PWR_CR_LPDS;
         
         static_assert(sysclkFrequency==24000000,"TODO: support more PLL frequencies");
+        static_assert(oscillatorType==OscillatorType::HSE || oscillatorType==OscillatorType::HSI,
+                      "Unsupported oscillator type");
         //STOP mode resets the clock to the HSI 8MHz, so restore the 24MHz clock
-        #ifndef RUN_WITH_HSI
-        RCC->CR |= RCC_CR_HSEON;
-        while((RCC->CR & RCC_CR_HSERDY)==0) ;
-        //PLL = (HSE / 2) * 6 = 24 MHz
-        RCC->CFGR &= ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL);
-        RCC->CFGR |=   RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL6;
-        #else //RUN_WITH_HSI
-        //PLL = (HSI / 2) * 6 = 24 MHz
-        RCC->CFGR &= ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL);
-        RCC->CFGR |=                     RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL6;
-        #endif //RUN_WITH_HSI        
+        if(oscillatorType==OscillatorType::HSE)
+        {
+            RCC->CR |= RCC_CR_HSEON;
+            while((RCC->CR & RCC_CR_HSERDY)==0) ;
+            //PLL = (HSE / 2) * 6 = 24 MHz
+            RCC->CFGR &= ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL);
+            RCC->CFGR |=   RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL6;
+        } else {
+            //PLL = (HSI / 2) * 6 = 24 MHz
+            RCC->CFGR &= ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL);
+            RCC->CFGR |=                     RCC_CFGR_PLLXTPRE | RCC_CFGR_PLLMULL6;
+        }
         RCC->CR |= RCC_CR_PLLON;
         while((RCC->CR & RCC_CR_PLLRDY)==0) ;
         RCC->CFGR &= ~RCC_CFGR_SW;

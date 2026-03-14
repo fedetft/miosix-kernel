@@ -52,21 +52,6 @@ if(NOT MIOSIX_LINKER_SCRIPT IN_LIST MIOSIX_LINKER_SCRIPT_LIST)
 endif()
 set_property(CACHE MIOSIX_LINKER_SCRIPT PROPERTY STRINGS ${MIOSIX_LINKER_SCRIPT_LIST})
 
-# Select HSE clock frequency (external clock on board, fixed)
-set(MIOSIX_HSE_VALUE -DHSE_VALUE=8000000)
-
-# Select clock frequency (HSE_VALUE is the xtal on board, fixed)
-set(MIOSIX_SYSCLK_FREQ_LIST
-    -DSYSCLK_FREQ_168MHz=168000000
-    -DSYSCLK_FREQ_100MHz=100000000
-    -DSYSCLK_FREQ_84MHz=84000000
-)
-if(NOT MIOSIX_SYSCLK_FREQ IN_LIST MIOSIX_SYSCLK_FREQ_LIST)
-    # If there is no cached value, or the cached value is not in the list, set a default value
-    set(MIOSIX_SYSCLK_FREQ -DSYSCLK_FREQ_168MHz=168000000 CACHE STRING "Clock frenquency" FORCE)
-endif()
-set_property(CACHE MIOSIX_SYSCLK_FREQ PROPERTY STRINGS ${MIOSIX_SYSCLK_FREQ_LIST})
-
 # Select architecture specific files
 set(MIOSIX_ARCH_SRC
     ${MIOSIX_BOARD_INC}/boot.cpp
