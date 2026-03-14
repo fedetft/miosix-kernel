@@ -324,7 +324,7 @@ static void SetSysClock(void)
   unsigned int PLL_Q;
   if(sysclkMhz==180) PLL_Q=8; // 48MHz output will be 45MHz
   else if(sysclkMhz==100) PLL_Q=5; // 48MHz output will be 40MHz
-  else PLL_Q=PLL_P/48;
+  else PLL_Q=48/PLL_P;
   // By TFT -- end
   
   /* Enable HSE */
