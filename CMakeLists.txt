@@ -25,25 +25,19 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-function(make_absolute_path PATH_VAR)
-    get_filename_component(ABS_PATH "${${PATH_VAR}}" REALPATH)
-    set(${PATH_VAR} "${ABS_PATH}" PARENT_SCOPE)
-endfunction()
-
 # Remember to delete cmake cache for changes in CMakeLists.txt to have effect (or use --fresh to ignore it)
 
 # Set here the path to miosix kernel
 set(MIOSIX_KPATH ${CMAKE_SOURCE_DIR}/miosix CACHE PATH "Path to the miosix kernel")
-make_absolute_path(MIOSIX_KPATH)
 
 # Set here your toolchain file
 set(CMAKE_TOOLCHAIN_FILE ${MIOSIX_KPATH}/cmake/Toolchains/gcc.cmake CACHE PATH "Path to your toolchain file")
 # set(CMAKE_TOOLCHAIN_FILE ${MIOSIX_KPATH}/cmake/Toolchains/clang.cmake CACHE PATH "Path to your toolchain file")
-make_absolute_path(CMAKE_TOOLCHAIN_FILE)
 
 # Set your cmake build type here
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo")
 
+# The project command is mandatory and needs to be added after setting CMAKE_TOOLCHAIN_FILE
 project(Main C CXX ASM)
 
 # Set here your config path for out-of-tree projects
