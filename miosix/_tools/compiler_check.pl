@@ -11,7 +11,8 @@
 use warnings;
 use strict;
 
-my $fullversion=`$ARGV[0] -E -dM - </dev/null`;
+# NOTE: use echo | ... instead of ... < /dev/null for Windows compatibility
+my $fullversion=`echo | $ARGV[0] -E -dM -`;
 my $patch_major=-1;
 for(split /\n/, $fullversion)
 {
