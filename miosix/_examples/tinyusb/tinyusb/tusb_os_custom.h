@@ -161,16 +161,19 @@ TU_ATTR_ALWAYS_INLINE static inline bool osal_queue_send(osal_queue_t qhdl, void
     bool success;
     if(in_isr)
     {
+        miosix::FastGlobalLockFromIrq dLock;
         success=tu_fifo_write(&qhdl->fifo,data);
         qhdl->itemAvailable.IRQsignal();
+        if(miosix::extraChecks==miosix::ExtraChecks::Application && !success)
+            miosix::errorHandler(miosix::Error::UNEXPECTED); 
     } else {
         {
             miosix::FastGlobalIrqLock dLock;
             success=tu_fifo_write(&qhdl->fifo,data);
         }
         qhdl->itemAvailable.signal();
+        TU_ASSERT(success);
     }
-    TU_ASSERT(success);
     return success;
 }
 

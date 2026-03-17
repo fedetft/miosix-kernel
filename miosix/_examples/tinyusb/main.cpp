@@ -48,11 +48,28 @@ void *usbThread(void *unused)
     return nullptr;
 }
 
+//
+// Interrupt handlers to be forwarded to TinyUSB
+//
+
+void OTG_FS_IRQHandler()
+{
+    tud_int_handler(0);
+}
+
+void OTG_HS_IRQHandler()
+{
+    tud_int_handler(1);
+}
+
 int main()
 {
     bool vbusSensing = true;
     {
-        FastGlobalIrqLock dLock;
+        GlobalIrqLock dLock;
+
+        IRQregisterIrq(dLock, OTG_FS_IRQn, OTG_FS_IRQHandler);
+        IRQregisterIrq(dLock, OTG_HS_IRQn, OTG_HS_IRQHandler);
         
         //Turn on USB peripheral
         RCC->AHB2ENR |= RCC_AHB2ENR_OTGFSEN;
@@ -105,20 +122,6 @@ int main()
             tud_cdc_n_write_flush(0);
         }
     }
-}
-
-//
-// Interrupt handlers to be forwarded to TinyUSB
-//
-
-void OTG_FS_IRQHandler()
-{
-    tud_int_handler(0);
-}
-
-void OTG_HS_IRQHandler()
-{
-    tud_int_handler(1);
 }
 
 //
