@@ -34,7 +34,7 @@ namespace miosix {
 void delayMs(unsigned int mseconds)
 {
     // Formula is SystemCoreClockInMhz*250
-    const unsigned int count=sysclkFrequency/4000-1;
+    const unsigned int count=cpuFrequency/4000-1;
     for(unsigned int i=0;i<mseconds;i++)
     {
         // This delay has been calibrated to take 1 millisecond
@@ -51,7 +51,7 @@ void delayUs(unsigned int useconds)
 {
     if(useconds == 0) return;
     useconds -= 1;
-    constexpr unsigned int factor=sysclkFrequency/4000000;
+    constexpr unsigned int factor=cpuFrequency/4000000;
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimizations
     asm volatile("    movs  r1, %1    \n"

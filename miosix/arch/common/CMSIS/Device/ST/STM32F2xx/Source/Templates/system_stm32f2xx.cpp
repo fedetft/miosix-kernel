@@ -139,7 +139,7 @@
             is no need to call the 2 first functions listed above, since SystemCoreClock
             variable is updated automatically.
 */
-uint32_t SystemCoreClock = miosix::sysclkFrequency;
+uint32_t SystemCoreClock = miosix::cpuFrequency;
 const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
 const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
 /**
@@ -297,7 +297,7 @@ static void SetSysClock(void)
   static_assert(miosix::oscillatorType==miosix::OscillatorType::HSE,
                 "Unsupported oscillator type");
   constexpr unsigned int PLL_M=miosix::hseFrequency/1000000;
-  static_assert(miosix::sysclkFrequency==120000000,
+  static_assert(miosix::cpuFrequency==120000000,
                 "Unsupported sysclk frequency");
   constexpr unsigned int PLL_N=240;
   constexpr unsigned int PLL_P=2;

@@ -34,13 +34,13 @@ void delayMs(unsigned int mseconds)
 {
     #ifndef __CODE_IN_XRAM
     constexpr unsigned int count=
-        sysclkFrequency<=24000000 ? sysclkFrequency/3000 : //Flash 0 wait state
-        sysclkFrequency<=48000000 ? sysclkFrequency/4000 : //Flash 1 wait state
-        sysclkFrequency/6000; //Flash 2 wait state
+        cpuFrequency<=24000000 ? cpuFrequency/3000 : //Flash 0 wait state
+        cpuFrequency<=48000000 ? cpuFrequency/4000 : //Flash 1 wait state
+        cpuFrequency/6000; //Flash 2 wait state
     #else //__CODE_IN_XRAM
     //These delays are calibrated on an stm3210e-eval, and are only correct when
     //running from ram memories with similar access timings
-    constexpr unsigned int count=sysclkFrequency/38095;
+    constexpr unsigned int count=cpuFrequency/38095;
     #endif //__CODE_IN_XRAM
     for(unsigned int i=0;i<mseconds;i++)
     {
@@ -59,38 +59,38 @@ void delayUs(unsigned int useconds)
     // It is written in assembler to be independent on compiler optimizations
     #ifndef __CODE_IN_XRAM
     unsigned int count=
-        sysclkFrequency==8000000 ? 8*useconds/3 :
-        sysclkFrequency<=24000000 ? useconds*(sysclkFrequency/3000000) :
-        sysclkFrequency<=48000000 ? useconds*(sysclkFrequency/4000000) :
-        useconds*(sysclkFrequency/6000000);
+        cpuFrequency==8000000 ? 8*useconds/3 :
+        cpuFrequency<=24000000 ? useconds*(cpuFrequency/3000000) :
+        cpuFrequency<=48000000 ? useconds*(cpuFrequency/4000000) :
+        useconds*(cpuFrequency/6000000);
     asm volatile("    .align 2         \n" //4-byte aligned inner loop
                  "1:  subs  %0, %0, #1 \n"
                  "    bpl   1b         \n":"+r"(count)::"cc");
     #else //__CODE_IN_XRAM
     //These delays are calibrated on an stm3210e-eval, and are only correct when
     //running from ram memories with similar access timings
-    if(sysclkFrequency==72000000)
+    if(cpuFrequency==72000000)
     {
         asm volatile("    movs  r1, #2     \n"
                      "    mul   r1, r1, %0 \n"
                      "    .align 2         \n" //4-byte aligned inner loop
                      "1:  subs  r1, r1, #1 \n"
                      "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    } else if(sysclkFrequency==56000000) {
+    } else if(cpuFrequency==56000000) {
         asm volatile("    .align 2         \n" //4-byte aligned inner loop
                      "1:  subs  %0, %0, #1 \n"
                      "    nop              \n"
                      "    bpl   1b         \n"::"r"(useconds):"cc");
-    } else if(sysclkFrequency==48000000) {
+    } else if(cpuFrequency==48000000) {
         asm volatile("    adds  %0, %0, %0, lsr 2 \n"
                      "    .align 2                \n" //4-byte aligned inner loop
                      "1:  subs  %0, %0, #1        \n"
                      "    bpl   1b                \n"::"r"(useconds):"cc");
-    } else if(sysclkFrequency==36000000) {
+    } else if(cpuFrequency==36000000) {
         asm volatile("    .align 2         \n" //4-byte aligned inner loop
                      "1:  subs  %0, %0, #1 \n"
                      "    bpl   1b         \n"::"r"(useconds));
-    } else if(sysclkFrequency==24000000) {
+    } else if(cpuFrequency==24000000) {
         asm volatile("    adds  %0, %0, %0, lsr 2 \n"
                      "    lsrs  %0, %0, 1         \n"
                      "    .align 2                \n" //4-byte aligned inner loop

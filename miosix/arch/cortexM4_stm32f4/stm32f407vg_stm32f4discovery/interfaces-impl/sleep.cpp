@@ -58,7 +58,7 @@ static void IRQsetSystemClock()
 
     //Configure PLL and turn it on
     const int m=hseFrequency/1000000;
-    constexpr int sysclkMhz=sysclkFrequency/1000000;
+    constexpr int sysclkMhz=cpuFrequency/1000000;
     static_assert(sysclkMhz==180 || sysclkMhz==168 || sysclkMhz==100
                 || sysclkMhz==84,"unsupported sysclk frequency");
     constexpr int p=sysclkMhz<100 ? 4 : 2;

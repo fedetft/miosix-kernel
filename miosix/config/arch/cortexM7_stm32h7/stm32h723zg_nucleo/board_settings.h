@@ -52,7 +52,7 @@ enum class OscillatorType { HSI, HSE };
 constexpr auto oscillatorType=OscillatorType::HSE;
 constexpr unsigned int hseFrequency=8000000;
 // Supported clock frequencies: 550000000, 400000000
-constexpr unsigned int sysclkFrequency=550000000;
+constexpr unsigned int cpuFrequency=550000000;
 
 /// Serial port
 /// This board only exposes USART3, without flow control

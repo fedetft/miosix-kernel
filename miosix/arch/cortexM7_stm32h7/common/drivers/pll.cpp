@@ -91,7 +91,7 @@ constexpr RCCPLLConfig findPllConfig()
 {
     static_assert(N<sizeof(pllConfigs)/sizeof(RCCPLLConfig), "Unsupported sysclk");
     if constexpr(pllConfigs[N].hse==hseFrequency && 
-                 pllConfigs[N].sysclk==sysclkFrequency) return pllConfigs[N];
+                 pllConfigs[N].sysclk==cpuFrequency) return pllConfigs[N];
     else return findPllConfig<N+1>();
 }
 
@@ -113,7 +113,7 @@ void startPll()
 
     //In the STM32H7 DVFS was introduced (chapter 6, Power control)
     //Switch to highest possible voltage to run at the max freq
-    if constexpr(sysclkFrequency==550000000)
+    if constexpr(cpuFrequency==550000000)
     {
         #ifdef STM32H723xx
         PWR->D3CR = 0b00<<PWR_D3CR_VOS_Pos; //VOS0
@@ -160,10 +160,10 @@ void startPll()
     RCC->D3CFGR = RCC_D3CFGR_D3PPRE_DIV2; //D3 APB4   /2
     
     //And increase FLASH wait states
-    if constexpr(sysclkFrequency==550000000)
+    if constexpr(cpuFrequency==550000000)
     {
         FLASH->ACR = 0b11<<FLASH_ACR_WRHIGHFREQ_Pos | FLASH_ACR_LATENCY_3WS;
-    } else /* if constexpr(sysclkFrequency==400000000) */ {
+    } else /* if constexpr(cpuFrequency==400000000) */ {
         FLASH->ACR = 0b10<<FLASH_ACR_WRHIGHFREQ_Pos | FLASH_ACR_LATENCY_2WS;
     }
     //Finally, increase frequency

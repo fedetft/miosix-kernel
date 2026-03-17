@@ -164,7 +164,7 @@ using namespace miosix;
                variable is updated automatically.
   */
   
-uint32_t SystemCoreClock = sysclkFrequency;
+uint32_t SystemCoreClock = cpuFrequency;
 
 const uint8_t  AHBPrescTable[16] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 1U, 2U, 3U, 4U, 6U, 7U, 8U, 9U};
 const uint8_t  APBPrescTable[8] =  {0U, 0U, 0U, 0U, 1U, 2U, 3U, 4U};
@@ -426,7 +426,7 @@ template<unsigned int N>
 constexpr RCCPLLConfig findPllConfig()
 {
   static_assert(pllConfigs[N].sysclk!=0, "Unsupported sysclk");
-  if constexpr(pllConfigs[N].sysclk==sysclkFrequency) return pllConfigs[N];
+  if constexpr(pllConfigs[N].sysclk==cpuFrequency) return pllConfigs[N];
   else return findPllConfig<N+1>();
 }
 
@@ -450,10 +450,10 @@ static void SetSysClock(void)
 
   /* Flash wait states */
   FLASH->ACR &= (uint32_t)((uint32_t)~FLASH_ACR_LATENCY);
-  if constexpr(sysclkFrequency<=16000000) FLASH->ACR|=FLASH_ACR_LATENCY_0WS;
-  else if constexpr(sysclkFrequency<=32000000) FLASH->ACR|=FLASH_ACR_LATENCY_1WS;
-  else if constexpr(sysclkFrequency<=48000000) FLASH->ACR|=FLASH_ACR_LATENCY_2WS;
-  else if constexpr(sysclkFrequency<=64000000) FLASH->ACR|=FLASH_ACR_LATENCY_3WS;
+  if constexpr(cpuFrequency<=16000000) FLASH->ACR|=FLASH_ACR_LATENCY_0WS;
+  else if constexpr(cpuFrequency<=32000000) FLASH->ACR|=FLASH_ACR_LATENCY_1WS;
+  else if constexpr(cpuFrequency<=48000000) FLASH->ACR|=FLASH_ACR_LATENCY_2WS;
+  else if constexpr(cpuFrequency<=64000000) FLASH->ACR|=FLASH_ACR_LATENCY_3WS;
   else FLASH->ACR|=FLASH_ACR_LATENCY_4WS;
 
   /* HCLK = SYSCLK */

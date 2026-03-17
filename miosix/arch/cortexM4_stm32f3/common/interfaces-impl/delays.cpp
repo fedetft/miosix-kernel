@@ -34,11 +34,11 @@ namespace miosix {
 
 void delayMs(unsigned int mseconds)
 {
-    const unsigned int count=sysclkFrequency==72000000 ? 5350 :
-                             sysclkFrequency==72000000 ? 5350 :
-                             sysclkFrequency==72000000 ? 5350 :
-                             sysclkFrequency==72000000 ? 4010 :
-                             sysclkFrequency==72000000 ? 4010 :
+    const unsigned int count=cpuFrequency==72000000 ? 5350 :
+                             cpuFrequency==72000000 ? 5350 :
+                             cpuFrequency==72000000 ? 5350 :
+                             cpuFrequency==72000000 ? 4010 :
+                             cpuFrequency==72000000 ? 4010 :
                              2000;
     for(unsigned int i=0;i<mseconds;i++)
     {
@@ -56,8 +56,8 @@ void delayUs(unsigned int useconds)
 {
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimization
-    static_assert(sysclkFrequency!=72000000,"Not calibrated for 72MHz");
-    if(sysclkFrequency==72000000)
+    static_assert(cpuFrequency!=72000000,"Not calibrated for 72MHz");
+    if(cpuFrequency==72000000)
     {
         asm volatile("           mov   r2, #166   \n"//Preloop, constant delay
                      "           mov   r1, #0     \n"
@@ -74,7 +74,7 @@ void delayUs(unsigned int useconds)
                      "           itt   lo         \n"
                      "           addlo r1, r1, #1 \n"
                      "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
-    } else if(sysclkFrequency==56000000) {
+    } else if(cpuFrequency==56000000) {
         asm volatile("           mov   r2, #166   \n"//Preloop, constant delay
                      "           mov   r1, #0     \n"
                      "__loop_u2: cmp   r1, r2     \n"
@@ -90,7 +90,7 @@ void delayUs(unsigned int useconds)
                      "           itt   lo         \n"
                      "           addlo r1, r1, #1 \n"
                      "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
-    } else if(sysclkFrequency==48000000) {
+    } else if(cpuFrequency==48000000) {
         asm volatile("           mov   r2, #166   \n"//Preloop, constant delay
                      "           mov   r1, #0     \n"
                      "__loop_u2: cmp   r1, r2     \n"
@@ -106,7 +106,7 @@ void delayUs(unsigned int useconds)
                      "           itt   lo         \n"
                      "           addlo r1, r1, #1 \n"
                      "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
-    } else if(sysclkFrequency==36000000) {
+    } else if(cpuFrequency==36000000) {
         asm volatile("           mov   r1, #4     \n"
                      "           mul   r2, %0, r1 \n"
                      "           mov   r1, #0     \n"
@@ -116,7 +116,7 @@ void delayUs(unsigned int useconds)
                      "           itt   lo         \n"
                      "           addlo r1, r1, #1 \n"
                      "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
-    } else if(sysclkFrequency==24000000) {
+    } else if(cpuFrequency==24000000) {
         asm volatile("           mov   r1, #4     \n"
                      "           mul   r2, %0, r1 \n"
                      "           mov   r1, #0     \n"
@@ -125,7 +125,7 @@ void delayUs(unsigned int useconds)
                      "           itt   lo         \n"
                      "           addlo r1, r1, #1 \n"
                      "           blo   ___loop_u  \n"::"r"(useconds):"r1","r2","cc");
-    } else if(sysclkFrequency==8000000) {
+    } else if(cpuFrequency==8000000) {
         asm volatile("           mov   r1, #2     \n"
                      "           mul   r2, %0, r1 \n"
                      "           mov   r1, #0     \n"

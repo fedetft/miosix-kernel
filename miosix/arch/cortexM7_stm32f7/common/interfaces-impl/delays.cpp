@@ -33,7 +33,7 @@ namespace miosix {
 void delayMs(unsigned int mseconds)
 {
     //Note: flash wait state don't matter because of icache
-    static_assert(sysclkFrequency==216000000,
+    static_assert(cpuFrequency==216000000,
                   "Delays uncalibrated for this sysclk");
     const unsigned int count=216000;
     for(unsigned int i=0;i<mseconds;i++)

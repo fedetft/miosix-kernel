@@ -33,7 +33,7 @@
 #include "mpu/cortexMx_mpu.h"
 
 //We want to run the ALS_MAINBOARD at a lower clock to save power
-uint32_t SystemCoreClock=miosix::sysclkFrequency;
+uint32_t SystemCoreClock=miosix::cpuFrequency;
 
 namespace miosix {
 
@@ -41,7 +41,7 @@ void IRQmemoryAndClockInit()
 {
     static_assert(oscillatorType==OscillatorType::HSI,
                   "Unsupported oscillator type");
-    static_assert(sysclkFrequency==16000000,"Unsupported sysclk setting");
+    static_assert(cpuFrequency==16000000,"Unsupported sysclk setting");
     FLASH->ACR |= FLASH_ACR_ACC64;
     FLASH->ACR |= FLASH_ACR_PRFTEN;
     

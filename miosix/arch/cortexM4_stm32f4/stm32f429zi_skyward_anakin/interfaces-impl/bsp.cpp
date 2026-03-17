@@ -122,9 +122,9 @@ void configureSdram()
                        | FMC_SDCR1_NB     //  4 banks
                        | FMC_SDCR1_CAS_1; //  2 cycle CAS latency (TCK>9+0.5ns [1])
     
-    static_assert(sysclkFrequency==180000000 || sysclkFrequency==168000000,
+    static_assert(cpuFrequency==180000000 || cpuFrequency==168000000,
                   "No SDRAM timings for this clock");
-    if (sysclkFrequency==180000000)
+    if (cpuFrequency==180000000)
     {
         //One SDRAM clock cycle is 11.1ns
         //Some bits in SDTR[1] are don't care, and the have to be set in SDTR[0],
@@ -136,7 +136,7 @@ void configureSdram()
                            | (4-1)<<8         // 4 cycle TRAS (44.4ns>42ns)
                            | (2-1)<<16        // 2 cycle TWR
                            | (2-1)<<24;       // 2 cycle TRCD (22.2ns>18ns)
-    } else if (sysclkFrequency==168000000) {
+    } else if (cpuFrequency==168000000) {
         //One SDRAM clock cycle is 11.9ns
         //Some bits in SDTR[1] are don't care, and the have to be set in SDTR[0],
         //they aren't just don't care, the controller will fail if they aren't at 0
@@ -177,11 +177,11 @@ void configureSdram()
     sdramCommandWait();
 
     // 32ms/4096=7.8125us, but datasheet says to round that to 7.8us
-    if (sysclkFrequency==180000000)
+    if (cpuFrequency==180000000)
     {
         //7.8us*90MHz=702-20=682
         FMC_Bank5_6->SDRTR=682<<1;
-    } else if (sysclkFrequency==168000000) {
+    } else if (cpuFrequency==168000000) {
         //7.8us*84MHz=655-20=635
         FMC_Bank5_6->SDRTR=635<<1;
     }

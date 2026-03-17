@@ -32,7 +32,7 @@ namespace miosix {
 
 void delayMs(unsigned int ms)
 {
-    const unsigned int count=sysclkFrequency/4000;
+    const unsigned int count=cpuFrequency/4000;
     for(unsigned int i=0;i<ms;i++)
     {
         // This delay has been calibrated to take 1 millisecond
@@ -47,7 +47,7 @@ void delayMs(unsigned int ms)
 
 void delayUs(unsigned int us)
 {
-    constexpr unsigned int cyPerUs=sysclkFrequency/4000000;
+    constexpr unsigned int cyPerUs=cpuFrequency/4000000;
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimizations
     asm volatile("    movs  r1, %1     \n"

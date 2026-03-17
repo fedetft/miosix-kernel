@@ -33,14 +33,14 @@ namespace miosix {
 static inline void delayUsImpl(unsigned int useconds)
 {
     unsigned int count;
-    static_assert(sysclkFrequency==32000000||
-                  sysclkFrequency==24000000||
-                  sysclkFrequency==16000000, "Delays uncalibrated");
-    if(sysclkFrequency>16000000)
+    static_assert(cpuFrequency==32000000||
+                  cpuFrequency==24000000||
+                  cpuFrequency==16000000, "Delays uncalibrated");
+    if(cpuFrequency>16000000)
     {
         //1 wait state
-        if     (sysclkFrequency==32000000) count=4*useconds;
-        else if(sysclkFrequency==24000000) count=3*useconds;
+        if     (cpuFrequency==32000000) count=4*useconds;
+        else if(cpuFrequency==24000000) count=3*useconds;
         //In internal Flash at 32MHz each loop iteration takes exactly 0.25us
         asm volatile("    .align 2         \n" //4-byte aligned inner loop 
                      "1:  nop              \n"
@@ -50,7 +50,7 @@ static inline void delayUsImpl(unsigned int useconds)
                      "    bpl   1b         \n":"+r"(count)::"cc");
     } else {
         //0 wait state
-        if(sysclkFrequency==16000000) count=2*useconds;
+        if(cpuFrequency==16000000) count=2*useconds;
         asm volatile("    .align 2         \n" //4-byte aligned inner loop 
                      "1:  nop              \n"
                      "    nop              \n"

@@ -33,7 +33,7 @@ namespace miosix {
 void delayMs(unsigned int mseconds)
 {
     //Note: flash wait state don't matter because of icache
-    const unsigned int count=sysclkFrequency/1000;
+    const unsigned int count=cpuFrequency/1000;
     for(unsigned int i=0;i<mseconds;i++)
     {
         // This delay has been calibrated to take 1 millisecond
@@ -47,7 +47,7 @@ void delayMs(unsigned int mseconds)
 
 void delayUs(unsigned int useconds)
 {
-    const unsigned int factor=sysclkFrequency/1000000;
+    const unsigned int factor=cpuFrequency/1000000;
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimizations
     //NOTE: can't use movs because some compilers (GCC on windows but not GCC on

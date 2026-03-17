@@ -32,7 +32,7 @@ namespace miosix {
 
 void delayMs(unsigned int ms)
 {
-    const unsigned int count=sysclkFrequency/8000;
+    const unsigned int count=cpuFrequency/8000;
     for(unsigned int i=0;i<ms;i++)
     {
         // This delay has been calibrated to take 1 millisecond
@@ -49,7 +49,7 @@ void delayUs(unsigned int us)
 {
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimizations
-    const unsigned int clkPerUs=sysclkFrequency/8000000;
+    const unsigned int clkPerUs=cpuFrequency/8000000;
     asm volatile("    movs  r1, %1     \n"
                  "    mul   r1, r1, %0 \n"
                  "    .align 2         \n" //4-byte aligned inner loop

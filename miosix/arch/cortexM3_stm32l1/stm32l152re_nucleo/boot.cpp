@@ -30,7 +30,7 @@
 #include "board_settings.h"
 #include "mpu/cortexMx_mpu.h"
 
-uint32_t SystemCoreClock=miosix::sysclkFrequency;
+uint32_t SystemCoreClock=miosix::cpuFrequency;
 
 namespace miosix {
 
@@ -85,13 +85,13 @@ void IRQsetupClockTree()
     while((PWR->CSR & PWR_CSR_VOSF) != 0) ;
 
     unsigned long mul,div;
-    static_assert(sysclkFrequency==32000000
-                ||sysclkFrequency==24000000, "unsupported sysclk");
-    if(sysclkFrequency==32000000)
+    static_assert(cpuFrequency==32000000
+                ||cpuFrequency==24000000, "unsupported sysclk");
+    if(cpuFrequency==32000000)
     {
         mul=RCC_CFGR_PLLMUL12;
         div=RCC_CFGR_PLLDIV3;
-    } else if(sysclkFrequency==24000000) {
+    } else if(cpuFrequency==24000000) {
         mul=RCC_CFGR_PLLMUL12;
         div=RCC_CFGR_PLLDIV4;
     }

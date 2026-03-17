@@ -35,7 +35,7 @@ namespace miosix {
 void IRQsetupClockTree()
 {
     static_assert(oscillatorType==OscillatorType::HSI,"Unsupported clock config");
-    static_assert(sysclkFrequency==32000000,"Unsupported clock config");
+    static_assert(cpuFrequency==32000000,"Unsupported clock config");
     RCC->CR |= RCC_CR_HSION;
     while((RCC->CR & RCC_CR_HSIRDY)==0) ;
     RCC->CR &= ~RCC_CR_PLLON;

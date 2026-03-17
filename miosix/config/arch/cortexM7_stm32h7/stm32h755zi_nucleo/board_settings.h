@@ -54,7 +54,7 @@ constexpr unsigned int hseFrequency=8000000;
 // Supported clock frequencies: 400000000
 // While the chip can run up to 480MHz, the board uses the SMPS feature
 // that limits clock speed to 400MHz
-constexpr unsigned int sysclkFrequency=400000000;
+constexpr unsigned int cpuFrequency=400000000;
 
 /// Serial port
 /// This board only exposes USART3, without flow control

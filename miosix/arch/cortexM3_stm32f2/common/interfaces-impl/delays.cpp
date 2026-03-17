@@ -34,12 +34,12 @@ void delayMs(unsigned int mseconds)
 {
     #ifndef __CODE_IN_XRAM
 
-    static_assert(sysclkFrequency==120000000,"Unsupported clock frequency");
+    static_assert(cpuFrequency==120000000,"Unsupported clock frequency");
     const unsigned int count=40000; //Flash 3 wait state
 
     #else //__CODE_IN_XRAM
 
-    static_assert(sysclkFrequency==120000000,"Unsupported clock frequency");
+    static_assert(cpuFrequency==120000000,"Unsupported clock frequency");
 
     //When running code from external RAM delays depend on the RAM timings
     #if defined(_BOARD_STM3220G_EVAL)
@@ -69,7 +69,7 @@ void delayUs(unsigned int useconds)
     // It is written in assembler to be independent on compiler optimizations
     #ifndef __CODE_IN_XRAM
 
-    static_assert(sysclkFrequency==120000000,"Unsupported clock frequency");
+    static_assert(cpuFrequency==120000000,"Unsupported clock frequency");
 
     asm volatile("    movs  r1, #40    \n"
                  "    mul   r1, r1, %0 \n"
@@ -79,7 +79,7 @@ void delayUs(unsigned int useconds)
 
     #else //__CODE_IN_XRAM
 
-    static_assert(sysclkFrequency==120000000,"Unsupported clock frequency");
+    static_assert(cpuFrequency==120000000,"Unsupported clock frequency");
 
     //When running code from external RAM delays depend on the RAM timings
     #if defined(_BOARD_STM3220G_EVAL)

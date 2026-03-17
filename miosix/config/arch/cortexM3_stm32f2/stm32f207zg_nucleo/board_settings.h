@@ -56,7 +56,7 @@ constexpr auto oscillatorType=OscillatorType::HSE;
 // crystal (X3) is not fitted.
 constexpr unsigned int hseFrequency=8000000;
 // Supported clock frequencies: 120000000
-constexpr unsigned int sysclkFrequency=120000000;
+constexpr unsigned int cpuFrequency=120000000;
 
 /// Serial port
 /// The ST-Link serial adapter in Nucleo 144 boards is connected to PD8/9

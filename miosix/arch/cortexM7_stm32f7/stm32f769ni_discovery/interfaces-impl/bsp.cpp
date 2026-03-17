@@ -190,7 +190,7 @@ void configureSdram()
                          | 0;                 // 8 bit column address
 
     // 2. Memory device timings
-    static_assert(sysclkFrequency==216000000,"No SDRAM timings for this clock");
+    static_assert(cpuFrequency==216000000,"No SDRAM timings for this clock");
     // SDRAM timings. One clock cycle is 9.26ns
     FMC_Bank5_6->SDTR[0] =
           (2 - 1) << FMC_SDTR1_TRCD_Pos   // 2 cycles TRCD (18.52ns > 18ns)

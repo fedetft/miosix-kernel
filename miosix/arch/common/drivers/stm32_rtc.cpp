@@ -177,7 +177,7 @@ void absoluteDeepSleep(long long int value)
         SCB->SCR &= ~SCB_SCR_SLEEPDEEP_Msk;
         PWR->CR &= ~PWR_CR_LPDS;
         
-        static_assert(sysclkFrequency==24000000,"TODO: support more PLL frequencies");
+        static_assert(cpuFrequency==24000000,"TODO: support more PLL frequencies");
         static_assert(oscillatorType==OscillatorType::HSE || oscillatorType==OscillatorType::HSI,
                       "Unsupported oscillator type");
         //STOP mode resets the clock to the HSI 8MHz, so restore the 24MHz clock

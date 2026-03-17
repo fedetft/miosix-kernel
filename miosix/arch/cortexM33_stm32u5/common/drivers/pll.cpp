@@ -112,7 +112,7 @@ constexpr RCCPLLConfig findPllConfig()
     static_assert(N<sizeof(pllConfigs)/sizeof(RCCPLLConfig), "Unsupported sysclk");
     if constexpr(pllConfigs[N].oscType==oscillatorType &&
                  (pllConfigs[N].oscType!=OscillatorType::HSE || pllConfigs[N].hse==hseFrequency) &&
-                 pllConfigs[N].sysclk==sysclkFrequency) return pllConfigs[N];
+                 pllConfigs[N].sysclk==cpuFrequency) return pllConfigs[N];
     else return findPllConfig<N+1>();
 }
 
@@ -184,9 +184,9 @@ void startPll()
     
     // Increase FLASH wait states (RM 7.3.3, Table 54)
     constexpr unsigned int ws=
-        sysclkFrequency<=24000000 ? FLASH_ACR_LATENCY_1WS : // Assuming VCore Range 4
-        sysclkFrequency<=48000000 ? FLASH_ACR_LATENCY_1WS : // Assuming VCore Range 3
-        sysclkFrequency<=110000000 ? FLASH_ACR_LATENCY_3WS : // Assuming VCore Range 2
+        cpuFrequency<=24000000 ? FLASH_ACR_LATENCY_1WS : // Assuming VCore Range 4
+        cpuFrequency<=48000000 ? FLASH_ACR_LATENCY_1WS : // Assuming VCore Range 3
+        cpuFrequency<=110000000 ? FLASH_ACR_LATENCY_3WS : // Assuming VCore Range 2
         FLASH_ACR_LATENCY_4WS; // (160MHz) Assuming VCore Range 1
     FLASH->ACR = FLASH_ACR_PRFTEN | (ws & 0x0f);
 

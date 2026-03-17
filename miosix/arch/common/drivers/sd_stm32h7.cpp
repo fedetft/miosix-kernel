@@ -519,10 +519,10 @@ private:
      */
     static void setClockSpeed(unsigned int clkdiv);
     
-    static_assert(sysclkFrequency==550000000 || sysclkFrequency==400000000,
+    static_assert(cpuFrequency==550000000 || cpuFrequency==400000000,
         "Unknown frequency for PLL Q output");
     static const unsigned int SDMMCCLK=
-        sysclkFrequency==550000000 ? 91666666 : 100000000;
+        cpuFrequency==550000000 ? 91666666 : 100000000;
 
     static const unsigned int CLOCK_400KHz=SDMMCCLK/(2*400000);
     static_assert(CLOCK_400KHz>0,"");

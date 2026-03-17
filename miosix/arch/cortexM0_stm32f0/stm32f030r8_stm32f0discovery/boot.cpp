@@ -35,7 +35,7 @@ namespace miosix {
 void IRQsetupClockTree()
 {
     static_assert(hseFrequency==8000000,"Unsupported HSE oscillator frequency");
-    static_assert(sysclkFrequency==32000000,"Unsupported target SYSCLK");
+    static_assert(cpuFrequency==32000000,"Unsupported target SYSCLK");
 
     // Check if PLL is used as system clock
     if ((RCC->CFGR & RCC_CFGR_SWS) == RCC_CFGR_SWS_PLL)

@@ -32,7 +32,7 @@ namespace miosix {
 
 void delayMs(unsigned int mseconds)
 {
-    const unsigned int count=sysclkFrequency/4000;
+    const unsigned int count=cpuFrequency/4000;
     for(unsigned int i=0;i<mseconds;i++)
     {
         asm volatile("    movs  r1, %0     \n"
@@ -47,7 +47,7 @@ void delayUs(unsigned int useconds)
 {
     // Apparently stm32l4's code prefetch is efficient enough that, no matter
     // the flash wait states, each loop iteration always takes 4 cycles
-    constexpr unsigned int factor=sysclkFrequency/4000000;
+    constexpr unsigned int factor=cpuFrequency/4000000;
     useconds*=factor;
     asm volatile("    .align 2         \n" //4-byte aligned inner loop
                  "1:  nop              \n" //Bring the loop time to 4 cycles

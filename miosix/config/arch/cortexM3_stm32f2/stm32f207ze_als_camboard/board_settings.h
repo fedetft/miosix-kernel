@@ -53,7 +53,7 @@ enum class OscillatorType { HSI, HSE };
 constexpr auto oscillatorType=OscillatorType::HSE;
 constexpr unsigned int hseFrequency=8000000;
 // Supported clock frequencies: 120000000
-constexpr unsigned int sysclkFrequency=120000000;
+constexpr unsigned int cpuFrequency=120000000;
 
 /// Serial port
 const unsigned int defaultSerial=1;

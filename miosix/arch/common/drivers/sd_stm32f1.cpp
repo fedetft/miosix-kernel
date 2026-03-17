@@ -785,7 +785,7 @@ private:
      * Value of SDIO->CLKCR that will give a 400KHz clock, depending on cpu
      * clock speed.
      */
-    static const unsigned int CLOCK_400KHz=sysclkFrequency/400000-2;
+    static const unsigned int CLOCK_400KHz=cpuFrequency/400000-2;
 
     ///\internal Clock enabled, bus width 4bit, clock powersave enabled.
     static const unsigned int CLKCR_FLAGS=SDIO_CLKCR_CLKEN |

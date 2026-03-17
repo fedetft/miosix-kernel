@@ -60,7 +60,7 @@ constexpr auto oscillatorType=OscillatorType::HSEBYP;
 // crystal (X3) is not fitted.
 constexpr unsigned int hseFrequency=8000000;
 // Supported clock frequencies: 24000000, 32000000
-constexpr unsigned int sysclkFrequency=32000000;
+constexpr unsigned int cpuFrequency=32000000;
 
 /// Serial port
 /// Serial ports 1 to 5 are available

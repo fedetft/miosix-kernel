@@ -32,7 +32,7 @@ namespace miosix {
 
 void delayMs(unsigned int mseconds)
 {
-    static_assert(sysclkFrequency==250000000,
+    static_assert(cpuFrequency==250000000,
                   "Delays are uncalibrated for this clock frequency");
     #warning TODO
     const unsigned int count=45000;

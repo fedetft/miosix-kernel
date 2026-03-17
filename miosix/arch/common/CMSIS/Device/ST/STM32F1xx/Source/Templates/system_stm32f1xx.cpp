@@ -114,8 +114,8 @@
 // Since Miosix 3 the following constants are used instead:
 // - oscillatorType (OscillatorType::HSI or OscillatorType::HSE)
 // - hseFrequency (in Hz)
-// - sysclkFrequency (in Hz)
-// sysclkFrequency equal to HSI_VALUE or hseFrequency (depending on
+// - cpuFrequency (in Hz)
+// cpuFrequency equal to HSI_VALUE or hseFrequency (depending on
 // oscillatorType) will disable the PLL
 #if 0
 #if defined (STM32F10X_LD_VL) || (defined STM32F10X_MD_VL) || (defined STM32F10X_HD_VL)
@@ -183,7 +183,7 @@
 #define HSI_VALUE    ((uint32_t)8000000) /*!< Value of the Internal oscillator in Hz*/
 // Miosix end
 
-uint32_t SystemCoreClock = miosix::sysclkFrequency;        /*!< System Clock Frequency (Core Clock) */
+uint32_t SystemCoreClock = miosix::cpuFrequency;        /*!< System Clock Frequency (Core Clock) */
 
 const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
 /**
@@ -419,7 +419,7 @@ void SystemCoreClockUpdate (void)
 }
 
 /**
-  * @brief  Sets System clock frequency to miosix::sysclkFrequency and configure
+  * @brief  Sets System clock frequency to miosix::cpuFrequency and configure
   *         HCLK, PCLK2 and PCLK1 prescalers.
   * @note   This function should be used only after reset.
   * @param  None
@@ -434,18 +434,18 @@ void SetSysClock(void)
                 || miosix::oscillatorType==miosix::OscillatorType::HSI,
                 "Oscillator type unsupported");
   static_assert(!(miosix::oscillatorType==miosix::OscillatorType::HSI
-                  && miosix::sysclkFrequency>36000000),
+                  && miosix::cpuFrequency>36000000),
                 "sysclk is capped to 36MHz when running on HSI");
   static_assert(miosix::oscillatorType!=miosix::OscillatorType::HSE
                 || miosix::hseFrequency>1000000,
                 "Unlikely HSE frequency");
-  static_assert(miosix::sysclkFrequency==HSI_VALUE
-                || miosix::sysclkFrequency==miosix::hseFrequency
-                || miosix::sysclkFrequency==24000000
-                || miosix::sysclkFrequency==36000000
-                || miosix::sysclkFrequency==48000000
-                || miosix::sysclkFrequency==56000000
-                || miosix::sysclkFrequency==72000000,
+  static_assert(miosix::cpuFrequency==HSI_VALUE
+                || miosix::cpuFrequency==miosix::hseFrequency
+                || miosix::cpuFrequency==24000000
+                || miosix::cpuFrequency==36000000
+                || miosix::cpuFrequency==48000000
+                || miosix::cpuFrequency==56000000
+                || miosix::cpuFrequency==72000000,
                 "sysclk frequency unsupported");
   unsigned int oscFreq=HSI_VALUE;
   if(miosix::oscillatorType==miosix::OscillatorType::HSE) //By TFT
@@ -478,8 +478,8 @@ void SetSysClock(void)
 
   // Configure Flash wait states
   unsigned int flashLatency;
-  if(miosix::sysclkFrequency<=24000000) flashLatency=0;
-  else if(miosix::sysclkFrequency<=48000000) flashLatency=1;
+  if(miosix::cpuFrequency<=24000000) flashLatency=0;
+  else if(miosix::cpuFrequency<=48000000) flashLatency=1;
   else flashLatency=2;
   //NOTE: the value of the constant FLASH_ACR_LATENCY_0 changed from meaning
   //"0 wait states" to meaning "bit 0", thus 1 wait states, so don't use it!
@@ -488,7 +488,7 @@ void SetSysClock(void)
   // STM32 Value Line (STM32F100xx) does not run faster than 24MHz, so there
   // is no need to configure the flash latency. But check that the sysclk
   // to be configured does not exceed 24MHz
-  static_assert(miosix::sysclkFrequency<=24000000,"sysclk too fast for this chip");
+  static_assert(miosix::cpuFrequency<=24000000,"sysclk too fast for this chip");
 #endif
 
   /* HCLK = SYSCLK */
@@ -498,10 +498,10 @@ void SetSysClock(void)
   RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE2_DIV1;
   
   /* PCLK1 = HCLK or HCLK/2 (must not exceed 36MHz) */
-  if(miosix::sysclkFrequency<=36000000) RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV1;
+  if(miosix::cpuFrequency<=36000000) RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV1;
   else RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV2;
 
-  if(oscFreq==miosix::sysclkFrequency && miosix::oscillatorType==miosix::OscillatorType::HSE)
+  if(oscFreq==miosix::cpuFrequency && miosix::oscillatorType==miosix::OscillatorType::HSE)
   {
     /* Select HSE as system clock source */
     RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));
@@ -512,7 +512,7 @@ void SetSysClock(void)
     {
     }
     return;
-  } else if(oscFreq==miosix::sysclkFrequency && miosix::oscillatorType==miosix::OscillatorType::HSI) {
+  } else if(oscFreq==miosix::cpuFrequency && miosix::oscillatorType==miosix::OscillatorType::HSI) {
     // Nothing to do here, it's the default after reset
     return;
   }
@@ -520,16 +520,16 @@ void SetSysClock(void)
   
   unsigned int pllmull;
 
-  if(miosix::sysclkFrequency==24000000) pllmull=RCC_CFGR_PLLMULL6;
-  else if(miosix::sysclkFrequency==36000000) pllmull=RCC_CFGR_PLLMULL9;
-  else if(miosix::sysclkFrequency==48000000) pllmull=RCC_CFGR_PLLMULL6;
-  else if(miosix::sysclkFrequency==56000000) pllmull=RCC_CFGR_PLLMULL7;
-  else /*if(miosix::sysclkFrequency==72000000)*/ pllmull=RCC_CFGR_PLLMULL9;
+  if(miosix::cpuFrequency==24000000) pllmull=RCC_CFGR_PLLMULL6;
+  else if(miosix::cpuFrequency==36000000) pllmull=RCC_CFGR_PLLMULL9;
+  else if(miosix::cpuFrequency==48000000) pllmull=RCC_CFGR_PLLMULL6;
+  else if(miosix::cpuFrequency==56000000) pllmull=RCC_CFGR_PLLMULL7;
+  else /*if(miosix::cpuFrequency==72000000)*/ pllmull=RCC_CFGR_PLLMULL9;
 #ifdef STM32F10X_CL
   if(oscillatorType==OscillatorType::HSE)
   {
     unsigned int prediv1;
-    if(miosix::sysclkFrequency<=36000000) prediv1=RCC_CFGR2_PREDIV1_DIV10;
+    if(miosix::cpuFrequency<=36000000) prediv1=RCC_CFGR2_PREDIV1_DIV10;
     else prediv1=RCC_CFGR2_PREDIV1_DIV5;
     /* Configure PLLs ------------------------------------------------------*/
     /* PLL2 configuration: PLL2CLK = (HSE / 5) * 8 = 40 MHz */
@@ -552,7 +552,7 @@ void SetSysClock(void)
   RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC | pllmull); 
 #else
   unsigned int pllxtpre;
-  if(miosix::sysclkFrequency<=36000000) pllxtpre=RCC_CFGR_PLLXTPRE;
+  if(miosix::cpuFrequency<=36000000) pllxtpre=RCC_CFGR_PLLXTPRE;
   else pllxtpre=0;
   // PLL configuration:  = (HSE / x) * pllmull = sysclk MHz
   // x is 2 if pllxtpre==RCC_CFGR_PLLXTPRE else 1

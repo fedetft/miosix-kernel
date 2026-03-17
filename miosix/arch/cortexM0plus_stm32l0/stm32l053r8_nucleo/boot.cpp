@@ -37,7 +37,7 @@ void IRQsetupClockTree()
 {
     //TODO: shouldn't we select voltage range 1 too? Don't have this board so can't test
     static_assert(hseFrequency==8000000,"Unsupported HSE oscillator frequency");
-    static_assert(sysclkFrequency==32000000,"Unsupported target SYSCLK");
+    static_assert(cpuFrequency==32000000,"Unsupported target SYSCLK");
 
     // Check if PLL is used as system clock
     if ((RCC->CFGR & RCC_CFGR_SWS) == RCC_CFGR_SWS_PLL)

@@ -56,7 +56,7 @@ constexpr unsigned int hseFrequency=8000000;
 // Supported clock frequencies: 24000000, 36000000, 48000000, 72000000, 80000000
 // Note: at 80Mhz SDIO and RNG run at the wrong speed and USB will not work
 // because the PLL will run at 40MHz instead of 48MHz
-constexpr unsigned int sysclkFrequency=80000000;
+constexpr unsigned int cpuFrequency=80000000;
 
 /// Serial port
 /// Serial ports 1 to 5 are available

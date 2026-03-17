@@ -133,7 +133,7 @@
                variable is updated automatically.
   */
 //By TFT: we increase the clock BEFORE initializing .data and .bss!
-uint32_t SystemCoreClock = miosix::sysclkFrequency;
+uint32_t SystemCoreClock = miosix::cpuFrequency;
 const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
 
 /**
@@ -316,7 +316,7 @@ static void SetSysClock(void)
   static_assert(miosix::oscillatorType==miosix::OscillatorType::HSE,
                 "Unsupported oscillator type");
   constexpr unsigned int PLL_M=miosix::hseFrequency/1000000;
-  constexpr unsigned int sysclkMhz=miosix::sysclkFrequency/1000000;
+  constexpr unsigned int sysclkMhz=miosix::cpuFrequency/1000000;
   static_assert(sysclkMhz==180 || sysclkMhz==168 || sysclkMhz==100
                 || sysclkMhz==84,"Unsupported sysclk frequency");
   constexpr unsigned int PLL_P=sysclkMhz<100 ? 4 : 2;

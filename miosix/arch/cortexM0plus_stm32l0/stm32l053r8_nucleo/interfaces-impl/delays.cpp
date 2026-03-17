@@ -42,7 +42,7 @@ void delayUs(unsigned int useconds)
     // it is written in assembler to be independent on compiler optimizations    
     //   Notice that the multiplication factor required is different between
     // CortexM0 and CortexM0+.
-    static_assert(sysclkFrequency==32000000,"delayUs not implemented");
+    static_assert(cpuFrequency==32000000,"delayUs not implemented");
     asm volatile("   mov   r1, #8     \n"
                  "   mul   r1, %0, r1 \n"
                  "   sub   r1, r1, #1 \n"
