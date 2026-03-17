@@ -172,9 +172,9 @@ public:
         T::get()->PSC = 0;
         T::get()->ARR = 0xFFFFFFFF;
         T::get()->EGR = TIM_EGR_UG; //To enforce the timer to apply PSC
-        #if !defined(WITH_SMP) && !defined(OS_TIMER_MODEL_UNIFIED)
+        #ifndef OS_TIMER_MODEL_UNIFIED
         IRQinitCoreLocalPreemptionTimer();
-        #endif //!defined(WITH_SMP) && !defined(OS_TIMER_MODEL_UNIFIED)
+        #endif //OS_TIMER_MODEL_UNIFIED
     }
 };
 

@@ -153,6 +153,9 @@ void IRQosTimerInit()
     #else //WITH_SMP
     timer_hw->inte=TIMER_INTE_ALARM_0_BITS;
     IRQregisterIrq(lock,TIMER_IRQ_0_IRQn,IRQtimerInterruptHandler<0>);
+    #ifndef OS_TIMER_MODEL_UNIFIED
+    IRQinitCoreLocalPreemptionTimer();
+    #endif
     #endif //WITH_SMP
     //Toggle debug sleep mode. Works around a bug where the timer does not
     //start counting if it was reset while it was paused due to debug mode.

@@ -172,9 +172,9 @@ public:
         
         IRQregisterIrq(lock,TC10_IRQn,&TimerAdapter<ATSAM_TC1_Timer,16>::IRQhandler,
                        static_cast<TimerAdapter<ATSAM_TC1_Timer, 16>*>(this));
-        #if !defined(WITH_SMP) && !defined(OS_TIMER_MODEL_UNIFIED)
+        #ifndef OS_TIMER_MODEL_UNIFIED
         IRQinitCoreLocalPreemptionTimer();
-        #endif //!defined(WITH_SMP) && !defined(OS_TIMER_MODEL_UNIFIED)
+        #endif //OS_TIMER_MODEL_UNIFIED
     }
 };
 
@@ -286,9 +286,9 @@ public:
                        static_cast<TimerAdapter<ATSAM_AST_Timer,32,2>*>(this));
         IRQregisterIrq(lock,AST_OVF_IRQn,&TimerAdapter<ATSAM_AST_Timer,32,2>::IRQhandler,
                        static_cast<TimerAdapter<ATSAM_AST_Timer,32,2>*>(this));
-        #if !defined(WITH_SMP) && !defined(OS_TIMER_MODEL_UNIFIED)
+        #ifndef OS_TIMER_MODEL_UNIFIED
         IRQinitCoreLocalPreemptionTimer();
-        #endif //!defined(WITH_SMP) && !defined(OS_TIMER_MODEL_UNIFIED)
+        #endif //OS_TIMER_MODEL_UNIFIED
     }
 };
 

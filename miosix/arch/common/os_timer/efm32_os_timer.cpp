@@ -106,9 +106,9 @@ public:
 
         IRQregisterIrq(lock,TIMER2_IRQn,&TimerAdapter<EFM32Timer2,16>::IRQhandler,
                        static_cast<TimerAdapter<EFM32Timer2, 16>*>(this));
-        #if !defined(WITH_SMP) && !defined(OS_TIMER_MODEL_UNIFIED)
+        #ifndef OS_TIMER_MODEL_UNIFIED
         IRQinitCoreLocalPreemptionTimer();
-        #endif //!defined(WITH_SMP) && !defined(OS_TIMER_MODEL_UNIFIED)
+        #endif //OS_TIMER_MODEL_UNIFIED
     }
 };
 

@@ -195,9 +195,9 @@ public:
         // We can't stop the RTC during debugging, so debugging won't be easy.
         // Actually, we can't stop the RTC at all once we start it...
 
-        #if !defined(WITH_SMP) && !defined(OS_TIMER_MODEL_UNIFIED)
+        #ifndef OS_TIMER_MODEL_UNIFIED
         IRQinitCoreLocalPreemptionTimer();
-        #endif //!defined(WITH_SMP) && !defined(OS_TIMER_MODEL_UNIFIED)
+        #endif //OS_TIMER_MODEL_UNIFIED
     }
 };
 
