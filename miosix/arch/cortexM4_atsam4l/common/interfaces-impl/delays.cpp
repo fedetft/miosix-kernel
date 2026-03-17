@@ -32,7 +32,7 @@ namespace miosix {
 
 void delayMs(unsigned int mseconds)
 {
-    const unsigned int count = bootClock / 4000;
+    const unsigned int count = cpuFrequency / 4000;
 
     for(unsigned int i=0;i<mseconds;i++)
     {
@@ -50,7 +50,7 @@ void delayUs(unsigned int useconds)
 {
     // This delay has been calibrated to take x microseconds
     // It is written in assembler to be independent on compiler optimization
-    if(bootClock==12000000)
+    if(cpuFrequency==12000000)
     {
         asm volatile("    movs  r1, #3     \n"
                      "    mul   r1, r1, %0 \n"
@@ -58,7 +58,7 @@ void delayUs(unsigned int useconds)
                      "1:  nop              \n" //Bring the loop time to 4 cycles
                      "    subs  r1, r1, #1 \n"
                      "    bpl   1b         \n"::"r"(useconds):"r1","cc");
-    } else if(bootClock==8000000) {
+    } else if(cpuFrequency==8000000) {
         asm volatile("    movs  r1, #2     \n"
                      "    mul   r1, r1, %0 \n"
                      "    .align 2         \n" //4-byte aligned inner loop

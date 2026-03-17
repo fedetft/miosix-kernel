@@ -44,7 +44,7 @@ namespace miosix {
 /// 4, 8, 12MHz, all using RCFAST
 /// NOTE: when flashing with a debugger need to powercycle between clock changes
 /// NOTE: 4MHz oscillator is too imprecise for serial port to work
-constexpr unsigned int bootClock=12000000;
+constexpr unsigned int cpuFrequency=12000000;
 
 /// If this is NOT defined, start32kHzOscillator() starts the 32kHz crystal
 /// oscillator, so you need a quarts crystal attached to the proper pins.

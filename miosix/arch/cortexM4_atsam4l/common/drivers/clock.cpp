@@ -31,7 +31,7 @@
 #include "mpu/cortexMx_mpu.h"
 
 extern "C" {
-unsigned int SystemCoreClock = miosix::bootClock;
+unsigned int SystemCoreClock = miosix::cpuFrequency;
 }
 
 namespace miosix {
@@ -83,7 +83,7 @@ static void configureRcfast(int frange)
 void IRQmemoryAndClockInit()
 {
     //TODO: support more clock options here and in getSelectedOscillator()
-    switch(miosix::bootClock)
+    switch(miosix::cpuFrequency)
     {
         case 4000000:
             configureRcfast(0);
