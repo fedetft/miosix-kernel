@@ -70,5 +70,5 @@ list(APPEND MIOSIX_ARCH_SRC
     ${MIOSIX_KPATH}/arch/common/drivers/sd_stm32f2_f4_f7.cpp
     ${MIOSIX_ARCH_INC}/interfaces-impl/delays.cpp
     ${MIOSIX_ARCH_INC}/interfaces-impl/poweroff.cpp
-    ${MIOSIX_KPATH}/arch/common/CMSIS/Device/ST/STM32F7xx/Source/Templates/system_stm32f7xx.c
+    ${MIOSIX_KPATH}/arch/common/CMSIS/Device/ST/STM32F7xx/Source/Templates/system_stm32f7xx.cpp
 )

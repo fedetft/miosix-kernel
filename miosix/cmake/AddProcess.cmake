@@ -36,15 +36,10 @@ function(miosix_add_process TARGET SOURCES)
     # Define the executable with its sources
     add_executable(${TARGET} ${SOURCES})
 
-    # Link syscalls and other libraries
-    target_link_libraries(${TARGET} PRIVATE
-        -Wl,--start-group syscalls stdc++ c m gcc atomic -Wl,--end-group
-    )
+    target_compile_options(${TARGET} PUBLIC ${MIOSIX_CPU_FLAGS} -ffunction-sections)
+    target_link_options(${TARGET} PUBLIC -Wl,--gc-sections)
 
-    # Tell the linker to produce the map file
-    target_link_options(${TARGET} PRIVATE -Wl,-Map,$<TARGET_FILE_DIR:${TARGET}>/$<TARGET_FILE_BASE_NAME:${TARGET}>.map)
-
-    # Strin unnecessary sections from the ELF
+    # Strip unnecessary sections from the ELF
     add_custom_command(
         TARGET ${TARGET} POST_BUILD
         COMMAND arm-miosix-eabi-strip $<TARGET_FILE:${TARGET}>
