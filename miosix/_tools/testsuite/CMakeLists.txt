@@ -25,15 +25,16 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-project(ProcessesExamples C CXX ASM)
-
 # Set Miosix definitions and options
 # add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX>:WITH_PROCESSES>)
-set(MIOSIX_OPT_BOARD stm32f767zi_nucleo CACHE STRING "Target board")
-set(MIOSIX_LINKER_SCRIPT stm32_2m+384k_ram_processes.ld CACHE FILEPATH "Linker script")
+set(MIOSIX_OPT_BOARD rp2040_raspberry_pi_pico CACHE STRING "Target board")
+#set(MIOSIX_LINKER_SCRIPT stm32_2m+384k_ram_processes.ld CACHE FILEPATH "Linker script")
+set(MIOSIX_KPATH ${CMAKE_SOURCE_DIR}/../.. CACHE PATH "Path to the miosix kernel")
+set(CMAKE_TOOLCHAIN_FILE ${MIOSIX_KPATH}/cmake/Toolchains/gcc.cmake CACHE PATH "Path to your toolchain file")
 
-add_subdirectory(../.. miosix EXCLUDE_FROM_ALL)
-add_subdirectory(../../libsyscalls libsyscalls EXCLUDE_FROM_ALL)
+project(testsuite C CXX ASM)
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/../.. miosix EXCLUDE_FROM_ALL)
 
 include(LinkTarget)
 include(AddProcess)
@@ -44,14 +45,14 @@ add_executable(testsuite testsuite.cpp)
 miosix_link_target(testsuite)
 
 # Processes
-# miosix_add_process(test_process test_process/main.cpp)
-# miosix_add_process(test_execve test_execve/main.cpp)
-# miosix_add_process(test_global_dtor_ctor test_global_dtor_ctor/main.cpp)
+miosix_add_process(test_process test_process/main.cpp)
+miosix_add_process(test_execve test_execve/main.cpp)
+miosix_add_process(test_global_dtor_ctor test_global_dtor_ctor/main.cpp)
 
 # RomFS image
-# miosix_add_romfs_image(
-#     IMAGE_NAME image
-#     DIR_NAME bin
-#     KERNEL testsuite
-#     PROCESSES test_process # test_execve test_global_dtor_ctor
-# )
+miosix_add_romfs_image(
+    IMAGE_NAME image
+    DIR_NAME bin
+    KERNEL testsuite
+    PROCESSES test_process # test_execve test_global_dtor_ctor
+)
