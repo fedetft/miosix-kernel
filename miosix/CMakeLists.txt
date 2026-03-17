@@ -32,6 +32,8 @@ project(Miosix
     LANGUAGES C CXX
 )
 
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake" PARENT_SCOPE)
+
 set(CMAKE_CXX_STANDARD 23 CACHE STRING "Project C++ standard")
 
 # To avoid printing an empty string
@@ -39,6 +41,13 @@ if(MIOSIX_PRINT_BOARD_LIST)
     set(MIOSIX_PRINT_BOARD_LIST ON)
 else()
     set(MIOSIX_PRINT_BOARD_LIST OFF)
+endif()
+
+# The user can set a custom path for miosix_settings.h
+set(MIOSIX_CONFIG_PATH ${MIOSIX_KPATH}/config CACHE PATH "Include directory for miosix config")
+mark_as_advanced(MIOSIX_CONFIG_PATH)
+if(NOT MIOSIX_CONFIG_PATH STREQUAL ${MIOSIX_KPATH}/config)
+    message(NOTICE "You have set a custom path for miosix config: ${MIOSIX_CONFIG_PATH}")
 endif()
 
 # Print build configuration
@@ -97,13 +106,6 @@ set(MIOSIX_KERNEL_SRC
     ${MIOSIX_KPATH}/util/crc16.cpp
     ${MIOSIX_KPATH}/util/lcd44780.cpp
 )
-
-# The user can set a custom path for miosix_settings.h
-set(MIOSIX_CONFIG_PATH ${MIOSIX_KPATH}/config CACHE PATH "Include directory for miosix config")
-mark_as_advanced(MIOSIX_CONFIG_PATH)
-if(NOT MIOSIX_CONFIG_PATH STREQUAL ${MIOSIX_KPATH}/config)
-    message(NOTICE "You have set a custom path for miosix config: ${MIOSIX_CONFIG_PATH}")
-endif()
 
 # Include the architecture options
 include(${MIOSIX_KPATH}/arch/CMakeLists.txt)
