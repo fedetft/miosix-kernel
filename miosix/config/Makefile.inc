@@ -1402,7 +1402,6 @@ else ifeq ($(ARCH),cortexM3_stm32f1)
     arch/cpu/common/cortexMx_userspace.cpp                \
     arch/common/os_timer/stm32_16bit_os_timer.cpp         \
     arch/common/os_timer/stm32_rtc_os_timer.cpp           \
-    arch/common/os_timer/arm_systick_os_timer.cpp         \
     arch/common/sleep/cortexMx_sleep.cpp                  \
     arch/common/drivers/stm32f1_gpio.cpp                  \
     arch/common/drivers/stm32f1_f2_f4_serial.cpp          \
@@ -1855,7 +1854,6 @@ else ifeq ($(ARCH),cortexM4_stm32f4)
     arch/common/mpu/cortexMx_mpu.cpp                          \
     arch/cpu/common/cortexMx_userspace.cpp                    \
     arch/common/os_timer/stm32_32bit_os_timer.cpp             \
-    arch/common/os_timer/arm_systick_os_timer.cpp             \
     arch/common/sleep/cortexMx_sleep.cpp                      \
     arch/common/drivers/stm32_gpio.cpp                        \
     arch/common/drivers/stm32f1_f2_f4_serial.cpp              \
@@ -2121,7 +2119,6 @@ else ifeq ($(ARCH),cortexM3_stm32f2)
     arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/cpu/common/cortexMx_userspace.cpp                   \
     arch/common/os_timer/stm32_32bit_os_timer.cpp            \
-    arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/drivers/stm32f1_f2_f4_serial.cpp             \
@@ -2226,7 +2223,6 @@ else ifeq ($(ARCH),cortexM3_stm32l1)
     arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/cpu/common/cortexMx_userspace.cpp                   \
     arch/common/os_timer/stm32_16bit_os_timer.cpp            \
-    arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/drivers/stm32f1_f2_f4_serial.cpp             \
@@ -2306,7 +2302,6 @@ else ifeq ($(ARCH),cortexM3_efm32gg)
     arch/cpu/common/cortexMx_interrupts.cpp                  \
     arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/cpu/common/cortexMx_userspace.cpp                   \
-    arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/drivers/efm32_gpio.cpp                       \
     arch/common/drivers/efm32_serial.cpp                     \
@@ -2482,7 +2477,6 @@ else ifeq ($(ARCH),cortexM7_stm32f7)
     arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/cpu/common/cortexMx_userspace.cpp                   \
     arch/common/os_timer/stm32_32bit_os_timer.cpp            \
-    arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/cache/cortexMx_cache.cpp                     \
     arch/common/drivers/stm32_gpio.cpp                       \
@@ -2621,7 +2615,6 @@ else ifeq ($(ARCH),cortexM7_stm32h7)
     arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/cpu/common/cortexMx_userspace.cpp                   \
     arch/common/os_timer/stm32_32bit_os_timer.cpp            \
-    arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/cache/cortexMx_cache.cpp                     \
     arch/common/drivers/stm32_gpio.cpp                       \
@@ -2730,7 +2723,6 @@ else ifeq ($(ARCH),cortexM0_stm32f0)
     arch/cpu/armv6m/interfaces-impl/cpu.cpp                  \
     arch/cpu/common/cortexMx_interrupts.cpp                  \
     arch/common/sleep/cortexMx_sleep.cpp                     \
-    arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/drivers/stm32f7_serial.cpp                   \
     arch/common/drivers/stm32_serial_common.cpp              \
@@ -2804,7 +2796,6 @@ else ifeq ($(ARCH),cortexM4_stm32f3)
     arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/cpu/common/cortexMx_userspace.cpp                   \
     arch/common/os_timer/stm32_32bit_os_timer.cpp            \
-    arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/drivers/stm32f7_serial.cpp                   \
@@ -2910,7 +2901,6 @@ else ifeq ($(ARCH),cortexM4_stm32l4)
     arch/cpu/common/cortexMx_userspace.cpp                   \
     arch/common/cache/cortexMx_cache.cpp                     \
     arch/common/os_timer/stm32_32bit_os_timer.cpp            \
-    arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/drivers/stm32f7_serial.cpp                   \
@@ -2984,7 +2974,6 @@ else ifeq ($(ARCH),cortexM4_atsam4l)
     arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/cpu/common/cortexMx_userspace.cpp                   \
     arch/common/os_timer/atsam4l_os_timer.cpp                \
-    arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/drivers/serial_atsam4l.cpp                   \
     $(ARCH_INC)/drivers/clock.cpp                            \
@@ -3050,7 +3039,6 @@ else ifeq ($(ARCH),cortexM3_efm32g)
     arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/cpu/common/cortexMx_userspace.cpp                   \
     arch/common/os_timer/efm32_os_timer.cpp                  \
-    arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/drivers/efm32_gpio.cpp                       \
     arch/common/drivers/efm32_serial.cpp                     \
@@ -3150,7 +3138,6 @@ else ifeq ($(ARCH),cortexM0plus_stm32l0)
     arch/cpu/armv6m/interfaces-impl/cpu.cpp                  \
     arch/cpu/common/cortexMx_interrupts.cpp                  \
     arch/common/os_timer/stm32_16bit_os_timer.cpp            \
-    arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/drivers/stm32_gpio.cpp                       \
     arch/common/drivers/stm32f7_serial.cpp                   \
@@ -3221,7 +3208,6 @@ else ifeq ($(ARCH),cortexM0plus_rp2040)
     arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/cpu/common/cortexMx_userspace.cpp                   \
     arch/common/os_timer/rp2040_os_timer.cpp                 \
-    arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/drivers/arm_pl011_serial.cpp                 \
     arch/common/drivers/rp2040_serial.cpp                    \
@@ -3300,7 +3286,6 @@ else ifeq ($(ARCH),cortexM33_stm32h5)
     arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/cpu/common/cortexMx_userspace.cpp                   \
     arch/common/os_timer/stm32_32bit_os_timer.cpp            \
-    arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/cache/cortexMx_cache.cpp                     \
     arch/common/drivers/stm32_gpio.cpp                       \
@@ -3402,7 +3387,6 @@ else ifeq ($(ARCH),cortexM33_stm32u5)
     arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/cpu/common/cortexMx_userspace.cpp                   \
     arch/common/os_timer/stm32_32bit_os_timer.cpp            \
-    arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/cache/cortexMx_cache.cpp                     \
     arch/common/drivers/stm32u5_serial.cpp                   \
@@ -3473,7 +3457,6 @@ else ifeq ($(ARCH),cortexM4_nrf52)
     arch/common/mpu/cortexMx_mpu.cpp                         \
     arch/cpu/common/cortexMx_userspace.cpp                   \
     arch/common/os_timer/nrf52_os_timer.cpp                  \
-    arch/common/os_timer/arm_systick_os_timer.cpp            \
     arch/common/sleep/cortexMx_sleep.cpp                     \
     arch/common/drivers/dcc.cpp                              \
     $(ARCH_INC)/drivers/clock.cpp                            \

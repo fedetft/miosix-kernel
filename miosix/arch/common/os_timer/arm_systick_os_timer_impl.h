@@ -30,6 +30,8 @@
  * related to the per-core timer on ARM architectures providing SysTick.
  */
 
+#pragma once
+
 #if !defined(OS_TIMER_MODEL_UNIFIED) && __ARM_ARCH>=6
 
 #include "interfaces/arch_registers.h"
@@ -44,13 +46,14 @@ namespace miosix {
  *   (thus once for each core)
  * to enable the SysTick which is used to implement IRQosTimerSetPreemption().
  */
-void IRQinitCoreLocalPreemptionTimer();
-
-extern CoarseTimeConversion preemptionTimeConversion; //TODO
+inline void IRQinitCoreLocalPreemptionTimer()
+{
+    NVIC_EnableIRQ(SysTick_IRQn);
+}
 
 inline void IRQosTimerSetPreemption(unsigned int ns) noexcept
 {
-    SysTick->LOAD=preemptionTimeConversion.ns2tick(ns);
+    SysTick->LOAD=CoarseTimeConversion::ns2tick(ns,cpuFrequency);
     // SysTick is weird. Writing any value to VAL causes LOAD to be stored in
     // VAL. Couldn't it be implemented so that writing to VAL writes to VAL?
     SysTick->VAL=1;
@@ -65,6 +68,17 @@ inline void IRQosTimerSetPreemption(unsigned int ns) noexcept
     // measure thread actual burst length
     SysTick->LOAD=0x00ffffff;
 }
+
+// This may become part of the implementation of the to-be-defined API to get
+// thread actual burst lengths for the control scheduler
+// unsigned int getBurstErrorTicks()
+// {
+//     SysTick->CTRL=SysTick_CTRL_CLKSOURCE_Msk; //Stop timer
+//     int result=SysTick->VAL;
+//     // If timer overflowed, it kept counting so we can return negative value
+//     if(SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) result-=0x01000000;
+//     return result;
+// }
 
 } //namespace miosix
 
