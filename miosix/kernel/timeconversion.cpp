@@ -27,7 +27,6 @@
 
 #include "timeconversion.h"
 #include <limits>
-#include <algorithm>
 
 #ifdef TEST_ALGORITHM
 
@@ -431,16 +430,6 @@ long long TimeConversion::computeRoundTripError(unsigned long long tick,
     unsigned long long roundTrip=convert(ns,adjustedToTick);
     return static_cast<long long>(tick-roundTrip);
 }
-
-//
-// class CoarseTimeConversion
-//
-
-CoarseTimeConversion::CoarseTimeConversion(unsigned int hz) noexcept
-{
-    toTick=min(0xffffffffll,0x100000000ll*hz/1000000000);
-}
-
 
 } //namespace miosix
 

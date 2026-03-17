@@ -27,6 +27,8 @@
 
 #pragma once
 
+#include <algorithm>
+
 namespace miosix {
 
 /**
@@ -36,51 +38,58 @@ namespace miosix {
  */
 inline unsigned long long mul32x32to64(unsigned int a, unsigned int b)
 {
-#if defined(__thumb__) && !defined(__thumb2__)
-#ifdef NO_ASM
-    //Optimized version for CPUs without native 32x32=64 multiplication.
-    //Just casting to long long uses __aeabi_lmul which is a full 64x64=64 bit
-    //multiplication.
-    unsigned int t0=(a&0xFFFF)*(b&0xFFFF);
-    unsigned int t1=(a>>16)*(b>>16);
-    unsigned long long res=t0|(static_cast<unsigned long long>(t1)<<32);
-    res+=static_cast<unsigned long long>((a>>16)*(b&0xFFFF))<<16;
-    res+=static_cast<unsigned long long>((a&0xFFFF)*(b>>16))<<16;
-    return res;
-#else
-    //Optimized assembly version for ARM CPUs supporting only Thumb mode.
-    //On a Cortex-M0+ takes about 19 to 21 cycles, depending if it's inlined
-    //or not.
-    unsigned int t0=a, t1=b, t2, t3, t4;
-    asm(
-        ".syntax unified\n"
-        "lsls %3, %0, #16\n"
-        "lsrs %3, %3, #16\n" // t3 = a & 0xFFFF
-        "lsls %4, %1, #16\n"
-        "lsrs %4, %4, #16\n" // t4 = b & 0xFFFF
-        "movs %2, %3\n"
-        "muls %2, %4\n"      // t2 = t3 * t4 = (a & 0xFFFF) * (b & 0xFFFF)
-        "lsrs %0, %0, #16\n" // t0 = a >> 16
-        "muls %4, %0\n"      // t4 = t4 * t0 = (a >> 16) * (b & 0xFFFF)
-        "lsrs %1, %1, #16\n" // t1 = b >> 16
-        "muls %3, %1\n"      // t3 = t3 * t1 = (a & 0xFFFF) * (b >> 16)
-        "muls %1, %0\n"      // t1 = t1 * t0 = (a >> 16) * (b >> 16)
-        "lsls %0, %4, #16\n" // t0 = lo(((a >> 16) * (b & 0xFFFF)) << 16)
-        "lsrs %4, %4, #16\n" // t4 = hi(((a >> 16) * (b & 0xFFFF)) << 16)
-        "adds %0, %2\n"
-        "adcs %1, %4\n"      // t1,t0 += t4,t2
-        "lsls %2, %3, #16\n"
-        "lsrs %3, %3, #16\n" // t3,t2 = ((a & 0xFFFF) * (b >> 16)) << 16
-        "adds %0, %2\n"
-        "adcs %1, %3\n"      // t1,t0 += t3,t2
-        :"+l"(t0),"+l"(t1),"=l"(t2),"=l"(t3),"=l"(t4)::);
-    return static_cast<unsigned long long>(t0)|(static_cast<unsigned long long>(t1)<<32);
-#endif
-#else
+    #if defined(__GNUC__) && defined(__thumb__) && !defined(__thumb2__)
+    //ARM thumb-1 CPUs lack a 32x32 multiplication with 64 bit result, so
+    //provide an optimized implementation, but only do so if the function
+    //is not called with constants, since in that case we want the compiler to
+    //perform constant folding
+    if(!(__builtin_constant_p(a) && __builtin_constant_p(b)))
+    {
+        #ifdef NO_ASM
+        //Optimized version for CPUs without native 32x32=64 multiplication.
+        //Just casting to long long uses __aeabi_lmul which is a full 64x64=64 bit
+        //multiplication.
+        unsigned int t0=(a&0xFFFF)*(b&0xFFFF);
+        unsigned int t1=(a>>16)*(b>>16);
+        unsigned long long res=t0|(static_cast<unsigned long long>(t1)<<32);
+        res+=static_cast<unsigned long long>((a>>16)*(b&0xFFFF))<<16;
+        res+=static_cast<unsigned long long>((a&0xFFFF)*(b>>16))<<16;
+        return res;
+        #else
+        //Optimized assembly version for ARM CPUs supporting only Thumb mode.
+        //On a Cortex-M0+ takes about 19 to 21 cycles, depending if it's inlined
+        //or not.
+        unsigned int t0=a, t1=b, t2, t3, t4;
+        asm(
+            ".syntax unified\n"
+            "lsls %3, %0, #16\n"
+            "lsrs %3, %3, #16\n" // t3 = a & 0xFFFF
+            "lsls %4, %1, #16\n"
+            "lsrs %4, %4, #16\n" // t4 = b & 0xFFFF
+            "movs %2, %3\n"
+            "muls %2, %4\n"      // t2 = t3 * t4 = (a & 0xFFFF) * (b & 0xFFFF)
+            "lsrs %0, %0, #16\n" // t0 = a >> 16
+            "muls %4, %0\n"      // t4 = t4 * t0 = (a >> 16) * (b & 0xFFFF)
+            "lsrs %1, %1, #16\n" // t1 = b >> 16
+            "muls %3, %1\n"      // t3 = t3 * t1 = (a & 0xFFFF) * (b >> 16)
+            "muls %1, %0\n"      // t1 = t1 * t0 = (a >> 16) * (b >> 16)
+            "lsls %0, %4, #16\n" // t0 = lo(((a >> 16) * (b & 0xFFFF)) << 16)
+            "lsrs %4, %4, #16\n" // t4 = hi(((a >> 16) * (b & 0xFFFF)) << 16)
+            "adds %0, %2\n"
+            "adcs %1, %4\n"      // t1,t0 += t4,t2
+            "lsls %2, %3, #16\n"
+            "lsrs %3, %3, #16\n" // t3,t2 = ((a & 0xFFFF) * (b >> 16)) << 16
+            "adds %0, %2\n"
+            "adcs %1, %3\n"      // t1,t0 += t3,t2
+            :"+l"(t0),"+l"(t1),"=l"(t2),"=l"(t3),"=l"(t4)::);
+        return static_cast<unsigned long long>(t0)
+            | (static_cast<unsigned long long>(t1)<<32);
+        #endif
+    }
+    #endif
     //Casts are to produce a 64 bit result. Compiles to a single asm instruction
     //in processors having 32x32 multiplication with 64 bit result
     return static_cast<unsigned long long>(a)*static_cast<unsigned long long>(b);
-#endif
 }
 
 /**
@@ -286,7 +295,8 @@ public:
      * Set the conversion factors based on the tick frequency.
      * \param hz tick frequency in Hz
      */
-    CoarseTimeConversion(unsigned int hz) noexcept;
+    CoarseTimeConversion(unsigned int hz) noexcept
+        : toTick(std::min(0xffffffffll,0x100000000ll*hz/1000000000)) {}
 
     /**
      * \param tick time interval in timer ticks
@@ -305,6 +315,44 @@ public:
     {
         return mul32x32to64(ns,toTick)>>32;
     }
+
+    /**
+     * This function provides an alternative to creating instances of the
+     * CoarseTimeConversion, performing the entire time conversion algorithm
+     * in a single function taking both the nanosecond value to convert and the
+     * timer tick frequency.
+     *
+     * It makes sense to use this function only if the timer tick frequency is
+     * a constant, as in this case the compiler can perform constant folding
+     * and perform the first part of the computation at compile-time.
+     * If additionally, also the nanosecond value is a constant (this happens
+     * with the priority scheduler), then the entire content of the function
+     * can be performed at compile-time.
+     *
+     * For use cases where the timer tick-requency is not a constant, it is
+     * better to use create isntances of the CoarseTimeConversion and call
+     * the non-static version of this member function, since this way the
+     * toTick computation is not done every time this function is called.
+     *
+     * \param ns time interval in nanoseconds
+     * \param hz tick frequency in Hz
+     * \return the equivalent time interval in ticks
+     */
+    static inline unsigned int ns2tick(unsigned int ns, unsigned int hz)
+    {
+        const unsigned int toTick=std::min(0xffffffffll,0x100000000ll*hz/1000000000);
+        return mul32x32to64(ns,toTick)>>32;
+    }
+
+    /**
+     * \param tick time interval in timer ticks
+     * \param hz tick frequency in Hz
+     * \return the equivalent time intterval in nanoseconds
+     */
+    // static inline unsigned int tick2ns(unsigned int tick, unsigned int hz) const
+    // {
+    //     return //TODO implement for control scheduler
+    // }
 
 private:
     unsigned int toTick; ///< Fixed point 0.32
