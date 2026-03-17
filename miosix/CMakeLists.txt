@@ -26,13 +26,13 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(Miosix
-    VERSION 2.7
+    VERSION 3.0
     DESCRIPTION "OS kernel designed to run on 32bit microcontrollers."
     HOMEPAGE_URL "https://miosix.org"
     LANGUAGES C CXX
 )
 
-set(CMAKE_CXX_STANDARD 14 CACHE STRING "Project C++ standard")
+set(CMAKE_CXX_STANDARD 23 CACHE STRING "Project C++ standard")
 
 # To avoid printing an empty string
 if(MIOSIX_PRINT_BOARD_LIST)
@@ -140,6 +140,7 @@ target_include_directories(miosix PUBLIC
 )
 
 target_compile_options(miosix PUBLIC
+    -qkernelspace
     $<$<COMPILE_LANGUAGE:ASM>:${MIOSIX_A_FLAGS}>
     $<$<COMPILE_LANGUAGE:C>:${MIOSIX_C_FLAGS}>
     $<$<COMPILE_LANGUAGE:CXX>:${MIOSIX_CXX_FLAGS}>
@@ -153,7 +154,7 @@ target_compile_definitions(miosix PRIVATE $<$<COMPILE_LANGUAGE:C,CXX>:COMPILING_
 
 # Configure linker file and options needed to link agains this library
 set_property(TARGET miosix PROPERTY LINK_DEPENDS ${MIOSIX_BOARD_INC}/${MIOSIX_LINKER_SCRIPT})
-target_link_options(miosix INTERFACE ${MIOSIX_L_FLAGS})
+target_link_options(miosix INTERFACE -qkernelspace ${MIOSIX_L_FLAGS})
 
 # Run the kernel_global_objects.pl script on all kernel objects
 add_custom_command(
@@ -167,6 +168,6 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     # Set multilib paths for Clang
     target_link_directories(miosix PUBLIC
         ${MIOSIX_GCC_PATH}/arm-miosix-eabi/lib/${MIOSIX_MULTILIB_PATH}
-        ${MIOSIX_GCC_PATH}/lib/gcc/arm-miosix-eabi/9.2.0/${MIOSIX_MULTILIB_PATH}
+        ${MIOSIX_GCC_PATH}/lib/gcc/arm-miosix-eabi/15.2.0/${MIOSIX_MULTILIB_PATH}
     )
 endif()

@@ -33,7 +33,7 @@ if(MIOSIX_CUSTOM_BOARD_SETTINGS_INC)
     set(MIOSIX_BOARD_SETTINGS_INC ${MIOSIX_CUSTOM_BOARD_SETTINGS_INC})
     message(NOTICE "You have set a custom path for board_settings.h")
 else()
-    set(MIOSIX_BOARD_SETTINGS_INC ${MIOSIX_CONFIG_PATH}/config/arch/${MIOSIX_ARCH_NAME}/${MIOSIX_OPT_BOARD})
+    set(MIOSIX_BOARD_SETTINGS_INC ${MIOSIX_CONFIG_PATH}/arch/${MIOSIX_ARCH_NAME}/${MIOSIX_OPT_BOARD})
 endif()
 
 # Linker script type, there are three options

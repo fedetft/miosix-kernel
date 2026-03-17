@@ -70,7 +70,7 @@ function(miosix_add_romfs_image)
         COMMENT "Building ${ROMFS_IMAGE_NAME}-romfs.bin"
     )
 
-    # Combin kernel and romfs images
+    # Combine kernel and romfs images
     add_custom_command(
         OUTPUT ${ROMFS_IMAGE_NAME}.bin
         DEPENDS ${ROMFS_KERNEL}.bin ${ROMFS_IMAGE_NAME}-romfs.bin
