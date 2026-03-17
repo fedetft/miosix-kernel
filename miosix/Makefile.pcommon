@@ -17,7 +17,7 @@ include $(CONFPATH)/config/Makefile.inc
 AFLAGS   ?= $(CPU) -c
 CFLAGS   ?= -MMD -MP $(CPU) -ffunction-sections -Wall -Werror=return-type \
             -D_DEFAULT_SOURCE=1 $(OPT_OPTIMIZATION) $(INCLUDE_DIRS) -g -c
-CXXFLAGS ?= -std=c++14 $(PROC_OPT_EXCEPT) $(CFLAGS)
+CXXFLAGS ?= -std=c++23 $(PROC_OPT_EXCEPT) $(CFLAGS)
 LFLAGS   ?= $(CPU) -Wl,--gc-sections
 LINK_LIBS ?= $(LIBS)
 
