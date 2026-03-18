@@ -1,6 +1,6 @@
 
 #define MyAppName "Miosix Toolchain"
-#define MyAppVersion "GCC 15.2.0mp4.1"
+#define MyAppVersion "GCC 15.2.0mp4.2"
 #define MyAppURL "https://miosix.org"
 #define MyAppGUID "{{5270879A-9707-4BCB-930F-2FC7B5621061}"
 
@@ -19,8 +19,8 @@ DisableDirPage=yes
 DefaultGroupName={#MyAppName}
 ; Allow user to disable adding stuff to the start menu
 AllowNoIcons=yes
-; Produce an installer named MiosixToolchainInstaller15.2.0mp4.1.exe
-OutputBaseFilename=MiosixToolchainInstaller15.2.0mp4.1
+; Produce an installer named MiosixToolchainInstaller15.2.0mp4.2.exe
+OutputBaseFilename=MiosixToolchainInstaller15.2.0mp4.2
 Compression=lzma
 ; Compress everything into one lzma stream
 SolidCompression=yes

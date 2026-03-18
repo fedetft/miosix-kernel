@@ -15,7 +15,7 @@
 
 #### Configuration tunables -- begin ####
 
-__GCCPATCUR='4.1' # Can't autodetect this one easily from gcc.patch
+__GCCPATCUR='4.2' # Can't autodetect this one easily from gcc.patch
 
 # This should be set to true unless you're installing locally on your Linux
 # machine the compiler that will be used to do canadian cross compiling for
@@ -853,8 +853,8 @@ if [[ $DESTDIR ]]; then
 		# permissions to group and other, resulting in an unusable installation
 		./$MAKESELF/makeself.sh --xz --keep-umask \
 			$DESTDIR$PREFIX \
-			MiosixToolchainInstaller15.2.0mp4.1.run \
-			"Miosix toolchain for Linux (GCC 15.2.0-mp4.1)" \
+			MiosixToolchainInstaller15.2.0mp4.2.run \
+			"Miosix toolchain for Linux (GCC 15.2.0-mp4.2)" \
 			"./installer.sh"
 	elif [[ ( $(uname -s) == 'Linux' ) && ( $HOST == *mingw* ) ]]; then
 		# Build an executable installer for Windows
