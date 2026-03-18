@@ -922,7 +922,6 @@ ifeq ($(ARCH),arm7_lpc2000)
         ## Select architecture specific files
         ## These are the files in arch/<arch name>/<board name>
         ARCH_SRC :=                                  \
-        $(BOARD_INC)/interfaces-impl/delays.cpp      \
         $(BOARD_INC)/interfaces-impl/bsp.cpp         \
         $(BOARD_INC)/core/stage_1_boot.s
 
@@ -959,6 +958,8 @@ ifeq ($(ARCH),arm7_lpc2000)
     arch/common/sleep/lpc2000_sleep.cpp            \
     arch/common/drivers/serial_lpc2000.cpp         \
     arch/common/drivers/sd_lpc2000.cpp             \
+    $(ARCH_INC)/drivers/clock.cpp                  \
+    $(ARCH_INC)/interfaces-impl/delays.cpp         \
     $(ARCH_INC)/interfaces-impl/poweroff.cpp
 
     ## Select programmer command line

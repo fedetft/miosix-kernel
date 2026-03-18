@@ -26,6 +26,7 @@
  ***************************************************************************/
 
 #include "interfaces_private/cpu.h"
+#include "kernel/scheduler/scheduler.h"
 #include "kernel/thread.h"
 
 namespace miosix {
@@ -40,8 +41,9 @@ namespace miosix {
 void ISR_yield() __attribute__((noinline));
 void ISR_yield()
 {
-    miosix::Thread::IRQstackOverflowCheck();
-    miosix::Scheduler::IRQfindNextThread();
+    FastGlobalLockFromIrq lock;
+    Thread::IRQstackOverflowCheck();
+    Scheduler::IRQrunScheduler();
 }
 
 /**
@@ -91,6 +93,11 @@ void IRQportableStartKernel() noexcept
     IRQinvokeScheduler();
 #warning the first yield used to automatically enable interrupts but this is no longer true, enable interrupts here
     //Never reaches here
+}
+
+void IRQinitIrqTable()
+{
+    //TODO
 }
 
 } //namespace miosix

@@ -26,7 +26,6 @@
  ***************************************************************************/ 
 
 #include "interfaces/poweroff.h"
-#include "interfaces/arch_registers.h"
 
 namespace miosix {
 

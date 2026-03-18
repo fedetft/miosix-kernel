@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008-2024 by Terraneo Federico                          *
+ *   Copyright (C) 2008-2026 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -129,28 +129,32 @@
  * defined in miosix/drivers/interrupts.cpp<br>By default FIQ are enabled but no
  * peripheral is associated with FIQ, so no FIQ interrupts will occur.
  */
-#define enableIRQandFIQ()                                                     \
-    asm volatile(".set  I_BIT, 0x80           \n\t"                           \
-                 ".set  F_BIT, 0x40           \n\t"                           \
-                 "mrs r0, cpsr                \n\t"                           \
-                 "and r0, r0, #~(I_BIT|F_BIT) \n\t"                           \
-                 "msr cpsr_c, r0              \n\t"                           \
+inline void enableIRQandFIQ()
+{
+    asm volatile(".set  I_BIT, 0x80           \n\t"
+                 ".set  F_BIT, 0x40           \n\t"
+                 "mrs r0, cpsr                \n\t"
+                 "and r0, r0, #~(I_BIT|F_BIT) \n\t"
+                 "msr cpsr_c, r0              \n\t"
                  :::"r0");
+}
 
 ///Disable interrupts (both irq and fiq)<br>
-#define disableIRQandFIQ()                                                    \
-    asm volatile(".set  I_BIT, 0x80           \n\t"                           \
-                 ".set  F_BIT, 0x40           \n\t"                           \
-                 "mrs r0, cpsr                \n\t"                           \
-                 "orr r0, r0, #I_BIT|F_BIT    \n\t"                           \
-                 "msr cpsr_c, r0              \n\t"                           \
+inline void disableIRQandFIQ()
+{
+    asm volatile(".set  I_BIT, 0x80           \n\t"
+                 ".set  F_BIT, 0x40           \n\t"
+                 "mrs r0, cpsr                \n\t"
+                 "orr r0, r0, #I_BIT|F_BIT    \n\t"
+                 "msr cpsr_c, r0              \n\t"
                  :::"r0");
+}
 
 namespace miosix {
 
 inline void IRQinvokeScheduler() noexcept
 {
-    #error TODO update yield code with PendSV equivalent for ARM7
+    //#error TODO update yield code with PendSV equivalent for ARM7
     asm volatile("movs  r3, #0\n\t"
                  "swi   0"
                  :::"r3");

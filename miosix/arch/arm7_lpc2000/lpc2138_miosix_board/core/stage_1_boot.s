@@ -65,30 +65,14 @@ Reset_Handler:
     msr	    CPSR_c, #MODE_SVC|I_BIT        /* Supervisor (IRQ Off, FIQ On ) */
     ldr     sp, =_svc_stack_top
 
+    /* The IRQ/SVC stack must be in internal RAM, safe to use */
+    bl      _ZN6miosix21IRQmemoryAndClockInitEv
+
+    /* Switch to system stack after initializing memory anch clocks */
     msr	    CPSR_c, #MODE_SYS|I_BIT|F_BIT  /* System     (IRQ Off, FIQ Off) */
     ldr	    sp, =_sys_stack_top
 
-    /* copy .data section from FLASH to RAM */
-    ldr     r1, =_etext
-    ldr     r2, =_data
-    ldr	    r3, =_edata
-1:  cmp	    r2, r3
-    ldrlo   r0, [r1], #4
-    strlo   r0, [r2], #4
-    blo	    1b
-    /* clear .bss section */
-    mov	    r0, #0
-    ldr	    r1, =_bss_start
-    ldr	    r2, =_bss_end
-2:  cmp	    r1, r2
-    strlo    r0, [r1], #4
-    blo	    2b
-    /* enter stage_2_boot. the lr (return address) is set to 0x00000000, so
-    if main returns, it will jump to the reset vector, rebooting the system.
-    Using bx instead of b to support thumb mode */
-    ldr     r12, =_init
-    ldr	    lr, =0
-    bx      r12
+    bl      _ZN6miosix23IRQkernelBootEntryPointEv
 
 .endfunc
 	

@@ -114,9 +114,6 @@ static void rtcInit();
 
 void IRQbspInit()
 {
-    //Initialize the system PLL
-    setPllFreq(PLL_4X);//Set cpu freq. through pll @ 14.7456MHz * 4 = 59MHz
-    set_apb_ratio(APB_DIV_4);//Set peripheral clock ratio 1:4
     //Some registers are only accessed in read-modify-write. Since software reset
     // ( system_reboot() ) does not put those register in a known state, unlike
     //hardware reset, we need to clear them.
@@ -147,7 +144,8 @@ void IRQbspInit()
     VICIntEnClr=0xffffffff;//All interrupts are disabled
     VICIntSelect=0;//All interrupts are assigned to IRQ, not FIQ
     //spurious interrupt handler
-    VICDefVectAddr=(unsigned long)&default_IRQ_Routine;
+#warning "We no longer have efault_IRQ_Routine, why?"
+    // VICDefVectAddr=(unsigned long)&default_IRQ_Routine;
     //Init RTC (if selected)
     #ifdef WITH_RTC
     rtcInit();
@@ -224,6 +222,10 @@ void rtcSetTime(Time t)
 //
 // Shutdown and reboot
 //
+
+//Reuse function called at boot to configure clock to reconfigure it after
+//exiting deep sleep
+void IRQmemoryAndClockInit();
 
 /**
 \internal
@@ -329,9 +331,8 @@ static void _shutdown(bool and_return, Time *t)
 
             if(and_return==false) IRQsystemReboot();
 
-            //Initialize the system PLL (Power down mode resets pll to 1x)
-            setPllFreq(PLL_4X);//Set cpu freq. through pll @ 14.7456MHz * 4 = 59MHz
-            set_apb_ratio(APB_DIV_4);//Set peripheral clock ratio 1:4
+            //Reinitialize PLL and APB prescaler after power down
+            IRQmemoryAndClockInit();
 
             IODIR0&=~(1<<18);//restoring p0.18 uSD miso as input.
 
@@ -367,6 +368,7 @@ minimize power consumption all unused GPIO must be set as output high.
 void shutdown()
 {
     _shutdown(false,NULL);
+    for(;;) ;
 }
 
 void reboot()
@@ -389,77 +391,6 @@ void reboot()
     //Not changing IODIR1, IOCLR1 and IOSET1 because are all gpio
     delayMs(100);
     IRQsystemReboot();
-}
-
-//
-// System PLL
-//
-
-#define PLOCK 0x400
-
-/**
-\internal
-Generates the PLL feed sequence
-*/
-static inline void feed()
-{
-    PLLFEED=0xAA;
-    PLLFEED=0x55;
-}
-
-void setPllFreq(PllValues r)
-{
-    PLLCON=0x0;//PLL OFF
-    feed();
-    switch(r)
-    {
-        case PLL_2X://PLL=2*F
-            // Enabling MAM
-            MAMCR=0x0;//MAM Disabled
-            MAMTIM=0x2;//Flash access is 2 cclk
-            MAMCR=0x2;//MAM Enabled
-            // Setting PLL
-            PLLCFG=0x41;// M=2 P=4 ( FCCO=14.7456*M*2*P=235MHz )
-            feed();
-            PLLCON=0x1;//PLL Enabled
-            feed();
-            while(!(PLLSTAT & PLOCK));//Wait for PLL to lock
-            PLLCON=0x3;//PLL Connected
-            feed();
-            break;
-        case PLL_4X://PLL=4*F
-            // Enabling MAM
-            MAMCR=0x0;//MAM Disabled
-            MAMTIM=0x3;//Flash access is 3 cclk
-            MAMCR=0x2;//MAM Enabled
-            // Setting PLL
-            PLLCFG=0x23;// M=4 P=2 ( FCCO=14.7456*M*2*P=235MHz )
-            feed();
-            PLLCON=0x1;//PLL Enabled
-            feed();
-            while(!(PLLSTAT & PLOCK));//Wait for PLL to lock
-            PLLCON=0x3;//PLL Connected
-            feed();
-            break;
-        default://PLL OFF
-            // Enabling MAM
-            MAMCR=0x0;//MAM Disabled
-            MAMTIM=0x1;//Flash access is 1 cclk
-            MAMCR=0x2;//MAM Enabled
-            break;
-    }
-}
-
-PllValues getPllFreq()
-{
-    //If "pll off" or "pll not connected" return PLL_OFF
-    if((PLLSTAT & 0x300)!=0x300) return PLL_OFF;
-    switch(PLLSTAT & 0x7f)
-    {
-        case 0x41: return PLL_2X;
-        case 0x23: return PLL_4X;
-        default:   return PLL_UNDEF;//PLL undefined value
-    }
 }
 
 } //namespace miosix

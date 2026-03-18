@@ -28,6 +28,7 @@
 #include "kernel/lock.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces_private/os_timer.h"
+#include "interfaces_private/cpu.h"
 
 namespace miosix {
 
@@ -53,7 +54,7 @@ public:
     static inline void IRQstopTimer() { T0TCR=0; }
     static inline void IRQstartTimer() { T0TCR=1; }
     
-    static unsigned int IRQTimerFrequency() { return miosix::TIMER_CLOCK; }
+    static unsigned int IRQTimerFrequency() { return peripheralFrequency; }
     
     static void IRQinitTimer()
     {

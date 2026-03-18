@@ -40,6 +40,10 @@ namespace miosix {
  * \{
  */
 
+constexpr unsigned int oscillatorFrequency=14745600;
+constexpr unsigned int cpuFrequency=oscillatorFrequency*4; //Supported x1, x2, x4
+constexpr unsigned int peripheralFrequency=cpuFrequency/4; //Can divide by 1, 2, 4
+
 /// Serial port baudrate
 const unsigned int SERIAL_PORT_SPEED=115200;
 
@@ -54,9 +58,6 @@ const unsigned int AUX_SERIAL_SPEED=9600;
 /// The C standard library is stack-heavy (iprintf requires 1.5KB) and the
 /// LPC2138 has 32KB of RAM so there is room for a big 4K stack.
 const unsigned int MAIN_STACK_SIZE=4*1024;
-
-/// \internal Clock frequency of hardware timer, hardware specific data
-const unsigned int TIMER_CLOCK=14745600;
 
 /// \def WITH_RTC
 /// Uncomment to enable support for RTC. Time-related functions depend on it.

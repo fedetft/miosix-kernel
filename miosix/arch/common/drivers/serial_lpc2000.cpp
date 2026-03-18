@@ -32,6 +32,7 @@
 #include "serial_lpc2000.h"
 #include "kernel/sync.h"
 #include "filesystem/ioctl.h"
+#include "interfaces_private/cpu.h"
 #include "LPC213x.h"
 
 namespace miosix {
@@ -120,7 +121,7 @@ LPC2000Serial::LPC2000Serial(int id, int baudrate) : Device(Device::TTY),
     //0x80= uart rx fifo trigger level 8 characters
     serial->FCR=0x07 | 0x80;
     serial->LCR=0x83;//8data bit, 1stop, no parity, DLAB enabled
-    int div=TIMER_CLOCK/16/baudrate;
+    int div=peripheralFrequency/16/baudrate;
     serial->DLL=div & 0xff;
     serial->DLM=(div>>8) & 0xff;
     serial->LCR=0x3;//DLAB disabled
@@ -223,7 +224,6 @@ int LPC2000Serial::ioctl(int cmd, void* arg)
 void LPC2000Serial::IRQhandleInterrupt()
 {
     char c;
-    bool hppw=false;
     bool wakeup=false;
     switch(serial->IIR & 0xf)
     {
@@ -252,8 +252,6 @@ void LPC2000Serial::IRQhandleInterrupt()
                 if(txWaiting)
                 {
                     txWaiting->IRQwakeup();
-                    if(txWaiting->IRQgetPriority()>
-                        Thread::IRQgetCurrentThread()->IRQgetPriority()) hppw=true;
                     txWaiting=nullptr;
                 }
                 if(txQueue.tryGet(c)==false) break; //If software queue empty, stop
@@ -264,11 +262,8 @@ void LPC2000Serial::IRQhandleInterrupt()
     if(wakeup && rxWaiting)
     {
         rxWaiting->IRQwakeup();
-        if(rxWaiting->IRQgetPriority()>
-                Thread::IRQgetCurrentThread()->IRQgetPriority()) hppw=true;
         rxWaiting=nullptr;
     }
-    if(hppw) Scheduler::IRQfindNextThread();
 }
 
 LPC2000Serial::~LPC2000Serial()

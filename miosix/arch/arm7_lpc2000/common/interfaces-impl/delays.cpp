@@ -26,18 +26,18 @@
  ***************************************************************************/
 
 #include "interfaces/delays.h"
+#include "config/miosix_settings.h"
 
 namespace miosix {
 
 void delayMs(unsigned int mseconds)
 {
-    register const unsigned int count=14746;
+    const unsigned int count=cpuFrequency/4000;
 
     for(unsigned int i=0;i<mseconds;i++)
     {
-        // This delay has been calibrated to take 1 millisecond
-        // if running with a 58982400Hz CPU clock. It is written in assembler
-        // to be independent on compiler optimization settings
+        // This delay has been calibrated to take 1 millisecond. It is written
+        // in assembler to be independent on compiler optimization settings
         asm volatile("    movs  r1, %0     \n"
                      "    .align 2         \n" //4-byte aligned inner loop
                      "1:  subs  r1, r1, #1 \n" //Loop takes 4 cycles
@@ -47,6 +47,7 @@ void delayMs(unsigned int mseconds)
 
 void delayUs(unsigned int useconds)
 {
+    static_assert(cpuFrequency==58982400, "Unsupported cpuFrequency for delays");
     // This delay has been calibrated to take x microseconds
     // if running with a 58982400Hz CPU clock. It is written in assembler
     // to be independent on compiler optimization settings
