@@ -51,6 +51,7 @@ const unsigned int MAIN_STACK_SIZE=1024+512;
 enum class OscillatorType { HSI, HSE };
 // Supported oscillator types: HSI
 constexpr auto oscillatorType=OscillatorType::HSI;
+constexpr unsigned int hseFrequency=0; // HSE (X3) not fitted
 // Supported clock frequencies: 32000000
 constexpr unsigned int cpuFrequency=32000000;
 
