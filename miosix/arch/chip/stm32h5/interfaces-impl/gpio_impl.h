@@ -27,5 +27,5 @@
 
 #pragma once
 
-#include "drivers/stm32_gpio.h"
+#include "drivers/gpio/stm32_gpio.h"
 

@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM3_stm32f2/common
+ARCH_INC := arch/chip/stm32f2
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM3_stm32f2/stm32f205rg_sony-newman
+BOARD_INC := arch/board/stm32f205rg_sony-newman
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_1M+128k_rom.ld
@@ -15,7 +15,7 @@ LINKER_SCRIPT := $(BOARD_INC)/stm32_1M+128k_rom.ld
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
 ARCH_SRC :=                                  \
-arch/common/drivers/stm32f2_f4_i2c.cpp       \
+arch/drivers/stm32f2_f4_i2c.cpp       \
 $(BOARD_INC)/boot.cpp                        \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -36,4 +36,4 @@ PROG ?= perl -e 'print "\xe7\x91\x11\xc0"' > magic.bin; \
         rm magic.bin
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

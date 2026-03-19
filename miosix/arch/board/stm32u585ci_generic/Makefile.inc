@@ -4,17 +4,17 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM33_stm32u5/common
+ARCH_INC := arch/chip/stm32u5
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM33_stm32u5/stm32u585ci_generic
+BOARD_INC := arch/board/stm32u585ci_generic
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
 ARCH_SRC :=                                  \
 $(BOARD_INC)/boot.cpp                        \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
-# arch/common/drivers/stm32_hardware_rng.cpp   \
+# arch/drivers/stm32_hardware_rng.cpp   \
 
 ## Add a #define to allow querying board name
 CFLAGS_BASE   += -D_BOARD_STM32U585CI_GENERIC
@@ -32,4 +32,4 @@ PROG ?= dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D \
         $(if $(ROMFS_DIR), image.bin, main.bin)
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

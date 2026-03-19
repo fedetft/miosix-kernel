@@ -41,7 +41,7 @@
 #include "config/miosix_settings.h"
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
-#include "drivers/serial.h"
+#include "drivers/serial/serial.h"
 #include "board_settings.h"
 
 using namespace std;

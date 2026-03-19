@@ -16,7 +16,7 @@
 #OPT_BOARD := stm32f207zg_ethboard_v2
 #OPT_BOARD := stm32f207zg_nucleo
 #OPT_BOARD := stm32f207ze_als_camboard
-#OPT_BOARD := stm32l151_als_mainboard
+#OPT_BOARD := stm32l151c8_als_mainboard
 #OPT_BOARD := stm32f407vg_bitsboard
 #OPT_BOARD := stm32f205rg_sony-newman
 #OPT_BOARD := stm32f429zi_stm32f4discovery
@@ -45,7 +45,7 @@
 #OPT_BOARD := stm32f303vc_stm32f3discovery
 #OPT_BOARD := stm32f100c8_vaisala_rs41
 #OPT_BOARD := stm32l476rg_nucleo
-#OPT_BOARD := atsam4lc2aa_generic
+OPT_BOARD := atsam4lc2aa_generic
 #OPT_BOARD := stm32f411ce_blackpill
 #OPT_BOARD := stm32l4r9zi_sensortile
 #OPT_BOARD := stm32f767zi_nucleo

@@ -27,7 +27,7 @@
  ***************************************************************************/
 
 #include "cortexMx_mpu.h"
-#include "cache/cortexMx_cache.h"
+#include "drivers/cache/cortexMx_cache.h"
 #include "kernel/error.h"
 #include "config/miosix_settings.h"
 

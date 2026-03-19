@@ -28,7 +28,7 @@
 #include "interfaces/arch_registers.h"
 #include "interfaces/gpio.h"
 #include "board_settings.h"
-#include "mpu/cortexMx_mpu.h"
+#include "drivers/mpu/cortexMx_mpu.h"
 
 uint32_t SystemCoreClock=miosix::cpuFrequency;
 

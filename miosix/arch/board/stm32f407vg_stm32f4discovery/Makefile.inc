@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM4_stm32f4/common
+ARCH_INC := arch/chip/stm32f4
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery
+BOARD_INC := arch/board/stm32f407vg_stm32f4discovery
 
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
@@ -15,11 +15,11 @@ BOARD_INC := arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
 ARCH_SRC :=                                  \
-arch/common/drivers/stm32f2_f4_i2c.cpp       \
-arch/common/drivers/stm32_hardware_rng.cpp   \
-arch/common/drivers/servo_stm32.cpp          \
+arch/drivers/stm32f2_f4_i2c.cpp       \
+arch/drivers/stm32_hardware_rng.cpp   \
+arch/drivers/servo_stm32.cpp          \
 $(BOARD_INC)/boot.cpp                        \
-$(BOARD_INC)/drivers/rtc.cpp                 \
+arch/drivers/stm32f407_rtc.cpp                 \
 $(BOARD_INC)/interfaces-impl/sleep.cpp       \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -37,4 +37,4 @@ PROG ?= st-flash --connect-under-reset --reset write \
         $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

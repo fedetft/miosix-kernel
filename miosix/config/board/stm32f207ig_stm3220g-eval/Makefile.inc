@@ -23,7 +23,7 @@
 ##    (used for boot and IRQs) in internal RAM.
 ## Warning! enable external ram if you use a linker script that requires it
 ## (see the XRAM flag below)
-LINKER_SCRIPT_PATH := arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval/
+LINKER_SCRIPT_PATH := arch/board/stm32f207ig_stm3220g-eval/
 #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom.ld
 LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram.ld
 #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld

@@ -26,7 +26,7 @@
  ***************************************************************************/
 
 #include "interfaces/bsp.h"
-#include "mpu/cortexMx_mpu.h"
+#include "drivers/mpu/cortexMx_mpu.h"
 
 extern "C" void SystemInit();
 

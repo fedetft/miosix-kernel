@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM3_stm32f2/common
+ARCH_INC := arch/chip/stm32f2
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM3_stm32f2/stm32f205_generic
+BOARD_INC := arch/board/stm32f205_generic
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+128k_rom.ld
@@ -15,9 +15,9 @@ LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+128k_rom.ld
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
 ARCH_SRC :=                                  \
-arch/common/drivers/sd_stm32f2_f4_f7.cpp     \
-arch/common/drivers/stm32f2_f4_i2c.cpp       \
-arch/common/drivers/servo_stm32.cpp          \
+arch/drivers/sdmmc/sd_stm32f2_f4_f7.cpp     \
+arch/drivers/stm32f2_f4_i2c.cpp       \
+arch/drivers/servo_stm32.cpp          \
 $(BOARD_INC)/boot.cpp                        \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -34,4 +34,4 @@ CXXFLAGS_BASE += -D_BOARD_STM32F205_GENERIC
 PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with header files for this board
-ARCH_INC := arch/cortexM3_stm32f1/common
+ARCH_INC := arch/chip/stm32f1
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM3_stm32f1/stm32f103cb_als_mainboard_rev2
+BOARD_INC := arch/board/stm32f103cb_als_mainboard_rev2
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_128k+20k_rom.ld
@@ -31,4 +31,4 @@ CXXFLAGS_BASE += -D_BOARD_ALS_MAINBOARD_REV2
 PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

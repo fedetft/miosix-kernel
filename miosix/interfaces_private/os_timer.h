@@ -622,5 +622,5 @@ unsigned int osTimerGetFrequency()                 \
 
 // Gated including of arch-specific functions to enable inlining
 #if !defined(OS_TIMER_MODEL_UNIFIED) && __ARM_ARCH>=6
-#include "arch/common/os_timer/arm_systick_os_timer_impl.h"
+#include "arch/drivers/os_timer/arm_systick_os_timer_impl.h"
 #endif

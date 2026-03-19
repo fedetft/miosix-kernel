@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with header files for this board
-ARCH_INC := arch/cortexM3_stm32f1/common
+ARCH_INC := arch/chip/stm32f1
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM3_stm32f1/stm32f103ve_strive_mini
+BOARD_INC := arch/board/stm32f103ve_strive_mini
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_512k+64k_rom.ld
@@ -16,7 +16,7 @@ LINKER_SCRIPT := $(BOARD_INC)/stm32_512k+64k_rom.ld
 ## These are the files in arch/<arch name>/<board name>
 ARCH_SRC :=                                  \
 $(BOARD_INC)/boot.cpp                        \
-arch/common/drivers/sd_stm32f1.cpp           \
+arch/drivers/sdmmc/sd_stm32f1.cpp           \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
 ## Add a #define to allow querying board name
@@ -33,4 +33,4 @@ PROG ?= st-flash --connect-under-reset --reset write \
         $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM3_stm32f2/common
+ARCH_INC := arch/chip/stm32f2
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval
+BOARD_INC := arch/board/stm32f207ig_stm3220g-eval
 
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
@@ -15,7 +15,7 @@ BOARD_INC := arch/cortexM3_stm32f2/stm32f207ig_stm3220g-eval
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
 ARCH_SRC :=                                  \
-arch/common/drivers/sd_stm32f2_f4_f7.cpp     \
+arch/drivers/sdmmc/sd_stm32f2_f4_f7.cpp     \
 $(BOARD_INC)/boot.cpp                        \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -38,4 +38,4 @@ else
 endif
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with header files for this board
-ARCH_INC := arch/cortexM3_stm32f1/common
+ARCH_INC := arch/chip/stm32f1
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM3_stm32f1/stm32f103c8_bluepill
+BOARD_INC := arch/board/stm32f103c8_bluepill
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+20k_rom.ld
@@ -17,7 +17,7 @@ LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+20k_rom.ld
 ARCH_SRC :=                                  \
 $(BOARD_INC)/boot.cpp                        \
 $(BOARD_INC)/interfaces-impl/bsp.cpp         \
-arch/common/drivers/servo_stm32.cpp
+arch/drivers/servo_stm32.cpp
 
 ## Add a #define to allow querying board name
 CFLAGS_BASE   += -D_BOARD_STM32F103C8_BLUEPILL
@@ -32,4 +32,4 @@ CXXFLAGS_BASE += -D_BOARD_STM32F103C8_BLUEPILL
 PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

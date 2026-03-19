@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "clock.h"
+#include "lpc2000_clock.h"
 // #include "board_settings.h"
 #include "config/miosix_settings.h"
 

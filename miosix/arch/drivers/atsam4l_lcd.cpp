@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "lcd.h"
+#include "atsam4l_lcd.h"
 #include "kernel/thread.h"
 #include "kernel/lock.h"
 #include <algorithm>

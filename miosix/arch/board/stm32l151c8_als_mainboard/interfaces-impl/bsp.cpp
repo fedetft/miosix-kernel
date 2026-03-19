@@ -44,7 +44,7 @@
 #include "kernel/logging.h"
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
-#include "drivers/serial.h"
+#include "drivers/serial/serial.h"
 #include "drivers/dcc.h"
 #include "board_settings.h"
 

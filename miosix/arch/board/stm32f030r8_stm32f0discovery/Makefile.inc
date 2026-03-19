@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM0_stm32f0/common
+ARCH_INC := arch/chip/stm32f0
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM0_stm32f0/stm32f030r8_stm32f0discovery
+BOARD_INC := arch/board/stm32f030r8_stm32f0discovery
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+8k_rom.ld
@@ -17,7 +17,7 @@ LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+8k_rom.ld
 ARCH_SRC :=                                   \
 $(BOARD_INC)/boot.cpp                         \
 $(BOARD_INC)/interfaces-impl/bsp.cpp          \
-arch/common/os_timer/stm32_16bit_os_timer.cpp
+arch/drivers/os_timer/stm32_16bit_os_timer.cpp
 
 ## Add a #define to allow querying board name
 CFLAGS_BASE   += -D_BOARD_STM32F030R8_DISCO
@@ -33,4 +33,4 @@ PROG ?= st-flash --connect-under-reset --reset write \
         $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

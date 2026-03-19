@@ -24,11 +24,11 @@ LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
 ARCH_SRC +=                                              \
 arch/cpu/armv7m/interfaces-impl/cpu.cpp                  \
 arch/cpu/common/cortexMx_interrupts.cpp                  \
-arch/common/mpu/cortexMx_mpu.cpp                         \
+arch/drivers/mpu/cortexMx_mpu.cpp                         \
 arch/cpu/common/cortexMx_userspace.cpp                   \
-arch/common/sleep/cortexMx_sleep.cpp                     \
-arch/common/drivers/efm32_gpio.cpp                       \
-arch/common/drivers/efm32_serial.cpp                     \
-arch/common/drivers/efm32_adc.cpp                        \
+arch/drivers/sleep/cortexMx_sleep.cpp                     \
+arch/drivers/gpio/efm32_gpio.cpp                       \
+arch/drivers/serial/efm32_serial.cpp                     \
+arch/drivers/efm32_adc.cpp                        \
 $(ARCH_INC)/interfaces-impl/delays.cpp                   \
 $(ARCH_INC)/interfaces-impl/poweroff.cpp

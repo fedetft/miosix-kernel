@@ -39,7 +39,7 @@ CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
 ## Include the makefile for the selected board
 ## This will in turn include the makefile for the chip
 ##
-include arch/board/$(OPT_BOARD)/Makefile.inc
+include $(KPATH)/arch/board/$(OPT_BOARD)/Makefile.inc
 
 ## From compiler prefix form the name of the compiler and other tools
 CC     := $(PREFIX)gcc

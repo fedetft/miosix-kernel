@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM3_efm32g/common
+ARCH_INC := arch/chip/efm32g
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM3_efm32g/efm32g222f128_generic
+BOARD_INC := arch/board/efm32g222f128_generic
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/efm32_128k+16k_rom_bootloader.ld
@@ -26,4 +26,4 @@ $(BOARD_INC)/interfaces-impl/bsp.cpp
 PROG ?= echo 'make program not supported.'
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM7_stm32h7/common
+ARCH_INC := arch/chip/stm32h7
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM7_stm32h7/stm32h753xi_eval
+BOARD_INC := arch/board/stm32h753xi_eval
 
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
@@ -16,7 +16,7 @@ BOARD_INC := arch/cortexM7_stm32h7/stm32h753xi_eval
 ## These are the files in arch/<arch name>/<board name>
 ARCH_SRC :=                                  \
 $(BOARD_INC)/boot.cpp                        \
-arch/common/drivers/stm32_hardware_rng.cpp   \
+arch/drivers/stm32_hardware_rng.cpp   \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
 ## Add a #define to allow querying board name
@@ -33,4 +33,4 @@ PROG ?= st-flash --connect-under-reset --reset write \
         $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

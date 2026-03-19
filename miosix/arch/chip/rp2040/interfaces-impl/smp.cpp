@@ -36,7 +36,7 @@
 #include "interfaces_private/cpu.h"
 #include "kernel/error.h"
 #include "arch/cpu/common/cortexMx_interrupts.h"
-#include "mpu/cortexMx_mpu.h"
+#include "drivers/mpu/cortexMx_mpu.h"
 
 // System mode stack size for core 1
 #define CORE1_SYSTEM_STACK_SIZE 0x200

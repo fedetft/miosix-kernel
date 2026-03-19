@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM0plus_stm32l0/common
+ARCH_INC := arch/chip/stm32l0
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM0plus_stm32l0/stm32l053r8_nucleo
+BOARD_INC := arch/board/stm32l053r8_nucleo
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+8k_rom.ld
@@ -15,7 +15,7 @@ LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+8k_rom.ld
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
 ARCH_SRC :=                             \
-arch/common/mpu/cortexMx_mpu.cpp        \
+arch/drivers/mpu/cortexMx_mpu.cpp        \
 arch/cpu/common/cortexMx_userspace.cpp  \
 $(BOARD_INC)/boot.cpp                   \
 $(BOARD_INC)/interfaces-impl/delays.cpp \
@@ -35,4 +35,4 @@ PROG ?= st-flash --connect-under-reset --reset write \
         $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

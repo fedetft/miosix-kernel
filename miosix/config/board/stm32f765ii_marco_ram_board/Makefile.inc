@@ -34,7 +34,7 @@
 ##      - .data, .bss                internal SRAM
 ##      - Heap (and thread stacks)   internal SRAM
 ##      - Process Pool               external SDRAM (bank 1)
-LINKER_SCRIPT_PATH := arch/cortexM7_stm32f7/stm32f765ii_marco_ram_board
+LINKER_SCRIPT_PATH := arch/board/stm32f765ii_marco_ram_board/
 #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_2M+384k_ram.ld
 LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_2M+384k_xram-heap_256M.ld
 #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_2M+384k_xram_256M.ld

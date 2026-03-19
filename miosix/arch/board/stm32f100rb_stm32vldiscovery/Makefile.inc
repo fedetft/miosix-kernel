@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with header files for this board
-ARCH_INC := arch/cortexM3_stm32f1/common
+ARCH_INC := arch/chip/stm32f1
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM3_stm32f1/stm32f100rb_stm32vldiscovery
+BOARD_INC := arch/board/stm32f100rb_stm32vldiscovery
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_128k+8k_rom.ld
@@ -17,8 +17,8 @@ LINKER_SCRIPT := $(BOARD_INC)/stm32_128k+8k_rom.ld
 ARCH_SRC :=                                  \
 $(BOARD_INC)/interfaces-impl/bsp.cpp         \
 $(BOARD_INC)/boot.cpp                        \
-arch/common/drivers/stm32_rtc.cpp            \
-arch/common/drivers/servo_stm32.cpp
+arch/drivers/stm32_rtc.cpp            \
+arch/drivers/servo_stm32.cpp
 
 ## Add a #define to allow querying board name
 CFLAGS_BASE   += -D_BOARD_STM32VLDISCOVERY
@@ -33,4 +33,4 @@ CXXFLAGS_BASE += -D_BOARD_STM32VLDISCOVERY
 PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

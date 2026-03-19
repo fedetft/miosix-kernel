@@ -27,7 +27,7 @@
 
 #include "board_settings.h"
 #include "interfaces/arch_registers.h"
-#include "pll.h"
+#include "stm32u5_pll.h"
 
 using namespace miosix;
 

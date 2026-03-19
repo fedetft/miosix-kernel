@@ -31,7 +31,7 @@
 #define DONT_USE_CMSIS_INIT
 
 //Miosix replacement that provides SystemCoreClock
-#include "drivers/clock.h"
+#include "drivers/clock/atsam4l_clock.h"
 
 //This file in turn includes core_cm4.h
 #include "CMSIS/Device/Atmel/sam4l/include/sam4lc2a.h"

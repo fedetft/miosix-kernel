@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM4_stm32f4/common
+ARCH_INC := arch/chip/stm32f4
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM4_stm32f4/stm32f411ce_blackpill
+BOARD_INC := arch/board/stm32f411ce_blackpill
 
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
@@ -32,4 +32,4 @@ PROG ?= dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D \
         $(if $(ROMFS_DIR), image.bin, main.bin)
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

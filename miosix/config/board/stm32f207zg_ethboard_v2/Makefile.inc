@@ -14,7 +14,7 @@
 ##    Works only with a booloader that forwards interrrupts @ 0x6000000
 ##    (see miosix/_tools/bootloaders for one). The microcontroller must have
 ##    an external memory interface. You must -D__CODE_IN_XRAM below.
-LINKER_SCRIPT_PATH := arch/cortexM3_stm32f2/stm32f207zg_EthBoardV2/
+LINKER_SCRIPT_PATH := arch/board/stm32f207zg_ethboard_v2/
 LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram_processes.ld
 #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram.ld
 #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld

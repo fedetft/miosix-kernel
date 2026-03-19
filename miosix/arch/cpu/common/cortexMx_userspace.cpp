@@ -27,7 +27,7 @@
 
 #include "interfaces_private/userspace.h"
 #include "interfaces/cpu_const.h"
-#include "mpu/cortexMx_mpu.h"
+#include "drivers/mpu/cortexMx_mpu.h"
 #include "kernel/error.h"
 #include <cstdio>
 #include <cstring>

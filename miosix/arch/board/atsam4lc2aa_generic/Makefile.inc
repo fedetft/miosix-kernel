@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with header files for this board
-ARCH_INC := arch/cortexM4_atsam4l/common
+ARCH_INC := arch/chip/atsam4l
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM4_atsam4l/atsam4lc2aa_generic
+BOARD_INC := arch/board/atsam4lc2aa_generic
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
@@ -32,4 +32,4 @@ PROG ?= openocd \
         -c shutdown
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

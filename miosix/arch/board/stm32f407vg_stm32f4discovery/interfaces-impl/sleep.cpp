@@ -30,7 +30,7 @@
 #include "interfaces/arch_registers.h"
 #include "interfaces_private/sleep.h"
 #include "interfaces_private/os_timer.h"
-#include "drivers/rtc.h"
+#include "drivers/stm32f407_rtc.h"
 #include "miosix.h"
 #include <algorithm>
 

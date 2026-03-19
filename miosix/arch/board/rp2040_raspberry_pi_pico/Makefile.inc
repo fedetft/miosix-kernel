@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM0plus_rp2040/common
+ARCH_INC := arch/chip/rp2040
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM0plus_rp2040/rp2040_raspberry_pi_pico
+BOARD_INC := arch/board/rp2040_raspberry_pi_pico
 
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
@@ -31,4 +31,4 @@ CXXFLAGS_BASE += -DBOARD_RP2040_RASPBERRY_PI_PICO -D$(BOARD_VARIANT)
 PROG ?= picotool load -x $(if $(ROMFS_DIR), image.bin, main.bin)
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

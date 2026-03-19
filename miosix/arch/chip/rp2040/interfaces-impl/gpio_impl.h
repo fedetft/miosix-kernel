@@ -27,4 +27,4 @@
 
 #pragma once
 
-#include "drivers/rp2040_gpio.h"
+#include "drivers/gpio/rp2040_gpio.h"

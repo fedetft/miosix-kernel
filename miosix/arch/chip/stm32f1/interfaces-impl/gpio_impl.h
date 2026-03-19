@@ -28,6 +28,6 @@
 #ifndef GPIO_IMPL_H
 #define GPIO_IMPL_H
 
-#include "drivers/stm32f1_gpio.h"
+#include "drivers/gpio/stm32f1_gpio.h"
 
 #endif  //GPIO_IMPL_H

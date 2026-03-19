@@ -25,11 +25,11 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "clock.h"
+#include "nrf52_clock.h"
 #include <config/miosix_settings.h>
 #include <interfaces/arch_registers.h>
 #include <interfaces/delays.h>
-#include "mpu/cortexMx_mpu.h"
+#include "drivers/mpu/cortexMx_mpu.h"
 
 extern "C" {
 unsigned int SystemCoreClock = miosix::cpuFrequency;

@@ -25,10 +25,10 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "clock.h"
+#include "atsam4l_clock.h"
 #include "interfaces/arch_registers.h"
 #include "board_settings.h"
-#include "mpu/cortexMx_mpu.h"
+#include "drivers/mpu/cortexMx_mpu.h"
 
 extern "C" {
 unsigned int SystemCoreClock = miosix::cpuFrequency;

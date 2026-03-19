@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM4_nrf52/common
+ARCH_INC := arch/chip/nrf52
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM4_nrf52/nrf52840_generic
+BOARD_INC := arch/board/nrf52840_generic
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/nrf_1024k+256k_rom.ld
@@ -30,4 +30,4 @@ CXXFLAGS_BASE += -D_BOARD_NRF52840_GENERIC
 PROG ?= echo 'make program not supported.'
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

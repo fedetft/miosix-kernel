@@ -27,4 +27,4 @@
 
 #pragma once
 
-#include "drivers/efm32_gpio.h"
+#include "drivers/gpio/efm32_gpio.h"

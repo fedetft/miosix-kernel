@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM4_stm32f4/common
+ARCH_INC := arch/chip/stm32f4
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM4_stm32f4/stm32f429zi_oledboard2
+BOARD_INC := arch/board/stm32f429zi_oledboard2
 
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
@@ -15,7 +15,7 @@ BOARD_INC := arch/cortexM4_stm32f4/stm32f429zi_oledboard2
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
 ARCH_SRC :=                                  \
-arch/common/drivers/stm32_hardware_rng.cpp   \
+arch/drivers/stm32_hardware_rng.cpp   \
 $(BOARD_INC)/boot.cpp                        \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
@@ -32,4 +32,4 @@ CXXFLAGS_BASE += -D_BOARD_STM32F429ZI_OLEDBOARD2
 PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

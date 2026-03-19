@@ -23,11 +23,11 @@ LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
 ARCH_SRC +=                                    \
 arch/cpu/armv4/interfaces-impl/cpu.cpp         \
 arch/cpu/armv4/interfaces-impl/interrupts.cpp  \
-arch/common/os_timer/lpc2000_os_timer.cpp      \
-arch/common/sleep/lpc2000_sleep.cpp            \
-arch/common/drivers/serial_lpc2000.cpp         \
-arch/common/drivers/sd_lpc2000.cpp             \
-$(ARCH_INC)/drivers/clock.cpp                  \
+arch/drivers/os_timer/lpc2000_os_timer.cpp      \
+arch/drivers/sleep/lpc2000_sleep.cpp            \
+arch/drivers/serial/serial_lpc2000.cpp         \
+arch/drivers/sdmmc/sd_lpc2000.cpp             \
+arch/drivers/clock/lpc2000_clock.cpp                  \
 $(ARCH_INC)/interfaces-impl/delays.cpp         \
 $(ARCH_INC)/interfaces-impl/poweroff.cpp
 

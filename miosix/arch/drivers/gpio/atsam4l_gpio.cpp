@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "gpio_impl.h"
+#include "atsam4l_gpio.h"
 
 namespace miosix {
 

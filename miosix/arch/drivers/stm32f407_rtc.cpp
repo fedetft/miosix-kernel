@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "rtc.h"
+#include "stm32f407_rtc.h"
 #include <miosix.h>
 #include <sys/ioctl.h>
 #include <kernel/logging.h>

@@ -30,7 +30,7 @@
 #include "interfaces/delays.h"
 #include "interfaces/gpio.h"
 #include "board_settings.h"
-#include "mpu/cortexMx_mpu.h"
+#include "drivers/mpu/cortexMx_mpu.h"
 
 //We want to run the ALS_MAINBOARD at a lower clock to save power
 uint32_t SystemCoreClock=miosix::cpuFrequency;

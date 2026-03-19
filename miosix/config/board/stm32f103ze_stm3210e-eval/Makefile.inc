@@ -17,7 +17,7 @@
 ##    The microcontroller must have an external memory interface.
 ## Warning! enable external ram if you use a linker script that requires it
 ## (see the XRAM flag below)
-LINKER_SCRIPT_PATH := arch/cortexM3_stm32f1/stm32f103ze_stm3210e-eval/
+LINKER_SCRIPT_PATH := arch/board/stm32f103ze_stm3210e-eval/
 #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_rom.ld
 LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_xram.ld
 #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_512k+64k_xram_processes.ld

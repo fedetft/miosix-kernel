@@ -45,12 +45,12 @@
 #include "kernel/logging.h"
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
-#include "drivers/serial.h"
+#include "drivers/serial/serial.h"
 #include "drivers/dcc.h"
 #include "board_settings.h"
-#include "drivers/rp2040_spi.h"
-#include "drivers/sw_spi.h"
-#include "drivers/spi_sd.h"
+#include "drivers/spi/rp2040_spi.h"
+#include "drivers/spi/sw_spi.h"
+#include "drivers/sdmmc/spi_sd.h"
 
 namespace miosix {
 

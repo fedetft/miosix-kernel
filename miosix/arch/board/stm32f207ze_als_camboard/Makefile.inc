@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM3_stm32f2/common
+ARCH_INC := arch/chip/stm32f2
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM3_stm32f2/stm32f207ze_als_camboard
+BOARD_INC := arch/board/stm32f207ze_als_camboard
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+128k_rom.ld
@@ -34,4 +34,4 @@ XRAM += -D__ENABLE_XRAM
 PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

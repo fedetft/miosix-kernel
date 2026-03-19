@@ -1,13 +1,13 @@
 ##
-## Makefile for board stm32l151_als_mainboard
+## Makefile for board stm32l151c8_als_mainboard
 ## Included by Makefile.inc based on the board currently selected
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM3_stm32l1/common
+ARCH_INC := arch/chip/stm32l1
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM3_stm32l1/stm32l151c8_als_mainboard
+BOARD_INC := arch/board/stm32l151c8_als_mainboard
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+10k_rom.ld
@@ -31,4 +31,4 @@ CXXFLAGS_BASE += -D_BOARD_ALS_MAINBOARD
 PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

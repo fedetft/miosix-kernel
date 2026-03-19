@@ -31,7 +31,7 @@
 #include "kernel/lock.h"
 #include "filesystem/ioctl.h"
 #include "rp2040_serial.h"
-#include "rp2040_dma.h"
+#include "drivers/rp2040_dma.h"
 
 namespace miosix {
 

@@ -63,7 +63,7 @@ CXXFLAGS += -DCOMPILING_MIOSIX
 
 all: $(OBJ)
 	$(ECHO) "[PERL] Checking global objects"
-	$(Q)perl _tools/kernel_global_objects.pl $(OBJ)
+	$(Q)perl ../tools/kernel_global_objects.pl $(OBJ)
 	$(ECHO) "[AR  ] libmiosix.a"
 	$(Q)$(AR) rcs libmiosix.a $(OBJ)
 

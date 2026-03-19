@@ -39,11 +39,11 @@
 #include "config/miosix_settings.h"
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
-#include "drivers/serial.h"
+#include "drivers/serial/serial.h"
 #include "board_settings.h"
 #include "hrtb.h"
 #include "vht.h"
-#include "mpu/cortexMx_mpu.h"
+#include "drivers/mpu/cortexMx_mpu.h"
 
 namespace miosix {
 

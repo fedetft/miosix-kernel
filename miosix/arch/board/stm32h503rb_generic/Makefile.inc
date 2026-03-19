@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM33_stm32h5/common
+ARCH_INC := arch/chip/stm32h5
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM33_stm32h5/stm32h503rb_generic
+BOARD_INC := arch/board/stm32h503rb_generic
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_128k+32k_rom.ld
@@ -16,7 +16,7 @@ LINKER_SCRIPT := $(BOARD_INC)/stm32_128k+32k_rom.ld
 ## These are the files in arch/<arch name>/<board name>
 ARCH_SRC :=                                  \
 $(BOARD_INC)/boot.cpp                        \
-arch/common/drivers/stm32_hardware_rng.cpp   \
+arch/drivers/stm32_hardware_rng.cpp   \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
 ## Add a #define to allow querying board name
@@ -35,4 +35,4 @@ PROG ?= dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D \
         $(if $(ROMFS_DIR), image.bin, main.bin)
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

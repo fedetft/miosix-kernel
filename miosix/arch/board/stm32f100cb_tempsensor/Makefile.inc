@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with header files for this board
-ARCH_INC := arch/cortexM3_stm32f1/common
+ARCH_INC := arch/chip/stm32f1
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM3_stm32f1/stm32f100cb_tempsensor
+BOARD_INC := arch/board/stm32f100cb_tempsensor
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_127k+8k_rom.ld
@@ -31,4 +31,4 @@ CXXFLAGS_BASE += -D_BOARD_TEMPSENSOR
 PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

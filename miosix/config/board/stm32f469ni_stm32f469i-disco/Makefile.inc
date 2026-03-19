@@ -10,7 +10,7 @@
 ##    You must uncomment -D__ENABLE_XRAM below in this case.
 ## 3) Code in FLASH, stack + heap in external RAM (file *12m_xram.ld)
 ##    Same as above, but leaves the upper 4MB of RAM for the LCD.
-LINKER_SCRIPT_PATH := arch/cortexM4_stm32f4/stm32f469ni_stm32f469i-disco/
+LINKER_SCRIPT_PATH := arch/board/stm32f469ni_stm32f469i-disco/
 #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+384k_rom.ld
 #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+16m_xram.ld
 LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_2m+12m_xram.ld

@@ -4,10 +4,10 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM4_stm32l4/common
+ARCH_INC := arch/chip/stm32l4
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM4_stm32l4/stm32l4r9zi_sensortile
+BOARD_INC := arch/board/stm32l4r9zi_sensortile
 
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
@@ -17,7 +17,7 @@ BOARD_INC := arch/cortexM4_stm32l4/stm32l4r9zi_sensortile
 ARCH_SRC :=                                  \
 $(BOARD_INC)/boot.cpp                        \
 $(BOARD_INC)/interfaces-impl/bsp.cpp         \
-arch/common/drivers/sd_stm32l4.cpp
+arch/drivers/sdmmc/sd_stm32l4.cpp
 
 ## Add a #define to allow querying board name
 CFLAGS_BASE   += -D_BOARD_STM32L4R9ZI_SENSORTILE
@@ -33,4 +33,4 @@ PROG ?= st-flash --connect-under-reset --reset write \
         $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc

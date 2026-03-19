@@ -4,13 +4,13 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/cortexM7_stm32f7/common
+ARCH_INC := arch/chip/stm32f7
 
 ## The stm32f767 has the double precision FPU, so we will build for m7
 CPU := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
 
 ## Base directory with header files for this board
-BOARD_INC := arch/cortexM7_stm32f7/stm32f765ii_marco_ram_board
+BOARD_INC := arch/board/stm32f765ii_marco_ram_board
 
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
@@ -38,4 +38,4 @@ PROG ?= openocd \
         -c shutdown
 
 ## Include the makefile for the board's chip
-include $(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(ARCH_INC)/Makefile.inc
