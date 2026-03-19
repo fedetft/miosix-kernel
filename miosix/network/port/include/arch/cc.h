@@ -25,11 +25,22 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#pragma once
+#ifndef LWIP_ARCH_CC_H
+#define LWIP_ARCH_CC_H
 
-#include <lwip/arch.h>
-
+#ifdef __cplusplus
 extern "C" {
-u32_t sys_now();
-u32_t sys_jiffies();
+#endif
+
+/* Use the system provided struct timeval */
+#define LWIP_TIMEVAL_PRIVATE 0
+#include <sys/time.h>
+
+/* Use the system provided errno */
+#define LWIP_ERRNO_STDINCLUDE 1
+
+#ifdef __cplusplus
 }
+#endif
+
+#endif /* LWIP_ARCH_CC_H */

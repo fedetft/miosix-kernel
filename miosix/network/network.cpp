@@ -35,7 +35,7 @@
 #include <network/ethernetif.h>
 
 #include <lwip/dhcp.h>
-#include <lwip/init.h>
+#include <lwip/tcpip.h>
 #include <lwip/ip_addr.h>
 #include <lwip/netif.h>
 #include <lwip/timeouts.h>
@@ -120,7 +120,8 @@ void waitConfigAvailable() {
 }
 
 void *netStackThread(void *) {
-    lwip_init();
+    // Initialize the lwIP stack, spawns the tcpip_thread
+    tcpip_init(nullptr, nullptr);
 
     struct netif netif;
 
@@ -136,7 +137,7 @@ void *netStackThread(void *) {
 
     auto res =
         netif_add(&netif, ip_2_ip4(&ipaddr), ip_2_ip4(&netmask),
-                  ip_2_ip4(&gateway), nullptr, ethernetif_init, netif_input);
+                  ip_2_ip4(&gateway), nullptr, ethernetif_init, tcpip_input);
     if (!res) {
         errorLog("netStackThread: netif init failed\n");
         return 0;

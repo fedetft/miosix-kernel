@@ -14,14 +14,14 @@ LWIPDIR := $(NET_DIR)/lwip/src
 include $(LWIPDIR)/Filelists.mk
 
 # Recursively populate include dirs for lwIP
-INCLUDE_DIRS := -I$(LWIPDIR)/include -I$(NET_DIR)/port
+INCLUDE_DIRS := -I$(LWIPDIR)/include -I$(NET_DIR)/port/include
 
 # lwIP source files + Miosix porting layer
 NET_SRC := $(COREFILES)                         \
            $(CORE4FILES)                        \
            $(NETIFFILES)                        \
            $(APIFILES)                          \
-           $(NET_DIR)/port/arch/sys_arch.cpp    \
+           $(NET_DIR)/port/sys_arch.cpp         \
            $(NET_DIR)/network.cpp
 
 # lwIP driver source files
