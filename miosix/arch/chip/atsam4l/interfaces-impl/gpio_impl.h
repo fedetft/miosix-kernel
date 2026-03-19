@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2025 by Terraneo Federico                               *
+ *   Copyright (C) 2026 by Daniele Cattaneo                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -25,36 +25,6 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "gpio_impl.h"
+#pragma once
 
-namespace miosix {
-
-void GpioBase::modeImpl(NRF_GPIO_Type *p, unsigned char n, Mode m)
-{
-    auto cnf=static_cast<unsigned int>(m);
-    // Preserve drive strength level by reading old value of PIN_CNF
-    if(p->PIN_CNF[n] & (1<<8))
-    {
-        if(cnf & (1<<10)) cnf |= 0b01<<8;
-        else cnf |= 0b11<<8;
-    }
-    p->PIN_CNF[n]=cnf;
-}
-
-void GpioBase::strengthImpl(NRF_GPIO_Type *p, unsigned char n, int s)
-{
-    auto cnf=p->PIN_CNF[n];
-    // Bit 9 is dual-purpose, it means drive strength if bit 10 is 0,
-    // or it means open source/drain if bit 10 is 1...
-    if(s)
-    {
-        if(cnf & (1<<10)) cnf |= 0b01<<8;
-        else cnf |= 0b11<<8;
-    } else {
-        if(cnf & (1<<10)) cnf &= ~(0b01<<8);
-        else cnf &= ~(0b11<<8);
-    }
-    p->PIN_CNF[n]=cnf;
-}
-
-} //namespace miosix
+#include "drivers/gpio/atsam4l_gpio.h"
