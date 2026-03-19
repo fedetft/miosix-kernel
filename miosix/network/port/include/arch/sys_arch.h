@@ -25,13 +25,56 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "sys_arch.h"
+#pragma once
 
-#include <kernel/thread.h>
+#include <lwip/opt.h>
+#include <lwip/arch.h>
 
+#ifdef __cplusplus
 extern "C" {
-// Return the current time in milliseconds, overflow is ignored by lwIP
-u32_t sys_now() { return miosix::getTime() / 1'000'000U; }
+#endif
 
-u32_t sys_jiffies() { return miosix::getTime(); }
+/* Lightweight protection: mapped to PauseKernelLock */
+#if SYS_LIGHTWEIGHT_PROT
+/* bool is not available in C, use u32_t to store PauseKernelLock state */
+typedef u32_t sys_prot_t;
+#endif
+
+/* Mutexes: mapped to miosix::FastMutex */
+#if !LWIP_COMPAT_MUTEX
+struct _miosix_mutex_wrapper {
+  void *mut; // miosix::FastMutex*
+};
+typedef struct _miosix_mutex_wrapper sys_mutex_t;
+#define sys_mutex_valid_val(mutex)   ((mutex).mut != NULL)
+#define sys_mutex_valid(mutex)       (((mutex) != NULL) && sys_mutex_valid_val(*(mutex)))
+#define sys_mutex_set_invalid(mutex) ((mutex)->mut = NULL)
+#endif /* !LWIP_COMPAT_MUTEX */
+
+/* Semaphores: mapped to miosix::Semaphore */
+struct _miosix_semaphore_wrapper {
+  void *sem; // miosix::Semaphore*
+};
+typedef struct _miosix_semaphore_wrapper sys_sem_t;
+#define sys_sem_valid_val(sema)   ((sema).sem != NULL)
+#define sys_sem_valid(sema)       (((sema) != NULL) && sys_sem_valid_val(*(sema)))
+#define sys_sem_set_invalid(sema) ((sema)->sem = NULL)
+
+/* Mailboxes: mapped to miosix::Queue */
+struct _miosix_queue_wrapper {
+  void *mbx; // miosix::DynQueue*
+};
+typedef struct _miosix_queue_wrapper sys_mbox_t;
+#define sys_mbox_valid_val(mbox)   ((mbox).mbx != NULL)
+#define sys_mbox_valid(mbox)       (((mbox) != NULL) && sys_mbox_valid_val(*(mbox)))
+#define sys_mbox_set_invalid(mbox) ((mbox)->mbx = NULL)
+
+/* Threads: mapped to miosix::Thread */
+struct _miosix_thread_wrapper {
+  void *thread_handle; // type-erased pointer to miosix::Thread
+};
+typedef struct _miosix_thread_wrapper sys_thread_t;
+    
+#ifdef __cplusplus
 }
+#endif

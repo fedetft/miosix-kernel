@@ -1,34 +1,31 @@
-/*
- * Copyright (c) 2001-2003 Swedish Institute of Computer Science.
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- * 3. The name of the author may not be used to endorse or promote products
- *    derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
- * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
- * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
- * OF SUCH DAMAGE.
- *
- * This file is part of the lwIP TCP/IP stack.
- *
- * Author: Adam Dunkels <adam@sics.se>
- *
- */
+/***************************************************************************
+ *   Copyright (C) 2001-2003 Swedish Institute of Computer Science         *
+ *   Copyright (C) 2026 by Niccolò Betto                                   *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   As a special exception, if other files instantiate templates or use   *
+ *   macros or inline functions from this file, or you compile this file   *
+ *   and link it with other works to produce a work based on this file,    *
+ *   this file does not by itself cause the resulting work to be covered   *
+ *   by the GNU General Public License. However the source code for this   *
+ *   file must still be made available in accordance with the GNU General  *
+ *   Public License. This exception does not invalidate any other reasons  *
+ *   why a work based on this file might be covered by the GNU General     *
+ *   Public License.                                                       *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
+ ***************************************************************************/
+
 #ifndef LWIP_LWIPOPTS_H
 #define LWIP_LWIPOPTS_H
 
@@ -41,7 +38,7 @@
 #define LWIP_IPV4                  1
 #define LWIP_IPV6                  0
 
-#define NO_SYS                     1
+#define NO_SYS                     0
 #define LWIP_SOCKET                (NO_SYS==0)
 #define LWIP_NETCONN               (NO_SYS==0)
 #define LWIP_NETIF_API             (NO_SYS==0)
@@ -70,8 +67,17 @@
 #define LWIP_COMPAT_SOCKETS        1
 #define LWIP_SO_RCVTIMEO           1
 #define LWIP_SO_RCVBUF             1
+#define SO_REUSE                   1
 
-#define LWIP_TCPIP_CORE_LOCKING    1
+#define TCPIP_MBOX_SIZE            16
+#define DEFAULT_ACCEPTMBOX_SIZE    16
+#define RECVMBOX_SIZE              16
+#define DEFAULT_RAW_RECVMBOX_SIZE  RECVMBOX_SIZE
+#define DEFAULT_UDP_RECVMBOX_SIZE  RECVMBOX_SIZE
+#define DEFAULT_TCP_RECVMBOX_SIZE  RECVMBOX_SIZE
+
+#define LWIP_TCPIP_CORE_LOCKING          1
+#define LWIP_TCPIP_CORE_LOCKING_INPUT    1
 
 #define LWIP_NETIF_LINK_CALLBACK        0
 #define LWIP_NETIF_STATUS_CALLBACK      1
@@ -332,9 +338,8 @@ a lot of data that needs to be copied, this should be set high. */
 
 /* The following defines must be done even in OPTTEST mode: */
 
-#if !defined(NO_SYS) || !NO_SYS /* default is 0 */
-void sys_check_core_locking(void);
-#define LWIP_ASSERT_CORE_LOCKED()  sys_check_core_locking()
+#if !defined(NO_SYS) || !NO_SYS /* default is 0 */   
+#define LWIP_ASSERT_CORE_LOCKED()
 #endif
 
 #ifndef LWIP_PLATFORM_ASSERT

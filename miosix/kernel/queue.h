@@ -158,6 +158,15 @@ public:
     void get(T& elem);
 
     /**
+     * Get an element from the queue. If the queue is empty, then sleep until
+     * the given time point for an element to become available.
+     * \param elem an element from the queue
+     * \param absTimeNs absolute time after which the wait times out
+     * \return TimedWaitResult::Timeout if the wait timed out
+     */
+    TimedWaitResult timedGet(T& elem, long long absTimeNs);
+
+    /**
      * Get an element from the queue. If the queue is empty, then use the dLock
      * parameter to enable interrupts and wait until a place becomes available.
      * Being a blocking call, it cannot be called inside an IRQ, it can only be
@@ -247,6 +256,19 @@ void QueueBase<T,BufferT>::get(T& elem)
         waiting=Thread::IRQgetCurrentThread();
         Thread::IRQglobalIrqUnlockAndWait(dLock);
     }
+}
+
+template <typename T, typename BufferT>
+TimedWaitResult QueueBase<T,BufferT>::timedGet(T& elem, long long absTimeNs)
+{
+    FastGlobalIrqLock dLock;
+    TimedWaitResult res=TimedWaitResult::NoTimeout;
+    while (IRQget(elem)==false && res==TimedWaitResult::NoTimeout)
+    {
+        waiting=Thread::IRQgetCurrentThread();
+        res=Thread::IRQglobalIrqUnlockAndTimedWait(dLock, absTimeNs);
+    }
+    return res;
 }
 
 template <typename T, typename BufferT>
