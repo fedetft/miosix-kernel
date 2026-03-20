@@ -26,24 +26,33 @@
  ***************************************************************************/
 
 /**
- * Barebone Single-Threaded HTTP Server
+ * @file Simple Single-Threaded HTTP Server
  *
- * Replies to "GET /" requests with a static HTML page, with basic request
+ * Replies to "GET /" requests with a templated HTML page, with basic request
  * validation for other requests.
- * Requires WITH_NETWORKING option enabled in `miosix_settings.h`.
- * Only uses POSIX-socket APIs.
+ * See the code for available placeholders in the HTML template, the format is
+ * similar to jinja2, but only supports simple {placeholder} syntax.
+ *
+ * Requires WITH_NETWORKING option enabled in `miosix_settings.h`. Only uses
+ * POSIX-socket APIs.
  *
  * Compile for Linux hosts with: g++ -std=c++23 main.cpp -o main
  */
 
-#include <netinet/in.h> // sockaddr_in
-#include <sys/socket.h> // socket, bind, listen, accept
-#include <unistd.h>     // close, read, write
-
 #include <array>
+#include <chrono>
 #include <cstdio>
 #include <memory>
 #include <string_view>
+
+#ifdef _MIOSIX
+#include <miosix.h>
+#include <util/version.h>
+#endif
+
+#include <arpa/inet.h>  // sockaddr_in from <netinet/in.h>
+#include <sys/socket.h> // socket, bind, listen, accept
+#include <unistd.h>     // close, read, write
 
 // Configuration
 constexpr int PORT = 80;
@@ -53,6 +62,7 @@ constexpr int BUFFER_SIZE = 4096;
 enum class ResponseType { OK, BadRequest, NotFound, MethodNotAllowed, Last };
 extern std::array<std::string_view, (size_t)ResponseType::Last> staticResponses;
 ResponseType handleRequest(std::string_view request);
+std::string renderBlueprint(std::string_view blueprint);
 
 int main() {
     // Create the socket
@@ -111,6 +121,7 @@ int main() {
         ssize_t bytes_read = read(client_fd, buffer.get(), BUFFER_SIZE - 1);
 
         if (bytes_read <= 0) {
+            std::perror("Read error");
             close(client_fd);
             continue; // Try again on read error
         }
@@ -123,6 +134,12 @@ int main() {
 
         // HTML Response
         auto response = staticResponses[(size_t)responseType];
+
+        std::string rendered;
+        if (responseType == ResponseType::OK) {
+            rendered = renderBlueprint(response);
+            response = rendered;
+        }
 
         // Send the response
         send(client_fd, response.data(), response.size(), 0);
@@ -137,8 +154,6 @@ int main() {
 }
 
 ResponseType handleRequest(std::string_view request) {
-    auto result = ResponseType::OK;
-
     // Extract the method
     auto method_end = request.find(' ');
     if (method_end == std::string_view::npos) {
@@ -172,11 +187,62 @@ ResponseType handleRequest(std::string_view request) {
     return ResponseType::NotFound;
 }
 
+std::string renderBlueprint(std::string_view blueprint) {
+    std::string rendered;
+    rendered.reserve(blueprint.size() + 512);
+
+    size_t pos = 0;
+
+    while (true) {
+        // Find the next placeholder
+        auto start = blueprint.find('{', pos);
+        if (start == std::string_view::npos)
+            break;
+
+        // Append text before placeholder
+        rendered += blueprint.substr(pos, start - pos);
+
+        // Find the closing brace for the placeholder
+        auto end = blueprint.find('}', start);
+        if (end == std::string_view::npos)
+            break;
+
+        // Move past the current placeholder for the next iteration
+        pos = end + 1;
+
+        auto placeholder = blueprint.substr(start + 1, end - start - 1);
+        if (placeholder == "build") {
+#ifdef _MIOSIX
+            rendered += miosix::getMiosixVersion();
+#else
+            rendered += "Linux (pc-linux-generic, " __DATE__ " " __TIME__
+                        ", gcc " __VERSION__ ")";
+#endif
+        } else if (placeholder == "board") {
+#ifdef _MIOSIX
+            rendered += _MIOSIX_BOARDNAME;
+#else
+            rendered += "pc-linux-generic";
+#endif
+        } else if (placeholder == "uptime") {
+            using namespace std::chrono;
+            auto now = system_clock::now();
+            auto epoch = now.time_since_epoch();
+            rendered += std::to_string(epoch.count());
+        } else {
+            rendered += "{" + std::string(placeholder) + "}";
+        }
+    }
+
+    // Append remaining text
+    rendered += blueprint.substr(pos);
+    return rendered;
+}
+
 decltype(staticResponses) staticResponses = {
     // ResponseType: OK
     "HTTP/1.1 200 OK\r\n"
     "Content-Type: text/html\r\n"
-    //"Content-Length: 213\r\n"
     "Connection: close\r\n"
     "\r\n"
     "<!DOCTYPE html>"
@@ -184,15 +250,16 @@ decltype(staticResponses) staticResponses = {
     "<head><title>Miosix HTTP Server</title></head>"
     "<body>"
     "<h1>Miosix HTTP Server</h1>"
-#ifdef MIOSIX
-    "<p>This page was served from an embedded board running the Miosix "
-    "HTTP server example.</p>"
-#else
-    "<p>This page was served from a Linux host running the Miosix "
-    "HTTP server example.</p>"
-#endif
+    "<p>This page was served by the Miosix HTTP server example.</p>"
+    "<p><code>"
+    "<b>System information:</b><br />"
+    "Board: {board} <br />"
+    "Build: {build} <br />"
+    "Uptime: {uptime} ns"
+    "</code></p>"
     "</body>"
-    "</html>",
+    "</html>"
+    "\r\n",
 
     // ResponseType: BadRequest
     "HTTP/1.1 400 Bad Request\r\n"
