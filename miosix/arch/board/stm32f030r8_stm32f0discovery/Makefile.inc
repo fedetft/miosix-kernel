@@ -6,9 +6,6 @@
 ## Base directory with else header files for this board
 ARCH_INC := arch/chip/stm32f0
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/stm32f030r8_stm32f0discovery
-
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_64k+8k_rom.ld
 
@@ -31,6 +28,3 @@ CXXFLAGS_BASE += -D_BOARD_STM32F030R8_DISCO
 ## board.
 PROG ?= st-flash --connect-under-reset --reset write \
         $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

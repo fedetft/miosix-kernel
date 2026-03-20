@@ -6,9 +6,6 @@
 ## Base directory with else header files for this board
 ARCH_INC := arch/chip/stm32u5
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/stm32u585ci_generic
-
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
 ARCH_SRC :=                                  \
@@ -30,6 +27,3 @@ CXXFLAGS_BASE += -D_BOARD_STM32U585CI_GENERIC
 #        $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 PROG ?= dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D \
         $(if $(ROMFS_DIR), image.bin, main.bin)
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

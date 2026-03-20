@@ -6,9 +6,6 @@
 ## Base directory with else header files for this board
 ARCH_INC := arch/chip/stm32f4
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/stm32f429zi_skyward_homeone
-
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
 
@@ -34,6 +31,3 @@ CXXFLAGS_BASE += -D_BOARD_STM32F429ZI_SKYWARD_HOMEONE
 ## board.
 PROG ?= st-flash --connect-under-reset --reset write \
         $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

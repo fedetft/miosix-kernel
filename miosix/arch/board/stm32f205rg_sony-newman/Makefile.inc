@@ -6,9 +6,6 @@
 ## Base directory with else header files for this board
 ARCH_INC := arch/chip/stm32f2
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/stm32f205rg_sony-newman
-
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_1M+128k_rom.ld
 
@@ -34,6 +31,3 @@ PROG ?= perl -e 'print "\xe7\x91\x11\xc0"' > magic.bin; \
         dfu-util -d 0fce:f0fa -a 0 -i 0 -s 0x08040000 -D main.bin;  \
         dfu-util -d 0fce:f0fa -a 0 -i 0 -s 0x080ffffc -D magic.bin; \
         rm magic.bin
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

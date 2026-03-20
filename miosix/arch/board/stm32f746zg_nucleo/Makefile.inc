@@ -9,9 +9,6 @@ ARCH_INC := arch/chip/stm32f7
 ## The stm32f746 lacks the double precision FPU, so we will build for m4
 CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/stm32f746zg_nucleo
-
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
 ARCH_SRC :=                                  \
@@ -31,6 +28,3 @@ CXXFLAGS_BASE += -D_BOARD_STM32F746ZG_NUCLEO
 ## board.
 PROG ?= st-flash --connect-under-reset --reset write \
         $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

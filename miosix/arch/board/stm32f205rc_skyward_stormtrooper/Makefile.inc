@@ -6,9 +6,6 @@
 ## Base directory with else header files for this board
 ARCH_INC := arch/chip/stm32f2
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/stm32f205rc_skyward_stormtrooper
-
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_512k+128k_rom.ld
 
@@ -22,6 +19,3 @@ $(BOARD_INC)/interfaces-impl/bsp.cpp
 ## Add a #define to allow querying board name
 CFLAGS_BASE   += -D_BOARD_STM32F205RC_SKYWARD_STORMTROOPER
 CXXFLAGS_BASE += -D_BOARD_STM32F205RC_SKYWARD_STORMTROOPER
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

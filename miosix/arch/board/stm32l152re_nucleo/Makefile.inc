@@ -6,9 +6,6 @@
 ## Base directory with else header files for this board
 ARCH_INC := arch/chip/stm32l1
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/stm32l152re_nucleo
-
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_512k+80k_rom.ld
 
@@ -30,6 +27,3 @@ CXXFLAGS_BASE += -D_BOARD_STM32L152RE_NUCLEO
 ## board.
 PROG ?= st-flash --connect-under-reset --reset write \
         $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

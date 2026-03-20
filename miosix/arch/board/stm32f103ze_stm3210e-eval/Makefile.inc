@@ -6,9 +6,6 @@
 ## Base directory with header files for this board
 ARCH_INC := arch/chip/stm32f1
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/stm32f103ze_stm3210e-eval
-
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
 
@@ -35,6 +32,3 @@ ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_512k+64k_all_in_xram.ld)
 else
     PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 endif
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

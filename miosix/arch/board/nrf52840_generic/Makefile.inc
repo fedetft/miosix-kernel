@@ -6,9 +6,6 @@
 ## Base directory with else header files for this board
 ARCH_INC := arch/chip/nrf52
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/nrf52840_generic
-
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/nrf_1024k+256k_rom.ld
 
@@ -28,6 +25,3 @@ CXXFLAGS_BASE += -D_BOARD_NRF52840_GENERIC
 ## error message saying that 'make program' is not supported for that
 ## board.
 PROG ?= echo 'make program not supported.'
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

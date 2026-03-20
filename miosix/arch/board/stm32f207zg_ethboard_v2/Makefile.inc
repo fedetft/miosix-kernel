@@ -6,9 +6,6 @@
 ## Base directory with else header files for this board
 ARCH_INC := arch/chip/stm32f2
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/stm32f207zg_ethboard_v2
-
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
 
@@ -38,6 +35,3 @@ ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld)
 else
     PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
 endif
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

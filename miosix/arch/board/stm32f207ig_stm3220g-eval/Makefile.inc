@@ -6,9 +6,6 @@
 ## Base directory with else header files for this board
 ARCH_INC := arch/chip/stm32f2
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/stm32f207ig_stm3220g-eval
-
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
 
@@ -36,6 +33,3 @@ else
     PROG ?= st-flash --connect-under-reset --reset write \
             $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
 endif
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

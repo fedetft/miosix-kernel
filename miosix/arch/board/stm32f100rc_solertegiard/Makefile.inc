@@ -6,9 +6,6 @@
 ## Base directory with header files for this board
 ARCH_INC := arch/chip/stm32f1
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/stm32f100rc_solertegiard
-
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_256k+24k_rom.ld
 
@@ -30,6 +27,3 @@ CXXFLAGS_BASE += -D_BOARD_SOLERTEGIARD
 ## error message saying that 'make program' is not supported for that
 ## board.
 PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

@@ -9,9 +9,6 @@ ARCH_INC := arch/chip/stm32f7
 ## The stm32f769 has the double precision FPU, so we will build for m7
 CPU := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/stm32f769ni_discovery
-
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_2m+16m_xram.ld
 
@@ -36,6 +33,3 @@ XRAM := -D__ENABLE_XRAM
 ## board.
 PROG ?= st-flash --connect-under-reset --reset write \
         $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

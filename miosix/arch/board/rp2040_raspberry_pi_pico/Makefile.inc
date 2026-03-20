@@ -6,9 +6,6 @@
 ## Base directory with else header files for this board
 ARCH_INC := arch/chip/rp2040
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/rp2040_raspberry_pi_pico
-
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
 
@@ -29,6 +26,3 @@ CXXFLAGS_BASE += -DBOARD_RP2040_RASPBERRY_PI_PICO -D$(BOARD_VARIANT)
 ## error message saying that 'make program' is not supported for that
 ## board.
 PROG ?= picotool load -x $(if $(ROMFS_DIR), image.bin, main.bin)
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

@@ -9,9 +9,6 @@ ARCH_INC := arch/chip/stm32f7
 ## The stm32f767 has the double precision FPU, so we will build for m7
 CPU := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/stm32f765ii_marco_ram_board
-
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
 
@@ -36,6 +33,3 @@ PROG ?= openocd \
         -f '$(KPATH)/$(BOARD_INC)/openocd.cfg' \
         -c 'program $(PROG_BIN) 0x8000000 verify reset' \
         -c shutdown
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

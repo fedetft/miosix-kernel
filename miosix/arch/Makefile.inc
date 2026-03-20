@@ -7,23 +7,38 @@
 ## All architecture specific build code is grouped at the end of this file.
 ##
 
-## Include all user-specified configuration, if it exists
--include $(CONFPATH)/config/Makefile.inc
-
+##
+## Check that the top-level makefile (which includes this file) has the correct
+## version
+##
 ifneq ($(MAKEFILE_VERSION),1.16)
     $(info You are using an incompatible makefile. Make sure it matches \
       the one distributed with the current version of the kernel)
     $(error Error)
 endif
 
-## Check that a board was indeed specified by the user
-ifeq (x$(OPT_BOARD),x)
+##
+## Include user-specified configuration. This file must exist.
+## This makefile should define at least OPT_BOARD
+##
+include $(CONFPATH)/config/Makefile.inc
+
+## Check that a board was indeed specified by the user and define BOARD_INC
+## based on that
+ifeq ($(OPT_BOARD),)
     $(info Error: no board specified in $(CONFPATH)/config/Makefile.inc)
     $(error Error)
 endif
+BOARD_INC := arch/board/$(OPT_BOARD)
+
+##
+## Include user-specified board configuration
+## This include might not exist for some boards
+##
+-include $(CONFPATH)/config/board/$(OPT_BOARD)/Makefile.inc
 
 ## 
-## Default for the optimization level
+## Default optimization level
 ##
 OPT_OPTIMIZATION ?= -O2
 
@@ -37,9 +52,14 @@ CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
 
 ##
 ## Include the makefile for the selected board
-## This will in turn include the makefile for the chip
 ##
-include $(KPATH)/arch/board/$(OPT_BOARD)/Makefile.inc
+include $(KPATH)/$(BOARD_INC)/Makefile.inc
+
+##
+## Include the makefile for the selected chip
+## This will define PREFIX
+##
+include $(KPATH)/$(ARCH_INC)/Makefile.inc
 
 ## From compiler prefix form the name of the compiler and other tools
 CC     := $(PREFIX)gcc

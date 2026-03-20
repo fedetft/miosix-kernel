@@ -9,9 +9,6 @@ ARCH_INC := arch/chip/stm32f7
 ## The stm32f767 has the double precision FPU, so we will build for m7
 CPU := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/stm32f767zi_nucleo
-
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_2m+384k_ram.ld
 
@@ -33,6 +30,3 @@ CXXFLAGS_BASE += -D_BOARD_STM32F767ZI_NUCLEO
 ## board.
 PROG ?= st-flash --connect-under-reset --reset write \
         $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

@@ -6,9 +6,6 @@
 ## Base directory with else header files for this board
 ARCH_INC := arch/chip/stm32f4
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/stm32f429zi_skyward_anakin
-
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
 
@@ -33,6 +30,3 @@ CXXFLAGS_BASE += -D_BOARD_STM32F429ZI_SKYWARD_ANAKIN
 ## error message saying that 'make program' is not supported for that
 ## board.
 PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

@@ -6,9 +6,6 @@
 ## Base directory with else header files for this board
 ARCH_INC := arch/chip/stm32h7
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/stm32h753xi_eval
-
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
 
@@ -31,6 +28,3 @@ CXXFLAGS_BASE += -D_BOARD_STM32H753XI_EVAL
 ## board.
 PROG ?= st-flash --connect-under-reset --reset write \
         $(if $(ROMFS_DIR), image.bin, main.bin) 0x08000000
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc

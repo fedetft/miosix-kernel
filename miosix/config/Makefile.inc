@@ -95,6 +95,3 @@ CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
 CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
                  -std=c++23 -ffunction-sections -fdata-sections \
                  -Wall -Werror=return-type -g
-
-## Include the configuration file specific to the board, if it exists
--include $(CONFPATH)/config/board/$(OPT_BOARD)/Makefile.inc

@@ -6,9 +6,6 @@
 ## Base directory with header files for this board
 ARCH_INC := arch/chip/atsam4l
 
-## Base directory with header files for this board
-BOARD_INC := arch/board/atsam4lc2aa_generic
-
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
 ARCH_SRC :=                                  \
@@ -30,6 +27,3 @@ PROG ?= openocd \
         -f '$(KPATH)/$(BOARD_INC)/openocd.cfg' \
         -c 'program $(PROG_BIN) 0x4000 reset'  \
         -c shutdown
-
-## Include the makefile for the board's chip
-include $(KPATH)/$(ARCH_INC)/Makefile.inc
