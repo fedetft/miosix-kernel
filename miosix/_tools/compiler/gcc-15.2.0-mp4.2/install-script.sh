@@ -124,34 +124,41 @@ if [[ $DESTDIR ]]; then
 			quit ":: Error distributable compiling but no HOST specifed"
 		fi
 	fi
-	# Clean up PATH to avoid finding system-installed libraries that
-	# won't be present when actually installing the compiler.
-	# This is mostly relevant for macOS, because Linux distributions
-	# install all packages (system-required and user-requested) in the same
-	# place, making redistributable builds basically impossible without
-	# using a clean purpose-built VM.
+	# Clean up PATH as even though it is a list of executables it also avoids
+	# finding system-installed libraries that won't be present when actually
+	# installing the compiler. This is mostly relevant for macOS, because Linux
+	# distributions install all packages (system-required and user-requested)
+	# in the same place, making redistributable builds basically impossible
+	# without at least uninstalling the previous version of the Miosix compiler,
+	# and checking with the checkdeps.sh script that no additional libraries
+	# have been linked.
 	export PATH=/usr/bin:/bin:/usr/sbin:/sbin
-  # When building a redistributable build, we use DESTDIR. Thus, the
-  # compiler is "installed" to $DESTDIR$PREFIX even though it is meant to
-  # be run from $PREFIX. There is an issue though: building the standard
-  # libraries requires the to-be-built compiler, which isn't found, so
-  # building fails at the newlib stage. We wish the fix would just be a
-  # export PATH=$DESTDIR$PREFIX/bin:$PATH
-  # but turns out that isn't enough, as after newlib is built, the
-  # subsequent libraries (part of gcc-end) don't just require the compiler,
-  # they require the libc too that is installed in $DESTDIR$PREFIX, but
-  # the compiler looks for it in $PREFIX only...
-  # As a workaround, we temporarily do a symlink to make the compiler
-  # and standard libraries available from their final path, $PREFIX during
-  # the compilation process.
-  # Moreover, just symlinking /opt/arm-miosix-eabi fails, so we need to
-  # symlink only /opt/arm-miosix-eabi/arm-miosix-eabi
-  export PATH=$DESTDIR$PREFIX/bin:$PATH
-  mkdir -p $DESTDIR$PREFIX/arm-miosix-eabi
-  # This must unconditionally be done with sudo so it's important we use
-  # sudo and not $SUDO.
-  sudo mkdir -p $PREFIX
-  sudo ln -s $DESTDIR$PREFIX/arm-miosix-eabi $PREFIX/arm-miosix-eabi
+	# When building a redistributable build, we use DESTDIR. Thus, the
+	# compiler is "installed" to $DESTDIR$PREFIX even though it is meant to
+	# be run from $PREFIX. There is an issue though: building the standard
+	# libraries requires the to-be-built compiler, which isn't found, so
+	# building fails at the newlib stage. We wish the fix would just be a
+	# export PATH=$DESTDIR$PREFIX/bin:$PATH
+	# but turns out that isn't enough, as after newlib is built, the
+	# subsequent libraries (part of gcc-end) don't just require the compiler,
+	# they require the libc too that is installed in $DESTDIR$PREFIX, but
+	# the compiler looks for it in $PREFIX only...
+	# As a workaround, we temporarily do a symlink to make the compiler
+	# and standard libraries available from their final path, $PREFIX during
+	# the compilation process.
+	# Moreover, just symlinking /opt/arm-miosix-eabi fails, so we need to
+	# symlink only /opt/arm-miosix-eabi/arm-miosix-eabi
+	# Finally, the exception is the windows redistributable that is built with
+	# canadian cross compiling and needs the same version of the compiler to be
+	# installed in /opt, so we can't make symlinks in /opt as it's not empty
+	if [[ $HOST != *mingw* ]]; then
+		export PATH=$DESTDIR$PREFIX/bin:$PATH
+		mkdir -p $DESTDIR$PREFIX/arm-miosix-eabi
+		# This must unconditionally be done with sudo so it's important we use
+		# sudo and not $SUDO.
+		sudo mkdir -p $PREFIX
+		sudo ln -s $DESTDIR$PREFIX/arm-miosix-eabi $PREFIX/arm-miosix-eabi
+	fi
 else
 	if [[ $HOST || $BUILD ]]; then
 		# NOTE: doing a non redistributable build but specifying HOST or BUILD
