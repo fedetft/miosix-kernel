@@ -48,7 +48,7 @@ OPT_OPTIMIZATION ?= -O2
 CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
                  $(CFLAGS_BASE)
 CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
-                 $(CFLAGS_BASE)
+                 $(CXXFLAGS_BASE)
 
 ##
 ## Include the makefile for the selected board
