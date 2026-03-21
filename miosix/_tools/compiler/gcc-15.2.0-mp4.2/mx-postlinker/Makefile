@@ -5,7 +5,7 @@ OBJ:= postlinker.o main.o
 #create program target
 
 mx-postlinker: $(OBJ)
-	$(CXX) -o $@${SUFFIX} $(OBJ)
+	$(CXX) $(LDFLAGS) -o $@${SUFFIX} $(OBJ)
 
 install: mx-postlinker
 	cp mx-postlinker${SUFFIX} $(INSTALL_DIR)

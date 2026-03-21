@@ -154,6 +154,7 @@ if [[ $DESTDIR ]]; then
 	if [[ $HOST != *mingw* ]]; then
 		export PATH=$DESTDIR$PREFIX/bin:$PATH
 		mkdir -p $DESTDIR$PREFIX/arm-miosix-eabi
+		# Workaround for the --with-headers issue, see --with-headers comment.
 		# This must unconditionally be done with sudo so it's important we use
 		# sudo and not $SUDO.
 		sudo mkdir -p $PREFIX
@@ -398,20 +399,40 @@ cd ..
 mkdir gcc_build
 cd gcc_build
 
-# GCC needs the C headers of the target to configure and build the C++ standard
-# library, therefore when configured --with-headers=[...] the configure script
-# unconditionally copies those headers in the
-# $PREFIX/arm-miosix-eabi/sys-include folder.
-#   This is fine for local installs, (up to a certain point, see later
-# comments).
-#   However the GCC makefiles are not clever enough to search in `include`
+# WORKARAOUND: GCC needs the C headers of the target, therefore when configured
+# --with-headers=[...] the configure script unconditionally copies those headers
+# in the $PREFIX/arm-miosix-eabi/sys-include folder.
+# This is fine for local installs, (up to a certain point, see later comments),
+# and works even for redistributable builds thanks to the symlink that was done
+# of $DESTDIR$PREFIX to $PREFIX. However for Windows distributable builds since
+# we're canadian cross compiling, we already have the headers in
+# $PREFIX/arm-miosix-eabi/include (not in sys-include!) and we don't want to
+# touch the existing install, thus we switch to using --with-sysroot.
+# All this is a massive pile of kludges, what we would like to do is for the GCC
+# configure to copy the headers to $DESTDIR$PREFIX/arm-miosix-eabi/sys-include
+# instead of $PREFIX/arm-miosix-eabi/sys-include, and look for them there.
+# That would remove the need for the symlink done with sudo and work the same
+# way for non-redistributable, redistributable and canadian redistributable.
+# Moreover the GCC makefiles are not clever enough to search in `include`
 # rather than `sys-include` when checking if limits.h exists to decide whether
 # to "fix" it. Since `sys-include` does not exists, GCC does not find limits.h
 # and replaces it with its own, which does not include all definitions made
-# by newlib's one. This incorrect file ends up installed and used by the
-# built GCC causing build failures usually related to missing defines used
-# by dirent.h.
-__GCC_CONF_HEADERS_PARAM=--with-headers=../$NEWLIB/newlib/libc/include
+# by newlib's one. To be more precise, GCC always replaces limits.h with its own
+# in $PREFIX/lib/gcc/arm-miosix-eabi/15.2.0/include
+# but only if it correctly figures out that there's another one it patches that
+# file by adding an #include_next <limits.h> to also include the newlib one.
+# This incorrect file ends up installed and used by the built GCC causing build
+# failures usually related to missing defines used by dirent.h.
+# We thus must differentiate the case in which we are canadian cross compiling.
+# In that case we use --with-sysroot and --with-native-system-header-dir to
+# instruct the GCC configure script to set CROSS_SYSTEM_HEADER_DIR to the place
+# where we already have our headers available, without attempting to copy stuff
+# in $PREFIX.
+if [[ $HOST == *mingw* ]]; then
+	__GCC_CONF_HEADERS_PARAM="--with-sysroot=$PREFIX/arm-miosix-eabi --with-native-system-header-dir=/include"
+else
+	__GCC_CONF_HEADERS_PARAM=--with-headers=../$NEWLIB/newlib/libc/include
+fi
 
 # About --enable-libstdcxx-static-eh-pool, --with-libstdcxx-eh-pool-obj-count=3:
 # we used to patch eh_alloc.cc to reduce the C++ emergency exception allocation
@@ -935,11 +956,11 @@ else
 	fi
 fi
 
+# Workaround for the --with-headers issue, see --with-headers comment.
+# Symlink of $DESTDIR$PREFIX/arm-miosix-eabi to $PREFIX/arm-miosix-eabi no
+# longer required. This must unconditionally be done with sudo so it's important
+# we use sudo and not $SUDO.
 if [[ -h $PREFIX/arm-miosix-eabi ]]; then
-	# Symlink of $DESTDIR$PREFIX/arm-miosix-eabi to $PREFIX/arm-miosix-eabi no
-	# longer required.
-	# This must unconditionally be done with sudo so it's important we use
-	# sudo and not $SUDO.
 	sudo rm $PREFIX/arm-miosix-eabi
 	sudo rmdir $PREFIX
 fi
