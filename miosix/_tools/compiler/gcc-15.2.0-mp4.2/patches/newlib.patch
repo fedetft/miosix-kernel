@@ -966,9 +966,21 @@ diff -ruN newlib-4.6.0.20260123-old/newlib/libc/stdlib/mlock.c newlib-4.6.0.2026
 +#endif /* !_MIOSIX */
 +
  #endif
+diff -ruN newlib-4.6.0.20260123-old/newlib/libc/string/local.h newlib-4.6.0.20260123/newlib/libc/string/local.h
+--- newlib-4.6.0.20260123-old/newlib/libc/string/local.h	2026-02-05 11:54:50.438864250 +0100
++++ newlib-4.6.0.20260123/newlib/libc/string/local.h	2026-03-22 11:34:54.128373939 +0100
+@@ -21,7 +21,7 @@
+  * This macro is used to skip a few bytes to find an aligned pointer.
+  * It's better to keep it as is even if _HAVE_HW_MISALIGNED_ACCESS is enabled,
+  * to avoid small performance penalties (if they are not zero).  */
+-#define UNALIGNED_X(X) ((long)X & (sizeof (long) - 1))
++#define UNALIGNED_X(X) ((long)(X) & (sizeof (long) - 1))
+ 
+ #ifdef _HAVE_HW_MISALIGNED_ACCESS
+ /* Hardware performs unaligned operations with little
 diff -ruN newlib-4.6.0.20260123-old/newlib/libc/string/memrchr.c newlib-4.6.0.20260123/newlib/libc/string/memrchr.c
---- newlib-4.6.0.20260123-old/newlib/libc/string/memrchr.c	2026-01-23 23:12:49.000000000 +0100
-+++ newlib-4.6.0.20260123/newlib/libc/string/memrchr.c	2026-03-18 16:43:59.312932623 +0100
+--- newlib-4.6.0.20260123-old/newlib/libc/string/memrchr.c	2026-02-05 11:54:50.438864250 +0100
++++ newlib-4.6.0.20260123/newlib/libc/string/memrchr.c	2026-03-18 22:09:49.320846474 +0100
 @@ -47,7 +47,7 @@
    unsigned long  mask;
    unsigned int i;
