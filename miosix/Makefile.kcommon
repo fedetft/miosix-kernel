@@ -35,8 +35,6 @@ TOOLS_DIR := $(KPATH)/_tools
 OBJ ?= $(addsuffix .o, $(basename $(SRC)))
 
 SUBDIRS := $(KPATH)
-# Not adding libsyscalls to SUBDIRS because it has to be built before
-LIBSYS  := $(KPATH)/libsyscalls
 
 # Starting from Miosix 3, we compile the kernel with the -qkernelspace option
 # that was not present in GCC patches before 15.2.0mp4.0, so when using an
@@ -51,18 +49,11 @@ endif
 
 .DEFAULT_GOAL := all
 
-image: main $(TOOLS_DIR)/filesystems/buildromfs
+image: main
 	$(ECHO) "[FS  ] romfs.bin"
-	$(Q)./$(TOOLS_DIR)/filesystems/buildromfs romfs.bin \
-	  --from-directory $(ROMFS_DIR)
+	$(Q)mx-buildromfs romfs.bin --from-directory $(ROMFS_DIR)
 	$(ECHO) "[IMG ] image.bin"
-	$(Q)perl $(TOOLS_DIR)/filesystems/mkimage.pl image.bin main.bin romfs.bin
-
-$(TOOLS_DIR)/filesystems/buildromfs:
-	$(ECHO) "[HOST] buildromfs"
-	$(Q)mkdir -p $(TOOLS_DIR)/filesystems/build
-	$(Q)cd $(TOOLS_DIR)/filesystems/build         \
-	  && cmake --log-level=ERROR .. && $(MAKE) -s
+	$(Q)perl $(TOOLS_DIR)/mkimage.pl image.bin main.bin romfs.bin
 
 all-recursive:
 	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i)                                 \
@@ -75,8 +66,7 @@ clean-recursive:
 	  KPATH=$(shell perl $(TOOLS_DIR)/relpath.pl $(i) $(KPATH))            \
 	  CONFPATH=$(shell perl $(TOOLS_DIR)/relpath.pl $(i) $(CONFPATH))      \
 	  clean || exit 1;)
-	$(Q)rm -f image.bin romfs.bin $(TOOLS_DIR)/filesystems/buildromfs
-	$(Q)rm -rf $(TOOLS_DIR)/filesystems/build
+	$(Q)rm -f image.bin romfs.bin
 
 program:
 	$(PROG)
