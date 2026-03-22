@@ -20,7 +20,8 @@ for i in $FILES; do
 	fi
 done
 
-# Remove lpc21isp
+# Remove lpc21isp (no longer built, but some users may have installed a very old
+# Miosix compiler)
 if [ -h "/usr/bin/lpc21isp" ]; then
 	sudo rm "/usr/bin/lpc21isp"
 fi
@@ -34,6 +35,16 @@ if [ -h "/usr/bin/mx-postlinker" ]; then
 fi
 if [ -h "/usr/local/bin/mx-postlinker" ]; then
 	sudo rm "/usr/local/bin/mx-postlinker"
+fi
+
+# Remove mx-buildromfs (was only ever installed in /usr/bin)
+if [ -h "/usr/bin/mx-buildromfs" ]; then
+	sudo rm "/usr/bin/mx-buildromfs"
+fi
+
+# Remove mx-maputil (was only ever installed in /usr/bin)
+if [ -h "/usr/bin/mx-maputil" ]; then
+	sudo rm "/usr/bin/mx-maputil"
 fi
 
 # Remove the compiler

@@ -32,18 +32,18 @@ cd /opt/arm-miosix-eabi
 ### Step 2: Dependencies
 
 Install the following dependencies:
-xz-utils, curl, gcc, g++, make, ncurses, byacc, flex, texinfo, patch, tar, unzip, lzip, libelf perl libexpat.
+xz-utils, curl, gcc, g++, make, cmake, ncurses, byacc, flex, texinfo, patch, tar, unzip, lzip, libelf perl libexpat.
 
 For example, for Ubuntu/Kubuntu open a shell and type:
 
 ```
-sudo apt install xz-utils curl gcc g++ make libncurses5-dev byacc flex texinfo patch tar unzip lzip libelf-dev perl libexpat1-dev
+sudo apt install xz-utils curl gcc g++ make cmake libncurses5-dev byacc flex texinfo patch tar unzip lzip libelf-dev perl libexpat1-dev
 ```
 
 While on Fedora:
 
 ```
-sudo dnf install xz-utils curl gcc gcc-c++ make ncurses-devel byacc flex texinfo patch tar unzip lzip elfutils-libelf-devel perl expat-devel
+sudo dnf install xz-utils curl gcc gcc-c++ make cmake ncurses-devel byacc flex texinfo patch tar unzip lzip elfutils-libelf-devel perl expat-devel
 ```
 
 Note: the install scripts require `sudo`, unless you want to intall the compiler locally.

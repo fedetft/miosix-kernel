@@ -803,17 +803,28 @@ $SUDO make install LDFLAGS="$HOSTLDFLAGS" MAKEINFO=/usr/bin/true PATH=$PATH DEST
 cd ..
 
 #
-# Part 10: install the postlinker
+# Part 10: install the postlinker, buildromfs, maputil
 #
-cd mx-postlinker
-echo "Installing mx-postlinker..."
-make CXX=$HOSTCXX LDFLAGS="$HOSTLDFLAGS" SUFFIX=$EXT \
-	|| quit ":: Error compiling mx-postlinker"
-$SUDO make install CXX=$HOSTCXX LDFLAGS="$HOSTLDFLAGS" SUFFIX=$EXT \
-	INSTALL_DIR=$DESTDIR$PREFIX/bin \
-	|| quit ":: Error installing mx-postlinker"
-make CXX=$HOSTCXX LDFLAGS="$HOSTLDFLAGS" SUFFIX=$EXT clean
-cd ..
+
+build_mx_tool()
+{
+	toolname=$1
+	echo "Installing $toolname..."
+	cd $toolname || quit ":: Error $toolname not found"
+	mkdir build
+	cd build
+	CC=$HOSTCC CXX=$HOSTCXX LDFLAGS="$HOSTLDFLAGS" \
+		cmake .. || quit ":: Error configuring $toolname"
+	make || quit ":: Error building $toolname"
+	$SUDO cp $toolname$EXT $DESTDIR$PREFIX/bin || quit ":: Error installing $toolname"
+	cd ..
+	rm -rf build
+	cd ..
+}
+
+build_mx_tool "mx-postlinker"
+build_mx_tool "mx-buildromfs"
+build_mx_tool "mx-maputil"
 
 #
 # Part 11: install GNU make and rm (windows release only)
