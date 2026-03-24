@@ -6,8 +6,8 @@
 
 # Source code
 rm -rf binutils-2.45 gcc-15.2.0 gdb-16.3 newlib-4.6.0.20260123 gmp-6.3.0 \
-  mpfr-4.2.2 mpc-1.3.1 make-4.4.1 expat-2.7.3 ncurses-6.5 makeself-2.6.0
-  
+       mpfr-4.2.2 mpc-1.3.1 make-4.4.1 expat-2.7.3 ncurses-6.5 makeself-2.6.0
+
 # Build directories
 rm -rf binutils_build gdb_build newlib_build
 rm -rf gcc_build log

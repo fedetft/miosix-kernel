@@ -116,7 +116,7 @@ if [[ $DESTDIR ]]; then
 		quit ":: Error global install and distributable compiling are mutually exclusive"
 	fi
 	if [[ -d "$DESTDIR" ]]; then
-	  quit ":: Remove staging directory ($DESTDIR) first"
+		quit ":: Remove staging directory ($DESTDIR) first"
 	fi
 	if [[ $(uname -s) == 'Darwin' ]]; then
 		if [[ -z $BUILD ]]; then
@@ -575,57 +575,57 @@ cd ..
 
 all_multilibs=$(arm-miosix-eabi-gcc --print-multi-lib)
 for libspec in $all_multilibs; do
-    libspec_parts=(${libspec//;/ })
-    MULTILIB_PATH=${libspec_parts[0]}
-    echo "Multilib path $MULTILIB_PATH"
-    FULL_PATH=$DESTDIR$PREFIX/arm-miosix-eabi/lib/$MULTILIB_PATH
-    if [[ -f $FULL_PATH/libc.a ]]; then
-        ## stubs.c was added to newlib as part of the Miosix patches to make
-        ## it possible to compile binaries before libsyscalls is installed.
-        ## This is necessary as configure scripts in gcc-end like to build and
-        ## link binaries to see if certain features are present.
-        ## However, after gcc-end is done, stubs.o should never be linked as
-        ## the functions it provides are either provided by libsyscalls for
-        ## userspace applications, or the kernel itself for kernelspace
-        ## applications. Since it was found that sometimes the linker selected
-        ## stubs.o, it is harmful to keep it, so remove it from libc.a
-        ## NOTE: check after every compiler release, for example from newlib
-        ## 3.1.0 to 4.6.0 the name changed from lib_a-stubs.o to libc_a-stubs.o
-        if [[ $STRIP_STUBS_FROM_LIBC = true ]]; then
-            $SUDO arm-miosix-eabi-ar d $FULL_PATH/libc.a libc_a-stubs.o
-            $SUDO arm-miosix-eabi-ranlib $FULL_PATH/libc.a
-        fi
-        ## All those files aren't needed, so remove them. TODO: try to convince
-        ## newlib to not produce them in the first place
-        $SUDO rm -f $FULL_PATH/cpu-init/rdimon-aem.o
-        $SUDO rmdir $FULL_PATH/cpu-init
-        $SUDO rm -f $FULL_PATH/libgloss-linux.a
-        $SUDO rm -f $FULL_PATH/libnosys.a
-        $SUDO rm -f $FULL_PATH/crt0.o
-        $SUDO rm -f $FULL_PATH/nosys.specs
-        $SUDO rm -f $FULL_PATH/librdimon.a
-        $SUDO rm -f $FULL_PATH/rdimon-crt0.o
-        $SUDO rm -f $FULL_PATH/rdimon.specs
-        $SUDO rm -f $FULL_PATH/librdpmon.a
-        $SUDO rm -f $FULL_PATH/rdpmon-crt0.o
-        $SUDO rm -f $FULL_PATH/rdpmon.specs
-        $SUDO rm -f $FULL_PATH/librdimon-v2m.a
-        $SUDO rm -f $FULL_PATH/rdimon-crt0-v2m.o
-        $SUDO rm -f $FULL_PATH/rdimon-v2m.specs
-        $SUDO rm -f $FULL_PATH/linux-crt0.o
-        $SUDO rm -f $FULL_PATH/linux.specs
-        $SUDO rm -f $FULL_PATH/pid.specs
-        $SUDO rm -f $FULL_PATH/redboot-crt0.o
-        $SUDO rm -f $FULL_PATH/redboot-syscalls.o
-        $SUDO rm -f $FULL_PATH/redboot.ld
-        $SUDO rm -f $FULL_PATH/redboot.specs
-        $SUDO rm -f $FULL_PATH/nano.specs
-        $SUDO rm -f $FULL_PATH/iq80310.specs
-        $SUDO rm -f $FULL_PATH/aprofile-validation-v2m.specs
-        $SUDO rm -f $FULL_PATH/aprofile-validation.specs
-        $SUDO rm -f $FULL_PATH/aprofile-ve-v2m.specs
-        $SUDO rm -f $FULL_PATH/aprofile-ve.specs
-    fi
+	libspec_parts=(${libspec//;/ })
+	MULTILIB_PATH=${libspec_parts[0]}
+	echo "Multilib path $MULTILIB_PATH"
+	FULL_PATH=$DESTDIR$PREFIX/arm-miosix-eabi/lib/$MULTILIB_PATH
+	if [[ -f $FULL_PATH/libc.a ]]; then
+		## stubs.c was added to newlib as part of the Miosix patches to make
+		## it possible to compile binaries before libsyscalls is installed.
+		## This is necessary as configure scripts in gcc-end like to build and
+		## link binaries to see if certain features are present.
+		## However, after gcc-end is done, stubs.o should never be linked as
+		## the functions it provides are either provided by libsyscalls for
+		## userspace applications, or the kernel itself for kernelspace
+		## applications. Since it was found that sometimes the linker selected
+		## stubs.o, it is harmful to keep it, so remove it from libc.a
+		## NOTE: check after every compiler release, for example from newlib
+		## 3.1.0 to 4.6.0 the name changed from lib_a-stubs.o to libc_a-stubs.o
+		if [[ $STRIP_STUBS_FROM_LIBC = true ]]; then
+		    $SUDO arm-miosix-eabi-ar d $FULL_PATH/libc.a libc_a-stubs.o
+		    $SUDO arm-miosix-eabi-ranlib $FULL_PATH/libc.a
+		fi
+		## All those files aren't needed, so remove them. TODO: try to convince
+		## newlib to not produce them in the first place
+		$SUDO rm -f $FULL_PATH/cpu-init/rdimon-aem.o
+		$SUDO rmdir $FULL_PATH/cpu-init
+		$SUDO rm -f $FULL_PATH/libgloss-linux.a
+		$SUDO rm -f $FULL_PATH/libnosys.a
+		$SUDO rm -f $FULL_PATH/crt0.o
+		$SUDO rm -f $FULL_PATH/nosys.specs
+		$SUDO rm -f $FULL_PATH/librdimon.a
+		$SUDO rm -f $FULL_PATH/rdimon-crt0.o
+		$SUDO rm -f $FULL_PATH/rdimon.specs
+		$SUDO rm -f $FULL_PATH/librdpmon.a
+		$SUDO rm -f $FULL_PATH/rdpmon-crt0.o
+		$SUDO rm -f $FULL_PATH/rdpmon.specs
+		$SUDO rm -f $FULL_PATH/librdimon-v2m.a
+		$SUDO rm -f $FULL_PATH/rdimon-crt0-v2m.o
+		$SUDO rm -f $FULL_PATH/rdimon-v2m.specs
+		$SUDO rm -f $FULL_PATH/linux-crt0.o
+		$SUDO rm -f $FULL_PATH/linux.specs
+		$SUDO rm -f $FULL_PATH/pid.specs
+		$SUDO rm -f $FULL_PATH/redboot-crt0.o
+		$SUDO rm -f $FULL_PATH/redboot-syscalls.o
+		$SUDO rm -f $FULL_PATH/redboot.ld
+		$SUDO rm -f $FULL_PATH/redboot.specs
+		$SUDO rm -f $FULL_PATH/nano.specs
+		$SUDO rm -f $FULL_PATH/iq80310.specs
+		$SUDO rm -f $FULL_PATH/aprofile-validation-v2m.specs
+		$SUDO rm -f $FULL_PATH/aprofile-validation.specs
+		$SUDO rm -f $FULL_PATH/aprofile-ve-v2m.specs
+		$SUDO rm -f $FULL_PATH/aprofile-ve.specs
+	fi
 done
 
 # 8A: remove root multilib.
