@@ -195,6 +195,11 @@ else
 	EXT=
 fi
 
+if [[ -z "$CMAKE" ]]; then
+  CMAKE=cmake
+fi
+which "$CMAKE" > /dev/null || quit ":: Error cmake is required"
+
 if [[ $1 == '' ]]; then
 	if command -v nproc > /dev/null; then
 		PARALLEL="-j$(nproc)"
@@ -814,7 +819,7 @@ build_mx_tool()
 	mkdir build
 	cd build
 	CC=$HOSTCC CXX=$HOSTCXX LDFLAGS="$HOSTLDFLAGS" \
-		cmake .. || quit ":: Error configuring $toolname"
+		$CMAKE .. || quit ":: Error configuring $toolname"
 	make || quit ":: Error building $toolname"
 	$SUDO cp $toolname$EXT $DESTDIR$PREFIX/bin || quit ":: Error installing $toolname"
 	cd ..
