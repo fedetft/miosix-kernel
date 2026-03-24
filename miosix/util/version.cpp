@@ -53,7 +53,7 @@ namespace miosix {
 #define AU
 #endif
 
-const char AU ver[]="Miosix v2.99 (" _MIOSIX_BOARDNAME ", " __DATE__ " " __TIME__ CV ")";
+const char AU ver[]="Miosix v3.00alpha1 (" _MIOSIX_BOARDNAME ", " __DATE__ " " __TIME__ CV ")";
 
 const char *getMiosixVersion()
 {
