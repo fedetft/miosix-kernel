@@ -1,7 +1,7 @@
 
 # The Miosix toolchain
 
-The Miosix toolchain is a set of scripts and patches to build a GCC-based cross-compiler able to compile the Miosix fluid kernel. For the ARM architecture, the various GNU-based tools (gcc, g++, gdb, ld, as, ...) are prefixed with `arm-miosix-eabi-` (so for example the C compiler will be `arm-miosix-eabi-gcc`). Additionally, to support building userspace programs the installation scripts also build the `mx-postlinker` utility program and the libsyscalls library (since in a fluid kernel the libc is linked to both the kernel and userspace programs, it does **not** contain syscalls, which instead live in a separate library linked only when compiling programs. When compiling the kernel, undefined references to syscall functions are resolved by linking to kercalls in the kernel).
+The Miosix toolchain is a set of scripts and patches to build a GCC-based cross-compiler able to compile the Miosix fluid kernel. For the ARM architecture, the various GNU-based tools (gcc, g++, gdb, ld, as, ...) are prefixed with `arm-miosix-eabi-` (so for example the C compiler will be `arm-miosix-eabi-gcc`). Additionally, to support building userspace programs the installation scripts also build the `mx-postlinker`, `mx-buildromfs` and `mx-maputil` utility programs and the libsyscalls library (since in a fluid kernel the libc is linked to both the kernel and userspace programs, it does **not** contain syscalls, which instead live in a separate library linked only when compiling programs. When compiling the kernel, undefined references to syscall functions are resolved by linking to kercalls in the kernel).
 
 ## Pre-compiled release builds
 
@@ -127,7 +127,7 @@ The Miosix toolchain is just the compiler/debugger. For developing for embedded 
 There are no scripts for doing that, since there are no dependencies with Miosix. On many distros these tools also available through package managers, for example on Ubuntu/Kubuntu you can install them with
 
 ```
-sudo apt-get install openocd stlink-tools dfu-uitl`
+sudo apt-get install openocd stlink-tools dfu-util
 ```
 
 The above command is just an example, the additional tools you'll need depend on the microcontroller you're targeting.
@@ -193,7 +193,7 @@ As a result the linking of the autotools-generated programs will fail, halting t
 This file is compiled as part of libc, and is only used while the compiler is built to make the autoconf tests work when building the rest of the standard libraries beyond libc (libgcc, libstdc++, libatomic, libgomp).
 This stubs file is then removed by `install-script.sh`, so after the compiler is built, libc no longer contains those stubs.
 
-This solution works transparently on all platforms, except when making a Windows redistributable build. In this case, the system-wide installed Linux compiler needs to still have the `stubs.o` in libc as these are used for feature checks. We tried to convince the build scripts of gcc to use the version of the libc we're about to bundle in the Windows compiler (which still has `stubs.o`), instead of the one installed system-wide, but they insist on using the wrong version (that's also the reason why you ***must*** uninstall an older Miosix toolchain when builing the Mioix toolchain). So, as a workaround, we install system-wide a special version of the Linux compiler with `stubs.o` still present just for the purpose of building the Windows compiler. This Linux compiler should ***not*** be used for building the Miosix kernel (where the stubs would cause issues), it is only useful as an intermediary tool for building the Windows compiler.
+This solution works transparently on all platforms, except when making a Windows redistributable build. In this case, the system-wide installed Linux compiler needs to still have the `stubs.o` in libc as these are used for feature checks. We tried to convince the build scripts of gcc to use the version of the libc we're about to bundle in the Windows compiler (which still has `stubs.o`), instead of the one installed system-wide, but they insist on using the wrong version (that's also the reason why you ***must*** uninstall an older Miosix toolchain when builing the Miosix toolchain). So, as a workaround, we install system-wide a special version of the Linux compiler with `stubs.o` still present just for the purpose of building the Windows compiler. This Linux compiler should ***not*** be used for building the Miosix kernel (where the stubs would cause issues), it is only useful as an intermediary tool for building the Windows compiler.
 
 After this rather long explanation about internal details of the build process, here's how to build a Windows redistribtuable compiler.
 
