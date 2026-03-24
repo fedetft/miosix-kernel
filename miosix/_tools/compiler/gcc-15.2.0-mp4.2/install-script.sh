@@ -947,6 +947,7 @@ if [[ $DESTDIR ]]; then
 			--identifier 'org.miosix.toolchain.gcc' \
 			--version "15.2.0.${__GCCPATCUR}" \
 			--min-os-version "${min_os_ver}" \
+			--compression latest \
 			--install-location / \
 			--scripts installers/macos/Scripts \
 			--root $DESTDIR \
