@@ -1039,8 +1039,8 @@ diff -ruN newlib-4.6.0.20260123-old/newlib/libc/sys/miosix/Makefile.inc newlib-4
 +libc_a_SOURCES += %D%/crt0.c %D%/termios.c %D%/stubs.c
 diff -ruN newlib-4.6.0.20260123-old/newlib/libc/sys/miosix/stubs.c newlib-4.6.0.20260123/newlib/libc/sys/miosix/stubs.c
 --- newlib-4.6.0.20260123-old/newlib/libc/sys/miosix/stubs.c	1970-01-01 01:00:00.000000000 +0100
-+++ newlib-4.6.0.20260123/newlib/libc/sys/miosix/stubs.c	2026-03-04 23:40:37.202439414 +0100
-@@ -0,0 +1,105 @@
++++ newlib-4.6.0.20260123/newlib/libc/sys/miosix/stubs.c	2026-03-23 22:51:50.460032699 +0100
+@@ -0,0 +1,109 @@
 +/*
 + * RATIONALE: these stubs exists only so that when building the GCC compiler
 + * for Miosix (arm-miosix-eabi-gcc), the configure scripts can compile and link
@@ -1092,6 +1092,10 @@ diff -ruN newlib-4.6.0.20260123-old/newlib/libc/sys/miosix/stubs.c newlib-4.6.0.
 +int    AW fstat(int a, struct stat *b)                               { return -1; }
 +int    AW _stat_r( struct _reent *a, const char *b, struct stat *c)  { return -1; }
 +int    AW stat(const char *a, struct stat *b)                        { return -1; }
++int    AW lstat(const char *a, struct stat *b)                       { return -1; }
++int    AW truncate(const char *a, off_t b)                           { return -1; }
++int    AW symlink(const char *a, const char *b)                      { return -1; }
++int    AW readlink(const char *a, char *b, size_t c)                 { return -1; }
 +int    AW _isatty_r(struct _reent *a, int b)                         { return 0;  }
 +int    AW isatty(int a)                                              { return 0;  }
 +int    AW _fcntl_r(struct _reent *a, int b, int c, int d)            { return -1; }
