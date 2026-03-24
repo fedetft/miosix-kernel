@@ -115,6 +115,9 @@ if [[ $DESTDIR ]]; then
 	if [[ $SUDO ]]; then
 		quit ":: Error global install and distributable compiling are mutually exclusive"
 	fi
+	if [[ -d "$DESTDIR" ]]; then
+	  quit ":: Remove staging directory ($DESTDIR) first"
+	fi
 	if [[ $(uname -s) == 'Darwin' ]]; then
 		if [[ -z $BUILD ]]; then
 			quit ":: Error distributable compiling but no BUILD specifed"
