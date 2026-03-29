@@ -70,6 +70,14 @@ const unsigned int MAIN_STACK_SIZE=4*1024;
 /// By default it is not defined (no wakeup delay)
 //#define WAKEUP_DELAY
 
+/// \def OS_TIMER_MODEL_UNIFIED
+/// Overrides the timer model choice in miosix_settings.h. The LPC2138 provides
+/// only 2 hardware timers, so while the separate timer model can be
+/// implemented, it would use all the avavilable timers leaving none to
+/// applications. For this reason, we only support the unified timer model
+/// for this chip.
+#define OS_TIMER_MODEL_UNIFIED
+
 /**
  * \}
  */

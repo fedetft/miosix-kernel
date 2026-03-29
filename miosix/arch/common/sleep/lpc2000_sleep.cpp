@@ -28,10 +28,13 @@
 #include "interfaces_private/sleep.h"
 #include "interfaces/arch_registers.h"
 
-//IDL bit in PCON register
-#define IDL (1<<0)
+namespace miosix {
 
 void sleepCpu()
 {
-    PCON|=IDL;
+    // ARM7TDMI does not have sleep support in the instruction set,
+    // it is a vendor-specific feature enabled by the IDL bit in PCON
+    PCON |= 1<<0;
 }
+
+} //namespace miosix

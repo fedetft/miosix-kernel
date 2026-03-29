@@ -26,41 +26,8 @@
  ***************************************************************************/
 
 #include "interfaces_private/cpu.h"
-#include "kernel/scheduler/scheduler.h"
-#include "kernel/thread.h"
 
 namespace miosix {
-
-/**
- * \internal
- * Called by the software interrupt, yield to next thread
- * Declared noinline to avoid the compiler trying to inline it into the caller,
- * which would violate the requirement on naked functions.
- * Function is not static because otherwise the compiler optimizes it out...
- */
-void ISR_yield() __attribute__((noinline));
-void ISR_yield()
-{
-    FastGlobalLockFromIrq lock;
-    Thread::IRQstackOverflowCheck();
-    Scheduler::IRQrunScheduler();
-}
-
-/**
- * \internal
- * software interrupt routine.
- * Since inside naked functions only assembler code is allowed, this function
- * only calls the ctxsave/ctxrestore macros (which are in assembler), and calls
- * the implementation code in ISR_yield()
- */
-extern "C" void kernel_SWI_Routine()   __attribute__ ((interrupt("SWI"),naked));
-extern "C" void kernel_SWI_Routine()
-{
-    saveContextFromSwi();
-    //Call ISR_yield(). Name is a C++ mangled name.
-    asm volatile("bl _ZN6miosix9ISR_yieldEv");
-    restoreContext();
-}
 
 void initKernelThreadCtxsave(unsigned int *ctxsave, void (*pc)(void *(*)(void*),void*),
                              unsigned int *sp, void *(*arg0)(void*), void *arg1) noexcept
@@ -81,7 +48,7 @@ void initKernelThreadCtxsave(unsigned int *ctxsave, void (*pc)(void *(*)(void*),
     ctxsave[13]=reinterpret_cast<unsigned int>(sp);//Thread stack pointer
     ctxsave[14]=0xffffffff;//threadLauncher never returns, so lr is not important
     ctxsave[15]=reinterpret_cast<unsigned int>(pc);//Thread pc=entry point
-    ctxsave[16]=0x1f;//thread starts in system mode with irq and fiq enabled.
+    ctxsave[16]=0x1f;//thread starts in system mode with IRQ and FIQ enabled.
 }
 
 void IRQportableStartKernel() noexcept
@@ -91,13 +58,13 @@ void IRQportableStartKernel() noexcept
     unsigned int s_ctxsave[miosix::CTXSAVE_SIZE];
     ctxsave[getCurrentCoreId()]=s_ctxsave;//make global ctxsave point to it
     IRQinvokeScheduler();
-#warning the first yield used to automatically enable interrupts but this is no longer true, enable interrupts here
+    //Can't use fastEnableIrq() since we want to enable both IRQ and FIQ.
+    //After this point boot is complete and Miosix never disables FIQ again
+    asm volatile("mrs r0, cpsr       \n\t"
+                 "and r0, r0, #~0xc0 \n\t"
+                 "msr cpsr_c, r0     \n\t"
+                 :::"r0", "memory");
     //Never reaches here
-}
-
-void IRQinitIrqTable()
-{
-    //TODO
 }
 
 } //namespace miosix

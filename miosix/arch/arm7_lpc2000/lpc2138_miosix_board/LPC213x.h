@@ -8,6 +8,33 @@
 #ifndef __LPC213x_H
 #define __LPC213x_H
 
+//Backport Cortex-M-style named interrupt sources to ARM7TDMI
+enum IRQn_Type
+{
+    WDT_IRQn       = 0,
+    //Entry 1 reserved for software interrupts
+    ARM_Core0_IRQn = 2,
+    ARM_Core1_IRQn = 3,
+    TIMER0_IRQn    = 4,
+    TIMER1_IRQn    = 5,
+    UART0_IRQn     = 6,
+    UART1_IRQn     = 7,
+    PWM0_IRQn      = 8,
+    I2C0_IRQn      = 9,
+    SPI0_IRQn      = 10,
+    SPI1_IRQn      = 11,
+    PLL_IRQn       = 12,
+    RTC_IRQn       = 13,
+    EINT0_IRQn     = 14,
+    EINT1_IRQn     = 15,
+    EINT2_IRQn     = 16,
+    EINT3_IRQn     = 17,
+    ACD0_IRQn      = 18,
+    I2C1_IRQn      = 19,
+    BOD_IRQn       = 20,
+    ADC1_IRQn      = 21
+};
+
 /* Vectored Interrupt Controller (VIC) */
 #define VICIRQStatus   (*((volatile unsigned long *) 0xFFFFF000))
 #define VICFIQStatus   (*((volatile unsigned long *) 0xFFFFF004))

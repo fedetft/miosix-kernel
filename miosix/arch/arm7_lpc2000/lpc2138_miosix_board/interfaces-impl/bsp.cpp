@@ -139,13 +139,6 @@ void IRQbspInit()
     //So by default, they are disabled.
     PCONP=0;
     
-    //Setting the VIC to a known state
-    VICSoftIntClr=0xffffffff;//Clear all pending interrupt flags
-    VICIntEnClr=0xffffffff;//All interrupts are disabled
-    VICIntSelect=0;//All interrupts are assigned to IRQ, not FIQ
-    //spurious interrupt handler
-#warning "We no longer have efault_IRQ_Routine, why?"
-    // VICDefVectAddr=(unsigned long)&default_IRQ_Routine;
     //Init RTC (if selected)
     #ifdef WITH_RTC
     rtcInit();

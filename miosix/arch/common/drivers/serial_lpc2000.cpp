@@ -37,47 +37,6 @@
 
 namespace miosix {
 
-/// Pointer to serial port classes to let interrupts access the classes
-static LPC2000Serial *ports[2]={0};
-
-/**
- * \internal interrupt routine for usart0 actual implementation
- */
-void __attribute__((noinline)) usart0irqImpl()
-{
-    if(ports[0]) ports[0]->IRQhandleInterrupt();
-    VICVectAddr=0xff;//Restart VIC
-}
-
-/**
- * \internal interrupt routine for usart0
- */
-void __attribute__((interrupt("IRQ"),naked)) usart0irq()
-{
-    saveContextFromIrq();
-	asm volatile("bl _ZN6miosix13usart0irqImplEv");
-    restoreContext();
-}
-
-/**
- * \internal interrupt routine for usart1 actual implementation
- */
-void __attribute__((noinline)) usart1irqImpl()
-{
-    if(ports[1]) ports[1]->IRQhandleInterrupt();
-    VICVectAddr=0xff;//Restart VIC
-}
-
-/**
- * \internal interrupt routine for usart1
- */
-void __attribute__ ((interrupt("IRQ"),naked)) usart1irq()
-{
-    saveContextFromIrq();
-	asm volatile("bl _ZN6miosix13usart1irqImplEv");
-    restoreContext();
-}
-
 //
 // class LPC2000Serial
 //
@@ -90,31 +49,20 @@ LPC2000Serial::LPC2000Serial(int id, int baudrate) : Device(Device::TTY),
         txWaiting(nullptr), rxWaiting(nullptr), idle(true)
 {
     GlobalIrqLock dLock;
-    if(id<0 || id>1 || ports[id]!=0) errorHandler(Error::UNEXPECTED);
-    ports[id]=this;
+    if(id<0 || id>1) errorHandler(Error::UNEXPECTED);
     if(id==0)
     {
         serial=reinterpret_cast<Usart16550*>(0xe000c000);
         PCONP|=(1<<3);//Enable UART0 peripheral
         PINSEL0&=~(0xf);//Clear bits 0 to 3 of PINSEL0
         PINSEL0|=0x5;//Set p0.0 as TXD and p0.1 as RXD
-        //Init VIC
-        VICSoftIntClr=(1<<6);//Clear uart0 interrupt flag (if previously set)
-        VICIntSelect&=~(1<<6);//uart0=IRQ
-        VICIntEnable=(1<<6);//uart0 interrupt ON
-        VICVectCntl2=0x20 | 0x6;//Slot 2 of VIC used by uart0
-        VICVectAddr2=reinterpret_cast<unsigned int>(&usart0irq);
+        IRQregisterIrq(dLock,UART0_IRQn,&LPC2000Serial::IRQhandleInterrupt,this);
     } else {
         serial=reinterpret_cast<Usart16550*>(0xe0010000);
         PCONP|=(1<<4);//Enable UART1 peripheral
         PINSEL0&=~(0xf0000);//Clear bits 16 to 19 of PINSEL0
         PINSEL0|=0x50000;//Set p0.8 as TXD and p0.9 as RXD
-        //Init VIC
-        VICSoftIntClr=(1<<7);//Clear uart1 interrupt flag (if previously set)
-        VICIntSelect&=~(1<<7);//uart1=IRQ
-        VICIntEnable=(1<<7);//uart1 interrupt ON
-        VICVectCntl3=0x20 | 0x7;//Slot 3 of VIC used by uart1
-        VICVectAddr3=reinterpret_cast<unsigned int>(&usart1irq);
+        IRQregisterIrq(dLock,UART1_IRQn,&LPC2000Serial::IRQhandleInterrupt,this);
     }
     serial->LCR=0x3;//DLAB disabled
     //0x07= fifo enabled, reset tx and rx hardware fifos
@@ -271,27 +219,15 @@ LPC2000Serial::~LPC2000Serial()
     waitSerialTxFifoEmpty();
     
     GlobalIrqLock dLock;
-    //Disable UART0
     serial->LCR=0;//DLAB disabled
     serial->FCR=0;
-    
-    int id=0;
-    if(ports[0]==this) id=0;
-    else if(ports[1]==this) id=1;
-    else errorHandler(Error::UNEXPECTED);
-    ports[id]=0;
-    
-    if(id==0)
+    if(serial==reinterpret_cast<Usart16550*>(0xe000c000))
     {
-        //Disable VIC
-        VICIntEnClr=(1<<6);
-        //Disable PIN
-        PINSEL0&=~(0xf);//Clear bits 0 to 3 of PINSEL0
+        IRQunregisterIrq(dLock,UART0_IRQn,&LPC2000Serial::IRQhandleInterrupt,this);
+        PINSEL0&=~0xf;
     } else {
-        //Disable VIC
-        VICIntEnClr=(1<<7);
-        //Disable PIN
-        PINSEL0&=~(0xf0000);//Clear bits 16 to 19 of PINSEL0
+        IRQunregisterIrq(dLock,UART1_IRQn,&LPC2000Serial::IRQhandleInterrupt,this);
+        PINSEL0&=~0xf0000;
     }
 }
 

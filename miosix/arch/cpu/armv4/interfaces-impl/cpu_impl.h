@@ -27,6 +27,8 @@
 
 #pragma once
 
+#include "interfaces/arch_registers.h"
+
 /**
  * \addtogroup Interfaces
  * \{
@@ -56,7 +58,7 @@
 /**
  * \internal
  * \def saveContextFromSwi()
- * Save context from a software interrupt
+ * Save context from the software interrupt
  * It is used by the kernel, and should not be used by end users.
  */
 #define saveContextFromSwi()                                                 \
@@ -79,9 +81,8 @@
 
 /**
  * \def saveContextFromIrq()
- * Save context from an IRQ<br>
- * Must be the first line of an IRQ where a context switch can happen.
- * The IRQ must be "naked" to prevent the compiler from generating context save.
+ * Save context from the emulated PendSV
+ * It is used by the kernel, and should not be used by end users.
  */
 #define saveContextFromIrq()                                                 \
     asm volatile(/*Adjust lr, return address in a ISR has a 4 bytes offset*/ \
@@ -90,10 +91,8 @@
 
 /**
  * \def restoreContext()
- * Restore context in an IRQ where saveContextFromIrq()
- * (or saveContextFromSwi() ) is used. Must be the last line of an IRQ where
- * a context switch can happen. The IRQ must be "naked" to prevent the compiler
- * from generating context restore.
+ * Restore context in an IRQ where saveContextFromIrq() or saveContextFromSwi()
+ * is used. Must be the last line of an IRQ where a context switch can happen
  */
 #define restoreContext()                                                     \
     asm volatile(/*load ctxsave and dereference the pointer*/                \
@@ -113,51 +112,24 @@
                  "ldr   lr,[lr]         \n\t"                                \
                  "movs  pc,lr           \n\t");
 
-/**
- * Enable interrupts (both irq and fiq)<br>
- * FIQ means fast interrupts, is another level of interrupts available in the
- * ARM7 cpu. They are not used in miosix, and are available to the user.
- * The main advantage of FIQ is that they can even interrupt IRQ, so they have
- * a so high priority that can interrupt the kernel itself.<br>The disadvantage
- * is that, since can interrupt the kernel at any time, all functions, including
- * those marked as IRQ cannot be called when IRQ and FIQ are disabled.
- * Therefore, data transfer between user code and FIQ is more difficult to
- * implement than IRQ. Another disadvantage is that they are only available in
- * the ARM cpu, so if the kernel will be ported to another cpu, they won't be
- * available.<br>
- * To use FIQ the user must change the code of the default FIQ interrupt routine
- * defined in miosix/drivers/interrupts.cpp<br>By default FIQ are enabled but no
- * peripheral is associated with FIQ, so no FIQ interrupts will occur.
- */
-inline void enableIRQandFIQ()
-{
-    asm volatile(".set  I_BIT, 0x80           \n\t"
-                 ".set  F_BIT, 0x40           \n\t"
-                 "mrs r0, cpsr                \n\t"
-                 "and r0, r0, #~(I_BIT|F_BIT) \n\t"
-                 "msr cpsr_c, r0              \n\t"
-                 :::"r0");
-}
-
-///Disable interrupts (both irq and fiq)<br>
-inline void disableIRQandFIQ()
-{
-    asm volatile(".set  I_BIT, 0x80           \n\t"
-                 ".set  F_BIT, 0x40           \n\t"
-                 "mrs r0, cpsr                \n\t"
-                 "orr r0, r0, #I_BIT|F_BIT    \n\t"
-                 "msr cpsr_c, r0              \n\t"
-                 :::"r0");
-}
 
 namespace miosix {
 
+/**
+ * In the chip we support, interrupt number 31 isn't mapped to any hardware
+ * peripheral, so we can reuse it as software interrupt for the emulated PendSV.
+ * If in the future entry 31 will end up conflicting with some actual peripheral
+ * interrupt of some other chip, we'll figure out how to deal with that.
+ */
+constexpr unsigned int emulatedPendsvNumber=31;
+
 inline void IRQinvokeScheduler() noexcept
 {
-    //#error TODO update yield code with PendSV equivalent for ARM7
-    asm volatile("movs  r3, #0\n\t"
-                 "swi   0"
-                 :::"r3");
+    //NOTE: before Miosix 3 we used "swi 0" as yield also within the kernel, but
+    //now we a software IRQ to emulate the PendSV of newer ARM cores and call
+    //the scheduler from there
+    VICSoftInt=1<<emulatedPendsvNumber;
+    asm volatile("":::"memory");
 }
 
 } //namespace miosix

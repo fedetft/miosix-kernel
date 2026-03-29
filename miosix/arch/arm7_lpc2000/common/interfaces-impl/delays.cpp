@@ -39,7 +39,7 @@ void delayMs(unsigned int mseconds)
         // This delay has been calibrated to take 1 millisecond. It is written
         // in assembler to be independent on compiler optimization settings
         asm volatile("    movs  r1, %0     \n"
-                     "    .align 2         \n" //4-byte aligned inner loop
+                     "    .align 3         \n" //8-byte aligned inner loop
                      "1:  subs  r1, r1, #1 \n" //Loop takes 4 cycles
                      "    bpl   1b         \n"::"r"(count):"r1","cc");
     }
@@ -53,7 +53,7 @@ void delayUs(unsigned int useconds)
     // to be independent on compiler optimization settings
     asm volatile("    movs  r1, #15    \n"
                  "    mul   r1, %0, r1 \n"
-                 "    .align 2         \n" //4-byte aligned inner loop
+                 "    .align 3         \n" //8-byte aligned inner loop
                  "1:  subs  r1, r1, #1 \n" //Loop takes 4 cycles
                  "    bpl   1b         \n"::"r"(useconds):"r1","cc");
 }

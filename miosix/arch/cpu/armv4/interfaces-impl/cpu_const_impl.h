@@ -35,7 +35,7 @@ namespace miosix {
  */
 
 /// \internal Size in words of vector to store CPU context during context switch
-/// (17*4=68). All ARM7 CPUs have the same number of registers.
+/// (17*4=68Bytes). All ARM7 CPUs have the same number of registers.
 const unsigned int CTXSAVE_SIZE=17;
 
 /// \internal Size of additional context saved on the stack during context switch.

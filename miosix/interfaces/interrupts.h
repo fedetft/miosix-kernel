@@ -290,7 +290,7 @@ inline void IRQunregisterIrq(GlobalIrqLock& lock, unsigned int id, void (T::*mfn
     IRQunregisterIrq(lock,id,std::get<0>(result),std::get<1>(result));
 }
 
-/*
+/**
  * Check whether an interrupt handler is currently registered.
  * \param id platform-dependent id of the peripheral for which to check whether
  * an interrupt handler is registered.

@@ -34,26 +34,22 @@ namespace miosix {
  * \{
  */
 
-//This architecture has no interrupt priorities
-
 inline void fastDisableIrq() noexcept
 {
     //Since this function is inline there's the need for a memory barrier to
     //avoid aggressive reordering
-    asm volatile(".set  I_BIT, 0x80     \n\t"
-                "mrs r0, cpsr          \n\t"
-                "orr r0, r0, #I_BIT    \n\t"
-                "msr cpsr_c, r0        \n\t":::"r0", "memory");
+    asm volatile("mrs r0, cpsr         \n\t"
+                 "orr r0, r0, #0x80    \n\t"
+                 "msr cpsr_c, r0       \n\t":::"r0", "memory");
 }
 
 inline void fastEnableIrq() noexcept
 {
     //Since this function is inline there's the need for a memory barrier to
     //avoid aggressive reordering
-    asm volatile(".set  I_BIT, 0x80     \n\t"
-                "mrs r0, cpsr          \n\t"
-                "and r0, r0, #~(I_BIT) \n\t"
-                "msr cpsr_c, r0        \n\t":::"r0", "memory");
+    asm volatile("mrs r0, cpsr         \n\t"
+                 "and r0, r0, #~(0x80) \n\t"
+                 "msr cpsr_c, r0       \n\t":::"r0", "memory");
 }
 
 inline bool areInterruptsEnabled() noexcept
