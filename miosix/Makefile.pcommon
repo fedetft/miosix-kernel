@@ -12,7 +12,7 @@ ifeq ($(CONFPATH),)
     $(error Error)
 endif
 
-include arch/Makefile.inc
+include $(KPATH)/arch/Makefile.inc
 
 AFLAGS   ?= $(CPU) -c
 CFLAGS   ?= -MMD -MP $(CPU) -ffunction-sections -Wall -Werror=return-type \
