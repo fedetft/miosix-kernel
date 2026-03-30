@@ -28,6 +28,7 @@
 #ifndef SOFTWARE_I2C_H
 #define	SOFTWARE_I2C_H
 
+#include "kernel/thread.h"
 #include "interfaces/gpio.h"
 #include "interfaces/delays.h"
 
