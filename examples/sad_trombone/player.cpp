@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cstring>
+#include "kernel/thread.h"
 #include "interfaces/interrupts.h"
 #include "util/software_i2c.h"
 #include "adpcm.h"
@@ -164,8 +165,8 @@ void cs43l22volume(int db)
 template<typename T>
 static void atomicTestAndWaitUntil(volatile T& variable, T value)
 {
-	FastGlobalIrqLock dLock;
-	while(variable!=value) IRQglobalIrqUnlockAndWait(dLock);
+    FastGlobalIrqLock dLock;
+    while(variable!=value) Thread::IRQglobalIrqUnlockAndWait(dLock);
 }
 
 /**
@@ -174,10 +175,10 @@ static void atomicTestAndWaitUntil(volatile T& variable, T value)
  */
 static unsigned short *getWritableBuffer()
 {
-	FastGlobalIrqLock dLock;
-	unsigned short *result;
-	while(bq->tryGetWritableBuffer(result)==false) IRQglobalIrqUnlockAndWait(dLock);
-	return result;
+    FastGlobalIrqLock dLock;
+    unsigned short *result;
+    while(bq->tryGetWritableBuffer(result)==false) Thread::IRQglobalIrqUnlockAndWait(dLock);
+    return result;
 }
 
 /**
