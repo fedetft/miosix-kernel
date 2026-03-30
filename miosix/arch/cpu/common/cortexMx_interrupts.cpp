@@ -361,7 +361,7 @@ void IRQunregisterIrq(GlobalIrqLock& lock, unsigned int id,
 bool IRQisIrqRegistered(unsigned int id) noexcept
 {
     if(id>=numInterrupts) return false;
-    return irqForwardingTable[id].handler==unexpectedInterrupt;
+    return irqForwardingTable[id].handler!=unexpectedInterrupt;
 }
 
 //
