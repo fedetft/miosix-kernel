@@ -76,6 +76,7 @@ message(STATUS
         "   - CMAKE_TOOLCHAIN_FILE:             ${CMAKE_TOOLCHAIN_FILE}\n"
         "   - MIOSIX_OPT_BOARD:                 ${MIOSIX_OPT_BOARD}\n"
         "   - MIOSIX_PRINT_BOARD_LIST:          ${MIOSIX_PRINT_BOARD_LIST}\n"
+        "   - MIOSIX_PRINT_LINKER_SCRIPT_LIST:  ${MIOSIX_PRINT_LINKER_SCRIPT_LIST}\n"
         "   - CMAKE_CXX_STANDARD:               ${CMAKE_CXX_STANDARD}\n"
         "   - CMAKE_BUILD_TYPE:                 ${CMAKE_BUILD_TYPE}\n"
         "   Remember to delete cmake cache for changes in CMakeLists.txt to have effect (or use --fresh to ignore it)")

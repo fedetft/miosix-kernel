@@ -75,6 +75,11 @@ set(MIOSIX_BOARD_INC ${MIOSIX_KPATH}/arch/board/${MIOSIX_OPT_BOARD})
 # Include the board specific CMakeLists
 include(${MIOSIX_BOARD_INC}/CMakeLists.txt)
 
+option(MIOSIX_PRINT_LINKER_SCRIPT_LIST "Prints a list of the available linker scripts" OFF)
+if(MIOSIX_PRINT_LINKER_SCRIPT_LIST)
+    miosix_print_list(STATUS "Available linker scripts:" "${MIOSIX_LINKER_SCRIPT_LIST}")
+endif()
+
 # Normalize board options
 set(MIOSIX_LINKER_SCRIPT "${MIOSIX_DEFAULT_LINKER_SCRIPT}" CACHE STRING "Linker script")
 set_property(CACHE MIOSIX_LINKER_SCRIPT PROPERTY STRINGS ${MIOSIX_LINKER_SCRIPT_LIST})
