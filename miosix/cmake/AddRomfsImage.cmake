@@ -27,12 +27,6 @@ include(ExternalProject)
 include(AddProgramTarget)
 include(CreateProcessesDir)
 
-# Create a target that builds the buildromfs tool
-ExternalProject_Add(buildromfs
-    SOURCE_DIR ${MIOSIX_KPATH}/_tools/filesystems
-    INSTALL_COMMAND "" # Skip install
-)
-
 # Create a target that builds the romfs image and combines it the kernel into a single binary image
 #
 #   miosix_add_romfs_image(
@@ -65,6 +59,7 @@ function(miosix_add_romfs_image)
     # Create the romfs image with the given processes
     add_custom_command(
         OUTPUT ${ROMFS_IMAGE_NAME}-romfs.bin
+        DEPENDS "${MIOSIX_PROCESSES_FILES}"
         COMMAND mx-buildromfs ${ROMFS_IMAGE_NAME}-romfs.bin --from-directory ${ROMFS_DIR_NAME}
         COMMENT "Building ${ROMFS_IMAGE_NAME}-romfs.bin"
     )
@@ -73,7 +68,7 @@ function(miosix_add_romfs_image)
     add_custom_command(
         OUTPUT ${ROMFS_IMAGE_NAME}.bin
         DEPENDS ${ROMFS_KERNEL}.bin ${ROMFS_IMAGE_NAME}-romfs.bin
-        COMMAND perl ${MIOSIX_KPATH}/../tools/filesystems/mkimage.pl ${ROMFS_IMAGE_NAME}.bin ${ROMFS_KERNEL}.bin ${ROMFS_IMAGE_NAME}-romfs.bin
+        COMMAND perl ${MIOSIX_KPATH}/../tools/mkimage.pl ${ROMFS_IMAGE_NAME}.bin ${ROMFS_KERNEL}.bin ${ROMFS_IMAGE_NAME}-romfs.bin
         COMMENT "Combining ${ROMFS_KERNEL}.bin and ${ROMFS_IMAGE_NAME}-romfs.bin into ${ROMFS_IMAGE_NAME}.bin"
     )
 

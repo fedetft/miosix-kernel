@@ -44,9 +44,9 @@ function(miosix_create_processes_dir)
             COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${ROMFS_PROCESS}> ${PROJECT_BINARY_DIR}/${ROMFS_DIR_NAME}/${ROMFS_PROCESS}
             COMMENT "Copying process $<TARGET_FILE_BASE_NAME:${ROMFS_PROCESS}> into ${ROMFS_DIR_NAME} directory"
         )
-        list(APPEND MIOSIX_${PROCS_DIR_NAME}_FILES ${PROJECT_BINARY_DIR}/${ROMFS_DIR_NAME}/${ROMFS_PROCESS})
+        list(APPEND MIOSIX_PROCESSES_FILES ${PROJECT_BINARY_DIR}/${ROMFS_DIR_NAME}/${ROMFS_PROCESS})
     endforeach()
 
     # Move the list variable in the parent scope
-    set(MIOSIX_${PROCS_DIR_NAME}_FILES ${MIOSIX_${PROCS_DIR_NAME}_FILES} PARENT_SCOPE)
+    set(MIOSIX_PROCESSES_FILES ${MIOSIX_PROCESSES_FILES} PARENT_SCOPE)
 endfunction()
