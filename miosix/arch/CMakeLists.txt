@@ -33,8 +33,8 @@ set(MIOSIX_BOARDS
 option(MIOSIX_PRINT_BOARD_LIST "Prints a list of the available boards" OFF)
 
 set(BOARD_LIST "Available boards:")
-foreach(MIOSIX_OPT_BOARD ${MIOSIX_BOARDS})
-    string(APPEND BOARD_LIST "\n   - ${MIOSIX_OPT_BOARD}")
+foreach(X_MIOSIX_OPT_BOARD ${MIOSIX_BOARDS})
+    string(APPEND BOARD_LIST "\n   - ${X_MIOSIX_OPT_BOARD}")
 endforeach()
 
 # Target board option, this also implicitly select the target architecture
@@ -68,25 +68,7 @@ if(MIOSIX_DISABLE_EXEPTIONS)
     set(MIOSIX_OPT_EXCEPT -fno-exceptions -fno-rtti -D__NO_EXCEPTIONS)
 endif()
 
-# Auto guess architecture name from board name
-if(
-    MIOSIX_OPT_BOARD STREQUAL rp2040_raspberry_pi_pico
-)
-    set(MIOSIX_ARCH_NAME cortexM0plus_rp2040)
-elseif(
-    MIOSIX_OPT_BOARD STREQUAL stm32f407vg_stm32f4discovery OR
-    MIOSIX_OPT_BOARD STREQUAL stm32f429zi_stm32f4discovery
-)
-    set(MIOSIX_ARCH_NAME cortexM4_stm32f4)
-elseif(
-    MIOSIX_OPT_BOARD STREQUAL stm32f767zi_nucleo
-)
-    set(MIOSIX_ARCH_NAME cortexM7_stm32f7)
-else()
-    message(FATAL_ERROR "Unknown architecture for board ${MIOSIX_OPT_BOARD}")
-endif()
-
-# Then, initialize C/C++ flags
+# Initialize C/C++ flags
 set(MIOSIX_C_FLAGS
     -D_MIOSIX_BOARDNAME="${MIOSIX_OPT_BOARD}" -D_DEFAULT_SOURCE=1
     -ffunction-sections -Wall -Werror=return-type -g
@@ -96,10 +78,33 @@ set(MIOSIX_CXX_FLAGS
     -ffunction-sections -Wall -Werror=return-type -g
 )
 
-# Now include the architecture specific CMakeLists that will:
+# Directory with header files for this board
+set(MIOSIX_BOARD_INC ${MIOSIX_KPATH}/arch/board/${MIOSIX_OPT_BOARD})
+
+# The user can set a custom path for board_settings.h
+set(MIOSIX_CUSTOM_BOARD_SETTINGS_INC "" CACHE PATH "Include directory for custom board_settings.h")
+mark_as_advanced(MIOSIX_CUSTOM_BOARD_SETTINGS_INC)
+if(MIOSIX_CUSTOM_BOARD_SETTINGS_INC)
+    set(MIOSIX_BOARD_SETTINGS_INC ${MIOSIX_CUSTOM_BOARD_SETTINGS_INC})
+    message(NOTICE "You have set a custom path for board_settings.h")
+else()
+    set(MIOSIX_BOARD_SETTINGS_INC ${MIOSIX_CONFIG_PATH}/board/${MIOSIX_OPT_BOARD})
+endif()
+
+# Include the architecture specific CMakeLists that will:
 # - Sets common things for all boards of that specific architecture
 # - Includes the board specific CMakeLists file
-include(${MIOSIX_KPATH}/arch/${MIOSIX_ARCH_NAME}/CMakeLists.txt)
+include(${MIOSIX_BOARD_INC}/CMakeLists.txt)
+include(${MIOSIX_ARCH_INC}/CMakeLists.txt)
 
-# Same for CPU microarchitecture
-include(${MIOSIX_KPATH}/arch/cpu/CMakeLists.txt)
+if(NOT MIOSIX_LINKER_SCRIPT IN_LIST MIOSIX_LINKER_SCRIPT_LIST)
+    # If there is no cached value, or the cached value is not in the list, set a default value
+    set(MIOSIX_LINKER_SCRIPT ${MIOSIX_DEFAULT_LINKER_SCRIPT} CACHE STRING "Linker script" FORCE)
+endif()
+set_property(CACHE MIOSIX_LINKER_SCRIPT PROPERTY STRINGS ${MIOSIX_LINKER_SCRIPT_LIST})
+
+if(NOT MIOSIX_BOARD_VARIANT IN_LIST MIOSIX_BOARD_VARIANT_LIST)
+    # If there is no cached value, or the cached value is not in the list, set a default value
+    set(MIOSIX_BOARD_VARIANT ${MIOSIX_DEFAULT_BOARD_VARIANT} CACHE STRING "Board variant" FORCE)
+endif()
+set_property(CACHE MIOSIX_BOARD_VARIANT PROPERTY STRINGS ${MIOSIX_BOARD_VARIANT_LIST})

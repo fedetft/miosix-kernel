@@ -134,11 +134,12 @@ add_library(miosix STATIC ${MIOSIX_KERNEL_SRC} ${MIOSIX_ARCH_SRC})
 
 target_include_directories(miosix PUBLIC
     ${MIOSIX_CONFIG_PATH}
+    ${MIOSIX_BOARD_SETTINGS_INC}
     ${MIOSIX_KPATH}
-    ${MIOSIX_KPATH}/arch/common
+    ${MIOSIX_KPATH}/arch
+    ${MIOSIX_CPU_INC}
     ${MIOSIX_ARCH_INC}
     ${MIOSIX_BOARD_INC}
-    ${MIOSIX_BOARD_SETTINGS_INC}
 )
 
 target_compile_options(miosix PUBLIC
@@ -161,7 +162,7 @@ target_link_options(miosix INTERFACE -qkernelspace ${MIOSIX_L_FLAGS})
 # Run the kernel_global_objects.pl script on all kernel objects
 add_custom_command(
     TARGET miosix PRE_LINK
-    COMMAND perl ${MIOSIX_KPATH}/_tools/kernel_global_objects.pl $<TARGET_OBJECTS:miosix> --prefix=${MIOSIX_PREFIX}
+    COMMAND perl ${MIOSIX_KPATH}/../tools/kernel_global_objects.pl $<TARGET_OBJECTS:miosix> --prefix=${MIOSIX_PREFIX}
     VERBATIM
     COMMAND_EXPAND_LISTS
 )

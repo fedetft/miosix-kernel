@@ -23,38 +23,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
+# Directory with header files for this board
+set(MIOSIX_ARCH_INC ${MIOSIX_KPATH}/arch/chip/stm32f7)
+
 # The stm32f767 has the double precision FPU, so we will build for m7
 set(MIOSIX_CPU_FLAGS -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16)
 
-# Directory with header files for this board
-set(MIOSIX_BOARD_INC ${MIOSIX_KPATH}/arch/${MIOSIX_ARCH_NAME}/${MIOSIX_OPT_BOARD})
-
-# The user can set a custom path for board_settings.h
-set(MIOSIX_CUSTOM_BOARD_SETTINGS_INC "" CACHE PATH "Include directory for custom board_settings.h")
-mark_as_advanced(MIOSIX_CUSTOM_BOARD_SETTINGS_INC)
-if(MIOSIX_CUSTOM_BOARD_SETTINGS_INC)
-    set(MIOSIX_BOARD_SETTINGS_INC ${MIOSIX_CUSTOM_BOARD_SETTINGS_INC})
-    message(NOTICE "You have set a custom path for board_settings.h")
-else()
-    set(MIOSIX_BOARD_SETTINGS_INC ${MIOSIX_CONFIG_PATH}/arch/${MIOSIX_ARCH_NAME}/${MIOSIX_OPT_BOARD})
-endif()
-
-# Linker script type, there are three options
-# 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
-#    the most common choice, available for all microcontrollers
-# 2) Code in FLASH, stack + heap in external RAM (file *8m_xram.ld)
-#    You must uncomment -D__ENABLE_XRAM below in this case.
-# 3) Code in FLASH, stack + heap in external RAM (file *6m_xram.ld)
-#    Same as above, but leaves the upper 2MB of RAM for the LCD.
+# Linker script type
 set(MIOSIX_LINKER_SCRIPT_LIST
     stm32_2m+384k_ram.ld
     stm32_2m+384k_ram_processes.ld
 )
-if(NOT MIOSIX_LINKER_SCRIPT IN_LIST MIOSIX_LINKER_SCRIPT_LIST)
-    # If there is no cached value, or the cached value is not in the list, set a default value
-    set(MIOSIX_LINKER_SCRIPT stm32_2m+384k_ram.ld CACHE STRING "Linker script" FORCE)
-endif()
-set_property(CACHE MIOSIX_LINKER_SCRIPT PROPERTY STRINGS ${MIOSIX_LINKER_SCRIPT_LIST})
+set(MIOSIX_DEFAULT_LINKER_SCRIPT stm32_2m+384k_ram.ld)
 
 # Uncommenting __ENABLE_XRAM enables the initialization of the external
 # 8MB SDRAM memory. Do not uncomment this even if you don't use a linker

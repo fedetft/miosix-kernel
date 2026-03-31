@@ -24,51 +24,46 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 # CPU microarchitecture
-set(MIOSIX_CPU_MICROARCH armv7m)
+set(MIOSIX_CPU_INC ${MIOSIX_KPATH}/arch/cpu/armv6m)
 
-# Base directory with common header files for this board
-set(MIOSIX_ARCH_INC ${MIOSIX_KPATH}/arch/${MIOSIX_ARCH_NAME}/common)
-
-# Include board specific options
-include(${MIOSIX_KPATH}/arch/${MIOSIX_ARCH_NAME}/${MIOSIX_OPT_BOARD}/CMakeLists.txt)
-
-# Automatically transform the architecture name into upper cases
-string(TOUPPER ${MIOSIX_ARCH_NAME} MIOSIX_ARCH_NAME_UPPER)
-
-# Set the path to the multilib directory for this architecture
-set(MIOSIX_MULTILIB_PATH thumb/v7e-m+fp/hard)
+# Set the path to the multilib directory for this architecture (used by clang)
+set(MIOSIX_MULTILIB_PATH thumb/v6-m/nofp)
 
 # Select appropriate compiler flags for both ASM/C/C++/linker
-set(MIOSIX_CPU_FLAGS -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16)
-set(MIOSIX_A_FLAGS ${MIOSIX_CPU_FLAGS})
+set(MIOSIX_CPU_FLAGS -mcpu=cortex-m0plus -mthumb)
+set(MIOSIX_A_FLAGS
+    ${MIOSIX_CPU_FLAGS}
+)
 list(APPEND MIOSIX_C_FLAGS
-    -D_ARCH_${MIOSIX_ARCH_NAME_UPPER} ${XRAM}
+    -D_ARCH_CORTEXM0PLUS_RP2040 ${XRAM}
     ${MIOSIX_CPU_FLAGS} -c
 )
 list(APPEND MIOSIX_CXX_FLAGS
-    -D_ARCH_${MIOSIX_ARCH_NAME_UPPER} ${XRAM}
+    -D_ARCH_CORTEXM0PLUS_RP2040 ${XRAM}
     ${MIOSIX_CPU_FLAGS} ${MIOSIX_OPT_EXCEPT} -c
 )
 set(MIOSIX_L_FLAGS
     ${MIOSIX_CPU_FLAGS} -Wl,--gc-sections
-    -Wl,-T${MIOSIX_BOARD_INC}/${MIOSIX_LINKER_SCRIPT} ${MIOSIX_OPT_EXCEPT} -nostdlib
+    -Wl,-T${MIOSIX_BOARD_INC}/${MIOSIX_LINKER_SCRIPT} ${MIOSIX_OPT_EXCEPT}
+    -nostdlib
 )
 
 # Select architecture specific files
 list(APPEND MIOSIX_ARCH_SRC
-    ${MIOSIX_KPATH}/arch/cpu/armv7m/interfaces-impl/cpu.cpp
+    ${MIOSIX_KPATH}/arch/cpu/armv6m/interfaces-impl/cpu.cpp
     ${MIOSIX_KPATH}/arch/cpu/common/cortexMx_interrupts.cpp
-    ${MIOSIX_KPATH}/arch/common/mpu/cortexMx_mpu.cpp
+    ${MIOSIX_KPATH}/arch/drivers/mpu/cortexMx_mpu.cpp
     ${MIOSIX_KPATH}/arch/cpu/common/cortexMx_userspace.cpp
-    ${MIOSIX_KPATH}/arch/common/os_timer/stm32_32bit_os_timer.cpp
-    ${MIOSIX_KPATH}/arch/common/os_timer/arm_systick_os_timer.cpp
-    ${MIOSIX_KPATH}/arch/common/sleep/cortexMx_sleep.cpp
-    ${MIOSIX_KPATH}/arch/common/drivers/stm32_gpio.cpp
-    ${MIOSIX_KPATH}/arch/common/drivers/stm32f1_f2_f4_serial.cpp
-    ${MIOSIX_KPATH}/arch/common/drivers/stm32_serial_common.cpp
-    ${MIOSIX_KPATH}/arch/common/drivers/dcc.cpp
-    ${MIOSIX_KPATH}/arch/common/drivers/sd_stm32f2_f4_f7.cpp
+    ${MIOSIX_KPATH}/arch/drivers/os_timer/rp2040_os_timer.cpp
+    ${MIOSIX_KPATH}/arch/drivers/sleep/cortexMx_sleep.cpp
+    ${MIOSIX_KPATH}/arch/drivers/serial/arm_pl011_serial.cpp
+    ${MIOSIX_KPATH}/arch/drivers/serial/rp2040_serial.cpp
+    ${MIOSIX_KPATH}/arch/drivers/spi/arm_pl022_spi.cpp
+    ${MIOSIX_KPATH}/arch/drivers/spi/rp2040_spi.cpp
+    ${MIOSIX_KPATH}/arch/drivers/rp2040_dma.cpp
     ${MIOSIX_ARCH_INC}/interfaces-impl/delays.cpp
+    ${MIOSIX_ARCH_INC}/interfaces-impl/smp.cpp
+    ${MIOSIX_ARCH_INC}/interfaces-impl/atomic_ops_smp_impl.cpp
     ${MIOSIX_ARCH_INC}/interfaces-impl/poweroff.cpp
-    ${MIOSIX_KPATH}/arch/common/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.cpp
+    ${MIOSIX_KPATH}/arch/CMSIS/Device/RaspberryPi/RP2040/Source/system_RP2040.c
 )

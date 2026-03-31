@@ -24,17 +24,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 # Directory with header files for this board
-set(MIOSIX_BOARD_INC ${MIOSIX_KPATH}/arch/${MIOSIX_ARCH_NAME}/${MIOSIX_OPT_BOARD})
-
-# The user can set a custom path for board_settings.h
-set(MIOSIX_CUSTOM_BOARD_SETTINGS_INC "" CACHE PATH "Include directory for custom board_settings.h")
-mark_as_advanced(MIOSIX_CUSTOM_BOARD_SETTINGS_INC)
-if(MIOSIX_CUSTOM_BOARD_SETTINGS_INC)
-    set(MIOSIX_BOARD_SETTINGS_INC ${MIOSIX_CUSTOM_BOARD_SETTINGS_INC})
-    message(NOTICE "You have set a custom path for board_settings.h")
-else()
-    set(MIOSIX_BOARD_SETTINGS_INC ${MIOSIX_CONFIG_PATH}/arch/${MIOSIX_ARCH_NAME}/${MIOSIX_OPT_BOARD})
-endif()
+set(MIOSIX_ARCH_INC ${MIOSIX_KPATH}/arch/chip/stm32f4)
 
 # Linker script options:
 # 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
@@ -46,19 +36,15 @@ set(MIOSIX_LINKER_SCRIPT_LIST
     stm32_1m+192k_ram.ld
     stm32_1m+192k_rom_processes.ld
 )
-if(NOT MIOSIX_LINKER_SCRIPT IN_LIST MIOSIX_LINKER_SCRIPT_LIST)
-    # If there is no cached value, or the cached value is not in the list, set a default value
-    set(MIOSIX_LINKER_SCRIPT stm32_1m+192k_rom.ld CACHE STRING "Linker script" FORCE)
-endif()
-set_property(CACHE MIOSIX_LINKER_SCRIPT PROPERTY STRINGS ${MIOSIX_LINKER_SCRIPT_LIST})
+set(MIOSIX_DEFAULT_LINKER_SCRIPT stm32_1m+192k_rom.ld)
 
 # Select architecture specific files
 set(MIOSIX_ARCH_SRC
     ${MIOSIX_BOARD_INC}/boot.cpp
-    ${MIOSIX_KPATH}/arch/common/drivers/stm32f2_f4_i2c.cpp
-    ${MIOSIX_KPATH}/arch/common/drivers/stm32_hardware_rng.cpp
-    ${MIOSIX_KPATH}/arch/common/drivers/servo_stm32.cpp
-    ${MIOSIX_BOARD_INC}/drivers/rtc.cpp
+    ${MIOSIX_KPATH}/arch/drivers/stm32f2_f4_i2c.cpp
+    ${MIOSIX_KPATH}/arch/drivers/stm32_hardware_rng.cpp
+    ${MIOSIX_KPATH}/arch/drivers/servo_stm32.cpp
+    ${MIOSIX_KPATH}/arch/drivers/stm32f407_rtc.cpp
     ${MIOSIX_BOARD_INC}/interfaces-impl/sleep.cpp
     ${MIOSIX_BOARD_INC}/interfaces-impl/bsp.cpp
 )
