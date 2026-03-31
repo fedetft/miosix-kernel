@@ -37,24 +37,47 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake" P
 
 set(CMAKE_CXX_STANDARD 23 CACHE STRING "Project C++ standard")
 
-# The user can set a custom path for miosix_settings.h
-set(MIOSIX_CONFIG_PATH ${MIOSIX_KPATH}/config CACHE PATH "Include directory for miosix config")
-mark_as_advanced(MIOSIX_CONFIG_PATH)
-if(NOT MIOSIX_CONFIG_PATH STREQUAL ${MIOSIX_KPATH}/config)
-    message(NOTICE "You have set a custom path for miosix config: ${MIOSIX_CONFIG_PATH}")
+# The user can set custom paths for miosix_settings.h and board_settings.h
+set(MIOSIX_USER_CONFIG_PATH "" CACHE PATH "Include directory for miosix config")
+if(MIOSIX_USER_CONFIG_PATH STREQUAL "")
+    set(MIOSIX_USER_BOARD_SETTINGS_PATH "" CACHE PATH "Include directory for custom board_settings.h")
+else()
+    set(MIOSIX_USER_BOARD_SETTINGS_PATH "${MIOSIX_USER_CONFIG_PATH}/board/${MIOSIX_OPT_BOARD}" CACHE PATH "Include directory for custom board_settings.h")
 endif()
+
+# Include the architecture options
+include(${MIOSIX_KPATH}/arch/CMakeLists.txt)
+
+# Verify that all the required variables have been defined, otherwise abort
+set(REQUIRED_VARIABLES
+    MIOSIX_OPT_BOARD
+    MIOSIX_ARCH_INC
+    MIOSIX_BOARD_INC
+    MIOSIX_LINKER_SCRIPT
+    MIOSIX_A_FLAGS
+    MIOSIX_C_FLAGS
+    MIOSIX_CXX_FLAGS
+    MIOSIX_L_FLAGS
+    MIOSIX_ARCH_SRC
+)
+foreach(VARIABLE ${REQUIRED_VARIABLES})
+    if(NOT DEFINED ${VARIABLE})
+        message(FATAL_ERROR "arch/CMakeLists.txt must define ${VARIABLE}")
+    endif()
+endforeach()
 
 # Print build configuration
 message(STATUS
         "Build Configuration\n"
-        "   - MIOSIX_KPATH:             ${MIOSIX_KPATH}\n"
-        "   - MIOSIX_CONFIG_PATH:       ${MIOSIX_CONFIG_PATH}\n"
-        "   - MIOSIX_GCC_PATH:          ${MIOSIX_GCC_PATH}\n"
-        "   - CMAKE_TOOLCHAIN_FILE:     ${CMAKE_TOOLCHAIN_FILE}\n"
-        "   - MIOSIX_OPT_BOARD:         ${MIOSIX_OPT_BOARD}\n"
-        "   - MIOSIX_PRINT_BOARD_LIST:  ${MIOSIX_PRINT_BOARD_LIST}\n"
-        "   - CMAKE_CXX_STANDARD:       ${CMAKE_CXX_STANDARD}\n"
-        "   - CMAKE_BUILD_TYPE:         ${CMAKE_BUILD_TYPE}\n"
+        "   - MIOSIX_KPATH:                     ${MIOSIX_KPATH}\n"
+        "   - MIOSIX_USER_CONFIG_PATH:          ${MIOSIX_USER_CONFIG_PATH}\n"
+        "   - MIOSIX_USER_BOARD_SETTINGS_PATH:  ${MIOSIX_USER_BOARD_SETTINGS_PATH}\n"
+        "   - MIOSIX_GCC_PATH:                  ${MIOSIX_GCC_PATH}\n"
+        "   - CMAKE_TOOLCHAIN_FILE:             ${CMAKE_TOOLCHAIN_FILE}\n"
+        "   - MIOSIX_OPT_BOARD:                 ${MIOSIX_OPT_BOARD}\n"
+        "   - MIOSIX_PRINT_BOARD_LIST:          ${MIOSIX_PRINT_BOARD_LIST}\n"
+        "   - CMAKE_CXX_STANDARD:               ${CMAKE_CXX_STANDARD}\n"
+        "   - CMAKE_BUILD_TYPE:                 ${CMAKE_BUILD_TYPE}\n"
         "   Remember to delete cmake cache for changes in CMakeLists.txt to have effect (or use --fresh to ignore it)")
 
 set(MIOSIX_KERNEL_SRC
@@ -101,34 +124,14 @@ set(MIOSIX_KERNEL_SRC
     ${MIOSIX_KPATH}/util/lcd44780.cpp
 )
 
-# Include the architecture options
-include(${MIOSIX_KPATH}/arch/CMakeLists.txt)
-
-# Verify that all the required variables have been defined, otherwise abort
-set(REQUIRED_VARIABLES
-    MIOSIX_OPT_BOARD
-    MIOSIX_ARCH_INC
-    MIOSIX_BOARD_INC
-    MIOSIX_BOARD_SETTINGS_INC
-    MIOSIX_LINKER_SCRIPT
-    MIOSIX_A_FLAGS
-    MIOSIX_C_FLAGS
-    MIOSIX_CXX_FLAGS
-    MIOSIX_L_FLAGS
-    MIOSIX_ARCH_SRC
-)
-foreach(VARIABLE ${REQUIRED_VARIABLES})
-    if(NOT DEFINED ${VARIABLE})
-        message(FATAL_ERROR "arch/CMakeLists.txt must define ${VARIABLE}")
-    endif()
-endforeach()
-
 # Define the miosix library with kernel and architecture sources
 add_library(miosix STATIC ${MIOSIX_KERNEL_SRC} ${MIOSIX_ARCH_SRC})
 
 target_include_directories(miosix PUBLIC
     ${MIOSIX_CONFIG_PATH}
+    ${MIOSIX_KPATH}/config
     ${MIOSIX_BOARD_SETTINGS_INC}
+    ${MIOSIX_KPATH}/config/board/${MIOSIX_OPT_BOARD}
     ${MIOSIX_KPATH}
     ${MIOSIX_KPATH}/arch
     ${MIOSIX_CPU_INC}
@@ -143,7 +146,7 @@ target_compile_options(miosix PUBLIC
     $<$<COMPILE_LANGUAGE:CXX>:${MIOSIX_CXX_FLAGS}>
 )
 
-# Configure program command as a propery of the miosix library
+# Configure program command as a property of the miosix library
 set_property(TARGET miosix PROPERTY PROGRAM_CMDLINE ${PROGRAM_CMDLINE})
 
 # Add COMPILING_MIOSIX define for private headers

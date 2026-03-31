@@ -76,16 +76,6 @@ set(MIOSIX_BOARD_INC ${MIOSIX_KPATH}/arch/board/${MIOSIX_OPT_BOARD})
 include(${MIOSIX_BOARD_INC}/CMakeLists.txt)
 include(${MIOSIX_ARCH_INC}/CMakeLists.txt)
 
-# The user can set a custom path for board_settings.h
-set(MIOSIX_CUSTOM_BOARD_SETTINGS_INC "" CACHE PATH "Include directory for custom board_settings.h")
-mark_as_advanced(MIOSIX_CUSTOM_BOARD_SETTINGS_INC)
-if(MIOSIX_CUSTOM_BOARD_SETTINGS_INC)
-    set(MIOSIX_BOARD_SETTINGS_INC ${MIOSIX_CUSTOM_BOARD_SETTINGS_INC})
-    message(NOTICE "You have set a custom path for board_settings.h")
-else()
-    set(MIOSIX_BOARD_SETTINGS_INC ${MIOSIX_CONFIG_PATH}/board/${MIOSIX_OPT_BOARD})
-endif()
-
 set(MIOSIX_LINKER_SCRIPT ${MIOSIX_DEFAULT_LINKER_SCRIPT} CACHE STRING "Linker script")
 set_property(CACHE MIOSIX_LINKER_SCRIPT PROPERTY STRINGS ${MIOSIX_LINKER_SCRIPT_LIST})
 if(NOT MIOSIX_LINKER_SCRIPT IN_LIST MIOSIX_LINKER_SCRIPT_LIST)
