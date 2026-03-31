@@ -23,7 +23,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
-cmake_minimum_required(VERSION 3.16)
+# Version 3.21 allows overriding CACHE variables with normal variables
+cmake_minimum_required(VERSION 3.21)
 
 project(Miosix
     VERSION 3.0
@@ -35,13 +36,6 @@ project(Miosix
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake" PARENT_SCOPE)
 
 set(CMAKE_CXX_STANDARD 23 CACHE STRING "Project C++ standard")
-
-# To avoid printing an empty string
-if(MIOSIX_PRINT_BOARD_LIST)
-    set(MIOSIX_PRINT_BOARD_LIST ON)
-else()
-    set(MIOSIX_PRINT_BOARD_LIST OFF)
-endif()
 
 # The user can set a custom path for miosix_settings.h
 set(MIOSIX_CONFIG_PATH ${MIOSIX_KPATH}/config CACHE PATH "Include directory for miosix config")

@@ -23,7 +23,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.21)
 
 # Remember to delete cmake cache for changes in CMakeLists.txt to have effect (or use --fresh to ignore it)
 
@@ -37,16 +37,17 @@ set(CMAKE_TOOLCHAIN_FILE ${MIOSIX_KPATH}/cmake/Toolchains/gcc.cmake CACHE PATH "
 # Set your cmake build type here
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo")
 
+
 # The project command is mandatory and needs to be added after setting CMAKE_TOOLCHAIN_FILE
 project(Main C CXX ASM)
 
 # Set here your config path for out-of-tree projects
-# set(MIOSIX_CONFIG_PATH ${CMAKE_SOURCE_DIR}/miosix/config CACHE PATH "Include directory for miosix config")
+# set(MIOSIX_CONFIG_PATH ${CMAKE_SOURCE_DIR}/miosix/config)
 
 # Set here your board of choice
-set(MIOSIX_OPT_BOARD NOT_SET CACHE STRING "Target board")
+# set(MIOSIX_OPT_BOARD stm32f...)
 
-add_subdirectory(${MIOSIX_KPATH} ${CMAKE_BINARY_DIR}/miosix EXCLUDE_FROM_ALL)
+add_subdirectory(${MIOSIX_KPATH} EXCLUDE_FROM_ALL)
 include(LinkTarget)
 
 # List here your source files (.s, .c and .cpp)
