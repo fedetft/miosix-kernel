@@ -65,8 +65,7 @@ function(miosix_add_romfs_image)
     # Create the romfs image with the given processes
     add_custom_command(
         OUTPUT ${ROMFS_IMAGE_NAME}-romfs.bin
-        DEPENDS ${MIOSIX_${ROMFS_DIR_NAME}_FILES} buildromfs
-        COMMAND ${MIOSIX_KPATH}/_tools/filesystems/buildromfs ${ROMFS_IMAGE_NAME}-romfs.bin --from-directory ${ROMFS_DIR_NAME}
+        COMMAND mx-buildromfs ${ROMFS_IMAGE_NAME}-romfs.bin --from-directory ${ROMFS_DIR_NAME}
         COMMENT "Building ${ROMFS_IMAGE_NAME}-romfs.bin"
     )
 
@@ -74,7 +73,7 @@ function(miosix_add_romfs_image)
     add_custom_command(
         OUTPUT ${ROMFS_IMAGE_NAME}.bin
         DEPENDS ${ROMFS_KERNEL}.bin ${ROMFS_IMAGE_NAME}-romfs.bin
-        COMMAND perl ${MIOSIX_KPATH}/_tools/filesystems/mkimage.pl ${ROMFS_IMAGE_NAME}.bin ${ROMFS_KERNEL}.bin ${ROMFS_IMAGE_NAME}-romfs.bin
+        COMMAND perl ${MIOSIX_KPATH}/../tools/filesystems/mkimage.pl ${ROMFS_IMAGE_NAME}.bin ${ROMFS_KERNEL}.bin ${ROMFS_IMAGE_NAME}-romfs.bin
         COMMENT "Combining ${ROMFS_KERNEL}.bin and ${ROMFS_IMAGE_NAME}-romfs.bin into ${ROMFS_IMAGE_NAME}.bin"
     )
 
