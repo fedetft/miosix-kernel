@@ -23,18 +23,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.21)
 
-# Set Miosix definitions and options
-# add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX>:WITH_PROCESSES>)
-set(MIOSIX_OPT_BOARD rp2040_raspberry_pi_pico CACHE STRING "Target board")
-#set(MIOSIX_LINKER_SCRIPT stm32_2m+384k_ram_processes.ld CACHE FILEPATH "Linker script")
-set(MIOSIX_KPATH ${CMAKE_SOURCE_DIR}/../.. CACHE PATH "Path to the miosix kernel")
-set(CMAKE_TOOLCHAIN_FILE ${MIOSIX_KPATH}/cmake/Toolchains/gcc.cmake CACHE PATH "Path to your toolchain file")
+set(MIOSIX_KPATH ${CMAKE_SOURCE_DIR}/../../miosix)
+set(CMAKE_TOOLCHAIN_FILE ${MIOSIX_KPATH}/cmake/Toolchains/gcc.cmake)
+set(CMAKE_BUILD_TYPE "Release")
 
 project(testsuite C CXX ASM)
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/../.. miosix EXCLUDE_FROM_ALL)
+add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX>:WITH_PROCESSES>)
+set(MIOSIX_OPT_BOARD stm32f407vg_stm32f4discovery)
+set(MIOSIX_LINKER_SCRIPT stm32_1m+192k_rom_processes.ld)
+
+add_subdirectory(${MIOSIX_KPATH} miosix EXCLUDE_FROM_ALL)
 
 include(LinkTarget)
 include(AddProcess)
@@ -54,5 +55,5 @@ miosix_add_romfs_image(
     IMAGE_NAME image
     DIR_NAME bin
     KERNEL testsuite
-    PROCESSES test_process # test_execve test_global_dtor_ctor
+    PROCESSES test_process test_execve test_global_dtor_ctor
 )

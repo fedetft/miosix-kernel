@@ -23,14 +23,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.21)
+
+set(MIOSIX_KPATH ${CMAKE_SOURCE_DIR}/../../miosix)
+set(CMAKE_TOOLCHAIN_FILE ${MIOSIX_KPATH}/cmake/Toolchains/gcc.cmake)
+set(CMAKE_BUILD_TYPE "Release")
 
 project(BlinkingLED C CXX ASM)
 
 # Set Miosix definitions and options
-set(MIOSIX_OPT_BOARD rp2040_raspberry_pi_pico CACHE STRING "Target board")
+set(MIOSIX_OPT_BOARD rp2040_raspberry_pi_pico)
 
-add_subdirectory(../.. miosix EXCLUDE_FROM_ALL)
+add_subdirectory(${MIOSIX_KPATH} miosix EXCLUDE_FROM_ALL)
 
 include(LinkTarget)
 
