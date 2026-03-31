@@ -1,10 +1,22 @@
 ##
-## Makefile for Miosix embedded OS
+## Makefile template for Miosix embedded OS kernel-side applications
 ##
 
-## Path to kernel/config directories (edited by init_project_out_of_git_repo.pl)
-KPATH := miosix
+## Path to the Miosix kernel root (miosix-kernel/miosix)
+KPATH := ../../miosix
+
+## Path to the Miosix config root. Leave it as $(KPATH) to use the defaults.
+## To change them, copy and paste the miosix-kernel/miosix/config directory to
+## your project root and change this path to the project root (typically .)
 CONFPATH := $(KPATH)
+
+## When using CONFPATH := $(KPATH) you can choose the board here. You can also
+## override other variables defined by Makefile.inc.
+## Make sure to change the default or comment out this line when reusing the
+## example as a template.
+OPT_BOARD := stm32f407vg_stm32f4discovery
+
+## Include the Miosix common makefile for kernel-side applications
 MAKEFILE_VERSION := 1.16
 include $(KPATH)/Makefile.kcommon
 

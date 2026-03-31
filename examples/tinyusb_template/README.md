@@ -67,18 +67,15 @@ included; add new stubs as needed for your project.
 
 To try out this example, get a stm32f4-discovery board, then follow these steps:
 
-1. Copy and paste the `tinyusb` directory, the `main.cpp` and `Makefile` in the
-   root of the repository
-2. Select the `stm32f407vg_stm32f4discovery` board in `Makefile.inc`
-3. Disable the safety guard in `miosix_settings.h`
-4. Perform the following commands in the root of the repository:
+1. Change the current directory to the example's directory
+2. Perform the following commands in the root of the repository:
    ```
    cd tinyusb
    git clone https://github.com/hathach/tinyusb.git
    cd tinyusb
    git checkout 86c416d4c0fb38432460b3e11b08b9de76941bf5
    ```
-5. Compile normally by running `make clean; make` in the root of the repository.
+3. Compile normally by running `make clean; make` in the root of the repository.
 
 ## Using this example as a template
 
@@ -92,7 +89,7 @@ To use TinyUSB in a new Miosix project, follow these steps:
    INCLUDE_DIRS := ... -I./tinyusb/tinyusb/src -I./tinyusb
    ```
 3. Clone TinyUSB in the `tinyusb` directory
-4. Copy and paste the interrupt handle definition from the example `main.cpp`
+4. Copy and paste the interrupt handler definition from the example `main.cpp`
    in your main
 5. Customize `tusb_config.h` to select the class driver, target device, and add
    callbacks in your main to configure the USB descriptors. Follow TinyUSB's

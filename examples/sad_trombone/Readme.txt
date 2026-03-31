@@ -1,7 +1,6 @@
 
 This example shows how to synchronize between a thread and a DMA peripheral.
-To run this example, copy the content of this directory into the top level
-directory.
+To build this example, execute `make` in the example directory
 
 This example supports the following two boards:
 
