@@ -47,6 +47,14 @@ ifneq ($(shell perl $(TOOLS_DIR)/compiler_check.pl $(CC)), 0)
     $(error Error)
 endif
 
+# Allow changing options in config/Makefile.inc from root makefile
+export OPT_BOARD
+export OPT_OPTIMIZATION
+export OPT_EXCEPT
+export PROC_OPT_EXCEPT
+export CFLAGS_BASE
+export CXXFLAGS_BASE
+
 .DEFAULT_GOAL := all
 
 image: main

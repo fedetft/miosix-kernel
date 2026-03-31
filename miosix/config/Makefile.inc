@@ -70,10 +70,10 @@
 ## -O2 is recomended otherwise, as it provides a good balance between code
 ## size and speed
 ##
-#OPT_OPTIMIZATION := -O0
-OPT_OPTIMIZATION := -O2
-#OPT_OPTIMIZATION := -O3
-#OPT_OPTIMIZATION := -Os
+#OPT_OPTIMIZATION ?= -O0
+OPT_OPTIMIZATION ?= -O2
+#OPT_OPTIMIZATION ?= -O3
+#OPT_OPTIMIZATION ?= -Os
 
 ##
 ## C++ Exception/rtti support disable flags.
@@ -89,7 +89,7 @@ OPT_OPTIMIZATION := -O2
 ##
 ## Other user-configurable C/C++ flags
 ##
-CFLAGS_BASE   := -ffunction-sections -fdata-sections \
+CFLAGS_BASE   ?= -ffunction-sections -fdata-sections \
                  -Wall -Werror=return-type -g
-CXXFLAGS_BASE := -std=c++23 -ffunction-sections -fdata-sections \
+CXXFLAGS_BASE ?= -std=c++23 -ffunction-sections -fdata-sections \
                  -Wall -Werror=return-type -g
