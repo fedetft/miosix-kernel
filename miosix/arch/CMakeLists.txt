@@ -72,18 +72,18 @@ set(MIOSIX_CXX_FLAGS
 # Directory with header files for this board
 set(MIOSIX_BOARD_INC ${MIOSIX_KPATH}/arch/board/${MIOSIX_OPT_BOARD})
 
-# Include the board and chip specific CMakeLists
+# Include the board specific CMakeLists
 include(${MIOSIX_BOARD_INC}/CMakeLists.txt)
-include(${MIOSIX_ARCH_INC}/CMakeLists.txt)
 
-set(MIOSIX_LINKER_SCRIPT ${MIOSIX_DEFAULT_LINKER_SCRIPT} CACHE STRING "Linker script")
+# Normalize board options
+set(MIOSIX_LINKER_SCRIPT "${MIOSIX_DEFAULT_LINKER_SCRIPT}" CACHE STRING "Linker script")
 set_property(CACHE MIOSIX_LINKER_SCRIPT PROPERTY STRINGS ${MIOSIX_LINKER_SCRIPT_LIST})
 if(NOT MIOSIX_LINKER_SCRIPT IN_LIST MIOSIX_LINKER_SCRIPT_LIST)
     # If there is no cached value, or the cached value is not in the list, complain
     miosix_expected_item_in_list("Invalid linker script '${MIOSIX_LINKER_SCRIPT}' specified with MIOSIX_LINKER_SCRIPT" "${MIOSIX_LINKER_SCRIPT_LIST}")
 endif()
 
-set(MIOSIX_BOARD_VARIANT ${MIOSIX_DEFAULT_BOARD_VARIANT} CACHE STRING "Board variant")
+set(MIOSIX_BOARD_VARIANT "${MIOSIX_DEFAULT_BOARD_VARIANT}" CACHE STRING "Board variant")
 set_property(CACHE MIOSIX_BOARD_VARIANT PROPERTY STRINGS ${MIOSIX_BOARD_VARIANT_LIST})
 # Not all boards have variants
 if(DEFINED MIOSIX_BOARD_VARIANT_LIST)
@@ -96,3 +96,6 @@ else()
         message(WARNING "Board '${MIOSIX_OPT_BOARD}' does not have variants but MIOSIX_BOARD_VARIANT is set to '${MIOSIX_BOARD_VARIANT}'")
     endif()
 endif()
+
+# Include the chip specific CMakeLists
+include(${MIOSIX_ARCH_INC}/CMakeLists.txt)
