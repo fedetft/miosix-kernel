@@ -63,6 +63,7 @@
 #OPT_BOARD := nrf52840_generic
 #OPT_BOARD := stm32u585ci_generic
 #OPT_BOARD := stm32u535cb_rrc
+#OPT_BOARD := lpc2138_generic
 
 ##
 ## Optimization flags, choose one.
