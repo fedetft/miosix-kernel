@@ -56,7 +56,7 @@ public:
 };
 using STM32TimerHW = STM32Timer14HW;
 
-#elif defined(_ARCH_CORTEXM0PLUS_STM32L0)
+#elif defined(_CHIP_STM32L0)
 
 class STM32Timer22HW
 {
@@ -95,7 +95,7 @@ public:
     {
         RCC->APB1ENR |= RCC_APB1ENR_TIM4EN;
         RCC_SYNC();
-        #ifndef _ARCH_CORTEXM3_STM32L1
+        #ifndef _CHIP_STM32L1
         DBGMCU->CR |= DBGMCU_CR_DBG_TIM4_STOP; //Stop while debugging
         #else
         DBGMCU->APB1FZ |= DBGMCU_APB1_FZ_DBG_TIM4_STOP; //Stop while debugging

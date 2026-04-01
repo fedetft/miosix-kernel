@@ -75,10 +75,10 @@ EFM32Serial::EFM32Serial(int id, int baudrate, GpioPin tx, GpioPin rx)
               | USART_FRAME_PARITY_NONE
               | USART_FRAME_DATABITS_EIGHT;
     port->TRIGCTRL=0;
-    #ifdef _ARCH_CORTEXM3_EFM32GG
+    #ifdef _CHIP_EFM32GG
     port->INPUT=0;
     port->I2SCTRL=0;
-    #endif //_ARCH_CORTEXM3_EFM32GG
+    #endif //_CHIP_EFM32GG
     port->ROUTE=USART_ROUTE_LOCATION_LOC0 //Default location, hardcoded for now!
               | USART_ROUTE_TXPEN         //Enable TX pin
               | USART_ROUTE_RXPEN;        //Enable RX pin

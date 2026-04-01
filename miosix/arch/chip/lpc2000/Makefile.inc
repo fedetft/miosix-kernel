@@ -12,8 +12,8 @@ CPU_INC := arch/cpu/armv4
 ## Select appropriate compiler flags for both ASM/C/C++/linker
 CPU := -mcpu=arm7tdmi
 AFLAGS_BASE   := $(CPU)
-CFLAGS_BASE   += -D_ARCH_ARM7_LPC2000 $(CPU) $(OPT_OPTIMIZATION)
-CXXFLAGS_BASE += -D_ARCH_ARM7_LPC2000 $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
+CFLAGS_BASE   += -D_CHIP_LPC2000 $(CPU) $(OPT_OPTIMIZATION)
+CXXFLAGS_BASE += -D_CHIP_LPC2000 $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
 LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
                  -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
                   $(OPT_OPTIMIZATION) -nostdlib
@@ -23,11 +23,11 @@ LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
 ARCH_SRC +=                                    \
 arch/cpu/armv4/interfaces-impl/cpu.cpp         \
 arch/cpu/armv4/interfaces-impl/interrupts.cpp  \
-arch/drivers/os_timer/lpc2000_os_timer.cpp      \
-arch/drivers/sleep/lpc2000_sleep.cpp            \
+arch/drivers/os_timer/lpc2000_os_timer.cpp     \
+arch/drivers/sleep/lpc2000_sleep.cpp           \
 arch/drivers/serial/serial_lpc2000.cpp         \
-arch/drivers/sdmmc/sd_lpc2000.cpp             \
-arch/drivers/clock/lpc2000_clock.cpp                  \
+arch/drivers/sdmmc/sd_lpc2000.cpp              \
+arch/drivers/clock/lpc2000_clock.cpp           \
 $(ARCH_INC)/interfaces-impl/delays.cpp         \
 $(ARCH_INC)/interfaces-impl/poweroff.cpp
 

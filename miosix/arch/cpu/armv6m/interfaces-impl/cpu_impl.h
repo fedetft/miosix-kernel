@@ -105,7 +105,7 @@
                  "pop   {pc}             \n\t" /*return*/                     \
                  );
 
-#elif defined(_ARCH_CORTEXM0PLUS_RP2040)
+#elif defined(_CHIP_RP2040)
 
 /**
  * \internal

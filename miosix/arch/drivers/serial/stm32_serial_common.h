@@ -43,23 +43,23 @@
  * account in the code.
  */
 
-#if defined(_ARCH_CORTEXM3_STM32F1)
+#if defined(_CHIP_STM32F1)
     #define BUS_HAS_AHB
     #define BUS_HAS_APB12
     #define DMA_STM32F1
     #define ALTFUNC_STM32F1
-#elif defined(_ARCH_CORTEXM0PLUS_STM32L0)
+#elif defined(_CHIP_STM32L0)
     #define BUS_HAS_AHB
     #define BUS_HAS_APB12
     #define DMA_STM32F1
     #define DMA_HAS_CSELR
     #define ALTFUNC_STM32F2_SPLIT
-#elif defined(_ARCH_CORTEXM3_STM32L1) || defined(_ARCH_CORTEXM4_STM32F3)
+#elif defined(_CHIP_STM32L1) || defined(_CHIP_STM32F3)
     #define BUS_HAS_AHB
     #define BUS_HAS_APB12
     #define DMA_STM32F1
     #define ALTFUNC_STM32F2
-#elif defined(_ARCH_CORTEXM0_STM32F0)
+#elif defined(_CHIP_STM32F0)
     #define BUS_HAS_AHB
     #define BUS_HAS_APB
     #if defined(STM32F030xC)
@@ -71,7 +71,7 @@
     #else
         #define ALTFUNC_STM32F2
     #endif
-#elif defined(_ARCH_CORTEXM4_STM32L4)
+#elif defined(_CHIP_STM32L4)
     #define BUS_HAS_AHB12
     #define BUS_HAS_APB1L1H2
     #if defined(DMAMUX1_Channel0)
@@ -81,18 +81,18 @@
     #endif
     #define DMA_STM32F1
     #define ALTFUNC_STM32F2
-#elif defined(_ARCH_CORTEXM7_STM32F7)
+#elif defined(_CHIP_STM32F7)
     #define BUS_HAS_AHB12
     #define BUS_HAS_APB12
     #define DMA_STM32F2
     #define ALTFUNC_STM32F2_SPLIT
-#elif defined(_ARCH_CORTEXM7_STM32H7)
+#elif defined(_CHIP_STM32H7)
     #define BUS_HAS_AHB1234
     #define BUS_HAS_APB1L1H234
     #define DMA_STM32F2
     #define DMA_HAS_MUX
     #define ALTFUNC_STM32F2_SPLIT
-#elif defined(_ARCH_CORTEXM33_STM32U5)
+#elif defined(_CHIP_STM32U5)
     #define BUS_HAS_AHB12L2H3
     #define BUS_HAS_APB1L1H23
     #define ALTFUNC_STM32F2

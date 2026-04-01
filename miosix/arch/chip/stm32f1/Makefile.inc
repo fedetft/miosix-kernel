@@ -12,9 +12,9 @@ CPU_INC := arch/cpu/armv7m
 ## Select appropriate compiler flags for both ASM/C/C++/linker
 CPU := -mcpu=cortex-m3 -mthumb
 AFLAGS_BASE   := $(CPU)
-CFLAGS_BASE   += -D_ARCH_CORTEXM3_STM32F1 $(XRAM) $(CPU) \
+CFLAGS_BASE   += -D_CHIP_STM32F1 $(XRAM) $(CPU) \
                  $(OPT_OPTIMIZATION)
-CXXFLAGS_BASE += -D_ARCH_CORTEXM3_STM32F1 $(XRAM) $(CPU) \
+CXXFLAGS_BASE += -D_CHIP_STM32F1 $(XRAM) $(CPU) \
                  $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
 LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
                  -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
@@ -26,13 +26,13 @@ ARCH_SRC +=                                           \
 arch/cpu/armv7m/interfaces-impl/cpu.cpp               \
 arch/cpu/common/cortexMx_interrupts.cpp               \
 arch/cpu/common/cortexMx_userspace.cpp                \
-arch/drivers/os_timer/stm32_16bit_os_timer.cpp         \
-arch/drivers/os_timer/stm32_rtc_os_timer.cpp           \
-arch/drivers/sleep/cortexMx_sleep.cpp                  \
-arch/drivers/gpio/stm32f1_gpio.cpp                  \
+arch/drivers/os_timer/stm32_16bit_os_timer.cpp        \
+arch/drivers/os_timer/stm32_rtc_os_timer.cpp          \
+arch/drivers/sleep/cortexMx_sleep.cpp                 \
+arch/drivers/gpio/stm32f1_gpio.cpp                    \
 arch/drivers/serial/stm32f1_f2_f4_serial.cpp          \
 arch/drivers/serial/stm32_serial_common.cpp           \
-arch/drivers/dcc.cpp                           \
+arch/drivers/dcc.cpp                                  \
 $(ARCH_INC)/interfaces-impl/delays.cpp                \
 $(ARCH_INC)/interfaces-impl/sleep.cpp                 \
 $(ARCH_INC)/interfaces-impl/poweroff.cpp              \

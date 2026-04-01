@@ -97,22 +97,22 @@ enum class Speed
     MEDIUM    = 0x1,
     HIGH      = 0x2,  //Same as LOW for STM32F0/F3
     VERY_HIGH = 0x3,
-#if defined(_ARCH_CORTEXM0PLUS_STM32L0) || defined(_ARCH_CORTEXM3_STM32L1)
+#if defined(_CHIP_STM32L0) || defined(_CHIP_STM32L1)
     _400KHz = 0x0,
     _2MHz   = 0x1,
     _10MHz  = 0x2,
     _40MHz  = 0x3
-#elif defined(_ARCH_CORTEXM0_STM32F0) || defined(_ARCH_CORTEXM4_STM32F3)
+#elif defined(_CHIP_STM32F0) || defined(_CHIP_STM32F3)
     _2MHz   = 0x0,
     _10MHz  = 0x1,
     _50MHz  = 0x3
-#elif defined(_ARCH_CORTEXM3_STM32F2) || defined(_ARCH_CORTEXM4_STM32F4) || \
-      defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
+#elif defined(_CHIP_STM32F2) || defined(_CHIP_STM32F4) || \
+      defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)
     _2MHz   = 0x0,
     _25MHz  = 0x1,
     _50MHz  = 0x2,
     _100MHz = 0x3
-#elif defined(_ARCH_CORTEXM4_STM32L4)
+#elif defined(_CHIP_STM32L4)
     _5MHz   = 0x0,
     _25MHz  = 0x1,
     _50MHz  = 0x2,

@@ -31,7 +31,7 @@
 
 namespace miosix {
 
-#if defined(_ARCH_CORTEXM0_STM32F0) || defined(_ARCH_CORTEXM4_STM32F3) || defined(_ARCH_CORTEXM33_STM32H5) || defined(_ARCH_CORTEXM33_STM32U5)
+#if defined(_CHIP_STM32F0) || defined(_CHIP_STM32F3) || defined(_CHIP_STM32H5) || defined(_CHIP_STM32U5)
 
 class STM32Timer2HW
 {
@@ -41,9 +41,9 @@ public:
     static inline int IRQgetClock()
     {
         unsigned int result=SystemCoreClock;
-        #if defined(_ARCH_CORTEXM0_STM32F0)
+        #if defined(_CHIP_STM32F0)
         if(RCC->CFGR & RCC_CFGR_PPRE_2) result/=1<<((RCC->CFGR>>8) & 0x3);
-        #elif defined(_ARCH_CORTEXM33_STM32H5) || defined(_ARCH_CORTEXM33_STM32U5)
+        #elif defined(_CHIP_STM32H5) || defined(_CHIP_STM32U5)
         if(RCC->CFGR2 & RCC_CFGR2_PPRE1_2) result/=1<<((RCC->CFGR2>>4) & 0x3);
         #else
         if(RCC->CFGR & RCC_CFGR_PPRE1_2) result/=1<<((RCC->CFGR>>8) & 0x3);
@@ -52,11 +52,11 @@ public:
     }
     static inline void IRQenable()
     {
-        #if defined(_ARCH_CORTEXM33_STM32H5)
+        #if defined(_CHIP_STM32H5)
         RCC->APB1LENR |= RCC_APB1LENR_TIM2EN;
         RCC_SYNC();
         DBGMCU->APB1FZR1 |= DBGMCU_APB1FZR1_DBG_TIM2_STOP; //Stop while debugging
-        #elif defined(_ARCH_CORTEXM33_STM32U5)
+        #elif defined(_CHIP_STM32U5)
         RCC->APB1ENR1 |= RCC_APB1ENR1_TIM2EN;
         RCC_SYNC();
         DBGMCU->APB1FZR1 |= DBGMCU_APB1FZR1_DBG_TIM2_STOP; //Stop while debugging
@@ -79,7 +79,7 @@ public:
     static inline int IRQgetClock()
     {
         unsigned int result=SystemCoreClock;
-        #if defined(_ARCH_CORTEXM7_STM32H7)
+        #if defined(_CHIP_STM32H7)
         #ifndef STM32H753xx
         // In stm32h723/h755 MCUs there isn't any prescaler 2x, for this reason when the
         // prescaler is enabled we will have to divide it for 2^PPRE and not for 2^(PPRE-1)
@@ -94,11 +94,11 @@ public:
     }
     static inline void IRQenable()
     {
-        #if defined(_ARCH_CORTEXM7_STM32H7)
+        #if defined(_CHIP_STM32H7)
         RCC->APB1LENR |= RCC_APB1LENR_TIM5EN;
         RCC_SYNC();
         DBGMCU->APB1LFZ1 |= DBGMCU_APB1LFZ1_DBG_TIM5; //Stop while debugging
-        #elif defined(_ARCH_CORTEXM4_STM32L4)
+        #elif defined(_CHIP_STM32L4)
         RCC->APB1ENR1 |= RCC_APB1ENR1_TIM5EN;
         RCC_SYNC();
         DBGMCU->APB1FZR1 |= DBGMCU_APB1FZR1_DBG_TIM5_STOP; //Stop while debugging

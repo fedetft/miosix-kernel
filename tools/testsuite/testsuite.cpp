@@ -64,10 +64,10 @@
 #include "util/crc16.h"
 
 
-#if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
+#if defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)
 #include <interfaces/interrupts.h>
 #include <drivers/cache/cortexMx_cache.h>
-#endif //_ARCH_CORTEXM7_STM32F7/H7
+#endif //_CHIP_STM32F7/H7
 
 #include <ctime>
 static_assert(sizeof(time_t)==8,"time_t is not 64 bit");
@@ -127,9 +127,9 @@ static void test_27();
 #if defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
 static void test_28();
 #endif //defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
-#if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
+#if defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)
 void testCacheAndDMA();
-#endif //_ARCH_CORTEXM7_STM32F7/H7
+#endif //_CHIP_STM32F7/H7
 #ifdef WITH_PROCESSES
 void test_syscalls_process();
 void test_crash_process();
@@ -203,9 +203,9 @@ int main()
                 #if defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
                 test_28();
                 #endif //defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
-                #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
+                #if defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)
                 testCacheAndDMA();
-                #endif //_ARCH_CORTEXM7_STM32F7/H7
+                #endif //_CHIP_STM32F7/H7
                 
                 ledOff();
                 Thread::sleep(500);//Ensure all threads are deleted.
@@ -564,7 +564,7 @@ static void test_3()
     fiprintf(stderr,"%lld ",delta);
     const auto m=MAX_TIME_IRQ_DISABLED*1000;
     const auto lowThres=m-m/10; //10% tolerance
-    #if defined(_ARCH_CORTEXM0PLUS_RP2040) && defined(WITH_SMP) && !defined(WITH_SLEEP)
+    #if defined(_CHIP_RP2040) && defined(WITH_SMP) && !defined(WITH_SLEEP)
     // Edge case. The RP2040 is dual-core with no per-core instruction cache. If
     // the kernel is compiled without sleep support, the idle thread running on
     // one core slows down the other core by ~29%, making delayUs take longer
@@ -4329,7 +4329,7 @@ static void test_28()
 }
 #endif //defined(WITH_SMP) && defined(WITH_THREAD_AFFINITY)
 
-#if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
+#if defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)
 static Thread *waiting=nullptr; /// Thread waiting on DMA completion IRQ
 
 /**
@@ -4488,7 +4488,7 @@ void testCacheAndDMA()
     }
     pass();
 }
-#endif //_ARCH_CORTEXM7_STM32F7/H7
+#endif //_CHIP_STM32F7/H7
 
 //
 // Kercalls test (in a separate file, shared with syscalls)
