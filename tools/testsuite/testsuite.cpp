@@ -66,7 +66,7 @@
 
 #if defined(_ARCH_CORTEXM7_STM32F7) || defined(_ARCH_CORTEXM7_STM32H7)
 #include <interfaces/interrupts.h>
-#include <cache/cortexMx_cache.h>
+#include <drivers/cache/cortexMx_cache.h>
 #endif //_ARCH_CORTEXM7_STM32F7/H7
 
 #include <ctime>
