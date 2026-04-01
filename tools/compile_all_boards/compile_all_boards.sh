@@ -29,7 +29,7 @@
 #set -x
 
 SCRIPT_ROOT=$(cd -- $(dirname -- "$0") && pwd)
-REPO_ROOT="$SCRIPT_ROOT"/../../..
+REPO_ROOT="$SCRIPT_ROOT"/../..
 cd "$REPO_ROOT"
 dir="$SCRIPT_ROOT"
 
