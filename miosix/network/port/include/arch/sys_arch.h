@@ -40,10 +40,10 @@ extern "C" {
 typedef u32_t sys_prot_t;
 #endif
 
-/* Mutexes: mapped to miosix::FastMutex */
+/* Mutexes: mapped to miosix::Mutex */
 #if !LWIP_COMPAT_MUTEX
 struct _miosix_mutex_wrapper {
-  void *mut; // miosix::FastMutex*
+  void *mut; // miosix::Mutex*
 };
 typedef struct _miosix_mutex_wrapper sys_mutex_t;
 #define sys_mutex_valid_val(mutex)   ((mutex).mut != NULL)
@@ -63,6 +63,7 @@ typedef struct _miosix_semaphore_wrapper sys_sem_t;
 /* Mailboxes: mapped to miosix::Queue */
 struct _miosix_queue_wrapper {
   void *mbx; // miosix::DynQueue*
+  void *mutex; // miosix::Mutex*
 };
 typedef struct _miosix_queue_wrapper sys_mbox_t;
 #define sys_mbox_valid_val(mbox)   ((mbox).mbx != NULL)

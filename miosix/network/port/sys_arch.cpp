@@ -76,7 +76,6 @@ sys_thread_t sys_thread_new(const char *name, lwip_thread_fn thread, void *arg,
     // Reasonable default for stacksize
     stacksize = std::max((unsigned int)stacksize, STACK_DEFAULT_FOR_PTHREAD);
 
-    // ASKME: JOINABLE or DETACHED?
     auto *t =
         Thread::create(thread, stacksize, prio, arg, Thread::Options::DETACHED);
     assert(t != nullptr); // sys_thread_new must not fail
@@ -147,22 +146,31 @@ err_t sys_mbox_new(sys_mbox_t *mbox, int size) {
     if (!mbox->mbx)
         return ERR_MEM;
 
+    mbox->mutex = new MutexType();
+    if (!mbox->mutex) {
+        delete static_cast<QueueType *>(mbox->mbx);
+        return ERR_MEM;
+    }
+
     return ERR_OK;
 }
 
 void sys_mbox_post(sys_mbox_t *mbox, void *msg) {
     auto *queue = static_cast<QueueType *>(mbox->mbx);
+    auto *mutex = static_cast<MutexType *>(mbox->mutex);
 
+    Lock lock(*mutex);
     queue->put(msg);
 }
 
 err_t sys_mbox_trypost(sys_mbox_t *mbox, void *msg) {
     auto *queue = static_cast<QueueType *>(mbox->mbx);
 
-    if (queue->isFull())
+    GlobalIrqLock dLock;
+    bool posted = queue->IRQput(msg);
+    if (!posted)
         return ERR_MEM;
 
-    queue->put(msg);
     return ERR_OK;
 }
 
@@ -178,6 +186,9 @@ err_t sys_mbox_trypost_fromisr(sys_mbox_t *mbox, void *msg) {
 
 u32_t sys_arch_mbox_fetch(sys_mbox_t *mbox, void **msg, u32_t timeout) {
     auto *queue = static_cast<QueueType *>(mbox->mbx);
+    auto *mutex = static_cast<MutexType *>(mbox->mutex);
+
+    Lock lock(*mutex);
 
     if (timeout == 0) {
         // Wait indefinitely
@@ -187,6 +198,7 @@ u32_t sys_arch_mbox_fetch(sys_mbox_t *mbox, void **msg, u32_t timeout) {
 
     auto timeoutNs = static_cast<long long>(timeout) * 1'000'000;
     auto absTime = getTime() + timeoutNs;
+
     auto waitResult = queue->timedGet(*msg, absTime);
     return waitResult == TimedWaitResult::Timeout ? SYS_ARCH_TIMEOUT : 0;
 }
@@ -194,15 +206,17 @@ u32_t sys_arch_mbox_fetch(sys_mbox_t *mbox, void **msg, u32_t timeout) {
 u32_t sys_arch_mbox_tryfetch(sys_mbox_t *mbox, void **msg) {
     auto *queue = static_cast<QueueType *>(mbox->mbx);
 
-    if (queue->isEmpty())
+    GlobalIrqLock dLock;
+    bool fetched = queue->IRQget(*msg);
+    if (!fetched)
         return SYS_MBOX_EMPTY;
 
-    queue->get(*msg);
     return 0;
 }
 
 void sys_mbox_free(sys_mbox_t *mbox) {
     delete static_cast<QueueType *>(mbox->mbx);
+    delete static_cast<MutexType *>(mbox->mutex);
 }
 
 } // extern "C"
