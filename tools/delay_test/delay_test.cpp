@@ -32,6 +32,20 @@ void tdms(int n)
     }
 }
 
+void sleepUs(int n)
+{
+    const long long ns=n*1000;
+    for(long long t=getTime();;)
+    {
+        out::high();
+        t+=ns;
+        Thread::nanoSleepUntil(t);
+        out::low();
+        t+=ns;
+        Thread::nanoSleepUntil(t);
+    }
+}
+
 int main()
 {
 //    //STM32f1-specific: enable PLL freq to be output on PA8
@@ -51,6 +65,11 @@ int main()
 //    mco::alternateFunction(0);
 //    RCC->CFGR &= ~(RCC_CFGR_MCOSEL | RCC_CFGR_MCOPRE);
 //    RCC->CFGR |= (1 << RCC_CFGR_MCOPRE_Pos) | RCC_CFGR_MCOSEL_SYSCLK;
+//    //STM32u5-specific: enable SYSCLK/16 to be output on PA8
+//    using mco = Gpio<PA,8>;
+//    mco::mode(Mode::ALTERNATE);
+//    mco::alternateFunction(0);
+//    RCC->CFGR1|=RCC_CFGR1_MCOPRE_2 | RCC_CFGR1_MCOSEL_0;
 //    //ATSAM4L-specific: output RCFAST clock on PA2
 //    SCIF->SCIF_GCCTRL[0].SCIF_GCCTRL = SCIF_GCCTRL_OSCSEL(5) | SCIF_GCCTRL_CEN;
 //    using gclk0 = Gpio<PA,2>;
