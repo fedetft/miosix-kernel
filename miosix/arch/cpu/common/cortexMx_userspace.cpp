@@ -298,8 +298,8 @@ bool MPUConfiguration::withinForReading(const void *ptr, size_t size) const
     size_t dataEnd=dataStart+(1<<(((regValues[3]>>1) & 31)+1));
     size_t base=reinterpret_cast<size_t>(ptr);
     //The last check is to prevent a wraparound to be considered valid
-    return (   (base>=codeStart && base+size<codeEnd)
-            || (base>=dataStart && base+size<dataEnd)) && base+size>=base;
+    return (   (base>=codeStart && base+size<=codeEnd)
+            || (base>=dataStart && base+size<=dataEnd)) && base+size>=base;
 }
 
 bool MPUConfiguration::withinForWriting(const void *ptr, size_t size) const
@@ -310,7 +310,7 @@ bool MPUConfiguration::withinForWriting(const void *ptr, size_t size) const
     size_t dataEnd=dataStart+(1<<(((regValues[3]>>1) & 31)+1));
     size_t base=reinterpret_cast<size_t>(ptr);
     //The last check is to prevent a wraparound to be considered valid
-    return base>=dataStart && base+size<dataEnd && base+size>=base;
+    return base>=dataStart && base+size<=dataEnd && base+size>=base;
 }
 
 bool MPUConfiguration::withinForReading(const char* str) const
