@@ -177,19 +177,21 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
     // causes the boot to fail.
     // For this reason, all regions are marked as not shareable
     #if __CORTEX_M == 33
+    //NOTE: Unlike previous Cortex CPUs it's no longer possible to mark a region
+    //as RW for privileged but RO for non-privileged
     const unsigned int MPU_RLAR_PXN_Msk=1<<4; //This bit is missing in the ARM .h
-    regValues[0]=6; // RNR
-    regValues[1]=(reinterpret_cast<unsigned int>(elfBase) & (~0x1f))
+    // regValues indexes 0/1 are for RNR number 6
+    regValues[0]=(reinterpret_cast<unsigned int>(elfBase) & (~0x1f))
                 | 3<<MPU_RBAR_AP_Pos; //Privileged: RO, unprivileged: RO
-    regValues[2]=((reinterpret_cast<unsigned int>(elfBase)+elfSize-1) & (~0x1f))
+    regValues[1]=((reinterpret_cast<unsigned int>(elfBase)+elfSize-1) & (~0x1f))
                 | MPU_RLAR_PXN_Msk    //Not executable from the privileged side
                 | 1<<MPU_RLAR_AttrIndx_Pos // TODO SRAM, defined in cortexMx_mpu.cpp
                 | 1; //Enable bit
-    regValues[3]=7; // RNR
-    regValues[4]=(reinterpret_cast<unsigned int>(imageBase) & (~0x1f))
+    // regValues indexes 2/3 are for RNR number 7
+    regValues[2]=(reinterpret_cast<unsigned int>(imageBase) & (~0x1f))
                 | 1<<MPU_RBAR_AP_Pos //Privileged: RW, unprivileged: RW
                 | MPU_RBAR_XN_Msk;   //Not executable
-    regValues[5]=((reinterpret_cast<unsigned int>(imageBase)+imageSize-1) & (~0x1f))
+    regValues[3]=((reinterpret_cast<unsigned int>(imageBase)+imageSize-1) & (~0x1f))
                 | MPU_RLAR_PXN_Msk    //Not executable from the privileged side
                 | 1<<MPU_RLAR_AttrIndx_Pos // SRAM, defined in cortexMx_mpu.cpp
                 | 1; //Enable bit
@@ -212,10 +214,10 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
     #warning architecture lacks MPU, memory protection for processes unsupported
     //Although we have no MPU, store enough information to still enable checking
     //syscall parameters in withinForReading()/withinForWriting()
-    regValues[0]=(reinterpret_cast<unsigned int>(elfBase) & (~0x1f));
-    regValues[2]=(reinterpret_cast<unsigned int>(imageBase) & (~0x1f));
-    regValues[1]=sizeToMpu(elfSize)<<1;
-    regValues[3]=sizeToMpu(imageSize)<<1;
+    regValues[0]=elfBase;
+    regValues[1]=elfBase+elfSize;
+    regValues[2]=imageBase;
+    regValues[3]=imageBase+imageSize;
     #endif //__MPU_PRESENT==1
 }
 
@@ -225,13 +227,11 @@ void MPUConfiguration::dumpConfiguration()
     #if __CORTEX_M == 33
     for(int i=0;i<2;i++)
     {
-        unsigned int rnr=regValues[3*i];
-        unsigned int rbar=regValues[3*i+1];
-        unsigned int base=rbar & ~0x1f;
-        unsigned int end=regValues[3*i+2] & ~0x1f;
-        char w=rbar & (0b10<<MPU_RBAR_AP_Pos) ? '-' : 'w';
-        char x=rbar & MPU_RBAR_XN_Msk ? '-' : 'x';
-        iprintf("* MPU region %d 0x%08x-0x%08x r%c%c\n",rnr,base,end,w,x);
+        unsigned int base=regValues[2*i] & (~0x1f);
+        unsigned int end=(regValues[2*i+1] | 0x1f)+1;
+        char w=regValues[2*i] & (0b10<<MPU_RBAR_AP_Pos) ? '-' : 'w';
+        char x=regValues[2*i] & MPU_RBAR_XN_Msk ? '-' : 'x';
+        iprintf("* MPU region %d 0x%08x-0x%08x r%c%c\n",i+6,base,end,w,x);
     }
     #else
     for(int i=0;i<2;i++)
@@ -244,12 +244,11 @@ void MPUConfiguration::dumpConfiguration()
     }
     #endif
     #else //__MPU_PRESENT==1
-    iprintf("* Architecture lacks MPU\n");
     for(int i=0;i<2;i++)
     {
-        unsigned int base=regValues[2*i] & (~0x1f);
-        unsigned int end=base+(1<<(((regValues[2*i+1]>>1) & 31)+1));
-        iprintf("* MPU region %d 0x%08x-0x%08x rwx\n",i+6,base,end);
+        unsigned int base=regValues[2*i];
+        unsigned int end=regValues[2*i+1];
+        iprintf("* Memory region %d 0x%08x-0x%08x rwx\n",i,base,end);
     }
     #endif //__MPU_PRESENT==1
 }
@@ -292,11 +291,25 @@ pair<const unsigned int*, unsigned int> MPUConfiguration::roundRegionForMPU(
 
 bool MPUConfiguration::withinForReading(const void *ptr, size_t size) const
 {
+    size_t base=reinterpret_cast<size_t>(ptr);
+    #if __MPU_PRESENT==1
+    #if __CORTEX_M == 33
+    size_t codeStart=regValues[0] & (~0x1f);
+    size_t codeEnd=(regValues[1] | 0x1f)+1;
+    size_t dataStart=regValues[2] & (~0x1f);
+    size_t dataEnd=(regValues[3] | 0x1f)+1;
+    #else
     size_t codeStart=regValues[0] & (~0x1f);
     size_t codeEnd=codeStart+(1<<(((regValues[1]>>1) & 31)+1));
     size_t dataStart=regValues[2] & (~0x1f);
     size_t dataEnd=dataStart+(1<<(((regValues[3]>>1) & 31)+1));
-    size_t base=reinterpret_cast<size_t>(ptr);
+    #endif
+    #else //__MPU_PRESENT==1
+    size_t codeStart=regValues[0];
+    size_t codeEnd=regValues[1];
+    size_t dataStart=regValues[2];
+    size_t dataEnd=regValues[3];
+    #endif //__MPU_PRESENT==1
     //The last check is to prevent a wraparound to be considered valid
     return (   (base>=codeStart && base+size<=codeEnd)
             || (base>=dataStart && base+size<=dataEnd)) && base+size>=base;
@@ -306,20 +319,44 @@ bool MPUConfiguration::withinForWriting(const void *ptr, size_t size) const
 {
     //Must be callable also with interrupts disabled,
     //used by FaultData::IRQtryAddProgramCounter()
+    size_t base=reinterpret_cast<size_t>(ptr);
+    #if __MPU_PRESENT==1
+    #if __CORTEX_M == 33
+    size_t dataStart=regValues[2] & (~0x1f);
+    size_t dataEnd=(regValues[3] | 0x1f)+1;
+    #else
     size_t dataStart=regValues[2] & (~0x1f);
     size_t dataEnd=dataStart+(1<<(((regValues[3]>>1) & 31)+1));
-    size_t base=reinterpret_cast<size_t>(ptr);
+    #endif
+    #else //__MPU_PRESENT==1
+    size_t dataStart=regValues[2];
+    size_t dataEnd=regValues[3];
+    #endif //__MPU_PRESENT==1
     //The last check is to prevent a wraparound to be considered valid
     return base>=dataStart && base+size<=dataEnd && base+size>=base;
 }
 
 bool MPUConfiguration::withinForReading(const char* str) const
 {
+    size_t base=reinterpret_cast<size_t>(str);
+    #if __MPU_PRESENT==1
+    #if __CORTEX_M == 33
+    size_t codeStart=regValues[0] & (~0x1f);
+    size_t codeEnd=(regValues[1] | 0x1f)+1;
+    size_t dataStart=regValues[2] & (~0x1f);
+    size_t dataEnd=(regValues[3] | 0x1f)+1;
+    #else
     size_t codeStart=regValues[0] & (~0x1f);
     size_t codeEnd=codeStart+(1<<(((regValues[1]>>1) & 31)+1));
     size_t dataStart=regValues[2] & (~0x1f);
     size_t dataEnd=dataStart+(1<<(((regValues[3]>>1) & 31)+1));
-    size_t base=reinterpret_cast<size_t>(str);
+    #endif
+    #else //__MPU_PRESENT==1
+    size_t codeStart=regValues[0];
+    size_t codeEnd=regValues[1];
+    size_t dataStart=regValues[2];
+    size_t dataEnd=regValues[3];
+    #endif //__MPU_PRESENT==1
     if((base>=codeStart) && (base<codeEnd))
         return strnlen(str,codeEnd-base)<codeEnd-base;
     if((base>=dataStart) && (base<dataEnd))

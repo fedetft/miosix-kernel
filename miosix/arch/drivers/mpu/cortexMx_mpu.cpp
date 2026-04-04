@@ -77,8 +77,7 @@ static void IRQconfigureMPURegion(unsigned int region, unsigned int base,
     const unsigned int MPU_RLAR_PXN_Msk=1<<4; //This bit is missing in the ARM .h
     MPU->RNR=region;
     MPU->RBAR=(base & (~(cacheLine-1)))
-             | (executePermitted ? 2<<MPU_RBAR_AP_Pos : 0)
-             | (executePermitted ? 0 : MPU_RBAR_XN_Msk);
+             | (executePermitted ? 2<<MPU_RBAR_AP_Pos : MPU_RBAR_XN_Msk); //W^X
     MPU->RLAR=((base+size-1) & (~(cacheLine-1)))
              | (executePermitted ? 0 : MPU_RLAR_PXN_Msk)
              | (attrIndex<<MPU_RLAR_AttrIndx_Pos)
@@ -94,10 +93,10 @@ static void IRQconfigureMPURegion(unsigned int region, unsigned int base,
     // For this reason, all regions are marked as not shareable
     MPU->RBAR=(base & (~(cacheLine-1))) | MPU_RBAR_VALID_Msk | region;
     MPU->RASR=(executePermitted ? 0 : MPU_RASR_XN_Msk)
-               | 1<<MPU_RASR_AP_Pos //Privileged: RW, unprivileged: no access
-               | MPU_RASR_C_Msk     //Normal, outer/inner write through, no write alloc
-               | 1                  //Enable bit
-               | sizeToMpu(size)<<1;
+             | 1<<MPU_RASR_AP_Pos //Privileged: RW, unprivileged: no access
+             | MPU_RASR_C_Msk     //Normal, outer/inner write through, no write alloc
+             | 1                  //Enable bit
+             | sizeToMpu(size)<<1;
     #endif
 }
 

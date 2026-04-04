@@ -230,16 +230,18 @@ public:
             const unsigned int *imageBase, unsigned int imageSize);
 
     /**
-     * This method is used to configure the Memoy Protection region for a
-     * Process during a context-switch to a userspace thread.
-     * Can only be called inside an IRQ, not even with interrupts disabled
+     * This method is used to configure and enable the Memoy Protection regions
+     * for a Process during a context-switch to a userspace thread.
+     * Can only be called inside an IRQ, not even with interrupts disabled.
+     * NOTE: This function enables the MPU, not interrupts.
      */
     void IRQenable();
 
     /**
-     * This method is used to disable the MPU during a context-switch to a
-     * kernelspace thread.
-     * Can only be called inside an IRQ, not even with interrupts disabled
+     * This method is used to disable the userspace MPU regions during a
+     * context-switch to a kernelspace thread.
+     * Can only be called inside an IRQ, not even with interrupts disabled.
+     * NOTE: This function disables the MPU, not interrupts.
      */
     static void IRQdisable();
 
@@ -300,15 +302,10 @@ private:
     #error Invalid MPUConfiguration for this architecture
     #endif
 
-    #if __CORTEX_M == 33
-    /// ARM-v8m
     ///These value are copied into the MPU registers to configure them
-    unsigned int regValues[6];
-    #else
-    /// ARM-v7m
-    ///These value are copied into the MPU registers to configure them
+    ///Miosix processes only need two regions (code and data), since each MPU
+    ///region requires two registers to be configured, we need 4 registers
     unsigned int regValues[4];
-    #endif
 };
 
 #endif //WITH_PROCESSES
