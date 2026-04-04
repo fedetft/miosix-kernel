@@ -31,6 +31,7 @@
 #include "kernel/error.h"
 #include <cstdio>
 #include <cstring>
+#include <tuple>
 
 using namespace std;
 
@@ -162,6 +163,30 @@ void FaultData::IRQtryAddProgramCounter(unsigned int *userCtxsave,
 // class MPUConfiguration
 //
 
+/**
+ * \internal
+ * Decode the boundaries of an MPU region for a given CPU
+ * \param reg0 First register encoding the region information (RBAR)
+ * \param reg1 Second register encoding the region information (RASR or RLAR)
+ * \return a tuple with the start and end address
+ */
+static tuple<size_t, size_t> decodeMpuRegion(unsigned int reg0, unsigned int reg1)
+{
+    #if __MPU_PRESENT==1
+    #if __CORTEX_M == 33
+    size_t regionStart=reg0 & (~0x1f);
+    size_t regionEnd=(reg1 | 0x1f)+1;
+    #else
+    size_t regionStart=reg0 & (~0x1f);
+    size_t regionEnd=regionStart+(1<<(((reg1>>1) & 31)+1));
+    #endif
+    #else //__MPU_PRESENT==1
+    size_t regionStart=reg0;
+    size_t regionEnd=reg1;
+    #endif //__MPU_PRESENT==1
+    return make_tuple(regionStart,regionEnd);
+}
+
 MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elfSize,
         const unsigned int *imageBase, unsigned int imageSize)
 {
@@ -223,34 +248,23 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
 
 void MPUConfiguration::dumpConfiguration()
 {
-    #if __MPU_PRESENT==1
-    #if __CORTEX_M == 33
     for(int i=0;i<2;i++)
     {
-        unsigned int base=regValues[2*i] & (~0x1f);
-        unsigned int end=(regValues[2*i+1] | 0x1f)+1;
+        size_t base, end;
+        tie(base,end)=decodeMpuRegion(regValues[2*i],regValues[2*i+1]);
+        #if __MPU_PRESENT==1
+        #if __CORTEX_M == 33
         char w=regValues[2*i] & (0b10<<MPU_RBAR_AP_Pos) ? '-' : 'w';
         char x=regValues[2*i] & MPU_RBAR_XN_Msk ? '-' : 'x';
-        iprintf("* MPU region %d 0x%08x-0x%08x r%c%c\n",i+6,base,end,w,x);
-    }
-    #else
-    for(int i=0;i<2;i++)
-    {
-        unsigned int base=regValues[2*i] & (~0x1f);
-        unsigned int end=base+(1<<(((regValues[2*i+1]>>1) & 31)+1));
+        #else
         char w=regValues[2*i+1] & (1<<MPU_RASR_AP_Pos) ? 'w' : '-';
         char x=regValues[2*i+1] & MPU_RASR_XN_Msk ? '-' : 'x';
+        #endif
         iprintf("* MPU region %d 0x%08x-0x%08x r%c%c\n",i+6,base,end,w,x);
-    }
-    #endif
-    #else //__MPU_PRESENT==1
-    for(int i=0;i<2;i++)
-    {
-        unsigned int base=regValues[2*i];
-        unsigned int end=regValues[2*i+1];
+        #else //__MPU_PRESENT==1
         iprintf("* Memory region %d 0x%08x-0x%08x rwx\n",i,base,end);
+        #endif //__MPU_PRESENT==1
     }
-    #endif //__MPU_PRESENT==1
 }
 
 unsigned int MPUConfiguration::roundSizeForMPU(unsigned int size)
@@ -292,24 +306,9 @@ pair<const unsigned int*, unsigned int> MPUConfiguration::roundRegionForMPU(
 bool MPUConfiguration::withinForReading(const void *ptr, size_t size) const
 {
     size_t base=reinterpret_cast<size_t>(ptr);
-    #if __MPU_PRESENT==1
-    #if __CORTEX_M == 33
-    size_t codeStart=regValues[0] & (~0x1f);
-    size_t codeEnd=(regValues[1] | 0x1f)+1;
-    size_t dataStart=regValues[2] & (~0x1f);
-    size_t dataEnd=(regValues[3] | 0x1f)+1;
-    #else
-    size_t codeStart=regValues[0] & (~0x1f);
-    size_t codeEnd=codeStart+(1<<(((regValues[1]>>1) & 31)+1));
-    size_t dataStart=regValues[2] & (~0x1f);
-    size_t dataEnd=dataStart+(1<<(((regValues[3]>>1) & 31)+1));
-    #endif
-    #else //__MPU_PRESENT==1
-    size_t codeStart=regValues[0];
-    size_t codeEnd=regValues[1];
-    size_t dataStart=regValues[2];
-    size_t dataEnd=regValues[3];
-    #endif //__MPU_PRESENT==1
+    size_t codeStart,codeEnd,dataStart,dataEnd;
+    tie(codeStart,codeEnd)=decodeMpuRegion(regValues[0],regValues[1]);
+    tie(dataStart,dataEnd)=decodeMpuRegion(regValues[2],regValues[3]);
     //The last check is to prevent a wraparound to be considered valid
     return (   (base>=codeStart && base+size<=codeEnd)
             || (base>=dataStart && base+size<=dataEnd)) && base+size>=base;
@@ -320,18 +319,8 @@ bool MPUConfiguration::withinForWriting(const void *ptr, size_t size) const
     //Must be callable also with interrupts disabled,
     //used by FaultData::IRQtryAddProgramCounter()
     size_t base=reinterpret_cast<size_t>(ptr);
-    #if __MPU_PRESENT==1
-    #if __CORTEX_M == 33
-    size_t dataStart=regValues[2] & (~0x1f);
-    size_t dataEnd=(regValues[3] | 0x1f)+1;
-    #else
-    size_t dataStart=regValues[2] & (~0x1f);
-    size_t dataEnd=dataStart+(1<<(((regValues[3]>>1) & 31)+1));
-    #endif
-    #else //__MPU_PRESENT==1
-    size_t dataStart=regValues[2];
-    size_t dataEnd=regValues[3];
-    #endif //__MPU_PRESENT==1
+    size_t dataStart,dataEnd;
+    tie(dataStart,dataEnd)=decodeMpuRegion(regValues[2],regValues[3]);
     //The last check is to prevent a wraparound to be considered valid
     return base>=dataStart && base+size<=dataEnd && base+size>=base;
 }
@@ -339,24 +328,9 @@ bool MPUConfiguration::withinForWriting(const void *ptr, size_t size) const
 bool MPUConfiguration::withinForReading(const char* str) const
 {
     size_t base=reinterpret_cast<size_t>(str);
-    #if __MPU_PRESENT==1
-    #if __CORTEX_M == 33
-    size_t codeStart=regValues[0] & (~0x1f);
-    size_t codeEnd=(regValues[1] | 0x1f)+1;
-    size_t dataStart=regValues[2] & (~0x1f);
-    size_t dataEnd=(regValues[3] | 0x1f)+1;
-    #else
-    size_t codeStart=regValues[0] & (~0x1f);
-    size_t codeEnd=codeStart+(1<<(((regValues[1]>>1) & 31)+1));
-    size_t dataStart=regValues[2] & (~0x1f);
-    size_t dataEnd=dataStart+(1<<(((regValues[3]>>1) & 31)+1));
-    #endif
-    #else //__MPU_PRESENT==1
-    size_t codeStart=regValues[0];
-    size_t codeEnd=regValues[1];
-    size_t dataStart=regValues[2];
-    size_t dataEnd=regValues[3];
-    #endif //__MPU_PRESENT==1
+    size_t codeStart,codeEnd,dataStart,dataEnd;
+    tie(codeStart,codeEnd)=decodeMpuRegion(regValues[0],regValues[1]);
+    tie(dataStart,dataEnd)=decodeMpuRegion(regValues[2],regValues[3]);
     if((base>=codeStart) && (base<codeEnd))
         return strnlen(str,codeEnd-base)<codeEnd-base;
     if((base>=dataStart) && (base<dataEnd))
