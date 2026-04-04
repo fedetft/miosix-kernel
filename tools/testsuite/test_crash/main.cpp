@@ -31,7 +31,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cerrno>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 //Choose whether arg are read from command line or stdin
 #define ARG_FROM_CMDLINE
@@ -86,7 +89,7 @@ void tryBkpt()
 }
 
 /**
- * Arbitrary address read
+ * Arbitrary address memory read
  */
 void tryRead()
 {
@@ -94,11 +97,33 @@ void tryRead()
 }
 
 /**
- * Arbitrary address write
+ * Arbitrary address memory write
  */
 void tryWrite()
 {
     *address()=0;
+}
+
+/**
+ * Arbitrary address memory read through syscall
+ */
+void trySysRead()
+{
+    //To write to file, kernel would need to read memory
+    int fd=open("/dev/null",O_WRONLY);
+    if(write(fd,address(),1)!=-1 || errno!=EFAULT) exit(1);
+    exit(0);
+}
+
+/**
+ * Arbitrary address memory write through syscall
+ */
+void trySysWrite()
+{
+    //To read from file, kernel would need to write memory
+    int fd=open("/dev/zero",O_RDONLY);
+    if(read(fd,address(),1)!=-1 || errno!=EFAULT) exit(1);
+    exit(0);
 }
 
 /**
@@ -229,6 +254,8 @@ int main(int argc, char *argv[])
         case 'b': tryBkpt();     break;
         case 'r': tryRead();     break;
         case 'w': tryWrite();    break;
+        case 'R': trySysRead();  break;
+        case 'W': trySysWrite(); break;
         case 'x': tryExec();     break;
         case 'e': tryEpsr();     break;
         case 'i': tryInvalid();  break;

@@ -4514,7 +4514,15 @@ void test_syscalls_process()
 // Crash test (executed in a separate process)
 //
 
-void runCrash(const string& arg1, const string& arg2="", bool mustfail=true)
+enum class ExpectedFailure
+{
+    MustSegfault, //Process must segfault, test failed in any other case
+    MustExit0,    //Process must exit(0, test failed in any other case
+    CanSegfault   //Process can segfault, test failed if the kernel crashes
+};
+
+void runCrash(const string& arg1, const string& arg2="",
+              ExpectedFailure ef=ExpectedFailure::MustSegfault)
 {
     const char *arg[] =
     {
@@ -4527,8 +4535,16 @@ void runCrash(const string& arg1, const string& arg2="", bool mustfail=true)
     for(int i=0; arg[i]!=nullptr; i++) iprintf(" %s",arg[i]);
     putchar('\n');
     int exitcode=spawnAndWait(arg);
-    if(mustfail==false) return;
-    if(WIFEXITED(exitcode)) fail("test process did not crash");
+    switch(ef)
+    {
+        case ExpectedFailure::MustSegfault:
+            if(WIFEXITED(exitcode)) fail("test process did not crash");
+            break;
+        case ExpectedFailure::MustExit0:
+            if(!WIFEXITED(exitcode) || WEXITSTATUS(exitcode)!=0)
+                fail("test process did not exit(0)");
+        default: break;
+    }
 }
 
 template<typename T>
@@ -4536,17 +4552,17 @@ std::string ptr(T val)
 {
     char result[16];
     sniprintf(result,16,"0x%x",reinterpret_cast<unsigned int>(val));
-    puts(result);
+    //puts(result);
     return result;
 }
 
 void test_crash_process()
 {
-    #ifdef __MPU_PRESENT
-    int i=1234;
     ledOn();
-    runCrash("z","",false); //This does not crash if the CPU has no HW divider
-    runCrash("l","",false); //It's ok if this one does not end in a crash
+    int i=1234;
+    #ifdef __MPU_PRESENT
+    runCrash("z","",ExpectedFailure::CanSegfault); //Does not crash if the CPU has no HW divider
+    runCrash("l","",ExpectedFailure::CanSegfault); //It's ok if this one does not end in a crash
     runCrash("b"); //This test only passes if a debugger is NOT connected
     runCrash("r","0"); //Read nullptr
     runCrash("r",ptr(&i)); //Read kernel data
@@ -4554,6 +4570,17 @@ void test_crash_process()
     runCrash("w","0"); //Write nullptr
     runCrash("w",ptr(&i)); //Write kernel data
     runCrash("w","0xf0000000"); //Write invalid address
+    #else
+    puts("\nArchitecture lacks memory protection, most tests skipped");
+    #endif
+    //Syscall validation does not depend on MPU, always run those tests
+    runCrash("R","0",ExpectedFailure::MustExit0); //Read nullptr
+    runCrash("R",ptr(&i),ExpectedFailure::MustExit0); //Read kernel data
+    runCrash("R","0xf0000000",ExpectedFailure::MustExit0); //Read invalid address
+    runCrash("W","0",ExpectedFailure::MustExit0); //Write nullptr
+    runCrash("W",ptr(&i),ExpectedFailure::MustExit0); //Write kernel data
+    runCrash("W","0xf0000000",ExpectedFailure::MustExit0); //Write invalid address
+    #ifdef __MPU_PRESENT
     runCrash("x","0"); //Execute nullptr
     runCrash("x","1"); //Execute nullptr (thumb bit set)
     runCrash("x",ptr(reinterpret_cast<unsigned int>(&puts)-1)); //Execute kernel code
@@ -4573,12 +4600,10 @@ void test_crash_process()
     runCrash("m","0"); //Usage fault with stack to nullptr
     runCrash("-");
     runCrash("+");
+    #endif
     if(i!=1234) fail("Kernel memory was modified");
     ledOff();
     puts("\nKernel did not crash, all good");
-    #else
-    puts("\nArchitecture does not have memory protection, test not done");
-    #endif
 }
 
 //
