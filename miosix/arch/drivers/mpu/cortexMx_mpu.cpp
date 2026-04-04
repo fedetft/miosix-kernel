@@ -66,7 +66,7 @@ inline void IRQenableMPUatBoot()
  */
 
 static void IRQconfigureMPURegion(unsigned int region, unsigned int base,
-    unsigned int size, bool executePermitted, unsigned char attrIndex)
+    unsigned int size, bool executePermitted)
 {
     #ifndef __CORTEX_M
     #error This MPU implementation works only on ARM CORTEX M
@@ -80,12 +80,11 @@ static void IRQconfigureMPURegion(unsigned int region, unsigned int base,
              | (executePermitted ? 2<<MPU_RBAR_AP_Pos : MPU_RBAR_XN_Msk); //W^X
     MPU->RLAR=((base+size-1) & (~(cacheLine-1)))
              | (executePermitted ? 0 : MPU_RLAR_PXN_Msk)
-             | (attrIndex<<MPU_RLAR_AttrIndx_Pos)
+             | (0<<MPU_RLAR_AttrIndx_Pos) //NOTE: only region 0 enabled in MAIR0
              | 1;                 //Enable bit
     asm volatile("dsb":::"memory");
     #else
     // ARMv7-M
-    (void) attrIndex; // Unused
     // NOTE: The ARM documentation is unclear about the effect of the shareable
     // bit on a single core architecture. Experimental evidence on an STM32F476
     // shows that setting it in IRQconfigureMPU for the internal RAM region
@@ -104,16 +103,8 @@ void IRQconfigureMPU(const unsigned int *xramBase, unsigned int xramSize)
 {
     #if __CORTEX_M == 33U
     // ARMv8-M MPU attributes are stored in separate registers, indexed in RLAR
-    //TODO: Alain code configured three regions for devices, RAM, flash, but
-    //for MPU regions for RAM and flash and attributes are the same, can't we
-    //only use region?
-    MPU->MAIR0 = (0x00 << 0)   // Device-nGnRnE
-               | (0xaa << 8)   // Normal, outer/inner write through, no write alloc
-               | (0xaa << 16); // Normal, outer/inner write through, no write alloc
+    MPU->MAIR0 = (0xaa << 0); // Normal, outer/inner write through, no write alloc
     MPU->MAIR1 = 0;
-    // TODO: do we need this? Isn't this implicit like for ARMv7-M?
-    // Device area without caching, gathering and reordering
-    IRQconfigureMPURegion(3,0x40000000,0x20000000,false,0);
     #endif
 
     // NOTE: using regions starting from 0 for the kernel because in the ARM MPU
@@ -121,8 +112,8 @@ void IRQconfigureMPU(const unsigned int *xramBase, unsigned int xramSize)
     // priority. The lower regions used by the kernel by default forbid access
     // to unprivileged code, while the higher numbered ones are used by processes
     // to override the default deny policy for the process-specific memory.
-    IRQconfigureMPURegion(0,0x00000000,0x20000000,true,2);
-    IRQconfigureMPURegion(1,0x20000000,0x20000000,false,1);
+    IRQconfigureMPURegion(0,0x00000000,0x20000000,true);
+    IRQconfigureMPURegion(1,0x20000000,0x20000000,false);
 
     #ifdef __CODE_IN_XRAM
     bool allowCodeInXram=true;
@@ -130,7 +121,7 @@ void IRQconfigureMPU(const unsigned int *xramBase, unsigned int xramSize)
     bool allowCodeInXram=false;
     #endif //__CODE_IN_XRAM
     if(xramSize)
-        IRQconfigureMPURegion(2,reinterpret_cast<unsigned int>(xramBase),xramSize,allowCodeInXram,1);
+        IRQconfigureMPURegion(2,reinterpret_cast<unsigned int>(xramBase),xramSize,allowCodeInXram);
     IRQenableMPUatBoot();
     
     #if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT==1)

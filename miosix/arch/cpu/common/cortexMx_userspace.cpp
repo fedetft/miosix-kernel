@@ -210,7 +210,7 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
                 | 3<<MPU_RBAR_AP_Pos; //Privileged: RO, unprivileged: RO
     regValues[1]=((reinterpret_cast<unsigned int>(elfBase)+elfSize-1) & (~0x1f))
                 | MPU_RLAR_PXN_Msk    //Not executable from the privileged side
-                | 1<<MPU_RLAR_AttrIndx_Pos // TODO SRAM, defined in cortexMx_mpu.cpp
+                | 0<<MPU_RLAR_AttrIndx_Pos //NOTE: regions in cortexMx_mpu.cpp
                 | 1; //Enable bit
     // regValues indexes 2/3 are for RNR number 7
     regValues[2]=(reinterpret_cast<unsigned int>(imageBase) & (~0x1f))
@@ -218,7 +218,7 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
                 | MPU_RBAR_XN_Msk;   //Not executable
     regValues[3]=((reinterpret_cast<unsigned int>(imageBase)+imageSize-1) & (~0x1f))
                 | MPU_RLAR_PXN_Msk    //Not executable from the privileged side
-                | 1<<MPU_RLAR_AttrIndx_Pos // SRAM, defined in cortexMx_mpu.cpp
+                | 0<<MPU_RLAR_AttrIndx_Pos //NOTE: regions in cortexMx_mpu.cpp
                 | 1; //Enable bit
     #else // __CORTEX_M == 33
     regValues[0]=(reinterpret_cast<unsigned int>(elfBase) & (~0x1f))
