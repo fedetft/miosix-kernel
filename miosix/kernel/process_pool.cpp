@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2012 - 2024 by Terraneo Federico and Luigi Rucco        *
+ *   Copyright (C) 2012 - 2026 by Terraneo Federico and Luigi Rucco        *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -29,8 +29,13 @@
 #include <stdexcept>
 #include <cstring>
 #include <algorithm>
+#include <bit>
 #ifndef TEST_ALLOC
 #include "interfaces_private/userspace.h"
+#else //TEST_ALLOC
+#include <iostream>
+#include <typeinfo>
+#include <sstream>
 #endif //TEST_ALLOC
 
 using namespace std;
@@ -40,7 +45,7 @@ using namespace std;
 namespace miosix {
 
 ///This constant specifies the size of the minimum allocatable block,
-///in bits. So for example 10 is 1KB.
+///in bits. The minimum supported block size is 2^10 or 1KB.
 static const unsigned int blockBits=10;
 ///This constant is the the size of the minimum allocatable block, in bytes.
 static const unsigned int blockSize=1<<blockBits;
@@ -61,18 +66,22 @@ ProcessPool& ProcessPool::instance()
     #endif //TEST_ALLOC
 }
     
-pair<unsigned int *, unsigned int> ProcessPool::allocate(unsigned int size)
+tuple<unsigned int *, unsigned int> ProcessPool::allocate(unsigned int size)
 {
-    #ifndef TEST_ALLOC
-    Lock<KernelMutex> l(mutex);
-    size=MPUConfiguration::roundSizeForMPU(max(size,blockSize));
-    #else //TEST_ALLOC
-    //Size adjustment not supported during test_alloc due to missing mpu header
-    if((size & (size - 1)) || size<blockSize)
-            throw runtime_error("ProcessPool::allocate unsupported size");
-    #endif //TEST_ALLOC
+    //This allocator was originally designed to round each allocation to the
+    //next power of two, and to return a pointer aligned to the (rounded-up)
+    //size, as this was required by the MPU of ARMv7/ARMv6 CPUs.
+    //Newer ARMv8 CPUs support any size that is a multiple of 32 bytes and only
+    //require 32 byte alignment.
+    //However, the old contraint also solved the problem of allocator
+    //fragmentation so for the time being, regardless of the CPU version, we
+    //always round sizes to the next power of 2, and return aligned pointers.
+    size=std::bit_ceil(max(size,blockSize));
     if(size>poolSize) throw bad_alloc();
     
+    #ifndef TEST_ALLOC
+    Lock<KernelMutex> l(mutex);
+    #endif //TEST_ALLOC
     unsigned int offset=0;
     if(reinterpret_cast<unsigned int>(poolBase) % size)
         offset=size-(reinterpret_cast<unsigned int>(poolBase) % size);
@@ -93,7 +102,7 @@ pair<unsigned int *, unsigned int> ProcessPool::allocate(unsigned int size)
         for(unsigned int j=0;j<sizeBit;j++) setBit(i+j);
         unsigned int *result=poolBase+i*blockSize/sizeof(unsigned int);
         allocatedBlocks[result]=size;
-        return make_pair(result,size);
+        return {result,size};
     }
     throw bad_alloc();
 }
@@ -103,14 +112,14 @@ void ProcessPool::deallocate(unsigned int *ptr)
     #ifndef TEST_ALLOC
     Lock<KernelMutex> l(mutex);
     #endif //TEST_ALLOC
-    map<unsigned int*, unsigned int>::iterator it= allocatedBlocks.find(ptr);
+    auto it=allocatedBlocks.find(ptr);
     if(it==allocatedBlocks.end())
     #ifndef TEST_ALLOC
         errorHandler(Error::UNEXPECTED);
     #else //TEST_ALLOC
         throw runtime_error("ProcessPool::deallocate corrupted pointer");
     #endif //TEST_ALLOC
-    unsigned int size =(it->second)/blockSize;
+    unsigned int size=(it->second)/blockSize;
     unsigned int firstBit=(reinterpret_cast<unsigned int>(ptr)-
                            reinterpret_cast<unsigned int>(poolBase))/blockSize;
     for(unsigned int i=firstBit;i<firstBit+size;i++) clearBit(i);
@@ -124,28 +133,17 @@ void ProcessPool::deallocate(unsigned int *ptr)
 void ProcessPool::printAllocatedBlocks()
 {
     using namespace std;
-    map<unsigned int*, unsigned int>::iterator it;
     cout<<endl;
-    for(it=allocatedBlocks.begin();it!=allocatedBlocks.end();it++)
-        cout <<"block of size " << it->second
-                << " allocated @ " << it->first<<endl;
+    for(auto it : allocatedBlocks)
+        cout<<"block of size "<<it.second<<" allocated @ "<<it.first<<endl;
 
-    cout<<"Bitmap:"<<endl;
-    const int SHIFT = 8 * sizeof(unsigned int);
-    const unsigned int MASK = 1 << (SHIFT-1);
-    int bitarray[32];
-    for(int i=0; i<(poolSize/blockSize)/(sizeof(unsigned int)*8);i++)
+    cout<<"Bitmap:";
+    for(unsigned int i=0;i<poolSize/blockSize;i++)
     {
-        int value=bitmap[i];
-        for ( int j = 0; j < SHIFT; j++ )
-        {
-            bitarray[31-j]= ( value & MASK ? 1 : 0 );
-            value <<= 1;
-        }
-        for(int j=0;j<32;j++)
-            cout<<bitarray[j];
-        cout << endl;
+        if(i%32==0) cout<<endl;
+        cout<<testBit(i) ? '1' : '0';
     }
+    cout<<endl;
 }
 #endif //TEST_ALLOC
 
@@ -165,12 +163,13 @@ ProcessPool::~ProcessPool()
 } //namespace miosix
 
 #ifdef TEST_ALLOC
-//g++ -m32 -o pp -DTEST_ALLOC -DWITH_PROCESSES process_pool.cpp && ./pp
+//g++ -m32 -std=c++23 -o pp -DTEST_ALLOC -DWITH_PROCESSES process_pool.cpp && ./pp
+
 int main()
 {
     using namespace miosix;
     ProcessPool& pool=ProcessPool::instance();
-    while(1)
+    for(;;)
     {
         cout<<"a<size(exponent)>|d<addr>"<<endl;
         unsigned int param;
@@ -184,7 +183,9 @@ int main()
             case 'a':
                 ss>>dec>>param;
                 try {
-                    pool.allocate(1<<param);
+                    unsigned int *ptr; unsigned int size;
+                    tie(ptr,size)=pool.allocate(param);
+                    cout<<"ptr="<<ptr<<",size="<<size<<endl;
                 } catch(exception& e) {
                     cout<<typeid(e).name();
                 }
