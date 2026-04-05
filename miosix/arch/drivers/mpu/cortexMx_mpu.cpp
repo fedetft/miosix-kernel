@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2018 by Filippi Nicole, Padalino Luca                   *
- *   Copyright (C) 2026 by Alain Carlucci                                  *
+ *   Copyright (C) 2026 by Alain Carlucci, Terraneo Federico               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -60,7 +60,7 @@ inline void IRQenableMPUatBoot()
  * should be avoided here
  * \param base base address, aligned to a 32Byte cache line
  * \param size size, must be at least 32. For ARMv7M and lower must also be a
- * power of 2, or it is rounded to the next power of 2
+ * power of 2
  * \param executePermitted if true configure MPU to allow code execution,
  * if false configure MPU to trap code execution for W^X protection
  */
@@ -68,10 +68,6 @@ inline void IRQenableMPUatBoot()
 static void IRQconfigureMPURegion(unsigned int region, unsigned int base,
     unsigned int size, bool executePermitted)
 {
-    #ifndef __CORTEX_M
-    #error This MPU implementation works only on ARM CORTEX M
-    #endif
-
     #if __CORTEX_M == 33U
     // ARMv8-M
     const unsigned int MPU_RLAR_PXN_Msk=1<<4; //This bit is missing in the ARM .h
@@ -130,6 +126,7 @@ void IRQconfigureMPU(const unsigned int *xramBase, unsigned int xramSize)
     #endif
 }
 
+#if __CORTEX_M != 33U
 unsigned int sizeToMpu(unsigned int size)
 {
     if(extraChecks!=ExtraChecks::None && size<32) errorHandler(Error::UNEXPECTED);
@@ -137,5 +134,6 @@ unsigned int sizeToMpu(unsigned int size)
     if(size & (size-1)) result++;
     return result;
 }
+#endif
 
 } //namespace miosix

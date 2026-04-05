@@ -28,6 +28,10 @@
 #pragma once
 #include "interfaces/arch_registers.h"
 
+#ifndef __CORTEX_M
+#error This MPU implementation works only on ARM CORTEX M
+#endif
+
 namespace miosix {
 
 /**
@@ -46,15 +50,21 @@ namespace miosix {
  */
 void IRQconfigureMPU(const unsigned int *xramBase=nullptr, unsigned int xramSize=0);
 
+
+#if __CORTEX_M != 33U
 /**
  * \internal
- * Convert a memory region size to a bit pattern that can be written in the MPU
- * registers.
- * On some architectures the MPU is also used to set cacheability regions in the
- * address space, thus this function is useful also when processes are disabled
- * \param size in bytes >32
+ * ARMv7M and lower CPUs only allow MPU regions whose size is a power of two,
+ * and encode the size as the log2 of the actual size with an offset. From ARMv8
+ * onward, any region size that is a multiple of 32 bytes is supported, so this
+ * function is no longer required.
+ *
+ * This function convert a memory region size to a bit pattern that can be
+ * written in ARMv7 or lowwer MPU registers.
+ * \param size in bytes. Must be at least 32
  * \return a value that can be written to MPU->RASR to represent that size
  */
 unsigned int sizeToMpu(unsigned int size);
+#endif
 
 } //namespace miosix

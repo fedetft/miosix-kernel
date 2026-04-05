@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2018-2024 by Terraneo Federico                          *
+ *   Copyright (C) 2018-2026 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -31,7 +31,7 @@
 #include "kernel/error.h"
 #include <cstdio>
 #include <cstring>
-#include <tuple>
+#include <bit>
 
 using namespace std;
 
@@ -69,11 +69,11 @@ void initUserThreadCtxsave(unsigned int *ctxsave, unsigned int pc, int argc,
     ctxsave[0]=reinterpret_cast<unsigned int>(stackPtr);              //--> psp
     ctxsave[6]=reinterpret_cast<unsigned int>(gotBase);               //--> r9
     //leaving the content of r4-r8,r10-r11 uninitialized
-#if __FPU_PRESENT==1
+    #if __FPU_PRESENT==1
     //NOTE: only armv7m with fpu has lr in ctxsave
     ctxsave[9]=0xfffffffd; //EXC_RETURN=thread mode, use psp, no floating ops
     //leaving the content of s16-s31 uninitialized
-#endif //__FPU_PRESENT==1
+    #endif //__FPU_PRESENT==1
 }
 
 //
@@ -184,7 +184,7 @@ static tuple<size_t, size_t> decodeMpuRegion(unsigned int reg0, unsigned int reg
     size_t regionStart=reg0;
     size_t regionEnd=reg1;
     #endif //__MPU_PRESENT==1
-    return make_tuple(regionStart,regionEnd);
+    return {regionStart,regionEnd};
 }
 
 MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elfSize,
@@ -267,14 +267,17 @@ void MPUConfiguration::dumpConfiguration()
     }
 }
 
-unsigned int MPUConfiguration::roundSizeForMPU(unsigned int size)
-{
-    return 1<<(sizeToMpu(size)+1);
-}
-
-pair<const unsigned int*, unsigned int> MPUConfiguration::roundRegionForMPU(
+tuple<const unsigned int*, unsigned int> MPUConfiguration::roundRegionForMPU(
     const unsigned int *ptr, unsigned int size)
 {
+    unsigned int p=reinterpret_cast<unsigned int>(ptr);
+    #if __CORTEX_M == 33
+    //ARMv8+ has no power of 2 size constraint, just align pointer to 32 byte
+    //and make size a multiple of 32 bytes
+    unsigned int ap=p & (~0x1f);
+    size+=p-ap;
+    return {reinterpret_cast<const unsigned int*>(ap), (size+0x1f) & (~0x1f)};
+    #else
     constexpr unsigned int maxSize=0x80000000;
     //NOTE: worst case is p=2147483632 size=32, a memory block in the middle of
     //the 2GB mark. To meet the constraint of returning a pointer aligned to its
@@ -289,18 +292,18 @@ pair<const unsigned int*, unsigned int> MPUConfiguration::roundRegionForMPU(
     //flash memory, and the memory is always aligned to its size, so the maximum
     //aligned block this algorithm would return is just the entire flash memory,
     //whose size is far less than 2GB in modern microcontrollers.
-    unsigned int p=reinterpret_cast<unsigned int>(ptr);
-    unsigned int x=roundSizeForMPU(size);
+    unsigned int x=std::bit_ceil(size);
     for(;;)
     {
         if(x>=maxSize) errorHandler(Error::UNEXPECTED);
         unsigned int ap=p & (~(x-1));
         unsigned int addsz=p-ap;
-        unsigned int y=roundSizeForMPU(size+addsz);
+        unsigned int y=std::bit_ceil(size+addsz);
         //iprintf("ap=%u addsz=%u x=%u y=%u\n",ap,addsz,x,y);
         if(y==x) return {reinterpret_cast<const unsigned int*>(ap),x};
         x=y;
     }
+    #endif
 }
 
 bool MPUConfiguration::withinForReading(const void *ptr, size_t size) const

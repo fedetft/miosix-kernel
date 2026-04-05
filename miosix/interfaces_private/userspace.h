@@ -33,7 +33,7 @@
 #endif //COMPILING_MIOSIX
 
 #include <cstddef>
-#include <utility>
+#include <tuple>
 #include "config/miosix_settings.h"
 #include "interfaces/cpu_const.h"
 
@@ -252,17 +252,6 @@ public:
 
     /**
      * Some MPU implementations may not allow regions of arbitrary size,
-     * this function allows to round a size up to the minimum value that
-     * the MPU support.
-     * \param size the size of a memory area to be configured as an MPU
-     * region
-     * \return the size rounded to the minimum MPU region allowed that is
-     * greater or equal to the given size
-     */
-    static unsigned int roundSizeForMPU(unsigned int size);
-
-    /**
-     * Some MPU implementations may not allow regions of arbitrary size,
      * this function allows to round a memory region up to the minimum value
      * that the MPU support.
      * \param ptr pointer to the original memory region
@@ -270,7 +259,7 @@ public:
      * \return a pair with a possibly enlarged memory region which contains the
      * original memory region but is aligned to be used as an MPU region
      */
-    static std::pair<const unsigned int*, unsigned int>
+    static std::tuple<const unsigned int*, unsigned int>
     roundRegionForMPU(const unsigned int *ptr, unsigned int size);
 
     /**
