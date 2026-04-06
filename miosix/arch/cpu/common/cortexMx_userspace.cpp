@@ -239,10 +239,10 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
     #warning architecture lacks MPU, memory protection for processes unsupported
     //Although we have no MPU, store enough information to still enable checking
     //syscall parameters in withinForReading()/withinForWriting()
-    regValues[0]=elfBase;
-    regValues[1]=elfBase+elfSize;
-    regValues[2]=imageBase;
-    regValues[3]=imageBase+imageSize;
+    regValues[0]=reinterpret_cast<unsigned int>(elfBase);
+    regValues[1]=reinterpret_cast<unsigned int>(elfBase)+elfSize;
+    regValues[2]=reinterpret_cast<unsigned int>(imageBase);
+    regValues[3]=reinterpret_cast<unsigned int>(imageBase)+imageSize;
     #endif //__MPU_PRESENT==1
 }
 
