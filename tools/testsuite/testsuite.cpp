@@ -4560,7 +4560,7 @@ void test_crash_process()
 {
     ledOn();
     int i=1234;
-    #ifdef __MPU_PRESENT
+    #if defined(__MPU_PRESENT) && __MPU_PRESENT==1
     runCrash("z","",ExpectedFailure::CanSegfault); //Does not crash if the CPU has no HW divider
     runCrash("l","",ExpectedFailure::CanSegfault); //It's ok if this one does not end in a crash
     runCrash("b"); //This test only passes if a debugger is NOT connected
@@ -4580,7 +4580,7 @@ void test_crash_process()
     runCrash("W","0",ExpectedFailure::MustExit0); //Write nullptr
     runCrash("W",ptr(&i),ExpectedFailure::MustExit0); //Write kernel data
     runCrash("W","0xf0000000",ExpectedFailure::MustExit0); //Write invalid address
-    #ifdef __MPU_PRESENT
+    #if defined(__MPU_PRESENT) && __MPU_PRESENT==1
     runCrash("x","0"); //Execute nullptr
     runCrash("x","1"); //Execute nullptr (thumb bit set)
     runCrash("x",ptr(reinterpret_cast<unsigned int>(&puts)-1)); //Execute kernel code
