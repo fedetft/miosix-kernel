@@ -8,7 +8,7 @@ CHIP_INC := arch/chip/efm32gg
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
-ARCH_SRC :=                                                 \
+BOARD_SRC :=                                                 \
 $(BOARD_INC)/interfaces-impl/bsp.cpp                        \
 $(BOARD_INC)/interfaces-impl/spi.cpp                        \
 $(BOARD_INC)/interfaces-impl/power_manager.cpp              \
@@ -25,8 +25,8 @@ $(BOARD_INC)/interfaces-impl/vht.cpp                        \
 $(BOARD_INC)/interfaces-impl/virtual_clock.cpp
 
 ## Add a #define to allow querying board name
-CFLAGS_BASE   += -D_BOARD_WANDSTEM
-CXXFLAGS_BASE += -D_BOARD_WANDSTEM
+BOARD_CFLAGS   := -D_BOARD_WANDSTEM
+BOARD_CXXFLAGS := -D_BOARD_WANDSTEM
 
 ## Select programmer command line
 ## This is the program that is invoked when the user types

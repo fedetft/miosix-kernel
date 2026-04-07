@@ -11,14 +11,14 @@ LINKER_SCRIPT := $(BOARD_INC)/stm32_128k+20k_rom.ld
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
-ARCH_SRC :=                             \
+BOARD_SRC :=                             \
 $(BOARD_INC)/boot.cpp                   \
 $(BOARD_INC)/interfaces-impl/delays.cpp \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
 ## Add a #define to allow querying board name
-CFLAGS_BASE   += -DBOARD_STM32L010RB_NUCLEO
-CXXFLAGS_BASE += -DBOARD_STM32L010RB_NUCLEO
+BOARD_CFLAGS   := -DBOARD_STM32L010RB_NUCLEO
+BOARD_CXXFLAGS := -DBOARD_STM32L010RB_NUCLEO
 
 ## Select programmer command line
 ## This is the program that is invoked when the user types

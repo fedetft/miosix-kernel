@@ -11,7 +11,7 @@ CHIP_INC := arch/chip/stm32f4
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
-ARCH_SRC :=                                  \
+BOARD_SRC :=                                  \
 arch/drivers/stm32f2_f4_i2c.cpp       \
 arch/drivers/stm32_hardware_rng.cpp   \
 arch/drivers/servo_stm32.cpp          \
@@ -21,8 +21,8 @@ $(BOARD_INC)/interfaces-impl/sleep.cpp       \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
 ## Add a #define to allow querying board name
-CFLAGS_BASE   += -D_BOARD_STM32F4DISCOVERY
-CXXFLAGS_BASE += -D_BOARD_STM32F4DISCOVERY
+BOARD_CFLAGS   := -D_BOARD_STM32F4DISCOVERY
+BOARD_CXXFLAGS := -D_BOARD_STM32F4DISCOVERY
 
 ## Select programmer command line
 ## This is the program that is invoked when the user types

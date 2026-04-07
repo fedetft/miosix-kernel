@@ -37,19 +37,6 @@ BOARD_INC := arch/board/$(OPT_BOARD)
 ##
 -include $(CONFPATH)/config/board/$(OPT_BOARD)/Makefile.inc
 
-## 
-## Default optimization level
-##
-OPT_OPTIMIZATION ?= -O2
-
-##
-## Add required C/CXX flags for the kernel
-##
-CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
-                 $(CFLAGS_BASE)
-CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
-                 $(CXXFLAGS_BASE)
-
 ##
 ## Include the makefile for the selected board
 ##
@@ -60,6 +47,26 @@ include $(KPATH)/$(BOARD_INC)/Makefile.inc
 ## This will define PREFIX
 ##
 include $(KPATH)/$(CHIP_INC)/Makefile.inc
+
+##
+## Assemble list of architecture dependent source files
+##
+ARCH_SRC := $(BOARD_SRC) $(CHIP_SRC)
+
+##
+## Default optimization level
+##
+OPT_OPTIMIZATION ?= -O2
+
+##
+## Add required C/CXX flags for the kernel
+##
+AFLAGS_BASE   := $(BOARD_AFLAGS) $(CHIP_AFLAGS) $(AFLAGS_BASE)
+CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
+                 $(BOARD_CFLAGS) $(CHIP_CFLAGS) $(CFLAGS_BASE)
+CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
+                 $(BOARD_CXXFLAGS) $(CHIP_CXXFLAGS) $(CXXFLAGS_BASE)
+LFLAGS_BASE   := $(BOARD_LFLAGS) $(CHIP_LFLAGS)
 
 ## From compiler prefix form the name of the compiler and other tools
 CC     := $(PREFIX)gcc

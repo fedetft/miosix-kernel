@@ -11,14 +11,14 @@ LINKER_SCRIPT := $(BOARD_INC)/stm32_512k+64k_rom.ld
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
-ARCH_SRC :=                                  \
+BOARD_SRC :=                                  \
 $(BOARD_INC)/boot.cpp                        \
 arch/drivers/sdmmc/sd_stm32f1.cpp           \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
 ## Add a #define to allow querying board name
-CFLAGS_BASE   += -D_BOARD_REDBULL_V2
-CXXFLAGS_BASE += -D_BOARD_REDBULL_V2
+BOARD_CFLAGS   := -D_BOARD_REDBULL_V2
+BOARD_CXXFLAGS := -D_BOARD_REDBULL_V2
 
 ## Select programmer command line
 ## This is the program that is invoked when the user types

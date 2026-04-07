@@ -11,14 +11,14 @@ CHIP_INC := arch/chip/stm32l4
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
-ARCH_SRC :=                                  \
+BOARD_SRC :=                                  \
 $(BOARD_INC)/boot.cpp                        \
 $(BOARD_INC)/interfaces-impl/bsp.cpp         \
 arch/drivers/sdmmc/sd_stm32l4.cpp
 
 ## Add a #define to allow querying board name
-CFLAGS_BASE   += -D_BOARD_STM32L4R9ZI_SENSORTILE
-CXXFLAGS_BASE += -D_BOARD_STM32L4R9ZI_SENSORTILE
+BOARD_CFLAGS   := -D_BOARD_STM32L4R9ZI_SENSORTILE
+BOARD_CXXFLAGS := -D_BOARD_STM32L4R9ZI_SENSORTILE
 
 ## Select programmer command line
 ## This is the program that is invoked when the user types

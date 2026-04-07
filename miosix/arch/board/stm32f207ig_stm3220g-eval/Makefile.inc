@@ -11,14 +11,14 @@ CHIP_INC := arch/chip/stm32f2
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
-ARCH_SRC :=                                  \
+BOARD_SRC :=                                  \
 arch/drivers/sdmmc/sd_stm32f2_f4_f7.cpp     \
 $(BOARD_INC)/boot.cpp                        \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
 ## Add a #define to allow querying board name
-CFLAGS_BASE   += -D_BOARD_STM3220G_EVAL
-CXXFLAGS_BASE += -D_BOARD_STM3220G_EVAL
+BOARD_CFLAGS   := -D_BOARD_STM3220G_EVAL
+BOARD_CXXFLAGS := -D_BOARD_STM3220G_EVAL
 
 ## Select programmer command line
 ## This is the program that is invoked when the user types

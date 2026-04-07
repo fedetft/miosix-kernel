@@ -11,16 +11,16 @@ PREFIX := arm-miosix-eabi-
 CPU_INC := arch/cpu/armv4
 ## Select appropriate compiler flags for both ASM/C/C++/linker
 CPU := -mcpu=arm7tdmi
-AFLAGS_BASE   := $(CPU)
-CFLAGS_BASE   += -D_CHIP_LPC2000 $(CPU) $(OPT_OPTIMIZATION)
-CXXFLAGS_BASE += -D_CHIP_LPC2000 $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
-LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
+CHIP_AFLAGS   := $(CPU)
+CHIP_CFLAGS   := -D_CHIP_LPC2000 $(CPU) $(OPT_OPTIMIZATION)
+CHIP_CXXFLAGS := -D_CHIP_LPC2000 $(CPU) $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
+CHIP_LFLAGS   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
                  -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
                   $(OPT_OPTIMIZATION) -nostdlib
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/common
-ARCH_SRC +=                                    \
+CHIP_SRC :=                                    \
 arch/cpu/armv4/interfaces-impl/cpu.cpp         \
 arch/cpu/armv4/interfaces-impl/interrupts.cpp  \
 arch/drivers/os_timer/lpc2000_os_timer.cpp     \

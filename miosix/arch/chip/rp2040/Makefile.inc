@@ -11,19 +11,19 @@ POSTLD := mx-postlinker
 CPU_INC := arch/cpu/armv6m
 ## Select appropriate compiler flags for both ASM/C/C++/linker
 CPU := -mcpu=cortex-m0plus -mthumb
-AFLAGS_BASE   := $(CPU)
-CFLAGS_BASE   += -D_CHIP_RP2040 $(CPU) \
+CHIP_AFLAGS   := $(CPU)
+CHIP_CFLAGS   := -D_CHIP_RP2040 $(CPU) \
                  $(OPT_OPTIMIZATION)
-CXXFLAGS_BASE += -D_CHIP_RP2040 $(CPU) \
+CHIP_CXXFLAGS := -D_CHIP_RP2040 $(CPU) \
                  $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
-LFLAGS_BASE   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
+CHIP_LFLAGS   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
                  -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
                  $(OPT_OPTIMIZATION) -nostdlib
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/common
 
-ARCH_SRC +=                                              \
+CHIP_SRC :=                                              \
 arch/cpu/armv6m/interfaces-impl/cpu.cpp                  \
 arch/cpu/common/cortexMx_interrupts.cpp                  \
 arch/drivers/mpu/cortexMx_mpu.cpp                        \

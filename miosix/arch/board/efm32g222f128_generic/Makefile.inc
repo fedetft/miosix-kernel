@@ -11,7 +11,7 @@ LINKER_SCRIPT := $(BOARD_INC)/efm32_128k+16k_rom_bootloader.ld
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
-ARCH_SRC :=                                                 \
+BOARD_SRC :=                                                 \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
 ## Select programmer command line
