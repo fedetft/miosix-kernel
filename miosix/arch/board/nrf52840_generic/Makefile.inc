@@ -4,7 +4,7 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/chip/nrf52
+CHIP_INC := arch/chip/nrf52
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/nrf_1024k+256k_rom.ld

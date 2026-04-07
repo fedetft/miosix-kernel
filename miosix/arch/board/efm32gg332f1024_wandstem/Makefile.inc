@@ -4,7 +4,7 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/chip/efm32gg
+CHIP_INC := arch/chip/efm32gg
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>

@@ -36,6 +36,6 @@ arch/drivers/serial/stm32_serial_common.cpp              \
 arch/drivers/dcc.cpp                                     \
 arch/drivers/sdmmc/sd_stm32h7.cpp                        \
 arch/drivers/clock/stm32h7_pll.cpp                       \
-$(ARCH_INC)/interfaces-impl/delays.cpp                   \
-$(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+$(CHIP_INC)/interfaces-impl/delays.cpp                   \
+$(CHIP_INC)/interfaces-impl/poweroff.cpp                 \
 arch/CMSIS/Device/ST/STM32H7xx/Source/Templates/system_stm32h7xx.cpp

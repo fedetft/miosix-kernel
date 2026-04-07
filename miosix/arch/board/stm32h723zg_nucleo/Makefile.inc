@@ -4,7 +4,7 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/chip/stm32h7
+CHIP_INC := arch/chip/stm32h7
 
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options

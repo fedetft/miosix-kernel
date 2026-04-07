@@ -4,7 +4,7 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/chip/stm32f7
+CHIP_INC := arch/chip/stm32f7
 
 ## The stm32f746 lacks the double precision FPU, so we will build for m4
 CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16

@@ -34,6 +34,6 @@ arch/drivers/gpio/stm32_gpio.cpp                         \
 arch/drivers/serial/stm32f4_serial.cpp                   \
 arch/drivers/serial/stm32_serial_common.cpp              \
 arch/drivers/dcc.cpp                                     \
-$(ARCH_INC)/interfaces-impl/delays.cpp                   \
-$(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+$(CHIP_INC)/interfaces-impl/delays.cpp                   \
+$(CHIP_INC)/interfaces-impl/poweroff.cpp                 \
 arch/CMSIS/Device/ST/STM32H5xx/Source/Templates/system_stm32h5xx.cpp

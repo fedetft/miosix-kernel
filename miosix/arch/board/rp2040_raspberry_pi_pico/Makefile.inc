@@ -4,7 +4,7 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/chip/rp2040
+CHIP_INC := arch/chip/rp2040
 
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options
@@ -12,7 +12,7 @@ ARCH_INC := arch/chip/rp2040
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
 ARCH_SRC :=                                                 \
-$(ARCH_INC)/rp2040_boot.cpp                                 \
+$(CHIP_INC)/rp2040_boot.cpp                                 \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
 ## Add a #define to allow querying board name

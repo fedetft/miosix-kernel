@@ -4,7 +4,7 @@
 ##
 
 ## Base directory with header files for this board
-ARCH_INC := arch/chip/lpc2000
+CHIP_INC := arch/chip/lpc2000
 
 ## Select linker script
 LINKER_SCRIPT := arch/board/lpc2138_generic/lpc2138_500k+32k_rom.ld

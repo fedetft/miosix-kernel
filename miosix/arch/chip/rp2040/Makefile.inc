@@ -35,8 +35,8 @@ arch/drivers/serial/rp2040_serial.cpp                    \
 arch/drivers/spi/arm_pl022_spi.cpp                       \
 arch/drivers/spi/rp2040_spi.cpp                          \
 arch/drivers/rp2040_dma.cpp                              \
-$(ARCH_INC)/interfaces-impl/delays.cpp                   \
-$(ARCH_INC)/interfaces-impl/smp.cpp                      \
-$(ARCH_INC)/interfaces-impl/atomic_ops_smp_impl.cpp      \
-$(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+$(CHIP_INC)/interfaces-impl/delays.cpp                   \
+$(CHIP_INC)/interfaces-impl/smp.cpp                      \
+$(CHIP_INC)/interfaces-impl/atomic_ops_smp_impl.cpp      \
+$(CHIP_INC)/interfaces-impl/poweroff.cpp                 \
 arch/CMSIS/Device/RaspberryPi/RP2040/Source/system_RP2040.c

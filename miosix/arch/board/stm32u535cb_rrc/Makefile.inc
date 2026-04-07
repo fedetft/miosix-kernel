@@ -4,7 +4,7 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/chip/stm32u5
+CHIP_INC := arch/chip/stm32u5
 
 ## Select linker script
 LINKER_SCRIPT_PATH := arch/board/stm32u535cb_rrc/

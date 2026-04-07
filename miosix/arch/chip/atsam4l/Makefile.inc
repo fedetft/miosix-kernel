@@ -31,7 +31,7 @@ arch/drivers/sleep/cortexMx_sleep.cpp                    \
 arch/drivers/serial/serial_atsam4l.cpp                   \
 arch/drivers/clock/atsam4l_clock.cpp                     \
 arch/drivers/atsam4l_lcd.cpp                             \
-$(ARCH_INC)/interfaces-impl/sleep.cpp                    \
+$(CHIP_INC)/interfaces-impl/sleep.cpp                    \
 arch/drivers/gpio/atsam4l_gpio.cpp                       \
-$(ARCH_INC)/interfaces-impl/delays.cpp                   \
-$(ARCH_INC)/interfaces-impl/poweroff.cpp
+$(CHIP_INC)/interfaces-impl/delays.cpp                   \
+$(CHIP_INC)/interfaces-impl/poweroff.cpp

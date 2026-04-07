@@ -34,6 +34,6 @@ arch/drivers/serial/stm32f1_f2_f4_serial.cpp              \
 arch/drivers/serial/stm32_serial_common.cpp               \
 arch/drivers/dcc.cpp                                      \
 arch/drivers/sdmmc/sd_stm32f2_f4_f7.cpp                   \
-$(ARCH_INC)/interfaces-impl/delays.cpp                    \
-$(ARCH_INC)/interfaces-impl/poweroff.cpp                  \
+$(CHIP_INC)/interfaces-impl/delays.cpp                    \
+$(CHIP_INC)/interfaces-impl/poweroff.cpp                  \
 arch/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.cpp

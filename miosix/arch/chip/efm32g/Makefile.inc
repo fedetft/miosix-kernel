@@ -31,5 +31,5 @@ arch/drivers/sleep/cortexMx_sleep.cpp                    \
 arch/drivers/gpio/efm32_gpio.cpp                         \
 arch/drivers/serial/efm32_serial.cpp                     \
 arch/drivers/efm32_adc.cpp                               \
-$(ARCH_INC)/interfaces-impl/delays.cpp                   \
-$(ARCH_INC)/interfaces-impl/poweroff.cpp
+$(CHIP_INC)/interfaces-impl/delays.cpp                   \
+$(CHIP_INC)/interfaces-impl/poweroff.cpp

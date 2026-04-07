@@ -33,6 +33,6 @@ arch/drivers/sleep/cortexMx_sleep.cpp                    \
 arch/drivers/gpio/stm32_gpio.cpp                         \
 arch/drivers/serial/stm32f7_serial.cpp                   \
 arch/drivers/serial/stm32_serial_common.cpp              \
-$(ARCH_INC)/interfaces-impl/delays.cpp                   \
-$(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+$(CHIP_INC)/interfaces-impl/delays.cpp                   \
+$(CHIP_INC)/interfaces-impl/poweroff.cpp                 \
 arch/CMSIS/Device/ST/STM32L4xx/Source/Templates/system_stm32l4xx.cpp

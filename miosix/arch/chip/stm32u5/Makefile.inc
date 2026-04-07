@@ -34,7 +34,7 @@ arch/drivers/serial/stm32u5_serial.cpp                   \
 arch/drivers/serial/stm32_serial_common.cpp              \
 arch/drivers/gpio/stm32_gpio.cpp                         \
 arch/drivers/dcc.cpp                                     \
-$(ARCH_INC)/interfaces-impl/delays.cpp                   \
-$(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+$(CHIP_INC)/interfaces-impl/delays.cpp                   \
+$(CHIP_INC)/interfaces-impl/poweroff.cpp                 \
 arch/drivers/clock/stm32u5_pll.cpp                       \
 arch/CMSIS/Device/ST/STM32U5xx/Source/Templates/system_stm32u5xx.cpp

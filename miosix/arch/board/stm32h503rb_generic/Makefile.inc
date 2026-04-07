@@ -4,7 +4,7 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/chip/stm32h5
+CHIP_INC := arch/chip/stm32h5
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_128k+32k_rom.ld

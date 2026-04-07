@@ -29,6 +29,6 @@ arch/drivers/os_timer/nrf52_os_timer.cpp                 \
 arch/drivers/sleep/cortexMx_sleep.cpp                    \
 arch/drivers/dcc.cpp                                     \
 arch/drivers/clock/nrf52_clock.cpp                       \
-$(ARCH_INC)/interfaces-impl/delays.cpp                   \
-$(ARCH_INC)/interfaces-impl/poweroff.cpp                 \
+$(CHIP_INC)/interfaces-impl/delays.cpp                   \
+$(CHIP_INC)/interfaces-impl/poweroff.cpp                 \
 arch/drivers/gpio/nrf52_gpio.cpp

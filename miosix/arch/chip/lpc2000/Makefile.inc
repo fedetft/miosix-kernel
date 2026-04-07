@@ -28,8 +28,8 @@ arch/drivers/sleep/lpc2000_sleep.cpp           \
 arch/drivers/serial/serial_lpc2000.cpp         \
 arch/drivers/sdmmc/sd_lpc2000.cpp              \
 arch/drivers/clock/lpc2000_clock.cpp           \
-$(ARCH_INC)/interfaces-impl/delays.cpp         \
-$(ARCH_INC)/interfaces-impl/poweroff.cpp
+$(CHIP_INC)/interfaces-impl/delays.cpp         \
+$(CHIP_INC)/interfaces-impl/poweroff.cpp
 
 ## Select programmer command line
 ## This is the program that is invoked when the user types 'make program'

@@ -4,7 +4,7 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/chip/stm32u5
+CHIP_INC := arch/chip/stm32u5
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>

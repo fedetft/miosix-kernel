@@ -20,12 +20,12 @@ AFLAGS   ?= -qkernelspace $(AFLAGS_BASE) -c
 CFLAGS   ?= -qkernelspace $(CFLAGS_BASE)                                   \
             -I$(CONFPATH) -I$(CONFPATH)/config/board/$(OPT_BOARD) -I.      \
             -I$(KPATH) -I$(KPATH)/arch -I$(KPATH)/$(CPU_INC)               \
-            -I$(KPATH)/$(ARCH_INC) -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS) \
+            -I$(KPATH)/$(CHIP_INC) -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS) \
             -MMD -MP -c
 CXXFLAGS ?= -qkernelspace $(CXXFLAGS_BASE)                                 \
             -I$(CONFPATH) -I$(CONFPATH)/config/board/$(OPT_BOARD) -I.      \
             -I$(KPATH) -I$(KPATH)/arch -I$(KPATH)/$(CPU_INC)               \
-            -I$(KPATH)/$(ARCH_INC) -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS) \
+            -I$(KPATH)/$(CHIP_INC) -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS) \
             -MMD -MP -c
 LFLAGS   ?= -qkernelspace $(LFLAGS_BASE)
 STDLIBS  := -lmiosix -lstdc++ -lc -lm -lgcc -latomic

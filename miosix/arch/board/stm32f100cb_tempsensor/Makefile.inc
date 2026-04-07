@@ -4,7 +4,7 @@
 ##
 
 ## Base directory with header files for this board
-ARCH_INC := arch/chip/stm32f1
+CHIP_INC := arch/chip/stm32f1
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/stm32_127k+8k_rom.ld

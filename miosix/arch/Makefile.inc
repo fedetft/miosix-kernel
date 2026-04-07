@@ -59,7 +59,7 @@ include $(KPATH)/$(BOARD_INC)/Makefile.inc
 ## Include the makefile for the selected chip
 ## This will define PREFIX
 ##
-include $(KPATH)/$(ARCH_INC)/Makefile.inc
+include $(KPATH)/$(CHIP_INC)/Makefile.inc
 
 ## From compiler prefix form the name of the compiler and other tools
 CC     := $(PREFIX)gcc

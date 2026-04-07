@@ -4,7 +4,7 @@
 ##
 
 ## Base directory with else header files for this board
-ARCH_INC := arch/chip/efm32g
+CHIP_INC := arch/chip/efm32g
 
 ## Select linker script
 LINKER_SCRIPT := $(BOARD_INC)/efm32_128k+16k_rom_bootloader.ld

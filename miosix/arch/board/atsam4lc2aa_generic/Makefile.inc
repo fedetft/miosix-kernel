@@ -4,7 +4,7 @@
 ##
 
 ## Base directory with header files for this board
-ARCH_INC := arch/chip/atsam4l
+CHIP_INC := arch/chip/atsam4l
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
