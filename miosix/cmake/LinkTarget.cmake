@@ -39,7 +39,7 @@ function(miosix_link_target TARGET)
         message(FATAL_ERROR "The board you selected is not supported")
     endif()
 
-    # Linker script and linking options are eredited from miosix libraries
+    # Linker script and linking options are inherited from miosix libraries
 
     # Link libraries
     target_link_libraries(${TARGET} PRIVATE

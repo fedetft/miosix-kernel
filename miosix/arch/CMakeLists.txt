@@ -50,25 +50,6 @@ endif()
 # Optimization flags are set with CMAKE_<LANG>_FLAGS_<CONFIG>
 # The default values are in the toolchain file
 
-# C++ Exception/rtti support disable flags.
-# To save code size if not using C++ exceptions (nor some STL code which
-# implicitly uses it) uncomment this option.
-# -D__NO_EXCEPTIONS is used by Miosix to know if exceptions are used.
-option(MIOSIX_DISABLE_EXCEPTIONS "Disables C++ exceptions/rtti support" OFF)
-if(MIOSIX_DISABLE_EXCEPTIONS)
-    set(MIOSIX_OPT_EXCEPT -fno-exceptions -fno-rtti -D__NO_EXCEPTIONS)
-endif()
-
-# Initialize C/C++ flags
-set(MIOSIX_C_FLAGS
-    -D_MIOSIX_BOARDNAME="${MIOSIX_OPT_BOARD}" -D_DEFAULT_SOURCE=1
-    -ffunction-sections -Wall -Werror=return-type -g
-)
-set(MIOSIX_CXX_FLAGS
-    -D_MIOSIX_BOARDNAME="${MIOSIX_OPT_BOARD}" -D_DEFAULT_SOURCE=1
-    -ffunction-sections -Wall -Werror=return-type -g
-)
-
 # Directory with header files for this board
 set(MIOSIX_BOARD_INC ${MIOSIX_KPATH}/arch/board/${MIOSIX_OPT_BOARD})
 
@@ -95,6 +76,10 @@ if(DEFINED MIOSIX_BOARD_VARIANT_LIST)
     if(NOT MIOSIX_BOARD_VARIANT IN_LIST MIOSIX_BOARD_VARIANT_LIST)
         # If there is no cached value, or the cached value is not in the list, set a default value
         miosix_expected_item_in_list("Invalid variant '${MIOSIX_BOARD_VARIANT}' specified with MIOSIX_BOARD_VARIANT" "${MIOSIX_BOARD_VARIANT_LIST}")
+    else()
+        # Add variant to board defines
+        list(APPEND MIOSIX_BOARD_C_FLAGS "-D${MIOSIX_BOARD_VARIANT}")
+        list(APPEND MIOSIX_BOARD_CXX_FLAGS "-D${MIOSIX_BOARD_VARIANT}")
     endif()
 else()
     if(NOT MIOSIX_BOARD_VARIANT STREQUAL "")
@@ -103,4 +88,4 @@ else()
 endif()
 
 # Include the chip specific CMakeLists
-include(${MIOSIX_ARCH_INC}/CMakeLists.txt)
+include(${MIOSIX_CHIP_INC}/CMakeLists.txt)

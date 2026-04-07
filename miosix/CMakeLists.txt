@@ -45,20 +45,50 @@ else()
     set(MIOSIX_USER_BOARD_SETTINGS_PATH "${MIOSIX_USER_CONFIG_PATH}/board/${MIOSIX_OPT_BOARD}" CACHE PATH "Include directory for custom board_settings.h")
 endif()
 
+set(MIOSIX_ASM_FLAGS "" CACHE PATH "Configurable Assembly flags for Miosix")
+set(MIOSIX_C_FLAGS 
+    -ffunction-sections
+    -fdata-sections
+    -Wall
+    -Werror=return-type
+    CACHE PATH "Configurable C flags for Miosix"
+)
+set(MIOSIX_CXX_FLAGS 
+    -ffunction-sections
+    -fdata-sections
+    -Wall
+    -Werror=return-type
+    CACHE PATH "Configurable C++ flags for Miosix"
+)
+set(MIOSIX_EXE_LINKER_FLAGS
+    -Wl,--gc-sections 
+    CACHE PATH "Configurable linker flags for Miosix"
+)
+
+# C++ Exception/rtti support disable flags.
+# To save code size if not using C++ exceptions (nor some STL code which
+# implicitly uses it) uncomment this option.
+# -D__NO_EXCEPTIONS is used by Miosix to know if exceptions are used.
+option(MIOSIX_DISABLE_EXCEPTIONS "Disables C++ exceptions/rtti support" OFF)
+if(MIOSIX_DISABLE_EXCEPTIONS)
+    set(MIOSIX_OPT_EXCEPT -fno-exceptions -fno-rtti -D__NO_EXCEPTIONS)
+endif()
+
 # Include the architecture options
 include(${MIOSIX_KPATH}/arch/CMakeLists.txt)
 
 # Verify that all the required variables have been defined, otherwise abort
 set(REQUIRED_VARIABLES
     MIOSIX_OPT_BOARD
-    MIOSIX_ARCH_INC
+    MIOSIX_CHIP_INC
     MIOSIX_BOARD_INC
     MIOSIX_LINKER_SCRIPT
-    MIOSIX_A_FLAGS
-    MIOSIX_C_FLAGS
-    MIOSIX_CXX_FLAGS
-    MIOSIX_L_FLAGS
-    MIOSIX_ARCH_SRC
+    MIOSIX_BOARD_C_FLAGS
+    MIOSIX_BOARD_CXX_FLAGS
+    MIOSIX_CHIP_C_FLAGS
+    MIOSIX_CHIP_CXX_FLAGS
+    MIOSIX_BOARD_SRC
+    MIOSIX_CHIP_SRC
 )
 foreach(VARIABLE ${REQUIRED_VARIABLES})
     if(NOT DEFINED ${VARIABLE})
@@ -126,7 +156,11 @@ set(MIOSIX_KERNEL_SRC
 )
 
 # Define the miosix library with kernel and architecture sources
-add_library(miosix STATIC ${MIOSIX_KERNEL_SRC} ${MIOSIX_ARCH_SRC})
+add_library(miosix STATIC
+    ${MIOSIX_KERNEL_SRC} 
+    ${MIOSIX_BOARD_SRC}
+    ${MIOSIX_CHIP_SRC}
+)
 
 target_include_directories(miosix PUBLIC
     ${MIOSIX_CONFIG_PATH}
@@ -136,13 +170,23 @@ target_include_directories(miosix PUBLIC
     ${MIOSIX_KPATH}
     ${MIOSIX_KPATH}/arch
     ${MIOSIX_CPU_INC}
-    ${MIOSIX_ARCH_INC}
+    ${MIOSIX_CHIP_INC}
     ${MIOSIX_BOARD_INC}
 )
 
-target_compile_options(miosix PUBLIC
+target_compile_options(miosix BEFORE PUBLIC
     -qkernelspace
-    $<$<COMPILE_LANGUAGE:ASM>:${MIOSIX_A_FLAGS}>
+    -D_MIOSIX_BOARDNAME="${MIOSIX_OPT_BOARD}"
+    -D_DEFAULT_SOURCE=1
+    $<$<COMPILE_LANGUAGE:ASM>:${MIOSIX_BOARD_ASM_FLAGS}>
+    $<$<COMPILE_LANGUAGE:C>:${MIOSIX_BOARD_C_FLAGS}>
+    $<$<COMPILE_LANGUAGE:CXX>:${MIOSIX_BOARD_CXX_FLAGS}>
+    $<$<COMPILE_LANGUAGE:ASM>:${MIOSIX_CHIP_ASM_FLAGS}>
+    $<$<COMPILE_LANGUAGE:C>:${MIOSIX_CHIP_C_FLAGS}>
+    $<$<COMPILE_LANGUAGE:CXX>:${MIOSIX_CHIP_CXX_FLAGS}>
+    ${MIOSIX_CPU_FLAGS}
+    $<$<COMPILE_LANGUAGE:CXX>:${MIOSIX_OPT_EXCEPT}>
+    $<$<COMPILE_LANGUAGE:ASM>:${MIOSIX_ASM_FLAGS}>
     $<$<COMPILE_LANGUAGE:C>:${MIOSIX_C_FLAGS}>
     $<$<COMPILE_LANGUAGE:CXX>:${MIOSIX_CXX_FLAGS}>
 )
@@ -155,7 +199,16 @@ target_compile_definitions(miosix PRIVATE $<$<COMPILE_LANGUAGE:C,CXX>:COMPILING_
 
 # Configure linker file and options needed to link agains this library
 set_property(TARGET miosix PROPERTY LINK_DEPENDS ${MIOSIX_BOARD_INC}/${MIOSIX_LINKER_SCRIPT})
-target_link_options(miosix INTERFACE -qkernelspace ${MIOSIX_L_FLAGS})
+target_link_options(miosix INTERFACE
+    -qkernelspace
+    ${MIOSIX_BOARD_EXE_LINKER_FLAGS}
+    ${MIOSIX_CPU_FLAGS}
+    ${MIOSIX_CHIP_EXE_LINKER_FLAGS}
+    -Wl,-T${MIOSIX_BOARD_INC}/${MIOSIX_LINKER_SCRIPT}
+    ${MIOSIX_OPT_EXCEPT}
+    -nostdlib
+    ${MIOSIX_EXE_LINKER_FLAGS}
+)
 
 # Run the kernel_global_objects.pl script on all kernel objects
 add_custom_command(

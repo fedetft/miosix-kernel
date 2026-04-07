@@ -24,7 +24,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 # Directory with header files for this board
-set(MIOSIX_ARCH_INC ${MIOSIX_KPATH}/arch/chip/stm32f7)
+set(MIOSIX_CHIP_INC ${MIOSIX_KPATH}/arch/chip/stm32f7)
 
 # The stm32f767 has the double precision FPU, so we will build for m7
 set(MIOSIX_CPU_FLAGS -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16)
@@ -47,14 +47,14 @@ else()
 endif()
 
 # Select architecture specific files
-set(MIOSIX_ARCH_SRC
+set(MIOSIX_BOARD_SRC
     ${MIOSIX_BOARD_INC}/boot.cpp
     ${MIOSIX_BOARD_INC}/interfaces-impl/bsp.cpp
 )
 
 # Add a #define to allow querying board name
-list(APPEND MIOSIX_C_FLAGS -D_BOARD_STM32F767ZI_NUCLEO)
-list(APPEND MIOSIX_CXX_FLAGS -D_BOARD_STM32F767ZI_NUCLEO)
+set(MIOSIX_BOARD_C_FLAGS -D_BOARD_STM32F767ZI_NUCLEO)
+set(MIOSIX_BOARD_CXX_FLAGS -D_BOARD_STM32F767ZI_NUCLEO)
 
 # Specify a custom flash command
 # This is the program that is invoked when the program-<target_name> target is

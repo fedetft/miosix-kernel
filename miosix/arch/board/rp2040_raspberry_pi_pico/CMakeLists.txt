@@ -24,7 +24,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 # Directory with header files for this board
-set(MIOSIX_ARCH_INC ${MIOSIX_KPATH}/arch/chip/rp2040)
+set(MIOSIX_CHIP_INC ${MIOSIX_KPATH}/arch/chip/rp2040)
 
 # Linker script options:
 # 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
@@ -45,14 +45,14 @@ set(MIOSIX_BOARD_VARIANT_LIST
 set(MIOSIX_DEFAULT_BOARD_VARIANT BOARD_VARIANT_PICO_W)
 
 # Select architecture specific files
-set(MIOSIX_ARCH_SRC
-    ${MIOSIX_ARCH_INC}/rp2040_boot.cpp
+set(MIOSIX_BOARD_SRC
+    ${MIOSIX_CHIP_INC}/rp2040_boot.cpp
     ${MIOSIX_BOARD_INC}/interfaces-impl/bsp.cpp
 )
 
 # Add a #define to allow querying board name
-list(APPEND MIOSIX_C_FLAGS -DBOARD_RP2040_RASPBERRY_PI_PICO)
-list(APPEND MIOSIX_CXX_FLAGS -DBOARD_RP2040_RASPBERRY_PI_PICO)
+set(MIOSIX_BOARD_C_FLAGS -DBOARD_RP2040_RASPBERRY_PI_PICO)
+set(MIOSIX_BOARD_CXX_FLAGS -DBOARD_RP2040_RASPBERRY_PI_PICO)
 
 # Specify a custom flash command
 # This is the program that is invoked when the program-<target_name> target is

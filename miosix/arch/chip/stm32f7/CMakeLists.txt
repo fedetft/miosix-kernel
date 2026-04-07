@@ -30,25 +30,11 @@ set(MIOSIX_CPU_INC ${MIOSIX_KPATH}/arch/cpu/armv7m)
 set(MIOSIX_MULTILIB_PATH thumb/v7e-m+dp/hard)
 
 # Select appropriate compiler flags for both C/C++/linker
-set(MIOSIX_A_FLAGS
-    ${MIOSIX_CPU_FLAGS}
-)
-list(APPEND MIOSIX_C_FLAGS
-    -D_CHIP_STM32F7 ${XRAM}
-    ${MIOSIX_CPU_FLAGS} -c
-)
-list(APPEND MIOSIX_CXX_FLAGS
-    -D_CHIP_STM32F7 ${XRAM}
-    ${MIOSIX_CPU_FLAGS} ${MIOSIX_OPT_EXCEPT} -c
-)
-set(MIOSIX_L_FLAGS
-    ${MIOSIX_CPU_FLAGS} -Wl,--gc-sections
-    -Wl,-T${MIOSIX_BOARD_INC}/${MIOSIX_LINKER_SCRIPT} ${MIOSIX_OPT_EXCEPT}
-    -nostdlib
-)
+set(MIOSIX_CHIP_C_FLAGS -D_CHIP_STM32F7 ${XRAM})
+set(MIOSIX_CHIP_CXX_FLAGS -D_CHIP_STM32F7 ${XRAM})
 
 # Select architecture specific files
-list(APPEND MIOSIX_ARCH_SRC
+set(MIOSIX_CHIP_SRC
     ${MIOSIX_KPATH}/arch/cpu/armv7m/interfaces-impl/cpu.cpp
     ${MIOSIX_KPATH}/arch/cpu/common/cortexMx_interrupts.cpp
     ${MIOSIX_KPATH}/arch/drivers/mpu/cortexMx_mpu.cpp
@@ -61,7 +47,7 @@ list(APPEND MIOSIX_ARCH_SRC
     ${MIOSIX_KPATH}/arch/drivers/serial/stm32_serial_common.cpp
     ${MIOSIX_KPATH}/arch/drivers/dcc.cpp
     ${MIOSIX_KPATH}/arch/drivers/sdmmc/sd_stm32f2_f4_f7.cpp
-    ${MIOSIX_ARCH_INC}/interfaces-impl/delays.cpp
-    ${MIOSIX_ARCH_INC}/interfaces-impl/poweroff.cpp
+    ${MIOSIX_CHIP_INC}/interfaces-impl/delays.cpp
+    ${MIOSIX_CHIP_INC}/interfaces-impl/poweroff.cpp
     ${MIOSIX_KPATH}/arch/CMSIS/Device/ST/STM32F7xx/Source/Templates/system_stm32f7xx.cpp
 )

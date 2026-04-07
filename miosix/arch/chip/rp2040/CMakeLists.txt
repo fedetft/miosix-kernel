@@ -31,25 +31,11 @@ set(MIOSIX_MULTILIB_PATH thumb/v6-m/nofp)
 
 # Select appropriate compiler flags for both ASM/C/C++/linker
 set(MIOSIX_CPU_FLAGS -mcpu=cortex-m0plus -mthumb)
-set(MIOSIX_A_FLAGS
-    ${MIOSIX_CPU_FLAGS}
-)
-list(APPEND MIOSIX_C_FLAGS
-    -D_CHIP_RP2040 ${XRAM}
-    ${MIOSIX_CPU_FLAGS} -c
-)
-list(APPEND MIOSIX_CXX_FLAGS
-    -D_CHIP_RP2040 ${XRAM}
-    ${MIOSIX_CPU_FLAGS} ${MIOSIX_OPT_EXCEPT} -c
-)
-set(MIOSIX_L_FLAGS
-    ${MIOSIX_CPU_FLAGS} -Wl,--gc-sections
-    -Wl,-T${MIOSIX_BOARD_INC}/${MIOSIX_LINKER_SCRIPT} ${MIOSIX_OPT_EXCEPT}
-    -nostdlib
-)
+set(MIOSIX_CHIP_C_FLAGS -D_CHIP_RP2040)
+set(MIOSIX_CHIP_CXX_FLAGS -D_CHIP_RP2040)
 
 # Select architecture specific files
-list(APPEND MIOSIX_ARCH_SRC
+set(MIOSIX_CHIP_SRC
     ${MIOSIX_KPATH}/arch/cpu/armv6m/interfaces-impl/cpu.cpp
     ${MIOSIX_KPATH}/arch/cpu/common/cortexMx_interrupts.cpp
     ${MIOSIX_KPATH}/arch/drivers/mpu/cortexMx_mpu.cpp
@@ -61,9 +47,9 @@ list(APPEND MIOSIX_ARCH_SRC
     ${MIOSIX_KPATH}/arch/drivers/spi/arm_pl022_spi.cpp
     ${MIOSIX_KPATH}/arch/drivers/spi/rp2040_spi.cpp
     ${MIOSIX_KPATH}/arch/drivers/rp2040_dma.cpp
-    ${MIOSIX_ARCH_INC}/interfaces-impl/delays.cpp
-    ${MIOSIX_ARCH_INC}/interfaces-impl/smp.cpp
-    ${MIOSIX_ARCH_INC}/interfaces-impl/atomic_ops_smp_impl.cpp
-    ${MIOSIX_ARCH_INC}/interfaces-impl/poweroff.cpp
+    ${MIOSIX_CHIP_INC}/interfaces-impl/delays.cpp
+    ${MIOSIX_CHIP_INC}/interfaces-impl/smp.cpp
+    ${MIOSIX_CHIP_INC}/interfaces-impl/atomic_ops_smp_impl.cpp
+    ${MIOSIX_CHIP_INC}/interfaces-impl/poweroff.cpp
     ${MIOSIX_KPATH}/arch/CMSIS/Device/RaspberryPi/RP2040/Source/system_RP2040.c
 )

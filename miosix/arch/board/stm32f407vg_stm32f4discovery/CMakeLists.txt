@@ -24,7 +24,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 # Directory with header files for this board
-set(MIOSIX_ARCH_INC ${MIOSIX_KPATH}/arch/chip/stm32f4)
+set(MIOSIX_CHIP_INC ${MIOSIX_KPATH}/arch/chip/stm32f4)
 
 # Linker script options:
 # 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
@@ -39,7 +39,7 @@ set(MIOSIX_LINKER_SCRIPT_LIST
 set(MIOSIX_DEFAULT_LINKER_SCRIPT stm32_1m+192k_rom.ld)
 
 # Select architecture specific files
-set(MIOSIX_ARCH_SRC
+set(MIOSIX_BOARD_SRC
     ${MIOSIX_BOARD_INC}/boot.cpp
     ${MIOSIX_KPATH}/arch/drivers/stm32f2_f4_i2c.cpp
     ${MIOSIX_KPATH}/arch/drivers/stm32_hardware_rng.cpp
@@ -50,8 +50,8 @@ set(MIOSIX_ARCH_SRC
 )
 
 # Add a #define to allow querying board name
-list(APPEND MIOSIX_C_FLAGS -D_BOARD_STM32F4DISCOVERY)
-list(APPEND MIOSIX_CXX_FLAGS -D_BOARD_STM32F4DISCOVERY)
+set(MIOSIX_BOARD_C_FLAGS -D_BOARD_STM32F4DISCOVERY)
+set(MIOSIX_BOARD_CXX_FLAGS -D_BOARD_STM32F4DISCOVERY)
 
 # Specify a custom flash command
 # This is the program that is invoked when the program-<target_name> target is
