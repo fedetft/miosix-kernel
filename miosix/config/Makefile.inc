@@ -1,6 +1,8 @@
 ##
 ## Configuration makefile for Miosix embedded OS
 ##
+## All options start with OPT_ to be easily recognizable.
+##
 
 ##
 ## Target board, choose one.

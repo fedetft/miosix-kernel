@@ -1,10 +1,9 @@
 ##
 ## Makefile for Miosix embedded OS
 ##
-## This file contains the options required by the build system to build
-## Miosix on various target architectures. All options start with OPT_
-## to be easily recognizable.
-## All architecture specific build code is grouped at the end of this file.
+## This file contains the options required by the Miosix build system to
+## configure it for various target architectures. User-modifiable options
+## are set by the config/Makefile.inc file, which is included from here.
 ##
 
 ##
@@ -84,6 +83,8 @@ OD     := $(PREFIX)objdump
 SZ     := $(PREFIX)size
 STRIP  := $(PREFIX)strip
 
+## Define the echo tool (this is here to share the definition between processes
+## and kernel)
 ifeq ("$(VERBOSE)","1")
 Q :=
 ECHO := @true
