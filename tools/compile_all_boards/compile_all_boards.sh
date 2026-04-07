@@ -52,12 +52,20 @@ if [[ $# -ne 0 ]]; then
   exit 1
 fi
 
+if command -v nproc > /dev/null; then
+  PARALLEL="-j$(nproc)"
+elif [[ $(uname -s) == 'Darwin' ]]; then
+  PARALLEL="-j$(sysctl -n hw.logicalcpu)"
+else
+  PARALLEL="-j1";
+fi
+
 boards=$(grep -E 'OPT_BOARD := ' "miosix/config/Makefile.inc" | sed -E 's/#?OPT_BOARD := //g')
 
 clean
 for board in $boards; do
   make clean OPT_BOARD=$board &> /dev/null
-  make -j8 VERBOSE=1 OPT_BOARD=$board &> "$dir/$board.log"
+  make $PARALLEL VERBOSE=1 OPT_BOARD=$board &> "$dir/$board.log"
   if [[ $? == 0 ]]; then
     mv main.bin "$dir/$board.bin"
     mv main.elf "$dir/$board.elf"

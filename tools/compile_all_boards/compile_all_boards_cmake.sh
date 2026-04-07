@@ -52,6 +52,14 @@ if [[ $# -ne 0 ]]; then
   exit 1
 fi
 
+if command -v nproc > /dev/null; then
+  PARALLEL="-j$(nproc)"
+elif [[ $(uname -s) == 'Darwin' ]]; then
+  PARALLEL="-j$(sysctl -n hw.logicalcpu)"
+else
+  PARALLEL="-j1";
+fi
+
 boards=$(cd miosix/arch/board; ls)
 
 clean
@@ -63,7 +71,7 @@ for board in $boards; do
         -GUnix\ Makefiles \
         -DMIOSIX_OPT_BOARD=$board -DCMAKE_VERBOSE_MAKEFILE=TRUE \
             &> "$dir/$board.build/main.log"
-    cmake --build "$dir/$board.build" -j &>> "$dir/$board.build/main.log"
+    cmake --build "$dir/$board.build" $PARALLEL &>> "$dir/$board.build/main.log"
     if [[ $? == 0 ]]; then
       arm-miosix-eabi-objdump -d "$dir/$board.build/main.elf" > "$dir/$board.build/main.asm"
       arm-miosix-eabi-size "$dir/$board.build/main.elf" > "$dir/$board.build/main_size.txt"
