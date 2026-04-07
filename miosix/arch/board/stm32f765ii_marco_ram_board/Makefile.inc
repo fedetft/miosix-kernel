@@ -7,7 +7,7 @@
 CHIP_INC := arch/chip/stm32f7
 
 ## The stm32f767 has the double precision FPU, so we will build for m7
-CPU := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
+CPU_FLAGS := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
 
 ## Select linker script
 #LINKER_SCRIPT := already selected in board options

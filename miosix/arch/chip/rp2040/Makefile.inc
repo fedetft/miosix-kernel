@@ -10,11 +10,9 @@ POSTLD := mx-postlinker
 
 CPU_INC := arch/cpu/armv6m
 ## Select appropriate compiler flags for both ASM/C/C++/linker
-CPU := -mcpu=cortex-m0plus -mthumb
-CHIP_AFLAGS   := $(CPU)
-CHIP_CFLAGS   := -D_CHIP_RP2040 $(CPU)
-CHIP_CXXFLAGS := -D_CHIP_RP2040 $(CPU)
-CHIP_LFLAGS   := $(CPU)
+CPU_FLAGS := -mcpu=cortex-m0plus -mthumb
+CHIP_CFLAGS   := -D_CHIP_RP2040
+CHIP_CXXFLAGS := -D_CHIP_RP2040
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/common

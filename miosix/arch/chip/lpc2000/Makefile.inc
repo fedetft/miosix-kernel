@@ -10,11 +10,9 @@ PREFIX := arm-miosix-eabi-
 
 CPU_INC := arch/cpu/armv4
 ## Select appropriate compiler flags for both ASM/C/C++/linker
-CPU := -mcpu=arm7tdmi
-CHIP_AFLAGS   := $(CPU)
-CHIP_CFLAGS   := -D_CHIP_LPC2000 $(CPU)
-CHIP_CXXFLAGS := -D_CHIP_LPC2000 $(CPU)
-CHIP_LFLAGS   := $(CPU)
+CPU_FLAGS := -mcpu=arm7tdmi
+CHIP_CFLAGS   := -D_CHIP_LPC2000
+CHIP_CXXFLAGS := -D_CHIP_LPC2000
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/common

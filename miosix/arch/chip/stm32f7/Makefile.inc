@@ -10,10 +10,8 @@ POSTLD := mx-postlinker
 
 CPU_INC := arch/cpu/armv7m
 ## Select appropriate compiler flags for both ASM/C/C++/linker
-CHIP_AFLAGS   := $(CPU)
-CHIP_CFLAGS   := -D_CHIP_STM32F7 $(XRAM) $(CPU)
-CHIP_CXXFLAGS := -D_CHIP_STM32F7 $(XRAM) $(CPU)
-CHIP_LFLAGS   := $(CPU)
+CHIP_CFLAGS   := -D_CHIP_STM32F7 $(XRAM)
+CHIP_CXXFLAGS := -D_CHIP_STM32F7 $(XRAM)
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/common

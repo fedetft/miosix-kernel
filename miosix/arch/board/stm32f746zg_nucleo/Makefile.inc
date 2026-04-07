@@ -7,7 +7,7 @@
 CHIP_INC := arch/chip/stm32f7
 
 ## The stm32f746 lacks the double precision FPU, so we will build for m4
-CPU := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+CPU_FLAGS := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>

@@ -90,9 +90,19 @@ OPT_OPTIMIZATION ?= -O2
 #PROC_OPT_EXCEPT := -fno-exceptions -fno-rtti -D__NO_EXCEPTIONS
 
 ##
-## Other user-configurable C/C++ flags
+## User-configurable C/C++ flags (kernel)
 ##
 CFLAGS_BASE   ?= -ffunction-sections -fdata-sections \
                  -Wall -Werror=return-type -g
 CXXFLAGS_BASE ?= -std=c++23 -ffunction-sections -fdata-sections \
                  -Wall -Werror=return-type -g
+LFLAGS_BASE   ?= -Wl,--gc-sections
+
+##
+## User-configurable C/C++ flags (processes)
+##
+PROC_CFLAGS_BASE   ?= -ffunction-sections -fdata-sections \
+                      -Wall -Werror=return-type -g
+PROC_CXXFLAGS_BASE ?= -std=c++23 -ffunction-sections -fdata-sections \
+                      -Wall -Werror=return-type -g
+PROC_LFLAGS_BASE   ?= -Wl,--gc-sections
