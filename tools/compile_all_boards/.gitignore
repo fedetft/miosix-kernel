@@ -1,0 +1,6 @@
+*.txt
+*.asm
+*.bin
+*.elf
+*.log
+*.build
