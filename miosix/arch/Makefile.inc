@@ -48,11 +48,6 @@ include $(KPATH)/$(BOARD_INC)/Makefile.inc
 include $(KPATH)/$(CHIP_INC)/Makefile.inc
 
 ##
-## Assemble list of architecture dependent source files
-##
-ARCH_SRC := $(BOARD_SRC) $(CHIP_SRC)
-
-##
 ## Default optimization level
 ##
 OPT_OPTIMIZATION ?= -O2
