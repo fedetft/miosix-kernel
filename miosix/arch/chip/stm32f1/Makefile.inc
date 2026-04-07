@@ -12,13 +12,9 @@ CPU_INC := arch/cpu/armv7m
 ## Select appropriate compiler flags for both ASM/C/C++/linker
 CPU := -mcpu=cortex-m3 -mthumb
 CHIP_AFLAGS   := $(CPU)
-CHIP_CFLAGS   := -D_CHIP_STM32F1 $(XRAM) $(CPU) \
-                 $(OPT_OPTIMIZATION)
-CHIP_CXXFLAGS := -D_CHIP_STM32F1 $(XRAM) $(CPU) \
-                 $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
-CHIP_LFLAGS   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
-                 -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
-                 $(OPT_OPTIMIZATION) -nostdlib
+CHIP_CFLAGS   := -D_CHIP_STM32F1 $(XRAM) $(CPU)
+CHIP_CXXFLAGS := -D_CHIP_STM32F1 $(XRAM) $(CPU)
+CHIP_LFLAGS   := $(CPU)
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/common

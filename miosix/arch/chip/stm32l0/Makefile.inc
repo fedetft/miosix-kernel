@@ -12,17 +12,12 @@ CPU_INC := arch/cpu/armv6m
 ## Select appropriate compiler flags for both ASM/C/C++/linker
 CPU := -mcpu=cortex-m0plus -mthumb
 CHIP_AFLAGS   := $(CPU)
-CHIP_CFLAGS   := -D_CHIP_STM32L0 $(CPU) \
-                 $(OPT_OPTIMIZATION)
-CHIP_CXXFLAGS := -D_CHIP_STM32L0 $(CPU) \
-                 $(OPT_OPTIMIZATION) $(OPT_EXCEPT)
-CHIP_LFLAGS   := $(CPU) -Wl,--gc-sections,-Map,main.map        \
-                 -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
-                 $(OPT_OPTIMIZATION) -nostdlib
+CHIP_CFLAGS   := -D_CHIP_STM32L0 $(CPU)
+CHIP_CXXFLAGS := -D_CHIP_STM32L0 $(CPU)
+CHIP_LFLAGS   := $(CPU)
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/common
-
 CHIP_SRC :=                                              \
 arch/cpu/armv6m/interfaces-impl/cpu.cpp                  \
 arch/cpu/common/cortexMx_interrupts.cpp                  \

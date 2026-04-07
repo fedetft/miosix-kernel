@@ -59,14 +59,19 @@ ARCH_SRC := $(BOARD_SRC) $(CHIP_SRC)
 OPT_OPTIMIZATION ?= -O2
 
 ##
-## Add required C/CXX flags for the kernel
+## Assemble compilation flags (shared between kernel and processes)
 ##
 AFLAGS_BASE   := $(BOARD_AFLAGS) $(CHIP_AFLAGS) $(AFLAGS_BASE)
 CFLAGS_BASE   := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
-                 $(BOARD_CFLAGS) $(CHIP_CFLAGS) $(CFLAGS_BASE)
+                 $(BOARD_CFLAGS) $(CHIP_CFLAGS) $(OPT_OPTIMIZATION)       \
+                 $(CFLAGS_BASE)
 CXXFLAGS_BASE := -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\" -D_DEFAULT_SOURCE=1 \
-                 $(BOARD_CXXFLAGS) $(CHIP_CXXFLAGS) $(CXXFLAGS_BASE)
-LFLAGS_BASE   := $(BOARD_LFLAGS) $(CHIP_LFLAGS)
+                 $(BOARD_CXXFLAGS) $(CHIP_CXXFLAGS) $(OPT_OPTIMIZATION)   \
+                 $(OPT_EXCEPT) $(CXXFLAGS_BASE)
+LFLAGS_BASE   := $(BOARD_LFLAGS) $(CHIP_LFLAGS)                \
+                 -Wl,--gc-sections,-Map,main.map               \
+                 -Wl,-T$(KPATH)/$(LINKER_SCRIPT) $(OPT_EXCEPT) \
+                 $(OPT_OPTIMIZATION) -nostdlib
 
 ## From compiler prefix form the name of the compiler and other tools
 CC     := $(PREFIX)gcc
