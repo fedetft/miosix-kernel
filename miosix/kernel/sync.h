@@ -575,14 +575,6 @@ public:
     Semaphore(unsigned int initialCount=0) : count(initialCount) {}
 
     /**
-     * Increment the semaphore counter, putting threads out of sleep without
-     * triggering a reschedule.
-     * \param hppw is set to `true' if a higher priority thread is woken up.
-     * Otherwise it is not modified.
-     */
-    void IRQsignal(bool& hppw);
-
-    /**
      * Increment the semaphore counter, waking up at most one waiting thread.
      */
     void IRQsignal();
@@ -666,13 +658,6 @@ public:
     Semaphore& operator= (const Semaphore&) = delete;
 
 private:
-    /**
-     * \internal
-     * Internal method that signals the semaphore without triggering a
-     * rescheduling for prioritizing newly-woken threads.
-     */
-    inline Thread *IRQsignalImpl();
-
     volatile unsigned int count; ///< Counter of the semaphore
     /// List of waiting threads. Can't use WaitQueue as that class is meant to
     /// be used in PK contenxt, not IRQ context

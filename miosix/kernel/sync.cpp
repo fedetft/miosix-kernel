@@ -458,34 +458,20 @@ bool ConditionVariable::empty() const
 // class Semaphore
 //
 
-Thread *Semaphore::IRQsignalImpl()
+void Semaphore::IRQsignal()
 {
     //Check if somebody is waiting
     if(fifo.empty())
     {
         //Nobody there, just increment the counter
         count+=1;
-        return nullptr;
+        return;
     }
     WaitToken *cd=fifo.front();
     Thread *t=cd->thread;
     cd->thread=nullptr; //Thread pointer doubles as flag against spurious wakeup
     fifo.pop_front();
     t->IRQwakeup();
-    return t;
-}
-
-void Semaphore::IRQsignal(bool& hppw)
-{
-    Thread *t=IRQsignalImpl();
-    if(t==nullptr) return;
-    if(Thread::IRQgetCurrentThread()->IRQgetPriority()<t->IRQgetPriority())
-        hppw=true;
-}
-
-void Semaphore::IRQsignal()
-{
-    IRQsignalImpl();
 }
 
 void Semaphore::signal()
@@ -493,7 +479,7 @@ void Semaphore::signal()
     //Global interrupt lock because Semaphore is IRQ-safe
     FastGlobalIrqLock dLock;
     //Update the state of the FIFO and the counter
-    IRQsignalImpl();
+    IRQsignal();
 }
 
 void Semaphore::wait()

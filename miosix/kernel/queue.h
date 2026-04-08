@@ -142,31 +142,13 @@ public:
     /**
      * Put an element to the queue, only if the queue is not full.<br>
      * Can ONLY be used inside an IRQ, or when interrupts are disabled.
-     * Puts any waiting thread out of sleep state, but doesn't cause any
-     * preemption, and threads won't immediately wakeup.
      * \param elem element to add. The element has been added only if the
      * return value is true
      * \return true if the queue was not full.
      * \note This method is meant as a non-blocking version of put() to use
-     * in a thread context with interrupts disabled. For enqueuing data from
-     * an interrupt, use IRQput(elem, hppw).
+     * in a thread context with interrupts disabled.
      */
-    bool IRQput(const T& elem) { return IRQput(elem,nullptr); }
-
-    /**
-     * Put an element to the queue, only if the queue is not full.<br>
-     * Can ONLY be used inside an IRQ, or when interrupts are disabled.
-     * Puts any waiting thread out of sleep state, but doesn't cause any
-     * preemption, and threads won't immediately wakeup.
-     * \param elem element to add. The element has been added only if the
-     * return value is true
-     * \param hppw is set to `true' if the operation work up a higher priority
-     * thread, otherwise it is not modified.
-     * \return true if the queue was not full.
-     * \note This method is meant as a non-blocking version of put() to use
-     * in an IRQ context.
-     */
-    bool IRQput(const T& elem, bool& hppw) { return IRQput(elem,&hppw); }
+    bool IRQput(const T& elem);
 
     /**
      * Get an element from the queue. If the queue is empty, then sleep until
@@ -193,19 +175,7 @@ public:
      * return value is true
      * \return true if the queue was not empty
      */
-    bool IRQget(T& elem) { return IRQget(elem,nullptr); }
-
-    /**
-     * Get an element from the queue, only if the queue is not empty.<br>
-     * Can ONLY be used inside an IRQ, or when interrupts are disabled.
-     * \param elem an element from the queue. The element is valid only if the
-     * return value is true
-     * \param hppw is not modified if no thread is woken or if the woken thread
-     * has a lower or equal priority than the currently running thread, else is
-     * set to true
-     * \return true if the queue was not empty
-     */
-    bool IRQget(T& elem, bool& hppw) { return IRQget(elem,&hppw); }
+    bool IRQget(T& elem);
 
     /**
      * Clear all items in the queue.<br>
@@ -228,28 +198,6 @@ public:
     QueueBase& operator= (const QueueBase& s) = delete;
 
 private:
-    /**
-     * Put an element to the queue, only if the queue is not full.
-     * \param elem element to add. The element has been added only if the
-     * return value is true
-     * \param hppw is not modified if nullptr or no thread is woken or if the
-     * woken thread has a lower or equal priority than the currently running
-     * thread, else is set to true
-     * \return true if the queue was not full
-     */
-    bool IRQput(const T& elem, bool *hppw);
-
-    /**
-     * Get an element from the queue, only if the queue is not empty.
-     * \param elem an element from the queue. The element is valid only if the
-     * return value is true
-     * \param hppw is not modified if nullptr or no thread is woken or if the
-     * woken thread has a lower or equal priority than the currently running
-     * thread, else is set to true
-     * \return true if the queue was not empty
-     */
-    bool IRQget(T& elem, bool *hppw);
-
     /**
      * Wake an eventual waiting thread.
      * Must be called when interrupts are disabled
@@ -312,10 +260,8 @@ void QueueBase<T,BufferT>::IRQgetBlocking(T& elem, FastGlobalIrqLock& dLock)
 }
 
 template <typename T, typename BufferT>
-bool QueueBase<T,BufferT>::IRQput(const T& elem, bool *hppw)
+bool QueueBase<T,BufferT>::IRQput(const T& elem)
 {
-    if(hppw && waiting && (Thread::IRQgetCurrentThread()->IRQgetPriority() <
-            waiting->IRQgetPriority())) *hppw=true;
     IRQwakeWaitingThread();
     if(isFull()) return false;
     numElem+=1;
@@ -326,10 +272,8 @@ bool QueueBase<T,BufferT>::IRQput(const T& elem, bool *hppw)
 }
 
 template <typename T, typename BufferT>
-bool QueueBase<T,BufferT>::IRQget(T& elem, bool *hppw)
+bool QueueBase<T,BufferT>::IRQget(T& elem)
 {
-    if(hppw && waiting && (Thread::IRQgetCurrentThread()->IRQgetPriority()) <
-            waiting->IRQgetPriority()) *hppw=true;
     IRQwakeWaitingThread();
     if(isEmpty()) return false;
     numElem-=1;
