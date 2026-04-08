@@ -61,10 +61,7 @@ inline void ledOff()
  * \note Always returns true for this board because there is no built-in SD card
  * socket.
  */
-inline bool sdCardSense()
-{
-    return true;
-}
+inline bool sdCardSense() { return true; }
 
 /**
 \}

@@ -81,9 +81,9 @@ void IRQbspInit()
 
 void bspInit2()
 {
-//     #ifdef WITH_FILESYSTEM
-//     basicFilesystemSetup();
-//     #endif //WITH_FILESYSTEM
+    // #ifdef WITH_FILESYSTEM
+    // basicFilesystemSetup();
+    // #endif //WITH_FILESYSTEM
 }
 
 //
@@ -94,9 +94,9 @@ void shutdown()
 {
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
 
-    #ifdef WITH_FILESYSTEM
-    FilesystemManager::instance().umountAll();
-    #endif //WITH_FILESYSTEM
+    // #ifdef WITH_FILESYSTEM
+    // FilesystemManager::instance().umountAll();
+    // #endif //WITH_FILESYSTEM
 
     FastGlobalIrqLock::lock();
     for(;;) ;
@@ -106,9 +106,9 @@ void reboot()
 {
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
     
-    #ifdef WITH_FILESYSTEM
-    FilesystemManager::instance().umountAll();
-    #endif //WITH_FILESYSTEM
+    // #ifdef WITH_FILESYSTEM
+    // FilesystemManager::instance().umountAll();
+    // #endif //WITH_FILESYSTEM
 
     FastGlobalIrqLock::lock();
     IRQsystemReboot();

@@ -47,10 +47,7 @@ inline void ledOff() {}
  * Polls the SD card sense GPIO
  * \return true if there is an uSD card in the socket.
  */
-inline bool sdCardSense()
-{
-    return true;
-}
+// inline bool sdCardSense() { return true; }
 
 /**
 \}

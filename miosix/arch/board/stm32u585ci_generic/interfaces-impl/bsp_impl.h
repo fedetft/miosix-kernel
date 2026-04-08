@@ -34,7 +34,6 @@
 
 #include "config/miosix_settings.h"
 #include "interfaces/gpio.h"
-//#include "drivers/stm32_hardware_rng.h"
 
 namespace miosix {
 
@@ -63,10 +62,7 @@ inline void ledOff()
  * Polls the SD card sense GPIO
  * \return true if there is an uSD card in the socket.
  */
-inline bool sdCardSense()
-{
-    return false;
-}
+// inline bool sdCardSense() { return true; }
 
 /**
 \}

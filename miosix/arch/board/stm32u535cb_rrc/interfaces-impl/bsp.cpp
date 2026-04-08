@@ -81,7 +81,7 @@ void IRQbspInit()
 void bspInit2()
 {
     #ifdef WITH_FILESYSTEM
-    basicFilesystemSetup(intrusive_ref_ptr<Device>(nullptr));
+    basicFilesystemSetup(intrusive_ref_ptr<Device>());
     #endif //WITH_FILESYSTEM
 }
 
