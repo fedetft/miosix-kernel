@@ -42,21 +42,8 @@ namespace miosix {
 \{
 */
 
-/**
- * \internal
- * used by the ledOn() and ledOff() implementation
- */
-typedef Gpio<PC,13> _led;
-
-inline void ledOn()
-{
-    _led::low();
-}
-
-inline void ledOff()
-{
-    _led::high();
-}
+inline void ledOn() {}
+inline void ledOff() {}
 
 /**
  * Polls the SD card sense GPIO
@@ -68,4 +55,4 @@ inline void ledOff()
 \}
 */
 
-};//namespace miosix
+} //namespace miosix

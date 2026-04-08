@@ -69,4 +69,4 @@ inline void ledOff()
 \}
 */
 
-};//namespace miosix
+} //namespace miosix
