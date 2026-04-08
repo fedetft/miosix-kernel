@@ -262,31 +262,30 @@ void QueueBase<T,BufferT>::IRQgetBlocking(T& elem, FastGlobalIrqLock& dLock)
 template <typename T, typename BufferT>
 bool QueueBase<T,BufferT>::IRQput(const T& elem)
 {
-    IRQwakeWaitingThread();
     if(isFull()) return false;
     numElem+=1;
     buffer.data[putPos]=elem;
     putPos+=1;
     if(putPos==buffer.size()) putPos=0;
+    IRQwakeWaitingThread();
     return true;
 }
 
 template <typename T, typename BufferT>
 bool QueueBase<T,BufferT>::IRQget(T& elem)
 {
-    IRQwakeWaitingThread();
     if(isEmpty()) return false;
     numElem-=1;
     elem=std::move(buffer.data[getPos]);
     getPos+=1;
     if(getPos==buffer.size()) getPos=0;
+    IRQwakeWaitingThread();
     return true;
 }
 
 template <typename T, typename BufferT>
 void QueueBase<T,BufferT>::IRQreset()
 {
-    IRQwakeWaitingThread();
     //Relying on constant folding to omit this code for trivial types
     if(std::is_trivially_destructible<T>::value==false)
     {
@@ -301,6 +300,7 @@ void QueueBase<T,BufferT>::IRQreset()
     putPos=0;
     getPos=0;
     numElem=0;
+    IRQwakeWaitingThread();
 }
 
 } // namespace internal
