@@ -83,7 +83,7 @@ inline void irqDisabledHwLockAcquire(HwLocks::ID i) noexcept
         // pending. With this flag set, WFE terminates on interrupts even with
         // interrupts disabled, which allows us to re-enable interrupts
         // temporarily and service them.
-        //fastDisableIrq();
+        fastDisableIrq();
         if(sio_hw->spinlock[i]) break;
         // This WFE executes with interrupts disabled but will wake up on any
         // pending IRQ because the SEVONPEND SCB flag has been set during boot.
