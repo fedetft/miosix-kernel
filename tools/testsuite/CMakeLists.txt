@@ -31,7 +31,6 @@ set(CMAKE_BUILD_TYPE "Release")
 
 project(testsuite C CXX ASM)
 
-add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX>:WITH_PROCESSES>)
 set(MIOSIX_OPT_BOARD stm32f407vg_stm32f4discovery)
 set(MIOSIX_LINKER_SCRIPT stm32_1m+192k_rom_processes.ld)
 
@@ -43,6 +42,8 @@ include(AddRomfsImage)
 
 # Kernel level program
 add_executable(testsuite testsuite.cpp)
+target_compile_definitions(miosix PUBLIC WITH_FILESYSTEM)
+target_compile_definitions(miosix PUBLIC WITH_PROCESSES)
 miosix_link_target(testsuite)
 
 # Processes

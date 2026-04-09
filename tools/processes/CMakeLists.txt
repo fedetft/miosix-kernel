@@ -32,7 +32,6 @@ set(CMAKE_BUILD_TYPE "Release")
 project(ProcessesExamples C CXX ASM)
 
 # Set Miosix definitions and options
-add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX>:WITH_PROCESSES>)
 set(MIOSIX_OPT_BOARD stm32f407vg_stm32f4discovery)
 set(MIOSIX_LINKER_SCRIPT stm32_1m+192k_rom_processes.ld)
 
@@ -44,6 +43,8 @@ include(AddRomfsImage)
 
 # Kernel level program
 add_executable(main start_process.cpp)
+target_compile_definitions(miosix PUBLIC WITH_FILESYSTEM)
+target_compile_definitions(miosix PUBLIC WITH_PROCESSES)
 miosix_link_target(main)
 
 # Processes
@@ -51,6 +52,7 @@ miosix_add_process(hello process_template/main.cpp)
 
 # RomFS image
 miosix_add_romfs_image(
+    PROGRAM_DEFAULT
     IMAGE_NAME image
     DIR_NAME bin
     KERNEL main
