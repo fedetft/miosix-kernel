@@ -28,7 +28,7 @@ include(SetDefaultProgramTarget)
 
 # Function to link the Miosix libraries to a target and register the build command
 #
-#   miosix_link_target(<target> [PROGRAM_DEFAULT])
+#   miosix_link_target(<target> [PROGRAM_DEFAULT] [NO_SIZE])
 #
 # What it does:
 # - Links the Miosix libraries to the target
@@ -38,8 +38,10 @@ include(SetDefaultProgramTarget)
 #
 # If PROGRAM_DEFAULT is also passed to it, it also defines the "program" target
 # which is an alias for ${TARGET}_program.
+# By default, the size of the target .elf file is also printed at the end of
+# the link process, unless if NO_SIZE is specified.
 function(miosix_link_target TARGET)
-    cmake_parse_arguments(PARSE_ARGV 0 LINK_TGT "PROGRAM_DEFAULT" "" "")
+    cmake_parse_arguments(PARSE_ARGV 0 LINK_TGT "PROGRAM_DEFAULT;NO_SIZE" "" "")
 
     if (NOT TARGET miosix)
         message(FATAL_ERROR "The board you selected is not supported")
@@ -70,6 +72,17 @@ function(miosix_link_target TARGET)
         VERBATIM
     )
     add_custom_target(${TARGET}_bin ALL DEPENDS ${TARGET}.bin)
+
+    # Print size of .elf
+    if(NOT LINK_TGT_NO_SIZE)
+        add_custom_command(
+            TARGET ${TARGET}
+            POST_BUILD
+            COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${TARGET}>
+            COMMENT "Computing $<TARGET_FILE_NAME:${TARGET}> size"
+            VERBATIM
+        )
+    endif()
 
     # Generate custom build command to flash the target
     miosix_add_program_target(${TARGET}_program ${TARGET})
