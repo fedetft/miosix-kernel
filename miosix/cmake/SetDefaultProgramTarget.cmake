@@ -1,4 +1,4 @@
-# Copyright (C) 2024 by Skyward
+# Copyright (C) 2026 by Daniele Cattaneo
 #
 # This program is free software; you can redistribute it and/or
 # it under the terms of the GNU General Public License as published
@@ -23,34 +23,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
-cmake_minimum_required(VERSION 3.21)
-
-set(MIOSIX_KPATH ${CMAKE_SOURCE_DIR}/../../miosix)
-set(CMAKE_TOOLCHAIN_FILE ${MIOSIX_KPATH}/cmake/Toolchains/gcc.cmake)
-set(CMAKE_BUILD_TYPE "Release")
-
-project(testsuite C CXX ASM)
-
-set(MIOSIX_OPT_BOARD stm32f407vg_stm32f4discovery)
-set(MIOSIX_LINKER_SCRIPT stm32_1m+192k_rom_processes.ld)
-
-add_subdirectory(${MIOSIX_KPATH} miosix EXCLUDE_FROM_ALL)
-
-# Kernel level program
-add_executable(testsuite testsuite.cpp)
-target_compile_definitions(miosix PUBLIC WITH_FILESYSTEM)
-target_compile_definitions(miosix PUBLIC WITH_PROCESSES)
-miosix_link_target(testsuite)
-
-# Processes
-miosix_add_process(test_process test_process/main.cpp)
-miosix_add_process(test_execve test_execve/main.cpp)
-miosix_add_process(test_global_dtor_ctor test_global_dtor_ctor/main.cpp)
-
-# RomFS image
-miosix_add_romfs_image(image
-    PROGRAM_DEFAULT
-    DIR_NAME bin
-    KERNEL testsuite
-    PROCESSES test_process test_execve test_global_dtor_ctor
-)
+# Creates a target named "program" for programming a board
+#
+#   miosix_set_default_program_target(<target>)
+#
+function(miosix_set_default_program_target TARGET_NAME)
+    if(TARGET program)
+        message(FATAL_ERROR "Requested more than one default board programming targets!")
+    endif()
+    add_custom_target(program DEPENDS ${TARGET_NAME})
+endfunction()

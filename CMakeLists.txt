@@ -64,4 +64,4 @@ add_executable(main main.cpp)
 # List here additional static libraries
 # target_link_libraries(main PRIVATE here_your_libraries)
 
-miosix_link_target(main)
+miosix_link_target(main PROGRAM_DEFAULT)

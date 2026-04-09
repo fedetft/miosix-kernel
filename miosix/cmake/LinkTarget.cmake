@@ -24,17 +24,23 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 include(AddProgramTarget)
+include(SetDefaultProgramTarget)
 
 # Function to link the Miosix libraries to a target and register the build command
 #
-#   miosix_link_target(<target>)
+#   miosix_link_target(<target> [PROGRAM_DEFAULT])
 #
 # What it does:
 # - Links the Miosix libraries to the target
 # - Tells the linker to generate the map file
 # - Registers custom targets to create the hex and bin files (${TARGET}_bin and ${TARGET}_hex)
 # - Registers a custom target to flash the program to the board (${TARGET}_program)
+#
+# If PROGRAM_DEFAULT is also passed to it, it also defines the "program" target
+# which is an alias for ${TARGET}_program.
 function(miosix_link_target TARGET)
+    cmake_parse_arguments(PARSE_ARGV 0 LINK_TGT "PROGRAM_DEFAULT" "" "")
+
     if (NOT TARGET miosix)
         message(FATAL_ERROR "The board you selected is not supported")
     endif()
@@ -66,5 +72,8 @@ function(miosix_link_target TARGET)
     add_custom_target(${TARGET}_bin ALL DEPENDS ${TARGET}.bin)
 
     # Generate custom build command to flash the target
-    miosix_add_program_target(${TARGET})
+    miosix_add_program_target(${TARGET}_program ${TARGET})
+    if(LINK_TGT_PROGRAM_DEFAULT)
+        miosix_set_default_program_target(${TARGET}_program)
+    endif()
 endfunction()

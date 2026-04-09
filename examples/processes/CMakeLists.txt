@@ -49,6 +49,7 @@ miosix_add_process(process2 process2.cpp)
 
 # RomFS image
 miosix_add_romfs_image(
+    PROGRAM_DEFAULT
     IMAGE_NAME image
     DIR_NAME bin
     KERNEL main

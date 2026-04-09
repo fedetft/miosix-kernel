@@ -27,11 +27,10 @@
 #
 #   miosix_add_program_target(<target> [DEPENDS <target1> <target2> ...])
 #
-function(miosix_add_program_target TARGET)
+function(miosix_add_program_target TARGET_NAME IMAGE)
     cmake_parse_arguments(PROGRAM "" "" "DEPENDS" ${ARGN})
-
     if(NOT PROGRAM_DEPENDS)
-        set(PROGRAM_DEPENDS ${TARGET}_bin ${TARGET}_hex)
+        set(PROGRAM_DEPENDS ${IMAGE}_bin ${IMAGE}_hex)
     endif()
 
     get_target_property(PROGRAM_CMDLINE miosix PROGRAM_CMDLINE)
@@ -39,10 +38,10 @@ function(miosix_add_program_target TARGET)
         set(PROGRAM_CMDLINE st-flash --connect-under-reset --reset write <binary> 0x8000000)
     endif()
 
-    list(TRANSFORM PROGRAM_CMDLINE REPLACE <binary> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}.bin)
-    list(TRANSFORM PROGRAM_CMDLINE REPLACE <hex> ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}.hex)
+    list(TRANSFORM PROGRAM_CMDLINE REPLACE <binary> ${CMAKE_CURRENT_BINARY_DIR}/${IMAGE}.bin)
+    list(TRANSFORM PROGRAM_CMDLINE REPLACE <hex> ${CMAKE_CURRENT_BINARY_DIR}/${IMAGE}.hex)
 
-    add_custom_target(${TARGET}_program ${PROGRAM_CMDLINE}
+    add_custom_target(${TARGET_NAME} ${PROGRAM_CMDLINE}
         DEPENDS ${PROGRAM_DEPENDS}
         VERBATIM
     )

@@ -26,6 +26,7 @@
 include(ExternalProject)
 include(AddProgramTarget)
 include(CreateProcessesDir)
+include(SetDefaultProgramTarget)
 
 # Create a target that builds the romfs image and combines it the kernel into a single binary image
 #
@@ -41,8 +42,8 @@ include(CreateProcessesDir)
 # - Creates a romfs image with of the directory <dir_name>
 # - Combines the kernel and the romfs image into a single binary image
 # - Registers a custom target (named <dir_name>) with to run the above steps
-function(miosix_add_romfs_image)
-    cmake_parse_arguments(ROMFS "" "IMAGE_NAME;KERNEL;DIR_NAME" "PROCESSES" ${ARGN})
+function(miosix_add_romfs_image ROMFS_IMAGE_NAME)
+    cmake_parse_arguments(PARSE_ARGV 0 ROMFS "PROGRAM_DEFAULT" "KERNEL;DIR_NAME" "PROCESSES")
 
     # If the user did not provide a directory name, use "bin" as default
     if(NOT ROMFS_DIR_NAME)
@@ -76,5 +77,8 @@ function(miosix_add_romfs_image)
     add_custom_target(${ROMFS_IMAGE_NAME} ALL DEPENDS ${PROJECT_BINARY_DIR}/${ROMFS_IMAGE_NAME}.bin)
 
     # And a target to flash the image
-    miosix_add_program_target(${ROMFS_IMAGE_NAME} DEPENDS ${ROMFS_IMAGE_NAME})
+    miosix_add_program_target(${ROMFS_IMAGE_NAME}_program ${ROMFS_IMAGE_NAME} DEPENDS ${ROMFS_IMAGE_NAME})
+    if(ROMFS_PROGRAM_DEFAULT)
+        miosix_set_default_program_target(${ROMFS_IMAGE_NAME}_program)
+    endif()
 endfunction()
