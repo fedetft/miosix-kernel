@@ -47,23 +47,16 @@ endif()
 
 set(MIOSIX_ASM_FLAGS "" CACHE PATH "Configurable Assembly flags for Miosix")
 set(MIOSIX_C_FLAGS 
-    -ffunction-sections
-    -fdata-sections
     -Wall
     -Werror=return-type
     CACHE PATH "Configurable C flags for Miosix"
 )
 set(MIOSIX_CXX_FLAGS 
-    -ffunction-sections
-    -fdata-sections
     -Wall
     -Werror=return-type
     CACHE PATH "Configurable C++ flags for Miosix"
 )
-set(MIOSIX_EXE_LINKER_FLAGS
-    -Wl,--gc-sections 
-    CACHE PATH "Configurable linker flags for Miosix"
-)
+set(MIOSIX_EXE_LINKER_FLAGS "" CACHE PATH "Configurable linker flags for Miosix")
 
 # C++ Exception/rtti support disable flags.
 # To save code size if not using C++ exceptions (nor some STL code which
@@ -72,6 +65,13 @@ set(MIOSIX_EXE_LINKER_FLAGS
 option(MIOSIX_DISABLE_EXCEPTIONS "Disables C++ exceptions/rtti support" OFF)
 if(MIOSIX_DISABLE_EXCEPTIONS)
     set(MIOSIX_OPT_EXCEPT -fno-exceptions -fno-rtti -D__NO_EXCEPTIONS)
+endif()
+
+# Option to enable/disable linker garbage collection
+option(MIOSIX_ENABLE_LINKER_GC "Enables linker garbage collection" ON)
+if(MIOSIX_ENABLE_LINKER_GC)
+    set(LINKER_GC_FLAGS -ffunction-sections -fdata-sections)
+    set(LINKER_GC_EXE_LINKER_FLAGS -Wl,--gc-sections)
 endif()
 
 # Include the architecture options
@@ -186,6 +186,7 @@ target_compile_options(miosix BEFORE PUBLIC
     $<$<COMPILE_LANGUAGE:CXX>:${MIOSIX_CHIP_CXX_FLAGS}>
     ${MIOSIX_CPU_FLAGS}
     $<$<COMPILE_LANGUAGE:CXX>:${MIOSIX_OPT_EXCEPT}>
+    ${LINKER_GC_FLAGS}
     $<$<COMPILE_LANGUAGE:ASM>:${MIOSIX_ASM_FLAGS}>
     $<$<COMPILE_LANGUAGE:C>:${MIOSIX_C_FLAGS}>
     $<$<COMPILE_LANGUAGE:CXX>:${MIOSIX_CXX_FLAGS}>
@@ -207,6 +208,7 @@ target_link_options(miosix INTERFACE
     -Wl,-T${MIOSIX_BOARD_INC}/${MIOSIX_LINKER_SCRIPT}
     ${MIOSIX_OPT_EXCEPT}
     -nostdlib
+    ${LINKER_GC_EXE_LINKER_FLAGS}
     ${MIOSIX_EXE_LINKER_FLAGS}
 )
 
