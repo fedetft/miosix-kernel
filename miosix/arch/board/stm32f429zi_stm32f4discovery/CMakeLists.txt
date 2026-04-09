@@ -24,7 +24,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 # Directory with header files for this board
-set(MIOSIX_CHIP_INC ${MIOSIX_KPATH}/arch/chip/stm32f4)
+set(MIOSIX_CHIP_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/chip/stm32f4)
 
 # Linker script type
 set(MIOSIX_LINKER_SCRIPT_LIST
@@ -48,8 +48,8 @@ endif()
 # Select architecture specific files
 set(MIOSIX_BOARD_SRC
     ${MIOSIX_BOARD_INC}/boot.cpp
-    ${MIOSIX_KPATH}/arch/drivers/stm32f2_f4_i2c.cpp
-    ${MIOSIX_KPATH}/arch/drivers/stm32_hardware_rng.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/stm32f2_f4_i2c.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/stm32_hardware_rng.cpp
     ${MIOSIX_BOARD_INC}/interfaces-impl/bsp.cpp
 )
 

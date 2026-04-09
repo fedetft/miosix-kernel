@@ -50,7 +50,7 @@ endif()
 # The default values are in the toolchain file
 
 # Directory with header files for this board
-set(MIOSIX_BOARD_INC ${MIOSIX_KPATH}/arch/board/${MIOSIX_OPT_BOARD})
+set(MIOSIX_BOARD_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/board/${MIOSIX_OPT_BOARD})
 
 # Include the board specific CMakeLists
 include(${MIOSIX_BOARD_INC}/CMakeLists.txt)

@@ -24,7 +24,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 # Directory with header files for this board
-set(MIOSIX_CHIP_INC ${MIOSIX_KPATH}/arch/chip/rp2040)
+set(MIOSIX_CHIP_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/chip/rp2040)
 
 # Linker script options:
 # 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)

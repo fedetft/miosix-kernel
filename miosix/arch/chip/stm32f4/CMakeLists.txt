@@ -24,7 +24,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 # CPU microarchitecture
-set(MIOSIX_CPU_INC ${MIOSIX_KPATH}/arch/cpu/armv7m)
+set(MIOSIX_CPU_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/cpu/armv7m)
 
 # Set the path to the multilib directory for this architecture (used by clang)
 set(MIOSIX_MULTILIB_PATH thumb/v7e-m+fp/hard)
@@ -36,18 +36,18 @@ set(MIOSIX_CHIP_CXX_FLAGS -D_CHIP_STM32F4 ${XRAM})
 
 # Select architecture specific files
 set(MIOSIX_CHIP_SRC
-    ${MIOSIX_KPATH}/arch/cpu/armv7m/interfaces-impl/cpu.cpp
-    ${MIOSIX_KPATH}/arch/cpu/common/cortexMx_interrupts.cpp
-    ${MIOSIX_KPATH}/arch/drivers/mpu/cortexMx_mpu.cpp
-    ${MIOSIX_KPATH}/arch/cpu/common/cortexMx_userspace.cpp
-    ${MIOSIX_KPATH}/arch/drivers/os_timer/stm32_32bit_os_timer.cpp
-    ${MIOSIX_KPATH}/arch/drivers/sleep/cortexMx_sleep.cpp
-    ${MIOSIX_KPATH}/arch/drivers/gpio/stm32_gpio.cpp
-    ${MIOSIX_KPATH}/arch/drivers/serial/stm32f1_f2_f4_serial.cpp
-    ${MIOSIX_KPATH}/arch/drivers/serial/stm32_serial_common.cpp
-    ${MIOSIX_KPATH}/arch/drivers/dcc.cpp
-    ${MIOSIX_KPATH}/arch/drivers/sdmmc/sd_stm32f2_f4_f7.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/cpu/armv7m/interfaces-impl/cpu.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/cpu/common/cortexMx_interrupts.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/mpu/cortexMx_mpu.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/cpu/common/cortexMx_userspace.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/os_timer/stm32_32bit_os_timer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/sleep/cortexMx_sleep.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/gpio/stm32_gpio.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/serial/stm32f1_f2_f4_serial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/serial/stm32_serial_common.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/dcc.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/sdmmc/sd_stm32f2_f4_f7.cpp
     ${MIOSIX_CHIP_INC}/interfaces-impl/delays.cpp
     ${MIOSIX_CHIP_INC}/interfaces-impl/poweroff.cpp
-    ${MIOSIX_KPATH}/arch/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.cpp
 )

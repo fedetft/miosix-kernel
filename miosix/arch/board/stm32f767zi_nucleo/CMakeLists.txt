@@ -24,7 +24,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 
 # Directory with header files for this board
-set(MIOSIX_CHIP_INC ${MIOSIX_KPATH}/arch/chip/stm32f7)
+set(MIOSIX_CHIP_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/chip/stm32f7)
 
 # The stm32f767 has the double precision FPU, so we will build for m7
 set(MIOSIX_CPU_FLAGS -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16)

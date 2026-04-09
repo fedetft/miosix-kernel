@@ -80,7 +80,7 @@ if(MIOSIX_ENABLE_LINKER_GC)
 endif()
 
 # Include the architecture options
-include(${MIOSIX_KPATH}/arch/CMakeLists.txt)
+include(${CMAKE_CURRENT_SOURCE_DIR}/arch/CMakeLists.txt)
 
 # Verify that all the required variables have been defined, otherwise abort
 set(REQUIRED_VARIABLES
@@ -104,7 +104,7 @@ endforeach()
 # Print build configuration
 message(STATUS
         "Build Configuration\n"
-        "   - MIOSIX_KPATH:                     ${MIOSIX_KPATH}\n"
+        "   - CMAKE_CURRENT_SOURCE_DIR:         ${CMAKE_CURRENT_SOURCE_DIR}\n"
         "   - MIOSIX_USER_CONFIG_PATH:          ${MIOSIX_USER_CONFIG_PATH}\n"
         "   - MIOSIX_USER_BOARD_SETTINGS_PATH:  ${MIOSIX_USER_BOARD_SETTINGS_PATH}\n"
         "   - MIOSIX_GCC_PATH:                  ${MIOSIX_GCC_PATH}\n"
@@ -117,47 +117,47 @@ message(STATUS
         "   Remember to delete cmake cache for changes in CMakeLists.txt to have effect (or use --fresh to ignore it)")
 
 set(MIOSIX_KERNEL_SRC
-    ${MIOSIX_KPATH}/kernel/thread.cpp
-    ${MIOSIX_KPATH}/kernel/lock.cpp
-    ${MIOSIX_KPATH}/kernel/sync.cpp
-    ${MIOSIX_KPATH}/kernel/error.cpp
-    ${MIOSIX_KPATH}/kernel/pthread.cpp
-    ${MIOSIX_KPATH}/kernel/boot.cpp
-    ${MIOSIX_KPATH}/kernel/elf_program.cpp
-    ${MIOSIX_KPATH}/kernel/process.cpp
-    ${MIOSIX_KPATH}/kernel/process_pool.cpp
-    ${MIOSIX_KPATH}/kernel/timeconversion.cpp
-    ${MIOSIX_KPATH}/kernel/intrusive.cpp
-    ${MIOSIX_KPATH}/kernel/cpu_time_counter.cpp
-    ${MIOSIX_KPATH}/kernel/scheduler/priority/priority_scheduler.cpp
-    ${MIOSIX_KPATH}/kernel/scheduler/control/control_scheduler.cpp
-    ${MIOSIX_KPATH}/kernel/scheduler/edf/edf_scheduler.cpp
-    ${MIOSIX_KPATH}/filesystem/file_access.cpp
-    ${MIOSIX_KPATH}/filesystem/file.cpp
-    ${MIOSIX_KPATH}/filesystem/path.cpp
-    ${MIOSIX_KPATH}/filesystem/stringpart.cpp
-    ${MIOSIX_KPATH}/filesystem/pipe/pipe.cpp
-    ${MIOSIX_KPATH}/filesystem/console/console_device.cpp
-    ${MIOSIX_KPATH}/filesystem/mountpointfs/mountpointfs.cpp
-    ${MIOSIX_KPATH}/filesystem/devfs/devfs.cpp
-    ${MIOSIX_KPATH}/filesystem/fat32/fat32.cpp
-    ${MIOSIX_KPATH}/filesystem/fat32/ff.cpp
-    ${MIOSIX_KPATH}/filesystem/fat32/diskio.cpp
-    ${MIOSIX_KPATH}/filesystem/fat32/wtoupper.cpp
-    ${MIOSIX_KPATH}/filesystem/fat32/ccsbcs.cpp
-    ${MIOSIX_KPATH}/filesystem/littlefs/lfs_miosix.cpp
-    ${MIOSIX_KPATH}/filesystem/littlefs/lfs.c
-    ${MIOSIX_KPATH}/filesystem/littlefs/lfs_util.c
-    ${MIOSIX_KPATH}/filesystem/romfs/romfs.cpp
-    ${MIOSIX_KPATH}/kercalls/libc_integration.cpp
-    ${MIOSIX_KPATH}/kercalls/libstdcpp_integration.cpp
-    ${MIOSIX_KPATH}/e20/e20.cpp
-    ${MIOSIX_KPATH}/e20/unmember.cpp
-    ${MIOSIX_KPATH}/util/util.cpp
-    ${MIOSIX_KPATH}/util/unicode.cpp
-    ${MIOSIX_KPATH}/util/version.cpp
-    ${MIOSIX_KPATH}/util/crc16.cpp
-    ${MIOSIX_KPATH}/util/lcd44780.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kernel/thread.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kernel/lock.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kernel/sync.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kernel/error.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kernel/pthread.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kernel/boot.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kernel/elf_program.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kernel/process.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kernel/process_pool.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kernel/timeconversion.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kernel/intrusive.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kernel/cpu_time_counter.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kernel/scheduler/priority/priority_scheduler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kernel/scheduler/control/control_scheduler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kernel/scheduler/edf/edf_scheduler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/file_access.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/file.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/path.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/stringpart.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/pipe/pipe.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/console/console_device.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/mountpointfs/mountpointfs.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/devfs/devfs.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/fat32/fat32.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/fat32/ff.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/fat32/diskio.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/fat32/wtoupper.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/fat32/ccsbcs.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/littlefs/lfs_miosix.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/littlefs/lfs.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/littlefs/lfs_util.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/romfs/romfs.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kercalls/libc_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/kercalls/libstdcpp_integration.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/e20/e20.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/e20/unmember.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/util/util.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/util/unicode.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/util/version.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/util/crc16.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/util/lcd44780.cpp
 )
 
 # Define the miosix library with kernel and architecture sources
@@ -169,11 +169,11 @@ add_library(miosix STATIC
 
 target_include_directories(miosix PUBLIC
     ${MIOSIX_CONFIG_PATH}
-    ${MIOSIX_KPATH}/config
+    ${CMAKE_CURRENT_SOURCE_DIR}/config
     ${MIOSIX_BOARD_SETTINGS_INC}
-    ${MIOSIX_KPATH}/config/board/${MIOSIX_OPT_BOARD}
-    ${MIOSIX_KPATH}
-    ${MIOSIX_KPATH}/arch
+    ${CMAKE_CURRENT_SOURCE_DIR}/config/board/${MIOSIX_OPT_BOARD}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch
     ${MIOSIX_CPU_INC}
     ${MIOSIX_CHIP_INC}
     ${MIOSIX_BOARD_INC}
@@ -220,7 +220,7 @@ target_link_options(miosix INTERFACE
 # Run the kernel_global_objects.pl script on all kernel objects
 add_custom_command(
     TARGET miosix PRE_LINK
-    COMMAND perl ${MIOSIX_KPATH}/../tools/kernel_global_objects.pl $<TARGET_OBJECTS:miosix> --prefix=${MIOSIX_PREFIX}
+    COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/../tools/kernel_global_objects.pl $<TARGET_OBJECTS:miosix> --prefix=${MIOSIX_PREFIX}
     VERBATIM
     COMMAND_EXPAND_LISTS
 )

@@ -66,10 +66,11 @@ function(miosix_add_romfs_image ROMFS_IMAGE_NAME)
     )
 
     # Combine kernel and romfs images
+    get_target_property(MIOSIX_SOURCE_DIR miosix SOURCE_DIR)
     add_custom_command(
         OUTPUT ${ROMFS_IMAGE_NAME}.bin
         DEPENDS ${ROMFS_KERNEL}.bin ${ROMFS_IMAGE_NAME}-romfs.bin
-        COMMAND perl ${MIOSIX_KPATH}/../tools/mkimage.pl ${ROMFS_IMAGE_NAME}.bin ${ROMFS_KERNEL}.bin ${ROMFS_IMAGE_NAME}-romfs.bin
+        COMMAND perl ${MIOSIX_SOURCE_DIR}/../tools/mkimage.pl ${ROMFS_IMAGE_NAME}.bin ${ROMFS_KERNEL}.bin ${ROMFS_IMAGE_NAME}-romfs.bin
         COMMENT "Combining ${ROMFS_KERNEL}.bin and ${ROMFS_IMAGE_NAME}-romfs.bin into ${ROMFS_IMAGE_NAME}.bin"
     )
 
