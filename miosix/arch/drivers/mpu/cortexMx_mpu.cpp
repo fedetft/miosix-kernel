@@ -136,4 +136,38 @@ unsigned int sizeToMpu(unsigned int size)
 }
 #endif
 
+//
+// class KernelspaceMpuConfiguration
+//
+
+KernelspaceMpuConfiguration::KernelspaceMpuConfiguration()
+{
+    for(int i=0;i<3;i++)
+    {
+        MPU->RNR=i;
+        regValues[2*i]=MPU->RBAR;
+        #if __CORTEX_M == 33U
+        regValues[2*i+1]=MPU->RLAR;
+        #else
+        regValues[2*i+1]=MPU->RASR;
+        #endif
+    }
+}
+
+void KernelspaceMpuConfiguration::apply()
+{
+    for(int i=0;i<3;i++)
+    {
+        //NOTE: when reading RBAR in ARMv7-M/v6-M, VALID reads as 0 so either we
+        //set this bit back or we need to also update RNR, which we do
+        MPU->RNR=i;
+        MPU->RBAR=regValues[2*i];
+        #if __CORTEX_M == 33U
+        MPU->RLAR=regValues[2*i+1];
+        #else
+        MPU->RASR=regValues[2*i+1];
+        #endif
+    }
+}
+
 } //namespace miosix
