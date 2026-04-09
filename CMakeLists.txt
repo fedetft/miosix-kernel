@@ -48,7 +48,6 @@ project(Main C CXX ASM)
 # set(MIOSIX_OPT_BOARD stm32f...)
 
 add_subdirectory(${MIOSIX_KPATH} EXCLUDE_FROM_ALL)
-include(LinkTarget)
 
 # List here your source files (.s, .c and .cpp)
 add_executable(main main.cpp)

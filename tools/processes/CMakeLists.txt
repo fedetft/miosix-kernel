@@ -37,10 +37,6 @@ set(MIOSIX_LINKER_SCRIPT stm32_1m+192k_rom_processes.ld)
 
 add_subdirectory(${MIOSIX_KPATH} miosix EXCLUDE_FROM_ALL)
 
-include(LinkTarget)
-include(AddProcess)
-include(AddRomfsImage)
-
 # Kernel level program
 add_executable(main start_process.cpp)
 target_compile_definitions(miosix PUBLIC WITH_FILESYSTEM)

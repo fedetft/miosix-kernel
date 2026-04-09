@@ -26,15 +26,20 @@
 # Version 3.21 allows overriding CACHE variables with normal variables
 cmake_minimum_required(VERSION 3.21)
 
+# Include Miosix's modules
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(AddProcess)
+include(AddProgramTarget)
+include(AddRomfsImage)
+include(CreateProcessesDir)
+include(LinkTarget)
+
 project(Miosix
     VERSION 3.0
     DESCRIPTION "OS kernel designed to run on 32bit microcontrollers."
     HOMEPAGE_URL "https://miosix.org"
     LANGUAGES C CXX
 )
-
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake" PARENT_SCOPE)
-
 set(CMAKE_CXX_STANDARD 23 CACHE STRING "Project C++ standard")
 
 # The user can set custom paths for miosix_settings.h and board_settings.h

@@ -36,7 +36,5 @@ set(MIOSIX_OPT_BOARD rp2040_raspberry_pi_pico)
 
 add_subdirectory(${MIOSIX_KPATH} miosix EXCLUDE_FROM_ALL)
 
-include(LinkTarget)
-
 add_executable(blinking_led simple.cpp)
 miosix_link_target(blinking_led)
