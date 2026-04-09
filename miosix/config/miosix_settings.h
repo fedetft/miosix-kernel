@@ -126,7 +126,6 @@ constexpr unsigned int FATFS_EXTEND_BUFFER=512;
 /// filesystem is synced so that a power failure happens data is not lost
 /// (unless power failure happens exactly between the write and the sync)
 /// Unfortunately write latency and throughput becomes twice as worse
-/// By default it is defined (slow but safe)
 //#define SYNC_AFTER_WRITE
 
 /// Maximum number of files a single process (or the kernel) can open. This
