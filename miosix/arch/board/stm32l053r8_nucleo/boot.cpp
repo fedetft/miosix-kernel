@@ -35,27 +35,32 @@ namespace miosix {
 
 void IRQsetupClockTree()
 {
-    //TODO: shouldn't we select voltage range 1 too? Don't have this board so can't test
     static_assert(hseFrequency==8000000,"Unsupported HSE oscillator frequency");
     static_assert(cpuFrequency==32000000,"Unsupported target SYSCLK");
 
-    // Check if PLL is used as system clock
-    if ((RCC->CFGR & RCC_CFGR_SWS) == RCC_CFGR_SWS_PLL)
-    {
-        // Select HSI as system clock
-        RCC->CFGR = (RCC->CFGR & (uint32_t)~RCC_CFGR_SW) | RCC_CFGR_SW_HSI;
-        while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSI) {}
-    }
+    // Select MSI as system clock, which is already the default after reset.
+    // Unless it is reconfigured, it runs at 2MHz.
+    RCC->CFGR = (RCC->CFGR & (uint32_t)~RCC_CFGR_SW) | RCC_CFGR_SW_MSI;
+    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_MSI) {}
+
     // Disable PLL
     RCC->CR &= (uint32_t)~RCC_CR_PLLON;
     while(RCC->CR & RCC_CR_PLLRDY) {}
 
-    // Enable HSE with bypass
-    RCC->CR |= RCC_CR_HSEON | RCC_CR_HSEBYP;
-    while((RCC->CR & RCC_CR_HSERDY) == 0) {}
+    // Switch to voltage range 1
+    // On voltage ranges 2 and 3 you can't change system clock frequency in
+    // larger steps than 4x!
+    PWR->CR = (PWR->CR & ~PWR_CR_VOS_Msk) | (1 << PWR_CR_VOS_Pos);
+    while(PWR->CSR & PWR_CSR_VOSF) {}
 
     // Set flash latency to 1 wait state
     FLASH->ACR |= FLASH_ACR_LATENCY;
+    while((FLASH->ACR & FLASH_ACR_LATENCY) == 0) ;
+
+    // Enable HSE
+    if(oscillatorType==OscillatorType::HSEBYP) RCC->CR |= RCC_CR_HSEBYP;
+    RCC->CR |= RCC_CR_HSEON;
+    while((RCC->CR & RCC_CR_HSERDY) == 0) ;
 
     // Set PLL multiplier to 12 (HSI is 8MHz, gives 96MHz) and divider by 3
     // 96MHz is needed for the 48MHz output to work correctly (it is hardcoded
