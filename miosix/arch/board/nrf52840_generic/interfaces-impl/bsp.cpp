@@ -32,7 +32,7 @@
 
 #include <utility>
 #include <sys/ioctl.h>
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "interfaces/bsp.h"
 #include "interfaces/poweroff.h"
 #include "interfaces/arch_registers.h"

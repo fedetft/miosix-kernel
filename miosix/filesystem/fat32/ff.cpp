@@ -114,7 +114,7 @@
 #include <stdlib.h>
 #include <util/unicode.h>
 #include <interfaces/atomic_ops.h>
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 
 #ifdef WITH_FILESYSTEM
 

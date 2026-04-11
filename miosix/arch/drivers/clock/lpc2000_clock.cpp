@@ -27,7 +27,7 @@
 
 #include "lpc2000_clock.h"
 // #include "board_settings.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 
 namespace miosix {
 

@@ -26,7 +26,7 @@
  ***************************************************************************/
 
 #include "interfaces/delays.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 
 namespace miosix {
 

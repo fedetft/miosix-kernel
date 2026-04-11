@@ -27,7 +27,7 @@
  ***************************************************************************/
 
 #include "error.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "lock.h"
 #include "interfaces/poweroff.h"
 #include "interfaces_private/smp.h"

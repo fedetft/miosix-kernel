@@ -32,7 +32,7 @@
 #include <miosix.h>
 #include "interfaces/interrupts.h"
 #include "gpioirq.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "hrtb.h"
 #include "hwmapping.h"
 

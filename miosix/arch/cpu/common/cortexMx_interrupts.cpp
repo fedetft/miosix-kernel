@@ -32,7 +32,7 @@
 #include "kernel/process.h"
 #include "kernel/scheduler/scheduler.h"
 #include "kernel/boot.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "interfaces/poweroff.h"
 #include "interfaces_private/cpu.h"
 #include "interfaces/arch_registers.h"

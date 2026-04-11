@@ -28,7 +28,7 @@
 #pragma once
 
 #include "interfaces/arch_registers.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 
 /**
 \addtogroup Hardware

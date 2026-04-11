@@ -32,7 +32,7 @@
 #error "If your code depends on a private header, it IS broken."
 #endif //COMPILING_MIOSIX
 
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "interfaces/cpu_const.h"
 
 /**

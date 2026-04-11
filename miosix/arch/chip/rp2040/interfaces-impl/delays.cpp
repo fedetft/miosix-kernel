@@ -26,7 +26,7 @@
  ***************************************************************************/
 
 #include <cstdint>
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "interfaces/delays.h"
 
 namespace miosix {

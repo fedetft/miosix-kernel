@@ -29,7 +29,7 @@
 #define RTC_H
 
 #include <kernel/timeconversion.h>
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 
 #ifndef WITH_RTC_AS_OS_TIMER
 

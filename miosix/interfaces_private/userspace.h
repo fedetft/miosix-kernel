@@ -34,7 +34,7 @@
 
 #include <cstddef>
 #include <tuple>
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "interfaces/cpu_const.h"
 
 /**

@@ -36,7 +36,7 @@
 //#endif
 
 #include <filesystem/file.h>
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 
 #include "integer.h"	/* Basic integer types */
 #include "ffconf.h"		/* FatFs configuration options */

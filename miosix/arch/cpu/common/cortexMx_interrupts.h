@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces/cpu_const.h"
 

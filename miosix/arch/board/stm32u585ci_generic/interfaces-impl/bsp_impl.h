@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "interfaces/gpio.h"
 
 namespace miosix {

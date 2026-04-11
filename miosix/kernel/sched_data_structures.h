@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "kernel/intrusive.h"
 #include "kernel/thread.h"
 

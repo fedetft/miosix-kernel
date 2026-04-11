@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "control_scheduler_types.h"
 #include "parameters.h"
 #include "kernel/thread.h"

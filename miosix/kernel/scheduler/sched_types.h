@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "kernel/scheduler/priority/priority_scheduler_types.h"
 #include "kernel/scheduler/control/control_scheduler_types.h"
 #include "kernel/scheduler/edf/edf_scheduler_types.h"
@@ -44,7 +44,7 @@ typedef ControlSchedulerData SchedulerData;
 typedef EDFSchedulerPriority Priority;
 typedef EDFSchedulerData SchedulerData;
 #else
-#error No scheduler selected in config/miosix_settings.h
+#error No scheduler selected in miosix_settings.h
 #endif
 
 } //namespace miosix

@@ -28,7 +28,7 @@
 
 #pragma once
 
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "interfaces/interrupts.h"
 #include "interfaces/cpu_const.h"
 #include "interfaces_private/smp_locks.h"

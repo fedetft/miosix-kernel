@@ -33,7 +33,7 @@
 #ifndef BSP_IMPL_H
 #define BSP_IMPL_H
 
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "hwmapping.h"
 
 namespace miosix {

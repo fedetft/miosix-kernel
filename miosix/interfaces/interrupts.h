@@ -28,7 +28,7 @@
 #pragma once
 
 #include "e20/unmember.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 
 /**
  * \addtogroup Interfaces

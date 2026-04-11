@@ -18,19 +18,23 @@ include $(KPATH)/arch/Makefile.inc
 ## Always include CONFPATH first, as it overrides the config file location
 AFLAGS   := -qkernelspace \
             $(BOARD_AFLAGS) $(CPU_FLAGS) $(CHIP_AFLAGS) $(AFLAGS_BASE) -c
-CFLAGS   := -qkernelspace -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\"              \
-            -D_DEFAULT_SOURCE=1 $(BOARD_CFLAGS) $(CHIP_CFLAGS) $(CPU_FLAGS) \
-            $(OPT_OPTIMIZATION) $(CFLAGS_BASE)                              \
-            -I$(CONFPATH) -I$(CONFPATH)/config/board/$(OPT_BOARD) -I.       \
-            -I$(KPATH) -I$(KPATH)/arch -I$(KPATH)/$(CPU_INC)                \
-            -I$(KPATH)/$(CHIP_INC) -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS)  \
+CFLAGS   := -qkernelspace -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\"               \
+            -D_DEFAULT_SOURCE=1 $(BOARD_CFLAGS) $(CHIP_CFLAGS) $(CPU_FLAGS)  \
+            $(OPT_OPTIMIZATION) $(CFLAGS_BASE)                               \
+            -I$(CONFPATH)/config -I$(KPATH)/config                           \
+            -I$(CONFPATH)/config/board/$(OPT_BOARD)                          \
+            -I$(KPATH)/config/board/$(OPT_BOARD)  -I$(KPATH) -I$(KPATH)/arch \
+            -I$(KPATH)/$(CPU_INC) -I$(KPATH)/$(CHIP_INC)                     \
+            -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS)                          \
             -MMD -MP -c
 CXXFLAGS := -qkernelspace -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\"                 \
             -D_DEFAULT_SOURCE=1 $(BOARD_CXXFLAGS) $(CHIP_CXXFLAGS) $(CPU_FLAGS)\
             $(OPT_OPTIMIZATION) $(OPT_EXCEPT) $(CXXFLAGS_BASE)                 \
-            -I$(CONFPATH) -I$(CONFPATH)/config/board/$(OPT_BOARD) -I.          \
-            -I$(KPATH) -I$(KPATH)/arch -I$(KPATH)/$(CPU_INC)                   \
-            -I$(KPATH)/$(CHIP_INC) -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS)     \
+            -I$(CONFPATH)/config -I$(KPATH)/config                             \
+            -I$(CONFPATH)/config/board/$(OPT_BOARD)                            \
+            -I$(KPATH)/config/board/$(OPT_BOARD)  -I$(KPATH) -I$(KPATH)/arch   \
+            -I$(KPATH)/$(CPU_INC) -I$(KPATH)/$(CHIP_INC)                       \
+            -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS)                            \
             -MMD -MP -c
 LFLAGS   := -qkernelspace $(BOARD_LFLAGS) $(CPU_FLAGS) $(CHIP_LFLAGS)      \
             -Wl,-Map,main.map -Wl,-T$(KPATH)/$(BOARD_INC)/$(LINKER_SCRIPT) \
@@ -57,7 +61,8 @@ ifneq ($(shell perl $(TOOLS_DIR)/compiler_check.pl $(CC)), 0)
     $(error Error)
 endif
 
-# Allow changing options in config/Makefile.inc from root makefile
+# Allow changing options in config/Makefile.inc from root makefile.
+# Note: you cannot export like this any variable that is not a path!
 export OPT_BOARD
 export OPT_OPTIMIZATION
 export OPT_EXCEPT

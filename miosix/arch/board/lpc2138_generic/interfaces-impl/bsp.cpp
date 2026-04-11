@@ -36,7 +36,7 @@
 #include "drivers/serial/serial.h"
 #include "drivers/sdmmc/sd_lpc2000.h"
 #include "interfaces/poweroff.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "interfaces/arch_registers.h"
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"

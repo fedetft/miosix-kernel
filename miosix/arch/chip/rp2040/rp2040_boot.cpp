@@ -40,7 +40,7 @@
  * In Miosix we consider RP2040 stage 1 and stage 2 as "Miosix preboot".
  */
 
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces/gpio.h"
 #include "drivers/mpu/cortexMx_mpu.h"

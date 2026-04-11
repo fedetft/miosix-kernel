@@ -54,7 +54,7 @@
 #include <memory>
 
 #include "miosix.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "interfaces/atomic_ops.h"
 #include "interfaces/endianness.h"
 #include "interfaces/poweroff.h"

@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "kernel/logging.h"
 #include "rp2040_spi.h"
 #include "drivers/rp2040_dma.h"

@@ -39,7 +39,7 @@
 #include "interfaces/arch_registers.h"
 #include "interfaces_private/os_timer.h"
 #include "interfaces/poweroff.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "board_settings.h"
 
 using namespace std;

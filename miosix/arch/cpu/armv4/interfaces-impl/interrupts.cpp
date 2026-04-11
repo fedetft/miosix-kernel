@@ -29,7 +29,7 @@
 #include "kernel/logging.h"
 #include "interfaces/poweroff.h"
 #include "interfaces_private/cpu.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "kernel/scheduler/scheduler.h"
 
 namespace miosix {

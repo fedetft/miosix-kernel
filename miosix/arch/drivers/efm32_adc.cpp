@@ -26,7 +26,7 @@
  ***************************************************************************/
 
 #include "efm32_adc.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "miosix.h"
 #include <algorithm>
 

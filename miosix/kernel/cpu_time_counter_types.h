@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "interfaces/cpu_const.h"
 
 #ifdef WITH_CPU_TIME_COUNTER

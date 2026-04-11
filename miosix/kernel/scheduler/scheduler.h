@@ -32,7 +32,7 @@
 #error "If your code depends on a private header, it IS broken."
 #endif //COMPILING_MIOSIX
 
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "kernel/scheduler/priority/priority_scheduler.h"
 #include "kernel/scheduler/control/control_scheduler.h"
 #include "kernel/scheduler/edf/edf_scheduler.h"
@@ -289,7 +289,7 @@ typedef basic_scheduler<ControlScheduler> Scheduler;
 #elif defined(SCHED_TYPE_EDF)
 typedef basic_scheduler<EDFScheduler> Scheduler;
 #else
-#error No scheduler selected in config/miosix_settings.h
+#error No scheduler selected in miosix_settings.h
 #endif
 
 } //namespace miosix

@@ -128,7 +128,7 @@ void memDump(const void *start, int len);
 /**
  * This class implements a top-like view of the CPU usage of all current
  * threads. The implementation is built upon CPUTimeCounter and therefore also
- * requires `WITH_CPU_TIME_COUNTER` to be defined in config/miosix_settings.h.
+ * requires `WITH_CPU_TIME_COUNTER` to be defined in miosix_settings.h.
  * 
  * CPUProfiler can be integrated in an existing update loop by instantiating it
  * and then invoking the update() and print() methods at regular intervals:

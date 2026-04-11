@@ -26,7 +26,7 @@
 */
 
 #include "ff.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 
 #ifdef WITH_FILESYSTEM
 

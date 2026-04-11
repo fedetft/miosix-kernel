@@ -5,9 +5,14 @@
 ## Path to the Miosix kernel root (miosix-kernel/miosix)
 KPATH := ../../miosix
 
-## Path to the Miosix config root. Leave it as $(KPATH) to use the defaults.
-## To change them, copy and paste the miosix-kernel/miosix/config directory to
-## your project root and change this path to the project root (typically .)
+## Path to the Miosix config root, containing:
+##  - config/Makefile.inc
+##  - config/miosix_config.h (optional)
+##  - config/board/<board name>/board_config.h (optional)
+## Leave it as $(KPATH) to use the default settings built in to miosix. Any
+## missing file is replaced by the defaults as well.
+##   To change the config, copy and paste the miosix/config directory to
+## your project root and change this path to the project root (typically ".")
 CONFPATH := $(KPATH)
 
 ## When using CONFPATH := $(KPATH) you can choose the board here. You can also

@@ -42,4 +42,4 @@
 /* Utilities */
 #include <util/util.h>
 /* Settings */
-#include <config/miosix_settings.h>
+#include <miosix_settings.h>

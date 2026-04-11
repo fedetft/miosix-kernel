@@ -37,7 +37,7 @@
 #include <cstdlib>
 #include "interfaces/bsp.h"
 #include "board_settings.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "drivers/serial/serial.h"
 #include "drivers/sdmmc/sd_stm32f2_f4_f7.h"
 #include "filesystem/console/console_device.h"

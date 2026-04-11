@@ -35,7 +35,7 @@
 #include "thread.h"
 #include "sync.h"
 #include "elf_program.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "filesystem/file_access.h"
 #include "interfaces_private/userspace.h" //TODO: avoid including private header
 

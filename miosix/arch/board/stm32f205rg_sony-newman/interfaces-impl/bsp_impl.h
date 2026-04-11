@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "hwmapping.h"
 #include "drivers/stm32_hardware_rng.h"
 #include "drivers/stm32f2_f4_i2c.h"

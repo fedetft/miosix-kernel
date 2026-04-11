@@ -45,7 +45,7 @@ namespace miosix {
  * much CPU time was used up to now by each thread in the system.
  * It is intended for debugging and evaluation purposes and is enabled only if
  * the symbol `WITH_CPU_TIME_COUNTER` has been defined in
- * config/miosix_settings.h.
+ * miosix_settings.h.
  * 
  * The implementation of this class collects this data by intercepting context
  * switch events. Due to the measurement method, some caveats apply to the data

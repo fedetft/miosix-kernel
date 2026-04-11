@@ -35,7 +35,7 @@
 #include "kernel/lock.h"
 #include "kernel/thread.h"
 #include "kercalls/libc_integration.h"
-#include "config/miosix_settings.h" //For WATERMARK_FILL and STACK_FILL
+#include "miosix_settings.h" //For WATERMARK_FILL and STACK_FILL
 #include "interfaces/cpu_const.h"
 
 using namespace std;

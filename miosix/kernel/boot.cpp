@@ -40,7 +40,7 @@
 #include "logging.h"
 #include "pthread_private.h"
 // settings for miosix
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "util/util.h"
 #include "util/version.h"
 

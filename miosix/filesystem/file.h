@@ -29,7 +29,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include "kernel/intrusive.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 
 #pragma once
 

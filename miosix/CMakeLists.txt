@@ -43,12 +43,12 @@ project(Miosix
 set(CMAKE_CXX_STANDARD 23 CACHE STRING "Project C++ standard")
 
 # The user can set custom paths for miosix_settings.h and board_settings.h
-set(MIOSIX_USER_CONFIG_PATH "" CACHE PATH "Include directory for miosix config")
-if(MIOSIX_USER_CONFIG_PATH STREQUAL "")
-    set(MIOSIX_USER_BOARD_SETTINGS_PATH "" CACHE PATH "Include directory for custom board_settings.h")
-else()
-    set(MIOSIX_USER_BOARD_SETTINGS_PATH "${MIOSIX_USER_CONFIG_PATH}/board/${MIOSIX_OPT_BOARD}" CACHE PATH "Include directory for custom board_settings.h")
-endif()
+set(MIOSIX_USER_CONFIG_PATH
+    "${CMAKE_SOURCE_DIR}"
+    CACHE PATH "Path of the Miosix configuration directory")
+set(MIOSIX_USER_BOARD_SETTINGS_PATH
+    "${MIOSIX_USER_CONFIG_PATH}/board/${MIOSIX_OPT_BOARD}"
+    CACHE PATH "Include directory for board_settings.h")
 
 # Default warning flags used for Miosix and projects that link with it.
 # Configurable but not recommended.

@@ -42,7 +42,7 @@
 #include "kernel/thread.h"
 #include "kernel/sync.h"
 #include "interfaces/poweroff.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "kernel/logging.h"
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"

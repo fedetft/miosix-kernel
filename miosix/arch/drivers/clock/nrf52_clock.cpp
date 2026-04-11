@@ -26,7 +26,7 @@
  ***************************************************************************/
 
 #include "nrf52_clock.h"
-#include <config/miosix_settings.h>
+#include <miosix_settings.h>
 #include <interfaces/arch_registers.h>
 #include <interfaces/delays.h>
 #include "drivers/mpu/cortexMx_mpu.h"

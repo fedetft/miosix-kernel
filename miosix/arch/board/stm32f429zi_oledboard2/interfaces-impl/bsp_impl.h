@@ -33,7 +33,7 @@
 #ifndef BSP_IMPL_H
 #define BSP_IMPL_H
 
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "interfaces/gpio.h"
 #include "drivers/stm32_hardware_rng.h"
 #include "hwmapping.h"

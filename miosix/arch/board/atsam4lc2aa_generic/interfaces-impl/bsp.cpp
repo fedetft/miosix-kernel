@@ -38,7 +38,7 @@
 #include "interfaces/bsp.h"
 #include "interfaces_private/bsp_private.h"
 #include "interfaces/poweroff.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
 #include "drivers/serial/serial.h"

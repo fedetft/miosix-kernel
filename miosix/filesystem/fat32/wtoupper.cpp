@@ -1,6 +1,6 @@
 
 #include "ff.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 
 /*
  * This is an alternative version of ff_wtoupper(), designed to be both smaller,

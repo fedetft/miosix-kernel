@@ -31,7 +31,7 @@
 #include "filesystem/file.h"
 #include "kernel/sync.h"
 #include "ff.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 
 namespace miosix {
     

@@ -29,7 +29,7 @@
 #include "cortexMx_mpu.h"
 #include "drivers/cache/cortexMx_cache.h"
 #include "kernel/error.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 
 using namespace std;
 

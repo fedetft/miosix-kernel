@@ -38,7 +38,7 @@
 #include <sys/fcntl.h>
 #include <sys/times.h>
 //// Settings
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 //// Filesystem
 #include "filesystem/file_access.h"
 //// Console

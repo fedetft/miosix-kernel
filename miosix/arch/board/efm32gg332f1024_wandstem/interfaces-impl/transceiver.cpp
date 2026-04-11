@@ -29,7 +29,7 @@
 #include "transceiver.h"
 #include "cc2520_constants.h"
 #include "gpioirq.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include <stdexcept>
 #include <algorithm>
 #include <cassert>

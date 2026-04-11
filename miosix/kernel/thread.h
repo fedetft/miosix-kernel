@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "kernel/scheduler/sched_types.h"
 #include "kercalls/libstdcpp_integration.h"
 #include "intrusive.h"

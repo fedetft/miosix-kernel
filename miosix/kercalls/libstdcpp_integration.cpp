@@ -32,7 +32,7 @@
 #include <thread>
 #include <malloc.h>
 //// Settings
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 //// Console
 #include "kernel/logging.h"
 //// kernel interface

@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "filesystem/file.h"
 #include "filesystem/stringpart.h"
 #include "kernel/sync.h"

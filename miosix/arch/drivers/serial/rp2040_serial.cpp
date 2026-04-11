@@ -27,7 +27,7 @@
 
 #include <termios.h>
 #include <errno.h>
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 #include "kernel/lock.h"
 #include "filesystem/ioctl.h"
 #include "rp2040_serial.h"

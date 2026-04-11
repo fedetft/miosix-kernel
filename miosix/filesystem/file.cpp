@@ -30,7 +30,7 @@
 #include <string>
 #include <fcntl.h>
 #include "file_access.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 
 using namespace std;
 
