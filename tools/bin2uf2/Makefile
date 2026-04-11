@@ -35,7 +35,7 @@ ROMFS_DIR :=
 
 all: $(if $(ROMFS_DIR), image, main)
 
-main: $(OBJ) all-recursive $(TOOLS_DIR)/bin2uf2/bin2uf2
+main: $(OBJ) all-recursive $(KPATH)/../tools/bin2uf2/bin2uf2
 	$(ECHO) "[LD  ] main.elf"
 	$(Q)$(CXX) $(LFLAGS) -o main.elf $(OBJ) $(LINK_LIBS)
 	$(ECHO) "[CP  ] main.hex"
@@ -43,18 +43,18 @@ main: $(OBJ) all-recursive $(TOOLS_DIR)/bin2uf2/bin2uf2
 	$(ECHO) "[CP  ] main.bin"
 	$(Q)$(CP) -O binary main.elf main.bin
 	$(ECHO) "[UF2 ] main.uf2"
-	$(TOOLS_DIR)/bin2uf2/bin2uf2 -s 0x10000000 -f 0xe48bff56 -p main.bin -o main.uf2
+	$(KPATH)/../tools/bin2uf2/bin2uf2 -s 0x10000000 -f 0xe48bff56 -p main.bin -o main.uf2
 	$(Q)$(SZ) main.elf
 
-$(TOOLS_DIR)/bin2uf2/bin2uf2:
+$(KPATH)/../tools/bin2uf2/bin2uf2:
 	$(ECHO) "[HOST] bin2uf2"
-	$(Q)mkdir -p $(TOOLS_DIR)/bin2uf2/build
-	$(Q)cd $(TOOLS_DIR)/bin2uf2/build             \
+	$(Q)mkdir -p $(KPATH)/../tools/bin2uf2/build
+	$(Q)cd $(KPATH)/../tools/bin2uf2/build             \
 	  && cmake --log-level=ERROR .. && $(MAKE) -s
 
 clean: clean-recursive
 	$(Q)rm -f $(OBJ) $(OBJ:.o=.d) main.elf main.hex main.bin main.map
-	$(Q)rm -f main.uf2 image.uf2 $(TOOLS_DIR)/bin2uf2/bin2uf2
-	$(Q)rm -rf $(TOOLS_DIR)/bin2uf2/build
+	$(Q)rm -f main.uf2 image.uf2 $(KPATH)/../tools/bin2uf2/bin2uf2
+	$(Q)rm -rf $(KPATH)/../tools)/bin2uf2/build
 
 -include $(OBJ:.o=.d)

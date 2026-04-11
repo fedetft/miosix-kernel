@@ -70,7 +70,7 @@ function(miosix_add_romfs_image ROMFS_IMAGE_NAME)
     add_custom_command(
         OUTPUT ${ROMFS_IMAGE_NAME}.bin
         DEPENDS ${ROMFS_KERNEL}.bin ${ROMFS_IMAGE_NAME}-romfs.bin
-        COMMAND perl ${MIOSIX_SOURCE_DIR}/../tools/mkimage.pl ${ROMFS_IMAGE_NAME}.bin ${ROMFS_KERNEL}.bin ${ROMFS_IMAGE_NAME}-romfs.bin
+        COMMAND perl ${MIOSIX_SOURCE_DIR}/_tools/mkimage.pl ${ROMFS_IMAGE_NAME}.bin ${ROMFS_KERNEL}.bin ${ROMFS_IMAGE_NAME}-romfs.bin
         COMMENT "Combining ${ROMFS_KERNEL}.bin and ${ROMFS_IMAGE_NAME}-romfs.bin into ${ROMFS_IMAGE_NAME}.bin"
     )
 

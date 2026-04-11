@@ -222,7 +222,7 @@ target_link_options(miosix INTERFACE
 # Run the kernel_global_objects.pl script on all kernel objects
 add_custom_command(
     TARGET miosix PRE_LINK
-    COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/../tools/kernel_global_objects.pl $<TARGET_OBJECTS:miosix> --prefix=${MIOSIX_PREFIX}
+    COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/_tools/kernel_global_objects.pl $<TARGET_OBJECTS:miosix> --prefix=${MIOSIX_PREFIX}
     VERBATIM
     COMMAND_EXPAND_LISTS
 )

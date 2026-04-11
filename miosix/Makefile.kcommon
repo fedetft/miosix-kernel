@@ -37,7 +37,7 @@ LFLAGS   := -qkernelspace $(BOARD_LFLAGS) $(CPU_FLAGS) $(CHIP_LFLAGS)       \
             $(OPT_OPTIMIZATION) -nostdlib $(LFLAGS_BASE)
 STDLIBS  := -lmiosix -lstdc++ -lc -lm -lgcc -latomic
 LINK_LIBS := $(LIBS) -L$(KPATH) -Wl,--start-group $(STDLIBS) -Wl,--end-group
-TOOLS_DIR := $(KPATH)/../tools
+TOOLS_DIR := $(KPATH)/_tools
 
 OBJ ?= $(addsuffix .o, $(basename $(SRC)))
 
