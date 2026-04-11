@@ -78,6 +78,12 @@ OPT_OPTIMIZATION ?= -O2
 #OPT_OPTIMIZATION ?= -O3
 #OPT_OPTIMIZATION ?= -Os
 
+## Optimization flags for userspace processes
+#PROC_OPT_OPTIMIZATION ?= -O0
+PROC_OPT_OPTIMIZATION ?= -O2
+#PROC_OPT_OPTIMIZATION ?= -O3
+#PROC_OPT_OPTIMIZATION ?= -Os
+
 ##
 ## C++ Exception/rtti support disable flags.
 ## To save code size if not using C++ exceptions (nor some STL code which

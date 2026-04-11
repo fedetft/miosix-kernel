@@ -50,7 +50,16 @@ include $(KPATH)/$(CHIP_INC)/Makefile.inc
 ##
 ## Default optimization level
 ##
+
+## Kernel
 OPT_OPTIMIZATION ?= -O2
+
+## Processes
+PROC_OPT_OPTIMIZATION ?= -O2
+
+##
+## Define tool names
+##
 
 ## From compiler prefix form the name of the compiler and other tools
 CC     := $(PREFIX)gcc
