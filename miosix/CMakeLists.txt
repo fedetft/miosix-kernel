@@ -50,13 +50,15 @@ else()
     set(MIOSIX_USER_BOARD_SETTINGS_PATH "${MIOSIX_USER_CONFIG_PATH}/board/${MIOSIX_OPT_BOARD}" CACHE PATH "Include directory for custom board_settings.h")
 endif()
 
+# Default warning flags used for Miosix and projects that link with it.
+# Configurable but not recommended.
 set(MIOSIX_ASM_FLAGS "" CACHE PATH "Configurable Assembly flags for Miosix")
-set(MIOSIX_C_FLAGS 
+set(MIOSIX_C_FLAGS
     -Wall
     -Werror=return-type
     CACHE PATH "Configurable C flags for Miosix"
 )
-set(MIOSIX_CXX_FLAGS 
+set(MIOSIX_CXX_FLAGS
     -Wall
     -Werror=return-type
     CACHE PATH "Configurable C++ flags for Miosix"
