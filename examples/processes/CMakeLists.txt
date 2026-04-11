@@ -48,7 +48,7 @@ miosix_add_process(process1 process1.cpp)
 miosix_add_process(process2 process2.cpp)
 
 # RomFS image
-miosix_add_romfs_image(
+miosix_add_romfs_image(image
     PROGRAM_DEFAULT
     IMAGE_NAME image
     DIR_NAME bin

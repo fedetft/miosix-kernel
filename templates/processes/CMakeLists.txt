@@ -38,7 +38,7 @@ set(MIOSIX_LINKER_SCRIPT stm32_1m+192k_rom_processes.ld)
 add_subdirectory(${MIOSIX_KPATH} miosix EXCLUDE_FROM_ALL)
 
 # Kernel level program
-add_executable(main start_process.cpp)
+add_executable(main main.cpp)
 target_compile_definitions(miosix PUBLIC WITH_FILESYSTEM)
 target_compile_definitions(miosix PUBLIC WITH_PROCESSES)
 miosix_link_target(main)
@@ -47,7 +47,7 @@ miosix_link_target(main)
 miosix_add_process(hello process_template/main.cpp)
 
 # RomFS image
-miosix_add_romfs_image(
+miosix_add_romfs_image(image
     PROGRAM_DEFAULT
     IMAGE_NAME image
     DIR_NAME bin

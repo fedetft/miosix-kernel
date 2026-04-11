@@ -28,7 +28,7 @@ cmake_minimum_required(VERSION 3.21)
 # Remember to delete cmake cache for changes in CMakeLists.txt to have effect (or use --fresh to ignore it)
 
 # Set here the path to miosix kernel
-set(MIOSIX_KPATH ${CMAKE_SOURCE_DIR}/miosix CACHE PATH "Path to the miosix kernel")
+set(MIOSIX_KPATH ${CMAKE_SOURCE_DIR}/../../miosix CACHE PATH "Path to the miosix kernel")
 
 # Set here your toolchain file
 set(CMAKE_TOOLCHAIN_FILE ${MIOSIX_KPATH}/cmake/Toolchains/gcc.cmake CACHE PATH "Path to your toolchain file")

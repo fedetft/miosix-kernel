@@ -3,12 +3,12 @@
 ##
 
 ## KPATH and CONFPATH can be specified here or forwarded by the parent makefile
-KPATH := ../../..
-CONFPATH := ../../..
+KPATH := ../../../miosix
+CONFPATH := $(KPATH)
 MAKEFILE_VERSION := 1.16
 include $(KPATH)/Makefile.pcommon
 
-BIN := hello
+BIN := ../romfs/hello
 SRC := main.cpp
 
 all: $(OBJ)

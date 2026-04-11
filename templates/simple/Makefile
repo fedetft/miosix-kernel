@@ -3,7 +3,7 @@
 ##
 
 ## Path to the Miosix kernel root (miosix-kernel/miosix)
-KPATH := miosix
+KPATH := ../../miosix
 
 ## Path to the Miosix config root. Leave it as $(KPATH) to use the defaults.
 ## To change them, copy and paste the miosix-kernel/miosix/config directory to
