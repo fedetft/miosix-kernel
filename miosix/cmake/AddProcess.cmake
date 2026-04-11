@@ -25,14 +25,20 @@
 
 # Function to create a Miosix process
 #
-#   miosix_add_process(<target> <source1> <source2> ...)
+#   miosix_add_process(<target> <source1> <source2> ... [RAM_SIZE ram-size]
+#                      [STACK_SIZE stack-size] [NO_STRIP_SECTHEADER])
 #
 # What is does:
 # - Create an executable target with the given sources
 # - Link the libraries required by processes
 # - Tell the linker to produce a map file
 # - Run strip and mx-postlinker on the executable
+# You can specify ram and stack size reservations with the RAM_SIZE and
+# STACK_SIZE parameters. Section headers are stripped by default, but it can
+# be disabled by passing NO_STRIP_SECTHEADER.
 function(miosix_add_process TARGET SOURCES)
+    cmake_parse_arguments(PARSE_ARGV 0 PROC "NO_STRIP_SECTHEADER" "RAM_SIZE;STACK_SIZE" "")
+
     # Define the executable with its sources
     add_executable(${TARGET} ${SOURCES})
 
@@ -47,10 +53,23 @@ function(miosix_add_process TARGET SOURCES)
     )
 
     # Run mx-postlinker to strip the section header, string table and
-    # setting Miosix specic options in the dynamic segnment
+    # setting Miosix specific options in the dynamic segment
+    if(NOT PROC_RAM_SIZE)
+        set(PROC_RAM_SIZE 16384)
+    endif()
+    if(NOT PROC_STACK_SIZE)
+        set(PROC_STACK_SIZE 2048)
+    endif()
+    if(NOT PROC_NO_STRIP_SECTHEADER)
+        set(PROC_SECTHEADER --strip-sectheader)
+    endif()
     add_custom_command(
         TARGET ${TARGET} POST_BUILD
-        COMMAND mx-postlinker $<TARGET_FILE:${TARGET}> --ramsize=16384 --stacksize=2048 --strip-sectheader
+        COMMAND 
+            mx-postlinker $<TARGET_FILE:${TARGET}> 
+            --ramsize=${PROC_RAM_SIZE} 
+            --stacksize=${PROC_STACK_SIZE} 
+            ${PROC_SECTHEADER}
         # BYPRODUCTS $<TARGET_FILE:${TARGET}>
         COMMENT "Running mx-postlinker on $<TARGET_FILE_NAME:${TARGET}>"
     )
