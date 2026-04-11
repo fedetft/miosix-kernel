@@ -170,7 +170,7 @@ add_library(miosix STATIC
 )
 
 target_include_directories(miosix PUBLIC
-    ${MIOSIX_CONFIG_PATH}
+    ${MIOSIX_USER_CONFIG_PATH}
     ${CMAKE_CURRENT_SOURCE_DIR}/config
     ${MIOSIX_BOARD_SETTINGS_INC}
     ${CMAKE_CURRENT_SOURCE_DIR}/config/board/${MIOSIX_OPT_BOARD}

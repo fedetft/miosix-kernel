@@ -42,7 +42,7 @@ set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options a
 project(Main C CXX ASM)
 
 # Set here your config path for out-of-tree projects
-# set(MIOSIX_CONFIG_PATH ${CMAKE_SOURCE_DIR}/miosix/config)
+# set(MIOSIX_USER_CONFIG_PATH ${CMAKE_SOURCE_DIR}/miosix/config)
 
 # Set here your board of choice
 # set(MIOSIX_OPT_BOARD stm32f...)

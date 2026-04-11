@@ -34,7 +34,14 @@ BOARD_INC := arch/board/$(OPT_BOARD)
 ## Include user-specified board configuration
 ## This include might not exist for some boards
 ##
--include $(CONFPATH)/config/board/$(OPT_BOARD)/Makefile.inc
+ifeq ($(wildcard $(CONFPATH)/config/board/$(OPT_BOARD)/Makefile.inc),)
+    # File does not exist in configuration, use the default kernel one which
+    # also might not exist if it's not needed
+    -include $(KPATH)/config/board/$(OPT_BOARD)/Makefile.inc
+else
+    # Include the file in the configuration
+    include $(CONFPATH)/config/board/$(OPT_BOARD)/Makefile.inc
+endif
 
 ##
 ## Include the makefile for the selected board
