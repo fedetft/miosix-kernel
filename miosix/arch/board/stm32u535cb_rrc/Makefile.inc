@@ -6,10 +6,6 @@
 ## Base directory with else header files for this board
 CHIP_INC := arch/chip/stm32u5
 
-## Select linker script
-LINKER_SCRIPT_PATH := arch/board/stm32u535cb_rrc/
-LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_128k+256k_rom.ld
-
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
 BOARD_SRC :=                                  \
