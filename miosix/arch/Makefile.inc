@@ -69,15 +69,15 @@ PROC_OPT_OPTIMIZATION ?= -O2
 ##
 
 ## From compiler prefix form the name of the compiler and other tools
-CC     := $(PREFIX)gcc
-CXX    := $(PREFIX)g++
-LD     := $(PREFIX)ld
-AR     := $(PREFIX)ar
-AS     := $(PREFIX)as
-CP     := $(PREFIX)objcopy
-OD     := $(PREFIX)objdump
-SZ     := $(PREFIX)size
-STRIP  := $(PREFIX)strip
+CC     := $(PREFIX)-gcc
+CXX    := $(PREFIX)-g++
+LD     := $(PREFIX)-ld
+AR     := $(PREFIX)-ar
+AS     := $(PREFIX)-as
+CP     := $(PREFIX)-objcopy
+OD     := $(PREFIX)-objdump
+SZ     := $(PREFIX)-size
+STRIP  := $(PREFIX)-strip
 
 ## Define the echo tool (this is here to share the definition between processes
 ## and kernel)

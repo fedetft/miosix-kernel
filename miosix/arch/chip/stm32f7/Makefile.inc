@@ -4,7 +4,7 @@
 ##
 
 ## Select compiler
-PREFIX := arm-miosix-eabi-
+PREFIX := arm-miosix-eabi
 ## This architecture supports processes
 POSTLD := mx-postlinker
 
