@@ -39,6 +39,9 @@ STDLIBS  := -lmiosix -lstdc++ -lc -lm -lgcc -latomic
 LINK_LIBS := $(LIBS) -L$(KPATH) -Wl,--start-group $(STDLIBS) -Wl,--end-group
 TOOLS_DIR := $(KPATH)/_tools
 
+#TODO: this should be in arch/Makefile.inc but $(TOOLS_DIR) isn't defined there
+SZ := perl $(TOOLS_DIR)/miosix_size.pl --prefix=$(PREFIX)
+
 OBJ ?= $(addsuffix .o, $(basename $(SRC)))
 
 SUBDIRS := $(KPATH)

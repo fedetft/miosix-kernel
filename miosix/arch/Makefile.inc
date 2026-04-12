@@ -76,7 +76,7 @@ AR     := $(PREFIX)-ar
 AS     := $(PREFIX)-as
 CP     := $(PREFIX)-objcopy
 OD     := $(PREFIX)-objdump
-SZ     := $(PREFIX)-size
+#SZ     := perl $(TOOLS_DIR)/miosix_size.pl --prefix=$(PREFIX)
 STRIP  := $(PREFIX)-strip
 
 ## Define the echo tool (this is here to share the definition between processes
