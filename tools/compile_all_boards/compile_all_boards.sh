@@ -29,8 +29,9 @@
 #set -x
 
 SCRIPT_ROOT=$(cd -- $(dirname -- "$0") && pwd)
-REPO_ROOT="$SCRIPT_ROOT"/../..
-cd "$REPO_ROOT"
+KPATH="$SCRIPT_ROOT"/../../miosix
+EXAMPLE_ROOT="$SCRIPT_ROOT"/../../templates/simple
+cd "$EXAMPLE_ROOT"
 dir="$SCRIPT_ROOT"
 
 usage()
@@ -60,7 +61,7 @@ else
   PARALLEL="-j1";
 fi
 
-boards=$(grep -E 'OPT_BOARD := ' "miosix/config/Makefile.inc" | sed -E 's/#?OPT_BOARD := //g')
+boards=$(grep -E 'OPT_BOARD := ' "$KPATH/config/Makefile.inc" | sed -E 's/#?OPT_BOARD := //g')
 
 clean
 for board in $boards; do

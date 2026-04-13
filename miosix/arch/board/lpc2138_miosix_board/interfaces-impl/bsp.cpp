@@ -37,7 +37,7 @@
 #include "interfaces/bsp.h"
 #include "interfaces_private/bsp_private.h"
 #include "interfaces/delays.h"
-#include "drivers/serial/serial.h"
+#include "interfaces/serial.h"
 #include "drivers/sdmmc/sd_lpc2000.h"
 #include "kernel/thread.h"
 #include "kernel/sync.h"

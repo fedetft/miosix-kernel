@@ -47,7 +47,7 @@
 #include "kernel/logging.h"
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
-#include "drivers/serial/serial.h"
+#include "interfaces/serial.h"
 #include "drivers/sdmmc/sd_stm32f2_f4_f7.h"
 #include "board_settings.h"
 // #include "kernel/IRQDisplayPrint.h"

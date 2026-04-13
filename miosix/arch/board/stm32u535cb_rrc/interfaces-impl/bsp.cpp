@@ -37,7 +37,7 @@
 #include "interfaces_private/bsp_private.h"
 #include "interfaces/poweroff.h"
 #include "filesystem/file_access.h"
-#include "drivers/serial/serial.h"
+#include "interfaces/serial.h"
 #include "drivers/dcc.h"
 #include "board_settings.h"
 
