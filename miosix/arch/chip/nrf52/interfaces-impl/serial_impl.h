@@ -27,19 +27,4 @@
 
 #pragma once
 
-/**
- * \addtogroup Interfaces
- * \{
- */
-
-/**
- * \file serial.h
- * The serial interface defines Device classes for the serial ports of the
- * microcontroller.
- */
-
-#include "interfaces-impl/serial_impl.h"
-
-/**
- * \}
- */
+#error Serial interface not implemented for NRF52

@@ -27,19 +27,4 @@
 
 #pragma once
 
-/**
- * \addtogroup Interfaces
- * \{
- */
-
-/**
- * \file serial.h
- * The serial interface defines Device classes for the serial ports of the
- * microcontroller.
- */
-
-#include "interfaces-impl/serial_impl.h"
-
-/**
- * \}
- */
+#include "drivers/serial/stm32f7_serial.h"

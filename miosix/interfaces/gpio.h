@@ -36,7 +36,7 @@
  * \file gpio.h
  * The interface to gpios provided by Miosix is in the form of templates,
  * therefore this file can only include gpio_impl.h with the architecture
- * dependand code.
+ * dependant code.
  *
  * The interface should be as follows:
  * First a class Mode containing an enum Mode_ needs to be defined. Its minimum
