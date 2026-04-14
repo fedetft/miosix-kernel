@@ -7,7 +7,8 @@
 CHIP_INC := arch/chip/lpc2000
 
 ## Select linker script
-LINKER_SCRIPT := arch/board/lpc2138_generic/lpc2138_500k+32k_rom.ld
+LINKER_SCRIPT := ldscripts/miosix-flash-ram.ld
+BOARD_LINKER_SCRIPT := unikernel.ld
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>

@@ -7,13 +7,14 @@
 CHIP_INC := arch/chip/stm32f1
 
 ## Select linker script
-#LINKER_SCRIPT := already selected in board options
+LINKER_SCRIPT := ldscripts/miosix-flash-ram.ld
+BOARD_LINKER_SCRIPT := unikernel.ld
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
-BOARD_SRC :=                                  \
-$(BOARD_INC)/boot.cpp                        \
-arch/drivers/sdmmc/sd_stm32f1.cpp           \
+BOARD_SRC :=                         \
+$(BOARD_INC)/boot.cpp                \
+arch/drivers/sdmmc/sd_stm32f1.cpp    \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
 ## Add a #define to allow querying board name
@@ -26,8 +27,4 @@ BOARD_CXXFLAGS := -D_BOARD_MP3V2
 ## The command must provide a way to program the board, or print an
 ## error message saying that 'make program' is not supported for that
 ## board.
-ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_512k+64k_ram.ld)
-    PROG ?= mp3v2_bootloader --ram main.bin
-else
-    PROG ?= mp3v2_bootloader --code $(if $(ROMFS_DIR), image.bin, main.bin)
-endif
+PROG ?= mp3v2_bootloader --code $(if $(ROMFS_DIR), image.bin, main.bin)

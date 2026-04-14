@@ -9,13 +9,10 @@ CHIP_INC := arch/chip/stm32f7
 ## The stm32f767 has the double precision FPU, so we will build for m7
 CPU_FLAGS := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
 
-## Select linker script
-LINKER_SCRIPT := $(BOARD_INC)/stm32_2m+384k_ram.ld
-
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
-BOARD_SRC :=                           \
-$(BOARD_INC)/boot.cpp                 \
+BOARD_SRC :=                         \
+$(BOARD_INC)/boot.cpp                \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
 ## Add a #define to allow querying board name

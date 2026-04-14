@@ -6,18 +6,15 @@
 ## Base directory with else header files for this board
 CHIP_INC := arch/chip/stm32f4
 
-## Select linker script
-#LINKER_SCRIPT := already selected in board options
-
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
-BOARD_SRC :=                                  \
-arch/drivers/stm32f2_f4_i2c.cpp       \
-arch/drivers/stm32_hardware_rng.cpp   \
-arch/drivers/servo_stm32.cpp          \
-$(BOARD_INC)/boot.cpp                        \
-arch/drivers/stm32f407_rtc.cpp                 \
-$(BOARD_INC)/interfaces-impl/sleep.cpp       \
+BOARD_SRC :=                           \
+arch/drivers/stm32f2_f4_i2c.cpp        \
+arch/drivers/stm32_hardware_rng.cpp    \
+arch/drivers/servo_stm32.cpp           \
+$(BOARD_INC)/boot.cpp                  \
+arch/drivers/stm32f407_rtc.cpp         \
+$(BOARD_INC)/interfaces-impl/sleep.cpp \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
 ## Add a #define to allow querying board name

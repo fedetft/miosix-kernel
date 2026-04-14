@@ -7,7 +7,8 @@
 CHIP_INC := arch/chip/stm32l0
 
 ## Select linker script
-LINKER_SCRIPT := $(BOARD_INC)/stm32_128k+20k_rom.ld
+LINKER_SCRIPT := ldscripts/miosix-flash-ram.ld
+BOARD_LINKER_SCRIPT := unikernel.ld
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>

@@ -6,9 +6,6 @@
 ## Base directory with else header files for this board
 CHIP_INC := arch/chip/stm32l1
 
-## Select linker script
-LINKER_SCRIPT := $(BOARD_INC)/stm32_512k+80k_rom.ld
-
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
 BOARD_SRC :=                                  \

@@ -7,13 +7,14 @@
 CHIP_INC := arch/chip/stm32f1
 
 ## Select linker script
-LINKER_SCRIPT := $(BOARD_INC)/stm32_63k+8k_rom.ld
+LINKER_SCRIPT := ldscripts/miosix-flash-ram.ld
+BOARD_LINKER_SCRIPT := unikernel.ld
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
-BOARD_SRC :=                                  \
-$(BOARD_INC)/boot.cpp                        \
-$(BOARD_INC)/interfaces-impl/bsp.cpp         \
+BOARD_SRC :=                         \
+$(BOARD_INC)/boot.cpp                \
+$(BOARD_INC)/interfaces-impl/bsp.cpp \
 arch/drivers/stm32_rtc.cpp
 
 ## Add a #define to allow querying board name

@@ -6,14 +6,11 @@
 ## Base directory with else header files for this board
 CHIP_INC := arch/chip/stm32f4
 
-## Select linker script
-LINKER_SCRIPT := $(BOARD_INC)/stm32_1m+192k_rom.ld
-
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
-BOARD_SRC :=                                  \
-arch/drivers/stm32_hardware_rng.cpp   \
-$(BOARD_INC)/boot.cpp                        \
+BOARD_SRC :=                         \
+arch/drivers/stm32_hardware_rng.cpp  \
+$(BOARD_INC)/boot.cpp                \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
 ## Add a #define to allow querying board name

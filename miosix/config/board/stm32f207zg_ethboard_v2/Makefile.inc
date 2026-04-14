@@ -3,24 +3,20 @@
 ## Included by the board's makefile
 ##
 
-## Linker script type
-## 1) Code in FLASH, all kernel data in internal RAM, external RAM reserved
-##    for the process pool (file *_xram_processes.ld) to configure the
-##    kernel with "#define WITH_PROCESSES"
-## 2) Code in FLASH .data .bss and interrupt stack in internal RAM, heap in
-##    external RAM (file *_xram.ld). Kernel runs slower but has more RAM
-## 3) Code + stack + heap in external RAM, (file *_all_in_xram.ld)
-##    useful for debugging code. Code runs *very* slow compared to FLASH.
-##    Works only with a booloader that forwards interrrupts @ 0x6000000
-##    (see miosix/_tools/bootloaders for one). The microcontroller must have
-##    an external memory interface. You must -D__CODE_IN_XRAM below.
-LINKER_SCRIPT_PATH := arch/board/stm32f207zg_ethboard_v2/
-LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram_processes.ld
-#LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram.ld
-#LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld
+## XRAM is always enabled on this board
 
-## XRAM is always enabled on this board, if you don't want the kernel to
-## use it select the xram_processes linker script
-## Uncommenting __CODE_IN_XRAM (with an appropriate linker script selected
-## above) allows to run code from external RAM, useful for debugging
+## Select linker script
+## 1) Code in FLASH, Kernel in internal RAM, Process pool in XRAM
+LINKER_SCRIPT := ldscripts/miosix-flash-2ram-separate-pool.ld
+BOARD_LINKER_SCRIPT := processes-xram.ld
+
+## 2) Code in FLASH, IRQ stack, .data, .bss in internal RAM, heap in external RAM
+#LINKER_SCRIPT := ldscripts/miosix-flash-2ram-separate-heap.ld
+#BOARD_LINKER_SCRIPT := unikernel-xram-heap.ld
+
+## 4) Code + stack + heap in external RAM, Code runs *very* slow. Works only
+##    with a booloader that forwards interrrupts @ 0x60000000
+##    (see miosix/_tools/bootloaders for one).
+#LINKER_SCRIPT := ldscripts/miosix-all-in-xram.ld
+#BOARD_LINKER_SCRIPT := unikernel-all-in-xram.ld
 #XRAM := -D__CODE_IN_XRAM

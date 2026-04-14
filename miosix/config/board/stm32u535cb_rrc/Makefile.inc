@@ -4,5 +4,5 @@
 ##
 
 ## Select linker script
-LINKER_SCRIPT_PATH := arch/board/stm32u535cb_rrc/
-LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_128k+256k_rom.ld
+LINKER_SCRIPT := ldscripts/miosix-flash-ram.ld
+BOARD_LINKER_SCRIPT := unikernel.ld

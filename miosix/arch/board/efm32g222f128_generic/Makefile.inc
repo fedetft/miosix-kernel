@@ -7,7 +7,8 @@
 CHIP_INC := arch/chip/efm32g
 
 ## Select linker script
-LINKER_SCRIPT := $(BOARD_INC)/efm32_128k+16k_rom_bootloader.ld
+LINKER_SCRIPT := ldscripts/miosix-flash-ram.ld
+BOARD_LINKER_SCRIPT := unikernel.ld
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>

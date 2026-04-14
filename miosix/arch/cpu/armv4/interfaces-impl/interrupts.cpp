@@ -260,15 +260,15 @@ void __attribute__((naked)) Reset_Handler()
      *
      * Miosix does not use ABT and UND modes (the respective handlers only print
      * a message and reboot), so we don't use a dedicated stack for those. We
-     * reuse the FIQ stack (which could be the IRQ stack, see below), thus
-     * entering ABT or UND modes due to a fault does corrupt the FIQ stack, but
-     * that's not an issue since the board is rebooted immediately afterward.
+     * reuse the IRQ stack, thus entering ABT or UND modes due to a fault does
+     * corrupt the IRQ stack, but that's not an issue since the board is
+     * rebooted immediately afterward.
      * Miosix also does not use FIQ, but there is provision to let applications
      * use it. The FIQ stack size is by default zero in the linker script,
-     * meaning is shared with IRQ and attempting to trigger a FIQ whose code
-     * uses the stack will corrupt the IRQ stack, but it's possible to increase
-     * the FIQ stack in the linker script. Lastly, SVC and IRQ share the same
-     * stack as in Miosix they are mutually exclusive.
+     * thus attempting to trigger a FIQ whose code uses the stack will not work,
+     * but it's possible to increase the FIQ stack in the linker script.
+     * Lastly, SVC and IRQ share the same stack as in Miosix they are mutually
+     * exclusive.
      *
      * We also need to call IRQmemoryAndClockInit() for the early platform
      * initialization. Since on boards with an external memory this function is
@@ -293,9 +293,9 @@ void __attribute__((naked)) Reset_Handler()
      * miosix::IRQkernelBootEntryPoint()
      */
     asm volatile("msr     CPSR_c, #0x1b|0xc0  \n\t" // UND: IRQ Off, FIQ Off
-                 "ldr     sp, =_fiq_stack_top \n\t"
+                 "ldr     sp, =_irq_stack_top \n\t"
                  "msr     CPSR_c, #0x17|0xc0  \n\t" // ABT: IRQ Off, FIQ Off
-                 "ldr     sp, =_fiq_stack_top \n\t"
+                 "ldr     sp, =_irq_stack_top \n\t"
                  "msr     CPSR_c, #0x11|0xc0  \n\t" // FIQ: IRQ Off, FIQ Off
                  "ldr     sp, =_fiq_stack_top \n\t"
                  "msr     CPSR_c, #0x12|0x80  \n\t" // IRQ: IRQ Off, FIQ On

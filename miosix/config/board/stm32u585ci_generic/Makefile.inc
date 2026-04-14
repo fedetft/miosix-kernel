@@ -3,7 +3,7 @@
 ## Included by the board's makefile
 ##
 
-## Select linker script
-LINKER_SCRIPT_PATH := arch/board/stm32u585ci_generic/
-LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_2048k+768k_rom.ld
-#LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)/stm32_2048k+768k_processes.ld
+## Select linker scripts
+LINKER_SCRIPT := ldscripts/miosix-flash-ram.ld
+BOARD_LINKER_SCRIPT := unikernel.ld
+#BOARD_LINKER_SCRIPT := processes.ld
