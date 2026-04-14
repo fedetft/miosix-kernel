@@ -33,14 +33,3 @@ XRAM := -D__ENABLE_XRAM
 #LINKER_SCRIPT := ldscripts/miosix-flash-2ram-separate-pool.ld
 #BOARD_LINKER_SCRIPT := processes-xram.ld
 #XRAM := -D__ENABLE_XRAM
-
-## 4) Same as 3) but space has been reserved for a process pool, allowing
-##    to configure the kernel with "#define WITH_PROCESSES"
-## 5) Code in FLASH, kernel stack+heap in internal RAM, ELF pool in Flash
-##    and process pool in external RAM.
-###LINKER_SCRIPT_PATH := arch/board/stm32f207ig_stm3220g-eval/
-#LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_rom.ld
-###LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram.ld
-#LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld
-#LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram_processes.ld
-#LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+128k_xram-data-bss-heap.ld
