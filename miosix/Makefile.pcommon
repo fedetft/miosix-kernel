@@ -25,7 +25,7 @@ LFLAGS   := $(CPU_FLAGS) $(PROC_LFLAGS_BASE)
 LINK_LIBS := $(LIBS)
 
 #TODO: this should be in arch/Makefile.inc but $(TOOLS_DIR) isn't defined there
-TOOLS_DIR := $(KPATH)/_tools
+TOOLS_DIR := $(KPATH)/tools
 SZ := perl $(TOOLS_DIR)/miosix_size.pl --prefix=$(PREFIX)
 
 OBJ ?= $(addsuffix .o, $(basename $(SRC)))
