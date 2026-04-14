@@ -17,3 +17,5 @@ MEMORY
     ram1(wx)    : ORIGIN = 0x10000000, LENGTH = 64K /* TCM for IRQ stack */
     ram2(wx)    : ORIGIN = 0xd0000000, LENGTH = 8M  /* XRAM */
 }
+
+INCLUDE ldscripts/miosix-flash-2ram-separate-irqstack.ld

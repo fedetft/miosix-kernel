@@ -4,5 +4,4 @@
 ##
 
 ## TODO: the board has external ram but no support code for it was written
-LINKER_SCRIPT := ldscripts/miosix-flash-ram.ld
-BOARD_LINKER_SCRIPT := unikernel.ld
+LINKER_SCRIPT := unikernel.ld

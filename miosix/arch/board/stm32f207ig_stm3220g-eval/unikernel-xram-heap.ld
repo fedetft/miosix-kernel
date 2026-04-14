@@ -10,3 +10,5 @@ MEMORY
     ram1(wx)    : ORIGIN = 0x20000000, LENGTH = 128K
     ram2(wx)    : ORIGIN = 0x64000000, LENGTH = 2M
 }
+
+INCLUDE ldscripts/miosix-flash-2ram-separate-heap.ld

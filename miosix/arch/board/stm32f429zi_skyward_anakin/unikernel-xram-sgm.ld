@@ -17,3 +17,5 @@ MEMORY
     ram2(wx)    : ORIGIN = 0xd0000000, LENGTH = 8M  /* XRAM */
     sgm(rw)     : ORIGIN = 0x40024000, LENGTH = 4K  /* safeguard memory (.preserve) */
 }
+
+INCLUDE ldscripts/miosix-flash-3ram-separate-heap-sgm.ld

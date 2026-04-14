@@ -3,11 +3,9 @@
 ## Included by the board's makefile
 ##
 
-## Select linker scripts
+## Select linker script
 # Option 1: use the 96KB ram2 for the heap, no processes
-LINKER_SCRIPT := ldscripts/miosix-flash-2ram-separate-heap.ld
-BOARD_LINKER_SCRIPT := unikernel.ld
+LINKER_SCRIPT := unikernel.ld
 
 # Option 1: use the 96KB ram2 for the process pool
-#LINKER_SCRIPT := ldscripts/miosix-flash-2ram-separate-pool.ld
-#BOARD_LINKER_SCRIPT := processes.ld
+#LINKER_SCRIPT := processes.ld

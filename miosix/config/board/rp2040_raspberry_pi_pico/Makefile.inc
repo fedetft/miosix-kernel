@@ -7,7 +7,6 @@
 #BOARD_VARIANT := BOARD_VARIANT_PICO
 BOARD_VARIANT := BOARD_VARIANT_PICO_W
 
-## Select linker scripts
-LINKER_SCRIPT := ldscripts/miosix-flash-ram-rp2040.ld
-BOARD_LINKER_SCRIPT := unikernel.ld
-#BOARD_LINKER_SCRIPT := processes.ld
+## Select linker script
+LINKER_SCRIPT := unikernel.ld
+#LINKER_SCRIPT := processes.ld

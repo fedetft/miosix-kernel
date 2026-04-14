@@ -10,3 +10,5 @@ MEMORY
     /* NOTE: for now we support only the AXI SRAM */
     ram(wx)     : ORIGIN = 0x24000000, LENGTH = 128K
 }
+
+INCLUDE ldscripts/miosix-flash-ram.ld

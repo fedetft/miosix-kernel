@@ -3,12 +3,10 @@
 ## Included by the board's makefile
 ##
 
-## Select linker scripts
+## Select linker script
 ## 1) Code in FLASH, stack + heap in internal RAM
-#LINKER_SCRIPT := ldscripts/miosix-flash-2ram-separate-heap.ld
-#BOARD_LINKER_SCRIPT := unikernel.ld
+#LINKER_SCRIPT := unikernel.ld
 
 ## 2) Code in FLASH, stack + heap in external RAM
-LINKER_SCRIPT := ldscripts/miosix-flash-2ram-separate-irqstack.ld
-BOARD_LINKER_SCRIPT := unikernel-xram.ld
+LINKER_SCRIPT := unikernel-xram.ld
 XRAM := -D__ENABLE_XRAM

@@ -8,3 +8,5 @@ MEMORY
 {
     ram(wx)     : ORIGIN = 0x60000000, LENGTH = 512K
 }
+
+INCLUDE ldscripts/miosix-all-in-xram.ld

@@ -7,8 +7,7 @@
 CHIP_INC := arch/chip/stm32f4
 
 ## Select linker script
-LINKER_SCRIPT := ldscripts/miosix-flash-2ram-separate-heap.ld
-BOARD_LINKER_SCRIPT := unikernel.ld
+LINKER_SCRIPT := unikernel.ld
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>

@@ -3,22 +3,18 @@
 ## Included by the board's makefile
 ##
 
-## Select linker scripts
+## Select linker script
 ## 1) Code in FLASH, stack + heap in internal RAM
-#LINKER_SCRIPT := ldscripts/miosix-flash-2ram-separate-heap.ld
-#BOARD_LINKER_SCRIPT := unikernel.ld
+#LINKER_SCRIPT := unikernel.ld
 
 ## 2) Code in FLASH, stack + heap in external RAM
-#LINKER_SCRIPT := ldscripts/miosix-flash-2ram-separate-irqstack.ld
-#BOARD_LINKER_SCRIPT := unikernel-xram-8m.ld
+#LINKER_SCRIPT := unikernel-xram-8m.ld
 
 ## 3) Same as 2), but leaves the upper 2MB of RAM for the LCD framebuffers
-LINKER_SCRIPT := ldscripts/miosix-flash-2ram-separate-irqstack.ld
-BOARD_LINKER_SCRIPT := unikernel-xram-6m.ld
+LINKER_SCRIPT := unikernel-xram-6m.ld
 
 ## 4) Same as 1) but with the process pool
-#LINKER_SCRIPT := ldscripts/miosix-flash-2ram-separate-heap.ld
-#BOARD_LINKER_SCRIPT := processes.ld
+#LINKER_SCRIPT := processes.ld
 
 ## TODO Add processes + XRAM options
 

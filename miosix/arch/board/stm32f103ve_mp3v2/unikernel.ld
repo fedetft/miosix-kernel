@@ -10,3 +10,5 @@ MEMORY
     flash(rx)   : ORIGIN = 0x2800,     LENGTH = 512K-10K
     ram(wx)     : ORIGIN = 0x20000000, LENGTH = 64K
 }
+
+INCLUDE ldscripts/miosix-flash-ram.ld
