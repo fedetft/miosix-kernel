@@ -11,9 +11,9 @@ CHIP_INC := arch/chip/stm32f2
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
-BOARD_SRC :=                                  \
+BOARD_SRC :=                                \
 arch/drivers/sdmmc/sd_stm32f2_f4_f7.cpp     \
-$(BOARD_INC)/boot.cpp                        \
+$(BOARD_INC)/boot.cpp                       \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
 ## Add a #define to allow querying board name
@@ -26,7 +26,7 @@ BOARD_CXXFLAGS := -D_BOARD_STM3220G_EVAL
 ## The command must provide a way to program the board, or print an
 ## error message saying that 'make program' is not supported for that
 ## board.
-ifeq ($(LINKER_SCRIPT),$(LINKER_SCRIPT_PATH)stm32_1m+128k_all_in_xram.ld)
+ifeq ($(LINKER_SCRIPT),unikernel-all-in-xram.ld)
     PROG ?= $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
             /dev/ttyUSB0 main.bin
 else
