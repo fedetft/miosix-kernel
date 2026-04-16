@@ -30,7 +30,8 @@
 
 SCRIPT_ROOT=$(cd -- $(dirname -- "$0") && pwd)
 REPO_ROOT="$SCRIPT_ROOT"/../..
-cd "$REPO_ROOT"
+PROJECT_ROOT="$REPO_ROOT"/templates/simple
+cd "$PROJECT_ROOT"
 dir="$SCRIPT_ROOT"
 
 usage()
@@ -60,11 +61,11 @@ else
   PARALLEL="-j1";
 fi
 
-boards=$(cd miosix/arch/board; ls)
+boards=$(cd "$REPO_ROOT/miosix/arch/board"; ls)
 
 clean
 for board in $boards; do
-  if [[ -e miosix/arch/board/${board}/CMakeLists.txt ]]; then
+  if [[ -e "$REPO_ROOT/miosix/arch/board/${board}/CMakeLists.txt" ]]; then
     rm -rf "$dir/$board.build"
     mkdir -p "$dir/$board.build"
     cmake -B "$dir/$board.build" -S . \
