@@ -98,6 +98,11 @@ namespace miosix {
 /// Allows to enable/disable FATFS support to save code size
 /// By default it is defined (FATFS is enabled)
 #define WITH_FATFS
+
+/// \def _FS_EXFAT
+/// Enable EXFAT filesystem format for FATFS (1 enable, 0 disable)
+#define _FS_EXFAT 1
+
 /// Maxium number of files that can be opened on a mounted FATFS partition.
 /// Must be greater than 0
 constexpr unsigned char FATFS_MAX_OPEN_FILES=8;

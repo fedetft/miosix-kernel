@@ -34,11 +34,12 @@ filesystem/pipe/pipe.cpp                                                   \
 filesystem/console/console_device.cpp                                      \
 filesystem/mountpointfs/mountpointfs.cpp                                   \
 filesystem/devfs/devfs.cpp                                                 \
+filesystem/exfat/exfat.cpp												   \
 filesystem/fat32/fat32.cpp                                                 \
-filesystem/fat32/ff.cpp                                                    \
-filesystem/fat32/diskio.cpp                                                \
-filesystem/fat32/wtoupper.cpp                                              \
-filesystem/fat32/ccsbcs.cpp                                                \
+filesystem/fatfs/ccsbcs.cpp                                                \
+filesystem/fatfs/diskio.cpp                                                \
+filesystem/fatfs/ff.cpp                                                    \
+filesystem/fatfs/wtoupper.cpp                                              \
 filesystem/littlefs/lfs_miosix.cpp                                         \
 filesystem/littlefs/lfs.c                                                  \
 filesystem/littlefs/lfs_util.c                                             \
