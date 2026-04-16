@@ -55,19 +55,39 @@ set(MIOSIX_BOARD_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/board/${MIOSIX_OPT_BOARD})
 # Include the board specific CMakeLists
 include(${MIOSIX_BOARD_INC}/CMakeLists.txt)
 
+# Separate linker script names from associated compiler options
+set(LINKER_SCRIPTS_ONLY_LIST "${MIOSIX_LINKER_SCRIPT_LIST}")
+list(FILTER LINKER_SCRIPTS_ONLY_LIST INCLUDE REGEX ".*\.ld$")
+
 option(MIOSIX_PRINT_LINKER_SCRIPT_LIST "Prints a list of the available linker scripts" OFF)
 if(MIOSIX_PRINT_LINKER_SCRIPT_LIST)
-    miosix_print_list(STATUS "Available linker scripts:" "${MIOSIX_LINKER_SCRIPT_LIST}")
+    miosix_print_list(STATUS "Available linker scripts:" "${LINKER_SCRIPTS_ONLY_LIST}")
 endif()
 
-# Normalize board options
+# Normalize linker script option
 set(MIOSIX_LINKER_SCRIPT "${MIOSIX_DEFAULT_LINKER_SCRIPT}" CACHE STRING "Linker script")
 set_property(CACHE MIOSIX_LINKER_SCRIPT PROPERTY STRINGS ${MIOSIX_LINKER_SCRIPT_LIST})
-if(NOT MIOSIX_LINKER_SCRIPT IN_LIST MIOSIX_LINKER_SCRIPT_LIST)
-    # If there is no cached value, or the cached value is not in the list, complain
-    miosix_expected_item_in_list("Invalid linker script '${MIOSIX_LINKER_SCRIPT}' specified with MIOSIX_LINKER_SCRIPT" "${MIOSIX_LINKER_SCRIPT_LIST}")
+if(NOT MIOSIX_LINKER_SCRIPT MATCHES ".*\.ld$")
+    message(FATAL_ERROR "MIOSIX_LINKER_SCRIPT '${MIOSIX_LINKER_SCRIPT}' is not a valid linker script because it does not end with .ld")
 endif()
+list(FIND MIOSIX_LINKER_SCRIPT_LIST "${MIOSIX_LINKER_SCRIPT}" LINKER_SCRIPT_IDX)
+if(LINKER_SCRIPT_IDX EQUAL -1)
+    # If there is no cached value, or the cached value is not in the list, complain
+    miosix_expected_item_in_list("Invalid linker script '${MIOSIX_LINKER_SCRIPT}' specified with MIOSIX_LINKER_SCRIPT" "${LINKER_SCRIPTS_ONLY_LIST}")
+endif()
+# Set compilation options based on linker scripts
+math(EXPR LINKER_SCRIPT_IDX "${LINKER_SCRIPT_IDX}+1")
+list(SUBLIST MIOSIX_LINKER_SCRIPT_LIST ${LINKER_SCRIPT_IDX} -1 LINKER_SCRIPT_OPTIONS)
+foreach(OPTION IN LISTS LINKER_SCRIPT_OPTIONS)
+    if(OPTION MATCHES ".*\.ld$")
+        break()
+    endif()
+    list(APPEND MIOSIX_BOARD_C_FLAGS "${OPTION}")
+    list(APPEND MIOSIX_BOARD_CXX_FLAGS "${OPTION}")
+    message(STATUS "Linker script '${MIOSIX_LINKER_SCRIPT}' adds C/CXX flag ${OPTION}")
+endforeach()
 
+# Normalize board variant option
 set(MIOSIX_BOARD_VARIANT "${MIOSIX_DEFAULT_BOARD_VARIANT}" CACHE STRING "Board variant")
 set_property(CACHE MIOSIX_BOARD_VARIANT PROPERTY STRINGS ${MIOSIX_BOARD_VARIANT_LIST})
 # Not all boards have variants

@@ -27,9 +27,12 @@
 set(MIOSIX_CHIP_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/chip/stm32f4)
 
 # Linker script options
+# Each script in the list may be followed by the compiler options it requires
+# These options are automatically added to the C/CXX compiler command line when
+# that linker script is selected
 set(MIOSIX_LINKER_SCRIPT_LIST
     unikernel.ld
-    processes.ld
+    processes.ld -DWITH_PROCESSES
 )
 set(MIOSIX_DEFAULT_LINKER_SCRIPT unikernel.ld)
 

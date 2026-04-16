@@ -30,21 +30,14 @@ set(MIOSIX_CHIP_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/chip/stm32f7)
 set(MIOSIX_CPU_FLAGS -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16)
 
 # Linker script type
+# Each script in the list may be followed by the compiler options it requires
+# These options are automatically added to the C/CXX compiler command line when
+# that linker script is selected
 set(MIOSIX_LINKER_SCRIPT_LIST
     unikernel.ld
-    processes.ld
+    processes.ld -DWITH_PROCESSES
 )
 set(MIOSIX_DEFAULT_LINKER_SCRIPT unikernel.ld)
-
-# Uncommenting __ENABLE_XRAM enables the initialization of the external
-# 8MB SDRAM memory. Do not uncomment this even if you don't use a linker
-# script that requires it, as it is used for the LCD framebuffer.
-option(MIOSIX_ENABLE_XRAM "Enables the initialization of the external 16MB SDRAM memory" ON)
-if(MIOSIX_ENABLE_XRAM)
-    set(XRAM -D__ENABLE_XRAM) # TODO: Change to an always defined flag
-else()
-    message(NOTICE "You have disabled the XRAM, make sure that the selected linker script does not use it")
-endif()
 
 # Select architecture specific files
 set(MIOSIX_BOARD_SRC

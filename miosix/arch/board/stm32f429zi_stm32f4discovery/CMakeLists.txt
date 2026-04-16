@@ -27,23 +27,16 @@
 set(MIOSIX_CHIP_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/chip/stm32f4)
 
 # Linker script type
+# Each script in the list may be followed by the compiler options it requires
+# These options are automatically added to the C/CXX compiler command line when
+# that linker script is selected
 set(MIOSIX_LINKER_SCRIPT_LIST
     unikernel.ld
     unikernel-xram-6m.ld
     unikernel-xram-8m.ld
-    processes.ld
+    processes.ld            -DWITH_PROCESSES
 )
 set(MIOSIX_DEFAULT_LINKER_SCRIPT unikernel-xram-6m.ld)
-
-# Uncommenting __ENABLE_XRAM enables the initialization of the external
-# 8MB SDRAM memory. Do not uncomment this even if you don't use a linker
-# script that requires it, as it is used for the LCD framebuffer.
-option(MIOSIX_ENABLE_XRAM "Enables the initialization of the external 16MB SDRAM memory" ON)
-if(MIOSIX_ENABLE_XRAM)
-    set(XRAM -D__ENABLE_XRAM) # TODO: Change to an always defined flag
-else()
-    message(NOTICE "You have disabled the XRAM, make sure that the selected linker script does not use it")
-endif()
 
 # Select architecture specific files
 set(MIOSIX_BOARD_SRC
@@ -54,8 +47,10 @@ set(MIOSIX_BOARD_SRC
 )
 
 # Add a #define to allow querying board name
-set(MIOSIX_BOARD_C_FLAGS -D_BOARD_STM32F429ZI_STM32F4DISCOVERY)
-set(MIOSIX_BOARD_CXX_FLAGS -D_BOARD_STM32F429ZI_STM32F4DISCOVERY)
+# -D__ENABLE_XRAM is required even when not using external RAM, as it is used
+# for the LCD framebuffer
+set(MIOSIX_BOARD_C_FLAGS -D_BOARD_STM32F429ZI_STM32F4DISCOVERY -D__ENABLE_XRAM)
+set(MIOSIX_BOARD_CXX_FLAGS -D_BOARD_STM32F429ZI_STM32F4DISCOVERY -D__ENABLE_XRAM)
 
 # Specify a custom flash command
 # This is the program that is invoked when the program-<target_name> target is

@@ -31,8 +31,8 @@ set(MIOSIX_MULTILIB_PATH thumb/v7e-m+fp/hard)
 
 # Select appropriate compiler flags for both ASM/C/C++/linker
 set(MIOSIX_CPU_FLAGS -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16)
-set(MIOSIX_CHIP_C_FLAGS -D_CHIP_STM32F4 ${XRAM})
-set(MIOSIX_CHIP_CXX_FLAGS -D_CHIP_STM32F4 ${XRAM})
+set(MIOSIX_CHIP_C_FLAGS -D_CHIP_STM32F4)
+set(MIOSIX_CHIP_CXX_FLAGS -D_CHIP_STM32F4)
 
 # Select architecture specific files
 set(MIOSIX_CHIP_SRC
