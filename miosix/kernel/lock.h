@@ -42,6 +42,7 @@ inline bool isKernelPaused() noexcept;
 
 /**
  * \defgroup lock Low-level locking
+ * \ingroup Kernel
  * \brief Global Irq Lock, Pause Kernel lock
  * 
  * These classes define two global locks used for synchronization in the Miosix
@@ -70,6 +71,8 @@ inline bool isKernelPaused() noexcept;
  * 
  * Since these locks are both global, they have a high rate of contention, but
  * by converse they are very fast to take and release.
+ *
+ * \{
  */
 
 /**
@@ -745,6 +748,10 @@ public:
     DeepSleepLock(const DeepSleepLock&)=delete;
     DeepSleepLock& operator= (const DeepSleepLock&)=delete;
 };
+
+/**
+ * \}
+ */
 
 /**
  * \}
