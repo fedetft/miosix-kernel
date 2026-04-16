@@ -30,4 +30,5 @@ set(MIOSIX_BOARD_CXX_FLAGS -D_BOARD_SONY_NEWMAN)
 # built. Use <binary> or <hex> as placeolders, they will be replaced by the
 # build systems with the binary or hex file path repectively.
 # If a command is not specified, the build system will fallback to st-flash
-set(PROGRAM_CMDLINE perl -e 'print "\xe7\x91\x11\xc0"' > magic.bin; dfu-util -d 0fce:f0fa -a 0 -i 0 -s 0x08040000 -D main.bin; dfu-util -d 0fce:f0fa -a 0 -i 0 -s 0x080ffffc -D magic.bin; rm magic.bin)
+# TODO: fix for CMake
+#set(PROGRAM_CMDLINE perl -e 'print "\xe7\x91\x11\xc0"' > magic.bin; dfu-util -d 0fce:f0fa -a 0 -i 0 -s 0x08040000 -D main.bin; dfu-util -d 0fce:f0fa -a 0 -i 0 -s 0x080ffffc -D magic.bin; rm magic.bin)
