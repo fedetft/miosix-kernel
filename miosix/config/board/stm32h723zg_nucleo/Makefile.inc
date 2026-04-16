@@ -4,4 +4,4 @@
 ##
 
 ## Select linker script
-lINKER_SCRIPT := unikernel.ld
+LINKER_SCRIPT := unikernel.ld
