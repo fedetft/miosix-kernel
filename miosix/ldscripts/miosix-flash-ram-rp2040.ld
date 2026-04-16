@@ -29,6 +29,15 @@
  * This linker script behaves the same as themiosix-flash-ram.ld linker script
  * except for adding the .boot2 section at the start of flash, which is
  * necessary to boot the RP2040 microcontroller
+ *
+ * In summary, the assignment of sections to memory regions is as follows:
+ *   flash  .boot2
+ *          .text
+ *   ram    .irq_stack
+ *          .data
+ *          .bss
+ *          .heap
+ *          .process_pool
  */
 
 /* Default values for tunable variables */

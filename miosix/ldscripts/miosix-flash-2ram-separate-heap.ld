@@ -66,6 +66,14 @@
  * some of these global variables on the heap. This is an unfortunate effect
  * of the architectural contraint of having two noncontiguous RAM memory blocks
  * being forced upon us by hardware designers.
+ *
+ * In summary, the assignment of sections to memory regions is as follows:
+ *   flash  .text
+ *   ram1   .irq_stack
+ *          .data
+ *          .bss
+ *   ram2   .heap
+ *          .process_pool
  */
 
 /* Default values for tunable variables */

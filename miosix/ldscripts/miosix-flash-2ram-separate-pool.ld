@@ -51,6 +51,14 @@
  * It is also expected that if there are differences in speed between the two
  * RAM blocks (such as one being an internal RAM and the other being an external
  * one), the fastest be mapped to ram1, as it is used for the kernel.
+ *
+ * In summary, the assignment of sections to memory regions is as follows:
+ *   flash  .text
+ *   ram1   .irq_stack
+ *          .data
+ *          .bss
+ *          .heap
+ *   ram2   .process_pool
  */
 
 /* Default values for tunable variables */

@@ -29,6 +29,14 @@
  * This linker script supports the case where the chip provides one contiguous
  * block of volatile read/write memory that is used for everything.
  * A bootloader is needed to load the code in this RAM.
+ *
+ * In summary, the assignment of sections to memory regions is as follows:
+ *   ram    .text
+ *          .data
+ *          .bss
+ *          .heap
+ *          .irq_stack
+ *          .process_pool
  */
 
 /* Default values for tunable variables */

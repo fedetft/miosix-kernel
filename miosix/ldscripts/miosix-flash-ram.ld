@@ -32,6 +32,14 @@
  *   execution, most commonly a FLASH memory, called "flash" in the memory map
  * - One contiguous block of volatile read/write memory, most commonly SRAM
  *   that is called "ram" in the memory map
+ *
+ * In summary, the assignment of sections to memory regions is as follows:
+ *   flash  .text
+ *   ram    .irq_stack
+ *          .data
+ *          .bss
+ *          .heap
+ *          .process_pool
  */
 
 /* Default values for tunable variables */

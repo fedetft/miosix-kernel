@@ -56,6 +56,14 @@
  * heap as they'll all be placed in the large external RAM. You also get uniform
  * memory access latencies, except for the IRQ stack that will run from the much
  * faster internal SRAM, which is desirable.
+ *
+ * In summary, the assignment of sections to memory regions is as follows:
+ *   flash  .text
+ *   ram1   .irq_stack
+ *   ram2   .data
+ *          .bss
+ *          .heap
+ *          .process_pool
  */
 
 /* Default values for tunable variables */
