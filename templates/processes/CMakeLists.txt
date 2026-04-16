@@ -25,7 +25,10 @@
 
 cmake_minimum_required(VERSION 3.21)
 
+# Set the path to the Miosix kernel
 set(MIOSIX_KPATH ${CMAKE_SOURCE_DIR}/../../miosix)
+# Configure CMake toolchain and build type.
+# This must to be done before the project() command
 set(CMAKE_TOOLCHAIN_FILE ${MIOSIX_KPATH}/cmake/Toolchains/gcc.cmake)
 set(CMAKE_BUILD_TYPE "Release")
 
@@ -35,6 +38,7 @@ project(ProcessesExamples C CXX ASM)
 set(MIOSIX_OPT_BOARD stm32f407vg_stm32f4discovery)
 set(MIOSIX_LINKER_SCRIPT stm32_1m+192k_rom_processes.ld)
 
+# Include the Miosix kernel's project
 add_subdirectory(${MIOSIX_KPATH} miosix EXCLUDE_FROM_ALL)
 
 # Kernel level program
@@ -48,7 +52,7 @@ miosix_add_process(hello process_template/main.cpp)
 
 # RomFS image
 miosix_add_romfs_image(image
-    PROGRAM_DEFAULT
+    PROGRAM_DEFAULT # `make program' will flash the RomFs image
     IMAGE_NAME image
     DIR_NAME bin
     KERNEL main
