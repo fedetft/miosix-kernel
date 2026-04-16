@@ -14,6 +14,10 @@ LINKER_SCRIPT := unikernel.ld
 BOARD_SRC :=                                                 \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
+## Add a #define to allow querying board name
+BOARD_CFLAGS   := -D_BOARD_EFM32G222F128_GENERIC
+BOARD_CXXFLAGS := -D_BOARD_EFM32G222F128_GENERIC
+
 ## Select programmer command line
 ## This is the program that is invoked when the user types
 ## 'make program'
