@@ -34,11 +34,12 @@
 extern "C" {
 #endif
 
-/* Lightweight protection: mapped to PauseKernelLock */
-#if SYS_LIGHTWEIGHT_PROT
-/* bool is not available in C, use u32_t to store PauseKernelLock state */
-typedef u32_t sys_prot_t;
-#endif
+void sys_arch_protect();
+void sys_arch_unprotect();
+
+#define SYS_ARCH_DECL_PROTECT(lev)
+#define SYS_ARCH_PROTECT(lev) sys_arch_protect()
+#define SYS_ARCH_UNPROTECT(lev) sys_arch_unprotect()
 
 /* Mutexes: mapped to miosix::Mutex */
 #if !LWIP_COMPAT_MUTEX
