@@ -7,7 +7,8 @@
 /
 /----------------------------------------------------------------------------*/
 #ifndef _FFCONF
-#define _FFCONF 80960	/* Revision ID */
+#define _FFCONF 80286	/* Revision ID */
+#include "config/miosix_settings.h"
 
 
 /*---------------------------------------------------------------------------/
@@ -39,6 +40,9 @@
 #define	_USE_STRFUNC	0	/* 0:Disable or 1-2:Enable */
 /* To enable string functions, set _USE_STRFUNC to 1 or 2. */
 
+#define _USE_FIND		0
+/* This option switches filtered directory read functions, f_findfirst() and
+/  f_findnext(). (0:Disable, 1:Enable 2:Enable with matching altname[] too) */
 
 #define	_USE_MKFS		0	/* 0:Disable or 1:Enable */
 /* To enable f_mkfs() function, set _USE_MKFS to 1 and set _FS_READONLY to 0 */
@@ -47,6 +51,14 @@
 #define	_USE_FASTSEEK	0	/* 0:Disable or 1:Enable */
 /* To enable fast seek feature, set _USE_FASTSEEK to 1. */
 
+#define _USE_EXPAND	0
+/* This option switches f_expand function. (0:Disable or 1:Enable) */
+
+
+#define _USE_CHMOD	0
+/* This option switches attribute manipulation functions, f_chmod() and f_utime().
+/  (0:Disable or 1:Enable) Also _FS_READONLY needs to be 0 to enable this option. */
+
 
 #define _USE_LABEL		0	/* 0:Disable or 1:Enable */
 /* To enable volume label functions, set _USE_LAVEL to 1 */
@@ -54,6 +66,29 @@
 
 #define	_USE_FORWARD	0	/* 0:Disable or 1:Enable */
 /* To enable f_forward() function, set _USE_FORWARD to 1 and set _FS_TINY to 1. */
+
+#define _USE_STRFUNC	0
+#define _PRINT_LLI	1
+#define _PRINT_FLOAT	1
+#define _STRF_ENCODE	3
+/* _USE_STRFUNC switches string functions, f_gets(), f_putc(), f_puts() and
+/  f_printf().
+/
+/   0: Disable. _PRINT_LLI, _PRINT_FLOAT and _STRF_ENCODE have no effect.
+/   1: Enable without LF-CRLF conversion.
+/   2: Enable with LF-CRLF conversion.
+/
+/  _PRINT_LLI = 1 makes f_printf() support long long argument and _PRINT_FLOAT = 1/2
+/  makes f_printf() support floating point argument. These features want C99 or later.
+/  When FF_LFN_UNICODE >= 1 with LFN enabled, string functions convert the character
+/  encoding in it. _STRF_ENCODE selects assumption of character encoding ON THE FILE
+/  to be read/written via those functions.
+/
+/   0: ANSI/OEM in current CP
+/   1: Unicode in UTF-16LE
+/   2: Unicode in UTF-16BE
+/   3: Unicode in UTF-8
+*/
 
 
 /*---------------------------------------------------------------------------/
@@ -126,6 +161,15 @@
 /  This option has no effect when _LFN_UNICODE is 0. */
 
 
+
+#define _LFN_BUF		255
+#define _SFN_BUF		12
+/* This set of options defines size of file name members in the FILINFO structure
+/  which is used to read out directory items. These values should be suffcient for
+/  the file names to read. The maximum possible length of the read file name depends
+/  on character encoding. When LFN is not enabled, these options have no effect. */
+
+
 #define _FS_RPATH		0	/* 0 to 2 */
 /* The _FS_RPATH option configures relative path feature.
 /
@@ -143,6 +187,19 @@
 #define _VOLUMES	1
 /* Number of volumes (logical drives) to be used. */
 
+#define _STR_VOLUME_ID	0
+#define _VOLUME_STRS		"RAM","NAND","CF","SD","SD2","USB","USB2","USB3"
+/* _STR_VOLUME_ID switches support for volume ID in arbitrary strings.
+/  When _STR_VOLUME_ID is set to 1 or 2, arbitrary strings can be used as drive
+/  number in the path name. _VOLUME_STRS defines the volume ID strings for each
+/  logical drives. Number of items must not be less than _VOLUMES. Valid
+/  characters for the volume ID strings are A-Z, a-z and 0-9, however, they are
+/  compared in case-insensitive. If _STR_VOLUME_ID >= 1 and _VOLUME_STRS is
+/  not defined, a user defined volume string table is needed as:
+/
+/  const char* VolumeStr[_VOLUMES] = {"ram","flash","sd","usb",...
+*/
+
 
 #define	_MULTI_PARTITION	0	/* 0:Single partition, 1:Enable multiple partition */
 /* When set to 0, each volume is bound to the same physical drive number and
@@ -150,6 +207,7 @@
 / is tied to the partitions listed in VolToPart[]. */
 
 
+#define  _MIN_SS		512
 #define	_MAX_SS		512		/* 512, 1024, 2048 or 4096 */
 /* Maximum sector size to be handled.
 /  Always set 512 for memory card and hard disk but a larger value may be
@@ -157,6 +215,21 @@
 /  When _MAX_SS is larger than 512, it configures FatFs to variable sector size
 /  and GET_SECTOR_SIZE command must be implemented to the disk_ioctl() function. */
 
+
+#define _LBA64		_FS_EXFAT
+/* This option switches support for 64-bit LBA. (0:Disable or 1:Enable)
+/  To enable the 64-bit LBA, also exFAT needs to be enabled. (FF_FS_EXFAT == 1) */
+
+
+#define _MIN_GPT		0x10000000
+/* Minimum number of sectors to switch GPT as partitioning format in f_mkfs and
+/  f_fdisk function. 0x100000000 max. This option has no effect when FF_LBA64 == 0. */
+
+
+#define _USE_TRIM		0
+/* This option switches support for ATA-TRIM. (0:Disable or 1:Enable)
+/  To enable Trim function, also CTRL_TRIM command should be implemented to the
+/  disk_ioctl() function. */
 
 #define	_USE_ERASE	0	/* 0:Disable or 1:Enable */
 /* To enable sector erase feature, set _USE_ERASE to 1. Also CTRL_ERASE_SECTOR command
@@ -192,6 +265,15 @@
 /  and reduce code size.
 */
 
+//#define _FS_EXFAT		1 // Now in the miosix_settings.h configuration file
+/* This option switches support for exFAT filesystem. (0:Disable or 1:Enable)
+/  To enable exFAT, also LFN needs to be enabled. (_USE_LFN >= 1)
+/  Note that enabling exFAT discards ANSI C (C89) compatibility. */
+#if (_FS_EXFAT ^ _LBA64)
+// #error _FS_EXFAT need to be enabled in case of _LBA64 enabled. Also, off64_t is needed
+// By Raul Radu: off_t is guaranteed to be 8 bytes in miosix so no need for off64_t.
+#error _FS_EXFAT need to be enabled in case of _LBA64 enabled.
+#endif
 
 /* A header file that defines sync object types on the O/S, such as
 /  windows.h, ucos_ii.h and semphr.h, must be included prior to ff.h. */

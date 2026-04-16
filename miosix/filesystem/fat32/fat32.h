@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Terraneo Federico                               *
+ *   Copyright (C) 2026 by Terraneo Federico, Radu Raul                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -24,13 +24,15 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
+#include "filesystem/fatfs/ffconf.h"
 
+// #if _FS_EXFAT == 0 // Raul Radu: we want both extfat and fat32 to be available
 #ifndef FAT32_H
 #define	FAT32_H
 
 #include "filesystem/file.h"
 #include "kernel/sync.h"
-#include "ff.h"
+#include "filesystem/fatfs/ff.h"
 #include "miosix_settings.h"
 
 namespace miosix {
@@ -110,7 +112,11 @@ public:
     /**
      * \return true if the filesystem failed to mount 
      */
-    bool mountFailed() const { return failed; }
+    bool mountFailed() 
+    { 
+        return !(filesystem.fs_type == FS_FAT12 || filesystem.fs_type == FS_FAT16 
+            || filesystem.fs_type == FS_FAT32); 
+    }
     
     /**
      * Destructor
@@ -131,3 +137,4 @@ private:
 } //namespace miosix
 
 #endif //FAT32_H
+// #endif // Raul Radu: we want both extfat and fat32 to be available

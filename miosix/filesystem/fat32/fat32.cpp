@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2013 by Terraneo Federico                               *
+ *   Copyright (C) 2026 by Terraneo Federico, Radu Raul                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -24,7 +24,9 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
+#include "filesystem/fatfs/ffconf.h"
 
+// #if _FS_EXFAT == 0 // Raul Radu: we want both extfat and fat32 to be available
 #include "fat32.h"
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -95,7 +97,7 @@ public:
             first(true), unfinished(false)
     {
         //Make sure a closedir of an uninitialized dir won't do any damage
-        dir.fs=0;
+        dir.obj.fs=0;
         fi.lfname=lfn;
         fi.lfsize=sizeof(lfn);
     }
@@ -415,6 +417,10 @@ Fat32Fs::Fat32Fs(intrusive_ref_ptr<FileBase> disk)
 {
     filesystem.drv=disk;
     failed=f_mount(&filesystem,1,false)!=FR_OK;
+    
+    // In case of wrong file system type, make fail the mount
+    if(filesystem.fs_type != FS_FAT12 && filesystem.fs_type != FS_FAT16 && filesystem.fs_type != FS_FAT32)
+        failed = true; //TODO: Is it really a "NO FILESYSTEM?"
 }
 
 int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
@@ -586,3 +592,4 @@ int Fat32Fs::unlinkRmdirHelper(StringPart& name, bool delDir)
 #endif //WITH_FILESYSTEM
 
 } //namespace miosix
+// #endif // Raul Radu: removed since we want both ExFat and Fat32 simultaneously
