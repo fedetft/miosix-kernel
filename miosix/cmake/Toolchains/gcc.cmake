@@ -57,3 +57,17 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O2")
 set(CMAKE_ASM_FLAGS_MINSIZEREL "")
 set(CMAKE_C_FLAGS_MINSIZEREL "-Os")
 set(CMAKE_CXX_FLAGS_MINSIZEREL "-Os")
+
+# Check the compiler's version
+execute_process(COMMAND
+    perl ${CMAKE_CURRENT_LIST_DIR}/../../tools/compiler_check.pl 
+    ${CMAKE_C_COMPILER}
+    OUTPUT_VARIABLE MIOSIX_COMPILER_IS_COMPATIBLE
+)
+if(NOT MIOSIX_COMPILER_IS_COMPATIBLE EQUAL 0)
+    message(FATAL_ERROR
+        "You are using a too old or unsupported compiler. "
+        "Get the latest one from "
+        "https://miosix.org/wiki/index.php?title=Miosix_Toolchain"
+    )
+endif()
