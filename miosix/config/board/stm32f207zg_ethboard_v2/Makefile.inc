@@ -14,6 +14,6 @@ LINKER_SCRIPT := processes-xram.ld
 
 ## 4) Code + stack + heap in external RAM, Code runs *very* slow. Works only
 ##    with a booloader that forwards interrrupts @ 0x60000000
-##    (see miosix/_tools/bootloaders for one).
+##    (see tools/bootloaders for one).
 #LINKER_SCRIPT := unikernel-all-in-xram.ld
 #XRAM := -D__CODE_IN_XRAM

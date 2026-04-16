@@ -30,7 +30,7 @@ XRAM += -D__ENABLE_XRAM
 ## error message saying that 'make program' is not supported for that
 ## board.
 ifeq ($(LINKER_SCRIPT),unikernel-all-in-xram.ld)
-    PROG ?= $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
+    PROG ?= $(KPATH)/../tools/bootloaders/stm32/pc_loader/pc_loader \
             /dev/ttyUSB0 main.bin
 else
     PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0

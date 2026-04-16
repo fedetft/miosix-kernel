@@ -14,7 +14,7 @@ XRAM := -D__ENABLE_XRAM
 
 ## 3) Code + stack + heap in external RAM, Code runs *very* slow. Works only
 ##    with a booloader that forwards interrrupts @ 0x68000000
-##    (see miosix/_tools/bootloaders for one).
+##    (see miosix/tools/bootloaders for one).
 #LINKER_SCRIPT := unikernel-all-in-xram.ld
 #XRAM := -D__ENABLE_XRAM -D__CODE_IN_XRAM
 

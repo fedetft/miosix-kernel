@@ -45,7 +45,7 @@ it at another address will fail.
 
 Loading code using the bootloader in external RAM
 -------------------------------------------------
-1) Make sure Miosix is configured to run from the STM32'e external RAM:
+1) Make sure Miosix is configured to run from the STM32's external RAM:
 in miosix/config/Makefile.inc options:
 
 OPT_BOARD := stm32f103ze_stm3210e-eval
@@ -65,7 +65,7 @@ make
 the expected device name for the serial port is /dev/ttyUSB0,
 if not modify the line
 
-PROG ?= $(KPATH)/_tools/bootloaders/stm32/pc_loader/pc_loader \
+PROG ?= $(KPATH)/../tools/bootloaders/stm32/pc_loader/pc_loader \
             /dev/ttyUSB0 $(if $(ROMFS_DIR), image.bin, main.bin)
 
 in file miosix/arch/board/stm32f103ze_stm3210e-eval/Makefile.inc
@@ -84,12 +84,12 @@ interrupts @ 0x6800000, or Miosix will fail at the first interrupt.
 
 Then run openocd in a shell:
 
-sudo openocd -f miosix/arch/board/stm32f103ze_stm3210e-eval/openocd.cfg
+openocd -f miosix/arch/board/stm32f103ze_stm3210e-eval/openocd.cfg
 
 and in another shell type:
 
 arm-miosix-eabi-gdb main.elf
-target remote :3333
+target extended-remote :3333
 monitor soft_reset_halt
 load
 c
