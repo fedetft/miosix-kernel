@@ -131,9 +131,12 @@ if(LINKER_SCRIPT_IDX EQUAL -1)
     miosix_expected_item_in_list("Invalid linker script '${MIOSIX_LINKER_SCRIPT}' specified with MIOSIX_LINKER_SCRIPT" "${LINKER_SCRIPTS_ONLY_LIST}")
 endif()
 # Set compilation options based on linker scripts
-math(EXPR LINKER_SCRIPT_IDX "${LINKER_SCRIPT_IDX}+1")
 list(SUBLIST MIOSIX_LINKER_SCRIPT_LIST ${LINKER_SCRIPT_IDX} -1 LINKER_SCRIPT_OPTIONS)
 foreach(OPTION IN LISTS LINKER_SCRIPT_OPTIONS)
+    if(OPTION EQUAL "${MIOSIX_LINKER_SCRIPT}")
+        # first iteration, ignore
+        continue()
+    endif()
     if(OPTION MATCHES ".*\.ld$")
         break()
     endif()
