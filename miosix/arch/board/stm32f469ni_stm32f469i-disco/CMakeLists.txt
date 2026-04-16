@@ -1,5 +1,5 @@
 ##
-## CMakeLists.txt for board stm32f429zi_stm32f4discovery
+## CMakeLists.txt for board stm32f469ni_stm32f469i-disco
 ##
 
 # Directory with header files for this board
@@ -13,13 +13,15 @@ set(MIOSIX_LINKER_SCRIPT_LIST
     # 1) Code in FLASH, stack + heap in internal RAM
     unikernel.ld
     # 2) Code in FLASH, stack + heap in external RAM
-    unikernel-xram-8m.ld
-    # 3) Same as 2), but leaves the upper 2MB of RAM for the LCD framebuffers
-    unikernel-xram-6m.ld
-    # 4) Same as 1) but with the process pool
-    processes.ld            -DWITH_PROCESSES
+    unikernel-xram-16m.ld
+    # 3) Same as 2), but leaves the upper 4MB of RAM for the LCD framebuffers
+    unikernel-xram-12m.ld
+    # 4) Code in FLASH, kernel in internal RAM, process pool in external RAM
+    processes-xram.ld           -DWITH_PROCESSES
+    # 5) Code in FLASH, kernel and process pool in external RAM
+    processes-kernel-xram.ld    -DWITH_PROCESSES
 )
-set(MIOSIX_DEFAULT_LINKER_SCRIPT unikernel-xram-6m.ld)
+set(MIOSIX_DEFAULT_LINKER_SCRIPT unikernel-xram-12m.ld)
 
 # Select architecture specific files
 set(MIOSIX_BOARD_SRC
@@ -30,10 +32,11 @@ set(MIOSIX_BOARD_SRC
 )
 
 # Add a #define to allow querying board name
-# -D__ENABLE_XRAM is required even when not using external RAM, as it is used
-# for the LCD framebuffer
-set(MIOSIX_BOARD_C_FLAGS -D_BOARD_STM32F429ZI_STM32F4DISCOVERY -D__ENABLE_XRAM)
-set(MIOSIX_BOARD_CXX_FLAGS -D_BOARD_STM32F429ZI_STM32F4DISCOVERY -D__ENABLE_XRAM)
+# Uncommenting __ENABLE_XRAM enables the initialization of the external
+# 16MB SDRAM memory. Do not uncomment this even if you don't use a linker
+# script that requires it, as it is used for the LCD framebuffer.
+set(MIOSIX_BOARD_C_FLAGS -D_BOARD_STM32F469NI_STM32F469I_DISCO -D__ENABLE_XRAM)
+set(MIOSIX_BOARD_CXX_FLAGS -D_BOARD_STM32F469NI_STM32F469I_DISCO -D__ENABLE_XRAM)
 
 # Specify a custom flash command
 # This is the program that is invoked when the program-<target_name> target is

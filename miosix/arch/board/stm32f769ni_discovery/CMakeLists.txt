@@ -1,5 +1,5 @@
 ##
-## CMakeLists.txt for board stm32f767zi_nucleo
+## CMakeLists.txt for board stm32f769ni_discovery
 ##
 
 # Directory with header files for this board
@@ -8,7 +8,7 @@ set(MIOSIX_CHIP_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/chip/stm32f7)
 # Set the path to the multilib directory for this architecture (used by clang)
 set(MIOSIX_MULTILIB_PATH thumb/v7e-m+dp/hard)
 
-# The stm32f767 has the double precision FPU, so we will build for m7
+# The stm32f769 has the double precision FPU, so we will build for m7
 set(MIOSIX_CPU_FLAGS -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16)
 
 # Linker script options
@@ -16,10 +16,16 @@ set(MIOSIX_CPU_FLAGS -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16)
 # These options are automatically added to the C/CXX compiler command line when
 # that linker script is selected
 set(MIOSIX_LINKER_SCRIPT_LIST
+    # Option 1: IRQ stack in TCM SRAM, everything else in 16MB XRAM
+    unikernel-xram.ld   -D__ENABLE_XRAM
+    # Option 2: kernel in internal SRAM, process pool in 16MB XRAM
+    processes-xram.ld   -DWITH_PROCESSES -D__ENABLE_XRAM
+    # Option 3: everything in SRAM, XRAM not used
     unikernel.ld
-    processes.ld    -DWITH_PROCESSES
+    # Option 4: everything in SRAM+process pool, XRAM not used
+    processes.ld        -DWITH_PROCESSES
 )
-set(MIOSIX_DEFAULT_LINKER_SCRIPT unikernel.ld)
+set(MIOSIX_DEFAULT_LINKER_SCRIPT unikernel-xram.ld)
 
 # Select architecture specific files
 set(MIOSIX_BOARD_SRC
@@ -28,8 +34,8 @@ set(MIOSIX_BOARD_SRC
 )
 
 # Add a #define to allow querying board name
-set(MIOSIX_BOARD_C_FLAGS -D_BOARD_STM32F767ZI_NUCLEO)
-set(MIOSIX_BOARD_CXX_FLAGS -D_BOARD_STM32F767ZI_NUCLEO)
+set(MIOSIX_BOARD_C_FLAGS -D_BOARD_STM32F769NI_DISCO)
+set(MIOSIX_BOARD_CXX_FLAGS -D_BOARD_STM32F769NI_DISCO)
 
 # Specify a custom flash command
 # This is the program that is invoked when the program-<target_name> target is

@@ -1,5 +1,5 @@
 ##
-## CMakeLists.txt for board stm32f207ig_stm3220g-eval
+## CMakeLists.txt for board stm32f207zg_ethboard_v2
 ##
 
 # Directory with header files for this board
@@ -10,22 +10,16 @@ set(MIOSIX_CHIP_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/chip/stm32f2)
 # These options are automatically added to the C/CXX compiler command line when
 # that linker script is selected
 set(MIOSIX_LINKER_SCRIPT_LIST
-    # 1) Code in FLASH, stack + heap in internal RAM
-    unikernel.ld
+    # 1) Code in FLASH, Kernel in internal RAM, Process pool in XRAM
+    processes-xram.ld           -DWITH_PROCESSES
     # 2) Code in FLASH, IRQ stack, .data, .bss in internal RAM, heap in external RAM
-    unikernel-xram-heap.ld      -D__ENABLE_XRAM
-    # 3) Code in FLASH, IRQ stack in internal RAM, heap, data and bss in external RAM
-    unikernel-xram.ld           -D__ENABLE_XRAM
+    unikernel-xram-heap.ld
     # 4) Code + stack + heap in external RAM, Code runs *very* slow. Works only
-    #    with a booloader that forwards interrrupts @ 0x64000000
+    #    with a booloader that forwards interrrupts @ 0x60000000
     #    (see tools/bootloaders for one).
-    unikernel-all-in-xram.ld    -D__ENABLE_XRAM -D__CODE_IN_XRAM
-    # 5) Code in FLASH, kernel and process pool in internal RAM
-    processes.ld                -DWITH_PROCESSES
-    # 6) Code in FLASH, Kernel in internal RAM, Process pool in XRAM
-    processes-xram.ld           -DWITH_PROCESSES -D__ENABLE_XRAM
+    unikernel-all-in-xram.ld    -D__CODE_IN_XRAM
 )
-set(MIOSIX_DEFAULT_LINKER_SCRIPT unikernel-xram-heap.ld)
+set(MIOSIX_DEFAULT_LINKER_SCRIPT processes-xram.ld)
 
 # Select architecture specific files
 set(MIOSIX_BOARD_SRC
@@ -35,8 +29,8 @@ set(MIOSIX_BOARD_SRC
 )
 
 # Add a #define to allow querying board name
-set(MIOSIX_BOARD_C_FLAGS -D_BOARD_STM3220G_EVAL)
-set(MIOSIX_BOARD_CXX_FLAGS -D_BOARD_STM3220G_EVAL)
+set(MIOSIX_BOARD_C_FLAGS -D_BOARD_ETHBOARDV2)
+set(MIOSIX_BOARD_CXX_FLAGS -D_BOARD_ETHBOARDV2)
 
 # Specify a custom flash command
 # This is the program that is invoked when the program-<target_name> target is
