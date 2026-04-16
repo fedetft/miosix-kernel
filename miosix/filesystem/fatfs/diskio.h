@@ -12,9 +12,8 @@
 #define _USE_WRITE	1	/* 1: Enable disk_write function */
 #define _USE_IOCTL	1	/* 1: Enable disk_ioctl fucntion */
 
-#include "integer.h"
 #include <filesystem/file.h>
-#include "miosix_settings.h"
+#include "config/miosix_settings.h"
 
 #ifdef WITH_FILESYSTEM
 
