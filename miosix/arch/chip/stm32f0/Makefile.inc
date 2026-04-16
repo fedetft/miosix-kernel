@@ -16,7 +16,6 @@ CHIP_CXXFLAGS := -D_CHIP_STM32F0
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/common
-
 CHIP_SRC :=                                              \
 arch/cpu/armv6m/interfaces-impl/cpu.cpp                  \
 arch/cpu/common/cortexMx_interrupts.cpp                  \
