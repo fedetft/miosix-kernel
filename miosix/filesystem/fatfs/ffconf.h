@@ -216,7 +216,7 @@
 /  and GET_SECTOR_SIZE command must be implemented to the disk_ioctl() function. */
 
 
-#define _LBA64		_FS_EXFAT
+#define FF_LBA64		_FS_EXFAT
 /* This option switches support for 64-bit LBA. (0:Disable or 1:Enable)
 /  To enable the 64-bit LBA, also exFAT needs to be enabled. (FF_FS_EXFAT == 1) */
 
@@ -269,10 +269,10 @@
 /* This option switches support for exFAT filesystem. (0:Disable or 1:Enable)
 /  To enable exFAT, also LFN needs to be enabled. (_USE_LFN >= 1)
 /  Note that enabling exFAT discards ANSI C (C89) compatibility. */
-#if (_FS_EXFAT ^ _LBA64)
-// #error _FS_EXFAT need to be enabled in case of _LBA64 enabled. Also, off64_t is needed
+#if (_FS_EXFAT ^ FF_LBA64)
+// #error _FS_EXFAT need to be enabled in case of FF_LBA64 enabled. Also, off64_t is needed
 // By Raul Radu: off_t is guaranteed to be 8 bytes in miosix so no need for off64_t.
-#error _FS_EXFAT need to be enabled in case of _LBA64 enabled.
+#error _FS_EXFAT need to be enabled in case of FF_LBA64 enabled.
 #endif
 
 /* A header file that defines sync object types on the O/S, such as

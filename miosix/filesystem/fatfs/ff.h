@@ -39,11 +39,63 @@
 
 #include "config/miosix_settings.h"
 #include "ffconf.h"  /* FatFs configuration options */
-#include "integer.h" /* Basic integer types */
 
 #if _FATFS != _FFCONF
 #error Wrong configuration file (ffconf.h).
 #endif
+
+
+/* Integer types used for FatFs API */
+
+#if defined(_WIN32)		/* Windows VC++ (for development only) */
+#define FF_INTDEF 2
+#include <windows.h>
+typedef unsigned __int64 QWORD;
+#include <float.h>
+#define isnan(v) _isnan(v)
+#define isinf(v) (!_finite(v))
+
+#elif (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) || defined(__cplusplus)	/* C99 or later */
+#define FF_INTDEF 2
+#include <stdint.h>
+typedef unsigned int	UINT;	/* int must be 16-bit or 32-bit */
+typedef unsigned char	BYTE;	/* char must be 8-bit */
+typedef uint16_t		WORD;	/* 16-bit unsigned integer */
+typedef uint32_t		DWORD;	/* 32-bit unsigned integer */
+typedef uint64_t		QWORD;	/* 64-bit unsigned integer */
+typedef WORD			WCHAR;	/* UTF-16 character type */
+
+#else  	/* Earlier than C99 */
+#define FF_INTDEF 1
+typedef unsigned int	UINT;	/* int must be 16-bit or 32-bit */
+typedef unsigned char	BYTE;	/* char must be 8-bit */
+typedef unsigned short	WORD;	/* 16-bit unsigned integer */
+typedef unsigned long	DWORD;	/* 32-bit unsigned integer */
+typedef WORD			WCHAR;	/* UTF-16 character type */
+#endif
+
+
+/* Type of file size and LBA variables */
+
+#if _FS_EXFAT
+#if FF_INTDEF != 2
+#error exFAT feature wants C99 or later
+#endif
+typedef QWORD FSIZE_t;
+#if FF_LBA64
+typedef QWORD LBA_t;
+#else
+typedef DWORD LBA_t;
+#endif
+#else
+#if FF_LBA64
+#error exFAT needs to be enabled when enable 64-bit LBA
+#endif
+typedef DWORD FSIZE_t;
+typedef DWORD LBA_t;
+#endif
+
+
 
 #ifdef WITH_FILESYSTEM
 
