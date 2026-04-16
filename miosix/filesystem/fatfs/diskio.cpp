@@ -3,9 +3,10 @@
  * based on original files diskio.c and mmc.c by ChaN
  */
 
+#include "ff.h"
 #include "diskio.h"
 #include "filesystem/ioctl.h"
-#include "miosix_settings.h"
+#include "config/miosix_settings.h"
 
 #ifdef WITH_FILESYSTEM
 

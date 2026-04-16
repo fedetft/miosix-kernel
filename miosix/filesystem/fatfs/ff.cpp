@@ -658,7 +658,7 @@ const char *const VolumeStr[_VOLUMES] = {_VOLUME_STRS};	/* Pre-defined volume ID
 #endif
 #endif
 
-#if _LBA64
+#if FF_LBA64
 #if _MIN_GPT > 0x100000000
 #error Wrong _MIN_GPT setting
 #endif
@@ -3583,7 +3583,7 @@ static FRESULT follow_path (	/* FR_OK(0): successful, !=0: error code */
 /* GPT support functions                                                 */
 /*-----------------------------------------------------------------------*/
 
-#if _LBA64
+#if FF_LBA64
 
 /* Calculate CRC32 in byte-by-byte */
 
@@ -3729,7 +3729,7 @@ static FIND_RETURN find_volume (	/* Returns BS status found in the hosting drive
 
 	/* Sector 0 is not an FAT VBR or forced partition number wants a partition */
 
-#if _LBA64
+#if FF_LBA64
 	if (fs->win[MBR_Table + PTE_System] == 0xEE) {	/* GPT protective MBR? */
 		DWORD n_ent, v_ent, ofs;
 		QWORD pt_lba;
@@ -3786,7 +3786,7 @@ static FIND_RETURN find_volume (	/* Returns BS status found in the hosting drive
 		}
 
 		maxlba = ld_qword(fs->win + BPB_TotSecEx) + bsect;	/* Last LBA of the volume + 1 */
-		if (!_LBA64 && maxlba >= 0x100000000) return {FR_NO_FILESYSTEM, fmt};	/* (It cannot be accessed in 32-bit LBA) */
+		if (!FF_LBA64 && maxlba >= 0x100000000) return {FR_NO_FILESYSTEM, fmt};	/* (It cannot be accessed in 32-bit LBA) */
 
 		fs->fsize = ld_dword(fs->win + BPB_FatSzEx);	/* Number of sectors per FAT */
 
@@ -4029,7 +4029,7 @@ static FRESULT mount_volume (	/* FR_OK(0): successful, !=0: an error occurred */
 		}
 
 		maxlba = ld_qword(fs->win + BPB_TotSecEx) + bsect;	/* Last LBA of the volume + 1 */
-		if (!_LBA64 && maxlba >= 0x100000000) return FR_NO_FILESYSTEM;	/* (It cannot be accessed in 32-bit LBA) */
+		if (!FF_LBA64 && maxlba >= 0x100000000) return FR_NO_FILESYSTEM;	/* (It cannot be accessed in 32-bit LBA) */
 
 		fs->fsize = ld_dword(fs->win + BPB_FatSzEx);	/* Number of sectors per FAT */
 
@@ -6334,7 +6334,7 @@ static FRESULT create_partition (
 	/* Get physical drive size */
 	if (disk_ioctl(drv, GET_SECTOR_COUNT, &sz_drv) != RES_OK) return FR_DISK_ERR;
 
-#if _LBA64
+#if FF_LBA64
 	if (sz_drv >= _MIN_GPT) {	/* Create partitions in GPT format */
 		WORD ss;
 		UINT sz_ptbl, pi, si, ofs;
@@ -6539,7 +6539,7 @@ FRESULT f_mkfs (
 		/* Get partition location from the existing partition table */
 		if (disk_read(pdrv, buf, 0, 1) != RES_OK) LEAVE_MKFS(FR_DISK_ERR);	/* Load MBR */
 		if (ld_word(buf + BS_55AA) != 0xAA55) LEAVE_MKFS(FR_MKFS_ABORTED);	/* Check if MBR is valid */
-#if _LBA64
+#if FF_LBA64
 		if (buf[MBR_Table + PTE_System] == 0xEE) {	/* GPT protective MBR? */
 			DWORD n_ent, ofs;
 			QWORD pt_lba;
@@ -6573,7 +6573,7 @@ FRESULT f_mkfs (
 		if (disk_ioctl(pdrv, GET_SECTOR_COUNT, &sz_vol) != RES_OK) LEAVE_MKFS(FR_DISK_ERR);
 		if (!(fsopt & FM_SFD)) {	/* To be partitioned? */
 			/* Create a single-partition on the drive in this function */
-#if _LBA64
+#if FF_LBA64
 			if (sz_vol >= _MIN_GPT) {	/* Which partition type to create, MBR or GPT? */
 				fsopt |= 0x80;		/* Partitioning is in GPT */
 				b_vol = GPT_ALIGN / ss; sz_vol -= b_vol + GPT_ITEMS * SZ_GPTE / ss + 1;	/* Estimated partition offset and size */
@@ -6596,7 +6596,7 @@ FRESULT f_mkfs (
 				fsty = FS_EXFAT; break;
 			}
 		}
-#if _LBA64
+#if FF_LBA64
 		if (sz_vol >= 0x100000000) LEAVE_MKFS(FR_MKFS_ABORTED);	/* Too large volume for FAT/FAT32 */
 #endif
 		if (sz_au > 128) sz_au = 128;	/* Invalid AU for FAT/FAT32? */
@@ -6946,7 +6946,7 @@ FRESULT f_mkfs (
 
 	/* Update partition information */
 	if (_MULTI_PARTITION && ipart != 0) {	/* Volume is in the existing partition */
-		if (!_LBA64 || !(fsopt & 0x80)) {	/* Is the partition in MBR? */
+		if (!FF_LBA64 || !(fsopt & 0x80)) {	/* Is the partition in MBR? */
 			/* Update system ID in the partition table */
 			if (disk_read(pdrv, buf, 0, 1) != RES_OK) LEAVE_MKFS(FR_DISK_ERR);	/* Read the MBR */
 			buf[MBR_Table + (ipart - 1) * SZ_PTE + PTE_System] = sys;			/* Set system ID */
