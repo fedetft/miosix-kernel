@@ -7,5 +7,5 @@
 # Option 1: use the 96KB ram2 for the heap, no processes
 LINKER_SCRIPT := unikernel.ld
 
-# Option 1: use the 96KB ram2 for the process pool
+# Option 2: use the 96KB ram2 for the process pool
 #LINKER_SCRIPT := processes.ld
