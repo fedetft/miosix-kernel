@@ -1,3 +1,7 @@
+This file is kept for historic reasons.
+It keeps a changelog that was kept during the early development of Miosix
+from 2008 to 2016. It includes initial development from before git was used.
+
 Changelog for Miosix np embedded OS
 
 v2.02
