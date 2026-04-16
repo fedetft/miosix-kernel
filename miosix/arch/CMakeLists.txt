@@ -30,6 +30,7 @@ set(MIOSIX_BOARDS
     stm32f407vg_stm32f4discovery
     stm32f429zi_stm32f4discovery
     stm32f767zi_nucleo
+    stm32f207ig_stm3220g-eval
 )
 
 option(MIOSIX_PRINT_BOARD_LIST "Prints a list of the available boards" OFF)
