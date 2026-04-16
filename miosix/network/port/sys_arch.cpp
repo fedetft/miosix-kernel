@@ -36,19 +36,13 @@
 
 using namespace miosix;
 
-// These functions are friends of PauseKernelLock
-namespace miosix {
-bool networkLockImpl() { return PauseKernelLock::pushLock(); }
-void networkUnlockImpl(bool pval) {
-    if (!pval)
-        PauseKernelLock::unlock();
-}
-} // namespace miosix
-
+// The following functions need C linkage as they are called from lwIP C code
 extern "C" {
 
+static KernelMutex *critical_section_mutex;
+
 void sys_init() {
-    // Nothing to initialize
+    critical_section_mutex = new KernelMutex(MutexOptions::RECURSIVE);
 }
 
 u32_t sys_now() {
@@ -62,8 +56,13 @@ u32_t sys_jiffies() {
 
 /* Lightweight protection functions */
 
-sys_prot_t sys_arch_protect() { return networkLockImpl(); }
-void sys_arch_unprotect(sys_prot_t pval) { networkUnlockImpl(pval); }
+void sys_arch_protect() {
+    critical_section_mutex->lock();
+}
+
+void sys_arch_unprotect() {
+    critical_section_mutex->unlock();
+}
 
 /* Thread functions */
 

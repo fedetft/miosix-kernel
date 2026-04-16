@@ -662,8 +662,6 @@ private:
     /// These functions need pushLock and unlock
     friend void mallocLockImpl();
     friend void mallocUnlockImpl();
-    friend bool networkLockImpl();
-    friend void networkUnlockImpl(bool);
 };
 
 /**
