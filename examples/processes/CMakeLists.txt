@@ -33,7 +33,7 @@ project(ProcessesExamples C CXX ASM)
 
 # Set Miosix definitions and options
 set(MIOSIX_OPT_BOARD stm32f407vg_stm32f4discovery)
-set(MIOSIX_LINKER_SCRIPT stm32_1m+192k_rom_processes.ld)
+set(MIOSIX_LINKER_SCRIPT processes.ld)
 
 add_subdirectory(${MIOSIX_KPATH} miosix EXCLUDE_FROM_ALL)
 

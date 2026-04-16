@@ -28,12 +28,12 @@ set(MIOSIX_CHIP_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/chip/stm32f4)
 
 # Linker script type
 set(MIOSIX_LINKER_SCRIPT_LIST
-    stm32_2m+256k_rom.ld
-    stm32_2m+256k_rom_processes.ld
-    stm32_2m+8m_xram.ld
-    stm32_2m+6m_xram.ld
+    unikernel.ld
+    unikernel-xram-6m.ld
+    unikernel-xram-8m.ld
+    processes.ld
 )
-set(MIOSIX_DEFAULT_LINKER_SCRIPT stm32_2m+6m_xram.ld)
+set(MIOSIX_DEFAULT_LINKER_SCRIPT unikernel-xram-6m.ld)
 
 # Uncommenting __ENABLE_XRAM enables the initialization of the external
 # 8MB SDRAM memory. Do not uncomment this even if you don't use a linker

@@ -31,10 +31,10 @@ set(MIOSIX_CPU_FLAGS -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16)
 
 # Linker script type
 set(MIOSIX_LINKER_SCRIPT_LIST
-    stm32_2m+384k_ram.ld
-    stm32_2m+384k_ram_processes.ld
+    unikernel.ld
+    processes.ld
 )
-set(MIOSIX_DEFAULT_LINKER_SCRIPT stm32_2m+384k_ram.ld)
+set(MIOSIX_DEFAULT_LINKER_SCRIPT unikernel.ld)
 
 # Uncommenting __ENABLE_XRAM enables the initialization of the external
 # 8MB SDRAM memory. Do not uncomment this even if you don't use a linker

@@ -26,16 +26,12 @@
 # Directory with header files for this board
 set(MIOSIX_CHIP_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/chip/rp2040)
 
-# Linker script options:
-# 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
-# 2) Code + stack + heap in internal RAM (file *_ram.ld)
-# 3) Same as 1) but space has been reserved for a process pool, allowing
-#    to configure the kernel with "#define WITH_PROCESSES"
+# Linker script options
 set(MIOSIX_LINKER_SCRIPT_LIST
-    rp2040_2M+264k_rom.ld
-    rp2040_2M+264k_processes.ld
+    unikernel.ld
+    processes.ld
 )
-set(MIOSIX_DEFAULT_LINKER_SCRIPT rp2040_2M+264k_rom.ld)
+set(MIOSIX_DEFAULT_LINKER_SCRIPT unikernel.ld)
 
 # Board variant for selecting either the "plain" Pico or Pico W
 set(MIOSIX_BOARD_VARIANT_LIST

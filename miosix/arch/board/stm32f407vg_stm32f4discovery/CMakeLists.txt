@@ -26,17 +26,12 @@
 # Directory with header files for this board
 set(MIOSIX_CHIP_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/chip/stm32f4)
 
-# Linker script options:
-# 1) Code in FLASH, stack + heap in internal RAM (file *_rom.ld)
-# 2) Code + stack + heap in internal RAM (file *_ram.ld)
-# 3) Same as 1) but space has been reserved for a process pool, allowing
-#    to configure the kernel with "#define WITH_PROCESSES"
+# Linker script options
 set(MIOSIX_LINKER_SCRIPT_LIST
-    stm32_1m+192k_rom.ld
-    stm32_1m+192k_ram.ld
-    stm32_1m+192k_rom_processes.ld
+    unikernel.ld
+    processes.ld
 )
-set(MIOSIX_DEFAULT_LINKER_SCRIPT stm32_1m+192k_rom.ld)
+set(MIOSIX_DEFAULT_LINKER_SCRIPT unikernel.ld)
 
 # Select architecture specific files
 set(MIOSIX_BOARD_SRC
