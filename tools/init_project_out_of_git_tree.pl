@@ -8,7 +8,7 @@
 #
 # To use this script, open a shell in the directory where you want the
 # project to be created and run
-# perl <path to the kernel>/miosix/_tools/init_project_out_of_source_tree.pl
+# perl <path to the kernel>/tools/init_project_out_of_git_tree.pl
 
 use warnings;
 use strict;
@@ -22,10 +22,14 @@ use File::Spec;
 my $target=cwd();
 
 # Get the kernel top level directory from the script path. The script must be
-# placed in the miosix/_tools subdirectory of the Miosix git repo
-my $source=dirname(abs_path($0));
-die "Can't locate the kernel directory\n" unless($source =~ /(\\|\/)miosix-kernel(\\|\/)tools$/);
-$source =~ s/(\\|\/)tools$//;
+# placed in the tools subdirectory of the Miosix git repo
+my $script_path=dirname(abs_path($0));
+die "Can't locate the kernel directory\n" unless($script_path =~ /(\\|\/)tools$/);
+(my $repo_path = $script_path) =~ s/(\\|\/)tools$//;
+my $kpath = "$repo_path/miosix";
+die "Can't locate the kernel directory\n" unless(-d $kpath);
+my $source = "$repo_path/templates/simple";
+die "Can't locate the simple example directory\n" unless(-d $source);
 die "The project directory must be outside of the kernel tree\n" if(index($target,$source)==0);
 
 die "Error: file main.cpp already exists\n" if -e "main.cpp";
@@ -45,12 +49,12 @@ sub copy_and_fixup_makefile
 	# because the generated Makefile may be put in a public git repository that
 	# has the miosix kernel as a submodule, and it would be bad to put an
 	# absolute path in a git repo, or a path that is only usable from windows
-	my $relpath=File::Spec->abs2rel($source,$target);
+	my $relpath=File::Spec->abs2rel($kpath,$target);
 	$relpath =~ s/\\/\//; # Force the use of / as path separator
 	while(<$in>)
 	{
-		s/^KPATH := .*miosix$/KPATH := $relpath\/miosix/;
-		s/^CONFPATH := \$\(KPATH\)$/CONFPATH := \./;
+		s/^KPATH := .*$/KPATH := $relpath/;
+		s/^CONFPATH := .*$/CONFPATH := ./;
 		print $out "$_";
 	}
 	close($in);
@@ -64,22 +68,23 @@ sub copy_and_fixup_cmake
 	my ($in_name,$out_name)=@_;
 	open(my $in ,'<', $in_name) or die $!;
 	open(my $out,'>', $out_name) or die $!;
-	my $relpath=File::Spec->abs2rel($source,$target);
+	my $relpath=File::Spec->abs2rel($kpath,$target);
 	$relpath =~ s/\\/\//;
 	while(<$in>)
 	{
-		s/^set\(MIOSIX_KPATH \$\{CMAKE_SOURCE_DIR\}\/.*miosix CACHE PATH/set(MIOSIX_KPATH \$\{CMAKE_SOURCE_DIR\}\/$relpath\/miosix CACHE PATH/;
+		s/^set\(MIOSIX_KPATH [^)]+\)$/set(MIOSIX_KPATH \${CMAKE_SOURCE_DIR}\/$relpath)/;
+		s/# set\(MIOSIX_USER_CONFIG_PATH [^)]+\)$/set(MIOSIX_USER_CONFIG_PATH \${CMAKE_SOURCE_DIR}\/config)/;
 		print $out "$_";
 	}
 	close $in;
 	close $out;
 }
 
-copy("$source/templates/simple/main.cpp","$target/main.cpp") or die;
-copy_and_fixup_makefile("$source/templates/simple/Makefile","$target/Makefile");
-copy_and_fixup_cmake("$source/templates/simple/CMakeLists.txt","$target/CMakeLists.txt");
-dircopy("$source/miosix/config","$target/config") or die;
+copy("$source/main.cpp","$target/main.cpp") or die;
+copy_and_fixup_makefile("$source/Makefile","$target/Makefile");
+copy_and_fixup_cmake("$source/CMakeLists.txt","$target/CMakeLists.txt");
+dircopy("$kpath/config","$target/config") or die;
 
 print "Successfully created Miosix project\n";
 print "Target directory: $target\n";
-print "Kernel directory: $source\n";
+print "Kernel directory: $kpath\n";
