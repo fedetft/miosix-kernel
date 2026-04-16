@@ -74,11 +74,12 @@ function(miosix_link_target TARGET)
     add_custom_target(${TARGET}_bin ALL DEPENDS ${TARGET}.bin)
 
     # Print size of .elf
+    get_target_property(MIOSIX_SOURCE_DIR miosix SOURCE_DIR)
     if(NOT LINK_TGT_NO_SIZE)
         add_custom_command(
             TARGET ${TARGET}
             POST_BUILD
-            COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${TARGET}>
+            COMMAND perl ${MIOSIX_SOURCE_DIR}/tools/miosix_size.pl $<TARGET_FILE:${TARGET}>
             COMMENT "Computing $<TARGET_FILE_NAME:${TARGET}> size"
             VERBATIM
         )
