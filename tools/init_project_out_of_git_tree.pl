@@ -24,12 +24,13 @@ my $target=cwd();
 # Get the kernel top level directory from the script path. The script must be
 # placed in the miosix/_tools subdirectory of the Miosix git repo
 my $source=dirname(abs_path($0));
-die "Can't locate the kernel directory\n" unless($source =~ /(\\|\/)miosix(\\|\/)_tools$/);
-$source =~ s/(\\|\/)miosix(\\|\/)_tools$//;
+die "Can't locate the kernel directory\n" unless($source =~ /(\\|\/)miosix-kernel(\\|\/)tools$/);
+$source =~ s/(\\|\/)tools$//;
 die "The project directory must be outside of the kernel tree\n" if(index($target,$source)==0);
 
 die "Error: file main.cpp already exists\n" if -e "main.cpp";
 die "Error: file Makefile already exists\n" if -e "Makefile";
+die "Error: file CMakeLists.txt already exists\n" if -e "CMakeLists.txt";
 die "Error: directory config already exists\n" if -e "config";
 
 # Copy the Makefile fixing the KPATH and CONFPATH lines. This is what makes
@@ -48,7 +49,7 @@ sub copy_and_fixup_makefile
 	$relpath =~ s/\\/\//; # Force the use of / as path separator
 	while(<$in>)
 	{
-		s/^KPATH := miosix$/KPATH := $relpath\/miosix/;
+		s/^KPATH := .*miosix$/KPATH := $relpath\/miosix/;
 		s/^CONFPATH := \$\(KPATH\)$/CONFPATH := \./;
 		print $out "$_";
 	}
@@ -67,16 +68,16 @@ sub copy_and_fixup_cmake
 	$relpath =~ s/\\/\//;
 	while(<$in>)
 	{
-		s/^set\(MIOSIX_KPATH miosix\b/set(MIOSIX_KPATH $relpath\/miosix/;
+		s/^set\(MIOSIX_KPATH \$\{CMAKE_SOURCE_DIR\}\/.*miosix CACHE PATH/set(MIOSIX_KPATH \$\{CMAKE_SOURCE_DIR\}\/$relpath\/miosix CACHE PATH/;
 		print $out "$_";
 	}
 	close $in;
 	close $out;
 }
 
-copy("$source/main.cpp","$target/main.cpp") or die;
-copy_and_fixup_makefile("$source/Makefile","$target/Makefile");
-copy_and_fixup_cmake("$source/CMakeLists.txt","$target/CMakeLists.txt");
+copy("$source/templates/simple/main.cpp","$target/main.cpp") or die;
+copy_and_fixup_makefile("$source/templates/simple/Makefile","$target/Makefile");
+copy_and_fixup_cmake("$source/templates/simple/CMakeLists.txt","$target/CMakeLists.txt");
 dircopy("$source/miosix/config","$target/config") or die;
 
 print "Successfully created Miosix project\n";
